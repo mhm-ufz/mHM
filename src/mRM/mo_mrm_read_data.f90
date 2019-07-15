@@ -50,15 +50,18 @@ contains
   subroutine mrm_read_L0_data(do_reinit, do_readlatlon, do_readlcover)
 
     use mo_append, only : append
-    use mo_common_constants, only : nodata_i4, nodata_dp
-    use mo_common_read_data, only : read_dem, read_lcover
-    use mo_common_variables, only : Grid, L0_Basin, L0_LCover, dirMorpho, level0, nBasins, processMatrix
-    use mo_mpr_file, only: file_slope, uslope
+    use mo_common_constants, only : nodata_i4
+#ifndef MRM2MHM
+    use mo_common_constants, only : nodata_dp
     use mo_mpr_global_variables, only: L0_slope
+#endif
+    use mo_common_read_data, only : read_dem, read_lcover
+    use mo_common_variables, only : Grid, L0_LCover, dirMorpho, level0, domainMeta, processMatrix
+    use mo_mpr_file, only: file_slope, uslope
     use mo_message, only : message
     use mo_mrm_file, only : file_facc, file_fdir, &
                             file_gaugeloc, ufacc, ufdir, ugaugeloc
-    use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, basin_mrm
+    use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, domain_mrm
     use mo_read_latlon, only : read_latlon
     use mo_read_spatial_data, only : read_spatial_data_ascii
     use mo_string_utils, only : num2str
@@ -71,7 +74,7 @@ contains
 
     logical, intent(in) :: do_readlcover
 
-    integer(i4) :: iBasin
+    integer(i4) ::domainID, iDomain
 
     integer(i4) :: iVar
 
@@ -83,7 +86,9 @@ contains
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
 
+#ifndef MRM2MHM
     real(dp), dimension(:, :), allocatable :: data_dp_2d
+#endif
 
     integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
 
@@ -91,11 +96,11 @@ contains
 
     logical, dimension(:, :), allocatable :: mask_global
 
-    type(Grid), pointer :: level0_iBasin => null()
+    type(Grid), pointer :: level0_iDomain => null()
 
 
     ! ************************************************
-    ! READ SPATIAL DATA FOR EACH BASIN
+    ! READ SPATIAL DATA FOR EACH DOMAIN
     ! ************************************************
     if (do_reinit) then
       call read_dem()
@@ -111,43 +116,43 @@ contains
       deallocate(dataMatrix_i4)
     end if
 
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
 
-      level0_iBasin => level0(L0_Basin(iBasin))
+      level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
 
+      ! ToDo: check if change is correct
       ! check whether L0 data is shared
-      if (iBasin .gt. 1) then
-        if (L0_Basin(iBasin) .eq. L0_Basin(iBasin - 1)) then
-          !
-          call message('      Using data of basin ', &
-                  trim(adjustl(num2str(L0_Basin(iBasin)))), ' for basin: ',&
-                  trim(adjustl(num2str(iBasin))), '...')
-          cycle
-          !
-        end if
+      if (domainMeta%L0DataFrom(iDomain) < iDomain) then
+        !
+        call message('      Using data of domain ', &
+                trim(adjustl(num2str(domainMeta%indices(domainMeta%L0DataFrom(iDomain))))), ' for domain: ',&
+                trim(adjustl(num2str(domainID))), '...')
+        cycle
+        !
       end if
       !
-      call message('      Reading data for basin: ', trim(adjustl(num2str(iBasin))), ' ...')
+      call message('      Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
 
       if (do_readlatlon) then
-        ! read lat lon coordinates of each basin
-        call read_latlon(iBasin, "lon_l0", "lat_l0", "level0", level0_iBasin)
+        ! read lat lon coordinates of each domain
+        call read_latlon(iDomain, "lon_l0", "lat_l0", "level0", level0_iDomain)
       end if
 
       ! read fAcc, fDir, gaugeLoc
       do iVar = 1, 4
         select case (iVar)
         case(1) ! flow accumulation
-          fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_facc))
+          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_facc))
           nunit = ufacc
         case(2) ! flow direction
-          fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_fdir))
+          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_fdir))
           nunit = ufdir
         case(3) ! location of gauging stations
-          fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_gaugeloc))
+          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_gaugeloc))
           nunit = ugaugeloc
        case(4)
-          fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_slope))
+          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_slope))
           nunit = uslope
        end select
 
@@ -155,8 +160,8 @@ contains
           !
           ! reading and transposing
           call read_spatial_data_ascii(trim(fName), nunit, &
-               level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-               level0_iBasin%yllcorner, level0_iBasin%cellsize, data_i4_2d, mask_2d)
+               level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+               level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
 
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
@@ -167,12 +172,12 @@ contains
        if ((iVar .eq. 4) .and. (processMatrix(8, 1) .eq. 3)) then
           ! reading
           call read_spatial_data_ascii(trim(fName), nunit, &
-               level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-               level0_iBasin%yllcorner, level0_iBasin%cellsize, data_dp_2d, mask_2d)
+               level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+               level0_iDomain%yllcorner, level0_iDomain%cellsize, data_dp_2d, mask_2d)
           ! put global nodata value into array (probably not all grid cells have values)
           data_dp_2d = merge(data_dp_2d, nodata_dp, mask_2d)
           ! put data in variable
-          call append(L0_slope, pack(data_dp_2d, level0_iBasin%mask))
+          call append(L0_slope, pack(data_dp_2d, level0_iDomain%mask))
 
           ! deallocate arrays
           deallocate(data_dp_2d, mask_2d)
@@ -182,49 +187,49 @@ contains
         ! put data into global L0 variable
         select case (iVar)
         case(1) ! flow accumulation
-          call append(L0_fAcc, pack(data_i4_2d, level0_iBasin%mask))
+          call append(L0_fAcc, pack(data_i4_2d, level0_iDomain%mask))
         case(2) ! flow direction
           ! rotate flow direction and any other variable with directions
           ! NOTE: ONLY when ASCII files are read
           call rotate_fdir_variable(data_i4_2d)
           ! append
-          call append(L0_fDir, pack(data_i4_2d, level0_iBasin%mask))
+          call append(L0_fDir, pack(data_i4_2d, level0_iDomain%mask))
         case(3) ! location of evaluation and inflow gauging stations
           ! evaluation gauges
           ! Input data check
-          do iGauge = 1, basin_mrm(iBasin)%nGauges
+          do iGauge = 1, domain_mrm(iDomain)%nGauges
             ! If gaugeId is found in gauging location file?
-            if (.not. any(data_i4_2d .EQ. basin_mrm(iBasin)%gaugeIdList(iGauge))) then
+            if (.not. any(data_i4_2d .EQ. domain_mrm(iDomain)%gaugeIdList(iGauge))) then
               call message()
-              call message('***ERROR: Gauge ID "', trim(adjustl(num2str(basin_mrm(iBasin)%gaugeIdList(iGauge)))), &
+              call message('***ERROR: Gauge ID "', trim(adjustl(num2str(domain_mrm(iDomain)%gaugeIdList(iGauge)))), &
                       '" not found in ')
               call message('          Gauge location input file: ', &
-                      trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_gaugeloc)))
+                      trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_gaugeloc)))
               stop
             end if
           end do
 
-          call append(L0_gaugeLoc, pack(data_i4_2d, level0_iBasin%mask))
+          call append(L0_gaugeLoc, pack(data_i4_2d, level0_iDomain%mask))
 
           ! inflow gauges
-          ! if no inflow gauge for this subbasin exists still matirx with dim of subbasin has to be paded
-          if (basin_mrm(iBasin)%nInflowGauges .GT. 0_i4) then
+          ! if no inflow gauge for this subdomain exists still matirx with dim of subdomain has to be paded
+          if (domain_mrm(iDomain)%nInflowGauges .GT. 0_i4) then
             ! Input data check
-            do iGauge = 1, basin_mrm(iBasin)%nInflowGauges
+            do iGauge = 1, domain_mrm(iDomain)%nInflowGauges
               ! If InflowGaugeId is found in gauging location file?
-              if (.not. any(data_i4_2d .EQ. basin_mrm(iBasin)%InflowGaugeIdList(iGauge))) then
+              if (.not. any(data_i4_2d .EQ. domain_mrm(iDomain)%InflowGaugeIdList(iGauge))) then
                 call message()
                 call message('***ERROR: Inflow Gauge ID "', &
-                        trim(adjustl(num2str(basin_mrm(iBasin)%InflowGaugeIdList(iGauge)))), &
+                        trim(adjustl(num2str(domain_mrm(iDomain)%InflowGaugeIdList(iGauge)))), &
                         '" not found in ')
                 call message('          Gauge location input file: ', &
-                        trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_gaugeloc)))
+                        trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_gaugeloc)))
                 stop 1
               end if
             end do
           end if
 
-          call append(L0_InflowGaugeLoc, pack(data_i4_2d, level0_iBasin%mask))
+          call append(L0_InflowGaugeLoc, pack(data_i4_2d, level0_iDomain%mask))
 
         end select
         !
@@ -261,10 +266,10 @@ contains
     use mo_append, only : paste
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : evalPer, nTstepDay, opti_function, optimize, simPer
-    use mo_common_variables, only : nBasins
+    use mo_common_variables, only : domainMeta
     use mo_message, only : message
     use mo_mrm_file, only : udischarge
-    use mo_mrm_global_variables, only : InflowGauge, gauge, mRM_runoff, nGaugesTotal, &
+    use mo_mrm_global_variables, only : InflowGauge, gauge, mRM_runoff, nGaugesLocal, &
                                         nInflowGaugesTotal, nMeasPerDay
     use mo_read_timeseries, only : read_timeseries
     use mo_string_utils, only : num2str
@@ -273,7 +278,7 @@ contains
 
     integer(i4) :: iGauge
 
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain
 
     integer(i4) :: maxTimeSteps
 
@@ -290,17 +295,17 @@ contains
     !----------------------------------------------------------
     ! INITIALIZE RUNOFF
     !----------------------------------------------------------
-    maxTimeSteps = maxval(simPer(1 : nBasins)%julEnd - simPer(1 : nBasins)%julStart + 1) * nTstepDay
-    allocate(mRM_runoff(maxTimeSteps, nGaugesTotal))
+    maxTimeSteps = maxval(simPer(1 : domainMeta%nDomains)%julEnd - simPer(1 : domainMeta%nDomains)%julStart + 1) * nTstepDay
+    allocate(mRM_runoff(maxTimeSteps, nGaugesLocal))
     mRM_runoff = nodata_dp
 
     ! READ GAUGE DATA
-    do iGauge = 1, nGaugesTotal
-      ! get basin id
-      iBasin = gauge%basinId(iGauge)
+    do iGauge = 1, nGaugesLocal
+      ! get domain id
+      iDomain = gauge%domainId(iGauge)
       ! get start and end dates
-      start_tmp = (/evalPer(iBasin)%yStart, evalPer(iBasin)%mStart, evalPer(iBasin)%dStart/)
-      end_tmp = (/evalPer(iBasin)%yEnd, evalPer(iBasin)%mEnd, evalPer(iBasin)%dEnd  /)
+      start_tmp = (/evalPer(iDomain)%yStart, evalPer(iDomain)%mStart, evalPer(iDomain)%dStart/)
+      end_tmp = (/evalPer(iDomain)%yEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%dEnd  /)
       ! evaluation gauge
       fName = trim(adjustl(gauge%fname(iGauge)))
       call read_timeseries(trim(fName), udischarge, &
@@ -313,18 +318,18 @@ contains
     !
     ! inflow gauge
     !
-    ! in mhm call InflowGauge%Q has to be initialized -- dummy allocation with period of basin 1 and initialization
+    ! in mhm call InflowGauge%Q has to be initialized -- dummy allocation with period of domain 1 and initialization
     if (nInflowGaugesTotal .EQ. 0) then
       allocate(data_dp_1d(maxval(simPer(:)%julEnd - simPer(:)%julStart + 1)))
       data_dp_1d = nodata_dp
       call paste(InflowGauge%Q, data_dp_1d, nodata_dp)
     else
       do iGauge = 1, nInflowGaugesTotal
-        ! get basin id
-        iBasin = InflowGauge%basinId(iGauge)
+        ! get domain id
+        iDomain = InflowGauge%domainId(iGauge)
         ! get start and end dates
-        start_tmp = (/simPer(iBasin)%yStart, simPer(iBasin)%mStart, simPer(iBasin)%dStart/)
-        end_tmp = (/simPer(iBasin)%yEnd, simPer(iBasin)%mEnd, simPer(iBasin)%dEnd  /)
+        start_tmp = (/simPer(iDomain)%yStart, simPer(iDomain)%mStart, simPer(iDomain)%dStart/)
+        end_tmp = (/simPer(iDomain)%yEnd, simPer(iDomain)%mEnd, simPer(iDomain)%dEnd  /)
         ! inflow gauge
         fName = trim(adjustl(InflowGauge%fname(iGauge)))
         call read_timeseries(trim(fName), udischarge, &
@@ -333,8 +338,8 @@ contains
         if (.NOT. (all(mask_1d))) then
           call message()
           call message('***ERROR: Nodata values in inflow gauge time series. File: ', trim(fName))
-          call message('          During simulation period from ', num2str(simPer(iBasin)%yStart) &
-                  , ' to ', num2str(simPer(iBasin)%yEnd))
+          call message('          During simulation period from ', num2str(simPer(iDomain)%yStart) &
+                  , ' to ', num2str(simPer(iDomain)%yEnd))
           stop
         end if
         data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
@@ -359,7 +364,7 @@ contains
   !>       and then routed through the stream network.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin" basin id
+  !>       \param[in] "integer(i4) :: iDomain" domain id
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -371,7 +376,7 @@ contains
   ! Stephan Thober  Sep 2016 - added ALMA convention
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine mrm_read_total_runoff(iBasin)
+  subroutine mrm_read_total_runoff(iDomain)
 
     use mo_append, only : append
     use mo_common_constants, only : HourSecs, nodata_dp
@@ -383,8 +388,8 @@ contains
 
     implicit none
 
-    ! basin id
-    integer(i4), intent(in) :: iBasin
+    ! domain id
+    integer(i4), intent(in) :: iDomain
 
     integer(i4) :: tt
 
@@ -401,14 +406,14 @@ contains
 
     if (timestep .eq. 1) nctimestep = -4 ! hourly input
     if (timestep .eq. 24) nctimestep = -1 ! daily input
-    call read_forcing_nc(trim(dirTotalRunoff(iBasin)), level1(iBasin)%nrows, level1(iBasin)%ncols, &
-            varnameTotalRunoff, level1(iBasin)%mask, L1_data, target_period = simPer(iBasin), &
+    call read_forcing_nc(trim(dirTotalRunoff(iDomain)), level1(iDomain)%nrows, level1(iDomain)%ncols, &
+            varnameTotalRunoff, level1(iDomain)%mask, L1_data, target_period = simPer(iDomain), &
             nctimestep = nctimestep, filename = filenameTotalRunoff)
     ! pack variables
     nTimeSteps = size(L1_data, 3)
-    allocate(L1_data_packed(level1(iBasin)%nCells, nTimeSteps))
+    allocate(L1_data_packed(level1(iDomain)%nCells, nTimeSteps))
     do tt = 1, nTimeSteps
-      L1_data_packed(:, tt) = pack(L1_data(:, :, tt), mask = level1(iBasin)%mask)
+      L1_data_packed(:, tt) = pack(L1_data(:, :, tt), mask = level1(iDomain)%mask)
     end do
     ! free space immediately
     deallocate(L1_data)
@@ -429,7 +434,7 @@ contains
 
   end subroutine mrm_read_total_runoff
 
-  subroutine mrm_read_bankfull_runoff(iBasin)
+  subroutine mrm_read_bankfull_runoff(iDomain)
   ! ---------------------------------------------------------------------------
 
   !      NAME
@@ -441,7 +446,7 @@ contains
   !>         the script in mhm/post_proc/bankfull_discharge.py
   
   !     INTENT(IN)
-  !>        \param[in] "integer(i4)               :: iBasin"  basin id
+  !>        \param[in] "integer(i4)               :: iDomain"  domain id
 
   !     INTENT(INOUT)
   !         None
@@ -476,31 +481,28 @@ contains
   !         \date    May 2018
 
     use mo_mrm_global_variables, only: level11
-    use mo_common_constants, only: HourSecs
-    use mo_common_mHM_mRM_variables, only: timestep
     use mo_read_forcing_nc, only: read_const_forcing_nc
     use mo_mrm_global_variables, only: &
-         dirBankfullRunoff, &   ! directory of bankfull_runoff file for each basin
+         dirBankfullRunoff, &   ! directory of bankfull_runoff file for each domain
          L11_bankfull_runoff_in ! bankfull runoff at L1
-    use mo_common_variables, only: ALMA_convention
 
     implicit none
 
     ! input variables
-    integer(i4), intent(in) :: iBasin
+    integer(i4), intent(in) :: iDomain
 
     ! local variables
     logical, dimension(:,:), allocatable :: mask
     real(dp), dimension(:,:), allocatable :: L11_data ! read data from file
     real(dp), dimension(:), allocatable :: L11_data_packed
 
-    call read_const_forcing_nc(trim(dirBankfullRunoff(iBasin)), &
-                               level11(iBasin)%nrows, &
-                               level11(iBasin)%ncols, &
+    call read_const_forcing_nc(trim(dirBankfullRunoff(iDomain)), &
+                               level11(iDomain)%nrows, &
+                               level11(iDomain)%ncols, &
                                "Q_bkfl", mask, L11_data)
 
-    allocate(L11_data_packed(level11(iBasin)%nCells))
-    L11_data_packed(:) = pack(L11_data(:,:), mask=level11(iBasin)%mask)
+    allocate(L11_data_packed(level11(iDomain)%nCells))
+    L11_data_packed(:) = pack(L11_data(:,:), mask=level11(iDomain)%mask)
 
     ! append
     if (allocated(L11_bankfull_runoff_in)) then

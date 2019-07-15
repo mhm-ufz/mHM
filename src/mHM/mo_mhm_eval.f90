@@ -42,12 +42,12 @@ CONTAINS
   !>       \param[out] "real(dp), dimension(:, :), optional :: runoff"        returns runoff time series, DIMENSION
   !>       [nTimeSteps, nGaugesTotal]
   !>       \param[out] "real(dp), dimension(:, :), optional :: sm_opti"       returns soil moisture time series for all
-  !>       grid cells (of multiple basins concatenated),DIMENSION [nCells, nTimeSteps]
-  !>       \param[out] "real(dp), dimension(:, :), optional :: basin_avg_tws" returns basin averaged total water storage
-  !>       time series, DIMENSION [nTimeSteps, nBasins]
+  !>       grid cells (of multiple Domains concatenated),DIMENSION [nCells, nTimeSteps]
+  !>       \param[out] "real(dp), dimension(:, :), optional :: domain_avg_tws" returns Domain averaged total water storage
+  !>       time series, DIMENSION [nTimeSteps, nDomains]
   !>       \param[out] "real(dp), dimension(:, :), optional :: neutrons_opti" dim1=ncells, dim2=time
   !>       \param[out] "real(dp), dimension(:, :), optional :: et_opti"       returns evapotranspiration time series for
-  !>       all grid cells (of multiple basins concatenated),DIMENSION [nCells, nTimeSteps]
+  !>       all grid cells (of multiple Domains concatenated),DIMENSION [nCells, nTimeSteps]
 
   !    HISTORY
   !>       \authors Juliane Mai, Rohini Kumar
@@ -71,7 +71,7 @@ CONTAINS
   ! Stephan Thober       Aug 2015 - moved writing of daily discharge to mo_write_routing, included routing related variables from mRM
   ! David Schaefer       Aug 2015 - changed to new netcdf-writing scheme
   ! Stephan Thober       Sep 2015 - updated mrm_routing call
-  ! O. Rakovec, R. Kumar Oct 2015 - added optional output for basin averaged TWS
+  ! O. Rakovec, R. Kumar Oct 2015 - added optional output for Domain averaged TWS
   ! Rohini Kumar         Mar 2016 - changes for handling multiple soil database options
   ! Stephan Thober       Nov 2016 - added two options for routing
   ! Rohini Kuamr         Dec  2016 - option to handle monthly mean gridded fields of LAI
@@ -80,18 +80,18 @@ CONTAINS
   ! Robert Schweppe      Dec 2017 - extracted call to mpr from inside mhm
   ! Robert Schweppe      Jun 2018 - refactoring and reformatting
 
-  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti, et_opti)
+  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
 
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : LCyearId, dirRestartIn, nTstepDay, optimize, readPer, read_restart, simPer, timeStep, &
                                             warmingDays, c2TSTu
-    use mo_common_variables, only : level1, nBasins, processMatrix
+    use mo_common_variables, only : level1, domainMeta, processMatrix
     use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, &
                                     L1_absvappress, L1_baseflow, L1_fastRunoff, L1_infilSoil, L1_inter, L1_melt, &
                                     L1_netrad, L1_neutrons, L1_percol, L1_pet, L1_pet_calc, L1_pet_weights, L1_pre, &
                                     L1_preEffect, L1_pre_weights, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
                                     L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_temp, L1_temp_weights, L1_tmax, &
-                                    L1_tmin, L1_total_runoff, L1_unsatSTW, L1_windspeed, basin_avg_TWS_sim, evap_coeff, &
+                                    L1_tmin, L1_total_runoff, L1_unsatSTW, L1_windspeed, domain_avg_TWS_sim, evap_coeff, &
                                     fday_pet, fday_prec, fday_temp, fnight_pet, fnight_prec, fnight_temp, &
                                     nSoilHorizons_sm_input, nTimeSteps_L1_et, nTimeSteps_L1_neutrons, nTimeSteps_L1_sm, &
                                     neutron_integral_AFast, outputFlxState, read_meteo_weights, timeStep_et_input, &
@@ -118,7 +118,7 @@ CONTAINS
     use mo_mrm_global_variables, only : InflowGauge, L11_C1, L11_C2, &
                                         L11_L1_Id, L11_TSrout, L11_fromN, L11_length, L11_nLinkFracFPimp, L11_nOutlets, &
                                         L11_netPerm, L11_qMod, L11_qOUT, L11_qTIN, L11_qTR, L11_slope, L11_toN, &
-                                        L1_L11_Id, basin_mrm, level11, mRM_runoff, outputFlxState_mrm, &
+                                        L1_L11_Id, domain_mrm, level11, mRM_runoff, outputFlxState_mrm, &
                                         timeStep_model_outputs_mrm, gw_coupling, L0_river_head_mon_sum
     use mo_mrm_init, only : variables_default_init_routing
     use mo_mrm_mpr, only : mrm_update_param
@@ -140,17 +140,17 @@ CONTAINS
     ! returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff
 
-    ! returns soil moisture time series for all grid cells (of multiple basins concatenated),DIMENSION [nCells,
+    ! returns soil moisture time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
     ! nTimeSteps]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti
 
-    ! returns basin averaged total water storage time series, DIMENSION [nTimeSteps, nBasins]
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: basin_avg_tws
+    ! returns Domain averaged total water storage time series, DIMENSION [nTimeSteps, nDomains]
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: domain_avg_tws
 
     ! dim1=ncells, dim2=time
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti
 
-    ! returns evapotranspiration time series for all grid cells (of multiple basins concatenated),DIMENSION [nCells,
+    ! returns evapotranspiration time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
     ! nTimeSteps]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: et_opti
 
@@ -164,12 +164,12 @@ CONTAINS
     integer(i4) :: nTimeSteps
 
     ! Counters
-    integer(i4) :: iBasin, tt
+    integer(i4) :: domainID, iDomain, tt
 
-    ! No. of cells at level 1 for current basin
+    ! No. of cells at level 1 for current Domain
     integer(i4) :: nCells
 
-    ! start and end index at level 1 for current basin
+    ! start and end index at level 1 for current Domain
     integer(i4) :: s1, e1
 
     ! meteorological time step for process 5 (PET)
@@ -249,7 +249,7 @@ CONTAINS
     ! field of TWS
     real(dp), dimension(:), allocatable :: TWS_field
 
-    real(dp) :: area_basin
+    real(dp) :: area_Domain
 
 
     !----------------------------------------------------------
@@ -265,7 +265,7 @@ CONTAINS
     !--------------------------
     if (present(sm_opti)) then
       !                ! total No of cells, No of timesteps
-      !                ! of all basins    , in soil moist input
+      !                ! of all Domains    , in soil moist input
       allocate(sm_opti(size(L1_pre, dim = 1), nTimeSteps_L1_sm))
       sm_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
     end if
@@ -273,7 +273,7 @@ CONTAINS
     !--------------------------
     if (present(neutrons_opti)) then
       !                ! total No of cells, No of timesteps
-      !                ! of all basins    , in neutrons input
+      !                ! of all Domains    , in neutrons input
       allocate(neutrons_opti(size(L1_pre, dim = 1), nTimeSteps_L1_neutrons))
       neutrons_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
     end if
@@ -281,7 +281,7 @@ CONTAINS
     !--------------------------
     if (present(et_opti)) then
       !                ! total No of cells, No of timesteps
-      !                ! of all basins    , in evapotranspiration input
+      !                ! of all Domains    , in evapotranspiration input
       allocate(et_opti(size(L1_pre, dim = 1), nTimeSteps_L1_et))
       et_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
     end if
@@ -293,7 +293,7 @@ CONTAINS
     !-------------------------------------------------------------------
     if (.NOT. read_restart) then
       ! as default values,
-      ! all cells for all modeled basins are simultenously initalized ONLY ONCE
+      ! all cells for all modeled Domains are simultenously initalized ONLY ONCE
       call variables_default_init()
       call mpr_eval(parameterset)
 
@@ -307,9 +307,10 @@ CONTAINS
       end if
 #endif
     else
-      do iBasin = 1, nBasins
+      do iDomain = 1, domainMeta%nDomains
+        domainID = domainMeta%indices(iDomain)
         ! this reads the eff. parameters and optionally the states and fluxes
-        call read_restart_states(iBasin, dirRestartIn(iBasin))
+        call read_restart_states(iDomain, domainID, dirRestartIn(iDomain))
       end do
     end if
 
@@ -326,29 +327,30 @@ CONTAINS
 
     L1_fNotSealed = 1.0_dp - L1_fSealed
     !----------------------------------------
-    ! loop over basins
+    ! loop over Domains
     !----------------------------------------
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
 
-      ! get basin information
-      nCells = level1(iBasin)%nCells
-      mask1 => level1(iBasin)%mask
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
+      ! get Domain information
+      nCells = level1(iDomain)%nCells
+      mask1 => level1(iDomain)%mask
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
 
 #ifdef MRM2MHM
        if (processMatrix(8, 1) .gt. 0) then
         ! read states from restart
-        if (read_restart) call mrm_read_restart_states(iBasin, dirRestartIn(iBasin))
+        if (read_restart) call mrm_read_restart_states(iDomain, domainID, dirRestartIn(iDomain))
         !
-        ! get basin information at L11 and L110 if routing is activated
-        s11 = level11(iBasin)%iStart
-        e11 = level11(iBasin)%iEnd
-        mask11 => level11(iBasin)%mask
+        ! get Domain information at L11 and L110 if routing is activated
+        s11 = level11(iDomain)%iStart
+        e11 = level11(iDomain)%iEnd
+        mask11 => level11(iDomain)%mask
 
         ! initialize routing parameters (has to be called for routing option 2)
         if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) &
-            call mrm_update_param(iBasin, parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)))
+            call mrm_update_param(iDomain, parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)))
         ! initialize variable for runoff for routing
         allocate(RunToRout(e1 - s1 + 1))
         RunToRout = 0._dp
@@ -356,20 +358,20 @@ CONTAINS
 #endif
 
       ! allocate space for local tws field
-      if (present(basin_avg_tws)) then
+      if (present(domain_avg_tws)) then
         allocate(TWS_field(s1 : e1))
         TWS_field(s1 : e1) = nodata_dp
       end if
 
-      ! calculate NtimeSteps for this basin
-      nTimeSteps = (simPer(iBasin)%julEnd - simPer(iBasin)%julStart + 1) * nTstepDay
+      ! calculate NtimeSteps for this Domain
+      nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nTstepDay
 
       ! reinitialize time counter for LCover and MPR
       ! -0.5 is due to the fact that dec2date routine
       !   changes the day at 12:00 in NOON
       ! Whereas mHM needs day change at 00:00 h
       ! initialize the julian day as real
-      newTime = real(simPer(iBasin)%julStart, dp)
+      newTime = real(simPer(iDomain)%julStart, dp)
       ! initialize the date
       call caldat(int(newTime), yy = year, mm = month, dd = day)
       ! initialize flags for period changes, they are true for first time step
@@ -378,7 +380,7 @@ CONTAINS
       is_new_year = .true.
 
       ! initialize arrays and counters
-      yId = LCyearId(year, iBasin)
+      yId = LCyearId(year, iDomain)
       average_counter = 0
       writeout_counter = 0
       hour = -timestep
@@ -387,7 +389,7 @@ CONTAINS
       ! Loop over time
       do tt = 1, nTimeSteps
         ! time increment is done right after call to mrm (and initially before looping)
-        if (timeStep_model_inputs(iBasin) .eq. 0_i4) then
+        if (timeStep_model_inputs(iDomain) .eq. 0_i4) then
           ! whole meteorology is already read
 
           ! set start and end of meteo position
@@ -397,13 +399,13 @@ CONTAINS
           iMeteoTS = ceiling(real(tt, dp) / real(nTstepDay, dp))
         else
           ! read chunk of meteorological forcings data (reading, upscaling/downscaling)
-          call prepare_meteo_forcings_data(iBasin, tt)
+          call prepare_meteo_forcings_data(iDomain, domainID, tt)
           ! set start and end of meteo position
           s_meteo = 1
           e_meteo = e1 - s1 + 1
           ! time step for meteorological variable (daily values)
           iMeteoTS = ceiling(real(tt, dp) / real(nTstepDay, dp)) &
-                  - (readPer%julStart - simPer(iBasin)%julStart)
+                  - (readPer%julStart - simPer(iDomain)%julStart)
         end if
 
         ! preapare vector length specifications depending on the process case
@@ -473,7 +475,7 @@ CONTAINS
                 nCells, nSoilHorizons_mHM, real(nTstepDay, dp), c2TSTu,  & ! IN C
                 neutron_integral_AFast, & ! IN C
                 parameterset, & ! IN
-                pack(level1(iBasin)%y, level1(iBasin)%mask), & ! IN L1
+                pack(level1(iDomain)%y, level1(iDomain)%mask), & ! IN L1
                 evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet, & ! IN F
                 fday_temp, fnight_temp, & ! IN F
                 L1_temp_weights(s1 : e1, :, :), & ! IN F
@@ -536,7 +538,7 @@ CONTAINS
             ! >>>
             do_rout = .False.
             ! calculate factor
-            tsRoutFactor = L11_tsRout(iBasin) / (timestep * HourSecs)
+            tsRoutFactor = L11_tsRout(iDomain) / (timestep * HourSecs)
             ! print *, 'routing factor: ', tsRoutFactor
             ! prepare routing call
             if (tsRoutFactor .lt. 1._dp) then
@@ -576,26 +578,26 @@ CONTAINS
                   processMatrix(8, 1), & ! parse process Case to be used
                   parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)), & ! routing par.
                   RunToRout, & ! runoff [mm TST-1] mm per timestep old: L1_total_runoff_in(s1:e1, tt), &
-                  level1(iBasin)%CellArea * 1.E-6_dp, &
+                  level1(iDomain)%CellArea * 1.E-6_dp, &
                   L1_L11_Id(s1 : e1), &
-                  level11(iBasin)%CellArea * 1.E-6_dp, &
+                  level11(iDomain)%CellArea * 1.E-6_dp, &
                   L11_L1_Id(s11 : e11), &
                   L11_netPerm(s11 : e11), & ! routing order at L11
                   L11_fromN(s11 : e11), & ! link source at L11
                   L11_toN(s11 : e11), & ! link target at L11
-                  L11_nOutlets(iBasin), & ! number of outlets
+                  L11_nOutlets(iDomain), & ! number of outlets
                   timestep_rout, & ! timestep of runoff to rout [h]
                   tsRoutFactorIn, & ! simulate timestep in [h]
-                  level11(iBasin)%nCells, & ! number of Nodes
-                  basin_mrm(iBasin)%nInflowGauges, &
-                  basin_mrm(iBasin)%InflowGaugeIndexList(:), &
-                  basin_mrm(iBasin)%InflowGaugeHeadwater(:), &
-                  basin_mrm(iBasin)%InflowGaugeNodeList(:), &
+                  level11(iDomain)%nCells, & ! number of Nodes
+                  domain_mrm(iDomain)%nInflowGauges, &
+                  domain_mrm(iDomain)%InflowGaugeIndexList(:), &
+                  domain_mrm(iDomain)%InflowGaugeHeadwater(:), &
+                  domain_mrm(iDomain)%InflowGaugeNodeList(:), &
                   InflowDischarge, &
-                  basin_mrm(iBasin)%nGauges, &
-                  basin_mrm(iBasin)%gaugeIndexList(:), &
-                  basin_mrm(iBasin)%gaugeNodeList(:), &
-                  ge(resolutionRouting(iBasin), resolutionHydrology(iBasin)), &
+                  domain_mrm(iDomain)%nGauges, &
+                  domain_mrm(iDomain)%gaugeIndexList(:), &
+                  domain_mrm(iDomain)%gaugeNodeList(:), &
+                  ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)), &
                   ! original routing specific input variables
                   L11_length(s11 : e11 - 1), & ! link length
                   L11_slope(s11 : e11 - 1), &
@@ -613,9 +615,9 @@ CONTAINS
             ! groundwater coupling
             ! -------------------------------------------------------------------
             if (gw_coupling) then
-                call calc_river_head(iBasin, L11_Qmod, L0_river_head_mon_sum)
+                call calc_river_head(iDomain, L11_Qmod, L0_river_head_mon_sum)
                 if (is_new_month .and. tt > 1) then
-                    call avg_and_write_timestep(iBasin, tt, L0_river_head_mon_sum)
+                    call avg_and_write_timestep(iDomain, tt, L0_river_head_mon_sum)
                 end if
             end if
             ! -------------------------------------------------------------------
@@ -663,14 +665,14 @@ CONTAINS
 #ifdef MRM2MHM
           if (any(outputFlxState_mrm)) then
             call mrm_write_output_fluxes(&
-                  ! basin id
-                  iBasin, &
-                  ! nCells in basin
-                  level11(iBasin)%nCells, &
+                  ! Domain id
+                  iDomain, &
+                  ! nCells in Domain
+                  level11(iDomain)%nCells, &
                   ! output specification
                   timeStep_model_outputs_mrm, &
                   ! time specification
-                  warmingDays(iBasin), newTime, nTimeSteps, nTstepDay, &
+                  warmingDays(iDomain), newTime, nTimeSteps, nTstepDay, &
                   tt, &
                   ! parse previous date to mRM writer
                   prev_day, prev_month, prev_year, &
@@ -681,7 +683,7 @@ CONTAINS
                   L11_qmod(s11 : e11))
                 if(gw_coupling) then
                     !call mrm_write_output_river_head( &
-                    !     ! basin id
+                    !     ! Domain id
                     !     ii, &
                     !     ! output specification
                     !     timeStep_model_outputs_mrm, &
@@ -700,7 +702,7 @@ CONTAINS
 #endif
 
         ! output only for evaluation period
-        tIndex_out = (tt - warmingDays(iBasin) * nTstepDay) ! tt if write out of warming period
+        tIndex_out = (tt - warmingDays(iDomain) * nTstepDay) ! tt if write out of warming period
 
         if ((any(outputFlxState)) .and. (tIndex_out .gt. 0_i4)) then
 
@@ -708,9 +710,9 @@ CONTAINS
 
           if (tIndex_out .EQ. 1) then
 #ifdef pgiFortran154
-            nc = newOutputDataset(iBasin, mask1, level1(iBasin)%nCells)
+            nc = newOutputDataset(iDomain, mask1, level1(iDomain)%nCells)
 #else
-            nc = OutputDataset(iBasin, mask1, level1(iBasin)%nCells)
+            nc = OutputDataset(iDomain, mask1, level1(iDomain)%nCells)
 #endif
           end if
 
@@ -779,7 +781,7 @@ CONTAINS
         if (present(sm_opti)) then
           if (tt .EQ. 1) writeout_counter = 1
           ! only for evaluation period - ignore warming days
-          if ((tt - warmingDays(iBasin) * nTstepDay) .GT. 0) then
+          if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
             select case(timeStep_sm_input)
             case(-1) ! daily
@@ -817,14 +819,14 @@ CONTAINS
 
         !----------------------------------------------------------------------
         ! FOR TOTAL WATER STORAGE
-        if(present(basin_avg_tws)) then
-          area_basin = sum(level1(iBasin)%CellArea) * 1.E-6_dp
+        if(present(domain_avg_tws)) then
+          area_Domain = sum(level1(iDomain)%CellArea) * 1.E-6_dp
           TWS_field(s1 : e1) = L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
                   L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1)
           do gg = 1, nSoilHorizons_mHM
             TWS_field(s1 : e1) = TWS_field(s1 : e1) + L1_soilMoist (s1 : e1, gg)
           end do
-          basin_avg_TWS_sim(tt, iBasin) = (dot_product(TWS_field (s1 : e1), level1(iBasin)%CellArea * 1.E-6_dp) / area_basin)
+          domain_avg_TWS_sim(tt, iDomain) = (dot_product(TWS_field (s1 : e1), level1(iDomain)%CellArea * 1.E-6_dp) / area_Domain)
         end if
         !----------------------------------------------------------------------
 
@@ -835,7 +837,7 @@ CONTAINS
         if (present(neutrons_opti)) then
           if (tt .EQ. 1) writeout_counter = 1
           ! only for evaluation period - ignore warming days
-          if ((tt - warmingDays(iBasin) * nTstepDay) .GT. 0) then
+          if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
             ! daily
             if (is_new_day)   then
@@ -865,7 +867,7 @@ CONTAINS
           end if
 
           ! only for evaluation period - ignore warming days
-          if ((tt - warmingDays(iBasin) * nTstepDay) .GT. 0) then
+          if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
             select case(timeStep_et_input)
             case(-1) ! daily
@@ -895,7 +897,7 @@ CONTAINS
 
         ! update the year-dependent yID (land cover id)
         if (is_new_year .and. tt .lt. nTimeSteps) then
-          yId = LCyearId(year, iBasin)
+          yId = LCyearId(year, iDomain)
         end if
 
       end do !<< TIME STEPS LOOP
@@ -909,7 +911,7 @@ CONTAINS
       end if
 #endif
 
-    end do !<< BASIN LOOP
+    end do !<< Domain LOOP
 #ifdef MRM2MHM
     ! =========================================================================
     ! SET RUNOFF OUTPUT VARIABLE
@@ -920,7 +922,7 @@ CONTAINS
     ! =========================================================================
     ! SET TWS OUTPUT VARIABLE
     ! =========================================================================
-    if(present(basin_avg_tws)) basin_avg_tws = basin_avg_TWS_sim
+    if(present(domain_avg_tws)) domain_avg_tws = domain_avg_TWS_sim
 
   end SUBROUTINE mhm_eval
 

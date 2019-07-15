@@ -71,16 +71,16 @@ CONTAINS
   !        write_restart_files
 
   !    PURPOSE
-  !>       \brief write restart files for each basin
+  !>       \brief write restart files for each domain
 
-  !>       \details write restart files for each basin. For each basin
+  !>       \details write restart files for each domain. For each domain
   !>       three restart files are written. These are xxx_states.nc,
   !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
-  !>       basin index). If a variable is added here, it should also be added
+  !>       domain index). If a variable is added here, it should also be added
   !>       in the read restart routines below.
 
   !    INTENT(IN)
-  !>       \param[in] "character(256), dimension(:) :: OutPath" Output Path for each basin
+  !>       \param[in] "character(256), dimension(:) :: OutPath" Output Path for each domain
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -99,7 +99,7 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp
     use mo_common_restart, only : write_grid_info
-    use mo_common_variables, only : level1, nLCoverScene
+    use mo_common_variables, only : level1, nLCoverScene, domainMeta
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
                                     L1_fastRunoff, L1_infilSoil, L1_melt, L1_percol, L1_preEffect, L1_rain, &
                                     L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
@@ -115,10 +115,10 @@ CONTAINS
 
     character(256) :: Fname
 
-    ! Output Path for each basin
+    ! Output Path for each domain
     character(256), dimension(:), intent(in) :: OutPath
 
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain, domainID
 
     integer(i4) :: ii
 
@@ -146,16 +146,17 @@ CONTAINS
     ! get maximum extent of one dimension 2 or 3
     max_extent = max(nSoilHorizons_mHM, nLCoverScene, nLAI)
 
-    basin_loop : do iBasin = 1, size(OutPath)
+    domain_loop : do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
 
-      ! write restart file for iBasin
-      Fname = trim(OutPath(iBasin)) // "mHM_restart_" // trim(num2str(iBasin, "(i3.3)")) // ".nc"
+      ! write restart file for iDomain
+      Fname = trim(OutPath(iDomain)) // "mHM_restart_" // trim(num2str(domainID, "(i3.3)")) // ".nc"
       ! print a message
       call message("    Writing Restart-file: ", trim(adjustl(Fname)), " ...")
 
       nc = NcDataset(fname, "w")
 
-      call write_grid_info(level1(iBasin), "1", nc)
+      call write_grid_info(level1(iDomain), "1", nc)
 
       rows1 = nc%getDimension("nrows1")
       cols1 = nc%getDimension("ncols1")
@@ -167,9 +168,9 @@ CONTAINS
       ! for appending and intialization
       allocate(dummy_3D(rows1%getLength(), cols1%getLength(), max_extent))
       allocate(mask1(rows1%getLength(), cols1%getLength()))
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
-      mask1 = level1(iBasin)%mask
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
+      mask1 = level1(iDomain)%mask
 
       var = nc%setVariable("L1_Inter", "f64", (/rows1, cols1/))
       call var%setFillValue(nodata_dp)
@@ -293,7 +294,7 @@ CONTAINS
       call nc%close()
 
       deallocate(dummy_3D, mask1)
-    end do basin_loop
+    end do domain_loop
 
   end subroutine write_restart_files
 
@@ -311,7 +312,7 @@ CONTAINS
   !>       contained in module mo_startup.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin"    number of basin
+  !>       \param[in] "integer(i4) :: iDomain"    number of domains
   !>       \param[in] "character(256) :: InPath" Input Path including trailing slash
 
   !    HISTORY
@@ -325,7 +326,7 @@ CONTAINS
   ! Stephan Thober Nov  2016 - moved processMatrix to common variables
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_restart_states(iBasin, InPath)
+  subroutine read_restart_states(iDomain, domainID, InPath)
 
     use mo_common_variables, only : LC_year_end, LC_year_start, level1, nLCoverScene, processMatrix
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, &
@@ -345,8 +346,10 @@ CONTAINS
 
     implicit none
 
-    ! number of basin
-    integer(i4), intent(in) :: iBasin
+    ! number of domain
+    integer(i4), intent(in) :: iDomain
+
+    integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
     character(256), intent(in) :: InPath
@@ -381,14 +384,14 @@ CONTAINS
     type(NcDimension) :: nc_dim
 
 
-    Fname = trim(InPath) // 'mHM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc'
+    Fname = trim(InPath) // 'mHM_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc'
     ! call message('    Reading states from ', trim(adjustl(Fname)),' ...')
 
-    ! get basin information at level 1
-    allocate(mask1 (level1(iBasin)%nrows, level1(iBasin)%ncols))
-    mask1 = level1(iBasin)%mask
-    s1 = level1(iBasin)%iStart
-    e1 = level1(iBasin)%iEnd
+    ! get domain information at level 1
+    allocate(mask1 (level1(iDomain)%nrows, level1(iDomain)%ncols))
+    mask1 = level1(iDomain)%mask
+    s1 = level1(iDomain)%iStart
+    e1 = level1(iDomain)%iEnd
 
     nc = NcDataset(fname, "r")
 
@@ -522,7 +525,7 @@ CONTAINS
     end if
 
     ! read the LCscene information
-    ! it is inside a basin loop, but is global information
+    ! it is inside a domain loop, but is global information
     var = nc%getVariable("LC_year_start")
     call var%getData(LC_year_start)
 

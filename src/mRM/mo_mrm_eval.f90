@@ -36,7 +36,7 @@ contains
   !>       \param[out] "real(dp), dimension(:, :), optional :: runoff"        returns runoff time series, DIMENSION
   !>       [nTimeSteps, nGaugesTotal]
   !>       \param[out] "real(dp), dimension(:, :), optional :: sm_opti"       dim1=ncells, dim2=time
-  !>       \param[out] "real(dp), dimension(:, :), optional :: basin_avg_tws" dim1=time dim2=nBasins
+  !>       \param[out] "real(dp), dimension(:, :), optional :: domain_avg_tws" dim1=time dim2=nDomains
   !>       \param[out] "real(dp), dimension(:, :), optional :: neutrons_opti" dim1=ncells, dim2=time
   !>       \param[out] "real(dp), dimension(:, :), optional :: et_opti"       dim1=ncells, dim2=time
 
@@ -49,19 +49,19 @@ contains
   ! Stephan Thober Nov 2016 - implemented second routing process i.e. adaptive timestep
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine mrm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti, et_opti)
+  subroutine mrm_eval(parameterset, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
 
     use mo_common_constants, only : HourSecs
     use mo_common_mHM_mRM_variables, only : LCYearId, dirRestartIn, nTStepDay, optimize, read_restart, resolutionRouting, simPer, &
                                             timestep, warmingDays
-    use mo_common_variables, only : level1, nBasins, processMatrix, resolutionHydrology
+    use mo_common_variables, only : level1, domainMeta, processMatrix, resolutionHydrology
     use mo_julian, only : caldat, julday
     use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_mrm_global_variables, only : InflowGauge, &
                                         L11_C1, L11_C2, L11_L1_ID, L11_TSrout, L11_fromN, L11_length, L11_nLinkFracFPimp, &
                                         L11_nOutlets, L11_netPerm, L11_qMod, L11_qOUT, L11_qTIN, L11_qTR, L11_slope, &
-                                        L11_toN, L1_L11_ID, L1_total_runoff_in, basin_mrm, level11, mRM_runoff, &
+                                        L11_toN, L1_L11_ID, L1_total_runoff_in, domain_mrm, level11, mRM_runoff, &
                                         outputFlxState_mrm, timeStep_model_outputs_mrm, gw_coupling, L0_river_head_mon_sum
     use mo_mrm_init, only : variables_default_init_routing
     use mo_mrm_mpr, only : mrm_update_param
@@ -82,8 +82,8 @@ contains
     ! dim1=ncells, dim2=time
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti
 
-    ! dim1=time dim2=nBasins
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: basin_avg_tws
+    ! dim1=time dim2=nDomains
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: domain_avg_tws
 
     ! dim1=ncells, dim2=time
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti
@@ -91,7 +91,7 @@ contains
     ! dim1=ncells, dim2=time
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: et_opti
 
-    integer(i4) :: iBasin
+    integer(i4) :: domainID, iDomain
 
     integer(i4) :: jj
 
@@ -110,7 +110,7 @@ contains
     ! Land cover year ID
     integer(i4) :: Lcover_yID
 
-    ! start and end index at level 1 for current basin
+    ! start and end index at level 1 for current domain
     integer(i4) :: s1, e1
 
     ! start and end index at L11
@@ -149,7 +149,7 @@ contains
     ! initialize variables
     month = 0_i4
     
-    if (present(sm_opti) .or. present(basin_avg_tws) .or. present(neutrons_opti) .or. present(et_opti)) then
+    if (present(sm_opti) .or. present(domain_avg_tws) .or. present(neutrons_opti) .or. present(et_opti)) then
       call message("Error during initialization of mrm_eval, incorrect call from optimization routine.")
       stop 1
     end if
@@ -168,26 +168,27 @@ contains
     allocate(InflowDischarge(size(InflowGauge%Q, dim = 2)))
     InflowDischarge = 0._dp
     ! ----------------------------------------
-    ! loop over basins
+    ! loop over domains
     ! ----------------------------------------
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
       ! read states from restart
-      if (read_restart) call mrm_read_restart_states(iBasin, dirRestartIn(iBasin))
+      if (read_restart) call mrm_read_restart_states(iDomain, domainID, dirRestartIn(iDomain))
       !
-      ! get basin information at L11 and L1 if routing is activated
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
-      s11 = level11(iBasin)%iStart
-      e11 = level11(iBasin)%iEnd
-      mask11 => level11(iBasin)%mask
+      ! get domain information at L11 and L1 if routing is activated
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
+      s11 = level11(iDomain)%iStart
+      e11 = level11(iDomain)%iEnd
+      mask11 => level11(iDomain)%mask
       !
       ! initialize routing parameters (has to be called only for Routing option 2)
       if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) &
-          call mrm_update_param(iBasin, parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)))
-      ! calculate NtimeSteps for this basin
-      nTimeSteps = (simPer(iBasin)%julEnd - simPer(iBasin)%julStart + 1) * NTSTEPDAY
+          call mrm_update_param(iDomain, parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)))
+      ! calculate NtimeSteps for this domain
+      nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * NTSTEPDAY
       ! initialize timestep
-      newTime = real(simPer(iBasin)%julStart, dp)
+      newTime = real(simPer(iDomain)%julStart, dp)
       ! initialize variable for runoff for routing
       allocate(RunToRout(e1 - s1 + 1))
       RunToRout = 0._dp
@@ -214,10 +215,10 @@ contains
           ! >>>
           !
           ! initialize land cover year id
-          Lcover_yID = LCyearId(year, iBasin)
+          Lcover_yID = LCyearId(year, iDomain)
           !
           do_rout = .True.
-          L11_tsRout(iBasin) = (timestep * HourSecs)
+          L11_tsRout(iDomain) = (timestep * HourSecs)
           tsRoutFactorIn = 1._dp
           timestep_rout = timestep
           RunToRout = L1_total_runoff_in(s1 : e1, tt) ! runoff [mm TST-1] mm per timestep
@@ -234,7 +235,7 @@ contains
           !
           do_rout = .False.
           ! calculate factor
-          tsRoutFactor = L11_tsRout(iBasin) / (timestep * HourSecs)
+          tsRoutFactor = L11_tsRout(iDomain) / (timestep * HourSecs)
           ! print *, 'routing factor: ', tsRoutFactor
           ! prepare routing call
           if (tsRoutFactor .lt. 1._dp) then
@@ -274,26 +275,26 @@ contains
                 processMatrix(8, 1), & ! parse process Case to be used
                 parameterset, & ! routing par.
                 RunToRout, & ! runoff [mm TST-1] mm per timestep old: L1_total_runoff_in(s1:e1, tt), &
-                level1(iBasin)%CellArea * 1.E-6_dp, &
+                level1(iDomain)%CellArea * 1.E-6_dp, &
                 L1_L11_Id(s1 : e1), &
-                level11(iBasin)%CellArea * 1.E-6_dp, &
+                level11(iDomain)%CellArea * 1.E-6_dp, &
                 L11_L1_Id(s11 : e11), &
                 L11_netPerm(s11 : e11), & ! routing order at L11
                 L11_fromN(s11 : e11), & ! link source at L11
                 L11_toN(s11 : e11), & ! link target at L11
-                L11_nOutlets(iBasin), & ! number of outlets
+                L11_nOutlets(iDomain), & ! number of outlets
                 timestep_rout, & ! timestep of runoff to rout [h]
                 tsRoutFactorIn, & ! Factor between routing and hydrologic resolution
-                level11(iBasin)%nCells, & ! number of Nodes
-                basin_mrm(iBasin)%nInflowGauges, &
-                basin_mrm(iBasin)%InflowGaugeIndexList(:), &
-                basin_mrm(iBasin)%InflowGaugeHeadwater(:), &
-                basin_mrm(iBasin)%InflowGaugeNodeList(:), &
+                level11(iDomain)%nCells, & ! number of Nodes
+                domain_mrm(iDomain)%nInflowGauges, &
+                domain_mrm(iDomain)%InflowGaugeIndexList(:), &
+                domain_mrm(iDomain)%InflowGaugeHeadwater(:), &
+                domain_mrm(iDomain)%InflowGaugeNodeList(:), &
                 InflowDischarge, &
-                basin_mrm(iBasin)%nGauges, &
-                basin_mrm(iBasin)%gaugeIndexList(:), &
-                basin_mrm(iBasin)%gaugeNodeList(:), &
-                ge(resolutionRouting(iBasin), resolutionHydrology(iBasin)), &
+                domain_mrm(iDomain)%nGauges, &
+                domain_mrm(iDomain)%gaugeIndexList(:), &
+                domain_mrm(iDomain)%gaugeNodeList(:), &
+                ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)), &
                 ! original routing specific input variables
                 L11_length(s11 : e11 - 1), & ! link length
                 L11_slope(s11 : e11 - 1), &
@@ -312,9 +313,9 @@ contains
         ! groundwater coupling
         ! -------------------------------------------------------------------
             if (gw_coupling) then
-                call calc_river_head(iBasin, L11_Qmod, L0_river_head_mon_sum)
+                call calc_river_head(iDomain, L11_Qmod, L0_river_head_mon_sum)
                 if (is_new_month) then
-                    call avg_and_write_timestep(iBasin, tt, L0_river_head_mon_sum)
+                    call avg_and_write_timestep(iDomain, tt, L0_river_head_mon_sum)
                 end if
             end if
         ! -------------------------------------------------------------------
@@ -344,14 +345,14 @@ contains
         ! -------------------------------------------------------------------
         if (.not. optimize .and. any(outputFlxState_mrm)) then
           call mrm_write_output_fluxes(&
-                  ! basin id
-                  iBasin, &
-                  ! nCells in basin
-                  level11(iBasin)%nCells, &
+                  ! domain id
+                  iDomain, &
+                  ! nCells in domain
+                  level11(iDomain)%nCells, &
                   ! output specification
                   timeStep_model_outputs_mrm, &
                   ! time specification
-                  warmingDays(iBasin), newTime, nTimeSteps, nTStepDay, &
+                  warmingDays(iDomain), newTime, nTimeSteps, nTStepDay, &
                   tt, day, month, year, timestep, &
                   ! mask specification
                   mask11, &

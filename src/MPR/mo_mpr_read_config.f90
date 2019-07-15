@@ -54,9 +54,9 @@ contains
   subroutine mpr_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
     use mo_append, only : append
-    use mo_common_constants, only : eps_dp, maxNoBasins, nColPars, nodata_dp
+    use mo_common_constants, only : eps_dp, maxNoDomains, nColPars, nodata_dp
     use mo_common_functions, only : in_bound
-    use mo_common_variables, only : global_parameters, global_parameters_name, nBasins, processMatrix
+    use mo_common_variables, only : global_parameters, global_parameters_name, domainMeta, processMatrix
     use mo_message, only : message
     use mo_mpr_constants, only : maxGeoUnit, &
                                  maxNoSoilHorizons
@@ -84,7 +84,7 @@ contains
 
     ! directory of gridded LAI data
     ! used when timeStep_LAI_input<0
-    character(256), dimension(maxNoBasins) :: dir_gridded_LAI
+    character(256), dimension(maxNoDomains) :: dir_gridded_LAI
 
     character(256) :: dummy
 
@@ -224,6 +224,8 @@ contains
 
     real(dp), dimension(nColPars) :: COSMIC_L31
 
+    integer(i4) :: iDomain, domainID
+
 
     ! namelist directories
     namelist /directories_MPR/ dir_gridded_LAI
@@ -344,8 +346,11 @@ contains
       call position_nml('directories_MPR', unamelist)
       read(unamelist, nml = directories_MPR)
 
-      allocate(dirgridded_LAI(nBasins))
-      dirgridded_LAI = dir_gridded_LAI(1 : nBasins)
+      allocate(dirgridded_LAI(domainMeta%nDomains))
+      do iDomain = 1, domainMeta%nDomains
+        domainID = domainMeta%indices(iDomain)
+        dirgridded_LAI(iDomain) = dir_gridded_LAI(domainID)
+      end do
 
       if (timeStep_LAI_input .GT. 1) then
         call message()

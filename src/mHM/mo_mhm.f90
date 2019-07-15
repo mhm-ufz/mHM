@@ -67,7 +67,7 @@ CONTAINS
   !>       \param[in] "real(dp) :: time"                                 current decimal Julian day
   !>       \param[in] "integer(i4), dimension(:, :) :: processMatrix"    mHM process configuration matrix
   !>       \param[in] "real(dp), dimension(:) :: horizon_depth"          Depth of each horizon in mHM
-  !>       \param[in] "integer(i4) :: nCells1"                           number of cells in a given basin at level L1
+  !>       \param[in] "integer(i4) :: nCells1"                           number of cells in a given domain at level L1
   !>       \param[in] "integer(i4) :: nHorizons_mHM"                     Number of Horizons in mHM
   !>       \param[in] "real(dp) :: ntimesteps_day"                       number of time intervals per day, transformed
   !>       in dp
@@ -237,7 +237,7 @@ CONTAINS
     ! Depth of each horizon in mHM
     real(dp), dimension(:), intent(in) :: horizon_depth
 
-    ! number of cells in a given basin at level L1
+    ! number of cells in a given domain at level L1
     integer(i4), intent(in) :: nCells1
 
     ! Number of Horizons in mHM

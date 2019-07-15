@@ -42,7 +42,7 @@ module mo_mrm_write_fluxes_states
   end interface OutputVariable
 
   type OutputDataset
-    integer(i4) :: ibasin      !> basin id
+    integer(i4) :: iDomain      !> domain id
     type(NcDataset) :: nc          !> NcDataset to write
     type(OutputVariable), allocatable :: vars(:)     !> store all created (dynamic) variables
     integer(i4) :: counter = 0 !> count written time steps
@@ -81,7 +81,7 @@ contains
   !>       \param[in] "character(*) :: name"
   !>       \param[in] "character(*) :: dtype"
   !>       \param[in] "character(16), dimension(3) :: dims"
-  !>       \param[in] "integer(i4) :: ncells"               -> number of cells in basin
+  !>       \param[in] "integer(i4) :: ncells"               -> number of cells in domain
   !>       \param[in] "logical, dimension(:, :) :: mask"
 
   !    INTENT(IN), OPTIONAL
@@ -108,7 +108,7 @@ contains
 
     character(16), intent(in), dimension(3) :: dims
 
-    ! -> number of cells in basin
+    ! -> number of cells in domain
     integer(i4), intent(in) :: ncells
 
     logical, intent(in), target, dimension(:, :) :: mask
@@ -223,7 +223,7 @@ contains
   !>       \return type(OutputDataset)
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ibasin"            -> basin id
+  !>       \param[in] "integer(i4) :: iDomain"            -> domain id
   !>       \param[in] "logical, dimension(:, :) :: mask"
   !>       \param[in] "integer(i4) :: nCells"
 
@@ -235,14 +235,14 @@ contains
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  function newOutputDataset(ibasin, mask, nCells) result(out)
+  function newOutputDataset(iDomain, mask, nCells) result(out)
 
     use mo_mrm_global_variables, only : outputFlxState_mrm
 
     implicit none
 
-    ! -> basin id
-    integer(i4), intent(in) :: ibasin
+    ! -> domain id
+    integer(i4), intent(in) :: iDomain
 
     logical, intent(in), pointer, dimension(:, :) :: mask
 
@@ -263,7 +263,7 @@ contains
 
     dtype = "f64"
     dims1 = (/"easting ", "northing", "time    "/)
-    nc = createOutputFile(ibasin)
+    nc = createOutputFile(iDomain)
 
     ii = 0
 
@@ -274,11 +274,11 @@ contains
       call writeVariableAttributes(tmpvars(ii), "routed streamflow", "m3 s-1")
     end if
 
-    ! out = OutputDataset(ibasin, nc, tmpvars(1 : ii))
+    ! out = OutputDataset(iDomain, nc, tmpvars(1 : ii))
     allocate(out%vars(ii))
     out%vars = tmpvars(1:ii)
     out%nc = nc
-    out%ibasin = ibasin
+    out%iDomain = iDomain
     ! print*, 'Finished OutputDatasetInit'
 
   end function newOutputDataset
@@ -299,8 +299,8 @@ contains
   !>       \param[inout] "class(OutputDataset) :: self"
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: sidx, eidx"          - start index of the basin related data in L1_* arguments
-  !>       \param[in] "integer(i4) :: sidx, eidx"          - end index of the basin related data in L1_* arguments
+  !>       \param[in] "integer(i4) :: sidx, eidx"          - start index of the domain related data in L1_* arguments
+  !>       \param[in] "integer(i4) :: sidx, eidx"          - end index of the domain related data in L1_* arguments
   !>       \param[in] "real(dp), dimension(:) :: L11_Qmod"
 
   !    HISTORY
@@ -325,7 +325,7 @@ contains
 
     class(OutputDataset), intent(inout), target :: self
 
-    ! - end index of the basin related data in L1_* arguments
+    ! - end index of the domain related data in L1_* arguments
     integer(i4), intent(in) :: sidx, eidx
 
     real(dp), intent(in), dimension(:) :: L11_Qmod
@@ -431,8 +431,8 @@ contains
 
 
     call self%nc%close()
-    call message('  OUTPUT: saved netCDF file for basin', trim(num2str(self%ibasin)))
-    call message('    to ', trim(dirOut(self%ibasin)))
+    call message('  OUTPUT: saved netCDF file for domain', trim(num2str(self%iDomain)))
+    call message('    to ', trim(dirOut(self%iDomain)))
 
   end subroutine close
 
@@ -444,12 +444,12 @@ contains
   !>       \brief Create and initialize output file
 
   !>       \details Create output file, write all non-dynamic variables
-  !>       and global attributes for the given basin.
+  !>       and global attributes for the given domain.
 
   !>       \return type(NcDataset)
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ibasin" -> basin id
+  !>       \param[in] "integer(i4) :: iDomain" -> domain id
 
   !    HISTORY
   !>       \authors David Schaefer
@@ -460,7 +460,7 @@ contains
   ! Stephan Thober  Oct 2015 - adapted to mRM
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  function createOutputFile(ibasin) result(nc)
+  function createOutputFile(iDomain) result(nc)
 
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : dirOut
@@ -471,8 +471,8 @@ contains
 
     implicit none
 
-    ! -> basin id
-    integer(i4), intent(in) :: ibasin
+    ! -> domain id
+    integer(i4), intent(in) :: iDomain
 
     type(NcDataset) :: nc
 
@@ -491,9 +491,9 @@ contains
     real(dp), allocatable, dimension(:,:) :: lat, lon
 
 
-    fname = trim(dirOut(ibasin)) // trim(file_mrm_output)
-    call mapCoordinates(level11(ibasin), northing, easting)
-    call geoCoordinates(level11(ibasin), lat, lon)
+    fname = trim(dirOut(iDomain)) // trim(file_mrm_output)
+    call mapCoordinates(level11(iDomain), northing, easting)
+    call geoCoordinates(level11(iDomain), lat, lon)
 
     nc = NcDataset(trim(fname), "w")
     dimids1 = (/&
@@ -503,7 +503,7 @@ contains
             /)
 
     ! time units
-    call dec2date(real(evalPer(ibasin)%julStart, dp), dd = day, mm = month, yy = year)
+    call dec2date(real(evalPer(iDomain)%julStart, dp), dd = day, mm = month, yy = year)
     write(unit, "('hours since ', i4, '-' ,i2.2, '-', i2.2, 1x, '00:00:00')") year, month, day
 
     ! time

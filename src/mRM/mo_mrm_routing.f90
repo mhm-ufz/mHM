@@ -532,12 +532,12 @@ CONTAINS
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: nNodes"                       number of network nodes = nCells1
   !>       \param[in] "integer(i4) :: nLinks"                       number of stream segment (reaches)
-  !>       \param[in] "integer(i4), dimension(:) :: netPerm"        routing order of a given basin (permutation)
+  !>       \param[in] "integer(i4), dimension(:) :: netPerm"        routing order of a given domain (permutation)
   !>       \param[in] "integer(i4), dimension(:) :: netLink_fromN"  from node
   !>       \param[in] "integer(i4), dimension(:) :: netLink_toN"    to node
   !>       \param[in] "real(dp), dimension(:) :: netLink_C1"        routing parameter  C1 (\cite CMM1988 p. 25-41)
   !>       \param[in] "real(dp), dimension(:) :: netLink_C2"        routing parameters C2 (id)
-  !>       \param[in] "real(dp), dimension(:) :: netNode_qOUT"      Total outflow from cells (given basin) L11 at time
+  !>       \param[in] "real(dp), dimension(:) :: netNode_qOUT"      Total outflow from cells (given domain) L11 at time
   !>       tt in [m3 s-1]
   !>       \param[in] "integer(i4) :: nInflowGauges"                [-]      number of inflow points
   !>       \param[in] "logical, dimension(:) :: InflowHeadwater"    [-]      if to consider headwater cells of inflow
@@ -574,7 +574,7 @@ CONTAINS
     ! number of stream segment (reaches)
     integer(i4), intent(in) :: nLinks
 
-    ! routing order of a given basin (permutation)
+    ! routing order of a given domain (permutation)
     integer(i4), dimension(:), intent(in) :: netPerm
 
     ! from node
@@ -589,7 +589,7 @@ CONTAINS
     ! routing parameters C2 (id)
     real(dp), dimension(:), intent(in) :: netLink_C2
 
-    ! Total outflow from cells (given basin) L11 at time tt in [m3 s-1]
+    ! Total outflow from cells (given domain) L11 at time tt in [m3 s-1]
     real(dp), dimension(:), intent(in) :: netNode_qOUT
 
     ! [-]      number of inflow points

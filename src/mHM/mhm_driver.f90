@@ -3,7 +3,7 @@
 !>       \brief Distributed precipitation-runoff model mHM
 
 !>       \details This is the main driver of mHM, which calls
-!>       one instance of mHM for a multiple basins and a given period.
+!>       one instance of mHM for a multiple domains and a given period.
 !>       \image html  mhm5-logo.png "Typical mHM cell"
 !>       \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
 
@@ -67,7 +67,7 @@
 ! Luis Samaniego                Jul 2015 - added temporal directories for optimization
 ! Stephan Thober                Aug 2015 - removed routing related variables
 ! Stephan Thober                Oct 2015 - reorganized optimization (now compatible with mRM)
-! Oldrich Rakovec, Rohini Kumar Oct 2015 - added reading of basin averaged TWS and objective function 15
+! Oldrich Rakovec, Rohini Kumar Oct 2015 - added reading of domain averaged TWS and objective function 15
 !                                          for simultaneous calibration based on runoff and TWS
 ! Rohini Kumar                  Mar 2016 - options to handle different soil databases modified MPR to included
 !                                          soil horizon specific properties/parameters
@@ -102,15 +102,18 @@ PROGRAM mhm_driver
           dirConfigOut, &
           dirMorpho, dirLCover, &                                         ! directories
           dirOut, &      ! directories
-          nbasins, &      ! number of basins
-          processMatrix, &      ! basin information,  processMatrix
+          domainMeta, &
+#ifdef MPI
+          comm, &
+#endif
+          processMatrix, &      ! domain information,  processMatrix
           global_parameters, global_parameters_name      ! mhm parameters (gamma) and their clear names
   USE mo_kind, ONLY : i4, dp                         ! number precision
   USE mo_message, ONLY : message, message_text          ! For print out
   USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval, ONLY : mhm_eval
-  USE mo_read_optional_data, ONLY : read_soil_moisture, &      ! optional soil moisture reader, basin_avg_TWS reader
-          read_basin_avg_TWS, &
+  USE mo_read_optional_data, ONLY : read_soil_moisture, &      ! optional soil moisture reader, domain_avg_TWS reader
+          read_domain_avg_TWS, &
           read_neutrons, &
           read_evapotranspiration
   USE mo_common_read_config, ONLY : common_read_config                    ! Read main configuration files
@@ -128,23 +131,36 @@ PROGRAM mhm_driver
           write_configfile, &      ! Writing Configuration file
           write_optifile, &      ! Writing optimized parameter set and objective
           write_optinamelist     ! Writing optimized parameter set to a namelist
-  USE mo_objective_function, ONLY : objective                 ! objective functions and likelihoods
+  USE mo_objective_function, ONLY : &
+#ifdef MPI
+          objective_subprocess, &
+          objective_master, &
+#endif
+          objective                 ! objective functions and likelihoods
   USE mo_optimization, ONLY : optimization
 #ifdef MRM2MHM
-  USE mo_mrm_objective_function_runoff, only : single_objective_runoff
-  USE mo_mrm_init, ONLY : mrm_init
+  USE mo_mrm_objective_function_runoff, ONLY : &
+#ifdef MPI
+          single_objective_runoff_master, &
+          single_objective_runoff_subprocess, &
+#endif
+          single_objective_runoff
+  USE mo_mrm_init, ONLY : mrm_init, mrm_configuration
   USE mo_mrm_write, only : mrm_write
 
 #endif
   !$ USE omp_lib, ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
+#ifdef MPI
+  USE mpi_f08
+#endif
 
   IMPLICIT NONE
 
   ! local
   integer(i4), dimension(8) :: datetime         ! Date and time
   !$ integer(i4)                        :: n_threads        ! OpenMP number of parallel threads
-  integer(i4) :: iBasin               ! Counters
-  integer(i4) :: iTimer           ! Current timer number
+  integer(i4) :: domainID, iDomain               ! Counters
+  integer(i4) :: itimer           ! Current timer number
   integer(i4) :: nTimeSteps
   real(dp) :: funcbest         ! best objective function achivied during optimization
   logical, dimension(:), allocatable :: maskpara ! true  = parameter will be optimized, = parameter(i,4) = 1
@@ -152,6 +168,25 @@ PROGRAM mhm_driver
   procedure(mhm_eval), pointer :: eval
   procedure(objective), pointer :: obj_func
 
+#ifdef MRM2MHM
+  logical :: ReadLatLon
+#endif
+
+#ifdef MPI
+  integer             :: ierror
+  integer(i4)         :: nproc
+  integer(i4)         :: rank, oldrank
+
+! Initialize MPI
+  call MPI_Init(ierror)
+  call MPI_Comm_dup(MPI_COMM_WORLD, comm, ierror)
+  ! find number of processes nproc
+  call MPI_Comm_size(comm, nproc, ierror)
+  ! find the number the process is referred to, called rank
+  call MPI_Comm_rank(comm, rank, ierror)
+  oldrank = rank
+  write(*,*) 'MPI!, comm', rank, nproc
+#endif
   ! --------------------------------------------------------------------------
   ! START
   ! --------------------------------------------------------------------------
@@ -188,37 +223,47 @@ PROGRAM mhm_driver
   call message('Read namelist file: ', trim(file_namelist_mhm_param))
   call message('Read namelist file: ', trim(file_defOutput))
   call common_read_config(file_namelist_mhm, unamelist_mhm)
+#ifdef MPI
+  call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
+  ! find the number the process is referred to, called rank
+  call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
+#endif
   call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
   call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
   call mhm_read_config(file_namelist_mhm, unamelist_mhm)
   call check_optimization_settings()
-
+#ifdef MRM2MHM
+  mrm_coupling_mode = 2_i4
+  call mrm_configuration(file_namelist_mhm, unamelist_mhm, &
+          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon)
+#endif
   call message()
-  call message('# of basins:         ', trim(num2str(nbasins)))
+  call message('# of domains:         ', trim(num2str(domainMeta%overallNumberOfDomains)))
   call message()
   call message('  Input data directories:')
-  do iBasin = 1, nbasins
+  do iDomain = 1, domainMeta%nDomains
+    domainID = domainMeta%indices(iDomain)
     call message('  --------------')
-    call message('      BASIN                   ', num2str(iBasin, '(I3)'))
+    call message('      DOMAIN                  ', num2str(domainID, '(I3)'))
     call message('  --------------')
-    call message('    Morphological directory:    ', trim(dirMorpho(iBasin)))
-    call message('    Land cover directory:       ', trim(dirLCover(iBasin)))
-    call message('    Precipitation directory:    ', trim(dirPrecipitation(iBasin)))
-    call message('    Temperature directory:      ', trim(dirTemperature(iBasin)))
+    call message('    Morphological directory:    ', trim(dirMorpho(iDomain)))
+    call message('    Land cover directory:       ', trim(dirLCover(iDomain)))
+    call message('    Precipitation directory:    ', trim(dirPrecipitation(iDomain)))
+    call message('    Temperature directory:      ', trim(dirTemperature(iDomain)))
     select case (processMatrix(5, 1))
     case(-1 : 0) ! PET is input
-      call message('    PET directory:              ', trim(dirReferenceET(iBasin)))
+      call message('    PET directory:              ', trim(dirReferenceET(iDomain)))
     case(1) ! Hargreaves-Samani
-      call message('    Min. temperature directory: ', trim(dirMinTemperature(iBasin)))
-      call message('    Max. temperature directory: ', trim(dirMaxTemperature(iBasin)))
+      call message('    Min. temperature directory: ', trim(dirMinTemperature(iDomain)))
+      call message('    Max. temperature directory: ', trim(dirMaxTemperature(iDomain)))
     case(2) ! Priestely-Taylor
-      call message('    Net radiation directory:    ', trim(dirNetRadiation(iBasin)))
+      call message('    Net radiation directory:    ', trim(dirNetRadiation(iDomain)))
     case(3) ! Penman-Monteith
-      call message('    Net radiation directory:    ', trim(dirNetRadiation(iBasin)))
-      call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(iBasin)))
-      call message('    Windspeed directory:        ', trim(dirwindspeed(iBasin)))
+      call message('    Net radiation directory:    ', trim(dirNetRadiation(iDomain)))
+      call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(iDomain)))
+      call message('    Windspeed directory:        ', trim(dirwindspeed(iDomain)))
     end select
-    call message('    Output directory:           ', trim(dirOut(iBasin)))
+    call message('    Output directory:           ', trim(dirOut(iDomain)))
 
     call message('')
   end do
@@ -230,19 +275,22 @@ PROGRAM mhm_driver
   ! READ AND INITIALIZE
   ! --------------------------------------------------------------------------
   itimer = 1
+#ifdef MPI
+  if (rank > 0 .and. domainMeta%isMaster) then
+#endif
   call message()
 
   call message('  Read data ...')
   call timer_start(itimer)
   ! for DEM, slope, ... define nGvar local
-  ! read_data has a basin loop inside
+  ! read_data has a domain loop inside
   call read_data(simPer)
   call timer_stop(itimer)
   call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
-  ! read data for every basin
+  ! read data for every domain
   itimer = itimer + 1
-  call message('  Initialize basins ...')
+  call message('  Initialize domains ...')
   call timer_start(itimer)
   call mhm_initialize()
   call timer_stop(itimer)
@@ -252,11 +300,12 @@ PROGRAM mhm_driver
   call message('  Read forcing and optional data ...')
   call timer_start(itimer)
 
-  do iBasin = 1, nbasins
+  do iDomain = 1, domainMeta%nDomains
+    domainID = domainMeta%indices(iDomain)
     ! read meteorology now, if optimization is switched on
     ! meteorological forcings (reading, upscaling or downscaling)
-    if (timestep_model_inputs(iBasin) .eq. 0_i4) then
-      call prepare_meteo_forcings_data(iBasin, 1)
+    if (timestep_model_inputs(iDomain) .eq. 0_i4) then
+      call prepare_meteo_forcings_data(iDomain, domainID, 1)
     end if
 
     ! read optional optional data if necessary
@@ -264,19 +313,19 @@ PROGRAM mhm_driver
       select case (opti_function)
       case(10 : 13, 28)
         ! read optional spatio-temporal soil mositure data
-        call read_soil_moisture(iBasin)
+        call read_soil_moisture(iDomain, domainID)
       case(17)
         ! read optional spatio-temporal neutrons data
-        call read_neutrons(iBasin)
+        call read_neutrons(iDomain, domainID)
       case(27, 29, 30)
         ! read optional spatio-temporal evapotranspiration data
-        call read_evapotranspiration(iBasin)
+        call read_evapotranspiration(iDomain, domainID)
       case(15)
-        ! read optional basin average TWS data at once, therefore only read it
-        ! the last iteration of the basin loop to ensure same time for all basins
+        ! read optional domain average TWS data at once, therefore only read it
+        ! the last iteration of the domain loop to ensure same time for all domains
         ! note: this is similar to how the runoff is read using mrm below
-        if (iBasin == nbasins) then
-          call read_basin_avg_TWS()
+        if (iDomain == domainMeta%nDomains) then
+          call read_domain_avg_TWS()
         end if
       end select
     end if
@@ -289,20 +338,22 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
-  mrm_coupling_mode = 2_i4
   if (processMatrix(8, 1) .ne. 0_i4) call mrm_init(file_namelist_mhm, unamelist_mhm, &
-          file_namelist_mhm_param, unamelist_mhm_param)
+          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon=ReadLatLon)
 #else
   mrm_coupling_mode = -1_i4
 #endif
 
-  !this call may be moved to another position as it writes the master config out file for all basins
+  !this call may be moved to another position as it writes the master config out file for all domains
   call write_configfile()
 
+#ifdef MPI
+  end if
+#endif
   ! --------------------------------------------------------------------------
   ! RUN OR OPTIMIZE
   ! --------------------------------------------------------------------------
-  iTimer = iTimer + 1
+  itimer = itimer + 1
   call message()
   if (optimize) then
     eval => mhm_eval
@@ -312,38 +363,70 @@ PROGRAM mhm_driver
      case(1 : 9, 14, 31)
       ! call optimization against only runoff (no other variables)
       obj_func => single_objective_runoff
+#ifdef MPI
+      if (rank == 0 .and. domainMeta%isMaster) then
+        obj_func => single_objective_runoff_master
+        call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
+      else if (domainMeta%isMaster) then
+        call single_objective_runoff_subprocess(eval)
+      end if
+#else
       call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
+#endif
 #endif
      case(10 : 13, 15, 17, 27, 28, 29, 30)
       ! call optimization for other variables
       obj_func => objective
+#ifdef MPI
+      if (rank == 0 .and. domainMeta%isMaster) then
+        obj_func => objective_master
+        call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
+      else if (domainMeta%isMaster) then
+        call objective_subprocess(eval)
+      end if
+#else
       call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
+#endif
     case default
       call message('***ERROR: mhm_driver: The given objective function number ', &
               trim(adjustl(num2str(opti_function))), ' in mhm.nml is not valid!')
       stop 1
     end select
-
+#ifdef MPI
+  if (rank == 0 .and. domainMeta%isMaster) then
+#endif
     ! write a file with final objective function and the best parameter set
     call write_optifile(funcbest, global_parameters(:, 3), global_parameters_name(:))
     ! write a file with final best parameter set in a namlist format
     call write_optinamelist(processMatrix, global_parameters, maskpara, global_parameters_name(:))
     deallocate(maskpara)
+#ifdef MPI
+  end if
+#endif
   else
 
-    ! --------------------------------------------------------------------------
-    ! call mHM
-    ! get runoff timeseries if possible (i.e. when processMatrix(8,1) > 0)
-    ! get other model outputs  (i.e. gridded fields of model output)
-    ! --------------------------------------------------------------------------
-    call message('  Run mHM')
-    call timer_start(iTimer)
-    call mhm_eval(global_parameters(:, 3))
-    call timer_stop(itimer)
-    call message('    in ', trim(num2str(timer_get(itimer), '(F12.3)')), ' seconds.')
+#ifdef MPI
+    if (rank > 0 .and. domainMeta%isMaster) then
+#endif
+      ! --------------------------------------------------------------------------
+      ! call mHM
+      ! get runoff timeseries if possible (i.e. when processMatrix(8,1) > 0)
+      ! get other model outputs  (i.e. gridded fields of model output)
+      ! --------------------------------------------------------------------------
+      call message('  Run mHM')
+      call timer_start(itimer)
+      call mhm_eval(global_parameters(:, 3))
+      call timer_stop(itimer)
+      call message('    in ', trim(num2str(timer_get(itimer), '(F12.3)')), ' seconds.')
+#ifdef MPI
+    endif
+#endif
 
   end if
 
+#ifdef MPI
+  if (rank > 0 .and. domainMeta%isMaster) then
+#endif
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files
   ! --------------------------------------------------------------------------
@@ -365,6 +448,9 @@ PROGRAM mhm_driver
   if (processMatrix(8, 1) .ne. 0) call mrm_write()
 #endif
 
+#ifdef MPI
+  end if
+#endif
 
   ! --------------------------------------------------------------------------
   ! FINISH UP
@@ -377,7 +463,7 @@ PROGRAM mhm_driver
   ! call timer_stop(itimer)
   ! call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
 
-  nTimeSteps = maxval(simPer(1 : nBasins)%julEnd - simPer(1 : nBasins)%julStart + 1) * nTstepDay
+  nTimeSteps = maxval(simPer(1 : domainMeta%nDomains)%julEnd - simPer(1 : domainMeta%nDomains)%julStart + 1) * nTstepDay
   call date_and_time(values = datetime)
   call message()
   message_text = 'Done ' // trim(num2str(nTimeSteps, '(I10)')) // " time steps."
@@ -388,5 +474,13 @@ PROGRAM mhm_driver
   call message('Finished at ', trim(message_text), '.')
   call message()
   call finish('mHM', 'Finished!')
+
+#ifdef MPI
+  ! find number of processes nproc
+  call MPI_Comm_size(comm, nproc, ierror)
+  call MPI_Comm_rank(comm, rank, ierror)
+  write(*,*) 'MPI finished', rank, nproc
+  call MPI_Finalize(ierror)
+#endif
 
 END PROGRAM mhm_driver

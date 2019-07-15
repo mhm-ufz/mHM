@@ -38,7 +38,7 @@ module mo_common_mHM_mRM_variables
   type(period), dimension(:), allocatable, public :: simPer      ! warmPer + evalPer
   type(period), public :: readPer     ! start and end dates of read period
   integer(i4), dimension(:), allocatable, public :: warmingDays ! number of days for warm up period
-  integer(i4), dimension(:, :), allocatable, public :: LCyearId            ! Mapping of landcover scenes (1, 2,..) for each basin
+  integer(i4), dimension(:, :), allocatable, public :: LCyearId            ! Mapping of landcover scenes (1, 2,..) for each domain
 
   ! ------------------------------------------------------------------
   ! CONSTANT
@@ -48,7 +48,7 @@ module mo_common_mHM_mRM_variables
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
-  ! has the dimension of nBasins
+  ! has the dimension of nDomains
   character(256), dimension(:), allocatable, public :: dirRestartIn! Directory where input of restart is read from
 
   ! -------------------------------------------------------------------

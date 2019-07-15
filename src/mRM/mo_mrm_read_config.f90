@@ -55,15 +55,16 @@ contains
 
   subroutine mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, do_message, readLatLon)
 
-    use mo_common_constants, only : maxNoBasins, nodata_i4
+    use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_mHM_mRM_read_config, only : common_check_resolution
-    use mo_common_variables, only : ALMA_convention, nBasins, processMatrix
+    use mo_common_variables, only : ALMA_convention, domainMeta, processMatrix
     use mo_message, only : message
     use mo_mrm_constants, only : maxNoGauges
     use mo_mrm_file, only : file_defOutput, udefOutput
-    use mo_mrm_global_variables, only : InflowGauge, basinInfo_mRM, basin_mrm, &
+    use mo_mrm_global_variables, only : InflowGauge, domainInfo_mRM, domain_mrm, &
                                         dirGauges, dirTotalRunoff, filenameTotalRunoff, dirBankfullRunoff, gauge, is_start, &
-                                        nGaugesTotal, nInflowGaugesTotal, outputFlxState_mrm, timeStep_model_outputs_mrm, &
+                                        nGaugesTotal, nGaugesLocal, nInflowGaugesTotal, outputFlxState_mrm, &
+                                        timeStep_model_outputs_mrm, &
                                         varnameTotalRunoff, gw_coupling
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
@@ -80,36 +81,36 @@ contains
     ! - flag for reading LatLon file
     logical, intent(out) :: readLatLon
 
-    integer(i4), dimension(maxNoBasins) :: NoGauges_basin
+    integer(i4), dimension(maxNoDomains) :: NoGauges_domain
 
-    integer(i4), dimension(maxNoBasins, maxNoGauges) :: Gauge_id
+    integer(i4), dimension(maxNoDomains, maxNoGauges) :: Gauge_id
 
-    character(256), dimension(maxNoBasins, maxNoGauges) :: Gauge_filename
+    character(256), dimension(maxNoDomains, maxNoGauges) :: Gauge_filename
 
-    integer(i4), dimension(maxNoBasins) :: NoInflowGauges_basin
+    integer(i4), dimension(maxNoDomains) :: NoInflowGauges_domain
 
-    integer(i4), dimension(maxNoBasins, maxNoGauges) :: InflowGauge_id
+    integer(i4), dimension(maxNoDomains, maxNoGauges) :: InflowGauge_id
 
-    character(256), dimension(maxNoBasins, maxNoGauges) :: InflowGauge_filename
+    character(256), dimension(maxNoDomains, maxNoGauges) :: InflowGauge_filename
 
-    logical, dimension(maxNoBasins, maxNoGauges) :: InflowGauge_Headwater
+    logical, dimension(maxNoDomains, maxNoGauges) :: InflowGauge_Headwater
 
-    integer(i4) :: iBasin
+    integer(i4) :: domainID, iDomain
 
     integer(i4) :: iGauge
 
     integer(i4) :: idx
 
-    character(256), dimension(maxNoBasins) :: dir_Gauges
+    character(256), dimension(maxNoDomains) :: dir_Gauges
 
-    character(256), dimension(maxNoBasins) :: dir_Total_Runoff
+    character(256), dimension(maxNoDomains) :: dir_Total_Runoff
 
-    character(256), dimension(maxNoBasins) :: dir_Bankfull_Runoff
+    character(256), dimension(maxNoDomains) :: dir_Bankfull_Runoff
 
 
     logical :: file_exists
 
-    type(basinInfo_mRM), pointer :: basin_mrm_iBasin
+    type(domainInfo_mRM), pointer :: domain_mrm_iDomain
 
 
     ! namelist spatial & temporal resolution, optmization information
@@ -117,9 +118,9 @@ contains
              gw_coupling
     ! namelist directories
     namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff, dir_Bankfull_Runoff
-    namelist /evaluation_gauges/ nGaugesTotal, NoGauges_basin, Gauge_id, gauge_filename
+    namelist /evaluation_gauges/ nGaugesTotal, NoGauges_domain, Gauge_id, gauge_filename
     ! namelist for inflow gauges
-    namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id, &
+    namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_domain, InflowGauge_id, &
             InflowGauge_filename, InflowGauge_Headwater
     ! name list regarding output
     namelist /NLoutputResults/timeStep_model_outputs_mrm, outputFlxState_mrm
@@ -129,7 +130,7 @@ contains
     !===============================================================
     is_start = .True.
     nGaugesTotal = nodata_i4
-    NoGauges_basin = nodata_i4
+    NoGauges_domain = nodata_i4
     Gauge_id = nodata_i4
     gauge_filename = num2str(nodata_i4)
 
@@ -156,9 +157,13 @@ contains
     call position_nml('directories_mRM', unamelist)
     read(unamelist, nml = directories_mRM)
 
-    dirGauges = dir_Gauges(1 : nBasins)
-    dirTotalRunoff = dir_Total_Runoff(1 : nBasins)
-    dirBankfullRunoff = dir_Bankfull_Runoff(1:nBasins)
+    allocate(dirGauges(domainMeta%nDomains), dirTotalRunoff(domainMeta%nDomains), dirBankfullRunoff(domainMeta%nDomains))
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      dirGauges(iDomain)         = dir_Gauges(domainID)
+      dirTotalRunoff(iDomain)    = dir_Total_Runoff(domainID)
+      dirBankfullRunoff(iDomain) = dir_Bankfull_Runoff(domainID)
+    end do
 
     !===============================================================
     ! READ EVALUATION GAUGES
@@ -174,66 +179,78 @@ contains
       stop 1
     end if
 
-    allocate(gauge%gaugeId(nGaugesTotal)) ; gauge%gaugeId = nodata_i4
-    allocate(gauge%basinId(nGaugesTotal)) ; gauge%basinId = nodata_i4
-    allocate(gauge%fName  (nGaugesTotal)) ; gauge%fName(1) = num2str(nodata_i4)
-    allocate(basin_mrm(nBasins))
+    ! ToDo: check
+    nGaugesLocal = 0
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      nGaugesLocal = nGaugesLocal + NoGauges_domain(domainID)
+    end do
+    ! End ToDo
+
+    allocate(gauge%gaugeId(nGaugesLocal)) ; gauge%gaugeId = nodata_i4
+    allocate(gauge%domainId(nGaugesLocal)) ; gauge%domainId = nodata_i4
+    allocate(gauge%fName  (nGaugesLocal))
+    if (nGaugesLocal > 0) then
+      gauge%fName(1) = num2str(nodata_i4)
+    end if
+    allocate(domain_mrm(domainMeta%nDomains))
 
     idx = 0
-    do iBasin = 1, nBasins
-      basin_mrm_iBasin => basin_mrm(iBasin)
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      domain_mrm_iDomain => domain_mrm(iDomain)
       ! initialize
-      basin_mrm_iBasin%nGauges = nodata_i4
-      allocate(basin_mrm_iBasin%gaugeIdList(maxval(NoGauges_basin(:))))
-      basin_mrm_iBasin%gaugeIdList = nodata_i4
-      allocate(basin_mrm_iBasin%gaugeIndexList(maxval(NoGauges_basin(:))))
-      basin_mrm_iBasin%gaugeIndexList = nodata_i4
-      allocate(basin_mrm_iBasin%gaugeNodeList(maxval(NoGauges_basin(:))))
-      basin_mrm_iBasin%gaugeNodeList = nodata_i4
-      ! check if NoGauges_basin has a valid value
-      if (NoGauges_basin(iBasin) .EQ. nodata_i4) then
+      domain_mrm_iDomain%nGauges = nodata_i4
+      allocate(domain_mrm_iDomain%gaugeIdList(maxval(NoGauges_domain(:))))
+      domain_mrm_iDomain%gaugeIdList = nodata_i4
+      allocate(domain_mrm_iDomain%gaugeIndexList(maxval(NoGauges_domain(:))))
+      domain_mrm_iDomain%gaugeIndexList = nodata_i4
+      allocate(domain_mrm_iDomain%gaugeNodeList(maxval(NoGauges_domain(:))))
+      domain_mrm_iDomain%gaugeNodeList = nodata_i4
+      ! check if NoGauges_domain has a valid value
+      if (NoGauges_domain(domainID) .EQ. nodata_i4) then
         call message()
-        call message('***ERROR: ', trim(file_namelist), ': Number of evaluation gauges for subbasin ', &
-                trim(adjustl(num2str(iBasin))), ' is not defined!')
+        call message('***ERROR: ', trim(file_namelist), ': Number of evaluation gauges for subdomain ', &
+                trim(adjustl(num2str(domainID))), ' is not defined!')
         call message('          Error occured in namelist: evaluation_gauges')
         stop 1
       end if
 
-      basin_mrm_iBasin%nGauges = NoGauges_basin(iBasin)
+      domain_mrm_iDomain%nGauges = NoGauges_domain(domainID)
 
-      do iGauge = 1, NoGauges_basin(iBasin)
-        ! check if NoGauges_basin has a valid value
-        if (Gauge_id(iBasin, iGauge) .EQ. nodata_i4) then
+      do iGauge = 1, NoGauges_domain(domainID)
+        ! check if NoGauges_domain has a valid value
+        if (Gauge_id(domainID, iGauge) .EQ. nodata_i4) then
           call message()
           call message('***ERROR: ', trim(file_namelist), ': ID ', &
-                  trim(adjustl(num2str(Gauge_id(iBasin, iGauge)))), ' of evaluation gauge ', &
-                  trim(adjustl(num2str(iGauge))), ' for subbasin ', &
-                  trim(adjustl(num2str(iBasin))), ' is not defined!')
+                  trim(adjustl(num2str(Gauge_id(domainID, iGauge)))), ' of evaluation gauge ', &
+                  trim(adjustl(num2str(iGauge))), ' for subdomain ', &
+                  trim(adjustl(num2str(iDomain))), ' is not defined!')
           call message('          Error occured in namelist: evaluation_gauges')
           stop 1
-        else if (trim(gauge_filename(iBasin, iGauge)) .EQ. trim(num2str(nodata_i4))) then
+        else if (trim(gauge_filename(domainID, iGauge)) .EQ. trim(num2str(nodata_i4))) then
           call message()
           call message('***ERROR: ', trim(file_namelist), ': Filename of evaluation gauge ', &
-                  trim(adjustl(num2str(iGauge))), ' for subbasin ', &
-                  trim(adjustl(num2str(iBasin))), ' is not defined!')
+                  trim(adjustl(num2str(iGauge))), ' for subdomain ', &
+                  trim(adjustl(num2str(iDomain))), ' is not defined!')
           call message('          Error occured in namelist: evaluation_gauges')
           stop 1
         end if
         !
         idx = idx + 1
-        gauge%basinId(idx) = iBasin
-        gauge%gaugeId(idx) = Gauge_id(iBasin, iGauge)
-        gauge%fname(idx) = trim(dirGauges(iBasin)) // trim(gauge_filename(iBasin, iGauge))
-        basin_mrm_iBasin%gaugeIdList(iGauge) = Gauge_id(iBasin, iGauge)
-        basin_mrm_iBasin%gaugeIndexList(iGauge) = idx
+        gauge%domainId(idx) = iDomain
+        gauge%gaugeId(idx) = Gauge_id(domainID, iGauge)
+        gauge%fname(idx) = trim(dirGauges(iDomain)) // trim(gauge_filename(domainID, iGauge))
+        domain_mrm_iDomain%gaugeIdList(iGauge) = Gauge_id(domainID, iGauge)
+        domain_mrm_iDomain%gaugeIndexList(iGauge) = idx
       end do
     end do
 
-    if (nGaugesTotal .NE. idx) then
+    if (nGaugesLocal .NE. idx) then
       call message()
       call message('***ERROR: ', trim(file_namelist), ': Total number of evaluation gauges (', &
-              trim(adjustl(num2str(nGaugesTotal))), &
-              ') different from sum of gauges in subbasins (', trim(adjustl(num2str(idx))), ')!')
+              trim(adjustl(num2str(nGaugesLocal))), &
+              ') different from sum of gauges in subdomains (', trim(adjustl(num2str(idx))), ')!')
       call message('          Error occured in namelist: evaluation_gauges')
       stop
     end if
@@ -243,7 +260,7 @@ contains
     !===============================================================
 
     nInflowGaugesTotal = 0
-    NoInflowGauges_basin = 0
+    NoInflowGauges_domain = 0
     InflowGauge_id = nodata_i4
     InflowGauge_filename = num2str(nodata_i4)
 
@@ -260,59 +277,60 @@ contains
 
     ! allocation - max() to avoid allocation with zero, needed for mhm call
     allocate(InflowGauge%gaugeId (max(1, nInflowGaugesTotal)))
-    allocate(InflowGauge%basinId (max(1, nInflowGaugesTotal)))
+    allocate(InflowGauge%domainId (max(1, nInflowGaugesTotal)))
     allocate(InflowGauge%fName   (max(1, nInflowGaugesTotal)))
     ! dummy initialization
     InflowGauge%gaugeId = nodata_i4
-    InflowGauge%basinId = nodata_i4
+    InflowGauge%domainId = nodata_i4
     InflowGauge%fName = num2str(nodata_i4)
 
     idx = 0
-    do iBasin = 1, nBasins
-      basin_mrm_iBasin => basin_mrm(iBasin)
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      domain_mrm_iDomain => domain_mrm(iDomain)
 
-      allocate(basin_mrm_iBasin%InflowGaugeIdList    (max(1, maxval(NoInflowGauges_basin(:)))))
-      allocate(basin_mrm_iBasin%InflowGaugeHeadwater (max(1, maxval(NoInflowGauges_basin(:)))))
-      allocate(basin_mrm_iBasin%InflowGaugeIndexList (max(1, maxval(NoInflowGauges_basin(:)))))
-      allocate(basin_mrm_iBasin%InflowGaugeNodeList  (max(1, maxval(NoInflowGauges_basin(:)))))
+      allocate(domain_mrm_iDomain%InflowGaugeIdList    (max(1, maxval(NoInflowGauges_domain(:)))))
+      allocate(domain_mrm_iDomain%InflowGaugeHeadwater (max(1, maxval(NoInflowGauges_domain(:)))))
+      allocate(domain_mrm_iDomain%InflowGaugeIndexList (max(1, maxval(NoInflowGauges_domain(:)))))
+      allocate(domain_mrm_iDomain%InflowGaugeNodeList  (max(1, maxval(NoInflowGauges_domain(:)))))
       ! dummy initialization
-      basin_mrm_iBasin%nInflowGauges = 0
-      basin_mrm_iBasin%InflowGaugeIdList = nodata_i4
-      basin_mrm_iBasin%InflowGaugeHeadwater = .FALSE.
-      basin_mrm_iBasin%InflowGaugeIndexList = nodata_i4
-      basin_mrm_iBasin%InflowGaugeNodeList = nodata_i4
-      ! no inflow gauge for subbasin i
-      if (NoInflowGauges_basin(iBasin) .EQ. nodata_i4) then
-        NoInflowGauges_basin(iBasin) = 0
+      domain_mrm_iDomain%nInflowGauges = 0
+      domain_mrm_iDomain%InflowGaugeIdList = nodata_i4
+      domain_mrm_iDomain%InflowGaugeHeadwater = .FALSE.
+      domain_mrm_iDomain%InflowGaugeIndexList = nodata_i4
+      domain_mrm_iDomain%InflowGaugeNodeList = nodata_i4
+      ! no inflow gauge for subdomain i
+      if (NoInflowGauges_domain(domainID) .EQ. nodata_i4) then
+        NoInflowGauges_domain(domainID) = 0
       end if
 
-      basin_mrm_iBasin%nInflowGauges = NoInflowGauges_basin(iBasin)
+      domain_mrm_iDomain%nInflowGauges = NoInflowGauges_domain(domainID)
 
-      do iGauge = 1, NoInflowGauges_basin(iBasin)
-        ! check if NoInflowGauges_basin has a valid value
-        if (InflowGauge_id(iBasin, iGauge) .EQ. nodata_i4) then
+      do iGauge = 1, NoInflowGauges_domain(domainID)
+        ! check if NoInflowGauges_domain has a valid value
+        if (InflowGauge_id(domainID, iGauge) .EQ. nodata_i4) then
           call message()
           call message('***ERROR: ', trim(file_namelist), ':ID of inflow gauge ', &
-                  trim(adjustl(num2str(iGauge))), ' for subbasin ', &
-                  trim(adjustl(num2str(iBasin))), ' is not defined!')
+                  trim(adjustl(num2str(iGauge))), ' for subdomain ', &
+                  trim(adjustl(num2str(iDomain))), ' is not defined!')
           call message('          Error occured in namlist: inflow_gauges')
           stop
-        else if (trim(InflowGauge_filename(iBasin, iGauge)) .EQ. trim(num2str(nodata_i4))) then
+        else if (trim(InflowGauge_filename(domainID, iGauge)) .EQ. trim(num2str(nodata_i4))) then
           call message()
           call message('***ERROR: ', trim(file_namelist), ':Filename of inflow gauge ', &
-                  trim(adjustl(num2str(iGauge))), ' for subbasin ', &
-                  trim(adjustl(num2str(iBasin))), ' is not defined!')
+                  trim(adjustl(num2str(iGauge))), ' for subdomain ', &
+                  trim(adjustl(num2str(iDomain))), ' is not defined!')
           call message('          Error occured in namlist: inflow_gauges')
           stop
         end if
         !
         idx = idx + 1
-        InflowGauge%basinId(idx) = iBasin
-        InflowGauge%gaugeId(idx) = InflowGauge_id(iBasin, iGauge)
-        InflowGauge%fname(idx) = trim(dirGauges(iBasin)) // trim(InflowGauge_filename(iBasin, iGauge))
-        basin_mrm_iBasin%InflowGaugeIdList(iGauge) = InflowGauge_id(iBasin, iGauge)
-        basin_mrm_iBasin%InflowGaugeHeadwater(iGauge) = InflowGauge_Headwater(iBasin, iGauge)
-        basin_mrm_iBasin%InflowGaugeIndexList(iGauge) = idx
+        InflowGauge%domainId(idx) = iDomain
+        InflowGauge%gaugeId(idx) = InflowGauge_id(domainID, iGauge)
+        InflowGauge%fname(idx) = trim(dirGauges(domainID)) // trim(InflowGauge_filename(domainID, iGauge))
+        domain_mrm_iDomain%InflowGaugeIdList(iGauge) = InflowGauge_id(domainID, iGauge)
+        domain_mrm_iDomain%InflowGaugeHeadwater(iGauge) = InflowGauge_Headwater(domainID, iGauge)
+        domain_mrm_iDomain%InflowGaugeIndexList(iGauge) = idx
       end do
     end do
 
@@ -320,7 +338,7 @@ contains
       call message()
       call message('***ERROR: ', trim(file_namelist), ': Total number of inflow gauges (', &
               trim(adjustl(num2str(nInflowGaugesTotal))), &
-              ') different from sum of inflow gauges in subbasins (', trim(adjustl(num2str(idx))), ')!')
+              ') different from sum of inflow gauges in subdomains (', trim(adjustl(num2str(idx))), ')!')
       call message('          Error occured in namlist: inflow_gauges')
       stop
     end if

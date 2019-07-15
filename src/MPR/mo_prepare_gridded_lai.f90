@@ -41,13 +41,13 @@ CONTAINS
   !>       \details Prepare gridded daily LAI data at Level-0 (e.g., using MODIS datasets)
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
-  !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
-  !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
+  !>       \param[in] "integer(i4) :: iDomain, nrows, ncols" domain Id
+  !>       \param[in] "integer(i4) :: iDomain, nrows, ncols" domain Id
+  !>       \param[in] "integer(i4) :: iDomain, nrows, ncols" domain Id
   !>       \param[in] "logical, dimension(:, :) :: mask"
 
   !    INTENT(IN), OPTIONAL
-  !>       \param[in] "type(period), optional :: LAIPer_iBasin"
+  !>       \param[in] "type(period), optional :: LAIPer_iDomain"
 
   !    HISTORY
   !>       \authors John Craven & Rohini Kumar
@@ -58,7 +58,7 @@ CONTAINS
   ! Matthias Cuntz & Juliane Mai Nov 2014 - use meteo reading routines 
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine prepare_gridded_daily_LAI_data(iBasin, nrows, ncols, mask, LAIPer_iBasin)
+  subroutine prepare_gridded_daily_LAI_data(iDomain, nrows, ncols, mask, LAIPer_iDomain)
 
     use mo_append, only : append
     use mo_common_variables, only : period
@@ -68,12 +68,12 @@ CONTAINS
 
     implicit none
 
-    ! Basin Id
-    integer(i4), intent(in) :: iBasin, nrows, ncols
+    ! domain Id
+    integer(i4), intent(in) :: iDomain, nrows, ncols
 
     logical, dimension(:, :), intent(in) :: mask
 
-    type(period), intent(in), optional :: LAIPer_iBasin
+    type(period), intent(in), optional :: LAIPer_iDomain
 
     integer(i4) :: ncells, iLAI
 
@@ -89,8 +89,8 @@ CONTAINS
 
     ! netcdf file input option
     CASE('nc')
-      CALL read_forcing_nc(dirgridded_LAI(iBasin), nRows, nCols, &
-              'lai', mask, LAI0_3D, target_period = LAIPer_iBasin, &
+      CALL read_forcing_nc(dirgridded_LAI(iDomain), nRows, nCols, &
+              'lai', mask, LAI0_3D, target_period = LAIPer_iDomain, &
               lower = 1.00E-10_dp, upper = 30.0_dp, nctimestep = timeStep_LAI_input)
     CASE DEFAULT
       call message()
@@ -129,9 +129,9 @@ CONTAINS
   !>       LAI data at the input L0 data resolution.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
-  !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
-  !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
+  !>       \param[in] "integer(i4) :: iDomain, nrows, ncols" domain Id
+  !>       \param[in] "integer(i4) :: iDomain, nrows, ncols" domain Id
+  !>       \param[in] "integer(i4) :: iDomain, nrows, ncols" domain Id
   !>       \param[in] "logical, dimension(:, :) :: mask"
 
   !    HISTORY
@@ -142,7 +142,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine prepare_gridded_mean_monthly_LAI_data(iBasin, nrows, ncols, mask)
+  subroutine prepare_gridded_mean_monthly_LAI_data(iDomain, nrows, ncols, mask)
 
     use mo_append, only : append
     use mo_message, only : message
@@ -153,8 +153,8 @@ CONTAINS
 
     implicit none
 
-    ! Basin Id
-    integer(i4), intent(in) :: iBasin, nrows, ncols
+    ! domain Id
+    integer(i4), intent(in) :: iDomain, nrows, ncols
 
     logical, dimension(:, :), intent(in) :: mask
 
@@ -184,7 +184,7 @@ CONTAINS
     real(dp) :: nodata_value
 
 
-    fName = trim(dirgridded_LAI(iBasin)) // trim('lai.nc')
+    fName = trim(dirgridded_LAI(iDomain)) // trim('lai.nc')
 
     ! get dimensions
     dimen = Get_NcDim(trim(fName), 'lai')
@@ -206,7 +206,7 @@ CONTAINS
     do t = 1, dimen(3)
       ! checking for nodata values if optional nocheck is given
       if (any(eq(LAI0_3D(:, :, t), nodata_value) .and. (mask))) then
-        call message('***ERROR: read_forcing_nc: nodata value within basin ')
+        call message('***ERROR: read_forcing_nc: nodata value within domain ')
         call message('          boundary in variable: ', 'lai')
         call message('          at timestep         : ', trim(num2str(t)))
         stop

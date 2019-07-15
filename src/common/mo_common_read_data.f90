@@ -43,9 +43,9 @@ CONTAINS
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
     use mo_common_file, only : file_dem, udem
-    use mo_common_variables, only : Grid, L0_Basin, L0_elev, dirMorpho, level0, nBasins, nuniquel0Basins, &
+    use mo_common_variables, only : Grid,  L0_elev, dirMorpho, level0, domainMeta, nuniqueL0Domains, &
                                     resolutionHydrology
-    use mo_grid, only : set_basin_indices
+    use mo_grid, only : set_domain_indices
     use mo_message, only : message
     use mo_read_spatial_data, only : read_header_ascii, read_spatial_data_ascii
     use mo_string_utils, only : num2str
@@ -53,33 +53,35 @@ CONTAINS
     implicit none
 
     ! loop variables
-    integer(i4) :: iBasin
+    integer(i4) :: domainID, iDomain
 
     ! file name of file to read
     character(256) :: fName
 
     real(dp), dimension(:, :), allocatable :: data_dp_2d
 
-    type(Grid), pointer :: level0_iBasin
+    type(Grid), pointer :: level0_iDomain
 
 
     ! ************************************************
-    ! READ SPATIAL DATA FOR EACH BASIN
+    ! READ SPATIAL DATA FOR EACH DOMAIN
     ! ************************************************
     ! allocate necessary variables at Level0
-    allocate(level0(nuniquel0Basins))
+    allocate(level0(nuniqueL0Domains))
 
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
 
-      level0_iBasin => level0(L0_Basin(iBasin))
+      level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
 
       ! check whether L0 data is shared
-      if (iBasin .gt. 1) then
-        if (L0_Basin(iBasin) .eq. L0_Basin(iBasin - 1)) then
+      if (iDomain .gt. 1) then
+        ! ToDo: check change
+        if (domainMeta%L0DataFrom(iDomain) < iDomain) then
           !
-          call message('      Using dem of basin ', &
-                  trim(adjustl(num2str(L0_Basin(iBasin)))), ' for basin: ',&
-                  trim(adjustl(num2str(iBasin))), '...')
+          call message('      Using dem of domain ', &
+                  trim(adjustl(num2str(domainMeta%indices(domainMeta%L0DataFrom(iDomain))))), ' for domain: ',&
+                  trim(adjustl(num2str(iDomain))), '...')
 
           ! DO NOT read L0 data
           cycle
@@ -87,40 +89,40 @@ CONTAINS
         end if
       end if
 
-      call message('      Reading dem for basin: ', trim(adjustl(num2str(iBasin))), ' ...')
+      call message('      Reading dem for domain: ', trim(adjustl(num2str(domainID))), ' ...')
 
       ! Header (to check consistency)
-      fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_dem))
+      fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_dem))
       call read_header_ascii(trim(fName), udem, &
-              level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-              level0_iBasin%yllcorner, level0_iBasin%cellsize, level0_iBasin%nodata_value)
+              level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+              level0_iDomain%yllcorner, level0_iDomain%cellsize, level0_iDomain%nodata_value)
 
       ! check for L0 and L1 scale consistency
-      if(resolutionHydrology(iBasin) .LT. level0_iBasin%cellsize) then
+      if(resolutionHydrology(iDomain) .LT. level0_iDomain%cellsize) then
         call message()
         call message('***ERROR: resolutionHydrology (L1) should be smaller than the input data resolution (L0)')
-        call message('          check set-up (in mhm.nml) for basin: ', trim(adjustl(num2str(iBasin))), ' ...')
+        call message('          check set-up (in mhm.nml) for domain: ', trim(adjustl(num2str(domainID))), ' ...')
         stop
       end if
 
       ! DEM + overall mask creation
-      fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_dem))
+      fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_dem))
       call read_spatial_data_ascii(trim(fName), udem, &
-              level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-              level0_iBasin%yllcorner, level0_iBasin%cellsize, data_dp_2d, level0_iBasin%mask)
+              level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+              level0_iDomain%yllcorner, level0_iDomain%cellsize, data_dp_2d, level0_iDomain%mask)
 
       ! put global nodata value into array (probably not all grid cells have values)
-      data_dp_2d = merge(data_dp_2d, nodata_dp, level0_iBasin%mask)
+      data_dp_2d = merge(data_dp_2d, nodata_dp, level0_iDomain%mask)
       ! put data in variable
-      call append(L0_elev, pack(data_dp_2d, level0_iBasin%mask))
+      call append(L0_elev, pack(data_dp_2d, level0_iDomain%mask))
       ! deallocate arrays
       deallocate(data_dp_2d)
 
-      level0_iBasin%nCells = count(level0_iBasin%mask)
+      level0_iDomain%nCells = count(level0_iDomain%mask)
 
     end do
 
-    call set_basin_indices(level0)
+    call set_domain_indices(level0)
 
   end subroutine read_dem
 
@@ -144,7 +146,7 @@ CONTAINS
     use mo_append, only : append, paste
     use mo_common_constants, only : nodata_i4
     use mo_common_file, only : ulcoverclass
-    use mo_common_variables, only : Grid, L0_Basin, L0_LCover, LCfilename, dirLCover, level0, nBasins, nLCoverScene
+    use mo_common_variables, only : Grid, L0_LCover, LCfilename, dirLCover, level0, domainMeta, nLCoverScene
     use mo_message, only : message
     use mo_read_spatial_data, only : read_spatial_data_ascii
     use mo_string_utils, only : num2str
@@ -152,7 +154,7 @@ CONTAINS
     implicit none
 
     ! loop variables
-    integer(i4) :: iBasin, iVar
+    integer(i4) :: domainID, iDomain, iVar
 
     ! file name of file to read
     character(256) :: fName
@@ -163,36 +165,36 @@ CONTAINS
 
     logical, dimension(:, :), allocatable :: mask_2d
 
-    type(Grid), pointer :: level0_iBasin
+    type(Grid), pointer :: level0_iDomain
 
 
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
 
-      level0_iBasin => level0(L0_Basin(iBasin))
+      level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
 
       ! check whether L0 data is shared
-      if (iBasin .gt. 1) then
-        if (L0_Basin(iBasin) .eq. L0_Basin(iBasin - 1)) then
-          call message('      Using lcover of basin ', &
-                  trim(adjustl(num2str(L0_Basin(iBasin)))), ' for basin: ',&
-                  trim(adjustl(num2str(iBasin))), '...')
-          ! DO NOT read L0 data
-          cycle
+      ! ToDo: check change
+      if (domainMeta%L0DataFrom(iDomain) < iDomain) then
+        call message('      Using lcover of domain ', &
+                trim(adjustl(num2str(domainMeta%L0DataFrom(iDomain)))), ' for domain: ',&
+                trim(adjustl(num2str(domainID))), '...')
+        ! DO NOT read L0 data
+        cycle
 
-        end if
       end if
 
-      call message('      Reading lcover for basin: ', trim(adjustl(num2str(iBasin))), ' ...')
+      call message('      Reading lcover for domain: ', trim(adjustl(num2str(domainID))), ' ...')
 
       ! LCover read in is realized seperated because of unknown number of scenes
       do iVar = 1, nLCoverScene
-        fName = trim(adjustl(dirLCover(iBasin))) // trim(adjustl(LCfilename(iVar)))
+        fName = trim(adjustl(dirLCover(iDomain))) // trim(adjustl(LCfilename(iVar)))
         call read_spatial_data_ascii(trim(fName), ulcoverclass, &
-                level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-                level0_iBasin%yllcorner, level0_iBasin%cellsize, data_i4_2d, mask_2d)
+                level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+                level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
         ! put global nodata value into array (probably not all grid cells have values)
         data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-        call paste(dataMatrix_i4, pack(data_i4_2d, level0_iBasin%mask), nodata_i4)
+        call paste(dataMatrix_i4, pack(data_i4_2d, level0_iDomain%mask), nodata_i4)
         deallocate(data_i4_2d)
       end do
       call append(L0_LCover, dataMatrix_i4)

@@ -39,7 +39,7 @@ CONTAINS
   !>       \brief Allocation of space for mHM related L1 and L11 variables.
 
   !>       \details Allocation of space for mHM related L1 and L11 variables (e.g., states,
-  !>       fluxes, and parameters) for a given basin. Variables allocated here is
+  !>       fluxes, and parameters) for a given domain. Variables allocated here is
   !>       defined in them mo_global_variables.f90 file. After allocating any variable
   !>       in this routine, initalize them in the following variables_default_init
   !>       subroutine:

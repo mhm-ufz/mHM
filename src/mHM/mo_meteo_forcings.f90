@@ -42,7 +42,7 @@ CONTAINS
   !>       for different meterological variables
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin" Basin Id
+  !>       \param[in] "integer(i4) :: iDomain" Domain Id
   !>       \param[in] "integer(i4) :: tt"     current timestep
 
   !    HISTORY
@@ -60,10 +60,10 @@ CONTAINS
   ! Stephan Thober,  Jan 2017 - added subroutine for meteo_weights
   ! Robert Schweppe  Jun 2018 - refactoring and reformatting
 
-  subroutine prepare_meteo_forcings_data(iBasin, tt)
+  subroutine prepare_meteo_forcings_data(iDomain, domainID, tt)
 
     use mo_common_mhm_mrm_variables, only : readPer
-    use mo_common_variables, only : nBasins, processMatrix
+    use mo_common_variables, only : domainMeta, processMatrix
     use mo_global_variables, only : L1_absvappress, L1_netrad, L1_pet, L1_pet_weights, L1_pre, L1_pre_weights, L1_temp, &
                                     L1_temp_weights, L1_tmax, L1_tmin, L1_windspeed, dirMaxTemperature, &
                                     dirMinTemperature, dirNetRadiation, dirPrecipitation, dirReferenceET, dirTemperature, &
@@ -75,8 +75,11 @@ CONTAINS
 
     implicit none
 
-    ! Basin Id
-    integer(i4), intent(in) :: iBasin
+    ! Domain number
+    integer(i4), intent(in) :: iDomain
+
+    ! Domain ID
+    integer(i4), intent(in) :: domainID
 
     ! current timestep
     integer(i4), intent(in) :: tt
@@ -86,28 +89,28 @@ CONTAINS
 
 
     ! configuration of chunk_read
-    call chunk_config(iBasin, tt, read_flag, readPer)
+    call chunk_config(iDomain, tt, read_flag, readPer)
 
     ! only read, if read_flag is true
     if (read_flag) then
 
       ! read weights for hourly disaggregation of temperature
       if (tt .eq. 1) then
-        if (timeStep_model_inputs(iBasin) .eq. 0) call message('    read meteo weights for tavg     ...')
-        call meteo_weights_wrapper(iBasin, read_meteo_weights, dirTemperature(iBasin), &
+        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read meteo weights for tavg     ...')
+        call meteo_weights_wrapper(iDomain, read_meteo_weights, dirTemperature(iDomain), &
                 L1_temp_weights, ncvarName = 'tavg_weight')
 
-        if (timeStep_model_inputs(iBasin) .eq. 0) call message('    read meteo weights for pet     ...')
-        call meteo_weights_wrapper(iBasin, read_meteo_weights, dirReferenceET(iBasin), &
+        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read meteo weights for pet     ...')
+        call meteo_weights_wrapper(iDomain, read_meteo_weights, dirReferenceET(iDomain), &
                 L1_pet_weights, ncvarName = 'pet_weight')
 
-        if (timeStep_model_inputs(iBasin) .eq. 0) call message('    read meteo weights for pre     ...')
-        call meteo_weights_wrapper(iBasin, read_meteo_weights, dirPrecipitation(iBasin), &
+        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read meteo weights for pre     ...')
+        call meteo_weights_wrapper(iDomain, read_meteo_weights, dirPrecipitation(iDomain), &
                 L1_pre_weights, ncvarName = 'pre_weight')
       end if
 
       ! free L1 variables if chunk read is activated
-      if (timeStep_model_inputs(iBasin) .ne. 0) then
+      if (timeStep_model_inputs(iDomain) .ne. 0) then
         if (allocated(L1_pre)) deallocate(L1_pre)
         if (allocated(L1_temp)) deallocate(L1_temp)
         if (allocated(L1_pet)) deallocate(L1_pet)
@@ -118,20 +121,20 @@ CONTAINS
         if (allocated(L1_windspeed)) deallocate(L1_windspeed)
       end if
 
-      !  basin characteristics and read meteo header
-      if (timeStep_model_inputs(iBasin) .eq. 0) then
-        call message('  Reading meteorological forcings for basin: ', trim(adjustl(num2str(iBasin))), ' ...')
+      !  Domain characteristics and read meteo header
+      if (timeStep_model_inputs(iDomain) .eq. 0) then
+        call message('  Reading meteorological forcings for Domain: ', trim(adjustl(num2str(domainID))), ' ...')
         call timer_start(1)
       end if
 
       ! precipitation
-      if (timeStep_model_inputs(iBasin) .eq. 0) call message('    read precipitation        ...')
-      call meteo_forcings_wrapper(iBasin, dirPrecipitation(iBasin), inputFormat_meteo_forcings, &
+      if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read precipitation        ...')
+      call meteo_forcings_wrapper(iDomain, dirPrecipitation(iDomain), inputFormat_meteo_forcings, &
               L1_pre, lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pre')
 
       ! temperature
-      if (timeStep_model_inputs(iBasin) .eq. 0) call message('    read temperature          ...')
-      call meteo_forcings_wrapper(iBasin, dirTemperature(iBasin), inputFormat_meteo_forcings, &
+      if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read temperature          ...')
+      call meteo_forcings_wrapper(iDomain, dirTemperature(iDomain), inputFormat_meteo_forcings, &
               L1_temp, lower = -100._dp, upper = 100._dp, ncvarName = 'tavg')
 
       ! read input for PET (process 5) depending on specified option
@@ -139,57 +142,57 @@ CONTAINS
       select case (processMatrix(5, 1))
 
       case(-1 : 0) ! pet is input
-        if (timeStep_model_inputs(iBasin) .eq. 0) call message('    read pet                  ...')
-        call meteo_forcings_wrapper(iBasin, dirReferenceET(iBasin), inputFormat_meteo_forcings, &
+        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read pet                  ...')
+        call meteo_forcings_wrapper(iDomain, dirReferenceET(iDomain), inputFormat_meteo_forcings, &
                 L1_pet, lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pet')
         ! allocate PET and dummies for mhm_call
-        if ((iBasin.eq.nBasins) .OR. (timeStep_model_inputs(iBasin) .NE. 0)) then
+        if ((iDomain.eq.domainMeta%nDomains) .OR. (timeStep_model_inputs(iDomain) .NE. 0)) then
           allocate(L1_tmin(1, 1)); allocate(L1_tmax(1, 1)); allocate(L1_netrad(1, 1))
           allocate(L1_absvappress(1, 1)); allocate(L1_windspeed(1, 1))
         end if
 
       case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
-        if (timeStep_model_inputs(iBasin) .eq. 0) call message('    read min. temperature     ...')
-        call meteo_forcings_wrapper(iBasin, dirMinTemperature(iBasin), inputFormat_meteo_forcings, &
+        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read min. temperature     ...')
+        call meteo_forcings_wrapper(iDomain, dirMinTemperature(iDomain), inputFormat_meteo_forcings, &
                 L1_tmin, lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmin')
-        if (timeStep_model_inputs(iBasin) .eq. 0) call message('    read max. temperature     ...')
-        call meteo_forcings_wrapper(iBasin, dirMaxTemperature(iBasin), inputFormat_meteo_forcings, &
+        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read max. temperature     ...')
+        call meteo_forcings_wrapper(iDomain, dirMaxTemperature(iDomain), inputFormat_meteo_forcings, &
                 L1_tmax, lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmax')
         ! allocate PET and dummies for mhm_call
-        if ((iBasin .eq. nBasins) .OR. (timeStep_model_inputs(iBasin) .NE. 0)) then
+        if ((iDomain .eq. domainMeta%nDomains) .OR. (timeStep_model_inputs(iDomain) .NE. 0)) then
           allocate(L1_pet    (size(L1_tmax, dim = 1), size(L1_tmax, dim = 2)))
           allocate(L1_netrad(1, 1)); allocate(L1_absvappress(1, 1)); allocate(L1_windspeed(1, 1))
         end if
 
       case(2) ! Priestley-Taylor formulation (input: net radiation)
-        if (timeStep_model_inputs(iBasin) .eq. 0) call message('    read net radiation        ...')
-        call meteo_forcings_wrapper(iBasin, dirNetRadiation(iBasin), inputFormat_meteo_forcings, &
+        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read net radiation        ...')
+        call meteo_forcings_wrapper(iDomain, dirNetRadiation(iDomain), inputFormat_meteo_forcings, &
                 L1_netrad, lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad')
         ! allocate PET and dummies for mhm_call
-        if ((iBasin .eq. nBasins) .OR. (timeStep_model_inputs(iBasin) .NE. 0)) then
+        if ((iDomain .eq. domainMeta%nDomains) .OR. (timeStep_model_inputs(iDomain) .NE. 0)) then
           allocate(L1_pet    (size(L1_netrad, dim = 1), size(L1_netrad, dim = 2)))
           allocate(L1_tmin(1, 1)); allocate(L1_tmax(1, 1))
           allocate(L1_absvappress(1, 1)); allocate(L1_windspeed(1, 1))
         end if
 
       case(3) ! Penman-Monteith formulation (input: net radiationm absulute vapour pressure, windspeed)
-        if (timeStep_model_inputs(iBasin) .eq. 0) call message('    read net radiation        ...')
-        call meteo_forcings_wrapper(iBasin, dirNetRadiation(iBasin), inputFormat_meteo_forcings, &
+        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read net radiation        ...')
+        call meteo_forcings_wrapper(iDomain, dirNetRadiation(iDomain), inputFormat_meteo_forcings, &
                 L1_netrad, lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad')
-        if (timeStep_model_inputs(iBasin) .eq. 0) call message('    read absolute vapour pressure  ...')
-        call meteo_forcings_wrapper(iBasin, dirabsVapPressure(iBasin), inputFormat_meteo_forcings, &
+        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read absolute vapour pressure  ...')
+        call meteo_forcings_wrapper(iDomain, dirabsVapPressure(iDomain), inputFormat_meteo_forcings, &
                 L1_absvappress, lower = 0.0_dp, upper = 15000.0_dp, ncvarName = 'eabs')
-        if (timeStep_model_inputs(iBasin) .eq. 0) call message('    read windspeed            ...')
-        call meteo_forcings_wrapper(iBasin, dirwindspeed(iBasin), inputFormat_meteo_forcings, &
+        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read windspeed            ...')
+        call meteo_forcings_wrapper(iDomain, dirwindspeed(iDomain), inputFormat_meteo_forcings, &
                 L1_windspeed, lower = 0.0_dp, upper = 250.0_dp, ncvarName = 'windspeed')
         ! allocate PET and dummies for mhm_call
-        if ((iBasin.eq.nBasins) .OR. (timeStep_model_inputs(iBasin) .NE. 0)) then
+        if ((iDomain.eq.domainMeta%nDomains) .OR. (timeStep_model_inputs(iDomain) .NE. 0)) then
           allocate(L1_pet    (size(L1_absvappress, dim = 1), size(L1_absvappress, dim = 2)))
           allocate(L1_tmin(1, 1)); allocate(L1_tmax(1, 1))
         end if
       end select
 
-      if (timeStep_model_inputs(iBasin) .eq. 0) then
+      if (timeStep_model_inputs(iDomain) .eq. 0) then
         call timer_stop(1)
         call message('    in ', trim(num2str(timer_get(1), '(F9.3)')), ' seconds.')
       end if
@@ -207,13 +210,13 @@ CONTAINS
   !>       \brief Prepare meteorological forcings data for mHM at Level-1
 
   !>       \details Prepare meteorological forcings data for mHM, which include
-  !>       1) Reading meteo. datasets at their native resolution for every basin
+  !>       1) Reading meteo. datasets at their native resolution for every Domain
   !>       2) Perform aggregation or disaggregation of meteo. datasets from their
   !>       native resolution (level-2) to the required hydrologic resolution (level-1)
-  !>       3) Pad the above datasets of every basin to their respective global ones
+  !>       3) Pad the above datasets of every Domain to their respective global ones
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin"             Basin Id
+  !>       \param[in] "integer(i4) :: iDomain"             Domain Id
   !>       \param[in] "character(len = *) :: dataPath"    Data path where a given meteo. variable is stored
   !>       \param[in] "character(len = *) :: inputFormat" only 'nc' possible at the moment
 
@@ -236,7 +239,7 @@ CONTAINS
   ! Stephan Thober Feb 2016 - refactored deallocate statements
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine meteo_forcings_wrapper(iBasin, dataPath, inputFormat, dataOut1, lower, upper, ncvarName)
+  subroutine meteo_forcings_wrapper(iDomain, dataPath, inputFormat, dataOut1, lower, upper, ncvarName)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -248,8 +251,8 @@ CONTAINS
 
     implicit none
 
-    ! Basin Id
-    integer(i4), intent(in) :: iBasin
+    ! Domain Id
+    integer(i4), intent(in) :: iDomain
 
     ! Data path where a given meteo. variable is stored
     character(len = *), intent(in) :: dataPath
@@ -294,14 +297,14 @@ CONTAINS
     integer(i4) :: t
 
 
-    ! get basic basin information at level-1
-    nCells1 = level1(iBasin)%nCells
-    mask1 = level1(iBasin)%mask
+    ! get basic Domain information at level-1
+    nCells1 = level1(iDomain)%nCells
+    mask1 = level1(iDomain)%mask
 
-    ! make  basic basin information at level-2
-    nrows2 = level2(iBasin)%nrows
-    ncols2 = level2(iBasin)%ncols
-    mask2 = level2(iBasin)%mask
+    ! make  basic Domain information at level-2
+    nrows2 = level2(iDomain)%nrows
+    ncols2 = level2(iDomain)%ncols
+    mask2 = level2(iDomain)%mask
 
     select case (trim(inputFormat))
     case('nc')
@@ -327,14 +330,14 @@ CONTAINS
       stop '***ERROR: meteo_forcings_wrapper: Not recognized input format'
     end select
     ! cellfactor to decide on the upscaling or downscaling of meteo. fields
-    cellFactorHbyM = level1(iBasin)%cellsize / level2(iBasin)%cellsize
+    cellFactorHbyM = level1(iDomain)%cellsize / level2(iDomain)%cellsize
 
     ! upscaling & packing
     if(cellFactorHbyM .gt. 1.0_dp) then
-      call spatial_aggregation(L2_data, level2(iBasin)%cellsize, level1(iBasin)%cellsize, mask1, mask2, L1_data)
+      call spatial_aggregation(L2_data, level2(iDomain)%cellsize, level1(iDomain)%cellsize, mask1, mask2, L1_data)
       ! downscaling
     elseif(cellFactorHbyM .lt. 1.0_dp) then
-      call spatial_disaggregation(L2_data, level2(iBasin)%cellsize, level1(iBasin)%cellsize, mask1, mask2, L1_data)
+      call spatial_disaggregation(L2_data, level2(iDomain)%cellsize, level1(iDomain)%cellsize, mask1, mask2, L1_data)
       ! nothing
     else
       allocate(L1_data(size(L2_data, 1), size(L2_data, 2), size(L2_data, 3)))
@@ -372,13 +375,13 @@ CONTAINS
   !>       \brief Prepare weights for meteorological forcings data for mHM at Level-1
 
   !>       \details Prepare meteorological weights data for mHM, which include
-  !>       1) Reading meteo. weights datasets at their native resolution for every basin
+  !>       1) Reading meteo. weights datasets at their native resolution for every Domain
   !>       2) Perform aggregation or disaggregation of meteo. weights datasets from their
   !>       native resolution (level-2) to the required hydrologic resolution (level-1)
-  !>       3) Pad the above datasets of every basin to their respective global ones
+  !>       3) Pad the above datasets of every Domain to their respective global ones
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin"          Basin Id
+  !>       \param[in] "integer(i4) :: iDomain"          Domain Id
   !>       \param[in] "logical :: read_meteo_weights"  Flag for reading meteo weights
   !>       \param[in] "character(len = *) :: dataPath" Data path where a given meteo. variable is stored
 
@@ -401,7 +404,7 @@ CONTAINS
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! Oldrich Rakovec Aug 2018 - adding message about reading meteo_weights
 
-  subroutine meteo_weights_wrapper(iBasin, read_meteo_weights, dataPath, dataOut1, lower, upper, ncvarName)
+  subroutine meteo_weights_wrapper(iDomain, read_meteo_weights, dataPath, dataOut1, lower, upper, ncvarName)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -413,8 +416,8 @@ CONTAINS
 
     implicit none
 
-    ! Basin Id
-    integer(i4), intent(in) :: iBasin
+    ! Domain Id
+    integer(i4), intent(in) :: iDomain
 
     ! Flag for reading meteo weights
     logical, intent(in) :: read_meteo_weights
@@ -459,14 +462,14 @@ CONTAINS
     integer(i4) :: t, j
 
 
-    ! get basic basin information at level-1
-    nCells1 = level1(iBasin)%nCells
-    mask1 = level1(iBasin)%mask
+    ! get basic Domain information at level-1
+    nCells1 = level1(iDomain)%nCells
+    mask1 = level1(iDomain)%mask
 
-    ! make  basic basin information at level-2
-    nrows2 = level2(iBasin)%nrows
-    ncols2 = level2(iBasin)%ncols
-    mask2 = level2(iBasin)%mask
+    ! make  basic Domain information at level-2
+    nrows2 = level2(iDomain)%nrows
+    ncols2 = level2(iDomain)%ncols
+    mask2 = level2(iDomain)%mask
 
     if (read_meteo_weights) then
       call message('  read_meteo_weights = .TRUE. ... Reading meteo weights ... ')
@@ -487,14 +490,14 @@ CONTAINS
       end if
 
       ! cellfactor to decide on the upscaling or downscaling of meteo. fields
-      cellFactorHbyM = level1(iBasin)%cellsize / level2(iBasin)%cellsize
+      cellFactorHbyM = level1(iDomain)%cellsize / level2(iDomain)%cellsize
 
       ! upscaling & packing
       if(cellFactorHbyM .gt. 1.0_dp) then
-        call spatial_aggregation(L2_data, level2(iBasin)%cellsize, level1(iBasin)%cellsize, mask1, mask2, L1_data)
+        call spatial_aggregation(L2_data, level2(iDomain)%cellsize, level1(iDomain)%cellsize, mask1, mask2, L1_data)
         ! downscaling
       elseif(cellFactorHbyM .lt. 1.0_dp) then
-        call spatial_disaggregation(L2_data, level2(iBasin)%cellsize, level1(iBasin)%cellsize, mask1, mask2, L1_data)
+        call spatial_disaggregation(L2_data, level2(iDomain)%cellsize, level1(iDomain)%cellsize, mask1, mask2, L1_data)
         ! nothing
       else
         L1_data = L2_data
@@ -533,12 +536,12 @@ CONTAINS
   !        chunk_config
 
   !    PURPOSE
-  !>       \brief determines the start date, end date, and read_flag given basin id and current timestep
+  !>       \brief determines the start date, end date, and read_flag given Domain id and current timestep
 
   !>       \details TODO: add description
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin" current Basin
+  !>       \param[in] "integer(i4) :: iDomain" current Domain
   !>       \param[in] "integer(i4) :: tt"     current timestep
 
   !    INTENT(OUT)
@@ -553,7 +556,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine chunk_config(iBasin, tt, read_flag, readPer)
+  subroutine chunk_config(iDomain, tt, read_flag, readPer)
 
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : period
@@ -561,8 +564,8 @@ CONTAINS
 
     implicit none
 
-    ! current Basin
-    integer(i4), intent(in) :: iBasin
+    ! current Domain
+    integer(i4), intent(in) :: iDomain
 
     ! current timestep
     integer(i4), intent(in) :: tt
@@ -589,10 +592,10 @@ CONTAINS
     end if
 
     ! evaluate date and timeStep_model_inputs to get read_flag -------
-    read_flag = is_read(iBasin, tt)
+    read_flag = is_read(iDomain, tt)
     !
     ! determine start and end date of chunk to read
-    if (read_flag) call chunk_size(iBasin, tt, readPer)
+    if (read_flag) call chunk_size(iDomain, tt, readPer)
     !
   end subroutine chunk_config
   ! ------------------------------------------------------------------
@@ -606,7 +609,7 @@ CONTAINS
   !>       \details TODO: add description
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin" current Basin
+  !>       \param[in] "integer(i4) :: iDomain" current Domain
   !>       \param[in] "integer(i4) :: tt"     current time step
 
   !    HISTORY
@@ -617,7 +620,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  function is_read(iBasin, tt)
+  function is_read(iDomain, tt)
 
     use mo_common_mhm_mrm_variables, only : nTstepDay, simPer, timestep
     use mo_global_variables, only : timeStep_model_inputs
@@ -627,8 +630,8 @@ CONTAINS
 
     implicit none
 
-    ! current Basin
-    integer(i4), intent(in) :: iBasin
+    ! current Domain
+    integer(i4), intent(in) :: iDomain
 
     ! current time step
     integer(i4), intent(in) :: tt
@@ -673,25 +676,25 @@ CONTAINS
       Ndays_before = ceiling((real(tt, dp) - 1.0_dp) / real(nTstepDay, dp))
 
       ! evaluate cases of given timeStep_model_inputs
-      select case(timeStep_model_inputs(iBasin))
+      select case(timeStep_model_inputs(iDomain))
       case(0)  ! only at the beginning of the period
         if (tt .eq. 1_i4) is_read = .true.
       case(1 :) ! every timestep with frequency timeStep_model_inputs
-        if (mod((tt - 1) * timestep, timeStep_model_inputs(iBasin) * 24) .eq. 0_i4) is_read = .true.
+        if (mod((tt - 1) * timestep, timeStep_model_inputs(iDomain) * 24) .eq. 0_i4) is_read = .true.
       case(-1) ! every day
         if (Ndays .ne. Ndays_before) is_read = .true.
       case(-2) ! every month
         if (Ndays .ne. Ndays_before) then
           ! calculate months
-          call caldat(simPer(iBasin)%julStart + Ndays - 1, dd = day, mm = month, yy = year)
-          call caldat(simPer(iBasin)%julStart + Ndays_before - 1, dd = day_before, mm = month_before, yy = year_before)
+          call caldat(simPer(iDomain)%julStart + Ndays - 1, dd = day, mm = month, yy = year)
+          call caldat(simPer(iDomain)%julStart + Ndays_before - 1, dd = day_before, mm = month_before, yy = year_before)
           if (month .ne. month_before) is_read = .true.
         end if
       case(-3) ! every year
         if (Ndays .ne. Ndays_before) then
           ! calculate months
-          call caldat(simPer(iBasin)%julStart + Ndays - 1, dd = day, mm = month, yy = year)
-          call caldat(simPer(iBasin)%julStart + Ndays_before - 1, dd = day_before, mm = month_before, yy = year_before)
+          call caldat(simPer(iDomain)%julStart + Ndays - 1, dd = day, mm = month, yy = year)
+          call caldat(simPer(iDomain)%julStart + Ndays_before - 1, dd = day_before, mm = month_before, yy = year_before)
           if (year .ne. year_before) is_read = .true.
         end if
       case default ! not specified correctly
@@ -713,7 +716,7 @@ CONTAINS
   !>       \details TODO: add description
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin" current Basin to process
+  !>       \param[in] "integer(i4) :: iDomain" current Domain to process
   !>       \param[in] "integer(i4) :: tt"     current time step
 
   !    INTENT(OUT)
@@ -725,10 +728,10 @@ CONTAINS
   !>       \date Jun 2014
 
   ! Modifications:
-  ! Stephan Thober  Jan 2015 - added iBasin
+  ! Stephan Thober  Jan 2015 - added iDomain
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine chunk_size(iBasin, tt, readPer)
+  subroutine chunk_size(iDomain, tt, readPer)
 
     use mo_common_mhm_mrm_variables, only : nTstepDay, simPer
     use mo_common_variables, only : period
@@ -742,8 +745,8 @@ CONTAINS
     ! current time step
     integer(i4), intent(in) :: tt
 
-    ! current Basin to process
-    integer(i4), intent(in) :: iBasin
+    ! current Domain to process
+    integer(i4), intent(in) :: iDomain
 
     ! start and end dates of read Period
     type(period), intent(out) :: readPer
@@ -765,19 +768,19 @@ CONTAINS
     Ndays = ceiling(real(tt, dp) / real(nTstepDay, dp))
 
     ! get start date
-    readPer%julStart = simPer(iBasin)%julStart + Ndays - 1
+    readPer%julStart = simPer(iDomain)%julStart + Ndays - 1
 
     ! calculate end date according to specified frequency
-    select case (timeStep_model_inputs(iBasin))
+    select case (timeStep_model_inputs(iDomain))
     case(0)  ! length of chunk has to cover whole period
-      readPer%julEnd = simPer(iBasin)%julEnd
+      readPer%julEnd = simPer(iDomain)%julEnd
     case(1 :) ! every timestep with frequency timeStep_model_inputs
-      readPer%julEnd = readPer%julStart + timeStep_model_inputs(iBasin) - 1
+      readPer%julEnd = readPer%julStart + timeStep_model_inputs(iDomain) - 1
     case(-1) ! every day
       readPer%julEnd = readPer%julStart
     case(-2) ! every month
       ! calculate date
-      call caldat(simPer(iBasin)%julStart + Ndays, dd = day, mm = month, yy = year)
+      call caldat(simPer(iDomain)%julStart + Ndays, dd = day, mm = month, yy = year)
       ! increment month
       if (month .eq. 12) then
         month = 1
@@ -788,7 +791,7 @@ CONTAINS
       readPer%julEnd = julday(dd = 1, mm = month, yy = year) - 1
     case(-3) ! every year
       ! calculate date
-      call caldat(simPer(iBasin)%julStart + Ndays, dd = day, mm = month, yy = year)
+      call caldat(simPer(iDomain)%julStart + Ndays, dd = day, mm = month, yy = year)
       readPer%julEnd = julday(dd = 31, mm = 12, yy = year)
     case default ! not specified correctly
       call message('ERROR*** mo_meteo_forcings: chunk_size: timStep_model_inputs not specified correctly!')
@@ -796,7 +799,7 @@ CONTAINS
     end select
 
     ! end date should not be greater than end of simulation period
-    readPer%julEnd = min(readPer%julEnd, simPer(iBasin)%julEnd)
+    readPer%julEnd = min(readPer%julEnd, simPer(iDomain)%julEnd)
 
     ! calculate the dates of the start and end dates
     call caldat(readPer%julStart, dd = readPer%dstart, mm = readPer%mstart, yy = readPer%ystart)

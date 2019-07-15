@@ -40,7 +40,7 @@ module mo_mrm_global_variables
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
-  ! has the dimension of nBasins
+  ! has the dimension of nDomains
   character(256), dimension(:), allocatable, public :: dirGauges ! Directory where discharge files are located
   character(256), dimension(:), allocatable, public :: dirTotalRunoff ! Directory where simulated total runoff files are located
   character(256), public :: filenameTotalRunoff ! Filename of simulated total runoff file
@@ -64,17 +64,18 @@ module mo_mrm_global_variables
   ! -----------------------------------------------------------------
   ! RUNOFF variable
   ! -----------------------------------------------------------------
-  real(dp), dimension(:, :), allocatable, public :: mRM_runoff ! variable containing runoff for each basin and gauge
+  real(dp), dimension(:, :), allocatable, public :: mRM_runoff ! variable containing runoff for each domain and gauge
 
   ! -----------------------------------------------------------------
   ! GAUGED station data
   ! -----------------------------------------------------------------
-  integer(i4), public :: nGaugesTotal ! Number of evaluation gauges for all basins 
-  integer(i4), public :: nInflowGaugesTotal ! Number of evaluation gauges for all basins 
+  integer(i4), public :: nGaugesTotal ! Number of evaluation gauges for all domains 
+  integer(i4), public :: nGaugesLocal ! Number of evaluation gauges for all domains on a subprocess
+  integer(i4), public :: nInflowGaugesTotal ! Number of evaluation gauges for all domains 
   integer(i4), public :: nMeasPerDay ! Number of observations per day,
   !                                  ! e.g. 24 -> hourly discharge, 1 -> daily discharge
   type gaugingStation
-    integer(i4), dimension(:), allocatable :: basinId ! Basin Id
+    integer(i4), dimension(:), allocatable :: domainId ! domain Id
     integer(i4), dimension(:), allocatable :: gaugeId ! Gauge Id (e.g. 0000444)
     character(256), dimension(:), allocatable :: fname ! Name runoff file
     real(dp), dimension(:, :), allocatable :: Q ! [m3 s-1] observed daily mean discharge (simPer)
@@ -84,32 +85,32 @@ module mo_mrm_global_variables
   type(gaugingStation), public :: InflowGauge ! inflow gauge information
 
   ! -------------------------------------------------------------------
-  ! BASIN general description
+  ! DOMAIN general description
   ! -------------------------------------------------------------------
-  type basinInfo_mRM
-    ! dim1 = maximum number of gauges in a given basin
+  type domainInfo_mRM
+    ! dim1 = maximum number of gauges in a given domain
     ! discharge measurement gauges
-    integer(i4) :: nGauges        ! Number of gauges within a basin
+    integer(i4) :: nGauges        ! Number of gauges within a domain
     integer(i4), dimension(:), allocatable :: gaugeIdList    ! Gauge Id list (e.g. 0000444 0000445)
     integer(i4), dimension(:), allocatable :: gaugeIndexList ! Gauge index list (e.g. 1 for 00444, 2 for 00445)
     integer(i4), dimension(:), allocatable :: gaugeNodeList  ! Gauge node list at L11
 
     ! discharge inflow gauges (e.g if headwar bsins are missing)
-    integer(i4) :: nInflowGauges        ! Number of gauges within a basin
+    integer(i4) :: nInflowGauges        ! Number of gauges within a domain
     integer(i4), dimension(:), allocatable :: InflowGaugeIdList    ! Gauge Id list (e.g. 0000444 0000445)
     integer(i4), dimension(:), allocatable :: InflowGaugeIndexList ! Gauge index list (e.g. 1 for 00444, 2 for 00445)
     integer(i4), dimension(:), allocatable :: InflowGaugeNodeList  ! Gauge node list at L11
     logical, dimension(:), allocatable :: InflowGaugeHeadwater ! if headwater cells of inflow gauge will be considered
 
-    ! basin outlet
+    ! domain outlet
     ! TODO: move this out of here since it is mrm_net_startup relevant only for domain0
     integer(i4) :: L0_Noutlet
     integer(i4), dimension(:), allocatable :: L0_rowOutlet   ! Outlet locations in L0
     integer(i4), dimension(:), allocatable :: L0_colOutlet   ! Outlet locations in L0
-  end type basinInfo_mRM
+  end type domainInfo_mRM
 
-  ! dim1 = basinId
-  type(basinInfo_mRM), dimension(:), allocatable, public, target :: basin_mrm ! Basin structure
+  ! dim1 = domainId
+  type(domainInfo_mRM), dimension(:), allocatable, public, target :: domain_mrm ! domain structure
   ! -------------------------------------------------------------------
   ! L0 DOMAIN description -> those are needed within the mrm_net_startup routines only
   ! TODO: deallocate when net_startup is done

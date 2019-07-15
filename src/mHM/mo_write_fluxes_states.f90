@@ -42,7 +42,7 @@ module mo_write_fluxes_states
   end interface OutputVariable
 
   type OutputDataset
-    integer(i4) :: ibasin      !> basin id
+    integer(i4) :: iDomain      !> domain id
     type(NcDataset) :: nc          !> NcDataset to write
     type(OutputVariable), allocatable :: vars(:)     !> store all created (dynamic) variables
     integer(i4) :: counter = 0 !> count written time steps
@@ -84,7 +84,7 @@ contains
   !>       \param[in] "character(*) :: name"
   !>       \param[in] "character(*) :: dtype"
   !>       \param[in] "character(16), dimension(3) :: dims"
-  !>       \param[in] "integer(i4) :: ncells"               -> number of cells in basin
+  !>       \param[in] "integer(i4) :: ncells"               -> number of cells in domain
   !>       \param[in] "logical, dimension(:, :) :: mask"
 
   !    INTENT(IN), OPTIONAL
@@ -111,7 +111,7 @@ contains
 
     character(16), intent(in), dimension(3) :: dims
 
-    ! -> number of cells in basin
+    ! -> number of cells in domain
     integer(i4), intent(in) :: ncells
 
     logical, intent(in), target, dimension(:, :) :: mask
@@ -225,7 +225,7 @@ contains
   !>       \return type(OutputDataset)
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ibasin"             -> basin id
+  !>       \param[in] "integer(i4) :: iDomain"             -> domain id
   !>       \param[in] "logical, dimension(:, :) :: mask1" -> L1 mask to reconstruct the data
   !>       \param[in] "integer(i4) :: nCells"
 
@@ -237,15 +237,15 @@ contains
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  function newOutputDataset(ibasin, mask1, nCells) result(out)
+  function newOutputDataset(iDomain, mask1, nCells) result(out)
 
     use mo_global_variables, only : outputFlxState
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
 
     implicit none
 
-    ! -> basin id
-    integer(i4), intent(in) :: ibasin
+    ! -> domain id
+    integer(i4), intent(in) :: iDomain
 
     ! -> L1 mask to reconstruct the data
     logical, pointer, intent(in), dimension(:, :) :: mask1
@@ -268,9 +268,9 @@ contains
 
 
     dtype = "f64"
-    unit = fluxesUnit(ibasin)
+    unit = fluxesUnit(iDomain)
     dims1 = (/"easting ", "northing", "time    "/)
-    nc = createOutputFile(ibasin)
+    nc = createOutputFile(iDomain)
 
     ii = 0
 
@@ -446,7 +446,7 @@ contains
 
     out%vars = tmpvars(1 : ii)
     out%nc = nc
-    out%ibasin = ibasin
+    out%iDomain = iDomain
 
   end function newOutputDataset
 
@@ -847,8 +847,8 @@ contains
 
 
     call self%nc%close()
-    call message('  OUTPUT: saved netCDF file for basin', trim(num2str(self%ibasin)))
-    call message('    to ', trim(dirOut(self%ibasin)))
+    call message('  OUTPUT: saved netCDF file for domain', trim(num2str(self%iDomain)))
+    call message('    to ', trim(dirOut(self%iDomain)))
 
   end subroutine close
 
@@ -860,12 +860,12 @@ contains
   !>       \brief Create and initialize output file
 
   !>       \details Create output file, write all non-dynamic variables
-  !>       and global attributes for the given basin.
+  !>       and global attributes for the given domain.
 
   !>       \return type(NcDataset)
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ibasin" -> basin id
+  !>       \param[in] "integer(i4) :: iDomain" -> domain id
 
   !    HISTORY
   !>       \authors David Schaefer
@@ -876,7 +876,7 @@ contains
   ! Stephan Thober  Oct 2015 - added actual version of mHM
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  function createOutputFile(ibasin) result(nc)
+  function createOutputFile(iDomain) result(nc)
 
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : dirOut, level1
@@ -886,8 +886,8 @@ contains
 
     implicit none
 
-    ! -> basin id
-    integer(i4), intent(in) :: ibasin
+    ! -> domain id
+    integer(i4), intent(in) :: iDomain
 
     type(NcDataset) :: nc
 
@@ -906,9 +906,9 @@ contains
     real(dp), allocatable, dimension(:, :) :: lat, lon
 
 
-    fname = trim(dirOut(ibasin)) // 'mHM_Fluxes_States.nc'
-    call mapCoordinates(level1(ibasin), northing, easting)
-    call geoCoordinates(level1(ibasin), lat, lon)
+    fname = trim(dirOut(iDomain)) // 'mHM_Fluxes_States.nc'
+    call mapCoordinates(level1(iDomain), northing, easting)
+    call geoCoordinates(level1(iDomain), lat, lon)
 
     nc = NcDataset(trim(fname), "w")
     dimids1 = (/&
@@ -918,7 +918,7 @@ contains
             /)
 
     ! time units
-    call dec2date(real(evalPer(ibasin)%julStart, dp), dd = day, mm = month, yy = year)
+    call dec2date(real(evalPer(iDomain)%julStart, dp), dd = day, mm = month, yy = year)
     write(unit, "('hours since ', i4, '-' ,i2.2, '-', i2.2, 1x, '00:00:00')") year, month, day
 
     ! time
@@ -1022,7 +1022,7 @@ contains
   !>       \return character(16)
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ibasin"
+  !>       \param[in] "integer(i4) :: iDomain"
 
   !    HISTORY
   !>       \authors David Schaefer
@@ -1032,14 +1032,14 @@ contains
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  function fluxesUnit(ibasin)
+  function fluxesUnit(iDomain)
 
     use mo_common_mhm_mrm_variables, only : nTstepDay, simPer, timestep
     use mo_global_variables, only : timeStep_model_outputs
 
     implicit none
 
-    integer(i4), intent(in) :: ibasin
+    integer(i4), intent(in) :: iDomain
 
     character(16) :: fluxesUnit
 
@@ -1051,7 +1051,7 @@ contains
     else if (timestep_model_outputs > 1) then
       fluxesUnit = 'mm ' // trim(adjustl(num2str(timestep))) // 'h-1'
     else if (timestep_model_outputs .eq. 0) then
-      ntsteps = (simPer(iBasin)%julEnd - simPer(iBasin)%julStart + 1) * nTstepDay
+      ntsteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nTstepDay
       fluxesUnit = 'mm ' // trim(adjustl(num2str(nint(ntsteps)))) // 'h-1'
     else if (timestep_model_outputs .eq. -1) then
       fluxesUnit = 'mm d-1'
