@@ -179,7 +179,7 @@ contains
       stop 1
     end if
 
-    ! ToDo: make smarter
+    ! ToDo: check
     nGaugesLocal = 0
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)

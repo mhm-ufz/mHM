@@ -228,6 +228,7 @@ CONTAINS
   FUNCTION single_objective_runoff_master(parameterset, eval, arg1, arg2, arg3)
 
     use mo_common_mHM_mRM_variables, only : opti_function, opti_method
+    use mo_common_mHM_mRM_MPI_tools, only : distribute_parameterset
     use mo_mrm_global_variables, only: nGaugesTotal
     use mo_common_variables, only : domainMeta
     use mo_message, only : message
@@ -372,6 +373,7 @@ CONTAINS
   subroutine single_objective_runoff_subprocess(eval, arg1, arg2, arg3)
 
     use mo_common_mHM_mRM_variables, only : opti_function, opti_method
+    use mo_common_mHM_mRM_MPI_tools, only : get_parameterset
     use mo_common_variables, only : domainMeta
     use mo_message, only : message
     use mpi_f08
@@ -471,38 +473,6 @@ CONTAINS
 
   END subroutine single_objective_runoff_subprocess
 
-  ! ToDo: make this a more public subroutine in another module
-  subroutine distribute_parameterset(parameterset)
-    use mpi_f08
-    use mo_common_variables, only : domainMeta
-    real(dp), dimension(:),    intent(in) :: parameterset
-
-    integer(i4) :: nproc, iproc, dimen
-    integer(i4) :: ierror
-
-    call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
-    dimen = size(parameterset(:))
-    do iproc = 1, nproc-1
-      call MPI_Send(dimen, 1, &
-                    MPI_INTEGER,iproc,0,domainMeta%comMaster,ierror)
-      call MPI_Send(parameterset(:),dimen, &
-                    MPI_DOUBLE_PRECISION,iproc,0,domainMeta%comMaster,ierror)
-    end do
-  end subroutine distribute_parameterset
-
-  subroutine get_parameterset(parameterset)
-    use mpi_f08
-    use mo_common_variables, only : domainMeta
-    real(dp), dimension(:), allocatable, intent(inout) :: parameterset
-
-    integer(i4) :: dimen
-    integer(i4) :: ierror
-    type(MPI_Status) :: status
-
-    call MPI_Recv(dimen, 1, MPI_INTEGER, 0, 0, domainMeta%comMaster, status, ierror)
-    allocate(parameterset(dimen))
-    call MPI_Recv(parameterset, dimen, MPI_DOUBLE_PRECISION, 0, 0, domainMeta%comMaster, status, ierror)
-  end subroutine get_parameterset
 #endif
 
   ! ------------------------------------------------------------------ 

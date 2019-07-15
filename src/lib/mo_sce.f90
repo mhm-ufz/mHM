@@ -465,8 +465,7 @@ CONTAINS
       parall = .false.
       if (present(parallel)) then
         if (parallel) then
-          !ToDo: more reasonable warning, also with message and more consistent
-          write(*, *) 'Warning, sce: no openMP parallelization with MPI at this point'
+          write(*, *) 'WARNING: sce: openMP parallelization with MPI enabled is no implemented yet'
         end if
       end if
 #else
