@@ -311,7 +311,7 @@ PROGRAM mhm_driver
     ! read optional optional data if necessary
     if (optimize) then
       select case (opti_function)
-      case(10 : 13, 28)
+      case(10 : 13, 28, 32)
         ! read optional spatio-temporal soil mositure data
         call read_soil_moisture(iDomain, domainID)
       case(17)
@@ -374,7 +374,7 @@ PROGRAM mhm_driver
       call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
 #endif
 #endif
-     case(10 : 13, 15, 17, 27, 28, 29, 30)
+     case(10 : 13, 15, 17, 27, 28, 29, 30, 32)
       ! call optimization for other variables
       obj_func => objective
 #ifdef MPI

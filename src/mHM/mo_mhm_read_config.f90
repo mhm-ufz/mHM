@@ -227,7 +227,7 @@ CONTAINS
     ! read optional optional data if necessary
     if (optimize) then
       select case (opti_function)
-      case(10 : 13, 28)
+      case(10 : 13, 28, 32)
         ! soil moisture
         call position_nml('optional_data', unamelist)
         read(unamelist, nml = optional_data)

@@ -150,6 +150,8 @@ CONTAINS
     case (30)
       ! KGE for Q * RMSE for domain_avg ET (standarized scored)
       objective = objective_kge_q_rmse_et(parameterset, eval)
+    case (32)
+      objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
 
     case default
       call message("Error objective: opti_function not implemented yet.")
@@ -245,7 +247,7 @@ CONTAINS
 
     call distribute_parameterset(parameterset)
     select case (opti_function)
-    case (10 : 13, 17, 27 : 29)
+    case (10 : 13, 17, 27 : 29, 32)
       call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
       objective_master = 0.0_dp
       do iproc = 1, nproc - 1
@@ -284,6 +286,8 @@ CONTAINS
       call message('    objective_kge_q_sm_corr = ', num2str(objective_master, '(F9.5)'))
     case(29)
       call message('    objective_kge_q_et = ', num2str(objective_master, '(F9.5)'))
+    case(32)
+      call message('    objective_q_et_tws_kge_catchment_avg = ', num2str(objective_master, '(F9.5)'))
     case default
       call message("Error objective_master: opti_function not implemented yet, this part of the code should never execute.")
       stop 1
@@ -409,6 +413,8 @@ CONTAINS
         ! KGE for Q * RMSE for domain_avg ET (standarized scored)
         partial_objective = objective_kge_q_rmse_et(parameterset, eval)
         stop
+      case(32)
+        partial_objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
 
       case default
         call message("Error objective_subprocess: opti_function not implemented yet.")
@@ -416,7 +422,7 @@ CONTAINS
       end select
 
       select case (opti_function)
-      case (10 : 13, 17, 27 : 29)
+      case (10 : 13, 17, 27 : 29, 32)
         call MPI_Send(partial_objective,1, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
         call message("Error objective_subprocess: this part should not be executed -> error in the code.")
@@ -596,6 +602,160 @@ CONTAINS
 
   END FUNCTION objective_sm_kge_catchment_avg
 
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_q_et_tws_kge_catchment_avg
+
+  !    PURPOSE
+  !>       \brief Objective function for et, tws and q.
+
+  !>       \details ToDo
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_q_et_tws_kge_catchment_avg &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Maren Kaluza
+
+  !>       \date July 2019
+
+  ! Modifications:
+
+  FUNCTION objective_q_et_tws_kge_catchment_avg(parameterset, eval)
+
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, domainMeta
+    use mo_errormeasures, only : KGE
+    use mo_global_variables, only : L1_sm, L1_sm_mask
+    use mo_message, only : message
+    use mo_moment, only : average
+    use mo_string_utils, only : num2str
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    real(dp) :: objective_q_et_tws_kge_catchment_avg
+
+    ! domain loop counter
+    integer(i4) :: iDomain
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! number of time steps in simulated SM
+    integer(i4) :: n_time_steps
+
+    ! start and end index for the current domain
+    integer(i4) :: s1, e1
+
+    integer(i4) :: i
+
+    ! ncells1 of level 1
+    integer(i4) :: ncells1
+
+    ! number of invalid timesteps
+    real(dp) :: invalid_times
+#ifndef MPI
+    ! for sixth root
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+    ! spatial average of observed soil moisture
+    real(dp), dimension(:), allocatable :: sm_catch_avg_domain
+
+    ! spatial avergae of modeled  soil moisture
+    real(dp), dimension(:), allocatable :: sm_opti_catch_avg_domain
+
+    ! simulated soil moisture
+    ! (dim1=ncells, dim2=time)
+    real(dp), dimension(:, :), allocatable :: sm_opti
+
+    ! mask for valid sm catchment avg time steps
+    logical, dimension(:), allocatable :: mask_times
+    
+    integer(i4), dimension(:), allocatable :: opti_domain_indices
+
+
+    allocate(opti_domain_indices(1))
+    do i = 1, 1
+      opti_domain_indices(i) = i
+    end do
+    call eval(parameterset, opti_domain_indices = opti_domain_indices, sm_opti = sm_opti)
+
+    ! initialize some variables
+    objective_q_et_tws_kge_catchment_avg = 0.0_dp
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! get domain information
+      ncells1 = level1(iDomain)%ncells
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
+
+      ! allocate
+      allocate(mask_times             (size(sm_opti, dim = 2)))
+      allocate(sm_catch_avg_domain     (size(sm_opti, dim = 2)))
+      allocate(sm_opti_catch_avg_domain(size(sm_opti, dim = 2)))
+
+      ! initalize
+      mask_times = .TRUE.
+      sm_catch_avg_domain = nodata_dp
+      sm_opti_catch_avg_domain = nodata_dp
+
+      invalid_times = 0.0_dp
+      ! calculate catchment average soil moisture
+      n_time_steps = size(sm_opti, dim = 2)
+      do iTime = 1, n_time_steps
+
+        ! check for enough data points in timesteps for KGE calculation
+        ! more then 10 percent avaiable in current field
+        if (count(L1_sm_mask(s1 : e1, iTime)) .LE. (0.10_dp * real(nCells1, dp))) then
+          invalid_times = invalid_times + 1.0_dp
+          mask_times(iTime) = .FALSE.
+          cycle
+        end if
+        sm_catch_avg_domain(iTime) = average(L1_sm(s1 : e1, iTime), mask = L1_sm_mask(s1 : e1, iTime))
+        sm_opti_catch_avg_domain(iTime) = average(sm_opti(s1 : e1, iTime), mask = L1_sm_mask(s1 : e1, iTime))
+      end do
+
+      ! user information about invalid times
+      if (invalid_times .GT. 0.5_dp) then
+        call message('   WARNING: objective_sm: Detected invalid timesteps (.LT. 10 valid data points).')
+        call message('                          Fraction of invalid timesteps: ', &
+                num2str(invalid_times / real(n_time_steps, dp), '(F4.2)'))
+      end if
+
+
+      ! calculate average soil moisture KGE over all domains with power law
+      ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+      objective_q_et_tws_kge_catchment_avg = objective_q_et_tws_kge_catchment_avg + &
+              ((1.0_dp - KGE(sm_catch_avg_domain, sm_opti_catch_avg_domain, mask = mask_times)) / &
+                        real(domainMeta%overallNumberOfDomains, dp))**6
+
+      ! deallocate
+      deallocate(mask_times)
+      deallocate(sm_catch_avg_domain)
+      deallocate(sm_opti_catch_avg_domain)
+    end do
+
+#ifndef MPI
+    objective_q_et_tws_kge_catchment_avg = objective_q_et_tws_kge_catchment_avg**onesixth
+
+    call message('    objective_q_et_tws_kge_catchment_avg = ', num2str(objective_q_et_tws_kge_catchment_avg, '(F9.5)'))
+#endif
+
+
+  END FUNCTION objective_q_et_tws_kge_catchment_avg
   ! ------------------------------------------------------------------
 
   !    NAME

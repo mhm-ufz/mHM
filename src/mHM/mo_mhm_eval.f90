@@ -80,7 +80,7 @@ CONTAINS
   ! Robert Schweppe      Dec 2017 - extracted call to mpr from inside mhm
   ! Robert Schweppe      Jun 2018 - refactoring and reformatting
 
-  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
+  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
 
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : LCyearId, dirRestartIn, nTstepDay, optimize, readPer, read_restart, simPer, timeStep, &
@@ -137,6 +137,7 @@ CONTAINS
     ! a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
     real(dp), dimension(:), intent(in) :: parameterset
 
+    integer(i4), dimension(:), optional, intent(in) :: opti_domain_indices
     ! returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff
 
@@ -246,12 +247,20 @@ CONTAINS
 #endif
     integer(i4) :: gg
 
+    ! number of domains simulated in this mhm_eval run. Depends on opti_function
+    integer(i4) :: nDomains, ii
+
     ! field of TWS
     real(dp), dimension(:), allocatable :: TWS_field
 
     real(dp) :: area_Domain
 
 
+    if (optimize .and. present(opti_domain_indices)) then
+      nDomains = size(opti_domain_indices)
+    else
+      nDomains = domainMeta%nDomains
+    end if
     !----------------------------------------------------------
     ! Check optionals and initialize
     !----------------------------------------------------------
@@ -307,7 +316,12 @@ CONTAINS
       end if
 #endif
     else
-      do iDomain = 1, domainMeta%nDomains
+      do ii = 1, nDomains
+        if (optimize .and. present(opti_domain_indices)) then
+          iDomain = opti_domain_indices(ii)
+        else
+          iDomain = ii
+        end if
         domainID = domainMeta%indices(iDomain)
         ! this reads the eff. parameters and optionally the states and fluxes
         call read_restart_states(iDomain, domainID, dirRestartIn(iDomain))
@@ -329,8 +343,12 @@ CONTAINS
     !----------------------------------------
     ! loop over Domains
     !----------------------------------------
-    do iDomain = 1, domainMeta%nDomains
-      domainID = domainMeta%indices(iDomain)
+    do ii = 1, nDomains
+      if (optimize .and. present(opti_domain_indices)) then
+        iDomain = opti_domain_indices(ii)
+      else
+        iDomain = ii
+      end if
 
       ! get Domain information
       nCells = level1(iDomain)%nCells

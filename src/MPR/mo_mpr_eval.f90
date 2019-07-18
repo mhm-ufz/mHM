@@ -68,7 +68,7 @@ CONTAINS
   ! Zink M. Demirel C.   Mar 2017 - Added Jarvis soil water stress function at SM process(3)
   ! Robert Schweppe      Dec 2017 - extracted call to mpr from inside mhm
 
-  SUBROUTINE mpr_eval(parameterset)
+  SUBROUTINE mpr_eval(parameterset, opti_domain_indices)
 
     use mo_common_variables, only : L0_LCover, l0_l1_remap, level0, level1, domainMeta
     use mo_message, only : message
@@ -88,8 +88,10 @@ CONTAINS
     ! a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
     real(dp), dimension(:), intent(in), optional :: parameterset
 
+    integer(i4), dimension(:), optional, intent(in) :: opti_domain_indices
+
     ! Counters
-    integer(i4) :: iDomain, itimer
+    integer(i4) :: iDomain, ii, nDomains, itimer
 
     ! start and end index at level 0 for current domain
     integer(i4) :: s0, e0
@@ -108,7 +110,17 @@ CONTAINS
     !----------------------------------------
     ! loop over domains
     !----------------------------------------
-    do iDomain = 1, domainMeta%nDomains
+    if (present(opti_domain_indices)) then
+      nDomains = size(opti_domain_indices)
+    else
+      nDomains = domainMeta%nDomains
+    end if
+    do ii = 1, nDomains
+      if (present(opti_domain_indices)) then
+        iDomain = opti_domain_indices(ii)
+      else
+        iDomain = ii
+      end if
 
       ! get domain information
       s0 = level0(domainMeta%L0DataFrom(iDomain))%iStart

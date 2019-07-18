@@ -1,0 +1,47 @@
+copy test_domain to test_domain and test_domain_2, edit namelist according to the following diff:
+
+
+134c134
+< optimize = .FALSE.
+---
+> optimize = .TRUE.
+181a182
+> !> (32) MO: Q + ET + TWS
+184c185
+< opti_function = 10
+---
+> opti_function = 32
+253c254
+< dir_Out(2)           = "test_domain_2/output/"
+---
+> dir_Out(2)           = "test_domain_2/output_b1/"
+255c256
+< file_LatLon(2)       = "test_domain_2/input/latlon/latlon.nc"
+---
+> file_LatLon(2)       = "test_domain_2/input/latlon/latlon_1.nc"
+337c338
+< dir_Total_Runoff(2) = 'test_domain_2/output/'
+---
+> dir_Total_Runoff(2) = 'test_domain_2/output_b1/'
+356a358
+> dir_soil_moisture(2)   = "test_domain_2/input/optional_data/"
+374a377
+> dir_neutrons(2)        = "test_domain/input/optional_data/"
+380a384
+> dir_evapotranspiration(2)   = "test_domain/input/optional_data/"
+492c496
+< warming_Days(2)    = 180
+---
+> warming_Days(2)    = 0
+495c499
+< eval_Per(2)%yStart = 1993
+---
+> eval_Per(2)%yStart = 1990
+672c676
+< Gauge_id(2,1)           = 45
+---
+> Gauge_id(2,1)           = 398
+674c678
+< Gauge_filename(2,1)     = "45.txt"
+---
+> Gauge_filename(2,1)     = "00398.txt"
