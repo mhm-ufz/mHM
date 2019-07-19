@@ -129,6 +129,7 @@ CONTAINS
 
   end subroutine read_soil_moisture
 
+  !ToDo: why is iDomain input for all reading routines except this
   ! ---------------------------------------------------------------------------
 
   !    NAME
@@ -188,19 +189,22 @@ CONTAINS
     ! ************************************************
     !
     do iDomain = 1, domainMeta%nDomains
-      domainID = domainMeta%indices(iDomain)
-      call message('  Reading domain average TWS for domain:     ', trim(adjustl(num2str(domainID))), ' ...')
+      if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
+          domainMeta%optidata(iDomain) == 6 ) then
+        domainID = domainMeta%indices(iDomain)
+        call message('  Reading domain average TWS for domain:     ', trim(adjustl(num2str(domainID))), ' ...')
 
-      ! get start and end dates
-      start_tmp = (/evalPer(iDomain)%yStart, evalPer(iDomain)%mStart, evalPer(iDomain)%dStart/)
-      end_tmp = (/evalPer(iDomain)%yEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%dEnd  /)
-      fName = trim(adjustl(domain_avg_TWS_obs%fname(iDomain)))
-      call read_timeseries(trim(fName), utws, &
-              start_tmp, end_tmp, optimize, opti_function, &
-              data_dp_1d, mask = mask_1d, nMeasPerDay = nMeasPerDay_TWS)
-      data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
-      call paste(domain_avg_TWS_obs%TWS, data_dp_1d, nodata_dp)
-      deallocate (data_dp_1d)
+        ! get start and end dates
+        start_tmp = (/evalPer(iDomain)%yStart, evalPer(iDomain)%mStart, evalPer(iDomain)%dStart/)
+        end_tmp = (/evalPer(iDomain)%yEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%dEnd  /)
+        fName = trim(adjustl(domain_avg_TWS_obs%fname(iDomain)))
+        call read_timeseries(trim(fName), utws, &
+                start_tmp, end_tmp, optimize, opti_function, &
+                data_dp_1d, mask = mask_1d, nMeasPerDay = nMeasPerDay_TWS)
+        data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
+        call paste(domain_avg_TWS_obs%TWS, data_dp_1d, nodata_dp)
+        deallocate (data_dp_1d)
+      end if
     end do
 
   end subroutine read_domain_avg_TWS

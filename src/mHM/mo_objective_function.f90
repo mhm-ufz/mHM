@@ -675,21 +675,57 @@ CONTAINS
     ! spatial avergae of modeled  soil moisture
     real(dp), dimension(:), allocatable :: sm_opti_catch_avg_domain
 
-    ! simulated soil moisture
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: tws
+
+    ! simulated et
     ! (dim1=ncells, dim2=time)
-    real(dp), dimension(:, :), allocatable :: sm_opti
+    real(dp), dimension(:, :), allocatable :: et_opti
 
     ! mask for valid sm catchment avg time steps
     logical, dimension(:), allocatable :: mask_times
     
     integer(i4), dimension(:), allocatable :: opti_domain_indices
 
+    integer(i4) :: nEtTwsDomains, nQDomains
 
-    allocate(opti_domain_indices(1))
-    do i = 1, 1
-      opti_domain_indices(i) = i
+
+    nEtTwsDomains = 0
+    nQDomains = 0
+    do iDomain = 1, domainMeta%nDomains
+      if (domainMeta%optidata(iDomain) == 1) nQDomains = nQDomains + 1
+      if (domainMeta%optidata(iDomain) == 6) nEtTwsDomains = nEtTwsDomains + 1
     end do
-    call eval(parameterset, opti_domain_indices = opti_domain_indices, sm_opti = sm_opti)
+    if (nQdomains > 0) then
+      allocate(opti_domain_indices(nQdomains))
+      i = 0
+      do iDomain = 1, domainMeta%nDomains
+        if (domainMeta%optidata(iDomain) == 1) then
+          i = i + 1
+          opti_domain_indices(i) = iDomain
+        end if
+      end do
+      call eval(parameterset, opti_domain_indices = opti_domain_indices, runoff = runoff)
+      deallocate(opti_domain_indices)
+    end if
+    if (nEtTwsdomains > 0) then
+      allocate(opti_domain_indices(nEtTwsdomains))
+      i = 0
+      do iDomain = 1, domainMeta%nDomains
+        if (domainMeta%optidata(iDomain) == 6) then
+          i = i + 1
+          opti_domain_indices(i) = iDomain
+        end if
+      end do
+      call eval(parameterset, opti_domain_indices = opti_domain_indices, &
+                                      domain_avg_tws = tws, et_opti = et_opti)
+      deallocate(opti_domain_indices)
+    end if
 
     ! initialize some variables
     objective_q_et_tws_kge_catchment_avg = 0.0_dp
@@ -702,50 +738,12 @@ CONTAINS
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
 
-      ! allocate
-      allocate(mask_times             (size(sm_opti, dim = 2)))
-      allocate(sm_catch_avg_domain     (size(sm_opti, dim = 2)))
-      allocate(sm_opti_catch_avg_domain(size(sm_opti, dim = 2)))
-
-      ! initalize
-      mask_times = .TRUE.
-      sm_catch_avg_domain = nodata_dp
-      sm_opti_catch_avg_domain = nodata_dp
-
-      invalid_times = 0.0_dp
-      ! calculate catchment average soil moisture
-      n_time_steps = size(sm_opti, dim = 2)
-      do iTime = 1, n_time_steps
-
-        ! check for enough data points in timesteps for KGE calculation
-        ! more then 10 percent avaiable in current field
-        if (count(L1_sm_mask(s1 : e1, iTime)) .LE. (0.10_dp * real(nCells1, dp))) then
-          invalid_times = invalid_times + 1.0_dp
-          mask_times(iTime) = .FALSE.
-          cycle
-        end if
-        sm_catch_avg_domain(iTime) = average(L1_sm(s1 : e1, iTime), mask = L1_sm_mask(s1 : e1, iTime))
-        sm_opti_catch_avg_domain(iTime) = average(sm_opti(s1 : e1, iTime), mask = L1_sm_mask(s1 : e1, iTime))
-      end do
-
-      ! user information about invalid times
-      if (invalid_times .GT. 0.5_dp) then
-        call message('   WARNING: objective_sm: Detected invalid timesteps (.LT. 10 valid data points).')
-        call message('                          Fraction of invalid timesteps: ', &
-                num2str(invalid_times / real(n_time_steps, dp), '(F4.2)'))
-      end if
-
-
       ! calculate average soil moisture KGE over all domains with power law
       ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_q_et_tws_kge_catchment_avg = objective_q_et_tws_kge_catchment_avg + &
-              ((1.0_dp - KGE(sm_catch_avg_domain, sm_opti_catch_avg_domain, mask = mask_times)) / &
-                        real(domainMeta%overallNumberOfDomains, dp))**6
+             1.0_dp 
 
       ! deallocate
-      deallocate(mask_times)
-      deallocate(sm_catch_avg_domain)
-      deallocate(sm_opti_catch_avg_domain)
     end do
 
 #ifndef MPI

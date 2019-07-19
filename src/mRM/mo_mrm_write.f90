@@ -92,7 +92,7 @@ contains
     if (write_restart) then
       do iDomain = 1, domainMeta%nDomains
         domainID = domainMeta%indices(iDomain)
-        call mrm_write_restart(iDomain, domainID, dirRestartOut)
+        if (domainMeta%doRouting(iDomain)) call mrm_write_restart(iDomain, domainID, dirRestartOut)
       end do
     end if
 
@@ -110,21 +110,23 @@ contains
 
     ! loop over domains
     do iDomain = 1, domainMeta%nDomains
-      domainID = domainMeta%indices(iDomain)
-      nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * NTSTEPDAY
-      iDay = 0
-      ! loop over timesteps
-      do tt = warmingDays(iDomain) * NTSTEPDAY + 1, nTimeSteps, NTSTEPDAY
-        iS = tt
-        iE = tt + NTSTEPDAY - 1
-        iDay = iDay + 1
-        ! over gauges
-        do gg = 1, domain_mrm(iDomain)%nGauges
-          d_Qmod(iDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
-                  sum(mRM_runoff(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(NTSTEPDAY, dp)
+      if (domainMeta%doRouting(iDomain)) then
+        domainID = domainMeta%indices(iDomain)
+        nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * NTSTEPDAY
+        iDay = 0
+        ! loop over timesteps
+        do tt = warmingDays(iDomain) * NTSTEPDAY + 1, nTimeSteps, NTSTEPDAY
+          iS = tt
+          iE = tt + NTSTEPDAY - 1
+          iDay = iDay + 1
+          ! over gauges
+          do gg = 1, domain_mrm(iDomain)%nGauges
+            d_Qmod(iDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
+                    sum(mRM_runoff(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(NTSTEPDAY, dp)
+          end do
+          !
         end do
-        !
-      end do
+      end if
     end do
     ! write in an ASCII file          ! OBS[nModeling_days X nGauges_total] , SIM[nModeling_days X nGauges_total] 
     call write_daily_obs_sim_discharge(gauge%Q(:, :), d_Qmod(:, :))

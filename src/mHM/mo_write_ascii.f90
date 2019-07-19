@@ -132,7 +132,7 @@ CONTAINS
     write(uconfig, 100)
     write(uconfig, 103) 'Number of domain            ', domainMeta%overallNumberOfDomains
 #ifdef MRM2MHM
-    if (processMatrix(8, 1) .ne. 0) then
+    if (processMatrix(8, 1) > 0) then
       write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
     end if
 #endif
@@ -142,10 +142,10 @@ CONTAINS
       write(uconfig, 103) 'Domain  ', domainID, 'No. of cells L0             ', level0(domainMeta%L0DataFrom(iDomain))%nCells
       write(uconfig, 103) 'Domain  ', domainID, 'No. of cells L1             ', level1(iDomain)%nCells
 #ifdef MRM2MHM
-      if (processMatrix(8, 1) .ne. 0) then
+      if (domainMeta%doRouting(iDomain)) then
         write(uconfig, 103) 'Total No. of nodes          ', level11(iDomain)%nCells
         write(uconfig, 103) 'Total No. of reaches        ', level11(iDomain)%nCells - 1
-        if (processMatrix(8, 1) .ne. 0) then
+        if (domainMeta%doRouting(iDomain)) then
           write(uconfig, 103) 'No. of cells L11            ', level11(iDomain)%nCells
           write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
         end if
@@ -156,14 +156,14 @@ CONTAINS
       case (0)
         write(uconfig, 301)      'Domain  ', domainID, '   Hydrology Resolution [m]      ', resolutionHydrology(iDomain)
 #ifdef MRM2MHM
-        if (processMatrix(8, 1) .ne. 0) then
+        if (domainMeta%doRouting(iDomain)) then
           write(uconfig, 301)   'Domain  ', domainID, '   Routing Resolution [m]        ', resolutionRouting(iDomain)
         end if
 #endif
        case(1)
         write(uconfig, 302)       'Domain  ', domainID, '   Hydrology Resolution [o]      ', resolutionHydrology(iDomain)
 #ifdef MRM2MHM
-        if (processMatrix(8, 1) .ne. 0) then
+        if (domainMeta%doRouting(iDomain)) then
           write(uconfig, 302)   'Domain  ', domainID, '   Routing Resolution [o]        ', resolutionRouting(iDomain)
         end if
 #endif
@@ -222,7 +222,7 @@ CONTAINS
     end do
 #ifdef MRM2MHM
     ! domain runoff data
-    if (processMatrix(8, 1) .ne. 0) then
+    if (processMatrix(8, 1) > 0) then
       write(uconfig, 202) '                Domain Runoff Data                '
       write(uconfig, 107) ' Gauge No.', '  Domain Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
       do i = 1, nGaugesTotal
@@ -253,7 +253,7 @@ CONTAINS
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       !ST has to be moved to the config write of mRM
-      ! if ( processMatrix(8,1) .ne. 0 ) then
+      ! if (domainMeta%doRouting(iDomain)) then
       !    write(uconfig,103) 'Domain No.                   ', domainID, &
       !         'No. of gauges               ', domain%nGauges(iDomain)
       ! end if
@@ -263,7 +263,7 @@ CONTAINS
       write(uconfig, 224) 'Directory to morphological input         ', dirMorpho(iDomain)
       write(uconfig, 224) 'Directory to land cover input            ', dirLCover(iDomain)
 #ifdef MRM2MHM
-      if (processMatrix(8, 1) .ne. 0) then
+      if (domainMeta%doRouting(iDomain)) then
         write(uconfig, 224) 'Directory to gauging station input       ', dirGauges(iDomain)
       end if
 #endif
@@ -274,7 +274,7 @@ CONTAINS
       write(uconfig, 224) 'Directory to write output when restarted ', dirRestartOut(iDomain)
 
 #ifdef MRM2MHM
-      if (processMatrix(8, 1) .ne. 0) then
+      if (domainMeta%doRouting(iDomain)) then
         write(uconfig, 102) 'River Network  (Routing level)'
         write(uconfig, 100) 'Label 0 = intermediate draining cell '
         write(uconfig, 100) 'Label 1 = headwater cell             '

@@ -99,6 +99,7 @@ CONTAINS
     use mo_init_states, only : variables_default_init
     use mo_julian, only : caldat, julday
     use mo_message, only : message
+    use mo_string_utils, only : num2str
     use mo_meteo_forcings, only : prepare_meteo_forcings_data
     use mo_mhm, only : mhm
     use mo_mpr_eval, only : mpr_eval
@@ -265,10 +266,19 @@ CONTAINS
     ! Check optionals and initialize
     !----------------------------------------------------------
     if (present(runoff)) then
-      if (processMatrix(8, 1) .eq. 0) then
-        call message("***ERROR: runoff can not be produced, since routing process is off in Process Matrix")
-        stop
-      end if
+      do ii = 1, nDomains
+        if (present(opti_domain_indices)) then
+          iDomain = opti_domain_indices(ii)
+        else
+          iDomain = ii
+        end if
+        domainID = domainMeta%indices(iDomain)
+        if (.not. domainMeta%doRouting(iDomain)) then
+          call message("***ERROR: runoff for domain", trim(num2str(domainID)),&
+                        "can not be produced, since routing process is off in Process Matrix")
+          stop
+        end if
+      end do
     end if
     ! soil moisture optimization
     !--------------------------
@@ -307,7 +317,7 @@ CONTAINS
       call mpr_eval(parameterset)
 
 #ifdef MRM2MHM
-       if (processMatrix(8, 1) .gt. 0) then
+       if (processMatrix(8, 1) > 0) then
         !-------------------------------------------
         ! L11 ROUTING STATE VARIABLES, FLUXES AND
         !             PARAMETERS
@@ -328,16 +338,6 @@ CONTAINS
       end do
     end if
 
-#ifdef MRM2MHM
-    if (processMatrix(8, 1) .gt. 0) then
-      ! ----------------------------------------
-      ! initialize factor between routing resolution and hydrologic model resolution
-      ! ----------------------------------------
-      tsRoutFactor = 1_i4
-      allocate(InflowDischarge(size(InflowGauge%Q, dim = 2)))
-      InflowDischarge = 0._dp
-    end if
-#endif
 
     L1_fNotSealed = 1.0_dp - L1_fSealed
     !----------------------------------------
@@ -350,6 +350,16 @@ CONTAINS
         iDomain = ii
       end if
 
+#ifdef MRM2MHM
+      if (domainMeta%doRouting(iDomain)) then
+        ! ----------------------------------------
+        ! initialize factor between routing resolution and hydrologic model resolution
+        ! ----------------------------------------
+        tsRoutFactor = 1_i4
+        allocate(InflowDischarge(size(InflowGauge%Q, dim = 2)))
+        InflowDischarge = 0._dp
+      end if
+#endif
       ! get Domain information
       nCells = level1(iDomain)%nCells
       mask1 => level1(iDomain)%mask
@@ -357,7 +367,7 @@ CONTAINS
       e1 = level1(iDomain)%iEnd
 
 #ifdef MRM2MHM
-       if (processMatrix(8, 1) .gt. 0) then
+       if (domainMeta%doRouting(iDomain)) then
         ! read states from restart
         if (read_restart) call mrm_read_restart_states(iDomain, domainID, dirRestartIn(iDomain))
         !
@@ -534,7 +544,7 @@ CONTAINS
 
         ! call mRM routing
 #ifdef MRM2MHM
-        if (processMatrix(8, 1) .gt. 0) then
+        if (domainMeta%doRouting(iDomain)) then
           ! set discharge timestep
           iDischargeTS = ceiling(real(tt, dp) / real(nTstepDay, dp))
           ! set input variables for routing
@@ -922,8 +932,9 @@ CONTAINS
 
       ! deallocate TWS field temporal variable
       if (allocated(TWS_field)) deallocate(TWS_field)
+      if (allocated(InflowDischarge)) deallocate(InflowDischarge)
 #ifdef MRM2MHM
-       if (processMatrix(8, 1) .ne. 0) then
+       if (domainMeta%doRouting(iDomain)) then
         ! clean runoff variable
         deallocate(RunToRout)
       end if
@@ -934,7 +945,7 @@ CONTAINS
     ! =========================================================================
     ! SET RUNOFF OUTPUT VARIABLE
     ! =========================================================================
-    if (present(runoff) .and. (processMatrix(8, 1) .gt. 0)) runoff = mRM_runoff
+    if (present(runoff) .and. (processMatrix(8, 1) > 0)) runoff = mRM_runoff
 #endif
 
     ! =========================================================================

@@ -54,7 +54,7 @@ CONTAINS
                                             read_restart, resolutionRouting, sa_temp, sce_ngs, sce_npg, sce_nps, seed, &
                                             simPer, timestep, warmPer, warmingDays
     use mo_common_read_config, only : set_land_cover_scenes_id
-    use mo_common_variables, only : LCfilename, domainMeta, period
+    use mo_common_variables, only : LCfilename, domainMeta, period, processMatrix
     use mo_julian, only : caldat, julday
     use mo_message, only : message
     use mo_nml, only : close_nml, open_nml, position_nml
@@ -114,6 +114,15 @@ CONTAINS
       call message('***ERROR: cannot read states from restart file when optimizing')
       stop 1
     end if
+
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      if (processMatrix(8, 1) > 0 .and. domainMeta%optidata(iDomain) > 1 .and. optimize) then
+        domainMeta%doRouting(iDomain) = .FALSE.
+        call message('Warning: although defined in namelist, routing is switched off for domain', trim(num2str(domainID)))
+        call message('         since the calibration of Q is not possible with the chosen opti input')
+      end if
+    end do
 
     !===============================================================
     !  INIT !!! (merged from mo_startup and mo_mrm_read_config)

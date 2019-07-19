@@ -149,6 +149,7 @@ CONTAINS
     allocate(fileLatLon(domainMeta%nDomains))
     allocate(domainMeta%L0DataFrom(domainMeta%nDomains))
     allocate(domainMeta%optidata(domainMeta%nDomains))
+    allocate(domainMeta%doRouting(domainMeta%nDomains))
 
     nuniqueL0Domains = 0_i4
     do iDomain = 1, domainMeta%nDomains
@@ -218,6 +219,9 @@ CONTAINS
       fileLatLon(iDomain)          = file_LatLon(domainID)
     end do
 
+    ! ToDo: add test if opti_function matches at least one domainMeta%optidata
+
+
     !===============================================================
     ! Read process selection list
     !===============================================================
@@ -226,6 +230,11 @@ CONTAINS
 
     processMatrix = 0_i4
     processMatrix(:, 1) = processCase
+    if (processMatrix(8, 1) == 0) then
+      domainMeta%doRouting(:) = .FALSE.
+    else
+      domainMeta%doRouting(:) = .TRUE.
+    end if
 
     call close_nml(unamelist)
 

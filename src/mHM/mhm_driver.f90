@@ -311,7 +311,7 @@ PROGRAM mhm_driver
     ! read optional optional data if necessary
     if (optimize) then
       select case (opti_function)
-      case(10 : 13, 28, 32)
+      case(10 : 13, 28)
         ! read optional spatio-temporal soil mositure data
         call read_soil_moisture(iDomain, domainID)
       case(17)
@@ -321,6 +321,18 @@ PROGRAM mhm_driver
         ! read optional spatio-temporal evapotranspiration data
         call read_evapotranspiration(iDomain, domainID)
       case(15)
+        ! read optional domain average TWS data at once, therefore only read it
+        ! the last iteration of the domain loop to ensure same time for all domains
+        ! note: this is similar to how the runoff is read using mrm below
+        if (iDomain == domainMeta%nDomains) then
+          call read_domain_avg_TWS()
+        end if
+      case(32)
+        ! read optional spatio-temporal evapotranspiration data
+        if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
+          domainMeta%optidata(iDomain) == 6 ) then
+          call read_evapotranspiration(iDomain, domainID)
+        end if
         ! read optional domain average TWS data at once, therefore only read it
         ! the last iteration of the domain loop to ensure same time for all domains
         ! note: this is similar to how the runoff is read using mrm below
@@ -338,7 +350,7 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) .ne. 0_i4) call mrm_init(file_namelist_mhm, unamelist_mhm, &
+  if (processMatrix(8, 1) > 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
           file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon=ReadLatLon)
 #else
   mrm_coupling_mode = -1_i4
@@ -410,7 +422,8 @@ PROGRAM mhm_driver
 #endif
       ! --------------------------------------------------------------------------
       ! call mHM
-      ! get runoff timeseries if possible (i.e. when processMatrix(8,1) > 0)
+      ! get runoff timeseries if possible (i.e. when domainMeta%doRouting,
+      ! processMatrix(8,1) > 0)
       ! get other model outputs  (i.e. gridded fields of model output)
       ! --------------------------------------------------------------------------
       call message('  Run mHM')
@@ -445,7 +458,7 @@ PROGRAM mhm_driver
   ! WRITE RUNOFF (INCLUDING RESTART FILES, has to be called after mHM restart
   ! files are written)
   ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) .ne. 0) call mrm_write()
+  if (processMatrix(8, 1) > 0) call mrm_write()
 #endif
 
 #ifdef MPI
