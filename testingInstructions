@@ -1,47 +1,63 @@
 copy test_domain to test_domain and test_domain_2, edit namelist according to the following diff:
 
 
-134c134
+99a100,110
+> !-----------------------------------------------------------------------------
+> !> read domain specific optional data
+> !-----------------------------------------------------------------------------
+> !> (1) runoff
+> !> (2) sm
+> !> (3) tws
+> !> (4) neutons
+> !> (5) et
+> !> (6) et & tws
+> read_opt_domain_data(1) = 2
+> read_opt_domain_data(2) = 2
+134c145
 < optimize = .FALSE.
 ---
 > optimize = .TRUE.
-181a182
+182c193
+< 
+---
 > !> (32) MO: Q + ET + TWS
-184c185
+184c195
 < opti_function = 10
 ---
 > opti_function = 32
-253c254
+186d196
+< 
+253c263
 < dir_Out(2)           = "test_domain_2/output/"
 ---
 > dir_Out(2)           = "test_domain_2/output_b1/"
-255c256
+255c265
 < file_LatLon(2)       = "test_domain_2/input/latlon/latlon.nc"
 ---
 > file_LatLon(2)       = "test_domain_2/input/latlon/latlon_1.nc"
-337c338
+337c347
 < dir_Total_Runoff(2) = 'test_domain_2/output/'
 ---
 > dir_Total_Runoff(2) = 'test_domain_2/output_b1/'
-356a358
+356a367
 > dir_soil_moisture(2)   = "test_domain_2/input/optional_data/"
-374a377
+374a386
 > dir_neutrons(2)        = "test_domain/input/optional_data/"
-380a384
+380a393
 > dir_evapotranspiration(2)   = "test_domain/input/optional_data/"
-492c496
+492c505
 < warming_Days(2)    = 180
 ---
 > warming_Days(2)    = 0
-495c499
+495c508
 < eval_Per(2)%yStart = 1993
 ---
 > eval_Per(2)%yStart = 1990
-672c676
+672c685
 < Gauge_id(2,1)           = 45
 ---
 > Gauge_id(2,1)           = 398
-674c678
+674c687
 < Gauge_filename(2,1)     = "45.txt"
 ---
 > Gauge_filename(2,1)     = "00398.txt"

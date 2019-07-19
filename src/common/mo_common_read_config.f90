@@ -84,6 +84,8 @@ CONTAINS
 
     integer(i4), dimension(maxNoDomains) :: L0Domain
 
+    integer(i4), dimension(maxNoDomains) :: read_opt_domain_data
+
     ! starting year LCover
     integer(i4), dimension(maxNLCovers) :: LCoverYearStart
 
@@ -105,7 +107,8 @@ CONTAINS
             dir_Out, dir_RestartOut, &
             file_LatLon
     ! namelist spatial & temporal resolution, optimization information
-    namelist /mainconfig/ iFlag_cordinate_sys, resolution_Hydrology, nDomains, L0Domain, write_restart
+    namelist /mainconfig/ iFlag_cordinate_sys, resolution_Hydrology, nDomains, L0Domain, write_restart, &
+            read_opt_domain_data
     ! namelist process selection
     namelist /processSelection/ processCase
 
@@ -145,6 +148,7 @@ CONTAINS
     allocate(dirOut(domainMeta%nDomains))
     allocate(fileLatLon(domainMeta%nDomains))
     allocate(domainMeta%L0DataFrom(domainMeta%nDomains))
+    allocate(domainMeta%optidata(domainMeta%nDomains))
 
     nuniqueL0Domains = 0_i4
     do iDomain = 1, domainMeta%nDomains
@@ -199,18 +203,19 @@ CONTAINS
     LC_year_end(:) = LCoverYearEnd(1 : nLCoverScene)
 
     !===============================================================
-    !  Read namelist for mainpaths
+    ! Read namelist for mainpaths
     !===============================================================
     call position_nml('directories_general', unamelist)
     read(unamelist, nml = directories_general)
 
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      dirMorpho(iDomain)     = dir_Morpho(domainID)
-      dirRestartOut(iDomain) = dir_RestartOut(domainID)
-      dirLCover(iDomain)     = dir_LCover(domainID)
-      dirOut(iDomain)        = dir_Out(domainID)
-      fileLatLon(iDomain)    = file_LatLon(domainID)
+      domainMeta%optidata(iDomain) = read_opt_domain_data(domainID)
+      dirMorpho(iDomain)           = dir_Morpho(domainID)
+      dirRestartOut(iDomain)       = dir_RestartOut(domainID)
+      dirLCover(iDomain)           = dir_LCover(domainID)
+      dirOut(iDomain)              = dir_Out(domainID)
+      fileLatLon(iDomain)          = file_LatLon(domainID)
     end do
 
     !===============================================================
