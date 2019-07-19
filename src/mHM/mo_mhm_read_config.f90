@@ -183,6 +183,7 @@ CONTAINS
     allocate(dirNetRadiation(domainMeta%nDomains))
     allocate(dirSoil_Moisture(domainMeta%nDomains))
     allocate(dirNeutrons(domainMeta%nDomains))
+    allocate(dirEvapotranspiration(domainMeta%nDomains))
     allocate(fileTWS(domainMeta%nDomains))
     ! allocate time periods
     allocate(timestep_model_inputs(domainMeta%nDomains))
