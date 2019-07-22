@@ -690,42 +690,11 @@ CONTAINS
     ! mask for valid sm catchment avg time steps
     logical, dimension(:), allocatable :: mask_times
     
-    integer(i4), dimension(:), allocatable :: opti_domain_indices
 
     integer(i4) :: nEtTwsDomains, nQDomains
 
-
-    nEtTwsDomains = 0
-    nQDomains = 0
-    do iDomain = 1, domainMeta%nDomains
-      if (domainMeta%optidata(iDomain) == 1) nQDomains = nQDomains + 1
-      if (domainMeta%optidata(iDomain) == 6) nEtTwsDomains = nEtTwsDomains + 1
-    end do
-    if (nQdomains > 0) then
-      allocate(opti_domain_indices(nQdomains))
-      i = 0
-      do iDomain = 1, domainMeta%nDomains
-        if (domainMeta%optidata(iDomain) == 1) then
-          i = i + 1
-          opti_domain_indices(i) = iDomain
-        end if
-      end do
-      call eval(parameterset, opti_domain_indices = opti_domain_indices, runoff = runoff)
-      deallocate(opti_domain_indices)
-    end if
-    if (nEtTwsdomains > 0) then
-      allocate(opti_domain_indices(nEtTwsdomains))
-      i = 0
-      do iDomain = 1, domainMeta%nDomains
-        if (domainMeta%optidata(iDomain) == 6) then
-          i = i + 1
-          opti_domain_indices(i) = iDomain
-        end if
-      end do
-      call eval(parameterset, opti_domain_indices = opti_domain_indices, &
-                                      domain_avg_tws = tws, et_opti = et_opti)
-      deallocate(opti_domain_indices)
-    end if
+    call mhm_eval_with_opti(domainMeta, 1, parameterset, eval, runoff = runoff)
+    call mhm_eval_with_opti(domainMeta, 6, parameterset, eval, domain_avg_tws = tws, et_opti = et_opti)
 
     ! initialize some variables
     objective_q_et_tws_kge_catchment_avg = 0.0_dp
@@ -754,6 +723,61 @@ CONTAINS
 
 
   END FUNCTION objective_q_et_tws_kge_catchment_avg
+
+  subroutine mhm_eval_with_opti(domainMeta, optidataOption, parameterset, eval, runoff, domain_avg_tws, et_opti)
+    use mo_message, only : message
+    use mo_common_variables, only : domain_meta
+    type(domain_meta),                                intent(in)    :: domainMeta
+    integer(i4),                                      intent(in)    :: optidataOption
+    real(dp), dimension(:),                           intent(in)    :: parameterset
+    procedure(eval_interface), pointer,               intent(in)    :: eval
+    real(dp), allocatable, dimension(:, :), optional, intent(inout) :: runoff
+    ! modelled runoff for a given parameter set
+    real(dp), allocatable, dimension(:, :), optional, intent(inout) :: domain_avg_tws
+    ! simulated et
+    real(dp), dimension(:, :), allocatable, optional, intent(inout) :: et_opti
+
+    integer(i4), dimension(:), allocatable :: opti_domain_indices
+    ! domain loop counter
+    integer(i4) :: iDomain, i, nOptiDomains
+
+    ! count domains on MPI process that use optidata
+    nOptiDomains = 0
+    do iDomain = 1, domainMeta%nDomains
+      if (domainMeta%optidata(iDomain) == optidataOption) nOptiDomains = nOptiDomains + 1
+    end do
+    ! write indices of these domains into an array
+    if (nOptiDomains > 0) then
+      allocate(opti_domain_indices(nOptiDomains))
+      i = 0
+      do iDomain = 1, domainMeta%nDomains
+        if (domainMeta%optidata(iDomain) == optidataOption) then
+          i = i + 1
+          opti_domain_indices(i) = iDomain
+        end if
+      end do
+
+      ! pass the index array with corresponding data to mhm_eval
+      select case (optidataOption)
+      case(1)
+        if (.not. present(runoff)) then
+          call message("Error mhm_eval_with_opti: given data does not fit opti case.")
+          stop 1
+        else
+          call eval(parameterset, opti_domain_indices = opti_domain_indices, runoff = runoff)
+        end if
+      case(6)
+        if ((.not. present(domain_avg_tws)) .or. (.not. present(et_opti))) then
+          call message("Error mhm_eval_with_opti: given data does not fit opti case.")
+          stop 1
+        else
+          call eval(parameterset, opti_domain_indices = opti_domain_indices, &
+                                      domain_avg_tws = domain_avg_tws, et_opti = et_opti)
+        end if
+      end select
+      deallocate(opti_domain_indices)
+    end if
+  end subroutine
   ! ------------------------------------------------------------------
 
   !    NAME
