@@ -631,11 +631,14 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level1, domainMeta
-    use mo_errormeasures, only : KGE
+    use mo_errormeasures, only : kge
     use mo_global_variables, only : L1_sm, L1_sm_mask
     use mo_message, only : message
     use mo_moment, only : average
     use mo_string_utils, only : num2str
+#ifdef MRM2MHM
+    use mo_mrm_objective_function_runoff, only : extract_runoff
+#endif
 
     implicit none
 
@@ -646,7 +649,7 @@ CONTAINS
     real(dp) :: objective_q_et_tws_kge_catchment_avg
 
     ! domain loop counter
-    integer(i4) :: iDomain
+    integer(i4) :: iDomain, domainID, pp
 
     ! time loop counter
     integer(i4) :: iTime
@@ -675,9 +678,35 @@ CONTAINS
     ! spatial avergae of modeled  soil moisture
     real(dp), dimension(:), allocatable :: sm_opti_catch_avg_domain
 
+#ifdef MRM2MHM
     ! modelled runoff for a given parameter set
     ! dim1=nTimeSteps, dim2=nGauges
     real(dp), allocatable, dimension(:, :) :: runoff
+    integer(i4) :: nGaugesTotal
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+    ! kge_q(nGaugesTotal)
+    real(dp) :: kge_q
+
+    ! gauges counter
+    integer(i4) :: gg
+
+    !number of q domains
+    integer(i4) :: nQDomains
+#endif
+
+    !number of et and tws domains
+    integer(i4) :: nEtTwsDomains
+
+    integer(i4), dimension(:), allocatable :: opti_domain_indices_ET_TWS
 
     ! modelled runoff for a given parameter set
     ! dim1=nTimeSteps, dim2=nGauges
@@ -687,14 +716,102 @@ CONTAINS
     ! (dim1=ncells, dim2=time)
     real(dp), dimension(:, :), allocatable :: et_opti
 
-    ! mask for valid sm catchment avg time steps
-    logical, dimension(:), allocatable :: mask_times
+    ! simulated tws
+    real(dp), dimension(:), allocatable :: tws_sim
+
+    ! measured tws
+    real(dp), dimension(:), allocatable :: tws_obs
+
+    ! mask for measured tws
+    logical, dimension(:), allocatable :: tws_obs_mask
+
+    real(dp) :: kge_tws
+
+    ! spatial average of observed et
+    real(dp), dimension(:), allocatable :: et_catch_avg_domain
+
+    ! spatial avergae of modeled  et
+    real(dp), dimension(:), allocatable :: et_opti_catch_avg_domain
+
+    ! mask for valid et catchment avg time steps
+    logical, dimension(:), allocatable :: mask_times_et
     
+    real(dp) :: kge_et
 
-    integer(i4) :: nEtTwsDomains, nQDomains
+    ! eval runs to get simulated output for runoff, et and tws
+#ifdef MRM2MHM
+    ! indices are not needed, therefore we pass the second array
+    call mhm_eval_with_opti(domainMeta, 1, parameterset, eval, nQDomains, &
+    opti_domain_indices_ET_TWS, runoff = runoff)
+#else
+    call message('***ERROR: objective_q_et_tws_kge_catchment_avg: missing routing module for optimization')
+    stop 1
+#endif
+    call mhm_eval_with_opti(domainMeta, 6, parameterset, eval, nEtTwsDomains, &
+                            opti_domain_indices_ET_TWS, &
+                            domain_avg_tws = tws, et_opti = et_opti)
 
-    call mhm_eval_with_opti(domainMeta, 1, parameterset, eval, runoff = runoff)
-    call mhm_eval_with_opti(domainMeta, 6, parameterset, eval, domain_avg_tws = tws, et_opti = et_opti)
+    !--------------------------------------------
+    ! RUNOFF
+    !--------------------------------------------
+    if (nQDomains > 0) then
+      nGaugesTotal = size(runoff, dim = 2)
+      kge_q = 0.0_dp
+      do gg = 1, nGaugesTotal
+
+        ! extract runoff
+        call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+
+        kge_q = kge_q + &
+              kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+        ! check for potentially 2 years of data
+        deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
+      end do
+    end if
+    write(0,*) 'nQDomains, kge_q', nQDomains, kge_q
+
+    !--------------------------------------------
+    ! TWS
+    !--------------------------------------------
+    kge_tws = 0.0_dp
+    if (nEtTwsDomains > 0) then
+      ! for all domains that have ET and TWS
+      do i = 1, size(opti_domain_indices_ET_TWS)
+        iDomain = opti_domain_indices_ET_TWS(i)
+        domainID = domainMeta%indices(iDomain)
+        ! extract tws the same way as runoff using mrm
+        call extract_domain_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
+        kge_tws = kge_tws + &
+          ((1.0_dp - KGE(tws_obs, tws_sim, mask = tws_obs_mask)) / &
+                                        real(domainMeta%overallNumberOfDomains, dp))**6
+        deallocate (tws_sim, tws_obs, tws_obs_mask)
+      end do
+    end if
+    write(0,*) 'nEtTwsDomains, kge_tws', nEtTwsDomains, kge_tws
+    
+    !--------------------------------------------
+    ! ET
+    !--------------------------------------------
+    kge_et = 0.0_dp
+    if (nEtTwsDomains > 0) then
+      ! for all domains that have ET and TWS
+      do i = 1, size(opti_domain_indices_ET_TWS)
+        iDomain = opti_domain_indices_ET_TWS(i)
+        domainID = domainMeta%indices(iDomain)
+        ! create et array input
+        call create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
+                                           et_opti_catch_avg_domain, mask_times_et)
+        kge_et = kge_et + &
+          ((1.0_dp - KGE(et_catch_avg_domain, et_opti_catch_avg_domain, mask = mask_times_et)) / &
+                                        real(domainMeta%overallNumberOfDomains, dp))**6
+        ! deallocate
+        deallocate(mask_times_et)
+        deallocate(et_catch_avg_domain)
+        deallocate(et_opti_catch_avg_domain)
+      end do
+      deallocate(opti_domain_indices_ET_TWS)
+    end if
+    write(0,*) 'nEtTwsDomains, kge_et', nEtTwsDomains, kge_et
 
     ! initialize some variables
     objective_q_et_tws_kge_catchment_avg = 0.0_dp
@@ -721,26 +838,28 @@ CONTAINS
     call message('    objective_q_et_tws_kge_catchment_avg = ', num2str(objective_q_et_tws_kge_catchment_avg, '(F9.5)'))
 #endif
 
-
   END FUNCTION objective_q_et_tws_kge_catchment_avg
 
-  subroutine mhm_eval_with_opti(domainMeta, optidataOption, parameterset, eval, runoff, domain_avg_tws, et_opti)
+  subroutine mhm_eval_with_opti(domainMeta, optidataOption, parameterset, eval, nOptiDomains, &
+                                opti_domain_indices, runoff, domain_avg_tws, et_opti)
     use mo_message, only : message
     use mo_common_variables, only : domain_meta
     type(domain_meta),                                intent(in)    :: domainMeta
     integer(i4),                                      intent(in)    :: optidataOption
     real(dp), dimension(:),                           intent(in)    :: parameterset
     procedure(eval_interface), pointer,               intent(in)    :: eval
+    integer(i4),                                      intent(out)   :: nOptiDomains
+    integer(i4), dimension(:), allocatable,           intent(out)   :: opti_domain_indices
     real(dp), allocatable, dimension(:, :), optional, intent(inout) :: runoff
     ! modelled runoff for a given parameter set
     real(dp), allocatable, dimension(:, :), optional, intent(inout) :: domain_avg_tws
     ! simulated et
     real(dp), dimension(:, :), allocatable, optional, intent(inout) :: et_opti
 
-    integer(i4), dimension(:), allocatable :: opti_domain_indices
     ! domain loop counter
-    integer(i4) :: iDomain, i, nOptiDomains
+    integer(i4) :: iDomain, i
 
+    if (allocated(opti_domain_indices)) deallocate(opti_domain_indices)
     ! count domains on MPI process that use optidata
     nOptiDomains = 0
     do iDomain = 1, domainMeta%nDomains
@@ -775,7 +894,6 @@ CONTAINS
                                       domain_avg_tws = domain_avg_tws, et_opti = et_opti)
         end if
       end select
-      deallocate(opti_domain_indices)
     end if
   end subroutine
   ! ------------------------------------------------------------------
@@ -1431,6 +1549,8 @@ CONTAINS
       ! check for potentially 2 years of data
       pp = count(runoff_agg .ge. 0.0_dp)
       if (pp .lt.  365 * 2) then
+          ! ToDo: I guess this warning does not make sense here? The data is not TWS but q
+          ! and domainID is not defined in a useful way
         call message('objective_kge_q_rmse_tws: Length of TWS data of domain ', trim(adjustl(num2str(domainID))), &
         ' less than 2 years: this is not recommended')
       end if
@@ -1576,7 +1696,7 @@ CONTAINS
         ! check for enough data points in time for correlation
         if (all(.NOT. L1_neutronsdata_mask(s1 : e1, iTime))) then
           call message('WARNING: neutrons data at time ', num2str(iTime, '(I10)'), ' is empty.')
-          !call message('WARNING: objective_neutrons_kge_catchment_avg: ignored currrent time step since less than')
+          !call message('WARNING: objective_neutrons_kge_catchment_avg: ignored current time step since less than')
           !call message('         10 valid cells available in soil moisture observation')
           mask_times(iTime) = .FALSE.
           cycle
@@ -1705,36 +1825,10 @@ CONTAINS
     ! loop over domain - for applying power law later on
     do iDomain = 1, domainMeta%nDomains
 
-      ! get domain information
-      s1 = level1(iDomain)%iStart
-      e1 = level1(iDomain)%iEnd
-
-      ! allocate
-      allocate(mask_times             (size(et_opti, dim = 2)))
-      allocate(et_catch_avg_domain     (size(et_opti, dim = 2)))
-      allocate(et_opti_catch_avg_domain(size(et_opti, dim = 2)))
-
-      ! initalize
-      mask_times = .TRUE.
-      et_catch_avg_domain = nodata_dp
-      et_opti_catch_avg_domain = nodata_dp
-
-      ! calculate catchment average evapotranspiration
-      do iTime = 1, size(et_opti, dim = 2)
-
-        ! check for enough data points in time for correlation
-        if (all(.NOT. L1_et_mask(s1 : e1, iTime))) then
-          !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
-          !call message('WARNING: objective_et_kge_catchment_avg: ignored currrent time step since less than')
-          !call message('         10 valid cells available in evapotranspiration observation')
-          mask_times(iTime) = .FALSE.
-          cycle
-        end if
-
-        et_catch_avg_domain(iTime) = average(L1_et(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
-        et_opti_catch_avg_domain(iTime) = average(et_opti(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
-      end do
-
+      ! create et array input
+      ! ToDo: Check if this still does the same
+      call create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
+                                           et_opti_catch_avg_domain, mask_times)
       ! calculate average ET KGE over all domains with power law
       ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
 
@@ -2296,7 +2390,7 @@ CONTAINS
         ! check for enough data points in time for correlation
         if (all(.NOT. L1_et_mask(s1 : e1, iTime))) then
           !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
-          !call message('WARNING: objective_et_kge_catchment_avg: ignored currrent time step since less than')
+          !call message('WARNING: objective_et_kge_catchment_avg: ignored current time step since less than')
           !call message('         10 valid cells available in evapotranspiration observation')
           mask_times(iTime) = .FALSE.
           cycle
@@ -2554,5 +2648,64 @@ CONTAINS
 
   end subroutine extract_domain_avg_tws
 
+  subroutine create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
+                                           et_opti_catch_avg_domain, mask_times)
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1
+    use mo_global_variables, only : L1_et, L1_et_mask
+    use mo_moment, only : average
+    ! current domain Id
+    integer(i4), intent(in) :: iDomain
+
+    ! simulated domain average tws
+    real(dp), dimension(:, :), intent(in) :: et_opti
+
+    ! aggregated simulated
+    real(dp), dimension(:), allocatable, intent(out) :: et_catch_avg_domain
+
+    ! extracted measured
+    real(dp), dimension(:), allocatable, intent(out) :: et_opti_catch_avg_domain
+
+    ! mask of no data values
+    logical, dimension(:), allocatable, intent(out) :: mask_times
+
+    ! local
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! start and end index for the current domain
+    integer(i4) :: s1, e1
+
+    ! get domain information
+    s1 = level1(iDomain)%iStart
+    e1 = level1(iDomain)%iEnd
+
+    ! allocate
+    allocate(mask_times              (size(et_opti, dim = 2)))
+    allocate(et_catch_avg_domain     (size(et_opti, dim = 2)))
+    allocate(et_opti_catch_avg_domain(size(et_opti, dim = 2)))
+
+    ! initalize
+    mask_times = .TRUE.
+    et_catch_avg_domain = nodata_dp
+    et_opti_catch_avg_domain = nodata_dp
+
+    ! calculate catchment average evapotranspiration
+    do iTime = 1, size(et_opti, dim = 2)
+
+      ! check for enough data points in time for correlation
+      if (all(.NOT. L1_et_mask(s1 : e1, iTime))) then
+        !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
+        !call message('WARNING: objective_et_kge_catchment_avg: ignored current time step since less than')
+        !call message('         10 valid cells available in evapotranspiration observation')
+        mask_times(iTime) = .FALSE.
+        cycle
+      end if
+
+      et_catch_avg_domain(iTime) = average(L1_et(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
+      et_opti_catch_avg_domain(iTime) = average(et_opti(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
+    end do
+
+  end subroutine create_domain_avg_et
 
 END MODULE mo_objective_function
