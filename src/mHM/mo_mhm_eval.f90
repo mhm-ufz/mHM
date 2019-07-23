@@ -305,6 +305,11 @@ CONTAINS
       et_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
     end if
     ! add other optionals...
+    ! allocate space for local tws field
+    if (present(domain_avg_tws)) then
+      allocate(TWS_field(size(L1_pre, dim = 1)))
+      TWS_field(:) = 0.0_dp
+    end if
 
     !-------------------------------------------------------------------
     ! All variables had been allocated to the required
@@ -384,12 +389,6 @@ CONTAINS
         RunToRout = 0._dp
       end if
 #endif
-
-      ! allocate space for local tws field
-      if (present(domain_avg_tws)) then
-        allocate(TWS_field(s1 : e1))
-        TWS_field(s1 : e1) = nodata_dp
-      end if
 
       ! calculate NtimeSteps for this Domain
       nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nTstepDay
@@ -931,7 +930,6 @@ CONTAINS
       end do !<< TIME STEPS LOOP
 
       ! deallocate TWS field temporal variable
-      if (allocated(TWS_field)) deallocate(TWS_field)
       if (allocated(InflowDischarge)) deallocate(InflowDischarge)
 #ifdef MRM2MHM
        if (domainMeta%doRouting(iDomain)) then

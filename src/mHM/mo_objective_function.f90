@@ -277,9 +277,9 @@ CONTAINS
       do iproc = 1, nproc - 1
         call MPI_Recv(multiple_partial_objective, 6, MPI_DOUBLE_PRECISION, iproc, 0, domainMeta%comMaster, status, ierror)
         multiple_master_objective = multiple_master_objective + multiple_partial_objective
-        objective_master = objective_master + &
-          (multiple_master_objective(1)+multiple_master_objective(2)+multiple_master_objective(3))
       end do
+      objective_master = objective_master + &
+        (multiple_master_objective(1)+multiple_master_objective(2)+multiple_master_objective(3))
       objective_master = objective_master**onesixth
 
     case default
@@ -777,9 +777,9 @@ CONTAINS
     !--------------------------------------------
     ! RUNOFF
     !--------------------------------------------
+    kge_q = 0.0_dp
     if (nQDomains > 0) then
       nGaugesTotal = size(runoff, dim = 2)
-      kge_q = 0.0_dp
       do gg = 1, nGaugesTotal
 
         ! extract runoff
@@ -787,13 +787,11 @@ CONTAINS
 
         kge_q = kge_q + &
               kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
-        ! check for potentially 2 years of data
         deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
       end do
     end if
    ! write(0,*) 'nQDomains, kge_q', nQDomains, kge_q
     objective_q_et_tws_kge_catchment_avg(1) = kge_q
-
 
     !--------------------------------------------
     ! TWS
@@ -803,7 +801,6 @@ CONTAINS
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_ET_TWS)
         iDomain = opti_domain_indices_ET_TWS(i)
-        domainID = domainMeta%indices(iDomain)
         ! extract tws the same way as runoff using mrm
         call extract_domain_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
         kge_tws = kge_tws + &
@@ -823,7 +820,6 @@ CONTAINS
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_ET_TWS)
         iDomain = opti_domain_indices_ET_TWS(i)
-        domainID = domainMeta%indices(iDomain)
         ! create et array input
         call create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
                                            et_opti_catch_avg_domain, mask_times_et)
