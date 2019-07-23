@@ -105,6 +105,8 @@ CONTAINS
 
     REAL(dp) :: objective
 
+    real(dp), dimension(6) :: multiple_objective
+
 
     if (present(arg1) .or. present(arg2) .or. present(arg3)) then
       call message("Error mo_objective_function: Received unexpected argument, check optimization settings")
@@ -151,7 +153,8 @@ CONTAINS
       ! KGE for Q * RMSE for domain_avg ET (standarized scored)
       objective = objective_kge_q_rmse_et(parameterset, eval)
     case (32)
-      objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
+      multiple_objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
+      objective = multiple_objective(1)
 
     case default
       call message("Error objective: opti_function not implemented yet.")
@@ -222,6 +225,10 @@ CONTAINS
 
     REAL(dp) :: partial_objective
 
+    real(dp), dimension(6) :: multiple_partial_objective
+
+    real(dp), dimension(6) :: multiple_master_objective
+
     ! for sixth root
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 
@@ -247,7 +254,7 @@ CONTAINS
 
     call distribute_parameterset(parameterset)
     select case (opti_function)
-    case (10 : 13, 17, 27 : 29, 32)
+    case (10 : 13, 17, 27 : 29)
       call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
       objective_master = 0.0_dp
       do iproc = 1, nproc - 1
@@ -263,6 +270,17 @@ CONTAINS
       ! KGE for Q * RMSE for domain_avg ET (standarized scored)
       ! objective_master = objective_kge_q_rmse_et(parameterset, eval)
       call message("case 30, objective_kge_q_rmse_et not implemented in parallel yet")
+    case(32)
+      call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
+      objective_master = 0.0_dp
+      multiple_master_objective(:) = 0.0_dp
+      do iproc = 1, nproc - 1
+        call MPI_Recv(multiple_partial_objective, 6, MPI_DOUBLE_PRECISION, iproc, 0, domainMeta%comMaster, status, ierror)
+        multiple_master_objective = multiple_master_objective + multiple_partial_objective
+        objective_master = objective_master + &
+          (multiple_master_objective(1)+multiple_master_objective(2)+multiple_master_objective(3))
+      end do
+      objective_master = objective_master**onesixth
 
     case default
       call message("Error objective_master: opti_function not implemented yet.")
@@ -354,6 +372,8 @@ CONTAINS
 
     REAL(dp) :: partial_objective
 
+    real(dp), dimension(6) :: multiple_partial_objective
+
     REAL(dp), DIMENSION(:), allocatable :: parameterset
 
     integer(i4) :: ierror
@@ -414,16 +434,17 @@ CONTAINS
         partial_objective = objective_kge_q_rmse_et(parameterset, eval)
         stop
       case(32)
-        partial_objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
-
+        multiple_partial_objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
       case default
         call message("Error objective_subprocess: opti_function not implemented yet.")
         stop 1
       end select
 
       select case (opti_function)
-      case (10 : 13, 17, 27 : 29, 32)
+      case (10 : 13, 17, 27 : 29)
         call MPI_Send(partial_objective,1, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
+      case(32)
+        call MPI_Send(multiple_partial_objective,6, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
         call message("Error objective_subprocess: this part should not be executed -> error in the code.")
         stop 1
@@ -646,7 +667,7 @@ CONTAINS
 
     procedure(eval_interface), INTENT(IN), POINTER :: eval
 
-    real(dp) :: objective_q_et_tws_kge_catchment_avg
+    real(dp), dimension(6) :: objective_q_et_tws_kge_catchment_avg
 
     ! domain loop counter
     integer(i4) :: iDomain, domainID, pp
@@ -751,6 +772,8 @@ CONTAINS
                             opti_domain_indices_ET_TWS, &
                             domain_avg_tws = tws, et_opti = et_opti)
 
+    ! initialize some variables
+    objective_q_et_tws_kge_catchment_avg(:) = 0.0_dp
     !--------------------------------------------
     ! RUNOFF
     !--------------------------------------------
@@ -768,7 +791,9 @@ CONTAINS
         deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
       end do
     end if
-    write(0,*) 'nQDomains, kge_q', nQDomains, kge_q
+   ! write(0,*) 'nQDomains, kge_q', nQDomains, kge_q
+    objective_q_et_tws_kge_catchment_avg(1) = kge_q
+
 
     !--------------------------------------------
     ! TWS
@@ -787,7 +812,8 @@ CONTAINS
         deallocate (tws_sim, tws_obs, tws_obs_mask)
       end do
     end if
-    write(0,*) 'nEtTwsDomains, kge_tws', nEtTwsDomains, kge_tws
+   ! write(0,*) 'nEtTwsDomains, kge_tws', nEtTwsDomains, kge_tws
+    objective_q_et_tws_kge_catchment_avg(2) = kge_tws
     
     !--------------------------------------------
     ! ET
@@ -811,31 +837,14 @@ CONTAINS
       end do
       deallocate(opti_domain_indices_ET_TWS)
     end if
-    write(0,*) 'nEtTwsDomains, kge_et', nEtTwsDomains, kge_et
-
-    ! initialize some variables
-    objective_q_et_tws_kge_catchment_avg = 0.0_dp
-
-    ! loop over domain - for applying power law later on
-    do iDomain = 1, domainMeta%nDomains
-
-      ! get domain information
-      ncells1 = level1(iDomain)%ncells
-      s1 = level1(iDomain)%iStart
-      e1 = level1(iDomain)%iEnd
-
-      ! calculate average soil moisture KGE over all domains with power law
-      ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
-      objective_q_et_tws_kge_catchment_avg = objective_q_et_tws_kge_catchment_avg + &
-             1.0_dp 
-
-      ! deallocate
-    end do
+   ! write(0,*) 'nEtTwsDomains, kge_et', nEtTwsDomains, kge_et
+    objective_q_et_tws_kge_catchment_avg(3) = kge_et
 
 #ifndef MPI
-    objective_q_et_tws_kge_catchment_avg = objective_q_et_tws_kge_catchment_avg**onesixth
+    objective_q_et_tws_kge_catchment_avg(1) = (kge_q+kge_et+kge_tws)**onesixth
 
-    call message('    objective_q_et_tws_kge_catchment_avg = ', num2str(objective_q_et_tws_kge_catchment_avg, '(F9.5)'))
+    call message('    objective_q_et_tws_kge_catchment_avg = ', &
+                      num2str(objective_q_et_tws_kge_catchment_avg(1), '(F9.5)'))
 #endif
 
   END FUNCTION objective_q_et_tws_kge_catchment_avg
