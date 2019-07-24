@@ -220,6 +220,7 @@ CONTAINS
     end do
 
     ! ToDo: add test if opti_function matches at least one domainMeta%optidata
+    ! as soon as common and common_mRM_mHM are merged, if that is the plan
 
 
     !===============================================================

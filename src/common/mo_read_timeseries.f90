@@ -178,11 +178,11 @@ CONTAINS
     startJul_file = julday(periodStart_file(3), periodStart_file(2), periodStart_file(1))
     endJul_file = julday(periodEnd_file(3), periodEnd_file(2), periodEnd_file(1))
 
-    ! ToDo: check if a change is needed here
     if (((startJul_period < startJul_file) .OR. (endJul_period > endJul_file)) &
             .AND. optimize .and. ((opti_function .le. 9_i4) .or. &
             (opti_function .eq. 14_i4) .or. &
-            (opti_function .eq. 31_i4))) then
+            (opti_function .eq. 31_i4) .or. &
+            (opti_function .eq. 32_i4))) then
       ! adjust this whenever a new opti function on discharge is added to mhm!
       call message('***ERROR: Simulation period is not covered by observations! ', trim(filename))
       stop
