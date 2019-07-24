@@ -49,7 +49,7 @@ contains
   ! Stephan Thober Nov 2016 - implemented second routing process i.e. adaptive timestep
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine mrm_eval(parameterset, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
+  subroutine mrm_eval(parameterset, opti_domain_indices, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
 
     use mo_common_constants, only : HourSecs
     use mo_common_mHM_mRM_variables, only : LCYearId, dirRestartIn, nTStepDay, optimize, read_restart, resolutionRouting, simPer, &
@@ -76,6 +76,7 @@ contains
     ! a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
     real(dp), dimension(:), intent(in) :: parameterset
 
+    integer(i4), dimension(:), optional, intent(in) :: opti_domain_indices
     ! returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff
 
@@ -91,7 +92,7 @@ contains
     ! dim1=ncells, dim2=time
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: et_opti
 
-    integer(i4) :: domainID, iDomain
+    integer(i4) :: domainID, iDomain, nDomains, ii
 
     integer(i4) :: jj
 
@@ -146,6 +147,11 @@ contains
     ! flag for monthly mean of river head
     logical :: is_new_month = .false.
 
+    if (optimize .and. present(opti_domain_indices)) then
+      nDomains = size(opti_domain_indices)
+    else
+      nDomains = domainMeta%nDomains
+    end if
     ! initialize variables
     month = 0_i4
     
@@ -170,7 +176,12 @@ contains
     ! ----------------------------------------
     ! loop over domains
     ! ----------------------------------------
-    do iDomain = 1, domainMeta%nDomains
+    do ii = 1, nDomains
+      if (optimize .and. present(opti_domain_indices)) then
+        iDomain = opti_domain_indices(ii)
+      else
+        iDomain = ii
+      end if
       domainID = domainMeta%indices(iDomain)
       ! read states from restart
       if (read_restart) call mrm_read_restart_states(iDomain, domainID, dirRestartIn(iDomain))
