@@ -724,9 +724,19 @@ CONTAINS
     integer(i4) :: nQDomains
 #endif
 
-    !number of et and tws domains
+    !number of et domains
+    integer(i4) :: nEtDomains
+
+    !number of tws domains
+    integer(i4) :: nTwsDomains
+
+    !number of tws and ET domains (providing both)
     integer(i4) :: nEtTwsDomains
 
+    integer(i4), dimension(:), allocatable :: opti_domain_indices_ET
+
+    integer(i4), dimension(:), allocatable :: opti_domain_indices_TWS
+    
     integer(i4), dimension(:), allocatable :: opti_domain_indices_ET_TWS
 
     ! modelled runoff for a given parameter set
@@ -763,14 +773,20 @@ CONTAINS
 #ifdef MRM2MHM
     ! indices are not needed, therefore we pass the second array
     call mhm_eval_with_opti(domainMeta, 1, parameterset, eval, nQDomains, &
-    opti_domain_indices_ET_TWS, runoff = runoff)
+    opti_domain_indices_ET, runoff = runoff)
 #else
     call message('***ERROR: objective_q_et_tws_kge_catchment_avg: missing routing module for optimization')
     stop 1
 #endif
+    call mhm_eval_with_opti(domainMeta, 3, parameterset, eval, nTwsDomains, &
+                            opti_domain_indices_TWS, &
+                            domain_avg_tws = tws)
+    call mhm_eval_with_opti(domainMeta, 5, parameterset, eval, nEtDomains, &
+                            opti_domain_indices_ET, &
+                            et_opti = et_opti)
     call mhm_eval_with_opti(domainMeta, 6, parameterset, eval, nEtTwsDomains, &
                             opti_domain_indices_ET_TWS, &
-                            domain_avg_tws = tws, et_opti = et_opti)
+                            domain_avg_tws = tws, et_opti = et_opti) 
 
     ! initialize some variables
     objective_q_et_tws_kge_catchment_avg(:) = 0.0_dp
@@ -793,14 +809,39 @@ CONTAINS
    ! write(0,*) 'nQDomains, kge_q', nQDomains, kge_q
     objective_q_et_tws_kge_catchment_avg(1) = kge_q
 
-    !--------------------------------------------
-    ! TWS
-    !--------------------------------------------
     kge_tws = 0.0_dp
+    kge_et = 0.0_dp
+    !--------------------------------------------
+    ! ET & TWS
+    !--------------------------------------------
     if (nEtTwsDomains > 0) then
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_ET_TWS)
         iDomain = opti_domain_indices_ET_TWS(i)
+        ! create et array input
+        call create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
+                                           et_opti_catch_avg_domain, mask_times_et)
+        call extract_domain_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
+        kge_et = kge_et + &
+          ((1.0_dp - KGE(et_catch_avg_domain, et_opti_catch_avg_domain, mask = mask_times_et)) / &
+                                        real(domainMeta%overallNumberOfDomains, dp))**6
+        kge_tws = kge_tws + &
+          ((1.0_dp - KGE(tws_obs, tws_sim, mask = tws_obs_mask)) / &
+                                        real(domainMeta%overallNumberOfDomains, dp))**6
+        ! deallocate
+        deallocate (tws_sim, tws_obs, tws_obs_mask)
+        deallocate(mask_times_et)
+        deallocate(et_catch_avg_domain)
+        deallocate(et_opti_catch_avg_domain)
+      end do
+    end if
+    !--------------------------------------------
+    ! TWS
+    !--------------------------------------------
+    if (nTwsDomains > 0) then
+      ! for all domains that have ET and TWS
+      do i = 1, size(opti_domain_indices_TWS)
+        iDomain = opti_domain_indices_TWS(i)
         ! extract tws the same way as runoff using mrm
         call extract_domain_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
         kge_tws = kge_tws + &
@@ -815,11 +856,10 @@ CONTAINS
     !--------------------------------------------
     ! ET
     !--------------------------------------------
-    kge_et = 0.0_dp
-    if (nEtTwsDomains > 0) then
+    if (nEtDomains > 0) then
       ! for all domains that have ET and TWS
-      do i = 1, size(opti_domain_indices_ET_TWS)
-        iDomain = opti_domain_indices_ET_TWS(i)
+      do i = 1, size(opti_domain_indices_ET)
+        iDomain = opti_domain_indices_ET(i)
         ! create et array input
         call create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
                                            et_opti_catch_avg_domain, mask_times_et)
@@ -831,7 +871,6 @@ CONTAINS
         deallocate(et_catch_avg_domain)
         deallocate(et_opti_catch_avg_domain)
       end do
-      deallocate(opti_domain_indices_ET_TWS)
     end if
    ! write(0,*) 'nEtTwsDomains, kge_et', nEtTwsDomains, kge_et
     objective_q_et_tws_kge_catchment_avg(3) = kge_et
@@ -846,7 +885,7 @@ CONTAINS
   END FUNCTION objective_q_et_tws_kge_catchment_avg
 
   subroutine mhm_eval_with_opti(domainMeta, optidataOption, parameterset, eval, nOptiDomains, &
-                                opti_domain_indices, runoff, domain_avg_tws, et_opti)
+                   opti_domain_indices, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
     use mo_message, only : message
     use mo_common_variables, only : domain_meta
     type(domain_meta),                                intent(in)    :: domainMeta
@@ -855,9 +894,14 @@ CONTAINS
     procedure(eval_interface), pointer,               intent(in)    :: eval
     integer(i4),                                      intent(out)   :: nOptiDomains
     integer(i4), dimension(:), allocatable,           intent(out)   :: opti_domain_indices
-    real(dp), allocatable, dimension(:, :), optional, intent(inout) :: runoff
     ! modelled runoff for a given parameter set
+    real(dp), allocatable, dimension(:, :), optional, intent(inout) :: runoff
+    ! modelled soil moisture
+    real(dp), allocatable, dimension(:, :), optional, intent(inout) :: sm_opti
+    ! modelled tws
     real(dp), allocatable, dimension(:, :), optional, intent(inout) :: domain_avg_tws
+    ! modelled neutron
+    real(dp), allocatable, dimension(:, :), optional, intent(inout) :: neutrons_opti
     ! simulated et
     real(dp), dimension(:, :), allocatable, optional, intent(inout) :: et_opti
 
@@ -889,6 +933,34 @@ CONTAINS
           stop 1
         else
           call eval(parameterset, opti_domain_indices = opti_domain_indices, runoff = runoff)
+        end if
+      case(2)
+        if (.not. present(sm_opti)) then
+          call message("Error mhm_eval_with_opti: given data does not fit opti case.")
+          stop 1
+        else
+          call eval(parameterset, opti_domain_indices = opti_domain_indices, sm_opti = sm_opti)
+        end if
+      case(3)
+        if (.not. present(domain_avg_tws)) then
+          call message("Error mhm_eval_with_opti: given data does not fit opti case.")
+          stop 1
+        else
+          call eval(parameterset, opti_domain_indices = opti_domain_indices, domain_avg_tws = domain_avg_tws)
+        end if
+      case(4)
+        if (.not. present(neutrons_opti)) then
+          call message("Error mhm_eval_with_opti: given data does not fit opti case.")
+          stop 1
+        else
+          call eval(parameterset, opti_domain_indices = opti_domain_indices, neutrons_opti = neutrons_opti)
+        end if
+      case(5)
+        if (.not. present(et_opti)) then
+          call message("Error mhm_eval_with_opti: given data does not fit opti case.")
+          stop 1
+        else
+          call eval(parameterset, opti_domain_indices = opti_domain_indices, et_opti = et_opti)
         end if
       case(6)
         if ((.not. present(domain_avg_tws)) .or. (.not. present(et_opti))) then
