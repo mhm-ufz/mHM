@@ -128,8 +128,9 @@ contains
         end do
       end if
     end do
-    ! write in an ASCII file          ! OBS[nModeling_days X nGauges_total] , SIM[nModeling_days X nGauges_total] 
-    call write_daily_obs_sim_discharge(gauge%Q(:, :), d_Qmod(:, :))
+    ! write in an ASCII file          ! OBS[nModeling_days X nGauges_total] , SIM[nModeling_days X nGauges_total]
+    ! ToDo: is this if statement reasonable
+    if (allocated(gauge%Q)) call write_daily_obs_sim_discharge(gauge%Q(:, :), d_Qmod(:, :))
     ! free space
     deallocate(d_Qmod)
   end subroutine mrm_write

@@ -102,7 +102,7 @@ CONTAINS
     use mo_common_variables, only : processMatrix
     use mo_mrm_global_variables, only : InflowGauge, L11_fromN, L11_label, L11_length, L11_netPerm, L11_rOrder, &
                                         L11_slope, L11_toN, L1_L11_ID, dirGauges, gauge, level11, nGaugesTotal, &
-                                        nInflowGaugesTotal, L11_nOutlets
+                                        nGaugesLocal, nInflowGaugesTotal, L11_nOutlets
 #endif
 
     implicit none
@@ -225,7 +225,7 @@ CONTAINS
     if (processMatrix(8, 1) > 0) then
       write(uconfig, 202) '                Domain Runoff Data                '
       write(uconfig, 107) ' Gauge No.', '  Domain Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
-      do i = 1, nGaugesTotal
+      do i = 1, nGaugesLocal
         if(any(gauge%Q(:, i) > nodata_dp)) then
           write(uconfig, 108) i, gauge%domainId(i), maxval(gauge%Q(:, i), gauge%Q(:, i) > nodata_dp), &
                   minval(gauge%Q(:, i), gauge%Q(:, i) > nodata_dp)
