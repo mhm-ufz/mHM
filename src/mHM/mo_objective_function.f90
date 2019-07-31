@@ -772,21 +772,19 @@ CONTAINS
     ! eval runs to get simulated output for runoff, et and tws
 #ifdef MRM2MHM
     ! indices are not needed, therefore we pass the second array
-    call mhm_eval_with_opti(domainMeta, 1, parameterset, eval, nQDomains, &
-    opti_domain_indices_ET, runoff = runoff)
+    call mhm_eval_with_opti(domainMeta, 1, parameterset, eval, nQDomains, opti_domain_indices_ET)
+    if (nQDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, runoff = runoff)
 #else
     call message('***ERROR: objective_q_et_tws_kge_catchment_avg: missing routing module for optimization')
     stop 1
 #endif
-    call mhm_eval_with_opti(domainMeta, 3, parameterset, eval, nTwsDomains, &
-                            opti_domain_indices_TWS, &
-                            domain_avg_tws = tws)
-    call mhm_eval_with_opti(domainMeta, 5, parameterset, eval, nEtDomains, &
-                            opti_domain_indices_ET, &
-                            et_opti = et_opti)
-    call mhm_eval_with_opti(domainMeta, 6, parameterset, eval, nEtTwsDomains, &
-                            opti_domain_indices_ET_TWS, &
-                            domain_avg_tws = tws, et_opti = et_opti) 
+    call mhm_eval_with_opti(domainMeta, 3, parameterset, eval, nTwsDomains, opti_domain_indices_TWS)
+    if (nTwsDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_TWS, domain_avg_tws = tws)
+    call mhm_eval_with_opti(domainMeta, 5, parameterset, eval, nEtDomains, opti_domain_indices_ET)
+    if (nEtDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, et_opti = et_opti)
+    call mhm_eval_with_opti(domainMeta, 6, parameterset, eval, nEtTwsDomains, opti_domain_indices_ET_TWS) 
+    if (nEtTwsDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET_TWS, &
+                                                                        domain_avg_tws = tws, et_opti = et_opti)
 
     ! initialize some variables
     objective_q_et_tws_kge_catchment_avg(:) = 0.0_dp
@@ -884,8 +882,7 @@ CONTAINS
 
   END FUNCTION objective_q_et_tws_kge_catchment_avg
 
-  subroutine mhm_eval_with_opti(domainMeta, optidataOption, parameterset, eval, nOptiDomains, &
-                   opti_domain_indices, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
+  subroutine mhm_eval_with_opti(domainMeta, optidataOption, parameterset, eval, nOptiDomains, opti_domain_indices)
     use mo_message, only : message
     use mo_common_variables, only : domain_meta
     type(domain_meta),                                intent(in)    :: domainMeta
@@ -894,16 +891,6 @@ CONTAINS
     procedure(eval_interface), pointer,               intent(in)    :: eval
     integer(i4),                                      intent(out)   :: nOptiDomains
     integer(i4), dimension(:), allocatable,           intent(out)   :: opti_domain_indices
-    ! modelled runoff for a given parameter set
-    real(dp), allocatable, dimension(:, :), optional, intent(inout) :: runoff
-    ! modelled soil moisture
-    real(dp), allocatable, dimension(:, :), optional, intent(inout) :: sm_opti
-    ! modelled tws
-    real(dp), allocatable, dimension(:, :), optional, intent(inout) :: domain_avg_tws
-    ! modelled neutron
-    real(dp), allocatable, dimension(:, :), optional, intent(inout) :: neutrons_opti
-    ! simulated et
-    real(dp), dimension(:, :), allocatable, optional, intent(inout) :: et_opti
 
     ! domain loop counter
     integer(i4) :: iDomain, i
@@ -924,55 +911,8 @@ CONTAINS
           opti_domain_indices(i) = iDomain
         end if
       end do
-
-      ! pass the index array with corresponding data to mhm_eval
-      select case (optidataOption)
-      case(1)
-        if (.not. present(runoff)) then
-          call message("Error mhm_eval_with_opti: given data does not fit opti case.")
-          stop 1
-        else
-          call eval(parameterset, opti_domain_indices = opti_domain_indices, runoff = runoff)
-        end if
-      case(2)
-        if (.not. present(sm_opti)) then
-          call message("Error mhm_eval_with_opti: given data does not fit opti case.")
-          stop 1
-        else
-          call eval(parameterset, opti_domain_indices = opti_domain_indices, sm_opti = sm_opti)
-        end if
-      case(3)
-        if (.not. present(domain_avg_tws)) then
-          call message("Error mhm_eval_with_opti: given data does not fit opti case.")
-          stop 1
-        else
-          call eval(parameterset, opti_domain_indices = opti_domain_indices, domain_avg_tws = domain_avg_tws)
-        end if
-      case(4)
-        if (.not. present(neutrons_opti)) then
-          call message("Error mhm_eval_with_opti: given data does not fit opti case.")
-          stop 1
-        else
-          call eval(parameterset, opti_domain_indices = opti_domain_indices, neutrons_opti = neutrons_opti)
-        end if
-      case(5)
-        if (.not. present(et_opti)) then
-          call message("Error mhm_eval_with_opti: given data does not fit opti case.")
-          stop 1
-        else
-          call eval(parameterset, opti_domain_indices = opti_domain_indices, et_opti = et_opti)
-        end if
-      case(6)
-        if ((.not. present(domain_avg_tws)) .or. (.not. present(et_opti))) then
-          call message("Error mhm_eval_with_opti: given data does not fit opti case.")
-          stop 1
-        else
-          call eval(parameterset, opti_domain_indices = opti_domain_indices, &
-                                      domain_avg_tws = domain_avg_tws, et_opti = et_opti)
-        end if
-      end select
     end if
-  end subroutine
+  end subroutine mhm_eval_with_opti
   ! ------------------------------------------------------------------
 
   !    NAME
