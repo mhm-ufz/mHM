@@ -631,15 +631,16 @@ CONTAINS
   !    PURPOSE
   !>       \brief Objective function for et, tws and q.
 
-  !>       \details ToDo
-
-  !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:) :: parameterset"
-  !>       \param[in] "procedure(eval_interface) :: eval"
-
-  !    RETURN
-  !>       \return real(dp) :: objective_q_et_tws_kge_catchment_avg &mdash; objective function value
-  !>       (which will be e.g. minimized by an optimization routine like DDS)
+  !>       \details The feature of this objective function is the
+  !>                separation of the eval call into four
+  !>                calls, each with another index list. The subroutine eval then only
+  !>                uses the indices from that index list internally instead of having loops
+  !>                over all domains. The integer array domainMeta%optidata decides which
+  !>                indices to use. Therefore the array is split into disjunct subsets, and,
+  !>                if chosen wisely in the namelist, also covers all domains.
+  !>               
+  !>                With this the eval calls sum up in a way that for each domain eval was
+  !>                called at most once, but for different opti_data.
 
   !    HISTORY
   !>       \authors Maren Kaluza
@@ -663,126 +664,119 @@ CONTAINS
 
     implicit none
 
+    !> the parameterset passed to the eval subroutine
     real(dp), dimension(:), intent(in) :: parameterset
-
+    !> the eval subroutine called by this objective function
     procedure(eval_interface), INTENT(IN), POINTER :: eval
-
+    !> the return value of the objective function. In this case it is
+    !> an array to provide the possibility to weight the outcome accordingly
     real(dp), dimension(6) :: objective_q_et_tws_kge_catchment_avg
 
-    ! domain loop counter
-    integer(i4) :: iDomain, domainID, pp
+    !> domain loop counter
+    integer(i4) :: iDomain
 
-    ! time loop counter
-    integer(i4) :: iTime
-
-    ! number of time steps in simulated SM
-    integer(i4) :: n_time_steps
-
-    ! start and end index for the current domain
-    integer(i4) :: s1, e1
-
+    !> counter for short loops
     integer(i4) :: i
-
-    ! ncells1 of level 1
-    integer(i4) :: ncells1
-
-    ! number of invalid timesteps
-    real(dp) :: invalid_times
 #ifndef MPI
-    ! for sixth root
+    !> for sixth root
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 #endif
 
-    ! spatial average of observed soil moisture
+    !> spatial average of observed soil moisture
     real(dp), dimension(:), allocatable :: sm_catch_avg_domain
 
-    ! spatial avergae of modeled  soil moisture
+    !> spatial avergae of modeled  soil moisture
     real(dp), dimension(:), allocatable :: sm_opti_catch_avg_domain
 
 #ifdef MRM2MHM
-    ! modelled runoff for a given parameter set
+    !> modelled runoff for a given parameter set
     ! dim1=nTimeSteps, dim2=nGauges
     real(dp), allocatable, dimension(:, :) :: runoff
+    !> number of all gauges, aquired via runoff
     integer(i4) :: nGaugesTotal
 
-    ! aggregated simulated runoff
+    !> aggregated simulated runoff
     real(dp), dimension(:), allocatable :: runoff_agg
 
-    ! measured runoff
+    !> measured runoff
     real(dp), dimension(:), allocatable :: runoff_obs
 
-    ! mask for measured runoff
+    !> mask for measured runoff
     logical, dimension(:), allocatable :: runoff_obs_mask
 
-    ! kge_q(nGaugesTotal)
+    !> kge_q(nGaugesTotal)
     real(dp) :: kge_q
 
-    ! gauges counter
+    !> gauges counter
     integer(i4) :: gg
 
-    !number of q domains
+    !> number of q domains
     integer(i4) :: nQDomains
 #endif
 
-    !number of et domains
+    !> number of et domains
     integer(i4) :: nEtDomains
 
-    !number of tws domains
+    !> number of tws domains
     integer(i4) :: nTwsDomains
 
-    !number of tws and ET domains (providing both)
+    !> number of TWS and ET domains (providing both)
     integer(i4) :: nEtTwsDomains
 
+    !> index array of ET domains
     integer(i4), dimension(:), allocatable :: opti_domain_indices_ET
 
+    !> index array of TWS domains
     integer(i4), dimension(:), allocatable :: opti_domain_indices_TWS
     
+    !> index array of TWS and ET domains (providing both)
     integer(i4), dimension(:), allocatable :: opti_domain_indices_ET_TWS
 
-    ! modelled runoff for a given parameter set
-    ! dim1=nTimeSteps, dim2=nGauges
+    !> simulated tws
     real(dp), allocatable, dimension(:, :) :: tws
 
-    ! simulated et
+    !> simulated et
     ! (dim1=ncells, dim2=time)
     real(dp), dimension(:, :), allocatable :: et_opti
 
-    ! simulated tws
+    !> simulated tws
     real(dp), dimension(:), allocatable :: tws_sim
 
-    ! measured tws
+    !> measured tws
     real(dp), dimension(:), allocatable :: tws_obs
 
-    ! mask for measured tws
+    !> mask for measured tws
     logical, dimension(:), allocatable :: tws_obs_mask
 
     real(dp) :: kge_tws
 
-    ! spatial average of observed et
+    !> spatial average of observed et
     real(dp), dimension(:), allocatable :: et_catch_avg_domain
 
-    ! spatial avergae of modeled  et
+    !> spatial avergae of modeled  et
     real(dp), dimension(:), allocatable :: et_opti_catch_avg_domain
 
-    ! mask for valid et catchment avg time steps
+    !> mask for valid et catchment avg time steps
     logical, dimension(:), allocatable :: mask_times_et
     
     real(dp) :: kge_et
 
     ! eval runs to get simulated output for runoff, et and tws
+    ! before each eval call we generate an index list of the domains for which
+    ! eval should be called. Read details for further information
 #ifdef MRM2MHM
     ! indices are not needed, therefore we pass the second array
-    call init_indexarray_for_opti_data(domainMeta, 1, parameterset, nQDomains, opti_domain_indices_ET)
+    call init_indexarray_for_opti_data(domainMeta, 1, nQDomains, opti_domain_indices_ET)
     if (nQDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, runoff = runoff)
 #else
     call message('***ERROR: objective_q_et_tws_kge_catchment_avg: missing routing module for optimization')
     stop 1
 #endif
-    call init_indexarray_for_opti_data(domainMeta, 3, parameterset, nTwsDomains, opti_domain_indices_TWS)
+    call init_indexarray_for_opti_data(domainMeta, 3, nTwsDomains, opti_domain_indices_TWS)
     if (nTwsDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_TWS, domain_avg_tws = tws)
-    call init_indexarray_for_opti_data(domainMeta, 5, parameterset, nEtDomains, opti_domain_indices_ET)
+    call init_indexarray_for_opti_data(domainMeta, 5, nEtDomains, opti_domain_indices_ET)
     if (nEtDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, et_opti = et_opti)
-    call init_indexarray_for_opti_data(domainMeta, 6, parameterset, nEtTwsDomains, opti_domain_indices_ET_TWS) 
+    call init_indexarray_for_opti_data(domainMeta, 6, nEtTwsDomains, opti_domain_indices_ET_TWS) 
     if (nEtTwsDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET_TWS, &
                                                                         domain_avg_tws = tws, et_opti = et_opti)
 
@@ -882,16 +876,46 @@ CONTAINS
 
   END FUNCTION objective_q_et_tws_kge_catchment_avg
 
-  subroutine init_indexarray_for_opti_data(domainMeta, optidataOption, parameterset, nOptiDomains, opti_domain_indices)
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        init_indexarray_for_opti_data
+
+  !    PURPOSE
+  !>       \brief creates an index array of the inidices of the domains eval
+  !>              should MPI process.
+  !
+  !>       \details The data type domainMeta contains an array optidata of size
+  !>                domainMeta%nDomains, telling us, which domains should be
+  !>                optimized with which opti_data. This subroutine splits all
+  !>                domains assigned to a process and returns an index list
+  !>                corresponding to the value of domainMeta%optidata.
+  !>
+  !>                The index array opti_domain_indices can then be passed
+  !>                as an optional argument to the eval subroutine. The
+  !>                eval then instead of using loops over all domains only
+  !>                uses the passed indices.
+  !>
+  !>                This subroutine also returns the size of that array since it
+  !>                helps with the calculations of the optimization in the end.
+
+  !    HISTORY
+  !>       \authors Maren Kaluza
+
+  !>       \date July 2019
+  subroutine init_indexarray_for_opti_data(domainMeta, optidataOption, nOptiDomains, opti_domain_indices)
     use mo_message, only : message
     use mo_common_variables, only : domain_meta
+    !> meta data for all domains assigned to that process
     type(domain_meta),                                intent(in)    :: domainMeta
+    !> which opti data should be used in the eval called after calling this subroutine
     integer(i4),                                      intent(in)    :: optidataOption
-    real(dp), dimension(:),                           intent(in)    :: parameterset
+    !> number of domains that will be optimized in the following eval call
     integer(i4),                                      intent(out)   :: nOptiDomains
+    !> the indices of the domains that are to be processed in the following eval call
     integer(i4), dimension(:), allocatable,           intent(out)   :: opti_domain_indices
 
-    ! domain loop counter
+    !> domain loop counter
     integer(i4) :: iDomain, i
 
     if (allocated(opti_domain_indices)) deallocate(opti_domain_indices)
