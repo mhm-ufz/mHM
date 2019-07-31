@@ -772,17 +772,17 @@ CONTAINS
     ! eval runs to get simulated output for runoff, et and tws
 #ifdef MRM2MHM
     ! indices are not needed, therefore we pass the second array
-    call mhm_eval_with_opti(domainMeta, 1, parameterset, eval, nQDomains, opti_domain_indices_ET)
+    call init_indexarray_for_opti_data(domainMeta, 1, parameterset, nQDomains, opti_domain_indices_ET)
     if (nQDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, runoff = runoff)
 #else
     call message('***ERROR: objective_q_et_tws_kge_catchment_avg: missing routing module for optimization')
     stop 1
 #endif
-    call mhm_eval_with_opti(domainMeta, 3, parameterset, eval, nTwsDomains, opti_domain_indices_TWS)
+    call init_indexarray_for_opti_data(domainMeta, 3, parameterset, nTwsDomains, opti_domain_indices_TWS)
     if (nTwsDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_TWS, domain_avg_tws = tws)
-    call mhm_eval_with_opti(domainMeta, 5, parameterset, eval, nEtDomains, opti_domain_indices_ET)
+    call init_indexarray_for_opti_data(domainMeta, 5, parameterset, nEtDomains, opti_domain_indices_ET)
     if (nEtDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, et_opti = et_opti)
-    call mhm_eval_with_opti(domainMeta, 6, parameterset, eval, nEtTwsDomains, opti_domain_indices_ET_TWS) 
+    call init_indexarray_for_opti_data(domainMeta, 6, parameterset, nEtTwsDomains, opti_domain_indices_ET_TWS) 
     if (nEtTwsDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET_TWS, &
                                                                         domain_avg_tws = tws, et_opti = et_opti)
 
@@ -882,13 +882,12 @@ CONTAINS
 
   END FUNCTION objective_q_et_tws_kge_catchment_avg
 
-  subroutine mhm_eval_with_opti(domainMeta, optidataOption, parameterset, eval, nOptiDomains, opti_domain_indices)
+  subroutine init_indexarray_for_opti_data(domainMeta, optidataOption, parameterset, nOptiDomains, opti_domain_indices)
     use mo_message, only : message
     use mo_common_variables, only : domain_meta
     type(domain_meta),                                intent(in)    :: domainMeta
     integer(i4),                                      intent(in)    :: optidataOption
     real(dp), dimension(:),                           intent(in)    :: parameterset
-    procedure(eval_interface), pointer,               intent(in)    :: eval
     integer(i4),                                      intent(out)   :: nOptiDomains
     integer(i4), dimension(:), allocatable,           intent(out)   :: opti_domain_indices
 
@@ -912,7 +911,7 @@ CONTAINS
         end if
       end do
     end if
-  end subroutine mhm_eval_with_opti
+  end subroutine init_indexarray_for_opti_data
   ! ------------------------------------------------------------------
 
   !    NAME
