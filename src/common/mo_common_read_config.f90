@@ -413,11 +413,9 @@ CONTAINS
         domainMeta%isMaster = .true.
       ! all other nodes only read metadata but also data of assigned domains
       else
-        call distribute_processes_to_domains_accodring_to_role(optiData, rank, &
+        call distribute_processes_to_domains_according_to_role(optiData, rank, &
                                                domainMeta, colMasters, colDomain)
       end if
-      if (rank == 0) write(0,*) optiData
-      write(0,*) rank, nDomains, colMasters, colDomain
       call MPI_Comm_split(comm, colMasters, rank, domainMeta%comMaster, ierror)
       call MPI_Comm_split(comm, colDomain, rank, domainMeta%comLocal, ierror)
       call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
@@ -473,7 +471,7 @@ CONTAINS
     end do
   end subroutine distributeDomainsRoundRobin
 
-  subroutine distribute_processes_to_domains_accodring_to_role(optiData, rank, &
+  subroutine distribute_processes_to_domains_according_to_role(optiData, rank, &
                                                domainMeta, colMasters, colDomain)
     use mo_common_variables, only: domain_meta
     integer(i4), dimension(:), intent(in)    :: optiData
