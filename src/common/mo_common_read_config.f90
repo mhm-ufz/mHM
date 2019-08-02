@@ -132,7 +132,7 @@ CONTAINS
     call position_nml('mainconfig', unamelist)
     read(unamelist, nml = mainconfig)
 
-    call init_domain_variable(nDomains, domainMeta)
+    call init_domain_variable(nDomains, read_opt_domain_data(1:nDomains), domainMeta)
 
     if (nDomains .GT. maxNoDomains) then
       call message()
@@ -375,13 +375,14 @@ CONTAINS
 
   end subroutine set_land_cover_scenes_id
 
-  subroutine init_domain_variable(nDomains, domainMeta)
+  subroutine init_domain_variable(nDomains, optiData, domainMeta)
     use mo_common_variables, only: domain_meta
 #ifdef MPI
     use mo_common_variables, only: comm
     use mpi_f08
 #endif
     integer(i4),       intent(in)    :: nDomains
+    integer(i4), dimension(:), intent(in) :: optiData
     type(domain_meta), intent(inout) :: domainMeta
 
     integer             :: ierror
@@ -412,23 +413,13 @@ CONTAINS
         domainMeta%isMaster = .true.
       ! all other nodes only read metadata but also data of assigned domains
       else
-        if (rank < domainMeta%overallNumberOfDomains + 1) then
-          colMasters = 1
-          domainMeta%isMaster = .true.
-          domainMeta%nDomains = 1
-          allocate(domainMeta%indices(domainMeta%nDomains))
-          domainMeta%indices(1) = rank
-        else
-          colMasters = 0
-          domainMeta%isMaster = .false.
-          domainMeta%nDomains = 1
-          allocate(domainMeta%indices(domainMeta%nDomains))
-          ! ToDo : temporary solution, this should either not read data at all
-          ! or data corresponding to the master process
-          domainMeta%indices(1) = 1
-        end if
+        call distribute_processes_to_domains_accodring_to_role(optiData, rank, &
+                                               domainMeta, colMasters, colDomain)
       end if
+      if (rank == 0) write(0,*) optiData
+      write(0,*) rank, nDomains, colMasters, colDomain
       call MPI_Comm_split(comm, colMasters, rank, domainMeta%comMaster, ierror)
+      call MPI_Comm_split(comm, colDomain, rank, domainMeta%comLocal, ierror)
       call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
     else
       ! in case of more domains than processes, distribute domains round robin
@@ -481,6 +472,53 @@ CONTAINS
       end if
     end do
   end subroutine distributeDomainsRoundRobin
+
+  subroutine distribute_processes_to_domains_accodring_to_role(optiData, rank, &
+                                               domainMeta, colMasters, colDomain)
+    use mo_common_variables, only: domain_meta
+    integer(i4), dimension(:), intent(in)    :: optiData
+    integer(i4),               intent(in)    :: rank
+    type(domain_meta),         intent(inout) :: domainMeta
+    integer(i4),               intent(out)   :: colMasters
+    integer(i4),               intent(out)   :: colDomain
+
+    ! local
+    integer(i4) :: nDomainsAll, nTreeDomains, i, iDomain
+    integer(i4), dimension(:), allocatable :: treeDomainList
+
+    nDomainsAll = domainMeta%overallNumberOfDomains
+    nTreeDomains = 0
+    do iDomain = 1, nDomainsAll
+      if (optiData(iDomain) == 1) then
+        nTreeDomains = nTreeDomains + 1
+      end if
+    end do
+    allocate(treeDomainList(nTreeDomains))
+    i = 0
+    do iDomain = 1, nDomainsAll
+      if (optiData(iDomain) == 1) then
+        i = i + 1
+        treeDomainList(i) = iDomain
+      end if
+    end do
+    if (rank < nDomainsAll + 1) then
+      colMasters = 1
+      colDomain = rank
+      domainMeta%isMaster = .true.
+      domainMeta%nDomains = 1
+      allocate(domainMeta%indices(domainMeta%nDomains))
+      domainMeta%indices(1) = rank
+    else
+      colMasters = 0
+      colDomain = treeDomainList(mod(rank, nTreeDomains) + 1)
+      domainMeta%isMaster = .false.
+      domainMeta%nDomains = 1
+      allocate(domainMeta%indices(domainMeta%nDomains))
+      ! ToDo : temporary solution, this should either not read data at all
+      ! or data corresponding to the master process
+      domainMeta%indices(1) = 1
+    end if
+  end subroutine
 #endif
 
 END MODULE mo_common_read_config
