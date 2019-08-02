@@ -410,6 +410,7 @@ CONTAINS
           domainMeta%indices(iDomain) = iDomain
         end do
         colMasters = 1
+        colDomain = 0
         domainMeta%isMaster = .true.
       ! all other nodes only read metadata but also data of assigned domains
       else
