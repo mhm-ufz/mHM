@@ -2424,7 +2424,7 @@ CONTAINS
        call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        !
        objective_sse_boxcox = objective_sse_boxcox + &
-            SSE( boxcox(runoff_obs, lambda), boxcox(runoff_agg, lambda), mask=runoff_obs_mask)
+            SSE( boxcox(runoff_obs, lambda, mask=runoff_obs_mask), boxcox(runoff_agg, lambda), mask=runoff_obs_mask)
     end do
 #ifndef MPI
     ! objective_nse = objective_nse + nse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
