@@ -7,6 +7,8 @@
 *.a
 *.so
 *.nc
+src/*/*.release/
+src/*/*.debug/
 test_basin/
 test_basin_2/
 *prog_for_check
