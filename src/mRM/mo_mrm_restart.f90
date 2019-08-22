@@ -56,7 +56,9 @@ contains
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_restart, only : write_grid_info
-    use mo_common_variables, only : level0, level1, nLCoverScene, processMatrix, domainMeta
+    use mo_common_variables, only : level0, level1, nLCoverScene, processMatrix, domainMeta, &
+            LC_year_start, LC_year_end
+    use mo_common_constants, only : landCoverPeriodsVarName
     use mo_message, only : message
     use mo_mrm_constants, only : nRoutingStates
     use mo_mpr_global_variables, only : L0_slope
@@ -127,6 +129,7 @@ contains
 
     ! dummy variable
     real(dp), dimension(:, :, :), allocatable :: dummy_d3
+    real(dp), dimension(:), allocatable :: dummy_d1
 
     type(NcDataset) :: nc
 
@@ -175,7 +178,15 @@ contains
     links = nc%setDimension("nLinks", size(L11_length(s11 : e11)))
     nts = nc%setDimension("TS", 1)
     nproc = nc%setDimension("Nprocesses", size(processMatrix, dim = 1))
-    lcscenes = nc%setDimension("LCoverScenes", nLCoverScene)
+    allocate(dummy_1D(nLCoverScene+1))
+    dummy_d1(1:nLCoverScene) = LC_year_start(:)
+    ! this is done because bounds are always stored as real so e.g.
+    ! 1981-1990,1991-2000 is thus saved as 1981.0-1991.0,1991.0-2001.0
+    ! it is translated back into ints correctly during reading
+    dummy_d1(nLCoverScene+1) = LC_year_end(nLCoverScene) + 1
+    lcscenes = nc%setDimension(trim(landCoverPeriodsVarName), nLCoverScene, dummy_d1, 0_i4)
+    deallocate(dummy_d1)
+
 
     ! add processMatrix
     var = nc%setVariable("ProcessMatrix", "i32", (/nproc/))

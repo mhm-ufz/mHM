@@ -45,4 +45,9 @@ MODULE mo_common_constants
   real(dp), public, parameter :: DaySecs = 86400.0_dp  ! sec in a day
   real(dp), public, parameter :: HourSecs = 3600.0_dp  ! seconds per hour
 
+  character(64), public, parameter :: soilHorizonsVarName = "L1_SoilHorizons"
+  character(64), public, parameter :: landCoverPeriodsVarName = "L1_LandCoverPeriods"
+  character(64), public, parameter :: LAIVarName = "L1_LAITimesteps"
+
+
 END MODULE mo_common_constants

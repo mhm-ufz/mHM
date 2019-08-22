@@ -98,12 +98,13 @@ CONTAINS
   subroutine write_mpr_restart_files(OutPath)
 
     use mo_common_restart, only : write_grid_info
-    use mo_common_variables, only : level1, nLCoverScene, domainMeta
+    use mo_common_variables, only : level1, nLCoverScene, domainMeta, LC_year_start, LC_year_end
     use mo_kind, only : i4
     use mo_message, only : message
-    use mo_mpr_global_variables, only : nLAI, nSoilHorizons_mHM
+    use mo_mpr_global_variables, only : nLAI, nSoilHorizons_mHM, HorizonDepth_mHM
     use mo_netcdf, only : NcDataset, NcDimension
     use mo_string_utils, only : num2str
+    use mo_common_constants, only : soilHorizonsVarName, landCoverPeriodsVarName, LAIVarName
 
     implicit none
 
@@ -127,6 +128,8 @@ CONTAINS
 
     type(NcDimension) :: rows1, cols1, soil1, lcscenes, lais
 
+    real(dp), dimension(:), allocatable :: dummy_1D
+
 
     domain_loop : do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
@@ -143,9 +146,23 @@ CONTAINS
       rows1 = nc%getDimension("nrows1")
       cols1 = nc%getDimension("ncols1")
 
-      soil1 = nc%setDimension("L1_soilhorizons", nSoilHorizons_mHM)
-      lcscenes = nc%setDimension("LCoverScenes", nLCoverScene)
-      lais = nc%setDimension("LAI_timesteps", nLAI)
+      ! write the dimension to the file and also save bounds
+      allocate(dummy_1D(nSoilHorizons_mHM+1))
+      dummy_1D(1) = 0.0_dp
+      dummy_1D(2:nSoilHorizons_mHM+1) = HorizonDepth_mHM(:)
+      soil1 = nc%setDimension(trim(soilHorizonsVarName), nSoilHorizons_mHM, dummy_1D, 2_i4)
+      deallocate(dummy_1D)
+      allocate(dummy_1D(nLCoverScene+1))
+      dummy_1D(1:nLCoverScene) = LC_year_start(:)
+      ! this is done because bounds are always stored as real so e.g.
+      ! 1981-1990,1991-2000 is thus saved as 1981.0-1991.0,1991.0-2001.0
+      ! it is translated back into ints correctly during reading
+      dummy_1D(nLCoverScene+1) = LC_year_end(nLCoverScene) + 1
+      lcscenes = nc%setDimension(trim(landCoverPeriodsVarName), nLCoverScene, dummy_1D, 0_i4)
+      deallocate(dummy_1D)
+      ! write the dimension to the file
+      lais = nc%setDimension(trim(LAIVarName), nLAI)
+
 
       ! for appending and intialization
       allocate(mask1(rows1%getLength(), cols1%getLength()))
@@ -219,17 +236,6 @@ CONTAINS
 
     type(NcVariable) :: var
 
-
-    ! set variable
-    var = nc%setVariable("LC_year_start", "i32", (/lcscenes/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(LC_year_start)
-    call var%setAttribute("long_name", "start year of land cover scene")
-
-    var = nc%setVariable("LC_year_end", "i32", (/lcscenes/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(LC_year_end)
-    call var%setAttribute("long_name", "end year of land cover scene")
 
     !-------------------------------------------
     ! EFFECTIVE PARAMETERS
