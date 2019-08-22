@@ -178,7 +178,7 @@ contains
     links = nc%setDimension("nLinks", size(L11_length(s11 : e11)))
     nts = nc%setDimension("TS", 1)
     nproc = nc%setDimension("Nprocesses", size(processMatrix, dim = 1))
-    allocate(dummy_1D(nLCoverScene+1))
+    allocate(dummy_d1(nLCoverScene+1))
     dummy_d1(1:nLCoverScene) = LC_year_start(:)
     ! this is done because bounds are always stored as real so e.g.
     ! 1981-1990,1991-2000 is thus saved as 1981.0-1991.0,1991.0-2001.0

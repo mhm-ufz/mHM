@@ -99,7 +99,7 @@ CONTAINS
 
     use mo_common_restart, only : write_grid_info
     use mo_common_variables, only : level1, nLCoverScene, domainMeta, LC_year_start, LC_year_end
-    use mo_kind, only : i4
+    use mo_kind, only : i4, dp
     use mo_message, only : message
     use mo_mpr_global_variables, only : nLAI, nSoilHorizons_mHM, HorizonDepth_mHM
     use mo_netcdf, only : NcDataset, NcDimension
