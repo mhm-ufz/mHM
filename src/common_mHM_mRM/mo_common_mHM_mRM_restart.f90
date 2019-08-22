@@ -71,7 +71,9 @@ CONTAINS
     call check_consistency_element(real(LC_year_end(nLCoverScene) + 1_i4, dp), &
             landCoverPeriodBoundaries_temp(nLCoverScene+1), errorString, iBasin)
 
-    do k=2, nSoilHorizons_mHM+1
+    ! last soil horizon is spatially variable, so this is not checked yet
+    ! first soil horizon 0 and not contained in HorizonDepth_mHM, so skip that, too
+    do k=2, nSoilHorizons_mHM
       errorString = compress(trim(num2str(k)))//'th soil horizon boundary'
       call check_consistency_element(HorizonDepth_mHM(k-1), soilHorizonBoundaries_temp(k), errorString, iBasin)
     end do
@@ -99,7 +101,7 @@ CONTAINS
                   compress(trim(num2str(item1))), &
                   ') does not conform with basin ', &
                   compress(trim(num2str(iBasin))), ' (', compress(trim(num2str(item2))), ').')
-
+      stop 1
     end if
   end subroutine check_consistency_element_dp
 
@@ -118,7 +120,7 @@ CONTAINS
                   compress(trim(num2str(item1))), &
                   ') does not conform with basin ', &
                   compress(trim(num2str(iBasin))), ' (', compress(trim(num2str(item2))), ').')
-
+      stop 1
     end if
   end subroutine check_consistency_element_i4
 
