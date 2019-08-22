@@ -68,6 +68,7 @@ CONTAINS
       errorString = compress(trim(num2str(k)))//'th land cover boundary'
       call check_consistency_element(real(LC_year_start(k), dp), landCoverPeriodBoundaries_temp(k), errorString, iBasin)
     end do
+    errorString = 'last land cover boundary (with 1 year added due to real/int conversion) '
     call check_consistency_element(real(LC_year_end(nLCoverScene) + 1_i4, dp), &
             landCoverPeriodBoundaries_temp(nLCoverScene+1), errorString, iBasin)
 
