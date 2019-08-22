@@ -107,7 +107,7 @@ CONTAINS
                                     L1_soilMoist, L1_total_runoff, L1_unsatSTW
     use mo_kind, only : dp, i4
     use mo_message, only : message
-    use mo_mpr_global_variables, only : nLAI, nSoilHorizons_mHM, HorizonDepth_mHM
+    use mo_mpr_global_variables, only : nLAI, nSoilHorizons_mHM, HorizonDepth_mHM, LAIBoundaries
     use mo_mpr_restart, only : write_eff_params
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
@@ -178,7 +178,7 @@ CONTAINS
       lcscenes = nc%setDimension(trim(landCoverPeriodsVarName), nLCoverScene, dummy_1D, 0_i4)
       deallocate(dummy_1D)
       ! write the dimension to the file
-      lais = nc%setDimension(trim(LAIVarName), nLAI)
+      lais = nc%setDimension(trim(LAIVarName), nLAI, LAIBoundaries, 0_i4)
 
       ! for appending and intialization
       allocate(dummy_3D(rows1%getLength(), cols1%getLength(), max_extent))
@@ -358,6 +358,7 @@ CONTAINS
                                         nLAI, nSoilHorizons_mHM
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
+    use mo_common_mHM_mRM_restart, only: check_dimension_consistency
 
     implicit none
 
@@ -398,6 +399,10 @@ CONTAINS
 
     type(NcDimension) :: nc_dim
 
+    integer(i4) :: nSoilHorizons_temp, nLAIs_temp, nLandCoverPeriods_temp
+    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp, soilHorizonBoundaries_temp, &
+            LAIBoundaries_temp
+
 
     Fname = trim(InPath) // 'mHM_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc'
     ! call message('    Reading states from ', trim(adjustl(Fname)),' ...')
@@ -411,12 +416,39 @@ CONTAINS
     nc = NcDataset(fname, "r")
 
     ! get the dimensions
-    nc_dim = nc%getDimension("LAI_timesteps")
-    nLAI = nc_dim%getLength()
-    nc_dim = nc%getDimension("LCoverScenes")
-    nLCoverScene = nc_dim%getLength()
-    nc_dim = nc%getDimension("L1_soilhorizons")
-    nSoilHorizons_mHM = nc_dim%getLength()
+    var = nc%getVariable(trim(soilHorizonsVarName)//'_bnds')
+    call var%getData(dummyD2)
+    nSoilHorizons_temp = size(dummyD2, 1)
+    allocate(soilHorizonBoundaries_temp(nSoilHorizons_temp+1))
+    soilHorizonBoundaries_temp(1:nSoilHorizons_temp) = dummyD2(:,1)
+    soilHorizonBoundaries_temp(nSoilHorizons_temp+1) = dummyD2(nSoilHorizons_temp,2)
+
+    ! get the landcover dimension
+    var = nc%getVariable(trim(landCoverPeriodsVarName)//'_bnds')
+    call var%getData(dummyD2)
+    nLandCoverPeriods_temp = size(dummyD2, 1)
+    allocate(landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1))
+    landCoverPeriodBoundaries_temp(1:nLandCoverPeriods_temp) = dummyD2(:,1)
+    landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1) = dummyD2(nLandCoverPeriods_temp,2)
+
+    ! get the LAI dimension
+    if (nc%hasVariable(trim(LAIVarName)//'_bnds')) then
+      var = nc%getVariable(trim(LAIVarName)//'_bnds')
+      call var%getData(dummyD2)
+      nLAIs_temp = size(dummyD2, 1)
+      allocate(LAIBoundaries_temp(nLAIs_temp+1))
+      LAIBoundaries_temp(1:nLAIs_temp) = dummyD2(:,1)
+      LAIBoundaries_temp(nLAIs_temp+1) = dummyD2(nLAIs_temp,2)
+    else if (nc%hasDimension('L1_LAITimesteps')) then
+      nc_dim = nc%getDimension('L1_LAITimesteps')
+      nLAIs_temp = nc_dim%getLength()
+      allocate(LAIBoundaries_temp(nLAIs_temp+1))
+      LAIBoundaries_temp = [(ii, ii=1, nLAIs_temp+1)]
+    end if
+
+    call check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
+          nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)
+
 
     if (nc%hasVariable('L1_Inter')) then
       !-------------------------------------------
@@ -538,14 +570,6 @@ CONTAINS
       call var%getData(dummyD2)
       L1_total_runoff(s1 : e1) = pack(dummyD2, mask1)
     end if
-
-    ! read the LCscene information
-    ! it is inside a domain loop, but is global information
-    var = nc%getVariable("LC_year_start")
-    call var%getData(LC_year_start)
-
-    var = nc%getVariable("LC_year_end")
-    call var%getData(LC_year_end)
 
     !-------------------------------------------
     ! EFFECTIVE PARAMETERS

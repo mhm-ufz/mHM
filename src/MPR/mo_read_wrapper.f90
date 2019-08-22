@@ -74,7 +74,7 @@ CONTAINS
     use mo_mpr_global_variables, only : GeoUnitKar, &
                                         GeoUnitList, L0_asp, L0_geoUnit, L0_gridded_LAI, L0_slope, L0_soilId, LAILUT, &
                                         LAIUnitList, iFlag_soilDB, nGeoUnits, nLAI, nLAIclass, nSoilHorizons_mHM, soilDB, &
-                                        timeStep_LAI_input
+                                        timeStep_LAI_input, LAIBoundaries
     use mo_prepare_gridded_lai, only : prepare_gridded_daily_LAI_data, prepare_gridded_mean_monthly_LAI_data
     use mo_read_latlon, only : read_latlon
     use mo_read_lut, only : read_geoformation_lut, read_lai_lut
@@ -248,7 +248,13 @@ CONTAINS
         call prepare_gridded_mean_monthly_LAI_data(iDomain, level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%mask)
 
       case(0) ! long term mean monthly values per class with LUT
-        nLAI = YearMonths_i4
+        ! only set if not yet allocated (e.g. domain 1)
+        if (.not. allocated(LAIBoundaries)) then
+          nLAI = YearMonths_i4
+          allocate(LAIBoundaries(nLAI+1))
+          LAIBoundaries = [(iMon, iMon=1, nLAI+1)]
+        end if
+
         fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_laiclass))
         ! reading and transposing
         call read_spatial_data_ascii(trim(fName), ulaiclass, &

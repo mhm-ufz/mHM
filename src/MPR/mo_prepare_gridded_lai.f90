@@ -63,7 +63,8 @@ CONTAINS
     use mo_append, only : append
     use mo_common_variables, only : period
     use mo_message, only : message
-    use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI, inputFormat_gridded_LAI, nLAI, timeStep_LAI_input
+    use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI, inputFormat_gridded_LAI, &
+            nLAI, LAIBoundaries, timeStep_LAI_input
     use mo_read_forcing_nc, only : read_forcing_nc
 
     implicit none
@@ -101,7 +102,12 @@ CONTAINS
 
     ! pack variables
     nCells = count(mask)
-    nLAI = size(LAI0_3D, 3)
+    ! only set if not yet allocated (e.g. domain 1)
+    if (.not. allocated(LAIBoundaries)) then
+      nLAI = size(LAI0_3D, 3)
+      allocate(LAIBoundaries(nLAI+1))
+      LAIBoundaries = [(iLAI, iLAI=1, nLAI+1)]
+    end if
     allocate(LAI0_2D(nCells, nLAI))
 
     do iLAI = 1, nLAI
@@ -146,7 +152,7 @@ CONTAINS
 
     use mo_append, only : append
     use mo_message, only : message
-    use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI, nLAI
+    use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI, nLAI, LAIBoundaries
     use mo_ncread, only : Get_NcDim, Get_NcVar, Get_NcVarAtt
     use mo_string_utils, only : num2str
     use mo_utils, only : eq
@@ -233,7 +239,12 @@ CONTAINS
 
     ! pack variables
     nCells = count(mask)
-    nLAI = size(LAI0_3D, 3)
+    ! only set if not yet allocated (e.g. domain 1)
+    if (.not. allocated(LAIBoundaries)) then
+      nLAI = size(LAI0_3D, 3)
+      allocate(LAIBoundaries(nLAI+1))
+      LAIBoundaries = [(iLAI, iLAI=1, nLAI+1)]
+    end if
     allocate(LAI0_2D(nCells, nLAI))
     do iLAI = 1, nLAI
       LAI0_2D(:, iLAI) = pack(LAI0_3D(:, :, iLAI), MASK = mask(:, :))
