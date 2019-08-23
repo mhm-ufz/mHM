@@ -95,6 +95,9 @@ CONTAINS
 
     integer(i4) :: i, newDomainID, domainID, iDomain, nDomains
 
+    ! flag to advance nuniqueL0Domain counter
+    logical :: addCounter
+
 
     ! define namelists
     ! namelist directories
@@ -152,17 +155,17 @@ CONTAINS
       resolutionHydrology(iDomain) = resolution_Hydrology(domainID)
       ! if a domain uses the same L0 data as a previous one, write
       ! the index into domainMeta%L0DataFrom
-      ! ToDo: Check if change is correct
       newDomainID = L0Domain(domainID)
       domainMeta%L0DataFrom(iDomain) = iDomain
+      !
+      addCounter = .True.
       do i = 1, iDomain - 1
         if (newDomainID == domainMeta%indices(i)) then
           domainMeta%L0DataFrom(iDomain) = i
-          cycle 
+          addCounter = .False.
         end if
       end do
-      nuniqueL0Domains = nuniqueL0Domains + 1_i4
-     ! domainMeta%L0DataFrom(iDomain) = L0Domain(domainID)
+      if (addCounter) nuniqueL0Domains = nuniqueL0Domains + 1_i4
     end do
 
     ! check for possible options
@@ -171,17 +174,6 @@ CONTAINS
       call message('***ERROR: coordinate system for the model run should be 0 or 1')
       stop 1
     end if
-
-  !  nuniqueL0Domains = 0_i4
-  !  do iDomain = 1, domainMeta%nDomains
-  !    if (iDomain .gt. 1) then
-  !      if (L0_Domain(iDomain) .eq. L0_Domain(iDomain - 1)) then
-  !        cycle
-  !      end if
-  !    end if
-  !    nuniqueL0Domains = nuniqueL0Domains + 1_i4
-  !  end do
-
 
     !===============================================================
     ! Read land cover

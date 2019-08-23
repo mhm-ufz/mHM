@@ -200,14 +200,16 @@ contains
   !>       \date Jun 2018
 
   ! Modifications:
+  !        Stephan Thober, Aug 2019 - added optional indices for L0 data because L0 data can be shared among domains
 
-  subroutine set_domain_indices(grids)
+  subroutine set_domain_indices(grids, indices)
 
     use mo_common_variables, only : Grid
 
     implicit none
 
     type(Grid), intent(inout), dimension(:) :: grids
+    integer(i4),   intent(in), dimension(:), optional :: indices
 
     integer(i4) :: iDomain
 
@@ -217,7 +219,11 @@ contains
       if(iDomain .eq. 1_i4) then
         grids(iDomain)%iStart = 1_i4
       else
-        grids(iDomain)%iStart = grids(iDomain - 1_i4)%iEnd + 1_i4
+        if (present(indices)) then
+          grids(iDomain)%iStart = grids(indices(iDomain - 1))%iEnd + 1_i4
+        else
+          grids(iDomain)%iStart = grids(iDomain - 1_i4)%iEnd + 1_i4
+        end if
       end if
       grids(iDomain)%iEnd = grids(iDomain)%iStart + grids(iDomain)%nCells - 1_i4
     end do
