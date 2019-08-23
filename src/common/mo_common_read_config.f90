@@ -244,7 +244,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Dec  2018 - refactoring and restructuring
 
-  subroutine set_land_cover_scenes_id(sim_Per, LCyear_Id, LCfilename)
+  subroutine set_land_cover_scenes_id(sim_Per, LCyear_Id)
 
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : LC_year_end, LC_year_start, domainMeta, nLcoverScene, period
@@ -257,13 +257,7 @@ CONTAINS
 
     integer(i4), dimension(:, :), allocatable, intent(inout) :: LCyear_Id
 
-    character(256), dimension(:), allocatable, intent(inout) :: LCfilename
-
-    integer(i4) :: ii, iDomain, max_lcs, min_lcs, jj
-
-    character(256), dimension(:), allocatable :: dummy_LCfilenames
-
-    integer(i4), dimension(:,:), allocatable :: dummy_LCyears
+    integer(i4) :: ii, iDomain
 
 
     ! countercheck if land cover covers simulation period
@@ -311,44 +305,6 @@ CONTAINS
       end do
     end do
 
-    ! correct number of input land cover scenes to number of needed scenes
-    max_lcs = maxval(LCyear_Id, mask = (LCyear_Id .gt. nodata_i4))
-    min_lcs = minval(LCyear_Id, mask = (LCyear_Id .gt. nodata_i4))
-    nLCoverScene = max_lcs - min_lcs + 1
-
-    ! select the LC_years for only the needed scenes
-    allocate(dummy_LCyears(2, nLCoverScene))
-    jj = 1
-    do ii = 1, size(LC_year_start)
-      if ((LC_year_start(ii) .lt. LC_year_end(max_lcs)) .and. (LC_year_end(ii) .gt. LC_year_start(min_lcs))) then
-        dummy_LCyears(1, jj) = LC_year_start(ii)
-        dummy_LCyears(2, jj) = LC_year_end(ii)
-        jj = jj + 1
-      end if
-    end do
-
-    ! put land cover scenes to corresponding file name and LuT
-    ! this was allocated for MPR before, now update using only needed scenes
-    allocate(dummy_LCfilenames(nLCoverScene))
-    dummy_LCfilenames(:) = LCfilename(minval(LCyear_Id, mask = (LCyear_Id .gt. nodata_i4)) : &
-            maxval(LCyear_Id, mask = (LCyear_Id .gt. nodata_i4)))
-    deallocate(LCfilename, LC_year_start, LC_year_end)
-    allocate(LCfilename(nLCoverScene))
-    allocate(LC_year_start(nLCoverScene))
-    allocate(LC_year_end(nLCoverScene))
-    LCfilename(:) = dummy_LCfilenames(:)
-    LC_year_start(:) = dummy_LCyears(1, :)
-    LC_year_end(:) = dummy_LCyears(2, :)
-
-    ! update the ID's
-    if (maxval(sim_Per(1 : domainMeta%nDomains)%julStart) .eq. minval(sim_Per(1 : domainMeta%nDomains)%julStart) .and. &
-            maxval(sim_Per(1 : domainMeta%nDomains)%julEnd) .eq. minval(sim_Per(1 : domainMeta%nDomains)%julEnd)) then
-      if (any(LCyear_Id .EQ. nodata_i4)) then
-        call message()
-        call message('***ERROR: Intermediate land cover period is missing!')
-        stop 1
-      end if
-    end if
 
   end subroutine set_land_cover_scenes_id
 

@@ -177,7 +177,7 @@ CONTAINS
       simPer(iDomain)%julEnd = evalPer(iDomain)%julEnd
     end do
 
-    call set_land_cover_scenes_id(simPer, LCyearId, LCfilename)
+    call set_land_cover_scenes_id(simPer, LCyearId)
 
     !===============================================================
     ! Settings for Optimization
