@@ -570,7 +570,7 @@ CONTAINS
     end if
 
     write(uopti_nml, *) '!global_parameters'
-    write(uopti_nml, '( A47,T50,3(A20,2x),2(A8,x) )') "!PARAMETER", "lower_bound", "upper_bound", "value", "FLAG", "SCALING"
+    write(uopti_nml, '( A47,T50,3(A20,2x),2(A8,1x) )') "!PARAMETER", "lower_bound", "upper_bound", "value", "FLAG", "SCALING"
 
     iPar_start = 1
     do iProc = 1, nProcesses

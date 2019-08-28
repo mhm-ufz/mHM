@@ -209,7 +209,7 @@ end subroutine mrm_configuration
 
     call set_domain_indices(level11)
     call set_domain_indices(level1)
-    call set_domain_indices(level0)
+    call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
 
     ! ----------------------------------------------------------
     ! INITIALIZE STATES AND AUXILLIARY VARIABLES

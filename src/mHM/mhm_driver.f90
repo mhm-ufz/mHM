@@ -372,7 +372,7 @@ PROGRAM mhm_driver
 
     select case(opti_function)
 #ifdef MRM2MHM
-     case(1 : 9, 14, 31)
+     case(1 : 9, 14, 31 : 32)
       ! call optimization against only runoff (no other variables)
       obj_func => single_objective_runoff
 #ifdef MPI

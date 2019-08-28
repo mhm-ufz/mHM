@@ -30,6 +30,7 @@
 !>       (20) MO: Q:        1st objective: absolute difference in FDC's low-segment volume
 !>       Q:        2nd objective: 1.0 - NSE of discharge of months DJF
 !>       (31) SO: Q:        1.0 - wNSE - weighted NSE
+!>       (32) SO: Q:        SSE of boxcox-transformed streamflow
 
 !>       \authors Juliane Mai
 
@@ -46,6 +47,7 @@
 ! Stephan Thober,Bjoern Guse May 2018 - single objective function (21) using weighted NSE following
 !                                       (Hundecha and Bardossy, 2004)
 ! Robert Schweppe            Jun 2018 - refactoring and reformatting
+! Stephan Thober             Aug 2019 - added OF 32: SSE of boxcox-transformed streamflow
 
 MODULE mo_mrm_objective_function_runoff
 
@@ -177,8 +179,11 @@ CONTAINS
       ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6)
       single_objective_runoff = objective_multiple_gauges_kge_power6(parameterset, eval)
     case (31)
-       ! weighted NSE with observed streamflow
-       single_objective_runoff = objective_weighted_nse(parameterset, eval)
+      ! weighted NSE with observed streamflow
+      single_objective_runoff = objective_weighted_nse(parameterset, eval)
+    case (32)
+      ! sum of squared errors (SSE) of boxcox_transformed streamflow
+      single_objective_runoff = objective_sse_boxcox(parameterset, eval)
     case default
       call message("Error objective: This opti_function is either not implemented yet or is not a single-objective one.")
       stop 1
@@ -322,6 +327,9 @@ CONTAINS
     case (31)
       ! weighted NSE with observed streamflow
       write(*,*) 'objective_weighted_nse (i.e., 1 - wNSE) = ', single_objective_runoff_master
+    case (32)
+      ! SSE of boxcox-transformed streamflow
+      write(*,*) 'sse_boxcox_streamflow = ', single_objective_runoff_master
     case default
       call message("Error single_objective_runoff_master:")
       call message("This opti_function is either not implemented yet or is not a single-objective one.")
@@ -455,6 +463,9 @@ CONTAINS
       case (31)
          ! weighted NSE with observed streamflow
          partial_single_objective_runoff = objective_weighted_nse(parameterset, eval)
+      case (32)
+         ! SSE of transformed streamflow
+         partial_single_objective_runoff = objective_sse_boxcox(parameterset, eval)
       case default
         call message("Error single_objective_runoff_subprocess:")
         call message("This opti_function is either not implemented yet or is not a single-objective one.")
@@ -2324,6 +2335,109 @@ CONTAINS
 
   END FUNCTION objective_weighted_nse
 
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_sse_boxcox
+
+  !    PURPOSE
+  !>       \brief Objective function of sum of squared errors of transformed streamflow.
+
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+  !>       Therefore, the sum of squared error \f$ tSSE \f$
+  !>       \f[ tSSE = \sum_{i=1}^N (z(Q_{obs}(i), \lambda) - z(Q_{model}(i), \lambda))^2 \f]
+  !>       is calculated where \f$ z \f$ is the transform and given by
+  !>       \f[ z(x, \lambda) = \frac{x^\lambda -1}{\lambda} \f] for \$ \lambda \f$ unequal to zero and
+  !>       \f[ z(x, \lambda) = log x \f] for \$ \lambda \f$ equal to zero.
+  !>       The objective function is
+  !>       \f[ obj\_value = tSSE \f]
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>
+  !>       The boxcox transformation uses a parameter of 0.2, suggested by
+  !>       Woldemeskel et al. Hydrol Earth Syst Sci, 2018 vol. 22 (12) pp. 6257-6278.
+  !>       "Evaluating post-processing approaches for monthly and seasonal streamflow forecasts."
+  !>       https://www.hydrol-earth-syst-sci.net/22/6257/2018/
+
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_sse_boxcox &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Stephan Thober, Dmitri Kavetski
+
+  !>       \date Aug 2019
+
+  FUNCTION objective_sse_boxcox(parameterset, eval)
+
+    use mo_errormeasures, only: SSE
+    use mo_boxcox, only: boxcox
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+
+    real(dp) :: objective_sse_boxcox
+
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:,:) :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
+    integer(i4) :: nGaugesTotal
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for aggregated measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+    ! boxcox parameter
+    real(dp) :: lambda
+
+    ! set box cox transformation to 0.2
+    ! suggested by:
+    ! Woldemeskel et al. Hydrol Earth Syst Sci, 2018 vol. 22 (12) pp. 6257-6278.
+    ! "Evaluating post-processing approaches for monthly and seasonal streamflow forecasts."
+    ! https://www.hydrol-earth-syst-sci.net/22/6257/2018/
+    lambda = 0.2_dp
+    
+    call eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2)
+
+    objective_sse_boxcox = 0.0_dp
+    do gg=1, nGaugesTotal
+       !
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       !
+       objective_sse_boxcox = objective_sse_boxcox + &
+            SSE( boxcox(runoff_obs, lambda, mask=runoff_obs_mask), boxcox(runoff_agg, lambda), mask=runoff_obs_mask)
+    end do
+#ifndef MPI
+    ! objective_nse = objective_nse + nse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
+    objective_sse_boxcox = objective_sse_boxcox / real(nGaugesTotal,dp)
+
+    write(*,*) 'objective_sse_boxcox = ',objective_sse_boxcox
+    ! pause
+#endif
+
+    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
+
+  END FUNCTION objective_sse_boxcox
+  
 
   ! ------------------------------------------------------------------
 

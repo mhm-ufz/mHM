@@ -84,6 +84,7 @@ module mo_mpr_global_variables
   ! variables used when timeStep_LAI_input == 0
   integer(i4), public :: nLAIclass         ! Number of LAI classes
   integer(i4), public :: nLAI              ! Number of LAI slices (a.k.a timestep)
+  real(dp), dimension(:), allocatable, public :: LAIBoundaries        !
   integer(i4), public, dimension(:), allocatable :: LAIUnitList       ! List of ids of each LAI class in LAILUT
   real(dp), public, dimension(:, :), allocatable :: LAILUT            ! [m2/m2] Leaf area index for LAIUnit
   !                                                                        ! dim1=land cover class, dim2=month of year

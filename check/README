@@ -58,7 +58,7 @@ please update both files when changes occur!!!
 if unsure about format of simulation.ini, contact robert.schweppe@ufz.de
 
 case 00 :: DEFAULT mhm.nml and mhm_outputs.nml and mhm_parameter.nml
-case 01 :: RESTART READING AND WRITING, MPR deactivated, PET: Hargreaves-Samani
+case 01 :: RESTART READING AND WRITING, MPR deactivated, PET: Hargreaves-Samani, ProcessCase 8 is adaptive celerity
 case 02 :: ROUTING DEACTIVATED, PET: Priestley Taylor, CHUNK READ IN: monthly, output written monthly,
 case 03 :: OPTIMIZATION ACTIVATED, PET: Penman-Monteith
 case 04 :: MULTISCALE
