@@ -285,7 +285,7 @@ CONTAINS
           domain_avg_TWS_obs%domainId(iDomain) = iDomain
           domain_avg_TWS_obs%fname(iDomain) = trim(file_TWS(iDomain))
         end do
-      case(32)
+      case(33)
         ! evapotranspiration
         call position_nml('optional_data', unamelist)
         read(unamelist, nml = optional_data)

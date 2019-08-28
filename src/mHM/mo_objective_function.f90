@@ -152,7 +152,7 @@ CONTAINS
     case (30)
       ! KGE for Q * RMSE for domain_avg ET (standarized scored)
       objective = objective_kge_q_rmse_et(parameterset, eval)
-    case (32)
+    case (33)
       multiple_objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
       objective = multiple_objective(1)
 
@@ -270,7 +270,7 @@ CONTAINS
       ! KGE for Q * RMSE for domain_avg ET (standarized scored)
       ! objective_master = objective_kge_q_rmse_et(parameterset, eval)
       call message("case 30, objective_kge_q_rmse_et not implemented in parallel yet")
-    case(32)
+    case(33)
       call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
       objective_master = 0.0_dp
       multiple_master_objective(:) = 0.0_dp
@@ -304,7 +304,7 @@ CONTAINS
       call message('    objective_kge_q_sm_corr = ', num2str(objective_master, '(F9.5)'))
     case(29)
       call message('    objective_kge_q_et = ', num2str(objective_master, '(F9.5)'))
-    case(32)
+    case(33)
       call message('    objective_q_et_tws_kge_catchment_avg = ', num2str(objective_master, '(F9.5)'))
     case default
       call message("Error objective_master: opti_function not implemented yet, this part of the code should never execute.")
@@ -433,7 +433,7 @@ CONTAINS
         ! KGE for Q * RMSE for domain_avg ET (standarized scored)
         partial_objective = objective_kge_q_rmse_et(parameterset, eval)
         stop
-      case(32)
+      case(33)
         multiple_partial_objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
       case default
         call message("Error objective_subprocess: opti_function not implemented yet.")
@@ -443,7 +443,7 @@ CONTAINS
       select case (opti_function)
       case (10 : 13, 17, 27 : 29)
         call MPI_Send(partial_objective,1, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
-      case(32)
+      case(33)
         call MPI_Send(multiple_partial_objective,6, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
         call message("Error objective_subprocess: this part should not be executed -> error in the code.")

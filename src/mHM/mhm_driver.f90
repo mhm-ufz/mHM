@@ -327,7 +327,7 @@ PROGRAM mhm_driver
         if (iDomain == domainMeta%nDomains) then
           call read_domain_avg_TWS()
         end if
-      case(32)
+      case(33)
         ! read optional spatio-temporal evapotranspiration data
         if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
           domainMeta%optidata(iDomain) == 6 ) then
@@ -386,7 +386,7 @@ PROGRAM mhm_driver
       call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
 #endif
 #endif
-     case(10 : 13, 15, 17, 27, 28, 29, 30, 32)
+     case(10 : 13, 15, 17, 27, 28, 29, 30, 33)
       ! call optimization for other variables
       obj_func => objective
 #ifdef MPI
