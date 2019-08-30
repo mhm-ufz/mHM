@@ -764,6 +764,13 @@ CONTAINS
     ! eval runs to get simulated output for runoff, et and tws
     ! before each eval call we generate an index list of the domains for which
     ! eval should be called. Read details for further information
+    call init_indexarray_for_opti_data(domainMeta, 3, nTwsDomains, opti_domain_indices_TWS)
+    if (nTwsDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_TWS, domain_avg_tws = tws)
+    call init_indexarray_for_opti_data(domainMeta, 5, nEtDomains, opti_domain_indices_ET)
+    if (nEtDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, et_opti = et_opti)
+    call init_indexarray_for_opti_data(domainMeta, 6, nEtTwsDomains, opti_domain_indices_ET_TWS) 
+    if (nEtTwsDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET_TWS, &
+                                                                        domain_avg_tws = tws, et_opti = et_opti)
 #ifdef MRM2MHM
     ! indices are not needed, therefore we pass the second array
     call init_indexarray_for_opti_data(domainMeta, 1, nQDomains, opti_domain_indices_ET)
@@ -772,13 +779,6 @@ CONTAINS
     call message('***ERROR: objective_q_et_tws_kge_catchment_avg: missing routing module for optimization')
     stop 1
 #endif
-    call init_indexarray_for_opti_data(domainMeta, 3, nTwsDomains, opti_domain_indices_TWS)
-    if (nTwsDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_TWS, domain_avg_tws = tws)
-    call init_indexarray_for_opti_data(domainMeta, 5, nEtDomains, opti_domain_indices_ET)
-    if (nEtDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, et_opti = et_opti)
-    call init_indexarray_for_opti_data(domainMeta, 6, nEtTwsDomains, opti_domain_indices_ET_TWS) 
-    if (nEtTwsDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET_TWS, &
-                                                                        domain_avg_tws = tws, et_opti = et_opti)
 
     ! initialize some variables
     objective_q_et_tws_kge_catchment_avg(:) = 0.0_dp
