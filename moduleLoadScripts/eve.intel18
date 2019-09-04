@@ -1,5 +1,5 @@
 module purge
-module use /software/easybuild-E5-2690v4/modules/all/Core
+# module use /software/easybuild-E5-2690v4/modules/all/Core
 module load iomkl/2018b
 # module load openssl
 module load netCDF
