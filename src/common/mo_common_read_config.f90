@@ -348,18 +348,12 @@ CONTAINS
     if (nproc < 2) then
       stop 'at least 2 processes are required'
     end if
+    ! if there are more processes than domains
     if (nproc > domainMeta%overallNumberOfDomains + 1) then
       domainMeta%nDomains = 0
       ! master reads only metadata of all domains
       if (rank == 0) then
-        domainMeta%nDomains = domainMeta%overallNumberOfDomains
-        allocate(domainMeta%indices(domainMeta%nDomains))
-        do iDomain = 1, domainMeta%nDomains
-          domainMeta%indices(iDomain) = iDomain
-        end do
-        colMasters = 1
-        colDomain = 0
-        domainMeta%isMaster = .true.
+        call init_domain_variable_for_master(domainMeta, colMasters, colDomain)
       ! all other nodes only read metadata but also data of assigned domains
       else
         call distribute_processes_to_domains_according_to_role(optiData, rank, &
@@ -397,6 +391,26 @@ CONTAINS
   end subroutine init_domain_variable
 
 #ifdef MPI
+  subroutine init_domain_variable_for_master(domainMeta, colMasters, colDomain)
+    use mo_common_variables, only: domain_meta
+    type(domain_meta), intent(inout) :: domainMeta
+    integer(i4),       intent(out)   :: colMasters
+    integer(i4),       intent(out)   :: colDomain
+    !local
+    integer(i4) :: iDomain
+
+    domainMeta%nDomains = domainMeta%overallNumberOfDomains
+    allocate(domainMeta%indices(domainMeta%nDomains))
+    do iDomain = 1, domainMeta%nDomains
+      domainMeta%indices(iDomain) = iDomain
+    end do
+    colMasters = 1
+    colDomain = 0
+    domainMeta%isMaster = .true.
+
+  end subroutine init_domain_variable_for_master
+
+
   subroutine distributeDomainsRoundRobin(nproc, rank, domainMeta)
     use mo_common_variables, only: domain_meta
     integer(i4),       intent(in)    :: nproc
