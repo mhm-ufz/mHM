@@ -144,7 +144,7 @@ module mo_common_variables
     integer(i4), dimension(:), allocatable :: optidata
     logical,     dimension(:), allocatable :: doRouting
 #ifdef MPI
-    logical                                :: isMaster  ! true if the process is master proc in comLocal
+    logical                                :: isMasterInComLocal  ! true if the process is master proc in comLocal
     type(MPI_Comm)                         :: comMaster ! the communicater the domains are using to send messages to each other
                                                         ! here are all processes wich have rank 0 in comLocal
     type(MPI_Comm)                         :: comLocal  ! the communicater the domain internal communication takes place

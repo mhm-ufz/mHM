@@ -276,7 +276,7 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   itimer = 1
 #ifdef MPI
-  if (rank > 0 .and. domainMeta%isMaster) then
+  if (rank > 0 .and. domainMeta%isMasterInComLocal) then
 #endif
   call message()
 
@@ -376,10 +376,10 @@ PROGRAM mhm_driver
       ! call optimization against only runoff (no other variables)
       obj_func => single_objective_runoff
 #ifdef MPI
-      if (rank == 0 .and. domainMeta%isMaster) then
+      if (rank == 0 .and. domainMeta%isMasterInComLocal) then
         obj_func => single_objective_runoff_master
         call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
-      else if (domainMeta%isMaster) then
+      else if (domainMeta%isMasterInComLocal) then
         call single_objective_runoff_subprocess(eval)
       end if
 #else
@@ -390,10 +390,10 @@ PROGRAM mhm_driver
       ! call optimization for other variables
       obj_func => objective
 #ifdef MPI
-      if (rank == 0 .and. domainMeta%isMaster) then
+      if (rank == 0 .and. domainMeta%isMasterInComLocal) then
         obj_func => objective_master
         call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
-      else if (domainMeta%isMaster) then
+      else if (domainMeta%isMasterInComLocal) then
         call objective_subprocess(eval)
       end if
 #else
@@ -405,7 +405,7 @@ PROGRAM mhm_driver
       stop 1
     end select
 #ifdef MPI
-  if (rank == 0 .and. domainMeta%isMaster) then
+  if (rank == 0 .and. domainMeta%isMasterInComLocal) then
 #endif
     ! write a file with final objective function and the best parameter set
     call write_optifile(funcbest, global_parameters(:, 3), global_parameters_name(:))
@@ -418,7 +418,7 @@ PROGRAM mhm_driver
   else
 
 #ifdef MPI
-    if (rank > 0 .and. domainMeta%isMaster) then
+    if (rank > 0 .and. domainMeta%isMasterInComLocal) then
 #endif
       ! --------------------------------------------------------------------------
       ! call mHM
@@ -438,7 +438,7 @@ PROGRAM mhm_driver
   end if
 
 #ifdef MPI
-  if (rank > 0 .and. domainMeta%isMaster) then
+  if (rank > 0 .and. domainMeta%isMasterInComLocal) then
 #endif
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files
