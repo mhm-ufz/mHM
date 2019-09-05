@@ -276,6 +276,10 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   itimer = 1
 #ifdef MPI
+  ! ComLocal is a communicator, i.e. a group of processes assigned to the same
+  ! domain, with a master and subprocesses. Only the master processes of these
+  ! groups need to read the data. The master process with rank 0 only
+  ! coordinates the other processes and does not need to read the data.
   if (rank > 0 .and. domainMeta%isMasterInComLocal) then
 #endif
   call message()
@@ -380,6 +384,10 @@ PROGRAM mhm_driver
         obj_func => single_objective_runoff_master
         call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
       else if (domainMeta%isMasterInComLocal) then
+        ! In case of a master process from ComLocal, i.e. a master of a group of
+        ! processes that are assigned to a single domain, this process calls the
+        ! objective subroutine directly. The master over all processes collects
+        ! the data and runs the dds/sce/other opti method.
         call single_objective_runoff_subprocess(eval)
       end if
 #else
@@ -394,6 +402,10 @@ PROGRAM mhm_driver
         obj_func => objective_master
         call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
       else if (domainMeta%isMasterInComLocal) then
+        ! In case of a master process from ComLocal, i.e. a master of a group of
+        ! processes that are assigned to a single domain, this process calls the
+        ! objective subroutine directly. The master over all processes collects
+        ! the data and runs the dds/sce/other opti method.
         call objective_subprocess(eval)
       end if
 #else
