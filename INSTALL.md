@@ -87,6 +87,14 @@ right dependencies, potentially use corresponding wiki pages.
 
 #### On eve (the cluster at the UFZ):
 
+If you not already have, opt in for the easy-build setup:
+
+    touch ~/.easybuild-yes    
+
+Then disconnect from the cluster and connect anew.
+
+(see https://wiki.ufz.de/eve/index.php/EasyBuild for details)
+
 From the source directory use a script provided in `moduleLoadScripts`,
 for example for the GNU 7.3 compiler:
 

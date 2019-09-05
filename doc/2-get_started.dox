@@ -188,7 +188,10 @@ under <code>./test_basin/output_b1/</code> and <code>./test_basin_2/output_b1/</
 
 \section compile Compile mHM
 
-Compilations of the code need to know paths and locations of its dependencies that are specific to the individual operating system.
+As from June 2019, we encourage users to make use of cmake guide:\n
+<a href="https://git.ufz.de/mhm/mhm/blob/develop/INSTALL.md">https://git.ufz.de/mhm/mhm/blob/develop/INSTALL.md</a>
+
+Alternatively to cmake, the Makefile can be used. Compilations of the code need to know paths and locations of its dependencies that are specific to the individual operating system. This requires a file in the make.config folder containing a valid configuration for the system mHM is compiled on. Configuration files for Cygwin and Ubuntu are provided. Creating a new configuration file is only recommended for experienced Linux users. 
 Before compiling, make sure that you individual requirements hold.
 
 Open <code>Makefile</code> and adjust at least the following settings:
