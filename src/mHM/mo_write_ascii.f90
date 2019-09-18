@@ -592,6 +592,8 @@ CONTAINS
           write(uopti_nml, *) '&soilmoisture1'
         case(2)
           write(uopti_nml, *) '&soilmoisture2'
+        case(3)
+          write(uopti_nml, *) '&soilmoisture3'
         end select
       case(4)
         if (processMatrix(iProc, 1) .eq. 1) then

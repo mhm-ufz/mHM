@@ -23,6 +23,12 @@
 
 - Adaptive routing does not allow to run without at least 1 gauge specification
 - Incompatibility of Finalparam.nml format between Intel and GNU
+- If ProcessOption(3) is set to 3 and optimization is activated, the
+  created FinalParam.nml misses the header for the namelist of the
+  soil moisture parameters
+- Land cover scenes cannot be changed between the run generating the
+  restart file and the run using the restart file. This causes
+  unpredictable behaviour by the model.
 
 ### Restrictions:
 
