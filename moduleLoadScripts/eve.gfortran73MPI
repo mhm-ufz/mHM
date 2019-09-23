@@ -1,0 +1,8 @@
+module purge
+#module use /global/apps/chspython/modules
+#module load pyvenvs/3.6.2
+module use /software/easybuild-E5-2690v4/modules/all/Core
+module load foss/2018b
+module load netCDF-Fortran
+module load cmake
+export FC=mpif90
