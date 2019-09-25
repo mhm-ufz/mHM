@@ -12,6 +12,7 @@ src/*/*.debug/
 test_basin/
 test_basin_2/
 *prog_for_check
+*terminal
 
 ### Python template
 # Byte-compiled / optimized / DLL files
