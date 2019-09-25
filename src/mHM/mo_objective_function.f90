@@ -732,6 +732,9 @@ CONTAINS
     !> index array of TWS and ET domains (providing both)
     integer(i4), dimension(:), allocatable :: opti_domain_indices_ET_TWS
 
+    !> index array of ET domains
+    integer(i4), dimension(:), allocatable :: opti_domain_indices_Q
+
     !> simulated tws
     real(dp), allocatable, dimension(:, :) :: tws
 
@@ -773,8 +776,8 @@ CONTAINS
                                                                         domain_avg_tws = tws, et_opti = et_opti)
 #ifdef MRM2MHM
     ! indices are not needed, therefore we pass the second array
-    call init_indexarray_for_opti_data(domainMeta, 1, nQDomains, opti_domain_indices_ET)
-    if (nQDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, runoff = runoff)
+    call init_indexarray_for_opti_data(domainMeta, 1, nQDomains, opti_domain_indices_Q)
+    if (nQDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_Q, runoff = runoff)
 #else
     call message('***ERROR: objective_q_et_tws_kge_catchment_avg: missing routing module for optimization')
     stop 1
