@@ -824,7 +824,7 @@ CONTAINS
           ((1.0_dp - KGE(tws_obs, tws_sim, mask = tws_obs_mask)) / &
                                         real(domainMeta%overallNumberOfDomains, dp))**6
         ! deallocate
-        deallocate (tws_sim, tws_obs, tws_obs_mask)
+        deallocate(tws_sim, tws_obs, tws_obs_mask)
         deallocate(mask_times_et)
         deallocate(et_catch_avg_domain)
         deallocate(et_opti_catch_avg_domain)
@@ -1592,10 +1592,8 @@ CONTAINS
       ! check for potentially 2 years of data
       pp = count(runoff_agg .ge. 0.0_dp)
       if (pp .lt.  365 * 2) then
-          ! ToDo: I guess this warning does not make sense here? The data is not TWS but q
-          ! and domainID is not defined in a useful way
-        call message('objective_kge_q_rmse_tws: Length of TWS data of domain ', trim(adjustl(num2str(domainID))), &
-        ' less than 2 years: this is not recommended')
+        call message('objective_kge_q_rmse_tws: The simulation at gauge ', trim(adjustl(num2str(gg))), &
+        ' is not long enough. Please provide at least 730 days of data.')
       end if
       ! calculate KGE for each domain:
       kge_q(gg) = kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)

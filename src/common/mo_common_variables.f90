@@ -141,6 +141,14 @@ module mo_common_variables
     integer(i4)                            :: overallNumberOfDomains  ! Number of domains for multi-domain optimization
     integer(i4), dimension(:), allocatable :: indices
     integer(i4), dimension(:), allocatable :: L0DataFrom
+    ! optidata saves for each domain which optional data is assigned to it
+    ! (0) default: the program decides. If you are confused, choose 0
+    ! (1) runoff
+    ! (2) sm
+    ! (3) tws
+    ! (4) neutons
+    ! (5) et
+    ! (6) et & tws
     integer(i4), dimension(:), allocatable :: optidata
     logical,     dimension(:), allocatable :: doRouting
 #ifdef MPI

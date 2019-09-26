@@ -930,6 +930,7 @@ CONTAINS
       end do !<< TIME STEPS LOOP
 
       ! deallocate TWS field temporal variable
+      if (allocated(TWS_field)) deallocate(TWS_field)
       if (allocated(InflowDischarge)) deallocate(InflowDischarge)
 #ifdef MRM2MHM
        if (domainMeta%doRouting(iDomain)) then
