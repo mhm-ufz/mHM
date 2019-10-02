@@ -151,7 +151,7 @@ system='eve'
 ijobs=0
 threads='0 2'
 verbose=0
-mpirun='mpirun -n 2 '
+mpirun='mpirun -n 7 '
 
 shift $((${OPTIND} - 1))
 # verbose
@@ -215,14 +215,14 @@ if [[ ${system} == "eve" || ${system} == "eve2" ]] ; then
     ipython=$(which python 2> /dev/null)
     set -e
 
-    echo '   try to load module foss for gnu compilers and intel license ...'
-    if [[ $(hostname | cut -d . -f 1) == 'frontend1' || $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
-        module load intel
-        module use /software/easybuild-E5-2690v4/modules/all/Core
-        module load foss/2018b
-    else
-	echo "Host not specified!"
-    fi
+#    echo '   try to load module foss for gnu compilers and intel license ...'
+#    if [[ $(hostname | cut -d . -f 1) == 'frontend1' || $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
+#        module load intel
+#        module use /software/easybuild-E5-2690v4/modules/all/Core
+#        module load foss/2018b
+#    else
+#	echo "Host not specified!"
+#    fi
 fi
 
 # rm coloured ls

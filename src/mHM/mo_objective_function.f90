@@ -764,52 +764,22 @@ CONTAINS
     
     real(dp) :: kge_et
 
-    ! eval runs to get simulated output for runoff, et and tws
-    ! before each eval call we generate an index list of the domains for which
-    ! eval should be called. Read details for further information
-    call init_indexarray_for_opti_data(domainMeta, 3, nTwsDomains, opti_domain_indices_TWS)
-    if (nTwsDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_TWS, domain_avg_tws = tws)
-    call init_indexarray_for_opti_data(domainMeta, 5, nEtDomains, opti_domain_indices_ET)
-    if (nEtDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, et_opti = et_opti)
-    call init_indexarray_for_opti_data(domainMeta, 6, nEtTwsDomains, opti_domain_indices_ET_TWS) 
-    if (nEtTwsDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_ET_TWS, &
-                                                                        domain_avg_tws = tws, et_opti = et_opti)
-#ifdef MRM2MHM
-    ! indices are not needed, therefore we pass the second array
-    call init_indexarray_for_opti_data(domainMeta, 1, nQDomains, opti_domain_indices_Q)
-    if (nQDomains > 0) call eval(parameterset, opti_domain_indices = opti_domain_indices_Q, runoff = runoff)
-#else
-    call message('***ERROR: objective_q_et_tws_kge_catchment_avg: missing routing module for optimization')
-    stop 1
-#endif
 
     ! initialize some variables
     objective_q_et_tws_kge_catchment_avg(:) = 0.0_dp
-    !--------------------------------------------
-    ! RUNOFF
-    !--------------------------------------------
-    kge_q = 0.0_dp
-    if (nQDomains > 0) then
-      nGaugesTotal = size(runoff, dim = 2)
-      do gg = 1, nGaugesTotal
-
-        ! extract runoff
-        call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
-
-        kge_q = kge_q + &
-              kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
-        deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
-      end do
-    end if
-   ! write(0,*) 'nQDomains, kge_q', nQDomains, kge_q
-    objective_q_et_tws_kge_catchment_avg(1) = kge_q
-
     kge_tws = 0.0_dp
     kge_et = 0.0_dp
+    kge_q = 0.0_dp
     !--------------------------------------------
     ! ET & TWS
     !--------------------------------------------
+    ! eval runs to get simulated output for et and tws
+    ! before each eval call we generate an index list of the domains for which
+    ! eval should be called. Read details for further information
+    call init_indexarray_for_opti_data(domainMeta, 6, nEtTwsDomains, opti_domain_indices_ET_TWS) 
     if (nEtTwsDomains > 0) then
+      call eval(parameterset, opti_domain_indices = opti_domain_indices_ET_TWS, &
+                                                                        domain_avg_tws = tws, et_opti = et_opti)
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_ET_TWS)
         iDomain = opti_domain_indices_ET_TWS(i)
@@ -825,15 +795,20 @@ CONTAINS
                                         real(domainMeta%overallNumberOfDomains, dp))**6
         ! deallocate
         deallocate(tws_sim, tws_obs, tws_obs_mask)
-        deallocate(mask_times_et)
-        deallocate(et_catch_avg_domain)
-        deallocate(et_opti_catch_avg_domain)
+        deallocate(mask_times_et, et_catch_avg_domain, et_opti_catch_avg_domain)
       end do
+     ! write(0,*) 'nEtTwsDomains, kge_tws', nEtTwsDomains, kge_tws
+     ! write(0,*) 'nEtTwsDomains, kge_et', nEtTwsDomains, kge_et
     end if
     !--------------------------------------------
     ! TWS
     !--------------------------------------------
+    ! eval runs to get simulated output for tws
+    ! before each eval call we generate an index list of the domains for which
+    ! eval should be called. Read details for further information
+    call init_indexarray_for_opti_data(domainMeta, 3, nTwsDomains, opti_domain_indices_TWS)
     if (nTwsDomains > 0) then
+      call eval(parameterset, opti_domain_indices = opti_domain_indices_TWS, domain_avg_tws = tws)
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_TWS)
         iDomain = opti_domain_indices_TWS(i)
@@ -844,14 +819,19 @@ CONTAINS
                                         real(domainMeta%overallNumberOfDomains, dp))**6
         deallocate (tws_sim, tws_obs, tws_obs_mask)
       end do
+    !  write(0,*) 'nTwsDomains, kge_tws', nTwsDomains, kge_tws
     end if
-   ! write(0,*) 'nEtTwsDomains, kge_tws', nEtTwsDomains, kge_tws
     objective_q_et_tws_kge_catchment_avg(2) = kge_tws
     
     !--------------------------------------------
     ! ET
     !--------------------------------------------
+    ! eval runs to get simulated output for et
+    ! before each eval call we generate an index list of the domains for which
+    ! eval should be called. Read details for further information
+    call init_indexarray_for_opti_data(domainMeta, 5, nEtDomains, opti_domain_indices_ET)
     if (nEtDomains > 0) then
+      call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, et_opti = et_opti)
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_ET)
         iDomain = opti_domain_indices_ET(i)
@@ -862,13 +842,42 @@ CONTAINS
           ((1.0_dp - KGE(et_catch_avg_domain, et_opti_catch_avg_domain, mask = mask_times_et)) / &
                                         real(domainMeta%overallNumberOfDomains, dp))**6
         ! deallocate
-        deallocate(mask_times_et)
-        deallocate(et_catch_avg_domain)
-        deallocate(et_opti_catch_avg_domain)
+        deallocate(mask_times_et, et_catch_avg_domain, et_opti_catch_avg_domain)
       end do
+     ! write(0,*) 'nEtDomains, kge_et', nEtDomains, kge_et
     end if
-   ! write(0,*) 'nEtTwsDomains, kge_et', nEtTwsDomains, kge_et
     objective_q_et_tws_kge_catchment_avg(3) = kge_et
+
+    !--------------------------------------------
+    ! RUNOFF
+    !--------------------------------------------
+    ! eval runs to get simulated output for runoff
+    ! before the eval call we generate an index list of the domains for which
+    ! eval should be called. Read details for further information
+    ! ToDo: was there a reason to call this at the end? Was it about the index
+    ! array? The arrays for qTin, qTout, etc were rewritten in the other calls
+    call init_indexarray_for_opti_data(domainMeta, 1, nQDomains, opti_domain_indices_Q)
+#ifndef MRM2MHM
+    call message('***ERROR: objective_q_et_tws_kge_catchment_avg: missing routing module for optimization')
+    stop 1
+#else
+    if (nQDomains > 0) then
+      call eval(parameterset, opti_domain_indices = opti_domain_indices_Q, runoff = runoff)
+      nGaugesTotal = size(runoff, dim = 2)
+      do gg = 1, nGaugesTotal
+
+        ! extract runoff
+        call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+
+        kge_q = kge_q + &
+              kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+        deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
+      end do
+     ! write(0,*) 'nQDomains, kge_q', nQDomains, kge_q
+    end if
+    objective_q_et_tws_kge_catchment_avg(1) = kge_q
+#endif
+
 
 #ifndef MPI
     objective_q_et_tws_kge_catchment_avg(1) = (kge_q+kge_et+kge_tws)**onesixth

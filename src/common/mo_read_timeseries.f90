@@ -17,7 +17,7 @@ MODULE mo_read_timeseries
 
   IMPLICIT NONE
 
-  PUBLIC :: read_timeseries
+  PUBLIC :: read_timeseries, create_dummy_timeseries
 
 CONTAINS
 
@@ -182,7 +182,7 @@ CONTAINS
             .AND. optimize .and. ((opti_function .le. 9_i4) .or. &
             (opti_function .eq. 14_i4) .or. &
             (opti_function .eq. 31_i4) .or. &
-            (opti_function .eq. 32_i4))) then
+            (opti_function .eq. 33_i4))) then
       ! adjust this whenever a new opti function on discharge is added to mhm!
       call message('***ERROR: Simulation period is not covered by observations! ', trim(filename))
       stop
@@ -260,5 +260,82 @@ CONTAINS
     close(fileunit)
 
   end subroutine read_timeseries
+
+!< author: Maren Kaluza
+!< date: October 2019
+!< summary: reads the header of a timeseries file and creates an empty array from it.
+!
+!< This subroutine is called by an MPI process if there are domains assigned to
+!< that MPI process, where some of these but not all are TWS domains. In that
+!< case the TWS timeseries is extended and there are unsused parts of that
+!< array. It is a work around as long as ET, TWS and other opti data is not
+!< accessed with unified iStart, iEnd anymore
+!  ToDo: implement better solution
+  subroutine create_dummy_timeseries(filename, fileunit, periodStart, periodEnd, data, mask)
+    use mo_julian, only : julday
+    use mo_message, only : message
+
+    implicit none
+
+    ! File name
+    character(len = *), intent(in) :: filename
+
+    ! Unit to open file
+    integer(i4), intent(in) :: fileunit
+
+    ! Start day of reading (YYYY,MM,DD)
+    integer(i4), dimension(3), intent(in) :: periodStart
+
+    ! End   day of reading (YYYY,MM,DD)
+    integer(i4), dimension(3), intent(in) :: periodEnd
+
+    ! Data vector
+    real(dp), dimension(:), allocatable, intent(out) :: data
+
+    ! Mask for nodata values in data
+    logical, dimension(:), allocatable, optional, intent(out) :: mask
+
+    ! local
+
+    ! no data value of data
+    real(dp) :: nodata_file
+
+    ! [h] time resolution of input data
+    integer(i4) :: timestep_file
+
+    ! start julian day of needed data
+    integer(i4) :: startJul_period
+
+    ! end   julian day of needed data
+    integer(i4) :: endJul_period
+
+    ! dummy for char read in
+    character(256) :: dummy
+
+    open(unit = fileunit, file = filename, action = 'read', status = 'old')
+    ! read header
+    read(fileunit, '(a256)') dummy
+    read(fileunit, *)        dummy, nodata_file
+    read(fileunit, *)        dummy, timestep_file
+    dummy = dummy // ''   ! only to avoid warning
+    if ((timestep_file .lt. 1_i4) .or. (timestep_file .gt. 1440_i4)) then
+      call message('***ERROR: Number of measurements per day has to be between 1 (daily) and 1440 (every minute)! ', &
+              trim(filename))
+      stop
+    end if
+    close(fileunit)
+
+    startJul_period = julday(periodStart(3), periodStart(2), periodStart(1))
+    endJul_period = julday(periodEnd(3), periodEnd(2), periodEnd(1))
+
+    ! allocation of arrays
+    allocate(data     ((endJul_period - startJul_period + 1_i4) * timestep_file))
+    data = nodata_file
+
+    if (present(mask)) then
+      allocate(mask((endJul_period - startJul_period + 1_i4) * timestep_file))
+      mask = .true.
+    end if
+  end subroutine create_dummy_timeseries
 
 END MODULE mo_read_timeseries
