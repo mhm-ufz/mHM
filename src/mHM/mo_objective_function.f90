@@ -105,6 +105,8 @@ CONTAINS
 
     REAL(dp) :: objective
 
+    real(dp), dimension(6) :: multiple_objective
+
 
     if (present(arg1) .or. present(arg2) .or. present(arg3)) then
       call message("Error mo_objective_function: Received unexpected argument, check optimization settings")
@@ -150,6 +152,9 @@ CONTAINS
     case (30)
       ! KGE for Q * RMSE for domain_avg ET (standarized scored)
       objective = objective_kge_q_rmse_et(parameterset, eval)
+    case (33)
+      multiple_objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
+      objective = multiple_objective(1)
 
     case default
       call message("Error objective: opti_function not implemented yet.")
@@ -220,6 +225,10 @@ CONTAINS
 
     REAL(dp) :: partial_objective
 
+    real(dp), dimension(6) :: multiple_partial_objective
+
+    real(dp), dimension(6) :: multiple_master_objective
+
     ! for sixth root
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 
@@ -261,6 +270,17 @@ CONTAINS
       ! KGE for Q * RMSE for domain_avg ET (standarized scored)
       ! objective_master = objective_kge_q_rmse_et(parameterset, eval)
       call message("case 30, objective_kge_q_rmse_et not implemented in parallel yet")
+    case(33)
+      call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
+      objective_master = 0.0_dp
+      multiple_master_objective(:) = 0.0_dp
+      do iproc = 1, nproc - 1
+        call MPI_Recv(multiple_partial_objective, 6, MPI_DOUBLE_PRECISION, iproc, 0, domainMeta%comMaster, status, ierror)
+        multiple_master_objective = multiple_master_objective + multiple_partial_objective
+      end do
+      objective_master = objective_master + &
+        (multiple_master_objective(1)+multiple_master_objective(2)+multiple_master_objective(3))
+      objective_master = objective_master**onesixth
 
     case default
       call message("Error objective_master: opti_function not implemented yet.")
@@ -284,6 +304,8 @@ CONTAINS
       call message('    objective_kge_q_sm_corr = ', num2str(objective_master, '(F9.5)'))
     case(29)
       call message('    objective_kge_q_et = ', num2str(objective_master, '(F9.5)'))
+    case(33)
+      call message('    objective_q_et_tws_kge_catchment_avg = ', num2str(objective_master, '(F9.5)'))
     case default
       call message("Error objective_master: opti_function not implemented yet, this part of the code should never execute.")
       stop 1
@@ -350,6 +372,8 @@ CONTAINS
 
     REAL(dp) :: partial_objective
 
+    real(dp), dimension(6) :: multiple_partial_objective
+
     REAL(dp), DIMENSION(:), allocatable :: parameterset
 
     integer(i4) :: ierror
@@ -409,7 +433,8 @@ CONTAINS
         ! KGE for Q * RMSE for domain_avg ET (standarized scored)
         partial_objective = objective_kge_q_rmse_et(parameterset, eval)
         stop
-
+      case(33)
+        multiple_partial_objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
       case default
         call message("Error objective_subprocess: opti_function not implemented yet.")
         stop 1
@@ -418,6 +443,8 @@ CONTAINS
       select case (opti_function)
       case (10 : 13, 17, 27 : 29)
         call MPI_Send(partial_objective,1, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
+      case(33)
+        call MPI_Send(multiple_partial_objective,6, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
         call message("Error objective_subprocess: this part should not be executed -> error in the code.")
         stop 1
@@ -596,6 +623,331 @@ CONTAINS
 
   END FUNCTION objective_sm_kge_catchment_avg
 
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_q_et_tws_kge_catchment_avg
+
+  !    PURPOSE
+  !>       \brief Objective function for et, tws and q.
+
+  !>       \details The feature of this objective function is the
+  !>                separation of the eval call into four
+  !>                calls, each with another index list. The subroutine eval then only
+  !>                uses the indices from that index list internally instead of having loops
+  !>                over all domains. The integer array domainMeta%optidata decides which
+  !>                indices to use. Therefore the array is split into disjunct subsets, and,
+  !>                if chosen wisely in the namelist, also covers all domains.
+  !>               
+  !>                With this the eval calls sum up in a way that for each domain eval was
+  !>                called at most once, but for different opti_data.
+
+  !    HISTORY
+  !>       \authors Maren Kaluza
+
+  !>       \date July 2019
+
+  ! Modifications:
+
+  FUNCTION objective_q_et_tws_kge_catchment_avg(parameterset, eval)
+
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, domainMeta
+    use mo_errormeasures, only : kge
+    use mo_global_variables, only : L1_sm, L1_sm_mask
+    use mo_message, only : message
+    use mo_moment, only : average
+    use mo_string_utils, only : num2str
+#ifdef MRM2MHM
+    use mo_mrm_objective_function_runoff, only : extract_runoff
+#endif
+
+    implicit none
+
+    !> the parameterset passed to the eval subroutine
+    real(dp), dimension(:), intent(in) :: parameterset
+    !> the eval subroutine called by this objective function
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+    !> the return value of the objective function. In this case it is
+    !> an array to provide the possibility to weight the outcome accordingly
+    real(dp), dimension(6) :: objective_q_et_tws_kge_catchment_avg
+
+    !> domain loop counter
+    integer(i4) :: iDomain
+
+    !> counter for short loops
+    integer(i4) :: i
+#ifndef MPI
+    !> for sixth root
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+    !> spatial average of observed soil moisture
+    real(dp), dimension(:), allocatable :: sm_catch_avg_domain
+
+    !> spatial avergae of modeled  soil moisture
+    real(dp), dimension(:), allocatable :: sm_opti_catch_avg_domain
+
+#ifdef MRM2MHM
+    !> modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+    !> number of all gauges, aquired via runoff
+    integer(i4) :: nGaugesTotal
+
+    !> aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    !> measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    !> mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+    !> kge_q(nGaugesTotal)
+    real(dp) :: kge_q
+
+    !> gauges counter
+    integer(i4) :: gg
+
+    !> number of q domains
+    integer(i4) :: nQDomains
+#endif
+
+    !> number of et domains
+    integer(i4) :: nEtDomains
+
+    !> number of tws domains
+    integer(i4) :: nTwsDomains
+
+    !> number of TWS and ET domains (providing both)
+    integer(i4) :: nEtTwsDomains
+
+    !> index array of ET domains
+    integer(i4), dimension(:), allocatable :: opti_domain_indices_ET
+
+    !> index array of TWS domains
+    integer(i4), dimension(:), allocatable :: opti_domain_indices_TWS
+    
+    !> index array of TWS and ET domains (providing both)
+    integer(i4), dimension(:), allocatable :: opti_domain_indices_ET_TWS
+
+    !> index array of ET domains
+    integer(i4), dimension(:), allocatable :: opti_domain_indices_Q
+
+    !> simulated tws
+    real(dp), allocatable, dimension(:, :) :: tws
+
+    !> simulated et
+    ! (dim1=ncells, dim2=time)
+    real(dp), dimension(:, :), allocatable :: et_opti
+
+    !> simulated tws
+    real(dp), dimension(:), allocatable :: tws_sim
+
+    !> measured tws
+    real(dp), dimension(:), allocatable :: tws_obs
+
+    !> mask for measured tws
+    logical, dimension(:), allocatable :: tws_obs_mask
+
+    real(dp) :: kge_tws
+
+    !> spatial average of observed et
+    real(dp), dimension(:), allocatable :: et_catch_avg_domain
+
+    !> spatial avergae of modeled  et
+    real(dp), dimension(:), allocatable :: et_opti_catch_avg_domain
+
+    !> mask for valid et catchment avg time steps
+    logical, dimension(:), allocatable :: mask_times_et
+    
+    real(dp) :: kge_et
+
+
+    ! initialize some variables
+    objective_q_et_tws_kge_catchment_avg(:) = 0.0_dp
+    kge_tws = 0.0_dp
+    kge_et = 0.0_dp
+    kge_q = 0.0_dp
+    !--------------------------------------------
+    ! ET & TWS
+    !--------------------------------------------
+    ! eval runs to get simulated output for et and tws
+    ! before each eval call we generate an index list of the domains for which
+    ! eval should be called. Read details for further information
+    call init_indexarray_for_opti_data(domainMeta, 6, nEtTwsDomains, opti_domain_indices_ET_TWS) 
+    if (nEtTwsDomains > 0) then
+      call eval(parameterset, opti_domain_indices = opti_domain_indices_ET_TWS, &
+                                                                        domain_avg_tws = tws, et_opti = et_opti)
+      ! for all domains that have ET and TWS
+      do i = 1, size(opti_domain_indices_ET_TWS)
+        iDomain = opti_domain_indices_ET_TWS(i)
+        ! create et array input
+        call create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
+                                           et_opti_catch_avg_domain, mask_times_et)
+        call extract_domain_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
+        kge_et = kge_et + &
+          ((1.0_dp - KGE(et_catch_avg_domain, et_opti_catch_avg_domain, mask = mask_times_et)) / &
+                                        real(domainMeta%overallNumberOfDomains, dp))**6
+        kge_tws = kge_tws + &
+          ((1.0_dp - KGE(tws_obs, tws_sim, mask = tws_obs_mask)) / &
+                                        real(domainMeta%overallNumberOfDomains, dp))**6
+        ! deallocate
+        deallocate(tws_sim, tws_obs, tws_obs_mask)
+        deallocate(mask_times_et, et_catch_avg_domain, et_opti_catch_avg_domain)
+      end do
+     ! write(0,*) 'nEtTwsDomains, kge_tws', nEtTwsDomains, kge_tws
+     ! write(0,*) 'nEtTwsDomains, kge_et', nEtTwsDomains, kge_et
+    end if
+    !--------------------------------------------
+    ! TWS
+    !--------------------------------------------
+    ! eval runs to get simulated output for tws
+    ! before each eval call we generate an index list of the domains for which
+    ! eval should be called. Read details for further information
+    call init_indexarray_for_opti_data(domainMeta, 3, nTwsDomains, opti_domain_indices_TWS)
+    if (nTwsDomains > 0) then
+      call eval(parameterset, opti_domain_indices = opti_domain_indices_TWS, domain_avg_tws = tws)
+      ! for all domains that have ET and TWS
+      do i = 1, size(opti_domain_indices_TWS)
+        iDomain = opti_domain_indices_TWS(i)
+        ! extract tws the same way as runoff using mrm
+        call extract_domain_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
+        kge_tws = kge_tws + &
+          ((1.0_dp - KGE(tws_obs, tws_sim, mask = tws_obs_mask)) / &
+                                        real(domainMeta%overallNumberOfDomains, dp))**6
+        deallocate (tws_sim, tws_obs, tws_obs_mask)
+      end do
+    !  write(0,*) 'nTwsDomains, kge_tws', nTwsDomains, kge_tws
+    end if
+    objective_q_et_tws_kge_catchment_avg(2) = kge_tws
+    
+    !--------------------------------------------
+    ! ET
+    !--------------------------------------------
+    ! eval runs to get simulated output for et
+    ! before each eval call we generate an index list of the domains for which
+    ! eval should be called. Read details for further information
+    call init_indexarray_for_opti_data(domainMeta, 5, nEtDomains, opti_domain_indices_ET)
+    if (nEtDomains > 0) then
+      call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, et_opti = et_opti)
+      ! for all domains that have ET and TWS
+      do i = 1, size(opti_domain_indices_ET)
+        iDomain = opti_domain_indices_ET(i)
+        ! create et array input
+        call create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
+                                           et_opti_catch_avg_domain, mask_times_et)
+        kge_et = kge_et + &
+          ((1.0_dp - KGE(et_catch_avg_domain, et_opti_catch_avg_domain, mask = mask_times_et)) / &
+                                        real(domainMeta%overallNumberOfDomains, dp))**6
+        ! deallocate
+        deallocate(mask_times_et, et_catch_avg_domain, et_opti_catch_avg_domain)
+      end do
+     ! write(0,*) 'nEtDomains, kge_et', nEtDomains, kge_et
+    end if
+    objective_q_et_tws_kge_catchment_avg(3) = kge_et
+
+    !--------------------------------------------
+    ! RUNOFF
+    !--------------------------------------------
+    ! eval runs to get simulated output for runoff
+    ! before the eval call we generate an index list of the domains for which
+    ! eval should be called. Read details for further information
+    ! ToDo: was there a reason to call this at the end? Was it about the index
+    ! array? The arrays for qTin, qTout, etc were rewritten in the other calls
+    call init_indexarray_for_opti_data(domainMeta, 1, nQDomains, opti_domain_indices_Q)
+#ifndef MRM2MHM
+    call message('***ERROR: objective_q_et_tws_kge_catchment_avg: missing routing module for optimization')
+    stop 1
+#else
+    if (nQDomains > 0) then
+      call eval(parameterset, opti_domain_indices = opti_domain_indices_Q, runoff = runoff)
+      nGaugesTotal = size(runoff, dim = 2)
+      do gg = 1, nGaugesTotal
+
+        ! extract runoff
+        call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+
+        kge_q = kge_q + &
+              kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+        deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
+      end do
+     ! write(0,*) 'nQDomains, kge_q', nQDomains, kge_q
+    end if
+    objective_q_et_tws_kge_catchment_avg(1) = kge_q
+#endif
+
+
+#ifndef MPI
+    objective_q_et_tws_kge_catchment_avg(1) = (kge_q+kge_et+kge_tws)**onesixth
+
+    call message('    objective_q_et_tws_kge_catchment_avg = ', &
+                      num2str(objective_q_et_tws_kge_catchment_avg(1), '(F9.5)'))
+#endif
+
+  END FUNCTION objective_q_et_tws_kge_catchment_avg
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        init_indexarray_for_opti_data
+
+  !    PURPOSE
+  !>       \brief creates an index array of the inidices of the domains eval
+  !>              should MPI process.
+  !
+  !>       \details The data type domainMeta contains an array optidata of size
+  !>                domainMeta%nDomains, telling us, which domains should be
+  !>                optimized with which opti_data. This subroutine splits all
+  !>                domains assigned to a process and returns an index list
+  !>                corresponding to the value of domainMeta%optidata.
+  !>
+  !>                The index array opti_domain_indices can then be passed
+  !>                as an optional argument to the eval subroutine. The
+  !>                eval then instead of using loops over all domains only
+  !>                uses the passed indices.
+  !>
+  !>                This subroutine also returns the size of that array since it
+  !>                helps with the calculations of the optimization in the end.
+
+  !    HISTORY
+  !>       \authors Maren Kaluza
+
+  !>       \date July 2019
+  subroutine init_indexarray_for_opti_data(domainMeta, optidataOption, nOptiDomains, opti_domain_indices)
+    use mo_message, only : message
+    use mo_common_variables, only : domain_meta
+    !> meta data for all domains assigned to that process
+    type(domain_meta),                                intent(in)    :: domainMeta
+    !> which opti data should be used in the eval called after calling this subroutine
+    integer(i4),                                      intent(in)    :: optidataOption
+    !> number of domains that will be optimized in the following eval call
+    integer(i4),                                      intent(out)   :: nOptiDomains
+    !> the indices of the domains that are to be processed in the following eval call
+    integer(i4), dimension(:), allocatable,           intent(out)   :: opti_domain_indices
+
+    !> domain loop counter
+    integer(i4) :: iDomain, i
+
+    if (allocated(opti_domain_indices)) deallocate(opti_domain_indices)
+    ! count domains on MPI process that use optidata
+    nOptiDomains = 0
+    do iDomain = 1, domainMeta%nDomains
+      if (domainMeta%optidata(iDomain) == optidataOption) nOptiDomains = nOptiDomains + 1
+    end do
+    ! write indices of these domains into an array
+    if (nOptiDomains > 0) then
+      allocate(opti_domain_indices(nOptiDomains))
+      i = 0
+      do iDomain = 1, domainMeta%nDomains
+        if (domainMeta%optidata(iDomain) == optidataOption) then
+          i = i + 1
+          opti_domain_indices(i) = iDomain
+        end if
+      end do
+    end if
+  end subroutine init_indexarray_for_opti_data
   ! ------------------------------------------------------------------
 
   !    NAME
@@ -1249,8 +1601,8 @@ CONTAINS
       ! check for potentially 2 years of data
       pp = count(runoff_agg .ge. 0.0_dp)
       if (pp .lt.  365 * 2) then
-        call message('objective_kge_q_rmse_tws: Length of TWS data of domain ', trim(adjustl(num2str(domainID))), &
-        ' less than 2 years: this is not recommended')
+        call message('objective_kge_q_rmse_tws: The simulation at gauge ', trim(adjustl(num2str(gg))), &
+        ' is not long enough. Please provide at least 730 days of data.')
       end if
       ! calculate KGE for each domain:
       kge_q(gg) = kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
@@ -1394,7 +1746,7 @@ CONTAINS
         ! check for enough data points in time for correlation
         if (all(.NOT. L1_neutronsdata_mask(s1 : e1, iTime))) then
           call message('WARNING: neutrons data at time ', num2str(iTime, '(I10)'), ' is empty.')
-          !call message('WARNING: objective_neutrons_kge_catchment_avg: ignored currrent time step since less than')
+          !call message('WARNING: objective_neutrons_kge_catchment_avg: ignored current time step since less than')
           !call message('         10 valid cells available in soil moisture observation')
           mask_times(iTime) = .FALSE.
           cycle
@@ -1523,36 +1875,10 @@ CONTAINS
     ! loop over domain - for applying power law later on
     do iDomain = 1, domainMeta%nDomains
 
-      ! get domain information
-      s1 = level1(iDomain)%iStart
-      e1 = level1(iDomain)%iEnd
-
-      ! allocate
-      allocate(mask_times             (size(et_opti, dim = 2)))
-      allocate(et_catch_avg_domain     (size(et_opti, dim = 2)))
-      allocate(et_opti_catch_avg_domain(size(et_opti, dim = 2)))
-
-      ! initalize
-      mask_times = .TRUE.
-      et_catch_avg_domain = nodata_dp
-      et_opti_catch_avg_domain = nodata_dp
-
-      ! calculate catchment average evapotranspiration
-      do iTime = 1, size(et_opti, dim = 2)
-
-        ! check for enough data points in time for correlation
-        if (all(.NOT. L1_et_mask(s1 : e1, iTime))) then
-          !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
-          !call message('WARNING: objective_et_kge_catchment_avg: ignored currrent time step since less than')
-          !call message('         10 valid cells available in evapotranspiration observation')
-          mask_times(iTime) = .FALSE.
-          cycle
-        end if
-
-        et_catch_avg_domain(iTime) = average(L1_et(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
-        et_opti_catch_avg_domain(iTime) = average(et_opti(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
-      end do
-
+      ! create et array input
+      ! ToDo: Check if this still does the same
+      call create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
+                                           et_opti_catch_avg_domain, mask_times)
       ! calculate average ET KGE over all domains with power law
       ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
 
@@ -2114,7 +2440,7 @@ CONTAINS
         ! check for enough data points in time for correlation
         if (all(.NOT. L1_et_mask(s1 : e1, iTime))) then
           !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
-          !call message('WARNING: objective_et_kge_catchment_avg: ignored currrent time step since less than')
+          !call message('WARNING: objective_et_kge_catchment_avg: ignored current time step since less than')
           !call message('         10 valid cells available in evapotranspiration observation')
           mask_times(iTime) = .FALSE.
           cycle
@@ -2372,5 +2698,64 @@ CONTAINS
 
   end subroutine extract_domain_avg_tws
 
+  subroutine create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
+                                           et_opti_catch_avg_domain, mask_times)
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1
+    use mo_global_variables, only : L1_et, L1_et_mask
+    use mo_moment, only : average
+    ! current domain Id
+    integer(i4), intent(in) :: iDomain
+
+    ! simulated domain average tws
+    real(dp), dimension(:, :), intent(in) :: et_opti
+
+    ! aggregated simulated
+    real(dp), dimension(:), allocatable, intent(out) :: et_catch_avg_domain
+
+    ! extracted measured
+    real(dp), dimension(:), allocatable, intent(out) :: et_opti_catch_avg_domain
+
+    ! mask of no data values
+    logical, dimension(:), allocatable, intent(out) :: mask_times
+
+    ! local
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! start and end index for the current domain
+    integer(i4) :: s1, e1
+
+    ! get domain information
+    s1 = level1(iDomain)%iStart
+    e1 = level1(iDomain)%iEnd
+
+    ! allocate
+    allocate(mask_times              (size(et_opti, dim = 2)))
+    allocate(et_catch_avg_domain     (size(et_opti, dim = 2)))
+    allocate(et_opti_catch_avg_domain(size(et_opti, dim = 2)))
+
+    ! initalize
+    mask_times = .TRUE.
+    et_catch_avg_domain = nodata_dp
+    et_opti_catch_avg_domain = nodata_dp
+
+    ! calculate catchment average evapotranspiration
+    do iTime = 1, size(et_opti, dim = 2)
+
+      ! check for enough data points in time for correlation
+      if (all(.NOT. L1_et_mask(s1 : e1, iTime))) then
+        !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
+        !call message('WARNING: objective_et_kge_catchment_avg: ignored current time step since less than')
+        !call message('         10 valid cells available in evapotranspiration observation')
+        mask_times(iTime) = .FALSE.
+        cycle
+      end if
+
+      et_catch_avg_domain(iTime) = average(L1_et(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
+      et_opti_catch_avg_domain(iTime) = average(et_opti(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
+    end do
+
+  end subroutine create_domain_avg_et
 
 END MODULE mo_objective_function

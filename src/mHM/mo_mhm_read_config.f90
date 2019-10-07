@@ -285,6 +285,46 @@ CONTAINS
           domain_avg_TWS_obs%domainId(iDomain) = iDomain
           domain_avg_TWS_obs%fname(iDomain) = trim(file_TWS(iDomain))
         end do
+      case(33)
+        ! evapotranspiration
+        call position_nml('optional_data', unamelist)
+        read(unamelist, nml = optional_data)
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          dirEvapotranspiration(iDomain) = dir_evapotranspiration(domainID)
+        end do
+
+        ! domain average TWS data
+        call position_nml('optional_data', unamelist)
+        read(unamelist, nml = optional_data)
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          fileTWS(iDomain) = file_TWS (domainID)
+        end do
+
+        allocate(domain_avg_TWS_obs%domainId(domainMeta%nDomains)); domain_avg_TWS_obs%domainId = nodata_i4
+        allocate(domain_avg_TWS_obs%fName  (domainMeta%nDomains)); domain_avg_TWS_obs%fName(:) = num2str(nodata_i4)
+
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          if (trim(fileTWS(iDomain)) .EQ. trim(num2str(nodata_i4))) then
+            if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
+                domainMeta%optidata(iDomain) == 6) then
+              call message()
+              call message('***ERROR: mhm.nml: Filename of evaluation TWS data ', &
+                      ' for subdomain ', trim(adjustl(num2str(domainID))), &
+                      ' is not defined!')
+              call message('          Error occured in namelist: evaluation_tws')
+              stop 1
+            end if
+          end if
+
+          if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
+              domainMeta%optidata(iDomain) == 6) then
+            domain_avg_TWS_obs%domainId(iDomain) = iDomain
+            domain_avg_TWS_obs%fname(iDomain) = trim(file_TWS(iDomain))
+          end if
+        end do
       end select
     end if
 

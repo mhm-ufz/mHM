@@ -276,7 +276,11 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   itimer = 1
 #ifdef MPI
-  if (rank > 0 .and. domainMeta%isMaster) then
+  ! ComLocal is a communicator, i.e. a group of processes assigned to the same
+  ! domain, with a master and subprocesses. Only the master processes of these
+  ! groups need to read the data. The master process with rank 0 only
+  ! coordinates the other processes and does not need to read the data.
+  if (rank > 0 .and. domainMeta%isMasterInComLocal) then
 #endif
   call message()
 
@@ -327,6 +331,18 @@ PROGRAM mhm_driver
         if (iDomain == domainMeta%nDomains) then
           call read_domain_avg_TWS()
         end if
+      case(33)
+        ! read optional spatio-temporal evapotranspiration data
+        if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
+          domainMeta%optidata(iDomain) == 6 ) then
+          call read_evapotranspiration(iDomain, domainID)
+        end if
+        ! read optional domain average TWS data at once, therefore only read it
+        ! the last iteration of the domain loop to ensure same time for all domains
+        ! note: this is similar to how the runoff is read using mrm below
+        if (iDomain == domainMeta%nDomains) then
+          call read_domain_avg_TWS()
+        end if
       end select
     end if
 
@@ -338,7 +354,7 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) .ne. 0_i4) call mrm_init(file_namelist_mhm, unamelist_mhm, &
+  if (processMatrix(8, 1) > 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
           file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon=ReadLatLon)
 #else
   mrm_coupling_mode = -1_i4
@@ -364,24 +380,32 @@ PROGRAM mhm_driver
       ! call optimization against only runoff (no other variables)
       obj_func => single_objective_runoff
 #ifdef MPI
-      if (rank == 0 .and. domainMeta%isMaster) then
+      if (rank == 0 .and. domainMeta%isMasterInComLocal) then
         obj_func => single_objective_runoff_master
         call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
-      else if (domainMeta%isMaster) then
+      else if (domainMeta%isMasterInComLocal) then
+        ! In case of a master process from ComLocal, i.e. a master of a group of
+        ! processes that are assigned to a single domain, this process calls the
+        ! objective subroutine directly. The master over all processes collects
+        ! the data and runs the dds/sce/other opti method.
         call single_objective_runoff_subprocess(eval)
       end if
 #else
       call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
 #endif
 #endif
-     case(10 : 13, 15, 17, 27, 28, 29, 30)
+     case(10 : 13, 15, 17, 27, 28, 29, 30, 33)
       ! call optimization for other variables
       obj_func => objective
 #ifdef MPI
-      if (rank == 0 .and. domainMeta%isMaster) then
+      if (rank == 0 .and. domainMeta%isMasterInComLocal) then
         obj_func => objective_master
         call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
-      else if (domainMeta%isMaster) then
+      else if (domainMeta%isMasterInComLocal) then
+        ! In case of a master process from ComLocal, i.e. a master of a group of
+        ! processes that are assigned to a single domain, this process calls the
+        ! objective subroutine directly. The master over all processes collects
+        ! the data and runs the dds/sce/other opti method.
         call objective_subprocess(eval)
       end if
 #else
@@ -393,7 +417,7 @@ PROGRAM mhm_driver
       stop 1
     end select
 #ifdef MPI
-  if (rank == 0 .and. domainMeta%isMaster) then
+  if (rank == 0 .and. domainMeta%isMasterInComLocal) then
 #endif
     ! write a file with final objective function and the best parameter set
     call write_optifile(funcbest, global_parameters(:, 3), global_parameters_name(:))
@@ -406,11 +430,12 @@ PROGRAM mhm_driver
   else
 
 #ifdef MPI
-    if (rank > 0 .and. domainMeta%isMaster) then
+    if (rank > 0 .and. domainMeta%isMasterInComLocal) then
 #endif
       ! --------------------------------------------------------------------------
       ! call mHM
-      ! get runoff timeseries if possible (i.e. when processMatrix(8,1) > 0)
+      ! get runoff timeseries if possible (i.e. when domainMeta%doRouting,
+      ! processMatrix(8,1) > 0)
       ! get other model outputs  (i.e. gridded fields of model output)
       ! --------------------------------------------------------------------------
       call message('  Run mHM')
@@ -425,7 +450,7 @@ PROGRAM mhm_driver
   end if
 
 #ifdef MPI
-  if (rank > 0 .and. domainMeta%isMaster) then
+  if (rank > 0 .and. domainMeta%isMasterInComLocal) then
 #endif
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files
@@ -445,7 +470,7 @@ PROGRAM mhm_driver
   ! WRITE RUNOFF (INCLUDING RESTART FILES, has to be called after mHM restart
   ! files are written)
   ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) .ne. 0) call mrm_write()
+  if (processMatrix(8, 1) > 0) call mrm_write()
 #endif
 
 #ifdef MPI

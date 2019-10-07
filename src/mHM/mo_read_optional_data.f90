@@ -129,6 +129,7 @@ CONTAINS
 
   end subroutine read_soil_moisture
 
+  !ToDo: why is iDomain input for all reading routines except this
   ! ---------------------------------------------------------------------------
 
   !    NAME
@@ -157,7 +158,7 @@ CONTAINS
     use mo_file, only : utws
     use mo_global_variables, only : domain_avg_TWS_obs, domain_avg_TWS_sim, nMeasPerDay_TWS
     use mo_message, only : message
-    use mo_read_timeseries, only : read_timeseries
+    use mo_read_timeseries, only : read_timeseries, create_dummy_timeseries
     use mo_string_utils, only : num2str
 
     implicit none
@@ -175,6 +176,8 @@ CONTAINS
 
     logical, dimension(:), allocatable :: mask_1d
 
+    logical :: atLeastOneTWSDomain 
+
 
     ! ************************************************
     ! INITIALIZE TWS
@@ -187,20 +190,36 @@ CONTAINS
     ! READ domain average TWS TIME SERIES
     ! ************************************************
     !
+    atLeastOneTWSDomain = .FALSE.
+    do iDomain = 1, domainMeta%nDomains
+      if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
+          domainMeta%optidata(iDomain) == 6 ) then
+        fName = trim(adjustl(domain_avg_TWS_obs%fname(iDomain)))
+        atLeastOneTWSDomain = .TRUE.
+      end if
+    end do
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      call message('  Reading domain average TWS for domain:     ', trim(adjustl(num2str(domainID))), ' ...')
+      if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
+          domainMeta%optidata(iDomain) == 6 ) then
+        call message('  Reading domain average TWS for domain:     ', trim(adjustl(num2str(domainID))), ' ...')
 
-      ! get start and end dates
-      start_tmp = (/evalPer(iDomain)%yStart, evalPer(iDomain)%mStart, evalPer(iDomain)%dStart/)
-      end_tmp = (/evalPer(iDomain)%yEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%dEnd  /)
-      fName = trim(adjustl(domain_avg_TWS_obs%fname(iDomain)))
-      call read_timeseries(trim(fName), utws, &
-              start_tmp, end_tmp, optimize, opti_function, &
-              data_dp_1d, mask = mask_1d, nMeasPerDay = nMeasPerDay_TWS)
-      data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
-      call paste(domain_avg_TWS_obs%TWS, data_dp_1d, nodata_dp)
-      deallocate (data_dp_1d)
+        ! get start and end dates
+        start_tmp = (/evalPer(iDomain)%yStart, evalPer(iDomain)%mStart, evalPer(iDomain)%dStart/)
+        end_tmp = (/evalPer(iDomain)%yEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%dEnd  /)
+        fName = trim(adjustl(domain_avg_TWS_obs%fname(iDomain)))
+        call read_timeseries(trim(fName), utws, &
+                start_tmp, end_tmp, optimize, opti_function, &
+                data_dp_1d, mask = mask_1d, nMeasPerDay = nMeasPerDay_TWS)
+        data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
+        call paste(domain_avg_TWS_obs%TWS, data_dp_1d, nodata_dp)
+        deallocate (data_dp_1d)
+      else if (atLeastOneTWSDomain) then
+        call create_dummy_timeseries(trim(fName), utws, start_tmp, end_tmp, data_dp_1d, mask = mask_1d)
+        data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
+        call paste(domain_avg_TWS_obs%TWS, data_dp_1d, nodata_dp)
+        deallocate (data_dp_1d)
+      end if
     end do
 
   end subroutine read_domain_avg_TWS

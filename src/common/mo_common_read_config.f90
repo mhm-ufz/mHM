@@ -84,6 +84,8 @@ CONTAINS
 
     integer(i4), dimension(maxNoDomains) :: L0Domain
 
+    integer(i4), dimension(maxNoDomains) :: read_opt_domain_data
+
     ! starting year LCover
     integer(i4), dimension(maxNLCovers) :: LCoverYearStart
 
@@ -108,7 +110,8 @@ CONTAINS
             dir_Out, dir_RestartOut, &
             file_LatLon
     ! namelist spatial & temporal resolution, optimization information
-    namelist /mainconfig/ iFlag_cordinate_sys, resolution_Hydrology, nDomains, L0Domain, write_restart
+    namelist /mainconfig/ iFlag_cordinate_sys, resolution_Hydrology, nDomains, L0Domain, write_restart, &
+            read_opt_domain_data
     ! namelist process selection
     namelist /processSelection/ processCase
 
@@ -132,7 +135,7 @@ CONTAINS
     call position_nml('mainconfig', unamelist)
     read(unamelist, nml = mainconfig)
 
-    call init_domain_variable(nDomains, domainMeta)
+    call init_domain_variable(nDomains, read_opt_domain_data(1:nDomains), domainMeta)
 
     if (nDomains .GT. maxNoDomains) then
       call message()
@@ -148,6 +151,8 @@ CONTAINS
     allocate(dirOut(domainMeta%nDomains))
     allocate(fileLatLon(domainMeta%nDomains))
     allocate(domainMeta%L0DataFrom(domainMeta%nDomains))
+    allocate(domainMeta%optidata(domainMeta%nDomains))
+    allocate(domainMeta%doRouting(domainMeta%nDomains))
 
     nuniqueL0Domains = 0_i4
     do iDomain = 1, domainMeta%nDomains
@@ -191,19 +196,24 @@ CONTAINS
     LC_year_end(:) = LCoverYearEnd(1 : nLCoverScene)
 
     !===============================================================
-    !  Read namelist for mainpaths
+    ! Read namelist for mainpaths
     !===============================================================
     call position_nml('directories_general', unamelist)
     read(unamelist, nml = directories_general)
 
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      dirMorpho(iDomain)     = dir_Morpho(domainID)
-      dirRestartOut(iDomain) = dir_RestartOut(domainID)
-      dirLCover(iDomain)     = dir_LCover(domainID)
-      dirOut(iDomain)        = dir_Out(domainID)
-      fileLatLon(iDomain)    = file_LatLon(domainID)
+      domainMeta%optidata(iDomain) = read_opt_domain_data(domainID)
+      dirMorpho(iDomain)           = dir_Morpho(domainID)
+      dirRestartOut(iDomain)       = dir_RestartOut(domainID)
+      dirLCover(iDomain)           = dir_LCover(domainID)
+      dirOut(iDomain)              = dir_Out(domainID)
+      fileLatLon(iDomain)          = file_LatLon(domainID)
     end do
+
+    ! ToDo: add test if opti_function matches at least one domainMeta%optidata
+    ! as soon as common and common_mRM_mHM are merged, if that is the plan
+
 
     !===============================================================
     ! Read process selection list
@@ -213,6 +223,11 @@ CONTAINS
 
     processMatrix = 0_i4
     processMatrix(:, 1) = processCase
+    if (processMatrix(8, 1) == 0) then
+      domainMeta%doRouting(:) = .FALSE.
+    else
+      domainMeta%doRouting(:) = .TRUE.
+    end if
 
     call close_nml(unamelist)
 
@@ -308,13 +323,38 @@ CONTAINS
 
   end subroutine set_land_cover_scenes_id
 
-  subroutine init_domain_variable(nDomains, domainMeta)
+!< author: Maren Kaluza
+!< date: September 2019
+!< summary: Initialization of the domain variable for all domain loops and if activated for parallelization
+
+!< In case of MPI parallelization domainMeta%overAllNumberOfDomains is a
+!< variable where the number of domains from the namelist is stored. By this
+!< every process knows the total number of domains. Then, in a loop the
+!< domains are distributed onto the processes. There is a master process
+!< and several subprocesses. The master process only reads the confings in the
+!< mHM driver.
+!<
+!< The subprocesses get a number of domains. domainMeta%nDomain refers
+!< to the number of domains assigned to a specific process. It is a local
+!< variable and therefore has a different value for each process.
+!<
+!< In case more domains are there than processes, currently the domains
+!< are distributed round robin, i.e. like cards in a card game.
+!<
+!< In case less domains than processes exist, all remaining processes
+!< are assigned to the routing domains round robin. In that case the
+!< local communicator is of interest: It is a group of processes assigned
+!< to a routing domain again with a master process
+!< (domainMeta%isMasterInComLocal) and subprocesses. This communicator can
+!< in future be passed to the routing parallelization.
+  subroutine init_domain_variable(nDomains, optiData, domainMeta)
     use mo_common_variables, only: domain_meta
 #ifdef MPI
     use mo_common_variables, only: comm
     use mpi_f08
 #endif
     integer(i4),       intent(in)    :: nDomains
+    integer(i4), dimension(:), intent(in) :: optiData
     type(domain_meta), intent(inout) :: domainMeta
 
     integer             :: ierror
@@ -332,42 +372,34 @@ CONTAINS
     if (nproc < 2) then
       stop 'at least 2 processes are required'
     end if
+    ! if there are more processes than domains
     if (nproc > domainMeta%overallNumberOfDomains + 1) then
       domainMeta%nDomains = 0
       ! master reads only metadata of all domains
       if (rank == 0) then
-        domainMeta%nDomains = domainMeta%overallNumberOfDomains
-        allocate(domainMeta%indices(domainMeta%nDomains))
-        do iDomain = 1, domainMeta%nDomains
-          domainMeta%indices(iDomain) = iDomain
-        end do
-        colMasters = 1
-        domainMeta%isMaster = .true.
-      ! all other nodes only read metadata but also data of assigned domains
+        call init_domain_variable_for_master(domainMeta, colMasters, colDomain)
+      ! all other nodes read metadata but also data of assigned domains
       else
-        if (rank < domainMeta%overallNumberOfDomains + 1) then
-          colMasters = 1
-          domainMeta%isMaster = .true.
-          domainMeta%nDomains = 1
-          allocate(domainMeta%indices(domainMeta%nDomains))
-          domainMeta%indices(1) = rank
-        else
-          colMasters = 0
-          domainMeta%isMaster = .false.
-          domainMeta%nDomains = 1
-          allocate(domainMeta%indices(domainMeta%nDomains))
-          ! ToDo : temporary solution, this should either not read data at all
-          ! or data corresponding to the master process
-          domainMeta%indices(1) = 1
-        end if
+        ! currently each domain gets one process except it is a routing domain.
+        ! in that case the remaining processes are distributed round robin to
+        ! the routing domains.
+        call distribute_processes_to_domains_according_to_role(optiData, rank, &
+                                               domainMeta, colMasters, colDomain)
       end if
+      ! two communicators are created, i.e. groups of processes that talk about
+      ! a certain topic:
+      ! comMaster is the communicator of all processes that need to read all
+      ! data. These are the processes that are masters in the comLocal plus the
+      ! master over all processes. comLocal is a communicator for a group of
+      ! processes assigned to the same domain.
       call MPI_Comm_split(comm, colMasters, rank, domainMeta%comMaster, ierror)
+      call MPI_Comm_split(comm, colDomain, rank, domainMeta%comLocal, ierror)
       call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
     else
       ! in case of more domains than processes, distribute domains round robin
       ! onto the processes
       call MPI_Comm_dup(comm, domainMeta%comMaster, ierror)
-      domainMeta%isMaster = .true.
+      domainMeta%isMasterInComLocal = .true.
       domainMeta%nDomains = 0
       ! master reads only metadata of all domains
       if (rank == 0) then
@@ -376,7 +408,7 @@ CONTAINS
         do iDomain = 1, domainMeta%nDomains
           domainMeta%indices(iDomain) = iDomain
         end do
-      ! all other nodes only read metadata but also data of assigned domains
+      ! all other nodes read metadata but also data of assigned domains
       else
         call distributeDomainsRoundRobin(nproc, rank, domainMeta)
       end if
@@ -392,6 +424,26 @@ CONTAINS
   end subroutine init_domain_variable
 
 #ifdef MPI
+  subroutine init_domain_variable_for_master(domainMeta, colMasters, colDomain)
+    use mo_common_variables, only: domain_meta
+    type(domain_meta), intent(inout) :: domainMeta
+    integer(i4),       intent(out)   :: colMasters
+    integer(i4),       intent(out)   :: colDomain
+    !local
+    integer(i4) :: iDomain
+
+    domainMeta%nDomains = domainMeta%overallNumberOfDomains
+    allocate(domainMeta%indices(domainMeta%nDomains))
+    do iDomain = 1, domainMeta%nDomains
+      domainMeta%indices(iDomain) = iDomain
+    end do
+    colMasters = 1
+    colDomain = 0
+    domainMeta%isMasterInComLocal = .true.
+
+  end subroutine init_domain_variable_for_master
+
+
   subroutine distributeDomainsRoundRobin(nproc, rank, domainMeta)
     use mo_common_variables, only: domain_meta
     integer(i4),       intent(in)    :: nproc
@@ -414,6 +466,59 @@ CONTAINS
       end if
     end do
   end subroutine distributeDomainsRoundRobin
+
+  subroutine distribute_processes_to_domains_according_to_role(optiData, rank, &
+                                               domainMeta, colMasters, colDomain)
+    use mo_common_variables, only: domain_meta
+    integer(i4), dimension(:), intent(in)    :: optiData
+    integer(i4),               intent(in)    :: rank
+    type(domain_meta),         intent(inout) :: domainMeta
+    integer(i4),               intent(out)   :: colMasters
+    integer(i4),               intent(out)   :: colDomain
+
+    ! local
+    integer(i4) :: nDomainsAll, nTreeDomains, i, iDomain
+    integer(i4), dimension(:), allocatable :: treeDomainList
+
+    nDomainsAll = domainMeta%overallNumberOfDomains
+    nTreeDomains = 0
+    do iDomain = 1, nDomainsAll
+      !ToDo: should also routing but not opti domains be counted?
+      if (optiData(iDomain) == 1) then
+        nTreeDomains = nTreeDomains + 1
+      end if
+    end do
+    allocate(treeDomainList(nTreeDomains))
+    i = 0
+    do iDomain = 1, nDomainsAll
+      if (optiData(iDomain) == 1) then
+        i = i + 1
+        treeDomainList(i) = iDomain
+      end if
+    end do
+    if (rank < nDomainsAll + 1) then
+      colMasters = 1
+      colDomain = rank
+      domainMeta%isMasterInComLocal = .true.
+      domainMeta%nDomains = 1
+      allocate(domainMeta%indices(domainMeta%nDomains))
+      domainMeta%indices(1) = rank
+    else
+      colMasters = 0
+      if (nTreeDomains < 0) then
+        colDomain = treeDomainList(mod(rank, nTreeDomains) + 1)
+      else
+        colDomain = 1
+      end if
+      domainMeta%isMasterInComLocal = .false.
+      domainMeta%nDomains = 1
+      allocate(domainMeta%indices(domainMeta%nDomains))
+      ! ToDo : temporary solution, this should either not read data at all
+      ! or data corresponding to the master process
+      domainMeta%indices(1) = 1
+    end if
+    deallocate(treeDomainList)
+  end subroutine
 #endif
 
 END MODULE mo_common_read_config

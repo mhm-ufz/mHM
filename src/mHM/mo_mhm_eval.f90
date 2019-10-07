@@ -80,7 +80,7 @@ CONTAINS
   ! Robert Schweppe      Dec 2017 - extracted call to mpr from inside mhm
   ! Robert Schweppe      Jun 2018 - refactoring and reformatting
 
-  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
+  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
 
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : LCyearId, dirRestartIn, nTstepDay, optimize, readPer, read_restart, simPer, timeStep, &
@@ -99,6 +99,7 @@ CONTAINS
     use mo_init_states, only : variables_default_init
     use mo_julian, only : caldat, julday
     use mo_message, only : message
+    use mo_string_utils, only : num2str
     use mo_meteo_forcings, only : prepare_meteo_forcings_data
     use mo_mhm, only : mhm
     use mo_mpr_eval, only : mpr_eval
@@ -137,6 +138,7 @@ CONTAINS
     ! a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
     real(dp), dimension(:), intent(in) :: parameterset
 
+    integer(i4), dimension(:), optional, intent(in) :: opti_domain_indices
     ! returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff
 
@@ -246,20 +248,37 @@ CONTAINS
 #endif
     integer(i4) :: gg
 
+    ! number of domains simulated in this mhm_eval run. Depends on opti_function
+    integer(i4) :: nDomains, ii
+
     ! field of TWS
     real(dp), dimension(:), allocatable :: TWS_field
 
     real(dp) :: area_Domain
 
 
+    if (optimize .and. present(opti_domain_indices)) then
+      nDomains = size(opti_domain_indices)
+    else
+      nDomains = domainMeta%nDomains
+    end if
     !----------------------------------------------------------
     ! Check optionals and initialize
     !----------------------------------------------------------
     if (present(runoff)) then
-      if (processMatrix(8, 1) .eq. 0) then
-        call message("***ERROR: runoff can not be produced, since routing process is off in Process Matrix")
-        stop
-      end if
+      do ii = 1, nDomains
+        if (present(opti_domain_indices)) then
+          iDomain = opti_domain_indices(ii)
+        else
+          iDomain = ii
+        end if
+        domainID = domainMeta%indices(iDomain)
+        if (.not. domainMeta%doRouting(iDomain)) then
+          call message("***ERROR: runoff for domain", trim(num2str(domainID)),&
+                        "can not be produced, since routing process is off in Process Matrix")
+          stop
+        end if
+      end do
     end if
     ! soil moisture optimization
     !--------------------------
@@ -286,6 +305,11 @@ CONTAINS
       et_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
     end if
     ! add other optionals...
+    ! allocate space for local tws field
+    if (present(domain_avg_tws)) then
+      allocate(TWS_field(size(L1_pre, dim = 1)))
+      TWS_field(:) = 0.0_dp
+    end if
 
     !-------------------------------------------------------------------
     ! All variables had been allocated to the required
@@ -298,7 +322,7 @@ CONTAINS
       call mpr_eval(parameterset)
 
 #ifdef MRM2MHM
-       if (processMatrix(8, 1) .gt. 0) then
+       if (processMatrix(8, 1) > 0) then
         !-------------------------------------------
         ! L11 ROUTING STATE VARIABLES, FLUXES AND
         !             PARAMETERS
@@ -307,31 +331,40 @@ CONTAINS
       end if
 #endif
     else
-      do iDomain = 1, domainMeta%nDomains
+      do ii = 1, nDomains
+        if (optimize .and. present(opti_domain_indices)) then
+          iDomain = opti_domain_indices(ii)
+        else
+          iDomain = ii
+        end if
         domainID = domainMeta%indices(iDomain)
         ! this reads the eff. parameters and optionally the states and fluxes
         call read_restart_states(iDomain, domainID, dirRestartIn(iDomain))
       end do
     end if
 
-#ifdef MRM2MHM
-    if (processMatrix(8, 1) .gt. 0) then
-      ! ----------------------------------------
-      ! initialize factor between routing resolution and hydrologic model resolution
-      ! ----------------------------------------
-      tsRoutFactor = 1_i4
-      allocate(InflowDischarge(size(InflowGauge%Q, dim = 2)))
-      InflowDischarge = 0._dp
-    end if
-#endif
 
     L1_fNotSealed = 1.0_dp - L1_fSealed
     !----------------------------------------
     ! loop over Domains
     !----------------------------------------
-    do iDomain = 1, domainMeta%nDomains
-      domainID = domainMeta%indices(iDomain)
+    do ii = 1, nDomains
+      if (optimize .and. present(opti_domain_indices)) then
+        iDomain = opti_domain_indices(ii)
+      else
+        iDomain = ii
+      end if
 
+#ifdef MRM2MHM
+      if (domainMeta%doRouting(iDomain)) then
+        ! ----------------------------------------
+        ! initialize factor between routing resolution and hydrologic model resolution
+        ! ----------------------------------------
+        tsRoutFactor = 1_i4
+        allocate(InflowDischarge(size(InflowGauge%Q, dim = 2)))
+        InflowDischarge = 0._dp
+      end if
+#endif
       ! get Domain information
       nCells = level1(iDomain)%nCells
       mask1 => level1(iDomain)%mask
@@ -339,7 +372,7 @@ CONTAINS
       e1 = level1(iDomain)%iEnd
 
 #ifdef MRM2MHM
-       if (processMatrix(8, 1) .gt. 0) then
+       if (domainMeta%doRouting(iDomain)) then
         ! read states from restart
         if (read_restart) call mrm_read_restart_states(iDomain, domainID, dirRestartIn(iDomain))
         !
@@ -356,12 +389,6 @@ CONTAINS
         RunToRout = 0._dp
       end if
 #endif
-
-      ! allocate space for local tws field
-      if (present(domain_avg_tws)) then
-        allocate(TWS_field(s1 : e1))
-        TWS_field(s1 : e1) = nodata_dp
-      end if
 
       ! calculate NtimeSteps for this Domain
       nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nTstepDay
@@ -516,7 +543,7 @@ CONTAINS
 
         ! call mRM routing
 #ifdef MRM2MHM
-        if (processMatrix(8, 1) .gt. 0) then
+        if (domainMeta%doRouting(iDomain)) then
           ! set discharge timestep
           iDischargeTS = ceiling(real(tt, dp) / real(nTstepDay, dp))
           ! set input variables for routing
@@ -902,21 +929,22 @@ CONTAINS
 
       end do !<< TIME STEPS LOOP
 
-      ! deallocate TWS field temporal variable
-      if (allocated(TWS_field)) deallocate(TWS_field)
+      if (allocated(InflowDischarge)) deallocate(InflowDischarge)
 #ifdef MRM2MHM
-       if (processMatrix(8, 1) .ne. 0) then
+       if (domainMeta%doRouting(iDomain)) then
         ! clean runoff variable
         deallocate(RunToRout)
       end if
 #endif
 
     end do !<< Domain LOOP
+    ! deallocate TWS field temporal variable
+    if (allocated(TWS_field)) deallocate(TWS_field)
 #ifdef MRM2MHM
     ! =========================================================================
     ! SET RUNOFF OUTPUT VARIABLE
     ! =========================================================================
-    if (present(runoff) .and. (processMatrix(8, 1) .gt. 0)) runoff = mRM_runoff
+    if (present(runoff) .and. (processMatrix(8, 1) > 0)) runoff = mRM_runoff
 #endif
 
     ! =========================================================================

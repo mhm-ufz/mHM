@@ -88,6 +88,7 @@
     ndomains = 3
     resolution_hydrology(1:3) = 24000, 24000, 24000
     write_restart = .true.
+    read_opt_domain_data(1:3) = 0, 0, 0
 /
 
 &mainconfig_mhm_mrm
