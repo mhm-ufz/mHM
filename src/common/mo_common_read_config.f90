@@ -483,6 +483,7 @@ CONTAINS
     nDomainsAll = domainMeta%overallNumberOfDomains
     nTreeDomains = 0
     do iDomain = 1, nDomainsAll
+      !ToDo: should also routing but not opti domains be counted?
       if (optiData(iDomain) == 1) then
         nTreeDomains = nTreeDomains + 1
       end if
@@ -504,7 +505,11 @@ CONTAINS
       domainMeta%indices(1) = rank
     else
       colMasters = 0
-      colDomain = treeDomainList(mod(rank, nTreeDomains) + 1)
+      if (nTreeDomains < 0) then
+        colDomain = treeDomainList(mod(rank, nTreeDomains) + 1)
+      else
+        colDomain = 1
+      end if
       domainMeta%isMasterInComLocal = .false.
       domainMeta%nDomains = 1
       allocate(domainMeta%indices(domainMeta%nDomains))
@@ -512,6 +517,7 @@ CONTAINS
       ! or data corresponding to the master process
       domainMeta%indices(1) = 1
     end if
+    deallocate(treeDomainList)
   end subroutine
 #endif
 
