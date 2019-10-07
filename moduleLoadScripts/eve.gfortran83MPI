@@ -1,0 +1,7 @@
+module purge
+#module use /global/apps/chspython/modules
+#module load pyvenvs/3.6.2
+module use /global/apps/modulefiles
+module load netcdf-fortran/4.5.1_openmpifortran_4.0.1_gcc_8.3.0
+module load cmake
+export FC=mpif90

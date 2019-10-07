@@ -1222,6 +1222,7 @@ contains
   ! Stephan Thober Nov 2016 - only read flood plain area if processMatrix for routing equals 1
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! Stephan Thober Jul 2018 - introduced cut off Length at 40 percentile to neglect short paths in headwaters for adaptive timesteps
+  ! Stephan Thober, Pallav Kumar Shrestha, Sep 2020 - bug fix in cut off Length at 40 percentile, neglecting links with -9999. that occur if multiple outlets are present
 
   subroutine L11_stream_features(iDomain)
 
@@ -1432,7 +1433,7 @@ contains
 
     ! cut off Length at 40 percentile to neglect short paths in headwaters
     if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
-      length = percentile(nLinkLength(:), 40._dp)
+      length = percentile(pack(nLinkLength(:), nLinkLength(:) .ge. 0._dp), 40._dp)
       nLinkLength(:) = merge(nLinkLength(:), length, (nLinkLength(:) .gt. length))
     end if
 
