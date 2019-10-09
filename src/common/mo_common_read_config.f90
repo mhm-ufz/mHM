@@ -505,7 +505,7 @@ CONTAINS
       domainMeta%indices(1) = rank
     else
       colMasters = 0
-      if (nTreeDomains < 0) then
+      if (nTreeDomains > 0) then
         colDomain = treeDomainList(mod(rank, nTreeDomains) + 1)
       else
         colDomain = 1
