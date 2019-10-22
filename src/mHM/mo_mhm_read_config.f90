@@ -93,12 +93,12 @@ CONTAINS
     use mo_common_mhm_mrm_variables, only : opti_function, optimize
     use mo_common_variables, only : domainMeta, processMatrix
     use mo_file, only : file_defOutput, udefOutput
-    use mo_global_variables, only : domain_avg_TWS_obs, dirEvapotranspiration, &
+    use mo_global_variables, only : domain_avg_TWS_obs, dirEvapotranspiration, dirTWS, &
                                     dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirNeutrons, dirPrecipitation, &
                                     dirReferenceET, dirSoil_moisture, dirTemperature, dirabsVapPressure, dirwindspeed, &
                                     evap_coeff, fday_pet, fday_prec, fday_temp, fileTWS, fnight_pet, fnight_prec, &
                                     fnight_temp, inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
-                                    read_meteo_weights, timeStep_et_input, timeStep_model_outputs, &
+                                    read_meteo_weights, timeStep_et_input, timeStep_tws_input, timeStep_model_outputs, &
                                     timeStep_neutrons_input, timeStep_sm_input, timestep_model_inputs
     use mo_message, only : message
     use mo_mpr_constants, only : maxNoSoilHorizons
@@ -141,8 +141,11 @@ CONTAINS
     ! ground albedo neutron input
     character(256), dimension(maxNoDomains) :: dir_neutrons
 
-    ! ground albedo neutron input
+    ! evapotranspiration input
     character(256), dimension(maxNoDomains) :: dir_evapotranspiration
+
+    ! tws input
+    character(256), dimension(maxNoDomains) :: dir_TWS
 
 
     ! define namelists
@@ -159,7 +162,9 @@ CONTAINS
             file_TWS, &
             dir_neutrons, &
             dir_evapotranspiration, &
-            timeStep_et_input
+            dir_TWS, &
+            timeStep_et_input, &
+            timeStep_tws_input
     ! namelist for pan evaporation
     namelist /panEvapo/evap_coeff
     ! namelist for night-day ratio of precipitation, referenceET and temperature
@@ -184,6 +189,7 @@ CONTAINS
     allocate(dirSoil_Moisture(domainMeta%nDomains))
     allocate(dirNeutrons(domainMeta%nDomains))
     allocate(dirEvapotranspiration(domainMeta%nDomains))
+    allocate(dirTWS(domainMeta%nDomains))
     allocate(fileTWS(domainMeta%nDomains))
     ! allocate time periods
     allocate(timestep_model_inputs(domainMeta%nDomains))
@@ -266,6 +272,7 @@ CONTAINS
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
           fileTWS(iDomain) = file_TWS (domainID)
+          dirTWS(iDomain) = dir_TWS(domainID)
         end do
 
         allocate(domain_avg_TWS_obs%domainId(domainMeta%nDomains)); domain_avg_TWS_obs%domainId = nodata_i4
@@ -292,6 +299,7 @@ CONTAINS
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
           dirEvapotranspiration(iDomain) = dir_evapotranspiration(domainID)
+          dirTWS(iDomain) = dir_TWS(domainID)
         end do
 
         ! domain average TWS data
