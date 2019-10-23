@@ -80,7 +80,7 @@ CONTAINS
   ! Robert Schweppe      Dec 2017 - extracted call to mpr from inside mhm
   ! Robert Schweppe      Jun 2018 - refactoring and reformatting
 
-  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
+  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, sm_opti, neutrons_opti, et_opti, tws_opti)
 
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : LCyearId, dirRestartIn, nTstepDay, optimize, readPer, read_restart, simPer, timeStep, &
@@ -91,9 +91,9 @@ CONTAINS
                                     L1_netrad, L1_neutrons, L1_percol, L1_pet, L1_pet_calc, L1_pet_weights, L1_pre, &
                                     L1_preEffect, L1_pre_weights, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
                                     L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_temp, L1_temp_weights, L1_tmax, &
-                                    L1_tmin, L1_total_runoff, L1_unsatSTW, L1_windspeed, domain_avg_TWS_sim, evap_coeff, &
+                                    L1_tmin, L1_total_runoff, L1_unsatSTW, L1_windspeed, evap_coeff, &
                                     fday_pet, fday_prec, fday_temp, fnight_pet, fnight_prec, fnight_temp, &
-                                    nSoilHorizons_sm_input, nTimeSteps_L1_et, nTimeSteps_L1_neutrons, nTimeSteps_L1_sm, &
+                                    nSoilHorizons_sm_input, nTimeSteps_L1_et, nTimeSteps_L1_tws, nTimeSteps_L1_neutrons, nTimeSteps_L1_sm, &
                                     neutron_integral_AFast, outputFlxState, read_meteo_weights, timeStep_et_input, &
                                     timeStep_model_inputs, timeStep_model_outputs, timeStep_sm_input
     use mo_init_states, only : variables_default_init
@@ -146,15 +146,16 @@ CONTAINS
     ! nTimeSteps]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti
 
-    ! returns Domain averaged total water storage time series, DIMENSION [nTimeSteps, nDomains]
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: domain_avg_tws
-
     ! dim1=ncells, dim2=time
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti
 
     ! returns evapotranspiration time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
     ! nTimeSteps]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: et_opti
+
+    ! returns tws time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
+    ! nTimeSteps]
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: tws_opti
 
     ! for writing netcdf file
     integer(i4) :: tIndex_out
@@ -251,9 +252,6 @@ CONTAINS
     ! number of domains simulated in this mhm_eval run. Depends on opti_function
     integer(i4) :: nDomains, ii
 
-    ! field of TWS
-    real(dp), dimension(:), allocatable :: TWS_field
-
     real(dp) :: area_Domain
 
 
@@ -304,11 +302,13 @@ CONTAINS
       allocate(et_opti(size(L1_pre, dim = 1), nTimeSteps_L1_et))
       et_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
     end if
-    ! add other optionals...
-    ! allocate space for local tws field
-    if (present(domain_avg_tws)) then
-      allocate(TWS_field(size(L1_pre, dim = 1)))
-      TWS_field(:) = 0.0_dp
+    ! tws optimization
+    !--------------------------
+    if (present(tws_opti)) then
+      !                ! total No of cells, No of timesteps
+      !                ! of all Domains    , in evapotranspiration input
+      allocate(tws_opti(size(L1_pre, dim = 1), nTimeSteps_L1_tws))
+      tws_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
     end if
 
     !-------------------------------------------------------------------
@@ -844,18 +844,6 @@ CONTAINS
           end if
         end if
 
-        !----------------------------------------------------------------------
-        ! FOR TOTAL WATER STORAGE
-        if(present(domain_avg_tws)) then
-          area_Domain = sum(level1(iDomain)%CellArea) * 1.E-6_dp
-          TWS_field(s1 : e1) = L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
-                  L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1)
-          do gg = 1, nSoilHorizons_mHM
-            TWS_field(s1 : e1) = TWS_field(s1 : e1) + L1_soilMoist (s1 : e1, gg)
-          end do
-          domain_avg_TWS_sim(tt, iDomain) = (dot_product(TWS_field (s1 : e1), level1(iDomain)%CellArea * 1.E-6_dp) / area_Domain)
-        end if
-        !----------------------------------------------------------------------
 
         !----------------------------------------------------------------------
         ! FOR NEUTRONS
@@ -886,7 +874,7 @@ CONTAINS
         !----------------------------------------------------------------------
         ! FOR EVAPOTRANSPIRATION
         ! NOTE:: modeled evapotranspiration is averaged according to input time step
-        !        evapotranspiration (timeStep_sm_input)
+        !        evapotranspiration (timeStep_et_input)
         !----------------------------------------------------------------------
         if (present(et_opti)) then
           if (tt .EQ. 1) then
@@ -922,6 +910,50 @@ CONTAINS
           end if
         end if
 
+        !----------------------------------------------------------------------
+        ! FOR TWS
+        ! NOTE:: modeled tws is averaged according to input time step
+        !        evapotranspiration (timeStep_tws_input)
+        !----------------------------------------------------------------------
+        if (present(tws_opti)) then
+          if (tt .EQ. 1) then
+            writeout_counter = 1
+          end if
+
+          ! only for evaluation period - ignore warming days
+          if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
+            ! decide for daily, monthly or yearly aggregation
+            select case(timeStep_et_input)
+            case(-1) ! daily
+              if (is_new_day)   then
+                ! ToDo: collides with ET and TWS output, and other, basically
+                ! everytime, multiple objectives have been parallelized, it was
+                ! wrong
+                writeout_counter = writeout_counter + 1
+              end if
+            case(-2) ! monthly
+              if (is_new_month) then
+                writeout_counter = writeout_counter + 1
+              end if
+            case(-3) ! yearly
+              if (is_new_year)  then
+                writeout_counter = writeout_counter + 1
+              end if
+            end select
+
+            ! last timestep is already done - write_counter exceeds size(tws_opti, dim=2)
+            if (.not. (tt .eq. nTimeSteps)) then
+              ! aggregate evapotranspiration to needed time step for optimization
+              tws_opti(s1 : e1, writeout_counter) = tws_opti(s1 : e1, writeout_counter) + &
+                   L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
+                   L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1)
+              do gg = 1, nSoilHorizons_mHM
+                tws_opti(s1 : e1, writeout_counter) = tws_opti(s1 : e1, writeout_counter) + L1_soilMoist (s1 : e1, gg)
+              end do
+            end if
+          end if
+        end if
+
         ! update the year-dependent yID (land cover id)
         if (is_new_year .and. tt .lt. nTimeSteps) then
           yId = LCyearId(year, iDomain)
@@ -938,19 +970,12 @@ CONTAINS
 #endif
 
     end do !<< Domain LOOP
-    ! deallocate TWS field temporal variable
-    if (allocated(TWS_field)) deallocate(TWS_field)
 #ifdef MRM2MHM
     ! =========================================================================
     ! SET RUNOFF OUTPUT VARIABLE
     ! =========================================================================
     if (present(runoff) .and. (processMatrix(8, 1) > 0)) runoff = mRM_runoff
 #endif
-
-    ! =========================================================================
-    ! SET TWS OUTPUT VARIABLE
-    ! =========================================================================
-    if(present(domain_avg_tws)) domain_avg_tws = domain_avg_TWS_sim
 
   end SUBROUTINE mhm_eval
 

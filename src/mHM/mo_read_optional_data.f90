@@ -470,7 +470,7 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : level1
-    use mo_global_variables, only : L1_et, L1_et_mask, dirTWS, nTimeSteps_L1_tws, timeStep_tws_input
+    use mo_global_variables, only : L1_tws, L1_tws_mask, dirTWS, nTimeSteps_L1_tws, timeStep_tws_input
     use mo_message, only : message
     use mo_read_forcing_nc, only : read_forcing_nc
     use mo_string_utils, only : num2str
@@ -532,11 +532,11 @@ CONTAINS
     end do
 
     ! append
-    call append(L1_et, L1_data_packed(:, :), fill_value = nodata_dp)
-    call append(L1_et_mask, L1_mask_packed(:, :), fill_value = .FALSE.)
+    call append(L1_tws, L1_data_packed(:, :), fill_value = nodata_dp)
+    call append(L1_tws_mask, L1_mask_packed(:, :), fill_value = .FALSE.)
 
     ! for multi domain calibration number of time steps may vary for different domains
-    if (iDomain .GT. 1) nTimeSteps_L1_tws = size(L1_et, 2)
+    if (iDomain .GT. 1) nTimeSteps_L1_tws = size(L1_tws, 2)
 
     !free space
     deallocate(L1_data, L1_data_packed)
