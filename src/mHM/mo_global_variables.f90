@@ -78,7 +78,6 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirwindspeed       ! Directory where windspeed files are located
   character(256), dimension(:), allocatable, public :: dirReferenceET     ! Directory where reference-ET files are located
   character(256), dimension(:), allocatable, public :: dirSoil_moisture        ! File of monthly soil moisture
-  character(256), dimension(:), allocatable, public :: fileTWS                 ! File of tws data
   character(256), dimension(:), allocatable, public :: dirNeutrons             ! File of spatio-temporal neutron data
   character(256), dimension(:), allocatable, public :: dirEvapotranspiration   ! File of monthly soil moisture
   character(256), dimension(:), allocatable, public :: dirTWS   ! File of TWS
@@ -87,20 +86,6 @@ MODULE mo_global_variables
   ! CONSTANT
   ! ------------------------------------------------------------------
   integer(i4), public, parameter :: routingStates = 2  ! [-]   Routing states (2=current, 1=past)
-
-  ! ------------------------------------------------------------------
-  ! Domain AVERAGED TOTAL WATER STORAGE DATA
-  ! ------------------------------------------------------------------
-  type TWSstructure
-    integer(i4), dimension(:), allocatable :: domainId            ! domain Id
-    character(256), dimension(:), allocatable :: fname              ! file name
-    real(dp), dimension(:, :), allocatable :: TWS                ! [mm]
-  end type TWSstructure
-  type(TWSstructure), public :: domain_avg_TWS_obs   ! [mm] domain average TWS observational data
-
-  real(dp), public, dimension(:, :), allocatable :: domain_avg_TWS_sim  ! variable containing domain average TWS for each domain
-  integer(i4), public :: nMeasPerDay_TWS    ! Number of WTS observations per day,
-  !                                                                      ! e.g. 24 -> hourly, 1 -> daily
 
   ! -------------------------------------------------------------------
   ! GRID description

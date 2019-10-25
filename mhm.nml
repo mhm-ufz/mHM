@@ -376,11 +376,6 @@ nSoilHorizons_sm_input = 1
 !-----------------------------
 timeStep_sm_input = -2
 !
-!> domain average total water storage (tws)
-!> file name including path with timeseries of GRACE-based data
-file_tws(1) = "test_domain/input/optional_data/tws_domain_1.txt"
-file_tws(2) = "test_domain/input/optional_data/tws_domain_2.txt"
-!
 !> directory to neutron data
 ! expected file name: neutrons.nc, expected variable name: neutrons
 dir_neutrons(1)        = "test_domain/input/optional_data/"
@@ -391,12 +386,24 @@ dir_neutrons(1)        = "test_domain/input/optional_data/"
 ! expected file name: et.nc, expected variable name: et
 dir_evapotranspiration(1)   = "test_domain/input/optional_data/"
 
-!> time stepping of the soil moisture input
+!> time stepping of the et input
 !>     -1: daily   ET values
 !>     -2: monthly ET values
 !>     -3: yearly  ET values
 !-----------------------------
 timeStep_et_input = -2
+
+!> domain average total water storage (tws)
+!> file name including path with timeseries of GRACE-based data
+! expected file name: twsa.nc, expected variable name: twsa
+dir_tws(1)   = "test_domain/input/optional_data/"
+
+!> time stepping of the tws input
+!>     -1: daily   TWS values
+!>     -2: monthly TWS values
+!>     -3: yearly  TWS values
+!-----------------------------
+timeStep_tws_input = -2
 /
 
 !******************************************************************************************

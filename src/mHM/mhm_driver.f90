@@ -112,8 +112,7 @@ PROGRAM mhm_driver
   USE mo_message, ONLY : message, message_text          ! For print out
   USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval, ONLY : mhm_eval
-  USE mo_read_optional_data, ONLY : read_soil_moisture, &      ! optional soil moisture reader, domain_avg_TWS reader
-          read_domain_avg_TWS, &
+  USE mo_read_optional_data, ONLY : read_soil_moisture, &      ! optional soil moisture reader
           read_neutrons, &
           read_evapotranspiration, &
           read_tws
@@ -326,12 +325,7 @@ PROGRAM mhm_driver
         ! read optional spatio-temporal evapotranspiration data
         call read_evapotranspiration(iDomain, domainID)
       case(15)
-        ! read optional domain average TWS data at once, therefore only read it
-        ! the last iteration of the domain loop to ensure same time for all domains
-        ! note: this is similar to how the runoff is read using mrm below
-        if (iDomain == domainMeta%nDomains) then
-          call read_domain_avg_TWS()
-        end if
+        ! read optional spatio-temporal tws data
         call read_tws(iDomain, domainID)
       case(33)
         ! read optional spatio-temporal evapotranspiration data
@@ -339,16 +333,11 @@ PROGRAM mhm_driver
           domainMeta%optidata(iDomain) == 6 ) then
           call read_evapotranspiration(iDomain, domainID)
         end if
+        ! read optional spatio-temporal tws data
         if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
           domainMeta%optidata(iDomain) == 6 ) then
           call read_tws(iDomain, domainID)
         end if
-        ! read optional domain average TWS data at once, therefore only read it
-        ! the last iteration of the domain loop to ensure same time for all domains
-        ! note: this is similar to how the runoff is read using mrm below
-       ! if (iDomain == domainMeta%nDomains) then
-       !   call read_domain_avg_TWS()
-       ! end if
       end select
     end if
 

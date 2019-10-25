@@ -18,7 +18,7 @@ MODULE mo_read_optional_data
 
   PRIVATE
 
-  PUBLIC :: read_soil_moisture, read_domain_avg_TWS, read_neutrons, read_evapotranspiration, read_tws
+  PUBLIC :: read_soil_moisture, read_neutrons, read_evapotranspiration, read_tws
 
   ! ------------------------------------------------------------------
 
@@ -128,101 +128,6 @@ CONTAINS
     call message('    in ', trim(num2str(timer_get(1), '(F9.3)')), ' seconds.')
 
   end subroutine read_soil_moisture
-
-  !ToDo: why is iDomain input for all reading routines except this
-  ! ---------------------------------------------------------------------------
-
-  !    NAME
-  !        read_domain_avg_TWS
-
-  !    PURPOSE
-  !>       \brief Read domain average TWS timeseries from file, the same way runoff is read
-
-  !>       \details Read domain average TWS timeseries
-  !>       Allocate global domain_avg_TWS variable that contains the simulated values after the simulation.
-
-  !    HISTORY
-  !>       \authors Oldrich Rakovec
-
-  !>       \date Oct 2015
-
-  ! Modifications:
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
-  subroutine read_domain_avg_TWS
-
-    use mo_append, only : paste
-    use mo_common_constants, only : nodata_dp
-    use mo_common_mHM_mRM_variables, only : evalPer, nTstepDay, opti_function, optimize, simPer
-    use mo_common_variables, only : domainMeta
-    use mo_file, only : utws
-    use mo_global_variables, only : domain_avg_TWS_obs, domain_avg_TWS_sim, nMeasPerDay_TWS
-    use mo_message, only : message
-    use mo_read_timeseries, only : read_timeseries, create_dummy_timeseries
-    use mo_string_utils, only : num2str
-
-    implicit none
-
-    integer(i4) :: iDomain, domainID
-
-    integer(i4) :: maxTimeSteps
-
-    ! file name of file to read
-    character(256) :: fName
-
-    integer(i4), dimension(3) :: start_tmp, end_tmp
-
-    real(dp), dimension(:), allocatable :: data_dp_1d
-
-    logical, dimension(:), allocatable :: mask_1d
-
-    logical :: atLeastOneTWSDomain 
-
-
-    ! ************************************************
-    ! INITIALIZE TWS
-    ! ************************************************
-    maxTimeSteps = maxval(simPer(1 : domainMeta%nDomains)%julEnd - simPer(1 : domainMeta%nDomains)%julStart + 1) * nTstepDay
-    allocate(domain_avg_TWS_sim(maxTimeSteps, domainMeta%nDomains))
-    domain_avg_TWS_sim = nodata_dp
-
-    ! ************************************************
-    ! READ domain average TWS TIME SERIES
-    ! ************************************************
-    !
-    atLeastOneTWSDomain = .FALSE.
-    do iDomain = 1, domainMeta%nDomains
-      if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
-          domainMeta%optidata(iDomain) == 6 ) then
-        fName = trim(adjustl(domain_avg_TWS_obs%fname(iDomain)))
-        atLeastOneTWSDomain = .TRUE.
-      end if
-    end do
-    do iDomain = 1, domainMeta%nDomains
-      domainID = domainMeta%indices(iDomain)
-      if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
-          domainMeta%optidata(iDomain) == 6 ) then
-        call message('  Reading domain average TWS for domain:     ', trim(adjustl(num2str(domainID))), ' ...')
-
-        ! get start and end dates
-        start_tmp = (/evalPer(iDomain)%yStart, evalPer(iDomain)%mStart, evalPer(iDomain)%dStart/)
-        end_tmp = (/evalPer(iDomain)%yEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%dEnd  /)
-        fName = trim(adjustl(domain_avg_TWS_obs%fname(iDomain)))
-        call read_timeseries(trim(fName), utws, &
-                start_tmp, end_tmp, optimize, opti_function, &
-                data_dp_1d, mask = mask_1d, nMeasPerDay = nMeasPerDay_TWS)
-        data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
-        call paste(domain_avg_TWS_obs%TWS, data_dp_1d, nodata_dp)
-        deallocate (data_dp_1d)
-      else if (atLeastOneTWSDomain) then
-        call create_dummy_timeseries(trim(fName), utws, start_tmp, end_tmp, data_dp_1d, mask = mask_1d)
-        data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
-        call paste(domain_avg_TWS_obs%TWS, data_dp_1d, nodata_dp)
-        deallocate (data_dp_1d)
-      end if
-    end do
-
-  end subroutine read_domain_avg_TWS
 
   ! ------------------------------------------------------------------
 

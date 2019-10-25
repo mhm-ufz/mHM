@@ -93,10 +93,10 @@ CONTAINS
     use mo_common_mhm_mrm_variables, only : opti_function, optimize
     use mo_common_variables, only : domainMeta, processMatrix
     use mo_file, only : file_defOutput, udefOutput
-    use mo_global_variables, only : domain_avg_TWS_obs, dirEvapotranspiration, dirTWS, &
+    use mo_global_variables, only : dirEvapotranspiration, dirTWS, &
                                     dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirNeutrons, dirPrecipitation, &
                                     dirReferenceET, dirSoil_moisture, dirTemperature, dirabsVapPressure, dirwindspeed, &
-                                    evap_coeff, fday_pet, fday_prec, fday_temp, fileTWS, fnight_pet, fnight_prec, &
+                                    evap_coeff, fday_pet, fday_prec, fday_temp, fnight_pet, fnight_prec, &
                                     fnight_temp, inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
                                     read_meteo_weights, timeStep_et_input, timeStep_tws_input, timeStep_model_outputs, &
                                     timeStep_neutrons_input, timeStep_sm_input, timestep_model_inputs
@@ -135,9 +135,6 @@ CONTAINS
     ! soil moisture input
     character(256), dimension(maxNoDomains) :: dir_soil_moisture
 
-    ! total water storage input file
-    character(256), dimension(maxNoDomains) :: file_TWS
-
     ! ground albedo neutron input
     character(256), dimension(maxNoDomains) :: dir_neutrons
 
@@ -159,7 +156,6 @@ CONTAINS
             dir_soil_moisture, &
             nSoilHorizons_sm_input, &
             timeStep_sm_input, &
-            file_TWS, &
             dir_neutrons, &
             dir_evapotranspiration, &
             dir_TWS, &
@@ -190,7 +186,6 @@ CONTAINS
     allocate(dirNeutrons(domainMeta%nDomains))
     allocate(dirEvapotranspiration(domainMeta%nDomains))
     allocate(dirTWS(domainMeta%nDomains))
-    allocate(fileTWS(domainMeta%nDomains))
     ! allocate time periods
     allocate(timestep_model_inputs(domainMeta%nDomains))
 
@@ -271,26 +266,7 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          fileTWS(iDomain) = file_TWS (domainID)
           dirTWS(iDomain) = dir_TWS(domainID)
-        end do
-
-        allocate(domain_avg_TWS_obs%domainId(domainMeta%nDomains)); domain_avg_TWS_obs%domainId = nodata_i4
-        allocate(domain_avg_TWS_obs%fName  (domainMeta%nDomains)); domain_avg_TWS_obs%fName(:) = num2str(nodata_i4)
-
-        do iDomain = 1, domainMeta%nDomains
-          domainID = domainMeta%indices(iDomain)
-          if (trim(fileTWS(iDomain)) .EQ. trim(num2str(nodata_i4))) then
-            call message()
-            call message('***ERROR: mhm.nml: Filename of evaluation TWS data ', &
-                    ' for subdomain ', trim(adjustl(num2str(domainID))), &
-                    ' is not defined!')
-            call message('          Error occured in namelist: evaluation_tws')
-            stop 1
-          end if
-
-          domain_avg_TWS_obs%domainId(iDomain) = iDomain
-          domain_avg_TWS_obs%fname(iDomain) = trim(file_TWS(iDomain))
         end do
       case(33)
         ! evapotranspiration
@@ -307,32 +283,9 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          fileTWS(iDomain) = file_TWS (domainID)
+          dirTWS(iDomain) = dir_TWS(domainID)
         end do
 
-        allocate(domain_avg_TWS_obs%domainId(domainMeta%nDomains)); domain_avg_TWS_obs%domainId = nodata_i4
-        allocate(domain_avg_TWS_obs%fName  (domainMeta%nDomains)); domain_avg_TWS_obs%fName(:) = num2str(nodata_i4)
-
-        do iDomain = 1, domainMeta%nDomains
-          domainID = domainMeta%indices(iDomain)
-          if (trim(fileTWS(iDomain)) .EQ. trim(num2str(nodata_i4))) then
-            if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
-                domainMeta%optidata(iDomain) == 6) then
-              call message()
-              call message('***ERROR: mhm.nml: Filename of evaluation TWS data ', &
-                      ' for subdomain ', trim(adjustl(num2str(domainID))), &
-                      ' is not defined!')
-              call message('          Error occured in namelist: evaluation_tws')
-              stop 1
-            end if
-          end if
-
-          if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
-              domainMeta%optidata(iDomain) == 6) then
-            domain_avg_TWS_obs%domainId(iDomain) = iDomain
-            domain_avg_TWS_obs%fname(iDomain) = trim(file_TWS(iDomain))
-          end if
-        end do
       end select
     end if
 

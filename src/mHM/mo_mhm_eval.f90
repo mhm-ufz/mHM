@@ -43,10 +43,10 @@ CONTAINS
   !>       [nTimeSteps, nGaugesTotal]
   !>       \param[out] "real(dp), dimension(:, :), optional :: sm_opti"       returns soil moisture time series for all
   !>       grid cells (of multiple Domains concatenated),DIMENSION [nCells, nTimeSteps]
-  !>       \param[out] "real(dp), dimension(:, :), optional :: domain_avg_tws" returns Domain averaged total water storage
   !>       time series, DIMENSION [nTimeSteps, nDomains]
   !>       \param[out] "real(dp), dimension(:, :), optional :: neutrons_opti" dim1=ncells, dim2=time
   !>       \param[out] "real(dp), dimension(:, :), optional :: et_opti"       returns evapotranspiration time series for
+  !>       \param[out] "real(dp), dimension(:, :), optional :: tws_opti"      returns tws time series
   !>       all grid cells (of multiple Domains concatenated),DIMENSION [nCells, nTimeSteps]
 
   !    HISTORY
