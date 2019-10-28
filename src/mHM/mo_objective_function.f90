@@ -2582,7 +2582,7 @@ CONTAINS
                                            tws_opti_catch_avg_domain, mask_times)
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level1
-    use mo_global_variables, only : L1_tws, L1_tws_mask
+    use mo_global_variables, only : L1_tws
     use mo_moment, only : average
     ! current domain Id
     integer(i4), intent(in) :: iDomain
@@ -2624,7 +2624,9 @@ CONTAINS
     do iTime = 1, size(tws_opti, dim = 2)
 
       ! check for enough data points in time for correlation
-      if (all(.NOT. L1_tws_mask(s1 : e1, iTime))) then
+      ! ToDo: check if this still works with the new data structure
+     ! if (all(.NOT. L1_tws_mask(s1 : e1, iTime))) then
+      if (all(.NOT. L1_tws(iDomain)%maskObs(:, iTime))) then
         !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
         !call message('WARNING: objective_et_kge_catchment_avg: ignored current time step since less than')
         !call message('         10 valid cells available in evapotranspiration observation')
@@ -2632,8 +2634,8 @@ CONTAINS
         cycle
       end if
 
-      tws_catch_avg_domain(iTime) = average(L1_tws(s1 : e1, iTime), mask = L1_tws_mask(s1 : e1, iTime))
-      tws_opti_catch_avg_domain(iTime) = average(tws_opti(s1 : e1, iTime), mask = L1_tws_mask(s1 : e1, iTime))
+      tws_catch_avg_domain(iTime) = average(L1_tws(iDomain)%dataObs(:, iTime), mask = L1_tws(iDomain)%maskObs(:, iTime))
+      tws_opti_catch_avg_domain(iTime) = average(tws_opti(s1 : e1, iTime), mask = L1_tws(iDomain)%maskObs(:, iTime))
     end do
 
   end subroutine create_domain_avg_tws

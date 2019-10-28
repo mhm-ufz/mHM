@@ -913,7 +913,7 @@ CONTAINS
         !----------------------------------------------------------------------
         ! FOR TWS
         ! NOTE:: modeled tws is averaged according to input time step
-        !        evapotranspiration (timeStep_tws_input)
+        !        evapotranspiration (timeStepInput)
         !----------------------------------------------------------------------
         if (present(tws_opti)) then
           if (tt .EQ. 1) then

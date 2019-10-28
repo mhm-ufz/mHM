@@ -48,6 +48,8 @@ MODULE mo_global_variables
 
   IMPLICIT NONE
 
+  public :: optidata
+
   ! -------------------------------------------------------------------
   ! DEFINE OUTPUTS
   ! -------------------------------------------------------------------
@@ -64,7 +66,6 @@ MODULE mo_global_variables
   integer(i4), public :: timeStep_sm_input          ! time step of optional data: soil moisture sm
   integer(i4), public :: timeStep_neutrons_input    ! time step of optional data: neutron counts
   integer(i4), public :: timeStep_et_input          ! time step of optional data: evapotransp. et
-  integer(i4), public :: timeStep_tws_input         ! time step of optional data: tws
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
@@ -80,7 +81,6 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirSoil_moisture        ! File of monthly soil moisture
   character(256), dimension(:), allocatable, public :: dirNeutrons             ! File of spatio-temporal neutron data
   character(256), dimension(:), allocatable, public :: dirEvapotranspiration   ! File of monthly soil moisture
-  character(256), dimension(:), allocatable, public :: dirTWS   ! File of TWS
 
   ! ------------------------------------------------------------------
   ! CONSTANT
@@ -114,6 +114,13 @@ MODULE mo_global_variables
   ! dim1 = number grid cells L1
   ! dim2 = number of meteorological time steps
   ! soil moisture
+  type optidata
+    real(dp), dimension(:, :), allocatable    :: dataObs ! observed data
+    logical, dimension(:, :), allocatable     :: maskObs ! mask of observed data
+    character(256)                            :: dir ! directory where to read opti data
+    integer(i4)                               :: timeStepInput ! time step of optional data
+  end type optidata
+
   real(dp), public, dimension(:, :), allocatable :: L1_sm                  ! [-] soil moisture input for optimization
   logical, public, dimension(:, :), allocatable :: L1_sm_mask             ! [-] mask for valid data in L1_sm
   integer(i4) :: nTimeSteps_L1_sm       ! [-] number of time steps in L1_sm_mask
@@ -127,9 +134,8 @@ MODULE mo_global_variables
   logical, public, dimension(:, :), allocatable :: L1_et_mask            ! [mm] mask for valid data in L1_et
   integer(i4) :: nTimeSteps_L1_et      ! [-] number of time steps in L1_et_mask
   ! tws
-  real(dp), public, dimension(:, :), allocatable :: L1_tws                ! [ToDo] tws input for optimization
-  logical, public, dimension(:, :), allocatable :: L1_tws_mask            ! [ToDo] mask for valid data in L1_tws
   integer(i4) :: nTimeSteps_L1_tws      ! [-] number of time steps in L1_tws_mask
+  type(optidata), public, dimension(:), allocatable :: L1_tws ! ToDo: rename to L1_tws, when ready, deleting old L1_tws
 
   ! State variables
   ! dim1 = number grid cells L1
