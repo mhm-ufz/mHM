@@ -93,8 +93,7 @@ PROGRAM mhm_driver
           dirabsVapPressure, dirwindspeed, &      ! PET input paths if process 5 is Penman-Monteith  (case 3)
           timestep_model_inputs, & !frequency of input read
           optidata, & ! type for opti data
-          L1_tws ! ToDo: not sure if it should be here, but then more control
-                  !       of where it is touched
+          L1_tws 
   USE mo_common_mHM_mRM_variables, ONLY : &
           nTstepDay, &      ! number of timesteps per day (former: NAGG)
           simPer, &      ! simulation period

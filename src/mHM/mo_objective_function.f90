@@ -855,8 +855,8 @@ CONTAINS
     ! eval runs to get simulated output for runoff
     ! before the eval call we generate an index list of the domains for which
     ! eval should be called. Read details for further information
-    ! ToDo: was there a reason to call this at the end? Was it about the index
-    ! array? The arrays for qTin, qTout, etc were rewritten in the other calls
+    ! ToDo:  The arrays for qTin, qTout, will be rewritten in the other calls when
+    ! Q is not called last. Change that for more flexibility
     call init_indexarray_for_opti_data(domainMeta, 1, nQDomains, opti_domain_indices_Q)
 #ifndef MRM2MHM
     call message('***ERROR: objective_q_et_tws_kge_catchment_avg: missing routing module for optimization')

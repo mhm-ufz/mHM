@@ -93,7 +93,8 @@ CONTAINS
                                     L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_temp, L1_temp_weights, L1_tmax, &
                                     L1_tmin, L1_total_runoff, L1_unsatSTW, L1_windspeed, evap_coeff, &
                                     fday_pet, fday_prec, fday_temp, fnight_pet, fnight_prec, fnight_temp, &
-                                    nSoilHorizons_sm_input, nTimeSteps_L1_et, nTimeSteps_L1_tws, nTimeSteps_L1_neutrons, nTimeSteps_L1_sm, &
+                                    nSoilHorizons_sm_input, nTimeSteps_L1_et, nTimeSteps_L1_tws, &
+                                    nTimeSteps_L1_neutrons, nTimeSteps_L1_sm, &
                                     neutron_integral_AFast, outputFlxState, read_meteo_weights, timeStep_et_input, &
                                     timeStep_model_inputs, timeStep_model_outputs, timeStep_sm_input, &
                                     L1_tws
@@ -932,9 +933,6 @@ CONTAINS
             select case(L1_tws(iDomain)%timeStepInput)
             case(-1) ! daily
               if (is_new_day)   then
-                ! ToDo: collides with ET and TWS output, and other, basically
-                ! everytime, multiple objectives have been parallelized, it was
-                ! wrong
                 L1_tws(iDomain)%writeOutCounter = L1_tws(iDomain)%writeOutCounter + 1
               end if
             case(-2) ! monthly

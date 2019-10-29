@@ -137,7 +137,11 @@ MODULE mo_global_variables
   integer(i4) :: nTimeSteps_L1_et      ! [-] number of time steps in L1_et_mask
   ! tws
   integer(i4) :: nTimeSteps_L1_tws      ! [-] number of time steps in L1_tws_mask
-  type(optidata), public, dimension(:), allocatable :: L1_tws ! ToDo: rename to L1_tws, when ready, deleting old L1_tws
+  type(optidata), public, dimension(:), allocatable :: L1_tws ! this stores L1_tws, the mask, the directory of the
+                                                              ! observerd data, and the
+                                                              ! timestepInput of the simulated data
+                                                              ! ToDo: add unit
+                                                              
 
   ! State variables
   ! dim1 = number grid cells L1
