@@ -95,7 +95,8 @@ CONTAINS
                                     fday_pet, fday_prec, fday_temp, fnight_pet, fnight_prec, fnight_temp, &
                                     nSoilHorizons_sm_input, nTimeSteps_L1_et, nTimeSteps_L1_tws, nTimeSteps_L1_neutrons, nTimeSteps_L1_sm, &
                                     neutron_integral_AFast, outputFlxState, read_meteo_weights, timeStep_et_input, &
-                                    timeStep_model_inputs, timeStep_model_outputs, timeStep_sm_input
+                                    timeStep_model_inputs, timeStep_model_outputs, timeStep_sm_input, &
+                                    L1_tws
     use mo_init_states, only : variables_default_init
     use mo_julian, only : caldat, julday
     use mo_message, only : message
@@ -211,7 +212,7 @@ CONTAINS
     logical :: writeout
 
     ! write out time step
-    integer(i4) :: writeout_counter_et, writeout_counter_tws, &
+    integer(i4) :: writeout_counter_et, &
                    writeout_counter_sm, writeout_counter_neutrons
 
 #ifdef MRM2MHM
@@ -813,19 +814,22 @@ CONTAINS
             select case(timeStep_sm_input)
             case(-1) ! daily
               if (is_new_day)   then
-                sm_opti(s1 : e1, writeout_counter_sm) = sm_opti(s1 : e1, writeout_counter_sm) / real(average_counter, dp)
+                sm_opti(s1 : e1, writeout_counter_sm) = &
+                        sm_opti(s1 : e1, writeout_counter_sm) / real(average_counter, dp)
                 writeout_counter_sm = writeout_counter_sm + 1
                 average_counter = 0
               end if
             case(-2) ! monthly
               if (is_new_month) then
-                sm_opti(s1 : e1, writeout_counter_sm) = sm_opti(s1 : e1, writeout_counter_sm) / real(average_counter, dp)
+                sm_opti(s1 : e1, writeout_counter_sm) = &
+                        sm_opti(s1 : e1, writeout_counter_sm) / real(average_counter, dp)
                 writeout_counter_sm = writeout_counter_sm + 1
                 average_counter = 0
               end if
             case(-3) ! yearly
               if (is_new_year)  then
-                sm_opti(s1 : e1, writeout_counter_sm) = sm_opti(s1 : e1, writeout_counter_sm) / real(average_counter, dp)
+                sm_opti(s1 : e1, writeout_counter_sm) = &
+                        sm_opti(s1 : e1, writeout_counter_sm) / real(average_counter, dp)
                 writeout_counter_sm = writeout_counter_sm + 1
                 average_counter = 0
               end if
@@ -856,7 +860,8 @@ CONTAINS
             ! decide for daily, monthly or yearly aggregation
             ! daily
             if (is_new_day)   then
-              neutrons_opti(s1 : e1, writeout_counter_neutrons) = neutrons_opti(s1 : e1, writeout_counter_neutrons) / real(average_counter, dp)
+              neutrons_opti(s1 : e1, writeout_counter_neutrons) = &
+                            neutrons_opti(s1 : e1, writeout_counter_neutrons) / real(average_counter, dp)
               writeout_counter_neutrons = writeout_counter_neutrons + 1
               average_counter = 0
             end if
@@ -864,7 +869,8 @@ CONTAINS
             ! last timestep is already done - write_counter exceeds size(sm_opti, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate neutrons to needed time step for optimization
-              neutrons_opti(s1 : e1, writeout_counter_neutrons) = neutrons_opti(s1 : e1, writeout_counter_neutrons) + L1_neutrons(s1 : e1)
+              neutrons_opti(s1 : e1, writeout_counter_neutrons) = &
+                            neutrons_opti(s1 : e1, writeout_counter_neutrons) + L1_neutrons(s1 : e1)
             end if
 
             average_counter = average_counter + 1
@@ -917,38 +923,40 @@ CONTAINS
         !----------------------------------------------------------------------
         if (present(tws_opti)) then
           if (tt .EQ. 1) then
-            writeout_counter_tws = 1
+            L1_tws(iDomain)%writeOutCounter = 1
           end if
 
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
-            select case(timeStep_et_input)
+            select case(L1_tws(iDomain)%timeStepInput)
             case(-1) ! daily
               if (is_new_day)   then
                 ! ToDo: collides with ET and TWS output, and other, basically
                 ! everytime, multiple objectives have been parallelized, it was
                 ! wrong
-                writeout_counter_tws = writeout_counter_tws + 1
+                L1_tws(iDomain)%writeOutCounter = L1_tws(iDomain)%writeOutCounter + 1
               end if
             case(-2) ! monthly
               if (is_new_month) then
-                writeout_counter_tws = writeout_counter_tws + 1
+                L1_tws(iDomain)%writeOutCounter = L1_tws(iDomain)%writeOutCounter + 1
               end if
             case(-3) ! yearly
               if (is_new_year)  then
-                writeout_counter_tws = writeout_counter_tws + 1
+                L1_tws(iDomain)%writeOutCounter = L1_tws(iDomain)%writeOutCounter + 1
               end if
             end select
 
             ! last timestep is already done - write_counter exceeds size(tws_opti, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate evapotranspiration to needed time step for optimization
-              tws_opti(s1 : e1, writeout_counter_tws) = tws_opti(s1 : e1, writeout_counter_tws) + &
+              tws_opti(s1 : e1, L1_tws(iDomain)%writeOutCounter) = &
+                   tws_opti(s1 : e1, L1_tws(iDomain)%writeOutCounter) + &
                    L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
                    L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1)
               do gg = 1, nSoilHorizons_mHM
-                tws_opti(s1 : e1, writeout_counter_tws) = tws_opti(s1 : e1, writeout_counter_tws) + L1_soilMoist (s1 : e1, gg)
+                tws_opti(s1 : e1, L1_tws(iDomain)%writeOutCounter) = &
+                         tws_opti(s1 : e1, L1_tws(iDomain)%writeOutCounter) + L1_soilMoist (s1 : e1, gg)
               end do
             end if
           end if

@@ -431,6 +431,7 @@ CONTAINS
       L1_tws%dataObs(:, t) = pack(L1_data(:, :, t), MASK = mask1(:, :))
       L1_tws%maskObs(:, t) = pack(L1_mask(:, :, t), MASK = mask1(:, :))
     end do
+    ! ToDo: should there be something with missing values?
 
     ! for multi domain calibration number of time steps may vary for different domains
     if (iDomain .GT. 1) nTimeSteps_L1_tws = size(L1_tws%dataObs, 2)

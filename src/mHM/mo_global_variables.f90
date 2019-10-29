@@ -119,6 +119,8 @@ MODULE mo_global_variables
     logical, dimension(:, :), allocatable     :: maskObs ! mask of observed data
     character(256)                            :: dir ! directory where to read opti data
     integer(i4)                               :: timeStepInput ! time step of optional data
+    integer(i4)                               :: writeOutCounter ! the current timestep
+                                                                 ! the simulated opti data is written to
   end type optidata
 
   real(dp), public, dimension(:, :), allocatable :: L1_sm                  ! [-] soil moisture input for optimization

@@ -1419,6 +1419,7 @@ CONTAINS
     use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : domainMeta
+    use mo_global_variables, only : L1_tws
     use mo_errormeasures, only : rmse
     use mo_julian, only : caldat
     use mo_message, only : message
@@ -1469,9 +1470,6 @@ CONTAINS
     ! vector with months' classes
     integer(i4), dimension(:), allocatable :: month_classes
 
-    ! monthly values original time series
-    real(dp), DIMENSION(:), allocatable :: tws_sim_m, tws_obs_m
-
     ! monthly values anomaly time series
     real(dp), DIMENSION(:), allocatable :: tws_sim_m_anom, tws_obs_m_anom
 
@@ -1514,6 +1512,9 @@ CONTAINS
     rmse_tws(:) = nodata_dp
 
     do iDomain = 1, domainMeta%nDomains
+      if (.not. (L1_tws(iDomain)%timeStepInput == -2)) then
+        call message('objective_kge_q_rmse_tws: current implementation of this subroutine only allows monthly timesteps')
+      end if
       domainID = domainMeta%indices(iDomain)
 
       ! extract tws the same way as runoff using mrm
@@ -1522,7 +1523,7 @@ CONTAINS
       call create_domain_avg_tws(iDomain, tws, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
 
       ! check for potentially 2 years of data
-      if (count(tws_obs_mask) .lt.  365 * 2) then
+      if (count(tws_obs_mask) .lt.  12 * 2) then
         call message('objective_kge_q_rmse_tws: Length of TWS data of domain ', trim(adjustl(num2str(domainID))), &
                 ' less than 2 years: this is not recommended')
       end if
@@ -1533,25 +1534,13 @@ CONTAINS
       ! get calendar days, months, year
       call caldat(int(initTime(iDomain)), yy = year, mm = month, dd = day)
 
-      ! calculate monthly averages from daily values of the model
-      call day2mon_average(tws_catch_avg_domain, year, month, day, tws_sim_m, misval = nodata_dp)
-
-      ! remove mean from modelled time series
-      tws_sim_m(:) = tws_sim_m(:) - mean(tws_sim_m(:))
-
-      ! calculate monthly averages from daily values of the observations, which already have removed the long-term mean
-      call day2mon_average(tws_opti_catch_avg_domain, year, month, day, tws_obs_m, misval = nodata_dp)
-
-      ! get number of months for given domain
-      nMonths = size(tws_obs_m)
+      nMonths = size(tws_obs_mask)
 
       allocate (month_classes(nMonths))
-      allocate (tws_obs_m_mask(nMonths))
       allocate (tws_obs_m_anom(nMonths))
       allocate (tws_sim_m_anom(nMonths))
 
       month_classes(:) = 0
-      tws_obs_m_mask(:) = .TRUE.
       tws_obs_m_anom(:) = nodata_dp
       tws_sim_m_anom(:) = nodata_dp
 
@@ -1566,18 +1555,12 @@ CONTAINS
         end if
       end do
 
-      ! define mask for missing data in observations (there are always data for simulations)
-      where(abs(tws_obs_m - nodata_dp) .lt. eps_dp) tws_obs_m_mask = .FALSE.
-
       ! calculate standard score
-      tws_obs_m_anom = classified_standard_score(tws_obs_m, month_classes, mask = tws_obs_m_mask)
-      tws_sim_m_anom = classified_standard_score(tws_sim_m, month_classes, mask = tws_obs_m_mask)
-      rmse_tws(iDomain) = rmse(tws_sim_m_anom, tws_obs_m_anom, mask = tws_obs_m_mask)
+      tws_obs_m_anom = classified_standard_score(tws_opti_catch_avg_domain, month_classes, mask = tws_obs_mask)
+      tws_sim_m_anom = classified_standard_score(tws_catch_avg_domain,      month_classes, mask = tws_obs_mask)
+      rmse_tws(iDomain) = rmse(tws_sim_m_anom, tws_obs_m_anom, mask = tws_obs_mask)
 
       deallocate (month_classes)
-      deallocate (tws_obs_m)
-      deallocate (tws_sim_m)
-      deallocate (tws_obs_m_mask)
       deallocate (tws_sim_m_anom)
       deallocate (tws_obs_m_anom)
       deallocate (tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
