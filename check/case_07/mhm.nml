@@ -106,7 +106,8 @@
 /
 
 &optional_data
-    file_tws(1) = '../../test_domain/input/optional_data/tws_domain_1.txt'
+    dir_tws(1)   = '../../test_domain/input/optional_data/'
+    timeStep_tws_input = -2
 /
 
 &panevapo
