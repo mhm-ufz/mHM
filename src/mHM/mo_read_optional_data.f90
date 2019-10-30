@@ -49,13 +49,13 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_soil_moisture(iDomain, domainID)
+  subroutine read_soil_moisture(iDomain, domainID, L1_smObs)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : level1
-    use mo_global_variables, only : L1_sm, L1_sm_mask, dirSoil_moisture, nTimeSteps_L1_sm, timeStep_sm_input
+    use mo_global_variables, only : nTimeSteps_L1_sm, optidata
     use mo_message, only : message
     use mo_read_forcing_nc, only : read_forcing_nc
     use mo_string_utils, only : num2str
@@ -68,6 +68,9 @@ CONTAINS
 
     ! domain Id
     integer(i4), intent(in) :: domainID
+
+    ! sm data
+    type(optidata), intent(inout) :: L1_smObs
 
     ! loop  vars packing L1_data to L1_data_packed
     integer(i4) :: t
@@ -83,9 +86,6 @@ CONTAINS
 
     ! data at level-1
     real(dp), dimension(:, :, :), allocatable :: L1_data
-
-    ! packed data at level-1 from 3D to 2D
-    real(dp), dimension(:, :), allocatable :: L1_data_packed
 
     ! mask at level-1
     logical, dimension(:, :, :), allocatable :: L1_mask
@@ -103,27 +103,22 @@ CONTAINS
     !  domain characteristics and read meteo header
     call message('  Reading soil moisture for domain:           ', trim(adjustl(num2str(domainID))), ' ...')
     call timer_start(1)
-    call read_forcing_nc(dirSoil_moisture(iDomain), nRows1, nCols1, 'sm', mask1, L1_data, &
-            target_period = evalPer(iDomain), nctimestep = timeStep_sm_input, nocheck = .TRUE., maskout = L1_mask)
+    call read_forcing_nc(L1_smObs%dir, nRows1, nCols1, 'sm', mask1, L1_data, &
+            target_period = evalPer(iDomain), nctimestep = L1_smObs%timeStepInput, nocheck = .TRUE., maskout = L1_mask)
     ! pack variables
     nTimeSteps_L1_sm = size(L1_data, 3)
-    allocate(L1_data_packed(nCells1, nTimeSteps_L1_sm))
-    allocate(L1_mask_packed(nCells1, nTimeSteps_L1_sm))
+    allocate(L1_smObs%dataObs(nCells1, nTimeSteps_L1_sm))
+    allocate(L1_smObs%maskObs(nCells1, nTimeSteps_L1_sm))
     do t = 1, nTimeSteps_L1_sm
-      L1_data_packed(:, t) = pack(L1_data(:, :, t), MASK = mask1(:, :))
-      L1_mask_packed(:, t) = pack(L1_mask(:, :, t), MASK = mask1(:, :))
+      L1_smObs%dataObs(:, t) = pack(L1_data(:, :, t), MASK = mask1(:, :))
+      L1_smObs%maskObs(:, t) = pack(L1_mask(:, :, t), MASK = mask1(:, :))
     end do
 
-    ! append
-    call append(L1_sm, L1_data_packed(:, :), fill_value = nodata_dp)
-    call append(L1_sm_mask, L1_mask_packed(:, :), fill_value = .FALSE.)
-
     ! for multi domain calibration number of time steps may vary for different domain
-    if (iDomain .GT. 1) nTimeSteps_L1_sm = size(L1_sm, 2)
+    if (iDomain .GT. 1) nTimeSteps_L1_sm = size(L1_smObs%dataObs, 2)
 
     !free space
-    deallocate(L1_data, L1_data_packed)
-
+    deallocate(L1_data)
     call timer_stop(1)
     call message('    in ', trim(num2str(timer_get(1), '(F9.3)')), ' seconds.')
 
@@ -154,14 +149,13 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_neutrons(iDomain, domainID)
+  subroutine read_neutrons(iDomain, domainID, L1_neutronsObs)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : level1
-    use mo_global_variables, only : L1_neutronsdata, L1_neutronsdata_mask, dirNeutrons, &
-            nTimeSteps_L1_neutrons, timeStep_neutrons_input
+    use mo_global_variables, only : nTimeSteps_L1_neutrons, optidata
     use mo_message, only : message
     use mo_read_forcing_nc, only : read_forcing_nc
     use mo_string_utils, only : num2str
@@ -175,6 +169,9 @@ CONTAINS
 
     ! domain Id
     integer(i4), intent(in) :: domainID
+
+    ! neutrons data
+    type(optidata), intent(inout) :: L1_neutronsObs
 
     ! loop  vars packing L1_data to L1_data_packed
     integer(i4) :: t
@@ -190,9 +187,6 @@ CONTAINS
 
     ! data at level-1
     real(dp), dimension(:, :, :), allocatable :: L1_data
-
-    ! packed data at level-1 from 3D to 2D
-    real(dp), dimension(:, :), allocatable :: L1_data_packed
 
     ! mask at level-1
     logical, dimension(:, :, :), allocatable :: L1_mask
@@ -210,26 +204,22 @@ CONTAINS
     !  domain characteristics and read meteo header
     call message('  Reading neutrons for domain:           ', trim(adjustl(num2str(domainID))), ' ...')
     call timer_start(1)
-    call read_forcing_nc(dirNeutrons(iDomain), nRows1, nCols1, 'neutrons', mask1, L1_data, &
-            target_period = evalPer(iDomain), nctimestep = timeStep_neutrons_input, nocheck = .TRUE., maskout = L1_mask)
+    call read_forcing_nc(L1_neutronsObs%dir, nRows1, nCols1, 'neutrons', mask1, L1_data, &
+            target_period = evalPer(iDomain), nctimestep = L1_neutronsObs%timeStepInput, nocheck = .TRUE., maskout = L1_mask)
     ! pack variables
     nTimeSteps_L1_neutrons = size(L1_data, 3)
-    allocate(L1_data_packed(nCells1, nTimeSteps_L1_neutrons))
-    allocate(L1_mask_packed(nCells1, nTimeSteps_L1_neutrons))
+    allocate(L1_neutronsObs%dataObs(nCells1, nTimeSteps_L1_neutrons))
+    allocate(L1_neutronsObs%maskObs(nCells1, nTimeSteps_L1_neutrons))
     do t = 1, nTimeSteps_L1_neutrons
-      L1_data_packed(:, t) = pack(L1_data(:, :, t), MASK = mask1(:, :))
-      L1_mask_packed(:, t) = pack(L1_mask(:, :, t), MASK = mask1(:, :))
+      L1_neutronsObs%dataObs(:, t) = pack(L1_data(:, :, t), MASK = mask1(:, :))
+      L1_neutronsObs%maskObs(:, t) = pack(L1_mask(:, :, t), MASK = mask1(:, :))
     end do
 
-    ! append
-    call append(L1_neutronsdata, L1_data_packed(:, :), fill_value = nodata_dp)
-    call append(L1_neutronsdata_mask, L1_mask_packed(:, :), fill_value = .FALSE.)
-
     ! for multi domain calibration number of time steps may vary for different domains
-    if (iDomain .GT. 1) nTimeSteps_L1_neutrons = size(L1_neutronsdata, 2)
+    if (iDomain .GT. 1) nTimeSteps_L1_neutrons = size(L1_neutronsObs%dataObs, 2)
 
     !free space
-    deallocate(L1_data, L1_data_packed)
+    deallocate(L1_data)
 
     call timer_stop(1)
     call message('    in ', trim(num2str(timer_get(1), '(F9.3)')), ' seconds.')
@@ -261,13 +251,13 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_evapotranspiration(iDomain, domainID)
+  subroutine read_evapotranspiration(iDomain, domainID, L1_etObs)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : level1
-    use mo_global_variables, only : L1_et, L1_et_mask, dirEvapotranspiration, nTimeSteps_L1_et, timeStep_et_input
+    use mo_global_variables, only : nTimeSteps_L1_et, optidata
     use mo_message, only : message
     use mo_read_forcing_nc, only : read_forcing_nc
     use mo_string_utils, only : num2str
@@ -281,6 +271,9 @@ CONTAINS
 
     ! domain Id
     integer(i4), intent(in) :: domainID
+
+    ! et data
+    type(optidata), intent(inout) :: L1_etObs
 
     ! loop  vars packing L1_data to L1_data_packed
     integer(i4) :: t
@@ -297,14 +290,8 @@ CONTAINS
     ! data at level-1
     real(dp), dimension(:, :, :), allocatable :: L1_data
 
-    ! packed data at level-1 from 3D to 2D
-    real(dp), dimension(:, :), allocatable :: L1_data_packed
-
     ! mask at level-1
     logical, dimension(:, :, :), allocatable :: L1_mask
-
-    ! packed mask at level-1 from 3D to 2D
-    logical, dimension(:, :), allocatable :: L1_mask_packed
 
 
     ! get basic domain information at level-1
@@ -316,27 +303,23 @@ CONTAINS
     !  domain characteristics and read meteo header
     call message('  Reading evapotranspiration for domain:           ', trim(adjustl(num2str(domainID))), ' ...')
     call timer_start(1)
-    call read_forcing_nc(dirEvapotranspiration(iDomain), nRows1, nCols1, 'et', mask1, L1_data, &
-            target_period = evalPer(iDomain), nctimestep = timeStep_et_input, nocheck = .TRUE., maskout = L1_mask)
+    call read_forcing_nc(L1_etObs%dir, nRows1, nCols1, 'et', mask1, L1_data, &
+            target_period = evalPer(iDomain), nctimestep = L1_etObs%timeStepInput, nocheck = .TRUE., maskout = L1_mask)
 
     ! pack variables
     nTimeSteps_L1_et = size(L1_data, 3)
-    allocate(L1_data_packed(nCells1, nTimeSteps_L1_et))
-    allocate(L1_mask_packed(nCells1, nTimeSteps_L1_et))
+    allocate(L1_etObs%dataObs(nCells1, nTimeSteps_L1_et))
+    allocate(L1_etObs%maskObs(nCells1, nTimeSteps_L1_et))
     do t = 1, nTimeSteps_L1_et
-      L1_data_packed(:, t) = pack(L1_data(:, :, t), MASK = mask1(:, :))
-      L1_mask_packed(:, t) = pack(L1_mask(:, :, t), MASK = mask1(:, :))
+      L1_etObs%dataObs(:, t) = pack(L1_data(:, :, t), MASK = mask1(:, :))
+      L1_etObs%maskObs(:, t) = pack(L1_mask(:, :, t), MASK = mask1(:, :))
     end do
 
-    ! append
-    call append(L1_et, L1_data_packed(:, :), fill_value = nodata_dp)
-    call append(L1_et_mask, L1_mask_packed(:, :), fill_value = .FALSE.)
-
     ! for multi domain calibration number of time steps may vary for different domains
-    if (iDomain .GT. 1) nTimeSteps_L1_et = size(L1_et, 2)
+    if (iDomain .GT. 1) nTimeSteps_L1_et = size(L1_etObs%dataObs, 2)
 
     !free space
-    deallocate(L1_data, L1_data_packed)
+    deallocate(L1_data)
 
     call timer_stop(1)
     call message('    in ', trim(num2str(timer_get(1), '(F9.3)')), ' seconds.')
@@ -369,7 +352,7 @@ CONTAINS
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! Maren Kaluza Oct 2019 - copied from evapotranspiration and adopted for tws
 
-  subroutine read_tws(iDomain, domainID, L1_tws)
+  subroutine read_tws(iDomain, domainID, L1_twsObs)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -391,7 +374,7 @@ CONTAINS
     integer(i4), intent(in) :: domainID
 
     ! tws data
-    type(optidata), intent(inout) :: L1_tws
+    type(optidata), intent(inout) :: L1_twsObs
 
     ! loop  vars packing L1_data to L1_data_packed
     integer(i4) :: t
@@ -420,20 +403,20 @@ CONTAINS
     !  domain characteristics and read meteo header
     call message('  Reading tws for domain:           ', trim(adjustl(num2str(domainID))), ' ...')
     call timer_start(1)
-    call read_forcing_nc(L1_tws%dir, nRows1, nCols1, 'twsa', mask1, L1_data, &
-            target_period = evalPer(iDomain), nctimestep = L1_tws%timeStepInput, nocheck = .TRUE., maskout = L1_mask)
+    call read_forcing_nc(L1_twsObs%dir, nRows1, nCols1, 'twsa', mask1, L1_data, &
+            target_period = evalPer(iDomain), nctimestep = L1_twsObs%timeStepInput, nocheck = .TRUE., maskout = L1_mask)
 
     ! pack variables
     nTimeSteps_L1_tws = size(L1_data, 3)
-    allocate(L1_tws%dataObs(nCells1, nTimeSteps_L1_tws))
-    allocate(L1_tws%maskObs(nCells1, nTimeSteps_L1_tws))
+    allocate(L1_twsObs%dataObs(nCells1, nTimeSteps_L1_tws))
+    allocate(L1_twsObs%maskObs(nCells1, nTimeSteps_L1_tws))
     do t = 1, nTimeSteps_L1_tws
-      L1_tws%dataObs(:, t) = pack(L1_data(:, :, t), MASK = mask1(:, :))
-      L1_tws%maskObs(:, t) = pack(L1_mask(:, :, t), MASK = mask1(:, :))
+      L1_twsObs%dataObs(:, t) = pack(L1_data(:, :, t), MASK = mask1(:, :))
+      L1_twsObs%maskObs(:, t) = pack(L1_mask(:, :, t), MASK = mask1(:, :))
     end do
 
     ! for multi domain calibration number of time steps may vary for different domains
-    if (iDomain .GT. 1) nTimeSteps_L1_tws = size(L1_tws%dataObs, 2)
+    if (iDomain .GT. 1) nTimeSteps_L1_tws = size(L1_twsObs%dataObs, 2)
 
     !free space
     deallocate(L1_data)

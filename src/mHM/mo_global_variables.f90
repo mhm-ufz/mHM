@@ -63,9 +63,6 @@ MODULE mo_global_variables
   logical, public :: read_meteo_weights         ! read weights for tavg and pet
   character(256), public :: inputFormat_meteo_forcings ! format of meteo input data (nc)
   ! Optional data
-  integer(i4), public :: timeStep_sm_input          ! time step of optional data: soil moisture sm
-  integer(i4), public :: timeStep_neutrons_input    ! time step of optional data: neutron counts
-  integer(i4), public :: timeStep_et_input          ! time step of optional data: evapotransp. et
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
@@ -78,9 +75,6 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirabsVapPressure  ! Directory where abs. vap. pressure files are located
   character(256), dimension(:), allocatable, public :: dirwindspeed       ! Directory where windspeed files are located
   character(256), dimension(:), allocatable, public :: dirReferenceET     ! Directory where reference-ET files are located
-  character(256), dimension(:), allocatable, public :: dirSoil_moisture        ! File of monthly soil moisture
-  character(256), dimension(:), allocatable, public :: dirNeutrons             ! File of spatio-temporal neutron data
-  character(256), dimension(:), allocatable, public :: dirEvapotranspiration   ! File of monthly soil moisture
 
   ! ------------------------------------------------------------------
   ! CONSTANT
@@ -125,19 +119,24 @@ MODULE mo_global_variables
 
   real(dp), public, dimension(:, :), allocatable :: L1_sm                  ! [-] soil moisture input for optimization
   logical, public, dimension(:, :), allocatable :: L1_sm_mask             ! [-] mask for valid data in L1_sm
-  integer(i4) :: nTimeSteps_L1_sm       ! [-] number of time steps in L1_sm_mask
-  integer(i4) :: nSoilHorizons_sm_input ! No. of mhm soil horizons equivalent to sm input
   ! neutrons
   real(dp), public, dimension(:, :), allocatable :: L1_neutronsdata            ! [cph] ground albedo neutrons input
   logical, public, dimension(:, :), allocatable :: L1_neutronsdata_mask       ! [cph] mask for valid data in L1_neutrons
+
+  ! soil moisture
+  integer(i4) :: nTimeSteps_L1_sm       ! [-] number of time steps in L1_sm_mask
+  integer(i4) :: nSoilHorizons_sm_input ! No. of mhm soil horizons equivalent to sm input
+  type(optidata), public, dimension(:), allocatable :: L1_smObs
+  ! neutrons
   integer(i4) :: nTimeSteps_L1_neutrons     ! [-] number of time steps in L1_neutrons_mask
+  type(optidata), public, dimension(:), allocatable :: L1_neutronsObs
+
   ! evapotranspiration
-  real(dp), public, dimension(:, :), allocatable :: L1_et                 ! [mm] Evapotranspiration input for optimization
-  logical, public, dimension(:, :), allocatable :: L1_et_mask            ! [mm] mask for valid data in L1_et
   integer(i4) :: nTimeSteps_L1_et      ! [-] number of time steps in L1_et_mask
+  type(optidata), public, dimension(:), allocatable :: L1_etObs
   ! tws
   integer(i4) :: nTimeSteps_L1_tws      ! [-] number of time steps in L1_tws_mask
-  type(optidata), public, dimension(:), allocatable :: L1_tws ! this stores L1_tws, the mask, the directory of the
+  type(optidata), public, dimension(:), allocatable :: L1_twsObs ! this stores L1_tws, the mask, the directory of the
                                                               ! observerd data, and the
                                                               ! timestepInput of the simulated data
                                                               ! ToDo: add unit

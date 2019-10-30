@@ -93,7 +93,10 @@ PROGRAM mhm_driver
           dirabsVapPressure, dirwindspeed, &      ! PET input paths if process 5 is Penman-Monteith  (case 3)
           timestep_model_inputs, & !frequency of input read
           optidata, & ! type for opti data
-          L1_tws 
+          L1_twsObs, &
+          L1_etObs, &
+          L1_neutronsObs, &
+          L1_smObs
   USE mo_common_mHM_mRM_variables, ONLY : &
           nTstepDay, &      ! number of timesteps per day (former: NAGG)
           simPer, &      ! simulation period
@@ -320,26 +323,26 @@ PROGRAM mhm_driver
       select case (opti_function)
       case(10 : 13, 28)
         ! read optional spatio-temporal soil mositure data
-        call read_soil_moisture(iDomain, domainID)
+        call read_soil_moisture(iDomain, domainID, L1_smObs(iDomain))
       case(17)
         ! read optional spatio-temporal neutrons data
-        call read_neutrons(iDomain, domainID)
+        call read_neutrons(iDomain, domainID, L1_neutronsObs(iDomain))
       case(27, 29, 30)
         ! read optional spatio-temporal evapotranspiration data
-        call read_evapotranspiration(iDomain, domainID)
+        call read_evapotranspiration(iDomain, domainID, L1_etObs(iDomain))
       case(15)
         ! read optional spatio-temporal tws data
-        call read_tws(iDomain, domainID, L1_tws(iDomain))
+        call read_tws(iDomain, domainID, L1_twsObs(iDomain))
       case(33)
         ! read optional spatio-temporal evapotranspiration data
         if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
           domainMeta%optidata(iDomain) == 6 ) then
-          call read_evapotranspiration(iDomain, domainID)
+          call read_evapotranspiration(iDomain, domainID, L1_etObs(iDomain))
         end if
         ! read optional spatio-temporal tws data
         if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
           domainMeta%optidata(iDomain) == 6 ) then
-          call read_tws(iDomain, domainID, L1_tws(iDomain))
+          call read_tws(iDomain, domainID, L1_twsObs(iDomain))
         end if
       end select
     end if
