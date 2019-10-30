@@ -48,6 +48,8 @@ MODULE mo_global_variables
 
   IMPLICIT NONE
 
+  public :: optidata
+
   ! -------------------------------------------------------------------
   ! DEFINE OUTPUTS
   ! -------------------------------------------------------------------
@@ -77,7 +79,6 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirwindspeed       ! Directory where windspeed files are located
   character(256), dimension(:), allocatable, public :: dirReferenceET     ! Directory where reference-ET files are located
   character(256), dimension(:), allocatable, public :: dirSoil_moisture        ! File of monthly soil moisture
-  character(256), dimension(:), allocatable, public :: fileTWS                 ! File of tws data
   character(256), dimension(:), allocatable, public :: dirNeutrons             ! File of spatio-temporal neutron data
   character(256), dimension(:), allocatable, public :: dirEvapotranspiration   ! File of monthly soil moisture
 
@@ -85,20 +86,6 @@ MODULE mo_global_variables
   ! CONSTANT
   ! ------------------------------------------------------------------
   integer(i4), public, parameter :: routingStates = 2  ! [-]   Routing states (2=current, 1=past)
-
-  ! ------------------------------------------------------------------
-  ! Domain AVERAGED TOTAL WATER STORAGE DATA
-  ! ------------------------------------------------------------------
-  type TWSstructure
-    integer(i4), dimension(:), allocatable :: domainId            ! domain Id
-    character(256), dimension(:), allocatable :: fname              ! file name
-    real(dp), dimension(:, :), allocatable :: TWS                ! [mm]
-  end type TWSstructure
-  type(TWSstructure), public :: domain_avg_TWS_obs   ! [mm] domain average TWS observational data
-
-  real(dp), public, dimension(:, :), allocatable :: domain_avg_TWS_sim  ! variable containing domain average TWS for each domain
-  integer(i4), public :: nMeasPerDay_TWS    ! Number of WTS observations per day,
-  !                                                                      ! e.g. 24 -> hourly, 1 -> daily
 
   ! -------------------------------------------------------------------
   ! GRID description
@@ -127,6 +114,15 @@ MODULE mo_global_variables
   ! dim1 = number grid cells L1
   ! dim2 = number of meteorological time steps
   ! soil moisture
+  type optidata
+    real(dp), dimension(:, :), allocatable    :: dataObs ! observed data
+    logical, dimension(:, :), allocatable     :: maskObs ! mask of observed data
+    character(256)                            :: dir ! directory where to read opti data
+    integer(i4)                               :: timeStepInput ! time step of optional data
+    integer(i4)                               :: writeOutCounter ! the current timestep
+                                                                 ! the simulated opti data is written to
+  end type optidata
+
   real(dp), public, dimension(:, :), allocatable :: L1_sm                  ! [-] soil moisture input for optimization
   logical, public, dimension(:, :), allocatable :: L1_sm_mask             ! [-] mask for valid data in L1_sm
   integer(i4) :: nTimeSteps_L1_sm       ! [-] number of time steps in L1_sm_mask
@@ -137,8 +133,15 @@ MODULE mo_global_variables
   integer(i4) :: nTimeSteps_L1_neutrons     ! [-] number of time steps in L1_neutrons_mask
   ! evapotranspiration
   real(dp), public, dimension(:, :), allocatable :: L1_et                 ! [mm] Evapotranspiration input for optimization
-  logical, public, dimension(:, :), allocatable :: L1_et_mask            ! [mm] mask for valid data in L1_neutrons
-  integer(i4) :: nTimeSteps_L1_et      ! [-] number of time steps in L1_sm_mask
+  logical, public, dimension(:, :), allocatable :: L1_et_mask            ! [mm] mask for valid data in L1_et
+  integer(i4) :: nTimeSteps_L1_et      ! [-] number of time steps in L1_et_mask
+  ! tws
+  integer(i4) :: nTimeSteps_L1_tws      ! [-] number of time steps in L1_tws_mask
+  type(optidata), public, dimension(:), allocatable :: L1_tws ! this stores L1_tws, the mask, the directory of the
+                                                              ! observerd data, and the
+                                                              ! timestepInput of the simulated data
+                                                              ! ToDo: add unit
+                                                              
 
   ! State variables
   ! dim1 = number grid cells L1

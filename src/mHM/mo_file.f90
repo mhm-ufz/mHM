@@ -35,7 +35,4 @@ MODULE mo_file
   !> Unit for file defining mHM's outputs
   INTEGER, PARAMETER :: udefOutput = 67                            !
 
-  !> unit for tws time series
-  INTEGER, PARAMETER :: utws = 77                            !
-
 END MODULE mo_file

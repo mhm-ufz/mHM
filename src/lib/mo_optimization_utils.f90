@@ -5,15 +5,15 @@ module mo_optimization_utils
   implicit none
 
   abstract interface
-    subroutine eval_interface(parameterset, opti_domain_indices, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
+    subroutine eval_interface(parameterset, opti_domain_indices, runoff, sm_opti, neutrons_opti, et_opti, tws_opti)
       use mo_kind, only : dp, i4
       real(dp),    dimension(:), intent(in) :: parameterset
       integer(i4), dimension(:),                 optional, intent(in)  :: opti_domain_indices
       real(dp),    dimension(:, :), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
       real(dp),    dimension(:, :), allocatable, optional, intent(out) :: sm_opti       ! dim1=ncells, dim2=time
-      real(dp),    dimension(:, :), allocatable, optional, intent(out) :: domain_avg_tws ! dim1=time dim2=nDomains
       real(dp),    dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti ! dim1=ncells, dim2=time
       real(dp),    dimension(:, :), allocatable, optional, intent(out) :: et_opti       ! dim1=ncells, dim2=time
+      real(dp),    dimension(:, :), allocatable, optional, intent(out) :: tws_opti       ! dim1=ncells, dim2=time
     end subroutine
   end interface
 

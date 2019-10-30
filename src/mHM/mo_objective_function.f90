@@ -13,7 +13,7 @@
 !>       (12) SO: SM:       Sum of squared errors (SSE) of spatially distributed standard score (normalization)
 !>       of soil moisture
 !>       (13) SO: SM:       1.0 - average temporal correlation of spatially distributed soil moisture
-!>       (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(domain_avg_TWS) - objective function using Q and domain average
+!>       (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(domain_avg_TWS) - objective function using Q and domain average !ToDo: change comment
 !>       (standard score) TWS
 !>       (17) SO: N:        1.0 - KGE of spatio-temporal neutron data, catchment-average
 !>       (27) SO: ET:       1.0 - KGE of catchment average evapotranspiration
@@ -736,17 +736,17 @@ CONTAINS
     integer(i4), dimension(:), allocatable :: opti_domain_indices_Q
 
     !> simulated tws
-    real(dp), allocatable, dimension(:, :) :: tws
+    real(dp), allocatable, dimension(:, :) :: tws_opti
 
     !> simulated et
     ! (dim1=ncells, dim2=time)
     real(dp), dimension(:, :), allocatable :: et_opti
 
     !> simulated tws
-    real(dp), dimension(:), allocatable :: tws_sim
+    real(dp), dimension(:), allocatable :: tws_catch_avg_domain
 
     !> measured tws
-    real(dp), dimension(:), allocatable :: tws_obs
+    real(dp), dimension(:), allocatable :: tws_opti_catch_avg_domain
 
     !> mask for measured tws
     logical, dimension(:), allocatable :: tws_obs_mask
@@ -779,22 +779,23 @@ CONTAINS
     call init_indexarray_for_opti_data(domainMeta, 6, nEtTwsDomains, opti_domain_indices_ET_TWS) 
     if (nEtTwsDomains > 0) then
       call eval(parameterset, opti_domain_indices = opti_domain_indices_ET_TWS, &
-                                                                        domain_avg_tws = tws, et_opti = et_opti)
+                                                                         et_opti = et_opti, tws_opti = tws_opti)
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_ET_TWS)
         iDomain = opti_domain_indices_ET_TWS(i)
         ! create et array input
+        ! ToDo: rename variables
         call create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
                                            et_opti_catch_avg_domain, mask_times_et)
-        call extract_domain_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
+        call create_domain_avg_tws(iDomain, tws_opti, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
         kge_et = kge_et + &
           ((1.0_dp - KGE(et_catch_avg_domain, et_opti_catch_avg_domain, mask = mask_times_et)) / &
                                         real(domainMeta%overallNumberOfDomains, dp))**6
         kge_tws = kge_tws + &
-          ((1.0_dp - KGE(tws_obs, tws_sim, mask = tws_obs_mask)) / &
+          ((1.0_dp - KGE(tws_opti_catch_avg_domain, tws_catch_avg_domain, mask = tws_obs_mask)) / &
                                         real(domainMeta%overallNumberOfDomains, dp))**6
         ! deallocate
-        deallocate(tws_sim, tws_obs, tws_obs_mask)
+        deallocate(tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
         deallocate(mask_times_et, et_catch_avg_domain, et_opti_catch_avg_domain)
       end do
      ! write(0,*) 'nEtTwsDomains, kge_tws', nEtTwsDomains, kge_tws
@@ -808,16 +809,16 @@ CONTAINS
     ! eval should be called. Read details for further information
     call init_indexarray_for_opti_data(domainMeta, 3, nTwsDomains, opti_domain_indices_TWS)
     if (nTwsDomains > 0) then
-      call eval(parameterset, opti_domain_indices = opti_domain_indices_TWS, domain_avg_tws = tws)
+      call eval(parameterset, opti_domain_indices = opti_domain_indices_TWS, tws_opti = tws_opti)
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_TWS)
         iDomain = opti_domain_indices_TWS(i)
         ! extract tws the same way as runoff using mrm
-        call extract_domain_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
+        call create_domain_avg_tws(iDomain, tws_opti, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
         kge_tws = kge_tws + &
-          ((1.0_dp - KGE(tws_obs, tws_sim, mask = tws_obs_mask)) / &
+          ((1.0_dp - KGE(tws_opti_catch_avg_domain, tws_catch_avg_domain, mask = tws_obs_mask)) / &
                                         real(domainMeta%overallNumberOfDomains, dp))**6
-        deallocate (tws_sim, tws_obs, tws_obs_mask)
+        deallocate (tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
       end do
     !  write(0,*) 'nTwsDomains, kge_tws', nTwsDomains, kge_tws
     end if
@@ -854,8 +855,8 @@ CONTAINS
     ! eval runs to get simulated output for runoff
     ! before the eval call we generate an index list of the domains for which
     ! eval should be called. Read details for further information
-    ! ToDo: was there a reason to call this at the end? Was it about the index
-    ! array? The arrays for qTin, qTout, etc were rewritten in the other calls
+    ! ToDo:  The arrays for qTin, qTout, will be rewritten in the other calls when
+    ! Q is not called last. Change that for more flexibility
     call init_indexarray_for_opti_data(domainMeta, 1, nQDomains, opti_domain_indices_Q)
 #ifndef MRM2MHM
     call message('***ERROR: objective_q_et_tws_kge_catchment_avg: missing routing module for optimization')
@@ -1411,12 +1412,14 @@ CONTAINS
   ! Modifications:
   ! Stephan Thober Oct 2015 - moved tws optimization from mo_mrm_objective_function_runoff here
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Maren Kaluza Oct 2019 - changed averaging function for tws, this will not produce the same output as before
 
   FUNCTION objective_kge_q_rmse_tws(parameterset, eval)
 
     use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : domainMeta
+    use mo_global_variables, only : L1_tws
     use mo_errormeasures, only : rmse
     use mo_julian, only : caldat
     use mo_message, only : message
@@ -1453,10 +1456,10 @@ CONTAINS
     real(dp), dimension(domainMeta%nDomains) :: initTime
 
     ! simulated tws
-    real(dp), dimension(:), allocatable :: tws_sim
+    real(dp), dimension(:), allocatable :: tws_catch_avg_domain
 
     ! measured tws
-    real(dp), dimension(:), allocatable :: tws_obs
+    real(dp), dimension(:), allocatable :: tws_opti_catch_avg_domain
 
     ! mask for measured tws
     logical, dimension(:), allocatable :: tws_obs_mask
@@ -1466,9 +1469,6 @@ CONTAINS
 
     ! vector with months' classes
     integer(i4), dimension(:), allocatable :: month_classes
-
-    ! monthly values original time series
-    real(dp), DIMENSION(:), allocatable :: tws_sim_m, tws_obs_m
 
     ! monthly values anomaly time series
     real(dp), DIMENSION(:), allocatable :: tws_sim_m_anom, tws_obs_m_anom
@@ -1501,7 +1501,7 @@ CONTAINS
 #endif
 
     ! obtain hourly values of runoff and tws:
-    call eval(parameterset, runoff = runoff, domain_avg_tws = tws)
+    call eval(parameterset, runoff = runoff, tws_opti = tws)
 
     !--------------------------------------------
     !! TWS
@@ -1512,13 +1512,18 @@ CONTAINS
     rmse_tws(:) = nodata_dp
 
     do iDomain = 1, domainMeta%nDomains
+      if (.not. (L1_tws(iDomain)%timeStepInput == -2)) then
+        call message('objective_kge_q_rmse_tws: current implementation of this subroutine only allows monthly timesteps')
+      end if
       domainID = domainMeta%indices(iDomain)
 
       ! extract tws the same way as runoff using mrm
-      call extract_domain_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
+      ! ToDo: note that with the change from tws(iDomain, tt) to tws(tt, e1:s1) this
+      ! will not work like before and also does maybe not make sense
+      call create_domain_avg_tws(iDomain, tws, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
 
       ! check for potentially 2 years of data
-      if (count(tws_obs_mask) .lt.  365 * 2) then
+      if (count(tws_obs_mask) .lt.  12 * 2) then
         call message('objective_kge_q_rmse_tws: Length of TWS data of domain ', trim(adjustl(num2str(domainID))), &
                 ' less than 2 years: this is not recommended')
       end if
@@ -1529,25 +1534,13 @@ CONTAINS
       ! get calendar days, months, year
       call caldat(int(initTime(iDomain)), yy = year, mm = month, dd = day)
 
-      ! calculate monthly averages from daily values of the model
-      call day2mon_average(tws_sim, year, month, day, tws_sim_m, misval = nodata_dp)
-
-      ! remove mean from modelled time series
-      tws_sim_m(:) = tws_sim_m(:) - mean(tws_sim_m(:))
-
-      ! calculate monthly averages from daily values of the observations, which already have removed the long-term mean
-      call day2mon_average(tws_obs, year, month, day, tws_obs_m, misval = nodata_dp)
-
-      ! get number of months for given domain
-      nMonths = size(tws_obs_m)
+      nMonths = size(tws_obs_mask)
 
       allocate (month_classes(nMonths))
-      allocate (tws_obs_m_mask(nMonths))
       allocate (tws_obs_m_anom(nMonths))
       allocate (tws_sim_m_anom(nMonths))
 
       month_classes(:) = 0
-      tws_obs_m_mask(:) = .TRUE.
       tws_obs_m_anom(:) = nodata_dp
       tws_sim_m_anom(:) = nodata_dp
 
@@ -1562,21 +1555,15 @@ CONTAINS
         end if
       end do
 
-      ! define mask for missing data in observations (there are always data for simulations)
-      where(abs(tws_obs_m - nodata_dp) .lt. eps_dp) tws_obs_m_mask = .FALSE.
-
       ! calculate standard score
-      tws_obs_m_anom = classified_standard_score(tws_obs_m, month_classes, mask = tws_obs_m_mask)
-      tws_sim_m_anom = classified_standard_score(tws_sim_m, month_classes, mask = tws_obs_m_mask)
-      rmse_tws(iDomain) = rmse(tws_sim_m_anom, tws_obs_m_anom, mask = tws_obs_m_mask)
+      tws_obs_m_anom = classified_standard_score(tws_opti_catch_avg_domain, month_classes, mask = tws_obs_mask)
+      tws_sim_m_anom = classified_standard_score(tws_catch_avg_domain,      month_classes, mask = tws_obs_mask)
+      rmse_tws(iDomain) = rmse(tws_sim_m_anom, tws_obs_m_anom, mask = tws_obs_mask)
 
       deallocate (month_classes)
-      deallocate (tws_obs_m)
-      deallocate (tws_sim_m)
-      deallocate (tws_obs_m_mask)
       deallocate (tws_sim_m_anom)
       deallocate (tws_obs_m_anom)
-      deallocate (tws_sim, tws_obs, tws_obs_mask)
+      deallocate (tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
 
     end do
 
@@ -2574,129 +2561,67 @@ CONTAINS
 
   END FUNCTION objective_kge_q_rmse_et
 
-  ! ------------------------------------------------------------------
-
-  !    NAME
-  !        extract_domain_avg_tws
-
-  !    PURPOSE
-  !>       \brief extracts domain average tws data from global variables
-
-  !>       \details extracts simulated and measured domain average tws from global variables,
-  !>       such that they overlay exactly. For measured tws, only the tws
-  !>       during the evaluation period are cut, not succeeding nodata values.
-  !>       For simulated tws, warming days as well as succeeding nodata values
-  !>       are neglected.
-  !>       see use in this module above
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain"           current domain Id
-  !>       \param[in] "real(dp), dimension(:, :) :: tws" simulated domain average tws
-
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp), dimension(:) :: tws_sim"     aggregated simulated
-  !>       \param[out] "real(dp), dimension(:) :: tws_obs"     extracted measured
-  !>       \param[out] "logical, dimension(:) :: tws_obs_mask" mask of no data values
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Oct 2015
-
-  ! Modifications:
-  ! Stephan Thober Oct 2015 - moved subroutine to objective_function_sm
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
-  !ToDo: check with someone if change was correct
-  subroutine extract_domain_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
-
-    use mo_common_constants, only : eps_dp, nodata_dp
-    use mo_common_mhm_mrm_variables, only : evalPer, nTstepDay, warmingDays
-    use mo_global_variables, only : domain_avg_TWS_obs, nMeasPerDay_TWS
-    use mo_message, only : message
-
-    implicit none
-
+  subroutine create_domain_avg_tws(iDomain, tws_opti, tws_catch_avg_domain, &
+                                           tws_opti_catch_avg_domain, mask_times)
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1
+    use mo_global_variables, only : L1_tws
+    use mo_moment, only : average
     ! current domain Id
     integer(i4), intent(in) :: iDomain
 
     ! simulated domain average tws
-    real(dp), dimension(:, :), intent(in) :: tws
+    real(dp), dimension(:, :), intent(in) :: tws_opti
 
     ! aggregated simulated
-    real(dp), dimension(:), allocatable, intent(out) :: tws_sim
+    real(dp), dimension(:), allocatable, intent(out) :: tws_catch_avg_domain
 
     ! extracted measured
-    real(dp), dimension(:), allocatable, intent(out) :: tws_obs
+    real(dp), dimension(:), allocatable, intent(out) :: tws_opti_catch_avg_domain
 
     ! mask of no data values
-    logical, dimension(:), allocatable, intent(out) :: tws_obs_mask
+    logical, dimension(:), allocatable, intent(out) :: mask_times
 
-    ! domain id
-    integer(i4) :: iDomainTWS
+    ! local
+    ! time loop counter
+    integer(i4) :: iTime
 
-    ! timestep counter
-    integer(i4) :: tt
+    ! start and end index for the current domain
+    integer(i4) :: s1, e1
 
-    ! length of extracted time series
-    integer(i4) :: length
+    ! get domain information
+    s1 = level1(iDomain)%iStart
+    e1 = level1(iDomain)%iEnd
 
-    ! between simulated and measured time scale
-    integer(i4) :: factor
+    ! allocate
+    allocate(mask_times              (size(tws_opti, dim = 2)))
+    allocate(tws_catch_avg_domain     (size(tws_opti, dim = 2)))
+    allocate(tws_opti_catch_avg_domain(size(tws_opti, dim = 2)))
 
-    ! simulated Timesteps per Day
-    integer(i4) :: TPD_sim
+    ! initalize
+    mask_times = .TRUE.
+    tws_catch_avg_domain = nodata_dp
+    tws_opti_catch_avg_domain = nodata_dp
 
-    ! observed Timesteps per Day
-    integer(i4) :: TPD_obs
+    ! calculate catchment average evapotranspiration
+    do iTime = 1, size(tws_opti, dim = 2)
 
-    real(dp), dimension(:), allocatable :: dummy
+      ! check for enough data points in time for correlation
+      ! ToDo: check if this still works with the new data structure
+     ! if (all(.NOT. L1_tws_mask(s1 : e1, iTime))) then
+      if (all(.NOT. L1_tws(iDomain)%maskObs(:, iTime))) then
+        !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
+        !call message('WARNING: objective_et_kge_catchment_avg: ignored current time step since less than')
+        !call message('         10 valid cells available in evapotranspiration observation')
+        mask_times(iTime) = .FALSE.
+        cycle
+      end if
 
+      tws_catch_avg_domain(iTime) = average(L1_tws(iDomain)%dataObs(:, iTime), mask = L1_tws(iDomain)%maskObs(:, iTime))
+      tws_opti_catch_avg_domain(iTime) = average(tws_opti(s1 : e1, iTime), mask = L1_tws(iDomain)%maskObs(:, iTime))
+    end do
 
-    ! copy time resolution to local variables
-    TPD_sim = nTstepDay
-    TPD_obs = nMeasPerDay_TWS
-
-    ! check if modelled timestep is an integer multiple of measured timesteps
-    if (modulo(TPD_sim, TPD_obs) .eq. 0) then
-      factor = TPD_sim / TPD_obs
-    else
-      call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-      stop
-    end if
-
-    ! extract domain Id
-    iDomainTWS = domain_avg_TWS_obs%domainId(iDomain)
-
-    ! get length of evaluation period times TPD_obs
-    length = (evalPer(iDomainTWS)%julEnd - evalPer(iDomainTWS)%julStart + 1) * TPD_obs
-
-    ! extract measurements
-    if (allocated(tws_obs)) deallocate(tws_obs)
-    allocate(tws_obs(length))
-    tws_obs = domain_avg_TWS_obs%TWS(1 : length, iDomain)
-
-    ! create mask of observed tws
-    if (allocated(tws_obs_mask)) deallocate(tws_obs_mask)
-    allocate(tws_obs_mask(length))
-    tws_obs_mask = .TRUE.
-    where(abs(tws_obs - nodata_dp) .lt. eps_dp) tws_obs_mask = .FALSE.
-
-    ! extract and aggregate simulated tws
-    if (allocated(tws_sim)) deallocate(tws_sim)
-    allocate(tws_sim(length))
-    ! remove warming days
-    length = (evalPer(iDomainTWS)%julEnd - evalPer(iDomainTWS)%julStart + 1) * TPD_sim
-    allocate(dummy(length))
-    dummy = tws(warmingDays(iDomainTWS) * TPD_sim + 1 : warmingDays(iDomainTWS) * TPD_sim + length, iDomain)
-    ! aggregate tws
-    length = (evalPer(iDomainTWS)%julEnd - evalPer(iDomainTWS)%julStart + 1) * TPD_obs
-    forall(tt = 1 : length) tws_sim(tt) = sum(dummy((tt - 1) * factor + 1 : tt * factor)) / &
-            real(factor, dp)
-    ! clean up
-    deallocate(dummy)
-
-  end subroutine extract_domain_avg_tws
+  end subroutine create_domain_avg_tws
 
   subroutine create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
                                            et_opti_catch_avg_domain, mask_times)

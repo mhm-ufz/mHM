@@ -49,16 +49,17 @@
                                '../../test_domain/input/optional_data/", "../../test_domain/input/optional_data/',
                                '../../test_domain/input/optional_data/", "../../test_domain/input/optional_data/'
     timeStep_sm_input = -2
-    file_tws(1:6) = '../../test_domain/input/optional_data/tws_domain_1.txt', '../../test_domain/input/optional_data/tws_domain_2.txt',
-                    '../../test_domain/input/optional_data/tws_domain_1.txt', '../../test_domain/input/optional_data/tws_domain_2.txt',
-                    '../../test_domain/input/optional_data/tws_domain_1.txt', '../../test_domain/input/optional_data/tws_domain_2.txt'
     dir_neutrons(1:6)        = '../../test_domain/input/optional_data/', '../../test_domain/input/optional_data/',
                                '../../test_domain/input/optional_data/', '../../test_domain/input/optional_data/',
                                '../../test_domain/input/optional_data/', '../../test_domain/input/optional_data/'
     dir_evapotranspiration(1:6)   = '../../test_domain/input/optional_data/', '../../test_domain/input/optional_data/',
                                     '../../test_domain/input/optional_data/', '../../test_domain/input/optional_data/',
                                     '../../test_domain/input/optional_data/', '../../test_domain/input/optional_data/'
+    dir_tws(1:6)   = '../../test_domain/input/optional_data/', '../../test_domain/input/optional_data/',
+                                    '../../test_domain/input/optional_data/', '../../test_domain/input/optional_data/',
+                                    '../../test_domain/input/optional_data/', '../../test_domain/input/optional_data/'
     timeStep_et_input = -2
+    timeStep_tws_input = -2
 /
 
 &evaluation_gauges

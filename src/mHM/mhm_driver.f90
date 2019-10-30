@@ -74,6 +74,7 @@
 ! Stephan Thober                Nov 2016 - implemented adaptive timestep for routing
 ! Rohini Kumar                  Dec 2016 - options to read (monthly mean) LAI fields
 ! Robert Schweppe               Jun 2018 - refactoring and reformatting
+! Maren Kaluza                  Oct 2019 - TWS to data structure
 
 PROGRAM mhm_driver
 
@@ -90,7 +91,9 @@ PROGRAM mhm_driver
           dirMinTemperature, dirMaxTemperature, &      ! PET input paths if process 5 is Hargreaves-Samani  (case 1)
           dirNetRadiation, &      ! PET input paths if process 5 is Priestley-Taylor (case 2)
           dirabsVapPressure, dirwindspeed, &      ! PET input paths if process 5 is Penman-Monteith  (case 3)
-          timestep_model_inputs !frequency of input read
+          timestep_model_inputs, & !frequency of input read
+          optidata, & ! type for opti data
+          L1_tws 
   USE mo_common_mHM_mRM_variables, ONLY : &
           nTstepDay, &      ! number of timesteps per day (former: NAGG)
           simPer, &      ! simulation period
@@ -112,10 +115,10 @@ PROGRAM mhm_driver
   USE mo_message, ONLY : message, message_text          ! For print out
   USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval, ONLY : mhm_eval
-  USE mo_read_optional_data, ONLY : read_soil_moisture, &      ! optional soil moisture reader, domain_avg_TWS reader
-          read_domain_avg_TWS, &
+  USE mo_read_optional_data, ONLY : read_soil_moisture, &      ! optional soil moisture reader
           read_neutrons, &
-          read_evapotranspiration
+          read_evapotranspiration, &
+          read_tws
   USE mo_common_read_config, ONLY : common_read_config                    ! Read main configuration files
   USE mo_common_mHM_mRM_read_config, ONLY : &
           common_mHM_mRM_read_config, check_optimization_settings ! Read main configuration files
@@ -325,23 +328,18 @@ PROGRAM mhm_driver
         ! read optional spatio-temporal evapotranspiration data
         call read_evapotranspiration(iDomain, domainID)
       case(15)
-        ! read optional domain average TWS data at once, therefore only read it
-        ! the last iteration of the domain loop to ensure same time for all domains
-        ! note: this is similar to how the runoff is read using mrm below
-        if (iDomain == domainMeta%nDomains) then
-          call read_domain_avg_TWS()
-        end if
+        ! read optional spatio-temporal tws data
+        call read_tws(iDomain, domainID, L1_tws(iDomain))
       case(33)
         ! read optional spatio-temporal evapotranspiration data
         if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
           domainMeta%optidata(iDomain) == 6 ) then
           call read_evapotranspiration(iDomain, domainID)
         end if
-        ! read optional domain average TWS data at once, therefore only read it
-        ! the last iteration of the domain loop to ensure same time for all domains
-        ! note: this is similar to how the runoff is read using mrm below
-        if (iDomain == domainMeta%nDomains) then
-          call read_domain_avg_TWS()
+        ! read optional spatio-temporal tws data
+        if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
+          domainMeta%optidata(iDomain) == 6 ) then
+          call read_tws(iDomain, domainID, L1_tws(iDomain))
         end if
       end select
     end if
