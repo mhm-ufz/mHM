@@ -5,17 +5,12 @@ module mo_optimization_utils
   implicit none
 
   abstract interface
-    subroutine eval_interface(parameterset, opti_domain_indices, runoff, sm_opti, neutrons_opti, et_opti, tws_opti, &
-                                                                  smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
+    subroutine eval_interface(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
       use mo_kind, only : dp, i4
       use mo_optimization_types, only : optidata_sim
       real(dp),    dimension(:), intent(in) :: parameterset
       integer(i4), dimension(:),                 optional, intent(in)  :: opti_domain_indices
       real(dp),    dimension(:, :), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
-      real(dp),    dimension(:, :), allocatable, optional, intent(out) :: sm_opti       ! dim1=ncells, dim2=time
-      real(dp),    dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti ! dim1=ncells, dim2=time
-      real(dp),    dimension(:, :), allocatable, optional, intent(out) :: et_opti       ! dim1=ncells, dim2=time
-      real(dp),    dimension(:, :), allocatable, optional, intent(out) :: tws_opti       ! dim1=ncells, dim2=time
       type(optidata_sim), dimension(:), optional, intent(inout) :: smOptiSim       ! dim1=ncells, dim2=time
       type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim ! dim1=ncells, dim2=time
       type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim       ! dim1=ncells, dim2=time

@@ -74,14 +74,13 @@ CONTAINS
   ! O. Rakovec, R. Kumar Oct 2015 - added optional output for Domain averaged TWS
   ! Rohini Kumar         Mar 2016 - changes for handling multiple soil database options
   ! Stephan Thober       Nov 2016 - added two options for routing
-  ! Rohini Kuamr         Dec  2016 - option to handle monthly mean gridded fields of LAI
+  ! Rohini Kuamr         Dec 2016 - option to handle monthly mean gridded fields of LAI
   ! Stephan Thober       Jan 2017 - added prescribed weights for tavg and pet
   ! Zink M. Demirel C.   Mar 2017 - Added Jarvis soil water stress function at SM process(3)
   ! Robert Schweppe      Dec 2017 - extracted call to mpr from inside mhm
   ! Robert Schweppe      Jun 2018 - refactoring and reformatting
 
-  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, sm_opti, neutrons_opti, et_opti, tws_opti, &
-                                                                 smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
+  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
 
     use mo_common_constants, only : nodata_dp
     use mo_optimization_types, only : optidata_sim
@@ -95,8 +94,7 @@ CONTAINS
                                     L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_temp, L1_temp_weights, L1_tmax, &
                                     L1_tmin, L1_total_runoff, L1_unsatSTW, L1_windspeed, evap_coeff, &
                                     fday_pet, fday_prec, fday_temp, fnight_pet, fnight_prec, fnight_temp, &
-                                    nSoilHorizons_sm_input, nTimeSteps_L1_et, nTimeSteps_L1_tws, &
-                                    nTimeSteps_L1_neutrons, nTimeSteps_L1_sm, &
+                                    nSoilHorizons_sm_input, &
                                     neutron_integral_AFast, outputFlxState, read_meteo_weights, &
                                     timeStep_model_inputs, timeStep_model_outputs, &
                                     L1_twsObs, L1_etObs, L1_smObs, L1_neutronsObs
@@ -145,21 +143,6 @@ CONTAINS
     integer(i4), dimension(:), optional, intent(in) :: opti_domain_indices
     ! returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff
-
-    ! returns soil moisture time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
-    ! nTimeSteps]
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti
-
-    ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti
-
-    ! returns evapotranspiration time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
-    ! nTimeSteps]
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: et_opti
-
-    ! returns tws time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
-    ! nTimeSteps]
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: tws_opti
 
     ! returns soil moisture time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
     ! nTimeSteps]
@@ -293,38 +276,6 @@ CONTAINS
           stop
         end if
       end do
-    end if
-    ! soil moisture optimization
-    !--------------------------
-    if (present(sm_opti)) then
-      !                ! total No of cells, No of timesteps
-      !                ! of all Domains    , in soil moist input
-      allocate(sm_opti(size(L1_pre, dim = 1), nTimeSteps_L1_sm))
-      sm_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
-    end if
-    ! neutrons optimization
-    !--------------------------
-    if (present(neutrons_opti)) then
-      !                ! total No of cells, No of timesteps
-      !                ! of all Domains    , in neutrons input
-      allocate(neutrons_opti(size(L1_pre, dim = 1), nTimeSteps_L1_neutrons))
-      neutrons_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
-    end if
-    ! evapotranspiration optimization
-    !--------------------------
-    if (present(et_opti)) then
-      !                ! total No of cells, No of timesteps
-      !                ! of all Domains    , in evapotranspiration input
-      allocate(et_opti(size(L1_pre, dim = 1), nTimeSteps_L1_et))
-      et_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
-    end if
-    ! tws optimization
-    !--------------------------
-    if (present(tws_opti)) then
-      !                ! total No of cells, No of timesteps
-      !                ! of all Domains    , in evapotranspiration input
-      allocate(tws_opti(size(L1_pre, dim = 1), nTimeSteps_L1_tws))
-      tws_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
     end if
 
     !-------------------------------------------------------------------
