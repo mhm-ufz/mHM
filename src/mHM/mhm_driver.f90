@@ -92,11 +92,12 @@ PROGRAM mhm_driver
           dirNetRadiation, &      ! PET input paths if process 5 is Priestley-Taylor (case 2)
           dirabsVapPressure, dirwindspeed, &      ! PET input paths if process 5 is Penman-Monteith  (case 3)
           timestep_model_inputs, & !frequency of input read
-          optidata, & ! type for opti data
           L1_twsObs, &
           L1_etObs, &
           L1_neutronsObs, &
           L1_smObs
+  USE mo_optimization_types, ONLY : &
+          optidata ! type for opti data
   USE mo_common_mHM_mRM_variables, ONLY : &
           nTstepDay, &      ! number of timesteps per day (former: NAGG)
           simPer, &      ! simulation period

@@ -43,12 +43,11 @@ MODULE mo_global_variables
 
   USE mo_kind, ONLY : i4, dp
   USE mo_mhm_constants, ONLY : nOutFlxState
+  USE mo_optimization_types, ONLY : optidata
   USE mo_common_constants, ONLY : YearMonths
   use mo_common_variables, only : Grid
 
   IMPLICIT NONE
-
-  public :: optidata
 
   ! -------------------------------------------------------------------
   ! DEFINE OUTPUTS
@@ -104,19 +103,7 @@ MODULE mo_global_variables
   real(dp), public, dimension(:, :), allocatable :: L1_absvappress   ! [Pa]    absolute vapour pressure
   real(dp), public, dimension(:, :), allocatable :: L1_windspeed     ! [m s-1] windspeed
 
-  ! optional data
-  ! dim1 = number grid cells L1
-  ! dim2 = number of meteorological time steps
   ! soil moisture
-  type optidata
-    real(dp), dimension(:, :), allocatable    :: dataObs ! observed data
-    logical, dimension(:, :), allocatable     :: maskObs ! mask of observed data
-    character(256)                            :: dir ! directory where to read opti data
-    integer(i4)                               :: timeStepInput ! time step of optional data
-    integer(i4)                               :: writeOutCounter ! the current timestep
-                                                                 ! the simulated opti data is written to
-  end type optidata
-
   real(dp), public, dimension(:, :), allocatable :: L1_sm                  ! [-] soil moisture input for optimization
   logical, public, dimension(:, :), allocatable :: L1_sm_mask             ! [-] mask for valid data in L1_sm
   ! neutrons

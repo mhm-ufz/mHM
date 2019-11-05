@@ -55,7 +55,8 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : level1
-    use mo_global_variables, only : nTimeSteps_L1_sm, optidata
+    use mo_global_variables, only : nTimeSteps_L1_sm
+    use mo_optimization_types, only: optidata
     use mo_message, only : message
     use mo_read_forcing_nc, only : read_forcing_nc
     use mo_string_utils, only : num2str
@@ -155,7 +156,8 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : level1
-    use mo_global_variables, only : nTimeSteps_L1_neutrons, optidata
+    use mo_global_variables, only : nTimeSteps_L1_neutrons
+    use mo_optimization_types, only: optidata
     use mo_message, only : message
     use mo_read_forcing_nc, only : read_forcing_nc
     use mo_string_utils, only : num2str
@@ -257,7 +259,8 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : level1
-    use mo_global_variables, only : nTimeSteps_L1_et, optidata
+    use mo_global_variables, only : nTimeSteps_L1_et
+    use mo_optimization_types, only: optidata
     use mo_message, only : message
     use mo_read_forcing_nc, only : read_forcing_nc
     use mo_string_utils, only : num2str
@@ -358,7 +361,8 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : level1
-    use mo_global_variables, only : nTimeSteps_L1_tws, optidata
+    use mo_global_variables, only : nTimeSteps_L1_tws
+    use mo_optimization_types, only: optidata
     use mo_message, only : message
     use mo_read_forcing_nc, only : read_forcing_nc
     use mo_string_utils, only : num2str
