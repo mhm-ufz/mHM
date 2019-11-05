@@ -651,8 +651,9 @@ CONTAINS
 
   FUNCTION objective_q_et_tws_kge_catchment_avg(parameterset, eval)
 
+    use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : level1, domainMeta
+    use mo_common_variables, only : domainMeta
     use mo_errormeasures, only : kge
     use mo_message, only : message
     use mo_moment, only : average
@@ -680,12 +681,6 @@ CONTAINS
     !> for sixth root
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 #endif
-
-    !> spatial average of observed soil moisture
-    real(dp), dimension(:), allocatable :: sm_catch_avg_domain
-
-    !> spatial avergae of modeled  soil moisture
-    real(dp), dimension(:), allocatable :: sm_opti_catch_avg_domain
 
 #ifdef MRM2MHM
     !> modelled runoff for a given parameter set
@@ -738,8 +733,7 @@ CONTAINS
     real(dp), allocatable, dimension(:, :) :: tws_opti
 
     !> simulated et
-    ! (dim1=ncells, dim2=time)
-    real(dp), dimension(:, :), allocatable :: et_opti
+    type(optidata_sim), dimension(:), allocatable :: etOptiSim
 
     !> simulated tws
     real(dp), dimension(:), allocatable :: tws_catch_avg_domain
@@ -777,14 +771,16 @@ CONTAINS
     ! eval should be called. Read details for further information
     call init_indexarray_for_opti_data(domainMeta, 6, nEtTwsDomains, opti_domain_indices_ET_TWS) 
     if (nEtTwsDomains > 0) then
+      allocate(etOptiSim(domainMeta%nDomains))
       call eval(parameterset, opti_domain_indices = opti_domain_indices_ET_TWS, &
-                                                                         et_opti = et_opti, tws_opti = tws_opti)
+                                                                         tws_opti = tws_opti, &
+                                                                         etOptiSim = etOptiSim)
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_ET_TWS)
         iDomain = opti_domain_indices_ET_TWS(i)
         ! create et array input
         ! ToDo: rename variables
-        call create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
+        call create_domain_avg_et(iDomain, etOptiSim, et_catch_avg_domain, &
                                            et_opti_catch_avg_domain, mask_times_et)
         call create_domain_avg_tws(iDomain, tws_opti, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
         kge_et = kge_et + &
@@ -796,7 +792,9 @@ CONTAINS
         ! deallocate
         deallocate(tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
         deallocate(mask_times_et, et_catch_avg_domain, et_opti_catch_avg_domain)
+        call etOptiSim(iDomain)%destroy()
       end do
+      deallocate(etOptiSim)
      ! write(0,*) 'nEtTwsDomains, kge_tws', nEtTwsDomains, kge_tws
      ! write(0,*) 'nEtTwsDomains, kge_et', nEtTwsDomains, kge_et
     end if
@@ -831,19 +829,22 @@ CONTAINS
     ! eval should be called. Read details for further information
     call init_indexarray_for_opti_data(domainMeta, 5, nEtDomains, opti_domain_indices_ET)
     if (nEtDomains > 0) then
-      call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, et_opti = et_opti)
+      allocate(etOptiSim(domainMeta%nDomains))
+      call eval(parameterset, opti_domain_indices = opti_domain_indices_ET, etOptiSim = etOptiSim)
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_ET)
         iDomain = opti_domain_indices_ET(i)
         ! create et array input
-        call create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
+        call create_domain_avg_et(iDomain, etOptiSim, et_catch_avg_domain, &
                                            et_opti_catch_avg_domain, mask_times_et)
         kge_et = kge_et + &
           ((1.0_dp - KGE(et_catch_avg_domain, et_opti_catch_avg_domain, mask = mask_times_et)) / &
                                         real(domainMeta%overallNumberOfDomains, dp))**6
         ! deallocate
         deallocate(mask_times_et, et_catch_avg_domain, et_opti_catch_avg_domain)
+        call etOptiSim(iDomain)%destroy()
       end do
+      deallocate(etOptiSim)
      ! write(0,*) 'nEtDomains, kge_et', nEtDomains, kge_et
     end if
     objective_q_et_tws_kge_catchment_avg(3) = kge_et
@@ -1812,8 +1813,9 @@ CONTAINS
 
   FUNCTION objective_et_kge_catchment_avg(parameterset, eval)
 
+    use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : level1, domainMeta
+    use mo_common_variables, only : domainMeta
     use mo_errormeasures, only : KGE
     use mo_message, only : message
     use mo_moment, only : average
@@ -1830,12 +1832,6 @@ CONTAINS
     ! domain loop counter
     integer(i4) ::iDomain
 
-    ! time loop counter
-    integer(i4) :: iTime
-
-    ! start and end index for the current domain
-    integer(i4) :: s1, e1
-
     ! for sixth root
 #ifndef MPI
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
@@ -1847,25 +1843,25 @@ CONTAINS
     ! spatial avergae of modeled  et
     real(dp), dimension(:), allocatable :: et_opti_catch_avg_domain
 
-    ! simulated et
-    ! (dim1=ncells, dim2=time)
-    real(dp), dimension(:, :), allocatable :: et_opti
+    !> simulated et
+    type(optidata_sim), dimension(:), allocatable :: etOptiSim
 
     ! mask for valid et catchment avg time steps
     logical, dimension(:), allocatable :: mask_times
 
 
-    call eval(parameterset, et_opti = et_opti)
+    call eval(parameterset, etOptiSim = etOptiSim)
 
     ! initialize some variables
     objective_et_kge_catchment_avg = 0.0_dp
 
     ! loop over domain - for applying power law later on
+    allocate(etOptiSim(domainMeta%nDomains))
     do iDomain = 1, domainMeta%nDomains
 
       ! create et array input
       ! ToDo: Check if this still does the same
-      call create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
+      call create_domain_avg_et(iDomain, etOptiSim, et_catch_avg_domain, &
                                            et_opti_catch_avg_domain, mask_times)
       ! calculate average ET KGE over all domains with power law
       ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
@@ -1878,7 +1874,9 @@ CONTAINS
       deallocate(mask_times)
       deallocate(et_catch_avg_domain)
       deallocate(et_opti_catch_avg_domain)
+      call etOptiSim(iDomain)%destroy()
     end do
+    deallocate(etOptiSim)
 
 #ifndef MPI
     objective_et_kge_catchment_avg = objective_et_kge_catchment_avg**onesixth
@@ -2110,6 +2108,7 @@ CONTAINS
 
   FUNCTION objective_kge_q_et(parameterset, eval)
 
+    use mo_optimization_types, only : optidata_sim
     use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : kge
     use mo_global_variables, only : L1_etObs
@@ -2144,18 +2143,14 @@ CONTAINS
     ! cell loop counter
     integer(i4) :: iCell
 
-    ! start and end index for the current domain
-    integer(i4) :: s1, e1
-
     ! ncells1 of level 1
     integer(i4) :: nCells1
 
     ! domains wise objectives
     real(dp) :: objective_et_domain
 
-    ! simulated evapotranspiration
-    ! (dim1=ncells, dim2=time)
-    real(dp), dimension(:, :), allocatable :: et_opti
+    !> simulated et
+    type(optidata_sim), dimension(:), allocatable :: etOptiSim
 
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 
@@ -2176,7 +2171,8 @@ CONTAINS
 #endif
 
     ! run mHM
-    call eval(parameterset, runoff = runoff, et_opti = et_opti)
+    allocate(etOptiSim(domainMeta%nDomains))
+    call eval(parameterset, runoff = runoff, etOptiSim = etOptiSim)
 
     ! -----------------------------
     ! EVAPOTRANSPIRATION
@@ -2192,9 +2188,6 @@ CONTAINS
       objective_et_domain = 0.0_dp
       ! get domain information
       nCells1 = level1(iDomain)%nCells
-      s1 = level1(iDomain)%iStart
-      e1 = level1(iDomain)%iEnd
-
 
       ! correlation signal is calculated on individual grid cells
       invalid_cells = 0.0_dp
@@ -2209,7 +2202,7 @@ CONTAINS
 
         ! calculate ojective function
         objective_et_domain = objective_et_domain + &
-                kge(L1_etObs(iDomain)%dataObs(iCell, :), et_opti(iCell, :), mask = L1_etObs(iDomain)%maskObs(iCell, :))
+                kge(L1_etObs(iDomain)%dataObs(iCell, :), etOptiSim(iDomain)%dataSim(iCell, :), mask = L1_etObs(iDomain)%maskObs(iCell, :))
       end do
 
       ! user information about invalid cells
@@ -2223,7 +2216,9 @@ CONTAINS
       ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_et = objective_et + &
               ((1.0_dp - objective_et_domain / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
+      call etOptiSim(iDomain)%destroy()
     end do
+    deallocate(etOptiSim)
 
     ! compromise solution - sixth root
     objective_et = objective_et**onesixth
@@ -2299,6 +2294,7 @@ CONTAINS
 
   FUNCTION objective_kge_q_rmse_et(parameterset, eval)
 
+    use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : level1, domainMeta
@@ -2327,9 +2323,8 @@ CONTAINS
     ! dim1=nTimeSteps, dim2=nGauges
     real(dp), allocatable, dimension(:, :) :: runoff
 
-    ! modelled runoff for a given parameter set
-    ! dim1=nTimeSteps, dim2=nGauges
-    real(dp), allocatable, dimension(:, :) :: et_opti
+    !> simulated et
+    type(optidata_sim), dimension(:), allocatable :: etOptiSim
 
     ! time loop counter
     integer(i4) :: iTime
@@ -2370,10 +2365,6 @@ CONTAINS
     ! spatial avergae of modeled  et
     real(dp), dimension(:), allocatable :: et_opti_catch_avg_domain
 
-    ! simulated et
-    ! (dim1=ncells, dim2=time)
-    !real(dp), dimension(:,:), allocatable :: et_opti
-
     ! mask for valid et catchment avg time steps
     logical, dimension(:), allocatable :: mask_times
 
@@ -2399,7 +2390,8 @@ CONTAINS
     ! obtain simulation values of runoff (hourly) and ET
     ! for ET only valid cells (domains concatenated)
     ! et_opti: aggregate ET to needed time step for optimization (see timeStep_et_input)
-    call eval(parameterset, runoff = runoff, et_opti = et_opti)
+    allocate(etOptiSim(domainMeta%nDomains))
+    call eval(parameterset, runoff = runoff, etOptiSim = etOptiSim)
 
     !--------------------------------------------
     !! EVAPOTRANSPIRATION
@@ -2415,9 +2407,9 @@ CONTAINS
       e1 = level1(iDomain)%iEnd
 
       ! allocate
-      allocate(mask_times             (size(et_opti, dim = 2)))
-      allocate(et_catch_avg_domain     (size(et_opti, dim = 2)))
-      allocate(et_opti_catch_avg_domain(size(et_opti, dim = 2)))
+      allocate(mask_times              (size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(et_catch_avg_domain     (size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(et_opti_catch_avg_domain(size(etOptiSim(iDomain)%dataSim, dim = 2)))
 
       ! initalize
       mask_times = .TRUE.
@@ -2425,7 +2417,7 @@ CONTAINS
       et_opti_catch_avg_domain = nodata_dp
 
       ! calculate catchment average evapotranspiration
-      do iTime = 1, size(et_opti, dim = 2)
+      do iTime = 1, size(etOptiSim(iDomain)%dataSim, dim = 2)
         ! check for enough data points in time for correlation
         if (all(.NOT. L1_etObs(iDomain)%maskObs(:, iTime))) then
           !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
@@ -2438,7 +2430,8 @@ CONTAINS
         et_catch_avg_domain(iTime) = average(L1_etObs(iDomain)%dataObs(:, iTime), &
                                       mask = L1_etObs(iDomain)%maskObs(:, iTime))
         ! spatial avergae of modeled ET
-        et_opti_catch_avg_domain(iTime) = average(et_opti(s1 : e1, iTime), mask = L1_etObs(iDomain)%maskObs(:, iTime))
+        et_opti_catch_avg_domain(iTime) = average(etOptiSim(iDomain)%dataSim(:, iTime), &
+                                            mask = L1_etObs(iDomain)%maskObs(:, iTime))
       end do
 
       ! get initial time of the evaluation period
@@ -2460,10 +2453,10 @@ CONTAINS
         ! monthly: proceed without action
       case(-2)
         ! simulation
-        allocate(et_sim_m(size(et_opti, dim = 2)))
+        allocate(et_sim_m(size(etOptiSim(iDomain)%dataSim, dim = 2)))
         et_sim_m = et_opti_catch_avg_domain
         ! observation
-        allocate(et_obs_m(size(et_opti, dim = 2)))
+        allocate(et_obs_m(size(etOptiSim(iDomain)%dataSim, dim = 2)))
         et_obs_m = et_catch_avg_domain
 
         ! yearly: ERROR stop program
@@ -2514,11 +2507,13 @@ CONTAINS
       deallocate (et_obs_m_anom)
       !end if
 
+      call etOptiSim(iDomain)%destroy()
     end do
 
     rmse_et_avg = sum(rmse_et(:), abs(rmse_et - nodata_dp) .gt. eps_dp) / &
             real(count(abs(rmse_et - nodata_dp) .gt. eps_dp), dp)
     deallocate(rmse_et)
+    deallocate(etOptiSim)
 
     !--------------------------------------------
     !! RUNOFF
@@ -2628,8 +2623,9 @@ CONTAINS
 
   end subroutine create_domain_avg_tws
 
-  subroutine create_domain_avg_et(iDomain, et_opti, et_catch_avg_domain, &
+  subroutine create_domain_avg_et(iDomain, etOptiSim, et_catch_avg_domain, &
                                            et_opti_catch_avg_domain, mask_times)
+    use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level1
     use mo_global_variables, only : L1_etObs
@@ -2638,7 +2634,7 @@ CONTAINS
     integer(i4), intent(in) :: iDomain
 
     ! simulated domain average tws
-    real(dp), dimension(:, :), intent(in) :: et_opti
+    type(optidata_sim), dimension(:), intent(in) :: etOptiSim
 
     ! aggregated simulated
     real(dp), dimension(:), allocatable, intent(out) :: et_catch_avg_domain
@@ -2661,9 +2657,9 @@ CONTAINS
     e1 = level1(iDomain)%iEnd
 
     ! allocate
-    allocate(mask_times              (size(et_opti, dim = 2)))
-    allocate(et_catch_avg_domain     (size(et_opti, dim = 2)))
-    allocate(et_opti_catch_avg_domain(size(et_opti, dim = 2)))
+    allocate(mask_times              (size(etOptiSim(iDomain)%dataSim, dim = 2)))
+    allocate(et_catch_avg_domain     (size(etOptiSim(iDomain)%dataSim, dim = 2)))
+    allocate(et_opti_catch_avg_domain(size(etOptiSim(iDomain)%dataSim, dim = 2)))
 
     ! initalize
     mask_times = .TRUE.
@@ -2671,7 +2667,7 @@ CONTAINS
     et_opti_catch_avg_domain = nodata_dp
 
     ! calculate catchment average evapotranspiration
-    do iTime = 1, size(et_opti, dim = 2)
+    do iTime = 1, size(etOptiSim(iDomain)%dataSim, dim = 2)
 
       ! check for enough data points in time for correlation
       if (all(.NOT. L1_etObs(iDomain)%maskObs(:, iTime))) then
@@ -2685,7 +2681,8 @@ CONTAINS
       et_catch_avg_domain(iTime) = average(L1_etObs(iDomain)%dataObs(:, iTime), &
                                     mask = L1_etObs(iDomain)%maskObs(:, iTime))
       ! ToDo: is et_opt filled with dummy data for none et domains?
-      et_opti_catch_avg_domain(iTime) = average(et_opti(s1 : e1, iTime), mask = L1_etObs(iDomain)%maskObs(:, iTime))
+      et_opti_catch_avg_domain(iTime) = average(etOptiSim(iDomain)%dataSim(:, iTime), &
+                                          mask = L1_etObs(iDomain)%maskObs(:, iTime))
     end do
 
   end subroutine create_domain_avg_et

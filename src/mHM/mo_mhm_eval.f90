@@ -80,9 +80,11 @@ CONTAINS
   ! Robert Schweppe      Dec 2017 - extracted call to mpr from inside mhm
   ! Robert Schweppe      Jun 2018 - refactoring and reformatting
 
-  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, sm_opti, neutrons_opti, et_opti, tws_opti)
+  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, sm_opti, neutrons_opti, et_opti, tws_opti, &
+                                                                 smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
 
     use mo_common_constants, only : nodata_dp
+    use mo_optimization_types, only : optidata_sim
     use mo_common_mHM_mRM_variables, only : LCyearId, dirRestartIn, nTstepDay, optimize, readPer, read_restart, simPer, timeStep, &
                                             warmingDays, c2TSTu
     use mo_common_variables, only : level1, domainMeta, processMatrix
@@ -158,6 +160,21 @@ CONTAINS
     ! returns tws time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
     ! nTimeSteps]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: tws_opti
+
+    ! returns soil moisture time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
+    ! nTimeSteps]
+    type(optidata_sim), dimension(:), optional, intent(inout) :: smOptiSim
+
+    ! dim1=ncells, dim2=time
+    type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim
+
+    ! returns evapotranspiration time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
+    ! nTimeSteps]
+    type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim
+
+    ! returns tws time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
+    ! nTimeSteps]
+    type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim
 
     ! for writing netcdf file
     integer(i4) :: tIndex_out
@@ -352,6 +369,12 @@ CONTAINS
         iDomain = opti_domain_indices(ii)
       else
         iDomain = ii
+      end if
+
+      ! evapotranspiration optimization
+      !--------------------------
+      if (present(etOptiSim)) then
+        call etOptiSim(iDomain)%init(L1_etObs(iDomain))
       end if
 
 #ifdef MRM2MHM
@@ -908,6 +931,46 @@ CONTAINS
               ! aggregate evapotranspiration to needed time step for optimization
               et_opti(s1 : e1, L1_etObs(iDomain)%writeOutCounter) = &
                       et_opti(s1 : e1, L1_etObs(iDomain)%writeOutCounter) + &
+                      sum(L1_aETSoil(s1 : e1, :), dim = 2) * L1_fNotSealed(s1 : e1, 1, yId) + &
+                      L1_aETCanopy(s1 : e1) + &
+                      L1_aETSealed(s1 : e1) * L1_fSealed(s1 : e1, 1, yId)
+            end if
+          end if
+        end if
+
+        !----------------------------------------------------------------------
+        ! FOR EVAPOTRANSPIRATION
+        ! NOTE:: modeled evapotranspiration is averaged according to input time step
+        !        evapotranspiration (timeStep_et_input)
+        !----------------------------------------------------------------------
+        if (present(etOptiSim)) then
+          if (tt .EQ. 1) then
+            etOptiSim(iDomain)%writeOutCounter = 1
+          end if
+
+          ! only for evaluation period - ignore warming days
+          if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
+            ! decide for daily, monthly or yearly aggregation
+            select case(L1_etObs(iDomain)%timeStepInput)
+            case(-1) ! daily
+              if (is_new_day)   then
+                etOptiSim(iDomain)%writeOutCounter = etOptiSim(iDomain)%writeOutCounter + 1
+              end if
+            case(-2) ! monthly
+              if (is_new_month) then
+                etOptiSim(iDomain)%writeOutCounter = etOptiSim(iDomain)%writeOutCounter + 1
+              end if
+            case(-3) ! yearly
+              if (is_new_year)  then
+                etOptiSim(iDomain)%writeOutCounter = etOptiSim(iDomain)%writeOutCounter + 1
+              end if
+            end select
+
+            ! last timestep is already done - write_counter exceeds size(et_opti, dim=2)
+            if (.not. (tt .eq. nTimeSteps)) then
+              ! aggregate evapotranspiration to needed time step for optimization
+              etOptiSim(iDomain)%dataSim(:, etOptiSim(iDomain)%writeOutCounter) = &
+                      etOptiSim(iDomain)%dataSim(:, etOptiSim(iDomain)%writeOutCounter) + &
                       sum(L1_aETSoil(s1 : e1, :), dim = 2) * L1_fNotSealed(s1 : e1, 1, yId) + &
                       L1_aETCanopy(s1 : e1) + &
                       L1_aETSealed(s1 : e1) * L1_fSealed(s1 : e1, 1, yId)
