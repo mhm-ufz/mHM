@@ -371,10 +371,23 @@ CONTAINS
         iDomain = ii
       end if
 
+      !--------------------------
       ! evapotranspiration optimization
       !--------------------------
       if (present(etOptiSim)) then
         call etOptiSim(iDomain)%init(L1_etObs(iDomain))
+      end if
+      !--------------------------
+      ! total water storage optimization
+      !--------------------------
+      if (present(twsOptiSim)) then
+        call twsOptiSim(iDomain)%init(L1_twsObs(iDomain))
+      end if
+      !--------------------------
+      ! neutrons optimization
+      !--------------------------
+      if (present(neutronsOptiSim)) then
+        call neutronsOptiSim(iDomain)%init(L1_neutronsObs(iDomain))
       end if
 
 #ifdef MRM2MHM
@@ -874,67 +887,27 @@ CONTAINS
         ! FOR NEUTRONS
         ! NOTE:: modeled neutrons are averaged daily
         !----------------------------------------------------------------------
-        if (present(neutrons_opti)) then
-          if (tt .EQ. 1) L1_neutronsObs(iDomain)%writeOutCounter = 1
+        if (present(neutronsOptiSim)) then
+          if (tt .EQ. 1) neutronsOptiSim(iDomain)%writeOutCounter = 1
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
             ! daily
             if (is_new_day)   then
-              neutrons_opti(s1 : e1, L1_neutronsObs(iDomain)%writeOutCounter) = &
-                            neutrons_opti(s1 : e1, L1_neutronsObs(iDomain)%writeOutCounter) / real(average_counter, dp)
-              L1_neutronsObs(iDomain)%writeOutCounter = L1_neutronsObs(iDomain)%writeOutCounter + 1
+              neutronsOptiSim(iDomain)%dataSim(:, neutronsOptiSim(iDomain)%writeOutCounter) = &
+                            neutronsOptiSim(iDomain)%dataSim(:, neutronsOptiSim(iDomain)%writeOutCounter) / real(average_counter, dp)
+              neutronsOptiSim(iDomain)%writeOutCounter = neutronsOptiSim(iDomain)%writeOutCounter + 1
               average_counter = 0
             end if
 
             ! last timestep is already done - write_counter exceeds size(sm_opti, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate neutrons to needed time step for optimization
-              neutrons_opti(s1 : e1, L1_neutronsObs(iDomain)%writeOutCounter) = &
-                            neutrons_opti(s1 : e1, L1_neutronsObs(iDomain)%writeOutCounter) + L1_neutrons(s1 : e1)
+              neutronsOptiSim(iDomain)%dataSim(:, neutronsOptiSim(iDomain)%writeOutCounter) = &
+                            neutronsOptiSim(iDomain)%dataSim(:, neutronsOptiSim(iDomain)%writeOutCounter) + L1_neutrons(s1 : e1)
             end if
 
             average_counter = average_counter + 1
-          end if
-        end if
-
-        !----------------------------------------------------------------------
-        ! FOR EVAPOTRANSPIRATION
-        ! NOTE:: modeled evapotranspiration is averaged according to input time step
-        !        evapotranspiration (timeStep_et_input)
-        !----------------------------------------------------------------------
-        if (present(et_opti)) then
-          if (tt .EQ. 1) then
-            L1_etObs(iDomain)%writeOutCounter = 1
-          end if
-
-          ! only for evaluation period - ignore warming days
-          if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
-            ! decide for daily, monthly or yearly aggregation
-            select case(L1_etObs(iDomain)%timeStepInput)
-            case(-1) ! daily
-              if (is_new_day)   then
-                L1_etObs(iDomain)%writeOutCounter = L1_etObs(iDomain)%writeOutCounter + 1
-              end if
-            case(-2) ! monthly
-              if (is_new_month) then
-                L1_etObs(iDomain)%writeOutCounter = L1_etObs(iDomain)%writeOutCounter + 1
-              end if
-            case(-3) ! yearly
-              if (is_new_year)  then
-                L1_etObs(iDomain)%writeOutCounter = L1_etObs(iDomain)%writeOutCounter + 1
-              end if
-            end select
-
-            ! last timestep is already done - write_counter exceeds size(et_opti, dim=2)
-            if (.not. (tt .eq. nTimeSteps)) then
-              ! aggregate evapotranspiration to needed time step for optimization
-              et_opti(s1 : e1, L1_etObs(iDomain)%writeOutCounter) = &
-                      et_opti(s1 : e1, L1_etObs(iDomain)%writeOutCounter) + &
-                      sum(L1_aETSoil(s1 : e1, :), dim = 2) * L1_fNotSealed(s1 : e1, 1, yId) + &
-                      L1_aETCanopy(s1 : e1) + &
-                      L1_aETSealed(s1 : e1) * L1_fSealed(s1 : e1, 1, yId)
-            end if
           end if
         end if
 
@@ -966,7 +939,7 @@ CONTAINS
               end if
             end select
 
-            ! last timestep is already done - write_counter exceeds size(et_opti, dim=2)
+            ! last timestep is already done - write_counter exceeds size(etOptiSim(iDomain)%dataSim, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate evapotranspiration to needed time step for optimization
               etOptiSim(iDomain)%dataSim(:, etOptiSim(iDomain)%writeOutCounter) = &
@@ -981,11 +954,11 @@ CONTAINS
         !----------------------------------------------------------------------
         ! FOR TWS
         ! NOTE:: modeled tws is averaged according to input time step
-        !        evapotranspiration (timeStepInput)
+        !        (timeStepInput)
         !----------------------------------------------------------------------
-        if (present(tws_opti)) then
+        if (present(twsOptiSim)) then
           if (tt .EQ. 1) then
-            L1_twsObs(iDomain)%writeOutCounter = 1
+            twsOptiSim(iDomain)%writeOutCounter = 1
           end if
 
           ! only for evaluation period - ignore warming days
@@ -994,28 +967,28 @@ CONTAINS
             select case(L1_twsObs(iDomain)%timeStepInput)
             case(-1) ! daily
               if (is_new_day)   then
-                L1_twsObs(iDomain)%writeOutCounter = L1_twsObs(iDomain)%writeOutCounter + 1
+                twsOptiSim(iDomain)%writeOutCounter = twsOptiSim(iDomain)%writeOutCounter + 1
               end if
             case(-2) ! monthly
               if (is_new_month) then
-                L1_twsObs(iDomain)%writeOutCounter = L1_twsObs(iDomain)%writeOutCounter + 1
+                twsOptiSim(iDomain)%writeOutCounter = twsOptiSim(iDomain)%writeOutCounter + 1
               end if
             case(-3) ! yearly
               if (is_new_year)  then
-                L1_twsObs(iDomain)%writeOutCounter = L1_twsObs(iDomain)%writeOutCounter + 1
+                twsOptiSim(iDomain)%writeOutCounter = twsOptiSim(iDomain)%writeOutCounter + 1
               end if
             end select
 
-            ! last timestep is already done - write_counter exceeds size(tws_opti, dim=2)
+            ! last timestep is already done - write_counter exceeds size(twsOptiSim(iDomain)%dataSim, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate evapotranspiration to needed time step for optimization
-              tws_opti(s1 : e1, L1_twsObs(iDomain)%writeOutCounter) = &
-                   tws_opti(s1 : e1, L1_twsObs(iDomain)%writeOutCounter) + &
+              twsOptiSim(iDomain)%dataSim(:, twsOptiSim(iDomain)%writeOutCounter) = &
+                   twsOptiSim(iDomain)%dataSim(:, twsOptiSim(iDomain)%writeOutCounter) + &
                    L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
                    L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1)
               do gg = 1, nSoilHorizons_mHM
-                tws_opti(s1 : e1, L1_twsObs(iDomain)%writeOutCounter) = &
-                         tws_opti(s1 : e1, L1_twsObs(iDomain)%writeOutCounter) + L1_soilMoist (s1 : e1, gg)
+                twsOptiSim(iDomain)%dataSim(:, twsOptiSim(iDomain)%writeOutCounter) = &
+                         twsOptiSim(iDomain)%dataSim(:, twsOptiSim(iDomain)%writeOutCounter) + L1_soilMoist (s1 : e1, gg)
               end do
             end if
           end if

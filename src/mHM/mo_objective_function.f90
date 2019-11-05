@@ -729,11 +729,11 @@ CONTAINS
     !> index array of ET domains
     integer(i4), dimension(:), allocatable :: opti_domain_indices_Q
 
-    !> simulated tws
-    real(dp), allocatable, dimension(:, :) :: tws_opti
-
     !> simulated et
     type(optidata_sim), dimension(:), allocatable :: etOptiSim
+
+    !> simulated tws
+    type(optidata_sim), dimension(:), allocatable :: twsOptiSim
 
     !> simulated tws
     real(dp), dimension(:), allocatable :: tws_catch_avg_domain
@@ -771,10 +771,10 @@ CONTAINS
     ! eval should be called. Read details for further information
     call init_indexarray_for_opti_data(domainMeta, 6, nEtTwsDomains, opti_domain_indices_ET_TWS) 
     if (nEtTwsDomains > 0) then
-      allocate(etOptiSim(domainMeta%nDomains))
+      allocate( etOptiSim(domainMeta%nDomains))
+      allocate(twsOptiSim(domainMeta%nDomains))
       call eval(parameterset, opti_domain_indices = opti_domain_indices_ET_TWS, &
-                                                                         tws_opti = tws_opti, &
-                                                                         etOptiSim = etOptiSim)
+                                                 twsOptiSim = twsOptiSim, etOptiSim = etOptiSim)
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_ET_TWS)
         iDomain = opti_domain_indices_ET_TWS(i)
@@ -782,7 +782,7 @@ CONTAINS
         ! ToDo: rename variables
         call create_domain_avg_et(iDomain, etOptiSim, et_catch_avg_domain, &
                                            et_opti_catch_avg_domain, mask_times_et)
-        call create_domain_avg_tws(iDomain, tws_opti, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
+        call create_domain_avg_tws(iDomain, twsOptiSim, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
         kge_et = kge_et + &
           ((1.0_dp - KGE(et_catch_avg_domain, et_opti_catch_avg_domain, mask = mask_times_et)) / &
                                         real(domainMeta%overallNumberOfDomains, dp))**6
@@ -793,8 +793,10 @@ CONTAINS
         deallocate(tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
         deallocate(mask_times_et, et_catch_avg_domain, et_opti_catch_avg_domain)
         call etOptiSim(iDomain)%destroy()
+        call twsOptiSim(iDomain)%destroy()
       end do
       deallocate(etOptiSim)
+      deallocate(twsOptiSim)
      ! write(0,*) 'nEtTwsDomains, kge_tws', nEtTwsDomains, kge_tws
      ! write(0,*) 'nEtTwsDomains, kge_et', nEtTwsDomains, kge_et
     end if
@@ -806,17 +808,20 @@ CONTAINS
     ! eval should be called. Read details for further information
     call init_indexarray_for_opti_data(domainMeta, 3, nTwsDomains, opti_domain_indices_TWS)
     if (nTwsDomains > 0) then
-      call eval(parameterset, opti_domain_indices = opti_domain_indices_TWS, tws_opti = tws_opti)
+      allocate(twsOptiSim(domainMeta%nDomains))
+      call eval(parameterset, opti_domain_indices = opti_domain_indices_TWS, twsOptiSim = twsOptiSim)
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_TWS)
         iDomain = opti_domain_indices_TWS(i)
         ! extract tws the same way as runoff using mrm
-        call create_domain_avg_tws(iDomain, tws_opti, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
+        call create_domain_avg_tws(iDomain, twsOptiSim, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
         kge_tws = kge_tws + &
           ((1.0_dp - KGE(tws_opti_catch_avg_domain, tws_catch_avg_domain, mask = tws_obs_mask)) / &
                                         real(domainMeta%overallNumberOfDomains, dp))**6
         deallocate (tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
+        call twsOptiSim(iDomain)%destroy()
       end do
+      deallocate(twsOptiSim)
     !  write(0,*) 'nTwsDomains, kge_tws', nTwsDomains, kge_tws
     end if
     objective_q_et_tws_kge_catchment_avg(2) = kge_tws
@@ -1417,6 +1422,7 @@ CONTAINS
 
   FUNCTION objective_kge_q_rmse_tws(parameterset, eval)
 
+    use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : domainMeta
@@ -1445,9 +1451,8 @@ CONTAINS
     ! dim1=nTimeSteps, dim2=nGauges
     real(dp), allocatable, dimension(:, :) :: runoff
 
-    ! modelled runoff for a given parameter set
-    ! dim1=nTimeSteps, dim2=nGauges
-    real(dp), allocatable, dimension(:, :) :: tws
+    !> simulated tws
+    type(optidata_sim), dimension(:), allocatable :: twsOptiSim
 
     ! domain counter, month counters
     integer(i4) :: domainID, iDomain, pp, mmm
@@ -1502,7 +1507,8 @@ CONTAINS
 #endif
 
     ! obtain hourly values of runoff and tws:
-    call eval(parameterset, runoff = runoff, tws_opti = tws)
+    allocate(twsOptiSim(domainMeta%nDomains))
+    call eval(parameterset, runoff = runoff, twsOptiSim = twsOptiSim)
 
     !--------------------------------------------
     !! TWS
@@ -1521,7 +1527,7 @@ CONTAINS
       ! extract tws the same way as runoff using mrm
       ! ToDo: note that with the change from tws(iDomain, tt) to tws(tt, e1:s1) this
       ! will not work like before and also does maybe not make sense
-      call create_domain_avg_tws(iDomain, tws, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
+      call create_domain_avg_tws(iDomain, twsOptiSim, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
 
       ! check for potentially 2 years of data
       if (count(tws_obs_mask) .lt.  12 * 2) then
@@ -1566,11 +1572,13 @@ CONTAINS
       deallocate (tws_obs_m_anom)
       deallocate (tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
 
+      call twsOptiSim(iDomain)%destroy()
     end do
 
     rmse_tws_avg = sum(rmse_tws(:), abs(rmse_tws - nodata_dp) .gt. eps_dp) / &
             real(count(abs(rmse_tws - nodata_dp) .gt. eps_dp), dp)
     deallocate(rmse_tws)
+    deallocate(twsOptiSim)
 
     !--------------------------------------------
     !! RUNOFF
@@ -1662,6 +1670,7 @@ CONTAINS
 
   FUNCTION objective_neutrons_kge_catchment_avg(parameterset, eval)
 
+    use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : KGE
@@ -1699,14 +1708,14 @@ CONTAINS
     real(dp), dimension(:), allocatable :: neutrons_opti_catch_avg_domain
 
     ! simulated neutrons
-    ! (dim1=ncells, dim2=time)
-    real(dp), dimension(:, :), allocatable :: neutrons_opti
+    type(optidata_sim), dimension(:), allocatable :: neutronsOptiSim
 
     ! mask for valid neutrons catchment avg time steps
     logical, dimension(:), allocatable :: mask_times
 
 
-    call eval(parameterset, neutrons_opti = neutrons_opti)
+    allocate(neutronsOptiSim(domainMeta%nDomains))
+    call eval(parameterset, neutronsOptiSim = neutronsOptiSim)
 
     ! initialize some variables
     objective_neutrons_kge_catchment_avg = 0.0_dp
@@ -1719,9 +1728,9 @@ CONTAINS
       e1 = level1(iDomain)%iEnd
 
       ! allocate
-      allocate(mask_times             (size(neutrons_opti, dim = 2)))
-      allocate(neutrons_catch_avg_domain     (size(neutrons_opti, dim = 2)))
-      allocate(neutrons_opti_catch_avg_domain(size(neutrons_opti, dim = 2)))
+      allocate(mask_times                    (size(neutronsOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(neutrons_catch_avg_domain     (size(neutronsOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(neutrons_opti_catch_avg_domain(size(neutronsOptiSim(iDomain)%dataSim, dim = 2)))
 
       ! initalize
       mask_times = .TRUE.
@@ -1729,7 +1738,7 @@ CONTAINS
       neutrons_opti_catch_avg_domain = nodata_dp
 
       ! calculate catchment average soil moisture
-      do iTime = 1, size(neutrons_opti, dim = 2)
+      do iTime = 1, size(neutronsOptiSim(iDomain)%dataSim, dim = 2)
 
         ! check for enough data points in time for correlation
         if (all(.NOT. L1_neutronsObs(iDomain)%maskObs(:, iTime))) then
@@ -1741,7 +1750,7 @@ CONTAINS
         end if
         neutrons_catch_avg_domain(iTime) = average(L1_neutronsObs(iDomain)%dataObs(:, iTime), &
                                             mask = L1_neutronsObs(iDomain)%maskObs(:, iTime))
-        neutrons_opti_catch_avg_domain(iTime) = average(neutrons_opti(s1 : e1, iTime), &
+        neutrons_opti_catch_avg_domain(iTime) = average(neutronsOptiSim(iDomain)%dataSim(:, iTime), &
                                          mask = L1_neutronsObs(iDomain)%maskObs(:, iTime))
       end do
 
@@ -1756,7 +1765,9 @@ CONTAINS
       deallocate(neutrons_catch_avg_domain)
       deallocate(neutrons_opti_catch_avg_domain)
 
+      call neutronsOptiSim(iDomain)%destroy()
     end do
+    deallocate(neutronsOptiSim)
 
 #ifndef MPI
     objective_neutrons_kge_catchment_avg = objective_neutrons_kge_catchment_avg**onesixth
@@ -2559,8 +2570,9 @@ CONTAINS
 
   END FUNCTION objective_kge_q_rmse_et
 
-  subroutine create_domain_avg_tws(iDomain, tws_opti, tws_catch_avg_domain, &
+  subroutine create_domain_avg_tws(iDomain, twsOptiSim, tws_catch_avg_domain, &
                                            tws_opti_catch_avg_domain, mask_times)
+    use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level1
     use mo_global_variables, only : L1_twsObs
@@ -2568,8 +2580,8 @@ CONTAINS
     ! current domain Id
     integer(i4), intent(in) :: iDomain
 
-    ! simulated domain average tws
-    real(dp), dimension(:, :), intent(in) :: tws_opti
+    ! simulated tws
+    type(optidata_sim), dimension(:), intent(in) :: twsOptiSim
 
     ! aggregated simulated
     real(dp), dimension(:), allocatable, intent(out) :: tws_catch_avg_domain
@@ -2592,9 +2604,9 @@ CONTAINS
     e1 = level1(iDomain)%iEnd
 
     ! allocate
-    allocate(mask_times              (size(tws_opti, dim = 2)))
-    allocate(tws_catch_avg_domain     (size(tws_opti, dim = 2)))
-    allocate(tws_opti_catch_avg_domain(size(tws_opti, dim = 2)))
+    allocate(mask_times               (size(twsOptiSim(iDomain)%dataSim, dim = 2)))
+    allocate(tws_catch_avg_domain     (size(twsOptiSim(iDomain)%dataSim, dim = 2)))
+    allocate(tws_opti_catch_avg_domain(size(twsOptiSim(iDomain)%dataSim, dim = 2)))
 
     ! initalize
     mask_times = .TRUE.
@@ -2602,7 +2614,7 @@ CONTAINS
     tws_opti_catch_avg_domain = nodata_dp
 
     ! calculate catchment average evapotranspiration
-    do iTime = 1, size(tws_opti, dim = 2)
+    do iTime = 1, size(twsOptiSim(iDomain)%dataSim, dim = 2)
 
       ! check for enough data points in time for correlation
       ! ToDo: check if this still works with the new data structure
@@ -2617,7 +2629,7 @@ CONTAINS
 
       tws_catch_avg_domain(iTime) = average(L1_twsObs(iDomain)%dataObs(:, iTime), &
                                      mask = L1_twsObs(iDomain)%maskObs(:, iTime))
-      tws_opti_catch_avg_domain(iTime) = average(tws_opti(s1 : e1, iTime), &
+      tws_opti_catch_avg_domain(iTime) = average(twsOptiSim(iDomain)%dataSim(:, iTime), &
                                      mask = L1_twsObs(iDomain)%maskObs(:, iTime))
     end do
 
@@ -2633,7 +2645,7 @@ CONTAINS
     ! current domain Id
     integer(i4), intent(in) :: iDomain
 
-    ! simulated domain average tws
+    ! simulated et
     type(optidata_sim), dimension(:), intent(in) :: etOptiSim
 
     ! aggregated simulated
