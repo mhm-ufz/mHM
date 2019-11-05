@@ -503,6 +503,7 @@ CONTAINS
 
   FUNCTION objective_sm_kge_catchment_avg(parameterset, eval)
 
+    use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : KGE
@@ -547,15 +548,14 @@ CONTAINS
     ! spatial avergae of modeled  soil moisture
     real(dp), dimension(:), allocatable :: sm_opti_catch_avg_domain
 
-    ! simulated soil moisture
-    ! (dim1=ncells, dim2=time)
-    real(dp), dimension(:, :), allocatable :: sm_opti
+    type(optidata_sim), dimension(:), allocatable :: smOptiSim
 
     ! mask for valid sm catchment avg time steps
     logical, dimension(:), allocatable :: mask_times
 
 
-    call eval(parameterset, sm_opti = sm_opti)
+    allocate(smOptiSim(domainMeta%nDomains))
+    call eval(parameterset, smOptiSim = smOptiSim)
 
     ! initialize some variables
     objective_sm_kge_catchment_avg = 0.0_dp
@@ -569,9 +569,9 @@ CONTAINS
       e1 = level1(iDomain)%iEnd
 
       ! allocate
-      allocate(mask_times             (size(sm_opti, dim = 2)))
-      allocate(sm_catch_avg_domain     (size(sm_opti, dim = 2)))
-      allocate(sm_opti_catch_avg_domain(size(sm_opti, dim = 2)))
+      allocate(mask_times              (size(smOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(sm_catch_avg_domain     (size(smOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(sm_opti_catch_avg_domain(size(smOptiSim(iDomain)%dataSim, dim = 2)))
 
       ! initalize
       mask_times = .TRUE.
@@ -580,7 +580,7 @@ CONTAINS
 
       invalid_times = 0.0_dp
       ! calculate catchment average soil moisture
-      n_time_steps = size(sm_opti, dim = 2)
+      n_time_steps = size(smOptiSim(iDomain)%dataSim, dim = 2)
       do iTime = 1, n_time_steps
 
         ! check for enough data points in timesteps for KGE calculation
@@ -591,7 +591,7 @@ CONTAINS
           cycle
         end if
         sm_catch_avg_domain(iTime) = average(L1_smObs(iDomain)%dataObs(:, iTime), mask = L1_smObs(iDomain)%maskObs(:, iTime))
-        sm_opti_catch_avg_domain(iTime) = average(sm_opti(s1 : e1, iTime), mask = L1_smObs(iDomain)%maskObs(:, iTime))
+        sm_opti_catch_avg_domain(iTime) = average(smOptiSim(iDomain)%dataSim(:, iTime), mask = L1_smObs(iDomain)%maskObs(:, iTime))
       end do
 
       ! user information about invalid times
@@ -612,7 +612,9 @@ CONTAINS
       deallocate(mask_times)
       deallocate(sm_catch_avg_domain)
       deallocate(sm_opti_catch_avg_domain)
+      call smOptiSim(iDomain)%destroy()
     end do
+    deallocate(smOptiSim)
 
 #ifndef MPI
     objective_sm_kge_catchment_avg = objective_sm_kge_catchment_avg**onesixth
@@ -1001,6 +1003,7 @@ CONTAINS
 
   FUNCTION objective_sm_corr(parameterset, eval)
 
+    use mo_optimization_types, only : optidata_sim
     use mo_common_variables, only : level1, domainMeta
     use mo_global_variables, only : L1_smObs
     use mo_message, only : message
@@ -1037,12 +1040,11 @@ CONTAINS
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 #endif
 
-    ! simulated soil moisture
-    ! (dim1=ncells, dim2=time)
-    real(dp), dimension(:, :), allocatable :: sm_opti
+    type(optidata_sim), dimension(:), allocatable :: smOptiSim
 
 
-    call eval(parameterset, sm_opti = sm_opti)
+    allocate(smOptiSim(domainMeta%nDomains))
+    call eval(parameterset, smOptiSim = smOptiSim)
 
     ! initialize some variables
     objective_sm_corr = 0.0_dp
@@ -1068,7 +1070,8 @@ CONTAINS
           cycle
         end if
         objective_sm_corr_domain = objective_sm_corr_domain + &
-                correlation(L1_smObs(iDomain)%dataObs(iCell, :), sm_opti(iCell, :), mask = L1_smObs(iDomain)%maskObs(iCell, :))
+                correlation(L1_smObs(iDomain)%dataObs(iCell, :), smOptiSim(iDomain)%dataSim(iCell, :), &
+                                                           mask = L1_smObs(iDomain)%maskObs(iCell, :))
       end do
 
       ! user information about invalid cells
@@ -1139,6 +1142,7 @@ CONTAINS
 
   FUNCTION objective_sm_pd(parameterset, eval)
 
+    use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level1, domainMeta
     use mo_global_variables, only : L1_smObs
@@ -1179,8 +1183,7 @@ CONTAINS
     real(dp), dimension(:), allocatable :: pd_time_series
 
     ! simulated soil moisture
-    ! (dim1=ncells, dim2=time)
-    real(dp), dimension(:, :), allocatable :: sm_opti
+    type(optidata_sim), dimension(:), allocatable :: smOptiSim
 
     ! mask of valid cells at level1
     logical, dimension(:, :), allocatable :: mask1
@@ -1192,7 +1195,8 @@ CONTAINS
     logical, dimension(:), allocatable :: mask_times
 
 
-    call eval(parameterset, sm_opti = sm_opti)
+    allocate(smOptiSim(domainMeta%nDomains))
+    call eval(parameterset, smOptiSim = smOptiSim)
 
     ! initialize some variables
     objective_sm_pd = 0.0_dp
@@ -1208,8 +1212,8 @@ CONTAINS
       e1 = level1(iDomain)%iEnd
 
       ! allocate
-      allocate(mask_times    (size(sm_opti, dim = 2)))
-      allocate(pd_time_series(size(sm_opti, dim = 2)))
+      allocate(mask_times    (size(smOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(pd_time_series(size(smOptiSim(iDomain)%dataSim, dim = 2)))
       allocate(mat1   (nrows1, ncols1))
       allocate(mat2   (nrows1, ncols1))
       allocate(mask_sm(nrows1, ncols1))
@@ -1219,9 +1223,9 @@ CONTAINS
       pd_time_series = 0.0_dp
 
       ! calculate pattern similarity criterion
-      do iTime = 1, size(sm_opti, dim = 2)
+      do iTime = 1, size(smOptiSim(iDomain)%dataSim, dim = 2)
         mat1 = unpack(L1_smObs(iDomain)%dataObs(:, iTime), mask1, nodata_dp)
-        mat2 = unpack(sm_opti(s1 : e1, iTime), mask1, nodata_dp)
+        mat2 = unpack(smOptiSim(iDomain)%dataSim(:, iTime), mask1, nodata_dp)
         mask_sm = unpack(L1_smObs(iDomain)%maskObs(:, iTime), mask1, .FALSE.)
         pd_time_series = PD(mat1, mat2, mask = mask_sm, valid = mask_times(itime))
       end do
@@ -1242,7 +1246,9 @@ CONTAINS
       deallocate(mat1)
       deallocate(mat2)
       deallocate(mask_sm)
+      call smOptiSim(iDomain)%destroy()
     end do
+    deallocate(smOptiSim)
 
 #ifndef MPI
     objective_sm_pd = objective_sm_pd**onesixth
@@ -1297,6 +1303,7 @@ CONTAINS
 
   FUNCTION objective_sm_sse_standard_score(parameterset, eval)
 
+    use mo_optimization_types, only : optidata_sim
     use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : SSE
     use mo_global_variables, only : L1_smObs
@@ -1335,11 +1342,10 @@ CONTAINS
 #endif
 
     ! simulated soil moisture
-    ! (dim1=ncells, dim2=time)
-    real(dp), dimension(:, :), allocatable :: sm_opti
+    type(optidata_sim), dimension(:), allocatable :: smOptiSim
 
 
-    call eval(parameterset, sm_opti = sm_opti)
+    call eval(parameterset, smOptiSim = smOptiSim)
 
     ! initialize some variables
     objective_sm_sse_standard_score = 0.0_dp
@@ -1365,7 +1371,7 @@ CONTAINS
         end if
         objective_sm_sse_standard_score_domain = objective_sm_sse_standard_score_domain + &
                 SSE(standard_score(L1_smObs(iDomain)%dataObs(iCell, :), mask = L1_smObs(iDomain)%maskObs(iCell, :)), &
-                        standard_score(sm_opti(iCell, :), mask = L1_smObs(iDomain)%maskObs(iCell, :)), &
+                        standard_score(smOptiSim(iDomain)%dataSim(iCell, :), mask = L1_smObs(iDomain)%maskObs(iCell, :)), &
                                                           mask = L1_smObs(iDomain)%maskObs(iCell, :))
 
       end do
@@ -1927,6 +1933,7 @@ CONTAINS
 
   FUNCTION objective_kge_q_sm_corr(parameterset, eval)
 
+    use mo_optimization_types, only : optidata_sim
     use mo_common_variables, only : level1, domainMeta
     use mo_global_variables, only : L1_smObs
     use mo_message, only : message
@@ -1972,8 +1979,7 @@ CONTAINS
     real(dp) :: objective_sm_domain
 
     ! simulated soil moisture
-    ! (dim1=ncells, dim2=time)
-    real(dp), dimension(:, :), allocatable :: sm_opti
+    type(optidata_sim), dimension(:), allocatable :: smOptiSim
 
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 
@@ -1994,7 +2000,8 @@ CONTAINS
 #endif
 
     ! run mHM
-    call eval(parameterset, runoff = runoff, sm_opti = sm_opti)
+    allocate(smOptiSim(domainMeta%nDomains))
+    call eval(parameterset, runoff = runoff, smOptiSim = smOptiSim)
 
     ! -----------------------------
     ! SOIL MOISTURE
@@ -2026,7 +2033,7 @@ CONTAINS
 
         ! calculate ojective function
         objective_sm_domain = objective_sm_domain + &
-                correlation(L1_smObs(iDomain)%dataObs(iCell, :), sm_opti(iCell, :), mask = L1_smObs(iDomain)%maskObs(iCell, :))
+                correlation(L1_smObs(iDomain)%dataObs(iCell, :), smOptiSim(iDomain)%dataSim(iCell, :), mask = L1_smObs(iDomain)%maskObs(iCell, :))
       end do
 
       ! user information about invalid cells
@@ -2040,7 +2047,9 @@ CONTAINS
       ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_sm = objective_sm + &
               ((1.0_dp - objective_sm_domain / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
+      call smOptiSim(iDomain)%destroy()
     end do
+    deallocate(smOptiSim)
 
     ! compromise solution - sixth root
     objective_sm = objective_sm**onesixth

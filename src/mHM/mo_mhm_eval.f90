@@ -389,6 +389,12 @@ CONTAINS
       if (present(neutronsOptiSim)) then
         call neutronsOptiSim(iDomain)%init(L1_neutronsObs(iDomain))
       end if
+      !--------------------------
+      ! sm optimization
+      !--------------------------
+      if (present(smOptiSim)) then
+        call smOptiSim(iDomain)%init(L1_smObs(iDomain))
+      end if
 
 #ifdef MRM2MHM
       if (domainMeta%doRouting(iDomain)) then
@@ -839,42 +845,42 @@ CONTAINS
         ! NOTE:: modeled soil moisture is averaged according to input time step
         !        soil moisture (timeStep_sm_input)
         !----------------------------------------------------------------------
-        if (present(sm_opti)) then
-          if (tt .EQ. 1) L1_smObs(iDomain)%writeOutCounter = 1
+        if (present(smOptiSim)) then
+          if (tt .EQ. 1) smOptiSim(iDomain)%writeOutCounter = 1
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
             select case(L1_smObs(iDomain)%timeStepInput)
             case(-1) ! daily
               if (is_new_day)   then
-                sm_opti(s1 : e1, L1_smObs(iDomain)%writeOutCounter) = &
-                        sm_opti(s1 : e1, L1_smObs(iDomain)%writeOutCounter) / real(average_counter, dp)
-                L1_smObs(iDomain)%writeOutCounter = L1_smObs(iDomain)%writeOutCounter + 1
+                smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) = &
+                        smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) / real(average_counter, dp)
+                smOptiSim(iDomain)%writeOutCounter = smOptiSim(iDomain)%writeOutCounter + 1
                 average_counter = 0
               end if
             case(-2) ! monthly
               if (is_new_month) then
-                sm_opti(s1 : e1, L1_smObs(iDomain)%writeOutCounter) = &
-                        sm_opti(s1 : e1, L1_smObs(iDomain)%writeOutCounter) / real(average_counter, dp)
-                L1_smObs(iDomain)%writeOutCounter = L1_smObs(iDomain)%writeOutCounter + 1
+                smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) = &
+                        smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) / real(average_counter, dp)
+                smOptiSim(iDomain)%writeOutCounter = smOptiSim(iDomain)%writeOutCounter + 1
                 average_counter = 0
               end if
             case(-3) ! yearly
               if (is_new_year)  then
-                sm_opti(s1 : e1, L1_smObs(iDomain)%writeOutCounter) = &
-                        sm_opti(s1 : e1, L1_smObs(iDomain)%writeOutCounter) / real(average_counter, dp)
-                L1_smObs(iDomain)%writeOutCounter = L1_smObs(iDomain)%writeOutCounter + 1
+                smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) = &
+                        smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) / real(average_counter, dp)
+                smOptiSim(iDomain)%writeOutCounter = smOptiSim(iDomain)%writeOutCounter + 1
                 average_counter = 0
               end if
             end select
 
-            ! last timestep is already done - write_counter exceeds size(sm_opti, dim=2)
+            ! last timestep is already done - write_counter exceeds size(smOptiSim(iDomain)%dataSim, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate soil moisture to needed time step for optimization
-              sm_opti(s1 : e1, L1_smObs(iDomain)%writeOutCounter) = &
-                      sm_opti(s1 : e1, L1_smObs(iDomain)%writeOutCounter) + &
-                      sum(L1_soilMoist   (s1 : e1, 1 : nSoilHorizons_sm_input), dim = 2) / &
-                              sum(L1_soilMoistSat(s1 : e1, 1 : nSoilHorizons_sm_input, yId), dim = 2)
+              smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) = &
+                      smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) + &
+                      sum(L1_soilMoist(:, 1 : nSoilHorizons_sm_input), dim = 2) / &
+                              sum(L1_soilMoistSat(:, 1 : nSoilHorizons_sm_input, yId), dim = 2)
             end if
 
             ! increase average counter by one
