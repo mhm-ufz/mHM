@@ -881,20 +881,8 @@ CONTAINS
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
-            select case(L1_etObs(iDomain)%timeStepInput)
-            case(-1) ! daily
-              if (is_new_day)   then
-                etOptiSim(iDomain)%writeOutCounter = etOptiSim(iDomain)%writeOutCounter + 1
-              end if
-            case(-2) ! monthly
-              if (is_new_month) then
-                etOptiSim(iDomain)%writeOutCounter = etOptiSim(iDomain)%writeOutCounter + 1
-              end if
-            case(-3) ! yearly
-              if (is_new_year)  then
-                etOptiSim(iDomain)%writeOutCounter = etOptiSim(iDomain)%writeOutCounter + 1
-              end if
-            end select
+            call etOptiSim(iDomain)%increment_counter(L1_etObs(iDomain)%timeStepInput, &
+                                      is_new_day, is_new_month, is_new_year)
 
             ! last timestep is already done - write_counter exceeds size(etOptiSim(iDomain)%dataSim, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
@@ -921,20 +909,8 @@ CONTAINS
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
-            select case(L1_twsObs(iDomain)%timeStepInput)
-            case(-1) ! daily
-              if (is_new_day)   then
-                twsOptiSim(iDomain)%writeOutCounter = twsOptiSim(iDomain)%writeOutCounter + 1
-              end if
-            case(-2) ! monthly
-              if (is_new_month) then
-                twsOptiSim(iDomain)%writeOutCounter = twsOptiSim(iDomain)%writeOutCounter + 1
-              end if
-            case(-3) ! yearly
-              if (is_new_year)  then
-                twsOptiSim(iDomain)%writeOutCounter = twsOptiSim(iDomain)%writeOutCounter + 1
-              end if
-            end select
+            call twsOptiSim(iDomain)%increment_counter(L1_twsObs(iDomain)%timeStepInput, &
+                                      is_new_day, is_new_month, is_new_year)
 
             ! last timestep is already done - write_counter exceeds size(twsOptiSim(iDomain)%dataSim, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then

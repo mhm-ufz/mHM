@@ -36,6 +36,7 @@ MODULE mo_optimization_types
     contains
     procedure :: init => optidata_sim_init
     procedure :: destroy => optidata_sim_destroy
+    procedure :: increment_counter => optidata_sim_increment_counter
   end type optidata_sim
 
   contains
@@ -54,5 +55,29 @@ MODULE mo_optimization_types
 
     deallocate(this%dataSim)
   end subroutine optidata_sim_destroy
+
+  subroutine optidata_sim_increment_counter(this, timeStepInput, is_new_day, is_new_month, is_new_year)
+    class(optidata_sim), intent(inout) :: this
+    integer(i4),         intent(in)    :: timeStepInput
+    logical,             intent(in)    :: is_new_day
+    logical,             intent(in)    :: is_new_month
+    logical,             intent(in)    :: is_new_year
+
+    select case(timeStepInput)
+    case(-1) ! daily
+      if (is_new_day)   then
+        this%writeOutCounter = this%writeOutCounter + 1
+      end if
+    case(-2) ! monthly
+      if (is_new_month) then
+        this%writeOutCounter = this%writeOutCounter + 1
+      end if
+    case(-3) ! yearly
+      if (is_new_year)  then
+        this%writeOutCounter = this%writeOutCounter + 1
+      end if
+    end select
+
+  end subroutine optidata_sim_increment_counter
 
 END MODULE mo_optimization_types
