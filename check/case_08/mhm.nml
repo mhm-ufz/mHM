@@ -107,6 +107,7 @@
 
 &optional_data
     dir_neutrons(1) = '../../test_domain/input/optional_data/'
+    timeStep_neutrons_input = -1
 /
 
 &panevapo

@@ -160,10 +160,11 @@ CONTAINS
     namelist /optional_data/ &
             dir_soil_moisture, &
             nSoilHorizons_sm_input, &
-            timeStep_sm_input, &
             dir_neutrons, &
             dir_evapotranspiration, &
             dir_TWS, &
+            timeStep_sm_input, &
+            timeStep_neutrons_input, &
             timeStep_et_input, &
             timeStep_tws_input
     ! namelist for pan evaporation
