@@ -26,6 +26,7 @@ MODULE mo_optimization_types
     integer(i4)                               :: timeStepInput ! time step of optional data
     integer(i4)                               :: writeOutCounter ! the current timestep
                                                                  ! the simulated opti data is written to
+    character(256)                            :: varname
   end type optidata
 
   ! type for simulated optional data

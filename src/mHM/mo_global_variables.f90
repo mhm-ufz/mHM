@@ -111,18 +111,14 @@ MODULE mo_global_variables
   logical, public, dimension(:, :), allocatable :: L1_neutronsdata_mask       ! [cph] mask for valid data in L1_neutrons
 
   ! soil moisture
-  integer(i4) :: nTimeSteps_L1_sm       ! [-] number of time steps in L1_sm_mask
   integer(i4) :: nSoilHorizons_sm_input ! No. of mhm soil horizons equivalent to sm input
+
   type(optidata), public, dimension(:), allocatable :: L1_smObs
   ! neutrons
-  integer(i4) :: nTimeSteps_L1_neutrons     ! [-] number of time steps in L1_neutrons_mask
   type(optidata), public, dimension(:), allocatable :: L1_neutronsObs
-
   ! evapotranspiration
-  integer(i4) :: nTimeSteps_L1_et      ! [-] number of time steps in L1_et_mask
   type(optidata), public, dimension(:), allocatable :: L1_etObs
   ! tws
-  integer(i4) :: nTimeSteps_L1_tws      ! [-] number of time steps in L1_tws_mask
   type(optidata), public, dimension(:), allocatable :: L1_twsObs ! this stores L1_tws, the mask, the directory of the
                                                               ! observerd data, and the
                                                               ! timestepInput of the simulated data

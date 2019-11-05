@@ -852,7 +852,8 @@ CONTAINS
             ! daily
             if (is_new_day)   then
               neutronsOptiSim(iDomain)%dataSim(:, neutronsOptiSim(iDomain)%writeOutCounter) = &
-                            neutronsOptiSim(iDomain)%dataSim(:, neutronsOptiSim(iDomain)%writeOutCounter) / real(average_counter, dp)
+                            neutronsOptiSim(iDomain)%dataSim(:, neutronsOptiSim(iDomain)%writeOutCounter) / &
+                                                                                      real(average_counter, dp)
               neutronsOptiSim(iDomain)%writeOutCounter = neutronsOptiSim(iDomain)%writeOutCounter + 1
               average_counter = 0
             end if

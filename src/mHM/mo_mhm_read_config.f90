@@ -243,6 +243,7 @@ CONTAINS
           domainID = domainMeta%indices(iDomain)
           L1_smObs(iDomain)%dir = dir_Soil_moisture(domainID)
           L1_smObs(iDomain)%timeStepInput = timeStep_sm_input
+          L1_smObs(iDomain)%varname = 'sm'
         end do
         if (nSoilHorizons_sm_input .GT. nSoilHorizons_mHM) then
           call message()
@@ -259,6 +260,7 @@ CONTAINS
           L1_neutronsObs(iDomain)%dir = dir_neutrons(domainID)
           L1_neutronsObs(iDomain)%timeStepInput = timeStep_neutrons_input
           L1_neutronsObs(iDomain)%timeStepInput = -1 ! TODO: daily, hard-coded, to be flexibilized
+          L1_neutronsObs(iDomain)%varname = 'neutrons'
         end do
       case(27, 29, 30)
         ! evapotranspiration
@@ -268,6 +270,7 @@ CONTAINS
           domainID = domainMeta%indices(iDomain)
           L1_etObs(iDomain)%dir = dir_evapotranspiration(domainID)
           L1_etObs(iDomain)%timeStepInput = timeStep_et_input
+          L1_etObs(iDomain)%varname = 'et'
         end do
       case(15)
         ! domain average TWS data
@@ -277,6 +280,7 @@ CONTAINS
           domainID = domainMeta%indices(iDomain)
           L1_twsObs(iDomain)%dir = dir_TWS(domainID)
           L1_twsObs(iDomain)%timeStepInput = timeStep_tws_input
+          L1_twsObs(iDomain)%varname = 'twsa'
         end do
       case(33)
         ! evapotranspiration
@@ -286,6 +290,7 @@ CONTAINS
           domainID = domainMeta%indices(iDomain)
           L1_etObs(iDomain)%dir = dir_evapotranspiration(domainID)
           L1_etObs(iDomain)%timeStepInput = timeStep_et_input
+          L1_etObs(iDomain)%varname = 'et'
         end do
 
         ! domain average TWS data
@@ -295,6 +300,7 @@ CONTAINS
           domainID = domainMeta%indices(iDomain)
           L1_twsObs(iDomain)%dir = dir_TWS(domainID)
           L1_twsObs(iDomain)%timeStepInput = timeStep_tws_input
+          L1_twsObs(iDomain)%varname = 'twsa'
         end do
 
       end select

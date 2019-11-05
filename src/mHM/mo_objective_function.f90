@@ -2033,7 +2033,8 @@ CONTAINS
 
         ! calculate ojective function
         objective_sm_domain = objective_sm_domain + &
-                correlation(L1_smObs(iDomain)%dataObs(iCell, :), smOptiSim(iDomain)%dataSim(iCell, :), mask = L1_smObs(iDomain)%maskObs(iCell, :))
+                correlation(L1_smObs(iDomain)%dataObs(iCell, :), smOptiSim(iDomain)%dataSim(iCell, :), &
+                                                           mask = L1_smObs(iDomain)%maskObs(iCell, :))
       end do
 
       ! user information about invalid cells
@@ -2222,7 +2223,8 @@ CONTAINS
 
         ! calculate ojective function
         objective_et_domain = objective_et_domain + &
-                kge(L1_etObs(iDomain)%dataObs(iCell, :), etOptiSim(iDomain)%dataSim(iCell, :), mask = L1_etObs(iDomain)%maskObs(iCell, :))
+                kge(L1_etObs(iDomain)%dataObs(iCell, :), etOptiSim(iDomain)%dataSim(iCell, :), &
+                                                   mask = L1_etObs(iDomain)%maskObs(iCell, :))
       end do
 
       ! user information about invalid cells
