@@ -9,6 +9,8 @@ https://www.hydrol-earth-syst-sci.net/22/6257/2018/
 
 It fits an AR(1) model to the additive residuals of streamflow and uses it to forecast.
 
+It removes missing values from the simulated and observed data. This is not clean because jumps might occur if wholes are filled. If period is long enough, this might not be a problem.
+
 License
 -------
 This Script can be redistributed and/or modified
@@ -123,6 +125,13 @@ def read_data(discharge_file):
         else:
             raise ValueError('Netcdf file {} does not seem to be a discharge file of mHM'.format(discharge_file))
     ncin.close()
+
+    # remove missing values
+    mask = np.logical_or(runoff_obs < 0., runoff_sim < 0.)
+    if np.sum(mask) > 0:
+        print('***WARNING: missing values are removed from observed and simulated data')
+    runoff_obs = runoff_obs[~mask]
+    runoff_sim = runoff_sim[~mask]
 
     return runoff_obs, runoff_sim
 
