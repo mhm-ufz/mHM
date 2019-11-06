@@ -864,19 +864,16 @@ CONTAINS
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
-            call twsOptiSim(iDomain)%increment_counter(L1_twsObs(iDomain)%timeStepInput, &
-                                      is_new_day, is_new_month, is_new_year)
+            call twsOptiSim(iDomain)%average_per_timestep(L1_twsObs(iDomain)%timeStepInput, &
+                                                         is_new_day, is_new_month, is_new_year)
 
             ! last timestep is already done - write_counter exceeds size(twsOptiSim(iDomain)%dataSim, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate evapotranspiration to needed time step for optimization
-              twsOptiSim(iDomain)%dataSim(:, twsOptiSim(iDomain)%writeOutCounter) = &
-                   twsOptiSim(iDomain)%dataSim(:, twsOptiSim(iDomain)%writeOutCounter) + &
-                   L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
-                   L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1)
+              call twsOptiSim(iDomain)%average_add(L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
+                   L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1))
               do gg = 1, nSoilHorizons_mHM
-                twsOptiSim(iDomain)%dataSim(:, twsOptiSim(iDomain)%writeOutCounter) = &
-                         twsOptiSim(iDomain)%dataSim(:, twsOptiSim(iDomain)%writeOutCounter) + L1_soilMoist (s1 : e1, gg)
+                call twsOptiSim(iDomain)%add(L1_soilMoist (s1 : e1, gg))
               end do
             end if
           end if
