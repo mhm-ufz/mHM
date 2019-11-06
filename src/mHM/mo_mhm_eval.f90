@@ -206,9 +206,6 @@ CONTAINS
     ! flags for stepping into new period
     logical :: is_new_day, is_new_month, is_new_year
 
-    ! for averaging output
-    integer(i4) :: average_counter
-
     ! if true write out netcdf files
     logical :: writeout
 
@@ -400,7 +397,6 @@ CONTAINS
 
       ! initialize arrays and counters
       yId = LCyearId(year, iDomain)
-      average_counter = 0
       hour = -timestep
       iLAI = 0
 
@@ -723,8 +719,6 @@ CONTAINS
         tIndex_out = (tt - warmingDays(iDomain) * nTstepDay) ! tt if write out of warming period
 
         if ((any(outputFlxState)) .and. (tIndex_out .gt. 0_i4)) then
-
-          average_counter = average_counter + 1
 
           if (tIndex_out .EQ. 1) then
 #ifdef pgiFortran154
