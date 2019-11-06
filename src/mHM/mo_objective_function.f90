@@ -1062,7 +1062,7 @@ CONTAINS
       invalid_cells = 0.0_dp
       ! temporal correlation is calculated on individual gridd cells
 
-      do iCell = 1, size(L1_smObs(iDomain)%maskObs(:, :), dim=2)
+      do iCell = 1, size(L1_smObs(iDomain)%maskObs(:, :), dim = 1)
 
         ! check for enough data points in time for correlation
         if (count(L1_smObs(iDomain)%maskObs(iCell, :)) .LE. 0.10_dp * real(size(L1_smObs(iDomain)%dataObs(:, :), dim = 2), dp)) then
@@ -1362,7 +1362,7 @@ CONTAINS
 
       invalid_cells = 0.0_dp
       ! standard_score signal is calculated on individual grid cells
-      do iCell = 1, size(L1_smObs(iDomain)%maskObs(:,:), dim=2)
+      do iCell = 1, size(L1_smObs(iDomain)%maskObs(:, :), dim = 1)
 
         ! check for enough data points in time for statistical calculations (e.g. mean, stddev)
         if (count(L1_smObs(iDomain)%maskObs(iCell, :)) .LE. (0.10_dp * real(size(L1_smObs(iDomain)%dataObs, dim = 2), dp))) then
@@ -2023,7 +2023,7 @@ CONTAINS
 
       ! correlation signal is calculated on individual grid cells
       invalid_cells = 0.0_dp
-      do iCell = 1, size(L1_smObs(iDomain)%maskObs(:, :), dim=2)
+      do iCell = 1, size(L1_smObs(iDomain)%maskObs(:, :), dim = 1)
 
         ! check for enough data points in time for statistical calculations (e.g. mean, stddev)
         if (count(L1_smObs(iDomain)%maskObs(iCell, :)) .LE. (0.10_dp * real(size(L1_smObs(iDomain)%dataObs, dim = 2), dp))) then
@@ -2212,7 +2212,7 @@ CONTAINS
 
       ! correlation signal is calculated on individual grid cells
       invalid_cells = 0.0_dp
-      do iCell = 1, size(L1_etObs(iDomain)%maskObs, dim=2)
+      do iCell = 1, size(L1_etObs(iDomain)%maskObs, dim = 1)
 
         ! check for enough data points in time for statistical calculations (e.g. mean, stddev)
         if (count(L1_etObs(iDomain)%maskObs(iCell, :)) .LE. &
