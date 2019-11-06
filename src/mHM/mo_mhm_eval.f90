@@ -797,45 +797,17 @@ CONTAINS
         !        soil moisture (timeStep_sm_input)
         !----------------------------------------------------------------------
         if (present(smOptiSim)) then
-          if (tt .EQ. 1) smOptiSim(iDomain)%writeOutCounter = 1
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
-            select case(L1_smObs(iDomain)%timeStepInput)
-            case(-1) ! daily
-              if (is_new_day)   then
-                smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) = &
-                        smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) / real(average_counter, dp)
-                smOptiSim(iDomain)%writeOutCounter = smOptiSim(iDomain)%writeOutCounter + 1
-                average_counter = 0
-              end if
-            case(-2) ! monthly
-              if (is_new_month) then
-                smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) = &
-                        smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) / real(average_counter, dp)
-                smOptiSim(iDomain)%writeOutCounter = smOptiSim(iDomain)%writeOutCounter + 1
-                average_counter = 0
-              end if
-            case(-3) ! yearly
-              if (is_new_year)  then
-                smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) = &
-                        smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) / real(average_counter, dp)
-                smOptiSim(iDomain)%writeOutCounter = smOptiSim(iDomain)%writeOutCounter + 1
-                average_counter = 0
-              end if
-            end select
-
+            call smOptiSim(iDomain)%average_per_timestep(L1_smObs(iDomain)%timeStepInput, &
+                                                         is_new_day, is_new_month, is_new_year)
             ! last timestep is already done - write_counter exceeds size(smOptiSim(iDomain)%dataSim, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate soil moisture to needed time step for optimization
-              smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) = &
-                      smOptiSim(iDomain)%dataSim(:, smOptiSim(iDomain)%writeOutCounter) + &
-                      sum(L1_soilMoist(:, 1 : nSoilHorizons_sm_input), dim = 2) / &
-                              sum(L1_soilMoistSat(:, 1 : nSoilHorizons_sm_input, yId), dim = 2)
+              call smOptiSim(iDomain)%average_add(sum(L1_soilMoist(:, 1 : nSoilHorizons_sm_input), dim = 2) / &
+                              sum(L1_soilMoistSat(:, 1 : nSoilHorizons_sm_input, yId), dim = 2))
             end if
-
-            ! increase average counter by one
-            average_counter = average_counter + 1
           end if
         end if
 
@@ -845,27 +817,19 @@ CONTAINS
         ! NOTE:: modeled neutrons are averaged daily
         !----------------------------------------------------------------------
         if (present(neutronsOptiSim)) then
-          if (tt .EQ. 1) neutronsOptiSim(iDomain)%writeOutCounter = 1
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
             ! daily
             if (is_new_day)   then
-              neutronsOptiSim(iDomain)%dataSim(:, neutronsOptiSim(iDomain)%writeOutCounter) = &
-                            neutronsOptiSim(iDomain)%dataSim(:, neutronsOptiSim(iDomain)%writeOutCounter) / &
-                                                                                      real(average_counter, dp)
-              neutronsOptiSim(iDomain)%writeOutCounter = neutronsOptiSim(iDomain)%writeOutCounter + 1
-              average_counter = 0
+              call neutronsOptiSim(iDomain)%average()
             end if
 
             ! last timestep is already done - write_counter exceeds size(sm_opti, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate neutrons to needed time step for optimization
-              neutronsOptiSim(iDomain)%dataSim(:, neutronsOptiSim(iDomain)%writeOutCounter) = &
-                            neutronsOptiSim(iDomain)%dataSim(:, neutronsOptiSim(iDomain)%writeOutCounter) + L1_neutrons(s1 : e1)
+              call neutronsOptiSim(iDomain)%average_add(L1_neutrons(s1 : e1))
             end if
-
-            average_counter = average_counter + 1
           end if
         end if
 
@@ -875,10 +839,6 @@ CONTAINS
         !        evapotranspiration (timeStep_et_input)
         !----------------------------------------------------------------------
         if (present(etOptiSim)) then
-          if (tt .EQ. 1) then
-            etOptiSim(iDomain)%writeOutCounter = 1
-          end if
-
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
@@ -888,11 +848,9 @@ CONTAINS
             ! last timestep is already done - write_counter exceeds size(etOptiSim(iDomain)%dataSim, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate evapotranspiration to needed time step for optimization
-              etOptiSim(iDomain)%dataSim(:, etOptiSim(iDomain)%writeOutCounter) = &
-                      etOptiSim(iDomain)%dataSim(:, etOptiSim(iDomain)%writeOutCounter) + &
-                      sum(L1_aETSoil(s1 : e1, :), dim = 2) * L1_fNotSealed(s1 : e1, 1, yId) + &
+              call etOptiSim(iDomain)%add(sum(L1_aETSoil(s1 : e1, :), dim = 2) * L1_fNotSealed(s1 : e1, 1, yId) + &
                       L1_aETCanopy(s1 : e1) + &
-                      L1_aETSealed(s1 : e1) * L1_fSealed(s1 : e1, 1, yId)
+                      L1_aETSealed(s1 : e1) * L1_fSealed(s1 : e1, 1, yId))
             end if
           end if
         end if
@@ -903,10 +861,6 @@ CONTAINS
         !        (timeStepInput)
         !----------------------------------------------------------------------
         if (present(twsOptiSim)) then
-          if (tt .EQ. 1) then
-            twsOptiSim(iDomain)%writeOutCounter = 1
-          end if
-
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
