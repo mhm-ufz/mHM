@@ -9,6 +9,8 @@ https://www.hydrol-earth-syst-sci.net/22/6257/2018/
 
 It fits an AR(1) model to the additive residuals of streamflow and uses it to forecast.
 
+It removes missing values from the simulated and observed data. This is not clean because jumps might occur if wholes are filled. If period is long enough, this might not be a problem.
+
 License
 -------
 This Script can be redistributed and/or modified
@@ -165,7 +167,7 @@ def sample_forecasts(n_prob, z_f, eta_mean, eta_std, rho, sigma_y, n_sample):
     return runoff_prob
 
 
-def write_file(runoff_prob, discharge_file, out_file):
+def write_file(runoff_prob, eta_mean, eta_std, rho, sigma_y, discharge_file, out_file):
     copyfile(discharge_file, out_file)
 
     ncout = NcDataset(out_file, 'a')
@@ -182,6 +184,10 @@ def write_file(runoff_prob, discharge_file, out_file):
     ncout.createAttribute("script", "prob_forecast.py")
     ncout.createAttribute("paper", "Woldemeskel et al. Hydrol Earth Syst Sci, 2018 vol. 22 (12) pp. 6257-6278. 'Evaluating post-processing approaches for monthly and seasonal streamflow forecasts.', https://www.hydrol-earth-syst-sci.net/22/6257/2018/")
     ncout.createAttribute("created", asctime())
+    ncout.createAttribute("eta_mean", "mean of boxcox transformed error: {:f}".format(eta_mean))
+    ncout.createAttribute("eta_std", "standard deviation of boxcox transformed error: {:f}".format(eta_std))
+    ncout.createAttribute("rho", "lag-1 auto-correlation: {:f}".format(rho))
+    ncout.createAttribute("sigma_y", "lag_1 standard deviation: {:f}".format(sigma_y))
     ncout.close()
 
 
@@ -191,13 +197,26 @@ if __name__ == '__main__':
 
     runoff_obs, runoff_sim = read_data(discharge_file)
 
+    # remove missing values
+    mask = np.logical_or(runoff_obs < 0., runoff_sim < 0.)
+    if np.sum(mask) > 0:
+        print('***WARNING: missing values are removed from observed and simulated data')
+    runoff_obs = runoff_obs[~mask]
+    runoff_sim = runoff_sim[~mask]
+
     # using nomenclature of Woldemeskel et al. 2018
     z_f, eta_mean, eta_std, rho, sigma_y, n_sample = calculate_param(runoff_obs, runoff_sim)
 
     # sample forecast
     runoff_prob = sample_forecasts(n_prob, z_f, eta_mean, eta_std, rho, sigma_y, n_sample)
 
+    # add missing values
+    if np.sum(mask) > 0.:
+        tmp = np.zeros(mask.shape + (n_prob,)) - 9999.
+        tmp[~mask] = runoff_prob
+        runoff_prob = tmp
+
     # write to file
-    write_file(runoff_prob, discharge_file, out_file)
+    write_file(runoff_prob, eta_mean, eta_std, rho, sigma_y, discharge_file, out_file)
     
     print('Done!')

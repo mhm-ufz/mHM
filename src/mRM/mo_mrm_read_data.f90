@@ -14,12 +14,31 @@
 module mo_mrm_read_data
   use mo_kind, only : i4, dp
   implicit none
-  public :: mrm_read_L0_data
+  ! public :: mrm_read_L0_data
   public :: mrm_read_discharge
   public :: mrm_read_total_runoff
   public :: mrm_read_bankfull_runoff
+  public :: mrm_read_wrapper
   private
 contains
+  subroutine mrm_read_wrapper(ReadLatLon)
+
+    use mo_kind, only : i4
+    use mo_common_mHM_mRM_variables, only : mrm_coupling_mode, read_restart
+    use mo_common_variables, only : processMatrix
+    
+    implicit none
+    
+    logical, optional, intent(inout) :: ReadLatLon
+
+    if (.not. read_restart) then
+      ! read all (still) necessary level 0 data
+      if (processMatrix(8, 1) .eq. 1_i4) call mrm_read_L0_data(mrm_coupling_mode .eq. 0_i4, ReadLatLon, .true.)
+      if (processMatrix(8, 1) .eq. 2_i4) call mrm_read_L0_data(mrm_coupling_mode .eq. 0_i4, ReadLatLon, .false.)
+      if (processMatrix(8, 1) .eq. 3_i4) call mrm_read_L0_data(mrm_coupling_mode .eq. 0_i4, ReadLatLon, .false.)
+    end if
+   
+  end subroutine mrm_read_wrapper
   ! ------------------------------------------------------------------
 
   !    NAME

@@ -92,8 +92,12 @@ PROGRAM mhm_driver
           dirNetRadiation, &      ! PET input paths if process 5 is Priestley-Taylor (case 2)
           dirabsVapPressure, dirwindspeed, &      ! PET input paths if process 5 is Penman-Monteith  (case 3)
           timestep_model_inputs, & !frequency of input read
-          optidata, & ! type for opti data
-          L1_tws 
+          L1_twsObs, &
+          L1_etObs, &
+          L1_neutronsObs, &
+          L1_smObs
+  USE mo_optimization_types, ONLY : &
+          optidata ! type for opti data
   USE mo_common_mHM_mRM_variables, ONLY : &
           nTstepDay, &      ! number of timesteps per day (former: NAGG)
           simPer, &      ! simulation period
@@ -115,10 +119,7 @@ PROGRAM mhm_driver
   USE mo_message, ONLY : message, message_text          ! For print out
   USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval, ONLY : mhm_eval
-  USE mo_read_optional_data, ONLY : read_soil_moisture, &      ! optional soil moisture reader
-          read_neutrons, &
-          read_evapotranspiration, &
-          read_tws
+  USE mo_read_optional_data, ONLY : readOptidataObs ! read optional observed data
   USE mo_common_read_config, ONLY : common_read_config                    ! Read main configuration files
   USE mo_common_mHM_mRM_read_config, ONLY : &
           common_mHM_mRM_read_config, check_optimization_settings ! Read main configuration files
@@ -149,6 +150,7 @@ PROGRAM mhm_driver
 #endif
           single_objective_runoff
   USE mo_mrm_init, ONLY : mrm_init, mrm_configuration
+  USE mo_mrm_read_data, ONLY : mrm_read_wrapper
   USE mo_mrm_write, only : mrm_write
 
 #endif
@@ -292,6 +294,7 @@ PROGRAM mhm_driver
   ! for DEM, slope, ... define nGvar local
   ! read_data has a domain loop inside
   call read_data(simPer)
+  call mrm_read_wrapper(ReadLatLon)
   call timer_stop(itimer)
   call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
@@ -320,26 +323,26 @@ PROGRAM mhm_driver
       select case (opti_function)
       case(10 : 13, 28)
         ! read optional spatio-temporal soil mositure data
-        call read_soil_moisture(iDomain, domainID)
+        call readOptidataObs(iDomain, domainID, L1_smObs(iDomain))
       case(17)
         ! read optional spatio-temporal neutrons data
-        call read_neutrons(iDomain, domainID)
+        call readOptidataObs(iDomain, domainID, L1_neutronsObs(iDomain))
       case(27, 29, 30)
         ! read optional spatio-temporal evapotranspiration data
-        call read_evapotranspiration(iDomain, domainID)
+        call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
       case(15)
         ! read optional spatio-temporal tws data
-        call read_tws(iDomain, domainID, L1_tws(iDomain))
+        call readOptidataObs(iDomain, domainID, L1_twsObs(iDomain))
       case(33)
         ! read optional spatio-temporal evapotranspiration data
         if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
           domainMeta%optidata(iDomain) == 6 ) then
-          call read_evapotranspiration(iDomain, domainID)
+          call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
         end if
         ! read optional spatio-temporal tws data
         if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
           domainMeta%optidata(iDomain) == 6 ) then
-          call read_tws(iDomain, domainID, L1_tws(iDomain))
+          call readOptidataObs(iDomain, domainID, L1_twsObs(iDomain))
         end if
       end select
     end if
