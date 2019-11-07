@@ -74,15 +74,16 @@ CONTAINS
   ! O. Rakovec, R. Kumar Oct 2015 - added optional output for Domain averaged TWS
   ! Rohini Kumar         Mar 2016 - changes for handling multiple soil database options
   ! Stephan Thober       Nov 2016 - added two options for routing
-  ! Rohini Kuamr         Dec  2016 - option to handle monthly mean gridded fields of LAI
+  ! Rohini Kuamr         Dec 2016 - option to handle monthly mean gridded fields of LAI
   ! Stephan Thober       Jan 2017 - added prescribed weights for tavg and pet
   ! Zink M. Demirel C.   Mar 2017 - Added Jarvis soil water stress function at SM process(3)
   ! Robert Schweppe      Dec 2017 - extracted call to mpr from inside mhm
   ! Robert Schweppe      Jun 2018 - refactoring and reformatting
 
-  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, sm_opti, neutrons_opti, et_opti, tws_opti)
+  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
 
     use mo_common_constants, only : nodata_dp
+    use mo_optimization_types, only : optidata_sim
     use mo_common_mHM_mRM_variables, only : LCyearId, dirRestartIn, nTstepDay, optimize, readPer, read_restart, simPer, timeStep, &
                                             warmingDays, c2TSTu
     use mo_common_variables, only : level1, domainMeta, processMatrix
@@ -93,11 +94,10 @@ CONTAINS
                                     L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_temp, L1_temp_weights, L1_tmax, &
                                     L1_tmin, L1_total_runoff, L1_unsatSTW, L1_windspeed, evap_coeff, &
                                     fday_pet, fday_prec, fday_temp, fnight_pet, fnight_prec, fnight_temp, &
-                                    nSoilHorizons_sm_input, nTimeSteps_L1_et, nTimeSteps_L1_tws, &
-                                    nTimeSteps_L1_neutrons, nTimeSteps_L1_sm, &
-                                    neutron_integral_AFast, outputFlxState, read_meteo_weights, timeStep_et_input, &
-                                    timeStep_model_inputs, timeStep_model_outputs, timeStep_sm_input, &
-                                    L1_tws
+                                    nSoilHorizons_sm_input, &
+                                    neutron_integral_AFast, outputFlxState, read_meteo_weights, &
+                                    timeStep_model_inputs, timeStep_model_outputs, &
+                                    L1_twsObs, L1_etObs, L1_smObs, L1_neutronsObs
     use mo_init_states, only : variables_default_init
     use mo_julian, only : caldat, julday
     use mo_message, only : message
@@ -146,18 +146,18 @@ CONTAINS
 
     ! returns soil moisture time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
     ! nTimeSteps]
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti
+    type(optidata_sim), dimension(:), optional, intent(inout) :: smOptiSim
 
     ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti
+    type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim
 
     ! returns evapotranspiration time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
     ! nTimeSteps]
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: et_opti
+    type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim
 
     ! returns tws time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
     ! nTimeSteps]
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: tws_opti
+    type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim
 
     ! for writing netcdf file
     integer(i4) :: tIndex_out
@@ -206,15 +206,8 @@ CONTAINS
     ! flags for stepping into new period
     logical :: is_new_day, is_new_month, is_new_year
 
-    ! for averaging output
-    integer(i4) :: average_counter
-
     ! if true write out netcdf files
     logical :: writeout
-
-    ! write out time step
-    integer(i4) :: writeout_counter_et, &
-                   writeout_counter_sm, writeout_counter_neutrons
 
 #ifdef MRM2MHM
     integer(i4) :: jj
@@ -281,38 +274,6 @@ CONTAINS
         end if
       end do
     end if
-    ! soil moisture optimization
-    !--------------------------
-    if (present(sm_opti)) then
-      !                ! total No of cells, No of timesteps
-      !                ! of all Domains    , in soil moist input
-      allocate(sm_opti(size(L1_pre, dim = 1), nTimeSteps_L1_sm))
-      sm_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
-    end if
-    ! neutrons optimization
-    !--------------------------
-    if (present(neutrons_opti)) then
-      !                ! total No of cells, No of timesteps
-      !                ! of all Domains    , in neutrons input
-      allocate(neutrons_opti(size(L1_pre, dim = 1), nTimeSteps_L1_neutrons))
-      neutrons_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
-    end if
-    ! evapotranspiration optimization
-    !--------------------------
-    if (present(et_opti)) then
-      !                ! total No of cells, No of timesteps
-      !                ! of all Domains    , in evapotranspiration input
-      allocate(et_opti(size(L1_pre, dim = 1), nTimeSteps_L1_et))
-      et_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
-    end if
-    ! tws optimization
-    !--------------------------
-    if (present(tws_opti)) then
-      !                ! total No of cells, No of timesteps
-      !                ! of all Domains    , in evapotranspiration input
-      allocate(tws_opti(size(L1_pre, dim = 1), nTimeSteps_L1_tws))
-      tws_opti(:, :) = 0.0_dp ! has to be intialized with zero because later summation
-    end if
 
     !-------------------------------------------------------------------
     ! All variables had been allocated to the required
@@ -356,6 +317,31 @@ CONTAINS
         iDomain = opti_domain_indices(ii)
       else
         iDomain = ii
+      end if
+
+      !--------------------------
+      ! evapotranspiration optimization
+      !--------------------------
+      if (present(etOptiSim)) then
+        call etOptiSim(iDomain)%init(L1_etObs(iDomain))
+      end if
+      !--------------------------
+      ! total water storage optimization
+      !--------------------------
+      if (present(twsOptiSim)) then
+        call twsOptiSim(iDomain)%init(L1_twsObs(iDomain))
+      end if
+      !--------------------------
+      ! neutrons optimization
+      !--------------------------
+      if (present(neutronsOptiSim)) then
+        call neutronsOptiSim(iDomain)%init(L1_neutronsObs(iDomain))
+      end if
+      !--------------------------
+      ! sm optimization
+      !--------------------------
+      if (present(smOptiSim)) then
+        call smOptiSim(iDomain)%init(L1_smObs(iDomain))
       end if
 
 #ifdef MRM2MHM
@@ -411,7 +397,6 @@ CONTAINS
 
       ! initialize arrays and counters
       yId = LCyearId(year, iDomain)
-      average_counter = 0
       hour = -timestep
       iLAI = 0
 
@@ -735,8 +720,6 @@ CONTAINS
 
         if ((any(outputFlxState)) .and. (tIndex_out .gt. 0_i4)) then
 
-          average_counter = average_counter + 1
-
           if (tIndex_out .EQ. 1) then
 #ifdef pgiFortran154
             nc = newOutputDataset(iDomain, mask1, level1(iDomain)%nCells)
@@ -807,45 +790,18 @@ CONTAINS
         ! NOTE:: modeled soil moisture is averaged according to input time step
         !        soil moisture (timeStep_sm_input)
         !----------------------------------------------------------------------
-        if (present(sm_opti)) then
-          if (tt .EQ. 1) writeout_counter_sm = 1
+        if (present(smOptiSim)) then
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
-            select case(timeStep_sm_input)
-            case(-1) ! daily
-              if (is_new_day)   then
-                sm_opti(s1 : e1, writeout_counter_sm) = &
-                        sm_opti(s1 : e1, writeout_counter_sm) / real(average_counter, dp)
-                writeout_counter_sm = writeout_counter_sm + 1
-                average_counter = 0
-              end if
-            case(-2) ! monthly
-              if (is_new_month) then
-                sm_opti(s1 : e1, writeout_counter_sm) = &
-                        sm_opti(s1 : e1, writeout_counter_sm) / real(average_counter, dp)
-                writeout_counter_sm = writeout_counter_sm + 1
-                average_counter = 0
-              end if
-            case(-3) ! yearly
-              if (is_new_year)  then
-                sm_opti(s1 : e1, writeout_counter_sm) = &
-                        sm_opti(s1 : e1, writeout_counter_sm) / real(average_counter, dp)
-                writeout_counter_sm = writeout_counter_sm + 1
-                average_counter = 0
-              end if
-            end select
-
-            ! last timestep is already done - write_counter exceeds size(sm_opti, dim=2)
+            call smOptiSim(iDomain)%average_per_timestep(L1_smObs(iDomain)%timeStepInput, &
+                                                         is_new_day, is_new_month, is_new_year)
+            ! last timestep is already done - write_counter exceeds size(smOptiSim(iDomain)%dataSim, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate soil moisture to needed time step for optimization
-              sm_opti(s1 : e1, writeout_counter_sm) = sm_opti(s1 : e1, writeout_counter_sm) + &
-                      sum(L1_soilMoist   (s1 : e1, 1 : nSoilHorizons_sm_input), dim = 2) / &
-                              sum(L1_soilMoistSat(s1 : e1, 1 : nSoilHorizons_sm_input, yId), dim = 2)
+              call smOptiSim(iDomain)%average_add(sum(L1_soilMoist(:, 1 : nSoilHorizons_sm_input), dim = 2) / &
+                              sum(L1_soilMoistSat(:, 1 : nSoilHorizons_sm_input, yId), dim = 2))
             end if
-
-            ! increase average counter by one
-            average_counter = average_counter + 1
           end if
         end if
 
@@ -854,27 +810,20 @@ CONTAINS
         ! FOR NEUTRONS
         ! NOTE:: modeled neutrons are averaged daily
         !----------------------------------------------------------------------
-        if (present(neutrons_opti)) then
-          if (tt .EQ. 1) writeout_counter_neutrons = 1
+        if (present(neutronsOptiSim)) then
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
             ! daily
             if (is_new_day)   then
-              neutrons_opti(s1 : e1, writeout_counter_neutrons) = &
-                            neutrons_opti(s1 : e1, writeout_counter_neutrons) / real(average_counter, dp)
-              writeout_counter_neutrons = writeout_counter_neutrons + 1
-              average_counter = 0
+              call neutronsOptiSim(iDomain)%average()
             end if
 
             ! last timestep is already done - write_counter exceeds size(sm_opti, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate neutrons to needed time step for optimization
-              neutrons_opti(s1 : e1, writeout_counter_neutrons) = &
-                            neutrons_opti(s1 : e1, writeout_counter_neutrons) + L1_neutrons(s1 : e1)
+              call neutronsOptiSim(iDomain)%average_add(L1_neutrons(s1 : e1))
             end if
-
-            average_counter = average_counter + 1
           end if
         end if
 
@@ -883,36 +832,19 @@ CONTAINS
         ! NOTE:: modeled evapotranspiration is averaged according to input time step
         !        evapotranspiration (timeStep_et_input)
         !----------------------------------------------------------------------
-        if (present(et_opti)) then
-          if (tt .EQ. 1) then
-            writeout_counter_et = 1
-          end if
-
+        if (present(etOptiSim)) then
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
-            select case(timeStep_et_input)
-            case(-1) ! daily
-              if (is_new_day)   then
-                writeout_counter_et = writeout_counter_et + 1
-              end if
-            case(-2) ! monthly
-              if (is_new_month) then
-                writeout_counter_et = writeout_counter_et + 1
-              end if
-            case(-3) ! yearly
-              if (is_new_year)  then
-                writeout_counter_et = writeout_counter_et + 1
-              end if
-            end select
+            call etOptiSim(iDomain)%increment_counter(L1_etObs(iDomain)%timeStepInput, &
+                                      is_new_day, is_new_month, is_new_year)
 
-            ! last timestep is already done - write_counter exceeds size(et_opti, dim=2)
+            ! last timestep is already done - write_counter exceeds size(etOptiSim(iDomain)%dataSim, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate evapotranspiration to needed time step for optimization
-              et_opti(s1 : e1, writeout_counter_et) = et_opti(s1 : e1, writeout_counter_et) + &
-                      sum(L1_aETSoil(s1 : e1, :), dim = 2) * L1_fNotSealed(s1 : e1, 1, yId) + &
+              call etOptiSim(iDomain)%add(sum(L1_aETSoil(s1 : e1, :), dim = 2) * L1_fNotSealed(s1 : e1, 1, yId) + &
                       L1_aETCanopy(s1 : e1) + &
-                      L1_aETSealed(s1 : e1) * L1_fSealed(s1 : e1, 1, yId)
+                      L1_aETSealed(s1 : e1) * L1_fSealed(s1 : e1, 1, yId))
             end if
           end if
         end if
@@ -920,41 +852,22 @@ CONTAINS
         !----------------------------------------------------------------------
         ! FOR TWS
         ! NOTE:: modeled tws is averaged according to input time step
-        !        evapotranspiration (timeStepInput)
+        !        (timeStepInput)
         !----------------------------------------------------------------------
-        if (present(tws_opti)) then
-          if (tt .EQ. 1) then
-            L1_tws(iDomain)%writeOutCounter = 1
-          end if
-
+        if (present(twsOptiSim)) then
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
-            select case(L1_tws(iDomain)%timeStepInput)
-            case(-1) ! daily
-              if (is_new_day)   then
-                L1_tws(iDomain)%writeOutCounter = L1_tws(iDomain)%writeOutCounter + 1
-              end if
-            case(-2) ! monthly
-              if (is_new_month) then
-                L1_tws(iDomain)%writeOutCounter = L1_tws(iDomain)%writeOutCounter + 1
-              end if
-            case(-3) ! yearly
-              if (is_new_year)  then
-                L1_tws(iDomain)%writeOutCounter = L1_tws(iDomain)%writeOutCounter + 1
-              end if
-            end select
+            call twsOptiSim(iDomain)%average_per_timestep(L1_twsObs(iDomain)%timeStepInput, &
+                                                         is_new_day, is_new_month, is_new_year)
 
-            ! last timestep is already done - write_counter exceeds size(tws_opti, dim=2)
+            ! last timestep is already done - write_counter exceeds size(twsOptiSim(iDomain)%dataSim, dim=2)
             if (.not. (tt .eq. nTimeSteps)) then
               ! aggregate evapotranspiration to needed time step for optimization
-              tws_opti(s1 : e1, L1_tws(iDomain)%writeOutCounter) = &
-                   tws_opti(s1 : e1, L1_tws(iDomain)%writeOutCounter) + &
-                   L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
-                   L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1)
+              call twsOptiSim(iDomain)%average_add(L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
+                   L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1))
               do gg = 1, nSoilHorizons_mHM
-                tws_opti(s1 : e1, L1_tws(iDomain)%writeOutCounter) = &
-                         tws_opti(s1 : e1, L1_tws(iDomain)%writeOutCounter) + L1_soilMoist (s1 : e1, gg)
+                call twsOptiSim(iDomain)%add(L1_soilMoist (s1 : e1, gg))
               end do
             end if
           end if

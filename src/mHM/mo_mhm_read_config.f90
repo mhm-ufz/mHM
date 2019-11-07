@@ -93,13 +93,13 @@ CONTAINS
     use mo_common_mhm_mrm_variables, only : opti_function, optimize
     use mo_common_variables, only : domainMeta, processMatrix
     use mo_file, only : file_defOutput, udefOutput
-    use mo_global_variables, only : dirEvapotranspiration, L1_tws, &
-                                    dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirNeutrons, dirPrecipitation, &
-                                    dirReferenceET, dirSoil_moisture, dirTemperature, dirabsVapPressure, dirwindspeed, &
+    use mo_global_variables, only : L1_twsObs, L1_etObs, L1_smObs, L1_neutronsObs, &
+                                    dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirPrecipitation, &
+                                    dirReferenceET, dirTemperature, dirabsVapPressure, dirwindspeed, &
                                     evap_coeff, fday_pet, fday_prec, fday_temp, fnight_pet, fnight_prec, &
                                     fnight_temp, inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
-                                    read_meteo_weights, timeStep_et_input, timeStep_model_outputs, &
-                                    timeStep_neutrons_input, timeStep_sm_input, timestep_model_inputs
+                                    read_meteo_weights, timeStep_model_outputs, &
+                                    timestep_model_inputs
     use mo_message, only : message
     use mo_mpr_constants, only : maxNoSoilHorizons
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
@@ -143,7 +143,11 @@ CONTAINS
 
     ! tws input
     character(256), dimension(maxNoDomains) :: dir_TWS
+
     integer(i4) :: timeStep_tws_input         ! time step of optional data: tws
+    integer(i4) :: timeStep_et_input          ! time step of optional data: et
+    integer(i4) :: timeStep_sm_input          ! time step of optional data: sm
+    integer(i4) :: timeStep_neutrons_input    ! time step of optional data: neutrons
 
 
     ! define namelists
@@ -156,10 +160,11 @@ CONTAINS
     namelist /optional_data/ &
             dir_soil_moisture, &
             nSoilHorizons_sm_input, &
-            timeStep_sm_input, &
             dir_neutrons, &
             dir_evapotranspiration, &
             dir_TWS, &
+            timeStep_sm_input, &
+            timeStep_neutrons_input, &
             timeStep_et_input, &
             timeStep_tws_input
     ! namelist for pan evaporation
@@ -183,10 +188,10 @@ CONTAINS
     allocate(dirMinTemperature(domainMeta%nDomains))
     allocate(dirMaxTemperature(domainMeta%nDomains))
     allocate(dirNetRadiation(domainMeta%nDomains))
-    allocate(dirSoil_Moisture(domainMeta%nDomains))
-    allocate(dirNeutrons(domainMeta%nDomains))
-    allocate(dirEvapotranspiration(domainMeta%nDomains))
-    allocate(L1_tws(domainMeta%nDomains))
+    allocate(L1_twsObs(domainMeta%nDomains))
+    allocate(L1_etObs(domainMeta%nDomains))
+    allocate(L1_smObs(domainMeta%nDomains))
+    allocate(L1_neutronsObs(domainMeta%nDomains))
     ! allocate time periods
     allocate(timestep_model_inputs(domainMeta%nDomains))
 
@@ -236,7 +241,9 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          dirSoil_moisture(iDomain) = dir_Soil_moisture(domainID)
+          L1_smObs(iDomain)%dir = dir_Soil_moisture(domainID)
+          L1_smObs(iDomain)%timeStepInput = timeStep_sm_input
+          L1_smObs(iDomain)%varname = 'sm'
         end do
         if (nSoilHorizons_sm_input .GT. nSoilHorizons_mHM) then
           call message()
@@ -250,16 +257,20 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          dirNeutrons(iDomain) = dir_neutrons(domainID)
+          L1_neutronsObs(iDomain)%dir = dir_neutrons(domainID)
+          L1_neutronsObs(iDomain)%timeStepInput = timeStep_neutrons_input
+          L1_neutronsObs(iDomain)%timeStepInput = -1 ! TODO: daily, hard-coded, to be flexibilized
+          L1_neutronsObs(iDomain)%varname = 'neutrons'
         end do
-        timeStep_neutrons_input = -1 ! TODO: daily, hard-coded, to be flexibilized
       case(27, 29, 30)
         ! evapotranspiration
         call position_nml('optional_data', unamelist)
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          dirEvapotranspiration(iDomain) = dir_evapotranspiration(domainID)
+          L1_etObs(iDomain)%dir = dir_evapotranspiration(domainID)
+          L1_etObs(iDomain)%timeStepInput = timeStep_et_input
+          L1_etObs(iDomain)%varname = 'et'
         end do
       case(15)
         ! domain average TWS data
@@ -267,8 +278,9 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          L1_tws(iDomain)%dir = dir_TWS(domainID)
-          L1_tws(iDomain)%timeStepInput = timeStep_tws_input
+          L1_twsObs(iDomain)%dir = dir_TWS(domainID)
+          L1_twsObs(iDomain)%timeStepInput = timeStep_tws_input
+          L1_twsObs(iDomain)%varname = 'twsa'
         end do
       case(33)
         ! evapotranspiration
@@ -276,7 +288,9 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          dirEvapotranspiration(iDomain) = dir_evapotranspiration(domainID)
+          L1_etObs(iDomain)%dir = dir_evapotranspiration(domainID)
+          L1_etObs(iDomain)%timeStepInput = timeStep_et_input
+          L1_etObs(iDomain)%varname = 'et'
         end do
 
         ! domain average TWS data
@@ -284,8 +298,9 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          L1_tws(iDomain)%dir = dir_TWS(domainID)
-          L1_tws(iDomain)%timeStepInput = timeStep_tws_input
+          L1_twsObs(iDomain)%dir = dir_TWS(domainID)
+          L1_twsObs(iDomain)%timeStepInput = timeStep_tws_input
+          L1_twsObs(iDomain)%varname = 'twsa'
         end do
 
       end select

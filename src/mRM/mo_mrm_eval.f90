@@ -49,8 +49,9 @@ contains
   ! Stephan Thober Nov 2016 - implemented second routing process i.e. adaptive timestep
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine mrm_eval(parameterset, opti_domain_indices, runoff, sm_opti, neutrons_opti, et_opti, tws_opti)
+  subroutine mrm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
 
+    use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : HourSecs
     use mo_common_mHM_mRM_variables, only : LCYearId, dirRestartIn, nTStepDay, optimize, read_restart, resolutionRouting, simPer, &
                                             timestep, warmingDays
@@ -80,17 +81,20 @@ contains
     ! returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff
 
-    ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti
+    ! returns soil moisture time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
+    ! nTimeSteps]
+    type(optidata_sim), dimension(:), optional, intent(inout) :: smOptiSim
 
     ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti
+    type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim
 
-    ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: et_opti
+    ! returns evapotranspiration time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
+    ! nTimeSteps]
+    type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim
 
-    ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: tws_opti
+    ! returns tws time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells,
+    ! nTimeSteps]
+    type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim
 
     integer(i4) :: domainID, iDomain, nDomains, ii
 
@@ -155,7 +159,7 @@ contains
     ! initialize variables
     month = 0_i4
     
-    if (present(sm_opti) .or. present(tws_opti) .or. present(neutrons_opti) .or. present(et_opti)) then
+    if (present(smOptiSim) .or. present(twsOptiSim) .or. present(neutronsOptiSim) .or. present(etOptiSim)) then
       call message("Error during initialization of mrm_eval, incorrect call from optimization routine.")
       stop 1
     end if
