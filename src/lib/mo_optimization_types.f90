@@ -30,7 +30,7 @@ MODULE mo_optimization_types
   ! type for simulated optional data
   type optidata_sim
     real(dp), dimension(:, :), allocatable    :: dataSim
-    integer(i4)                               :: writeOutCounter ! the current timestep
+    integer(i4)                               :: averageTimestep ! the current timestep
                                                                  ! the simulated opti data is written to
     integer(i4)                               :: averageCounter  ! set to 0 on average, incremented on add
 
@@ -52,7 +52,7 @@ MODULE mo_optimization_types
 
     allocate(this%dataSim(size(optidataObs%dataObs, dim = 1), size(optidataObs%dataObs, dim = 2)))
     this%dataSim(:, :) = 0.0_dp ! has to be intialized with zero because later summation
-    this%writeOutCounter = 1
+    this%averageTimestep = 1
     this%averageCounter = 0
   end subroutine optidata_sim_init
 
@@ -72,15 +72,15 @@ MODULE mo_optimization_types
     select case(timeStepInput)
     case(-1) ! daily
       if (is_new_day)   then
-        this%writeOutCounter = this%writeOutCounter + 1
+        this%averageTimestep = this%averageTimestep + 1
       end if
     case(-2) ! monthly
       if (is_new_month) then
-        this%writeOutCounter = this%writeOutCounter + 1
+        this%averageTimestep = this%averageTimestep + 1
       end if
     case(-3) ! yearly
       if (is_new_year)  then
-        this%writeOutCounter = this%writeOutCounter + 1
+        this%averageTimestep = this%averageTimestep + 1
       end if
     end select
 
@@ -90,16 +90,16 @@ MODULE mo_optimization_types
     class(optidata_sim),    intent(inout) :: this
     real(dp), dimension(:), intent(in)    :: data_sim
 
-    this%dataSim(:, this%writeOutCounter) = &
-            this%dataSim(:, this%writeOutCounter) + data_sim(:)
+    this%dataSim(:, this%averageTimestep) = &
+            this%dataSim(:, this%averageTimestep) + data_sim(:)
   end subroutine optidata_sim_add
 
   subroutine optidata_sim_average(this)
     class(optidata_sim), intent(inout) :: this
 
-    this%dataSim(:, this%writeOutCounter) = &
-            this%dataSim(:, this%writeOutCounter) / real(this%averageCounter, dp)
-    this%writeOutCounter = this%writeOutCounter + 1
+    this%dataSim(:, this%averageTimestep) = &
+            this%dataSim(:, this%averageTimestep) / real(this%averageCounter, dp)
+    this%averageTimestep = this%averageTimestep + 1
     this%averageCounter = 0
   end subroutine optidata_sim_average
 
