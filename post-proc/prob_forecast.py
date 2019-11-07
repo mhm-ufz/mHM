@@ -9,6 +9,8 @@ https://www.hydrol-earth-syst-sci.net/22/6257/2018/
 
 It fits an AR(1) model to the additive residuals of streamflow and uses it to forecast.
 
+It removes missing values from the simulated and observed data. This is not clean because jumps might occur if wholes are filled. If period is long enough, this might not be a problem.
+
 License
 -------
 This Script can be redistributed and/or modified
@@ -191,11 +193,24 @@ if __name__ == '__main__':
 
     runoff_obs, runoff_sim = read_data(discharge_file)
 
+    # remove missing values
+    mask = np.logical_or(runoff_obs < 0., runoff_sim < 0.)
+    if np.sum(mask) > 0:
+        print('***WARNING: missing values are removed from observed and simulated data')
+    runoff_obs = runoff_obs[~mask]
+    runoff_sim = runoff_sim[~mask]
+
     # using nomenclature of Woldemeskel et al. 2018
     z_f, eta_mean, eta_std, rho, sigma_y, n_sample = calculate_param(runoff_obs, runoff_sim)
 
     # sample forecast
     runoff_prob = sample_forecasts(n_prob, z_f, eta_mean, eta_std, rho, sigma_y, n_sample)
+
+    # add missing values
+    if np.sum(mask) > 0.:
+        tmp = np.zeros(mask.shape + (n_prob,)) - 9999.
+        tmp[~mask] = runoff_prob
+        runoff_prob = tmp
 
     # write to file
     write_file(runoff_prob, discharge_file, out_file)
