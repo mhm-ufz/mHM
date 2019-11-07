@@ -117,8 +117,7 @@ end subroutine mrm_configuration
     use mo_mrm_net_startup, only : L11_flow_direction, L11_flow_accumulation, L11_fraction_sealed_floodplain, &
                                    L11_link_location, L11_routing_order, L11_set_drain_outlet_gauges, &
                                    L11_set_network_topology, L11_stream_features, l11_l1_mapping
-    use mo_mrm_read_data, only : mrm_read_L0_data, mrm_read_discharge, &
-                                 mrm_read_total_runoff, mrm_read_bankfull_runoff
+    use mo_mrm_read_data, only : mrm_read_discharge, mrm_read_total_runoff, mrm_read_bankfull_runoff
     use mo_mrm_restart, only : mrm_read_restart_config
     use mo_read_latlon, only : read_latlon
     use mo_mrm_river_head, only: init_masked_zeros_l0, create_output, calc_channel_elevation
@@ -149,13 +148,6 @@ end subroutine mrm_configuration
     allocate(level11(domainMeta%nDomains))
     allocate(l0_l11_remap(domainMeta%nDomains))
     allocate(l1_l11_remap(domainMeta%nDomains))
-
-    if (.not. read_restart) then
-      ! read all (still) necessary level 0 data
-      if (processMatrix(8, 1) .eq. 1_i4) call mrm_read_L0_data(mrm_coupling_mode .eq. 0_i4, ReadLatLon, .true.)
-      if (processMatrix(8, 1) .eq. 2_i4) call mrm_read_L0_data(mrm_coupling_mode .eq. 0_i4, ReadLatLon, .false.)
-      if (processMatrix(8, 1) .eq. 3_i4) call mrm_read_L0_data(mrm_coupling_mode .eq. 0_i4, ReadLatLon, .false.)
-    end if
 
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)

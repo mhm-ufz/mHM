@@ -150,6 +150,7 @@ PROGRAM mhm_driver
 #endif
           single_objective_runoff
   USE mo_mrm_init, ONLY : mrm_init, mrm_configuration
+  USE mo_mrm_read_data, ONLY : mrm_read_wrapper
   USE mo_mrm_write, only : mrm_write
 
 #endif
@@ -293,6 +294,7 @@ PROGRAM mhm_driver
   ! for DEM, slope, ... define nGvar local
   ! read_data has a domain loop inside
   call read_data(simPer)
+  call mrm_read_wrapper(ReadLatLon)
   call timer_stop(itimer)
   call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
