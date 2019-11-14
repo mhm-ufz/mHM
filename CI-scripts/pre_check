@@ -1,0 +1,5 @@
+module purge
+module use /global/apps/chspython/modules
+module load pyvenvs/3.6.2
+module use /global/apps/modulefiles
+cd check/
