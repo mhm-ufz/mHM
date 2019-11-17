@@ -97,7 +97,7 @@ CONTAINS
                                     nSoilHorizons_sm_input, &
                                     neutron_integral_AFast, outputFlxState, read_meteo_weights, &
                                     timeStep_model_inputs, timeStep_model_outputs, &
-                                    L1_twsObs, L1_etObs, L1_smObs, L1_neutronsObs
+                                    L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs
     use mo_init_states, only : variables_default_init
     use mo_julian, only : caldat, julday
     use mo_message, only : message
@@ -329,7 +329,7 @@ CONTAINS
       ! total water storage optimization
       !--------------------------
       if (present(twsOptiSim)) then
-        call twsOptiSim(iDomain)%init(L1_twsObs(iDomain))
+        call twsOptiSim(iDomain)%init(L1_twsaObs(iDomain))
       end if
       !--------------------------
       ! neutrons optimization
@@ -858,7 +858,7 @@ CONTAINS
           ! only for evaluation period - ignore warming days
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
-            call twsOptiSim(iDomain)%average_per_timestep(L1_twsObs(iDomain)%timeStepInput, &
+            call twsOptiSim(iDomain)%average_per_timestep(L1_twsaObs(iDomain)%timeStepInput, &
                                                          is_new_day, is_new_month, is_new_year)
 
             ! last timestep is already done - write_counter exceeds size(twsOptiSim(iDomain)%dataSim, dim=2)

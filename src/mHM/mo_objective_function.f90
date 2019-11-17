@@ -280,7 +280,7 @@ CONTAINS
       end do
       objective_master = objective_master + &
         (multiple_master_objective(1)+multiple_master_objective(2)+multiple_master_objective(3))
-      objective_master = objective_master**onesixth
+      objective_master = (objective_master/multiple_master_objective(4))**onesixth
 
     case default
       call message("Error objective_master: opti_function not implemented yet.")
@@ -444,7 +444,7 @@ CONTAINS
       case (10 : 13, 17, 27 : 29)
         call MPI_Send(partial_objective,1, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case(33)
-        call MPI_Send(multiple_partial_objective,6, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
+        call MPI_Send(multiple_partial_objective, 6, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
         call message("Error objective_subprocess: this part should not be executed -> error in the code.")
         stop 1
@@ -529,9 +529,6 @@ CONTAINS
     ! number of time steps in simulated SM
     integer(i4) :: n_time_steps
 
-    ! start and end index for the current domain
-    integer(i4) :: s1, e1
-
     ! ncells1 of level 1
     integer(i4) :: ncells1
 
@@ -565,8 +562,6 @@ CONTAINS
 
       ! get domain information
       ncells1 = level1(iDomain)%ncells
-      s1 = level1(iDomain)%iStart
-      e1 = level1(iDomain)%iEnd
 
       ! allocate
       allocate(mask_times              (size(smOptiSim(iDomain)%dataSim, dim = 2)))
@@ -656,6 +651,7 @@ CONTAINS
     use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : domainMeta
+    use mo_global_variables, only : L1_etObs, L1_twsaObs
     use mo_errormeasures, only : kge
     use mo_message, only : message
     use mo_moment, only : average
@@ -704,7 +700,7 @@ CONTAINS
     real(dp) :: kge_q
 
     !> gauges counter
-    integer(i4) :: gg
+    integer(i4) :: gg, iCell
 
     !> number of q domains
     integer(i4) :: nQDomains
@@ -737,27 +733,14 @@ CONTAINS
     !> simulated tws
     type(optidata_sim), dimension(:), allocatable :: twsOptiSim
 
-    !> simulated tws
-    real(dp), dimension(:), allocatable :: tws_catch_avg_domain
-
-    !> measured tws
-    real(dp), dimension(:), allocatable :: tws_opti_catch_avg_domain
-
-    !> mask for measured tws
-    logical, dimension(:), allocatable :: tws_obs_mask
+    !> simulated twsa (anomaly)
+    type(optidata_sim), dimension(:), allocatable :: twsaOptiSim
 
     real(dp) :: kge_tws
-
-    !> spatial average of observed et
-    real(dp), dimension(:), allocatable :: et_catch_avg_domain
-
-    !> spatial avergae of modeled  et
-    real(dp), dimension(:), allocatable :: et_opti_catch_avg_domain
-
-    !> mask for valid et catchment avg time steps
-    logical, dimension(:), allocatable :: mask_times_et
     
     real(dp) :: kge_et
+
+    integer(i4) :: numberOfSummands
 
 
     ! initialize some variables
@@ -765,6 +748,7 @@ CONTAINS
     kge_tws = 0.0_dp
     kge_et = 0.0_dp
     kge_q = 0.0_dp
+    numberOfSummands = 0
     !--------------------------------------------
     ! ET & TWS
     !--------------------------------------------
@@ -775,30 +759,33 @@ CONTAINS
     if (nEtTwsDomains > 0) then
       allocate( etOptiSim(domainMeta%nDomains))
       allocate(twsOptiSim(domainMeta%nDomains))
+      allocate(twsaOptiSim(domainMeta%nDomains))
       call eval(parameterset, opti_domain_indices = opti_domain_indices_ET_TWS, &
                                                  twsOptiSim = twsOptiSim, etOptiSim = etOptiSim)
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_ET_TWS)
         iDomain = opti_domain_indices_ET_TWS(i)
-        ! create et array input
-        ! ToDo: rename variables
-        call create_domain_avg_et(iDomain, etOptiSim, et_catch_avg_domain, &
-                                           et_opti_catch_avg_domain, mask_times_et)
-        call create_domain_avg_tws(iDomain, twsOptiSim, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
-        kge_et = kge_et + &
-          ((1.0_dp - KGE(et_catch_avg_domain, et_opti_catch_avg_domain, mask = mask_times_et)) / &
-                                        real(domainMeta%overallNumberOfDomains, dp))**6
-        kge_tws = kge_tws + &
-          ((1.0_dp - KGE(tws_opti_catch_avg_domain, tws_catch_avg_domain, mask = tws_obs_mask)) / &
-                                        real(domainMeta%overallNumberOfDomains, dp))**6
+        call convert_tws_to_twsa(twsOptiSim(iDomain), L1_twsaObs(iDomain), twsaOptiSim(iDomain))
+        do iCell = 1, size(L1_etObs(iDomain)%maskObs(:, :), dim = 1)
+          kge_et = kge_et + &
+            (1.0_dp - KGE(L1_etObs(iDomain)%dataObs(iCell, :), etOptiSim(iDomain)%dataSim(iCell, :),&
+                           mask = L1_etObs(iDomain)%maskObs(iCell, :)))**6
+          numberOfSummands = numberOfSummands + 1
+        end do
+        do iCell = 1, size(L1_twsaObs(iDomain)%maskObs(:, :), dim = 1)
+          kge_tws = kge_tws + &
+            (1.0_dp - KGE(L1_twsaObs(iDomain)%dataObs(iCell, :), twsaOptiSim(iDomain)%dataSim(iCell, :),&
+                           mask = L1_twsaObs(iDomain)%maskObs(iCell, :)))**6
+          numberOfSummands = numberOfSummands + 1
+        end do
         ! deallocate
-        deallocate(tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
-        deallocate(mask_times_et, et_catch_avg_domain, et_opti_catch_avg_domain)
         call etOptiSim(iDomain)%destroy()
         call twsOptiSim(iDomain)%destroy()
+        call twsaOptiSim(iDomain)%destroy()
       end do
       deallocate(etOptiSim)
       deallocate(twsOptiSim)
+      deallocate(twsaOptiSim)
      ! write(0,*) 'nEtTwsDomains, kge_tws', nEtTwsDomains, kge_tws
      ! write(0,*) 'nEtTwsDomains, kge_et', nEtTwsDomains, kge_et
     end if
@@ -811,16 +798,18 @@ CONTAINS
     call init_indexarray_for_opti_data(domainMeta, 3, nTwsDomains, opti_domain_indices_TWS)
     if (nTwsDomains > 0) then
       allocate(twsOptiSim(domainMeta%nDomains))
+      allocate(twsaOptiSim(domainMeta%nDomains))
       call eval(parameterset, opti_domain_indices = opti_domain_indices_TWS, twsOptiSim = twsOptiSim)
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_TWS)
         iDomain = opti_domain_indices_TWS(i)
-        ! extract tws the same way as runoff using mrm
-        call create_domain_avg_tws(iDomain, twsOptiSim, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
-        kge_tws = kge_tws + &
-          ((1.0_dp - KGE(tws_opti_catch_avg_domain, tws_catch_avg_domain, mask = tws_obs_mask)) / &
-                                        real(domainMeta%overallNumberOfDomains, dp))**6
-        deallocate (tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
+        call convert_tws_to_twsa(twsOptiSim(iDomain), L1_twsaObs(iDomain), twsaOptiSim(iDomain))
+        do iCell = 1, size(L1_twsaObs(iDomain)%maskObs(:, :), dim = 1)
+          kge_tws = kge_tws + &
+            (1.0_dp - KGE(L1_twsaObs(iDomain)%dataObs(iCell, :), twsaOptiSim(iDomain)%dataSim(iCell, :),&
+                           mask = L1_twsaObs(iDomain)%maskObs(iCell, :)))**6
+          numberOfSummands = numberOfSummands + 1
+        end do
         call twsOptiSim(iDomain)%destroy()
       end do
       deallocate(twsOptiSim)
@@ -841,14 +830,12 @@ CONTAINS
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_ET)
         iDomain = opti_domain_indices_ET(i)
-        ! create et array input
-        call create_domain_avg_et(iDomain, etOptiSim, et_catch_avg_domain, &
-                                           et_opti_catch_avg_domain, mask_times_et)
-        kge_et = kge_et + &
-          ((1.0_dp - KGE(et_catch_avg_domain, et_opti_catch_avg_domain, mask = mask_times_et)) / &
-                                        real(domainMeta%overallNumberOfDomains, dp))**6
-        ! deallocate
-        deallocate(mask_times_et, et_catch_avg_domain, et_opti_catch_avg_domain)
+        do iCell = 1, size(L1_etObs(iDomain)%maskObs(:, :), dim = 1)
+          kge_et = kge_et + &
+            (1.0_dp - KGE(L1_etObs(iDomain)%dataObs(iCell, :), etOptiSim(iDomain)%dataSim(iCell, :),&
+                           mask = L1_etObs(iDomain)%maskObs(iCell, :)))**6
+          numberOfSummands = numberOfSummands + 1
+        end do
         call etOptiSim(iDomain)%destroy()
       end do
       deallocate(etOptiSim)
@@ -878,7 +865,8 @@ CONTAINS
         call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
 
         kge_q = kge_q + &
-              kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+              (1.0_dp - kge(runoff_obs, runoff_agg, mask = runoff_obs_mask))**6
+        numberOfSummands = numberOfSummands + 1
         deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
       end do
      ! write(0,*) 'nQDomains, kge_q', nQDomains, kge_q
@@ -886,9 +874,11 @@ CONTAINS
     objective_q_et_tws_kge_catchment_avg(1) = kge_q
 #endif
 
+    objective_q_et_tws_kge_catchment_avg(4) = real(numberOfSummands, dp)
+
 
 #ifndef MPI
-    objective_q_et_tws_kge_catchment_avg(1) = (kge_q+kge_et+kge_tws)**onesixth
+    objective_q_et_tws_kge_catchment_avg(1) = ((kge_q+kge_et+kge_tws)/real(numberOfSummands, dp))**onesixth
 
     call message('    objective_q_et_tws_kge_catchment_avg = ', &
                       num2str(objective_q_et_tws_kge_catchment_avg(1), '(F9.5)'))
@@ -1024,9 +1014,6 @@ CONTAINS
     ! cell loop counter
     integer(i4) :: iCell
 
-    ! start and end index for the current domain
-    integer(i4) :: s1, e1
-
     ! ncells1 of level 1
     integer(i4) :: ncells1
 
@@ -1056,8 +1043,6 @@ CONTAINS
       objective_sm_corr_domain = 0.0_dp
       ! get domain information
       ncells1 = level1(iDomain)%ncells
-      s1 = level1(iDomain)%iStart
-      e1 = level1(iDomain)%iEnd
 
       invalid_cells = 0.0_dp
       ! temporal correlation is calculated on individual gridd cells
@@ -1168,9 +1153,6 @@ CONTAINS
     ! level 1 number of culomns and rows
     integer(i4) :: nrows1, ncols1
 
-    ! start and end index for the current domain
-    integer(i4) :: s1, e1
-
     ! for sixth root
 #ifndef MPI
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
@@ -1208,8 +1190,6 @@ CONTAINS
       mask1 = level1(iDomain)%mask
       ncols1 = level1(iDomain)%ncols
       nrows1 = level1(iDomain)%nrows
-      s1 = level1(iDomain)%iStart
-      e1 = level1(iDomain)%iEnd
 
       ! allocate
       allocate(mask_times    (size(smOptiSim(iDomain)%dataSim, dim = 2)))
@@ -1325,9 +1305,6 @@ CONTAINS
     ! cell loop counter
     integer(i4) :: iCell
 
-    ! start and end index for the current domain
-    integer(i4) :: s1, e1
-
     ! ncells1 of level 1
     integer(i4) :: ncells1
 
@@ -1357,8 +1334,6 @@ CONTAINS
       objective_sm_sse_standard_score_domain = 0.0_dp
       ! get domain information
       nCells1 = level1(iDomain)%nCells
-      s1 = level1(iDomain)%iStart
-      e1 = level1(iDomain)%iEnd
 
       invalid_cells = 0.0_dp
       ! standard_score signal is calculated on individual grid cells
@@ -1432,7 +1407,7 @@ CONTAINS
     use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : domainMeta
-    use mo_global_variables, only : L1_twsObs
+    use mo_global_variables, only : L1_twsaObs
     use mo_errormeasures, only : rmse
     use mo_julian, only : caldat
     use mo_message, only : message
@@ -1485,8 +1460,6 @@ CONTAINS
     ! monthly values anomaly time series
     real(dp), DIMENSION(:), allocatable :: tws_sim_m_anom, tws_obs_m_anom
 
-    logical, DIMENSION(:), allocatable :: tws_obs_m_mask
-
     ! rmse_tws(domainMeta%nDomains)
     real(dp), dimension(:), allocatable :: rmse_tws
 
@@ -1525,13 +1498,13 @@ CONTAINS
     rmse_tws(:) = nodata_dp
 
     do iDomain = 1, domainMeta%nDomains
-      if (.not. (L1_twsObs(iDomain)%timeStepInput == -2)) then
+      if (.not. (L1_twsaObs(iDomain)%timeStepInput == -2)) then
         call message('objective_kge_q_rmse_tws: current implementation of this subroutine only allows monthly timesteps')
       end if
       domainID = domainMeta%indices(iDomain)
 
       ! extract tws the same way as runoff using mrm
-      ! ToDo: note that with the change from tws(iDomain, tt) to tws(tt, e1:s1) this
+      ! Note that with the change from tws(iDomain, tt) to tws(tt, :) this
       ! will not work like before and also does maybe not make sense
       call create_domain_avg_tws(iDomain, twsOptiSim, tws_catch_avg_domain, tws_opti_catch_avg_domain, tws_obs_mask)
 
@@ -1678,7 +1651,7 @@ CONTAINS
 
     use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : level1, domainMeta
+    use mo_common_variables, only : domainMeta
     use mo_errormeasures, only : KGE
     use mo_global_variables, only : L1_neutronsObs
     use mo_message, only : message
@@ -1698,9 +1671,6 @@ CONTAINS
 
     ! time loop counter
     integer(i4) :: iTime
-
-    ! start and end index for the current domain
-    integer(i4) :: s1, e1
 
     ! for sixth root
 #ifndef MPI
@@ -1728,10 +1698,6 @@ CONTAINS
 
     ! loop over domain - for applying power law later on
     do iDomain = 1, domainMeta%nDomains
-
-      ! get domain information
-      s1 = level1(iDomain)%iStart
-      e1 = level1(iDomain)%iEnd
 
       ! allocate
       allocate(mask_times                    (size(neutronsOptiSim(iDomain)%dataSim, dim = 2)))
@@ -1877,7 +1843,6 @@ CONTAINS
     do iDomain = 1, domainMeta%nDomains
 
       ! create et array input
-      ! ToDo: Check if this still does the same
       call create_domain_avg_et(iDomain, etOptiSim, et_catch_avg_domain, &
                                            et_opti_catch_avg_domain, mask_times)
       ! calculate average ET KGE over all domains with power law
@@ -1969,9 +1934,6 @@ CONTAINS
     ! cell loop counter
     integer(i4) :: iCell
 
-    ! start and end index for the current domain
-    integer(i4) :: s1, e1
-
     ! ncells1 of level 1
     integer(i4) :: ncells1
 
@@ -2017,9 +1979,6 @@ CONTAINS
       objective_sm_domain = 0.0_dp
       ! get domain information
       nCells1 = level1(iDomain)%nCells
-      s1 = level1(iDomain)%iStart
-      e1 = level1(iDomain)%iEnd
-
 
       ! correlation signal is calculated on individual grid cells
       invalid_cells = 0.0_dp
@@ -2319,7 +2278,7 @@ CONTAINS
     use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_common_variables, only : level1, domainMeta
+    use mo_common_variables, only : domainMeta
     use mo_errormeasures, only : rmse
     use mo_global_variables, only : L1_etObs
     use mo_julian, only : caldat
@@ -2350,9 +2309,6 @@ CONTAINS
 
     ! time loop counter
     integer(i4) :: iTime
-
-    ! start and end index for the current domain
-    integer(i4) :: s1, e1
 
     ! domain counter, month counters
     integer(i4) :: iDomain, pp, mmm
@@ -2424,9 +2380,6 @@ CONTAINS
     rmse_et(:) = nodata_dp
 
     do iDomain = 1, domainMeta%nDomains
-      ! get domain info
-      s1 = level1(iDomain)%iStart
-      e1 = level1(iDomain)%iEnd
 
       ! allocate
       allocate(mask_times              (size(etOptiSim(iDomain)%dataSim, dim = 2)))
@@ -2585,8 +2538,7 @@ CONTAINS
                                            tws_opti_catch_avg_domain, mask_times)
     use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : level1
-    use mo_global_variables, only : L1_twsObs
+    use mo_global_variables, only : L1_twsaObs
     use mo_moment, only : average
     ! current domain Id
     integer(i4), intent(in) :: iDomain
@@ -2607,13 +2559,6 @@ CONTAINS
     ! time loop counter
     integer(i4) :: iTime
 
-    ! start and end index for the current domain
-    integer(i4) :: s1, e1
-
-    ! get domain information
-    s1 = level1(iDomain)%iStart
-    e1 = level1(iDomain)%iEnd
-
     ! allocate
     allocate(mask_times               (size(twsOptiSim(iDomain)%dataSim, dim = 2)))
     allocate(tws_catch_avg_domain     (size(twsOptiSim(iDomain)%dataSim, dim = 2)))
@@ -2628,9 +2573,7 @@ CONTAINS
     do iTime = 1, size(twsOptiSim(iDomain)%dataSim, dim = 2)
 
       ! check for enough data points in time for correlation
-      ! ToDo: check if this still works with the new data structure
-     ! if (all(.NOT. L1_tws_mask(s1 : e1, iTime))) then
-      if (all(.NOT. L1_twsObs(iDomain)%maskObs(:, iTime))) then
+      if (all(.NOT. L1_twsaObs(iDomain)%maskObs(:, iTime))) then
         !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
         !call message('WARNING: objective_et_kge_catchment_avg: ignored current time step since less than')
         !call message('         10 valid cells available in evapotranspiration observation')
@@ -2638,10 +2581,10 @@ CONTAINS
         cycle
       end if
 
-      tws_catch_avg_domain(iTime) = average(L1_twsObs(iDomain)%dataObs(:, iTime), &
-                                     mask = L1_twsObs(iDomain)%maskObs(:, iTime))
+      tws_catch_avg_domain(iTime) = average(L1_twsaObs(iDomain)%dataObs(:, iTime), &
+                                     mask = L1_twsaObs(iDomain)%maskObs(:, iTime))
       tws_opti_catch_avg_domain(iTime) = average(twsOptiSim(iDomain)%dataSim(:, iTime), &
-                                     mask = L1_twsObs(iDomain)%maskObs(:, iTime))
+                                     mask = L1_twsaObs(iDomain)%maskObs(:, iTime))
     end do
 
   end subroutine create_domain_avg_tws
@@ -2650,7 +2593,6 @@ CONTAINS
                                            et_opti_catch_avg_domain, mask_times)
     use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : level1
     use mo_global_variables, only : L1_etObs
     use mo_moment, only : average
     ! current domain Id
@@ -2671,13 +2613,6 @@ CONTAINS
     ! local
     ! time loop counter
     integer(i4) :: iTime
-
-    ! start and end index for the current domain
-    integer(i4) :: s1, e1
-
-    ! get domain information
-    s1 = level1(iDomain)%iStart
-    e1 = level1(iDomain)%iEnd
 
     ! allocate
     allocate(mask_times              (size(etOptiSim(iDomain)%dataSim, dim = 2)))
@@ -2703,11 +2638,33 @@ CONTAINS
 
       et_catch_avg_domain(iTime) = average(L1_etObs(iDomain)%dataObs(:, iTime), &
                                     mask = L1_etObs(iDomain)%maskObs(:, iTime))
-      ! ToDo: is et_opt filled with dummy data for none et domains?
       et_opti_catch_avg_domain(iTime) = average(etOptiSim(iDomain)%dataSim(:, iTime), &
                                           mask = L1_etObs(iDomain)%maskObs(:, iTime))
     end do
 
   end subroutine create_domain_avg_et
+  
+  subroutine convert_tws_to_twsa(twsOptiSim, L1_twsaObs, twsaOptiSim)
+    use mo_optimization_types, only : optidata_sim, optidata
+    use mo_moment, only : average
+    ! simulated tws
+    type(optidata_sim), intent(in)    :: twsOptiSim
+    ! observed twsa
+    type(optidata),     intent(in)    :: L1_twsaObs
+    ! simulated twsa
+    type(optidata_sim), intent(inout) :: twsaOptiSim
+
+    ! local
+    integer(i4) :: iCell
+    real(dp)    :: twsa_av_cell
+
+    allocate(twsaOptiSim%dataSim(size(twsOptiSim%dataSim(:, :), dim = 1), size(twsOptiSim%dataSim(:, :), dim = 2)))
+
+    do iCell = 1, size(twsOptiSim%dataSim(:, :), dim = 1)
+      twsa_av_cell = average(twsOptiSim%dataSim(iCell, :), mask = L1_twsaObs%maskObs(iCell, :))
+      twsaOptiSim%dataSim(iCell, :) = twsOptiSim%dataSim(iCell, :) - twsa_av_cell
+    end do
+
+  end subroutine convert_tws_to_twsa
 
 END MODULE mo_objective_function
