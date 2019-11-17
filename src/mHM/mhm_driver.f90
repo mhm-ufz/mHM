@@ -92,7 +92,7 @@ PROGRAM mhm_driver
           dirNetRadiation, &      ! PET input paths if process 5 is Priestley-Taylor (case 2)
           dirabsVapPressure, dirwindspeed, &      ! PET input paths if process 5 is Penman-Monteith  (case 3)
           timestep_model_inputs, & !frequency of input read
-          L1_twsObs, &
+          L1_twsaObs, &
           L1_etObs, &
           L1_neutronsObs, &
           L1_smObs
@@ -330,7 +330,7 @@ PROGRAM mhm_driver
         call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
       case(15)
         ! read optional spatio-temporal tws data
-        call readOptidataObs(iDomain, domainID, L1_twsObs(iDomain))
+        call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
       case(33)
         ! read optional spatio-temporal evapotranspiration data
         if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
@@ -340,7 +340,7 @@ PROGRAM mhm_driver
         ! read optional spatio-temporal tws data
         if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
           domainMeta%optidata(iDomain) == 6 ) then
-          call readOptidataObs(iDomain, domainID, L1_twsObs(iDomain))
+          call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
         end if
       end select
     end if
