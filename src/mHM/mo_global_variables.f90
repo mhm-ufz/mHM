@@ -119,7 +119,7 @@ MODULE mo_global_variables
   ! evapotranspiration
   type(optidata), public, dimension(:), allocatable :: L1_etObs
   ! tws
-  type(optidata), public, dimension(:), allocatable :: L1_twsObs ! this stores L1_tws, the mask, the directory of the
+  type(optidata), public, dimension(:), allocatable :: L1_twsaObs ! this stores L1_tws, the mask, the directory of the
                                                               ! observerd data, and the
                                                               ! timestepInput of the simulated data
                                                               ! ToDo: add unit

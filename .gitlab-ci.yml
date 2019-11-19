@@ -1,0 +1,89 @@
+# to use the env-var "GIT_CLONE_PATH", set the following in
+# ./gitlab-runner/config.toml under [[runners]]:
+#   [runners.custom_build_dir]
+#     enabled = true
+# This will prevent git clone conflicts for jobs ran in parallel
+
+stages:
+  - info
+  - test
+
+show-env-vars:
+  stage: info
+  variables:
+    GIT_STRATEGY: none
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm
+    SEP: "##################################################################"
+    STR00: "commit date - "
+    STR01: "project: ${CI_PROJECT_PATH}"
+    STR02: "branch: ${CI_COMMIT_REF_NAME}"
+    STR03: "commit: ${CI_COMMIT_SHA}"
+    STR04: "commit msg: ${CI_COMMIT_MESSAGE}"
+    STR05: "clone base path: "
+    STR06: "runner token: ${CI_RUNNER_SHORT_TOKEN}"
+  script:
+    - echo -e "${SEP}\n${STR00}$(date)\n${SEP}\n${STR01}\n${STR02}\n${STR03}\n${STR04}\n${SEP}\n${STR05}${GIT_CLONE_PATH}\n${STR06}\n${SEP}"
+
+compile-gfortran83:
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/compile-gfortran83
+  script:
+    - source moduleLoadScripts/eve.gfortran83
+    - source CI-scripts/compile
+    - ./mhm
+
+check-gnu-serial-debug:
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-gnu-serial-debug
+  script:
+    - source CI-scripts/pre_check
+    - ./check_mhm_cases -s eve -c gnu -t 0 -r debug
+
+check-gnu-serial-release:
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-gnu-serial-release
+  script:
+    - source CI-scripts/pre_check
+    - ./check_mhm_cases -s eve -c gnu -t 0 -r release
+
+check-gnu-parallel-debug:
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-gnu-parallel-debug
+  script:
+    - source CI-scripts/pre_check
+    - ./check_mhm_cases -s eve -c gnu -t 2 -r debug
+
+check-gnu-parallel-release:
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-gnu-parallel-release
+  script:
+    - source CI-scripts/pre_check
+    - ./check_mhm_cases -s eve -c gnu -t 2 -r release
+
+# TODO: make this work!
+# NOT WORKING: easybuild not activatable on gitlab-runner
+# --> wrong NetCDF version in use.
+# compile-intel18:
+#   stage: test
+#   variables:
+#     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/compile-intel18
+#   script:
+#     - source moduleLoadScripts/eve.intel18
+#     - source CI-scripts/compile
+#     - ./mhm
+
+# TODO: make this work!
+# FAILING at the moment
+# -> error while loading shared libraries: libf60rts.so.1
+# check-nag-serial-debug:
+#   stage: test
+#   variables:
+#     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-nag-serial-debug
+#   script:
+#     - source CI-scripts/pre_check
+#     - ./check_mhm_cases -s eve -c nag -t 0 -r debug

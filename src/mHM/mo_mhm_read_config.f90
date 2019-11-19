@@ -93,7 +93,7 @@ CONTAINS
     use mo_common_mhm_mrm_variables, only : opti_function, optimize
     use mo_common_variables, only : domainMeta, processMatrix
     use mo_file, only : file_defOutput, udefOutput
-    use mo_global_variables, only : L1_twsObs, L1_etObs, L1_smObs, L1_neutronsObs, &
+    use mo_global_variables, only : L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
                                     dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirPrecipitation, &
                                     dirReferenceET, dirTemperature, dirabsVapPressure, dirwindspeed, &
                                     evap_coeff, fday_pet, fday_prec, fday_temp, fnight_pet, fnight_prec, &
@@ -188,7 +188,7 @@ CONTAINS
     allocate(dirMinTemperature(domainMeta%nDomains))
     allocate(dirMaxTemperature(domainMeta%nDomains))
     allocate(dirNetRadiation(domainMeta%nDomains))
-    allocate(L1_twsObs(domainMeta%nDomains))
+    allocate(L1_twsaObs(domainMeta%nDomains))
     allocate(L1_etObs(domainMeta%nDomains))
     allocate(L1_smObs(domainMeta%nDomains))
     allocate(L1_neutronsObs(domainMeta%nDomains))
@@ -278,9 +278,9 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          L1_twsObs(iDomain)%dir = dir_TWS(domainID)
-          L1_twsObs(iDomain)%timeStepInput = timeStep_tws_input
-          L1_twsObs(iDomain)%varname = 'twsa'
+          L1_twsaObs(iDomain)%dir = dir_TWS(domainID)
+          L1_twsaObs(iDomain)%timeStepInput = timeStep_tws_input
+          L1_twsaObs(iDomain)%varname = 'twsa'
         end do
       case(33)
         ! evapotranspiration
@@ -298,9 +298,9 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          L1_twsObs(iDomain)%dir = dir_TWS(domainID)
-          L1_twsObs(iDomain)%timeStepInput = timeStep_tws_input
-          L1_twsObs(iDomain)%varname = 'twsa'
+          L1_twsaObs(iDomain)%dir = dir_TWS(domainID)
+          L1_twsaObs(iDomain)%timeStepInput = timeStep_tws_input
+          L1_twsaObs(iDomain)%varname = 'twsa'
         end do
 
       end select

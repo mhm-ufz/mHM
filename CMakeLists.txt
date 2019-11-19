@@ -7,7 +7,7 @@ project(mhm Fortran)
 
 # The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT" can be set before executing cmake via a cache command:
 # $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
-# or cache file: 
+# or cache file:
 # $cmake -C ../CMakeCacheFiles/eve ..
 # or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor i.e ccmake
 set(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT OFF CACHE STRING "build the module INDEPENDENT of the module system, so the build in the build tree works even after a module purge")
