@@ -12,31 +12,71 @@ show-env-vars:
   stage: info
   variables:
     GIT_STRATEGY: none
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME
     SEP: "##################################################################"
-    STR00: "commit date - "
-    STR01: "project: ${CI_PROJECT_PATH}"
-    STR02: "branch: ${CI_COMMIT_REF_NAME}"
-    STR03: "commit: ${CI_COMMIT_SHA}"
-    STR04: "commit msg: ${CI_COMMIT_MESSAGE}"
-    STR05: "clone base path: "
-    STR06: "runner token: ${CI_RUNNER_SHORT_TOKEN}"
+    S00: "commit date - "
+    S01: "project: ${CI_PROJECT_PATH}"
+    S02: "branch: ${CI_COMMIT_REF_NAME}"
+    S03: "commit: ${CI_COMMIT_SHA}"
+    S04: "commit msg: ${CI_COMMIT_MESSAGE}"
+    S05: "clone base path: "
+    S06: "runner token: ${CI_RUNNER_SHORT_TOKEN}"
   script:
-    - echo -e "${SEP}\n${STR00}$(date)\n${SEP}\n${STR01}\n${STR02}\n${STR03}\n${STR04}\n${SEP}\n${STR05}${GIT_CLONE_PATH}\n${STR06}\n${SEP}"
+    - echo -e "${SEP}\n${S00}$(date)\n${SEP}\n${S01}\n${S02}\n${S03}\n${S04}\n${SEP}\n${S05}${GIT_CLONE_PATH}\n${S06}\n${SEP}"
 
 compile-gfortran83:
   stage: test
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/compile-gfortran83
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source moduleLoadScripts/eve.gfortran83
     - source CI-scripts/compile
     - ./mhm
+  artifacts:
+    paths:
+    - mhm
+
+valgrind-mem-check:
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source moduleLoadScripts/eve.gfortran83
+    - source CI-scripts/compile_debug
+    - module load miniconda/3
+    - conda remove -q -y -p ./mhm_env --all
+    - conda create -q -y -p ./mhm_env
+    - source activate ./mhm_env
+    - conda install -q -y -c conda-forge valgrind
+    - valgrind --version
+    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm
+
+valgrind-mem-use:
+  when: always
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source moduleLoadScripts/eve.gfortran83
+    - source CI-scripts/compile_debug
+    - module load miniconda/3
+    - conda remove -q -y -p ./mhm_env --all
+    - conda create -q -y -p ./mhm_env
+    - source activate ./mhm_env
+    - conda install -q -y -c conda-forge valgrind
+    # patch the ms_print with the right perl path in shebang
+    - sed -i '1s,.*,#! '"$(which perl)"',' $(which ms_print)
+    # execute mem-use check
+    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm
+    - ms_print massif.out.0
+  artifacts:
+    paths:
+    - massif.out.0
 
 check-gnu-serial-debug:
   stage: test
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-gnu-serial-debug
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source CI-scripts/pre_check
     - ./check_mhm_cases -s eve -c gnu -t 0 -r debug
@@ -44,7 +84,7 @@ check-gnu-serial-debug:
 check-gnu-serial-release:
   stage: test
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-gnu-serial-release
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source CI-scripts/pre_check
     - ./check_mhm_cases -s eve -c gnu -t 0 -r release
@@ -52,7 +92,7 @@ check-gnu-serial-release:
 check-gnu-parallel-debug:
   stage: test
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-gnu-parallel-debug
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source CI-scripts/pre_check
     - ./check_mhm_cases -s eve -c gnu -t 2 -r debug
@@ -60,7 +100,7 @@ check-gnu-parallel-debug:
 check-gnu-parallel-release:
   stage: test
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-gnu-parallel-release
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source CI-scripts/pre_check
     - ./check_mhm_cases -s eve -c gnu -t 2 -r release
