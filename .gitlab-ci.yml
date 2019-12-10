@@ -105,6 +105,42 @@ check-gnu-parallel-release:
     - source CI-scripts/pre_check
     - ./check_mhm_cases -s eve -c gnu -t 2 -r release
 
+check-intel18-serial-debug:
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source CI-scripts/pre_check
+    - ml intel/18.0.2-2
+    - ./check_mhm_cases -s eve -c intel18 -t 0 -r debug
+
+check-intel18-serial-release:
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source CI-scripts/pre_check
+    - ml intel/18.0.2-2
+    - ./check_mhm_cases -s eve -c intel18 -t 0 -r release
+
+check-intel18-parallel-debug:
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source CI-scripts/pre_check
+    - ml intel/18.0.2-2
+    - ./check_mhm_cases -s eve -c intel18 -t 2 -r debug
+
+check-intel18-parallel-release:
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source CI-scripts/pre_check
+    - ml intel/18.0.2-2
+    - ./check_mhm_cases -s eve -c intel18 -t 2 -r release
+
 # TODO: make this work!
 # NOT WORKING: easybuild not activatable on gitlab-runner
 # --> wrong NetCDF version in use.
