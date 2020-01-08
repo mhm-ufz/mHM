@@ -65,6 +65,9 @@ Some cygwin versions create a new home directory for you. You may check e.g. her
 
     C:\cygwin64\home\$username
 
+As from December 2019, step-by-step guidelines, how to install all netCDF dependencies 
+can be viewed in [this youtube video](https://www.youtube.com/watch?v=G0i7eDEIfPA&list=PLaT_WNTBfPhK2UT0wkmJR5luEoc9qhbFf) 
+created by Cüneyd Demirel (Istanbul Technical University).
 
 ### Ubuntu, Mint and other apt-get based systems with matching repositories:
 
