@@ -7,16 +7,14 @@ MODULE mo_moment
   !       i.e. they are normally divided by n and not (n-1)
 
   ! Literature
-  !   Moments (incl. mean, stddev, etc.) - Chapter 14 of
-  !       WH Press, SA Teukolsky, WT Vetterling, BP Flannery,
-  !           Numerical Recipes in Fortran 90 - The Art of Parallel Scientific Computing, 2nd Edition
-  !           Volume 2 of Fortran Numerical Recipes, Cambridge University Press, UK, 1996
   !   Central moments and error variances
   !       LH Benedict & RD Gould, Towards better uncertainty estimates for turbulence statistics,
   !           Experiments in Fluids 22, 129-136, 1996
 
   ! Written Nov 2011, Matthias Cuntz
   !         Modified, MC, Dec 2011 - mod. correlation, covariance
+  !         Modified by M. Schroen, Sep 2015, average/mean for single value
+  !         Modified by S. Mueller, Dec 2019, no citations for common sence
 
   ! License
   ! -------
@@ -38,7 +36,7 @@ MODULE mo_moment
 
   ! Copyright 2011-2012 Matthias Cuntz
 
-  USE mo_kind, ONLY: i4, sp, dp
+  USE mo_kind, ONLY : i4, sp, dp
 
   IMPLICIT NONE
 
@@ -99,15 +97,10 @@ MODULE mo_moment
   !         m   = absdev(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE absdev
-     MODULE PROCEDURE absdev_sp, absdev_dp
+    MODULE PROCEDURE absdev_sp, absdev_dp
   END INTERFACE absdev
 
   ! ------------------------------------------------------------------
@@ -152,15 +145,10 @@ MODULE mo_moment
   !         m   = average(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE average
-     MODULE PROCEDURE average_sp, average_dp
+    MODULE PROCEDURE average_sp, average_dp
   END INTERFACE average
 
   ! ------------------------------------------------------------------
@@ -214,7 +202,7 @@ MODULE mo_moment
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE central_moment
-     MODULE PROCEDURE central_moment_sp, central_moment_dp
+    MODULE PROCEDURE central_moment_sp, central_moment_dp
   END INTERFACE central_moment
 
   ! ------------------------------------------------------------------
@@ -268,7 +256,7 @@ MODULE mo_moment
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE central_moment_var
-     MODULE PROCEDURE central_moment_var_sp, central_moment_var_dp
+    MODULE PROCEDURE central_moment_var_sp, central_moment_var_dp
   END INTERFACE central_moment_var
 
   ! ------------------------------------------------------------------
@@ -315,16 +303,11 @@ MODULE mo_moment
   !         m   = correlation(vec1, vec2, mask=((vec1 >= 0.) .and. (vec2 >= 0.)))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   !         Modified, MC, Dec 2011 - covariance as <(x-<x>)(y-<y>)> instead of <xy>-<x><y>
   INTERFACE correlation
-     MODULE PROCEDURE correlation_sp, correlation_dp
+    MODULE PROCEDURE correlation_sp, correlation_dp
   END INTERFACE correlation
 
   ! ------------------------------------------------------------------
@@ -371,16 +354,11 @@ MODULE mo_moment
   !         m   = covariance(vec1, vec2, mask=((vec1 >= 0.) .and. (vec2 >= 0.)))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   !         Modified, MC, Dec 2011 - covariance as <(x-<x>)(y-<y>)> instead of <xy>-<x><y>
   INTERFACE covariance
-     MODULE PROCEDURE covariance_sp, covariance_dp
+    MODULE PROCEDURE covariance_sp, covariance_dp
   END INTERFACE covariance
 
   ! ------------------------------------------------------------------
@@ -426,15 +404,10 @@ MODULE mo_moment
   !         m   = kurtosis(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE kurtosis
-     MODULE PROCEDURE kurtosis_sp, kurtosis_dp
+    MODULE PROCEDURE kurtosis_sp, kurtosis_dp
   END INTERFACE kurtosis
 
   ! ------------------------------------------------------------------
@@ -479,15 +452,10 @@ MODULE mo_moment
   !         m   = mean(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE mean
-     MODULE PROCEDURE mean_sp, mean_dp
+    MODULE PROCEDURE mean_sp, mean_dp
   END INTERFACE mean
 
   ! ------------------------------------------------------------------
@@ -544,7 +512,7 @@ MODULE mo_moment
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE mixed_central_moment
-     MODULE PROCEDURE mixed_central_moment_sp, mixed_central_moment_dp
+    MODULE PROCEDURE mixed_central_moment_sp, mixed_central_moment_dp
   END INTERFACE mixed_central_moment
 
   ! ------------------------------------------------------------------
@@ -602,7 +570,7 @@ MODULE mo_moment
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE mixed_central_moment_var
-     MODULE PROCEDURE mixed_central_moment_var_sp, mixed_central_moment_var_dp
+    MODULE PROCEDURE mixed_central_moment_var_sp, mixed_central_moment_var_dp
   END INTERFACE mixed_central_moment_var
 
   ! ------------------------------------------------------------------
@@ -611,10 +579,10 @@ MODULE mo_moment
   !         moment
 
   !     PURPOSE
-  !         Calculates the first four sample moments of a vector, i.e. mean, variance, skewness, and kurtosis,
+  !         Calculates the first four sample/population moments of a vector, i.e. mean, variance, skewness, and kurtosis,
   !         as well as standard deviation and mean absolute devation.
   !            mean = sum(x)/n
-  !            variance = sum((x-mean(x))**2)/(n-1)
+  !            variance = sum((x-mean(x))**2)/(n-1) or sum((x-mean(x))**2)/n if sample is False
   !            skewness = sum(((x-mean(x))/stddev(x))**3)/n
   !            kurtosis = sum(((x-mean(x))/stddev(x))**4)/n - 3
   !            stddev   = sqrt(variance)
@@ -626,7 +594,7 @@ MODULE mo_moment
 
   !     CALLING SEQUENCE
   !         call moment(dat, average=average, variance=variance, skewness=skewness, kurtosis=kurtosis, &
-  !                     mean=mean, stddev=stddev, absdev=absdev, mask=mask)
+  !                     mean=mean, stddev=stddev, absdev=absdev, mask=mask, sample=sample)
 
   !     INTENT(IN)
   !         real(sp/dp) :: dat(:)     1D-array with input numbers
@@ -640,17 +608,19 @@ MODULE mo_moment
   !     INTENT(IN), OPTIONAL
   !         logical :: mask(:)        1D-array of logical values with size(dat).
   !                                   If present, only those locations in vec corresponding to the true values in mask are used.
+  !         logical :: sample         logical value
+  !                                   If present and False, the population variance and std-dev will be calculated (divide by n).
 
   !     INTENT(INOUT), OPTIONAL
   !         None
 
   !     INTENT(OUT), OPTIONAL
   !         real(sp/dp) :: average    average of input vector
-  !         real(sp/dp) :: variance   sample variance of input vector
+  !         real(sp/dp) :: variance   sample variance of input vector (either a sample or pupulation moment)
   !         real(sp/dp) :: skewness   skewness of input vector
   !         real(sp/dp) :: kurtosis   excess kurtosis of input vector
   !         real(sp/dp) :: mean       same as average
-  !         real(sp/dp) :: stddev     sqaure root of variance
+  !         real(sp/dp) :: stddev     sqaure root of variance (either a sample or pupulation moment)
   !         real(sp/dp) :: absdev     mean absolute deviations from average
 
   !     RESTRICTIONS
@@ -661,15 +631,11 @@ MODULE mo_moment
   !         call moment(vec, mask=(vec >= 0.), mean=m, stddev=s)
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
+  !         Modified,  S. Mueller, Dec 2019 added optional sample input-para to switch sample to population variance and std-dev.
   INTERFACE moment
-     MODULE PROCEDURE moment_sp, moment_dp
+    MODULE PROCEDURE moment_sp, moment_dp
   END INTERFACE moment
 
   ! ------------------------------------------------------------------
@@ -714,15 +680,10 @@ MODULE mo_moment
   !         m   = skewness(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE skewness
-     MODULE PROCEDURE skewness_sp, skewness_dp
+    MODULE PROCEDURE skewness_sp, skewness_dp
   END INTERFACE skewness
 
   ! ------------------------------------------------------------------
@@ -769,15 +730,10 @@ MODULE mo_moment
   !         m   = stddev(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE stddev
-     MODULE PROCEDURE stddev_sp, stddev_dp
+    MODULE PROCEDURE stddev_sp, stddev_dp
   END INTERFACE stddev
 
   ! ------------------------------------------------------------------
@@ -824,15 +780,10 @@ MODULE mo_moment
   !         m   = variance(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE variance
-     MODULE PROCEDURE variance_sp, variance_dp
+    MODULE PROCEDURE variance_sp, variance_dp
   END INTERFACE variance
 
   ! ------------------------------------------------------------------
@@ -849,9 +800,9 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(dp)                                      :: absdev_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: absdev_dp
 
     REAL(dp) :: n
 
@@ -859,19 +810,19 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error absdev_dp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),dp)
+      if (size(mask) .ne. size(dat)) stop 'Error absdev_dp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), dp)
     else
-       maske(:) = .true.
-       n = real(size(dat),dp)
-    endif
-    if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'absdev_dp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), dp)
+    end if
+    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'absdev_dp: n must be at least 2'
 
     ! Average
-    ave  = sum(dat(:), mask=maske)/n
+    ave = sum(dat(:), mask = maske) / n
     ! Sum of absolute deviation
-    absdev_dp = sum(abs(dat(:)-ave), mask=maske)/n
+    absdev_dp = sum(abs(dat(:) - ave), mask = maske) / n
 
   END FUNCTION absdev_dp
 
@@ -880,9 +831,9 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(sp)                                      :: absdev_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: absdev_sp
 
     REAL(sp) :: n
 
@@ -890,19 +841,19 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error absdev_sp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(dat)) stop 'Error absdev_sp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(dat),sp)
-    endif
-    if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'absdev_sp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), sp)
+    end if
+    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'absdev_sp: n must be at least 2'
 
     ! Average
-    ave  = sum(dat(:), mask=maske)/n
+    ave = sum(dat(:), mask = maske) / n
     ! Sum of absolute deviation
-    absdev_sp = sum(abs(dat(:)-ave), mask=maske)/n
+    absdev_sp = sum(abs(dat(:) - ave), mask = maske) / n
 
   END FUNCTION absdev_sp
 
@@ -912,25 +863,24 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(dp)                                      :: average_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: average_dp
 
     REAL(dp) :: n
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error average_dp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),dp)
+      if (size(mask) .ne. size(dat)) stop 'Error average_dp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), dp)
     else
-       maske(:) = .true.
-       n = real(size(dat),dp)
-    endif
-    if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'average_dp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), dp)
+    end if
 
     ! Average
-    average_dp  = sum(dat(:), mask=maske)/n
+    average_dp = sum(dat(:), mask = maske) / n
 
   END FUNCTION average_dp
 
@@ -939,25 +889,24 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(sp)                                      :: average_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: average_sp
 
     REAL(sp) :: n
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error average_sp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(dat)) stop 'Error average_sp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(dat),sp)
-    endif
-    if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'average_sp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), sp)
+    end if
 
     ! Average
-    average_sp  = sum(dat(:), mask=maske)/n
+    average_sp = sum(dat(:), mask = maske) / n
 
   END FUNCTION average_sp
 
@@ -967,37 +916,37 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp),    DIMENSION(:),           INTENT(IN)  :: x
-    INTEGER(i4),                         INTENT(IN)  :: r
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(dp)                                         :: central_moment_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: x
+    INTEGER(i4), INTENT(IN) :: r
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: central_moment_dp
 
-    REAL(dp)                    :: n, mx
+    REAL(dp) :: n, mx
     LOGICAL, DIMENSION(size(x)) :: maske
 
     if (r .lt. 0) then
-       central_moment_dp = 0.0_dp
-       return
-    endif
+      central_moment_dp = 0.0_dp
+      return
+    end if
     if (r .eq. 0) then
-       central_moment_dp = 1.0_dp
-       return
-    endif
+      central_moment_dp = 1.0_dp
+      return
+    end if
 
     if (present(mask)) then
-       if (size(mask) .ne. size(x)) stop 'Error central_moment_dp: size(mask) .ne. size(x)'
-       maske = mask
-       n = real(count(maske),dp)
+      if (size(mask) .ne. size(x)) stop 'Error central_moment_dp: size(mask) .ne. size(x)'
+      maske = mask
+      n = real(count(maske), dp)
     else
-       maske(:) = .true.
-       n = real(size(x),dp)
-    endif
-    if (n .le. (2.0_dp+tiny(2.0_dp))) stop 'central_moment_dp: n must be at least 3'
+      maske(:) = .true.
+      n = real(size(x), dp)
+    end if
+    if (n .le. (2.0_dp + tiny(2.0_dp))) stop 'central_moment_dp: n must be at least 3'
 
     ! average
-    mx = sum(x, mask=maske) / n
+    mx = sum(x, mask = maske) / n
     ! central moment
-    central_moment_dp = sum((x-mx)**r, mask=maske) / n
+    central_moment_dp = sum((x - mx)**r, mask = maske) / n
 
   END FUNCTION central_moment_dp
 
@@ -1006,37 +955,37 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp),    DIMENSION(:),           INTENT(IN)  :: x
-    INTEGER(i4),                         INTENT(IN)  :: r
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(sp)                                         :: central_moment_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: x
+    INTEGER(i4), INTENT(IN) :: r
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: central_moment_sp
 
     REAL(sp) :: n, mx
     LOGICAL, DIMENSION(size(x)) :: maske
 
     if (r .lt. 0) then
-       central_moment_sp = 0.0_sp
-       return
-    endif
+      central_moment_sp = 0.0_sp
+      return
+    end if
     if (r .eq. 0) then
-       central_moment_sp = 1.0_sp
-       return
-    endif
+      central_moment_sp = 1.0_sp
+      return
+    end if
 
     if (present(mask)) then
-       if (size(mask) .ne. size(x)) stop 'Error central_moment_sp: size(mask) .ne. size(x)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(x)) stop 'Error central_moment_sp: size(mask) .ne. size(x)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(x),sp)
-    endif
-    if (n .le. (2.0_sp+tiny(2.0_sp))) stop 'central_moment_sp: n must be at least 3'
+      maske(:) = .true.
+      n = real(size(x), sp)
+    end if
+    if (n .le. (2.0_sp + tiny(2.0_sp))) stop 'central_moment_sp: n must be at least 3'
 
     ! average
-    mx = sum(x, mask=maske) / n
+    mx = sum(x, mask = maske) / n
     ! central moment
-    central_moment_sp = sum((x-mx)**r, mask=maske) / n
+    central_moment_sp = sum((x - mx)**r, mask = maske) / n
 
   END FUNCTION central_moment_sp
 
@@ -1046,36 +995,36 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp),    DIMENSION(:),           INTENT(IN)  :: x
-    INTEGER(i4),                         INTENT(IN)  :: r
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(dp)                                         :: central_moment_var_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: x
+    INTEGER(i4), INTENT(IN) :: r
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: central_moment_var_dp
 
     REAL(dp) :: n, rr, u2r, ur, urm1, urp1, u2
     LOGICAL, DIMENSION(size(x)) :: maske
 
     if (r.le.1) then
-       central_moment_var_dp = 0.0_dp
-       return
-    endif
+      central_moment_var_dp = 0.0_dp
+      return
+    end if
 
     if (present(mask)) then
-       if (size(mask) .ne. size(x)) stop 'Error central_moment_var_dp: size(mask) .ne. size(x)'
-       maske = mask
-       n = real(count(maske),dp)
+      if (size(mask) .ne. size(x)) stop 'Error central_moment_var_dp: size(mask) .ne. size(x)'
+      maske = mask
+      n = real(count(maske), dp)
     else
-       maske(:) = .true.
-       n = real(size(x),dp)
-    endif
-    if (n .le. (2.0_dp+tiny(2.0_dp))) stop 'central_moment_var_dp: n must be at least 3'
+      maske(:) = .true.
+      n = real(size(x), dp)
+    end if
+    if (n .le. (2.0_dp + tiny(2.0_dp))) stop 'central_moment_var_dp: n must be at least 3'
 
-    u2r  = central_moment(x, 2*r, mask=maske)
-    ur   = central_moment(x, r,   mask=maske)
-    urm1 = central_moment(x, r-1, mask=maske)
-    u2   = central_moment(x, 2,   mask=maske)
-    urp1 = central_moment(x, r+1, mask=maske)
-    rr   = real(r,dp)
-    central_moment_var_dp = (u2r - ur*ur + rr*rr*urm1*urm1*u2 - 2.0_dp*rr*urp1*urm1) / n
+    u2r = central_moment(x, 2 * r, mask = maske)
+    ur = central_moment(x, r, mask = maske)
+    urm1 = central_moment(x, r - 1, mask = maske)
+    u2 = central_moment(x, 2, mask = maske)
+    urp1 = central_moment(x, r + 1, mask = maske)
+    rr = real(r, dp)
+    central_moment_var_dp = (u2r - ur * ur + rr * rr * urm1 * urm1 * u2 - 2.0_dp * rr * urp1 * urm1) / n
 
   END FUNCTION central_moment_var_dp
 
@@ -1084,36 +1033,36 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp),    DIMENSION(:),           INTENT(IN)  :: x
-    INTEGER(i4),                         INTENT(IN)  :: r
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(sp)                                         :: central_moment_var_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: x
+    INTEGER(i4), INTENT(IN) :: r
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: central_moment_var_sp
 
     REAL(sp) :: n, rr, u2r, ur, urm1, urp1, u2
     LOGICAL, DIMENSION(size(x)) :: maske
 
     if (r.le.1) then
-       central_moment_var_sp = 0.0_sp
-       return
-    endif
+      central_moment_var_sp = 0.0_sp
+      return
+    end if
 
     if (present(mask)) then
-       if (size(mask) .ne. size(x)) stop 'Error central_moment_var_sp: size(mask) .ne. size(x)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(x)) stop 'Error central_moment_var_sp: size(mask) .ne. size(x)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(x),sp)
-    endif
-    if (n .le. (2.0_sp+tiny(2.0_sp))) stop 'central_moment_var_sp: n must be at least 3'
+      maske(:) = .true.
+      n = real(size(x), sp)
+    end if
+    if (n .le. (2.0_sp + tiny(2.0_sp))) stop 'central_moment_var_sp: n must be at least 3'
 
-    u2r  = central_moment(x, 2*r, mask=maske)
-    ur   = central_moment(x, r,   mask=maske)
-    urm1 = central_moment(x, r-1, mask=maske)
-    u2   = central_moment(x, 2,   mask=maske)
-    urp1 = central_moment(x, r+1, mask=maske)
-    rr   = real(r,sp)
-    central_moment_var_sp = (u2r - ur*ur + rr*rr*urm1*urm1*u2 - 2.0_sp*rr*urp1*urm1) / n
+    u2r = central_moment(x, 2 * r, mask = maske)
+    ur = central_moment(x, r, mask = maske)
+    urm1 = central_moment(x, r - 1, mask = maske)
+    u2 = central_moment(x, 2, mask = maske)
+    urp1 = central_moment(x, r + 1, mask = maske)
+    rr = real(r, sp)
+    central_moment_var_sp = (u2r - ur * ur + rr * rr * urm1 * urm1 * u2 - 2.0_sp * rr * urp1 * urm1) / n
 
   END FUNCTION central_moment_var_sp
 
@@ -1123,33 +1072,33 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), DIMENSION(:),           INTENT(IN)  :: x
-    REAL(dp), DIMENSION(:),           INTENT(IN)  :: y
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(dp)                                      :: correlation_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: x
+    REAL(dp), DIMENSION(:), INTENT(IN) :: y
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: correlation_dp
 
-    REAL(dp)    :: n
-    REAL(dp)    :: mx, my
-    REAL(dp)    :: sx, sy, covar
+    REAL(dp) :: n
+    REAL(dp) :: mx, my
+    REAL(dp) :: sx, sy, covar
     LOGICAL, DIMENSION(size(x)) :: maske
 
     if (size(x) .ne. size(y)) stop 'Error correlation_dp: size(x) .ne. size(y)'
     if (present(mask)) then
-       if (size(mask) .ne. size(x)) stop 'Error correlation_dp: size(mask) .ne. size(x)'
-       maske = mask
-       n = real(count(maske),dp)
+      if (size(mask) .ne. size(x)) stop 'Error correlation_dp: size(mask) .ne. size(x)'
+      maske = mask
+      n = real(count(maske), dp)
     else
-       maske(:) = .true.
-       n = real(size(x),dp)
-    endif
-    if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'correlation_dp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(x), dp)
+    end if
+    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'correlation_dp: n must be at least 2'
 
     ! Mean and Stddev of x and y
-    call moment(x, mx, stddev=sx, mask=maske)
-    call moment(y, my, stddev=sy, mask=maske)
-    covar = sum((x-mx)*(y-my), mask=maske) / n
+    call moment(x, mx, stddev = sx, mask = maske)
+    call moment(y, my, stddev = sy, mask = maske)
+    covar = sum((x - mx) * (y - my), mask = maske) / n
     ! correlation
-    correlation_dp  = covar / (sx*sy)
+    correlation_dp = covar / (sx * sy)
 
   END FUNCTION correlation_dp
 
@@ -1158,33 +1107,33 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp), DIMENSION(:),           INTENT(IN)  :: x
-    REAL(sp), DIMENSION(:),           INTENT(IN)  :: y
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(sp)                                      :: correlation_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: x
+    REAL(sp), DIMENSION(:), INTENT(IN) :: y
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: correlation_sp
 
-    REAL(sp)    :: n
-    REAL(sp)    :: mx, my
-    REAL(sp)    :: sx, sy, covar
+    REAL(sp) :: n
+    REAL(sp) :: mx, my
+    REAL(sp) :: sx, sy, covar
     LOGICAL, DIMENSION(size(x)) :: maske
 
     if (size(x) .ne. size(y)) stop 'Error correlation_sp: size(x) .ne. size(y)'
     if (present(mask)) then
-       if (size(mask) .ne. size(x)) stop 'Error correlation_sp: size(mask) .ne. size(x)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(x)) stop 'Error correlation_sp: size(mask) .ne. size(x)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(x),sp)
-    endif
-    if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'correlation_sp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(x), sp)
+    end if
+    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'correlation_sp: n must be at least 2'
 
     ! Mean and Stddev of x and y
-    call moment(x, mx, stddev=sx, mask=maske)
-    call moment(y, my, stddev=sy, mask=maske)
-    covar = sum((x-mx)*(y-my), mask=maske) / n
+    call moment(x, mx, stddev = sx, mask = maske)
+    call moment(y, my, stddev = sy, mask = maske)
+    covar = sum((x - mx) * (y - my), mask = maske) / n
     ! correlation
-    correlation_sp  = covar / (sx*sy)
+    correlation_sp = covar / (sx * sy)
 
   END FUNCTION correlation_sp
 
@@ -1194,30 +1143,30 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), DIMENSION(:),           INTENT(IN)  :: x
-    REAL(dp), DIMENSION(:),           INTENT(IN)  :: y
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(dp)                                      :: covariance_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: x
+    REAL(dp), DIMENSION(:), INTENT(IN) :: y
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: covariance_dp
 
-    REAL(dp)    :: n
-    REAL(dp)    :: mx, my
+    REAL(dp) :: n
+    REAL(dp) :: mx, my
     LOGICAL, DIMENSION(size(x)) :: maske
 
     if (size(x) .ne. size(y)) stop 'Error covariance_dp: size(x) .ne. size(y)'
     if (present(mask)) then
-       if (size(mask) .ne. size(x)) stop 'Error covariance_dp: size(mask) .ne. size(x)'
-       maske = mask
-       n = real(count(maske),dp)
+      if (size(mask) .ne. size(x)) stop 'Error covariance_dp: size(mask) .ne. size(x)'
+      maske = mask
+      n = real(count(maske), dp)
     else
-       maske(:) = .true.
-       n = real(size(x),dp)
-    endif
-    if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'covariance_dp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(x), dp)
+    end if
+    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'covariance_dp: n must be at least 2'
 
     ! Mean of x and y
-    mx = mean(x, mask=maske)
-    my = mean(y, mask=maske)
-    covariance_dp = sum((x-mx)*(y-my), mask=maske) / n
+    mx = mean(x, mask = maske)
+    my = mean(y, mask = maske)
+    covariance_dp = sum((x - mx) * (y - my), mask = maske) / n
 
   END FUNCTION covariance_dp
 
@@ -1226,30 +1175,30 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp), DIMENSION(:),           INTENT(IN)  :: x
-    REAL(sp), DIMENSION(:),           INTENT(IN)  :: y
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(sp)                                      :: covariance_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: x
+    REAL(sp), DIMENSION(:), INTENT(IN) :: y
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: covariance_sp
 
-    REAL(sp)    :: n
-    REAL(sp)    :: mx, my
+    REAL(sp) :: n
+    REAL(sp) :: mx, my
     LOGICAL, DIMENSION(size(x)) :: maske
 
     if (size(x) .ne. size(y)) stop 'Error covariance_sp: size(x) .ne. size(y)'
     if (present(mask)) then
-       if (size(mask) .ne. size(x)) stop 'Error covariance_sp: size(mask) .ne. size(x)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(x)) stop 'Error covariance_sp: size(mask) .ne. size(x)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(x),sp)
-    endif
-    if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'covariance_sp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(x), sp)
+    end if
+    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'covariance_sp: n must be at least 2'
 
     ! Mean of x and y
-    mx = mean(x, mask=maske)
-    my = mean(y, mask=maske)
-    covariance_sp = sum((x-mx)*(y-my), mask=maske) / n
+    mx = mean(x, mask = maske)
+    my = mean(y, mask = maske)
+    covariance_sp = sum((x - mx) * (y - my), mask = maske) / n
 
   END FUNCTION covariance_sp
 
@@ -1259,39 +1208,39 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(dp)                                      :: kurtosis_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: kurtosis_dp
 
     REAL(dp) :: n
 
     REAL(dp) :: ep, ave, var
     REAL(dp), DIMENSION(size(dat)) :: p, s
-    LOGICAL,  DIMENSION(size(dat)) :: maske
+    LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error kurtosis_dp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),dp)
+      if (size(mask) .ne. size(dat)) stop 'Error kurtosis_dp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), dp)
     else
-       maske(:) = .true.
-       n = real(size(dat),dp)
-    endif
-    if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'kurtosis_dp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), dp)
+    end if
+    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'kurtosis_dp: n must be at least 2'
 
     ! Average
-    ave  = sum(dat(:), mask=maske)/n
-    s(:) = dat(:)-ave
+    ave = sum(dat(:), mask = maske) / n
+    s(:) = dat(:) - ave
     ! Variance / Standard deviation
-    ep   = sum(s(:), mask=maske)
-    p(:) = s(:)*s(:)
-    var = sum(p(:), mask=maske)
-    var = (var-ep*ep/n)/(n-1.0_dp)
+    ep = sum(s(:), mask = maske)
+    p(:) = s(:) * s(:)
+    var = sum(p(:), mask = maske)
+    var = (var - ep * ep / n) / (n - 1.0_dp)
     if (abs(var) .lt. tiny(0.0_dp)) stop 'kurtosis_dp: no kurtosis when zero variance'
     ! Kurtosis
-    p(:) = p(:)*s(:)*s(:)
-    kurtosis_dp = sum(p(:), mask=maske)
-    kurtosis_dp = kurtosis_dp/(n*var*var) - 3.0_dp
+    p(:) = p(:) * s(:) * s(:)
+    kurtosis_dp = sum(p(:), mask = maske)
+    kurtosis_dp = kurtosis_dp / (n * var * var) - 3.0_dp
 
   END FUNCTION kurtosis_dp
 
@@ -1300,39 +1249,39 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(sp)                                      :: kurtosis_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: kurtosis_sp
 
     REAL(sp) :: n
 
     REAL(sp) :: ep, ave, var
     REAL(sp), DIMENSION(size(dat)) :: p, s
-    LOGICAL,  DIMENSION(size(dat)) :: maske
+    LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error kurtosis_sp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(dat)) stop 'Error kurtosis_sp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(dat),sp)
-    endif
-    if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'kurtosis_sp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), sp)
+    end if
+    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'kurtosis_sp: n must be at least 2'
 
     ! Average
-    ave  = sum(dat(:), mask=maske)/n
-    s(:) = dat(:)-ave
+    ave = sum(dat(:), mask = maske) / n
+    s(:) = dat(:) - ave
     ! Variance / Standard deviation
-    ep   = sum(s(:), mask=maske)
-    p(:) = s(:)*s(:)
-    var = sum(p(:), mask=maske)
-    var = (var-ep*ep/n)/(n-1.0_sp)
+    ep = sum(s(:), mask = maske)
+    p(:) = s(:) * s(:)
+    var = sum(p(:), mask = maske)
+    var = (var - ep * ep / n) / (n - 1.0_sp)
     if (abs(var) .lt. tiny(0.0_sp)) stop 'kurtosis_sp: no kurtosis when zero variance'
     ! Kurtosis
-    p(:) = p(:)*s(:)*s(:)
-    kurtosis_sp = sum(p(:), mask=maske)
-    kurtosis_sp = kurtosis_sp/(n*var*var) - 3.0_sp
+    p(:) = p(:) * s(:) * s(:)
+    kurtosis_sp = sum(p(:), mask = maske)
+    kurtosis_sp = kurtosis_sp / (n * var * var) - 3.0_sp
 
   END FUNCTION kurtosis_sp
 
@@ -1342,26 +1291,25 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(dp)                                      :: mean_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: mean_dp
 
     REAL(dp) :: n
 
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error mean_dp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),dp)
+      if (size(mask) .ne. size(dat)) stop 'Error mean_dp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), dp)
     else
-       maske(:) = .true.
-       n = real(size(dat),dp)
-    endif
-    if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'mean_dp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), dp)
+    end if
 
     ! Mean
-    mean_dp  = sum(dat(:), mask=maske)/n
+    mean_dp = sum(dat(:), mask = maske) / n
 
   END FUNCTION mean_dp
 
@@ -1370,26 +1318,25 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(sp)                                      :: mean_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: mean_sp
 
     REAL(sp) :: n
 
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error mean_sp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(dat)) stop 'Error mean_sp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(dat),sp)
-    endif
-    if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'mean_sp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), sp)
+    end if
 
     ! Mean
-    mean_sp  = sum(dat(:), mask=maske)/n
+    mean_sp = sum(dat(:), mask = maske) / n
 
   END FUNCTION mean_sp
 
@@ -1399,48 +1346,48 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp),    DIMENSION(:),           INTENT(IN)  :: x
-    REAL(dp),    DIMENSION(:),           INTENT(IN)  :: y
-    INTEGER(i4),                         INTENT(IN)  :: r
-    INTEGER(i4),                         INTENT(IN)  :: s
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(dp)                                         :: mixed_central_moment_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: x
+    REAL(dp), DIMENSION(:), INTENT(IN) :: y
+    INTEGER(i4), INTENT(IN) :: r
+    INTEGER(i4), INTENT(IN) :: s
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: mixed_central_moment_dp
 
-    REAL(dp)                     :: n, mx, my
+    REAL(dp) :: n, mx, my
     REAL(dp), DIMENSION(size(x)) :: xx, yy
-    LOGICAL,  DIMENSION(size(x)) :: maske
+    LOGICAL, DIMENSION(size(x)) :: maske
 
     if (r.lt.0 .or. s.lt.0) then
-       mixed_central_moment_dp = 0.0_dp
-       return
-    endif
+      mixed_central_moment_dp = 0.0_dp
+      return
+    end if
 
     if (size(x) .ne. size(y)) stop 'Error mixed_central_moment_dp: size(x) .ne. size(y)'
     if (present(mask)) then
-       if (size(mask) .ne. size(x)) stop 'Error mixed_central_moment_dp: size(mask) .ne. size(x)'
-       maske = mask
-       n = real(count(maske),dp)
+      if (size(mask) .ne. size(x)) stop 'Error mixed_central_moment_dp: size(mask) .ne. size(x)'
+      maske = mask
+      n = real(count(maske), dp)
     else
-       maske(:) = .true.
-       n = real(size(x),dp)
-    endif
-    if (n .le. (2.0_dp+tiny(2.0_dp))) stop 'mixed_central_moment_dp: n must be at least 3'
+      maske(:) = .true.
+      n = real(size(x), dp)
+    end if
+    if (n .le. (2.0_dp + tiny(2.0_dp))) stop 'mixed_central_moment_dp: n must be at least 3'
 
     ! Averages of x and y
-    mx = sum(x, mask=maske) / n
-    my = sum(y, mask=maske) / n
+    mx = sum(x, mask = maske) / n
+    my = sum(y, mask = maske) / n
     ! Mixed central moment
     if (r>0) then
-       xx = (x-mx)**r
+      xx = (x - mx)**r
     else
-       xx = 1._dp
-    endif
+      xx = 1._dp
+    end if
     if (s>0) then
-       yy = (y-my)**s
+      yy = (y - my)**s
     else
-       yy = 1._dp
-    endif
-    mixed_central_moment_dp = sum(xx*yy, mask=maske) / n
+      yy = 1._dp
+    end if
+    mixed_central_moment_dp = sum(xx * yy, mask = maske) / n
 
   END FUNCTION mixed_central_moment_dp
 
@@ -1449,48 +1396,48 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp),    DIMENSION(:),           INTENT(IN)  :: x
-    REAL(sp),    DIMENSION(:),           INTENT(IN)  :: y
-    INTEGER(i4),                         INTENT(IN)  :: r
-    INTEGER(i4),                         INTENT(IN)  :: s
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(sp)                                         :: mixed_central_moment_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: x
+    REAL(sp), DIMENSION(:), INTENT(IN) :: y
+    INTEGER(i4), INTENT(IN) :: r
+    INTEGER(i4), INTENT(IN) :: s
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: mixed_central_moment_sp
 
-    REAL(sp)                     :: n, mx, my
+    REAL(sp) :: n, mx, my
     REAL(sp), DIMENSION(size(x)) :: xx, yy
-    LOGICAL,  DIMENSION(size(x)) :: maske
+    LOGICAL, DIMENSION(size(x)) :: maske
 
     if (r.lt.0 .or. s.lt.0) then
-       mixed_central_moment_sp = 0.0_sp
-       return
-    endif
+      mixed_central_moment_sp = 0.0_sp
+      return
+    end if
 
     if (size(x) .ne. size(y)) stop 'Error mixed_central_moment_sp: size(x) .ne. size(y)'
     if (present(mask)) then
-       if (size(mask) .ne. size(x)) stop 'Error mixed_central_moment_sp: size(mask) .ne. size(x)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(x)) stop 'Error mixed_central_moment_sp: size(mask) .ne. size(x)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(x),sp)
-    endif
-    if (n .le. (2.0_sp+tiny(2.0_sp))) stop 'mixed_central_moment_sp: n must be at least 3'
+      maske(:) = .true.
+      n = real(size(x), sp)
+    end if
+    if (n .le. (2.0_sp + tiny(2.0_sp))) stop 'mixed_central_moment_sp: n must be at least 3'
 
     ! Averages of x and y
-    mx = sum(x, mask=maske) / n
-    my = sum(y, mask=maske) / n
+    mx = sum(x, mask = maske) / n
+    my = sum(y, mask = maske) / n
     ! Mixed central moment
     if (r>0) then
-       xx = (x-mx)**r
+      xx = (x - mx)**r
     else
-       xx = 1._sp
-    endif
+      xx = 1._sp
+    end if
     if (s>0) then
-       yy = (y-my)**s
+      yy = (y - my)**s
     else
-       yy = 1._sp
-    endif
-    mixed_central_moment_sp = sum(xx*yy, mask=maske) / n
+      yy = 1._sp
+    end if
+    mixed_central_moment_sp = sum(xx * yy, mask = maske) / n
 
   END FUNCTION mixed_central_moment_sp
 
@@ -1500,12 +1447,12 @@ CONTAINS
     ! Error variance of mixed central moment (Benedict & Gould 1996)
     IMPLICIT NONE
 
-    REAL(dp),    DIMENSION(:),           INTENT(IN)  :: x
-    REAL(dp),    DIMENSION(:),           INTENT(IN)  :: y
-    INTEGER(i4),                         INTENT(IN)  :: r
-    INTEGER(i4),                         INTENT(IN)  :: s
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(dp)                                         :: mixed_central_moment_var_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: x
+    REAL(dp), DIMENSION(:), INTENT(IN) :: y
+    INTEGER(i4), INTENT(IN) :: r
+    INTEGER(i4), INTENT(IN) :: s
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: mixed_central_moment_var_dp
 
     REAL(dp) :: u2r2s, urs, urm1s, u20, urp1s, ursm1, u02, ursp1, u11
     REAL(dp) :: n, rr, ss
@@ -1513,31 +1460,31 @@ CONTAINS
 
     if (size(x) .ne. size(y)) stop 'Error mixed_central_moment_var_dp: size(x) .ne. size(y)'
     if (present(mask)) then
-       if (size(mask) .ne. size(x)) stop 'Error mixed_central_moment_var_dp: size(mask) .ne. size(x)'
-       maske = mask
-       n = real(count(maske),dp)
+      if (size(mask) .ne. size(x)) stop 'Error mixed_central_moment_var_dp: size(mask) .ne. size(x)'
+      maske = mask
+      n = real(count(maske), dp)
     else
-       maske(:) = .true.
-       n = real(size(x),dp)
-    endif
-    if (n .le. (2.0_dp+tiny(2.0_dp))) stop 'mixed_central_moment_var_dp: n must be at least 3'
+      maske(:) = .true.
+      n = real(size(x), dp)
+    end if
+    if (n .le. (2.0_dp + tiny(2.0_dp))) stop 'mixed_central_moment_var_dp: n must be at least 3'
 
-    u2r2s = mixed_central_moment(x, y, 2*r, 2*s, mask=maske)
-    urs   = mixed_central_moment(x, y, r,   s,   mask=maske)
-    urm1s = mixed_central_moment(x, y, r-1, s,   mask=maske)
-    u20   = mixed_central_moment(x, y, 2,   0,   mask=maske)
-    urp1s = mixed_central_moment(x, y, r+1, s,   mask=maske)
-    ursm1 = mixed_central_moment(x, y, r,   s-1, mask=maske)
-    u02   = mixed_central_moment(x, y, 0,   2,   mask=maske)
-    ursp1 = mixed_central_moment(x, y, r,   s+1, mask=maske)
-    u11   = mixed_central_moment(x, y, 1,   1,   mask=maske)
-    rr = real(r,dp)
-    ss = real(s,dp)
+    u2r2s = mixed_central_moment(x, y, 2 * r, 2 * s, mask = maske)
+    urs = mixed_central_moment(x, y, r, s, mask = maske)
+    urm1s = mixed_central_moment(x, y, r - 1, s, mask = maske)
+    u20 = mixed_central_moment(x, y, 2, 0, mask = maske)
+    urp1s = mixed_central_moment(x, y, r + 1, s, mask = maske)
+    ursm1 = mixed_central_moment(x, y, r, s - 1, mask = maske)
+    u02 = mixed_central_moment(x, y, 0, 2, mask = maske)
+    ursp1 = mixed_central_moment(x, y, r, s + 1, mask = maske)
+    u11 = mixed_central_moment(x, y, 1, 1, mask = maske)
+    rr = real(r, dp)
+    ss = real(s, dp)
 
-    mixed_central_moment_var_dp = (u2r2s - urs*urs &
-         + rr*rr**u20*urm1s*urm1s + ss*ss*u02*ursm1*ursm1 &
-         + 2.0_dp*rr*ss*u11*urm1s*ursm1 &
-         - 2.0_dp*rr*urp1s*urm1s - 2.0_dp*ss*ursp1*ursm1) / n
+    mixed_central_moment_var_dp = (u2r2s - urs * urs &
+            + rr * rr**u20 * urm1s * urm1s + ss * ss * u02 * ursm1 * ursm1 &
+            + 2.0_dp * rr * ss * u11 * urm1s * ursm1 &
+            - 2.0_dp * rr * urp1s * urm1s - 2.0_dp * ss * ursp1 * ursm1) / n
 
   END FUNCTION mixed_central_moment_var_dp
 
@@ -1546,12 +1493,12 @@ CONTAINS
     ! Error variance of mixed central moment (Benedict & Gould 1996)
     IMPLICIT NONE
 
-    REAL(sp),    DIMENSION(:),           INTENT(IN)  :: x
-    REAL(sp),    DIMENSION(:),           INTENT(IN)  :: y
-    INTEGER(i4),                         INTENT(IN)  :: r
-    INTEGER(i4),                         INTENT(IN)  :: s
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(sp)                                         :: mixed_central_moment_var_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: x
+    REAL(sp), DIMENSION(:), INTENT(IN) :: y
+    INTEGER(i4), INTENT(IN) :: r
+    INTEGER(i4), INTENT(IN) :: s
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: mixed_central_moment_var_sp
 
     REAL(sp) :: u2r2s, urs, urm1s, u20, urp1s, ursm1, u02, ursp1, u11
     REAL(sp) :: n, rr, ss
@@ -1559,171 +1506,185 @@ CONTAINS
 
     if (size(x) .ne. size(y)) stop 'Error mixed_central_moment_var_sp: size(x) .ne. size(y)'
     if (present(mask)) then
-       if (size(mask) .ne. size(x)) stop 'Error mixed_central_moment_var_sp: size(mask) .ne. size(x)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(x)) stop 'Error mixed_central_moment_var_sp: size(mask) .ne. size(x)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(x),sp)
-    endif
-    if (n .le. (2.0_sp+tiny(2.0_sp))) stop 'mixed_central_moment_var_sp: n must be at least 3'
+      maske(:) = .true.
+      n = real(size(x), sp)
+    end if
+    if (n .le. (2.0_sp + tiny(2.0_sp))) stop 'mixed_central_moment_var_sp: n must be at least 3'
 
-    u2r2s = mixed_central_moment(x, y, 2*r, 2*s, mask=maske)
-    urs   = mixed_central_moment(x, y, r,   s,   mask=maske)
-    urm1s = mixed_central_moment(x, y, r-1, s,   mask=maske)
-    u20   = mixed_central_moment(x, y, 2,   0,   mask=maske)
-    urp1s = mixed_central_moment(x, y, r+1, s,   mask=maske)
-    ursm1 = mixed_central_moment(x, y, r,   s-1, mask=maske)
-    u02   = mixed_central_moment(x, y, 0,   2,   mask=maske)
-    ursp1 = mixed_central_moment(x, y, r,   s+1, mask=maske)
-    u11   = mixed_central_moment(x, y, 1,   1,   mask=maske)
-    rr = real(r,sp)
-    ss = real(s,sp)
+    u2r2s = mixed_central_moment(x, y, 2 * r, 2 * s, mask = maske)
+    urs = mixed_central_moment(x, y, r, s, mask = maske)
+    urm1s = mixed_central_moment(x, y, r - 1, s, mask = maske)
+    u20 = mixed_central_moment(x, y, 2, 0, mask = maske)
+    urp1s = mixed_central_moment(x, y, r + 1, s, mask = maske)
+    ursm1 = mixed_central_moment(x, y, r, s - 1, mask = maske)
+    u02 = mixed_central_moment(x, y, 0, 2, mask = maske)
+    ursp1 = mixed_central_moment(x, y, r, s + 1, mask = maske)
+    u11 = mixed_central_moment(x, y, 1, 1, mask = maske)
+    rr = real(r, sp)
+    ss = real(s, sp)
 
-    mixed_central_moment_var_sp = (u2r2s - urs*urs &
-         + rr*rr**u20*urm1s*urm1s + ss*ss*u02*ursm1*ursm1 &
-         + 2.0_sp*rr*ss*u11*urm1s*ursm1 &
-         - 2.0_sp*rr*urp1s*urm1s - 2.0_sp*ss*ursp1*ursm1) / n
+    mixed_central_moment_var_sp = (u2r2s - urs * urs &
+            + rr * rr**u20 * urm1s * urm1s + ss * ss * u02 * ursm1 * ursm1 &
+            + 2.0_sp * rr * ss * u11 * urm1s * ursm1 &
+            - 2.0_sp * rr * urp1s * urm1s - 2.0_sp * ss * ursp1 * ursm1) / n
 
   END FUNCTION mixed_central_moment_var_sp
 
   ! ------------------------------------------------------------------
 
-  SUBROUTINE moment_dp(dat, average, variance, skewness, kurtosis, mean, stddev, absdev, mask)
+  SUBROUTINE moment_dp(dat, average, variance, skewness, kurtosis, mean, stddev, absdev, mask, sample)
 
     IMPLICIT NONE
 
-    REAL(dp), DIMENSION(:),           INTENT(IN)  :: dat
-    REAL(dp),               OPTIONAL, INTENT(OUT) :: average
-    REAL(dp),               OPTIONAL, INTENT(OUT) :: variance
-    REAL(dp),               OPTIONAL, INTENT(OUT) :: skewness
-    REAL(dp),               OPTIONAL, INTENT(OUT) :: kurtosis
-    REAL(dp),               OPTIONAL, INTENT(OUT) :: mean
-    REAL(dp),               OPTIONAL, INTENT(OUT) :: stddev
-    REAL(dp),               OPTIONAL, INTENT(OUT) :: absdev
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
+    REAL(dp), DIMENSION(:), INTENT(IN) :: dat
+    REAL(dp), OPTIONAL, INTENT(OUT) :: average
+    REAL(dp), OPTIONAL, INTENT(OUT) :: variance
+    REAL(dp), OPTIONAL, INTENT(OUT) :: skewness
+    REAL(dp), OPTIONAL, INTENT(OUT) :: kurtosis
+    REAL(dp), OPTIONAL, INTENT(OUT) :: mean
+    REAL(dp), OPTIONAL, INTENT(OUT) :: stddev
+    REAL(dp), OPTIONAL, INTENT(OUT) :: absdev
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    LOGICAL, OPTIONAL, INTENT(IN) :: sample
 
-    REAL(dp) :: n
+    REAL(dp) :: n, div_n  ! divisor depending if sample or population moments
 
     REAL(dp) :: ep, ave, var
     REAL(dp), DIMENSION(size(dat)) :: p, s
-    LOGICAL,  DIMENSION(size(dat)) :: maske
+    LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error moment_dp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(dat)) stop 'Error moment_dp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(dat),sp)
-    endif
-    if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'moment_dp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), sp)
+    end if
+    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'moment_dp: n must be at least 2'
+
+    ! set divisor for population (n) or sample (n-1) variance
+    div_n = n - 1.0_dp
+    if (present(sample)) then
+      if (.not. sample) div_n = n
+    end if
 
     ! Any optional argument
     if (.not. (present(average) .or. present(variance) .or. present(skewness) .or. &
-         present(kurtosis) .or. present(mean) .or. present(stddev) .or. present(absdev))) return
+            present(kurtosis) .or. present(mean) .or. present(stddev) .or. present(absdev))) return
     ! Average
-    ave  = sum(dat(:), mask=maske)/n
+    ave = sum(dat(:), mask = maske) / n
     if (present(average)) average = ave
-    if (present(mean))    mean    = ave
+    if (present(mean))    mean = ave
     if (.not. (present(variance) .or. present(skewness) .or. &
-         present(kurtosis) .or. present(stddev) .or. present(absdev))) return
+            present(kurtosis) .or. present(stddev) .or. present(absdev))) return
     ! Absolute deviation
-    s(:) = dat(:)-ave
-    if (present(absdev)) absdev = sum(abs(s(:)), mask=maske)/n
+    s(:) = dat(:) - ave
+    if (present(absdev)) absdev = sum(abs(s(:)), mask = maske) / n
     ! Variance / Standard deviation
     if (.not. (present(variance) .or. present(skewness) .or. &
-         present(kurtosis) .or. present(stddev))) return
-    ep   = sum(s(:), mask=maske)
-    p(:) = s(:)*s(:)
-    var = sum(p(:), mask=maske)
-    var = (var-ep*ep/n)/(n-1.0_dp)
+            present(kurtosis) .or. present(stddev))) return
+    ep = sum(s(:), mask = maske)
+    p(:) = s(:) * s(:)
+    var = sum(p(:), mask = maske)
+    var = (var - ep * ep / n) / div_n
     if (present(variance)) variance = var
     ! Standard deviation
-    if (present(stddev))   stddev   = sqrt(var)
+    if (present(stddev))   stddev = sqrt(var)
     if (.not. (present(skewness) .or. present(kurtosis))) return
     ! Skewness
     if (abs(var) .lt. tiny(0.0_dp)) stop 'moment_dp: no skewness or kurtosis when zero variance'
-    p(:) = p(:)*s(:)
+    p(:) = p(:) * s(:)
     if (present(skewness)) then
-       skewness = sum(p(:), mask=maske)
-       skewness = skewness/(n*stddev*stddev*stddev)
-    endif
+      skewness = sum(p(:), mask = maske)
+      skewness = skewness / (n * stddev * stddev * stddev)
+    end if
     ! Kurtosis
     if (present(kurtosis)) then
-       p(:) = p(:)*s(:)
-       kurtosis = sum(p(:), mask=maske)
-       kurtosis = kurtosis/(n*variance*variance) - 3.0_dp
+      p(:) = p(:) * s(:)
+      kurtosis = sum(p(:), mask = maske)
+      kurtosis = kurtosis / (n * variance * variance) - 3.0_dp
     end if
 
   END SUBROUTINE moment_dp
 
 
-  SUBROUTINE moment_sp(dat, average, variance, skewness, kurtosis, mean, stddev, absdev, mask)
+  SUBROUTINE moment_sp(dat, average, variance, skewness, kurtosis, mean, stddev, absdev, mask, sample)
 
     IMPLICIT NONE
 
-    REAL(sp), DIMENSION(:),           INTENT(IN)  :: dat
-    REAL(sp),               OPTIONAL, INTENT(OUT) :: average
-    REAL(sp),               OPTIONAL, INTENT(OUT) :: variance
-    REAL(sp),               OPTIONAL, INTENT(OUT) :: skewness
-    REAL(sp),               OPTIONAL, INTENT(OUT) :: kurtosis
-    REAL(sp),               OPTIONAL, INTENT(OUT) :: mean
-    REAL(sp),               OPTIONAL, INTENT(OUT) :: stddev
-    REAL(sp),               OPTIONAL, INTENT(OUT) :: absdev
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
+    REAL(sp), DIMENSION(:), INTENT(IN) :: dat
+    REAL(sp), OPTIONAL, INTENT(OUT) :: average
+    REAL(sp), OPTIONAL, INTENT(OUT) :: variance
+    REAL(sp), OPTIONAL, INTENT(OUT) :: skewness
+    REAL(sp), OPTIONAL, INTENT(OUT) :: kurtosis
+    REAL(sp), OPTIONAL, INTENT(OUT) :: mean
+    REAL(sp), OPTIONAL, INTENT(OUT) :: stddev
+    REAL(sp), OPTIONAL, INTENT(OUT) :: absdev
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    LOGICAL, OPTIONAL, INTENT(IN) :: sample
 
-    REAL(sp) :: n
+    REAL(sp) :: n, div_n  ! divisor depending if sample or population moments
 
     REAL(sp) :: ep, ave, var
     REAL(sp), DIMENSION(size(dat)) :: p, s
-    LOGICAL,  DIMENSION(size(dat)) :: maske
+    LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error moment_sp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(dat)) stop 'Error moment_sp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(dat),sp)
-    endif
-    if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'moment_sp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), sp)
+    end if
+    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'moment_sp: n must be at least 2'
+
+    ! set divisor for population (n) or sample (n-1) variance
+    div_n = n - 1.0_sp
+    if (present(sample)) then
+      if (.not. sample) div_n = n
+    end if
 
     ! Any optional argument
     if (.not. (present(average) .or. present(variance) .or. present(skewness) .or. &
-         present(kurtosis) .or. present(mean) .or. present(stddev) .or. present(absdev))) return
+            present(kurtosis) .or. present(mean) .or. present(stddev) .or. present(absdev))) return
     ! Average
-    ave  = sum(dat(:), mask=maske)/n
+    ave = sum(dat(:), mask = maske) / n
     if (present(average)) average = ave
-    if (present(mean))    mean    = ave
+    if (present(mean))    mean = ave
     if (.not. (present(variance) .or. present(skewness) .or. &
-         present(kurtosis) .or. present(stddev) .or. present(absdev))) return
+            present(kurtosis) .or. present(stddev) .or. present(absdev))) return
     ! Absolute deviation
-    s(:) = dat(:)-ave
-    if (present(absdev)) absdev = sum(abs(s(:)), mask=maske)/n
+    s(:) = dat(:) - ave
+    if (present(absdev)) absdev = sum(abs(s(:)), mask = maske) / n
     ! Variance / Standard deviation
     if (.not. (present(variance) .or. present(skewness) .or. &
-         present(kurtosis) .or. present(stddev))) return
-    ep   = sum(s(:), mask=maske)
-    p(:) = s(:)*s(:)
-    var = sum(p(:), mask=maske)
-    var = (var-ep*ep/n)/(n-1.0_sp)
+            present(kurtosis) .or. present(stddev))) return
+    ep = sum(s(:), mask = maske)
+    p(:) = s(:) * s(:)
+    var = sum(p(:), mask = maske)
+    var = (var - ep * ep / n) / div_n
     if (present(variance)) variance = var
     ! Standard deviation
-    if (present(stddev))   stddev   = sqrt(var)
+    if (present(stddev))   stddev = sqrt(var)
     if (.not. (present(skewness) .or. present(kurtosis))) return
     ! Skewness
     if (abs(var) .lt. tiny(0.0_sp)) stop 'moment_sp: no skewness or kurtosis when zero variance'
-    p(:) = p(:)*s(:)
+    p(:) = p(:) * s(:)
     if (present(skewness)) then
-       skewness = sum(p(:), mask=maske)
-       skewness = skewness/(n*stddev*stddev*stddev)
-    endif
+      skewness = sum(p(:), mask = maske)
+      skewness = skewness / (n * stddev * stddev * stddev)
+    end if
     ! Kurtosis
     if (present(kurtosis)) then
-       p(:) = p(:)*s(:)
-       kurtosis = sum(p(:), mask=maske)
-       kurtosis = kurtosis/(n*variance*variance) - 3.0_sp
+      p(:) = p(:) * s(:)
+      kurtosis = sum(p(:), mask = maske)
+      kurtosis = kurtosis / (n * variance * variance) - 3.0_sp
     end if
 
   END SUBROUTINE moment_sp
@@ -1734,34 +1695,34 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(dp)                                      :: stddev_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: stddev_dp
 
     REAL(dp) :: n
 
     REAL(dp) :: ep, ave, var
     REAL(dp), DIMENSION(size(dat)) :: p, s
-    LOGICAL,  DIMENSION(size(dat)) :: maske
+    LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error stddev_dp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),dp)
+      if (size(mask) .ne. size(dat)) stop 'Error stddev_dp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), dp)
     else
-       maske(:) = .true.
-       n = real(size(dat),dp)
-    endif
-    if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'stddev_dp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), dp)
+    end if
+    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'stddev_dp: n must be at least 2'
 
     ! Average
-    ave  = sum(dat(:), mask=maske)/n
-    s(:) = dat(:)-ave
+    ave = sum(dat(:), mask = maske) / n
+    s(:) = dat(:) - ave
     ! Variance / Standard deviation
-    ep   = sum(s(:), mask=maske)
-    p(:) = s(:)*s(:)
-    var = sum(p(:), mask=maske)
-    var = (var-ep*ep/n)/(n-1.0_dp)
+    ep = sum(s(:), mask = maske)
+    p(:) = s(:) * s(:)
+    var = sum(p(:), mask = maske)
+    var = (var - ep * ep / n) / (n - 1.0_dp)
     stddev_dp = sqrt(var)
 
   END FUNCTION stddev_dp
@@ -1771,34 +1732,34 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(sp)                                      :: stddev_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: stddev_sp
 
     REAL(sp) :: n
 
     REAL(sp) :: ep, ave, var
     REAL(sp), DIMENSION(size(dat)) :: p, s
-    LOGICAL,  DIMENSION(size(dat)) :: maske
+    LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error stddev_sp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(dat)) stop 'Error stddev_sp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(dat),sp)
-    endif
-    if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'stddev_sp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), sp)
+    end if
+    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'stddev_sp: n must be at least 2'
 
     ! Average
-    ave  = sum(dat(:), mask=maske)/n
-    s(:) = dat(:)-ave
+    ave = sum(dat(:), mask = maske) / n
+    s(:) = dat(:) - ave
     ! Variance / Standard deviation
-    ep   = sum(s(:), mask=maske)
-    p(:) = s(:)*s(:)
-    var = sum(p(:), mask=maske)
-    var = (var-ep*ep/n)/(n-1.0_sp)
+    ep = sum(s(:), mask = maske)
+    p(:) = s(:) * s(:)
+    var = sum(p(:), mask = maske)
+    var = (var - ep * ep / n) / (n - 1.0_sp)
     stddev_sp = sqrt(var)
 
   END FUNCTION stddev_sp
@@ -1809,40 +1770,40 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(dp)                                      :: skewness_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: skewness_dp
 
     REAL(dp) :: n
 
     REAL(dp) :: ep, ave, var, stddev
     REAL(dp), DIMENSION(size(dat)) :: p, s
-    LOGICAL,  DIMENSION(size(dat)) :: maske
+    LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error skewness_dp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),dp)
+      if (size(mask) .ne. size(dat)) stop 'Error skewness_dp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), dp)
     else
-       maske(:) = .true.
-       n = real(size(dat),dp)
-    endif
-    if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'skewness_dp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), dp)
+    end if
+    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'skewness_dp: n must be at least 2'
 
     ! Average
-    ave  = sum(dat(:), mask=maske)/n
-    s(:) = dat(:)-ave
+    ave = sum(dat(:), mask = maske) / n
+    s(:) = dat(:) - ave
     ! Variance / Standard deviation
-    ep   = sum(s(:), mask=maske)
-    p(:) = s(:)*s(:)
-    var = sum(p(:), mask=maske)
-    var = (var-ep*ep/n)/(n-1.0_dp)
+    ep = sum(s(:), mask = maske)
+    p(:) = s(:) * s(:)
+    var = sum(p(:), mask = maske)
+    var = (var - ep * ep / n) / (n - 1.0_dp)
     stddev = sqrt(var)
     ! Skewness
     if (abs(var) .lt. tiny(0.0_dp)) stop 'skewness_dp: no skewness when zero variance'
-    p(:) = p(:)*s(:)
-    skewness_dp = sum(p(:), mask=maske)
-    skewness_dp = skewness_dp/(n*stddev*stddev*stddev)
+    p(:) = p(:) * s(:)
+    skewness_dp = sum(p(:), mask = maske)
+    skewness_dp = skewness_dp / (n * stddev * stddev * stddev)
 
   END FUNCTION skewness_dp
 
@@ -1851,40 +1812,40 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(sp)                                      :: skewness_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: skewness_sp
 
     REAL(sp) :: n
 
     REAL(sp) :: ep, ave, var, stddev
     REAL(sp), DIMENSION(size(dat)) :: p, s
-    LOGICAL,  DIMENSION(size(dat)) :: maske
+    LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error skewness_sp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(dat)) stop 'Error skewness_sp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(dat),sp)
-    endif
-    if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'skewness_sp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), sp)
+    end if
+    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'skewness_sp: n must be at least 2'
 
     ! Average
-    ave  = sum(dat(:), mask=maske)/n
-    s(:) = dat(:)-ave
+    ave = sum(dat(:), mask = maske) / n
+    s(:) = dat(:) - ave
     ! Variance / Standard deviation
-    ep   = sum(s(:), mask=maske)
-    p(:) = s(:)*s(:)
-    var = sum(p(:), mask=maske)
-    var = (var-ep*ep/n)/(n-1.0_sp)
+    ep = sum(s(:), mask = maske)
+    p(:) = s(:) * s(:)
+    var = sum(p(:), mask = maske)
+    var = (var - ep * ep / n) / (n - 1.0_sp)
     stddev = sqrt(var)
     ! Skewness
     if (abs(var) .lt. tiny(0.0_sp)) stop 'skewness_sp: no skewness when zero variance'
-    p(:) = p(:)*s(:)
-    skewness_sp = sum(p(:), mask=maske)
-    skewness_sp = skewness_sp/(n*stddev*stddev*stddev)
+    p(:) = p(:) * s(:)
+    skewness_sp = sum(p(:), mask = maske)
+    skewness_sp = skewness_sp / (n * stddev * stddev * stddev)
 
   END FUNCTION skewness_sp
 
@@ -1894,34 +1855,34 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(dp)                                      :: variance_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: variance_dp
 
     REAL(dp) :: n
 
     REAL(dp) :: ep, ave, var
     REAL(dp), DIMENSION(size(dat)) :: p, s
-    LOGICAL,  DIMENSION(size(dat)) :: maske
+    LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error variance_dp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),dp)
+      if (size(mask) .ne. size(dat)) stop 'Error variance_dp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), dp)
     else
-       maske(:) = .true.
-       n = real(size(dat),dp)
-    endif
-    if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'variance_dp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), dp)
+    end if
+    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'variance_dp: n must be at least 2'
 
     ! Average
-    ave  = sum(dat(:), mask=maske)/n
-    s(:) = dat(:)-ave
+    ave = sum(dat(:), mask = maske) / n
+    s(:) = dat(:) - ave
     ! Variance / Standard deviation
-    ep   = sum(s(:), mask=maske)
-    p(:) = s(:)*s(:)
-    var = sum(p(:), mask=maske)
-    variance_dp = (var-ep*ep/n)/(n-1.0_dp)
+    ep = sum(s(:), mask = maske)
+    p(:) = s(:) * s(:)
+    var = sum(p(:), mask = maske)
+    variance_dp = (var - ep * ep / n) / (n - 1.0_dp)
 
   END FUNCTION variance_dp
 
@@ -1930,34 +1891,34 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp), DIMENSION(:),           INTENT(IN)  :: dat
-    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
-    REAL(sp)                                      :: variance_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: dat
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: variance_sp
 
     REAL(sp) :: n
 
     REAL(sp) :: ep, ave, var
     REAL(sp), DIMENSION(size(dat)) :: p, s
-    LOGICAL,  DIMENSION(size(dat)) :: maske
+    LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-       if (size(mask) .ne. size(dat)) stop 'Error variance_sp: size(mask) .ne. size(dat)'
-       maske = mask
-       n = real(count(maske),sp)
+      if (size(mask) .ne. size(dat)) stop 'Error variance_sp: size(mask) .ne. size(dat)'
+      maske = mask
+      n = real(count(maske), sp)
     else
-       maske(:) = .true.
-       n = real(size(dat),sp)
-    endif
-    if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'variance_sp: n must be at least 2'
+      maske(:) = .true.
+      n = real(size(dat), sp)
+    end if
+    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'variance_sp: n must be at least 2'
 
     ! Average
-    ave  = sum(dat(:), mask=maske)/n
-    s(:) = dat(:)-ave
+    ave = sum(dat(:), mask = maske) / n
+    s(:) = dat(:) - ave
     ! Variance / Standard deviation
-    ep   = sum(s(:), mask=maske)
-    p(:) = s(:)*s(:)
-    var = sum(p(:), mask=maske)
-    variance_sp = (var-ep*ep/n)/(n-1.0_sp)
+    ep = sum(s(:), mask = maske)
+    p(:) = s(:) * s(:)
+    var = sum(p(:), mask = maske)
+    variance_sp = (var - ep * ep / n) / (n - 1.0_sp)
 
   END FUNCTION variance_sp
 
