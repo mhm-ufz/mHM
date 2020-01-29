@@ -304,7 +304,7 @@ CONTAINS
             (/rows1, cols1, soil1, lcscenes/), nodata_dp, L1_soilMoistExp(s1 : e1, :, :), mask1, &
             "Exponential parameter to how non-linear is the soil water retention at level 1")
 
-    if (processMatrix(3, 1) == 2) then
+    if (any(processMatrix(3, 1) == (/2, 3/))) then
       call unpack_field_and_write(nc, "L1_jarvis_thresh_c1", &
               (/rows1, cols1/), nodata_dp, L1_jarvis_thresh_c1(s1 : e1, 1, 1), mask1, &
               "jarvis critical value for normalized soil water content")

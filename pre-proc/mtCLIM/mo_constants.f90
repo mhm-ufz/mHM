@@ -82,7 +82,7 @@ MODULE mo_constants
   REAL(sp), PARAMETER :: arc2rad_sp = PI_dp/12._dp
   ! seconds per radian of hour angle
   REAL(sp), PARAMETER :: SECPERRAD = 13750.9871_dp
-  
+
 
   ! Physical
   !> Seconds per day [s] in double precision
@@ -133,8 +133,8 @@ MODULE mo_constants
   REAL(dp), PARAMETER   ::  R        = 8.3143_dp
   ! (-K m-1) standard temperature lapse rate
   REAL(dp), PARAMETER   ::  LR_STD   = 0.0065
-  
-  
+
+
   !> standard atmospehere
   !> Standard pressure [Pa] in double precision
   REAL(dp), PARAMETER :: P0_dp        = 101325._dp                   ! Standard pressure [Pa]
@@ -151,7 +151,6 @@ MODULE mo_constants
   !> (K) standard temp at 0.0 m elevation
   REAL(sp), PARAMETER :: T_STD = 288.15
 
-  ! Numerical Recipes
   !> Pi in double precision
   REAL(dp), PARAMETER :: PI_D    = 3.141592653589793238462643383279502884197_dp      ! Pi
   !> Pi in single precision

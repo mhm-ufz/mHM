@@ -22,6 +22,7 @@
 !                                   - documentation
 !                                   - removed tab characters
 !          Matthias Cuntz, May 2014 - iso_fortran_env and iso_c_binding
+!          S. Mueller, Dec 2019 - remove NR specific types
 
 ! License
 ! -------
@@ -88,20 +89,5 @@ MODULE mo_kind
   INTEGER, PARAMETER :: lgt = KIND(.true.)
   !INTEGER, PARAMETER :: lgt = c_bool
   ! Types have to be in a public section for doxygen
-
-  !> Single Precision Numerical Recipes types for sparse arrays
-  TYPE sprs2_sp
-     INTEGER(I4) :: n, len
-     REAL(SP),    DIMENSION(:), POINTER :: val
-     INTEGER(I4), DIMENSION(:), POINTER :: irow
-     INTEGER(I4), DIMENSION(:), POINTER :: jcol
-  END TYPE sprs2_sp
-  !> Double Precision Numerical Recipes types for sparse arrays
-  TYPE sprs2_dp
-     INTEGER(I4) :: n, len
-     REAL(DP),    DIMENSION(:), POINTER :: val
-     INTEGER(I4), DIMENSION(:), POINTER :: irow
-     INTEGER(I4), DIMENSION(:), POINTER :: jcol
-  END TYPE sprs2_dp
 
 END MODULE mo_kind

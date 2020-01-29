@@ -29,6 +29,7 @@
 - Land cover scenes cannot be changed between the run generating the
   restart file and the run using the restart file. This causes
   unpredictable behaviour by the model.
+- Simulation period must span overall land cover scenes specified in the namelist. 
 - Cut-off for link length is calculated with missing values, but those
   should be neglected.
 
