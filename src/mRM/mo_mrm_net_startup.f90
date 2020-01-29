@@ -119,7 +119,7 @@ contains
           jl = (jcc - 1) * cellFactorRbyH_inv + 1
           jr = min(jcc * cellFactorRbyH_inv, ncols11)
 
-          L1Id_on_L11(iu : id, jl : jr) = merge(dummy_2d_id, nodata_i4, level11(iDomain)%mask(iu : id, jl : jr))
+          L1Id_on_L11(iu : id, jl : jr) = merge(dummy_2d_id(icc, jcc), nodata_i4, level11(iDomain)%mask(iu : id, jl : jr))
         end do
       end do
     else
@@ -145,7 +145,7 @@ contains
           if(jr > ncols1) jr = ncols1
 
           ! Delimitation of level-11 cells on level-1 for L11 resolution lower than L1 resolution
-          L11Id_on_L1(iu : id, jl : jr) = dummy_2d_id(icc, jcc)
+          L11Id_on_L1(iu : id, jl : jr) = merge(dummy_2d_id(icc, jcc), nodata_i4, level1(iDomain)%mask(iu : id, jl : jr))
         end do
       end do
     end if
