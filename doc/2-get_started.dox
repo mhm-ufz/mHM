@@ -235,7 +235,7 @@ Pretty much the first step mHM takes during runtime is reading the three configu
 \li <code>mhm_output.nml</code>
 \li <code>mhm_parameters.nml</code>
 
-When editing these files, we recommend to use syntax highlighting for Fortran, which is featured in emacs, for example.
+When editing these files, we recommend to use syntax highlighting for Fortran, which is featured in emacs, for example. This will also guarantee that the file ends with a new line character that is required by the fortran language standard. If you are writing these files with external programs, make sure that the written files comply with Fortran language standard, in particular make sure that the file ends with a new line.
 
 \subsection mhmnml Main Configuration: Paths, Periods, Switches
 
