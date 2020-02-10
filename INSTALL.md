@@ -109,6 +109,16 @@ you need to load following modules:
     module purge
     ml uge/8.5.5-2 Java/1.8.0_202 grid-engine-tools/0.8.3-3-g93f1efa icc/2018.3.222-GCC-7.3.0-2.30 ifort/2018.3.222-GCC-7.3.0-2.30 iccifort/2018.3.222-GCC-7.3.0-2.30
 
+If you use cmake to compile mHM with easy-build, the netcdf-Fortran library and cmake can be loaded as
+ 
+    
+    module load foss/2018b
+    module load netCDF-Fortran
+    module load CMake 
+    
+Then follow the installation instructions.
+    
+    
 ### MacOS:
 
 *(to be added)*
