@@ -41,6 +41,9 @@ should be neglected.
 7. Using a higher routing resolution than hydrology resolution may
   cause segmentation faults because mapping from L1id on L11 is not
   working correctly
+8. If ProcessOption(5) is set to -1 and optimization is activated, the
+  created FinalParam.nml misses the header for the namelist of the
+  PET process.
 
 ### Restrictions:
 

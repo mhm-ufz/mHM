@@ -601,6 +601,8 @@ CONTAINS
         end if
       case(5)
         select case (processMatrix(iProc, 1))
+        case(-1)
+          write(uopti_nml, *) '&PETminus1'
         case(0)
           write(uopti_nml, *) '&PET0'
         case(1)

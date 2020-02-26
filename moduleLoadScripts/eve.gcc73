@@ -1,5 +1,5 @@
 module purge
-module load iomkl/2018b
+module load foss/2018b
 module load netCDF-Fortran
 module load CMake
-export FC=ifort
+export FC=gfortran

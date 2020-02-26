@@ -103,6 +103,12 @@ for example for the GNU 7.3 compiler:
 
     source moduleLoadScripts/eve.gfortran73
 
+Starting from Jan 2020, if you want to compile mHM code with intel on EVE (under EasyBuild), 
+you need to load following modules:
+
+    module purge
+    ml uge/8.5.5-2 Java/1.8.0_202 grid-engine-tools/0.8.3-3-g93f1efa icc/2018.3.222-GCC-7.3.0-2.30 ifort/2018.3.222-GCC-7.3.0-2.30 iccifort/2018.3.222-GCC-7.3.0-2.30
+
 ### MacOS:
 
 *(to be added)*

@@ -1,6 +1,6 @@
-mkdir build
-cd build/
+mkdir debug
+cd debug/
 cmake -DCMAKE_BUILD_TYPE=Debug ..
-make
+make -j 4
 cd ..
-cp build/mhm .
+cp debug/mhm ./mhm_debug
