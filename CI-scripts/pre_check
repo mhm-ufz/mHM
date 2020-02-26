@@ -1,5 +1,3 @@
-module purge
-module use /global/apps/chspython/modules
-module load pyvenvs/3.6.2
-module use /global/apps/modulefiles
+module load Anaconda3
+source activate /global/apps/mhm_checks/mhm_env
 cd check/
