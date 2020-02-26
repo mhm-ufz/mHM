@@ -380,7 +380,7 @@ contains
             (jCol .le. 0_i4) .or. (jCol .gt. ncols0)) then
           is_outlet = .True.
         else
-          if (fdir0(iRow, jCol) .lt. 0) is_outlet = .True.
+          if (fdir0(iRow, jCol) .le. 0) is_outlet = .True.
         end if
         !
         if (is_outlet) then
