@@ -318,6 +318,7 @@ CONTAINS
       else
         iDomain = ii
       end if
+      domainID = domainMeta%indices(iDomain)
 
       !--------------------------
       ! evapotranspiration optimization
