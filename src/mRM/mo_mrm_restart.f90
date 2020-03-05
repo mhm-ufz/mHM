@@ -599,7 +599,7 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! Stephan Thober May 2019 - added L0 info required for Process 3
 
-  subroutine mrm_read_restart_config(iDomain, InPath)
+  subroutine mrm_read_restart_config(iDomain, domainID, InPath)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -619,6 +619,9 @@ contains
 
     ! number of Domain
     integer(i4), intent(in) :: iDomain
+
+    ! domain
+    integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
     character(256), intent(in) :: InPath
@@ -650,7 +653,7 @@ contains
 
 
     ! set file name
-    fname = trim(InPath) // 'mRM_restart_' // trim(num2str(iDomain, '(i3.3)')) // '.nc'
+    fname = trim(InPath) // 'mRM_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc'
     call message('        Reading mRM restart file:  ', trim(adjustl(Fname)), ' ...')
 
     ! get Domain info at L11 mask

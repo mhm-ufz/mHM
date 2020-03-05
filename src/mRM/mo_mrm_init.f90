@@ -169,7 +169,7 @@ end subroutine mrm_configuration
           call read_grid_info(domainID, dirRestartIn(iDomain), "1", "mRM", level1(iDomain))
         end if
         call read_grid_info(domainID, dirRestartIn(iDomain), "11", "mRM", level11(iDomain))
-        call mrm_read_restart_config(iDomain, dirRestartIn(iDomain))
+        call mrm_read_restart_config(iDomain, domainID, dirRestartIn(iDomain))
       else
         if (iDomain .eq. 1) then
           call L0_check_input_routing(domainMeta%L0DataFrom(iDomain))
