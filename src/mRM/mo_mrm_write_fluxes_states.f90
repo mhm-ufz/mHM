@@ -238,6 +238,7 @@ contains
   function newOutputDataset(iDomain, mask, nCells) result(out)
 
     use mo_mrm_global_variables, only : outputFlxState_mrm
+    use mo_common_variables, only : iFlag_cordinate_sys
 
     implicit none
 
@@ -262,7 +263,13 @@ contains
 
 
     dtype = "f64"
-    dims1 = (/"easting ", "northing", "time    "/)
+
+    if (iFlag_cordinate_sys == 0) then
+      dims1 = (/"easting ", "northing", "time    "/) ! X & Y coordinate system
+    else
+      dims1 = (/"lon ", "lat ", "time"/) ! lat & lon coordinate system
+    endif
+
     nc = createOutputFile(iDomain)
 
     ii = 0
@@ -441,10 +448,10 @@ contains
   !        createOutputFile
 
   !    PURPOSE
-  !>       \brief Create and initialize output file
+  !>       \brief Create and initialize output file for X & Y coordinate system
 
   !>       \details Create output file, write all non-dynamic variables
-  !>       and global attributes for the given domain.
+  !>       and global attributes for the given domain for X & Y coordinate system
 
   !>       \return type(NcDataset)
 
@@ -459,11 +466,12 @@ contains
   ! Modifications:
   ! Stephan Thober  Oct 2015 - adapted to mRM
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Pallav Shrestha Mar 2020 - output file lat and lon are 1d or 2d based on coordinate system
 
   function createOutputFile(iDomain) result(nc)
 
     use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_common_variables, only : dirOut
+    use mo_common_variables, only : dirOut, iFlag_cordinate_sys
     use mo_grid, only : geoCoordinates, mapCoordinates
     use mo_julian, only : dec2date
     use mo_mrm_file, only : file_mrm_output, version
@@ -488,20 +496,79 @@ contains
 
     real(dp), allocatable, dimension(:) :: easting, northing
 
-    real(dp), allocatable, dimension(:,:) :: lat, lon
+    real(dp), allocatable, dimension(:) :: lat1d, lon1d    ! 1D lat lon vectors. Used if coordinate system is lat & lon 
+
+    real(dp), allocatable, dimension(:, :) :: lat2d, lon2d ! temporary storage of mHM's 2D latlon array.
+                                                           ! Used as 2d lat lon arrays if coordinate system is X & Y
 
 
     fname = trim(dirOut(iDomain)) // trim(file_mrm_output)
-    call mapCoordinates(level11(iDomain), northing, easting)
-    call geoCoordinates(level11(iDomain), lat, lon)
+    call geoCoordinates(level11(iDomain), lat2d, lon2d)
 
     nc = NcDataset(trim(fname), "w")
-    dimids1 = (/&
-            nc%setDimension("easting", size(easting)), &
-                    nc%setDimension("northing", size(northing)), &
-                    nc%setDimension("time", 0) &
-            /)
 
+    ! set the horizonal dimensions
+    if (iFlag_cordinate_sys == 0) then 
+
+      ! X & Y coordinate system; 2D lat lon!
+      !============================================================
+      call mapCoordinates(level11(iDomain), northing, easting)
+
+      dimids1 = (/&
+              nc%setDimension("easting", size(easting)), &
+                      nc%setDimension("northing", size(northing)), &
+                      nc%setDimension("time", 0) &
+              /)
+      ! northing
+      var = nc%setVariable("northing", "f64", (/ dimids1(2) /))
+      call var%setData(northing)
+      call var%setAttribute("units", "m")
+      call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
+      ! easting
+      var = nc%setVariable("easting", "f64", (/ dimids1(1) /))
+      call var%setData(easting)
+      call var%setAttribute("units", "m")
+      call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
+      ! lon
+      var = nc%setVariable("lon", "f64", dimids1(1 : 2))
+      call var%setData(lon2d)
+      call var%setAttribute("units", "degrees_east")
+      call var%setAttribute("long_name", "longitude")
+      call var%setAttribute("missing_value", nodata_dp)
+      ! lat
+      var = nc%setVariable("lat", "f64", dimids1(1 : 2))
+      call var%setData(lat2d)
+      call var%setAttribute("units", "degrees_north")
+      call var%setAttribute("long_name", "latitude")
+      call var%setAttribute("missing_value", nodata_dp)
+
+    else
+
+      ! lat & lon coordinate system; 1D lat lon!
+      !============================================================
+      lat1d = lat2d(1, :) ! first row info is sufficient
+      lon1d = lon2d(:, 1) ! first column info is sufficient
+      dimids1 = (/&
+              nc%setDimension("lon", size(lon1d)), &
+                      nc%setDimension("lat", size(lat1d)), &
+                      nc%setDimension("time", 0) &
+              /)
+      ! lon
+      var = nc%setVariable("lon", "f64", (/ dimids1(1) /)) ! sufficient to store lon as vector
+      call var%setData(lon1d)
+      call var%setAttribute("units", "degrees_east")
+      call var%setAttribute("long_name", "longitude")
+      call var%setAttribute("missing_value", nodata_dp)
+      ! lat
+      var = nc%setVariable("lat", "f64", (/ dimids1(2) /)) ! sufficient to store lat as vector
+      call var%setData(lat1d)
+      call var%setAttribute("units", "degrees_north")
+      call var%setAttribute("long_name", "latitude")
+      call var%setAttribute("missing_value", nodata_dp)
+
+    endif
+
+    ! set record dimension
     ! time units
     call dec2date(real(evalPer(iDomain)%julStart, dp), dd = day, mm = month, yy = year)
     write(unit, "('hours since ', i4, '-' ,i2.2, '-', i2.2, 1x, '00:00:00')") year, month, day
@@ -510,32 +577,6 @@ contains
     var = nc%setVariable("time", "i32", (/ dimids1(3) /))
     call var%setAttribute("units", unit)
     call var%setAttribute("long_name", "time")
-
-    ! northing
-    var = nc%setVariable("northing", "f64", (/ dimids1(2) /))
-    call var%setData(northing)
-    call var%setAttribute("units", "m")
-    call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
-
-    ! easting
-    var = nc%setVariable("easting", "f64", (/ dimids1(1) /))
-    call var%setData(easting)
-    call var%setAttribute("units", "m")
-    call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
-
-    ! lon
-    var = nc%setVariable("lon", "f64", dimids1(1 : 2))
-    call var%setData(lon)
-    call var%setAttribute("units", "degrees_east")
-    call var%setAttribute("long_name", "longitude")
-    call var%setAttribute("missing_value", nodata_dp)
-
-    ! lat
-    var = nc%setVariable("lat", "f64", dimids1(1 : 2))
-    call var%setData(lat)
-    call var%setAttribute("units", "degrees_north")
-    call var%setAttribute("long_name", "latitude")
-    call var%setAttribute("missing_value", nodata_dp)
 
     ! global attributes
     call date_and_time(date = date, time = time)
