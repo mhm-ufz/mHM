@@ -96,7 +96,7 @@ L0Domain(2) = 2
 !-----------------------------------------------------------------------------
 !> flag for writing restart output
 !-----------------------------------------------------------------------------
-write_restart = .TRUE.
+write_restart = .False.
 !-----------------------------------------------------------------------------
 !> read domain specific optional data
 !-----------------------------------------------------------------------------
@@ -137,8 +137,12 @@ resolution_Routing(2) = 24000
 timestep = 1
 !-----------------------------------------------------------------------------
 !> flags for reading restart output
+!> mrm_read_river_network is an optional flag
+!> mrm_read_river_network = .True. allows to read the river network for mRM
+!> read_restart = .True. forces mrm_read_river_network = .True.
 !-----------------------------------------------------------------------------
-read_restart  = .FALSE.
+read_restart  = .True.
+mrm_read_river_network = .False.
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition
