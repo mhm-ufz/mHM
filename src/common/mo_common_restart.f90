@@ -143,7 +143,6 @@ CONTAINS
   !>       \param[in] "integer(i4) :: iDomain"      number of domain
   !>       \param[in] "character(256) :: InFile"   Input Path including trailing slash
   !>       \param[in] "character(*) :: level_name" level_name (id)
-  !>       \param[in] "character(*) :: fname_part" filename part (either "mHM" or "mRM")
 
   !    INTENT(INOUT)
   !>       \param[inout] "type(Grid) :: new_grid" grid to save information to

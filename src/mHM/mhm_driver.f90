@@ -105,7 +105,7 @@ PROGRAM mhm_driver
           mrm_coupling_mode
   USE mo_common_variables, ONLY : &
           write_restart, &      ! restart writing flags
-          dirRestartOut, &
+          mhmFileRestartOut, &
           dirConfigOut, &
           dirMorpho, dirLCover, &                                         ! directories
           dirOut, &      ! directories
@@ -459,7 +459,7 @@ PROGRAM mhm_driver
     call message()
     call message('  Write restart file')
     call timer_start(itimer)
-    call write_restart_files(dirRestartOut)
+    call write_restart_files(mhmFileRestartOut)
     call timer_stop(itimer)
     call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
   end if

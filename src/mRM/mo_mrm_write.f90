@@ -59,7 +59,7 @@ contains
   subroutine mrm_write
 
     use mo_common_mhm_mrm_variables, only : evalPer, mrm_coupling_mode, nTstepDay, simPer, warmingDays
-    use mo_common_variables, only : dirRestartOut, domainMeta, write_restart
+    use mo_common_variables, only : mrmFileRestartOut, domainMeta, write_restart
     use mo_mrm_global_variables, only : domain_mrm, &
                                         gauge, mRM_runoff, nGaugesTotal
     use mo_mrm_restart, only : mrm_write_restart
@@ -92,7 +92,7 @@ contains
     if (write_restart) then
       do iDomain = 1, domainMeta%nDomains
         domainID = domainMeta%indices(iDomain)
-        if (domainMeta%doRouting(iDomain)) call mrm_write_restart(iDomain, domainID, dirRestartOut)
+        if (domainMeta%doRouting(iDomain)) call mrm_write_restart(iDomain, domainID, mrmFileRestartOut)
       end do
     end if
 
@@ -165,7 +165,7 @@ contains
     use mo_common_mHM_mRM_variables, only : LCyearId, SimPer, evalPer, mrm_coupling_mode, read_restart, &
                                             resolutionRouting, timeStep, warmPer
     use mo_common_variables, only : LC_year_end, LC_year_start, LCfilename, &
-                                    dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, global_parameters, &
+                                    dirConfigOut, dirLCover, dirMorpho, dirOut, mrmFileRestartOut, global_parameters, &
                                     global_parameters_name, level0, level1, domainMeta, nLCoverScene, processMatrix, &
                                     resolutionHydrology, write_restart
     use mo_kind, only : dp, i4
@@ -313,7 +313,7 @@ contains
         write(uconfig, 224) 'Directory to simulated runoff input      ', dirTotalRunoff(iDomain)
       end if
       write(uconfig, 224) 'Directory to write output by default     ', dirOut(iDomain)
-      write(uconfig, 224) 'Directory to write output when restarted ', dirRestartOut(iDomain)
+      write(uconfig, 224) 'File to write mRM output when restarted  ', mrmFileRestartOut(iDomain)
 
       write(uconfig, 102) 'River Network  (Routing level)'
       write(uconfig, 100) 'Label 0 = intermediate draining cell '

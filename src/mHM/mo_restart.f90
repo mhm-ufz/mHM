@@ -81,7 +81,7 @@ CONTAINS
   !>       in the read restart routines below.
 
   !    INTENT(IN)
-  !>       \param[in] "character(256), dimension(:) :: OutPath" Output Path for each domain
+  !>       \param[in] "character(256), dimension(:) :: OutFile" Output Path for each domain
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -96,7 +96,7 @@ CONTAINS
   ! Robert Schweppe    Feb 2018 - Removed all L0 references
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine write_restart_files(OutPath)
+  subroutine write_restart_files(OutFile)
 
     use mo_common_constants, only : nodata_dp
     use mo_common_restart, only : write_grid_info
@@ -117,7 +117,7 @@ CONTAINS
     character(256) :: Fname
 
     ! Output Path for each domain
-    character(256), dimension(:), intent(in) :: OutPath
+    character(256), dimension(:), intent(in) :: OutFile
 
     integer(i4) :: iDomain, domainID
 
@@ -152,7 +152,7 @@ CONTAINS
       domainID = domainMeta%indices(iDomain)
 
       ! write restart file for iDomain
-      Fname = trim(OutPath(iDomain)) // "mHM_restart_" // trim(num2str(domainID, "(i3.3)")) // ".nc"
+      Fname = trim(OutFile(iDomain))
       ! print a message
       call message("    Writing Restart-file: ", trim(adjustl(Fname)), " ...")
 

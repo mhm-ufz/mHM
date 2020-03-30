@@ -32,7 +32,7 @@ contains
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iDomain"                   number of domain
-  !>       \param[in] "character(256), dimension(:) :: OutPath" list of Output paths per Domain
+  !>       \param[in] "character(256), dimension(:) :: OutFile" list of Output paths per Domain
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -52,7 +52,7 @@ contains
   ! Stephan Thober    Jun 2018 - including varying celerity functionality
   ! Stephan Thober    May 2019 - added L0 info required for Process 3
   
-  subroutine mrm_write_restart(iDomain, domainID, OutPath)
+  subroutine mrm_write_restart(iDomain, domainID, OutFile)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_restart, only : write_grid_info
@@ -82,7 +82,7 @@ contains
     integer(i4), intent(in) :: domainID
 
     ! list of Output paths per Domain
-    character(256), dimension(:), intent(in) :: OutPath
+    character(256), dimension(:), intent(in) :: OutFile
 
     character(256) :: Fname
 
@@ -156,7 +156,7 @@ contains
     allocate(dummy_d3(nrows11, ncols11, nRoutingStates))
 
     ! set restart file name
-    Fname = trim(OutPath(iDomain)) // 'mRM_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc'
+    Fname = trim(OutFile(iDomain))
 
     call message('    Writing mRM restart file to ' // trim(Fname) // ' ...')
 
