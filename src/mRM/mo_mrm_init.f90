@@ -103,7 +103,7 @@ end subroutine mrm_configuration
   subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_common_mHM_mRM_variables, only : dirRestartIn, mrm_coupling_mode, mrm_read_river_network, &
+    use mo_common_mHM_mRM_variables, only : mrmFileRestartIn, mrm_coupling_mode, mrm_read_river_network, &
                                             resolutionRouting
     use mo_common_restart, only : read_grid_info
     use mo_common_variables, only : domainMeta, global_parameters, l0_l1_remap, level0, level1, domainMeta, &
@@ -163,13 +163,13 @@ end subroutine mrm_configuration
         ! this reads the domain properties
         if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains)) 
         ! ToDo: L0_Domain, parallel
-        call read_grid_info(domainMeta%indices(domainMeta%L0DataFrom(iDomain)), dirRestartIn(iDomain), &
-                                                     "0", "mRM", level0(domainMeta%L0DataFrom(iDomain)))
+        call read_grid_info(domainMeta%indices(domainMeta%L0DataFrom(iDomain)), mrmFileRestartIn(iDomain), &
+                                                     "0", level0(domainMeta%L0DataFrom(iDomain)))
         if (mrm_coupling_mode .eq. 0_i4) then
-          call read_grid_info(domainID, dirRestartIn(iDomain), "1", "mRM", level1(iDomain))
+          call read_grid_info(domainID, mrmFileRestartIn(iDomain), "1", level1(iDomain))
         end if
-        call read_grid_info(domainID, dirRestartIn(iDomain), "11", "mRM", level11(iDomain))
-        call mrm_read_restart_config(iDomain, domainID, dirRestartIn(iDomain))
+        call read_grid_info(domainID, mrmFileRestartIn(iDomain), "11", level11(iDomain))
+        call mrm_read_restart_config(iDomain, domainID, mrmFileRestartIn(iDomain))
       else
         if (iDomain .eq. 1) then
           call L0_check_input_routing(domainMeta%L0DataFrom(iDomain))

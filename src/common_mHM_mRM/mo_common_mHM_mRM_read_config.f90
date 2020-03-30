@@ -49,7 +49,8 @@ CONTAINS
   subroutine common_mHM_mRM_read_config(file_namelist, unamelist)
 
     use mo_common_constants, only : maxNoDomains
-    use mo_common_mHM_mRM_variables, only : LCyearId, dds_r, dirRestartIn, evalPer, mcmc_error_params, mcmc_opti, nIterations, &
+    use mo_common_mHM_mRM_variables, only : LCyearId, dds_r, mhmFileRestartIn, mrmFileRestartIn, evalPer,&
+                                            mcmc_error_params, mcmc_opti, nIterations, &
                                             nTStepDay, opti_function, opti_method, optimize, optimize_restart, &
                                             read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
                                             sce_ngs, sce_npg, sce_nps, seed, &
@@ -77,13 +78,14 @@ CONTAINS
 
     real(dp), dimension(maxNoDomains) :: resolution_Routing
 
-    character(256), dimension(maxNoDomains) :: dir_RestartIn
+    character(256), dimension(maxNoDomains) :: mhm_file_RestartIn
+    character(256), dimension(maxNoDomains) :: mrm_file_RestartIn
 
 
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig_mhm_mrm/ timestep, resolution_Routing, optimize, &
             optimize_restart, opti_method, opti_function, &
-            read_restart, mrm_read_river_network, dir_RestartIn
+            read_restart, mrm_read_river_network, mhm_file_RestartIn, mrm_file_RestartIn
     ! namelist for optimization settings
     namelist /Optimization/ nIterations, seed, dds_r, sa_temp, sce_ngs, &
             sce_npg, sce_nps, mcmc_opti, mcmc_error_params
@@ -112,10 +114,12 @@ CONTAINS
     end if
 
     allocate(resolutionRouting(domainMeta%nDomains))
-    allocate(dirRestartIn(domainMeta%nDomains))
+    allocate(mhmFileRestartIn(domainMeta%nDomains))
+    allocate(mrmFileRestartIn(domainMeta%nDomains))
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      dirRestartIn(iDomain) = dir_RestartIn(domainID)
+      mhmFileRestartIn(iDomain) = mhm_file_RestartIn(domainID)
+      mrmFileRestartIn(iDomain) = mrm_file_RestartIn(domainID)
       resolutionRouting(iDomain) = resolution_Routing(domainID)
     end do
 

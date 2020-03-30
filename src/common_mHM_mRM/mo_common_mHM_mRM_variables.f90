@@ -50,7 +50,8 @@ module mo_common_mHM_mRM_variables
   ! DIRECTORIES
   ! ------------------------------------------------------------------
   ! has the dimension of nDomains
-  character(256), dimension(:), allocatable, public :: dirRestartIn! Directory where input of restart is read from
+  character(256), dimension(:), allocatable, public :: mhmFileRestartIn! Directory where input of restart is read from
+  character(256), dimension(:), allocatable, public :: mrmFileRestartIn! Directory where input of restart is read from
 
   ! -------------------------------------------------------------------
   ! OPTIMIZATION

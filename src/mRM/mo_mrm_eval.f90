@@ -53,7 +53,8 @@ contains
 
     use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : HourSecs
-    use mo_common_mHM_mRM_variables, only : LCYearId, dirRestartIn, nTStepDay, optimize, read_restart, resolutionRouting, simPer, &
+    use mo_common_mHM_mRM_variables, only : LCYearId, mrmFileRestartIn, nTStepDay, optimize,&
+                                            read_restart, resolutionRouting, simPer, &
                                             timestep, warmingDays
     use mo_common_variables, only : level1, domainMeta, processMatrix, resolutionHydrology
     use mo_julian, only : caldat, julday
@@ -188,7 +189,7 @@ contains
       end if
       domainID = domainMeta%indices(iDomain)
       ! read states from restart
-      if (read_restart) call mrm_read_restart_states(iDomain, domainID, dirRestartIn(iDomain))
+      if (read_restart) call mrm_read_restart_states(iDomain, domainID, mrmFileRestartIn(iDomain))
       !
       ! get domain information at L11 and L1 if routing is activated
       s1 = level1(iDomain)%iStart

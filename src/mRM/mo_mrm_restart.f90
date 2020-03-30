@@ -445,7 +445,7 @@ contains
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iDomain"    number of domains
-  !>       \param[in] "character(256) :: InPath" Input Path including trailing slash
+  !>       \param[in] "character(256) :: InFile" Input Path including trailing slash
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -457,7 +457,7 @@ contains
   ! Stephan Thober May 2016 - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet because multiple outlets could exist 
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine mrm_read_restart_states(iDomain, domainID, InPath)
+  subroutine mrm_read_restart_states(iDomain, domainID, InFile)
 
     use mo_common_variables, only : nLCoverScene
     use mo_mrm_constants, only : nRoutingStates
@@ -474,7 +474,7 @@ contains
     integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
-    character(256), intent(in) :: InPath
+    character(256), intent(in) :: InFile
 
     integer(i4) :: ii
 
@@ -501,7 +501,7 @@ contains
 
 
     ! set file name
-    fname = trim(InPath) // 'mRM_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc'
+    fname = trim(InFile)
 
     ! get Domain info at L11 including ncells, start, end, and mask
     s11 = level11(iDomain)%iStart
@@ -582,7 +582,7 @@ contains
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iDomain"    number of Domain
-  !>       \param[in] "character(256) :: InPath" Input Path including trailing slash
+  !>       \param[in] "character(256) :: InFile" Input Path including trailing slash
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -599,7 +599,7 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! Stephan Thober May 2019 - added L0 info required for Process 3
 
-  subroutine mrm_read_restart_config(iDomain, domainID, InPath)
+  subroutine mrm_read_restart_config(iDomain, domainID, InFile)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -624,7 +624,7 @@ contains
     integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
-    character(256), intent(in) :: InPath
+    character(256), intent(in) :: InFile
 
     character(256) :: fname
 
@@ -653,7 +653,7 @@ contains
 
 
     ! set file name
-    fname = trim(InPath) // 'mRM_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc'
+    fname = trim(InFile)
     call message('        Reading mRM restart file:  ', trim(adjustl(Fname)), ' ...')
 
     ! get Domain info at L11 mask

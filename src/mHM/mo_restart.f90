@@ -328,7 +328,7 @@ CONTAINS
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iDomain"    number of domains
-  !>       \param[in] "character(256) :: InPath" Input Path including trailing slash
+  !>       \param[in] "character(256) :: InFile" Input Path including trailing slash
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -341,7 +341,7 @@ CONTAINS
   ! Stephan Thober Nov  2016 - moved processMatrix to common variables
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_restart_states(iDomain, domainID, InPath)
+  subroutine read_restart_states(iDomain, domainID, InFile)
 
     use mo_common_variables, only : LC_year_end, LC_year_start, level1, nLCoverScene, processMatrix
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, &
@@ -368,7 +368,7 @@ CONTAINS
     integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
-    character(256), intent(in) :: InPath
+    character(256), intent(in) :: InFile
 
     character(256) :: Fname
 
@@ -404,7 +404,7 @@ CONTAINS
             LAIBoundaries_temp
 
 
-    Fname = trim(InPath) // 'mHM_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc'
+    Fname = trim(InFile)
     ! call message('    Reading states from ', trim(adjustl(Fname)),' ...')
 
     ! get domain information at level 1
