@@ -65,7 +65,7 @@ contains
                                         dirGauges, dirTotalRunoff, filenameTotalRunoff, dirBankfullRunoff, gauge, is_start, &
                                         nGaugesTotal, nGaugesLocal, nInflowGaugesTotal, outputFlxState_mrm, &
                                         timeStep_model_outputs_mrm, &
-                                        varnameTotalRunoff, gw_coupling
+                                        varnameTotalRunoff, gw_coupling, do_calc_river_temp
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
 
@@ -115,7 +115,7 @@ contains
 
     ! namelist spatial & temporal resolution, optmization information
     namelist /mainconfig_mrm/ ALMA_convention, filenameTotalRunoff, varnameTotalRunoff, &
-             gw_coupling
+             gw_coupling, do_calc_river_temp
     ! namelist directories
     namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff, dir_Bankfull_Runoff
     namelist /evaluation_gauges/ nGaugesTotal, NoGauges_domain, Gauge_id, gauge_filename
@@ -139,6 +139,7 @@ contains
     filenameTotalRunoff = 'total_runoff'
     varnameTotalRunoff = 'total_runoff'
     gw_coupling = .false.
+    do_calc_river_temp = .false.
 
     !===============================================================
     !  Read namelist main directories
@@ -511,7 +512,7 @@ contains
         processMatrix(8, 3) = sum(processMatrix(1:8, 2))
         start_index         = processMatrix(8, 3) - processMatrix(8, 2)
         global_parameters(start_index + 1, :) = slope_factor
-    
+
         global_parameters_name(start_index + 1 : start_index + processMatrix(8,2)) = (/ &
              'slope_factor'/)
     end if
@@ -541,7 +542,7 @@ contains
       processMatrix(8, 3) = processMatrix(8, 2)
       ! set variables of mrm (redundant in case of coupling to mhm)
       call append(global_parameters, reshape(streamflow_celerity, (/1, nColPars/)))
-  
+
 
       call append(global_parameters_name, (/ &
               'streamflow_celerity'/))
