@@ -221,6 +221,10 @@ varnametotalrunoff = 'total_runoff'
 filenametotalrunoff = 'total_runoff'
 !> couple mRM to a groundwater model
 gw_coupling = .false.
+!-----------------------------------------------------------------------------
+!> calculate river temperature
+!-----------------------------------------------------------------------------
+river_temp = .false.
 /
 
 !******************************************************************************************

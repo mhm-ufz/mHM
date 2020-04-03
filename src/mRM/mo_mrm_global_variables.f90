@@ -48,7 +48,7 @@ module mo_mrm_global_variables
   character(256), dimension(:), allocatable, public :: dirBankfullRunoff ! Directory where simulated bankfull runoff files are located
 
   ! ------------------------------------------------------------------
-  ! CONSTANT 
+  ! CONSTANT
   ! ------------------------------------------------------------------
   integer(i4), public :: nTstepDay ! Number of time intervals per day
   !                                ! (was previously NAGG)
@@ -69,9 +69,9 @@ module mo_mrm_global_variables
   ! -----------------------------------------------------------------
   ! GAUGED station data
   ! -----------------------------------------------------------------
-  integer(i4), public :: nGaugesTotal ! Number of evaluation gauges for all domains 
+  integer(i4), public :: nGaugesTotal ! Number of evaluation gauges for all domains
   integer(i4), public :: nGaugesLocal ! Number of evaluation gauges for all domains on a subprocess
-  integer(i4), public :: nInflowGaugesTotal ! Number of evaluation gauges for all domains 
+  integer(i4), public :: nInflowGaugesTotal ! Number of evaluation gauges for all domains
   integer(i4), public :: nMeasPerDay ! Number of observations per day,
   !                                  ! e.g. 24 -> hourly discharge, 1 -> daily discharge
   type gaugingStation
@@ -161,7 +161,7 @@ module mo_mrm_global_variables
   real(dp),    public, dimension(:), allocatable :: L11_meandering ! Proxy: L11_length/Lopt
                                                                    ! Lopt := shortest possible way of stream
   real(dp),    public, dimension(:), allocatable :: L11_LinkIn_fAcc ! fAcc inflow per Link
-  
+
   ! Constants
   ! dim1 = number grid cells L11
   integer(i4), public, dimension(:), allocatable :: L11_rowOut ! Grid vertical location of the Outlet
@@ -218,5 +218,9 @@ module mo_mrm_global_variables
   ! the cumulated river heads, for monthly average
   real(dp), public, dimension(:), allocatable :: L0_river_head_mon_sum
   real(dp), public, dimension(:), allocatable :: L0_slope
-
+  ! -------------------------------------------------------------------
+  ! RIVER TEMPERATURE VARIABLES
+  ! -------------------------------------------------------------------
+  logical :: do_calc_river_temp
+  real(dp), dimension(:, :), allocatable, public :: mRM_river_temp ! variable containing river temp for each domain and gauge
 end module mo_mrm_global_variables
