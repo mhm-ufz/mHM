@@ -1,5 +1,11 @@
 # mHM RELEASE NOTES
 
+### Fixed Bugs in develop:
+
+The following bugs from the last release has been solved:
+
+2., 3., 4., 5., 6., 7.
+
 ## mHM v5.10 (June 2019)
 
 ### New Features:
@@ -21,16 +27,23 @@
 
 ### Known bugs:
 
-- Adaptive routing does not allow to run without at least 1 gauge specification
-- Incompatibility of Finalparam.nml format between Intel and GNU
-- If ProcessOption(3) is set to 3 and optimization is activated, the
+1. Adaptive routing does not allow to run without at least 1 gauge specification
+2. Incompatibility of Finalparam.nml format between Intel and GNU
+3. If ProcessOption(3) is set to 3 and optimization is activated, the
   created FinalParam.nml misses the header for the namelist of the
   soil moisture parameters.
-- Land cover scenes cannot be changed between the run generating the
+4. Land cover scenes cannot be changed between the run generating the
   restart file and the run using the restart file. This causes
   unpredictable behaviour by the model.
-- Cut-off for link length is calculated with missing values, but those
-  should be neglected.
+5. Simulation period must span overall land cover scenes specified in the namelist. 
+6. Cut-off for link length is calculated with missing values, but those
+should be neglected.
+7. Using a higher routing resolution than hydrology resolution may
+  cause segmentation faults because mapping from L1id on L11 is not
+  working correctly
+8. If ProcessOption(5) is set to -1 and optimization is activated, the
+  created FinalParam.nml misses the header for the namelist of the
+  PET process.
 
 ### Restrictions:
 

@@ -6,84 +6,277 @@
 
 stages:
   - info
+  - cmake
+  - valgrind
   - test
 
 show-env-vars:
   stage: info
   variables:
     GIT_STRATEGY: none
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME
     SEP: "##################################################################"
-    STR00: "commit date - "
-    STR01: "project: ${CI_PROJECT_PATH}"
-    STR02: "branch: ${CI_COMMIT_REF_NAME}"
-    STR03: "commit: ${CI_COMMIT_SHA}"
-    STR04: "commit msg: ${CI_COMMIT_MESSAGE}"
-    STR05: "clone base path: "
-    STR06: "runner token: ${CI_RUNNER_SHORT_TOKEN}"
+    S00: "commit date - "
+    S01: "project: ${CI_PROJECT_PATH}"
+    S02: "branch: ${CI_COMMIT_REF_NAME}"
+    S03: "commit: ${CI_COMMIT_SHA}"
+    S04: "commit msg: ${CI_COMMIT_MESSAGE}"
+    S05: "clone base path: "
+    S06: "runner token: ${CI_RUNNER_SHORT_TOKEN}"
   script:
-    - echo -e "${SEP}\n${STR00}$(date)\n${SEP}\n${STR01}\n${STR02}\n${STR03}\n${STR04}\n${SEP}\n${STR05}${GIT_CLONE_PATH}\n${STR06}\n${SEP}"
+    - echo -e "${SEP}\n${S00}$(date)\n${SEP}\n${S01}\n${S02}\n${S03}\n${S04}\n${SEP}\n${S05}${GIT_CLONE_PATH}\n${S06}\n${SEP}"
 
-compile-gfortran83:
-  stage: test
+cmake-gcc73:
+  stage: cmake
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/compile-gfortran83
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
-    - source moduleLoadScripts/eve.gfortran83
+    - source moduleLoadScripts/eve.gcc73
     - source CI-scripts/compile
-    - ./mhm
+    - source CI-scripts/compile_debug
+    - source CI-scripts/compile_OpenMP
+    - source CI-scripts/compile_OpenMP_debug
+  artifacts:
+    paths:
+    - mhm
+    - mhm_debug
+    - mhm_openmp
+    - mhm_openmp_debug
 
-check-gnu-serial-debug:
+cmake-gcc73MPI:
+  stage: cmake
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source moduleLoadScripts/eve.gcc73MPI
+    - source CI-scripts/compile_MPI
+    - source CI-scripts/compile_MPI_debug
+  artifacts:
+    paths:
+    - mhm_mpi
+    - mhm_mpi_debug
+
+cmake-gcc83:
+  stage: cmake
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source moduleLoadScripts/eve.gcc83
+    - source CI-scripts/compile
+    - source CI-scripts/compile_debug
+    - source CI-scripts/compile_OpenMP
+    - source CI-scripts/compile_OpenMP_debug
+  artifacts:
+    paths:
+    - mhm
+    - mhm_debug
+    - mhm_openmp
+    - mhm_openmp_debug
+
+cmake-gcc83MPI:
+  stage: cmake
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source moduleLoadScripts/eve.gcc83MPI
+    - source CI-scripts/compile_MPI
+    - source CI-scripts/compile_MPI_debug
+  artifacts:
+    paths:
+    - mhm_mpi
+    - mhm_mpi_debug
+
+cmake-intel18:
+  stage: cmake
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source moduleLoadScripts/eve.intel18
+    - source CI-scripts/compile
+    - source CI-scripts/compile_debug
+    - source CI-scripts/compile_OpenMP
+    - source CI-scripts/compile_OpenMP_debug
+  artifacts:
+    paths:
+    - mhm
+    - mhm_debug
+    - mhm_openmp
+    - mhm_openmp_debug
+
+cmake-intel18MPI:
+  stage: cmake
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source moduleLoadScripts/eve.intel18MPI
+    - source CI-scripts/compile_MPI
+    - source CI-scripts/compile_MPI_debug
+  artifacts:
+    paths:
+    - mhm_mpi
+    - mhm_mpi_debug
+
+valgrind-gcc73:
+  when: always
+  stage: valgrind
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-gcc73
+      artifacts: true
+  script:
+    - source moduleLoadScripts/eve.gcc73
+    - module load Anaconda3
+    - source activate /global/apps/mhm_checks/mhm_env
+    - valgrind --version
+    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
+    # execute mem-use check
+    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
+    - ms_print massif.out.0
+  artifacts:
+    paths:
+    - massif.out.0
+
+valgrind-gcc83:
+  when: always
+  stage: valgrind
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-gcc83
+      artifacts: true
+  script:
+    - source moduleLoadScripts/eve.gcc83
+    - module load Anaconda3
+    - source activate /global/apps/mhm_checks/mhm_env
+    - valgrind --version
+    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
+    # execute mem-use check
+    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
+    - ms_print massif.out.0
+  artifacts:
+    paths:
+    - massif.out.0
+
+valgrind-intel18:
+  when: always
+  stage: valgrind
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-intel18
+      artifacts: true
+  script:
+    - source moduleLoadScripts/eve.intel18
+    - module load Anaconda3
+    - source activate /global/apps/mhm_checks/mhm_env
+    - valgrind --version
+    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
+    # execute mem-use check
+    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
+    - ms_print massif.out.0
+  artifacts:
+    paths:
+    - massif.out.0
+
+check-gcc73:
+  when: always
   stage: test
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-gnu-serial-debug
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-gcc73
+      artifacts: true
   script:
+    - source moduleLoadScripts/eve.gcc73
     - source CI-scripts/pre_check
-    - ./check_mhm_cases -s eve -c gnu -t 0 -r debug
+    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
 
-check-gnu-serial-release:
+check-gcc73MPI:
+  when: always
   stage: test
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-gnu-serial-release
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-gcc73MPI
+      artifacts: true
   script:
+    - source moduleLoadScripts/eve.gcc73MPI
     - source CI-scripts/pre_check
-    - ./check_mhm_cases -s eve -c gnu -t 0 -r release
+    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
 
-check-gnu-parallel-debug:
+check-gcc83:
+  when: always
   stage: test
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-gnu-parallel-debug
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-gcc83
+      artifacts: true
   script:
+    - source moduleLoadScripts/eve.gcc83
     - source CI-scripts/pre_check
-    - ./check_mhm_cases -s eve -c gnu -t 2 -r debug
+    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
 
-check-gnu-parallel-release:
+check-gcc83MPI:
+  when: always
   stage: test
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-gnu-parallel-release
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-gcc83MPI
+      artifacts: true
   script:
+    - source moduleLoadScripts/eve.gcc83MPI
     - source CI-scripts/pre_check
-    - ./check_mhm_cases -s eve -c gnu -t 2 -r release
+    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
 
-# TODO: make this work!
-# NOT WORKING: easybuild not activatable on gitlab-runner
-# --> wrong NetCDF version in use.
-# compile-intel18:
-#   stage: test
-#   variables:
-#     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/compile-intel18
-#   script:
-#     - source moduleLoadScripts/eve.intel18
-#     - source CI-scripts/compile
-#     - ./mhm
+check-intel18:
+  when: always
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-intel18
+      artifacts: true
+  script:
+    - source moduleLoadScripts/eve.intel18
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
 
-# TODO: make this work!
-# FAILING at the moment
-# -> error while loading shared libraries: libf60rts.so.1
-# check-nag-serial-debug:
-#   stage: test
-#   variables:
-#     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/mhm/check-nag-serial-debug
-#   script:
-#     - source CI-scripts/pre_check
-#     - ./check_mhm_cases -s eve -c nag -t 0 -r debug
+check-intel18MPI:
+  when: always
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-intel18MPI
+      artifacts: true
+  script:
+    - source moduleLoadScripts/eve.intel18MPI
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/

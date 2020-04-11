@@ -13,7 +13,7 @@ set -e
 # This script has to be run successfully without failure statements before
 # a new feature is merged back to the trunk of mHM.
 #
-# Use 
+# Use
 #     $ ./check_mhm_cases -h
 # for options.
 #
@@ -256,7 +256,8 @@ if [[ "${icdo}z" == "z" ]] ; then
 		BASH_ENV="/software/lmod/lmod/init/profile"
 
         if [[ $(hostname | cut -d . -f 1) == 'frontend1' || $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
-            module load cdo
+        echo "skip cdo load"
+            # module load cdo
 		else
 		    echo "Host not specified!"
         fi
@@ -281,7 +282,8 @@ if [[ ${system} == "eve" || ${system} == "eve2" ]] ; then
     if [[ $(hostname | cut -d . -f 1) == 'frontend1' || $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
         # the complete path is /global/apps/chspython/modules/pyvenvs/3.6.2
         # but /global/apps/chspython/modules should be in MODULEPATH
-        module load pyvenvs/3.6.2
+        echo "skip python load"
+        # module load pyvenvs/3.6.2
     else
 	echo "Host not specified!"
     fi
@@ -292,7 +294,8 @@ if [[ ${system} == "eve" || ${system} == "eve2" ]] ; then
 
     echo '   try to load module foss for gnu compilers and intel license ...'
     if [[ $(hostname | cut -d . -f 1) == 'frontend1' || $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
-        module load intel
+        echo "skip intel load"
+        # module load iomkl/2018b
     else
 	echo "Host not specified!"
     fi
@@ -312,7 +315,7 @@ system=$(echo ${system} | tr [A-Z] [a-z])
 
 # make jobs
 if [[ ${ijobs} -eq 0 ]] ; then mjobs='' ; else mjobs="-j ${ijobs}" ; fi
-    
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Do Tests
 #
@@ -325,7 +328,7 @@ for irelease in ${release} ; do
             echo '   using System:   '${system}
             echo '         Compiler: '${compiler}
             echo '         Release:  '${irelease}
-	    
+
             if [[ ${thread} -eq 0 ]] ; then
                 echo '         OpenMP:   False'
                 eval make -f ${makefile} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean ${devnull}
@@ -371,13 +374,13 @@ for irelease in ${release} ; do
                 else
                     ln -sf ../../${mrm_exe} ${check_prog}
                 fi
-                    
+
 
 		# create the empty dirs, which git does not support
                 if [[ ! -d 'output_b1' ]] ; then mkdir 'output_b1' ; fi
                 if [[ ! -d 'restart' ]] ; then mkdir 'restart' ; fi
 
-		
+
                 # remove old files
                 if [[ -f mhm_terminal.${pid}.out ]] ; then rm mhm_terminal.${pid}.out ; fi
                 if [[ -f cdo.${pid}.terminal ]] ; then rm cdo.${pid}.terminal ; fi
@@ -396,7 +399,7 @@ for irelease in ${release} ; do
                 set -e
 
                 if [[ "${found/Finished}z" != "${found}z" ]] ; then
-                    
+
                     nRecordsDiffer=0
                     cd output_save
                     set +e

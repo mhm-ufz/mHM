@@ -1,7 +1,6 @@
-source moduleLoadScripts/eve.gfortran83
-mkdir build
-cd build/
+mkdir release
+cd release/
 cmake ..
-make
+make -j 4
 cd ..
-cp build/mhm .
+cp release/mhm .

@@ -65,6 +65,9 @@ Some cygwin versions create a new home directory for you. You may check e.g. her
 
     C:\cygwin64\home\$username
 
+As from December 2019, step-by-step guidelines, how to install all netCDF dependencies 
+can be viewed in [this youtube video](https://www.youtube.com/watch?v=G0i7eDEIfPA&list=PLaT_WNTBfPhK2UT0wkmJR5luEoc9qhbFf) 
+created by Cüneyd Demirel (Istanbul Technical University).
 
 ### Ubuntu, Mint and other apt-get based systems with matching repositories:
 
@@ -100,6 +103,22 @@ for example for the GNU 7.3 compiler:
 
     source moduleLoadScripts/eve.gfortran73
 
+Starting from Jan 2020, if you want to compile mHM code with intel on EVE (under EasyBuild), 
+you need to load following modules:
+
+    module purge
+    ml uge/8.5.5-2 Java/1.8.0_202 grid-engine-tools/0.8.3-3-g93f1efa icc/2018.3.222-GCC-7.3.0-2.30 ifort/2018.3.222-GCC-7.3.0-2.30 iccifort/2018.3.222-GCC-7.3.0-2.30
+
+If you use cmake to compile mHM with easy-build, the netcdf-Fortran library and cmake can be loaded as
+ 
+    
+    module load foss/2018b
+    module load netCDF-Fortran
+    module load CMake 
+    
+Then follow the installation instructions.
+    
+    
 ### MacOS:
 
 *(to be added)*
