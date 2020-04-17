@@ -79,27 +79,27 @@ contains
       ! ACCUMULATION OF DISCHARGE TO A ROUTING CELL
       ! ------------------------------------------------------------------
       ! Hydrologic timestep in seconds
-      TST = HourSecs*TS
+      ! TST = HourSecs*TS
 
-      if (map_flag) then
-         TqAcc = 0._dp
-         ! loop over high-resolution cells (L1) and add discharge to
-         ! corresponding low-resolution cells (L11)
-         do k = 1, size(qAll, 1)
-            TqAcc(L1_L11_Id(k)) = TqAcc(L1_L11_Id(k)) + TqAll(k)*efecArea(k)
-         end do
-         TqAcc = TqAcc*1000.0_dp/TST
-         !
-      else
-         ! initialize qout
-         TqAcc = nodata_dp
-         do k = 1, size(qAcc, 1)
-            ! map temp-energy flux from coarse L1 resolution to fine L11 resolution
-            TqAcc(k) = TqAll(L11_L1_Id(k))
-         end do
-         ! adjust temp-energy flux by area cell
-         TqAcc(:) = TqAcc(:)*L11_areaCell(:)*1000.0_dp/TST
-      end if
+      ! if (map_flag) then
+      !    TqAcc = 0._dp
+      !    ! loop over high-resolution cells (L1) and add discharge to
+      !    ! corresponding low-resolution cells (L11)
+      !    do k = 1, size(qAll, 1)
+      !       TqAcc(L1_L11_Id(k)) = TqAcc(L1_L11_Id(k)) + TqAll(k)*efecArea(k)
+      !    end do
+      !    TqAcc = TqAcc*1000.0_dp/TST
+      !    !
+      ! else
+      !    ! initialize qout
+      !    TqAcc = nodata_dp
+      !    do k = 1, size(qAcc, 1)
+      !       ! map temp-energy flux from coarse L1 resolution to fine L11 resolution
+      !       TqAcc(k) = TqAll(L11_L1_Id(k))
+      !    end do
+      !    ! adjust temp-energy flux by area cell
+      !    TqAcc(:) = TqAcc(:)*L11_areaCell(:)*1000.0_dp/TST
+      ! end if
 
    END SUBROUTINE L11_temperature_acc
 
@@ -171,7 +171,7 @@ contains
             end if
          end do
       end if
-   end subroutine add_inflow
+   end subroutine add_inflow_E
 
    ! ------------------------------------------------------------------
 
@@ -267,51 +267,51 @@ contains
       !                             Muskingum Flood Routing
       !--------------------------------------------------------------------------
       ! initialize total input at point time IT in all nodes
-      netNode_TqTIN(:, IT) = 0.0_dp
-      !--------------------------------------------------------------------------
-      ! Links in sequential mode .... with single node
-      !--------------------------------------------------------------------------
-      do k = 1, nLinks
-         ! get LINK routing order -> i
-         i = netPerm(k)
-         iNode = netLink_fromN(i)
-         tNode = netLink_toN(i)
+      ! netNode_TqTIN(:, IT) = 0.0_dp
+      ! !--------------------------------------------------------------------------
+      ! ! Links in sequential mode .... with single node
+      ! !--------------------------------------------------------------------------
+      ! do k = 1, nLinks
+      !    ! get LINK routing order -> i
+      !    i = netPerm(k)
+      !    iNode = netLink_fromN(i)
+      !    tNode = netLink_toN(i)
 
-         ! accumulate all inputs in iNode
-         netNode_TqTIN(iNode, IT) = netNode_TqTIN(iNode, IT) + netNode_TqOUT(iNode)
+      !    ! accumulate all inputs in iNode
+      !    netNode_TqTIN(iNode, IT) = netNode_TqTIN(iNode, IT) + netNode_TqOUT(iNode)
 
-         ! routing iNode
-         netNode_TqTR(iNode, IT) = netNode_TqTR(iNode, IT1) &
-                                   + netLink_C1(i)*(netNode_TqTIN(iNode, IT1) - netNode_TqTR(iNode, IT1)) &
-                                   + netLink_C2(i)*(netNode_TqTIN(iNode, IT) - netNode_TqTIN(iNode, IT1))
+      !    ! routing iNode
+      !    netNode_TqTR(iNode, IT) = netNode_TqTR(iNode, IT1) &
+      !                              + netLink_C1(i)*(netNode_TqTIN(iNode, IT1) - netNode_TqTR(iNode, IT1)) &
+      !                              + netLink_C2(i)*(netNode_TqTIN(iNode, IT) - netNode_TqTIN(iNode, IT1))
 
-         ! check if the inflow from upstream cells should be deactivated
-         if (nInflowGauges .GT. 0) then
-            do i = 1, nInflowGauges
-               ! check if downstream Node (tNode) is inflow gauge and headwaters should be ignored
-               if ((tNode == InflowNodeList(i)) .AND. (.NOT. InflowHeadwater(i))) netNode_TqTR(iNode, IT) = 0.0_dp
-            end do
-         end if
+      !    ! check if the inflow from upstream cells should be deactivated
+      !    if (nInflowGauges .GT. 0) then
+      !       do i = 1, nInflowGauges
+      !          ! check if downstream Node (tNode) is inflow gauge and headwaters should be ignored
+      !          if ((tNode == InflowNodeList(i)) .AND. (.NOT. InflowHeadwater(i))) netNode_TqTR(iNode, IT) = 0.0_dp
+      !       end do
+      !    end if
 
-         ! add routed water to downstream node
-         netNode_TqTIN(tNode, IT) = netNode_TqTIN(tNode, IT) + netNode_TqTR(iNode, IT)
-      end do
+      !    ! add routed water to downstream node
+      !    netNode_TqTIN(tNode, IT) = netNode_TqTIN(tNode, IT) + netNode_TqTR(iNode, IT)
+      ! end do
 
-      ! --------------------------------------------------------------------------
-      !  Accumulate all inputs in tNode (netNode_TqOUT) ONLY for last link
-      ! --------------------------------------------------------------------------
-      tNode = netLink_toN(netPerm(nLinks))
-      netNode_TqTIN(tNode, IT) = netNode_TqTIN(tNode, IT) + netNode_TqOUT(tNode)
+      ! ! --------------------------------------------------------------------------
+      ! !  Accumulate all inputs in tNode (netNode_TqOUT) ONLY for last link
+      ! ! --------------------------------------------------------------------------
+      ! tNode = netLink_toN(netPerm(nLinks))
+      ! netNode_TqTIN(tNode, IT) = netNode_TqTIN(tNode, IT) + netNode_TqOUT(tNode)
 
-      ! --------------------------------------------------------------------------
-      !  save modeled discharge at time step tt then shift flow storages
-      !  (NOTE aggregation to daily values to be done outside)
-      ! --------------------------------------------------------------------------
-      !  store generated discharge
-      netNode_temp(1:nNodes) = netNode_TqTIN(1:nNodes, IT)
-      !  backflow t-> t-1
-      netNode_TqTR(1:nNodes, IT1) = netNode_TqTR(1:nNodes, IT)
-      netNode_TqTIN(1:nNodes, IT1) = netNode_TqTIN(1:nNodes, IT)
+      ! ! --------------------------------------------------------------------------
+      ! !  save modeled discharge at time step tt then shift flow storages
+      ! !  (NOTE aggregation to daily values to be done outside)
+      ! ! --------------------------------------------------------------------------
+      ! !  store generated discharge
+      ! netNode_temp(1:nNodes) = netNode_TqTIN(1:nNodes, IT)
+      ! !  backflow t-> t-1
+      ! netNode_TqTR(1:nNodes, IT1) = netNode_TqTR(1:nNodes, IT)
+      ! netNode_TqTIN(1:nNodes, IT1) = netNode_TqTIN(1:nNodes, IT)
 
    end subroutine L11_routing_E
 
