@@ -153,6 +153,8 @@ CONTAINS
       temp_weights, read_meteo_weights, &
       temp &
   )
+    use mo_constants, only : T0_dp  ! 273.15 - Celcius <-> Kelvin [K]
+
     implicit none
 
     ! is day or night
@@ -178,7 +180,7 @@ CONTAINS
 
     if (read_meteo_weights) then
       ! apply weights
-      temp = (temp + 273.15_dp) * temp_weights - 273.15 ! temperature weights are in K
+      temp = (temp + T0_dp) * temp_weights - T0_dp ! temperature weights are in K
     else
       ! Distribute Temp into time steps night/day
       if(ntimesteps_day .gt. 1.0_dp) then
