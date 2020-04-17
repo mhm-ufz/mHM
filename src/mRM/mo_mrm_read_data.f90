@@ -270,7 +270,8 @@ contains
     use mo_message, only : message
     use mo_mrm_file, only : udischarge
     use mo_mrm_global_variables, only : InflowGauge, gauge, mRM_runoff, nGaugesLocal, &
-                                        nInflowGaugesTotal, nMeasPerDay
+                                        nInflowGaugesTotal, nMeasPerDay, &
+                                        do_calc_river_temp, mRM_river_temp
     use mo_read_timeseries, only : read_timeseries
     use mo_string_utils, only : num2str
 
@@ -299,7 +300,17 @@ contains
     allocate(mRM_runoff(maxTimeSteps, nGaugesLocal))
     mRM_runoff = nodata_dp
 
-    ! READ GAUGE DATA
+    !----------------------------------------------------------
+    ! INITIALIZE RIVER TEMPERATURE
+    !----------------------------------------------------------
+    ! if (do_calc_river_temp) then
+    !     allocate(mRM_river_temp(maxTimeSteps, nGaugesLocal))
+    ! else ! dummy allocation
+    !     allocate(mRM_river_temp(1, 1))
+    ! end if
+    ! mRM_river_temp = nodata_dp
+
+      ! READ GAUGE DATA
     do iGauge = 1, nGaugesLocal
       ! get domain id
       iDomain = gauge%domainId(iGauge)
@@ -444,7 +455,7 @@ contains
 
   !>         \details reads the bankfull runoff, which can be calculated with
   !>         the script in mhm/post_proc/bankfull_discharge.py
-  
+
   !     INTENT(IN)
   !>        \param[in] "integer(i4)               :: iDomain"  domain id
 
