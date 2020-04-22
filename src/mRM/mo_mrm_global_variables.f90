@@ -45,7 +45,7 @@ module mo_mrm_global_variables
   character(256), dimension(:), allocatable, public :: dirTotalRunoff ! Directory where simulated total runoff files are located
   character(256), public :: filenameTotalRunoff ! Filename of simulated total runoff file
   character(256), public :: varnameTotalRunoff ! variable name of total runoff
-  character(256), dimension(:), allocatable, public :: dirBankfullRunoff ! Directory where simulated bankfull runoff files are located
+  character(256), dimension(:), allocatable, public :: dirBankfullRunoff ! Dir. where simulated bankfull runoff files are located
 
   ! ------------------------------------------------------------------
   ! CONSTANT
@@ -221,6 +221,8 @@ module mo_mrm_global_variables
   ! -------------------------------------------------------------------
   ! RIVER TEMPERATURE VARIABLES
   ! -------------------------------------------------------------------
-  logical :: do_calc_river_temp
-  real(dp), dimension(:, :), allocatable, public :: mRM_river_temp ! variable containing river temp for each domain and gauge
+  logical, public :: do_calc_river_temp ! switch to turn on temperature routing
+  real(dp), public :: albedo_water ! albedo of open water
+  real(dp), public :: pt_a_water ! priestley taylor alpha parameter for PET on open water
+  real(dp), public, dimension(:, :), allocatable :: mRM_river_temp ! variable containing river temp for each domain and gauge
 end module mo_mrm_global_variables

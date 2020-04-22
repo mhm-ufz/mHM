@@ -225,7 +225,7 @@ gw_coupling = .false.
 !> calculate river temperature
 !-----------------------------------------------------------------------------
 do_calc_river_temp = .false.
-!> albedo of water (0.15 for tilt angle between 10 and 20 degrees -> Wanders et.al. 2019)
+!> albedo of open water (0.15 for tilt angle between 10 and 20 degrees -> Wanders et.al. 2019)
 albedo_water = 0.15
 !> priestley taylor alpha parameter for PET on open water (1.26 -> Gordon Bonan 2015)
 pt_a_water = 1.26
