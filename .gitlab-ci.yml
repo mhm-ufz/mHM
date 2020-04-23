@@ -26,6 +26,19 @@ show-env-vars:
   script:
     - echo -e "${SEP}\n${S00}$(date)\n${SEP}\n${S01}\n${S02}\n${S03}\n${S04}\n${SEP}\n${S05}${GIT_CLONE_PATH}\n${S06}\n${SEP}"
 
+cmake-nag62:
+  stage: cmake
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source moduleLoadScripts/eve.nag62
+    - source CI-scripts/compile
+    - source CI-scripts/compile_debug
+  artifacts:
+    paths:
+    - mhm
+    - mhm_debug
+
 cmake-gcc73:
   stage: cmake
   variables:
@@ -178,6 +191,23 @@ valgrind-intel18:
   artifacts:
     paths:
     - massif.out.0
+
+check-nag62:
+  when: always
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-nag62
+      artifacts: true
+  script:
+    - source moduleLoadScripts/eve.nag62
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
 
 check-gcc73:
   when: always
