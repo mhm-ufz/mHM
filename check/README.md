@@ -8,7 +8,7 @@ A summary for all cases is given at the end.
 
 ## Usage
 
-    python run_mhm_checks.py [-h] [-e EXE [EXE ...]] [-v] [-l LOG_PATH] [-m MPI_NOP] [-t OPENMP_THREADS]
+    python run_mhm_checks.py [-h] [-e EXE [EXE ...]] [-v] [-l LOG_PATH] [-m MPI_NOP] [-t OPENMP_THREADS] [-s [SKIP [SKIP ...]]]
 
 Run the mhm check cases with a given mhm executable.
 
