@@ -97,6 +97,13 @@ function(cpp_definitions defName defCMakeName value cacheString)
 	endif()
 endfunction()
 
+# add pre-processor -fpp for NAG
+CHECK_Fortran_COMPILER_FLAG("-fpp" FPP_FLAG)
+# if the flag exists, we add it to the compilation flags
+if (FPP_FLAG)
+	set(ADDITIONAL_GCC_FLAGS "-fpp")
+endif()
+
 # Add definitions. These should later be set via the cache line file and only
 # have a default value here. These part only concerns user build definitions like MRM2MHM
 #add_definitions(-DMRM2MHM=.true.)
