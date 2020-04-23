@@ -221,6 +221,11 @@ module mo_mrm_global_variables
   ! -------------------------------------------------------------------
   ! RIVER TEMPERATURE VARIABLES
   ! -------------------------------------------------------------------
+  type riv_temp_def
+    !! This is a container to define the river temperature routing
+    real(dp), public, dimension(:), allocatable :: L1_direct_runoff
+
+  end type riv_temp_def
   logical, public :: do_calc_river_temp ! switch to turn on temperature routing
   real(dp), public :: albedo_water ! albedo of open water
   real(dp), public :: pt_a_water ! priestley taylor alpha parameter for PET on open water
