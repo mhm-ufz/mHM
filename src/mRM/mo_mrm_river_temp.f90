@@ -27,7 +27,7 @@ contains
    !>       downscales runoff from L1 to L11 if routing resolution is lower
    !>       than hydrology resolution.
 
-   !    INTENT(IN)
+   !    intent(IN)
    !>       \param[in] "real(dp), dimension(:) :: qall"         total runoff L1 [mm tst-1]
    !>       \param[in] "real(dp), dimension(:) :: efecarea"     effective area in [km2] at Level 1
    !>       \param[in] "integer(i4), dimension(:) :: L1_L11_Id" L11 Ids mapped on L1
@@ -37,7 +37,7 @@ contains
    !>       \param[in] "logical :: map_flag"                    Flag indicating whether routing resolution is higher than
    !>       hydrologic one
 
-   !    INTENT(OUT)
+   !    intent(OUT)
    !>       \param[out] "real(dp), dimension(:) :: qAcc" aggregated runoff at L11 [m3 s-1]
 
    !    HISTORY
@@ -48,14 +48,14 @@ contains
    ! Modifications:
    ! Sebastian Mueller  Apr 2020 - Creation
 
-   SUBROUTINE L11_temperature_acc(TqAll, efecArea, L1_L11_Id, L11_areaCell, L11_L1_Id, TS, map_flag, TqAcc)
+   subroutine L11_acc_E(E_all, efecArea, L1_L11_Id, L11_areaCell, L11_L1_Id, TS, map_flag, TqAcc)
 
       use mo_common_constants, only: HourSecs, nodata_dp
 
       implicit none
 
-      ! total runoff L1 [mm tst-1]
-      real(dp), intent(in), dimension(:) :: Tqall
+      ! total energy flux L1 [mm tst-1]
+      real(dp), intent(in), dimension(:) :: E_all
       ! effective area in [km2] at Level 1
       real(dp), intent(in), dimension(:) :: efecarea
       ! L11 Ids mapped on L1
@@ -86,7 +86,7 @@ contains
       !    ! loop over high-resolution cells (L1) and add discharge to
       !    ! corresponding low-resolution cells (L11)
       !    do k = 1, size(qAll, 1)
-      !       TqAcc(L1_L11_Id(k)) = TqAcc(L1_L11_Id(k)) + TqAll(k)*efecArea(k)
+      !       TqAcc(L1_L11_Id(k)) = TqAcc(L1_L11_Id(k)) + E_all(k)*efecArea(k)
       !    end do
       !    TqAcc = TqAcc*1000.0_dp/TST
       !    !
@@ -95,13 +95,13 @@ contains
       !    TqAcc = nodata_dp
       !    do k = 1, size(qAcc, 1)
       !       ! map temp-energy flux from coarse L1 resolution to fine L11 resolution
-      !       TqAcc(k) = TqAll(L11_L1_Id(k))
+      !       TqAcc(k) = E_all(L11_L1_Id(k))
       !    end do
       !    ! adjust temp-energy flux by area cell
       !    TqAcc(:) = TqAcc(:)*L11_areaCell(:)*1000.0_dp/TST
       ! end if
 
-   END SUBROUTINE L11_temperature_acc
+   end subroutine L11_acc_E
 
    ! ------------------------------------------------------------------
 
@@ -119,7 +119,7 @@ contains
    !>          river network. If this cell is not a headwater then the streamflow
    !>          produced upstream will be neglected.
 
-   !    INTENT(IN)
+   !    intent(IN)
    !>       \param[in] "integer(i4) :: nInflowGauges"                 [-]      number of inflow points
    !>       \param[in] "integer(i4), dimension(:) :: InflowIndexList" [-]      index of inflow points
    !>       \param[in] "logical, dimension(:) :: InflowHeadwater"     [-]      if to consider headwater cells of inflow gauge
@@ -127,15 +127,15 @@ contains
    !>       \param[in] "real(dp), dimension(:) :: QInflow"            [m3 s-1] inflowing water
    !>       \param[in] "real(dp), dimension(:) :: TInflow"            [K]      inflowing water temperature
 
-   !    INTENT(INOUT)
-   !>       \param[inout] "real(dp), dimension(:) :: EOut" [K m3 s-1] Series of attenuated energy-flux
+   !    intent(INOUT)
+   !>       \param[inout] "real(dp), dimension(:) :: E_out" [K m3 s-1] Series of attenuated energy-flux
 
    !    HISTORY
    !>       \author Sebastian Mueller
 
    !>       \date Apr 2020
 
-   subroutine add_inflow_E(nInflowGauges, InflowIndexList, InflowHeadwater, InflowNodeList, QInflow, TInflow, EOut)
+   subroutine add_inflow_E(nInflowGauges, InflowIndexList, InflowHeadwater, InflowNodeList, QInflow, TInflow, E_out)
 
       use mo_kind, only: dp, i4
 
@@ -154,7 +154,7 @@ contains
       ! [K]   inflowing water temperature
       real(dp), intent(in), dimension(:) :: TInflow
       ! [m3 s-1] Series of attenuated runoff
-      real(dp), intent(inout), dimension(:) :: EOut
+      real(dp), intent(inout), dimension(:) :: E_out
       ! looping var
       integer(i4) :: ii
 
@@ -164,10 +164,10 @@ contains
          do ii = 1, nInflowGauges
             if (InflowHeadwater(ii)) then
                ! add inflowing energy flux to energy flux produced by upstream/headwater cells
-               EOut(InflowNodeList(ii)) = EOut(InflowNodeList(ii)) + QInflow(InflowIndexList(ii))*TInflow(InflowIndexList(ii))
+               E_out(InflowNodeList(ii)) = E_out(InflowNodeList(ii)) + QInflow(InflowIndexList(ii))*TInflow(InflowIndexList(ii))
             else
                ! put only timeseries and cut upstream/headwater cells produced energy flux for routing
-               EOut(InflowNodeList(ii)) = QInflow(InflowIndexList(ii))*TInflow(InflowIndexList(ii))
+               E_out(InflowNodeList(ii)) = QInflow(InflowIndexList(ii))*TInflow(InflowIndexList(ii))
             end if
          end do
       end if
@@ -179,7 +179,7 @@ contains
    !        L11_routing_E
 
    !    PURPOSE
-   !>       \brief Performs temperature routing for mHM at L11 upscaled network
+   !>       \brief Performs temperature energy routing for mHM at L11 upscaled network
    !>       (\ref fig_routing "Routing Network").
    !>       \details
    !>       Hydrograph routing is carried out with the Muskingum algorithm
@@ -188,7 +188,7 @@ contains
    !>       application of this model would hardly exhibit abruptly
    !>       changing hydrographs with supercritical flows.
 
-   !    INTENT(IN)
+   !    intent(IN)
    !>       \param[in] "integer(i4) :: nNodes"                       number of network nodes = nCells1
    !>       \param[in] "integer(i4) :: nLinks"                       number of stream segment (reaches)
    !>       \param[in] "integer(i4), dimension(:) :: netPerm"        routing order of a given domain (permutation)
@@ -196,19 +196,19 @@ contains
    !>       \param[in] "integer(i4), dimension(:) :: netLink_toN"    to node
    !>       \param[in] "real(dp), dimension(:) :: netLink_C1"        routing parameter  C1 (\cite CMM1988 p. 25-41)
    !>       \param[in] "real(dp), dimension(:) :: netLink_C2"        routing parameters C2 (id)
-   !>       \param[in] "real(dp), dimension(:) :: netNode_TqOUT"      Total outflow from cells (given domain) L11 at time
+   !>       \param[in] "real(dp), dimension(:) :: netNode_E_lat"      Total outflow from cells (given domain) L11 at time
    !>       tt in [m3 s-1]
    !>       \param[in] "integer(i4) :: nInflowGauges"                [-]      number of inflow points
    !>       \param[in] "logical, dimension(:) :: InflowHeadwater"    [-]      if to consider headwater cells of inflow
    !>       gauge
    !>       \param[in] "integer(i4), dimension(:) :: InflowNodeList" [-]      L11 ID of inflow points
 
-   !    INTENT(INOUT)
-   !>       \param[inout] "real(dp), dimension(:, :) :: netNode_TqTIN" [m3 s-1] Total inputs at t-1 and t
-   !>       \param[inout] "real(dp), dimension(:, :) :: netNode_TqTR"  [m3 s-1] Transformed outflow leaving node I (Muskingum)
+   !    intent(INOUT)
+   !>       \param[inout] "real(dp), dimension(:, :) :: netNode_E_in" [m3 s-1] Total inputs at t-1 and t
+   !>       \param[inout] "real(dp), dimension(:, :) :: netNode_E_rout"  [m3 s-1] Transformed energy flux leaving node I (Muskingum)
 
-   !    INTENT(OUT)
-   !>       \param[out] "real(dp), dimension(nNodes) :: netNode_temp" [m3 s-1] Simulated routed discharge
+   !    intent(OUT)
+   !>       \param[out] "real(dp), dimension(nNodes) :: netNode_E_gen" [m3 s-1] Generated routed energy flux
 
    !    HISTORY
    !>       \authors Sebastian Mueller
@@ -218,8 +218,8 @@ contains
    ! Modifications:
    ! Sebastian Mueller Apr 2020 - creation
 
-   subroutine L11_routing_E(nNodes, nLinks, netPerm, netLink_fromN, netLink_toN, netLink_C1, netLink_C2, netNode_TqOUT, &
-                            nInflowGauges, InflowHeadwater, InflowNodeList, netNode_TqTIN, netNode_TqTR, netNode_temp)
+   subroutine L11_routing_E(nNodes, nLinks, netPerm, netLink_fromN, netLink_toN, netLink_C1, netLink_C2, netNode_E_lat, &
+                            nInflowGauges, InflowHeadwater, InflowNodeList, netNode_E_in, netNode_E_rout, netNode_E_gen)
       implicit none
 
       ! number of network nodes = nCells1
@@ -237,7 +237,7 @@ contains
       ! routing parameters C2 (id)
       real(dp), dimension(:), intent(in) :: netLink_C2
       ! Total outflow from cells (given domain) L11 at time tt in [m3 s-1]
-      real(dp), dimension(:), intent(in) :: netNode_TqOUT
+      real(dp), dimension(:), intent(in) :: netNode_E_lat
       ! [-]      number of inflow points
       integer(i4), intent(in) :: nInflowGauges
       ! [-]      if to consider headwater cells of inflow gauge
@@ -245,12 +245,12 @@ contains
       ! [-]      L11 ID of inflow points
       integer(i4), dimension(:), intent(in) :: InflowNodeList
       ! [m3 s-1] Total inputs at t-1 and t
-      real(dp), dimension(:, :), intent(inout) :: netNode_TqTIN
+      real(dp), dimension(:, :), intent(inout) :: netNode_E_in
       ! [m3 s-1] Transformed outflow leaving
       ! node I (Muskingum)
-      real(dp), dimension(:, :), intent(inout) :: netNode_TqTR
+      real(dp), dimension(:, :), intent(inout) :: netNode_E_rout
       ! [m3 s-1] Simulated routed discharge
-      real(dp), dimension(nNodes), intent(out) :: netNode_temp
+      real(dp), dimension(nNodes), intent(out) :: netNode_E_gen
 
       integer(i4) :: i, k, iNode, tNode
       ! current routing state (2)
@@ -259,60 +259,123 @@ contains
       integer(i4), parameter :: IT1 = 1
 
       ! Entry value for the auxiliary vectors
-      !   netNode_TqTIN(iNode,:)
-      !   netNode_TqTR(iNode,:)
+      !   netNode_E_in(iNode,:)
+      !   netNode_E_rout(iNode,:)
       ! which store current and past states of
       ! incoming and outgoing of discharge at iNode
       !--------------------------------------------------------------------------
       !                             Muskingum Flood Routing
       !--------------------------------------------------------------------------
       ! initialize total input at point time IT in all nodes
-      ! netNode_TqTIN(:, IT) = 0.0_dp
-      ! !--------------------------------------------------------------------------
-      ! ! Links in sequential mode .... with single node
-      ! !--------------------------------------------------------------------------
-      ! do k = 1, nLinks
-      !    ! get LINK routing order -> i
-      !    i = netPerm(k)
-      !    iNode = netLink_fromN(i)
-      !    tNode = netLink_toN(i)
+      netNode_E_in(:, IT) = 0.0_dp
+      !--------------------------------------------------------------------------
+      ! Links in sequential mode .... with single node
+      !--------------------------------------------------------------------------
+      do k = 1, nLinks
+         ! get LINK routing order -> i
+         i = netPerm(k)
+         iNode = netLink_fromN(i)
+         tNode = netLink_toN(i)
 
-      !    ! accumulate all inputs in iNode
-      !    netNode_TqTIN(iNode, IT) = netNode_TqTIN(iNode, IT) + netNode_TqOUT(iNode)
+         ! accumulate all inputs in iNode
+         netNode_E_in(iNode, IT) = netNode_E_in(iNode, IT) + netNode_E_lat(iNode)
 
-      !    ! routing iNode
-      !    netNode_TqTR(iNode, IT) = netNode_TqTR(iNode, IT1) &
-      !                              + netLink_C1(i)*(netNode_TqTIN(iNode, IT1) - netNode_TqTR(iNode, IT1)) &
-      !                              + netLink_C2(i)*(netNode_TqTIN(iNode, IT) - netNode_TqTIN(iNode, IT1))
+         ! routing iNode
+         netNode_E_rout(iNode, IT) = netNode_E_rout(iNode, IT1) &
+                                   + netLink_C1(i)*(netNode_E_in(iNode, IT1) - netNode_E_rout(iNode, IT1)) &
+                                   + netLink_C2(i)*(netNode_E_in(iNode, IT) - netNode_E_in(iNode, IT1))
 
-      !    ! check if the inflow from upstream cells should be deactivated
-      !    if (nInflowGauges .GT. 0) then
-      !       do i = 1, nInflowGauges
-      !          ! check if downstream Node (tNode) is inflow gauge and headwaters should be ignored
-      !          if ((tNode == InflowNodeList(i)) .AND. (.NOT. InflowHeadwater(i))) netNode_TqTR(iNode, IT) = 0.0_dp
-      !       end do
-      !    end if
+         ! check if the inflow from upstream cells should be deactivated
+         if (nInflowGauges .GT. 0) then
+            do i = 1, nInflowGauges
+               ! check if downstream Node (tNode) is inflow gauge and headwaters should be ignored
+               if ((tNode == InflowNodeList(i)) .AND. (.NOT. InflowHeadwater(i))) netNode_E_rout(iNode, IT) = 0.0_dp
+            end do
+         end if
 
-      !    ! add routed water to downstream node
-      !    netNode_TqTIN(tNode, IT) = netNode_TqTIN(tNode, IT) + netNode_TqTR(iNode, IT)
-      ! end do
+         ! add routed water to downstream node
+         netNode_E_in(tNode, IT) = netNode_E_in(tNode, IT) + netNode_E_rout(iNode, IT)
+      end do
 
-      ! ! --------------------------------------------------------------------------
-      ! !  Accumulate all inputs in tNode (netNode_TqOUT) ONLY for last link
-      ! ! --------------------------------------------------------------------------
-      ! tNode = netLink_toN(netPerm(nLinks))
-      ! netNode_TqTIN(tNode, IT) = netNode_TqTIN(tNode, IT) + netNode_TqOUT(tNode)
+      ! --------------------------------------------------------------------------
+      !  Accumulate all inputs in tNode (netNode_E_lat) ONLY for last link
+      ! --------------------------------------------------------------------------
+      tNode = netLink_toN(netPerm(nLinks))
+      netNode_E_in(tNode, IT) = netNode_E_in(tNode, IT) + netNode_E_lat(tNode)
 
-      ! ! --------------------------------------------------------------------------
-      ! !  save modeled discharge at time step tt then shift flow storages
-      ! !  (NOTE aggregation to daily values to be done outside)
-      ! ! --------------------------------------------------------------------------
-      ! !  store generated discharge
-      ! netNode_temp(1:nNodes) = netNode_TqTIN(1:nNodes, IT)
-      ! !  backflow t-> t-1
-      ! netNode_TqTR(1:nNodes, IT1) = netNode_TqTR(1:nNodes, IT)
-      ! netNode_TqTIN(1:nNodes, IT1) = netNode_TqTIN(1:nNodes, IT)
+      ! --------------------------------------------------------------------------
+      !  save modeled discharge at time step tt then shift flow storages
+      !  (NOTE aggregation to daily values to be done outside)
+      ! --------------------------------------------------------------------------
+      !  store generated energy fluxes
+      netNode_E_gen(1:nNodes) = netNode_E_in(1:nNodes, IT)
+      !  backflow t-> t-1
+      netNode_E_rout(1:nNodes, IT1) = netNode_E_rout(1:nNodes, IT)
+      netNode_E_in(1:nNodes, IT1) = netNode_E_in(1:nNodes, IT)
 
    end subroutine L11_routing_E
+
+   ! ------------------------------------------------------------------
+
+   !    NAME
+   !        L1_total_runoff
+
+   !    PURPOSE
+   !>       \brief total runoff accumulation at level 1
+
+   !>       \details Accumulates runoff.
+   !>       \f[ q_{T} = ( q_0 + q_1 + q_2 ) * (1-fSealed) + q_{D} * fSealed \f],
+   !>       where fSealed is the fraction of sealed area.
+
+   !    intent(IN)
+   !>       \param[in] "real(dp) :: fSealed_area_fraction" sealed area fraction [1]
+   !>       \param[in] "real(dp) :: fast_interflow"        \f$ q_0 \f$ Fast runoff component [mm tst-1]
+   !>       \param[in] "real(dp) :: slow_interflow"        \f$ q_1 \f$ Slow runoff component [mm tst-1]
+   !>       \param[in] "real(dp) :: baseflow"              \f$ q_2 \f$ Baseflow [mm tsts-1]
+   !>       \param[in] "real(dp) :: direct_runoff"         \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
+
+   !    intent(OUT)
+   !>       \param[out] "real(dp) :: total_runoff" \f$ q_T \f$ Generated runoff [mm tst-1]
+
+   !    HISTORY
+   !>       \authors Sebastian Mueller
+
+   !>       \date Apr 2020
+   subroutine L11_lateral_E( &
+      fSealed_area_fraction, &
+      fast_interflow, &
+      slow_interflow, &
+      baseflow, &
+      direct_runoff, &
+      temp_interflow, &
+      temp_baseflow, &
+      temp_direct_runoff, &
+      total_runoff)
+
+      implicit none
+
+      ! sealed area fraction [1]
+      real(dp), intent(IN) :: fSealed_area_fraction
+      ! \f$ q_0 \f$ Fast runoff component [mm tst-1]
+      real(dp), intent(IN) :: fast_interflow
+      ! \f$ q_1 \f$ Slow runoff component [mm tst-1]
+      real(dp), intent(IN) :: slow_interflow
+      ! \f$ q_2 \f$ Baseflow [mm tsts-1]
+      real(dp), intent(IN) :: baseflow
+      ! \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
+      real(dp), intent(IN) :: direct_runoff
+      ! \f$ q_D \f$ temperature
+      real(dp), intent(IN) :: temp_interflow
+      ! \f$ q_D \f$ temperature
+      real(dp), intent(IN) :: temp_baseflow
+      ! \f$ q_D \f$ temperature
+      real(dp), intent(IN) :: temp_direct_runoff
+      ! \f$ q_T \f$ Generated runoff [mm tst-1]
+      real(dp), intent(OUT) :: total_runoff
+
+      total_runoff = ((baseflow + slow_interflow + fast_interflow)*(1.0_dp - fSealed_area_fraction)) + &
+                     (direct_runoff*fSealed_area_fraction)
+
+   end subroutine L11_lateral_E
 
 end module mo_mrm_river_temp
