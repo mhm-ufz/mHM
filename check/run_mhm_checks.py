@@ -459,9 +459,10 @@ def run_model(
     child.expect(pexpect.EOF)
     if sys.platform != "win32":
         child.close()
-    # close the output stream
+        exitstatus = child.exitstatus
+    else:
+        exitstatus = child.wait()
     out.close()
-    exitstatus = child.exitstatus
     exit_ok = exitstatus == 0
     # check the last 4 lines of the log-file for "mHM: Finished!"
     with open(log) as log_f:
@@ -497,7 +498,6 @@ if __name__ == "__main__":
     # skip some cases for mpi
     if int(mpi_nop) > 0:
         skip += SKIP_CASES_MPI
-
     # iterate of all mhm exe-s given
     for exe in exe_list:
         # dict for checking results
