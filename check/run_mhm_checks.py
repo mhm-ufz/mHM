@@ -77,6 +77,7 @@ IGNORE_VARS = [
 MHM_EXE = ["../mhm"]
 # case 5 and 7 don't work with MPI. case 4 has a bug working with ifort+debug
 SKIP_CASES_MPI = ["case_04", "case_05", "case_07"]
+SKIP = []
 
 
 # ARGUMENT PARSER #############################################################
@@ -144,6 +145,15 @@ def parse_args():
         dest="openmp_threads",
         help="Number of threads for openMP. No mpi allowed! (default: 0)",
     )
+    parser.add_argument(
+        "-s",
+        "--skip",
+        action="store",
+        nargs="*",
+        default=SKIP,
+        dest="skip",
+        help="skip cases (case_01 case_03 ..) (default: {})".format(SKIP),
+    )
     args = parser.parse_args()
     return (
         args.exe,
@@ -151,6 +161,7 @@ def parse_args():
         args.log_path,
         args.mpi_nop,
         args.openmp_threads,
+        args.skip,
     )
 
 
@@ -471,7 +482,7 @@ def run_model(
 
 if __name__ == "__main__":
     # get args
-    exe_list, print_log, log_path, mpi_nop, openmp_threads = parse_args()
+    exe_list, print_log, log_path, mpi_nop, openmp_threads, skip = parse_args()
     # checking path
     cases_path = os.path.dirname(os.path.realpath(__file__))
     # get all cases folders (in the cases_path)
@@ -483,6 +494,10 @@ if __name__ == "__main__":
     final_result = True
     final_exe_results = {}
     exe_case_results = {}
+    # skip some cases for mpi
+    if int(mpi_nop) > 0:
+        skip += SKIP_CASES_MPI
+
     # iterate of all mhm exe-s given
     for exe in exe_list:
         # dict for checking results
@@ -505,8 +520,8 @@ if __name__ == "__main__":
         for case in cases:
             # base name of the case
             case_base = os.path.basename(case)
-            # skip some cases for mpi
-            if int(mpi_nop) > 0 and case_base in SKIP_CASES_MPI:
+            # skip some cases
+            if case_base in skip:
                 print(sep_text("skip case: " + case_base, sep_n=60, tab_n=1))
                 continue
             print(sep_text("checking case: " + case_base, sep_n=60, tab_n=1))

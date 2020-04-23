@@ -26,6 +26,8 @@ Run the mhm check cases with a given mhm executable.
     -t OPENMP_THREADS, --threads OPENMP_THREADS
                           Number of threads for openMP. No mpi allowed!
                           (default: 0)
+    -s [SKIP [SKIP ...]], --skip [SKIP [SKIP ...]]
+                          skip cases (case_01 case_03 ..) (default: [])
 
 ## Examples
 Run mhm from parent directory in verbosity mode with mpi on 4 processes:
