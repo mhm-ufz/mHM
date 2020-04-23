@@ -203,7 +203,25 @@ check-nag62:
   script:
     - source moduleLoadScripts/eve.nag62
     - source CI-scripts/pre_check
-    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm
+    - python -u run_mhm_checks.py -l logs -e ../mhm
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
+
+check-nag62DEBUG:
+  when: always
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-nag62
+      artifacts: true
+  script:
+    - source moduleLoadScripts/eve.nag62
+    - source CI-scripts/pre_check
+    # skip cases with optimization due to overflow in the random-number-generator (NAG uses -ieee=stop in DEBUG)
+    - python -u run_mhm_checks.py -l logs -e ../mhm_debug -s case_03 case_06 case_07 case_08 case_11
   artifacts:
     when: always
     paths:
