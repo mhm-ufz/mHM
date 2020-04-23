@@ -138,6 +138,11 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
 	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -warn all -g -debug -traceback -fp-stack-check -O0 -debug -check all")
 	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -qoverride-limits")
 endif()
+if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
+	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -colour -unsharedf95 -ideclient")
+	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -g -nan -O0 -C=all -strict95 -ieee=stop")
+	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O4 -ieee=full")
+endif()
 message(STATUS "the following debug flags will be used: ${CMAKE_Fortran_FLAGS_DEBUG}")
 # Usually that works fine, except, one is on a module system and tries to execute the executable
 # in the end without having the modules loaded. A workaround is provided using the variable
