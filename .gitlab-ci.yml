@@ -129,6 +129,27 @@ cmake-intel18MPI:
     - mhm_mpi
     - mhm_mpi_debug
 
+valgrind-nag62:
+  when: always
+  stage: valgrind
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-nag62
+      artifacts: true
+  script:
+    - source moduleLoadScripts/eve.nag62
+    - module load Anaconda3
+    - source activate /global/apps/mhm_checks/mhm_env
+    - valgrind --version
+    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
+    # execute mem-use check
+    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
+    - ms_print massif.out.0
+  artifacts:
+    paths:
+    - massif.out.0
+
 valgrind-gcc73:
   when: always
   stage: valgrind
