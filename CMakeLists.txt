@@ -97,6 +97,13 @@ function(cpp_definitions defName defCMakeName value cacheString)
 	endif()
 endfunction()
 
+# add pre-processor -fpp for NAG
+CHECK_Fortran_COMPILER_FLAG("-fpp" FPP_FLAG)
+# if the flag exists, we add it to the compilation flags
+if (FPP_FLAG)
+	set(ADDITIONAL_GCC_FLAGS "-fpp")
+endif()
+
 # Add definitions. These should later be set via the cache line file and only
 # have a default value here. These part only concerns user build definitions like MRM2MHM
 #add_definitions(-DMRM2MHM=.true.)
@@ -130,6 +137,11 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -nofixed -assume byterecl -fp-model source -m64 -assume realloc-lhs ") # precise -> source: suppress warning, computation identical
 	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -warn all -g -debug -traceback -fp-stack-check -O0 -debug -check all")
 	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -qoverride-limits")
+endif()
+if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
+	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -colour -unsharedf95 -ideclient")
+	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -g -nan -O0 -C=all -strict95 -ieee=stop")
+	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O4 -ieee=full")
 endif()
 message(STATUS "the following debug flags will be used: ${CMAKE_Fortran_FLAGS_DEBUG}")
 # Usually that works fine, except, one is on a module system and tries to execute the executable
