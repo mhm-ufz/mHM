@@ -65,7 +65,8 @@ contains
                                         dirGauges, dirTotalRunoff, filenameTotalRunoff, dirBankfullRunoff, gauge, is_start, &
                                         nGaugesTotal, nGaugesLocal, nInflowGaugesTotal, outputFlxState_mrm, &
                                         timeStep_model_outputs_mrm, &
-                                        varnameTotalRunoff, gw_coupling, do_calc_river_temp
+                                        varnameTotalRunoff, gw_coupling, &
+                                        do_calc_river_temp, riv_temp_def
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
 
@@ -107,6 +108,9 @@ contains
 
     character(256), dimension(maxNoDomains) :: dir_Bankfull_Runoff
 
+    ! dummies for temperature routing parameters (stored later in 'riv_temp_def')
+    real(dp) :: albedo_water ! albedo of open water
+    real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
 
     logical :: file_exists
 
@@ -115,7 +119,8 @@ contains
 
     ! namelist spatial & temporal resolution, optmization information
     namelist /mainconfig_mrm/ ALMA_convention, filenameTotalRunoff, varnameTotalRunoff, &
-             gw_coupling, do_calc_river_temp
+             gw_coupling, &
+             do_calc_river_temp, albedo_water, pt_a_water
     ! namelist directories
     namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff, dir_Bankfull_Runoff
     namelist /evaluation_gauges/ nGaugesTotal, NoGauges_domain, Gauge_id, gauge_filename
@@ -140,6 +145,8 @@ contains
     varnameTotalRunoff = 'total_runoff'
     gw_coupling = .false.
     do_calc_river_temp = .false.
+    albedo_water = 0.15_dp
+    pt_a_water = 1.26_dp
 
     !===============================================================
     !  Read namelist main directories
@@ -151,6 +158,12 @@ contains
     !===============================================================
     call position_nml('mainconfig_mrm', unamelist)
     read(unamelist, nml = mainconfig_mrm)
+
+    ! set temperature routing parameters in 'riv_temp_def' container
+    if ( do_calc_river_temp ) then
+      riv_temp_def%albedo_water = albedo_water
+      riv_temp_def%pt_a_water = pt_a_water
+    end if
 
     !===============================================================
     !  Read namelist for mainpaths
