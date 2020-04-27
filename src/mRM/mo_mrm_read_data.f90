@@ -271,7 +271,7 @@ contains
     use mo_mrm_file, only : udischarge
     use mo_mrm_global_variables, only : InflowGauge, gauge, mRM_runoff, nGaugesLocal, &
                                         nInflowGaugesTotal, nMeasPerDay, &
-                                        do_calc_river_temp, mRM_river_temp
+                                        do_calc_river_temp, riv_temp_def
     use mo_read_timeseries, only : read_timeseries
     use mo_string_utils, only : num2str
 
