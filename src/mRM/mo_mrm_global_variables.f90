@@ -80,6 +80,7 @@ module mo_mrm_global_variables
     character(256), dimension(:), allocatable :: fname ! Name runoff file
     real(dp), dimension(:, :), allocatable :: Q ! [m3 s-1] observed daily mean discharge (simPer)
     !                                          ! dim1=number observations, dim2=number of gauges
+    real(dp), dimension(:, :), allocatable :: T ! [K] observed daily mean temperature (simPer)
   end type gaugingStation
   type(gaugingStation), public :: gauge ! Gauging station information
   type(gaugingStation), public :: InflowGauge ! inflow gauge information
@@ -221,13 +222,13 @@ module mo_mrm_global_variables
   ! -------------------------------------------------------------------
   ! RIVER TEMPERATURE VARIABLES
   ! -------------------------------------------------------------------
-  type riv_temp_def
-    !! This is a container to define the river temperature routing
-    real(dp), public, dimension(:), allocatable :: L1_direct_runoff
-
-  end type riv_temp_def
   logical, public :: do_calc_river_temp ! switch to turn on temperature routing
-  real(dp), public :: albedo_water ! albedo of open water
-  real(dp), public :: pt_a_water ! priestley taylor alpha parameter for PET on open water
-  real(dp), public, dimension(:, :), allocatable :: mRM_river_temp ! variable containing river temp for each domain and gauge
+  type riv_temp_type
+    !! This is a container to define the river temperature routing in the current time step
+    real(dp) :: albedo_water ! albedo of open water
+    real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
+    real(dp), dimension(:), allocatable :: L1_direct_runoff
+    real(dp), dimension(:, :), allocatable :: mRM_river_temp ! variable containing river temp for each domain and gauge
+  end type riv_temp_type
+  type(riv_temp_type), allocatable, public, target :: riv_temp_def
 end module mo_mrm_global_variables
