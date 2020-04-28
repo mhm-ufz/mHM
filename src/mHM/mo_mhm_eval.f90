@@ -626,33 +626,33 @@ CONTAINS
                   L11_qMod(s11 : e11), &
                   mRM_runoff(tt, :) &
                   )
-            ! -------------------------------------------------------------------
-            ! groundwater coupling
-            ! -------------------------------------------------------------------
-            if (gw_coupling) then
-                call calc_river_head(iDomain, L11_Qmod, L0_river_head_mon_sum)
-                if (is_new_month .and. tt > 1) then
-                    call avg_and_write_timestep(iDomain, tt, L0_river_head_mon_sum)
-                end if
-            end if
-            ! -------------------------------------------------------------------
-            ! reset variables
-            ! -------------------------------------------------------------------
-            if (processMatrix(8, 1) .eq. 1) then
+          ! -------------------------------------------------------------------
+          ! groundwater coupling
+          ! -------------------------------------------------------------------
+          if (gw_coupling) then
+              call calc_river_head(iDomain, L11_Qmod, L0_river_head_mon_sum)
+              if (is_new_month .and. tt > 1) then
+                  call avg_and_write_timestep(iDomain, tt, L0_river_head_mon_sum)
+              end if
+          end if
+          ! -------------------------------------------------------------------
+          ! reset variables
+          ! -------------------------------------------------------------------
+          if (processMatrix(8, 1) .eq. 1) then
+            ! reset Input variables
+            InflowDischarge = 0._dp
+            RunToRout = 0._dp
+          else if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
+            if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. do_rout) then
+              do jj = 1, nint(tsRoutFactorIn)
+                mRM_runoff(tt - jj + 1, :) = mRM_runoff(tt, :)
+              end do
               ! reset Input variables
               InflowDischarge = 0._dp
               RunToRout = 0._dp
-            else if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
-              if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. do_rout) then
-                do jj = 1, nint(tsRoutFactorIn)
-                  mRM_runoff(tt - jj + 1, :) = mRM_runoff(tt, :)
-                end do
-                ! reset Input variables
-                InflowDischarge = 0._dp
-                RunToRout = 0._dp
-              end if
             end if
           end if
+        end if
 #endif
 
         ! prepare the date and time information for next iteration step...
