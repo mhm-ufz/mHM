@@ -234,5 +234,5 @@ module mo_mrm_global_variables
     real(dp), dimension(:), allocatable :: L1_direct_runoff
     real(dp), dimension(:, :), allocatable :: mRM_river_temp ! variable containing river temp for each domain and gauge
   end type riv_temp_type
-  type(riv_temp_type), allocatable, public :: riv_temp_def
+  type(riv_temp_type), public :: riv_temp_def
 end module mo_mrm_global_variables
