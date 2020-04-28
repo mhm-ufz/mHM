@@ -228,10 +228,11 @@ module mo_mrm_global_variables
     character(256), dimension(:), allocatable :: dirWidths ! Directory where river widths are stored
     character(256) :: riv_widths_file ! file name for river widths
     character(256) :: riv_widths_name ! variable name for river widths
+    real(dp), public, dimension(:), allocatable :: L11_riv_widths !river widths in L11
     real(dp) :: albedo_water ! albedo of open water
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
     real(dp), dimension(:), allocatable :: L1_direct_runoff
     real(dp), dimension(:, :), allocatable :: mRM_river_temp ! variable containing river temp for each domain and gauge
   end type riv_temp_type
-  type(riv_temp_type), allocatable, public, target :: riv_temp_def
+  type(riv_temp_type), allocatable, public :: riv_temp_def
 end module mo_mrm_global_variables
