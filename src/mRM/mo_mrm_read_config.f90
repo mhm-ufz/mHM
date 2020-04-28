@@ -107,10 +107,14 @@ contains
     character(256), dimension(maxNoDomains) :: dir_Total_Runoff
 
     character(256), dimension(maxNoDomains) :: dir_Bankfull_Runoff
+    ! directory for river widths
+    character(256), dimension(maxNoDomains) :: dir_river_widths
 
     ! dummies for temperature routing parameters (stored later in 'riv_temp_def')
     real(dp) :: albedo_water ! albedo of open water
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
+    character(256) :: riv_widths_file ! file name for river widths
+    character(256) :: riv_widths_name ! variable name for river widths
 
     logical :: file_exists
 
@@ -120,9 +124,9 @@ contains
     ! namelist spatial & temporal resolution, optmization information
     namelist /mainconfig_mrm/ ALMA_convention, filenameTotalRunoff, varnameTotalRunoff, &
              gw_coupling, &
-             do_calc_river_temp, albedo_water, pt_a_water
+             do_calc_river_temp, albedo_water, pt_a_water, riv_widths_file, riv_widths_name
     ! namelist directories
-    namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff, dir_Bankfull_Runoff
+    namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff, dir_Bankfull_Runoff, dir_river_widths
     namelist /evaluation_gauges/ nGaugesTotal, NoGauges_domain, Gauge_id, gauge_filename
     ! namelist for inflow gauges
     namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_domain, InflowGauge_id, &
@@ -147,6 +151,8 @@ contains
     do_calc_river_temp = .false.
     albedo_water = 0.15_dp
     pt_a_water = 1.26_dp
+    riv_widths_file = 'None'
+    riv_widths_name = 'None'
 
     !===============================================================
     !  Read namelist main directories
@@ -163,6 +169,9 @@ contains
     if ( do_calc_river_temp ) then
       riv_temp_def%albedo_water = albedo_water
       riv_temp_def%pt_a_water = pt_a_water
+      riv_temp_def%riv_widths_file = riv_widths_file
+      riv_temp_def%riv_widths_name = riv_widths_name
+      allocate(riv_temp_def%dirWidths(domainMeta%nDomains))
     end if
 
     !===============================================================
@@ -177,6 +186,7 @@ contains
       dirGauges(iDomain)         = dir_Gauges(domainID)
       dirTotalRunoff(iDomain)    = dir_Total_Runoff(domainID)
       dirBankfullRunoff(iDomain) = dir_Bankfull_Runoff(domainID)
+      if ( do_calc_river_temp ) riv_temp_def%dirWidths(iDomain) = dir_river_widths(domainID)
     end do
 
     !===============================================================

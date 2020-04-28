@@ -225,6 +225,9 @@ module mo_mrm_global_variables
   logical, public :: do_calc_river_temp ! switch to turn on temperature routing
   type riv_temp_type
     !! This is a container to define the river temperature routing in the current time step
+    character(256), dimension(:), allocatable :: dirWidths ! Directory where river widths are stored
+    character(256) :: riv_widths_file ! file name for river widths
+    character(256) :: riv_widths_name ! variable name for river widths
     real(dp) :: albedo_water ! albedo of open water
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
     real(dp), dimension(:), allocatable :: L1_direct_runoff
