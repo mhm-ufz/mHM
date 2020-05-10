@@ -8,7 +8,7 @@ A summary for all cases is given at the end.
 
 ## Usage
 
-    python run_mhm_checks.py [-h] [-e EXE [EXE ...]] [-v] [-l LOG_PATH] [-m MPI_NOP] [-t OPENMP_THREADS]
+    python run_mhm_checks.py [-h] [-e EXE [EXE ...]] [-v] [-l LOG_PATH] [-m MPI_NOP] [-t OPENMP_THREADS] [-s [SKIP [SKIP ...]]]
 
 Run the mhm check cases with a given mhm executable.
 
@@ -26,6 +26,8 @@ Run the mhm check cases with a given mhm executable.
     -t OPENMP_THREADS, --threads OPENMP_THREADS
                           Number of threads for openMP. No mpi allowed!
                           (default: 0)
+    -s [SKIP [SKIP ...]], --skip [SKIP [SKIP ...]]
+                          skip cases (case_01 case_03 ..) (default: [])
 
 ## Examples
 Run mhm from parent directory in verbosity mode with mpi on 4 processes:
