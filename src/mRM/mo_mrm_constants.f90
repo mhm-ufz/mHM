@@ -15,12 +15,13 @@ module mo_mrm_constants
   use mo_kind, only : i4, dp
   implicit none
   ! maximum number of outputs (fluxes states) for mrM
+  ! TODO-RIV-TEMP: increase this to 2 (riv temp as second state)
   integer(i4), public, parameter :: nOutFlxState = 1_i4     ! max. number of outputs to write into a netcdf file
   ! computational
   integer(i4), public, parameter :: nRoutingStates = 2 ! Dimension of the auxiliary vectors
   !                                                    ! which store current and past states of
   !                                                    ! incoming and outgoing of discharge at
-  !                                                    ! a given node 
+  !                                                    ! a given node
   !                                                    ! (1 - past)
   !                                                    ! (2 - current)
 #ifdef CYGWIN
