@@ -57,7 +57,7 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
     ! read config for mrm, readlatlon is set here depending on whether output is needed
     call mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, &
             (mrm_coupling_mode .eq. 0_i4), ReadLatLon)
- 
+
     ! this was moved here, because it depends on global_parameters that are only set in mrm_read_config
     if (mrm_coupling_mode .eq. 0_i4) then
       call check_optimization_settings()
@@ -94,7 +94,7 @@ end subroutine mrm_configuration
   ! Modifications:
   ! Stephan Thober Sep 2015 - added L0_mask, L0_elev, and L0_LCover
   ! Stephan Thober May 2016 - added warning message in case no gauge is found in modelling domain
-  ! Matthias Kelbling Aug 2017 - added L11_flow_accumulation to Initialize Stream Netwo  
+  ! Matthias Kelbling Aug 2017 - added L11_flow_accumulation to Initialize Stream Netwo
   ! Lennart Schueler May 2018 - added initialization for groundwater coupling
   ! Stephan Thober Jun 2018 - refactored for mpr_extract version
   ! Stephan Thober May 2019 - added init of level0 in case of read restart
@@ -161,7 +161,7 @@ end subroutine mrm_configuration
       domainID = domainMeta%indices(iDomain)
       if (read_restart) then
         ! this reads the domain properties
-        if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains)) 
+        if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains))
         ! ToDo: L0_Domain, parallel
         call read_grid_info(domainMeta%indices(domainMeta%L0DataFrom(iDomain)), dirRestartIn(iDomain), &
                                                      "0", "mRM", level0(domainMeta%L0DataFrom(iDomain)))
@@ -290,7 +290,7 @@ end subroutine mrm_configuration
 
   end subroutine mrm_init
 
-  
+
   !===============================================================
   ! PRINT STARTUP MESSAGE
   !===============================================================
@@ -485,6 +485,8 @@ end subroutine mrm_configuration
     L11_C1 = P1_InitStateFluxes
     ! Routing parameter C2 =f(K,xi, DT) (Chow, 25-41)
     L11_C2 = P1_InitStateFluxes
+
+    ! TODO-RIV-TEMP: init river temperature (with 0, later set air-temp in mhm_eval)
   end subroutine variables_default_init_routing
 
 

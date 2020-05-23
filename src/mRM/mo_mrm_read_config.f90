@@ -132,6 +132,7 @@ contains
     namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_domain, InflowGauge_id, &
             InflowGauge_filename, InflowGauge_Headwater
     ! name list regarding output
+    ! TODO-RIV-TEMP add riv-temp output
     namelist /NLoutputResults/timeStep_model_outputs_mrm, outputFlxState_mrm
 
     !===============================================================
@@ -166,6 +167,7 @@ contains
     read(unamelist, nml = mainconfig_mrm)
 
     ! set temperature routing parameters in 'riv_temp_def' container
+    ! TODO-RIV-TEMP: read riv temp config (use config method)
     if ( do_calc_river_temp ) then
       riv_temp_def%albedo_water = albedo_water
       riv_temp_def%pt_a_water = pt_a_water
@@ -405,6 +407,7 @@ contains
       if (gw_coupling) then
         call message('      river head             (river_head)              [m]')
       end if
+      ! TODO-RIV-TEMP: message about riv temp
     end if
 
     call message('')
