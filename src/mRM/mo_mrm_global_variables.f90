@@ -18,6 +18,7 @@ module mo_mrm_global_variables
   use mo_kind, only : i4, i8, dp
   use mo_mrm_constants, only : nOutFlxState
   use mo_common_variables, only : Grid, GridRemapper
+  use mo_mrm_riv_temp_class, only : riv_temp_type
 
   implicit none
 
@@ -223,16 +224,6 @@ module mo_mrm_global_variables
   ! RIVER TEMPERATURE VARIABLES
   ! -------------------------------------------------------------------
   logical, public :: do_calc_river_temp ! switch to turn on temperature routing
-  type riv_temp_type
-    !! This is a container to define the river temperature routing in the current time step
-    character(256), dimension(:), allocatable :: dirWidths ! Directory where river widths are stored
-    character(256) :: riv_widths_file ! file name for river widths
-    character(256) :: riv_widths_name ! variable name for river widths
-    real(dp), public, dimension(:), allocatable :: L11_riv_widths !river widths in L11
-    real(dp) :: albedo_water ! albedo of open water
-    real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
-    real(dp), dimension(:), allocatable :: L1_direct_runoff
-    real(dp), dimension(:, :), allocatable :: mRM_river_temp ! variable containing river temp for each domain and gauge
-  end type riv_temp_type
+  ! This is a container to define the river temperature routing in the current time step
   type(riv_temp_type), public :: riv_temp_def
 end module mo_mrm_global_variables
