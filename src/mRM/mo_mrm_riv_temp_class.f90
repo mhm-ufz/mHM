@@ -28,10 +28,44 @@ module mo_mrm_riv_temp_class
     real(dp), dimension(:), allocatable :: L1_lateral_E
     real(dp), dimension(:, :), allocatable :: mRM_river_temp ! variable containing river temp for each domain and gauge
   contains
+    procedure :: config => config_riv_temp
+    procedure :: init => init_riv_temp
     procedure :: calc_lateral_E => pro_lateral_E
   end type riv_temp_type
 
 contains
+
+  subroutine config_riv_temp( &
+    self &
+  )
+
+    implicit none
+
+    class(riv_temp_type), intent(inout) :: self
+
+    print *, 'config river temp'
+    ! TODO-RIV-TEMP:
+    ! - set variables from nml
+
+  end subroutine config_riv_temp
+
+
+  subroutine init_riv_temp ( &
+    self &
+  )
+
+    implicit none
+
+    class(riv_temp_type), intent(inout) :: self
+
+    print *, 'init river temp'
+    ! TODO-RIV-TEMP:
+    ! - riv-width
+    ! - init_condition riv_temp (air temp)
+    ! -
+
+  end subroutine init_riv_temp
+
 
   subroutine pro_lateral_E( &
     self, &
@@ -43,7 +77,7 @@ contains
     temp_air, &
     mean_temp_air, &
     add &
-    )
+  )
 
     implicit none
 
@@ -91,3 +125,4 @@ contains
   end subroutine pro_lateral_E
 
 end module mo_mrm_riv_temp_class
+
