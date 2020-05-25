@@ -27,6 +27,12 @@ module mo_mrm_riv_temp_class
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
     ! \f$ E_L \f$ Generated lateral temperature energy flux [m3 s-1 K]
     real(dp), dimension(:), allocatable :: L1_lateral_E
+    ! vars for temp routing
+    real(dp), dimension(:), allocatable :: L11_lateral_E
+    real(dp), dimension(:,:), allocatable :: netNode_E_IN ! Total energy inputs at t-1 and t
+    real(dp), dimension(:,:), allocatable :: netNode_E_R ! energy leaving at t-1 and t
+    real(dp), dimension(:), allocatable :: netNode_E_mod ! Simulated routed energy
+    ! results
     real(dp), dimension(:, :), allocatable :: mRM_river_temp ! variable containing river temp for each domain and gauge
   contains
     procedure :: config => meth_config
