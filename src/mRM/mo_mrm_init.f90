@@ -112,8 +112,9 @@ end subroutine mrm_configuration
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_mrm_global_variables, only : domain_mrm, &
-                                        l0_l11_remap, l1_l11_remap, level11, gw_coupling, &
-                                        L0_river_head_mon_sum
+                                        l0_l11_remap, l1_l11_remap, level11, &
+                                        gw_coupling, L0_river_head_mon_sum, &
+                                        do_calc_river_temp, riv_temp_def
     use mo_mrm_net_startup, only : L11_flow_direction, L11_flow_accumulation, L11_fraction_sealed_floodplain, &
                                    L11_link_location, L11_routing_order, L11_set_drain_outlet_gauges, &
                                    L11_set_network_topology, L11_stream_features, l11_l1_mapping
@@ -285,6 +286,14 @@ end subroutine mrm_configuration
         call calc_channel_elevation()
     end if
 
+    ! TODO-RIV-TEMP:
+    ! - init riv temp with class method
+    ! - init riv-area
+
+    if ( do_calc_river_temp ) then
+      call riv_temp_def%init()
+      call riv_temp_def%init_area()
+    end if
     call message('')
     call message('  Finished Initialization of mRM')
 
