@@ -11,7 +11,7 @@
 ! Modifications:
 ! David Schaefer       Aug 2015 - major rewrite
 ! Stephan Thober       Oct 2015 - adapted to mRM
-! O. Rakovec, R. Kumar Nov 2017 - added project description for the netcdf outputs 
+! O. Rakovec, R. Kumar Nov 2017 - added project description for the netcdf outputs
 
 module mo_mrm_write_fluxes_states
 
@@ -261,6 +261,8 @@ contains
 
     type(OutputVariable), dimension(size(outputFlxState_mrm)) :: tmpvars
 
+    ! TODO-RIV-TEMP
+    !  - add output-var for temp
 
     dtype = "f64"
 
@@ -316,10 +318,10 @@ contains
   !>       \date Apr 2013
 
   ! Modifications:
-  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014 
-  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014 
-  !                              - adding new variable infilSoil 
-  !                              - case 16 David Schaefer      , Jun. 2015 
+  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014
+  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014
+  !                              - adding new variable infilSoil
+  !                              - case 16 David Schaefer      , Jun. 2015
   !                              - major rewrite
   ! Stephan Thober      Oct  2015 - adapted to mRM
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
@@ -341,6 +343,9 @@ contains
 
     integer(i4) :: ii
 
+    ! TODO-RIV-TEMP: add output of temperature
+    !  - optional argument L11_riv_temp
+    !  - if present: write
 
     ii = 0
     vars => self%vars
@@ -496,7 +501,7 @@ contains
 
     real(dp), allocatable, dimension(:) :: easting, northing
 
-    real(dp), allocatable, dimension(:) :: lat1d, lon1d    ! 1D lat lon vectors. Used if coordinate system is lat & lon 
+    real(dp), allocatable, dimension(:) :: lat1d, lon1d    ! 1D lat lon vectors. Used if coordinate system is lat & lon
 
     real(dp), allocatable, dimension(:, :) :: lat2d, lon2d ! temporary storage of mHM's 2D latlon array.
                                                            ! Used as 2d lat lon arrays if coordinate system is X & Y
@@ -508,7 +513,7 @@ contains
     nc = NcDataset(trim(fname), "w")
 
     ! set the horizonal dimensions
-    if (iFlag_cordinate_sys == 0) then 
+    if (iFlag_cordinate_sys == 0) then
 
       ! X & Y coordinate system; 2D lat lon!
       !============================================================

@@ -426,6 +426,9 @@ CONTAINS
                   - (readPer%julStart - simPer(iDomain)%julStart)
         end if
 
+        ! TODO-RIV-TEMP:
+        ! - care about short- and longwave radiation meteo inputs
+
         ! preapare vector length specifications depending on the process case
         ! process 5 - PET
         select case (processMatrix(5, 1))
@@ -589,7 +592,7 @@ CONTAINS
           end if
           ! prepare temperature routing
           if ( do_calc_river_temp ) then
-            print *, 'prepare river temp before routing'
+            ! print *, 'prepare river temp before routing'
             ! TODO-RIV-TEMP:
             !  - init riv-temp with air-temp at tt=1
             !    - L1_temp(s_meteo : e_meteo, iMeteoTS) -> disagg to L11 level

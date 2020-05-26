@@ -169,6 +169,11 @@ CONTAINS
             timeStep_tws_input
     ! namelist for pan evaporation
     namelist /panEvapo/evap_coeff
+
+    ! TODO-RIV-TEMP:
+    ! - add short- and long-wave raidiation weights to namelist
+    ! - add standard values for backward compatibility
+
     ! namelist for night-day ratio of precipitation, referenceET and temperature
     namelist /nightDayRatio/read_meteo_weights, fnight_prec, fnight_pet, fnight_temp
 
@@ -319,6 +324,9 @@ CONTAINS
     fday_prec = 1.0_dp - fnight_prec
     fday_pet = 1.0_dp - fnight_pet
     fday_temp = -1.0_dp * fnight_temp
+
+    ! TODO-RIV-TEMP:
+    ! - add short- and long-wave raidiation weights
 
     call common_check_resolution(.true., .false.)
 
