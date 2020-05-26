@@ -16,22 +16,25 @@ module mo_mrm_riv_temp_class
   private
   public :: riv_temp_type
 
+  ! This is a container to define the river temperature routing in the current time step
   type riv_temp_type
-    ! This is a container to define the river temperature routing in the current time step
+    ! riv geometry
     character(256), dimension(:), allocatable :: dirWidths ! Directory where river widths are stored
     character(256) :: riv_widths_file ! file name for river widths
     character(256) :: riv_widths_name ! variable name for river widths
     real(dp), public, dimension(:), allocatable :: L11_riv_widths !river widths in L11
     real(dp), public, dimension(:), allocatable :: L11_riv_area !river area in L11
+    ! PET related vars
     real(dp) :: albedo_water ! albedo of open water
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
-    ! \f$ E_L \f$ Generated lateral temperature energy flux [m3 s-1 K]
+    ! \f$ E_L \f$ Generated lateral temperature energy flux [m3 s-1 K] on L1
     real(dp), dimension(:), allocatable :: L1_lateral_E
     ! vars for temp routing
     real(dp), dimension(:), allocatable :: L11_lateral_E
     real(dp), dimension(:,:), allocatable :: netNode_E_IN ! Total energy inputs at t-1 and t
     real(dp), dimension(:,:), allocatable :: netNode_E_R ! energy leaving at t-1 and t
     real(dp), dimension(:), allocatable :: netNode_E_mod ! Simulated routed energy
+    real(dp), dimension(:), allocatable :: netNode_E_out ! total energy source from cell in L11
     ! results
     real(dp), dimension(:, :), allocatable :: mRM_river_temp ! variable containing river temp for each domain and gauge
   contains
