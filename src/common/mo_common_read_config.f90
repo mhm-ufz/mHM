@@ -51,7 +51,8 @@ CONTAINS
 
     use mo_common_constants, only : maxNLcovers, maxNoDomains
     use mo_common_variables, only : Conventions, LC_year_end, LC_year_start, LCfilename, contact, &
-                                    dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
+                                    dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, &
+                                    mhmFileRestartOut, mrmFileRestartOut, &
                                     fileLatLon, history, iFlag_cordinate_sys, mHM_details, domainMeta, nLcoverScene, &
                                     nProcesses, nuniqueL0Domains, processMatrix, project_details, resolutionHydrology, &
                                     setup_description, simulation_type, write_restart
@@ -72,7 +73,9 @@ CONTAINS
 
     character(256), dimension(maxNoDomains) :: dir_Morpho
 
-    character(256), dimension(maxNoDomains) :: dir_RestartOut
+    character(256), dimension(maxNoDomains) :: mhm_file_RestartOut
+
+    character(256), dimension(maxNoDomains) :: mrm_file_RestartOut
 
     character(256), dimension(maxNoDomains) :: dir_LCover
 
@@ -107,7 +110,7 @@ CONTAINS
             Conventions, contact, mHM_details, history
     namelist /directories_general/ dirConfigOut, dirCommonFiles, &
             dir_Morpho, dir_LCover, &
-            dir_Out, dir_RestartOut, &
+            dir_Out, mhm_file_RestartOut, mrm_file_RestartOut, &
             file_LatLon
     ! namelist spatial & temporal resolution, optimization information
     namelist /mainconfig/ iFlag_cordinate_sys, resolution_Hydrology, nDomains, L0Domain, write_restart, &
@@ -146,7 +149,8 @@ CONTAINS
     ! allocate patharray sizes
     allocate(resolutionHydrology(domainMeta%nDomains))
     allocate(dirMorpho(domainMeta%nDomains))
-    allocate(dirRestartOut(domainMeta%nDomains))
+    allocate(mhmFileRestartOut(domainMeta%nDomains))
+    allocate(mrmFileRestartOut(domainMeta%nDomains))
     allocate(dirLCover(domainMeta%nDomains))
     allocate(dirOut(domainMeta%nDomains))
     allocate(fileLatLon(domainMeta%nDomains))
@@ -205,7 +209,8 @@ CONTAINS
       domainID = domainMeta%indices(iDomain)
       domainMeta%optidata(iDomain) = read_opt_domain_data(domainID)
       dirMorpho(iDomain)           = dir_Morpho(domainID)
-      dirRestartOut(iDomain)       = dir_RestartOut(domainID)
+      mhmFileRestartOut(iDomain)   = mhm_file_RestartOut(domainID)
+      mrmFileRestartOut(iDomain)   = mrm_file_RestartOut(domainID)
       dirLCover(iDomain)           = dir_LCover(domainID)
       dirOut(iDomain)              = dir_Out(domainID)
       fileLatLon(iDomain)          = file_LatLon(domainID)

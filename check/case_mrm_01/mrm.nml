@@ -116,9 +116,9 @@ read_opt_domain_data(2) = 0
 !-----------------------------------------------------------------------------
 !> Number in brackets indicates domain number.
 !> directory where restart input is located
-dir_RestartIn(1)     = "../../test_domain/restart/"
+mrm_file_restartin(1)     = "../../test_domain/restart/"
 !> directory where restart input is located
-dir_RestartIn(2)     = "../../test_domain_2/restart/"
+mrm_file_restartin(2)     = "../../test_domain_2/restart/"
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m or degree] per domain
 !> this  level-11 discharge routing resolution must be >= and multiple of the
@@ -243,7 +243,8 @@ dir_Morpho(1)        = "../../test_domain/input/morph/"
 !> directory where land cover files are located
 dir_LCover(1)        = "../../test_domain/input/luse/"
 !> directory where restart output should be written
-dir_RestartOut(1)    = "output_b1/b1_"
+mhm_file_restartout(1)    = "output_b1/b1_mHM_restart_001.nc"
+mrm_file_restartout(1)    = "output_b1/b1_mRM_restart_001.nc"
 !> directory where output should be written
 dir_Out(1)           = "output_b1/b1_"
 !> file containing latitude and longitude on the resolution_Hydrology
@@ -255,7 +256,8 @@ dir_Morpho(2)        = "../../test_domain_2/input/morph/"
 !> directory where land cover files are located
 dir_LCover(2)        = "../../test_domain_2/input/luse/"
 !> directory where restart output should be written
-dir_RestartOut(2)    = "output_b1/b2_"
+mhm_file_restartout(2)    = "output_b1/b2_mHM_restart_002.nc"
+mrm_file_restartout(2)    = "output_b1/b2_mRM_restart_002.nc"
 !> directory where output should be written
 dir_Out(2)           = "output_b1/b2_"
 !> file containing latitude and longitude on the resolution_Hydrology

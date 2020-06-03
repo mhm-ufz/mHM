@@ -96,7 +96,7 @@ L0Domain(2) = 2
 !-----------------------------------------------------------------------------
 !> flag for writing restart output
 !-----------------------------------------------------------------------------
-write_restart = .TRUE.
+write_restart = .False.
 !-----------------------------------------------------------------------------
 !> read domain specific optional data
 !-----------------------------------------------------------------------------
@@ -119,9 +119,11 @@ read_opt_domain_data(2) = 0
 !-----------------------------------------------------------------------------
 !> Number in brackets indicates domain number.
 !> directory where restart input is located
-dir_RestartIn(1)     = "test_domain/restart/"
+mhm_file_RestartIn(1)     = "test_domain/restart/mHM_restart_001.nc"
+mrm_file_RestartIn(1)     = "test_domain/restart/mRM_restart_001.nc"
 !> directory where restart input is located
-dir_RestartIn(2)     = "test_domain_2/restart/"
+mhm_file_RestartIn(2)     = "test_domain_2/restart/mHM_restart_002.nc"
+mrm_file_RestartIn(2)     = "test_domain_2/restart/mRM_restart_002.nc"
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m or degree] per domain
 !> this  level-11 discharge routing resolution must be >= and multiple of the
@@ -137,8 +139,12 @@ resolution_Routing(2) = 24000
 timestep = 1
 !-----------------------------------------------------------------------------
 !> flags for reading restart output
+!> mrm_read_river_network is an optional flag
+!> mrm_read_river_network = .True. allows to read the river network for mRM
+!> read_restart = .True. forces mrm_read_river_network = .True.
 !-----------------------------------------------------------------------------
-read_restart  = .FALSE.
+read_restart  = .False.
+mrm_read_river_network = .False.
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition
@@ -248,7 +254,8 @@ dir_Morpho(1)        = "test_domain/input/morph/"
 !> directory where land cover files are located
 dir_LCover(1)        = "test_domain/input/luse/"
 !> directory where restart output should be written
-dir_RestartOut(1)    = "test_domain/restart/"
+mhm_file_RestartOut(1)    = "test_domain/restart/mHM_restart_001.nc"
+mrm_file_RestartOut(1)    = "test_domain/restart/mRM_restart_001.nc"
 !> directory where output should be written
 dir_Out(1)           = "test_domain/output_b1/"
 !> file containing latitude and longitude on the resolution_Hydrology
@@ -260,7 +267,8 @@ dir_Morpho(2)        = "test_domain_2/input/morph/"
 !> directory where land cover files are located
 dir_LCover(2)        = "test_domain_2/input/luse/"
 !> directory where restart output should be written
-dir_RestartOut(2)    = "test_domain_2/restart/"
+mhm_file_RestartOut(2)    = "test_domain/restart/mHM_restart_002.nc"
+mrm_file_RestartOut(2)    = "test_domain/restart/mRM_restart_002.nc"
 !> directory where output should be written
 dir_Out(2)           = "test_domain_2/output/"
 !> file containing latitude and longitude on the resolution_Hydrology
