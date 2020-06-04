@@ -73,6 +73,7 @@ IGNORE_VARS = [
     "L11_basin_lon",
     "LC_year_start",
     "LC_year_end",
+    "ProcessMatrix",  # fails if new process is added
 ]
 MHM_EXE = ["../mhm"]
 # case 5 and 7 don't work with MPI. case 4 has a bug working with ifort+debug
