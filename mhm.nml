@@ -221,10 +221,15 @@ varnametotalrunoff = 'total_runoff'
 filenametotalrunoff = 'total_runoff'
 !> couple mRM to a groundwater model
 gw_coupling = .false.
+/
+
+!******************************************************************************************
+! main config for river temperature routing
+!******************************************************************************************
+&config_riv_temp
 !-----------------------------------------------------------------------------
 !> calculate river temperature
 !-----------------------------------------------------------------------------
-do_calc_river_temp = .false.
 !> albedo of open water (0.15 for tilt angle between 10 and 20 degrees -> Wanders et.al. 2019)
 albedo_water = 0.15
 !> priestley taylor alpha parameter for PET on open water (1.26 -> Gordon Bonan 2015)
@@ -233,6 +238,18 @@ pt_a_water = 1.26
 riv_widths_file = 'Q_bkfl'
 !> variable name for river widths
 riv_widths_name = 'P_bkfl'
+!> file name for radiation
+radiation_file = 'rd'
+!> variable name shortwave radiation
+SR_name = 'ssrd'
+!> variable name longwave radiation
+LR_name = 'strd'
+!> directory where river widths can be found (only for river temperature routing)
+dir_river_widths(1) = 'test_domain/input/optional_data/'
+dir_river_widths(2) = 'test_domain_2/input/optional_data/'
+!> directory where long-/shortwave radiation (only for river temperature routing)
+dir_radiation(1) = 'test_domain/input/meteo/'
+dir_radiation(2) = 'test_domain_2/input/meteo/'
 /
 
 !******************************************************************************************
@@ -362,9 +379,6 @@ dir_Total_Runoff(2) = 'test_domain_2/output/'
 !> directory where runoff at bankfull conditions can be found (only for coupling to groundwater model)
 dir_Bankfull_Runoff(1) = 'test_domain/input/optional_data/'
 dir_Bankfull_Runoff(2) = 'test_domain_2/input/optional_data/'
-!> directory where river widths can be found (only for river temperature routing)
-dir_river_widths(1) = 'test_domain/input/optional_data/'
-dir_river_widths(2) = 'test_domain_2/input/optional_data/'
 /
 
 !******************************************************************************************
@@ -472,6 +486,10 @@ processCase(9) = 1
 !> 1 - inverse N0 based on Desilets et al. 2010
 !> 2 - COSMIC forward operator by Shuttleworth et al. 2013
 processCase(10) = 0
+!> river temperature routing (needs routing)
+!> 0 - deactivated
+!> 1 - following Beek et al., 2012
+processCase(11) = 0
 /
 
 !******************************************************************************************
@@ -758,6 +776,10 @@ fnight_prec  =  0.46,   0.50,   0.52,   0.51,  0.48,  0.50,  0.49,  0.48,  0.52,
 fnight_pet   =  0.10,   0.10,   0.10,   0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10
 !> night correction factor for temperature
 fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.60, -0.94, -0.53
+!> night ratio for ssrd (shortwave rad. for river temperature)
+fnight_ssrd   =  0.0,   0.0,   0.0,   0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0
+!> night ratio for strd (longwave rad. for river temperature)
+fnight_strd   =  0.45,   0.45,   0.45,   0.45,  0.45,  0.45,  0.45,  0.45,  0.45,  0.45,  0.45,  0.45
 /
 
 !******************************************************************************************
