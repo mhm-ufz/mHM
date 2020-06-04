@@ -223,7 +223,7 @@ module mo_mrm_global_variables
   ! -------------------------------------------------------------------
   ! RIVER TEMPERATURE VARIABLES
   ! -------------------------------------------------------------------
-  logical, public :: do_calc_river_temp ! switch to turn on temperature routing
-  ! This is a container to define the river temperature routing in the current time step
-  type(riv_temp_type), public :: riv_temp_def
+  logical, public :: do_calc_river_temp = .false. ! switch to turn on temperature routing
+  ! This is a container for the river temperature routing process (pcs)
+  type(riv_temp_type), public :: riv_temp_pcs
 end module mo_mrm_global_variables

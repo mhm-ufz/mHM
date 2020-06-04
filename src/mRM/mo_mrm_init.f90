@@ -31,7 +31,7 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
     use mo_common_mHM_mRM_variables, only : mrm_coupling_mode
     use mo_common_variables, only : processMatrix
     use mo_mrm_read_config, only : mrm_read_config
-    use mo_mrm_global_variables, only: riv_temp_def, do_calc_river_temp
+    use mo_mrm_global_variables, only: riv_temp_pcs, do_calc_river_temp
     use mo_common_read_config, only : common_read_config
     use mo_common_mHM_mRM_read_config, only : check_optimization_settings, common_mHM_mRM_read_config
     use mo_kind, only : i4
@@ -57,7 +57,7 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
       if ( processMatrix(11, 1) > 0 ) then
         ! processCase(11): river temperature routing
         do_calc_river_temp = .true.
-        call riv_temp_def%config(file_namelist, unamelist, file_namelist_param, unamelist_param)
+        call riv_temp_pcs%config(file_namelist, unamelist, file_namelist_param, unamelist_param)
       end if
     end if
 
@@ -121,7 +121,7 @@ end subroutine mrm_configuration
     use mo_mrm_global_variables, only : domain_mrm, &
                                         l0_l11_remap, l1_l11_remap, level11, &
                                         gw_coupling, L0_river_head_mon_sum, &
-                                        do_calc_river_temp, riv_temp_def
+                                        do_calc_river_temp, riv_temp_pcs
     use mo_mrm_net_startup, only : L11_flow_direction, L11_flow_accumulation, L11_fraction_sealed_floodplain, &
                                    L11_link_location, L11_routing_order, L11_set_drain_outlet_gauges, &
                                    L11_set_network_topology, L11_stream_features, l11_l1_mapping
@@ -298,8 +298,8 @@ end subroutine mrm_configuration
     ! - init riv-area
 
     if ( do_calc_river_temp ) then
-      call riv_temp_def%init()
-      call riv_temp_def%init_area()
+      call riv_temp_pcs%init()
+      call riv_temp_pcs%init_area()
     end if
     call message('')
     call message('  Finished Initialization of mRM')

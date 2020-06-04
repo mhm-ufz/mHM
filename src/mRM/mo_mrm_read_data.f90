@@ -271,7 +271,7 @@ contains
     use mo_mrm_file, only : udischarge
     use mo_mrm_global_variables, only : InflowGauge, gauge, mRM_runoff, nGaugesLocal, &
                                         nInflowGaugesTotal, nMeasPerDay, &
-                                        do_calc_river_temp, riv_temp_def
+                                        do_calc_river_temp, riv_temp_pcs
     use mo_read_timeseries, only : read_timeseries
     use mo_string_utils, only : num2str
 
@@ -549,7 +549,7 @@ contains
 
   use mo_mrm_global_variables, only: level11
   use mo_read_forcing_nc, only: read_const_forcing_nc
-      use mo_mrm_global_variables, only: riv_temp_def
+      use mo_mrm_global_variables, only: riv_temp_pcs
 
       implicit none
 
@@ -562,24 +562,24 @@ contains
       real(dp), dimension(:), allocatable :: L11_data_packed
 
       call read_const_forcing_nc(&
-        trim(riv_temp_def%dir_riv_widths(iDomain)), &
+        trim(riv_temp_pcs%dir_riv_widths(iDomain)), &
         level11(iDomain)%nrows, &
         level11(iDomain)%ncols, &
-        riv_temp_def%riv_widths_name, &
+        riv_temp_pcs%riv_widths_name, &
         mask, &
         L11_data, &
-        riv_temp_def%riv_widths_file &
+        riv_temp_pcs%riv_widths_file &
       )
 
       allocate(L11_data_packed(level11(iDomain)%nCells))
       L11_data_packed(:) = pack(L11_data(:,:), mask=level11(iDomain)%mask)
 
       ! append
-      if (allocated(riv_temp_def%L11_riv_widths)) then
-        riv_temp_def%L11_riv_widths = [riv_temp_def%L11_riv_widths, L11_data_packed]
+      if (allocated(riv_temp_pcs%L11_riv_widths)) then
+        riv_temp_pcs%L11_riv_widths = [riv_temp_pcs%L11_riv_widths, L11_data_packed]
       else
-          allocate(riv_temp_def%L11_riv_widths(size(L11_data_packed)))
-          riv_temp_def%L11_riv_widths = L11_data_packed
+          allocate(riv_temp_pcs%L11_riv_widths(size(L11_data_packed)))
+          riv_temp_pcs%L11_riv_widths = L11_data_packed
       end if
 
       deallocate(L11_data)
