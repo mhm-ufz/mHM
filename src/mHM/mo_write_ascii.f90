@@ -87,7 +87,7 @@ CONTAINS
     use mo_common_file, only : file_config, uconfig
     use mo_common_mHM_mRM_variables, only : LCyearId, SimPer, evalPer, read_restart, timeStep, warmPer
     use mo_common_variables, only : LC_year_end, &
-                                    LC_year_start, LCfilename, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
+                                    LC_year_start, LCfilename, dirConfigOut, dirLCover, dirMorpho, dirOut, mhmFileRestartOut, &
                                     global_parameters, global_parameters_name, iFlag_cordinate_sys, level0, level1, &
                                     domainMeta, nLCoverScene, resolutionHydrology, write_restart
     use mo_file, only : version
@@ -271,7 +271,7 @@ CONTAINS
       write(uconfig, 224) 'Directory to temperature input           ', dirTemperature(iDomain)
       write(uconfig, 224) 'Directory to reference ET input          ', dirReferenceET(iDomain)
       write(uconfig, 224) 'Directory to write output by default     ', dirOut(iDomain)
-      write(uconfig, 224) 'Directory to write output when restarted ', dirRestartOut(iDomain)
+      write(uconfig, 224) 'File to write mHM output when restarted  ', mhmFileRestartOut(iDomain)
 
 #ifdef MRM2MHM
       if (domainMeta%doRouting(iDomain)) then

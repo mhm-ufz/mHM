@@ -28,7 +28,7 @@
 # Define subirectories if another structure
 
 # Paths
-GNUDIR := /Users/thober/homebrew_dev
+GNUDIR := /usr/local
 GNULIB := $(GNUDIR)/lib
 GNUBIN := $(GNUDIR)/bin
 
@@ -69,9 +69,9 @@ MKL95INC :=
 MKL95LIB := 
 
 # NETCDF
-NCDIR   := /Users/thober/lib/install_netcdf/test_install/netcdf-fortran-4.5.2-gfortran
-SZLIB   := /Users/thober/homebrew_dev/lib
-HDF5LIB := /Users/thober/homebrew_dev/lib
+NCDIR   := /usr/local/netcdf-fortran-4.5.2-gfortran
+SZLIB   := /usr/local/lib
+HDF5LIB := /usr/local/lib
 
 # PROJ
 PROJ4DIR := 

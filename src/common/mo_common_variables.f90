@@ -46,7 +46,8 @@ module mo_common_variables
   ! DIRECTORIES
   ! ------------------------------------------------------------------
   ! has the dimension of nDomains
-  character(256), dimension(:), allocatable, public :: dirRestartOut ! Directory where output of restart is written
+  character(256), dimension(:), allocatable, public :: mhmFileRestartOut ! Directory where output of restart is written
+  character(256), dimension(:), allocatable, public :: mrmFileRestartOut ! Directory where output of restart is written
   character(256), public :: dirConfigOut
   character(256), public :: dirCommonFiles ! directory where common input files should be located
   character(256), dimension(:), allocatable, public :: dirMorpho ! Directory where morphological files are located
