@@ -18,18 +18,24 @@ module mo_mrm_riv_temp_class
 
   ! This is a container to define the river temperature routing in the current time step
   type riv_temp_type
+    ! config settings
+    character(256) :: nml_name = 'config_riv_temp' ! file name for river widths
     ! riv geometry
-    character(256), dimension(:), allocatable :: dirWidths ! Directory where river widths are stored
+    character(256), dimension(:), allocatable :: dir_riv_widths ! Directory where river widths are stored
     character(256) :: riv_widths_file ! file name for river widths
     character(256) :: riv_widths_name ! variable name for river widths
     real(dp), public, dimension(:), allocatable :: L11_riv_widths !river widths in L11
     real(dp), public, dimension(:), allocatable :: L11_riv_area !river area in L11
     ! PET related vars
+    character(256), dimension(:), allocatable :: dir_radiation ! Directory storing long/short wave radiation
+    character(256) :: radiation_file ! file name for downward radiation (long+short wave)
+    character(256) :: SR_name ! variable name for short wave radiation
+    character(256) :: LR_name ! variable name for long wave radiation
     real(dp) :: albedo_water ! albedo of open water
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
     ! \f$ E_L \f$ Generated lateral temperature energy flux [m3 s-1 K] on L1
     real(dp), dimension(:), allocatable :: L1_lateral_E
-    ! vars for temp routing
+    ! vars for routing
     real(dp), dimension(:), allocatable :: L11_lateral_E
     real(dp), dimension(:,:), allocatable :: netNode_E_IN ! Total energy inputs at t-1 and t
     real(dp), dimension(:,:), allocatable :: netNode_E_R ! energy leaving at t-1 and t
@@ -48,16 +54,73 @@ module mo_mrm_riv_temp_class
 contains
 
   subroutine meth_config( &
-    self &
+    self, &
+    file_namelist, &
+    unamelist, &
+    file_namelist_param, &
+    unamelist_param &
   )
+
+    use mo_common_constants, only : maxNoDomains, nodata_i4
+    use mo_common_variables, only : domainMeta
+    use mo_nml, only : close_nml, open_nml, position_nml
 
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
+    character(*), intent(in) :: file_namelist, file_namelist_param
+    integer, intent(in) :: unamelist, unamelist_param
+
+    character(256), dimension(maxNoDomains) :: dir_riv_widths
+    character(256), dimension(maxNoDomains) :: dir_radiation
+    ! parameter to read in
+    real(dp) :: albedo_water ! albedo of open water
+    real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
+    character(256) :: riv_widths_file ! file name for river widths
+    character(256) :: riv_widths_name ! variable name for river widths
+    character(256) :: radiation_file ! file name for downward radiation (long+short wave)
+    character(256) :: SR_name ! variable name for short wave radiation
+    character(256) :: LR_name ! variable name for long wave radiation
+
+    ! namelist for river temperature configuration
+    namelist /config_riv_temp/ &
+      albedo_water, &
+      pt_a_water, &
+      riv_widths_file, &
+      riv_widths_name, &
+      radiation_file, &
+      SR_name, &
+      LR_name, &
+      dir_riv_widths, &
+      dir_radiation
 
     print *, 'config river temp'
     ! TODO-RIV-TEMP:
     ! - set variables from nml
+
+    ! allocate the directory arrays
+    allocate(self%dir_riv_widths(domainMeta%nDomains))
+    allocate(self%dir_radiation(domainMeta%nDomains))
+
+    ! open the namelist file
+    call open_nml(file_namelist, unamelist, quiet=.true.)
+    ! find the river-temp config namelist
+    call position_nml(self%nml_name, unamelist)
+    ! read the river-temp config namelist
+    read(unamelist, nml=config_riv_temp)
+
+    self%albedo_water = albedo_water
+    self%pt_a_water = pt_a_water
+    self%riv_widths_file = riv_widths_file
+    self%riv_widths_name = riv_widths_name
+    self%radiation_file = radiation_file
+    self%SR_name = SR_name
+    self%LR_name = LR_name
+    self%dir_riv_widths = dir_riv_widths
+    self%dir_radiation = dir_radiation
+
+    ! closing the namelist file
+    call close_nml(unamelist)
 
   end subroutine meth_config
 

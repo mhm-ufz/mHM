@@ -29,7 +29,9 @@ CONTAINS
 
 subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
     use mo_common_mHM_mRM_variables, only : mrm_coupling_mode
+    use mo_common_variables, only : processMatrix
     use mo_mrm_read_config, only : mrm_read_config
+    use mo_mrm_global_variables, only: riv_temp_def, do_calc_river_temp
     use mo_common_read_config, only : common_read_config
     use mo_common_mHM_mRM_read_config, only : check_optimization_settings, common_mHM_mRM_read_config
     use mo_kind, only : i4
@@ -52,6 +54,11 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
     else
       call message('')
       call message('  Inititalize mRM')
+      if ( processMatrix(11, 1) > 0 ) then
+        ! processCase(11): river temperature routing
+        do_calc_river_temp = .true.
+        call riv_temp_def%config(file_namelist, unamelist, file_namelist_param, unamelist_param)
+      end if
     end if
 
     ! read config for mrm, readlatlon is set here depending on whether output is needed

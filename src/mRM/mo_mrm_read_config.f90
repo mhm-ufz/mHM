@@ -65,8 +65,7 @@ contains
                                         dirGauges, dirTotalRunoff, filenameTotalRunoff, dirBankfullRunoff, gauge, is_start, &
                                         nGaugesTotal, nGaugesLocal, nInflowGaugesTotal, outputFlxState_mrm, &
                                         timeStep_model_outputs_mrm, &
-                                        varnameTotalRunoff, gw_coupling, &
-                                        do_calc_river_temp, riv_temp_def
+                                        varnameTotalRunoff, gw_coupling
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
 
@@ -110,21 +109,14 @@ contains
     ! directory for river widths
     character(256), dimension(maxNoDomains) :: dir_river_widths
 
-    ! dummies for temperature routing parameters (stored later in 'riv_temp_def')
-    real(dp) :: albedo_water ! albedo of open water
-    real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
-    character(256) :: riv_widths_file ! file name for river widths
-    character(256) :: riv_widths_name ! variable name for river widths
-
     logical :: file_exists
 
     type(domainInfo_mRM), pointer :: domain_mrm_iDomain
 
 
     ! namelist spatial & temporal resolution, optmization information
-    namelist /mainconfig_mrm/ ALMA_convention, filenameTotalRunoff, varnameTotalRunoff, &
-             gw_coupling, &
-             do_calc_river_temp, albedo_water, pt_a_water, riv_widths_file, riv_widths_name
+    namelist /mainconfig_mrm/ ALMA_convention, &
+      filenameTotalRunoff, varnameTotalRunoff, gw_coupling
     ! namelist directories
     namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff, dir_Bankfull_Runoff, dir_river_widths
     namelist /evaluation_gauges/ nGaugesTotal, NoGauges_domain, Gauge_id, gauge_filename
@@ -149,11 +141,6 @@ contains
     filenameTotalRunoff = 'total_runoff'
     varnameTotalRunoff = 'total_runoff'
     gw_coupling = .false.
-    do_calc_river_temp = .false.
-    albedo_water = 0.15_dp
-    pt_a_water = 1.26_dp
-    riv_widths_file = 'None'
-    riv_widths_name = 'None'
 
     !===============================================================
     !  Read namelist main directories
@@ -165,16 +152,6 @@ contains
     !===============================================================
     call position_nml('mainconfig_mrm', unamelist)
     read(unamelist, nml = mainconfig_mrm)
-
-    ! set temperature routing parameters in 'riv_temp_def' container
-    ! TODO-RIV-TEMP: read riv temp config (use config method)
-    if ( do_calc_river_temp ) then
-      riv_temp_def%albedo_water = albedo_water
-      riv_temp_def%pt_a_water = pt_a_water
-      riv_temp_def%riv_widths_file = riv_widths_file
-      riv_temp_def%riv_widths_name = riv_widths_name
-      allocate(riv_temp_def%dirWidths(domainMeta%nDomains))
-    end if
 
     !===============================================================
     !  Read namelist for mainpaths
@@ -188,7 +165,6 @@ contains
       dirGauges(iDomain)         = dir_Gauges(domainID)
       dirTotalRunoff(iDomain)    = dir_Total_Runoff(domainID)
       dirBankfullRunoff(iDomain) = dir_Bankfull_Runoff(domainID)
-      if ( do_calc_river_temp ) riv_temp_def%dirWidths(iDomain) = dir_river_widths(domainID)
     end do
 
     !===============================================================
