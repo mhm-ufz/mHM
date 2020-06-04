@@ -35,7 +35,7 @@ MODULE mo_global_variables
   !           Oldrich Rakovec,    Oct 2015 - added definition of Domain averaged TWS data
   !           Rohini Kumar,       Mar 2016 - new variables for handling different soil databases
   !           Johann Brenner,     Feb 2017 - added optional evapotranspiration readin: dirEvapotranspiration, L1_et
-  !           Zink M. Demirel C., Mar 2017 - added Jarvis soil water stress variable for SM process(3) 
+  !           Zink M. Demirel C., Mar 2017 - added Jarvis soil water stress variable for SM process(3)
   !           Demirel M.C.        May 2017 - added L1_petLAIcorFactor for PET correction
   !           O. Rakovec, R.Kumar Nov 2017 - added project description for the netcdf outputs
   !           Robert Schweppe,    Dec 2017 - expanded dimensions of effective parameters
@@ -123,7 +123,7 @@ MODULE mo_global_variables
                                                               ! observerd data, and the
                                                               ! timestepInput of the simulated data
                                                               ! ToDo: add unit
-                                                              
+
 
   ! State variables
   ! dim1 = number grid cells L1
@@ -168,6 +168,10 @@ MODULE mo_global_variables
   real(dp), public, dimension(int(YearMonths, i4)) :: fnight_pet     ! [-] Night ratio PET  < 1
   real(dp), public, dimension(int(YearMonths, i4)) :: fday_temp      ! [-] Day factor mean temp
   real(dp), public, dimension(int(YearMonths, i4)) :: fnight_temp    ! [-] Night factor mean temp
+  real(dp), public, dimension(int(YearMonths, i4)) :: fday_ssrd      ! [-] Day factor short-wave rad.
+  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_ssrd    ! [-] Night factor short-wave rad.
+  real(dp), public, dimension(int(YearMonths, i4)) :: fday_strd      ! [-] Day factor long-wave rad.
+  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_strd    ! [-] Night factor long-wave rad.
 
   ! -------------------------------------------------------------------
   ! AUXILIARY VARIABLES

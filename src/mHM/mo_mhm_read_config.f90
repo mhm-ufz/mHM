@@ -95,9 +95,10 @@ CONTAINS
     use mo_file, only : file_defOutput, udefOutput
     use mo_global_variables, only : L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
                                     dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirPrecipitation, &
-                                    dirReferenceET, dirTemperature, dirabsVapPressure, dirwindspeed, &
-                                    evap_coeff, fday_pet, fday_prec, fday_temp, fnight_pet, fnight_prec, &
-                                    fnight_temp, inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
+                                    dirReferenceET, dirTemperature, dirabsVapPressure, dirwindspeed, evap_coeff, &
+                                    fday_pet, fday_prec, fday_temp, fday_ssrd, fday_strd, &
+                                    fnight_pet, fnight_prec, fnight_temp, fnight_ssrd, fnight_strd, &
+                                    inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
                                     read_meteo_weights, timeStep_model_outputs, &
                                     timestep_model_inputs
     use mo_message, only : message
@@ -175,8 +176,8 @@ CONTAINS
     ! - add standard values for backward compatibility
 
     ! namelist for night-day ratio of precipitation, referenceET and temperature
-    namelist /nightDayRatio/read_meteo_weights, fnight_prec, fnight_pet, fnight_temp
-
+    namelist /nightDayRatio/ read_meteo_weights, &
+      fnight_prec, fnight_pet, fnight_temp, fnight_ssrd, fnight_strd
     ! name list regarding output
     namelist /NLoutputResults/timeStep_model_outputs, outputFlxState
 
@@ -314,6 +315,9 @@ CONTAINS
     !===============================================================
     ! Read night-day ratios and pan evaporation
     !===============================================================
+    ! default values for long/shortwave rad.
+    fnight_ssrd = 0.0_dp
+    fnight_strd = 0.45_dp
     ! Evap. coef. for free-water surfaces
     call position_nml('panEvapo', unamelist)
     read(unamelist, nml = panEvapo)
@@ -324,6 +328,8 @@ CONTAINS
     fday_prec = 1.0_dp - fnight_prec
     fday_pet = 1.0_dp - fnight_pet
     fday_temp = -1.0_dp * fnight_temp
+    fday_ssrd = 1.0_dp - fnight_ssrd
+    fday_strd = 1.0_dp - fnight_strd
 
     ! TODO-RIV-TEMP:
     ! - add short- and long-wave raidiation weights

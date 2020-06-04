@@ -562,7 +562,7 @@ contains
       real(dp), dimension(:), allocatable :: L11_data_packed
 
       call read_const_forcing_nc(&
-        trim(riv_temp_def%dirWidths(iDomain)), &
+        trim(riv_temp_def%dir_riv_widths(iDomain)), &
         level11(iDomain)%nrows, &
         level11(iDomain)%ncols, &
         riv_temp_def%riv_widths_name, &
