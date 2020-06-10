@@ -74,6 +74,8 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirabsVapPressure  ! Directory where abs. vap. pressure files are located
   character(256), dimension(:), allocatable, public :: dirwindspeed       ! Directory where windspeed files are located
   character(256), dimension(:), allocatable, public :: dirReferenceET     ! Directory where reference-ET files are located
+  ! riv-temp releated
+  character(256), dimension(:), allocatable, public :: dirRadiation       ! Directory where short/long-wave rad. files are located
 
   ! ------------------------------------------------------------------
   ! CONSTANT
@@ -102,6 +104,11 @@ MODULE mo_global_variables
   real(dp), public, dimension(:, :), allocatable :: L1_netrad        ! [W m2]  net radiation
   real(dp), public, dimension(:, :), allocatable :: L1_absvappress   ! [Pa]    absolute vapour pressure
   real(dp), public, dimension(:, :), allocatable :: L1_windspeed     ! [m s-1] windspeed
+  ! riv-temp related
+  real(dp), public, dimension(:, :), allocatable :: L1_ssrd          ! [W m2]  short wave radiation
+  real(dp), public, dimension(:, :), allocatable :: L1_strd          ! [W m2]  long wave radiation
+  real(dp), public, dimension(:, :), allocatable :: L1_tann          ! [degC]  annual mean air temperature
+
 
   ! soil moisture
   real(dp), public, dimension(:, :), allocatable :: L1_sm                  ! [-] soil moisture input for optimization

@@ -238,16 +238,9 @@ pt_a_water = 1.26
 riv_widths_file = 'Q_bkfl'
 !> variable name for river widths
 riv_widths_name = 'P_bkfl'
-!> variable and file name shortwave radiation
-SR_name = 'ssrd'
-!> variable and file name longwave radiation
-LR_name = 'strd'
 !> directory where river widths can be found (only for river temperature routing)
 dir_riv_widths(1) = 'test_domain/input/optional_data/'
 dir_riv_widths(2) = 'test_domain_2/input/optional_data/'
-!> directory where long-/shortwave radiation (only for river temperature routing)
-dir_radiation(1) = 'test_domain/input/meteo/'
-dir_radiation(2) = 'test_domain_2/input/meteo/'
 /
 
 !******************************************************************************************
@@ -321,11 +314,13 @@ dir_ReferenceET(1)     = "test_domain/input/meteo/pet/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
 dir_MinTemperature(1)  = "test_domain/input/meteo/"
 dir_MaxTemperature(1)  = "test_domain/input/meteo/"
-!> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
+!> if processCase(5) == 2  input directory of net-radiation has to be specified
 dir_NetRadiation(1)    = "test_domain/input/meteo/"
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
 dir_absVapPressure(1)  = "test_domain/input/meteo/"
 dir_windspeed(1)       = "test_domain/input/meteo/"
+!> if processCase(11) == 1  input directory of (long/short-wave)radiation has to be specified
+dir_Radiation(1)    = "test_domain/input/meteo/"
 !
 !**** for Domain 2
 !> directory where meteorological input is located
@@ -342,11 +337,13 @@ dir_ReferenceET(2)     = "test_domain_2/input/meteo/pet/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
 dir_MinTemperature(2)  = "test_domain_2/input/meteo/"
 dir_MaxTemperature(2)  = "test_domain_2/input/meteo/"
-!> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
+!> if processCase(5) == 2  input directory of net-radiation has to be specified
 dir_NetRadiation(2)    = "test_domain_2/input/meteo/"
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
 dir_absVapPressure(2)  = "test_domain_2/input/meteo/"
 dir_windspeed(2)       = "test_domain_2/input/meteo/"
+!> if processCase(11) == 1  input directory of (long/short-wave)radiation has to be specified
+dir_Radiation(2)    = "test_domain_2/input/meteo/"
 !> switch to control read input frequency of the gridded meteo input,
 !> i.e. precipitation, potential evapotransiration, and temperature
 !>      >0: after each <timeStep_model_inputs> days
@@ -486,7 +483,7 @@ processCase(9) = 1
 processCase(10) = 0
 !> river temperature routing (needs routing)
 !> 0 - deactivated
-!> 1 - following Beek et al., 2012
+!> 1 - following: Beek et al., 2012
 processCase(11) = 1
 /
 
@@ -729,7 +726,7 @@ Gauge_filename(2,1)     = "45.txt"
 !> e.g. in the case of upstream/headwater areas which are
 !>      not included in the model domain
 !
-!> Total number of inflow gauges (sum of all gauges in all subbains)
+!> Total number of inflow gauges (sum of all gauges in all subdomains)
 nInflowGaugesTotal = 0
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subdomain i

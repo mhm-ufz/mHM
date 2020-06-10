@@ -27,9 +27,6 @@ module mo_mrm_riv_temp_class
     real(dp), public, dimension(:), allocatable :: L11_riv_widths !river widths in L11
     real(dp), public, dimension(:), allocatable :: L11_riv_area !river area in L11
     ! PET related vars
-    character(256), dimension(:), allocatable :: dir_radiation ! Directory storing long/short wave radiation
-    character(256) :: SR_name ! variable name for short wave radiation
-    character(256) :: LR_name ! variable name for long wave radiation
     real(dp) :: albedo_water ! albedo of open water
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
     ! \f$ E_L \f$ Generated lateral temperature energy flux [m3 s-1 K] on L1
@@ -71,14 +68,11 @@ contains
     integer, intent(in) :: unamelist, unamelist_param
 
     character(256), dimension(maxNoDomains) :: dir_riv_widths
-    character(256), dimension(maxNoDomains) :: dir_radiation
     ! parameter to read in
     real(dp) :: albedo_water ! albedo of open water
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
     character(256) :: riv_widths_file ! file name for river widths
     character(256) :: riv_widths_name ! variable name for river widths
-    character(256) :: SR_name ! variable name for short wave radiation
-    character(256) :: LR_name ! variable name for long wave radiation
 
     ! namelist for river temperature configuration
     namelist /config_riv_temp/ &
@@ -86,17 +80,13 @@ contains
       pt_a_water, &
       riv_widths_file, &
       riv_widths_name, &
-      SR_name, &
-      LR_name, &
-      dir_riv_widths, &
-      dir_radiation
+      dir_riv_widths
 
     ! TODO-RIV-TEMP:
     print *, '    read config: river temperature routing'
 
     ! allocate the directory arrays
     allocate(self%dir_riv_widths(domainMeta%nDomains))
-    allocate(self%dir_radiation(domainMeta%nDomains))
 
     ! open the namelist file
     call open_nml(file_namelist, unamelist, quiet=.true.)
@@ -109,10 +99,7 @@ contains
     self%pt_a_water = pt_a_water
     self%riv_widths_file = riv_widths_file
     self%riv_widths_name = riv_widths_name
-    self%SR_name = SR_name
-    self%LR_name = LR_name
     self%dir_riv_widths = dir_riv_widths
-    self%dir_radiation = dir_radiation
 
     ! closing the namelist file
     call close_nml(unamelist)

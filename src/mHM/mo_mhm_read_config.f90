@@ -95,7 +95,8 @@ CONTAINS
     use mo_file, only : file_defOutput, udefOutput
     use mo_global_variables, only : L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
                                     dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirPrecipitation, &
-                                    dirReferenceET, dirTemperature, dirabsVapPressure, dirwindspeed, evap_coeff, &
+                                    dirReferenceET, dirTemperature, dirabsVapPressure, dirwindspeed, dirRadiation, &
+                                    evap_coeff, &
                                     fday_pet, fday_prec, fday_temp, fday_ssrd, fday_strd, &
                                     fnight_pet, fnight_prec, fnight_temp, fnight_ssrd, fnight_strd, &
                                     inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
@@ -133,6 +134,9 @@ CONTAINS
 
     character(256), dimension(maxNoDomains) :: dir_ReferenceET
 
+    ! riv-temp related
+    character(256), dimension(maxNoDomains) :: dir_Radiation
+
     ! soil moisture input
     character(256), dimension(maxNoDomains) :: dir_soil_moisture
 
@@ -153,10 +157,18 @@ CONTAINS
 
     ! define namelists
     ! namelist directories
-    namelist /directories_mHM/ inputFormat_meteo_forcings, &
-            dir_Precipitation, dir_Temperature, dir_ReferenceET, dir_MinTemperature, &
-            dir_MaxTemperature, dir_absVapPressure, dir_windspeed, &
-            dir_NetRadiation, time_step_model_inputs
+    namelist /directories_mHM/ &
+            inputFormat_meteo_forcings, &
+            dir_Precipitation, &
+            dir_Temperature, &
+            dir_ReferenceET, &
+            dir_MinTemperature, &
+            dir_MaxTemperature, &
+            dir_absVapPressure, &
+            dir_windspeed, &
+            dir_NetRadiation, &
+            dir_Radiation, &
+            time_step_model_inputs
     ! optional data used for optimization
     namelist /optional_data/ &
             dir_soil_moisture, &
@@ -194,6 +206,7 @@ CONTAINS
     allocate(dirMinTemperature(domainMeta%nDomains))
     allocate(dirMaxTemperature(domainMeta%nDomains))
     allocate(dirNetRadiation(domainMeta%nDomains))
+    allocate(dirRadiation(domainMeta%nDomains))
     allocate(L1_twsaObs(domainMeta%nDomains))
     allocate(L1_etObs(domainMeta%nDomains))
     allocate(L1_smObs(domainMeta%nDomains))
@@ -219,6 +232,8 @@ CONTAINS
       dirwindspeed(iDomain) = dir_windspeed(domainID)
       dirabsVapPressure(iDomain) = dir_absVapPressure(domainID)
       timestep_model_inputs(iDomain) = time_step_model_inputs(domainID)
+      ! riv-temp related
+      dirRadiation(iDomain) = dir_Radiation(domainID)
     end do
 
     ! consistency check for timestep_model_inputs
