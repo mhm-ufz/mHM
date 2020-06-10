@@ -192,6 +192,10 @@ CONTAINS
         end if
       end select
 
+      ! TODO-RIV-TEMP:
+      !  - check processCase(11)
+      !  - read long-/short-wave radiation
+
       if (timeStep_model_inputs(iDomain) .eq. 0) then
         call timer_stop(1)
         call message('    in ', trim(num2str(timer_get(1), '(F9.3)')), ' seconds.')
