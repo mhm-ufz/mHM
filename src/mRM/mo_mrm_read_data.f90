@@ -325,6 +325,7 @@ contains
       data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
       call paste(gauge%Q, data_dp_1d, nodata_dp)
       deallocate (data_dp_1d)
+      ! TODO-RIV-TEMP: read temperature at gauge
     end do
     !
     ! inflow gauge
@@ -547,11 +548,13 @@ contains
 
   subroutine mrm_read_river_widths(iDomain)
 
-  use mo_mrm_global_variables, only: level11
-  use mo_read_forcing_nc, only: read_const_forcing_nc
+      use mo_mrm_global_variables, only: level11
+      use mo_read_forcing_nc, only: read_const_forcing_nc
       use mo_mrm_global_variables, only: riv_temp_pcs
 
       implicit none
+
+      ! TODO-RIV-TEMP: put this into the riv-temp class
 
       ! input variables
       integer(i4), intent(in) :: iDomain

@@ -283,6 +283,16 @@ contains
       call writeVariableAttributes(tmpvars(ii), "routed streamflow", "m3 s-1")
     end if
 
+    ! TODO-RIV-TEMP: add output for river temperature
+
+    ! if (outputFlxState_mrm(2) and do_calc_river_temp) then
+    ! ii = ii + 1
+    ! tmpvars(ii) = OutputVariable( &
+    !   nc, "RivTemp", dtype, dims1, nCells, mask, .true. &
+    ! )
+    ! call writeVariableAttributes(tmpvars(ii), "routed river temperature", "K")
+    ! end if
+
     ! out = OutputDataset(iDomain, nc, tmpvars(1 : ii))
     allocate(out%vars(ii))
     out%vars = tmpvars(1:ii)
@@ -358,6 +368,8 @@ contains
       call vars(ii)%updateVariable(L11_Qmod(sidx : eidx))
 #endif
     end if
+
+    ! TODO-RIV-TEMP: write river temperature
 
   end subroutine updateDataset
 

@@ -238,15 +238,13 @@ pt_a_water = 1.26
 riv_widths_file = 'Q_bkfl'
 !> variable name for river widths
 riv_widths_name = 'P_bkfl'
-!> file name for radiation
-radiation_file = 'rd'
-!> variable name shortwave radiation
+!> variable and file name shortwave radiation
 SR_name = 'ssrd'
-!> variable name longwave radiation
+!> variable and file name longwave radiation
 LR_name = 'strd'
 !> directory where river widths can be found (only for river temperature routing)
-dir_river_widths(1) = 'test_domain/input/optional_data/'
-dir_river_widths(2) = 'test_domain_2/input/optional_data/'
+dir_riv_widths(1) = 'test_domain/input/optional_data/'
+dir_riv_widths(2) = 'test_domain_2/input/optional_data/'
 !> directory where long-/shortwave radiation (only for river temperature routing)
 dir_radiation(1) = 'test_domain/input/meteo/'
 dir_radiation(2) = 'test_domain_2/input/meteo/'
@@ -489,7 +487,7 @@ processCase(10) = 0
 !> river temperature routing (needs routing)
 !> 0 - deactivated
 !> 1 - following Beek et al., 2012
-processCase(11) = 0
+processCase(11) = 1
 /
 
 !******************************************************************************************

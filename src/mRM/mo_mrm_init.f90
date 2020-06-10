@@ -54,7 +54,7 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
     else
       call message('')
       call message('  Inititalize mRM')
-      if ( processMatrix(11, 1) > 0 ) then
+      if ( processMatrix(11, 1) .ne. 0 ) then
         ! processCase(11): river temperature routing
         do_calc_river_temp = .true.
         call riv_temp_pcs%config(file_namelist, unamelist, file_namelist_param, unamelist_param)
@@ -299,7 +299,6 @@ end subroutine mrm_configuration
 
     if ( do_calc_river_temp ) then
       call riv_temp_pcs%init()
-      call riv_temp_pcs%init_area()
     end if
     call message('')
     call message('  Finished Initialization of mRM')

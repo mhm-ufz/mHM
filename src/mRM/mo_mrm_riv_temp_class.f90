@@ -28,7 +28,6 @@ module mo_mrm_riv_temp_class
     real(dp), public, dimension(:), allocatable :: L11_riv_area !river area in L11
     ! PET related vars
     character(256), dimension(:), allocatable :: dir_radiation ! Directory storing long/short wave radiation
-    character(256) :: radiation_file ! file name for downward radiation (long+short wave)
     character(256) :: SR_name ! variable name for short wave radiation
     character(256) :: LR_name ! variable name for long wave radiation
     real(dp) :: albedo_water ! albedo of open water
@@ -78,7 +77,6 @@ contains
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
     character(256) :: riv_widths_file ! file name for river widths
     character(256) :: riv_widths_name ! variable name for river widths
-    character(256) :: radiation_file ! file name for downward radiation (long+short wave)
     character(256) :: SR_name ! variable name for short wave radiation
     character(256) :: LR_name ! variable name for long wave radiation
 
@@ -88,15 +86,13 @@ contains
       pt_a_water, &
       riv_widths_file, &
       riv_widths_name, &
-      radiation_file, &
       SR_name, &
       LR_name, &
       dir_riv_widths, &
       dir_radiation
 
-    print *, 'config river temp'
     ! TODO-RIV-TEMP:
-    ! - set variables from nml
+    print *, '    read config: river temperature routing'
 
     ! allocate the directory arrays
     allocate(self%dir_riv_widths(domainMeta%nDomains))
@@ -113,7 +109,6 @@ contains
     self%pt_a_water = pt_a_water
     self%riv_widths_file = riv_widths_file
     self%riv_widths_name = riv_widths_name
-    self%radiation_file = radiation_file
     self%SR_name = SR_name
     self%LR_name = LR_name
     self%dir_riv_widths = dir_riv_widths
@@ -151,6 +146,8 @@ contains
     ! allocate(dummy_Matrix11_IT(level11(iDomain)%nCells, nRoutingStates))
     ! dummy_Vector11(:) = 0.0_dp
 
+    call self%init_area()
+
   end subroutine meth_init
 
 
@@ -167,6 +164,20 @@ contains
     ! - walk the riv-network in order to get link-length
 
   end subroutine meth_init_area
+
+
+  subroutine meth_prepare_meteo( &
+    self &
+  )
+    implicit none
+
+    class(riv_temp_type), intent(inout) :: self
+
+    print *, 'riv-temp: prepare_meteo'
+    ! TODO-RIV-TEMP:
+    ! - see: prepare_meteo_forcings_data
+
+  end subroutine meth_prepare_meteo
 
 
   subroutine meth_init_cond_from_L1( &
