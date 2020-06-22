@@ -9,7 +9,7 @@
 
 module mo_mrm_riv_temp_class
 
-  use mo_kind, only: dp
+  use mo_kind, only: dp, i4
 
   implicit none
 
@@ -30,21 +30,26 @@ module mo_mrm_riv_temp_class
     real(dp) :: albedo_water ! albedo of open water
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
     ! \f$ E_L \f$ Generated lateral temperature energy flux [m3 s-1 K] on L1
-    real(dp), dimension(:), allocatable :: L1_lateral_E
+    real(dp), dimension(:), allocatable :: L1_runoff_E
+    ! accumulated later fluxes
+    real(dp), dimension(:), allocatable :: L1_acc_inter
+    real(dp), dimension(:), allocatable :: L1_acc_direct
+    real(dp), dimension(:), allocatable :: L1_acc_base
     ! vars for routing
-    real(dp), dimension(:), allocatable :: L11_lateral_E
     real(dp), dimension(:,:), allocatable :: netNode_E_IN ! Total energy inputs at t-1 and t
     real(dp), dimension(:,:), allocatable :: netNode_E_R ! energy leaving at t-1 and t
     real(dp), dimension(:), allocatable :: netNode_E_mod ! Simulated routed energy
     real(dp), dimension(:), allocatable :: netNode_E_out ! total energy source from cell in L11
     ! results
-    real(dp), dimension(:, :), allocatable :: mRM_river_temp ! variable containing river temp for each domain and gauge
+    real(dp), dimension(:), allocatable :: river_temp ! variable containing river temp for each domain and gauge
   contains
     procedure :: config => meth_config
     procedure :: init => meth_init
     procedure :: init_area => meth_init_area
     procedure :: init_cond_from_L1 => meth_init_cond_from_L1
-    procedure :: calc_lateral_E => meth_calc_lateral_E
+    procedure :: calc_source_E => meth_calc_source_E
+    procedure :: alloc_lateral => meth_alloc_lateral
+    procedure :: dealloc_lateral => meth_dealloc_lateral
   end type riv_temp_type
 
 contains
@@ -108,32 +113,49 @@ contains
 
 
   subroutine meth_init( &
-    self &
+    self, &
+    nCells &
   )
     use mo_append, only : append
-    use mo_kind, only : dp, i4
     use mo_mrm_constants, only : nRoutingStates
     use mo_common_variables, only : level0, domainMeta
 
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
+    integer(i4), intent(in) :: nCells
 
     real(dp), dimension(:), allocatable :: dummy_Vector11
     real(dp), dimension(:, :), allocatable :: dummy_Matrix11_IT
 
     print *, 'init river temp'
     ! TODO-RIV-TEMP:
-    ! - riv-width
-    ! - init_condition riv_temp (air temp)
+    ! - init_condition riv_temp (0)
     ! - see: variables_alloc_routing
 
     ! dummy vector and matrix
-    ! allocate(dummy_Vector11   (level11(iDomain)%nCells))
-    ! allocate(dummy_Matrix11_IT(level11(iDomain)%nCells, nRoutingStates))
-    ! dummy_Vector11(:) = 0.0_dp
+    allocate(dummy_Vector11   (nCells))
+    allocate(dummy_Matrix11_IT(nCells, nRoutingStates))
 
-    call self%init_area()
+    ! simulated energy flux at each node
+    dummy_Vector11(:) = 0.0_dp
+    call append(self%netNode_E_mod, dummy_Vector11)
+    ! simulated river temperature at each node
+    dummy_Vector11(:) = 0.0_dp
+    call append(self%river_temp, dummy_Vector11)
+    ! Total outflow from cells L11 at time tt
+    dummy_Vector11(:) = 0.0_dp
+    call append(self%netNode_E_out, dummy_Vector11)
+    ! Total discharge inputs at t-1 and t
+    dummy_Matrix11_IT(:, :) = 0.0_dp
+    call append(self%netNode_E_IN, dummy_Matrix11_IT)
+    !  Routed outflow leaving a node
+    dummy_Matrix11_IT(:, :) = 0.0_dp
+    call append(self%netNode_E_R, dummy_Matrix11_IT)
+
+    ! free space
+    if (allocated(dummy_Vector11)) deallocate(dummy_Vector11)
+    if (allocated(dummy_Matrix11_IT)) deallocate(dummy_Matrix11_IT)
 
   end subroutine meth_init
 
@@ -177,11 +199,50 @@ contains
     print *, 'init river temperature with L1 air temp'
     ! TODO-RIV-TEMP:
     ! - dis-agg L1 air temp for tt=1
+    ! - init with 0 for now
 
   end subroutine meth_init_cond_from_L1
 
-  subroutine meth_calc_lateral_E( &
+  subroutine meth_alloc_lateral( &
     self, &
+    size &
+  )
+    implicit none
+
+    class(riv_temp_type), intent(inout) :: self
+    integer(i4), intent(in) :: size
+
+    print *, 'riv-temp: allocate later runoff components from L1'
+    allocate(self%L1_acc_inter(size))
+    allocate(self%L1_acc_base(size))
+    allocate(self%L1_acc_direct(size))
+    allocate(self%L1_runoff_E(size))
+    self%L1_acc_inter = 0.0_dp
+    self%L1_acc_base = 0.0_dp
+    self%L1_acc_direct = 0.0_dp
+    self%L1_runoff_E = 0.0_dp
+
+  end subroutine meth_alloc_lateral
+
+  subroutine meth_dealloc_lateral( &
+    self &
+  )
+    implicit none
+
+    class(riv_temp_type), intent(inout) :: self
+
+    print *, 'riv-temp: deallocate later runoff components from L1'
+    deallocate(self%L1_acc_inter)
+    deallocate(self%L1_acc_base)
+    deallocate(self%L1_acc_direct)
+    deallocate(self%L1_runoff_E)
+
+  end subroutine meth_dealloc_lateral
+
+  subroutine meth_calc_source_E( &
+    self, &
+    rout_case, &
+    tsRoutFactor, &
     fSealed_area_fraction, &
     fast_interflow, &
     slow_interflow, &
@@ -189,12 +250,19 @@ contains
     direct_runoff, &
     temp_air, &
     mean_temp_air, &
-    add &
+    ssrd_day, &
+    strd_day, &
+    fday_ssrd, &
+    fday_strd &
   )
 
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
+    ! processMatrix(8, 1) -> routing process case
+    integer(i4), intent(in) :: rout_case
+    ! factor between routing and hydrological modelling resolution
+    real(dp), intent(in) :: tsRoutFactor
     ! sealed area fraction [1]
     real(dp), dimension(:), intent(in) :: fSealed_area_fraction
     ! \f$ q_0 \f$ Fast runoff component [mm tst-1]
@@ -209,33 +277,163 @@ contains
     real(dp), dimension(:), intent(in) :: temp_air
     ! annual mean air temperature [K]
     real(dp), dimension(:), intent(in) :: mean_temp_air
+    ! Daily mean short radiation
+    real(dp), intent(in) :: ssrd_day
+    ! Daily mean longwave radiation
+    real(dp), intent(in) :: strd_day
+    ! Daytime fraction of ssrd
+    real(dp), intent(in) :: fday_ssrd
+    ! Daytime fraction of strd
+    real(dp), intent(in) :: fday_strd
+    ! Nighttime fraction of ssrd
     ! switch to turn on adding energy if routing TS is larger then mhm TS
-    logical, intent(in), optional :: add
+    ! logical, intent(in), optional :: add
 
-    ! internal switch for adding energy
-    logical :: do_add
-    ! lateral energy
-    real(dp), dimension(size(baseflow)) :: lateral_E
+    ! if ( do_add ) then
+    !     self%L1_lateral_E = self%L1_lateral_E + lateral_E
+    ! else
+    !     self%L1_lateral_E = lateral_E
+    ! end if
 
-    ! check optional argument add
-    if (present(add)) then
-        do_add = add
-    else
-        do_add = .false.
-    end if
+  end subroutine meth_calc_source_E
+
+  SUBROUTINE calc_L1_runoff_E( &
+    fSealed_area_fraction, &
+    fast_interflow, &
+    slow_interflow, &
+    baseflow, &
+    direct_runoff, &
+    temp_air, &
+    mean_temp_air, &
+    lateral_E &
+  )
+
+    implicit none
+
+    ! sealed area fraction [1]
+    REAL(dp), dimension(:), INTENT(IN) :: fSealed_area_fraction
+    ! \f$ q_0 \f$ Fast runoff component [mm tst-1]
+    REAL(dp), dimension(:), INTENT(IN) :: fast_interflow
+    ! \f$ q_1 \f$ Slow runoff component [mm tst-1]
+    REAL(dp), dimension(:), INTENT(IN) :: slow_interflow
+    ! \f$ q_2 \f$ Baseflow [mm tsts-1]
+    REAL(dp), dimension(:), INTENT(IN) :: baseflow
+    ! \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
+    REAL(dp), dimension(:), INTENT(IN) :: direct_runoff
+    ! air temperature [K]
+    real(dp), dimension(:), intent(in) :: temp_air
+    ! annual mean air temperature [K]
+    real(dp), dimension(:), intent(in) :: mean_temp_air
+    ! \f$ q_T \f$ Generated lateral Energy [K mm tst-1]
+    REAL(dp), dimension(:), INTENT(OUT) :: lateral_E
 
     lateral_E = ( &
-        (baseflow * mean_temp_air + (slow_interflow + fast_interflow) * temp_air) * (1.0_dp - fSealed_area_fraction) &
-        + direct_runoff * temp_air * fSealed_area_fraction &
+      (baseflow * mean_temp_air + (slow_interflow + fast_interflow) * temp_air) * (1.0_dp - fSealed_area_fraction) &
+      + direct_runoff * temp_air * fSealed_area_fraction &
     )
 
-    if ( do_add ) then
-        self%L1_lateral_E = self%L1_lateral_E + lateral_E
-    else
-        self%L1_lateral_E = lateral_E
+  END SUBROUTINE calc_L1_runoff_E
+
+  elemental pure subroutine temporal_disagg_radiation( &
+      isday, ntimesteps_day, &
+      ssrd_day, strd_day, &
+      fday_ssrd, fday_strd, &
+      fnight_ssrd, fnight_strd, &
+      ssrd, strd &
+  )
+    implicit none
+
+    ! is day or night
+    logical, intent(in) :: isday
+    ! # of time steps per day
+    real(dp), intent(in) :: ntimesteps_day
+    ! Daily mean shortwave radiation
+    real(dp), intent(in) :: ssrd_day
+    ! Daily mean longwave radiation
+    real(dp), intent(in) :: strd_day
+    ! Daytime fraction of ssrd
+    real(dp), intent(in) :: fday_ssrd
+    ! Daytime fraction of strd
+    real(dp), intent(in) :: fday_strd
+    ! Nighttime fraction of ssrd
+    real(dp), intent(in) :: fnight_ssrd
+    ! Nighttime fraction of strd
+    real(dp), intent(in) :: fnight_strd
+    ! Actual ssrd
+    real(dp), intent(out) :: ssrd
+    ! Actual strd
+    real(dp), intent(out) :: strd
+
+    ! default vaule used if ntimesteps_day = 1 (i.e., e.g. daily values)
+    ssrd = ssrd_day
+    strd = strd_day
+
+    ! Distribute into time steps night/day
+    if(ntimesteps_day .gt. 1.0_dp) then
+      if (isday) then ! DAY-TIME
+        ssrd = 2.0_dp * ssrd_day * fday_ssrd / ntimesteps_day
+        strd = 2.0_dp * strd_day * fday_strd / ntimesteps_day
+      else            ! NIGHT-TIME
+        ssrd = 2.0_dp * ssrd_day * fnight_ssrd / ntimesteps_day
+        strd = 2.0_dp * strd_day * fnight_strd / ntimesteps_day
+      end if
     end if
 
-  end subroutine meth_calc_lateral_E
+  end subroutine temporal_disagg_radiation
+
+  SUBROUTINE L11_E_acc(E_L1, efecArea, L1_L11_Id, L11_areaCell, L11_L1_Id, TS, map_flag, E_acc)
+
+    use mo_common_constants, only : HourSecs, nodata_dp
+
+    implicit none
+
+    ! total runoff L1 [mm tst-1]
+    real(dp), intent(in), dimension(:) :: E_L1
+    ! effective area in [km2] at Level 1
+    real(dp), intent(in), dimension(:) :: efecarea
+    ! L11 Ids mapped on L1
+    integer(i4), intent(in), dimension(:) :: L1_L11_Id
+    ! effective area in [km2] at Level 11
+    real(dp), intent(in), dimension(:) :: L11_areacell
+    ! L1 Ids mapped on L11
+    integer(i4), intent(in), dimension(:) :: L11_L1_Id
+    ! time step in [s]
+    integer(i4), intent(in) :: TS
+    ! Flag indicating whether routing resolution is higher than hydrologic one
+    logical, intent(in) :: map_flag
+    ! aggregated runoff at L11 [m3 s-1]
+    real(dp), intent(out), dimension(:) :: E_acc
+    integer(i4) :: k
+    ! [s] time step
+    real(dp) :: TST
+
+    ! ------------------------------------------------------------------
+    ! ACCUMULATION OF DISCHARGE TO A ROUTING CELL
+    ! ------------------------------------------------------------------
+    ! Hydrologic timestep in seconds
+    TST = HourSecs * TS
+
+    if (map_flag) then
+      E_acc = 0._dp
+      ! loop over high-resolution cells (L1) and add discharge to
+      ! corresponding low-resolution cells (L11)
+      do k = 1, size(E_L1, 1)
+        E_acc(L1_L11_Id(k)) = E_acc(L1_L11_Id(k)) + E_L1(k) * efecArea(k)
+      end do
+      E_acc = E_acc * 1000.0_dp / TST
+      !
+    else
+      ! initialize qout
+      E_acc = nodata_dp
+      do k = 1, size(E_acc, 1)
+        ! map energy flux from coarse L1 resolution to fine L11 resolution
+        E_acc(k) = E_L1(L11_L1_Id(k))
+      end do
+      ! adjust energy flux by area cell
+      E_acc(:) = E_acc(:) * L11_areaCell(:) * 1000.0_dp / TST
+    end if
+
+  END SUBROUTINE L11_E_acc
 
 end module mo_mrm_riv_temp_class
 
