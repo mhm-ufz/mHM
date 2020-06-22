@@ -97,7 +97,8 @@ CONTAINS
                                     nSoilHorizons_sm_input, &
                                     neutron_integral_AFast, outputFlxState, read_meteo_weights, &
                                     timeStep_model_inputs, timeStep_model_outputs, &
-                                    L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs
+                                    L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
+                                    L1_tann, L1_ssrd, L1_strd, fday_ssrd, fday_strd ! meteo for riv-temp
     use mo_init_states, only : variables_default_init
     use mo_julian, only : caldat, julday
     use mo_message, only : message
@@ -379,7 +380,7 @@ CONTAINS
         ! initialize variable for runoff for routing
         allocate(RunToRout(e1 - s1 + 1))
         RunToRout = 0._dp
-        ! TODO-RIV-TEMP: allocate lateral energy
+        ! TODO-RIV-TEMP: allocate lateral components
       end if
 #endif
 
@@ -550,7 +551,6 @@ CONTAINS
             timestep_rout = timestep
             RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TST-1] mm per timestep
             InflowDischarge = InflowGauge%Q(iDischargeTS, :) ! inflow discharge in [m3 s-1]
-            timestep_rout = timestep
             !
           else if ((processMatrix(8, 1) .eq. 2) .or. &
                    (processMatrix(8, 1) .eq. 3)) then
@@ -592,6 +592,21 @@ CONTAINS
           end if
           ! prepare temperature routing
           if ( do_calc_river_temp ) then
+            call riv_temp_pcs%calc_lateral_E( &
+              processMatrix(8, 1), &
+              tsRoutFactor, &
+              L1_fSealed(s1 : e1, 1, yId), &
+              L1_fastRunoff(s1 : e1), &
+              L1_slowRunoff(s1 : e1), &
+              L1_baseflow(s1 : e1), &
+              L1_runoffSeal(s1 : e1), &
+              L1_temp(s_meteo : e_meteo, iMeteoTS), &
+              L1_tann(s_meteo : e_meteo, iMeteoTS), &
+              L1_ssrd(s_meteo : e_meteo, iMeteoTS), &
+              L1_strd(s_meteo : e_meteo, iMeteoTS), &
+              fday_ssrd, &
+              fday_strd &
+            )
             ! print *, 'prepare river temp before routing'
             ! TODO-RIV-TEMP:
             !  - init riv-temp with air-temp at tt=1
@@ -666,6 +681,7 @@ CONTAINS
               ! reset Input variables
               InflowDischarge = 0._dp
               RunToRout = 0._dp
+              ! TODO-RIV-TEMP: reset lateral fluxes
             end if
           end if
         end if
@@ -903,6 +919,7 @@ CONTAINS
        if (domainMeta%doRouting(iDomain)) then
         ! clean runoff variable
         deallocate(RunToRout)
+        ! TODO-RIV-TEMP: deallocate lateral flux components
       end if
 #endif
 

@@ -195,7 +195,7 @@ CONTAINS
         end if
       end select
 
-      ! TODO-RIV-TEMP:
+      ! [x] TODO-RIV-TEMP:
       !  - check processCase(11)
       !  - read long-/short-wave radiation
       !  - annual mean air temp reading

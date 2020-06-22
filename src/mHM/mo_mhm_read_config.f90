@@ -183,7 +183,7 @@ CONTAINS
     ! namelist for pan evaporation
     namelist /panEvapo/evap_coeff
 
-    ! TODO-RIV-TEMP:
+    ! [x] TODO-RIV-TEMP:
     ! - add short- and long-wave raidiation weights to namelist
     ! - add standard values for backward compatibility
 
