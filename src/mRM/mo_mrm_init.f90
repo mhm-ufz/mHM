@@ -298,7 +298,9 @@ end subroutine mrm_configuration
     ! - init riv-area
 
     if ( do_calc_river_temp ) then
-      call riv_temp_pcs%init()
+      do iDomain = 1, domainMeta%nDomains
+        call riv_temp_pcs%init(iDomain, level11(iDomain)%nCells)
+      end do
     end if
     call message('')
     call message('  Finished Initialization of mRM')
@@ -501,7 +503,7 @@ end subroutine mrm_configuration
     ! Routing parameter C2 =f(K,xi, DT) (Chow, 25-41)
     L11_C2 = P1_InitStateFluxes
 
-    ! TODO-RIV-TEMP: init river temperature (with 0, later set air-temp in mhm_eval)
+    ! TODO-RIV-TEMP: init river temperature
   end subroutine variables_default_init_routing
 
 
