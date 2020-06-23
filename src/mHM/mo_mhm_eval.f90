@@ -592,7 +592,7 @@ CONTAINS
           end if
           ! prepare temperature routing
           if ( do_calc_river_temp ) then
-            call riv_temp_pcs%calc_lateral_E( &
+            call riv_temp_pcs%calc_source_E( &
               processMatrix(8, 1), &
               tsRoutFactor, &
               L1_fSealed(s1 : e1, 1, yId), &
