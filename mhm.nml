@@ -484,7 +484,7 @@ processCase(10) = 0
 !> river temperature routing (needs routing)
 !> 0 - deactivated
 !> 1 - following: Beek et al., 2012
-processCase(11) = 1
+processCase(11) = 0
 /
 
 !******************************************************************************************
