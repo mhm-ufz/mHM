@@ -118,7 +118,7 @@ contains
   )
     use mo_append, only : append
     use mo_mrm_constants, only : nRoutingStates
-    use mo_common_variables, only : level0, domainMeta
+    ! use mo_common_variables, only : level0, domainMeta
 
     implicit none
 
@@ -278,13 +278,13 @@ contains
     ! annual mean air temperature [K]
     real(dp), dimension(:), intent(in) :: mean_temp_air
     ! Daily mean short radiation
-    real(dp), intent(in) :: ssrd_day
+    real(dp), dimension(:), intent(in) :: ssrd_day
     ! Daily mean longwave radiation
-    real(dp), intent(in) :: strd_day
+    real(dp), dimension(:), intent(in) :: strd_day
     ! Daytime fraction of ssrd
-    real(dp), intent(in) :: fday_ssrd
+    real(dp), dimension(:), intent(in) :: fday_ssrd
     ! Daytime fraction of strd
-    real(dp), intent(in) :: fday_strd
+    real(dp), dimension(:), intent(in) :: fday_strd
     ! Nighttime fraction of ssrd
     ! switch to turn on adding energy if routing TS is larger then mhm TS
     ! logical, intent(in), optional :: add
