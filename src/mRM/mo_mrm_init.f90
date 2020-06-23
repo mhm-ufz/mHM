@@ -299,7 +299,7 @@ end subroutine mrm_configuration
 
     if ( do_calc_river_temp ) then
       do iDomain = 1, domainMeta%nDomains
-        call riv_temp_pcs%init(iDomain, level11(iDomain)%nCells)
+        call riv_temp_pcs%init(level11(iDomain)%nCells)
       end do
     end if
     call message('')

@@ -78,30 +78,22 @@ CONTAINS
 
     ! total runoff L1 [mm tst-1]
     real(dp), intent(in), dimension(:) :: qall
-
     ! effective area in [km2] at Level 1
     real(dp), intent(in), dimension(:) :: efecarea
-
     ! L11 Ids mapped on L1
     integer(i4), intent(in), dimension(:) :: L1_L11_Id
-
     ! effective area in [km2] at Level 11
     real(dp), intent(in), dimension(:) :: L11_areacell
-
     ! L1 Ids mapped on L11
     integer(i4), intent(in), dimension(:) :: L11_L1_Id
-
     ! time step in [s]
     integer(i4), intent(in) :: TS
-
     ! Flag indicating whether routing resolution is higher than hydrologic one
     logical, intent(in) :: map_flag
-
     ! aggregated runoff at L11 [m3 s-1]
     real(dp), intent(out), dimension(:) :: qAcc
 
     integer(i4) :: k
-
     ! [s] time step
     real(dp) :: TST
 
@@ -185,19 +177,14 @@ CONTAINS
 
     ! [-] number of inflow points
     integer(i4), intent(in) :: nInflowGauges
-
     ! [-] index of inflow points
     integer(i4), intent(in), dimension(:) :: InflowIndexList
-
     ! [-] if to consider headwater cells of inflow gauge
     logical, intent(in), dimension(:) :: InflowHeadwater
-
     ! [-]        L11 ID of inflow points
     integer(i4), intent(in), dimension(:) :: InflowNodeList
-
     ! [m3 s-1]   inflowing water
     real(dp), intent(in), dimension(:) :: QInflow
-
     ! [m3 s-1] Series of attenuated runoff
     real(dp), intent(inout), dimension(:) :: qOut
 
