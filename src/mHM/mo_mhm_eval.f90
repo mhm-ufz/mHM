@@ -380,7 +380,15 @@ CONTAINS
         ! initialize variable for runoff for routing
         allocate(RunToRout(e1 - s1 + 1))
         RunToRout = 0._dp
+
         ! TODO-RIV-TEMP: allocate lateral components
+        if ( do_calc_river_temp ) then
+          ! set indices for current L11 domain
+          riv_temp_pcs%s11 = s11
+          riv_temp_pcs%e11 = e11
+          ! allocate current L1 lateral components
+          call riv_temp_pcs%alloc_lateral(nCells)
+        end if
       end if
 #endif
 
@@ -675,7 +683,7 @@ CONTAINS
             RunToRout = 0._dp
           else if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
             if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. do_rout) then
-              do jj = 1, nint(tsRoutFactorIn)
+              do jj = 1, nint(tsRoutFactorIn) ! BUG: this should start at 2
                 mRM_runoff(tt - jj + 1, :) = mRM_runoff(tt, :)
               end do
               ! reset Input variables
@@ -920,6 +928,7 @@ CONTAINS
         ! clean runoff variable
         deallocate(RunToRout)
         ! TODO-RIV-TEMP: deallocate lateral flux components
+        call riv_temp_pcs%dealloc_lateral()
       end if
 #endif
 

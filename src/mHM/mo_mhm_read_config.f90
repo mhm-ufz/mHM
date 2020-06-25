@@ -347,7 +347,7 @@ CONTAINS
     fday_strd = 1.0_dp - fnight_strd
 
     ! TODO-RIV-TEMP:
-    ! - add short- and long-wave raidiation weights
+    ! - add short- and long-wave raidiation weights (nc files)
 
     call common_check_resolution(.true., .false.)
 
