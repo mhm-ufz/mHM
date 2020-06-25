@@ -25,7 +25,7 @@ module mo_mrm_riv_temp_class
     character(256) :: riv_widths_file ! file name for river widths
     character(256) :: riv_widths_name ! variable name for river widths
     real(dp), public, dimension(:), allocatable :: L11_riv_widths !river widths in L11
-    real(dp), public, dimension(:), allocatable :: L11_riv_area !river area in L11
+    real(dp), public, dimension(:), allocatable :: L11_riv_areas !river area in L11
     ! PET related vars
     real(dp) :: albedo_water ! albedo of open water
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
@@ -36,6 +36,8 @@ module mo_mrm_riv_temp_class
     real(dp), dimension(:), allocatable :: L1_acc_direct
     real(dp), dimension(:), allocatable :: L1_acc_base
     ! vars for routing
+    integer(i4) :: s11 ! starting index for current L11 domain
+    integer(i4) :: e11 ! ending index for current L11 domain
     real(dp), dimension(:,:), allocatable :: netNode_E_IN ! Total energy inputs at t-1 and t
     real(dp), dimension(:,:), allocatable :: netNode_E_R ! energy leaving at t-1 and t
     real(dp), dimension(:), allocatable :: netNode_E_mod ! Simulated routed energy
@@ -46,7 +48,6 @@ module mo_mrm_riv_temp_class
     procedure :: config => meth_config
     procedure :: init => meth_init
     procedure :: init_area => meth_init_area
-    procedure :: init_cond_from_L1 => meth_init_cond_from_L1
     procedure :: calc_source_E => meth_calc_source_E
     procedure :: alloc_lateral => meth_alloc_lateral
     procedure :: dealloc_lateral => meth_dealloc_lateral
@@ -159,64 +160,99 @@ contains
 
   end subroutine meth_init
 
-
   subroutine meth_init_area( &
-    self &
+    self, &
+    iDomain, &
+    L11_netPerm, &
+    L11_fromN, &
+    L11_length, &
+    nLinks, &
+    nCells, &
+    nrows, &
+    ncols, &
+    L11_mask &
   )
+    use mo_append, only : append
+    use mo_read_forcing_nc, only: read_const_forcing_nc
+
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
+    ! Domain counter
+    integer(i4), intent(in) :: iDomain
+    ! L11 routing order
+    integer(i4), dimension(:), intent(in) :: L11_netPerm
+    ! L11 source grid cell order
+    integer(i4), dimension(:), intent(in) :: L11_fromN
+    ! L11 link length
+    real(dp), dimension(:), intent(in) :: L11_length
+    ! number of L11 links in the current domain
+    integer(i4), intent(in) :: nLinks
+    ! number of L11 cells of the current domain
+    integer(i4), intent(in) :: nCells
+    integer(i4), intent(in) :: ncols     ! Number of columns
+    integer(i4), intent(in) :: nrows     ! Number of rows
+    ! the mask for valid cells in the original grid (nrows*ncols)
+    logical, dimension(:, :), intent(in) :: L11_mask
+
+    logical, dimension(:,:), allocatable :: mask
+    real(dp), dimension(:,:), allocatable :: L11_data ! read data from file
+    real(dp), dimension(:), allocatable :: L11_riv_widths, L11_riv_areas
+
+    integer(i4) :: i, k, iNode
 
     print *, 'init river area'
-    ! TODO-RIV-TEMP:
-    ! - needs riv-widths
-    ! - walk the riv-network in order to get link-length
+    call read_const_forcing_nc(&
+      trim(self%dir_riv_widths(iDomain)), &
+      nrows, &
+      ncols, &
+      self%riv_widths_name, &
+      mask, &
+      L11_data, &
+      self%riv_widths_file &
+    )
+
+    allocate(L11_riv_widths(nCells))
+    L11_riv_widths(:) = pack(L11_data(:,:), mask=L11_mask)
+    call append(self%L11_riv_widths, L11_riv_widths)
+
+    allocate(L11_riv_areas(nCells))
+    ! at area at Outlet is 0 (correct?)
+    L11_riv_areas = 0.0_dp
+    do k = 1, nLinks
+      ! get LINK routing order -> i
+      i = L11_netPerm(k)
+      iNode = L11_fromN(i)
+      L11_riv_areas(iNode) = L11_length(i) * L11_riv_widths(iNode)
+    end do
+    call append(self%L11_riv_areas, L11_riv_areas)
+    ! print *, "L11_riv_widths"
+    ! print *, L11_riv_widths
+    ! print *, "L11_lenght"
+    ! print *, L11_length
+    ! print *, "L11_riv_areas"
+    ! print *, L11_riv_areas
+
+    deallocate(L11_data)
+    deallocate(L11_riv_widths)
+    deallocate(L11_riv_areas)
 
   end subroutine meth_init_area
 
-
-  subroutine meth_prepare_meteo( &
-    self &
-  )
-    implicit none
-
-    class(riv_temp_type), intent(inout) :: self
-
-    print *, 'riv-temp: prepare_meteo'
-    ! TODO-RIV-TEMP:
-    ! - see: prepare_meteo_forcings_data
-
-  end subroutine meth_prepare_meteo
-
-
-  subroutine meth_init_cond_from_L1( &
-    self &
-  )
-    implicit none
-
-    class(riv_temp_type), intent(inout) :: self
-
-    print *, 'init river temperature with L1 air temp'
-    ! TODO-RIV-TEMP:
-    ! - dis-agg L1 air temp for tt=1
-    ! - init with 0 for now
-
-  end subroutine meth_init_cond_from_L1
-
   subroutine meth_alloc_lateral( &
     self, &
-    size &
+    nCells &
   )
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    integer(i4), intent(in) :: size
+    integer(i4), intent(in) :: nCells
 
     print *, 'riv-temp: allocate later runoff components from L1'
-    allocate(self%L1_acc_inter(size))
-    allocate(self%L1_acc_base(size))
-    allocate(self%L1_acc_direct(size))
-    allocate(self%L1_runoff_E(size))
+    allocate(self%L1_acc_inter(nCells))
+    allocate(self%L1_acc_base(nCells))
+    allocate(self%L1_acc_direct(nCells))
+    allocate(self%L1_runoff_E(nCells))
     self%L1_acc_inter = 0.0_dp
     self%L1_acc_base = 0.0_dp
     self%L1_acc_direct = 0.0_dp

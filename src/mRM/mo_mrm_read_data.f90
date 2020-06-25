@@ -529,67 +529,6 @@ contains
 
   end subroutine mrm_read_bankfull_runoff
 
-  ! ---------------------------------------------------------------------------
-
-  !      NAME
-  !          mrm_read_river_widths
-
-  !>         \brief reads the river widths used for temperature routing
-
-  !>         \details reads the river witdths, which can be estimated with
-  !>         the script in mhm/post_proc/bankfull_discharge.py
-
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)               :: iDomain"  domain id
-
-  !     HISTORY
-  !         \author Sebastian Mueller
-  !         \date    Apr 2020
-
-  subroutine mrm_read_river_widths(iDomain)
-
-      use mo_mrm_global_variables, only: level11
-      use mo_read_forcing_nc, only: read_const_forcing_nc
-      use mo_mrm_global_variables, only: riv_temp_pcs
-
-      implicit none
-
-      ! TODO-RIV-TEMP: put this into the riv-temp class
-
-      ! input variables
-      integer(i4), intent(in) :: iDomain
-
-      ! local variables
-      logical, dimension(:,:), allocatable :: mask
-      real(dp), dimension(:,:), allocatable :: L11_data ! read data from file
-      real(dp), dimension(:), allocatable :: L11_data_packed
-
-      call read_const_forcing_nc(&
-        trim(riv_temp_pcs%dir_riv_widths(iDomain)), &
-        level11(iDomain)%nrows, &
-        level11(iDomain)%ncols, &
-        riv_temp_pcs%riv_widths_name, &
-        mask, &
-        L11_data, &
-        riv_temp_pcs%riv_widths_file &
-      )
-
-      allocate(L11_data_packed(level11(iDomain)%nCells))
-      L11_data_packed(:) = pack(L11_data(:,:), mask=level11(iDomain)%mask)
-
-      ! append
-      if (allocated(riv_temp_pcs%L11_riv_widths)) then
-        riv_temp_pcs%L11_riv_widths = [riv_temp_pcs%L11_riv_widths, L11_data_packed]
-      else
-          allocate(riv_temp_pcs%L11_riv_widths(size(L11_data_packed)))
-          riv_temp_pcs%L11_riv_widths = L11_data_packed
-      end if
-
-      deallocate(L11_data)
-      deallocate(L11_data_packed)
-
-    end subroutine mrm_read_river_widths
-
   !    NAME
   !        rotate_fdir_variable
 

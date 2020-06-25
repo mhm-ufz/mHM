@@ -121,6 +121,7 @@ end subroutine mrm_configuration
     use mo_mrm_global_variables, only : domain_mrm, &
                                         l0_l11_remap, l1_l11_remap, level11, &
                                         gw_coupling, L0_river_head_mon_sum, &
+                                        L11_netPerm, L11_fromN, L11_length, L11_nOutlets, &
                                         do_calc_river_temp, riv_temp_pcs
     use mo_mrm_net_startup, only : L11_flow_direction, L11_flow_accumulation, L11_fraction_sealed_floodplain, &
                                    L11_link_location, L11_routing_order, L11_set_drain_outlet_gauges, &
@@ -142,6 +143,8 @@ end subroutine mrm_configuration
 
     ! start and end index for routing parameters
     integer(i4) :: iStart, iEnd
+    ! start and end index at L11
+    integer(i4) :: s11, e11
 
     integer(i4) :: domainID, iDomain, gauge_counter
 
@@ -298,8 +301,22 @@ end subroutine mrm_configuration
     ! - init riv-area
 
     if ( do_calc_river_temp ) then
+      call message('  Initialization of river temperature routing.')
       do iDomain = 1, domainMeta%nDomains
+        s11 = level11(iDomain)%iStart
+        e11 = level11(iDomain)%iEnd
         call riv_temp_pcs%init(level11(iDomain)%nCells)
+        call riv_temp_pcs%init_area( &
+          iDomain, &
+          L11_netPerm(s11 : e11), & ! routing order at L11
+          L11_fromN(s11 : e11), & ! link source at L11
+          L11_length(s11 : e11 - 1), & ! link length
+          level11(iDomain)%nCells - L11_nOutlets(iDomain), &
+          level11(iDomain)%nCells, &
+          level11(iDomain)%nrows, &
+          level11(iDomain)%ncols, &
+          level11(iDomain)%mask &
+        )
       end do
     end if
     call message('')
