@@ -928,7 +928,7 @@ CONTAINS
         ! clean runoff variable
         deallocate(RunToRout)
         ! TODO-RIV-TEMP: deallocate lateral flux components
-        call riv_temp_pcs%dealloc_lateral()
+        if ( do_calc_river_temp ) call riv_temp_pcs%dealloc_lateral()
       end if
 #endif
 
