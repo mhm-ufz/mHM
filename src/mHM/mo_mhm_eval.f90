@@ -583,6 +583,7 @@ CONTAINS
             if ( tt .eq. 1_i4 ) call riv_temp_pcs%init_riv_temp( &
               newTime - 0.5_dp, &
               L1_temp(s_meteo : e_meteo, iMeteoTS), &
+              read_meteo_weights, &
               fday_temp, fnight_temp, &
               ! mapping info
               level1(iDomain)%CellArea * 1.E-6_dp, &
@@ -606,6 +607,7 @@ CONTAINS
               L1_tann(s_meteo : e_meteo, iMeteoTS), &
               L1_ssrd(s_meteo : e_meteo, iMeteoTS), &
               L1_strd(s_meteo : e_meteo, iMeteoTS), &
+              read_meteo_weights, &
               fday_temp, fnight_temp, &
               fday_ssrd, fnight_ssrd, &
               fday_strd, fnight_strd  &
@@ -616,6 +618,7 @@ CONTAINS
               L1_L11_Id(s1 : e1), &
               level11(iDomain)%CellArea * 1.E-6_dp, &
               L11_L1_Id(s11 : e11), &
+              timestep_rout, &
               ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)) &
             )
             ! TODO-RIV-TEMP:
@@ -691,7 +694,8 @@ CONTAINS
               ! reset Input variables
               InflowDischarge = 0._dp
               RunToRout = 0._dp
-              ! TODO-RIV-TEMP: reset lateral fluxes
+              ! TODO-RIV-TEMP: reset lateral fluxes and time-step counter
+              if ( do_calc_river_temp ) call riv_temp_pcs%reset_timestep()
             end if
           end if
         end if
@@ -891,6 +895,8 @@ CONTAINS
             end if
           end if
         end if
+
+        ! TODO-RIV-TEMP: add OptiSim for river temperature
 
         ! update the year-dependent yID (land cover id)
         if (is_new_year .and. tt .lt. nTimeSteps) then

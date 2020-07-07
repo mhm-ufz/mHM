@@ -22,7 +22,6 @@ MODULE mo_runoff
   PUBLIC :: runoff_unsat_zone
   PUBLIC :: runoff_sat_zone
   PUBLIC :: L1_total_runoff
-  ! PUBLIC ::   L11_runoff_acc
 
   PRIVATE
 
