@@ -27,6 +27,7 @@ MODULE mo_mrm_pre_routing
   PUBLIC :: L11_runoff_acc
   PUBLIC :: add_inflow
   PUBLIC :: L11_meteo_acc
+  PUBLIC :: calc_L1_runoff_E
 
   ! ------------------------------------------------------------------
 
@@ -370,9 +371,9 @@ CONTAINS
     ! annual mean air temperature [degC]
     real(dp), dimension(:), intent(in) :: mean_temp_air
     ! \f$ E_T \f$ Generated lateral Energy [K mm tst-1]
-    REAL(dp), dimension(:), INTENT(OUT) :: lateral_E
+    REAL(dp), dimension(:), INTENT(inout) :: lateral_E
 
-    lateral_E = ( &
+    lateral_E = lateral_E + ( &
       (baseflow * mean_temp_air + (slow_interflow + fast_interflow) * (temp_air + T0_dp)) &
       * (1.0_dp - fSealed_area_fraction) &
       + direct_runoff * (temp_air + T0_dp) * fSealed_area_fraction &
