@@ -600,8 +600,7 @@ CONTAINS
             ! accumulate source Energy at L1 level
             call riv_temp_pcs%acc_source_E( &
               newTime - 0.5_dp, &
-              processMatrix(8, 1), &
-              tsRoutFactor, &
+              real(nTstepDay, dp), &
               L1_fSealed(s1 : e1, 1, yId), &
               L1_fastRunoff(s1 : e1), &
               L1_slowRunoff(s1 : e1), &
