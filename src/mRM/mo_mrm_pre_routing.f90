@@ -26,6 +26,7 @@ MODULE mo_mrm_pre_routing
 
   PUBLIC :: L11_runoff_acc
   PUBLIC :: add_inflow
+  PUBLIC :: L11_meteo_acc
 
   ! ------------------------------------------------------------------
 
