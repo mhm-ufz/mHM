@@ -30,13 +30,13 @@ module mo_mrm_riv_temp_class
     real(dp) :: albedo_water ! albedo of open water
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
     ! \f$ E_L \f$ Generated lateral temperature energy flux [m3 s-1 K] on L1
-    ! accumulated later fluxes
+    ! accumulated later fluxes (in current time-step)
     real(dp), dimension(:), allocatable :: L1_runoff_E
     real(dp), dimension(:), allocatable :: L1_acc_srad
     real(dp), dimension(:), allocatable :: L1_acc_lrad
     real(dp), dimension(:), allocatable :: L1_acc_temp
     real(dp), dimension(:), allocatable :: L1_acc_tann
-    integer(i4) :: ts_cnt ! time-step counter for accumulation of meteo
+    integer(i4) :: ts_cnt ! sub time-step counter for accumulation of meteo
     ! vars for routing
     integer(i4) :: s11 ! starting index for current L11 domain
     integer(i4) :: e11 ! ending index for current L11 domain
@@ -47,10 +47,16 @@ module mo_mrm_riv_temp_class
     ! results
     real(dp), dimension(:), allocatable :: river_temp ! variable containing river temp for each domain and gauge
   contains
+    ! config and inits
     procedure :: config => meth_config
     procedure :: init => meth_init
     procedure :: init_area => meth_init_area
+    procedure :: init_riv_temp => meth_init_riv_temp
+    ! source accumulations
     procedure :: acc_source_E => meth_acc_source_E
+    procedure :: finalize_source_E => meth_finalize_source_E
+    ! care taker
+    procedure :: reset_timestep => meth_reset_timestep
     procedure :: alloc_lateral => meth_alloc_lateral
     procedure :: dealloc_lateral => meth_dealloc_lateral
   end type riv_temp_type
@@ -131,7 +137,7 @@ contains
     real(dp), dimension(:), allocatable :: dummy_Vector11
     real(dp), dimension(:, :), allocatable :: dummy_Matrix11_IT
 
-    print *, 'init river temp'
+    print *, 'init river temp class'
     ! TODO-RIV-TEMP:
     ! - init_condition riv_temp (0)
     ! - see: variables_alloc_routing
@@ -238,18 +244,92 @@ contains
 
   end subroutine meth_init_area
 
+  subroutine meth_init_riv_temp( &
+    self, &
+    time, &
+    ntimesteps_day, &
+    temp_air, &
+    read_meteo_weights, &
+    temp_weights, &
+    fday_temp, &
+    fnight_temp, &
+    efecarea, &
+    L1_L11_Id, &
+    L11_areacell, &
+    L11_L1_Id, &
+    map_flag &
+  )
 
-  subroutine meth_reset_time(self)
+  use mo_constants, only : T0_dp  ! 273.15 - Celcius <-> Kelvin [K]
+  use mo_julian, only : dec2date
+  use mo_temporal_disagg_forcing, only: temporal_disagg_meteo_weights, temporal_disagg_state_daynight
+  use mo_mrm_pre_routing, only : L11_meteo_acc
+
+  implicit none
+
+  class(riv_temp_type), intent(inout) :: self
+  ! current decimal Julian day
+  real(dp), intent(in) :: time
+  ! number of time intervals per day, transformed in dp
+  real(dp), intent(in) :: ntimesteps_day
+  ! air temperature [K]
+  real(dp), dimension(:), intent(in) :: temp_air
+  ! flag whether weights for tavg and pet have read and should be used
+  logical, intent(in) :: read_meteo_weights
+  ! multiplicative weights for temperature (deg K)
+  real(dp), dimension(:, :, :), intent(in) :: temp_weights
+  ! [-] day factor mean temp
+  real(dp), dimension(:), intent(in) :: fday_temp
+  ! [-] night factor mean temp
+  real(dp), dimension(:), intent(in) :: fnight_temp
+  ! effective area in [km2] at Level 1
+  real(dp), intent(in), dimension(:) :: efecarea
+  ! L11 Ids mapped on L1
+  integer(i4), intent(in), dimension(:) :: L1_L11_Id
+  ! effective area in [km2] at Level 11
+  real(dp), intent(in), dimension(:) :: L11_areacell
+  ! L1 Ids mapped on L11
+  integer(i4), intent(in), dimension(:) :: L11_L1_Id
+  ! Flag indicating whether routing resolution is higher than hydrologic one
+  logical, intent(in) :: map_flag
+  ! aggregated meteo forcing
+
+  ! internal temperature
+  real(dp), dimension(size(temp_air)) :: temp
+  ! is day or night
+  logical :: isday
+  ! current hour of a given day [0-23]
+  integer(i4) :: hour
+  ! Month of current day [1-12]
+  integer(i4) :: month
+
+  call dec2date(time, mm=month, hh=hour)
+  ! flag for day or night depending on hours of the day
+  isday = (hour .gt. 6) .AND. (hour .le. 18)
+  ! temporal disaggregate air temperature
+  if (read_meteo_weights) then
+    call temporal_disagg_meteo_weights( &
+      temp_air, temp_weights(:, month, hour + 1), temp, weights_correction=T0_dp)
+  else
+    call temporal_disagg_state_daynight( &
+      isday, ntimesteps_day, temp_air, fday_temp(month), fnight_temp(month), temp, add_correction=.true.)
+  end if
+  ! map temperature from L1 to L11
+  call L11_meteo_acc(temp, efecarea, L1_L11_Id, L11_areacell, L11_L1_Id, map_flag, self%river_temp)
+
+  print *, self%river_temp
+  stop 1
+
+  end subroutine meth_init_riv_temp
+
+  subroutine meth_reset_timestep(self)
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
 
-    self%L1_acc_inter = 0.0_dp
-    self%L1_acc_base = 0.0_dp
-    self%L1_acc_direct = 0.0_dp
     self%L1_runoff_E = 0.0_dp
 
-  end subroutine meth_reset_time
+  end subroutine meth_reset_timestep
 
   subroutine meth_alloc_lateral( &
     self, &
@@ -261,14 +341,8 @@ contains
     integer(i4), intent(in) :: nCells
 
     print *, 'riv-temp: allocate later runoff components from L1'
-    allocate(self%L1_acc_inter(nCells))
-    allocate(self%L1_acc_base(nCells))
-    allocate(self%L1_acc_direct(nCells))
     allocate(self%L1_runoff_E(nCells))
     ! do we need different arrays for these?!
-    self%L1_acc_inter = 0.0_dp
-    self%L1_acc_base = 0.0_dp
-    self%L1_acc_direct = 0.0_dp
     self%L1_runoff_E = 0.0_dp
 
   end subroutine meth_alloc_lateral
@@ -281,9 +355,6 @@ contains
     class(riv_temp_type), intent(inout) :: self
 
     print *, 'riv-temp: deallocate later runoff components from L1'
-    deallocate(self%L1_acc_inter)
-    deallocate(self%L1_acc_base)
-    deallocate(self%L1_acc_direct)
     deallocate(self%L1_runoff_E)
 
   end subroutine meth_dealloc_lateral
@@ -302,11 +373,14 @@ contains
     mean_temp_air, &
     ssrd_day, &
     strd_day, &
+    read_meteo_weights, &
+    temp_weights, &
+    fday_temp, &
+    fnight_temp, &
     fday_ssrd, &
     fnight_ssrd, &
     fday_strd, &
-    fnight_strd, &
-    do_rout &
+    fnight_strd &
   )
 
     use mo_julian, only : dec2date
@@ -338,7 +412,15 @@ contains
     real(dp), dimension(:), intent(in) :: ssrd_day
     ! Daily mean longwave radiation
     real(dp), dimension(:), intent(in) :: strd_day
-    ! Daytime fraction of ssrd
+    ! flag whether weights for tavg and pet have read and should be used
+    logical, intent(in) :: read_meteo_weights
+    ! multiplicative weights for temperature (deg K)
+    real(dp), dimension(:, :, :), intent(in) :: temp_weights
+    ! [-] day factor mean temp
+    real(dp), dimension(:), intent(in) :: fday_temp
+    ! [-] night factor mean temp
+    real(dp), dimension(:), intent(in) :: fnight_temp
+      ! Daytime fraction of ssrd
     real(dp), dimension(:), intent(in) :: fday_ssrd
     ! Nighttime fraction of ssrd
     real(dp), dimension(:), intent(in) :: fnight_ssrd
@@ -346,8 +428,6 @@ contains
     real(dp), dimension(:), intent(in) :: fday_strd
     ! Nighttime fraction of strd
     real(dp), dimension(:), intent(in) :: fnight_strd
-    ! flag for performing routing
-    logical, intent(in) :: do_rout
 
     ! is day or night
     logical :: isday
@@ -380,6 +460,39 @@ contains
     ! end if
 
   end subroutine meth_acc_source_E
+
+  subroutine meth_finalize_source_E( &
+    self, &
+    efecarea, &
+    L1_L11_Id, &
+    L11_areacell, &
+    L11_L1_Id, &
+    timestep, &
+    map_flag &
+  )
+
+    use mo_constants, only : T0_dp  ! 273.15 - Celcius <-> Kelvin [K]
+    use mo_julian, only : dec2date
+    use mo_temporal_disagg_forcing, only: temporal_disagg_meteo_weights, temporal_disagg_state_daynight
+    use mo_mrm_pre_routing, only : L11_meteo_acc
+
+    implicit none
+
+    class(riv_temp_type), intent(inout) :: self
+    ! effective area in [km2] at Level 1
+    real(dp), intent(in), dimension(:) :: efecarea
+    ! L11 Ids mapped on L1
+    integer(i4), intent(in), dimension(:) :: L1_L11_Id
+    ! effective area in [km2] at Level 11
+    real(dp), intent(in), dimension(:) :: L11_areacell
+    ! L1 Ids mapped on L11
+    integer(i4), intent(in), dimension(:) :: L11_L1_Id
+    ! simulation timestep in [h]
+    integer(i4), intent(in) :: timestep
+    ! Flag indicating whether routing resolution is higher than hydrologic one
+    logical, intent(in) :: map_flag
+
+  end subroutine meth_finalize_source_E
 
 end module mo_mrm_riv_temp_class
 
