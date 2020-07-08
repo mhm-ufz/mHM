@@ -98,7 +98,7 @@ CONTAINS
                                     neutron_integral_AFast, outputFlxState, read_meteo_weights, &
                                     timeStep_model_inputs, timeStep_model_outputs, &
                                     L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
-                                    L1_tann, L1_ssrd, L1_strd, fday_ssrd, fday_strd ! meteo for riv-temp
+                                    L1_tann, L1_ssrd, L1_strd, fday_ssrd, fnight_ssrd, fday_strd, fnight_strd ! meteo for riv-temp
     use mo_init_states, only : variables_default_init
     use mo_julian, only : caldat, julday
     use mo_message, only : message
@@ -564,12 +564,14 @@ CONTAINS
               ! ----------------------------------------------------------------
               ! set all input variables
               tsRoutFactorIn = tsRoutFactor
+              ! Runoff is accumulated in [mm]
               RunToRout = RunToRout + L1_total_runoff(s1 : e1)
               InflowDischarge = InflowDischarge + InflowGauge%Q(iDischargeTS, :)
               ! reset tsRoutFactorIn if last period did not cover full period
               if ((tt .eq. nTimeSteps) .and. (mod(tt, nint(tsRoutFactorIn)) .ne. 0_i4)) &
                       tsRoutFactorIn = mod(tt, nint(tsRoutFactorIn))
               if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. nTimeSteps)) then
+                ! Inflow discharge is given as flow-rate and has to be converted to [m3]
                 InflowDischarge = InflowDischarge / tsRoutFactorIn
                 timestep_rout = timestep * nint(tsRoutFactorIn, i4)
                 do_rout = .True.
@@ -582,8 +584,10 @@ CONTAINS
             ! init riv-temp from current air temp
             if ( tt .eq. 1_i4 ) call riv_temp_pcs%init_riv_temp( &
               newTime - 0.5_dp, &
+              real(nTstepDay, dp), &
               L1_temp(s_meteo : e_meteo, iMeteoTS), &
               read_meteo_weights, &
+              L1_temp_weights(s1 : e1, :, :), &
               fday_temp, fnight_temp, &
               ! mapping info
               level1(iDomain)%CellArea * 1.E-6_dp, &
@@ -608,6 +612,7 @@ CONTAINS
               L1_ssrd(s_meteo : e_meteo, iMeteoTS), &
               L1_strd(s_meteo : e_meteo, iMeteoTS), &
               read_meteo_weights, &
+              L1_temp_weights(s1 : e1, :, :), &
               fday_temp, fnight_temp, &
               fday_ssrd, fnight_ssrd, &
               fday_strd, fnight_strd  &
