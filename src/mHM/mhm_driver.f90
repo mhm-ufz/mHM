@@ -319,29 +319,29 @@ PROGRAM mhm_driver
     ! read optional optional data if necessary
     if (optimize) then
       select case (opti_function)
-      case(10 : 13, 28)
-        ! read optional spatio-temporal soil mositure data
-        call readOptidataObs(iDomain, domainID, L1_smObs(iDomain))
-      case(17)
-        ! read optional spatio-temporal neutrons data
-        call readOptidataObs(iDomain, domainID, L1_neutronsObs(iDomain))
-      case(27, 29, 30)
-        ! read optional spatio-temporal evapotranspiration data
-        call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
-      case(15)
-        ! read optional spatio-temporal tws data
-        call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
-      case(33)
-        ! read optional spatio-temporal evapotranspiration data
-        if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
-          domainMeta%optidata(iDomain) == 6 ) then
+        case(10 : 13, 28)
+          ! read optional spatio-temporal soil mositure data
+          call readOptidataObs(iDomain, domainID, L1_smObs(iDomain))
+        case(17)
+          ! read optional spatio-temporal neutrons data
+          call readOptidataObs(iDomain, domainID, L1_neutronsObs(iDomain))
+        case(27, 29, 30)
+          ! read optional spatio-temporal evapotranspiration data
           call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
-        end if
-        ! read optional spatio-temporal tws data
-        if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
-          domainMeta%optidata(iDomain) == 6 ) then
+        case(15)
+          ! read optional spatio-temporal tws data
           call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
-        end if
+        case(33)
+          ! read optional spatio-temporal evapotranspiration data
+          if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
+            domainMeta%optidata(iDomain) == 6 ) then
+            call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
+          end if
+          ! read optional spatio-temporal tws data
+          if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
+            domainMeta%optidata(iDomain) == 6 ) then
+            call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
+          end if
       end select
     end if
 
