@@ -32,8 +32,8 @@ module mo_mrm_riv_temp_class
     ! \f$ E_L \f$ Generated lateral temperature energy flux [m3 s-1 K] on L1
     ! accumulated later fluxes (in current time-step)
     real(dp), dimension(:), allocatable :: L1_runoff_E
-    real(dp), dimension(:), allocatable :: L1_acc_srad
-    real(dp), dimension(:), allocatable :: L1_acc_lrad
+    real(dp), dimension(:), allocatable :: L1_acc_ssrd
+    real(dp), dimension(:), allocatable :: L1_acc_strd
     real(dp), dimension(:), allocatable :: L1_acc_temp
     real(dp), dimension(:), allocatable :: L1_acc_tann
     integer(i4) :: ts_cnt ! sub time-step counter for accumulation of meteo
@@ -260,65 +260,65 @@ contains
     map_flag &
   )
 
-  use mo_constants, only : T0_dp  ! 273.15 - Celcius <-> Kelvin [K]
-  use mo_julian, only : dec2date
-  use mo_temporal_disagg_forcing, only: temporal_disagg_meteo_weights, temporal_disagg_state_daynight
-  use mo_mrm_pre_routing, only : L11_meteo_acc
+    use mo_constants, only : T0_dp  ! 273.15 - Celcius <-> Kelvin [K]
+    use mo_julian, only : dec2date
+    use mo_temporal_disagg_forcing, only: temporal_disagg_meteo_weights, temporal_disagg_state_daynight
+    use mo_mrm_pre_routing, only : L11_meteo_acc
 
-  implicit none
+    implicit none
 
-  class(riv_temp_type), intent(inout) :: self
-  ! current decimal Julian day
-  real(dp), intent(in) :: time
-  ! number of time intervals per day, transformed in dp
-  real(dp), intent(in) :: ntimesteps_day
-  ! air temperature [K]
-  real(dp), dimension(:), intent(in) :: temp_air
-  ! flag whether weights for tavg and pet have read and should be used
-  logical, intent(in) :: read_meteo_weights
-  ! multiplicative weights for temperature (deg K)
-  real(dp), dimension(:, :, :), intent(in) :: temp_weights
-  ! [-] day factor mean temp
-  real(dp), dimension(:), intent(in) :: fday_temp
-  ! [-] night factor mean temp
-  real(dp), dimension(:), intent(in) :: fnight_temp
-  ! effective area in [km2] at Level 1
-  real(dp), intent(in), dimension(:) :: efecarea
-  ! L11 Ids mapped on L1
-  integer(i4), intent(in), dimension(:) :: L1_L11_Id
-  ! effective area in [km2] at Level 11
-  real(dp), intent(in), dimension(:) :: L11_areacell
-  ! L1 Ids mapped on L11
-  integer(i4), intent(in), dimension(:) :: L11_L1_Id
-  ! Flag indicating whether routing resolution is higher than hydrologic one
-  logical, intent(in) :: map_flag
-  ! aggregated meteo forcing
+    class(riv_temp_type), intent(inout) :: self
+    ! current decimal Julian day
+    real(dp), intent(in) :: time
+    ! number of time intervals per day, transformed in dp
+    real(dp), intent(in) :: ntimesteps_day
+    ! air temperature [K]
+    real(dp), dimension(:), intent(in) :: temp_air
+    ! flag whether weights for tavg and pet have read and should be used
+    logical, intent(in) :: read_meteo_weights
+    ! multiplicative weights for temperature (deg K)
+    real(dp), dimension(:, :, :), intent(in) :: temp_weights
+    ! [-] day factor mean temp
+    real(dp), dimension(:), intent(in) :: fday_temp
+    ! [-] night factor mean temp
+    real(dp), dimension(:), intent(in) :: fnight_temp
+    ! effective area in [km2] at Level 1
+    real(dp), intent(in), dimension(:) :: efecarea
+    ! L11 Ids mapped on L1
+    integer(i4), intent(in), dimension(:) :: L1_L11_Id
+    ! effective area in [km2] at Level 11
+    real(dp), intent(in), dimension(:) :: L11_areacell
+    ! L1 Ids mapped on L11
+    integer(i4), intent(in), dimension(:) :: L11_L1_Id
+    ! Flag indicating whether routing resolution is higher than hydrologic one
+    logical, intent(in) :: map_flag
+    ! aggregated meteo forcing
 
-  ! internal temperature
-  real(dp), dimension(size(temp_air)) :: temp
-  ! is day or night
-  logical :: isday
-  ! current hour of a given day [0-23]
-  integer(i4) :: hour
-  ! Month of current day [1-12]
-  integer(i4) :: month
+    ! internal temperature
+    real(dp), dimension(size(temp_air)) :: temp
+    ! is day or night
+    logical :: isday
+    ! current hour of a given day [0-23]
+    integer(i4) :: hour
+    ! Month of current day [1-12]
+    integer(i4) :: month
 
-  call dec2date(time, mm=month, hh=hour)
-  ! flag for day or night depending on hours of the day
-  isday = (hour .gt. 6) .AND. (hour .le. 18)
-  ! temporal disaggregate air temperature
-  if (read_meteo_weights) then
-    call temporal_disagg_meteo_weights( &
-      temp_air, temp_weights(:, month, hour + 1), temp, weights_correction=T0_dp)
-  else
-    call temporal_disagg_state_daynight( &
-      isday, ntimesteps_day, temp_air, fday_temp(month), fnight_temp(month), temp, add_correction=.true.)
-  end if
-  ! map temperature from L1 to L11
-  call L11_meteo_acc(temp, efecarea, L1_L11_Id, L11_areacell, L11_L1_Id, map_flag, self%river_temp)
+    call dec2date(time, mm=month, hh=hour)
+    ! flag for day or night depending on hours of the day
+    isday = (hour .gt. 6) .AND. (hour .le. 18)
 
-  print *, self%river_temp
-  stop 1
+    ! temporal disaggregate air temperature
+    if (read_meteo_weights) then
+      call temporal_disagg_meteo_weights( &
+        temp_air, temp_weights(:, month, hour + 1), temp, weights_correction=T0_dp)
+    else
+      call temporal_disagg_state_daynight( &
+        isday, ntimesteps_day, temp_air, fday_temp(month), fnight_temp(month), temp, add_correction=.true.)
+    end if
+
+    ! map temperature from L1 to L11
+    call L11_meteo_acc( &
+      temp, efecarea, L1_L11_Id, L11_areacell, L11_L1_Id, map_flag, self%river_temp(self%s11 : self%e11))
 
   end subroutine meth_init_riv_temp
 
@@ -328,6 +328,10 @@ contains
     class(riv_temp_type), intent(inout) :: self
 
     self%L1_runoff_E = 0.0_dp
+    self%L1_acc_strd = 0.0_dp
+    self%L1_acc_ssrd = 0.0_dp
+    self%L1_acc_tann = 0.0_dp
+    self%L1_acc_temp = 0.0_dp
 
   end subroutine meth_reset_timestep
 
@@ -342,8 +346,12 @@ contains
 
     print *, 'riv-temp: allocate later runoff components from L1'
     allocate(self%L1_runoff_E(nCells))
-    ! do we need different arrays for these?!
-    self%L1_runoff_E = 0.0_dp
+    allocate(self%L1_acc_strd(nCells))
+    allocate(self%L1_acc_ssrd(nCells))
+    allocate(self%L1_acc_tann(nCells))
+    allocate(self%L1_acc_temp(nCells))
+    ! init these arrays to 0
+    call self%reset_timestep()
 
   end subroutine meth_alloc_lateral
 
@@ -356,14 +364,17 @@ contains
 
     print *, 'riv-temp: deallocate later runoff components from L1'
     deallocate(self%L1_runoff_E)
+    deallocate(self%L1_acc_strd)
+    deallocate(self%L1_acc_ssrd)
+    deallocate(self%L1_acc_tann)
+    deallocate(self%L1_acc_temp)
 
   end subroutine meth_dealloc_lateral
 
   subroutine meth_acc_source_E( &
     self, &
     time, &
-    rout_case, &
-    tsRoutFactor, &
+    ntimesteps_day, &
     fSealed_area_fraction, &
     fast_interflow, &
     slow_interflow, &
@@ -383,17 +394,18 @@ contains
     fnight_strd &
   )
 
+    use mo_constants, only : T0_dp  ! 273.15 - Celcius <-> Kelvin [K]
     use mo_julian, only : dec2date
+    use mo_temporal_disagg_forcing, only: temporal_disagg_meteo_weights, temporal_disagg_state_daynight
+    use mo_mrm_pre_routing, only : calc_L1_runoff_E
 
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
     ! current decimal Julian day
     real(dp), intent(in) :: time
-    ! processMatrix(8, 1) -> routing process case
-    integer(i4), intent(in) :: rout_case
-    ! factor between routing and hydrological modelling resolution
-    real(dp), intent(in) :: tsRoutFactor
+    ! number of time intervals per day, transformed in dp
+    real(dp), intent(in) :: ntimesteps_day
     ! sealed area fraction [1]
     real(dp), dimension(:), intent(in) :: fSealed_area_fraction
     ! \f$ q_0 \f$ Fast runoff component [mm tst-1]
@@ -429,35 +441,54 @@ contains
     ! Nighttime fraction of strd
     real(dp), dimension(:), intent(in) :: fnight_strd
 
+    ! internal temperature
+    real(dp), dimension(size(temp_air)) :: temp
+    ! internal ssrd
+    real(dp), dimension(size(ssrd_day)) :: ssrd
+    ! internal strd
+    real(dp), dimension(size(strd_day)) :: strd
     ! is day or night
     logical :: isday
     ! current hour of a given day
     integer(i4) :: hour
+    ! Month of current day [1-12]
+    integer(i4) :: month
 
-    call dec2date(time, hh=hour)
+    ! increase the sub time-step counter
+    self%ts_cnt = self%ts_cnt + 1_i4
+
+    call dec2date(time, mm=month, hh=hour)
     ! flag for day or night depending on hours of the day
     isday = (hour .gt. 6) .AND. (hour .le. 18)
 
-    ! switch to turn on adding energy if routing TS is larger then mhm TS
+    ! temporal disaggregate air temperature
+    if (read_meteo_weights) then
+      call temporal_disagg_meteo_weights( &
+        temp_air, temp_weights(:, month, hour + 1), temp, weights_correction=T0_dp)
+    else
+      call temporal_disagg_state_daynight( &
+        isday, ntimesteps_day, temp_air, fday_temp(month), fnight_temp(month), temp, add_correction=.true.)
+    end if
+    ! temporal disaggregate ssrd
+    call temporal_disagg_state_daynight( &
+      isday, ntimesteps_day, ssrd_day, fday_ssrd(month), fnight_ssrd(month), ssrd)
+    ! temporal disaggregate strd
+    call temporal_disagg_state_daynight( &
+      isday, ntimesteps_day, strd_day, fday_strd(month), fnight_strd(month), strd)
 
-    ! if ( do_add ) then
-    !     self%L1_lateral_E = self%L1_lateral_E + lateral_E
-    ! else
-    !     self%L1_lateral_E = lateral_E
-    ! end if
-
-    ! if (rout_case .eq. 1) then
-    !   RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TST-1] mm per timestep
-    !   InflowDischarge = InflowGauge%Q(iDischargeTS, :) ! inflow discharge in [m3 s-1]
-    ! else if ((rout_case .eq. 2) .or. (rout_case .eq. 3)) then
-    !   if (tsRoutFactor .lt. 1._dp) then
-    !     ! routing timesteps are shorter than hydrologic time steps
-    !     RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TST-1] mm per timestep
-    !   else
-    !     ! routing timesteps are longer than hydrologic time steps
-    !     RunToRout = RunToRout + L1_total_runoff(s1 : e1)
-    !   end if
-    ! end if
+    ! caclucate the temperature energy of the runoffs at L1 in [K mm]
+    ! automatically accumulate them
+    call calc_L1_runoff_E( &
+      fSealed_area_fraction, &
+      fast_interflow, slow_interflow, baseflow, direct_runoff, &
+      temp, mean_temp_air, &
+      self%L1_runoff_E &
+    )
+    ! accumulate meteo forcings (will be averaged with sub time-step counter later)
+    self%L1_acc_ssrd = self%L1_acc_ssrd + ssrd
+    self%L1_acc_strd = self%L1_acc_strd + strd
+    self%L1_acc_tann = self%L1_acc_tann + mean_temp_air
+    self%L1_acc_temp = self%L1_acc_temp + temp
 
   end subroutine meth_acc_source_E
 
