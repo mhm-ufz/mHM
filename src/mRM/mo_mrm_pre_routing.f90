@@ -373,8 +373,10 @@ CONTAINS
     ! \f$ E_T \f$ Generated lateral Energy [K mm tst-1]
     REAL(dp), dimension(:), INTENT(inout) :: lateral_E
 
+    ! convert temperatures form [deg C] to [K]
+    ! accumulate in [K mm tst-1] -> convert later to [K m3 s-1] on L11
     lateral_E = lateral_E + ( &
-      (baseflow * mean_temp_air + (slow_interflow + fast_interflow) * (temp_air + T0_dp)) &
+      (baseflow * (mean_temp_air + T0_dp) + (slow_interflow + fast_interflow) * (temp_air + T0_dp)) &
       * (1.0_dp - fSealed_area_fraction) &
       + direct_runoff * (temp_air + T0_dp) * fSealed_area_fraction &
     )
