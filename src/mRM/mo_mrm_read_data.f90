@@ -504,14 +504,13 @@ contains
     integer(i4), intent(in) :: iDomain
 
     ! local variables
-    logical, dimension(:,:), allocatable :: mask
     real(dp), dimension(:,:), allocatable :: L11_data ! read data from file
     real(dp), dimension(:), allocatable :: L11_data_packed
 
     call read_const_forcing_nc(trim(dirBankfullRunoff(iDomain)), &
                                level11(iDomain)%nrows, &
                                level11(iDomain)%ncols, &
-                               "Q_bkfl", mask, L11_data)
+                               "Q_bkfl", L11_data)
 
     allocate(L11_data_packed(level11(iDomain)%nCells))
     L11_data_packed(:) = pack(L11_data(:,:), mask=level11(iDomain)%mask)

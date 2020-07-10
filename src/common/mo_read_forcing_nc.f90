@@ -315,7 +315,7 @@ contains
   !>        \author Lennart Schueler, heavily influenced by read_forcing_nc
   !>        \date May 2018
 
-  subroutine read_const_forcing_nc(folder, nRows, nCols, varName, mask, data, fileName)
+  subroutine read_const_forcing_nc(folder, nRows, nCols, varName, data, fileName)
 
     use mo_kind,             only: i4, dp
     use mo_message,          only: message
@@ -329,7 +329,6 @@ contains
     integer(i4),                           intent(in)  :: nRows   ! number of rows of data fields:
     integer(i4),                           intent(in)  :: nCols   ! number of columns of data fields:
     character(len=*),                      intent(in)  :: varName ! name of NetCDF variable
-    logical, dimension(:,:),               intent(in)  :: mask    ! mask of valid data fields
     real(dp), dimension(:,:), allocatable, intent(out) :: data    ! data read in
     ! name of file, defaults to varName
     character(256), optional, intent(in) :: fileName
