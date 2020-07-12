@@ -100,15 +100,19 @@ CONTAINS
   ! Stephan Thober Nov 2016 - implemented second routing process i.e. adaptive timestep
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine mRM_routing(read_states, processCase, global_routing_param, L1_total_runoff, L1_areaCell, L1_L11_Id, &
-                        L11_areaCell, L11_L1_Id, L11_netPerm, L11_fromN, L11_toN, L11_nOutlets, timestep, tsRoutFactor, &
-                        nNodes, nInflowGauges, InflowGaugeIndexList, InflowGaugeHeadwater, InflowGaugeNodeList, &
-                        InflowDischarge, nGauges, gaugeIndexList, gaugeNodeList, map_flag, L11_length, L11_slope, &
-                        L11_FracFPimp, L11_C1, L11_C2, L11_qOut, L11_qTIN, L11_qTR, L11_qMod, GaugeDischarge)
+  subroutine mRM_routing( &
+    read_states, processCase, global_routing_param, L1_total_runoff, L1_areaCell, L1_L11_Id, &
+    L11_areaCell, L11_L1_Id, L11_netPerm, L11_fromN, L11_toN, L11_nOutlets, timestep, tsRoutFactor, &
+    nNodes, nInflowGauges, InflowGaugeIndexList, InflowGaugeHeadwater, InflowGaugeNodeList, &
+    InflowDischarge, nGauges, gaugeIndexList, gaugeNodeList, map_flag, L11_length, L11_slope, &
+    L11_FracFPimp, L11_C1, L11_C2, L11_qOut, L11_qTIN, L11_qTR, L11_qMod, GaugeDischarge &
+  )
 
-    use mo_mrm_global_variables, only : is_start
+    use mo_constants, only : T0_dp
+    use mo_mrm_global_variables, only : is_start, do_calc_river_temp, riv_temp_pcs
     use mo_mrm_mpr, only : reg_rout
     use mo_mrm_pre_routing, only : L11_runoff_acc, add_inflow
+    ! use mo_mrm_riv_temp_class, only : riv_temp_type
 
     implicit none
 
@@ -180,13 +184,28 @@ CONTAINS
     real(dp), dimension(:), intent(inout) :: L11_qMod
     ! modelled discharge at each gauge
     real(dp), dimension(:), intent(inout) :: GaugeDischarge
+    ! switch to turn on temperature routing
+    ! logical, intent(in) :: do_calc_river_temp
+    ! ! This is a container for the river temperature routing process (pcs)
+    ! class(riv_temp_type), intent(inout) :: riv_temp_pcs
 
+    integer(i4) :: s11, e11
     integer(i4) :: gg
     integer(i4) :: tt
     ! number of routing loops
     integer(i4) :: rout_loop
     ! variable for accumulation
     real(dp), dimension(size(L11_qMod, dim = 1)) :: L11_qAcc
+    real(dp), dimension(:), allocatable :: L11_E_Acc
+
+    if ( do_calc_river_temp ) then
+      ! allocate accumulated temperature energy
+      allocate(L11_E_Acc(size(L11_qMod, dim = 1)))
+      L11_E_Acc = 0._dp ! init to zero
+      ! get shortcuts for start end ending of current L11-domain
+      s11 = riv_temp_pcs%s11
+      e11 = riv_temp_pcs%e11
+    end if
 
     if (is_start) then
       is_start = .false.
@@ -210,19 +229,21 @@ CONTAINS
     rout_loop = max(1_i4, nint(1._dp / tsRoutFactor))
 
     ! runoff accumulation from L1 to L11 level
-    call L11_runoff_acc(L1_total_runoff, L1_areaCell, L1_L11_Id, &
-            L11_areaCell, L11_L1_Id, timeStep, & ! Intent IN
-            map_flag, & ! Intent IN
-            L11_qOut) ! Intent OUT
-
+    call L11_runoff_acc( &
+      L1_total_runoff, L1_areaCell, L1_L11_Id, &
+      L11_areaCell, L11_L1_Id, timeStep, & ! Intent IN
+      map_flag, & ! Intent IN
+      L11_qOut & ! Intent OUT
+    )
     ! add inflow
-    call add_inflow(nInflowGauges, &
-            InflowGaugeIndexList, &
-            InflowGaugeHeadwater, &
-            InflowGaugeNodeList, &
-            InflowDischarge, & ! Intent IN
-            L11_qOUT) ! Intent INOUT
-
+    call add_inflow( &
+      nInflowGauges, &
+      InflowGaugeIndexList, &
+      InflowGaugeHeadwater, &
+      InflowGaugeNodeList, &
+      InflowDischarge, & ! Intent IN
+      L11_qOUT & ! Intent INOUT
+    )
     ! for a single node model run
     if(nNodes .GT. 1) then
       ! routing multiple times if timestep is smaller than 1
@@ -230,27 +251,68 @@ CONTAINS
       L11_qAcc = 0._dp
       do tt = 1, rout_loop
         ! routing of water within river reaches
-        call L11_routing(nNodes, nNodes - L11_nOutlets, &
-                L11_netPerm, &
-                L11_fromN, & ! Intent IN
-                L11_toN, & ! Intent IN
-                L11_C1, & ! Intent IN
-                L11_C2, & ! Intent IN
-                L11_qOut, & ! Intent IN
-                nInflowGauges, & ! Intent IN
-                InflowGaugeHeadwater, & ! Intent IN
-                InflowGaugeNodeList, & ! Intent IN
-                L11_qTIN, & ! Intent INOUT
-                L11_qTR, & ! Intent INOUT
-                L11_Qmod) ! Intent OUT
+        call L11_routing( &
+          nNodes, &
+          nNodes - L11_nOutlets, &
+          L11_netPerm, &
+          L11_fromN, & ! Intent IN
+          L11_toN, & ! Intent IN
+          L11_C1, & ! Intent IN
+          L11_C2, & ! Intent IN
+          L11_qOut, & ! Intent IN
+          nInflowGauges, & ! Intent IN
+          InflowGaugeHeadwater, & ! Intent IN
+          InflowGaugeNodeList, & ! Intent IN
+          L11_qTIN, & ! Intent INOUT
+          L11_qTR, & ! Intent INOUT
+          L11_Qmod & ! Intent OUT
+        )
         ! accumulate values of individual subtimesteps
         L11_qAcc = L11_qAcc + L11_qMod
+        ! do the temperature routing
+        if ( do_calc_river_temp ) then
+          call L11_routing( &
+            nNodes, &
+            nNodes - L11_nOutlets, &
+            L11_netPerm, &
+            L11_fromN, & ! Intent IN
+            L11_toN, & ! Intent IN
+            L11_C1, & ! Intent IN
+            L11_C2, & ! Intent IN
+            riv_temp_pcs%netNode_E_out(s11 : e11), & ! Intent IN
+            nInflowGauges, & ! Intent IN
+            InflowGaugeHeadwater, & ! Intent IN
+            InflowGaugeNodeList, & ! Intent IN
+            riv_temp_pcs%netNode_E_IN(s11 : e11, :), & ! Intent INOUT
+            riv_temp_pcs%netNode_E_R(s11 : e11, :), & ! Intent INOUT
+            riv_temp_pcs%netNode_E_mod(s11 : e11) & ! Intent OUT
+          )
+          L11_E_Acc = L11_E_Acc + riv_temp_pcs%netNode_E_mod(s11 : e11)
+        end if
       end do
       ! calculate mean over routing period (timestep)
       L11_qMod = L11_qAcc / real(rout_loop, dp)
+      if ( do_calc_river_temp ) riv_temp_pcs%river_temp(s11 : e11) = &
+        L11_E_Acc / L11_qMod / real(rout_loop, dp) - T0_dp
     else
       L11_Qmod = L11_qOUT
+      if ( do_calc_river_temp ) riv_temp_pcs%river_temp(s11 : e11) = &
+        riv_temp_pcs%netNode_E_out(s11 : e11) / L11_qOUT - T0_dp
     end if
+    ! print*, "riv length"
+    ! print*, L11_length
+    ! print*, "riv area"
+    ! print*, riv_temp_pcs%L11_riv_areas(s11 : e11)
+    ! print*, "celecrity * TST * w"
+    ! print*, L11_celerity(s11 : e11) * timeStep * 3600._dp * riv_temp_pcs%L11_riv_widths(s11 : e11)
+    ! print*, "Node_T_out"
+    ! print*, riv_temp_pcs%netNode_E_out(s11 : e11) / L11_qOut - T0_dp
+    ! print*, "Node_qout"
+    ! print*, L11_qOut
+    ! print*, "L11_qMod"
+    ! print*, L11_qMod
+    ! print*, "riv-temp"
+    ! print*, riv_temp_pcs%river_temp(s11 : e11)
 
     !----------------------------------------------------------------------
     ! FOR STORING the optional arguments
