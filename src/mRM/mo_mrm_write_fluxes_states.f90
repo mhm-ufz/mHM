@@ -234,10 +234,11 @@ contains
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Sebastian Mueller Jul 2020 - added output for river temperature
 
   function newOutputDataset(iDomain, mask, nCells) result(out)
 
-    use mo_mrm_global_variables, only : outputFlxState_mrm
+    use mo_mrm_global_variables, only : outputFlxState_mrm, do_calc_river_temp
     use mo_common_variables, only : iFlag_cordinate_sys
 
     implicit none
@@ -278,20 +279,17 @@ contains
 
     if (outputFlxState_mrm(1)) then
       ii = ii + 1
-      tmpvars(ii) = OutputVariable(&
-              nc, "Qrouted", dtype, dims1, nCells, mask, .true.)
+      tmpvars(ii) = OutputVariable(nc, "Qrouted", dtype, dims1, nCells, mask, .true.)
       call writeVariableAttributes(tmpvars(ii), "routed streamflow", "m3 s-1")
     end if
 
     ! TODO-RIV-TEMP: add output for river temperature
 
-    ! if (outputFlxState_mrm(2) and do_calc_river_temp) then
-    ! ii = ii + 1
-    ! tmpvars(ii) = OutputVariable( &
-    !   nc, "RivTemp", dtype, dims1, nCells, mask, .true. &
-    ! )
-    ! call writeVariableAttributes(tmpvars(ii), "routed river temperature", "K")
-    ! end if
+    if (outputFlxState_mrm(2) .AND. do_calc_river_temp) then
+      ii = ii + 1
+      tmpvars(ii) = OutputVariable(nc, "RivTemp", dtype, dims1, nCells, mask, .true.)
+      call writeVariableAttributes(tmpvars(ii), "routed river temperature", "degC")
+    end if
 
     ! out = OutputDataset(iDomain, nc, tmpvars(1 : ii))
     allocate(out%vars(ii))
@@ -322,6 +320,9 @@ contains
   !>       \param[in] "integer(i4) :: sidx, eidx"          - end index of the domain related data in L1_* arguments
   !>       \param[in] "real(dp), dimension(:) :: L11_Qmod"
 
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "real(dp), dimension(:), optional :: L11_riv_temp"
+
   !    HISTORY
   !>       \authors Matthias Zink
 
@@ -335,8 +336,9 @@ contains
   !                              - major rewrite
   ! Stephan Thober      Oct  2015 - adapted to mRM
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Sebastian Mueller Jul 2020 - add river temperature output (optional)
 
-  subroutine updateDataset(self, sidx, eidx, L11_Qmod)
+  subroutine updateDataset(self, sidx, eidx, L11_Qmod, L11_riv_temp)
 
     use mo_mrm_global_variables, only : outputFlxState_mrm
 
@@ -348,14 +350,15 @@ contains
     integer(i4), intent(in) :: sidx, eidx
 
     real(dp), intent(in), dimension(:) :: L11_Qmod
+    real(dp), intent(in), dimension(:), optional :: L11_riv_temp
 
     type(OutputVariable), pointer, dimension(:) :: vars
 
     integer(i4) :: ii
 
     ! TODO-RIV-TEMP: add output of temperature
-    !  - optional argument L11_riv_temp
-    !  - if present: write
+    !  - [x] optional argument L11_riv_temp
+    !  - [x] if present: write
 
     ii = 0
     vars => self%vars
@@ -369,7 +372,16 @@ contains
 #endif
     end if
 
-    ! TODO-RIV-TEMP: write river temperature
+    ! TODO-RIV-TEMP:
+    !  - [x] write river temperature
+    if (outputFlxState_mrm(2) .AND. present(L11_riv_temp)) then
+      ii = ii + 1
+#ifdef pgiFortran
+      call updateVariable(vars(ii), L11_riv_temp(sidx : eidx))
+#else
+      call vars(ii)%updateVariable(L11_riv_temp(sidx : eidx))
+#endif
+    end if
 
   end subroutine updateDataset
 
