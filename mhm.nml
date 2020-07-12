@@ -234,6 +234,10 @@ gw_coupling = .false.
 albedo_water = 0.15
 !> priestley taylor alpha parameter for PET on open water (1.26 -> Gordon Bonan 2015)
 pt_a_water = 1.26
+!> emissivity of water (0.96 -> Wanders et.al. 2019)
+emissivity_water = 0.96
+!> emissivity of water (20.0 -> Wanders et.al. 2019)
+turb_heat_ex_coeff = 20.0
 !> file name for river widths
 riv_widths_file = 'Q_bkfl'
 !> variable name for river widths
