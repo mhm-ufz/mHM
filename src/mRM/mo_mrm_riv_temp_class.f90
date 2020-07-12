@@ -29,6 +29,8 @@ module mo_mrm_riv_temp_class
     ! PET related vars
     real(dp) :: albedo_water ! albedo of open water
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
+    real(dp) :: emissivity_water ! emissivity of water
+    real(dp) :: turb_heat_ex_coeff ! lateral heat exchange coefficient water <-> air
     ! \f$ E_L \f$ Generated lateral temperature energy flux [m3 s-1 K] on L1
     ! accumulated later fluxes (in current time-step)
     real(dp), dimension(:), allocatable :: L1_runoff_E
@@ -55,6 +57,8 @@ module mo_mrm_riv_temp_class
     ! source accumulations
     procedure :: acc_source_E => meth_acc_source_E
     procedure :: finalize_source_E => meth_finalize_source_E
+    procedure :: get_l_rad_out => meth_get_l_rad_out
+    procedure :: get_priestley_pet => meth_get_priestley_pet
     ! care taker
     procedure :: reset_timestep => meth_reset_timestep
     procedure :: alloc_lateral => meth_alloc_lateral
@@ -85,6 +89,8 @@ contains
     ! parameter to read in
     real(dp) :: albedo_water ! albedo of open water
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
+    real(dp) :: emissivity_water ! emissivity of water
+    real(dp) :: turb_heat_ex_coeff ! lateral heat exchange coefficient water <-> air
     character(256) :: riv_widths_file ! file name for river widths
     character(256) :: riv_widths_name ! variable name for river widths
 
@@ -92,6 +98,8 @@ contains
     namelist /config_riv_temp/ &
       albedo_water, &
       pt_a_water, &
+      emissivity_water, &
+      turb_heat_ex_coeff, &
       riv_widths_file, &
       riv_widths_name, &
       dir_riv_widths
@@ -111,6 +119,8 @@ contains
 
     self%albedo_water = albedo_water
     self%pt_a_water = pt_a_water
+    self%emissivity_water = emissivity_water
+    self%turb_heat_ex_coeff = turb_heat_ex_coeff
     self%riv_widths_file = riv_widths_file
     self%riv_widths_name = riv_widths_name
     self%dir_riv_widths = dir_riv_widths
@@ -141,9 +151,6 @@ contains
     ! TODO-RIV-TEMP:
     ! - init_condition riv_temp (0)
     ! - see: variables_alloc_routing
-
-    ! set sub time-step counter to 0
-    self%ts_cnt = 0_i4
 
     ! dummy vector and matrix
     allocate(dummy_Vector11   (nCells))
@@ -206,7 +213,6 @@ contains
     ! the mask for valid cells in the original grid (nrows*ncols)
     logical, dimension(:, :), intent(in) :: L11_mask
 
-    logical, dimension(:,:), allocatable :: mask
     real(dp), dimension(:,:), allocatable :: L11_data ! read data from file
     real(dp), dimension(:), allocatable :: L11_riv_widths, L11_riv_areas
 
@@ -218,7 +224,6 @@ contains
       nrows, &
       ncols, &
       self%riv_widths_name, &
-      mask, &
       L11_data, &
       self%riv_widths_file &
     )
@@ -326,6 +331,9 @@ contains
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
+
+    ! set sub time-step counter to 0
+    self%ts_cnt = 0_i4
 
     self%L1_runoff_E = 0.0_dp
     self%L1_acc_strd = 0.0_dp
@@ -482,7 +490,7 @@ contains
       fSealed_area_fraction, &
       fast_interflow, slow_interflow, baseflow, direct_runoff, &
       temp, mean_temp_air, &
-      self%L1_runoff_E &
+      self%L1_runoff_E & ! will be added here
     )
     ! accumulate meteo forcings (will be averaged with sub time-step counter later)
     self%L1_acc_ssrd = self%L1_acc_ssrd + ssrd
@@ -502,10 +510,11 @@ contains
     map_flag &
   )
 
-    use mo_constants, only : T0_dp  ! 273.15 - Celcius <-> Kelvin [K]
+    use mo_constants, only : T0_dp, cp_w_dp
+    use mo_mhm_constants, only : H2Odens
     use mo_julian, only : dec2date
-    use mo_temporal_disagg_forcing, only: temporal_disagg_meteo_weights, temporal_disagg_state_daynight
-    use mo_mrm_pre_routing, only : L11_meteo_acc
+    use mo_temporal_disagg_forcing, only : temporal_disagg_meteo_weights, temporal_disagg_state_daynight
+    use mo_mrm_pre_routing, only : L11_meteo_acc, L11_runoff_acc
 
     implicit none
 
@@ -523,7 +532,96 @@ contains
     ! Flag indicating whether routing resolution is higher than hydrologic one
     logical, intent(in) :: map_flag
 
+    !temporal variable for meteo forcings on L11
+    real(dp), dimension(size(L11_L1_Id, dim = 1)) :: &
+      L11_ssrd, L11_strd, L11_temp, L11_tann, L11_lrad_out, L11_netrad, L11_lat_heat, L11_T_IO
+
+    ! convert the L1 runoff temperature energy from [K mm] to [K m3 s-1] on L11
+    call L11_runoff_acc( &
+      self%L1_runoff_E, &
+      efecarea, &
+      L1_L11_Id, &
+      L11_areacell, &
+      L11_L1_Id, &
+      timestep, &
+      map_flag, &
+      self%netNode_E_out(self%s11 : self%e11) &
+    )
+
+    ! all meteo forcings are accumulated over sub time-steps and need to be divided by the sub time-step counter
+    ! short wave radiation on L11
+    self%L1_acc_ssrd = self%L1_acc_ssrd / real(self%ts_cnt, dp)
+    call L11_meteo_acc(self%L1_acc_ssrd, efecarea, L1_L11_Id, L11_areacell, L11_L1_Id, map_flag, L11_ssrd)
+    ! long wave radiation on L11
+    self%L1_acc_strd = self%L1_acc_strd / real(self%ts_cnt, dp)
+    call L11_meteo_acc(self%L1_acc_strd, efecarea, L1_L11_Id, L11_areacell, L11_L1_Id, map_flag, L11_strd)
+    ! air temperature on L11
+    self%L1_acc_temp = self%L1_acc_temp / real(self%ts_cnt, dp)
+    call L11_meteo_acc(self%L1_acc_temp, efecarea, L1_L11_Id, L11_areacell, L11_L1_Id, map_flag, L11_temp)
+    ! annual mean air temperature on L11
+    self%L1_acc_tann = self%L1_acc_tann / real(self%ts_cnt, dp)
+    call L11_meteo_acc(self%L1_acc_tann, efecarea, L1_L11_Id, L11_areacell, L11_L1_Id, map_flag, L11_tann)
+
+    ! calculate current outgoing longwave radiation from water temperature
+    call self%get_l_rad_out(L11_lrad_out)
+    ! calculate the net-radiation from incoming/outging short/longwave radiation
+    L11_netrad = L11_ssrd * (1._dp - self%albedo_water) + L11_strd - L11_lrad_out
+    ! calculate latent heat flux from evaporation with priestley
+    ! TODO-RIV-TEMP: negative temp allowed?!
+    call self%get_priestley_pet(L11_temp, max(L11_netrad, 0._dp), L11_lat_heat)
+    ! sum sensible heat flux, net-radiation and latent heat for temperature/atmosphere IO
+    L11_T_IO = L11_netrad ! - self%turb_heat_ex_coeff * (self%river_temp(self%s11 : self%e11) - L11_temp) - L11_lat_heat
+    print*, self%L1_acc_strd
+    print*, L11_strd
+    print*, "L11_netrad"
+    print*, L11_netrad
+    ! divide by specific heat cap. of water per volume and multiply with river areas
+    L11_T_IO = L11_T_IO * self%L11_riv_areas(self%s11 : self%e11) / (H2Odens * cp_w_dp)
+    print*, "L11_T_IO"
+    print*, L11_T_IO
+    print*, "netNode_E_out"
+    print*, self%netNode_E_out(self%s11 : self%e11)
+
+    !finalize the source term (sum of runoff energy components and atmospheric IO from river-area)
+    ! self%netNode_E_out(self%s11 : self%e11) = self%netNode_E_out(self%s11 : self%e11) + L11_T_IO
+
   end subroutine meth_finalize_source_E
+
+  subroutine meth_get_l_rad_out(self, lrad_out)
+
+    use mo_constants, only: sigma_dp, T0_dp
+
+    implicit none
+
+    class(riv_temp_type), intent(inout) :: self
+    ! outgoing long wave radiation on L11
+    real(dp), intent(out), dimension(:) :: lrad_out
+
+    ! outgoing longwave radiation following: Wanders et.al. 2019
+    lrad_out = self%emissivity_water * sigma_dp * (self%river_temp(self%s11 : self%e11) + T0_dp) ** 4_i4
+
+  end subroutine meth_get_l_rad_out
+
+  subroutine meth_get_priestley_pet(self, temp, netrad, lat_heat)
+
+    use mo_constants, only : Psychro_dp
+    use mo_pet, only : slope_satpressure
+
+    implicit none
+
+    class(riv_temp_type), intent(inout) :: self
+    ! outgoing long wave radiation on L11
+    real(dp), intent(in), dimension(:) :: temp
+    real(dp), intent(in), dimension(:) :: netrad
+    real(dp), intent(out), dimension(:) :: lat_heat
+
+    ! save slope of saturation vapor pressure curve
+    real(dp), dimension(size(temp)) :: delta
+
+    delta = slope_satpressure(temp) ! slope of saturation vapor pressure curve
+    lat_heat = self%pt_a_water * delta / (Psychro_dp + delta) * netrad
+
+  end subroutine meth_get_priestley_pet
 
 end module mo_mrm_riv_temp_class
 
