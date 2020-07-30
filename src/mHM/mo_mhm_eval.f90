@@ -84,7 +84,8 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp
     use mo_optimization_types, only : optidata_sim
-    use mo_common_mHM_mRM_variables, only : LCyearId, dirRestartIn, nTstepDay, optimize, readPer, read_restart, simPer, timeStep, &
+    use mo_common_mHM_mRM_variables, only : LCyearId, mhmFileRestartIn, mrmFileRestartIn, nTstepDay,&
+                                    optimize, readPer, read_restart, simPer, timeStep, &
                                             warmingDays, c2TSTu
     use mo_common_variables, only : level1, domainMeta, processMatrix
     use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, &
@@ -305,7 +306,7 @@ CONTAINS
         end if
         domainID = domainMeta%indices(iDomain)
         ! this reads the eff. parameters and optionally the states and fluxes
-        call read_restart_states(iDomain, domainID, dirRestartIn(iDomain))
+        call read_restart_states(iDomain, domainID, mhmFileRestartIn(iDomain))
       end do
     end if
 
@@ -347,8 +348,8 @@ CONTAINS
         InflowDischarge = 0._dp
 
         ! read states from restart
-        if (read_restart) call mrm_read_restart_states(iDomain, domainID, dirRestartIn(iDomain))
-
+        if (read_restart) call mrm_read_restart_states(iDomain, domainID, mrmFileRestartIn(iDomain))
+        !
         ! get Domain information at L11 and L110 if routing is activated
         s11 = level11(iDomain)%iStart
         e11 = level11(iDomain)%iEnd

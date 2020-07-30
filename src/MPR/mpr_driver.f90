@@ -63,7 +63,7 @@ program mpr_driver
   use mo_read_wrapper, only : read_data
   use mo_mpr_read_config, only : mpr_read_config
   USE mo_common_read_config, ONLY : common_read_config                    ! Read main configuration files
-  use mo_common_variables, only : dirRestartOut, write_restart
+  use mo_common_variables, only : mhmFileRestartOut, write_restart
   use mo_timer, only : timers_init
   use mo_mpr_startup, only : mpr_initialize
   use mo_mpr_restart, only : write_mpr_restart_files
@@ -96,7 +96,7 @@ program mpr_driver
   ! WRITE OUTPUT
   ! --------------------------------------------------------------------------
   if (write_restart) then
-    call write_mpr_restart_files(dirRestartOut)
+    call write_mpr_restart_files(mhmFileRestartOut)
   end if
   ! --------------------------------------------------------------------------
   ! FINISH UP

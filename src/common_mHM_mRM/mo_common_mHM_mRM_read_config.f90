@@ -49,9 +49,11 @@ CONTAINS
   subroutine common_mHM_mRM_read_config(file_namelist, unamelist)
 
     use mo_common_constants, only : maxNoDomains
-    use mo_common_mHM_mRM_variables, only : LCyearId, dds_r, dirRestartIn, evalPer, mcmc_error_params, mcmc_opti, nIterations, &
+    use mo_common_mHM_mRM_variables, only : LCyearId, dds_r, mhmFileRestartIn, mrmFileRestartIn, evalPer,&
+                                            mcmc_error_params, mcmc_opti, nIterations, &
                                             nTStepDay, opti_function, opti_method, optimize, optimize_restart, &
-                                            read_restart, resolutionRouting, sa_temp, sce_ngs, sce_npg, sce_nps, seed, &
+                                            read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
+                                            sce_ngs, sce_npg, sce_nps, seed, &
                                             simPer, timestep, warmPer, warmingDays
     use mo_common_read_config, only : set_land_cover_scenes_id
     use mo_common_variables, only : LCfilename, domainMeta, period, processMatrix
@@ -76,18 +78,22 @@ CONTAINS
 
     real(dp), dimension(maxNoDomains) :: resolution_Routing
 
-    character(256), dimension(maxNoDomains) :: dir_RestartIn
+    character(256), dimension(maxNoDomains) :: mhm_file_RestartIn
+    character(256), dimension(maxNoDomains) :: mrm_file_RestartIn
 
 
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig_mhm_mrm/ timestep, resolution_Routing, optimize, &
             optimize_restart, opti_method, opti_function, &
-            read_restart, dir_RestartIn
+            read_restart, mrm_read_river_network, mhm_file_RestartIn, mrm_file_RestartIn
     ! namelist for optimization settings
     namelist /Optimization/ nIterations, seed, dds_r, sa_temp, sce_ngs, &
             sce_npg, sce_nps, mcmc_opti, mcmc_error_params
     ! namelist for time settings
     namelist /time_periods/ warming_Days, eval_Per
+
+    ! set default values for optional arguments
+    mrm_read_river_network = .false.
 
     !===============================================================
     !  Read namelist main directories
@@ -99,12 +105,21 @@ CONTAINS
     !===============================================================
     call position_nml('mainconfig_mhm_mrm', unamelist)
     read(unamelist, nml = mainconfig_mhm_mrm)
+    ! consistency between read_restart and mrm_read_river_network
+    if (read_restart) then
+       if (.not. mrm_read_river_network) then
+          call message('***WARNING: mrm_read_river_network is set to .true. because read_restart is .true.')
+       end if
+       mrm_read_river_network = .true.
+    end if
 
     allocate(resolutionRouting(domainMeta%nDomains))
-    allocate(dirRestartIn(domainMeta%nDomains))
+    allocate(mhmFileRestartIn(domainMeta%nDomains))
+    allocate(mrmFileRestartIn(domainMeta%nDomains))
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      dirRestartIn(iDomain) = dir_RestartIn(domainID)
+      mhmFileRestartIn(iDomain) = mhm_file_RestartIn(domainID)
+      mrmFileRestartIn(iDomain) = mrm_file_RestartIn(domainID)
       resolutionRouting(iDomain) = resolution_Routing(domainID)
     end do
 

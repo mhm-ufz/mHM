@@ -9,7 +9,7 @@ follows: mRM can be compiled and run in a similar way as mHM. Specific
 files for mRM can be found in the main path and are denoted as
 <filename>_mRM.<file_type>, where <filename>.<file_type> is the
 corresponding mHM file.
- 
+
 This Subsection provides a short description of the method used in
 mRM. For further details and an analysis over the European domain,
 please refer to Thober et al. 2019.
@@ -98,7 +98,7 @@ a simple relationship:
  c_i = \gamma \sqrt{s_i},
 \f}
 where \f$c_i\f$, \f$s_i\f$ and \f$\gamma\f$ are celerity, terrain slope and a free
-model parameter, respectively, and \f$i\f$ is the grid cell index. 
+model parameter, respectively, and \f$i\f$ is the grid cell index.
 
 The above equation is applied at the resolution of the Digital
 Elevation Model (DEM), from which terrain slope is derived. A median
@@ -116,7 +116,7 @@ speed). The upscaling considers also only those high-resolution grid
 cells that align with the path of the main river because aTS only
 considers the flow in the main river reach, assuming that travel times
 in the main reach dominate the routing process in
-tributaries. 
+tributaries.
 
 \subsection ada_time Adaptive Time Step (aTS) Implementation
 
@@ -175,16 +175,16 @@ high-resolution river network properties. The coefficients \f$C_1\f$, \f$C_2\f$,
 and \f$C_3\f$ are parametrized as follows
 
 \f{equation}{
-     C_1 = \nu_2; C_2 = \nu_1 - \nu_2; C_3 = 1 - \nu_1, 
+     C_1 = \nu_2; C_2 = \nu_1 - \nu_2; C_3 = 1 - \nu_1,
 \f}
 
  where the parameters \f$\nu_1\f$ and \f$\nu_2\f$ are given as
 
 \f{eqnarray}{
-     \nu_1 &= \frac{\Delta t}{\beta (1 - \epsilon) + \frac{\Delta t}{2}};\\ 
+     \nu_1 &= \frac{\Delta t}{\beta (1 - \epsilon) + \frac{\Delta t}{2}};\\
      \nu_2 &= \frac{\frac{\Delta t}{2} - \beta \epsilon}{\beta (1 - \epsilon) + \frac{\Delta t}{2}} \nonumber
 \f}
- 
+
  following the nomenclature of appendix A2 in
  \cite SKA2010. This formulation is identical to
  equatio (9.3) of the present study, using
@@ -193,7 +193,7 @@ and \f$C_3\f$ are parametrized as follows
  \f$\beta\f$ and \f$\epsilon\f$ are then conceptualized as
 
  \f{eqnarray}{
-     \beta &= \gamma_1 + \gamma_2 L + \gamma_3 S + \gamma_4 C ;\\ 
+     \beta &= \gamma_1 + \gamma_2 L + \gamma_3 S + \gamma_4 C ;\\
      \epsilon &= \gamma_5 \frac{S}{max(S)} , \nonumber
  \f}
 
@@ -206,11 +206,11 @@ and \f$C_3\f$ are parametrized as follows
  following upper and lower bounds are applied
 
  \f{eqnarray}{
-   0 & < \epsilon \le 0.5,\\ 
-   \frac{\Delta t}{2(1-\epsilon)} & < \beta \le \frac{\Delta t}{2 \epsilon}, 
+   0 & < \epsilon \le 0.5,\\
+   \frac{\Delta t}{2(1-\epsilon)} & < \beta \le \frac{\Delta t}{2 \epsilon},
  \f}
- 
- where \f$\Delta t\f$ is set to one hour. 
+
+ where \f$\Delta t\f$ is set to one hour.
 
 \section start_mRM Getting Started
 
@@ -260,7 +260,7 @@ found in the respective files for mHM because mRM is part of mHM.
 
 \subsubsection mrmnml Main configuration: Path, Periods, Switches
 
-The file <code>mrm.nml</code> contains the main configuration for running mRM in your catchments. Since the comments should explain 
+The file <code>mrm.nml</code> contains the main configuration for running mRM in your catchments. Since the comments should explain
 each single setting, this section will only roughly describe the
 structure of the file. All mandatory namelists have to specified
 explicitly for both mHM and mRM. Namelists that are specific for mRM
@@ -289,7 +289,7 @@ file names containing gauge observations.
 \subsection mrmoutputnml Output Configuration: Time Steps, States, Fluxes
 
 The file <code>mrm_outputs.nml</code> regulates how often (e.g. <code>timeStep_model_outputs_mrm = 24</code>) and which variables (fluxes and states) should be
-written to the final netcdf file <code>[OUTPUT_DIRECTORY]/mRM_Fluxes_States.nc</code>. We recommend to only switch on variables that are of actual interest, 
+written to the final netcdf file <code>[OUTPUT_DIRECTORY]/mRM_Fluxes_States.nc</code>. We recommend to only switch on variables that are of actual interest,
 because the file size will greatly increase with the number of containing variables. During calibration (see \ref calibration) no output file will be written.
 
 \subsection calib_mRM Calibration and Optimization

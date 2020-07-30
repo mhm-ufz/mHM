@@ -32,6 +32,7 @@ module mo_common_mHM_mRM_variables
   real(dp), public :: c2TSTu            !       Unit transformation = timeStep/24
   real(dp), dimension(:), allocatable, public :: resolutionRouting          ! [m or degree] resolution of routing - Level 11
   logical, public :: read_restart               ! flag
+  logical, public :: mrm_read_river_network               ! flag
 
   type(period), dimension(:), allocatable, public :: warmPer     ! time period for warming
   type(period), dimension(:), allocatable, public :: evalPer     ! time period for model evaluation
@@ -49,7 +50,8 @@ module mo_common_mHM_mRM_variables
   ! DIRECTORIES
   ! ------------------------------------------------------------------
   ! has the dimension of nDomains
-  character(256), dimension(:), allocatable, public :: dirRestartIn! Directory where input of restart is read from
+  character(256), dimension(:), allocatable, public :: mhmFileRestartIn! Directory where input of restart is read from
+  character(256), dimension(:), allocatable, public :: mrmFileRestartIn! Directory where input of restart is read from
 
   ! -------------------------------------------------------------------
   ! OPTIMIZATION

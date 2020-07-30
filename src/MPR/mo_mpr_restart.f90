@@ -82,7 +82,7 @@ CONTAINS
   !>       write_restart
 
   !    INTENT(IN)
-  !>       \param[in] "character(256), dimension(:) :: OutPath" Output Path for each domain
+  !>       \param[in] "character(256), dimension(:) :: OutFile" Output Path for each domain
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -95,7 +95,7 @@ CONTAINS
   ! Stephan Thober     Nov  2016 - moved processMatrix to common variables
   ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
 
-  subroutine write_mpr_restart_files(OutPath)
+  subroutine write_mpr_restart_files(OutFile)
 
     use mo_common_restart, only : write_grid_info
     use mo_common_variables, only : level1, nLCoverScene, domainMeta, LC_year_start, LC_year_end
@@ -111,7 +111,7 @@ CONTAINS
     character(256) :: Fname
 
     ! Output Path for each domain
-    character(256), dimension(:), intent(in) :: OutPath
+    character(256), dimension(:), intent(in) :: OutFile
 
     integer(i4) :: iDomain, domainID
 
@@ -135,7 +135,7 @@ CONTAINS
       domainID = domainMeta%indices(iDomain)
 
       ! write restart file for iDomain
-      Fname = trim(OutPath(iDomain)) // "mHM_restart_" // trim(num2str(domainID, "(i3.3)")) // ".nc"
+      Fname = trim(OutFile(iDomain))
       ! print a message
       call message("    Writing Restart-file: ", trim(adjustl(Fname)), " ...")
 

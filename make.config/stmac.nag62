@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for NAG compiler 5.3 at Eve
+# Setup file for NAG compiler 6.2 at stmac
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.
@@ -80,7 +80,8 @@ IMSLDIR :=
 # MKL95LIB := $(MKL95DIR)/lib/intel64
 
 # NETCDF
-NCDIR   := /usr/local/netcdf-fortran-4.4.4-nagfor
+# NCDIR   := /usr/local/netcdf-fortran-4.4.4-nagfor
+NCDIR   := /usr/local/netcdf-fortran-4.4.5-nagfor
 SZLIB   := /usr/local
 HDF5LIB := /usr/local
 

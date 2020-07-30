@@ -81,7 +81,7 @@ CONTAINS
   !>       in the read restart routines below.
 
   !    INTENT(IN)
-  !>       \param[in] "character(256), dimension(:) :: OutPath" Output Path for each domain
+  !>       \param[in] "character(256), dimension(:) :: OutFile" Output Path for each domain
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -96,7 +96,7 @@ CONTAINS
   ! Robert Schweppe    Feb 2018 - Removed all L0 references
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine write_restart_files(OutPath)
+  subroutine write_restart_files(OutFile)
 
     use mo_common_constants, only : nodata_dp
     use mo_common_restart, only : write_grid_info
@@ -117,7 +117,7 @@ CONTAINS
     character(256) :: Fname
 
     ! Output Path for each domain
-    character(256), dimension(:), intent(in) :: OutPath
+    character(256), dimension(:), intent(in) :: OutFile
 
     integer(i4) :: iDomain, domainID
 
@@ -152,7 +152,7 @@ CONTAINS
       domainID = domainMeta%indices(iDomain)
 
       ! write restart file for iDomain
-      Fname = trim(OutPath(iDomain)) // "mHM_restart_" // trim(num2str(domainID, "(i3.3)")) // ".nc"
+      Fname = trim(OutFile(iDomain))
       ! print a message
       call message("    Writing Restart-file: ", trim(adjustl(Fname)), " ...")
 
@@ -328,7 +328,7 @@ CONTAINS
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iDomain"    number of domains
-  !>       \param[in] "character(256) :: InPath" Input Path including trailing slash
+  !>       \param[in] "character(256) :: InFile" Input Path including trailing slash
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -341,7 +341,7 @@ CONTAINS
   ! Stephan Thober Nov  2016 - moved processMatrix to common variables
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_restart_states(iDomain, domainID, InPath)
+  subroutine read_restart_states(iDomain, domainID, InFile)
 
     use mo_common_variables, only : LC_year_end, LC_year_start, level1, nLCoverScene, processMatrix
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, &
@@ -368,7 +368,7 @@ CONTAINS
     integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
-    character(256), intent(in) :: InPath
+    character(256), intent(in) :: InFile
 
     character(256) :: Fname
 
@@ -404,7 +404,7 @@ CONTAINS
             LAIBoundaries_temp
 
 
-    Fname = trim(InPath) // 'mHM_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc'
+    Fname = trim(InFile)
     ! call message('    Reading states from ', trim(adjustl(Fname)),' ...')
 
     ! get domain information at level 1

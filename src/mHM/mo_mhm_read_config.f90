@@ -366,10 +366,10 @@ CONTAINS
     call message('Following output will be written:')
     call message('  STATES:')
     if (outputFlxState(1)) then
-      call message('    interceptional storage                      (L1_inter)     [mm]')
+      call message('    interceptional storage                          (L1_inter) [mm]')
     end if
     if (outputFlxState(2)) then
-      call message('    height of snowpack                          (L1_snowpack)  [mm]')
+      call message('    height of snowpack                           (L1_snowpack) [mm]')
     end if
     if (outputFlxState(3)) then
       call message('    soil water content in the single layers     (L1_soilMoist) [mm]')
@@ -381,43 +381,52 @@ CONTAINS
       call message('    mean volum. soil moisture averaged over all soil layers    [mm/mm]')
     end if
     if (outputFlxState(6)) then
-      call message('    waterdepth in reservoir of sealed areas     (L1_sealSTW)   [mm]')
+      call message('    waterdepth in reservoir of sealed areas       (L1_sealSTW) [mm]')
     end if
     if (outputFlxState(7)) then
-      call message('    waterdepth in reservoir of unsat. soil zone (L1_unsatSTW)  [mm]')
+      call message('    waterdepth in reservoir of unsat. soil zone  (L1_unsatSTW) [mm]')
     end if
     if (outputFlxState(8)) then
-      call message('    waterdepth in reservoir of sat. soil zone   (L1_satSTW)    [mm]')
+      call message('    waterdepth in reservoir of sat. soil zone      (L1_satSTW) [mm]')
     end if
     if (processMatrix(10, 1) .eq. 0) outputFlxState(18) = .false. ! suppress output if process is off
     if (outputFlxState(18)) then
-      call message('    ground albedo neutrons                      (L1_neutrons)  [cph]')
+      call message('    ground albedo neutrons                       (L1_neutrons) [cph]')
     end if
 
     call message('  FLUXES:')
     if (outputFlxState(9)) then
-      call message('    actual evapotranspiration aET      (L1_pet)                [mm/T]')
+      call message('    potential evapotranspiration PET                  (L1_pet) [mm/T]')
     end if
     if (outputFlxState(10)) then
-      call message('    total discharge generated per cell (L1_total_runoff)       [mm/T]')
+      call message('    actual evapotranspiration aET               (L1_aETCanopy) [mm/T]')
     end if
     if (outputFlxState(11)) then
-      call message('    direct runoff generated per cell   (L1_runoffSeal)         [mm/T]')
+      call message('    total discharge generated per cell       (L1_total_runoff) [mm/T]')
     end if
     if (outputFlxState(12)) then
-      call message('    fast interflow generated per cell  (L1_fastRunoff)         [mm/T]')
+      call message('    direct runoff generated per cell           (L1_runoffSeal) [mm/T]')
     end if
     if (outputFlxState(13)) then
-      call message('    slow interflow generated per cell  (L1_slowRunoff)         [mm/T]')
+      call message('    fast interflow generated per cell          (L1_fastRunoff) [mm/T]')
     end if
     if (outputFlxState(14)) then
-      call message('    baseflow generated per cell        (L1_baseflow)           [mm/T]')
+      call message('    slow interflow generated per cell          (L1_slowRunoff) [mm/T]')
     end if
     if (outputFlxState(15)) then
-      call message('    groundwater recharge               (L1_percol)             [mm/T]')
+      call message('    baseflow generated per cell                  (L1_baseflow) [mm/T]')
     end if
     if (outputFlxState(16)) then
-      call message('    infiltration                       (L1_infilSoil)          [mm/T]')
+      call message('    groundwater recharge                           (L1_percol) [mm/T]')
+    end if
+    if (outputFlxState(17)) then
+      call message('    infiltration                                (L1_infilSoil) [mm/T]')
+    end if
+    if (outputFlxState(19)) then
+      call message('    actual evapotranspiration from soil layers    (L1_aETSoil) [mm/T]')
+    end if
+    if (outputFlxState(20)) then
+      call message('    effective precipitation                     (L1_preEffect) [mm/T]')
     end if
     call message('')
     call message('FINISHED reading config')

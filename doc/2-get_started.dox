@@ -26,14 +26,14 @@ If not jet available you need to <b>install curl</b> on ypur computer. Download 
 go to the related folders and use the following commands:
 \code
   cd /Downloads/curl-7.57
-  CDIR=/usr/local   
+  CDIR=/usr/local
   ./configure --prefix=${CDIR}
   sudo make check
   sudo make install
 \endcode
 
 Download the five dependencies zlib, hdf5, szip, netcdf and netcdf fortran and unzip them to
-some folder (not the place where you will install them, e.g., /Downloads/). 
+some folder (not the place where you will install them, e.g., /Downloads/).
 
 <b>Download and unpack zlib</b>, go to the related folder and use the following commands:
 \code
@@ -149,25 +149,25 @@ A NETCDF installation under Windows7 and Windows10 has only been tested using CY
 
 First, the following netcdf packages have to be installed (\ref fig_cygwin_netcdf):
 
-\image html cygwin_netcdf.pdf "netcdf packages for CYGWIN"
+\image html cygwin_netcdf.png "netcdf packages for CYGWIN"
 \anchor fig_cygwin_netcdf \image latex cygwin_netcdf.pdf "netcdf packages for CYGWIN" width=14.5cm
 
-Second, the following hdf5 version has to be installed for netcdf-4 support. 
+Second, the following hdf5 version has to be installed for netcdf-4 support.
 
-\image html cygwin_hdf5.pdf "hdf5 packages for CYGWIN"
+\image html cygwin_hdf5.png "hdf5 packages for CYGWIN"
 \image latex cygwin_hdf5.pdf "hdf5 packages for CYGWIN" width=14cm
 
 Third, the gfortran compiler (\ref fig_cygwin_gfortran) and (\ref fig_cygwin_libgfortran) have to be installed:
 
-\image html cygwin_gfortran.pdf "gfortran packages for CYGWIN"
+\image html cygwin_gfortran.png "gfortran packages for CYGWIN"
 \anchor fig_cygwin_gfortran \image latex cygwin_gfortran.pdf "gfortran packages for CYGWIN" width=14cm
 
-\image html cygwin_libgfortran.pdf "libgfortran packages for CYGWIN"
+\image html cygwin_libgfortran.png "libgfortran packages for CYGWIN"
 \anchor fig_cygwin_libgfortran \image latex cygwin_libgfortran.pdf "libgfortran packages for CYGWIN" width=14cm
 
 Fourth, GNU <code>make</code> has to be made available by selecting the following:
 
-\image html cygwin_make.pdf "make packages for CYGWIN"
+\image html cygwin_make.png "make packages for CYGWIN"
 \image latex cygwin_make.pdf "make packages for CYGWIN" width=15cm
 
 Note that Cygwin users are advised to define following flag in the Makefile, otherwise compilation won't be successful.
@@ -178,11 +178,11 @@ EXTRA_CFLAGS  += -Wl,--stack,12485760
 
 Additionally, make sure to have <code>\cygwin64\bin</code> folder in your environmental path (\ref fig_cygwin_path).
 
-\image html cygwin_path.pdf "setup environmental path CYGWIN"
+\image html cygwin_path.png "setup environmental path CYGWIN"
 \anchor fig_cygwin_path \image latex cygwin_path.pdf "setup environmental path CYGWIN" width=17cm
 
 Finally, once the installation of CYGWIN including the packages outlined above is completed, you have to change the system in the Makefile to 'cygwin'.
-Then, the mhm has proven to compile (simply type <code>make\bin</code> on the command line) under Windows. 
+Then, the mhm has proven to compile (simply type <code>make\bin</code> on the command line) under Windows.
 This will produce an executable <code>mhm\bin</code> which can be launched by <code>./mhm\bin</code> and results for the test basins can be found
 under <code>./test_basin/output_b1/</code> and <code>./test_basin_2/output_b1/</code>.
 
@@ -191,7 +191,7 @@ under <code>./test_basin/output_b1/</code> and <code>./test_basin_2/output_b1/</
 As from June 2019, we encourage users to make use of cmake guide:\n
 <a href="https://git.ufz.de/mhm/mhm/blob/develop/INSTALL.md">https://git.ufz.de/mhm/mhm/blob/develop/INSTALL.md</a>
 
-Alternatively to cmake, the Makefile can be used. Compilations of the code need to know paths and locations of its dependencies that are specific to the individual operating system. This requires a file in the make.config folder containing a valid configuration for the system mHM is compiled on. Configuration files for Cygwin and Ubuntu are provided. Creating a new configuration file is only recommended for experienced Linux users. 
+Alternatively to cmake, the Makefile can be used. Compilations of the code need to know paths and locations of its dependencies that are specific to the individual operating system. This requires a file in the make.config folder containing a valid configuration for the system mHM is compiled on. Configuration files for Cygwin and Ubuntu are provided. Creating a new configuration file is only recommended for experienced Linux users.
 Before compiling, make sure that you individual requirements hold.
 
 Open <code>Makefile</code> and adjust at least the following settings:
@@ -217,7 +217,7 @@ In between two compilations, it might be useful to apply the command <code>make 
 
 \section test Test mHM on Example Basin
 
-The mHM distribution usually comes with an example test basin located in 
+The mHM distribution usually comes with an example test basin located in
 \code
 test_basin/
 \endcode
@@ -239,12 +239,12 @@ When editing these files, we recommend to use syntax highlighting for Fortran, w
 
 \subsection mhmnml Main Configuration: Paths, Periods, Switches
 
-The file <code>mhm.nml</code> contains the main configuration for running mHM in your catchments. Since the comments should explain 
+The file <code>mhm.nml</code> contains the main configuration for running mHM in your catchments. Since the comments should explain
 each single setting, this section will only roughly describe the structure of the file. By the way, paths can be relative, absolute and even symbolic links.
 
 \li <b>Common Settings:</b> Defines output path, input look-up tables and input data format (all "nc" or all "bin") for all basins in your simulation.
 \li <b>Basin wise paths:</b> Set paths for input and output. Create a block for each basin. Remove needless blocks.
-\li <b>Resolution:</b> Hourly or Daily time step. Hydrologic resolution should be factorisable with the input resolutions (e.g. meteo: 4000, hydro: 2000, morph: 100). 
+\li <b>Resolution:</b> Hourly or Daily time step. Hydrologic resolution should be factorisable with the input resolutions (e.g. meteo: 4000, hydro: 2000, morph: 100).
     The routing resolutions determines the velocity of water from cell to cell (keep it greater than the hydro resolution). If you change the routing, remember to recalibrate the model (see \ref calibration).
 \li <b>Restart:</b> mHM does provide you the option to save the whole model configuration (incl. states, fluxes, routing network, and model parameters) at the end of the simulation period. mHM is then able to restart a new simulation with this model configuration. This reduces the amount of computational time in the newly started simulation because mHM does not have to re-setup the model configuration (e.g., parameter fields and routing network).
 \li <b>Periods:</b> Your actual period of interest should be subsequent of a warming period, where model dynamics can set in properly. Remember to expand your input data by that period, too.
@@ -254,19 +254,19 @@ each single setting, this section will only roughly describe the structure of th
 LAI values defined for 10 land classes or choose to run mHM using gridded LAI input data (e.g., MODIS).
 Gridded LAI data must be provided on a daily time-step at the Level-0 resolution.
 /*!
-\li <b>Process Switches:</b> 
+\li <b>Process Switches:</b>
 *  - Proccess case 5 - potential evapotranspiration (PET):
 *      -# PET is input (processCase(5)=0)
 *      -# PET after Hargreaves-Samani (processCase(5)=1)
 *      -# PET after Priestley-Taylor (processCase(5)=2)
 *      -# PET after Penman-Monteith (processCase(5)=3)
-*  - Proccess case 8 - routing  can be activated (=1) or deactivated (=0). 
+*  - Proccess case 8 - routing  can be activated (=1) or deactivated (=0).
 \li <b>Annual Cycles:</b> Values for pan evaporation hold in impervious regions only. The meteorological forcing table disaggregates daily input data to hourly values.
 
 \subsection mhmoutputnml Output Configuration: Time Steps, States, Fluxes
 
 The file <code>mhm_output.nml</code> regulates how often (e.g. <code>timeStep_model_outputs = 24</code>) and which variables (fluxes and states) should be
-written to the final netcdf file <code>[OUTPUT_DIRECTORY]/mHM_Fluxes_States.nc</code>. We recommend to only switch on variables that are of actual interest, 
+written to the final netcdf file <code>[OUTPUT_DIRECTORY]/mHM_Fluxes_States.nc</code>. We recommend to only switch on variables that are of actual interest,
 because the file size will greatly increase with the number of containing variables. During calibration (see \ref calibration) no output file will be written.
 
 \subsection mhmparameters Regionalised Parameters: Initial Values and Ranges
@@ -278,8 +278,8 @@ and seem to be transferabel to other catchments. If you come up with a very diff
 
 \section calibration Calibration and Optimization
 
-By default, mHM runs without caring about observed discharge data. It will use default values of the global regionalised parameters \gamma, defined in 
-<code>mhm_parameters.nml</code> . In order to fit discharge to observed data, mHM has to be recalibrated. This will optimise the \gamma parameters 
+By default, mHM runs without caring about observed discharge data. It will use default values of the global regionalised parameters \gamma, defined in
+<code>mhm_parameters.nml</code> . In order to fit discharge to observed data, mHM has to be recalibrated. This will optimise the \gamma parameters
 such that mHM arrives at a best fit for discharge. The optimization procedure runs mHM many many times, sampling parameters in their given ranges for each iteration,
 until the objective function converges to a confident best fit.
 
@@ -297,7 +297,7 @@ Objective functions currently implemented in mHM are:
 \li <b>0.5*(NSE+lnNSE):</b> weights both NSE and lnNSE by 50%, roughly fits high and low flows.
 \li <b>Likelihood:</b> The confidence bands are probability density functions that capture variable errors, recommended for hydrological discharge.
 \li <b>KGE:</b> Kling Gupta model efficiency: combined measure for variability, bias and correlation
-\li <b>PD:</b> Pattern dissimilarity (PD) of spatially distributed soil moisture  
+\li <b>PD:</b> Pattern dissimilarity (PD) of spatially distributed soil moisture
 \li <b>ETC:</b> Combination of other multi-objective functions (streamflow, TWS anomaly, evapotranspiration, soil moisture), see mhm.nml for details
 
 \subsection optisettings Calibration Settings for mHM
@@ -329,7 +329,7 @@ When the simulations are finished, the optimal parameter set is written to
 \code
 [OUTPUT_DIRECTORY]/FinalParams.out
 [OUTPUT_DIRECTORY]/FinalParams.nml
-\endcode 
+\endcode
 You can run mHM directly with the generated namelist (by renaming it) or incorporate the results in <code>FinalParams.out</code> as new initial values into <code>mhm_parameters.nml</code>.
 There are two scripts that help you with that:
 \li <code>pre-proc/create_multiple_mhm_parameter_nml.sh</code><br>
