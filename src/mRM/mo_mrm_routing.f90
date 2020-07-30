@@ -109,7 +109,7 @@ CONTAINS
   )
 
     use mo_constants, only : T0_dp
-    use mo_mrm_global_variables, only : is_start, do_calc_river_temp, riv_temp_pcs
+    use mo_mrm_global_variables, only : do_calc_river_temp, riv_temp_pcs, is_start
     use mo_mrm_mpr, only : reg_rout
     use mo_mrm_pre_routing, only : L11_runoff_acc, add_inflow
     ! use mo_mrm_riv_temp_class, only : riv_temp_type
@@ -189,7 +189,7 @@ CONTAINS
     ! ! This is a container for the river temperature routing process (pcs)
     ! class(riv_temp_type), intent(inout) :: riv_temp_pcs
 
-    integer(i4) :: s11, e11
+    integer(i4) :: s11, e11 ! only for riv temp routing
     integer(i4) :: gg
     integer(i4) :: tt
     ! number of routing loops
@@ -207,9 +207,7 @@ CONTAINS
       e11 = riv_temp_pcs%e11
     end if
 
-    if (is_start) then
-      is_start = .false.
-    end if
+    if (is_start) is_start = .false.
 
     ! this is using the sealed fraction for determining the routing parameters
     ! MPR has already been done
@@ -246,9 +244,8 @@ CONTAINS
     )
     ! for a single node model run
     if(nNodes .GT. 1) then
-      ! routing multiple times if timestep is smaller than 1
-      !
       L11_qAcc = 0._dp
+      ! routing multiple times if timestep is smaller than 1
       do tt = 1, rout_loop
         ! routing of water within river reaches
         call L11_routing( &
@@ -271,48 +268,28 @@ CONTAINS
         L11_qAcc = L11_qAcc + L11_qMod
         ! do the temperature routing
         if ( do_calc_river_temp ) then
-          call L11_routing( &
-            nNodes, &
+          call riv_temp_pcs%L11_routing_E( &
             nNodes - L11_nOutlets, &
             L11_netPerm, &
             L11_fromN, & ! Intent IN
             L11_toN, & ! Intent IN
             L11_C1, & ! Intent IN
             L11_C2, & ! Intent IN
-            riv_temp_pcs%netNode_E_out(s11 : e11), & ! Intent IN
             nInflowGauges, & ! Intent IN
             InflowGaugeHeadwater, & ! Intent IN
             InflowGaugeNodeList, & ! Intent IN
-            riv_temp_pcs%netNode_E_IN(s11 : e11, :), & ! Intent INOUT
-            riv_temp_pcs%netNode_E_R(s11 : e11, :), & ! Intent INOUT
-            riv_temp_pcs%netNode_E_mod(s11 : e11) & ! Intent OUT
+            L11_qTR(:, 1), & ! Intent IN
+            L11_Qmod & ! Intent IN
           )
-          L11_E_Acc = L11_E_Acc + riv_temp_pcs%netNode_E_mod(s11 : e11)
         end if
       end do
       ! calculate mean over routing period (timestep)
       L11_qMod = L11_qAcc / real(rout_loop, dp)
-      if ( do_calc_river_temp ) riv_temp_pcs%river_temp(s11 : e11) = &
-        L11_E_Acc / L11_qMod / real(rout_loop, dp) - T0_dp
     else
       L11_Qmod = L11_qOUT
       if ( do_calc_river_temp ) riv_temp_pcs%river_temp(s11 : e11) = &
-        riv_temp_pcs%netNode_E_out(s11 : e11) / L11_qOUT - T0_dp
+        max(riv_temp_pcs%delta_T, riv_temp_pcs%netNode_E_out(s11 : e11) / L11_qOUT - T0_dp)
     end if
-    ! print*, "riv length"
-    ! print*, L11_length
-    ! print*, "riv area"
-    ! print*, riv_temp_pcs%L11_riv_areas(s11 : e11)
-    ! print*, "celecrity * TST * w"
-    ! print*, L11_celerity(s11 : e11) * timeStep * 3600._dp * riv_temp_pcs%L11_riv_widths(s11 : e11)
-    ! print*, "Node_T_out"
-    ! print*, riv_temp_pcs%netNode_E_out(s11 : e11) / L11_qOut - T0_dp
-    ! print*, "Node_qout"
-    ! print*, L11_qOut
-    ! print*, "L11_qMod"
-    ! print*, L11_qMod
-    ! print*, "riv-temp"
-    ! print*, riv_temp_pcs%river_temp(s11 : e11)
 
     !----------------------------------------------------------------------
     ! FOR STORING the optional arguments

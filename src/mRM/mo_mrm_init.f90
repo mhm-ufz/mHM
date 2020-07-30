@@ -296,10 +296,7 @@ end subroutine mrm_configuration
         call calc_channel_elevation()
     end if
 
-    ! TODO-RIV-TEMP:
-    ! - init riv temp with class method
-    ! - init riv-area
-
+    ! init riv temp
     if ( do_calc_river_temp ) then
       call message('  Initialization of river temperature routing.')
       do iDomain = 1, domainMeta%nDomains
