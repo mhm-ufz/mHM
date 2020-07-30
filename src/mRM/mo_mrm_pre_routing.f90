@@ -375,10 +375,12 @@ CONTAINS
 
     ! convert temperatures form [deg C] to [K]
     ! accumulate in [K mm tst-1] -> convert later to [K m3 s-1] on L11
+    ! following Wanders et.al. 2019
     lateral_E = lateral_E + ( &
-      (baseflow * (mean_temp_air + T0_dp) + (slow_interflow + fast_interflow) * (temp_air + T0_dp)) &
+      (baseflow * max(T0_dp + 5.0_dp, mean_temp_air + T0_dp) &
+        + (slow_interflow + fast_interflow) * max(T0_dp, temp_air + T0_dp)) &
       * (1.0_dp - fSealed_area_fraction) &
-      + direct_runoff * (temp_air + T0_dp) * fSealed_area_fraction &
+      + direct_runoff * max(T0_dp, temp_air + T0_dp - 1.5_dp) * fSealed_area_fraction &
     )
 
   END SUBROUTINE calc_L1_runoff_E
