@@ -238,6 +238,13 @@ pt_a_water = 1.26
 emissivity_water = 0.96
 !> emissivity of water (20.0 -> Wanders et.al. 2019)
 turb_heat_ex_coeff = 20.0
+!> max number of iterations for resulting river temperature
+max_iter = 50
+!> convergence criteria for interative solver for resulting river temperature
+!> given as difference for iteratively estimated temperature in K
+delta_iter = 1.0e-02
+!> maximal step allowed in iteration in K
+step_iter = 5.0
 !> file name for river widths
 riv_widths_file = 'Q_bkfl'
 !> variable name for river widths
