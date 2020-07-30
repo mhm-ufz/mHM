@@ -294,7 +294,6 @@ CONTAINS
         !             PARAMETERS
         !-------------------------------------------
         call variables_default_init_routing()
-        ! TODO-RIV-TEMP: init riv temp also
       end if
 #endif
     else
@@ -580,7 +579,6 @@ CONTAINS
           end if
           ! prepare temperature routing
           if ( do_calc_river_temp ) then
-            ! TODO-RIV-TEMP:
             ! init riv-temp from current air temp
             if ( tt .eq. 1_i4 ) call riv_temp_pcs%init_riv_temp( &
               newTime - 0.5_dp, &
@@ -625,12 +623,6 @@ CONTAINS
               timestep_rout, &
               ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)) &
             )
-            ! TODO-RIV-TEMP:
-            !  - init riv-temp with air-temp at tt=1
-            !    - L1_temp(s_meteo : e_meteo, iMeteoTS) -> disagg to L11 level
-            !  - prepare lateral energy for current time-step at L1 level (method)
-            !    - use
-            !  - calculate atmospheric IO at L1 level (disagg to L11 level)
           end if
           ! -------------------------------------------------------------------
           ! execute routing
@@ -698,9 +690,11 @@ CONTAINS
               ! reset Input variables
               InflowDischarge = 0._dp
               RunToRout = 0._dp
-              ! TODO-RIV-TEMP: reset lateral fluxes and time-step counter
+              ! reset lateral fluxes and time-step counter if routing was done
               if ( do_calc_river_temp ) call riv_temp_pcs%reset_timestep()
             end if
+            ! if routing is done every time-step, reset river-temp time step
+            if (tsRoutFactor .lt. 1._dp .and. do_calc_river_temp ) call riv_temp_pcs%reset_timestep()
           end if
         end if
 #endif
@@ -728,7 +722,6 @@ CONTAINS
 
         if (.not. optimize) then
 #ifdef MRM2MHM
-          ! TODO-RIV-TEMP: add riv-temp output
           if (any(outputFlxState_mrm)) then
             call mrm_write_output_fluxes( &
               iDomain, & ! Domain id
