@@ -378,7 +378,10 @@ contains
 
       call message('    FLUXES:')
       if (outputFlxState_mrm(1)) then
-        call message('      routed streamflow      (L11_qMod)                [mm]')
+        call message('      routed streamflow      (L11_qMod)                [m3 s-1]')
+      end if
+      if (outputFlxState_mrm(2)) then
+        call message('      river temperature      (RivTemp)                 [deg C]')
       end if
       if (gw_coupling) then
         call message('      river head             (river_head)              [m]')
