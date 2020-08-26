@@ -133,8 +133,6 @@ contains
       riv_widths_name, &
       dir_riv_widths
 
-    print *, '   Read config: river temperature routing'
-
     ! allocate the directory arrays
     allocate(self%dir_riv_widths(domainMeta%nDomains))
 

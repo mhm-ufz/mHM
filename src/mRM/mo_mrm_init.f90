@@ -57,6 +57,8 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
       if ( processMatrix(11, 1) .ne. 0 ) then
         ! processCase(11): river temperature routing
         do_calc_river_temp = .true.
+        call message('')
+        call message('    Read config: river temperature routing')
         call riv_temp_pcs%config(file_namelist, unamelist, file_namelist_param, unamelist_param)
       end if
     end if
@@ -298,7 +300,8 @@ end subroutine mrm_configuration
 
     ! init riv temp
     if ( do_calc_river_temp ) then
-      call message('  Initialization of river temperature routing.')
+      call message('')
+      call message('    Initialization of river temperature routing.')
       do iDomain = 1, domainMeta%nDomains
         s11 = level11(iDomain)%iStart
         e11 = level11(iDomain)%iEnd
