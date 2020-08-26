@@ -262,9 +262,6 @@ contains
 
     type(OutputVariable), dimension(size(outputFlxState_mrm)) :: tmpvars
 
-    ! TODO-RIV-TEMP
-    !  - add output-var for temp
-
     dtype = "f64"
 
     if (iFlag_cordinate_sys == 0) then
@@ -282,8 +279,6 @@ contains
       tmpvars(ii) = OutputVariable(nc, "Qrouted", dtype, dims1, nCells, mask, .true.)
       call writeVariableAttributes(tmpvars(ii), "routed streamflow", "m3 s-1")
     end if
-
-    ! TODO-RIV-TEMP: add output for river temperature
 
     if (outputFlxState_mrm(2) .AND. do_calc_river_temp) then
       ii = ii + 1
@@ -356,10 +351,6 @@ contains
 
     integer(i4) :: ii
 
-    ! TODO-RIV-TEMP: add output of temperature
-    !  - [x] optional argument L11_riv_temp
-    !  - [x] if present: write
-
     ii = 0
     vars => self%vars
 
@@ -372,8 +363,6 @@ contains
 #endif
     end if
 
-    ! TODO-RIV-TEMP:
-    !  - [x] write river temperature
     if (outputFlxState_mrm(2) .AND. present(L11_riv_temp)) then
       ii = ii + 1
 #ifdef pgiFortran

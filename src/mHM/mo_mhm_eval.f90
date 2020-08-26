@@ -361,7 +361,6 @@ CONTAINS
         allocate(RunToRout(e1 - s1 + 1))
         RunToRout = 0._dp
 
-        ! TODO-RIV-TEMP: allocate lateral components
         if ( do_calc_river_temp ) then
           ! set indices for current L11 domain
           riv_temp_pcs%s11 = s11
@@ -907,7 +906,6 @@ CONTAINS
        if (domainMeta%doRouting(iDomain)) then
         ! clean runoff variable
         deallocate(RunToRout)
-        ! TODO-RIV-TEMP: deallocate lateral flux components
         if ( do_calc_river_temp ) call riv_temp_pcs%dealloc_lateral()
       end if
 #endif

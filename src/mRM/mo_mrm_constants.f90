@@ -15,7 +15,6 @@ module mo_mrm_constants
   use mo_kind, only : i4, dp
   implicit none
   ! maximum number of outputs (fluxes states) for mrM
-  ! [x] TODO-RIV-TEMP: increase this to 2 (riv temp as second state)
   integer(i4), public, parameter :: nOutFlxState = 2_i4     ! max. number of outputs to write into a netcdf file
   ! computational
   integer(i4), public, parameter :: nRoutingStates = 2 ! Dimension of the auxiliary vectors

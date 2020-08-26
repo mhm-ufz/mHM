@@ -520,7 +520,6 @@ end subroutine mrm_configuration
     ! Routing parameter C2 =f(K,xi, DT) (Chow, 25-41)
     L11_C2 = P1_InitStateFluxes
 
-    ! TODO-RIV-TEMP: init river temperature
   end subroutine variables_default_init_routing
 
 

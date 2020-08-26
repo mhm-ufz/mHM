@@ -195,11 +195,6 @@ CONTAINS
         end if
       end select
 
-      ! [x] TODO-RIV-TEMP:
-      !  - check processCase(11)
-      !  - read long-/short-wave radiation
-      !  - annual mean air temp reading
-
       ! long/short-wave radiation and annual mean temperature for river-temperature routing
       if ( processMatrix(11, 1) .ne. 0 ) then
         ! free L1 variables if chunk read is activated
