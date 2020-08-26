@@ -35,14 +35,14 @@ module mo_mrm_riv_temp_class
     ! cutoff value for temperature
     real(dp) :: delta_T = 0.1_dp
     ! controlling variables for iterative solver
-    integer(i4) :: max_iter
-    real(dp) :: delta_iter
-    real(dp) :: step_iter
-    logical :: first_iter
-    logical :: up_iter
-    logical :: bisect_iter
-    real(dp) :: up_bnd_iter
-    real(dp) :: low_bnd_iter
+    integer(i4) :: max_iter  ! input: maximal number of iterations done
+    real(dp) :: delta_iter   ! input: convergence criteria for iterative solver
+    real(dp) :: step_iter    ! input: step-size for linear search
+    logical :: first_iter    ! whether it is at the first iteration (to determine search direction)
+    logical :: up_iter       ! whether the search direction is upwards
+    logical :: bisect_iter   ! whether to do the bisection search part (after the interval is found)
+    real(dp) :: up_bnd_iter  ! upper bound for the current bisection step
+    real(dp) :: low_bnd_iter ! lower bound for the current bisection step
     ! \f$ E_L \f$ Generated lateral temperature energy flux [m3 s-1 K] on L1
     ! accumulated later fluxes (in current time-step)
     real(dp), dimension(:), allocatable :: L1_runoff_E
@@ -106,7 +106,6 @@ contains
     character(*), intent(in) :: file_namelist, file_namelist_param
     integer, intent(in) :: unamelist, unamelist_param
 
-    character(256), dimension(maxNoDomains) :: dir_riv_widths
     ! parameter to read in
     real(dp) :: albedo_water ! albedo of open water
     real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
@@ -116,6 +115,8 @@ contains
     integer(i4) :: max_iter
     real(dp) :: delta_iter
     real(dp) :: step_iter
+    ! files for river widths
+    character(256), dimension(maxNoDomains) :: dir_riv_widths
     character(256) :: riv_widths_file ! file name for river widths
     character(256) :: riv_widths_name ! variable name for river widths
 
@@ -132,7 +133,7 @@ contains
       riv_widths_name, &
       dir_riv_widths
 
-    print *, '    read config: river temperature routing'
+    print *, '   Read config: river temperature routing'
 
     ! allocate the directory arrays
     allocate(self%dir_riv_widths(domainMeta%nDomains))
@@ -386,7 +387,6 @@ contains
     class(riv_temp_type), intent(inout) :: self
     integer(i4), intent(in) :: nCells
 
-    print *, 'riv-temp: allocate later runoff components from L1'
     allocate(self%L1_runoff_E(nCells))
     allocate(self%L1_acc_strd(nCells))
     allocate(self%L1_acc_ssrd(nCells))
@@ -403,7 +403,6 @@ contains
 
     class(riv_temp_type), intent(inout) :: self
 
-    print *, 'riv-temp: deallocate later runoff components from L1'
     deallocate(self%L1_runoff_E)
     deallocate(self%L1_acc_strd)
     deallocate(self%L1_acc_ssrd)
@@ -761,8 +760,9 @@ contains
         call self%next_iter(T_est, T_rout)
       end do iterloop
 
+      ! BUG: Does this introduces to much energy?
       ! add the meteo energy flux to the accumulated incoming energy at the IN-node
-      self%netNode_E_IN(L11in, 2) = self%netNode_E_IN(L11in, 2) + E_IO
+      ! self%netNode_E_IN(L11in, 2) = self%netNode_E_IN(L11in, 2) + E_IO
 
       ! check if the inflow from upstream cells should be deactivated
       if (nInflowGauges .GT. 0) then
