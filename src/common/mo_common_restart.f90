@@ -141,9 +141,8 @@ CONTAINS
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iDomain"      number of domain
-  !>       \param[in] "character(256) :: InPath"   Input Path including trailing slash
+  !>       \param[in] "character(256) :: InFile"   Input Path including trailing slash
   !>       \param[in] "character(*) :: level_name" level_name (id)
-  !>       \param[in] "character(*) :: fname_part" filename part (either "mHM" or "mRM")
 
   !    INTENT(INOUT)
   !>       \param[inout] "type(Grid) :: new_grid" grid to save information to
@@ -160,7 +159,7 @@ CONTAINS
   ! Robert Schweppe    Jun 2018 - refactoring and reformatting
   ! Stephan Thober     May 2019 - added allocation check for mask and cellArea because cellArea needs to be read by mRM, but mask is created before by mHM
 
-  subroutine read_grid_info(domainID, InPath, level_name, fname_part, new_grid)
+  subroutine read_grid_info(domainID, InFile, level_name, new_grid)
 
     use mo_common_variables, only : Grid
     use mo_kind, only : dp, i4
@@ -174,13 +173,10 @@ CONTAINS
     integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
-    character(256), intent(in) :: InPath
+    character(256), intent(in) :: InFile
 
     ! level_name (id)
     character(*), intent(in) :: level_name
-
-    ! filename part (either "mHM" or "mRM")
-    character(*), intent(in) :: fname_part
 
     ! grid to save information to
     type(Grid), intent(inout) :: new_grid
@@ -201,7 +197,7 @@ CONTAINS
 
 
     ! read config
-    fname = trim(InPath) // trim(fname_part) // '_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc' ! '_restart.nc'
+    fname = trim(InFile)
     call message('    Reading config from     ', trim(adjustl(Fname)), ' ...')
 
     nc = NcDataset(fname, "r")

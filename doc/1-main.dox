@@ -1,15 +1,19 @@
 /**
 \mainpage Introduction to mHM
 
+Welcome to the documentation of mHM version 5.11.
+
+\image html mHM_textlogo.png
+
 This chapter is divided in the following sections:\n
 - \ref description
-- \ref mHM         
-- \ref model       
-- \ref mpr         
-- \ref param_est   
-- \ref cal 
+- \ref mHM
+- \ref model
+- \ref mpr
+- \ref param_est
+- \ref cal
 - \ref basininfo
-- \ref protocols        
+- \ref protocols
 
 \section description Short Description
 
@@ -44,8 +48,8 @@ and flood routing (\ref fig_mhm "mHM"). More information about the model
 can be found in
 \cite SKA2010 .
 
-\image html mhm5-logo.png "Typical mHM cell" 
-\anchor fig_mhm \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm 
+\image html mhm5-logo.png "Typical mHM cell"
+\anchor fig_mhm \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
 
 
 Dominant processes of the hydrological cycle at mesoscale span over
@@ -70,7 +74,7 @@ represent the spatial variability of state and inputs variables:
       precipitation. The cell size at this level is denoted by
       \f$ \ell_2 \f$.
 
-\image html levels.png "Hierarchy of data and modeling levels in mHM" 
+\image html levels.png "Hierarchy of data and modeling levels in mHM"
 \anchor fig_levels \image latex levels.pdf "Hierarchy of data and modeling levels in mHM" width=10cm
 
 
@@ -94,54 +98,54 @@ describe the evolution of the state variables at a given location
       \dot{x}_{5i}  & = & I_i^L(t) - q_{2i}(t)- q_{3i}(t)- C_i(t)         \\
       \dot{x}_{6i}  & = & C_i(t) - q_{4i}(t)         \\
       \dot{x}_{7i}  & = & \hat{Q}_{i}^{0}(t)-\hat{Q}_{i}^{1}(t)
- \f} 
+ \f}
 \f$  \quad  \forall i \in \Omega \f$.
 
-where 
+where
 
-<b>Inputs | Description  </b>                                            
+<b>Inputs | Description  </b>
 --------- | ---------------------------------------------------------
-\f$P\f$   | Daily precipitation depth,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$P\f$   | Daily precipitation depth,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
 \f$E_p\f$ | Daily potential evapotranspiration (PET), \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
 \f$T\f$   | Daily mean air temperature,               \f$^{\circ}C\f$
 
-<b>Fluxes    | Description  </b>                                            
+<b>Fluxes    | Description  </b>
 ------------ | ---------------------------------------------------------
-\f$S\f$      | Snow precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
-\f$R\f$      | Rain precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
-\f$M\f$      | Melting snow depth,                                          \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
-\f$E_p\f$    | Potential evapotranspiration,                                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
-\f$F\f$      | Throughfall,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
-\f$E_1\f$    | Actual evaporation intensity from the canopy,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$  
-\f$E_2\f$    | Actual evapotranspiration intensity,                         \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$  
-\f$E_3\f$    | Actual evaporation from free-water bodies,                   \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$S\f$      | Snow precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+\f$R\f$      | Rain precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+\f$M\f$      | Melting snow depth,                                          \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+\f$E_p\f$    | Potential evapotranspiration,                                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+\f$F\f$      | Throughfall,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+\f$E_1\f$    | Actual evaporation intensity from the canopy,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+\f$E_2\f$    | Actual evapotranspiration intensity,                         \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+\f$E_3\f$    | Actual evaporation from free-water bodies,                   \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
 \f$I\f$      | Recharge, infiltration intensity or effective precipitation, \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$C\f$      | Percolation,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$C\f$      | Percolation,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
 \f$q_{1}\f$  | Surface runoff from impervious areas,                        \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$q_{2}\f$  | Fast interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
-\f$q_{3}\f$  | Slow interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
-\f$q_{4}\f$  | Baseflow,                                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$q_{2}\f$  | Fast interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+\f$q_{3}\f$  | Slow interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+\f$q_{4}\f$  | Baseflow,                                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
 
-<b> Outputs      | Description </b>                                           
+<b> Outputs      | Description </b>
 ---------------- | ---------------------------------------------------------
-\f$Q_{i}^{0}\f$  |  Simulated discharge entering the river stretch at cell \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$ 
-\f$Q_{i}^{1}\f$  |  Simulated discharge leaving the river stretch at cell  \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$  
+\f$Q_{i}^{0}\f$  |  Simulated discharge entering the river stretch at cell \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$
+\f$Q_{i}^{1}\f$  |  Simulated discharge leaving the river stretch at cell  \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$
 
-<b> States | Description  </b>                                            
+<b> States | Description  </b>
 ---------- | ---------------------------------------------------------
 \f$x_1\f$  | Depth of the canopy storage,                                           \f$\mathrm{mm}\f$
-\f$x_2\f$  | Depth of the snowpack,                                                 \f$\mathrm{mm}\f$ 
-\f$x_3\f$  | Depth of soil moisture content in the root zone,                       \f$\mathrm{mm}\f$ 
-\f$x_4\f$  | Depth of impounded water in reservoirs, water bodies, or sealed areas, \f$\mathrm{mm}\f$ 
+\f$x_2\f$  | Depth of the snowpack,                                                 \f$\mathrm{mm}\f$
+\f$x_3\f$  | Depth of soil moisture content in the root zone,                       \f$\mathrm{mm}\f$
+\f$x_4\f$  | Depth of impounded water in reservoirs, water bodies, or sealed areas, \f$\mathrm{mm}\f$
 \f$x_5\f$  | Depth of the water storage in the subsurface reservoir,                \f$\mathrm{mm}\f$
-\f$x_6\f$  | Depth of the water storage in the groundwater reservoir,               \f$\mathrm{mm}\f$ 
-\f$x_7\f$  | Depth of the water storage in the channel reservoir,                   \f$\mathrm{mm}\f$ 
+\f$x_6\f$  | Depth of the water storage in the groundwater reservoir,               \f$\mathrm{mm}\f$
+\f$x_7\f$  | Depth of the water storage in the channel reservoir,                   \f$\mathrm{mm}\f$
 
-<b> Indices  | Description </b>                                          
+<b> Indices  | Description </b>
 ------------ | ---------------------------------------------------------
-\f$l\f$      | Index denoting a root zone horizon, \f$l=1,\ldots,L\f$ (say \f$L=3\f$), in the first layer, \f$0 \leq z \leq z_1\f$ 
-\f$t\f$      | Time index for each \f$\Delta t\f$ interval 
-\f$\rho^l\f$ | Overall influx fraction accounting for the impervious cover within a cell 
+\f$l\f$      | Index denoting a root zone horizon, \f$l=1,\ldots,L\f$ (say \f$L=3\f$), in the first layer, \f$0 \leq z \leq z_1\f$
+\f$t\f$      | Time index for each \f$\Delta t\f$ interval
+\f$\rho^l\f$ | Overall influx fraction accounting for the impervious cover within a cell
 
 
 \section mpr The Multiscale Parameter Regionalization Technique
@@ -160,7 +164,7 @@ optimization algorithms \cite PG2009 . To overcome this problem a
 multiscale parameter regionalization (MPR) was employed in the mHM
 model \cite SKA2010 .
 
-\image html upscaling.pdf "MPR"
+\image html upscaling.png "MPR"
 \anchor fig_mpr \image latex upscaling.pdf "MPR" width=10cm
 
 Based on this regionalization method, model parameters at a coarser
@@ -203,7 +207,7 @@ algorithm finds good solutions for the transfer functions parameters
 (\f$s=\f$ 45) instead of the model parameters for every grid cell. This,
 in turn, implies a great reduction of complexity since \f$ K \times n
 \gg s\f$, where \f$n\f$ denotes the total number of cells of a given basin
-at level-1. 
+at level-1.
 
 \section param_est The Parameter Estimation Problem
 
@@ -236,7 +240,7 @@ where
   \li \f${\beta}\f$ denotes the fields of effective mHM parameters at
   level-1 estimated as described in section (\ref mpr "MPR").
   \li \f$ \gamma\f$ is a vector of global parameters characterized by a
-      probability density function \f$\Phi_{\gamma_s}\f$. 
+      probability density function \f$\Phi_{\gamma_s}\f$.
   \li \f$i\f$, \f$t\f$ represent a point in space and time
      respectively.
 
@@ -248,7 +252,7 @@ In general, \f$\gamma\f$ can be estimated, for example, by
 where \f$\|\cdot\|\f$ denotes a robust estimator. Many procedures to
 estimate global parameters are provided in mHM (e.g. simulated
 annealing \cite AK90, dynamically dimensioned search \cite TS2007 .
-Other techniques can be found in the CHS Fortran Library. 
+Other techniques can be found in the CHS Fortran Library.
 
 
 \section cal Model Calibration

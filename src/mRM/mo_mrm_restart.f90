@@ -32,7 +32,7 @@ contains
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iDomain"                   number of domain
-  !>       \param[in] "character(256), dimension(:) :: OutPath" list of Output paths per Domain
+  !>       \param[in] "character(256), dimension(:) :: OutFile" list of Output paths per Domain
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -52,7 +52,7 @@ contains
   ! Stephan Thober    Jun 2018 - including varying celerity functionality
   ! Stephan Thober    May 2019 - added L0 info required for Process 3
 
-  subroutine mrm_write_restart(iDomain, domainID, OutPath)
+  subroutine mrm_write_restart(iDomain, domainID, OutFile)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_restart, only : write_grid_info
@@ -82,7 +82,7 @@ contains
     integer(i4), intent(in) :: domainID
 
     ! list of Output paths per Domain
-    character(256), dimension(:), intent(in) :: OutPath
+    character(256), dimension(:), intent(in) :: OutFile
 
     character(256) :: Fname
 
@@ -156,7 +156,7 @@ contains
     allocate(dummy_d3(nrows11, ncols11, nRoutingStates))
 
     ! set restart file name
-    Fname = trim(OutPath(iDomain)) // 'mRM_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc'
+    Fname = trim(OutFile(iDomain))
 
     call message('    Writing mRM restart file to ' // trim(Fname) // ' ...')
 
@@ -445,7 +445,7 @@ contains
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iDomain"    number of domains
-  !>       \param[in] "character(256) :: InPath" Input Path including trailing slash
+  !>       \param[in] "character(256) :: InFile" Input Path including trailing slash
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -457,7 +457,7 @@ contains
   ! Stephan Thober May 2016 - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet because multiple outlets could exist
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine mrm_read_restart_states(iDomain, domainID, InPath)
+  subroutine mrm_read_restart_states(iDomain, domainID, InFile)
 
     use mo_common_variables, only : nLCoverScene
     use mo_mrm_constants, only : nRoutingStates
@@ -474,7 +474,7 @@ contains
     integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
-    character(256), intent(in) :: InPath
+    character(256), intent(in) :: InFile
 
     integer(i4) :: ii
 
@@ -502,7 +502,7 @@ contains
     !TODO-RIV-TEMP: read/write restart for riv-temp process
 
     ! set file name
-    fname = trim(InPath) // 'mRM_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc'
+    fname = trim(InFile)
 
     ! get Domain info at L11 including ncells, start, end, and mask
     s11 = level11(iDomain)%iStart
@@ -583,7 +583,7 @@ contains
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iDomain"    number of Domain
-  !>       \param[in] "character(256) :: InPath" Input Path including trailing slash
+  !>       \param[in] "character(256) :: InFile" Input Path including trailing slash
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -600,7 +600,7 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! Stephan Thober May 2019 - added L0 info required for Process 3
 
-  subroutine mrm_read_restart_config(iDomain, domainID, InPath)
+  subroutine mrm_read_restart_config(iDomain, domainID, InFile)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -625,7 +625,7 @@ contains
     integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
-    character(256), intent(in) :: InPath
+    character(256), intent(in) :: InFile
 
     character(256) :: fname
 
@@ -654,7 +654,7 @@ contains
 
 
     ! set file name
-    fname = trim(InPath) // 'mRM_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc'
+    fname = trim(InFile)
     call message('        Reading mRM restart file:  ', trim(adjustl(Fname)), ' ...')
 
     ! get Domain info at L11 mask

@@ -4,7 +4,8 @@
     dir_morpho(1:3) = '../../test_domain/input/morph/', '../../test_domain/input/morph/',
                       '../../test_domain/input/morph/'
     dir_out(1:3) = 'output_b1/b1_', 'output_b1/b2_', 'output_b1/b3_'
-    dir_restartout(1:3) = 'output_b1/b1_', 'output_b1/b2_', 'output_b1/b3_'
+    mhm_file_restartout(1:3) = 'output_b1/b1_mHM_restart_001.nc', 'output_b1/b2_mHM_restart_002.nc', 'output_b1/b3_mHM_restart_003.nc'
+    mrm_file_restartout(1:3) = 'output_b1/b1_mRM_restart_001.nc', 'output_b1/b2_mRM_restart_002.nc', 'output_b1/b3_mRM_restart_003.nc'
     dircommonfiles = '../../test_domain/input/morph/'
     dirconfigout = 'output_b1/'
     file_latlon(1:3) = '../../test_domain/input/latlon/latlon_1.nc', '../../test_domain/input/latlon/latlon_1.nc',
@@ -92,8 +93,6 @@
 /
 
 &mainconfig_mhm_mrm
-    dir_restartin(1:3) = '../../test_domain/restart/', '../../test_domain/restart/',
-                         '../../test_domain/restart/'
     opti_function = 3
     opti_method = 1
     optimize = .false.
