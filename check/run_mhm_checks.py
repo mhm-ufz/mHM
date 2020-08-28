@@ -155,6 +155,15 @@ def parse_args():
         dest="skip",
         help="skip cases (case_01 case_03 ..) (default: {})".format(SKIP),
     )
+    parser.add_argument(
+        "-o",
+        "--only",
+        action="store",
+        nargs="*",
+        default=None,
+        dest="only",
+        help="only run cases (case_01 case_03 ..) (default: all)",
+    )
     args = parser.parse_args()
     return (
         args.exe,
@@ -163,6 +172,7 @@ def parse_args():
         args.mpi_nop,
         args.openmp_threads,
         args.skip,
+        args.only,
     )
 
 
@@ -484,7 +494,7 @@ def run_model(
 
 if __name__ == "__main__":
     # get args
-    exe_list, print_log, log_path, mpi_nop, openmp_threads, skip = parse_args()
+    exe_list, print_log, log_path, mpi_nop, omp_n, skip, only = parse_args()
     # checking path
     cases_path = os.path.dirname(os.path.realpath(__file__))
     # get all cases folders (in the cases_path)
@@ -496,6 +506,12 @@ if __name__ == "__main__":
     final_result = True
     final_exe_results = {}
     exe_case_results = {}
+    # check "only" cases
+    missing_cases = set()  # no missing cases by default
+    if only is not None:
+        missing_cases = set(only) - set(map(os.path.basename, cases))
+        if missing_cases:
+            final_result = False
     # skip some cases for mpi
     if int(mpi_nop) > 0:
         skip += SKIP_CASES_MPI
@@ -513,7 +529,7 @@ if __name__ == "__main__":
                 "print log: {}".format(print_log),
                 "log path: {}".format(log_path),
                 "mpi processes: {}".format(mpi_nop),
-                "openMP threads: {}".format(openmp_threads),
+                "openMP threads: {}".format(omp_n),
                 sep_n=70,
             )
         )
@@ -521,7 +537,10 @@ if __name__ == "__main__":
         for case in cases:
             # base name of the case
             case_base = os.path.basename(case)
-            # skip some cases
+            # check if this case should be run (defined by "only" arg)
+            if only is not None and case_base not in only:
+                continue
+            # skip case if wanted
             if case_base in skip:
                 print(sep_text("skip case: " + case_base, sep_n=60, tab_n=1))
                 continue
@@ -537,7 +556,7 @@ if __name__ == "__main__":
                 print_log=print_log,
                 log_path=log_path,
                 mpi_nop=mpi_nop,
-                openmp_threads=openmp_threads,
+                openmp_threads=omp_n,
             )
             print(tab(2), "run succeeded:", success)
             print(tab(2), "log path:", os.path.relpath(log, start=cases_path))
@@ -578,6 +597,10 @@ if __name__ == "__main__":
         for case_n in exe_case_results[exe_n]:
             if not exe_case_results[exe_n][case_n]:
                 print(tab(2), case_n, "failed")
+    # print missing cases (specified by "only" arg)
+    if missing_cases:
+        miss_case_str = str(missing_cases)
+        print(sep_text("CASES not found: " + miss_case_str, sep_n=60, tab_n=1))
     print(
         sep_text("FINISHED", "...succeeded: {}".format(final_result), sep_n=70)
     )
