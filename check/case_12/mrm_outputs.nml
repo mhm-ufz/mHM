@@ -1,0 +1,7 @@
+
+&NLoutputResults
+timeStep_model_outputs_mrm = -1
+outputFlxState_mrm(1)=.TRUE.
+outputFlxState_mrm(2)=.TRUE.
+/
+
