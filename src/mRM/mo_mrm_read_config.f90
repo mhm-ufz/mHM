@@ -106,8 +106,6 @@ contains
     character(256), dimension(maxNoDomains) :: dir_Total_Runoff
 
     character(256), dimension(maxNoDomains) :: dir_Bankfull_Runoff
-    ! directory for river widths
-    character(256), dimension(maxNoDomains) :: dir_river_widths
 
     logical :: file_exists
 
@@ -118,7 +116,7 @@ contains
     namelist /mainconfig_mrm/ ALMA_convention, &
       filenameTotalRunoff, varnameTotalRunoff, gw_coupling
     ! namelist directories
-    namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff, dir_Bankfull_Runoff, dir_river_widths
+    namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff, dir_Bankfull_Runoff
     namelist /evaluation_gauges/ nGaugesTotal, NoGauges_domain, Gauge_id, gauge_filename
     ! namelist for inflow gauges
     namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_domain, InflowGauge_id, &
