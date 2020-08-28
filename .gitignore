@@ -1,6 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 
 # Exclusions
+mhm
 *.g90
 *.o
 *.mod
