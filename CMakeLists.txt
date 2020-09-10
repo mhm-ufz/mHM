@@ -137,6 +137,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -nofixed -assume byterecl -fp-model source -m64 -assume realloc-lhs ") # precise -> source: suppress warning, computation identical
 	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -warn all -g -debug -traceback -fp-stack-check -O0 -debug -check all")
 	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -qoverride-limits")
+	cpp_definitions("-DINTEL" "CMAKE_INTEL" "ON" "Code exchange for intel compiler dependent issues")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -colour -unsharedf95 -ideclient")
