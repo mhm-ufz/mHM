@@ -96,6 +96,7 @@ CONTAINS
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_string_utils, only : num2str
+    use mo_os, only : path_isdir
 #ifdef MRM2MHM
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : resolutionRouting
@@ -117,6 +118,8 @@ CONTAINS
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_config))
     call message()
     call message('  Log-file written to ', trim(fName))
+    !checking whether the directory exists where the file shall be created or opened
+    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
     open(uconfig, file = fName, status = 'unknown', action = 'write', iostat = err)
     if (err .ne. 0) then
       call message('  Problems while creating File')
@@ -440,6 +443,7 @@ CONTAINS
     use mo_common_variables, only : dirConfigOut
     use mo_message, only : message
     use mo_string_utils, only : num2str
+    use mo_os, only : path_isdir
 
     implicit none
 
@@ -461,6 +465,8 @@ CONTAINS
 
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti))
+    !checking whether the directory exists where the file shall be created or opened
+    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
     open(uopti, file = fName, status = 'unknown', action = 'write', iostat = err, recl = (n_params + 1) * 40)
     if(err .ne. 0) then
       call message ('  IOError while openening ', trim(fName))
@@ -524,6 +530,7 @@ CONTAINS
     use mo_common_variables, only : dirConfigOut, nProcesses
     use mo_message, only : message
     use mo_string_utils, only : num2str
+    use mo_os, only : path_isdir
 
     implicit none
 
@@ -562,6 +569,8 @@ CONTAINS
 
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti_nml))
+    !checking whether the directory exists where the file shall be created or opened
+    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
     open(uopti_nml, file = fName, status = 'unknown', action = 'write', iostat = err)
     if(err .ne. 0) then
       call message ('  IOError while openening ', trim(fName))
