@@ -54,7 +54,7 @@ While installing cygwin you will have to choose a mirror. A mirror is a server
 on the internet where the files for the installation come from. Choose any server
 located near your city and when in doubt, choose the first one in the list.
 In the next step you can find all available packages provided by cygwin, set
-the view to "full". In the search panel you can filter the packages 
+the view to "full". In the search panel you can filter the packages
 by the dependencies listed above (e.g. make). When you choose a
 version, the newest one is usually a good choice if not marked as experimental.
 
@@ -65,8 +65,8 @@ Some cygwin versions create a new home directory for you. You may check e.g. her
 
     C:\cygwin64\home\$username
 
-As from December 2019, step-by-step guidelines, how to install all netCDF dependencies 
-can be viewed in [this youtube video](https://www.youtube.com/watch?v=G0i7eDEIfPA&list=PLaT_WNTBfPhK2UT0wkmJR5luEoc9qhbFf) 
+As from December 2019, step-by-step guidelines, how to install all netCDF dependencies
+can be viewed in [this youtube video](https://www.youtube.com/watch?v=G0i7eDEIfPA&list=PLaT_WNTBfPhK2UT0wkmJR5luEoc9qhbFf)
 created by Cüneyd Demirel (Istanbul Technical University).
 
 ### Ubuntu, Mint and other apt-get based systems with matching repositories:
@@ -82,7 +82,7 @@ created by Cüneyd Demirel (Istanbul Technical University).
 ### Module systems:
 
 If you are on a module system, load the modules gcc or intel depending on your
-favorite compiler. Then, load the modules netcdf-fortran and cmake. 
+favorite compiler. Then, load the modules netcdf-fortran and cmake.
 
 These modules will have system specific names, environments, etc.
 You may use `module spider` to find the right packages and the
@@ -90,35 +90,64 @@ right dependencies, potentially use corresponding wiki pages.
 
 #### On eve (the cluster at the UFZ):
 
-If you not already have, opt in for the easy-build setup:
+A set of load-scripts is provided in `moduleLoadScripts`, to load all need modules for specifc compilers:
 
-    touch ~/.easybuild-yes    
+- GNU 7.3 compiler (`foss/2018b` Toolchain):
+  ```bash
+  source moduleLoadScripts/eve.gcc73
+  ```
+  or (MPI support)
+  ```bash
+  source moduleLoadScripts/eve.gcc73MPI
+  ```
+- GNU 8.3 compiler (`foss/2019b` Toolchain):
+  ```bash
+  source moduleLoadScripts/eve.gcc83
+  ```
+  or (MPI support)
+  ```bash
+  source moduleLoadScripts/eve.gcc83MPI
+  ```
+- Intel 18 compiler (`iomkl/2018b` Toolchain):
+  ```bash
+  source moduleLoadScripts/eve.intel18
+  ```
+  or (MPI support)
+  ```bash
+  source moduleLoadScripts/eve.intel18MPI
+  ```
+- NAG 6.2 compiler:
+  ```bash
+  source moduleLoadScripts/eve.nag62
+  ```
 
-Then disconnect from the cluster and connect anew.
+Then you can compile mHM with cmake. We prepared a set of scripts, to automatize the build and compilation process to generate an executable in the root directory with the following naming scheme:
 
-(see https://wiki.ufz.de/eve/index.php/EasyBuild for details)
+- Release version `mhm`:
+  ```bash
+  source CI-scripts/compile
+  ```
+- Debug version `mhm_debug`:
+  ```bash
+  source CI-scripts/compile_debug
+  ```
+- Release version with MPI support `mhm_mpi`:
+  ```bash
+  source CI-scripts/compile_MPI
+  ```
+- Debug version with MPI support `mhm_mpi_debug`:
+  ```bash
+  source CI-scripts/compile_MPI_debug
+  ```
+- Release version with OpenMP support `mhm_openmp`:
+  ```bash
+  source CI-scripts/compile_OpenMP
+  ```
+- Debug version with OpenMP support `mhm_openmp_debug`:
+  ```bash
+  source CI-scripts/compile_OpenMP_debug
+  ```
 
-From the source directory use a script provided in `moduleLoadScripts`,
-for example for the GNU 7.3 compiler:
-
-    source moduleLoadScripts/eve.gfortran73
-
-Starting from Jan 2020, if you want to compile mHM code with intel on EVE (under EasyBuild), 
-you need to load following modules:
-
-    module purge
-    ml uge/8.5.5-2 Java/1.8.0_202 grid-engine-tools/0.8.3-3-g93f1efa icc/2018.3.222-GCC-7.3.0-2.30 ifort/2018.3.222-GCC-7.3.0-2.30 iccifort/2018.3.222-GCC-7.3.0-2.30
-
-If you use cmake to compile mHM with easy-build, the netcdf-Fortran library and cmake can be loaded as
- 
-    
-    module load foss/2018b
-    module load netCDF-Fortran
-    module load CMake 
-    
-Then follow the installation instructions.
-    
-    
 ### MacOS:
 
 *(to be added)*
@@ -210,7 +239,7 @@ Installation
     If everything worked well a Makefile was created with the corresponding paths.
 
     *Note: have a look at "Specific setups" above in case you are using module systems,
-    or when the netcdf libraries are not located where the package manager usually installs libraries, 
+    or when the netcdf libraries are not located where the package manager usually installs libraries,
     or when they are not saved in environment variables (i.e., classical MacOS setups at CHS).*
 
 5. Make the build:
@@ -227,7 +256,7 @@ Installation
         cp build/mhm .
 
     On Windows the executable is called `mhm.exe` instead of `mhm`. In that case
-    instead of `cp build/mhm .` execute 
+    instead of `cp build/mhm .` execute
 
         cp build/mhm.exe .
 
@@ -247,7 +276,7 @@ Installation
 Building Realease or Debug versions:
 ====================================
 If you want to set up specific versions of the build, you can
-create different folders for that. In case a release and a debug version need to be set up, it makes sense to create two folders named `debug` and `release`. 
+create different folders for that. In case a release and a debug version need to be set up, it makes sense to create two folders named `debug` and `release`.
 
     mkdir release
 

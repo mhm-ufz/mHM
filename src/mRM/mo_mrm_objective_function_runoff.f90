@@ -39,10 +39,10 @@
 ! Modifications:
 ! Stephan Thober             Oct 2015 - adapted for mRM
 ! Juliane Mai                Nov 2015 - introducing multi
-!                                     - and single-objective 
+!                                     - and single-objective
 !                                     - first multi-objective function (16), but not used yet
-! Juliane Mai                Feb 2016 - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows) 
-!                                     - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows) 
+! Juliane Mai                Feb 2016 - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows)
+!                                     - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows)
 !                                     - multi-objective function (20) using FDC and discharge of months DJF
 ! Stephan Thober,Bjoern Guse May 2018 - single objective function (21) using weighted NSE following
 !                                       (Hundecha and Bardossy, 2004)
@@ -66,7 +66,7 @@ MODULE mo_mrm_objective_function_runoff
 
   PUBLIC :: single_objective_runoff ! single-objective function wrapper
   PUBLIC :: multi_objective_runoff  ! multi-objective function wrapper
-  PUBLIC :: extract_runoff          ! extract runoff period specified in mhm.nml from available runoff time series 
+  PUBLIC :: extract_runoff          ! extract runoff period specified in mhm.nml from available runoff time series
 #ifdef MPI
   PUBLIC :: single_objective_runoff_master, single_objective_runoff_subprocess ! objective function wrapper for soil moisture only
 #endif
@@ -409,7 +409,7 @@ CONTAINS
 
     do ! a do loop without condition runs until exit
       call MPI_Recv(do_obj_loop, 1, MPI_LOGICAL, 0, 0, domainMeta%comMaster, status, ierror)
-      
+
       if (.not. do_obj_loop) exit
       !write(*,*) 'parameterset: ',parameterset(:)
       call get_parameterset(parameterset)
@@ -486,7 +486,7 @@ CONTAINS
 
 #endif
 
-  ! ------------------------------------------------------------------ 
+  ! ------------------------------------------------------------------
 
   !    NAME
   !        multi_objective_runoff
@@ -1413,7 +1413,7 @@ CONTAINS
   END FUNCTION objective_equal_nse_lnnse
 
 
-  ! ------------------------------------------------------------------ 
+  ! ------------------------------------------------------------------
 
   !    NAME
   !        multi_objective_nse_lnnse
@@ -1481,7 +1481,7 @@ CONTAINS
     logical, dimension(:), allocatable :: runoff_obs_mask
 
 
-    ! call mhm_eval(parameterset, runoff=runoff) 
+    ! call mhm_eval(parameterset, runoff=runoff)
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
 
@@ -1497,18 +1497,18 @@ CONTAINS
       multi_objective_nse_lnnse(2) = multi_objective_nse_lnnse(2) + &
               lnnse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
     end do
-    ! objective function value which will be minimized 
+    ! objective function value which will be minimized
     multi_objective_nse_lnnse(:) = 1.0_dp - multi_objective_nse_lnnse(:) / real(nGaugesTotal, dp)
 
-    ! write(*,*) 'multi_objective_nse_lnnse = ',multi_objective_nse_lnnse 
+    ! write(*,*) 'multi_objective_nse_lnnse = ',multi_objective_nse_lnnse
 
-    ! clean up 
+    ! clean up
     deallocate(runoff_agg, runoff_obs)
     deallocate(runoff_obs_mask)
 
   END FUNCTION multi_objective_nse_lnnse
 
-  ! ------------------------------------------------------------------ 
+  ! ------------------------------------------------------------------
 
   !    NAME
   !        multi_objective_lnnse_highflow_lnnse_lowflow
@@ -1604,7 +1604,7 @@ CONTAINS
     logical, dimension(:), allocatable :: highflow_mask
 
 
-    ! call mhm_eval(parameterset, runoff=runoff) 
+    ! call mhm_eval(parameterset, runoff=runoff)
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
 
@@ -1641,19 +1641,19 @@ CONTAINS
       multi_objective_lnnse_highflow_lnnse_lowflow(2) = multi_objective_lnnse_highflow_lnnse_lowflow(2) + &
               lnnse(runoff_obs, runoff_agg, mask = lowflow_mask)
     end do
-    ! objective function value which will be minimized 
+    ! objective function value which will be minimized
     multi_objective_lnnse_highflow_lnnse_lowflow(:) = 1.0_dp &
             - multi_objective_lnnse_highflow_lnnse_lowflow(:) / real(nGaugesTotal, dp)
 
-    ! write(*,*) 'multi_objective_lnnse_highflow_lnnse_lowflow = ',multi_objective_lnnse_highflow_lnnse_lowflow 
+    ! write(*,*) 'multi_objective_lnnse_highflow_lnnse_lowflow = ',multi_objective_lnnse_highflow_lnnse_lowflow
 
-    ! clean up 
+    ! clean up
     deallocate(runoff_agg, runoff_obs)
     deallocate(runoff_obs_mask)
 
   END FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow
 
-  ! ------------------------------------------------------------------ 
+  ! ------------------------------------------------------------------
 
   !    NAME
   !        multi_objective_lnnse_highflow_lnnse_lowflow_2
@@ -1744,7 +1744,7 @@ CONTAINS
     logical, dimension(:), allocatable :: highflow_mask
 
 
-    ! call mhm_eval(parameterset, runoff=runoff) 
+    ! call mhm_eval(parameterset, runoff=runoff)
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
 
@@ -1779,19 +1779,19 @@ CONTAINS
       multi_objective_lnnse_highflow_lnnse_lowflow_2(2) = multi_objective_lnnse_highflow_lnnse_lowflow_2(2) + &
               lnnse(runoff_obs, runoff_agg, mask = lowflow_mask)
     end do
-    ! objective function value which will be minimized 
+    ! objective function value which will be minimized
     multi_objective_lnnse_highflow_lnnse_lowflow_2(:) = 1.0_dp &
             - multi_objective_lnnse_highflow_lnnse_lowflow_2(:) / real(nGaugesTotal, dp)
 
-    ! write(*,*) 'multi_objective_lnnse_highflow_lnnse_lowflow_2 = ',multi_objective_lnnse_highflow_lnnse_lowflow_2 
+    ! write(*,*) 'multi_objective_lnnse_highflow_lnnse_lowflow_2 = ',multi_objective_lnnse_highflow_lnnse_lowflow_2
 
-    ! clean up 
+    ! clean up
     deallocate(runoff_agg, runoff_obs)
     deallocate(runoff_obs_mask)
 
   END FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow_2
 
-  ! ------------------------------------------------------------------ 
+  ! ------------------------------------------------------------------
 
   !    NAME
   !        multi_objective_ae_fdc_lsv_nse_djf
@@ -1899,7 +1899,7 @@ CONTAINS
     real(dp) :: lsv_obs
 
 
-    ! call mhm_eval(parameterset, runoff=runoff) 
+    ! call mhm_eval(parameterset, runoff=runoff)
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
     nquantiles = size(quantiles)
@@ -1937,7 +1937,7 @@ CONTAINS
       multi_objective_ae_fdc_lsv_nse_djf(2) = multi_objective_ae_fdc_lsv_nse_djf(2) + &
               nse(runoff_obs, runoff_agg, mask = djf_mask)
     end do
-    ! objective function value which will be minimized 
+    ! objective function value which will be minimized
     multi_objective_ae_fdc_lsv_nse_djf(1) = &
             multi_objective_ae_fdc_lsv_nse_djf(1) / real(nGaugesTotal, dp)
     multi_objective_ae_fdc_lsv_nse_djf(2) = 1.0_dp &
@@ -1945,7 +1945,7 @@ CONTAINS
 
     write(*, *) 'multi_objective_ae_fdc_lsv_nse_djf = ', multi_objective_ae_fdc_lsv_nse_djf
 
-    ! clean up 
+    ! clean up
     deallocate(runoff_agg, runoff_obs)
     deallocate(runoff_obs_mask)
 
@@ -2349,8 +2349,8 @@ CONTAINS
   !>       Therefore, the sum of squared error \f$ tSSE \f$
   !>       \f[ tSSE = \sum_{i=1}^N (z(Q_{obs}(i), \lambda) - z(Q_{model}(i), \lambda))^2 \f]
   !>       is calculated where \f$ z \f$ is the transform and given by
-  !>       \f[ z(x, \lambda) = \frac{x^\lambda -1}{\lambda} \f] for \$ \lambda \f$ unequal to zero and
-  !>       \f[ z(x, \lambda) = log x \f] for \$ \lambda \f$ equal to zero.
+  !>       \f[ z(x, \lambda) = \frac{x^\lambda -1}{\lambda} \f] for \f$ \lambda \f$ unequal to zero and
+  !>       \f[ z(x, \lambda) = log x \f] for \f$ \lambda \f$ equal to zero.
   !>       The objective function is
   !>       \f[ obj\_value = tSSE \f]
   !>       The observed data \f$ Q_{obs} \f$ are global in this module.
@@ -2414,7 +2414,7 @@ CONTAINS
     ! "Evaluating post-processing approaches for monthly and seasonal streamflow forecasts."
     ! https://www.hydrol-earth-syst-sci.net/22/6257/2018/
     lambda = 0.2_dp
-    
+
     call eval(parameterset, runoff=runoff)
     nGaugesTotal = size(runoff, dim=2)
 
@@ -2437,7 +2437,7 @@ CONTAINS
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
 
   END FUNCTION objective_sse_boxcox
-  
+
 
   ! ------------------------------------------------------------------
 
