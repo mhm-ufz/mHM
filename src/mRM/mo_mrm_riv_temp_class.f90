@@ -1,11 +1,9 @@
-!>       \file mo_mrm_riv_temp_class.f90
-
-!>       \brief Class for the river temperature calculations
-!>       \details
-
-!>       \authors Sebastian Mueller
-
-!>       \date Apr 2020
+!> \file    mo_mrm_riv_temp_class.f90
+!> \brief   Class for the river temperature calculations
+!> \warning This feature is still experimental!
+!> \version 0.1
+!> \authors Sebastian Mueller
+!> \date    Sep 2020
 
 module mo_mrm_riv_temp_class
 
@@ -14,80 +12,85 @@ module mo_mrm_riv_temp_class
   implicit none
 
   private
-  public :: riv_temp_type
 
-  ! This is a container to define the river temperature routing in the current time step
-  type riv_temp_type
+  !> \class   riv_temp_type
+  !> \brief   This is a container to define the river temperature routing in the current time step
+  !> \details This class provides all procedures to rout river tmperature through the river network.
+  !> \warning This feature is still experimental!
+  !!          This first version doesn't provide ice covering, which means, that the river temperature
+  !!          can drop below 0 [deg C] in winter.
+  type, public :: riv_temp_type
     ! config settings
-    character(256) :: nml_name = 'config_riv_temp' ! namelist name in mhm.nml
+    character(256) :: nml_name = 'config_riv_temp' !< namelist name in mhm.nml
     ! riv geometry
-    character(256), dimension(:), allocatable :: dir_riv_widths ! Directory where river widths are stored
-    character(256) :: riv_widths_file ! file name for river widths
-    character(256) :: riv_widths_name ! variable name for river widths
-    real(dp), public, dimension(:), allocatable :: L11_riv_widths !river widths in L11
-    real(dp), public, dimension(:), allocatable :: L11_riv_areas !river area in L11
+    character(256), dimension(:), allocatable :: dir_riv_widths !< Directory where river widths are stored
+    character(256) :: riv_widths_file !< file name for river widths
+    character(256) :: riv_widths_name !< variable name for river widths
+    real(dp), public, dimension(:), allocatable :: L11_riv_widths !< river widths in L11
+    real(dp), public, dimension(:), allocatable :: L11_riv_areas !< river area in L11
     ! PET related vars
-    real(dp) :: albedo_water ! albedo of open water
-    real(dp) :: pt_a_water ! priestley taylor alpha parameter for PET on open water
+    real(dp) :: albedo_water !< albedo of open water
+    real(dp) :: pt_a_water   !< priestley taylor alpha parameter for PET on open water
     ! sensible heat flux related
-    real(dp) :: emissivity_water ! emissivity of water
-    real(dp) :: turb_heat_ex_coeff ! lateral heat exchange coefficient water <-> air
-    ! cutoff value for temperature
+    real(dp) :: emissivity_water   !< emissivity of water
+    real(dp) :: turb_heat_ex_coeff !< lateral heat exchange coefficient water <-> air
+    !> cutoff value for temperature
     real(dp) :: delta_T = 0.1_dp
     ! controlling variables for iterative solver
-    integer(i4) :: max_iter  ! input: maximal number of iterations done
-    real(dp) :: delta_iter   ! input: convergence criteria for iterative solver
-    real(dp) :: step_iter    ! input: step-size for linear search
-    logical :: first_iter    ! whether it is at the first iteration (to determine search direction)
-    logical :: up_iter       ! whether the search direction is upwards
-    logical :: bisect_iter   ! whether to do the bisection search part (after the interval is found)
-    real(dp) :: up_bnd_iter  ! upper bound for the current bisection step
-    real(dp) :: low_bnd_iter ! lower bound for the current bisection step
+    integer(i4) :: max_iter  !< input: maximal number of iterations done
+    real(dp) :: delta_iter   !< input: convergence criteria for iterative solver
+    real(dp) :: step_iter    !< input: step-size for linear search
+    logical :: first_iter    !< whether it is at the first iteration (to determine search direction)
+    logical :: up_iter       !< whether the search direction is upwards
+    logical :: bisect_iter   !< whether to do the bisection search part (after the interval is found)
+    real(dp) :: up_bnd_iter  !< upper bound for the current bisection step
+    real(dp) :: low_bnd_iter !< lower bound for the current bisection step
     ! \f$ E_L \f$ Generated lateral temperature energy flux [m3 s-1 K] on L1
     ! accumulated later fluxes (in current time-step)
-    real(dp), dimension(:), allocatable :: L1_runoff_E
-    real(dp), dimension(:), allocatable :: L1_acc_ssrd
-    real(dp), dimension(:), allocatable :: L1_acc_strd
-    real(dp), dimension(:), allocatable :: L1_acc_temp
-    integer(i4) :: ts_cnt ! sub time-step counter for accumulation of meteo
+    real(dp), dimension(:), allocatable :: L1_runoff_E !< runoff energy at L1 level
+    real(dp), dimension(:), allocatable :: L1_acc_ssrd !< accumulated shortwave radiation at L1 level
+    real(dp), dimension(:), allocatable :: L1_acc_strd !< accumulated longwave radiation at L1 level
+    real(dp), dimension(:), allocatable :: L1_acc_temp !< accumulated air temperature radiation at L1 level
+    integer(i4) :: ts_cnt !< sub time-step counter for accumulation of meteo
     ! vars for routing
-    integer(i4) :: s11 ! starting index for current L11 domain
-    integer(i4) :: e11 ! ending index for current L11 domain
-    real(dp), dimension(:,:), allocatable :: netNode_E_IN ! Total energy inputs at t-1 and t
-    real(dp), dimension(:,:), allocatable :: netNode_E_R ! energy leaving at t-1 and t
-    real(dp), dimension(:), allocatable :: netNode_E_mod ! Simulated routed energy
-    real(dp), dimension(:), allocatable :: netNode_E_out ! total energy source from cell in L11
-    real(dp), dimension(:), allocatable :: L11_srad_net ! net short wave radiation
-    real(dp), dimension(:), allocatable :: L11_lrad_in ! incoming long wave radiation
-    real(dp), dimension(:), allocatable :: L11_air_temp ! air temp
+    integer(i4) :: s11 !< starting index for current L11 domain
+    integer(i4) :: e11 !< ending index for current L11 domain
+    real(dp), dimension(:,:), allocatable :: netNode_E_IN !< Total energy inputs at t-1 and t
+    real(dp), dimension(:,:), allocatable :: netNode_E_R  !< energy leaving at t-1 and t
+    real(dp), dimension(:), allocatable :: netNode_E_mod  !< Simulated routed energy
+    real(dp), dimension(:), allocatable :: netNode_E_out  !< total energy source from cell in L11
+    real(dp), dimension(:), allocatable :: L11_srad_net   !< net short wave radiation at L11
+    real(dp), dimension(:), allocatable :: L11_lrad_in    !< incoming long wave radiation at L11
+    real(dp), dimension(:), allocatable :: L11_air_temp   !< air temp at L11
     ! variable containing river temp for each domain at L11 level
-    real(dp), dimension(:), allocatable :: river_temp
+    real(dp), dimension(:), allocatable :: river_temp !< resulting river temp at L11 in [deg C]
   contains
     ! config and inits
-    procedure :: config
-    procedure :: init
-    procedure :: init_area
-    procedure :: init_riv_temp
+    procedure :: config !< \copydoc mo_mrm_riv_temp_class::config
+    procedure :: init !< \copydoc mo_mrm_riv_temp_class::init
+    procedure :: init_area !< \copydoc mo_mrm_riv_temp_class::init_area
+    procedure :: init_riv_temp !< \copydoc mo_mrm_riv_temp_class::init_riv_temp
     ! source accumulations
-    procedure :: acc_source_E
-    procedure :: finalize_source_E
+    procedure :: acc_source_E !< \copydoc mo_mrm_riv_temp_class::acc_source_e
+    procedure :: finalize_source_E !< \copydoc mo_mrm_riv_temp_class::finalize_source_e
     ! temp-energy routing routines
-    procedure :: get_lrad_out
-    procedure :: get_lat_heat
-    procedure :: get_sens_heat
-    procedure :: get_E_IO
-    procedure :: L11_routing_E
+    procedure :: get_lrad_out !< \copydoc mo_mrm_riv_temp_class::get_lrad_out
+    procedure :: get_lat_heat !< \copydoc mo_mrm_riv_temp_class::get_lat_heat
+    procedure :: get_sens_heat !< \copydoc mo_mrm_riv_temp_class::get_sens_heat
+    procedure :: get_E_IO !< \copydoc mo_mrm_riv_temp_class::get_e_io
+    procedure :: L11_routing_E !< \copydoc mo_mrm_riv_temp_class::l11_routing_e
     ! helper for iterative solver
-    procedure :: init_iter
-    procedure :: next_iter
+    procedure :: init_iter !< \copydoc mo_mrm_riv_temp_class::init_iter
+    procedure :: next_iter !< \copydoc mo_mrm_riv_temp_class::next_iter
     ! care taker
-    procedure :: reset_timestep
-    procedure :: alloc_lateral
-    procedure :: dealloc_lateral
+    procedure :: reset_timestep !< \copydoc mo_mrm_riv_temp_class::reset_timestep
+    procedure :: alloc_lateral !< \copydoc mo_mrm_riv_temp_class::alloc_lateral
+    procedure :: dealloc_lateral !< \copydoc mo_mrm_riv_temp_class::dealloc_lateral
   end type riv_temp_type
 
 contains
 
+  !> \brief configure the \ref riv_temp_type class from the mhm namelist
   subroutine config( &
     self, &
     file_namelist, &
@@ -103,8 +106,10 @@ contains
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    character(*), intent(in) :: file_namelist, file_namelist_param
-    integer, intent(in) :: unamelist, unamelist_param
+    character(*), intent(in) :: file_namelist !< mhm namelist file
+    character(*), intent(in) :: file_namelist_param !< mhm parameter namelist file
+    integer, intent(in) :: unamelist
+    integer, intent(in) :: unamelist_param
 
     ! parameter to read in
     real(dp) :: albedo_water ! albedo of open water
@@ -168,6 +173,7 @@ contains
 
   end subroutine config
 
+  !> \brief initalize the \ref riv_temp_type class for the current domain
   subroutine init( &
     self, &
     nCells &
@@ -179,7 +185,7 @@ contains
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    integer(i4), intent(in) :: nCells
+    integer(i4), intent(in) :: nCells !< number of cells for the current domain
 
     real(dp), dimension(:), allocatable :: dummy_Vector11
     real(dp), dimension(:, :), allocatable :: dummy_Matrix11_IT
@@ -210,6 +216,7 @@ contains
 
   end subroutine init
 
+  !> \brief initialize the river area of \ref riv_temp_type class for the current domain
   subroutine init_area( &
     self, &
     iDomain, &
@@ -228,22 +235,15 @@ contains
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    ! Domain counter
-    integer(i4), intent(in) :: iDomain
-    ! L11 routing order
-    integer(i4), dimension(:), intent(in) :: L11_netPerm
-    ! L11 source grid cell order
-    integer(i4), dimension(:), intent(in) :: L11_fromN
-    ! L11 link length
-    real(dp), dimension(:), intent(in) :: L11_length
-    ! number of L11 links in the current domain
-    integer(i4), intent(in) :: nLinks
-    ! number of L11 cells of the current domain
-    integer(i4), intent(in) :: nCells
-    integer(i4), intent(in) :: ncols     ! Number of columns
-    integer(i4), intent(in) :: nrows     ! Number of rows
-    ! the mask for valid cells in the original grid (nrows*ncols)
-    logical, dimension(:, :), intent(in) :: L11_mask
+    integer(i4), intent(in) :: iDomain !< Domain ID
+    integer(i4), dimension(:), intent(in) :: L11_netPerm !< L11 routing order
+    integer(i4), dimension(:), intent(in) :: L11_fromN !< L11 source grid cell order
+    real(dp), dimension(:), intent(in) :: L11_length !< L11 link length
+    integer(i4), intent(in) :: nLinks !< number of L11 links in the current domain
+    integer(i4), intent(in) :: nCells !< number of L11 cells of the current domain
+    integer(i4), intent(in) :: ncols  !< Number of columns
+    integer(i4), intent(in) :: nrows  !< Number of rows
+    logical, dimension(:, :), intent(in) :: L11_mask !< the mask for valid cells in the original grid (nrows, ncols)
 
     real(dp), dimension(:,:), allocatable :: L11_data ! read data from file
     real(dp), dimension(:), allocatable :: L11_riv_widths, L11_riv_areas
@@ -280,6 +280,7 @@ contains
 
   end subroutine init_area
 
+  !> \brief initialize the river temperature of \ref riv_temp_type class for the current domain
   subroutine init_riv_temp( &
     self, &
     time, &
@@ -304,31 +305,18 @@ contains
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    ! current decimal Julian day
-    real(dp), intent(in) :: time
-    ! number of time intervals per day, transformed in dp
-    real(dp), intent(in) :: ntimesteps_day
-    ! air temperature [K]
-    real(dp), dimension(:), intent(in) :: temp_air
-    ! flag whether weights for tavg and pet have read and should be used
-    logical, intent(in) :: read_meteo_weights
-    ! multiplicative weights for temperature (deg K)
-    real(dp), dimension(:, :, :), intent(in) :: temp_weights
-    ! [-] day factor mean temp
-    real(dp), dimension(:), intent(in) :: fday_temp
-    ! [-] night factor mean temp
-    real(dp), dimension(:), intent(in) :: fnight_temp
-    ! effective area in [km2] at Level 1
-    real(dp), intent(in), dimension(:) :: efecarea
-    ! L11 Ids mapped on L1
-    integer(i4), intent(in), dimension(:) :: L1_L11_Id
-    ! effective area in [km2] at Level 11
-    real(dp), intent(in), dimension(:) :: L11_areacell
-    ! L1 Ids mapped on L11
-    integer(i4), intent(in), dimension(:) :: L11_L1_Id
-    ! Flag indicating whether routing resolution is higher than hydrologic one
-    logical, intent(in) :: map_flag
-    ! aggregated meteo forcing
+    real(dp), intent(in) :: time !< current decimal Julian day
+    real(dp), intent(in) :: ntimesteps_day !< number of time intervals per day, transformed in dp
+    real(dp), dimension(:), intent(in) :: temp_air !< air temperature [K]
+    logical, intent(in) :: read_meteo_weights !< flag whether weights for tavg and pet have read and should be used
+    real(dp), dimension(:, :, :), intent(in) :: temp_weights !< multiplicative weights for temperature (deg K)
+    real(dp), dimension(:), intent(in) :: fday_temp !< [-] day factor mean temp
+    real(dp), dimension(:), intent(in) :: fnight_temp !< [-] night factor mean temp
+    real(dp), intent(in), dimension(:) :: efecarea !< effective area in [km2] at Level 1
+    integer(i4), intent(in), dimension(:) :: L1_L11_Id !< L11 Ids mapped on L1
+    real(dp), intent(in), dimension(:) :: L11_areacell !< effective area in [km2] at Level 11
+    integer(i4), intent(in), dimension(:) :: L11_L1_Id !< L1 Ids mapped on L11
+    logical, intent(in) :: map_flag !< Flag indicating whether routing resolution is higher than hydrologic one
 
     ! internal temperature
     real(dp), dimension(size(temp_air)) :: temp
@@ -361,6 +349,7 @@ contains
 
   end subroutine init_riv_temp
 
+  !> \brief reset \ref riv_temp_type class for next timestep
   subroutine reset_timestep(self)
     implicit none
 
@@ -376,6 +365,7 @@ contains
 
   end subroutine reset_timestep
 
+  !> \brief allocate lateral temp components of \ref riv_temp_type class for current domain
   subroutine alloc_lateral( &
     self, &
     nCells &
@@ -383,7 +373,7 @@ contains
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    integer(i4), intent(in) :: nCells
+    integer(i4), intent(in) :: nCells !< number of cells for the current domain
 
     allocate(self%L1_runoff_E(nCells))
     allocate(self%L1_acc_strd(nCells))
@@ -394,6 +384,7 @@ contains
 
   end subroutine alloc_lateral
 
+  !> \brief deallocate lateral temp components of \ref riv_temp_type
   subroutine dealloc_lateral( &
     self &
   )
@@ -408,7 +399,8 @@ contains
 
   end subroutine dealloc_lateral
 
-  subroutine acc_source_E( &
+  !> \brief accumulate energy sources of \ref riv_temp_type
+  subroutine acc_source_e( &
     self, &
     time, &
     ntimesteps_day, &
@@ -439,44 +431,25 @@ contains
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    ! current decimal Julian day
-    real(dp), intent(in) :: time
-    ! number of time intervals per day, transformed in dp
-    real(dp), intent(in) :: ntimesteps_day
-    ! sealed area fraction [1]
-    real(dp), dimension(:), intent(in) :: fSealed_area_fraction
-    ! \f$ q_0 \f$ Fast runoff component [mm tst-1]
-    real(dp), dimension(:), intent(in) :: fast_interflow
-    ! \f$ q_1 \f$ Slow runoff component [mm tst-1]
-    real(dp), dimension(:), intent(in) :: slow_interflow
-    ! \f$ q_2 \f$ Baseflow [mm tsts-1]
-    real(dp), dimension(:), intent(in) :: baseflow
-    ! \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
-    real(dp), dimension(:), intent(in) :: direct_runoff
-    ! air temperature [K]
-    real(dp), dimension(:), intent(in) :: temp_air
-    ! annual mean air temperature [K]
-    real(dp), dimension(:), intent(in) :: mean_temp_air
-    ! Daily mean short radiation
-    real(dp), dimension(:), intent(in) :: ssrd_day
-    ! Daily mean longwave radiation
-    real(dp), dimension(:), intent(in) :: strd_day
-    ! flag whether weights for tavg and pet have read and should be used
-    logical, intent(in) :: read_meteo_weights
-    ! multiplicative weights for temperature (deg K)
-    real(dp), dimension(:, :, :), intent(in) :: temp_weights
-    ! [-] day factor mean temp
-    real(dp), dimension(:), intent(in) :: fday_temp
-    ! [-] night factor mean temp
-    real(dp), dimension(:), intent(in) :: fnight_temp
-      ! Daytime fraction of ssrd
-    real(dp), dimension(:), intent(in) :: fday_ssrd
-    ! Nighttime fraction of ssrd
-    real(dp), dimension(:), intent(in) :: fnight_ssrd
-    ! Daytime fraction of strd
-    real(dp), dimension(:), intent(in) :: fday_strd
-    ! Nighttime fraction of strd
-    real(dp), dimension(:), intent(in) :: fnight_strd
+    real(dp), intent(in) :: time !< current decimal Julian day
+    real(dp), intent(in) :: ntimesteps_day !< number of time intervals per day, transformed in dp
+    real(dp), dimension(:), intent(in) :: fSealed_area_fraction !< sealed area fraction [1]
+    real(dp), dimension(:), intent(in) :: fast_interflow !< \f$ q_0 \f$ Fast runoff component [mm tst-1]
+    real(dp), dimension(:), intent(in) :: slow_interflow !< \f$ q_1 \f$ Slow runoff component [mm tst-1]
+    real(dp), dimension(:), intent(in) :: baseflow !< \f$ q_2 \f$ Baseflow [mm tsts-1]
+    real(dp), dimension(:), intent(in) :: direct_runoff !< \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
+    real(dp), dimension(:), intent(in) :: temp_air !< air temperature [K]
+    real(dp), dimension(:), intent(in) :: mean_temp_air !< annual mean air temperature [K]
+    real(dp), dimension(:), intent(in) :: ssrd_day !< Daily mean short radiation
+    real(dp), dimension(:), intent(in) :: strd_day !< Daily mean longwave radiation
+    logical, intent(in) :: read_meteo_weights !< flag whether weights for tavg and pet have read and should be used
+    real(dp), dimension(:, :, :), intent(in) :: temp_weights !< multiplicative weights for temperature (deg K)
+    real(dp), dimension(:), intent(in) :: fday_temp !< [-] day factor mean temp
+    real(dp), dimension(:), intent(in) :: fnight_temp !< [-] night factor mean temp
+    real(dp), dimension(:), intent(in) :: fday_ssrd !< Daytime fraction of ssrd
+    real(dp), dimension(:), intent(in) :: fnight_ssrd !< Nighttime fraction of ssrd
+    real(dp), dimension(:), intent(in) :: fday_strd !< Daytime fraction of strd
+    real(dp), dimension(:), intent(in) :: fnight_strd !< Nighttime fraction of strd
 
     ! internal temperature
     real(dp), dimension(size(temp_air)) :: temp
@@ -526,8 +499,9 @@ contains
     self%L1_acc_strd = self%L1_acc_strd + strd
     self%L1_acc_temp = self%L1_acc_temp + temp
 
-  end subroutine acc_source_E
+  end subroutine acc_source_e
 
+  !> \brief finalize energy sources of \ref riv_temp_type
   subroutine finalize_source_E( &
     self, &
     efecarea, &
@@ -547,17 +521,17 @@ contains
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    ! effective area in [km2] at Level 1
+    !> effective area in [km2] at Level 1
     real(dp), intent(in), dimension(:) :: efecarea
-    ! L11 Ids mapped on L1
+    !> L11 Ids mapped on L1
     integer(i4), intent(in), dimension(:) :: L1_L11_Id
-    ! effective area in [km2] at Level 11
+    !> effective area in [km2] at Level 11
     real(dp), intent(in), dimension(:) :: L11_areacell
-    ! L1 Ids mapped on L11
+    !> L1 Ids mapped on L11
     integer(i4), intent(in), dimension(:) :: L11_L1_Id
-    ! simulation timestep in [h]
+    !> simulation timestep in [h]
     integer(i4), intent(in) :: timestep
-    ! Flag indicating whether routing resolution is higher than hydrologic one
+    !> Flag indicating whether routing resolution is higher than hydrologic one
     logical, intent(in) :: map_flag
 
     ! prepare temporal variables for temp-routing
@@ -594,6 +568,8 @@ contains
 
   end subroutine finalize_source_E
 
+  !> \brief get outgoing longwave radiation of \ref riv_temp_type
+  !> \return outgoing longwave radiation
   real(dp) function get_lrad_out(self, riv_temp) result(lrad_out)
 
     use mo_constants, only: sigma_dp, T0_dp
@@ -601,7 +577,7 @@ contains
     implicit none
 
     class(riv_temp_type), intent(in) :: self
-    ! river temperature in K
+    !> river temperature in K
     real(dp), intent(in) :: riv_temp
 
     ! outgoing longwave radiation from Boltzmann equation
@@ -609,6 +585,8 @@ contains
 
   end function get_lrad_out
 
+  !> \brief latent heat flux of \ref riv_temp_type
+  !> \return latent heat flux
   real(dp) function get_lat_heat(self, air_temp, netrad) result(lat_heat)
 
     use mo_constants, only : Psychro_dp
@@ -617,9 +595,9 @@ contains
     implicit none
 
     class(riv_temp_type), intent(in) :: self
-    ! air temperature in deg C
+    !> air temperature in deg C
     real(dp), intent(in) :: air_temp
-    ! net radiation in W * m-2
+    !> net radiation in W * m-2
     real(dp), intent(in) :: netrad
 
     ! save slope of saturation vapor pressure curve
@@ -631,20 +609,23 @@ contains
 
   end function get_lat_heat
 
+  !> \brief sensible heat flux of \ref riv_temp_type
+  !> \return sensible heat flux
   real(dp) function get_sens_heat(self, air_temp, riv_temp) result(sens_heat)
 
     implicit none
 
     class(riv_temp_type), intent(in) :: self
-    ! temperatures in deg C
-    real(dp), intent(in) :: air_temp
-    real(dp), intent(in) :: riv_temp
+    real(dp), intent(in) :: air_temp !< air temperature in [deg C]
+    real(dp), intent(in) :: riv_temp !< river temperature in [deg C]
 
     ! sensible heat flux resulting for temp. diff.: river <-> air
     sens_heat = self%turb_heat_ex_coeff * (riv_temp - air_temp)
 
   end function get_sens_heat
 
+  !> \brief get complete energy source of \ref riv_temp_type at given cell
+  !> \return energy IO
   real(dp) function get_E_IO(self, riv_temp, cell) result(E_IO)
 
     use mo_constants, only : T0_dp, cp_w_dp
@@ -653,11 +634,11 @@ contains
     implicit none
 
     class(riv_temp_type), intent(in) :: self
-    ! given river temperature in K to calculate heat fluxes
+    !> given river temperature in K to calculate heat fluxes
     real(dp), intent(in) :: riv_temp
-    ! cell index in the current domain
+    !> cell index in the current domain
     integer(i4), intent(in) :: cell
-    ! net radiation calc from short and longwave radiation in/out
+    !> net radiation calc from short and longwave radiation in/out
     real(dp) :: netrad, sens_heat, lat_heat
 
     ! net radiation
@@ -673,6 +654,7 @@ contains
 
   end function get_E_IO
 
+  !> \brief execute the temperature routing of \ref riv_temp_type
   subroutine L11_routing_E( &
     self, &
     nLinks, &
@@ -692,27 +674,27 @@ contains
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    ! number of stream segment (reaches)
+    !> number of stream segment (reaches)
     integer(i4), intent(in) :: nLinks
-    ! routing order of a given domain (permutation)
+    !> routing order of a given domain (permutation)
     integer(i4), dimension(:), intent(in) :: netPerm
-    ! from node
+    !> from node
     integer(i4), dimension(:), intent(in) :: netLink_fromN
-    ! to node
+    !> to node
     integer(i4), dimension(:), intent(in) :: netLink_toN
-    ! routing parameter  C1 (\cite CMM1988 p. 25-41)
+    !> routing parameter  C1 (\cite CMM1988 p. 25-41)
     real(dp), dimension(:), intent(in) :: netLink_C1
-    ! routing parameters C2 (id)
+    !> routing parameters C2 (id)
     real(dp), dimension(:), intent(in) :: netLink_C2
-    ! [-]      number of inflow points
+    !> [-]      number of inflow points
     integer(i4), intent(in) :: nInflowGauges
-    ! [-]      if to consider headwater cells of inflow gauge
+    !> [-]      if to consider headwater cells of inflow gauge
     logical, dimension(:), intent(in) :: InflowHeadwater
-    ! [-]      L11 ID of inflow points
+    !> [-]      L11 ID of inflow points
     integer(i4), dimension(:), intent(in) :: InflowNodeList
-    ! [m3 s-1] Transformed outflow leaving node I at current timestep(Muskingum)
+    !> [m3 s-1] Transformed outflow leaving node I at current timestep(Muskingum)
     real(dp), intent(in), dimension(:) :: L11_qTR
-    ! [m3 s-1] Simulated routed discharge
+    !> [m3 s-1] Simulated routed discharge
     real(dp), intent(in), dimension(:) :: L11_Qmod
 
     integer(i4) :: i, k, m, iNode, tNode, L11in, L11to
@@ -789,6 +771,7 @@ contains
 
   end subroutine L11_routing_E
 
+  !> \brief initialize iterative solver of \ref riv_temp_type
   subroutine init_iter(self)
 
     implicit none
@@ -802,13 +785,14 @@ contains
 
   end subroutine init_iter
 
+  !> \brief execute next iteration with iterative solver of \ref riv_temp_type
   subroutine next_iter(self, T_est, T_rout)
 
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    real(dp), intent(inout) :: T_est
-    real(dp), intent(in) :: T_rout
+    real(dp), intent(inout) :: T_est !< estimated river temperature
+    real(dp), intent(in) :: T_rout !< calculated (routed) river temperature
 
     ! before performing a bisection we need to search for the interval (with given step-size)
     if ( .not. self%bisect_iter ) then
