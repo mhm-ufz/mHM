@@ -1,4 +1,5 @@
 !> \file    mo_mrm_riv_temp_class.f90
+  
 !> \brief   Class for the river temperature calculations
 !> \warning This feature is still experimental!
 !> \version 0.1
@@ -21,7 +22,9 @@ module mo_mrm_riv_temp_class
   !!          can drop below 0 [deg C] in winter.
   type, public :: riv_temp_type
     ! config settings
-    character(256) :: nml_name = 'config_riv_temp' !< namelist name in mhm.nml
+    logical :: active = .false. !< state if this process is active
+    integer(i4) :: case = 0_i4 !< the selected process-case option
+    character(256) :: nml_name = 'config_riv_temp' !< namelist name in mhm namelist
     ! riv geometry
     character(256), dimension(:), allocatable :: dir_riv_widths !< Directory where river widths are stored
     character(256) :: riv_widths_file !< file name for river widths
