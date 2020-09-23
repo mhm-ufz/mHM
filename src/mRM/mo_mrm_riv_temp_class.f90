@@ -69,26 +69,47 @@ module mo_mrm_riv_temp_class
     real(dp), dimension(:), allocatable :: river_temp !< resulting river temp at L11 in [deg C]
   contains
     ! config and inits
-    procedure :: config !< \copydoc mo_mrm_riv_temp_class::config
-    procedure :: init !< \copydoc mo_mrm_riv_temp_class::init
-    procedure :: init_area !< \copydoc mo_mrm_riv_temp_class::init_area
-    procedure :: init_riv_temp !< \copydoc mo_mrm_riv_temp_class::init_riv_temp
+    !> \copydoc mo_mrm_riv_temp_class::config
+    procedure :: config !< \see mo_mrm_riv_temp_class::config
+    !> \copydoc mo_mrm_riv_temp_class::init
+    procedure :: init !< \see mo_mrm_riv_temp_class::init
+    !> \copydoc mo_mrm_riv_temp_class::init_area
+    procedure :: init_area !< \see mo_mrm_riv_temp_class::init_area
+    !> \copydoc mo_mrm_riv_temp_class::init_riv_temp
+    procedure :: init_riv_temp !< \see mo_mrm_riv_temp_class::init_riv_temp
+
     ! source accumulations
-    procedure :: acc_source_E !< \copydoc mo_mrm_riv_temp_class::acc_source_e
-    procedure :: finalize_source_E !< \copydoc mo_mrm_riv_temp_class::finalize_source_e
+    !> \copydoc mo_mrm_riv_temp_class::acc_source_e
+    procedure :: acc_source_E !< \see mo_mrm_riv_temp_class::acc_source_e
+    !> \copydoc mo_mrm_riv_temp_class::finalize_source_e
+    procedure :: finalize_source_E !< \see mo_mrm_riv_temp_class::finalize_source_e
+
     ! temp-energy routing routines
-    procedure :: get_lrad_out !< \copydoc mo_mrm_riv_temp_class::get_lrad_out
-    procedure :: get_lat_heat !< \copydoc mo_mrm_riv_temp_class::get_lat_heat
-    procedure :: get_sens_heat !< \copydoc mo_mrm_riv_temp_class::get_sens_heat
-    procedure :: get_E_IO !< \copydoc mo_mrm_riv_temp_class::get_e_io
-    procedure :: L11_routing_E !< \copydoc mo_mrm_riv_temp_class::l11_routing_e
+    !> \copydoc mo_mrm_riv_temp_class::get_lrad_out
+    procedure :: get_lrad_out !< \see mo_mrm_riv_temp_class::get_lrad_out
+    !> \copydoc mo_mrm_riv_temp_class::get_lat_heat
+    procedure :: get_lat_heat !< \see mo_mrm_riv_temp_class::get_lat_heat
+    !> \copydoc mo_mrm_riv_temp_class::get_sens_heat
+    procedure :: get_sens_heat !< \see mo_mrm_riv_temp_class::get_sens_heat
+    !> \copydoc mo_mrm_riv_temp_class::get_e_io
+    procedure :: get_E_IO !< \see mo_mrm_riv_temp_class::get_e_io
+    !> \copydoc mo_mrm_riv_temp_class::l11_routing_e
+    procedure :: L11_routing_E !< \see mo_mrm_riv_temp_class::l11_routing_e
+
     ! helper for iterative solver
-    procedure :: init_iter !< \copydoc mo_mrm_riv_temp_class::init_iter
-    procedure :: next_iter !< \copydoc mo_mrm_riv_temp_class::next_iter
+    !> \copydoc mo_mrm_riv_temp_class::init_iter
+    procedure :: init_iter !< \see mo_mrm_riv_temp_class::init_iter
+    !> \copydoc mo_mrm_riv_temp_class::next_iter
+    procedure :: next_iter !< \see mo_mrm_riv_temp_class::next_iter
+
     ! care taker
-    procedure :: reset_timestep !< \copydoc mo_mrm_riv_temp_class::reset_timestep
-    procedure :: alloc_lateral !< \copydoc mo_mrm_riv_temp_class::alloc_lateral
-    procedure :: dealloc_lateral !< \copydoc mo_mrm_riv_temp_class::dealloc_lateral
+    !> \copydoc mo_mrm_riv_temp_class::reset_timestep
+    procedure :: reset_timestep !< \see mo_mrm_riv_temp_class::reset_timestep
+    !> \copydoc mo_mrm_riv_temp_class::alloc_lateral
+    procedure :: alloc_lateral !< \see mo_mrm_riv_temp_class::alloc_lateral
+    !> \copydoc mo_mrm_riv_temp_class::dealloc_lateral
+    procedure :: dealloc_lateral !< \see mo_mrm_riv_temp_class::dealloc_lateral
+
   end type riv_temp_type
 
 contains
