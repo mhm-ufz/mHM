@@ -1,5 +1,5 @@
 !> \file    mo_mrm_riv_temp_class.f90
-  
+
 !> \brief   Class for the river temperature calculations
 !> \warning This feature is still experimental!
 !> \version 0.1
@@ -743,9 +743,8 @@ contains
         call self%next_iter(T_est, T_rout)
       end do iterloop
 
-      ! BUG: Does this introduces to much energy?
       ! add the meteo energy flux to the accumulated incoming energy at the IN-node
-      ! self%netNode_E_IN(L11in, 2) = self%netNode_E_IN(L11in, 2) + E_IO
+      self%netNode_E_IN(L11in, 2) = self%netNode_E_IN(L11in, 2) + E_IO
 
       ! check if the inflow from upstream cells should be deactivated
       if (nInflowGauges .GT. 0) then
