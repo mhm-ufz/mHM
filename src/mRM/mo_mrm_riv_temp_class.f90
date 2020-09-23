@@ -48,7 +48,6 @@ module mo_mrm_riv_temp_class
     logical :: bisect_iter   !< whether to do the bisection search part (after the interval is found)
     real(dp) :: up_bnd_iter  !< upper bound for the current bisection step
     real(dp) :: low_bnd_iter !< lower bound for the current bisection step
-    ! \f$ E_L \f$ Generated lateral temperature energy flux [m3 s-1 K] on L1
     ! accumulated later fluxes (in current time-step)
     real(dp), dimension(:), allocatable :: L1_runoff_E !< runoff energy at L1 level
     real(dp), dimension(:), allocatable :: L1_acc_ssrd !< accumulated shortwave radiation at L1 level
