@@ -125,7 +125,7 @@ CONTAINS
                                         L11_netPerm, L11_qMod, L11_qOUT, L11_qTIN, L11_qTR, L11_slope, L11_toN, &
                                         L1_L11_Id, domain_mrm, level11, mRM_runoff, outputFlxState_mrm, &
                                         timeStep_model_outputs_mrm, gw_coupling, L0_river_head_mon_sum, &
-                                        do_calc_river_temp, riv_temp_pcs
+                                        riv_temp_pcs
     use mo_mrm_init, only : variables_default_init_routing
     use mo_mrm_mpr, only : mrm_update_param
     use mo_mrm_restart, only : mrm_read_restart_states
@@ -362,7 +362,7 @@ CONTAINS
         allocate(RunToRout(e1 - s1 + 1))
         RunToRout = 0._dp
 
-        if ( do_calc_river_temp ) then
+        if ( riv_temp_pcs%active ) then
           ! set indices for current L11 domain
           riv_temp_pcs%s11 = s11
           riv_temp_pcs%e11 = e11
@@ -578,7 +578,7 @@ CONTAINS
             end if
           end if
           ! prepare temperature routing
-          if ( do_calc_river_temp ) then
+          if ( riv_temp_pcs%active ) then
             ! init riv-temp from current air temp
             if ( tt .eq. 1_i4 ) call riv_temp_pcs%init_riv_temp( &
               newTime - 0.5_dp, &
@@ -691,10 +691,10 @@ CONTAINS
               InflowDischarge = 0._dp
               RunToRout = 0._dp
               ! reset lateral fluxes and time-step counter if routing was done
-              if ( do_calc_river_temp ) call riv_temp_pcs%reset_timestep()
+              if ( riv_temp_pcs%active ) call riv_temp_pcs%reset_timestep()
             end if
             ! if routing is done every time-step, reset river-temp time step
-            if (tsRoutFactor .lt. 1._dp .and. do_calc_river_temp ) call riv_temp_pcs%reset_timestep()
+            if (tsRoutFactor .lt. 1._dp .and. riv_temp_pcs%active ) call riv_temp_pcs%reset_timestep()
           end if
         end if
 #endif
@@ -907,7 +907,7 @@ CONTAINS
        if (domainMeta%doRouting(iDomain)) then
         ! clean runoff variable
         deallocate(RunToRout)
-        if ( do_calc_river_temp ) call riv_temp_pcs%dealloc_lateral()
+        if ( riv_temp_pcs%active ) call riv_temp_pcs%dealloc_lateral()
       end if
 #endif
 

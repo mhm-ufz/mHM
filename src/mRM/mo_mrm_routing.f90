@@ -109,7 +109,7 @@ CONTAINS
   )
 
     use mo_constants, only : T0_dp
-    use mo_mrm_global_variables, only : do_calc_river_temp, riv_temp_pcs, is_start
+    use mo_mrm_global_variables, only : riv_temp_pcs, is_start
     use mo_mrm_mpr, only : reg_rout
     use mo_mrm_pre_routing, only : L11_runoff_acc, add_inflow
     ! use mo_mrm_riv_temp_class, only : riv_temp_type
@@ -184,10 +184,6 @@ CONTAINS
     real(dp), dimension(:), intent(inout) :: L11_qMod
     ! modelled discharge at each gauge
     real(dp), dimension(:), intent(inout) :: GaugeDischarge
-    ! switch to turn on temperature routing
-    ! logical, intent(in) :: do_calc_river_temp
-    ! ! This is a container for the river temperature routing process (pcs)
-    ! class(riv_temp_type), intent(inout) :: riv_temp_pcs
 
     integer(i4) :: s11, e11 ! only for riv temp routing
     integer(i4) :: gg
@@ -198,7 +194,7 @@ CONTAINS
     real(dp), dimension(size(L11_qMod, dim = 1)) :: L11_qAcc
     real(dp), dimension(:), allocatable :: L11_E_Acc
 
-    if ( do_calc_river_temp ) then
+    if ( riv_temp_pcs%active ) then
       ! allocate accumulated temperature energy
       allocate(L11_E_Acc(size(L11_qMod, dim = 1)))
       L11_E_Acc = 0._dp ! init to zero
@@ -267,7 +263,7 @@ CONTAINS
         ! accumulate values of individual subtimesteps
         L11_qAcc = L11_qAcc + L11_qMod
         ! do the temperature routing
-        if ( do_calc_river_temp ) then
+        if ( riv_temp_pcs%active ) then
           call riv_temp_pcs%L11_routing_E( &
             nNodes - L11_nOutlets, &
             L11_netPerm, &
@@ -287,7 +283,7 @@ CONTAINS
       L11_qMod = L11_qAcc / real(rout_loop, dp)
     else
       L11_Qmod = L11_qOUT
-      if ( do_calc_river_temp ) riv_temp_pcs%river_temp(s11 : e11) = &
+      if ( riv_temp_pcs%active ) riv_temp_pcs%river_temp(s11 : e11) = &
         max(riv_temp_pcs%delta_T, riv_temp_pcs%netNode_E_out(s11 : e11) / L11_qOUT - T0_dp)
     end if
 

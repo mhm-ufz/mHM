@@ -654,7 +654,7 @@ contains
 
     use mo_julian, only : caldat
     use mo_kind, only : dp, i4
-    use mo_mrm_global_variables, only : do_calc_river_temp, riv_temp_pcs
+    use mo_mrm_global_variables, only : riv_temp_pcs
 
     implicit none
 
@@ -737,7 +737,7 @@ contains
       ! print*, 'After Init of OutputDatasetInit'
 
       ! update Dataset (riv-temp as optional input)
-      if ( do_calc_river_temp ) then
+      if ( riv_temp_pcs%active ) then
         call nc%updateDataset(1, size(L11_Qmod), L11_Qmod, riv_temp_pcs%river_temp(riv_temp_pcs%s11 : riv_temp_pcs%e11))
       else
         call nc%updateDataset(1, size(L11_Qmod), L11_Qmod)

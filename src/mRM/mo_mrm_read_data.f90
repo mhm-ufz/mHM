@@ -271,7 +271,7 @@ contains
     use mo_mrm_file, only : udischarge
     use mo_mrm_global_variables, only : InflowGauge, gauge, mRM_runoff, nGaugesLocal, &
                                         nInflowGaugesTotal, nMeasPerDay, &
-                                        do_calc_river_temp, riv_temp_pcs
+                                        riv_temp_pcs
     use mo_read_timeseries, only : read_timeseries
     use mo_string_utils, only : num2str
 
@@ -300,17 +300,7 @@ contains
     allocate(mRM_runoff(maxTimeSteps, nGaugesLocal))
     mRM_runoff = nodata_dp
 
-    !----------------------------------------------------------
-    ! INITIALIZE RIVER TEMPERATURE
-    !----------------------------------------------------------
-    ! if (do_calc_river_temp) then
-    !     allocate(mRM_river_temp(maxTimeSteps, nGaugesLocal))
-    ! else ! dummy allocation
-    !     allocate(mRM_river_temp(1, 1))
-    ! end if
-    ! mRM_river_temp = nodata_dp
-
-      ! READ GAUGE DATA
+    ! READ GAUGE DATA
     do iGauge = 1, nGaugesLocal
       ! get domain id
       iDomain = gauge%domainId(iGauge)

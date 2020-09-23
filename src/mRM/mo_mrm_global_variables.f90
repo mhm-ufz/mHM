@@ -206,10 +206,10 @@ module mo_mrm_global_variables
   real(dp), public, dimension(:), allocatable :: L11_tsRout      ! [s]     Routing timestep
   real(dp), public, dimension(:), allocatable :: L11_C1          ! [-]     Routing parameter C1=f(K,xi, DT) (Chow, 25-41)
   real(dp), public, dimension(:), allocatable :: L11_C2          ! [-]     Routing parameter C2 (")
+
   ! -------------------------------------------------------------------
   ! GROUNDWATER COUPLING VARIABLES
   ! -------------------------------------------------------------------
-  !
   ! TODO this must be read from nml
   logical :: gw_coupling
   ! dim1 = number grid cells L1
@@ -220,10 +220,10 @@ module mo_mrm_global_variables
   ! the cumulated river heads, for monthly average
   real(dp), public, dimension(:), allocatable :: L0_river_head_mon_sum
   real(dp), public, dimension(:), allocatable :: L0_slope
+
   ! -------------------------------------------------------------------
   ! RIVER TEMPERATURE VARIABLES
   ! -------------------------------------------------------------------
-  logical, public :: do_calc_river_temp = .false. ! switch to turn on temperature routing
-  ! This is a container for the river temperature routing process (pcs)
+  !> This is a container for the river temperature routing process (pcs)
   type(riv_temp_type), public :: riv_temp_pcs
 end module mo_mrm_global_variables

@@ -238,7 +238,7 @@ contains
 
   function newOutputDataset(iDomain, mask, nCells) result(out)
 
-    use mo_mrm_global_variables, only : outputFlxState_mrm, do_calc_river_temp
+    use mo_mrm_global_variables, only : outputFlxState_mrm, riv_temp_pcs
     use mo_common_variables, only : iFlag_cordinate_sys
 
     implicit none
@@ -280,7 +280,7 @@ contains
       call writeVariableAttributes(tmpvars(ii), "routed streamflow", "m3 s-1")
     end if
 
-    if (outputFlxState_mrm(2) .AND. do_calc_river_temp) then
+    if (outputFlxState_mrm(2) .AND. riv_temp_pcs%active) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(nc, "RivTemp", dtype, dims1, nCells, mask, .true.)
       call writeVariableAttributes(tmpvars(ii), "routed river temperature", "degC")
