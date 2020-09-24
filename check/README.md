@@ -8,7 +8,7 @@ A summary for all cases is given at the end.
 
 ## Usage
 
-    python run_mhm_checks.py [-h] [-e EXE [EXE ...]] [-v] [-l LOG_PATH] [-m MPI_NOP] [-t OPENMP_THREADS] [-s [SKIP [SKIP ...]]]
+    python run_mhm_checks.py [-h] [-e EXE [EXE ...]] [-v] [-l LOG_PATH] [-m MPI_NOP] [-t OPENMP_THREADS] [-s [SKIP [SKIP ...]]] [-o [ONLY [ONLY ...]]]
 
 Run the mhm check cases with a given mhm executable.
 
@@ -21,15 +21,16 @@ Run the mhm check cases with a given mhm executable.
     -l LOG_PATH, --log_path LOG_PATH
                           Directory for mhm-logs. (default: the resp. case dir)
     -m MPI_NOP, --mpi MPI_NOP
-                          Number of mpi processes. No openMP allowed! (default:
-                          0)
+                          Number of mpi processes. No openMP allowed! (default: 0)
     -t OPENMP_THREADS, --threads OPENMP_THREADS
-                          Number of threads for openMP. No mpi allowed!
-                          (default: 0)
+                          Number of threads for openMP. No mpi allowed! (default: 0)
     -s [SKIP [SKIP ...]], --skip [SKIP [SKIP ...]]
                           skip cases (case_01 case_03 ..) (default: [])
+    -o [ONLY [ONLY ...]], --only [ONLY [ONLY ...]]
+                          only run cases (case_01 case_03 ..) (default: all)
 
 ## Examples
+
 Run mhm from parent directory in verbosity mode with mpi on 4 processes:
 
         python run_mhm_checks.py -e ../mhm -v -m 4
@@ -47,14 +48,17 @@ Run with multiple mhm exes:
         python run_mhm_checks.py -e ../mhm1 ../mhm2
 
 ## Cleanup
+
 To remove the created output of mHM run:
 
         python clean_mhm_checks.py
 
 ## Author
+
     Sebastian Mueller
 
 ## Contributors
+
     Stephan Thober, Robert Schweppe
 
 Written Feb. 2020.

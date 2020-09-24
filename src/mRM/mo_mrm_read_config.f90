@@ -107,15 +107,14 @@ contains
 
     character(256), dimension(maxNoDomains) :: dir_Bankfull_Runoff
 
-
     logical :: file_exists
 
     type(domainInfo_mRM), pointer :: domain_mrm_iDomain
 
 
     ! namelist spatial & temporal resolution, optmization information
-    namelist /mainconfig_mrm/ ALMA_convention, filenameTotalRunoff, varnameTotalRunoff, &
-             gw_coupling
+    namelist /mainconfig_mrm/ ALMA_convention, &
+      filenameTotalRunoff, varnameTotalRunoff, gw_coupling
     ! namelist directories
     namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff, dir_Bankfull_Runoff
     namelist /evaluation_gauges/ nGaugesTotal, NoGauges_domain, Gauge_id, gauge_filename
@@ -376,7 +375,10 @@ contains
 
       call message('    FLUXES:')
       if (outputFlxState_mrm(1)) then
-        call message('      routed streamflow      (L11_qMod)                [mm]')
+        call message('      routed streamflow      (L11_qMod)                [m3 s-1]')
+      end if
+      if (outputFlxState_mrm(2)) then
+        call message('      river temperature      (RivTemp)                 [deg C]')
       end if
       if (gw_coupling) then
         call message('      river head             (river_head)              [m]')
@@ -511,7 +513,7 @@ contains
         processMatrix(8, 3) = sum(processMatrix(1:8, 2))
         start_index         = processMatrix(8, 3) - processMatrix(8, 2)
         global_parameters(start_index + 1, :) = slope_factor
-    
+
         global_parameters_name(start_index + 1 : start_index + processMatrix(8,2)) = (/ &
              'slope_factor'/)
     end if
@@ -541,7 +543,7 @@ contains
       processMatrix(8, 3) = processMatrix(8, 2)
       ! set variables of mrm (redundant in case of coupling to mhm)
       call append(global_parameters, reshape(streamflow_celerity, (/1, nColPars/)))
-  
+
 
       call append(global_parameters_name, (/ &
               'streamflow_celerity'/))

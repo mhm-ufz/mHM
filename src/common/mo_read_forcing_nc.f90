@@ -62,7 +62,7 @@ contains
   !>       \param[in] "real(dp), optional :: lower"             Lower bound for check of validity of data values
   !>       \param[in] "real(dp), optional :: upper"             Upper bound for check of validity of data values
   !>       \param[in] "integer(i4), optional :: nctimestep"     timestep in netcdf file
-  !>       \param[in] "character(256), optional :: fileName"    name of variable, defaults to fileName
+  !>       \param[in] "character(256), optional :: fileName"    name of file, defaults to varName
   !>       \param[in] "logical, optional :: nocheck"            .TRUE. if check for nodata values deactivateddefault =
   !>       .FALSE. - check is done
 
@@ -121,7 +121,7 @@ contains
     ! timestep in netcdf file
     integer(i4), optional, intent(in) :: nctimestep
 
-    ! name of variable, defaults to fileName
+    ! name of file, defaults to varName
     character(256), optional, intent(in) :: fileName
 
     ! .TRUE. if check for nodata values deactivateddefault = .FALSE. - check is done
@@ -257,7 +257,6 @@ contains
 
   end subroutine read_forcing_nc
 
-  subroutine read_const_forcing_nc(folder, nRows, nCols, varName, mask, data)
   ! ------------------------------------------------------------------
 
   !     NAME
@@ -289,14 +288,14 @@ contains
   !>                                                             dim_1 = longitude, dim_2 = latitude
 
   !     INTENT(IN), OPTIONAL
-  !         None
-  
+  !>       \param[in] "character(256), optional :: fileName"    name of file, defaults to varName
+
   !     INTENT(INOUT), OPTIONAL
   !         None
 
   !     INTENT(OUT), OPTIONAL
   !         None
-  !>                                                                                                  data points 
+  !>                                                                                                  data points
 
   !     RETURN
   !         None
@@ -316,6 +315,8 @@ contains
   !>        \author Lennart Schueler, heavily influenced by read_forcing_nc
   !>        \date May 2018
 
+  subroutine read_const_forcing_nc(folder, nRows, nCols, varName, data, fileName)
+
     use mo_kind,             only: i4, dp
     use mo_message,          only: message
     use mo_netcdf,           only: NcDataset, NcVariable, NcDimension
@@ -328,8 +329,9 @@ contains
     integer(i4),                           intent(in)  :: nRows   ! number of rows of data fields:
     integer(i4),                           intent(in)  :: nCols   ! number of columns of data fields:
     character(len=*),                      intent(in)  :: varName ! name of NetCDF variable
-    logical, dimension(:,:),               intent(in)  :: mask    ! mask of valid data fields
     real(dp), dimension(:,:), allocatable, intent(out) :: data    ! data read in
+    ! name of file, defaults to varName
+    character(256), optional, intent(in) :: fileName
 
     ! local variables
     type(NcDataset)                        :: nc           ! netcdf file
@@ -340,7 +342,12 @@ contains
     real(dp)                               :: nodata_value ! data nodata value
 
     fName = varName
-    fName = trim(folder) // trim(fName) // '.nc'
+    if (present(fileName)) then
+      fName = trim(folder) // trim(fileName) // '.nc'
+    else
+      fName = trim(folder) // trim(fName) // '.nc'
+    end if
+
     ! read the Dataset
     nc = NcDataset(fname, "r")
     ! get the variable
@@ -713,7 +720,7 @@ contains
     call dec2date(time_data(n_time) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, nc_period%dEnd, nc_period%mEnd, &
             nc_period%yEnd, hend_int)
     nc_period%julEnd = int(time_data(n_time) / DaySecs + jRef + hRef / 24._dp)
-    
+
     ! if no target period is present, use the whole time period
     if (present(target_period)) then
       clip_period = target_period

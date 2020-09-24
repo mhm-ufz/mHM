@@ -270,7 +270,8 @@ contains
     use mo_message, only : message
     use mo_mrm_file, only : udischarge
     use mo_mrm_global_variables, only : InflowGauge, gauge, mRM_runoff, nGaugesLocal, &
-                                        nInflowGaugesTotal, nMeasPerDay
+                                        nInflowGaugesTotal, nMeasPerDay, &
+                                        riv_temp_pcs
     use mo_read_timeseries, only : read_timeseries
     use mo_string_utils, only : num2str
 
@@ -314,6 +315,7 @@ contains
       data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
       call paste(gauge%Q, data_dp_1d, nodata_dp)
       deallocate (data_dp_1d)
+      ! TODO-RIV-TEMP: read temperature at gauge
     end do
     !
     ! inflow gauge
@@ -444,7 +446,7 @@ contains
 
   !>         \details reads the bankfull runoff, which can be calculated with
   !>         the script in mhm/post_proc/bankfull_discharge.py
-  
+
   !     INTENT(IN)
   !>        \param[in] "integer(i4)               :: iDomain"  domain id
 
@@ -492,14 +494,13 @@ contains
     integer(i4), intent(in) :: iDomain
 
     ! local variables
-    logical, dimension(:,:), allocatable :: mask
     real(dp), dimension(:,:), allocatable :: L11_data ! read data from file
     real(dp), dimension(:), allocatable :: L11_data_packed
 
     call read_const_forcing_nc(trim(dirBankfullRunoff(iDomain)), &
                                level11(iDomain)%nrows, &
                                level11(iDomain)%ncols, &
-                               "Q_bkfl", mask, L11_data)
+                               "Q_bkfl", L11_data)
 
     allocate(L11_data_packed(level11(iDomain)%nCells))
     L11_data_packed(:) = pack(L11_data(:,:), mask=level11(iDomain)%mask)

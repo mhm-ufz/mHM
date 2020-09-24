@@ -223,6 +223,9 @@ CONTAINS
     !===============================================================
     ! Read process selection list
     !===============================================================
+    ! init the processCase matrix to 0 to be backward compatible
+    ! if cases were added later (then there would be no values if not init here)
+    processCase = 0_i4
     call position_nml('processselection', unamelist)
     read(unamelist, nml = processSelection)
 
@@ -454,7 +457,7 @@ CONTAINS
     integer(i4),       intent(in)    :: nproc
     integer(i4),       intent(in)    :: rank
     type(domain_meta), intent(inout) :: domainMeta
-    
+
     integer(i4) :: iDomain, iProcDomain
 
     do iDomain = 1 , domainMeta%overallNumberOfDomains

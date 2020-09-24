@@ -11,7 +11,7 @@
 ! Modifications:
 ! David Schaefer       Aug 2015 - major rewrite
 ! Stephan Thober       Oct 2015 - adapted to mRM
-! O. Rakovec, R. Kumar Nov 2017 - added project description for the netcdf outputs 
+! O. Rakovec, R. Kumar Nov 2017 - added project description for the netcdf outputs
 
 module mo_mrm_write_fluxes_states
 
@@ -234,10 +234,11 @@ contains
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Sebastian Mueller Jul 2020 - added output for river temperature
 
   function newOutputDataset(iDomain, mask, nCells) result(out)
 
-    use mo_mrm_global_variables, only : outputFlxState_mrm
+    use mo_mrm_global_variables, only : outputFlxState_mrm, riv_temp_pcs
     use mo_common_variables, only : iFlag_cordinate_sys
 
     implicit none
@@ -261,7 +262,6 @@ contains
 
     type(OutputVariable), dimension(size(outputFlxState_mrm)) :: tmpvars
 
-
     dtype = "f64"
 
     if (iFlag_cordinate_sys == 0) then
@@ -276,9 +276,14 @@ contains
 
     if (outputFlxState_mrm(1)) then
       ii = ii + 1
-      tmpvars(ii) = OutputVariable(&
-              nc, "Qrouted", dtype, dims1, nCells, mask, .true.)
+      tmpvars(ii) = OutputVariable(nc, "Qrouted", dtype, dims1, nCells, mask, .true.)
       call writeVariableAttributes(tmpvars(ii), "routed streamflow", "m3 s-1")
+    end if
+
+    if (outputFlxState_mrm(2) .AND. riv_temp_pcs%active) then
+      ii = ii + 1
+      tmpvars(ii) = OutputVariable(nc, "RivTemp", dtype, dims1, nCells, mask, .true.)
+      call writeVariableAttributes(tmpvars(ii), "routed river temperature", "degC")
     end if
 
     ! out = OutputDataset(iDomain, nc, tmpvars(1 : ii))
@@ -310,21 +315,25 @@ contains
   !>       \param[in] "integer(i4) :: sidx, eidx"          - end index of the domain related data in L1_* arguments
   !>       \param[in] "real(dp), dimension(:) :: L11_Qmod"
 
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "real(dp), dimension(:), optional :: L11_riv_temp"
+
   !    HISTORY
   !>       \authors Matthias Zink
 
   !>       \date Apr 2013
 
   ! Modifications:
-  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014 
-  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014 
-  !                              - adding new variable infilSoil 
-  !                              - case 16 David Schaefer      , Jun. 2015 
+  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014
+  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014
+  !                              - adding new variable infilSoil
+  !                              - case 16 David Schaefer      , Jun. 2015
   !                              - major rewrite
   ! Stephan Thober      Oct  2015 - adapted to mRM
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Sebastian Mueller Jul 2020 - add river temperature output (optional)
 
-  subroutine updateDataset(self, sidx, eidx, L11_Qmod)
+  subroutine updateDataset(self, sidx, eidx, L11_Qmod, L11_riv_temp)
 
     use mo_mrm_global_variables, only : outputFlxState_mrm
 
@@ -336,11 +345,11 @@ contains
     integer(i4), intent(in) :: sidx, eidx
 
     real(dp), intent(in), dimension(:) :: L11_Qmod
+    real(dp), intent(in), dimension(:), optional :: L11_riv_temp
 
     type(OutputVariable), pointer, dimension(:) :: vars
 
     integer(i4) :: ii
-
 
     ii = 0
     vars => self%vars
@@ -351,6 +360,15 @@ contains
       call updateVariable(vars(ii), L11_Qmod(sidx : eidx))
 #else
       call vars(ii)%updateVariable(L11_Qmod(sidx : eidx))
+#endif
+    end if
+
+    if (outputFlxState_mrm(2) .AND. present(L11_riv_temp)) then
+      ii = ii + 1
+#ifdef pgiFortran
+      call updateVariable(vars(ii), L11_riv_temp(sidx : eidx))
+#else
+      call vars(ii)%updateVariable(L11_riv_temp(sidx : eidx))
 #endif
     end if
 
@@ -496,7 +514,7 @@ contains
 
     real(dp), allocatable, dimension(:) :: easting, northing
 
-    real(dp), allocatable, dimension(:) :: lat1d, lon1d    ! 1D lat lon vectors. Used if coordinate system is lat & lon 
+    real(dp), allocatable, dimension(:) :: lat1d, lon1d    ! 1D lat lon vectors. Used if coordinate system is lat & lon
 
     real(dp), allocatable, dimension(:, :) :: lat2d, lon2d ! temporary storage of mHM's 2D latlon array.
                                                            ! Used as 2d lat lon arrays if coordinate system is X & Y
@@ -508,7 +526,7 @@ contains
     nc = NcDataset(trim(fname), "w")
 
     ! set the horizonal dimensions
-    if (iFlag_cordinate_sys == 0) then 
+    if (iFlag_cordinate_sys == 0) then
 
       ! X & Y coordinate system; 2D lat lon!
       !============================================================

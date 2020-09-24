@@ -97,7 +97,7 @@ contains
     end if
 
     ! --------------------------------------------------------------------------
-    ! STORE DAILY DISCHARGE TIMESERIES OF EACH GAUGING STATION 
+    ! STORE DAILY DISCHARGE TIMESERIES OF EACH GAUGING STATION
     ! FOR SIMULATIONS DURING THE EVALUATION PERIOD
     !
     !  **** AT DAILY TIME STEPS ****
@@ -228,7 +228,7 @@ contains
     write(uconfig, 126)    'Flag WRITE restart            ', write_restart
     !
     !******************
-    ! Model Run period 
+    ! Model Run period
     !******************
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
@@ -249,7 +249,7 @@ contains
     end do
 
     !*********************************
-    ! Model Land Cover Observations 
+    ! Model Land Cover Observations
     !*********************************
     if (processMatrix(8, 1) .eq. 1) then
       do iDomain = 1, domainMeta%nDomains
@@ -647,12 +647,14 @@ contains
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Sebastian Mueller Jul 2020 - added output for river-temperature
 
   subroutine mrm_write_output_fluxes(iDomain, nCells, timeStep_model_outputs, warmingDays, newTime, nTimeSteps, &
                                     nTStepDay, tt, day, month, year, timestep, mask11, L11_qmod)
 
     use mo_julian, only : caldat
     use mo_kind, only : dp, i4
+    use mo_mrm_global_variables, only : riv_temp_pcs
 
     implicit none
 
@@ -734,12 +736,12 @@ contains
       if (tIndex_out .EQ. 1) nc = OutputDataset(iDomain, mask11, nCells)
       ! print*, 'After Init of OutputDatasetInit'
 
-      ! update Dataset
-      call nc%updateDataset(&
-              1, &
-              size(L11_Qmod), &
-              L11_Qmod          &
-              )
+      ! update Dataset (riv-temp as optional input)
+      if ( riv_temp_pcs%active ) then
+        call nc%updateDataset(1, size(L11_Qmod), L11_Qmod, riv_temp_pcs%river_temp(riv_temp_pcs%s11 : riv_temp_pcs%e11))
+      else
+        call nc%updateDataset(1, size(L11_Qmod), L11_Qmod)
+      end if
 
       ! determine write flag
       writeout = .false.
@@ -794,7 +796,7 @@ contains
 
   ! Modifications:
   ! Rohini Kumar   Aug 2013 - change in structure of the code including call statements
-  ! Juliane Mai    Oct 2013 - clear parameter names added 
+  ! Juliane Mai    Oct 2013 - clear parameter names added
   !                         - double precision written
   ! Stephan Thober Oct 2015 - ported to mRM
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
@@ -833,7 +835,7 @@ contains
       stop
     end if
 
-    ! header 
+    ! header
     write(formHeader, *) '(a40,', n_params, 'a40)'
     ! len(param_names(1))=256 but only 39 characters taken here
     ! write(uopti, formHeader) 'OF', (trim(adjustl(param_names(ii))), ii=1, n_params)

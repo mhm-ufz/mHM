@@ -29,7 +29,9 @@ CONTAINS
 
 subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
     use mo_common_mHM_mRM_variables, only : mrm_coupling_mode
+    use mo_common_variables, only : processMatrix
     use mo_mrm_read_config, only : mrm_read_config
+    use mo_mrm_global_variables, only: riv_temp_pcs
     use mo_common_read_config, only : common_read_config
     use mo_common_mHM_mRM_read_config, only : check_optimization_settings, common_mHM_mRM_read_config
     use mo_kind, only : i4
@@ -52,12 +54,20 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
     else
       call message('')
       call message('  Inititalize mRM')
+      if ( processMatrix(11, 1) .ne. 0 ) then
+        ! processCase(11): river temperature routing
+        riv_temp_pcs%active = .true.
+        riv_temp_pcs%case = processMatrix(11, 1)
+        call message('')
+        call message('    Read config: river temperature routing')
+        call riv_temp_pcs%config(file_namelist, unamelist, file_namelist_param, unamelist_param)
+      end if
     end if
 
     ! read config for mrm, readlatlon is set here depending on whether output is needed
     call mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, &
             (mrm_coupling_mode .eq. 0_i4), ReadLatLon)
- 
+
     ! this was moved here, because it depends on global_parameters that are only set in mrm_read_config
     if (mrm_coupling_mode .eq. 0_i4) then
       call check_optimization_settings()
@@ -94,7 +104,7 @@ end subroutine mrm_configuration
   ! Modifications:
   ! Stephan Thober Sep 2015 - added L0_mask, L0_elev, and L0_LCover
   ! Stephan Thober May 2016 - added warning message in case no gauge is found in modelling domain
-  ! Matthias Kelbling Aug 2017 - added L11_flow_accumulation to Initialize Stream Netwo  
+  ! Matthias Kelbling Aug 2017 - added L11_flow_accumulation to Initialize Stream Netwo
   ! Lennart Schueler May 2018 - added initialization for groundwater coupling
   ! Stephan Thober Jun 2018 - refactored for mpr_extract version
   ! Stephan Thober May 2019 - added init of level0 in case of read restart
@@ -112,8 +122,10 @@ end subroutine mrm_configuration
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_mrm_global_variables, only : domain_mrm, &
-                                        l0_l11_remap, l1_l11_remap, level11, gw_coupling, &
-                                        L0_river_head_mon_sum
+                                        l0_l11_remap, l1_l11_remap, level11, &
+                                        gw_coupling, L0_river_head_mon_sum, &
+                                        L11_netPerm, L11_fromN, L11_length, L11_nOutlets, &
+                                        riv_temp_pcs
     use mo_mrm_net_startup, only : L11_flow_direction, L11_flow_accumulation, L11_fraction_sealed_floodplain, &
                                    L11_link_location, L11_routing_order, L11_set_drain_outlet_gauges, &
                                    L11_set_network_topology, L11_stream_features, l11_l1_mapping
@@ -134,6 +146,8 @@ end subroutine mrm_configuration
 
     ! start and end index for routing parameters
     integer(i4) :: iStart, iEnd
+    ! start and end index at L11
+    integer(i4) :: s11, e11
 
     integer(i4) :: domainID, iDomain, gauge_counter
 
@@ -161,7 +175,7 @@ end subroutine mrm_configuration
       domainID = domainMeta%indices(iDomain)
       if (mrm_read_river_network) then
         ! this reads the domain properties
-        if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains)) 
+        if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains))
         ! ToDo: L0_Domain, parallel
         call read_grid_info(domainMeta%indices(domainMeta%L0DataFrom(iDomain)), mrmFileRestartIn(iDomain), &
                                                      "0", level0(domainMeta%L0DataFrom(iDomain)))
@@ -285,12 +299,33 @@ end subroutine mrm_configuration
         call calc_channel_elevation()
     end if
 
+    ! init riv temp
+    if ( riv_temp_pcs%active ) then
+      call message('')
+      call message('    Initialization of river temperature routing.')
+      do iDomain = 1, domainMeta%nDomains
+        s11 = level11(iDomain)%iStart
+        e11 = level11(iDomain)%iEnd
+        call riv_temp_pcs%init(level11(iDomain)%nCells)
+        call riv_temp_pcs%init_area( &
+          iDomain, &
+          L11_netPerm(s11 : e11), & ! routing order at L11
+          L11_fromN(s11 : e11), & ! link source at L11
+          L11_length(s11 : e11 - 1), & ! link length
+          level11(iDomain)%nCells - L11_nOutlets(iDomain), &
+          level11(iDomain)%nCells, &
+          level11(iDomain)%nrows, &
+          level11(iDomain)%ncols, &
+          level11(iDomain)%mask &
+        )
+      end do
+    end if
     call message('')
     call message('  Finished Initialization of mRM')
 
   end subroutine mrm_init
 
-  
+
   !===============================================================
   ! PRINT STARTUP MESSAGE
   !===============================================================
@@ -485,6 +520,7 @@ end subroutine mrm_configuration
     L11_C1 = P1_InitStateFluxes
     ! Routing parameter C2 =f(K,xi, DT) (Chow, 25-41)
     L11_C2 = P1_InitStateFluxes
+
   end subroutine variables_default_init_routing
 
 
