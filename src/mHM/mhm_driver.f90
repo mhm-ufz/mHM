@@ -75,7 +75,7 @@
 ! Rohini Kumar                  Dec 2016 - options to read (monthly mean) LAI fields
 ! Robert Schweppe               Jun 2018 - refactoring and reformatting
 ! Maren Kaluza                  Oct 2019 - TWS to data structure
-
+! M.C. Demirel, Simon Stisen    Jun 2020 - New Soil Moisture Process: Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 PROGRAM mhm_driver
 
   USE mo_file, ONLY : &

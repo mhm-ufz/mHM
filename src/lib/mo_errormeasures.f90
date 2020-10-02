@@ -260,7 +260,7 @@ MODULE mo_errormeasures
   !>        \author Rohini Kumar
   !>        \date August 2014
   !         Modified, M. Schroen            - Jul 2017 add KGEnocorr (KGE without correlation)
-  !	              R. Kumar & O. Rakovec - Sep. 2014
+  !                   R. Kumar & O. Rakovec - Sep. 2014
   !                   J. Mai                - remove double packing of input data (bug)
   !                                         - KGE instead of 1.0-KGE
   !                                         - 1d, 2d, 3d, version in sp and dp
