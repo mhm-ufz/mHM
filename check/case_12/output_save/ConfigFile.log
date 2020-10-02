@@ -70,36 +70,35 @@ Warming Period (1)            1     1  1990    30     6  1990Evaluation Period (
         28          0.900          0.999          0.980       rootFractionCoefficient_clay
         29          0.100          0.200          0.150                         FCmin_glob
         30          0.100          0.400          0.250                       FCdelta_glob
-        31          0.000          1.000          0.500             jarvis_sm_threshold_c1
-        32          0.000          5.000          0.500          imperviousStorageCapacity
-        33          0.300          1.300          0.300                       PET_a_forest
-        34          0.300          1.300          0.800                   PET_a_impervious
-        35          0.300          1.300          1.300                     PET_a_pervious
-        36          0.000          1.500          1.500                              PET_b
-        37         -2.000          0.000         -0.700                              PET_c
-        38         75.000        200.000         85.000     interflowStorageCapacityFactor
-        39          0.000         10.000          7.000           interflowRecession_slope
-        40          1.000          3.000          1.500      fastInterflowRecession_forest
-        41          1.000         30.000         15.000          slowInterflowRecession_Ks
-        42          0.050          0.300          0.125              exponentSlowInterflow
-        43          0.000         50.000         35.000                rechargeCoefficient
-        44         -5.000          5.000         -1.000             rechargeFactor_karstic
-        45          1.000          1.000          1.000      gain_loss_GWreservoir_karstic
-        46          0.310          0.350          0.325       muskingumTravelTime_constant
-        47          0.070          0.080          0.075    muskingumTravelTime_riverLength
-        48          1.950          2.100          2.000     muskingumTravelTime_riverSlope
-        49          0.090          0.110          0.100     muskingumTravelTime_impervious
-        50          0.010          0.500          0.300    muskingumAttenuation_riverSlope
-        51          1.000       1000.000        100.000                      GeoParam(1,:)
-        52          1.000       1000.000        100.000                      GeoParam(2,:)
-        53          1.000       1000.000        100.000                      GeoParam(3,:)
-        54          1.000       1000.000        100.000                      GeoParam(4,:)
-        55          1.000       1000.000        100.000                      GeoParam(5,:)
-        56          1.000       1000.000        100.000                      GeoParam(6,:)
-        57          1.000       1000.000        100.000                      GeoParam(7,:)
-        58          1.000       1000.000        100.000                      GeoParam(8,:)
-        59          1.000       1000.000        100.000                      GeoParam(9,:)
-        60          1.000       1000.000        100.000                     GeoParam(10,:)
+        31          0.000          5.000          0.500          imperviousStorageCapacity
+        32          0.300          1.300          0.300                       PET_a_forest
+        33          0.300          1.300          0.800                   PET_a_impervious
+        34          0.300          1.300          1.300                     PET_a_pervious
+        35          0.000          1.500          1.500                              PET_b
+        36         -2.000          0.000         -0.700                              PET_c
+        37         75.000        200.000         85.000     interflowStorageCapacityFactor
+        38          0.000         10.000          7.000           interflowRecession_slope
+        39          1.000          3.000          1.500      fastInterflowRecession_forest
+        40          1.000         30.000         15.000          slowInterflowRecession_Ks
+        41          0.050          0.300          0.125              exponentSlowInterflow
+        42          0.000         50.000         35.000                rechargeCoefficient
+        43         -5.000          5.000         -1.000             rechargeFactor_karstic
+        44          1.000          1.000          1.000      gain_loss_GWreservoir_karstic
+        45          0.310          0.350          0.325       muskingumTravelTime_constant
+        46          0.070          0.080          0.075    muskingumTravelTime_riverLength
+        47          1.950          2.100          2.000     muskingumTravelTime_riverSlope
+        48          0.090          0.110          0.100     muskingumTravelTime_impervious
+        49          0.010          0.500          0.300    muskingumAttenuation_riverSlope
+        50          1.000       1000.000        100.000                      GeoParam(1,:)
+        51          1.000       1000.000        100.000                      GeoParam(2,:)
+        52          1.000       1000.000        100.000                      GeoParam(3,:)
+        53          1.000       1000.000        100.000                      GeoParam(4,:)
+        54          1.000       1000.000        100.000                      GeoParam(5,:)
+        55          1.000       1000.000        100.000                      GeoParam(6,:)
+        56          1.000       1000.000        100.000                      GeoParam(7,:)
+        57          1.000       1000.000        100.000                      GeoParam(8,:)
+        58          1.000       1000.000        100.000                      GeoParam(9,:)
+        59          1.000       1000.000        100.000                     GeoParam(10,:)
 
 --------------------------------------------------
                 Domain Runoff Data                

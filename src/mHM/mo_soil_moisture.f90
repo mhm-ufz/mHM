@@ -90,6 +90,7 @@ CONTAINS
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 
   subroutine soil_moisture(processCase, frac_sealed, water_thresh_sealed, pet, evap_coeff, soil_moist_sat, frac_roots, &
                           soil_moist_FC, wilting_point, soil_moist_exponen, jarvis_thresh_c1, aet_canopy, prec_effec, &
@@ -256,15 +257,15 @@ CONTAINS
 
       ! estimate fraction of ET demand based on root fraction and SM status
       select case(processCase)
-        ! FEDDES EQUATION
-      case(1)
+        ! FEDDES EQUATION: https://doi.org/10.1016/0022-1694(76)90017-2
+      case(1 , 4)
         soil_stress_factor = feddes_et_reduction(soil_moist(hh), soil_moist_FC(hh), wilting_point(hh), &
-                frac_roots(hh))
-        ! JARVIS EQUATION
-      case(2 : 3)
+                             frac_roots(hh))
+        ! JARVIS EQUATION: https://doi.org/10.1016/0022-1694(89)90050-4
+      case(2 , 3)
         !!!!!!!!! INTRODUCING STRESS FACTOR FOR SOIL MOISTURE ET REDUCTION !!!!!!!!!!!!!!!!!
         soil_stress_factor = jarvis_et_reduction(soil_moist(hh), soil_moist_sat(hh), wilting_point(hh), &
-                frac_roots(hh), jarvis_thresh_c1)
+                             frac_roots(hh), jarvis_thresh_c1)
       end select
 
       aet(hh) = aet(hh) * soil_stress_factor
@@ -328,6 +329,7 @@ CONTAINS
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 
   elemental pure FUNCTION feddes_et_reduction(soil_moist, soil_moist_FC, wilting_point, frac_roots)
     implicit none
@@ -401,6 +403,7 @@ CONTAINS
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 
   elemental pure FUNCTION jarvis_et_reduction(soil_moist, soil_moist_sat, wilting_point, frac_roots, jarvis_thresh_c1)
     implicit none

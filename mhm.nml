@@ -32,6 +32,7 @@
 ! Lennart Schueler         May 2018  - added new paths for bankfull discharge for gw coupling
 ! Lennart Schueler         Jun 2018  - added flag for writing river head output
 ! Stephan Thober           May 2019  - added adaptive timestep scheme for routing with varying celerity
+! Demirel M.C., Stisen S., Jun 2020  - added Feddes and global FC dependency on root fraction coef. at SM process(3)=4
 
 !******************************************************************************************
 ! PROJECT DESCRIPTION (mandatory)
@@ -467,7 +468,8 @@ processCase(2) = 1
 !> soil moisture
 !> 1 - Feddes equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
 !> 2 - Jarvis equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
-!> 3 - Jarvis equation for ET reduction and FC dependency on root fraction coefficient
+!> 3 - Jarvis equation for ET reduction and global FC dependency on root fraction coefficient
+!> 4 - Feddes equation for ET reduction and global FC dependency on root fraction coefficient
 processCase(3) = 1
 !> directRunoff
 !> 1 - linear reservoir exceedance approach

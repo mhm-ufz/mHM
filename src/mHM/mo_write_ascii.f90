@@ -436,6 +436,7 @@ CONTAINS
   ! Juliane Mai  Oct 2013 - clear parameter names added 
   !                       - double precision written
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 
   subroutine write_optifile(best_OF, best_paramSet, param_names)
 
@@ -603,6 +604,8 @@ CONTAINS
           write(uopti_nml, *) '&soilmoisture2'
         case(3)
           write(uopti_nml, *) '&soilmoisture3'
+        case(4)
+          write(uopti_nml, *) '&soilmoisture4'
         end select
       case(4)
         if (processMatrix(iProc, 1) .eq. 1) then
