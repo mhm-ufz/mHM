@@ -1,7 +1,9 @@
 /**
 \mainpage Introduction to mHM
 
-Welcome to the documentation of mHM version 5.11.
+Welcome to the documentation of mHM version
+\htmlinclude version.txt
+\latexinclude version.txt
 
 \image html mHM_textlogo.png
 

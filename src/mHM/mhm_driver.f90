@@ -11,46 +11,46 @@
 
 !>       \date Jun 2018
 
-!>       \version 5.9
+!>       \version \htmlinclude version.txt \latexinclude version.txt
 
-!>       \copyright (c)2005-2019, Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
-!>       All rights reserved.
-
-!>       This code is a property of:
-
-!>       ----------------------------------------------------------
-
-!>       Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ
-!>       Registered Office: Leipzig
-!>       Registration Office: Amtsgericht Leipzig
-!>       Trade Register: Nr. B 4703
-!>       Chairman of the Supervisory Board: MinDirig Wilfried Kraus
-!>       Scientific Director: Prof. Dr. Georg Teutsch
-!>       Administrative Director: Dr. Heike Grassmann
-
-!>       ----------------------------------------------------------
-
-!>       NEITHER UFZ NOR THE DEVELOPERS MAKES ANY WARRANTY,
-!>       EXPRESS OR IMPLIED, OR ASSUMES ANY LIABILITY FOR THE USE
-!>       OF THIS SOFTWARE. If software is modified to produce
-!>       derivative works, such modified software should be
-!>       clearly marked, so as not to confuse it with the version
-!>       available from UFZ.  This code can be used for research
-!>       purposes ONLY provided that the following sources are
-!>       acknowledged:
-
-!>       Samaniego L., Kumar R., Attinger S. (2010): Multiscale
-!>       parameter regionalization of a grid-based hydrologic
-!>       model at the mesoscale.  Water Resour. Res., 46,
-!>       W05523, doi:10.1029/2008WR007327.
-
-!>       Kumar, R., L. Samaniego, and S. Attinger (2013), Implications
-!>       of distributed hydrologic model parameterization on water
-!>       fluxes at multiple scales and locations, Water Resour. Res.,
-!>       49, doi:10.1029/2012WR012195.
-
-!>       For commercial applications you have to consult the
-!>       authorities of the UFZ.
+!>       \copyright (c) \f$2005 - \the\year{}\f$, Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
+!!       All rights reserved.
+!!
+!!       This code is a property of:
+!!
+!!       ----------------------------------------------------------
+!!
+!!       Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ
+!!       Registered Office: Leipzig
+!!       Registration Office: Amtsgericht Leipzig
+!!       Trade Register: Nr. B 4703
+!!       Chairman of the Supervisory Board: MinDirig Wilfried Kraus
+!!       Scientific Director: Prof. Dr. Georg Teutsch
+!!       Administrative Director: Dr. Heike Grassmann
+!!
+!!       ----------------------------------------------------------
+!!
+!!       NEITHER UFZ NOR THE DEVELOPERS MAKES ANY WARRANTY,
+!!       EXPRESS OR IMPLIED, OR ASSUMES ANY LIABILITY FOR THE USE
+!!       OF THIS SOFTWARE. If software is modified to produce
+!!       derivative works, such modified software should be
+!!       clearly marked, so as not to confuse it with the version
+!!       available from UFZ.  This code can be used for research
+!!       purposes ONLY provided that the following sources are
+!!       acknowledged:
+!!
+!!       Samaniego L., Kumar R., Attinger S. (2010): Multiscale
+!!       parameter regionalization of a grid-based hydrologic
+!!       model at the mesoscale.  Water Resour. Res., 46,
+!!       W05523, doi:10.1029/2008WR007327.
+!!
+!!       Kumar, R., L. Samaniego, and S. Attinger (2013), Implications
+!!       of distributed hydrologic model parameterization on water
+!!       fluxes at multiple scales and locations, Water Resour. Res.,
+!!       49, doi:10.1029/2012WR012195.
+!!
+!!       For commercial applications you have to consult the
+!!       authorities of the UFZ.
 
 ! Modifications:
 ! Stephan Thober                Nov 2013 - added read in of latitude longitude fields
@@ -210,8 +210,8 @@ PROGRAM mhm_driver
   call message('              mHM-UFZ')
   call message()
   call message('    MULTISCALE HYDROLOGIC MODEL')
-  call message('           Version ', trim(version))
-  call message('           ', trim(version_date))
+  call message('           Version: ', trim(version))
+  call message('           Date:    ', trim(version_date))
   call message()
   call message('Originally by L. Samaniego & R. Kumar')
 
