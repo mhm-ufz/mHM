@@ -158,6 +158,10 @@ PROGRAM mhm_driver
   USE mpi_f08
 #endif
 
+#ifdef NAG
+  USE f90_unix_dir, ONLY : CHDIR, GETCWD
+#endif
+
   IMPLICIT NONE
 
   ! local
@@ -171,6 +175,8 @@ PROGRAM mhm_driver
   !                                              ! false = parameter will not be optimized = parameter(i,4) = 0
   procedure(mhm_eval), pointer :: eval
   procedure(objective), pointer :: obj_func
+
+  character(len=255)  :: cur_work_dir, new_work_dir
 
 #ifdef MRM2MHM
   logical :: ReadLatLon
@@ -191,6 +197,12 @@ PROGRAM mhm_driver
   oldrank = rank
   write(*,*) 'MPI!, comm', rank, nproc
 #endif
+
+  ! check for working dir (added argument to the executable)
+  CALL get_command_argument(1, new_work_dir)
+  IF (len_trim(new_work_dir) .ne. 0) call chdir(trim(new_work_dir))
+  CALL getcwd(cur_work_dir)
+
   ! --------------------------------------------------------------------------
   ! START
   ! --------------------------------------------------------------------------
@@ -211,6 +223,7 @@ PROGRAM mhm_driver
           // "." // trim(num2str(datetime(1), '(I4.4)')) // " " // trim(num2str(datetime(5), '(I2.2)')) &
           // ":" // trim(num2str(datetime(6), '(I2.2)')) // ":" // trim(num2str(datetime(7), '(I2.2)'))
   call message('Start at ', trim(message_text), '.')
+  call message('Working directory: ', trim(cur_work_dir))
   call message('Using main file ', trim(file_main), ' and namelists: ')
   call message('     ', trim(file_namelist_mhm))
   call message('     ', trim(file_namelist_mhm_param))

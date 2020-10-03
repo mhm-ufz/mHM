@@ -9,6 +9,8 @@ stages:
   - build
   - valgrind
   - test
+  - coverage
+  - deploy
 
 cache:
   # Required to keep artifacts from old builds, e.g. from master/develop
@@ -31,7 +33,7 @@ show-env-vars:
   script:
     - echo -e "${SEP}\n${S00}$(date)\n${SEP}\n${S01}\n${S02}\n${S03}\n${S04}\n${SEP}\n${S05}${GIT_CLONE_PATH}\n${S06}\n${SEP}"
 
-pages:
+documentation:
   stage: build
   script:
     - module load foss/2019b
@@ -41,24 +43,14 @@ pages:
     - source activate /global/apps/mhm_checks/mhm_env
     # use doxygen from the mhm_env conda environment
     - doxygen doc/doxygen.config > doxygen_log.txt
-    # create public dir if not already present
-    - mkdir -p public
-    # remove the branch specific subdir if present
-    - rm -rf public/$CI_COMMIT_REF_NAME/
-    # recreate the subdir
-    - mkdir -p public/$CI_COMMIT_REF_NAME/
-    # copy the doxygen generated html page to the public site
-    - cp html/* public/$CI_COMMIT_REF_NAME/ -R
-    # create an index.html that redirects to the master documentation (in master folder)
-    - cp doc/html_files/index.html public/ -R
     # create pdf documentation
     - cd latex/ && make > ../doxygen_latex.txt
+    - cp refman.pdf ../html/mhm_doc.pdf
     - cp refman.pdf ../mhm_doc.pdf
-    - cp refman.pdf ../public/$CI_COMMIT_REF_NAME/mhm_doc.pdf
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:
-      - public
+      - html
       - mhm_doc.pdf
       - doxygen_log.txt
       - doxygen_latex.txt
@@ -474,3 +466,55 @@ check-intel20MPI:
     when: always
     paths:
     - check/logs/
+
+coverage-gcc73:
+  when: always
+  stage: coverage
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: check-gcc73
+  script:
+    # gcov is part of GCC
+    - source moduleLoadScripts/eve.gcc73
+    # we need lcov from the conda environment to create html sites
+    - module load Anaconda3
+    - source activate /global/apps/mhm_checks/mhm_env
+    # create build folder
+    - mkdir build && cd build
+    # run cmake with coverage support
+    - cmake -DCMAKE_WITH_COVERAGE:STRING=ON ..
+    # run all check-case for coverage calculation
+    - make mhm_coverage_CI
+    # copy the output to a top-level folder
+    - cd .. && mkdir coverage
+    - cp build/mhm_coverage_CI/* coverage -R
+  artifacts:
+    when: always
+    paths:
+    - coverage
+
+pages:
+  stage: deploy
+  dependencies:
+    - documentation
+    - coverage-gcc73
+  script:
+    # create public dir if not already present
+    - mkdir -p public
+    # remove the branch specific subdir if present
+    - rm -rf public/$CI_COMMIT_REF_NAME/
+    # recreate the subdir
+    - mkdir public/$CI_COMMIT_REF_NAME/
+    # copy the doxygen generated html page to the public site
+    - cp html/* public/$CI_COMMIT_REF_NAME/ -R
+    # create an index.html that redirects to the master documentation (in master folder)
+    - cp doc/html_files/index.html public/
+    # create the coverage site
+    - mkdir -p public/$CI_COMMIT_REF_NAME/coverage
+    - cp coverage/* public/$CI_COMMIT_REF_NAME/coverage/ -R
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME"
+    paths:
+      - public
+  when: always
