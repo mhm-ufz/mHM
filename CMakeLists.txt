@@ -4,7 +4,6 @@
 cmake_minimum_required(VERSION 3.5)
 
 project(mhm Fortran)
-
 # The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT" can be set before executing cmake via a cache command:
 # $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
 # or cache file:
@@ -27,6 +26,8 @@ set(CMAKE_WITH_MPI OFF CACHE STRING "build the module with MPI, so it can be exe
 set(CMAKE_WITH_OpenMP OFF CACHE STRING "build the module with OpenMP parallelization")
 # same with lapack
 set(CMAKE_WITH_LAPACK OFF CACHE STRING "build the module with lapack library")
+# same with coverage
+set(CMAKE_WITH_COVERAGE OFF CACHE STRING "build the module with gcov coverage support")
 
 # additional cmake-modules created for the purpose of finding netCDF or other libraries ly in the source_directory in
 # a folder named cmake-modules. This command tells cmake to search there for Find<module>.cmake files
@@ -132,6 +133,15 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
 	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized")
 	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3")
 	cpp_definitions("-DGFORTRAN" "CMAKE_GFORTRAN" "ON" "Code exchange for gfortran compiler dependent issues")
+	if (CMAKE_WITH_COVERAGE)
+		include(CodeCoverage)
+		APPEND_COVERAGE_COMPILER_FLAGS()
+		SETUP_TARGET_FOR_COVERAGE_LCOV(NAME mhm_coverage_CI
+			EXECUTABLE ../CI-scripts/run_cmake_coverage.sh
+			DEPENDENCIES mhm
+			EXCLUDE src/lib/*
+			GENHTML_ARGS -t "mHM coverage" --html-prolog ../doc/html_files/cov_header.prolog)
+	endif()
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -nofixed -assume byterecl -fp-model source -m64 -assume realloc-lhs ") # precise -> source: suppress warning, computation identical
@@ -143,6 +153,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -colour -unsharedf95 -ideclient")
 	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -g -nan -O0 -C=all -strict95 -ieee=stop")
 	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O4 -ieee=full")
+	cpp_definitions("-DNAG" "CMAKE_NAG" "ON" "Code exchange for NAG compiler dependent issues")
 endif()
 message(STATUS "the following debug flags will be used: ${CMAKE_Fortran_FLAGS_DEBUG}")
 # Usually that works fine, except, one is on a module system and tries to execute the executable
@@ -162,4 +173,3 @@ endif()
 # hand, only for the test domains the executable would not be copied or linked to a predictable location. So it may be a good
 # idea to not copy it with the cmake setup
 #add_custom_target(link_namelists ALL "${CMAKE_COMMAND}" -E create_symlink "${CMAKE_CURRENT_SOURCE_DIR}/mhm.nml" "${CMAKE_CURRENT_BINARY_DIR}/mhm.nml")
-
