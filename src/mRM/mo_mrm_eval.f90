@@ -52,6 +52,7 @@ contains
   subroutine mrm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
 
     use mo_optimization_types, only : optidata_sim
+    use mo_common_datetime_type, only : datetimeinfo
     use mo_common_constants, only : HourSecs
     use mo_common_mHM_mRM_variables, only : LCYearId, mrmFileRestartIn, nTStepDay, optimize,&
                                             read_restart, resolutionRouting, simPer, &
@@ -103,15 +104,7 @@ contains
 
     integer(i4) :: tt
 
-    integer(i4) :: day
-
-    integer(i4) :: month, prev_month
-
-    integer(i4) :: year
-
-    integer(i4) :: hour
-
-    integer(i4) :: nTimeSteps
+    type(datetimeinfo) :: domainDateTime
 
     ! Land cover year ID
     integer(i4) :: Lcover_yID
@@ -136,8 +129,6 @@ contains
     ! - tsRoutFactor * timestep if tsRoutFactor is greater than 1
     integer(i4) :: timestep_rout
 
-    real(dp) :: newTime
-
     ! Runoff that is input for routing
     real(dp), allocatable, dimension(:) :: RunToRout
 
@@ -149,16 +140,11 @@ contains
     ! flag for performing routing
     logical :: do_rout
 
-    ! flag for monthly mean of river head
-    logical :: is_new_month = .false.
-
     if (optimize .and. present(opti_domain_indices)) then
       nDomains = size(opti_domain_indices)
     else
       nDomains = domainMeta%nDomains
     end if
-    ! initialize variables
-    month = 0_i4
     
     if (present(smOptiSim) .or. present(twsOptiSim) .or. present(neutronsOptiSim) .or. present(etOptiSim)) then
       call message("Error during initialization of mrm_eval, incorrect call from optimization routine.")
@@ -201,25 +187,18 @@ contains
       ! initialize routing parameters (has to be called only for Routing option 2)
       if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) &
           call mrm_update_param(iDomain, parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)))
-      ! calculate NtimeSteps for this domain
-      nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * NTSTEPDAY
-      ! initialize timestep
-      newTime = real(simPer(iDomain)%julStart, dp)
       ! initialize variable for runoff for routing
       allocate(RunToRout(e1 - s1 + 1))
       RunToRout = 0._dp
+
+      ! calculate NtimeSteps for this domain
+      call domainDateTime%init(iDomain)
       ! ----------------------------------------
       ! loop over time
       ! ----------------------------------------
-      hour = -timestep
-      do tt = 1, nTimeSteps
+      do tt = 1, domainDateTime%nTimeSteps
         ! set discharge timestep
         iDischargeTS = ceiling(real(tt, dp) / real(NTSTEPDAY, dp))
-        ! calculate current timestep
-        is_new_month = .false.
-        prev_month = month
-        call caldat(int(newTime), yy = year, mm = month, dd = day)
-        if (prev_month .ne. month) is_new_month = .true.
         ! -------------------------------------------------------------------
         ! PERFORM ROUTING
         ! -------------------------------------------------------------------
@@ -231,7 +210,7 @@ contains
           ! >>>
           !
           ! initialize land cover year id
-          Lcover_yID = LCyearId(year, iDomain)
+          Lcover_yID = LCyearId(domainDateTime%year, iDomain)
           !
           do_rout = .True.
           L11_tsRout(iDomain) = (timestep * HourSecs)
@@ -273,9 +252,9 @@ contains
             RunToRout = RunToRout + L1_total_runoff_in(s1 : e1, tt)
             InflowDischarge = InflowDischarge + InflowGauge%Q(iDischargeTS, :)
             ! reset tsRoutFactorIn if last period did not cover full period
-            if ((tt .eq. nTimeSteps) .and. (mod(tt, nint(tsRoutFactorIn)) .ne. 0_i4)) &
+            if ((tt == domainDateTime%nTimeSteps) .and. (mod(tt, nint(tsRoutFactorIn)) /= 0_i4)) &
                     tsRoutFactorIn = mod(tt, nint(tsRoutFactorIn))
-            if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. nTimeSteps)) then
+            if ((mod(tt, nint(tsRoutFactorIn)) == 0_i4) .or. (tt == domainDateTime%nTimeSteps)) then
               InflowDischarge = InflowDischarge / tsRoutFactorIn
               timestep_rout = nint(real(timestep, dp) * tsRoutFactorIn)
               do_rout = .True.
@@ -330,7 +309,7 @@ contains
         ! -------------------------------------------------------------------
             if (gw_coupling) then
                 call calc_river_head(iDomain, L11_Qmod, L0_river_head_mon_sum)
-                if (is_new_month) then
+                if (domainDateTime%is_new_month) then
                     call avg_and_write_timestep(iDomain, tt, L0_river_head_mon_sum)
                 end if
             end if
@@ -354,8 +333,10 @@ contains
         ! -------------------------------------------------------------------
         ! INCREMENT TIME
         ! -------------------------------------------------------------------
-        hour = mod(hour + timestep, 24)
-        newTime = julday(day, month, year) + real(hour + timestep, dp) / 24._dp
+        ! output only for evaluation period
+        domainDateTime%tIndex_out = (tt - warmingDays(iDomain) * nTstepDay) ! tt if write out of warming period
+
+        call domainDateTime%increment()
         ! -------------------------------------------------------------------
         ! WRITE OUTPUT
         ! -------------------------------------------------------------------
@@ -368,8 +349,8 @@ contains
                   ! output specification
                   timeStep_model_outputs_mrm, &
                   ! time specification
-                  warmingDays(iDomain), newTime, nTimeSteps, nTStepDay, &
-                  tt, day, month, year, timestep, &
+                  domainDateTime, &
+                  tt, timestep, &
                   ! mask specification
                   mask11, &
                   ! output variables

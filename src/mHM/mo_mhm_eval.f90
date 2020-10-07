@@ -84,8 +84,9 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp
     use mo_optimization_types, only : optidata_sim
+    use mo_common_datetime_type, only : datetimeinfo
     use mo_common_mHM_mRM_variables, only : LCyearId, mhmFileRestartIn, mrmFileRestartIn, nTstepDay,&
-                                    optimize, readPer, read_restart, simPer, timeStep, &
+                                            optimize, readPer, read_restart, simPer, timeStep, &
                                             warmingDays, c2TSTu
     use mo_common_variables, only : level1, domainMeta, processMatrix
     use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, &
@@ -113,7 +114,7 @@ CONTAINS
                                         L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
                                         L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
                                         L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                        L1_wiltingPoint, nSoilHorizons_mHM, timeStep_LAI_input
+                                        L1_wiltingPoint, nSoilHorizons_mHM
     use mo_restart, only : read_restart_states
     use mo_write_fluxes_states, only : OutputDataset
 #ifdef MRM2MHM
@@ -162,14 +163,9 @@ CONTAINS
     ! nTimeSteps]
     type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim
 
-    ! for writing netcdf file
-    integer(i4) :: tIndex_out
-
     real(dp), dimension(size(L1_fSealed, 1), size(L1_fSealed, 2), size(L1_fSealed, 3)) :: L1_fNotSealed
 
     type(OutputDataset) :: nc
-
-    integer(i4) :: nTimeSteps
 
     ! Counters
     integer(i4) :: domainID, iDomain, tt
@@ -196,21 +192,11 @@ CONTAINS
 
     logical, dimension(:, :), pointer :: mask1
 
-    integer(i4) :: day, month, year, hour, prev_day, prev_month, prev_year
-
     integer(i4) :: iMeteoTS
 
-    integer(i4) :: iLAI
-
-    integer(i4) :: yId
-
-    real(dp) :: newTime
-
-    ! flags for stepping into new period
-    logical :: is_new_day, is_new_month, is_new_year
-
-    ! if true write out netcdf files
-    logical :: writeout
+    ! datetimeinfo variable for everything that has to do with time dependend
+    ! calculations
+    type(datetimeinfo) :: domainDateTime
 
 #ifdef MRM2MHM
     integer(i4) :: jj
@@ -250,8 +236,6 @@ CONTAINS
 
     ! number of domains simulated in this mhm_eval run. Depends on opti_function
     integer(i4) :: nDomains, ii
-
-    real(dp) :: area_Domain
 
 
     if (optimize .and. present(opti_domain_indices)) then
@@ -372,29 +356,11 @@ CONTAINS
       end if
 #endif
 
-      ! calculate NtimeSteps for this Domain
-      nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nTstepDay
-
-      ! reinitialize time counter for LCover and MPR
-      ! -0.5 is due to the fact that dec2date routine
-      !   changes the day at 12:00 in NOON
-      ! Whereas mHM needs day change at 00:00 h
-      ! initialize the julian day as real
-      newTime = real(simPer(iDomain)%julStart, dp)
-      ! initialize the date
-      call caldat(int(newTime), yy = year, mm = month, dd = day)
-      ! initialize flags for period changes, they are true for first time step
-      is_new_day = .true.
-      is_new_month = .true.
-      is_new_year = .true.
-
-      ! initialize arrays and counters
-      yId = LCyearId(year, iDomain)
-      hour = -timestep
-      iLAI = 0
+      ! init datetime variable
+      call domainDateTime%init(iDomain)
 
       ! Loop over time
-      TimeLoop: do tt = 1, nTimeSteps
+      TimeLoop: do tt = 1, domainDateTime%nTimeSteps
         ! time increment is done right after call to mrm (and initially before looping)
         if (timeStep_model_inputs(iDomain) .eq. 0_i4) then
           ! whole meteorology is already read
@@ -446,22 +412,7 @@ CONTAINS
             iMeteo_p5 = (/iMeteoTS, 1, 1, iMeteoTS, iMeteoTS, iMeteoTS /)
         end select
 
-        select case (timeStep_LAI_input)
-          case(0 : 1) ! long term mean monthly gridded fields or LUT-based values
-            iLAI = month
-          case(-1) ! daily timestep
-            if (is_new_day) then
-              iLAI = iLAI + 1
-            end if
-          case(-2) ! monthly timestep
-            if (is_new_month) then
-              iLAI = iLAI + 1
-            end if
-          case(-3) ! yearly timestep
-            if (is_new_year) then
-              iLAI = iLAI + 1
-            end if
-        end select
+        call domainDateTime%update_LAI_timestep()
 
         ! -------------------------------------------------------------------------
         ! ARGUMENT LIST KEY FOR mHM
@@ -478,7 +429,7 @@ CONTAINS
         !  X    FLUXES (L1, L11 levels)
         ! --------------------------------------------------------------------------
         call mhm(read_restart, & ! IN C
-                tt, newTime - 0.5_dp, processMatrix, HorizonDepth_mHM, & ! IN C
+                tt, domainDateTime%newTime - 0.5_dp, processMatrix, HorizonDepth_mHM, & ! IN C
                 nCells, nSoilHorizons_mHM, real(nTstepDay, dp), c2TSTu,  & ! IN C
                 neutron_integral_AFast, & ! IN C
                 parameterset, & ! IN
@@ -497,7 +448,7 @@ CONTAINS
                 L1_windspeed(s_p5(6) : e_p5(6), iMeteo_p5(6)), & ! IN F:PET
                 L1_pre(s_meteo : e_meteo, iMeteoTS), & ! IN F:Pre
                 L1_temp(s_meteo : e_meteo, iMeteoTS), & ! IN F:Temp
-                L1_fSealed(s1 : e1, 1, yId), & ! INOUT L1
+                L1_fSealed(s1 : e1, 1, domainDateTime%yId), & ! INOUT L1
                 L1_inter(s1 : e1), L1_snowPack(s1 : e1), L1_sealSTW(s1 : e1), & ! INOUT S
                 L1_soilMoist(s1 : e1, :), L1_unsatSTW(s1 : e1), L1_satSTW(s1 : e1), & ! INOUT S
                 L1_neutrons(s1 : e1), & ! INOUT S
@@ -507,19 +458,24 @@ CONTAINS
                 L1_melt(s1 : e1), L1_percol(s1 : e1), L1_preEffect(s1 : e1), L1_rain(s1 : e1), & ! INOUT X
                 L1_runoffSeal(s1 : e1), L1_slowRunoff(s1 : e1), L1_snow(s1 : e1), & ! INOUT X
                 L1_Throughfall(s1 : e1), L1_total_runoff(s1 : e1), & ! INOUT X
-                L1_alpha(s1 : e1, 1, 1), L1_degDayInc(s1 : e1, 1, yId), L1_degDayMax(s1 : e1, 1, yId), & ! INOUT E1
-                L1_degDayNoPre(s1 : e1, 1, yId), L1_degDay(s1 : e1, 1, 1), L1_fAsp(s1 : e1, 1, 1), & ! INOUT E1
-                L1_petLAIcorFactor(s1 : e1, iLAI, yId), L1_HarSamCoeff(s1 : e1, 1, 1), & ! INOUT E1
-                L1_PrieTayAlpha(s1 : e1, iLAI, 1), L1_aeroResist(s1 : e1, iLAI, yId), & ! INOUT E1
-                L1_surfResist(s1 : e1, iLAI, 1), L1_fRoots(s1 : e1, :, yId), & ! INOUT E1
-                L1_maxInter(s1 : e1, iLAI, 1), L1_karstLoss(s1 : e1, 1, 1), & ! INOUT E1
-                L1_kFastFlow(s1 : e1, 1, yId), L1_kSlowFlow(s1 : e1, 1, 1), & ! INOUT E1
+                L1_alpha(s1 : e1, 1, 1), L1_degDayInc(s1 : e1, 1, domainDateTime%yId), &
+                L1_degDayMax(s1 : e1, 1, domainDateTime%yId), & ! INOUT E1
+                L1_degDayNoPre(s1 : e1, 1, domainDateTime%yId), L1_degDay(s1 : e1, 1, 1), & ! INOUT E1
+                L1_fAsp(s1 : e1, 1, 1), & ! INOUT E1
+                L1_petLAIcorFactor(s1 : e1, domainDateTime%iLAI, domainDateTime%yId), & ! INOUT E1
+                L1_HarSamCoeff(s1 : e1, 1, 1), & ! INOUT E1
+                L1_PrieTayAlpha(s1 : e1, domainDateTime%iLAI, 1), & ! INOUT E1
+                L1_aeroResist(s1 : e1, domainDateTime%iLAI, domainDateTime%yId), & ! INOUT E1
+                L1_surfResist(s1 : e1, domainDateTime%iLAI, 1), L1_fRoots(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
+                L1_maxInter(s1 : e1, domainDateTime%iLAI, 1), L1_karstLoss(s1 : e1, 1, 1), & ! INOUT E1
+                L1_kFastFlow(s1 : e1, 1, domainDateTime%yId), L1_kSlowFlow(s1 : e1, 1, 1), & ! INOUT E1
                 L1_kBaseFlow(s1 : e1, 1, 1), L1_kPerco(s1 : e1, 1, 1), & ! INOUT E1
-                L1_soilMoistFC(s1 : e1, :, yId), L1_soilMoistSat(s1 : e1, :, yId), & ! INOUT E1
-                L1_soilMoistExp(s1 : e1, :, yId), L1_jarvis_thresh_c1(s1 : e1, 1, 1), & ! INOUT E1
-                L1_tempThresh(s1 : e1, 1, yId), L1_unsatThresh(s1 : e1, 1, 1), & ! INOUT E1
+                L1_soilMoistFC(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
+                L1_soilMoistSat(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
+                L1_soilMoistExp(s1 : e1, :, domainDateTime%yId), L1_jarvis_thresh_c1(s1 : e1, 1, 1), & ! INOUT E1
+                L1_tempThresh(s1 : e1, 1, domainDateTime%yId), L1_unsatThresh(s1 : e1, 1, 1), & ! INOUT E1
                 L1_sealedThresh(s1 : e1, 1, 1), & ! INOUT E1
-                L1_wiltingPoint(s1 : e1, :, yId)) ! INOUT E1
+                L1_wiltingPoint(s1 : e1, :, domainDateTime%yId)) ! INOUT E1
 
         ! call mRM routing
 #ifdef MRM2MHM
@@ -567,9 +523,9 @@ CONTAINS
               RunToRout = RunToRout + L1_total_runoff(s1 : e1)
               InflowDischarge = InflowDischarge + InflowGauge%Q(iDischargeTS, :)
               ! reset tsRoutFactorIn if last period did not cover full period
-              if ((tt .eq. nTimeSteps) .and. (mod(tt, nint(tsRoutFactorIn)) .ne. 0_i4)) &
+              if ((tt == domainDateTime%nTimeSteps) .and. (mod(tt, nint(tsRoutFactorIn)) /= 0_i4)) &
                       tsRoutFactorIn = mod(tt, nint(tsRoutFactorIn))
-              if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. nTimeSteps)) then
+              if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. domainDateTime%nTimeSteps)) then
                 ! Inflow discharge is given as flow-rate and has to be converted to [m3]
                 InflowDischarge = InflowDischarge / tsRoutFactorIn
                 timestep_rout = timestep * nint(tsRoutFactorIn, i4)
@@ -581,7 +537,7 @@ CONTAINS
           if ( riv_temp_pcs%active ) then
             ! init riv-temp from current air temp
             if ( tt .eq. 1_i4 ) call riv_temp_pcs%init_riv_temp( &
-              newTime - 0.5_dp, &
+              domainDateTime%newTime - 0.5_dp, &
               real(nTstepDay, dp), &
               L1_temp(s_meteo : e_meteo, iMeteoTS), &
               read_meteo_weights, &
@@ -597,9 +553,9 @@ CONTAINS
             )
             ! accumulate source Energy at L1 level
             call riv_temp_pcs%acc_source_E( &
-              newTime - 0.5_dp, &
+              domainDateTime%newTime - 0.5_dp, &
               real(nTstepDay, dp), &
-              L1_fSealed(s1 : e1, 1, yId), &
+              L1_fSealed(s1 : e1, 1, domainDateTime%yId), &
               L1_fastRunoff(s1 : e1), &
               L1_slowRunoff(s1 : e1), &
               L1_baseflow(s1 : e1), &
@@ -656,7 +612,7 @@ CONTAINS
             ! original routing specific input variables
             L11_length(s11 : e11 - 1), & ! link length
             L11_slope(s11 : e11 - 1), &
-            L11_nLinkFracFPimp(s11 : e11, yID), & ! fraction of impervious layer at L11 scale
+            L11_nLinkFracFPimp(s11 : e11, domainDateTime%yID), & ! fraction of impervious layer at L11 scale
             ! general INPUT/OUTPUT variables
             L11_C1(s11 : e11), & ! first muskingum parameter
             L11_C2(s11 : e11), & ! second muskigum parameter
@@ -671,7 +627,7 @@ CONTAINS
           ! -------------------------------------------------------------------
           if (gw_coupling) then
               call calc_river_head(iDomain, L11_Qmod, L0_river_head_mon_sum)
-              if (is_new_month .and. tt > 1) then
+              if (domainDateTime%is_new_month .and. tt > 1) then
                   call avg_and_write_timestep(iDomain, tt, L0_river_head_mon_sum)
               end if
           end if
@@ -699,26 +655,11 @@ CONTAINS
         end if
 #endif
 
-        ! prepare the date and time information for next iteration step...
-        ! TODO: turn datetime information into type with procedure "increment"
-        ! set the current year as previous
-        prev_day = day
-        prev_month = month
-        prev_year = year
-        ! set the flags to false
-        is_new_day = .false.
-        is_new_month = .false.
-        is_new_year = .false.
 
-        ! increment of timestep
-        hour = mod(hour + timestep, 24)
-        newTime = julday(day, month, year) + real(hour + timestep, dp) / 24._dp
-        ! calculate new year, month and day
-        call caldat(int(newTime), yy = year, mm = month, dd = day)
-        ! update the flags
-        if (prev_day .ne. day) is_new_day = .true.
-        if (prev_month .ne. month) is_new_month = .true.
-        if (prev_year .ne. year) is_new_year = .true.
+        ! output only for evaluation period
+        domainDateTime%tIndex_out = (tt - warmingDays(iDomain) * nTstepDay) ! tt if write out of warming period
+
+        call domainDateTime%increment()
 
         if (.not. optimize) then
 #ifdef MRM2MHM
@@ -727,20 +668,16 @@ CONTAINS
               iDomain, & ! Domain id
               level11(iDomain)%nCells, & ! nCells in Domain
               timeStep_model_outputs_mrm, & ! output specification
-              warmingDays(iDomain), newTime, nTimeSteps, nTstepDay, tt, & ! time specification
-              prev_day, prev_month, prev_year, timestep, & ! parse previous date to mRM writer
+              domainDateTime, tt, timestep, & ! time specification
               mask11, & ! mask specification
               L11_qmod(s11 : e11) & ! output variables
             )
           end if
 #endif
 
-        ! output only for evaluation period
-        tIndex_out = (tt - warmingDays(iDomain) * nTstepDay) ! tt if write out of warming period
+        if ((any(outputFlxState)) .and. (domainDateTime%tIndex_out > 0_i4)) then
 
-        if ((any(outputFlxState)) .and. (tIndex_out .gt. 0_i4)) then
-
-          if (tIndex_out .EQ. 1) then
+          if (domainDateTime%tIndex_out == 1) then
 #ifdef pgiFortran154
             nc = newOutputDataset(iDomain, mask1, level1(iDomain)%nCells)
 #else
@@ -748,15 +685,15 @@ CONTAINS
 #endif
           end if
 
-          call nc%updateDataset( &
+          call nc%updateDataset(&
             s1, &
             e1, &
-            L1_fSealed(:, 1, yId), &
-            L1_fNotSealed(:, 1, yId), &
+            L1_fSealed(:, 1, domainDateTime%yId), &
+            L1_fNotSealed(:, 1, domainDateTime%yId), &
             L1_inter, &
             L1_snowPack, &
             L1_soilMoist, &
-            L1_soilMoistSat(:, :, yId), &
+            L1_soilMoistSat(:, :, domainDateTime%yId), &
             L1_sealSTW, &
             L1_unsatSTW, &
             L1_satSTW, &
@@ -776,29 +713,11 @@ CONTAINS
           )
 
           ! write data
-          writeout = .false.
-          if (timeStep_model_outputs .gt. 0) then
-            if ((mod(tIndex_out, timeStep_model_outputs) .eq. 0) .or. (tt .eq. nTimeSteps)) writeout = .true.
-          else
-            select case(timeStep_model_outputs)
-              case(0) ! only at last time step
-                if (tt .eq. nTimeSteps) writeout = .true.
-              case(-1) ! daily
-                if (((tIndex_out .gt. 1) .and. is_new_day) .or. (tt .eq. nTimeSteps))     writeout = .true.
-              case(-2) ! monthly
-                if (((tIndex_out .gt. 1) .and. is_new_month) .or. (tt .eq. nTimeSteps)) writeout = .true.
-              case(-3) ! yearly
-                if (((tIndex_out .gt. 1) .and. is_new_year) .or. (tt .eq. nTimeSteps))   writeout = .true.
-            case default ! no output at all
-
-            end select
+          if (domainDateTime%writeout(timeStep_model_outputs, tt)) then
+            call nc%writeTimestep(domainDateTime%tIndex_out * timestep - 1)
           end if
 
-          if (writeout) then
-            call nc%writeTimestep(tIndex_out * timestep - 1)
-          end if
-
-          if(tt .eq. nTimeSteps) then
+          if(tt == domainDateTime%nTimeSteps) then
             call nc%close()
           end if
 
@@ -815,12 +734,12 @@ CONTAINS
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
             call smOptiSim(iDomain)%average_per_timestep(L1_smObs(iDomain)%timeStepInput, &
-                                                         is_new_day, is_new_month, is_new_year)
+                         domainDateTime%is_new_day, domainDateTime%is_new_month, domainDateTime%is_new_year)
             ! last timestep is already done - write_counter exceeds size(smOptiSim(iDomain)%dataSim, dim=2)
-            if (.not. (tt .eq. nTimeSteps)) then
+            if (tt /= domainDateTime%nTimeSteps) then
               ! aggregate soil moisture to needed time step for optimization
               call smOptiSim(iDomain)%average_add(sum(L1_soilMoist(:, 1 : nSoilHorizons_sm_input), dim = 2) / &
-                              sum(L1_soilMoistSat(:, 1 : nSoilHorizons_sm_input, yId), dim = 2))
+                              sum(L1_soilMoistSat(:, 1 : nSoilHorizons_sm_input, domainDateTime%yId), dim = 2))
             end if
           end if
         end if
@@ -835,12 +754,12 @@ CONTAINS
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
             ! daily
-            if (is_new_day)   then
+            if (domainDateTime%is_new_day)   then
               call neutronsOptiSim(iDomain)%average()
             end if
 
             ! last timestep is already done - write_counter exceeds size(sm_opti, dim=2)
-            if (.not. (tt .eq. nTimeSteps)) then
+            if (tt /= domainDateTime%nTimeSteps) then
               ! aggregate neutrons to needed time step for optimization
               call neutronsOptiSim(iDomain)%average_add(L1_neutrons(s1 : e1))
             end if
@@ -857,14 +776,14 @@ CONTAINS
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
             call etOptiSim(iDomain)%increment_counter(L1_etObs(iDomain)%timeStepInput, &
-                                      is_new_day, is_new_month, is_new_year)
+                   domainDateTime%is_new_day, domainDateTime%is_new_month, domainDateTime%is_new_year)
 
             ! last timestep is already done - write_counter exceeds size(etOptiSim(iDomain)%dataSim, dim=2)
-            if (.not. (tt .eq. nTimeSteps)) then
+            if (tt /= domainDateTime%nTimeSteps) then
               ! aggregate evapotranspiration to needed time step for optimization
-              call etOptiSim(iDomain)%add(sum(L1_aETSoil(s1 : e1, :), dim = 2) * L1_fNotSealed(s1 : e1, 1, yId) + &
+              call etOptiSim(iDomain)%add(sum(L1_aETSoil(s1 : e1, :), dim = 2) * L1_fNotSealed(s1 : e1, 1, domainDateTime%yId) + &
                       L1_aETCanopy(s1 : e1) + &
-                      L1_aETSealed(s1 : e1) * L1_fSealed(s1 : e1, 1, yId))
+                      L1_aETSealed(s1 : e1) * L1_fSealed(s1 : e1, 1, domainDateTime%yId))
             end if
           end if
         end if
@@ -876,13 +795,13 @@ CONTAINS
         !----------------------------------------------------------------------
         if (present(twsOptiSim)) then
           ! only for evaluation period - ignore warming days
-          if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
+          if ((tt - warmingDays(iDomain) * nTstepDay) > 0) then
             ! decide for daily, monthly or yearly aggregation
             call twsOptiSim(iDomain)%average_per_timestep(L1_twsaObs(iDomain)%timeStepInput, &
-                                                         is_new_day, is_new_month, is_new_year)
+                               domainDateTime%is_new_day, domainDateTime%is_new_month, domainDateTime%is_new_year)
 
             ! last timestep is already done - write_counter exceeds size(twsOptiSim(iDomain)%dataSim, dim=2)
-            if (.not. (tt .eq. nTimeSteps)) then
+            if (tt /= domainDateTime%nTimeSteps) then
               ! aggregate evapotranspiration to needed time step for optimization
               call twsOptiSim(iDomain)%average_add(L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
                    L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1))
@@ -895,9 +814,9 @@ CONTAINS
 
         ! TODO-RIV-TEMP: add OptiSim for river temperature
 
-        ! update the year-dependent yID (land cover id)
-        if (is_new_year .and. tt .lt. nTimeSteps) then
-          yId = LCyearId(year, iDomain)
+        ! update the year-dependent domainDateTime%yId (land cover id)
+        if (domainDateTime%is_new_year .and. tt < domainDateTime%nTimeSteps) then
+          domainDateTime%yId = LCyearId(domainDateTime%year, iDomain)
         end if
 
       end do TimeLoop !<< TIME STEPS LOOP

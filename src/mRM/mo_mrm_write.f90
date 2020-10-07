@@ -30,7 +30,6 @@ module mo_mrm_write
   integer(i4) :: day_counter ! for daily output
   integer(i4) :: month_counter ! for monthly output
   integer(i4) :: year_counter ! for yearly output
-  integer(i4) :: average_counter ! for averaging output
   type(OutputDataset) :: nc ! netcdf Output Dataset
 
 contains
@@ -649,11 +648,12 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! Sebastian Mueller Jul 2020 - added output for river-temperature
 
-  subroutine mrm_write_output_fluxes(iDomain, nCells, timeStep_model_outputs, warmingDays, newTime, nTimeSteps, &
-                                    nTStepDay, tt, day, month, year, timestep, mask11, L11_qmod)
+  subroutine mrm_write_output_fluxes(iDomain, nCells, timeStep_model_outputs, domainDateTime, &
+                                    tt, timestep, mask11, L11_qmod)
 
     use mo_julian, only : caldat
     use mo_kind, only : dp, i4
+    use mo_common_datetime_type, only : datetimeinfo
     use mo_mrm_global_variables, only : riv_temp_pcs
 
     implicit none
@@ -665,29 +665,11 @@ contains
     ! timestep of model outputs
     integer(i4), intent(in) :: timeStep_model_outputs
 
-    ! number of warming days
-    integer(i4), intent(in) :: warmingDays
-
-    ! julian date of next time step
-    real(dp), intent(in) :: newTime
-
-    ! number of total timesteps
-    integer(i4), intent(in) :: nTimeSteps
-
-    ! number of timesteps per day
-    integer(i4), intent(in) :: nTStepDay
+    ! datetimeinfo variable
+    type(datetimeinfo), intent(in) :: domainDateTime
 
     ! current model timestep
     integer(i4), intent(in) :: tt
-
-    ! current day of the year
-    integer(i4), intent(in) :: day
-
-    ! current month of the year
-    integer(i4), intent(in) :: month
-
-    ! current year
-    integer(i4), intent(in) :: year
 
     ! current model time resolution
     integer(i4), intent(in) :: timestep
@@ -698,43 +680,12 @@ contains
     ! current routed streamflow
     real(dp), intent(in), dimension(:) :: L11_qMod
 
-    integer(i4) :: tIndex_out
-
-    logical :: writeout
-
-    ! year of next timestep (newTime)
-    integer(i4) :: new_year
-
-    ! month of next timestep (newTime)
-    integer(i4) :: new_month
-
-    ! day of next timestep (newTime)
-    integer(i4) :: new_day
-
-
-    !
-    if (tt .EQ. 1) then
-      day_counter = day
-      month_counter = month
-      year_counter = year
-      average_counter = 0_i4
-    end if
-
     ! update the counters
-    if (day_counter   .NE. day) day_counter = day
-    if (month_counter .NE. month) month_counter = month
-    if (year_counter  .NE. year)  year_counter = year
-    call caldat(int(newTime), yy = new_year, mm = new_month, dd = new_day)
 
-    ! output only for evaluation period
-    tIndex_out = (tt - warmingDays * NTSTEPDAY) ! tt if write out of warming period
-
-    if ((tIndex_out .gt. 0_i4)) then
-      average_counter = average_counter + 1
+    if ((domainDateTime%tIndex_out > 0_i4)) then
 
       ! create output dataset
-      if (tIndex_out .EQ. 1) nc = OutputDataset(iDomain, mask11, nCells)
-      ! print*, 'After Init of OutputDatasetInit'
+      if (domainDateTime%tIndex_out == 1) nc = OutputDataset(iDomain, mask11, nCells)
 
       ! update Dataset (riv-temp as optional input)
       if ( riv_temp_pcs%active ) then
@@ -743,30 +694,13 @@ contains
         call nc%updateDataset(1, size(L11_Qmod), L11_Qmod)
       end if
 
-      ! determine write flag
-      writeout = .false.
-      if (timeStep_model_outputs .gt. 0) then
-        if ((mod(tIndex_out, timeStep_model_outputs) .eq. 0) .or. (tt .eq. nTimeSteps)) writeout = .true.
-      else
-        select case(timeStep_model_outputs)
-        case(0) ! only at last time step
-          if (tt .eq. nTimeSteps) writeout = .true.
-        case(-1) ! daily
-          if ((day_counter .ne. new_day)     .or. (tt .eq. nTimeSteps)) writeout = .true.
-        case(-2) ! monthly
-          if ((month_counter .ne. new_month) .or. (tt .eq. nTimeSteps)) writeout = .true.
-        case(-3) ! yearly
-          if ((year_counter .ne. new_year)   .or. (tt .eq. nTimeSteps)) writeout = .true.
-        case default ! no output at all
-
-        end select
+      ! write data
+      if (domainDateTime%writeout(timeStep_model_outputs, tt)) then
+        call nc%writeTimestep(domainDateTime%tIndex_out * timestep - 1)
       end if
 
-      ! write data
-      if (writeout) call nc%writeTimestep(tIndex_out * timestep - 1)
-
       ! close dataset
-      if (tt .eq. nTimeSteps) call nc%close()
+      if (tt == domainDateTime%nTimeSteps) call nc%close()
 
     end if
 
