@@ -180,7 +180,7 @@ contains
 
           else
              ! set to nodata, but not ommit because data association between arrays and domains might break
-             data_i4_2d = merge(nodata_i4, nodata_i4, mask_2d)
+             data_i4_2d = merge(nodata_i4, nodata_i4, level0_iDomain%mask)
           end if
        end if
 
