@@ -62,7 +62,7 @@
     gauge_id(5,1) = 398
     gauge_id(6,1) = 45
     ngaugestotal = 6
-    nogauges_domain(1:6) = 1, 1, 1, 1, 1, 1
+    nogauges_domain(1:6) = 1, 1, 0, 1, 1, 1
 /
 
 &inflow_gauges

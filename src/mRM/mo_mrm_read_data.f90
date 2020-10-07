@@ -156,7 +156,7 @@ contains
           nunit = uslope
        end select
 
-       if (iVar .le. 3) then
+       if (iVar .le. 2) then
           !
           ! reading and transposing
           call read_spatial_data_ascii(trim(fName), nunit, &
@@ -165,6 +165,23 @@ contains
 
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+       end if
+
+       if (iVar .eq. 3) then
+          if (domain_mrm(iDomain)%nGauges .ge. 1_i4) then
+             !
+             ! reading and transposing
+             call read_spatial_data_ascii(trim(fName), nunit, &
+                  level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+                  level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
+
+             ! put global nodata value into array (probably not all grid cells have values)
+             data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+
+          else
+             ! set to nodata, but not ommit because data association between arrays and domains might break
+             data_i4_2d = merge(nodata_i4, nodata_i4, level0_iDomain%mask)
+          end if
        end if
 
 #ifndef MRM2MHM

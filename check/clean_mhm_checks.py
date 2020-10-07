@@ -28,11 +28,14 @@ if __name__ == "__main__":
     # sort the cases by name
     cases.sort()
     for case in cases:
-        print(os.path.basename(case))
+        base = os.path.basename(case)
+        print(base)
         # get the output directory
         out_dir = os.path.join(case, OUT)
         # remove it
         shutil.rmtree(out_dir, ignore_errors=True)
-
+        logs = glob.glob(os.path.join(case, "*_" + base + "_log.txt"))
+        for log in logs:
+            os.remove(log)
     # final result
-    print("..cleaned.")
+    print(" ..cleaned.")
