@@ -125,7 +125,7 @@ endif()
 
 include_directories(${NETCDF_INCLUDES} ${MPI_Fortran_INCLUDE_PATH} ${OpenMP_Fortran_LIBRARY})
 
-# ifort and gfortran need the flag -cpp to interpret definitions like -DMRM2MHM
+# ifort and gfortran need the flag -cpp to interpret pre-processor directives
 # the nag compiler is not able to interpret the flag -cpp but can interpret these definitions anyway
 # so we check whether the compiler is able to use the flag -cpp
 # for that we need the module CheckFortranCompilerFlag
@@ -157,10 +157,7 @@ if (FPP_FLAG)
 	set(ADDITIONAL_GCC_FLAGS "-fpp")
 endif()
 
-# Add definitions. These should later be set via the cache line file and only
-# have a default value here. These part only concerns user build definitions like MRM2MHM
-#add_definitions(-DMRM2MHM=.true.)
-cpp_definitions("-DMRM2MHM" "CMAKE_MRM2MHM" "ON" "If set to ON the model runs with mRM")
+# Add definitions. These should later be set via the cache line file and only have a default value here.
 cpp_definitions("-DpgiFortran" "CMAKE_pgiFortran" "OFF" "Code exchange for pgi compiler dependent issues")
 cpp_definitions("-DMPR_STANDALONE" "CMAKE_MPR_STANDALONE" "OFF" "If set to ON, only MPR is compiled")
 cpp_definitions("-DABSOFT" "CMAKE_ABSOFT" "OFF" "Documentation to be added. If you you are developer, you might edit this string in CMakeLists.txt")

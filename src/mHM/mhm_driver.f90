@@ -142,7 +142,6 @@ PROGRAM mhm_driver
 #endif
           objective                 ! objective functions and likelihoods
   USE mo_optimization, ONLY : optimization
-#ifdef MRM2MHM
   USE mo_mrm_objective_function_runoff, ONLY : &
 #ifdef MPI
           single_objective_runoff_master, &
@@ -152,7 +151,6 @@ PROGRAM mhm_driver
   USE mo_mrm_init, ONLY : mrm_init, mrm_configuration
   USE mo_mrm_write, only : mrm_write
 
-#endif
   !$ USE omp_lib, ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
 #ifdef MPI
   USE mpi_f08
@@ -178,9 +176,7 @@ PROGRAM mhm_driver
 
   character(len=255)  :: cur_work_dir, new_work_dir
 
-#ifdef MRM2MHM
   logical :: ReadLatLon
-#endif
 
 #ifdef MPI
   integer             :: ierror
@@ -249,11 +245,9 @@ PROGRAM mhm_driver
   call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
   call mhm_read_config(file_namelist_mhm, unamelist_mhm)
   call check_optimization_settings()
-#ifdef MRM2MHM
   mrm_coupling_mode = 2_i4
   call mrm_configuration(file_namelist_mhm, unamelist_mhm, &
           file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon)
-#endif
   call message()
   call message('# of domains:         ', trim(num2str(domainMeta%overallNumberOfDomains)))
   call message()
@@ -362,15 +356,11 @@ PROGRAM mhm_driver
   call timer_stop(itimer)
   call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
-#ifdef MRM2MHM
   ! --------------------------------------------------------------------------
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
   if (processMatrix(8, 1) > 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
           file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon=ReadLatLon)
-#else
-  mrm_coupling_mode = -1_i4
-#endif
 
   !this call may be moved to another position as it writes the master config out file for all domains
   call write_configfile()
@@ -387,7 +377,6 @@ PROGRAM mhm_driver
     eval => mhm_eval
 
     select case(opti_function)
-#ifdef MRM2MHM
      case(1 : 9, 14, 31 : 32)
       ! call optimization against only runoff (no other variables)
       obj_func => single_objective_runoff
@@ -404,7 +393,6 @@ PROGRAM mhm_driver
       end if
 #else
       call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
-#endif
 #endif
      case(10 : 13, 15, 17, 27, 28, 29, 30, 33)
       ! call optimization for other variables
@@ -477,13 +465,11 @@ PROGRAM mhm_driver
     call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
   end if
 
-#ifdef MRM2MHM
   ! --------------------------------------------------------------------------
   ! WRITE RUNOFF (INCLUDING RESTART FILES, has to be called after mHM restart
   ! files are written)
   ! --------------------------------------------------------------------------
   if (processMatrix(8, 1) > 0) call mrm_write()
-#endif
 
 #ifdef MPI
   end if

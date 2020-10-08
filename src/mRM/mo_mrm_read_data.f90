@@ -51,10 +51,6 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
-#ifndef MRM2MHM
-    use mo_common_constants, only : nodata_dp
-    use mo_mpr_global_variables, only: L0_slope
-#endif
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : Grid, L0_LCover, dirMorpho, level0, domainMeta, processMatrix
     use mo_mpr_file, only: file_slope, uslope
@@ -85,10 +81,6 @@ contains
     integer(i4) :: nunit
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
-
-#ifndef MRM2MHM
-    real(dp), dimension(:, :), allocatable :: data_dp_2d
-#endif
 
     integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
 
@@ -183,23 +175,6 @@ contains
              data_i4_2d = merge(nodata_i4, nodata_i4, level0_iDomain%mask)
           end if
        end if
-
-#ifndef MRM2MHM
-       ! only read slope if not coupled to mHM and using third process Matrix
-       if ((iVar .eq. 4) .and. (processMatrix(8, 1) .eq. 3)) then
-          ! reading
-          call read_spatial_data_ascii(trim(fName), nunit, &
-               level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
-               level0_iDomain%yllcorner, level0_iDomain%cellsize, data_dp_2d, mask_2d)
-          ! put global nodata value into array (probably not all grid cells have values)
-          data_dp_2d = merge(data_dp_2d, nodata_dp, mask_2d)
-          ! put data in variable
-          call append(L0_slope, pack(data_dp_2d, level0_iDomain%mask))
-
-          ! deallocate arrays
-          deallocate(data_dp_2d, mask_2d)
-       end if
-#endif
 
         ! put data into global L0 variable
         select case (iVar)
