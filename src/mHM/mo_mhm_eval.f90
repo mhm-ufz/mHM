@@ -82,7 +82,6 @@ CONTAINS
 
   SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
 
-    use mo_common_constants, only : nodata_dp
     use mo_optimization_types, only : optidata_sim
     use mo_common_datetime_type, only : datetimeinfo
     use mo_common_mHM_mRM_variables, only : LCyearId, mhmFileRestartIn, mrmFileRestartIn, nTstepDay,&

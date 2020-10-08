@@ -253,7 +253,7 @@ contains
     L11_mask &
   )
     use mo_append, only : append
-    use mo_read_forcing_nc, only: read_const_forcing_nc
+    use mo_read_nc, only: read_const_nc
 
     implicit none
 
@@ -273,7 +273,7 @@ contains
 
     integer(i4) :: i, k, iNode
 
-    call read_const_forcing_nc(&
+    call read_const_nc(&
       trim(self%dir_riv_widths(iDomain)), &
       nrows, &
       ncols, &

@@ -505,10 +505,10 @@ contains
   !>       \date Apr 2013
 
   ! Modifications:
-  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014 
-  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014 
-  !                              - adding new variable infilSoil 
-  !                              - case 16 David Schaefer      , Jun. 2015 
+  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014
+  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014
+  !                              - adding new variable infilSoil
+  !                              - case 16 David Schaefer      , Jun. 2015
   !                              - major rewrite
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
@@ -912,7 +912,7 @@ contains
 
     real(dp), allocatable, dimension(:) :: easting, northing
 
-    real(dp), allocatable, dimension(:) :: lat1d, lon1d    ! 1D lat lon vectors. Used if coordinate system is lat & lon 
+    real(dp), allocatable, dimension(:) :: lat1d, lon1d    ! 1D lat lon vectors. Used if coordinate system is lat & lon
 
     real(dp), allocatable, dimension(:, :) :: lat2d, lon2d ! temporary storage of mHM's 2D latlon array.
                                                            ! Used as 2d lat lon arrays if coordinate system is X & Y
@@ -924,7 +924,7 @@ contains
     nc = NcDataset(trim(fname), "w")
 
     ! set the horizonal dimensions
-    if (iFlag_cordinate_sys == 0) then 
+    if (iFlag_cordinate_sys == 0) then
 
       ! X & Y coordinate system; 2D lat lon!
       !============================================================
@@ -1044,7 +1044,7 @@ contains
 
 
     call var%nc%setAttribute("long_name", long_name)
-    call var%nc%setAttribute("unit", unit)
+    call var%nc%setAttribute("units", unit)
     call var%nc%setAttribute("scale_factor", 1.0_dp)
     call var%nc%setAttribute("missing_value", nodata_dp)
     call var%nc%setAttribute("coordinates", "lat lon")
