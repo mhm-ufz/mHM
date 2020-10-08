@@ -26,10 +26,6 @@ module mo_mrm_write
 
   private
 
-  ! counters for write_output_fluxes
-  integer(i4) :: day_counter ! for daily output
-  integer(i4) :: month_counter ! for monthly output
-  integer(i4) :: year_counter ! for yearly output
   type(OutputDataset) :: nc ! netcdf Output Dataset
 
 contains
@@ -479,6 +475,7 @@ contains
 
   subroutine write_daily_obs_sim_discharge(Qobs, Qsim)
 
+    use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : dirOut, domainMeta
     use mo_errormeasures, only : kge, nse
@@ -568,25 +565,43 @@ contains
       create = .true.
       do gg = igauge_start, igauge_end
         ! write simulated discharge at that gauge
-        call var2nc(trim(fName), Qsim(1 : tlength, gg), &
-                dnames(1 : 1), 'Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), create = create, &
-                units = 'm3 s-1', long_name = 'simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')))
+        call var2nc( &
+          f_name = trim(fName), &
+          arr = Qsim(1 : tlength, gg), &
+          dnames = dnames(1 : 1), &
+          v_name = 'Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
+          create = create, &
+          units = 'm3 s-1', &
+          long_name = 'simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
+          missing_value = nodata_dp &
+        )
         create = .false.
         ! write observed discharge at that gauge
-        call var2nc(trim(fName), Qobs(1 : tlength, gg), &
-                dnames(1 : 1), 'Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), create = create, &
-                units = 'm3 s-1', long_name = 'observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')))
+        call var2nc( &
+          f_name = trim(fName), &
+          arr = Qobs(1 : tlength, gg), &
+          dnames = dnames(1 : 1), &
+          v_name = 'Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
+          create = create, &
+          units = 'm3 s-1', &
+          long_name = 'observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
+          missing_value = nodata_dp &
+        )
       end do
       ! add time axis
       allocate(taxis(tlength))
       forall(tt = 1 : tlength) taxis(tt) = tt * 24 - 1
       call dec2date(real(evalPer(iDomain)%julStart, dp) - 0.5_dp, yy = year, mm = month, dd = day)
-      call var2nc(trim(fName), taxis, &
-              dnames(1 : 1), dnames(1), &
-              units = 'hours since ' // &
-                      trim(num2str(year)) // '-' // trim(num2str(month, '(i2.2)')) // '-' // trim(num2str(day, '(i2.2)')) // &
-                      ' 00:00:00', &
-              long_name = 'time in hours')
+      call var2nc( &
+        f_name = trim(fName), &
+        arr = taxis, &
+        dnames = dnames(1 : 1), &
+        v_name = dnames(1), &
+        units = 'hours since ' // &
+                trim(num2str(year)) // '-' // trim(num2str(month, '(i2.2)')) // '-' // trim(num2str(day, '(i2.2)')) // &
+                ' 00:00:00', &
+        long_name = 'time in hours' &
+      )
       deallocate(taxis)
 
       ! ======================================================================

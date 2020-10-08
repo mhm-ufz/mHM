@@ -645,7 +645,7 @@ contains
 
 
     call var%nc%setAttribute("long_name", long_name)
-    call var%nc%setAttribute("unit", unit)
+    call var%nc%setAttribute("units", unit)
     call var%nc%setAttribute("scale_factor", 1.0_dp)
     call var%nc%setAttribute("missing_value", nodata_dp)
     call var%nc%setAttribute("coordinates", "lat lon")

@@ -1,4 +1,4 @@
-!>       \file mo_read_forcing_nc.f90
+!>       \file mo_read_nc.f90
 
 !>       \brief Reads forcing input data.
 
@@ -19,10 +19,10 @@
 ! Robert Schweppe Nov 2017 - switched to mo_netcdf library and restuctured routines
 ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-module mo_read_forcing_nc
+module mo_read_nc
   implicit none
-  public :: read_forcing_nc
-  public :: read_const_forcing_nc
+  public :: read_nc
+  public :: read_const_nc
   public :: read_weights_nc
   private
   !
@@ -32,7 +32,7 @@ contains
   ! ------------------------------------------------------------------
 
   !    NAME
-  !        read_forcing_nc
+  !        read_nc
 
   !    PURPOSE
   !>       \brief Reads forcing input in NetCDF file format.
@@ -82,7 +82,7 @@ contains
   !       Robert Schweppe    Nov 2017 - switched to mo_netcdf library and restuctured routines
   !       Robert Schweppe    Jun 2018 - refactoring and reformatting
 
-  subroutine read_forcing_nc(folder, nRows, nCols, varName, mask, data, target_period, lower, upper, nctimestep, &
+  subroutine read_nc(folder, nRows, nCols, varName, mask, data, target_period, lower, upper, nctimestep, &
                             fileName, nocheck, maskout)
 
     use mo_common_variables, only : period
@@ -189,7 +189,7 @@ contains
     ! get dimensions and check if plane is correct
     var_shape = var%getShape()
     if ((var_shape(1) .ne. nRows) .or. (var_shape(2) .ne. nCols)) then
-      stop '***ERROR: read_forcing_nc: mHM generated x and y are not matching NetCDF dimensions'
+      stop '***ERROR: read_nc: mHM generated x and y are not matching NetCDF dimensions'
     end if
 
     ! determine no data value, use _FillValue first, fall back to missing_value
@@ -198,7 +198,7 @@ contains
     else if (var%hasAttribute("missing_value")) then
       call var%getAttribute('missing_value', nodata_value)
     else
-      stop '***ERROR: read_forcing_nc: there must be either the attribute "missing_value" or "_FillValue"'
+      stop '***ERROR: read_nc: there must be either the attribute "missing_value" or "_FillValue"'
     end if
 
     ! get time variable
@@ -219,7 +219,7 @@ contains
       ! neglect checking for nodata values if optional nocheck is given
       if (checking) then
         if (any(eq(data(:, :, i), nodata_value) .and. (mask))) then
-          call message('***ERROR: read_forcing_nc: nodata value within domain ')
+          call message('***ERROR: read_nc: nodata value within domain ')
           call message('          boundary in variable: ', trim(varName))
           call message('          at timestep         : ', trim(num2str(i)))
           stop
@@ -228,7 +228,7 @@ contains
       ! optional check
       if (present(lower)) then
         if (any((data(:, :, i) .lt. lower) .AND. mask(:, :))) then
-          call message('***ERROR: read_forcing_nc: values in variable "', &
+          call message('***ERROR: read_nc: values in variable "', &
                   trim(varName), &
                   '" are lower than ', trim(num2str(lower, '(F7.2)')))
           call message('          at timestep  : ', trim(num2str(i)))
@@ -241,7 +241,7 @@ contains
 
       if (present(upper)) then
         if (any((data(:, :, i) .gt. upper) .AND. mask(:, :))) then
-          call message('***ERROR: read_forcing_nc: values in variable "', &
+          call message('***ERROR: read_nc: values in variable "', &
                   trim(varName), &
                   '" are greater than ', trim(num2str(upper, '(F7.2)')))
           call message('          at timestep  : ', trim(num2str(i)))
@@ -255,12 +255,12 @@ contains
 
     end do
 
-  end subroutine read_forcing_nc
+  end subroutine read_nc
 
   ! ------------------------------------------------------------------
 
   !     NAME
-  !         read_const_forcing_nc
+  !         read_const_nc
 
   !     PURPOSE
   !>        \brief Reads time independent forcing input in NetCDF file format.
@@ -312,10 +312,10 @@ contains
   !         None
 
   !     HISTORY
-  !>        \author Lennart Schueler, heavily influenced by read_forcing_nc
+  !>        \author Lennart Schueler, heavily influenced by read_nc
   !>        \date May 2018
 
-  subroutine read_const_forcing_nc(folder, nRows, nCols, varName, data, fileName)
+  subroutine read_const_nc(folder, nRows, nCols, varName, data, fileName)
 
     use mo_kind,             only: i4, dp
     use mo_message,          only: message
@@ -356,7 +356,7 @@ contains
     ! get dimensions and check if plane is correct
     var_shape = var%getShape()
     if ( (var_shape(1) .ne. nRows) .or. (var_shape(2) .ne. nCols) ) then
-       stop '***ERROR: read_const_forcing_nc: mHM generated x and y are not matching NetCDF dimensions'
+       stop '***ERROR: read_const_nc: mHM generated x and y are not matching NetCDF dimensions'
     end if
 
     ! determine no data value, use _FillValue first, fall back to missing_value
@@ -365,13 +365,13 @@ contains
     else if (var%hasAttribute("missing_value")) then
       call var%getAttribute('missing_value', nodata_value)
     else
-      stop '***ERROR: read_const_forcing_nc: there must be either the attribute "missing_value" or "_FillValue"'
+      stop '***ERROR: read_const_nc: there must be either the attribute "missing_value" or "_FillValue"'
     end if
 
     ! extract data and select time slice
     call var%getData(data, start=(/1,1/), cnt=(/nRows,nCols/))
 
-  end subroutine read_const_forcing_nc
+  end subroutine read_const_nc
 
   ! ------------------------------------------------------------------
 
@@ -503,7 +503,7 @@ contains
     ! get dimensions
     var_shape = var%getShape()
     if ((var_shape(1) .ne. nRows) .or. (var_shape(2) .ne. nCols)) then
-      stop '***ERROR: read_forcing_nc: mHM generated x and y are not matching NetCDF dimensions'
+      stop '***ERROR: read_nc: mHM generated x and y are not matching NetCDF dimensions'
     end if
 
     ! determine no data value
@@ -524,7 +524,7 @@ contains
         ! neglect checking for naodata values if optional nocheck is given
         if (checking) then
           if (any(eq(data(:, :, i, j), nodata_value) .and. (mask))) then
-            call message('***ERROR: read_forcing_nc: nodata value within domain ')
+            call message('***ERROR: read_nc: nodata value within domain ')
             call message('          boundary in variable: ', trim(varName))
             call message('          at hour         : ', trim(num2str(i)))
             stop
@@ -533,7 +533,7 @@ contains
         ! optional check
         if (present(lower)) then
           if (any((data(:, :, i, j) .lt. lower) .AND. mask(:, :))) then
-            call message('***ERROR: read_forcing_nc: values in variable "', &
+            call message('***ERROR: read_nc: values in variable "', &
                     trim(varName), &
                     '" are lower than ', trim(num2str(lower, '(F7.2)')))
             call message('          at hour  : ', trim(num2str(i)))
@@ -546,7 +546,7 @@ contains
 
         if (present(upper)) then
           if (any((data(:, :, i, j) .gt. upper) .AND. mask(:, :))) then
-            call message('***ERROR: read_forcing_nc: values in variable "', &
+            call message('***ERROR: read_nc: values in variable "', &
                     trim(varName), &
                     '" are greater than ', trim(num2str(upper, '(F7.2)')))
             call message('          at hour  : ', trim(num2str(i)))
@@ -778,17 +778,17 @@ contains
       time_start = (clip_period%julStart - ncJulSta1) * 24_i4 + 1_i4 ! convert to hours; always starts at one
       time_cnt = (clip_period%julEnd - clip_period%julStart + 1_i4) * 24_i4 ! convert to hours
     case default ! no output at all
-      call message('***ERROR: read_forcing_nc: unknown nctimestep switch.')
+      call message('***ERROR: read_nc: unknown nctimestep switch.')
       stop
     end select
 
     ! Check if time steps in file cover simulation period
     if (.not. ((ncJulSta1 .LE. clip_period%julStart) .AND. (nc_period%julEnd .GE. clip_period%julEnd))) then
-      call message('***ERROR: read_forcing_nc: time period of input data: ', trim(fname), &
+      call message('***ERROR: read_nc: time period of input data: ', trim(fname), &
               '          is not matching modelling period.')
       stop
     end if
 
   end subroutine get_time_vector_and_select
 
-end module mo_read_forcing_nc
+end module mo_read_nc

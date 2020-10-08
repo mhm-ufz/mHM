@@ -378,7 +378,7 @@ contains
     use mo_common_variables, only : ALMA_convention, level1
     use mo_mrm_global_variables, only : L1_total_runoff_in, dirTotalRunoff, filenameTotalRunoff, &
                                         varnameTotalRunoff
-    use mo_read_forcing_nc, only : read_forcing_nc
+    use mo_read_nc, only : read_nc
 
     implicit none
 
@@ -400,7 +400,7 @@ contains
 
     if (timestep .eq. 1) nctimestep = -4 ! hourly input
     if (timestep .eq. 24) nctimestep = -1 ! daily input
-    call read_forcing_nc(trim(dirTotalRunoff(iDomain)), level1(iDomain)%nrows, level1(iDomain)%ncols, &
+    call read_nc(trim(dirTotalRunoff(iDomain)), level1(iDomain)%nrows, level1(iDomain)%ncols, &
             varnameTotalRunoff, level1(iDomain)%mask, L1_data, target_period = simPer(iDomain), &
             nctimestep = nctimestep, filename = filenameTotalRunoff)
     ! pack variables
@@ -475,7 +475,7 @@ contains
   !         \date    May 2018
 
     use mo_mrm_global_variables, only: level11
-    use mo_read_forcing_nc, only: read_const_forcing_nc
+    use mo_read_nc, only: read_const_nc
     use mo_mrm_global_variables, only: &
          dirBankfullRunoff, &   ! directory of bankfull_runoff file for each domain
          L11_bankfull_runoff_in ! bankfull runoff at L1
@@ -489,7 +489,7 @@ contains
     real(dp), dimension(:,:), allocatable :: L11_data ! read data from file
     real(dp), dimension(:), allocatable :: L11_data_packed
 
-    call read_const_forcing_nc(trim(dirBankfullRunoff(iDomain)), &
+    call read_const_nc(trim(dirBankfullRunoff(iDomain)), &
                                level11(iDomain)%nrows, &
                                level11(iDomain)%ncols, &
                                "Q_bkfl", L11_data)
