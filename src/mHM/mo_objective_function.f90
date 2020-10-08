@@ -384,7 +384,7 @@ CONTAINS
 
     do ! a do loop without condition runs until exit
       call MPI_Recv(do_obj_loop, 1, MPI_LOGICAL, 0, 0, domainMeta%comMaster, status, ierror)
-      
+
       if (.not. do_obj_loop) exit
 
       if (present(arg1) .or. present(arg2) .or. present(arg3)) then
@@ -635,7 +635,7 @@ CONTAINS
   !>                over all domains. The integer array domainMeta%optidata decides which
   !>                indices to use. Therefore the array is split into disjunct subsets, and,
   !>                if chosen wisely in the namelist, also covers all domains.
-  !>               
+  !>
   !>                With this the eval calls sum up in a way that for each domain eval was
   !>                called at most once, but for different opti_data.
 
@@ -656,9 +656,7 @@ CONTAINS
     use mo_message, only : message
     use mo_moment, only : average
     use mo_string_utils, only : num2str
-#ifdef MRM2MHM
     use mo_mrm_objective_function_runoff, only : extract_runoff
-#endif
 
     implicit none
 
@@ -680,7 +678,6 @@ CONTAINS
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 #endif
 
-#ifdef MRM2MHM
     !> modelled runoff for a given parameter set
     ! dim1=nTimeSteps, dim2=nGauges
     real(dp), allocatable, dimension(:, :) :: runoff
@@ -704,7 +701,6 @@ CONTAINS
 
     !> number of q domains
     integer(i4) :: nQDomains
-#endif
 
     !> number of et domains
     integer(i4) :: nEtDomains
@@ -720,7 +716,7 @@ CONTAINS
 
     !> index array of TWS domains
     integer(i4), dimension(:), allocatable :: opti_domain_indices_TWS
-    
+
     !> index array of TWS and ET domains (providing both)
     integer(i4), dimension(:), allocatable :: opti_domain_indices_ET_TWS
 
@@ -737,7 +733,7 @@ CONTAINS
     type(optidata_sim), dimension(:), allocatable :: twsaOptiSim
 
     real(dp) :: kge_tws
-    
+
     real(dp) :: kge_et
 
     integer(i4) :: numberOfSummands
@@ -755,7 +751,7 @@ CONTAINS
     ! eval runs to get simulated output for et and tws
     ! before each eval call we generate an index list of the domains for which
     ! eval should be called. Read details for further information
-    call init_indexarray_for_opti_data(domainMeta, 6, nEtTwsDomains, opti_domain_indices_ET_TWS) 
+    call init_indexarray_for_opti_data(domainMeta, 6, nEtTwsDomains, opti_domain_indices_ET_TWS)
     if (nEtTwsDomains > 0) then
       allocate( etOptiSim(domainMeta%nDomains))
       allocate(twsOptiSim(domainMeta%nDomains))
@@ -816,7 +812,7 @@ CONTAINS
     !  write(0,*) 'nTwsDomains, kge_tws', nTwsDomains, kge_tws
     end if
     objective_q_et_tws_kge_catchment_avg(2) = kge_tws
-    
+
     !--------------------------------------------
     ! ET
     !--------------------------------------------
@@ -852,10 +848,7 @@ CONTAINS
     ! ToDo:  The arrays for qTin, qTout, will be rewritten in the other calls when
     ! Q is not called last. Change that for more flexibility
     call init_indexarray_for_opti_data(domainMeta, 1, nQDomains, opti_domain_indices_Q)
-#ifndef MRM2MHM
-    call message('***ERROR: objective_q_et_tws_kge_catchment_avg: missing routing module for optimization')
-    stop 1
-#else
+
     if (nQDomains > 0) then
       call eval(parameterset, opti_domain_indices = opti_domain_indices_Q, runoff = runoff)
       nGaugesTotal = size(runoff, dim = 2)
@@ -872,7 +865,6 @@ CONTAINS
      ! write(0,*) 'nQDomains, kge_q', nQDomains, kge_q
     end if
     objective_q_et_tws_kge_catchment_avg(1) = kge_q
-#endif
 
     objective_q_et_tws_kge_catchment_avg(4) = real(numberOfSummands, dp)
 
@@ -1415,10 +1407,8 @@ CONTAINS
     use mo_standard_score, only : classified_standard_score
     use mo_string_utils, only : num2str
     use mo_temporal_aggregation, only : day2mon_average
-#ifdef MRM2MHM
     use mo_errormeasures, only : kge
     use mo_mrm_objective_function_runoff, only : extract_runoff
-#endif
 
     implicit none
 
@@ -1466,7 +1456,6 @@ CONTAINS
     ! obj. functions
     real(dp) :: rmse_tws_avg, kge_q_avg
 
-#ifdef MRM2MHM
     integer(i4) :: nGaugesTotal
 
     ! aggregated simulated runoff
@@ -1483,7 +1472,6 @@ CONTAINS
 
     ! gauges counter
     integer(i4) :: gg
-#endif
 
     ! obtain hourly values of runoff and tws:
     allocate(twsOptiSim(domainMeta%nDomains))
@@ -1563,7 +1551,6 @@ CONTAINS
     !! RUNOFF
     !--------------------------------------------
     kge_q_avg = 0_dp
-#ifdef MRM2MHM
     nGaugesTotal = size(runoff, dim = 2)
     allocate(kge_q(nGaugesTotal))
     kge_q(:) = nodata_dp
@@ -1589,10 +1576,6 @@ CONTAINS
     kge_q_avg = sum(kge_q(:), abs(kge_q - nodata_dp) .gt. eps_dp) / &
             real(count(abs(kge_q - nodata_dp) .gt. eps_dp), dp)
     deallocate(kge_q)
-#else
-    call message('***ERROR: objective_kge_q_rmse_tws: missing routing module for optimization')
-    stop 1
-#endif
 
     !
     objective_kge_q_rmse_tws = rmse_tws_avg * (1._dp - kge_q_avg)
@@ -1904,10 +1887,8 @@ CONTAINS
     use mo_message, only : message
     use mo_moment, only : correlation
     use mo_string_utils, only : num2str
-#ifdef MRM2MHM
     use mo_errormeasures, only : kge
     use mo_mrm_objective_function_runoff, only : extract_runoff
-#endif
 
     implicit none
 
@@ -1945,7 +1926,6 @@ CONTAINS
 
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 
-#ifdef MRM2MHM
     ! gauges counter
     integer(i4) :: gg
 
@@ -1959,7 +1939,6 @@ CONTAINS
 
     ! mask for measured runoff
     logical, dimension(:), allocatable :: runoff_obs_mask
-#endif
 
     ! run mHM
     allocate(smOptiSim(domainMeta%nDomains))
@@ -2018,7 +1997,6 @@ CONTAINS
     ! RUNOFF
     ! -----------------------------
     objective_kge = 0.0_dp
-#ifdef MRM2MHM
     nGaugesTotal = size(runoff, dim = 2)
 
     do gg = 1, nGaugesTotal
@@ -2036,11 +2014,6 @@ CONTAINS
 
     ! compromise solution - sixth root
     objective_kge = objective_kge**onesixth
-
-#else
-    call message('***ERROR: objective_kge_q_rmse_tws: missing routing module for optimization')
-    stop
-#endif
 
     ! equal weighted compromise objective functions for discharge and soilmoisture
     ! ToDo: why do we use the sixth root of of objective_sm and objective_kge
@@ -2094,9 +2067,7 @@ CONTAINS
     use mo_global_variables, only : L1_etObs
     use mo_message, only : message
     use mo_string_utils, only : num2str
-#ifdef MRM2MHM
     use mo_mrm_objective_function_runoff, only : extract_runoff
-#endif
 
     implicit none
 
@@ -2134,7 +2105,6 @@ CONTAINS
 
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 
-#ifdef MRM2MHM
     ! gauges counter
     integer(i4) :: gg
 
@@ -2148,7 +2118,6 @@ CONTAINS
 
     ! mask for measured runoff
     logical, dimension(:), allocatable :: runoff_obs_mask
-#endif
 
     ! run mHM
     allocate(etOptiSim(domainMeta%nDomains))
@@ -2208,7 +2177,6 @@ CONTAINS
     ! RUNOFF
     ! -----------------------------
     objective_q = 0.0_dp
-#ifdef MRM2MHM
     nGaugesTotal = size(runoff, dim = 2)
 
     do gg = 1, nGaugesTotal
@@ -2226,11 +2194,6 @@ CONTAINS
 
     ! compromise solution - sixth root
     objective_q = objective_q**onesixth
-
-#else
-    call message('***ERROR: objective_kge_q_et: missing routing module for optimization')
-    stop
-#endif
 
     ! equal weighted compromise objective functions for discharge and soilmoisture
     ! ToDo: why do we use the sixth root of of objective_sm and objective_kge
@@ -2287,10 +2250,8 @@ CONTAINS
     use mo_standard_score, only : classified_standard_score
     use mo_string_utils, only : num2str
     use mo_temporal_aggregation, only : day2mon_average
-#ifdef MRM2MHM
     use mo_errormeasures, only : kge
     use mo_mrm_objective_function_runoff, only : extract_runoff
-#endif
 
     implicit none
 
@@ -2346,7 +2307,6 @@ CONTAINS
     ! mask for valid et catchment avg time steps
     logical, dimension(:), allocatable :: mask_times
 
-#ifdef MRM2MHM
     ! rmse_et(domainMeta%nDomains)
     real(dp), dimension(:), allocatable :: kge_q
 
@@ -2363,7 +2323,6 @@ CONTAINS
 
     ! mask for measured runoff
     logical, dimension(:), allocatable :: runoff_obs_mask
-#endif
 
     ! obtain simulation values of runoff (hourly) and ET
     ! for ET only valid cells (domains concatenated)
@@ -2494,7 +2453,6 @@ CONTAINS
     !! RUNOFF
     !--------------------------------------------
     kge_q_avg = 0_dp
-#ifdef MRM2MHM
     nGaugesTotal = size(runoff, dim = 2)
     allocate(kge_q(nGaugesTotal))
     kge_q(:) = nodata_dp
@@ -2522,10 +2480,6 @@ CONTAINS
     kge_q_avg = sum(kge_q(:), abs(kge_q - nodata_dp) .gt. eps_dp) / &
             real(count(abs(kge_q - nodata_dp) .gt. eps_dp), dp)
     deallocate(kge_q)
-#else
-    call message('***ERROR: objective_kge_q_rmse_et: missing routing module for optimization')
-    stop
-#endif
 
     !
     objective_kge_q_rmse_et = rmse_et_avg * (1._dp - kge_q_avg)
@@ -2643,7 +2597,7 @@ CONTAINS
     end do
 
   end subroutine create_domain_avg_et
-  
+
   subroutine convert_tws_to_twsa(twsOptiSim, L1_twsaObs, twsaOptiSim)
     use mo_optimization_types, only : optidata_sim, optidata
     use mo_moment, only : average

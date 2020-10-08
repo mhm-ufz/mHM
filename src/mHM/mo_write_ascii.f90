@@ -97,14 +97,12 @@ CONTAINS
     use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_os, only : path_isdir
-#ifdef MRM2MHM
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : resolutionRouting
     use mo_common_variables, only : processMatrix
     use mo_mrm_global_variables, only : InflowGauge, L11_fromN, L11_label, L11_length, L11_netPerm, L11_rOrder, &
                                         L11_slope, L11_toN, L1_L11_ID, dirGauges, gauge, level11, nGaugesTotal, &
                                         nGaugesLocal, nInflowGaugesTotal, L11_nOutlets
-#endif
 
     implicit none
 
@@ -134,17 +132,14 @@ CONTAINS
     write(uconfig, 201) '         M A I N  mHM  C O N F I G U R A T I O N  I N F O R M A T I O N         '
     write(uconfig, 100)
     write(uconfig, 103) 'Number of domain            ', domainMeta%overallNumberOfDomains
-#ifdef MRM2MHM
     if (processMatrix(8, 1) > 0) then
       write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
     end if
-#endif
     write(uconfig, 103)    'Time Step [h]               ', timeStep
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       write(uconfig, 103) 'Domain  ', domainID, 'No. of cells L0             ', level0(domainMeta%L0DataFrom(iDomain))%nCells
       write(uconfig, 103) 'Domain  ', domainID, 'No. of cells L1             ', level1(iDomain)%nCells
-#ifdef MRM2MHM
       if (domainMeta%doRouting(iDomain)) then
         write(uconfig, 103) 'Total No. of nodes          ', level11(iDomain)%nCells
         write(uconfig, 103) 'Total No. of reaches        ', level11(iDomain)%nCells - 1
@@ -153,24 +148,18 @@ CONTAINS
           write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
         end if
       end if
-#endif
 
       select case (iFlag_cordinate_sys)
       case (0)
         write(uconfig, 301)      'Domain  ', domainID, '   Hydrology Resolution [m]      ', resolutionHydrology(iDomain)
-#ifdef MRM2MHM
         if (domainMeta%doRouting(iDomain)) then
           write(uconfig, 301)   'Domain  ', domainID, '   Routing Resolution [m]        ', resolutionRouting(iDomain)
         end if
-#endif
-       case(1)
+      case(1)
         write(uconfig, 302)       'Domain  ', domainID, '   Hydrology Resolution [o]      ', resolutionHydrology(iDomain)
-#ifdef MRM2MHM
         if (domainMeta%doRouting(iDomain)) then
           write(uconfig, 302)   'Domain  ', domainID, '   Routing Resolution [o]        ', resolutionRouting(iDomain)
         end if
-#endif
-
       end select
     end do
     write(uconfig, 126)    'Flag READ  restart            ', read_restart
@@ -223,7 +212,6 @@ CONTAINS
               i, global_parameters(i, 1), global_parameters(i, 2), global_parameters(i, 3), &
               trim(adjustl(global_parameters_name(i)))
     end do
-#ifdef MRM2MHM
     ! domain runoff data
     if (processMatrix(8, 1) > 0) then
       write(uconfig, 202) '                Domain Runoff Data                '
@@ -250,7 +238,7 @@ CONTAINS
         end if
       end do
     end if
-#endif
+
     ! domain config
     write(uconfig, 218) 'Domain-wise Configuration'
     do iDomain = 1, domainMeta%nDomains
@@ -265,18 +253,15 @@ CONTAINS
 
       write(uconfig, 224) 'Directory to morphological input         ', dirMorpho(iDomain)
       write(uconfig, 224) 'Directory to land cover input            ', dirLCover(iDomain)
-#ifdef MRM2MHM
       if (domainMeta%doRouting(iDomain)) then
         write(uconfig, 224) 'Directory to gauging station input       ', dirGauges(iDomain)
       end if
-#endif
       write(uconfig, 224) 'Directory to precipitation input         ', dirPrecipitation(iDomain)
       write(uconfig, 224) 'Directory to temperature input           ', dirTemperature(iDomain)
       write(uconfig, 224) 'Directory to reference ET input          ', dirReferenceET(iDomain)
       write(uconfig, 224) 'Directory to write output by default     ', dirOut(iDomain)
       write(uconfig, 224) 'File to write mHM output when restarted  ', mhmFileRestartOut(iDomain)
 
-#ifdef MRM2MHM
       if (domainMeta%doRouting(iDomain)) then
         write(uconfig, 102) 'River Network  (Routing level)'
         write(uconfig, 100) 'Label 0 = intermediate draining cell '
@@ -354,7 +339,6 @@ CONTAINS
         end do
         write(uconfig, 114)  ' Total[km2]', sum(level1(iDomain)%CellArea) *  1.0E-6_dp
       end if
-#endif
        !
     end do
 
@@ -433,7 +417,7 @@ CONTAINS
 
   ! Modifications:
   ! Rohini Kumar Aug 2013 - change in structure of the code including call statements
-  ! Juliane Mai  Oct 2013 - clear parameter names added 
+  ! Juliane Mai  Oct 2013 - clear parameter names added
   !                       - double precision written
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4

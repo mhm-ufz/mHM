@@ -113,8 +113,6 @@ module mo_common_variables
   end type GridRemapper
 
   type(GridRemapper), dimension(:), allocatable, public :: l0_l1_remap  ! grid information at morphological level (e.g., dem, fDir)
-  type(GridRemapper), dimension(:), allocatable, public :: l0_l11_remap ! grid information at morphological level (e.g., dem, fDir)
-  type(GridRemapper), dimension(:), allocatable, public :: l1_l11_remap ! grid information at morphological level (e.g., dem, fDir)
 
   ! -------------------------------------------------------------------
   ! L0 DOMAIN description -> <only domain>

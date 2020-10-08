@@ -421,9 +421,6 @@ contains
     use mo_common_variables, only : global_parameters, global_parameters_name, processMatrix
     use mo_message, only : message
     use mo_nml, only : close_nml, open_nml, position_nml
-#ifndef MRM2MHM
-    use mo_append, only : append
-#endif
 
     implicit none
 
@@ -436,11 +433,9 @@ contains
     ! file name id containing parameter namelist
     integer(i4), intent(in) :: unamelist_param
 
-#ifdef MRM2MHM
     ! equals sum of previous parameters
     integer(i4) :: start_index
 
-#endif
     real(dp), dimension(nColPars) :: muskingumTravelTime_constant
 
     real(dp), dimension(nColPars) :: muskingumTravelTime_riverLength
@@ -472,7 +467,6 @@ contains
        read(unamelist_param, nml = routing3)
     end if
 
-#ifdef MRM2MHM
     ! -------------------------------------------------------------------------
     ! INCLUDE MRM PARAMETERS IN PARAMETERS OF MHM
     ! -------------------------------------------------------------------------
@@ -517,48 +511,6 @@ contains
         global_parameters_name(start_index + 1 : start_index + processMatrix(8,2)) = (/ &
              'slope_factor'/)
     end if
-#else
-    ! Muskingum routing parameters with MPR
-    if (processCase .eq. 1_i4) then
-      processMatrix(8, 1) = processCase
-      processMatrix(8, 2) = 5_i4
-      processMatrix(8, 3) = processMatrix(8, 2)
-      ! set variables of mrm (redundant in case of coupling to mhm)
-      call append(global_parameters, reshape(muskingumTravelTime_constant, (/1, nColPars/)))
-      call append(global_parameters, reshape(muskingumTravelTime_riverLength, (/1, nColPars/)))
-      call append(global_parameters, reshape(muskingumTravelTime_riverSlope, (/1, nColPars/)))
-      call append(global_parameters, reshape(muskingumTravelTime_impervious, (/1, nColPars/)))
-      call append(global_parameters, reshape(muskingumAttenuation_riverSlope, (/1, nColPars/)))
-
-      call append(global_parameters_name, (/ &
-              'muskingumTravelTime_constant   ', &
-                      'muskingumTravelTime_riverLength', &
-                      'muskingumTravelTime_riverSlope ', &
-                      'muskingumTravelTime_impervious ', &
-                      'muskingumAttenuation_riverSlope'/))
-      ! adaptive timestep routing
-    else if (processCase .eq. 2_i4) then
-      processMatrix(8, 1) = processCase
-      processMatrix(8, 2) = 1_i4
-      processMatrix(8, 3) = processMatrix(8, 2)
-      ! set variables of mrm (redundant in case of coupling to mhm)
-      call append(global_parameters, reshape(streamflow_celerity, (/1, nColPars/)))
-
-
-      call append(global_parameters_name, (/ &
-              'streamflow_celerity'/))
-     ! adaptive timestep routing - varying celerity
-     else if (processCase .eq. 3_i4) then
-        processMatrix(8, 1) = processCase
-        processMatrix(8, 2) = 1_i4
-        processMatrix(8, 3) = processMatrix(8, 2)
-        ! set variables of mrm (redundant in case of coupling to mhm)
-        call append(global_parameters, reshape(slope_factor, (/1, nColPars/)))
-
-        call append(global_parameters_name, (/ &
-             'slope_factor'/))
-    end if
-#endif
 
     ! check if parameter are in range
     if (.not. in_bound(global_parameters)) then

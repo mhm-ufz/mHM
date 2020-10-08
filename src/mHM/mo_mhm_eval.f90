@@ -117,7 +117,6 @@ CONTAINS
                                         L1_wiltingPoint, nSoilHorizons_mHM
     use mo_restart, only : read_restart_states
     use mo_write_fluxes_states, only : OutputDataset
-#ifdef MRM2MHM
     use mo_common_constants, only : HourSecs
     use mo_common_mHM_mRM_variables, only : resolutionRouting
     use mo_common_variables, only : resolutionHydrology
@@ -134,7 +133,6 @@ CONTAINS
     use mo_mrm_write, only : mrm_write_output_fluxes
     use mo_utils, only : ge
     use mo_mrm_river_head, only: calc_river_head, avg_and_write_timestep
-#endif
 #ifdef pgiFortran154
     use mo_write_fluxes_states, only : newOutputDataset
 #endif
@@ -198,7 +196,6 @@ CONTAINS
     ! calculations
     type(datetimeinfo) :: domainDateTime
 
-#ifdef MRM2MHM
     integer(i4) :: jj
 
     ! discharge timestep
@@ -231,7 +228,6 @@ CONTAINS
     ! flag for performing routing
     logical :: do_rout
 
-#endif
     integer(i4) :: gg
 
     ! number of domains simulated in this mhm_eval run. Depends on opti_function
@@ -272,7 +268,6 @@ CONTAINS
       call variables_default_init()
       call mpr_eval(parameterset)
 
-#ifdef MRM2MHM
        if (processMatrix(8, 1) > 0) then
         !-------------------------------------------
         ! L11 ROUTING STATE VARIABLES, FLUXES AND
@@ -280,7 +275,6 @@ CONTAINS
         !-------------------------------------------
         call variables_default_init_routing()
       end if
-#endif
     else
       do ii = 1, nDomains
         if (optimize .and. present(opti_domain_indices)) then
@@ -322,7 +316,6 @@ CONTAINS
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
 
-#ifdef MRM2MHM
       if (domainMeta%doRouting(iDomain)) then
         ! ----------------------------------------
         ! initialize factor between routing resolution and hydrologic model resolution
@@ -354,7 +347,6 @@ CONTAINS
           call riv_temp_pcs%alloc_lateral(nCells)
         end if
       end if
-#endif
 
       ! init datetime variable
       call domainDateTime%init(iDomain)
@@ -478,7 +470,6 @@ CONTAINS
                 L1_wiltingPoint(s1 : e1, :, domainDateTime%yId)) ! INOUT E1
 
         ! call mRM routing
-#ifdef MRM2MHM
         if (domainMeta%doRouting(iDomain)) then
           ! set discharge timestep
           iDischargeTS = ceiling(real(tt, dp) / real(nTstepDay, dp))
@@ -653,8 +644,6 @@ CONTAINS
             if (tsRoutFactor .lt. 1._dp .and. riv_temp_pcs%active ) call riv_temp_pcs%reset_timestep()
           end if
         end if
-#endif
-
 
         ! output only for evaluation period
         domainDateTime%tIndex_out = (tt - warmingDays(iDomain) * nTstepDay) ! tt if write out of warming period
@@ -662,7 +651,6 @@ CONTAINS
         call domainDateTime%increment()
 
         if (.not. optimize) then
-#ifdef MRM2MHM
           if (any(outputFlxState_mrm)) then
             call mrm_write_output_fluxes( &
               iDomain, & ! Domain id
@@ -673,7 +661,6 @@ CONTAINS
               L11_qmod(s11 : e11) & ! output variables
             )
           end if
-#endif
 
         if ((any(outputFlxState)) .and. (domainDateTime%tIndex_out > 0_i4)) then
 
@@ -822,21 +809,18 @@ CONTAINS
       end do TimeLoop !<< TIME STEPS LOOP
 
       if (allocated(InflowDischarge)) deallocate(InflowDischarge)
-#ifdef MRM2MHM
        if (domainMeta%doRouting(iDomain)) then
         ! clean runoff variable
         deallocate(RunToRout)
         if ( riv_temp_pcs%active ) call riv_temp_pcs%dealloc_lateral()
       end if
-#endif
 
     end do DomainLoop !<< Domain LOOP
-#ifdef MRM2MHM
+
     ! =========================================================================
     ! SET RUNOFF OUTPUT VARIABLE
     ! =========================================================================
     if (present(runoff) .and. (processMatrix(8, 1) > 0)) runoff = mRM_runoff
-#endif
 
   end SUBROUTINE mhm_eval
 
