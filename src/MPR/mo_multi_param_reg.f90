@@ -119,6 +119,7 @@ contains
   ! Demirel M.C. & S. Stisen Apr 2017 - Added FC dependency on root fraction coefficient at SM process(3)
   ! Robert Schweppe          Dec 2017 - added loop over LCscenes inside MPR, renamed variables rewrite
   ! Robert Schweppe          Jun 2018 - refactoring and reformatting
+  ! Demirel M.C. & S. Stisen Jun 2020 - Added Feddes and global FC dependency on root fraction coefficient at SM process(3)=4
 
   subroutine mpr(mask0, geoUnit0, soilId0, Asp0, gridded_LAI0, LCover0, slope_emp0, y0, Id0, upper_bound1, lower_bound1, &
                 left_bound1, right_bound1, n_subcells1, fSealed1, alpha1, degDayInc1, degDayMax1, degDayNoPre1, fAsp1, &
@@ -457,21 +458,38 @@ contains
         ! (the first three for the fRoots and the fourth one for the beta)
         iStart2 = processMatrix(3, 3) - 5 + 1
         iEnd2 = processMatrix(3, 3) - 1
-
         ! last parameter is jarvis parameter - no need to be regionalized
         jarvis_thresh_c1 = param(processMatrix(3, 3))
+        !write(*,*) 'jarvis_thresh_c1 = ', jarvis_thresh_c1
+        !write(*,*) 'iStart, iEnd, iStart2, iEnd2 = ', iStart, iEnd, iStart2, iEnd2
+
       case(3)
         ! first thirteen parameters go to this routine
         iStart = processMatrix(3, 3) - processMatrix(3, 2) + 1
-        iEnd = processMatrix(3, 3) - 7
+        iEnd = processMatrix(3, 3) - 9
 
         ! next four parameters go here
         ! (the first three for the fRoots and the fourth one for the beta)
-        iStart2 = processMatrix(3, 3) - 7 + 1
+        iStart2 = processMatrix(3, 3) - 8
         iEnd2 = processMatrix(3, 3) - 1
 
         ! last parameter is jarvis parameter - no need to be regionalized
         jarvis_thresh_c1 = param(processMatrix(3, 3))
+
+        !write(*,*) 'iStart, iEnd, iStart2, iEnd2 = ', iStart, iEnd, iStart2, iEnd2
+        !write(*,*) 'jarvis_thresh_c1 = ', jarvis_thresh_c1
+
+      case(4)
+        ! first thirteen parameters go to this routine
+        iStart = processMatrix(3, 3) - processMatrix(3, 2) + 1
+        iEnd = processMatrix(3, 3) - 8
+
+        ! next four parameters go here
+        ! (the first three for the fRoots and the fourth one for the beta)
+        iStart2 = processMatrix(3, 3) - 7
+        iEnd2 = processMatrix(3, 3)
+        !write(*,*) 'iStart, iEnd, iStart2, iEnd2 = ', iStart, iEnd, iStart2, iEnd2
+
       case DEFAULT
         call message()
         call message('***ERROR: Process description for process "soil moisture parametrization"', &
@@ -479,7 +497,7 @@ contains
         stop 1
       end select
 
-      call mpr_sm(param(iStart : iEnd), &
+      call mpr_sm(param(iStart : iEnd), processMatrix, &
               soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons, &
               soilDB%sand, soilDB%clay, soilDB%DbM, &
               Id0, soilId0, LCover0(:, iiLC), &

@@ -35,7 +35,7 @@ MODULE mo_global_variables
   !           Oldrich Rakovec,    Oct 2015 - added definition of Domain averaged TWS data
   !           Rohini Kumar,       Mar 2016 - new variables for handling different soil databases
   !           Johann Brenner,     Feb 2017 - added optional evapotranspiration readin: dirEvapotranspiration, L1_et
-  !           Zink M. Demirel C., Mar 2017 - added Jarvis soil water stress variable for SM process(3) 
+  !           Zink M. Demirel C., Mar 2017 - added Jarvis soil water stress variable for SM process(3)
   !           Demirel M.C.        May 2017 - added L1_petLAIcorFactor for PET correction
   !           O. Rakovec, R.Kumar Nov 2017 - added project description for the netcdf outputs
   !           Robert Schweppe,    Dec 2017 - expanded dimensions of effective parameters
@@ -74,6 +74,8 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirabsVapPressure  ! Directory where abs. vap. pressure files are located
   character(256), dimension(:), allocatable, public :: dirwindspeed       ! Directory where windspeed files are located
   character(256), dimension(:), allocatable, public :: dirReferenceET     ! Directory where reference-ET files are located
+  ! riv-temp releated
+  character(256), dimension(:), allocatable, public :: dirRadiation       ! Directory where short/long-wave rad. files are located
 
   ! ------------------------------------------------------------------
   ! CONSTANT
@@ -102,6 +104,11 @@ MODULE mo_global_variables
   real(dp), public, dimension(:, :), allocatable :: L1_netrad        ! [W m2]  net radiation
   real(dp), public, dimension(:, :), allocatable :: L1_absvappress   ! [Pa]    absolute vapour pressure
   real(dp), public, dimension(:, :), allocatable :: L1_windspeed     ! [m s-1] windspeed
+  ! riv-temp related
+  real(dp), public, dimension(:, :), allocatable :: L1_ssrd          ! [W m2]  short wave radiation
+  real(dp), public, dimension(:, :), allocatable :: L1_strd          ! [W m2]  long wave radiation
+  real(dp), public, dimension(:, :), allocatable :: L1_tann          ! [degC]  annual mean air temperature
+
 
   ! soil moisture
   real(dp), public, dimension(:, :), allocatable :: L1_sm                  ! [-] soil moisture input for optimization
@@ -123,7 +130,7 @@ MODULE mo_global_variables
                                                               ! observerd data, and the
                                                               ! timestepInput of the simulated data
                                                               ! ToDo: add unit
-                                                              
+
 
   ! State variables
   ! dim1 = number grid cells L1
@@ -168,6 +175,10 @@ MODULE mo_global_variables
   real(dp), public, dimension(int(YearMonths, i4)) :: fnight_pet     ! [-] Night ratio PET  < 1
   real(dp), public, dimension(int(YearMonths, i4)) :: fday_temp      ! [-] Day factor mean temp
   real(dp), public, dimension(int(YearMonths, i4)) :: fnight_temp    ! [-] Night factor mean temp
+  real(dp), public, dimension(int(YearMonths, i4)) :: fday_ssrd      ! [-] Day factor short-wave rad.
+  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_ssrd    ! [-] Night factor short-wave rad.
+  real(dp), public, dimension(int(YearMonths, i4)) :: fday_strd      ! [-] Day factor long-wave rad.
+  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_strd    ! [-] Night factor long-wave rad.
 
   ! -------------------------------------------------------------------
   ! AUXILIARY VARIABLES

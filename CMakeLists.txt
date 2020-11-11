@@ -2,8 +2,59 @@
 # For special setups use cache line files or command line options, as described a few
 # lines ahead concerning module INDEPENDENT builds
 cmake_minimum_required(VERSION 3.5)
+# check version file
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt")
+	file(STRINGS "version.txt" MHMVERSION LIMIT_COUNT 1)
+else()
+	set(MHMVERSION "0.0.0-dev0") # default version
+endif()
 
-project(mhm Fortran)
+# version should be of the form (semver.org):
+# - 1.2.3-dev0 (development with number)
+# - 1.2.3-rc1  (release candidate with number)
+# - 1.2.3      (release)
+# remove possible "v" prefix and find major.minor.patch version
+string(REGEX MATCH "^v?([0-9]+)" _ ${MHMVERSION})
+set(ver_major ${CMAKE_MATCH_1})
+string(REGEX MATCH "^v?[0-9]+\.([0-9]+)" _ ${MHMVERSION})
+set(ver_minor ${CMAKE_MATCH_1})
+string(REGEX MATCH "^v?[0-9]+\.[0-9]+\.([0-9]+)" _ ${MHMVERSION})
+set(ver_patch ${CMAKE_MATCH_1})
+# find pre-release tag
+string(REGEX MATCH ".*-(.+)" _ ${MHMVERSION})
+set(ver_pre ${CMAKE_MATCH_1})
+
+# create the version string for cmake (fill up with 0)
+if ("${ver_major}" STREQUAL "")
+	set(ver_major 0) # default version
+endif()
+if ("${ver_minor}" STREQUAL "")
+	set(ver_minor 0) # default version
+endif()
+if ("${ver_patch}" STREQUAL "")
+	set(ver_patch 0) # default version
+endif()
+set(ver_final ${ver_major}.${ver_minor}.${ver_patch}) # full version
+
+# check date file (if not a development version)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/version_date.txt" AND (NOT (${ver_pre} MATCHES "^dev.*")))
+	file(STRINGS "version_date.txt" MHMDATE LIMIT_COUNT 1)
+else()
+	string(TIMESTAMP MHMDATE "%Y-%m-%d") # current date
+endif()
+
+# create the project
+project(mhm
+        VERSION ${ver_final}
+        DESCRIPTION "The mesoscale Hydrological Model"
+        HOMEPAGE_URL "https://www.ufz.de/mhm"
+        LANGUAGES Fortran)
+message("mhm VERSION: ${mhm_VERSION} (from ${MHMVERSION})")
+message("mhm DATE:    ${MHMDATE}")
+# add version to pre-processor flags (qoutes need in before hand)
+add_compile_definitions(MHMVERSION=\"${MHMVERSION}\")
+# add date to pre-processor flags (qoutes need in before hand)
+add_compile_definitions(MHMDATE=\"${MHMDATE}\")
 
 # The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT" can be set before executing cmake via a cache command:
 # $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
@@ -27,6 +78,8 @@ set(CMAKE_WITH_MPI OFF CACHE STRING "build the module with MPI, so it can be exe
 set(CMAKE_WITH_OpenMP OFF CACHE STRING "build the module with OpenMP parallelization")
 # same with lapack
 set(CMAKE_WITH_LAPACK OFF CACHE STRING "build the module with lapack library")
+# same with coverage
+set(CMAKE_WITH_COVERAGE OFF CACHE STRING "build the module with gcov coverage support")
 
 # additional cmake-modules created for the purpose of finding netCDF or other libraries ly in the source_directory in
 # a folder named cmake-modules. This command tells cmake to search there for Find<module>.cmake files
@@ -72,7 +125,7 @@ endif()
 
 include_directories(${NETCDF_INCLUDES} ${MPI_Fortran_INCLUDE_PATH} ${OpenMP_Fortran_LIBRARY})
 
-# ifort and gfortran need the flag -cpp to interpret definitions like -DMRM2MHM
+# ifort and gfortran need the flag -cpp to interpret pre-processor directives
 # the nag compiler is not able to interpret the flag -cpp but can interpret these definitions anyway
 # so we check whether the compiler is able to use the flag -cpp
 # for that we need the module CheckFortranCompilerFlag
@@ -104,10 +157,7 @@ if (FPP_FLAG)
 	set(ADDITIONAL_GCC_FLAGS "-fpp")
 endif()
 
-# Add definitions. These should later be set via the cache line file and only
-# have a default value here. These part only concerns user build definitions like MRM2MHM
-#add_definitions(-DMRM2MHM=.true.)
-cpp_definitions("-DMRM2MHM" "CMAKE_MRM2MHM" "ON" "If set to ON the model runs with mRM")
+# Add definitions. These should later be set via the cache line file and only have a default value here.
 cpp_definitions("-DpgiFortran" "CMAKE_pgiFortran" "OFF" "Code exchange for pgi compiler dependent issues")
 cpp_definitions("-DMPR_STANDALONE" "CMAKE_MPR_STANDALONE" "OFF" "If set to ON, only MPR is compiled")
 cpp_definitions("-DABSOFT" "CMAKE_ABSOFT" "OFF" "Documentation to be added. If you you are developer, you might edit this string in CMakeLists.txt")
@@ -132,16 +182,27 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
 	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized")
 	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3")
 	cpp_definitions("-DGFORTRAN" "CMAKE_GFORTRAN" "ON" "Code exchange for gfortran compiler dependent issues")
+	if (CMAKE_WITH_COVERAGE)
+		include(CodeCoverage)
+		APPEND_COVERAGE_COMPILER_FLAGS()
+		SETUP_TARGET_FOR_COVERAGE_LCOV(NAME mhm_coverage_CI
+			EXECUTABLE ../CI-scripts/run_cmake_coverage.sh
+			DEPENDENCIES mhm
+			EXCLUDE src/lib/*
+			GENHTML_ARGS -t "mHM coverage" --html-prolog ../doc/html_files/cov_header.prolog)
+	endif()
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -nofixed -assume byterecl -fp-model source -m64 -assume realloc-lhs ") # precise -> source: suppress warning, computation identical
 	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -warn all -g -debug -traceback -fp-stack-check -O0 -debug -check all")
 	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -qoverride-limits")
+	cpp_definitions("-DINTEL" "CMAKE_INTEL" "ON" "Code exchange for intel compiler dependent issues")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -colour -unsharedf95 -ideclient")
 	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -g -nan -O0 -C=all -strict95 -ieee=stop")
 	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O4 -ieee=full")
+	cpp_definitions("-DNAG" "CMAKE_NAG" "ON" "Code exchange for NAG compiler dependent issues")
 endif()
 message(STATUS "the following debug flags will be used: ${CMAKE_Fortran_FLAGS_DEBUG}")
 # Usually that works fine, except, one is on a module system and tries to execute the executable
@@ -161,4 +222,3 @@ endif()
 # hand, only for the test domains the executable would not be copied or linked to a predictable location. So it may be a good
 # idea to not copy it with the cmake setup
 #add_custom_target(link_namelists ALL "${CMAKE_COMMAND}" -E create_symlink "${CMAKE_CURRENT_SOURCE_DIR}/mhm.nml" "${CMAKE_CURRENT_BINARY_DIR}/mhm.nml")
-

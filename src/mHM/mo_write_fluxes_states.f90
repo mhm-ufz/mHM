@@ -505,10 +505,10 @@ contains
   !>       \date Apr 2013
 
   ! Modifications:
-  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014 
-  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014 
-  !                              - adding new variable infilSoil 
-  !                              - case 16 David Schaefer      , Jun. 2015 
+  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014
+  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014
+  !                              - adding new variable infilSoil
+  !                              - case 16 David Schaefer      , Jun. 2015
   !                              - major rewrite
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
@@ -912,7 +912,7 @@ contains
 
     real(dp), allocatable, dimension(:) :: easting, northing
 
-    real(dp), allocatable, dimension(:) :: lat1d, lon1d    ! 1D lat lon vectors. Used if coordinate system is lat & lon 
+    real(dp), allocatable, dimension(:) :: lat1d, lon1d    ! 1D lat lon vectors. Used if coordinate system is lat & lon
 
     real(dp), allocatable, dimension(:, :) :: lat2d, lon2d ! temporary storage of mHM's 2D latlon array.
                                                            ! Used as 2d lat lon arrays if coordinate system is X & Y
@@ -924,7 +924,7 @@ contains
     nc = NcDataset(trim(fname), "w")
 
     ! set the horizonal dimensions
-    if (iFlag_cordinate_sys == 0) then 
+    if (iFlag_cordinate_sys == 0) then
 
       ! X & Y coordinate system; 2D lat lon!
       !============================================================
@@ -938,23 +938,23 @@ contains
       ! northing
       var = nc%setVariable("northing", "f64", (/ dimids1(2) /))
       call var%setData(northing)
-      call var%setAttribute("units", "m or deg. dec.")
+      call var%setAttribute("units", "m or degrees_north")
       call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
       ! easting
       var = nc%setVariable("easting", "f64", (/ dimids1(1) /))
       call var%setData(easting)
-      call var%setAttribute("units", "m or deg. dec.")
+      call var%setAttribute("units", "m or degrees_north")
       call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
       ! lon
       var = nc%setVariable("lon", "f64", dimids1(1 : 2))
       call var%setData(lon2d)
-      call var%setAttribute("units", "deg. dec.")
+      call var%setAttribute("units", "degrees_east")
       call var%setAttribute("long_name", "longitude")
       call var%setAttribute("missing_value", nodata_dp)
       ! lat
       var = nc%setVariable("lat", "f64", dimids1(1 : 2))
       call var%setData(lat2d)
-      call var%setAttribute("units", "deg. dec.")
+      call var%setAttribute("units", "degrees_north")
       call var%setAttribute("long_name", "latitude")
       call var%setAttribute("missing_value", nodata_dp)
 
@@ -1044,7 +1044,7 @@ contains
 
 
     call var%nc%setAttribute("long_name", long_name)
-    call var%nc%setAttribute("unit", unit)
+    call var%nc%setAttribute("units", unit)
     call var%nc%setAttribute("scale_factor", 1.0_dp)
     call var%nc%setAttribute("missing_value", nodata_dp)
     call var%nc%setAttribute("coordinates", "lat lon")

@@ -6,9 +6,16 @@
 
 stages:
   - info
-  - cmake
+  - build
   - valgrind
   - test
+  - coverage
+  - deploy
+
+cache:
+  # Required to keep artifacts from old builds, e.g. from master/develop
+  paths:
+    - public
 
 show-env-vars:
   stage: info
@@ -26,8 +33,32 @@ show-env-vars:
   script:
     - echo -e "${SEP}\n${S00}$(date)\n${SEP}\n${S01}\n${S02}\n${S03}\n${S04}\n${SEP}\n${S05}${GIT_CLONE_PATH}\n${S06}\n${SEP}"
 
+documentation:
+  stage: build
+  script:
+    - module load foss/2019b
+    - module load texlive/2019
+    - module load Graphviz/2.42.2
+    - module load Anaconda3
+    - source activate /global/apps/mhm_checks/mhm_env
+    # use doxygen from the mhm_env conda environment
+    - doxygen doc/doxygen.config > doxygen_log.txt
+    # create pdf documentation
+    - cd latex/ && make > ../doxygen_latex.txt
+    - cp refman.pdf ../html/mhm_doc.pdf
+    - cp refman.pdf ../mhm_doc.pdf
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME"
+    paths:
+      - html
+      - mhm_doc.pdf
+      - doxygen_log.txt
+      - doxygen_latex.txt
+      - doxygen_warn.txt
+  when: always
+
 cmake-nag62:
-  stage: cmake
+  stage: build
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
@@ -40,7 +71,7 @@ cmake-nag62:
     - mhm_debug
 
 cmake-gcc73:
-  stage: cmake
+  stage: build
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
@@ -57,7 +88,7 @@ cmake-gcc73:
     - mhm_openmp_debug
 
 cmake-gcc73MPI:
-  stage: cmake
+  stage: build
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
@@ -70,7 +101,7 @@ cmake-gcc73MPI:
     - mhm_mpi_debug
 
 cmake-gcc83:
-  stage: cmake
+  stage: build
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
@@ -87,7 +118,7 @@ cmake-gcc83:
     - mhm_openmp_debug
 
 cmake-gcc83MPI:
-  stage: cmake
+  stage: build
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
@@ -100,7 +131,7 @@ cmake-gcc83MPI:
     - mhm_mpi_debug
 
 cmake-intel18:
-  stage: cmake
+  stage: build
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
@@ -117,7 +148,7 @@ cmake-intel18:
     - mhm_openmp_debug
 
 cmake-intel18MPI:
-  stage: cmake
+  stage: build
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
@@ -129,6 +160,79 @@ cmake-intel18MPI:
     - mhm_mpi
     - mhm_mpi_debug
 
+cmake-intel20:
+  stage: build
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source moduleLoadScripts/eve.intel20
+    - source CI-scripts/compile
+    - source CI-scripts/compile_debug
+    - source CI-scripts/compile_OpenMP
+    - source CI-scripts/compile_OpenMP_debug
+  artifacts:
+    paths:
+    - mhm
+    - mhm_debug
+    - mhm_openmp
+    - mhm_openmp_debug
+
+cmake-intel20MPI:
+  stage: build
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  script:
+    - source moduleLoadScripts/eve.intel20MPI
+    - source CI-scripts/compile_MPI
+    - source CI-scripts/compile_MPI_debug
+  artifacts:
+    paths:
+    - mhm_mpi
+    - mhm_mpi_debug
+
+# only check latest compiler versions with valgrind
+# valgrind-gcc73:
+#   when: always
+#   stage: valgrind
+#   variables:
+#     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+#   needs:
+#     - job: cmake-gcc73
+#       artifacts: true
+#   script:
+#     - source moduleLoadScripts/eve.gcc73
+#     - module load Anaconda3
+#     - source activate /global/apps/mhm_checks/mhm_env
+#     - valgrind --version
+#     - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
+#     # execute mem-use check
+#     - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
+#     - ms_print massif.out.0
+#   artifacts:
+#     paths:
+#     - massif.out.0
+#
+# valgrind-intel18:
+#   when: always
+#   stage: valgrind
+#   variables:
+#     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+#   needs:
+#     - job: cmake-intel18
+#       artifacts: true
+#   script:
+#     - source moduleLoadScripts/eve.intel18
+#     - module load Anaconda3
+#     - source activate /global/apps/mhm_checks/mhm_env
+#     - valgrind --version
+#     - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
+#     # execute mem-use check
+#     - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
+#     - ms_print massif.out.0
+#   artifacts:
+#     paths:
+#     - massif.out.0
+
 valgrind-nag62:
   when: always
   stage: valgrind
@@ -139,27 +243,6 @@ valgrind-nag62:
       artifacts: true
   script:
     - source moduleLoadScripts/eve.nag62
-    - module load Anaconda3
-    - source activate /global/apps/mhm_checks/mhm_env
-    - valgrind --version
-    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
-    # execute mem-use check
-    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
-    - ms_print massif.out.0
-  artifacts:
-    paths:
-    - massif.out.0
-
-valgrind-gcc73:
-  when: always
-  stage: valgrind
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
-  needs:
-    - job: cmake-gcc73
-      artifacts: true
-  script:
-    - source moduleLoadScripts/eve.gcc73
     - module load Anaconda3
     - source activate /global/apps/mhm_checks/mhm_env
     - valgrind --version
@@ -192,16 +275,16 @@ valgrind-gcc83:
     paths:
     - massif.out.0
 
-valgrind-intel18:
+valgrind-intel20:
   when: always
   stage: valgrind
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
-    - job: cmake-intel18
+    - job: cmake-intel20
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.intel18
+    - source moduleLoadScripts/eve.intel20
     - module load Anaconda3
     - source activate /global/apps/mhm_checks/mhm_env
     - valgrind --version
@@ -349,3 +432,89 @@ check-intel18MPI:
     when: always
     paths:
     - check/logs/
+
+check-intel20:
+  when: always
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-intel20
+      artifacts: true
+  script:
+    - source moduleLoadScripts/eve.intel20
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
+
+check-intel20MPI:
+  when: always
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-intel20MPI
+      artifacts: true
+  script:
+    - source moduleLoadScripts/eve.intel20MPI
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
+
+coverage-gcc73:
+  when: always
+  stage: coverage
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: check-gcc73
+  script:
+    # gcov is part of GCC
+    - source moduleLoadScripts/eve.gcc73
+    # we need lcov from the conda environment to create html sites
+    - module load Anaconda3
+    - source activate /global/apps/mhm_checks/mhm_env
+    # create build folder
+    - mkdir build && cd build
+    # run cmake with coverage support
+    - cmake -DCMAKE_WITH_COVERAGE:STRING=ON ..
+    # run all check-case for coverage calculation
+    - make mhm_coverage_CI
+    # copy the output to a top-level folder
+    - cd .. && mkdir coverage
+    - cp build/mhm_coverage_CI/* coverage -R
+  artifacts:
+    when: always
+    paths:
+    - coverage
+
+pages:
+  stage: deploy
+  dependencies:
+    - documentation
+    - coverage-gcc73
+  script:
+    # create public dir if not already present
+    - mkdir -p public
+    # remove the branch specific subdir if present
+    - rm -rf public/$CI_COMMIT_REF_NAME/
+    # recreate the subdir
+    - mkdir public/$CI_COMMIT_REF_NAME/
+    # copy the doxygen generated html page to the public site
+    - cp html/* public/$CI_COMMIT_REF_NAME/ -R
+    # create an index.html that redirects to the master documentation (in master folder)
+    - cp doc/html_files/index.html public/
+    # create the coverage site
+    - mkdir -p public/$CI_COMMIT_REF_NAME/coverage
+    - cp coverage/* public/$CI_COMMIT_REF_NAME/coverage/ -R
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME"
+    paths:
+      - public
+  when: always

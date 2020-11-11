@@ -113,8 +113,6 @@ module mo_common_variables
   end type GridRemapper
 
   type(GridRemapper), dimension(:), allocatable, public :: l0_l1_remap  ! grid information at morphological level (e.g., dem, fDir)
-  type(GridRemapper), dimension(:), allocatable, public :: l0_l11_remap ! grid information at morphological level (e.g., dem, fDir)
-  type(GridRemapper), dimension(:), allocatable, public :: l1_l11_remap ! grid information at morphological level (e.g., dem, fDir)
 
   ! -------------------------------------------------------------------
   ! L0 DOMAIN description -> <only domain>
@@ -133,7 +131,7 @@ module mo_common_variables
   type(MPI_Comm)      :: comm                ! MPI communicator
 #endif
   ! -------------------------------------------------------------------
-  ! 
+  !
   ! -------------------------------------------------------------------
   ! DOMAIN general description
   ! -------------------------------------------------------------------
@@ -175,7 +173,7 @@ module mo_common_variables
   ! -------------------------------------------------------------------
   ! PROCESSES description
   ! -------------------------------------------------------------------
-  integer(i4), parameter, public :: nProcesses = 10 ! Number of possible processes to consider
+  integer(i4), parameter, public :: nProcesses = 11 ! Number of possible processes to consider
   !                                                                !   process 1 :: interception
   !                                                                !   process 2 :: snow
   !                                                                !   process 3 :: soilmoisture
@@ -186,6 +184,7 @@ module mo_common_variables
   !                                                                !   process 8 :: routing
   !                                                                !   process 9 :: baseflow
   !                                                                !   process 10:: neutrons
+  !                                                                !   process 11:: river temperature routing
   integer(i4), dimension(nProcesses, 3), public :: processMatrix   ! Info about which process runs in which option and
   !                                                                ! number of parameters necessary for this option
   !                                                                !   col1: process_switch

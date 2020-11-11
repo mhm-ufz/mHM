@@ -51,10 +51,6 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
-#ifndef MRM2MHM
-    use mo_common_constants, only : nodata_dp
-    use mo_mpr_global_variables, only: L0_slope
-#endif
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : Grid, L0_LCover, dirMorpho, level0, domainMeta, processMatrix
     use mo_mpr_file, only: file_slope, uslope
@@ -85,10 +81,6 @@ contains
     integer(i4) :: nunit
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
-
-#ifndef MRM2MHM
-    real(dp), dimension(:, :), allocatable :: data_dp_2d
-#endif
 
     integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
 
@@ -156,7 +148,7 @@ contains
           nunit = uslope
        end select
 
-       if (iVar .le. 3) then
+       if (iVar .le. 2) then
           !
           ! reading and transposing
           call read_spatial_data_ascii(trim(fName), nunit, &
@@ -167,22 +159,22 @@ contains
           data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
        end if
 
-#ifndef MRM2MHM
-       ! only read slope if not coupled to mHM and using third process Matrix
-       if ((iVar .eq. 4) .and. (processMatrix(8, 1) .eq. 3)) then
-          ! reading
-          call read_spatial_data_ascii(trim(fName), nunit, &
-               level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
-               level0_iDomain%yllcorner, level0_iDomain%cellsize, data_dp_2d, mask_2d)
-          ! put global nodata value into array (probably not all grid cells have values)
-          data_dp_2d = merge(data_dp_2d, nodata_dp, mask_2d)
-          ! put data in variable
-          call append(L0_slope, pack(data_dp_2d, level0_iDomain%mask))
+       if (iVar .eq. 3) then
+          if (domain_mrm(iDomain)%nGauges .ge. 1_i4) then
+             !
+             ! reading and transposing
+             call read_spatial_data_ascii(trim(fName), nunit, &
+                  level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+                  level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
 
-          ! deallocate arrays
-          deallocate(data_dp_2d, mask_2d)
+             ! put global nodata value into array (probably not all grid cells have values)
+             data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+
+          else
+             ! set to nodata, but not ommit because data association between arrays and domains might break
+             data_i4_2d = merge(nodata_i4, nodata_i4, level0_iDomain%mask)
+          end if
        end if
-#endif
 
         ! put data into global L0 variable
         select case (iVar)
@@ -270,7 +262,8 @@ contains
     use mo_message, only : message
     use mo_mrm_file, only : udischarge
     use mo_mrm_global_variables, only : InflowGauge, gauge, mRM_runoff, nGaugesLocal, &
-                                        nInflowGaugesTotal, nMeasPerDay
+                                        nInflowGaugesTotal, nMeasPerDay, &
+                                        riv_temp_pcs
     use mo_read_timeseries, only : read_timeseries
     use mo_string_utils, only : num2str
 
@@ -314,6 +307,7 @@ contains
       data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
       call paste(gauge%Q, data_dp_1d, nodata_dp)
       deallocate (data_dp_1d)
+      ! TODO-RIV-TEMP: read temperature at gauge
     end do
     !
     ! inflow gauge
@@ -384,7 +378,7 @@ contains
     use mo_common_variables, only : ALMA_convention, level1
     use mo_mrm_global_variables, only : L1_total_runoff_in, dirTotalRunoff, filenameTotalRunoff, &
                                         varnameTotalRunoff
-    use mo_read_forcing_nc, only : read_forcing_nc
+    use mo_read_nc, only : read_nc
 
     implicit none
 
@@ -406,7 +400,7 @@ contains
 
     if (timestep .eq. 1) nctimestep = -4 ! hourly input
     if (timestep .eq. 24) nctimestep = -1 ! daily input
-    call read_forcing_nc(trim(dirTotalRunoff(iDomain)), level1(iDomain)%nrows, level1(iDomain)%ncols, &
+    call read_nc(trim(dirTotalRunoff(iDomain)), level1(iDomain)%nrows, level1(iDomain)%ncols, &
             varnameTotalRunoff, level1(iDomain)%mask, L1_data, target_period = simPer(iDomain), &
             nctimestep = nctimestep, filename = filenameTotalRunoff)
     ! pack variables
@@ -444,7 +438,7 @@ contains
 
   !>         \details reads the bankfull runoff, which can be calculated with
   !>         the script in mhm/post_proc/bankfull_discharge.py
-  
+
   !     INTENT(IN)
   !>        \param[in] "integer(i4)               :: iDomain"  domain id
 
@@ -481,7 +475,7 @@ contains
   !         \date    May 2018
 
     use mo_mrm_global_variables, only: level11
-    use mo_read_forcing_nc, only: read_const_forcing_nc
+    use mo_read_nc, only: read_const_nc
     use mo_mrm_global_variables, only: &
          dirBankfullRunoff, &   ! directory of bankfull_runoff file for each domain
          L11_bankfull_runoff_in ! bankfull runoff at L1
@@ -492,14 +486,13 @@ contains
     integer(i4), intent(in) :: iDomain
 
     ! local variables
-    logical, dimension(:,:), allocatable :: mask
     real(dp), dimension(:,:), allocatable :: L11_data ! read data from file
     real(dp), dimension(:), allocatable :: L11_data_packed
 
-    call read_const_forcing_nc(trim(dirBankfullRunoff(iDomain)), &
+    call read_const_nc(trim(dirBankfullRunoff(iDomain)), &
                                level11(iDomain)%nrows, &
                                level11(iDomain)%ncols, &
-                               "Q_bkfl", mask, L11_data)
+                               "Q_bkfl", L11_data)
 
     allocate(L11_data_packed(level11(iDomain)%nCells))
     L11_data_packed(:) = pack(L11_data(:,:), mask=level11(iDomain)%mask)

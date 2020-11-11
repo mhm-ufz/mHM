@@ -51,7 +51,7 @@ contains
   ! Robert Schweppe   Jun 2018 - refactoring and reformatting
   ! Stephan Thober    Jun 2018 - including varying celerity functionality
   ! Stephan Thober    May 2019 - added L0 info required for Process 3
-  
+
   subroutine mrm_write_restart(iDomain, domainID, OutFile)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
@@ -201,7 +201,7 @@ contains
       call var%setFillValue(nodata_i4)
       call var%setData(unpack(L0_fdir(s0:e0), mask0, nodata_i4))
       call var%setAttribute("long_name", "flow direction at level 0")
-      
+
       var = nc%setVariable("L0_fAcc", "i32", (/rows0, cols0/))
       call var%setFillValue(nodata_i4)
       call var%setData(unpack(L0_fAcc(s0:e0), mask0, nodata_i4))
@@ -313,7 +313,7 @@ contains
     call var%setFillValue(nodata_dp)
     call var%setData(unpack(L11_fAcc(s11:e11), mask11, nodata_dp))
     call var%setAttribute("long_name", "flow accumulation at Level 11")
-    
+
     var = nc%setVariable("L11_rowOut", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
     call var%setData(unpack(L11_rowOut(s11 : e11), mask11, nodata_i4))
@@ -454,7 +454,7 @@ contains
 
   ! Modifications:
   ! David Schaefer Mar 2016 - mo_netcdf
-  ! Stephan Thober May 2016 - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet because multiple outlets could exist 
+  ! Stephan Thober May 2016 - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet because multiple outlets could exist
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mrm_read_restart_states(iDomain, domainID, InFile)
@@ -499,6 +499,7 @@ contains
 
     type(NcVariable) :: var
 
+    !TODO-RIV-TEMP: read/write restart for riv-temp process
 
     ! set file name
     fname = trim(InFile)
@@ -687,7 +688,7 @@ contains
       var = nc%getVariable("L0_fDir")
       call var%getData(dummyI2)
       call append(L0_fdir, pack(dummyI2, mask0))
-      
+
       var = nc%getVariable("L0_fAcc")
       call var%getData(dummyI2)
       call append(L0_fAcc, pack(dummyI2, mask0))

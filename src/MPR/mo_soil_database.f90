@@ -22,6 +22,7 @@ MODULE mo_soil_database
   use mo_kind, only : i4, dp
   use mo_message, only : message
   use mo_string_utils, only : num2str
+  use mo_os, only : path_isfile
 
   IMPLICIT NONE
 
@@ -93,6 +94,8 @@ CONTAINS
       ! classical mHM soil database
     CASE(0)
       ios = 0_i4
+      !checking whether the file exists
+      call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
       open(usoil_database, file = filename, status = 'old', iostat = ios)
       read(usoil_database, *) dummy, nSoilTypes
       dummy = dummy // ''   ! only to avoid warning
@@ -291,7 +294,10 @@ CONTAINS
       allocate(soilDB%Db(1, 1, 1))
       allocate(soilDB%Ks(1, 1, 1))
 
+      
 
+      !checking whether the file exists
+      call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
       open(usoil_database, file = filename, status = 'old', action = 'read')
       read(usoil_database, *) dummy, nSoilTypes
       dummy = dummy // ''   ! only to avoid warning

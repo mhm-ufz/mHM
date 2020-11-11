@@ -59,7 +59,7 @@ CONTAINS
     use mo_common_variables, only : level1
     use mo_optimization_types, only: optidata
     use mo_message, only : message
-    use mo_read_forcing_nc, only : read_forcing_nc
+    use mo_read_nc, only : read_nc
     use mo_string_utils, only : num2str
     use mo_timer, only : timer_get, timer_start, &
                          timer_stop
@@ -104,7 +104,7 @@ CONTAINS
     !  domain characteristics and read meteo header
     call message('  Reading', trim(L1_optiObs%varname) ,'for domain:           ', trim(adjustl(num2str(domainID))), ' ...')
     call timer_start(1)
-    call read_forcing_nc(L1_optiObs%dir, nRows1, nCols1, trim(L1_optiObs%varname), mask1, L1_data, &
+    call read_nc(L1_optiObs%dir, nRows1, nCols1, trim(L1_optiObs%varname), mask1, L1_data, &
             target_period = evalPer(iDomain), nctimestep = L1_optiObs%timeStepInput, nocheck = .TRUE., maskout = L1_mask)
 
     ! pack variables

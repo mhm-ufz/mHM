@@ -82,10 +82,10 @@ CONTAINS
 
   SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
 
-    use mo_common_constants, only : nodata_dp
     use mo_optimization_types, only : optidata_sim
+    use mo_common_datetime_type, only : datetimeinfo
     use mo_common_mHM_mRM_variables, only : LCyearId, mhmFileRestartIn, mrmFileRestartIn, nTstepDay,&
-                                    optimize, readPer, read_restart, simPer, timeStep, &
+                                            optimize, readPer, read_restart, simPer, timeStep, &
                                             warmingDays, c2TSTu
     use mo_common_variables, only : level1, domainMeta, processMatrix
     use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, &
@@ -98,7 +98,8 @@ CONTAINS
                                     nSoilHorizons_sm_input, &
                                     neutron_integral_AFast, outputFlxState, read_meteo_weights, &
                                     timeStep_model_inputs, timeStep_model_outputs, &
-                                    L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs
+                                    L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
+                                    L1_tann, L1_ssrd, L1_strd, fday_ssrd, fnight_ssrd, fday_strd, fnight_strd ! meteo for riv-temp
     use mo_init_states, only : variables_default_init
     use mo_julian, only : caldat, julday
     use mo_message, only : message
@@ -112,10 +113,9 @@ CONTAINS
                                         L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
                                         L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
                                         L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                        L1_wiltingPoint, nSoilHorizons_mHM, timeStep_LAI_input
+                                        L1_wiltingPoint, nSoilHorizons_mHM
     use mo_restart, only : read_restart_states
     use mo_write_fluxes_states, only : OutputDataset
-#ifdef MRM2MHM
     use mo_common_constants, only : HourSecs
     use mo_common_mHM_mRM_variables, only : resolutionRouting
     use mo_common_variables, only : resolutionHydrology
@@ -123,7 +123,8 @@ CONTAINS
                                         L11_L1_Id, L11_TSrout, L11_fromN, L11_length, L11_nLinkFracFPimp, L11_nOutlets, &
                                         L11_netPerm, L11_qMod, L11_qOUT, L11_qTIN, L11_qTR, L11_slope, L11_toN, &
                                         L1_L11_Id, domain_mrm, level11, mRM_runoff, outputFlxState_mrm, &
-                                        timeStep_model_outputs_mrm, gw_coupling, L0_river_head_mon_sum
+                                        timeStep_model_outputs_mrm, gw_coupling, L0_river_head_mon_sum, &
+                                        riv_temp_pcs
     use mo_mrm_init, only : variables_default_init_routing
     use mo_mrm_mpr, only : mrm_update_param
     use mo_mrm_restart, only : mrm_read_restart_states
@@ -131,7 +132,6 @@ CONTAINS
     use mo_mrm_write, only : mrm_write_output_fluxes
     use mo_utils, only : ge
     use mo_mrm_river_head, only: calc_river_head, avg_and_write_timestep
-#endif
 #ifdef pgiFortran154
     use mo_write_fluxes_states, only : newOutputDataset
 #endif
@@ -160,14 +160,9 @@ CONTAINS
     ! nTimeSteps]
     type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim
 
-    ! for writing netcdf file
-    integer(i4) :: tIndex_out
-
     real(dp), dimension(size(L1_fSealed, 1), size(L1_fSealed, 2), size(L1_fSealed, 3)) :: L1_fNotSealed
 
     type(OutputDataset) :: nc
-
-    integer(i4) :: nTimeSteps
 
     ! Counters
     integer(i4) :: domainID, iDomain, tt
@@ -194,23 +189,12 @@ CONTAINS
 
     logical, dimension(:, :), pointer :: mask1
 
-    integer(i4) :: day, month, year, hour, prev_day, prev_month, prev_year
-
     integer(i4) :: iMeteoTS
 
-    integer(i4) :: iLAI
+    ! datetimeinfo variable for everything that has to do with time dependend
+    ! calculations
+    type(datetimeinfo) :: domainDateTime
 
-    integer(i4) :: yId
-
-    real(dp) :: newTime
-
-    ! flags for stepping into new period
-    logical :: is_new_day, is_new_month, is_new_year
-
-    ! if true write out netcdf files
-    logical :: writeout
-
-#ifdef MRM2MHM
     integer(i4) :: jj
 
     ! discharge timestep
@@ -243,13 +227,10 @@ CONTAINS
     ! flag for performing routing
     logical :: do_rout
 
-#endif
     integer(i4) :: gg
 
     ! number of domains simulated in this mhm_eval run. Depends on opti_function
     integer(i4) :: nDomains, ii
-
-    real(dp) :: area_Domain
 
 
     if (optimize .and. present(opti_domain_indices)) then
@@ -286,7 +267,6 @@ CONTAINS
       call variables_default_init()
       call mpr_eval(parameterset)
 
-#ifdef MRM2MHM
        if (processMatrix(8, 1) > 0) then
         !-------------------------------------------
         ! L11 ROUTING STATE VARIABLES, FLUXES AND
@@ -294,7 +274,6 @@ CONTAINS
         !-------------------------------------------
         call variables_default_init_routing()
       end if
-#endif
     else
       do ii = 1, nDomains
         if (optimize .and. present(opti_domain_indices)) then
@@ -313,7 +292,7 @@ CONTAINS
     !----------------------------------------
     ! loop over Domains
     !----------------------------------------
-    do ii = 1, nDomains
+    DomainLoop: do ii = 1, nDomains
       if (optimize .and. present(opti_domain_indices)) then
         iDomain = opti_domain_indices(ii)
       else
@@ -321,32 +300,21 @@ CONTAINS
       end if
       domainID = domainMeta%indices(iDomain)
 
-      !--------------------------
       ! evapotranspiration optimization
-      !--------------------------
-      if (present(etOptiSim)) then
-        call etOptiSim(iDomain)%init(L1_etObs(iDomain))
-      end if
-      !--------------------------
+      if (present(etOptiSim)) call etOptiSim(iDomain)%init(L1_etObs(iDomain))
       ! total water storage optimization
-      !--------------------------
-      if (present(twsOptiSim)) then
-        call twsOptiSim(iDomain)%init(L1_twsaObs(iDomain))
-      end if
-      !--------------------------
+      if (present(twsOptiSim)) call twsOptiSim(iDomain)%init(L1_twsaObs(iDomain))
       ! neutrons optimization
-      !--------------------------
-      if (present(neutronsOptiSim)) then
-        call neutronsOptiSim(iDomain)%init(L1_neutronsObs(iDomain))
-      end if
-      !--------------------------
+      if (present(neutronsOptiSim)) call neutronsOptiSim(iDomain)%init(L1_neutronsObs(iDomain))
       ! sm optimization
-      !--------------------------
-      if (present(smOptiSim)) then
-        call smOptiSim(iDomain)%init(L1_smObs(iDomain))
-      end if
+      if (present(smOptiSim)) call smOptiSim(iDomain)%init(L1_smObs(iDomain))
 
-#ifdef MRM2MHM
+      ! get Domain information
+      nCells = level1(iDomain)%nCells
+      mask1 => level1(iDomain)%mask
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
+
       if (domainMeta%doRouting(iDomain)) then
         ! ----------------------------------------
         ! initialize factor between routing resolution and hydrologic model resolution
@@ -354,16 +322,7 @@ CONTAINS
         tsRoutFactor = 1_i4
         allocate(InflowDischarge(size(InflowGauge%Q, dim = 2)))
         InflowDischarge = 0._dp
-      end if
-#endif
-      ! get Domain information
-      nCells = level1(iDomain)%nCells
-      mask1 => level1(iDomain)%mask
-      s1 = level1(iDomain)%iStart
-      e1 = level1(iDomain)%iEnd
 
-#ifdef MRM2MHM
-       if (domainMeta%doRouting(iDomain)) then
         ! read states from restart
         if (read_restart) call mrm_read_restart_states(iDomain, domainID, mrmFileRestartIn(iDomain))
         !
@@ -378,32 +337,21 @@ CONTAINS
         ! initialize variable for runoff for routing
         allocate(RunToRout(e1 - s1 + 1))
         RunToRout = 0._dp
+
+        if ( riv_temp_pcs%active ) then
+          ! set indices for current L11 domain
+          riv_temp_pcs%s11 = s11
+          riv_temp_pcs%e11 = e11
+          ! allocate current L1 lateral components
+          call riv_temp_pcs%alloc_lateral(nCells)
+        end if
       end if
-#endif
 
-      ! calculate NtimeSteps for this Domain
-      nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nTstepDay
-
-      ! reinitialize time counter for LCover and MPR
-      ! -0.5 is due to the fact that dec2date routine
-      !   changes the day at 12:00 in NOON
-      ! Whereas mHM needs day change at 00:00 h
-      ! initialize the julian day as real
-      newTime = real(simPer(iDomain)%julStart, dp)
-      ! initialize the date
-      call caldat(int(newTime), yy = year, mm = month, dd = day)
-      ! initialize flags for period changes, they are true for first time step
-      is_new_day = .true.
-      is_new_month = .true.
-      is_new_year = .true.
-
-      ! initialize arrays and counters
-      yId = LCyearId(year, iDomain)
-      hour = -timestep
-      iLAI = 0
+      ! init datetime variable
+      call domainDateTime%init(iDomain)
 
       ! Loop over time
-      do tt = 1, nTimeSteps
+      TimeLoop: do tt = 1, domainDateTime%nTimeSteps
         ! time increment is done right after call to mrm (and initially before looping)
         if (timeStep_model_inputs(iDomain) .eq. 0_i4) then
           ! whole meteorology is already read
@@ -428,49 +376,34 @@ CONTAINS
         ! process 5 - PET
         select case (processMatrix(5, 1))
           !      (/pet,        tmax,    tmin,  netrad, absVapP,windspeed/)
-        case(-1 : 0) ! PET is input
-          s_p5 = (/s_meteo, 1, 1, 1, 1, 1/)
-          e_p5 = (/e_meteo, 1, 1, 1, 1, 1/)
-        case(1) ! Hargreaves-Samani
-          s_p5 = (/s_meteo, s_meteo, s_meteo, 1, 1, 1/)
-          e_p5 = (/e_meteo, e_meteo, e_meteo, 1, 1, 1/)
-        case(2) ! Priestely-Taylor
-          s_p5 = (/s_meteo, 1, 1, s_meteo, 1, 1/)
-          e_p5 = (/e_meteo, 1, 1, e_meteo, 1, 1/)
-        case(3) ! Penman-Monteith
-          s_p5 = (/s_meteo, 1, 1, s_meteo, s_meteo, s_meteo/)
-          e_p5 = (/e_meteo, 1, 1, e_meteo, e_meteo, e_meteo/)
+          case(-1 : 0) ! PET is input
+            s_p5 = (/s_meteo, 1, 1, 1, 1, 1/)
+            e_p5 = (/e_meteo, 1, 1, 1, 1, 1/)
+          case(1) ! Hargreaves-Samani
+            s_p5 = (/s_meteo, s_meteo, s_meteo, 1, 1, 1/)
+            e_p5 = (/e_meteo, e_meteo, e_meteo, 1, 1, 1/)
+          case(2) ! Priestely-Taylor
+            s_p5 = (/s_meteo, 1, 1, s_meteo, 1, 1/)
+            e_p5 = (/e_meteo, 1, 1, e_meteo, 1, 1/)
+          case(3) ! Penman-Monteith
+            s_p5 = (/s_meteo, 1, 1, s_meteo, s_meteo, s_meteo/)
+            e_p5 = (/e_meteo, 1, 1, e_meteo, e_meteo, e_meteo/)
         end select
 
         ! customize iMeteoTS for process 5 - PET
         select case (processMatrix(5, 1))
           !              (/     pet,     tmin,     tmax,   netrad,  absVapP,windspeed /)
-        case(-1 : 0) ! PET is input
-          iMeteo_p5 = (/iMeteoTS, 1, 1, 1, 1, 1 /)
-        case(1) ! Hargreaves-Samani
-          iMeteo_p5 = (/iMeteoTS, iMeteoTS, iMeteoTS, 1, 1, 1 /)
-        case(2) ! Priestely-Taylor
-          iMeteo_p5 = (/iMeteoTS, 1, 1, iMeteoTS, 1, 1 /)
-        case(3) ! Penman-Monteith
-          iMeteo_p5 = (/iMeteoTS, 1, 1, iMeteoTS, iMeteoTS, iMeteoTS /)
+          case(-1 : 0) ! PET is input
+            iMeteo_p5 = (/iMeteoTS, 1, 1, 1, 1, 1 /)
+          case(1) ! Hargreaves-Samani
+            iMeteo_p5 = (/iMeteoTS, iMeteoTS, iMeteoTS, 1, 1, 1 /)
+          case(2) ! Priestely-Taylor
+            iMeteo_p5 = (/iMeteoTS, 1, 1, iMeteoTS, 1, 1 /)
+          case(3) ! Penman-Monteith
+            iMeteo_p5 = (/iMeteoTS, 1, 1, iMeteoTS, iMeteoTS, iMeteoTS /)
         end select
 
-        select case (timeStep_LAI_input)
-        case(0 : 1) ! long term mean monthly gridded fields or LUT-based values
-          iLAI = month
-        case(-1) ! daily timestep
-          if (is_new_day) then
-            iLAI = iLAI + 1
-          end if
-        case(-2) ! monthly timestep
-          if (is_new_month) then
-            iLAI = iLAI + 1
-          end if
-        case(-3) ! yearly timestep
-          if (is_new_year) then
-            iLAI = iLAI + 1
-          end if
-        end select
+        call domainDateTime%update_LAI_timestep()
 
         ! -------------------------------------------------------------------------
         ! ARGUMENT LIST KEY FOR mHM
@@ -487,7 +420,7 @@ CONTAINS
         !  X    FLUXES (L1, L11 levels)
         ! --------------------------------------------------------------------------
         call mhm(read_restart, & ! IN C
-                tt, newTime - 0.5_dp, processMatrix, HorizonDepth_mHM, & ! IN C
+                tt, domainDateTime%newTime - 0.5_dp, processMatrix, HorizonDepth_mHM, & ! IN C
                 nCells, nSoilHorizons_mHM, real(nTstepDay, dp), c2TSTu,  & ! IN C
                 neutron_integral_AFast, & ! IN C
                 parameterset, & ! IN
@@ -506,7 +439,7 @@ CONTAINS
                 L1_windspeed(s_p5(6) : e_p5(6), iMeteo_p5(6)), & ! IN F:PET
                 L1_pre(s_meteo : e_meteo, iMeteoTS), & ! IN F:Pre
                 L1_temp(s_meteo : e_meteo, iMeteoTS), & ! IN F:Temp
-                L1_fSealed(s1 : e1, 1, yId), & ! INOUT L1
+                L1_fSealed(s1 : e1, 1, domainDateTime%yId), & ! INOUT L1
                 L1_inter(s1 : e1), L1_snowPack(s1 : e1), L1_sealSTW(s1 : e1), & ! INOUT S
                 L1_soilMoist(s1 : e1, :), L1_unsatSTW(s1 : e1), L1_satSTW(s1 : e1), & ! INOUT S
                 L1_neutrons(s1 : e1), & ! INOUT S
@@ -516,22 +449,26 @@ CONTAINS
                 L1_melt(s1 : e1), L1_percol(s1 : e1), L1_preEffect(s1 : e1), L1_rain(s1 : e1), & ! INOUT X
                 L1_runoffSeal(s1 : e1), L1_slowRunoff(s1 : e1), L1_snow(s1 : e1), & ! INOUT X
                 L1_Throughfall(s1 : e1), L1_total_runoff(s1 : e1), & ! INOUT X
-                L1_alpha(s1 : e1, 1, 1), L1_degDayInc(s1 : e1, 1, yId), L1_degDayMax(s1 : e1, 1, yId), & ! INOUT E1
-                L1_degDayNoPre(s1 : e1, 1, yId), L1_degDay(s1 : e1, 1, 1), L1_fAsp(s1 : e1, 1, 1), & ! INOUT E1
-                L1_petLAIcorFactor(s1 : e1, iLAI, yId), L1_HarSamCoeff(s1 : e1, 1, 1), & ! INOUT E1
-                L1_PrieTayAlpha(s1 : e1, iLAI, 1), L1_aeroResist(s1 : e1, iLAI, yId), & ! INOUT E1
-                L1_surfResist(s1 : e1, iLAI, 1), L1_fRoots(s1 : e1, :, yId), & ! INOUT E1
-                L1_maxInter(s1 : e1, iLAI, 1), L1_karstLoss(s1 : e1, 1, 1), & ! INOUT E1
-                L1_kFastFlow(s1 : e1, 1, yId), L1_kSlowFlow(s1 : e1, 1, 1), & ! INOUT E1
+                L1_alpha(s1 : e1, 1, 1), L1_degDayInc(s1 : e1, 1, domainDateTime%yId), &
+                L1_degDayMax(s1 : e1, 1, domainDateTime%yId), & ! INOUT E1
+                L1_degDayNoPre(s1 : e1, 1, domainDateTime%yId), L1_degDay(s1 : e1, 1, 1), & ! INOUT E1
+                L1_fAsp(s1 : e1, 1, 1), & ! INOUT E1
+                L1_petLAIcorFactor(s1 : e1, domainDateTime%iLAI, domainDateTime%yId), & ! INOUT E1
+                L1_HarSamCoeff(s1 : e1, 1, 1), & ! INOUT E1
+                L1_PrieTayAlpha(s1 : e1, domainDateTime%iLAI, 1), & ! INOUT E1
+                L1_aeroResist(s1 : e1, domainDateTime%iLAI, domainDateTime%yId), & ! INOUT E1
+                L1_surfResist(s1 : e1, domainDateTime%iLAI, 1), L1_fRoots(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
+                L1_maxInter(s1 : e1, domainDateTime%iLAI, 1), L1_karstLoss(s1 : e1, 1, 1), & ! INOUT E1
+                L1_kFastFlow(s1 : e1, 1, domainDateTime%yId), L1_kSlowFlow(s1 : e1, 1, 1), & ! INOUT E1
                 L1_kBaseFlow(s1 : e1, 1, 1), L1_kPerco(s1 : e1, 1, 1), & ! INOUT E1
-                L1_soilMoistFC(s1 : e1, :, yId), L1_soilMoistSat(s1 : e1, :, yId), & ! INOUT E1
-                L1_soilMoistExp(s1 : e1, :, yId), L1_jarvis_thresh_c1(s1 : e1, 1, 1), & ! INOUT E1
-                L1_tempThresh(s1 : e1, 1, yId), L1_unsatThresh(s1 : e1, 1, 1), & ! INOUT E1
+                L1_soilMoistFC(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
+                L1_soilMoistSat(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
+                L1_soilMoistExp(s1 : e1, :, domainDateTime%yId), L1_jarvis_thresh_c1(s1 : e1, 1, 1), & ! INOUT E1
+                L1_tempThresh(s1 : e1, 1, domainDateTime%yId), L1_unsatThresh(s1 : e1, 1, 1), & ! INOUT E1
                 L1_sealedThresh(s1 : e1, 1, 1), & ! INOUT E1
-                L1_wiltingPoint(s1 : e1, :, yId)) ! INOUT E1
+                L1_wiltingPoint(s1 : e1, :, domainDateTime%yId)) ! INOUT E1
 
         ! call mRM routing
-#ifdef MRM2MHM
         if (domainMeta%doRouting(iDomain)) then
           ! set discharge timestep
           iDischargeTS = ceiling(real(tt, dp) / real(nTstepDay, dp))
@@ -545,7 +482,6 @@ CONTAINS
             timestep_rout = timestep
             RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TST-1] mm per timestep
             InflowDischarge = InflowGauge%Q(iDischargeTS, :) ! inflow discharge in [m3 s-1]
-            timestep_rout = timestep
             !
           else if ((processMatrix(8, 1) .eq. 2) .or. &
                    (processMatrix(8, 1) .eq. 3)) then
@@ -573,156 +509,161 @@ CONTAINS
               ! ----------------------------------------------------------------
               ! set all input variables
               tsRoutFactorIn = tsRoutFactor
+              ! Runoff is accumulated in [mm]
               RunToRout = RunToRout + L1_total_runoff(s1 : e1)
               InflowDischarge = InflowDischarge + InflowGauge%Q(iDischargeTS, :)
               ! reset tsRoutFactorIn if last period did not cover full period
-              if ((tt .eq. nTimeSteps) .and. (mod(tt, nint(tsRoutFactorIn)) .ne. 0_i4)) &
+              if ((tt == domainDateTime%nTimeSteps) .and. (mod(tt, nint(tsRoutFactorIn)) /= 0_i4)) &
                       tsRoutFactorIn = mod(tt, nint(tsRoutFactorIn))
-              if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. nTimeSteps)) then
+              if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. domainDateTime%nTimeSteps)) then
+                ! Inflow discharge is given as flow-rate and has to be converted to [m3]
                 InflowDischarge = InflowDischarge / tsRoutFactorIn
                 timestep_rout = timestep * nint(tsRoutFactorIn, i4)
                 do_rout = .True.
               end if
             end if
           end if
+          ! prepare temperature routing
+          if ( riv_temp_pcs%active ) then
+            ! init riv-temp from current air temp
+            if ( tt .eq. 1_i4 ) call riv_temp_pcs%init_riv_temp( &
+              domainDateTime%newTime - 0.5_dp, &
+              real(nTstepDay, dp), &
+              L1_temp(s_meteo : e_meteo, iMeteoTS), &
+              read_meteo_weights, &
+              L1_temp_weights(s1 : e1, :, :), &
+              fday_temp, fnight_temp, &
+              ! mapping info
+              level1(iDomain)%CellArea * 1.E-6_dp, &
+              L1_L11_Id(s1 : e1), &
+              level11(iDomain)%CellArea * 1.E-6_dp, &
+              L11_L1_Id(s11 : e11), &
+              ! map_flag
+              ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)) &
+            )
+            ! accumulate source Energy at L1 level
+            call riv_temp_pcs%acc_source_E( &
+              domainDateTime%newTime - 0.5_dp, &
+              real(nTstepDay, dp), &
+              L1_fSealed(s1 : e1, 1, domainDateTime%yId), &
+              L1_fastRunoff(s1 : e1), &
+              L1_slowRunoff(s1 : e1), &
+              L1_baseflow(s1 : e1), &
+              L1_runoffSeal(s1 : e1), &
+              L1_temp(s_meteo : e_meteo, iMeteoTS), &
+              L1_tann(s_meteo : e_meteo, iMeteoTS), &
+              L1_ssrd(s_meteo : e_meteo, iMeteoTS), &
+              L1_strd(s_meteo : e_meteo, iMeteoTS), &
+              read_meteo_weights, &
+              L1_temp_weights(s1 : e1, :, :), &
+              fday_temp, fnight_temp, &
+              fday_ssrd, fnight_ssrd, &
+              fday_strd, fnight_strd  &
+            )
+            ! if routing should be performed, scale source energy to L11 level
+            if ( do_rout ) call riv_temp_pcs%finalize_source_E( &
+              level1(iDomain)%CellArea * 1.E-6_dp, &
+              L1_L11_Id(s1 : e1), &
+              level11(iDomain)%CellArea * 1.E-6_dp, &
+              L11_L1_Id(s11 : e11), &
+              timestep_rout, &
+              ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)) &
+            )
+          end if
           ! -------------------------------------------------------------------
           ! execute routing
           ! -------------------------------------------------------------------
           if (do_rout) call mRM_routing(&
-                  ! general INPUT variables
-                  read_restart, &
-                  processMatrix(8, 1), & ! parse process Case to be used
-                  parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)), & ! routing par.
-                  RunToRout, & ! runoff [mm TST-1] mm per timestep old: L1_total_runoff_in(s1:e1, tt), &
-                  level1(iDomain)%CellArea * 1.E-6_dp, &
-                  L1_L11_Id(s1 : e1), &
-                  level11(iDomain)%CellArea * 1.E-6_dp, &
-                  L11_L1_Id(s11 : e11), &
-                  L11_netPerm(s11 : e11), & ! routing order at L11
-                  L11_fromN(s11 : e11), & ! link source at L11
-                  L11_toN(s11 : e11), & ! link target at L11
-                  L11_nOutlets(iDomain), & ! number of outlets
-                  timestep_rout, & ! timestep of runoff to rout [h]
-                  tsRoutFactorIn, & ! simulate timestep in [h]
-                  level11(iDomain)%nCells, & ! number of Nodes
-                  domain_mrm(iDomain)%nInflowGauges, &
-                  domain_mrm(iDomain)%InflowGaugeIndexList(:), &
-                  domain_mrm(iDomain)%InflowGaugeHeadwater(:), &
-                  domain_mrm(iDomain)%InflowGaugeNodeList(:), &
-                  InflowDischarge, &
-                  domain_mrm(iDomain)%nGauges, &
-                  domain_mrm(iDomain)%gaugeIndexList(:), &
-                  domain_mrm(iDomain)%gaugeNodeList(:), &
-                  ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)), &
-                  ! original routing specific input variables
-                  L11_length(s11 : e11 - 1), & ! link length
-                  L11_slope(s11 : e11 - 1), &
-                  L11_nLinkFracFPimp(s11 : e11, yID), & ! fraction of impervious layer at L11 scale
-                  ! general INPUT/OUTPUT variables
-                  L11_C1(s11 : e11), & ! first muskingum parameter
-                  L11_C2(s11 : e11), & ! second muskigum parameter
-                  L11_qOUT(s11 : e11), & ! routed runoff flowing out of L11 cell
-                  L11_qTIN(s11 : e11, :), & ! inflow water into the reach at L11
-                  L11_qTR(s11 : e11, :), & !
-                  L11_qMod(s11 : e11), &
-                  mRM_runoff(tt, :) &
-                  )
-            ! -------------------------------------------------------------------
-            ! groundwater coupling
-            ! -------------------------------------------------------------------
-            if (gw_coupling) then
-                call calc_river_head(iDomain, L11_Qmod, L0_river_head_mon_sum)
-                if (is_new_month .and. tt > 1) then
-                    call avg_and_write_timestep(iDomain, tt, L0_river_head_mon_sum)
-                end if
-            end if
-            ! -------------------------------------------------------------------
-            ! reset variables
-            ! -------------------------------------------------------------------
-            if (processMatrix(8, 1) .eq. 1) then
+            ! general INPUT variables
+            read_restart, &
+            processMatrix(8, 1), & ! parse process Case to be used
+            parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)), & ! routing par.
+            RunToRout, & ! runoff [mm TST-1] mm per timestep old: L1_total_runoff_in(s1:e1, tt), &
+            level1(iDomain)%CellArea * 1.E-6_dp, &
+            L1_L11_Id(s1 : e1), &
+            level11(iDomain)%CellArea * 1.E-6_dp, &
+            L11_L1_Id(s11 : e11), &
+            L11_netPerm(s11 : e11), & ! routing order at L11
+            L11_fromN(s11 : e11), & ! link source at L11
+            L11_toN(s11 : e11), & ! link target at L11
+            L11_nOutlets(iDomain), & ! number of outlets
+            timestep_rout, & ! timestep of runoff to rout [h]
+            tsRoutFactorIn, & ! simulate timestep in [h]
+            level11(iDomain)%nCells, & ! number of Nodes
+            domain_mrm(iDomain)%nInflowGauges, &
+            domain_mrm(iDomain)%InflowGaugeIndexList(:), &
+            domain_mrm(iDomain)%InflowGaugeHeadwater(:), &
+            domain_mrm(iDomain)%InflowGaugeNodeList(:), &
+            InflowDischarge, &
+            domain_mrm(iDomain)%nGauges, &
+            domain_mrm(iDomain)%gaugeIndexList(:), &
+            domain_mrm(iDomain)%gaugeNodeList(:), &
+            ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)), &
+            ! original routing specific input variables
+            L11_length(s11 : e11 - 1), & ! link length
+            L11_slope(s11 : e11 - 1), &
+            L11_nLinkFracFPimp(s11 : e11, domainDateTime%yID), & ! fraction of impervious layer at L11 scale
+            ! general INPUT/OUTPUT variables
+            L11_C1(s11 : e11), & ! first muskingum parameter
+            L11_C2(s11 : e11), & ! second muskigum parameter
+            L11_qOUT(s11 : e11), & ! routed runoff flowing out of L11 cell
+            L11_qTIN(s11 : e11, :), & ! inflow water into the reach at L11
+            L11_qTR(s11 : e11, :), & !
+            L11_qMod(s11 : e11), &
+            mRM_runoff(tt, :) &
+          )
+          ! -------------------------------------------------------------------
+          ! groundwater coupling
+          ! -------------------------------------------------------------------
+          if (gw_coupling) then
+              call calc_river_head(iDomain, L11_Qmod, L0_river_head_mon_sum)
+              if (domainDateTime%is_new_month .and. tt > 1) then
+                  call avg_and_write_timestep(iDomain, tt, L0_river_head_mon_sum)
+              end if
+          end if
+          ! -------------------------------------------------------------------
+          ! reset variables
+          ! -------------------------------------------------------------------
+          if (processMatrix(8, 1) .eq. 1) then
+            ! reset Input variables
+            InflowDischarge = 0._dp
+            RunToRout = 0._dp
+          else if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
+            if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. do_rout) then
+              do jj = 1, nint(tsRoutFactorIn) ! BUG: this should start at 2
+                mRM_runoff(tt - jj + 1, :) = mRM_runoff(tt, :)
+              end do
               ! reset Input variables
               InflowDischarge = 0._dp
               RunToRout = 0._dp
-            else if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
-              if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. do_rout) then
-                do jj = 1, nint(tsRoutFactorIn)
-                  mRM_runoff(tt - jj + 1, :) = mRM_runoff(tt, :)
-                end do
-                ! reset Input variables
-                InflowDischarge = 0._dp
-                RunToRout = 0._dp
-              end if
+              ! reset lateral fluxes and time-step counter if routing was done
+              if ( riv_temp_pcs%active ) call riv_temp_pcs%reset_timestep()
             end if
+            ! if routing is done every time-step, reset river-temp time step
+            if (tsRoutFactor .lt. 1._dp .and. riv_temp_pcs%active ) call riv_temp_pcs%reset_timestep()
           end if
-#endif
-
-        ! prepare the date and time information for next iteration step...
-        ! TODO: turn datetime information into type with procedure "increment"
-        ! set the current year as previous
-        prev_day = day
-        prev_month = month
-        prev_year = year
-        ! set the flags to false
-        is_new_day = .false.
-        is_new_month = .false.
-        is_new_year = .false.
-
-        ! increment of timestep
-        hour = mod(hour + timestep, 24)
-        newTime = julday(day, month, year) + real(hour + timestep, dp) / 24._dp
-        ! calculate new year, month and day
-        call caldat(int(newTime), yy = year, mm = month, dd = day)
-        ! update the flags
-        if (prev_day .ne. day) is_new_day = .true.
-        if (prev_month .ne. month) is_new_month = .true.
-        if (prev_year .ne. year) is_new_year = .true.
-
-        if (.not. optimize) then
-#ifdef MRM2MHM
-          if (any(outputFlxState_mrm)) then
-            call mrm_write_output_fluxes(&
-                  ! Domain id
-                  iDomain, &
-                  ! nCells in Domain
-                  level11(iDomain)%nCells, &
-                  ! output specification
-                  timeStep_model_outputs_mrm, &
-                  ! time specification
-                  warmingDays(iDomain), newTime, nTimeSteps, nTstepDay, &
-                  tt, &
-                  ! parse previous date to mRM writer
-                  prev_day, prev_month, prev_year, &
-                  timestep, &
-                  ! mask specification
-                  mask11, &
-                  ! output variables
-                  L11_qmod(s11 : e11))
-                if(gw_coupling) then
-                    !call mrm_write_output_river_head( &
-                    !     ! Domain id
-                    !     ii, &
-                    !     ! output specification
-                    !     timeStep_model_outputs_mrm, &
-                    !     ! time specification
-                    !     warmingDays_mrm(ii), newTime, nTimeSteps, nTStepDay, &
-                    !     tt, &
-                    !     ! parse previous date to mRM writer
-                    !     day_counter, month_counter, year_counter, &
-                    !     timestep, &
-                    !     ! mask specification
-                    !     mask0, &
-                    !     ! output variables
-                    !     L0_river_head(s11:e11))
-                end if
         end if
-#endif
 
         ! output only for evaluation period
-        tIndex_out = (tt - warmingDays(iDomain) * nTstepDay) ! tt if write out of warming period
+        domainDateTime%tIndex_out = (tt - warmingDays(iDomain) * nTstepDay) ! tt if write out of warming period
 
-        if ((any(outputFlxState)) .and. (tIndex_out .gt. 0_i4)) then
+        call domainDateTime%increment()
 
-          if (tIndex_out .EQ. 1) then
+        if (.not. optimize) then
+          if (any(outputFlxState_mrm)) then
+            call mrm_write_output_fluxes( &
+              iDomain, & ! Domain id
+              level11(iDomain)%nCells, & ! nCells in Domain
+              timeStep_model_outputs_mrm, & ! output specification
+              domainDateTime, tt, timestep, & ! time specification
+              mask11, & ! mask specification
+              L11_qmod(s11 : e11) & ! output variables
+            )
+          end if
+
+        if ((any(outputFlxState)) .and. (domainDateTime%tIndex_out > 0_i4)) then
+
+          if (domainDateTime%tIndex_out == 1) then
 #ifdef pgiFortran154
             nc = newOutputDataset(iDomain, mask1, level1(iDomain)%nCells)
 #else
@@ -731,56 +672,38 @@ CONTAINS
           end if
 
           call nc%updateDataset(&
-                  s1, &
-                  e1, &
-                  L1_fSealed(:, 1, yId), &
-                  L1_fNotSealed(:, 1, yId), &
-                  L1_inter, &
-                  L1_snowPack, &
-                  L1_soilMoist, &
-                  L1_soilMoistSat(:, :, yId), &
-                  L1_sealSTW, &
-                  L1_unsatSTW, &
-                  L1_satSTW, &
-                  L1_neutrons, &
-                  L1_pet_calc, &
-                  L1_aETSoil, &
-                  L1_aETCanopy, &
-                  L1_aETSealed, &
-                  L1_total_runoff, &
-                  L1_runoffSeal, &
-                  L1_fastRunoff, &
-                  L1_slowRunoff, &
-                  L1_baseflow, &
-                  L1_percol, &
-                  L1_infilSoil, &
-                  L1_preEffect      &
-                  )
+            s1, &
+            e1, &
+            L1_fSealed(:, 1, domainDateTime%yId), &
+            L1_fNotSealed(:, 1, domainDateTime%yId), &
+            L1_inter, &
+            L1_snowPack, &
+            L1_soilMoist, &
+            L1_soilMoistSat(:, :, domainDateTime%yId), &
+            L1_sealSTW, &
+            L1_unsatSTW, &
+            L1_satSTW, &
+            L1_neutrons, &
+            L1_pet_calc, &
+            L1_aETSoil, &
+            L1_aETCanopy, &
+            L1_aETSealed, &
+            L1_total_runoff, &
+            L1_runoffSeal, &
+            L1_fastRunoff, &
+            L1_slowRunoff, &
+            L1_baseflow, &
+            L1_percol, &
+            L1_infilSoil, &
+            L1_preEffect &
+          )
 
           ! write data
-          writeout = .false.
-          if (timeStep_model_outputs .gt. 0) then
-            if ((mod(tIndex_out, timeStep_model_outputs) .eq. 0) .or. (tt .eq. nTimeSteps)) writeout = .true.
-          else
-            select case(timeStep_model_outputs)
-            case(0) ! only at last time step
-              if (tt .eq. nTimeSteps) writeout = .true.
-            case(-1) ! daily
-              if (((tIndex_out .gt. 1) .and. is_new_day) .or. (tt .eq. nTimeSteps))     writeout = .true.
-            case(-2) ! monthly
-              if (((tIndex_out .gt. 1) .and. is_new_month) .or. (tt .eq. nTimeSteps)) writeout = .true.
-            case(-3) ! yearly
-              if (((tIndex_out .gt. 1) .and. is_new_year) .or. (tt .eq. nTimeSteps))   writeout = .true.
-            case default ! no output at all
-
-            end select
+          if (domainDateTime%writeout(timeStep_model_outputs, tt)) then
+            call nc%writeTimestep(domainDateTime%tIndex_out * timestep - 1)
           end if
 
-          if (writeout) then
-            call nc%writeTimestep(tIndex_out * timestep - 1)
-          end if
-
-          if(tt .eq. nTimeSteps) then
+          if(tt == domainDateTime%nTimeSteps) then
             call nc%close()
           end if
 
@@ -797,12 +720,12 @@ CONTAINS
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
             call smOptiSim(iDomain)%average_per_timestep(L1_smObs(iDomain)%timeStepInput, &
-                                                         is_new_day, is_new_month, is_new_year)
+                         domainDateTime%is_new_day, domainDateTime%is_new_month, domainDateTime%is_new_year)
             ! last timestep is already done - write_counter exceeds size(smOptiSim(iDomain)%dataSim, dim=2)
-            if (.not. (tt .eq. nTimeSteps)) then
+            if (tt /= domainDateTime%nTimeSteps) then
               ! aggregate soil moisture to needed time step for optimization
               call smOptiSim(iDomain)%average_add(sum(L1_soilMoist(:, 1 : nSoilHorizons_sm_input), dim = 2) / &
-                              sum(L1_soilMoistSat(:, 1 : nSoilHorizons_sm_input, yId), dim = 2))
+                              sum(L1_soilMoistSat(:, 1 : nSoilHorizons_sm_input, domainDateTime%yId), dim = 2))
             end if
           end if
         end if
@@ -817,12 +740,12 @@ CONTAINS
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
             ! daily
-            if (is_new_day)   then
+            if (domainDateTime%is_new_day)   then
               call neutronsOptiSim(iDomain)%average()
             end if
 
             ! last timestep is already done - write_counter exceeds size(sm_opti, dim=2)
-            if (.not. (tt .eq. nTimeSteps)) then
+            if (tt /= domainDateTime%nTimeSteps) then
               ! aggregate neutrons to needed time step for optimization
               call neutronsOptiSim(iDomain)%average_add(L1_neutrons(s1 : e1))
             end if
@@ -839,14 +762,14 @@ CONTAINS
           if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
             ! decide for daily, monthly or yearly aggregation
             call etOptiSim(iDomain)%increment_counter(L1_etObs(iDomain)%timeStepInput, &
-                                      is_new_day, is_new_month, is_new_year)
+                   domainDateTime%is_new_day, domainDateTime%is_new_month, domainDateTime%is_new_year)
 
             ! last timestep is already done - write_counter exceeds size(etOptiSim(iDomain)%dataSim, dim=2)
-            if (.not. (tt .eq. nTimeSteps)) then
+            if (tt /= domainDateTime%nTimeSteps) then
               ! aggregate evapotranspiration to needed time step for optimization
-              call etOptiSim(iDomain)%add(sum(L1_aETSoil(s1 : e1, :), dim = 2) * L1_fNotSealed(s1 : e1, 1, yId) + &
+              call etOptiSim(iDomain)%add(sum(L1_aETSoil(s1 : e1, :), dim = 2) * L1_fNotSealed(s1 : e1, 1, domainDateTime%yId) + &
                       L1_aETCanopy(s1 : e1) + &
-                      L1_aETSealed(s1 : e1) * L1_fSealed(s1 : e1, 1, yId))
+                      L1_aETSealed(s1 : e1) * L1_fSealed(s1 : e1, 1, domainDateTime%yId))
             end if
           end if
         end if
@@ -858,13 +781,13 @@ CONTAINS
         !----------------------------------------------------------------------
         if (present(twsOptiSim)) then
           ! only for evaluation period - ignore warming days
-          if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
+          if ((tt - warmingDays(iDomain) * nTstepDay) > 0) then
             ! decide for daily, monthly or yearly aggregation
             call twsOptiSim(iDomain)%average_per_timestep(L1_twsaObs(iDomain)%timeStepInput, &
-                                                         is_new_day, is_new_month, is_new_year)
+                               domainDateTime%is_new_day, domainDateTime%is_new_month, domainDateTime%is_new_year)
 
             ! last timestep is already done - write_counter exceeds size(twsOptiSim(iDomain)%dataSim, dim=2)
-            if (.not. (tt .eq. nTimeSteps)) then
+            if (tt /= domainDateTime%nTimeSteps) then
               ! aggregate evapotranspiration to needed time step for optimization
               call twsOptiSim(iDomain)%average_add(L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
                    L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1))
@@ -875,28 +798,28 @@ CONTAINS
           end if
         end if
 
-        ! update the year-dependent yID (land cover id)
-        if (is_new_year .and. tt .lt. nTimeSteps) then
-          yId = LCyearId(year, iDomain)
+        ! TODO-RIV-TEMP: add OptiSim for river temperature
+
+        ! update the year-dependent domainDateTime%yId (land cover id)
+        if (domainDateTime%is_new_year .and. tt < domainDateTime%nTimeSteps) then
+          domainDateTime%yId = LCyearId(domainDateTime%year, iDomain)
         end if
 
-      end do !<< TIME STEPS LOOP
+      end do TimeLoop !<< TIME STEPS LOOP
 
       if (allocated(InflowDischarge)) deallocate(InflowDischarge)
-#ifdef MRM2MHM
        if (domainMeta%doRouting(iDomain)) then
         ! clean runoff variable
         deallocate(RunToRout)
+        if ( riv_temp_pcs%active ) call riv_temp_pcs%dealloc_lateral()
       end if
-#endif
 
-    end do !<< Domain LOOP
-#ifdef MRM2MHM
+    end do DomainLoop !<< Domain LOOP
+
     ! =========================================================================
     ! SET RUNOFF OUTPUT VARIABLE
     ! =========================================================================
     if (present(runoff) .and. (processMatrix(8, 1) > 0)) runoff = mRM_runoff
-#endif
 
   end SUBROUTINE mhm_eval
 

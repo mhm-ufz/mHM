@@ -1433,8 +1433,10 @@ contains
 
     ! cut off Length at 40 percentile to neglect short paths in headwaters
     if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
-      length = percentile(pack(nLinkLength(:), nLinkLength(:) .ge. 0._dp), 40._dp)
-      nLinkLength(:) = merge(nLinkLength(:), length, (nLinkLength(:) .gt. length))
+      if (count(nLinkLength(:) .ge. 0._dp) .gt. 2) then
+        length = percentile(pack(nLinkLength(:), nLinkLength(:) .ge. 0._dp), 40._dp)
+        nLinkLength(:) = merge(nLinkLength(:), length, (nLinkLength(:) .gt. length))
+      end if
     end if
 
     !--------------------------------------------------------

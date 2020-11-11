@@ -35,13 +35,22 @@ def get_cmdline_args(default_return_period):
     parser.add_argument('-p', '--return_period', type=float,
             help='The return period of the flood, default: {:1} years'.
                 format(default_return_period))
+    parser.add_argument(
+        "-w",
+        "--wetted_perimeter",
+        action="store_true",
+        default=False,
+        dest="peri_bkfl",
+        help="Also estimate the wetted perimeter. (default: no)",
+    )
     args = parser.parse_args()
     ncin_path = args.ncin_path
     ncout_path = args.ncout_path
     return_period = args.return_period
+    peri_bkfl = args.peri_bkfl
     if return_period is None:
         return_period = default_return_period
-    return ncin_path, ncout_path, return_period
+    return ncin_path, ncout_path, return_period, peri_bkfl
 
 
 def read_discharge(filename, var_name='Qrouted'):
@@ -70,13 +79,15 @@ def read_discharge(filename, var_name='Qrouted'):
     Q = rootgrp[var_name][:]
     return t, Q
 
-def write_Q_bkfl(Q_bkfl, discharge_filename, ncout_filename):
+def write_Q_bkfl(Q_bkfl, discharge_filename, ncout_filename, peri_bkfl=False):
     """Copies dims and attrs from given file and writes the bankfull discharge
 
     Args:
         Q_bkfl (2d ndarray): the bankfull discharge
         discharge_filename (str): the filename of the discharge data
         ncout_filename (str): the output filename
+        peri_bkfl (bool): whether to calculate the wetted perimeter derived
+            from bankful discharge
     """
     ncin = NcDataset(discharge_filename, 'r')
     ncout = NcDataset(ncout_filename, 'w')
@@ -90,11 +101,15 @@ def write_Q_bkfl(Q_bkfl, discharge_filename, ncout_filename):
     Q_bkfl_nc = ncout.createVariable('Q_bkfl', 'f8', (dims['northing'].name, dims['easting'].name))
     set_nc_attrs(Q_bkfl_nc, 'Discharge at bankfull conditions')
     Q_bkfl_nc[:] = Q_bkfl
+    if peri_bkfl:
+        P_bkfl_nc = ncout.createVariable('P_bkfl', 'f8', (dims['northing'].name, dims['easting'].name))
+        set_nc_attrs(P_bkfl_nc, 'Perimeter at bankfull conditions', units="m")
+        P_bkfl_nc[:] = 4.8 * np.sqrt(Q_bkfl)
 
-def set_nc_attrs(nc_var, long_name):
+def set_nc_attrs(nc_var, long_name, units='m3 s-1'):
     nc_var.setncattr('FillValue', -9999.)
     nc_var.setncattr('long_name', long_name)
-    nc_var.setncattr('units', 'm3 s-1')
+    nc_var.setncattr('units', units)
     nc_var.setncattr('scale_factor', 1.)
     nc_var.setncattr('missing_value', -9999.)
     nc_var.setncattr('coordinates', 'lat lon')
@@ -110,7 +125,8 @@ def calc_monthly_means(t, Q):
     dates = pd.Series(t, name='time')
     ds = xr.Dataset({'Q': (['time', 'y', 'x'], Q)},
                     coords={'time': t})
-    ds_mon = ds.resample('M', dim='time')
+    # ds_mon = ds.resample('M', dim='time')
+    ds_mon = ds.resample(time='1M').mean()
     return ds_mon['Q']
 
 def calc_Q_bkfl( Q, return_period):
@@ -149,9 +165,9 @@ def process_grid(Q, return_period):
 
 
 if __name__ == '__main__':
-    ncin_filename, ncout_filename, return_period = get_cmdline_args(1.5)
+    ncin_filename, ncout_filename, return_period, peri_bkfl = get_cmdline_args(1.5)
     t, Q = read_discharge(ncin_filename)
     Q_mon = calc_monthly_means(t, Q)
 
     Q_bkfl = process_grid(Q_mon, return_period)
-    write_Q_bkfl(Q_bkfl, ncin_filename, ncout_filename)
+    write_Q_bkfl(Q_bkfl, ncin_filename, ncout_filename, peri_bkfl)

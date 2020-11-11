@@ -11,46 +11,46 @@
 
 !>       \date Jun 2018
 
-!>       \version 5.9
+!>       \version \htmlinclude version.txt \latexinclude version.txt
 
-!>       \copyright (c)2005-2019, Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
-!>       All rights reserved.
-
-!>       This code is a property of:
-
-!>       ----------------------------------------------------------
-
-!>       Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ
-!>       Registered Office: Leipzig
-!>       Registration Office: Amtsgericht Leipzig
-!>       Trade Register: Nr. B 4703
-!>       Chairman of the Supervisory Board: MinDirig Wilfried Kraus
-!>       Scientific Director: Prof. Dr. Georg Teutsch
-!>       Administrative Director: Dr. Heike Grassmann
-
-!>       ----------------------------------------------------------
-
-!>       NEITHER UFZ NOR THE DEVELOPERS MAKES ANY WARRANTY,
-!>       EXPRESS OR IMPLIED, OR ASSUMES ANY LIABILITY FOR THE USE
-!>       OF THIS SOFTWARE. If software is modified to produce
-!>       derivative works, such modified software should be
-!>       clearly marked, so as not to confuse it with the version
-!>       available from UFZ.  This code can be used for research
-!>       purposes ONLY provided that the following sources are
-!>       acknowledged:
-
-!>       Samaniego L., Kumar R., Attinger S. (2010): Multiscale
-!>       parameter regionalization of a grid-based hydrologic
-!>       model at the mesoscale.  Water Resour. Res., 46,
-!>       W05523, doi:10.1029/2008WR007327.
-
-!>       Kumar, R., L. Samaniego, and S. Attinger (2013), Implications
-!>       of distributed hydrologic model parameterization on water
-!>       fluxes at multiple scales and locations, Water Resour. Res.,
-!>       49, doi:10.1029/2012WR012195.
-
-!>       For commercial applications you have to consult the
-!>       authorities of the UFZ.
+!>       \copyright (c) \f$2005 - \the\year{}\f$, Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
+!!       All rights reserved.
+!!
+!!       This code is a property of:
+!!
+!!       ----------------------------------------------------------
+!!
+!!       Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ
+!!       Registered Office: Leipzig
+!!       Registration Office: Amtsgericht Leipzig
+!!       Trade Register: Nr. B 4703
+!!       Chairman of the Supervisory Board: MinDirig Wilfried Kraus
+!!       Scientific Director: Prof. Dr. Georg Teutsch
+!!       Administrative Director: Dr. Heike Grassmann
+!!
+!!       ----------------------------------------------------------
+!!
+!!       NEITHER UFZ NOR THE DEVELOPERS MAKES ANY WARRANTY,
+!!       EXPRESS OR IMPLIED, OR ASSUMES ANY LIABILITY FOR THE USE
+!!       OF THIS SOFTWARE. If software is modified to produce
+!!       derivative works, such modified software should be
+!!       clearly marked, so as not to confuse it with the version
+!!       available from UFZ.  This code can be used for research
+!!       purposes ONLY provided that the following sources are
+!!       acknowledged:
+!!
+!!       Samaniego L., Kumar R., Attinger S. (2010): Multiscale
+!!       parameter regionalization of a grid-based hydrologic
+!!       model at the mesoscale.  Water Resour. Res., 46,
+!!       W05523, doi:10.1029/2008WR007327.
+!!
+!!       Kumar, R., L. Samaniego, and S. Attinger (2013), Implications
+!!       of distributed hydrologic model parameterization on water
+!!       fluxes at multiple scales and locations, Water Resour. Res.,
+!!       49, doi:10.1029/2012WR012195.
+!!
+!!       For commercial applications you have to consult the
+!!       authorities of the UFZ.
 
 ! Modifications:
 ! Stephan Thober                Nov 2013 - added read in of latitude longitude fields
@@ -75,7 +75,7 @@
 ! Rohini Kumar                  Dec 2016 - options to read (monthly mean) LAI fields
 ! Robert Schweppe               Jun 2018 - refactoring and reformatting
 ! Maren Kaluza                  Oct 2019 - TWS to data structure
-
+! M.C. Demirel, Simon Stisen    Jun 2020 - New Soil Moisture Process: Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 PROGRAM mhm_driver
 
   USE mo_file, ONLY : &
@@ -142,7 +142,6 @@ PROGRAM mhm_driver
 #endif
           objective                 ! objective functions and likelihoods
   USE mo_optimization, ONLY : optimization
-#ifdef MRM2MHM
   USE mo_mrm_objective_function_runoff, ONLY : &
 #ifdef MPI
           single_objective_runoff_master, &
@@ -152,10 +151,13 @@ PROGRAM mhm_driver
   USE mo_mrm_init, ONLY : mrm_init, mrm_configuration
   USE mo_mrm_write, only : mrm_write
 
-#endif
   !$ USE omp_lib, ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
 #ifdef MPI
   USE mpi_f08
+#endif
+
+#ifdef NAG
+  USE f90_unix_dir, ONLY : CHDIR, GETCWD
 #endif
 
   IMPLICIT NONE
@@ -172,9 +174,9 @@ PROGRAM mhm_driver
   procedure(mhm_eval), pointer :: eval
   procedure(objective), pointer :: obj_func
 
-#ifdef MRM2MHM
+  character(len=255)  :: cur_work_dir, new_work_dir
+
   logical :: ReadLatLon
-#endif
 
 #ifdef MPI
   integer             :: ierror
@@ -191,6 +193,12 @@ PROGRAM mhm_driver
   oldrank = rank
   write(*,*) 'MPI!, comm', rank, nproc
 #endif
+
+  ! check for working dir (added argument to the executable)
+  CALL get_command_argument(1, new_work_dir)
+  IF (len_trim(new_work_dir) .ne. 0) call chdir(trim(new_work_dir))
+  CALL getcwd(cur_work_dir)
+
   ! --------------------------------------------------------------------------
   ! START
   ! --------------------------------------------------------------------------
@@ -198,8 +206,8 @@ PROGRAM mhm_driver
   call message('              mHM-UFZ')
   call message()
   call message('    MULTISCALE HYDROLOGIC MODEL')
-  call message('           Version ', trim(version))
-  call message('           ', trim(version_date))
+  call message('           Version: ', trim(version))
+  call message('           Date:    ', trim(version_date))
   call message()
   call message('Originally by L. Samaniego & R. Kumar')
 
@@ -211,6 +219,7 @@ PROGRAM mhm_driver
           // "." // trim(num2str(datetime(1), '(I4.4)')) // " " // trim(num2str(datetime(5), '(I2.2)')) &
           // ":" // trim(num2str(datetime(6), '(I2.2)')) // ":" // trim(num2str(datetime(7), '(I2.2)'))
   call message('Start at ', trim(message_text), '.')
+  call message('Working directory: ', trim(cur_work_dir))
   call message('Using main file ', trim(file_main), ' and namelists: ')
   call message('     ', trim(file_namelist_mhm))
   call message('     ', trim(file_namelist_mhm_param))
@@ -236,11 +245,9 @@ PROGRAM mhm_driver
   call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
   call mhm_read_config(file_namelist_mhm, unamelist_mhm)
   call check_optimization_settings()
-#ifdef MRM2MHM
   mrm_coupling_mode = 2_i4
   call mrm_configuration(file_namelist_mhm, unamelist_mhm, &
           file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon)
-#endif
   call message()
   call message('# of domains:         ', trim(num2str(domainMeta%overallNumberOfDomains)))
   call message()
@@ -319,29 +326,29 @@ PROGRAM mhm_driver
     ! read optional optional data if necessary
     if (optimize) then
       select case (opti_function)
-      case(10 : 13, 28)
-        ! read optional spatio-temporal soil mositure data
-        call readOptidataObs(iDomain, domainID, L1_smObs(iDomain))
-      case(17)
-        ! read optional spatio-temporal neutrons data
-        call readOptidataObs(iDomain, domainID, L1_neutronsObs(iDomain))
-      case(27, 29, 30)
-        ! read optional spatio-temporal evapotranspiration data
-        call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
-      case(15)
-        ! read optional spatio-temporal tws data
-        call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
-      case(33)
-        ! read optional spatio-temporal evapotranspiration data
-        if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
-          domainMeta%optidata(iDomain) == 6 ) then
+        case(10 : 13, 28)
+          ! read optional spatio-temporal soil mositure data
+          call readOptidataObs(iDomain, domainID, L1_smObs(iDomain))
+        case(17)
+          ! read optional spatio-temporal neutrons data
+          call readOptidataObs(iDomain, domainID, L1_neutronsObs(iDomain))
+        case(27, 29, 30)
+          ! read optional spatio-temporal evapotranspiration data
           call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
-        end if
-        ! read optional spatio-temporal tws data
-        if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
-          domainMeta%optidata(iDomain) == 6 ) then
+        case(15)
+          ! read optional spatio-temporal tws data
           call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
-        end if
+        case(33)
+          ! read optional spatio-temporal evapotranspiration data
+          if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
+            domainMeta%optidata(iDomain) == 6 ) then
+            call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
+          end if
+          ! read optional spatio-temporal tws data
+          if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
+            domainMeta%optidata(iDomain) == 6 ) then
+            call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
+          end if
       end select
     end if
 
@@ -349,15 +356,11 @@ PROGRAM mhm_driver
   call timer_stop(itimer)
   call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
-#ifdef MRM2MHM
   ! --------------------------------------------------------------------------
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
   if (processMatrix(8, 1) > 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
           file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon=ReadLatLon)
-#else
-  mrm_coupling_mode = -1_i4
-#endif
 
   !this call may be moved to another position as it writes the master config out file for all domains
   call write_configfile()
@@ -374,7 +377,6 @@ PROGRAM mhm_driver
     eval => mhm_eval
 
     select case(opti_function)
-#ifdef MRM2MHM
      case(1 : 9, 14, 31 : 32)
       ! call optimization against only runoff (no other variables)
       obj_func => single_objective_runoff
@@ -391,7 +393,6 @@ PROGRAM mhm_driver
       end if
 #else
       call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
-#endif
 #endif
      case(10 : 13, 15, 17, 27, 28, 29, 30, 33)
       ! call optimization for other variables
@@ -464,13 +465,11 @@ PROGRAM mhm_driver
     call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
   end if
 
-#ifdef MRM2MHM
   ! --------------------------------------------------------------------------
   ! WRITE RUNOFF (INCLUDING RESTART FILES, has to be called after mHM restart
   ! files are written)
   ! --------------------------------------------------------------------------
   if (processMatrix(8, 1) > 0) call mrm_write()
-#endif
 
 #ifdef MPI
   end if

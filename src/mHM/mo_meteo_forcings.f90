@@ -67,8 +67,10 @@ CONTAINS
     use mo_global_variables, only : L1_absvappress, L1_netrad, L1_pet, L1_pet_weights, L1_pre, L1_pre_weights, L1_temp, &
                                     L1_temp_weights, L1_tmax, L1_tmin, L1_windspeed, dirMaxTemperature, &
                                     dirMinTemperature, dirNetRadiation, dirPrecipitation, dirReferenceET, dirTemperature, &
-                                    dirabsVapPressure, dirwindspeed, inputFormat_meteo_forcings, read_meteo_weights, &
-                                    timeStep_model_inputs
+                                    dirabsVapPressure, dirwindspeed, dirRadiation, &
+                                    inputFormat_meteo_forcings, read_meteo_weights, &
+                                    timeStep_model_inputs, &
+                                    L1_ssrd, L1_strd, L1_tann  ! riv-temp related
     use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_timer, only : timer_get, timer_start, timer_stop
@@ -96,6 +98,7 @@ CONTAINS
 
       ! read weights for hourly disaggregation of temperature
       if (tt .eq. 1) then
+        ! TODO-RIV-TEMP: No NC files for weights for radiation at the moment
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read meteo weights for tavg     ...')
         call meteo_weights_wrapper(iDomain, read_meteo_weights, dirTemperature(iDomain), &
                 L1_temp_weights, ncvarName = 'tavg_weight')
@@ -192,6 +195,28 @@ CONTAINS
         end if
       end select
 
+      ! long/short-wave radiation and annual mean temperature for river-temperature routing
+      if ( processMatrix(11, 1) .ne. 0 ) then
+        ! free L1 variables if chunk read is activated
+        if (timeStep_model_inputs(iDomain) .ne. 0) then
+          if (allocated(L1_ssrd)) deallocate(L1_ssrd)
+          if (allocated(L1_strd)) deallocate(L1_strd)
+          if (allocated(L1_tann)) deallocate(L1_tann)
+        end if
+        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read short-wave radiation ...')
+          call meteo_forcings_wrapper( &
+                iDomain, dirRadiation(iDomain), inputFormat_meteo_forcings, &
+                L1_ssrd, lower = 0.0_dp, upper = 1500._dp, ncvarName = 'ssrd')
+        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read long-wave radiation ...')
+          call meteo_forcings_wrapper( &
+                iDomain, dirRadiation(iDomain), inputFormat_meteo_forcings, &
+                L1_strd, lower = 0.0_dp, upper = 1500._dp, ncvarName = 'strd')
+        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read annual mean temperature ...')
+          call meteo_forcings_wrapper( &
+                iDomain, dirTemperature(iDomain), inputFormat_meteo_forcings, &
+                L1_tann, lower = -100.0_dp, upper = 100._dp, ncvarName = 'tann')
+      end if
+
       if (timeStep_model_inputs(iDomain) .eq. 0) then
         call timer_stop(1)
         call message('    in ', trim(num2str(timer_get(1), '(F9.3)')), ' seconds.')
@@ -246,7 +271,7 @@ CONTAINS
     use mo_common_mhm_mrm_variables, only : readPer
     use mo_common_variables, only : level1
     use mo_global_variables, only : level2
-    use mo_read_forcing_nc, only : read_forcing_nc
+    use mo_read_nc, only : read_nc
     use mo_spatial_agg_disagg_forcing, only : spatial_aggregation, spatial_disaggregation
 
     implicit none
@@ -309,22 +334,22 @@ CONTAINS
     select case (trim(inputFormat))
     case('nc')
       if(present(lower) .AND. (.not. present(upper))) then
-        CALL read_forcing_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
+        CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
                 lower = lower)
       end if
       !
       if(present(upper) .AND. (.not. present(lower))) then
-        CALL read_forcing_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
+        CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
                 upper = upper)
       end if
       !
       if(present(lower) .AND. present(upper)) then
-        CALL read_forcing_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
+        CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
                 lower = lower, upper = upper)
       end if
       !
       if((.not. present(lower)) .AND. (.not. present(upper))) then
-        CALL read_forcing_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer)
+        CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer)
       end if
     case DEFAULT
       stop '***ERROR: meteo_forcings_wrapper: Not recognized input format'
@@ -410,7 +435,7 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level1
     use mo_global_variables, only : level2
-    use mo_read_forcing_nc, only : read_weights_nc
+    use mo_read_nc, only : read_weights_nc
     use mo_spatial_agg_disagg_forcing, only : spatial_aggregation, spatial_disaggregation
     use mo_message, only : message
 
