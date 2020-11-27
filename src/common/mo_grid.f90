@@ -81,7 +81,7 @@ contains
 
     integer(i4) :: i, j, k, ic, jc
 
-    ! STEPS :: 
+    ! STEPS ::
 
     !--------------------------------------------------------
     ! 1) Estimate each variable locally for a given domain
@@ -103,10 +103,10 @@ contains
 
       ! create mask at level-1
       do j = 1, highres%ncols
-        jc = ceiling(real(j, dp) / cellFactor)
+        jc = nint(real(j, dp) / cellFactor)
         do i = 1, highres%nrows
           if (.NOT. highres%mask(i, j)) cycle
-          ic = ceiling(real(i, dp) / cellFactor)
+          ic = nint(real(i, dp) / cellFactor)
           lowres%mask(ic, jc) = .TRUE.
         end do
       end do
@@ -280,7 +280,7 @@ contains
 
     real(dp) :: rdum, degree_to_radian, degree_to_metre
 
-    ! STEPS :: 
+    ! STEPS ::
 
 
     !--------------------------------------------------------
@@ -541,8 +541,8 @@ contains
     end if
 
     cellsizeOut = cellsizeIn * cellFactor
-    ncolsOut = ceiling(real(ncolsIn, dp) / cellFactor)
-    nrowsOut = ceiling(real(nrowsIn, dp) / cellFactor)
+    ncolsOut = nint(real(ncolsIn, dp) / cellFactor)
+    nrowsOut = nint(real(nrowsIn, dp) / cellFactor)
     xllcornerOut = xllcornerIn + real(ncolsIn, dp) * cellsizeIn - real(ncolsOut, dp) * cellsizeOut
     yllcornerOut = yllcornerIn + real(nrowsIn, dp) * cellsizeIn - real(nrowsOut, dp) * cellsizeOut
 
