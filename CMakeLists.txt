@@ -1,7 +1,7 @@
 # This cmake file is not meant to be edited for a special setup.
 # For special setups use cache line files or command line options, as described a few
 # lines ahead concerning module INDEPENDENT builds
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.12)
 # check version file
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt")
 	file(STRINGS "version.txt" MHMVERSION LIMIT_COUNT 1)
@@ -52,9 +52,9 @@ project(mhm
 message("mhm VERSION: ${mhm_VERSION} (from ${MHMVERSION})")
 message("mhm DATE:    ${MHMDATE}")
 # add version to pre-processor flags (qoutes need in before hand)
-add_compile_definitions(MHMVERSION=\"${MHMVERSION}\")
+add_compile_definitions(MHMVERSION='${MHMVERSION}')
 # add date to pre-processor flags (qoutes need in before hand)
-add_compile_definitions(MHMDATE=\"${MHMDATE}\")
+add_compile_definitions(MHMDATE='${MHMDATE}')
 
 # The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT" can be set before executing cmake via a cache command:
 # $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
