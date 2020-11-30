@@ -485,9 +485,9 @@ CONTAINS
 
     ! cell index
     integer(i4) :: k
-
+    ! pet in [mm d-1]
     real(dp) :: pet
-
+    ! precipitation in [mm TS-1]
     real(dp) :: prec
 
     real(dp) :: temp
