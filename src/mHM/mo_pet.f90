@@ -150,8 +150,7 @@ CONTAINS
 
   elemental pure FUNCTION pet_priestly(PrieTayParam, Rn, tavg)
 
-    use mo_common_constants, only : DaySecs
-    use mo_constants, only : Psychro_dp, SpecHeatET_dp
+    use mo_constants, only : DaySecs, Psychro_dp, SpecHeatET_dp
 
     implicit none
 

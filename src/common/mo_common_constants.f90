@@ -41,7 +41,6 @@ MODULE mo_common_constants
   real(dp), public, parameter :: YearMonths = 12.0_dp  ! months per year
   integer(i4), public, parameter :: YearMonths_i4 = 12       ! months per year
   real(dp), public, parameter :: YearDays = 365.0_dp  ! days in a year
-  real(dp), public, parameter :: DaySecs = 86400.0_dp  ! sec in a day
   real(dp), public, parameter :: HourSecs = 3600.0_dp  ! seconds per hour
 
   character(64), public, parameter :: soilHorizonsVarName = "L1_SoilHorizons"
