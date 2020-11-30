@@ -98,7 +98,7 @@ MODULE mo_global_variables
   real(dp), public, dimension(:, :, :), allocatable :: L1_pre_weights   ! hourly pre weights for daily values
   real(dp), public, dimension(:, :), allocatable :: L1_pre           ! [mm]    Precipitation
   real(dp), public, dimension(:, :), allocatable :: L1_temp          ! [degC]  Air temperature
-  real(dp), public, dimension(:, :), allocatable :: L1_pet           ! [mm TST-1] Potential evapotranspiration
+  real(dp), public, dimension(:, :), allocatable :: L1_pet           ! [mm TS-1] Potential evapotranspiration
   real(dp), public, dimension(:, :), allocatable :: L1_tmin          ! [degC]  minimum daily air temperature
   real(dp), public, dimension(:, :), allocatable :: L1_tmax          ! [degC]  maximum daily air temperature
   real(dp), public, dimension(:, :), allocatable :: L1_netrad        ! [W m2]  net radiation

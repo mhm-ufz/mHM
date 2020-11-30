@@ -414,7 +414,7 @@ contains
 
     ! convert if ALMA conventions have been given
     if (ALMA_convention) then
-      ! convert from kg m-2 s-1 to mm TST-1
+      ! convert from kg m-2 s-1 to mm TS-1
       ! 1 kg m-2 -> 1 mm depth
       ! multiply with time to obtain per timestep
       L1_data_packed = L1_data_packed * timestep * HourSecs

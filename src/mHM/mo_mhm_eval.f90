@@ -480,7 +480,7 @@ CONTAINS
             do_rout = .True.
             tsRoutFactorIn = 1._dp
             timestep_rout = timestep
-            RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TST-1] mm per timestep
+            RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TS-1] mm per timestep
             InflowDischarge = InflowGauge%Q(iDischargeTS, :) ! inflow discharge in [m3 s-1]
             !
           else if ((processMatrix(8, 1) .eq. 2) .or. &
@@ -499,7 +499,7 @@ CONTAINS
               ! ----------------------------------------------------------------
               ! set all input variables
               tsRoutFactorIn = tsRoutFactor
-              RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TST-1] mm per timestep
+              RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TS-1] mm per timestep
               InflowDischarge = InflowGauge%Q(iDischargeTS, :) ! inflow discharge in [m3 s-1]
               timestep_rout = timestep
               do_rout = .True.
@@ -578,7 +578,7 @@ CONTAINS
             read_restart, &
             processMatrix(8, 1), & ! parse process Case to be used
             parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)), & ! routing par.
-            RunToRout, & ! runoff [mm TST-1] mm per timestep old: L1_total_runoff_in(s1:e1, tt), &
+            RunToRout, & ! runoff [mm TS-1] mm per timestep old: L1_total_runoff_in(s1:e1, tt), &
             level1(iDomain)%CellArea * 1.E-6_dp, &
             L1_L11_Id(s1 : e1), &
             level11(iDomain)%CellArea * 1.E-6_dp, &
