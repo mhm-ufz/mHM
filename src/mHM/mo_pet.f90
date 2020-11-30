@@ -237,8 +237,7 @@ CONTAINS
   elemental pure FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, aerodyn_resistance, bulksurface_resistance, a_s, &
                                     a_sh)
 
-    use mo_common_constants, only : DaySecs
-    use mo_constants, only : Psychro_dp, SpecHeatET_dp, cp0_dp, rho0_dp
+    use mo_constants, only : DaySecs, Psychro_dp, SpecHeatET_dp, cp0_dp, rho0_dp
 
     implicit none
 
@@ -316,8 +315,7 @@ CONTAINS
 
   elemental pure FUNCTION extraterr_rad_approx(doy, latitude)
 
-    use mo_common_constants, only : DaySecs, YearDays
-    use mo_constants, only : PI_D, SolarConst_dp, SpecHeatET_dp, TWOPI_D
+    use mo_constants, only : DaySecs, YearDays, PI_D, SolarConst_dp, SpecHeatET_dp, TWOPI_D
     use mo_mhm_constants, only : DuffieDelta1, DuffieDelta2, DuffieDr
 
     implicit none
