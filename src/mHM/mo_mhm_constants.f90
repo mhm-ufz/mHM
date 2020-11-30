@@ -32,9 +32,6 @@ MODULE mo_mhm_constants
   ! maximum number of outputs (fluxes states) for mHM
   integer(i4), public, parameter :: nOutFlxState = 20_i4     ! max. number of outputs to write into a netcdf file
 
-
-  !> Stefan-Boltzmann constant [W m^-2 K^-4]
-  real(dp), public, parameter :: StBoltzmann = 5.67e-08_dp
   !> Hargreaves-Samani ref. ET formula [deg C]
   real(dp), public, parameter :: HarSamConst = 17.800_dp
 
