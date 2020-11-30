@@ -229,13 +229,13 @@ CONTAINS
 
   !    INTENT(IN)
   !>       \param[in] "REAL(dp) :: fSealed_area_fraction" sealed area fraction [1]
-  !>       \param[in] "REAL(dp) :: fast_interflow"        \f$ q_0 \f$ Fast runoff component [mm tst-1]
-  !>       \param[in] "REAL(dp) :: slow_interflow"        \f$ q_1 \f$ Slow runoff component [mm tst-1]
+  !>       \param[in] "REAL(dp) :: fast_interflow"        \f$ q_0 \f$ Fast runoff component [mm TS-1]
+  !>       \param[in] "REAL(dp) :: slow_interflow"        \f$ q_1 \f$ Slow runoff component [mm TS-1]
   !>       \param[in] "REAL(dp) :: baseflow"              \f$ q_2 \f$ Baseflow [mm TS-1]
-  !>       \param[in] "REAL(dp) :: direct_runoff"         \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
+  !>       \param[in] "REAL(dp) :: direct_runoff"         \f$ q_D \f$ Direct runoff from impervious areas  [mm TS-1]
 
   !    INTENT(OUT)
-  !>       \param[out] "REAL(dp) :: total_runoff" \f$ q_T \f$ Generated runoff [mm tst-1]
+  !>       \param[out] "REAL(dp) :: total_runoff" \f$ q_T \f$ Generated runoff [mm TS-1]
 
   !    HISTORY
   !>       \authors Vladyslav Prykhodko
@@ -255,19 +255,19 @@ CONTAINS
     ! sealed area fraction [1]
     REAL(dp), INTENT(IN) :: fSealed_area_fraction
 
-    ! \f$ q_0 \f$ Fast runoff component [mm tst-1]
+    ! \f$ q_0 \f$ Fast runoff component [mm TS-1]
     REAL(dp), INTENT(IN) :: fast_interflow
 
-    ! \f$ q_1 \f$ Slow runoff component [mm tst-1]
+    ! \f$ q_1 \f$ Slow runoff component [mm TS-1]
     REAL(dp), INTENT(IN) :: slow_interflow
 
     ! \f$ q_2 \f$ Baseflow [mm TS-1]
     REAL(dp), INTENT(IN) :: baseflow
 
-    ! \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
+    ! \f$ q_D \f$ Direct runoff from impervious areas  [mm TS-1]
     REAL(dp), INTENT(IN) :: direct_runoff
 
-    ! \f$ q_T \f$ Generated runoff [mm tst-1]
+    ! \f$ q_T \f$ Generated runoff [mm TS-1]
     REAL(dp), INTENT(OUT) :: total_runoff
 
 
