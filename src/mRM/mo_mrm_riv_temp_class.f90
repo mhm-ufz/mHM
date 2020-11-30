@@ -125,6 +125,8 @@ contains
     use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_variables, only : domainMeta
     use mo_nml, only : close_nml, open_nml, position_nml
+    use mo_check, only : check_dir
+    USE mo_string_utils, ONLY : num2str
 
     implicit none
 
@@ -147,6 +149,8 @@ contains
     character(256), dimension(maxNoDomains) :: dir_riv_widths
     character(256) :: riv_widths_file ! file name for river widths
     character(256) :: riv_widths_name ! variable name for river widths
+
+    integer(i4) :: iDomain, domainID
 
     ! namelist for river temperature configuration
     namelist /config_riv_temp/ &
@@ -193,6 +197,17 @@ contains
 
     ! closing the namelist file
     call close_nml(unamelist)
+
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      call check_dir( &
+        path=self%dir_riv_widths(iDomain), &
+        text_="(domain "//trim(num2str(domainID,'(I3)'))//") River widths directory:", &
+        throwError_=.true., &
+        tab_=4, &
+        text_length_=40 &
+      )
+    end do
 
   end subroutine config
 

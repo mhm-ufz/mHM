@@ -100,11 +100,13 @@ CONTAINS
     LOGICAL :: throwError = .false.
     LOGICAL :: exists
     CHARACTER(LEN=40) :: messagetext
+    CHARACTER(LEN=len_trim(path)) :: t_path
 
-    inquire (file=path, exist=exists)
+    t_path = trim(path)
+    inquire (file=t_path, exist=exists)
 
 #ifdef INTEL
-    if (.not. exists) inquire (directory=path, exist=exists)
+    if (.not. exists) inquire (directory=t_path, exist=exists)
 #endif
 
     if (present(quiet_)) quiet = quiet_
@@ -118,7 +120,7 @@ CONTAINS
     endif
 
     if (.not. exists) then
-      if (.not. quiet .or. throwError) call message(trim(messagetext), path)
+      if (.not. quiet .or. throwError) call message(trim(messagetext), t_path)
       if (throwError) stop 1
     endif
 
@@ -188,7 +190,9 @@ CONTAINS
     LOGICAL :: throwError
     LOGICAL :: exists
     LOGICAL :: isfile
+    CHARACTER(LEN=len_trim(path)) :: t_path
 
+    t_path = trim(path)
     quiet = .false.
     throwError = .false.
     isfile = .true.
@@ -196,21 +200,21 @@ CONTAINS
     if (present(quiet_)) quiet = quiet_
     if (present(throwError_)) throwError = throwError_
 
-    call path_exists(path, quiet, throwError, .false., exists)
+    call path_exists(t_path, quiet, throwError, .false., exists)
     if (exists) then
       !checking whether the path is ending with '/' or '/.' which would indicates a directory
-      if (path(len(path):len(path)) .eq. '/' .or. path(len(path) - 1:len(path)) .eq. '/.') then
+      if (t_path(len(t_path):len(t_path)) .eq. '/' .or. t_path(len(t_path) - 1:len(t_path)) .eq. '/.') then
         isfile = .false.
       else
         !checking whether would still exist if '/.' is added to the end, in this case it is a directory
 #ifdef INTEL
-        inquire (directory=path//'/.', exist=exists)
+        inquire (directory=t_path//'/.', exist=exists)
 #else
-        inquire (file=path//'/.', exist=exists)
+        inquire (file=t_path//'/.', exist=exists)
 #endif
         if (exists) then
           isfile = .false.
-          if (.not. quiet .or. throwError) call message('The following path describes a directory and not a file: ', path)
+          if (.not. quiet .or. throwError) call message('The following path describes a directory and not a file: ', t_path)
           if (throwError) stop 1
         endif
       endif
@@ -284,7 +288,9 @@ CONTAINS
     LOGICAL :: throwError
     LOGICAL :: isdir
     LOGICAL :: exists
+    CHARACTER(LEN=len_trim(path)) :: t_path
 
+    t_path = trim(path)
     quiet = .false.
     throwError = .false.
     isdir = .true.
@@ -292,12 +298,12 @@ CONTAINS
     if (present(quiet_)) quiet = quiet_
     if (present(throwError_)) throwError = throwError_
 
-    call path_exists(path, quiet, throwError, .true., exists)
+    call path_exists(t_path, quiet, throwError, .true., exists)
     if (exists) then
-      call path_isfile(path, .true., .false., exists)
+      call path_isfile(t_path, .true., .false., exists)
       if (exists) then
         isdir = .false.
-        if (.not. quiet .or. throwError) call message('The following path describes a file and not a directory: ', path)
+        if (.not. quiet .or. throwError) call message('The following path describes a file and not a directory: ', t_path)
         if (throwError) stop 1
       endif
     else
@@ -366,31 +372,33 @@ CONTAINS
     INTEGER   :: i
     CHARACTER :: c
     LOGICAL :: isdir
+    CHARACTER(LEN=len_trim(path)) :: t_path
 
-    i = len(path) - 1
-    c = path(len(path):len(path))
+    t_path = trim(path)
+    i = len(t_path) - 1
+    c = t_path(len(t_path):len(t_path))
 
     !Checking, whether the path describes a directory so it cannot ends with an extension.
-    call path_isdir(path, .true., .false., isdir)
+    call path_isdir(t_path, .true., .false., isdir)
     if (isdir) then
-      i = len(path)
+      i = len(t_path)
     else
       !running through the path, beginning at the end until a point is found that probably indicates
       !the seperation of a file name and its extension or a '/' occurs what means that the rest of the
       !path is consisting of directories
       do while (.not. (c .eq. '.' .or. c .eq. '/' .or. i .eq. 0))
-        c = path(i:i)
+        c = t_path(i:i)
         i = i - 1
       end do
       !checking whether the last symbol of the path is a point or the while-loop run through the whole path
       !without finding a point or ended at a '/'. In any case it is not possible to seperate an extension.
-      if (i .eq. len(path) - 1 .or. i .eq. 0 .or. c .eq. '/') then
-        i = len(path)
+      if (i .eq. len(t_path) - 1 .or. i .eq. 0 .or. c .eq. '/') then
+        i = len(t_path)
       endif
     endif
 
-    root = path(1:i)
-    ext = path(i + 1:len(path))
+    root = t_path(1:i)
+    ext = t_path(i + 1:len(t_path))
     return
 
   END SUBROUTINE path_splitext
@@ -452,25 +460,26 @@ CONTAINS
 
     INTEGER   :: i
     CHARACTER :: c
-    LOGICAL :: isdir
+    CHARACTER(LEN=len_trim(path)) :: t_path
 
-    i = len(path) - 1
-    c = path(len(path):len(path))
+    t_path = trim(path)
+    i = len(t_path) - 1
+    c = t_path(len(t_path):len(t_path))
 
     !running through the path, beginning at the end until a point is found that probably indicates
     !the seperation of a file name and its extension or a '/' occurs what means that the rest of the
     !path is consisting of directories
     do while (.not. (c .eq. '/' .or. i .eq. 0))
-      c = path(i:i)
+      c = t_path(i:i)
       i = i - 1
     end do
     !checking whether the while-loop run through the whole path without finding a '/'
     if (i .eq. 0) then
       head = ''
-      tail = path
+      tail = t_path
     else
-      head = path(1:i + 1)
-      tail = path(i + 2:len(path))
+      head = t_path(1:i + 1)
+      tail = t_path(i + 2:len(t_path))
     endif
 
     return
