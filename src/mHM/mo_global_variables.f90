@@ -42,9 +42,9 @@ MODULE mo_global_variables
   !           Robert Schweppe,    Dec 2017 - merged duplicated variables with mrm into common variables
 
   USE mo_kind, ONLY : i4, dp
+  USE mo_constants, ONLY : YearMonths_i4
   USE mo_mhm_constants, ONLY : nOutFlxState
   USE mo_optimization_types, ONLY : optidata
-  USE mo_common_constants, ONLY : YearMonths
   use mo_common_variables, only : Grid
 
   IMPLICIT NONE
@@ -98,7 +98,7 @@ MODULE mo_global_variables
   real(dp), public, dimension(:, :, :), allocatable :: L1_pre_weights   ! hourly pre weights for daily values
   real(dp), public, dimension(:, :), allocatable :: L1_pre           ! [mm]    Precipitation
   real(dp), public, dimension(:, :), allocatable :: L1_temp          ! [degC]  Air temperature
-  real(dp), public, dimension(:, :), allocatable :: L1_pet           ! [mm TST-1] Potential evapotranspiration
+  real(dp), public, dimension(:, :), allocatable :: L1_pet           ! [mm TS-1] Potential evapotranspiration
   real(dp), public, dimension(:, :), allocatable :: L1_tmin          ! [degC]  minimum daily air temperature
   real(dp), public, dimension(:, :), allocatable :: L1_tmax          ! [degC]  maximum daily air temperature
   real(dp), public, dimension(:, :), allocatable :: L1_netrad        ! [W m2]  net radiation
@@ -168,17 +168,17 @@ MODULE mo_global_variables
   ! for temporal disaggregation
   ! -------------------------------------------------------------------
   ! dim1 = number of months in a year
-  real(dp), public, dimension(int(YearMonths, i4)) :: evap_coeff     ! [-] Evap. coef. for free-water surfaces
-  real(dp), public, dimension(int(YearMonths, i4)) :: fday_prec      ! [-] Day ratio precipitation < 1
-  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_prec    ! [-] Night ratio precipitation < 1
-  real(dp), public, dimension(int(YearMonths, i4)) :: fday_pet       ! [-] Day ratio PET  < 1
-  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_pet     ! [-] Night ratio PET  < 1
-  real(dp), public, dimension(int(YearMonths, i4)) :: fday_temp      ! [-] Day factor mean temp
-  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_temp    ! [-] Night factor mean temp
-  real(dp), public, dimension(int(YearMonths, i4)) :: fday_ssrd      ! [-] Day factor short-wave rad.
-  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_ssrd    ! [-] Night factor short-wave rad.
-  real(dp), public, dimension(int(YearMonths, i4)) :: fday_strd      ! [-] Day factor long-wave rad.
-  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_strd    ! [-] Night factor long-wave rad.
+  real(dp), public, dimension(YearMonths_i4) :: evap_coeff     ! [-] Evap. coef. for free-water surfaces
+  real(dp), public, dimension(YearMonths_i4) :: fday_prec      ! [-] Day ratio precipitation < 1
+  real(dp), public, dimension(YearMonths_i4) :: fnight_prec    ! [-] Night ratio precipitation < 1
+  real(dp), public, dimension(YearMonths_i4) :: fday_pet       ! [-] Day ratio PET  < 1
+  real(dp), public, dimension(YearMonths_i4) :: fnight_pet     ! [-] Night ratio PET  < 1
+  real(dp), public, dimension(YearMonths_i4) :: fday_temp      ! [-] Day factor mean temp
+  real(dp), public, dimension(YearMonths_i4) :: fnight_temp    ! [-] Night factor mean temp
+  real(dp), public, dimension(YearMonths_i4) :: fday_ssrd      ! [-] Day factor short-wave rad.
+  real(dp), public, dimension(YearMonths_i4) :: fnight_ssrd    ! [-] Night factor short-wave rad.
+  real(dp), public, dimension(YearMonths_i4) :: fday_strd      ! [-] Day factor long-wave rad.
+  real(dp), public, dimension(YearMonths_i4) :: fnight_strd    ! [-] Night factor long-wave rad.
 
   ! -------------------------------------------------------------------
   ! AUXILIARY VARIABLES

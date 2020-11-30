@@ -42,9 +42,9 @@ CONTAINS
   !>       Updates upper soil and groundwater storages.
 
   !    INTENT(IN)
-  !>       \param[in] "REAL(dp) :: k1"           Recession coefficient of the upper reservoir,lower outlet [d-1]
-  !>       \param[in] "REAL(dp) :: kp"           Percolation coefficient [d-1]
-  !>       \param[in] "REAL(dp) :: k0"           Recession coefficient of the upperreservoir, upper outlet [d-1]
+  !>       \param[in] "REAL(dp) :: k1"           Recession coefficient of the upper reservoir,lower outlet [TS-1]
+  !>       \param[in] "REAL(dp) :: kp"           Percolation coefficient [TS-1]
+  !>       \param[in] "REAL(dp) :: k0"           Recession coefficient of the upperreservoir, upper outlet [TS-1]
   !>       \param[in] "REAL(dp) :: alpha"        Exponent for the upper reservoir [-]
   !>       \param[in] "REAL(dp) :: karst_loss"   Karstic percolation loss [-]
   !>       \param[in] "REAL(dp) :: pefec_soil"   Input to the soil layer [mm]
@@ -55,9 +55,9 @@ CONTAINS
   !>       \param[inout] "REAL(dp) :: unsat_storage" Upper soil storage [mm]
 
   !    INTENT(OUT)
-  !>       \param[out] "REAL(dp) :: slow_interflow" Slow runoff component [mm d-1]
-  !>       \param[out] "REAL(dp) :: fast_interflow" Fast runoff component [mm d-1]
-  !>       \param[out] "REAL(dp) :: perc"           Percolation [mm d-1]
+  !>       \param[out] "REAL(dp) :: slow_interflow" Slow runoff component [mm TS-1]
+  !>       \param[out] "REAL(dp) :: fast_interflow" Fast runoff component [mm TS-1]
+  !>       \param[out] "REAL(dp) :: perc"           Percolation [mm TS-1]
 
   !    HISTORY
   !>       \authors Vladyslav Prykhodko
@@ -78,13 +78,13 @@ CONTAINS
                               slow_interflow, fast_interflow, perc)
     implicit none
 
-    ! Recession coefficient of the upper reservoir,lower outlet [d-1]
+    ! Recession coefficient of the upper reservoir,lower outlet [TS-1]
     REAL(dp), INTENT(IN) :: k1
 
-    ! Percolation coefficient [d-1]
+    ! Percolation coefficient [TS-1]
     REAL(dp), INTENT(IN) :: kp
 
-    ! Recession coefficient of the upperreservoir, upper outlet [d-1]
+    ! Recession coefficient of the upperreservoir, upper outlet [TS-1]
     REAL(dp), INTENT(IN) :: k0
 
     ! Exponent for the upper reservoir [-]
@@ -105,13 +105,13 @@ CONTAINS
     ! Upper soil storage [mm]
     REAL(dp), INTENT(INOUT) :: unsat_storage
 
-    ! Slow runoff component [mm d-1]
+    ! Slow runoff component [mm TS-1]
     REAL(dp), INTENT(OUT) :: slow_interflow
 
-    ! Fast runoff component [mm d-1]
+    ! Fast runoff component [mm TS-1]
     REAL(dp), INTENT(OUT) :: fast_interflow
 
-    ! Percolation [mm d-1]
+    ! Percolation [mm TS-1]
     REAL(dp), INTENT(OUT) :: perc
 
 
@@ -173,13 +173,13 @@ CONTAINS
   !>       will be then reduced by the value of baseflow.
 
   !    INTENT(IN)
-  !>       \param[in] "REAL(dp) :: k2" Baseflow recession coefficient [d-1]
+  !>       \param[in] "REAL(dp) :: k2" Baseflow recession coefficient [TS-1]
 
   !    INTENT(INOUT)
   !>       \param[inout] "REAL(dp) :: sat_storage" Groundwater storage [mm]
 
   !    INTENT(OUT)
-  !>       \param[out] "REAL(dp) :: baseflow" Baseflow [mm d-1]
+  !>       \param[out] "REAL(dp) :: baseflow" Baseflow [mm TS-1]
 
   !    HISTORY
   !>       \authors Vladyslav Prykhodko
@@ -194,13 +194,13 @@ CONTAINS
   SUBROUTINE runoff_sat_zone(k2, sat_storage, baseflow)
     implicit none
 
-    ! Baseflow recession coefficient [d-1]
+    ! Baseflow recession coefficient [TS-1]
     REAL(dp), INTENT(IN) :: k2
 
     ! Groundwater storage [mm]
     REAL(dp), INTENT(INOUT) :: sat_storage
 
-    ! Baseflow [mm d-1]
+    ! Baseflow [mm TS-1]
     REAL(dp), INTENT(OUT) :: baseflow
 
 
@@ -229,13 +229,13 @@ CONTAINS
 
   !    INTENT(IN)
   !>       \param[in] "REAL(dp) :: fSealed_area_fraction" sealed area fraction [1]
-  !>       \param[in] "REAL(dp) :: fast_interflow"        \f$ q_0 \f$ Fast runoff component [mm tst-1]
-  !>       \param[in] "REAL(dp) :: slow_interflow"        \f$ q_1 \f$ Slow runoff component [mm tst-1]
-  !>       \param[in] "REAL(dp) :: baseflow"              \f$ q_2 \f$ Baseflow [mm tsts-1]
-  !>       \param[in] "REAL(dp) :: direct_runoff"         \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
+  !>       \param[in] "REAL(dp) :: fast_interflow"        \f$ q_0 \f$ Fast runoff component [mm TS-1]
+  !>       \param[in] "REAL(dp) :: slow_interflow"        \f$ q_1 \f$ Slow runoff component [mm TS-1]
+  !>       \param[in] "REAL(dp) :: baseflow"              \f$ q_2 \f$ Baseflow [mm TS-1]
+  !>       \param[in] "REAL(dp) :: direct_runoff"         \f$ q_D \f$ Direct runoff from impervious areas  [mm TS-1]
 
   !    INTENT(OUT)
-  !>       \param[out] "REAL(dp) :: total_runoff" \f$ q_T \f$ Generated runoff [mm tst-1]
+  !>       \param[out] "REAL(dp) :: total_runoff" \f$ q_T \f$ Generated runoff [mm TS-1]
 
   !    HISTORY
   !>       \authors Vladyslav Prykhodko
@@ -255,19 +255,19 @@ CONTAINS
     ! sealed area fraction [1]
     REAL(dp), INTENT(IN) :: fSealed_area_fraction
 
-    ! \f$ q_0 \f$ Fast runoff component [mm tst-1]
+    ! \f$ q_0 \f$ Fast runoff component [mm TS-1]
     REAL(dp), INTENT(IN) :: fast_interflow
 
-    ! \f$ q_1 \f$ Slow runoff component [mm tst-1]
+    ! \f$ q_1 \f$ Slow runoff component [mm TS-1]
     REAL(dp), INTENT(IN) :: slow_interflow
 
-    ! \f$ q_2 \f$ Baseflow [mm tsts-1]
+    ! \f$ q_2 \f$ Baseflow [mm TS-1]
     REAL(dp), INTENT(IN) :: baseflow
 
-    ! \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
+    ! \f$ q_D \f$ Direct runoff from impervious areas  [mm TS-1]
     REAL(dp), INTENT(IN) :: direct_runoff
 
-    ! \f$ q_T \f$ Generated runoff [mm tst-1]
+    ! \f$ q_T \f$ Generated runoff [mm TS-1]
     REAL(dp), INTENT(OUT) :: total_runoff
 
 

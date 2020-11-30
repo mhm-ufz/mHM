@@ -121,7 +121,7 @@ contains
   ! L11 PARAMETERS
   ! --------------------------------------------------------------------------
   ! The parameters are set following Thober et al. 2017
-  ! Modified: 
+  ! Modified:
   !    NAME
   !        mrm_init_param
 
@@ -143,7 +143,7 @@ contains
 
   subroutine mrm_init_param(iDomain, param)
 
-    use mo_common_constants, only : HourSecs
+    use mo_constants, only : HourSecs
     use mo_common_mHM_mRM_variables, only : resolutionRouting, timeStep, optimize
     use mo_common_variables, only : iFlag_cordinate_sys, domainMeta, processMatrix
     use mo_kind, only : dp, i4
@@ -174,7 +174,7 @@ contains
     ! start and end index at level11
     integer(i4) :: s11, e11
 
-    ! Number of cells within 
+    ! Number of cells within
 
     ! initialize indices
     s11 = level11(iDomain)%iStart
@@ -197,7 +197,7 @@ contains
           call message('            inflowgauge location might occur.')
        end if
 
-    else 
+    else
 
       ! called for initialization
       call mrm_update_param(iDomain, param)
@@ -255,11 +255,11 @@ contains
     use mo_utils, only: locate
     use mo_mrm_net_startup, only: L11_calc_celerity
     use mo_mrm_constants, only: given_TS
-    use mo_common_constants, only: HourSecs
+    use mo_constants, only: HourSecs
     use mo_message, only: message
     use mo_string_utils, only: num2str
     use mo_utils, only: locate
-    
+
     implicit none
 
     ! domain number
@@ -291,12 +291,12 @@ contains
     Nnodes = level11(iDomain)%nCells
 
     allocate(K(nNodes))
-    
+
     if (ProcessMatrix(8, 1) .eq. 2_i4) then
-     
+
       ! [s] wave travel time parameter
       K(:) = L11_length(s11: e11) / param(1)
-    
+
     else if (ProcessMatrix(8, 1) .eq. 3_i4) then
 
       ! [s] wave travel time parameter
@@ -317,10 +317,10 @@ contains
     if (ind .lt. 1) ind = 1
     L11_TSrout(iDomain) = given_TS(ind)
 
-    ! Muskingum parameters 
+    ! Muskingum parameters
     L11_C1(s11:e11) = L11_TSrout(iDomain) / ( K(:) * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iDomain) )
     L11_C2(s11:e11) = 1.0_dp - L11_C1(s11:e11) * K(:) / L11_TSrout(iDomain)
-    
+
     deallocate(K)
 
     ! optional print

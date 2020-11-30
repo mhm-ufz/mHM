@@ -45,8 +45,8 @@ CONTAINS
   !    INTENT(IN)
   !>       \param[in] "logical :: isday"              is day or night
   !>       \param[in] "real(dp) :: ntimesteps_day"    # of time steps per day
-  !>       \param[in] "real(dp) :: prec_day"          Daily mean precipitation [mm/s]
-  !>       \param[in] "real(dp) :: pet_day"           Daily mean ET [mm/s]
+  !>       \param[in] "real(dp) :: prec_day"          Daily mean precipitation [mm/d]
+  !>       \param[in] "real(dp) :: pet_day"           Daily mean ET [mm/d]
   !>       \param[in] "real(dp) :: temp_day"          Daily mean air temperature [K]
   !>       \param[in] "real(dp) :: fday_prec"         Daytime fraction of precipitation
   !>       \param[in] "real(dp) :: fday_pet"          Daytime fraction of PET
@@ -60,8 +60,8 @@ CONTAINS
   !>       \param[in] "logical :: read_meteo_weights" flag indicating that weights should be used
 
   !    INTENT(OUT)
-  !>       \param[out] "real(dp) :: prec" Actual precipitation [mm/s]
-  !>       \param[out] "real(dp) :: pet"  Reference ET [mm/s]
+  !>       \param[out] "real(dp) :: prec" Actual precipitation [mm/d]
+  !>       \param[out] "real(dp) :: pet"  Reference ET [mm/d]
   !>       \param[out] "real(dp) :: temp" Air temperature [K]
 
   !    HISTORY
@@ -90,9 +90,9 @@ CONTAINS
     logical, intent(in) :: isday
     ! # of time steps per day
     real(dp), intent(in) :: ntimesteps_day
-    ! Daily mean precipitation [mm/s]
+    ! Daily mean precipitation [mm/d]
     real(dp), intent(in) :: prec_day
-    ! Daily mean ET [mm/s]
+    ! Daily mean ET [mm/d]
     real(dp), intent(in) :: pet_day
     ! Daily mean air temperature [K]
     real(dp), intent(in) :: temp_day
@@ -116,9 +116,9 @@ CONTAINS
     real(dp), intent(in) :: pre_weights
     ! flag indicating that weights should be used
     logical, intent(in) :: read_meteo_weights
-    ! Actual precipitation [mm/s]
+    ! Actual precipitation [mm/d]
     real(dp), intent(out) :: prec
-    ! Reference ET [mm/s]
+    ! Reference ET [mm/d]
     real(dp), intent(out) :: pet
     ! Air temperature [K]
     real(dp), intent(out) :: temp
