@@ -37,10 +37,6 @@ MODULE mo_common_constants
   integer(i4), public, parameter :: maxNoDomains = 50_i4     ! maximum number of allowed domains
   integer(i4), public, parameter :: maxNLcovers = 50_i4     ! maximum number of allowed LCover scenes
 
-  ! temporal
-  real(dp), public, parameter :: YearMonths = 12.0_dp  ! months per year
-  integer(i4), public, parameter :: YearMonths_i4 = 12       ! months per year
-
   character(64), public, parameter :: soilHorizonsVarName = "L1_SoilHorizons"
   character(64), public, parameter :: landCoverPeriodsVarName = "L1_LandCoverPeriods"
   character(64), public, parameter :: LAIVarName = "L1_LAITimesteps"
