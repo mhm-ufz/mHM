@@ -328,7 +328,7 @@ CONTAINS
   !>       \param[in] "REAL(dp) :: fSealed_area_fraction" sealed area fraction [1]
   !>       \param[in] "REAL(dp) :: fast_interflow"        \f$ q_0 \f$ Fast runoff component [mm tst-1]
   !>       \param[in] "REAL(dp) :: slow_interflow"        \f$ q_1 \f$ Slow runoff component [mm tst-1]
-  !>       \param[in] "REAL(dp) :: baseflow"              \f$ q_2 \f$ Baseflow [mm tsts-1]
+  !>       \param[in] "REAL(dp) :: baseflow"              \f$ q_2 \f$ Baseflow [mm TS-1]
   !>       \param[in] "REAL(dp) :: direct_runoff"         \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
   !>       \param[in] "REAL(dp) :: temp_air"              air temperature [K]
   !>       \param[in] "REAL(dp) :: mean_temp_air"         annual mean air temperature  [K]
@@ -362,7 +362,7 @@ CONTAINS
     REAL(dp), dimension(:), INTENT(IN) :: fast_interflow
     ! \f$ q_1 \f$ Slow runoff component [mm tst-1]
     REAL(dp), dimension(:), INTENT(IN) :: slow_interflow
-    ! \f$ q_2 \f$ Baseflow [mm tsts-1]
+    ! \f$ q_2 \f$ Baseflow [mm TS-1]
     REAL(dp), dimension(:), INTENT(IN) :: baseflow
     ! \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
     REAL(dp), dimension(:), INTENT(IN) :: direct_runoff

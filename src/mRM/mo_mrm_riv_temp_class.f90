@@ -474,7 +474,7 @@ contains
     real(dp), dimension(:), intent(in) :: fSealed_area_fraction !< sealed area fraction [1]
     real(dp), dimension(:), intent(in) :: fast_interflow !< \f$ q_0 \f$ Fast runoff component [mm tst-1]
     real(dp), dimension(:), intent(in) :: slow_interflow !< \f$ q_1 \f$ Slow runoff component [mm tst-1]
-    real(dp), dimension(:), intent(in) :: baseflow !< \f$ q_2 \f$ Baseflow [mm tsts-1]
+    real(dp), dimension(:), intent(in) :: baseflow !< \f$ q_2 \f$ Baseflow [mm TS-1]
     real(dp), dimension(:), intent(in) :: direct_runoff !< \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
     real(dp), dimension(:), intent(in) :: temp_air !< air temperature [K]
     real(dp), dimension(:), intent(in) :: mean_temp_air !< annual mean air temperature [K]
