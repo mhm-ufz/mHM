@@ -40,7 +40,6 @@ MODULE mo_common_constants
   ! temporal
   real(dp), public, parameter :: YearMonths = 12.0_dp  ! months per year
   integer(i4), public, parameter :: YearMonths_i4 = 12       ! months per year
-  real(dp), public, parameter :: YearDays = 365.0_dp  ! days in a year
 
   character(64), public, parameter :: soilHorizonsVarName = "L1_SoilHorizons"
   character(64), public, parameter :: landCoverPeriodsVarName = "L1_LandCoverPeriods"
