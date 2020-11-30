@@ -373,7 +373,8 @@ contains
   subroutine mrm_read_total_runoff(iDomain)
 
     use mo_append, only : append
-    use mo_common_constants, only : HourSecs, nodata_dp
+    use mo_constants, only : HourSecs
+    use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : simPer, timestep
     use mo_common_variables, only : ALMA_convention, level1
     use mo_mrm_global_variables, only : L1_total_runoff_in, dirTotalRunoff, filenameTotalRunoff, &

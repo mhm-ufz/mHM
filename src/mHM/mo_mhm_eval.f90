@@ -116,7 +116,7 @@ CONTAINS
                                         L1_wiltingPoint, nSoilHorizons_mHM
     use mo_restart, only : read_restart_states
     use mo_write_fluxes_states, only : OutputDataset
-    use mo_common_constants, only : HourSecs
+    use mo_constants, only : HourSecs
     use mo_common_mHM_mRM_variables, only : resolutionRouting
     use mo_common_variables, only : resolutionHydrology
     use mo_mrm_global_variables, only : InflowGauge, L11_C1, L11_C2, &
