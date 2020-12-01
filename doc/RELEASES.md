@@ -1,10 +1,59 @@
-# mHM RELEASE NOTES
+# mHM Release Notes
 
-### Fixed Bugs in develop:
+## mHM v5.11 (Dec 2020)
 
-The following bugs from the last release has been solved:
+### Experimental Features
 
-2., 3., 4., 5., 6., 7.
+- river temperature routing was implemented in an alpha version 0.1 (!37)
+  - this feature is in an experimental stage and should not be considered stable!
+
+### Enhancements
+
+- introduced central version files `version.txt` and `version_data.txt` (!51)
+- added Feddes and global FC dependency on root fraction coef. at SM process(3)=4 (!43)
+- Online documentation generated with doxygen: https://mhm.pages.ufz.de/mhm/develop/ (!44)
+- CI/CD with GitLab Runner (!11, !13, !14, !28, !32, !48, !50)
+  - building on EVE for multiple compiler (GNU 7.3/8.3, Intel 18/19, NAG 6.2)
+  - building debug/release serial/parallel
+  - memcheck with valgrind
+  - running all check-cases with all compiled versions
+  - calculation of coverage
+  - new checking script `run_mhm_checks.py`
+- the domain loop is now parallelized with MPI
+- objective function for boxcox-transformed streamflow
+- post processing script for probabilistic forecasts
+- different module load scripts for EVE
+- Objective function from separate mhm calls (!7)
+- new data type for simulated gridded optidata (!10)
+- new datatype datetimeinfo (!16)
+- added module `mo_os` to check files and directories (!41, !57)
+
+### Changes
+
+- internal: "basin" renamed to "domain"
+- TWS input file changed from ascii to netCDF (!9)
+- Switched to cell wise kge of et and tws in opti_function 33 (!12)
+- restart files are now given by name (!34)
+- removed mRM standalone and statically integrate mRM into mHM (!53)
+- removed the old makefile and legacy checking scripts (!55)
+- minimal Cmake version is now `3.12` (!58)
+
+### Bugfixes
+
+- Finalparam.nml is now written with specific format (Intel/GNU compatibility) (#40)
+- FinalParam.nml routing section bug fixed (#49, !25)
+- dirEvapotranspiration is now allocated before writing
+- cmake: netcdf link flags where separated by ";"
+- sharing of L0 domain now working
+- added L1_jarvis_thresh_c1 to restart file for process id 2 AND 3 (#29, !15)
+- allowing higher routing resolution than hydrology (!21)
+- domainID not set correctly for mRM if restart is activated (!30)
+- mHM states_fluxes netCDF output was curvilinear even if coordinate system is set to regular latlon (#98, !31)
+- missmatch in messages about written mhm fluxes (!42)
+- Fixing wrongly matched IDs from L1 to L11 when routing resolution (L11) is finer than L1 resolution (!45)
+- The length in net_startup was only cut in case there are less then 2 lengths (!46)
+- corrected unit attributes for lat lon variables (!47)
+- Allow run mHM and mRM without any observed gauge for processCase(8) = 2 / 3 (#27, !52)
 
 ## mHM v5.10 (June 2019)
 
@@ -16,8 +65,8 @@ The following bugs from the last release has been solved:
 - Visualization/animation R script (producing PDF and GIF) of mHM netcdf files included under post-proc [animate1.R][2]
 - New option for coupling of mRM to a groundwater model (`gw_coupling = .true.`). The river head can be computed based on the Manning equation.
 
-[1]:INSTALL.md
-[2]:post-proc/animate1.R
+[1]: https://git.ufz.de/mhm/mhm/blob/develop/doc/INSTALL.md
+[2]: https://git.ufz.de/mhm/mhm/blob/develop/post-proc/animate1.R
 
 ### Bugs resolved from release 5.9:
 
@@ -35,7 +84,7 @@ The following bugs from the last release has been solved:
 4. Land cover scenes cannot be changed between the run generating the
   restart file and the run using the restart file. This causes
   unpredictable behaviour by the model.
-5. Simulation period must span overall land cover scenes specified in the namelist. 
+5. Simulation period must span overall land cover scenes specified in the namelist.
 6. Cut-off for link length is calculated with missing values, but those
 should be neglected.
 7. Using a higher routing resolution than hydrology resolution may
@@ -138,7 +187,7 @@ None.
 ### Bugs resolved from release 5.7:
 
 - `processCase(3)=3` did not work when compiled with openMP.
-- openMP declarations missing in [mo_mpr_smhorizons.f90](src/mHM/mo_mpr_smhorizons.f90) for the case of `iFlag_soil=1` 
+- openMP declarations missing in [mo_mpr_smhorizons.f90](src/mHM/mo_mpr_smhorizons.f90) for the case of `iFlag_soil=1`
 
 ### Known bugs:
 
@@ -171,7 +220,7 @@ None.
 
 ### Known bugs:
 
-None 
+None
 
 ### Restrictions:
 
@@ -195,7 +244,7 @@ None
 
 ### Known bugs:
 
-- Calibration using `processCase(8)=2` (adaptive timestep) does not work, please use `processCase(8)=1`. 
+- Calibration using `processCase(8)=2` (adaptive timestep) does not work, please use `processCase(8)=1`.
 
 ### Restrictions:
 
@@ -212,11 +261,11 @@ None
 - Routing works on domains with multiple outlets (e.g., continental level).
 - New option for providing soil data. They can be provided as predefined layers (one map per layer).
 - Speed up of mHM for big domains, due to reformulations in the model start up.
-- Pre-processing: new tools for i) cutting out a catchment from a existing dataset, ii) estimation of Hargreaves-Samani evapotranspiration, and iii) enlarging the grids of the input files. 
+- Pre-processing: new tools for i) cutting out a catchment from a existing dataset, ii) estimation of Hargreaves-Samani evapotranspiration, and iii) enlarging the grids of the input files.
 
 ### Bugs resolved:
 
-- Assigning routing parameters is done properly now. 
+- Assigning routing parameters is done properly now.
 
 ### Known bugs:
 
@@ -265,9 +314,9 @@ None
 ### New Features:
 
 - Simulation period and warming days can be now given per basin (see `time_periods` in [mhm.nml](mhm.nml))
-- Enabling use of MPI (set `mpi=true` in [Makefile](Makefile) and use `#ifdef MPI` for MPI specific code) 
+- Enabling use of MPI (set `mpi=true` in [Makefile](Makefile) and use `#ifdef MPI` for MPI specific code)
 - Optional input data can be loaded for example to calibrate against soil moisture (see `optional_data` in [mhm.nml](mhm.nml))
-- Generation of ground albedo cosmic-ray neutrons (see `processCase(10)` in [mhm.nml](mhm.nml)); these calculations are based on the [COSMIC](http://cosmos.hwr.arizona.edu/Software/cosmic.html) code, which was originally written by Rafael Rosolem. Please contact [Martin Schrön](mailto:martin.schroen@ufz.de) if you like to use this new feature. 
+- Generation of ground albedo cosmic-ray neutrons (see `processCase(10)` in [mhm.nml](mhm.nml)); these calculations are based on the [COSMIC](http://cosmos.hwr.arizona.edu/Software/cosmic.html) code, which was originally written by Rafael Rosolem. Please contact [Martin Schrön](mailto:martin.schroen@ufz.de) if you like to use this new feature.
 - Several new objective functions, e.g. calibrating the Kling-Gupta efficiency of catchment's average soil moisture (`opti_function=10`) or calibrating multiple basins regarding Kling-Gupta efficiency of discharge (`opti_function=14`) among others; calibration against soil moisture is still purpose to research (`opti_function=10-14`). The interested user may contact [Matthias Zink](mailto:matthias.zink@ufz.de) for further details.
 
 ### Bugs resolved:
@@ -332,7 +381,7 @@ None
 ### Known bugs:
 
 - Print out of River network in Config File is wrong for Multi-Basin setup, i.e., the River network is always properly written for the first basin, but not properly for subsequent basins when these are either different ones or the same one with a different Hydrology or Routing resolution.
-- mHM does not abort if x-axis of L0 (morphological data) and L2 (meteorological data) do not span over exactly the same range. 
+- mHM does not abort if x-axis of L0 (morphological data) and L2 (meteorological data) do not span over exactly the same range.
 
 
 
