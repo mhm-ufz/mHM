@@ -48,4 +48,4 @@ See also the [documentation][5] for detailed instructions to setup mHM.
 [6]: LICENSE
 [7]: doc/mhm_papers.md
 [8]: doc/DEPENDENCIES.md
-[9]: INSTALL.md
+[9]: doc/INSTALL.md
