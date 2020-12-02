@@ -116,7 +116,7 @@ A set of load-scripts is provided in `moduleLoadScripts`, to load all need modul
   ```bash
   source moduleLoadScripts/eve.intel18MPI
   ```
-  - Intel 20 compiler (`iomkl/2020a` Toolchain):
+- Intel 20 compiler (`iomkl/2020a` Toolchain):
   ```bash
   source moduleLoadScripts/eve.intel20
   ```
