@@ -12,10 +12,10 @@ stages:
   - coverage
   - deploy
 
-cache:
-  # Required to keep artifacts from old builds, e.g. from master/develop
-  paths:
-    - public
+# cache:
+#   # Required to keep artifacts from old builds, e.g. from master/develop
+#   paths:
+#     - public
 
 show-env-vars:
   stage: info
