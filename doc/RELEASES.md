@@ -1,6 +1,6 @@
 # mHM Release Notes
 
-## mHM v5.11 (Dec 2020)
+## mHM v5.11 (Feb 2021)
 
 ### Experimental Features
 

@@ -27,7 +27,7 @@ The model code can be generally cited as:
 
 > **mHM:** Luis Samaniego et al., mesoscale Hydrologic Model. Zenodo. doi:10.5281/zenodo.1069202, https://doi.org/10.5281/zenodo.1069202
 
-To cite a certain Version, have a look at the [Zenodo site][10].
+To cite a certain version, have a look at the [Zenodo site][10].
 
 ## Install
 
