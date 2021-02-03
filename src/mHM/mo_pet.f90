@@ -1,8 +1,8 @@
 !>       \file mo_pet.f90
 
-!>       \brief Module for calculating reference/potential evapotranspiration  [mm s-1]
+!>       \brief Module for calculating reference/potential evapotranspiration  [mm d-1]
 
-!>       \details This module calculates PET [mm/s] based on one of the methods
+!>       \details This module calculates PET [mm/d] based on one of the methods
 !>       - Hargreaves-Samani (1982)
 !>       - Priestly-Taylor (1972)
 !>       - Penman-Monteith FAO (1998)
@@ -22,12 +22,12 @@ MODULE mo_pet
   IMPLICIT NONE
 
   PRIVATE :: extraterr_rad_approx
-  PRIVATE :: slope_satpressure
   PRIVATE :: sat_vap_pressure
 
   PUBLIC :: pet_hargreaves ! Hargreaves-Samani
   PUBLIC :: pet_priestly   ! Priestley-Taylor
   PUBLIC :: pet_penman     ! Penman-Monteith
+  PUBLIC :: slope_satpressure
 
 
   ! ------------------------------------------------------------------
@@ -62,7 +62,7 @@ CONTAINS
   !>       \param[in] "integer(i4) :: doy"      day of year for Ra estimation
 
   !    RETURN
-  !>       \return real(dp) :: pet_hargreaves &mdash; Hargreaves-Samani pot. evapotranspiration [mm s-1]
+  !>       \return real(dp) :: pet_hargreaves &mdash; Hargreaves-Samani pot. evapotranspiration [mm d-1]
 
   !    HISTORY
   !>       \authors Matthias Zink
@@ -100,7 +100,7 @@ CONTAINS
     ! day of year for Ra estimation
     integer(i4), intent(in) :: doy
 
-    ! reference evapotranspiration in [mm s-1]
+    ! reference evapotranspiration in [mm d-1]
     real(dp) :: pet_hargreaves
 
     ! tmax-Tmin
@@ -138,7 +138,7 @@ CONTAINS
   !>       \param[in] "real(dp) :: Tavg"
 
   !    RETURN
-  !>       \return real(dp) :: pet_priestly &mdash; Priestley-Taylor pot. evapotranspiration [mm s-1]
+  !>       \return real(dp) :: pet_priestly &mdash; Priestley-Taylor pot. evapotranspiration [mm d-1]
 
   !    HISTORY
   !>       \authors Matthias Zink
@@ -150,8 +150,7 @@ CONTAINS
 
   elemental pure FUNCTION pet_priestly(PrieTayParam, Rn, tavg)
 
-    use mo_common_constants, only : DaySecs
-    use mo_constants, only : Psychro_dp, SpecHeatET_dp
+    use mo_constants, only : DaySecs, Psychro_dp, SpecHeatET_dp
 
     implicit none
 
@@ -163,7 +162,7 @@ CONTAINS
 
     real(dp), intent(in) :: Tavg
 
-    ! reference evapotranspiration in [mm s-1]
+    ! reference evapotranspiration in [mm d-1]
     real(dp) :: pet_priestly
 
     ! save slope of saturation vapor pressure curve
@@ -171,7 +170,7 @@ CONTAINS
 
 
     delta = slope_satpressure(Tavg) ! slope of saturation vapor pressure curve
-    ! in [mm d-1] 
+    ! in [mm d-1]
     pet_priestly = PrieTayParam * delta / (Psychro_dp + delta) * (Rn * DaySecs / SpecHeatET_dp)
 
   END FUNCTION pet_priestly
@@ -224,7 +223,7 @@ CONTAINS
   !>       air \f$1\f$
 
   !    RETURN
-  !>       \return real(dp) :: pet_penman &mdash; Reference Evapotranspiration [mm s-1]
+  !>       \return real(dp) :: pet_penman &mdash; Reference Evapotranspiration [mm d-1]
 
   !    HISTORY
   !>       \authors Matthias Zink
@@ -238,8 +237,7 @@ CONTAINS
   elemental pure FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, aerodyn_resistance, bulksurface_resistance, a_s, &
                                     a_sh)
 
-    use mo_common_constants, only : DaySecs
-    use mo_constants, only : Psychro_dp, SpecHeatET_dp, cp0_dp, rho0_dp
+    use mo_constants, only : DaySecs, Psychro_dp, SpecHeatET_dp, cp0_dp, rho0_dp
 
     implicit none
 
@@ -264,7 +262,7 @@ CONTAINS
     ! fraction of projected area exchanging sensible heat with the air \f$1\f$
     real(dp), intent(in) :: a_sh
 
-    ! reference evapotranspiration in [mm s-1]
+    ! reference evapotranspiration in [mm d-1]
     real(dp) :: pet_penman
 
 
@@ -317,8 +315,7 @@ CONTAINS
 
   elemental pure FUNCTION extraterr_rad_approx(doy, latitude)
 
-    use mo_common_constants, only : DaySecs, YearDays
-    use mo_constants, only : PI_D, SolarConst_dp, SpecHeatET_dp, TWOPI_D
+    use mo_constants, only : DaySecs, YearDays, PI_D, SolarConst_dp, SpecHeatET_dp, TWOPI_D
     use mo_mhm_constants, only : DuffieDelta1, DuffieDelta2, DuffieDr
 
     implicit none

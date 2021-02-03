@@ -77,7 +77,7 @@ CONTAINS
   ! Matthias Zink                Mar  2015 - added optional soil moisture read in for calibration
   ! Matthias Cuntz               Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for PGI compatibilty
   ! Stephan Thober               Aug  2015 - added read_config_routing and read_routing_params from mRM
-  ! Oldrich Rakovec              Oct  2015 - added reading of the basin average TWS data
+  ! Oldrich Rakovec              Oct  2015 - added reading of the domain average TWS data
   ! Rohini Kumar                 Mar  2016 - options to handle different soil databases
   ! Stephan Thober               Nov  2016 - moved nProcesses and processMatrix to common variables
   ! Rohini Kumar                 Dec  2016 - option to handle monthly mean gridded fields of LAI
@@ -88,18 +88,20 @@ CONTAINS
 
   subroutine mhm_read_config(file_namelist, unamelist)
 
-    use mo_common_constants, only : maxNoBasins, nodata_i4
+    use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_mHM_mRM_read_config, only : common_check_resolution
     use mo_common_mhm_mrm_variables, only : opti_function, optimize
-    use mo_common_variables, only : nBasins, processMatrix
+    use mo_common_variables, only : domainMeta, processMatrix
     use mo_file, only : file_defOutput, udefOutput
-    use mo_global_variables, only : basin_avg_TWS_obs, dirEvapotranspiration, &
-                                    dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirNeutrons, dirPrecipitation, &
-                                    dirReferenceET, dirSoil_moisture, dirTemperature, dirabsVapPressure, dirwindspeed, &
-                                    evap_coeff, fday_pet, fday_prec, fday_temp, fileTWS, fnight_pet, fnight_prec, &
-                                    fnight_temp, inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
-                                    read_meteo_weights, timeStep_et_input, timeStep_model_outputs, &
-                                    timeStep_neutrons_input, timeStep_sm_input, timestep_model_inputs
+    use mo_global_variables, only : L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
+                                    dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirPrecipitation, &
+                                    dirReferenceET, dirTemperature, dirabsVapPressure, dirwindspeed, dirRadiation, &
+                                    evap_coeff, &
+                                    fday_pet, fday_prec, fday_temp, fday_ssrd, fday_strd, &
+                                    fnight_pet, fnight_prec, fnight_temp, fnight_ssrd, fnight_strd, &
+                                    inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
+                                    read_meteo_weights, timeStep_model_outputs, &
+                                    timestep_model_inputs
     use mo_message, only : message
     use mo_mpr_constants, only : maxNoSoilHorizons
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
@@ -112,59 +114,78 @@ CONTAINS
 
     integer, intent(in) :: unamelist
 
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain, domainID
 
-    integer(i4), dimension(maxNoBasins) :: time_step_model_inputs
+    integer(i4), dimension(maxNoDomains) :: time_step_model_inputs
 
-    character(256), dimension(maxNoBasins) :: dir_Precipitation
+    character(256), dimension(maxNoDomains) :: dir_Precipitation
 
-    character(256), dimension(maxNoBasins) :: dir_Temperature
+    character(256), dimension(maxNoDomains) :: dir_Temperature
 
-    character(256), dimension(maxNoBasins) :: dir_MinTemperature
+    character(256), dimension(maxNoDomains) :: dir_MinTemperature
 
-    character(256), dimension(maxNoBasins) :: dir_MaxTemperature
+    character(256), dimension(maxNoDomains) :: dir_MaxTemperature
 
-    character(256), dimension(maxNoBasins) :: dir_NetRadiation
+    character(256), dimension(maxNoDomains) :: dir_NetRadiation
 
-    character(256), dimension(maxNoBasins) :: dir_windspeed
+    character(256), dimension(maxNoDomains) :: dir_windspeed
 
-    character(256), dimension(maxNoBasins) :: dir_absVapPressure
+    character(256), dimension(maxNoDomains) :: dir_absVapPressure
 
-    character(256), dimension(maxNoBasins) :: dir_ReferenceET
+    character(256), dimension(maxNoDomains) :: dir_ReferenceET
+
+    ! riv-temp related
+    character(256), dimension(maxNoDomains) :: dir_Radiation
 
     ! soil moisture input
-    character(256), dimension(maxNoBasins) :: dir_soil_moisture
-
-    ! total water storage input file
-    character(256), dimension(maxNoBasins) :: file_TWS
+    character(256), dimension(maxNoDomains) :: dir_soil_moisture
 
     ! ground albedo neutron input
-    character(256), dimension(maxNoBasins) :: dir_neutrons
+    character(256), dimension(maxNoDomains) :: dir_neutrons
 
-    ! ground albedo neutron input
-    character(256), dimension(maxNoBasins) :: dir_evapotranspiration
+    ! evapotranspiration input
+    character(256), dimension(maxNoDomains) :: dir_evapotranspiration
+
+    ! tws input
+    character(256), dimension(maxNoDomains) :: dir_TWS
+
+    integer(i4) :: timeStep_tws_input         ! time step of optional data: tws
+    integer(i4) :: timeStep_et_input          ! time step of optional data: et
+    integer(i4) :: timeStep_sm_input          ! time step of optional data: sm
+    integer(i4) :: timeStep_neutrons_input    ! time step of optional data: neutrons
 
 
     ! define namelists
     ! namelist directories
-    namelist /directories_mHM/ inputFormat_meteo_forcings, &
-            dir_Precipitation, dir_Temperature, dir_ReferenceET, dir_MinTemperature, &
-            dir_MaxTemperature, dir_absVapPressure, dir_windspeed, &
-            dir_NetRadiation, time_step_model_inputs
+    namelist /directories_mHM/ &
+            inputFormat_meteo_forcings, &
+            dir_Precipitation, &
+            dir_Temperature, &
+            dir_ReferenceET, &
+            dir_MinTemperature, &
+            dir_MaxTemperature, &
+            dir_absVapPressure, &
+            dir_windspeed, &
+            dir_NetRadiation, &
+            dir_Radiation, &
+            time_step_model_inputs
     ! optional data used for optimization
     namelist /optional_data/ &
             dir_soil_moisture, &
             nSoilHorizons_sm_input, &
-            timeStep_sm_input, &
-            file_TWS, &
             dir_neutrons, &
             dir_evapotranspiration, &
-            timeStep_et_input
+            dir_TWS, &
+            timeStep_sm_input, &
+            timeStep_neutrons_input, &
+            timeStep_et_input, &
+            timeStep_tws_input
     ! namelist for pan evaporation
     namelist /panEvapo/evap_coeff
-    ! namelist for night-day ratio of precipitation, referenceET and temperature
-    namelist /nightDayRatio/read_meteo_weights, fnight_prec, fnight_pet, fnight_temp
 
+    ! namelist for night-day ratio of precipitation, referenceET and temperature
+    namelist /nightDayRatio/ read_meteo_weights, &
+      fnight_prec, fnight_pet, fnight_temp, fnight_ssrd, fnight_strd
     ! name list regarding output
     namelist /NLoutputResults/timeStep_model_outputs, outputFlxState
 
@@ -173,19 +194,21 @@ CONTAINS
     !===============================================================
     call open_nml(file_namelist, unamelist, quiet = .true.)
 
-    allocate(dirPrecipitation(nBasins))
-    allocate(dirTemperature(nBasins))
-    allocate(dirwindspeed(nBasins))
-    allocate(dirabsVapPressure(nBasins))
-    allocate(dirReferenceET(nBasins))
-    allocate(dirMinTemperature(nBasins))
-    allocate(dirMaxTemperature(nBasins))
-    allocate(dirNetRadiation(nBasins))
-    allocate(dirSoil_Moisture(nBasins))
-    allocate(dirNeutrons(nBasins))
-    allocate(fileTWS(nBasins))
+    allocate(dirPrecipitation(domainMeta%nDomains))
+    allocate(dirTemperature(domainMeta%nDomains))
+    allocate(dirwindspeed(domainMeta%nDomains))
+    allocate(dirabsVapPressure(domainMeta%nDomains))
+    allocate(dirReferenceET(domainMeta%nDomains))
+    allocate(dirMinTemperature(domainMeta%nDomains))
+    allocate(dirMaxTemperature(domainMeta%nDomains))
+    allocate(dirNetRadiation(domainMeta%nDomains))
+    allocate(dirRadiation(domainMeta%nDomains))
+    allocate(L1_twsaObs(domainMeta%nDomains))
+    allocate(L1_etObs(domainMeta%nDomains))
+    allocate(L1_smObs(domainMeta%nDomains))
+    allocate(L1_neutronsObs(domainMeta%nDomains))
     ! allocate time periods
-    allocate(timestep_model_inputs(nBasins))
+    allocate(timestep_model_inputs(domainMeta%nDomains))
 
     !===============================================================
     !  Read namelist for mainpaths
@@ -193,15 +216,21 @@ CONTAINS
     call position_nml('directories_mHM', unamelist)
     read(unamelist, nml = directories_mHM)
 
-    dirPrecipitation = dir_Precipitation(1 : nBasins)
-    dirTemperature = dir_Temperature(1 : nBasins)
-    dirReferenceET = dir_ReferenceET(1 : nBasins)
-    dirMinTemperature = dir_MinTemperature(1 : nBasins)
-    dirMaxTemperature = dir_MaxTemperature(1 : nBasins)
-    dirNetRadiation = dir_NetRadiation(1 : nBasins)
-    dirwindspeed = dir_windspeed(1 : nBasins)
-    dirabsVapPressure = dir_absVapPressure(1 : nBasins)
-    timestep_model_inputs = time_step_model_inputs(1 : nBasins)
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+
+      dirPrecipitation(iDomain) = dir_Precipitation(domainID)
+      dirTemperature(iDomain) = dir_Temperature(domainID)
+      dirReferenceET(iDomain) = dir_ReferenceET(domainID)
+      dirMinTemperature(iDomain) = dir_MinTemperature(domainID)
+      dirMaxTemperature(iDomain) = dir_MaxTemperature(domainID)
+      dirNetRadiation(iDomain) = dir_NetRadiation(domainID)
+      dirwindspeed(iDomain) = dir_windspeed(domainID)
+      dirabsVapPressure(iDomain) = dir_absVapPressure(domainID)
+      timestep_model_inputs(iDomain) = time_step_model_inputs(domainID)
+      ! riv-temp related
+      dirRadiation(iDomain) = dir_Radiation(domainID)
+    end do
 
     ! consistency check for timestep_model_inputs
     if (any(timestep_model_inputs .ne. 0) .and. &
@@ -227,7 +256,12 @@ CONTAINS
         ! soil moisture
         call position_nml('optional_data', unamelist)
         read(unamelist, nml = optional_data)
-        dirSoil_moisture = dir_Soil_moisture(1 : nBasins)
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          L1_smObs(iDomain)%dir = dir_Soil_moisture(domainID)
+          L1_smObs(iDomain)%timeStepInput = timeStep_sm_input
+          L1_smObs(iDomain)%varname = 'sm'
+        end do
         if (nSoilHorizons_sm_input .GT. nSoilHorizons_mHM) then
           call message()
           call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
@@ -238,41 +272,63 @@ CONTAINS
         ! neutrons
         call position_nml('optional_data', unamelist)
         read(unamelist, nml = optional_data)
-        dirNeutrons = dir_neutrons(1 : nBasins)
-        timeStep_neutrons_input = -1 ! TODO: daily, hard-coded, to be flexibilized
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          L1_neutronsObs(iDomain)%dir = dir_neutrons(domainID)
+          L1_neutronsObs(iDomain)%timeStepInput = timeStep_neutrons_input
+          L1_neutronsObs(iDomain)%timeStepInput = -1 ! TODO: daily, hard-coded, to be flexibilized
+          L1_neutronsObs(iDomain)%varname = 'neutrons'
+        end do
       case(27, 29, 30)
         ! evapotranspiration
         call position_nml('optional_data', unamelist)
         read(unamelist, nml = optional_data)
-        dirEvapotranspiration = dir_evapotranspiration(1 : nBasins)
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          L1_etObs(iDomain)%dir = dir_evapotranspiration(domainID)
+          L1_etObs(iDomain)%timeStepInput = timeStep_et_input
+          L1_etObs(iDomain)%varname = 'et'
+        end do
       case(15)
-        ! basin average TWS data
+        ! domain average TWS data
         call position_nml('optional_data', unamelist)
         read(unamelist, nml = optional_data)
-        fileTWS = file_TWS (1 : nBasins)
-
-        allocate(basin_avg_TWS_obs%basinId(nBasins)); basin_avg_TWS_obs%basinId = nodata_i4
-        allocate(basin_avg_TWS_obs%fName  (nBasins)); basin_avg_TWS_obs%fName(:) = num2str(nodata_i4)
-
-        do iBasin = 1, nBasins
-          if (trim(fileTWS(iBasin)) .EQ. trim(num2str(nodata_i4))) then
-            call message()
-            call message('***ERROR: mhm.nml: Filename of evaluation TWS data ', &
-                    ' for subbasin ', trim(adjustl(num2str(iBasin))), &
-                    ' is not defined!')
-            call message('          Error occured in namelist: evaluation_tws')
-            stop 1
-          end if
-
-          basin_avg_TWS_obs%basinId(iBasin) = iBasin
-          basin_avg_TWS_obs%fname(iBasin) = trim(file_TWS(iBasin))
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          L1_twsaObs(iDomain)%dir = dir_TWS(domainID)
+          L1_twsaObs(iDomain)%timeStepInput = timeStep_tws_input
+          L1_twsaObs(iDomain)%varname = 'twsa'
         end do
+      case(33)
+        ! evapotranspiration
+        call position_nml('optional_data', unamelist)
+        read(unamelist, nml = optional_data)
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          L1_etObs(iDomain)%dir = dir_evapotranspiration(domainID)
+          L1_etObs(iDomain)%timeStepInput = timeStep_et_input
+          L1_etObs(iDomain)%varname = 'et'
+        end do
+
+        ! domain average TWS data
+        call position_nml('optional_data', unamelist)
+        read(unamelist, nml = optional_data)
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          L1_twsaObs(iDomain)%dir = dir_TWS(domainID)
+          L1_twsaObs(iDomain)%timeStepInput = timeStep_tws_input
+          L1_twsaObs(iDomain)%varname = 'twsa'
+        end do
+
       end select
     end if
 
     !===============================================================
     ! Read night-day ratios and pan evaporation
     !===============================================================
+    ! default values for long/shortwave rad.
+    fnight_ssrd = 0.0_dp
+    fnight_strd = 0.45_dp
     ! Evap. coef. for free-water surfaces
     call position_nml('panEvapo', unamelist)
     read(unamelist, nml = panEvapo)
@@ -283,6 +339,11 @@ CONTAINS
     fday_prec = 1.0_dp - fnight_prec
     fday_pet = 1.0_dp - fnight_pet
     fday_temp = -1.0_dp * fnight_temp
+    fday_ssrd = 1.0_dp - fnight_ssrd
+    fday_strd = 1.0_dp - fnight_strd
+
+    ! TODO-RIV-TEMP:
+    ! - add short- and long-wave raidiation weights (nc files)
 
     call common_check_resolution(.true., .false.)
 
@@ -301,10 +362,10 @@ CONTAINS
     call message('Following output will be written:')
     call message('  STATES:')
     if (outputFlxState(1)) then
-      call message('    interceptional storage                      (L1_inter)     [mm]')
+      call message('    interceptional storage                          (L1_inter) [mm]')
     end if
     if (outputFlxState(2)) then
-      call message('    height of snowpack                          (L1_snowpack)  [mm]')
+      call message('    height of snowpack                           (L1_snowpack) [mm]')
     end if
     if (outputFlxState(3)) then
       call message('    soil water content in the single layers     (L1_soilMoist) [mm]')
@@ -316,43 +377,52 @@ CONTAINS
       call message('    mean volum. soil moisture averaged over all soil layers    [mm/mm]')
     end if
     if (outputFlxState(6)) then
-      call message('    waterdepth in reservoir of sealed areas     (L1_sealSTW)   [mm]')
+      call message('    waterdepth in reservoir of sealed areas       (L1_sealSTW) [mm]')
     end if
     if (outputFlxState(7)) then
-      call message('    waterdepth in reservoir of unsat. soil zone (L1_unsatSTW)  [mm]')
+      call message('    waterdepth in reservoir of unsat. soil zone  (L1_unsatSTW) [mm]')
     end if
     if (outputFlxState(8)) then
-      call message('    waterdepth in reservoir of sat. soil zone   (L1_satSTW)    [mm]')
+      call message('    waterdepth in reservoir of sat. soil zone      (L1_satSTW) [mm]')
     end if
     if (processMatrix(10, 1) .eq. 0) outputFlxState(18) = .false. ! suppress output if process is off
     if (outputFlxState(18)) then
-      call message('    ground albedo neutrons                      (L1_neutrons)  [cph]')
+      call message('    ground albedo neutrons                       (L1_neutrons) [cph]')
     end if
 
     call message('  FLUXES:')
     if (outputFlxState(9)) then
-      call message('    actual evapotranspiration aET      (L1_pet)                [mm/T]')
+      call message('    potential evapotranspiration PET                  (L1_pet) [mm/T]')
     end if
     if (outputFlxState(10)) then
-      call message('    total discharge generated per cell (L1_total_runoff)       [mm/T]')
+      call message('    actual evapotranspiration aET               (L1_aETCanopy) [mm/T]')
     end if
     if (outputFlxState(11)) then
-      call message('    direct runoff generated per cell   (L1_runoffSeal)         [mm/T]')
+      call message('    total discharge generated per cell       (L1_total_runoff) [mm/T]')
     end if
     if (outputFlxState(12)) then
-      call message('    fast interflow generated per cell  (L1_fastRunoff)         [mm/T]')
+      call message('    direct runoff generated per cell           (L1_runoffSeal) [mm/T]')
     end if
     if (outputFlxState(13)) then
-      call message('    slow interflow generated per cell  (L1_slowRunoff)         [mm/T]')
+      call message('    fast interflow generated per cell          (L1_fastRunoff) [mm/T]')
     end if
     if (outputFlxState(14)) then
-      call message('    baseflow generated per cell        (L1_baseflow)           [mm/T]')
+      call message('    slow interflow generated per cell          (L1_slowRunoff) [mm/T]')
     end if
     if (outputFlxState(15)) then
-      call message('    groundwater recharge               (L1_percol)             [mm/T]')
+      call message('    baseflow generated per cell                  (L1_baseflow) [mm/T]')
     end if
     if (outputFlxState(16)) then
-      call message('    infiltration                       (L1_infilSoil)          [mm/T]')
+      call message('    groundwater recharge                           (L1_percol) [mm/T]')
+    end if
+    if (outputFlxState(17)) then
+      call message('    infiltration                                (L1_infilSoil) [mm/T]')
+    end if
+    if (outputFlxState(19)) then
+      call message('    actual evapotranspiration from soil layers    (L1_aETSoil) [mm/T]')
+    end if
+    if (outputFlxState(20)) then
+      call message('    effective precipitation                     (L1_preEffect) [mm/T]')
     end if
     call message('')
     call message('FINISHED reading config')

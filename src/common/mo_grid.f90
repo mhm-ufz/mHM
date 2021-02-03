@@ -17,7 +17,7 @@ module mo_grid
 
   PRIVATE
 
-  PUBLIC :: init_lowres_level, set_basin_indices, L0_grid_setup, &
+  PUBLIC :: init_lowres_level, set_domain_indices, L0_grid_setup, &
           mapCoordinates, geoCoordinates
 contains
   ! ------------------------------------------------------------------
@@ -84,7 +84,7 @@ contains
     ! STEPS :: 
 
     !--------------------------------------------------------
-    ! 1) Estimate each variable locally for a given basin
+    ! 1) Estimate each variable locally for a given domain
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
     ! grid properties
@@ -184,7 +184,7 @@ contains
   end subroutine init_lowres_level
 
   !    NAME
-  !        set_basin_indices
+  !        set_domain_indices
 
   !    PURPOSE
   !>       \brief TODO: add description
@@ -200,29 +200,35 @@ contains
   !>       \date Jun 2018
 
   ! Modifications:
+  !        Stephan Thober, Aug 2019 - added optional indices for L0 data because L0 data can be shared among domains
 
-  subroutine set_basin_indices(grids)
+  subroutine set_domain_indices(grids, indices)
 
     use mo_common_variables, only : Grid
 
     implicit none
 
     type(Grid), intent(inout), dimension(:) :: grids
+    integer(i4),   intent(in), dimension(:), optional :: indices
 
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain
 
 
-    do iBasin = 1, size(grids)
+    do iDomain = 1, size(grids)
       ! Saving indices of mask and packed data
-      if(iBasin .eq. 1_i4) then
-        grids(iBasin)%iStart = 1_i4
+      if(iDomain .eq. 1_i4) then
+        grids(iDomain)%iStart = 1_i4
       else
-        grids(iBasin)%iStart = grids(iBasin - 1_i4)%iEnd + 1_i4
+        if (present(indices)) then
+          grids(iDomain)%iStart = grids(indices(iDomain - 1))%iEnd + 1_i4
+        else
+          grids(iDomain)%iStart = grids(iDomain - 1_i4)%iEnd + 1_i4
+        end if
       end if
-      grids(iBasin)%iEnd = grids(iBasin)%iStart + grids(iBasin)%nCells - 1_i4
+      grids(iDomain)%iEnd = grids(iDomain)%iStart + grids(iDomain)%nCells - 1_i4
     end do
 
-  end subroutine set_basin_indices
+  end subroutine set_domain_indices
 
   ! ------------------------------------------------------------------
 
@@ -278,7 +284,7 @@ contains
 
 
     !--------------------------------------------------------
-    ! 1) Estimate each variable locally for a given basin
+    ! 1) Estimate each variable locally for a given domain
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
     ! level-0 information
@@ -341,7 +347,7 @@ contains
   !    PURPOSE
   !>       \brief Generate map coordinates
 
-  !>       \details Generate map coordinate arrays for given basin and level
+  !>       \details Generate map coordinate arrays for given domain and level
 
   !    INTENT(IN)
   !>       \param[in] "type(Grid) :: level" -> grid reference
@@ -403,7 +409,7 @@ contains
   !    PURPOSE
   !>       \brief Generate geographic coordinates
 
-  !>       \details Generate geographic coordinate arrays for given basin and level
+  !>       \details Generate geographic coordinate arrays for given domain and level
 
   !    INTENT(IN)
   !>       \param[in] "type(Grid) :: level" -> grid reference

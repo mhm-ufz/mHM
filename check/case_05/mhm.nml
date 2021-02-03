@@ -1,47 +1,48 @@
 &directories_general
-    dir_lcover(1:3) = '../../test_basin/input/luse/', '../../test_basin/input/luse/',
-                      '../../test_basin/input/luse/'
-    dir_morpho(1:3) = '../../test_basin/input/morph/', '../../test_basin/input/morph/',
-                      '../../test_basin/input/morph/'
+    dir_lcover(1:3) = '../../test_domain/input/luse/', '../../test_domain/input/luse/',
+                      '../../test_domain/input/luse/'
+    dir_morpho(1:3) = '../../test_domain/input/morph/', '../../test_domain/input/morph/',
+                      '../../test_domain/input/morph/'
     dir_out(1:3) = 'output_b1/b1_', 'output_b1/b2_', 'output_b1/b3_'
-    dir_restartout(1:3) = 'output_b1/b1_', 'output_b1/b2_', 'output_b1/b3_'
-    dircommonfiles = '../../test_basin/input/morph/'
+    mhm_file_restartout(1:3) = 'output_b1/b1_mHM_restart_001.nc', 'output_b1/b2_mHM_restart_002.nc', 'output_b1/b3_mHM_restart_003.nc'
+    mrm_file_restartout(1:3) = 'output_b1/b1_mRM_restart_001.nc', 'output_b1/b2_mRM_restart_002.nc', 'output_b1/b3_mRM_restart_003.nc'
+    dircommonfiles = '../../test_domain/input/morph/'
     dirconfigout = 'output_b1/'
-    file_latlon(1:3) = '../../test_basin/input/latlon/latlon_1.nc', '../../test_basin/input/latlon/latlon_1.nc',
-                       '../../test_basin/input/latlon/latlon_1.nc'
+    file_latlon(1:3) = '../../test_domain/input/latlon/latlon_1.nc', '../../test_domain/input/latlon/latlon_1.nc',
+                       '../../test_domain/input/latlon/latlon_1.nc'
 /
 
 &directories_mhm
-    dir_absvappressure(1:3) = '../../test_basin/input/meteo/', '../../test_basin/input/meteo/',
-                              '../../test_basin/input/meteo/'
-    dir_maxtemperature(1:3) = '../../test_basin/input/meteo/', '../../test_basin/input/meteo/',
-                              '../../test_basin/input/meteo/'
-    dir_mintemperature(1:3) = '../../test_basin/input/meteo/', '../../test_basin/input/meteo/',
-                              '../../test_basin/input/meteo/'
-    dir_netradiation(1:3) = '../../test_basin/input/meteo/', '../../test_basin/input/meteo/',
-                            '../../test_basin/input/meteo/'
-    dir_precipitation(1:3) = '../../test_basin/input/meteo/pre/', '../../test_basin/input/meteo/pre/',
-                             '../../test_basin/input/meteo/pre/'
-    dir_referenceet(1:3) = '../../test_basin/input/meteo/pet/', '../../test_basin/input/meteo/pet/',
-                           '../../test_basin/input/meteo/pet/'
-    dir_temperature(1:3) = '../../test_basin/input/meteo/tavg/', '../../test_basin/input/meteo/tavg/',
-                           '../../test_basin/input/meteo/tavg/'
-    dir_windspeed(1:3) = '../../test_basin/input/meteo/', '../../test_basin/input/meteo/',
-                         '../../test_basin/input/meteo/'
+    dir_absvappressure(1:3) = '../../test_domain/input/meteo/', '../../test_domain/input/meteo/',
+                              '../../test_domain/input/meteo/'
+    dir_maxtemperature(1:3) = '../../test_domain/input/meteo/', '../../test_domain/input/meteo/',
+                              '../../test_domain/input/meteo/'
+    dir_mintemperature(1:3) = '../../test_domain/input/meteo/', '../../test_domain/input/meteo/',
+                              '../../test_domain/input/meteo/'
+    dir_netradiation(1:3) = '../../test_domain/input/meteo/', '../../test_domain/input/meteo/',
+                            '../../test_domain/input/meteo/'
+    dir_precipitation(1:3) = '../../test_domain/input/meteo/pre/', '../../test_domain/input/meteo/pre/',
+                             '../../test_domain/input/meteo/pre/'
+    dir_referenceet(1:3) = '../../test_domain/input/meteo/pet/', '../../test_domain/input/meteo/pet/',
+                           '../../test_domain/input/meteo/pet/'
+    dir_temperature(1:3) = '../../test_domain/input/meteo/tavg/', '../../test_domain/input/meteo/tavg/',
+                           '../../test_domain/input/meteo/tavg/'
+    dir_windspeed(1:3) = '../../test_domain/input/meteo/', '../../test_domain/input/meteo/',
+                         '../../test_domain/input/meteo/'
     inputformat_meteo_forcings = 'nc'
     time_step_model_inputs(1:3) = 0, 0, 0
 /
 
 &directories_mpr
-    dir_gridded_lai(1:3) = '../../test_basin/input/lai/', '../../test_basin/input/lai/',
-                           '../../test_basin/input/lai/'
+    dir_gridded_lai(1:3) = '../../test_domain/input/lai/', '../../test_domain/input/lai/',
+                           '../../test_domain/input/lai/'
 /
 
 &directories_mrm
-    dir_gauges(1:3) = '../../test_basin/input/gauge/', '../../test_basin/input/gauge/',
-                      '../../test_basin/input/gauge/'
-    dir_total_runoff(1:3) = '../../test_basin/input/gauge/', '../../test_basin/input/gauge/',
-                            '../../test_basin/input/gauge/'
+    dir_gauges(1:3) = '../../test_domain/input/gauge/', '../../test_domain/input/gauge/',
+                      '../../test_domain/input/gauge/'
+    dir_total_runoff(1:3) = '../../test_domain/input/gauge/', '../../test_domain/input/gauge/',
+                            '../../test_domain/input/gauge/'
 /
 
 &evaluation_gauges
@@ -52,7 +53,7 @@
     gauge_id(2,1:2) = 398, 333
     gauge_id(3,1:2) = 398, 333
     ngaugestotal = 6
-    nogauges_basin(1:3) = 2, 2, 2
+    nogauges_domain(1:3) = 2, 2, 2
 /
 
 &inflow_gauges
@@ -63,7 +64,7 @@
     inflowgauge_id(1,1) = 333
     inflowgauge_id(2,1) = 333
     ninflowgaugestotal = 2
-    noinflowgauges_basin(1:3) = 1, 1, 0
+    noinflowgauges_domain(1:3) = 1, 1, 0
 /
 
 &lai_data_information
@@ -84,15 +85,14 @@
 
 &mainconfig
     iflag_cordinate_sys = 0
-    l0basin(1:3) = 1, 1, 1
-    nbasins = 3
+    l0domain(1:3) = 1, 1, 1
+    ndomains = 3
     resolution_hydrology(1:3) = 24000, 24000, 24000
     write_restart = .true.
+    read_opt_domain_data(1:3) = 0, 0, 0
 /
 
 &mainconfig_mhm_mrm
-    dir_restartin(1:3) = '../../test_basin/restart/', '../../test_basin/restart/',
-                         '../../test_basin/restart/'
     opti_function = 3
     opti_method = 1
     optimize = .false.
@@ -144,8 +144,8 @@
     conventions = 'XXX'
     history = 'model run version 1'
     mhm_details = 'Helmholtz Center for Environmental Research - UFZ, Department Computational Hydrosystems, Stochastic Hydrology Group'
-    project_details = 'mHM test basin project'
-    setup_description = 'model run for the Mosel basin, forced with the E-OBS meteorologic data'
+    project_details = 'mHM test domain project'
+    setup_description = 'model run for the Mosel domain, forced with the E-OBS meteorologic data'
     simulation_type = 'historical simulation'
 /
 

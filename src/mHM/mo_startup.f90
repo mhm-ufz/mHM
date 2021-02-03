@@ -24,7 +24,7 @@ MODULE mo_startup
 
   PRIVATE
 
-  PUBLIC :: mhm_initialize                      ! initialization sequence
+  PUBLIC :: mhm_initialize        ! initialization sequence
 
 CONTAINS
 
@@ -36,7 +36,7 @@ CONTAINS
   !    PURPOSE
   !>       \brief Initialize main mHM variables
 
-  !>       \details Initialize main mHM variables for a given basin.
+  !>       \details Initialize main mHM variables for a given domain.
   !>       Calls the following procedures in this order:
   !>       - Constant initialization.
   !>       - Generate soil database.
@@ -69,57 +69,57 @@ CONTAINS
 
   subroutine mhm_initialize
 
-    use mo_common_mHM_mRM_variables, only : dirRestartIn, read_restart
+    use mo_common_mHM_mRM_variables, only : mhmFileRestartIn, read_restart
     use mo_common_restart, only : read_grid_info
-    use mo_common_variables, only : L0_Basin, level0, level1, nBasins
+    use mo_common_variables, only : level0, level1, domainMeta
     use mo_global_variables, only : level2
-    use mo_grid, only : set_basin_indices
+    use mo_grid, only : set_domain_indices
     use mo_init_states, only : variables_alloc
     use mo_kind, only : i4
     use mo_mpr_startup, only : init_eff_params, mpr_initialize
 
     implicit none
 
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain, domainID
 
 
     ! constants initialization
     call constants_init()
-    allocate(level2(nBasins))
+    allocate(level2(domainMeta%nDomains))
 
     if (read_restart) then
-      allocate(level1(nBasins))
+      allocate(level1(domainMeta%nDomains))
     else
       call mpr_initialize()
     end if
 
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
 
       if (read_restart) then
-        ! this reads only the basin properties
-        call read_grid_info(iBasin, dirRestartIn(iBasin), "1", "mHM", level1(iBasin))
+        ! this reads only the domain properties
+        call read_grid_info(domainID, mhmFileRestartIn(iDomain), "1", level1(iDomain))
         ! Parameter fields have to be allocated in any case
-        call init_eff_params(level1(iBasin)%nCells)
+        call init_eff_params(level1(iDomain)%nCells)
       end if
 
       ! State variables and fluxes
       ! have to be allocated and initialised in any case
-      call variables_alloc(level1(iBasin)%nCells)
+      call variables_alloc(level1(iDomain)%nCells)
 
       ! L2 inialization
-      call L2_variable_init(iBasin, level0(L0_Basin(iBasin)), level2(iBasin))
+      call L2_variable_init(iDomain, level0(domainMeta%L0DataFrom(iDomain)), level2(iDomain))
 
     end do
 
     ! if no restart, this is done already in MPR
     if (read_restart) then
-      call set_basin_indices(level1)
+      call set_domain_indices(level1)
     end if
 
-    call set_basin_indices(level2)
+    call set_domain_indices(level2)
 
   end subroutine mhm_initialize
-
 
   ! ------------------------------------------------------------------
 
@@ -194,11 +194,11 @@ CONTAINS
   !>       3)  append variable of intrest to global ones
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin"       Basin Id
-  !>       \param[in] "type(Grid) :: level0_iBasin"
+  !>       \param[in] "integer(i4) :: iDomain"       domain Id
+  !>       \param[in] "type(Grid) :: level0_iDomain"
 
   !    INTENT(INOUT)
-  !>       \param[inout] "type(Grid) :: level2_iBasin"
+  !>       \param[inout] "type(Grid) :: level2_iDomain"
 
   !    HISTORY
   !>       \authors Rohini Kumar
@@ -208,7 +208,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine L2_variable_init(iBasin, level0_iBasin, level2_iBasin)
+  subroutine L2_variable_init(iDomain, level0_iDomain, level2_iDomain)
 
     use mo_common_variables, only : Grid
     use mo_global_variables, only : dirPrecipitation
@@ -220,12 +220,12 @@ CONTAINS
 
     implicit none
 
-    ! Basin Id
-    integer(i4), intent(in) :: iBasin
+    ! domain Id
+    integer(i4), intent(in) :: iDomain
 
-    type(Grid), intent(in) :: level0_iBasin
+    type(Grid), intent(in) :: level0_iDomain
 
-    type(Grid), intent(inout) :: level2_iBasin
+    type(Grid), intent(inout) :: level2_iDomain
 
     integer(i4) :: nrows2, ncols2
 
@@ -236,32 +236,32 @@ CONTAINS
     character(256) :: fName
 
     !--------------------------------------------------------
-    ! 1) Estimate each variable locally for a given basin
+    ! 1) Estimate each variable locally for a given domain
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
     ! read header file
-    ! NOTE: assuming the header file for all metero variables are same as that of precip.
-    fName = trim(adjustl(dirPrecipitation(iBasin))) // trim(adjustl(file_meteo_header))
+    ! NOTE: assuming the header file for all meteo variables are same as that of precip.
+    fName = trim(adjustl(dirPrecipitation(iDomain))) // trim(adjustl(file_meteo_header))
     call read_header_ascii(trim(fName), umeteo_header, &
             nrows2, ncols2, xllcorner2, &
             yllcorner2, cellsize2, nodata_dummy)
 
-    call init_lowres_level(level0_iBasin, cellsize2, level2_iBasin)
+    call init_lowres_level(level0_iDomain, cellsize2, level2_iDomain)
 
     ! check
-    if ((ncols2     .ne.  level2_iBasin%ncols)         .or. &
-            (nrows2     .ne.  level2_iBasin%nrows)         .or. &
-            (abs(xllcorner2 - level2_iBasin%xllcorner) .gt. tiny(1.0_dp))     .or. &
-            (abs(yllcorner2 - level2_iBasin%yllcorner) .gt. tiny(1.0_dp))     .or. &
-            (abs(cellsize2 - level2_iBasin%cellsize)  .gt. tiny(1.0_dp))) then
-      call message('   ***ERROR: subroutine L2_variable_init: size mismatch in grid file for level2 in basin ', &
-              trim(adjustl(num2str(iBasin))), '!')
+    if ((ncols2     .ne.  level2_iDomain%ncols)         .or. &
+            (nrows2     .ne.  level2_iDomain%nrows)         .or. &
+            (abs(xllcorner2 - level2_iDomain%xllcorner) .gt. tiny(1.0_dp))     .or. &
+            (abs(yllcorner2 - level2_iDomain%yllcorner) .gt. tiny(1.0_dp))     .or. &
+            (abs(cellsize2 - level2_iDomain%cellsize)  .gt. tiny(1.0_dp))) then
+      call message('   ***ERROR: subroutine L2_variable_init: size mismatch in grid file for level2 in domain ', &
+              trim(adjustl(num2str(iDomain))), '!')
       call message('  Expected to have following properties (based on L0):')
-      call message('... rows:     ', trim(adjustl(num2str(level2_iBasin%nrows))), ', ')
-      call message('... cols:     ', trim(adjustl(num2str(level2_iBasin%ncols))), ', ')
-      call message('... cellsize: ', trim(adjustl(num2str(level2_iBasin%cellsize))), ', ')
-      call message('... xllcorner:', trim(adjustl(num2str(level2_iBasin%xllcorner))), ', ')
-      call message('... yllcorner:', trim(adjustl(num2str(level2_iBasin%yllcorner))), ', ')
+      call message('... rows:     ', trim(adjustl(num2str(level2_iDomain%nrows))), ', ')
+      call message('... cols:     ', trim(adjustl(num2str(level2_iDomain%ncols))), ', ')
+      call message('... cellsize: ', trim(adjustl(num2str(level2_iDomain%cellsize))), ', ')
+      call message('... xllcorner:', trim(adjustl(num2str(level2_iDomain%xllcorner))), ', ')
+      call message('... yllcorner:', trim(adjustl(num2str(level2_iDomain%yllcorner))), ', ')
       call message('  Provided (in precipitation file):')
       call message('... rows:     ', trim(adjustl(num2str(nrows2))), ', ')
       call message('... cols:     ', trim(adjustl(num2str(ncols2))), ', ')

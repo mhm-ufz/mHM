@@ -14,6 +14,7 @@
 MODULE mo_read_timeseries
 
   USE mo_kind, ONLY : i4, dp
+  USE mo_os, ONLY : path_isfile
 
   IMPLICIT NONE
 
@@ -158,6 +159,8 @@ CONTAINS
     character(256) :: dummy
 
 
+    !checking whether the file exists
+    call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
     open(unit = fileunit, file = filename, action = 'read', status = 'old')
     ! read header
     read(fileunit, '(a256)') dummy
@@ -181,7 +184,8 @@ CONTAINS
     if (((startJul_period < startJul_file) .OR. (endJul_period > endJul_file)) &
             .AND. optimize .and. ((opti_function .le. 9_i4) .or. &
             (opti_function .eq. 14_i4) .or. &
-            (opti_function .eq. 31_i4))) then
+            (opti_function .eq. 31_i4) .or. &
+            (opti_function .eq. 33_i4))) then
       ! adjust this whenever a new opti function on discharge is added to mhm!
       call message('***ERROR: Simulation period is not covered by observations! ', trim(filename))
       stop

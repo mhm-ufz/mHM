@@ -21,6 +21,7 @@ MODULE mo_read_spatial_data
   ! Modified 
 
   USE mo_kind, ONLY : i4, dp
+  USE mo_os, ONLY : path_isfile
 
   IMPLICIT NONE
 
@@ -169,6 +170,9 @@ CONTAINS
     allocate(tmp_mask(file_nrows, file_ncols))
     tmp_mask = .true.
 
+    
+    !checking whether the file exists
+    call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
     ! read in
     ! recl is only a rough estimate on bytes per line in the ascii
     ! default for nag: recl=1024(byte) which is not enough for 100s of columns
@@ -306,6 +310,8 @@ CONTAINS
     allocate(tmp_mask(file_nrows, file_ncols))
     tmp_mask = .true.
 
+    !checking whether the file exists
+    call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
     ! read in
     ! recl is only a rough estimate on bytes per line in the ascii
     ! default for nag: recl=1024(byte) which is not enough for 100s of columns
@@ -397,6 +403,8 @@ CONTAINS
     character(5) :: dummy
 
 
+    !checking whether the file exists
+    call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
     ! reading header from a file
     open (unit = fileunit, file = filename, status = 'old')
     read (fileunit, *) dummy, header_nCols

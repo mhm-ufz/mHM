@@ -71,18 +71,18 @@ CONTAINS
   !        write_mpr_restart_files
 
   !    PURPOSE
-  !>       \brief write restart files for each basin
+  !>       \brief write restart files for each domain
 
-  !>       \details write restart files for each basin. For each basin
+  !>       \details write restart files for each domain. For each domain
   !>       three restart files are written. These are xxx_states.nc,
   !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
-  !>       basin index). If a variable is added here, it should also be added
+  !>       domain index). If a variable is added here, it should also be added
   !>       in the read restart routines below.
   !>       ADDITIONAL INFORMATION
   !>       write_restart
 
   !    INTENT(IN)
-  !>       \param[in] "character(256), dimension(:) :: OutPath" Output Path for each basin
+  !>       \param[in] "character(256), dimension(:) :: OutFile" Output Path for each domain
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -95,24 +95,25 @@ CONTAINS
   ! Stephan Thober     Nov  2016 - moved processMatrix to common variables
   ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
 
-  subroutine write_mpr_restart_files(OutPath)
+  subroutine write_mpr_restart_files(OutFile)
 
     use mo_common_restart, only : write_grid_info
-    use mo_common_variables, only : level1, nLCoverScene
-    use mo_kind, only : i4
+    use mo_common_variables, only : level1, nLCoverScene, domainMeta, LC_year_start, LC_year_end
+    use mo_kind, only : i4, dp
     use mo_message, only : message
-    use mo_mpr_global_variables, only : nLAI, nSoilHorizons_mHM
+    use mo_mpr_global_variables, only : nLAI, nSoilHorizons_mHM, HorizonDepth_mHM
     use mo_netcdf, only : NcDataset, NcDimension
     use mo_string_utils, only : num2str
+    use mo_common_constants, only : soilHorizonsVarName, landCoverPeriodsVarName, LAIVarName
 
     implicit none
 
     character(256) :: Fname
 
-    ! Output Path for each basin
-    character(256), dimension(:), intent(in) :: OutPath
+    ! Output Path for each domain
+    character(256), dimension(:), intent(in) :: OutFile
 
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain, domainID
 
     ! start index at level 1
     integer(i4) :: s1
@@ -127,36 +128,53 @@ CONTAINS
 
     type(NcDimension) :: rows1, cols1, soil1, lcscenes, lais
 
+    real(dp), dimension(:), allocatable :: dummy_1D
 
-    basin_loop : do iBasin = 1, size(OutPath)
 
-      ! write restart file for iBasin
-      Fname = trim(OutPath(iBasin)) // "mHM_restart_" // trim(num2str(iBasin, "(i3.3)")) // ".nc"
+    domain_loop : do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+
+      ! write restart file for iDomain
+      Fname = trim(OutFile(iDomain))
       ! print a message
       call message("    Writing Restart-file: ", trim(adjustl(Fname)), " ...")
 
       nc = NcDataset(fname, "w")
 
-      call write_grid_info(level1(iBasin), "1", nc)
+      call write_grid_info(level1(iDomain), "1", nc)
 
       rows1 = nc%getDimension("nrows1")
       cols1 = nc%getDimension("ncols1")
 
-      soil1 = nc%setDimension("L1_soilhorizons", nSoilHorizons_mHM)
-      lcscenes = nc%setDimension("LCoverScenes", nLCoverScene)
-      lais = nc%setDimension("LAI_timesteps", nLAI)
+      ! write the dimension to the file and also save bounds
+      allocate(dummy_1D(nSoilHorizons_mHM+1))
+      dummy_1D(1) = 0.0_dp
+      dummy_1D(2:nSoilHorizons_mHM+1) = HorizonDepth_mHM(:)
+      soil1 = nc%setDimension(trim(soilHorizonsVarName), nSoilHorizons_mHM, dummy_1D, 2_i4)
+      deallocate(dummy_1D)
+      allocate(dummy_1D(nLCoverScene+1))
+      dummy_1D(1:nLCoverScene) = LC_year_start(:)
+      ! this is done because bounds are always stored as real so e.g.
+      ! 1981-1990,1991-2000 is thus saved as 1981.0-1991.0,1991.0-2001.0
+      ! it is translated back into ints correctly during reading
+      dummy_1D(nLCoverScene+1) = LC_year_end(nLCoverScene) + 1
+      lcscenes = nc%setDimension(trim(landCoverPeriodsVarName), nLCoverScene, dummy_1D, 0_i4)
+      deallocate(dummy_1D)
+      ! write the dimension to the file
+      lais = nc%setDimension(trim(LAIVarName), nLAI)
+
 
       ! for appending and intialization
       allocate(mask1(rows1%getLength(), cols1%getLength()))
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
-      mask1 = level1(iBasin)%mask
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
+      mask1 = level1(iDomain)%mask
 
       call write_eff_params(mask1, s1, e1, rows1, cols1, soil1, lcscenes, lais, nc)
       deallocate(mask1)
       call nc%close()
 
-    end do basin_loop
+    end do domain_loop
 
   end subroutine write_mpr_restart_files
 
@@ -218,17 +236,6 @@ CONTAINS
 
     type(NcVariable) :: var
 
-
-    ! set variable
-    var = nc%setVariable("LC_year_start", "i32", (/lcscenes/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(LC_year_start)
-    call var%setAttribute("long_name", "start year of land cover scene")
-
-    var = nc%setVariable("LC_year_end", "i32", (/lcscenes/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(LC_year_end)
-    call var%setAttribute("long_name", "end year of land cover scene")
 
     !-------------------------------------------
     ! EFFECTIVE PARAMETERS
@@ -297,7 +304,7 @@ CONTAINS
             (/rows1, cols1, soil1, lcscenes/), nodata_dp, L1_soilMoistExp(s1 : e1, :, :), mask1, &
             "Exponential parameter to how non-linear is the soil water retention at level 1")
 
-    if (processMatrix(3, 1) == 2) then
+    if (any(processMatrix(3, 1) == (/2, 3/))) then
       call unpack_field_and_write(nc, "L1_jarvis_thresh_c1", &
               (/rows1, cols1/), nodata_dp, L1_jarvis_thresh_c1(s1 : e1, 1, 1), mask1, &
               "jarvis critical value for normalized soil water content")

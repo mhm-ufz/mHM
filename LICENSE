@@ -3,14 +3,14 @@ SOFTWARE LICENCE
 ==============
 
 This file is part of the UFZ CHS mesoscale hydrologic model mHM which
-is a spatially explicit distributed hydrologic model that uses grid 
+is a spatially explicit distributed hydrologic model that uses grid
 cells as a primary hydrologic unit.
 
 
 ------------------
 
-Copyright(c) 2005-2019, 
-Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ. 
+Copyright(c) 2005-2021,
+Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
 All rights reserved.
 
 The code is a property of:
@@ -26,22 +26,22 @@ Administrative Director: Dr. Heike Grassmann
 ------------------
 
 
-The UFZ CHS mesoscale hydrologic model mHM is free software. You can 
-redistribute it and/or modify it under the terms of the GNU General 
-Public License as published by the free Software Foundation either 
-version 3 of the License, or (at your option) any later version. 
+The UFZ CHS mesoscale hydrologic model mHM is free software. You can
+redistribute it and/or modify it under the terms of the GNU General
+Public License as published by the free Software Foundation either
+version 3 of the License, or (at your option) any later version.
 
 
-This program is distributed in the hope that it will be useful, but 
-WITHOUT ANY WARRANTY; without even the implied warranty of 
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 See the GNU General Public License for more details.
 
 
-You received a copy of the GNU Lesser General Public License along 
+You received a copy of the GNU Lesser General Public License along
 with the UFZ CHS mesoscale hydrologic model mHM. It can be found
 in the section "GNU General Public License" in this document. The
-complete GNU license text can also be found at 
+complete GNU license text can also be found at
 <http://www.gnu.org/licenses/>.
 
 
@@ -62,23 +62,23 @@ E-mail: rohini.kumar@ufz.de
 Redistribution
 ==============
 
-Redistribution and use in source and binary forms, with or without 
-modification, are permitted provided that the following conditions 
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
 are met:
 
-*  Redistributions of source code must retain the above 
+*  Redistributions of source code must retain the above
    copyright notice, this list of conditions, the following disclaimer
    and the modification conditions.
-*  Redistributions in binary form must reproduce the above copyright 
-   notice, this list of conditions, the following disclaimer and the 
-   modification conditions in the documentation and/or other materials 
+*  Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions, the following disclaimer and the
+   modification conditions in the documentation and/or other materials
    provided with the distribution.
-*  Neither the name of Helmholtz-Zentrum fuer Umweltforschung GmbH - 
-   UFZ, nor the names of its contributors may be used to endorse or 
-   promote products derived from this software without specific prior 
+*  Neither the name of Helmholtz-Zentrum fuer Umweltforschung GmbH -
+   UFZ, nor the names of its contributors may be used to endorse or
+   promote products derived from this software without specific prior
    written permission.
-*  Redistributions of source code are allowed for research purposes 
-   ONLY. For commercial applications you need to consult the 
+*  Redistributions of source code are allowed for research purposes
+   ONLY. For commercial applications you need to consult the
    authorities of the UFZ.
 
 
@@ -86,32 +86,32 @@ are met:
 Modification
 ==============
 
-If software is modified to produce derivative works, such modified 
-software should be clearly marked, so as not to confuse it with the 
-version available from UFZ. The following sources are to be 
+If software is modified to produce derivative works, such modified
+software should be clearly marked, so as not to confuse it with the
+version available from UFZ. The following sources are to be
 acknowledged:
 
-*   Samaniego L., R. Kumar, S. Attinger (2010): Multiscale parameter 
-    regionalization of a grid-based hydrologic model at the mesoscale. 
+*   Samaniego L., R. Kumar, S. Attinger (2010): Multiscale parameter
+    regionalization of a grid-based hydrologic model at the mesoscale.
     Water Resour. Res., 46,W05523, doi:10.1029/2008WR007327.
-*   Kumar, R., L. Samaniego, and S. Attinger(2013): Implications of 
-    distributed hydrologic model parameterization on water fluxes at 
-    multiple scales and locations, Water Resour. Res., 49, 
+*   Kumar, R., L. Samaniego, and S. Attinger(2013): Implications of
+    distributed hydrologic model parameterization on water fluxes at
+    multiple scales and locations, Water Resour. Res., 49,
     doi:10.1029/2012WR012195.
 
 
 ==============
-Disclaimer of Warranty 
+Disclaimer of Warranty
 ==============
 
-THERE IS NO WARRANTY FOR THIS SOFTWARE, TO THE EXTENT PERMITTED BY 
-APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE 
-HELMHOLTZ-ZENTRUM FUER UMWELTFORSCHUNG GMBH - UFZ AND CONTRIBUTORS 
-PROVIDE THIS SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER 
-EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. 
-THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE SOFTWARE IS 
-WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME THE COST OF 
+THERE IS NO WARRANTY FOR THIS SOFTWARE, TO THE EXTENT PERMITTED BY
+APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE
+HELMHOLTZ-ZENTRUM FUER UMWELTFORSCHUNG GMBH - UFZ AND CONTRIBUTORS
+PROVIDE THIS SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE SOFTWARE IS
+WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME THE COST OF
 ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
 
 
@@ -119,15 +119,15 @@ ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
 Limitation of Liability
 ==============
 
-IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING 
-WILL THE HELMHOLTZ-ZENTRUM FUER UMWELTFORSCHUNG GMBH - UFZ AND 
-CONTRIBUTORS OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS THE 
-SOFTWARE AS PERMITTED BY GNU GENERAL PUBLIC LICENSE, BE LIABLE FOR 
-DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL 
-DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE SOFTWARE 
-(INCLUDING BUT NOT LIMITED TO LOSS OF DATA, OR DATA BEING RENDERED 
-INACCURATE OR LOSSES SUSTAINED BY THE USER OR THIRD PARTIES OR A 
-FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER PROGRAMS),  EVEN IF 
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL THE HELMHOLTZ-ZENTRUM FUER UMWELTFORSCHUNG GMBH - UFZ AND
+CONTRIBUTORS OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS THE
+SOFTWARE AS PERMITTED BY GNU GENERAL PUBLIC LICENSE, BE LIABLE FOR
+DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL
+DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE SOFTWARE
+(INCLUDING BUT NOT LIMITED TO LOSS OF DATA, OR DATA BEING RENDERED
+INACCURATE OR LOSSES SUSTAINED BY THE USER OR THIRD PARTIES OR A
+FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER PROGRAMS),  EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
@@ -135,37 +135,37 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Redistribution of Example Data
 ==============
 
-The example data provided with the UFZ CHS mesoscale hydrologic model 
-mHM are strictly for use in non-commercial research and non-commercial 
-education projects only. They are not to be redistributed or used 
+The example data provided with the UFZ CHS mesoscale hydrologic model
+mHM are strictly for use in non-commercial research and non-commercial
+education projects only. They are not to be redistributed or used
 without the consideration of the licenses they were originally provided
-under. The following list acknowledges the providers of the example 
+under. The following list acknowledges the providers of the example
 data for mHM and links to the licenses the data was provided under.
 
 -- E-OBS gridded dataset
-**  We acknowledge the E-OBS dataset for temperature and precipitation 
-    from the EU-FP6 project ENSEMBLES 
-    (http://ensembles-eu.metoffice.com) and the data providers in the 
+**  We acknowledge the E-OBS dataset for temperature and precipitation
+    from the EU-FP6 project ENSEMBLES
+    (http://ensembles-eu.metoffice.com) and the data providers in the
     ECA&D project (http://www.ecad.eu)
 
-**  Haylock, M.R., N. Hofstra, A.M.G. Klein Tank, E.J. Klok, 
-    P.D. Jones, M. New. 2008: A European daily high-resolution gridded 
-    dataset of surface temperature and precipitation. 
+**  Haylock, M.R., N. Hofstra, A.M.G. Klein Tank, E.J. Klok,
+    P.D. Jones, M. New. 2008: A European daily high-resolution gridded
+    dataset of surface temperature and precipitation.
     J. Geophys. Res (Atmospheres), 113, D20119, doi:10.1029/2008JD10201
 
 **  http://www.ecad.eu/download/ensembles/ensembles.php (08.04.2014)
 
 
 -- Harmonized World Soil Database
-**  We acknowledge the Harmonized World Soil Database dataset of the 
+**  We acknowledge the Harmonized World Soil Database dataset of the
     Food and Agriculture Organization of the United Nations (FAO), the
-    International Institute for Applied Systems Analysis (IIASA), 
-    International Soil Reference and Information Centre (ISRIC), 
+    International Institute for Applied Systems Analysis (IIASA),
+    International Soil Reference and Information Centre (ISRIC),
     Institute of Soil Science at Chinese Academy of Sciences (ISSCAS)
-    and Joint Research Centre of the European Commission (JRC) for 
+    and Joint Research Centre of the European Commission (JRC) for
     providing the soil data.
 
-**  FAO/IIASA/ISRIC/ISSCAS/JRC, 2012. Harmonized World Soil Database 
+**  FAO/IIASA/ISRIC/ISSCAS/JRC, 2012. Harmonized World Soil Database
     (version 1.2). FAO, Rome, Italy and IIASA, Laxenburg, Austria.
 
 **  http://webarchive.iiasa.ac.at/Research/LUC/External-World-soil-
@@ -173,16 +173,16 @@ data for mHM and links to the licenses the data was provided under.
 
 
 -- SRTM
-**  We acknowledge the U.S. Geological Survey's Earth Resources 
-    Observation and Science (EROS) Center and NASA's Land Processes 
-    Distributed Active Archive Center (LP DAAC) for providing the 
+**  We acknowledge the U.S. Geological Survey's Earth Resources
+    Observation and Science (EROS) Center and NASA's Land Processes
+    Distributed Active Archive Center (LP DAAC) for providing the
     digital elevation model.
 
 **  https://lta.cr.usgs.gov/citation (08.04.2014)
 
 
 -- European Soil Database
-**  We acknowledge the European Commission for providing 
+**  We acknowledge the European Commission for providing
     hydrogeological data.
 
 **  http://ec.europa.eu/geninfo/legal_notices_en.htm (08.04.2014)

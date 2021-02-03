@@ -12,7 +12,7 @@
 ! Modifications:
 ! Robert Schweppe Dec 2017 - adapted for MPR
 ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 module mo_mpr_read_config
 
   use mo_kind, only : i4, dp
@@ -54,9 +54,9 @@ contains
   subroutine mpr_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
     use mo_append, only : append
-    use mo_common_constants, only : eps_dp, maxNoBasins, nColPars, nodata_dp
+    use mo_common_constants, only : eps_dp, maxNoDomains, nColPars, nodata_dp
     use mo_common_functions, only : in_bound
-    use mo_common_variables, only : global_parameters, global_parameters_name, nBasins, processMatrix
+    use mo_common_variables, only : global_parameters, global_parameters_name, domainMeta, processMatrix
     use mo_message, only : message
     use mo_mpr_constants, only : maxGeoUnit, &
                                  maxNoSoilHorizons
@@ -84,7 +84,7 @@ contains
 
     ! directory of gridded LAI data
     ! used when timeStep_LAI_input<0
-    character(256), dimension(maxNoBasins) :: dir_gridded_LAI
+    character(256), dimension(maxNoDomains) :: dir_gridded_LAI
 
     character(256) :: dummy
 
@@ -147,6 +147,10 @@ contains
     real(dp), dimension(nColPars) :: rootFractionCoefficient_pervious
 
     real(dp), dimension(nColPars) :: jarvis_sm_threshold_c1
+
+    real(dp), dimension(nColPars) :: FCmin_glob
+
+    real(dp), dimension(nColPars) :: FCdelta_glob
 
     real(dp), dimension(nColPars) :: rootFractionCoefficient_sand
 
@@ -224,6 +228,8 @@ contains
 
     real(dp), dimension(nColPars) :: COSMIC_L31
 
+    integer(i4) :: iDomain, domainID
+
 
     ! namelist directories
     namelist /directories_MPR/ dir_gridded_LAI
@@ -256,9 +262,15 @@ contains
             PTF_higher66_5_clay, PTF_higher66_5_Db, PTF_Ks_constant, &
             PTF_Ks_sand, PTF_Ks_clay, PTF_Ks_curveSlope, &
             rootFractionCoefficient_forest, rootFractionCoefficient_impervious, &
-            rootFractionCoefficient_pervious, infiltrationShapeFactor, jarvis_sm_threshold_c1, &
-            rootFractionCoefficient_sand, rootFractionCoefficient_clay
-
+            rootFractionCoefficient_pervious, infiltrationShapeFactor,rootFractionCoefficient_sand, &
+            rootFractionCoefficient_clay, FCmin_glob, FCdelta_glob, jarvis_sm_threshold_c1
+    namelist /soilmoisture4/ orgMatterContent_forest, orgMatterContent_impervious, orgMatterContent_pervious, &
+            PTF_lower66_5_constant, PTF_lower66_5_clay, PTF_lower66_5_Db, PTF_higher66_5_constant, &
+            PTF_higher66_5_clay, PTF_higher66_5_Db, PTF_Ks_constant, &
+            PTF_Ks_sand, PTF_Ks_clay, PTF_Ks_curveSlope, &
+            rootFractionCoefficient_forest, rootFractionCoefficient_impervious, &
+            rootFractionCoefficient_pervious, infiltrationShapeFactor,rootFractionCoefficient_sand, &
+            rootFractionCoefficient_clay, FCmin_glob, FCdelta_glob
     namelist /directRunoff1/ imperviousStorageCapacity
     ! PET is input, LAI driven correction
     namelist /PETminus1/  PET_a_forest, PET_a_impervious, PET_a_pervious, PET_b, PET_c
@@ -344,8 +356,11 @@ contains
       call position_nml('directories_MPR', unamelist)
       read(unamelist, nml = directories_MPR)
 
-      allocate(dirgridded_LAI(nBasins))
-      dirgridded_LAI = dir_gridded_LAI(1 : nBasins)
+      allocate(dirgridded_LAI(domainMeta%nDomains))
+      do iDomain = 1, domainMeta%nDomains
+        domainID = domainMeta%indices(iDomain)
+        dirgridded_LAI(iDomain) = dir_gridded_LAI(domainID)
+      end do
 
       if (timeStep_LAI_input .GT. 1) then
         call message()
@@ -528,12 +543,18 @@ contains
                       'infiltrationShapeFactor           ', &
                       'jarvis_sm_threshold_c1            '/))
 
+      ! check if parameter are in range
+      if (.not. in_bound(global_parameters)) then
+        call message('***ERROR: parameter in namelist "soilmoisture2" out of bound in ', &
+                trim(adjustl(file_namelist_param)))
+        stop
+      end if
 
       ! 3- Jarvis equation for ET reduction and FC dependency on root fraction coefficient
     case(3)
       call position_nml('soilmoisture3', unamelist_param)
       read(unamelist_param, nml = soilmoisture3)
-      processMatrix(3, 2) = 20_i4
+      processMatrix(3, 2) = 22_i4
       processMatrix(3, 3) = sum(processMatrix(1 : 3, 2))
       call append(global_parameters, reshape(orgMatterContent_forest, (/1, nColPars/)))
       call append(global_parameters, reshape(orgMatterContent_impervious, (/1, nColPars/)))
@@ -554,10 +575,13 @@ contains
       call append(global_parameters, reshape(infiltrationShapeFactor, (/1, nColPars/)))
       call append(global_parameters, reshape(rootFractionCoefficient_sand, (/1, nColPars/)))
       call append(global_parameters, reshape(rootFractionCoefficient_clay, (/1, nColPars/)))
+      call append(global_parameters, reshape(FCmin_glob, (/1, nColPars/)))
+      call append(global_parameters, reshape(FCdelta_glob, (/1, nColPars/)))
       call append(global_parameters, reshape(jarvis_sm_threshold_c1, (/1, nColPars/)))
 
+
       call append(global_parameters_name, (/     &
-              'orgMatterContent_forest           ', &
+                      'orgMatterContent_forest           ', &
                       'orgMatterContent_impervious       ', &
                       'orgMatterContent_pervious         ', &
                       'PTF_lower66_5_constant            ', &
@@ -576,14 +600,75 @@ contains
                       'infiltrationShapeFactor           ', &
                       'rootFractionCoefficient_sand      ', &
                       'rootFractionCoefficient_clay      ', &
+                      'FCmin_glob                        ', &
+                      'FCdelta_glob                      ', &
                       'jarvis_sm_threshold_c1            '/))
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "soilmoisture1" out of bound in ', &
+        call message('***ERROR: parameter in namelist "soilmoisture3" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
         stop
       end if
+
+      ! 4- Feddes equation for ET reduction and FC dependency on root fraction coefficient
+    case(4)
+      call position_nml('soilmoisture4', unamelist_param)
+      read(unamelist_param, nml = soilmoisture4)
+      processMatrix(3, 2) = 21_i4
+      processMatrix(3, 3) = sum(processMatrix(1 : 3, 2))
+      call append(global_parameters, reshape(orgMatterContent_forest, (/1, nColPars/)))
+      call append(global_parameters, reshape(orgMatterContent_impervious, (/1, nColPars/)))
+      call append(global_parameters, reshape(orgMatterContent_pervious, (/1, nColPars/)))
+      call append(global_parameters, reshape(PTF_lower66_5_constant, (/1, nColPars/)))
+      call append(global_parameters, reshape(PTF_lower66_5_clay, (/1, nColPars/)))
+      call append(global_parameters, reshape(PTF_lower66_5_Db, (/1, nColPars/)))
+      call append(global_parameters, reshape(PTF_higher66_5_constant, (/1, nColPars/)))
+      call append(global_parameters, reshape(PTF_higher66_5_clay, (/1, nColPars/)))
+      call append(global_parameters, reshape(PTF_higher66_5_Db, (/1, nColPars/)))
+      call append(global_parameters, reshape(PTF_Ks_constant, (/1, nColPars/)))
+      call append(global_parameters, reshape(PTF_Ks_sand, (/1, nColPars/)))
+      call append(global_parameters, reshape(PTF_Ks_clay, (/1, nColPars/)))
+      call append(global_parameters, reshape(PTF_Ks_curveSlope, (/1, nColPars/)))
+      call append(global_parameters, reshape(rootFractionCoefficient_forest, (/1, nColPars/)))
+      call append(global_parameters, reshape(rootFractionCoefficient_impervious, (/1, nColPars/)))
+      call append(global_parameters, reshape(rootFractionCoefficient_pervious, (/1, nColPars/)))
+      call append(global_parameters, reshape(infiltrationShapeFactor, (/1, nColPars/)))
+      call append(global_parameters, reshape(rootFractionCoefficient_sand, (/1, nColPars/)))
+      call append(global_parameters, reshape(rootFractionCoefficient_clay, (/1, nColPars/)))
+      call append(global_parameters, reshape(FCmin_glob, (/1, nColPars/)))
+      call append(global_parameters, reshape(FCdelta_glob, (/1, nColPars/)))
+
+      call append(global_parameters_name, (/     &
+                      'orgMatterContent_forest           ', &
+                      'orgMatterContent_impervious       ', &
+                      'orgMatterContent_pervious         ', &
+                      'PTF_lower66_5_constant            ', &
+                      'PTF_lower66_5_clay                ', &
+                      'PTF_lower66_5_Db                  ', &
+                      'PTF_higher66_5_constant           ', &
+                      'PTF_higher66_5_clay               ', &
+                      'PTF_higher66_5_Db                 ', &
+                      'PTF_Ks_constant                   ', &
+                      'PTF_Ks_sand                       ', &
+                      'PTF_Ks_clay                       ', &
+                      'PTF_Ks_curveSlope                 ', &
+                      'rootFractionCoefficient_forest    ', &
+                      'rootFractionCoefficient_impervious', &
+                      'rootFractionCoefficient_pervious  ', &
+                      'infiltrationShapeFactor           ', &
+                      'rootFractionCoefficient_sand      ', &
+                      'rootFractionCoefficient_clay      ', &
+                      'FCmin_glob                        ', &
+                      'FCdelta_glob                      '/))
+
+      ! check if parameter are in range
+      if (.not. in_bound(global_parameters)) then
+        call message('***ERROR: parameter in namelist "soilmoisture4" out of bound in ', &
+                trim(adjustl(file_namelist_param)))
+        stop
+      end if
+
 
     case DEFAULT
       call message()
@@ -630,7 +715,7 @@ contains
       call append(global_parameters, reshape(PET_c, (/1, nColPars/)))
 
       call append(global_parameters_name, (/ &
-              'PET_a_forest     ', &
+                      'PET_a_forest     ', &
                       'PET_a_impervious ', &
                       'PET_a_pervious   ', &
                       'PET_b            ', &
@@ -653,9 +738,9 @@ contains
       call append(global_parameters, reshape(aspectTresholdPET, (/1, nColPars/)))
 
       call append(global_parameters_name, (/ &
-              'minCorrectionFactorPET ', &
-                      'maxCorrectionFactorPET ', &
-                      'aspectTresholdPET      '/))
+                  'minCorrectionFactorPET ', &
+                  'maxCorrectionFactorPET ', &
+                  'aspectTresholdPET      '/))
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
@@ -674,10 +759,10 @@ contains
       call append(global_parameters, reshape(aspectTresholdPET, (/1, nColPars/)))
       call append(global_parameters, reshape(HargreavesSamaniCoeff, (/1, nColPars/)))
       call append(global_parameters_name, (/ &
-              'minCorrectionFactorPET', &
-                      'maxCorrectionFactorPET', &
-                      'aspectTresholdPET     ', &
-                      'HargreavesSamaniCoeff '/))
+                   'minCorrectionFactorPET', &
+                   'maxCorrectionFactorPET', &
+                   'aspectTresholdPET     ', &
+                   'HargreavesSamaniCoeff '/))
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
@@ -694,8 +779,8 @@ contains
       call append(global_parameters, reshape(PriestleyTaylorCoeff, (/1, nColPars/)))
       call append(global_parameters, reshape(PriestleyTaylorLAIcorr, (/1, nColPars/)))
       call append(global_parameters_name, (/ &
-              'PriestleyTaylorCoeff  ', &
-                      'PriestleyTaylorLAIcorr'/))
+                   'PriestleyTaylorCoeff  ', &
+                   'PriestleyTaylorLAIcorr'/))
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
@@ -719,13 +804,13 @@ contains
       call append(global_parameters, reshape(stomatal_resistance, (/1, nColPars/)))
 
       call append(global_parameters_name, (/ &
-              'canopyheigth_forest           ', &
-                      'canopyheigth_impervious       ', &
-                      'canopyheigth_pervious         ', &
-                      'displacementheight_coeff      ', &
-                      'roughnesslength_momentum_coeff', &
-                      'roughnesslength_heat_coeff    ', &
-                      'stomatal_resistance           '/))
+           'canopyheigth_forest           ', &
+           'canopyheigth_impervious       ', &
+           'canopyheigth_pervious         ', &
+           'displacementheight_coeff      ', &
+           'roughnesslength_momentum_coeff', &
+           'roughnesslength_heat_coeff    ', &
+           'stomatal_resistance           '/))
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
@@ -756,11 +841,11 @@ contains
       call append(global_parameters, reshape(exponentSlowInterflow, (/1, nColPars/)))
 
       call append(global_parameters_name, (/ &
-              'interflowStorageCapacityFactor', &
-                      'interflowRecession_slope      ', &
-                      'fastInterflowRecession_forest ', &
-                      'slowInterflowRecession_Ks     ', &
-                      'exponentSlowInterflow         '/))
+           'interflowStorageCapacityFactor', &
+           'interflowRecession_slope      ', &
+           'fastInterflowRecession_forest ', &
+           'slowInterflowRecession_Ks     ', &
+           'exponentSlowInterflow         '/))
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
@@ -789,8 +874,8 @@ contains
 
       call append(global_parameters_name, (/ &
               'rechargeCoefficient          ', &
-                      'rechargeFactor_karstic       ', &
-                      'gain_loss_GWreservoir_karstic'/))
+              'rechargeFactor_karstic       ', &
+              'gain_loss_GWreservoir_karstic'/))
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then

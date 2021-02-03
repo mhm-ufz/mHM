@@ -29,12 +29,12 @@ CONTAINS
   !        write_grid_info
 
   !    PURPOSE
-  !>       \brief write restart files for each basin
+  !>       \brief write restart files for each domain
 
-  !>       \details write restart files for each basin. For each basin
+  !>       \details write restart files for each domain. For each domain
   !>       three restart files are written. These are xxx_states.nc,
   !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
-  !>       basin index). If a variable is added here, it should also be added
+  !>       domain index). If a variable is added here, it should also be added
   !>       in the read restart routines below.
 
   !    INTENT(IN)
@@ -89,7 +89,7 @@ CONTAINS
     cols = nc%setDimension("ncols" // trim(level_name), grid_in%ncols)
 
     ! now set everything related to the grid
-    var = nc%setVariable("L" // trim(level_name) // "_basin_mask", "i32", (/rows, cols/))
+    var = nc%setVariable("L" // trim(level_name) // "_domain_mask", "i32", (/rows, cols/))
     call var%setFillValue(nodata_i4)
     ! transform from logical to i32
     ! ST: where statement is used because gnu73 does not properly translate with merge
@@ -100,17 +100,17 @@ CONTAINS
     deallocate(dummy)
     call var%setAttribute("long_name", "Mask at level " // trim(level_name))
 
-    var = nc%setVariable("L" // trim(level_name) // "_basin_lat", "f64", (/rows, cols/))
+    var = nc%setVariable("L" // trim(level_name) // "_domain_lat", "f64", (/rows, cols/))
     call var%setFillValue(nodata_dp)
     call var%setData(grid_in%y)
     call var%setAttribute("long_name", "Latitude at level " // trim(level_name))
 
-    var = nc%setVariable("L" // trim(level_name) // "_basin_lon", "f64", (/rows, cols/))
+    var = nc%setVariable("L" // trim(level_name) // "_domain_lon", "f64", (/rows, cols/))
     call var%setFillValue(nodata_dp)
     call var%setData(grid_in%x)
     call var%setAttribute("long_name", "Longitude at level " // trim(level_name))
 
-    var = nc%setVariable("L" // trim(level_name) // "_basin_cellarea", "f64", (/rows, cols/))
+    var = nc%setVariable("L" // trim(level_name) // "_domain_cellarea", "f64", (/rows, cols/))
     call var%setFillValue(nodata_dp)
     call var%setData(unpack(grid_in%CellArea * 1.0E-6_dp, grid_in%mask, nodata_dp))
     call var%setAttribute("long_name", "Cell area at level " // trim(level_name))
@@ -140,10 +140,9 @@ CONTAINS
   !>       contained in module mo_startup.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin"      number of basin
-  !>       \param[in] "character(256) :: InPath"   Input Path including trailing slash
+  !>       \param[in] "integer(i4) :: iDomain"      number of domain
+  !>       \param[in] "character(256) :: InFile"   Input Path including trailing slash
   !>       \param[in] "character(*) :: level_name" level_name (id)
-  !>       \param[in] "character(*) :: fname_part" filename part (either "mHM" or "mRM")
 
   !    INTENT(INOUT)
   !>       \param[inout] "type(Grid) :: new_grid" grid to save information to
@@ -160,7 +159,7 @@ CONTAINS
   ! Robert Schweppe    Jun 2018 - refactoring and reformatting
   ! Stephan Thober     May 2019 - added allocation check for mask and cellArea because cellArea needs to be read by mRM, but mask is created before by mHM
 
-  subroutine read_grid_info(iBasin, InPath, level_name, fname_part, new_grid)
+  subroutine read_grid_info(domainID, InFile, level_name, new_grid)
 
     use mo_common_variables, only : Grid
     use mo_kind, only : dp, i4
@@ -170,17 +169,14 @@ CONTAINS
 
     implicit none
 
-    ! number of basin
-    integer(i4), intent(in) :: iBasin
+    ! number of domain
+    integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
-    character(256), intent(in) :: InPath
+    character(256), intent(in) :: InFile
 
     ! level_name (id)
     character(*), intent(in) :: level_name
-
-    ! filename part (either "mHM" or "mRM")
-    character(*), intent(in) :: fname_part
 
     ! grid to save information to
     type(Grid), intent(inout) :: new_grid
@@ -201,7 +197,7 @@ CONTAINS
 
 
     ! read config
-    fname = trim(InPath) // trim(fname_part) // '_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc' ! '_restart.nc'
+    fname = trim(InFile)
     call message('    Reading config from     ', trim(adjustl(Fname)), ' ...')
 
     nc = NcDataset(fname, "r")
@@ -221,19 +217,19 @@ CONTAINS
     if (.not. allocated(new_grid%x)) allocate(new_grid%x(new_grid%nrows, new_grid%ncols))
     if (.not. allocated(new_grid%y)) allocate(new_grid%y(new_grid%nrows, new_grid%ncols))
     ! read L1 mask
-    var = nc%getVariable("L" // trim(level_name) // "_basin_mask")
+    var = nc%getVariable("L" // trim(level_name) // "_domain_mask")
     ! read integer
     call var%getData(dummyI2)
     ! transform to logical
     new_grid%mask = (dummyI2 .eq. 1_i4)
 
-    var = nc%getVariable("L" // trim(level_name) // "_basin_lat")
+    var = nc%getVariable("L" // trim(level_name) // "_domain_lat")
     call var%getData(new_grid%y)
 
-    var = nc%getVariable("L" // trim(level_name) // "_basin_lon")
+    var = nc%getVariable("L" // trim(level_name) // "_domain_lon")
     call var%getData(new_grid%x)
 
-    var = nc%getVariable("L" // trim(level_name) // "_basin_cellarea")
+    var = nc%getVariable("L" // trim(level_name) // "_domain_cellarea")
     call var%getData(dummyD2)
     if (.not. allocated(new_grid%CellArea)) new_grid%CellArea = pack(dummyD2 / 1.0E-6_dp, new_grid%mask)
     ! new_grid%CellArea = pack(dummyD2 / 1.0E-6_dp, new_grid%mask)

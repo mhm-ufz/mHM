@@ -1,15 +1,20 @@
 # Created by .ignore support plugin (hsz.mobi)
 
 # Exclusions
+./mhm
 *.g90
 *.o
 *.mod
 *.a
 *.so
-*.nc
-test_basin/
-test_basin_2/
+src/*/*.release/
+src/*/*.debug/
+test_domain/output_b1/
+test_domain_2/output/
+test_domain/restart/
+test_domain_2/restart/
 *prog_for_check
+*terminal
 
 ### Python template
 # Byte-compiled / optimized / DLL files
@@ -607,3 +612,6 @@ bh_unicode_properties.cache
 # Sublime-github package stores a github token in this file
 # https://packagecontrol.io/packages/sublime-github
 GitHub.sublime-settings
+
+# VSCode settings file
+.vscode/

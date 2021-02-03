@@ -86,30 +86,29 @@ CONTAINS
 
     use mo_common_file, only : file_config, uconfig
     use mo_common_mHM_mRM_variables, only : LCyearId, SimPer, evalPer, read_restart, timeStep, warmPer
-    use mo_common_variables, only : L0_Basin, LC_year_end, &
-                                    LC_year_start, LCfilename, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
+    use mo_common_variables, only : LC_year_end, &
+                                    LC_year_start, LCfilename, dirConfigOut, dirLCover, dirMorpho, dirOut, mhmFileRestartOut, &
                                     global_parameters, global_parameters_name, iFlag_cordinate_sys, level0, level1, &
-                                    nBasins, nLCoverScene, resolutionHydrology, write_restart
+                                    domainMeta, nLCoverScene, resolutionHydrology, write_restart
     use mo_file, only : version
     use mo_global_variables, only : dirPrecipitation, dirReferenceET, &
                                     dirTemperature
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_string_utils, only : num2str
-#ifdef MRM2MHM
+    use mo_os, only : path_isdir
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : resolutionRouting
     use mo_common_variables, only : processMatrix
     use mo_mrm_global_variables, only : InflowGauge, L11_fromN, L11_label, L11_length, L11_netPerm, L11_rOrder, &
                                         L11_slope, L11_toN, L1_L11_ID, dirGauges, gauge, level11, nGaugesTotal, &
-                                        nInflowGaugesTotal, L11_nOutlets
-#endif
+                                        nGaugesLocal, nInflowGaugesTotal, L11_nOutlets
 
     implicit none
 
     character(256) :: fName
 
-    integer(i4) :: i, j, n
+    integer(i4) :: i, j, iDomain, domainID
 
     integer(i4) :: err
 
@@ -117,6 +116,8 @@ CONTAINS
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_config))
     call message()
     call message('  Log-file written to ', trim(fName))
+    !checking whether the directory exists where the file shall be created or opened
+    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
     open(uconfig, file = fName, status = 'unknown', action = 'write', iostat = err)
     if (err .ne. 0) then
       call message('  Problems while creating File')
@@ -130,43 +131,35 @@ CONTAINS
     write(uconfig, 100)
     write(uconfig, 201) '         M A I N  mHM  C O N F I G U R A T I O N  I N F O R M A T I O N         '
     write(uconfig, 100)
-    write(uconfig, 103) 'Number of basins            ', nBasins
-#ifdef MRM2MHM
-    if (processMatrix(8, 1) .ne. 0) then
+    write(uconfig, 103) 'Number of domain            ', domainMeta%overallNumberOfDomains
+    if (processMatrix(8, 1) > 0) then
       write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
     end if
-#endif
     write(uconfig, 103)    'Time Step [h]               ', timeStep
-    do i = 1, nBasins
-      write(uconfig, 103) 'Basin  ', i, 'No. of cells L0             ', level0(L0_Basin(i))%nCells
-      write(uconfig, 103) 'Basin  ', i, 'No. of cells L1             ', level1(i)%nCells
-#ifdef MRM2MHM
-    if (processMatrix(8, 1) .ne. 0) then
-      write(uconfig, 103) 'Total No. of nodes          ', level11(i)%nCells
-      write(uconfig, 103) 'Total No. of reaches        ', level11(i)%nCells - 1
-      if (processMatrix(8, 1) .ne. 0) then
-        write(uconfig, 103) 'No. of cells L11            ', level11(i)%nCells
-        write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      write(uconfig, 103) 'Domain  ', domainID, 'No. of cells L0             ', level0(domainMeta%L0DataFrom(iDomain))%nCells
+      write(uconfig, 103) 'Domain  ', domainID, 'No. of cells L1             ', level1(iDomain)%nCells
+      if (domainMeta%doRouting(iDomain)) then
+        write(uconfig, 103) 'Total No. of nodes          ', level11(iDomain)%nCells
+        write(uconfig, 103) 'Total No. of reaches        ', level11(iDomain)%nCells - 1
+        if (domainMeta%doRouting(iDomain)) then
+          write(uconfig, 103) 'No. of cells L11            ', level11(iDomain)%nCells
+          write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
+        end if
       end if
-    end if
-#endif
 
       select case (iFlag_cordinate_sys)
       case (0)
-        write(uconfig, 301)      'Basin  ', i, '   Hydrology Resolution [m]      ', resolutionHydrology(i)
-#ifdef MRM2MHM
-        if (processMatrix(8, 1) .ne. 0) then
-          write(uconfig, 301)   'Basin  ', i, '   Routing Resolution [m]        ', resolutionRouting(i)
+        write(uconfig, 301)      'Domain  ', domainID, '   Hydrology Resolution [m]      ', resolutionHydrology(iDomain)
+        if (domainMeta%doRouting(iDomain)) then
+          write(uconfig, 301)   'Domain  ', domainID, '   Routing Resolution [m]        ', resolutionRouting(iDomain)
         end if
-#endif
-       case(1)
-        write(uconfig, 302)       'Basin  ', i, '   Hydrology Resolution [o]      ', resolutionHydrology(i)
-#ifdef MRM2MHM
-        if (processMatrix(8, 1) .ne. 0) then
-          write(uconfig, 302)   'Basin  ', i, '   Routing Resolution [o]        ', resolutionRouting(i)
+      case(1)
+        write(uconfig, 302)       'Domain  ', domainID, '   Hydrology Resolution [o]      ', resolutionHydrology(iDomain)
+        if (domainMeta%doRouting(iDomain)) then
+          write(uconfig, 302)   'Domain  ', domainID, '   Routing Resolution [o]        ', resolutionRouting(iDomain)
         end if
-#endif
-
       end select
     end do
     write(uconfig, 126)    'Flag READ  restart            ', read_restart
@@ -175,32 +168,34 @@ CONTAINS
     !******************
     ! Model Run period
     !******************
-    do j = 1, nBasins
-      write(uconfig, 115) '                      Model Run Periods for Basin ', num2str(j)
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      write(uconfig, 115) '                      Model Run Periods for Domain ', num2str(domainID)
       write(uconfig, 116) &
               'From                To', &
               '   Day Month  Year   Day Month  Year'
       write(uconfig, 117)  &
               'Warming Period (1)            ', &
-              warmPer(j)%dStart, warmPer(j)%mStart, warmPer(j)%yStart, &
-              warmPer(j)%dEnd, warmPer(j)%mEnd, warmPer(j)%yEnd, &
+              warmPer(iDomain)%dStart, warmPer(iDomain)%mStart, warmPer(iDomain)%yStart, &
+              warmPer(iDomain)%dEnd, warmPer(iDomain)%mEnd, warmPer(iDomain)%yEnd, &
               'Evaluation Period (2)         ', &
-              evalPer(j)%dStart, evalPer(j)%mStart, evalPer(j)%yStart, &
-              evalPer(j)%dEnd, evalPer(j)%mEnd, evalPer(j)%yEnd, &
+              evalPer(iDomain)%dStart, evalPer(iDomain)%mStart, evalPer(iDomain)%yStart, &
+              evalPer(iDomain)%dEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%yEnd, &
               'Simulation Period (1)+(2)     ', &
-              SimPer(j)%dStart, SimPer(j)%mStart, SimPer(j)%yStart, &
-              SimPer(j)%dEnd, SimPer(j)%mEnd, SimPer(j)%yEnd
+              SimPer(iDomain)%dStart, SimPer(iDomain)%mStart, SimPer(iDomain)%yStart, &
+              SimPer(iDomain)%dEnd, SimPer(iDomain)%mEnd, SimPer(iDomain)%yEnd
     end do
 
     !*********************************
     ! Model Land Cover Observations
     !*********************************
-    do j = 1, nBasins
-      write(uconfig, 118) '       Land Cover Observations for Basin ', num2str(i)
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      write(uconfig, 118) '       Land Cover Observations for Domain ', num2str(domainID)
       write(uconfig, 119) ' Start Year', ' End Year', '    Land cover scene', 'Land Cover File'
       do i = 1, nLCoverScene
         write(uconfig, 120) LC_year_start(i), LC_year_end(i), &
-                LCyearId(max(evalPer(j)%yStart, LC_year_start(i)), j), trim(LCfilename(i))
+                LCyearId(max(evalPer(iDomain)%yStart, LC_year_start(i)), iDomain), trim(LCfilename(i))
       end do
     end do
     !*********************************
@@ -217,60 +212,57 @@ CONTAINS
               i, global_parameters(i, 1), global_parameters(i, 2), global_parameters(i, 3), &
               trim(adjustl(global_parameters_name(i)))
     end do
-#ifdef MRM2MHM
-    ! basin runoff data
-    if (processMatrix(8, 1) .ne. 0) then
-      write(uconfig, 202) '                Basin Runoff Data                '
-      write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
-      do i = 1, nGaugesTotal
+    ! domain runoff data
+    if (processMatrix(8, 1) > 0) then
+      write(uconfig, 202) '                Domain Runoff Data                '
+      write(uconfig, 107) ' Gauge No.', '  Domain Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
+      do i = 1, nGaugesLocal
         if(any(gauge%Q(:, i) > nodata_dp)) then
-          write(uconfig, 108) i, gauge%basinId(i), maxval(gauge%Q(:, i), gauge%Q(:, i) > nodata_dp), &
+          write(uconfig, 108) i, gauge%domainId(i), maxval(gauge%Q(:, i), gauge%Q(:, i) > nodata_dp), &
                   minval(gauge%Q(:, i), gauge%Q(:, i) > nodata_dp)
         else
-          write(uconfig, 108) i, gauge%basinId(i), nodata_dp, nodata_dp
+          write(uconfig, 108) i, gauge%domainId(i), nodata_dp, nodata_dp
         end if
       end do
     end if
     ! inflow gauge data
     if (nInflowGaugesTotal .GT. 0) then
-      write(uconfig, 202) '                Basin Inflow Data                 '
-      write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
+      write(uconfig, 202) '                Domain Inflow Data                 '
+      write(uconfig, 107) ' Gauge No.', '  Domain Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
       do i = 1, nInflowGaugesTotal
         if(all(InflowGauge%Q(:, i) > nodata_dp)) then
-          write(uconfig, 108) i, InflowGauge%basinId(i), maxval(InflowGauge%Q(:, i), InflowGauge%Q(:, i) > nodata_dp), &
+          write(uconfig, 108) i, InflowGauge%domainId(i), maxval(InflowGauge%Q(:, i), InflowGauge%Q(:, i) > nodata_dp), &
                   minval(InflowGauge%Q(:, i), InflowGauge%Q(:, i) > nodata_dp)
         else
-          write(uconfig, 108) i, InflowGauge%basinId(i), nodata_dp, nodata_dp
+          write(uconfig, 108) i, InflowGauge%domainId(i), nodata_dp, nodata_dp
         end if
       end do
     end if
-#endif
-    ! basin config
-    write(uconfig, 218) 'Basin-wise Configuration'
-    do n = 1, nBasins
+
+    ! domain config
+    write(uconfig, 218) 'Domain-wise Configuration'
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
       !ST has to be moved to the config write of mRM
-      ! if ( processMatrix(8,1) .ne. 0 ) then
-      !    write(uconfig,103) 'Basin No.                   ', n, &
-      !         'No. of gauges               ', basin%nGauges(n)
+      ! if (domainMeta%doRouting(iDomain)) then
+      !    write(uconfig,103) 'Domain No.                   ', domainID, &
+      !         'No. of gauges               ', domain%nGauges(iDomain)
       ! end if
 
       write(uconfig, 222)   'Directory list'
 
-      write(uconfig, 224) 'Directory to morphological input         ', dirMorpho(n)
-      write(uconfig, 224) 'Directory to land cover input            ', dirLCover(n)
-#ifdef MRM2MHM
-      if (processMatrix(8, 1) .ne. 0) then
-        write(uconfig, 224) 'Directory to gauging station input       ', dirGauges(n)
+      write(uconfig, 224) 'Directory to morphological input         ', dirMorpho(iDomain)
+      write(uconfig, 224) 'Directory to land cover input            ', dirLCover(iDomain)
+      if (domainMeta%doRouting(iDomain)) then
+        write(uconfig, 224) 'Directory to gauging station input       ', dirGauges(iDomain)
       end if
-#endif
-      write(uconfig, 224) 'Directory to precipitation input         ', dirPrecipitation(n)
-      write(uconfig, 224) 'Directory to temperature input           ', dirTemperature(n)
-      write(uconfig, 224) 'Directory to reference ET input          ', dirReferenceET(n)
-      write(uconfig, 224) 'Directory to write output by default     ', dirOut(n)
-      write(uconfig, 224) 'Directory to write output when restarted ', dirRestartOut(n)
+      write(uconfig, 224) 'Directory to precipitation input         ', dirPrecipitation(iDomain)
+      write(uconfig, 224) 'Directory to temperature input           ', dirTemperature(iDomain)
+      write(uconfig, 224) 'Directory to reference ET input          ', dirReferenceET(iDomain)
+      write(uconfig, 224) 'Directory to write output by default     ', dirOut(iDomain)
+      write(uconfig, 224) 'File to write mHM output when restarted  ', mhmFileRestartOut(iDomain)
 
-#ifdef MRM2MHM
-      if (processMatrix(8, 1) .ne. 0) then
+      if (domainMeta%doRouting(iDomain)) then
         write(uconfig, 102) 'River Network  (Routing level)'
         write(uconfig, 100) 'Label 0 = intermediate draining cell '
         write(uconfig, 100) 'Label 1 = headwater cell             '
@@ -300,8 +292,8 @@ CONTAINS
                   '      [km]', &
                   '    [o/oo]'
           !
-          do j = level11(n)%iStart, level11(n)%iEnd -  L11_nOutlets(n)
-            i = L11_netPerm(j) + level11(n)%iStart - 1 ! adjust permutation for multi-basin option
+          do j = level11(iDomain)%iStart, level11(iDomain)%iEnd -  L11_nOutlets(iDomain)
+            i = L11_netPerm(j) + level11(iDomain)%iStart - 1 ! adjust permutation for multi-domain option
             write(uconfig, 106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
                     L11_length(i) / 1000.0_dp, L11_slope(i) * 1.0e3_dp
           end do
@@ -324,16 +316,16 @@ CONTAINS
                   '', &
                   ''
           !
-          do j = level11(n)%iStart, level11(n)%iEnd -  L11_nOutlets(n)
-            i = L11_netPerm(j) + level11(n)%iStart - 1 ! adjust permutation for multi-basin option
+          do j = level11(iDomain)%iStart, level11(iDomain)%iEnd -  L11_nOutlets(iDomain)
+            i = L11_netPerm(j) + level11(iDomain)%iStart - 1 ! adjust permutation for multi-domain option
             write(uconfig, 136) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i)
           end do
         end if
         ! draining node at L11
-        write(uconfig, 109)  '   Overall', '     Basin', &
+        write(uconfig, 109)  '   Overall', '     Domain', &
                 '      Cell', '   Routing', &
                 '        Id', '   Node Id'
-        do i = 1, level11(n)%nCells
+        do i = 1, level11(iDomain)%nCells
           write(uconfig, 110) i
         end do
 
@@ -342,12 +334,11 @@ CONTAINS
                 '      Cell', '   Cell Id', '      Area', &
                 '        Id', '       [-]', '     [km2]'
 
-        do i = 1, level1(n)%nCells
-          write(uconfig, 113) i, L1_L11_Id(i), level1(n)%CellArea(i) *  1.0E-6_dp
+        do i = 1, level1(iDomain)%nCells
+          write(uconfig, 113) i, L1_L11_Id(i), level1(iDomain)%CellArea(i) *  1.0E-6_dp
         end do
-        write(uconfig, 114)  ' Total[km2]', sum(level1(n)%CellArea) *  1.0E-6_dp
+        write(uconfig, 114)  ' Total[km2]', sum(level1(iDomain)%CellArea) *  1.0E-6_dp
       end if
-#endif
        !
     end do
 
@@ -426,9 +417,10 @@ CONTAINS
 
   ! Modifications:
   ! Rohini Kumar Aug 2013 - change in structure of the code including call statements
-  ! Juliane Mai  Oct 2013 - clear parameter names added 
+  ! Juliane Mai  Oct 2013 - clear parameter names added
   !                       - double precision written
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 
   subroutine write_optifile(best_OF, best_paramSet, param_names)
 
@@ -436,6 +428,7 @@ CONTAINS
     use mo_common_variables, only : dirConfigOut
     use mo_message, only : message
     use mo_string_utils, only : num2str
+    use mo_os, only : path_isdir
 
     implicit none
 
@@ -457,6 +450,8 @@ CONTAINS
 
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti))
+    !checking whether the directory exists where the file shall be created or opened
+    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
     open(uopti, file = fName, status = 'unknown', action = 'write', iostat = err, recl = (n_params + 1) * 40)
     if(err .ne. 0) then
       call message ('  IOError while openening ', trim(fName))
@@ -520,6 +515,7 @@ CONTAINS
     use mo_common_variables, only : dirConfigOut, nProcesses
     use mo_message, only : message
     use mo_string_utils, only : num2str
+    use mo_os, only : path_isdir
 
     implicit none
 
@@ -538,11 +534,9 @@ CONTAINS
 
     character(256) :: fName
 
-    character(3) :: flag
-
     character(len = 28), dimension(nProcesses) :: Process_descr
 
-    integer(i4) :: err
+    integer(i4) :: err, flag
 
     integer(i4) :: iProc, iPar, iPar_start
 
@@ -560,6 +554,8 @@ CONTAINS
 
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti_nml))
+    !checking whether the directory exists where the file shall be created or opened
+    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
     open(uopti_nml, file = fName, status = 'unknown', action = 'write', iostat = err)
     if(err .ne. 0) then
       call message ('  IOError while openening ', trim(fName))
@@ -568,7 +564,7 @@ CONTAINS
     end if
 
     write(uopti_nml, *) '!global_parameters'
-    write(uopti_nml, *) '!PARAMETER                       lower_bound  upper_bound          value   FLAG  SCALING'
+    write(uopti_nml, '( A47,T50,3(A20,2x),2(A8,1x) )') "!PARAMETER", "lower_bound", "upper_bound", "value", "FLAG", "SCALING"
 
     iPar_start = 1
     do iProc = 1, nProcesses
@@ -590,6 +586,10 @@ CONTAINS
           write(uopti_nml, *) '&soilmoisture1'
         case(2)
           write(uopti_nml, *) '&soilmoisture2'
+        case(3)
+          write(uopti_nml, *) '&soilmoisture3'
+        case(4)
+          write(uopti_nml, *) '&soilmoisture4'
         end select
       case(4)
         if (processMatrix(iProc, 1) .eq. 1) then
@@ -597,6 +597,8 @@ CONTAINS
         end if
       case(5)
         select case (processMatrix(iProc, 1))
+        case(-1)
+          write(uopti_nml, *) '&PETminus1'
         case(0)
           write(uopti_nml, *) '&PET0'
         case(1)
@@ -621,6 +623,9 @@ CONTAINS
         if (processMatrix(iProc, 1) .eq. 2) then
           write(uopti_nml, *) '&routing2'
         end if
+        if (processMatrix(iProc, 1) .eq. 3) then
+          write(uopti_nml, *) '&routing3'
+        end if
       case(9)
         if (processMatrix(iProc, 1) .eq. 1) then
           write(uopti_nml, *) '&geoparameter'
@@ -634,16 +639,17 @@ CONTAINS
       do iPar = iPar_Start, processMatrix(iProc, 3)
 
         if (maskpara(iPar)) then
-          flag = ' 1 '
+          flag = 1
         else
-          flag = ' 0 '
+          flag = 0
         end if
 
-        write(uopti_nml, *) trim(adjustl(parameters_name(iPar))), ' = ', &
-                parameters(iPar, 1), ' , ', &
-                parameters(iPar, 2), ' , ', &
-                parameters(iPar, 3), ' , ', &
-                flag, ', 1 '
+        write(uopti_nml, '( A47," = ",T50,3(f20.12,", "),I8,",       1" )') &
+                trim(adjustl(parameters_name(iPar))), &
+                parameters(iPar, 1), &
+                parameters(iPar, 2), &
+                parameters(iPar, 3), &
+                flag
       end do
 
       iPar_Start = processMatrix(iProc, 3) + 1

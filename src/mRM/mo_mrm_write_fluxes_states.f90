@@ -11,7 +11,7 @@
 ! Modifications:
 ! David Schaefer       Aug 2015 - major rewrite
 ! Stephan Thober       Oct 2015 - adapted to mRM
-! O. Rakovec, R. Kumar Nov 2017 - added project description for the netcdf outputs 
+! O. Rakovec, R. Kumar Nov 2017 - added project description for the netcdf outputs
 
 module mo_mrm_write_fluxes_states
 
@@ -42,7 +42,7 @@ module mo_mrm_write_fluxes_states
   end interface OutputVariable
 
   type OutputDataset
-    integer(i4) :: ibasin      !> basin id
+    integer(i4) :: iDomain      !> domain id
     type(NcDataset) :: nc          !> NcDataset to write
     type(OutputVariable), allocatable :: vars(:)     !> store all created (dynamic) variables
     integer(i4) :: counter = 0 !> count written time steps
@@ -81,7 +81,7 @@ contains
   !>       \param[in] "character(*) :: name"
   !>       \param[in] "character(*) :: dtype"
   !>       \param[in] "character(16), dimension(3) :: dims"
-  !>       \param[in] "integer(i4) :: ncells"               -> number of cells in basin
+  !>       \param[in] "integer(i4) :: ncells"               -> number of cells in domain
   !>       \param[in] "logical, dimension(:, :) :: mask"
 
   !    INTENT(IN), OPTIONAL
@@ -108,7 +108,7 @@ contains
 
     character(16), intent(in), dimension(3) :: dims
 
-    ! -> number of cells in basin
+    ! -> number of cells in domain
     integer(i4), intent(in) :: ncells
 
     logical, intent(in), target, dimension(:, :) :: mask
@@ -223,7 +223,7 @@ contains
   !>       \return type(OutputDataset)
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ibasin"            -> basin id
+  !>       \param[in] "integer(i4) :: iDomain"            -> domain id
   !>       \param[in] "logical, dimension(:, :) :: mask"
   !>       \param[in] "integer(i4) :: nCells"
 
@@ -234,15 +234,17 @@ contains
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Sebastian Mueller Jul 2020 - added output for river temperature
 
-  function newOutputDataset(ibasin, mask, nCells) result(out)
+  function newOutputDataset(iDomain, mask, nCells) result(out)
 
-    use mo_mrm_global_variables, only : outputFlxState_mrm
+    use mo_mrm_global_variables, only : outputFlxState_mrm, riv_temp_pcs
+    use mo_common_variables, only : iFlag_cordinate_sys
 
     implicit none
 
-    ! -> basin id
-    integer(i4), intent(in) :: ibasin
+    ! -> domain id
+    integer(i4), intent(in) :: iDomain
 
     logical, intent(in), pointer, dimension(:, :) :: mask
 
@@ -260,25 +262,35 @@ contains
 
     type(OutputVariable), dimension(size(outputFlxState_mrm)) :: tmpvars
 
-
     dtype = "f64"
-    dims1 = (/"easting ", "northing", "time    "/)
-    nc = createOutputFile(ibasin)
+
+    if (iFlag_cordinate_sys == 0) then
+      dims1 = (/"easting ", "northing", "time    "/) ! X & Y coordinate system
+    else
+      dims1 = (/"lon ", "lat ", "time"/) ! lat & lon coordinate system
+    endif
+
+    nc = createOutputFile(iDomain)
 
     ii = 0
 
     if (outputFlxState_mrm(1)) then
       ii = ii + 1
-      tmpvars(ii) = OutputVariable(&
-              nc, "Qrouted", dtype, dims1, nCells, mask, .true.)
+      tmpvars(ii) = OutputVariable(nc, "Qrouted", dtype, dims1, nCells, mask, .true.)
       call writeVariableAttributes(tmpvars(ii), "routed streamflow", "m3 s-1")
     end if
 
-    ! out = OutputDataset(ibasin, nc, tmpvars(1 : ii))
+    if (outputFlxState_mrm(2) .AND. riv_temp_pcs%active) then
+      ii = ii + 1
+      tmpvars(ii) = OutputVariable(nc, "RivTemp", dtype, dims1, nCells, mask, .true.)
+      call writeVariableAttributes(tmpvars(ii), "routed river temperature", "degC")
+    end if
+
+    ! out = OutputDataset(iDomain, nc, tmpvars(1 : ii))
     allocate(out%vars(ii))
     out%vars = tmpvars(1:ii)
     out%nc = nc
-    out%ibasin = ibasin
+    out%iDomain = iDomain
     ! print*, 'Finished OutputDatasetInit'
 
   end function newOutputDataset
@@ -299,9 +311,12 @@ contains
   !>       \param[inout] "class(OutputDataset) :: self"
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: sidx, eidx"          - start index of the basin related data in L1_* arguments
-  !>       \param[in] "integer(i4) :: sidx, eidx"          - end index of the basin related data in L1_* arguments
+  !>       \param[in] "integer(i4) :: sidx, eidx"          - start index of the domain related data in L1_* arguments
+  !>       \param[in] "integer(i4) :: sidx, eidx"          - end index of the domain related data in L1_* arguments
   !>       \param[in] "real(dp), dimension(:) :: L11_Qmod"
+
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "real(dp), dimension(:), optional :: L11_riv_temp"
 
   !    HISTORY
   !>       \authors Matthias Zink
@@ -309,15 +324,16 @@ contains
   !>       \date Apr 2013
 
   ! Modifications:
-  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014 
-  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014 
-  !                              - adding new variable infilSoil 
-  !                              - case 16 David Schaefer      , Jun. 2015 
+  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014
+  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014
+  !                              - adding new variable infilSoil
+  !                              - case 16 David Schaefer      , Jun. 2015
   !                              - major rewrite
   ! Stephan Thober      Oct  2015 - adapted to mRM
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Sebastian Mueller Jul 2020 - add river temperature output (optional)
 
-  subroutine updateDataset(self, sidx, eidx, L11_Qmod)
+  subroutine updateDataset(self, sidx, eidx, L11_Qmod, L11_riv_temp)
 
     use mo_mrm_global_variables, only : outputFlxState_mrm
 
@@ -325,15 +341,15 @@ contains
 
     class(OutputDataset), intent(inout), target :: self
 
-    ! - end index of the basin related data in L1_* arguments
+    ! - end index of the domain related data in L1_* arguments
     integer(i4), intent(in) :: sidx, eidx
 
     real(dp), intent(in), dimension(:) :: L11_Qmod
+    real(dp), intent(in), dimension(:), optional :: L11_riv_temp
 
     type(OutputVariable), pointer, dimension(:) :: vars
 
     integer(i4) :: ii
-
 
     ii = 0
     vars => self%vars
@@ -344,6 +360,15 @@ contains
       call updateVariable(vars(ii), L11_Qmod(sidx : eidx))
 #else
       call vars(ii)%updateVariable(L11_Qmod(sidx : eidx))
+#endif
+    end if
+
+    if (outputFlxState_mrm(2) .AND. present(L11_riv_temp)) then
+      ii = ii + 1
+#ifdef pgiFortran
+      call updateVariable(vars(ii), L11_riv_temp(sidx : eidx))
+#else
+      call vars(ii)%updateVariable(L11_riv_temp(sidx : eidx))
 #endif
     end if
 
@@ -431,8 +456,8 @@ contains
 
 
     call self%nc%close()
-    call message('  OUTPUT: saved netCDF file for basin', trim(num2str(self%ibasin)))
-    call message('    to ', trim(dirOut(self%ibasin)))
+    call message('  OUTPUT: saved netCDF file for domain', trim(num2str(self%iDomain)))
+    call message('    to ', trim(dirOut(self%iDomain)))
 
   end subroutine close
 
@@ -441,15 +466,15 @@ contains
   !        createOutputFile
 
   !    PURPOSE
-  !>       \brief Create and initialize output file
+  !>       \brief Create and initialize output file for X & Y coordinate system
 
   !>       \details Create output file, write all non-dynamic variables
-  !>       and global attributes for the given basin.
+  !>       and global attributes for the given domain for X & Y coordinate system
 
   !>       \return type(NcDataset)
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ibasin" -> basin id
+  !>       \param[in] "integer(i4) :: iDomain" -> domain id
 
   !    HISTORY
   !>       \authors David Schaefer
@@ -459,11 +484,12 @@ contains
   ! Modifications:
   ! Stephan Thober  Oct 2015 - adapted to mRM
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Pallav Shrestha Mar 2020 - output file lat and lon are 1d or 2d based on coordinate system
 
-  function createOutputFile(ibasin) result(nc)
+  function createOutputFile(iDomain) result(nc)
 
     use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_common_variables, only : dirOut
+    use mo_common_variables, only : dirOut, iFlag_cordinate_sys
     use mo_grid, only : geoCoordinates, mapCoordinates
     use mo_julian, only : dec2date
     use mo_mrm_file, only : file_mrm_output, version
@@ -471,8 +497,8 @@ contains
 
     implicit none
 
-    ! -> basin id
-    integer(i4), intent(in) :: ibasin
+    ! -> domain id
+    integer(i4), intent(in) :: iDomain
 
     type(NcDataset) :: nc
 
@@ -488,54 +514,87 @@ contains
 
     real(dp), allocatable, dimension(:) :: easting, northing
 
-    real(dp), allocatable, dimension(:,:) :: lat, lon
+    real(dp), allocatable, dimension(:) :: lat1d, lon1d    ! 1D lat lon vectors. Used if coordinate system is lat & lon
+
+    real(dp), allocatable, dimension(:, :) :: lat2d, lon2d ! temporary storage of mHM's 2D latlon array.
+                                                           ! Used as 2d lat lon arrays if coordinate system is X & Y
 
 
-    fname = trim(dirOut(ibasin)) // trim(file_mrm_output)
-    call mapCoordinates(level11(ibasin), northing, easting)
-    call geoCoordinates(level11(ibasin), lat, lon)
+    fname = trim(dirOut(iDomain)) // trim(file_mrm_output)
+    call geoCoordinates(level11(iDomain), lat2d, lon2d)
 
     nc = NcDataset(trim(fname), "w")
-    dimids1 = (/&
-            nc%setDimension("easting", size(easting)), &
-                    nc%setDimension("northing", size(northing)), &
-                    nc%setDimension("time", 0) &
-            /)
 
+    ! set the horizonal dimensions
+    if (iFlag_cordinate_sys == 0) then
+
+      ! X & Y coordinate system; 2D lat lon!
+      !============================================================
+      call mapCoordinates(level11(iDomain), northing, easting)
+
+      dimids1 = (/&
+              nc%setDimension("easting", size(easting)), &
+                      nc%setDimension("northing", size(northing)), &
+                      nc%setDimension("time", 0) &
+              /)
+      ! northing
+      var = nc%setVariable("northing", "f64", (/ dimids1(2) /))
+      call var%setData(northing)
+      call var%setAttribute("units", "m")
+      call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
+      ! easting
+      var = nc%setVariable("easting", "f64", (/ dimids1(1) /))
+      call var%setData(easting)
+      call var%setAttribute("units", "m")
+      call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
+      ! lon
+      var = nc%setVariable("lon", "f64", dimids1(1 : 2))
+      call var%setData(lon2d)
+      call var%setAttribute("units", "degrees_east")
+      call var%setAttribute("long_name", "longitude")
+      call var%setAttribute("missing_value", nodata_dp)
+      ! lat
+      var = nc%setVariable("lat", "f64", dimids1(1 : 2))
+      call var%setData(lat2d)
+      call var%setAttribute("units", "degrees_north")
+      call var%setAttribute("long_name", "latitude")
+      call var%setAttribute("missing_value", nodata_dp)
+
+    else
+
+      ! lat & lon coordinate system; 1D lat lon!
+      !============================================================
+      lat1d = lat2d(1, :) ! first row info is sufficient
+      lon1d = lon2d(:, 1) ! first column info is sufficient
+      dimids1 = (/&
+              nc%setDimension("lon", size(lon1d)), &
+                      nc%setDimension("lat", size(lat1d)), &
+                      nc%setDimension("time", 0) &
+              /)
+      ! lon
+      var = nc%setVariable("lon", "f64", (/ dimids1(1) /)) ! sufficient to store lon as vector
+      call var%setData(lon1d)
+      call var%setAttribute("units", "degrees_east")
+      call var%setAttribute("long_name", "longitude")
+      call var%setAttribute("missing_value", nodata_dp)
+      ! lat
+      var = nc%setVariable("lat", "f64", (/ dimids1(2) /)) ! sufficient to store lat as vector
+      call var%setData(lat1d)
+      call var%setAttribute("units", "degrees_north")
+      call var%setAttribute("long_name", "latitude")
+      call var%setAttribute("missing_value", nodata_dp)
+
+    endif
+
+    ! set record dimension
     ! time units
-    call dec2date(real(evalPer(ibasin)%julStart, dp), dd = day, mm = month, yy = year)
+    call dec2date(real(evalPer(iDomain)%julStart, dp), dd = day, mm = month, yy = year)
     write(unit, "('hours since ', i4, '-' ,i2.2, '-', i2.2, 1x, '00:00:00')") year, month, day
 
     ! time
     var = nc%setVariable("time", "i32", (/ dimids1(3) /))
     call var%setAttribute("units", unit)
     call var%setAttribute("long_name", "time")
-
-    ! northing
-    var = nc%setVariable("northing", "f64", (/ dimids1(2) /))
-    call var%setData(northing)
-    call var%setAttribute("units", "m")
-    call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
-
-    ! easting
-    var = nc%setVariable("easting", "f64", (/ dimids1(1) /))
-    call var%setData(easting)
-    call var%setAttribute("units", "m")
-    call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
-
-    ! lon
-    var = nc%setVariable("lon", "f64", dimids1(1 : 2))
-    call var%setData(lon)
-    call var%setAttribute("units", "degrees_east")
-    call var%setAttribute("long_name", "longitude")
-    call var%setAttribute("missing_value", nodata_dp)
-
-    ! lat
-    var = nc%setVariable("lat", "f64", dimids1(1 : 2))
-    call var%setData(lat)
-    call var%setAttribute("units", "degrees_north")
-    call var%setAttribute("long_name", "latitude")
-    call var%setAttribute("missing_value", nodata_dp)
 
     ! global attributes
     call date_and_time(date = date, time = time)
@@ -586,7 +645,7 @@ contains
 
 
     call var%nc%setAttribute("long_name", long_name)
-    call var%nc%setAttribute("unit", unit)
+    call var%nc%setAttribute("units", unit)
     call var%nc%setAttribute("scale_factor", 1.0_dp)
     call var%nc%setAttribute("missing_value", nodata_dp)
     call var%nc%setAttribute("coordinates", "lat lon")

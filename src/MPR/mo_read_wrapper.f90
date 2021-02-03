@@ -31,7 +31,7 @@ CONTAINS
 
   !>       \details The namelists are already read by read_config call.
   !>       All LUTs are read from their respective directory and information within those
-  !>       files are shared across all basins to be modeled.
+  !>       files are shared across all domains to be modeled.
 
   !    INTENT(IN), OPTIONAL
   !>       \param[in] "type(period), dimension(:), optional :: LAIPer"
@@ -63,10 +63,11 @@ CONTAINS
   subroutine read_data(LAIPer)
 
     use mo_append, only : append, paste
-    use mo_common_constants, only : YearMonths_i4, nodata_dp, nodata_i4
+    use mo_constants, only : YearMonths_i4
+    use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
-    use mo_common_variables, only : Grid, L0_Basin, dirCommonFiles, dirMorpho, &
-                                    global_parameters, level0, nBasins, period, processMatrix
+    use mo_common_variables, only : Grid, dirCommonFiles, dirMorpho, &
+                                    global_parameters, level0, domainMeta, period, processMatrix
     use mo_message, only : message
     use mo_mpr_file, only : file_aspect, file_geolut, file_hydrogeoclass, &
                             file_laiclass, file_lailut, file_slope, file_soil_database, file_soil_database_1, &
@@ -74,7 +75,7 @@ CONTAINS
     use mo_mpr_global_variables, only : GeoUnitKar, &
                                         GeoUnitList, L0_asp, L0_geoUnit, L0_gridded_LAI, L0_slope, L0_soilId, LAILUT, &
                                         LAIUnitList, iFlag_soilDB, nGeoUnits, nLAI, nLAIclass, nSoilHorizons_mHM, soilDB, &
-                                        timeStep_LAI_input
+                                        timeStep_LAI_input, LAIBoundaries
     use mo_prepare_gridded_lai, only : prepare_gridded_daily_LAI_data, prepare_gridded_mean_monthly_LAI_data
     use mo_read_latlon, only : read_latlon
     use mo_read_lut, only : read_geoformation_lut, read_lai_lut
@@ -89,7 +90,7 @@ CONTAINS
     type(period), dimension(:), intent(in), optional :: LAIPer
 
     ! loop variables
-    integer(i4) :: iBasin, iVar, iHorizon, iMon, itimer, ll
+    integer(i4) :: domainID, iDomain, iVar, iHorizon, iMon, itimer, ll
 
     ! dummy variable
     integer(i4) :: nH
@@ -110,7 +111,7 @@ CONTAINS
 
     integer(i4), dimension(:), allocatable :: dummy_i4
 
-    type(Grid), pointer :: level0_iBasin
+    type(Grid), pointer :: level0_iDomain
 
     real(dp), parameter :: slope_minVal = 0.01_dp
 
@@ -147,22 +148,22 @@ CONTAINS
       call read_lai_lut(trim(fName), ulailut, nLAIclass, LAIUnitList, LAILUT)
     end if
 
-    basins : do iBasin = 1, nBasins
+    domains: do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
 
-      level0_iBasin => level0(L0_Basin(iBasin))
+      level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
 
-      call message('    Reading data for basin: ', trim(adjustl(num2str(iBasin))), ' ...')
+      call message('    Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
       ! check whether L0 data is shared
-      if (iBasin .gt. 1) then
-        if (L0_Basin(iBasin) .eq. L0_Basin(iBasin - 1)) then
-          !
-          call message('      Using data of basin ', &
-                  trim(adjustl(num2str(L0_Basin(iBasin)))), ' for basin: ',&
-                  trim(adjustl(num2str(iBasin))), '...')
-          ! DO NOT read L0 data
-          cycle
+      ! ToDo: check change
+      if (domainMeta%L0DataFrom(iDomain) < iDomain) then
+        !
+        call message('      Using data of domain ', &
+                trim(adjustl(num2str(domainMeta%indices(domainMeta%L0DataFrom(iDomain))))), ' for domain: ',&
+                trim(adjustl(num2str(domainID))), '...')
+        ! DO NOT read L0 data
+        cycle
 
-        end if
       end if
 
       itimer = 2
@@ -173,27 +174,27 @@ CONTAINS
         select case (iVar)
         case(1) ! slope
           call message('      Reading slope ...')
-          fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_slope))
+          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_slope))
           nunit = uslope
         case(2) ! aspect
           call message('      Reading aspect ...')
-          fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_aspect))
+          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_aspect))
           nunit = uaspect
         end select
 
         ! reading
         call read_spatial_data_ascii(trim(fName), nunit, &
-                level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-                level0_iBasin%yllcorner, level0_iBasin%cellsize, data_dp_2d, mask_2d)
+                level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+                level0_iDomain%yllcorner, level0_iDomain%cellsize, data_dp_2d, mask_2d)
         ! put global nodata value into array (probably not all grid cells have values)
         data_dp_2d = merge(data_dp_2d, nodata_dp, mask_2d)
         ! put data in variable
         select case (iVar)
         case(1) ! slope
-          call append(L0_slope, pack(data_dp_2d, level0_iBasin%mask))
+          call append(L0_slope, pack(data_dp_2d, level0_iDomain%mask))
 
         case(2) ! aspect
-          call append(L0_asp, pack(data_dp_2d, level0_iBasin%mask))
+          call append(L0_asp, pack(data_dp_2d, level0_iDomain%mask))
         end select
         ! deallocate arrays
         deallocate(data_dp_2d, mask_2d)
@@ -213,56 +214,62 @@ CONTAINS
       ! modified way to read multiple horizons specific soil class
       do iHorizon = 1, nH
         if(iFlag_soilDB .eq. 0) then
-          fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_soilclass))
+          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_soilclass))
         else if(iFlag_soilDB .eq. 1) then
           write(fName, 172) iHorizon
           172             format('soil_class_horizon_', i2.2, '.asc')
-          fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(fName))
+          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(fName))
         end if
         call read_spatial_data_ascii(trim(fName), usoilclass, &
-                level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-                level0_iBasin%yllcorner, level0_iBasin%cellsize, data_i4_2d, mask_2d)
+                level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+                level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
         ! put global nodata value into array (probably not all grid cells have values)
         data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-        call paste(dataMatrix_i4, pack(data_i4_2d, level0_iBasin%mask), nodata_i4)
+        call paste(dataMatrix_i4, pack(data_i4_2d, level0_iDomain%mask), nodata_i4)
         deallocate(data_i4_2d)
       end do
       call append(L0_soilId, dataMatrix_i4)
       deallocate(dataMatrix_i4)
 
       ! read geoUnit
-      fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_hydrogeoclass))
+      fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_hydrogeoclass))
       ! reading and transposing
       call read_spatial_data_ascii(trim(fName), uhydrogeoclass, &
-              level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-              level0_iBasin%yllcorner, level0_iBasin%cellsize, data_i4_2d, mask_2d)
+              level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+              level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
       ! put global nodata value into array (probably not all grid cells have values)
       data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-      call append(L0_geoUnit, pack(data_i4_2d, level0_iBasin%mask))
+      call append(L0_geoUnit, pack(data_i4_2d, level0_iDomain%mask))
       deallocate(data_i4_2d, mask_2d)
 
       ! LAI values
       call message('      Reading LAI ...')
       select case (timeStep_LAI_input)
       case(1) ! long term mean monthly gridded fields
-        call prepare_gridded_mean_monthly_LAI_data(iBasin, level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%mask)
+        call prepare_gridded_mean_monthly_LAI_data(iDomain, level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%mask)
 
       case(0) ! long term mean monthly values per class with LUT
-        nLAI = YearMonths_i4
-        fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_laiclass))
+        ! only set if not yet allocated (e.g. domain 1)
+        if (.not. allocated(LAIBoundaries)) then
+          nLAI = YearMonths_i4
+          allocate(LAIBoundaries(nLAI+1))
+          LAIBoundaries = [(iMon, iMon=1, nLAI+1)]
+        end if
+
+        fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_laiclass))
         ! reading and transposing
         call read_spatial_data_ascii(trim(fName), ulaiclass, &
-                level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-                level0_iBasin%yllcorner, level0_iBasin%cellsize, data_i4_2d, mask_2d)
+                level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+                level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
         ! put global nodata value into array (probably not all grid cells have values)
         data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-        allocate(dummy_i4(count(level0_iBasin%mask)))
-        dummy_i4 = pack(data_i4_2d, level0_iBasin%mask)
+        allocate(dummy_i4(count(level0_iDomain%mask)))
+        dummy_i4 = pack(data_i4_2d, level0_iDomain%mask)
         deallocate(data_i4_2d, mask_2d)
 
         call check_consistency_lut_map(dummy_i4, LAIUnitList, file_laiclass)
 
-        allocate(data_dp_2d(count(level0_iBasin%mask), nLAI))
+        allocate(data_dp_2d(count(level0_iDomain%mask), nLAI))
         do iMon = 1, nLAI
           ! determine LAIs per month
           do ll = 1, size(LAILUT, dim = 1)
@@ -275,19 +282,19 @@ CONTAINS
         L0_gridded_LAI(:, :) = merge(1.00E-10_dp, L0_gridded_LAI(:, :), L0_gridded_LAI(:, :) .LT. 1.00E-10_dp)
         L0_gridded_LAI(:, :) = merge(30.0_dp, L0_gridded_LAI(:, :), L0_gridded_LAI(:, :) .GT. 30.0_dp)
       case(-3 : -1) ! daily, monthly or yearly gridded fields (time-series)
-        call prepare_gridded_daily_LAI_data(iBasin, level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%mask, &
-        LAIPer(iBasin))
+        call prepare_gridded_daily_LAI_data(iDomain, level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%mask, &
+        LAIPer(iDomain))
 
       end select
 
-      ! read lat lon coordinates of each basin
+      ! read lat lon coordinates of each domain
       call message('      Reading latitude/logitude ...')
-      call read_latlon(iBasin, "lon_l0", "lat_l0", "level0", level0_iBasin)
+      call read_latlon(iDomain, "lon_l0", "lat_l0", "level0", level0_iDomain)
 
       call timer_stop(itimer)
       call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
-    end do basins
+    end do domains
     itimer = 1
     call timer_stop(itimer)
     call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')

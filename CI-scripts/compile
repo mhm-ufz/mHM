@@ -1,0 +1,6 @@
+mkdir release
+cd release/
+cmake ..
+make -j 4
+cd ..
+cp release/mhm .

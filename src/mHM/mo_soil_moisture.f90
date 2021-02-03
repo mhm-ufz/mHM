@@ -52,8 +52,8 @@ CONTAINS
   !>       \param[in] "integer(i4) :: processCase"                   1 - Feddes equation for PET reduction2 - Jarvis
   !>       equation for PET reduction3 - Jarvis equation for PET reduction and FC dependency on root fraction coefficient
   !>       \param[in] "real(dp) :: frac_sealed"                      Fraction of sealed area
-  !>       \param[in] "real(dp) :: water_thresh_sealed"              Threshhold water depth in impervious areas [mm/s]
-  !>       \param[in] "real(dp) :: pet"                              Reference evapotranspiration [mm/s]
+  !>       \param[in] "real(dp) :: water_thresh_sealed"              Threshhold water depth in impervious areas [mm TS-1]
+  !>       \param[in] "real(dp) :: pet"                              Reference evapotranspiration [mm TS-1]
   !>       \param[in] "real(dp) :: evap_coeff"                       Evaporation coefficent for free-water surface of
   !>       that current month
   !>       \param[in] "real(dp), dimension(:) :: soil_moist_sat"     Saturation soil moisture for each horizon [mm]
@@ -64,7 +64,7 @@ CONTAINS
   !>       water retention
   !>       \param[in] "real(dp) :: jarvis_thresh_c1"                 Jarvis critical value for normalized soil water
   !>       content
-  !>       \param[in] "real(dp) :: aet_canopy"                       Actual ET from canopy [mm/s]
+  !>       \param[in] "real(dp) :: aet_canopy"                       Actual ET from canopy [mm TS-1]
 
   !    INTENT(INOUT)
   !>       \param[inout] "real(dp) :: prec_effec"                                       Effective precipitation (rain +
@@ -74,14 +74,14 @@ CONTAINS
   !>       \param[inout] "real(dp) :: storage_sealed"                                   Retention storage of impervious
   !>       areas
   !>       \param[inout] "real(dp), dimension(size(soil_moist_sat, 1)) :: infiltration" Recharge, infiltration intensity
-  !>       oreffective precipitation of each horizon [mm/s]
+  !>       oreffective precipitation of each horizon [mm TS-1]
   !>       \param[inout] "real(dp), dimension(size(soil_moist_sat, 1)) :: soil_moist"   Soil moisture of each horizon
   !>       [mm]
 
   !    INTENT(OUT)
-  !>       \param[out] "real(dp), dimension(size(soil_moist_sat, 1)) :: aet" actual ET [mm/s]
+  !>       \param[out] "real(dp), dimension(size(soil_moist_sat, 1)) :: aet" actual ET [mm TS-1]
   !>       \param[out] "real(dp) :: aet_sealed"                              actual ET from free-water surfaces,i.e
-  !>       impervious cover [mm/s]
+  !>       impervious cover [mm TS-1]
 
   !    HISTORY
   !>       \authors Matthias Cuntz
@@ -90,6 +90,7 @@ CONTAINS
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 
   subroutine soil_moisture(processCase, frac_sealed, water_thresh_sealed, pet, evap_coeff, soil_moist_sat, frac_roots, &
                           soil_moist_FC, wilting_point, soil_moist_exponen, jarvis_thresh_c1, aet_canopy, prec_effec, &
@@ -106,10 +107,10 @@ CONTAINS
     ! Fraction of sealed area
     real(dp), intent(in) :: frac_sealed
 
-    ! Threshhold water depth in impervious areas [mm/s]
+    ! Threshhold water depth in impervious areas [mm TS-1]
     real(dp), intent(in) :: water_thresh_sealed
 
-    ! Reference evapotranspiration [mm/s]
+    ! Reference evapotranspiration [mm TS-1]
     real(dp), intent(in) :: pet
 
     ! Evaporation coefficent for free-water surface of that current month
@@ -133,7 +134,7 @@ CONTAINS
     ! Jarvis critical value for normalized soil water content
     real(dp), intent(in) :: jarvis_thresh_c1
 
-    ! Actual ET from canopy [mm/s]
+    ! Actual ET from canopy [mm TS-1]
     real(dp), intent(in) :: aet_canopy
 
     ! Effective precipitation (rain + snow melt) [mm]
@@ -145,16 +146,16 @@ CONTAINS
     ! Retention storage of impervious areas
     real(dp), intent(inout) :: storage_sealed
 
-    ! Recharge, infiltration intensity oreffective precipitation of each horizon [mm/s]
+    ! Recharge, infiltration intensity oreffective precipitation of each horizon [mm TS-1]
     real(dp), dimension(size(soil_moist_sat, 1)), intent(inout) :: infiltration
 
     ! Soil moisture of each horizon [mm]
     real(dp), dimension(size(soil_moist_sat, 1)), intent(inout) :: soil_moist
 
-    ! actual ET [mm/s]
+    ! actual ET [mm TS-1]
     real(dp), dimension(size(soil_moist_sat, 1)), intent(out) :: aet
 
-    ! actual ET from free-water surfaces,i.e impervious cover [mm/s]
+    ! actual ET from free-water surfaces,i.e impervious cover [mm TS-1]
     real(dp), intent(out) :: aet_sealed
 
     ! counter
@@ -256,15 +257,15 @@ CONTAINS
 
       ! estimate fraction of ET demand based on root fraction and SM status
       select case(processCase)
-        ! FEDDES EQUATION
-      case(1)
+        ! FEDDES EQUATION: https://doi.org/10.1016/0022-1694(76)90017-2
+      case(1 , 4)
         soil_stress_factor = feddes_et_reduction(soil_moist(hh), soil_moist_FC(hh), wilting_point(hh), &
-                frac_roots(hh))
-        ! JARVIS EQUATION
-      case(2 : 3)
+                             frac_roots(hh))
+        ! JARVIS EQUATION: https://doi.org/10.1016/0022-1694(89)90050-4
+      case(2 , 3)
         !!!!!!!!! INTRODUCING STRESS FACTOR FOR SOIL MOISTURE ET REDUCTION !!!!!!!!!!!!!!!!!
         soil_stress_factor = jarvis_et_reduction(soil_moist(hh), soil_moist_sat(hh), wilting_point(hh), &
-                frac_roots(hh), jarvis_thresh_c1)
+                             frac_roots(hh), jarvis_thresh_c1)
       end select
 
       aet(hh) = aet(hh) * soil_stress_factor
@@ -328,6 +329,7 @@ CONTAINS
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 
   elemental pure FUNCTION feddes_et_reduction(soil_moist, soil_moist_FC, wilting_point, frac_roots)
     implicit none
@@ -401,6 +403,7 @@ CONTAINS
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 
   elemental pure FUNCTION jarvis_et_reduction(soil_moist, soil_moist_sat, wilting_point, frac_roots, jarvis_thresh_c1)
     implicit none
@@ -420,21 +423,21 @@ CONTAINS
     ! parameter C1 from Jarvis formulation
     real(dp), intent(in) :: jarvis_thresh_c1
 
-    ! reference evapotranspiration in [mm s-1]
+    ! reference evapotranspiration in [mm]
     real(dp) :: jarvis_et_reduction
 
     ! normalized soil water content
     real(dp) :: theta_inorm
 
 
-    ! Calculating normalized Soil Water Content 
+    ! Calculating normalized Soil Water Content
     theta_inorm = (soil_moist - wilting_point) / (soil_moist_sat - wilting_point)
 
     ! correct for numerical unaccuracies
     if (theta_inorm .LT. 0.0_dp)    theta_inorm = 0.0_dp
     if (theta_inorm .GT. 1.0_dp)    theta_inorm = 1.0_dp
 
-    ! estimate fraction of ET demand based on root fraction and SM status using theta_inorm 
+    ! estimate fraction of ET demand based on root fraction and SM status using theta_inorm
     ! theta_inorm >= jarvis_thresh_c1
     if (theta_inorm .GE. jarvis_thresh_c1) then
       jarvis_et_reduction = frac_roots

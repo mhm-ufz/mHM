@@ -49,11 +49,12 @@ CONTAINS
 
   subroutine common_read_config(file_namelist, unamelist)
 
-    use mo_common_constants, only : maxNLcovers, maxNoBasins
-    use mo_common_variables, only : Conventions, L0_Basin, LC_year_end, LC_year_start, LCfilename, contact, &
-                                    dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
-                                    fileLatLon, history, iFlag_cordinate_sys, mHM_details, nBasins, nLcoverScene, &
-                                    nProcesses, nuniquel0Basins, processMatrix, project_details, resolutionHydrology, &
+    use mo_common_constants, only : maxNLcovers, maxNoDomains
+    use mo_common_variables, only : Conventions, LC_year_end, LC_year_start, LCfilename, contact, &
+                                    dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, &
+                                    mhmFileRestartOut, mrmFileRestartOut, &
+                                    fileLatLon, history, iFlag_cordinate_sys, mHM_details, domainMeta, nLcoverScene, &
+                                    nProcesses, nuniqueL0Domains, processMatrix, project_details, resolutionHydrology, &
                                     setup_description, simulation_type, write_restart
     use mo_message, only : message
     use mo_nml, only : close_nml, open_nml, position_nml
@@ -70,19 +71,23 @@ CONTAINS
     ! Choosen process description number
     integer(i4), dimension(nProcesses) :: processCase
 
-    character(256), dimension(maxNoBasins) :: dir_Morpho
+    character(256), dimension(maxNoDomains) :: dir_Morpho
 
-    character(256), dimension(maxNoBasins) :: dir_RestartOut
+    character(256), dimension(maxNoDomains) :: mhm_file_RestartOut
 
-    character(256), dimension(maxNoBasins) :: dir_LCover
+    character(256), dimension(maxNoDomains) :: mrm_file_RestartOut
 
-    character(256), dimension(maxNoBasins) :: dir_Out
+    character(256), dimension(maxNoDomains) :: dir_LCover
 
-    character(256), dimension(maxNoBasins) :: file_LatLon
+    character(256), dimension(maxNoDomains) :: dir_Out
 
-    real(dp), dimension(maxNoBasins) :: resolution_Hydrology
+    character(256), dimension(maxNoDomains) :: file_LatLon
 
-    integer(i4), dimension(maxNoBasins) :: L0Basin
+    real(dp), dimension(maxNoDomains) :: resolution_Hydrology
+
+    integer(i4), dimension(maxNoDomains) :: L0Domain
+
+    integer(i4), dimension(maxNoDomains) :: read_opt_domain_data
 
     ! starting year LCover
     integer(i4), dimension(maxNLCovers) :: LCoverYearStart
@@ -93,7 +98,10 @@ CONTAINS
     ! filename of Lcover file
     character(256), dimension(maxNLCovers) :: LCoverfName
 
-    integer(i4) :: iBasin
+    integer(i4) :: i, newDomainID, domainID, iDomain, nDomains
+
+    ! flag to advance nuniqueL0Domain counter
+    logical :: addCounter
 
 
     ! define namelists
@@ -102,10 +110,11 @@ CONTAINS
             Conventions, contact, mHM_details, history
     namelist /directories_general/ dirConfigOut, dirCommonFiles, &
             dir_Morpho, dir_LCover, &
-            dir_Out, dir_RestartOut, &
+            dir_Out, mhm_file_RestartOut, mrm_file_RestartOut, &
             file_LatLon
     ! namelist spatial & temporal resolution, optimization information
-    namelist /mainconfig/ iFlag_cordinate_sys, resolution_Hydrology, nBasins, L0Basin, write_restart
+    namelist /mainconfig/ iFlag_cordinate_sys, resolution_Hydrology, nDomains, L0Domain, write_restart, &
+            read_opt_domain_data
     ! namelist process selection
     namelist /processSelection/ processCase
 
@@ -129,23 +138,44 @@ CONTAINS
     call position_nml('mainconfig', unamelist)
     read(unamelist, nml = mainconfig)
 
-    if (nBasins .GT. maxNoBasins) then
+    call init_domain_variable(nDomains, read_opt_domain_data(1:nDomains), domainMeta)
+
+    if (nDomains .GT. maxNoDomains) then
       call message()
-      call message('***ERROR: Number of basins is resticted to ', trim(num2str(maxNoBasins)), '!')
+      call message('***ERROR: Number of domains is resticted to ', trim(num2str(maxNoDomains)), '!')
       stop 1
     end if
 
     ! allocate patharray sizes
-    allocate(resolutionHydrology(nBasins))
-    allocate(dirMorpho(nBasins))
-    allocate(dirRestartOut(nBasins))
-    allocate(dirLCover(nBasins))
-    allocate(dirOut(nBasins))
-    allocate(fileLatLon(nBasins))
-    allocate(L0_Basin(nBasins))
+    allocate(resolutionHydrology(domainMeta%nDomains))
+    allocate(dirMorpho(domainMeta%nDomains))
+    allocate(mhmFileRestartOut(domainMeta%nDomains))
+    allocate(mrmFileRestartOut(domainMeta%nDomains))
+    allocate(dirLCover(domainMeta%nDomains))
+    allocate(dirOut(domainMeta%nDomains))
+    allocate(fileLatLon(domainMeta%nDomains))
+    allocate(domainMeta%L0DataFrom(domainMeta%nDomains))
+    allocate(domainMeta%optidata(domainMeta%nDomains))
+    allocate(domainMeta%doRouting(domainMeta%nDomains))
 
-    resolutionHydrology = resolution_Hydrology(1 : nBasins)
-    L0_Basin = L0Basin(1 : nBasins)
+    nuniqueL0Domains = 0_i4
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      resolutionHydrology(iDomain) = resolution_Hydrology(domainID)
+      ! if a domain uses the same L0 data as a previous one, write
+      ! the index into domainMeta%L0DataFrom
+      newDomainID = L0Domain(domainID)
+      domainMeta%L0DataFrom(iDomain) = iDomain
+      !
+      addCounter = .True.
+      do i = 1, iDomain - 1
+        if (newDomainID == domainMeta%indices(i)) then
+          domainMeta%L0DataFrom(iDomain) = i
+          addCounter = .False.
+        end if
+      end do
+      if (addCounter) nuniqueL0Domains = nuniqueL0Domains + 1_i4
+    end do
 
     ! check for possible options
     if(.NOT. (iFlag_cordinate_sys == 0 .OR. iFlag_cordinate_sys == 1)) then
@@ -153,17 +183,6 @@ CONTAINS
       call message('***ERROR: coordinate system for the model run should be 0 or 1')
       stop 1
     end if
-
-    nuniquel0Basins = 0_i4
-    do iBasin = 1, nBasins
-      if (iBasin .gt. 1) then
-        if (L0_Basin(iBasin) .eq. L0_Basin(iBasin - 1)) then
-          cycle
-        end if
-      end if
-      nuniquel0Basins = nuniquel0Basins + 1_i4
-    end do
-
 
     !===============================================================
     ! Read land cover
@@ -181,25 +200,42 @@ CONTAINS
     LC_year_end(:) = LCoverYearEnd(1 : nLCoverScene)
 
     !===============================================================
-    !  Read namelist for mainpaths
+    ! Read namelist for mainpaths
     !===============================================================
     call position_nml('directories_general', unamelist)
     read(unamelist, nml = directories_general)
 
-    dirMorpho = dir_Morpho(1 : nBasins)
-    dirRestartOut = dir_RestartOut(1 : nBasins)
-    dirLCover = dir_LCover(1 : nBasins)
-    dirOut = dir_Out(1 : nBasins)
-    fileLatLon = file_LatLon(1 : nBasins)
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      domainMeta%optidata(iDomain) = read_opt_domain_data(domainID)
+      dirMorpho(iDomain)           = dir_Morpho(domainID)
+      mhmFileRestartOut(iDomain)   = mhm_file_RestartOut(domainID)
+      mrmFileRestartOut(iDomain)   = mrm_file_RestartOut(domainID)
+      dirLCover(iDomain)           = dir_LCover(domainID)
+      dirOut(iDomain)              = dir_Out(domainID)
+      fileLatLon(iDomain)          = file_LatLon(domainID)
+    end do
+
+    ! ToDo: add test if opti_function matches at least one domainMeta%optidata
+    ! as soon as common and common_mRM_mHM are merged, if that is the plan
+
 
     !===============================================================
     ! Read process selection list
     !===============================================================
+    ! init the processCase matrix to 0 to be backward compatible
+    ! if cases were added later (then there would be no values if not init here)
+    processCase = 0_i4
     call position_nml('processselection', unamelist)
     read(unamelist, nml = processSelection)
 
     processMatrix = 0_i4
     processMatrix(:, 1) = processCase
+    if (processMatrix(8, 1) == 0) then
+      domainMeta%doRouting(:) = .FALSE.
+    else
+      domainMeta%doRouting(:) = .TRUE.
+    end if
 
     call close_nml(unamelist)
 
@@ -231,10 +267,10 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Dec  2018 - refactoring and restructuring
 
-  subroutine set_land_cover_scenes_id(sim_Per, LCyear_Id, LCfilename)
+  subroutine set_land_cover_scenes_id(sim_Per, LCyear_Id)
 
     use mo_common_constants, only : nodata_i4
-    use mo_common_variables, only : LC_year_end, LC_year_start, nBasins, nLcoverScene, period
+    use mo_common_variables, only : LC_year_end, LC_year_start, domainMeta, nLcoverScene, period
     use mo_message, only : message
     use mo_string_utils, only : num2str
 
@@ -244,99 +280,253 @@ CONTAINS
 
     integer(i4), dimension(:, :), allocatable, intent(inout) :: LCyear_Id
 
-    character(256), dimension(:), allocatable, intent(inout) :: LCfilename
-
-    integer(i4) :: ii, iBasin, max_lcs, min_lcs, jj
-
-    character(256), dimension(:), allocatable :: dummy_LCfilenames
-
-    integer(i4), dimension(:,:), allocatable :: dummy_LCyears
+    integer(i4) :: ii, iDomain
 
 
     ! countercheck if land cover covers simulation period
-    if (LC_year_start(1) .GT. minval(sim_Per(1 : nBasins)%yStart)) then
+    if (LC_year_start(1) .GT. minval(sim_Per(1 : domainMeta%nDomains)%yStart)) then
       call message()
       call message('***ERROR: Land cover for warming period is missing!')
-      call message('   SimStart   : ', trim(num2str(minval(sim_Per(1 : nBasins)%yStart))))
+      call message('   SimStart   : ', trim(num2str(minval(sim_Per(1 : domainMeta%nDomains)%yStart))))
       call message('   LCoverStart: ', trim(num2str(LC_year_start(1))))
       stop 1
     end if
-    if (LC_year_end(nLCoverScene) .LT. maxval(sim_Per(1 : nBasins)%yEnd)) then
+    if (LC_year_end(nLCoverScene) .LT. maxval(sim_Per(1 : domainMeta%nDomains)%yEnd)) then
       call message()
       call message('***ERROR: Land cover period shorter than modelling period!')
-      call message('   SimEnd   : ', trim(num2str(maxval(sim_Per(1 : nBasins)%yEnd))))
+      call message('   SimEnd   : ', trim(num2str(maxval(sim_Per(1 : domainMeta%nDomains)%yEnd))))
       call message('   LCoverEnd: ', trim(num2str(LC_year_end(nLCoverScene))))
       stop 1
     end if
     !
-    allocate(LCyear_Id(minval(sim_Per(1 : nBasins)%yStart) : maxval(sim_Per(1 : nBasins)%yEnd), nBasins))
+    allocate(LCyear_Id(minval(sim_Per(1 : domainMeta%nDomains)%yStart) : maxval(sim_Per(1 : domainMeta%nDomains)%yEnd), &
+                   domainMeta%nDomains))
     LCyear_Id = nodata_i4
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
       do ii = 1, nLCoverScene
         ! land cover before model period or land cover after model period
-        if ((LC_year_end(ii) .LT. sim_Per(iBasin)%yStart) .OR. &
-                (LC_year_start(ii) .GT. sim_Per(iBasin)%yEnd)) then
+        if ((LC_year_end(ii) .LT. sim_Per(iDomain)%yStart) .OR. &
+                (LC_year_start(ii) .GT. sim_Per(iDomain)%yEnd)) then
           cycle
           ! land cover period fully covers model period
-        else if ((LC_year_start(ii) .LE. sim_Per(iBasin)%yStart) .AND. &
-                (LC_year_end(ii) .GE. sim_Per(iBasin)%yEnd)) then
-          LCyear_Id(sim_Per(iBasin)%yStart : sim_Per(iBasin)%yEnd, iBasin) = ii
+        else if ((LC_year_start(ii) .LE. sim_Per(iDomain)%yStart) .AND. &
+                (LC_year_end(ii) .GE. sim_Per(iDomain)%yEnd)) then
+          LCyear_Id(sim_Per(iDomain)%yStart : sim_Per(iDomain)%yEnd, iDomain) = ii
           exit
           ! land cover period covers beginning of model period
-        else if ((LC_year_start(ii) .LE. sim_Per(iBasin)%yStart) .AND. &
-                (LC_year_end(ii) .LT. sim_Per(iBasin)%yEnd)) then
-          LCyear_Id(sim_Per(iBasin)%yStart : LC_year_end(ii), iBasin) = ii
+        else if ((LC_year_start(ii) .LE. sim_Per(iDomain)%yStart) .AND. &
+                (LC_year_end(ii) .LT. sim_Per(iDomain)%yEnd)) then
+          LCyear_Id(sim_Per(iDomain)%yStart : LC_year_end(ii), iDomain) = ii
           ! land cover period covers end of model period
-        else if ((LC_year_start(ii) .GT. sim_Per(iBasin)%yStart) .AND. &
-                (LC_year_end(ii) .GE. sim_Per(iBasin)%yEnd)) then
-          LCyear_Id(LC_year_start(ii) : sim_Per(iBasin)%yEnd, iBasin) = ii
+        else if ((LC_year_start(ii) .GT. sim_Per(iDomain)%yStart) .AND. &
+                (LC_year_end(ii) .GE. sim_Per(iDomain)%yEnd)) then
+          LCyear_Id(LC_year_start(ii) : sim_Per(iDomain)%yEnd, iDomain) = ii
           ! land cover period covers part of model_period
         else
-          LCyear_Id(LC_year_start(ii) : LC_year_end(ii), iBasin) = ii
+          LCyear_Id(LC_year_start(ii) : LC_year_end(ii), iDomain) = ii
         end if
       end do
     end do
 
-    ! correct number of input land cover scenes to number of needed scenes
-    max_lcs = maxval(LCyear_Id, mask = (LCyear_Id .gt. nodata_i4))
-    min_lcs = minval(LCyear_Id, mask = (LCyear_Id .gt. nodata_i4))
-    nLCoverScene = max_lcs - min_lcs + 1
-
-    ! select the LC_years for only the needed scenes
-    allocate(dummy_LCyears(2, nLCoverScene))
-    jj = 1
-    do ii = 1, size(LC_year_start)
-      if ((LC_year_start(ii) .lt. LC_year_end(max_lcs)) .and. (LC_year_end(ii) .gt. LC_year_start(min_lcs))) then
-        dummy_LCyears(1, jj) = LC_year_start(ii)
-        dummy_LCyears(2, jj) = LC_year_end(ii)
-        jj = jj + 1
-      end if
-    end do
-
-    ! put land cover scenes to corresponding file name and LuT
-    ! this was allocated for MPR before, now update using only needed scenes
-    allocate(dummy_LCfilenames(nLCoverScene))
-    dummy_LCfilenames(:) = LCfilename(minval(LCyear_Id, mask = (LCyear_Id .gt. nodata_i4)) : &
-            maxval(LCyear_Id, mask = (LCyear_Id .gt. nodata_i4)))
-    deallocate(LCfilename, LC_year_start, LC_year_end)
-    allocate(LCfilename(nLCoverScene))
-    allocate(LC_year_start(nLCoverScene))
-    allocate(LC_year_end(nLCoverScene))
-    LCfilename(:) = dummy_LCfilenames(:)
-    LC_year_start(:) = dummy_LCyears(1, :)
-    LC_year_end(:) = dummy_LCyears(2, :)
-
-    ! update the ID's
-    if (maxval(sim_Per(1 : nBasins)%julStart) .eq. minval(sim_Per(1 : nBasins)%julStart) .and. &
-            maxval(sim_Per(1 : nBasins)%julEnd) .eq. minval(sim_Per(1 : nBasins)%julEnd)) then
-      if (any(LCyear_Id .EQ. nodata_i4)) then
-        call message()
-        call message('***ERROR: Intermediate land cover period is missing!')
-        stop 1
-      end if
-    end if
 
   end subroutine set_land_cover_scenes_id
 
+!< author: Maren Kaluza
+!< date: September 2019
+!< summary: Initialization of the domain variable for all domain loops and if activated for parallelization
+
+!< In case of MPI parallelization domainMeta%overAllNumberOfDomains is a
+!< variable where the number of domains from the namelist is stored. By this
+!< every process knows the total number of domains. Then, in a loop the
+!< domains are distributed onto the processes. There is a master process
+!< and several subprocesses. The master process only reads the confings in the
+!< mHM driver.
+!<
+!< The subprocesses get a number of domains. domainMeta%nDomain refers
+!< to the number of domains assigned to a specific process. It is a local
+!< variable and therefore has a different value for each process.
+!<
+!< In case more domains are there than processes, currently the domains
+!< are distributed round robin, i.e. like cards in a card game.
+!<
+!< In case less domains than processes exist, all remaining processes
+!< are assigned to the routing domains round robin. In that case the
+!< local communicator is of interest: It is a group of processes assigned
+!< to a routing domain again with a master process
+!< (domainMeta%isMasterInComLocal) and subprocesses. This communicator can
+!< in future be passed to the routing parallelization.
+  subroutine init_domain_variable(nDomains, optiData, domainMeta)
+    use mo_common_variables, only: domain_meta
+#ifdef MPI
+    use mo_common_variables, only: comm
+    use mpi_f08
+#endif
+    integer(i4),       intent(in)    :: nDomains
+    integer(i4), dimension(:), intent(in) :: optiData
+    type(domain_meta), intent(inout) :: domainMeta
+
+    integer             :: ierror
+    integer(i4)         :: nproc
+    integer(i4)         :: rank
+    integer(i4)         :: iDomain
+    integer(i4)         :: colDomain, colMasters
+
+    domainMeta%overallNumberOfDomains = nDomains
+#ifdef MPI
+    ! find number of processes nproc
+    call MPI_Comm_size(comm, nproc, ierror)
+    ! find the number the process is referred to, called rank
+    call MPI_Comm_rank(comm, rank, ierror)
+    if (nproc < 2) then
+      stop 'at least 2 processes are required'
+    end if
+    ! if there are more processes than domains
+    if (nproc > domainMeta%overallNumberOfDomains + 1) then
+      domainMeta%nDomains = 0
+      ! master reads only metadata of all domains
+      if (rank == 0) then
+        call init_domain_variable_for_master(domainMeta, colMasters, colDomain)
+      ! all other nodes read metadata but also data of assigned domains
+      else
+        ! currently each domain gets one process except it is a routing domain.
+        ! in that case the remaining processes are distributed round robin to
+        ! the routing domains.
+        call distribute_processes_to_domains_according_to_role(optiData, rank, &
+                                               domainMeta, colMasters, colDomain)
+      end if
+      ! two communicators are created, i.e. groups of processes that talk about
+      ! a certain topic:
+      ! comMaster is the communicator of all processes that need to read all
+      ! data. These are the processes that are masters in the comLocal plus the
+      ! master over all processes. comLocal is a communicator for a group of
+      ! processes assigned to the same domain.
+      call MPI_Comm_split(comm, colMasters, rank, domainMeta%comMaster, ierror)
+      call MPI_Comm_split(comm, colDomain, rank, domainMeta%comLocal, ierror)
+      call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
+    else
+      ! in case of more domains than processes, distribute domains round robin
+      ! onto the processes
+      call MPI_Comm_dup(comm, domainMeta%comMaster, ierror)
+      domainMeta%isMasterInComLocal = .true.
+      domainMeta%nDomains = 0
+      ! master reads only metadata of all domains
+      if (rank == 0) then
+        domainMeta%nDomains = domainMeta%overallNumberOfDomains
+        allocate(domainMeta%indices(domainMeta%nDomains))
+        do iDomain = 1, domainMeta%nDomains
+          domainMeta%indices(iDomain) = iDomain
+        end do
+      ! all other nodes read metadata but also data of assigned domains
+      else
+        call distributeDomainsRoundRobin(nproc, rank, domainMeta)
+      end if
+    end if ! round robin
+#else
+    domainMeta%nDomains = nDomains
+    allocate(domainMeta%indices(domainMeta%nDomains))
+    do iDomain = 1, domainMeta%nDomains
+      domainMeta%indices(iDomain) = iDomain
+    end do
+#endif
+
+  end subroutine init_domain_variable
+
+#ifdef MPI
+  subroutine init_domain_variable_for_master(domainMeta, colMasters, colDomain)
+    use mo_common_variables, only: domain_meta
+    type(domain_meta), intent(inout) :: domainMeta
+    integer(i4),       intent(out)   :: colMasters
+    integer(i4),       intent(out)   :: colDomain
+    !local
+    integer(i4) :: iDomain
+
+    domainMeta%nDomains = domainMeta%overallNumberOfDomains
+    allocate(domainMeta%indices(domainMeta%nDomains))
+    do iDomain = 1, domainMeta%nDomains
+      domainMeta%indices(iDomain) = iDomain
+    end do
+    colMasters = 1
+    colDomain = 0
+    domainMeta%isMasterInComLocal = .true.
+
+  end subroutine init_domain_variable_for_master
+
+
+  subroutine distributeDomainsRoundRobin(nproc, rank, domainMeta)
+    use mo_common_variables, only: domain_meta
+    integer(i4),       intent(in)    :: nproc
+    integer(i4),       intent(in)    :: rank
+    type(domain_meta), intent(inout) :: domainMeta
+
+    integer(i4) :: iDomain, iProcDomain
+
+    do iDomain = 1 , domainMeta%overallNumberOfDomains
+      if (rank == (modulo(iDomain + nproc - 2, (nproc - 1)) + 1)) then
+        domainMeta%nDomains = domainMeta%nDomains + 1
+      end if
+    end do
+    allocate(domainMeta%indices(domainMeta%nDomains))
+    iProcDomain = 0
+    do iDomain = 1 , domainMeta%overallNumberOfDomains
+      if (rank == (modulo(iDomain + nproc - 2, (nproc - 1)) + 1)) then
+        iProcDomain = iProcDomain + 1
+        domainMeta%indices(iProcDomain) = iDomain
+      end if
+    end do
+  end subroutine distributeDomainsRoundRobin
+
+  subroutine distribute_processes_to_domains_according_to_role(optiData, rank, &
+                                               domainMeta, colMasters, colDomain)
+    use mo_common_variables, only: domain_meta
+    integer(i4), dimension(:), intent(in)    :: optiData
+    integer(i4),               intent(in)    :: rank
+    type(domain_meta),         intent(inout) :: domainMeta
+    integer(i4),               intent(out)   :: colMasters
+    integer(i4),               intent(out)   :: colDomain
+
+    ! local
+    integer(i4) :: nDomainsAll, nTreeDomains, i, iDomain
+    integer(i4), dimension(:), allocatable :: treeDomainList
+
+    nDomainsAll = domainMeta%overallNumberOfDomains
+    nTreeDomains = 0
+    do iDomain = 1, nDomainsAll
+      !ToDo: should also routing but not opti domains be counted?
+      if (optiData(iDomain) == 1) then
+        nTreeDomains = nTreeDomains + 1
+      end if
+    end do
+    allocate(treeDomainList(nTreeDomains))
+    i = 0
+    do iDomain = 1, nDomainsAll
+      if (optiData(iDomain) == 1) then
+        i = i + 1
+        treeDomainList(i) = iDomain
+      end if
+    end do
+    if (rank < nDomainsAll + 1) then
+      colMasters = 1
+      colDomain = rank
+      domainMeta%isMasterInComLocal = .true.
+      domainMeta%nDomains = 1
+      allocate(domainMeta%indices(domainMeta%nDomains))
+      domainMeta%indices(1) = rank
+    else
+      colMasters = 0
+      if (nTreeDomains > 0) then
+        colDomain = treeDomainList(mod(rank, nTreeDomains) + 1)
+      else
+        colDomain = 1
+      end if
+      domainMeta%isMasterInComLocal = .false.
+      domainMeta%nDomains = 1
+      allocate(domainMeta%indices(domainMeta%nDomains))
+      ! ToDo : temporary solution, this should either not read data at all
+      ! or data corresponding to the master process
+      domainMeta%indices(1) = 1
+    end if
+    deallocate(treeDomainList)
+  end subroutine
+#endif
 
 END MODULE mo_common_read_config

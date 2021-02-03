@@ -7,10 +7,6 @@ MODULE mo_moment
   !       i.e. they are normally divided by n and not (n-1)
 
   ! Literature
-  !   Moments (incl. mean, stddev, etc.) - Chapter 14 of
-  !       WH Press, SA Teukolsky, WT Vetterling, BP Flannery,
-  !           Numerical Recipes in Fortran 90 - The Art of Parallel Scientific Computing, 2nd Edition
-  !           Volume 2 of Fortran Numerical Recipes, Cambridge University Press, UK, 1996
   !   Central moments and error variances
   !       LH Benedict & RD Gould, Towards better uncertainty estimates for turbulence statistics,
   !           Experiments in Fluids 22, 129-136, 1996
@@ -18,6 +14,7 @@ MODULE mo_moment
   ! Written Nov 2011, Matthias Cuntz
   !         Modified, MC, Dec 2011 - mod. correlation, covariance
   !         Modified by M. Schroen, Sep 2015, average/mean for single value
+  !         Modified by S. Mueller, Dec 2019, no citations for common sence
 
   ! License
   ! -------
@@ -100,11 +97,6 @@ MODULE mo_moment
   !         m   = absdev(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE absdev
@@ -152,11 +144,6 @@ MODULE mo_moment
   !         vec = (/ 1., 2, 3., -999., 5., 6. /)
   !         m   = average(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
-
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
 
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
@@ -316,11 +303,6 @@ MODULE mo_moment
   !         m   = correlation(vec1, vec2, mask=((vec1 >= 0.) .and. (vec2 >= 0.)))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   !         Modified, MC, Dec 2011 - covariance as <(x-<x>)(y-<y>)> instead of <xy>-<x><y>
@@ -372,11 +354,6 @@ MODULE mo_moment
   !         m   = covariance(vec1, vec2, mask=((vec1 >= 0.) .and. (vec2 >= 0.)))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   !         Modified, MC, Dec 2011 - covariance as <(x-<x>)(y-<y>)> instead of <xy>-<x><y>
@@ -427,11 +404,6 @@ MODULE mo_moment
   !         m   = kurtosis(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE kurtosis
@@ -479,11 +451,6 @@ MODULE mo_moment
   !         vec = (/ 1., 2, 3., -999., 5., 6. /)
   !         m   = mean(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
-
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
 
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
@@ -612,10 +579,10 @@ MODULE mo_moment
   !         moment
 
   !     PURPOSE
-  !         Calculates the first four sample moments of a vector, i.e. mean, variance, skewness, and kurtosis,
+  !         Calculates the first four sample/population moments of a vector, i.e. mean, variance, skewness, and kurtosis,
   !         as well as standard deviation and mean absolute devation.
   !            mean = sum(x)/n
-  !            variance = sum((x-mean(x))**2)/(n-1)
+  !            variance = sum((x-mean(x))**2)/(n-1) or sum((x-mean(x))**2)/n if sample is False
   !            skewness = sum(((x-mean(x))/stddev(x))**3)/n
   !            kurtosis = sum(((x-mean(x))/stddev(x))**4)/n - 3
   !            stddev   = sqrt(variance)
@@ -627,7 +594,7 @@ MODULE mo_moment
 
   !     CALLING SEQUENCE
   !         call moment(dat, average=average, variance=variance, skewness=skewness, kurtosis=kurtosis, &
-  !                     mean=mean, stddev=stddev, absdev=absdev, mask=mask)
+  !                     mean=mean, stddev=stddev, absdev=absdev, mask=mask, sample=sample)
 
   !     INTENT(IN)
   !         real(sp/dp) :: dat(:)     1D-array with input numbers
@@ -641,17 +608,19 @@ MODULE mo_moment
   !     INTENT(IN), OPTIONAL
   !         logical :: mask(:)        1D-array of logical values with size(dat).
   !                                   If present, only those locations in vec corresponding to the true values in mask are used.
+  !         logical :: sample         logical value
+  !                                   If present and False, the population variance and std-dev will be calculated (divide by n).
 
   !     INTENT(INOUT), OPTIONAL
   !         None
 
   !     INTENT(OUT), OPTIONAL
   !         real(sp/dp) :: average    average of input vector
-  !         real(sp/dp) :: variance   sample variance of input vector
+  !         real(sp/dp) :: variance   sample variance of input vector (either a sample or pupulation moment)
   !         real(sp/dp) :: skewness   skewness of input vector
   !         real(sp/dp) :: kurtosis   excess kurtosis of input vector
   !         real(sp/dp) :: mean       same as average
-  !         real(sp/dp) :: stddev     sqaure root of variance
+  !         real(sp/dp) :: stddev     sqaure root of variance (either a sample or pupulation moment)
   !         real(sp/dp) :: absdev     mean absolute deviations from average
 
   !     RESTRICTIONS
@@ -662,13 +631,9 @@ MODULE mo_moment
   !         call moment(vec, mask=(vec >= 0.), mean=m, stddev=s)
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
+  !         Modified,  S. Mueller, Dec 2019 added optional sample input-para to switch sample to population variance and std-dev.
   INTERFACE moment
     MODULE PROCEDURE moment_sp, moment_dp
   END INTERFACE moment
@@ -714,11 +679,6 @@ MODULE mo_moment
   !         vec = (/ 1., 2, 3., -999., 5., 6. /)
   !         m   = skewness(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
-
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
 
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
@@ -770,11 +730,6 @@ MODULE mo_moment
   !         m   = stddev(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE stddev
@@ -824,11 +779,6 @@ MODULE mo_moment
   !         vec = (/ 1., 2, 3., -999., 5., 6. /)
   !         m   = variance(vec, mask=(vec >= 0.))
   !         -> see also example in test directory
-
-  !     LITERATURE
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
 
   !     HISTORY
   !         Written,  Matthias Cuntz, Nov 2011
@@ -1586,7 +1536,7 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  SUBROUTINE moment_dp(dat, average, variance, skewness, kurtosis, mean, stddev, absdev, mask)
+  SUBROUTINE moment_dp(dat, average, variance, skewness, kurtosis, mean, stddev, absdev, mask, sample)
 
     IMPLICIT NONE
 
@@ -1599,8 +1549,9 @@ CONTAINS
     REAL(dp), OPTIONAL, INTENT(OUT) :: stddev
     REAL(dp), OPTIONAL, INTENT(OUT) :: absdev
     LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    LOGICAL, OPTIONAL, INTENT(IN) :: sample
 
-    REAL(dp) :: n
+    REAL(dp) :: n, div_n  ! divisor depending if sample or population moments
 
     REAL(dp) :: ep, ave, var
     REAL(dp), DIMENSION(size(dat)) :: p, s
@@ -1615,6 +1566,12 @@ CONTAINS
       n = real(size(dat), sp)
     end if
     if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'moment_dp: n must be at least 2'
+
+    ! set divisor for population (n) or sample (n-1) variance
+    div_n = n - 1.0_dp
+    if (present(sample)) then
+      if (.not. sample) div_n = n
+    end if
 
     ! Any optional argument
     if (.not. (present(average) .or. present(variance) .or. present(skewness) .or. &
@@ -1634,7 +1591,7 @@ CONTAINS
     ep = sum(s(:), mask = maske)
     p(:) = s(:) * s(:)
     var = sum(p(:), mask = maske)
-    var = (var - ep * ep / n) / (n - 1.0_dp)
+    var = (var - ep * ep / n) / div_n
     if (present(variance)) variance = var
     ! Standard deviation
     if (present(stddev))   stddev = sqrt(var)
@@ -1656,7 +1613,7 @@ CONTAINS
   END SUBROUTINE moment_dp
 
 
-  SUBROUTINE moment_sp(dat, average, variance, skewness, kurtosis, mean, stddev, absdev, mask)
+  SUBROUTINE moment_sp(dat, average, variance, skewness, kurtosis, mean, stddev, absdev, mask, sample)
 
     IMPLICIT NONE
 
@@ -1669,8 +1626,9 @@ CONTAINS
     REAL(sp), OPTIONAL, INTENT(OUT) :: stddev
     REAL(sp), OPTIONAL, INTENT(OUT) :: absdev
     LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    LOGICAL, OPTIONAL, INTENT(IN) :: sample
 
-    REAL(sp) :: n
+    REAL(sp) :: n, div_n  ! divisor depending if sample or population moments
 
     REAL(sp) :: ep, ave, var
     REAL(sp), DIMENSION(size(dat)) :: p, s
@@ -1685,6 +1643,12 @@ CONTAINS
       n = real(size(dat), sp)
     end if
     if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'moment_sp: n must be at least 2'
+
+    ! set divisor for population (n) or sample (n-1) variance
+    div_n = n - 1.0_sp
+    if (present(sample)) then
+      if (.not. sample) div_n = n
+    end if
 
     ! Any optional argument
     if (.not. (present(average) .or. present(variance) .or. present(skewness) .or. &
@@ -1704,7 +1668,7 @@ CONTAINS
     ep = sum(s(:), mask = maske)
     p(:) = s(:) * s(:)
     var = sum(p(:), mask = maske)
-    var = (var - ep * ep / n) / (n - 1.0_sp)
+    var = (var - ep * ep / n) / div_n
     if (present(variance)) variance = var
     ! Standard deviation
     if (present(stddev))   stddev = sqrt(var)

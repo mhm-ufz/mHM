@@ -410,7 +410,7 @@ animate <- function(rows, cols, nvar) {
     }
     
     select_grobs <- function(lay) {
-      id <- unique(c(t(lay))) 
+      id <- unique(c(lay)) 
       id[!is.na(id)]
     }
     

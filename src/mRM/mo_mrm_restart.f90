@@ -31,8 +31,8 @@ contains
   !>       directory.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin"                   number of basin
-  !>       \param[in] "character(256), dimension(:) :: OutPath" list of Output paths per Basin
+  !>       \param[in] "integer(i4) :: iDomain"                   number of domain
+  !>       \param[in] "character(256), dimension(:) :: OutFile" list of Output paths per Domain
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -51,13 +51,14 @@ contains
   ! Robert Schweppe   Jun 2018 - refactoring and reformatting
   ! Stephan Thober    Jun 2018 - including varying celerity functionality
   ! Stephan Thober    May 2019 - added L0 info required for Process 3
-  
-  subroutine mrm_write_restart(iBasin, OutPath)
+
+  subroutine mrm_write_restart(iDomain, domainID, OutFile)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_restart, only : write_grid_info
-    use mo_common_variables, only : level0, level1, l1_l11_remap, nLCoverScene, processMatrix, L0_Basin
-    use mo_common_mHM_mRM_variables, only : mrm_coupling_mode
+    use mo_common_variables, only : level0, level1, nLCoverScene, processMatrix, domainMeta, &
+            LC_year_start, LC_year_end
+    use mo_common_constants, only : landCoverPeriodsVarName
     use mo_message, only : message
     use mo_mrm_constants, only : nRoutingStates
     use mo_mpr_global_variables, only : L0_slope
@@ -68,17 +69,20 @@ contains
                                         L11_fAcc, L11_fRow, L11_fromN, L11_label, L11_length, L11_nLinkFracFPimp, &
                                         L11_netPerm, L11_qOUT, L11_qTIN, L11_qTR, L11_rOrder, L11_rowOut, L11_rowOut, &
                                         L11_sink, L11_slope, L11_tCol, L11_tRow, L11_toN, L11_xi, L11_celerity, &
-                                        level11, basin_mrm
+                                        level11, domain_mrm
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
 
     implicit none
 
-    ! number of basin
-    integer(i4), intent(in) :: iBasin
+    ! number of domain
+    integer(i4), intent(in) :: iDomain
 
-    ! list of Output paths per Basin
-    character(256), dimension(:), intent(in) :: OutPath
+    ! domain
+    integer(i4), intent(in) :: domainID
+
+    ! list of Output paths per Domain
+    character(256), dimension(:), intent(in) :: OutFile
 
     character(256) :: Fname
 
@@ -125,6 +129,7 @@ contains
 
     ! dummy variable
     real(dp), dimension(:, :, :), allocatable :: dummy_d3
+    real(dp), dimension(:), allocatable :: dummy_d1
 
     type(NcDataset) :: nc
 
@@ -135,31 +140,31 @@ contains
     type(NcVariable) :: var
 
 
-    ! get Level1 and Level11 information about the basin
-    noutlet = basin_mrm(L0_Basin(iBasin))%L0_noutlet
-    s0 = level0(L0_Basin(iBasin))%iStart
-    e0 = level0(L0_Basin(iBasin))%iEnd
-    mask0 = level0(L0_Basin(iBasin))%mask
-    s1 = level1(iBasin)%iStart
-    e1 = level1(iBasin)%iEnd
-    mask1 = level1(iBasin)%mask
-    s11 = level11(iBasin)%iStart
-    e11 = level11(iBasin)%iEnd
-    mask11 = level11(iBasin)%mask
-    ncols11 = level11(iBasin)%ncols
-    nrows11 = level11(iBasin)%nrows
+    ! get Level1 and Level11 information about the Domain
+    noutlet = domain_mrm(domainMeta%L0DataFrom(iDomain))%L0_noutlet
+    s0 = level0(domainMeta%L0DataFrom(iDomain))%iStart
+    e0 = level0(domainMeta%L0DataFrom(iDomain))%iEnd
+    mask0 = level0(domainMeta%L0DataFrom(iDomain))%mask
+    s1 = level1(iDomain)%iStart
+    e1 = level1(iDomain)%iEnd
+    mask1 = level1(iDomain)%mask
+    s11 = level11(iDomain)%iStart
+    e11 = level11(iDomain)%iEnd
+    mask11 = level11(iDomain)%mask
+    ncols11 = level11(iDomain)%ncols
+    nrows11 = level11(iDomain)%nrows
     allocate(dummy_d3(nrows11, ncols11, nRoutingStates))
 
     ! set restart file name
-    Fname = trim(OutPath(iBasin)) // 'mRM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc'
+    Fname = trim(OutFile(iDomain))
 
     call message('    Writing mRM restart file to ' // trim(Fname) // ' ...')
 
     nc = NcDataset(fname, "w")
 
-    call write_grid_info(level0(L0_Basin(iBasin)), "0", nc)
-    call write_grid_info(level1(iBasin), "1", nc)
-    call write_grid_info(level11(iBasin), "11", nc)
+    call write_grid_info(level0(domainMeta%L0DataFrom(iDomain)), "0", nc)
+    call write_grid_info(level1(iDomain), "1", nc)
+    call write_grid_info(level11(iDomain), "11", nc)
 
     nout = nc%setDimension("Noutlet", Noutlet)
     rows0 = nc%getDimension("nrows0")
@@ -173,7 +178,15 @@ contains
     links = nc%setDimension("nLinks", size(L11_length(s11 : e11)))
     nts = nc%setDimension("TS", 1)
     nproc = nc%setDimension("Nprocesses", size(processMatrix, dim = 1))
-    lcscenes = nc%setDimension("LCoverScenes", nLCoverScene)
+    allocate(dummy_d1(nLCoverScene+1))
+    dummy_d1(1:nLCoverScene) = LC_year_start(:)
+    ! this is done because bounds are always stored as real so e.g.
+    ! 1981-1990,1991-2000 is thus saved as 1981.0-1991.0,1991.0-2001.0
+    ! it is translated back into ints correctly during reading
+    dummy_d1(nLCoverScene+1) = LC_year_end(nLCoverScene) + 1
+    lcscenes = nc%setDimension(trim(landCoverPeriodsVarName), nLCoverScene, dummy_d1, 0_i4)
+    deallocate(dummy_d1)
+
 
     ! add processMatrix
     var = nc%setVariable("ProcessMatrix", "i32", (/nproc/))
@@ -188,7 +201,7 @@ contains
       call var%setFillValue(nodata_i4)
       call var%setData(unpack(L0_fdir(s0:e0), mask0, nodata_i4))
       call var%setAttribute("long_name", "flow direction at level 0")
-      
+
       var = nc%setVariable("L0_fAcc", "i32", (/rows0, cols0/))
       call var%setFillValue(nodata_i4)
       call var%setData(unpack(L0_fAcc(s0:e0), mask0, nodata_i4))
@@ -207,12 +220,12 @@ contains
 
     var = nc%setVariable("L1_Id", "i32", (/rows1, cols1/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(level1(iBasin)%Id(1:e1-s1+1), mask1, nodata_i4))
+    call var%setData(unpack(level1(iDomain)%Id(1:e1-s1+1), mask1, nodata_i4))
     call var%setAttribute("long_name", "cell IDs at level 1")
 
     var = nc%setVariable("L1_L11_Id", "i32", (/rows1, cols1/))
     call var%setFillValue(nodata_i4)
-    ! call var%setData(L1_L11_remap(iBasin)%lowres_id_on_highres)
+    ! call var%setData(L1_L11_remap(iDomain)%lowres_id_on_highres)
     call var%setData(unpack(L1_L11_Id(s1 : e1), mask1, nodata_i4))
     call var%setAttribute("long_name", "Mapping of L1 Id on L11")
 
@@ -275,20 +288,20 @@ contains
     ! ----------------------------------------------------------
     ! L11 config set
     ! ----------------------------------------------------------
-    var = nc%setVariable("L11_basin_Mask", "i32", (/rows11, cols11/))
+    var = nc%setVariable("L11_domain_Mask", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
     call var%setData(merge(1_i4, 0_i4,  mask11))
     call var%setAttribute("long_name", "Mask at Level 11")
 
     var = nc%setVariable("L11_TSrout", "i32", (/nts/))
     call var%setFillValue(nodata_i4)
-    call var%setData(L11_TSrout(iBasin))
+    call var%setData(L11_TSrout(iDomain))
     call var%setAttribute("long_name", "routing resolution at Level 11")
     call var%setAttribute("units", "s")
 
     var = nc%setVariable("L11_Id", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(level11(iBasin)%Id(1:e11-s11+1), mask11, nodata_i4))
+    call var%setData(unpack(level11(iDomain)%Id(1:e11-s11+1), mask11, nodata_i4))
     call var%setAttribute("long_name", "cell Ids at Level 11")
 
     var = nc%setVariable("L11_fDir", "i32", (/rows11, cols11/))
@@ -300,7 +313,7 @@ contains
     call var%setFillValue(nodata_dp)
     call var%setData(unpack(L11_fAcc(s11:e11), mask11, nodata_dp))
     call var%setAttribute("long_name", "flow accumulation at Level 11")
-    
+
     var = nc%setVariable("L11_rowOut", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
     call var%setData(unpack(L11_rowOut(s11 : e11), mask11, nodata_i4))
@@ -389,17 +402,17 @@ contains
     call var%setAttribute("long_name", "Mapping of L1 Id on L11")
 
     var = nc%setVariable("gaugeNodeList", "i32", &
-            (/nc%setDimension("Ngauges", size(basin_mrm(iBasin)%gaugeNodeList(:)))/) &
+            (/nc%setDimension("Ngauges", size(domain_mrm(iDomain)%gaugeNodeList(:)))/) &
             )
     call var%setFillValue(nodata_i4)
-    call var%setData(basin_mrm(iBasin)%gaugeNodeList(:))
+    call var%setData(domain_mrm(iDomain)%gaugeNodeList(:))
     call var%setAttribute("long_name", "cell ID of gauges")
 
     var = nc%setVariable("InflowGaugeNodeList", "i32", &
-            (/nc%setDimension("nInflowGauges", size(basin_mrm(iBasin)%InflowGaugeNodeList(:)))/) &
+            (/nc%setDimension("nInflowGauges", size(domain_mrm(iDomain)%InflowGaugeNodeList(:)))/) &
             )
     call var%setFillValue(nodata_i4)
-    call var%setData(basin_mrm(iBasin)%InflowGaugeNodeList(:))
+    call var%setData(domain_mrm(iDomain)%InflowGaugeNodeList(:))
     call var%setAttribute("long_name", "cell ID of gauges")
 
     if (processMatrix(8, 1) .eq. 3) then
@@ -424,15 +437,15 @@ contains
   !>       \brief read routing states
 
   !>       \details This subroutine reads the routing states from
-  !>       mRM_states_<basin_id>.nc that has to be in the given
+  !>       mRM_states_<domain_id>.nc that has to be in the given
   !>       path directory. This subroutine has to be called directly
   !>       each time the mHM_eval or mRM_eval is called such that the
   !>       the states are always the same at the first simulation time
   !>       step, crucial for optimization.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin"    number of basin
-  !>       \param[in] "character(256) :: InPath" Input Path including trailing slash
+  !>       \param[in] "integer(i4) :: iDomain"    number of domains
+  !>       \param[in] "character(256) :: InFile" Input Path including trailing slash
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -441,10 +454,10 @@ contains
 
   ! Modifications:
   ! David Schaefer Mar 2016 - mo_netcdf
-  ! Stephan Thober May 2016 - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet because multiple outlets could exist 
+  ! Stephan Thober May 2016 - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet because multiple outlets could exist
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine mrm_read_restart_states(iBasin, InPath)
+  subroutine mrm_read_restart_states(iDomain, domainID, InFile)
 
     use mo_common_variables, only : nLCoverScene
     use mo_mrm_constants, only : nRoutingStates
@@ -455,11 +468,13 @@ contains
 
     implicit none
 
-    ! number of basin
-    integer(i4), intent(in) :: iBasin
+    ! number of Domain
+    integer(i4), intent(in) :: iDomain
+
+    integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
-    character(256), intent(in) :: InPath
+    character(256), intent(in) :: InFile
 
     integer(i4) :: ii
 
@@ -484,14 +499,15 @@ contains
 
     type(NcVariable) :: var
 
+    !TODO-RIV-TEMP: read/write restart for riv-temp process
 
     ! set file name
-    fname = trim(InPath) // 'mRM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc'
+    fname = trim(InFile)
 
-    ! get basin info at L11 including ncells, start, end, and mask
-    s11 = level11(iBasin)%iStart
-    e11 = level11(iBasin)%iEnd
-    mask11 = level11(iBasin)%mask
+    ! get Domain info at L11 including ncells, start, end, and mask
+    s11 = level11(iDomain)%iStart
+    e11 = level11(iDomain)%iEnd
+    mask11 = level11(iDomain)%mask
 
     nc = NcDataset(fname, "r")
 
@@ -566,8 +582,8 @@ contains
   !>       contained in module mo_startup.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin"    number of basin
-  !>       \param[in] "character(256) :: InPath" Input Path including trailing slash
+  !>       \param[in] "integer(i4) :: iDomain"    number of Domain
+  !>       \param[in] "character(256) :: InFile" Input Path including trailing slash
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -584,11 +600,11 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! Stephan Thober May 2019 - added L0 info required for Process 3
 
-  subroutine mrm_read_restart_config(iBasin, InPath)
+  subroutine mrm_read_restart_config(iDomain, domainID, InFile)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : level0, level1, nBasins, processMatrix, L0_Basin
+    use mo_common_variables, only : level0, level1, domainMeta, processMatrix, domainMeta
     use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_mpr_global_variables, only : L0_slope
@@ -596,17 +612,20 @@ contains
                                         L11_L1_Id, L11_TSrout, L11_aFloodPlain, L11_colOut, L11_fCol, &
                                         L11_fDir, L11_fAcc, L11_fRow, L11_fromN, L11_label, L11_length, L11_nOutlets, L11_netPerm, &
                                         L11_rOrder, L11_rowOut, L11_sink, L11_slope, L11_tCol, L11_tRow, L11_toN, &
-                                        L1_L11_Id, basin_mrm, level11
+                                        L1_L11_Id, domain_mrm, level11
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
 
     implicit none
 
-    ! number of basin
-    integer(i4), intent(in) :: iBasin
+    ! number of Domain
+    integer(i4), intent(in) :: iDomain
+
+    ! domain
+    integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
-    character(256), intent(in) :: InPath
+    character(256), intent(in) :: InFile
 
     character(256) :: fname
 
@@ -635,13 +654,13 @@ contains
 
 
     ! set file name
-    fname = trim(InPath) // 'mRM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc'
+    fname = trim(InFile)
     call message('        Reading mRM restart file:  ', trim(adjustl(Fname)), ' ...')
 
-    ! get basin info at L11 mask
-    mask0 = level0(L0_Basin(iBasin))%mask
-    mask1 = level1(iBasin)%mask
-    mask11 = level11(iBasin)%mask
+    ! get Domain info at L11 mask
+    mask0 = level0(domainMeta%L0DataFrom(iDomain))%mask
+    mask1 = level1(iDomain)%mask
+    mask11 = level11(iDomain)%mask
 
     nc = NcDataset(fname, "r")
 
@@ -669,7 +688,7 @@ contains
       var = nc%getVariable("L0_fDir")
       call var%getData(dummyI2)
       call append(L0_fdir, pack(dummyI2, mask0))
-      
+
       var = nc%getVariable("L0_fAcc")
       call var%getData(dummyI2)
       call append(L0_fAcc, pack(dummyI2, mask0))
@@ -694,12 +713,12 @@ contains
     ! Read L11 variables <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! read L11_TSrout
-    if (iBasin .eq. 1) then
-      allocate(L11_TSrout(nBasins))
+    if (iDomain .eq. 1) then
+      allocate(L11_TSrout(domainMeta%nDomains))
       L11_tsRout = nodata_dp
     end if
     var = nc%getVariable("L11_TSrout")
-    call var%getData(L11_TSrout(iBasin))
+    call var%getData(L11_TSrout(iDomain))
 
     ! L11 data sets
     ! Mapping of L1 Ids on L1
@@ -787,13 +806,13 @@ contains
     ! read gaugenodelist
     var = nc%getVariable("gaugeNodeList")
     call var%getData(dummyI1)
-    basin_mrm(iBasin)%gaugeNodeList(:) = dummyI1
+    domain_mrm(iDomain)%gaugeNodeList(:) = dummyI1
 
     ! read InflowGaugeNodelist
-    if (basin_mrm(iBasin)%nInflowGauges > 0) then
+    if (domain_mrm(iDomain)%nInflowGauges > 0) then
       var = nc%getVariable("InflowGaugeNodeList")
       call var%getData(dummyI1)
-      basin_mrm(iBasin)%InflowgaugeNodeList(:) = dummyI1
+      domain_mrm(iDomain)%InflowgaugeNodeList(:) = dummyI1
     end if
 
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

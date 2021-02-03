@@ -67,7 +67,7 @@ CONTAINS
   !>       \param[in] "real(dp) :: time"                                 current decimal Julian day
   !>       \param[in] "integer(i4), dimension(:, :) :: processMatrix"    mHM process configuration matrix
   !>       \param[in] "real(dp), dimension(:) :: horizon_depth"          Depth of each horizon in mHM
-  !>       \param[in] "integer(i4) :: nCells1"                           number of cells in a given basin at level L1
+  !>       \param[in] "integer(i4) :: nCells1"                           number of cells in a given domain at level L1
   !>       \param[in] "integer(i4) :: nHorizons_mHM"                     Number of Horizons in mHM
   !>       \param[in] "real(dp) :: ntimesteps_day"                       number of time intervals per day, transformed
   !>       in dp
@@ -107,7 +107,7 @@ CONTAINS
   !>       \param[inout] "real(dp), dimension(:) :: unsatStorage"          Upper soil storage
   !>       \param[inout] "real(dp), dimension(:) :: satStorage"            Groundwater storage
   !>       \param[inout] "real(dp), dimension(:) :: neutrons"              Ground albedo neutrons
-  !>       \param[inout] "real(dp), dimension(:) :: pet_calc"              [mm TST-1] estimated PET (if PET is input =
+  !>       \param[inout] "real(dp), dimension(:) :: pet_calc"              [mm TS-1] estimated PET (if PET is input =
   !>       corrected values (fAsp*PET))
   !>       \param[inout] "real(dp), dimension(:, :) :: aet_soil"           actual ET
   !>       \param[inout] "real(dp), dimension(:) :: aet_canopy"            Real evaporation intensity from canopy
@@ -173,7 +173,7 @@ CONTAINS
   ! Luis Samaniego                  Feb 2013 - call routine
   ! Rohini Kumar                    Feb 2013 - MPR call and other pre-requisite variables for this call
   ! Rohini Kumar                    May 2013 - Error checks
-  ! Rohini Kumar                    Jun 2013 - sealed area correction in total runoff 
+  ! Rohini Kumar                    Jun 2013 - sealed area correction in total runoff
   !                                          - initalization of soil moist. at first timestep
   ! Rohini Kumar                    Aug 2013 - dynamic LAI option included, and changed within the code
   !                                            made accordingly (e.g., canopy intecpt.)
@@ -193,7 +193,7 @@ CONTAINS
   ! Zink M. Demirel C.              Mar 2017 - added Jarvis soil water stress function at SM process(3)
   ! M.Cuneyd Demirel & Simon Stisen May 2017 - added FC dependency on root fraction coef. at SM process(3)
   ! M.Cuneyd Demirel & Simon Stisen Jun 2017 - added PET correction based on LAI at PET process(5)
-  ! Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval 
+  ! Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval
   ! Robert Schweppe                 Jun 2018 - refactoring and reformatting
   ! Robert Schweppe                 Nov 2018 - added c2TSTu for unit conversion (moved here from MPR)
 
@@ -237,7 +237,7 @@ CONTAINS
     ! Depth of each horizon in mHM
     real(dp), dimension(:), intent(in) :: horizon_depth
 
-    ! number of cells in a given basin at level L1
+    ! number of cells in a given domain at level L1
     integer(i4), intent(in) :: nCells1
 
     ! Number of Horizons in mHM
@@ -339,7 +339,7 @@ CONTAINS
     ! Ground albedo neutrons
     real(dp), dimension(:), intent(inout) :: neutrons
 
-    ! [mm TST-1] estimated PET (if PET is input = corrected values (fAsp*PET))
+    ! [mm TS-1] estimated PET (if PET is input = corrected values (fAsp*PET))
     real(dp), dimension(:), intent(inout) :: pet_calc
 
     ! actual ET
@@ -485,9 +485,9 @@ CONTAINS
 
     ! cell index
     integer(i4) :: k
-
+    ! pet in [mm d-1]
     real(dp) :: pet
-
+    ! precipitation in [mm TS-1]
     real(dp) :: prec
 
     real(dp) :: temp

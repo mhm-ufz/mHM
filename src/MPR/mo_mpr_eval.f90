@@ -60,7 +60,7 @@ CONTAINS
   ! Stephan Thober       Aug 2015 - moved writing of daily discharge to mo_write_routing, included routing related variables from mRM
   ! David Schaefer       Aug 2015 - changed to new netcdf-writing scheme
   ! Stephan Thober       Sep 2015 - updated mrm_routing call
-  ! O. Rakovec, R. Kumar Oct 2015 - added optional output for basin averaged TWS
+  ! O. Rakovec, R. Kumar Oct 2015 - added optional output for domain averaged TWS
   ! Rohini Kumar         Mar 2016 - changes for handling multiple soil database options
   ! Stephan Thober       Nov 2016 - added two options for routing
   ! Rohini Kuamr         Dec  2016 - option to handle monthly mean gridded fields of LAI
@@ -68,9 +68,9 @@ CONTAINS
   ! Zink M. Demirel C.   Mar 2017 - Added Jarvis soil water stress function at SM process(3)
   ! Robert Schweppe      Dec 2017 - extracted call to mpr from inside mhm
 
-  SUBROUTINE mpr_eval(parameterset)
+  SUBROUTINE mpr_eval(parameterset, opti_domain_indices)
 
-    use mo_common_variables, only : L0_Basin, L0_LCover, l0_l1_remap, level0, level1, nBasins
+    use mo_common_variables, only : L0_LCover, l0_l1_remap, level0, level1, domainMeta
     use mo_message, only : message
     use mo_mpr_global_variables, only : L0_asp, L0_geoUnit, L0_gridded_LAI, &
                                         L0_slope_emp, L0_soilId, L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, &
@@ -88,13 +88,15 @@ CONTAINS
     ! a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
     real(dp), dimension(:), intent(in), optional :: parameterset
 
-    ! Counters
-    integer(i4) :: iBasin, itimer
+    integer(i4), dimension(:), optional, intent(in) :: opti_domain_indices
 
-    ! start and end index at level 0 for current basin
+    ! Counters
+    integer(i4) :: iDomain, ii, nDomains, itimer
+
+    ! start and end index at level 0 for current domain
     integer(i4) :: s0, e0
 
-    ! start and end index at level 1 for current basin
+    ! start and end index at level 1 for current domain
     integer(i4) :: s1, e1
 
 
@@ -106,24 +108,34 @@ CONTAINS
     call timer_start(itimer)
 
     !----------------------------------------
-    ! loop over basins
+    ! loop over domains
     !----------------------------------------
-    do iBasin = 1, nBasins
+    if (present(opti_domain_indices)) then
+      nDomains = size(opti_domain_indices)
+    else
+      nDomains = domainMeta%nDomains
+    end if
+    do ii = 1, nDomains
+      if (present(opti_domain_indices)) then
+        iDomain = opti_domain_indices(ii)
+      else
+        iDomain = ii
+      end if
 
-      ! get basin information
-      s0 = level0(L0_Basin(iBasin))%iStart
-      e0 = level0(L0_Basin(iBasin))%iEnd
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
+      ! get domain information
+      s0 = level0(domainMeta%L0DataFrom(iDomain))%iStart
+      e0 = level0(domainMeta%L0DataFrom(iDomain))%iEnd
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
 
-      call mpr(level0(L0_Basin(iBasin))%mask, L0_geoUnit(s0 : e0), &
+      call mpr(level0(domainMeta%L0DataFrom(iDomain))%mask, L0_geoUnit(s0 : e0), &
               L0_soilId(s0 : e0, :), L0_asp(s0 : e0), L0_gridded_LAI(s0 : e0, :), &
               L0_LCover(s0 : e0, :), L0_slope_emp(s0 : e0), &
-              pack(level0(L0_Basin(iBasin))%y, level0(L0_Basin(iBasin))%mask), &
-              level0(L0_Basin(iBasin))%Id, &
-              l0_l1_remap(iBasin)%upper_bound, l0_l1_remap(iBasin)%lower_bound, &
-              l0_l1_remap(iBasin)%left_bound, l0_l1_remap(iBasin)%right_bound, &
-              l0_l1_remap(iBasin)%n_subcells, &
+              pack(level0(domainMeta%L0DataFrom(iDomain))%y, level0(domainMeta%L0DataFrom(iDomain))%mask), &
+              level0(domainMeta%L0DataFrom(iDomain))%Id, &
+              l0_l1_remap(iDomain)%upper_bound, l0_l1_remap(iDomain)%lower_bound, &
+              l0_l1_remap(iDomain)%left_bound, l0_l1_remap(iDomain)%right_bound, &
+              l0_l1_remap(iDomain)%n_subcells, &
               L1_fSealed(s1 : e1, :, :), &
               L1_alpha(s1 : e1, :, :), L1_degDayInc(s1 : e1, :, :), L1_degDayMax(s1 : e1, :, :), &
               L1_degDayNoPre(s1 : e1, :, :), L1_fAsp(s1 : e1, :, :), L1_HarSamCoeff(s1 : e1, :, :), &

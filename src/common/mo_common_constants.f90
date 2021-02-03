@@ -34,15 +34,12 @@ MODULE mo_common_constants
 
   ! hydrologic modeling
   integer(i4), public, parameter :: nColPars = 5_i4      ! number of properties of the global variables
-  integer(i4), public, parameter :: maxNoBasins = 50_i4     ! maximum number of allowed basins
+  integer(i4), public, parameter :: maxNoDomains = 50_i4     ! maximum number of allowed domains
   integer(i4), public, parameter :: maxNLcovers = 50_i4     ! maximum number of allowed LCover scenes
 
-  ! temporal
-  real(dp), public, parameter :: DayHours = 24.0_dp  ! hours per day
-  real(dp), public, parameter :: YearMonths = 12.0_dp  ! months per year
-  integer(i4), public, parameter :: YearMonths_i4 = 12       ! months per year
-  real(dp), public, parameter :: YearDays = 365.0_dp  ! days in a year
-  real(dp), public, parameter :: DaySecs = 86400.0_dp  ! sec in a day
-  real(dp), public, parameter :: HourSecs = 3600.0_dp  ! seconds per hour
+  character(64), public, parameter :: soilHorizonsVarName = "L1_SoilHorizons"
+  character(64), public, parameter :: landCoverPeriodsVarName = "L1_LandCoverPeriods"
+  character(64), public, parameter :: LAIVarName = "L1_LAITimesteps"
+
 
 END MODULE mo_common_constants

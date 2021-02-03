@@ -32,13 +32,14 @@ module mo_common_mHM_mRM_variables
   real(dp), public :: c2TSTu            !       Unit transformation = timeStep/24
   real(dp), dimension(:), allocatable, public :: resolutionRouting          ! [m or degree] resolution of routing - Level 11
   logical, public :: read_restart               ! flag
+  logical, public :: mrm_read_river_network               ! flag
 
   type(period), dimension(:), allocatable, public :: warmPer     ! time period for warming
   type(period), dimension(:), allocatable, public :: evalPer     ! time period for model evaluation
   type(period), dimension(:), allocatable, public :: simPer      ! warmPer + evalPer
   type(period), public :: readPer     ! start and end dates of read period
   integer(i4), dimension(:), allocatable, public :: warmingDays ! number of days for warm up period
-  integer(i4), dimension(:, :), allocatable, public :: LCyearId            ! Mapping of landcover scenes (1, 2,..) for each basin
+  integer(i4), dimension(:, :), allocatable, public :: LCyearId            ! Mapping of landcover scenes (1, 2,..) for each domain
 
   ! ------------------------------------------------------------------
   ! CONSTANT
@@ -48,8 +49,9 @@ module mo_common_mHM_mRM_variables
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
-  ! has the dimension of nBasins
-  character(256), dimension(:), allocatable, public :: dirRestartIn! Directory where input of restart is read from
+  ! has the dimension of nDomains
+  character(256), dimension(:), allocatable, public :: mhmFileRestartIn! Directory where input of restart is read from
+  character(256), dimension(:), allocatable, public :: mrmFileRestartIn! Directory where input of restart is read from
 
   ! -------------------------------------------------------------------
   ! OPTIMIZATION

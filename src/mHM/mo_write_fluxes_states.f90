@@ -42,7 +42,7 @@ module mo_write_fluxes_states
   end interface OutputVariable
 
   type OutputDataset
-    integer(i4) :: ibasin      !> basin id
+    integer(i4) :: iDomain      !> domain id
     type(NcDataset) :: nc          !> NcDataset to write
     type(OutputVariable), allocatable :: vars(:)     !> store all created (dynamic) variables
     integer(i4) :: counter = 0 !> count written time steps
@@ -84,7 +84,7 @@ contains
   !>       \param[in] "character(*) :: name"
   !>       \param[in] "character(*) :: dtype"
   !>       \param[in] "character(16), dimension(3) :: dims"
-  !>       \param[in] "integer(i4) :: ncells"               -> number of cells in basin
+  !>       \param[in] "integer(i4) :: ncells"               -> number of cells in domain
   !>       \param[in] "logical, dimension(:, :) :: mask"
 
   !    INTENT(IN), OPTIONAL
@@ -111,7 +111,7 @@ contains
 
     character(16), intent(in), dimension(3) :: dims
 
-    ! -> number of cells in basin
+    ! -> number of cells in domain
     integer(i4), intent(in) :: ncells
 
     logical, intent(in), target, dimension(:, :) :: mask
@@ -225,7 +225,7 @@ contains
   !>       \return type(OutputDataset)
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ibasin"             -> basin id
+  !>       \param[in] "integer(i4) :: iDomain"             -> domain id
   !>       \param[in] "logical, dimension(:, :) :: mask1" -> L1 mask to reconstruct the data
   !>       \param[in] "integer(i4) :: nCells"
 
@@ -236,16 +236,18 @@ contains
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Pallav Shrestha Mar 2020 - iFlag_cordinate_sys based dimensions (dims1)
 
-  function newOutputDataset(ibasin, mask1, nCells) result(out)
+  function newOutputDataset(iDomain, mask1, nCells) result(out)
 
     use mo_global_variables, only : outputFlxState
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
+    use mo_common_variables, only : iFlag_cordinate_sys
 
     implicit none
 
-    ! -> basin id
-    integer(i4), intent(in) :: ibasin
+    ! -> domain id
+    integer(i4), intent(in) :: iDomain
 
     ! -> L1 mask to reconstruct the data
     logical, pointer, intent(in), dimension(:, :) :: mask1
@@ -268,9 +270,15 @@ contains
 
 
     dtype = "f64"
-    unit = fluxesUnit(ibasin)
-    dims1 = (/"easting ", "northing", "time    "/)
-    nc = createOutputFile(ibasin)
+    unit = fluxesUnit(iDomain)
+
+    if (iFlag_cordinate_sys == 0) then
+      dims1 = (/"easting ", "northing", "time    "/) ! X & Y coordinate system
+    else
+      dims1 = (/"lon ", "lat ", "time"/) ! lat & lon coordinate system
+    endif
+
+    nc = createOutputFile(iDomain)
 
     ii = 0
 
@@ -446,7 +454,7 @@ contains
 
     out%vars = tmpvars(1 : ii)
     out%nc = nc
-    out%ibasin = ibasin
+    out%iDomain = iDomain
 
   end function newOutputDataset
 
@@ -497,10 +505,10 @@ contains
   !>       \date Apr 2013
 
   ! Modifications:
-  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014 
-  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014 
-  !                              - adding new variable infilSoil 
-  !                              - case 16 David Schaefer      , Jun. 2015 
+  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014
+  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014
+  !                              - adding new variable infilSoil
+  !                              - case 16 David Schaefer      , Jun. 2015
   !                              - major rewrite
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
@@ -847,8 +855,8 @@ contains
 
 
     call self%nc%close()
-    call message('  OUTPUT: saved netCDF file for basin', trim(num2str(self%ibasin)))
-    call message('    to ', trim(dirOut(self%ibasin)))
+    call message('  OUTPUT: saved netCDF file for domain', trim(num2str(self%iDomain)))
+    call message('    to ', trim(dirOut(self%iDomain)))
 
   end subroutine close
 
@@ -857,15 +865,15 @@ contains
   !        createOutputFile
 
   !    PURPOSE
-  !>       \brief Create and initialize output file
+  !>       \brief Create and initialize output file for X & Y coordinate system
 
   !>       \details Create output file, write all non-dynamic variables
-  !>       and global attributes for the given basin.
+  !>       and global attributes for the given domain for X & Y coordinate system
 
   !>       \return type(NcDataset)
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ibasin" -> basin id
+  !>       \param[in] "integer(i4) :: iDomain" -> domain id
 
   !    HISTORY
   !>       \authors David Schaefer
@@ -875,19 +883,20 @@ contains
   ! Modifications:
   ! Stephan Thober  Oct 2015 - added actual version of mHM
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Pallav Shrestha Mar 2020 - output file lat and lon are 1d or 2d based on coordinate system
 
-  function createOutputFile(ibasin) result(nc)
+  function createOutputFile(iDomain) result(nc)
 
     use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_common_variables, only : dirOut, level1
+    use mo_common_variables, only : dirOut, level1, iFlag_cordinate_sys
     use mo_file, only : version
     use mo_grid, only : geoCoordinates, mapCoordinates
     use mo_julian, only : dec2date
 
     implicit none
 
-    ! -> basin id
-    integer(i4), intent(in) :: ibasin
+    ! -> domain id
+    integer(i4), intent(in) :: iDomain
 
     type(NcDataset) :: nc
 
@@ -903,22 +912,81 @@ contains
 
     real(dp), allocatable, dimension(:) :: easting, northing
 
-    real(dp), allocatable, dimension(:, :) :: lat, lon
+    real(dp), allocatable, dimension(:) :: lat1d, lon1d    ! 1D lat lon vectors. Used if coordinate system is lat & lon
+
+    real(dp), allocatable, dimension(:, :) :: lat2d, lon2d ! temporary storage of mHM's 2D latlon array.
+                                                           ! Used as 2d lat lon arrays if coordinate system is X & Y
 
 
-    fname = trim(dirOut(ibasin)) // 'mHM_Fluxes_States.nc'
-    call mapCoordinates(level1(ibasin), northing, easting)
-    call geoCoordinates(level1(ibasin), lat, lon)
+    fname = trim(dirOut(iDomain)) // 'mHM_Fluxes_States.nc'
+    call geoCoordinates(level1(iDomain), lat2d, lon2d)
 
     nc = NcDataset(trim(fname), "w")
-    dimids1 = (/&
-            nc%setDimension("easting", size(easting)), &
-                    nc%setDimension("northing", size(northing)), &
-                    nc%setDimension("time", 0) &
-            /)
 
+    ! set the horizonal dimensions
+    if (iFlag_cordinate_sys == 0) then
+
+      ! X & Y coordinate system; 2D lat lon!
+      !============================================================
+      call mapCoordinates(level1(iDomain), northing, easting)
+
+      dimids1 = (/&
+              nc%setDimension("easting", size(easting)), &
+                      nc%setDimension("northing", size(northing)), &
+                      nc%setDimension("time", 0) &
+              /)
+      ! northing
+      var = nc%setVariable("northing", "f64", (/ dimids1(2) /))
+      call var%setData(northing)
+      call var%setAttribute("units", "m or degrees_north")
+      call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
+      ! easting
+      var = nc%setVariable("easting", "f64", (/ dimids1(1) /))
+      call var%setData(easting)
+      call var%setAttribute("units", "m or degrees_north")
+      call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
+      ! lon
+      var = nc%setVariable("lon", "f64", dimids1(1 : 2))
+      call var%setData(lon2d)
+      call var%setAttribute("units", "degrees_east")
+      call var%setAttribute("long_name", "longitude")
+      call var%setAttribute("missing_value", nodata_dp)
+      ! lat
+      var = nc%setVariable("lat", "f64", dimids1(1 : 2))
+      call var%setData(lat2d)
+      call var%setAttribute("units", "degrees_north")
+      call var%setAttribute("long_name", "latitude")
+      call var%setAttribute("missing_value", nodata_dp)
+
+    else
+
+      ! lat & lon coordinate system; 1D lat lon!
+      !============================================================
+      lat1d = lat2d(1, :) ! first row info is sufficient
+      lon1d = lon2d(:, 1) ! first column info is sufficient
+      dimids1 = (/&
+              nc%setDimension("lon", size(lon1d)), &
+                      nc%setDimension("lat", size(lat1d)), &
+                      nc%setDimension("time", 0) &
+              /)
+      ! lon
+      var = nc%setVariable("lon", "f64", (/ dimids1(1) /)) ! sufficient to store lon as vector
+      call var%setData(lon1d)
+      call var%setAttribute("units", "degrees_east")
+      call var%setAttribute("long_name", "longitude")
+      call var%setAttribute("missing_value", nodata_dp)
+      ! lat
+      var = nc%setVariable("lat", "f64", (/ dimids1(2) /)) ! sufficient to store lat as vector
+      call var%setData(lat1d)
+      call var%setAttribute("units", "degrees_north")
+      call var%setAttribute("long_name", "latitude")
+      call var%setAttribute("missing_value", nodata_dp)
+
+    endif
+
+    ! set record dimension
     ! time units
-    call dec2date(real(evalPer(ibasin)%julStart, dp), dd = day, mm = month, yy = year)
+    call dec2date(real(evalPer(iDomain)%julStart, dp), dd = day, mm = month, yy = year)
     write(unit, "('hours since ', i4, '-' ,i2.2, '-', i2.2, 1x, '00:00:00')") year, month, day
 
     ! time
@@ -926,31 +994,6 @@ contains
     call var%setAttribute("units", unit)
     call var%setAttribute("long_name", "time")
 
-    ! northing
-    var = nc%setVariable("northing", "f64", (/ dimids1(2) /))
-    call var%setData(northing)
-    call var%setAttribute("units", "m or deg. dec.")
-    call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
-
-    ! easting
-    var = nc%setVariable("easting", "f64", (/ dimids1(1) /))
-    call var%setData(easting)
-    call var%setAttribute("units", "m or deg. dec.")
-    call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
-
-    ! lon
-    var = nc%setVariable("lon", "f64", dimids1(1 : 2))
-    call var%setData(lon)
-    call var%setAttribute("units", "deg. dec.")
-    call var%setAttribute("long_name", "longitude")
-    call var%setAttribute("missing_value", nodata_dp)
-
-    ! lat
-    var = nc%setVariable("lat", "f64", dimids1(1 : 2))
-    call var%setData(lat)
-    call var%setAttribute("units", "deg. dec.")
-    call var%setAttribute("long_name", "latitude")
-    call var%setAttribute("missing_value", nodata_dp)
 
     ! global attributes
     call date_and_time(date = date, time = time)
@@ -1001,7 +1044,7 @@ contains
 
 
     call var%nc%setAttribute("long_name", long_name)
-    call var%nc%setAttribute("unit", unit)
+    call var%nc%setAttribute("units", unit)
     call var%nc%setAttribute("scale_factor", 1.0_dp)
     call var%nc%setAttribute("missing_value", nodata_dp)
     call var%nc%setAttribute("coordinates", "lat lon")
@@ -1022,7 +1065,7 @@ contains
   !>       \return character(16)
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ibasin"
+  !>       \param[in] "integer(i4) :: iDomain"
 
   !    HISTORY
   !>       \authors David Schaefer
@@ -1032,14 +1075,14 @@ contains
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  function fluxesUnit(ibasin)
+  function fluxesUnit(iDomain)
 
     use mo_common_mhm_mrm_variables, only : nTstepDay, simPer, timestep
     use mo_global_variables, only : timeStep_model_outputs
 
     implicit none
 
-    integer(i4), intent(in) :: ibasin
+    integer(i4), intent(in) :: iDomain
 
     character(16) :: fluxesUnit
 
@@ -1051,7 +1094,7 @@ contains
     else if (timestep_model_outputs > 1) then
       fluxesUnit = 'mm ' // trim(adjustl(num2str(timestep))) // 'h-1'
     else if (timestep_model_outputs .eq. 0) then
-      ntsteps = (simPer(iBasin)%julEnd - simPer(iBasin)%julStart + 1) * nTstepDay
+      ntsteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nTstepDay
       fluxesUnit = 'mm ' // trim(adjustl(num2str(nint(ntsteps)))) // 'h-1'
     else if (timestep_model_outputs .eq. -1) then
       fluxesUnit = 'mm d-1'

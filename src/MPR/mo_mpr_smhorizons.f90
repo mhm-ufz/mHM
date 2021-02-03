@@ -106,13 +106,16 @@ contains
   !                                                --> param(2) = rootFractionCoefficient_impervious
   !                                                --> param(3) = delta_1
   !                                                --> param(4) = infiltrationShapeFactor
-  !                                                ! if processMatrix(3,1) = 3 additionally
+  !                                                ! if processMatrix(3,1) = 3 and 4 additionally
   !                                                --> param(5) = rootFractionCoefficient_sand
   !                                                --> param(6) = rootFractionCoefficient_clay
+  !                                                --> param(7) = FCmin_glob
+  !                                                --> param(8) = FCdelta_glob
   ! Stephan Thober                  Mar 2014 - added omp parallelization
   ! Rohini Kumar                    Mar 2016 - changes for handling multiple soil database options
   ! M. Cuneyd Demirel, Simon Stisen Apr 2017 - added FC dependency on root fraction coefficient
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 
   subroutine mpr_SMhorizons(param, processMatrix, iFlag_soil, nHorizons_mHM, HorizonDepth, LCOVER0, soilID0, nHorizons, &
                            nTillHorizons, thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Wd, Db, &
@@ -286,30 +289,44 @@ contains
     ! ET reduction for clay
     real(dp) :: tmp_rootFractionCoefficient_clay
 
-    ! Calculate FCmin at level 0 once to speed up the code
-    real(dp) :: tmp_FC0min
+    real(dp) :: FCmin_glob
 
-    ! Calculate FCmax at level 0 once to speed up the code
-    real(dp) :: tmp_FC0max
+    real(dp) :: FCdelta_glob
+
+    real(dp) :: FCmax_glob
 
     ! the minimum number of till horizons
     integer(i4) :: min_nTH
 
 
     min_nTH = minval(nTillHorizons(:))
-    ! decide which parameterization should be used for route fraction:
-    ! 1:2 - dependent on land cover
     tmp_rootFractionCoefficient_forest = param(1)            ! min(1.0_dp, param(2) + param(3) + param(1))
     tmp_rootFractionCoefficient_impervious = param(2)
-    tmp_rootFractionCoefficient_pervious = param(1) - param(3) ! min(1.0_dp, param(2) + param(3))
 
-    !   3 - dependent on land cover and additionally soil texture
+    ! decide which parameterization should be used for route fraction:
     select case (processMatrix(3, 1))
-    case(3)
+    case(1,2)
+    ! 1 and 2 - dependent on land cover
+      tmp_rootFractionCoefficient_pervious = param(1) - param(3) ! min(1.0_dp, param(2) + param(3))
+          !write(*,*) 'tmp_rootFractionCoefficient_forest = ', tmp_rootFractionCoefficient_forest
+          !write(*,*) 'tmp_rootFractionCoefficient_impervious = ', tmp_rootFractionCoefficient_impervious
+          !write(*,*) 'tmp_rootFractionCoefficient_pervious = ', tmp_rootFractionCoefficient_pervious
+    case(3,4)
+    ! 3 and 4 - dependent on land cover and additionally soil texture
+      tmp_rootFractionCoefficient_pervious = param(3) ! min(1.0_dp, param(2) + param(3))
       !delta approach is used as in tmp_rootFractionCoefficient_pervious
       tmp_rootFractionCoefficient_sand = param(6) - param(5)
       !the value in parameter namelist is before substraction i.e. param(5)
       tmp_rootFractionCoefficient_clay = param(6)
+      FCmin_glob=param(7)
+      FCmax_glob=param(7)+param(8)
+          !write(*,*) 'tmp_rootFractionCoefficient_forest = ', tmp_rootFractionCoefficient_forest
+          !write(*,*) 'tmp_rootFractionCoefficient_impervious = ', tmp_rootFractionCoefficient_impervious
+          !write(*,*) 'tmp_rootFractionCoefficient_pervious = ', tmp_rootFractionCoefficient_pervious
+          !write(*,*) 'tmp_rootFractionCoefficient_sand = ', tmp_rootFractionCoefficient_sand
+          !write(*,*) 'tmp_rootFractionCoefficient_clay = ', tmp_rootFractionCoefficient_clay
+          !write(*,*) 'FCmin_glob = ', FCmin_glob
+          !write(*,*) 'FCmax_glob = ', FCmax_glob
     end select
 
     ! select case according to a given soil database flag
@@ -380,15 +397,12 @@ contains
         !$OMP END DO
         !$OMP END PARALLEL
 
-        tmp_FC0min = minval(FC0(:))
-        tmp_FC0max = maxval(FC0(:))
 
-        if(tmp_FC0min .lt. 0.0_dp) then
-          tmp_FC0min = minval(FC0(cell_id0))
-        end if
 
         !$OMP PARALLEL
         !$OMP DO PRIVATE( l, tmp_rootFractionCoefficient_perviousFC ) SCHEDULE( STATIC )
+
+
         celllloop0 : do k = 1, size(LCOVER0, 1)
           l = LCOVER0(k)
           !---------------------------------------------------------------------
@@ -439,32 +453,41 @@ contains
           case(3)
 
             select case (processMatrix(3, 1))
-            case(1 : 2)
+            case(1 , 2)
               ! permeable
               fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_t * 0.1_dp)) &
                       - (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_f * 0.1_dp))
-
-            case(3)
+            case(3 , 4)
               ! permeable
-              ! introducing FC dependency on root frac coef. by Simon Stisen and M. Cuneyd Demirel from GEUS.dk
-              tmp_rootFractionCoefficient_perviousFC = (((FC0(k) - tmp_FC0min) / &
-                      ((tmp_FC0max - tmp_FC0min)) * tmp_rootFractionCoefficient_clay)) &
-                      + ((1 - (FC0(k) - tmp_FC0min) / (tmp_FC0max - tmp_FC0min)) * &
+              ! introducing global FC dependency on root frac. coef. by Simon Stisen and M. Cuneyd Demirel from GEUS.dk
+              ! The normalization is based on Demirel et al 2018 (doi: 10.5194/hess-22-1299-2018)
+              ! Case 3 is based on Jarvis (doi: 10.1016/0022-1694(89)90050-4)
+              ! Case 4 is based on Feddes (doi: 10.1016/0022-1694(76)90017-2)
+              tmp_rootFractionCoefficient_perviousFC = ((((FC0(k) / (dpth_t - dpth_f)) - FCmin_glob) / &
+                      ((FCmax_glob - FCmin_glob)) * tmp_rootFractionCoefficient_clay)) &
+                      + ((1 - ((FC0(k) / (dpth_t - dpth_f)) - FCmin_glob) / (FCmax_glob - FCmin_glob)) * &
                               tmp_rootFractionCoefficient_sand)
 
-              if(tmp_rootFractionCoefficient_perviousFC .lt. 0.0_dp .OR. &
-                tmp_rootFractionCoefficient_perviousFC .gt. 1.0_dp) &
-                      print*, "CHECK tmp_rootFractionCoefficient_perviousFC", tmp_rootFractionCoefficient_perviousFC
+              if(tmp_rootFractionCoefficient_perviousFC .lt. 0.0_dp) then
+              print*, "tmp_rootFractionCoefficient_perviousFC is below 0, will become 0", tmp_rootFractionCoefficient_perviousFC
+                 tmp_rootFractionCoefficient_perviousFC=0.0_dp
+              else if(tmp_rootFractionCoefficient_perviousFC .gt. 1.0_dp) then
+              print*, "tmp_rootFractionCoefficient_perviousFC is above 1, will become 1", tmp_rootFractionCoefficient_perviousFC
+                 tmp_rootFractionCoefficient_perviousFC=1.0_dp
+              end if
 
               fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t * 0.1_dp)) &
                       - (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_f * 0.1_dp))
+
+            end select
+
+
 
               if((fRoots0(k) .lt. 0.0_dp) .OR. (fRoots0(k) .gt. 1.0_dp)) then
                 call message('***ERROR: Fraction of roots out of range [0,1]. Cell', &
                         num2str(k), ' has value ', num2str(fRoots0(k)))
                 ! stop
               end if
-            end select
           end select
 
         end do celllloop0
@@ -528,14 +551,6 @@ contains
         !$OMP END DO
         !$OMP END PARALLEL
 
-        tmp_FC0min = minval(FC0(:))
-        tmp_FC0max = maxval(FC0(:))
-
-        if(tmp_FC0min .lt. 0.0_dp) then
-          print*, "CHECK FC0min, -9999s effected", tmp_FC0min
-          tmp_FC0min = minval(FC0(cell_id0))
-          print*, "NEW FC0min is", tmp_FC0min
-        end if
 
         !$OMP PARALLEL
         !$OMP DO PRIVATE( l, tmp_rootFractionCoefficient_perviousFC ) SCHEDULE( STATIC )
@@ -559,32 +574,41 @@ contains
           case(3)
 
             select case (processMatrix(3, 1))
-
-            case(1 : 2)
+            case(1 , 2)
               ! permeable
               fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_t * 0.1_dp)) &
                       - (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_f * 0.1_dp))
-
-            case(3)
+            case(3 , 4)
               ! permeable
-              !introducing FC dependency on root frac coef. by Simon Stisen and M. Cuneyd Demirel from GEUS.dk
-              tmp_rootFractionCoefficient_perviousFC = (((FC0(k) - tmp_FC0min) / &
-                      ((tmp_FC0max - tmp_FC0min)) * tmp_rootFractionCoefficient_clay))&
-                      + ((1 - (FC0(k) - tmp_FC0min) / (tmp_FC0max - tmp_FC0min)) * &
+              ! introducing global FC dependency on root frac. coef. by Simon Stisen and M. Cuneyd Demirel from GEUS.dk
+              ! The normalization is based on Demirel et al 2018 (doi: 10.5194/hess-22-1299-2018)
+              ! Case 3 is based on Jarvis (doi: 10.1016/0022-1694(89)90050-4)
+              ! Case 4 is based on Feddes (doi: 10.1016/0022-1694(76)90017-2)
+              tmp_rootFractionCoefficient_perviousFC = ((((FC0(k) / (dpth_t - dpth_f)) - FCmin_glob) / &
+                      ((FCmax_glob - FCmin_glob)) * tmp_rootFractionCoefficient_clay)) &
+                      + ((1 - ((FC0(k) / (dpth_t - dpth_f)) - FCmin_glob) / (FCmax_glob - FCmin_glob)) * &
                               tmp_rootFractionCoefficient_sand)
 
-              if(tmp_rootFractionCoefficient_perviousFC .lt. 0.0_dp .OR. tmp_rootFractionCoefficient_perviousFC .gt. 1.0_dp) &
-                      print*, "CHECK tmp_rootFractionCoefficient_perviousFC", tmp_rootFractionCoefficient_perviousFC
+              if(tmp_rootFractionCoefficient_perviousFC .lt. 0.0_dp) then
+              print*, "tmp_rootFractionCoefficient_perviousFC is below 0, will become 0", tmp_rootFractionCoefficient_perviousFC
+                 tmp_rootFractionCoefficient_perviousFC=0.0_dp
+              else if(tmp_rootFractionCoefficient_perviousFC .gt. 1.0_dp) then
+              print*, "tmp_rootFractionCoefficient_perviousFC is above 1, will become 1", tmp_rootFractionCoefficient_perviousFC
+                 tmp_rootFractionCoefficient_perviousFC=1.0_dp
+              end if
 
               fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t * 0.1_dp)) &
                       - (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_f * 0.1_dp))
+
+            end select
+
+
 
               if((fRoots0(k) .lt. 0.0_dp) .OR. (fRoots0(k) .gt. 1.0_dp)) then
                 call message('***ERROR: Fraction of roots out of range [0,1]. Cell', &
                         num2str(k), ' has value ', num2str(fRoots0(k)))
                 ! stop
               end if
-            end select
           end select
 
         end do celllloop1
@@ -648,5 +672,3 @@ contains
   end subroutine mpr_SMhorizons
 
 end module mo_mpr_SMhorizons
-
-

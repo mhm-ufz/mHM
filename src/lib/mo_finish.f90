@@ -123,7 +123,6 @@ CONTAINS
       WRITE (*, '(a)') separator
     end if
 
-    STOP
 
   END SUBROUTINE finish
 

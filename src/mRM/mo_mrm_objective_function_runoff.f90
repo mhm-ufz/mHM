@@ -30,6 +30,7 @@
 !>       (20) MO: Q:        1st objective: absolute difference in FDC's low-segment volume
 !>       Q:        2nd objective: 1.0 - NSE of discharge of months DJF
 !>       (31) SO: Q:        1.0 - wNSE - weighted NSE
+!>       (32) SO: Q:        SSE of boxcox-transformed streamflow
 
 !>       \authors Juliane Mai
 
@@ -38,14 +39,15 @@
 ! Modifications:
 ! Stephan Thober             Oct 2015 - adapted for mRM
 ! Juliane Mai                Nov 2015 - introducing multi
-!                                     - and single-objective 
+!                                     - and single-objective
 !                                     - first multi-objective function (16), but not used yet
-! Juliane Mai                Feb 2016 - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows) 
-!                                     - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows) 
+! Juliane Mai                Feb 2016 - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows)
+!                                     - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows)
 !                                     - multi-objective function (20) using FDC and discharge of months DJF
 ! Stephan Thober,Bjoern Guse May 2018 - single objective function (21) using weighted NSE following
 !                                       (Hundecha and Bardossy, 2004)
 ! Robert Schweppe            Jun 2018 - refactoring and reformatting
+! Stephan Thober             Aug 2019 - added OF 32: SSE of boxcox-transformed streamflow
 
 MODULE mo_mrm_objective_function_runoff
 
@@ -64,7 +66,10 @@ MODULE mo_mrm_objective_function_runoff
 
   PUBLIC :: single_objective_runoff ! single-objective function wrapper
   PUBLIC :: multi_objective_runoff  ! multi-objective function wrapper
-  PUBLIC :: extract_runoff          ! extract runoff period specified in mhm.nml from available runoff time series 
+  PUBLIC :: extract_runoff          ! extract runoff period specified in mhm.nml from available runoff time series
+#ifdef MPI
+  PUBLIC :: single_objective_runoff_master, single_objective_runoff_subprocess ! objective function wrapper for soil moisture only
+#endif
 
   ! ------------------------------------------------------------------
 
@@ -174,8 +179,11 @@ CONTAINS
       ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6)
       single_objective_runoff = objective_multiple_gauges_kge_power6(parameterset, eval)
     case (31)
-       ! weighted NSE with observed streamflow
-       single_objective_runoff = objective_weighted_nse(parameterset, eval)
+      ! weighted NSE with observed streamflow
+      single_objective_runoff = objective_weighted_nse(parameterset, eval)
+    case (32)
+      ! sum of squared errors (SSE) of boxcox_transformed streamflow
+      single_objective_runoff = objective_sse_boxcox(parameterset, eval)
     case default
       call message("Error objective: This opti_function is either not implemented yet or is not a single-objective one.")
       stop 1
@@ -183,7 +191,302 @@ CONTAINS
 
   END FUNCTION single_objective_runoff
 
-  ! ------------------------------------------------------------------ 
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        single_objective_runoff_master
+
+  !    PURPOSE
+  !>       \brief Wrapper for objective functions optimizing agains runoff.
+
+  !>       \details The functions selects the objective function case defined in a namelist,
+  !>       i.e. the global variable \e opti\_function.
+  !>       It return the objective function value for a specific parameter set.
+
+  !    INTENT(IN)
+  !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "real(dp), optional :: arg1"
+
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "real(dp), optional :: arg2"
+  !>       \param[out] "real(dp), optional :: arg3"
+
+  !    RETURN
+  !>       \return real(dp) :: objective &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Juliane Mai
+
+  !>       \date Dec 2012
+
+  ! Modifications:
+  ! Stephan Thober              Oct 2015 - only runoff objective functions
+  ! Stephan Thober, Bjoern Guse May 2018 - added weighted objective function
+  ! Robert Schweppe             Jun 2018 - refactoring and reformatting
+
+#ifdef MPI
+  FUNCTION single_objective_runoff_master(parameterset, eval, arg1, arg2, arg3)
+
+    use mo_common_mHM_mRM_variables, only : opti_function, opti_method
+    use mo_common_mHM_mRM_MPI_tools, only : distribute_parameterset
+    use mo_mrm_global_variables, only: nGaugesTotal
+    use mo_common_variables, only : domainMeta
+    use mo_message, only : message
+    use mpi_f08
+
+    implicit none
+
+    REAL(dp), DIMENSION(:), INTENT(IN) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    real(dp), optional, intent(in) :: arg1
+
+    real(dp), optional, intent(out) :: arg2
+
+    real(dp), optional, intent(out) :: arg3
+
+    REAL(dp) :: single_objective_runoff_master
+
+    REAL(dp) :: partial_objective
+
+    ! for sixth root
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+
+    integer(i4) :: iproc, nproc
+
+    integer(i4) :: ierror
+
+    type(MPI_Status) :: status
+
+    !write(*,*) 'parameterset: ',parameterset(:)
+    call distribute_parameterset(parameterset)
+    select case (opti_function)
+    case(1 : 3, 5, 6, 9, 31)
+      call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
+      single_objective_runoff_master = 0.0_dp
+      do iproc = 1, nproc - 1
+        call MPI_Recv(partial_objective, 1, MPI_DOUBLE_PRECISION, iproc, 0, domainMeta%comMaster, status, ierror)
+        single_objective_runoff_master = single_objective_runoff_master + partial_objective
+      end do
+      single_objective_runoff_master = 1.0_dp - single_objective_runoff_master / real(nGaugesTotal, dp)
+    case(14)
+      call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
+      single_objective_runoff_master = 0.0_dp
+      do iproc = 1, nproc - 1
+        call MPI_Recv(partial_objective, 1, MPI_DOUBLE_PRECISION, iproc, 0, domainMeta%comMaster, status, ierror)
+        single_objective_runoff_master = single_objective_runoff_master + partial_objective
+      end do
+      single_objective_runoff_master = single_objective_runoff_master**onesixth
+    case(4, 7, 8)
+      call message("case 4, 7, 8 are not implemented in parallel yet")
+    case default
+      call message("Error single_objective_runoff_master:")
+      call message("This opti_function is either not implemented yet or is not a single-objective one.")
+      stop 1
+    end select
+
+    select case (opti_function)
+    case (1)
+      ! 1.0-nse
+      write(*, *) 'objective_nse (i.e., 1 - NSE) = ', single_objective_runoff_master
+    case (2)
+      ! 1.0-lnnse
+      write(*, *) 'objective_lnnse = ', single_objective_runoff_master
+    case (3)
+      ! 1.0-0.5*(nse+lnnse)
+      write(*, *) 'objective_equal_nse_lnnse = ', single_objective_runoff_master
+    case (4)
+      call message("case 4, loglikelihood_stddev not implemented in parallel yet")
+      stop
+    case (5)
+      ! ((1-NSE)**6+(1-lnNSE)**6)**(1/6)
+      write(*, *) 'objective_power6_nse_lnnse = ', single_objective_runoff_master
+    case (6)
+      ! SSE
+      write(*, *) 'objective_sse = ', single_objective_runoff_master
+    case (7)
+      ! -loglikelihood with trend removed from absolute errors
+      call message("case 7, single_objective_runoff_master not implemented in parallel yet")
+      stop
+    case (8)
+      call message("case 8, loglikelihood_evin2013_2 not implemented in parallel yet")
+      stop
+    case (9)
+      ! KGE
+      write(*, *) 'objective_kge (i.e., 1 - KGE) = ', single_objective_runoff_master
+    case (14)
+      ! combination of KGE of every gauging station based on a power-6 norm \n
+      ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6)
+      write(*, *) 'objective_multiple_gauges_kge_power6 = ', single_objective_runoff_master
+    case (31)
+      ! weighted NSE with observed streamflow
+      write(*,*) 'objective_weighted_nse (i.e., 1 - wNSE) = ', single_objective_runoff_master
+    case (32)
+      ! SSE of boxcox-transformed streamflow
+      write(*,*) 'sse_boxcox_streamflow = ', single_objective_runoff_master
+    case default
+      call message("Error single_objective_runoff_master:")
+      call message("This opti_function is either not implemented yet or is not a single-objective one.")
+      call message("This part of the code should never be executed.")
+      stop 1
+    end select
+
+  END FUNCTION single_objective_runoff_master
+
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        single_objective_runoff_subprocess
+
+  !    PURPOSE
+  !>       \brief Wrapper for objective functions optimizing agains runoff.
+
+  !>       \details The functions selects the objective function case defined in a namelist,
+  !>       i.e. the global variable \e opti\_function.
+  !>       It return the objective function value for a specific parameter set.
+
+  !    INTENT(IN)
+  !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "real(dp), optional :: arg1"
+
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "real(dp), optional :: arg2"
+  !>       \param[out] "real(dp), optional :: arg3"
+
+  !    RETURN
+  !>       \return real(dp) :: objective &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Juliane Mai
+
+  !>       \date Dec 2012
+
+  ! Modifications:
+  ! Stephan Thober              Oct 2015 - only runoff objective functions
+  ! Stephan Thober, Bjoern Guse May 2018 - added weighted objective function
+  ! Robert Schweppe             Jun 2018 - refactoring and reformatting
+
+
+  subroutine single_objective_runoff_subprocess(eval, arg1, arg2, arg3)
+
+    use mo_common_mHM_mRM_variables, only : opti_function, opti_method
+    use mo_common_mHM_mRM_MPI_tools, only : get_parameterset
+    use mo_common_variables, only : domainMeta
+    use mo_message, only : message
+    use mpi_f08
+
+    implicit none
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    real(dp), optional, intent(in) :: arg1
+
+    real(dp), optional, intent(out) :: arg2
+
+    real(dp), optional, intent(out) :: arg3
+
+    REAL(dp) :: partial_single_objective_runoff
+
+    REAL(dp), DIMENSION(:), allocatable :: parameterset
+
+    integer(i4) :: ierror
+
+    type(MPI_Status) :: status
+
+    logical :: do_obj_loop
+
+
+    do ! a do loop without condition runs until exit
+      call MPI_Recv(do_obj_loop, 1, MPI_LOGICAL, 0, 0, domainMeta%comMaster, status, ierror)
+
+      if (.not. do_obj_loop) exit
+      !write(*,*) 'parameterset: ',parameterset(:)
+      call get_parameterset(parameterset)
+      select case (opti_function)
+      case (1)
+        ! 1.0-nse
+        partial_single_objective_runoff = objective_nse(parameterset, eval)
+      case (2)
+        ! 1.0-lnnse
+        partial_single_objective_runoff = objective_lnnse(parameterset, eval)
+      case (3)
+        ! 1.0-0.5*(nse+lnnse)
+        partial_single_objective_runoff = objective_equal_nse_lnnse(parameterset, eval)
+      case (4)
+        if (opti_method .eq. 0_i4) then
+          ! MCMC
+          stop
+          partial_single_objective_runoff = loglikelihood_stddev(parameterset, eval, arg1, arg2, arg3)
+        else
+          ! -loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed
+          partial_single_objective_runoff = - loglikelihood_stddev(parameterset, eval, 1.0_dp)
+        end if
+      case (5)
+        ! ((1-NSE)**6+(1-lnNSE)**6)**(1/6)
+        partial_single_objective_runoff = objective_power6_nse_lnnse(parameterset, eval)
+      case (6)
+        ! SSE
+        partial_single_objective_runoff = objective_sse(parameterset, eval)
+      case (7)
+        ! -loglikelihood with trend removed from absolute errors
+        stop
+        partial_single_objective_runoff = -loglikelihood_trend_no_autocorr(parameterset, eval, 1.0_dp)
+      case (8)
+        if (opti_method .eq. 0_i4) then
+          ! MCMC
+          stop
+          partial_single_objective_runoff = loglikelihood_evin2013_2(parameterset, eval, regularize = .true.)
+        else
+          ! -loglikelihood of approach 2 of Evin et al. (2013),
+          !  i.e. linear error model with lag(1)-autocorrelation on relative errors
+          partial_single_objective_runoff = -loglikelihood_evin2013_2(parameterset, eval)
+        end if
+
+      case (9)
+        ! KGE
+        partial_single_objective_runoff = objective_kge(parameterset, eval)
+      case (14)
+        ! combination of KGE of every gauging station based on a power-6 norm \n
+        ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6)
+        partial_single_objective_runoff = objective_multiple_gauges_kge_power6(parameterset, eval)
+      case (31)
+         ! weighted NSE with observed streamflow
+         partial_single_objective_runoff = objective_weighted_nse(parameterset, eval)
+      case (32)
+         ! SSE of transformed streamflow
+         partial_single_objective_runoff = objective_sse_boxcox(parameterset, eval)
+      case default
+        call message("Error single_objective_runoff_subprocess:")
+        call message("This opti_function is either not implemented yet or is not a single-objective one.")
+        stop 1
+      end select
+
+      select case (opti_function)
+      case (1 : 3, 5, 6, 9, 14, 31)
+        call MPI_Send(partial_single_objective_runoff,1, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
+      case default
+        call message("Error objective_subprocess: this part should not be executed -> error in the code.")
+        stop 1
+      end select
+      deallocate(parameterset)
+    end do
+
+  END subroutine single_objective_runoff_subprocess
+
+#endif
+
+  ! ------------------------------------------------------------------
 
   !    NAME
   !        multi_objective_runoff
@@ -820,11 +1123,13 @@ CONTAINS
       objective_lnnse = objective_lnnse + &
               lnnse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
     end do
+#ifndef MPI
     ! objective function value which will be minimized
     objective_lnnse = 1.0_dp - objective_lnnse / real(nGaugesTotal, dp)
 
     write(*, *) 'objective_lnnse = ', objective_lnnse
     ! pause
+#endif
 
     deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
 
@@ -907,11 +1212,13 @@ CONTAINS
       objective_sse = objective_sse + &
               sse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
     end do
+#ifndef MPI
     ! objective_sse = objective_sse + sse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
     objective_sse = objective_sse / real(nGaugesTotal, dp)
 
     write(*, *) 'objective_sse = ', objective_sse
     ! pause
+#endif
 
     deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
 
@@ -995,11 +1302,13 @@ CONTAINS
       objective_nse = objective_nse + &
               nse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
     end do
+#ifndef MPI
     ! objective_nse = objective_nse + nse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
     objective_nse = 1.0_dp - objective_nse / real(nGaugesTotal, dp)
 
     write(*, *) 'objective_nse (i.e., 1 - NSE) = ', objective_nse
     ! pause
+#endif
 
     deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
 
@@ -1085,15 +1394,17 @@ CONTAINS
       !
       ! NSE
       objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
-              nse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+              0.5_dp * nse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
       ! lnNSE
       objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
-              lnnse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+              0.5_dp * lnnse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
     end do
+#ifndef MPI
     ! objective function value which will be minimized
-    objective_equal_nse_lnnse = 1.0_dp - 0.5_dp * objective_equal_nse_lnnse / real(nGaugesTotal, dp)
+    objective_equal_nse_lnnse = 1.0_dp - objective_equal_nse_lnnse / real(nGaugesTotal, dp)
 
     write(*, *) 'objective_equal_nse_lnnse = ', objective_equal_nse_lnnse
+#endif
 
     ! clean up
     deallocate(runoff_agg, runoff_obs)
@@ -1102,7 +1413,7 @@ CONTAINS
   END FUNCTION objective_equal_nse_lnnse
 
 
-  ! ------------------------------------------------------------------ 
+  ! ------------------------------------------------------------------
 
   !    NAME
   !        multi_objective_nse_lnnse
@@ -1170,7 +1481,7 @@ CONTAINS
     logical, dimension(:), allocatable :: runoff_obs_mask
 
 
-    ! call mhm_eval(parameterset, runoff=runoff) 
+    ! call mhm_eval(parameterset, runoff=runoff)
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
 
@@ -1186,18 +1497,18 @@ CONTAINS
       multi_objective_nse_lnnse(2) = multi_objective_nse_lnnse(2) + &
               lnnse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
     end do
-    ! objective function value which will be minimized 
+    ! objective function value which will be minimized
     multi_objective_nse_lnnse(:) = 1.0_dp - multi_objective_nse_lnnse(:) / real(nGaugesTotal, dp)
 
-    ! write(*,*) 'multi_objective_nse_lnnse = ',multi_objective_nse_lnnse 
+    ! write(*,*) 'multi_objective_nse_lnnse = ',multi_objective_nse_lnnse
 
-    ! clean up 
+    ! clean up
     deallocate(runoff_agg, runoff_obs)
     deallocate(runoff_obs_mask)
 
   END FUNCTION multi_objective_nse_lnnse
 
-  ! ------------------------------------------------------------------ 
+  ! ------------------------------------------------------------------
 
   !    NAME
   !        multi_objective_lnnse_highflow_lnnse_lowflow
@@ -1293,7 +1604,7 @@ CONTAINS
     logical, dimension(:), allocatable :: highflow_mask
 
 
-    ! call mhm_eval(parameterset, runoff=runoff) 
+    ! call mhm_eval(parameterset, runoff=runoff)
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
 
@@ -1330,19 +1641,19 @@ CONTAINS
       multi_objective_lnnse_highflow_lnnse_lowflow(2) = multi_objective_lnnse_highflow_lnnse_lowflow(2) + &
               lnnse(runoff_obs, runoff_agg, mask = lowflow_mask)
     end do
-    ! objective function value which will be minimized 
+    ! objective function value which will be minimized
     multi_objective_lnnse_highflow_lnnse_lowflow(:) = 1.0_dp &
             - multi_objective_lnnse_highflow_lnnse_lowflow(:) / real(nGaugesTotal, dp)
 
-    ! write(*,*) 'multi_objective_lnnse_highflow_lnnse_lowflow = ',multi_objective_lnnse_highflow_lnnse_lowflow 
+    ! write(*,*) 'multi_objective_lnnse_highflow_lnnse_lowflow = ',multi_objective_lnnse_highflow_lnnse_lowflow
 
-    ! clean up 
+    ! clean up
     deallocate(runoff_agg, runoff_obs)
     deallocate(runoff_obs_mask)
 
   END FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow
 
-  ! ------------------------------------------------------------------ 
+  ! ------------------------------------------------------------------
 
   !    NAME
   !        multi_objective_lnnse_highflow_lnnse_lowflow_2
@@ -1433,7 +1744,7 @@ CONTAINS
     logical, dimension(:), allocatable :: highflow_mask
 
 
-    ! call mhm_eval(parameterset, runoff=runoff) 
+    ! call mhm_eval(parameterset, runoff=runoff)
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
 
@@ -1468,19 +1779,19 @@ CONTAINS
       multi_objective_lnnse_highflow_lnnse_lowflow_2(2) = multi_objective_lnnse_highflow_lnnse_lowflow_2(2) + &
               lnnse(runoff_obs, runoff_agg, mask = lowflow_mask)
     end do
-    ! objective function value which will be minimized 
+    ! objective function value which will be minimized
     multi_objective_lnnse_highflow_lnnse_lowflow_2(:) = 1.0_dp &
             - multi_objective_lnnse_highflow_lnnse_lowflow_2(:) / real(nGaugesTotal, dp)
 
-    ! write(*,*) 'multi_objective_lnnse_highflow_lnnse_lowflow_2 = ',multi_objective_lnnse_highflow_lnnse_lowflow_2 
+    ! write(*,*) 'multi_objective_lnnse_highflow_lnnse_lowflow_2 = ',multi_objective_lnnse_highflow_lnnse_lowflow_2
 
-    ! clean up 
+    ! clean up
     deallocate(runoff_agg, runoff_obs)
     deallocate(runoff_obs_mask)
 
   END FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow_2
 
-  ! ------------------------------------------------------------------ 
+  ! ------------------------------------------------------------------
 
   !    NAME
   !        multi_objective_ae_fdc_lsv_nse_djf
@@ -1545,8 +1856,8 @@ CONTAINS
     ! total number of gauges
     integer(i4) :: nGaugesTotal
 
-    ! basin ID of gauge
-    integer(i4) :: iBasin
+    ! domain ID of gauge
+    integer(i4) :: iDomain
 
     ! measured runoff
     real(dp), dimension(:), allocatable :: runoff_obs
@@ -1588,7 +1899,7 @@ CONTAINS
     real(dp) :: lsv_obs
 
 
-    ! call mhm_eval(parameterset, runoff=runoff) 
+    ! call mhm_eval(parameterset, runoff=runoff)
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
     nquantiles = size(quantiles)
@@ -1606,9 +1917,9 @@ CONTAINS
       allocate(djf_mask(nrunoff))
       djf_mask = .false.
 
-      iBasin = gauge%basinId(gg)
+      iDomain = gauge%domainId(gg)
       do tt = 1, nrunoff
-        current_time = evalPer(iBasin)%julStart + (tt - 1) * 1.0_dp / real(nMeasPerDay, dp)
+        current_time = evalPer(iDomain)%julStart + (tt - 1) * 1.0_dp / real(nMeasPerDay, dp)
         call dec2date(current_time, mm = month)
         if ((month == 1 .or. month == 2 .or. month == 12) .and. runoff_obs_mask(tt)) djf_mask(tt) = .True.
       end do
@@ -1626,7 +1937,7 @@ CONTAINS
       multi_objective_ae_fdc_lsv_nse_djf(2) = multi_objective_ae_fdc_lsv_nse_djf(2) + &
               nse(runoff_obs, runoff_agg, mask = djf_mask)
     end do
-    ! objective function value which will be minimized 
+    ! objective function value which will be minimized
     multi_objective_ae_fdc_lsv_nse_djf(1) = &
             multi_objective_ae_fdc_lsv_nse_djf(1) / real(nGaugesTotal, dp)
     multi_objective_ae_fdc_lsv_nse_djf(2) = 1.0_dp &
@@ -1634,7 +1945,7 @@ CONTAINS
 
     write(*, *) 'multi_objective_ae_fdc_lsv_nse_djf = ', multi_objective_ae_fdc_lsv_nse_djf
 
-    ! clean up 
+    ! clean up
     deallocate(runoff_agg, runoff_obs)
     deallocate(runoff_obs_mask)
 
@@ -1725,11 +2036,13 @@ CONTAINS
               ((1.0_dp - nse(runoff_obs, runoff_agg, mask = runoff_obs_mask))**6 + &
                       (1.0_dp - lnnse(runoff_obs, runoff_agg, mask = runoff_obs_mask))**6)**onesixth
     end do
+#ifndef MPI
     ! objective function value which will be minimized
     objective_power6_nse_lnnse = objective_power6_nse_lnnse / real(nGaugesTotal, dp)
 
     write(*, *) 'objective_power6_nse_lnnse = ', objective_power6_nse_lnnse
     ! pause
+#endif
 
     deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
 
@@ -1821,10 +2134,12 @@ CONTAINS
       objective_kge = objective_kge + &
               kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
     end do
+#ifndef MPI
     ! objective_kge = objective_kge + kge(gauge%Q, runoff_model_agg, runoff_model_agg_mask)
     objective_kge = 1.0_dp - objective_kge / real(nGaugesTotal, dp)
 
     write(*, *) 'objective_kge (i.e., 1 - KGE) = ', objective_kge
+#endif
     ! pause
 
     deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
@@ -1923,8 +2238,10 @@ CONTAINS
       objective_multiple_gauges_kge_power6 = objective_multiple_gauges_kge_power6 + &
               ((1.0_dp - kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)) / real(nGaugesTotal, dp))**6
     end do
+#ifndef MPI
     objective_multiple_gauges_kge_power6 = objective_multiple_gauges_kge_power6**onesixth
     write(*, *) 'objective_multiple_gauges_kge_power6 = ', objective_multiple_gauges_kge_power6
+#endif
 
     deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
 
@@ -2006,15 +2323,120 @@ CONTAINS
        objective_weighted_nse = objective_weighted_nse + &
             wnse( runoff_obs, runoff_agg, mask=runoff_obs_mask)
     end do
+#ifndef MPI
     ! objective_nse = objective_nse + nse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
     objective_weighted_nse = 1.0_dp - objective_weighted_nse / real(nGaugesTotal,dp)
 
     write(*,*) 'objective_weighted_nse (i.e., 1 - wNSE) = ',objective_weighted_nse
     ! pause
+#endif
 
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
 
   END FUNCTION objective_weighted_nse
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_sse_boxcox
+
+  !    PURPOSE
+  !>       \brief Objective function of sum of squared errors of transformed streamflow.
+
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+  !>       Therefore, the sum of squared error \f$ tSSE \f$
+  !>       \f[ tSSE = \sum_{i=1}^N (z(Q_{obs}(i), \lambda) - z(Q_{model}(i), \lambda))^2 \f]
+  !>       is calculated where \f$ z \f$ is the transform and given by
+  !>       \f[ z(x, \lambda) = \frac{x^\lambda -1}{\lambda} \f] for \f$ \lambda \f$ unequal to zero and
+  !>       \f[ z(x, \lambda) = log x \f] for \f$ \lambda \f$ equal to zero.
+  !>       The objective function is
+  !>       \f[ obj\_value = tSSE \f]
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>
+  !>       The boxcox transformation uses a parameter of 0.2, suggested by
+  !>       Woldemeskel et al. Hydrol Earth Syst Sci, 2018 vol. 22 (12) pp. 6257-6278.
+  !>       "Evaluating post-processing approaches for monthly and seasonal streamflow forecasts."
+  !>       https://www.hydrol-earth-syst-sci.net/22/6257/2018/
+
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_sse_boxcox &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Stephan Thober, Dmitri Kavetski
+
+  !>       \date Aug 2019
+
+  FUNCTION objective_sse_boxcox(parameterset, eval)
+
+    use mo_errormeasures, only: SSE
+    use mo_boxcox, only: boxcox
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+
+    real(dp) :: objective_sse_boxcox
+
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:,:) :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
+    integer(i4) :: nGaugesTotal
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for aggregated measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+    ! boxcox parameter
+    real(dp) :: lambda
+
+    ! set box cox transformation to 0.2
+    ! suggested by:
+    ! Woldemeskel et al. Hydrol Earth Syst Sci, 2018 vol. 22 (12) pp. 6257-6278.
+    ! "Evaluating post-processing approaches for monthly and seasonal streamflow forecasts."
+    ! https://www.hydrol-earth-syst-sci.net/22/6257/2018/
+    lambda = 0.2_dp
+
+    call eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2)
+
+    objective_sse_boxcox = 0.0_dp
+    do gg=1, nGaugesTotal
+       !
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       !
+       objective_sse_boxcox = objective_sse_boxcox + &
+            SSE( boxcox(runoff_obs, lambda, mask=runoff_obs_mask), boxcox(runoff_agg, lambda), mask=runoff_obs_mask)
+    end do
+#ifndef MPI
+    ! objective_nse = objective_nse + nse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
+    objective_sse_boxcox = objective_sse_boxcox / real(nGaugesTotal,dp)
+
+    write(*,*) 'objective_sse_boxcox = ',objective_sse_boxcox
+    ! pause
+#endif
+
+    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
+
+  END FUNCTION objective_sse_boxcox
 
 
   ! ------------------------------------------------------------------
@@ -2074,8 +2496,8 @@ CONTAINS
     ! mask of no data values
     logical, dimension(:), allocatable, intent(out) :: runoff_obs_mask
 
-    ! basin id
-    integer(i4) :: iBasin
+    ! domain id
+    integer(i4) :: iDomain
 
     ! timestep counter
     integer(i4) :: tt
@@ -2107,11 +2529,11 @@ CONTAINS
       stop
     end if
 
-    ! extract basin Id from gauge Id
-    iBasin = gauge%basinId(gaugeId)
+    ! extract domain Id from gauge Id
+    iDomain = gauge%domainId(gaugeId)
 
     ! get length of evaluation period times TPD_obs
-    length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_obs
+    length = (evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1) * TPD_obs
 
     ! extract measurements
     if (allocated(runoff_obs)) deallocate(runoff_obs)
@@ -2128,11 +2550,11 @@ CONTAINS
     if (allocated(runoff_agg)) deallocate(runoff_agg)
     allocate(runoff_agg(length))
     ! remove warming days
-    length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_sim
+    length = (evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1) * TPD_sim
     allocate(dummy(length))
-    dummy = runoff(warmingDays(iBasin) * TPD_sim + 1 : warmingDays(iBasin) * TPD_sim + length, gaugeId)
+    dummy = runoff(warmingDays(iDomain) * TPD_sim + 1 : warmingDays(iDomain) * TPD_sim + length, gaugeId)
     ! aggregate runoff
-    length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_obs
+    length = (evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1) * TPD_obs
     forall(tt = 1 : length) runoff_agg(tt) = sum(dummy((tt - 1) * factor + 1 : tt * factor)) / &
             real(factor, dp)
     ! clean up

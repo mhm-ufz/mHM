@@ -1,0 +1,3 @@
+module load Anaconda3
+source activate /global/apps/mhm_checks/mhm_env
+cd check/

@@ -1,28 +1,29 @@
 &directories_general
-    dir_lcover(1) = '../../test_basin/input/luse/'
-    dir_morpho(1) = '../../test_basin/input/morph/'
+    dir_lcover(1) = '../../test_domain/input/luse/'
+    dir_morpho(1) = '../../test_domain/input/morph/'
     dir_out(1) = 'output_b1/b1_'
-    dir_restartout(1) = 'output_b1/b1_'
-    dircommonfiles = '../../test_basin/input/morph/'
+    mhm_file_restartout(1) = 'output_b1/b1_mHM_restart_001.nc'
+    mrm_file_restartout(1) = 'output_b1/b1_mRM_restart_001.nc'
+    dircommonfiles = '../../test_domain/input/morph/'
     dirconfigout = 'output_b1/'
-    file_latlon(1) = '../../test_basin/input/latlon/latlon_1.nc'
+    file_latlon(1) = '../../test_domain/input/latlon/latlon_1.nc'
 /
 
 &directories_mhm
-    dir_absvappressure(1) = '../../test_basin/input/meteo/'
-    dir_maxtemperature(1) = '../../test_basin/input/meteo/'
-    dir_mintemperature(1) = '../../test_basin/input/meteo/'
-    dir_netradiation(1) = '../../test_basin/input/meteo/'
-    dir_precipitation(1) = '../../test_basin/input/meteo/pre/'
-    dir_referenceet(1) = '../../test_basin/input/meteo/pet/'
-    dir_temperature(1) = '../../test_basin/input/meteo/tavg/'
-    dir_windspeed(1) = '../../test_basin/input/meteo/'
+    dir_absvappressure(1) = '../../test_domain/input/meteo/'
+    dir_maxtemperature(1) = '../../test_domain/input/meteo/'
+    dir_mintemperature(1) = '../../test_domain/input/meteo/'
+    dir_netradiation(1) = '../../test_domain/input/meteo/'
+    dir_precipitation(1) = '../../test_domain/input/meteo/pre/'
+    dir_referenceet(1) = '../../test_domain/input/meteo/pet/'
+    dir_temperature(1) = '../../test_domain/input/meteo/tavg/'
+    dir_windspeed(1) = '../../test_domain/input/meteo/'
     inputformat_meteo_forcings = 'nc'
     time_step_model_inputs(1) = -2
 /
 
 &directories_mrm
-    dir_gauges(1) = '../../test_basin/input/gauge/'
+    dir_gauges(1) = '../../test_domain/input/gauge/'
     dir_total_runoff(1) = 'output_b1/'
 /
 
@@ -30,7 +31,7 @@
     gauge_filename(1,1) = '00398.txt'
     gauge_id(1,1) = 398
     ngaugestotal = 1
-    nogauges_basin(1) = 1
+    nogauges_domain(1) = 1
 /
 
 &inflow_gauges
@@ -38,7 +39,7 @@
     inflowgauge_headwater(1,1) = .false.
     inflowgauge_id(1,1) = 398
     ninflowgaugestotal = 0
-    noinflowgauges_basin(1) = 0
+    noinflowgauges_domain(1) = 0
 /
 
 &lai_data_information
@@ -59,14 +60,16 @@
 
 &mainconfig
     iflag_cordinate_sys = 0
-    l0basin(1) = 1
-    nbasins = 1
+    l0domain(1) = 1
+    ndomains = 1
     resolution_hydrology(1) = 24000
     write_restart = .true.
+    read_opt_domain_data(1) = 0
 /
 
 &mainconfig_mhm_mrm
-    dir_restartin(1) = 'restart/b1_'
+    mhm_file_restartin(1) = 'restart/b1_mHM_restart_001.nc'
+    mrm_file_restartin(1) = 'restart/b1_mRM_restart_001.nc'
     opti_function = 3
     opti_method = 1
     optimize = .false.
@@ -118,8 +121,8 @@
     conventions = 'XXX'
     history = 'model run version 1'
     mhm_details = 'Helmholtz Center for Environmental Research - UFZ, Department Computational Hydrosystems, Stochastic Hydrology Group'
-    project_details = 'mHM test basin project'
-    setup_description = 'model run for the Mosel basin, forced with the E-OBS meteorologic data'
+    project_details = 'mHM test domain project'
+    setup_description = 'model run for the Mosel domain, forced with the E-OBS meteorologic data'
     simulation_type = 'historical simulation'
 /
 

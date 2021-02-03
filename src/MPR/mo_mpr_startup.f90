@@ -37,7 +37,7 @@ CONTAINS
   !    PURPOSE
   !>       \brief Initialize main mHM variables
 
-  !>       \details Initialize main mHM variables for a given basin.
+  !>       \details Initialize main mHM variables for a given domain.
   !>       Calls the following procedures in this order:
   !>       - Constant initialization.
   !>       - Generate soil database.
@@ -55,8 +55,8 @@ CONTAINS
 
   ! Modifications:
   ! Luis Samaniego Mar 2008 - fully distributed multilayer
-  ! Rohini Kumar   Oct 2010 - matrix to vector version 
-  !                         - openmp parallelization 
+  ! Rohini Kumar   Oct 2010 - matrix to vector version
+  !                         - openmp parallelization
   !                         - routing level 11
   ! Luis Samaniego Jul 2012 - removal of IMSL dependencies
   ! Luis Samaniego Dec 2012 - modular version
@@ -70,45 +70,47 @@ CONTAINS
 
   subroutine mpr_initialize
 
-    use mo_common_variables, only : L0_Basin, l0_l1_remap, level0, level1, nBasins, resolutionHydrology
-    use mo_grid, only : init_lowres_level, set_basin_indices
+    use mo_common_variables, only : l0_l1_remap, level0, level1, domainMeta, resolutionHydrology
+    use mo_grid, only : init_lowres_level, set_domain_indices
     use mo_kind, only : i4
     use mo_read_latlon, only : read_latlon
     use mo_soil_database, only : generate_soil_database
 
     implicit none
 
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain
 
 
-    ! soilDB common for all basins
+    ! soilDB common for all domains
     call generate_soil_database()
 
-    allocate(level1(nBasins))
-    allocate(l0_l1_remap(nBasins))
+    allocate(level1(domainMeta%nDomains))
+    allocate(l0_l1_remap(domainMeta%nDomains))
 
     ! L0 and L1 initialization
-    do iBasin = 1, nBasins
-      if (iBasin .eq. 1) then
-        call L0_check_input(L0_Basin(iBasin))
-        call L0_variable_init(L0_Basin(iBasin))
-      else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1)) then
+    do iDomain = 1, domainMeta%nDomains
+      if (iDomain .eq. 1) then
+        call L0_check_input(domainMeta%L0DataFrom(iDomain))
+        call L0_variable_init(domainMeta%L0DataFrom(iDomain))
+      ! ToDo: adopt to parallel
+      ! ToDo: check change
+      else if (domainMeta%L0DataFrom(iDomain) == iDomain) then
         ! this needs only be done if there is new input
-        call L0_check_input(L0_Basin(iBasin))
-        call L0_variable_init(L0_Basin(iBasin))
+        call L0_check_input(domainMeta%L0DataFrom(iDomain))
+        call L0_variable_init(domainMeta%L0DataFrom(iDomain))
       end if
 
-      call init_lowres_level(level0(L0_Basin(iBasin)), resolutionHydrology(iBasin), &
-      level1(iBasin), l0_l1_remap(iBasin))
+      call init_lowres_level(level0(domainMeta%L0DataFrom(iDomain)), resolutionHydrology(iDomain), &
+      level1(iDomain), l0_l1_remap(iDomain))
       ! read lat lon coordinates for level 1
-      call read_latlon(iBasin, "lon", "lat", "level1", level1(iBasin))
+      call read_latlon(iDomain, "lon", "lat", "level1", level1(iDomain))
 
       ! Parameter fields have to be allocated in any case
-      call init_eff_params(level1(iBasin)%nCells)
+      call init_eff_params(level1(iDomain)%nCells)
 
     end do
 
-    call set_basin_indices(level1)
+    call set_domain_indices(level1)
 
   end subroutine mpr_initialize
 
@@ -124,7 +126,7 @@ CONTAINS
   !>       \details Check for possible errors in input data (morphological and land cover) at level-0
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin" basin id
+  !>       \param[in] "integer(i4) :: iDomain" domain id
 
   !    HISTORY
   !>       \authors Rohini Kumar
@@ -138,7 +140,7 @@ CONTAINS
   ! Rohini Kumar   Mar 2016 - changes for handling multiple soil database options
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine L0_check_input(iBasin)
+  subroutine L0_check_input(iDomain)
 
     use mo_common_constants, only : eps_dp
     use mo_common_variables, only : L0_LCover, L0_elev, level0, nLCoverScene
@@ -150,35 +152,35 @@ CONTAINS
 
     implicit none
 
-    ! basin id
-    integer(i4), intent(in) :: iBasin
+    ! domain id
+    integer(i4), intent(in) :: iDomain
 
     integer(i4) :: k, n, nH
 
 
     ! START CHECKING VARIABLES
-    do k = level0(iBasin)%iStart, level0(iBasin)%iEnd
+    do k = level0(iDomain)%iStart, level0(iDomain)%iEnd
 
       ! elevation [m]
       if (abs(L0_elev(k) - nodata_dp) .lt. eps_dp) then
-        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iBasin, '(I5)'))
-        call message(' Error: elevation has missing value within the valid masked area at cell in basin ', &
+        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)'))
+        call message(' Error: elevation has missing value within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
       end if
 
       ! slope [%]
       if (abs(L0_slope(k) - nodata_dp) .lt. eps_dp) then
-        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iBasin, '(I5)'))
-        call message(' Error: slope has missing value within the valid masked area at cell in basin ', &
+        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)'))
+        call message(' Error: slope has missing value within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
       end if
 
       ! aspect [degree]
       if (abs(L0_asp(k) - nodata_dp) .lt. eps_dp) then
-        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iBasin, '(I5)'))
-        call message(' Error: aspect has missing values within the valid masked area at cell in basin ', &
+        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)'))
+        call message(' Error: aspect has missing values within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
       end if
@@ -189,8 +191,8 @@ CONTAINS
       ! another option to handle multiple soil horizons properties
       do n = 1, nH
         if (L0_soilId(k, n) .eq. nodata_i4) then
-          message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iBasin, '(I5)')) // ',' // trim(num2str(n, '(I5)'))
-          call message(' Error: soil id has missing values within the valid masked area at cell in basin and horizon ', &
+          message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)')) // ',' // trim(num2str(n, '(I5)'))
+          call message(' Error: soil id has missing values within the valid masked area at cell in domain and horizon ', &
                   trim(message_text))
           stop
         end if
@@ -198,8 +200,8 @@ CONTAINS
 
       ! geological-Id [-]
       if (L0_geoUnit(k) .eq. nodata_i4) then
-        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iBasin, '(I5)'))
-        call message(' Error: geological formation id has missing values within the valid masked area at cell in basin ', &
+        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)'))
+        call message(' Error: geological formation id has missing values within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
       end if
@@ -207,8 +209,8 @@ CONTAINS
       ! landcover scenes
       do  n = 1, nLCoverScene
         if (L0_LCover(k, n) .eq. nodata_i4) then
-          message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iBasin, '(I5)')) // ',' // trim(num2str(n, '(I5)'))
-          call message(' Error: land cover id has missing values within the valid masked area at cell in basin and scene ', &
+          message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)')) // ',' // trim(num2str(n, '(I5)'))
+          call message(' Error: land cover id has missing values within the valid masked area at cell in domain and scene ', &
                   trim(message_text))
           stop
         end if
@@ -217,8 +219,8 @@ CONTAINS
       ! land cover scenes related to LAI
       if(timeStep_LAI_input .EQ. 0) then
         if (eq(L0_gridded_LAI(k, 1), nodata_dp)) then
-          message_text = trim(num2str(k, '(G5.3)')) // ',' // trim(num2str(iBasin, '(I5)'))
-          call message(' Error: gridded LAI has missing values within the valid masked area at cell in basin ', &
+          message_text = trim(num2str(k, '(G5.3)')) // ',' // trim(num2str(iDomain, '(I5)'))
+          call message(' Error: gridded LAI has missing values within the valid masked area at cell in domain ', &
                   trim(message_text))
           stop
         end if
@@ -248,7 +250,7 @@ CONTAINS
   !>       mo_set_netcdf_restart
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin" basin id
+  !>       \param[in] "integer(i4) :: iDomain" domain id
 
   !    HISTORY
   !>       \authors Rohini Kumar
@@ -265,7 +267,7 @@ CONTAINS
   !                                           finding the empirical distribution slope_emp
   ! Robert Schweppe                Jun 2018 - refactoring and reformatting
 
-  subroutine L0_variable_init(iBasin)
+  subroutine L0_variable_init(iDomain)
 
     use mo_append, only : append
     use mo_common_variables, only : level0
@@ -277,8 +279,8 @@ CONTAINS
 
     implicit none
 
-    ! basin id
-    integer(i4), intent(in) :: iBasin
+    ! domain id
+    integer(i4), intent(in) :: iDomain
 
     real(dp), dimension(:), allocatable :: slope_emp
 
@@ -286,30 +288,30 @@ CONTAINS
 
     integer(i4) :: i, j, k, nH, i_sort, i_sortpost
 
-    ! STEPS :: 
+    ! STEPS ::
 
 
     !--------------------------------------------------------
-    ! 1) Estimate each variable locally for a given basin
+    ! 1) Estimate each variable locally for a given domain
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
     !------------------------------------------------------
     ! Assign whether a given soil type is present or not
     !------------------------------------------------------
-    if (iBasin .eq. 1) then
+    if (iDomain .eq. 1) then
       allocate(soilDB%is_present(nSoilTypes))
       soilDB%is_present(:) = 0_i4
     end if
 
-    call L0_grid_setup(level0(iBasin))
+    call L0_grid_setup(level0(iDomain))
 
     !---------------------------------------------------
     ! Estimate empirical distribution of slope
     !---------------------------------------------------
-    allocate(slope_emp(level0(iBasin)%nCells), slope_sorted_index(level0(iBasin)%nCells))
+    allocate(slope_emp(level0(iDomain)%nCells), slope_sorted_index(level0(iDomain)%nCells))
 
     ! get sorted data and sorted indexes to remap later
-    slope_sorted_index = sort_index(L0_slope(level0(iBasin)%iStart : level0(iBasin)%iEnd))
+    slope_sorted_index = sort_index(L0_slope(level0(iDomain)%iStart : level0(iDomain)%iEnd))
 
     ! empirical distribution of slopes = cumulated number points with slopes that are <= the slope at this point
     !
@@ -324,19 +326,19 @@ CONTAINS
     !   |__________________         |__________________
     !
     ! highest slope value = highest rank or No. of data points / (data points + 1)
-    slope_emp(slope_sorted_index(level0(iBasin)%nCells)) = real(level0(iBasin)%nCells, dp) / &
-            real(level0(iBasin)%nCells + 1_i4, dp)
+    slope_emp(slope_sorted_index(level0(iDomain)%nCells)) = real(level0(iDomain)%nCells, dp) / &
+            real(level0(iDomain)%nCells + 1_i4, dp)
 
     ! backward loop to check if the preceding data point has the same slope value
-    do i = level0(iBasin)%nCells - 1, 1, -1
+    do i = level0(iDomain)%nCells - 1, 1, -1
       i_sort=slope_sorted_index(i)
       i_sortpost=slope_sorted_index(i+1)
-      if (eq(L0_slope(level0(iBasin)%iStart-1_i4+i_sort), L0_slope(level0(iBasin)%iStart-1_i4+i_sortpost))) then
+      if (eq(L0_slope(level0(iDomain)%iStart-1_i4+i_sort), L0_slope(level0(iDomain)%iStart-1_i4+i_sortpost))) then
         ! if yes: assign the same probabitity
         slope_emp(i_sort) = slope_emp(i_sortpost)
       else
         ! if not: assign rank / (data points + 1)
-        slope_emp(i_sort) = real(i, dp) / real(level0(iBasin)%nCells + 1_i4, dp)
+        slope_emp(i_sort) = real(i, dp) / real(level0(iDomain)%nCells + 1_i4, dp)
       end if
     end do
 
@@ -355,7 +357,7 @@ CONTAINS
     nH = 1_i4 !> by default; when iFlag_soilDB = 0
     if (iFlag_soilDB .eq. 1) nH = nSoilHorizons_mHM
     do i = 1, nH
-      do k = level0(iBasin)%iStart, level0(iBasin)%iEnd
+      do k = level0(iDomain)%iStart, level0(iDomain)%iEnd
         j = L0_soilId(k, i)
         soilDB%is_present(j) = 1_i4
       end do
@@ -376,7 +378,7 @@ CONTAINS
   !>       \brief Allocation of space for mHM related L1 and L11 variables.
 
   !>       \details Allocation of space for mHM related L1 and L11 variables (e.g., states,
-  !>       fluxes, and parameters) for a given basin. Variables allocated here is
+  !>       fluxes, and parameters) for a given domain. Variables allocated here is
   !>       defined in them mo_global_variables.f90 file. After allocating any variable
   !>       in this routine, initalize them in the following variables_default_init
   !>       subroutine:
@@ -399,7 +401,8 @@ CONTAINS
   subroutine init_eff_params(ncells1)
 
     use mo_append, only : append
-    use mo_common_constants, only : P1_InitStateFluxes, YearMonths_i4
+    use mo_constants, only : YearMonths_i4
+    use mo_common_constants, only : P1_InitStateFluxes
     use mo_common_variables, only : nLCoverScene
     use mo_mpr_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, &
                                         L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &

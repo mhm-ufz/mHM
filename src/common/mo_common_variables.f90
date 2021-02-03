@@ -18,6 +18,9 @@
 module mo_common_variables
 
   use mo_kind, only : i4, i8, dp
+#ifdef MPI
+  USE mpi_f08
+#endif
   implicit none
 
   ! -------------------------------------------------------------------
@@ -36,15 +39,15 @@ module mo_common_variables
   ! -------------------------------------------------------------------
   integer(i4), public :: iFlag_cordinate_sys        ! options model for the run cordinate system
   real(dp), dimension(:), allocatable, public :: resolutionHydrology        ! [m or degree] resolution of hydrology - Level 1
-  integer(i4), dimension(:), allocatable, public :: L0_Basin
-  integer(i4), dimension(:), allocatable, public :: L11_Basin
+  integer(i4), dimension(:), allocatable, public :: L0_Domain
   logical, public :: write_restart              ! flag
 
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
-  ! has the dimension of nBasins
-  character(256), dimension(:), allocatable, public :: dirRestartOut ! Directory where output of restart is written
+  ! has the dimension of nDomains
+  character(256), dimension(:), allocatable, public :: mhmFileRestartOut ! Directory where output of restart is written
+  character(256), dimension(:), allocatable, public :: mrmFileRestartOut ! Directory where output of restart is written
   character(256), public :: dirConfigOut
   character(256), public :: dirCommonFiles ! directory where common input files should be located
   character(256), dimension(:), allocatable, public :: dirMorpho ! Directory where morphological files are located
@@ -71,7 +74,7 @@ module mo_common_variables
   ! GRID description
   ! -------------------------------------------------------------------
   type Grid
-    ! general basin information
+    ! general domain information
     integer(i4) :: ncols     ! Number of columns
     integer(i4) :: nrows     ! Number of rows
     integer(i4) :: nCells     ! Number of rows
@@ -83,8 +86,8 @@ module mo_common_variables
     real(dp), dimension(:, :), allocatable :: y  ! 2d latitude  array (unmasked version is needed for output anyway)
     logical, dimension(:, :), allocatable :: mask  ! the mask for valid cells in the original grid (nrows*ncols)
     ! for referencing values in the nValidCells vector
-    integer(i4) :: iStart          ! Starting cell index of a given basin
-    integer(i4) :: iEnd            ! Ending cell index of a given basin
+    integer(i4) :: iStart          ! Starting cell index of a given domain
+    integer(i4) :: iEnd            ! Ending cell index of a given domain
     ! dimension(nCells, (x,y) )
     integer(i4), dimension(:, :), allocatable :: CellCoor  ! this is only used for mRM
     real(dp), dimension(:), allocatable :: CellArea  ! area of the cell in sq m
@@ -110,8 +113,6 @@ module mo_common_variables
   end type GridRemapper
 
   type(GridRemapper), dimension(:), allocatable, public :: l0_l1_remap  ! grid information at morphological level (e.g., dem, fDir)
-  type(GridRemapper), dimension(:), allocatable, public :: l0_l11_remap ! grid information at morphological level (e.g., dem, fDir)
-  type(GridRemapper), dimension(:), allocatable, public :: l1_l11_remap ! grid information at morphological level (e.g., dem, fDir)
 
   ! -------------------------------------------------------------------
   ! L0 DOMAIN description -> <only domain>
@@ -124,11 +125,41 @@ module mo_common_variables
   !                                                                          ! dim1=number grid cells, dim2=Number of land cover scenes
   !                                                                          ! target variable for coupling to mRM
 
+#ifdef MPI
   ! -------------------------------------------------------------------
-  ! BASIN general description
+  ! MPI variables
+  type(MPI_Comm)      :: comm                ! MPI communicator
+#endif
   ! -------------------------------------------------------------------
-  integer(i4), public :: nBasins ! Number of basins for multi-basin optimization
-  integer(i4), public :: nuniquel0Basins ! Number of unique basins for L0
+  !
+  ! -------------------------------------------------------------------
+  ! DOMAIN general description
+  ! -------------------------------------------------------------------
+  type domain_meta
+    integer(i4)                            :: nDomains
+    integer(i4)                            :: overallNumberOfDomains  ! Number of domains for multi-domain optimization
+    integer(i4), dimension(:), allocatable :: indices
+    integer(i4), dimension(:), allocatable :: L0DataFrom
+    ! optidata saves for each domain which optional data is assigned to it
+    ! (0) default: the program decides. If you are confused, choose 0
+    ! (1) runoff
+    ! (2) sm
+    ! (3) tws
+    ! (4) neutons
+    ! (5) et
+    ! (6) et & tws
+    integer(i4), dimension(:), allocatable :: optidata
+    logical,     dimension(:), allocatable :: doRouting
+#ifdef MPI
+    logical                                :: isMasterInComLocal  ! true if the process is master proc in comLocal
+    type(MPI_Comm)                         :: comMaster ! the communicater the domains are using to send messages to each other
+                                                        ! here are all processes wich have rank 0 in comLocal
+    type(MPI_Comm)                         :: comLocal  ! the communicater the domain internal communication takes place
+#endif
+  end type domain_meta
+
+  type(domain_meta), public :: domainMeta
+  integer(i4), public :: nuniqueL0Domains ! Number of unique domains for L0
 
   ! -----------------------------------------------------------------
   ! LAND COVER DATA
@@ -142,7 +173,7 @@ module mo_common_variables
   ! -------------------------------------------------------------------
   ! PROCESSES description
   ! -------------------------------------------------------------------
-  integer(i4), parameter, public :: nProcesses = 10 ! Number of possible processes to consider
+  integer(i4), parameter, public :: nProcesses = 11 ! Number of possible processes to consider
   !                                                                !   process 1 :: interception
   !                                                                !   process 2 :: snow
   !                                                                !   process 3 :: soilmoisture
@@ -153,6 +184,7 @@ module mo_common_variables
   !                                                                !   process 8 :: routing
   !                                                                !   process 9 :: baseflow
   !                                                                !   process 10:: neutrons
+  !                                                                !   process 11:: river temperature routing
   integer(i4), dimension(nProcesses, 3), public :: processMatrix   ! Info about which process runs in which option and
   !                                                                ! number of parameters necessary for this option
   !                                                                !   col1: process_switch

@@ -1,7 +1,7 @@
 
 ! Emacs: -*- mode: f90 -*-
 !1)  First give the timestep for writing gridded model outputs
-!    It should be integer and has to be perfectly divisible 
+!    It should be integer and has to be perfectly divisible
 !    by the number of total modeling time steps
 !2) Define main outputs of the model as namelist
 !   the particular output flag is specified as .TRUE. / .FALSE
@@ -23,5 +23,6 @@ timeStep_model_outputs_mrm = -1
 !
 ! routed streamflow (Qrouted in output flux) (L11_qMod)     [m3 s-1]    -- case  1
 outputFlxState_mrm(1)=.TRUE.
+! routed temperature (only if do_calc_river_temp)     [K]
+outputFlxState_mrm(2)=.TRUE.
 /
-

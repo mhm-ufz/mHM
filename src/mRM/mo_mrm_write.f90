@@ -26,11 +26,6 @@ module mo_mrm_write
 
   private
 
-  ! counters for write_output_fluxes
-  integer(i4) :: day_counter ! for daily output
-  integer(i4) :: month_counter ! for monthly output
-  integer(i4) :: year_counter ! for yearly output
-  integer(i4) :: average_counter ! for averaging output
   type(OutputDataset) :: nc ! netcdf Output Dataset
 
 contains
@@ -59,14 +54,14 @@ contains
   subroutine mrm_write
 
     use mo_common_mhm_mrm_variables, only : evalPer, mrm_coupling_mode, nTstepDay, simPer, warmingDays
-    use mo_common_variables, only : dirRestartOut, nBasins, write_restart
-    use mo_mrm_global_variables, only : basin_mrm, &
+    use mo_common_variables, only : mrmFileRestartOut, domainMeta, write_restart
+    use mo_mrm_global_variables, only : domain_mrm, &
                                         gauge, mRM_runoff, nGaugesTotal
     use mo_mrm_restart, only : mrm_write_restart
 
     implicit none
 
-    integer(i4) :: iBasin
+    integer(i4) :: domainID, iDomain
 
     integer(i4) :: iDay, iS, iE
 
@@ -90,42 +85,47 @@ contains
     ! WRITE RESTART
     ! --------------------------------------------------------------------------
     if (write_restart) then
-      do iBasin = 1, nBasins
-        call mrm_write_restart(iBasin, dirRestartOut)
+      do iDomain = 1, domainMeta%nDomains
+        domainID = domainMeta%indices(iDomain)
+        if (domainMeta%doRouting(iDomain)) call mrm_write_restart(iDomain, domainID, mrmFileRestartOut)
       end do
     end if
 
     ! --------------------------------------------------------------------------
-    ! STORE DAILY DISCHARGE TIMESERIES OF EACH GAUGING STATION 
+    ! STORE DAILY DISCHARGE TIMESERIES OF EACH GAUGING STATION
     ! FOR SIMULATIONS DURING THE EVALUATION PERIOD
     !
     !  **** AT DAILY TIME STEPS ****
     ! Note:: Observed Q are stored only for the evaluation period and not for
     !        the warming days
     ! --------------------------------------------------------------------------
-    ii = maxval(evalPer(1 : nBasins)%julEnd - evalPer(1 : nBasins)%julStart + 1)
+    ii = maxval(evalPer(1 : domainMeta%nDomains)%julEnd - evalPer(1 : domainMeta%nDomains)%julStart + 1)
     allocate(d_Qmod(ii, nGaugesTotal))
     d_Qmod = 0.0_dp
 
-    ! loop over basins
-    do ii = 1, nBasins
-      nTimeSteps = (simPer(ii)%julEnd - simPer(ii)%julStart + 1) * NTSTEPDAY
-      iDay = 0
-      ! loop over timesteps
-      do tt = warmingDays(ii) * NTSTEPDAY + 1, nTimeSteps, NTSTEPDAY
-        iS = tt
-        iE = tt + NTSTEPDAY - 1
-        iDay = iDay + 1
-        ! over gauges
-        do gg = 1, basin_mrm(ii)%nGauges
-          d_Qmod(iDay, basin_mrm(ii)%gaugeIndexList(gg)) = &
-                  sum(mRM_runoff(iS : iE, basin_mrm(ii)%gaugeIndexList(gg))) / real(NTSTEPDAY, dp)
+    ! loop over domains
+    do iDomain = 1, domainMeta%nDomains
+      if (domainMeta%doRouting(iDomain)) then
+        domainID = domainMeta%indices(iDomain)
+        nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * NTSTEPDAY
+        iDay = 0
+        ! loop over timesteps
+        do tt = warmingDays(iDomain) * NTSTEPDAY + 1, nTimeSteps, NTSTEPDAY
+          iS = tt
+          iE = tt + NTSTEPDAY - 1
+          iDay = iDay + 1
+          ! over gauges
+          do gg = 1, domain_mrm(iDomain)%nGauges
+            d_Qmod(iDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
+                    sum(mRM_runoff(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(NTSTEPDAY, dp)
+          end do
+          !
         end do
-        !
-      end do
+      end if
     end do
-    ! write in an ASCII file          ! OBS[nModeling_days X nGauges_total] , SIM[nModeling_days X nGauges_total] 
-    call write_daily_obs_sim_discharge(gauge%Q(:, :), d_Qmod(:, :))
+    ! write in an ASCII file          ! OBS[nModeling_days X nGauges_total] , SIM[nModeling_days X nGauges_total]
+    ! ToDo: is this if statement reasonable
+    if (allocated(gauge%Q)) call write_daily_obs_sim_discharge(gauge%Q(:, :), d_Qmod(:, :))
     ! free space
     deallocate(d_Qmod)
   end subroutine mrm_write
@@ -159,24 +159,25 @@ contains
     use mo_common_file, only : file_config, uconfig
     use mo_common_mHM_mRM_variables, only : LCyearId, SimPer, evalPer, mrm_coupling_mode, read_restart, &
                                             resolutionRouting, timeStep, warmPer
-    use mo_common_variables, only : L0_Basin, LC_year_end, LC_year_start, LCfilename, &
-                                    dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, global_parameters, &
-                                    global_parameters_name, level0, level1, nBasins, nLCoverScene, processMatrix, &
+    use mo_common_variables, only : LC_year_end, LC_year_start, LCfilename, &
+                                    dirConfigOut, dirLCover, dirMorpho, dirOut, mrmFileRestartOut, global_parameters, &
+                                    global_parameters_name, level0, level1, domainMeta, nLCoverScene, processMatrix, &
                                     resolutionHydrology, write_restart
     use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_mrm_file, only : version
     use mo_mrm_global_variables, only : InflowGauge, L11_L1_Id, L11_fromN, L11_label, &
-                                        L11_length, L11_netPerm, L11_rOrder, L11_slope, L11_toN, L1_L11_Id, basin_mrm, &
+                                        L11_length, L11_netPerm, L11_rOrder, L11_slope, L11_toN, L1_L11_Id, domain_mrm, &
                                         dirGauges, dirTotalRunoff, gauge, level11, nGaugesTotal, nInflowGaugesTotal
     use mo_string_utils, only : num2str
     use mo_utils, only : ge
+    use mo_os, only : path_isdir
 
     implicit none
 
     character(256) :: fName
 
-    integer(i4) :: i, j, n
+    integer(i4) :: i, iDomain, domainID, j
 
     integer(i4) :: err
 
@@ -184,6 +185,8 @@ contains
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_config))
     call message()
     call message('  Log-file written to ', trim(fName))
+    !checking whether the directory exists where the file shall be created or opened
+    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
     open(uconfig, file = fName, status = 'unknown', action = 'write', iostat = err)
     if (err .ne. 0) then
       call message('  Problems while creating File')
@@ -197,57 +200,60 @@ contains
     write(uconfig, 100)
     write(uconfig, 201) '         M A I N  mRM  C O N F I G U R A T I O N  I N F O R M A T I O N         '
     write(uconfig, 100)
-    write(uconfig, 103) 'Number of basins            ', nBasins
+    write(uconfig, 103) 'Number of domains            ', domainMeta%nDomains
     write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
     write(uconfig, 103)    'Time Step [h]               ', timeStep
-    do i = 1, nBasins
-      write(uconfig, 103) 'Total No. of nodes          ', level11(i)%nCells
-      write(uconfig, 103) 'No. of cells L0             ', level0(L0_Basin(i))%nCells
-      write(uconfig, 103) 'No. of cells L1             ', level1(i)%nCells
-      write(uconfig, 103) 'No. of cells L11            ', level11(i)%nCells
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      write(uconfig, 103) 'Total No. of nodes          ', level11(iDomain)%nCells
+      write(uconfig, 103) 'No. of cells L0             ', level0(domainMeta%L0DataFrom(iDomain))%nCells
+      write(uconfig, 103) 'No. of cells L1             ', level1(iDomain)%nCells
+      write(uconfig, 103) 'No. of cells L11            ', level11(iDomain)%nCells
 
       !    select case (iFlag_cordinate_sys)
       !    case (0)
-      write(uconfig, 301)      'Basin  ', i, '   Hydrology Resolution [m]      ', resolutionHydrology(i)
-      write(uconfig, 301)   'Basin  ', i, '   Routing Resolution [m]        ', resolutionRouting(i)
+      write(uconfig, 301)      'domain  ', domainID, '   Hydrology Resolution [m]      ', resolutionHydrology(iDomain)
+      write(uconfig, 301)   'domain  ', domainID, '   Routing Resolution [m]        ', resolutionRouting(iDomain)
       !    case(1)
-      !      write(uconfig, 302)       'Basin  ',i, '   Hydrology Resolution [o]      ', resolutionHydrology(i)
-      !      write(uconfig, 302)   'Basin  ',i, '   Routing Resolution [o]        ', resolutionRouting(i)
+      !      write(uconfig, 302)       'domain  ',domainID, '   Hydrology Resolution [o]      ', resolutionHydrology(iDomain)
+      !      write(uconfig, 302)   'domain  ',domainID, '   Routing Resolution [o]        ', resolutionRouting(iDomain)
       !    end select
     end do
     write(uconfig, 126)    'Flag READ  restart            ', read_restart
     write(uconfig, 126)    'Flag WRITE restart            ', write_restart
     !
     !******************
-    ! Model Run period 
+    ! Model Run period
     !******************
-    do j = 1, nBasins
-      write(uconfig, 115) '                      Model Run Periods for Basin ', num2str(j)
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      write(uconfig, 115) '                      Model Run Periods for domain ', num2str(domainID)
       write(uconfig, 116) &
               'From                To', &
               '   Day Month  Year   Day Month  Year'
       write(uconfig, 117)  &
               'Warming Period (1)            ', &
-              warmPer(j)%dStart, warmPer(j)%mStart, warmPer(j)%yStart, &
-              warmPer(j)%dEnd, warmPer(j)%mEnd, warmPer(j)%yEnd, &
+              warmPer(iDomain)%dStart, warmPer(iDomain)%mStart, warmPer(iDomain)%yStart, &
+              warmPer(iDomain)%dEnd, warmPer(iDomain)%mEnd, warmPer(iDomain)%yEnd, &
               'Evaluation Period (2)         ', &
-              evalPer(j)%dStart, evalPer(j)%mStart, evalPer(j)%yStart, &
-              evalPer(j)%dEnd, evalPer(j)%mEnd, evalPer(j)%yEnd, &
+              evalPer(iDomain)%dStart, evalPer(iDomain)%mStart, evalPer(iDomain)%yStart, &
+              evalPer(iDomain)%dEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%yEnd, &
               'Simulation Period (1)+(2)     ', &
-              SimPer(j)%dStart, SimPer(j)%mStart, SimPer(j)%yStart, &
-              SimPer(j)%dEnd, SimPer(j)%mEnd, SimPer(j)%yEnd
+              SimPer(iDomain)%dStart, SimPer(iDomain)%mStart, SimPer(iDomain)%yStart, &
+              SimPer(iDomain)%dEnd, SimPer(iDomain)%mEnd, SimPer(iDomain)%yEnd
     end do
 
     !*********************************
-    ! Model Land Cover Observations 
+    ! Model Land Cover Observations
     !*********************************
     if (processMatrix(8, 1) .eq. 1) then
-      do j = 1, nBasins
-        write(uconfig, 118) '       Land Cover Observations for Basin ', num2str(i)
+      do iDomain = 1, domainMeta%nDomains
+        domainID = domainMeta%indices(iDomain)
+        write(uconfig, 118) '       Land Cover Observations for domain ', num2str(domainID)
         write(uconfig, 119) ' Start Year', ' End Year', '    Land cover scene', 'Land Cover File'
         do i = 1, nLCoverScene
           write(uconfig, 120) LC_year_start(i), LC_year_end(i), &
-                  LCyearId(max(evalPer(j)%yStart, LC_year_start(i)), j), trim(LCfilename(i))
+                  LCyearId(max(evalPer(iDomain)%yStart, LC_year_start(i)), iDomain), trim(LCfilename(i))
         end do
       end do
     end if
@@ -265,46 +271,47 @@ contains
               i, global_parameters(i, 1), global_parameters(i, 2), global_parameters(i, 3), &
               trim(adjustl(global_parameters_name(i)))
     end do
-    ! basin runoff data
-    write(uconfig, 202) '                Basin Runoff Data                '
-    write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
+    ! domain runoff data
+    write(uconfig, 202) '                domain Runoff Data                '
+    write(uconfig, 107) ' Gauge No.', '  domain Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
     do i = 1, nGaugesTotal
       if(any(gauge%Q(:, i) > nodata_dp)) then
-        write(uconfig, 108) i, gauge%basinId(i), maxval(gauge%Q(:, i), gauge%Q(:, i) > nodata_dp), &
+        write(uconfig, 108) i, gauge%domainId(i), maxval(gauge%Q(:, i), gauge%Q(:, i) > nodata_dp), &
                 minval(gauge%Q(:, i), gauge%Q(:, i) > nodata_dp)
       else
-        write(uconfig, 108) i, gauge%basinId(i), nodata_dp, nodata_dp
+        write(uconfig, 108) i, gauge%domainId(i), nodata_dp, nodata_dp
       end if
     end do
     ! inflow gauge data
     if (nInflowGaugesTotal .GT. 0) then
-      write(uconfig, 202) '                Basin Inflow Data                 '
-      write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
+      write(uconfig, 202) '                domain Inflow Data                 '
+      write(uconfig, 107) ' Gauge No.', '  domain Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
       do i = 1, nInflowGaugesTotal
         if(all(InflowGauge%Q(:, i) > nodata_dp)) then
-          write(uconfig, 108) i, InflowGauge%basinId(i), maxval(InflowGauge%Q(:, i), InflowGauge%Q(:, i) > nodata_dp), &
+          write(uconfig, 108) i, InflowGauge%domainId(i), maxval(InflowGauge%Q(:, i), InflowGauge%Q(:, i) > nodata_dp), &
                   minval(InflowGauge%Q(:, i), InflowGauge%Q(:, i) > nodata_dp)
         else
-          write(uconfig, 108) i, InflowGauge%basinId(i), nodata_dp, nodata_dp
+          write(uconfig, 108) i, InflowGauge%domainId(i), nodata_dp, nodata_dp
         end if
       end do
     end if
-    ! basin config
-    write(uconfig, 218) 'Basin-wise Configuration'
-    do n = 1, nBasins
-      write(uconfig, 103) 'Basin No.                   ', n, &
-              'No. of gauges               ', basin_mrm(n)%nGauges
+    ! domain config
+    write(uconfig, 218) 'domain-wise Configuration'
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      write(uconfig, 103) 'domain No.                   ', domainID, &
+              'No. of gauges               ', domain_mrm(iDomain)%nGauges
 
       write(uconfig, 222)   'Directory list'
 
-      write(uconfig, 224) 'Directory to morphological input         ', dirMorpho(n)
-      write(uconfig, 224) 'Directory to land cover input            ', dirLCover(n)
-      write(uconfig, 224) 'Directory to gauging station input       ', dirGauges(n)
+      write(uconfig, 224) 'Directory to morphological input         ', dirMorpho(iDomain)
+      write(uconfig, 224) 'Directory to land cover input            ', dirLCover(iDomain)
+      write(uconfig, 224) 'Directory to gauging station input       ', dirGauges(iDomain)
       if (mrm_coupling_mode .eq. 0) then
-        write(uconfig, 224) 'Directory to simulated runoff input      ', dirTotalRunoff(n)
+        write(uconfig, 224) 'Directory to simulated runoff input      ', dirTotalRunoff(iDomain)
       end if
-      write(uconfig, 224) 'Directory to write output by default     ', dirOut(n)
-      write(uconfig, 224) 'Directory to write output when restarted ', dirRestartOut(n)
+      write(uconfig, 224) 'Directory to write output by default     ', dirOut(iDomain)
+      write(uconfig, 224) 'File to write mRM output when restarted  ', mrmFileRestartOut(iDomain)
 
       write(uconfig, 102) 'River Network  (Routing level)'
       write(uconfig, 100) 'Label 0 = intermediate draining cell '
@@ -335,8 +342,8 @@ contains
                 '      [km]', &
                 '    [o/oo]'
         !
-        do j = level11(n)%iStart, level11(n)%iEnd - 1
-          i = L11_netPerm(j) + level11(n)%iStart - 1 ! adjust permutation for multi-basin option
+        do j = level11(iDomain)%iStart, level11(iDomain)%iEnd - 1
+          i = L11_netPerm(j) + level11(iDomain)%iStart - 1 ! adjust permutation for multi-domain option
           write(uconfig, 106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
                   L11_length(i) / 1000.0_dp, L11_slope(i) * 1.0e3_dp
         end do
@@ -359,33 +366,35 @@ contains
                 '', &
                 ''
         !
-        do j = level11(n)%iStart, level11(n)%iEnd - 1
-          i = L11_netPerm(j) + level11(n)%iStart - 1 ! adjust permutation for multi-basin option
+        do j = level11(iDomain)%iStart, level11(iDomain)%iEnd - 1
+          i = L11_netPerm(j) + level11(iDomain)%iStart - 1 ! adjust permutation for multi-domain option
           write(uconfig, 136) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i)
         end do
       end if
       ! draining node at L11
-      write(uconfig, 109)  '   Overall', '     Basin', &
+      write(uconfig, 109)  '   Overall', '     domain', &
               '      Cell', '   Routing', &
               '        Id', '   Node Id'
-      do i = level11(n)%Id(1), level11(n)%Id(level11(n)%nCells)
-        write(uconfig, 110) i + level11(n)%iStart - 1, i
+      do i = level11(iDomain)%Id(1), level11(iDomain)%Id(level11(iDomain)%nCells)
+        write(uconfig, 110) i + level11(iDomain)%iStart - 1, i
       end do
 
       ! L1 level information
       write(uconfig, 111)  '  Modeling', '   Routing', ' Effective', &
               '      Cell', '   Cell Id', '      Area', &
               '        Id', '       [-]', '     [km2]'
-      if (ge(resolutionRouting(n), resolutionHydrology(n))) then
-        do i = level1(n)%Id(1), level1(n)%Id(level1(n)%nCells)
-          write(uconfig, 113) i + level1(n)%iStart - 1, L1_L11_Id (i + level1(n)%iStart - 1), level1(n)%CellArea(i) * 1.E-6_dp
+      if (ge(resolutionRouting(iDomain), resolutionHydrology(iDomain))) then
+        do i = level1(iDomain)%Id(1), level1(iDomain)%Id(level1(iDomain)%nCells)
+          write(uconfig, 113) i + level1(iDomain)%iStart - 1, L1_L11_Id (i + level1(iDomain)%iStart - 1), &
+            level1(iDomain)%CellArea(i) * 1.E-6_dp
+      domainID = domainMeta%indices(iDomain)
         end do
       else
-        do i = level11(n)%Id(1), level11(n)%Id(level11(n)%nCells)
-          write(uconfig, 110) i + level11(n)%iStart - 1, L11_L1_Id (i + level11(n)%iStart - 1)
+        do i = level11(iDomain)%Id(1), level11(iDomain)%Id(level11(iDomain)%nCells)
+          write(uconfig, 110) i + level11(iDomain)%iStart - 1, L11_L1_Id (i + level11(iDomain)%iStart - 1)
         end do
       end if
-      write(uconfig, 114)  ' Total[km2]', sum(level1(n)%CellArea) * 1.E-6_dp
+      write(uconfig, 114)  ' Total[km2]', sum(level1(iDomain)%CellArea) * 1.E-6_dp
     end do
 
     write(uconfig, *)
@@ -466,13 +475,14 @@ contains
 
   subroutine write_daily_obs_sim_discharge(Qobs, Qsim)
 
+    use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_common_variables, only : dirOut, nBasins
+    use mo_common_variables, only : dirOut, domainMeta
     use mo_errormeasures, only : kge, nse
     use mo_julian, only : dec2date
     use mo_message, only : message
     use mo_mrm_file, only : file_daily_discharge, ncfile_discharge, udaily_discharge
-    use mo_mrm_global_variables, only : basin_mrm, gauge
+    use mo_mrm_global_variables, only : domain_mrm, gauge
     use mo_ncwrite, only : var2nc
     use mo_string_utils, only : num2str
     use mo_utils, only : ge
@@ -488,7 +498,7 @@ contains
     character(256) :: fName, formHeader, formData, dummy
     character(256), dimension(1) :: dnames
 
-    integer(i4) :: bb, gg, tt, err
+    integer(i4) :: domainID, iDomain, gg, tt, err
 
     integer(i4) :: igauge_start, igauge_end
 
@@ -507,15 +517,16 @@ contains
     ! initalize igauge_start
     igauge_start = 1
 
-    ! basin loop
-    do bb = 1, nBasins
-      if(basin_mrm(bb)%nGauges .lt. 1) cycle
+    ! domain loop
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      if(domain_mrm(iDomain)%nGauges .lt. 1) cycle
 
       ! estimate igauge_end
-      igauge_end = igauge_start + basin_mrm(bb)%nGauges - 1
+      igauge_end = igauge_start + domain_mrm(iDomain)%nGauges - 1
 
       ! check the existance of file
-      fName = trim(adjustl(dirOut(bb))) // trim(adjustl(file_daily_discharge))
+      fName = trim(adjustl(dirOut(iDomain))) // trim(adjustl(file_daily_discharge))
       open(udaily_discharge, file = trim(fName), status = 'unknown', action = 'write', iostat = err)
       if(err .ne. 0) then
         call message ('  IOError while openening ', trim(fName))
@@ -524,18 +535,18 @@ contains
       end if
 
       ! header
-      write(formHeader, *) '( 4a8, ', basin_mrm(bb)%nGauges, '(2X, a5, i10.10, 2X, a5, i10.10) )'
+      write(formHeader, *) '( 4a8, ', domain_mrm(iDomain)%nGauges, '(2X, a5, i10.10, 2X, a5, i10.10) )'
       write(udaily_discharge, formHeader) 'No', 'Day', 'Mon', 'Year', &
               ('Qobs_', gauge%gaugeId(gg), &
                       'Qsim_', gauge%gaugeId(gg), gg = igauge_start, igauge_end)
 
       ! form data
-      write(formData, *) '( 4I8, ', basin_mrm(bb)%nGauges, '(2X,   f15.7 , 2X,  f15.7  ) )'
+      write(formData, *) '( 4I8, ', domain_mrm(iDomain)%nGauges, '(2X,   f15.7 , 2X,  f15.7  ) )'
 
       ! write data
-      newTime = real(evalPer(bb)%julStart, dp) - 0.5_dp
+      newTime = real(evalPer(iDomain)%julStart, dp) - 0.5_dp
 
-      do tt = 1, (evalPer(bb)%julEnd - evalPer(bb)%julStart + 1)
+      do tt = 1, (evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1)
         call dec2date(newTime, yy = year, mm = month, dd = day)
         write(udaily_discharge, formData) tt, day, month, year, (Qobs(tt, gg), Qsim(tt, gg), gg = igauge_start, igauge_end)
         newTime = newTime + 1.0_dp
@@ -549,38 +560,56 @@ contains
       ! ======================================================================
       dnames(1) = 'time'
       ! dnames(2) = 'gauges'
-      fName = trim(adjustl(dirOut(bb))) // trim(adjustl(ncfile_discharge))
-      tlength = evalPer(bb)%julEnd - evalPer(bb)%julStart + 1
+      fName = trim(adjustl(dirOut(iDomain))) // trim(adjustl(ncfile_discharge))
+      tlength = evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1
       create = .true.
       do gg = igauge_start, igauge_end
         ! write simulated discharge at that gauge
-        call var2nc(trim(fName), Qsim(1 : tlength, gg), &
-                dnames(1 : 1), 'Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), create = create, &
-                units = 'm3 s-1', long_name = 'simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')))
+        call var2nc( &
+          f_name = trim(fName), &
+          arr = Qsim(1 : tlength, gg), &
+          dnames = dnames(1 : 1), &
+          v_name = 'Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
+          create = create, &
+          units = 'm3 s-1', &
+          long_name = 'simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
+          missing_value = nodata_dp &
+        )
         create = .false.
         ! write observed discharge at that gauge
-        call var2nc(trim(fName), Qobs(1 : tlength, gg), &
-                dnames(1 : 1), 'Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), create = create, &
-                units = 'm3 s-1', long_name = 'observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')))
+        call var2nc( &
+          f_name = trim(fName), &
+          arr = Qobs(1 : tlength, gg), &
+          dnames = dnames(1 : 1), &
+          v_name = 'Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
+          create = create, &
+          units = 'm3 s-1', &
+          long_name = 'observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
+          missing_value = nodata_dp &
+        )
       end do
       ! add time axis
       allocate(taxis(tlength))
       forall(tt = 1 : tlength) taxis(tt) = tt * 24 - 1
-      call dec2date(real(evalPer(bb)%julStart, dp) - 0.5_dp, yy = year, mm = month, dd = day)
-      call var2nc(trim(fName), taxis, &
-              dnames(1 : 1), dnames(1), &
-              units = 'hours since ' // &
-                      trim(num2str(year)) // '-' // trim(num2str(month, '(i2.2)')) // '-' // trim(num2str(day, '(i2.2)')) // &
-                      ' 00:00:00', &
-              long_name = 'time in hours')
+      call dec2date(real(evalPer(iDomain)%julStart, dp) - 0.5_dp, yy = year, mm = month, dd = day)
+      call var2nc( &
+        f_name = trim(fName), &
+        arr = taxis, &
+        dnames = dnames(1 : 1), &
+        v_name = dnames(1), &
+        units = 'hours since ' // &
+                trim(num2str(year)) // '-' // trim(num2str(month, '(i2.2)')) // '-' // trim(num2str(day, '(i2.2)')) // &
+                ' 00:00:00', &
+        long_name = 'time in hours' &
+      )
       deallocate(taxis)
 
       ! ======================================================================
       ! screen output
       ! ======================================================================
       call message()
-      write(dummy, '(I3)') bb
-      call message('  OUTPUT: saved daily discharge file for basin ', trim(adjustl(dummy)))
+      write(dummy, '(I3)') domainID
+      call message('  OUTPUT: saved daily discharge file for domain ', trim(adjustl(dummy)))
       call message('    to ', trim(fname))
       do gg = igauge_start, igauge_end
         if (count(ge(Qobs(:, gg), 0.0_dp)) > 1)  then
@@ -610,7 +639,7 @@ contains
   !>       for writing L11_QTIN for different time averages.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin"
+  !>       \param[in] "integer(i4) :: iDomain"
   !>       \param[in] "integer(i4) :: nCells"
   !>       \param[in] "integer(i4) :: timeStep_model_outputs" timestep of model outputs
   !>       \param[in] "integer(i4) :: warmingDays"            number of warming days
@@ -632,45 +661,30 @@ contains
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Sebastian Mueller Jul 2020 - added output for river-temperature
 
-  subroutine mrm_write_output_fluxes(iBasin, nCells, timeStep_model_outputs, warmingDays, newTime, nTimeSteps, &
-                                    nTStepDay, tt, day, month, year, timestep, mask11, L11_qmod)
+  subroutine mrm_write_output_fluxes(iDomain, nCells, timeStep_model_outputs, domainDateTime, &
+                                    tt, timestep, mask11, L11_qmod)
 
     use mo_julian, only : caldat
     use mo_kind, only : dp, i4
+    use mo_common_datetime_type, only : datetimeinfo
+    use mo_mrm_global_variables, only : riv_temp_pcs
 
     implicit none
 
-    integer(i4), intent(in) :: iBasin
+    integer(i4), intent(in) :: iDomain
 
     integer(i4), intent(in) :: nCells
 
     ! timestep of model outputs
     integer(i4), intent(in) :: timeStep_model_outputs
 
-    ! number of warming days
-    integer(i4), intent(in) :: warmingDays
-
-    ! julian date of next time step
-    real(dp), intent(in) :: newTime
-
-    ! number of total timesteps
-    integer(i4), intent(in) :: nTimeSteps
-
-    ! number of timesteps per day
-    integer(i4), intent(in) :: nTStepDay
+    ! datetimeinfo variable
+    type(datetimeinfo), intent(in) :: domainDateTime
 
     ! current model timestep
     integer(i4), intent(in) :: tt
-
-    ! current day of the year
-    integer(i4), intent(in) :: day
-
-    ! current month of the year
-    integer(i4), intent(in) :: month
-
-    ! current year
-    integer(i4), intent(in) :: year
 
     ! current model time resolution
     integer(i4), intent(in) :: timestep
@@ -681,75 +695,27 @@ contains
     ! current routed streamflow
     real(dp), intent(in), dimension(:) :: L11_qMod
 
-    integer(i4) :: tIndex_out
-
-    logical :: writeout
-
-    ! year of next timestep (newTime)
-    integer(i4) :: new_year
-
-    ! month of next timestep (newTime)
-    integer(i4) :: new_month
-
-    ! day of next timestep (newTime)
-    integer(i4) :: new_day
-
-
-    !
-    if (tt .EQ. 1) then
-      day_counter = day
-      month_counter = month
-      year_counter = year
-      average_counter = 0_i4
-    end if
-
     ! update the counters
-    if (day_counter   .NE. day) day_counter = day
-    if (month_counter .NE. month) month_counter = month
-    if (year_counter  .NE. year)  year_counter = year
-    call caldat(int(newTime), yy = new_year, mm = new_month, dd = new_day)
 
-    ! output only for evaluation period
-    tIndex_out = (tt - warmingDays * NTSTEPDAY) ! tt if write out of warming period
-
-    if ((tIndex_out .gt. 0_i4)) then
-      average_counter = average_counter + 1
+    if ((domainDateTime%tIndex_out > 0_i4)) then
 
       ! create output dataset
-      if (tIndex_out .EQ. 1) nc = OutputDataset(iBasin, mask11, nCells)
-      ! print*, 'After Init of OutputDatasetInit'
+      if (domainDateTime%tIndex_out == 1) nc = OutputDataset(iDomain, mask11, nCells)
 
-      ! update Dataset
-      call nc%updateDataset(&
-              1, &
-              size(L11_Qmod), &
-              L11_Qmod          &
-              )
-
-      ! determine write flag
-      writeout = .false.
-      if (timeStep_model_outputs .gt. 0) then
-        if ((mod(tIndex_out, timeStep_model_outputs) .eq. 0) .or. (tt .eq. nTimeSteps)) writeout = .true.
+      ! update Dataset (riv-temp as optional input)
+      if ( riv_temp_pcs%active ) then
+        call nc%updateDataset(1, size(L11_Qmod), L11_Qmod, riv_temp_pcs%river_temp(riv_temp_pcs%s11 : riv_temp_pcs%e11))
       else
-        select case(timeStep_model_outputs)
-        case(0) ! only at last time step
-          if (tt .eq. nTimeSteps) writeout = .true.
-        case(-1) ! daily
-          if ((day_counter .ne. new_day)     .or. (tt .eq. nTimeSteps)) writeout = .true.
-        case(-2) ! monthly
-          if ((month_counter .ne. new_month) .or. (tt .eq. nTimeSteps)) writeout = .true.
-        case(-3) ! yearly
-          if ((year_counter .ne. new_year)   .or. (tt .eq. nTimeSteps)) writeout = .true.
-        case default ! no output at all
-
-        end select
+        call nc%updateDataset(1, size(L11_Qmod), L11_Qmod)
       end if
 
       ! write data
-      if (writeout) call nc%writeTimestep(tIndex_out * timestep - 1)
+      if (domainDateTime%writeout(timeStep_model_outputs, tt)) then
+        call nc%writeTimestep(domainDateTime%tIndex_out * timestep - 1)
+      end if
 
       ! close dataset
-      if (tt .eq. nTimeSteps) call nc%close()
+      if (tt == domainDateTime%nTimeSteps) call nc%close()
 
     end if
 
@@ -779,7 +745,7 @@ contains
 
   ! Modifications:
   ! Rohini Kumar   Aug 2013 - change in structure of the code including call statements
-  ! Juliane Mai    Oct 2013 - clear parameter names added 
+  ! Juliane Mai    Oct 2013 - clear parameter names added
   !                         - double precision written
   ! Stephan Thober Oct 2015 - ported to mRM
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
@@ -818,7 +784,7 @@ contains
       stop
     end if
 
-    ! header 
+    ! header
     write(formHeader, *) '(a40,', n_params, 'a40)'
     ! len(param_names(1))=256 but only 39 characters taken here
     ! write(uopti, formHeader) 'OF', (trim(adjustl(param_names(ii))), ii=1, n_params)

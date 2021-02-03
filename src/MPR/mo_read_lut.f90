@@ -19,6 +19,7 @@ MODULE mo_read_lut
   ! Modified   Matthias Zink,  Jan 2013 - add read_gauge_lut
 
   USE mo_kind, ONLY : i4, dp
+  USE mo_os, ONLY: path_isfile
 
   IMPLICIT NONE
 
@@ -89,7 +90,8 @@ CONTAINS
 
     character(256) :: dummy
 
-
+    !checking whether the file exists
+    call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
     open(fileunit, file = filename, action = 'read', status = 'old')
 
     ! read header
@@ -148,7 +150,7 @@ CONTAINS
 
   subroutine read_lai_lut(filename, fileunit, nLAI, LAIIDlist, LAI)
 
-    use mo_common_constants, only : YearMonths
+    use mo_constants, only : YearMonths_i4
 
     implicit none
 
@@ -171,7 +173,8 @@ CONTAINS
 
     character(256) :: dummy
 
-
+    !checking whether the file exists
+    call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
     open(fileunit, file = filename, action = 'read')
 
     ! read header
@@ -181,11 +184,11 @@ CONTAINS
 
     ! allocate arrays
     allocate(LAIIDList(nLAI))
-    allocate(LAI(nLAI, int(YearMonths, i4)))
+    allocate(LAI(nLAI, YearMonths_i4))
 
     ! read data
     do i = 1, nLAI
-      read(fileunit, *) LAIIDList(i), dummy, (LAI(i, j), j = 1, int(YearMonths, i4))
+      read(fileunit, *) LAIIDList(i), dummy, (LAI(i, j), j = 1, YearMonths_i4)
     end do
 
     close(fileunit)
