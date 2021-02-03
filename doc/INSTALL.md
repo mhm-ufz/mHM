@@ -1,5 +1,5 @@
-How to read this instruction:
-=============================
+# Install Instruction
+
 The section 'Dependencies' lists the general requirements
 for the installation. The
 section 'System-dependent installation instructions' gives some instructions on
@@ -15,8 +15,8 @@ the specific system.
 The section 'Installation' then is a step-by-step guide to install mHM in the
 command line.
 
-Dependencies:
-=============
+## Dependencies
+
 For Windows, some Linux distributions and soon also MacOS
 specific installation instructions for the following list
 can be found below.
@@ -32,8 +32,8 @@ use Git. You can use Git to download (clone) the project to your local pc and ha
 synchronize it without copying the whole repository again. You can also download the project folder without
 Git, but this would not allow you to pull updates from and push changes to our repository.
 
-System-dependent installation instructions:
-===========================================
+## System-dependent installation instructions
+
 ### Windows:
 [Cygwin](https://cygwin.com/) is an environment with a terminal that allows to compile and
 run programs of Unix-like systems. You can find further instructions to install cygwin on the webpage, as well as
@@ -69,17 +69,17 @@ As from December 2019, step-by-step guidelines, how to install all netCDF depend
 can be viewed in [this youtube video](https://www.youtube.com/watch?v=G0i7eDEIfPA&list=PLaT_WNTBfPhK2UT0wkmJR5luEoc9qhbFf)
 created by Cüneyd Demirel (Istanbul Technical University).
 
-### Ubuntu, Mint and other apt-get based systems with matching repositories:
+### Ubuntu, Mint and other apt-get based systems with matching repositories
 
     sudo apt-get install git # (optional)
     sudo apt-get install gfortran netcdf-bin libnetcdf-dev libnetcdff-dev cmake
 
-### Archlinux:
+### Archlinux
 
     sudo pacman -S git # (optional)
     sudo pacman -S gcc-libs netcdf-fortran cmake
 
-### Module systems:
+### Module systems
 
 If you are on a module system, load the modules gcc or intel depending on your
 favorite compiler. Then, load the modules netcdf-fortran and cmake.
@@ -88,7 +88,7 @@ These modules will have system specific names, environments, etc.
 You may use `module spider` to find the right packages and the
 right dependencies, potentially use corresponding wiki pages.
 
-#### On eve (the cluster at the UFZ):
+#### On eve (the cluster at the UFZ)
 
 A set of load-scripts is provided in `moduleLoadScripts`, to load all need modules for specifc compilers:
 
@@ -115,6 +115,14 @@ A set of load-scripts is provided in `moduleLoadScripts`, to load all need modul
   or (MPI support)
   ```bash
   source moduleLoadScripts/eve.intel18MPI
+  ```
+- Intel 20 compiler (`iomkl/2020a` Toolchain):
+  ```bash
+  source moduleLoadScripts/eve.intel20
+  ```
+  or (MPI support)
+  ```bash
+  source moduleLoadScripts/eve.intel20MPI
   ```
 - NAG 6.2 compiler:
   ```bash
@@ -148,12 +156,11 @@ Then you can compile mHM with cmake. We prepared a set of scripts, to automatize
   source CI-scripts/compile_OpenMP_debug
   ```
 
-### MacOS:
+### MacOS
 
 *(to be added)*
 
-Specific setups:
-================
+## Specific setups
 
 The following hints can replace the step `cmake ..` in the installation instruction.
 
@@ -161,7 +168,8 @@ You can skip this part and continue with "Installation", if you do not have a mo
 setup (like on clusters) or if you have not installed all packages with a package manager,
 such as cygwin or apt-get.
 
-### Module systems:
+### Module systems
+
 If you are okay with loading the needed modules as described in the section 'Module systems' above before executing the program you can skip this step and continue with 'Installation'.
 
 The executable can be built in such a way that it does not require any modules to be loaded. The
@@ -209,8 +217,7 @@ add the path to your `nf-config` file, and after editing, run:
 
 or change the variable `CMAKE_NETCDF_DIR` to the path to the `nf-config` file with `ccmake` after running `cmake ..`.
 
-Installation
-============
+## Installation
 
 1. Change to a directory where you want to store the source code.
 2. Clone the corresponding mHM repository into a folder, either using Git (if installed):
@@ -273,8 +280,8 @@ Installation
 - *The directory where mHM is executed usually is not the source directory but the directory where you want to run
    your tests. In case of the test setup it is the same, usually it is not.*
 
-Building Realease or Debug versions:
-====================================
+## Building Realease or Debug versions
+
 If you want to set up specific versions of the build, you can
 create different folders for that. In case a release and a debug version need to be set up, it makes sense to create two folders named `debug` and `release`.
 
@@ -296,8 +303,7 @@ Executing
 
 in the corresponding folder would then always result in a release build or respectively in a debug build.
 
-Troubleshooting:
-================
+## Troubleshooting
 
 **cmake** is far from being my main task, so it will probably take a while until I can track a problem.
 Nonetheless, I would be happy having bug reports. Feel free to write an email to <mailto:maren.kaluza@ufz.de> if there are any bugs, remarks or questions.
