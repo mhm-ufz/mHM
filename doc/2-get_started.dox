@@ -14,129 +14,11 @@ external accounts be granted upon request through email to mhm-admin@ufz.de.
 The mHM input and output file format is NETCDF, so the according library is required on your system. Please go to
 <a href="http://www.unidata.ucar.edu/software/netcdf/">www.unidata.ucar.edu/software/netcdf</a> in order to download the current version.
 
-\li <b>on Linux:</b> Install as described in the online documentation.
-\li <b>on MacOS:</b> Use the short guide below.
-
-\subsection netcdflinux Short Guide Install to NETCDF on Linux (example Ubuntu 16.04 with gfortran v5.4.0)
-
-The official netcdf documentation can be found under:\n
-<a href="http://www.unidata.ucar.edu/software/netcdf/docs/getting_and_building_netcdf.html">http://www.unidata.ucar.edu/software/netcdf/docs/getting_and_building_netcdf.html</a>
-
-If not jet available you need to <b>install curl</b> on ypur computer. Download and unpack curl,
-go to the related folders and use the following commands:
-\code
-  cd /Downloads/curl-7.57
-  CDIR=/usr/local
-  ./configure --prefix=${CDIR}
-  sudo make check
-  sudo make install
-\endcode
-
-Download the five dependencies zlib, hdf5, szip, netcdf and netcdf fortran and unzip them to
-some folder (not the place where you will install them, e.g., /Downloads/).
-
-<b>Download and unpack zlib</b>, go to the related folder and use the following commands:
-\code
-  cd /Downloads/zlib-1.2.11
-  ZDIR=/usr/local
-  ./configure --prefix=${ZDIR}
-  make check
-  sudo make install
-\endcode
-
-<b>Download and unpack szip</b>, go to the related folder and use the following commands:
-\code
-  cd /Downloads/szip-2.1.1
-  SDIR=/usr/local
-  ./configure --prefix=${SDIR} sudo make check
-  sudo make install
-\endcode
-
-
-<b>Download and unpack hdf5</b>, go to the related folder and use the following commands:
-\code
-  cd /Downloads/hdf5-1.8.19
-  H5DIR=/usr/local
-  ./configure --with-zlib=${ZDIR} --prefix=${H5DIR}
-  make check
-  sudo make install
-\endcode
-
-<b>Download and unpack netCDF for C </b>, which is needed for Fortran. Go to the related folder and use with the following commands:
-\code
-  cd /Downloads/netcdf-4.4.4
-  NCDIR=/usr/local
-  LD_LIBRARY_PATH=/usr/local/lib
-  CPPFLAGS=-I${H5DIR}/include LDFLAGS=-L${H5DIR}/lib ./configure --prefix=${NCDIR}
-  make check
-  sudo make install
-\endcode
-
-<b>Download and unpack netCDF for Fortran </b>, go to the related folder and use the following commands:
-
-\code
-  cd /Downloads/netcdf-fortran-4.4.4
-  FC=gfortran CPPFLAGS=-I${H5DIR}/include LDFLAGS=-L${H5DIR}/lib ./configure --prefix=/usr/local/netcdf_4.4_gfortran54
-  make check
-  sudo make install
-\endcode
-
-\subsection netcdfmacos Short Guide Install to NETCDF on MacOS
-
-<b>Download and unpack zlib v. 1.2.11</b>, go to the related folder and use the following commands:
-\code
-    cd /Downloads/zlib-1.2.11/
-    ./configure --prefix=/usr/local
-    make
-    make check
-    make test
-    sudo make install
-\endcode
-
-<b>Download and unpack szib v. 2.1.1</b>, go to the related folder and use the following commands:
-\code
-    cd /Downloads/szip-2.1.1/
-    sudo ./configure --prefix=/usr/local
-    F77=/usr/local/bin/gfortran ./configure --prefix=/usr/local
-    make
-    sudo make check
-    sudo make install
-\endcode
-
-<b>Download and unpack hdf5 v. 1.8.19</b>, go to the related folder and use the following commands:
-\code
-    cd /Downloads/hdf5-1.8.19/
-    FC=gfortran ./configure --prefix=/usr/local --with-zlib=/usr/local --with-szlib=/usr/local --enable-production --enable-hl --with-pthread --with-pic
-    make
-    make check
-    sudo make install
-\endcode
-
-<b>Download and unpack netCDF for C v. 4.4.4</b>, which is needed for Fortran. Go to the related folder and use with the following commands:
-\code
-    cd /Downloads/netcdf-4.4.4/
-    CPPFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib ./configure --prefix=/usr/local/
-    make
-    make check
-    sudo make install
-\endcode
-
-<b>Download and unpack netCDF for Fortran v. 4.4.4</b>, go to the related folder and use the following commands:
-
-For NAG compiler only:
-\code
-  FC=nagfor LDFLAGS='-L/usr/local/lib' CPPFLAGS='-I/usr/local/include' FCFLAGS="-fpp -mismatch_all -kind=byte" FFLAGS="-fpp -mismatch_all -kind=byte" ./configure --prefix=/usr/local/netcdf_4.4_nag53
-\endcode
-For gfortran compiler only:
-\code
-  FC=gfortran LDFLAGS='-L/usr/local/lib' CPPFLAGS='-I/usr/local/include' ./configure --prefix=/usr/local/netcdf_4.4_gfortran71
-\endcode
-Compile. Note that it is possible that some tests fail during the make check according to the settings of your compiler.
-\code
-    make
-    make check
-    sudo make install
-\endcode
+\li <b>on Linux:</b> When using ubuntu and gcc, you can use apt to install NETCDF:
+<br><tt>sudo apt-get install libnetcdf-dev libnetcdff-dev</tt>
+\li <b>on MacOS:</b> You can use <a href="https://formulae.brew.sh/formula/netcdf">Homebrew</a>
+to install NETCDF but you need to specify the path in cmake later on:
+<br><tt>brew install netcdf</tt>
 
 \section windows Run mHM under CYGWIN on Windows
 
@@ -190,29 +72,6 @@ under <code>./test_basin/output_b1/</code> and <code>./test_basin_2/output_b1/</
 
 As from June 2019, we encourage users to make use of cmake guide:\n
 <a href="https://git.ufz.de/mhm/mhm/blob/develop/doc/INSTALL.md">https://git.ufz.de/mhm/mhm/blob/develop/doc/INSTALL.md</a>
-
-Alternatively to cmake, the Makefile can be used. Compilations of the code need to know paths and locations of its dependencies that are specific to the individual operating system. This requires a file in the make.config folder containing a valid configuration for the system mHM is compiled on. Configuration files for Cygwin and Ubuntu are provided. Creating a new configuration file is only recommended for experienced Linux users.
-Before compiling, make sure that you individual requirements hold.
-
-Open <code>Makefile</code> and adjust at least the following settings:
-\li <code>system := [SYSNAME]</code><br>
-    Choose an arbitrary name of your system and add your settings in <code>make.config/[SYSNAME].alias</code> .
-    For assistance you can adapt the existing profiles in <code>make.config/</code> .
-\li <code>compiler := [COMPILER]</code><br>
-    Choose a compiler that was defined in <code>make.config/[SYSNAME].[COMPILER]</code> .
-\li <code>release := debug|release</code><br>
-    Debug mode checks all dependencies and code fractions and will we slower during compilation.
-\li <code>netcdf := netcdf4</code><br>
-    Choose the netcdf version your system is using.
-
-Additional assistance for editing Makefiles are available throughout the internet.
-Finally, mHM can be compiled with the simple command
-\code
-make system=cygwin compiler=gnu release=debug
-\endcode
-In between two compilations, it might be useful to apply the command <code>make cleanclean</code> in order to start the next <code>make</code> from scratch
-(without using old temporary files).
-
 
 
 \section test Test mHM on Example Basin
