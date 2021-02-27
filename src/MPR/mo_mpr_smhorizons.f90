@@ -116,6 +116,7 @@ contains
   ! M. Cuneyd Demirel, Simon Stisen Apr 2017 - added FC dependency on root fraction coefficient
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
+  ! M. Cuneyd Demirel, Simon Stisen Feb 2021 - Bug fix normalization of FCnorm
 
   subroutine mpr_SMhorizons(param, processMatrix, iFlag_soil, nHorizons_mHM, HorizonDepth, LCOVER0, soilID0, nHorizons, &
                            nTillHorizons, thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Wd, Db, &
@@ -295,6 +296,7 @@ contains
 
     real(dp) :: FCmax_glob
 
+    real(dp) :: FCnorm
     ! the minimum number of till horizons
     integer(i4) :: min_nTH
 
@@ -400,7 +402,7 @@ contains
 
 
         !$OMP PARALLEL
-        !$OMP DO PRIVATE( l, tmp_rootFractionCoefficient_perviousFC ) SCHEDULE( STATIC )
+        !$OMP DO PRIVATE( l, tmp_rootFractionCoefficient_perviousFC, FCnorm ) SCHEDULE( STATIC )
 
 
         celllloop0 : do k = 1, size(LCOVER0, 1)
@@ -463,18 +465,20 @@ contains
               ! The normalization is based on Demirel et al 2018 (doi: 10.5194/hess-22-1299-2018)
               ! Case 3 is based on Jarvis (doi: 10.1016/0022-1694(89)90050-4)
               ! Case 4 is based on Feddes (doi: 10.1016/0022-1694(76)90017-2)
-              tmp_rootFractionCoefficient_perviousFC = ((((FC0(k) / (dpth_t - dpth_f)) - FCmin_glob) / &
-                      ((FCmax_glob - FCmin_glob)) * tmp_rootFractionCoefficient_clay)) &
-                      + ((1 - ((FC0(k) / (dpth_t - dpth_f)) - FCmin_glob) / (FCmax_glob - FCmin_glob)) * &
-                              tmp_rootFractionCoefficient_sand)
 
-              if(tmp_rootFractionCoefficient_perviousFC .lt. 0.0_dp) then
-              print*, "tmp_rootFractionCoefficient_perviousFC is below 0, will become 0", tmp_rootFractionCoefficient_perviousFC
-                 tmp_rootFractionCoefficient_perviousFC=0.0_dp
-              else if(tmp_rootFractionCoefficient_perviousFC .gt. 1.0_dp) then
-              print*, "tmp_rootFractionCoefficient_perviousFC is above 1, will become 1", tmp_rootFractionCoefficient_perviousFC
-                 tmp_rootFractionCoefficient_perviousFC=1.0_dp
+              FCnorm = (((FC0(k) / (dpth_t - dpth_f)) - FCmin_glob) / (FCmax_glob - FCmin_glob))
+
+              if(FCnorm .lt. 0.0_dp) then
+              print*, "FCnorm is below 0, will become 0", FCnorm
+                 FCnorm=0.0_dp
+              else if(FCnorm .gt. 1.0_dp) then
+              print*, "FCnorm is above 1, will become 1", FCnorm
+                 FCnorm=1.0_dp
               end if
+
+
+              tmp_rootFractionCoefficient_perviousFC = (FCnorm * tmp_rootFractionCoefficient_clay) &
+                      + ((1 - FCnorm) * tmp_rootFractionCoefficient_sand) 
 
               fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t * 0.1_dp)) &
                       - (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_f * 0.1_dp))
@@ -486,7 +490,7 @@ contains
               if((fRoots0(k) .lt. 0.0_dp) .OR. (fRoots0(k) .gt. 1.0_dp)) then
                 call message('***ERROR: Fraction of roots out of range [0,1]. Cell', &
                         num2str(k), ' has value ', num2str(fRoots0(k)))
-                ! stop
+                 ! stop
               end if
           end select
 
@@ -553,7 +557,8 @@ contains
 
 
         !$OMP PARALLEL
-        !$OMP DO PRIVATE( l, tmp_rootFractionCoefficient_perviousFC ) SCHEDULE( STATIC )
+        !$OMP DO PRIVATE( l, tmp_rootFractionCoefficient_perviousFC, FCnorm ) SCHEDULE( STATIC )
+
         celllloop1 : do k = 1, size(LCOVER0, 1)
           l = LCOVER0(k)
           !================================================================================
@@ -584,18 +589,20 @@ contains
               ! The normalization is based on Demirel et al 2018 (doi: 10.5194/hess-22-1299-2018)
               ! Case 3 is based on Jarvis (doi: 10.1016/0022-1694(89)90050-4)
               ! Case 4 is based on Feddes (doi: 10.1016/0022-1694(76)90017-2)
-              tmp_rootFractionCoefficient_perviousFC = ((((FC0(k) / (dpth_t - dpth_f)) - FCmin_glob) / &
-                      ((FCmax_glob - FCmin_glob)) * tmp_rootFractionCoefficient_clay)) &
-                      + ((1 - ((FC0(k) / (dpth_t - dpth_f)) - FCmin_glob) / (FCmax_glob - FCmin_glob)) * &
-                              tmp_rootFractionCoefficient_sand)
+              FCnorm = (((FC0(k) / (dpth_t - dpth_f)) - FCmin_glob) / (FCmax_glob - FCmin_glob))
 
-              if(tmp_rootFractionCoefficient_perviousFC .lt. 0.0_dp) then
-              print*, "tmp_rootFractionCoefficient_perviousFC is below 0, will become 0", tmp_rootFractionCoefficient_perviousFC
-                 tmp_rootFractionCoefficient_perviousFC=0.0_dp
-              else if(tmp_rootFractionCoefficient_perviousFC .gt. 1.0_dp) then
-              print*, "tmp_rootFractionCoefficient_perviousFC is above 1, will become 1", tmp_rootFractionCoefficient_perviousFC
-                 tmp_rootFractionCoefficient_perviousFC=1.0_dp
+              if(FCnorm .lt. 0.0_dp) then
+              print*, "FCnorm is below 0, will become 0", FCnorm
+                 FCnorm=0.0_dp
+              else if(FCnorm .gt. 1.0_dp) then
+              print*, "FCnorm is above 1, will become 1", FCnorm
+                 FCnorm=1.0_dp
               end if
+
+
+              tmp_rootFractionCoefficient_perviousFC = (FCnorm * tmp_rootFractionCoefficient_clay) &
+                      + ((1 - FCnorm) * tmp_rootFractionCoefficient_sand) 
+
 
               fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t * 0.1_dp)) &
                       - (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_f * 0.1_dp))
@@ -668,7 +675,7 @@ contains
 
     !$OMP END DO
     !$OMP END PARALLEL
-
+!close(1)
   end subroutine mpr_SMhorizons
 
 end module mo_mpr_SMhorizons
