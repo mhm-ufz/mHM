@@ -1,7 +1,7 @@
 # The mesoscale Hydrological Model -- mHM
 
-- The current release is **[mHM v5.10][1]**.
-- The latest mHM release notes can be found in the file [RELEASES][3] or [online][4].
+- The latest mHM release can be found [here][0].
+- The changelog can be found in the file [RELEASES][3].
 - General information can be found on the [mHM website](http://www.ufz.de/mhm/).
 - The mHM comes with a [LICENSE][6] agreement, this includes also the GNU Lesser General Public License.
 - There is a list of [publications using mHM][7].
@@ -42,7 +42,7 @@ See also the [documentation][5] for detailed instructions to setup mHM.
 2. Run mHM on the test domains with the command `./mhm`, which uses settings from [mhm.nml](mhm.nml).
 3. Explore the results in the [output directory](test_domain/), e.g. by using the NetCDF viewer `ncview`.
 
-
+[0]: https://git.ufz.de/mhm/mhm/-/releases
 [1]: https://git.ufz.de/mhm/mhm/tree/5.10
 [3]: doc/RELEASES.md
 [4]: https://git.ufz.de/mhm/mhm/tags/

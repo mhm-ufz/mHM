@@ -1,5 +1,16 @@
 # mHM Release Notes
 
+## mHM v5.11.1 (Mar 2021)
+
+### Enhancements
+
+- added compile information for cygwin (!68)
+
+### Bugfixes
+
+- removed note about mHM 5.10 from the README
+- smhorizon: tmp_rootfraccoef was corrected directly if it is not between 0 and 1, but actually  FCnorm should always be between 0 and 1 (!67)
+
 ## mHM v5.11 (Feb 2021)
 
 ### Experimental Features

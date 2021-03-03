@@ -66,8 +66,16 @@ Some cygwin versions create a new home directory for you. You may check e.g. her
     C:\cygwin64\home\$username
 
 As from December 2019, step-by-step guidelines, how to install all netCDF dependencies
-can be viewed in [this youtube video](https://www.youtube.com/watch?v=G0i7eDEIfPA&list=PLaT_WNTBfPhK2UT0wkmJR5luEoc9qhbFf)
-created by Cüneyd Demirel (Istanbul Technical University).
+can be viewed in [this youtube video](https://youtu.be/G0i7eDEIfPA)
+created by Mehmet Cüneyd Demirel (Istanbul Technical University).
+
+To avoid memory issues, allocate stack memory during cmake
+
+    cmake -DCMAKE_Fortran_FLAGS="-Wl,--stack,12485760" ..
+
+Memory dump is a common issue for cygwin users when compiling with OpenMP. For memory allocation please use this line below.
+
+....cmake -DCMAKE_Fortran_FLAGS="${CMAKE_Fortran_FLAGS} -Wl,--stack,12485760" -DCMAKE_WITH_OpenMP:STRING=ON -DCMAKE_BUILD_TYPE=Release ..
 
 ### Ubuntu, Mint and other apt-get based systems with matching repositories
 
