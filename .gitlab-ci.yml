@@ -506,7 +506,7 @@ coverage-gcc73:
     # create build folder
     - mkdir build && cd build
     # run cmake with coverage support
-    - cmake -DCMAKE_WITH_COVERAGE:STRING=ON ..
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE:STRING=ON ..
     # run all check-case for coverage calculation
     - make mhm_coverage_CI
     # copy the output to a top-level folder

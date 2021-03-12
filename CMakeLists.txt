@@ -27,8 +27,8 @@ target_link_libraries(mhm PRIVATE mhm_lib)
 
 # setup coverage with GNU
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE)
-  # compile flags are added with the mhm_lib
   include(CodeCoverage)
+  append_coverage_compiler_flags()
   SETUP_TARGET_FOR_COVERAGE_LCOV(NAME mhm_coverage_CI
     EXECUTABLE ../CI-scripts/run_cmake_coverage.sh
     DEPENDENCIES mhm mhm_lib
