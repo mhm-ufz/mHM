@@ -48,20 +48,25 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     )
   target_compile_definitions(${LIB_NAME} PUBLIC GFORTRAN)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+  # https://stackoverflow.com/q/52606835/6696397 --> realloc-lhs
   target_compile_options(${LIB_NAME} PUBLIC
-  -nofixed -assume byterecl -fp-model source -m64 -assume realloc-lhs
-    $<$<CONFIG:DEBUG>:-warn all -g -debug -traceback -fp-stack-check -O0 -debug -check all>
+   -nofixed "-assume byterecl" -fp-model source -m64 "-assume realloc-lhs"
+    $<$<CONFIG:DEBUG>:-warn all -g -debug -traceback -fp-stack-check -O0 -debug "-check all">
     $<$<CONFIG:RELEASE>:-O3 -qoverride-limits>
   )
   target_compile_definitions(${LIB_NAME} PUBLIC INTEL)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
   target_compile_options(${LIB_NAME} PUBLIC
-    -ieee=full-colour -unsharedf95 -ideclient
+    "-ieee=full-colour" -unsharedf95 -ideclient
     $<$<CONFIG:DEBUG>:-g -nan -O0 -C=all -strict95 -ieee=stop>
-    $<$<CONFIG:RELEASE>:-O4 -ieee=full>
+    $<$<CONFIG:RELEASE>:-O4 "-ieee=full">
   )
   target_compile_definitions(${LIB_NAME} PUBLIC NAG)
 endif()
+
+# Show compile options
+get_target_property(MAIN_CFLAGS ${LIB_NAME} COMPILE_OPTIONS)
+message(STATUS "Target compiler flags are: ${MAIN_CFLAGS}")
 
 # add pfunit test folder
 if(BUILD_TESTING)
