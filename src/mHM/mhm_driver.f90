@@ -185,6 +185,7 @@ PROGRAM mhm_driver
   integer             :: ierror
   integer(i4)         :: nproc
   integer(i4)         :: rank, oldrank
+  logical :: compiled_with_mpi = .true.
 
 ! Initialize MPI
   call MPI_Init(ierror)
@@ -195,6 +196,8 @@ PROGRAM mhm_driver
   call MPI_Comm_rank(comm, rank, ierror)
   oldrank = rank
   write(*,*) 'MPI!, comm', rank, nproc
+#else
+  logical :: compiled_with_mpi = .false.
 #endif
 
   ! check for working dir (added argument to the executable)
@@ -222,6 +225,11 @@ PROGRAM mhm_driver
     call message('OpenMP used.')
   else
     call message('Openmp not used.')
+  end if
+  if (compiled_with_mpi) then
+    call message('MPI used.')
+  else
+    call message('MPI not used.')
   end if
 
   call date_and_time(values = datetime)
