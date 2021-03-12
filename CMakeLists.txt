@@ -31,7 +31,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE)
   APPEND_COVERAGE_COMPILER_FLAGS()
   SETUP_TARGET_FOR_COVERAGE_LCOV(NAME mhm_coverage_CI
     EXECUTABLE ../CI-scripts/run_cmake_coverage.sh
-    DEPENDENCIES mhm
+    DEPENDENCIES mhm mhm_lib
     EXCLUDE src/lib/*
     GENHTML_ARGS -t "mHM coverage" --html-prolog ../doc/html_files/cov_header.prolog)
 endif()
