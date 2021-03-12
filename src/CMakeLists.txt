@@ -41,27 +41,27 @@ target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 # by setting compile options and definitions PUBLIC, they are also used by
 # programms linking agains it (mhm exe in this case)
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+  target_compile_definitions(${LIB_NAME} PUBLIC GFORTRAN)
   target_compile_options(${LIB_NAME} PUBLIC
     -ffree-form -ffixed-line-length-132
     $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
     $<$<CONFIG:RELEASE>:-O3>
     )
-  target_compile_definitions(${LIB_NAME} PUBLIC GFORTRAN)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   # https://discourse.cmake.org/t/preserving-options-with-spaces-in-add-compile-options/1551/2
+  target_compile_definitions(${LIB_NAME} PUBLIC INTEL)
   target_compile_options(${LIB_NAME} PUBLIC
-   -nofixed "SHELL:-assume byterecl" -fp-model source -m64 "SHELL:-assume realloc-lhs"
-    $<$<CONFIG:DEBUG>:"SHELL:-warn all" -g -debug -traceback -fp-stack-check -O0 -debug "SHELL:-check all">
+   -nofixed "SHELL:-assume byterecl" "SHELL:-fp-model source" -m64 "SHELL:-assume realloc-lhs"
+    $<$<CONFIG:DEBUG>:-g "SHELL:-warn all" "SHELL:-check all" -debug -traceback -fp-stack-check -O0>
     $<$<CONFIG:RELEASE>:-O3 -qoverride-limits>
   )
-  target_compile_definitions(${LIB_NAME} PUBLIC INTEL)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
+  target_compile_definitions(${LIB_NAME} PUBLIC NAG)
   target_compile_options(${LIB_NAME} PUBLIC
     -colour -unsharedf95 -ideclient
     $<$<CONFIG:DEBUG>:-g -nan -O0 -C=all -strict95 -ieee=stop>
     $<$<CONFIG:RELEASE>:-O4 -ieee=full>
   )
-  target_compile_definitions(${LIB_NAME} PUBLIC NAG)
 endif()
 
 # Show compile options
