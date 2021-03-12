@@ -36,7 +36,6 @@ target_include_directories(${LIB_NAME} PUBLIC
 target_compile_options(${LIB_NAME} PUBLIC ${NETCDF_CFLAGS_OTHER} ${XPP_FLAG})
 target_link_libraries(${LIB_NAME} PUBLIC ${NETCDF_LINK_LIBRARIES} ${MPI_Fortran_LIBRARIES})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-# target_include_directories(${LIB_NAME} PUBLIC ${NETCDF_INCLUDES})
 
 # by setting compile options and definitions PUBLIC, they are also used by
 # programms linking agains it (mhm exe in this case)
@@ -47,6 +46,9 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
     $<$<CONFIG:RELEASE>:-O3>
     )
+  if(CMAKE_WITH_COVERAGE)
+    target_compile_options(${LIB_NAME} PUBLIC -g -fprofile-arcs -ftest-coverage)
+  endif()
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   # https://discourse.cmake.org/t/preserving-options-with-spaces-in-add-compile-options/1551/2
   target_compile_definitions(${LIB_NAME} PUBLIC INTEL)
@@ -62,6 +64,10 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
     $<$<CONFIG:DEBUG>:-g -nan -O0 -C=all -strict95 -ieee=stop>
     $<$<CONFIG:RELEASE>:-O4 -ieee=full>
   )
+endif()
+
+if (CMAKE_WITH_MPI)
+  target_compile_definitions(${LIB_NAME} PUBLIC MPI)
 endif()
 
 # Show compile options
