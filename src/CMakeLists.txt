@@ -25,14 +25,16 @@ cpp_definitions("-DpgiFortran" "CMAKE_pgiFortran" "OFF" "Code exchange for pgi c
 cpp_definitions("-DMPR_STANDALONE" "CMAKE_MPR_STANDALONE" "OFF" "If set to ON, only MPR is compiled")
 cpp_definitions("-DABSOFT" "CMAKE_ABSOFT" "OFF" "Documentation to be added. If you you are developer, you might edit this string in CMakeLists.txt")
 
-target_link_options(${LIB_NAME} PUBLIC ${NETCDF_LDFLAGS_OTHER})
+# target_link_options would be better but is only available for cmake >=3.13
+# target_link_options(${LIB_NAME} PUBLIC ${NETCDF_LDFLAGS_OTHER})
+set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS ${NETCDF_LDFLAGS_OTHER})
 target_include_directories(${LIB_NAME} PUBLIC
   ${NETCDF_INCLUDES}
   ${MPI_Fortran_INCLUDE_PATH}
   ${OpenMP_Fortran_LIBRARY}
   )
 target_compile_options(${LIB_NAME} PUBLIC ${NETCDF_CFLAGS_OTHER} ${XPP_FLAG})
-target_link_libraries(${LIB_NAME} ${NETCDF_LINK_LIBRARIES} ${MPI_Fortran_LIBRARIES})
+target_link_libraries(${LIB_NAME} PUBLIC ${NETCDF_LINK_LIBRARIES} ${MPI_Fortran_LIBRARIES})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 # target_include_directories(${LIB_NAME} PUBLIC ${NETCDF_INCLUDES})
 
