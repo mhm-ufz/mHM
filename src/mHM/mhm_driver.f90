@@ -179,6 +179,8 @@ PROGRAM mhm_driver
 
   logical :: ReadLatLon
 
+  logical :: compiled_with_openmp = .false.
+
 #ifdef MPI
   integer             :: ierror
   integer(i4)         :: nproc
@@ -215,6 +217,13 @@ PROGRAM mhm_driver
   call message(separator)
 
   call message()
+  !$ compiled_with_openmp = .true.
+  if (compiled_with_openmp) then
+    call message('OpenMP used.')
+  else
+    call message('Openmp not used.')
+  end if
+
   call date_and_time(values = datetime)
   message_text = trim(num2str(datetime(3), '(I2.2)')) // "." // trim(num2str(datetime(2), '(I2.2)')) &
           // "." // trim(num2str(datetime(1), '(I4.4)')) // " " // trim(num2str(datetime(5), '(I2.2)')) &
