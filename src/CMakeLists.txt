@@ -48,18 +48,18 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     )
   target_compile_definitions(${LIB_NAME} PUBLIC GFORTRAN)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-  # https://stackoverflow.com/q/52606835/6696397 --> realloc-lhs
+  # https://discourse.cmake.org/t/preserving-options-with-spaces-in-add-compile-options/1551/2
   target_compile_options(${LIB_NAME} PUBLIC
-   -nofixed "-assume byterecl" -fp-model source -m64 "-assume realloc-lhs"
-    $<$<CONFIG:DEBUG>:-warn all -g -debug -traceback -fp-stack-check -O0 -debug "-check all">
+   -nofixed "SHELL:-assume byterecl" -fp-model source -m64 "SHELL:-assume realloc-lhs"
+    $<$<CONFIG:DEBUG>:"SHELL:-warn all" -g -debug -traceback -fp-stack-check -O0 -debug "SHELL:-check all">
     $<$<CONFIG:RELEASE>:-O3 -qoverride-limits>
   )
   target_compile_definitions(${LIB_NAME} PUBLIC INTEL)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
   target_compile_options(${LIB_NAME} PUBLIC
-    "-ieee=full-colour" -unsharedf95 -ideclient
+    -colour -unsharedf95 -ideclient
     $<$<CONFIG:DEBUG>:-g -nan -O0 -C=all -strict95 -ieee=stop>
-    $<$<CONFIG:RELEASE>:-O4 "-ieee=full">
+    $<$<CONFIG:RELEASE>:-O4 -ieee=full>
   )
   target_compile_definitions(${LIB_NAME} PUBLIC NAG)
 endif()
