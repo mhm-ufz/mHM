@@ -8,31 +8,30 @@ message(STATUS "build INDEPENDENT of module system ${CMAKE_BUILD_MODULE_SYSTEM_I
 
 # set specific place where to search for the netCDF directory
 set(CMAKE_NETCDF_DIR " " CACHE STRING "set set specific place where to search for the netCDF directory")
-message(STATUS "search in additional directory ${CMAKE_NETCDF_DIR} for netCDF")
+message(STATUS "search in additional directory '${CMAKE_NETCDF_DIR}' for netCDF")
 
 # The variable "CMAKE_WITH_MPI" can be set before executing cmake via a cache command:
 # $cmake -DCMAKE_WITH_MPI:STRING=ON ..
 # or in a cache file:
 # $cmake -C ../CMakeCacheFiles/example
-# or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor i.e. ccmake
+# or after executing CMake editing the CMakeCache.txt,
+# preferably with a corresponding cmake editor i.e. ccmake
+# same with OpenMP, lapack, coverage
 set(CMAKE_WITH_MPI OFF CACHE STRING "build the module with MPI, so it can be executed using mpirun")
-# same with OpenMP
 set(CMAKE_WITH_OpenMP OFF CACHE STRING "build the module with OpenMP parallelization")
-# same with lapack
 set(CMAKE_WITH_LAPACK OFF CACHE STRING "build the module with lapack library")
-# same with coverage
 set(CMAKE_WITH_COVERAGE OFF CACHE STRING "build the module with gcov coverage support")
 
 # if cmake provides a findLIBRARY module, this gets invoked via find_package(LIBRARY)
 if (CMAKE_WITH_MPI)
-        # find if there is an MPI setup on the system and if so, set corresponding variables
-        find_package(MPI)
-        if (NOT ${MPI_Fortran_FOUND})
-                message(FATAL_ERROR "MPI required but not found")
-        else()
-                message(STATUS "found MPI_Fortran_COMPILER ${MPI_Fortran_COMPILER}")
-        endif()
-	add_definitions("-DMPI")
+  # find if there is an MPI setup on the system and if so, set corresponding variables
+  find_package(MPI)
+  if (NOT ${MPI_Fortran_FOUND})
+    message(FATAL_ERROR "MPI required but not found")
+  else()
+    message(STATUS "found MPI_Fortran_COMPILER ${MPI_Fortran_COMPILER}")
+  endif()
+	add_compile_definitions(MPI)
 endif()
 
 if (CMAKE_WITH_OpenMP)
@@ -45,7 +44,7 @@ endif()
 
 if (CMAKE_WITH_LAPACK)
 	# find if there is an LAPACK library on the system and if so, set corresponding variables
-        find_package(LAPACK)
+  find_package(LAPACK)
 	if (NOT ${LAPACK_FOUND})
 		message(FATAL_ERROR "lapack required but not found")
 	endif()
