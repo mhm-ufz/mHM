@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.12)
 # additional cmake-modules
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
-# get version and date from file
+# get version and date from files (version.txt and version_date.txt)
 include(version)
 get_version(MHM_VER MHM_VER_DEV MHM_DATE)
 # create the project

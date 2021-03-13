@@ -29,8 +29,8 @@ endfunction()
 # or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor i.e. ccmake
 # cmake ..
 function(cpp_definitions defName defCMakeName value cacheString)
-	set(${defCMakeName} "${value}" CACHE STRING "${cacheString}")
-	if (${defCMakeName})
-		add_definitions("${defName}")
-	endif()
+  set(${defCMakeName} "${value}" CACHE STRING "${cacheString}")
+  if (${defCMakeName})
+    add_compile_definitions("${defName}")
+  endif()
 endfunction()
