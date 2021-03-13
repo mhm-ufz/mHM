@@ -14,8 +14,6 @@ project(mhm
   )
 # add full version and date to pre-processor flags (qoutes need in before hand)
 add_compile_definitions(MHMVERSION='${MHM_VER_DEV}' MHMDATE='${MHM_DATE}')
-# add all compile options (MPI, OpenMP, Lapack, Coverage)
-include(compileoptions)
 # Compile
 add_subdirectory(./src)  # the lib folder containing mhm_lib
 add_executable(mhm ./src/mHM/mhm_driver.f90)
@@ -24,11 +22,13 @@ target_link_libraries(mhm PRIVATE mhm_lib)
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE)
   include(CodeCoverage)
   append_coverage_compiler_flags()
-  SETUP_TARGET_FOR_COVERAGE_LCOV(NAME mhm_coverage_CI
+  SETUP_TARGET_FOR_COVERAGE_LCOV(
+    NAME mhm_coverage_CI
     EXECUTABLE ../CI-scripts/run_cmake_coverage.sh
     DEPENDENCIES mhm mhm_lib
     EXCLUDE src/lib/*
-    GENHTML_ARGS -t "mHM coverage" --html-prolog ../doc/html_files/cov_header.prolog)
+    GENHTML_ARGS -t "mHM coverage" --html-prolog ../doc/html_files/cov_header.prolog
+  )
 endif()
 
 # Usually that works fine, except, one is on a module system and tries to execute the executable
