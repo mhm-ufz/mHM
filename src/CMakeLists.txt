@@ -92,6 +92,10 @@ message(STATUS "mhm_lib compiler flags are: ${MAIN_CFLAGS}")
 get_target_property(MAIN_CDEFS ${LIB_NAME} COMPILE_DEFINITIONS)
 message(STATUS "mhm_lib compiler defs are: ${MAIN_CDEFS}")
 
+# automatically enable testing (OFF by default)
+option(BUILD_TESTING "" OFF)
+include(CTest)
+
 # add pfunit test folder
 if(BUILD_TESTING)
   add_subdirectory(./tests)
