@@ -44,7 +44,7 @@ target_include_directories(${LIB_NAME} PUBLIC
   ${NETCDF_INCLUDES}
   ${MPI_Fortran_INCLUDE_PATH}
   ${OpenMP_Fortran_LIBRARY}
-  # ${CMAKE_CURRENT_BINARY_DIR} # ?!
+  ${CMAKE_CURRENT_BINARY_DIR} # needed for mhm exe
 )
 target_link_libraries(${LIB_NAME} PUBLIC
   ${NETCDF_LINK_LIBRARIES}
