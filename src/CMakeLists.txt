@@ -24,16 +24,20 @@ cpp_definitions("-DpgiFortran" "CMAKE_pgiFortran" "OFF" "Code exchange for pgi c
 cpp_definitions("-DMPR_STANDALONE" "CMAKE_MPR_STANDALONE" "OFF" "If set to ON, only MPR is compiled")
 cpp_definitions("-DABSOFT" "CMAKE_ABSOFT" "OFF" "Documentation to be added. If you you are developer, you might edit this string in CMakeLists.txt")
 
-# target_link_options would be better but is only available for cmake >=3.13
-# target_link_options(${LIB_NAME} PUBLIC
-#   ${NETCDF_LDFLAGS_OTHER}
-#   ${MPI_Fortran_LINK_FLAGS}
-#   ${OpenMP_Fortran_FLAGS}
-#   ${LAPACK_LINKER_FLAGS}
-# )
-set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS
-  "${NETCDF_LDFLAGS_OTHER} ${MPI_Fortran_LINK_FLAGS} ${OpenMP_Fortran_FLAGS} ${LAPACK_LINKER_FLAGS}"
-)
+# all compile and link options are PUBLIC in order to be forwared to 'mhm' exe
+# target_link_options only available in cmake 3.13
+if(CMAKE_VERSION VERSION_LESS 3.13)
+  set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS
+    "${NETCDF_LDFLAGS_OTHER} ${MPI_Fortran_LINK_FLAGS} ${OpenMP_Fortran_FLAGS} ${LAPACK_LINKER_FLAGS}"
+  )
+else()
+  target_link_options(${LIB_NAME} PUBLIC
+    ${NETCDF_LDFLAGS_OTHER}
+    ${MPI_Fortran_LINK_FLAGS}
+    ${OpenMP_Fortran_FLAGS}
+    ${LAPACK_LINKER_FLAGS}
+  )
+endif()
 target_compile_options(${LIB_NAME} PUBLIC
   ${XPP_FLAG}
   ${NETCDF_CFLAGS_OTHER}
