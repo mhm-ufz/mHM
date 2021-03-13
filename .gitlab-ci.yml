@@ -502,10 +502,11 @@ unittest-gcc83:
     - source moduleLoadScripts/eve.gcc83pfUnit
     # create build folder
     - mkdir build && cd build
-    # run cmake with testing support
+    # run cmake with testing support and build mhm
     - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON ..
-    # run all pfUnit tests
-    - make && make test
+    - make -j 4
+    # run all pfUnit tests in src/tests
+    - cd src/ && ctest -V
 
 coverage-gcc73:
   when: always
