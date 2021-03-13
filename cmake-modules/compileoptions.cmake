@@ -31,17 +31,14 @@ if (CMAKE_WITH_MPI)
   else()
     message(STATUS "found MPI_Fortran_COMPILER ${MPI_Fortran_COMPILER}")
   endif()
-	# add_compile_definitions(MPI)
 endif()
-
 if (CMAKE_WITH_OpenMP)
 	# find if there is an OpenMP setup on the system and if so, set corresponding variables
-        find_package(OpenMP)
+  find_package(OpenMP)
 	if (NOT ${OpenMP_Fortran_FOUND})
 		message(FATAL_ERROR "OpenMP required but not found")
 	endif()
 endif()
-
 if (CMAKE_WITH_LAPACK)
 	# find if there is an LAPACK library on the system and if so, set corresponding variables
   find_package(LAPACK)

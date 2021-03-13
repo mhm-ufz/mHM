@@ -1,9 +1,8 @@
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake-modules)
 set (LIB_NAME mhm_lib)
 # use all mo_*.f90 files for the library
 file(GLOB_RECURSE sources ./*mo_*.f90)
 add_library(${LIB_NAME} ${sources})
-# target_include_directories(${LIB_NAME} PRIVAT ${CMAKE_CURRENT_SOURCE_DIR})
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake-modules)
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
 include(compileoptions)
 
@@ -26,17 +25,33 @@ cpp_definitions("-DMPR_STANDALONE" "CMAKE_MPR_STANDALONE" "OFF" "If set to ON, o
 cpp_definitions("-DABSOFT" "CMAKE_ABSOFT" "OFF" "Documentation to be added. If you you are developer, you might edit this string in CMakeLists.txt")
 
 # target_link_options would be better but is only available for cmake >=3.13
-# target_link_options(${LIB_NAME} PUBLIC ${NETCDF_LDFLAGS_OTHER})
-set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS ${NETCDF_LDFLAGS_OTHER})
+# target_link_options(${LIB_NAME} PUBLIC
+#   ${NETCDF_LDFLAGS_OTHER}
+#   ${MPI_Fortran_LINK_FLAGS}
+#   ${OpenMP_Fortran_FLAGS}
+#   ${LAPACK_LINKER_FLAGS}
+# )
+set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS
+  "${NETCDF_LDFLAGS_OTHER} ${MPI_Fortran_LINK_FLAGS} ${OpenMP_Fortran_FLAGS} ${LAPACK_LINKER_FLAGS}"
+)
+target_compile_options(${LIB_NAME} PUBLIC
+  ${XPP_FLAG}
+  ${NETCDF_CFLAGS_OTHER}
+  ${MPI_Fortran_COMPILE_FLAGS}
+  ${OpenMP_Fortran_FLAGS}
+)
 target_include_directories(${LIB_NAME} PUBLIC
   ${NETCDF_INCLUDES}
   ${MPI_Fortran_INCLUDE_PATH}
   ${OpenMP_Fortran_LIBRARY}
-  )
-target_compile_options(${LIB_NAME} PUBLIC ${NETCDF_CFLAGS_OTHER} ${XPP_FLAG})
-target_link_libraries(${LIB_NAME} PUBLIC ${NETCDF_LINK_LIBRARIES} ${MPI_Fortran_LIBRARIES})
-target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-
+  # ${CMAKE_CURRENT_BINARY_DIR} # ?!
+)
+target_link_libraries(${LIB_NAME} PUBLIC
+  ${NETCDF_LINK_LIBRARIES}
+  ${MPI_Fortran_LIBRARIES}
+  ${OpenMP_Fortran_LIBRARIES}
+  ${LAPACK_LIBRARIES}
+)
 # by setting compile options and definitions PUBLIC, they are also used by
 # programms linking agains it (mhm exe in this case)
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
@@ -45,7 +60,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     -ffree-form -ffixed-line-length-132
     $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
     $<$<CONFIG:RELEASE>:-O3>
-    )
+  )
   if(CMAKE_WITH_COVERAGE)
     target_compile_options(${LIB_NAME} PUBLIC -g -fprofile-arcs -ftest-coverage)
   endif()
@@ -72,7 +87,10 @@ endif()
 
 # Show compile options
 get_target_property(MAIN_CFLAGS ${LIB_NAME} COMPILE_OPTIONS)
-message(STATUS "Target compiler flags are: ${MAIN_CFLAGS}")
+message(STATUS "mhm_lib compiler flags are: ${MAIN_CFLAGS}")
+# Show compile options
+get_target_property(MAIN_CDEFS ${LIB_NAME} COMPILE_DEFINITIONS)
+message(STATUS "mhm_lib compiler defs are: ${MAIN_CDEFS}")
 
 # add pfunit test folder
 if(BUILD_TESTING)
