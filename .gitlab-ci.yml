@@ -500,6 +500,8 @@ unittest-gcc83:
   script:
     # we need pfUnit
     - source moduleLoadScripts/eve.gcc83pfUnit
+    # create build folder
+    - mkdir build && cd build
     # run cmake with testing support
     - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON ..
     # run all pfUnit tests
