@@ -187,7 +187,7 @@ PROGRAM mhm_driver
   integer(i4)         :: rank, oldrank
   logical :: compiled_with_mpi = .true.
 
-! Initialize MPI
+  ! Initialize MPI
   call MPI_Init(ierror)
   call MPI_Comm_dup(MPI_COMM_WORLD, comm, ierror)
   ! find number of processes nproc
