@@ -11,7 +11,7 @@ project(mhm
   DESCRIPTION "The mesoscale Hydrological Model"
   HOMEPAGE_URL "https://www.ufz.de/mhm"
   LANGUAGES Fortran
-  )
+)
 # add full version and date to pre-processor flags (qoutes need in before hand)
 add_compile_definitions(MHMVERSION='${MHM_VER_DEV}' MHMDATE='${MHM_DATE}')
 # Compile
@@ -30,13 +30,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE)
     GENHTML_ARGS -t "mHM coverage" --html-prolog ../doc/html_files/cov_header.prolog
   )
 endif()
-
-# Usually that works fine, except, one is on a module system and tries to execute the executable
-# in the end without having the modules loaded. A workaround is provided using the variable
-# CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT
-# if this variable is set to ON (do not set the variable inside of this cmake file), then the
-# paths are added to the INSTALL_RPATH, and via the second command also to the build.
-# It is a bit of a mess and workaround though.
+# With this, paths are added to the INSTALL_RPATH, and via the second command also to the build.
 if (CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT)
   set_target_properties(mhm
     PROPERTIES
