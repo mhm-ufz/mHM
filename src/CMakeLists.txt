@@ -24,19 +24,10 @@ cpp_definitions("MPR_STANDALONE" "CMAKE_MPR_STANDALONE" "OFF" "If set to ON, onl
 cpp_definitions("ABSOFT" "CMAKE_ABSOFT" "OFF" "Documentation to be added. If you you are developer, you might edit this string in CMakeLists.txt")
 
 # all compile and link options are PUBLIC in order to be forwared to 'mhm' exe
-# target_link_options only available in cmake 3.13
-if(CMAKE_VERSION VERSION_LESS 3.13)
-  set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS
-    "${NETCDF_LDFLAGS_OTHER} ${MPI_Fortran_LINK_FLAGS} ${OpenMP_Fortran_FLAGS} ${LAPACK_LINKER_FLAGS}"
-  )
-else()
-  target_link_options(${LIB_NAME} PUBLIC
-    ${NETCDF_LDFLAGS_OTHER}
-    ${MPI_Fortran_LINK_FLAGS}
-    ${OpenMP_Fortran_FLAGS}
-    ${LAPACK_LINKER_FLAGS}
-  )
-endif()
+# target_link_options only available in cmake 3.13 (but NETCDF_LDFLAGS_OTHER not working)
+set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS
+  "${NETCDF_LDFLAGS_OTHER} ${MPI_Fortran_LINK_FLAGS} ${OpenMP_Fortran_FLAGS} ${LAPACK_LINKER_FLAGS}"
+)
 target_compile_options(${LIB_NAME} PUBLIC
   ${XPP_FLAG}
   ${NETCDF_CFLAGS_OTHER}
