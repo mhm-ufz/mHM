@@ -63,7 +63,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     -ffree-form -ffixed-line-length-132
     $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
     $<$<CONFIG:RELEASE>:-O3>
-    $<$<BOOL:CMAKE_WITH_COVERAGE>:-g -fprofile-arcs -ftest-coverage>
+    $<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
   )
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   # https://discourse.cmake.org/t/preserving-options-with-spaces-in-add-compile-options/1551/2
