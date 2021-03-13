@@ -8,8 +8,8 @@ stages:
   - info
   - build
   - valgrind
-  - test
-  - coverage
+  - check-cases
+  - code-analysis
   - deploy
 
 show-env-vars:
