@@ -18,6 +18,7 @@ add_compile_definitions(MHMVERSION='${MHM_VER_DEV}' MHMDATE='${MHM_DATE}')
 add_subdirectory(./src)  # the lib folder containing mhm_lib
 add_executable(mhm ./src/mHM/mhm_driver.f90)
 target_link_libraries(mhm PRIVATE mhm_lib)
+
 # setup coverage with GNU
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE)
   include(CodeCoverage)
@@ -30,6 +31,14 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE)
     GENHTML_ARGS -t "mHM coverage" --html-prolog ../doc/html_files/cov_header.prolog
   )
 endif()
+# automatically enable testing (OFF by default)
+option(BUILD_TESTING "Build with pfUnit tests." OFF)
+include(CTest)
+# add pfunit test folder
+if(BUILD_TESTING)
+  add_subdirectory(./src/tests)
+endif()
+
 # With this, paths are added to the INSTALL_RPATH, and via the second command also to the build.
 if (CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT)
   set_target_properties(mhm

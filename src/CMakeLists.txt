@@ -3,18 +3,9 @@ set (LIB_NAME mhm_lib)
 # use all mo_*.f90 files for the library
 file(GLOB_RECURSE sources ./*mo_*.f90)
 add_library(${LIB_NAME} ${sources})
-# add all compile options (MPI, OpenMP, Lapack, Coverage)
-include(compileoptions)
-
 # FindNetCDFF.cmake is automatically used by find_package(NetCDFF ...)
 set(NETCDF_F90 "YES")  # required interface
-find_package(NetCDFF REQUIRED)
-# from that module we gain the following variables:
-# NETCDF_INCLUDES	: the include directory
-# NETCDF_LINK_LIBRARIES : the absolute path to and with the libraries
-# NETCDF_CFLAGS_OTHER	: additional compilation flags
-# NETCDF_LDFLAGS_OTHER	: additional linking flags
-
+find_package(NetCDFF REQUIRED)  # this sets all "NETCDF_*" variables used below
 # get pre-processor flag for current compiler (-fpp or -cpp) and 'cpp_definitions' function
 include(checkfortranpreprocessor)
 get_preproc_flag(XPP_FLAG)
@@ -22,7 +13,12 @@ get_preproc_flag(XPP_FLAG)
 cpp_definitions("pgiFortran" "CMAKE_pgiFortran" "OFF" "Code exchange for pgi compiler dependent issues")
 cpp_definitions("MPR_STANDALONE" "CMAKE_MPR_STANDALONE" "OFF" "If set to ON, only MPR is compiled")
 cpp_definitions("ABSOFT" "CMAKE_ABSOFT" "OFF" "Documentation to be added. If you you are developer, you might edit this string in CMakeLists.txt")
-
+# add all compile options (MPI, OpenMP, Lapack, Coverage)
+include(compileoptions)
+# add MPI pre-processor directive (also for mhm exe)
+if (CMAKE_WITH_MPI)
+  target_compile_definitions(${LIB_NAME} PUBLIC MPI)
+endif()
 # all compile and link options are PUBLIC in order to be forwared to 'mhm' exe
 # target_link_options only available in cmake 3.13 (but NETCDF_LDFLAGS_OTHER not working)
 set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS
@@ -71,24 +67,4 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
     $<$<CONFIG:DEBUG>:-g -nan -O0 -C=all -strict95 -ieee=stop>
     $<$<CONFIG:RELEASE>:-O4 -ieee=full>
   )
-endif()
-
-if (CMAKE_WITH_MPI)
-  target_compile_definitions(${LIB_NAME} PUBLIC MPI)
-endif()
-
-# Show compile options
-get_target_property(MAIN_CFLAGS ${LIB_NAME} COMPILE_OPTIONS)
-message(STATUS "mhm_lib compiler flags are: ${MAIN_CFLAGS}")
-# Show compile options
-get_target_property(MAIN_CDEFS ${LIB_NAME} COMPILE_DEFINITIONS)
-message(STATUS "mhm_lib compiler defs are: ${MAIN_CDEFS}")
-
-# automatically enable testing (OFF by default)
-option(BUILD_TESTING "Build with pfUnit tests." OFF)
-include(CTest)
-
-# add pfunit test folder
-if(BUILD_TESTING)
-  add_subdirectory(./tests)
 endif()

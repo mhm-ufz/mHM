@@ -506,7 +506,7 @@ unittest-gcc83:
     - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON ..
     - make -j 4
     # run all pfUnit tests in src/tests
-    - cd src/ && ctest -V
+    - ctest -V
 
 coverage-gcc73:
   when: always
