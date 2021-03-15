@@ -179,12 +179,15 @@ PROGRAM mhm_driver
 
   logical :: ReadLatLon
 
+  logical :: compiled_with_openmp = .false.
+
 #ifdef MPI
   integer             :: ierror
   integer(i4)         :: nproc
   integer(i4)         :: rank, oldrank
+  logical :: compiled_with_mpi = .true.
 
-! Initialize MPI
+  ! Initialize MPI
   call MPI_Init(ierror)
   call MPI_Comm_dup(MPI_COMM_WORLD, comm, ierror)
   ! find number of processes nproc
@@ -193,6 +196,8 @@ PROGRAM mhm_driver
   call MPI_Comm_rank(comm, rank, ierror)
   oldrank = rank
   write(*,*) 'MPI!, comm', rank, nproc
+#else
+  logical :: compiled_with_mpi = .false.
 #endif
 
   ! check for working dir (added argument to the executable)
@@ -215,6 +220,18 @@ PROGRAM mhm_driver
   call message(separator)
 
   call message()
+  !$ compiled_with_openmp = .true.
+  if (compiled_with_openmp) then
+    call message('OpenMP used.')
+  else
+    call message('Openmp not used.')
+  end if
+  if (compiled_with_mpi) then
+    call message('MPI used.')
+  else
+    call message('MPI not used.')
+  end if
+
   call date_and_time(values = datetime)
   message_text = trim(num2str(datetime(3), '(I2.2)')) // "." // trim(num2str(datetime(2), '(I2.2)')) &
           // "." // trim(num2str(datetime(1), '(I4.4)')) // " " // trim(num2str(datetime(5), '(I2.2)')) &

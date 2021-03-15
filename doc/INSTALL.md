@@ -75,7 +75,7 @@ To avoid memory issues, allocate stack memory during cmake
 
 Memory dump is a common issue for cygwin users when compiling with OpenMP. For memory allocation please use this line below.
 
-....cmake -DCMAKE_Fortran_FLAGS="${CMAKE_Fortran_FLAGS} -Wl,--stack,12485760" -DCMAKE_WITH_OpenMP:STRING=ON -DCMAKE_BUILD_TYPE=Release ..
+....cmake -DCMAKE_Fortran_FLAGS="${CMAKE_Fortran_FLAGS} -Wl,--stack,12485760" -DCMAKE_WITH_OpenMP=ON -DCMAKE_BUILD_TYPE=Release ..
 
 ### Ubuntu, Mint and other apt-get based systems with matching repositories
 
@@ -187,7 +187,7 @@ It should be stable, anyway.
 
 In case you want to have a module-independent build, instead of just executing `cmake ..`, either run
 
-    cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
+    cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT=ON ..
 
 or
 
@@ -211,7 +211,7 @@ set the fortran compiler variable to the desired compiler, e.g.
 
 then either run
 
-    cmake -DCMAKE_NETCDF_DIR:STRING=/path/to/nf-config/of/used/compiler
+    cmake -DCMAKE_NETCDF_DIR=/path/to/nf-config/of/used/compiler
 
 or copy the file `specificSetup` to some other place:
 
