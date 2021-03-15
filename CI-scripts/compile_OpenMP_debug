@@ -1,6 +1,6 @@
 mkdir openmp_debug
 cd openmp_debug/
-cmake -DCMAKE_WITH_OpenMP:STRING=ON -DCMAKE_BUILD_TYPE=Debug ..
+cmake -DCMAKE_WITH_OpenMP=ON -DCMAKE_BUILD_TYPE=Debug ..
 make -j 4
 cd ..
 cp openmp_debug/mhm ./mhm_openmp_debug

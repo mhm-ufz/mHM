@@ -9,10 +9,10 @@ find_package(NetCDFF REQUIRED)  # this sets all "NETCDF_*" variables used below
 # get pre-processor flag for current compiler (-fpp or -cpp) and 'cpp_definitions' function
 include(checkfortranpreprocessor)
 get_preproc_flag(XPP_FLAG)
-# Add definitions. These should later be set via the cache line file and only have a default value here.
-cpp_definitions("pgiFortran" "CMAKE_pgiFortran" "OFF" "Code exchange for pgi compiler dependent issues")
-cpp_definitions("MPR_STANDALONE" "CMAKE_MPR_STANDALONE" "OFF" "If set to ON, only MPR is compiled")
-cpp_definitions("ABSOFT" "CMAKE_ABSOFT" "OFF" "Documentation to be added. If you you are developer, you might edit this string in CMakeLists.txt")
+# Add definitions. These should later be set via the cache or "cmake -DCMAKE_ABSOFT=ON .." for example.
+cpp_definitions(pgiFortran OFF "Code exchange for pgi compiler dependent issues")
+cpp_definitions(MPR_STANDALONE OFF "If set to ON, only MPR is compiled")
+cpp_definitions(ABSOFT OFF "Documentation to be added.")
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
 include(compileoptions)
 # add MPI pre-processor directive (also for mhm exe)

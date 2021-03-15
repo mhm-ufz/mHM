@@ -1,6 +1,6 @@
 mkdir openmp_release
 cd openmp_release/
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_WITH_OpenMP:STRING=ON ..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_WITH_OpenMP=ON ..
 make -j 4
 cd ..
 cp openmp_release/mhm ./mhm_openmp

@@ -1,26 +1,26 @@
 # The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT" can be set before executing cmake via a cache command:
-# $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
+# $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT=ON ..
 # or cache file:
 # $cmake -C ../CMakeCacheFiles/eve ..
 # or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor i.e ccmake
-set(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT OFF CACHE STRING "build the module INDEPENDENT of the module system, so the build in the build tree works even after a module purge")
+option(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT "build the module INDEPENDENT of the module system, so the build in the build tree works even after a module purge")
 message(STATUS "build INDEPENDENT of module system ${CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT}")
 
 # set specific place where to search for the netCDF directory
-set(CMAKE_NETCDF_DIR " " CACHE STRING "set set specific place where to search for the netCDF directory")
+set(CMAKE_NETCDF_DIR "" CACHE PATH "set set specific place where to search for the netCDF directory")
 message(STATUS "search in additional directory '${CMAKE_NETCDF_DIR}' for netCDF")
 
 # The variable "CMAKE_WITH_MPI" can be set before executing cmake via a cache command:
-# $cmake -DCMAKE_WITH_MPI:STRING=ON ..
+# $cmake -DCMAKE_WITH_MPI=ON ..
 # or in a cache file:
 # $cmake -C ../CMakeCacheFiles/example
 # or after executing CMake editing the CMakeCache.txt,
 # preferably with a corresponding cmake editor i.e. ccmake
-# same with OpenMP, lapack, coverage
-set(CMAKE_WITH_MPI OFF CACHE STRING "build the module with MPI, so it can be executed using mpirun")
-set(CMAKE_WITH_OpenMP OFF CACHE STRING "build the module with OpenMP parallelization")
-set(CMAKE_WITH_LAPACK OFF CACHE STRING "build the module with lapack library")
-set(CMAKE_WITH_COVERAGE OFF CACHE STRING "build the module with gcov coverage support")
+# same with OpenMP, lapack, coverage (all OFF by default)
+option(CMAKE_WITH_MPI "build the module with MPI, so it can be executed using mpirun")
+option(CMAKE_WITH_OpenMP "build the module with OpenMP parallelization")
+option(CMAKE_WITH_LAPACK "build the module with lapack library")
+option(CMAKE_WITH_COVERAGE "build the module with gcov coverage support")
 
 # if cmake provides a findLIBRARY module, this gets invoked via find_package(LIBRARY)
 if (CMAKE_WITH_MPI)

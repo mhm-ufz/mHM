@@ -21,16 +21,14 @@ function(get_preproc_flag preprog_flag)
   message(STATUS "Pre-Processor Flag: '${preprog_flag_}'")
 endfunction()
 
-# this function adds definitions but also creates a corresponding CMAKE variable with CACHE STRING
-# i.e.:
-# The variable "${defCMakeName}" can be set before executing cmake via a cache command cmake -D...
-# or in a cache file:
+# this function adds definitions but also creates a corresponding CMAKE_* variable with CACHE STRING
 # $cmake -C ../CMakeCacheFiles/example
-# or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor i.e. ccmake
-# cmake ..
-function(cpp_definitions defName defCMakeName value cacheString)
-  set(${defCMakeName} "${value}" CACHE STRING "${cacheString}")
-  if (${defCMakeName})
-    add_compile_definitions("${defName}")
+# adding cpp_definitions(DEFNAME OFF "some info")
+# will enable the pre-processor directive DEFNAME and can be controlled by
+# cmake -DCMAKE_DEFNAME=ON ..
+function(cpp_definitions defName value cacheString)
+  option(CMAKE_${defName} ${cacheString} ${value})
+  if (CMAKE_${defName})
+    add_compile_definitions(${defName})
   endif()
 endfunction()
