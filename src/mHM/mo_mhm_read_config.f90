@@ -101,7 +101,8 @@ CONTAINS
                                     fnight_pet, fnight_prec, fnight_temp, fnight_ssrd, fnight_strd, &
                                     inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
                                     read_meteo_weights, timeStep_model_outputs, &
-                                    timestep_model_inputs
+                                    timestep_model_inputs, &
+                                    output_deflate_level, output_double_precision
     use mo_message, only : message
     use mo_mpr_constants, only : maxNoSoilHorizons
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
@@ -187,7 +188,11 @@ CONTAINS
     namelist /nightDayRatio/ read_meteo_weights, &
       fnight_prec, fnight_pet, fnight_temp, fnight_ssrd, fnight_strd
     ! name list regarding output
-    namelist /NLoutputResults/timeStep_model_outputs, outputFlxState
+    namelist /NLoutputResults/ &
+            output_deflate_level, &
+            output_double_precision, &
+            timeStep_model_outputs, &
+            outputFlxState
 
     !===============================================================
     !  Read namelist main directories
@@ -353,6 +358,8 @@ CONTAINS
     ! Read output specifications for mHM
     !===============================================================
     call open_nml(file_defOutput, udefOutput, quiet = .true.)
+    output_deflate_level = 6
+    output_double_precision = .true.
     outputFlxState = .FALSE.
     call position_nml('NLoutputResults', udefOutput)
     read(udefOutput, nml = NLoutputResults)
@@ -360,6 +367,12 @@ CONTAINS
 
     call message('')
     call message('Following output will be written:')
+    call message('  NetCDF deflate level: ', adjustl(trim(num2str(output_deflate_level))))
+    if ( output_double_precision ) then
+      call message('  NetCDF output precision: double')
+    else
+      call message('  NetCDF output precision: single')
+    end if
     call message('  STATES:')
     if (outputFlxState(1)) then
       call message('    interceptional storage                          (L1_inter) [mm]')
