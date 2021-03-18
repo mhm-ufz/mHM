@@ -1,0 +1,74 @@
+module test_pet
+  use funit
+  use mo_pet
+  use mo_kind, only : dp
+
+  implicit none
+
+  private
+  
+  public :: test_pet_hargreaves, test_pet_priestly,test_pet_penman, test_extraterr_rad_approx, &
+            test_slope_satpressure, test_sat_vap_pressure
+
+contains
+
+  @test
+  subroutine test_pet_hargreaves()
+
+    real(dp) :: reference
+    real(dp) :: calc_pet
+
+    !calc_pet = pet_hargreaves()
+    !@assertEqual(reference, calc_pet, tolerance=0.001, message='PET Hargreaves-Sammani')
+    
+  end subroutine test_pet_hargreaves
+
+
+  @test
+  subroutine test_pet_priestly()
+
+    real(dp) :: reference = 4.978_dp
+    real(dp) :: calc_pet
+    
+    calc_pet = pet_priestly(1.26_dp, 200.0_dp, 10.0_dp)
+    @assertEqual(reference, calc_pet, tolerance=0.001, message='PET Priestley-Taylor')
+    
+  end subroutine test_pet_priestly
+
+
+  @test
+  subroutine test_pet_penman()
+
+    real(dp) :: reference
+    real(dp) :: calc_pet
+    
+  end subroutine test_pet_penman
+
+
+  @test
+  subroutine test_extraterr_rad_approx()
+
+    real(dp) :: reference
+    real(dp) :: calc_extraerr
+    
+  end subroutine test_extraterr_rad_approx
+
+
+  @test
+  subroutine test_slope_satpressure()
+
+    real(dp) :: reference
+    real(dp) :: calc_slope
+    
+  end subroutine test_slope_satpressure
+
+
+  @test
+  subroutine test_sat_vap_pressure()
+
+    real(dp) :: reference
+    real(dp) :: calc_vap
+    
+  end subroutine test_sat_vap_pressure
+
+end module test_pet

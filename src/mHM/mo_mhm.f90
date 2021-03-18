@@ -546,6 +546,7 @@ CONTAINS
                 tmin_in(k), latitude(k), doy)
 
       case(2) ! Priestley-Taylor
+
         ! Priestley Taylor is not defined for values netrad < 0.0_dp
         pet = pet_priestly(PrieTayAlpha(k), max(netrad_in(k), 0.0_dp), temp_in(k))
 

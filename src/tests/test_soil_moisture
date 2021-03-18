@@ -1,0 +1,25 @@
+module test_soil_moisture
+  use funit
+  use mo_soil_moisture
+  use mo_kind, only : dp
+
+  implicit none
+
+  private
+  
+  public :: test_feddes_et_reduction, test_jarvis_et_reduction
+
+  contains
+
+  @test
+  subroutine test_feddes_et_reduction ()
+
+  end subroutine test_feddes_et_reduction
+
+
+  @test
+  subroutine test_jarvis_et_reduction ()
+
+  end subroutine test_jarvis_et_reduction
+
+end module test_soil_moisture

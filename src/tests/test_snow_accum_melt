@@ -1,0 +1,19 @@
+module test_snow_accum_melt
+  use funit
+  use test_mo_snow_accum_melt
+  use mo_kind, only : dp
+
+  implicit none
+
+  private
+  
+  public :: test_snow_accum_melt
+
+  contains
+
+  @test
+  subroutine test_snow_accum_melt ()
+
+  end subroutine test_snow_accum_melt
+
+end module test_snow_accum_melt
