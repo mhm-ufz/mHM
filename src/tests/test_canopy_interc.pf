@@ -1,0 +1,34 @@
+module test_canopy_interc
+  use funit
+  use mo_canopy_interc
+  use mo_kind, only : dp
+
+  implicit none
+
+  private
+  
+  public :: test_canopy_interc
+
+contains
+
+  @test
+  subroutine test_canopy_interc()
+
+    real(dp) :: ref_interc, ref_throughfall, ref_evap_canopy
+    real(dp) :: res_interc, res_throughfall, res_evap_canopy
+
+    ref_interc = 0.35_dp
+    ref_throughfall = 0.285_dp
+    ref_evap_canopy = 0.1
+    res_interc = 0.345_dp
+
+    call canopy_interc(0.1_dp, 0.45_dp, 0.39_dp, res_interc, res_throughfall, res_evap_canopy)
+    @assertEqual(ref_interc, res_interc, tolerance=0.001, message='Canopy Intercepetion: Interception')
+    @assertEqual(ref_throughfall, res_throughfall, tolerance=0.001, message='Canopy Intercepetion: Throughfall')
+    @assertEqual(ref_evap_canopy, res_evap_canopy, tolerance=0.001, message='Canopy Intercepetion: Interception')
+    
+  end subroutine test_canopy_interc
+
+
+end module test_canopy_interc
+
