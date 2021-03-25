@@ -2,6 +2,7 @@ module test_pet
   use funit
   use mo_pet
   use mo_kind, only : dp
+  use mo_constants, only: deg2rad_dp
 
   implicit none
 
@@ -15,11 +16,11 @@ contains
   @test
   subroutine test_pet_hargreaves()
 
-    real(dp) :: reference
+    real(dp) :: reference = 1349.437_dp
     real(dp) :: calc_pet
 
-    !calc_pet = pet_hargreaves()
-    !@assertEqual(reference, calc_pet, tolerance=0.001, message='PET Hargreaves-Sammani')
+    calc_pet = pet_hargreaves(0.8_dp,17.8_dp,12.0_dp,20.0_dp,8.0_dp,23.1637_dp, 150)
+    @assertEqual(reference, calc_pet, tolerance=0.001, message='PET Hargreaves-Sammani')
     
   end subroutine test_pet_hargreaves
 
@@ -39,8 +40,11 @@ contains
   @test
   subroutine test_pet_penman()
 
-    real(dp) :: reference
+    real(dp) :: reference 0 1.074_dp
     real(dp) :: calc_pet
+
+    calc_pet = pet_penman (200.0_dp, 10.0_dp, 1.7_dp, 60.0_dp, 70.0_dp, 1.0_dp, 1.0_dp)
+    @assertEqual(reference, calc_pet, tolerance=0.001, message='PET Penman-Monteith')
     
   end subroutine test_pet_penman
 
@@ -48,8 +52,11 @@ contains
   @test
   subroutine test_extraterr_rad_approx()
 
-    real(dp) :: reference
+    real(dp) :: reference = 16.34_dp
     real(dp) :: calc_extraerr
+
+    calc_extraerr = extraterr_rad_approx(150,deg2rad_dp*23.1637_dp)
+    @assertEqual(reference, calc_extraerr, tolerance=0.001, message='Approx. extraterrestrial radiation')
     
   end subroutine test_extraterr_rad_approx
 
@@ -57,17 +64,23 @@ contains
   @test
   subroutine test_slope_satpressure()
 
-    real(dp) :: reference
+    real(dp) :: reference = 41.978_dp
     real(dp) :: calc_slope
     
+    calc_slope = slope_satpressure(10)
+    @assertEqual(reference, calc_slope, tolerance=0.001, message='slope of saturation vapour pressure curve')
+
   end subroutine test_slope_satpressure
 
 
   @test
   subroutine test_sat_vap_pressure()
 
-    real(dp) :: reference
-    real(dp) :: calc_vap
+    real(dp) :: reference = 1.228_dp
+    real(dp) :: calc_sat
+
+    calc_sat = sat_vap_pressure(10)
+    @assertEqual(reference, calc_sat, tolerance=0.001, message='saturation vapour pressure')
     
   end subroutine test_sat_vap_pressure
 
