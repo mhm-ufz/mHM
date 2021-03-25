@@ -7,12 +7,12 @@ module test_canopy_interc
 
   private
   
-  public :: test_canopy_interc
+  public :: test_canopy_inter
 
 contains
 
   @test
-  subroutine test_canopy_interc()
+  subroutine test_canopy_inter()
 
     real(dp) :: ref_interc, ref_throughfall, ref_evap_canopy
     real(dp) :: res_interc, res_throughfall, res_evap_canopy
@@ -27,7 +27,7 @@ contains
     @assertEqual(ref_throughfall, res_throughfall, tolerance=0.001, message='Canopy Intercepetion: Throughfall')
     @assertEqual(ref_evap_canopy, res_evap_canopy, tolerance=0.001, message='Canopy Intercepetion: Interception')
     
-  end subroutine test_canopy_interc
+  end subroutine test_canopy_inter
 
 
 end module test_canopy_interc
