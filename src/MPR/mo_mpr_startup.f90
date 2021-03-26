@@ -401,7 +401,7 @@ CONTAINS
   subroutine init_eff_params(ncells1)
 
     use mo_append, only : append
-    use mo_constants, only : YearMonths_i4
+    use mo_constants, only : YearMonths
     use mo_common_constants, only : P1_InitStateFluxes
     use mo_common_variables, only : nLCoverScene
     use mo_mpr_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, &
@@ -421,7 +421,7 @@ CONTAINS
 
 
     ! get maximum extent of one dimension 2 or 3
-    max_extent = max(nSoilHorizons_mHM, YearMonths_i4, nLCoverScene, nLAI)
+    max_extent = max(nSoilHorizons_mHM, nint(YearMonths, i4), nLCoverScene, nLAI)
 
     ! for appending and intialization
     allocate(dummy_3D(nCells1, max_extent, nLCoverScene))
