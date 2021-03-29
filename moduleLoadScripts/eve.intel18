@@ -5,4 +5,6 @@ module load CMake
 module use /global/apps/modulefiles
 module load python_env_mpr
 module load pFUnit/4.2.0_ifort18.0.3
+export NETCDF_DIR="$EBROOTNETCDF"
+export NETCDF_FORTRAN_DIR="$EBROOTNETCDFMINFORTRAN"
 export FC=ifort
