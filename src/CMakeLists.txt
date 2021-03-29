@@ -48,7 +48,7 @@ if(NOT ${MPR_NAME}_FOUND)
   )
   FetchContent_MakeAvailable(${MPR_NAME})
 endif()
-target_link_libraries(${LIB_NAME} PUBLIC ${MPR_NAME})
+# target_link_libraries(${LIB_NAME} PUBLIC ${MPR_NAME})
 
 # get pre-processor flag for current compiler (-fpp or -cpp) and 'cpp_definitions' function
 include(checkfortranpreprocessor)

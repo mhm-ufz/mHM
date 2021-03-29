@@ -184,7 +184,7 @@ contains
     ! 1981-1990,1991-2000 is thus saved as 1981.0-1991.0,1991.0-2001.0
     ! it is translated back into ints correctly during reading
     dummy_d1(nLCoverScene+1) = LC_year_end(nLCoverScene) + 1
-    lcscenes = nc%setDimension(trim(landCoverPeriodsVarName), nLCoverScene, dummy_d1, 0_i4)
+    lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), nLCoverScene, dummy_d1, 0_i4)
     deallocate(dummy_d1)
 
 
@@ -718,7 +718,8 @@ contains
       L11_tsRout = nodata_dp
     end if
     var = nc%getVariable("L11_TSrout")
-    call var%getData(L11_TSrout(iDomain))
+    ! we cannot only get the actual value for the current iDomain as getData does not work with scalars
+    call var%getData(L11_tsRout)
 
     ! L11 data sets
     ! Mapping of L1 Ids on L1
