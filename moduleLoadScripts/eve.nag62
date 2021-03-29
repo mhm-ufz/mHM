@@ -2,5 +2,8 @@ module purge
 module load NAGfor/6.2.14
 module load netcdf-fortran/4.4.5-NAG-6.2.14-GCC-7.3.0-2.30-1
 module load CMake
+module use /global/apps/modulefiles
+module load python_env_mpr
+module load pFUnit/4.1.3_nagfor-6.2
 export FC=nagfor
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH":/usr/lib64"

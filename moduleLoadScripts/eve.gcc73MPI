@@ -2,4 +2,7 @@ module purge
 module load foss/2018b
 module load netCDF-Fortran
 module load CMake
+module use /global/apps/modulefiles
+module load python_env_mpr
+module load pFUnit/4.2.0_foss2018b
 export FC=mpif90
