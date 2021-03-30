@@ -86,8 +86,8 @@ cmake-nag62:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source moduleLoadScripts/eve.nag62
-    - source CI-scripts/compile
-    - source CI-scripts/compile_debug
+    - source CI-scripts/compile -DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64
+    - source CI-scripts/compile_debug -DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64
   artifacts:
     paths:
     - mhm
