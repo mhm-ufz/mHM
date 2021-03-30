@@ -35,6 +35,7 @@ if(NOT ${MPR_NAME}_FOUND)
     GIT_REPOSITORY git@git.ufz.de:chs/mpr.git
     GIT_TAG        temporary_test
   )
+  set (${MPR_NAME}_BUILD_TESTING OFF)
   FetchContent_MakeAvailable(${MPR_NAME})
 endif()
 # target_link_libraries(${LIB_NAME} PUBLIC ${MPR_NAME})
