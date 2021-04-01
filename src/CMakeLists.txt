@@ -33,7 +33,7 @@ if(NOT ${MPR_NAME}_FOUND)
   FetchContent_Declare(
     ${MPR_NAME}
     GIT_REPOSITORY git@git.ufz.de:chs/mpr.git
-    GIT_TAG        temporary_test
+    GIT_TAG        1.0.0
   )
   set (${MPR_NAME}_BUILD_TESTING OFF)
   FetchContent_MakeAvailable(${MPR_NAME})
