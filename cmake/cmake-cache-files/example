@@ -1,0 +1,5 @@
+##-D CMAKE_WITH_MPI=ON
+option(CMAKE_WITH_MPI "build the module with MPI, so it can be executed using mpirun" ON)
+#option(CMAKE_pgiFortran "Code exchange for pgi compiler dependent issues" ON)
+#option(CMAKE_MPR_STANDALONE "If set to ON, only MPR is compiled" ON)
+#option(CMAKE_ABSOFT "Documentation to be added. If you you are developer, you might edit this string in CMakeLists.txt" ON)

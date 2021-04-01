@@ -1,0 +1,2 @@
+# set set specific path where to search for the netCDF directory
+set(CMAKE_NETCDF_DIR "/path/to/netcdfdir/" CACHE PATH "set set specific place where to search for the netCDF directory")
