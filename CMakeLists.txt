@@ -1,7 +1,7 @@
 # mHM cmake script
 cmake_minimum_required(VERSION 3.14)
 # additional cmake-modules
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-modules)
 # get version and date from files (version.txt and version_date.txt)
 include(version)
 get_version(MHM_VER MHM_VER_DEV MHM_DATE)
