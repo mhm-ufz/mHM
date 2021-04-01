@@ -1,0 +1,13 @@
+module purge
+module load NAGfor
+module load netcdf-fortran/4.4.5-1
+module load CMake
+module use /global/apps/modulefiles
+module load python_env_mpr
+module load pFUnit/4.1.3_nagfor-6.2
+export FC=nagfor
+# the Eve guys did not set it properly, so we need to do that manually
+# you also need to pass -DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64 to cmake as there are lib64 folders
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH":/usr/lib64"
+export NETCDF_DIR="$EBROOTNETCDF"
+export NETCDF_FORTRAN_DIR="/software/netcdf-fortran/4.4.5-1"
