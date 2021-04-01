@@ -10,10 +10,15 @@ All these scripts will load:
 - netCDF-Fortran
 - CMake
 - the MPR Python Environment
-- pFUnit - Fortran unit testing framework
+- pFUnit - Fortran unit testing framework (_not available for GNU 6.4_)
 
 ### Usage
 
+- GNU 6.4 compiler (`foss/2018a` Toolchain):
+  ```bash
+  source eve.gfortran64 # or
+  source eve.gfortran64MPI
+  ```
 - GNU 7.3 compiler (`foss/2018b` Toolchain):
   ```bash
   source eve.gfortran73 # or

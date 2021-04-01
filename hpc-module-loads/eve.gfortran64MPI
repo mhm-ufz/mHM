@@ -1,0 +1,9 @@
+module purge
+module load foss/2018a
+module load netCDF-Fortran
+module load CMake
+module use /global/apps/modulefiles
+module load python_env_mpr
+export NETCDF_DIR="$EBROOTNETCDF"
+export NETCDF_FORTRAN_DIR="$EBROOTNETCDFMINFORTRAN"
+export FC=mpifort
