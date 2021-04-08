@@ -33,6 +33,12 @@ contains
     
     calc_pet = pet_priestly(1.26_dp, 200.0_dp, 10.0_dp)
     @assertEqual(reference, calc_pet, tolerance=0.001, message='PET Priestley-Taylor')
+
+
+    reference = 0.0_dp
+    calc_pet = pet_priestly(1.26_dp, 0.0_dp, 10.0_dp)
+    @assertEqual(reference, calc_pet, tolerance=0.001, message='PET Priestley-Taylor, rn = 0')
+
     
   end subroutine test_pet_priestly
 
@@ -40,11 +46,16 @@ contains
   @test
   subroutine test_pet_penman()
 
-    real(dp) :: reference 0 1.074_dp
+    real(dp) :: reference = 1.074_dp
     real(dp) :: calc_pet
 
     calc_pet = pet_penman (200.0_dp, 10.0_dp, 1.7_dp, 60.0_dp, 70.0_dp, 1.0_dp, 1.0_dp)
     @assertEqual(reference, calc_pet, tolerance=0.001, message='PET Penman-Monteith')
+
+
+    reference = 0.0_dp
+    calc_pet = pet_penman (200.0_dp, 10.0_dp, 1.7_dp, 60.0_dp, 70.0_dp, 0.0_dp, 1.0_dp)
+    @assertEqual(reference, calc_pet, tolerance=0.001, message='PET Penman-Monteith, a_s=0' )
     
   end subroutine test_pet_penman
 
@@ -55,7 +66,7 @@ contains
     real(dp) :: reference = 16.34_dp
     real(dp) :: calc_extraerr
 
-    calc_extraerr = extraterr_rad_approx(150,deg2rad_dp*23.1637_dp)
+    calc_extraerr = extraterr_rad_approx(150_i4,deg2rad_dp*23.1637_dp)
     @assertEqual(reference, calc_extraerr, tolerance=0.001, message='Approx. extraterrestrial radiation')
     
   end subroutine test_extraterr_rad_approx
@@ -64,10 +75,10 @@ contains
   @test
   subroutine test_slope_satpressure()
 
-    real(dp) :: reference = 41.978_dp
+    real(dp) :: reference = 0.082_dp
     real(dp) :: calc_slope
     
-    calc_slope = slope_satpressure(10)
+    calc_slope = slope_satpressure(10._dp)
     @assertEqual(reference, calc_slope, tolerance=0.001, message='slope of saturation vapour pressure curve')
 
   end subroutine test_slope_satpressure
@@ -79,7 +90,7 @@ contains
     real(dp) :: reference = 1.228_dp
     real(dp) :: calc_sat
 
-    calc_sat = sat_vap_pressure(10)
+    calc_sat = sat_vap_pressure(10._dp)
     @assertEqual(reference, calc_sat, tolerance=0.001, message='saturation vapour pressure')
     
   end subroutine test_sat_vap_pressure
