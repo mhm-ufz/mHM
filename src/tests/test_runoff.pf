@@ -9,6 +9,8 @@ module test_runoff
 
   public :: test_runoff_unsat_zone, test_runoff_sat_zone, test_L1_total_runoff
 
+  real :: t = 0.001
+
   contains
 
   @test
@@ -29,11 +31,11 @@ module test_runoff
 
     call runoff_unsat_zone(1.2417_dp, 1.4312_dp, 3.547_dp,0.285_dp, 1.0_dp, 0.0_dp, 17.926_dp, &
                            res_sat_stor, res_unsat_stor, res_slow_if, res_fast_if, res_perc)       
-    @assertEqual(ref_sat_stor, res_sat_stor, tolerance=0.001, message='runoff_unsat_zone: sat_stor, realistic val')
-    @assertEqual(ref_unsat_stor, res_unsat_stor, tolerance=0.001, message='runoff_unsat_zone: unsat_stor, realistic val')
-    @assertEqual(ref_slow_if, res_slow_if, tolerance=0.001, message='runoff_unsat_zone: slow_if, realistic val')
-    @assertEqual(ref_fast_if, res_fast_if, tolerance=0.001, message='runoff_unsat_zone: fast_if, realistic val')
-    @assertEqual(ref_perc, res_perc, tolerance=0.001, message='runoff_unsat_zone: perc, realistic val')
+    @assertEqual(ref_sat_stor, res_sat_stor, tolerance=t, message='runoff_unsat_zone: sat_stor, realistic val')
+    @assertEqual(ref_unsat_stor, res_unsat_stor, tolerance=t, message='runoff_unsat_zone: unsat_stor, realistic val')
+    @assertEqual(ref_slow_if, res_slow_if, tolerance=t, message='runoff_unsat_zone: slow_if, realistic val')
+    @assertEqual(ref_fast_if, res_fast_if, tolerance=t, message='runoff_unsat_zone: fast_if, realistic val')
+    @assertEqual(ref_perc, res_perc, tolerance=t, message='runoff_unsat_zone: perc, realistic val')
   
 
     ref_sat_stor = 35.304_dp
@@ -46,11 +48,11 @@ module test_runoff
 
     call runoff_unsat_zone(1.2417_dp, 1.4312_dp, 3.547_dp, 0.285_dp, 1.0_dp, 20.0_dp, 17.926_dp, &
                            res_sat_stor, res_unsat_stor, res_slow_if, res_fast_if, res_perc)       
-    @assertEqual(ref_sat_stor, res_sat_stor, tolerance=0.001, message='runoff_unsat_zone: sat_stor, stor>hresh')
-    @assertEqual(ref_unsat_stor, res_unsat_stor, tolerance=0.001, message='runoff_unsat_zone: unsat_stor, stor>thresh')
-    @assertEqual(ref_slow_if, res_slow_if, tolerance=0.001, message='runoff_unsat_zone: slow_if, stor>thresh')
-    @assertEqual(ref_fast_if, res_fast_if, tolerance=0.001, message='runoff_unsat_zone: fast_if, stor>thresh')
-    @assertEqual(ref_perc, res_perc, tolerance=0.001, message='runoff_unsat_zone: perc, stor>thresh')
+    @assertEqual(ref_sat_stor, res_sat_stor, tolerance=t, message='runoff_unsat_zone: sat_stor, stor>hresh')
+    @assertEqual(ref_unsat_stor, res_unsat_stor, tolerance=t, message='runoff_unsat_zone: unsat_stor, stor>thresh')
+    @assertEqual(ref_slow_if, res_slow_if, tolerance=t, message='runoff_unsat_zone: slow_if, stor>thresh')
+    @assertEqual(ref_fast_if, res_fast_if, tolerance=t, message='runoff_unsat_zone: fast_if, stor>thresh')
+    @assertEqual(ref_perc, res_perc, tolerance=t, message='runoff_unsat_zone: perc, stor>thresh')
 
 
     ref_sat_stor = 32.055_dp
@@ -63,11 +65,11 @@ module test_runoff
 
     call runoff_unsat_zone(1.2417_dp, 1.4312_dp, 3.547_dp, 0.285_dp, 1.0_dp, 0.0_dp, 17.926_dp, &
                            res_sat_stor, res_unsat_stor, res_slow_if, res_fast_if, res_perc)       
-    @assertEqual(ref_sat_stor, res_sat_stor, tolerance=0.001, message='runoff_unsat_zone: sat_stor, neg. unsat_stor')
-    @assertEqual(ref_unsat_stor, res_unsat_stor, tolerance=0.001, message='runoff_unsat_zone: unsat_stor, neg. unsat_stor')
-    @assertEqual(ref_slow_if, res_slow_if, tolerance=0.001, message='runoff_unsat_zone: slow_if, neg. unsat_stor')
-    @assertEqual(ref_fast_if, res_fast_if, tolerance=0.001, message='runoff_unsat_zone: fast_if, neg. unsat_stor')
-    @assertEqual(ref_perc, res_perc, tolerance=0.001, message='runoff_unsat_zone: perc, neg. unsat_stor')
+    @assertEqual(ref_sat_stor, res_sat_stor, tolerance=t, message='runoff_unsat_zone: sat_stor, neg. unsat_stor')
+    @assertEqual(ref_unsat_stor, res_unsat_stor, tolerance=t, message='runoff_unsat_zone: unsat_stor, neg. unsat_stor')
+    @assertEqual(ref_slow_if, res_slow_if, tolerance=t, message='runoff_unsat_zone: slow_if, neg. unsat_stor')
+    @assertEqual(ref_fast_if, res_fast_if, tolerance=t, message='runoff_unsat_zone: fast_if, neg. unsat_stor')
+    @assertEqual(ref_perc, res_perc, tolerance=t, message='runoff_unsat_zone: perc, neg. unsat_stor')
 
   end subroutine test_runoff_unsat_zone
 
@@ -83,8 +85,8 @@ module test_runoff
     res_sat_stor = 17.0_dp
 
     call runoff_sat_zone(0.000417_dp, res_sat_stor, res_baseflow)
-    @assertEqual(ref_sat_stor, res_sat_stor, tolerance=0.001, message='runoff_sat_zone: sat_stor, realistic val')
-    @assertEqual(ref_baseflow, res_baseflow, tolerance=0.001, message='runoff_sat_zone: baseflow, realistic val')
+    @assertEqual(ref_sat_stor, res_sat_stor, tolerance=t, message='runoff_sat_zone: sat_stor, realistic val')
+    @assertEqual(ref_baseflow, res_baseflow, tolerance=t, message='runoff_sat_zone: baseflow, realistic val')
 
 
     ref_sat_stor = 0.0_dp
@@ -92,8 +94,8 @@ module test_runoff
     res_sat_stor = -17.0_dp
 
     call runoff_sat_zone(0.000417_dp, res_sat_stor, res_baseflow)
-    @assertEqual(ref_sat_stor, res_sat_stor, tolerance=0.001, message='runoff_sat_zone: sat_stor, neg. sat_stor')
-    @assertEqual(ref_baseflow, res_baseflow, tolerance=0.001, message='runoff_sat_zone: baseflow, neg. sat_stor')
+    @assertEqual(ref_sat_stor, res_sat_stor, tolerance=t, message='runoff_sat_zone: sat_stor, neg. sat_stor')
+    @assertEqual(ref_baseflow, res_baseflow, tolerance=t, message='runoff_sat_zone: baseflow, neg. sat_stor')
 
   end subroutine test_runoff_sat_zone
 
@@ -106,7 +108,7 @@ module test_runoff
     ref_total_ro = 10.07_dp
 
     call L1_total_runoff(0.0284_dp, 0.0_dp, 5.0_dp, 5.365_dp, 0.0_dp, res_total_ro)
-    @assertEqual(ref_total_ro, res_total_ro, tolerance=0.001, message='L1_total_runoff: total_ro')
+    @assertEqual(ref_total_ro, res_total_ro, tolerance=t, message='L1_total_runoff: total_ro')
 
   end subroutine test_L1_total_runoff
 
