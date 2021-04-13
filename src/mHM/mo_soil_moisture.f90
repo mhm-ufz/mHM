@@ -23,9 +23,9 @@ MODULE mo_soil_moisture
 
   IMPLICIT NONE
 
-  PRIVATE :: feddes_et_reduction
-  PRIVATE :: jarvis_et_reduction
-
+  PUBLIC :: feddes_et_reduction
+  PUBLIC :: jarvis_et_reduction
+  
   PUBLIC :: soil_moisture  ! Soil moisture in different soil horizons
 
   ! ------------------------------------------------------------------
