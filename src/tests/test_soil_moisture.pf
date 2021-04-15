@@ -1,0 +1,96 @@
+module test_soil_moisture
+  use funit
+  use mo_soil_moisture
+  use mo_kind, only : dp
+
+  implicit none
+
+  private
+  
+  public :: test_feddes_et_reduction, test_jarvis_et_reduction
+
+  real :: t = 0.001
+
+  contains
+
+  !@test
+  !subroutine test_soil_moist()
+
+    !real(dp) :: ref_prec_effect, ref_runoff_sealed, ref_storage_sealed, ref_infiltration, &
+    !            ref_soil_moist, ref_aet, ref_aet_sealed
+    !real(dp) :: res_prec_effect, res_runoff_sealed, res_storage_sealed, res_infiltration, &
+    !            res_soil_moist, res_aet, res_aet_sealed
+
+    !ref_prec_effect = 0.0_dp
+    !ref_runoff_sealed = 0.0_dp
+    !ref_storage_sealed = 0.0_dp
+    !ref_infiltration = 0.0_dp
+    !ref_soil_moist = 0.0_dp
+    !ref_aet = 0.0_dp
+    !ref_aet_sealed = 0.0_dp
+    !res_prec_effect = 0.0_dp
+    !res_runoff_sealed = 0.0_dp
+    !res_storage_sealed = 0.0_dp
+    !res_infiltration = 0.0_dp
+    !res_soil_moist = 0.0_dp
+
+	!end subroutine test_soil_moist
+
+
+	@test
+  subroutine test_feddes_et_reduction()
+  
+    real(dp) :: reference, result
+
+    reference = 0.0_dp
+
+    result = feddes_et_reduction(38.5_dp, 77.0_dp, 43.6_dp, 0.6_dp)
+    @assertEqual(reference, result, tolerance=t, message='feddes_et_reduction: SM<=PW')
+
+
+    reference = 0.04_dp
+
+    result = feddes_et_reduction(35.5_dp, 71.1_dp, 33.0_dp, 0.618_dp)
+    @assertEqual(reference, result, tolerance=t, message='feddes_et_reduction: PW<SM<FC')
+
+
+    reference = 0.618_dp
+
+    result = feddes_et_reduction(35.5_dp, 35.5_dp, 33.0_dp, 0.618_dp)
+    @assertEqual(reference, result, tolerance=t, message='feddes_et_reduction: PW<SM<FC')
+
+  end subroutine test_feddes_et_reduction
+
+
+	@test
+  subroutine test_jarvis_et_reduction()
+
+    real(dp) :: reference, result
+
+    reference = 0.315_dp
+
+    result = jarvis_et_reduction(48.1_dp, 92.6_dp, 32.2_dp, 0.6_dp, 0.5_dp)
+    @assertEqual(reference, result, tolerance=t, message='jarvis_et_reduction: theta_inorm .LT. jarvis_thresh_c1')
+
+
+    reference = 0.6_dp
+
+    result = jarvis_et_reduction(48.1_dp, 32.2_dp, 32.2_dp, 0.6_dp, 0.5_dp)
+    @assertEqual(reference, result, tolerance=t, message='jarvis_et_reduction: soil_moist_sat .EQ. wilting_point')
+    !!!!!!!!!!!!!!!! why here is the result for division with zero 1 instead of 0?
+
+
+    reference = 0.0_dp
+
+    result = jarvis_et_reduction(128.4_dp, 319.0_dp, 144.5_dp, 0.4_dp, 0.5_dp)
+    @assertEqual(reference, result, tolerance=t, message='jarvis_et_reduction: theta_inorm .LT. 0')
+
+
+    reference = 0.6_dp
+
+    result = jarvis_et_reduction(91.3_dp, 50.5_dp, 38.2_dp, 0.6_dp, 0.5_dp)
+    @assertEqual(reference, result, tolerance=t, message='jarvis_et_reduction: theta_inorm .GT. 1')
+    
+  end subroutine test_jarvis_et_reduction
+
+end module test_soil_moisture
