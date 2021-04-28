@@ -80,12 +80,12 @@ documentation:
       - doxygen_warn_mas.txt
   when: always
 
-cmake-nag62:
+cmake-nagfor62:
   stage: build
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
-    - source hpc-module-loads/eve.nag62
+    - source hpc-module-loads/eve.nagfor62
     - source CI-scripts/compile -DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64
     - source CI-scripts/compile_debug -DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64
   artifacts:
@@ -183,12 +183,12 @@ cmake-intel18MPI:
     - mhm_mpi
     - mhm_mpi_debug
 
-cmake-intel20:
+cmake-intel19:
   stage: build
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
-    - source hpc-module-loads/eve.intel20
+    - source hpc-module-loads/eve.intel19
     - source CI-scripts/compile
     - source CI-scripts/compile_debug
     - source CI-scripts/compile_OpenMP
@@ -200,12 +200,12 @@ cmake-intel20:
     - mhm_openmp
     - mhm_openmp_debug
 
-cmake-intel20MPI:
+cmake-intel19MPI:
   stage: build
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
-    - source hpc-module-loads/eve.intel20MPI
+    - source hpc-module-loads/eve.intel19MPI
     - source CI-scripts/compile_MPI
     - source CI-scripts/compile_MPI_debug
   artifacts:
@@ -256,16 +256,16 @@ cmake-intel20MPI:
 #     paths:
 #     - massif.out.0
 
-valgrind-nag62:
+valgrind-nagfor62:
   when: always
   stage: valgrind
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
-    - job: cmake-nag62
+    - job: cmake-nagfor62
       artifacts: true
   script:
-    - source hpc-module-loads/eve.nag62
+    - source hpc-module-loads/eve.nagfor62
     - module load Anaconda3
     - source activate /global/apps/mhm_checks/mhm_env
     - valgrind --version
@@ -298,16 +298,16 @@ valgrind-gfortran83:
     paths:
     - massif.out.0
 
-valgrind-intel20:
+valgrind-intel19:
   when: always
   stage: valgrind
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
-    - job: cmake-intel20
+    - job: cmake-intel19
       artifacts: true
   script:
-    - source hpc-module-loads/eve.intel20
+    - source hpc-module-loads/eve.intel19
     - module load Anaconda3
     - source activate /global/apps/mhm_checks/mhm_env
     - valgrind --version
@@ -319,16 +319,16 @@ valgrind-intel20:
     paths:
     - massif.out.0
 
-check-nag62:
+check-nagfor62:
   when: always
   stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
-    - job: cmake-nag62
+    - job: cmake-nagfor62
       artifacts: true
   script:
-    - source hpc-module-loads/eve.nag62
+    - source hpc-module-loads/eve.nagfor62
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm
   artifacts:
@@ -336,16 +336,16 @@ check-nag62:
     paths:
     - check/logs/
 
-check-nag62DEBUG:
+check-nagfor62DEBUG:
   when: always
   stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
-    - job: cmake-nag62
+    - job: cmake-nagfor62
       artifacts: true
   script:
-    - source hpc-module-loads/eve.nag62
+    - source hpc-module-loads/eve.nagfor62
     - source CI-scripts/pre_check
     # skip cases with optimization due to overflow in the random-number-generator (NAG uses -ieee=stop in DEBUG)
     - python -u run_mhm_checks.py -l logs -e ../mhm_debug -s case_03 case_06 case_07 case_08 case_11
@@ -456,16 +456,16 @@ check-intel18MPI:
     paths:
     - check/logs/
 
-check-intel20:
+check-intel19:
   when: always
   stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
-    - job: cmake-intel20
+    - job: cmake-intel19
       artifacts: true
   script:
-    - source hpc-module-loads/eve.intel20
+    - source hpc-module-loads/eve.intel19
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
   artifacts:
@@ -473,16 +473,16 @@ check-intel20:
     paths:
     - check/logs/
 
-check-intel20MPI:
+check-intel19MPI:
   when: always
   stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
-    - job: cmake-intel20MPI
+    - job: cmake-intel19MPI
       artifacts: true
   script:
-    - source hpc-module-loads/eve.intel20MPI
+    - source hpc-module-loads/eve.intel19MPI
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
   artifacts:
@@ -517,7 +517,7 @@ coverage-gfortran73:
     - job: check-gfortran73
   script:
     # gcov is part of GCC
-    - source hpc-module-loadseve.gfortran73
+    - source hpc-module-loads/eve.gfortran73
     # we need lcov from the conda environment to create html sites
     - module load Anaconda3
     - source activate /global/apps/mhm_checks/mhm_env
