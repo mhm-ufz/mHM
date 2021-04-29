@@ -499,7 +499,7 @@ unittest-gfortran83:
     - job: cmake-gfortran83
   script:
     # we need pfUnit
-    - source hpc-module-loads/eve.gfortran83pfUnit
+    - source hpc-module-loads/eve.gfortran83
     # create build folder
     - mkdir build && cd build
     # run cmake with testing support and build mhm
