@@ -83,8 +83,6 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     $<$<CONFIG:RELEASE>:-O3>
     $<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
     $<$<BOOL:${CMAKE_WITH_GPROF}>:-pg>
-endif()
-
   )
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   # https://discourse.cmake.org/t/preserving-options-with-spaces-in-add-compile-options/1551/2
