@@ -39,6 +39,7 @@ Adds cmake compile options
 - `CMAKE_WITH_OpenMP`: use OpenMP
 - `CMAKE_WITH_LAPACK`: use LAPACK bindings
 - `CMAKE_WITH_COVERAGE`: Coverage calculation
+- `CMAKE_WITH_GPROF`: gprof profiling information (see [here](https://www.thegeekstuff.com/2012/08/gprof-tutorial/) for tutorial)
 - will also search for `MPI`, `OpenMP` and `LAPACK` if the option are `ON`
 
 Can be included with:
@@ -51,7 +52,14 @@ Find NetCDF package.
 
 Can be used with:
 ```cmake
-find_package(NetCDF REQUIRED)
+# set the required interfaces as needed, available are CXX, F70, F90, 
+# e.g. for F90
+set (NETCDF_F90 "YES")
+find_package (NetCDF REQUIRED)
+target_link_libraries(${LIB_NAME} ${NETCDF_F90_LIBRARIES})
+target_include_directories(${LIB_NAME} PUBLIC ${NETCDF_F90_INCLUDE_DIRS})
+# target_link_options only available in cmake 3.13 (but NETCDF_LDFLAGS_OTHER not working)
+set_property(TARGET ${YOUR_LIB_NAME} PROPERTY LINK_FLAGS "${NETCDF_LDFLAGS_OTHER}")
 ```
 
 ### `utils.cmake`

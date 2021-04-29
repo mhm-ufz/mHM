@@ -18,6 +18,9 @@ add_compile_definitions(MHMVERSION='${MHM_VER_DEV}' MHMDATE='${MHM_DATE}')
 add_subdirectory(./src)  # the lib folder containing mhm_lib
 add_executable(mhm ./src/mHM/mhm_driver.f90)
 target_link_libraries(mhm PRIVATE mhm_lib)
+if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_GPROF)
+  target_link_options(mhm PUBLIC -pg)
+endif()
 
 # setup coverage with GNU
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE)

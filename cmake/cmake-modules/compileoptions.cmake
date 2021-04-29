@@ -21,6 +21,7 @@ option(CMAKE_WITH_MPI "build the module with MPI, so it can be executed using mp
 option(CMAKE_WITH_OpenMP "build the module with OpenMP parallelization")
 option(CMAKE_WITH_LAPACK "build the module with lapack library")
 option(CMAKE_WITH_COVERAGE "build the module with gcov coverage support")
+option(CMAKE_WITH_GPROF "enable generation of profiling information with gnus gprof utility tool")
 
 # if cmake provides a findLIBRARY module, this gets invoked via find_package(LIBRARY)
 if (CMAKE_WITH_MPI)
