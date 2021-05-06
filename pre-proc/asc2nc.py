@@ -40,7 +40,7 @@ OUT_DIR = '/Users/ottor/temp/test_domain'
 # all file types scanned in input directory
 POSSIBLE_SUFFIXES = ['.nc', '.asc']
 # all folders scanned in input directory
-FOLDER_LIST = ['lai', 'luse', 'morph', 'latlon']
+FOLDER_LIST = ['lai', 'luse', 'morph', 'latlon', 'optional_data']
 LAT_ATTRS = {'standard_name': 'latitude',
              'long_name': 'latitude',
              #'units': 'degrees_north',
@@ -76,6 +76,11 @@ PROPERTIES_MAPPING = {
     'slope': ('mpr', 'int32', 1.0, -9999),
     'ud': ('mpr', 'int32', 1.0, -9999),
     'lat_l0': ('mpr', 'float64', 1.0, -9999.0),
+    'et': ('optional_data', 'float64', 1.0, -9999.0),
+    'neutrons': ('optional_data', 'float64', 1.0, -9999.0),
+    'Q_bkfl': ('optional_data', 'float64', 1.0, -9999.0),
+    'sm': ('optional_data', 'float64', 1.0, -9999.0),
+    'twsa': ('optional_data', 'float64', 1.0, -9999.0),
     SOIL_ATTRS['bounds']: ('mpr', 'float64', 1.0, -9999),
 }
 
@@ -506,7 +511,7 @@ def combine_lc_files(output_dir):
     for path in path_list:
         path.unlink()
 
-def flip_latlon_file(filename_in, filename_out):
+def sort_y_dim(filename_in, filename_out):
     """
     read in some file, check for dimensions starting with 'y' and sort by this dimension
     """
@@ -518,9 +523,9 @@ def flip_latlon_file(filename_in, filename_out):
         missing_value = ds[var].attrs.get('missing_value')
         if missing_value is not None:
             if 'i' in ds['bd'].dtype.str:
-                ds[var].attrs['missing_value'] = int(missing_value)
+                ds[var].encoding['_FillValue'] = int(missing_value)
             else:
-                ds[var].attrs['missing_value'] = float(missing_value)
+                ds[var].encoding['_FillValue'] = float(missing_value)
     ds.to_netcdf(filename_out, encoding={data_var: COMPRESSION_DICT for data_var in ds.data_vars})
 
 
@@ -556,7 +561,7 @@ if __name__ == '__main__':
         elif '_class_horizon_' in path.stem:
             kwargs['lookup'] = pathlib.Path(input_dir, path.parent, 'soil_classdefinition_iFlag_soilDB_1.txt')
         if path.suffix == '.nc':
-            flip_latlon_file(pathlib.Path(input_dir, path), pathlib.Path(args.output_dir, path.name))
+            sort_y_dim(pathlib.Path(input_dir, path), pathlib.Path(args.output_dir, path.name))
         else:
             my_conv = MyAsciiToNetcdfConverter(
                 input_file=pathlib.Path(input_dir, path),
