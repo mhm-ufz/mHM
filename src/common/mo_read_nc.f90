@@ -315,7 +315,7 @@ contains
   !>        \author Lennart Schueler, heavily influenced by read_nc
   !>        \date May 2018
 
-  subroutine read_const_nc(folder, nRows, nCols, varName, data, fileName)
+  subroutine read_const_nc(folder, varName, data, fileName, nRows, nCols)
 
     use mo_kind,             only: i4, dp
     use mo_message,          only: message
@@ -326,12 +326,12 @@ contains
     implicit none
 
     character(len=*),                      intent(in)  :: folder  ! folder where data are stored
-    integer(i4),                           intent(in)  :: nRows   ! number of rows of data fields:
-    integer(i4),                           intent(in)  :: nCols   ! number of columns of data fields:
     character(len=*),                      intent(in)  :: varName ! name of NetCDF variable
     real(dp), dimension(:,:), allocatable, intent(out) :: data    ! data read in
     ! name of file, defaults to varName
     character(256), optional, intent(in) :: fileName
+    integer(i4),                           intent(in), optional  :: nRows   ! number of rows of data fields:
+    integer(i4),                           intent(in), optional  :: nCols   ! number of columns of data fields:
 
     ! local variables
     type(NcDataset)                        :: nc           ! netcdf file
@@ -353,12 +353,6 @@ contains
     ! get the variable
     var = nc%getVariable(trim(varName))
 
-    ! get dimensions and check if plane is correct
-    var_shape = var%getShape()
-    if ( (var_shape(1) .ne. nRows) .or. (var_shape(2) .ne. nCols) ) then
-       stop '***ERROR: read_const_nc: mHM generated x and y are not matching NetCDF dimensions'
-    end if
-
     ! determine no data value, use _FillValue first, fall back to missing_value
     if (var%hasAttribute("_FillValue")) then
       call var%getAttribute('_FillValue', nodata_value)
@@ -368,8 +362,17 @@ contains
       stop '***ERROR: read_const_nc: there must be either the attribute "missing_value" or "_FillValue"'
     end if
 
-    ! extract data and select time slice
-    call var%getData(data, start=(/1,1/), cnt=(/nRows,nCols/))
+    ! get dimensions and check if plane is correct
+    var_shape = var%getShape()
+    if (present(nRows) .and. present(nCols)) then
+      if ( var_shape(1) /= nRows .or. var_shape(2) /= nCols) then
+         stop '***ERROR: read_const_nc: mHM generated x and y are not matching NetCDF dimensions'
+      end if
+      ! extract data and select time slice
+      call var%getData(data, start=(/1,1/), cnt=(/nRows,nCols/))
+    else
+      call var%getData(data)
+    end if
 
   end subroutine read_const_nc
 

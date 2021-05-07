@@ -491,9 +491,10 @@ contains
     real(dp), dimension(:), allocatable :: L11_data_packed
 
     call read_const_nc(trim(dirBankfullRunoff(iDomain)), &
+                               "Q_bkfl", L11_data, &
                                level11(iDomain)%nrows, &
-                               level11(iDomain)%ncols, &
-                               "Q_bkfl", L11_data)
+                               level11(iDomain)%ncols &
+            )
 
     allocate(L11_data_packed(level11(iDomain)%nCells))
     L11_data_packed(:) = pack(L11_data(:,:), mask=level11(iDomain)%mask)

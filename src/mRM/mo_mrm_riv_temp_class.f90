@@ -290,11 +290,11 @@ contains
 
     call read_const_nc(&
       trim(self%dir_riv_widths(iDomain)), &
-      nrows, &
-      ncols, &
       self%riv_widths_name, &
       L11_data, &
-      self%riv_widths_file &
+      self%riv_widths_file, &
+      nrows, &
+      ncols &
     )
 
     allocate(L11_riv_widths(nCells))
