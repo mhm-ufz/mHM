@@ -70,7 +70,7 @@ CONTAINS
   subroutine mhm_initialize
 
     use mo_common_mHM_mRM_variables, only : mhmFileRestartIn, read_restart
-    use mo_common_restart, only : read_grid_info
+    use mo_grid, only : read_grid_info
     use mo_common_variables, only : level0, level1, domainMeta
     use mo_global_variables, only : level2
     use mo_grid, only : set_domain_indices

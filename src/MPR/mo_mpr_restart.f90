@@ -97,7 +97,7 @@ CONTAINS
 
   subroutine write_mpr_restart_files(OutFile)
 
-    use mo_common_restart, only : write_grid_info
+    use mo_grid, only : write_grid_info
     use mo_common_variables, only : level1, nLCoverScene, domainMeta, LC_year_start, LC_year_end
     use mo_kind, only : i4, dp
     use mo_message, only : message

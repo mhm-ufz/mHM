@@ -55,7 +55,7 @@ contains
   subroutine mrm_write_restart(iDomain, domainID, OutFile)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_common_restart, only : write_grid_info
+    use mo_grid, only : write_grid_info
     use mo_common_variables, only : level0, level1, nLCoverScene, processMatrix, domainMeta, &
             LC_year_start, LC_year_end
     use mo_common_constants, only : landCoverPeriodsVarName

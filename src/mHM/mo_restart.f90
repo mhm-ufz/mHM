@@ -99,7 +99,7 @@ CONTAINS
   subroutine write_restart_files(OutFile)
 
     use mo_common_constants, only : nodata_dp
-    use mo_common_restart, only : write_grid_info
+    use mo_grid, only : write_grid_info
     use mo_common_variables, only : level1, nLCoverScene, domainMeta, LC_year_start, LC_year_end
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
                                     L1_fastRunoff, L1_infilSoil, L1_melt, L1_percol, L1_preEffect, L1_rain, &
