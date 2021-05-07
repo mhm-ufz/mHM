@@ -40,7 +40,8 @@ OUT_DIR = '/Users/ottor/temp/test_domain'
 # all file types scanned in input directory
 POSSIBLE_SUFFIXES = ['.nc', '.asc']
 # all folders scanned in input directory
-FOLDER_LIST = ['lai', 'luse', 'morph', 'latlon', 'optional_data']
+FOLDER_LIST = ['lai', 'luse', 'morph', 'latlon', 'optional_data', 'meteo', 'pet', 'pre', 'tavg']
+
 LAT_ATTRS = {'standard_name': 'latitude',
              'long_name': 'latitude',
              #'units': 'degrees_north',
@@ -60,6 +61,7 @@ SOIL_ATTRS = {'standard_name': 'horizon',
              'axis': 'Z',
              'positive': 'down',
              'bounds': 'horizon_bnds'}
+
 PROPERTIES_MAPPING = {
     'aspect': ('mpr', 'int32', 1.0, -9999),
     'bd': ('mpr', 'float64', 0.01, -9999.0),
@@ -81,13 +83,23 @@ PROPERTIES_MAPPING = {
     'Q_bkfl': ('optional_data', 'float64', 1.0, -9999.0),
     'sm': ('optional_data', 'float64', 1.0, -9999.0),
     'twsa': ('optional_data', 'float64', 1.0, -9999.0),
+    'eabs': ('meteo', 'float64', 1.0, -9999.0),
+    'mask': ('meteo', 'float64', 1.0, -9999.0),
+    'net_rad': ('meteo', 'float64', 1.0, -9999.0),
+    'ssrd': ('meteo', 'float64', 1.0, -9999.0),
+    'strd': ('meteo', 'float64', 1.0, -9999.0),
+    'tmax': ('meteo', 'float64', 1.0, -9999.0),
+    'tmin': ('meteo', 'float64', 1.0, -9999.0),
+    'windspeed': ('meteo', 'float64', 1.0, -9999.0),
+    'tann': ('meteo', 'float64', 1.0, -9999.0),
+    'tavg': ('meteo', 'float64', 1.0, -9999.0),
+    'pre': ('meteo', 'float64', 1.0, -9999.0),
+    'pet': ('meteo', 'float64', 1.0, -9999.0),
     SOIL_ATTRS['bounds']: ('mpr', 'float64', 1.0, -9999),
 }
 
 COMPRESSION_DICT = {
-    'zlib': True,
-    'shuffle': True,
-    'complevel': 4,
+    'zlib': True, 'shuffle': True, 'complevel': 4,
 }
 
 # FUNCTIONS
@@ -493,7 +505,8 @@ def combine_lc_files(output_dir):
     ds = xr.open_mfdataset(paths=path_list, **open_kwargs)
     ds = xr.concat([ds[_] for _ in ds.data_vars], pd.Index(years, name='land_cover_period'))
     # set some attributes
-    ds.name = 'land_cover'
+    var_name = 'land_cover'
+    ds.name = var_name
     bound_attr = {'bounds': 'land_cover_period_bnds'}
     # and convert to Dataset so we can add more dimensions
     ds = ds.to_dataset()
@@ -506,10 +519,15 @@ def combine_lc_files(output_dir):
     ds.lat.attrs = LAT_ATTRS
 
     # write new file
-    ds.to_netcdf(pathlib.Path(output_dir, 'land_cover.nc'), encoding={'land_cover': COMPRESSION_DICT})
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True)
+    output_file = pathlib.Path(output_dir, f'{var_name}.nc')
+    print('writing variable {} to file: {}'.format(var_name, output_file))
+    ds.to_netcdf(output_file, encoding={var_name: COMPRESSION_DICT})
     # delete the old files
     for path in path_list:
         path.unlink()
+    ds.close()
 
 def sort_y_dim(filename_in, filename_out):
     """
@@ -526,7 +544,11 @@ def sort_y_dim(filename_in, filename_out):
                 ds[var].encoding['_FillValue'] = int(missing_value)
             else:
                 ds[var].encoding['_FillValue'] = float(missing_value)
+    if not filename_out.parent.exists():
+        filename_out.parent.mkdir(parents=True)
+    print('writing variable {} to file: {}'.format(filename_out.stem, filename_out))
     ds.to_netcdf(filename_out, encoding={data_var: COMPRESSION_DICT for data_var in ds.data_vars})
+    ds.close()
 
 
 # SCRIPT
@@ -561,7 +583,9 @@ if __name__ == '__main__':
         elif '_class_horizon_' in path.stem:
             kwargs['lookup'] = pathlib.Path(input_dir, path.parent, 'soil_classdefinition_iFlag_soilDB_1.txt')
         if path.suffix == '.nc':
-            sort_y_dim(pathlib.Path(input_dir, path), pathlib.Path(args.output_dir, path.name))
+            output_file = pathlib.Path(args.output_dir, PROPERTIES_MAPPING.get(path.stem, ('mpr',))[0],
+                          path.stem + path.suffix)
+            sort_y_dim(pathlib.Path(input_dir, path), output_file)
         else:
             my_conv = MyAsciiToNetcdfConverter(
                 input_file=pathlib.Path(input_dir, path),
