@@ -668,7 +668,7 @@ contains
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iDomain"      number of domain
-  !>       \param[in] "character(256) :: InFile"   Input Path including trailing slash
+  !>       \param[in] "character(256) :: inputFile"   Input Path including trailing slash
   !>       \param[in] "character(*) :: level_name" level_name (id)
 
   !    INTENT(INOUT)
@@ -686,7 +686,7 @@ contains
   ! Robert Schweppe    Jun 2018 - refactoring and reformatting
   ! Stephan Thober     May 2019 - added allocation check for mask and cellArea because cellArea needs to be read by mRM, but mask is created before by mHM
 
-  subroutine read_grid_info(domainID, InFile, level_name, new_grid)
+  subroutine read_grid_info(domainID, inputFile, level_name, new_grid)
 
     use mo_common_variables, only : Grid
     use mo_kind, only : dp, i4
@@ -700,7 +700,7 @@ contains
     integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
-    character(256), intent(in) :: InFile
+    character(256), intent(in) :: inputFile
 
     ! level_name (id)
     character(*), intent(in) :: level_name
@@ -724,7 +724,7 @@ contains
 
 
     ! read config
-    fname = trim(InFile)
+    fname = trim(inputFile)
     call message('    Reading config from     ', trim(adjustl(Fname)), ' ...')
 
     nc = NcDataset(fname, "r")
@@ -767,7 +767,7 @@ contains
 
   end subroutine read_grid_info
 
-  subroutine infer_grid_info(domainID, InFile, level_name, xCoordName, yCoordName, maskVar)
+  subroutine infer_grid_info(inputFile, xCoordName, yCoordName, maskVar, new_grid)
 
     use mo_common_variables, only : Grid
     use mo_kind, only : dp, i4
@@ -777,12 +777,8 @@ contains
 
     implicit none
 
-    !> number of domain
-    integer(i4), intent(in) :: domainID
     !> Input Path including trailing slash
-    character(*), intent(in) :: InFile
-    !> level_name (id)
-    character(*), intent(in) :: level_name
+    character(*), intent(in) :: inputFile
     !> name of variable to be used for inferring x-coordinate
     character(*), intent(in) :: xCoordName
     !> name of variable to be used for inferring y-coordinate
@@ -795,7 +791,7 @@ contains
     type(NcDataset) :: nc
 
     ! read config
-    call message('    Inferring grid from     ', trim(InFile), ' ...')
+    call message('    Inferring grid from     ', trim(inputFile), ' ...')
 
     nc = NcDataset(fname, "r")
 

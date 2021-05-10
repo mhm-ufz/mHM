@@ -42,12 +42,11 @@ CONTAINS
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
-    use mo_common_file, only : file_dem, udem
+    use mo_common_file, only : file_dem
     use mo_common_variables, only : Grid,  L0_elev, dirMorpho, level0, domainMeta, &
                                     resolutionHydrology
     use mo_grid, only : set_domain_indices
     use mo_message, only : message
-    use mo_read_spatial_data, only : read_header_ascii, read_spatial_data_ascii
     use mo_string_utils, only : num2str
 
     implicit none
@@ -90,11 +89,9 @@ CONTAINS
 
       call message('      Reading dem for domain: ', trim(adjustl(num2str(domainID))), ' ...')
 
-      ! Header (to check consistency)
       fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_dem))
-      call read_header_ascii(trim(fName), udem, &
-              level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
-              level0_iDomain%yllcorner, level0_iDomain%cellsize, level0_iDomain%nodata_value)
+      ! use the dem variable to create the mask
+      call infer_grid_info(fName, 'lon', 'lat', 'dem', level0_iDomain)
 
       ! check for L0 and L1 scale consistency
       if(resolutionHydrology(iDomain) .LT. level0_iDomain%cellsize) then
@@ -104,20 +101,12 @@ CONTAINS
         stop
       end if
 
-      ! DEM + overall mask creation
-      fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_dem))
-      call read_spatial_data_ascii(trim(fName), udem, &
-              level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
-              level0_iDomain%yllcorner, level0_iDomain%cellsize, data_dp_2d, level0_iDomain%mask)
-
-      ! put global nodata value into array (probably not all grid cells have values)
-      data_dp_2d = merge(data_dp_2d, nodata_dp, level0_iDomain%mask)
+      ! read dem data from netcdf file
+      call read_const_nc(dirMorpho(iDomain), 'dem', data_dp_2d, nRows, nCols)
       ! put data in variable
       call append(L0_elev, pack(data_dp_2d, level0_iDomain%mask))
       ! deallocate arrays
       deallocate(data_dp_2d)
-
-      level0_iDomain%nCells = count(level0_iDomain%mask)
 
     end do
 
