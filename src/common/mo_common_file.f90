@@ -17,8 +17,6 @@ MODULE mo_common_file
   IMPLICIT NONE
   !> DEM input data file
   CHARACTER(len=*), PARAMETER :: file_dem                = 'dem.nc'                      ! DEM
-  !> Unit for  LCover input data file
-  INTEGER,          PARAMETER :: ulcoverclass            = 61                            !
 
   !> file defining mHM's outputs
   CHARACTER(len=*), PARAMETER :: file_config             = 'ConfigFile.log'              ! configuration
