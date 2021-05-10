@@ -133,10 +133,8 @@ CONTAINS
 
     use mo_append, only : append, paste
     use mo_common_constants, only : nodata_i4
-    use mo_common_file, only : ulcoverclass
     use mo_common_variables, only : Grid, L0_LCover, LCfilename, dirLCover, level0, domainMeta, nLCoverScene
     use mo_message, only : message
-    use mo_read_spatial_data, only : read_spatial_data_ascii
     use mo_string_utils, only : num2str
 
     implicit none
@@ -148,6 +146,7 @@ CONTAINS
     character(256) :: fName
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
+    integer(i4), dimension(:, :, :), allocatable :: data_i4_3d
 
     integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
 
@@ -174,20 +173,23 @@ CONTAINS
 
       call message('      Reading lcover for domain: ', trim(adjustl(num2str(domainID))), ' ...')
 
+      fName = trim(dirLCover(iDomain)) // 'land_cover.nc'
+      ! read the Dataset
+      nc = NcDataset(fname, "r")
+      ! get the variable
+      ncVar = nc%getVariable(trim(varName))
+      call ncVar%getData(data_i4_3d, mask=mask_2d)
       ! LCover read in is realized seperated because of unknown number of scenes
       do iVar = 1, nLCoverScene
-        fName = trim(adjustl(dirLCover(iDomain))) // trim(adjustl(LCfilename(iVar)))
-        call read_spatial_data_ascii(trim(fName), ulcoverclass, &
-                level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
-                level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
         ! put global nodata value into array (probably not all grid cells have values)
-        data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+        data_i4_2d = merge(data_i4_3d(:,:,iVar), nodata_i4, mask_2d)
         call paste(dataMatrix_i4, pack(data_i4_2d, level0_iDomain%mask), nodata_i4)
         deallocate(data_i4_2d)
       end do
       call append(L0_LCover, dataMatrix_i4)
       deallocate(dataMatrix_i4)
 
+      call nc%close()
     end do
 
   end subroutine read_lcover
