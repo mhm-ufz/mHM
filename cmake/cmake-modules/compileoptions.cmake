@@ -6,10 +6,6 @@
 option(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT "build the module INDEPENDENT of the module system, so the build in the build tree works even after a module purge")
 message(STATUS "build INDEPENDENT of module system ${CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT}")
 
-# set specific place where to search for the netCDF directory
-set(CMAKE_NETCDF_DIR "" CACHE PATH "set set specific place where to search for the netCDF directory")
-message(STATUS "search in additional directory '${CMAKE_NETCDF_DIR}' for netCDF")
-
 # The variable "CMAKE_WITH_MPI" can be set before executing cmake via a cache command:
 # $cmake -DCMAKE_WITH_MPI=ON ..
 # or in a cache file:
@@ -34,16 +30,16 @@ if (CMAKE_WITH_MPI)
   endif()
 endif()
 if (CMAKE_WITH_OpenMP)
-	# find if there is an OpenMP setup on the system and if so, set corresponding variables
+  # find if there is an OpenMP setup on the system and if so, set corresponding variables
   find_package(OpenMP)
-	if (NOT ${OpenMP_Fortran_FOUND})
-		message(FATAL_ERROR "OpenMP required but not found")
-	endif()
+  if (NOT ${OpenMP_Fortran_FOUND})
+    message(FATAL_ERROR "OpenMP required but not found")
+  endif()
 endif()
 if (CMAKE_WITH_LAPACK)
-	# find if there is an LAPACK library on the system and if so, set corresponding variables
+  # find if there is an LAPACK library on the system and if so, set corresponding variables
   find_package(LAPACK)
-	if (NOT ${LAPACK_FOUND})
-		message(FATAL_ERROR "lapack required but not found")
-	endif()
+  if (NOT ${LAPACK_FOUND})
+    message(FATAL_ERROR "lapack required but not found")
+  endif()
 endif()
