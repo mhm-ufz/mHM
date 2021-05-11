@@ -12,13 +12,13 @@ file(GLOB sources_mpr ./MPR/*mo_*.f90)
 list(APPEND sources ${sources_mhm} ${sources_mrm} ${sources_common} ${sources_common_mHM_mRM} ${sources_mpr})
 add_library(${LIB_NAME} ${sources})
 
-set (FORCES_NAME lightweight_fortran_lib)
+set (FORCES_NAME forces)
 find_package(${FORCES_NAME})
 
 if(NOT ${FORCES_NAME}_FOUND)
   FetchContent_Declare(
     ${FORCES_NAME}
-    GIT_REPOSITORY git@git.ufz.de:ottor/lightweight_fortran_lib.git
+    GIT_REPOSITORY git@git.ufz.de:chs/forces.git
     GIT_TAG        temporary_test
     SOURCE_SUBDIR  src
   )
@@ -33,7 +33,7 @@ if(NOT ${MPR_NAME}_FOUND)
   FetchContent_Declare(
     ${MPR_NAME}
     GIT_REPOSITORY git@git.ufz.de:chs/mpr.git
-    GIT_TAG        1.0.0
+    GIT_TAG        1.0.2
   )
   set (${MPR_NAME}_BUILD_TESTING OFF)
   FetchContent_MakeAvailable(${MPR_NAME})
@@ -41,12 +41,8 @@ endif()
 # target_link_libraries(${LIB_NAME} PUBLIC ${MPR_NAME})
 
 # get pre-processor flag for current compiler (-fpp or -cpp) and 'cpp_definitions' function
-include(checkfortranpreprocessor)
+include(fortranpreprocessor)
 get_preproc_flag(XPP_FLAG)
-# Add definitions. These should later be set via the cache or "cmake -DCMAKE_ABSOFT=ON .." for example.
-cpp_definitions(pgiFortran OFF "Code exchange for pgi compiler dependent issues")
-cpp_definitions(MPR_STANDALONE OFF "If set to ON, only MPR is compiled")
-cpp_definitions(ABSOFT OFF "Documentation to be added.")
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
 include(compileoptions)
 # add MPI pre-processor directive (also for mhm exe)
