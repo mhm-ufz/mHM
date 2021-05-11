@@ -42,12 +42,13 @@ CONTAINS
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
-    use mo_common_file, only : file_dem
+    use mo_common_file, only : varNameDem
     use mo_common_variables, only : Grid,  L0_elev, dirMorpho, level0, domainMeta, &
                                     resolutionHydrology
     use mo_grid, only : set_domain_indices
     use mo_message, only : message
     use mo_string_utils, only : num2str
+    use mo_netcdf,           only: NcDataset, NcVariable
 
     implicit none
 
@@ -60,6 +61,8 @@ CONTAINS
     real(dp), dimension(:, :), allocatable :: data_dp_2d
 
     type(Grid), pointer :: level0_iDomain
+    type(NcDataset)                        :: nc           ! netcdf file
+    type(NcVariable)                       :: ncVar          ! variables for data form netcdf
 
 
     ! ************************************************
@@ -89,9 +92,9 @@ CONTAINS
 
       call message('      Reading dem for domain: ', trim(adjustl(num2str(domainID))), ' ...')
 
-      fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_dem))
+      fName = trim(dirMorpho(iDomain)) // trim(varNameDem) // '.nc'
       ! use the dem variable to create the mask
-      call infer_grid_info(fName, 'lon', 'lat', 'dem', level0_iDomain)
+      call infer_grid_info(fName, 'lon', 'lat', trim(varNameDem), level0_iDomain)
 
       ! check for L0 and L1 scale consistency
       if(resolutionHydrology(iDomain) .LT. level0_iDomain%cellsize) then
@@ -101,8 +104,12 @@ CONTAINS
         stop
       end if
 
-      ! read dem data from netcdf file
-      call read_const_nc(dirMorpho(iDomain), 'dem', data_dp_2d, nRows, nCols)
+      ! read the Dataset
+      nc = NcDataset(fname, "r")
+      ! get the variable
+      ncVar = nc%getVariable(trim(varNameDem))
+      ! read data
+      call ncVar%getData(data_dp_2d)
       ! put data in variable
       call append(L0_elev, pack(data_dp_2d, level0_iDomain%mask))
       ! deallocate arrays
@@ -136,23 +143,21 @@ CONTAINS
     use mo_common_variables, only : Grid, L0_LCover, LCfilename, dirLCover, level0, domainMeta, nLCoverScene
     use mo_message, only : message
     use mo_string_utils, only : num2str
+    use mo_netcdf, only: NcDataset, NcVariable
 
     implicit none
 
-    ! loop variables
     integer(i4) :: domainID, iDomain, iVar
-
-    ! file name of file to read
     character(256) :: fName
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
     integer(i4), dimension(:, :, :), allocatable :: data_i4_3d
-
     integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
-
-    logical, dimension(:, :), allocatable :: mask_2d
+    logical, dimension(:, :, :), allocatable :: mask_3d
 
     type(Grid), pointer :: level0_iDomain
+    type(NcDataset)                        :: nc           ! netcdf file
+    type(NcVariable)                       :: ncVar          ! variables for data form netcdf
 
 
     do iDomain = 1, domainMeta%nDomains
@@ -178,11 +183,11 @@ CONTAINS
       nc = NcDataset(fname, "r")
       ! get the variable
       ncVar = nc%getVariable(trim(varName))
-      call ncVar%getData(data_i4_3d, mask=mask_2d)
+      call ncVar%getData(data_i4_3d, mask=mask_3d)
       ! LCover read in is realized seperated because of unknown number of scenes
       do iVar = 1, nLCoverScene
         ! put global nodata value into array (probably not all grid cells have values)
-        data_i4_2d = merge(data_i4_3d(:,:,iVar), nodata_i4, mask_2d)
+        data_i4_2d = merge(data_i4_3d(:,:,iVar), nodata_i4, mask_3d(:,:,iVar))
         call paste(dataMatrix_i4, pack(data_i4_2d, level0_iDomain%mask), nodata_i4)
         deallocate(data_i4_2d)
       end do

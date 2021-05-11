@@ -15,8 +15,8 @@
 MODULE mo_common_file
 
   IMPLICIT NONE
-  !> DEM input data file
-  CHARACTER(len=*), PARAMETER :: file_dem                = 'dem.nc'                      ! DEM
+  CHARACTER(len=*), PARAMETER :: varNameDem                = 'dem'                         ! DEM
+  CHARACTER(len=*), PARAMETER :: varNameLandCover          = 'land_cover'                  ! landcover
 
   !> file defining mHM's outputs
   CHARACTER(len=*), PARAMETER :: file_config             = 'ConfigFile.log'              ! configuration
