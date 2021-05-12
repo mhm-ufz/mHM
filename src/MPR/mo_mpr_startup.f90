@@ -303,8 +303,6 @@ CONTAINS
       soilDB%is_present(:) = 0_i4
     end if
 
-    call L0_grid_setup(level0(iDomain))
-
     !---------------------------------------------------
     ! Estimate empirical distribution of slope
     !---------------------------------------------------
