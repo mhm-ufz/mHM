@@ -142,12 +142,6 @@ CONTAINS
 
     integer(i4) :: i, j
 
-    ! data
-    real(dp), dimension(:, :), allocatable :: tmp_data
-
-    ! mask
-    logical, dimension(:, :), allocatable :: tmp_mask
-
 
     ! compare headers always with reference header (intent in)
     call read_header_ascii(filename, fileunit, &
@@ -165,11 +159,10 @@ CONTAINS
             stop 'read_spatial_data_ascii: header not matching with reference header: cellsize'
 
     ! allocation and initialization of matrices
-    allocate(tmp_data(file_nrows, file_ncols))
-    tmp_data = file_nodata
-    allocate(tmp_mask(file_nrows, file_ncols))
-    tmp_mask = .true.
-
+    allocate(data(file_ncols, file_nrows))
+    data = file_nodata
+    allocate(mask(file_ncols, file_nrows))
+    mask = .true.
     
     !checking whether the file exists
     call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
@@ -183,23 +176,16 @@ CONTAINS
     end do
     ! (b) read data
     do i = 1, file_nrows
-      read(fileunit, *) (tmp_data(i, j), j = 1, file_ncols)
+      ! read(fileunit, *) (tmpdata(i, j), j = 1, file_ncols)
+      read(fileunit, *) (data(j, file_nrows - i + 1), j = 1, file_ncols)
     end do
     close(fileunit)
 
     ! set mask .false. if nodata value appeared
-    where (abs(tmp_data - file_nodata) .lt. tiny(1.0_dp))
-      tmp_mask = .false.
+    where (abs(data - file_nodata) < tiny(1.0_dp))
+      mask = .false.
     end where
 
-    ! transpose of data due to longitude-latitude ordering
-    allocate(data(file_ncols, file_nrows))
-    data = transpose(tmp_data)
-    deallocate(tmp_data)
-
-    allocate(mask(file_ncols, file_nrows))
-    mask = transpose(tmp_mask)
-    deallocate(tmp_mask)
 
   end subroutine read_spatial_data_ascii_dp
 
@@ -282,12 +268,6 @@ CONTAINS
 
     integer(i4) :: i, j
 
-    ! data
-    integer(i4), dimension(:, :), allocatable :: tmp_data
-
-    ! mask
-    logical, dimension(:, :), allocatable :: tmp_mask
-
 
     ! compare headers always with reference header (intent in)
     call read_header_ascii(filename, fileunit, &
@@ -305,10 +285,10 @@ CONTAINS
             stop 'read_spatial_data_ascii: header not matching with reference header: cellsize'
 
     ! allocation and initialization of matrices
-    allocate(tmp_data(file_nrows, file_ncols))
-    tmp_data = int(file_nodata, i4)
-    allocate(tmp_mask(file_nrows, file_ncols))
-    tmp_mask = .true.
+    allocate(data(file_ncols, file_nrows))
+    data = int(file_nodata, i4)
+    allocate(mask(file_ncols, file_nrows))
+    mask = .true.
 
     !checking whether the file exists
     call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
@@ -322,23 +302,15 @@ CONTAINS
     end do
     ! (b) read data
     do i = 1, file_nrows
-      read(fileunit, *) (tmp_data(i, j), j = 1, file_ncols)
+      read(fileunit, *) (data(j, file_nrows - i + 1), j = 1, file_ncols)
     end do
     close(fileunit)
 
     ! set mask .false. if nodata value appeared
-    where (tmp_data .EQ. int(file_nodata, i4))
-      tmp_mask = .false.
+    where (data == int(file_nodata, i4))
+      mask = .false.
     end where
 
-    ! transpose of data due to longitude-latitude ordering
-    allocate(data(file_ncols, file_nrows))
-    data = transpose(tmp_data)
-    deallocate(tmp_data)
-
-    allocate(mask(file_ncols, file_nrows))
-    mask = transpose(tmp_mask)
-    deallocate(tmp_mask)
 
   end subroutine read_spatial_data_ascii_i4
 
