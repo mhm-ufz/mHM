@@ -72,6 +72,7 @@ PROPERTIES_MAPPING = {
     'fdir': ('routing', 'int32', 1.0, -9999),
     'idgauges': ('routing', 'int32', 1.0, -9999),
     'karstic': ('mpr', 'int32', 1.0, -9999),
+    'land_cover': ('mpr', 'int32', 1.0, -9999),
     'lai_class': ('mpr', 'float64', 0.01, -9999.0),
     'ld': ('mpr', 'int32', 1.0, -9999),
     'sand': ('mpr', 'float64', 0.01, -9999.0),
@@ -523,7 +524,11 @@ def combine_lc_files(output_dir):
         output_dir.mkdir(parents=True)
     output_file = pathlib.Path(output_dir, f'{var_name}.nc')
     print('writing variable {} to file: {}'.format(var_name, output_file))
-    ds.to_netcdf(output_file, encoding={var_name: COMPRESSION_DICT})
+    ds.to_netcdf(output_file, encoding={var_name: dict(
+            dtype=PROPERTIES_MAPPING.get(var_name, ['int32']*2)[1],
+            # scale_factor=PROPERTIES_MAPPING.get(stem, [1.0]*3)[2],
+            _FillValue=PROPERTIES_MAPPING.get(var_name, [-9999]*4)[3],
+            **COMPRESSION_DICT)})
     # delete the old files
     for path in path_list:
         path.unlink()
@@ -596,4 +601,4 @@ if __name__ == '__main__':
             my_conv.read()
             my_conv.write()
 
-    combine_lc_files(pathlib.Path(args.output_dir, 'mpr'))
+    combine_lc_files(pathlib.Path(args.output_dir, PROPERTIES_MAPPING.get('land_cover', ('mpr',))[0]))
