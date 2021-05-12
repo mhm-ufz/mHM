@@ -579,27 +579,38 @@ contains
     !          |  0   0  -1 |
     !     making all 8 directions the following transformation were
     !     obtained.
+    ! Addon, RS (2018-12-12): inverting latitude (now ascending order)
+    ! made another conversion necessary
+    ! non-inverted replacements are commented!
     !-------------------------------------------------------------------
     do i = 1, size(x, 1)
       do j = 1, size(x, 2)
-        if (x(i, j)  .eq. nodata_i4) cycle
+        if (x(i, j)  == nodata_i4) cycle
         select case (x(i, j))
         case(1)
+          !x(i, j) = 4
           x(i, j) = 4
         case(2)
-          x(i, j) = 2
+          !x(i, j) = 2
+          x(i, j) = 8
         case(4)
-          x(i, j) = 1
+          !x(i, j) = 1
+          x(i, j) = 16
         case(8)
-          x(i, j) = 128
+          !x(i, j) = 128
+          x(i, j) = 32
         case(16)
+          !x(i, j) = 64
           x(i, j) = 64
         case(32)
-          x(i, j) = 32
+          !x(i, j) = 32
+          x(i, j) = 128
         case(64)
-          x(i, j) = 16
+          !x(i, j) = 16
+          x(i, j) = 1
         case(128)
-          x(i, j) = 8
+          !x(i, j) = 8
+          x(i, j) = 2
         end select
       end do
     end do
