@@ -153,6 +153,7 @@ CONTAINS
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
     integer(i4), dimension(:, :, :), allocatable :: data_i4_3d
+    real(dp), dimension(:, :, :), allocatable :: data_dp_3d
     integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
     logical, dimension(:, :, :), allocatable :: mask_3d
 
@@ -184,7 +185,8 @@ CONTAINS
       nc = NcDataset(fname, "r")
       ! get the variable
       ncVar = nc%getVariable(trim(varNameLandCover))
-      call ncVar%getData(data_i4_3d, mask=mask_3d)
+      call ncVar%getData(data_dp_3d, mask=mask_3d)
+      data_i4_3d = nint(data_dp_3d, i4)
       ! LCover read in is realized seperated because of unknown number of scenes
       do iVar = 1, nLCoverScene
         ! put global nodata value into array (probably not all grid cells have values)
