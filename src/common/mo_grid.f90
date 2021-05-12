@@ -12,6 +12,7 @@
 
 module mo_grid
   use mo_kind, only : dp, i4
+  use mo_common_variables, only : Grid, GridRemapper
 
   IMPLICIT NONE
 
@@ -63,7 +64,6 @@ contains
   subroutine init_lowres_level(highres, target_resolution, lowres, highres_lowres_remap)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_common_variables, only : Grid, GridRemapper
 
     implicit none
 
@@ -208,10 +208,6 @@ contains
 
   subroutine set_domain_indices(grids, indices)
 
-    use mo_common_variables, only : Grid
-
-    implicit none
-
     type(Grid), intent(inout), dimension(:) :: grids
     integer(i4),   intent(in), dimension(:), optional :: indices
 
@@ -271,7 +267,7 @@ contains
 
   subroutine L0_grid_setup(new_grid)
 
-    use mo_common_variables, only : Grid, iFlag_cordinate_sys
+    use mo_common_variables, only : iFlag_cordinate_sys
     use mo_constants, only : RadiusEarth_dp, TWOPI_dp
 
     implicit none
@@ -373,10 +369,6 @@ contains
 
   subroutine mapCoordinates(level, y, x)
 
-    use mo_common_variables, only : Grid
-
-    implicit none
-
     ! -> grid reference
     type(Grid), intent(in) :: level
 
@@ -435,10 +427,6 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine geoCoordinates(level, lat, lon)
-
-    use mo_common_variables, only : Grid
-
-    implicit none
 
     ! -> grid reference
     type(Grid), intent(in) :: level
@@ -589,7 +577,6 @@ contains
   subroutine write_grid_info(grid_in, level_name, nc)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_common_variables, only : Grid
     use mo_kind, only : dp, i4
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
 
@@ -693,6 +680,7 @@ contains
     use mo_message, only : message
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
+    use mo_os, only: path_isfile
 
     implicit none
 
@@ -727,6 +715,7 @@ contains
     fname = trim(inputFile)
     call message('    Reading config from     ', trim(adjustl(Fname)), ' ...')
 
+    call path_isfile(path = fname, quiet_ = .true., throwError_ = .true.)
     nc = NcDataset(fname, "r")
 
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -769,11 +758,11 @@ contains
 
   subroutine infer_grid_info(inputFile, xCoordName, yCoordName, maskVar, new_grid)
 
-    use mo_common_variables, only : Grid
     use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
+    use mo_os, only: path_isfile
 
     implicit none
 
@@ -793,7 +782,8 @@ contains
     ! read config
     call message('    Inferring grid from     ', trim(inputFile), ' ...')
 
-    nc = NcDataset(fname, "r")
+    call path_isfile(path = inputFile, quiet_ = .true., throwError_ = .true.)
+    nc = NcDataset(inputFile, "r")
 
     call get_coordinate(nc, xCoordName, new_grid%xllcorner, new_grid%nRows, new_grid%cellsize)
     call get_coordinate(nc, yCoordName, new_grid%yllcorner, new_grid%nCols, new_grid%cellsize)
@@ -805,7 +795,10 @@ contains
   end subroutine infer_grid_info
 
   subroutine get_coordinate(nc, coordName, lowerBound, n, cellsize)
-      
+
+    use mo_netcdf, only : NcDataset, NcVariable
+    use mo_message, only: message
+
     type(NcDataset), intent(inout) :: nc
     character(*), intent(in) :: coordName
     real(dp), intent(out) :: lowerBound
@@ -824,7 +817,7 @@ contains
       varShape = ncVar%getShape()
       ! infer the dimensions...
       if (size(varShape) /= 1_i4) then
-        call mo_message("cannot infer grid from non 1d-coordinate ", trim(coordName))
+        call message("cannot infer grid from non 1d-coordinate ", trim(coordName))
         stop 1
       end if
       ! the variable is dependent on 1 dimension only
@@ -837,23 +830,26 @@ contains
         ncVar = nc%getVariable(trim(boundVariable))
         call ncVar%getData(dummy)
         lowerBound = dummy(1, 1)
-        cellsize = abs((dummy(2, size(dummy(2))) - lowerBound) / real(n, dp))
+        cellsize = abs((dummy(2, size(dummy, 2)) - lowerBound) / real(n, dp))
         deallocate(dummy)
       elseif (n > 1_i4) then
         cellsize = abs(tempValues(2) - tempValues(1))
         lowerBound = tempValues(1) - 0.5_dp * cellsize
       else
-        call mo_message("cannot infer cellsize of coordinate ", trim(coordName))
+        call message("cannot infer cellsize of coordinate ", trim(coordName))
         stop 1
       end if
     else
-      call mo_message("cannot infer cellsize of coordinate ", trim(coordName))
+      call message("cannot infer cellsize of coordinate ", trim(coordName))
       stop 1
     end if
 
   end subroutine get_coordinate
 
   subroutine infer_extended_grid_properties(nc, xCoordName, yCoordName, maskVar, new_grid)
+
+    use mo_netcdf, only : NcDataset, NcVariable
+    use mo_message, only: message
 
     type(NcDataset), intent(inout) :: nc
     character(*), intent(in) :: xCoordName
@@ -863,31 +859,27 @@ contains
 
     type(NcVariable) :: ncVar
     real(dp), dimension(:, :), allocatable :: dummyD2
-    real(dp), dimension(:, :), allocatable :: nodata_value
+    real(dp), dimension(:), allocatable :: dummyD1
+    integer(i4) :: i
 
     if (.not. allocated(new_grid%mask)) allocate(new_grid%mask(new_grid%nrows, new_grid%ncols))
     if (.not. allocated(new_grid%x)) allocate(new_grid%x(new_grid%nrows, new_grid%ncols))
     if (.not. allocated(new_grid%y)) allocate(new_grid%y(new_grid%nrows, new_grid%ncols))
+
     ! read L1 mask
     ncVar = nc%getVariable(maskVar)
-    ! determine no data value, use _FillValue first, fall back to missing_value
-    if (ncVar%hasAttribute("_FillValue")) then
-      call ncVar%getAttribute('_FillValue', nodata_value)
-    else if (ncVar%hasAttribute("missing_value")) then
-      call ncVar%getAttribute('missing_value', nodata_value)
-    else
-      stop '***ERROR: infer_extended_grid_properties: there must be either the attribute "missing_value" or "_FillValue"'
-    end if
 
     ! read data
-    call ncVar%getData(dummyD2)
-    ! transform to logical
-    new_grid%mask = ne(dummyD2, nodata_value)
+    call ncVar%getData(dummyD2, mask=new_grid%mask)
 
     ncVar = nc%getVariable(xCoordName)
-    call ncVar%getData(new_grid%x)
+    call ncVar%getData(dummyD1)
+    new_grid%x = spread(dummyD1, 2, new_grid%ncols)
+
     ncVar = nc%getVariable(yCoordName)
-    call ncVar%getData(new_grid%y)
+    call ncVar%getData(dummyD1)
+    new_grid%y = spread(dummyD1, 1, new_grid%nrows)
+    deallocate(dummyD1)
 
     ! init the remaining properties
     call L0_grid_setup(new_grid)

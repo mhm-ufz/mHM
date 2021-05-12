@@ -45,7 +45,7 @@ CONTAINS
     use mo_common_file, only : varNameDem
     use mo_common_variables, only : Grid,  L0_elev, dirMorpho, level0, domainMeta, &
                                     resolutionHydrology
-    use mo_grid, only : set_domain_indices
+    use mo_grid, only : set_domain_indices, infer_grid_info
     use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_netcdf,           only: NcDataset, NcVariable
@@ -140,6 +140,7 @@ CONTAINS
 
     use mo_append, only : append, paste
     use mo_common_constants, only : nodata_i4
+    use mo_common_file, only : varNameLandCover
     use mo_common_variables, only : Grid, L0_LCover, LCfilename, dirLCover, level0, domainMeta, nLCoverScene
     use mo_message, only : message
     use mo_string_utils, only : num2str
@@ -178,11 +179,11 @@ CONTAINS
 
       call message('      Reading lcover for domain: ', trim(adjustl(num2str(domainID))), ' ...')
 
-      fName = trim(dirLCover(iDomain)) // 'land_cover.nc'
+      fName = trim(dirLCover(iDomain)) // trim(varNameLandCover) // '.nc'
       ! read the Dataset
       nc = NcDataset(fname, "r")
       ! get the variable
-      ncVar = nc%getVariable(trim(varName))
+      ncVar = nc%getVariable(trim(varNameLandCover))
       call ncVar%getData(data_i4_3d, mask=mask_3d)
       ! LCover read in is realized seperated because of unknown number of scenes
       do iVar = 1, nLCoverScene
