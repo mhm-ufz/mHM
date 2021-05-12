@@ -51,5 +51,6 @@ MODULE mo_file
   CHARACTER(len = *), PARAMETER :: file_defOutput = 'mhm_outputs.nml'
   !> Unit for file defining mHM's outputs
   INTEGER, PARAMETER :: udefOutput = 67
+  CHARACTER(len = *), PARAMETER :: varNameLAIclass = 'lai_class'
 
 END MODULE mo_file

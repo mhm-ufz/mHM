@@ -64,6 +64,7 @@ CONTAINS
 
     use mo_append, only : append, paste
     use mo_constants, only : YearMonths
+    !! use mo_file, only : varNameLAIclass
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : Grid, dirCommonFiles, dirMorpho, &
@@ -84,6 +85,7 @@ CONTAINS
     use mo_string_utils, only : num2str
     use mo_timer, only : timer_get, timer_start, &
                          timer_stop
+    !! use mo_netcdf, only: NcDataset, NcVariable
 
     implicit none
 
@@ -104,10 +106,12 @@ CONTAINS
     real(dp), dimension(:, :), allocatable :: data_dp_2d
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
+    !! real(dp), dimension(:, :, :), allocatable :: data_dp_3d_nc
 
     integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
 
     logical, dimension(:, :), allocatable :: mask_2d
+    !! logical, dimension(:, :, :), allocatable :: mask_3d_nc
 
     integer(i4), dimension(:), allocatable :: dummy_i4
 
@@ -116,6 +120,8 @@ CONTAINS
     real(dp), parameter :: slope_minVal = 0.01_dp
 
     real(dp), parameter :: aspect_minVal = 1.00_dp
+    !! type(NcDataset)                        :: nc           ! netcdf file
+    !! type(NcVariable)                       :: ncVar          ! variables for data form netcdf
 
 
     call message('  Reading data ...')
@@ -261,6 +267,16 @@ CONTAINS
         call read_spatial_data_ascii(trim(fName), ulaiclass, &
                 level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
                 level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
+
+        !! fName = trim(dirMorpho(iDomain)) // trim(varNameLAIclass) // '.nc'
+        !! ! read the Dataset
+        !! nc = NcDataset(fname, "r")
+        !! ! get the variable
+        !! ncVar = nc%getVariable(trim(varNameLAIclass))
+        !! call ncVar%getData(data_dp_3d_nc, mask=mask_3d_nc)
+        !! call nc%close()
+        !!
+
         ! put global nodata value into array (probably not all grid cells have values)
         data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
         allocate(dummy_i4(count(level0_iDomain%mask)))
