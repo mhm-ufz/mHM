@@ -75,7 +75,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   target_compile_definitions(${LIB_NAME} PUBLIC GFORTRAN)
   target_compile_options(${LIB_NAME} PUBLIC
     -ffree-form -ffixed-line-length-132
-    $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
+    $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -fimplicit-none -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=snan>
     $<$<CONFIG:RELEASE>:-O3>
     $<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
     $<$<BOOL:${CMAKE_WITH_GPROF}>:-pg>
