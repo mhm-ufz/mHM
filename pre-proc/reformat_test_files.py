@@ -202,6 +202,7 @@ def prepare_config(file_name, out_file_name):
         print('Creating {} file: {}'.format('config', pathlib.Path(config_target_root, file_name)))
         _copy_or_link_file(config_path, pathlib.Path(config_target_root, file_name))
 
+
 def _copy_or_link_file(source, target):
     if USE_SYMLINKS:
         if target.is_symlink():
@@ -211,6 +212,7 @@ def _copy_or_link_file(source, target):
         if target.exists():
             target.unlink()
         shutil.copy(source, target)
+
 
 def _configure_mhm_nml(in_path, out_path, output_path=None, forcing_path=None, routing_path=None, gauge_id=None,
                        start_date=None, end_date=None, spinup=None):
@@ -290,16 +292,16 @@ def _configure_mpr_nml(in_path, out_path, coords=None, data_arrays=None, out_fil
 
 # SCRIPT
 if __name__ == '__main__':
-    input_dir = pathlib.Path('../check')
+    input_dir = pathlib.Path('../../mhm_fork2/check')
     output_dir = pathlib.Path('../check_new')
     if input_dir.is_file():
         raise Exception("Input directory must be a directory, it is a file")
     nc_files = get_all_subfiles(input_dir, suffixes=['.nc'])
-    nc_files = []
+    # nc_files = []
     for nc_file in nc_files:
         print('working on file: {}'.format(nc_file))
         output_file = pathlib.Path(output_dir, nc_file)
-        sort_y_dim(pathlib.Path(input_dir, nc_file), output_file)
+        sort_y_dim(pathlib.Path(input_dir, nc_file), output_file, y_dims=('ncols', 'northing'))
     nml_files = get_all_subfiles(input_dir, suffixes=['.nml', '.out'])
     for nml_file in nml_files:
         print('working on file: {}'.format(nml_file))

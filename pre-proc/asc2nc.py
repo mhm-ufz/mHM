@@ -534,12 +534,12 @@ def combine_lc_files(output_dir):
         path.unlink()
     ds.close()
 
-def sort_y_dim(filename_in, filename_out):
+def sort_y_dim(filename_in, filename_out, y_dims=('y',)):
     """
     read in some file, check for dimensions starting with 'y' and sort by this dimension
     """
     ds = xr.open_dataset(filename_in)
-    sortby_dims = [dim for dim in ds.dims if dim.startswith('y')]
+    sortby_dims = [dim for dim in ds.dims if dim.startswith(y_dims)]
     if sortby_dims:
         ds = ds.sortby(sortby_dims, ascending=True)
     for var in ds.data_vars:
