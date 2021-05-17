@@ -334,7 +334,7 @@ check-nagfor62:
   artifacts:
     when: always
     paths:
-    - check/logs/
+    - check_new/logs/
 
 check-nagfor62DEBUG:
   when: always
@@ -352,7 +352,7 @@ check-nagfor62DEBUG:
   artifacts:
     when: always
     paths:
-    - check/logs/
+    - check_new/logs/
 
 check-gfortran73:
   when: always
@@ -369,7 +369,7 @@ check-gfortran73:
   artifacts:
     when: always
     paths:
-    - check/logs/
+    - check_new/logs/
 
 check-gfortran73MPI:
   when: always
@@ -386,7 +386,7 @@ check-gfortran73MPI:
   artifacts:
     when: always
     paths:
-    - check/logs/
+    - check_new/logs/
 
 check-gfortran83:
   when: always
@@ -403,7 +403,7 @@ check-gfortran83:
   artifacts:
     when: always
     paths:
-    - check/logs/
+    - check_new/logs/
 
 check-gfortran83MPI:
   when: always
@@ -420,7 +420,7 @@ check-gfortran83MPI:
   artifacts:
     when: always
     paths:
-    - check/logs/
+    - check_new/logs/
 
 check-intel18:
   when: always
@@ -437,7 +437,7 @@ check-intel18:
   artifacts:
     when: always
     paths:
-    - check/logs/
+    - check_new/logs/
 
 check-intel18MPI:
   when: always
@@ -454,7 +454,7 @@ check-intel18MPI:
   artifacts:
     when: always
     paths:
-    - check/logs/
+    - check_new/logs/
 
 check-intel19:
   when: always
@@ -471,7 +471,7 @@ check-intel19:
   artifacts:
     when: always
     paths:
-    - check/logs/
+    - check_new/logs/
 
 check-intel19MPI:
   when: always
@@ -488,7 +488,7 @@ check-intel19MPI:
   artifacts:
     when: always
     paths:
-    - check/logs/
+    - check_new/logs/
 
 unittest-gfortran83:
   when: always
