@@ -20,10 +20,23 @@
 ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
 module mo_read_nc
+  use mo_kind, only : dp, i4
+  use mo_netcdf,           only: NcDataset, NcVariable, NcDimension
+  use mo_message,          only: message
+  use mo_string_utils,     only: num2str
+  use mo_utils,            only: eq, ne, flip
+
   implicit none
   public :: read_nc
   public :: read_const_nc
   public :: read_weights_nc
+  public :: check_sort_order
+
+  interface check_sort_order
+    procedure check_sort_order_2DF64, check_sort_order_3DF64, check_sort_order_4DF64, &
+            check_sort_order_2DI4, check_sort_order_3DI4, check_sort_order_4DI4
+  end interface
+
   private
   !
 contains
@@ -86,11 +99,6 @@ contains
                             fileName, nocheck, maskout)
 
     use mo_common_variables, only : period
-    use mo_kind, only : dp, i4
-    use mo_message, only : message
-    use mo_netcdf, only : NcDataset, NcVariable
-    use mo_string_utils, only : num2str
-    use mo_utils, only : eq, ne
 
     implicit none
 
@@ -208,6 +216,9 @@ contains
     ! extract data and select time slice
     call var%getData(data, start = (/1, 1, time_start/), cnt = (/nRows, nCols, time_cnt/))
 
+    ! flip the data if any dimension is not sorted correctly
+    call check_sort_order(data, var)
+
     ! save output mask if optional maskout is given
     if (present(maskout)) then
       allocate(maskout(var_shape(1), var_shape(2), var_shape(3)))
@@ -317,14 +328,6 @@ contains
 
   subroutine read_const_nc(folder, varName, data, fileName, nRows, nCols)
 
-    use mo_kind,             only: i4, dp
-    use mo_message,          only: message
-    use mo_netcdf,           only: NcDataset, NcVariable, NcDimension
-    use mo_string_utils,     only: num2str
-    use mo_utils,            only: eq, ne
-
-    implicit none
-
     character(len=*),                      intent(in)  :: folder  ! folder where data are stored
     character(len=*),                      intent(in)  :: varName ! name of NetCDF variable
     real(dp), dimension(:,:), allocatable, intent(out) :: data    ! data read in
@@ -423,14 +426,6 @@ contains
 
 
   subroutine read_weights_nc(folder, nRows, nCols, varName, data, mask, lower, upper, nocheck, maskout, fileName)
-
-    use mo_kind, only : dp, i4
-    use mo_message, only : message
-    use mo_netcdf, only : NcDataset, NcVariable
-    use mo_string_utils, only : num2str
-    use mo_utils, only : eq, ne
-
-    implicit none
 
     ! Name of the folder where data are stored
     character(len = *), intent(in) :: folder
@@ -607,9 +602,7 @@ contains
     use mo_common_variables, only : period
     use mo_constants, only : DayHours, DaySecs, YearDays
     use mo_julian, only : caldat, dec2date, julday
-    use mo_kind, only : dp, i4, i8
-    use mo_message, only : message
-    use mo_netcdf, only : NcVariable
+    use mo_kind, only : i8
     use mo_string_utils, only : DIVIDE_STRING
 
     implicit none
@@ -793,5 +786,276 @@ contains
     end if
 
   end subroutine get_time_vector_and_select
+
+  subroutine check_sort_order_2DF64(data, var)
+    real(dp), dimension(:, :), allocatable, intent(inout) :: data
+    type(NcVariable), intent(in) :: var
+
+    type(NcDimension), dimension(:), allocatable :: ncDims
+    type(NcVariable) :: ncVar
+    integer(i4), dimension(:), allocatable :: ncVarShape
+    integer(i4) :: iDim
+    real(dp), dimension(:), allocatable :: data1D
+    real(dp), dimension(:, :), allocatable :: data2D
+    character(256) :: dimName
+
+    ! get all dimensions of variable
+    ncDims = var%getDimensions()
+    do iDim=1, size(ncDims)
+      ! get the dimension name
+      dimName = ncDims(iDim)%getName()
+      ! is it also a variable, then we need to get the values
+      if (var%parent%hasVariable(trim(dimName))) then
+        ncVar = var%parent%getVariable(trim(dimName))
+        ncVarShape = ncVar%getShape()
+        ! now check the number of dimensions for each
+        if (size(ncVarShape) == 1_i4) then
+          call ncVar%getData(data1D)
+          ! if it is sorted in a descending way, sort along the dimension
+          if (data1D(1) > data1D(size(data1D))) then
+            call flip(data, iDim)
+            print*, 'sorted coordinate: ', trim(dimName), ' for variable: ', trim(var%getName())
+          end if
+          deallocate(data1D)
+        else if (size(ncVarShape) == 2_i4) then
+          call ncVar%getData(data2D)
+          ! if it is sorted in a descending way, sort along the dimension
+          if (data2D(1, 1) > data2D(size(data2D, 1), 1)) then
+            call flip(data, iDim)
+            print*, 'sorted coordinate: ', trim(dimName), ' for variable: ', trim(var%getName())
+          end if
+          deallocate(data2D)
+        end if
+      end if
+      ! if it is not Variable it is always integer and sorted in an ascending order
+    end do
+
+  end subroutine check_sort_order_2DF64
+
+  subroutine check_sort_order_3DF64(data, var)
+    real(dp), dimension(:, :, :), allocatable, intent(inout) :: data
+    type(NcVariable), intent(in) :: var
+
+    type(NcDimension), dimension(:), allocatable :: ncDims
+    type(NcVariable) :: ncVar
+    integer(i4), dimension(:), allocatable :: ncVarShape
+    integer(i4) :: iDim
+    real(dp), dimension(:), allocatable :: data1D
+    real(dp), dimension(:, :), allocatable :: data2D
+    character(256) :: dimName
+
+    ! get all dimensions of variable
+    ncDims = var%getDimensions()
+    do iDim=1, size(ncDims)
+      ! get the dimension name
+      dimName = ncDims(iDim)%getName()
+      ! is it also a variable, then we need to get the values
+      if (var%parent%hasVariable(trim(dimName))) then
+        ncVar = var%parent%getVariable(trim(dimName))
+        ncVarShape = ncVar%getShape()
+        ! now check the number of dimensions for each
+        if (size(ncVarShape) == 1_i4) then
+          call ncVar%getData(data1D)
+          ! if it is sorted in a descending way, sort along the dimension
+          if (data1D(1) > data1D(size(data1D))) then
+            call flip(data, iDim)
+            print*, 'sorted coordinate: ', trim(dimName), ' for variable: ', trim(var%getName())
+          end if
+          deallocate(data1D)
+        else if (size(ncVarShape) == 2_i4) then
+          call ncVar%getData(data2D)
+          ! if it is sorted in a descending way, sort along the dimension
+          if (data2D(1, 1) > data2D(size(data2D, 1), 1)) then
+            call flip(data, iDim)
+            print*, 'sorted coordinate: ', trim(dimName), ' for variable: ', trim(var%getName())
+          end if
+          deallocate(data2D)
+        end if
+      end if
+      ! if it is not Variable it is always integer and sorted in an ascending order
+    end do
+
+  end subroutine check_sort_order_3DF64
+
+  subroutine check_sort_order_4DF64(data, var)
+    real(dp), dimension(:, :, :, :), allocatable, intent(inout) :: data
+    type(NcVariable), intent(in) :: var
+
+    type(NcDimension), dimension(:), allocatable :: ncDims
+    type(NcVariable) :: ncVar
+    integer(i4), dimension(:), allocatable :: ncVarShape
+    integer(i4) :: iDim
+    real(dp), dimension(:), allocatable :: data1D
+    real(dp), dimension(:, :), allocatable :: data2D
+    character(256) :: dimName
+
+    ! get all dimensions of variable
+    ncDims = var%getDimensions()
+    do iDim=1, size(ncDims)
+      ! get the dimension name
+      dimName = ncDims(iDim)%getName()
+      ! is it also a variable, then we need to get the values
+      if (var%parent%hasVariable(trim(dimName))) then
+        ncVar = var%parent%getVariable(trim(dimName))
+        ncVarShape = ncVar%getShape()
+        ! now check the number of dimensions for each
+        if (size(ncVarShape) == 1_i4) then
+          call ncVar%getData(data1D)
+          ! if it is sorted in a descending way, sort along the dimension
+          if (data1D(1) > data1D(size(data1D))) then
+            call flip(data, iDim)
+            print*, 'sorted coordinate: ', trim(dimName), ' for variable: ', trim(var%getName())
+          end if
+          deallocate(data1D)
+        else if (size(ncVarShape) == 2_i4) then
+          call ncVar%getData(data2D)
+          ! if it is sorted in a descending way, sort along the dimension
+          if (data2D(1, 1) > data2D(size(data2D, 1), 1)) then
+            call flip(data, iDim)
+            print*, 'sorted coordinate: ', trim(dimName), ' for variable: ', trim(var%getName())
+          end if
+          deallocate(data2D)
+        end if
+      end if
+      ! if it is not Variable it is always integer and sorted in an ascending order
+    end do
+
+  end subroutine check_sort_order_4DF64
+
+  subroutine check_sort_order_3DI4(data, var)
+    integer(i4), dimension(:, :, :), allocatable, intent(inout) :: data
+    type(NcVariable), intent(in) :: var
+
+    type(NcDimension), dimension(:), allocatable :: ncDims
+    type(NcVariable) :: ncVar
+    integer(i4), dimension(:), allocatable :: ncVarShape
+    integer(i4) :: iDim
+    real(dp), dimension(:), allocatable :: data1D
+    real(dp), dimension(:, :), allocatable :: data2D
+    character(256) :: dimName
+
+    ! get all dimensions of variable
+    ncDims = var%getDimensions()
+    do iDim=1, size(ncDims)
+      ! get the dimension name
+      dimName = ncDims(iDim)%getName()
+      ! is it also a variable, then we need to get the values
+      if (var%parent%hasVariable(trim(dimName))) then
+        ncVar = var%parent%getVariable(trim(dimName))
+        ncVarShape = ncVar%getShape()
+        ! now check the number of dimensions for each
+        if (size(ncVarShape) == 1_i4) then
+          call ncVar%getData(data1D)
+          ! if it is sorted in a descending way, sort along the dimension
+          if (data1D(1) > data1D(size(data1D))) then
+            call flip(data, iDim)
+            print*, 'sorted coordinate: ', trim(dimName), ' for variable: ', trim(var%getName())
+          end if
+          deallocate(data1D)
+        else if (size(ncVarShape) == 2_i4) then
+          call ncVar%getData(data2D)
+          ! if it is sorted in a descending way, sort along the dimension
+          if (data2D(1, 1) > data2D(size(data2D, 1), 1)) then
+            call flip(data, iDim)
+            print*, 'sorted coordinate: ', trim(dimName), ' for variable: ', trim(var%getName())
+          end if
+          deallocate(data2D)
+        end if
+      end if
+      ! if it is not Variable it is always integer and sorted in an ascending order
+    end do
+
+  end subroutine check_sort_order_3DI4
+
+  subroutine check_sort_order_2DI4(data, var)
+    integer(i4), dimension(:, :), allocatable, intent(inout) :: data
+    type(NcVariable), intent(in) :: var
+
+    type(NcDimension), dimension(:), allocatable :: ncDims
+    type(NcVariable) :: ncVar
+    integer(i4), dimension(:), allocatable :: ncVarShape
+    integer(i4) :: iDim
+    real(dp), dimension(:), allocatable :: data1D
+    real(dp), dimension(:, :), allocatable :: data2D
+    character(256) :: dimName
+
+    ! get all dimensions of variable
+    ncDims = var%getDimensions()
+    do iDim=1, size(ncDims)
+      ! get the dimension name
+      dimName = ncDims(iDim)%getName()
+      ! is it also a variable, then we need to get the values
+      if (var%parent%hasVariable(trim(dimName))) then
+        ncVar = var%parent%getVariable(trim(dimName))
+        ncVarShape = ncVar%getShape()
+        ! now check the number of dimensions for each
+        if (size(ncVarShape) == 1_i4) then
+          call ncVar%getData(data1D)
+          ! if it is sorted in a descending way, sort along the dimension
+          if (data1D(1) > data1D(size(data1D))) then
+            call flip(data, iDim)
+            print*, 'sorted coordinate: ', trim(dimName), ' for variable: ', trim(var%getName())
+          end if
+          deallocate(data1D)
+        else if (size(ncVarShape) == 2_i4) then
+          call ncVar%getData(data2D)
+          ! if it is sorted in a descending way, sort along the dimension
+          if (data2D(1, 1) > data2D(size(data2D, 1), 1)) then
+            call flip(data, iDim)
+            print*, 'sorted coordinate: ', trim(dimName), ' for variable: ', trim(var%getName())
+          end if
+          deallocate(data2D)
+        end if
+      end if
+      ! if it is not Variable it is always integer and sorted in an ascending order
+    end do
+
+  end subroutine check_sort_order_2DI4
+
+  subroutine check_sort_order_4DI4(data, var)
+    integer(i4), dimension(:, :, :, :), allocatable, intent(inout) :: data
+    type(NcVariable), intent(in) :: var
+
+    type(NcDimension), dimension(:), allocatable :: ncDims
+    type(NcVariable) :: ncVar
+    integer(i4), dimension(:), allocatable :: ncVarShape
+    integer(i4) :: iDim
+    real(dp), dimension(:), allocatable :: data1D
+    real(dp), dimension(:, :), allocatable :: data2D
+    character(256) :: dimName
+
+    ! get all dimensions of variable
+    ncDims = var%getDimensions()
+    do iDim=1, size(ncDims)
+      ! get the dimension name
+      dimName = ncDims(iDim)%getName()
+      ! is it also a variable, then we need to get the values
+      if (var%parent%hasVariable(trim(dimName))) then
+        ncVar = var%parent%getVariable(trim(dimName))
+        ncVarShape = ncVar%getShape()
+        ! now check the number of dimensions for each
+        if (size(ncVarShape) == 1_i4) then
+          call ncVar%getData(data1D)
+          ! if it is sorted in a descending way, sort along the dimension
+          if (data1D(1) > data1D(size(data1D))) then
+            call flip(data, iDim)
+            print*, 'sorted coordinate: ', trim(dimName), ' for variable: ', trim(var%getName())
+          end if
+          deallocate(data1D)
+        else if (size(ncVarShape) == 2_i4) then
+          call ncVar%getData(data2D)
+          ! if it is sorted in a descending way, sort along the dimension
+          if (data2D(1, 1) > data2D(size(data2D, 1), 1)) then
+            call flip(data, iDim)
+            print*, 'sorted coordinate: ', trim(dimName), ' for variable: ', trim(var%getName())
+          end if
+          deallocate(data2D)
+        end if
+      end if
+      ! if it is not Variable it is always integer and sorted in an ascending order
+    end do
+
+  end subroutine check_sort_order_4DI4
+
 
 end module mo_read_nc
