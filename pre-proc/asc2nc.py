@@ -130,7 +130,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_all_subfiles(path, relation=None):
+def get_all_subfiles(path, relation=None, whitelist=None, suffixes=None):
     """
     returns generator, yielding all files found in any subfolder of a given path considering POSSIBLE_SUFFIXES and FOLDER_LIST
     relative to the given path
@@ -147,13 +147,13 @@ def get_all_subfiles(path, relation=None):
     generator
     """
     if path.is_file():
-        if path.suffix in POSSIBLE_SUFFIXES:
+        if suffixes and path.suffix in suffixes:
             yield path.relative_to(relation or path)
     else:
-        for sub_path in path.iterdir():
-            if sub_path.name not in FOLDER_LIST and sub_path.is_dir():
+        for sub_path in sorted(path.iterdir()):
+            if sub_path.is_dir() and whitelist and sub_path.name not in whitelist:
                 continue
-            yield from get_all_subfiles(sub_path, relation or path)
+            yield from get_all_subfiles(sub_path, relation or path, whitelist, suffixes)
 
 
 # CLASSES
@@ -545,7 +545,7 @@ def sort_y_dim(filename_in, filename_out):
     for var in ds.data_vars:
         missing_value = ds[var].attrs.get('missing_value')
         if missing_value is not None:
-            if 'i' in ds['bd'].dtype.str:
+            if 'i' in ds[var].dtype.str:
                 ds[var].encoding['_FillValue'] = int(missing_value)
             else:
                 ds[var].encoding['_FillValue'] = float(missing_value)
@@ -563,7 +563,7 @@ if __name__ == '__main__':
     input_dir = pathlib.Path(args.input_dir)
     if input_dir.is_file():
         raise Exception("Input directory must be a directory, it is a file")
-    path_list = get_all_subfiles(input_dir)
+    path_list = get_all_subfiles(input_dir, whitelist=FOLDER_LIST, suffixes=POSSIBLE_SUFFIXES)
 
     for path in path_list:
         print('working on file: {}'.format(path))
