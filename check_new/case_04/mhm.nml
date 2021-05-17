@@ -1,0 +1,209 @@
+&directories_general
+    dir_lcover(1:6) = '../../test_domain/input/luse/', '../../test_domain/input/luse/',
+                      '../../test_domain_2/input/luse/', '../../test_domain/input/luse/',
+                      '../../test_domain/input/luse/', '../../test_domain_2/input/luse/'
+    dir_morpho(1:6) = '../../test_domain/input/morph/', '../../test_domain/input/morph/',
+                      '../../test_domain_2/input/morph/', '../../test_domain/input/morph/',
+                      '../../test_domain/input/morph/', '../../test_domain_2/input/morph/'
+    dir_out(1:6) = 'output_b1/b1_', 'output_b1/b2_', 'output_b1/b3_', 'output_b1/b4_',
+                   'output_b1/b5_', 'output_b1/b6_'
+    mhm_file_restartout(1:6) = 'output_b1/b1_mHM_restart_001.nc', 'output_b1/b2_mHM_restart_002.nc',
+                               'output_b1/b3_mHM_restart_003.nc', 'output_b1/b4_mHM_restart_004.nc',
+                               'output_b1/b5_mHM_restart_005.nc', 'output_b1/b6_mHM_restart_006.nc'
+    mrm_file_restartout(1:6) = 'output_b1/b1_mRM_restart_001.nc', 'output_b1/b2_mRM_restart_002.nc',
+                               'output_b1/b3_mRM_restart_003.nc', 'output_b1/b4_mRM_restart_004.nc',
+                               'output_b1/b5_mRM_restart_005.nc', 'output_b1/b6_mRM_restart_006.nc'
+    dircommonfiles = '../../test_domain/input/morph/'
+    dirconfigout = 'output_b1/'
+    file_latlon(1:6) = '../../test_domain/input/latlon/latlon_1.nc', '../../test_domain/input/latlon/latlon_2.nc',
+                       '../../test_domain_2/input/latlon/latlon.nc', '../../test_domain/input/latlon/latlon_1.nc',
+                       '../../test_domain/input/latlon/latlon_2.nc', '../../test_domain_2/input/latlon/latlon.nc'
+/
+
+&directories_mhm
+    dir_absvappressure(1) = '../../test_domain/input/meteo/'
+    dir_maxtemperature(1) = '../../test_domain/input/meteo/'
+    dir_mintemperature(1) = '../../test_domain/input/meteo/'
+    dir_netradiation(1) = '../../test_domain/input/meteo/'
+    dir_precipitation(1:6) = '../../test_domain/input/meteo/pre/', '../../test_domain/input/meteo/pre/',
+                             '../../test_domain_2/input/meteo/pre/', '../../test_domain/input/meteo/pre/',
+                             '../../test_domain/input/meteo/pre/', '../../test_domain_2/input/meteo/pre/'
+    dir_referenceet(1:6) = '../../test_domain/input/meteo/pet/', '../../test_domain/input/meteo/pet/',
+                           '../../test_domain_2/input/meteo/pet/', '../../test_domain/input/meteo/pet/',
+                           '../../test_domain/input/meteo/pet/', '../../test_domain_2/input/meteo/pet/'
+    dir_temperature(1:6) = '../../test_domain/input/meteo/tavg/', '../../test_domain/input/meteo/tavg/',
+                           '../../test_domain_2/input/meteo/tavg/', '../../test_domain/input/meteo/tavg/',
+                           '../../test_domain/input/meteo/tavg/', '../../test_domain_2/input/meteo/tavg/'
+    dir_windspeed(1) = '../../test_domain/input/meteo/'
+    inputformat_meteo_forcings = 'nc'
+    time_step_model_inputs(1:6) = 0, 0, 0, 0, 0, 0
+/
+
+&directories_mrm
+    dir_gauges(1:6) = '../../test_domain/input/gauge/', '../../test_domain/input/gauge/',
+                      '../../test_domain_2/input/gauge/', '../../test_domain/input/gauge/',
+                      '../../test_domain/input/gauge/', '../../test_domain_2/input/gauge/'
+    dir_total_runoff(1:6) = '../../test_domain/input/gauge/', '../../test_domain/input/gauge/',
+                            '../../test_domain_2/input/gauge/', '../../test_domain/input/gauge/',
+                            '../../test_domain/input/gauge/', '../../test_domain_2/input/gauge/'
+/
+
+&evaluation_gauges
+    gauge_filename(1,1) = '00398.txt'
+    gauge_filename(2,1) = '00398.txt'
+    gauge_filename(3,1) = '45.txt'
+    gauge_filename(4,1) = '00398.txt'
+    gauge_filename(5,1) = '00398.txt'
+    gauge_filename(6,1) = '45.txt'
+    gauge_id(1,1) = 398
+    gauge_id(2,1) = 398
+    gauge_id(3,1) = 45
+    gauge_id(4,1) = 398
+    gauge_id(5,1) = 398
+    gauge_id(6,1) = 45
+    ngaugestotal = 6
+    nogauges_domain(1:6) = 1, 1, 0, 1, 1, 1
+/
+
+&inflow_gauges
+    inflowgauge_filename(1,1) = '00398.txt'
+    inflowgauge_headwater(1,1) = .false.
+    inflowgauge_id(1,1) = 398
+    ninflowgaugestotal = 0
+    noinflowgauges_domain(1) = 0
+/
+
+&lai_data_information
+    inputformat_gridded_lai = 'nc'
+    timestep_lai_input = 0
+/
+
+&lcover
+    lcoverfname(1:2) = 'lc_1981.asc', 'lc_1991.asc'
+    lcoveryearend(1:2) = 1990, 2000
+    lcoveryearstart(1:2) = 1981, 1991
+    nlcoverscene = 2
+/
+
+&lcover_mpr
+    fracsealed_cityarea = 0.6
+/
+
+&mainconfig
+    iflag_cordinate_sys = 0
+    l0domain(1:6) = 1, 1, 3, 4, 5, 6
+    ndomains = 6
+    resolution_hydrology(1:6) = 24000, 12000, 24000, 24000, 12000, 24000
+    write_restart = .true.
+    read_opt_domain_data(1:6) = 0, 0, 0, 0, 0, 0
+/
+
+&mainconfig_mhm_mrm
+    mhm_file_restartin(1:6) = 'output_b1/b1_mHM_restart_001.nc', 'output_b1/b2_mHM_restart_002.nc',
+                              'output_b1/b3_mHM_restart_003.nc', 'output_b1/b4_mHM_restart_004.nc',
+                              'output_b1/b5_mHM_restart_005.nc', 'output_b1/b6_mHM_restart_006.nc'
+    mrm_file_restartin(1:6) = 'output_b1/b1_mRM_restart_001.nc', 'output_b1/b2_mRM_restart_002.nc',
+                              'output_b1/b3_mRM_restart_003.nc', 'output_b1/b4_mRM_restart_004.nc',
+                              'output_b1/b5_mRM_restart_005.nc', 'output_b1/b6_mRM_restart_006.nc'
+    opti_function = 3
+    opti_method = 1
+    optimize = .false.
+    optimize_restart = .false.
+    read_restart = .false.
+    resolution_routing(1:6) = 24000, 24000, 24000, 24000, 12000, 24000
+    timestep = 1
+/
+
+&mainconfig_mrm
+    alma_convention = .true.
+    filenametotalrunoff = 'total_runoff'
+    varnametotalrunoff = 'total_runoff'
+/
+
+&nightdayratio
+    fnight_pet(1:12) = 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+                       0.1, 0.1
+    fnight_prec(1:12) = 0.46, 0.5, 0.52, 0.51, 0.48, 0.5, 0.49, 0.48, 0.52,
+                        0.56, 0.5, 0.47
+    fnight_temp(1:12) = -0.76, -1.3, -1.88, -2.38, -2.72, -2.75, -2.74,
+                        -3.04, -2.44, -1.6, -0.94, -0.53
+    read_meteo_weights = .false.
+/
+
+&optimization
+    dds_r = 0.2
+    mcmc_error_params(1:2) = 0.01, 0.6
+    mcmc_opti = .false.
+    niterations = 400
+    sa_temp = -9.0
+    sce_ngs = 2
+    sce_npg = -9
+    sce_nps = -9
+    seed = 1235876
+/
+
+&panevapo
+    evap_coeff(1:12) = 1.3, 1.2, 0.72, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                       1.0, 1.5
+/
+
+&processselection
+    processcase(1:10) = 1, 1, 1, 1, 0, 1, 1, 1, 1, 0
+/
+
+&project_description
+    contact = 'mHM developers (email:mhm-developers@ufz.de)'
+    conventions = 'XXX'
+    history = 'model run version 1'
+    mhm_details = 'Helmholtz Center for Environmental Research - UFZ, Department Computational Hydrosystems, Stochastic Hydrology Group'
+    project_details = 'mHM test domain project'
+    setup_description = 'model run for the Mosel domain, forced with the E-OBS meteorologic data'
+    simulation_type = 'historical simulation'
+/
+
+&soildata
+    iflag_soildb = 0
+    nsoilhorizons_mhm = 2
+    soil_depth(1) = 200
+    tillagedepth = 200
+/
+
+&time_periods
+    eval_per(1)%dend = 31
+    eval_per(1)%dstart = 1
+    eval_per(1)%mend = 12
+    eval_per(1)%mstart = 7
+    eval_per(1)%yend = 1990
+    eval_per(1)%ystart = 1990
+    eval_per(2)%dend = 31
+    eval_per(2)%dstart = 1
+    eval_per(2)%mend = 12
+    eval_per(2)%mstart = 1
+    eval_per(2)%yend = 1992
+    eval_per(2)%ystart = 1991
+    eval_per(3)%dend = 31
+    eval_per(3)%dstart = 1
+    eval_per(3)%mend = 12
+    eval_per(3)%mstart = 1
+    eval_per(3)%yend = 1993
+    eval_per(3)%ystart = 1993
+    eval_per(4)%dend = 31
+    eval_per(4)%dstart = 1
+    eval_per(4)%mend = 12
+    eval_per(4)%mstart = 7
+    eval_per(4)%yend = 1990
+    eval_per(4)%ystart = 1990
+    eval_per(5)%dend = 31
+    eval_per(5)%dstart = 1
+    eval_per(5)%mend = 12
+    eval_per(5)%mstart = 1
+    eval_per(5)%yend = 1992
+    eval_per(5)%ystart = 1992
+    eval_per(6)%dend = 31
+    eval_per(6)%dstart = 1
+    eval_per(6)%mend = 12
+    eval_per(6)%mstart = 1
+    eval_per(6)%yend = 1991
+    eval_per(6)%ystart = 1991
+    warming_days(1:6) = 180, 180, 180, 360, 50, 0
+/

@@ -1,0 +1,160 @@
+&directories_general
+    dir_lcover(1) = '../../test_domain/input/luse/'
+    dir_morpho(1) = '../../test_domain/input/morph/'
+    dir_out(1) = 'output_b1/b1_'
+    mhm_file_restartout(1) = 'output_b1/b1_mHM_restart_001.nc'
+    mrm_file_restartout(1) = 'output_b1/b1_mRM_restart_001.nc'
+    dircommonfiles = '../../test_domain/input/morph/'
+    dirconfigout = 'output_b1/'
+    file_latlon(1) = '../../test_domain/input/latlon/latlon_1.nc'
+/
+
+&directories_mhm
+    dir_absvappressure(1) = '../../test_domain/input/meteo/'
+    dir_maxtemperature(1) = '../../test_domain/input/meteo/'
+    dir_mintemperature(1) = '../../test_domain/input/meteo/'
+    dir_netradiation(1) = '../../test_domain/input/meteo/'
+    dir_precipitation(1) = '../../test_domain/input/meteo/pre/'
+    dir_referenceet(1) = '../../test_domain/input/meteo/pet/'
+    dir_temperature(1) = '../../test_domain/input/meteo/tavg/'
+    dir_windspeed(1) = '../../test_domain/input/meteo/'
+    dir_Radiation(1) = "../../test_domain/input/meteo/"
+    inputformat_meteo_forcings = 'nc'
+    time_step_model_inputs(1) = -2
+/
+
+&directories_mrm
+    dir_gauges(1) = '../../test_domain/input/gauge/'
+    dir_total_runoff(1) = 'output_b1/'
+/
+
+&config_riv_temp
+albedo_water = 0.15
+pt_a_water = 1.26
+emissivity_water = 0.96
+turb_heat_ex_coeff = 20.0
+max_iter = 50
+delta_iter = 1.0e-05
+step_iter = 5.0
+riv_widths_file = 'Q_bkfl'
+riv_widths_name = 'P_bkfl'
+dir_riv_widths(1) = '../../test_domain/input/optional_data/'
+/
+
+&evaluation_gauges
+    gauge_filename(1,1) = '00398.txt'
+    gauge_id(1,1) = 398
+    ngaugestotal = 1
+    nogauges_domain(1) = 1
+/
+
+&inflow_gauges
+    inflowgauge_filename(1,1) = '00398.txt'
+    inflowgauge_headwater(1,1) = .false.
+    inflowgauge_id(1,1) = 398
+    ninflowgaugestotal = 0
+    noinflowgauges_domain(1) = 0
+/
+
+&lai_data_information
+    inputformat_gridded_lai = 'nc'
+    timestep_lai_input = 0
+/
+
+&lcover
+    lcoverfname(1:2) = 'lc_1981.asc', 'lc_1991.asc'
+    lcoveryearend(1:2) = 1990, 2000
+    lcoveryearstart(1:2) = 1981, 1991
+    nlcoverscene = 2
+/
+
+&lcover_mpr
+    fracsealed_cityarea = 0.6
+/
+
+&mainconfig
+    iflag_cordinate_sys = 0
+    l0domain(1) = 1
+    ndomains = 1
+    resolution_hydrology(1) = 24000
+    write_restart = .true.
+    read_opt_domain_data(1) = 0
+/
+
+&mainconfig_mhm_mrm
+    mhm_file_restartin(1) = 'restart/b1_mHM_restart_001.nc'
+    mrm_file_restartin(1) = 'restart/b1_mRM_restart_001.nc'
+    opti_function = 3
+    opti_method = 1
+    optimize = .false.
+    optimize_restart = .false.
+    read_restart = .false.
+    resolution_routing(1) = 24000
+    timestep = 1
+/
+
+&mainconfig_mrm
+    alma_convention = .true.
+    filenametotalrunoff = 'total_runoff'
+    varnametotalrunoff = 'total_runoff'
+/
+
+&nightdayratio
+    fnight_pet(1:12) = 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+                       0.1, 0.1
+    fnight_prec(1:12) = 0.46, 0.5, 0.52, 0.51, 0.48, 0.5, 0.49, 0.48, 0.52,
+                        0.56, 0.5, 0.47
+    fnight_temp(1:12) = -0.76, -1.3, -1.88, -2.38, -2.72, -2.75, -2.74,
+                        -3.04, -2.44, -1.6, -0.94, -0.53
+    read_meteo_weights = .false.
+    fnight_ssrd   =  0.0,   0.0,   0.0,   0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0
+    fnight_strd   =  0.45,   0.45,   0.45,   0.45,  0.45,  0.45,  0.45,  0.45,  0.45,  0.45,  0.45,  0.45
+/
+
+&optimization
+    dds_r = 0.2
+    mcmc_error_params(1:2) = 0.01, 0.6
+    mcmc_opti = .false.
+    niterations = 400
+    sa_temp = -9.0
+    sce_ngs = 2
+    sce_npg = -9
+    sce_nps = -9
+    seed = 1235876
+/
+
+&panevapo
+    evap_coeff(1:12) = 1.3, 1.2, 0.72, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                       1.0, 1.5
+/
+
+&processselection
+    processcase(1:11) = 1, 1, 1, 1, 0, 1, 1, 3, 1, 0, 1
+/
+
+&project_description
+    contact = 'mHM developers (email:mhm-developers@ufz.de)'
+    conventions = 'XXX'
+    history = 'model run version 1'
+    mhm_details = 'Helmholtz Center for Environmental Research - UFZ, Department Computational Hydrosystems, Stochastic Hydrology Group'
+    project_details = 'mHM test domain project'
+    setup_description = 'model run for the Mosel domain, forced with the E-OBS meteorologic data'
+    simulation_type = 'historical simulation'
+/
+
+&soildata
+    iflag_soildb = 0
+    nsoilhorizons_mhm = 2
+    soil_depth(1) = 200
+    tillagedepth = 200
+/
+
+&time_periods
+    eval_per(1)%dend = 30
+    eval_per(1)%dstart = 1
+    eval_per(1)%mend = 6
+    eval_per(1)%mstart = 7
+    eval_per(1)%yend = 1991
+    eval_per(1)%ystart = 1990
+    warming_days(1) = 181
+/
