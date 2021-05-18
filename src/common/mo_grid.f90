@@ -83,7 +83,7 @@ contains
 
     integer(i4) :: jl, jr
 
-    integer(i4) :: i, j, k, ic, jc
+    integer(i4) :: i, j, k, ic, jc, iValue
 
     ! STEPS :: 
 
@@ -119,7 +119,17 @@ contains
       lowres%nCells = count(lowres%mask)
       ! allocate and initalize cell1 related variables
       allocate(lowres%Id        (lowres%nCells))
-      lowres%Id = (/ (k, k = 1, lowres%nCells) /)
+      lowres%Id = [ (k, k = 1, lowres%nCells) ]
+
+      allocate(lowres%x(lowres%nrows, lowres%ncols))
+      allocate(lowres%y(lowres%nrows, lowres%ncols))
+
+      ! for historic reasons this is in 2d
+      lowres%x = spread([((real(iValue) - 0.5_dp) * lowres%cellsize + lowres%xllcorner, iValue=1, lowres%nrows)], &
+              2, lowres%ncols)
+      lowres%y = spread([((real(iValue) - 0.5_dp) * lowres%cellsize + lowres%yllcorner, iValue=1, lowres%ncols)], &
+              1, lowres%nrows)
+
     end if
 
     if (present(highres_lowres_remap)) then
@@ -390,10 +400,9 @@ contains
       x(ii) = x(ii - 1) + cellsize
     end do
 
-    ! inverse for Panoply, ncview display
-    y(ncols) = level%yllcorner + 0.5_dp * cellsize
-    do ii = ncols - 1, 1, -1
-      y(ii) = y(ii + 1) + cellsize
+    y(1) = level%yllcorner + 0.5_dp * cellsize
+    do ii = 2, ncols
+      y(ii) = y(ii - 1) + cellsize
     end do
 
   end subroutine mapCoordinates
