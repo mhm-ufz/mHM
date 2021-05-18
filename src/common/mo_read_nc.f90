@@ -160,7 +160,7 @@ contains
     character(256) :: fName
 
     ! loop variable
-    integer(i4) :: i
+    integer(i4) :: i, j, k
 
     ! data nodata value
     real(dp) :: nodata_value
@@ -196,8 +196,10 @@ contains
 
     ! get dimensions and check if plane is correct
     var_shape = var%getShape()
-    if ((var_shape(1) .ne. nRows) .or. (var_shape(2) .ne. nCols)) then
-      stop '***ERROR: read_nc: mHM generated x and y are not matching NetCDF dimensions'
+    if ((var_shape(1) /= nRows) .or. (var_shape(2) /= nCols)) then
+      print*, '***ERROR: read_nc: mHM generated x and y: ', nRows, nCols , &
+              'are not matching NetCDF dimensions: ', var_shape(1), var_shape(2)
+      stop 1
     end if
 
     ! determine no data value, use _FillValue first, fall back to missing_value
@@ -233,7 +235,15 @@ contains
           call message('***ERROR: read_nc: nodata value within domain ')
           call message('          boundary in variable: ', trim(varName))
           call message('          at timestep         : ', trim(num2str(i)))
-          stop
+          do j = 1, size(data, dim = 2)
+            do k = 1, size(data, dim = 1)
+              if (eq(data(k, j, i), nodata_value) .and. (mask(k, j))) then
+                print*, 'at index: ', k, j, ' data is ', data(k, j, i), &
+                        ' with nodata_value ', nodata_value, ' and mask ', mask(k, j)
+                stop 1
+              end if
+            end do
+          end do
         end if
       end if
       ! optional check
@@ -369,7 +379,9 @@ contains
     var_shape = var%getShape()
     if (present(nRows) .and. present(nCols)) then
       if ( var_shape(1) /= nRows .or. var_shape(2) /= nCols) then
-         stop '***ERROR: read_const_nc: mHM generated x and y are not matching NetCDF dimensions'
+        print*, '***ERROR: read_forcing_nc: mHM generated x and y: ', nRows, nCols , &
+              'are not matching NetCDF dimensions: ', var_shape(1), var_shape(2)
+        stop 1
       end if
       ! extract data and select time slice
       call var%getData(data, start=(/1,1/), cnt=(/nRows,nCols/))
@@ -467,7 +479,7 @@ contains
     integer(i4) :: i
 
     ! loop variable
-    integer(i4) :: j
+    integer(i4) :: j, k, l
 
     ! data nodata value
     real(dp) :: nodata_value
@@ -500,8 +512,10 @@ contains
 
     ! get dimensions
     var_shape = var%getShape()
-    if ((var_shape(1) .ne. nRows) .or. (var_shape(2) .ne. nCols)) then
-      stop '***ERROR: read_nc: mHM generated x and y are not matching NetCDF dimensions'
+    if ((var_shape(1) /= nRows) .or. (var_shape(2) /= nCols)) then
+      print*, '***ERROR: read_nc: mHM generated x and y: ', nRows, nCols , &
+              'are not matching NetCDF dimensions: ', var_shape(1), var_shape(2)
+      stop 1
     end if
 
     ! determine no data value
@@ -509,6 +523,9 @@ contains
 
     ! extract data
     call var%getData(data)
+
+    ! flip the data if any dimension is not sorted correctly
+    call check_sort_order(data, var)
 
     ! save output mask if optional maskout is given
     if (present(maskout)) then
@@ -525,7 +542,15 @@ contains
             call message('***ERROR: read_nc: nodata value within domain ')
             call message('          boundary in variable: ', trim(varName))
             call message('          at hour         : ', trim(num2str(i)))
-            stop
+            do k = 1, size(data, dim = 2)
+              do l = 1, size(data, dim = 1)
+                if (eq(data(l, k, j, i), nodata_value) .and. (mask(l, k))) then
+                  print*, 'at index: ', l, k, ' data is ', data(l, k, j, i), &
+                          ' with nodata_value ', nodata_value, ' and mask ', mask(l, k)
+                  stop 1
+                end if
+              end do
+            end do
           end if
         end if
         ! optional check
