@@ -213,8 +213,8 @@ end subroutine mrm_configuration
           call read_latlon(iDomain, "lon_l11", "lat_l11", "level11", level11(iDomain))
         else
           ! allocate the memory and set to nodata
-          allocate(level11(iDomain)%x(level11(iDomain)%nrows, level11(iDomain)%ncols))
-          allocate(level11(iDomain)%y(level11(iDomain)%nrows, level11(iDomain)%ncols))
+          if (.not. allocated(level11(iDomain)%x)) allocate(level11(iDomain)%x(level11(iDomain)%nrows, level11(iDomain)%ncols))
+          if (.not. allocated(level11(iDomain)%y)) allocate(level11(iDomain)%y(level11(iDomain)%nrows, level11(iDomain)%ncols))
           level11(iDomain)%x = nodata_dp
           level11(iDomain)%y = nodata_dp
         end if
