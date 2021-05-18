@@ -184,9 +184,7 @@ CONTAINS
       nc = NcDataset(fname, "r")
       ! get the variable
       ncVar = nc%getVariable(trim(varNameLandCover))
-      print*, 'got ', trim(varNameLandCover)
       call ncVar%getData(data_i4_3d, mask=mask_3d)
-      print*, 'got data ', shape(data_i4_3d)
       ! LCover read in is realized seperated because of unknown number of scenes
       do iVar = 1, nLCoverScene
         ! put global nodata value into array (probably not all grid cells have values)
