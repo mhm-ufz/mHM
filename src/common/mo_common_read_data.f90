@@ -188,6 +188,9 @@ CONTAINS
       ! LCover read in is realized seperated because of unknown number of scenes
       do iVar = 1, nLCoverScene
         ! put global nodata value into array (probably not all grid cells have values)
+        ! this explicit prior allocation is done so that gFortran does not complain with:
+        ! "Fortran runtime error: Array bound mismatch for dimension 1 of array 'data_i4_2d' (0/288)"
+        allocate(data_i4_2d(size(data_i4_3d, 1), size(data_i4_3d, 2)))
         data_i4_2d = merge(data_i4_3d(:,:,iVar), nodata_i4, mask_3d(:,:,iVar))
         call paste(dataMatrix_i4, pack(data_i4_2d, level0_iDomain%mask), nodata_i4)
         deallocate(data_i4_2d)
