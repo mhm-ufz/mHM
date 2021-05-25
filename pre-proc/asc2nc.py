@@ -38,7 +38,7 @@ IN_DIR = '/Users/ottor/nc/Home/local_libs/fortran/mhm_original/test_domain/input
 OUT_DIR = '../../MPR/reference/test_domain/input/temp'
 OUT_DIR = '/Users/ottor/temp/test_domain'
 # all file types scanned in input directory
-POSSIBLE_SUFFIXES = ['.nc', '.asc']
+POSSIBLE_SUFFIXES = ['.nc', '.asc', '.nc_old']
 # all folders scanned in input directory
 FOLDER_LIST = ['lai', 'luse', 'morph', 'latlon', 'optional_data', 'meteo', 'pet', 'pre', 'tavg']
 
@@ -146,10 +146,10 @@ def get_all_subfiles(path, relation=None, whitelist=None, suffixes=None):
     -------
     generator
     """
-    if path.is_file():
+    if path.is_file() and not path.is_symlink():
         if suffixes and path.suffix in suffixes:
             yield path.relative_to(relation or path)
-    else:
+    elif not path.is_symlink():
         for sub_path in sorted(path.iterdir()):
             if sub_path.is_dir() and whitelist and sub_path.name not in whitelist:
                 continue
@@ -534,25 +534,43 @@ def combine_lc_files(output_dir):
         path.unlink()
     ds.close()
 
-def sort_y_dim(filename_in, filename_out, y_dims=('y',)):
+def sort_y_dim(filename_in='', filename_out='', y_dims=('y','northing')):
     """
     read in some file, check for dimensions starting with 'y' and sort by this dimension
     """
-    ds = xr.open_dataset(filename_in)
+    if filename_in:
+        ds = xr.open_dataset(filename_in)
     sortby_dims = [dim for dim in ds.dims if dim.startswith(y_dims)]
     if sortby_dims:
         ds = ds.sortby(sortby_dims, ascending=True)
     for var in ds.data_vars:
-        missing_value = ds[var].attrs.get('missing_value')
-        if missing_value is not None:
-            if 'i' in ds[var].dtype.str:
-                ds[var].encoding['_FillValue'] = int(missing_value)
-            else:
-                ds[var].encoding['_FillValue'] = float(missing_value)
+        # in case when no coordinates are assigned to dimensions and sorting is imposed, do it
+        print(var, ds[var].dims)
+        for dim in [_dim for _dim in sortby_dims if _dim in ds[var].dims]:
+            if not ds[dim].coords:
+                ds[var] = ds[var].sortby(dim, ascending=False)
+
+        if ds[var].dims[0] == 'bnds':
+            # transpose the dims if not in correct order
+            ds[var] = ds[var].transpose()
+        if False:  # 'fdir' in var.lower():
+            print('rotating fDir values in variable', var)
+            masks = [ds[var].values == 2 ** (i) for i in range(8)]
+            replacements = [4, 8, 16, 32, 64, 128, 1, 2]
+            for mask, replacement in zip(masks, replacements):
+                ds[var].values[mask] = replacement
+    # in case when no coordinates are assigned to dimensions and sorting is imposed, do it
+    for var in ds.coords:
+        for dim in [_dim for _dim in sortby_dims if _dim in ds[var].dims]:
+            ds[var] = ds[var].sortby(dim, ascending=False)
+
+    if not filename_out:
+        return ds
     if not filename_out.parent.exists():
         filename_out.parent.mkdir(parents=True)
     print('writing variable {} to file: {}'.format(filename_out.stem, filename_out))
-    ds.to_netcdf(filename_out, encoding={data_var: COMPRESSION_DICT for data_var in ds.data_vars})
+    ds.to_netcdf(filename_out, encoding={data_var: dict(_FillValue=PROPERTIES_MAPPING.get(data_var, [-9999]*4)[3],
+                                                        **COMPRESSION_DICT) for data_var in ds.data_vars})
     ds.close()
 
 
@@ -587,9 +605,9 @@ if __name__ == '__main__':
                 kwargs['index_as_col'] = True
         elif '_class_horizon_' in path.stem:
             kwargs['lookup'] = pathlib.Path(input_dir, path.parent, 'soil_classdefinition_iFlag_soilDB_1.txt')
-        if path.suffix == '.nc':
+        if path.suffix in ['.nc', '.nc_old']:
             output_file = pathlib.Path(args.output_dir, PROPERTIES_MAPPING.get(path.stem, ('mpr',))[0],
-                          path.stem + path.suffix)
+                          path.stem + '.nc')
             sort_y_dim(pathlib.Path(input_dir, path), output_file)
         else:
             my_conv = MyAsciiToNetcdfConverter(
