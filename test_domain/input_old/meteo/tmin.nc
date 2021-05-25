@@ -1,0 +1,1 @@
+../../input_new/meteo/tmin.nc

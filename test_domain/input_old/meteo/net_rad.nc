@@ -1,0 +1,1 @@
+../../input_new/meteo/net_rad.nc

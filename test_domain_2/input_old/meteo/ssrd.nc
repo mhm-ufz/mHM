@@ -1,0 +1,1 @@
+../../input_new/meteo/ssrd.nc
