@@ -7,13 +7,17 @@ Cmake scripts for Fortran Projects at CHS
 Modules under `cmake-modules` provide different functions and macros
 to be used in `CMakeLists.txt` files.
 
-### `checkfortranpreprocessor.cmake`
+### `fortranpreprocessor.cmake`
+Based on: https://github.com/fortran-lang/stdlib/blob/master/cmake/stdlib.cmake
+- handles `fypp` pre-processor
+
+Additional functions:
 - `get_preproc_flag`: checks for the pre-processor flag of the current compiler (`-fpp` or `-cpp`)
 - `cpp_definitions`: adds a compile definition and a corresponding cmake option
 
 Can be included with:
 ```cmake
-include(checkfortranpreprocessor)
+include(fortranpreprocessor)
 ```
 
 ### `CodeCoverage.cmake`
@@ -34,7 +38,6 @@ SETUP_TARGET_FOR_COVERAGE_LCOV(
 ### `compileoptions.cmake`
 Adds cmake compile options
 - `CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT`: setting r_path
-- `CMAKE_NETCDF_DIR`: separate netcdf path
 - `CMAKE_WITH_MPI`: use MPI
 - `CMAKE_WITH_OpenMP`: use OpenMP
 - `CMAKE_WITH_LAPACK`: use LAPACK bindings
@@ -48,27 +51,12 @@ include(compileoptions)
 ```
 
 ### `FindNetCDF.cmake`
-Find NetCDF package.
+Copied from [NOAA-EMC/CMakeModules](https://github.com/NOAA-EMC/CMakeModules/blob/develop/Modules/FindNetCDF.cmake).
 
-Can be used with:
+Can be used like:
 ```cmake
-# set the required interfaces as needed, available are CXX, F70, F90, 
-# e.g. for F90
-set (NETCDF_F90 "YES")
-find_package (NetCDF REQUIRED)
-target_link_libraries(${LIB_NAME} ${NETCDF_F90_LIBRARIES})
-target_include_directories(${LIB_NAME} PUBLIC ${NETCDF_F90_INCLUDE_DIRS})
-# target_link_options only available in cmake 3.13 (but NETCDF_LDFLAGS_OTHER not working)
-set_property(TARGET ${YOUR_LIB_NAME} PROPERTY LINK_FLAGS "${NETCDF_LDFLAGS_OTHER}")
-```
-
-### `utils.cmake`
-Based on: https://github.com/fortran-lang/stdlib/blob/master/cmake/stdlib.cmake
-- handles `fypp` pre-processor
-
-Can be included with:
-```cmake
-include(utils)
+find_package(NetCDF COMPONENTS Fortran)
+target_link_libraries(<lib_name> PUBLIC NetCDF::NetCDF_Fortran)
 ```
 
 ### `version.cmake`

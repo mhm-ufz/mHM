@@ -1,210 +1,347 @@
-# taken directly from https://github.com/WRF-CMake/wrf/blob/wrf-cmake/cmake/FindNetCDF.cmake on 2020/05/06
-# and added "$ENV{..}/{..}" to HINTS args in multiple find_* calls
-# https://github.com/Kitware/VTK/blob/master/CMake/FindNetCDF.cmake
-# =========================================================================
+# (C) Copyright 2011- ECMWF.
 #
-# Copyright (c) 1993-2015 Ken Martin, Will Schroeder, Bill Lorensen
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-#  * Redistributions of source code must retain the above copyright notice,
-#    this list of conditions and the following disclaimer.
-#
-#  * Redistributions in binary form must reproduce the above copyright notice,
-#    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution.
-#
-#  * Neither name of Ken Martin, Will Schroeder, or Bill Lorensen nor the names
-#    of any contributors may be used to endorse or promote products derived
-#    from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR
-# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-# =========================================================================
-#
-# - Find NetCDF
-# Find the native NetCDF includes and library
-#
-#  NETCDF_INCLUDE_DIR  - user modifiable choice of where netcdf headers are
-#  NETCDF_LIBRARY      - user modifiable choice of where netcdf libraries are
-#
-# Your package can require certain interfaces to be FOUND by setting these
-#
-#  NETCDF_F77         - require the F77 interface and link the fortran library
-#  NETCDF_F90         - require the F90 interface and link the fortran library
-#
-# Or equivalently by calling FindNetCDF with a COMPONENTS argument containing one or
-# more of "CXX;F77;F90".
-#
-# When interfaces are requested the user has access to interface specific hints:
-#
-#  NETCDF_${LANG}_INCLUDE_DIR - where to search for interface header files
-#  NETCDF_${LANG}_LIBRARY     - where to search for interface libraries
-#
-# This module returns these variables for the rest of the project to use.
-#
-#  NETCDF_FOUND          - True if NetCDF found including required interfaces (see below)
-#  NETCDF_LIBRARIES      - All netcdf related libraries.
-#  NETCDF_INCLUDE_DIRS   - All directories to include.
-#  NETCDF_HAS_INTERFACES - Whether requested interfaces were found or not.
-#  NETCDF_${LANG}_INCLUDE_DIRS/NETCDF_${LANG}_LIBRARIES - C/F70/F90 only interface
-#
-# Normal usage would be:
-#  set (NETCDF_F90 "YES")
-#  find_package (NetCDF REQUIRED)
-#  target_link_libraries (uses_everthing ${NETCDF_LIBRARIES})
-#  target_link_libraries (only_uses_f90 ${NETCDF_F90_LIBRARIES})
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation nor
+# does it submit to any jurisdiction.
 
-#search starting from user editable cache var
-if (NETCDF_INCLUDE_DIR AND NETCDF_LIBRARY)
-  # Already in cache, be silent
-  set (NETCDF_FIND_QUIETLY TRUE)
-endif ()
+# Try to find NetCDF includes and library.
+# Supports static and shared libaries and allows each component to be found in sepearte prefixes.
+#
+# This module defines
+#
+#   - NetCDF_FOUND                - System has NetCDF
+#   - NetCDF_INCLUDE_DIRS         - the NetCDF include directories
+#   - NetCDF_VERSION              - the version of NetCDF
+#   - NetCDF_CONFIG_EXECUTABLE    - the netcdf-config executable if found
+#   - NetCDF_PARALLEL             - Boolean True if NetCDF4 has parallel IO support via hdf5 and/or pnetcdf
+#   - NetCDF_HAS_PNETCDF          - Boolean True if NetCDF4 has pnetcdf support
+#
+# Deprecated Defines
+#   - NetCDF_LIBRARIES            - [Deprecated] Use NetCDF::NetCDF_<LANG> targets instead.
+#
+#
+# Following components are available:
+#
+#   - C                           - C interface to NetCDF          (netcdf)
+#   - CXX                         - CXX4 interface to NetCDF       (netcdf_c++4)
+#   - Fortran                     - Fortran interface to NetCDF    (netcdff)
+#
+# For each component the following are defined:
+#
+#   - NetCDF_<comp>_FOUND         - whether the component is found
+#   - NetCDF_<comp>_LIBRARIES     - the libraries for the component
+#   - NetCDF_<comp>_LIBRARY_SHARED - Boolean is true if libraries for component are shared
+#   - NetCDF_<comp>_INCLUDE_DIRS  - the include directories for specified component
+#   - NetCDF::NetCDF_<comp>       - target of component to be used with target_link_libraries()
+#
+# The following paths will be searched in order if set in CMake (first priority) or environment (second priority)
+#
+#   - NetCDF_ROOT                 - root of NetCDF installation
+#   - NetCDF_PATH                 - root of NetCDF installation
+#
+# The search process begins with locating NetCDF Include headers.  If these are in a non-standard location,
+# set one of the following CMake or environment variables to point to the location:
+#
+#  - NetCDF_INCLUDE_DIR or NetCDF_${comp}_INCLUDE_DIR
+#  - NetCDF_INCLUDE_DIRS or NetCDF_${comp}_INCLUDE_DIR
+#
+# Notes:
+#
+#   - Use "NetCDF::NetCDF_<LANG>" targets only.  NetCDF_LIBRARIES exists for backwards compatibility and should not be used.
+#     - These targets have all the knowledge of include directories and library search directories, and a single
+#       call to target_link_libraries will provide all these transitive properties to your target.  Normally all that is
+#       needed to build and link against NetCDF is, e.g.:
+#           target_link_libraries(my_c_tgt PUBLIC NetCDF::NetCDF_C)
+#   - "NetCDF" is always the preferred naming for this package, its targets, variables, and environment variables
+#     - For compatibility, some variables are also set/checked using alternate names NetCDF4, NETCDF, or NETCDF4
+#     - Environments relying on these older environment variable names should move to using a "NetCDF_ROOT" environment variable
+#   - Preferred component capitalization follows the CMake LANGUAGES variables: i.e., C, Fortran, CXX
+#     - For compatibility, alternate capitalizations are supported but should not be used.
+#   - If no components are defined, all components will be searched
+#
 
-set(USE_DEFAULT_PATHS "")
-if(NETCDF_NO_DEFAULT_PATH)
-	set(USE_DEFAULT_PATHS "NO_DEFAULT_PATH")
+list( APPEND _possible_components C CXX Fortran )
+
+## Include names for each component
+set( NetCDF_C_INCLUDE_NAME          netcdf.h )
+set( NetCDF_CXX_INCLUDE_NAME        netcdf )
+set( NetCDF_Fortran_INCLUDE_NAME    netcdf.mod )
+
+## Library names for each component
+set( NetCDF_C_LIBRARY_NAME          netcdf )
+set( NetCDF_CXX_LIBRARY_NAME        netcdf_c++4 )
+set( NetCDF_Fortran_LIBRARY_NAME    netcdff )
+
+## Enumerate search components
+foreach( _comp ${_possible_components} )
+  string( TOUPPER "${_comp}" _COMP )
+  set( _arg_${_COMP} ${_comp} )
+  set( _name_${_COMP} ${_comp} )
+endforeach()
+
+set( _search_components C)
+foreach( _comp ${${CMAKE_FIND_PACKAGE_NAME}_FIND_COMPONENTS} )
+  string( TOUPPER "${_comp}" _COMP )
+  set( _arg_${_COMP} ${_comp} )
+  list( APPEND _search_components ${_name_${_COMP}} )
+  if( NOT _name_${_COMP} )
+    message(SEND_ERROR "Find${CMAKE_FIND_PACKAGE_NAME}: COMPONENT ${_comp} is not a valid component. Valid components: ${_possible_components}" )
+  endif()
+endforeach()
+list( REMOVE_DUPLICATES _search_components )
+
+## Search hints for finding include directories and libraries
+foreach( _comp IN ITEMS "_" "_C_" "_Fortran_" "_CXX_" )
+  foreach( _name IN ITEMS NetCDF4 NetCDF NETCDF4 NETCDF )
+    foreach( _var IN ITEMS ROOT PATH )
+      list(APPEND _search_hints ${${_name}${_comp}${_var}} $ENV{${_name}${_comp}${_var}} )
+      list(APPEND _include_search_hints
+                ${${_name}${_comp}INCLUDE_DIR} $ENV{${_name}${_comp}INCLUDE_DIR}
+                ${${_name}${_comp}INCLUDE_DIRS} $ENV{${_name}${_comp}INCLUDE_DIRS} )
+    endforeach()
+  endforeach()
+endforeach()
+#Old-school HPC module env variable names
+foreach( _name IN ITEMS NetCDF4 NetCDF NETCDF4 NETCDF )
+  foreach( _comp IN ITEMS "_C" "_Fortran" "_CXX" )
+    list(APPEND _search_hints ${${_name}}         $ENV{${_name}})
+    list(APPEND _search_hints ${${_name}${_comp}} $ENV{${_name}${_comp}})
+  endforeach()
+endforeach()
+
+## Find headers for each component
+set(NetCDF_INCLUDE_DIRS)
+set(_new_search_components)
+foreach( _comp IN LISTS _search_components )
+  if(NOT ${PROJECT_NAME}_NetCDF_${_comp}_FOUND)
+      list(APPEND _new_search_components ${_comp})
+  endif()
+  find_file(NetCDF_${_comp}_INCLUDE_FILE
+    NAMES ${NetCDF_${_comp}_INCLUDE_NAME}
+    DOC "NetCDF ${_comp} include directory"
+    HINTS ${_include_search_hints} ${_search_hints}
+    PATH_SUFFIXES include include/netcdf
+  )
+  mark_as_advanced(NetCDF_${_comp}_INCLUDE_FILE)
+  message(DEBUG "NetCDF_${_comp}_INCLUDE_FILE: ${NetCDF_${_comp}_INCLUDE_FILE}")
+  if( NetCDF_${_comp}_INCLUDE_FILE )
+    get_filename_component(NetCDF_${_comp}_INCLUDE_FILE ${NetCDF_${_comp}_INCLUDE_FILE} ABSOLUTE)
+    get_filename_component(NetCDF_${_comp}_INCLUDE_DIR ${NetCDF_${_comp}_INCLUDE_FILE} DIRECTORY)
+    list(APPEND NetCDF_INCLUDE_DIRS ${NetCDF_${_comp}_INCLUDE_DIR})
+  endif()
+endforeach()
+if(NetCDF_INCLUDE_DIRS)
+    list(REMOVE_DUPLICATES NetCDF_INCLUDE_DIRS)
+endif()
+set(NetCDF_INCLUDE_DIRS "${NetCDF_INCLUDE_DIRS}" CACHE STRING "NetCDF Include directory paths" FORCE)
+
+## Find n*-config executables for search components
+foreach( _comp IN LISTS _search_components )
+  if( _comp MATCHES "^(C)$" )
+    set(_conf "c")
+  elseif( _comp MATCHES "^(Fortran)$" )
+    set(_conf "f")
+  elseif( _comp MATCHES "^(CXX)$" )
+    set(_conf "cxx4")
+  endif()
+  find_program( NetCDF_${_comp}_CONFIG_EXECUTABLE
+      NAMES n${_conf}-config
+    HINTS ${NetCDF_INCLUDE_DIRS} ${_include_search_hints} ${_search_hints}
+    PATH_SUFFIXES bin Bin ../bin ../../bin
+      DOC "NetCDF n${_conf}-config helper" )
+    message(DEBUG "NetCDF_${_comp}_CONFIG_EXECUTABLE: ${NetCDF_${_comp}_CONFIG_EXECUTABLE}")
+endforeach()
+
+set(_C_libs_flag --libs)
+set(_Fortran_libs_flag --flibs)
+set(_CXX_libs_flag --libs)
+set(_C_includes_flag --includedir)
+set(_Fortran_includes_flag --includedir)
+set(_CXX_includes_flag --includedir)
+function(netcdf_config exec flag output_var)
+  set(${output_var} False PARENT_SCOPE)
+  if( exec )
+    execute_process( COMMAND ${exec} ${flag} RESULT_VARIABLE _ret OUTPUT_VARIABLE _val)
+    if( _ret EQUAL 0 )
+      string( STRIP ${_val} _val )
+      set( ${output_var} ${_val} PARENT_SCOPE )
+    endif()
+  endif()
+endfunction()
+
+## Detect additional package properties
+netcdf_config(${NetCDF_C_CONFIG_EXECUTABLE} --has-parallel4 _val)
+if( NOT _val MATCHES "^(yes|no)$" )
+  netcdf_config(${NetCDF_C_CONFIG_EXECUTABLE} --has-parallel _val)
+endif()
+if( _val MATCHES "^(yes)$" )
+  set(NetCDF_PARALLEL TRUE CACHE STRING "NetCDF has parallel IO capability via pnetcdf or hdf5." FORCE)
+else()
+  set(NetCDF_PARALLEL FALSE CACHE STRING "NetCDF has no parallel IO capability." FORCE)
 endif()
 
-find_path (NETCDF_INCLUDE_DIR netcdf.h
-  HINTS "${NETCDF_DIR}/include" "$ENV{NETCDF_DIR}/include")
-mark_as_advanced (NETCDF_INCLUDE_DIR)
-set (NETCDF_C_INCLUDE_DIRS ${NETCDF_INCLUDE_DIR})
+if(NetCDF_PARALLEL)
+  find_package(MPI REQUIRED)
+endif()
 
-find_library (NETCDF_LIBRARY NAMES netcdf
-  HINTS "${NETCDF_DIR}/lib" "$ENV{NETCDF_DIR}/lib"
-  PATH_SUFFIXES "x86_64-linux-gnu"
-  )
-mark_as_advanced (NETCDF_LIBRARY)
+## Find libraries for each component
+set( NetCDF_LIBRARIES )
+foreach( _comp IN LISTS _search_components )
+  string( TOUPPER "${_comp}" _COMP )
 
-set (NETCDF_C_LIBRARIES ${NETCDF_LIBRARY})
+  find_library( NetCDF_${_comp}_LIBRARY
+    NAMES ${NetCDF_${_comp}_LIBRARY_NAME}
+    DOC "NetCDF ${_comp} library"
+    HINTS ${NetCDF_${_comp}_INCLUDE_DIRS} ${_search_hints}
+    PATH_SUFFIXES lib64 lib ../lib64 ../lib ../../lib64 ../../lib )
+  mark_as_advanced( NetCDF_${_comp}_LIBRARY )
+  get_filename_component(NetCDF_${_comp}_LIBRARY ${NetCDF_${_comp}_LIBRARY} ABSOLUTE)
+  set(NetCDF_${_comp}_LIBRARY ${NetCDF_${_comp}_LIBRARY} CACHE STRING "NetCDF ${_comp} library" FORCE)
+  message(DEBUG "NetCDF_${_comp}_LIBRARY: ${NetCDF_${_comp}_LIBRARY}")
 
-#start finding requested language components
-set (NetCDF_libs ${NETCDF_C_LIBRARIES})
-set (NetCDF_includes "${NETCDF_INCLUDE_DIR}")
+  if( NetCDF_${_comp}_LIBRARY )
+    if( NetCDF_${_comp}_LIBRARY MATCHES ".a$" )
+      set( NetCDF_${_comp}_LIBRARY_SHARED FALSE )
+      set( _library_type STATIC)
+    else()
+      list( APPEND NetCDF_LIBRARIES ${NetCDF_${_comp}_LIBRARY} )
+      set( NetCDF_${_comp}_LIBRARY_SHARED TRUE )
+      set( _library_type SHARED)
+    endif()
+  endif()
 
-get_filename_component (NetCDF_lib_dirs "${NETCDF_LIBRARY}" PATH)
-set (NETCDF_HAS_INTERFACES "YES") # will be set to NO if we're missing any interfaces
+  #Use nc-config to set per-component LIBRARIES variable if possible
+  netcdf_config( ${NetCDF_${_comp}_CONFIG_EXECUTABLE} ${_${_comp}_libs_flag} _val )
+  if( _val )
+    set( NetCDF_${_comp}_LIBRARIES ${_val} )
+    if(NOT NetCDF_${_comp}_LIBRARY_SHARED AND NOT NetCDF_${_comp}_FOUND) #Static targets should use nc_config to get a proper link line with all necessary static targets.
+      list( APPEND NetCDF_LIBRARIES ${NetCDF_${_comp}_LIBRARIES} )
+    endif()
+  else()
+    set( NetCDF_${_comp}_LIBRARIES ${NetCDF_${_comp}_LIBRARY} )
+    if(NOT NetCDF_${_comp}_LIBRARY_SHARED)
+      message(SEND_ERROR "Unable to properly find NetCDF.  Found static libraries at: ${NetCDF_${_comp}_LIBRARY} but could not run nc-config: ${NetCDF_CONFIG_EXECUTABLE}")
+    endif()
+  endif()
 
-macro (NetCDF_check_interface lang header libs)
-  if (NETCDF_${lang})
-    # this is an implentation from Maren Kaluza based on parsing contents of nf-config file
-    if (${lang} STREQUAL "F90")
-      find_program(NETCDFF_CONFIG nf-config
-        HINTS ${CMAKE_NETCDF_DIR})
-      message(STATUS "found ${NETCDFF_CONFIG}")
-      execute_process(COMMAND ${NETCDFF_CONFIG} --includedir OUTPUT_VARIABLE NETCDF_${lang}_INCLUDE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-      message(STATUS "netcdff includes ${NETCDF_${lang}_INCLUDE_DIR}")
-      execute_process(COMMAND ${NETCDFF_CONFIG} --fflags OUTPUT_VARIABLE NETCDF_CFLAGS_OTHER OUTPUT_STRIP_TRAILING_WHITESPACE)
-      message(STATUS "netcdff netcdf link flags ${NETCDF_CFLAGS_OTHER}")
-      execute_process(COMMAND ${NETCDFF_CONFIG} --flibs OUTPUT_VARIABLE NETCDF_LDFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
-      message(STATUS "netcdff netcdf library link flags ${NETCDF_LDFLAGS}")
+  #Use nc-config to set per-component INCLUDE_DIRS variable if possible
+  netcdf_config( ${NetCDF_${_comp}_CONFIG_EXECUTABLE} ${_${_comp}_includes_flag} _val )
+  if( _val )
+    string( REPLACE " " ";" _val ${_val} )
+    set( NetCDF_${_comp}_INCLUDE_DIRS ${_val} )
+  else()
+    set( NetCDF_${_comp}_INCLUDE_DIRS ${NetCDF_${_comp}_INCLUDE_DIR} )
+  endif()
 
-      if (CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT)
-        find_program(NETCDF_CONFIG nc-config
-          HINTS ${CMAKE_NETCDF_DIR})
-        execute_process(COMMAND ${NETCDF_CONFIG} --libs OUTPUT_VARIABLE NETCDF_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE)
-        message(STATUS "netcdf library link flags ${NETCDF_LIBS}")
+  if( NetCDF_${_comp}_LIBRARIES AND NetCDF_${_comp}_INCLUDE_DIRS )
+    set( ${CMAKE_FIND_PACKAGE_NAME}_${_arg_${_COMP}}_FOUND TRUE )
+    if (NOT TARGET NetCDF::NetCDF_${_comp})
+      add_library(NetCDF::NetCDF_${_comp} ${_library_type} IMPORTED)
+      set_target_properties(NetCDF::NetCDF_${_comp} PROPERTIES
+        IMPORTED_LOCATION ${NetCDF_${_comp}_LIBRARY}
+        INTERFACE_INCLUDE_DIRECTORIES "${NetCDF_${_comp}_INCLUDE_DIRS}"
+        INTERFACE_LINK_LIBRARIES ${NetCDF_${_comp}_LIBRARIES} )
+      if( NOT _comp MATCHES "^(C)$" )
+        target_link_libraries(NetCDF::NetCDF_${_comp} INTERFACE NetCDF::NetCDF_C)
       endif()
+      if(MPI_${_comp}_FOUND)
+        target_link_libraries(NetCDF::NetCDF_${_comp} INTERFACE MPI::MPI_${_comp})
+      endif()
+    endif()
+  endif()
+endforeach()
+if(NetCDF_LIBRARIES AND NetCDF_${_comp}_LIBRARY_SHARED)
+    list(REMOVE_DUPLICATES NetCDF_LIBRARIES)
+endif()
+set(NetCDF_LIBRARIES "${NetCDF_LIBRARIES}" CACHE STRING "NetCDF library targets" FORCE)
 
-      # In a clean cmake setup the libraries are included via the target_link_libraries and not
-      # via flags. Cmake creates system dependend flags and rpaths using the libraries itself.
-      # nf-config on the other hand gives us a list of flags, linking with -l and -L.
-      # we cut the flag string into seperated flags and create libraries and other flags from it
-      string(REPLACE " " ";" NETCDF_LDFLAGS_LIST "${NETCDF_LDFLAGS} ${NETCDF_LIBS}")
-      foreach(flag ${NETCDF_LDFLAGS_LIST})
-        # message(STATUS "${flag}")
-        if (flag MATCHES "^-L(.*)")
-          list(APPEND _search_paths ${CMAKE_MATCH_1})
-          continue()
-        endif()
-        if (flag MATCHES "^-l(.*)")
-          set(_pkg_search "${CMAKE_MATCH_1}")
-        else()
-          string(CONCAT _link_flags "${_link_flags}" " " "${flag}")
-          continue()
-        endif()
-
-        if(_search_paths)
-          # Firstly search in -L paths
-          find_library(pkgcfg_lib_NETCDF_${_pkg_search}
-            NAMES ${_pkg_search}
-            HINTS ${_search_paths} NO_DEFAULT_PATH)
-        endif()
-        find_library(pkgcfg_lib_NETCDF_${_pkg_search}
-          NAMES ${_pkg_search}
-          HINTS ENV LD_LIBRARY_PATH)
-        message(STATUS "found ${pkgcfg_lib_NETCDF_${_pkg_search}}")
-        list(APPEND _libs "${pkgcfg_lib_NETCDF_${_pkg_search}}")
-      endforeach()
-
-      # those are set one level up
-      set(NETCDF_LDFLAGS_OTHER "${_link_flags}")
-      message(STATUS "found netcdf other flags ${NETCDF_LDFLAGS_OTHER}")
-
-      list (APPEND NETCDF_LINK_LIBRARIES "${_libs}")
-      message(STATUS "found netcdf libraries ${NETCDF_LINK_LIBRARIES}")
-      set (NETCDF_${lang}_LIBRARY "${_libs}")
-      list (APPEND NetCDF_includes ${NETCDF_${lang}_INCLUDE_DIR})
-
-    elseif(NOT (NETCDF_${lang}_INCLUDE_DIR AND NETCDF_${lang}_LIBRARY) AND )
-      #search starting from user modifiable cache var
-      find_path (NETCDF_${lang}_INCLUDE_DIR NAMES ${header}
-        HINTS "${NETCDF_INCLUDE_DIR}"
-              "${NETCDF_FORTRAN_DIR}/include"
-              "$ENV{NETCDF_FORTRAN_DIR}/include"
-        ${USE_DEFAULT_PATHS})
-
-      find_library (NETCDF_${lang}_LIBRARY NAMES ${libs}
-        HINTS "${NetCDF_lib_dirs}"
-              "${NETCDF_FORTRAN_DIR}/lib"
-              "$ENV{NETCDF_FORTRAN_DIR}/lib"
-        PATH_SUFFIXES "x86_64-linux-gnu"
-        ${USE_DEFAULT_PATHS})
-      mark_as_advanced (NETCDF_${lang}_INCLUDE_DIR NETCDF_${lang}_LIBRARY)
-
-    else ()
-      set (NETCDF_HAS_INTERFACES "NO")
-      message (STATUS "Failed to find NetCDF interface for ${lang}")
-    endif ()
-
-    #export to internal varS that rest of project can use directly
-    set (NETCDF_${lang}_LIBRARIES ${NETCDF_${lang}_LIBRARY})
-    set (NETCDF_${lang}_INCLUDE_DIRS ${NETCDF_${lang}_INCLUDE_DIR})
-
-    list (APPEND NetCDF_libs ${NETCDF_${lang}_LIBRARY})
-    list (APPEND NetCDF_includes ${NETCDF_${lang}_INCLUDE_DIR})
- endif ()
-endmacro ()
-
-list (FIND NetCDF_FIND_COMPONENTS "F77" _nextcomp)
-if (_nextcomp GREATER -1)
-  set (NETCDF_F77 1)
+## Find version via netcdf-config if possible
+if (NetCDF_INCLUDE_DIRS)
+  if( NetCDF_C_CONFIG_EXECUTABLE )
+    netcdf_config( ${NetCDF_C_CONFIG_EXECUTABLE} --version _vers )
+    if( _vers )
+      string(REGEX REPLACE ".* ((([0-9]+)\\.)+([0-9]+)).*" "\\1" NetCDF_VERSION "${_vers}" )
+    endif()
+  else()
+    foreach( _dir IN LISTS NetCDF_INCLUDE_DIRS)
+      if( EXISTS "${_dir}/netcdf_meta.h" )
+        file(STRINGS "${_dir}/netcdf_meta.h" _netcdf_version_lines
+        REGEX "#define[ \t]+NC_VERSION_(MAJOR|MINOR|PATCH|NOTE)")
+        string(REGEX REPLACE ".*NC_VERSION_MAJOR *\([0-9]*\).*" "\\1" _netcdf_version_major "${_netcdf_version_lines}")
+        string(REGEX REPLACE ".*NC_VERSION_MINOR *\([0-9]*\).*" "\\1" _netcdf_version_minor "${_netcdf_version_lines}")
+        string(REGEX REPLACE ".*NC_VERSION_PATCH *\([0-9]*\).*" "\\1" _netcdf_version_patch "${_netcdf_version_lines}")
+        string(REGEX REPLACE ".*NC_VERSION_NOTE *\"\([^\"]*\)\".*" "\\1" _netcdf_version_note "${_netcdf_version_lines}")
+        set(NetCDF_VERSION "${_netcdf_version_major}.${_netcdf_version_minor}.${_netcdf_version_patch}${_netcdf_version_note}")
+        unset(_netcdf_version_major)
+        unset(_netcdf_version_minor)
+        unset(_netcdf_version_patch)
+        unset(_netcdf_version_note)
+        unset(_netcdf_version_lines)
+      endif()
+    endforeach()
+  endif()
 endif ()
-list (FIND NetCDF_FIND_COMPONENTS "F90" _nextcomp)
-if (_nextcomp GREATER -1)
-  set (NETCDF_F90 1)
-endif ()
-NetCDF_check_interface (F77 netcdf.inc  netcdff)
-NetCDF_check_interface (F90 netcdf.mod  netcdff)
 
-#export accumulated results to internal varS that rest of project can depend on
-set (NETCDF_LIBRARIES ${NetCDF_libs})
-set (NETCDF_INCLUDE_DIRS ${NetCDF_includes})
+## Finalize find_package
+include(FindPackageHandleStandardArgs)
 
-# handle the QUIETLY and REQUIRED arguments and set NETCDF_FOUND to TRUE if
-# all listed variables are TRUE
-include (FindPackageHandleStandardArgs)
-find_package_handle_standard_args (NetCDF
-  DEFAULT_MSG NETCDF_LIBRARIES NETCDF_INCLUDE_DIRS NETCDF_HAS_INTERFACES)
+if(NOT NetCDF_FOUND OR _new_search_components)
+    find_package_handle_standard_args( ${CMAKE_FIND_PACKAGE_NAME}
+        REQUIRED_VARS NetCDF_INCLUDE_DIRS NetCDF_LIBRARIES
+        VERSION_VAR NetCDF_VERSION
+        HANDLE_COMPONENTS )
+endif()
+
+foreach( _comp IN LISTS _search_components )
+    if( NetCDF_${_comp}_FOUND )
+        #Record found components to avoid duplication in NetCDF_LIBRARIES for static libraries
+        set(NetCDF_${_comp}_FOUND ${NetCDF_${_comp}_FOUND} CACHE BOOL "NetCDF ${_comp} Found" FORCE)
+        #Set a per-package, per-component found variable to communicate between multiple calls to find_package()
+        set(${PROJECT_NAME}_NetCDF_${_comp}_FOUND True)
+    endif()
+endforeach()
+
+if( ${CMAKE_FIND_PACKAGE_NAME}_FOUND AND NOT ${CMAKE_FIND_PACKAGE_NAME}_FIND_QUIETLY AND _new_search_components)
+  message( STATUS "Find${CMAKE_FIND_PACKAGE_NAME} defines targets:" )
+  message( STATUS "  - NetCDF_VERSION [${NetCDF_VERSION}]")
+  message( STATUS "  - NetCDF_PARALLEL [${NetCDF_PARALLEL}]")
+  foreach( _comp IN LISTS _new_search_components )
+    string( TOUPPER "${_comp}" _COMP )
+    message( STATUS "  - NetCDF_${_comp}_CONFIG_EXECUTABLE [${NetCDF_${_comp}_CONFIG_EXECUTABLE}]")
+    if( ${CMAKE_FIND_PACKAGE_NAME}_${_arg_${_COMP}}_FOUND )
+      get_filename_component(_root ${NetCDF_${_comp}_INCLUDE_DIR}/.. ABSOLUTE)
+      if( NetCDF_${_comp}_LIBRARY_SHARED )
+        message( STATUS "  - NetCDF::NetCDF_${_comp} [SHARED] [Root: ${_root}] Lib: ${NetCDF_${_comp}_LIBRARY} ")
+      else()
+        message( STATUS "  - NetCDF::NetCDF_${_comp} [STATIC] [Root: ${_root}] Lib: ${NetCDF_${_comp}_LIBRARY} ")
+      endif()
+    endif()
+  endforeach()
+endif()
+
+foreach( _prefix NetCDF NetCDF4 NETCDF NETCDF4 ${CMAKE_FIND_PACKAGE_NAME} )
+  set( ${_prefix}_INCLUDE_DIRS ${NetCDF_INCLUDE_DIRS} )
+  set( ${_prefix}_LIBRARIES    ${NetCDF_LIBRARIES})
+  set( ${_prefix}_VERSION      ${NetCDF_VERSION} )
+  set( ${_prefix}_FOUND        ${${CMAKE_FIND_PACKAGE_NAME}_FOUND} )
+  set( ${_prefix}_CONFIG_EXECUTABLE ${NetCDF_CONFIG_EXECUTABLE} )
+  set( ${_prefix}_PARALLEL ${NetCDF_PARALLEL} )
+
+  foreach( _comp ${_search_components} )
+    string( TOUPPER "${_comp}" _COMP )
+    set( _arg_comp ${_arg_${_COMP}} )
+    set( ${_prefix}_${_comp}_FOUND     ${${CMAKE_FIND_PACKAGE_NAME}_${_arg_comp}_FOUND} )
+    set( ${_prefix}_${_COMP}_FOUND     ${${CMAKE_FIND_PACKAGE_NAME}_${_arg_comp}_FOUND} )
+    set( ${_prefix}_${_arg_comp}_FOUND ${${CMAKE_FIND_PACKAGE_NAME}_${_arg_comp}_FOUND} )
+
+    set( ${_prefix}_${_comp}_LIBRARIES     ${NetCDF_${_comp}_LIBRARIES} )
+    set( ${_prefix}_${_COMP}_LIBRARIES     ${NetCDF_${_comp}_LIBRARIES} )
+    set( ${_prefix}_${_arg_comp}_LIBRARIES ${NetCDF_${_comp}_LIBRARIES} )
+
+    set( ${_prefix}_${_comp}_INCLUDE_DIRS     ${NetCDF_${_comp}_INCLUDE_DIRS} )
+    set( ${_prefix}_${_COMP}_INCLUDE_DIRS     ${NetCDF_${_comp}_INCLUDE_DIRS} )
+    set( ${_prefix}_${_arg_comp}_INCLUDE_DIRS ${NetCDF_${_comp}_INCLUDE_DIRS} )
+  endforeach()
+endforeach()
