@@ -18,7 +18,7 @@ find_package(${FORCES_NAME})
 if(NOT ${FORCES_NAME}_FOUND)
   FetchContent_Declare(
     ${FORCES_NAME}
-    GIT_REPOSITORY git@git.ufz.de:chs/forces.git
+    GIT_REPOSITORY https://git.ufz.de/chs/forces.git
     GIT_TAG        v0.1.0
     SOURCE_SUBDIR  src
   )
@@ -32,7 +32,7 @@ find_package(${MPR_NAME})
 if(NOT ${MPR_NAME}_FOUND)
   FetchContent_Declare(
     ${MPR_NAME}
-    GIT_REPOSITORY git@git.ufz.de:chs/mpr.git
+    GIT_REPOSITORY https://git.ufz.de/chs/mpr.git
     GIT_TAG        1.0.2
   )
   set (${MPR_NAME}_BUILD_TESTING OFF)
@@ -75,7 +75,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   target_compile_definitions(${LIB_NAME} PUBLIC GFORTRAN)
   target_compile_options(${LIB_NAME} PUBLIC
     -ffree-form -ffixed-line-length-132
-    $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -fimplicit-none -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=snan>
+    $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -fimplicit-none -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=snan -pedantic-errors>
     $<$<CONFIG:RELEASE>:-O3>
     $<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
     $<$<BOOL:${CMAKE_WITH_GPROF}>:-pg>

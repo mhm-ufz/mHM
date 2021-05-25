@@ -138,7 +138,7 @@ CONTAINS
     real(dp), intent(in) :: aet_canopy
 
     ! Effective precipitation (rain + snow melt) [mm]
-    real(dp), intent(inout) :: prec_effec
+    real(dp), intent(in) :: prec_effec
 
     ! Direct runoff from impervious areas
     real(dp), intent(inout) :: runoff_sealed
@@ -354,11 +354,9 @@ CONTAINS
     if (soil_moist >= soil_moist_FC) then
       feddes_et_reduction = frac_roots
       ! PW < SM < FC
-    else if ((soil_moist < soil_moist_FC) .AND. (soil_moist > wilting_point)) then
+    else if (soil_moist > wilting_point) then
       feddes_et_reduction = frac_roots * (soil_moist - wilting_point) / (soil_moist_FC - wilting_point)
       ! SM <= PW
-    else if (soil_moist <= wilting_point) then
-      feddes_et_reduction = 0.0_dp
     else
       feddes_et_reduction = 0.0_dp
     end if
