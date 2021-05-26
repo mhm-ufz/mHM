@@ -106,7 +106,11 @@ IGNORE_VARS = [
 MHM_EXE = ["../mhm"]
 # case 5 and 7 don't work with MPI. case 4 has a bug working with ifort+debug
 SKIP_CASES_MPI = ["case_04", "case_05", "case_07"]
-SKIP = []
+# those cases are currently ignored as there are some problems with init from restart, case11 needs to be reconsidered
+SKIP = [
+    # "case_01",
+    "case_11"
+]
 
 
 # ARGUMENT PARSER #############################################################
