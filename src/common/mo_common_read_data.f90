@@ -114,6 +114,8 @@ CONTAINS
       call append(L0_elev, pack(data_dp_2d, level0_iDomain%mask))
       ! deallocate arrays
       deallocate(data_dp_2d)
+      ! close the handler
+      call nc%close()
 
     end do
 

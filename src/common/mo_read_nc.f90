@@ -208,6 +208,8 @@ contains
 
     end do
 
+    call nc%close()
+
   end subroutine read_nc
 
   !>        \brief Reads time independent forcing input in NetCDF file format.
@@ -222,15 +224,16 @@ contains
   !>              like they are defined in the declaration of this subroutine. The NetCDF file has to have 2 dimensions:
   !>              1. x, 2. y, It is expected that the variables (especially) within the NetCDF files contain an
   !>              unit attribute. The timestep has to be equidistant.
-  subroutine read_const_nc(folder, varName, data, fileName, nRows, nCols)
+  subroutine read_const_nc(folder, varName, data, fileName, nRows, nCols, maskout)
 
     character(len=*),                      intent(in)  :: folder  !< folder where data are stored
     character(len=*),                      intent(in)  :: varName !< name of NetCDF variable
     real(dp), dimension(:,:), allocatable, intent(out) :: data    !< data read in
     ! name of file, defaults to varName
     character(256), optional, intent(in) :: fileName
-    integer(i4),                           intent(in), optional  :: nRows   !< number of rows of data fields:
-    integer(i4),                           intent(in), optional  :: nCols   !< number of columns of data fields:
+    integer(i4),                           intent(in), optional  :: nRows   !< number of rows of data fields
+    integer(i4),                           intent(in), optional  :: nCols   !< number of columns of data fields
+    logical, dimension(:, :), allocatable, optional, intent(out) :: maskout  !< mask of valid data points
 
     ! local variables
     type(NcDataset)                        :: nc           ! netcdf file
@@ -274,6 +277,14 @@ contains
     else
       call var%getData(data)
     end if
+
+    ! save output mask if optional maskout is given
+    if (present(maskout)) then
+      allocate(maskout(var_shape(1), var_shape(2)))
+      maskout = ne(data(:, :), nodata_value)
+    end if
+
+    call nc%close()
 
   end subroutine read_const_nc
 
@@ -419,6 +430,8 @@ contains
 
       end do
     end do
+
+    call nc%close()
 
   end subroutine read_weights_nc
 

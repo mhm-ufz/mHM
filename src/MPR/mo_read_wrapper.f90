@@ -64,7 +64,7 @@ CONTAINS
 
     use mo_append, only : append, paste
     use mo_constants, only : YearMonths
-    !! use mo_file, only : varNameLAIclass
+    use mo_file, only : varNameLAIclass, varNameSlope, varNameAspect, varNameSoilClass, varNameGeoClass
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : Grid, dirCommonFiles, dirMorpho, &
@@ -85,7 +85,8 @@ CONTAINS
     use mo_string_utils, only : num2str
     use mo_timer, only : timer_get, timer_start, &
                          timer_stop
-    !! use mo_netcdf, only: NcDataset, NcVariable
+    use mo_netcdf, only: NcDataset, NcVariable
+    use mo_read_nc, only: read_const_nc
 
     implicit none
 
@@ -101,7 +102,7 @@ CONTAINS
     integer(i4) :: nunit
 
     ! file name of file to read
-    character(256) :: fName
+    character(256) :: fName, varName
 
     real(dp), dimension(:, :), allocatable :: data_dp_2d
 
@@ -120,8 +121,8 @@ CONTAINS
     real(dp), parameter :: slope_minVal = 0.01_dp
 
     real(dp), parameter :: aspect_minVal = 1.00_dp
-    !! type(NcDataset)                        :: nc           ! netcdf file
-    !! type(NcVariable)                       :: ncVar          ! variables for data form netcdf
+    type(NcDataset)                        :: nc           ! netcdf file
+    type(NcVariable)                       :: ncVar          ! variables for data form netcdf
 
 
     call message('  Reading data ...')
@@ -176,36 +177,32 @@ CONTAINS
       call timer_start(itimer)
 
       ! read slope and aspect - datatype real
-      nVars_real : do iVar = 1, 2
-        select case (iVar)
-        case(1) ! slope
-          call message('      Reading slope ...')
-          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_slope))
-          nunit = uslope
-        case(2) ! aspect
-          call message('      Reading aspect ...')
-          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_aspect))
-          nunit = uaspect
-        end select
+      call message('      Reading slope ...')
+      call read_const_nc(&
+              folder=dirMorpho(iDomain),&
+              varName=varNameSlope, &
+              data=data_dp_2d, &
+              nRows=level0_iDomain%nrows, &
+              nCols=level0_iDomain%ncols, &
+              maskout=mask_2d &
+      )
+      ! put global nodata value into array (probably not all grid cells have values)
+      data_dp_2d = merge(data_dp_2d, nodata_dp, mask_2d)
+      call append(L0_slope, pack(data_dp_2d, level0_iDomain%mask))
+      call message('      Reading aspect ...')
+      call read_const_nc(&
+              folder=dirMorpho(iDomain),&
+              varName=varNameAspect, &
+              data=data_dp_2d, &
+              nRows=level0_iDomain%nrows, &
+              nCols=level0_iDomain%ncols, &
+              maskout=mask_2d &
+      )
+      ! put global nodata value into array (probably not all grid cells have values)
+      data_dp_2d = merge(data_dp_2d, nodata_dp, mask_2d)
+      call append(L0_asp, pack(data_dp_2d, level0_iDomain%mask))
 
-        ! reading
-        call read_spatial_data_ascii(trim(fName), nunit, &
-                level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
-                level0_iDomain%yllcorner, level0_iDomain%cellsize, data_dp_2d, mask_2d)
-        ! put global nodata value into array (probably not all grid cells have values)
-        data_dp_2d = merge(data_dp_2d, nodata_dp, mask_2d)
-        ! put data in variable
-        select case (iVar)
-        case(1) ! slope
-          call append(L0_slope, pack(data_dp_2d, level0_iDomain%mask))
-
-        case(2) ! aspect
-          call append(L0_asp, pack(data_dp_2d, level0_iDomain%mask))
-        end select
-        ! deallocate arrays
-        deallocate(data_dp_2d, mask_2d)
-
-      end do nVars_real
+      deallocate(data_dp_2d, mask_2d)
 
       ! read datatype integer
       ! ***** CHANGE IS MADE HERE TO ACCOMODATE READ SEVERAL TYPES OF SOIL DATABASES
@@ -220,33 +217,58 @@ CONTAINS
       ! modified way to read multiple horizons specific soil class
       do iHorizon = 1, nH
         if(iFlag_soilDB .eq. 0) then
-          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_soilclass))
+          fName = trim(adjustl(dirMorpho(iDomain))) // trim(varNameSoilClass) // '.nc'
+          varName = trim(varNameSoilClass)
         else if(iFlag_soilDB .eq. 1) then
-          write(fName, 172) iHorizon
-          172             format('soil_class_horizon_', i2.2, '.asc')
-          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(fName))
+          write(varName, 172) iHorizon
+          172             format('soil_class_horizon_', i2.2)
+          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(varName)) // '.nc'
         end if
-        call read_spatial_data_ascii(trim(fName), usoilclass, &
-                level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
-                level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
+        ! read the Dataset
+        nc = NcDataset(fname, "r")
+        ! get the variable
+        ncVar = nc%getVariable(trim(varName))
+        ! read data
+        call ncVar%getData(data_i4_2d, mask=mask_2d)
+        if ( size(data_i4_2d, 1) /= level0_iDomain%nrows .or. size(data_i4_2d, 2) /= level0_iDomain%ncols) then
+          print*, '***ERROR: read_forcing_nc: mHM generated x and y: ', level0_iDomain%nrows, level0_iDomain%ncols , &
+                'are not matching NetCDF dimensions: ', shape(data_i4_2d)
+          stop 1
+        end if
         ! put global nodata value into array (probably not all grid cells have values)
         data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+        ! put data in variable
         call paste(dataMatrix_i4, pack(data_i4_2d, level0_iDomain%mask), nodata_i4)
+        ! deallocate arrays
         deallocate(data_i4_2d)
+        ! close the handler
+        call nc%close()
       end do
       call append(L0_soilId, dataMatrix_i4)
       deallocate(dataMatrix_i4)
 
       ! read geoUnit
-      fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_hydrogeoclass))
+      fName = trim(adjustl(dirMorpho(iDomain))) // trim(varNameGeoClass) // '.nc'
       ! reading and transposing
-      call read_spatial_data_ascii(trim(fName), uhydrogeoclass, &
-              level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
-              level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
+      ! read the Dataset
+      nc = NcDataset(fname, "r")
+      ! get the variable
+      ncVar = nc%getVariable(trim(varNameGeoClass))
+      ! read data
+      call ncVar%getData(data_i4_2d, mask=mask_2d)
+      if ( size(data_i4_2d, 1) /= level0_iDomain%nrows .or. size(data_i4_2d, 2) /= level0_iDomain%ncols) then
+        print*, '***ERROR: read_forcing_nc: mHM generated x and y: ', level0_iDomain%nrows, level0_iDomain%ncols , &
+              'are not matching NetCDF dimensions: ', shape(data_i4_2d)
+        stop 1
+      end if
       ! put global nodata value into array (probably not all grid cells have values)
       data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+      ! put global nodata value into array (probably not all grid cells have values)
       call append(L0_geoUnit, pack(data_i4_2d, level0_iDomain%mask))
+      ! deallocate arrays
       deallocate(data_i4_2d, mask_2d)
+      ! close the handler
+      call nc%close()
 
       ! LAI values
       call message('      Reading LAI ...')
@@ -262,20 +284,19 @@ CONTAINS
           LAIBoundaries = [(iMon, iMon=1, nLAI+1)]
         end if
 
-        fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_laiclass))
-        ! reading and transposing
-        call read_spatial_data_ascii(trim(fName), ulaiclass, &
-                level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
-                level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
-
-        !! fName = trim(dirMorpho(iDomain)) // trim(varNameLAIclass) // '.nc'
-        !! ! read the Dataset
-        !! nc = NcDataset(fname, "r")
-        !! ! get the variable
-        !! ncVar = nc%getVariable(trim(varNameLAIclass))
-        !! call ncVar%getData(data_dp_3d_nc, mask=mask_3d_nc)
-        !! call nc%close()
-        !!
+        fName = trim(dirMorpho(iDomain)) // trim(varNameLAIclass) // '.nc'
+        ! read the Dataset
+        nc = NcDataset(fname, "r")
+        ! get the variable
+        ncVar = nc%getVariable(trim(varNameLAIclass))
+        ! read data
+        call ncVar%getData(data_i4_2d, mask=mask_2d)
+        if ( size(data_i4_2d, 1) /= level0_iDomain%nrows .or. size(data_i4_2d, 2) /= level0_iDomain%ncols) then
+          print*, '***ERROR: read_forcing_nc: mHM generated x and y: ', level0_iDomain%nrows, level0_iDomain%ncols , &
+                'are not matching NetCDF dimensions: ', shape(data_i4_2d)
+          stop 1
+        end if
+        call nc%close()
 
         ! put global nodata value into array (probably not all grid cells have values)
         data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
