@@ -1,14 +1,5 @@
-!>       \file mo_grid.f90
-
-!>       \brief TODO: add description
-
-!>       \details TODO: add description
-
-!>       \authors Robert Schweppe
-
-!>       \date Jun 2018
-
-! Modifications:
+!>       \brief Grid-associated routines (File I/O)
+!>       \details provides routines for Grid initialization and routines to read Grids from file and dump to file
 
 module mo_grid
   use mo_kind, only : dp, i4
@@ -18,21 +9,15 @@ module mo_grid
 
   PRIVATE
 
-  PUBLIC :: init_lowres_level, set_domain_indices, L0_grid_setup, &
+  PUBLIC :: init_lowres_level, set_domain_indices, init_advanced_grid_properties, &
           mapCoordinates, geoCoordinates
   PUBLIC :: write_grid_info    ! write grid to (restart) file
   PUBLIC :: infer_grid_info    ! infer grid from any file
   PUBLIC :: read_grid_info     ! read grid from (restart) file
 
 contains
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        init_lowres_level
-
-  !    PURPOSE
   !>       \brief Level-1 variable initialization
-
   !>       \details following tasks are performed for L1 datasets
   !>       -  cell id & numbering
   !>       -  mask creation
@@ -42,38 +27,16 @@ contains
   !>       be added or removed in the subroutine config_variables_set in
   !>       module mo_restart and in the subroutine set_config in module
   !>       mo_set_netcdf_restart
-
-  !    INTENT(IN)
-  !>       \param[in] "type(Grid) :: highres"
-  !>       \param[in] "real(dp) :: target_resolution"
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(Grid) :: lowres"
-
-  !    INTENT(INOUT), OPTIONAL
-  !>       \param[inout] "type(GridRemapper), optional :: highres_lowres_remap"
-
-  !    HISTORY
-  !>       \authors Rohini Kumar
-
-  !>       \date Jan 2013
-
-  ! Modifications:
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
   subroutine init_lowres_level(highres, target_resolution, lowres, highres_lowres_remap)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
 
     implicit none
 
-    type(Grid), target, intent(in) :: highres
-
-    real(dp), intent(in) :: target_resolution
-
-    type(Grid), target, intent(inout) :: lowres
-
-    type(GridRemapper), intent(inout), optional :: highres_lowres_remap
+    type(Grid), target, intent(in) :: highres  !< high resolution source (input) Grid
+    real(dp), intent(in) :: target_resolution  !< resolution if target (output) Grid
+    type(Grid), target, intent(inout) :: lowres  !< low resolution target (output) Grid
+    type(GridRemapper), intent(inout), optional :: highres_lowres_remap  !< GridRemapper containing remapping information between two grids
 
     real(dp), dimension(:, :), allocatable :: areaCell0_2D
 
@@ -197,29 +160,15 @@ contains
 
   end subroutine init_lowres_level
 
-  !    NAME
-  !        set_domain_indices
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(Grid), dimension(:) :: grids"
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-  !        Stephan Thober, Aug 2019 - added optional indices for L0 data because L0 data can be shared among domains
-
+  !>       \brief sets indices for 1d-array of Grids based on nCells attribute
+  !>       \details sets the iStart and iEnd attributes of an 1d-array of Grids based on their valid cells (nCells)
+  !>       e.g. suppose those nCells of 3 Grids: 10, 100, 33
+  !>       those iStart/iEnd attributes are set: 1/10, 11/110, 111/143
+  !>       optionally, a list of indices can be given to provide an alternative Grid numbering
   subroutine set_domain_indices(grids, indices)
 
-    type(Grid), intent(inout), dimension(:) :: grids
-    integer(i4),   intent(in), dimension(:), optional :: indices
+    type(Grid), intent(inout), dimension(:) :: grids  !< array of Grids
+    integer(i4),   intent(in), dimension(:), optional :: indices  !< array of indices with same length as grids
 
     integer(i4) :: iDomain
 
@@ -240,59 +189,32 @@ contains
 
   end subroutine set_domain_indices
 
-  ! ------------------------------------------------------------------
-
-  !    NAME
-  !        L0_grid_setup
-
-  !    PURPOSE
-  !>       \brief level 0 variable initialization
-
-  !>       \details following tasks are performed for L0 data sets
-  !>       -  cell id & numbering
-  !>       -  storage of cell cordinates (row and coloum id)
-  !>       -  empirical dist. of terrain slope
-  !>       -  flag to determine the presence of a particular soil id
-  !>       in this configuration of the model run
-  !>       If a variable is added or removed here, then it also has to
-  !>       be added or removed in the subroutine config_variables_set in
-  !>       module mo_restart and in the subroutine set_config in module
-  !>       mo_set_netcdf_restart
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(Grid) :: new_grid"
-
-  !    HISTORY
-  !>       \authors Rohini Kumar
-
-  !>       \date Jan 2013
-
-  ! Modifications:
-  ! Rohini Kumar & Matthias Cuntz  May 2014 - cell area calulation based on a regular lat-lon grid or
-  !                                           on a regular X-Y coordinate system
-  ! Matthias Cuntz                 May 2014 - changed empirical distribution function so that doubles get the same value
-  ! Matthias Zink & Matthias Cuntz Feb 2016 - code speed up due to reformulation of CDF calculation
-  ! Rohini Kumar                   Mar 2016 - changes for handling multiple soil database options
-  ! Robert Schweppe                Jun 2018 - refactoring and reformatting
-
-  subroutine L0_grid_setup(new_grid)
+  !>       \brief initializes advanced Grid properties
+  !>       \details computes the properties
+  !>       -  nCells
+  !>       -  CellCoor
+  !>       -  Id
+  !>       -  CellArea
+  !>       requires the properties:
+  !>       -  mask
+  !>       -  cellsize
+  !>       -  ncols
+  !>       -  nrows
+  !>       -  (optionally yllcorner if iFlag_cordinate_sys == 1)
+  subroutine init_advanced_grid_properties(new_grid)
 
     use mo_common_variables, only : iFlag_cordinate_sys
     use mo_constants, only : RadiusEarth_dp, TWOPI_dp
 
     implicit none
 
-    type(Grid), intent(inout) :: new_grid
+    type(Grid), intent(inout) :: new_grid  !< Grid where new attributes are set to
 
     real(dp), dimension(:, :), allocatable :: areaCell_2D
-
     integer(i4) :: i, j, k
-
     real(dp) :: rdum, degree_to_radian, degree_to_metre
 
-    ! STEPS :: 
-
-
+    ! STEPS ::
     !--------------------------------------------------------
     ! 1) Estimate each variable locally for a given domain
     ! 2) Pad each variable to its corresponding global one
@@ -347,42 +269,16 @@ contains
     ! free space
     deallocate(areaCell_2D)
 
-  end subroutine L0_grid_setup
+  end subroutine init_advanced_grid_properties
 
 
-  !------------------------------------------------------------------
-  !    NAME
-  !        mapCoordinates
-
-  !    PURPOSE
   !>       \brief Generate map coordinates
-
-  !>       \details Generate map coordinate arrays for given domain and level
-
-  !    INTENT(IN)
-  !>       \param[in] "type(Grid) :: level" -> grid reference
-
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp), dimension(:) :: x, y"
-  !>       \param[out] "real(dp), dimension(:) :: x, y"
-
-  !    HISTORY
-  !>       \authors Matthias Zink
-
-  !>       \date Apr 2013
-
-  ! Modifications:
-  ! Stephan Thober Nov 2013 - removed fproj dependency
-  ! David Schaefer Jun 2015 - refactored the former subroutine CoordSystem
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
-
+  !>       \details Generate 1D arrays of coordinates (x and y) based on cellsize, nrows and ncols properties
   subroutine mapCoordinates(level, y, x)
 
-    ! -> grid reference
-    type(Grid), intent(in) :: level
-
-    real(dp), intent(out), allocatable, dimension(:) :: x, y
+    type(Grid), intent(in) :: level  !< base Grid to infer grid properties from
+    real(dp), intent(out), allocatable, dimension(:) :: x  !< 1d x-coordinate values
+    real(dp), intent(out), allocatable, dimension(:) :: y  !< 1d y-coordinate values
 
     integer(i4) :: ii, ncols, nrows
 
@@ -407,40 +303,13 @@ contains
 
   end subroutine mapCoordinates
 
-  !------------------------------------------------------------------
-  !    NAME
-  !        geoCoordinates
-
-  !    PURPOSE
   !>       \brief Generate geographic coordinates
-
-  !>       \details Generate geographic coordinate arrays for given domain and level
-
-  !    INTENT(IN)
-  !>       \param[in] "type(Grid) :: level" -> grid reference
-
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp), dimension(:, :) :: lat, lon"
-  !>       \param[out] "real(dp), dimension(:, :) :: lat, lon"
-
-  !    HISTORY
-  !>       \authors Matthias Zink
-
-  !>       \date Apr 2013
-
-  ! Modifications:
-  ! Stephan Thober  Nov 2013 - removed fproj dependency
-  ! David Schaefer  Jun 2015 - refactored the former subroutine CoordSystem
-  ! Stephan Thober  Sep 2015 - using mask to unpack coordinates
-  ! Stephan Thober  Oct 2015 - writing full lat/lon again
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+  !>       \details Generate 2D arrays of coordinates (x and y) based on y and x properties
   subroutine geoCoordinates(level, lat, lon)
 
-    ! -> grid reference
-    type(Grid), intent(in) :: level
-
-    real(dp), intent(out), allocatable, dimension(:, :) :: lat, lon
+    type(Grid), intent(in) :: level  !< base Grid to infer grid properties from
+    real(dp), intent(out), allocatable, dimension(:, :) :: lat  !< 2d x-coordinate values
+    real(dp), intent(out), allocatable, dimension(:, :) :: lon  !< 2d y-coordinate values
 
 
     lat = level%y
@@ -448,45 +317,12 @@ contains
 
   end subroutine geoCoordinates
 
-  ! ------------------------------------------------------------------
-
-  !    NAME
-  !        calculate_grid_properties
-
-  !    PURPOSE
   !>       \brief Calculates basic grid properties at a required coarser level using
   !>       information of a given finer level.
-  !>       Calculates basic grid properties at a required coarser level (e.g., L11) using
+  !>       \details Calculates basic grid properties at a required coarser level (e.g., L11) using
   !>       information of a given finer level (e.g., L0). Basic grid properties such as
   !>       nrows, ncols, xllcorner, yllcorner cellsize are estimated in this
   !>       routine.
-
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: nrowsIn"       no. of rows at an input level
-  !>       \param[in] "integer(i4) :: ncolsIn"       no. of cols at an input level
-  !>       \param[in] "real(dp) :: xllcornerIn"      xllcorner at an input level
-  !>       \param[in] "real(dp) :: yllcornerIn"      yllcorner at an input level
-  !>       \param[in] "real(dp) :: cellsizeIn"       cell size at an input level
-  !>       \param[in] "real(dp) :: aimingResolution" resolution of an output level
-
-  !    INTENT(OUT)
-  !>       \param[out] "integer(i4) :: nrowsOut"  no. of rows at an output level
-  !>       \param[out] "integer(i4) :: ncolsOut"  no. of cols at an output level
-  !>       \param[out] "real(dp) :: xllcornerOut" xllcorner at an output level
-  !>       \param[out] "real(dp) :: yllcornerOut" yllcorner at an output level
-  !>       \param[out] "real(dp) :: cellsizeOut"  cell size at an output level
-
-  !    HISTORY
-  !>       \authors Matthias Zink & Rohini Kumar
-
-  !>       \date Feb 2013
-
-  ! Modifications:
-  ! R. Kumar        Sep 2013 - documentation added according to the template
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
   subroutine calculate_grid_properties(nrowsIn, ncolsIn, xllcornerIn, yllcornerIn, cellsizeIn, aimingResolution, &
                                       nrowsOut, ncolsOut, xllcornerOut, yllcornerOut, cellsizeOut)
 
@@ -495,37 +331,27 @@ contains
 
     implicit none
 
-    ! no. of rows at an input level
+    !> no. of rows at an input level
     integer(i4), intent(in) :: nrowsIn
-
-    ! no. of cols at an input level
+    !> no. of cols at an input level
     integer(i4), intent(in) :: ncolsIn
-
-    ! xllcorner at an input level
+    !> xllcorner at an input level
     real(dp), intent(in) :: xllcornerIn
-
-    ! yllcorner at an input level
+    !> yllcorner at an input level
     real(dp), intent(in) :: yllcornerIn
-
-    ! cell size at an input level
+    !> cell size at an input level
     real(dp), intent(in) :: cellsizeIn
-
-    ! resolution of an output level
+    !> resolution of an output level
     real(dp), intent(in) :: aimingResolution
-
-    ! no. of rows at an output level
+    !> no. of rows at an output level
     integer(i4), intent(out) :: nrowsOut
-
-    ! no. of cols at an output level
+    !> no. of cols at an output level
     integer(i4), intent(out) :: ncolsOut
-
-    ! xllcorner at an output level
+    !> xllcorner at an output level
     real(dp), intent(out) :: xllcornerOut
-
-    ! yllcorner at an output level
+    !> yllcorner at an output level
     real(dp), intent(out) :: yllcornerOut
-
-    ! cell size at an output level
+    !> cell size at an output level
     real(dp), intent(out) :: cellsizeOut
 
     real(dp) :: cellfactor
@@ -549,40 +375,8 @@ contains
 
   end subroutine calculate_grid_properties
 
-  !    NAME
-  !        write_grid_info
-
-  !    PURPOSE
-  !>       \brief write restart files for each domain
-
-  !>       \details write restart files for each domain. For each domain
-  !>       three restart files are written. These are xxx_states.nc,
-  !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
-  !>       domain index). If a variable is added here, it should also be added
-  !>       in the read restart routines below.
-
-  !    INTENT(IN)
-  !>       \param[in] "type(Grid) :: grid_in"      level to be written
-  !>       \param[in] "character(*) :: level_name" level_id
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to write information to
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Jun 2014
-
-  ! Modifications:
-  ! Stephan Thober     Aug  2015 - moved write of routing states to mRM
-  ! David Schaefer     Nov  2015 - mo_netcdf
-  ! Stephan Thober     Nov  2016 - moved processMatrix to common variables
-  ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
-  ! Robert Schweppe    Feb 2018 - Removed all L0 references
-  ! Robert Schweppe    Jun 2018 - refactoring and reformatting
-  ! Stephan Thober     May 2019 - where statement for gnu73 to translate level0 mask
-
-
+  !>       \brief write restart file
+  !>       \details write restart file for given Grid to given NcDataset
   subroutine write_grid_info(grid_in, level_name, nc)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
@@ -591,20 +385,16 @@ contains
 
     implicit none
 
-    ! level to be written
+    !> Grid to be written
     type(Grid), intent(in) :: grid_in
-
-    ! level_id
+    !> name of level (used to label the grid, e.g. "0", "1", "11", "2")
     character(*), intent(in) :: level_name
+    !> NcDataset to write information to
+    type(NcDataset), intent(inout) :: nc
 
     ! dummy for gnu73
     integer(i4), allocatable :: dummy(:, :)
-
-    ! NcDataset to write information to
-    type(NcDataset), intent(inout) :: nc
-
     type(NcDimension) :: rows, cols
-
     type(NcVariable) :: var
 
 
@@ -648,40 +438,8 @@ contains
   end subroutine write_grid_info
 
 
-  ! ------------------------------------------------------------------
-
-  !    NAME
-  !        read_grid_info
-
-  !    PURPOSE
-  !>       \brief reads configuration apart from Level 11 configuration
-  !>       from a restart directory
-
-  !>       \details read configuration variables from a given restart
-  !>       directory and initializes all configuration variables,
-  !>       that are initialized in the subroutine initialise,
-  !>       contained in module mo_startup.
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain"      number of domain
-  !>       \param[in] "character(256) :: inputFile"   Input Path including trailing slash
-  !>       \param[in] "character(*) :: level_name" level_name (id)
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(Grid) :: new_grid" grid to save information to
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Apr 2013
-
-  ! Modifications:
-  ! David Schaefer     Nov 2015 - mo_netcdf
-  ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
-  ! Robert Schweppe    Feb 2018 - Removed all L0 references
-  ! Robert Schweppe    Jun 2018 - refactoring and reformatting
-  ! Stephan Thober     May 2019 - added allocation check for mask and cellArea because cellArea needs to be read by mRM, but mask is created before by mHM
-
+  !>       \brief reads complete Grid properties from NetCDF file
+  !>       \details reads complete Grid properties from NetCDF file
   subroutine read_grid_info(domainID, inputFile, level_name, new_grid)
 
     use mo_common_variables, only : Grid
@@ -693,16 +451,13 @@ contains
 
     implicit none
 
-    ! number of domain
+    !> number of domainID
     integer(i4), intent(in) :: domainID
-
-    ! Input Path including trailing slash
+    !> complete path to file
     character(256), intent(in) :: inputFile
-
-    ! level_name (id)
+    !> name of level (used to label the grid, e.g. "0", "1", "11", "2")
     character(*), intent(in) :: level_name
-
-    ! grid to save information to
+    !> grid to save information to
     type(Grid), intent(inout) :: new_grid
 
     ! dummy, 2 dimension I4
@@ -765,6 +520,10 @@ contains
 
   end subroutine read_grid_info
 
+  !>       \brief infers Grid properties implicitly from file
+  !>       \details infers Grid properties implicitly from file including:
+  !>       - xllcorner, yllcorner, nRows, nCols, cellsize, nCells, mask, x, y, cellarea
+  !>       this is attempted by scanning for known x and y coordinate names and inferred by mask of given variable
   subroutine infer_grid_info(inputFile, xCoordName, yCoordName, maskVar, new_grid)
 
     use mo_kind, only : dp, i4
@@ -775,7 +534,7 @@ contains
 
     implicit none
 
-    !> Input Path including trailing slash
+    !> complete path to file
     character(*), intent(in) :: inputFile
     !> name of variable to be used for inferring x-coordinate
     character(*), intent(in) :: xCoordName
@@ -797,22 +556,24 @@ contains
     call get_coordinate(nc, xCoordName, new_grid%xllcorner, new_grid%nRows, new_grid%cellsize)
     call get_coordinate(nc, yCoordName, new_grid%yllcorner, new_grid%nCols, new_grid%cellsize)
     ! calculate nCells, mask, x, y, cellarea
-    call infer_extended_grid_properties(nc, xCoordName, yCoordName, maskVar, new_grid)
+    call infer_advanced_grid_properties(nc, xCoordName, yCoordName, maskVar, new_grid)
 
     call nc%close()
 
   end subroutine infer_grid_info
 
+  !>       \brief retrieves lower bound, nCells and cellsize information of 1d NetCDF coordinate variable
+  !>       \details properties used are needed to set Grid properties xllcorner/yllcorner, nRows/nCols and cellsize
   subroutine get_coordinate(nc, coordName, lowerBound, n, cellsize)
 
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_message, only: message
 
-    type(NcDataset), intent(inout) :: nc
-    character(*), intent(in) :: coordName
-    real(dp), intent(out) :: lowerBound
-    integer(i4), intent(out) :: n
-    real(dp), intent(out) :: cellsize
+    type(NcDataset), intent(inout) :: nc  !< NcDataset
+    character(*), intent(in) :: coordName  !< name of 1d coordinate variable in NcDataset
+    real(dp), intent(out) :: lowerBound  !< lower bound of coordinate variable
+    integer(i4), intent(out) :: n  !< number of values in coordinate variable
+    real(dp), intent(out) :: cellsize  !< stepsize of coordinate values
     
     type(NcVariable) :: ncVar
     integer(i4), dimension(:), allocatable :: varShape
@@ -849,22 +610,24 @@ contains
         stop 1
       end if
     else
-      call message("cannot infer cellsize of coordinate ", trim(coordName))
+      call message("cannot infer Grid properties by non existing coordinate name ", trim(coordName))
       stop 1
     end if
 
   end subroutine get_coordinate
 
-  subroutine infer_extended_grid_properties(nc, xCoordName, yCoordName, maskVar, new_grid)
+  !>       \brief implictily retrieves advanced properties from NetCDF dataset
+  !>       \details infers additional properties from nc dataset to set remaining properties of Grid
+  subroutine infer_advanced_grid_properties(nc, xCoordName, yCoordName, maskVar, new_grid)
 
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_message, only: message
 
-    type(NcDataset), intent(inout) :: nc
-    character(*), intent(in) :: xCoordName
-    character(*), intent(in) :: yCoordName
-    character(*), intent(in) :: maskVar
-    type(Grid), intent(inout) :: new_grid
+    type(NcDataset), intent(inout) :: nc  !< NetCDF dataset to infer properties from
+    character(*), intent(in) :: xCoordName  !< 1d coordinate variable name to set x
+    character(*), intent(in) :: yCoordName  !< 1d coordinate variable name to set y
+    character(*), intent(in) :: maskVar  !< variable name whose mask is used to set mask
+    type(Grid), intent(inout) :: new_grid  !< grid to save information to
 
     type(NcVariable) :: ncVar
     real(dp), dimension(:, :), allocatable :: dummyD2
@@ -891,8 +654,8 @@ contains
     deallocate(dummyD1)
 
     ! init the remaining properties
-    call L0_grid_setup(new_grid)
+    call init_advanced_grid_properties(new_grid)
 
-  end subroutine infer_extended_grid_properties
+  end subroutine infer_advanced_grid_properties
 end module mo_grid
 
