@@ -108,7 +108,6 @@ MHM_EXE = ["../mhm"]
 SKIP_CASES_MPI = ["case_04", "case_05", "case_07"]
 # those cases are currently ignored as there are some problems with init from restart, case11 needs to be reconsidered
 SKIP = [
-    "case_01",
     "case_11"
 ]
 
