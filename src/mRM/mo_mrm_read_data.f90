@@ -13,6 +13,9 @@
 
 module mo_mrm_read_data
   use mo_kind, only : i4, dp
+  use mo_netcdf, only : NcDataset, NcVariable, NcDimension
+  use mo_read_forcing_nc, only: check_sort_order
+
   implicit none
   public :: mrm_read_L0_data
   public :: mrm_read_discharge
@@ -53,13 +56,10 @@ contains
     use mo_common_constants, only : nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : Grid, L0_LCover, dirMorpho, level0, domainMeta, processMatrix
-    use mo_mpr_file, only: file_slope, uslope
     use mo_message, only : message
-    use mo_mrm_file, only : file_facc, file_fdir, &
-                            file_gaugeloc, ufacc, ufdir, ugaugeloc
+    use mo_mrm_file, only : file_facc, file_fdir, file_gaugeloc
     use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, domain_mrm
     use mo_read_latlon, only : read_latlon
-    use mo_read_spatial_data, only : read_spatial_data_ascii
     use mo_string_utils, only : num2str
 
     implicit none
@@ -76,19 +76,17 @@ contains
 
     integer(i4) :: iGauge
 
-    character(256) :: fname
+    character(256) :: fname, varName
 
     integer(i4) :: nunit
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
-
-    integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
-
     logical, dimension(:, :), allocatable :: mask_2d
 
-    logical, dimension(:, :), allocatable :: mask_global
-
     type(Grid), pointer :: level0_iDomain => null()
+    type(NcDataset)                        :: nc           ! netcdf file
+    type(NcVariable)                       :: var          ! variables for data form netcdf
+    integer(i4)                            :: nodata_value ! data nodata value
 
 
     ! ************************************************
@@ -101,11 +99,15 @@ contains
     if (do_readlcover .and. processMatrix(8, 1) .eq. 1) then
       call read_lcover()
     else if (do_readlcover .and. ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3))) then
-      allocate(dataMatrix_i4(count(mask_global), 1))
-      dataMatrix_i4 = nodata_i4
-      call append(L0_LCover, dataMatrix_i4)
-      ! free memory
-      deallocate(dataMatrix_i4)
+      do iDomain = 1, domainMeta%nDomains
+        domainID = domainMeta%indices(iDomain)
+        level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
+        allocate(data_i4_2d(level0_iDomain%nCells))
+        data_i4_2d = nodata_i4
+        call append(L0_LCover, data_i4_2d)
+        ! free memory
+        deallocate(data_i4_2d)
+      end do
     end if
 
     do iDomain = 1, domainMeta%nDomains
@@ -132,58 +134,47 @@ contains
       end if
 
       ! read fAcc, fDir, gaugeLoc
-      do iVar = 1, 4
+      do iVar = 1, 3
         select case (iVar)
         case(1) ! flow accumulation
           fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_facc))
-          nunit = ufacc
+          varName = 'facc'
         case(2) ! flow direction
           fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_fdir))
-          nunit = ufdir
+          varName = 'fdir'
         case(3) ! location of gauging stations
           fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_gaugeloc))
-          nunit = ugaugeloc
-       case(4)
-          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_slope))
-          nunit = uslope
-       end select
+          varName = 'idgauges'
+        end select
+        if (iVar == 3 .and. domain_mrm(iDomain)%nGauges < 1_i4) then
+           ! set to nodata, but not omit because data association between arrays and domains might break
+           data_i4_2d = merge(nodata_i4, nodata_i4, level0_iDomain%mask)
+        else
+          ! read the Dataset
+          nc = NcDataset(fname, "r")
+          ! get the variable
+          var = nc%getVariable(trim(varName))
 
-       if (iVar .le. 2) then
-          !
-          ! reading and transposing
-          call read_spatial_data_ascii(trim(fName), nunit, &
-               level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
-               level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
+          call ncVar%getData(data_i4_2d, mask=mask_2d)
+          if ( size(data_i4_2d, 1) /= level0_iDomain%nrows .or. size(data_i4_2d, 2) /= level0_iDomain%ncols) then
+            print*, '***ERROR: read_forcing_nc: mHM generated x and y: ', level0_iDomain%nrows, level0_iDomain%ncols , &
+                  'are not matching NetCDF dimensions: ', shape(data_i4_2d)
+            stop 1
+          end if
+
+          ! flip the data if any dimension is not sorted correctly
+          call check_sort_order(data_i4_2d, var)
 
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-       end if
-
-       if (iVar .eq. 3) then
-          if (domain_mrm(iDomain)%nGauges .ge. 1_i4) then
-             !
-             ! reading and transposing
-             call read_spatial_data_ascii(trim(fName), nunit, &
-                  level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
-                  level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
-
-             ! put global nodata value into array (probably not all grid cells have values)
-             data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-
-          else
-             ! set to nodata, but not ommit because data association between arrays and domains might break
-             data_i4_2d = merge(nodata_i4, nodata_i4, level0_iDomain%mask)
-          end if
-       end if
-
-        ! put data into global L0 variable
+          data_i4_2d = merge(data_i4_2d, nodata_i4, level0_iBasin%mask)
+          ! put data into global L0 variable
+        end if
         select case (iVar)
         case(1) ! flow accumulation
           call append(L0_fAcc, pack(data_i4_2d, level0_iDomain%mask))
         case(2) ! flow direction
-          ! rotate flow direction and any other variable with directions
-          ! NOTE: ONLY when ASCII files are read
-          call rotate_fdir_variable(data_i4_2d)
+          ! TODO: if a flipping occurs, we have to rotate the fdir variable
           ! append
           call append(L0_fDir, pack(data_i4_2d, level0_iDomain%mask))
         case(3) ! location of evaluation and inflow gauging stations
@@ -224,10 +215,10 @@ contains
           call append(L0_InflowGaugeLoc, pack(data_i4_2d, level0_iDomain%mask))
 
         end select
+        call nc%close()
         !
         ! deallocate arrays
-        if (allocated(data_i4_2d)) deallocate(data_i4_2d)
-        if (allocated(mask_2d)) deallocate(mask_2d)
+        deallocate(data_i4_2d)
         !
       end do
     end do

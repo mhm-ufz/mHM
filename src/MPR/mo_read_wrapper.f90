@@ -71,8 +71,8 @@ CONTAINS
                                     global_parameters, level0, domainMeta, period, processMatrix
     use mo_message, only : message
     use mo_mpr_file, only : file_aspect, file_geolut, file_hydrogeoclass, &
-                            file_laiclass, file_lailut, file_slope, file_soil_database, file_soil_database_1, &
-                            file_soilclass, uaspect, ugeolut, uhydrogeoclass, ulaiclass, ulailut, uslope, usoilclass
+                            file_laiclass, file_lailut, file_soil_database, file_soil_database_1, &
+                            file_soilclass, ugeolut, ulailut
     use mo_mpr_global_variables, only : GeoUnitKar, &
                                         GeoUnitList, L0_asp, L0_geoUnit, L0_gridded_LAI, L0_slope, L0_soilId, LAILUT, &
                                         LAIUnitList, iFlag_soilDB, nGeoUnits, nLAI, nLAIclass, nSoilHorizons_mHM, soilDB, &
@@ -80,7 +80,6 @@ CONTAINS
     use mo_prepare_gridded_lai, only : prepare_gridded_daily_LAI_data, prepare_gridded_mean_monthly_LAI_data
     use mo_read_latlon, only : read_latlon
     use mo_read_lut, only : read_geoformation_lut, read_lai_lut
-    use mo_read_spatial_data, only : read_spatial_data_ascii
     use mo_soil_database, only : read_soil_LUT
     use mo_string_utils, only : num2str
     use mo_timer, only : timer_get, timer_start, &
