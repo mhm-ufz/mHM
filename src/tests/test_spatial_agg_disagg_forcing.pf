@@ -1,0 +1,185 @@
+module test_spatial_agg_disagg_forcing
+  use funit
+  use mo_spatial_agg_disagg_forcing, only : spatial_aggregation, spatial_disaggregation
+  use mo_kind, only : dp
+  use mo_common_constants, only : nodata_dp
+
+  implicit none
+
+  private
+  
+  public :: test_spatial_aggregation_3d, test_spatial_aggregation_4d, test_spatial_disaggregation_3d, test_spatial_disaggregation_4d
+
+  real :: t = 0.001
+
+contains
+
+  @test
+  subroutine test_spatial_aggregation_3d()
+
+    real(dp), dimension(:, :, :), allocatable :: ref_data1
+    real(dp), dimension(1,1,1) :: data2
+    logical, dimension(1,1) :: mask1
+    logical, dimension(1,1) :: mask2
+    real(dp), dimension(:, :, :), allocatable :: res_data1
+    allocate(ref_data1(1,1,1))
+
+    ref_data1(1,1,1) = 9.35_dp
+    data2(1,1,1) = 9.35_dp
+    mask1(1,1) = .true.
+    mask2(1,1) = .true.
+
+    call spatial_aggregation(data2, 12000.0_dp, 24000.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_aggregation_3d: realistic data, mask TRUE')
+
+
+    ref_data1(1,1,1) = nodata_dp
+    mask1(1,1) = .false.
+    mask2(1,1) = .false.
+
+    call spatial_aggregation(data2, 12000.0_dp, 24000.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_aggregation_3d: realistic data, mask FALSE')
+
+
+    call spatial_aggregation(data2, 12000.0_dp, 0.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_aggregation_3d: cellsize2=0, mask FALSE')
+
+
+    call spatial_aggregation(data2, 24000.0_dp, 12000.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_aggregation_3d: cellsize1<cellsize2, mask FALSE')
+
+  end subroutine test_spatial_aggregation_3d
+
+
+  @test
+  subroutine test_spatial_aggregation_4d()
+
+    real(dp), dimension(:, :, :, :), allocatable :: ref_data1
+    real(dp), dimension(1,1,1,1) :: data2
+    logical, dimension(1,1) :: mask1
+    logical, dimension(1,1) :: mask2
+    real(dp), dimension(:, :, :, :), allocatable :: res_data1
+    allocate(ref_data1(1,1,1,1))
+
+    ref_data1(1,1,1,1) = 9.35_dp
+    data2(1,1,1,1) = 9.35_dp
+    mask1(1,1) = .true.
+    mask2(1,1) = .true.
+
+    call spatial_aggregation(data2, 12000.0_dp, 24000.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_aggregation_4d: realistic data, mask TRUE')
+
+
+    ref_data1(1,1,1,1) = nodata_dp
+    mask1(1,1) = .false.
+    mask2(1,1) = .false.
+
+    call spatial_aggregation(data2, 12000.0_dp, 24000.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_aggregation_4d: realistic data, mask FALSE')
+
+
+    call spatial_aggregation(data2, 12000.0_dp, 0.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_aggregation_4d: cellsize2=0, mask FALSE')
+
+
+    call spatial_aggregation(data2, 24000.0_dp, 12000.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_aggregation_4d: cellsize1<cellsize2, mask FALSE')
+
+  end subroutine test_spatial_aggregation_4d
+
+
+  @test
+  subroutine test_spatial_disaggregation_3d()
+
+    real(dp), dimension(:, :, :), allocatable :: ref_data1
+    real(dp), dimension(1,1,1) :: data2
+    logical, dimension(1,1) :: mask1
+    logical, dimension(1,1) :: mask2
+    real(dp), dimension(:, :, :), allocatable :: res_data1
+    allocate(ref_data1(1,1,1))
+
+    ref_data1(1,1,1) = 9.35_dp
+    data2(1,1,1) = 9.35_dp
+    mask1(1,1) = .true.
+    mask2(1,1) = .true.
+
+    call spatial_disaggregation(data2, 24000.0_dp, 12000.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_disaggregation_3d: realistic data, mask TRUE')
+
+
+    ref_data1(1,1,1) = nodata_dp
+    mask1(1,1) = .false.
+    mask2(1,1) = .false.
+
+    call spatial_disaggregation(data2, 24000.0_dp, 12000.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_disaggregation_3d: realistic data, mask FALSE')
+
+
+    ref_data1(1,1,1) = 0.0_dp
+
+    call spatial_disaggregation(data2, 24000.0_dp, 0.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_disaggregation_3d: cellsize2=0, mask FALSE')
+
+
+    ref_data1(1,1,1) = nodata_dp
+
+    call spatial_disaggregation(data2, 24000.0_dp, 12000.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_disaggregation_3d: cellsize1>cellsize2, mask FALSE')
+
+  end subroutine test_spatial_disaggregation_3d
+
+
+  @test
+  subroutine test_spatial_disaggregation_4d()
+
+    real(dp), dimension(:, :, :, :), allocatable :: ref_data1
+    real(dp), dimension(1,1,1,1) :: data2
+    logical, dimension(1,1) :: mask1
+    logical, dimension(1,1) :: mask2
+    real(dp), dimension(:, :, :, :), allocatable :: res_data1
+    allocate(ref_data1(1,1,1,1))
+
+    ref_data1(1,1,1,1) = 9.35_dp
+    data2(1,1,1,1) = 9.35_dp
+    mask1(1,1) = .true.
+    mask2(1,1) = .true.
+
+    call spatial_disaggregation(data2, 24000.0_dp, 12000.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_disaggregation_4d: realistic data, mask TRUE')
+
+
+    ref_data1(1,1,1,1) = nodata_dp
+    mask1(1,1) = .false.
+    mask2(1,1) = .false.
+
+    call spatial_disaggregation(data2, 24000.0_dp, 12000.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_disaggregation_4d: realistic data, mask FALSE')
+
+
+    call spatial_disaggregation(data2, 24000.0_dp, 0.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_disaggregation_4d: cellsize2=0, mask FALSE')
+
+
+    call spatial_disaggregation(data2, 24000.0_dp, 12000.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_disaggregation_4d: cellsize1>cellsize2, mask FALSE')
+
+  end subroutine test_spatial_disaggregation_4d
+
+
+end module test_spatial_agg_disagg_forcing
