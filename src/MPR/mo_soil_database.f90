@@ -388,7 +388,7 @@ CONTAINS
 
     real(dp) :: dmin
 
-    real(dp) :: dpth_f, dpth_t
+    real(dp) :: dpth_f, dpth_t, lastHorizonDepth
 
     integer(i4) :: layer_f, layer_t
 
@@ -424,8 +424,9 @@ CONTAINS
       do ii = 1, nSoilTypes
         soilDB%Wd(ii, :, soilDB%nHorizons(ii) + 1_i4 : maxval(soilDB%nHorizons(:))) = nodata_dp
 
-        ! initalise last horizon depth to model w.r.t to surface
-        ! NOTE:: it is different for each soil
+        ! store the original depth, as this is a global array
+        lastHorizonDepth = HorizonDepth_mHM(nSoilHorizons_mHM)
+        ! set last horizon depth to model w.r.t to surface
         HorizonDepth_mHM(nSoilHorizons_mHM) = soilDB%RZdepth(ii)
 
         ! Estimate soil properties for each modeling layers
@@ -501,12 +502,14 @@ CONTAINS
           end if
 
         end do
+        ! restore the original depth, as this is a global array
+        HorizonDepth_mHM(nSoilHorizons_mHM) = lastHorizonDepth
       end do
       ! soil database for the horizon specific case
     CASE(1)
       ! right now nothing is done here
       ! *** reserved for future changes
-      allocate(soilDB%Wd(1,1,1)) 
+      allocate(soilDB%Wd(1,1,1))
 
     CASE DEFAULT
       call message()
