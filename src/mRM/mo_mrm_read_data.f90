@@ -14,7 +14,7 @@
 module mo_mrm_read_data
   use mo_kind, only : i4, dp
   use mo_netcdf, only : NcDataset, NcVariable, NcDimension
-  use mo_read_forcing_nc, only: check_sort_order
+  use mo_read_nc, only: check_sort_order
 
   implicit none
   public :: mrm_read_L0_data
@@ -85,7 +85,7 @@ contains
 
     type(Grid), pointer :: level0_iDomain => null()
     type(NcDataset)                        :: nc           ! netcdf file
-    type(NcVariable)                       :: var          ! variables for data form netcdf
+    type(NcVariable)                       :: ncVar        ! variables for data form netcdf
     integer(i4)                            :: nodata_value ! data nodata value
 
 
@@ -102,7 +102,7 @@ contains
       do iDomain = 1, domainMeta%nDomains
         domainID = domainMeta%indices(iDomain)
         level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
-        allocate(data_i4_2d(level0_iDomain%nCells))
+        allocate(data_i4_2d(level0_iDomain%nCells, 1_i4))
         data_i4_2d = nodata_i4
         call append(L0_LCover, data_i4_2d)
         ! free memory
@@ -147,13 +147,14 @@ contains
           varName = 'idgauges'
         end select
         if (iVar == 3 .and. domain_mrm(iDomain)%nGauges < 1_i4) then
-           ! set to nodata, but not omit because data association between arrays and domains might break
-           data_i4_2d = merge(nodata_i4, nodata_i4, level0_iDomain%mask)
+          ! set to nodata, but not omit because data association between arrays and domains might break
+          allocate(data_i4_2d(level0_iDomain%nrows, level0_iDomain%ncols))
+          data_i4_2d = nodata_i4
         else
           ! read the Dataset
           nc = NcDataset(fname, "r")
           ! get the variable
-          var = nc%getVariable(trim(varName))
+          ncVar = nc%getVariable(trim(varName))
 
           call ncVar%getData(data_i4_2d, mask=mask_2d)
           if ( size(data_i4_2d, 1) /= level0_iDomain%nrows .or. size(data_i4_2d, 2) /= level0_iDomain%ncols) then
@@ -163,12 +164,10 @@ contains
           end if
 
           ! flip the data if any dimension is not sorted correctly
-          call check_sort_order(data_i4_2d, var)
+          call check_sort_order(data_i4_2d, ncVar)
 
           ! put global nodata value into array (probably not all grid cells have values)
-          data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-          data_i4_2d = merge(data_i4_2d, nodata_i4, level0_iBasin%mask)
-          ! put data into global L0 variable
+          data_i4_2d = merge(data_i4_2d, nodata_i4, mask=mask_2d)
         end if
         select case (iVar)
         case(1) ! flow accumulation

@@ -10,7 +10,7 @@ module mo_grid
   PRIVATE
 
   PUBLIC :: init_lowres_level, set_domain_indices, init_advanced_grid_properties, &
-          mapCoordinates, geoCoordinates
+          mapCoordinates, geoCoordinates, calculate_grid_properties
   PUBLIC :: write_grid_info    ! write grid to (restart) file
   PUBLIC :: infer_grid_info    ! infer grid from any file
   PUBLIC :: read_grid_info     ! read grid from (restart) file
@@ -630,19 +630,33 @@ contains
     type(Grid), intent(inout) :: new_grid  !< grid to save information to
 
     type(NcVariable) :: ncVar
+    real(dp), dimension(:, :, :), allocatable :: dummyD3
+    logical, dimension(:, :, :), allocatable :: maskD3
     real(dp), dimension(:, :), allocatable :: dummyD2
     real(dp), dimension(:), allocatable :: dummyD1
+    integer(i4), dimension(:), allocatable :: ncVarShape
     integer(i4) :: i
 
     if (.not. allocated(new_grid%mask)) allocate(new_grid%mask(new_grid%nrows, new_grid%ncols))
     if (.not. allocated(new_grid%x)) allocate(new_grid%x(new_grid%nrows, new_grid%ncols))
     if (.not. allocated(new_grid%y)) allocate(new_grid%y(new_grid%nrows, new_grid%ncols))
 
-    ! read L1 mask
+    ! read mask
     ncVar = nc%getVariable(maskVar)
+    ncVarShape = ncVar%getshape()
 
-    ! read data
-    call ncVar%getData(dummyD2, mask=new_grid%mask)
+    if (size(ncVarShape) == 3_i4) then
+      call ncVar%getData(dummyD3, mask=maskD3)
+      new_grid%mask = maskD3(:,:,1)
+      deallocate(dummyD3, maskD3)
+    elseif (size(ncVarShape) == 2_i4) then
+      ! read data
+      call ncVar%getData(dummyD2, mask=new_grid%mask)
+      deallocate(dummyD2)
+    else
+      print*, 'Expected 2D or 3D field for inferring mask of grid'
+      stop 1
+    end if
 
     ncVar = nc%getVariable(xCoordName)
     call ncVar%getData(dummyD1)

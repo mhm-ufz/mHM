@@ -70,12 +70,15 @@ CONTAINS
   subroutine mhm_initialize
 
     use mo_common_mHM_mRM_variables, only : mhmFileRestartIn, read_restart
-    use mo_grid, only : read_grid_info, Grid, set_domain_indices
+    use mo_common_variables, only : Grid
+    use mo_grid, only : read_grid_info, set_domain_indices, calculate_grid_properties,  infer_grid_info
     use mo_common_variables, only : level0, level1, domainMeta
     use mo_global_variables, only : level2
     use mo_init_states, only : variables_alloc
     use mo_mpr_startup, only : init_eff_params, mpr_initialize
     use mo_global_variables, only : dirPrecipitation
+    use mo_string_utils, only : num2str
+    use mo_message, only : message
 
     implicit none
 
@@ -109,7 +112,7 @@ CONTAINS
       call variables_alloc(level1(iDomain)%nCells)
 
       ! L2 inialization
-      call infer_grid_info(trim(dirPrecipitation(iDomain)) // 'pre/pre.nc', 'xc', 'yc', 'pre', level2(iDomain))
+      call infer_grid_info(trim(dirPrecipitation(iDomain)) // 'pre.nc', 'xc', 'yc', 'pre', level2(iDomain))
 
       level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
       call calculate_grid_properties(level0_iDomain%nrows, level0_iDomain%ncols, &
@@ -124,7 +127,7 @@ CONTAINS
               (abs(dummy%xllcorner - level2(iDomain)%xllcorner) > tiny(1.0_dp))     .or. &
               (abs(dummy%yllcorner - level2(iDomain)%yllcorner) > tiny(1.0_dp))     .or. &
               (abs(dummy%cellsize - level2(iDomain)%cellsize)  > tiny(1.0_dp))) then
-        call message('   ***ERROR: subroutine L2_variable_init: size mismatch in grid file for level2 in domain ', &
+        call message('   ***ERROR: size mismatch in grid file for meteo input in domain ', &
                 trim(adjustl(num2str(iDomain))), '!')
         call message('  Provided (in precipitation file):')
         call message('... rows:     ', trim(adjustl(num2str(level2(iDomain)%nrows))), ', ')

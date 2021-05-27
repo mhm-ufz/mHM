@@ -70,9 +70,9 @@ CONTAINS
     use mo_common_variables, only : Grid, dirCommonFiles, dirMorpho, &
                                     global_parameters, level0, domainMeta, period, processMatrix
     use mo_message, only : message
-    use mo_mpr_file, only : file_aspect, file_geolut, file_hydrogeoclass, &
+    use mo_mpr_file, only : file_geolut, file_hydrogeoclass, &
                             file_laiclass, file_lailut, file_soil_database, file_soil_database_1, &
-                            file_soilclass, ugeolut, ulailut
+                            ugeolut, ulailut
     use mo_mpr_global_variables, only : GeoUnitKar, &
                                         GeoUnitList, L0_asp, L0_geoUnit, L0_gridded_LAI, L0_slope, L0_soilId, LAILUT, &
                                         LAIUnitList, iFlag_soilDB, nGeoUnits, nLAI, nLAIclass, nSoilHorizons_mHM, soilDB, &
@@ -96,9 +96,6 @@ CONTAINS
 
     ! dummy variable
     integer(i4) :: nH
-
-    ! file unit of file to read
-    integer(i4) :: nunit
 
     ! file name of file to read
     character(256) :: fName, varName

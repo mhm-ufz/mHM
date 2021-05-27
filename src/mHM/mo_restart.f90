@@ -341,9 +341,9 @@ CONTAINS
   ! Stephan Thober Nov  2016 - moved processMatrix to common variables
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_restart_states(iDomain, domainID, InFile)
+  subroutine read_restart_states(iDomain, InFile)
 
-    use mo_common_variables, only : LC_year_end, LC_year_start, level1, nLCoverScene, processMatrix
+    use mo_common_variables, only : level1, nLCoverScene, processMatrix
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, &
                                     L1_aETSealed, L1_aETSoil, L1_baseflow, L1_fastRunoff, L1_infilSoil, L1_melt, &
                                     L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
@@ -364,8 +364,6 @@ CONTAINS
 
     ! number of domain
     integer(i4), intent(in) :: iDomain
-
-    integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
     character(256), intent(in) :: InFile
