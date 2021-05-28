@@ -55,10 +55,10 @@ contains
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
-    use mo_common_variables, only : Grid, L0_LCover, dirMorpho, level0, domainMeta, processMatrix
+    use mo_common_variables, only : Grid, L0_LCover, level0, domainMeta, processMatrix
     use mo_message, only : message
     use mo_mrm_file, only : file_facc, file_fdir, file_gaugeloc
-    use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, domain_mrm
+    use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, domain_mrm, dirGauges
     use mo_read_latlon, only : read_latlon
     use mo_string_utils, only : num2str
 
@@ -137,13 +137,13 @@ contains
       do iVar = 1, 3
         select case (iVar)
         case(1) ! flow accumulation
-          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_facc))
+          fName = trim(adjustl(dirGauges(iDomain))) // trim(adjustl(file_facc))
           varName = 'facc'
         case(2) ! flow direction
-          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_fdir))
+          fName = trim(adjustl(dirGauges(iDomain))) // trim(adjustl(file_fdir))
           varName = 'fdir'
         case(3) ! location of gauging stations
-          fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_gaugeloc))
+          fName = trim(adjustl(dirGauges(iDomain))) // trim(adjustl(file_gaugeloc))
           varName = 'idgauges'
         end select
         if (iVar == 3 .and. domain_mrm(iDomain)%nGauges < 1_i4) then
@@ -168,6 +168,8 @@ contains
 
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d, nodata_i4, mask=mask_2d)
+
+          call nc%close()
         end if
         select case (iVar)
         case(1) ! flow accumulation
@@ -186,7 +188,7 @@ contains
               call message('***ERROR: Gauge ID "', trim(adjustl(num2str(domain_mrm(iDomain)%gaugeIdList(iGauge)))), &
                       '" not found in ')
               call message('          Gauge location input file: ', &
-                      trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_gaugeloc)))
+                      trim(adjustl(dirGauges(iDomain))) // trim(adjustl(file_gaugeloc)))
               stop
             end if
           end do
@@ -205,7 +207,7 @@ contains
                         trim(adjustl(num2str(domain_mrm(iDomain)%InflowGaugeIdList(iGauge)))), &
                         '" not found in ')
                 call message('          Gauge location input file: ', &
-                        trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_gaugeloc)))
+                        trim(adjustl(dirGauges(iDomain))) // trim(adjustl(file_gaugeloc)))
                 stop 1
               end if
             end do
@@ -214,7 +216,6 @@ contains
           call append(L0_InflowGaugeLoc, pack(data_i4_2d, level0_iDomain%mask))
 
         end select
-        call nc%close()
         !
         ! deallocate arrays
         deallocate(data_i4_2d)
