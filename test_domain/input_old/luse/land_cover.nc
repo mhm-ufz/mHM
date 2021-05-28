@@ -1,1 +1,0 @@
-../../input_new/mpr/land_cover.nc

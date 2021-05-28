@@ -1,1 +1,0 @@
-../../input_new/optional_data/sm.nc
