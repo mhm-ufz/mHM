@@ -112,7 +112,7 @@ CONTAINS
       call variables_alloc(level1(iDomain)%nCells)
 
       ! L2 inialization
-      call infer_grid_info(trim(dirPrecipitation(iDomain)) // 'pre.nc', 'xc', 'yc', 'pre', level2(iDomain))
+      call infer_grid_info(trim(dirPrecipitation(iDomain)) // 'pre.nc', 'x', 'y', 'pre', level2(iDomain))
 
       level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
       call calculate_grid_properties(level0_iDomain%nrows, level0_iDomain%ncols, &
