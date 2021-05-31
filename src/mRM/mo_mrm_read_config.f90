@@ -461,29 +461,21 @@ contains
     real(dp), dimension(nColPars) :: streamflow_celerity
     real(dp), dimension(nColPars) :: slope_factor
 
-    namelist /routing1/ muskingumTravelTime_constant, muskingumTravelTime_riverLength, &
-            muskingumTravelTime_riverSlope, muskingumTravelTime_impervious, muskingumAttenuation_riverSlope
-    namelist /routing2/ streamflow_celerity
-    namelist /routing3/ slope_factor
+
+    namelist /mrm_parameters/ muskingumTravelTime_constant, muskingumTravelTime_riverLength, &
+            muskingumTravelTime_riverSlope, muskingumTravelTime_impervious, muskingumAttenuation_riverSlope,&
+            streamflow_celerity, slope_factor
     !
     call open_nml(file_namelist_param, unamelist_param, quiet = .true.)
 
-    if (processCase .eq. 1_i4) then
-      call position_nml('routing1', unamelist_param)
-      read(unamelist_param, nml = routing1)
-    else if (processCase .eq. 2_i4) then
-       call position_nml('routing2', unamelist_param)
-       read(unamelist_param, nml = routing2)
-    else if (processCase .eq. 3_i4) then
-       call position_nml('routing3', unamelist_param)
-       read(unamelist_param, nml = routing3)
-    end if
+    call position_nml('mrm_parameters', unamelist_param)
+    read(unamelist_param, nml = mrm_parameters)
 
     ! -------------------------------------------------------------------------
     ! INCLUDE MRM PARAMETERS IN PARAMETERS OF MHM
     ! -------------------------------------------------------------------------
     ! Muskingum routing parameters with MPR
-    if (processCase .eq. 1_i4) then
+    if (processCase == 1_i4) then
       ! insert parameter values and names at position required by mhm
       processMatrix(8, 1) = processCase
       processMatrix(8, 2) = 5_i4
@@ -495,24 +487,24 @@ contains
       global_parameters(start_index + 4, :) = muskingumTravelTime_impervious
       global_parameters(start_index + 5, :) = muskingumAttenuation_riverSlope
 
-      global_parameters_name(start_index + 1 : start_index + processMatrix(8, 2)) = (/ &
+      global_parameters_name(start_index + 1 : start_index + processMatrix(8, 2)) = [ &
               'muskingumTravelTime_constant   ', &
                       'muskingumTravelTime_riverLength', &
                       'muskingumTravelTime_riverSlope ', &
                       'muskingumTravelTime_impervious ', &
-                      'muskingumAttenuation_riverSlope'/)
+              'muskingumAttenuation_riverSlope']
       ! adaptive timestep routing
-    else if (processCase .eq. 2_i4) then
+    else if (processCase == 2_i4) then
       processMatrix(8, 1) = processCase
       processMatrix(8, 2) = 1_i4
       processMatrix(8, 3) = sum(processMatrix(1 : 8, 2))
       start_index = processMatrix(8, 3) - processMatrix(8, 2)
       global_parameters(start_index + 1, :) = streamflow_celerity
 
-      global_parameters_name(start_index + 1 : start_index + processMatrix(8, 2)) = (/ &
-              'streamflow_celerity'/)
+      global_parameters_name(start_index + 1 : start_index + processMatrix(8, 2)) = [ &
+              'streamflow_celerity']
      ! adaptive timestep routing - varying celerity
-     else if (processCase .eq. 3_i4) then
+     else if (processCase == 3_i4) then
         ! insert parameter values and names at position required by mhm
         processMatrix(8, 1) = processCase
         processMatrix(8, 2) = 1_i4
@@ -520,13 +512,13 @@ contains
         start_index         = processMatrix(8, 3) - processMatrix(8, 2)
         global_parameters(start_index + 1, :) = slope_factor
 
-        global_parameters_name(start_index + 1 : start_index + processMatrix(8,2)) = (/ &
-             'slope_factor'/)
+        global_parameters_name(start_index + 1 : start_index + processMatrix(8,2)) = [ &
+             'slope_factor']
     end if
 
     ! check if parameter are in range
     if (.not. in_bound(global_parameters)) then
-      call message('***ERROR: parameter in routing namelist out of bound in ', &
+      call message('***ERROR: parameter in namelist "mrm_parameters" out of bound in ', &
               trim(adjustl(file_namelist_param)))
       stop
     end if
