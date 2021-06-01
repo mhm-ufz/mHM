@@ -1,4 +1,4 @@
-!>       \file mo_common_mHM_mRM_MPI_tools.f90
+!>       \file use mo_common_mpi_tools.f90
 
 !>       \brief tools for MPI communication that are mHM or mRM specific
 
@@ -11,7 +11,7 @@
 
 ! Modifications:
 
-MODULE mo_common_mhm_mrm_mpi_tools
+MODULE mo_common_mpi_tools
 
   use mo_kind, only : i4, dp
 
@@ -59,4 +59,4 @@ contains
     call MPI_Recv(parameterset, dimen, MPI_DOUBLE_PRECISION, 0, 0, domainMeta%comMaster, status, ierror)
   end subroutine get_parameterset
 #endif
-END MODULE mo_common_mhm_mrm_mpi_tools
+END MODULE mo_common_mpi_tools
