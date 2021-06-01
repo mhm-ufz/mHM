@@ -752,7 +752,7 @@ contains
 
   subroutine mrm_write_optifile(best_OF, best_paramSet, param_names)
 
-    use mo_common_mhm_mrm_file, only : file_opti, uopti
+    use mo_common_file, only : file_opti, uopti
     use mo_common_variables, only : dirConfigOut
     use mo_message, only : message
     use mo_string_utils, only : num2str
@@ -831,7 +831,7 @@ contains
 
   subroutine mrm_write_optinamelist(parameters, maskpara, parameters_name)
 
-    use mo_common_mhm_mrm_file, only : file_opti_nml, uopti_nml
+    use mo_common_file, only : file_opti_nml, uopti_nml
     use mo_common_variables, only : dirConfigOut, processMatrix
     use mo_message, only : message
     use mo_string_utils, only : num2str
