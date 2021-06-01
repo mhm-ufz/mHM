@@ -1,6 +1,6 @@
 mkdir mpi_debug
 cd mpi_debug/
-cmake -DCMAKE_WITH_MPI=ON -DCMAKE_BUILD_TYPE=Debug ..
+cmake -DCMAKE_WITH_MPI=ON -DCMAKE_BUILD_TYPE=Debug ${1} ..
 make -j 4
 cd ..
 cp mpi_debug/mhm ./mhm_mpi_debug

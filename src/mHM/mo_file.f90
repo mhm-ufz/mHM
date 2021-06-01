@@ -51,5 +51,10 @@ MODULE mo_file
   CHARACTER(len = *), PARAMETER :: file_defOutput = 'mhm_outputs.nml'
   !> Unit for file defining mHM's outputs
   INTEGER, PARAMETER :: udefOutput = 67
+  CHARACTER(len = *), PARAMETER :: varNameLAIclass = 'lai_class'
+  CHARACTER(len = *), PARAMETER :: varNameSoilClass = 'soil_class'
+  CHARACTER(len = *), PARAMETER :: varNameGeoClass = 'geology_class'
+  CHARACTER(len = *), PARAMETER :: varNameSlope = 'slope'
+  CHARACTER(len = *), PARAMETER :: varNameAspect = 'aspect'
 
 END MODULE mo_file

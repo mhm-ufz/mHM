@@ -1,10 +1,10 @@
 &directories_general
-    dir_lcover(1:6) = '../../test_domain/input/luse/', '../../test_domain/input/luse/',
-                      '../../test_domain_2/input/luse/', '../../test_domain/input/luse/',
-                      '../../test_domain/input/luse/', '../../test_domain_2/input/luse/'
-    dir_morpho(1:6) = '../../test_domain/input/morph/', '../../test_domain/input/morph/',
-                      '../../test_domain_2/input/morph/', '../../test_domain/input/morph/',
-                      '../../test_domain/input/morph/', '../../test_domain_2/input/morph/'
+    dir_lcover(1:6) = '../../test_domain/input/mpr/', '../../test_domain/input/mpr/',
+                      '../../test_domain_2/input/mpr/', '../../test_domain/input/mpr/',
+                      '../../test_domain/input/mpr/', '../../test_domain_2/input/mpr/'
+    dir_morpho(1:6) = '../../test_domain/input/mpr/', '../../test_domain/input/mpr/',
+                      '../../test_domain_2/input/mpr/', '../../test_domain/input/mpr/',
+                      '../../test_domain/input/mpr/', '../../test_domain_2/input/mpr/'
     dir_out(1:6) = 'output_b1/b1_', 'output_b1/b2_', 'output_b1/b3_', 'output_b1/b4_',
                    'output_b1/b5_', 'output_b1/b6_'
     mhm_file_restartout(1:6) = 'output_b1/b1_mHM_restart_001.nc', 'output_b1/b2_mHM_restart_002.nc',
@@ -13,11 +13,11 @@
     mrm_file_restartout(1:6) = 'output_b1/b1_mRM_restart_001.nc', 'output_b1/b2_mRM_restart_002.nc',
                                'output_b1/b3_mRM_restart_003.nc', 'output_b1/b4_mRM_restart_004.nc',
                                'output_b1/b5_mRM_restart_005.nc', 'output_b1/b6_mRM_restart_006.nc'
-    dircommonfiles = '../../test_domain/input/morph/'
+    dircommonfiles = '../../test_domain/input/mpr/'
     dirconfigout = 'output_b1/'
-    file_latlon(1:6) = '../../test_domain/input/latlon/latlon_1.nc', '../../test_domain/input/latlon/latlon_2.nc',
-                       '../../test_domain_2/input/latlon/latlon.nc', '../../test_domain/input/latlon/latlon_1.nc',
-                       '../../test_domain/input/latlon/latlon_2.nc', '../../test_domain_2/input/latlon/latlon.nc'
+    file_latlon(1:6) = '../../test_domain/input/mpr/latlon_1.nc', '../../test_domain/input/mpr/latlon_2.nc',
+                       '../../test_domain_2/input/mpr/latlon.nc', '../../test_domain/input/mpr/latlon_1.nc',
+                       '../../test_domain/input/mpr/latlon_2.nc', '../../test_domain_2/input/mpr/latlon.nc'
 /
 
 &directories_mhm
@@ -25,27 +25,27 @@
     dir_maxtemperature(1) = '../../test_domain/input/meteo/'
     dir_mintemperature(1) = '../../test_domain/input/meteo/'
     dir_netradiation(1) = '../../test_domain/input/meteo/'
-    dir_precipitation(1:6) = '../../test_domain/input/meteo/pre/', '../../test_domain/input/meteo/pre/',
-                             '../../test_domain_2/input/meteo/pre/', '../../test_domain/input/meteo/pre/',
-                             '../../test_domain/input/meteo/pre/', '../../test_domain_2/input/meteo/pre/'
-    dir_referenceet(1:6) = '../../test_domain/input/meteo/pet/', '../../test_domain/input/meteo/pet/',
-                           '../../test_domain_2/input/meteo/pet/', '../../test_domain/input/meteo/pet/',
-                           '../../test_domain/input/meteo/pet/', '../../test_domain_2/input/meteo/pet/'
-    dir_temperature(1:6) = '../../test_domain/input/meteo/tavg/', '../../test_domain/input/meteo/tavg/',
-                           '../../test_domain_2/input/meteo/tavg/', '../../test_domain/input/meteo/tavg/',
-                           '../../test_domain/input/meteo/tavg/', '../../test_domain_2/input/meteo/tavg/'
+    dir_precipitation(1:6) = '../../test_domain/input/meteo/', '../../test_domain/input/meteo/',
+                             '../../test_domain_2/input/meteo/', '../../test_domain/input/meteo/',
+                             '../../test_domain/input/meteo/', '../../test_domain_2/input/meteo/'
+    dir_referenceet(1:6) = '../../test_domain/input/meteo/', '../../test_domain/input/meteo/',
+                           '../../test_domain_2/input/meteo/', '../../test_domain/input/meteo/',
+                           '../../test_domain/input/meteo/', '../../test_domain_2/input/meteo/'
+    dir_temperature(1:6) = '../../test_domain/input/meteo/', '../../test_domain/input/meteo/',
+                           '../../test_domain_2/input/meteo/', '../../test_domain/input/meteo/',
+                           '../../test_domain/input/meteo/', '../../test_domain_2/input/meteo/'
     dir_windspeed(1) = '../../test_domain/input/meteo/'
     inputformat_meteo_forcings = 'nc'
     time_step_model_inputs(1:6) = 0, 0, 0, 0, 0, 0
 /
 
 &directories_mrm
-    dir_gauges(1:6) = '../../test_domain/input/gauge/', '../../test_domain/input/gauge/',
-                      '../../test_domain_2/input/gauge/', '../../test_domain/input/gauge/',
-                      '../../test_domain/input/gauge/', '../../test_domain_2/input/gauge/'
-    dir_total_runoff(1:6) = '../../test_domain/input/gauge/', '../../test_domain/input/gauge/',
-                            '../../test_domain_2/input/gauge/', '../../test_domain/input/gauge/',
-                            '../../test_domain/input/gauge/', '../../test_domain_2/input/gauge/'
+    dir_gauges(1:6) = '../../test_domain/input/routing/', '../../test_domain/input/routing/',
+                      '../../test_domain_2/input/routing/', '../../test_domain/input/routing/',
+                      '../../test_domain/input/routing/', '../../test_domain_2/input/routing/'
+    dir_total_runoff(1:6) = '../../test_domain/input/routing/', '../../test_domain/input/routing/',
+                            '../../test_domain_2/input/routing/', '../../test_domain/input/routing/',
+                            '../../test_domain/input/routing/', '../../test_domain_2/input/routing/'
 /
 
 &evaluation_gauges

@@ -172,15 +172,17 @@ CONTAINS
       domainID = domainMeta%indices(iDomain)
       write(uconfig, 115) '                      Model Run Periods for Domain ', num2str(domainID)
       write(uconfig, 116) &
-              'From                To', &
+              'From', 'To', &
               '   Day Month  Year   Day Month  Year'
       write(uconfig, 117)  &
               'Warming Period (1)            ', &
               warmPer(iDomain)%dStart, warmPer(iDomain)%mStart, warmPer(iDomain)%yStart, &
-              warmPer(iDomain)%dEnd, warmPer(iDomain)%mEnd, warmPer(iDomain)%yEnd, &
+              warmPer(iDomain)%dEnd, warmPer(iDomain)%mEnd, warmPer(iDomain)%yEnd
+      write(uconfig, 117)  &
               'Evaluation Period (2)         ', &
               evalPer(iDomain)%dStart, evalPer(iDomain)%mStart, evalPer(iDomain)%yStart, &
-              evalPer(iDomain)%dEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%yEnd, &
+              evalPer(iDomain)%dEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%yEnd
+      write(uconfig, 117)  &
               'Simulation Period (1)+(2)     ', &
               SimPer(iDomain)%dStart, SimPer(iDomain)%mStart, SimPer(iDomain)%yStart, &
               SimPer(iDomain)%dEnd, SimPer(iDomain)%mEnd, SimPer(iDomain)%yEnd
@@ -191,12 +193,16 @@ CONTAINS
     !*********************************
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      write(uconfig, 118) '       Land Cover Observations for Domain ', num2str(domainID)
-      write(uconfig, 119) ' Start Year', ' End Year', '    Land cover scene', 'Land Cover File'
-      do i = 1, nLCoverScene
-        write(uconfig, 120) LC_year_start(i), LC_year_end(i), &
-                LCyearId(max(evalPer(iDomain)%yStart, LC_year_start(i)), iDomain), trim(LCfilename(i))
+      write(uconfig, 118) '     Land Cover Observations for Domain ', num2str(domainID)
+      ! write(uconfig, 119) ' Start Year', ' End Year', '    Land cover scene', 'Land Cover File'
+      write(uconfig, 119) ' Year', '   Land cover period'
+      do i = simPer(iDomain)%ystart, simPer(iDomain)%yend
+        write(uconfig, 120) i, LCyearId(i, iDomain)
       end do
+      ! do i = 1, nLCoverScene
+      !   write(uconfig, 120) LC_year_start(i), LC_year_end(i), &
+      !           LCyearId(max(evalPer(iDomain)%yStart, LC_year_start(i)), iDomain), trim(LCfilename(i))
+      ! end do
     end do
     !*********************************
     ! Initial Parameter Ranges
@@ -363,12 +369,12 @@ CONTAINS
     114 format (30('-') / a15, 5x, 1f10.3 /)
     !
     115 format (/61('-')/ a50, a10 /61('-'))
-    116 format (39x, a22 / 25x, a36)
-    117 format (3(a25, 6(i6)))
+    116 format (28x, a4, 14x, a2/ 25x, a36)
+    117 format (a25, 6(i6))
     !
     118 format (/50('-')/ a40, a10  /50('-'))
-    119 format (a10, a10, a20, a20/)
-    120 format (i10, i10, 10x, i10, a20)
+    119 format (a10, a20)
+    120 format (i10, i20)
     !
     121 format (/55('-')/ a55 /55('-'))
     122 format (a10, 3a15, a35)

@@ -281,9 +281,8 @@ CONTAINS
         else
           iDomain = ii
         end if
-        domainID = domainMeta%indices(iDomain)
         ! this reads the eff. parameters and optionally the states and fluxes
-        call read_restart_states(iDomain, domainID, mhmFileRestartIn(iDomain))
+        call read_restart_states(iDomain, mhmFileRestartIn(iDomain))
       end do
     end if
 

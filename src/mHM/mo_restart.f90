@@ -99,7 +99,7 @@ CONTAINS
   subroutine write_restart_files(OutFile)
 
     use mo_common_constants, only : nodata_dp
-    use mo_common_restart, only : write_grid_info
+    use mo_grid, only : write_grid_info
     use mo_common_variables, only : level1, nLCoverScene, domainMeta, LC_year_start, LC_year_end
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
                                     L1_fastRunoff, L1_infilSoil, L1_melt, L1_percol, L1_preEffect, L1_rain, &
@@ -167,7 +167,7 @@ CONTAINS
       allocate(dummy_1D(nSoilHorizons_mHM+1))
       dummy_1D(1) = 0.0_dp
       dummy_1D(2:nSoilHorizons_mHM+1) = HorizonDepth_mHM(:)
-      soil1 = nc%setDimension(trim(soilHorizonsVarName), nSoilHorizons_mHM, dummy_1D, 2_i4)
+      soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons_mHM, dummy_1D, 2_i4)
       deallocate(dummy_1D)
       allocate(dummy_1D(nLCoverScene+1))
       dummy_1D(1:nLCoverScene) = LC_year_start(:)
@@ -175,10 +175,10 @@ CONTAINS
       ! 1981-1990,1991-2000 is thus saved as 1981.0-1991.0,1991.0-2001.0
       ! it is translated back into ints correctly during reading
       dummy_1D(nLCoverScene+1) = LC_year_end(nLCoverScene) + 1
-      lcscenes = nc%setDimension(trim(landCoverPeriodsVarName), nLCoverScene, dummy_1D, 0_i4)
+      lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), nLCoverScene, dummy_1D, 0_i4)
       deallocate(dummy_1D)
       ! write the dimension to the file
-      lais = nc%setDimension(trim(LAIVarName), nLAI, LAIBoundaries, 0_i4)
+      lais = nc%setCoordinate(trim(LAIVarName), nLAI, LAIBoundaries, 0_i4)
 
       ! for appending and intialization
       allocate(dummy_3D(rows1%getLength(), cols1%getLength(), max_extent))
@@ -341,9 +341,9 @@ CONTAINS
   ! Stephan Thober Nov  2016 - moved processMatrix to common variables
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_restart_states(iDomain, domainID, InFile)
+  subroutine read_restart_states(iDomain, InFile)
 
-    use mo_common_variables, only : LC_year_end, LC_year_start, level1, nLCoverScene, processMatrix
+    use mo_common_variables, only : level1, nLCoverScene, processMatrix
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, &
                                     L1_aETSealed, L1_aETSoil, L1_baseflow, L1_fastRunoff, L1_infilSoil, L1_melt, &
                                     L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
@@ -364,8 +364,6 @@ CONTAINS
 
     ! number of domain
     integer(i4), intent(in) :: iDomain
-
-    integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
     character(256), intent(in) :: InFile
@@ -418,27 +416,27 @@ CONTAINS
     ! get the dimensions
     var = nc%getVariable(trim(soilHorizonsVarName)//'_bnds')
     call var%getData(dummyD2)
-    nSoilHorizons_temp = size(dummyD2, 1)
+    nSoilHorizons_temp = size(dummyD2, 2)
     allocate(soilHorizonBoundaries_temp(nSoilHorizons_temp+1))
-    soilHorizonBoundaries_temp(1:nSoilHorizons_temp) = dummyD2(:,1)
-    soilHorizonBoundaries_temp(nSoilHorizons_temp+1) = dummyD2(nSoilHorizons_temp,2)
+    soilHorizonBoundaries_temp(1:nSoilHorizons_temp) = dummyD2(1,:)
+    soilHorizonBoundaries_temp(nSoilHorizons_temp+1) = dummyD2(2, nSoilHorizons_temp)
 
     ! get the landcover dimension
     var = nc%getVariable(trim(landCoverPeriodsVarName)//'_bnds')
     call var%getData(dummyD2)
-    nLandCoverPeriods_temp = size(dummyD2, 1)
+    nLandCoverPeriods_temp = size(dummyD2, 2)
     allocate(landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1))
-    landCoverPeriodBoundaries_temp(1:nLandCoverPeriods_temp) = dummyD2(:,1)
-    landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1) = dummyD2(nLandCoverPeriods_temp,2)
+    landCoverPeriodBoundaries_temp(1:nLandCoverPeriods_temp) = dummyD2(1,:)
+    landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1) = dummyD2(2, nLandCoverPeriods_temp)
 
     ! get the LAI dimension
     if (nc%hasVariable(trim(LAIVarName)//'_bnds')) then
       var = nc%getVariable(trim(LAIVarName)//'_bnds')
       call var%getData(dummyD2)
-      nLAIs_temp = size(dummyD2, 1)
+      nLAIs_temp = size(dummyD2, 2)
       allocate(LAIBoundaries_temp(nLAIs_temp+1))
-      LAIBoundaries_temp(1:nLAIs_temp) = dummyD2(:,1)
-      LAIBoundaries_temp(nLAIs_temp+1) = dummyD2(nLAIs_temp,2)
+      LAIBoundaries_temp(1:nLAIs_temp) = dummyD2(1,:)
+      LAIBoundaries_temp(nLAIs_temp+1) = dummyD2(2,nLAIs_temp)
     else if (nc%hasDimension('L1_LAITimesteps')) then
       nc_dim = nc%getDimension('L1_LAITimesteps')
       nLAIs_temp = nc_dim%getLength()

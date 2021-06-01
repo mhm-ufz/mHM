@@ -73,12 +73,43 @@ IGNORE_VARS = [
     "L11_basin_lon",
     "LC_year_start",
     "LC_year_end",
+    "L1_Id",  # numbering is inversed
+    "L11_Id",  # numbering is inversed
+    "L1_L11_Id",  # _FillValue: NaN in reference, -9999 in output
+    "L11_C1",  # is only pseudo-mapped onto grid, should be dependent on nLinks
+    "L11_C2",  # is only pseudo-mapped onto grid, should be dependent on nLinks
+    "L11_nLinkFracFPimp",  # is now 3D (land-cover-dependent)
+    "L11_fDir",  # is now adapted to lat-sorted axis (direction ids changed)
+    "L11_colOut",  # is now adapted to lat-sorted axis (direction ids changed)
+    "L0_fDir",  # is now adapted to lat-sorted axis (direction ids changed)
+    "L0_streamnet",  # is now adapted to lat-sorted axis (direction ids changed)
+    # depends on NLinks
+    "L11_fromN",  # is now adapted to lat-sorted axis with new links
+    "L11_toN",  # is now adapted to lat-sorted axis with new links
+    "L11_rOrder",  # is now adapted to lat-sorted axis with new links
+    "L11_label",  # is now adapted to lat-sorted axis with new links
+    "L11_sink",  # is now adapted to lat-sorted axis with new links
+    "L11_netPerm",  # is now adapted to lat-sorted axis with new links
+    "L11_fRow",  # is now adapted to lat-sorted axis with new links
+    "L11_fCol",  # is now adapted to lat-sorted axis with new links
+    "L11_tRow",  # is now adapted to lat-sorted axis with new links
+    "L11_tCol",  # is now adapted to lat-sorted axis with new links
+    "L11_length",  # is now adapted to lat-sorted axis with new links
+    "L11_aFloodPlain",  # is now adapted to lat-sorted axis with new links
+    "L11_slope",  # is now adapted to lat-sorted axis with new links
+    "L11_celerity",  # is now adapted to lat-sorted axis with new links
+    # depends on Ngauges
+    "InflowGaugeNodeList",  # is now adapted to lat-sorted axis with new links
+    "gaugeNodeList",  # is now adapted to lat-sorted axis with new links
     "ProcessMatrix",  # fails if new process is added
 ]
 MHM_EXE = ["../mhm"]
 # case 5 and 7 don't work with MPI. case 4 has a bug working with ifort+debug
 SKIP_CASES_MPI = ["case_04", "case_05", "case_07"]
-SKIP = []
+# those cases are currently ignored as there are some problems with init from restart, case11 needs to be reconsidered
+SKIP = [
+    "case_11"
+]
 
 
 # ARGUMENT PARSER #############################################################

@@ -29,26 +29,16 @@ MODULE mo_mrm_file
   !> Unit for namelist
   INTEGER, PARAMETER :: unamelist_param_mrm = 41                            ! set different from mhm
 
-  CHARACTER(len = *), PARAMETER :: file_facc = 'facc.asc'                    ! flow accumulation
-  !> Unit for  flow accumulation input data file
-  INTEGER, PARAMETER :: ufacc = 56                            !
+  CHARACTER(len = *), PARAMETER :: file_facc = 'facc.nc'                    ! flow accumulation
   !> flow direction input data file
-  CHARACTER(len = *), PARAMETER :: file_fdir = 'fdir.asc'                    ! flow direction
-  !> Unit for  flow direction input data file
-  INTEGER,          PARAMETER :: ufdir = 57                            ! 
+  CHARACTER(len = *), PARAMETER :: file_fdir = 'fdir.nc'                    ! flow direction
   !> flow direction input data file
-  CHARACTER(len=*), PARAMETER :: file_slope              = 'slope.asc'                    ! slope
-  !> Unit for  flow direction input data file
-  INTEGER,          PARAMETER :: uslope                  = 59                            ! 
+  CHARACTER(len=*), PARAMETER :: file_slope = 'slope.nc'                    ! slope
 
   !> gauge location input data file
-  CHARACTER(len = *), PARAMETER :: file_gaugeloc = 'idgauges.asc'                ! gauge location
-  !> Unit for  gauge location input data file
-  INTEGER, PARAMETER :: ugaugeloc = 62                            !
-
+  CHARACTER(len = *), PARAMETER :: file_gaugeloc = 'idgauges.nc'                ! gauge location
   !> unit for discharge time series 
   INTEGER, PARAMETER :: udischarge = 66                            !
-
   !> file defining mRM's outputs
   CHARACTER(len = *), PARAMETER :: file_defOutput = 'mrm_outputs.nml'             ! output states and fluxes
   !> Unit for file defining mRM's outputs
