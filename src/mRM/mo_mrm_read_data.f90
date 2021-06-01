@@ -50,7 +50,7 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! Stephan Thober Jun 2018 - including varying celerity functionality
 
-  subroutine mrm_read_L0_data(do_reinit, do_readlatlon, do_readlcover)
+  subroutine mrm_read_L0_data(do_readlcover)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
@@ -64,10 +64,6 @@ contains
     use mo_string_utils, only : num2str
 
     implicit none
-
-    logical, intent(in) :: do_reinit
-
-    logical, intent(in) :: do_readlatlon
 
     logical, intent(in) :: do_readlcover
 
@@ -93,9 +89,7 @@ contains
     ! ************************************************
     ! READ SPATIAL DATA FOR EACH DOMAIN
     ! ************************************************
-    if (do_reinit) then
-      call read_dem()
-    end if
+    call read_dem()
 
     if (do_readlcover .and. processMatrix(8, 1) .eq. 1) then
       call read_lcover()
@@ -116,7 +110,6 @@ contains
 
       level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
 
-      ! ToDo: check if change is correct
       ! check whether L0 data is shared
       if (domainMeta%L0DataFrom(iDomain) < iDomain) then
         !
@@ -127,12 +120,7 @@ contains
         !
       end if
       !
-      call message('      Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
-
-      if (do_readlatlon) then
-        ! read lat lon coordinates of each domain
-        call read_latlon(iDomain, "lon_l0", "lat_l0", "level0", level0_iDomain)
-      end if
+      call message('      Reading data for basin: ', trim(adjustl(num2str(iBasin))), ' ...')
 
       ! read fAcc, fDir, gaugeLoc
       do iVar = 1, 3
@@ -177,7 +165,6 @@ contains
           call append(L0_fAcc, pack(data_i4_2d, level0_iDomain%mask))
         case(2) ! flow direction
           ! TODO: if a flipping occurs, we have to rotate the fdir variable
-          ! append
           call append(L0_fDir, pack(data_i4_2d, level0_iDomain%mask))
         case(3) ! location of evaluation and inflow gauging stations
           ! evaluation gauges

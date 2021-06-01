@@ -29,6 +29,12 @@ MODULE mo_mrm_file
   !> Unit for namelist
   INTEGER, PARAMETER :: unamelist_param_mrm = 41                            ! set different from mhm
 
+  !> DEM input data file
+  CHARACTER(len=*), PARAMETER :: file_dem = 'dem.nc'                     ! DEM
+
+  !> land cover input data file
+  CHARACTER(len=*), PARAMETER :: file_lcover = 'land_cover.nc'              ! land_cover
+
   CHARACTER(len = *), PARAMETER :: file_facc = 'facc.nc'                    ! flow accumulation
   !> flow direction input data file
   CHARACTER(len = *), PARAMETER :: file_fdir = 'fdir.nc'                    ! flow direction

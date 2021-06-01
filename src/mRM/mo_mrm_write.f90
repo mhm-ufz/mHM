@@ -247,14 +247,13 @@ contains
     !*********************************
     ! Model Land Cover Observations
     !*********************************
-    if (processMatrix(8, 1) .eq. 1) then
+    if (processMatrix(8, 1) == 1) then
       do iDomain = 1, domainMeta%nDomains
         domainID = domainMeta%indices(iDomain)
         write(uconfig, 118) '       Land Cover Observations for domain ', num2str(domainID)
-        write(uconfig, 119) ' Start Year', ' End Year', '    Land cover scene', 'Land Cover File'
-        do i = 1, nLCoverScene
-          write(uconfig, 120) LC_year_start(i), LC_year_end(i), &
-                  LCyearId(max(evalPer(iDomain)%yStart, LC_year_start(i)), iDomain), trim(LCfilename(i))
+        write(uconfig, 119) ' Year', '    Land cover period'
+        do i = simPer(j)%ystart, simPer(j)%yend
+          write(uconfig, 120) i, LCyearId(i, j)
         end do
       end do
     end if
@@ -423,8 +422,8 @@ contains
     117 format (3(a25, 6(i6)))
     !
     118 format (/50('-')/ a40, a10  /50('-'))
-    119 format (a10, a10, a20, a20/)
-    120 format (i10, i10, 10x, i10, a20)
+    119 format (a10, a25)
+    120 format (i10, i10)
     !
     121 format (/55('-')/ a55 /55('-'))
     122 format (a10, 3a15, a35)
@@ -868,12 +867,8 @@ contains
     write(uopti_nml, *) '!global_parameters'
     write(uopti_nml, *) '!PARAMETER                       lower_bound  upper_bound          value   FLAG  SCALING'
 
+    write(uopti_nml, *) '&mrm_parameters'
     write(uopti_nml, *) '! ', trim(adjustl('routing'))
-
-    if (processMatrix(8, 1) .eq. 1_i4) write(uopti_nml, *) '&routing1'
-    if (ProcessMatrix(8, 1) .eq. 2_i4) write(uopti_nml, *) '&routing2'
-    if (ProcessMatrix(8, 1) .eq. 3_i4) write(uopti_nml, *) '&routing3'
-
     do iPar = 1, size(parameters, 1)
       if (maskpara(iPar)) then
         flag = ' 1 '

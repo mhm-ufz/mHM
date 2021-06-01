@@ -52,7 +52,7 @@ contains
   ! Stephan Thober    Jun 2018 - including varying celerity functionality
   ! Stephan Thober    May 2019 - added L0 info required for Process 3
 
-  subroutine mrm_write_restart(iDomain, domainID, OutFile)
+  subroutine mrm_write_restart(iDomain, OutFile)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_grid, only : write_grid_info
@@ -78,18 +78,12 @@ contains
     ! number of domain
     integer(i4), intent(in) :: iDomain
 
-    ! domain
-    integer(i4), intent(in) :: domainID
-
     ! list of Output paths per Domain
     character(256), dimension(:), intent(in) :: OutFile
 
     character(256) :: Fname
 
     integer(i4) :: ii
-
-    ! number of outlets at Level 0
-    integer(i4) :: Noutlet
 
     ! start index at level 0
     integer(i4) :: s0
@@ -133,7 +127,7 @@ contains
 
     type(NcDataset) :: nc
 
-    type(NcDimension) :: rows0, cols0, rows1, cols1, rows11, cols11, it11, lcscenes, nout
+    type(NcDimension) :: rows0, cols0, rows1, cols1, rows11, cols11, it11, lcscenes
 
     type(NcDimension) :: links, nts, nproc
 
@@ -141,10 +135,6 @@ contains
 
 
     ! get Level1 and Level11 information about the Domain
-    noutlet = domain_mrm(domainMeta%L0DataFrom(iDomain))%L0_noutlet
-    s0 = level0(domainMeta%L0DataFrom(iDomain))%iStart
-    e0 = level0(domainMeta%L0DataFrom(iDomain))%iEnd
-    mask0 = level0(domainMeta%L0DataFrom(iDomain))%mask
     s1 = level1(iDomain)%iStart
     e1 = level1(iDomain)%iEnd
     mask1 = level1(iDomain)%mask
@@ -162,13 +152,9 @@ contains
 
     nc = NcDataset(fname, "w")
 
-    call write_grid_info(level0(domainMeta%L0DataFrom(iDomain)), "0", nc)
     call write_grid_info(level1(iDomain), "1", nc)
     call write_grid_info(level11(iDomain), "11", nc)
 
-    nout = nc%setDimension("Noutlet", Noutlet)
-    rows0 = nc%getDimension("nrows0")
-    cols0 = nc%getDimension("ncols0")
     rows1 = nc%getDimension("nrows1")
     cols1 = nc%getDimension("ncols1")
     rows11 = nc%getDimension("nrows11")
@@ -178,6 +164,7 @@ contains
     links = nc%setDimension("nLinks", size(L11_length(s11 : e11)))
     nts = nc%setDimension("TS", 1)
     nproc = nc%setDimension("Nprocesses", size(processMatrix, dim = 1))
+    ! TODO: MPR replace by commented section
     allocate(dummy_d1(nLCoverScene+1))
     dummy_d1(1:nLCoverScene) = LC_year_start(:)
     ! this is done because bounds are always stored as real so e.g.
@@ -187,6 +174,19 @@ contains
     lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), nLCoverScene, dummy_d1, 0_i4)
     deallocate(dummy_d1)
 
+    ! iBasinNLandCoverPeriods = maxval(LCyearId(:, iBasin), LCyearId(:, iBasin) /= nodata_i4)
+    ! allocate(landCoverPeriodBoundaries(0: iBasinNLandCoverPeriods))
+    ! iBoundary = 0_i4
+    ! do iYear=simPer(iBasin)%ystart, simPer(iBasin)%yend
+    !   if(LCyearId(iYear, iBasin) > iBoundary) then
+    !     landCoverPeriodBoundaries(iBoundary) = iYear
+    !     iBoundary = iBoundary + 1_i4
+    !   end if
+    ! end do
+    ! landCoverPeriodBoundaries(iBoundary) = iYear
+    !
+    ! lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iBasinNLandCoverPeriods, &
+    !         landCoverPeriodBoundaries, 0_i4)
 
     ! add processMatrix
     var = nc%setVariable("ProcessMatrix", "i32", (/nproc/))
@@ -196,6 +196,14 @@ contains
 
     ! add L0 variables if processmatrix is equal to 3
     if (processMatrix(8, 1) .eq. 3_i4) then
+      s0 = level0(domainMeta%L0DataFrom(iDomain))%iStart
+      e0 = level0(domainMeta%L0DataFrom(iDomain))%iEnd
+      mask0 = level0(domainMeta%L0DataFrom(iDomain))%mask
+
+      call write_grid_info(level0(domainMeta%L0DataFrom(iDomain)), "0", nc)
+      rows0 = nc%getDimension("nrows0")
+      cols0 = nc%getDimension("ncols0")
+
       ! add L0_fdir, L0_fAcc, L0_slope, L0_streamnet
       var = nc%setVariable("L0_fDir", "i32", (/rows0, cols0/))
       call var%setFillValue(nodata_i4)
@@ -218,6 +226,7 @@ contains
       call var%setAttribute("long_name", "streamnet at level 0")
     end if
 
+    ! TODO: remove, because not needed?
     var = nc%setVariable("L1_Id", "i32", (/rows1, cols1/))
     call var%setFillValue(nodata_i4)
     call var%setData(unpack(level1(iDomain)%Id(1:e1-s1+1), mask1, nodata_i4))
@@ -288,6 +297,7 @@ contains
     ! ----------------------------------------------------------
     ! L11 config set
     ! ----------------------------------------------------------
+    ! TODO: remove, because not needed?
     var = nc%setVariable("L11_domain_Mask", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
     call var%setData(merge(1_i4, 0_i4,  mask11))
@@ -299,6 +309,7 @@ contains
     call var%setAttribute("long_name", "routing resolution at Level 11")
     call var%setAttribute("units", "s")
 
+    ! TODO: remove, because not needed?
     var = nc%setVariable("L11_Id", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
     call var%setData(unpack(level11(iDomain)%Id(1:e11-s11+1), mask11, nodata_i4))
@@ -309,6 +320,7 @@ contains
     call var%setData(unpack(L11_fDir(s11 : e11), mask11, nodata_i4))
     call var%setAttribute("long_name", "flow Direction at Level 11")
 
+    ! TODO: remove, because not needed?
     var = nc%setVariable("L11_fAcc", "f64", (/rows11, cols11/))
     call var%setFillValue(nodata_dp)
     call var%setData(unpack(L11_fAcc(s11:e11), mask11, nodata_dp))
@@ -457,7 +469,7 @@ contains
   ! Stephan Thober May 2016 - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet because multiple outlets could exist
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine mrm_read_restart_states(iDomain, domainID, InFile)
+  subroutine mrm_read_restart_states(iDomain, InFile)
 
     use mo_common_variables, only : nLCoverScene
     use mo_mrm_constants, only : nRoutingStates
@@ -470,8 +482,6 @@ contains
 
     ! number of Domain
     integer(i4), intent(in) :: iDomain
-
-    integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
     character(256), intent(in) :: InFile
@@ -500,6 +510,9 @@ contains
     type(NcVariable) :: var
 
     !TODO-RIV-TEMP: read/write restart for riv-temp process
+    ! integer(i4) :: nLandCoverPeriods_temp
+    ! real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp
+    ! integer(i4), dimension(:), allocatable :: landCoverPeriodSelect
 
     ! set file name
     fname = trim(InFile)
@@ -510,6 +523,16 @@ contains
     mask11 = level11(iDomain)%mask
 
     nc = NcDataset(fname, "r")
+
+    ! TODO: MPR comment
+    ! ! get the landcover dimension
+    ! var = nc%getVariable(trim(landCoverPeriodsVarName)//'_bnds')
+    ! call var%getData(dummyD2)
+    ! nLandCoverPeriods_temp = size(dummyD2, 1)
+    ! allocate(landCoverPeriodBoundaries_temp(0: nLandCoverPeriods_temp))
+    ! landCoverPeriodBoundaries_temp(0:nLandCoverPeriods_temp-1) = dummyD2(:,1)
+    ! landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp) = dummyD2(nLandCoverPeriods_temp,2)
+    ! call common_check_dimension_consistency(iBasin, landCoverPeriodBoundaries_temp, landCoverPeriodSelect)
 
     ! simulated discharge at each node
     var = nc%getVariable("L11_Qmod")
@@ -559,7 +582,9 @@ contains
     var = nc%getVariable("L11_nLinkFracFPimp")
     deallocate(dummyD3)
     call var%getData(dummyD3)
-    do ii = 1, nLCoverScene
+    ! TODO: MPR comment
+    ! dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+    do ii = 1, size(dummyD3, 3)
       L11_nLinkFracFPimp(s11 : e11, ii) = pack(dummyD3(:, :, ii), mask11)
     end do
 
@@ -600,7 +625,7 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! Stephan Thober May 2019 - added L0 info required for Process 3
 
-  subroutine mrm_read_restart_config(iDomain, domainID, InFile)
+  subroutine mrm_read_restart_config(iDomain, InFile)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -620,9 +645,6 @@ contains
 
     ! number of Domain
     integer(i4), intent(in) :: iDomain
-
-    ! domain
-    integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
     character(256), intent(in) :: InFile
@@ -658,7 +680,6 @@ contains
     call message('        Reading mRM restart file:  ', trim(adjustl(Fname)), ' ...')
 
     ! get Domain info at L11 mask
-    mask0 = level0(domainMeta%L0DataFrom(iDomain))%mask
     mask1 = level1(iDomain)%mask
     mask11 = level11(iDomain)%mask
 
@@ -684,6 +705,7 @@ contains
     ! Read L0 variables <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     if (processMatrix(8, 1) .eq. 3_i4) then
+      mask0 = level0(domainMeta%L0DataFrom(iDomain))%mask
       ! add L0_fdir, L0_fAcc, L0_slope, L0_streamnet
       var = nc%getVariable("L0_fDir")
       call var%getData(dummyI2)
@@ -734,6 +756,7 @@ contains
     ! append Number of Outlets at Level 11 (where facc == 0 )
     call append(L11_nOutlets, count((dummyI2 .eq. 0_i4)))
 
+    ! TODO: MPR comment
     ! Flow accumulation
     var = nc%getVariable("L11_fAcc")
     call var%getData(dummyD2)

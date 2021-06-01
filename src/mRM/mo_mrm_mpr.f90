@@ -16,6 +16,7 @@ module mo_mrm_mpr
   use mo_kind, only : dp
   implicit none
   public :: reg_rout
+  ! TODO: MPR those two routines will go
   public :: mrm_init_param
   public :: mrm_update_param
   private

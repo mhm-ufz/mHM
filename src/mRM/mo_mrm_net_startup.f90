@@ -1506,10 +1506,10 @@ contains
 
   subroutine L11_fraction_sealed_floodplain(LCClassImp, do_init)
 
-    use mo_append, only : append
+    use mo_append, only : append, add_nodata_slice
     use mo_common_constants, only : nodata_dp
     use mo_grid, only: Grid
-    use mo_common_variables, only : domainMeta, L0_LCover, level0, domainMeta, nLCoverScene
+    use mo_common_variables, only : domainMeta, L0_LCover, level0, domainMeta, LCyearId, nLandCoverPeriods
     use mo_mrm_global_variables, only : L0_floodPlain, L11_aFloodPlain, &
                                         L11_nLinkFracFPimp, L11_nOutlets, level11
 
@@ -1526,14 +1526,17 @@ contains
 
     real(dp), dimension(:,:), allocatable :: temp_array
 
-    integer(i4) :: ii, iDomain, iiLC, s0, e0
+    integer(i4) :: ii, iDomain, iiLC, s0, e0, iDomainNLandCoverPeriods
 
     type(Grid), pointer :: level0_iDomain => null()
 
 
     ! initialization
     do iDomain = 1, domainMeta%nDomains
-      allocate(temp_array(level11(iDomain)%nCells, nLCoverScene))
+      iDomainNLandCoverPeriods = maxval(LCyearId(:, iBasin))
+      ! TODO: MPR comment next line
+      iDomainNLandCoverPeriods = nLandCoverPeriods
+      allocate(temp_array(level11(iDomain)%nCells, iDomainNLandCoverPeriods))
       temp_array = nodata_dp
       if (do_init) then
         level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
@@ -1543,7 +1546,7 @@ contains
         nLinks = level11(iDomain)%nCells + 1 - L11_nOutlets(iDomain)
         nLinkAFloodPlain => L11_aFloodPlain(level11(iDomain)%iStart : level11(iDomain)%iEnd)
 
-        do iiLC = 1, nLCoverScene
+        do iiLC = 1, iDomainNLandCoverPeriods
           ! for a single node model run
           if(nLinks .GT. 0) then
             do ii = 1, nLinks
@@ -1554,6 +1557,8 @@ contains
           end if
         end do
       end if
+      ! TODO: MPR uncomment next line
+      ! call add_nodata_slice(temp_array, nLandCoverPeriods - iBasinNLandCoverPeriods, nodata_dp)
       call append(L11_nLinkFracFPimp, temp_array(:,:))
       deallocate(temp_array)
     end do
