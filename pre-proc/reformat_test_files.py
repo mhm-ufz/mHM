@@ -3,8 +3,11 @@
 
 """
 File Name   : reformat_test_files
-Project Name: mhm_fork
-Description : insert your description here, if applicable
+Project Name: mhm
+Description : this is a temporary simple script, that will eventually be merged into upgrade_mHM_v5_to_v6.py
+              parts of the script were taken from the project
+              https://git.ufz.de/chs/stohyd/2020_fso_mhm/-/blob/master/scripts/02_prepare_env_mHM/prepare_env.py
+              it can be used to create the base files for new check cases migrating from version 5 to 6
 Author      : ottor
 Created     : 17.05.21 10:02
 """

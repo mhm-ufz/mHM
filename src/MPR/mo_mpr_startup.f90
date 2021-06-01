@@ -271,7 +271,6 @@ CONTAINS
 
     use mo_append, only : append
     use mo_common_variables, only : level0
-    use mo_grid, only : init_advanced_grid_properties
     use mo_mpr_global_variables, only : L0_slope, L0_slope_emp, L0_soilId, iFlag_soilDB, nSoilHorizons_mHM, &
             nSoilTypes, soilDB
     use mo_orderpack, only : sort_index
