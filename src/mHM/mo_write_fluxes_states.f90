@@ -237,13 +237,13 @@ contains
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
-  ! Pallav Shrestha Mar 2020 - iFlag_cordinate_sys based dimensions (dims1)
+  ! Pallav Shrestha Mar 2020 - iFlag_coordinate_sys based dimensions (dims1)
 
   function newOutputDataset(iDomain, mask1, nCells) result(out)
 
     use mo_global_variables, only : outputFlxState
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
-    use mo_common_variables, only : iFlag_cordinate_sys
+    use mo_grid, only : iFlag_coordinate_sys
 
     implicit none
 
@@ -277,7 +277,7 @@ contains
     end if
     unit = fluxesUnit(iDomain)
 
-    if (iFlag_cordinate_sys == 0) then
+    if (iFlag_coordinate_sys == 0) then
       dims1 = (/"easting ", "northing", "time    "/) ! X & Y coordinate system
     else
       dims1 = (/"lon ", "lat ", "time"/) ! lat & lon coordinate system
@@ -892,10 +892,9 @@ contains
 
   function createOutputFile(iDomain) result(nc)
 
-    use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_common_variables, only : dirOut, level1, iFlag_cordinate_sys
+    use mo_common_variables, only : dirOut, level1, evalPer
     use mo_file, only : version
-    use mo_grid, only : geoCoordinates, mapCoordinates
+    use mo_grid, only : geoCoordinates, mapCoordinates, iFlag_coordinate_sys
     use mo_julian, only : dec2date
 
     implicit none
@@ -935,7 +934,7 @@ contains
     nc = NcDataset(trim(fname), "w")
 
     ! set the horizonal dimensions
-    if (iFlag_cordinate_sys == 0) then
+    if (iFlag_coordinate_sys == 0) then
 
       ! X & Y coordinate system; 2D lat lon!
       !============================================================
@@ -1088,7 +1087,7 @@ contains
 
   function fluxesUnit(iDomain)
 
-    use mo_common_mhm_mrm_variables, only : nTstepDay, simPer, timestep
+    use mo_common_datetime_type, only : nTstepDay, simPer, timestep
     use mo_global_variables, only : timeStep_model_outputs
 
     implicit none

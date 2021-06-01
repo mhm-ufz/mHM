@@ -144,8 +144,10 @@ contains
   subroutine mrm_init_param(iDomain, param)
 
     use mo_constants, only : HourSecs
-    use mo_common_mHM_mRM_variables, only : resolutionRouting, timeStep, optimize
-    use mo_common_variables, only : iFlag_cordinate_sys, domainMeta, processMatrix
+    use mo_common_variables, only : domainMeta, processMatrix, resolutionRouting, &
+            optimize
+    use mo_common_datetime_type, only: timeStep
+    use mo_grid, only : iFlag_coordinate_sys
     use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_mrm_constants, only : given_TS
@@ -241,7 +243,6 @@ contains
   subroutine mrm_update_param(iDomain, param)
 
     use mo_kind, only: i4, dp
-    use mo_common_variables, only: processMatrix, iFlag_cordinate_sys
     use mo_mrm_global_variables, only: &
          ! input variable
          level11, &
@@ -249,8 +250,9 @@ contains
          L11_celerity, L11_nOutlets, L11_length, &
          ! output variables
          L11_C1, L11_C2
-    use mo_common_mHM_mRM_variables, only: resolutionRouting, optimize, timeStep, &
-         optimize
+    use mo_common_variables, only: resolutionRouting, optimize, optimize, processMatrix
+    use mo_common_datetime_type, only: timeStep
+    use mo_grid, only : iFlag_coordinate_sys
     use mo_mrm_constants, only: rout_space_weight, given_TS
     use mo_utils, only: locate
     use mo_mrm_net_startup, only: L11_calc_celerity

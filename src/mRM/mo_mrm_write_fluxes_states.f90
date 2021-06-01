@@ -240,7 +240,7 @@ contains
   function newOutputDataset(iDomain, mask, nCells) result(out)
 
     use mo_mrm_global_variables, only : outputFlxState_mrm, riv_temp_pcs
-    use mo_common_variables, only : iFlag_cordinate_sys
+    use mo_grid, only : iFlag_coordinate_sys
 
     implicit none
 
@@ -269,7 +269,7 @@ contains
       dtype = "f32"
     end if
 
-    if (iFlag_cordinate_sys == 0) then
+    if (iFlag_coordinate_sys == 0) then
       dims1 = (/"easting ", "northing", "time    "/) ! X & Y coordinate system
     else
       dims1 = (/"lon ", "lat ", "time"/) ! lat & lon coordinate system
@@ -493,9 +493,8 @@ contains
 
   function createOutputFile(iDomain) result(nc)
 
-    use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_common_variables, only : dirOut, iFlag_cordinate_sys
-    use mo_grid, only : geoCoordinates, mapCoordinates
+    use mo_common_variables, only : dirOut, evalPer
+    use mo_grid, only : geoCoordinates, mapCoordinates, iFlag_coordinate_sys
     use mo_julian, only : dec2date
     use mo_mrm_file, only : file_mrm_output, version
     use mo_mrm_global_variables, only : level11
@@ -537,7 +536,7 @@ contains
     nc = NcDataset(trim(fname), "w")
 
     ! set the horizonal dimensions
-    if (iFlag_cordinate_sys == 0) then
+    if (iFlag_coordinate_sys == 0) then
 
       ! X & Y coordinate system; 2D lat lon!
       !============================================================

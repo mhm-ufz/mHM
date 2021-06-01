@@ -53,12 +53,14 @@ CONTAINS
     use mo_common_variables, only : Conventions, LC_year_end, LC_year_start, LCfilename, contact, &
                                     dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, &
                                     mhmFileRestartOut, mrmFileRestartOut, &
-                                    fileLatLon, history, iFlag_cordinate_sys, mHM_details, domainMeta, nLcoverScene, &
+                                    fileLatLon, history, mHM_details, domainMeta, nLcoverScene, &
                                     nProcesses, nuniqueL0Domains, processMatrix, project_details, resolutionHydrology, &
                                     setup_description, simulation_type, write_restart
     use mo_message, only : message
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
+    use mo_grid, only : iFlag_coordinate_sys
+
 
     implicit none
 
@@ -113,7 +115,7 @@ CONTAINS
             dir_Out, mhm_file_RestartOut, mrm_file_RestartOut, &
             file_LatLon
     ! namelist spatial & temporal resolution, optimization information
-    namelist /mainconfig/ iFlag_cordinate_sys, resolution_Hydrology, nDomains, L0Domain, write_restart, &
+    namelist /mainconfig/ iFlag_coordinate_sys, resolution_Hydrology, nDomains, L0Domain, write_restart, &
             read_opt_domain_data
     ! namelist process selection
     namelist /processSelection/ processCase
@@ -178,7 +180,7 @@ CONTAINS
     end do
 
     ! check for possible options
-    if(.NOT. (iFlag_cordinate_sys == 0 .OR. iFlag_cordinate_sys == 1)) then
+    if(.NOT. (iFlag_coordinate_sys == 0 .OR. iFlag_coordinate_sys == 1)) then
       call message()
       call message('***ERROR: coordinate system for the model run should be 0 or 1')
       stop 1
@@ -270,7 +272,8 @@ CONTAINS
   subroutine set_land_cover_scenes_id(sim_Per, LCyear_Id)
 
     use mo_common_constants, only : nodata_i4
-    use mo_common_variables, only : LC_year_end, LC_year_start, domainMeta, nLcoverScene, period
+    use mo_common_variables, only : LC_year_end, LC_year_start, domainMeta, nLcoverScene
+    use mo_common_datetime_type, only: period
     use mo_message, only : message
     use mo_string_utils, only : num2str
 

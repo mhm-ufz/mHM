@@ -90,8 +90,7 @@ CONTAINS
 
     use mo_common_constants, only : maxNoDomains
     use mo_common_mHM_mRM_read_config, only : common_check_resolution
-    use mo_common_mhm_mrm_variables, only : opti_function, optimize
-    use mo_common_variables, only : domainMeta, processMatrix
+    use mo_common_variables, only : domainMeta, processMatrix, opti_function, optimize
     use mo_file, only : file_defOutput, udefOutput
     use mo_global_variables, only : L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
                                     dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirPrecipitation, &

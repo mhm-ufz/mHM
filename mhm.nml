@@ -71,7 +71,7 @@ history="model run version 1"
 !> 0 -> regular   X & Y   coordinate system (e.g., GK-4 or Lambert equal area system)
 !> 1 -> regular lat & lon coordinate system
 !-----------------------------------------------------------------------------
-iFlag_cordinate_sys = 0
+iFlag_coordinate_sys = 0
 !-----------------------------------------------------------------------------
 !> Number of domains to be modeled.
 !> Number given here should correspond to one given in "gaugeinfo.txt" file.
@@ -82,8 +82,8 @@ iFlag_cordinate_sys = 0
 nDomains             = 2
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per domain
-!> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m]
-!>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal]
+!> NOTE: if iFlag_coordinate_sys = 0, then resolution_Hydrology is in [m]
+!>       if iFlag_coordinate_sys = 1, then resolution_Hydrology is in [degree-decimal]
 !-----------------------------------------------------------------------------
 resolution_Hydrology(1) = 24000
 resolution_Hydrology(2) = 24000
@@ -129,8 +129,8 @@ mrm_file_RestartIn(2)     = "test_domain_2/restart/mRM_restart_002.nc"
 !> resolution of Level-11 discharge routing [m or degree] per domain
 !> this  level-11 discharge routing resolution must be >= and multiple of the
 !> level-1 hydrological simulations resolution
-!> NOTE: if iFlag_cordinate_sys = 0, then resolution_Routing is in [m]
-!>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal]
+!> NOTE: if iFlag_coordinate_sys = 0, then resolution_Routing is in [m]
+!>       if iFlag_coordinate_sys = 1, then resolution_Routing is in [degree-decimal]
 !-----------------------------------------------------------------------------
 resolution_Routing(1) = 24000
 resolution_Routing(2) = 24000

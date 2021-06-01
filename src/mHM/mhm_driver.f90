@@ -98,12 +98,9 @@ PROGRAM mhm_driver
           L1_smObs
   USE mo_optimization_types, ONLY : &
           optidata ! type for opti data
-  USE mo_common_mHM_mRM_variables, ONLY : &
-          nTstepDay, &      ! number of timesteps per day (former: NAGG)
-          simPer, &      ! simulation period
-          optimize, opti_function, &                                   ! optimization on/off and optimization method
-          mrm_coupling_mode
   USE mo_common_variables, ONLY : &
+          optimize, opti_function, &                                   ! optimization on/off and optimization method
+          mrm_coupling_mode, &
           write_restart, &      ! restart writing flags
           mhmFileRestartOut, &
           dirConfigOut, &
@@ -115,6 +112,9 @@ PROGRAM mhm_driver
 #endif
           processMatrix, &      ! domain information,  processMatrix
           global_parameters, global_parameters_name      ! mhm parameters (gamma) and their clear names
+  use mo_common_datetime_type, only: &
+        nTstepDay, &      ! number of timesteps per day (former: NAGG)
+        simPer      ! simulation period
   USE mo_kind, ONLY : i4, dp                         ! number precision
   USE mo_message, ONLY : message, message_text          ! For print out
   USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data

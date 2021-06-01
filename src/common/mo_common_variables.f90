@@ -1,23 +1,13 @@
 !>       \file mo_common_variables.f90
-
 !>       \brief Provides structures needed by mHM, mRM and/or mpr.
-
-!>       \details Provides the global structure period that is used
+!>       \details Provides the global variables needed by both mHM and mRM
 !>       by both mHM and mRM.
-
-!>       \authors Stephan Thober
-
-!>       \date Sep 2015
-
-! Modifications:
-! Stephan Thober  Nov 2016 - moved processdescription from mo_global_variables to here
-! Robert Schweppe Dec 2017 - merged more duplicated variables from mhm and mrm global variables
-! Robert Schweppe Jun 2018 - refactoring and reformatting
-
 
 module mo_common_variables
 
   use mo_kind, only : i4, i8, dp
+  use mo_common_datetime_type, only : period
+  use mo_grid, only : Grid, GridRemapper
 #ifdef MPI
   USE mpi_f08
 #endif
@@ -37,15 +27,31 @@ module mo_common_variables
   ! -------------------------------------------------------------------
   ! INPUT variables for configuration of main part
   ! -------------------------------------------------------------------
-  integer(i4), public :: iFlag_cordinate_sys        ! options model for the run cordinate system
   real(dp), dimension(:), allocatable, public :: resolutionHydrology        ! [m or degree] resolution of hydrology - Level 1
   integer(i4), dimension(:), allocatable, public :: L0_Domain
   logical, public :: write_restart              ! flag
+
+   integer(i4) :: mrm_coupling_mode !-1 = no mrm (mHM only)
+  !                                ! 0 = stand alone (mRM only)
+  !                                ! 1 = general coupling to a model (not used)
+  !                                ! 2 = specific coupling to mHM (mHM and mRM)
+
+  real(dp), public :: c2TSTu            !       Unit transformation = timeStep/24
+  real(dp), dimension(:), allocatable, public :: resolutionRouting          ! [m or degree] resolution of routing - Level 11
+  logical, public :: read_restart               ! flag
+  logical, public :: mrm_read_river_network               ! flag
+
+  type(period), dimension(:), allocatable, public :: warmPer     ! time period for warming
+  type(period), dimension(:), allocatable, public :: evalPer     ! time period for model evaluation
+  type(period), public :: readPer     ! start and end dates of read period
+  integer(i4), dimension(:), allocatable, public :: warmingDays ! number of days for warm up period
 
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
   ! has the dimension of nDomains
+  character(256), dimension(:), allocatable, public :: mhmFileRestartIn! Directory where input of restart is read from
+  character(256), dimension(:), allocatable, public :: mrmFileRestartIn! Directory where input of restart is read from
   character(256), dimension(:), allocatable, public :: mhmFileRestartOut ! Directory where output of restart is written
   character(256), dimension(:), allocatable, public :: mrmFileRestartOut ! Directory where output of restart is written
   character(256), public :: dirConfigOut
@@ -55,62 +61,8 @@ module mo_common_variables
   character(256), dimension(:), allocatable, public :: dirOut ! Directory where output is written to
   character(256), dimension(:), allocatable, public :: fileLatLon ! Directory where the Lat Lon Files are located
 
-  ! -------------------------------------------------------------------
-  ! PERIOD description
-  ! -------------------------------------------------------------------
-  type period
-    integer(i4) :: dStart      ! first day
-    integer(i4) :: mStart      ! first month
-    integer(i4) :: yStart      ! first year
-    integer(i4) :: dEnd        ! last  day
-    integer(i4) :: mEnd        ! last  month
-    integer(i4) :: yEnd        ! last  year
-    integer(i4) :: julStart    ! first julian day
-    integer(i4) :: julEnd      ! last  julian day
-    integer(i4) :: nObs        ! total number of observations
-  end type period
-
-  ! -------------------------------------------------------------------
-  ! GRID description
-  ! -------------------------------------------------------------------
-  type Grid
-    ! general domain information
-    integer(i4) :: ncols     ! Number of columns
-    integer(i4) :: nrows     ! Number of rows
-    integer(i4) :: nCells     ! Number of rows
-    real(dp) :: xllcorner    ! x coordinate of the lowerleft corner
-    real(dp) :: yllcorner    ! y coordinate of the lowerleft corner
-    real(dp) :: cellsize     ! Cellsize x = cellsize y
-    real(dp) :: nodata_value ! Code to define the mask
-    real(dp), dimension(:, :), allocatable :: x  ! 2d longitude array (unmasked version is needed for output anyway)
-    real(dp), dimension(:, :), allocatable :: y  ! 2d latitude  array (unmasked version is needed for output anyway)
-    logical, dimension(:, :), allocatable :: mask  ! the mask for valid cells in the original grid (nrows*ncols)
-    ! for referencing values in the nValidCells vector
-    integer(i4) :: iStart          ! Starting cell index of a given domain
-    integer(i4) :: iEnd            ! Ending cell index of a given domain
-    ! dimension(nCells, (x,y) )
-    integer(i4), dimension(:, :), allocatable :: CellCoor  ! this is only used for mRM
-    real(dp), dimension(:), allocatable :: CellArea  ! area of the cell in sq m
-    integer(i4), dimension(:), allocatable :: Id
-
-  end type Grid
-
   type(Grid), dimension(:), target, allocatable, public :: level0 ! grid information at morphological level (e.g., dem, fDir)
   type(Grid), dimension(:), target, allocatable, public :: level1 ! grid information at hydrologic level
-
-  type GridRemapper
-    type(Grid), pointer :: high_res_grid
-    type(Grid), pointer :: low_res_grid
-
-    ! dimension nCells
-    integer(i4), dimension(:), allocatable :: lower_bound  ! 1d index of lower side subgrid
-    integer(i4), dimension(:), allocatable :: upper_bound  ! 1d index of upper side subgrid
-    integer(i4), dimension(:), allocatable :: left_bound  ! 1d index of left side subgrid
-    integer(i4), dimension(:), allocatable :: right_bound  ! 1d index of right side subgrid
-    integer(i4), dimension(:), allocatable :: n_subcells   ! 1d numberof valid subgrid cells
-    integer(i4), dimension(:, :), allocatable :: lowres_id_on_highres   ! 2d index array of lowres id
-
-  end type GridRemapper
 
   type(GridRemapper), dimension(:), allocatable, public :: l0_l1_remap  ! grid information at morphological level (e.g., dem, fDir)
 
@@ -205,6 +157,42 @@ module mo_common_variables
   !                                                               ! Vector of global dummy parameter default values
   character(64), dimension(:), allocatable, public :: dummy_global_parameters_name
   !                                                               ! Vector of global dummy parameter names
+  ! -------------------------------------------------------------------
+  ! OPTIMIZATION
+  ! -------------------------------------------------------------------
+  integer(i4), public :: opti_method         ! Optimization algorithm:
+  !                                                                       ! 1 - DDS
+  !                                                                       ! 2 - Simulated Annealing
+  !                                                                       ! 3 - SCE
+  integer(i4), public :: opti_function       ! Objective function:
+  !                                                                       ! 1 - 1.0-NSE
+  !                                                                       ! 2 - 1.0-lnNSE
+  !                                                                       ! 3 - 1.0-0.5*(NSE+lnNSE)
+  logical, public :: optimize            ! Optimization   (.true. ) or
+  !                                                                       ! Evaluation run (.false.)
+  logical, public :: optimize_restart    ! Optimization will be restarted from
+  !                                                                       ! mo_<opti_method>.restart file (.true.)
+  ! settings for optimization algorithms:
+  integer(i8), public :: seed                ! seed used for optimization
+  !                                                                       ! default: -9 --> system time
+  integer(i4), public :: nIterations         ! number of iterations for optimization
+  real(dp), public :: dds_r               ! DDS: perturbation rate
+  !                                                                       !      default: 0.2
+  real(dp), public :: sa_temp             ! SA:  initial temperature
+  !                                                                       !      default: -9.0 --> estimated
+  integer(i4), public :: sce_ngs             ! SCE: # of complexes
+  !                                                                       !      default: 2
+  integer(i4), public :: sce_npg             ! SCE: # of points per complex
+  !                                                                       !      default: -9 --> 2n+1
+  integer(i4), public :: sce_nps             ! SCE: # of points per subcomplex
+  !                                                                       !      default: -9 --> n+1
+  logical, public :: mcmc_opti           ! MCMC: Optimization (.true. ) or
+  !                                                                       !       Only parameter uncertainty (.false.)
+  integer(i4), public, parameter :: nerror_model = 2    ! # possible parameters in error model
+  !                                                                       !       e.g. for opti_function=8: 2
+  real(dp), public, dimension(nerror_model) :: mcmc_error_params   !       Parameters of error model if mcmc_opti=.false.
+  !                                                                       !       e.g. for opti_function=8: 0.01, 0.3
+
   ! -------------------------------------------------------------------
   ! ALMA convention
   ! -------------------------------------------------------------------

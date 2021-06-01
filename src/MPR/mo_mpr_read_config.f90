@@ -62,8 +62,8 @@ contains
     use mo_mpr_constants, only : maxGeoUnit, &
                                  maxNoSoilHorizons
     use mo_mpr_global_variables, only : HorizonDepth_mHM, dirgridded_LAI, fracSealed_cityArea, iFlag_soilDB, &
-                                        inputFormat_gridded_LAI, nGeoUnits, nSoilHorizons_mHM, tillageDepth, &
-                                        timeStep_LAI_input
+                                        inputFormat_gridded_LAI, nGeoUnits, nSoilHorizons_mHM, tillageDepth
+    use mo_common_datetime_type, only : timeStep_LAI_input
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
     use mo_utils, only : EQ

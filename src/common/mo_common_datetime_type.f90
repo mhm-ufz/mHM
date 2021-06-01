@@ -20,10 +20,16 @@ MODULE mo_common_datetime_type
 
   IMPLICIT NONE
 
-  public :: datetimeinfo
+  public :: datetimeinfo, period
 
   private
-  
+
+  integer(i4), public :: timeStep_LAI_input         ! time step of gridded LAI input
+  integer(i4), public :: timeStep                   ! [h] simulation time step (= TS) in [h]
+  integer(i4), dimension(:, :), allocatable, public :: LCyearId            ! Mapping of landcover scenes (1, 2,..) for each domain
+  integer(i4), public :: nTstepDay          !       Number of time intervals per day
+
+
   type datetimeinfo
     !> number of timesteps in simulation period
     integer(i4)          :: nTimeSteps
@@ -65,10 +71,26 @@ MODULE mo_common_datetime_type
     procedure :: writeout => datetimeinfo_writeout
   end type datetimeinfo
 
+  ! -------------------------------------------------------------------
+  ! PERIOD description
+  ! -------------------------------------------------------------------
+  type period
+    integer(i4) :: dStart      ! first day
+    integer(i4) :: mStart      ! first month
+    integer(i4) :: yStart      ! first year
+    integer(i4) :: dEnd        ! last  day
+    integer(i4) :: mEnd        ! last  month
+    integer(i4) :: yEnd        ! last  year
+    integer(i4) :: julStart    ! first julian day
+    integer(i4) :: julEnd      ! last  julian day
+    integer(i4) :: nObs        ! total number of observations
+  end type period
+
+  type(period), dimension(:), allocatable, public :: simPer      ! warmPer + evalPer
+
   contains
 
   subroutine datetimeinfo_init(this, iDomain)
-    use mo_common_mHM_mRM_variables, only : LCyearId, simPer, timeStep, nTstepDay
     use mo_julian, only : caldat
     class(datetimeinfo), intent(inout) :: this
     integer(i4),     intent(in)    :: iDomain
@@ -104,7 +126,6 @@ MODULE mo_common_datetime_type
 
   subroutine datetimeinfo_increment(this)
     use mo_julian, only : caldat, julday
-    use mo_common_mHM_mRM_variables, only : timeStep
     class(datetimeinfo), intent(inout) :: this
 
     ! prepare the date and time information for next iteration step...
@@ -130,7 +151,6 @@ MODULE mo_common_datetime_type
   end subroutine datetimeinfo_increment
 
   subroutine datetimeinfo_update_LAI_timestep(this)
-    use mo_mpr_global_variables, only : timeStep_LAI_input
     class(datetimeinfo), intent(inout) :: this
     
     select case (timeStep_LAI_input)

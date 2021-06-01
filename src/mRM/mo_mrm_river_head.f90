@@ -160,7 +160,7 @@ module mo_mrm_river_head
 
 
   function calc_slope(iDomain, elev0, fDir0, i, j) result(slope)
-    use mo_common_variables, only: iFlag_cordinate_sys
+    use mo_grid, only: iFlag_coordinate_sys
     use mo_mrm_net_startup,      only: cellLength, moveDownOneCell
     integer(i4), intent(in) :: iDomain
     integer(i4), intent(in) :: i, j
@@ -170,7 +170,7 @@ module mo_mrm_river_head
     integer(i4) :: i_down, j_down
 
     call cellLength(iDomain, fDir0(i, j), i, j, &
-                    iFlag_cordinate_sys, length)
+                    iFlag_coordinate_sys, length)
     i_down = i
     j_down = j
     call moveDownOneCell(fDir0(i, j), i_down, j_down)
@@ -201,14 +201,13 @@ module mo_mrm_river_head
 
 
   subroutine create_output(iDomain, OutPath)
-    use mo_common_mhm_mrm_variables, only : evalPer
     use mo_netcdf, only : NcDataset, NcDimension
     use mo_string_utils, only : num2str
     use mo_julian, only : dec2date
     use mo_grid, only : geoCoordinates, mapCoordinates
     use mo_file, only : version
     use mo_common_variables, only : project_details, setup_description, &
-        simulation_type, Conventions, contact, mHM_details, history
+        simulation_type, Conventions, contact, mHM_details, history, evalPer
     use mo_message, only : message
 
     ! number of domains

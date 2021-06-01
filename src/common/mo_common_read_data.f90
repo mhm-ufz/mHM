@@ -42,9 +42,9 @@ CONTAINS
 
     use mo_append, only : append
     use mo_common_file, only : varNameDem
-    use mo_common_variables, only : Grid,  L0_elev, dirMorpho, level0, domainMeta, &
+    use mo_common_variables, only : L0_elev, dirMorpho, level0, domainMeta, &
                                     resolutionHydrology
-    use mo_grid, only : set_domain_indices, infer_grid_info
+    use mo_grid, only : set_domain_indices, infer_grid_info, Grid
     use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_netcdf,           only: NcDataset, NcVariable
@@ -142,7 +142,8 @@ CONTAINS
     use mo_append, only : append, paste
     use mo_common_constants, only : nodata_i4
     use mo_common_file, only : varNameLandCover
-    use mo_common_variables, only : Grid, L0_LCover, dirLCover, level0, domainMeta, nLCoverScene
+    use mo_common_variables, only : L0_LCover, dirLCover, level0, domainMeta, nLCoverScene
+    use mo_grid, only: Grid
     use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_netcdf, only: NcDataset, NcVariable

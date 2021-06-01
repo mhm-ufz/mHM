@@ -14,7 +14,7 @@
 module mo_mpr_global_variables
 
   use mo_kind, only : i4, dp
-  use mo_common_variables, only : period
+  use mo_common_datetime_type, only : period
 
   implicit none
 
@@ -79,7 +79,6 @@ module mo_mpr_global_variables
   ! Land cover, LAI LUT data
   ! -----------------------------------------------------------------
   character(256), public :: inputFormat_gridded_LAI    ! format of gridded LAI data (nc only)
-  integer(i4), public :: timeStep_LAI_input         ! time step of gridded LAI input
   ! LAI data
   ! variables used when timeStep_LAI_input == 0
   integer(i4), public :: nLAIclass         ! Number of LAI classes

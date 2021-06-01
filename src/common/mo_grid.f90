@@ -3,7 +3,6 @@
 
 module mo_grid
   use mo_kind, only : dp, i4
-  use mo_common_variables, only : Grid, GridRemapper
 
   IMPLICIT NONE
 
@@ -14,6 +13,49 @@ module mo_grid
   PUBLIC :: write_grid_info    ! write grid to (restart) file
   PUBLIC :: infer_grid_info    ! infer grid from any file
   PUBLIC :: read_grid_info     ! read grid from (restart) file
+  PUBLIC :: Grid, GridRemapper     ! basic types
+
+  integer(i4), public :: iFlag_coordinate_sys
+
+  ! -------------------------------------------------------------------
+  ! GRID description
+  ! -------------------------------------------------------------------
+  type Grid
+    ! general domain information
+    integer(i4) :: ncols     ! Number of columns
+    integer(i4) :: nrows     ! Number of rows
+    integer(i4) :: nCells     ! Number of rows
+    real(dp) :: xllcorner    ! x coordinate of the lowerleft corner
+    real(dp) :: yllcorner    ! y coordinate of the lowerleft corner
+    real(dp) :: cellsize     ! Cellsize x = cellsize y
+    real(dp) :: nodata_value ! Code to define the mask
+    real(dp), dimension(:, :), allocatable :: x  ! 2d longitude array (unmasked version is needed for output anyway)
+    real(dp), dimension(:, :), allocatable :: y  ! 2d latitude  array (unmasked version is needed for output anyway)
+    logical, dimension(:, :), allocatable :: mask  ! the mask for valid cells in the original grid (nrows*ncols)
+    ! for referencing values in the nValidCells vector
+    integer(i4) :: iStart          ! Starting cell index of a given domain
+    integer(i4) :: iEnd            ! Ending cell index of a given domain
+    ! dimension(nCells, (x,y) )
+    integer(i4), dimension(:, :), allocatable :: CellCoor  ! this is only used for mRM
+    real(dp), dimension(:), allocatable :: CellArea  ! area of the cell in sq m
+    integer(i4), dimension(:), allocatable :: Id
+
+  end type Grid
+
+  type GridRemapper
+    type(Grid), pointer :: high_res_grid
+    type(Grid), pointer :: low_res_grid
+
+    ! dimension nCells
+    integer(i4), dimension(:), allocatable :: lower_bound  ! 1d index of lower side subgrid
+    integer(i4), dimension(:), allocatable :: upper_bound  ! 1d index of upper side subgrid
+    integer(i4), dimension(:), allocatable :: left_bound  ! 1d index of left side subgrid
+    integer(i4), dimension(:), allocatable :: right_bound  ! 1d index of right side subgrid
+    integer(i4), dimension(:), allocatable :: n_subcells   ! 1d numberof valid subgrid cells
+    integer(i4), dimension(:, :), allocatable :: lowres_id_on_highres   ! 2d index array of lowres id
+
+  end type GridRemapper
+
 
 contains
 
@@ -200,10 +242,9 @@ contains
   !>       -  cellsize
   !>       -  ncols
   !>       -  nrows
-  !>       -  (optionally yllcorner if iFlag_cordinate_sys == 1)
+  !>       -  (optionally yllcorner if iFlag_coordinate_sys == 1)
   subroutine init_advanced_grid_properties(new_grid)
 
-    use mo_common_variables, only : iFlag_cordinate_sys
     use mo_constants, only : RadiusEarth_dp, TWOPI_dp
 
     implicit none
@@ -245,11 +286,11 @@ contains
     ! ESTIMATE AREA [m2]
 
     ! regular X-Y coordinate system
-    if(iFlag_cordinate_sys .eq. 0) then
+    if(iFlag_coordinate_sys .eq. 0) then
       new_grid%CellArea(:) = new_grid%cellsize * new_grid%cellsize
 
       ! regular lat-lon coordinate system
-    else if(iFlag_cordinate_sys .eq. 1) then
+    else if(iFlag_coordinate_sys .eq. 1) then
 
       degree_to_radian = TWOPI_dp / 360.0_dp
       degree_to_metre = RadiusEarth_dp * TWOPI_dp / 360.0_dp
@@ -442,7 +483,6 @@ contains
   !>       \details reads complete Grid properties from NetCDF file
   subroutine read_grid_info(domainID, inputFile, level_name, new_grid)
 
-    use mo_common_variables, only : Grid
     use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_netcdf, only : NcDataset, NcVariable

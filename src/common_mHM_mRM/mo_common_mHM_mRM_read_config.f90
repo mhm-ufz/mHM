@@ -49,14 +49,15 @@ CONTAINS
   subroutine common_mHM_mRM_read_config(file_namelist, unamelist)
 
     use mo_common_constants, only : maxNoDomains
-    use mo_common_mHM_mRM_variables, only : LCyearId, dds_r, mhmFileRestartIn, mrmFileRestartIn, evalPer,&
+    use mo_common_variables, only : dds_r, mhmFileRestartIn, mrmFileRestartIn, evalPer,&
                                             mcmc_error_params, mcmc_opti, nIterations, &
-                                            nTStepDay, opti_function, opti_method, optimize, optimize_restart, &
+                                            opti_function, opti_method, optimize, optimize_restart, &
                                             read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
                                             sce_ngs, sce_npg, sce_nps, seed, &
-                                            simPer, timestep, warmPer, warmingDays
+                                            warmPer, warmingDays
     use mo_common_read_config, only : set_land_cover_scenes_id
-    use mo_common_variables, only : LCfilename, domainMeta, period, processMatrix
+    use mo_common_variables, only : LCfilename, domainMeta, processMatrix
+    use mo_common_datetime_type, only: LCyearId, simPer, timestep, nTStepDay, period
     use mo_julian, only : caldat, julday
     use mo_message, only : message
     use mo_nml, only : close_nml, open_nml, position_nml
@@ -232,7 +233,7 @@ CONTAINS
 
   subroutine check_optimization_settings
 
-    use mo_common_mHM_mRM_variables, only : dds_r, nIterations, sce_ngs, sce_npg, sce_nps
+    use mo_common_variables, only : dds_r, nIterations, sce_ngs, sce_npg, sce_nps
     use mo_common_variables, only : global_parameters
     use mo_message, only : message
 
@@ -293,7 +294,7 @@ CONTAINS
 
   subroutine common_check_resolution(do_message, allow_subgrid_routing)
 
-    use mo_common_mHM_mRM_variables, only : resolutionRouting
+    use mo_common_variables, only : resolutionRouting
     use mo_common_variables, only : domainMeta, resolutionHydrology
     use mo_message, only : message
     use mo_string_utils, only : num2str
@@ -352,7 +353,7 @@ CONTAINS
 
   ! ToDo: make this a procedure of period
   subroutine period_copy_period_data(toPeriod, fromPeriod)
-    use mo_common_variables, only : period
+    use mo_common_datetime_type, only: period
     type(period), intent(inout) :: toPeriod
     type(period), intent(in)    :: fromPeriod
 

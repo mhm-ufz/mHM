@@ -83,11 +83,10 @@ CONTAINS
   SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
 
     use mo_optimization_types, only : optidata_sim
-    use mo_common_datetime_type, only : datetimeinfo
-    use mo_common_mHM_mRM_variables, only : LCyearId, mhmFileRestartIn, mrmFileRestartIn, nTstepDay,&
-                                            optimize, readPer, read_restart, simPer, timeStep, &
-                                            warmingDays, c2TSTu
-    use mo_common_variables, only : level1, domainMeta, processMatrix
+    use mo_common_datetime_type, only : datetimeinfo, LCyearId, nTstepDay, simPer, timeStep
+    use mo_common_variables, only : mhmFileRestartIn, mrmFileRestartIn,&
+                                            optimize, readPer, read_restart, &
+                                            warmingDays, c2TSTu, level1, domainMeta, processMatrix
     use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, &
                                     L1_absvappress, L1_baseflow, L1_fastRunoff, L1_infilSoil, L1_inter, L1_melt, &
                                     L1_netrad, L1_neutrons, L1_percol, L1_pet, L1_pet_calc, L1_pet_weights, L1_pre, &
@@ -117,7 +116,7 @@ CONTAINS
     use mo_restart, only : read_restart_states
     use mo_write_fluxes_states, only : OutputDataset
     use mo_constants, only : HourSecs
-    use mo_common_mHM_mRM_variables, only : resolutionRouting
+    use mo_common_variables, only : resolutionRouting
     use mo_common_variables, only : resolutionHydrology
     use mo_mrm_global_variables, only : InflowGauge, L11_C1, L11_C2, &
                                         L11_L1_Id, L11_TSrout, L11_fromN, L11_length, L11_nLinkFracFPimp, L11_nOutlets, &
