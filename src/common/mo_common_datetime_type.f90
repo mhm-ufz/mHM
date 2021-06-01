@@ -84,6 +84,11 @@ MODULE mo_common_datetime_type
     integer(i4) :: julStart    ! first julian day
     integer(i4) :: julEnd      ! last  julian day
     integer(i4) :: nObs        ! total number of observations
+
+    contains
+
+    procedure :: copy => period_copy_period_data
+    procedure :: init => init_period
   end type period
 
   type(period), dimension(:), allocatable, public :: simPer      ! warmPer + evalPer
@@ -201,5 +206,29 @@ MODULE mo_common_datetime_type
     end if
 
   end function datetimeinfo_writeout
+
+  subroutine period_copy_period_data(this, toPeriod)
+    class(period), intent(inout) :: this
+    type(period), intent(inout) :: toPeriod
+
+    call toPeriod%init(this%dStart, this%mStart, this%yStart, this%dEnd, this%mEnd, this%yEnd)
+
+  end subroutine period_copy_period_data
+
+  subroutine init_period(this, dStart, mStart, yStart, dEnd, mEnd, yEnd)
+    class(period), intent(inout) :: this
+    integer(i4), intent(in) :: dStart, mStart, yStart, dEnd, mEnd, yEnd
+
+    this%dStart = dStart   ! first day
+    this%mStart = mStart    ! first month
+    this%yStart = yStart    ! first year
+    this%dEnd = dEnd      ! last  day
+    this%mEnd = mEnd      ! last  month
+    this%yEnd = yEnd      ! last  year
+    this%julStart = 0 ! first julian day
+    this%julEnd   = 0 ! last  julian day
+    this%nObs     = 0 ! total number of observations
+
+  end subroutine init_period
 
 END MODULE mo_common_datetime_type

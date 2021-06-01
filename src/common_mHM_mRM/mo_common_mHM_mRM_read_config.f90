@@ -164,9 +164,8 @@ CONTAINS
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       warmingDays(iDomain) = warming_Days(domainID)
-      ! this will be a procedure subroutine
-      ! therefore inout first, in second
-      call period_copy_period_data(evalPer(iDomain), eval_Per(domainID))
+      call evalPer(iDomain)%init(eval_Per(domainID)%dStart, eval_Per(domainID)%mStart, eval_Per(domainID)%yStart, &
+                                 eval_Per(domainID)%dEnd, eval_Per(domainID)%mEnd, eval_Per(domainID)%yEnd)
     end do
     ! evalPer = eval_Per(1 : domainMeta%nDomains)
 
@@ -351,21 +350,4 @@ CONTAINS
 
   end subroutine common_check_resolution
 
-  ! ToDo: make this a procedure of period
-  subroutine period_copy_period_data(toPeriod, fromPeriod)
-    use mo_common_datetime_type, only: period
-    type(period), intent(inout) :: toPeriod
-    type(period), intent(in)    :: fromPeriod
-
-    toPeriod%dStart   = fromPeriod%dStart    ! first day
-    toPeriod%mStart   = fromPeriod%mStart    ! first month
-    toPeriod%yStart   = fromPeriod%yStart    ! first year
-    toPeriod%dEnd     = fromPeriod%dEnd      ! last  day
-    toPeriod%mEnd     = fromPeriod%mEnd      ! last  month
-    toPeriod%yEnd     = fromPeriod%yEnd      ! last  year
-    toPeriod%julStart = 0 ! first julian day
-    toPeriod%julEnd   = 0 ! last  julian day
-    toPeriod%nObs     = 0 ! total number of observations
-
-  end subroutine period_copy_period_data
 END MODULE mo_common_mHM_mRM_read_config
