@@ -63,6 +63,16 @@ MODULE mo_global_variables
   integer(i4), dimension(:), allocatable, public :: timeStep_model_inputs      ! frequency for reading meteo input
   logical, public :: read_meteo_weights         ! read weights for tavg and pet
   character(256), public :: inputFormat_meteo_forcings ! format of meteo input data (nc)
+
+  ! TODO: MPR this moved all here
+  integer(i4), public :: timeStep_LAI_input         ! time step of gridded LAI input
+  integer(i4), public :: nSoilHorizons  !       Number of horizons to model
+  real(dp), dimension(:), allocatable, public :: soilHorizonBoundaries   ! [mm]  Horizon boundaries from surface,
+  !                                                                               positive downwards (0:nSoilHorizons)
+  integer(i4), public :: nLAIs  !       Number of LAI periods
+  real(dp), dimension(:), allocatable, public :: LAIBoundaries   ! [mm]  LAI periods,
+  !                                                                               positive downwards (0:nSoilHorizons)
+
   ! Optional data
   ! ------------------------------------------------------------------
   ! DIRECTORIES
@@ -78,7 +88,7 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirReferenceET     ! Directory where reference-ET files are located
   ! riv-temp releated
   character(256), dimension(:), allocatable, public :: dirRadiation       ! Directory where short/long-wave rad. files are located
-
+  character(256), dimension(:), allocatable, public :: pathMprNml   ! Path to mpr.nml
   ! ------------------------------------------------------------------
   ! CONSTANT
   ! ------------------------------------------------------------------
@@ -144,6 +154,7 @@ MODULE mo_global_variables
   real(dp), public, dimension(:), allocatable :: L1_unsatSTW     ! [mm]  upper soil storage
   real(dp), public, dimension(:), allocatable :: L1_satSTW       ! [mm]  groundwater storage
   real(dp), public, dimension(:), allocatable :: L1_neutrons     ! [mm]  Ground Albedo Neutrons
+  real(dp), public, dimension(:), allocatable :: L1_degDay       ! [mm d-1degC-1] Degree-day factor.
 
   ! Fluxes
   ! dim1 = number grid cells L1
@@ -164,6 +175,59 @@ MODULE mo_global_variables
   real(dp), public, dimension(:), allocatable :: L1_snow         ! [mm TS-1] Snow precipitation depth
   real(dp), public, dimension(:), allocatable :: L1_Throughfall  ! [mm TS-1] Throughfall.
   real(dp), public, dimension(:), allocatable :: L1_total_runoff ! [m3 TS-1] Generated runoff
+
+  ! Effective parameters
+  ! dim1 = number grid cells L1
+  ! dim2 = number model soil horizons or YearMonths or other auxiliary dimension
+  ! dim3 = number of LCscenes
+  real(dp), public, dimension(:, :), allocatable :: L1_fSealed       ! [1]  Fraction of sealed area (nCells, nLCscenes)
+
+  real(dp), public, dimension(:, :), allocatable :: L1_alpha               ! [1]            Exponent for the upper reservoir
+  real(dp), public, dimension(:, :), allocatable :: L1_degDayInc           ! [d-1 degC-1]   Increase of the Degree-day factor
+  !                                                                        !                per mm of increase in precipitation
+  real(dp), public, dimension(:, :), allocatable :: L1_degDayMax           ! [mm-1 degC-1]  Maximum Degree-day factor
+  real(dp), public, dimension(:, :), allocatable :: L1_degDayNoPre         ! [mm-1 degC-1]  Degree-day factor with no
+                                                                              ! precipitation.
+  real(dp), public, dimension(:), allocatable :: L1_karstLoss           ! [1]    Karstic percolation loss
+  real(dp), public, dimension(:), allocatable :: L1_fAsp                ! [1]    PET correction for aspect
+  real(dp), public, dimension(:), allocatable :: L1_latitude                ! [1]    Latitude
+  real(dp), public, dimension(:, :, :), allocatable :: L1_petLAIcorFactor     ! [-]   PET correction based on LAI (KC by GEUS.dk)
+
+  real(dp), public, dimension(:), allocatable :: L1_HarSamCoeff         ! [1]    Hargreaves Samani coeffiecient
+  real(dp), public, dimension(:, :), allocatable :: L1_PrieTayAlpha        ! [1]    Priestley Taylor coeffiecient
+  real(dp), public, dimension(:, :, :), allocatable :: L1_aeroResist          ! [s m-1] aerodynamical resitance
+  real(dp), public, dimension(:, :), allocatable :: L1_surfResist          ! [s m-1] bulk surface resitance
+  real(dp), public, dimension(:, :), allocatable :: L1_maxInter            ! [mm]   Maximum interception
+
+  real(dp), public, dimension(:, :), allocatable :: L1_kFastFlow           ! [d-1]  Fast interflow recession coefficient
+  real(dp), public, dimension(:, :), allocatable :: L1_kSlowFlow           ! [d-1]  Slow interflow recession coefficient
+  real(dp), public, dimension(:, :), allocatable :: L1_kBaseFlow           ! [d-1]  Baseflow recession coefficient
+  real(dp), public, dimension(:, :), allocatable :: L1_kPerco              ! [d-1]  percolation coefficient
+  real(dp), public, dimension(:, :, :), allocatable :: L1_fRoots              ! [1]    Fraction of roots in soil horizons
+  real(dp), public, dimension(:, :, :), allocatable :: L1_soilMoistFC         ! [mm]   Soil moisture below which actual ET
+  !                                                                           !        is reduced linearly till PWP
+  real(dp), public, dimension(:, :, :), allocatable :: L1_soilMoistSat        ! [mm]   Saturation soil moisture for each horizon [mm]
+  real(dp), public, dimension(:, :, :), allocatable :: L1_soilMoistExp        ! [1]    Exponential parameter to how non-linear
+  !                                                                           !        is the soil water retention
+  real(dp), public, dimension(:, :, :), allocatable :: L1_wiltingPoint        ! [mm]  Permanent wilting point: below which neither
+  !                                                                         !       plant can take water nor water can drain in
+  real(dp), public, dimension(:), allocatable :: L1_jarvis_thresh_c1    ![1] jarvis critical value for normalized soil
+  !                                                                     !        water content
+  real(dp), public, dimension(:, :), allocatable :: L1_tempThresh          ! [degC]   Threshold temperature for snow/rain
+  real(dp), public, dimension(:, :), allocatable :: L1_unsatThresh         ! [mm]  Threshold waterdepth controlling fast interflow
+  real(dp), public, dimension(:), allocatable :: L1_sealedThresh        ! [mm]  Threshold waterdepth for surface runoff
+  !                                                                     !       in sealed surfaces
+  ! flag for this purpose:
+  ! default = false,
+  ! after startup = true (called MPR),
+  ! if false before mhm_eval, mhm_eval calls MPR and sets it to true
+  ! after mhm_eval = false (used parameters)
+  logical, public :: are_parameter_initialized
+  ! level0%iStart and level0%iEnd are only available in mRM, yet we
+  !  need something similar in mHM for the parameters produced by MPR
+  !  that only exist for the indices in L0_Basin
+  integer(i4), dimension(:), allocatable, public :: L0_Basin_iStart
+  integer(i4), dimension(:), allocatable, public :: L0_Basin_iEnd
 
   ! -------------------------------------------------------------------
   ! Monthly day/night variation of Meteorological variables

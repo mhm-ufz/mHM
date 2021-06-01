@@ -60,7 +60,7 @@ CONTAINS
   ! Stephan Thober,  Jan 2017 - added subroutine for meteo_weights
   ! Robert Schweppe  Jun 2018 - refactoring and reformatting
 
-  subroutine prepare_meteo_forcings_data(iDomain, domainID, tt)
+  subroutine prepare_meteo_forcings_data(iDomain, tt)
 
     use mo_common_variables, only : domainMeta, processMatrix, readPer
     use mo_global_variables, only : L1_absvappress, L1_netrad, L1_pet, L1_pet_weights, L1_pre, L1_pre_weights, L1_temp, &
@@ -78,9 +78,6 @@ CONTAINS
 
     ! Domain number
     integer(i4), intent(in) :: iDomain
-
-    ! Domain ID
-    integer(i4), intent(in) :: domainID
 
     ! current timestep
     integer(i4), intent(in) :: tt
@@ -263,7 +260,7 @@ CONTAINS
   ! Stephan Thober Feb 2016 - refactored deallocate statements
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine meteo_forcings_wrapper(iDomain, dataPath, inputFormat, dataOut1, lower, upper, ncvarName)
+  subroutine meteo_forcings_wrapper(iDomain, dataPath, dataOut1, lower, upper, ncvarName)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -279,9 +276,6 @@ CONTAINS
 
     ! Data path where a given meteo. variable is stored
     character(len = *), intent(in) :: dataPath
-
-    ! only 'nc' possible at the moment
-    character(len = *), intent(in) :: inputFormat
 
     ! Packed meterological variable for the whole simulation period
     real(dp), dimension(:, :), allocatable, intent(inout) :: dataOut1
@@ -329,8 +323,7 @@ CONTAINS
     ncols2 = level2(iDomain)%ncols
     mask2 = level2(iDomain)%mask
 
-    select case (trim(inputFormat))
-    case('nc')
+
       if(present(lower) .AND. (.not. present(upper))) then
         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
                 lower = lower)
@@ -349,9 +342,6 @@ CONTAINS
       if((.not. present(lower)) .AND. (.not. present(upper))) then
         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer)
       end if
-    case DEFAULT
-      stop '***ERROR: meteo_forcings_wrapper: Not recognized input format'
-    end select
     ! cellfactor to decide on the upscaling or downscaling of meteo. fields
     cellFactorHbyM = level1(iDomain)%cellsize / level2(iDomain)%cellsize
 

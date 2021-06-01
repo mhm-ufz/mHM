@@ -9,7 +9,7 @@ module mo_mhm_mpr_interface
 
   private
 
-  public :: check_dimension_consistency
+  public :: check_dimension_consistency, call_mpr, init_eff_params_from_data_arrays
   interface check_consistency_element
     module procedure check_consistency_element_i4, &
             check_consistency_element_dp
@@ -20,88 +20,633 @@ module mo_mhm_mpr_interface
 
 contains
 
+    subroutine call_mpr(parameterValues, parameterNames, grids, do_init_arg)
+    use mo_mpr_global_variables, only : out_filename
+    use mo_mpr_read_config, only : mpr_read_config
+    use mo_netcdf, only : NcDataset
+    use mo_mpr_constants, only : maxNoDataArrays
+    use mo_common_variables, only : nuniquel0Basins, write_restart, &
+            dummy_global_parameters, dummy_global_parameters_name, nBasins
+    use mo_append, only: append
+    use mo_file, only : unamelist_mpr
+    use mo_global_variables, only: pathMprNml, are_parameter_initialized
+    use mo_mpr_reset, only: reset
+    use mo_mpr_reorder_data_array, only: reorder_data_arrays
+
+    real(dp), dimension(:), intent(in) :: parameterValues
+    character(*), dimension(:), intent(in) :: parameterNames
+    type(Grid), dimension(:), intent(inout) :: grids
+    logical, intent(in), optional :: do_init_arg
+
+    real(dp), dimension(:), allocatable :: parameterValuesConcat
+    character(maxNameLength), dimension(:), allocatable :: parameterNamesConcat
+    integer(i4) :: i, iUniqueBasin
+    type(NcDataset) :: nc
+
+    parameterValuesConcat = parameterValues
+    parameterNamesConcat = parameterNames
+    call append(parameterValuesConcat, dummy_global_parameters)
+    call append(parameterNamesConcat, dummy_global_parameters_name)
+
+    do iUniqueBasin=1, nuniquel0Basins
+      ! read the config
+      call mpr_read_config(pathMprNml(iUniqueBasin), unamelist_mpr, &
+              parameterValues=parameterValuesConcat, parameterNames=parameterNamesConcat)
+
+      ! reorder data array to minimize storage requirement and assure that all required input fields have been read before
+      ! call reorder_data_arrays(MPR_DATA_ARRAYS)
+
+      if (write_restart) then
+        ! open the output file
+        nc = NcDataset(out_filename, "w")
+      end if
+
+      do i = 1, maxNoDataArrays
+        ! stop if no name is initialized
+        if (.not. MPR_DATA_ARRAYS(i)%is_initialized) then
+          cycle
+        end if
+
+        ! execute MPR on each DataArray
+        call MPR_DATA_ARRAYS(i)%execute()
+        if (write_restart .and. MPR_DATA_ARRAYS(i)%toFile) then
+          ! write the current parameter to the output file
+          call MPR_DATA_ARRAYS(i)%write(nc)
+        end if
+
+      end do
+
+      if (write_restart) then
+        ! close the output file
+        call nc%close()
+      end if
+
+      ! TODO: we need to make sure there is no data gaps in data arrays... (former L0_check_input)
+      call init_eff_params_from_data_arrays(iUniqueBasin, grids, do_init_arg)
+      ! delete MPR_DATA_ARRAYS
+      call reset()
+    end do
+    call check_consistency()
+    are_parameter_initialized = .true.
+
+  end subroutine call_mpr
+
+  subroutine init_eff_params_from_data_arrays(iUniqueBasin, grids, do_init_arg)
+    use mo_global_variables, only: nSoilHorizons, nLAIs, L1_fSealed, L1_alpha, L1_degDayInc, L1_degDayMax, &
+            L1_degDayNoPre, L1_karstLoss, L1_maxInter, L1_kFastFlow, L1_kSlowFlow, &
+            L1_kBaseFlow, L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp, L1_jarvis_thresh_c1, &
+            L1_petLAIcorFactor, L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint, L1_fAsp, &
+            L1_latitude, L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_fRoots, L1_surfResist, &
+            L0_Basin_iEnd, L0_Basin_iStart
+    use mo_common_variables, only: nBasins, L0_Basin, processMatrix
+    use mo_common_variables, only: nLandCoverPeriods
+    use mo_mpr_constants, only: maxNoDataArrays
+    use mo_append, only: append, add_nodata_slice
+    use mo_constants, only: nodata_dp
+
+    integer(i4), intent(in) :: iUniqueBasin
+    type(Grid), dimension(:), intent(inout) :: grids
+    logical, intent(in), optional :: do_init_arg
+    integer(i4) :: iDomain, iDomainFirstUnique, nCells, iDA, s1, e1, nSlices, newSlices
+    logical :: share_L0, do_init
+    integer(i4), dimension(:), allocatable :: landCoverSelect
+    real(dp), dimension(:, :, :), allocatable :: dummy3D
+    real(dp), dimension(:, :), allocatable :: dummy2D
+
+    do_init = .true.
+    if (present(do_init_arg)) do_init = do_init_arg
+
+    ! this is a temporary flag for basins that share the same MPR parameters
+    share_L0 = .false.
+    iDomainFirstUnique = 0_i4
+    do iDomain = 1, nBasins
+      if (iUniqueBasin == L0_Basin(iDomain)) then
+        if (share_L0) then
+          ! use the already existing grid
+          if (do_init) then
+            ! use the already existing grid
+            grids(iDomain) = grids(iDomain - 1)
+            ! set the land cover information for that basin also
+            call init_grid(grids(iDomain), iDomain, landCoverSelect, nSlices, .false.)
+          end if
+        else
+          if (allocated(landCoverSelect)) deallocate(landCoverSelect)
+          ! init the grid
+          call init_grid(grids(iDomain), iDomain, landCoverSelect, nSlices, do_init)
+          share_L0 = .true.
+          ! this is the index of the grid target
+          iDomainFirstUnique = iDomain
+        end if
+      end if
+    end do
+
+    nCells = grids(iDomainFirstUnique)%nCells
+    newSlices = size(landCoverSelect)
+    ! init the parameters
+    do iDA = 1, maxNoDataArrays
+      ! stop if no name is initialized
+      if (MPR_DATA_ARRAYS(iDA)%name(1:3) == 'L1_') then
+        if (.not. do_init) then
+          s1 = L0_Basin_iStart(iDomainFirstUnique)
+          e1 = L0_Basin_iEnd(iDomainFirstUnique)
+          ! The data arrays are selected based on name
+          ! they only exist in a packed 1D-version and thus first need to be reshaped
+          ! we know from landCoverSelect that we only need a certain slices of the landCoverPeriods
+          ! we select the slices after the reshape by using newSlices
+          ! then, we need to have nLandCoverPeriods in the arrays last dimensions, newSlices may be different
+          ! to fulfill that, we add dummy slices in the last dimension
+          select case(trim(MPR_DATA_ARRAYS(iDA)%name))
+          case('L1_SealedFraction')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            L1_fSealed(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+          case('L1_Alpha')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            L1_alpha(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+          case('L1_DegDayInc')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            L1_degDayInc(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+          case('L1_DegDayMax')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            L1_degDayMax(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+          case('L1_DegDayNoPre')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            L1_degDayNoPre(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+          case('L1_KarstLoss')
+            ! rows, cols
+            L1_karstLoss(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
+          case('L1_Max_Canopy_Intercept')
+            ! rows, cols, lais
+            L1_maxInter(s1:e1, :) = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs])
+          case('L1_FastFlow')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            L1_kFastFlow(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+          case('L1_SlowFlow')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            L1_kSlowFlow(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+          case('L1_kBaseFlow')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            L1_kBaseFlow(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+          case('L1_Kperco')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            L1_kPerco(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+          case('L1_FieldCap')
+            ! rows, cols, soil, lcscenes
+            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nSoilHorizons, nCells, nSlices])
+            L1_soilMoistFC(:, s1:e1, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+          case('L1_SatSoilMoisture')
+            ! rows, cols, soil, lcscenes
+            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nSoilHorizons, nCells, nSlices])
+            L1_soilMoistSat(:, s1:e1, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+          case('L1_SoilMoistureExponent')
+            ! rows, cols, soil, lcscenes
+            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nSoilHorizons, nCells, nSlices])
+            L1_soilMoistExp(:, s1:e1, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+          case('L1_PermWiltPoint')
+            ! rows, cols, lais, lcscenes
+            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nSoilHorizons, nCells, nSlices])
+            L1_wiltingPoint(:, s1:e1, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+          case('L1_TempThresh')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            L1_tempThresh(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+          case('L1_UnsatThreshold')
+            ! rows, cols
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            L1_unsatThresh(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+          case('L1_SealedThresh')
+            ! rows, cols
+            L1_sealedThresh(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
+          case('L1_Jarvis_Threshold')
+            ! rows, cols
+            L1_jarvis_thresh_c1(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
+          case('L1_PET_LAI_correction_factor')
+            ! rows, cols, lais, lcscenes
+            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs, nSlices])
+            L1_petLAIcorFactor(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+          case('L1_HarSamCoeff')
+            ! rows, cols
+            L1_HarSamCoeff(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
+          case('L1_PrieTayAlpha')
+            ! rows, cols, lais
+            L1_PrieTayAlpha(s1:e1, :) = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs])
+          case('L1_Aerodyn_resist')
+            ! rows, cols, lais, lcscenes
+            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs, nSlices])
+            L1_aeroResist(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+          case('L1_Bulk_Surface_Resist')
+            ! rows, cols, lais
+            L1_surfResist(s1:e1, :) = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs])
+          case('L1_fAsp')
+            ! rows, cols
+            L1_fAsp(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
+          case('L1_latitude')
+            ! rows, cols
+            L1_latitude(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
+          end select
+          ! process-sensitive types of calculation for parameters
+          if (processMatrix(3,1) == 3) then
+            select case(trim(MPR_DATA_ARRAYS(iDA)%name))
+            case('L1_fRoots_FC')
+              ! rows, cols, soil, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nSoilHorizons, nCells, nSlices])
+              L1_fRoots(:, s1:e1, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+            end select
+          else
+            select case(trim(MPR_DATA_ARRAYS(iDA)%name))
+            case('L1_fRoots')
+              ! rows, cols, soil, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nSoilHorizons, nCells, nSlices])
+              L1_fRoots(:, s1:e1, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+            end select
+          end if
+        else
+          select case(trim(MPR_DATA_ARRAYS(iDA)%name))
+          case('L1_SealedFraction')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            dummy2D = dummy2D(:, landCoverSelect)
+            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_fSealed, dummy2D)
+          case('L1_Alpha')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            dummy2D = dummy2D(:, landCoverSelect)
+            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_alpha, dummy2D)
+          case('L1_DegDayInc')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            dummy2D = dummy2D(:, landCoverSelect)
+            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_degDayInc, dummy2D)
+          case('L1_DegDayMax')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            dummy2D = dummy2D(:, landCoverSelect)
+            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_degDayMax, dummy2D)
+          case('L1_DegDayNoPre')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            dummy2D = dummy2D(:, landCoverSelect)
+            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_degDayNoPre, dummy2D)
+          case('L1_KarstLoss')
+            ! rows, cols
+            call append(L1_karstLoss, MPR_DATA_ARRAYS(iDA)%data)
+          case('L1_Max_Canopy_Intercept')
+            ! rows, cols, lais
+            call append(L1_maxInter, reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs]))
+          case('L1_FastFlow')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            dummy2D = dummy2D(:, landCoverSelect)
+            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_kFastFlow, dummy2D)
+          case('L1_SlowFlow')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            dummy2D = dummy2D(:, landCoverSelect)
+            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_kSlowFlow, dummy2D)
+          case('L1_kBaseFlow')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            dummy2D = dummy2D(:, landCoverSelect)
+            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_kBaseFlow, dummy2D)
+          case('L1_Kperco')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            dummy2D = dummy2D(:, landCoverSelect)
+            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_kPerco, dummy2D)
+          case('L1_FieldCap')
+            ! rows, cols, soil, lcscenes
+            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nSoilHorizons, nCells, nSlices])
+            dummy3D = dummy3D(:, :, landCoverSelect)
+            call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_soilMoistFC, dummy3D, idim=2)
+          case('L1_SatSoilMoisture')
+            ! rows, cols, soil, lcscenes
+            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nSoilHorizons, nCells, nSlices])
+            dummy3D = dummy3D(:, :, landCoverSelect)
+            call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_soilMoistSat, dummy3D, idim=2)
+          case('L1_SoilMoistureExponent')
+            ! rows, cols, soil, lcscenes
+            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nSoilHorizons, nCells, nSlices])
+            dummy3D = dummy3D(:, :, landCoverSelect)
+            call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_soilMoistExp, dummy3D, idim=2)
+          case('L1_PermWiltPoint')
+            ! rows, cols, lais, lcscenes
+            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nSoilHorizons, nCells, nSlices])
+            dummy3D = dummy3D(:, :, landCoverSelect)
+            call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_wiltingPoint, dummy3D, idim=2)
+          case('L1_TempThresh')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            dummy2D = dummy2D(:, landCoverSelect)
+            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_tempThresh, dummy2D)
+          case('L1_UnsatThreshold')
+            ! rows, cols, lcscenes
+            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+            dummy2D = dummy2D(:, landCoverSelect)
+            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_unsatThresh, dummy2D)
+          case('L1_SealedThresh')
+            ! rows, cols
+            call append(L1_sealedThresh, MPR_DATA_ARRAYS(iDA)%data)
+          case('L1_Jarvis_Threshold')
+            ! rows, cols
+            call append(L1_jarvis_thresh_c1, MPR_DATA_ARRAYS(iDA)%data)
+          case('L1_PET_LAI_correction_factor')
+            ! rows, cols, lais, lcscenes
+            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs, nSlices])
+            dummy3D = dummy3D(:, :, landCoverSelect)
+            call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_petLAIcorFactor, dummy3D)
+          case('L1_HarSamCoeff')
+            ! rows, cols
+            call append(L1_HarSamCoeff, MPR_DATA_ARRAYS(iDA)%data)
+          case('L1_PrieTayAlpha')
+            ! rows, cols, lais
+            call append(L1_PrieTayAlpha, reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs]))
+          case('L1_Aerodyn_resist')
+            ! rows, cols, lais, lcscenes
+            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs, nSlices])
+            dummy3D = dummy3D(:, :, landCoverSelect)
+            call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+            call append(L1_aeroResist, dummy3D)
+          case('L1_Bulk_Surface_Resist')
+            ! rows, cols, lais
+            call append(L1_surfResist, reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs]))
+          case('L1_fAsp')
+            ! rows, cols
+            call append(L1_fAsp, MPR_DATA_ARRAYS(iDA)%data)
+          case('L1_latitude')
+            ! rows, cols
+            call append(L1_latitude, MPR_DATA_ARRAYS(iDA)%data)
+          end select
+          ! process-sensitive types of calculation for parameters
+          if (processMatrix(3,1) == 3) then
+            select case(trim(MPR_DATA_ARRAYS(iDA)%name))
+            case('L1_fRoots_FC')
+              ! rows, cols, soil, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nSoilHorizons, nCells, nSlices])
+              dummy3D = dummy3D(:, :, landCoverSelect)
+              call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_fRoots, dummy3D, idim=2)
+            end select
+          else
+            select case(trim(MPR_DATA_ARRAYS(iDA)%name))
+            case('L1_fRoots')
+              ! rows, cols, soil, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nSoilHorizons, nCells, nSlices])
+              dummy3D = dummy3D(:, :, landCoverSelect)
+              call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_fRoots, dummy3D, idim=2)
+            end select
+          end if
+        end if
+      end if
+    end do
+
+
+  end subroutine init_eff_params_from_data_arrays
+
+  subroutine init_grid(new_grid, iDomain, landCoverSelect, nLandCoverPeriods_temp, do_init_arg)
+    use mo_common_variables, only : Grid, L0_Basin
+    use mo_grid, only : L0_grid_setup
+    use mo_mpr_coordinate, only: get_index_in_coordinate, MPR_COORDINATES
+    use mo_mpr_utils, only: get_index_in_vector
+    use mo_global_variables, only: L0_Basin_iStart, L0_Basin_iEnd
+
+    ! grid to save information to
+    type(Grid), intent(inout) :: new_grid
+    integer(i4), intent(in) :: iDomain
+    integer(i4), dimension(:), intent(out), allocatable :: landCoverSelect
+    integer(i4), intent(out) :: nLandCoverPeriods_temp
+    logical, intent(in), optional :: do_init_arg
+
+    logical :: do_init
+    integer(i4) :: nSoilHorizons_temp, nLAIs_temp
+    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp, soilHorizonBoundaries_temp, &
+            LAIBoundaries_temp
+    integer(i4) :: iDA
+    integer(i4), dimension(:), allocatable :: iDim_x, iDim_y, iDim
+    character(maxNameLength) :: LAI_dim_name
+
+    do_init = .true.
+    if (present(do_init_arg)) do_init = do_init_arg
+
+    if (do_init) then
+      ! get the x dimension
+      iDim_x = get_index_in_coordinate('lon_out')
+      ! get the y dimension
+      iDim_y = get_index_in_coordinate('lat_out')
+
+      ! init some main properties
+      new_grid%xllcorner = MPR_COORDINATES(iDim_x(1))%bounds(1)
+      new_grid%yllcorner = MPR_COORDINATES(iDim_y(1))%bounds(1)
+      new_grid%nrows = MPR_COORDINATES(iDim_x(1))%count
+      new_grid%ncols = MPR_COORDINATES(iDim_y(1))%count
+      new_grid%cellsize = MPR_COORDINATES(iDim_x(1))%step
+
+      ! allocate all 2d properties, now that we know the dimensionality
+      allocate(new_grid%x(new_grid%nrows, new_grid%ncols))
+      allocate(new_grid%y(new_grid%nrows, new_grid%ncols))
+      allocate(new_grid%mask(new_grid%nrows, new_grid%ncols))
+
+      ! for historic reasons this is in 2d
+      new_grid%x = spread(MPR_COORDINATES(iDim_x(1))%values(1:), 2, new_grid%ncols)
+      new_grid%y = spread(MPR_COORDINATES(iDim_y(1))%values(1:), 1, new_grid%nrows)
+
+      ! use a 2d field for inferring the mask (cannot be derived from dimensions)
+      iDA = get_index_in_vector('L1_latitude', MPR_DATA_ARRAYS)
+      new_grid%mask = reshape(MPR_DATA_ARRAYS(iDA)%reshapedMask, [new_grid%nrows, new_grid%ncols])
+      call L0_grid_setup(new_grid)
+
+    end if
+
+    ! Saving indices of mask and packed data
+    if(L0_Basin(iDomain) == 1_i4) then
+      ! then use 1 as beginning
+      L0_Basin_iStart(iDomain) = 1_i4
+    else if(L0_Basin(iDomain) /= L0_Basin(iDomain-1_i4)) then
+      ! then use previous end index + 1 as beginning
+      L0_Basin_iStart(iDomain) = L0_Basin_iEnd(iDomain - 1_i4) + 1_i4
+    else
+      ! then use previous start index as beginning also
+      L0_Basin_iStart(iDomain) = L0_Basin_iStart(iDomain-1_i4)
+    end if
+    L0_Basin_iEnd(iDomain) = L0_Basin_iStart(iDomain) + new_grid%nCells - 1_i4
+
+    ! get the z dimension
+    iDim = get_index_in_coordinate('horizon_out')
+    nSoilHorizons_temp = MPR_COORDINATES(iDim(1))%count
+    allocate(soilHorizonBoundaries_temp(0: nSoilHorizons_temp))
+    soilHorizonBoundaries_temp = MPR_COORDINATES(iDim(1))%values(0: nSoilHorizons_temp)
+
+    ! get the landcover dimension
+    iDim = get_index_in_coordinate('land_cover_period_out')
+    nLandCoverPeriods_temp = MPR_COORDINATES(iDim(1))%count
+    allocate(landCoverPeriodBoundaries_temp(0: nLandCoverPeriods_temp))
+    landCoverPeriodBoundaries_temp = MPR_COORDINATES(iDim(1))%values(0: nLandCoverPeriods_temp)
+
+    ! use a field for inferring that dimension (name depends on the input data and is flexible)
+    iDA = get_index_in_vector('L1_Max_Canopy_Intercept', MPR_DATA_ARRAYS)
+    LAI_dim_name = MPR_DATA_ARRAYS(iDA)%coords(3)%coord_p%name
+
+    ! get the LAI dimension
+    iDim = get_index_in_coordinate(trim(LAI_dim_name))
+    nLAIs_temp = MPR_COORDINATES(iDim(1))%count
+    allocate(LAIBoundaries_temp(0: nLAIs_temp))
+    LAIBoundaries_temp = MPR_COORDINATES(iDim(1))%values(0: nLAIs_temp)
+
+    call check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
+          nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp, &
+            landCoverSelect, do_init)
+
+
+  end subroutine init_grid
+
   !>       \brief checks dimension configurations read from restart file
-  subroutine check_dimension_consistency(iBasin, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
-          nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)
-    use mo_mpr_global_variables, only: nSoilHorizons_mHM, HorizonDepth_mHM, nLAI, LAIBoundaries
+  subroutine check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
+          nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp, &
+          landCoverSelect, check_all_arg)
+    use mo_global_variables, only: nSoilHorizons, soilHorizonBoundaries, nLAIs, LAIBoundaries
     use mo_common_variables, only: nLCoverScene, LC_year_start, LC_year_end
     use mo_string_utils, only: compress, num2str
 
-    integer(i4), intent(in) :: iBasin
+    integer(i4), intent(in) :: iDomain
 
     integer(i4), intent(in) :: nSoilHorizons_temp, nLAIs_temp, nLandCoverPeriods_temp
     real(dp), dimension(:), intent(inout) :: landCoverPeriodBoundaries_temp, soilHorizonBoundaries_temp, &
             LAIBoundaries_temp
-    character(256) :: errorString
-
+    integer(i4), dimension(:), allocatable, intent(out) :: landCoverSelect
+    logical, intent(in), optional :: check_all_arg
+    
     integer(i4) :: k
+    logical :: check_all
 
-    ! compare local to global
-    call check_consistency_element(nLCoverScene, nLandCoverPeriods_temp, 'number of land cover periods', iBasin)
-    call check_consistency_element(nSoilHorizons_mHM, nSoilHorizons_temp, 'number of soil horizons', iBasin)
-    call check_consistency_element(nLAI, nLAIs_temp, 'number of LAI timesteps', iBasin)
+    check_all = .true.
+    if (present(check_all_arg)) check_all = check_all_arg
+    call common_check_dimension_consistency(iDomain, landCoverPeriodBoundaries_temp, landCoverSelect)
+    if (iDomain == 1 .and. check_all) then
+      ! set local to global
+      nSoilHorizons = nSoilHorizons_temp
+      nLAIs = nLAIs_temp
+      allocate(soilHorizonBoundaries(nSoilHorizons+1))
+      allocate(LAIBoundaries(nLAIs+1))
+      soilHorizonBoundaries = soilHorizonBoundaries_temp
+      LAIBoundaries = LAIBoundaries_temp
+    else
+      ! check if it conforms with global
+      if (nSoilHorizons /= nSoilHorizons_temp) then
+        call message('The number of soil horizons for basin 1 (', compress(trim(num2str(nSoilHorizons))), &
+                ') does not conform with the number of soil horizons for basin ', &
+                compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nSoilHorizons_temp))), ').')
+        stop 1
+      end if
+      if (nLAIs /= nLAIs_temp) then
+        call message('The number of soil horizons for basin 1 (', compress(trim(num2str(nLAIs))), &
+                ') does not conform with the number of soil horizons for basin ', &
+                compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nLAIs_temp))), ').')
+        stop 1
+      end if
+      do k=1, nSoilHorizons+1
+        if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k))) then
+          call message('The ',compress(trim(num2str(k))),'th soil horizon boundary for basin 1 (', &
+                  compress(trim(num2str(soilHorizonBoundaries(k)))), &
+                  ') does not conform with basin ', &
+                  compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(soilHorizonBoundaries_temp(k)))), ').')
+          stop 1
+        end if
+      end do
+      do k=1, nSoilHorizons+1
+        if (ne(LAIBoundaries(k), LAIBoundaries_temp(k))) then
+          call message('The ',compress(trim(num2str(k))),'th LAI period boundary for basin 1 (', &
+                  compress(trim(num2str(LAIBoundaries(k)))), ') does not conform with basin ', &
+                  compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(LAIBoundaries_temp(k)))), ').')
+          stop 1
+        end if
+      end do
 
-    ! now check the boundaries
-    do k=1, nLCoverScene
-      errorString = compress(trim(num2str(k)))//'th land cover boundary'
-      call check_consistency_element(real(LC_year_start(k), dp), landCoverPeriodBoundaries_temp(k), errorString, iBasin)
-    end do
-    errorString = 'last land cover boundary (with 1 year added due to real/int conversion) '
-    call check_consistency_element(real(LC_year_end(nLCoverScene) + 1_i4, dp), &
-            landCoverPeriodBoundaries_temp(nLCoverScene+1), errorString, iBasin)
-
-    ! last soil horizon is spatially variable, so this is not checked yet
-    ! first soil horizon 0 and not contained in HorizonDepth_mHM, so skip that, too
-    do k=2, nSoilHorizons_mHM
-      errorString = compress(trim(num2str(k)))//'th soil horizon boundary'
-      call check_consistency_element(HorizonDepth_mHM(k-1), soilHorizonBoundaries_temp(k), errorString, iBasin)
-    end do
-
-    do k=1, nLAI+1
-      errorString = compress(trim(num2str(k)))//'th LAI period boundary'
-      call check_consistency_element(LAIBoundaries(k), LAIBoundaries_temp(k), errorString, iBasin)
-    end do
-
-
+    end if
   end subroutine check_dimension_consistency
 
-  subroutine check_consistency_element_dp(item1, item2, name, iBasin)
+  subroutine check_consistency_element_dp(item1, item2, name, iDomain)
     use mo_utils, only: ne
     use mo_string_utils, only: compress, num2str
     use mo_message, only: message
 
     real(dp), intent(in) :: item1, item2
     character(*), intent(in) :: name
-    integer(i4), intent(in) :: iBasin
+    integer(i4), intent(in) :: iDomain
 
     if (ne(item1, item2)) then
       call message('The ', trim(name),&
                   ' as set in the configuration file (', &
                   compress(trim(num2str(item1))), &
                   ') does not conform with basin ', &
-                  compress(trim(num2str(iBasin))), ' (', compress(trim(num2str(item2))), ').')
+                  compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(item2))), ').')
       stop 1
     end if
   end subroutine check_consistency_element_dp
 
-  subroutine check_consistency_element_i4(item1, item2, name, iBasin)
+  subroutine check_consistency_element_i4(item1, item2, name, iDomain)
     use mo_utils, only: ne
     use mo_string_utils, only: compress, num2str
     use mo_message, only: message
 
     integer(i4), intent(in) :: item1, item2
     character(*), intent(in) :: name
-    integer(i4), intent(in) :: iBasin
+    integer(i4), intent(in) :: iDomain
 
     if (item1 /= item2) then
       call message('The ', trim(name),&
                   ' as set in the configuration file (', &
                   compress(trim(num2str(item1))), &
                   ') does not conform with basin ', &
-                  compress(trim(num2str(iBasin))), ' (', compress(trim(num2str(item2))), ').')
+                  compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(item2))), ').')
       stop 1
     end if
   end subroutine check_consistency_element_i4
+
+   subroutine check_consistency()
+     !TODO: MPR this needs checking!!!
+    use mo_global_variables, only : nSoilHorizons
+    use mo_common_variables, only : opti_function, optimize
+    use mo_global_variables, only : nSoilHorizons_sm_input
+
+    if (optimize) then
+      select case (opti_function)
+      case(10 : 13, 28)
+        ! soil moisture
+        if (nSoilHorizons_sm_input > nSoilHorizons) then
+          call message()
+          call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
+          call message('          defined number of soil horizions in mHM: ', &
+                  adjustl(trim(num2str(nSoilHorizons))), '!')
+          stop 1
+        end if
+      end select
+    end if
+
+  end subroutine check_consistency
 
 end module mo_mhm_mpr_interface
 

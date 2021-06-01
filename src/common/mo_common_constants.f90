@@ -36,6 +36,8 @@ MODULE mo_common_constants
   integer(i4), public, parameter :: nColPars = 5_i4      ! number of properties of the global variables
   integer(i4), public, parameter :: maxNoDomains = 50_i4     ! maximum number of allowed domains
   integer(i4), public, parameter :: maxNLcovers = 50_i4     ! maximum number of allowed LCover scenes
+  integer(i4), public, parameter :: nLCover_class = 3_i4      ! [-]     Number of land cover class
+
 
   character(64), public, parameter :: soilHorizonsVarName = "L1_SoilHorizons"
   character(64), public, parameter :: landCoverPeriodsVarName = "L1_LandCoverPeriods"

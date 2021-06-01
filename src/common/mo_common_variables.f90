@@ -56,16 +56,13 @@ module mo_common_variables
   character(256), dimension(:), allocatable, public :: mrmFileRestartOut ! Directory where output of restart is written
   character(256), public :: dirConfigOut
   character(256), public :: dirCommonFiles ! directory where common input files should be located
+  character(256), dimension(:), allocatable, public :: dirOut ! Directory where output is written to
+  !TODO: MPR this will go, level0 is moved to mRM
   character(256), dimension(:), allocatable, public :: dirMorpho ! Directory where morphological files are located
   character(256), dimension(:), allocatable, public :: dirLCover ! Directory where land cover files are located
-  character(256), dimension(:), allocatable, public :: dirOut ! Directory where output is written to
   character(256), dimension(:), allocatable, public :: fileLatLon ! Directory where the Lat Lon Files are located
-
   type(Grid), dimension(:), target, allocatable, public :: level0 ! grid information at morphological level (e.g., dem, fDir)
-  type(Grid), dimension(:), target, allocatable, public :: level1 ! grid information at hydrologic level
-
   type(GridRemapper), dimension(:), allocatable, public :: l0_l1_remap  ! grid information at morphological level (e.g., dem, fDir)
-
   ! -------------------------------------------------------------------
   ! L0 DOMAIN description -> <only domain>
   ! -------------------------------------------------------------------
@@ -76,6 +73,10 @@ module mo_common_variables
   integer(i4), public, dimension(:, :), allocatable :: L0_LCover      ! Classic mHM landcover class (upto 3 classes)
   !                                                                          ! dim1=number grid cells, dim2=Number of land cover scenes
   !                                                                          ! target variable for coupling to mRM
+
+  type(Grid), dimension(:), target, allocatable, public :: level1 ! grid information at hydrologic level
+
+
 
 #ifdef MPI
   ! -------------------------------------------------------------------
@@ -113,14 +114,17 @@ module mo_common_variables
   type(domain_meta), public :: domainMeta
   integer(i4), public :: nuniqueL0Domains ! Number of unique domains for L0
 
+  !TODO: MPR this will go
   ! -----------------------------------------------------------------
   ! LAND COVER DATA
   ! -----------------------------------------------------------------
   ! Land cover information
-  integer(i4), public :: nLCoverScene        ! Number of land cover scene (lcs)
+  integer(i4), public :: nLandCoverPeriods        ! Number of land cover scene (lcs)
   character(256), dimension(:), allocatable, public :: LCfilename          ! file names for the different lcs
   integer(i4), dimension(:), allocatable, public :: LC_year_start       ! vector of start years for lcs
   integer(i4), dimension(:), allocatable, public :: LC_year_end         ! vector of end years for lcs
+  integer(i4), dimension(:, :), allocatable, public :: LCyearId  ! Mapping of landcover scenes (1, 2,..) for each basin
+                                                                 ! dimensions ( year, iBasin) (year as integer!!!)
 
   ! -------------------------------------------------------------------
   ! PROCESSES description

@@ -19,7 +19,7 @@ MODULE mo_common_read_config
   PRIVATE
 
   PUBLIC :: common_read_config, set_land_cover_scenes_id, common_check_resolution, check_optimization_settings
-
+  !TODO: MPR read_mhm_parameters needs to go here?!
   ! ------------------------------------------------------------------
 
 CONTAINS
@@ -30,9 +30,9 @@ CONTAINS
   !        common_read_config
 
   !    PURPOSE
-  !>       \brief Read main configurations commonly used by mHM, mRM and MPR
+  !>       \brief Read main configurations commonly used by mHM and mRM
 
-  !>       \details Read the main configurations commonly used by mHM, mRM and MPR, namely:
+  !>       \details Read the main configurations commonly used by mHM and mRM, namely:
   !>       project_description, directories_general, mainconfig, processSelection, LCover
 
   !    INTENT(IN)
@@ -181,15 +181,17 @@ CONTAINS
 
     ! allocate patharray sizes
     allocate(resolutionHydrology(domainMeta%nDomains))
-    allocate(dirMorpho(domainMeta%nDomains))
     allocate(mhmFileRestartOut(domainMeta%nDomains))
     allocate(mrmFileRestartOut(domainMeta%nDomains))
-    allocate(dirLCover(domainMeta%nDomains))
     allocate(dirOut(domainMeta%nDomains))
-    allocate(fileLatLon(domainMeta%nDomains))
     allocate(domainMeta%L0DataFrom(domainMeta%nDomains))
     allocate(domainMeta%optidata(domainMeta%nDomains))
     allocate(domainMeta%doRouting(domainMeta%nDomains))
+
+    ! TODO: MPR this block will go
+    allocate(dirMorpho(domainMeta%nDomains))
+    allocate(dirLCover(domainMeta%nDomains))
+    allocate(fileLatLon(domainMeta%nDomains))
 
     nuniqueL0Domains = 0_i4
     do iDomain = 1, domainMeta%nDomains
@@ -217,12 +219,12 @@ CONTAINS
       stop 1
     end if
 
+    ! TODO: MPR this will go
     !===============================================================
     ! Read land cover
     !===============================================================
     call position_nml('LCover', unamelist)
     read(unamelist, nml = LCover)
-
     ! put land cover scenes to corresponding file name and LuT
     ! this is done already here for MPR, which does not check for the time periods
     allocate(LCfilename(nLCoverScene))
@@ -241,11 +243,12 @@ CONTAINS
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       domainMeta%optidata(iDomain) = read_opt_domain_data(domainID)
-      dirMorpho(iDomain)           = dir_Morpho(domainID)
       mhmFileRestartOut(iDomain)   = mhm_file_RestartOut(domainID)
       mrmFileRestartOut(iDomain)   = mrm_file_RestartOut(domainID)
-      dirLCover(iDomain)           = dir_LCover(domainID)
       dirOut(iDomain)              = dir_Out(domainID)
+      ! TODO: MPR this will go
+      dirMorpho(iDomain)           = dir_Morpho(domainID)
+      dirLCover(iDomain)           = dir_LCover(domainID)
       fileLatLon(iDomain)          = file_LatLon(domainID)
     end do
 
@@ -367,6 +370,13 @@ CONTAINS
       simPer(iDomain)%julEnd = evalPer(iDomain)%julEnd
     end do
 
+    ! TODO: MPR this will be exchanged
+    ! !===============================================================
+    ! ! Read land cover
+    ! !===============================================================
+    ! call position_nml('LCover', unamelist)
+    ! read(unamelist, nml = LCover)
+    ! allocate(LCyearId(minval(simPer(1:domainMeta%nDomains)%yStart):maxval(simPer(1:domainMeta%nDomains)%yEnd), domainMeta%nDomains))
     call set_land_cover_scenes_id(simPer, LCyearId)
 
     !===============================================================
@@ -379,6 +389,8 @@ CONTAINS
     ! because global_parameters need to be set, which is not the case right now
 
     call close_nml(unamelist)
+
+    call read_mhm_parameters(file_namelist_param, unamelist_param)
 
   end subroutine common_read_config
 

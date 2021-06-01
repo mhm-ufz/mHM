@@ -252,7 +252,7 @@ PROGRAM mhm_driver
   call message('Read namelist file: ', trim(file_namelist_mhm))
   call message('Read namelist file: ', trim(file_namelist_mhm_param))
   call message('Read namelist file: ', trim(file_defOutput))
-  call common_read_config(file_namelist_mhm, unamelist_mhm)
+  call common_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
 #ifdef MPI
   call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
   ! find the number the process is referred to, called rank
@@ -261,9 +261,7 @@ PROGRAM mhm_driver
   call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
   call mhm_read_config(file_namelist_mhm, unamelist_mhm)
   call check_optimization_settings()
-  mrm_coupling_mode = 2_i4
-  call mrm_configuration(file_namelist_mhm, unamelist_mhm, &
-          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon)
+
   call message()
   call message('# of domains:         ', trim(num2str(domainMeta%overallNumberOfDomains)))
   call message()
@@ -310,6 +308,7 @@ PROGRAM mhm_driver
 #endif
   call message()
 
+  ! TODO: MPR this whole block will go
   call message('  Read data ...')
   call timer_start(itimer)
   ! for DEM, slope, ... define nGvar local
@@ -317,12 +316,15 @@ PROGRAM mhm_driver
   call read_data(simPer)
   call timer_stop(itimer)
   call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
+  if (processMatrix(8, 1) > 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
+          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon=ReadLatLon)
+
 
   ! read data for every domain
   itimer = itimer + 1
   call message('  Initialize domains ...')
   call timer_start(itimer)
-  call mhm_initialize()
+  call mhm_initialize(global_parameters(:, 3), global_parameters_name)
   call timer_stop(itimer)
   call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
@@ -335,7 +337,7 @@ PROGRAM mhm_driver
     ! read meteorology now, if optimization is switched on
     ! meteorological forcings (reading, upscaling or downscaling)
     if (timestep_model_inputs(iDomain) .eq. 0_i4) then
-      call prepare_meteo_forcings_data(iDomain, domainID, 1)
+      call prepare_meteo_forcings_data(iDomain, 1)
     end if
 
     ! read optional optional data if necessary
@@ -370,12 +372,6 @@ PROGRAM mhm_driver
   end do
   call timer_stop(itimer)
   call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
-
-  ! --------------------------------------------------------------------------
-  ! READ and INITIALISE mRM ROUTING
-  ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) > 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
-          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon=ReadLatLon)
 
   !this call may be moved to another position as it writes the master config out file for all domains
   call write_configfile()
