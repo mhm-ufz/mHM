@@ -1,5 +1,0 @@
-module purge
-module load foss/2019b
-module load netCDF-Fortran
-module load CMake
-export FC=mpif90

@@ -115,10 +115,10 @@ end subroutine mrm_configuration
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_mHM_mRM_variables, only : mrmFileRestartIn, mrm_coupling_mode, mrm_read_river_network, &
                                             resolutionRouting
-    use mo_common_restart, only : read_grid_info
+    use mo_grid, only : read_grid_info
     use mo_common_variables, only : domainMeta, global_parameters, l0_l1_remap, level0, level1, domainMeta, &
                                     processMatrix, resolutionHydrology
-    use mo_grid, only : L0_grid_setup, init_lowres_level, set_domain_indices
+    use mo_grid, only : init_advanced_grid_properties, init_lowres_level, set_domain_indices
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_mrm_global_variables, only : domain_mrm, &
@@ -188,12 +188,12 @@ end subroutine mrm_configuration
         if (iDomain .eq. 1) then
           call L0_check_input_routing(domainMeta%L0DataFrom(iDomain))
           if (mrm_coupling_mode .eq. 0_i4) then
-            call L0_grid_setup(level0(domainMeta%L0DataFrom(iDomain)))
+            call init_advanced_grid_properties(level0(domainMeta%L0DataFrom(iDomain)))
           end if
         else if ((domainMeta%L0DataFrom(iDomain) == iDomain)) then
           call L0_check_input_routing(domainMeta%L0DataFrom(iDomain))
           if (mrm_coupling_mode .eq. 0_i4) then
-            call L0_grid_setup(level0(domainMeta%L0DataFrom(iDomain)))
+            call init_advanced_grid_properties(level0(domainMeta%L0DataFrom(iDomain)))
           end if
         end if
 
@@ -213,8 +213,8 @@ end subroutine mrm_configuration
           call read_latlon(iDomain, "lon_l11", "lat_l11", "level11", level11(iDomain))
         else
           ! allocate the memory and set to nodata
-          allocate(level11(iDomain)%x(level11(iDomain)%nrows, level11(iDomain)%ncols))
-          allocate(level11(iDomain)%y(level11(iDomain)%nrows, level11(iDomain)%ncols))
+          if (.not. allocated(level11(iDomain)%x)) allocate(level11(iDomain)%x(level11(iDomain)%nrows, level11(iDomain)%ncols))
+          if (.not. allocated(level11(iDomain)%y)) allocate(level11(iDomain)%y(level11(iDomain)%nrows, level11(iDomain)%ncols))
           level11(iDomain)%x = nodata_dp
           level11(iDomain)%y = nodata_dp
         end if

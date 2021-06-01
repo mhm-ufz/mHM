@@ -1,7 +1,7 @@
 # mHM cmake script
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.14)
 # additional cmake-modules
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-modules)
 # get version and date from files (version.txt and version_date.txt)
 include(version)
 get_version(MHM_VER MHM_VER_DEV MHM_DATE)
@@ -18,6 +18,9 @@ add_compile_definitions(MHMVERSION='${MHM_VER_DEV}' MHMDATE='${MHM_DATE}')
 add_subdirectory(./src)  # the lib folder containing mhm_lib
 add_executable(mhm ./src/mHM/mhm_driver.f90)
 target_link_libraries(mhm PRIVATE mhm_lib)
+if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_GPROF)
+  target_link_options(mhm PUBLIC -pg)
+endif()
 
 # setup coverage with GNU
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE)

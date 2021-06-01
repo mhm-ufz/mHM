@@ -97,7 +97,7 @@ CONTAINS
 
   subroutine write_mpr_restart_files(OutFile)
 
-    use mo_common_restart, only : write_grid_info
+    use mo_grid, only : write_grid_info
     use mo_common_variables, only : level1, nLCoverScene, domainMeta, LC_year_start, LC_year_end
     use mo_kind, only : i4, dp
     use mo_message, only : message
@@ -150,7 +150,7 @@ CONTAINS
       allocate(dummy_1D(nSoilHorizons_mHM+1))
       dummy_1D(1) = 0.0_dp
       dummy_1D(2:nSoilHorizons_mHM+1) = HorizonDepth_mHM(:)
-      soil1 = nc%setDimension(trim(soilHorizonsVarName), nSoilHorizons_mHM, dummy_1D, 2_i4)
+      soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons_mHM, dummy_1D, 2_i4)
       deallocate(dummy_1D)
       allocate(dummy_1D(nLCoverScene+1))
       dummy_1D(1:nLCoverScene) = LC_year_start(:)
@@ -158,7 +158,7 @@ CONTAINS
       ! 1981-1990,1991-2000 is thus saved as 1981.0-1991.0,1991.0-2001.0
       ! it is translated back into ints correctly during reading
       dummy_1D(nLCoverScene+1) = LC_year_end(nLCoverScene) + 1
-      lcscenes = nc%setDimension(trim(landCoverPeriodsVarName), nLCoverScene, dummy_1D, 0_i4)
+      lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), nLCoverScene, dummy_1D, 0_i4)
       deallocate(dummy_1D)
       ! write the dimension to the file
       lais = nc%setDimension(trim(LAIVarName), nLAI)

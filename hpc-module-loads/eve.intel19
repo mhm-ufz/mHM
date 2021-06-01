@@ -1,0 +1,10 @@
+module purge
+module load iomkl/2020a
+module load netCDF-Fortran
+module load CMake
+module use /global/apps/modulefiles
+module load python_env_mpr
+module load pFUnit/4.2.0_ifort19.1.1.217
+export NETCDF_DIR="$EBROOTNETCDF"
+export NETCDF_FORTRAN_DIR="$EBROOTNETCDFMINFORTRAN"
+export FC=ifort

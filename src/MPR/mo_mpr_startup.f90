@@ -271,7 +271,6 @@ CONTAINS
 
     use mo_append, only : append
     use mo_common_variables, only : level0
-    use mo_grid, only : L0_grid_setup
     use mo_mpr_global_variables, only : L0_slope, L0_slope_emp, L0_soilId, iFlag_soilDB, nSoilHorizons_mHM, &
             nSoilTypes, soilDB
     use mo_orderpack, only : sort_index
@@ -302,8 +301,6 @@ CONTAINS
       allocate(soilDB%is_present(nSoilTypes))
       soilDB%is_present(:) = 0_i4
     end if
-
-    call L0_grid_setup(level0(iDomain))
 
     !---------------------------------------------------
     ! Estimate empirical distribution of slope
@@ -401,7 +398,7 @@ CONTAINS
   subroutine init_eff_params(ncells1)
 
     use mo_append, only : append
-    use mo_constants, only : YearMonths_i4
+    use mo_constants, only : YearMonths
     use mo_common_constants, only : P1_InitStateFluxes
     use mo_common_variables, only : nLCoverScene
     use mo_mpr_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, &
@@ -421,7 +418,7 @@ CONTAINS
 
 
     ! get maximum extent of one dimension 2 or 3
-    max_extent = max(nSoilHorizons_mHM, YearMonths_i4, nLCoverScene, nLAI)
+    max_extent = max(nSoilHorizons_mHM, nint(YearMonths, i4), nLCoverScene, nLAI)
 
     ! for appending and intialization
     allocate(dummy_3D(nCells1, max_extent, nLCoverScene))

@@ -278,33 +278,33 @@ dirConfigOut = "test_domain/"
 !
 !> directory where common input files should be located for all modeled domains
 !> (only for *_classdefinition files)
-dirCommonFiles = "test_domain/input/morph/"
+dirCommonFiles = "test_domain/input/mpr/"
 !
 !**** for Domain 1
 !> directory where morphological files are located
-dir_Morpho(1)        = "test_domain/input/morph/"
+dir_Morpho(1)        = "test_domain/input/mpr/"
 !> directory where land cover files are located
-dir_LCover(1)        = "test_domain/input/luse/"
+dir_LCover(1)        = "test_domain/input/mpr/"
 !> directory where restart output should be written
 mhm_file_RestartOut(1)    = "test_domain/restart/mHM_restart_001.nc"
 mrm_file_RestartOut(1)    = "test_domain/restart/mRM_restart_001.nc"
 !> directory where output should be written
 dir_Out(1)           = "test_domain/output_b1/"
 !> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(1)       = "test_domain/input/latlon/latlon_1.nc"
+file_LatLon(1)       = "test_domain/input/mpr/latlon_1.nc"
 
 ! **** for Domain 2
 !> directory where morphological files are located
-dir_Morpho(2)        = "test_domain_2/input/morph/"
+dir_Morpho(2)        = "test_domain_2/input/mpr/"
 !> directory where land cover files are located
-dir_LCover(2)        = "test_domain_2/input/luse/"
+dir_LCover(2)        = "test_domain_2/input/mpr/"
 !> directory where restart output should be written
 mhm_file_RestartOut(2)    = "test_domain/restart/mHM_restart_002.nc"
 mrm_file_RestartOut(2)    = "test_domain/restart/mRM_restart_002.nc"
 !> directory where output should be written
 dir_Out(2)           = "test_domain_2/output/"
 !> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(2)       = "test_domain_2/input/latlon/latlon.nc"
+file_LatLon(2)       = "test_domain_2/input/mpr/latlon.nc"
 /
 !******************************************************************************************
 ! directories (mHM-related)
@@ -321,8 +321,8 @@ inputFormat_meteo_forcings = "nc"
 !
 !**** for Domain 1
 !> directory where meteorological input is located
-dir_Precipitation(1) = "test_domain/input/meteo/pre/"
-dir_Temperature(1)   = "test_domain/input/meteo/tavg/"
+dir_Precipitation(1) = "test_domain/input/meteo/"
+dir_Temperature(1)   = "test_domain/input/meteo/"
 !> paths depending on PET process (processCase(5))
 !>  -1 - PET is input, LAI driven correction
 !>   0 - PET is input, aspect driven correction
@@ -330,7 +330,7 @@ dir_Temperature(1)   = "test_domain/input/meteo/tavg/"
 !>   2 - Priestley-Taylor mehtod
 !>   3 - Penman-Monteith method
 !> if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(1)     = "test_domain/input/meteo/pet/"
+dir_ReferenceET(1)     = "test_domain/input/meteo/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
 dir_MinTemperature(1)  = "test_domain/input/meteo/"
 dir_MaxTemperature(1)  = "test_domain/input/meteo/"
@@ -344,8 +344,8 @@ dir_Radiation(1)    = "test_domain/input/meteo/"
 !
 !**** for Domain 2
 !> directory where meteorological input is located
-dir_Precipitation(2) = "test_domain_2/input/meteo/pre/"
-dir_Temperature(2)   = "test_domain_2/input/meteo/tavg/"
+dir_Precipitation(2) = "test_domain_2/input/meteo/"
+dir_Temperature(2)   = "test_domain_2/input/meteo/"
 !> paths depending on PET process (processCase(5))
 !>  -1 - PET is input, LAI driven correction
 !>   0 - PET is input, aspect driven correction
@@ -353,7 +353,7 @@ dir_Temperature(2)   = "test_domain_2/input/meteo/tavg/"
 !>   2 - Priestley-Taylor mehtod
 !>   3 - Penman-Monteith method
 !>   if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(2)     = "test_domain_2/input/meteo/pet/"
+dir_ReferenceET(2)     = "test_domain_2/input/meteo/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
 dir_MinTemperature(2)  = "test_domain_2/input/meteo/"
 dir_MaxTemperature(2)  = "test_domain_2/input/meteo/"
@@ -386,8 +386,8 @@ time_step_model_inputs(2) = 0
 !-----------------------------------------------------
 !
 !> directory where discharge files are located
-dir_Gauges(1)        = "test_domain/input/gauge/"
-dir_Gauges(2)        = "test_domain_2/input/gauge/"
+dir_Gauges(1)        = "test_domain/input/routing/"
+dir_Gauges(2)        = "test_domain_2/input/routing/"
 !> directory where simulated runoff can be found (only required if coupling mode equals 0)
 dir_Total_Runoff(1) = 'test_domain/output_b1/'
 dir_Total_Runoff(2) = 'test_domain_2/output/'
@@ -704,9 +704,9 @@ fracSealed_cityArea = 0.6
 ! this is only needed for timeStep_LAI_input != 0
 &directories_MPR
 !> directory where gridded LAI files are located
-dir_gridded_LAI(1)   = "test_domain/input/lai/"
+dir_gridded_LAI(1)   = "test_domain/input/mpr/"
 !> directory where gridded LAI files are located
-dir_gridded_LAI(2)   = "test_domain/input/lai/"
+dir_gridded_LAI(2)   = "test_domain/input/mpr/"
 /
 
 !******************************************************************************************

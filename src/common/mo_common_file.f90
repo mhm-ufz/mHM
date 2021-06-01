@@ -15,12 +15,8 @@
 MODULE mo_common_file
 
   IMPLICIT NONE
-  !> DEM input data file
-  CHARACTER(len=*), PARAMETER :: file_dem                = 'dem.asc'                     ! DEM
-  !> Unit for  DEM input data file
-  INTEGER,          PARAMETER :: udem                    = 53                            !
-  !> Unit for  LCover input data file
-  INTEGER,          PARAMETER :: ulcoverclass            = 61                            !
+  CHARACTER(len=*), PARAMETER :: varNameDem                = 'dem'                         ! DEM
+  CHARACTER(len=*), PARAMETER :: varNameLandCover          = 'land_cover'                  ! landcover
 
   !> file defining mHM's outputs
   CHARACTER(len=*), PARAMETER :: file_config             = 'ConfigFile.log'              ! configuration
