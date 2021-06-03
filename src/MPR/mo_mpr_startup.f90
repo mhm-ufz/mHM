@@ -108,6 +108,7 @@ CONTAINS
       call init_eff_params(level1(iDomain)%nCells)
 
     end do
+    call set_domain_indices(level1)
 
   end subroutine mpr_initialize
 

@@ -164,7 +164,6 @@ CONTAINS
 
     end do
 
-    call set_domain_indices(level1)
     call set_domain_indices(level2)
 
   end subroutine mhm_initialize
