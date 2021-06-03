@@ -53,7 +53,7 @@ contains
 
   subroutine mrm_write
 
-    use mo_common_variables, only : mrmFileRestartOut, domainMeta, write_restart, evalPer, mrm_coupling_mode, &
+    use mo_common_variables, only : mrmFileRestartOut, domainMeta, write_restart, evalPer, &
             warmingDays
     use mo_common_datetime_type, only: nTstepDay, simPer
     use mo_mrm_global_variables, only : domain_mrm, &
@@ -76,19 +76,13 @@ contains
 
     real(dp), dimension(:, :), allocatable :: d_Qmod
 
-
-    ! --------------------------------------------------------------------------
-    ! WRITE CONFIG FILE
-    ! --------------------------------------------------------------------------
-    if (mrm_coupling_mode .eq. 0_i4) call write_configfile()
-
     ! --------------------------------------------------------------------------
     ! WRITE RESTART
     ! --------------------------------------------------------------------------
     if (write_restart) then
       do iDomain = 1, domainMeta%nDomains
         domainID = domainMeta%indices(iDomain)
-        if (domainMeta%doRouting(iDomain)) call mrm_write_restart(iDomain, domainID, mrmFileRestartOut)
+        if (domainMeta%doRouting(iDomain)) call mrm_write_restart(iDomain, mrmFileRestartOut)
       end do
     end if
 
@@ -160,9 +154,9 @@ contains
     use mo_common_file, only : file_config, uconfig
     use mo_common_variables, only : LC_year_end, LC_year_start, LCfilename, &
                                     dirConfigOut, dirLCover, dirMorpho, dirOut, mrmFileRestartOut, global_parameters, &
-                                    global_parameters_name, level0, level1, domainMeta, nLCoverScene, processMatrix, &
+                                    global_parameters_name, level0, level1, domainMeta, nLandCoverPeriods, processMatrix, &
                                     resolutionHydrology, write_restart, evalPer, &
-                                    mrm_coupling_mode, read_restart, resolutionRouting, warmPer
+                                    read_restart, resolutionRouting, warmPer
     use mo_common_datetime_type, only: LCyearId, SimPer, timeStep
     use mo_kind, only : dp, i4
     use mo_message, only : message
@@ -307,9 +301,6 @@ contains
       write(uconfig, 224) 'Directory to morphological input         ', dirMorpho(iDomain)
       write(uconfig, 224) 'Directory to land cover input            ', dirLCover(iDomain)
       write(uconfig, 224) 'Directory to gauging station input       ', dirGauges(iDomain)
-      if (mrm_coupling_mode .eq. 0) then
-        write(uconfig, 224) 'Directory to simulated runoff input      ', dirTotalRunoff(iDomain)
-      end if
       write(uconfig, 224) 'Directory to write output by default     ', dirOut(iDomain)
       write(uconfig, 224) 'File to write mRM output when restarted  ', mrmFileRestartOut(iDomain)
 

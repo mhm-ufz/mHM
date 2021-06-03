@@ -1533,7 +1533,7 @@ contains
 
     ! initialization
     do iDomain = 1, domainMeta%nDomains
-      iDomainNLandCoverPeriods = maxval(LCyearId(:, iBasin))
+      iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain))
       ! TODO: MPR comment next line
       iDomainNLandCoverPeriods = nLandCoverPeriods
       allocate(temp_array(level11(iDomain)%nCells, iDomainNLandCoverPeriods))
@@ -1558,7 +1558,7 @@ contains
         end do
       end if
       ! TODO: MPR uncomment next line
-      ! call add_nodata_slice(temp_array, nLandCoverPeriods - iBasinNLandCoverPeriods, nodata_dp)
+      ! call add_nodata_slice(temp_array, nLandCoverPeriods - iDomainNLandCoverPeriods, nodata_dp)
       call append(L11_nLinkFracFPimp, temp_array(:,:))
       deallocate(temp_array)
     end do

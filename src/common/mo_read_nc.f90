@@ -18,6 +18,7 @@ module mo_read_nc
   public :: read_const_nc
   public :: read_weights_nc
   public :: check_sort_order
+  public :: common_check_dimension_consistency
 
   ! TODO: fyppify this, then generate docstrings for each procedure
   interface check_sort_order
@@ -892,5 +893,67 @@ contains
 
   end subroutine check_sort_order_4DI4
 
+  subroutine common_check_dimension_consistency(iDomain, boundaries, select_indices)
+    use mo_common_variables, only: nLandCoverPeriods
+    use mo_string_utils, only: compress
+    use mo_common_datetime_type, only: simPer, LCyearId
+
+    integer(i4), intent(in) :: iDomain
+
+    real(dp), dimension(:), intent(inout) :: boundaries
+    integer(i4), dimension(:), intent(out), allocatable :: select_indices
+    logical, dimension(size(boundaries) - 1) :: select_indices_mask
+    logical, dimension(size(boundaries)) :: select_indices_temp
+
+    integer(i4) :: select_index, iBoundary
+
+    allocate(select_indices(size(boundaries) - 1))
+    select_index = 0_i4
+    select_indices_mask = .false.
+
+    ! set the correct indices to use
+    do iBoundary=1, size(boundaries) - 1
+      ! check for overlap ((StartA <= EndB) and (EndA >= StartB))
+      ! https://stackoverflow.com/questions/325933/
+      if ((boundaries(iBoundary) <= simPer(iDomain)%yend) .and. &
+              ((boundaries(iBoundary+1)-1) >= simPer(iDomain)%ystart)) then
+        ! advance counter
+        select_index = select_index + 1_i4
+        ! select this iBoundary from dimension
+        select_indices_mask(iBoundary) = .true.
+        ! set the correct LCyearId
+        LCyearId(&
+                maxval([int(boundaries(iBoundary)), simPer(iDomain)%ystart]):&
+                minval([int(boundaries(iBoundary+1)), simPer(iDomain)%yend]), iDomain) = select_index
+      end if
+    end do
+    select_indices = pack([(iBoundary, iBoundary=1, size(boundaries) - 1)], select_indices_mask)
+
+    ! check if number of periods in namelist is enough
+    if (nLandCoverPeriods < select_index) then
+      call message('The number of selected land cover periods for basin ', compress(num2str(iDomain)), &
+              ' is bigger than allowed (', &
+              compress(num2str(nLandCoverPeriods)), '). Please set nLandCoverPeriods in namelist.')
+      stop 1
+    end if
+
+    ! check if both start and end are covered
+    select_indices_temp = [select_indices_mask, .false.]
+    if (minval(boundaries, mask=select_indices_temp) > simPer(iDomain)%ystart) then
+      call message('The selected land cover periods for basin ', compress(trim(num2str(iDomain))), &
+              ' (', compress(trim(num2str(minval(boundaries, mask=select_indices_temp)))), &
+              ') do not cover the beginning of the simulation period (', &
+              compress(trim(num2str(simPer(iDomain)%ystart))), ').')
+      stop 1
+    end if
+    select_indices_temp = [.false., select_indices_mask]
+    if (maxval(boundaries, mask=select_indices_temp) < simPer(iDomain)%yend) then
+      call message('The selected land cover periods for basin ', compress(trim(num2str(iDomain))), &
+              ' (', compress(trim(num2str(maxval(boundaries, mask=select_indices_temp)))), &
+              ' ) do not cover the end of the simulation period (', &
+              compress(trim(num2str(simPer(iDomain)%yend))), ').')
+      stop 1
+    end if
+  end subroutine common_check_dimension_consistency
 
 end module mo_read_nc

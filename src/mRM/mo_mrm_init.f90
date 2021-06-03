@@ -29,10 +29,10 @@ MODULE mo_mrm_init
 CONTAINS
 
 subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
-    use mo_common_variables, only : processMatrix, mrm_coupling_mode
+    use mo_common_variables, only : processMatrix
     use mo_mrm_read_config, only : mrm_read_config
     use mo_mrm_global_variables, only: riv_temp_pcs
-    use mo_common_read_config, only : common_read_config, check_optimization_settings
+    use mo_common_read_config, only : check_optimization_settings
     use mo_kind, only : i4
     use mo_message, only : message
     implicit none
@@ -43,37 +43,21 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
 
     logical, intent(out) :: ReadLatLon
 
-    if (mrm_coupling_mode .eq. 0_i4) then
-      call common_read_config(file_namelist, unamelist)
-      !-----------------------------------------------------------
-      ! PRINT STARTUP MESSAGE
-      !-----------------------------------------------------------
-      call print_startup_message(file_namelist, file_namelist_param)
-    else
+    call message('')
+    call message('  Inititalize mRM')
+    if ( processMatrix(11, 1) .ne. 0 ) then
+      ! processCase(11): river temperature routing
+      riv_temp_pcs%active = .true.
+      riv_temp_pcs%case = processMatrix(11, 1)
       call message('')
-      call message('  Inititalize mRM')
-      if ( processMatrix(11, 1) .ne. 0 ) then
-        ! processCase(11): river temperature routing
-        riv_temp_pcs%active = .true.
-        riv_temp_pcs%case = processMatrix(11, 1)
-        call message('')
-        call message('    Read config: river temperature routing')
-        call riv_temp_pcs%config(file_namelist, unamelist, file_namelist_param, unamelist_param)
-      end if
+      call message('    Read config: river temperature routing')
+      call riv_temp_pcs%config(file_namelist, unamelist, file_namelist_param, unamelist_param)
     end if
 
     ! read config for mrm, readlatlon is set here depending on whether output is needed
     call mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, &
-            (mrm_coupling_mode .eq. 0_i4), ReadLatLon)
+            .false., ReadLatLon)
 
-    ! this was moved here, because it depends on global_parameters that are only set in mrm_read_config
-    if (mrm_coupling_mode .eq. 0_i4) then
-      call check_optimization_settings()
-      !-----------------------------------------------------------
-      ! CONFIG OUTPUT
-      !-----------------------------------------------------------
-      call config_output()
-    end if
 end subroutine mrm_configuration
   ! ------------------------------------------------------------------
 
@@ -113,7 +97,7 @@ end subroutine mrm_configuration
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_grid, only : read_grid_info
     use mo_common_variables, only : domainMeta, global_parameters, l0_l1_remap, level0, level1, domainMeta, &
-                                    processMatrix, resolutionHydrology, mrmFileRestartIn, mrm_coupling_mode, &
+                                    processMatrix, resolutionHydrology, mrmFileRestartIn, &
                                     mrm_read_river_network, resolutionRouting
     use mo_grid, only : init_advanced_grid_properties, init_lowres_level, set_domain_indices
     use mo_kind, only : i4
@@ -132,6 +116,8 @@ end subroutine mrm_configuration
     use mo_read_latlon, only : read_latlon
     use mo_mrm_river_head, only: init_masked_zeros_l0, create_output, calc_channel_elevation
     use mo_mrm_mpr, only : mrm_init_param
+    use mo_common_read_config, only : check_optimization_settings
+    use mo_mrm_read_config, only : mrm_read_config
 
     implicit none
 
@@ -148,31 +134,12 @@ end subroutine mrm_configuration
 
     logical :: ReadLatLon
 
-    if (mrm_coupling_mode .eq. 0_i4) then
-      allocate(l0_l1_remap(domainMeta%nDomains))
-      allocate(level1(domainMeta%nDomains))
-      call common_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
-      !-----------------------------------------------------------
-      ! PRINT STARTUP MESSAGE
-      !-----------------------------------------------------------
-      call print_startup_message(file_namelist, file_namelist_param)
-    else
-      call message('')
-      call message('  Inititalize mRM')
-    end if
+    call message('')
+    call message('  Inititalize mRM')
 
     ! read config for mrm, readlatlon is set here depending on whether output is needed
     call mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, &
-            (mrm_coupling_mode == 0_i4), ReadLatLon)
-
-    ! this was moved here, because it depends on global_parameters that are only set in mrm_read_config
-    if (mrm_coupling_mode == 0_i4) then
-      call check_optimization_settings()
-      !-----------------------------------------------------------
-      ! CONFIG OUTPUT
-      !-----------------------------------------------------------
-      call config_output()
-    end if
+            .false., ReadLatLon)
 
     ! ----------------------------------------------------------
     ! READ DATA
@@ -183,9 +150,10 @@ end subroutine mrm_configuration
 
     if (.not. mrm_read_river_network) then
       ! read all (still) necessary level 0 data
-      if (processMatrix(8, 1) .eq. 1_i4) call mrm_read_L0_data(mrm_coupling_mode .eq. 0_i4, ReadLatLon, .true.)
-      if (processMatrix(8, 1) .eq. 2_i4) call mrm_read_L0_data(mrm_coupling_mode .eq. 0_i4, ReadLatLon, .false.)
-      if (processMatrix(8, 1) .eq. 3_i4) call mrm_read_L0_data(mrm_coupling_mode .eq. 0_i4, ReadLatLon, .false.)
+      ! do_reinit, do_readlatlon, do_readlcover
+      if (processMatrix(8, 1) .eq. 1_i4) call mrm_read_L0_data(.true.)
+      if (processMatrix(8, 1) .eq. 2_i4) call mrm_read_L0_data(.false.)
+      if (processMatrix(8, 1) .eq. 3_i4) call mrm_read_L0_data(.false.)
     end if
 
     do iDomain = 1, domainMeta%nDomains
@@ -197,31 +165,15 @@ end subroutine mrm_configuration
         if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains))
         call read_grid_info(domainMeta%indices(domainMeta%L0DataFrom(iDomain)), mrmFileRestartIn(iDomain), &
                                                      "0", level0(domainMeta%L0DataFrom(iDomain)))
-        if (mrm_coupling_mode .eq. 0_i4) then
-          call read_grid_info(domainID, mrmFileRestartIn(iDomain), "1", level1(iDomain))
-        end if
         call read_grid_info(domainID, mrmFileRestartIn(iDomain), "11", level11(iDomain))
-        call mrm_read_restart_config(iDomain, domainID, mrmFileRestartIn(iDomain))
+        call mrm_read_restart_config(iDomain, mrmFileRestartIn(iDomain))
       else
         if (iDomain .eq. 1) then
           call L0_check_input_routing(domainMeta%L0DataFrom(iDomain))
-          ! TODO: MPR this if-clause is not there
-          if (mrm_coupling_mode .eq. 0_i4) then
-            call init_advanced_grid_properties(level0(domainMeta%L0DataFrom(iDomain)))
-          end if
         else if ((domainMeta%L0DataFrom(iDomain) == iDomain)) then
           call L0_check_input_routing(domainMeta%L0DataFrom(iDomain))
-          ! TODO: MPR this if-clause is not there
-          if (mrm_coupling_mode .eq. 0_i4) then
-            call init_advanced_grid_properties(level0(domainMeta%L0DataFrom(iDomain)))
-          end if
         end if
 
-        ! TODO: MPR this if-clause is not there
-        if (mrm_coupling_mode .eq. 0_i4) then
-          call init_lowres_level(level0(domainMeta%L0DataFrom(iDomain)), resolutionHydrology(iDomain), &
-                  level1(iDomain), l0_l1_remap(iDomain))
-        end if
         call init_lowres_level(level0(domainMeta%L0DataFrom(iDomain)), resolutionRouting(iDomain), &
                 level11(iDomain), l0_l11_remap(iDomain))
         call init_lowres_level(level1(iDomain), resolutionRouting(iDomain), &
@@ -278,8 +230,8 @@ end subroutine mrm_configuration
     ! ----------------------------------------------------------
     ! INITIALIZE STATES AND ROUTING PARAMETERS
     ! ----------------------------------------------------------
-    do iBasin = 1, nBasins
-      call variables_alloc_routing(iBasin)
+    do iDomain = 1, domainMeta%nDomains
+      call variables_alloc_routing(iDomain)
     end do
 
     ! mpr-like definiton of sealed floodplain fraction
@@ -293,12 +245,6 @@ end subroutine mrm_configuration
     ! -------------------------------------------------------
     ! READ INPUT DATA AND OBSERVED DISCHARGE DATA
     ! -------------------------------------------------------
-    ! read simulated runoff at level 1
-    if (mrm_coupling_mode .eq. 0_i4) then
-      do iDomain = 1, domainMeta%nDomains
-        call mrm_read_total_runoff(iDomain)
-      end do
-    end if
     ! discharge data
     call mrm_read_discharge()
 

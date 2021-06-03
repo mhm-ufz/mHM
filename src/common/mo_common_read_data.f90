@@ -142,7 +142,7 @@ CONTAINS
     use mo_append, only : append, paste
     use mo_common_constants, only : nodata_i4
     use mo_common_file, only : varNameLandCover
-    use mo_common_variables, only : L0_LCover, dirLCover, level0, domainMeta, nLCoverScene
+    use mo_common_variables, only : L0_LCover, dirLCover, level0, domainMeta, nLandCoverPeriods
     use mo_grid, only: Grid
     use mo_message, only : message
     use mo_string_utils, only : num2str
@@ -188,7 +188,7 @@ CONTAINS
       ncVar = nc%getVariable(trim(varNameLandCover))
       call ncVar%getData(data_i4_3d, mask=mask_3d)
       ! LCover read in is realized seperated because of unknown number of scenes
-      do iVar = 1, nLCoverScene
+      do iVar = 1, nLandCoverPeriods
         ! put global nodata value into array (probably not all grid cells have values)
         ! this explicit prior allocation is done so that gFortran does not complain with:
         ! "Fortran runtime error: Array bound mismatch for dimension 1 of array 'data_i4_2d' (0/288)"

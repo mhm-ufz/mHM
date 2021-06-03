@@ -194,16 +194,16 @@ CONTAINS
                                     L1_fastRunoff, L1_infilSoil, &
                                     L1_inter, L1_melt, L1_neutrons, L1_percol, L1_pet_calc, L1_preEffect, L1_rain, &
                                     L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
-                                    L1_soilMoist, L1_total_runoff, L1_unsatSTW
-    use mo_mpr_constants, only : C1_InitStateSM, P2_InitStateFluxes, P3_InitStateFluxes, &
+                                    L1_soilMoist, L1_total_runoff, L1_unsatSTW, L1_latitude, &
+                                    nSoilHorizons, soilHorizonBoundaries, L1_HarSamCoeff, L1_PrieTayAlpha, &
+                                    L1_aeroResist, L1_alpha, L1_degDay, L1_degDayInc, L1_degDayMax,&
+                                    L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, &
+                                    L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, L1_kfastFlow, &
+                                    L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
+                                    L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, &
+                                    L1_unsatThresh, L1_wiltingPoint, are_parameter_initialized
+    use mo_mhm_constants, only : C1_InitStateSM, P2_InitStateFluxes, P3_InitStateFluxes, &
                                  P4_InitStateFluxes, P5_InitStateFluxes
-    use mo_mpr_global_variables, only : HorizonDepth_mHM, L1_HarSamCoeff, L1_PrieTayAlpha, &
-                                        L1_aeroResist, L1_alpha, L1_degDay, L1_degDayInc, L1_degDayMax,&
-                                        L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, &
-                                        L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, L1_kfastFlow, &
-                                        L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
-                                        L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, &
-                                        L1_unsatThresh, L1_wiltingPoint, nSoilHorizons_mHM
 
     implicit none
 

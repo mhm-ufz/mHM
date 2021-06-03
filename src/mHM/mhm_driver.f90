@@ -95,12 +95,12 @@ PROGRAM mhm_driver
           L1_twsaObs, &
           L1_etObs, &
           L1_neutronsObs, &
-          L1_smObs
+          L1_smObs, &
+          are_parameter_initialized
   USE mo_optimization_types, ONLY : &
           optidata ! type for opti data
   USE mo_common_variables, ONLY : &
           optimize, opti_function, &                                   ! optimization on/off and optimization method
-          mrm_coupling_mode, &
           write_restart, &      ! restart writing flags
           mhmFileRestartOut, &
           dirConfigOut, &
@@ -122,9 +122,7 @@ PROGRAM mhm_driver
   USE mo_read_optional_data, ONLY : readOptidataObs ! read optional observed data
   USE mo_common_read_config, ONLY : common_read_config, &       ! Read main configuration files
                                     check_optimization_settings ! Read main configuration files
-  USE mo_mpr_read_config, ONLY : mpr_read_config                    ! Read main configuration files
   USE mo_mhm_read_config, ONLY : mhm_read_config                    ! Read main configuration files
-  USE mo_read_wrapper, ONLY : read_data                      ! Read all input data
   USE mo_restart, ONLY : write_restart_files
   USE mo_startup, ONLY : mhm_initialize
   USE mo_string_utils, ONLY : num2str, separator             ! String magic
@@ -258,7 +256,6 @@ PROGRAM mhm_driver
   ! find the number the process is referred to, called rank
   call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
 #endif
-  call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
   call mhm_read_config(file_namelist_mhm, unamelist_mhm)
   call check_optimization_settings()
 
@@ -308,18 +305,6 @@ PROGRAM mhm_driver
 #endif
   call message()
 
-  ! TODO: MPR this whole block will go
-  call message('  Read data ...')
-  call timer_start(itimer)
-  ! for DEM, slope, ... define nGvar local
-  ! read_data has a domain loop inside
-  call read_data(simPer)
-  call timer_stop(itimer)
-  call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
-  if (processMatrix(8, 1) > 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
-          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon=ReadLatLon)
-
-
   ! read data for every domain
   itimer = itimer + 1
   call message('  Initialize domains ...')
@@ -327,6 +312,8 @@ PROGRAM mhm_driver
   call mhm_initialize(global_parameters(:, 3), global_parameters_name)
   call timer_stop(itimer)
   call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
+  if (processMatrix(8, 1) > 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
+          file_namelist_mhm_param, unamelist_mhm_param)
 
   itimer = itimer + 1
   call message('  Read forcing and optional data ...')

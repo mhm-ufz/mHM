@@ -88,13 +88,13 @@ CONTAINS
     use mo_common_variables, only : LC_year_end, evalPer, read_restart, warmPer, &
                                     LC_year_start, LCfilename, dirConfigOut, dirLCover, dirMorpho, dirOut, &
                                     global_parameters, global_parameters_name, level0, level1, &
-                                    domainMeta, nLCoverScene, resolutionHydrology, write_restart, processMatrix, &
+                                    domainMeta, nLandCoverPeriods, resolutionHydrology, write_restart, processMatrix, &
                                     resolutionRouting, mhmFileRestartOut
     use mo_common_datetime_type, only: LCyearId, SimPer, timeStep
     use mo_grid, only : iFlag_coordinate_sys
     use mo_file, only : version
     use mo_global_variables, only : dirPrecipitation, dirReferenceET, &
-                                    dirTemperature
+                                    dirTemperature, pathMprNml
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_string_utils, only : num2str
@@ -119,8 +119,8 @@ CONTAINS
     !checking whether the directory exists where the file shall be created or opened
     call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
     open(uconfig, file = fName, status = 'unknown', action = 'write', iostat = err)
-    if (err .ne. 0) then
-      call message('  Problems while creating File')
+    if (err /= 0) then
+      call message('  Problems while creating File', trim(fName))
       call message('  Error-Code', num2str(err))
       stop
     end if
@@ -194,15 +194,10 @@ CONTAINS
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       write(uconfig, 118) '     Land Cover Observations for Domain ', num2str(domainID)
-      ! write(uconfig, 119) ' Start Year', ' End Year', '    Land cover scene', 'Land Cover File'
       write(uconfig, 119) ' Year', '   Land cover period'
       do i = simPer(iDomain)%ystart, simPer(iDomain)%yend
         write(uconfig, 120) i, LCyearId(i, iDomain)
       end do
-      ! do i = 1, nLCoverScene
-      !   write(uconfig, 120) LC_year_start(i), LC_year_end(i), &
-      !           LCyearId(max(evalPer(iDomain)%yStart, LC_year_start(i)), iDomain), trim(LCfilename(i))
-      ! end do
     end do
     !*********************************
     ! Initial Parameter Ranges
@@ -257,6 +252,7 @@ CONTAINS
 
       write(uconfig, 222)   'Directory list'
 
+      write(uconfig, 224) 'Configuration file for MPR               ', pathMprNml(iDomain)
       write(uconfig, 224) 'Directory to morphological input         ', dirMorpho(iDomain)
       write(uconfig, 224) 'Directory to land cover input            ', dirLCover(iDomain)
       if (domainMeta%doRouting(iDomain)) then

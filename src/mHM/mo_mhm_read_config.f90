@@ -90,21 +90,19 @@ CONTAINS
 
     use mo_common_constants, only : maxNoDomains
     use mo_common_read_config, only : common_check_resolution
-    use mo_common_variables, only : domainMeta, processMatrix, opti_function, optimize
+    use mo_common_variables, only : domainMeta, processMatrix, opti_function, optimize, nuniqueL0Domains
     use mo_file, only : file_defOutput, udefOutput
     use mo_global_variables, only : L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
                                     dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirPrecipitation, &
                                     dirReferenceET, dirTemperature, dirabsVapPressure, dirwindspeed, dirRadiation, &
-                                    evap_coeff, &
+                                    evap_coeff, pathMprNml, &
                                     fday_pet, fday_prec, fday_temp, fday_ssrd, fday_strd, &
                                     fnight_pet, fnight_prec, fnight_temp, fnight_ssrd, fnight_strd, &
-                                    inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
+                                    nSoilHorizons_sm_input, outputFlxState, &
                                     read_meteo_weights, timeStep_model_outputs, &
-                                    timestep_model_inputs, &
+                                    timestep_model_inputs, nSoilHorizons, &
                                     output_deflate_level, output_double_precision
     use mo_message, only : message
-    use mo_mpr_constants, only : maxNoSoilHorizons
-    use mo_mpr_global_variables, only : nSoilHorizons_mHM
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
 
@@ -149,6 +147,9 @@ CONTAINS
     ! tws input
     character(256), dimension(maxNoDomains) :: dir_TWS
 
+    ! path to mpr.nml
+    character(256), dimension(maxNoDomains) :: path_mpr_nml
+
     integer(i4) :: timeStep_tws_input         ! time step of optional data: tws
     integer(i4) :: timeStep_et_input          ! time step of optional data: et
     integer(i4) :: timeStep_sm_input          ! time step of optional data: sm
@@ -158,7 +159,6 @@ CONTAINS
     ! define namelists
     ! namelist directories
     namelist /directories_mHM/ &
-            inputFormat_meteo_forcings, &
             dir_Precipitation, &
             dir_Temperature, &
             dir_ReferenceET, &
@@ -168,6 +168,7 @@ CONTAINS
             dir_windspeed, &
             dir_NetRadiation, &
             dir_Radiation, &
+            path_mpr_nml, &
             time_step_model_inputs
     ! optional data used for optimization
     namelist /optional_data/ &
@@ -211,6 +212,7 @@ CONTAINS
     allocate(L1_etObs(domainMeta%nDomains))
     allocate(L1_smObs(domainMeta%nDomains))
     allocate(L1_neutronsObs(domainMeta%nDomains))
+    allocate(pathMprNml(domainMeta%nDomains))
     ! allocate time periods
     allocate(timestep_model_inputs(domainMeta%nDomains))
 
@@ -231,6 +233,7 @@ CONTAINS
       dirNetRadiation(iDomain) = dir_NetRadiation(domainID)
       dirwindspeed(iDomain) = dir_windspeed(domainID)
       dirabsVapPressure(iDomain) = dir_absVapPressure(domainID)
+      pathMprNml(iDomain) = path_mpr_nml(domainID)
       timestep_model_inputs(iDomain) = time_step_model_inputs(domainID)
       ! riv-temp related
       dirRadiation(iDomain) = dir_Radiation(domainID)
@@ -266,10 +269,10 @@ CONTAINS
           L1_smObs(iDomain)%timeStepInput = timeStep_sm_input
           L1_smObs(iDomain)%varname = 'sm'
         end do
-        if (nSoilHorizons_sm_input .GT. nSoilHorizons_mHM) then
+        if (nSoilHorizons_sm_input .GT. nSoilHorizons) then
           call message()
           call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
-          call message('          defined number of soil horizions: ', adjustl(trim(num2str(maxNoSoilHorizons))), '!')
+          call message('          defined number of soil horizions: ', adjustl(trim(num2str(nSoilHorizons))), '!')
           stop
         end if
       case(17)

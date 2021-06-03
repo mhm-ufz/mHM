@@ -56,7 +56,7 @@ contains
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_grid, only : write_grid_info
-    use mo_common_variables, only : level0, level1, nLCoverScene, processMatrix, domainMeta, &
+    use mo_common_variables, only : level0, level1, nLandCoverPeriods, processMatrix, domainMeta, &
             LC_year_start, LC_year_end
     use mo_common_constants, only : landCoverPeriodsVarName
     use mo_message, only : message
@@ -165,17 +165,17 @@ contains
     nts = nc%setDimension("TS", 1)
     nproc = nc%setDimension("Nprocesses", size(processMatrix, dim = 1))
     ! TODO: MPR replace by commented section
-    allocate(dummy_d1(nLCoverScene+1))
-    dummy_d1(1:nLCoverScene) = LC_year_start(:)
+    allocate(dummy_d1(nLandCoverPeriods+1))
+    dummy_d1(1:nLandCoverPeriods) = LC_year_start(:)
     ! this is done because bounds are always stored as real so e.g.
     ! 1981-1990,1991-2000 is thus saved as 1981.0-1991.0,1991.0-2001.0
     ! it is translated back into ints correctly during reading
-    dummy_d1(nLCoverScene+1) = LC_year_end(nLCoverScene) + 1
-    lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), nLCoverScene, dummy_d1, 0_i4)
+    dummy_d1(nLandCoverPeriods+1) = LC_year_end(nLandCoverPeriods) + 1
+    lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), nLandCoverPeriods, dummy_d1, 0_i4)
     deallocate(dummy_d1)
 
-    ! iBasinNLandCoverPeriods = maxval(LCyearId(:, iBasin), LCyearId(:, iBasin) /= nodata_i4)
-    ! allocate(landCoverPeriodBoundaries(0: iBasinNLandCoverPeriods))
+    ! iDomainNLandCoverPeriods = maxval(LCyearId(:, iBasin), LCyearId(:, iBasin) /= nodata_i4)
+    ! allocate(landCoverPeriodBoundaries(0: iDomainNLandCoverPeriods))
     ! iBoundary = 0_i4
     ! do iYear=simPer(iBasin)%ystart, simPer(iBasin)%yend
     !   if(LCyearId(iYear, iBasin) > iBoundary) then
@@ -185,7 +185,7 @@ contains
     ! end do
     ! landCoverPeriodBoundaries(iBoundary) = iYear
     !
-    ! lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iBasinNLandCoverPeriods, &
+    ! lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &
     !         landCoverPeriodBoundaries, 0_i4)
 
     ! add processMatrix
@@ -285,7 +285,7 @@ contains
     call var%setAttribute("long_name", "Routing parameter C2=f(K,xi, DT) (Chow, 25-41) at level 11")
 
     deallocate(dummy_d3)
-    allocate(dummy_d3(nrows11, ncols11, nLCoverScene))
+    allocate(dummy_d3(nrows11, ncols11, nLandCoverPeriods))
     do ii = 1, size(dummy_d3, 3)
       dummy_d3(:, :, ii) = unpack(L11_nLinkFracFPimp(s11 : e11, ii), mask11, nodata_dp)
     end do
@@ -471,7 +471,7 @@ contains
 
   subroutine mrm_read_restart_states(iDomain, InFile)
 
-    use mo_common_variables, only : nLCoverScene
+    use mo_common_variables, only : nLandCoverPeriods
     use mo_mrm_constants, only : nRoutingStates
     use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, L11_Qmod, L11_Qout, L11_nLinkFracFPimp, L11_qTIN, L11_qTR, &
                                         L11_xi, level11

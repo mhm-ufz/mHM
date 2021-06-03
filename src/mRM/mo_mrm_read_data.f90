@@ -120,7 +120,7 @@ contains
         !
       end if
       !
-      call message('      Reading data for basin: ', trim(adjustl(num2str(iBasin))), ' ...')
+      call message('      Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
 
       ! read fAcc, fDir, gaugeLoc
       do iVar = 1, 3

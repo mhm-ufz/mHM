@@ -77,7 +77,7 @@ program mpr_driver
   ! --------------------------------------------------------------------------
   ! INITIALIZE
   ! --------------------------------------------------------------------------
-  call common_read_config(file_namelist_mpr, unamelist_mpr)
+  call common_read_config(file_namelist_mpr, unamelist_mpr, file_namelist_param, unamelist_param)
   call mpr_read_config(file_namelist_mpr, unamelist_mpr, file_namelist_mpr_param, unamelist_mpr_param)
 
   ! Start timings

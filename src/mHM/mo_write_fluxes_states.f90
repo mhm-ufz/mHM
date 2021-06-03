@@ -241,8 +241,7 @@ contains
 
   function newOutputDataset(iDomain, mask1, nCells) result(out)
 
-    use mo_global_variables, only : outputFlxState
-    use mo_mpr_global_variables, only : nSoilHorizons_mHM
+    use mo_global_variables, only : outputFlxState, nSoilHorizons
     use mo_grid, only : iFlag_coordinate_sys
 
     implicit none
@@ -267,7 +266,7 @@ contains
 
     type(NcDataset) :: nc
 
-    type(OutputVariable), dimension(size(outputFlxState) * nSoilHorizons_mHM) :: tmpvars
+    type(OutputVariable), dimension(size(outputFlxState) * nSoilHorizons) :: tmpvars
 
 
     if ( output_double_precision ) then
@@ -303,7 +302,7 @@ contains
     end if
 
     if (outputFlxState(3)) then
-      do nn = 1, nSoilHorizons_mHM
+      do nn = 1, nSoilHorizons
         ii = ii + 1
         tmpvars(ii) = OutputVariable(nc, "SWC_L" // trim(num2str(nn, '(i2.2)')), &
                 dtype, dims1, nCells, mask1, .true.)
@@ -313,7 +312,7 @@ contains
     end if
 
     if (outputFlxState(4)) then
-      do nn = 1, nSoilHorizons_mHM
+      do nn = 1, nSoilHorizons
         ii = ii + 1
         tmpvars(ii) = OutputVariable(nc, "SM_L" // trim(num2str(nn, '(i2.2)')), &
                 dtype, dims1, nCells, mask1, .true.)
@@ -427,7 +426,7 @@ contains
     end if
 
     if (outputFlxState(17)) then
-      do nn = 1, nSoilHorizons_mHM
+      do nn = 1, nSoilHorizons
         ii = ii + 1
         tmpvars(ii) = OutputVariable(&
                 nc, "soil_infil_L" // trim(num2str(nn, '(i2.2)')), &
@@ -438,7 +437,7 @@ contains
     end if
 
     if (outputFlxState(19)) then
-      do nn = 1, nSoilHorizons_mHM
+      do nn = 1, nSoilHorizons
         ii = ii + 1
         tmpvars(ii) = OutputVariable(&
                 nc, "aET_L" // trim(num2str(nn, '(i2.2)')), &
@@ -517,19 +516,19 @@ contains
   !                              - major rewrite
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine updateDataset(self, sidx, eidx, L1_fSealed, L1_fNotSealed, L1_inter, L1_snowPack, L1_soilMoist, &
+  subroutine updateDataset(self, sidx, eidx, sIdxParam, eIdxParam, L1_fSealed, L1_fNotSealed, L1_inter, &
+                          L1_snowPack, L1_soilMoist, &
                           L1_soilMoistSat, L1_sealSTW, L1_unsatSTW, L1_satSTW, L1_neutrons, L1_pet, L1_aETSoil, &
                           L1_aETCanopy, L1_aETSealed, L1_total_runoff, L1_runoffSeal, L1_fastRunoff, L1_slowRunoff, &
                           L1_baseflow, L1_percol, L1_infilSoil, L1_preEffect)
 
-    use mo_global_variables, only : outputFlxState
-    use mo_mpr_global_variables, only : nSoilHorizons_mHM
+    use mo_global_variables, only : outputFlxState, nSoilHorizons
 
     implicit none
 
     class(OutputDataset), intent(inout), target :: self
 
-    integer(i4), intent(in) :: sidx, eidx
+    integer(i4), intent(in) :: sidx, eidx, sIdxParam, eIdxParam
 
     real(dp), intent(in), dimension(:) :: L1_fSealed
 
@@ -602,7 +601,7 @@ contains
     end if
 
     if (outputFlxState(3)) then
-      do nn = 1, nSoilHorizons_mHM
+      do nn = 1, nSoilHorizons
         ii = ii + 1
 #ifdef pgiFortran
         call updateVariable(vars(ii), L1_soilMoist(sidx : eidx, nn))
@@ -613,14 +612,14 @@ contains
     end if
 
     if (outputFlxState(4)) then
-      do nn = 1, nSoilHorizons_mHM
+      do nn = 1, nSoilHorizons
         ii = ii + 1
 #ifdef pgiFortran
         call updateVariable(vars(ii), L1_soilMoist(sidx : eidx, nn) &
-                / L1_soilMoistSat(sidx : eidx, nn))
+                / L1_soilMoistSat(sIdxParam : eIdxParam, nn))
 #else
         call vars(ii)%updateVariable(L1_soilMoist(sidx : eidx, nn) &
-                / L1_soilMoistSat(sidx : eidx, nn))
+                / L1_soilMoistSat(sIdxParam : eIdxParam, nn))
 #endif
        end do
     end if
@@ -629,10 +628,10 @@ contains
       ii = ii + 1
 #ifdef pgiFortran
       call updateVariable(vars(ii), sum(L1_soilMoist(sidx : eidx, :), dim = 2) &
-              / sum(L1_soilMoistSat(sidx : eidx, :), dim = 2))
+              / sum(L1_soilMoistSat(sIdxParam : eIdxParam, :), dim = 2))
 #else
       call vars(ii)%updateVariable(sum(L1_soilMoist(sidx : eidx, :), dim = 2) &
-              / sum(L1_soilMoistSat(sidx : eidx, :), dim = 2))
+              / sum(L1_soilMoistSat(sIdxParam : eIdxParam, :), dim = 2))
 #endif
     end if
 
@@ -684,11 +683,11 @@ contains
     if (outputFlxState(10)) then
       ii = ii + 1
 #ifdef pgiFortran
-      call updateVariable(vars(ii), sum(L1_aETSoil(sidx : eidx, :), dim = 2) * L1_fNotSealed(sidx : eidx) &
-              + L1_aETCanopy(sidx : eidx) + L1_aETSealed(sidx : eidx) * L1_fSealed(sidx : eidx))
+      call updateVariable(vars(ii), sum(L1_aETSoil(sidx : eidx, :), dim = 2) * L1_fNotSealed(sIdxParam : eIdxParam) &
+              + L1_aETCanopy(sidx : eidx) + L1_aETSealed(sidx : eidx) * L1_fSealed(sIdxParam : eIdxParam))
 #else
-      call vars(ii)%updateVariable(sum(L1_aETSoil(sidx : eidx, :), dim = 2) * L1_fNotSealed(sidx : eidx) &
-              + L1_aETCanopy(sidx : eidx) + L1_aETSealed(sidx : eidx) * L1_fSealed(sidx : eidx))
+      call vars(ii)%updateVariable(sum(L1_aETSoil(sidx : eidx, :), dim = 2) * L1_fNotSealed(sIdxParam : eIdxParam) &
+              + L1_aETCanopy(sidx : eidx) + L1_aETSealed(sidx : eidx) * L1_fSealed(sIdxParam : eIdxParam))
 #endif
     end if
 
@@ -704,9 +703,9 @@ contains
     if (outputFlxState(12)) then
       ii = ii + 1
 #ifdef pgiFortran
-      call updateVariable(vars(ii), L1_runoffSeal(sidx : eidx) * L1_fSealed(sidx : eidx))
+      call updateVariable(vars(ii), L1_runoffSeal(sidx : eidx) * L1_fSealed(sIdxParam : eIdxParam))
 #else
-      call vars(ii)%updateVariable(L1_runoffSeal(sidx : eidx) * L1_fSealed(sidx : eidx))
+      call vars(ii)%updateVariable(L1_runoffSeal(sidx : eidx) * L1_fSealed(sIdxParam : eIdxParam))
 #endif
     end if
 
@@ -747,7 +746,7 @@ contains
     end if
 
     if (outputFlxState(17)) then
-      do nn = 1, nSoilHorizons_mHM
+      do nn = 1, nSoilHorizons
         ii = ii + 1
 #ifdef pgiFortran
         call updateVariable(vars(ii), L1_infilSoil(sidx : eidx, nn) * L1_fNotSealed(sidx : eidx))
@@ -758,7 +757,7 @@ contains
     end if
 
     if (outputFlxState(19)) then
-      do nn = 1, nSoilHorizons_mHM
+      do nn = 1, nSoilHorizons
         ii = ii + 1
 #ifdef pgiFortran
         call updateVariable(vars(ii), L1_aETSoil(sidx : eidx, nn) * L1_fNotSealed(sidx : eidx))
@@ -822,7 +821,7 @@ contains
 
     ! add to time variable
     tvar = self%nc%getVariable("time")
-    call tvar%setData(timestep, (/self%counter/))
+    call tvar%setData(timestep, [self%counter])
 
     do ii = 1, size(self%vars)
       call self%vars(ii)%writeVariableTimestep(self%counter)

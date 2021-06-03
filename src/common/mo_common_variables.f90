@@ -31,11 +31,6 @@ module mo_common_variables
   integer(i4), dimension(:), allocatable, public :: L0_Domain
   logical, public :: write_restart              ! flag
 
-   integer(i4) :: mrm_coupling_mode !-1 = no mrm (mHM only)
-  !                                ! 0 = stand alone (mRM only)
-  !                                ! 1 = general coupling to a model (not used)
-  !                                ! 2 = specific coupling to mHM (mHM and mRM)
-
   real(dp), public :: c2TSTu            !       Unit transformation = timeStep/24
   real(dp), dimension(:), allocatable, public :: resolutionRouting          ! [m or degree] resolution of routing - Level 11
   logical, public :: read_restart               ! flag
@@ -109,6 +104,8 @@ module mo_common_variables
                                                         ! here are all processes wich have rank 0 in comLocal
     type(MPI_Comm)                         :: comLocal  ! the communicater the domain internal communication takes place
 #endif
+  contains
+    procedure :: allocate_domains => allocate_domain_meta
   end type domain_meta
 
   type(domain_meta), public :: domainMeta
@@ -207,5 +204,15 @@ module mo_common_variables
   !                          ! .True.: ALMA convention is used for Input/Output
   !                          ! .False.: default mHM units are used
   !                          ! CAUTION: only Qall is considered at the moment
+
+contains
+  subroutine allocate_domain_meta(self)
+    class(domain_meta), intent(inout) :: self
+
+      allocate(self%indices(self%nDomains))
+      allocate(self%L0DataFrom(self%nDomains))
+      allocate(self%optidata(self%nDomains))
+      allocate(self%doRouting(self%nDomains))
+  end subroutine allocate_domain_meta
 
 end module mo_common_variables

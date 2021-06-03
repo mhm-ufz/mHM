@@ -143,7 +143,7 @@ CONTAINS
   subroutine L0_check_input(iDomain)
 
     use mo_common_constants, only : eps_dp
-    use mo_common_variables, only : L0_LCover, L0_elev, level0, nLCoverScene
+    use mo_common_variables, only : L0_LCover, L0_elev, level0, nLandCoverPeriods
     use mo_common_datetime_type, only : timeStep_LAI_input
     use mo_message, only : message, message_text
     use mo_mpr_global_variables, only : L0_asp, L0_geoUnit, L0_gridded_LAI, &
@@ -208,7 +208,7 @@ CONTAINS
       end if
 
       ! landcover scenes
-      do  n = 1, nLCoverScene
+      do  n = 1, nLandCoverPeriods
         if (L0_LCover(k, n) .eq. nodata_i4) then
           message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)')) // ',' // trim(num2str(n, '(I5)'))
           call message(' Error: land cover id has missing values within the valid masked area at cell in domain and scene ', &
@@ -402,13 +402,13 @@ CONTAINS
     use mo_append, only : append
     use mo_constants, only : YearMonths
     use mo_common_constants, only : P1_InitStateFluxes
-    use mo_common_variables, only : nLCoverScene
+    use mo_common_variables, only : nLandCoverPeriods
     use mo_mpr_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, &
                                         L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
                                         L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
                                         L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
                                         L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                        L1_wiltingPoint, nLAI, nSoilHorizons_mHM
+                                        L1_wiltingPoint, nLAI, nSoilHorizons_mHM, L1_latitude
 
     implicit none
 
@@ -420,47 +420,33 @@ CONTAINS
 
 
     ! get maximum extent of one dimension 2 or 3
-    max_extent = max(nSoilHorizons_mHM, nint(YearMonths, i4), nLCoverScene, nLAI)
+    max_extent = max(nSoilHorizons_mHM, nint(YearMonths, i4), nLandCoverPeriods, nLAI)
 
     ! for appending and intialization
-    allocate(dummy_3D(nCells1, max_extent, nLCoverScene))
+    allocate(dummy_3D(nCells1, max_extent, nLandCoverPeriods))
 
     dummy_3D = P1_InitStateFluxes
 
     !-------------------------------------------
     ! EFFECTIVE PARAMETERS
     !-------------------------------------------
-    call append(L1_fSealed, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
+    call append(L1_fSealed, dummy_3D(:, 1 : 1, 1 : nLandCoverPeriods))
     ! exponent for the upper reservoir
     call append(L1_alpha, dummy_3D(:, 1 : 1, 1 : 1))
     ! increase of the Degree-day factor per mm of increase in precipitation
-    call append(L1_degDayInc, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
+    call append(L1_degDayInc, dummy_3D(:, 1 : 1, 1 : nLandCoverPeriods))
     ! maximum degree-day factor
-    call append(L1_degDayMax, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
+    call append(L1_degDayMax, dummy_3D(:, 1 : 1, 1 : nLandCoverPeriods))
     ! degree-day factor with no precipitation
-    call append(L1_degDayNoPre, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
-    ! degree-day factor
-    call append(L1_degDay, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
+    call append(L1_degDayNoPre, dummy_3D(:, 1 : 1, 1 : nLandCoverPeriods))
     ! Karstic percolation loss
     call append(L1_karstLoss, dummy_3D(:, 1 : 1, 1 : 1))
-    ! PET correction factor due to terrain aspect
-    call append(L1_fAsp, dummy_3D(:, 1 : 1, 1 : 1))
-    ! PET correction factor due to LAI
-    call append(L1_petLAIcorFactor, dummy_3D(:, 1 : nLAI, 1 : nLCoverScene))
-    ! PET Hargreaves Samani coefficient
-    call append(L1_HarSamCoeff, dummy_3D(:, 1 : 1, 1 : 1))
-    ! PET Prietley Taylor coefficient
-    call append(L1_PrieTayAlpha, dummy_3D(:, 1 : nLAI, 1 : 1))
-    ! PET aerodynamical resistance
-    call append(L1_aeroResist, dummy_3D(:, 1 : nLAI, 1 : nLCoverScene))
-    ! PET bulk surface resistance
-    call append(L1_surfResist, dummy_3D(:, 1 : nLAI, 1 : 1))
     ! Fraction of roots in soil horizons
-    call append(L1_fRoots, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLCoverScene))
+    call append(L1_fRoots, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLandCoverPeriods))
     ! Maximum interception
     call append(L1_maxInter, dummy_3D(:, 1 : nLAI, 1 : 1))
     ! fast interflow recession coefficient
-    call append(L1_kfastFlow, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
+    call append(L1_kfastFlow, dummy_3D(:, 1 : 1, 1 : nLandCoverPeriods))
     ! slow interflow recession coefficient
     call append(L1_kSlowFlow, dummy_3D(:, 1 : 1, 1 : 1))
     ! baseflow recession coefficient
@@ -468,21 +454,35 @@ CONTAINS
     ! percolation coefficient
     call append(L1_kPerco, dummy_3D(:, 1 : 1, 1 : 1))
     ! Soil moisture below which actual ET is reduced linearly till PWP
-    call append(L1_soilMoistFC, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLCoverScene))
+    call append(L1_soilMoistFC, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLandCoverPeriods))
     ! Saturation soil moisture for each horizon [mm]
-    call append(L1_soilMoistSat, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLCoverScene))
+    call append(L1_soilMoistSat, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLandCoverPeriods))
+    ! Exponential parameter to how non-linear is the soil water retention
+    call append(L1_soilMoistExp, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLandCoverPeriods))
     ! jarvis critical value for normalized soil water content
     call append(L1_jarvis_thresh_c1, dummy_3D(:, 1 : 1, 1 : 1))
-    ! Exponential parameter to how non-linear is the soil water retention
-    call append(L1_soilMoistExp, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLCoverScene))
     ! Threshold temperature for snow/rain
-    call append(L1_tempThresh, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
+    call append(L1_tempThresh, dummy_3D(:, 1 : 1, 1 : nLandCoverPeriods))
     ! Threshhold water depth controlling fast interflow
     call append(L1_unsatThresh, dummy_3D(:, 1 : 1, 1 : 1))
     ! Threshhold water depth for surface runoff in sealed surfaces
     call append(L1_sealedThresh, dummy_3D(:, 1 : 1, 1 : 1))
     ! Permanent wilting point
-    call append(L1_wiltingPoint, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLCoverScene))
+    call append(L1_wiltingPoint, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLandCoverPeriods))
+    ! latitude
+    call append(L1_latitude, dummy_3D(:, 1 : 1, 1 : 1))
+    ! PET correction factor due to LAI
+    call append(L1_petLAIcorFactor, dummy_3D(:, 1 : nLAI, 1 : nLandCoverPeriods))
+    ! PET correction factor due to terrain aspect
+    call append(L1_fAsp, dummy_3D(:, 1 : 1, 1 : 1))
+    ! PET Hargreaves Samani coefficient
+    call append(L1_HarSamCoeff, dummy_3D(:, 1 : 1, 1 : 1))
+    ! PET Prietley Taylor coefficient
+    call append(L1_PrieTayAlpha, dummy_3D(:, 1 : nLAI, 1 : 1))
+    ! PET aerodynamical resistance
+    call append(L1_aeroResist, dummy_3D(:, 1 : nLAI, 1 : nLandCoverPeriods))
+    ! PET bulk surface resistance
+    call append(L1_surfResist, dummy_3D(:, 1 : nLAI, 1 : 1))
 
     ! free space
     if (allocated(dummy_3D)) deallocate(dummy_3D)

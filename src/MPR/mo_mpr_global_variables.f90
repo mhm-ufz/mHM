@@ -118,6 +118,7 @@ module mo_mpr_global_variables
   ! dim1 = number grid cells L1
   ! dim2 = number model soil horizons or YearMonths or other auxiliary dimension
   ! dim3 = number of LCscenes
+  real(dp), public, dimension(:, :, :), allocatable :: L1_latitude       ! [1]  Latitude values of grid
   real(dp), public, dimension(:, :, :), allocatable :: L1_fSealed       ! [1]  Fraction of sealed area (nCells, nLCscenes)
 
   real(dp), public, dimension(:, :, :), allocatable :: L1_alpha               ! [1]            Exponent for the upper reservoir
@@ -138,7 +139,7 @@ module mo_mpr_global_variables
   real(dp), public, dimension(:, :, :), allocatable :: L1_fRoots              ! [1]    Fraction of roots in soil horizons
   real(dp), public, dimension(:, :, :), allocatable :: L1_maxInter            ! [mm]   Maximum interception
 
-  real(dp), public, dimension(:, :, :), allocatable :: L1_kfastFlow           ! [d-1]  Fast interflow recession coefficient
+  real(dp), public, dimension(:, :, :), allocatable :: L1_kFastFlow           ! [d-1]  Fast interflow recession coefficient
   real(dp), public, dimension(:, :, :), allocatable :: L1_kSlowFlow           ! [d-1]  Slow interflow recession coefficient
   real(dp), public, dimension(:, :, :), allocatable :: L1_kBaseFlow           ! [d-1]  Baseflow recession coefficient
   real(dp), public, dimension(:, :, :), allocatable :: L1_kPerco              ! [d-1]  percolation coefficient

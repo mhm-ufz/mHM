@@ -88,7 +88,7 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirReferenceET     ! Directory where reference-ET files are located
   ! riv-temp releated
   character(256), dimension(:), allocatable, public :: dirRadiation       ! Directory where short/long-wave rad. files are located
-  character(256), dimension(:), allocatable, public :: pathMprNml   ! Path to mpr.nml
+  character(256), dimension(:), allocatable, public :: pathMprNml         ! Path to mpr.nml
   ! ------------------------------------------------------------------
   ! CONSTANT
   ! ------------------------------------------------------------------
@@ -226,8 +226,8 @@ MODULE mo_global_variables
   ! level0%iStart and level0%iEnd are only available in mRM, yet we
   !  need something similar in mHM for the parameters produced by MPR
   !  that only exist for the indices in L0_Basin
-  integer(i4), dimension(:), allocatable, public :: L0_Basin_iStart
-  integer(i4), dimension(:), allocatable, public :: L0_Basin_iEnd
+  integer(i4), dimension(:), allocatable, public :: L0_Domain_iStart
+  integer(i4), dimension(:), allocatable, public :: L0_Domain_iEnd
 
   ! -------------------------------------------------------------------
   ! Monthly day/night variation of Meteorological variables

@@ -84,7 +84,7 @@ CONTAINS
 
     use mo_optimization_types, only : optidata_sim
     use mo_common_datetime_type, only : datetimeinfo, LCyearId, nTstepDay, simPer, timeStep
-    use mo_common_variables, only : mhmFileRestartIn, mrmFileRestartIn,&
+    use mo_common_variables, only : mhmFileRestartIn, mrmFileRestartIn, global_parameters_name, &
                                             optimize, readPer, read_restart, &
                                             warmingDays, c2TSTu, level1, domainMeta, processMatrix
     use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, &
@@ -98,21 +98,19 @@ CONTAINS
                                     neutron_integral_AFast, outputFlxState, read_meteo_weights, &
                                     timeStep_model_inputs, timeStep_model_outputs, &
                                     L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
-                                    L1_tann, L1_ssrd, L1_strd, fday_ssrd, fnight_ssrd, fday_strd, fnight_strd ! meteo for riv-temp
+                                    L1_tann, L1_ssrd, L1_strd, fday_ssrd, fnight_ssrd, fday_strd, fnight_strd, & ! meteo for riv-temp
+            nSoilHorizons, soilHorizonBoundaries, L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, &
+                                        L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
+                                        L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
+                                        L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
+                                        L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
+                                        L1_wiltingPoint, are_parameter_initialized, L1_latitude
     use mo_init_states, only : variables_default_init
     use mo_julian, only : caldat, julday
     use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_meteo_forcings, only : prepare_meteo_forcings_data
     use mo_mhm, only : mhm
-    use mo_mpr_eval, only : mpr_eval
-    use mo_mpr_global_variables, only : HorizonDepth_mHM, &
-                                        L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, &
-                                        L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
-                                        L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
-                                        L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
-                                        L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                        L1_wiltingPoint, nSoilHorizons_mHM
     use mo_restart, only : read_restart_states
     use mo_write_fluxes_states, only : OutputDataset
     use mo_constants, only : HourSecs
@@ -124,13 +122,13 @@ CONTAINS
                                         L1_L11_Id, domain_mrm, level11, mRM_runoff, outputFlxState_mrm, &
                                         timeStep_model_outputs_mrm, gw_coupling, L0_river_head_mon_sum, &
                                         riv_temp_pcs
-    use mo_mrm_init, only : variables_default_init_routing
     use mo_mrm_mpr, only : mrm_update_param
     use mo_mrm_restart, only : mrm_read_restart_states
     use mo_mrm_routing, only : mrm_routing
     use mo_mrm_write, only : mrm_write_output_fluxes
     use mo_utils, only : ge
     use mo_mrm_river_head, only: calc_river_head, avg_and_write_timestep
+    use mo_mhm_mpr_interface, only: call_mpr
 #ifdef pgiFortran154
     use mo_write_fluxes_states, only : newOutputDataset
 #endif
@@ -159,7 +157,7 @@ CONTAINS
     ! nTimeSteps]
     type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim
 
-    real(dp), dimension(size(L1_fSealed, 1), size(L1_fSealed, 2), size(L1_fSealed, 3)) :: L1_fNotSealed
+    real(dp), dimension(size(L1_fSealed, 1), size(L1_fSealed, 2)) :: L1_fNotSealed
 
     type(OutputDataset) :: nc
 
@@ -171,6 +169,8 @@ CONTAINS
 
     ! start and end index at level 1 for current Domain
     integer(i4) :: s1, e1
+    ! start and end index at level 1 for current Domain
+    integer(i4) :: s1_param, e1_param
 
     ! meteorological time step for process 5 (PET)
     integer(i4), dimension(6) :: iMeteo_p5
@@ -264,16 +264,7 @@ CONTAINS
     ! all cells for all modeled Domains are simultenously initalized ONLY ONCE
     call variables_default_init()
 
-    if (.NOT. read_restart) then
-
-       if (processMatrix(8, 1) > 0) then
-        !-------------------------------------------
-        ! L11 ROUTING STATE VARIABLES, FLUXES AND
-        !             PARAMETERS
-        !-------------------------------------------
-        call variables_default_init_routing()
-      end if
-    else
+    if (read_restart) then
       do ii = 1, nDomains
         if (optimize .and. present(opti_domain_indices)) then
           iDomain = opti_domain_indices(ii)
@@ -281,11 +272,11 @@ CONTAINS
           iDomain = ii
         end if
         ! this reads the eff. parameters and optionally the states and fluxes
-        call read_restart_states(iDomain, mhmFileRestartIn(iDomain, do_read_dims_arg=.false.))
+        call read_restart_states(iDomain, mhmFileRestartIn(iDomain), do_read_dims_arg=.false.)
       end do
     end if
     if (.not. are_parameter_initialized) then
-      call call_mpr(parameterset, global_parameters_name, level1, .false.)
+      call call_mpr(parameterset, global_parameters_name, level1, .false., opti_domain_indices)
     end if
 
 
@@ -315,6 +306,8 @@ CONTAINS
       mask1 => level1(iDomain)%mask
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
+      s1_param = level1(domainMeta%L0DataFrom(iDomain))%iStart
+      e1_param = level1(domainMeta%L0DataFrom(iDomain))%iEnd
 
       if (domainMeta%doRouting(iDomain)) then
         ! ----------------------------------------
@@ -441,7 +434,7 @@ CONTAINS
                 L1_windspeed(s_p5(6) : e_p5(6), iMeteo_p5(6)), & ! IN F:PET
                 L1_pre(s_meteo : e_meteo, iMeteoTS), & ! IN F:Pre
                 L1_temp(s_meteo : e_meteo, iMeteoTS), & ! IN F:Temp
-                L1_fSealed(s1_param : e1_param, yId), & ! INOUT L1
+                L1_fSealed(s1_param : e1_param, domainDateTime%yId), & ! INOUT L1
                 L1_inter(s1 : e1), L1_snowPack(s1 : e1), L1_sealSTW(s1 : e1), & ! INOUT S
                 L1_soilMoist(s1 : e1, :), L1_unsatSTW(s1 : e1), L1_satSTW(s1 : e1), & ! INOUT S
                 L1_neutrons(s1 : e1), & ! INOUT S
@@ -451,9 +444,9 @@ CONTAINS
                 L1_melt(s1 : e1), L1_percol(s1 : e1), L1_preEffect(s1 : e1), L1_rain(s1 : e1), & ! INOUT X
                 L1_runoffSeal(s1 : e1), L1_slowRunoff(s1 : e1), L1_snow(s1 : e1), & ! INOUT X
                 L1_Throughfall(s1 : e1), L1_total_runoff(s1 : e1), & ! INOUT X
-                L1_alpha(s1_param : e1_param, yId), L1_degDayInc(s1_param : e1_param, domainDateTime%yId), &
-                L1_degDayMax(s1_param : e1_param, 1, domainDateTime%yId), & ! INOUT E1
-                L1_degDayNoPre(s1_param : e1_param, 1, domainDateTime%yId), L1_degDay(s1 : e1), & ! INOUT E1
+                L1_alpha(s1_param : e1_param, domainDateTime%yId), L1_degDayInc(s1_param : e1_param, domainDateTime%yId), &
+                L1_degDayMax(s1_param : e1_param, domainDateTime%yId), & ! INOUT E1
+                L1_degDayNoPre(s1_param : e1_param, domainDateTime%yId), L1_degDay(s1 : e1), & ! INOUT E1
                 L1_fAsp(s1_param : e1_param), & ! INOUT E1
                 L1_petLAIcorFactor(s1_param : e1_param, domainDateTime%iLAI, domainDateTime%yId), & ! INOUT E1
                 L1_HarSamCoeff(s1_param : e1_param), & ! INOUT E1
@@ -547,7 +540,7 @@ CONTAINS
             call riv_temp_pcs%acc_source_E( &
               domainDateTime%newTime - 0.5_dp, &
               real(nTstepDay, dp), &
-              L1_fSealed(s1 : e1, 1, domainDateTime%yId), &
+              L1_fSealed(s1_param : e1_param, domainDateTime%yId), &
               L1_fastRunoff(s1 : e1), &
               L1_slowRunoff(s1 : e1), &
               L1_baseflow(s1 : e1), &
@@ -769,9 +762,10 @@ CONTAINS
             ! last timestep is already done - write_counter exceeds size(etOptiSim(iDomain)%dataSim, dim=2)
             if (tt /= domainDateTime%nTimeSteps) then
               ! aggregate evapotranspiration to needed time step for optimization
-              call etOptiSim(iDomain)%add(sum(L1_aETSoil(s1 : e1, :), dim = 2) * L1_fNotSealed(s1 : e1, 1, domainDateTime%yId) + &
+              call etOptiSim(iDomain)%add(sum(L1_aETSoil(s1 : e1, :), dim = 2) * &
+                      L1_fNotSealed(s1_param : e1_param, domainDateTime%yId) + &
                       L1_aETCanopy(s1 : e1) + &
-                      L1_aETSealed(s1 : e1) * L1_fSealed(s1 : e1, 1, domainDateTime%yId))
+                      L1_aETSealed(s1 : e1) * L1_fSealed(s1_param : e1_param, domainDateTime%yId))
             end if
           end if
         end if
@@ -793,7 +787,7 @@ CONTAINS
               ! aggregate evapotranspiration to needed time step for optimization
               call twsOptiSim(iDomain)%average_add(L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
                    L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1))
-              do gg = 1, nSoilHorizons_mHM
+              do gg = 1, nSoilHorizons
                 call twsOptiSim(iDomain)%add(L1_soilMoist (s1 : e1, gg))
               end do
             end if
