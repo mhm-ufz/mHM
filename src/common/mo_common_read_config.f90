@@ -797,6 +797,7 @@ CONTAINS
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
     use mo_utils, only : EQ
+    use mo_global_variables, only: soilHorizonBoundaries, nSoilHorizons
 
     implicit none
 
@@ -1024,13 +1025,15 @@ CONTAINS
     call position_nml('soildata', unamelist)
     read(unamelist, nml = soildata)
 
-    allocate(HorizonDepth_mHM(nSoilHorizons_mHM))
-    HorizonDepth_mHM(:) = 0.0_dp
+    nSoilHorizons = nSoilHorizons_mHM
+    allocate(soilHorizonBoundaries(nSoilHorizons))
+    allocate(HorizonDepth_mHM(nSoilHorizons))
+    soilHorizonBoundaries(:) = 0.0_dp
     ! last layer is reset to 0 in MPR in case of iFlag_soilDB is 0
-    HorizonDepth_mHM(1 : nSoilHorizons_mHM) = soil_Depth(1 : nSoilHorizons_mHM)
+    soilHorizonBoundaries(1 : nSoilHorizons) = soil_Depth(1 : nSoilHorizons)
 
     ! counter checks -- soil horizons
-    if (nSoilHorizons_mHM .GT. maxNoSoilHorizons) then
+    if (nSoilHorizons .GT. maxNoSoilHorizons) then
       call message()
       call message('***ERROR: Number of soil horizons is resticted to ', trim(num2str(maxNoSoilHorizons)), '!')
       stop
@@ -1040,16 +1043,17 @@ CONTAINS
     ! as is the default for option-1 where horizon specific information are taken into consideration
     if(iFlag_soilDB .eq. 0) then
       ! classical mhm soil database
-      HorizonDepth_mHM(nSoilHorizons_mHM) = 0.0_dp
+      soilHorizonBoundaries(nSoilHorizons) = 0.0_dp
     else if(iFlag_soilDB .ne. 1) then
       call message()
       call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
       stop
     end if
-
+    ! TODO: MPR remove this duplications
+    HorizonDepth_mHM = soilHorizonBoundaries
     ! some consistency checks for the specification of the tillage depth
     if(iFlag_soilDB .eq. 1) then
-      if(count(abs(HorizonDepth_mHM(:) - tillageDepth) .lt. eps_dp)  .eq. 0) then
+      if(count(abs(soilHorizonBoundaries(:) - tillageDepth) .lt. eps_dp)  .eq. 0) then
         call message()
         call message('***ERROR: Soil tillage depth must conform with one of the specified horizon (lower) depth.')
         stop
