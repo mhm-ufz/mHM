@@ -610,11 +610,12 @@ contains
     end if
   end subroutine check_consistency_element_i4
 
-   subroutine check_consistency()
+  subroutine check_consistency()
     use mo_global_variables, only : nSoilHorizons
     use mo_common_variables, only : opti_function, optimize
     use mo_global_variables, only : nSoilHorizons_sm_input
     use mo_string_utils, only: num2str
+    use mo_message, only: message
 
     if (optimize) then
       select case (opti_function)

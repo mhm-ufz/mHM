@@ -91,9 +91,10 @@ CONTAINS
     type(Grid) :: dummy
     type(Grid), pointer :: level0_iDomain
 
-
     ! constants initialization
     allocate(level2(domainMeta%nDomains))
+    allocate(level1(domainMeta%nDomains))
+
     if (read_restart) then
       do iDomain = 1, domainMeta%nDomains
         domainID = domainMeta%indices(iDomain)
@@ -163,6 +164,7 @@ CONTAINS
 
     end do
 
+    call set_domain_indices(level1)
     call set_domain_indices(level2)
 
   end subroutine mhm_initialize

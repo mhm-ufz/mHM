@@ -84,7 +84,6 @@ CONTAINS
     ! soilDB common for all domains
     call generate_soil_database()
 
-    allocate(level1(domainMeta%nDomains))
     allocate(l0_l1_remap(domainMeta%nDomains))
 
     ! L0 and L1 initialization
@@ -109,8 +108,6 @@ CONTAINS
       call init_eff_params(level1(iDomain)%nCells)
 
     end do
-
-    call set_domain_indices(level1)
 
   end subroutine mpr_initialize
 
