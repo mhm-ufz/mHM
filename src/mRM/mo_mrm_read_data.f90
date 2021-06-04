@@ -89,7 +89,8 @@ contains
     ! ************************************************
     ! READ SPATIAL DATA FOR EACH DOMAIN
     ! ************************************************
-    call read_dem()
+    ! TODO: MPR this needs to be reactivated
+    ! call read_dem()
 
     if (do_readlcover .and. processMatrix(8, 1) .eq. 1) then
       call read_lcover()

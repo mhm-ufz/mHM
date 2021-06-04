@@ -257,6 +257,8 @@ PROGRAM mhm_driver
   call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
 #endif
   call mhm_read_config(file_namelist_mhm, unamelist_mhm)
+  call mrm_configuration(file_namelist_mhm, unamelist_mhm, &
+          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon)
   call check_optimization_settings()
 
   call message()

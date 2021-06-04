@@ -1509,7 +1509,8 @@ contains
     use mo_append, only : append, add_nodata_slice
     use mo_common_constants, only : nodata_dp
     use mo_grid, only: Grid
-    use mo_common_variables, only : domainMeta, L0_LCover, level0, domainMeta, LCyearId, nLandCoverPeriods
+    use mo_common_variables, only : domainMeta, L0_LCover, level0, domainMeta, nLandCoverPeriods
+    use mo_common_datetime_type, only: LCyearId
     use mo_mrm_global_variables, only : L0_floodPlain, L11_aFloodPlain, &
                                         L11_nLinkFracFPimp, L11_nOutlets, level11
 

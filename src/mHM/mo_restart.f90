@@ -100,8 +100,8 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_grid, only : write_grid_info
-    use mo_common_variables, only : level1, nLandCoverPeriods, domainMeta, LC_year_start, LC_year_end, LCyearId
-    use mo_common_datetime_type, only: simPer
+    use mo_common_variables, only : level1, nLandCoverPeriods, domainMeta, LC_year_start, LC_year_end
+    use mo_common_datetime_type, only: simPer, LCyearId
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
                                     L1_fastRunoff, L1_infilSoil, L1_melt, L1_percol, L1_preEffect, L1_rain, &
                                     L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &

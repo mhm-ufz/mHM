@@ -78,7 +78,6 @@ CONTAINS
     use mo_string_utils, only : num2str
     use mo_message, only : message
     use mo_restart, only: read_restart_states
-    use mo_mrm_init, only: mrm_init, variables_default_init_routing
     use mo_file, only: file_namelist_mhm, file_namelist_mhm_param, unamelist_mhm, unamelist_mhm_param
     use mo_mhm_mpr_interface, only: call_mpr
 
@@ -123,6 +122,7 @@ CONTAINS
       ! L2 inialization
       call infer_grid_info(trim(dirPrecipitation(iDomain)) // 'pre.nc', 'x', 'y', 'pre', level2(iDomain))
 
+      level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
       call calculate_grid_properties(level0_iDomain%nrows, level0_iDomain%ncols, &
         level0_iDomain%xllcorner, level0_iDomain%yllcorner, level0_iDomain%cellsize, &
         level2(iDomain)%cellsize, &
@@ -152,15 +152,6 @@ CONTAINS
         stop 1
       end if
 
-      if (domainMeta%doRouting(iDomain)) then
-        call mrm_init(file_namelist_mhm, unamelist_mhm, &
-              file_namelist_mhm_param, unamelist_mhm_param)
-        !-------------------------------------------
-        ! L11 ROUTING STATE VARIABLES, FLUXES AND
-        !             PARAMETERS
-        !-------------------------------------------
-        call variables_default_init_routing()
-      end if
 
     end do
 

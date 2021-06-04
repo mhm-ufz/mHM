@@ -20,9 +20,8 @@ MODULE mo_mrm_init
 
   IMPLICIT NONE
 
-    ! TODO: MPR no mrm_configuration, but mrm_update_param moved here
+  ! TODO: MPR no mrm_configuration, but mrm_update_param moved here
   public :: mrm_init, mrm_configuration
-  public :: variables_default_init_routing
 
   private
 
@@ -137,10 +136,6 @@ end subroutine mrm_configuration
     call message('')
     call message('  Inititalize mRM')
 
-    ! read config for mrm, readlatlon is set here depending on whether output is needed
-    call mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, &
-            .false., ReadLatLon)
-
     ! ----------------------------------------------------------
     ! READ DATA
     ! ----------------------------------------------------------
@@ -186,7 +181,19 @@ end subroutine mrm_configuration
     call set_domain_indices(level11)
     call set_domain_indices(level1)
     ! TODO: MPR this is not there but actually makes sense being there
-    call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
+    ! call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
+
+    ! ----------------------------------------------------------
+    ! INITIALIZE STATES AND ROUTING PARAMETERS
+    ! ----------------------------------------------------------
+    do iDomain = 1, domainMeta%nDomains
+      call variables_alloc_routing(iDomain)
+    end do
+    !-------------------------------------------
+    ! L11 ROUTING STATE VARIABLES, FLUXES AND
+    !             PARAMETERS
+    !-------------------------------------------
+    call variables_default_init_routing()
 
     ! ----------------------------------------------------------
     ! INITIALIZE STREAM NETWORK
@@ -225,13 +232,6 @@ end subroutine mrm_configuration
       iStart = processMatrix(8, 3) - processMatrix(8, 2) + 1
       iEnd = processMatrix(8, 3)
       call mrm_init_param(iDomain, global_parameters(iStart : iEnd, 3))
-    end do
-
-    ! ----------------------------------------------------------
-    ! INITIALIZE STATES AND ROUTING PARAMETERS
-    ! ----------------------------------------------------------
-    do iDomain = 1, domainMeta%nDomains
-      call variables_alloc_routing(iDomain)
     end do
 
     ! mpr-like definiton of sealed floodplain fraction
