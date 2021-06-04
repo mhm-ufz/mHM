@@ -137,7 +137,15 @@ contains
     use mo_mpr_soilmoist, only : mpr_sm
     use mo_upscaling_operators, only : L0_fractionalCover_in_Lx, &
                                        upscale_arithmetic_mean
+    use mo_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, &
+                                    L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
+                                    L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
+                                    L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
+                                    L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
+                                    L1_wiltingPoint, are_parameter_initialized, L1_latitude
+    use mo_append, only: append
 
+    
     implicit none
 
     ! mask at level 0 field
@@ -677,6 +685,33 @@ contains
     call canopy_intercept_param(processMatrix, param(:), &
             gridded_LAI0, n_subcells1, upper_bound1, lower_bound1, left_bound1, right_bound1, Id0, mask0, &
             nodata_dp, maxInter1(:, :, 1))
+
+    call append(L1_fSealed, fSealed1(:,1,:))
+    call append(L1_alpha, alpha1(:,1,:))
+    call append(L1_degDayInc, degDayInc1(:,1,:))
+    call append(L1_degDayMax, degDayMax1(:,1,:))
+    call append(L1_degDayNoPre, degDayNoPre1(:,1,:))
+    call append(L1_fAsp, fAsp1(:,1,1))
+    call append(L1_HarSamCoeff, HarSamCoeff1(:,1,1))
+    call append(L1_PrieTayAlpha, PrieTayAlpha1(:,:,1))
+    call append(L1_aeroResist, aeroResist1(:,:,:))
+    call append(L1_surfResist, surfResist1(:,:,1))
+    call append(L1_fRoots, fRoots1(:,:,:))
+    call append(L1_kfastFlow, kFastFlow1(:,1,:))
+    call append(L1_kSlowFlow, kSlowFlow1(:,1,:))
+    call append(L1_kBaseFlow, kBaseFlow1(:,1,:))
+    call append(L1_kPerco, kPerco1(:,1,:))
+    call append(L1_karstLoss, karstLoss1(:,1,1))
+    call append(L1_soilMoistFC, soilMoistFC1(:,:,:))
+    call append(L1_soilMoistSat, soilMoistSat1(:,:,:))
+    call append(L1_soilMoistExp, soilMoistExp1(:,:,:))
+    call append(L1_jarvis_thresh_c1, jarvis_thresh_c1(:,1,1))
+    call append(L1_tempThresh, tempThresh1(:,1,:))
+    call append(L1_unsatThresh, unsatThresh1(:,1,:))
+    call append(L1_sealedThresh, sealedThresh1(:,1,1))
+    call append(L1_wiltingPoint, wiltingPoint1(:,:,:))
+    call append(L1_maxInter, maxInter1(:,:,1))
+    call append(L1_petLAIcorFactor, petLAIcorFactor(:,:,:))
 
   end subroutine mpr
 

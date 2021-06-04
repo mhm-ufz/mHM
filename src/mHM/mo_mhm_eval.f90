@@ -419,7 +419,7 @@ CONTAINS
                 nCells, nSoilHorizons, real(nTstepDay, dp), c2TSTu,  & ! IN C
                 neutron_integral_AFast, & ! IN C
                 parameterset, & ! IN
-                L1_latitude(s1_param : e1_param), & ! IN L1
+                pack(level1(iDomain)%y, level1(iDomain)%mask), & ! IN L1
                 evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet, & ! IN F
                 fday_temp, fnight_temp, & ! IN F
                 L1_temp_weights(s1 : e1, :, :), & ! IN F
