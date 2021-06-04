@@ -413,7 +413,6 @@ CONTAINS
         !  S    STATE VARIABLES L1
         !  X    FLUXES (L1, L11 levels)
         ! --------------------------------------------------------------------------
-        print*, 's1_param, e1_param, domainDateTime%yId', s1_param, e1_param, domainDateTime%yId
         call mhm(read_restart, & ! IN C
                 tt, domainDateTime%newTime - 0.5_dp, processMatrix, &
                 soilHorizonBoundaries(2:size(soilHorizonBoundaries)) * 1000_dp, & ! IN C

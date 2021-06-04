@@ -174,7 +174,6 @@ CONTAINS
       ! write the dimension to the file
       lais = nc%setCoordinate(trim(LAIVarName), nLAIs, LAIBoundaries, 0_i4)
       ! TODO: MPR change this blocks
-      deallocate(dummy_1D)
       allocate(dummy_1D(nLandCoverPeriods+1))
       dummy_1D(1:nLandCoverPeriods) = LC_year_start(:)
       ! this is done because bounds are always stored as real so e.g.
@@ -1158,12 +1157,14 @@ CONTAINS
     !-------------------------------------------
     ! EFFECTIVE PARAMETERS
     !-------------------------------------------
+    ! TODO: MPR add dims
     call unpack_field_and_write(nc, "L1_fSealed", &
             [rows1, cols1, lcscenes], nodata_dp, L1_fSealed(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
             "fraction of Sealed area at level 1")
 
     call unpack_field_and_write(nc, "L1_alpha", &
-            [rows1, cols1, lcscenes], nodata_dp, L1_alpha(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            ![rows1, cols1, lcscenes], nodata_dp, L1_alpha(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1], nodata_dp, L1_alpha(s1 : e1, 1), mask1, &
             "exponent for the upper reservoir at level 1")
 
     call unpack_field_and_write(nc, "L1_degDayInc", &
@@ -1195,15 +1196,18 @@ CONTAINS
             "fast interflow recession coefficient at level 1")
 
     call unpack_field_and_write(nc, "L1_kSlowFlow", &
-            [rows1, cols1, lcscenes], nodata_dp, L1_kSlowFlow(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            ! [rows1, cols1, lcscenes], nodata_dp, L1_kSlowFlow(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1], nodata_dp, L1_kSlowFlow(s1 : e1, 1), mask1, &
             "slow interflow recession coefficient at level 1")
 
     call unpack_field_and_write(nc, "L1_kBaseFlow", &
-            [rows1, cols1, lcscenes], nodata_dp, L1_kBaseFlow(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            ! [rows1, cols1, lcscenes], nodata_dp, L1_kBaseFlow(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1], nodata_dp, L1_kBaseFlow(s1 : e1, 1), mask1, &
             "baseflow recession coefficient at level 1")
 
     call unpack_field_and_write(nc, "L1_kPerco", &
-            [rows1, cols1, lcscenes], nodata_dp, L1_kPerco(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            ! [rows1, cols1, lcscenes], nodata_dp, L1_kPerco(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1], nodata_dp, L1_kPerco(s1 : e1, 1), mask1, &
             "percolation coefficient at level 1")
 
     call unpack_field_and_write_soil(nc, "L1_soilMoistFC", &
@@ -1239,7 +1243,8 @@ CONTAINS
             "Threshold temperature for snow/rain at level 1")
 
     call unpack_field_and_write(nc, "L1_unsatThresh", &
-            [rows1, cols1, lcscenes], nodata_dp, L1_unsatThresh(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            ! [rows1, cols1, lcscenes], nodata_dp, L1_unsatThresh(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1], nodata_dp, L1_unsatThresh(s1 : e1, 1), mask1, &
             "Threshold water depth controlling fast interflow at level 1")
 
     call unpack_field_and_write(nc, "L1_sealedThresh", &
@@ -1251,9 +1256,9 @@ CONTAINS
             L1_wiltingPoint(s1 : e1, :, 1:iDomainNLandCoverPeriods), mask1, &
             "Permanent wilting point at level 1")
 
-    call unpack_field_and_write(nc, "L1_latitude", &
-            [rows1, cols1], nodata_dp, L1_latitude(s1 : e1), mask1, &
-            "Latitude at level 1")
+    !call unpack_field_and_write(nc, "L1_latitude", &
+    !        [rows1, cols1], nodata_dp, L1_latitude(s1 : e1), mask1, &
+    !        "Latitude at level 1")
 
     select case (processMatrix(5, 1))
     case(-1 : 0) ! PET is input
