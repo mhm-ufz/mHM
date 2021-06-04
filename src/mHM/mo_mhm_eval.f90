@@ -413,6 +413,7 @@ CONTAINS
         !  S    STATE VARIABLES L1
         !  X    FLUXES (L1, L11 levels)
         ! --------------------------------------------------------------------------
+        print*, 's1_param, e1_param, domainDateTime%yId', s1_param, e1_param, domainDateTime%yId
         call mhm(read_restart, & ! IN C
                 tt, domainDateTime%newTime - 0.5_dp, processMatrix, &
                 soilHorizonBoundaries(2:size(soilHorizonBoundaries)) * 1000_dp, & ! IN C
@@ -444,7 +445,9 @@ CONTAINS
                 L1_melt(s1 : e1), L1_percol(s1 : e1), L1_preEffect(s1 : e1), L1_rain(s1 : e1), & ! INOUT X
                 L1_runoffSeal(s1 : e1), L1_slowRunoff(s1 : e1), L1_snow(s1 : e1), & ! INOUT X
                 L1_Throughfall(s1 : e1), L1_total_runoff(s1 : e1), & ! INOUT X
-                L1_alpha(s1_param : e1_param, domainDateTime%yId), L1_degDayInc(s1_param : e1_param, domainDateTime%yId), &
+                ! TODO: MPR comment more distributed parameters
+                ! L1_alpha(s1_param : e1_param, domainDateTime%yId), L1_degDayInc(s1_param : e1_param, domainDateTime%yId), &
+                L1_alpha(s1_param : e1_param, 1), L1_degDayInc(s1_param : e1_param, domainDateTime%yId), &
                 L1_degDayMax(s1_param : e1_param, domainDateTime%yId), & ! INOUT E1
                 L1_degDayNoPre(s1_param : e1_param, domainDateTime%yId), L1_degDay(s1 : e1), & ! INOUT E1
                 L1_fAsp(s1_param : e1_param), & ! INOUT E1
@@ -454,12 +457,15 @@ CONTAINS
                 L1_aeroResist(s1_param : e1_param, domainDateTime%iLAI, domainDateTime%yId), & ! INOUT E1
                 L1_surfResist(s1_param : e1_param, domainDateTime%iLAI), L1_fRoots(s1_param : e1_param, :, domainDateTime%yId), & ! INOUT E1
                 L1_maxInter(s1_param : e1_param, domainDateTime%iLAI), L1_karstLoss(s1_param : e1_param), & ! INOUT E1
-                L1_kFastFlow(s1_param : e1_param, domainDateTime%yId), L1_kSlowFlow(s1_param : e1_param, domainDateTime%yId), & ! INOUT E1
-                L1_kBaseFlow(s1_param : e1_param, domainDateTime%yId), L1_kPerco(s1_param : e1_param, domainDateTime%yId), & ! INOUT E1
+                ! L1_kFastFlow(s1_param : e1_param, domainDateTime%yId), L1_kSlowFlow(s1_param : e1_param, domainDateTime%yId), & ! INOUT E1
+                L1_kFastFlow(s1_param : e1_param, domainDateTime%yId), L1_kSlowFlow(s1_param : e1_param, 1), & ! INOUT E1
+                ! L1_kBaseFlow(s1_param : e1_param, domainDateTime%yId), L1_kPerco(s1_param : e1_param, domainDateTime%yId), & ! INOUT E1
+                L1_kBaseFlow(s1_param : e1_param, 1), L1_kPerco(s1_param : e1_param, 1), & ! INOUT E1
                 L1_soilMoistFC(s1_param : e1_param, :, domainDateTime%yId), & ! INOUT E1
                 L1_soilMoistSat(s1_param : e1_param, :, domainDateTime%yId), & ! INOUT E1
                 L1_soilMoistExp(s1_param : e1_param, :, domainDateTime%yId), L1_jarvis_thresh_c1(s1_param : e1_param), & ! INOUT E1
-                L1_tempThresh(s1_param : e1_param, domainDateTime%yId), L1_unsatThresh(s1_param : e1_param, domainDateTime%yId), & ! INOUT E1
+                ! L1_tempThresh(s1_param : e1_param, domainDateTime%yId), L1_unsatThresh(s1_param : e1_param, domainDateTime%yId), & ! INOUT E1
+                L1_tempThresh(s1_param : e1_param, domainDateTime%yId), L1_unsatThresh(s1_param : e1_param, 1), & ! INOUT E1
                 L1_sealedThresh(s1_param : e1_param), & ! INOUT E1
                 L1_wiltingPoint(s1_param : e1_param, :, domainDateTime%yId)) ! INOUT E1
 
