@@ -129,9 +129,10 @@ MODULE mo_common_datetime_type
     this%tIndex_out = 1 ! tt if write out of warming period
   end subroutine datetimeinfo_init
 
-  subroutine datetimeinfo_increment(this)
+  subroutine datetimeinfo_increment(this, iDomain)
     use mo_julian, only : caldat, julday
     class(datetimeinfo), intent(inout) :: this
+    integer(i4),     intent(in)    :: iDomain
 
     ! prepare the date and time information for next iteration step...
     ! set the current year as previous

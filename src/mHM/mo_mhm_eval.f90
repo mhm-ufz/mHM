@@ -648,7 +648,7 @@ CONTAINS
         ! output only for evaluation period
         domainDateTime%tIndex_out = (tt - warmingDays(iDomain) * nTstepDay) ! tt if write out of warming period
 
-        call domainDateTime%increment()
+        call domainDateTime%increment(iDomain)
 
         if (.not. optimize) then
           if (any(outputFlxState_mrm)) then

@@ -18,7 +18,7 @@ MODULE mo_common_read_config
 
   PRIVATE
 
-  PUBLIC :: common_read_config, set_land_cover_scenes_id, common_check_resolution, check_optimization_settings
+  PUBLIC :: common_read_config, common_check_resolution, check_optimization_settings
   ! ------------------------------------------------------------------
 
 CONTAINS
