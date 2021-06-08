@@ -649,7 +649,7 @@ CONTAINS
 
         call domainDateTime%increment()
 
-        if (.not. optimize) then
+        if ( (.not. optimize ) .AND. (processMatrix(8, 1) .NE. 0)  ) then
           if (any(outputFlxState_mrm)) then
             call mrm_write_output_fluxes( &
               iDomain, & ! Domain id
