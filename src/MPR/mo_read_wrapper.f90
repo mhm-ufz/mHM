@@ -67,7 +67,7 @@ CONTAINS
     use mo_file, only : varNameLAIclass, varNameSlope, varNameAspect, varNameSoilClass, varNameGeoClass
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
-    use mo_common_variables, only : Grid, dirCommonFiles, dirMorpho, &
+    use mo_common_variables, only : Grid, dirCommonFiles, dirMorpho, L0_elev, L0_LCover, &
                                     global_parameters, level0, domainMeta, period, processMatrix
     use mo_message, only : message
     use mo_mpr_file, only : file_geolut, file_hydrogeoclass, &
@@ -76,7 +76,7 @@ CONTAINS
     use mo_mpr_global_variables, only : GeoUnitKar, &
                                         GeoUnitList, L0_asp, L0_geoUnit, L0_gridded_LAI, L0_slope, L0_soilId, LAILUT, &
                                         LAIUnitList, iFlag_soilDB, nGeoUnits, nLAIclass, soilDB
-    use mo_global_variables, only: LAIBoundaries, nLAIs, nSoilHorizons
+    use mo_global_variables, only: nSoilHorizons, soilHorizonBoundaries
     use mo_common_datetime_type, only: timeStep_LAI_input
     use mo_prepare_gridded_lai, only : prepare_gridded_daily_LAI_data, prepare_gridded_mean_monthly_LAI_data
     use mo_read_latlon, only : read_latlon
@@ -87,6 +87,7 @@ CONTAINS
                          timer_stop
     use mo_netcdf, only: NcDataset, NcVariable
     use mo_read_nc, only: read_const_nc
+    use mo_grid, only : set_domain_indices
 
     implicit none
 
@@ -121,14 +122,14 @@ CONTAINS
     type(NcDataset)                        :: nc           ! netcdf file
     type(NcVariable)                       :: ncVar          ! variables for data form netcdf
 
+    integer(i4) :: nLAIs_temp, nLandCoverPeriods_temp
+    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp, LAIBoundaries_temp
+    integer(i4), dimension(:), allocatable :: landCoverPeriodSelect
+
 
     call message('  Reading data ...')
     itimer = 1
     call timer_start(itimer)
-
-    call message('    Reading dem and lcover ...')
-    call read_dem()
-    call read_lcover()
 
     ! ************************************************
     ! READ LOOKUP TABLES
@@ -152,6 +153,9 @@ CONTAINS
       call read_lai_lut(trim(fName), ulailut, nLAIclass, LAIUnitList, LAILUT)
     end if
 
+    ! allocate necessary variables at Level0
+    allocate(level0(domainMeta%nDomains))
+
     domains: do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
 
@@ -172,6 +176,13 @@ CONTAINS
 
       itimer = 2
       call timer_start(itimer)
+      call read_dem(iDomain, level0_iDomain, data_dp_2d)
+      ! put data in variable
+      call append(L0_elev, pack(data_dp_2d, level0_iDomain%mask))
+
+      call read_lcover(iDomain, data_i4_2d, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)
+      call append(L0_LCover, data_i4_2d)
+      deallocate(data_i4_2d)
 
       ! read slope and aspect - datatype real
       call message('      Reading slope ...')
@@ -275,10 +286,10 @@ CONTAINS
 
       case(0) ! long term mean monthly values per class with LUT
         ! only set if not yet allocated (e.g. domain 1)
-        if (.not. allocated(LAIBoundaries)) then
-          nLAIs = nint(YearMonths, i4)
-          allocate(LAIBoundaries(nLAIs+1))
-          LAIBoundaries = [(iMon, iMon=1, nLAIs+1)]
+        if (.not. allocated(LAIBoundaries_temp)) then
+          nLAIs_temp = nint(YearMonths, i4)
+          allocate(LAIBoundaries_temp(nLAIs_temp+1))
+          LAIBoundaries_temp = [(iMon, iMon=1, nLAIs_temp+1)]
         end if
 
         fName = trim(dirMorpho(iDomain)) // trim(varNameLAIclass) // '.nc'
@@ -303,8 +314,8 @@ CONTAINS
 
         call check_consistency_lut_map(dummy_i4, LAIUnitList, file_laiclass)
 
-        allocate(data_dp_2d(count(level0_iDomain%mask), nLAIs))
-        do iMon = 1, nLAIs
+        allocate(data_dp_2d(count(level0_iDomain%mask), nLAIs_temp))
+        do iMon = 1, nLAIs_temp
           ! determine LAIs per month
           do ll = 1, size(LAILUT, dim = 1)
             data_dp_2d(:, iMon) = merge(LAILUT(ll, iMon), data_dp_2d(:, iMon), dummy_i4(:) .EQ. LAIUnitList(ll))
@@ -325,10 +336,17 @@ CONTAINS
       call message('      Reading latitude/logitude ...')
       call read_latlon(iDomain, "lon_l0", "lat_l0", "level0", level0_iDomain)
 
+      call check_dimension_consistency(iDomain, nSoilHorizons, soilHorizonBoundaries, &
+            nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp, &
+              landCoverPeriodSelect, .true.)
+
       call timer_stop(itimer)
       call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
     end do domains
+
+    call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
+
     itimer = 1
     call timer_stop(itimer)
     call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')

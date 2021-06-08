@@ -55,7 +55,7 @@ contains
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
-    use mo_common_variables, only : L0_LCover, level0, domainMeta, processMatrix
+    use mo_common_variables, only : L0_elev, L0_LCover, level0, domainMeta, processMatrix
     use mo_grid, only: Grid
     use mo_message, only : message
     use mo_mrm_file, only : file_facc, file_fdir, file_gaugeloc
@@ -86,27 +86,10 @@ contains
     integer(i4)                            :: nodata_value ! data nodata value
 
 
-    ! ************************************************
-    ! READ SPATIAL DATA FOR EACH DOMAIN
-    ! ************************************************
-    ! TODO: MPR this needs to be reactivated
-    ! call read_dem()
-
-    if (do_readlcover .and. processMatrix(8, 1) .eq. 1) then
-      call read_lcover()
-    else if (do_readlcover .and. ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3))) then
-      do iDomain = 1, domainMeta%nDomains
-        domainID = domainMeta%indices(iDomain)
-        level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
-        allocate(data_i4_2d(level0_iDomain%nCells, 1_i4))
-        data_i4_2d = nodata_i4
-        call append(L0_LCover, data_i4_2d)
-        ! free memory
-        deallocate(data_i4_2d)
-      end do
-    end if
-
     do iDomain = 1, domainMeta%nDomains
+      ! ************************************************
+      ! READ SPATIAL DATA FOR EACH DOMAIN
+      ! ************************************************
       domainID = domainMeta%indices(iDomain)
 
       level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
@@ -122,6 +105,23 @@ contains
       end if
       !
       call message('      Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
+
+      ! TODO: MPR this needs to be reactivated
+      !  call read_dem(iDomain, level0_iDomain, data_dp_2d)
+      ! ! put data in variable
+      ! call append(L0_elev, pack(data_dp_2d, level0_iDomain%mask))
+
+      if (do_readlcover) then
+        if (processMatrix(8, 1) .eq. 1) then
+          call read_lcover(iDomain, data_i4_2d)
+        else if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
+          allocate(data_i4_2d(level0_iDomain%nCells, 1_i4))
+          data_i4_2d = nodata_i4
+        end if
+        call append(L0_LCover, data_i4_2d)
+        ! free memory
+        deallocate(data_i4_2d)
+      end if
 
       ! read fAcc, fDir, gaugeLoc
       do iVar = 1, 3
