@@ -344,6 +344,7 @@ def compare_xarrays(ds_new, ds_ref, match=None, ignore=None):
             continue
         # rename the current var_name with the aid of the match-dictionary
         var_name = match.get(var_name, var_name)
+        print('var_name', var_name)
         if var_name in ds_new.data_vars:
             if not ds_new[var_name].equals(ds_ref[var_name]):
                 diff_n += 1

@@ -1139,7 +1139,7 @@ CONTAINS
                                         L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, &
                                         L1_kSlowFlow, L1_karstLoss, L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, &
                                         L1_sealedThresh, L1_soilMoistExp, L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, &
-                                        L1_tempThresh, L1_unsatThresh, L1_wiltingPoint
+                                        L1_tempThresh, L1_unsatThresh, L1_wiltingPoint, nLAIs, nSoilHorizons
     use mo_netcdf, only : NcDataset, NcDimension
 
     implicit none
@@ -1184,11 +1184,11 @@ CONTAINS
             "Karstic percolation loss at level 1")
 
     call unpack_field_and_write_soil(nc, "L1_fRoots", &
-            [rows1, cols1, soil1, lcscenes], nodata_dp, L1_fRoots(s1 : e1, :, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1, soil1, lcscenes], nodata_dp, L1_fRoots(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
             "Fraction of roots in soil horizons at level 1")
 
     call unpack_field_and_write(nc, "L1_maxInter", &
-            [rows1, cols1, lais], nodata_dp, L1_maxInter(s1 : e1, :), mask1, &
+            [rows1, cols1, lais], nodata_dp, L1_maxInter(s1 : e1, 1:nLAIs), mask1, &
             "Maximum interception at level 1")
 
     call unpack_field_and_write(nc, "L1_kFastFlow", &
@@ -1212,17 +1212,17 @@ CONTAINS
 
     call unpack_field_and_write_soil(nc, "L1_soilMoistFC", &
             [rows1, cols1, soil1, lcscenes], nodata_dp, &
-            L1_soilMoistFC(s1 : e1, :, 1:iDomainNLandCoverPeriods), mask1, &
+            L1_soilMoistFC(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
             "SM below which actual ET is reduced linearly till PWP at level 1 for processCase(3)=1")
 
     call unpack_field_and_write_soil(nc, "L1_soilMoistSat", &
             [rows1, cols1, soil1, lcscenes], nodata_dp, &
-            L1_soilMoistSat(s1 : e1, :, 1:iDomainNLandCoverPeriods), mask1, &
+            L1_soilMoistSat(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
             "Saturation soil moisture for each horizon [mm] at level 1")
 
     call unpack_field_and_write_soil(nc, "L1_soilMoistExp", &
             [rows1, cols1, soil1, lcscenes], nodata_dp, &
-            L1_soilMoistExp(s1 : e1, :, 1:iDomainNLandCoverPeriods), mask1, &
+            L1_soilMoistExp(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
             "Exponential parameter to how non-linear is the soil water retention at level 1")
 
     if (processMatrix(3, 1) == 2 .or. processMatrix(3, 1) == 3) then
@@ -1234,7 +1234,7 @@ CONTAINS
     if (processMatrix(5, 1) == -1) then
       call unpack_field_and_write(nc, "L1_petLAIcorFactor", &
               [rows1, cols1, lais, lcscenes], nodata_dp, &
-              L1_petLAIcorFactor(s1 : e1, :, 1:iDomainNLandCoverPeriods), mask1, &
+              L1_petLAIcorFactor(s1 : e1, 1:nLAIs, 1:iDomainNLandCoverPeriods), mask1, &
               "PET correction factor based on LAI")
     end if
 
@@ -1253,7 +1253,7 @@ CONTAINS
 
     call unpack_field_and_write_soil(nc, "L1_wiltingPoint", &
             [rows1, cols1, soil1, lcscenes], nodata_dp, &
-            L1_wiltingPoint(s1 : e1, :, 1:iDomainNLandCoverPeriods), mask1, &
+            L1_wiltingPoint(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
             "Permanent wilting point at level 1")
 
     !call unpack_field_and_write(nc, "L1_latitude", &
@@ -1277,17 +1277,17 @@ CONTAINS
 
     case(2) ! Priestley-Taylor
       call unpack_field_and_write(nc, "L1_PrieTayAlpha", &
-              [rows1, cols1, lais], nodata_dp, L1_PrieTayAlpha(s1 : e1, :), mask1, &
+              [rows1, cols1, lais], nodata_dp, L1_PrieTayAlpha(s1 : e1, 1:nLAIs), mask1, &
               "Priestley Taylor coeffiecient (alpha)")
 
     case(3) ! Penman-Monteith
       call unpack_field_and_write(nc, "L1_aeroResist", &
               [rows1, cols1, lais, lcscenes], nodata_dp, &
-              L1_aeroResist(s1 : e1, :, 1:iDomainNLandCoverPeriods), mask1, &
+              L1_aeroResist(s1 : e1, 1:nLAIs, 1:iDomainNLandCoverPeriods), mask1, &
               "aerodynamical resitance")
 
       call unpack_field_and_write(nc, "L1_surfResist", &
-              [rows1, cols1, lais], nodata_dp, L1_surfResist(s1 : e1, :), mask1, &
+              [rows1, cols1, lais], nodata_dp, L1_surfResist(s1 : e1, 1:nLAIs), mask1, &
               "bulk surface resitance")
 
     end select

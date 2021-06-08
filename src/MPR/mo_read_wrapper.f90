@@ -75,8 +75,8 @@ CONTAINS
                             ugeolut, ulailut
     use mo_mpr_global_variables, only : GeoUnitKar, &
                                         GeoUnitList, L0_asp, L0_geoUnit, L0_gridded_LAI, L0_slope, L0_soilId, LAILUT, &
-                                        LAIUnitList, iFlag_soilDB, nGeoUnits, nLAI, nLAIclass, nSoilHorizons_mHM, soilDB, &
-                                        LAIBoundaries
+                                        LAIUnitList, iFlag_soilDB, nGeoUnits, nLAIclass, soilDB
+    use mo_global_variables, only: LAIBoundaries, nLAIs, nSoilHorizons
     use mo_common_datetime_type, only: timeStep_LAI_input
     use mo_prepare_gridded_lai, only : prepare_gridded_daily_LAI_data, prepare_gridded_mean_monthly_LAI_data
     use mo_read_latlon, only : read_latlon
@@ -210,7 +210,7 @@ CONTAINS
       call message('      Reading soil ids ...')
 
       nH = 1 !> by default; when iFlag_soilDB = 0
-      if(iFlag_soilDB .eq. 1) nH = nSoilHorizons_mHM
+      if(iFlag_soilDB .eq. 1) nH = nSoilHorizons
       ! modified way to read multiple horizons specific soil class
       do iHorizon = 1, nH
         if(iFlag_soilDB .eq. 0) then
@@ -276,9 +276,9 @@ CONTAINS
       case(0) ! long term mean monthly values per class with LUT
         ! only set if not yet allocated (e.g. domain 1)
         if (.not. allocated(LAIBoundaries)) then
-          nLAI = nint(YearMonths, i4)
-          allocate(LAIBoundaries(nLAI+1))
-          LAIBoundaries = [(iMon, iMon=1, nLAI+1)]
+          nLAIs = nint(YearMonths, i4)
+          allocate(LAIBoundaries(nLAIs+1))
+          LAIBoundaries = [(iMon, iMon=1, nLAIs+1)]
         end if
 
         fName = trim(dirMorpho(iDomain)) // trim(varNameLAIclass) // '.nc'
@@ -303,8 +303,8 @@ CONTAINS
 
         call check_consistency_lut_map(dummy_i4, LAIUnitList, file_laiclass)
 
-        allocate(data_dp_2d(count(level0_iDomain%mask), nLAI))
-        do iMon = 1, nLAI
+        allocate(data_dp_2d(count(level0_iDomain%mask), nLAIs))
+        do iMon = 1, nLAIs
           ! determine LAIs per month
           do ll = 1, size(LAILUT, dim = 1)
             data_dp_2d(:, iMon) = merge(LAILUT(ll, iMon), data_dp_2d(:, iMon), dummy_i4(:) .EQ. LAIUnitList(ll))
