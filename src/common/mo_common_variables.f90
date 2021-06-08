@@ -198,9 +198,13 @@ module mo_common_variables
   !                                                               ! Matrix of global parameters (former: gamma)
   !                                                               !   col1: min,  col2: max, col3: initial,
   !                                                               !   col4: flag, col5: scaling
-  character(256), dimension(:), allocatable, public :: global_parameters_name
+  character(64), dimension(:), allocatable, public :: global_parameters_name
   !                                                               ! Matrix of global parameters (former: gamma)
   !                                                               !   col1: names
+  real(dp), dimension(:), allocatable, public:: dummy_global_parameters
+  !                                                               ! Vector of global dummy parameter default values
+  character(64), dimension(:), allocatable, public :: dummy_global_parameters_name
+  !                                                               ! Vector of global dummy parameter names
   ! -------------------------------------------------------------------
   ! ALMA convention
   ! -------------------------------------------------------------------

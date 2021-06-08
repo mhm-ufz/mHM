@@ -575,7 +575,7 @@ contains
     real(dp), intent(out) :: lowerBound  !< lower bound of coordinate variable
     integer(i4), intent(out) :: n  !< number of values in coordinate variable
     real(dp), intent(out) :: cellsize  !< stepsize of coordinate values
-    
+
     type(NcVariable) :: ncVar
     integer(i4), dimension(:), allocatable :: varShape
     real(dp), dimension(:), allocatable :: tempValues

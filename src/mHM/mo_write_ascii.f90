@@ -563,7 +563,7 @@ CONTAINS
     !checking whether the directory exists where the file shall be created or opened
     call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
     open(uopti_nml, file = fName, status = 'unknown', action = 'write', iostat = err)
-    if(err .ne. 0) then
+    if(err /= 0) then
       call message ('  IOError while openening ', trim(fName))
       call message ('  Error-Code ', num2str(err))
       stop
@@ -571,77 +571,40 @@ CONTAINS
 
     write(uopti_nml, *) '!global_parameters'
     write(uopti_nml, '( A47,T50,3(A20,2x),2(A8,1x) )') "!PARAMETER", "lower_bound", "upper_bound", "value", "FLAG", "SCALING"
+    write(uopti_nml, *) '&mhm_parameters'
+
+    iPar_start = 1
+    do iProc = 1, nProcesses
+      if (iProc /= 8_i4) then
+      write(uopti_nml, *) '! ', trim(adjustl(process_descr(iProc)))
+        do iPar = iPar_Start, processMatrix(iProc, 3)
+
+          if (maskpara(iPar)) then
+            flag = 1
+          else
+            flag = 0
+        end if
+
+        write(uopti_nml, '( A47," = ",T50,3(f20.12,", "),I8,",       1" )') &
+                trim(adjustl(parameters_name(iPar))), &
+                parameters(iPar, 1), &
+                parameters(iPar, 2), &
+                parameters(iPar, 3), &
+                flag
+        end do
+        end if
+      iPar_Start = processMatrix(iProc, 3) + 1
+    end do ! loop over processes
+
+    write(uopti_nml, *) '/'
+    write(uopti_nml, *) ' '
+    write(uopti_nml, *) '&mrm_parameters'
 
     iPar_start = 1
     do iProc = 1, nProcesses
 
-      write(uopti_nml, *) '! ', trim(adjustl(process_descr(iProc)))
-
-      select case (iProc)
-      case(1)
-        if (processMatrix(iProc, 1) .eq. 1) then
-          write(uopti_nml, *) '&interception1'
-        end if
-      case(2)
-        if (processMatrix(iProc, 1) .eq. 1) then
-          write(uopti_nml, *) '&snow1'
-        end if
-      case(3)
-        select case (processMatrix(iProc, 1))
-        case(1)
-          write(uopti_nml, *) '&soilmoisture1'
-        case(2)
-          write(uopti_nml, *) '&soilmoisture2'
-        case(3)
-          write(uopti_nml, *) '&soilmoisture3'
-        case(4)
-          write(uopti_nml, *) '&soilmoisture4'
-        end select
-      case(4)
-        if (processMatrix(iProc, 1) .eq. 1) then
-          write(uopti_nml, *) '&directRunoff1'
-        end if
-      case(5)
-        select case (processMatrix(iProc, 1))
-        case(-1)
-          write(uopti_nml, *) '&PETminus1'
-        case(0)
-          write(uopti_nml, *) '&PET0'
-        case(1)
-          write(uopti_nml, *) '&PET1'
-        case(2)
-          write(uopti_nml, *) '&PET2'
-        case(3)
-          write(uopti_nml, *) '&PET3'
-        end select
-      case(6)
-        if (processMatrix(iProc, 1) .eq. 1) then
-          write(uopti_nml, *) '&interflow1'
-        end if
-      case(7)
-        if (processMatrix(iProc, 1) .eq. 1) then
-          write(uopti_nml, *) '&percolation1'
-        end if
-      case(8)
-        if (processMatrix(iProc, 1) .eq. 1) then
-          write(uopti_nml, *) '&routing1'
-        end if
-        if (processMatrix(iProc, 1) .eq. 2) then
-          write(uopti_nml, *) '&routing2'
-        end if
-        if (processMatrix(iProc, 1) .eq. 3) then
-          write(uopti_nml, *) '&routing3'
-        end if
-      case(9)
-        if (processMatrix(iProc, 1) .eq. 1) then
-          write(uopti_nml, *) '&geoparameter'
-        end if
-      case(10)
-        if (processMatrix(iProc, 1) .ge. 1) then
-          write(uopti_nml, *) '&neutrons1'
-        end if
-      end select
-
+      if (iProc == 8_i4) then
+        write(uopti_nml, *) '! ', trim(adjustl(process_descr(iProc)))
       do iPar = iPar_Start, processMatrix(iProc, 3)
 
         if (maskpara(iPar)) then
@@ -656,14 +619,14 @@ CONTAINS
                 parameters(iPar, 2), &
                 parameters(iPar, 3), &
                 flag
-      end do
-
+        end do
+      end if
       iPar_Start = processMatrix(iProc, 3) + 1
 
-      write(uopti_nml, *) '/'
-      write(uopti_nml, *) ' '
-
     end do ! loop over processes
+    write(uopti_nml, *) '/'
+    write(uopti_nml, *) ' '
+
 
     ! close file
     close(uopti_nml)
