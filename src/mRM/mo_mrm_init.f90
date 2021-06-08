@@ -173,6 +173,9 @@ end subroutine mrm_configuration
                 level11(iDomain), l0_l11_remap(iDomain))
         call init_lowres_level(level1(iDomain), resolutionRouting(iDomain), &
                 level11(iDomain), l1_l11_remap(iDomain))
+        ! read lat lon coordinates for level 1
+        call read_latlon(iDomain, "lon", "lat", "level11", level11(iDomain))
+
         call L11_L1_mapping(iDomain)
 
       end if

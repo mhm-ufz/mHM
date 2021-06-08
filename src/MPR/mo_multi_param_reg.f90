@@ -130,8 +130,7 @@ contains
     use mo_common_variables, only : global_parameters, processMatrix
     use mo_message, only : message
     use mo_mpr_SMhorizons, only : mpr_SMhorizons
-    use mo_mpr_global_variables, only : HorizonDepth_mHM, fracSealed_CityArea, iFlag_soilDB, nSoilHorizons_mHM, &
-                                        soilDB
+    use mo_mpr_global_variables, only : fracSealed_CityArea, iFlag_soilDB, soilDB
     use mo_mpr_pet, only : bulksurface_resistance, pet_correctbyASP, pet_correctbyLAI, priestley_taylor_alpha
     use mo_mpr_runoff, only : mpr_runoff
     use mo_mpr_soilmoist, only : mpr_sm
@@ -142,7 +141,8 @@ contains
                                     L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
                                     L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
                                     L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                    L1_wiltingPoint, are_parameter_initialized, L1_latitude
+                                    L1_wiltingPoint, are_parameter_initialized, L1_latitude, nSoilHorizons, &
+                                    soilHorizonBoundaries
     use mo_append, only: append
 
     
@@ -513,7 +513,7 @@ contains
               thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
 
       call mpr_SMhorizons(param(iStart2 : iEnd2), processMatrix, &
-              iFlag_soilDB, nSoilHorizons_mHM, HorizonDepth_mHM, &
+              iFlag_soilDB, nSoilHorizons, soilHorizonBoundaries, &
               LCover0(:, iiLC), soilId0, &
               soilDB%nHorizons, soilDB%nTillHorizons, &
               thetaS_till, thetaFC_till, thetaPW_till, &

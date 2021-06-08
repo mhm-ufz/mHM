@@ -145,7 +145,8 @@ CONTAINS
     use mo_common_datetime_type, only : timeStep_LAI_input
     use mo_message, only : message, message_text
     use mo_mpr_global_variables, only : L0_asp, L0_geoUnit, L0_gridded_LAI, &
-                                        L0_slope, L0_soilId, iFlag_soilDB, nSoilHorizons_mHM
+                                        L0_slope, L0_soilId, iFlag_soilDB
+    use mo_global_variables, only : nSoilHorizons
     use mo_string_utils, only : num2str
     use mo_utils, only : eq
 
@@ -186,7 +187,7 @@ CONTAINS
 
       ! soil-Id [-]
       nH = 1 !> by default; when iFlag_soilDB = 0
-      if (iFlag_soilDB .eq. 1) nH = nSoilHorizons_mHM
+      if (iFlag_soilDB .eq. 1) nH = nSoilHorizons
       ! another option to handle multiple soil horizons properties
       do n = 1, nH
         if (L0_soilId(k, n) .eq. nodata_i4) then
@@ -271,8 +272,8 @@ CONTAINS
     use mo_append, only : append
     use mo_common_variables, only : level0
     use mo_grid, only : init_advanced_grid_properties
-    use mo_mpr_global_variables, only : L0_slope, L0_slope_emp, L0_soilId, iFlag_soilDB, nSoilHorizons_mHM, &
-            nSoilTypes, soilDB
+    use mo_global_variables, only : nSoilHorizons
+    use mo_mpr_global_variables, only : L0_slope, L0_slope_emp, L0_soilId, iFlag_soilDB, nSoilTypes, soilDB
     use mo_orderpack, only : sort_index
     use mo_utils, only : eq
 
@@ -352,7 +353,7 @@ CONTAINS
     call append(L0_slope_emp, slope_emp)
 
     nH = 1_i4 !> by default; when iFlag_soilDB = 0
-    if (iFlag_soilDB .eq. 1) nH = nSoilHorizons_mHM
+    if (iFlag_soilDB .eq. 1) nH = nSoilHorizons
     do i = 1, nH
       do k = level0(iDomain)%iStart, level0(iDomain)%iEnd
         j = L0_soilId(k, i)
@@ -406,7 +407,8 @@ CONTAINS
                                         L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
                                         L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
                                         L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                        L1_wiltingPoint, nLAI, nSoilHorizons_mHM, L1_latitude
+                                        L1_wiltingPoint, L1_latitude
+    use mo_global_variables, only: nLAIs, nSoilHorizons
 
     implicit none
 
@@ -418,7 +420,7 @@ CONTAINS
 
 
     ! get maximum extent of one dimension 2 or 3
-    max_extent = max(nSoilHorizons_mHM, nint(YearMonths, i4), nLandCoverPeriods, nLAI)
+    max_extent = max(nSoilHorizons, nint(YearMonths, i4), nLandCoverPeriods, nLAIs)
 
     ! for appending and intialization
     allocate(dummy_3D(nCells1, max_extent, nLandCoverPeriods))
@@ -440,9 +442,9 @@ CONTAINS
     ! Karstic percolation loss
     call append(L1_karstLoss, dummy_3D(:, 1 : 1, 1 : 1))
     ! Fraction of roots in soil horizons
-    call append(L1_fRoots, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLandCoverPeriods))
+    call append(L1_fRoots, dummy_3D(:, 1 : nSoilHorizons, 1 : nLandCoverPeriods))
     ! Maximum interception
-    call append(L1_maxInter, dummy_3D(:, 1 : nLAI, 1 : 1))
+    call append(L1_maxInter, dummy_3D(:, 1 : nLAIs, 1 : 1))
     ! fast interflow recession coefficient
     call append(L1_kfastFlow, dummy_3D(:, 1 : 1, 1 : nLandCoverPeriods))
     ! slow interflow recession coefficient
@@ -452,11 +454,11 @@ CONTAINS
     ! percolation coefficient
     call append(L1_kPerco, dummy_3D(:, 1 : 1, 1 : 1))
     ! Soil moisture below which actual ET is reduced linearly till PWP
-    call append(L1_soilMoistFC, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLandCoverPeriods))
+    call append(L1_soilMoistFC, dummy_3D(:, 1 : nSoilHorizons, 1 : nLandCoverPeriods))
     ! Saturation soil moisture for each horizon [mm]
-    call append(L1_soilMoistSat, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLandCoverPeriods))
+    call append(L1_soilMoistSat, dummy_3D(:, 1 : nSoilHorizons, 1 : nLandCoverPeriods))
     ! Exponential parameter to how non-linear is the soil water retention
-    call append(L1_soilMoistExp, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLandCoverPeriods))
+    call append(L1_soilMoistExp, dummy_3D(:, 1 : nSoilHorizons, 1 : nLandCoverPeriods))
     ! jarvis critical value for normalized soil water content
     call append(L1_jarvis_thresh_c1, dummy_3D(:, 1 : 1, 1 : 1))
     ! Threshold temperature for snow/rain
@@ -466,21 +468,21 @@ CONTAINS
     ! Threshhold water depth for surface runoff in sealed surfaces
     call append(L1_sealedThresh, dummy_3D(:, 1 : 1, 1 : 1))
     ! Permanent wilting point
-    call append(L1_wiltingPoint, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLandCoverPeriods))
+    call append(L1_wiltingPoint, dummy_3D(:, 1 : nSoilHorizons, 1 : nLandCoverPeriods))
     ! latitude
     call append(L1_latitude, dummy_3D(:, 1 : 1, 1 : 1))
     ! PET correction factor due to LAI
-    call append(L1_petLAIcorFactor, dummy_3D(:, 1 : nLAI, 1 : nLandCoverPeriods))
+    call append(L1_petLAIcorFactor, dummy_3D(:, 1 : nLAIs, 1 : nLandCoverPeriods))
     ! PET correction factor due to terrain aspect
     call append(L1_fAsp, dummy_3D(:, 1 : 1, 1 : 1))
     ! PET Hargreaves Samani coefficient
     call append(L1_HarSamCoeff, dummy_3D(:, 1 : 1, 1 : 1))
     ! PET Prietley Taylor coefficient
-    call append(L1_PrieTayAlpha, dummy_3D(:, 1 : nLAI, 1 : 1))
+    call append(L1_PrieTayAlpha, dummy_3D(:, 1 : nLAIs, 1 : 1))
     ! PET aerodynamical resistance
-    call append(L1_aeroResist, dummy_3D(:, 1 : nLAI, 1 : nLandCoverPeriods))
+    call append(L1_aeroResist, dummy_3D(:, 1 : nLAIs, 1 : nLandCoverPeriods))
     ! PET bulk surface resistance
-    call append(L1_surfResist, dummy_3D(:, 1 : nLAI, 1 : 1))
+    call append(L1_surfResist, dummy_3D(:, 1 : nLAIs, 1 : 1))
 
     ! free space
     if (allocated(dummy_3D)) deallocate(dummy_3D)

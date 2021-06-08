@@ -63,8 +63,8 @@ CONTAINS
     use mo_append, only : append
     use mo_common_datetime_type, only : period, timeStep_LAI_input
     use mo_message, only : message
-    use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI, inputFormat_gridded_LAI, &
-            nLAI, LAIBoundaries
+    use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI, inputFormat_gridded_LAI
+    use mo_global_variables, only : nLAIs, LAIBoundaries
     use mo_read_nc, only : read_nc
 
     implicit none
@@ -104,13 +104,13 @@ CONTAINS
     nCells = count(mask)
     ! only set if not yet allocated (e.g. domain 1)
     if (.not. allocated(LAIBoundaries)) then
-      nLAI = size(LAI0_3D, 3)
-      allocate(LAIBoundaries(nLAI+1))
-      LAIBoundaries = [(iLAI, iLAI=1, nLAI+1)]
+      nLAIs = size(LAI0_3D, 3)
+      allocate(LAIBoundaries(nLAIs+1))
+      LAIBoundaries = [(iLAI, iLAI=1, nLAIs+1)]
     end if
-    allocate(LAI0_2D(nCells, nLAI))
+    allocate(LAI0_2D(nCells, nLAIs))
 
-    do iLAI = 1, nLAI
+    do iLAI = 1, nLAIs
       LAI0_2D(:, iLAI) = pack(LAI0_3D(:, :, iLAI), MASK = mask(:, :))
     end do
 
@@ -152,7 +152,8 @@ CONTAINS
 
     use mo_append, only : append
     use mo_message, only : message
-    use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI, nLAI, LAIBoundaries
+    use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI
+    use mo_global_variables, only: nLAIs, LAIBoundaries
     use mo_ncread, only : Get_NcDim, Get_NcVar, Get_NcVarAtt
     use mo_string_utils, only : num2str
     use mo_utils, only : eq
@@ -241,12 +242,12 @@ CONTAINS
     nCells = count(mask)
     ! only set if not yet allocated (e.g. domain 1)
     if (.not. allocated(LAIBoundaries)) then
-      nLAI = size(LAI0_3D, 3)
-      allocate(LAIBoundaries(nLAI+1))
-      LAIBoundaries = [(iLAI, iLAI=1, nLAI+1)]
+      nLAIs = size(LAI0_3D, 3)
+      allocate(LAIBoundaries(nLAIs+1))
+      LAIBoundaries = [(iLAI, iLAI=1, nLAIs+1)]
     end if
-    allocate(LAI0_2D(nCells, nLAI))
-    do iLAI = 1, nLAI
+    allocate(LAI0_2D(nCells, nLAIs))
+    do iLAI = 1, nLAIs
       LAI0_2D(:, iLAI) = pack(LAI0_3D(:, :, iLAI), MASK = mask(:, :))
     end do
 
