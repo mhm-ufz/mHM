@@ -111,7 +111,7 @@ GeoParam(10,:)                     =   1.000,     1000.00,         100.0,     1,
 /
 
 &mrm_parameters
- --------------------------------------------------------------------------------------
+! --------------------------------------------------------------------------------------
 ! routing parameters
 ! only for - &processSelection - processCase(7) == [1] (see mhm.nml for details)
 muskingumTravelTime_constant       =  0.3100,      0.3500,         0.325,     1,       1
