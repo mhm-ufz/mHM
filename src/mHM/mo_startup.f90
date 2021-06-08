@@ -203,18 +203,6 @@ CONTAINS
       neutron_integral_AFast(:) = 0.0_dp
     endif
 
-    ! TODO: MPR this can go
-    ! check if enough geoparameter are defined in mhm_parameter.nml
-    ! this was formerly done after reading of data, but mHM and MPR are now seperate processes
-    if ((processMatrix(9, 2)) .NE.  size(GeoUnitList, 1)) then
-      call message()
-      call message('***ERROR: Mismatch: Number of geological units in ', trim(adjustl(file_hydrogeoclass)), &
-              ' is ', trim(adjustl(num2str(size(GeoUnitList, 1)))))
-      call message('          while it is ', trim(num2str(processMatrix(9, 2))), &
-              ' in ', trim(file_namelist_mhm_param), '!')
-      stop 1
-    end if
-
     c2TSTu = real(timeStep, dp) / 24.0_dp   ! from per timeStep to per day
 
   end subroutine constants_init

@@ -533,9 +533,10 @@ contains
       ! set local to global
       nSoilHorizons = nSoilHorizons_temp
       nLAIs = nLAIs_temp
-      allocate(soilHorizonBoundaries(nSoilHorizons+1))
-      allocate(LAIBoundaries(nLAIs+1))
+      ! TODO: MPR remove if clause here
+      if (.not. allocated(soilHorizonBoundaries)) allocate(soilHorizonBoundaries(nSoilHorizons+1))
       soilHorizonBoundaries = soilHorizonBoundaries_temp
+      allocate(LAIBoundaries(nLAIs+1))
       LAIBoundaries = LAIBoundaries_temp
     else
       ! check if it conforms with global

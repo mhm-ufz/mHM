@@ -184,7 +184,7 @@ end subroutine mrm_configuration
     call set_domain_indices(level11)
     call set_domain_indices(level1)
     ! TODO: MPR this is not there but actually makes sense being there
-    ! call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
+    call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
 
     ! ----------------------------------------------------------
     ! INITIALIZE STATES AND ROUTING PARAMETERS

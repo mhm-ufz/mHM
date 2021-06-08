@@ -256,13 +256,6 @@ CONTAINS
       end do
     end if
 
-    !-------------------------------------------------------------------
-    ! All variables had been allocated to the required
-    ! space before this point (see, mo_startup: initialise) and initialised
-    !-------------------------------------------------------------------
-    ! as default values,
-    ! all cells for all modeled Domains are simultenously initalized ONLY ONCE
-    call variables_default_init()
 
     if (read_restart) then
       do ii = 1, nDomains
@@ -276,6 +269,14 @@ CONTAINS
       end do
     end if
     if (.not. are_parameter_initialized) then
+      !-------------------------------------------------------------------
+      ! All variables had been allocated to the required
+      ! space before this point (see, mo_startup: initialise) and initialised
+      !-------------------------------------------------------------------
+      ! as default values,
+      ! all cells for all modeled Domains are simultenously initalized ONLY ONCE
+      call variables_default_init()
+
       call call_mpr(parameterset, global_parameters_name, level1, .false., opti_domain_indices)
     end if
 
@@ -320,7 +321,7 @@ CONTAINS
         ! read states from restart
         if (read_restart) call mrm_read_restart_states(iDomain, mrmFileRestartIn(iDomain))
         !
-        ! get Domain information at L11 and L110 if routing is activated
+        ! get Domain information at L11 if routing is activated
         s11 = level11(iDomain)%iStart
         e11 = level11(iDomain)%iEnd
         mask11 => level11(iDomain)%mask
@@ -415,7 +416,7 @@ CONTAINS
         ! --------------------------------------------------------------------------
         call mhm(read_restart, & ! IN C
                 tt, domainDateTime%newTime - 0.5_dp, processMatrix, &
-                soilHorizonBoundaries(2:size(soilHorizonBoundaries)) * 1000_dp, & ! IN C
+                soilHorizonBoundaries(2:nSoilHorizons+1_i4) * 1000_dp, & ! IN C
                 nCells, nSoilHorizons, real(nTstepDay, dp), c2TSTu,  & ! IN C
                 neutron_integral_AFast, & ! IN C
                 parameterset, & ! IN

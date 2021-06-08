@@ -170,11 +170,7 @@ CONTAINS
       cols1 = nc%getDimension("ncols1")
 
       ! write the dimension to the file and also save bounds
-      allocate(dummy_1D(nSoilHorizons+1))
-      dummy_1D(1) = 0.0_dp
-      dummy_1D(2:nSoilHorizons+1) = soilHorizonBoundaries(:)
-      soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons, dummy_1D, 2_i4)
-      deallocate(dummy_1D)
+      soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons, soilHorizonBoundaries, 2_i4)
       ! write the dimension to the file
       lais = nc%setCoordinate(trim(LAIVarName), nLAIs, LAIBoundaries, 0_i4)
       ! TODO: MPR change this blocks
