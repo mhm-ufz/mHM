@@ -61,8 +61,7 @@ CONTAINS
                                     opti_function, opti_method, optimize, optimize_restart, &
                                     read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
                                     sce_ngs, sce_npg, sce_nps, seed, &
-                                    warmPer, warmingDays
-    use mo_common_variables, only : LCfilename, domainMeta, processMatrix
+                                    warmPer, warmingDays, LCfilename, domainMeta, processMatrix
     use mo_common_datetime_type, only: LCyearId, simPer, timestep, nTStepDay, period
     use mo_julian, only : caldat, julday
     use mo_message, only : message
@@ -671,7 +670,7 @@ CONTAINS
   end subroutine
 #endif
 
-    subroutine check_optimization_settings
+  subroutine check_optimization_settings
 
     use mo_common_variables, only : dds_r, nIterations, sce_ngs, sce_npg, sce_nps, global_parameters
     use mo_message, only : message
