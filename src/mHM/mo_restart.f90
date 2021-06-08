@@ -170,7 +170,13 @@ CONTAINS
       cols1 = nc%getDimension("ncols1")
 
       ! write the dimension to the file and also save bounds
-      soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons, soilHorizonBoundaries, 2_i4)
+      ! TODO: MPR do simple call
+      ! soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons, soilHorizonBoundaries, 2_i4)
+      allocate(dummy_1D(nSoilHorizons+1))
+      dummy_1D(1) = 0.0_dp
+      dummy_1D(2:nSoilHorizons+1) = soilHorizonBoundaries(:)
+      soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons, dummy_1D, 2_i4)
+      deallocate(dummy_1D)
       ! write the dimension to the file
       lais = nc%setCoordinate(trim(LAIVarName), nLAIs, LAIBoundaries, 0_i4)
       ! TODO: MPR change this blocks
@@ -611,11 +617,13 @@ CONTAINS
 
         ! exponent for the upper reservoir
         var = nc%getVariable("L1_alpha")
-        call var%getData(dummyD3)
-        dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
-        do ii = 1, size(dummyD3, 3)
-          L1_alpha(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
-        end do
+        call var%getData(dummyD2)
+        L1_alpha(s1 : e1, 1) = pack(dummyD2, mask1)
+        ! call var%getData(dummyD3)
+        ! dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        ! do ii = 1, size(dummyD3, 3)
+        !   L1_alpha(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+        ! end do
 
         ! increase of the Degree-day factor per mm of increase in precipitation
         var = nc%getVariable("L1_degDayInc")
@@ -671,27 +679,33 @@ CONTAINS
 
         ! slow interflow recession coefficient
         var = nc%getVariable("L1_kSlowFlow")
-        call var%getData(dummyD3)
-        dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
-        do ii = 1, size(dummyD3, 3)
-          L1_kSlowFlow(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
-        end do
+        call var%getData(dummyD2)
+        L1_kSlowFlow(s1 : e1, 1) = pack(dummyD2, mask1)
+        !call var%getData(dummyD3)
+        !dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        ! do ii = 1, size(dummyD3, 3)
+        !   L1_kSlowFlow(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+        ! end do
 
         ! baseflow recession coefficient
         var = nc%getVariable("L1_kBaseFlow")
-        call var%getData(dummyD3)
-        dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
-        do ii = 1, size(dummyD3, 3)
-          L1_kBaseFlow(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
-        end do
+        call var%getData(dummyD2)
+        L1_kBaseFlow(s1 : e1, 1) = pack(dummyD2, mask1)
+        ! call var%getData(dummyD3)
+        ! dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        ! do ii = 1, size(dummyD3, 3)
+        !   L1_kBaseFlow(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+        ! end do
 
         ! percolation coefficient
         var = nc%getVariable("L1_kPerco")
-        call var%getData(dummyD3)
-        dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
-        do ii = 1, size(dummyD3, 3)
-          L1_kPerco(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
-        end do
+        call var%getData(dummyD2)
+        L1_kPerco(s1 : e1, 1) = pack(dummyD2, mask1)
+        ! call var%getData(dummyD3)
+        ! dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        ! do ii = 1, size(dummyD3, 3)
+        !   L1_kPerco(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+        ! end do
 
         ! Soil moisture below which actual ET is reduced linearly till PWP
         ! for processCase(3) = 1
@@ -735,11 +749,13 @@ CONTAINS
 
         ! Threshold water depth controlling fast interflow
         var = nc%getVariable("L1_unsatThresh")
-        call var%getData(dummyD3)
-        dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
-        do ii = 1, size(dummyD3, 3)
-          L1_unsatThresh(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
-        end do
+        call var%getData(dummyD2)
+        L1_unsatThresh(s1 : e1, 1) = pack(dummyD2, mask1)
+        ! call var%getData(dummyD3)
+        ! dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        ! do ii = 1, size(dummyD3, 3)
+        !   L1_unsatThresh(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+        ! end do
 
         ! Threshold water depth for surface runoff in sealed surfaces
         var = nc%getVariable("L1_sealedThresh")

@@ -534,8 +534,8 @@ contains
       nSoilHorizons = nSoilHorizons_temp
       nLAIs = nLAIs_temp
       ! TODO: MPR remove if clause here
-      if (.not. allocated(soilHorizonBoundaries)) allocate(soilHorizonBoundaries(nSoilHorizons+1))
-      soilHorizonBoundaries = soilHorizonBoundaries_temp
+      if (.not. allocated(soilHorizonBoundaries)) allocate(soilHorizonBoundaries(nSoilHorizons))
+      soilHorizonBoundaries = soilHorizonBoundaries_temp(2:nSoilHorizons+1)
       allocate(LAIBoundaries(nLAIs+1))
       LAIBoundaries = LAIBoundaries_temp
     else
@@ -552,8 +552,11 @@ contains
                 compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nLAIs_temp))), ').')
         stop 1
       end if
-      do k=1, nSoilHorizons+1
-        if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k))) then
+      ! TODO: MPR change iter back
+      ! do k=1, nSoilHorizons+1
+      do k=1, nSoilHorizons
+        ! if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k))) then
+        if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k+1))) then
           call message('The ',compress(trim(num2str(k))),'th soil horizon boundary for basin 1 (', &
                   compress(trim(num2str(soilHorizonBoundaries(k)))), &
                   ') does not conform with basin ', &
@@ -561,7 +564,7 @@ contains
           stop 1
         end if
       end do
-      do k=1, nSoilHorizons+1
+      do k=1, nLAIs+1
         if (ne(LAIBoundaries(k), LAIBoundaries_temp(k))) then
           call message('The ',compress(trim(num2str(k))),'th LAI period boundary for basin 1 (', &
                   compress(trim(num2str(LAIBoundaries(k)))), ') does not conform with basin ', &

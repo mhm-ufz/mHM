@@ -1027,13 +1027,15 @@ CONTAINS
 
     ! TODO: MPR remove allocation here
     nSoilHorizons = nSoilHorizons_mHM
-    allocate(soilHorizonBoundaries(nSoilHorizons + 1_i4))
+    allocate(soilHorizonBoundaries(nSoilHorizons))
+    allocate(HorizonDepth_mHM(nSoilHorizons))
     soilHorizonBoundaries(:) = 0.0_dp
     ! last layer is reset to 0 in MPR in case of iFlag_soilDB is 0
-    soilHorizonBoundaries(2 : nSoilHorizons+1) = soil_Depth(1 : nSoilHorizons)
+    soilHorizonBoundaries(1 : nSoilHorizons) = soil_Depth(1 : nSoilHorizons)
 
     ! counter checks -- soil horizons
     if (nSoilHorizons .GT. maxNoSoilHorizons) then
+      call message()
       call message('***ERROR: Number of soil horizons is resticted to ', trim(num2str(maxNoSoilHorizons)), '!')
       stop
     end if
@@ -1042,13 +1044,14 @@ CONTAINS
     ! as is the default for option-1 where horizon specific information are taken into consideration
     if(iFlag_soilDB .eq. 0) then
       ! classical mhm soil database
-      soilHorizonBoundaries(nSoilHorizons + 1) = 0.0_dp
-      call message()
+      soilHorizonBoundaries(nSoilHorizons) = 0.0_dp
     else if(iFlag_soilDB .ne. 1) then
       call message()
       call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
       stop
     end if
+    ! TODO: MPR remove this duplications
+    HorizonDepth_mHM = soilHorizonBoundaries
     ! some consistency checks for the specification of the tillage depth
     if(iFlag_soilDB .eq. 1) then
       if(count(abs(soilHorizonBoundaries(:) - tillageDepth) .lt. eps_dp)  .eq. 0) then
