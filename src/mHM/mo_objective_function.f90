@@ -88,7 +88,7 @@ CONTAINS
   FUNCTION objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_common_constants, only : nodata_dp
-    use mo_common_mHM_mRM_variables, only : opti_function
+    use mo_common_variables, only : opti_function
     use mo_message, only : message
 
     implicit none
@@ -202,9 +202,8 @@ CONTAINS
   FUNCTION objective_master(parameterset, eval, arg1, arg2, arg3)
 
     use mo_common_constants, only : nodata_dp
-    use mo_common_mHM_mRM_variables, only : opti_function
-    use mo_common_mHM_mRM_MPI_tools, only : distribute_parameterset
-    use mo_common_variables, only : domainMeta
+    use mo_common_mpi_tools, only : distribute_parameterset
+    use mo_common_variables, only : domainMeta, opti_function
     use mo_message, only : message
     use mo_string_utils, only : num2str
     use mpi_f08
@@ -354,9 +353,8 @@ CONTAINS
   subroutine objective_subprocess(eval, arg1, arg2, arg3)
 
     use mo_common_constants, only : nodata_dp
-    use mo_common_mHM_mRM_variables, only : opti_function
-    use mo_common_mHM_mRM_MPI_tools, only : get_parameterset
-    use mo_common_variables, only : domainMeta
+    use mo_common_mpi_tools, only : get_parameterset
+    use mo_common_variables, only : domainMeta, opti_function
     use mo_message, only : message
     use mpi_f08
 
@@ -1397,8 +1395,7 @@ CONTAINS
 
     use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : eps_dp, nodata_dp
-    use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_common_variables, only : domainMeta
+    use mo_common_variables, only : domainMeta, evalPer
     use mo_global_variables, only : L1_twsaObs
     use mo_errormeasures, only : rmse
     use mo_julian, only : caldat
@@ -2240,8 +2237,7 @@ CONTAINS
 
     use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : eps_dp, nodata_dp
-    use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_common_variables, only : domainMeta
+    use mo_common_variables, only : domainMeta, evalPer
     use mo_errormeasures, only : rmse
     use mo_global_variables, only : L1_etObs
     use mo_julian, only : caldat

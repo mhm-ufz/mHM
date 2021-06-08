@@ -62,8 +62,7 @@ CONTAINS
 
   subroutine prepare_meteo_forcings_data(iDomain, domainID, tt)
 
-    use mo_common_mhm_mrm_variables, only : readPer
-    use mo_common_variables, only : domainMeta, processMatrix
+    use mo_common_variables, only : domainMeta, processMatrix, readPer
     use mo_global_variables, only : L1_absvappress, L1_netrad, L1_pet, L1_pet_weights, L1_pre, L1_pre_weights, L1_temp, &
                                     L1_temp_weights, L1_tmax, L1_tmin, L1_windspeed, dirMaxTemperature, &
                                     dirMinTemperature, dirNetRadiation, dirPrecipitation, dirReferenceET, dirTemperature, &
@@ -268,8 +267,7 @@ CONTAINS
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
-    use mo_common_mhm_mrm_variables, only : readPer
-    use mo_common_variables, only : level1
+    use mo_common_variables, only : level1, readPer
     use mo_global_variables, only : level2
     use mo_read_nc, only : read_nc
     use mo_spatial_agg_disagg_forcing, only : spatial_aggregation, spatial_disaggregation
@@ -584,7 +582,7 @@ CONTAINS
   subroutine chunk_config(iDomain, tt, read_flag, readPer)
 
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : period
+    use mo_common_datetime_type, only: period
     use mo_kind, only : i4
 
     implicit none
@@ -647,7 +645,7 @@ CONTAINS
 
   function is_read(iDomain, tt)
 
-    use mo_common_mhm_mrm_variables, only : nTstepDay, simPer, timestep
+    use mo_common_datetime_type, only : nTstepDay, simPer, timestep
     use mo_global_variables, only : timeStep_model_inputs
     use mo_julian, only : caldat
     use mo_kind, only : i4
@@ -758,8 +756,7 @@ CONTAINS
 
   subroutine chunk_size(iDomain, tt, readPer)
 
-    use mo_common_mhm_mrm_variables, only : nTstepDay, simPer
-    use mo_common_variables, only : period
+    use mo_common_datetime_type, only: period, nTstepDay, simPer
     use mo_global_variables, only : timeStep_model_inputs
     use mo_julian, only : caldat, julday
     use mo_kind, only : i4

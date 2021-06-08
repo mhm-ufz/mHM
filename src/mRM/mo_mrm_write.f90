@@ -53,8 +53,9 @@ contains
 
   subroutine mrm_write
 
-    use mo_common_mhm_mrm_variables, only : evalPer, mrm_coupling_mode, nTstepDay, simPer, warmingDays
-    use mo_common_variables, only : mrmFileRestartOut, domainMeta, write_restart
+    use mo_common_variables, only : mrmFileRestartOut, domainMeta, write_restart, evalPer, mrm_coupling_mode, &
+            warmingDays
+    use mo_common_datetime_type, only: nTstepDay, simPer
     use mo_mrm_global_variables, only : domain_mrm, &
                                         gauge, mRM_runoff, nGaugesTotal
     use mo_mrm_restart, only : mrm_write_restart
@@ -157,12 +158,12 @@ contains
 
     use mo_common_constants, only : nodata_dp
     use mo_common_file, only : file_config, uconfig
-    use mo_common_mHM_mRM_variables, only : LCyearId, SimPer, evalPer, mrm_coupling_mode, read_restart, &
-                                            resolutionRouting, timeStep, warmPer
     use mo_common_variables, only : LC_year_end, LC_year_start, LCfilename, &
                                     dirConfigOut, dirLCover, dirMorpho, dirOut, mrmFileRestartOut, global_parameters, &
                                     global_parameters_name, level0, level1, domainMeta, nLCoverScene, processMatrix, &
-                                    resolutionHydrology, write_restart
+                                    resolutionHydrology, write_restart, evalPer, &
+                                    mrm_coupling_mode, read_restart, resolutionRouting, warmPer
+    use mo_common_datetime_type, only: LCyearId, SimPer, timeStep
     use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_mrm_file, only : version
@@ -210,7 +211,7 @@ contains
       write(uconfig, 103) 'No. of cells L1             ', level1(iDomain)%nCells
       write(uconfig, 103) 'No. of cells L11            ', level11(iDomain)%nCells
 
-      !    select case (iFlag_cordinate_sys)
+      !    select case (iFlag_coordinate_sys)
       !    case (0)
       write(uconfig, 301)      'domain  ', domainID, '   Hydrology Resolution [m]      ', resolutionHydrology(iDomain)
       write(uconfig, 301)   'domain  ', domainID, '   Routing Resolution [m]        ', resolutionRouting(iDomain)
@@ -476,8 +477,7 @@ contains
   subroutine write_daily_obs_sim_discharge(Qobs, Qsim)
 
     use mo_common_constants, only : nodata_dp
-    use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_common_variables, only : dirOut, domainMeta
+    use mo_common_variables, only : dirOut, domainMeta, evalPer
     use mo_errormeasures, only : kge, nse
     use mo_julian, only : dec2date
     use mo_message, only : message
@@ -752,7 +752,7 @@ contains
 
   subroutine mrm_write_optifile(best_OF, best_paramSet, param_names)
 
-    use mo_common_mhm_mrm_file, only : file_opti, uopti
+    use mo_common_file, only : file_opti, uopti
     use mo_common_variables, only : dirConfigOut
     use mo_message, only : message
     use mo_string_utils, only : num2str
@@ -831,7 +831,7 @@ contains
 
   subroutine mrm_write_optinamelist(parameters, maskpara, parameters_name)
 
-    use mo_common_mhm_mrm_file, only : file_opti_nml, uopti_nml
+    use mo_common_file, only : file_opti_nml, uopti_nml
     use mo_common_variables, only : dirConfigOut, processMatrix
     use mo_message, only : message
     use mo_string_utils, only : num2str

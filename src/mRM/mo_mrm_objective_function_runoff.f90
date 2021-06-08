@@ -115,7 +115,7 @@ CONTAINS
 
   FUNCTION single_objective_runoff(parameterset, eval, arg1, arg2, arg3)
 
-    use mo_common_mHM_mRM_variables, only : opti_function, opti_method
+    use mo_common_variables, only : opti_function, opti_method
     use mo_message, only : message
 
     implicit none
@@ -232,10 +232,9 @@ CONTAINS
 #ifdef MPI
   FUNCTION single_objective_runoff_master(parameterset, eval, arg1, arg2, arg3)
 
-    use mo_common_mHM_mRM_variables, only : opti_function, opti_method
-    use mo_common_mHM_mRM_MPI_tools, only : distribute_parameterset
+    use mo_common_mpi_tools, only : distribute_parameterset
     use mo_mrm_global_variables, only: nGaugesTotal
-    use mo_common_variables, only : domainMeta
+    use mo_common_variables, only : domainMeta, opti_function, opti_method
     use mo_message, only : message
     use mpi_f08
 
@@ -380,9 +379,8 @@ CONTAINS
 
   subroutine single_objective_runoff_subprocess(eval, arg1, arg2, arg3)
 
-    use mo_common_mHM_mRM_variables, only : opti_function, opti_method
-    use mo_common_mHM_mRM_MPI_tools, only : get_parameterset
-    use mo_common_variables, only : domainMeta
+    use mo_common_mpi_tools, only : get_parameterset
+    use mo_common_variables, only : domainMeta, opti_function, opti_method
     use mo_message, only : message
     use mpi_f08
 
@@ -515,7 +513,7 @@ CONTAINS
 
   SUBROUTINE multi_objective_runoff(parameterset, eval, multi_objectives)
 
-    use mo_common_mHM_mRM_variables, only : opti_function
+    use mo_common_variables, only : opti_function
 
     implicit none
 
@@ -1833,7 +1831,7 @@ CONTAINS
 
   FUNCTION multi_objective_ae_fdc_lsv_nse_djf(parameterset, eval)
 
-    use mo_common_mhm_mrm_variables, only : evalPer
+    use mo_common_variables, only : evalPer
     use mo_errormeasures, only : nse
     use mo_julian, only : dec2date
     use mo_mrm_global_variables, only : gauge, nMeasPerDay
@@ -2474,7 +2472,8 @@ CONTAINS
 
   subroutine extract_runoff(gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
 
-    use mo_common_mhm_mrm_variables, only : evalPer, nTstepDay, warmingDays
+    use mo_common_variables, only : evalPer, warmingDays
+    use mo_common_datetime_type, only: nTstepDay
     use mo_message, only : message
     use mo_mrm_global_variables, only : gauge, nMeasPerDay
     use mo_utils, only : ge

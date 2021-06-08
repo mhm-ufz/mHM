@@ -85,11 +85,13 @@ CONTAINS
   Subroutine write_configfile
 
     use mo_common_file, only : file_config, uconfig
-    use mo_common_mHM_mRM_variables, only : LCyearId, SimPer, evalPer, read_restart, timeStep, warmPer
-    use mo_common_variables, only : LC_year_end, &
-                                    LC_year_start, LCfilename, dirConfigOut, dirLCover, dirMorpho, dirOut, mhmFileRestartOut, &
-                                    global_parameters, global_parameters_name, iFlag_cordinate_sys, level0, level1, &
-                                    domainMeta, nLCoverScene, resolutionHydrology, write_restart
+    use mo_common_variables, only : LC_year_end, evalPer, read_restart, warmPer, &
+                                    LC_year_start, LCfilename, dirConfigOut, dirLCover, dirMorpho, dirOut, &
+                                    global_parameters, global_parameters_name, level0, level1, &
+                                    domainMeta, nLCoverScene, resolutionHydrology, write_restart, processMatrix, &
+                                    resolutionRouting, mhmFileRestartOut
+    use mo_common_datetime_type, only: LCyearId, SimPer, timeStep
+    use mo_grid, only : iFlag_coordinate_sys
     use mo_file, only : version
     use mo_global_variables, only : dirPrecipitation, dirReferenceET, &
                                     dirTemperature
@@ -98,8 +100,6 @@ CONTAINS
     use mo_string_utils, only : num2str
     use mo_os, only : path_isdir
     use mo_common_constants, only : nodata_dp
-    use mo_common_mHM_mRM_variables, only : resolutionRouting
-    use mo_common_variables, only : processMatrix
     use mo_mrm_global_variables, only : InflowGauge, L11_fromN, L11_label, L11_length, L11_netPerm, L11_rOrder, &
                                         L11_slope, L11_toN, L1_L11_ID, dirGauges, gauge, level11, nGaugesTotal, &
                                         nGaugesLocal, nInflowGaugesTotal, L11_nOutlets
@@ -149,7 +149,7 @@ CONTAINS
         end if
       end if
 
-      select case (iFlag_cordinate_sys)
+      select case (iFlag_coordinate_sys)
       case (0)
         write(uconfig, 301)      'Domain  ', domainID, '   Hydrology Resolution [m]      ', resolutionHydrology(iDomain)
         if (domainMeta%doRouting(iDomain)) then
@@ -430,7 +430,7 @@ CONTAINS
 
   subroutine write_optifile(best_OF, best_paramSet, param_names)
 
-    use mo_common_mhm_mrm_file, only : file_opti, uopti
+    use mo_common_file, only : file_opti, uopti
     use mo_common_variables, only : dirConfigOut
     use mo_message, only : message
     use mo_string_utils, only : num2str
@@ -517,7 +517,7 @@ CONTAINS
 
   subroutine write_optinamelist(processMatrix, parameters, maskpara, parameters_name)
 
-    use mo_common_mhm_mrm_file, only : file_opti_nml, uopti_nml
+    use mo_common_file, only : file_opti_nml, uopti_nml
     use mo_common_variables, only : dirConfigOut, nProcesses
     use mo_message, only : message
     use mo_string_utils, only : num2str

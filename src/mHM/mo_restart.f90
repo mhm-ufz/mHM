@@ -358,7 +358,7 @@ CONTAINS
                                         nLAI, nSoilHorizons_mHM
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
-    use mo_common_mHM_mRM_restart, only: check_dimension_consistency
+    use mo_mhm_mpr_interface, only: check_dimension_consistency
 
     implicit none
 

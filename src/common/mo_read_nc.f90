@@ -42,7 +42,7 @@ contains
   subroutine read_nc(folder, nRows, nCols, varName, mask, data, target_period, lower, upper, nctimestep, &
                             fileName, nocheck, maskout)
 
-    use mo_common_variables, only : period
+    use mo_common_datetime_type, only: period
 
     implicit none
 
@@ -439,7 +439,7 @@ contains
   !>       \details Extract time vector in unit julian hours and get supposed time step in hours
   subroutine get_time_vector_and_select(var, fname, inctimestep, time_start, time_cnt, target_period)
 
-    use mo_common_variables, only : period
+    use mo_common_datetime_type, only: period
     use mo_constants, only : DayHours, DaySecs, YearDays
     use mo_julian, only : caldat, dec2date, julday
     use mo_kind, only : i8

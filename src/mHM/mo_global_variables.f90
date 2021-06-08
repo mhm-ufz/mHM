@@ -45,7 +45,7 @@ MODULE mo_global_variables
   USE mo_constants, ONLY : YearMonths
   USE mo_mhm_constants, ONLY : nOutFlxState
   USE mo_optimization_types, ONLY : optidata
-  use mo_common_variables, only : Grid
+  use mo_grid, only: Grid
 
   IMPLICIT NONE
 

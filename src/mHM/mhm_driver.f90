@@ -98,12 +98,9 @@ PROGRAM mhm_driver
           L1_smObs
   USE mo_optimization_types, ONLY : &
           optidata ! type for opti data
-  USE mo_common_mHM_mRM_variables, ONLY : &
-          nTstepDay, &      ! number of timesteps per day (former: NAGG)
-          simPer, &      ! simulation period
-          optimize, opti_function, &                                   ! optimization on/off and optimization method
-          mrm_coupling_mode
   USE mo_common_variables, ONLY : &
+          optimize, opti_function, &                                   ! optimization on/off and optimization method
+          mrm_coupling_mode, &
           write_restart, &      ! restart writing flags
           mhmFileRestartOut, &
           dirConfigOut, &
@@ -115,14 +112,16 @@ PROGRAM mhm_driver
 #endif
           processMatrix, &      ! domain information,  processMatrix
           global_parameters, global_parameters_name      ! mhm parameters (gamma) and their clear names
+  use mo_common_datetime_type, only: &
+        nTstepDay, &      ! number of timesteps per day (former: NAGG)
+        simPer      ! simulation period
   USE mo_kind, ONLY : i4, dp                         ! number precision
   USE mo_message, ONLY : message, message_text          ! For print out
   USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval, ONLY : mhm_eval
   USE mo_read_optional_data, ONLY : readOptidataObs ! read optional observed data
-  USE mo_common_read_config, ONLY : common_read_config                    ! Read main configuration files
-  USE mo_common_mHM_mRM_read_config, ONLY : &
-          common_mHM_mRM_read_config, check_optimization_settings ! Read main configuration files
+  USE mo_common_read_config, ONLY : common_read_config, &       ! Read main configuration files
+                                    check_optimization_settings ! Read main configuration files
   USE mo_mpr_read_config, ONLY : mpr_read_config                    ! Read main configuration files
   USE mo_mhm_read_config, ONLY : mhm_read_config                    ! Read main configuration files
   USE mo_read_wrapper, ONLY : read_data                      ! Read all input data
@@ -260,7 +259,6 @@ PROGRAM mhm_driver
   call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
 #endif
   call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
-  call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
   call mhm_read_config(file_namelist_mhm, unamelist_mhm)
   call check_optimization_settings()
   mrm_coupling_mode = 2_i4

@@ -51,7 +51,7 @@ contains
   subroutine optimization(eval, objective, dirConfigOut, funcBest, maskpara)
 
     use mo_anneal, only : anneal
-    use mo_common_mHM_mRM_variables, only : dds_r, mcmc_error_params, mcmc_opti, nIterations, opti_function, opti_method, &
+    use mo_common_variables, only : dds_r, mcmc_error_params, mcmc_opti, nIterations, opti_function, opti_method, &
                                             optimize_restart, sa_temp, sce_ngs, sce_npg, sce_nps, seed
     use mo_common_variables, only : global_parameters
 #ifdef MPI

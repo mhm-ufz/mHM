@@ -84,7 +84,7 @@
 /
 
 &mainconfig
-    iflag_cordinate_sys = 0
+    iFlag_coordinate_sys = 0
     l0domain(1:3) = 1, 1, 1
     ndomains = 3
     resolution_hydrology(1:3) = 24000, 24000, 24000

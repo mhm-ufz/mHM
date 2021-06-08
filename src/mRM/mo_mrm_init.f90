@@ -28,12 +28,10 @@ MODULE mo_mrm_init
 CONTAINS
 
 subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
-    use mo_common_mHM_mRM_variables, only : mrm_coupling_mode
-    use mo_common_variables, only : processMatrix
+    use mo_common_variables, only : processMatrix, mrm_coupling_mode
     use mo_mrm_read_config, only : mrm_read_config
     use mo_mrm_global_variables, only: riv_temp_pcs
-    use mo_common_read_config, only : common_read_config
-    use mo_common_mHM_mRM_read_config, only : check_optimization_settings, common_mHM_mRM_read_config
+    use mo_common_read_config, only : common_read_config, check_optimization_settings
     use mo_kind, only : i4
     use mo_message, only : message
     implicit none
@@ -46,7 +44,6 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
 
     if (mrm_coupling_mode .eq. 0_i4) then
       call common_read_config(file_namelist, unamelist)
-      call common_mHM_mRM_read_config(file_namelist, unamelist)
       !-----------------------------------------------------------
       ! PRINT STARTUP MESSAGE
       !-----------------------------------------------------------
@@ -113,11 +110,10 @@ end subroutine mrm_configuration
   subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_common_mHM_mRM_variables, only : mrmFileRestartIn, mrm_coupling_mode, mrm_read_river_network, &
-                                            resolutionRouting
     use mo_grid, only : read_grid_info
     use mo_common_variables, only : domainMeta, global_parameters, l0_l1_remap, level0, level1, domainMeta, &
-                                    processMatrix, resolutionHydrology
+                                    processMatrix, resolutionHydrology, mrmFileRestartIn, mrm_coupling_mode, &
+                                    mrm_read_river_network, resolutionRouting
     use mo_grid, only : init_advanced_grid_properties, init_lowres_level, set_domain_indices
     use mo_kind, only : i4
     use mo_message, only : message

@@ -144,9 +144,10 @@ CONTAINS
 
     use mo_common_constants, only : eps_dp
     use mo_common_variables, only : L0_LCover, L0_elev, level0, nLCoverScene
+    use mo_common_datetime_type, only : timeStep_LAI_input
     use mo_message, only : message, message_text
     use mo_mpr_global_variables, only : L0_asp, L0_geoUnit, L0_gridded_LAI, &
-                                        L0_slope, L0_soilId, iFlag_soilDB, nSoilHorizons_mHM, timeStep_LAI_input
+                                        L0_slope, L0_soilId, iFlag_soilDB, nSoilHorizons_mHM
     use mo_string_utils, only : num2str
     use mo_utils, only : eq
 

@@ -76,7 +76,8 @@ CONTAINS
     use mo_mpr_global_variables, only : GeoUnitKar, &
                                         GeoUnitList, L0_asp, L0_geoUnit, L0_gridded_LAI, L0_slope, L0_soilId, LAILUT, &
                                         LAIUnitList, iFlag_soilDB, nGeoUnits, nLAI, nLAIclass, nSoilHorizons_mHM, soilDB, &
-                                        timeStep_LAI_input, LAIBoundaries
+                                        LAIBoundaries
+    use mo_common_datetime_type, only: timeStep_LAI_input
     use mo_prepare_gridded_lai, only : prepare_gridded_daily_LAI_data, prepare_gridded_mean_monthly_LAI_data
     use mo_read_latlon, only : read_latlon
     use mo_read_lut, only : read_geoformation_lut, read_lai_lut

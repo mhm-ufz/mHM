@@ -1,48 +1,26 @@
-!>       \file mo_common_mhm_mrm_restart.f90
-
+!>       \file mo_mhm_mpr_interface.f90
 !>       \brief TODO: add description
-
 !>       \details TODO: add description
 
-!>       \authors Robert Schweppe
-
-!>       \date Aug 2019
-
-! Modifications:
-
-module mo_common_mHM_mRM_restart
+module mo_mhm_mpr_interface
 
   use mo_kind, only : i4, dp
-  IMPLICIT NONE
+  implicit none
 
-  PRIVATE
+  private
 
-  PUBLIC :: check_dimension_consistency
-  INTERFACE check_consistency_element
-    MODULE PROCEDURE check_consistency_element_i4, &
+  public :: check_dimension_consistency
+  interface check_consistency_element
+    module procedure check_consistency_element_i4, &
             check_consistency_element_dp
   end interface check_consistency_element
 
 
   ! ------------------------------------------------------------------
 
-CONTAINS
+contains
 
-  ! ------------------------------------------------------------------
-
-  !    NAME
-  !        check_dimension_consistency
-
-  !    PURPOSE
   !>       \brief checks dimension configurations read from restart file
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Aug 2019
-
-  ! Modifications:
-
   subroutine check_dimension_consistency(iBasin, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
           nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)
     use mo_mpr_global_variables, only: nSoilHorizons_mHM, HorizonDepth_mHM, nLAI, LAIBoundaries
@@ -125,6 +103,6 @@ CONTAINS
     end if
   end subroutine check_consistency_element_i4
 
-end module mo_common_mHM_mRM_restart
+end module mo_mhm_mpr_interface
 
 

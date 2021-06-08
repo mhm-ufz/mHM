@@ -69,10 +69,8 @@ CONTAINS
 
   subroutine mhm_initialize
 
-    use mo_common_mHM_mRM_variables, only : mhmFileRestartIn, read_restart
-    use mo_common_variables, only : Grid
-    use mo_grid, only : read_grid_info, set_domain_indices, calculate_grid_properties,  infer_grid_info
-    use mo_common_variables, only : level0, level1, domainMeta
+    use mo_grid, only : read_grid_info, set_domain_indices, calculate_grid_properties,  infer_grid_info, Grid
+    use mo_common_variables, only : level0, level1, domainMeta, mhmFileRestartIn, read_restart
     use mo_global_variables, only : level2
     use mo_init_states, only : variables_alloc
     use mo_mpr_startup, only : init_eff_params, mpr_initialize
@@ -177,8 +175,8 @@ CONTAINS
 
   subroutine constants_init
 
-    use mo_common_mHM_mRM_variables, only : timestep, c2TSTu
-    use mo_common_variables, only : processMatrix
+    use mo_common_variables, only : processMatrix, c2TSTu
+    use mo_common_datetime_type, only: timestep
     use mo_file, only : file_namelist_mhm_param
     use mo_global_variables, only : neutron_integral_AFast
     use mo_message, only : message
