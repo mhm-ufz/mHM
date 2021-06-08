@@ -19,6 +19,12 @@ module mo_read_nc
   public :: read_weights_nc
   public :: check_sort_order
   public :: common_check_dimension_consistency
+  public :: check_dimension_consistency
+  interface check_consistency_element
+    module procedure check_consistency_element_i4, &
+            check_consistency_element_dp
+  end interface check_consistency_element
+
 
   ! TODO: fyppify this, then generate docstrings for each procedure
   interface check_sort_order
@@ -959,5 +965,136 @@ contains
       stop 1
     end if
   end subroutine common_check_dimension_consistency
+
+  subroutine check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
+          nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp, &
+          landCoverSelect, check_all_arg)
+    use mo_global_variables, only: nSoilHorizons, soilHorizonBoundaries, nLAIs, LAIBoundaries
+    use mo_common_variables, only: nLandCoverPeriods
+    use mo_string_utils, only: compress, num2str
+    use mo_utils, only: ne
+    use mo_message, only: message
+
+    integer(i4), intent(in) :: iDomain
+
+    integer(i4), intent(in) :: nSoilHorizons_temp, nLAIs_temp, nLandCoverPeriods_temp
+    real(dp), dimension(:), intent(inout) :: landCoverPeriodBoundaries_temp, soilHorizonBoundaries_temp, &
+            LAIBoundaries_temp
+    integer(i4), dimension(:), allocatable, intent(out) :: landCoverSelect
+    logical, intent(in), optional :: check_all_arg
+
+    integer(i4) :: k
+    logical :: check_all
+
+    check_all = .true.
+    if (present(check_all_arg)) check_all = check_all_arg
+    call common_check_dimension_consistency(iDomain, landCoverPeriodBoundaries_temp, landCoverSelect)
+    if (iDomain == 1 .and. check_all) then
+      ! set local to global
+      nSoilHorizons = nSoilHorizons_temp
+      nLAIs = nLAIs_temp
+      ! TODO: MPR remove if clause here
+      if (.not. allocated(soilHorizonBoundaries)) allocate(soilHorizonBoundaries(nSoilHorizons))
+      soilHorizonBoundaries = soilHorizonBoundaries_temp(2:nSoilHorizons+1)
+      allocate(LAIBoundaries(nLAIs+1))
+      LAIBoundaries = LAIBoundaries_temp
+    else
+      ! check if it conforms with global
+      if (nSoilHorizons /= nSoilHorizons_temp) then
+        call message('The number of soil horizons for basin 1 (', compress(trim(num2str(nSoilHorizons))), &
+                ') does not conform with the number of soil horizons for basin ', &
+                compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nSoilHorizons_temp))), ').')
+        stop 1
+      end if
+      if (nLAIs /= nLAIs_temp) then
+        call message('The number of soil horizons for basin 1 (', compress(trim(num2str(nLAIs))), &
+                ') does not conform with the number of soil horizons for basin ', &
+                compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nLAIs_temp))), ').')
+        stop 1
+      end if
+      ! TODO: MPR change iter back
+      ! do k=1, nSoilHorizons+1
+      do k=1, nSoilHorizons
+        ! if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k))) then
+        if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k+1))) then
+          call message('The ',compress(trim(num2str(k))),'th soil horizon boundary for basin 1 (', &
+                  compress(trim(num2str(soilHorizonBoundaries(k)))), &
+                  ') does not conform with basin ', &
+                  compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(soilHorizonBoundaries_temp(k)))), ').')
+          stop 1
+        end if
+      end do
+      do k=1, nLAIs+1
+        if (ne(LAIBoundaries(k), LAIBoundaries_temp(k))) then
+          call message('The ',compress(trim(num2str(k))),'th LAI period boundary for basin 1 (', &
+                  compress(trim(num2str(LAIBoundaries(k)))), ') does not conform with basin ', &
+                  compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(LAIBoundaries_temp(k)))), ').')
+          stop 1
+        end if
+      end do
+
+    end if
+  end subroutine check_dimension_consistency
+
+  subroutine check_consistency_element_dp(item1, item2, name, iDomain)
+    use mo_utils, only: ne
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: message
+
+    real(dp), intent(in) :: item1, item2
+    character(*), intent(in) :: name
+    integer(i4), intent(in) :: iDomain
+
+    if (ne(item1, item2)) then
+      call message('The ', trim(name),&
+                  ' as set in the configuration file (', &
+                  compress(trim(num2str(item1))), &
+                  ') does not conform with basin ', &
+                  compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(item2))), ').')
+      stop 1
+    end if
+  end subroutine check_consistency_element_dp
+
+  subroutine check_consistency_element_i4(item1, item2, name, iDomain)
+    use mo_utils, only: ne
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: message
+
+    integer(i4), intent(in) :: item1, item2
+    character(*), intent(in) :: name
+    integer(i4), intent(in) :: iDomain
+
+    if (item1 /= item2) then
+      call message('The ', trim(name),&
+                  ' as set in the configuration file (', &
+                  compress(trim(num2str(item1))), &
+                  ') does not conform with basin ', &
+                  compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(item2))), ').')
+      stop 1
+    end if
+  end subroutine check_consistency_element_i4
+
+  subroutine check_consistency()
+    use mo_global_variables, only : nSoilHorizons
+    use mo_common_variables, only : opti_function, optimize
+    use mo_global_variables, only : nSoilHorizons_sm_input
+    use mo_string_utils, only: num2str
+    use mo_message, only: message
+
+    if (optimize) then
+      select case (opti_function)
+      case(10 : 13, 28)
+        ! soil moisture
+        if (nSoilHorizons_sm_input > nSoilHorizons) then
+          call message()
+          call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
+          call message('          defined number of soil horizions in mHM: ', &
+                  adjustl(trim(num2str(nSoilHorizons))), '!')
+          stop 1
+        end if
+      end select
+    end if
+
+  end subroutine check_consistency
 
 end module mo_read_nc

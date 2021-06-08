@@ -86,7 +86,7 @@ CONTAINS
     use mo_timer, only : timer_get, timer_start, &
                          timer_stop
     use mo_netcdf, only: NcDataset, NcVariable
-    use mo_read_nc, only: read_const_nc
+    use mo_read_nc, only: read_const_nc, check_dimension_consistency
     use mo_grid, only : set_domain_indices
 
     implicit none

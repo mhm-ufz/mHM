@@ -360,7 +360,7 @@ CONTAINS
                                         L1_latitude
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
-    use mo_mhm_mpr_interface, only: check_dimension_consistency
+    use mo_read_nc, only: check_dimension_consistency
 
     implicit none
 
