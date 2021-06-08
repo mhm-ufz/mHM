@@ -85,8 +85,8 @@ CONTAINS
   Subroutine write_configfile
 
     use mo_common_file, only : file_config, uconfig
-    use mo_common_variables, only : LC_year_end, evalPer, read_restart, warmPer, &
-                                    LC_year_start, LCfilename, dirConfigOut, dirLCover, dirMorpho, dirOut, &
+    use mo_common_variables, only : evalPer, read_restart, warmPer, &
+                                    dirConfigOut, dirLCover, dirMorpho, dirOut, &
                                     global_parameters, global_parameters_name, level0, level1, &
                                     domainMeta, nLandCoverPeriods, resolutionHydrology, write_restart, processMatrix, &
                                     resolutionRouting, mhmFileRestartOut

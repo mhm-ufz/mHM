@@ -157,7 +157,7 @@ CONTAINS
     ! nTimeSteps]
     type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim
 
-    real(dp), dimension(size(L1_fSealed, 1), size(L1_fSealed, 2)) :: L1_fNotSealed
+    real(dp), dimension(:, :), allocatable :: L1_fNotSealed
 
     type(OutputDataset) :: nc
 
@@ -280,7 +280,7 @@ CONTAINS
       call call_mpr(parameterset, global_parameters_name, level1, .false., opti_domain_indices)
     end if
 
-
+    allocate(L1_fNotSealed(size(L1_fSealed, 1), size(L1_fSealed, 2)))
     L1_fNotSealed = 1.0_dp - L1_fSealed
     !----------------------------------------
     ! loop over Domains

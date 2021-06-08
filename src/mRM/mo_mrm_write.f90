@@ -152,8 +152,7 @@ contains
 
     use mo_common_constants, only : nodata_dp
     use mo_common_file, only : file_config, uconfig
-    use mo_common_variables, only : LC_year_end, LC_year_start, LCfilename, &
-                                    dirConfigOut, dirLCover, dirMorpho, dirOut, mrmFileRestartOut, global_parameters, &
+    use mo_common_variables, only : dirConfigOut, dirLCover, dirMorpho, dirOut, mrmFileRestartOut, global_parameters, &
                                     global_parameters_name, level0, level1, domainMeta, nLandCoverPeriods, processMatrix, &
                                     resolutionHydrology, write_restart, evalPer, &
                                     read_restart, resolutionRouting, warmPer

@@ -509,7 +509,7 @@ contains
           nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp, &
           landCoverSelect, check_all_arg)
     use mo_global_variables, only: nSoilHorizons, soilHorizonBoundaries, nLAIs, LAIBoundaries
-    use mo_common_variables, only: nLandCoverPeriods, LC_year_start, LC_year_end
+    use mo_common_variables, only: nLandCoverPeriods
     use mo_string_utils, only: compress, num2str
     use mo_utils, only: ne
     use mo_message, only: message

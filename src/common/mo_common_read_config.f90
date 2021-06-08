@@ -49,7 +49,7 @@ CONTAINS
   subroutine common_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
     use mo_common_constants, only : maxNLcovers, maxNoDomains
-    use mo_common_variables, only : Conventions, LC_year_end, LC_year_start, LCfilename, contact, &
+    use mo_common_variables, only : Conventions, contact, &
                                     dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, &
                                     mhmFileRestartOut, mrmFileRestartOut, &
                                     fileLatLon, history, mHM_details, domainMeta, nLandCoverPeriods, &
@@ -60,14 +60,14 @@ CONTAINS
                                     opti_function, opti_method, optimize, optimize_restart, &
                                     read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
                                     sce_ngs, sce_npg, sce_nps, seed, &
-                                    warmPer, warmingDays
+                                    warmPer, warmingDays, landCoverPeriodBoundaries
     use mo_common_datetime_type, only: LCyearId, simPer, timestep, nTStepDay, period
     use mo_julian, only : caldat, julday
     use mo_message, only : message
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
     use mo_grid, only : iFlag_coordinate_sys
-
+    use mo_common_constants, only: nodata_i4
 
     implicit none
 
@@ -217,21 +217,6 @@ CONTAINS
       stop 1
     end if
 
-    ! TODO: MPR this will go
-    !===============================================================
-    ! Read land cover
-    !===============================================================
-    call position_nml('LCover', unamelist)
-    read(unamelist, nml = LCover)
-    ! put land cover scenes to corresponding file name and LuT
-    ! this is done already here for MPR, which does not check for the time periods
-    allocate(LCfilename(nLandCoverPeriods))
-    allocate(LC_year_start(nLandCoverPeriods))
-    allocate(LC_year_end(nLandCoverPeriods))
-    LCfilename(:) = LCoverfName(1 : nLandCoverPeriods)
-    LC_year_start(:) = LCoverYearStart(1 : nLandCoverPeriods)
-    LC_year_end(:) = LCoverYearEnd(1 : nLandCoverPeriods)
-
     !===============================================================
     ! Read namelist for mainpaths
     !===============================================================
@@ -368,14 +353,15 @@ CONTAINS
       simPer(iDomain)%julEnd = evalPer(iDomain)%julEnd
     end do
 
-    ! TODO: MPR this will be exchanged
-    ! !===============================================================
-    ! ! Read land cover
-    ! !===============================================================
-    ! call position_nml('LCover', unamelist)
-    ! read(unamelist, nml = LCover)
-    ! allocate(LCyearId(minval(simPer(1:domainMeta%nDomains)%yStart):maxval(simPer(1:domainMeta%nDomains)%yEnd), domainMeta%nDomains))
-    call set_land_cover_scenes_id(simPer, LCyearId)
+    !===============================================================
+    ! Read land cover
+    !===============================================================
+    call position_nml('LCover', unamelist)
+    read(unamelist, nml = LCover)
+    allocate(landCoverPeriodBoundaries(nLandCoverPeriods+1, domainMeta%nDomains))
+    allocate(LCyearId(minval(simPer(1:domainMeta%nDomains)%yStart):maxval(simPer(1:domainMeta%nDomains)%yEnd), domainMeta%nDomains))
+    landCoverPeriodBoundaries = nodata_i4
+    LCyearId = nodata_i4
 
     !===============================================================
     ! Settings for Optimization
@@ -392,96 +378,6 @@ CONTAINS
 
   end subroutine common_read_config
 
-    ! ------------------------------------------------------------------
-
-  !    NAME
-  !        set_land_cover_scenes_id
-
-  !    PURPOSE
-  !>       \brief Read main configurations commonly used by mHM, mRM and MPR
-
-  !>       \details Read the main configurations commonly used by mHM, mRM and MPR, namely:
-  !>       project_description, directories_general, mainconfig, processSelection, LCover
-
-  !    INTENT(IN)
-  !>       \param[in] "type(period), dimension(:) :: sim_Per"
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "integer(i4), dimension(:, :) :: LCyear_Id"
-  !>       \param[inout] "character(256), dimension(:) :: LCfilename"
-
-  !    HISTORY
-  !>       \authors Matthias Zink
-
-  !>       \date Dec 2012
-
-  ! Modifications:
-  ! Robert Schweppe Dec  2018 - refactoring and restructuring
-
-  subroutine set_land_cover_scenes_id(sim_Per, LCyear_Id)
-
-    use mo_common_constants, only : nodata_i4
-    use mo_common_variables, only : LC_year_end, LC_year_start, domainMeta, nLandCoverPeriods
-    use mo_common_datetime_type, only: period
-    use mo_message, only : message
-    use mo_string_utils, only : num2str
-
-    implicit none
-
-    type(period), dimension(:), intent(in) :: sim_Per
-
-    integer(i4), dimension(:, :), allocatable, intent(inout) :: LCyear_Id
-
-    integer(i4) :: ii, iDomain
-
-
-    ! countercheck if land cover covers simulation period
-    if (LC_year_start(1) .GT. minval(sim_Per(1 : domainMeta%nDomains)%yStart)) then
-      call message()
-      call message('***ERROR: Land cover for warming period is missing!')
-      call message('   SimStart   : ', trim(num2str(minval(sim_Per(1 : domainMeta%nDomains)%yStart))))
-      call message('   LCoverStart: ', trim(num2str(LC_year_start(1))))
-      stop 1
-    end if
-    if (LC_year_end(nLandCoverPeriods) .LT. maxval(sim_Per(1 : domainMeta%nDomains)%yEnd)) then
-      call message()
-      call message('***ERROR: Land cover period shorter than modelling period!')
-      call message('   SimEnd   : ', trim(num2str(maxval(sim_Per(1 : domainMeta%nDomains)%yEnd))))
-      call message('   LCoverEnd: ', trim(num2str(LC_year_end(nLandCoverPeriods))))
-      stop 1
-    end if
-    !
-    allocate(LCyear_Id(minval(sim_Per(1 : domainMeta%nDomains)%yStart) : maxval(sim_Per(1 : domainMeta%nDomains)%yEnd), &
-                   domainMeta%nDomains))
-    LCyear_Id = nodata_i4
-    do iDomain = 1, domainMeta%nDomains
-      do ii = 1, nLandCoverPeriods
-        ! land cover before model period or land cover after model period
-        if ((LC_year_end(ii) .LT. sim_Per(iDomain)%yStart) .OR. &
-                (LC_year_start(ii) .GT. sim_Per(iDomain)%yEnd)) then
-          cycle
-          ! land cover period fully covers model period
-        else if ((LC_year_start(ii) .LE. sim_Per(iDomain)%yStart) .AND. &
-                (LC_year_end(ii) .GE. sim_Per(iDomain)%yEnd)) then
-          LCyear_Id(sim_Per(iDomain)%yStart : sim_Per(iDomain)%yEnd, iDomain) = ii
-          exit
-          ! land cover period covers beginning of model period
-        else if ((LC_year_start(ii) .LE. sim_Per(iDomain)%yStart) .AND. &
-                (LC_year_end(ii) .LT. sim_Per(iDomain)%yEnd)) then
-          LCyear_Id(sim_Per(iDomain)%yStart : LC_year_end(ii), iDomain) = ii
-          ! land cover period covers end of model period
-        else if ((LC_year_start(ii) .GT. sim_Per(iDomain)%yStart) .AND. &
-                (LC_year_end(ii) .GE. sim_Per(iDomain)%yEnd)) then
-          LCyear_Id(LC_year_start(ii) : sim_Per(iDomain)%yEnd, iDomain) = ii
-          ! land cover period covers part of model_period
-        else
-          LCyear_Id(LC_year_start(ii) : LC_year_end(ii), iDomain) = ii
-        end if
-      end do
-    end do
-
-
-  end subroutine set_land_cover_scenes_id
 
 !< author: Maren Kaluza
 !< date: September 2019

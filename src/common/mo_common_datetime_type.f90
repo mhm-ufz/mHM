@@ -153,6 +153,8 @@ MODULE mo_common_datetime_type
     if (this%prev_day   /= this%day) this%is_new_day = .true.
     if (this%prev_month /= this%month) this%is_new_month = .true.
     if (this%prev_year  /= this%year) this%is_new_year = .true.
+    ! update the yId index as well
+    this%yId  = LCyearId(this%year, iDomain)
   end subroutine datetimeinfo_increment
 
   subroutine datetimeinfo_update_LAI_timestep(this)

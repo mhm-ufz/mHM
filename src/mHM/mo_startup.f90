@@ -100,10 +100,8 @@ CONTAINS
         ! this reads only the domain properties
         ! domainID, inputFile, level_name, new_grid
         call read_grid_info(domainID, mhmFileRestartIn(iDomain), "1", level1(iDomain))
-        ! Parameter fields have to be allocated in any case
-        call init_eff_params(level1(iDomain)%nCells)
 
-        call read_restart_states(iDomain, mhmFileRestartIn(iDomain), .false.)
+        call read_restart_states(iDomain, mhmFileRestartIn(iDomain), do_read_states_arg=.false.)
 
       end do
     else
@@ -205,105 +203,5 @@ CONTAINS
     c2TSTu = real(timeStep, dp) / 24.0_dp   ! from per timeStep to per day
 
   end subroutine constants_init
-
-    subroutine init_eff_params(ncells1)
-
-    use mo_append, only : append
-    use mo_common_constants, only : P1_InitStateFluxes
-    use mo_common_variables, only: nLandCoverPeriods
-    use mo_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, &
-                                        L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
-                                        L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
-                                        L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
-                                        L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                        L1_wiltingPoint, L1_latitude, nLAIs, nSoilHorizons
-
-    implicit none
-
-    integer(i4), intent(in) :: ncells1
-
-    real(dp), dimension(:, :, :), allocatable :: dummy_3D
-    real(dp), dimension(:, :), allocatable :: dummy_2D
-    real(dp), dimension(:), allocatable :: dummy_1D
-
-    !-------------------------------------------
-    ! EFFECTIVE PARAMETERS
-    !-------------------------------------------
-    ! for appending and intialization
-    allocate(dummy_3D(nCells1, nSoilHorizons, nLandCoverPeriods))
-    dummy_3D = P1_InitStateFluxes
-    ! Fraction of roots in soil horizons
-    call append(L1_fRoots, dummy_3D)
-    ! Soil moisture below which actual ET is reduced linearly till PWP
-    call append(L1_soilMoistFC, dummy_3D)
-    ! Saturation soil moisture for each horizon [mm]
-    call append(L1_soilMoistSat, dummy_3D)
-    ! Exponential parameter to how non-linear is the soil water retention
-    call append(L1_soilMoistExp, dummy_3D)
-    ! Permanent wilting point
-    call append(L1_wiltingPoint, dummy_3D)
-    deallocate(dummy_3D)
-
-    allocate(dummy_3D(nCells1, nLAIs, nLandCoverPeriods))
-    dummy_3D = P1_InitStateFluxes
-    ! PET correction factor due to LAI
-    call append(L1_petLAIcorFactor, dummy_3D)
-    ! PET aerodynamical resistance
-    call append(L1_aeroResist, dummy_3D)
-    deallocate(dummy_3D)
-
-    allocate(dummy_2D(nCells1, nLandCoverPeriods))
-    dummy_2D = P1_InitStateFluxes
-    call append(L1_fSealed, dummy_2D)
-    ! increase of the Degree-day factor per mm of increase in precipitation
-    call append(L1_degDayInc, dummy_2D)
-    ! maximum degree-day factor
-    call append(L1_degDayMax, dummy_2D)
-    ! degree-day factor with no precipitation
-    call append(L1_degDayNoPre, dummy_2D)
-    ! fast interflow recession coefficient
-    call append(L1_kFastFlow, dummy_2D)
-    ! Threshold temperature for snow/rain
-    call append(L1_tempThresh, dummy_2D)
-    ! Threshold water depth controlling fast interflow
-    call append(L1_unsatThresh, dummy_2D)
-    ! slow interflow recession coefficient
-    call append(L1_kSlowFlow, dummy_2D)
-    ! percolation coefficient
-    call append(L1_kPerco, dummy_2D)
-    ! exponent for the upper reservoir
-    call append(L1_alpha, dummy_2D)
-    ! baseflow recession coefficient
-    call append(L1_kBaseFlow, dummy_2D)
-    deallocate(dummy_2D)
-
-    allocate(dummy_2D(nCells1, nLAIs))
-    dummy_2D = P1_InitStateFluxes
-    ! PET Prietley Taylor coefficient
-    call append(L1_PrieTayAlpha, dummy_2D)
-    ! PET bulk surface resistance
-    call append(L1_surfResist, dummy_2D)
-    ! Maximum interception
-    call append(L1_maxInter, dummy_2D)
-    deallocate(dummy_2D)
-
-    allocate(dummy_1D(nCells1))
-    dummy_1D = P1_InitStateFluxes
-    ! Karstic percolation loss
-    call append(L1_karstLoss, dummy_1D)
-    ! PET correction factor due to terrain aspect
-    call append(L1_fAsp, dummy_1D)
-    ! latitude
-    call append(L1_latitude, dummy_1D)
-    ! PET Hargreaves Samani coefficient
-    call append(L1_HarSamCoeff, dummy_1D)
-    ! jarvis critical value for normalized soil water content
-    call append(L1_jarvis_thresh_c1, dummy_1D)
-    ! Threshhold water depth for surface runoff in sealed surfaces
-    call append(L1_sealedThresh, dummy_1D)
-    deallocate(dummy_1D)
-
-
-  end subroutine init_eff_params
 
 END MODULE mo_startup

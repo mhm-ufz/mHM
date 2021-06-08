@@ -100,7 +100,7 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_grid, only : write_grid_info
-    use mo_common_variables, only : level1, nLandCoverPeriods, domainMeta, LC_year_start, LC_year_end
+    use mo_common_variables, only : level1, nLandCoverPeriods, domainMeta, landCoverPeriodBoundaries
     use mo_common_datetime_type, only: simPer, LCyearId
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
                                     L1_fastRunoff, L1_infilSoil, L1_melt, L1_percol, L1_preEffect, L1_rain, &
@@ -120,8 +120,6 @@ CONTAINS
     character(256), dimension(:), intent(in) :: OutFile
 
     integer(i4) :: iDomain, domainID, iYear, iBoundary
-
-    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries
 
     integer(i4) :: ii
 
@@ -179,30 +177,14 @@ CONTAINS
       deallocate(dummy_1D)
       ! write the dimension to the file
       lais = nc%setCoordinate(trim(LAIVarName), nLAIs, LAIBoundaries, 0_i4)
-      ! TODO: MPR change this blocks
-      allocate(dummy_1D(nLandCoverPeriods+1))
-      dummy_1D(1:nLandCoverPeriods) = LC_year_start(:)
-      ! this is done because bounds are always stored as real so e.g.
-      ! 1981-1990,1991-2000 is thus saved as 1981.0-1991.0,1991.0-2001.0
-      ! it is translated back into ints correctly during reading
-      dummy_1D(nLandCoverPeriods+1) = LC_year_end(nLandCoverPeriods) + 1
-      lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), nLandCoverPeriods, dummy_1D, 0_i4)
-      deallocate(dummy_1D)
 
       iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain), mask=LCyearId(:, iDomain) /= nodata_i4)
-      ! allocate(landCoverPeriodBoundaries(iDomainNLandCoverPeriods+1))
-      ! iBoundary = 0_i4
-      ! do iYear=simPer(iDomain)%ystart, simPer(iDomain)%yend
-      !   if(LCyearId(iYear, iDomain) > iBoundary) then
-      !     iBoundary = iBoundary + 1_i4
-      !     landCoverPeriodBoundaries(iBoundary) = iYear
-      !   end if
-      ! end do
-      ! landCoverPeriodBoundaries(iBoundary+1) = iYear
-      !
-      ! lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &
-      !         landCoverPeriodBoundaries, 0_i4)
-      ! deallocate(landCoverPeriodBoundaries)
+      allocate(dummy_1D(size(landCoverPeriodBoundaries, dim=1)))
+      dummy_1D = real(landCoverPeriodBoundaries(:, iDomain), dp)
+      print*, iDomainNLandCoverPeriods, dummy_1D
+      lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &
+              dummy_1D, 0_i4)
+      deallocate(dummy_1D)
 
       ! for appending and intialization
       allocate(mask1(rows1%getLength(), cols1%getLength()))
@@ -605,6 +587,9 @@ CONTAINS
       end if
 
       if (nc%hasVariable('L1_fSealed')) then
+        ! Parameter fields have to be allocated in any case
+        call init_eff_params(level1(iDomain)%nCells)
+
         !-------------------------------------------
         ! EFFECTIVE PARAMETERS
         !-------------------------------------------
@@ -769,11 +754,6 @@ CONTAINS
         do jj = 1, size(dummyD4, 4)
           L1_wiltingPoint(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
         end do
-
-        ! PET correction factor due to terrain aspect
-        var = nc%getVariable("L1_latitude")
-        call var%getData(dummyD2)
-        L1_latitude(s1 : e1) = pack(dummyD2, mask1)
 
         ! different parameters dependent on PET formulation
         select case (processMatrix(5, 1))
@@ -1309,5 +1289,106 @@ CONTAINS
     end select
 
   end subroutine write_eff_params
+
+  subroutine init_eff_params(ncells1)
+
+    use mo_append, only : append
+    use mo_kind, only: i4, dp
+    use mo_common_constants, only : P1_InitStateFluxes
+    use mo_common_variables, only: nLandCoverPeriods
+    use mo_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, &
+                                    L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
+                                    L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
+                                    L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
+                                    L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
+                                    L1_wiltingPoint, L1_latitude, nLAIs, nSoilHorizons
+
+    implicit none
+
+    integer(i4), intent(in) :: ncells1
+
+    real(dp), dimension(:, :, :), allocatable :: dummy_3D
+    real(dp), dimension(:, :), allocatable :: dummy_2D
+    real(dp), dimension(:), allocatable :: dummy_1D
+
+    !-------------------------------------------
+    ! EFFECTIVE PARAMETERS
+    !-------------------------------------------
+    ! for appending and intialization
+    allocate(dummy_3D(nCells1, nSoilHorizons, nLandCoverPeriods))
+    dummy_3D = P1_InitStateFluxes
+    ! Fraction of roots in soil horizons
+    call append(L1_fRoots, dummy_3D)
+    ! Soil moisture below which actual ET is reduced linearly till PWP
+    call append(L1_soilMoistFC, dummy_3D)
+    ! Saturation soil moisture for each horizon [mm]
+    call append(L1_soilMoistSat, dummy_3D)
+    ! Exponential parameter to how non-linear is the soil water retention
+    call append(L1_soilMoistExp, dummy_3D)
+    ! Permanent wilting point
+    call append(L1_wiltingPoint, dummy_3D)
+    deallocate(dummy_3D)
+
+    allocate(dummy_3D(nCells1, nLAIs, nLandCoverPeriods))
+    dummy_3D = P1_InitStateFluxes
+    ! PET correction factor due to LAI
+    call append(L1_petLAIcorFactor, dummy_3D)
+    ! PET aerodynamical resistance
+    call append(L1_aeroResist, dummy_3D)
+    deallocate(dummy_3D)
+
+    allocate(dummy_2D(nCells1, nLandCoverPeriods))
+    dummy_2D = P1_InitStateFluxes
+    call append(L1_fSealed, dummy_2D)
+    ! increase of the Degree-day factor per mm of increase in precipitation
+    call append(L1_degDayInc, dummy_2D)
+    ! maximum degree-day factor
+    call append(L1_degDayMax, dummy_2D)
+    ! degree-day factor with no precipitation
+    call append(L1_degDayNoPre, dummy_2D)
+    ! fast interflow recession coefficient
+    call append(L1_kFastFlow, dummy_2D)
+    ! Threshold temperature for snow/rain
+    call append(L1_tempThresh, dummy_2D)
+    ! Threshold water depth controlling fast interflow
+    call append(L1_unsatThresh, dummy_2D)
+    ! slow interflow recession coefficient
+    call append(L1_kSlowFlow, dummy_2D)
+    ! percolation coefficient
+    call append(L1_kPerco, dummy_2D)
+    ! exponent for the upper reservoir
+    call append(L1_alpha, dummy_2D)
+    ! baseflow recession coefficient
+    call append(L1_kBaseFlow, dummy_2D)
+    deallocate(dummy_2D)
+
+    allocate(dummy_2D(nCells1, nLAIs))
+    dummy_2D = P1_InitStateFluxes
+    ! PET Prietley Taylor coefficient
+    call append(L1_PrieTayAlpha, dummy_2D)
+    ! PET bulk surface resistance
+    call append(L1_surfResist, dummy_2D)
+    ! Maximum interception
+    call append(L1_maxInter, dummy_2D)
+    deallocate(dummy_2D)
+
+    allocate(dummy_1D(nCells1))
+    dummy_1D = P1_InitStateFluxes
+    ! Karstic percolation loss
+    call append(L1_karstLoss, dummy_1D)
+    ! PET correction factor due to terrain aspect
+    call append(L1_fAsp, dummy_1D)
+    ! latitude
+    call append(L1_latitude, dummy_1D)
+    ! PET Hargreaves Samani coefficient
+    call append(L1_HarSamCoeff, dummy_1D)
+    ! jarvis critical value for normalized soil water content
+    call append(L1_jarvis_thresh_c1, dummy_1D)
+    ! Threshhold water depth for surface runoff in sealed surfaces
+    call append(L1_sealedThresh, dummy_1D)
+    deallocate(dummy_1D)
+
+
+  end subroutine init_eff_params
 
 END MODULE mo_restart

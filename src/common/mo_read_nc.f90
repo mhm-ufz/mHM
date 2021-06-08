@@ -894,7 +894,7 @@ contains
   end subroutine check_sort_order_4DI4
 
   subroutine common_check_dimension_consistency(iDomain, boundaries, select_indices)
-    use mo_common_variables, only: nLandCoverPeriods
+    use mo_common_variables, only: nLandCoverPeriods, landCoverPeriodBoundaries
     use mo_string_utils, only: compress
     use mo_common_datetime_type, only: simPer, LCyearId
 
@@ -925,6 +925,10 @@ contains
         LCyearId(&
                 maxval([int(boundaries(iBoundary)), simPer(iDomain)%ystart]):&
                 minval([int(boundaries(iBoundary+1)), simPer(iDomain)%yend]), iDomain) = select_index
+        ! set the boundaries as parsed
+        landCoverPeriodBoundaries(select_index, iDomain) = int(boundaries(iBoundary))
+        landCoverPeriodBoundaries(select_index + 1, iDomain) = int(boundaries(iBoundary + 1))
+
       end if
     end do
     select_indices = pack([(iBoundary, iBoundary=1, size(boundaries) - 1)], select_indices_mask)
