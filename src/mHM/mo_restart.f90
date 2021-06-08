@@ -181,7 +181,6 @@ CONTAINS
       iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain), mask=LCyearId(:, iDomain) /= nodata_i4)
       allocate(dummy_1D(size(landCoverPeriodBoundaries, dim=1)))
       dummy_1D = real(landCoverPeriodBoundaries(:, iDomain), dp)
-      print*, iDomainNLandCoverPeriods, dummy_1D
       lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &
               dummy_1D, 0_i4)
       deallocate(dummy_1D)

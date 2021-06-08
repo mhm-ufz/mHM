@@ -995,7 +995,7 @@ contains
       nLAIs = nLAIs_temp
       ! TODO: MPR remove if clause here
       if (.not. allocated(soilHorizonBoundaries)) allocate(soilHorizonBoundaries(nSoilHorizons))
-      soilHorizonBoundaries = soilHorizonBoundaries_temp(2:nSoilHorizons+1)
+      soilHorizonBoundaries = soilHorizonBoundaries_temp
       allocate(LAIBoundaries(nLAIs+1))
       LAIBoundaries = LAIBoundaries_temp
     else

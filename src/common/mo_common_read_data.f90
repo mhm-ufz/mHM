@@ -66,7 +66,7 @@ CONTAINS
     ! ************************************************
     ! READ SPATIAL DATA FOR EACH DOMAIN
     ! ************************************************
-    call message('      Reading dem for domain: ', trim(adjustl(num2str(domainID))), ' ...')
+    call message('      Reading dem for domain: ', trim(adjustl(num2str(domainMeta%indices(iDomain)))), ' ...')
 
     fName = trim(dirMorpho(iDomain)) // trim(varNameDem) // '.nc'
     ! use the dem variable to create the mask
@@ -136,8 +136,8 @@ CONTAINS
     type(NcVariable)                       :: ncVar          ! variables for data form netcdf
     real(dp), dimension(:, :), allocatable :: dummyD2
 
-    call message('      Reading lcover for domain: ', trim(adjustl(num2str(domainID))), ' ...')
-
+    call message('      Reading lcover for domain: ', trim(adjustl(num2str(domainMeta%indices(iDomain)))), ' ...')
+    level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
     fName = trim(dirLCover(iDomain)) // trim(varNameLandCover) // '.nc'
     ! read the Dataset
     nc = NcDataset(fname, "r")
@@ -157,7 +157,7 @@ CONTAINS
 
     if (present(nLandCoverPeriods_temp) .and. present(landCoverPeriodBoundaries_temp)) then
       ! get the landcover dimension
-      ncVar = nc%getVariable(trim(varNameLandCover)//'_bnds')
+      ncVar = nc%getVariable(trim(varNameLandCover)//'_period_bnds')
       call ncVar%getData(dummyD2)
       nLandCoverPeriods_temp = size(dummyD2, 2)
       allocate(landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1))
