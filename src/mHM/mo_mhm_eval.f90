@@ -416,7 +416,7 @@ CONTAINS
         ! --------------------------------------------------------------------------
         call mhm(read_restart, & ! IN C
                 tt, domainDateTime%newTime - 0.5_dp, processMatrix, &
-                soilHorizonBoundaries(1:size(soilHorizonBoundaries)) * 1000_dp, & ! IN C
+                soilHorizonBoundaries(2:nSoilHorizons+1) * 1000_dp, & ! IN C
                 nCells, nSoilHorizons, real(nTstepDay, dp), c2TSTu,  & ! IN C
                 neutron_integral_AFast, & ! IN C
                 parameterset, & ! IN

@@ -150,7 +150,7 @@ CONTAINS
       dummy_2D(:, i) = (soilHorizonBoundaries(i+1) - soilHorizonBoundaries(i)) * C1_InitStateSM * 1000_dp
     end do
     dummy_2D(:, nSoilHorizons) = (P5_InitStateFluxes - &
-            soilHorizonBoundaries(nSoilHorizons)) * C1_InitStateSM * 1000_dp
+            soilHorizonBoundaries(nSoilHorizons+1)) * C1_InitStateSM * 1000_dp
     call append(L1_soilMoist, dummy_2D)
 
     ! free space

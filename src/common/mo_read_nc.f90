@@ -1012,11 +1012,8 @@ contains
                 compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nLAIs_temp))), ').')
         stop 1
       end if
-      ! TODO: MPR change iter back
-      ! do k=1, nSoilHorizons+1
-      do k=1, nSoilHorizons
-        ! if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k))) then
-        if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k+1))) then
+      do k=1, nSoilHorizons+1
+        if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k))) then
           call message('The ',compress(trim(num2str(k))),'th soil horizon boundary for basin 1 (', &
                   compress(trim(num2str(soilHorizonBoundaries(k)))), &
                   ') does not conform with basin ', &

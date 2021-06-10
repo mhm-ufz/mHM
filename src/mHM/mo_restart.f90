@@ -168,13 +168,7 @@ CONTAINS
       cols1 = nc%getDimension("ncols1")
 
       ! write the dimension to the file and also save bounds
-      ! TODO: MPR do simple call
-      ! soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons, soilHorizonBoundaries, 2_i4)
-      allocate(dummy_1D(nSoilHorizons+1))
-      dummy_1D(1) = 0.0_dp
-      dummy_1D(2:nSoilHorizons+1) = soilHorizonBoundaries(:)
-      soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons, dummy_1D, 2_i4)
-      deallocate(dummy_1D)
+      soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons, soilHorizonBoundaries, 2_i4)
       ! write the dimension to the file
       lais = nc%setCoordinate(trim(LAIVarName), nLAIs, LAIBoundaries, 0_i4)
 
@@ -349,7 +343,7 @@ CONTAINS
                                     L1_aETSealed, L1_aETSoil, L1_baseflow, L1_fastRunoff, L1_infilSoil, L1_melt, &
                                     L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
                                     L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_total_runoff, L1_unsatSTW, &
-            nSoilHorizons, are_parameter_initialized, soilHorizonBoundaries, nLAIs, &
+            nSoilHorizons, are_parameter_initialized, nLAIs, &
             L1_HarSamCoeff, &
                                         L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, L1_degDayInc, L1_degDayMax, &
                                         L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, &
