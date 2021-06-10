@@ -1,12 +1,12 @@
 module test_canopy_interc
   use funit
   use mo_canopy_interc
-  use mo_kind, only : dp
+  use mo_kind, only: dp
 
   implicit none
 
   private
-  
+
   public :: test_canopy_inter
 
   real :: t = 0.001
@@ -29,7 +29,6 @@ contains
     @assertEqual(ref_throughfall, res_throughfall, tolerance=t, message='throughfall, realistic values')
     @assertEqual(ref_evap_canopy, res_evap_canopy, tolerance=t, message='evap_canopy, realistic values')
 
-
     ref_interc = 0.0_dp
     ref_throughfall = 0.0_dp
     ref_evap_canopy = -0.045_dp
@@ -39,7 +38,6 @@ contains
     @assertEqual(ref_interc, res_interc, tolerance=t, message='interc, neg. precip')
     @assertEqual(ref_throughfall, res_throughfall, tolerance=t, message='throughfall, neg. precip')
     @assertEqual(ref_evap_canopy, res_evap_canopy, tolerance=t, message='evap_canopy, neg. precip')
-
 
     ref_interc = 0.0_dp
     ref_throughfall = 1.185_dp
@@ -52,7 +50,6 @@ contains
     @assertEqual(ref_evap_canopy, res_evap_canopy, tolerance=t, message='evap_canopy, neg. interc_max')
 
   end subroutine test_canopy_inter
-
 
 end module test_canopy_interc
 
