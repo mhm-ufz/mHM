@@ -941,7 +941,7 @@ contains
 
     ! check if number of periods in namelist is enough
     if (nLandCoverPeriods < select_index) then
-      call message('The number of selected land cover periods for basin ', compress(num2str(iDomain)), &
+      call message('The number of selected land cover periods for domain ', compress(num2str(iDomain)), &
               ' is bigger than allowed (', &
               compress(num2str(nLandCoverPeriods)), '). Please set nLandCoverPeriods in namelist.')
       stop 1
@@ -950,7 +950,7 @@ contains
     ! check if both start and end are covered
     select_indices_temp = [select_indices_mask, .false.]
     if (minval(boundaries, mask=select_indices_temp) > simPer(iDomain)%ystart) then
-      call message('The selected land cover periods for basin ', compress(trim(num2str(iDomain))), &
+      call message('The selected land cover periods for domain ', compress(trim(num2str(iDomain))), &
               ' (', compress(trim(num2str(minval(boundaries, mask=select_indices_temp)))), &
               ') do not cover the beginning of the simulation period (', &
               compress(trim(num2str(simPer(iDomain)%ystart))), ').')
@@ -958,7 +958,7 @@ contains
     end if
     select_indices_temp = [.false., select_indices_mask]
     if (maxval(boundaries, mask=select_indices_temp) < simPer(iDomain)%yend) then
-      call message('The selected land cover periods for basin ', compress(trim(num2str(iDomain))), &
+      call message('The selected land cover periods for domain ', compress(trim(num2str(iDomain))), &
               ' (', compress(trim(num2str(maxval(boundaries, mask=select_indices_temp)))), &
               ' ) do not cover the end of the simulation period (', &
               compress(trim(num2str(simPer(iDomain)%yend))), ').')
@@ -1001,30 +1001,30 @@ contains
     else
       ! check if it conforms with global
       if (nSoilHorizons /= nSoilHorizons_temp) then
-        call message('The number of soil horizons for basin 1 (', compress(trim(num2str(nSoilHorizons))), &
-                ') does not conform with the number of soil horizons for basin ', &
+        call message('The number of soil horizons for domain 1 (', compress(trim(num2str(nSoilHorizons))), &
+                ') does not conform with the number of soil horizons for domain ', &
                 compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nSoilHorizons_temp))), ').')
         stop 1
       end if
       if (nLAIs /= nLAIs_temp) then
-        call message('The number of soil horizons for basin 1 (', compress(trim(num2str(nLAIs))), &
-                ') does not conform with the number of soil horizons for basin ', &
+        call message('The number of soil horizons for domain 1 (', compress(trim(num2str(nLAIs))), &
+                ') does not conform with the number of soil horizons for domain ', &
                 compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nLAIs_temp))), ').')
         stop 1
       end if
       do k=1, nSoilHorizons+1
         if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k))) then
-          call message('The ',compress(trim(num2str(k))),'th soil horizon boundary for basin 1 (', &
+          call message('The ',compress(trim(num2str(k))),'th soil horizon boundary for domain 1 (', &
                   compress(trim(num2str(soilHorizonBoundaries(k)))), &
-                  ') does not conform with basin ', &
+                  ') does not conform with domain ', &
                   compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(soilHorizonBoundaries_temp(k)))), ').')
           stop 1
         end if
       end do
       do k=1, nLAIs+1
         if (ne(LAIBoundaries(k), LAIBoundaries_temp(k))) then
-          call message('The ',compress(trim(num2str(k))),'th LAI period boundary for basin 1 (', &
-                  compress(trim(num2str(LAIBoundaries(k)))), ') does not conform with basin ', &
+          call message('The ',compress(trim(num2str(k))),'th LAI period boundary for domain 1 (', &
+                  compress(trim(num2str(LAIBoundaries(k)))), ') does not conform with domain ', &
                   compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(LAIBoundaries_temp(k)))), ').')
           stop 1
         end if
@@ -1046,7 +1046,7 @@ contains
       call message('The ', trim(name),&
                   ' as set in the configuration file (', &
                   compress(trim(num2str(item1))), &
-                  ') does not conform with basin ', &
+                  ') does not conform with domain ', &
                   compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(item2))), ').')
       stop 1
     end if
@@ -1065,7 +1065,7 @@ contains
       call message('The ', trim(name),&
                   ' as set in the configuration file (', &
                   compress(trim(num2str(item1))), &
-                  ') does not conform with basin ', &
+                  ') does not conform with domain ', &
                   compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(item2))), ').')
       stop 1
     end if

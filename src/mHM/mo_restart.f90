@@ -138,7 +138,7 @@ CONTAINS
 
     ! dummy variable
     real(dp), dimension(:, :, :), allocatable :: dummy_3D
-    real(dp), dimension(:), allocatable :: dummy_1D
+    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_
 
     integer(i4) :: max_extent
 
@@ -173,11 +173,11 @@ CONTAINS
       lais = nc%setCoordinate(trim(LAIVarName), nLAIs, LAIBoundaries, 0_i4)
 
       iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain), mask=LCyearId(:, iDomain) /= nodata_i4)
-      allocate(dummy_1D(size(landCoverPeriodBoundaries, dim=1)))
-      dummy_1D = real(landCoverPeriodBoundaries(:, iDomain), dp)
+      allocate(landCoverPeriodBoundaries_(iDomainNLandCoverPeriods+1))
+      landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, iDomain), dp)
       lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &
-              dummy_1D, 0_i4)
-      deallocate(dummy_1D)
+              landCoverPeriodBoundaries_, 0_i4)
+      deallocate(landCoverPeriodBoundaries_)
 
       ! for appending and intialization
       allocate(mask1(rows1%getLength(), cols1%getLength()))
