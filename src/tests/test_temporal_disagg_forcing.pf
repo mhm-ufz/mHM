@@ -50,7 +50,7 @@ contains
 
     ref_meteo_val = [0.822_dp, 0.996_dp]
 
-    call temporal_disagg_meteo_weights([2.74_dp, 3.32_dp], 0.3_dp, res_meteo_val)  !erster wert als array, zweiter ewrt als knostante
+    call temporal_disagg_meteo_weights([2.74_dp, 3.32_dp], 0.3_dp, res_meteo_val)
     @assertEqual(ref_meteo_val, res_meteo_val, tolerance=t, message='temporal_disagg_meteo_weights: without weights_correction')
 
     ref_meteo_val = [0.472_dp, 0.646_dp]
