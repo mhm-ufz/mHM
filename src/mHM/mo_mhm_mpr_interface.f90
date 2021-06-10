@@ -18,17 +18,17 @@ module mo_mhm_mpr_interface
 contains
 
     subroutine call_mpr(parameterValues, parameterNames, grids, do_init_arg, opti_domain_indices)
-    ! use mo_mpr_global_variables, only : out_filename
+    use mo_mpr_global_variables, only : soilDB, L0_asp, L0_geoUnit, L0_gridded_LAI, L0_slope, L0_slope_emp, L0_soilId
     ! use mo_mpr_read_config, only : mpr_read_config
     ! use mo_mpr_constants, only : maxNoDataArrays
     ! use mo_mpr_reset, only: reset
     ! use mo_mpr_reorder_data_array, only: reorder_data_arrays
     use mo_netcdf, only : NcDataset
     use mo_common_variables, only : nuniqueL0Domains, write_restart, &
-            dummy_global_parameters, dummy_global_parameters_name, domainMeta
+            dummy_global_parameters, dummy_global_parameters_name, domainMeta, level0, l0_l1_remap
     use mo_append, only: append
     use mo_file, only : unamelist_mpr
-    use mo_global_variables, only: pathMprNml, are_parameter_initialized
+    use mo_global_variables, only: pathMprNml, are_parameter_initialized, LAIBoundaries
     use mo_grid, only: Grid
     use mo_mpr_eval, only: mpr_eval
     use mo_mpr_startup, only: mpr_initialize
@@ -46,6 +46,38 @@ contains
     ! character(maxNameLength), dimension(:), allocatable :: parameterNamesConcat
     ! integer(i4) :: i, iUniqueDomain
     ! type(NcDataset) :: nc
+
+    ! deallocate everything in case optimization is active
+    if (allocated(soilDB%id)) deallocate(soilDB%id)
+    if (allocated(soilDB%nHorizons)) deallocate(soilDB%nHorizons)
+    if (allocated(soilDB%is_present)) deallocate(soilDB%is_present)
+    if (allocated(soilDB%UD)) deallocate(soilDB%UD)
+    if (allocated(soilDB%LD)) deallocate(soilDB%LD)
+    if (allocated(soilDB%clay)) deallocate(soilDB%clay)
+    if (allocated(soilDB%sand)) deallocate(soilDB%sand)
+    if (allocated(soilDB%DbM)) deallocate(soilDB%DbM)
+    if (allocated(soilDB%depth)) deallocate(soilDB%depth)
+    if (allocated(soilDB%RZdepth)) deallocate(soilDB%RZdepth)
+    if (allocated(soilDB%Wd)) deallocate(soilDB%Wd)
+    if (allocated(soilDB%nTillHorizons)) deallocate(soilDB%nTillHorizons)
+    if (allocated(soilDB%thetaS_Till)) deallocate(soilDB%thetaS_Till)
+    if (allocated(soilDB%thetaS)) deallocate(soilDB%thetaS)
+    if (allocated(soilDB%Db)) deallocate(soilDB%Db)
+    if (allocated(soilDB%thetaFC_Till)) deallocate(soilDB%thetaFC_Till)
+    if (allocated(soilDB%thetaFC)) deallocate(soilDB%thetaFC)
+    if (allocated(soilDB%thetaPW_Till)) deallocate(soilDB%thetaPW_Till)
+    if (allocated(soilDB%thetaPW)) deallocate(soilDB%thetaPW)
+    if (allocated(soilDB%Ks)) deallocate(soilDB%Ks)
+    if (allocated(L0_asp)) deallocate(L0_asp)
+    if (allocated(L0_geoUnit)) deallocate(L0_geoUnit)
+    if (allocated(L0_gridded_LAI)) deallocate(L0_gridded_LAI)
+    if (allocated(L0_slope)) deallocate(L0_slope)
+    if (allocated(L0_slope_emp)) deallocate(L0_slope_emp)
+    if (allocated(L0_soilId)) deallocate(L0_soilId)
+    if (allocated(level0)) deallocate(level0)
+    if (allocated(LAIBoundaries)) deallocate(LAIBoundaries)
+    if (allocated(l0_l1_remap)) deallocate(l0_l1_remap)
+
 
     ! for DEM, slope, ... define nGvar local
     ! read_data has a domain loop inside
