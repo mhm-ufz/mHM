@@ -282,7 +282,8 @@ CONTAINS
       call message('      Reading LAI ...')
       select case (timeStep_LAI_input)
       case(1) ! long term mean monthly gridded fields
-        call prepare_gridded_mean_monthly_LAI_data(iDomain, level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%mask)
+        call prepare_gridded_mean_monthly_LAI_data(iDomain, level0_iDomain%nrows, level0_iDomain%ncols, &
+                level0_iDomain%mask, nLAIs_temp, LAIBoundaries_temp)
 
       case(0) ! long term mean monthly values per class with LUT
         ! only set if not yet allocated (e.g. domain 1)
@@ -328,7 +329,7 @@ CONTAINS
         L0_gridded_LAI(:, :) = merge(30.0_dp, L0_gridded_LAI(:, :), L0_gridded_LAI(:, :) .GT. 30.0_dp)
       case(-3 : -1) ! daily, monthly or yearly gridded fields (time-series)
         call prepare_gridded_daily_LAI_data(iDomain, level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%mask, &
-        LAIPer(iDomain))
+        LAIPer(iDomain), nLAIs_temp, LAIBoundaries_temp)
 
       end select
 

@@ -27,6 +27,7 @@ MODULE mo_restart
 
   PUBLIC :: read_restart_states     ! read restart files for state variables from a given path
   PUBLIC :: write_restart_files     ! write restart files for configuration to a given path
+  PUBLIC :: reset_eff_params
 
   !    NAME
   !        unpack_field_and_write
@@ -1376,5 +1377,42 @@ CONTAINS
 
 
   end subroutine init_eff_params
+
+  subroutine reset_eff_params()
+    use mo_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, &
+                                L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
+                                L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
+                                L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
+                                L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
+                                L1_wiltingPoint, nLAIs, nSoilHorizons
+
+    deallocate(L1_fRoots)
+    deallocate(L1_soilMoistFC)
+    deallocate(L1_soilMoistSat)
+    deallocate(L1_soilMoistExp)
+    deallocate(L1_wiltingPoint)
+    deallocate(L1_petLAIcorFactor)
+    deallocate(L1_aeroResist)
+    deallocate(L1_fSealed)
+    deallocate(L1_degDayInc)
+    deallocate(L1_degDayMax)
+    deallocate(L1_degDayNoPre)
+    deallocate(L1_kFastFlow)
+    deallocate(L1_tempThresh)
+    deallocate(L1_unsatThresh)
+    deallocate(L1_kSlowFlow)
+    deallocate(L1_kPerco)
+    deallocate(L1_alpha)
+    deallocate(L1_kBaseFlow)
+    deallocate(L1_PrieTayAlpha)
+    deallocate(L1_surfResist)
+    deallocate(L1_maxInter)
+    deallocate(L1_karstLoss)
+    deallocate(L1_fAsp)
+    deallocate(L1_HarSamCoeff)
+    deallocate(L1_jarvis_thresh_c1)
+    deallocate(L1_sealedThresh)
+
+  end subroutine reset_eff_params
 
 END MODULE mo_restart

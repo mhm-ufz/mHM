@@ -58,13 +58,12 @@ CONTAINS
   ! Matthias Cuntz & Juliane Mai Nov 2014 - use meteo reading routines
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine prepare_gridded_daily_LAI_data(iDomain, nrows, ncols, mask, LAIPer_iDomain)
+  subroutine prepare_gridded_daily_LAI_data(iDomain, nrows, ncols, mask, LAIPer_iDomain, nLAIs_temp, LAIBoundaries_temp)
 
     use mo_append, only : append
     use mo_common_datetime_type, only : period, timeStep_LAI_input
     use mo_message, only : message
     use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI, inputFormat_gridded_LAI
-    use mo_global_variables, only : nLAIs, LAIBoundaries
     use mo_read_nc, only : read_nc
 
     implicit none
@@ -75,6 +74,8 @@ CONTAINS
     logical, dimension(:, :), intent(in) :: mask
 
     type(period), intent(in), optional :: LAIPer_iDomain
+    integer(i4), intent(out) :: nLAIs_temp
+    real(dp), dimension(:), allocatable, intent(out) :: LAIBoundaries_temp
 
     integer(i4) :: ncells, iLAI
 
@@ -102,15 +103,13 @@ CONTAINS
 
     ! pack variables
     nCells = count(mask)
-    ! only set if not yet allocated (e.g. domain 1)
-    if (.not. allocated(LAIBoundaries)) then
-      nLAIs = size(LAI0_3D, 3)
-      allocate(LAIBoundaries(nLAIs+1))
-      LAIBoundaries = [(iLAI, iLAI=1, nLAIs+1)]
-    end if
-    allocate(LAI0_2D(nCells, nLAIs))
 
-    do iLAI = 1, nLAIs
+    nLAIs_temp = size(LAI0_3D, 3)
+    allocate(LAIBoundaries_temp(nLAIs_temp+1))
+    LAIBoundaries_temp = [(iLAI, iLAI=1, nLAIs_temp+1)]
+    allocate(LAI0_2D(nCells, nLAIs_temp))
+
+    do iLAI = 1, nLAIs_temp
       LAI0_2D(:, iLAI) = pack(LAI0_3D(:, :, iLAI), MASK = mask(:, :))
     end do
 
@@ -148,12 +147,11 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine prepare_gridded_mean_monthly_LAI_data(iDomain, nrows, ncols, mask)
+  subroutine prepare_gridded_mean_monthly_LAI_data(iDomain, nrows, ncols, mask, nLAIs_temp, LAIBoundaries_temp)
 
     use mo_append, only : append
     use mo_message, only : message
     use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI
-    use mo_global_variables, only: nLAIs, LAIBoundaries
     use mo_ncread, only : Get_NcDim, Get_NcVar, Get_NcVarAtt
     use mo_string_utils, only : num2str
     use mo_utils, only : eq
@@ -164,6 +162,8 @@ CONTAINS
     integer(i4), intent(in) :: iDomain, nrows, ncols
 
     logical, dimension(:, :), intent(in) :: mask
+    integer(i4), intent(out) :: nLAIs_temp
+    real(dp), dimension(:), allocatable, intent(out) :: LAIBoundaries_temp
 
     integer(i4) :: ncells, iLAI
 
@@ -240,14 +240,13 @@ CONTAINS
 
     ! pack variables
     nCells = count(mask)
-    ! only set if not yet allocated (e.g. domain 1)
-    if (.not. allocated(LAIBoundaries)) then
-      nLAIs = size(LAI0_3D, 3)
-      allocate(LAIBoundaries(nLAIs+1))
-      LAIBoundaries = [(iLAI, iLAI=1, nLAIs+1)]
-    end if
-    allocate(LAI0_2D(nCells, nLAIs))
-    do iLAI = 1, nLAIs
+
+    nLAIs_temp = size(LAI0_3D, 3)
+    allocate(LAIBoundaries_temp(nLAIs_temp+1))
+    LAIBoundaries_temp = [(iLAI, iLAI=1, nLAIs_temp+1)]
+
+    allocate(LAI0_2D(nCells, nLAIs_temp))
+    do iLAI = 1, nLAIs_temp
       LAI0_2D(:, iLAI) = pack(LAI0_3D(:, :, iLAI), MASK = mask(:, :))
     end do
 
