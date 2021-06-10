@@ -52,7 +52,7 @@ contains
 
     ref_meteo_val = 0.822_dp
 
-    call temporal_disagg_meteo_weights(2.74_dp, 0.3_dp, res_meteo_val)
+    call temporal_disagg_meteo_weights(2.74_dp, 0.3_dp, res_meteo_val)  !erster wert als array, zweiter ewrt als knostante
     @assertEqual(ref_meteo_val, res_meteo_val, tolerance=t, message='temporal_disagg_meteo_weights: without weights_correction')
 
 
@@ -67,25 +67,14 @@ contains
 	@test
   subroutine test_temporal_disagg_flux_daynight()
 
-    real(dp) :: ref_meteo_val
-    real(dp) :: res_meteo_val
+    real(dp), dimension(3) :: ref_meteo_val
+    real(dp), dimension(3) :: res_meteo_val
 
-    ref_meteo_val = 0.2055_dp
+    ref_meteo_val = (/0.2055_dp,0.0228_dp,2.74_dp/)
 
-    call temporal_disagg_flux_daynight(.true., 24.0_dp, 2.74_dp, 0.9_dp, 0.1_dp, res_meteo_val)
-    @assertEqual(ref_meteo_val, res_meteo_val, tolerance=t, message='temporal_disagg_flux_daynight: day, 24 ts')
-
-
-		ref_meteo_val = 0.0228_dp
-
-    call temporal_disagg_flux_daynight(.false., 24.0_dp, 2.74_dp, 0.9_dp, 0.1_dp, res_meteo_val)
-    @assertEqual(ref_meteo_val, res_meteo_val, tolerance=t, message='temporal_disagg_flux_daynight: night, 24 ts')
-
-
-		ref_meteo_val = 2.74_dp
-
-		call temporal_disagg_flux_daynight(.true., 1.0_dp, 2.74_dp, 0.9_dp, 0.1_dp, res_meteo_val)
-    @assertEqual(ref_meteo_val, res_meteo_val, tolerance=t, message='temporal_disagg_flux_daynight: 1 ts')
+    call temporal_disagg_flux_daynight((/.true.,.false.,.true./), (/24.0_dp,24.0_dp,1.0_dp/), &
+                                      2.74_dp, 0.9_dp, 0.1_dp, res_meteo_val)
+    @assertEqual(ref_meteo_val, res_meteo_val, tolerance=t, message='temporal_disagg_flux_daynight')
 
   end subroutine test_temporal_disagg_flux_daynight
 
@@ -93,37 +82,14 @@ contains
 	@test
   subroutine test_temporal_disagg_state_daynight()
 
-    real(dp) :: ref_meteo_val
-    real(dp) :: res_meteo_val
+    real(dp), dimension(5) :: ref_meteo_val
+    real(dp), dimension(5) :: res_meteo_val
 
-    ref_meteo_val = 4.932_dp
+    ref_meteo_val = (/4.932_dp,0.548_dp,3.64_dp,2.84_dp, 2.74_dp/)
 
-    call temporal_disagg_state_daynight(.true., 24.0_dp, 2.74_dp, 0.9_dp, 0.1_dp, res_meteo_val)
-    @assertEqual(ref_meteo_val, res_meteo_val, tolerance=t, message='temporal_disagg_state_daynight: day,24 ts,no correction')
-
-
-		ref_meteo_val = 0.548_dp
-
-    call temporal_disagg_state_daynight(.false., 24.0_dp, 2.74_dp, 0.9_dp, 0.1_dp, res_meteo_val)
-    @assertEqual(ref_meteo_val, res_meteo_val, tolerance=t, message='temporal_disagg_state_daynight: night,24 ts,no correction')
-
-
-		ref_meteo_val = 3.64_dp
-
-    call temporal_disagg_state_daynight(.true., 24.0_dp, 2.74_dp, 0.9_dp, 0.1_dp, res_meteo_val, .true.)
-    @assertEqual(ref_meteo_val, res_meteo_val, tolerance=t, message='temporal_disagg_state_daynight: day,24 ts,correction')
-
-
-		ref_meteo_val = 2.84_dp
-
-    call temporal_disagg_state_daynight(.false., 24.0_dp, 2.74_dp, 0.9_dp, 0.1_dp, res_meteo_val, .true.)
-    @assertEqual(ref_meteo_val, res_meteo_val, tolerance=t, message='temporal_disagg_state_daynight: night,24 ts,correction')
-
-
-		ref_meteo_val = 2.74_dp
-
-		call temporal_disagg_state_daynight(.true., 1.0_dp, 2.74_dp, 0.9_dp, 0.1_dp, res_meteo_val)
-    @assertEqual(ref_meteo_val, res_meteo_val, tolerance=t, message='temporal_disagg_flux_daynight: 1 ts')
+    call temporal_disagg_state_daynight((/.true.,.false.,.true.,.false.,.true./), (/24.0_dp,24.0_dp,24.0_dp,24.0_dp,1.0_dp/), &
+                                       2.74_dp, 0.9_dp, 0.1_dp, res_meteo_val, (/.false.,.false.,.true.,.true.,.false./))
+    @assertEqual(ref_meteo_val, res_meteo_val, tolerance=t, message='temporal_disagg_state_daynight')
 
   end subroutine test_temporal_disagg_state_daynight
 
