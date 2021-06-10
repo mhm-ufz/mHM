@@ -154,8 +154,15 @@ MODULE mo_common_datetime_type
     if (this%prev_day   /= this%day) this%is_new_day = .true.
     if (this%prev_month /= this%month) this%is_new_month = .true.
     if (this%prev_year  /= this%year) this%is_new_year = .true.
-    ! update the yId index as well
-    this%yId  = LCyearId(this%year, iDomain)
+    ! second conditional is hack
+    ! increment is called after simulation to produce follow-up date to label time in netcdf files
+    ! however, this can mean, we are out of defined LCyearIds
+    ! in that case simply not alter the Id
+    ! TODO: still, it is a serious design flaw and should be adressed
+    if (this%is_new_year .and. ubound(LCyearId(:, iDomain), dim=1) >= this%year) then
+      ! update the yId index as well
+      this%yId  = LCyearId(this%year, iDomain)
+    end if
   end subroutine datetimeinfo_increment
 
   subroutine datetimeinfo_update_LAI_timestep(this)
