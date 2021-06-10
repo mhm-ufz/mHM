@@ -124,7 +124,7 @@ contains
 
     ! dummy variable
     real(dp), dimension(:, :, :), allocatable :: dummy_d3
-    real(dp), dimension(:), allocatable :: dummy_d1
+    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_
 
     ! number of landcoverperiods for current domain
     integer(i4) :: iDomainNLandCoverPeriods
@@ -170,11 +170,11 @@ contains
     nproc = nc%setDimension("Nprocesses", size(processMatrix, dim = 1))
 
     iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain), mask=LCyearId(:, iDomain) /= nodata_i4)
-    allocate(dummy_d1(size(landCoverPeriodBoundaries, dim=1)))
-    dummy_d1 = real(landCoverPeriodBoundaries(:, iDomain), dp)
+    allocate(landCoverPeriodBoundaries_(iDomainNLandCoverPeriods+1))
+    landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, iDomain), dp)
     lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &
-            dummy_d1, 0_i4)
-    deallocate(dummy_d1)
+            landCoverPeriodBoundaries_, 0_i4)
+    deallocate(landCoverPeriodBoundaries_)
 
     ! add processMatrix
     var = nc%setVariable("ProcessMatrix", "i32", (/nproc/))
@@ -273,7 +273,7 @@ contains
     call var%setAttribute("long_name", "Routing parameter C2=f(K,xi, DT) (Chow, 25-41) at level 11")
 
     deallocate(dummy_d3)
-    allocate(dummy_d3(nrows11, ncols11, nLandCoverPeriods))
+    allocate(dummy_d3(nrows11, ncols11, iDomainNLandCoverPeriods))
     do ii = 1, size(dummy_d3, 3)
       dummy_d3(:, :, ii) = unpack(L11_nLinkFracFPimp(s11 : e11, ii), mask11, nodata_dp)
     end do
