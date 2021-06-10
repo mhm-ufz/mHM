@@ -194,7 +194,7 @@ CONTAINS
                                     L1_fastRunoff, L1_infilSoil, &
                                     L1_inter, L1_melt, L1_neutrons, L1_percol, L1_pet_calc, L1_preEffect, L1_rain, &
                                     L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
-                                    L1_soilMoist, L1_total_runoff, L1_unsatSTW, L1_latitude, &
+                                    L1_soilMoist, L1_total_runoff, L1_unsatSTW, &
                                     nSoilHorizons, soilHorizonBoundaries, L1_HarSamCoeff, L1_PrieTayAlpha, &
                                     L1_aeroResist, L1_alpha, L1_degDay, L1_degDayInc, L1_degDayMax,&
                                     L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, &
@@ -319,9 +319,6 @@ CONTAINS
 
       ! PET correction factor due to terrain aspect
       L1_fAsp = P1_InitStateFluxes
-
-      ! latitude
-      L1_latitude = P1_InitStateFluxes
 
       ! PET Hargreaves Samani Coefficient
       L1_HarSamCoeff = P1_InitStateFluxes

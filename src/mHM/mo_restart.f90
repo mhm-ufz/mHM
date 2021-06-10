@@ -349,8 +349,7 @@ CONTAINS
                                         L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, &
                                     L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, L1_kFastFlow, L1_maxInter, &
                                         L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, L1_soilMoistFC, &
-                                        L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, L1_wiltingPoint, &
-                                        L1_latitude
+                                        L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, L1_wiltingPoint
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
     use mo_read_nc, only: check_dimension_consistency
@@ -1124,7 +1123,7 @@ CONTAINS
     use mo_common_variables, only : processMatrix
     use mo_kind, only : i4
     use mo_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, &
-                                        L1_alpha, L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_latitude, &
+                                        L1_alpha, L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, &
                                         L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, &
                                         L1_kSlowFlow, L1_karstLoss, L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, &
                                         L1_sealedThresh, L1_soilMoistExp, L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, &
@@ -1245,10 +1244,6 @@ CONTAINS
             L1_wiltingPoint(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
             "Permanent wilting point at level 1")
 
-    !call unpack_field_and_write(nc, "L1_latitude", &
-    !        [rows1, cols1], nodata_dp, L1_latitude(s1 : e1), mask1, &
-    !        "Latitude at level 1")
-
     select case (processMatrix(5, 1))
     case(-1 : 0) ! PET is input
       call unpack_field_and_write(nc, "L1_fAsp", &
@@ -1294,7 +1289,7 @@ CONTAINS
                                     L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
                                     L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
                                     L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                    L1_wiltingPoint, L1_latitude, nLAIs, nSoilHorizons
+                                    L1_wiltingPoint, nLAIs, nSoilHorizons
 
     implicit none
 
@@ -1371,8 +1366,6 @@ CONTAINS
     call append(L1_karstLoss, dummy_1D)
     ! PET correction factor due to terrain aspect
     call append(L1_fAsp, dummy_1D)
-    ! latitude
-    call append(L1_latitude, dummy_1D)
     ! PET Hargreaves Samani coefficient
     call append(L1_HarSamCoeff, dummy_1D)
     ! jarvis critical value for normalized soil water content
