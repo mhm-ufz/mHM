@@ -108,8 +108,8 @@ CONTAINS
     ! consistency check
     if ((size(dummy, dim = 1) .NE. level%nrows) .or. &
             (size(dummy, dim = 2) .NE. level%ncols)) then
-      call message('   ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file for ', trim(level_name), &
-              ' in domain ', trim(adjustl(num2str(ii))), '!')
+      call message('   ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file ', trim(fname), &
+              ' for ', trim(level_name), ' in domain ', trim(adjustl(num2str(ii))), '!')
       call message('  Latitude expected to have following dimensions ... rows:', &
               trim(adjustl(num2str(level%nrows))), ', cols:', trim(adjustl(num2str(level%ncols))))
       call message('  Latitude provided ... rows:', &

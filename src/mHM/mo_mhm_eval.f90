@@ -307,8 +307,10 @@ CONTAINS
       mask1 => level1(iDomain)%mask
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
-      s1_param = level1(domainMeta%L0DataFrom(iDomain))%iStart
-      e1_param = level1(domainMeta%L0DataFrom(iDomain))%iEnd
+      ! TODO: at some point, parameters that share L0 might be put in a seperate structure
+      ! for this MPR would be only called for each unique domainMeta%L0DataFrom(iDomain) and then also indexed
+      s1_param = s1
+      e1_param = e1
 
       if (domainMeta%doRouting(iDomain)) then
         ! ----------------------------------------

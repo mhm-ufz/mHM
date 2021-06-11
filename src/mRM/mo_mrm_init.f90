@@ -91,7 +91,7 @@ end subroutine mrm_configuration
   ! Stephan Thober May 2019 - added init of level0 in case of read restart
 
 
-  subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param)
+  subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_grid, only : read_grid_info
@@ -116,7 +116,6 @@ end subroutine mrm_configuration
     use mo_mrm_river_head, only: init_masked_zeros_l0, create_output, calc_channel_elevation
     use mo_mrm_mpr, only : mrm_init_param
     use mo_common_read_config, only : check_optimization_settings
-    use mo_mrm_read_config, only : mrm_read_config
 
     implicit none
 
@@ -124,14 +123,14 @@ end subroutine mrm_configuration
 
     integer, intent(in) :: unamelist, unamelist_param
 
+    logical, optional, intent(in) :: ReadLatLon
+
     ! start and end index for routing parameters
     integer(i4) :: iStart, iEnd
     ! start and end index at L11
     integer(i4) :: s11, e11
 
     integer(i4) :: domainID, iDomain, gauge_counter
-
-    logical :: ReadLatLon
 
     call message('')
     call message('  Inititalize mRM')
@@ -173,11 +172,16 @@ end subroutine mrm_configuration
                 level11(iDomain), l0_l11_remap(iDomain))
         call init_lowres_level(level1(iDomain), resolutionRouting(iDomain), &
                 level11(iDomain), l1_l11_remap(iDomain))
-        ! read lat lon coordinates for level 1
-        call read_latlon(iDomain, "lon", "lat", "level11", level11(iDomain))
-
         call L11_L1_mapping(iDomain)
 
+        if (ReadLatLon) then
+          ! read lat lon coordinates of each domain
+          call read_latlon(iDomain, "lon_l11", "lat_l11", "level11", level11(iDomain))
+        else
+          ! allocate the memory and set to nodata
+          level11(iDomain)%x = nodata_dp
+          level11(iDomain)%y = nodata_dp
+        end if
       end if
     end do
 

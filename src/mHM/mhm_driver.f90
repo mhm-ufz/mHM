@@ -315,7 +315,7 @@ PROGRAM mhm_driver
   call timer_stop(itimer)
   call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
   if (processMatrix(8, 1) > 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
-          file_namelist_mhm_param, unamelist_mhm_param)
+          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon)
 
   itimer = itimer + 1
   call message('  Read forcing and optional data ...')
