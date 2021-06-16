@@ -809,7 +809,7 @@ CONTAINS
 
         ! update the year-dependent domainDateTime%yId (land cover id)
         if (domainDateTime%is_new_year .and. tt < domainDateTime%nTimeSteps) then
-          if (domainDateTime%year > ubound(LCyearId(:, uniqueIDomain), dim=1)) then
+          if (domainDateTime%year > ubound(LCyearId, dim=1)) then
             ! TODO: temporary hack
             print*, 'WARNING', tt, domainDateTime%year
             cycle

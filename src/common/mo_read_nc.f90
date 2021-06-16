@@ -911,31 +911,33 @@ contains
     logical, dimension(size(boundaries) - 1) :: select_indices_mask
     logical, dimension(size(boundaries)) :: select_indices_temp
 
-    integer(i4) :: select_index, iBoundary
+    integer(i4) :: select_index, iBoundary, LCyearStart, LCyearEnd
 
     allocate(select_indices(size(boundaries) - 1))
     select_index = 0_i4
     select_indices_mask = .false.
+    LCyearStart = lbound(LCyearId, dim=1)
+    LCyearEnd = ubound(LCyearId, dim=1)
 
     ! set the correct indices to use
     do iBoundary=1, size(boundaries) - 1
       ! check for overlap ((StartA <= EndB) and (EndA >= StartB))
       ! https://stackoverflow.com/questions/325933/
-      if ((boundaries(iBoundary) <= simPer(iDomain)%yend) .and. &
-              ((boundaries(iBoundary+1)-1) >= simPer(iDomain)%ystart)) then
+      ! TODO: MPR reinstate, if all landcover periods are to be set
+      !if ((boundaries(iBoundary) <= simPer(iDomain)%yend) .and. &
+      !        ((boundaries(iBoundary+1)-1) >= simPer(iDomain)%ystart)) then
         ! advance counter
         select_index = select_index + 1_i4
         ! select this iBoundary from dimension
         select_indices_mask(iBoundary) = .true.
         ! set the correct LCyearId
         LCyearId(&
-                maxval([int(boundaries(iBoundary)), simPer(iDomain)%ystart]):&
-                minval([int(boundaries(iBoundary+1)), simPer(iDomain)%yend]), uniqueIDomain) = select_index
+                maxval([int(boundaries(iBoundary)), LCyearStart]):&
+                minval([int(boundaries(iBoundary+1)), LCyearEnd]), uniqueIDomain) = select_index
         ! set the boundaries as parsed
         landCoverPeriodBoundaries(select_index, iDomain) = int(boundaries(iBoundary))
         landCoverPeriodBoundaries(select_index + 1, iDomain) = int(boundaries(iBoundary + 1))
-
-      end if
+      !end if
     end do
     select_indices = pack([(iBoundary, iBoundary=1, size(boundaries) - 1)], select_indices_mask)
 

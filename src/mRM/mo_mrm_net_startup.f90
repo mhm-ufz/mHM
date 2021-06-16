@@ -1541,7 +1541,7 @@ contains
       allocate(temp_array(level11(iDomain)%nCells, iDomainNLandCoverPeriods))
       temp_array = nodata_dp
       if (do_init) then
-
+        level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
         s0 = level0_iDomain%iStart
         e0 = level0_iDomain%iEnd
         nLinks = level11(iDomain)%nCells + 1 - L11_nOutlets(iDomain)
