@@ -245,8 +245,8 @@ contains
         domainID = domainMeta%indices(iDomain)
         write(uconfig, 118) '       Land Cover Observations for domain ', num2str(domainID)
         write(uconfig, 119) ' Year', '    Land cover period'
-        do i = simPer(j)%ystart, simPer(j)%yend
-          write(uconfig, 120) i, LCyearId(i, j)
+        do i = simPer(iDomain)%ystart, simPer(iDomain)%yend
+          write(uconfig, 120) i, LCyearId(i, domainMeta%L0DataFrom(iDomain))
         end do
       end do
     end if

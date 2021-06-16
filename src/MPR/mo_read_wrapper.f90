@@ -337,7 +337,7 @@ CONTAINS
       call message('      Reading latitude/logitude ...')
       call read_latlon(iDomain, "lon_l0", "lat_l0", "level0", level0_iDomain)
 
-      call check_dimension_consistency(iDomain, nSoilHorizons, soilHorizonBoundaries, &
+      call check_dimension_consistency(iDomain, domainMeta%L0DataFrom(iDomain), nSoilHorizons, soilHorizonBoundaries, &
             nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp, &
               landCoverPeriodSelect, .true.)
 

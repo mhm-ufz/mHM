@@ -85,7 +85,7 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: parameterValues
     character(64), dimension(:), intent(in) :: parameterNames
     integer(i4), dimension(:), optional, intent(in) :: opti_domain_indices
-    integer(i4) :: iDomain, domainID
+    integer(i4) :: iDomain, domainID, uniqueIDomain
     type(Grid) :: dummy
     type(Grid), pointer :: level1_iDomain
 
@@ -96,12 +96,13 @@ CONTAINS
     if (read_restart) then
       do iDomain = 1, domainMeta%nDomains
         domainID = domainMeta%indices(iDomain)
+        uniqueIDomain = domainMeta%L0DataFrom(iDomain)
 
         ! this reads only the domain properties
         ! domainID, inputFile, level_name, new_grid
         call read_grid_info(domainID, mhmFileRestartIn(iDomain), "1", level1(iDomain))
 
-        call read_restart_states(iDomain, mhmFileRestartIn(iDomain), do_read_states_arg=.false.)
+        call read_restart_states(iDomain, uniqueIDomain, mhmFileRestartIn(iDomain), do_read_states_arg=.false.)
 
       end do
     else

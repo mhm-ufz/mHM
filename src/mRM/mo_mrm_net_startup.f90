@@ -1527,20 +1527,20 @@ contains
 
     real(dp), dimension(:,:), allocatable :: temp_array
 
-    integer(i4) :: ii, iDomain, iiLC, s0, e0, iDomainNLandCoverPeriods
+    integer(i4) :: ii, iDomain, iiLC, s0, e0, iDomainNLandCoverPeriods, uniqueIDomain
 
     type(Grid), pointer :: level0_iDomain => null()
 
 
     ! initialization
     do iDomain = 1, domainMeta%nDomains
-      iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain))
+      uniqueIDomain = domainMeta%L0DataFrom(iDomain)
+      iDomainNLandCoverPeriods = maxval(LCyearId(:, uniqueIDomain))
       ! TODO: MPR comment next line
       iDomainNLandCoverPeriods = nLandCoverPeriods
       allocate(temp_array(level11(iDomain)%nCells, iDomainNLandCoverPeriods))
       temp_array = nodata_dp
       if (do_init) then
-        level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
 
         s0 = level0_iDomain%iStart
         e0 = level0_iDomain%iEnd

@@ -169,7 +169,8 @@ contains
     nts = nc%setDimension("TS", 1)
     nproc = nc%setDimension("Nprocesses", size(processMatrix, dim = 1))
 
-    iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain), mask=LCyearId(:, iDomain) /= nodata_i4)
+    iDomainNLandCoverPeriods = maxval(LCyearId(:, domainMeta%L0DataFrom(iDomain)), &
+            mask=LCyearId(:, domainMeta%L0DataFrom(iDomain)) /= nodata_i4)
     allocate(landCoverPeriodBoundaries_(iDomainNLandCoverPeriods+1))
     landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, iDomain), dp)
     lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &

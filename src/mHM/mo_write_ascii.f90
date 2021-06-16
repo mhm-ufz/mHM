@@ -108,7 +108,7 @@ CONTAINS
 
     character(256) :: fName
 
-    integer(i4) :: i, j, iDomain, domainID
+    integer(i4) :: i, j, iDomain, domainID, uniqueIDomain
 
     integer(i4) :: err
 
@@ -193,10 +193,11 @@ CONTAINS
     !*********************************
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
+      uniqueIDomain = domainMeta%L0DataFrom(iDomain)
       write(uconfig, 118) '     Land Cover Observations for Domain ', num2str(domainID)
       write(uconfig, 119) ' Year', '   Land cover period'
       do i = simPer(iDomain)%ystart, simPer(iDomain)%yend
-        write(uconfig, 120) i, LCyearId(i, iDomain)
+        write(uconfig, 120) i, LCyearId(i, uniqueIDomain)
       end do
     end do
     !*********************************

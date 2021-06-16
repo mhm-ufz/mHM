@@ -101,7 +101,7 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_grid, only : write_grid_info
-    use mo_common_variables, only : level1, nLandCoverPeriods, domainMeta, landCoverPeriodBoundaries
+    use mo_common_variables, only : level1, nLandCoverPeriods, domainMeta, landCoverPeriodBoundaries, level0
     use mo_common_datetime_type, only: simPer, LCyearId
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
                                     L1_fastRunoff, L1_infilSoil, L1_melt, L1_percol, L1_preEffect, L1_rain, &
@@ -120,7 +120,7 @@ CONTAINS
     ! Output Path for each domain
     character(256), dimension(:), intent(in) :: OutFile
 
-    integer(i4) :: iDomain, domainID, iYear, iBoundary
+    integer(i4) :: iDomain, domainID, iYear, iBoundary, uniqueIDomain
 
     integer(i4) :: ii
 
@@ -155,6 +155,7 @@ CONTAINS
 
     domain_loop : do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
+      uniqueIDomain = domainMeta%L0DataFrom(iDomain)
 
       ! write restart file for iDomain
       Fname = trim(OutFile(iDomain))
@@ -173,7 +174,7 @@ CONTAINS
       ! write the dimension to the file
       lais = nc%setCoordinate(trim(LAIVarName), nLAIs, LAIBoundaries, 0_i4)
 
-      iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain), mask=LCyearId(:, iDomain) /= nodata_i4)
+      iDomainNLandCoverPeriods = maxval(LCyearId(:, uniqueIDomain), mask=LCyearId(:, uniqueIDomain) /= nodata_i4)
       allocate(landCoverPeriodBoundaries_(iDomainNLandCoverPeriods+1))
       landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, iDomain), dp)
       lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &
@@ -336,7 +337,7 @@ CONTAINS
   ! Stephan Thober Nov  2016 - moved processMatrix to common variables
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_restart_states(iDomain, InFile, do_read_states_arg, do_read_dims_arg)
+  subroutine read_restart_states(iDomain, uniqueIDomain, InFile, do_read_states_arg, do_read_dims_arg)
 
     use mo_common_variables, only : level1, nLandCoverPeriods, processMatrix
     use mo_kind, only : dp, i4
@@ -358,7 +359,7 @@ CONTAINS
     implicit none
 
     ! number of domain
-    integer(i4), intent(in) :: iDomain
+    integer(i4), intent(in) :: iDomain, uniqueIDomain
 
     ! Input Path including trailing slash
     character(256), intent(in) :: InFile
@@ -451,7 +452,7 @@ CONTAINS
       LAIBoundaries_temp = [(ii, ii=1, nLAIs_temp+1)]
     end if
 
-    call check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
+    call check_dimension_consistency(iDomain, uniqueIDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
           nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp, &
             landCoverPeriodSelect, do_read_dims)
 
