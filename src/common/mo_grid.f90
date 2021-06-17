@@ -1,3 +1,4 @@
+!>       \file mo_grid.f90
 !>       \brief Grid-associated routines (File I/O)
 !>       \details provides routines for Grid initialization and routines to read Grids from file and dump to file
 
@@ -615,7 +616,7 @@ contains
     real(dp), intent(out) :: lowerBound  !< lower bound of coordinate variable
     integer(i4), intent(out) :: n  !< number of values in coordinate variable
     real(dp), intent(out) :: cellsize  !< stepsize of coordinate values
-    
+
     type(NcVariable) :: ncVar
     integer(i4), dimension(:), allocatable :: varShape
     real(dp), dimension(:), allocatable :: tempValues
