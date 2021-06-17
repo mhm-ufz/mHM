@@ -935,8 +935,8 @@ contains
                 maxval([int(boundaries(iBoundary)), LCyearStart]):&
                 minval([int(boundaries(iBoundary+1)), LCyearEnd]), uniqueIDomain) = select_index
         ! set the boundaries as parsed
-        landCoverPeriodBoundaries(select_index, iDomain) = int(boundaries(iBoundary))
-        landCoverPeriodBoundaries(select_index + 1, iDomain) = int(boundaries(iBoundary + 1))
+        landCoverPeriodBoundaries(select_index, uniqueIDomain) = int(boundaries(iBoundary))
+        landCoverPeriodBoundaries(select_index + 1, uniqueIDomain) = int(boundaries(iBoundary + 1))
       !end if
     end do
     select_indices = pack([(iBoundary, iBoundary=1, size(boundaries) - 1)], select_indices_mask)
@@ -990,11 +990,11 @@ contains
 
     check_all = .true.
     if (present(check_all_arg)) check_all = check_all_arg
-    call common_check_dimension_consistency(iDomain, uniqueIDomain, landCoverPeriodBoundaries_temp, landCoverSelect)
     if (iDomain == 1 .and. check_all) then
       ! set local to global
       nSoilHorizons = nSoilHorizons_temp
       nLAIs = nLAIs_temp
+      nLandCoverPeriods = nLandCoverPeriods_temp
       ! TODO: MPR remove if clause here
       if (.not. allocated(soilHorizonBoundaries)) allocate(soilHorizonBoundaries(nSoilHorizons))
       soilHorizonBoundaries = soilHorizonBoundaries_temp
@@ -1031,8 +1031,9 @@ contains
           stop 1
         end if
       end do
-
     end if
+    call common_check_dimension_consistency(iDomain, uniqueIDomain, landCoverPeriodBoundaries_temp, landCoverSelect)
+
   end subroutine check_dimension_consistency
 
   subroutine check_consistency_element_dp(item1, item2, name, iDomain)

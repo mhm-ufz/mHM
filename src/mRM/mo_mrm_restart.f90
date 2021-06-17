@@ -172,7 +172,7 @@ contains
     iDomainNLandCoverPeriods = maxval(LCyearId(:, domainMeta%L0DataFrom(iDomain)), &
             mask=LCyearId(:, domainMeta%L0DataFrom(iDomain)) /= nodata_i4)
     allocate(landCoverPeriodBoundaries_(iDomainNLandCoverPeriods+1))
-    landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, iDomain), dp)
+    landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, domainMeta%L0DataFrom(iDomain)), dp)
     lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &
             landCoverPeriodBoundaries_, 0_i4)
     deallocate(landCoverPeriodBoundaries_)
