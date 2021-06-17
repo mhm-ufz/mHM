@@ -381,7 +381,7 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_mpr_global_variables, only : iFlag_soilDB, nSoilTypes, soilDB
-    use mo_global_variables, only: nSoilHorizons, soilHorizonBoundaries
+    use mo_global_variables, only: nSoilHorizons, soilHorizonBoundaries, lowestDepth
 
     implicit none
 
@@ -498,6 +498,7 @@ CONTAINS
 
         end do
         ! restore the original depth, as this is a global array
+        lowestDepth = soilHorizonBoundaries(nSoilHorizons+1)
         soilHorizonBoundaries(nSoilHorizons+1) = lastHorizonDepth
       end do
       ! soil database for the horizon specific case

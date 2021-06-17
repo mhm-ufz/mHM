@@ -69,6 +69,7 @@ MODULE mo_global_variables
   integer(i4), public :: nSoilHorizons  !       Number of horizons to model
   real(dp), dimension(:), allocatable, public :: soilHorizonBoundaries   ! [mm]  Horizon boundaries from surface,
   !                                                                               positive downwards (0:nSoilHorizons)
+  real(dp), public :: lowestDepth   ! [mm] lowest depth
   integer(i4), public :: nLAIs  !       Number of LAI periods
   real(dp), dimension(:), allocatable, public :: LAIBoundaries   ! [mm]  LAI periods,
   !                                                                               positive downwards (0:nSoilHorizons)

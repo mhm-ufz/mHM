@@ -99,7 +99,8 @@ CONTAINS
                                     timeStep_model_inputs, timeStep_model_outputs, &
                                     L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
                                     L1_tann, L1_ssrd, L1_strd, fday_ssrd, fnight_ssrd, fday_strd, fnight_strd, & ! meteo for riv-temp
-            nSoilHorizons, soilHorizonBoundaries, L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, &
+                                    L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, &
+                                    nSoilHorizons, soilHorizonBoundaries, lowestDepth, &
                                         L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
                                         L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
                                         L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
@@ -218,6 +219,8 @@ CONTAINS
     ! Runoff that is input for routing
     real(dp), allocatable, dimension(:) :: RunToRout
 
+    real(dp), allocatable, dimension(:) :: mhmHorizons
+
     ! inflowing discharge
     real(dp), allocatable, dimension(:) :: InflowDischarge
 
@@ -314,6 +317,10 @@ CONTAINS
       e1_param = e1
 
       uniqueIDomain = domainMeta%L0DataFrom(iDomain)
+      ! this is done for correct handling of soil horizons in mHM subroutine, it is rather hacky, so it gets a TODO
+      allocate(mhmHorizons(nSoilHorizons))
+      mhmHorizons(:) = soilHorizonBoundaries(2: nSoilHorizons+1)
+      mhmHorizons(nSoilHorizons) = lowestDepth
 
       if (domainMeta%doRouting(iDomain)) then
         ! ----------------------------------------
@@ -421,7 +428,7 @@ CONTAINS
         ! --------------------------------------------------------------------------
         call mhm(read_restart, & ! IN C
                 tt, domainDateTime%newTime - 0.5_dp, processMatrix, &
-                soilHorizonBoundaries(2:nSoilHorizons+1) * 1000_dp, & ! IN C
+                mhmHorizons, & ! IN C
                 nCells, nSoilHorizons, real(nTstepDay, dp), c2TSTu,  & ! IN C
                 neutron_integral_AFast, & ! IN C
                 parameterset, & ! IN
@@ -825,6 +832,7 @@ CONTAINS
         deallocate(RunToRout)
         if ( riv_temp_pcs%active ) call riv_temp_pcs%dealloc_lateral()
       end if
+      deallocate(mhmHorizons)
 
     end do DomainLoop !<< Domain LOOP
 

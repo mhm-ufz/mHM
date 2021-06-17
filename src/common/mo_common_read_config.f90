@@ -693,7 +693,7 @@ CONTAINS
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
     use mo_utils, only : EQ
-    use mo_global_variables, only: soilHorizonBoundaries, nSoilHorizons
+    use mo_global_variables, only: soilHorizonBoundaries, nSoilHorizons, lowestDepth
 
     implicit none
 
@@ -946,6 +946,7 @@ CONTAINS
       call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
       stop
     end if
+    lowestDepth = soilHorizonBoundaries(nSoilHorizons+1)
     ! TODO: MPR remove this duplications
     HorizonDepth_mHM = soilHorizonBoundaries(2 : nSoilHorizons+1)
     ! some consistency checks for the specification of the tillage depth
