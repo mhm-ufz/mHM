@@ -577,7 +577,7 @@ CONTAINS
   end subroutine
 #endif
 
-    subroutine check_optimization_settings
+  subroutine check_optimization_settings
 
     use mo_common_variables, only : dds_r, nIterations, sce_ngs, sce_npg, sce_nps, global_parameters
     use mo_message, only : message
