@@ -10,7 +10,7 @@ module test_soil_moisture
 
   public :: test_soil_moist, test_feddes_et_reduction, test_jarvis_et_reduction
 
-  real :: t = 0.001
+  real(dp) :: t = 0.001_dp
 
 contains
 

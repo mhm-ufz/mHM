@@ -10,7 +10,7 @@ module test_temporal_disagg_forcing
   public :: test_temporal_disagg_forc, test_temporal_disagg_meteo_weights, &
             test_temporal_disagg_flux_daynight, test_temporal_disagg_state_daynight
 
-  real :: t = 0.001
+  real(dp) :: t = 0.001_dp
 
 contains
 

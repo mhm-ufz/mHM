@@ -10,7 +10,7 @@ module test_spatial_agg_disagg_forcing
 
   public :: test_spatial_aggregation_3d, test_spatial_aggregation_4d, test_spatial_disaggregation_3d, test_spatial_disaggregation_4d
 
-  real :: t = 0.001
+  real(dp) :: t = 0.001_dp
   logical, dimension(20) :: val_mask = [.false., .true., .true., .false., .false., .false., .false., .false., .false., &
                                         .true., .false., .true., .true., .true., .true., .false., .true., .true., .true., .true.]
 

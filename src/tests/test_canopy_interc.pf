@@ -9,7 +9,7 @@ module test_canopy_interc
 
   public :: test_canopy_inter
 
-  real :: t = 0.001
+  real(dp) :: t = 0.001_dp
 
 contains
 

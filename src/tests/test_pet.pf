@@ -11,7 +11,7 @@ module test_pet
   public :: test_pet_hargreaves, test_pet_priestly, test_pet_penman, test_extraterr_rad_approx, &
             test_slope_satpressure, test_sat_vap_pressure
 
-  real :: t = 0.001
+  real(dp) :: t = 0.001_dp
 
 contains
 
