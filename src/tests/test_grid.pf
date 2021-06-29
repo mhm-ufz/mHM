@@ -37,14 +37,18 @@ contains
     highres%CellArea(:) = 25
     ref_lowres%nrows = 2
     ref_lowres%ncols = 2
-    ref_lowres%xllcorner = 3893
-    ref_lowres%yllcorner = 2705
+    ref_lowres%xllcorner = 3943
+    ref_lowres%yllcorner = 2695
     ref_lowres%cellsize = 50
     allocate(ref_lowres%cellCoor(4,2))
-    do i = 1, 4
-      ref_lowres%cellCoor(i,1) = i
-      ref_lowres%cellCoor(i,2) = i
-    end do
+    ref_lowres%cellCoor(1,1) = 1
+    ref_lowres%cellCoor(1,2) = 1
+    ref_lowres%cellCoor(2,1) = 2
+    ref_lowres%cellCoor(2,2) = 1
+    ref_lowres%cellCoor(3,1) = 1
+    ref_lowres%cellCoor(3,2) = 2
+    ref_lowres%cellCoor(4,1) = 2
+    ref_lowres%cellCoor(4,2) = 2
     allocate(ref_lowres%CellArea(4))
     ref_lowres%CellArea(1) = 250
     ref_lowres%CellArea(2) = 75
@@ -55,31 +59,31 @@ contains
     allocate(ref_h_l_remap%left_bound(4))
     allocate(ref_h_l_remap%right_bound(4))
     allocate(ref_h_l_remap%n_subcells(4))
-    allocate(ref_h_l_remap%lowres_id_on_highres(4,2))
+    allocate(ref_h_l_remap%lowres_id_on_highres(6,7))
     ref_h_l_remap%lower_bound = [5,6,5,6]
     ref_h_l_remap%upper_bound = [1,6,1,6]
     ref_h_l_remap%left_bound = [1,1,6,6]
     ref_h_l_remap%right_bound = [5,5,7,7]
-    ref_h_l_remap%n_subcells = [13,3,7,2]
+    ref_h_l_remap%n_subcells = [10,3,5,2]
     ref_h_l_remap%lowres_id_on_highres(1:5,1:5) = 1
     ref_h_l_remap%lowres_id_on_highres(1:5,6:7) = 3
     ref_h_l_remap%lowres_id_on_highres(6:6,1:5) = 2
     ref_h_l_remap%lowres_id_on_highres(6:6,6:7) = 4
 
-    !call init_lowres_level(highres, 50.0_dp, res_lowres, res_h_l_remap)      
-    !@assertEqual(ref_lowres%nrows, res_lowres%nrows, message='init_lowres_level, lowres%nrows: with remap')
-    !@assertEqual(ref_lowres%ncols, res_lowres%ncols, message='init_lowres_level, lowres%ncols: with remap')
-    !@assertEqual(ref_lowres%xllcorner, res_lowres%xllcorner, message='init_lowres_level, lowres%xllcorner: with remap')
-    !@assertEqual(ref_lowres%yllcorner, res_lowres%yllcorner, message='init_lowres_level, lowres%yllcorner: with remap')
-    !@assertEqual(ref_lowres%cellsize, res_lowres%cellsize, message='init_lowres_level, lowres%cellsize: with remap')
-    !@assertEqual(ref_lowres%cellCoor, res_lowres%cellCoor, message='init_lowres_level, lowres%cellCoor: with remap')
-    !@assertEqual(ref_lowres%CellArea, res_lowres%CellArea, message='init_lowres_level, lowres%CellArea: with remap')
-    !@assertEqual(ref_h_l_remap%lower_bound, res_h_l_remap%lower_bound, message='init_lowres_level, hlr%lower_bound: with remap')
-    !@assertEqual(ref_h_l_remap%upper_bound, res_h_l_remap%upper_bound, message='init_lowres_level, hlr%upper_bound: with remap')
-    !@assertEqual(ref_h_l_remap%left_bound, res_h_l_remap%left_bound, message='init_lowres_level, hlr%left_bound: with remap')
-    !@assertEqual(ref_h_l_remap%right_bound, res_h_l_remap%right_bound, message='init_lowres_level, hlr%right_bound: with remap')
-    !@assertEqual(ref_h_l_remap%n_subcells, res_h_l_remap%n_subcells, message='init_lowres_level, hlr%n_subcells: with remap')
-    !@assertEqual(ref_h_l_remap%lowres_id_on_highres, res_h_l_remap%lowres_id_on_highres, message='i_l_l, hlr%id:with remap')
+    call init_lowres_level(highres, 50.0_dp, res_lowres, res_h_l_remap)      
+    @assertEqual(ref_lowres%nrows, res_lowres%nrows, message='init_lowres_level, lowres%nrows: with remap')
+    @assertEqual(ref_lowres%ncols, res_lowres%ncols, message='init_lowres_level, lowres%ncols: with remap')
+    @assertEqual(ref_lowres%xllcorner, res_lowres%xllcorner, message='init_lowres_level, lowres%xllcorner: with remap')
+    @assertEqual(ref_lowres%yllcorner, res_lowres%yllcorner, message='init_lowres_level, lowres%yllcorner: with remap')
+    @assertEqual(ref_lowres%cellsize, res_lowres%cellsize, message='init_lowres_level, lowres%cellsize: with remap')
+    @assertEqual(ref_lowres%cellCoor, res_lowres%cellCoor, message='init_lowres_level, lowres%cellCoor: with remap')
+    @assertEqual(ref_lowres%CellArea, res_lowres%CellArea, message='init_lowres_level, lowres%CellArea: with remap')
+    @assertEqual(ref_h_l_remap%lower_bound, res_h_l_remap%lower_bound, message='init_lowres_level, hlr%lower_bound: with remap')
+    @assertEqual(ref_h_l_remap%upper_bound, res_h_l_remap%upper_bound, message='init_lowres_level, hlr%upper_bound: with remap')
+    @assertEqual(ref_h_l_remap%left_bound, res_h_l_remap%left_bound, message='init_lowres_level, hlr%left_bound: with remap')
+    @assertEqual(ref_h_l_remap%right_bound, res_h_l_remap%right_bound, message='init_lowres_level, hlr%right_bound: with remap')
+    @assertEqual(ref_h_l_remap%n_subcells, res_h_l_remap%n_subcells, message='init_lowres_level, hlr%n_subcells: with remap')
+    @assertEqual(ref_h_l_remap%lowres_id_on_highres, res_h_l_remap%lowres_id_on_highres, message='i_l_l, hlr%id:with remap')
 
     deallocate(highres%mask)
     deallocate(highres%CellArea)
