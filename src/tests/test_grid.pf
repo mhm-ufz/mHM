@@ -29,8 +29,8 @@ contains
     allocate(highres%mask(6,7))
     do i = 1, 3
       do j = 1, 7
-        highres%mask(i,j) = mask_val1(j)
-        highres%mask(i*2,j) = mask_val2(j)
+        highres%mask(2*i-1,j) = mask_val1(j)
+        highres%mask(2*i  ,j) = mask_val2(j)
       end do
     end do
     allocate(highres%CellArea(42))
