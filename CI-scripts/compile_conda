@@ -1,0 +1,8 @@
+conda create -y --prefix ./mhm_env
+conda activate ./mhm_env
+conda config --add channels conda-forge
+conda config --set channel_priority strict
+conda install -y cmake make fortran-compiler netcdf-fortran
+cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+make -j 4 -C build
+cp build/mhm .
