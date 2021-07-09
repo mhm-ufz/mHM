@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/jothepro/doxygen-awesome-css.git
+	branch = v1.5.0
+	commit = 9380569e8aea36374d848c8a43c6f9c6343d9bc0
+	parent = d1b0b036c7e77b2b81954403441ea7e7dbf799f0
+	method = merge
+	cmdver = 0.4.3
