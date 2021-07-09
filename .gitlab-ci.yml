@@ -55,19 +55,13 @@ documentation:
     - rm -rf latex
     # same for master
     - git checkout master
-    - test -f doc/doxygen-1.8.8.config && cp doc/doxygen-1.8.8.config doc/doxygen.config
     - doxygen doc/doxygen.config > doxygen_log_mas.txt
     - cd latex/ && make > ../doxygen_latex_mas.txt
     - cp refman.pdf ../html/mhm_doc.pdf
     - cp refman.pdf ../mhm_doc_mas.pdf
     - cd .. && mv html html_mas
     # care about warnings file (maybe missing on master)
-    - |
-      if [ -f doxygen_warn.txt ]; then
-        mv doxygen_warn.txt doxygen_warn_mas.txt
-      else
-        touch doxygen_warn_mas.txt
-      fi
+    - mv doxygen_warn.txt doxygen_warn_mas.txt
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:
