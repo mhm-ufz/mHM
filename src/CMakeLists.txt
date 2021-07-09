@@ -18,30 +18,17 @@ include(compileoptions)
 # add MPI pre-processor directive (also for mhm exe)
 if (CMAKE_WITH_MPI)
   target_compile_definitions(${LIB_NAME} PUBLIC MPI)
+  target_link_libraries(${LIB_NAME} PUBLIC MPI::MPI_Fortran)
+endif()
+if (CMAKE_WITH_OpenMP)
+  target_link_libraries(${LIB_NAME} PUBLIC OpenMP::OpenMP_Fortran)
 endif()
 # all compile and link options are PUBLIC in order to be forwared to 'mhm' exe
 # target_link_options only available in cmake 3.13 (but NETCDF_LDFLAGS_OTHER not working)
-set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS
-  "${NETCDF_LDFLAGS_OTHER} ${MPI_Fortran_LINK_FLAGS} ${OpenMP_Fortran_FLAGS} ${LAPACK_LINKER_FLAGS}"
-)
-target_compile_options(${LIB_NAME} PUBLIC
-  ${XPP_FLAG}
-  ${NETCDF_CFLAGS_OTHER}
-  ${MPI_Fortran_COMPILE_FLAGS}
-  ${OpenMP_Fortran_FLAGS}
-)
-target_include_directories(${LIB_NAME} PUBLIC
-  ${NETCDF_INCLUDES}
-  ${MPI_Fortran_INCLUDE_PATH}
-  ${OpenMP_Fortran_LIBRARY}
-  ${CMAKE_CURRENT_BINARY_DIR} # needed for mhm exe
-)
-target_link_libraries(${LIB_NAME} PUBLIC
-  ${NETCDF_LINK_LIBRARIES}
-  ${MPI_Fortran_LIBRARIES}
-  ${OpenMP_Fortran_LIBRARIES}
-  ${LAPACK_LIBRARIES}
-)
+set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS "${NETCDF_LDFLAGS_OTHER}")
+target_compile_options(${LIB_NAME} PUBLIC ${XPP_FLAG} ${NETCDF_CFLAGS_OTHER})
+target_include_directories(${LIB_NAME} PUBLIC ${NETCDF_INCLUDES} ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(${LIB_NAME} PUBLIC ${NETCDF_LINK_LIBRARIES})
 # by setting compile options and definitions PUBLIC, they are also used by
 # programms linking agains it (mhm exe in this case)
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
