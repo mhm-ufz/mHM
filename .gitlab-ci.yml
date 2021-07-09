@@ -4,6 +4,9 @@
 #     enabled = true
 # This will prevent git clone conflicts for jobs ran in parallel
 
+variables:
+  GIT_DEPTH: 10
+
 stages:
   - info
   - build
@@ -33,8 +36,9 @@ documentation:
     - develop
   stage: build
   variables:
+    GIT_DEPTH: 0
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
-    GIT_FETCH_EXTRA_FLAGS: --all --prune --quiet
+    GIT_FETCH_EXTRA_FLAGS: --all --no-tags --prune --quiet
   script:
     - module load foss/2019b
     - module load texlive/2019
@@ -52,19 +56,13 @@ documentation:
     - rm -rf latex
     # same for master
     - git checkout master
-    - test -f doc/doxygen-1.8.8.config && cp doc/doxygen-1.8.8.config doc/doxygen.config
     - doxygen doc/doxygen.config > doxygen_log_mas.txt
     - cd latex/ && make > ../doxygen_latex_mas.txt
     - cp refman.pdf ../html/mhm_doc.pdf
     - cp refman.pdf ../mhm_doc_mas.pdf
     - cd .. && mv html html_mas
     # care about warnings file (maybe missing on master)
-    - |
-      if [ -f doxygen_warn.txt ]; then
-        mv doxygen_warn.txt doxygen_warn_mas.txt
-      else
-        touch doxygen_warn_mas.txt
-      fi
+    - mv doxygen_warn.txt doxygen_warn_mas.txt
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:

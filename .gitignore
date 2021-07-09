@@ -1,5 +1,10 @@
 # Created by .ignore support plugin (hsz.mobi)
 
+# ignore Doxygen specific files
+html
+latex
+doxygen_warn.txt
+
 # Exclusions
 ./mhm
 *.g90
