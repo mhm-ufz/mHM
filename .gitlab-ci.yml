@@ -36,6 +36,7 @@ documentation:
     - develop
   stage: build
   variables:
+    GIT_DEPTH: 0
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
     GIT_FETCH_EXTRA_FLAGS: --all --no-tags --prune --quiet
   script:
