@@ -50,9 +50,9 @@ contains
     ref_lowres%cellCoor(4,1) = 2
     ref_lowres%cellCoor(4,2) = 2
     allocate(ref_lowres%CellArea(4))
-    ref_lowres%CellArea(1) = 250
+    ref_lowres%CellArea(1) = 300
     ref_lowres%CellArea(2) = 75
-    ref_lowres%CellArea(3) = 125
+    ref_lowres%CellArea(3) = 175
     ref_lowres%CellArea(4) = 50
     allocate(ref_h_l_remap%lower_bound(4))
     allocate(ref_h_l_remap%upper_bound(4))
@@ -64,7 +64,7 @@ contains
     ref_h_l_remap%upper_bound = [1,6,1,6]
     ref_h_l_remap%left_bound = [1,1,6,6]
     ref_h_l_remap%right_bound = [5,5,7,7]
-    ref_h_l_remap%n_subcells = [10,3,5,2]
+    ref_h_l_remap%n_subcells = [12,3,7,2]
     ref_h_l_remap%lowres_id_on_highres(1:5,1:5) = 1
     ref_h_l_remap%lowres_id_on_highres(1:5,6:7) = 3
     ref_h_l_remap%lowres_id_on_highres(6:6,1:5) = 2
