@@ -63,7 +63,7 @@ CONTAINS
                                     warmPer, warmingDays, landCoverPeriodBoundaries
     use mo_common_datetime_type, only: LCyearId, simPer, timestep, nTStepDay, period
     use mo_julian, only : caldat, julday
-    use mo_message, only : message
+    use mo_message, only : error_message, message
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
     use mo_grid, only : iFlag_coordinate_sys
@@ -175,9 +175,7 @@ CONTAINS
     call init_domain_variable(nDomains, read_opt_domain_data(1:nDomains), domainMeta)
 
     if (nDomains .GT. maxNoDomains) then
-      call message()
-      call message('***ERROR: Number of domains is resticted to ', trim(num2str(maxNoDomains)), '!')
-      stop 1
+      call error_message('***ERROR: Number of domains is resticted to ', trim(num2str(maxNoDomains)), '!')
     end if
 
     ! allocate patharray sizes
@@ -212,9 +210,7 @@ CONTAINS
 
     ! check for possible options
     if(.NOT. (iFlag_coordinate_sys == 0 .OR. iFlag_coordinate_sys == 1)) then
-      call message()
       call message('***ERROR: coordinate system for the model run should be 0 or 1')
-      stop 1
     end if
 
     !===============================================================
@@ -278,9 +274,7 @@ CONTAINS
 
     ! check for optimize and read restart
     if ((read_restart) .and. (optimize)) then
-      call message()
-      call message('***ERROR: cannot read states from restart file when optimizing')
-      stop 1
+      call error_message('***ERROR: cannot read states from restart file when optimizing')
     end if
 
     do iDomain = 1, domainMeta%nDomains
@@ -297,8 +291,7 @@ CONTAINS
     !===============================================================
     ! transformation of time units & constants
     if (mod(24, timeStep) > 0) then
-      call message('mo_startup: timeStep must be a divisor of 24: ', num2str(timeStep))
-      stop 1
+      call error_message('mo_startup: timeStep must be a divisor of 24: ', num2str(timeStep))
     end if
     nTStepDay = 24_i4 / timeStep            ! # of time steps per day
 
@@ -580,7 +573,7 @@ CONTAINS
     subroutine check_optimization_settings
 
     use mo_common_variables, only : dds_r, nIterations, sce_ngs, sce_npg, sce_nps, global_parameters
-    use mo_message, only : message
+    use mo_message, only : error_message
 
     implicit none
 
@@ -589,16 +582,13 @@ CONTAINS
 
     ! check and set default values
     if (nIterations .le. 0_i4) then
-      call message('Number of iterations for Optimization (nIterations) must be greater than zero')
-      stop 1
+      call error_message('Number of iterations for Optimization (nIterations) must be greater than zero')
     end if
     if (dds_r .lt. 0.0_dp .or. dds_r .gt. 1.0_dp) then
-      call message('dds_r must be between 0.0 and 1.0')
-      stop 1
+      call error_message('dds_r must be between 0.0 and 1.0')
     end if
     if (sce_ngs .lt. 1_i4) then
-      call message ('number of complexes in SCE (sce_ngs) must be at least 1')
-      stop 1
+      call error_message('number of complexes in SCE (sce_ngs) must be at least 1')
     end if
     ! number of points in each complex: default = 2n+1
     if (sce_npg .lt. 0_i4) then
@@ -611,9 +601,8 @@ CONTAINS
       sce_nps = n_true_pars + 1_i4
     end if
     if (sce_npg .lt. sce_nps) then
-      call message ('number of points per complex (sce_npg) must be greater or')
-      call message ('equal number of points per sub-complex (sce_nps)')
-      stop 1
+      call error_message('number of points per complex (sce_npg) must be greater or', &
+              'equal number of points per sub-complex (sce_nps)')
     end if
 
   end subroutine check_optimization_settings
@@ -684,7 +673,7 @@ CONTAINS
     use mo_common_functions, only : in_bound
     use mo_common_variables, only : global_parameters, global_parameters_name, domainMeta, processMatrix, dummy_global_parameters, &
           dummy_global_parameters_name
-    use mo_message, only : message
+    use mo_message, only : error_message
     use mo_mpr_constants, only : maxGeoUnit, &
                                  maxNoSoilHorizons
     use mo_mpr_global_variables, only : HorizonDepth_mHM, dirgridded_LAI, fracSealed_cityArea, iFlag_soilDB, &
@@ -1596,9 +1585,8 @@ CONTAINS
     call close_nml(unamelist_param)
     ! check if parameter are in range
     if (.not. in_bound(global_parameters)) then
-      call message('***ERROR: parameters in namelist "mhm_parameters" out of bound in ', &
+      call error_message('***ERROR: parameters in namelist "mhm_parameters" out of bound in ', &
               trim(adjustl(file_namelist_param)))
-      stop 1
     end if
 
   end subroutine read_mhm_parameters

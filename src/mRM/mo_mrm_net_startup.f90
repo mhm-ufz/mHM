@@ -224,7 +224,7 @@ contains
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : domainMeta, level0
     use mo_grid, only: Grid
-    use mo_message, only : message
+    use mo_message, only : error_message, error
     use mo_mrm_global_variables, only : L0_draSC, L0_fAcc, L0_fDir, L0_l11_remap, L11_colOut, L11_fDir, &
                                         L11_nOutlets, L11_rowOut, domain_mrm, level11
     use mo_string_utils, only : num2str
@@ -533,7 +533,7 @@ contains
           case (4)
             fDir11(ic, jc) = 64
           case default
-            stop 'Error L11_flow_direction: side = -1'
+            call error_message('Error L11_flow_direction: side = -1')
           end select
         end if
 
@@ -885,7 +885,7 @@ contains
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : domainMeta, level0
     use mo_grid, only: Grid
-    use mo_message, only : message
+    use mo_message, only : error_message
     use mo_mrm_global_variables, only : L0_draSC, L0_fDir, L11_colOut, L11_fCol, L11_fRow, L11_fromN, &
                                         L11_nOutlets, L11_netPerm, L11_rowOut, L11_tCol, L11_tRow, domain_mrm, level11
     use mo_string_utils, only : num2str
@@ -1020,10 +1020,9 @@ contains
               if (iRow .eq. oLoc(kk, 1) .and. jCol .eq. oLoc(kk, 2)) exit
             end do
             if (prevRow .eq. iRow .and. prevCol .eq. jCol) then
-              call message('Something went wrong during L11_link_location, ', &
+              call error_message('Something went wrong during L11_link_location, ', &
                   'movedownonecell got stuck in infinite loop at cell (', num2str(iRow), ' ', &
                   num2str(jCol))
-              stop 1
             end if
           end do
           ! set "to" cell (when an outlet is reached)

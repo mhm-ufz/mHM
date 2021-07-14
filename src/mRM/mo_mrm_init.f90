@@ -316,13 +316,14 @@ end subroutine mrm_configuration
   subroutine print_startup_message(file_namelist, file_namelist_param)
 
     use mo_kind, only : i4
-    use mo_message, only : message, message_text
+    use mo_message, only : message
     use mo_mrm_file, only : file_defOutput, file_main, version, version_date
     use mo_string_utils, only : num2str, separator
 
     implicit none
 
     character(*), intent(in) :: file_namelist, file_namelist_param
+    character(1024) :: message_text
 
     ! Date and time
     integer(i4), dimension(8) :: datetime
@@ -513,7 +514,7 @@ end subroutine mrm_configuration
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : level0
     use mo_kind, only : i4
-    use mo_message, only : message, message_text
+    use mo_message, only : error_message
     use mo_mrm_global_variables, only : L0_fAcc, L0_fDir
     use mo_string_utils, only : num2str
 
@@ -522,22 +523,21 @@ end subroutine mrm_configuration
     integer(i4), intent(in) :: L0Domain_iDomain
 
     integer(i4) :: k
+    character(1024) :: message_text
 
 
     do k = level0(L0Domain_iDomain)%iStart, level0(L0Domain_iDomain)%iEnd
       ! flow direction [-]
       if (L0_fDir(k) .eq. nodata_i4) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iDomain, '(I5)'))
-        call message(' Error: flow direction has missing value within the valid masked area at cell in domain ', &
+        call error_message(' Error: flow direction has missing value within the valid masked area at cell in domain ', &
                 trim(message_text))
-        stop
       end if
       ! flow accumulation [-]
       if (L0_fAcc(k) .eq. nodata_i4) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iDomain, '(I5)'))
-        call message(' Error: flow accumulation has missing values within the valid masked area at cell in domain ', &
+        call error_message(' Error: flow accumulation has missing values within the valid masked area at cell in domain ', &
                 trim(message_text))
-        stop
       end if
     end do
 

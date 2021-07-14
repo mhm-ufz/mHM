@@ -639,7 +639,7 @@ CONTAINS
     use mo_global_variables, only : timeStep_model_inputs
     use mo_julian, only : caldat
     use mo_kind, only : i4
-    use mo_message, only : message
+    use mo_message, only : error_message
 
     implicit none
 
@@ -711,8 +711,7 @@ CONTAINS
           if (year .ne. year_before) is_read = .true.
         end if
       case default ! not specified correctly
-        call message('ERROR*** mo_meteo_forcings: function is_read: timStep_model_inputs not specified correctly!')
-        stop
+        call error_message('ERROR*** mo_meteo_forcings: function is_read: timStep_model_inputs not specified correctly!')
       end select
     end if
 
@@ -750,7 +749,7 @@ CONTAINS
     use mo_global_variables, only : timeStep_model_inputs
     use mo_julian, only : caldat, julday
     use mo_kind, only : i4
-    use mo_message, only : message
+    use mo_message, only : error_message
 
     implicit none
 
@@ -806,8 +805,7 @@ CONTAINS
       call caldat(simPer(iDomain)%julStart + Ndays, dd = day, mm = month, yy = year)
       readPer%julEnd = julday(dd = 31, mm = 12, yy = year)
     case default ! not specified correctly
-      call message('ERROR*** mo_meteo_forcings: chunk_size: timStep_model_inputs not specified correctly!')
-      stop
+      call error_message('ERROR*** mo_meteo_forcings: chunk_size: timStep_model_inputs not specified correctly!')
     end select
 
     ! end date should not be greater than end of simulation period

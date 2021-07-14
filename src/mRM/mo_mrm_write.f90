@@ -158,7 +158,7 @@ contains
                                     read_restart, resolutionRouting, warmPer
     use mo_common_datetime_type, only: LCyearId, SimPer, timeStep
     use mo_kind, only : dp, i4
-    use mo_message, only : message
+    use mo_message, only : error_message, message
     use mo_mrm_file, only : version
     use mo_mrm_global_variables, only : InflowGauge, L11_L1_Id, L11_fromN, L11_label, &
                                         L11_length, L11_netPerm, L11_rOrder, L11_slope, L11_toN, L1_L11_Id, domain_mrm, &
@@ -182,10 +182,8 @@ contains
     !checking whether the directory exists where the file shall be created or opened
     call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
     open(uconfig, file = fName, status = 'unknown', action = 'write', iostat = err)
-    if (err .ne. 0) then
-      call message('  Problems while creating File')
-      call message('  Error-Code', num2str(err))
-      stop
+    if (err /= 0) then
+      call error_message('  Problems while creating File', trim(fName), '. Error-Code:', num2str(err))
     end if
     write(uconfig, 200)
     write(uconfig, 100) 'mRM-UFZ v-' // trim(version)
@@ -469,7 +467,7 @@ contains
     use mo_common_variables, only : dirOut, domainMeta, evalPer
     use mo_errormeasures, only : kge, nse
     use mo_julian, only : dec2date
-    use mo_message, only : message
+    use mo_message, only : error_message, message
     use mo_mrm_file, only : file_daily_discharge, ncfile_discharge, udaily_discharge
     use mo_mrm_global_variables, only : domain_mrm, gauge
     use mo_ncwrite, only : var2nc
@@ -517,10 +515,8 @@ contains
       ! check the existance of file
       fName = trim(adjustl(dirOut(iDomain))) // trim(adjustl(file_daily_discharge))
       open(udaily_discharge, file = trim(fName), status = 'unknown', action = 'write', iostat = err)
-      if(err .ne. 0) then
-        call message ('  IOError while openening ', trim(fName))
-        call message ('  Error-Code ', num2str(err))
-        stop
+      if(err /= 0) then
+        call error_message('  IOError while openening File', trim(fName), '. Error-Code:', num2str(err))
       end if
 
       ! header
@@ -743,7 +739,7 @@ contains
 
     use mo_common_file, only : file_opti, uopti
     use mo_common_variables, only : dirConfigOut
-    use mo_message, only : message
+    use mo_message, only : error_message, message
     use mo_string_utils, only : num2str
 
     implicit none
@@ -767,10 +763,8 @@ contains
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti))
     open(uopti, file = fName, status = 'unknown', action = 'write', iostat = err, recl = (n_params + 1) * 40)
-    if(err .ne. 0) then
-      call message ('  IOError while openening ', trim(fName))
-      call message ('  Error-Code ', num2str(err))
-      stop
+    if(err /= 0) then
+      call error_message('  IOError while openening File', trim(fName), '. Error-Code:', num2str(err))
     end if
 
     ! header
@@ -822,7 +816,7 @@ contains
 
     use mo_common_file, only : file_opti_nml, uopti_nml
     use mo_common_variables, only : dirConfigOut, processMatrix
-    use mo_message, only : message
+    use mo_message, only : error_message, message
     use mo_string_utils, only : num2str
 
     implicit none
@@ -848,10 +842,8 @@ contains
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti_nml))
     open(uopti_nml, file = fName, status = 'unknown', action = 'write', iostat = err)
-    if(err .ne. 0) then
-      call message ('  IOError while openening ', trim(fName))
-      call message ('  Error-Code ', num2str(err))
-      stop
+    if(err /= 0) then
+      call error_message('  IOError while openening File', trim(fName), '. Error-Code:', num2str(err))
     end if
 
     write(uopti_nml, *) '!global_parameters'

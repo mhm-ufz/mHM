@@ -367,7 +367,7 @@ contains
   subroutine calculate_grid_properties(nrowsIn, ncolsIn, xllcornerIn, yllcornerIn, cellsizeIn, aimingResolution, &
                                       nrowsOut, ncolsOut, xllcornerOut, yllcornerOut, cellsizeOut)
 
-    use mo_message, only : message
+    use mo_message, only : error_message
     use mo_string_utils, only : num2str
 
     implicit none
@@ -402,11 +402,9 @@ contains
 
     ! TODO: sync this with other comparisons
     if (abs(rounded - cellFactor) > 1.e-6_dp) then
-      call message()
-      call message('***ERROR: Two resolutions size do not confirm: ', &
+      call error_message('***ERROR: Two resolutions size do not confirm: ', &
               num2str(aimingResolution), ' and ', &
               num2str(cellsizeIn))
-      stop 1
     end if
 
     cellsizeOut = cellsizeIn * rounded
@@ -608,7 +606,7 @@ contains
   subroutine get_coordinate(nc, coordName, lowerBound, n, cellsize)
 
     use mo_netcdf, only : NcDataset, NcVariable
-    use mo_message, only: message
+    use mo_message, only: error_message
 
     type(NcDataset), intent(inout) :: nc  !< NcDataset
     character(*), intent(in) :: coordName  !< name of 1d coordinate variable in NcDataset
@@ -628,8 +626,7 @@ contains
       varShape = ncVar%getShape()
       ! infer the dimensions...
       if (size(varShape) /= 1_i4) then
-        call message("cannot infer grid from non 1d-coordinate ", trim(coordName))
-        stop 1
+        call error_message("cannot infer grid from non 1d-coordinate ", trim(coordName))
       end if
       ! the variable is dependent on 1 dimension only
       n = varShape(1)
@@ -647,12 +644,10 @@ contains
         cellsize = abs(tempValues(2) - tempValues(1))
         lowerBound = tempValues(1) - 0.5_dp * cellsize
       else
-        call message("cannot infer cellsize of coordinate ", trim(coordName))
-        stop 1
+        call error_message("cannot infer cellsize of coordinate ", trim(coordName))
       end if
     else
-      call message("cannot infer Grid properties by non existing coordinate name ", trim(coordName))
-      stop 1
+      call error_message("cannot infer Grid properties by non existing coordinate name ", trim(coordName))
     end if
 
   end subroutine get_coordinate

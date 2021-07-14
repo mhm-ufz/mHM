@@ -44,7 +44,7 @@ CONTAINS
     use mo_common_file, only : varNameDem
     use mo_common_variables, only : dirMorpho, level0, domainMeta, resolutionHydrology
     use mo_grid, only : infer_grid_info, Grid
-    use mo_message, only : message
+    use mo_message, only : error_message, message
     use mo_string_utils, only : num2str
     use mo_netcdf,           only: NcDataset, NcVariable
 
@@ -74,10 +74,8 @@ CONTAINS
 
     ! check for L0 and L1 scale consistency
     if(resolutionHydrology(iDomain) .LT. level0_iDomain%cellsize) then
-      call message()
-      call message('***ERROR: resolutionHydrology (L1) should be smaller than the input data resolution (L0)')
-      call message('          check set-up (in mhm.nml) for domain: ', trim(adjustl(num2str(domainID))), ' ...')
-      stop
+      call error_message('***ERROR: resolutionHydrology (L1) should be smaller than the input data resolution (L0)', &
+              '          check set-up (in mhm.nml) for domain: ', trim(adjustl(num2str(domainID))), ' ...')
     end if
 
     ! read the Dataset

@@ -89,7 +89,7 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : opti_function
-    use mo_message, only : message
+    use mo_message, only : error_message
 
     implicit none
 
@@ -109,8 +109,7 @@ CONTAINS
 
 
     if (present(arg1) .or. present(arg2) .or. present(arg3)) then
-      call message("Error mo_objective_function: Received unexpected argument, check optimization settings")
-      stop 1
+      call error_message("Error mo_objective_function: Received unexpected argument, check optimization settings")
     end if
 
     ! set these to nan so compiler does not complain
@@ -157,8 +156,7 @@ CONTAINS
       objective = multiple_objective(1)
 
     case default
-      call message("Error objective: opti_function not implemented yet.")
-      stop 1
+      call error_message("Error objective: opti_function not implemented yet.")
     end select
 
   END FUNCTION objective
@@ -204,7 +202,7 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_mpi_tools, only : distribute_parameterset
     use mo_common_variables, only : domainMeta, opti_function
-    use mo_message, only : message
+    use mo_message, only : error_message, message
     use mo_string_utils, only : num2str
     use mpi_f08
 
@@ -239,8 +237,7 @@ CONTAINS
 
 
     if (present(arg1) .or. present(arg2) .or. present(arg3)) then
-      call message("Error mo_objective_function: Received unexpected argument, check optimization settings")
-      stop 1
+      call error_message("Error mo_objective_function: Received unexpected argument, check optimization settings")
     end if
 
     ! set these to nan so compiler does not complain
@@ -282,8 +279,7 @@ CONTAINS
       objective_master = (objective_master/multiple_master_objective(4))**onesixth
 
     case default
-      call message("Error objective_master: opti_function not implemented yet.")
-      stop 1
+      call error_message("Error objective_master: opti_function not implemented yet.")
     end select
 
     select case (opti_function)
@@ -306,8 +302,7 @@ CONTAINS
     case(33)
       call message('    objective_q_et_tws_kge_catchment_avg = ', num2str(objective_master, '(F9.5)'))
     case default
-      call message("Error objective_master: opti_function not implemented yet, this part of the code should never execute.")
-      stop 1
+      call error_message("Error objective_master: opti_function not implemented yet, this part of the code should never execute.")
     end select
 
   END FUNCTION objective_master
@@ -355,7 +350,7 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_mpi_tools, only : get_parameterset
     use mo_common_variables, only : domainMeta, opti_function
-    use mo_message, only : message
+    use mo_message, only : error_message
     use mpi_f08
 
     implicit none
@@ -386,8 +381,7 @@ CONTAINS
       if (.not. do_obj_loop) exit
 
       if (present(arg1) .or. present(arg2) .or. present(arg3)) then
-        call message("Error mo_objective_function: Received unexpected argument, check optimization settings")
-        stop 1
+        call error_message("Error mo_objective_function: Received unexpected argument, check optimization settings")
       end if
 
       ! set these to nan so compiler does not complain
@@ -434,7 +428,7 @@ CONTAINS
       case(33)
         multiple_partial_objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
       case default
-        call message("Error objective_subprocess: opti_function not implemented yet.")
+        call error_message("Error objective_subprocess: opti_function not implemented yet.")
         stop 1
       end select
 
@@ -444,7 +438,7 @@ CONTAINS
       case(33)
         call MPI_Send(multiple_partial_objective, 6, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
-        call message("Error objective_subprocess: this part should not be executed -> error in the code.")
+        call error_message("Error objective_subprocess: this part should not be executed -> error in the code.")
         stop 1
       end select
 
@@ -904,7 +898,6 @@ CONTAINS
 
   !>       \date July 2019
   subroutine init_indexarray_for_opti_data(domainMeta, optidataOption, nOptiDomains, opti_domain_indices)
-    use mo_message, only : message
     use mo_common_variables, only : domain_meta
     !> meta data for all domains assigned to that process
     type(domain_meta),                                intent(in)    :: domainMeta
@@ -1121,7 +1114,7 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level1, domainMeta
     use mo_global_variables, only : L1_smObs
-    use mo_message, only : message
+    use mo_message, only : error_message, message
     use mo_spatialsimilarity, only : PD
     use mo_string_utils, only : num2str
 
@@ -1206,8 +1199,7 @@ CONTAINS
                 ((1.0_dp - sum(pd_time_series, mask = mask_times) / real(count(mask_times), dp)) / &
                                                     real(domainMeta%overallNumberOfDomains, dp))**6
       else
-        call message('***ERROR: mo_objective_funtion: objective_sm_pd: No soil moisture observations available!')
-        stop
+        call error_message('***ERROR: mo_objective_funtion: objective_sm_pd: No soil moisture observations available!')
       end if
 
       ! deallocate
@@ -2241,7 +2233,7 @@ CONTAINS
     use mo_errormeasures, only : rmse
     use mo_global_variables, only : L1_etObs
     use mo_julian, only : caldat
-    use mo_message, only : message
+    use mo_message, only : error_message, message
     use mo_moment, only : average, mean
     use mo_standard_score, only : classified_standard_score
     use mo_string_utils, only : num2str
@@ -2391,8 +2383,7 @@ CONTAINS
 
         ! yearly: ERROR stop program
       case(-3)
-        call message('***ERROR: objective_kge_q_rmse_et: time step of evapotranspiration yearly.')
-        stop
+        call error_message('***ERROR: objective_kge_q_rmse_et: time step of evapotranspiration yearly.')
       end select
       ! remove mean from modelled time series
       et_sim_m(:) = et_sim_m(:) - mean(et_sim_m(:))
