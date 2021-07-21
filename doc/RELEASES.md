@@ -1,5 +1,22 @@
 # mHM Release Notes
 
+## mHM v5.11.2 (Jul 2021)
+
+### Enhancements
+
+- documentation modernized with [doxygen-awesome-css](https://github.com/jothepro/doxygen-awesome-css) (!86)
+- cmake update to be able to install mHM (`cmake --install`) (!85)
+- added pFUnit tests thanks to Nicola Döring (!76)
+- link to a new [YouTube tutorial](https://youtu.be/FGJOcYEzbP4) for compiling mHM with cygwin by Mehmet Cüneyd Demirel added to the documentation (!74)
+- NetCDF output: add deflate and precision option to namelists (!73)
+refactor cmake workflow (!72)
+
+### Bugfixes
+
+- fixed: `mrm` tried to write output even if routing was switched off (!82)
+- unreachable `else` branch in `feddes_et_reduction` removed (!77)
+- unnecessary `inout` variable intent in `soil_moisture` removed (!77)
+
 ## mHM v5.11.1 (Mar 2021)
 
 ### Enhancements
