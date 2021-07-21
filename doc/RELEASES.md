@@ -9,7 +9,7 @@
 - added pFUnit tests thanks to Nicola Döring (!76)
 - link to a new [YouTube tutorial](https://youtu.be/FGJOcYEzbP4) for compiling mHM with cygwin by Mehmet Cüneyd Demirel added to the documentation (!74)
 - NetCDF output: add deflate and precision option to namelists (!73)
-refactor cmake workflow (!72)
+- refactor cmake workflow (!72)
 
 ### Bugfixes
 
