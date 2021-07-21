@@ -46,9 +46,11 @@ Install cygwin by executing the cygwin setup and choose the following dependenci
 
 - [ ] gcc-fortran (the fortran compiler)
 - [ ] make
-- [ ] cmake (version >= 3.5)
+- [ ] cmake (version >= 3.12)
 - [ ] libnetcdf-fortran-devel
-- [ ] Git *(optional, Git is also available outside of cygwin, [see the Git website](https://git-scm.com/downloads))*
+- [ ] libhdf5-devel
+- [ ] libgfortran
+- [ ] gfortran
 
 While installing cygwin you will have to choose a mirror. A mirror is a server
 on the internet where the files for the installation come from. Choose any server
@@ -65,17 +67,44 @@ Some cygwin versions create a new home directory for you. You may check e.g. her
 
     C:\cygwin64\home\$username
 
-As from December 2019, step-by-step guidelines, how to install all netCDF dependencies
-can be viewed in [this youtube video](https://youtu.be/G0i7eDEIfPA)
+As from December 2019, step-by-step guidelines, how to install all cygwin libraries can be viewed in [this youtube video](https://youtu.be/FGJOcYEzbP4)
 created by Mehmet Cüneyd Demirel (Istanbul Technical University).
+
+Step-by-step mHM compilation in CYGWIN platform 
+
+1) Change directory to mHM folder. Use single quote e.g. 'D:/mhm-v5.11.1/' if there is space in the path.
+        cd mhm
+
+2) Make a sub-directory inside mHM folder e.g. build
+        mkdir build
+
+3) Change directory to build subfolder
+        cd build
+
+4) Execute `cmake` with the path to the Git source directory as parameter. (If you followed the instructions above, the path is `..` )
+        cmake ..
+
+Other `cmake` options: 
 
 To avoid memory issues, allocate stack memory during cmake
 
     cmake -DCMAKE_Fortran_FLAGS="-Wl,--stack,12485760" ..
 
-Memory dump is a common issue for cygwin users when compiling with OpenMP. For memory allocation please use this line below.
+If you will run mHM in parallel using OpenMP then you will need Microsoft MPI installed in your PC. Search for "Download Microsoft MPI" on internet.
 
-....cmake -DCMAKE_Fortran_FLAGS="${CMAKE_Fortran_FLAGS} -Wl,--stack,12485760" -DCMAKE_WITH_OpenMP:STRING=ON -DCMAKE_BUILD_TYPE=Release ..
+Then use cmake option below. Note that memory dump is a common issue for cygwin users when compiling with OpenMP. For memory allocation please also use this line below.
+
+    cmake -DCMAKE_Fortran_FLAGS="${CMAKE_Fortran_FLAGS} -Wl,--stack,12485760" -DCMAKE_WITH_OpenMP=ON -DCMAKE_BUILD_TYPE=Release ..
+
+4) Execute `make`
+        make
+
+5) If all went well then mhm.exe must be created inside build folder. If you are in build folder then copy mhm.exe to upper folder.
+        cp ./mhm.exe ..
+
+6) Change directory to upper level and then call mhm 
+        cd ..
+        ./mhm
 
 ### Ubuntu, Mint and other apt-get based systems with matching repositories
 
@@ -187,7 +216,7 @@ It should be stable, anyway.
 
 In case you want to have a module-independent build, instead of just executing `cmake ..`, either run
 
-    cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
+    cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT=ON ..
 
 or
 
@@ -211,7 +240,7 @@ set the fortran compiler variable to the desired compiler, e.g.
 
 then either run
 
-    cmake -DCMAKE_NETCDF_DIR:STRING=/path/to/nf-config/of/used/compiler
+    cmake -DCMAKE_NETCDF_DIR=/path/to/nf-config/of/used/compiler
 
 or copy the file `specificSetup` to some other place:
 

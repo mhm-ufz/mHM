@@ -65,7 +65,8 @@ contains
                                         dirGauges, dirTotalRunoff, filenameTotalRunoff, dirBankfullRunoff, gauge, is_start, &
                                         nGaugesTotal, nGaugesLocal, nInflowGaugesTotal, outputFlxState_mrm, &
                                         timeStep_model_outputs_mrm, &
-                                        varnameTotalRunoff, gw_coupling
+                                        varnameTotalRunoff, gw_coupling, &
+                                        output_deflate_level_mrm, output_double_precision_mrm
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
 
@@ -122,7 +123,11 @@ contains
     namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_domain, InflowGauge_id, &
             InflowGauge_filename, InflowGauge_Headwater
     ! name list regarding output
-    namelist /NLoutputResults/timeStep_model_outputs_mrm, outputFlxState_mrm
+    namelist /NLoutputResults/ &
+            output_deflate_level_mrm, &
+            output_double_precision_mrm, &
+            timeStep_model_outputs_mrm, &
+            outputFlxState_mrm
 
     !===============================================================
     ! INITIALIZATION
@@ -354,6 +359,8 @@ contains
     !===============================================================
     ! Read Output specifications for mRM
     !===============================================================
+    output_deflate_level_mrm = 6
+    output_double_precision_mrm = .true.
     outputFlxState_mrm = .FALSE.
     timeStep_model_outputs_mrm = -2
     inquire(file = file_defOutput, exist = file_exists)
@@ -372,7 +379,12 @@ contains
     if (any(outputFlxState_mrm)) then
       call message('')
       call message('    Following output will be written:')
-
+      call message('    NetCDF deflate level: ', adjustl(trim(num2str(output_deflate_level_mrm))))
+      if ( output_double_precision_mrm ) then
+        call message('    NetCDF output precision: double')
+      else
+        call message('    NetCDF output precision: single')
+      end if
       call message('    FLUXES:')
       if (outputFlxState_mrm(1)) then
         call message('      routed streamflow      (L11_qMod)                [m3 s-1]')

@@ -4,12 +4,15 @@
 #     enabled = true
 # This will prevent git clone conflicts for jobs ran in parallel
 
+variables:
+  GIT_DEPTH: 10
+
 stages:
   - info
   - build
   - valgrind
-  - test
-  - coverage
+  - check-cases
+  - code-analysis
   - deploy
 
 show-env-vars:
@@ -33,7 +36,9 @@ documentation:
     - develop
   stage: build
   variables:
+    GIT_DEPTH: 0
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+    GIT_FETCH_EXTRA_FLAGS: --all --no-tags --prune --quiet
   script:
     - module load foss/2019b
     - module load texlive/2019
@@ -51,19 +56,13 @@ documentation:
     - rm -rf latex
     # same for master
     - git checkout master
-    - test -f doc/doxygen-1.8.8.config && cp doc/doxygen-1.8.8.config doc/doxygen.config
     - doxygen doc/doxygen.config > doxygen_log_mas.txt
     - cd latex/ && make > ../doxygen_latex_mas.txt
     - cp refman.pdf ../html/mhm_doc.pdf
     - cp refman.pdf ../mhm_doc_mas.pdf
     - cd .. && mv html html_mas
     # care about warnings file (maybe missing on master)
-    - |
-      if [ -f doxygen_warn.txt ]; then
-        mv doxygen_warn.txt doxygen_warn_mas.txt
-      else
-        touch doxygen_warn_mas.txt
-      fi
+    - mv doxygen_warn.txt doxygen_warn_mas.txt
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:
@@ -320,7 +319,7 @@ valgrind-intel20:
 
 check-nag62:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -337,7 +336,7 @@ check-nag62:
 
 check-nag62DEBUG:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -355,7 +354,7 @@ check-nag62DEBUG:
 
 check-gcc73:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -372,7 +371,7 @@ check-gcc73:
 
 check-gcc73MPI:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -389,7 +388,7 @@ check-gcc73MPI:
 
 check-gcc83:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -406,7 +405,7 @@ check-gcc83:
 
 check-gcc83MPI:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -423,7 +422,7 @@ check-gcc83MPI:
 
 check-intel18:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -440,7 +439,7 @@ check-intel18:
 
 check-intel18MPI:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -457,7 +456,7 @@ check-intel18MPI:
 
 check-intel20:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -474,7 +473,7 @@ check-intel20:
 
 check-intel20MPI:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -489,9 +488,27 @@ check-intel20MPI:
     paths:
     - check/logs/
 
+unittest-gcc83:
+  when: always
+  stage: code-analysis
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-gcc83
+  script:
+    # we need pfUnit
+    - source moduleLoadScripts/eve.gcc83pfUnit
+    # create build folder
+    - mkdir build && cd build
+    # run cmake with testing support and build mhm
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON ..
+    - make -j 4
+    # run all pfUnit tests in src/tests
+    - ctest -V
+
 coverage-gcc73:
   when: always
-  stage: coverage
+  stage: code-analysis
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -505,7 +522,7 @@ coverage-gcc73:
     # create build folder
     - mkdir build && cd build
     # run cmake with coverage support
-    - cmake -DCMAKE_WITH_COVERAGE:STRING=ON ..
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON ..
     # run all check-case for coverage calculation
     - make mhm_coverage_CI
     # copy the output to a top-level folder

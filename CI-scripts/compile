@@ -1,6 +1,6 @@
 mkdir release
 cd release/
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j 4
 cd ..
 cp release/mhm .
