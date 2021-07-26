@@ -1,7 +1,7 @@
 # The mesoscale Hydrological Model -- mHM
 
-- The current release is **[mHM v5.10][1]**.
-- The latest mHM release notes can be found in the file [RELEASES][3] or [online][4].
+- The latest mHM release can be found [here][0].
+- The changelog can be found in the file [RELEASES][3].
 - General information can be found on the [mHM website](http://www.ufz.de/mhm/).
 - The mHM comes with a [LICENSE][6] agreement, this includes also the GNU Lesser General Public License.
 - There is a list of [publications using mHM][7].
@@ -13,7 +13,7 @@ If you like to contribute to the code, please contact [mhm-admin@ufz.de](mailto:
 
 The online documentation for mHM can be found here (pdf versions are provided there as well):
 - stable: https://mhm.pages.ufz.de/mhm
-- latest: https://mhm.pages.ufz.de/mhm/develop
+- latest: https://mhm.pages.ufz.de/mhm/latest
 
 ## Cite as
 
@@ -23,13 +23,15 @@ Please refer to the main model by citing Samaniego et al. (2010) and Kumar et al
 
 > Kumar, R., L. Samaniego, and S. Attinger (2013): Implications of distributed hydrologic model parameterization on water fluxes at multiple scales and locations, Water Resour. Res., 49, doi:10.1029/2012WR012195, http://onlinelibrary.wiley.com/doi/10.1029/2012WR012195/abstract
 
-The model code can be cited as:
+The model code can be generally cited as:
 
-> **mHM:** Luis Samaniego et al. (2019), mesoscale Hydrologic Model, doi:10.5281/zenodo.1069202, https://doi.org/10.5281/zenodo.1069202
+> **mHM:** Luis Samaniego et al., mesoscale Hydrologic Model. Zenodo. doi:10.5281/zenodo.1069202, https://doi.org/10.5281/zenodo.1069202
+
+To cite a certain version, have a look at the [Zenodo site][10].
 
 ## Install
 
-As from June 2019, new option to compile mHM with cmake is provided, see more details under [cmake manual][9].
+mHM can be compiled with cmake. See more details under [cmake manual][9].
 Please see the file [DEPENDENCIES][8] for external software required to run mHM.
 See also the [documentation][5] for detailed instructions to setup mHM.
 
@@ -40,7 +42,7 @@ See also the [documentation][5] for detailed instructions to setup mHM.
 2. Run mHM on the test domains with the command `./mhm`, which uses settings from [mhm.nml](mhm.nml).
 3. Explore the results in the [output directory](test_domain/), e.g. by using the NetCDF viewer `ncview`.
 
-
+[0]: https://git.ufz.de/mhm/mhm/-/releases
 [1]: https://git.ufz.de/mhm/mhm/tree/5.10
 [3]: doc/RELEASES.md
 [4]: https://git.ufz.de/mhm/mhm/tags/
@@ -48,4 +50,5 @@ See also the [documentation][5] for detailed instructions to setup mHM.
 [6]: LICENSE
 [7]: doc/mhm_papers.md
 [8]: doc/DEPENDENCIES.md
-[9]: INSTALL.md
+[9]: doc/INSTALL.md
+[10]: https://zenodo.org/record/3239055

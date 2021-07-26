@@ -125,6 +125,8 @@ contains
     use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_variables, only : domainMeta
     use mo_nml, only : close_nml, open_nml, position_nml
+    use mo_check, only : check_dir
+    USE mo_string_utils, ONLY : num2str
 
     implicit none
 
@@ -147,6 +149,8 @@ contains
     character(256), dimension(maxNoDomains) :: dir_riv_widths
     character(256) :: riv_widths_file ! file name for river widths
     character(256) :: riv_widths_name ! variable name for river widths
+
+    integer(i4) :: iDomain, domainID
 
     ! namelist for river temperature configuration
     namelist /config_riv_temp/ &
@@ -193,6 +197,17 @@ contains
 
     ! closing the namelist file
     call close_nml(unamelist)
+
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      call check_dir( &
+        path=self%dir_riv_widths(iDomain), &
+        text_="(domain "//trim(num2str(domainID,'(I3)'))//") River widths directory:", &
+        throwError_=.true., &
+        tab_=4, &
+        text_length_=40 &
+      )
+    end do
 
   end subroutine config
 
@@ -457,10 +472,10 @@ contains
     real(dp), intent(in) :: time !< current decimal Julian day
     real(dp), intent(in) :: ntimesteps_day !< number of time intervals per day, transformed in dp
     real(dp), dimension(:), intent(in) :: fSealed_area_fraction !< sealed area fraction [1]
-    real(dp), dimension(:), intent(in) :: fast_interflow !< \f$ q_0 \f$ Fast runoff component [mm tst-1]
-    real(dp), dimension(:), intent(in) :: slow_interflow !< \f$ q_1 \f$ Slow runoff component [mm tst-1]
-    real(dp), dimension(:), intent(in) :: baseflow !< \f$ q_2 \f$ Baseflow [mm tsts-1]
-    real(dp), dimension(:), intent(in) :: direct_runoff !< \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
+    real(dp), dimension(:), intent(in) :: fast_interflow !< \f$ q_0 \f$ Fast runoff component [mm TS-1]
+    real(dp), dimension(:), intent(in) :: slow_interflow !< \f$ q_1 \f$ Slow runoff component [mm TS-1]
+    real(dp), dimension(:), intent(in) :: baseflow !< \f$ q_2 \f$ Baseflow [mm TS-1]
+    real(dp), dimension(:), intent(in) :: direct_runoff !< \f$ q_D \f$ Direct runoff from impervious areas  [mm TS-1]
     real(dp), dimension(:), intent(in) :: temp_air !< air temperature [K]
     real(dp), dimension(:), intent(in) :: mean_temp_air !< annual mean air temperature [K]
     real(dp), dimension(:), intent(in) :: ssrd_day !< Daily mean short radiation

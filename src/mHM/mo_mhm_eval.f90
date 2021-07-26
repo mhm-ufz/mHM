@@ -116,7 +116,7 @@ CONTAINS
                                         L1_wiltingPoint, nSoilHorizons_mHM
     use mo_restart, only : read_restart_states
     use mo_write_fluxes_states, only : OutputDataset
-    use mo_common_constants, only : HourSecs
+    use mo_constants, only : HourSecs
     use mo_common_mHM_mRM_variables, only : resolutionRouting
     use mo_common_variables, only : resolutionHydrology
     use mo_mrm_global_variables, only : InflowGauge, L11_C1, L11_C2, &
@@ -480,7 +480,7 @@ CONTAINS
             do_rout = .True.
             tsRoutFactorIn = 1._dp
             timestep_rout = timestep
-            RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TST-1] mm per timestep
+            RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TS-1] mm per timestep
             InflowDischarge = InflowGauge%Q(iDischargeTS, :) ! inflow discharge in [m3 s-1]
             !
           else if ((processMatrix(8, 1) .eq. 2) .or. &
@@ -499,7 +499,7 @@ CONTAINS
               ! ----------------------------------------------------------------
               ! set all input variables
               tsRoutFactorIn = tsRoutFactor
-              RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TST-1] mm per timestep
+              RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TS-1] mm per timestep
               InflowDischarge = InflowGauge%Q(iDischargeTS, :) ! inflow discharge in [m3 s-1]
               timestep_rout = timestep
               do_rout = .True.
@@ -578,7 +578,7 @@ CONTAINS
             read_restart, &
             processMatrix(8, 1), & ! parse process Case to be used
             parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)), & ! routing par.
-            RunToRout, & ! runoff [mm TST-1] mm per timestep old: L1_total_runoff_in(s1:e1, tt), &
+            RunToRout, & ! runoff [mm TS-1] mm per timestep old: L1_total_runoff_in(s1:e1, tt), &
             level1(iDomain)%CellArea * 1.E-6_dp, &
             L1_L11_Id(s1 : e1), &
             level11(iDomain)%CellArea * 1.E-6_dp, &
@@ -649,8 +649,8 @@ CONTAINS
 
         call domainDateTime%increment()
 
-        if (.not. optimize) then
-          if (any(outputFlxState_mrm)) then
+        if ( .not. optimize ) then
+          if (any(outputFlxState_mrm) .AND. (processMatrix(8, 1) .NE. 0) ) then
             call mrm_write_output_fluxes( &
               iDomain, & ! Domain id
               level11(iDomain)%nCells, & ! nCells in Domain

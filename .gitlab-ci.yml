@@ -4,18 +4,16 @@
 #     enabled = true
 # This will prevent git clone conflicts for jobs ran in parallel
 
+variables:
+  GIT_DEPTH: 10
+
 stages:
   - info
   - build
   - valgrind
-  - test
-  - coverage
+  - check-cases
+  - code-analysis
   - deploy
-
-cache:
-  # Required to keep artifacts from old builds, e.g. from master/develop
-  paths:
-    - public
 
 show-env-vars:
   stage: info
@@ -34,7 +32,13 @@ show-env-vars:
     - echo -e "${SEP}\n${S00}$(date)\n${SEP}\n${S01}\n${S02}\n${S03}\n${S04}\n${SEP}\n${S05}${GIT_CLONE_PATH}\n${S06}\n${SEP}"
 
 documentation:
+  only:
+    - develop
   stage: build
+  variables:
+    GIT_DEPTH: 0
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+    GIT_FETCH_EXTRA_FLAGS: --all --no-tags --prune --quiet
   script:
     - module load foss/2019b
     - module load texlive/2019
@@ -42,19 +46,36 @@ documentation:
     - module load Anaconda3
     - source activate /global/apps/mhm_checks/mhm_env
     # use doxygen from the mhm_env conda environment
-    - doxygen doc/doxygen.config > doxygen_log.txt
+    - doxygen doc/doxygen.config > doxygen_log_dev.txt
     # create pdf documentation
-    - cd latex/ && make > ../doxygen_latex.txt
+    - cd latex/ && make > ../doxygen_latex_dev.txt
     - cp refman.pdf ../html/mhm_doc.pdf
-    - cp refman.pdf ../mhm_doc.pdf
+    - cp refman.pdf ../mhm_doc_dev.pdf
+    - cd .. && mv html html_dev
+    - mv doxygen_warn.txt doxygen_warn_dev.txt
+    - rm -rf latex
+    # same for master
+    - git checkout master
+    - doxygen doc/doxygen.config > doxygen_log_mas.txt
+    - cd latex/ && make > ../doxygen_latex_mas.txt
+    - cp refman.pdf ../html/mhm_doc.pdf
+    - cp refman.pdf ../mhm_doc_mas.pdf
+    - cd .. && mv html html_mas
+    # care about warnings file (maybe missing on master)
+    - mv doxygen_warn.txt doxygen_warn_mas.txt
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:
-      - html
-      - mhm_doc.pdf
-      - doxygen_log.txt
-      - doxygen_latex.txt
-      - doxygen_warn.txt
+      - html_dev
+      - mhm_doc_dev.pdf
+      - doxygen_log_dev.txt
+      - doxygen_latex_dev.txt
+      - doxygen_warn_dev.txt
+      - html_mas
+      - mhm_doc_mas.pdf
+      - doxygen_log_mas.txt
+      - doxygen_latex_mas.txt
+      - doxygen_warn_mas.txt
   when: always
 
 cmake-nag62:
@@ -298,7 +319,7 @@ valgrind-intel20:
 
 check-nag62:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -315,7 +336,7 @@ check-nag62:
 
 check-nag62DEBUG:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -333,7 +354,7 @@ check-nag62DEBUG:
 
 check-gcc73:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -350,7 +371,7 @@ check-gcc73:
 
 check-gcc73MPI:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -367,7 +388,7 @@ check-gcc73MPI:
 
 check-gcc83:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -384,7 +405,7 @@ check-gcc83:
 
 check-gcc83MPI:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -401,7 +422,7 @@ check-gcc83MPI:
 
 check-intel18:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -418,7 +439,7 @@ check-intel18:
 
 check-intel18MPI:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -435,7 +456,7 @@ check-intel18MPI:
 
 check-intel20:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -452,7 +473,7 @@ check-intel20:
 
 check-intel20MPI:
   when: always
-  stage: test
+  stage: check-cases
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -467,9 +488,27 @@ check-intel20MPI:
     paths:
     - check/logs/
 
+unittest-gcc83:
+  when: always
+  stage: code-analysis
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs:
+    - job: cmake-gcc83
+  script:
+    # we need pfUnit
+    - source moduleLoadScripts/eve.gcc83pfUnit
+    # create build folder
+    - mkdir build && cd build
+    # run cmake with testing support and build mhm
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON ..
+    - make -j 4
+    # run all pfUnit tests in src/tests
+    - ctest -V
+
 coverage-gcc73:
   when: always
-  stage: coverage
+  stage: code-analysis
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
@@ -483,7 +522,7 @@ coverage-gcc73:
     # create build folder
     - mkdir build && cd build
     # run cmake with coverage support
-    - cmake -DCMAKE_WITH_COVERAGE:STRING=ON ..
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON ..
     # run all check-case for coverage calculation
     - make mhm_coverage_CI
     # copy the output to a top-level folder
@@ -495,24 +534,27 @@ coverage-gcc73:
     - coverage
 
 pages:
+  only:
+    - develop
   stage: deploy
   dependencies:
     - documentation
     - coverage-gcc73
   script:
-    # create public dir if not already present
+    # create public dir (remove if already present)
+    - test -d public && rm -rf public
     - mkdir -p public
-    # remove the branch specific subdir if present
-    - rm -rf public/$CI_COMMIT_REF_NAME/
-    # recreate the subdir
-    - mkdir public/$CI_COMMIT_REF_NAME/
+    # create the subdir
+    - mkdir public/stable/
+    - mkdir public/latest/
     # copy the doxygen generated html page to the public site
-    - cp html/* public/$CI_COMMIT_REF_NAME/ -R
+    - cp html_mas/* public/stable/ -R
+    - cp html_dev/* public/latest/ -R
     # create an index.html that redirects to the master documentation (in master folder)
     - cp doc/html_files/index.html public/
     # create the coverage site
-    - mkdir -p public/$CI_COMMIT_REF_NAME/coverage
-    - cp coverage/* public/$CI_COMMIT_REF_NAME/coverage/ -R
+    - mkdir -p public/coverage
+    - cp coverage/* public/coverage/ -R
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:

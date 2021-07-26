@@ -159,6 +159,7 @@ PROGRAM mhm_driver
 #ifdef NAG
   USE f90_unix_dir, ONLY : CHDIR, GETCWD
 #endif
+  USE mo_check, ONLY: check_dir
 
   IMPLICIT NONE
 
@@ -178,12 +179,15 @@ PROGRAM mhm_driver
 
   logical :: ReadLatLon
 
+  logical :: compiled_with_openmp = .false.
+
 #ifdef MPI
   integer             :: ierror
   integer(i4)         :: nproc
   integer(i4)         :: rank, oldrank
+  logical :: compiled_with_mpi = .true.
 
-! Initialize MPI
+  ! Initialize MPI
   call MPI_Init(ierror)
   call MPI_Comm_dup(MPI_COMM_WORLD, comm, ierror)
   ! find number of processes nproc
@@ -192,6 +196,8 @@ PROGRAM mhm_driver
   call MPI_Comm_rank(comm, rank, ierror)
   oldrank = rank
   write(*,*) 'MPI!, comm', rank, nproc
+#else
+  logical :: compiled_with_mpi = .false.
 #endif
 
   ! check for working dir (added argument to the executable)
@@ -214,6 +220,18 @@ PROGRAM mhm_driver
   call message(separator)
 
   call message()
+  !$ compiled_with_openmp = .true.
+  if (compiled_with_openmp) then
+    call message('OpenMP used.')
+  else
+    call message('Openmp not used.')
+  end if
+  if (compiled_with_mpi) then
+    call message('MPI used.')
+  else
+    call message('MPI not used.')
+  end if
+
   call date_and_time(values = datetime)
   message_text = trim(num2str(datetime(3), '(I2.2)')) // "." // trim(num2str(datetime(2), '(I2.2)')) &
           // "." // trim(num2str(datetime(1), '(I4.4)')) // " " // trim(num2str(datetime(5), '(I2.2)')) &
@@ -257,26 +275,25 @@ PROGRAM mhm_driver
     call message('  --------------')
     call message('      DOMAIN                  ', num2str(domainID, '(I3)'))
     call message('  --------------')
-    call message('    Morphological directory:    ', trim(dirMorpho(iDomain)))
-    call message('    Land cover directory:       ', trim(dirLCover(iDomain)))
-    call message('    Precipitation directory:    ', trim(dirPrecipitation(iDomain)))
-    call message('    Temperature directory:      ', trim(dirTemperature(iDomain)))
+    call check_dir(dirMorpho(iDomain), "Morphological directory:", .false., 4, 30)
+    call check_dir(dirLCover(iDomain), "Land cover directory:", .false., 4, 30)
+    call check_dir(dirPrecipitation(iDomain), "Precipitation directory:", .false., 4, 30)
+    call check_dir(dirTemperature(iDomain), "Temperature directory:", .false., 4, 30)
     select case (processMatrix(5, 1))
-    case(-1 : 0) ! PET is input
-      call message('    PET directory:              ', trim(dirReferenceET(iDomain)))
-    case(1) ! Hargreaves-Samani
-      call message('    Min. temperature directory: ', trim(dirMinTemperature(iDomain)))
-      call message('    Max. temperature directory: ', trim(dirMaxTemperature(iDomain)))
-    case(2) ! Priestely-Taylor
-      call message('    Net radiation directory:    ', trim(dirNetRadiation(iDomain)))
-    case(3) ! Penman-Monteith
-      call message('    Net radiation directory:    ', trim(dirNetRadiation(iDomain)))
-      call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(iDomain)))
-      call message('    Windspeed directory:        ', trim(dirwindspeed(iDomain)))
+      case(-1 : 0) ! PET is input
+        call check_dir(dirReferenceET(iDomain), "PET directory:", .false., 4, 30)
+      case(1) ! Hargreaves-Samani
+        call check_dir(dirMinTemperature(iDomain), "Min. temperature directory:", .false., 4, 30)
+        call check_dir(dirMaxTemperature(iDomain), "Max. temperature directory:", .false., 4, 30)
+      case(2) ! Priestely-Taylor
+        call check_dir(dirNetRadiation(iDomain), "Net radiation directory:", .false., 4, 30)
+      case(3) ! Penman-Monteith
+        call check_dir(dirNetRadiation(iDomain), "Net radiation directory:", .false., 4, 30)
+        call check_dir(dirabsVapPressure(iDomain), "Abs. vap. press. directory:", .false., 4, 30)
+        call check_dir(dirwindspeed(iDomain), "Windspeed directory:", .false., 4, 30)
     end select
-    call message('    Output directory:           ', trim(dirOut(iDomain)))
-
-    call message('')
+    call check_dir(dirOut(iDomain), "Output directory:", .true., 4, 30)
+    call message()
   end do
 
   ! Start timings

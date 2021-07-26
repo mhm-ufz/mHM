@@ -1,13 +1,17 @@
 
 ! Emacs: -*- mode: f90 -*-
 !1)  First give the timestep for writing gridded model outputs
-!    It should be integer and has to be perfectly divisible 
+!    It should be integer and has to be perfectly divisible
 !    by the number of total modeling time steps
 !2) Define main outputs of the model as namelist
 !   the particular output flag is specified as .TRUE. / .FALSE
 !   for writing /not writing the output to a file
 ! SYNTAX = ".TRUE." or ".FALSE."
 &NLoutputResults
+!
+! NetCDF output settings
+output_deflate_level = 6
+output_double_precision = .true.
 !
 ! switch to control write out frequency of the gridded model outputs below
 ! >0: after each <timeStep_model_outputs> time steps
@@ -30,14 +34,14 @@ outputFlxState(2)=.TRUE.
 ! soil water content in the single layers     (L1_soilMoist)         -- case  3
 outputFlxState(3)=.TRUE.
 !
-! volumetric soil moisture in the single 
+! volumetric soil moisture in the single
 ! layers                                      (L1_soilMoist / L1_soilMoistSat )
 !                                                            [mm/mm] -- case  4
-!                                             
+!
 outputFlxState(4)=.TRUE.
 !
-! mean volumetric soil moisture averaged 
-! over all soil layers                        (L1_soilMoist / L1_soilMoistSat ) 
+! mean volumetric soil moisture averaged
+! over all soil layers                        (L1_soilMoist / L1_soilMoistSat )
 !                                                            [mm/mm] -- case  5
 outputFlxState(5)=.TRUE.
 !
@@ -59,10 +63,10 @@ outputFlxState(18)=.FALSE.
 !----------------
 !
 ! potential evapotranspiration PET [mm/T]                             -- case  9
-outputFlxState(9)=.TRUE. 
+outputFlxState(9)=.TRUE.
 !
 ! actual evapotranspiration aET [mm/T]                                -- case 10
-outputFlxState(10)=.TRUE. 
+outputFlxState(10)=.TRUE.
 !
 ! total discharge generated per cell (L1_total_runoff) [mm/T]         -- case 11
 outputFlxState(11)=.TRUE.
@@ -86,7 +90,7 @@ outputFlxState(16)=.TRUE.
 outputFlxState(17)=.FALSE.
 !
 ! actual evapotranspiration from the soil layers       [mm/T]         -- case 19
-outputFlxState(19)=.TRUE.                              
+outputFlxState(19)=.TRUE.
 !
 ! effective precipitation            (L1_preEffect)    [mm/T]         -- case 20
 outputFlxState(20)=.TRUE.

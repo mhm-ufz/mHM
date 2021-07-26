@@ -47,7 +47,7 @@ CONTAINS
   !>       than hydrology resolution.
 
   !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:) :: qall"         total runoff L1 [mm tst-1]
+  !>       \param[in] "real(dp), dimension(:) :: qall"         total runoff L1 [mm TS-1]
   !>       \param[in] "real(dp), dimension(:) :: efecarea"     effective area in [km2] at Level 1
   !>       \param[in] "integer(i4), dimension(:) :: L1_L11_Id" L11 Ids mapped on L1
   !>       \param[in] "real(dp), dimension(:) :: L11_areacell" effective area in [km2] at Level 11
@@ -74,11 +74,12 @@ CONTAINS
 
   SUBROUTINE L11_runoff_acc(qAll, efecArea, L1_L11_Id, L11_areaCell, L11_L1_Id, TS, map_flag, qAcc)
 
-    use mo_common_constants, only : HourSecs, nodata_dp
+    use mo_constants, only : HourSecs
+    use mo_common_constants, only : nodata_dp
 
     implicit none
 
-    ! total runoff L1 [mm tst-1]
+    ! total runoff L1 [mm TS-1]
     real(dp), intent(in), dimension(:) :: qall
     ! effective area in [km2] at Level 1
     real(dp), intent(in), dimension(:) :: efecarea
@@ -224,7 +225,7 @@ CONTAINS
   !>       than hydrology resolution.
 
   !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:) :: qall"         total runoff L1 [mm K tst-1]
+  !>       \param[in] "real(dp), dimension(:) :: qall"         total runoff L1 [mm K TS-1]
   !>       \param[in] "real(dp), dimension(:) :: efecarea"     effective area in [km2] at Level 1
   !>       \param[in] "integer(i4), dimension(:) :: L1_L11_Id" L11 Ids mapped on L1
   !>       \param[in] "real(dp), dimension(:) :: L11_areacell" effective area in [km2] at Level 11
@@ -251,11 +252,12 @@ CONTAINS
 
   SUBROUTINE L11_E_acc(qAll, efecArea, L1_L11_Id, L11_areaCell, L11_L1_Id, TS, map_flag, qAcc)
 
-    use mo_common_constants, only : HourSecs, nodata_dp
+    use mo_constants, only : HourSecs
+    use mo_common_constants, only : nodata_dp
 
     implicit none
 
-    ! total runoff L1 [mm tst-1]
+    ! total runoff L1 [mm TS-1]
     real(dp), intent(in), dimension(:) :: qall
     ! effective area in [km2] at Level 1
     real(dp), intent(in), dimension(:) :: efecarea
@@ -326,15 +328,15 @@ CONTAINS
 
   !    INTENT(IN)
   !>       \param[in] "REAL(dp) :: fSealed_area_fraction" sealed area fraction [1]
-  !>       \param[in] "REAL(dp) :: fast_interflow"        \f$ q_0 \f$ Fast runoff component [mm tst-1]
-  !>       \param[in] "REAL(dp) :: slow_interflow"        \f$ q_1 \f$ Slow runoff component [mm tst-1]
-  !>       \param[in] "REAL(dp) :: baseflow"              \f$ q_2 \f$ Baseflow [mm tsts-1]
-  !>       \param[in] "REAL(dp) :: direct_runoff"         \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
+  !>       \param[in] "REAL(dp) :: fast_interflow"        \f$ q_0 \f$ Fast runoff component [mm TS-1]
+  !>       \param[in] "REAL(dp) :: slow_interflow"        \f$ q_1 \f$ Slow runoff component [mm TS-1]
+  !>       \param[in] "REAL(dp) :: baseflow"              \f$ q_2 \f$ Baseflow [mm TS-1]
+  !>       \param[in] "REAL(dp) :: direct_runoff"         \f$ q_D \f$ Direct runoff from impervious areas  [mm TS-1]
   !>       \param[in] "REAL(dp) :: temp_air"              air temperature [K]
   !>       \param[in] "REAL(dp) :: mean_temp_air"         annual mean air temperature  [K]
 
   !    INTENT(OUT)
-  !>       \param[out] "REAL(dp) :: lateral_E" \f$ E_T \f$ Generated runoff [K mm tst-1]
+  !>       \param[out] "REAL(dp) :: lateral_E" \f$ E_T \f$ Generated runoff [K mm TS-1]
 
   !    HISTORY
   !>       \authors Sebastian Mueller
@@ -358,23 +360,23 @@ CONTAINS
 
     ! sealed area fraction [1]
     REAL(dp), dimension(:), INTENT(IN) :: fSealed_area_fraction
-    ! \f$ q_0 \f$ Fast runoff component [mm tst-1]
+    ! \f$ q_0 \f$ Fast runoff component [mm TS-1]
     REAL(dp), dimension(:), INTENT(IN) :: fast_interflow
-    ! \f$ q_1 \f$ Slow runoff component [mm tst-1]
+    ! \f$ q_1 \f$ Slow runoff component [mm TS-1]
     REAL(dp), dimension(:), INTENT(IN) :: slow_interflow
-    ! \f$ q_2 \f$ Baseflow [mm tsts-1]
+    ! \f$ q_2 \f$ Baseflow [mm TS-1]
     REAL(dp), dimension(:), INTENT(IN) :: baseflow
-    ! \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
+    ! \f$ q_D \f$ Direct runoff from impervious areas  [mm TS-1]
     REAL(dp), dimension(:), INTENT(IN) :: direct_runoff
     ! air temperature [degC]
     real(dp), dimension(:), intent(in) :: temp_air
     ! annual mean air temperature [degC]
     real(dp), dimension(:), intent(in) :: mean_temp_air
-    ! \f$ E_T \f$ Generated lateral Energy [K mm tst-1]
+    ! \f$ E_T \f$ Generated lateral Energy [K mm TS-1]
     REAL(dp), dimension(:), INTENT(inout) :: lateral_E
 
     ! convert temperatures form [deg C] to [K]
-    ! accumulate in [K mm tst-1] -> convert later to [K m3 s-1] on L11
+    ! accumulate in [K mm TS-1] -> convert later to [K m3 s-1] on L11
     ! following Wanders et.al. 2019
     lateral_E = lateral_E + ( &
       (baseflow * max(T0_dp + 5.0_dp, mean_temp_air + T0_dp) &

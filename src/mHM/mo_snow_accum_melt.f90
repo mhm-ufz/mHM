@@ -47,14 +47,14 @@ CONTAINS
   !>       \param[in] "REAL(dp) :: prec"               Daily mean precipitation [m]
   !>       \param[in] "REAL(dp) :: temperature"        Daily mean temperature [degreeC]
   !>       \param[in] "REAL(dp) :: temperature_thresh" Threshold temperature for snow/rain [degreeC]
-  !>       \param[in] "REAL(dp) :: thrfall"            Throughfall [m s-1]
+  !>       \param[in] "REAL(dp) :: thrfall"            Throughfall [m TS-1]
 
   !    INTENT(INOUT)
   !>       \param[inout] "REAL(dp) :: snow_pack" Snow pack [m]
 
   !    INTENT(OUT)
   !>       \param[out] "REAL(dp) :: deg_day"     Degree-day factor  [m s-1 degreeC-1]
-  !>       \param[out] "REAL(dp) :: melt"        Melting snow depth [m s-1]
+  !>       \param[out] "REAL(dp) :: melt"        Melting snow depth [m TS-1]
   !>       \param[out] "REAL(dp) :: prec_effect" Effective precipitation depth (snow melt + rain) [m]
   !>       \param[out] "REAL(dp) :: rain"        Rain precipitation depth [m]
   !>       \param[out] "REAL(dp) :: snow"        Snow precipitation depth [m]
@@ -90,7 +90,7 @@ CONTAINS
     ! Threshold temperature for snow/rain [degreeC]
     REAL(dp), INTENT(IN) :: temperature_thresh
 
-    ! Throughfall [m s-1]
+    ! Throughfall [m TS-1]
     REAL(dp), INTENT(IN) :: thrfall
 
     ! Snow pack [m]
@@ -99,7 +99,7 @@ CONTAINS
     ! Degree-day factor  [m s-1 degreeC-1]
     REAL(dp), INTENT(OUT) :: deg_day
 
-    ! Melting snow depth [m s-1]
+    ! Melting snow depth [m TS-1]
     REAL(dp), INTENT(OUT) :: melt
 
     ! Effective precipitation depth (snow melt + rain) [m]

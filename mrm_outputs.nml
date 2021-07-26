@@ -9,6 +9,10 @@
 ! SYNTAX = ".TRUE." or ".FALSE."
 &NLoutputResults
 !
+! NetCDF output settings
+output_deflate_level_mrm = 6
+output_double_precision_mrm = .true.
+!
 ! switch to control write out frequency of the gridded model outputs below
 ! >0: after each <timeStep_model_outputs> time steps
 !  0: only at end of run
