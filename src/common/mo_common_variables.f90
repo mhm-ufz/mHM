@@ -206,6 +206,9 @@ module mo_common_variables
   !                          ! .False.: default mHM units are used
   !                          ! CAUTION: only Qall is considered at the moment
 
+  !> the precision used for comparing floats for equality (e.g. when read from netcdf files)
+  real(dp), public :: float_comparison_precision
+
 contains
   subroutine allocate_domain_meta(self)
     class(domain_meta), intent(inout) :: self

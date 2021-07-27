@@ -370,6 +370,7 @@ contains
 
     use mo_message, only : message
     use mo_string_utils, only : num2str
+    use mo_common_variables, only: float_comparison_precision
 
     implicit none
 
@@ -401,8 +402,7 @@ contains
     cellFactor = aimingResolution / cellsizeIn
     rounded = anint(cellFactor)
 
-    ! TODO: sync this with other comparisons
-    if (abs(rounded - cellFactor) > 1.e-6_dp) then
+    if (abs(rounded - cellFactor) > float_comparison_precision) then
       call message()
       call message('***ERROR: Two resolutions size do not confirm: ', &
               num2str(aimingResolution), ' and ', &
