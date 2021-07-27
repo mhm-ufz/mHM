@@ -370,7 +370,7 @@ contains
 
     use mo_message, only : message
     use mo_string_utils, only : num2str
-    use mo_common_variables, only: float_comparison_precision
+    use mo_common_constants, only: float_comparison_precision
 
     implicit none
 

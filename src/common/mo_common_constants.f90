@@ -24,8 +24,11 @@ MODULE mo_common_constants
   real(dp), public, parameter :: eps_dp = epsilon(1.0_dp)
   !> epsilon(1.0) in single precision
   real(sp), public, parameter :: eps_sp = epsilon(1.0_sp)
-  !> the precision used for comparing floats for equality (e.g. when read from netcdf files)
+  !> the default precision used for comparing floats for equality (e.g. when read from netcdf files)
   real(dp), public, parameter :: floatComparisonPrecision = 1.e-6_dp
+  !> the actual precision used for comparing floats for equality (e.g. when read from netcdf files)
+  real(dp), public :: float_comparison_precision
+
 
   ! computational, these values need to be the same!!!
   integer(i4), public, parameter :: nodata_i4 = -9999_i4  ! [-]     global no data value

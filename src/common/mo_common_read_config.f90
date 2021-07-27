@@ -48,7 +48,7 @@ CONTAINS
 
   subroutine common_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
-    use mo_common_constants, only : maxNLcovers, maxNoDomains, floatComparisonPrecision
+    use mo_common_constants, only : maxNLcovers, maxNoDomains, floatComparisonPrecision, float_comparison_precision
     use mo_common_variables, only : Conventions, contact, &
                                     dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, &
                                     mhmFileRestartOut, mrmFileRestartOut, &
@@ -60,7 +60,7 @@ CONTAINS
                                     opti_function, opti_method, optimize, optimize_restart, &
                                     read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
                                     sce_ngs, sce_npg, sce_nps, seed, &
-                                    warmPer, warmingDays, landCoverPeriodBoundaries, float_comparison_precision
+                                    warmPer, warmingDays, landCoverPeriodBoundaries
     use mo_common_datetime_type, only: LCyearId, simPer, timestep, nTStepDay, period
     use mo_julian, only : caldat, julday
     use mo_message, only : message
