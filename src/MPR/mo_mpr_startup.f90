@@ -143,7 +143,7 @@ CONTAINS
     use mo_common_constants, only : eps_dp
     use mo_common_variables, only : L0_LCover, L0_elev, level0, nLandCoverPeriods
     use mo_common_datetime_type, only : timeStep_LAI_input
-    use mo_message, only : message, message_text
+    use mo_message, only : message
     use mo_mpr_global_variables, only : L0_asp, L0_geoUnit, L0_gridded_LAI, &
                                         L0_slope, L0_soilId, iFlag_soilDB
     use mo_global_variables, only : nSoilHorizons
@@ -154,9 +154,9 @@ CONTAINS
 
     ! domain id
     integer(i4), intent(in) :: iDomain
-
     integer(i4) :: k, n, nH
 
+    character(4096) :: message_text
 
     ! START CHECKING VARIABLES
     do k = level0(iDomain)%iStart, level0(iDomain)%iEnd

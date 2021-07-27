@@ -116,7 +116,7 @@ PROGRAM mhm_driver
         nTstepDay, &      ! number of timesteps per day (former: NAGG)
         simPer      ! simulation period
   USE mo_kind, ONLY : i4, dp                         ! number precision
-  USE mo_message, ONLY : message, message_text          ! For print out
+  USE mo_message, ONLY : message          ! For print out
   USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval, ONLY : mhm_eval
   USE mo_read_optional_data, ONLY : readOptidataObs ! read optional observed data
@@ -161,6 +161,7 @@ PROGRAM mhm_driver
   IMPLICIT NONE
 
   ! local
+  character(4096) :: message_text
   integer(i4), dimension(8) :: datetime         ! Date and time
   !$ integer(i4)                        :: n_threads        ! OpenMP number of parallel threads
   integer(i4) :: domainID, iDomain               ! Counters
