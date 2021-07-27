@@ -50,12 +50,12 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! Stephan Thober Jun 2018 - including varying celerity functionality
 
-  subroutine mrm_read_L0_data(do_reinit, do_readlatlon, do_readlcover)
+  subroutine mrm_read_L0_data(do_readlcover)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
-    use mo_common_variables, only : L0_LCover, level0, domainMeta, processMatrix
+    use mo_common_variables, only : L0_elev, L0_LCover, level0, domainMeta, processMatrix
     use mo_grid, only: Grid
     use mo_message, only : message
     use mo_mrm_file, only : file_facc, file_fdir, file_gaugeloc
@@ -64,10 +64,6 @@ contains
     use mo_string_utils, only : num2str
 
     implicit none
-
-    logical, intent(in) :: do_reinit
-
-    logical, intent(in) :: do_readlatlon
 
     logical, intent(in) :: do_readlcover
 
@@ -90,33 +86,14 @@ contains
     integer(i4)                            :: nodata_value ! data nodata value
 
 
-    ! ************************************************
-    ! READ SPATIAL DATA FOR EACH DOMAIN
-    ! ************************************************
-    if (do_reinit) then
-      call read_dem()
-    end if
-
-    if (do_readlcover .and. processMatrix(8, 1) .eq. 1) then
-      call read_lcover()
-    else if (do_readlcover .and. ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3))) then
-      do iDomain = 1, domainMeta%nDomains
-        domainID = domainMeta%indices(iDomain)
-        level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
-        allocate(data_i4_2d(level0_iDomain%nCells, 1_i4))
-        data_i4_2d = nodata_i4
-        call append(L0_LCover, data_i4_2d)
-        ! free memory
-        deallocate(data_i4_2d)
-      end do
-    end if
-
     do iDomain = 1, domainMeta%nDomains
+      ! ************************************************
+      ! READ SPATIAL DATA FOR EACH DOMAIN
+      ! ************************************************
       domainID = domainMeta%indices(iDomain)
 
       level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
 
-      ! ToDo: check if change is correct
       ! check whether L0 data is shared
       if (domainMeta%L0DataFrom(iDomain) < iDomain) then
         !
@@ -129,9 +106,21 @@ contains
       !
       call message('      Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
 
-      if (do_readlatlon) then
-        ! read lat lon coordinates of each domain
-        call read_latlon(iDomain, "lon_l0", "lat_l0", "level0", level0_iDomain)
+      ! TODO: MPR this needs to be reactivated
+      !  call read_dem(iDomain, level0_iDomain, data_dp_2d)
+      ! ! put data in variable
+      ! call append(L0_elev, pack(data_dp_2d, level0_iDomain%mask))
+
+      if (do_readlcover) then
+        if (processMatrix(8, 1) .eq. 1) then
+          call read_lcover(iDomain, data_i4_2d)
+        else if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
+          allocate(data_i4_2d(level0_iDomain%nCells, 1_i4))
+          data_i4_2d = nodata_i4
+        end if
+        call append(L0_LCover, data_i4_2d)
+        ! free memory
+        deallocate(data_i4_2d)
       end if
 
       ! read fAcc, fDir, gaugeLoc
@@ -177,7 +166,6 @@ contains
           call append(L0_fAcc, pack(data_i4_2d, level0_iDomain%mask))
         case(2) ! flow direction
           ! TODO: if a flipping occurs, we have to rotate the fdir variable
-          ! append
           call append(L0_fDir, pack(data_i4_2d, level0_iDomain%mask))
         case(3) ! location of evaluation and inflow gauging stations
           ! evaluation gauges

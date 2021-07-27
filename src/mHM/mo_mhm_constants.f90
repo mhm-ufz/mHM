@@ -21,6 +21,7 @@ MODULE mo_mhm_constants
 
   ! natural
   real(dp), public, parameter :: H2Odens = 1000.0_dp ! Density of water (kg/m3)
+  integer(i4), public, parameter :: maxGeoUnit = 25_i4     ! maximum number of allowed geological classes
 
   ! default inital values for states and fluxes as well as parameter fields
   real(dp), public, parameter :: P2_InitStateFluxes = 15.00_dp
@@ -32,6 +33,9 @@ MODULE mo_mhm_constants
   ! maximum number of outputs (fluxes states) for mHM
   integer(i4), public, parameter :: nOutFlxState = 20_i4     ! max. number of outputs to write into a netcdf file
 
+
+  !> Stefan-Boltzmann constant [W m^-2 K^-4]
+  real(dp), public, parameter :: StBoltzmann = 5.67e-08_dp
   !> Hargreaves-Samani ref. ET formula [deg C]
   real(dp), public, parameter :: HarSamConst = 17.800_dp
 

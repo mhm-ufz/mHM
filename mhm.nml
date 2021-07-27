@@ -310,11 +310,6 @@ file_LatLon(2)       = "test_domain_2/input/mpr/latlon.nc"
 ! directories (mHM-related)
 !******************************************************************************************
 &directories_mHM
-!
-!> input format specification for the meteorological forcings: 'nc' only possible
-!> this format is common to all domains to be modeled
-inputFormat_meteo_forcings = "nc"
-!
 !-----------------------------------------------------
 !> domain wise directory paths
 !-----------------------------------------------------
@@ -341,6 +336,7 @@ dir_absVapPressure(1)  = "test_domain/input/meteo/"
 dir_windspeed(1)       = "test_domain/input/meteo/"
 !> if processCase(11) == 1  input directory of (long/short-wave)radiation has to be specified
 dir_Radiation(1)    = "test_domain/input/meteo/"
+path_mpr_nml(1) = "mpr_test_domain.nml"
 !
 !**** for Domain 2
 !> directory where meteorological input is located
@@ -364,6 +360,7 @@ dir_absVapPressure(2)  = "test_domain_2/input/meteo/"
 dir_windspeed(2)       = "test_domain_2/input/meteo/"
 !> if processCase(11) == 1  input directory of (long/short-wave)radiation has to be specified
 dir_Radiation(2)    = "test_domain_2/input/meteo/"
+path_mpr_nml(2) = "mpr_test_domain2.nml"
 !> switch to control read input frequency of the gridded meteo input,
 !> i.e. precipitation, potential evapotransiration, and temperature
 !>      >0: after each <timeStep_model_inputs> days
@@ -518,7 +515,7 @@ processCase(11) = 0
 !> The land cover scene periods are shared by all catchments.
 !> The names should be equal for all domains. The land cover scnes have to be ordered
 !> chronologically.
-nLCoverScene = 2
+nLandCoverPeriods = 2
 ! indicate period with brackets behind variable
 ! first scene
 !> starting year of land cover scene 1

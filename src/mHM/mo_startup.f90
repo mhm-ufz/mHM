@@ -67,44 +67,52 @@ CONTAINS
   ! Rohini Kumar   Mar 2016 - changes for handling multiple soil database options
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine mhm_initialize
+  subroutine mhm_initialize(parameterValues, parameterNames, opti_domain_indices)
 
     use mo_grid, only : read_grid_info, set_domain_indices, calculate_grid_properties,  infer_grid_info, Grid
-    use mo_common_variables, only : level0, level1, domainMeta, mhmFileRestartIn, read_restart
+    use mo_common_variables, only : level0, level1, domainMeta, mhmFileRestartIn, read_restart, nuniqueL0Domains
     use mo_global_variables, only : level2
     use mo_init_states, only : variables_alloc
-    use mo_mpr_startup, only : init_eff_params, mpr_initialize
     use mo_global_variables, only : dirPrecipitation
     use mo_string_utils, only : num2str
     use mo_message, only : message
+    use mo_restart, only: read_restart_states
+    use mo_file, only: file_namelist_mhm, file_namelist_mhm_param, unamelist_mhm, unamelist_mhm_param
+    use mo_mhm_mpr_interface, only: call_mpr
 
     implicit none
 
-    integer(i4) :: iDomain, domainID
+    real(dp), dimension(:), intent(in) :: parameterValues
+    character(64), dimension(:), intent(in) :: parameterNames
+    integer(i4), dimension(:), optional, intent(in) :: opti_domain_indices
+    integer(i4) :: iDomain, domainID, uniqueIDomain
     type(Grid) :: dummy
-    type(Grid), pointer :: level0_iDomain
-
+    type(Grid), pointer :: level1_iDomain
 
     ! constants initialization
-    call constants_init()
     allocate(level2(domainMeta%nDomains))
+    allocate(level1(domainMeta%nDomains))
 
     if (read_restart) then
-      allocate(level1(domainMeta%nDomains))
+      do iDomain = 1, domainMeta%nDomains
+        domainID = domainMeta%indices(iDomain)
+        uniqueIDomain = domainMeta%L0DataFrom(iDomain)
+
+        ! this reads only the domain properties
+        ! domainID, inputFile, level_name, new_grid
+        call read_grid_info(domainID, mhmFileRestartIn(iDomain), "1", level1(iDomain))
+
+        call read_restart_states(iDomain, uniqueIDomain, mhmFileRestartIn(iDomain), do_read_states_arg=.false.)
+
+      end do
     else
-      call mpr_initialize()
+      call call_mpr(parameterValues, parameterNames, level1, .true., opti_domain_indices)
     end if
+
+    call constants_init()
 
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-
-      if (read_restart) then
-        ! this reads only the domain properties
-        call read_grid_info(domainID, mhmFileRestartIn(iDomain), "1", level1(iDomain))
-        ! Parameter fields have to be allocated in any case
-        call init_eff_params(level1(iDomain)%nCells)
-      end if
-
       ! State variables and fluxes
       ! have to be allocated and initialised in any case
       call variables_alloc(level1(iDomain)%nCells)
@@ -112,9 +120,9 @@ CONTAINS
       ! L2 inialization
       call infer_grid_info(trim(dirPrecipitation(iDomain)) // 'pre.nc', 'x', 'y', 'pre', level2(iDomain))
 
-      level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
-      call calculate_grid_properties(level0_iDomain%nrows, level0_iDomain%ncols, &
-        level0_iDomain%xllcorner, level0_iDomain%yllcorner, level0_iDomain%cellsize, &
+      level1_iDomain => level1(iDomain)
+      call calculate_grid_properties(level1_iDomain%nrows, level1_iDomain%ncols, &
+        level1_iDomain%xllcorner, level1_iDomain%yllcorner, level1_iDomain%cellsize, &
         level2(iDomain)%cellsize, &
         dummy%nrows, dummy%ncols, &
         dummy%xllcorner, dummy%yllcorner, dummy%cellsize)
@@ -133,7 +141,7 @@ CONTAINS
         call message('... cellsize: ', trim(adjustl(num2str(level2(iDomain)%cellsize))), ', ')
         call message('... xllcorner:', trim(adjustl(num2str(level2(iDomain)%xllcorner))), ', ')
         call message('... yllcorner:', trim(adjustl(num2str(level2(iDomain)%yllcorner))), ', ')
-        call message('  Expected to have following properties (based on L0):')
+        call message('  Expected to have following properties (based on level 1):')
         call message('... rows:     ', trim(adjustl(num2str(dummy%nrows))), ', ')
         call message('... cols:     ', trim(adjustl(num2str(dummy%ncols))), ', ')
         call message('... cellsize: ', trim(adjustl(num2str(dummy%cellsize))), ', ')
@@ -142,12 +150,8 @@ CONTAINS
         stop 1
       end if
 
-    end do
 
-    ! if no restart, this is done already in MPR
-    if (read_restart) then
-      call set_domain_indices(level1)
-    end if
+    end do
 
     call set_domain_indices(level2)
 
@@ -196,17 +200,6 @@ CONTAINS
       allocate(neutron_integral_AFast(1))
       neutron_integral_AFast(:) = 0.0_dp
     endif
-
-    ! check if enough geoparameter are defined in mhm_parameter.nml
-    ! this was formerly done after reading of data, but mHM and MPR are now seperate processes
-    if ((processMatrix(9, 2)) .NE.  size(GeoUnitList, 1)) then
-      call message()
-      call message('***ERROR: Mismatch: Number of geological units in ', trim(adjustl(file_hydrogeoclass)), &
-              ' is ', trim(adjustl(num2str(size(GeoUnitList, 1)))))
-      call message('          while it is ', trim(num2str(processMatrix(9, 2))), &
-              ' in ', trim(file_namelist_mhm_param), '!')
-      stop 1
-    end if
 
     c2TSTu = real(timeStep, dp) / 24.0_dp   ! from per timeStep to per day
 

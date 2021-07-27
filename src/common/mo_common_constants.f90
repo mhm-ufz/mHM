@@ -21,9 +21,14 @@ MODULE mo_common_constants
 
   ! Computational
   !> epsilon(1.0) in double precision
-  REAL(dp), public, PARAMETER :: eps_dp = epsilon(1.0_dp)
+  real(dp), public, parameter :: eps_dp = epsilon(1.0_dp)
   !> epsilon(1.0) in single precision
-  REAL(sp), public, PARAMETER :: eps_sp = epsilon(1.0_sp)
+  real(sp), public, parameter :: eps_sp = epsilon(1.0_sp)
+  !> the default precision used for comparing floats for equality (e.g. when read from netcdf files)
+  real(dp), public, parameter :: floatComparisonPrecision = 1.e-6_dp
+  !> the actual precision used for comparing floats for equality (e.g. when read from netcdf files)
+  real(dp), public :: float_comparison_precision
+
 
   ! computational, these values need to be the same!!!
   integer(i4), public, parameter :: nodata_i4 = -9999_i4  ! [-]     global no data value
@@ -36,6 +41,8 @@ MODULE mo_common_constants
   integer(i4), public, parameter :: nColPars = 5_i4      ! number of properties of the global variables
   integer(i4), public, parameter :: maxNoDomains = 50_i4     ! maximum number of allowed domains
   integer(i4), public, parameter :: maxNLcovers = 50_i4     ! maximum number of allowed LCover scenes
+  integer(i4), public, parameter :: nLCover_class = 3_i4      ! [-]     Number of land cover class
+
 
   character(64), public, parameter :: soilHorizonsVarName = "L1_SoilHorizons"
   character(64), public, parameter :: landCoverPeriodsVarName = "L1_LandCoverPeriods"

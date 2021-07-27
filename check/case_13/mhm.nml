@@ -19,7 +19,6 @@
     dir_temperature(1) = '../../test_domain/input/meteo/'
     dir_windspeed(1) = '../../test_domain/input/meteo/'
     dir_Radiation(1) = "../../test_domain/input/meteo/"
-    inputformat_meteo_forcings = 'nc'
     time_step_model_inputs(1) = -2
 /
 
@@ -65,7 +64,7 @@ dir_riv_widths(1) = '../../test_domain/input/optional_data/'
     lcoverfname(1:2) = 'lc_1981.asc', 'lc_1991.asc'
     lcoveryearend(1:2) = 1990, 2000
     lcoveryearstart(1:2) = 1981, 1991
-    nlcoverscene = 2
+    nLandCoverPeriods = 2
 /
 
 &lcover_mpr

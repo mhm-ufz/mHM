@@ -136,7 +136,7 @@ CONTAINS
   !>       \param[in] "integer(i4) :: fileunit"        Unit to open file
 
   !    INTENT(OUT)
-  !>       \param[out] "integer(i4) :: nLAI"                    Number of LAI classes
+  !>       \param[out] "integer(i4) :: nLAIs"                    Number of LAI classes
   !>       \param[out] "integer(i4), dimension(:) :: LAIIDlist" List of ids of LAI classes
   !>       \param[out] "real(dp), dimension(:, :) :: LAI"       LAI per class (row) and month (col)
 
@@ -148,7 +148,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_lai_lut(filename, fileunit, nLAI, LAIIDlist, LAI)
+  subroutine read_lai_lut(filename, fileunit, nLAIs, LAIIDlist, LAI)
 
     use mo_constants, only : YearMonths
 
@@ -161,7 +161,7 @@ CONTAINS
     integer(i4), intent(in) :: fileunit
 
     ! Number of LAI classes
-    integer(i4), intent(out) :: nLAI
+    integer(i4), intent(out) :: nLAIs
 
     ! List of ids of LAI classes
     integer(i4), dimension(:), allocatable, intent(out) :: LAIIDlist
@@ -178,16 +178,16 @@ CONTAINS
     open(fileunit, file = filename, action = 'read')
 
     ! read header
-    read(fileunit, *) dummy, nLAI
+    read(fileunit, *) dummy, nLAIs
     read(fileunit, *) dummy
     dummy = dummy // ''   ! only to avoid warning
 
     ! allocate arrays
-    allocate(LAIIDList(nLAI))
-    allocate(LAI(nLAI, nint(YearMonths, i4)))
+    allocate(LAIIDList(nLAIs))
+    allocate(LAI(nLAIs, nint(YearMonths, i4)))
 
     ! read data
-    do i = 1, nLAI
+    do i = 1, nLAIs
       read(fileunit, *) LAIIDList(i), dummy, (LAI(i, j), j = 1, nint(YearMonths, i4))
     end do
 

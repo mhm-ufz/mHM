@@ -47,6 +47,8 @@ MODULE mo_file
   CHARACTER(len = *), PARAMETER :: file_namelist_mhm_param = 'mhm_parameter.nml'
   !> Unit for namelist
   INTEGER, PARAMETER :: unamelist_mhm_param = 31
+  !> Unit for namelist
+  INTEGER, PARAMETER :: unamelist_mpr = 32                            !
   !> file defining mHM's outputs
   CHARACTER(len = *), PARAMETER :: file_defOutput = 'mhm_outputs.nml'
   !> Unit for file defining mHM's outputs

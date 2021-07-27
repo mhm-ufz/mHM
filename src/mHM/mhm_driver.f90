@@ -95,12 +95,12 @@ PROGRAM mhm_driver
           L1_twsaObs, &
           L1_etObs, &
           L1_neutronsObs, &
-          L1_smObs
+          L1_smObs, &
+          are_parameter_initialized
   USE mo_optimization_types, ONLY : &
           optidata ! type for opti data
   USE mo_common_variables, ONLY : &
           optimize, opti_function, &                                   ! optimization on/off and optimization method
-          mrm_coupling_mode, &
           write_restart, &      ! restart writing flags
           mhmFileRestartOut, &
           dirConfigOut, &
@@ -116,15 +116,13 @@ PROGRAM mhm_driver
         nTstepDay, &      ! number of timesteps per day (former: NAGG)
         simPer      ! simulation period
   USE mo_kind, ONLY : i4, dp                         ! number precision
-  USE mo_message, ONLY : message, message_text          ! For print out
+  USE mo_message, ONLY : message          ! For print out
   USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval, ONLY : mhm_eval
   USE mo_read_optional_data, ONLY : readOptidataObs ! read optional observed data
   USE mo_common_read_config, ONLY : common_read_config, &       ! Read main configuration files
                                     check_optimization_settings ! Read main configuration files
-  USE mo_mpr_read_config, ONLY : mpr_read_config                    ! Read main configuration files
   USE mo_mhm_read_config, ONLY : mhm_read_config                    ! Read main configuration files
-  USE mo_read_wrapper, ONLY : read_data                      ! Read all input data
   USE mo_restart, ONLY : write_restart_files
   USE mo_startup, ONLY : mhm_initialize
   USE mo_string_utils, ONLY : num2str, separator             ! String magic
@@ -163,6 +161,7 @@ PROGRAM mhm_driver
   IMPLICIT NONE
 
   ! local
+  character(4096) :: message_text
   integer(i4), dimension(8) :: datetime         ! Date and time
   !$ integer(i4)                        :: n_threads        ! OpenMP number of parallel threads
   integer(i4) :: domainID, iDomain               ! Counters
@@ -252,18 +251,17 @@ PROGRAM mhm_driver
   call message('Read namelist file: ', trim(file_namelist_mhm))
   call message('Read namelist file: ', trim(file_namelist_mhm_param))
   call message('Read namelist file: ', trim(file_defOutput))
-  call common_read_config(file_namelist_mhm, unamelist_mhm)
+  call common_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
 #ifdef MPI
   call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
   ! find the number the process is referred to, called rank
   call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
 #endif
-  call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
   call mhm_read_config(file_namelist_mhm, unamelist_mhm)
-  call check_optimization_settings()
-  mrm_coupling_mode = 2_i4
   call mrm_configuration(file_namelist_mhm, unamelist_mhm, &
           file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon)
+  call check_optimization_settings()
+
   call message()
   call message('# of domains:         ', trim(num2str(domainMeta%overallNumberOfDomains)))
   call message()
@@ -310,21 +308,15 @@ PROGRAM mhm_driver
 #endif
   call message()
 
-  call message('  Read data ...')
-  call timer_start(itimer)
-  ! for DEM, slope, ... define nGvar local
-  ! read_data has a domain loop inside
-  call read_data(simPer)
-  call timer_stop(itimer)
-  call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
-
   ! read data for every domain
   itimer = itimer + 1
   call message('  Initialize domains ...')
   call timer_start(itimer)
-  call mhm_initialize()
+  call mhm_initialize(global_parameters(:, 3), global_parameters_name)
   call timer_stop(itimer)
   call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
+  if (processMatrix(8, 1) > 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
+          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon)
 
   itimer = itimer + 1
   call message('  Read forcing and optional data ...')
@@ -335,7 +327,7 @@ PROGRAM mhm_driver
     ! read meteorology now, if optimization is switched on
     ! meteorological forcings (reading, upscaling or downscaling)
     if (timestep_model_inputs(iDomain) .eq. 0_i4) then
-      call prepare_meteo_forcings_data(iDomain, domainID, 1)
+      call prepare_meteo_forcings_data(iDomain, 1)
     end if
 
     ! read optional optional data if necessary
@@ -370,12 +362,6 @@ PROGRAM mhm_driver
   end do
   call timer_stop(itimer)
   call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
-
-  ! --------------------------------------------------------------------------
-  ! READ and INITIALISE mRM ROUTING
-  ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) > 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
-          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon=ReadLatLon)
 
   !this call may be moved to another position as it writes the master config out file for all domains
   call write_configfile()

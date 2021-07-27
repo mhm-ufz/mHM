@@ -20,18 +20,18 @@ MODULE mo_mrm_init
 
   IMPLICIT NONE
 
+  ! TODO: MPR no mrm_configuration, but mrm_update_param moved here
   public :: mrm_init, mrm_configuration
-  public :: variables_default_init_routing
 
   private
 
 CONTAINS
 
 subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
-    use mo_common_variables, only : processMatrix, mrm_coupling_mode
+    use mo_common_variables, only : processMatrix
     use mo_mrm_read_config, only : mrm_read_config
     use mo_mrm_global_variables, only: riv_temp_pcs
-    use mo_common_read_config, only : common_read_config, check_optimization_settings
+    use mo_common_read_config, only : check_optimization_settings
     use mo_kind, only : i4
     use mo_message, only : message
     implicit none
@@ -42,37 +42,21 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
 
     logical, intent(out) :: ReadLatLon
 
-    if (mrm_coupling_mode .eq. 0_i4) then
-      call common_read_config(file_namelist, unamelist)
-      !-----------------------------------------------------------
-      ! PRINT STARTUP MESSAGE
-      !-----------------------------------------------------------
-      call print_startup_message(file_namelist, file_namelist_param)
-    else
+    call message('')
+    call message('  Inititalize mRM')
+    if ( processMatrix(11, 1) .ne. 0 ) then
+      ! processCase(11): river temperature routing
+      riv_temp_pcs%active = .true.
+      riv_temp_pcs%case = processMatrix(11, 1)
       call message('')
-      call message('  Inititalize mRM')
-      if ( processMatrix(11, 1) .ne. 0 ) then
-        ! processCase(11): river temperature routing
-        riv_temp_pcs%active = .true.
-        riv_temp_pcs%case = processMatrix(11, 1)
-        call message('')
-        call message('    Read config: river temperature routing')
-        call riv_temp_pcs%config(file_namelist, unamelist, file_namelist_param, unamelist_param)
-      end if
+      call message('    Read config: river temperature routing')
+      call riv_temp_pcs%config(file_namelist, unamelist, file_namelist_param, unamelist_param)
     end if
 
     ! read config for mrm, readlatlon is set here depending on whether output is needed
     call mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, &
-            (mrm_coupling_mode .eq. 0_i4), ReadLatLon)
+            .false., ReadLatLon)
 
-    ! this was moved here, because it depends on global_parameters that are only set in mrm_read_config
-    if (mrm_coupling_mode .eq. 0_i4) then
-      call check_optimization_settings()
-      !-----------------------------------------------------------
-      ! CONFIG OUTPUT
-      !-----------------------------------------------------------
-      call config_output()
-    end if
 end subroutine mrm_configuration
   ! ------------------------------------------------------------------
 
@@ -112,7 +96,7 @@ end subroutine mrm_configuration
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_grid, only : read_grid_info
     use mo_common_variables, only : domainMeta, global_parameters, l0_l1_remap, level0, level1, domainMeta, &
-                                    processMatrix, resolutionHydrology, mrmFileRestartIn, mrm_coupling_mode, &
+                                    processMatrix, resolutionHydrology, mrmFileRestartIn, &
                                     mrm_read_river_network, resolutionRouting
     use mo_grid, only : init_advanced_grid_properties, init_lowres_level, set_domain_indices
     use mo_kind, only : i4
@@ -131,6 +115,7 @@ end subroutine mrm_configuration
     use mo_read_latlon, only : read_latlon
     use mo_mrm_river_head, only: init_masked_zeros_l0, create_output, calc_channel_elevation
     use mo_mrm_mpr, only : mrm_init_param
+    use mo_common_read_config, only : check_optimization_settings
 
     implicit none
 
@@ -138,7 +123,7 @@ end subroutine mrm_configuration
 
     integer, intent(in) :: unamelist, unamelist_param
 
-    logical, optional, intent(inout) :: ReadLatLon
+    logical, optional, intent(in) :: ReadLatLon
 
     ! start and end index for routing parameters
     integer(i4) :: iStart, iEnd
@@ -147,11 +132,8 @@ end subroutine mrm_configuration
 
     integer(i4) :: domainID, iDomain, gauge_counter
 
-
-    if (mrm_coupling_mode .eq. 0_i4) then
-      allocate(l0_l1_remap(domainMeta%nDomains))
-      allocate(level1(domainMeta%nDomains))
-    end if
+    call message('')
+    call message('  Inititalize mRM')
 
     ! ----------------------------------------------------------
     ! READ DATA
@@ -162,41 +144,30 @@ end subroutine mrm_configuration
 
     if (.not. mrm_read_river_network) then
       ! read all (still) necessary level 0 data
-      if (processMatrix(8, 1) .eq. 1_i4) call mrm_read_L0_data(mrm_coupling_mode .eq. 0_i4, ReadLatLon, .true.)
-      if (processMatrix(8, 1) .eq. 2_i4) call mrm_read_L0_data(mrm_coupling_mode .eq. 0_i4, ReadLatLon, .false.)
-      if (processMatrix(8, 1) .eq. 3_i4) call mrm_read_L0_data(mrm_coupling_mode .eq. 0_i4, ReadLatLon, .false.)
+      ! do_reinit, do_readlatlon, do_readlcover
+      if (processMatrix(8, 1) .eq. 1_i4) call mrm_read_L0_data(.true.)
+      if (processMatrix(8, 1) .eq. 2_i4) call mrm_read_L0_data(.false.)
+      if (processMatrix(8, 1) .eq. 3_i4) call mrm_read_L0_data(.false.)
     end if
 
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       if (mrm_read_river_network) then
         ! this reads the domain properties
-        if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains))
+        ! TODO: MPR these two lines need to go?
         ! ToDo: L0_Domain, parallel
+        if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains))
         call read_grid_info(domainMeta%indices(domainMeta%L0DataFrom(iDomain)), mrmFileRestartIn(iDomain), &
                                                      "0", level0(domainMeta%L0DataFrom(iDomain)))
-        if (mrm_coupling_mode .eq. 0_i4) then
-          call read_grid_info(domainID, mrmFileRestartIn(iDomain), "1", level1(iDomain))
-        end if
         call read_grid_info(domainID, mrmFileRestartIn(iDomain), "11", level11(iDomain))
-        call mrm_read_restart_config(iDomain, domainID, mrmFileRestartIn(iDomain))
+        call mrm_read_restart_config(iDomain, mrmFileRestartIn(iDomain))
       else
         if (iDomain .eq. 1) then
           call L0_check_input_routing(domainMeta%L0DataFrom(iDomain))
-          if (mrm_coupling_mode .eq. 0_i4) then
-            call init_advanced_grid_properties(level0(domainMeta%L0DataFrom(iDomain)))
-          end if
         else if ((domainMeta%L0DataFrom(iDomain) == iDomain)) then
           call L0_check_input_routing(domainMeta%L0DataFrom(iDomain))
-          if (mrm_coupling_mode .eq. 0_i4) then
-            call init_advanced_grid_properties(level0(domainMeta%L0DataFrom(iDomain)))
-          end if
         end if
 
-        if (mrm_coupling_mode .eq. 0_i4) then
-          call init_lowres_level(level0(domainMeta%L0DataFrom(iDomain)), resolutionHydrology(iDomain), &
-                  level1(iDomain), l0_l1_remap(iDomain))
-        end if
         call init_lowres_level(level0(domainMeta%L0DataFrom(iDomain)), resolutionRouting(iDomain), &
                 level11(iDomain), l0_l11_remap(iDomain))
         call init_lowres_level(level1(iDomain), resolutionRouting(iDomain), &
@@ -205,12 +176,9 @@ end subroutine mrm_configuration
 
         if (ReadLatLon) then
           ! read lat lon coordinates of each domain
-          call read_latlon(iDomain, "lon", "lat", "level1", level1(iDomain))
           call read_latlon(iDomain, "lon_l11", "lat_l11", "level11", level11(iDomain))
         else
           ! allocate the memory and set to nodata
-          if (.not. allocated(level11(iDomain)%x)) allocate(level11(iDomain)%x(level11(iDomain)%nrows, level11(iDomain)%ncols))
-          if (.not. allocated(level11(iDomain)%y)) allocate(level11(iDomain)%y(level11(iDomain)%nrows, level11(iDomain)%ncols))
           level11(iDomain)%x = nodata_dp
           level11(iDomain)%y = nodata_dp
         end if
@@ -219,14 +187,20 @@ end subroutine mrm_configuration
 
     call set_domain_indices(level11)
     call set_domain_indices(level1)
+    ! TODO: MPR this is not there but actually makes sense being there
     call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
 
     ! ----------------------------------------------------------
-    ! INITIALIZE STATES AND AUXILLIARY VARIABLES
+    ! INITIALIZE STATES AND ROUTING PARAMETERS
     ! ----------------------------------------------------------
     do iDomain = 1, domainMeta%nDomains
       call variables_alloc_routing(iDomain)
     end do
+    !-------------------------------------------
+    ! L11 ROUTING STATE VARIABLES, FLUXES AND
+    !             PARAMETERS
+    !-------------------------------------------
+    call variables_default_init_routing()
 
     ! ----------------------------------------------------------
     ! INITIALIZE STREAM NETWORK
@@ -242,15 +216,7 @@ end subroutine mrm_configuration
         ! stream characteristics
         call L11_stream_features(iDomain)
       end if
-    end do
 
-    ! ----------------------------------------------------------
-    ! INITIALIZE PARAMETERS
-    ! ----------------------------------------------------------
-    do iDomain = 1, domainMeta%nDomains
-      iStart = processMatrix(8, 3) - processMatrix(8, 2) + 1
-      iEnd = processMatrix(8, 3)
-      call mrm_init_param(iDomain, global_parameters(iStart : iEnd, 3))
     end do
 
     ! check whether there are gauges within the modelling domain
@@ -266,6 +232,15 @@ end subroutine mrm_configuration
         call message('    WARNING: no gauge found within modelling domain')
       end if
     end if
+    ! ----------------------------------------------------------
+    ! INITIALIZE PARAMETERS
+    ! ----------------------------------------------------------
+    do iDomain = 1, domainMeta%nDomains
+      iStart = processMatrix(8, 3) - processMatrix(8, 2) + 1
+      iEnd = processMatrix(8, 3)
+      call mrm_init_param(iDomain, global_parameters(iStart : iEnd, 3))
+    end do
+
     ! mpr-like definiton of sealed floodplain fraction
     if ((processMatrix(8, 1) .eq. 1_i4) .and. (.not. mrm_read_river_network)) then
       call L11_fraction_sealed_floodplain(2_i4, .true.)
@@ -277,12 +252,6 @@ end subroutine mrm_configuration
     ! -------------------------------------------------------
     ! READ INPUT DATA AND OBSERVED DISCHARGE DATA
     ! -------------------------------------------------------
-    ! read simulated runoff at level 1
-    if (mrm_coupling_mode .eq. 0_i4) then
-      do iDomain = 1, domainMeta%nDomains
-        call mrm_read_total_runoff(iDomain)
-      end do
-    end if
     ! discharge data
     call mrm_read_discharge()
 
@@ -347,13 +316,14 @@ end subroutine mrm_configuration
   subroutine print_startup_message(file_namelist, file_namelist_param)
 
     use mo_kind, only : i4
-    use mo_message, only : message, message_text
+    use mo_message, only : message
     use mo_mrm_file, only : file_defOutput, file_main, version, version_date
     use mo_string_utils, only : num2str, separator
 
     implicit none
 
     character(*), intent(in) :: file_namelist, file_namelist_param
+    character(4096) :: message_text
 
     ! Date and time
     integer(i4), dimension(8) :: datetime
@@ -407,7 +377,7 @@ end subroutine mrm_configuration
 
   subroutine config_output
 
-    use mo_common_variables, only : dirLCover, dirMorpho, dirOut, domainMeta
+    use mo_common_variables, only : dirOut, domainMeta
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_mrm_file, only : file_defOutput, file_namelist_mrm, file_namelist_param_mrm
@@ -437,8 +407,6 @@ end subroutine mrm_configuration
       call message('  --------------')
       call message('      DOMAIN                   ', num2str(domainID, '(I3)'))
       call message('  --------------')
-      call message('    Morphological directory:    ', trim(dirMorpho(iDomain)))
-      call message('    Land cover directory:       ', trim(dirLCover(iDomain)))
       call message('    Discharge directory:        ', trim(dirGauges(iDomain)))
       call message('    Output directory:           ', trim(dirOut(iDomain)))
       call message('    Evaluation gauge            ', 'ID')
@@ -546,7 +514,7 @@ end subroutine mrm_configuration
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : level0
     use mo_kind, only : i4
-    use mo_message, only : message, message_text
+    use mo_message, only : message
     use mo_mrm_global_variables, only : L0_fAcc, L0_fDir
     use mo_string_utils, only : num2str
 
@@ -555,6 +523,7 @@ end subroutine mrm_configuration
     integer(i4), intent(in) :: L0Domain_iDomain
 
     integer(i4) :: k
+    character(4096) :: message_text
 
 
     do k = level0(L0Domain_iDomain)%iStart, level0(L0Domain_iDomain)%iEnd

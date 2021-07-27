@@ -370,6 +370,7 @@ contains
 
     use mo_message, only : message
     use mo_string_utils, only : num2str
+    use mo_common_constants, only: float_comparison_precision
 
     implicit none
 
@@ -396,22 +397,22 @@ contains
     !> cell size at an output level
     real(dp), intent(out) :: cellsizeOut
 
-    real(dp) :: cellfactor
-
+    real(dp) :: cellFactor, rounded
 
     cellFactor = aimingResolution / cellsizeIn
+    rounded = anint(cellFactor)
 
-    if (nint(mod(aimingResolution, cellsizeIn)) /= 0) then
+    if (abs(rounded - cellFactor) > float_comparison_precision) then
       call message()
       call message('***ERROR: Two resolutions size do not confirm: ', &
-              trim(adjustl(num2str(nint(AimingResolution)))), &
-              trim(adjustl(num2str(nint(cellsizeIn)))))
+              num2str(aimingResolution), ' and ', &
+              num2str(cellsizeIn))
       stop 1
     end if
 
-    cellsizeOut = cellsizeIn * cellFactor
-    ncolsOut = ceiling(real(ncolsIn, dp) / cellFactor)
-    nrowsOut = ceiling(real(nrowsIn, dp) / cellFactor)
+    cellsizeOut = cellsizeIn * rounded
+    ncolsOut = nint(real(ncolsIn, dp) / cellFactor)
+    nrowsOut = nint(real(nrowsIn, dp) / cellFactor)
     xllcornerOut = xllcornerIn + real(ncolsIn, dp) * cellsizeIn - real(ncolsOut, dp) * cellsizeOut
     yllcornerOut = yllcornerIn + real(nrowsIn, dp) * cellsizeIn - real(nrowsOut, dp) * cellsizeOut
 

@@ -58,12 +58,13 @@ PATTERNS = [
 # output folder and reference folder
 OUT = "output_b1"
 REF = "output_save"
-# patterns for comparison of restart files
+# patterns for comparison of restart files (key: var name in output_save, value: var name in output_b1)
 MATCH_VARS = {
     "L1_basin_mask": "L1_basin_Mask",
     "L1_basin_cellarea": "L1_areaCell",
     "L11_basin_mask": "L11_basin_Mask",
     "L11_basin_cellarea": "L11_areaCell",
+    "L1_kfastFlow": "L1_kFastFlow",
     # "L11_nLinkFracFPimp": "L11_FracFPimp",
 }
 IGNORE_VARS = [
@@ -102,6 +103,7 @@ IGNORE_VARS = [
     "InflowGaugeNodeList",  # is now adapted to lat-sorted axis with new links
     "gaugeNodeList",  # is now adapted to lat-sorted axis with new links
     "ProcessMatrix",  # fails if new process is added
+    "L1_degDay",  # is not a parameter anymore but a state variable
 ]
 MHM_EXE = ["../mhm"]
 # case 5 and 7 don't work with MPI. case 4 has a bug working with ifort+debug
@@ -344,12 +346,12 @@ def compare_xarrays(ds_new, ds_ref, match=None, ignore=None):
         if var_name in ignore:
             continue
         # rename the current var_name with the aid of the match-dictionary
-        var_name = match.get(var_name, var_name)
-        if var_name in ds_new.data_vars:
-            if not ds_new[var_name].equals(ds_ref[var_name]):
+        new_var_name = match.get(var_name, var_name)
+        if new_var_name in ds_new.data_vars:
+            if not ds_new[new_var_name].equals(ds_ref[var_name]):
                 diff_n += 1
                 if not np.allclose(
-                    ds_new[var_name].values,
+                    ds_new[new_var_name].values,
                     ds_ref[var_name].values,
                     equal_nan=True,
                     rtol=RTOL,

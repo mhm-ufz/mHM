@@ -112,6 +112,21 @@ module mo_mrm_global_variables
     integer(i4), dimension(:), allocatable :: L0_colOutlet   ! Outlet locations in L0
   end type domainInfo_mRM
 
+  type(Grid), dimension(:), target, allocatable, public :: level0 ! grid information at morphological level (e.g., dem, fDir)
+  type(GridRemapper), dimension(:), allocatable, public :: l0_l1_remap ! grid information at morphological level (e.g., dem, fDir)
+
+  ! -------------------------------------------------------------------
+  ! L0 DOMAIN description -> <only domain>
+  ! -------------------------------------------------------------------
+  ! TODO: all this needs to go into MPR at some point
+  ! dim1 = number grid cells
+  ! input data - morphological variables
+  real(dp), public, dimension(:), allocatable :: L0_elev    ! [m]      Elevation (sinks removed)
+  !          target variable for coupling to mRM
+  integer(i4), public, dimension(:, :), allocatable :: L0_LCover      ! Classic mHM landcover class (upto 3 classes)
+  !                                                                          ! dim1=number grid cells, dim2=Number of land cover scenes
+  !                                                                          ! target variable for coupling to mRM
+
   ! dim1 = domainId
   type(domainInfo_mRM), dimension(:), allocatable, public, target :: domain_mrm ! domain structure
   ! -------------------------------------------------------------------
@@ -152,13 +167,13 @@ module mo_mrm_global_variables
   ! -------------------------------------------------------------------
   ! dim1 = number grid cells L11
   ! dim2 = 2
-  integer(i4), public, dimension(:,:), allocatable :: L11_cellCoor ! Cell coordinates (row,col)
-  !                                                                ! -> <only domain> Routing
   integer(i4), public, dimension(:), allocatable :: L1_L11_ID  ! Mapping of L1 Id on L11
-  real(dp),    public, dimension(:), allocatable :: L11_areaCell ! [km2] Effective area of cell at this level
-  real(dp),    public, dimension(:), allocatable :: L11_fAcc ! [km2] flow Accumulation of cell at this level
   integer(i4), public, dimension(:), allocatable :: L11_fDir ! Flow direction (standard notation)
   integer(i4), public, dimension(:), allocatable :: L11_nOutlets
+  integer(i4), public, dimension(:,:), allocatable :: L11_cellCoor ! Cell coordinates (row,col)
+  !                                                                ! -> <only domain> Routing
+  real(dp),    public, dimension(:), allocatable :: L11_areaCell ! [km2] Effective area of cell at this level
+  real(dp),    public, dimension(:), allocatable :: L11_fAcc ! [km2] flow Accumulation of cell at this level
   real(dp),    public, dimension(:), allocatable :: L11_celerity ! [m/s] celerity per grid-cell, only for
                                                                  ! routing-case = 3
   real(dp),    public, dimension(:), allocatable :: L11_meandering ! Proxy: L11_length/Lopt

@@ -74,4 +74,6 @@ MODULE mo_mpr_constants
   !> maximum bulk surface resistance
   real(dp), public, parameter :: max_surfResist = 250.0_dp
 
+  integer(i4), public, parameter :: maxNoDataArrays = 1000_i4
+
 END MODULE mo_mpr_constants

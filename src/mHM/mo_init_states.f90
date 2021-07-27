@@ -63,13 +63,13 @@ CONTAINS
 
     use mo_append, only : append
     use mo_common_constants, only : P1_InitStateFluxes
-    use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
+    use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, L1_degDay, &
                                     L1_fastRunoff, L1_infilSoil, L1_inter, L1_melt, L1_neutrons, L1_percol, &
                                     L1_pet_calc, L1_preEffect, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
-                                    L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_total_runoff, L1_unsatSTW
-    use mo_mpr_constants, only : C1_InitStateSM, P2_InitStateFluxes, P3_InitStateFluxes, &
+                                    L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_total_runoff, L1_unsatSTW, &
+                                    soilHorizonBoundaries, nSoilHorizons
+    use mo_mhm_constants, only : C1_InitStateSM, P2_InitStateFluxes, P3_InitStateFluxes, &
                                  P4_InitStateFluxes, P5_InitStateFluxes
-    use mo_mpr_global_variables, only : HorizonDepth_mHM, nSoilHorizons_mHM
 
     implicit none
 
@@ -84,7 +84,7 @@ CONTAINS
 
     ! for appending and intialization
     allocate(dummy_1D(nCells1))
-    allocate(dummy_2D(nCells1, nSoilHorizons_mHM))
+    allocate(dummy_2D(nCells1, nSoilHorizons))
 
     dummy_1D = P1_InitStateFluxes
     dummy_2D = P1_InitStateFluxes
@@ -130,6 +130,8 @@ CONTAINS
     !-------------------------------------------
     ! Interception
     call append(L1_inter, dummy_1D)
+    ! Degree-day factor
+    call append(L1_degDay, dummy_1D)
     !Retention storage of impervious areas
     call append(L1_sealSTW, dummy_1D)
     ! ground albedo neutrons
@@ -144,15 +146,11 @@ CONTAINS
     dummy_1D = P4_InitStateFluxes
     call append(L1_satSTW, dummy_1D)
     ! Soil moisture of each horizon
-    do i = 1, nSoilHorizons_mHM - 1
-      if (i == 1) then
-        dummy_2D(:, i) = HorizonDepth_mHM(i) * C1_InitStateSM
-      else
-        dummy_2D(:, i) = (HorizonDepth_mHM(i) - HorizonDepth_mHM(i - 1)) * C1_InitStateSM
-      end if
+    do i = 1, nSoilHorizons - 1
+      dummy_2D(:, i) = (soilHorizonBoundaries(i+1) - soilHorizonBoundaries(i)) * C1_InitStateSM * 1000_dp
     end do
-    dummy_2D(:, nSoilHorizons_mHM) = (P5_InitStateFluxes - &
-            HorizonDepth_mHM(nSoilHorizons_mHM - 1)) * C1_InitStateSM
+    dummy_2D(:, nSoilHorizons) = (P5_InitStateFluxes - &
+            soilHorizonBoundaries(nSoilHorizons+1)) * C1_InitStateSM * 1000_dp
     call append(L1_soilMoist, dummy_2D)
 
     ! free space
@@ -196,16 +194,16 @@ CONTAINS
                                     L1_fastRunoff, L1_infilSoil, &
                                     L1_inter, L1_melt, L1_neutrons, L1_percol, L1_pet_calc, L1_preEffect, L1_rain, &
                                     L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
-                                    L1_soilMoist, L1_total_runoff, L1_unsatSTW
-    use mo_mpr_constants, only : C1_InitStateSM, P2_InitStateFluxes, P3_InitStateFluxes, &
+                                    L1_soilMoist, L1_total_runoff, L1_unsatSTW, &
+                                    nSoilHorizons, soilHorizonBoundaries, L1_HarSamCoeff, L1_PrieTayAlpha, &
+                                    L1_aeroResist, L1_alpha, L1_degDay, L1_degDayInc, L1_degDayMax,&
+                                    L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, &
+                                    L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, L1_kfastFlow, &
+                                    L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
+                                    L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, &
+                                    L1_unsatThresh, L1_wiltingPoint, are_parameter_initialized
+    use mo_mhm_constants, only : C1_InitStateSM, P2_InitStateFluxes, P3_InitStateFluxes, &
                                  P4_InitStateFluxes, P5_InitStateFluxes
-    use mo_mpr_global_variables, only : HorizonDepth_mHM, L1_HarSamCoeff, L1_PrieTayAlpha, &
-                                        L1_aeroResist, L1_alpha, L1_degDay, L1_degDayInc, L1_degDayMax,&
-                                        L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, &
-                                        L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, L1_kfastFlow, &
-                                        L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
-                                        L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, &
-                                        L1_unsatThresh, L1_wiltingPoint, nSoilHorizons_mHM
 
     implicit none
 
@@ -224,15 +222,11 @@ CONTAINS
     L1_sealSTW = P1_InitStateFluxes
 
     ! Soil moisture of each horizon
-    do i = 1, nSoilHorizons_mHM - 1
-      if (i .eq. 1) then
-        L1_soilMoist(:, i) = HorizonDepth_mHM(i) * C1_InitStateSM
-      else
-        L1_soilMoist(:, i) = (HorizonDepth_mHM(i) - HorizonDepth_mHM(i - 1)) * C1_InitStateSM
-      end if
+    do i = 1, nSoilHorizons - 1
+      L1_soilMoist(:, i) = (soilHorizonBoundaries(i+1) - soilHorizonBoundaries(i)) * C1_InitStateSM  * 1000_dp
     end do
-    L1_soilMoist(:, nSoilHorizons_mHM) = (P5_InitStateFluxes - &
-            HorizonDepth_mHM(nSoilHorizons_mHM - 1)) * C1_InitStateSM
+    L1_soilMoist(:, nSoilHorizons) = (P5_InitStateFluxes - &
+            soilHorizonBoundaries(nSoilHorizons) * 1000_dp) * C1_InitStateSM
 
     ! upper soil storage
     L1_unsatSTW = P3_InitStateFluxes
@@ -242,6 +236,9 @@ CONTAINS
 
     ! ground albedo neutrons, initially zero
     L1_neutrons = P1_InitStateFluxes
+
+    ! degree-day factor
+    L1_degDay = P1_InitStateFluxes
 
     !-------------------------------------------
     ! FLUXES
@@ -298,87 +295,85 @@ CONTAINS
     !-------------------------------------------
     ! EFFECTIVE PARAMETERS
     !-------------------------------------------
-    ! sealed fraction of LCover
-    L1_fSealed = P1_InitStateFluxes
+    if (.not. are_parameter_initialized) then
+      ! sealed fraction of LCover
+      L1_fSealed = P1_InitStateFluxes
 
-    ! exponent for the upper reservoir
-    L1_alpha = P1_InitStateFluxes
+      ! exponent for the upper reservoir
+      L1_alpha = P1_InitStateFluxes
 
-    ! increase of the Degree-day factor per mm of increase in precipitation
-    L1_degDayInc = P1_InitStateFluxes
+      ! increase of the Degree-day factor per mm of increase in precipitation
+      L1_degDayInc = P1_InitStateFluxes
 
-    ! maximum degree-day factor
-    L1_degDayMax = P1_InitStateFluxes
+      ! maximum degree-day factor
+      L1_degDayMax = P1_InitStateFluxes
 
-    ! degree-day factor with no precipitation
-    L1_degDayNoPre = P1_InitStateFluxes
+      ! degree-day factor with no precipitation
+      L1_degDayNoPre = P1_InitStateFluxes
 
-    ! degree-day factor
-    L1_degDay = P1_InitStateFluxes
+      ! Karstic percolation loss
+      L1_karstLoss = P1_InitStateFluxes
 
-    ! Karstic percolation loss
-    L1_karstLoss = P1_InitStateFluxes
+      ! PET correction factor due to LAI
+      L1_petLAIcorFactor = P1_InitStateFluxes
 
-    ! PET correction factor due to LAI
-    L1_petLAIcorFactor = P1_InitStateFluxes
+      ! PET correction factor due to terrain aspect
+      L1_fAsp = P1_InitStateFluxes
 
-    ! PET correction factor due to terrain aspect
-    L1_fAsp = P1_InitStateFluxes
+      ! PET Hargreaves Samani Coefficient
+      L1_HarSamCoeff = P1_InitStateFluxes
 
-    ! PET Hargreaves Samani Coefficient
-    L1_HarSamCoeff = P1_InitStateFluxes
+      ! PET Priestley Taylor coefficient
+      L1_PrieTayAlpha = P1_InitStateFluxes
 
-    ! PET Priestley Taylor coefficient
-    L1_PrieTayAlpha = P1_InitStateFluxes
+      ! PET aerodynamical resistance
+      L1_aeroResist = P1_InitStateFluxes
 
-    ! PET aerodynamical resistance
-    L1_aeroResist = P1_InitStateFluxes
+      ! PET bulk surface resistance
+      L1_surfResist = P1_InitStateFluxes
 
-    ! PET bulk surface resistance
-    L1_surfResist = P1_InitStateFluxes
+      ! Fraction of roots in soil horizons
+      L1_fRoots = P1_InitStateFluxes
 
+      ! Maximum interception
+      L1_maxInter = P1_InitStateFluxes
 
-    ! Fraction of roots in soil horizons
-    L1_fRoots = P1_InitStateFluxes
+      ! fast interflow recession coefficient
+      L1_kFastFlow = P1_InitStateFluxes
 
-    ! Maximum interception
-    L1_maxInter = P1_InitStateFluxes
+      ! slow interflow recession coefficient
+      L1_kSlowFlow = P1_InitStateFluxes
 
-    ! fast interflow recession coefficient
-    L1_kfastFlow = P1_InitStateFluxes
+      ! baseflow recession coefficient
+      L1_kBaseFlow = P1_InitStateFluxes
 
-    ! slow interflow recession coefficient
-    L1_kSlowFlow = P1_InitStateFluxes
+      ! percolation coefficient
+      L1_kPerco = P1_InitStateFluxes
 
-    ! baseflow recession coefficient
-    L1_kBaseFlow = P1_InitStateFluxes
+      ! Soil moisture below which actual ET is reduced linearly till PWP
+      L1_soilMoistFC = P1_InitStateFluxes
 
-    ! percolation coefficient
-    L1_kPerco = P1_InitStateFluxes
+      ! Saturation soil moisture for each horizon [mm]
+      L1_soilMoistSat = P1_InitStateFluxes
 
-    ! Soil moisture below which actual ET is reduced linearly till PWP
-    L1_soilMoistFC = P1_InitStateFluxes
+      ! Exponential parameter to how non-linear is the soil water retention
+      L1_soilMoistExp = P1_InitStateFluxes
 
-    ! Saturation soil moisture for each horizon [mm]
-    L1_soilMoistSat = P1_InitStateFluxes
+      ! jarvis critical value for normalized soil water content
+      L1_jarvis_thresh_c1 = P1_InitStateFluxes
 
-    ! Exponential parameter to how non-linear is the soil water retention
-    L1_soilMoistExp = P1_InitStateFluxes
+      ! Threshold temperature for snow/rain
+      L1_tempThresh = P1_InitStateFluxes
 
-    ! jarvis critical value for normalized soil water content
-    L1_jarvis_thresh_c1 = P1_InitStateFluxes
+      ! Threshhold water depth controlling fast interflow
+      L1_unsatThresh = P1_InitStateFluxes
 
-    ! Threshold temperature for snow/rain
-    L1_tempThresh = P1_InitStateFluxes
+      ! Threshhold water depth for surface runoff in sealed surfaces
+      L1_sealedThresh = P1_InitStateFluxes
 
-    ! Threshhold water depth controlling fast interflow
-    L1_unsatThresh = P1_InitStateFluxes
-
-    ! Threshhold water depth for surface runoff in sealed surfaces
-    L1_sealedThresh = P1_InitStateFluxes
-
-    ! Permanent wilting point
-    L1_wiltingPoint = P1_InitStateFluxes
+      ! Permanent wilting point
+      L1_wiltingPoint = P1_InitStateFluxes
+    end if
 
   end subroutine variables_default_init
 

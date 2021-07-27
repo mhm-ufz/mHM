@@ -63,8 +63,8 @@ CONTAINS
     use mo_common_constants, only : eps_dp, nodata_dp, nodata_i4
     use mo_mpr_constants, only : nLCover_class
     use mo_mpr_file, only : usoil_database
-    use mo_mpr_global_variables, only : HorizonDepth_mHM, iFlag_soilDB, nSoilHorizons_mHM, nSoilTypes, soilDB, &
-                                        tillageDepth
+    use mo_mpr_global_variables, only : iFlag_soilDB, nSoilTypes, soilDB, tillageDepth
+    use mo_global_variables, only : nSoilHorizons, soilHorizonBoundaries
 
     implicit none
 
@@ -328,10 +328,10 @@ CONTAINS
       ! both nHorizons & tillage horizons
       allocate(soilDB%nHorizons(1))
       allocate(soilDB%nTillHorizons(1))
-      soilDB%nHorizons(:) = nSoilHorizons_mHM
+      soilDB%nHorizons(:) = nSoilHorizons
       soilDB%nTillHorizons(:) = -9
-      do kk = 1, nSoilHorizons_mHM
-        if(abs(HorizonDepth_mHM(kk) - tillageDepth) .lt. eps_dp) then
+      do kk = 1, nSoilHorizons
+        if(abs(soilHorizonBoundaries(kk+1) - tillageDepth) .lt. eps_dp) then
           soilDB%nTillHorizons(1) = kk
         end if
       end do
@@ -380,7 +380,8 @@ CONTAINS
   subroutine generate_soil_database
 
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_mpr_global_variables, only : HorizonDepth_mHM, iFlag_soilDB, nSoilHorizons_mHM, nSoilTypes, soilDB
+    use mo_mpr_global_variables, only : iFlag_soilDB, nSoilTypes, soilDB
+    use mo_global_variables, only: nSoilHorizons, soilHorizonBoundaries, lowestDepth
 
     implicit none
 
@@ -405,7 +406,7 @@ CONTAINS
       dMin = minval(soilDB%RZdepth(:), soilDB%RZdepth(:) > 0.0_dp)
 
       ! check
-      if (HorizonDepth_mHM(nSoilHorizons_mHM - 1) .ge. dMin) then
+      if (soilHorizonBoundaries(nSoilHorizons) .ge. dMin) then
         call message('generate_soil_database: ERROR occurred: ')
         call message('    The depth of soil Horizons provided for modelling is not appropriate')
         call message('    The global minimum of total soil horizon depth among all soil type is ', num2str(dMin, '(F7.2)'))
@@ -416,7 +417,7 @@ CONTAINS
       end if
 
       ! allocate and initalise depth weight
-      allocate(soilDB%Wd(nSoilTypes, nSoilHorizons_mHM, maxval(soilDB%nHorizons(:))))
+      allocate(soilDB%Wd(nSoilTypes, nSoilHorizons, maxval(soilDB%nHorizons(:))))
       soilDB%Wd(:, :, :) = 0.0_dp
 
       ! Process further to estimate weight of each horizons
@@ -425,18 +426,17 @@ CONTAINS
         soilDB%Wd(ii, :, soilDB%nHorizons(ii) + 1_i4 : maxval(soilDB%nHorizons(:))) = nodata_dp
 
         ! store the original depth, as this is a global array
-        lastHorizonDepth = HorizonDepth_mHM(nSoilHorizons_mHM)
+        lastHorizonDepth = soilHorizonBoundaries(nSoilHorizons+1)
         ! set last horizon depth to model w.r.t to surface
-        HorizonDepth_mHM(nSoilHorizons_mHM) = soilDB%RZdepth(ii)
+        soilHorizonBoundaries(nSoilHorizons+1) = soilDB%RZdepth(ii)
 
         ! Estimate soil properties for each modeling layers
-        do jj = 1, nSoilHorizons_mHM
+        do jj = 1, nSoilHorizons
 
           ! modeling depth ( **from --> to ** )
           ! take into account the depth accuracy [0.5mm, defined in module..]
-          dpth_f = 0.0_dp
-          if(jj .ne. 1_i4) dpth_f = HorizonDepth_mHM(jj - 1)
-          dpth_t = HorizonDepth_mHM(jj) - soil_dAccuracy
+          dpth_f = soilHorizonBoundaries(jj)
+          dpth_t = soilHorizonBoundaries(jj+1) - soil_dAccuracy
 
           ! identify to which layer of batabase this mHM  horizon lies
           layer_f = nodata_i4
@@ -482,13 +482,8 @@ CONTAINS
             end if
 
             ! Estimate depth weightage
-            if(jj .ne. 1_i4) then
-              soilDB%Wd(ii, jj, 1 : soilDB%nHorizons(ii)) = soilDB%Wd(ii, jj, 1 : soilDB%nHorizons(ii)) / &
-                      (HorizonDepth_mHM(jj) - HorizonDepth_mHM(jj - 1_i4))
-            else
-              soilDB%Wd(ii, jj, 1 : soilDB%nHorizons(ii)) = soilDB%Wd(ii, jj, 1 : soilDB%nHorizons(ii)) / &
-                      HorizonDepth_mHM(jj)
-            end if
+            soilDB%Wd(ii, jj, 1 : soilDB%nHorizons(ii)) = soilDB%Wd(ii, jj, 1 : soilDB%nHorizons(ii)) / &
+                      (soilHorizonBoundaries(jj+1) - soilHorizonBoundaries(jj))
 
             ! Check (small margin for numerical errors)
             if(sum(soilDB%Wd(ii, jj, :), soilDB%Wd(ii, jj, :) .gt. 0.0_dp) .le. 1.0_dp - small .or. &
@@ -503,7 +498,8 @@ CONTAINS
 
         end do
         ! restore the original depth, as this is a global array
-        HorizonDepth_mHM(nSoilHorizons_mHM) = lastHorizonDepth
+        lowestDepth = soilHorizonBoundaries(nSoilHorizons+1)
+        soilHorizonBoundaries(nSoilHorizons+1) = lastHorizonDepth
       end do
       ! soil database for the horizon specific case
     CASE(1)

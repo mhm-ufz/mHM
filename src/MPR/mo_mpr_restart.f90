@@ -98,10 +98,11 @@ CONTAINS
   subroutine write_mpr_restart_files(OutFile)
 
     use mo_grid, only : write_grid_info
-    use mo_common_variables, only : level1, nLCoverScene, domainMeta, LC_year_start, LC_year_end
+    use mo_common_variables, only : level1, nLandCoverPeriods, domainMeta, LC_year_start, LC_year_end
     use mo_kind, only : i4, dp
     use mo_message, only : message
-    use mo_mpr_global_variables, only : nLAI, nSoilHorizons_mHM, HorizonDepth_mHM
+    use mo_global_variables, only : nLAIs, nSoilHorizons
+    use mo_mpr_global_variables, only : HorizonDepth_mHM
     use mo_netcdf, only : NcDataset, NcDimension
     use mo_string_utils, only : num2str
     use mo_common_constants, only : soilHorizonsVarName, landCoverPeriodsVarName, LAIVarName
@@ -147,21 +148,21 @@ CONTAINS
       cols1 = nc%getDimension("ncols1")
 
       ! write the dimension to the file and also save bounds
-      allocate(dummy_1D(nSoilHorizons_mHM+1))
+      allocate(dummy_1D(nSoilHorizons+1))
       dummy_1D(1) = 0.0_dp
-      dummy_1D(2:nSoilHorizons_mHM+1) = HorizonDepth_mHM(:)
-      soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons_mHM, dummy_1D, 2_i4)
+      dummy_1D(2:nSoilHorizons+1) = HorizonDepth_mHM(:)
+      soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons, dummy_1D, 2_i4)
       deallocate(dummy_1D)
-      allocate(dummy_1D(nLCoverScene+1))
-      dummy_1D(1:nLCoverScene) = LC_year_start(:)
+      allocate(dummy_1D(nLandCoverPeriods+1))
+      dummy_1D(1:nLandCoverPeriods) = LC_year_start(:)
       ! this is done because bounds are always stored as real so e.g.
       ! 1981-1990,1991-2000 is thus saved as 1981.0-1991.0,1991.0-2001.0
       ! it is translated back into ints correctly during reading
-      dummy_1D(nLCoverScene+1) = LC_year_end(nLCoverScene) + 1
-      lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), nLCoverScene, dummy_1D, 0_i4)
+      dummy_1D(nLandCoverPeriods+1) = LC_year_end(nLandCoverPeriods) + 1
+      lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), nLandCoverPeriods, dummy_1D, 0_i4)
       deallocate(dummy_1D)
       ! write the dimension to the file
-      lais = nc%setDimension(trim(LAIVarName), nLAI)
+      lais = nc%setDimension(trim(LAIVarName), nLAIs)
 
 
       ! for appending and intialization
