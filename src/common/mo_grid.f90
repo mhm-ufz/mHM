@@ -657,7 +657,7 @@ contains
   subroutine infer_advanced_grid_properties(nc, xCoordName, yCoordName, maskVar, new_grid)
 
     use mo_netcdf, only : NcDataset, NcVariable
-    use mo_message, only: message
+    use mo_message, only: error_message
 
     type(NcDataset), intent(inout) :: nc  !< NetCDF dataset to infer properties from
     character(*), intent(in) :: xCoordName  !< 1d coordinate variable name to set x
@@ -690,8 +690,7 @@ contains
       call ncVar%getData(dummyD2, mask=new_grid%mask)
       deallocate(dummyD2)
     else
-      print*, 'Expected 2D or 3D field for inferring mask of grid'
-      stop 1
+      call error_message('Expected 2D or 3D field for inferring mask of grid')
     end if
 
     ncVar = nc%getVariable(xCoordName)

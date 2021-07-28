@@ -417,7 +417,7 @@ CONTAINS
       case (4)
         if (opti_method .eq. 0_i4) then
           ! MCMC
-          stop
+          call error_message()
           partial_single_objective_runoff = loglikelihood_stddev(parameterset, eval, arg1, arg2, arg3)
         else
           ! -loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed
@@ -431,12 +431,12 @@ CONTAINS
         partial_single_objective_runoff = objective_sse(parameterset, eval)
       case (7)
         ! -loglikelihood with trend removed from absolute errors
-        stop
+        call error_message()
         partial_single_objective_runoff = -loglikelihood_trend_no_autocorr(parameterset, eval, 1.0_dp)
       case (8)
         if (opti_method .eq. 0_i4) then
           ! MCMC
-          stop
+          call error_message()
           partial_single_objective_runoff = loglikelihood_evin2013_2(parameterset, eval, regularize = .true.)
         else
           ! -loglikelihood of approach 2 of Evin et al. (2013),
@@ -533,7 +533,8 @@ CONTAINS
       ! 2nd objective: 1.0 - NSE of discharge of months DJF
       multi_objectives = multi_objective_ae_fdc_lsv_nse_djf(parameterset, eval)
     case default
-      stop "Error objective: Either this opti_function is not implemented yet or it is not a multi-objective one."
+      call error_message("Error objective: Either this opti_function is not implemented yet ", &
+              "or it is not a multi-objective one.")
     end select
 
   END SUBROUTINE multi_objective_runoff

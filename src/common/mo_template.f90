@@ -135,7 +135,7 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   FUNCTION mean_dp(dat, mask)
-    implicit none
+    use mo_message, only: error_message
 
     REAL(dp), DIMENSION(:), INTENT(IN) :: dat
 
@@ -149,14 +149,14 @@ CONTAINS
 
 
     if (present(mask)) then
-      if (size(mask) /= size(dat)) stop 'Error mean_dp: size(mask) /= size(dat)'
+      if (size(mask) /= size(dat)) call error_message('Error mean_dp: size(mask) /= size(dat)')
       maske = mask
       n = real(count(maske), dp)
     else
       maske(:) = .true.
       n = real(size(dat), dp)
     end if
-    if (n <= (1.0_dp + tiny(1.0_dp))) stop 'mean_dp: n must be at least 2'
+    if (n <= (1.0_dp + tiny(1.0_dp))) call error_message('mean_dp: n must be at least 2')
 
     ! Mean
     mean_dp = sum(dat(:), mask = maske) / n
@@ -165,7 +165,7 @@ CONTAINS
 
 
   FUNCTION mean_sp(dat, mask)
-    implicit none
+    use mo_message, only: error_message
 
     REAL(sp), DIMENSION(:), INTENT(IN) :: dat
 
@@ -179,14 +179,14 @@ CONTAINS
 
 
     if (present(mask)) then
-      if (size(mask) /= size(dat)) stop 'Error mean_sp: size(mask) /= size(dat)'
+      if (size(mask) /= size(dat)) call error_message('Error mean_sp: size(mask) /= size(dat)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(dat), sp)
     end if
-    if (n <= (1.0_sp + tiny(1.0_sp))) stop 'mean_sp: n must be at least 2'
+    if (n <= (1.0_sp + tiny(1.0_sp))) call error_message('mean_sp: n must be at least 2')
 
     ! Mean
     mean_sp = sum(dat(:), mask = maske) / n

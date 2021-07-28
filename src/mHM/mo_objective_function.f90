@@ -260,12 +260,11 @@ CONTAINS
       objective_master = objective_master**onesixth
     case (15)
       ! KGE for Q * RMSE for domain_avg TWS (standarized scored)
-      call message("case 15, objective_kge_q_rmse_tws not implemented in parallel yet")
-      stop
+      call error_message("case 15, objective_kge_q_rmse_tws not implemented in parallel yet")
     case (30)
       ! KGE for Q * RMSE for domain_avg ET (standarized scored)
       ! objective_master = objective_kge_q_rmse_et(parameterset, eval)
-      call message("case 30, objective_kge_q_rmse_et not implemented in parallel yet")
+      call error_message("case 30, objective_kge_q_rmse_et not implemented in parallel yet")
     case(33)
       call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
       objective_master = 0.0_dp
@@ -408,7 +407,7 @@ CONTAINS
       case (15)
         ! KGE for Q * RMSE for domain_avg TWS (standarized scored)
         ! partial_objective = objective_kge_q_rmse_tws(parameterset, eval)
-        stop
+        call error_message()
       case (17)
         ! KGE of catchment average SM
         partial_objective = objective_neutrons_kge_catchment_avg(parameterset, eval)
@@ -424,12 +423,11 @@ CONTAINS
       case (30)
         ! KGE for Q * RMSE for domain_avg ET (standarized scored)
         partial_objective = objective_kge_q_rmse_et(parameterset, eval)
-        stop
+        call error_message()
       case(33)
         multiple_partial_objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
       case default
         call error_message("Error objective_subprocess: opti_function not implemented yet.")
-        stop 1
       end select
 
       select case (opti_function)
@@ -439,7 +437,6 @@ CONTAINS
         call MPI_Send(multiple_partial_objective, 6, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
         call error_message("Error objective_subprocess: this part should not be executed -> error in the code.")
-        stop 1
       end select
 
       deallocate(parameterset)
@@ -2381,7 +2378,7 @@ CONTAINS
         allocate(et_obs_m(size(etOptiSim(iDomain)%dataSim, dim = 2)))
         et_obs_m = et_catch_avg_domain
 
-        ! yearly: ERROR stop program
+        ! yearly, abort
       case(-3)
         call error_message('***ERROR: objective_kge_q_rmse_et: time step of evapotranspiration yearly.')
       end select

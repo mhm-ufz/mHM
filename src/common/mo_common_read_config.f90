@@ -398,6 +398,7 @@ CONTAINS
 !< in future be passed to the routing parallelization.
   subroutine init_domain_variable(nDomains, optiData, domainMeta)
     use mo_common_variables, only: domain_meta
+    use mo_message, only: error_message
 #ifdef MPI
     use mo_common_variables, only: comm
     use mpi_f08
@@ -419,7 +420,7 @@ CONTAINS
     ! find the number the process is referred to, called rank
     call MPI_Comm_rank(comm, rank, ierror)
     if (nproc < 2) then
-      stop 'at least 2 processes are required'
+      call error_message('at least 2 processes are required')
     end if
     ! if there are more processes than domains
     if (nproc > domainMeta%overallNumberOfDomains + 1) then
@@ -611,7 +612,7 @@ CONTAINS
 
     use mo_common_variables, only : resolutionRouting
     use mo_common_variables, only : domainMeta, resolutionHydrology
-    use mo_message, only : message
+    use mo_message, only : message, error_message
     use mo_string_utils, only : num2str
 
     implicit none
@@ -649,10 +650,8 @@ CONTAINS
 
       else if ((nint(cellFactorRbyH * 100.0_dp) .gt. 100) .and. .not.allow_subgrid_routing) then
         if(nint(mod(cellFactorRbyH, 2.0_dp) * 100.0_dp) .ne. 0) then
-          call message()
-          call message('***ERROR: Resolution of routing is not a multiple of hydrological model resolution!')
-          call message('   FILE: mhm.nml, namelist: mainconfig, variable: resolutionRouting')
-          STOP
+          call error_message('***ERROR: Resolution of routing is not a multiple of hydrological model resolution!', &
+                  '   FILE: mhm.nml, namelist: mainconfig, variable: resolutionRouting')
         end if
         !
         if (do_message) then
@@ -920,9 +919,7 @@ CONTAINS
 
     ! counter checks -- soil horizons
     if (nSoilHorizons .GT. maxNoSoilHorizons) then
-      call message()
-      call message('***ERROR: Number of soil horizons is resticted to ', trim(num2str(maxNoSoilHorizons)), '!')
-      stop
+      call error_message('***ERROR: Number of soil horizons is resticted to ', trim(num2str(maxNoSoilHorizons)), '!')
     end if
 
     ! the default is the HorizonDepths are all set up to last
@@ -931,9 +928,7 @@ CONTAINS
       ! classical mhm soil database
       soilHorizonBoundaries(nSoilHorizons+1) = 0.0_dp
     else if(iFlag_soilDB .ne. 1) then
-      call message()
-      call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
-      stop
+      call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
     end if
     lowestDepth = soilHorizonBoundaries(nSoilHorizons+1)
     ! TODO: MPR remove this duplications
@@ -941,9 +936,7 @@ CONTAINS
     ! some consistency checks for the specification of the tillage depth
     if(iFlag_soilDB .eq. 1) then
       if(count(abs(soilHorizonBoundaries(2 : nSoilHorizons+1) - tillageDepth) .lt. eps_dp)  .eq. 0) then
-        call message()
-        call message('***ERROR: Soil tillage depth must conform with one of the specified horizon (lower) depth.')
-        stop
+        call error_message('***ERROR: Soil tillage depth must conform with one of the specified horizon (lower) depth.')
       end if
     end if
 
@@ -967,9 +960,7 @@ CONTAINS
       end do
 
       if (timeStep_LAI_input .GT. 1) then
-        call message()
-        call message('***ERROR: option for selected timeStep_LAI_input not coded yet')
-        stop
+        call error_message('***ERROR: option for selected timeStep_LAI_input not coded yet')
       end if
     end if
 
@@ -995,9 +986,7 @@ CONTAINS
               'canopyInterceptionFactor'])
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "interception" does not exist!')
-      stop 1
+      call error_message('***ERROR: Process description for process "interception" does not exist!')
     end select
 
     ! Process 2 - snow
@@ -1026,9 +1015,7 @@ CONTAINS
                       'maxDegreeDayFactor_pervious    '])
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "snow" does not exist!')
-      stop 1
+      call error_message('***ERROR: Process description for process "snow" does not exist!')
     end select
 
     ! Process 3 - soilmoisture
@@ -1149,9 +1136,7 @@ CONTAINS
       ])
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "soilmoisture" does not exist!')
-      stop
+      call error_message('***ERROR: Process description for process "soilmoisture" does not exist!')
     end select
 
     ! Process 4 - sealed area directRunoff
@@ -1165,9 +1150,7 @@ CONTAINS
       call append(global_parameters_name, ['imperviousStorageCapacity'])
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "directRunoff" does not exist!')
-      stop
+      call error_message('***ERROR: Process description for process "directRunoff" does not exist!')
     end select
 
     ! Process 5 - potential evapotranspiration (PET)
@@ -1402,9 +1385,7 @@ CONTAINS
               ])
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "actualET" does not exist!')
-      stop
+      call error_message('***ERROR: Process description for process "actualET" does not exist!')
     end select
 
 
@@ -1428,9 +1409,7 @@ CONTAINS
                       'exponentSlowInterflow         '])
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "interflow" does not exist!')
-      stop
+      call error_message('***ERROR: Process description for process "interflow" does not exist!')
     end select
 
     ! Process 7 - percolation
@@ -1449,16 +1428,13 @@ CONTAINS
                       'gain_loss_GWreservoir_karstic'])
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "percolation" does not exist!')
-      stop
+      call error_message('***ERROR: Process description for process "percolation" does not exist!')
     end select
 
     ! Process 8 - routing
     select case (processMatrix(8, 1))
     case(0)
       ! 0 - deactivated
-      call message()
       call message('***CAUTION: Routing is deativated! ')
 
       processMatrix(8, 2) = 0_i4
@@ -1483,9 +1459,7 @@ CONTAINS
       call append(global_parameters, dummy_2d_dp_2)
       call append(global_parameters_name, ['dummy'])
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "routing" does not exist!')
-      stop
+      call error_message('***ERROR: Process description for process "routing" does not exist!')
     end select
 
     !===============================================================
@@ -1522,9 +1496,7 @@ CONTAINS
       end do
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "geoparameter" does not exist!')
-      stop
+      call error_message('***ERROR: Process description for process "geoparameter" does not exist!')
     end select
 
     ! Process 10 - neutrons

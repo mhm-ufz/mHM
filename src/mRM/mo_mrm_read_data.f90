@@ -148,9 +148,9 @@ contains
 
           call ncVar%getData(data_i4_2d, mask=mask_2d)
           if ( size(data_i4_2d, 1) /= level0_iDomain%nrows .or. size(data_i4_2d, 2) /= level0_iDomain%ncols) then
-            print*, '***ERROR: read_forcing_nc: mHM generated x and y: ', level0_iDomain%nrows, level0_iDomain%ncols , &
-                  'are not matching NetCDF dimensions: ', shape(data_i4_2d)
-            stop 1
+            call error_message('***ERROR: read_forcing_nc: mHM generated x and y: ', &
+                    level0_iDomain%nrows, level0_iDomain%ncols , &
+                    'are not matching NetCDF dimensions: ', shape(data_i4_2d))
           end if
 
           ! flip the data if any dimension is not sorted correctly
