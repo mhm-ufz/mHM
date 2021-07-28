@@ -48,7 +48,7 @@ CONTAINS
 
   subroutine common_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
-    use mo_common_constants, only : maxNLcovers, maxNoDomains
+    use mo_common_constants, only : maxNLcovers, maxNoDomains, floatComparisonPrecision, float_comparison_precision
     use mo_common_variables, only : Conventions, contact, &
                                     dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, &
                                     mhmFileRestartOut, mrmFileRestartOut, &
@@ -136,7 +136,7 @@ CONTAINS
             file_LatLon
     ! namelist spatial & temporal resolution, optimization information
     namelist /mainconfig/ iFlag_coordinate_sys, resolution_Hydrology, nDomains, L0Domain, write_restart, &
-            read_opt_domain_data
+            read_opt_domain_data, float_comparison_precision
     ! namelist process selection
     namelist /processSelection/ processCase
 
@@ -169,6 +169,9 @@ CONTAINS
     !===============================================================
     !  Read namelist specifying the model configuration
     !===============================================================
+    ! set floating point precision
+    float_comparison_precision = floatComparisonPrecision
+
     call position_nml('mainconfig', unamelist)
     read(unamelist, nml = mainconfig)
 
@@ -571,7 +574,7 @@ CONTAINS
   end subroutine
 #endif
 
-    subroutine check_optimization_settings
+  subroutine check_optimization_settings
 
     use mo_common_variables, only : dds_r, nIterations, sce_ngs, sce_npg, sce_nps, global_parameters
     use mo_message, only : error_message

@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 """
-File Name   : asc2nc
+File Name   : upgrade_mHM_v5_to_v6.py
 Project Name: mhm
 Description : converts all ascii files of a typical (test_domain) mhm <v.6.0 environment and converts them to
               netcdf files ready to be used in MPR from version 6.0 onwards
@@ -10,19 +10,18 @@ Author      : ottor
 Created     : 28.08.17 14:53
 """
 
+import argparse
 # IMPORTS
 import os
 import pathlib
-import shutil
-from itertools import product
 import re
-from packaging import version
+import sys
+from itertools import product
 
 import numpy
 import pandas as pd
 import xarray as xr
-import argparse
-import sys
+from packaging import version
 
 # we rely on dict preserving key order
 MIN_PYTHON = (3, 7)
@@ -37,30 +36,28 @@ IN_DIR = '/Users/ottor/nc/Home/local_libs/fortran/mhm_original/test_domain/input
 # default output directory
 OUT_DIR = '../../MPR/reference/test_domain/input/temp'
 OUT_DIR = '/Users/ottor/temp/test_domain'
-# all file types scanned in input directory
-POSSIBLE_SUFFIXES = ['.nc', '.asc', '.nc_old']
 # all folders scanned in input directory
-FOLDER_LIST = ['lai', 'luse', 'morph', 'latlon', 'optional_data', 'meteo', 'pet', 'pre', 'tavg']
+FOLDER_LIST = ['lai', 'luse', 'morph', 'latlon', 'optional_data', 'meteo', 'pet', 'pre', 'tavg', 'restart']
 
 LAT_ATTRS = {'standard_name': 'latitude',
              'long_name': 'latitude',
-             #'units': 'degrees_north',
+             # 'units': 'degrees_north',
              'axis': 'Y'}
 LON_ATTRS = {'standard_name': 'longitude',
              'long_name': 'longitude',
-             #'units': 'degrees_east',
+             # 'units': 'degrees_east',
              'axis': 'X'}
 LC_ATTRS = {'standard_name': 'land cover periods',
-             'long_name': 'periods of common land cover',
-             'units': 'years',
-             'axis': 'T'}
+            'long_name': 'periods of common land cover',
+            'units': 'years',
+            'axis': 'T'}
 
 SOIL_ATTRS = {'standard_name': 'horizon',
-             'long_name': 'soil horizons',
-             'units': 'm',
-             'axis': 'Z',
-             'positive': 'down',
-             'bounds': 'horizon_bnds'}
+              'long_name': 'soil horizons',
+              'units': 'm',
+              'axis': 'Z',
+              'positive': 'down',
+              'bounds': 'horizon_bnds'}
 
 PROPERTIES_MAPPING = {
     'aspect': ('mpr', 'int32', 1.0, -9999),
@@ -102,6 +99,7 @@ PROPERTIES_MAPPING = {
 COMPRESSION_DICT = {
     'zlib': True, 'shuffle': True, 'complevel': 4,
 }
+
 
 # FUNCTIONS
 def parse_args():
@@ -159,6 +157,7 @@ def get_all_subfiles(path, relation=None, whitelist=None, suffixes=None):
 # CLASSES
 class MyAsciiToNetcdfConverter(object):
     POSSIBLE_LOOKUP_MODES = ['dims_as_col', 'dims_in_col']
+
     def __init__(self, input_file, output_file, lookup=None, sel=None, name=None, attrs=None, values_dtype=int,
                  iterate={}, csv_lut=False, lookup_mode='dims_in_col', infer_nrows=False, index_as_col=False):
         """
@@ -211,7 +210,7 @@ class MyAsciiToNetcdfConverter(object):
         self.lookup_mode = lookup_mode
         if self.lookup_mode not in self.POSSIBLE_LOOKUP_MODES:
             raise Exception('The provided lookup_mode "' + self.lookup_mode + '" is not valid. I must be one of: '
-                            ', '.join(self.POSSIBLE_LOOKUP_MODES))
+                                                                              ', '.join(self.POSSIBLE_LOOKUP_MODES))
         self.csv_lut = csv_lut
         self.iterate = iterate
         self.values_dtype = values_dtype
@@ -295,20 +294,22 @@ class MyAsciiToNetcdfConverter(object):
                     use_cols = [col for col in lookup_data.columns if col not in sel_cols]
                 else:
                     # update coord by unique values occurring in additional index col
-                    self.iterators.update({key: lookup_data.index.get_level_values(value).unique().values for key, value in
-                                      self.iterate.items()})
+                    self.iterators.update(
+                        {key: lookup_data.index.get_level_values(value).unique().values for key, value in
+                         self.iterate.items()})
                 coords.update(self.iterators)
-                self.data = xr.Dataset({col_name.split('[')[0]: xr.DataArray(data=self._convert_raw(lookup_data[col_name], add_info),
-                                                                             coords=coords,
-                                                                             dims=list(coords.keys()),
-                                                                             name=col_name.split('[')[0],
-                                                                             attrs={'units': col_name.split('[')[-1].rstrip(
-                                                                                 ']')}) for col_name in use_cols},
-                                       attrs=self.attrs)
+                self.data = xr.Dataset(
+                    {col_name.split('[')[0]: xr.DataArray(data=self._convert_raw(lookup_data[col_name], add_info),
+                                                          coords=coords,
+                                                          dims=list(coords.keys()),
+                                                          name=col_name.split('[')[0],
+                                                          attrs={'units': col_name.split('[')[-1].rstrip(
+                                                              ']')}) for col_name in use_cols},
+                    attrs=self.attrs)
                 if new_z is not None:
                     # add the bound data to the data dict for xr.Dataset initialization
                     self.data[SOIL_ATTRS['bounds']] = ([HORIZON_COORD_NAME, 'bnds'],
-                                                  numpy.stack([new_z[:-1], new_z[1:]], 1))
+                                                       numpy.stack([new_z[:-1], new_z[1:]], 1))
 
             elif self.lookup_mode == self.POSSIBLE_LOOKUP_MODES[0]:
                 # update coord by additional columns
@@ -358,6 +359,7 @@ class MyAsciiToNetcdfConverter(object):
         -------
         np.array
         """
+
         def select_layer(df, lower_bound):
             # check for soil layer that matches lower_bound
             mask = (df['UD[mm]'] < lower_bound) & (df['LD[mm]'] >= lower_bound)
@@ -387,7 +389,8 @@ class MyAsciiToNetcdfConverter(object):
                     # https://stackoverflow.com/questions/5036816/numpy-lookup-map-or-point
                     # select the slice in the array, convert axes values to their corresponding index values
                     array_slice = tuple(
-                        [slice(None) for x in self.raw_data.shape] + [list(list(self.iterators.values())[i_a]).index(a) for
+                        [slice(None) for x in self.raw_data.shape] + [list(list(self.iterators.values())[i_a]).index(a)
+                                                                      for
                                                                       i_a, a in enumerate(axes)])
                     if add_info is not None:
                         # now select the correct values taking into account the layer depth
@@ -409,7 +412,7 @@ class MyAsciiToNetcdfConverter(object):
                 for index in numpy.unique(self.raw_data[~numpy.isnan(self.raw_data)]):
                     converted_clone[self.raw_data == index] = series.loc[index, :]
         else:
-            #converted_clone = series.values[series.index.searchsorted(converted_clone)]
+            # converted_clone = series.values[series.index.searchsorted(converted_clone)]
             for idx, val in series.iteritems():
                 converted_clone[converted_clone == idx] = val
         return converted_clone
@@ -478,14 +481,14 @@ class MyAsciiToNetcdfConverter(object):
             output_file.parent.mkdir(parents=True)
         print('writing variable {} to file: {}'.format(stem, output_file))
         data_var.to_netcdf(output_file, encoding={stem: dict(
-            dtype=PROPERTIES_MAPPING.get(stem, ['int32']*2)[1],
+            dtype=PROPERTIES_MAPPING.get(stem, ['int32'] * 2)[1],
             # scale_factor=PROPERTIES_MAPPING.get(stem, [1.0]*3)[2],
-            _FillValue=PROPERTIES_MAPPING.get(stem, [-9999]*4)[3],
+            _FillValue=PROPERTIES_MAPPING.get(stem, [-9999] * 4)[3],
             **COMPRESSION_DICT
         )})
 
     def _rotate_fdir(self):
-        masks = [self.data.values == 2**(i) for i in range(8)]
+        masks = [self.data.values == 2 ** (i) for i in range(8)]
         replacements = [4, 8, 16, 32, 64, 128, 1, 2]
         for mask, replacement in zip(masks, replacements):
             self.data.values[mask] = replacement
@@ -525,16 +528,17 @@ def combine_lc_files(output_dir):
     output_file = pathlib.Path(output_dir, f'{var_name}.nc')
     print('writing variable {} to file: {}'.format(var_name, output_file))
     ds.to_netcdf(output_file, encoding={var_name: dict(
-            dtype=PROPERTIES_MAPPING.get(var_name, ['int32']*2)[1],
-            # scale_factor=PROPERTIES_MAPPING.get(stem, [1.0]*3)[2],
-            _FillValue=PROPERTIES_MAPPING.get(var_name, [-9999]*4)[3],
-            **COMPRESSION_DICT)})
+        dtype=PROPERTIES_MAPPING.get(var_name, ['int32'] * 2)[1],
+        # scale_factor=PROPERTIES_MAPPING.get(stem, [1.0]*3)[2],
+        _FillValue=PROPERTIES_MAPPING.get(var_name, [-9999] * 4)[3],
+        **COMPRESSION_DICT)})
     # delete the old files
     for path in path_list:
         path.unlink()
     ds.close()
 
-def sort_y_dim(filename_in='', filename_out='', y_dims=('y','northing')):
+
+def sort_y_dim(filename_in='', filename_out='', y_dims=('y', 'northing')):
     """
     read in some file, check for dimensions starting with 'y' and sort by this dimension
     """
@@ -569,54 +573,71 @@ def sort_y_dim(filename_in='', filename_out='', y_dims=('y','northing')):
     if not filename_out.parent.exists():
         filename_out.parent.mkdir(parents=True)
     print('writing variable {} to file: {}'.format(filename_out.stem, filename_out))
-    ds.to_netcdf(filename_out, encoding={data_var: dict(_FillValue=PROPERTIES_MAPPING.get(data_var, [-9999]*4)[3],
+    ds.to_netcdf(filename_out, encoding={data_var: dict(_FillValue=PROPERTIES_MAPPING.get(data_var, [-9999] * 4)[3],
                                                         **COMPRESSION_DICT) for data_var in ds.data_vars})
     ds.close()
 
 
 # SCRIPT
 if __name__ == '__main__':
+    # parse the arguments
     args = parse_args()
 
+    # get all files in input directory recursively
     input_dir = pathlib.Path(args.input_dir)
     if input_dir.is_file():
         raise Exception("Input directory must be a directory, it is a file")
-    path_list = get_all_subfiles(input_dir, whitelist=FOLDER_LIST, suffixes=POSSIBLE_SUFFIXES)
+    path_list = get_all_subfiles(input_dir, whitelist=FOLDER_LIST, suffixes=['.asc'])
 
+    # loop over each file
     for path in path_list:
         print('working on file: {}'.format(path))
         kwargs = {}
         if path.stem.endswith('_class'):
+            # we have a lookup table based file
             kwargs['lookup'] = pathlib.Path(input_dir, path.parent, path.stem + 'definition.txt')
             if path.stem == 'LAI_class':
-                #kwargs['csv_lut'] = False
+                # kwargs['csv_lut'] = False
+                kwargs['attrs'] = {'units': '-'}
+                # LAI data come in table format with indices as rows and we need to create a dimension from the columns
                 kwargs['sel'] = ['ID', 'Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.', 'Jul.', 'Aug.', 'Sep.',
                                  'Oct.', 'Nov.', 'Dec.']
                 kwargs['lookup_mode'] = 'dims_as_col'
-                kwargs['attrs'] = {'units': '-'}
-                kwargs['iterate'] = {'month_of_year': list(range(1,13))}
+                # this is told by the lookup_mode kwarg and the new dim is defined by iterate
+                kwargs['iterate'] = {'month_of_year': list(range(1, 13))}
+                # number of IDs is dynamic
                 kwargs['infer_nrows'] = True
             elif path.stem == 'soil_class':
+                # soil classes have dimension HORIZON_COORD_NAME
                 kwargs['iterate'] = {HORIZON_COORD_NAME: 1}
             elif path.stem == 'geology_class':
+                # geo classes have variables as columns...
                 kwargs['sel'] = ['GeoParam(i)', 'ClassUnit', 'Karstic']
                 # put the number of GeoParam(i) rows here, usually 10
                 kwargs['infer_nrows'] = True
                 kwargs['index_as_col'] = True
         elif '_class_horizon_' in path.stem:
             kwargs['lookup'] = pathlib.Path(input_dir, path.parent, 'soil_classdefinition_iFlag_soilDB_1.txt')
-        if path.suffix in ['.nc', '.nc_old']:
-            output_file = pathlib.Path(args.output_dir, PROPERTIES_MAPPING.get(path.stem, ('mpr',))[0],
-                          path.stem + '.nc')
-            sort_y_dim(pathlib.Path(input_dir, path), output_file)
-        else:
-            my_conv = MyAsciiToNetcdfConverter(
-                input_file=pathlib.Path(input_dir, path),
-                output_file=pathlib.Path(args.output_dir, path.stem + '.nc'),
-                values_dtype=float,
-                **kwargs
-            )
-            my_conv.read()
-            my_conv.write()
+        my_conv = MyAsciiToNetcdfConverter(
+            input_file=pathlib.Path(input_dir, path),
+            output_file=pathlib.Path(args.output_dir, path.stem + '.nc'),
+            values_dtype=float,
+            **kwargs
+        )
+        my_conv.read()
+        my_conv.write()
 
-    combine_lc_files(pathlib.Path(args.output_dir, PROPERTIES_MAPPING.get('land_cover', ('mpr',))[0]))
+    # this does a combination of all land_cover data in one file
+    if any(('luse' in str(path) for path in path_list)):
+        combine_lc_files(pathlib.Path(args.output_dir, PROPERTIES_MAPPING.get('land_cover', ('mpr',))[0]))
+
+    path_list = get_all_subfiles(input_dir, whitelist=FOLDER_LIST, suffixes=['.nc', '.nc_old', '.nc.bak', ])
+    # nc_files = []
+    for nc_file in path_list:
+        print('working on file: {}'.format(nc_file))
+        # if we have a netcdf file, perform flipping
+        output_file = pathlib.Path(args.output_dir, PROPERTIES_MAPPING.get(path.stem, ('mpr',))[0],
+                                   path.stem + '.nc')
+        # NOTE: in some cases header files need to be used to impose correct x and y coordinate values in netcdf files
+        # e.g. test basin in mHM repo
+        sort_y_dim(pathlib.Path(input_dir, nc_file), output_file, y_dims=('y', 'ncols', 'northing'))

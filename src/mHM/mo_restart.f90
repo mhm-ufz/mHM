@@ -176,7 +176,10 @@ CONTAINS
 
       iDomainNLandCoverPeriods = maxval(LCyearId(:, uniqueIDomain), mask=LCyearId(:, uniqueIDomain) /= nodata_i4)
       allocate(landCoverPeriodBoundaries_(iDomainNLandCoverPeriods+1))
-      landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, iDomain), dp)
+      landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, uniqueIDomain), dp)
+      print*, iDomain, iDomainNLandCoverPeriods
+      print*, LCyearId(:, uniqueIDomain)
+      print*, landCoverPeriodBoundaries_
       lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &
               landCoverPeriodBoundaries_, 0_i4)
       deallocate(landCoverPeriodBoundaries_)

@@ -1,3 +1,4 @@
+!>       \file mo_grid.f90
 !>       \brief Grid-associated routines (File I/O)
 !>       \details provides routines for Grid initialization and routines to read Grids from file and dump to file
 
@@ -369,6 +370,7 @@ contains
 
     use mo_message, only : error_message
     use mo_string_utils, only : num2str
+    use mo_common_constants, only: float_comparison_precision
 
     implicit none
 
@@ -400,8 +402,7 @@ contains
     cellFactor = aimingResolution / cellsizeIn
     rounded = anint(cellFactor)
 
-    ! TODO: sync this with other comparisons
-    if (abs(rounded - cellFactor) > 1.e-6_dp) then
+    if (abs(rounded - cellFactor) > float_comparison_precision) then
       call error_message('***ERROR: Two resolutions size do not confirm: ', &
               num2str(aimingResolution), ' and ', &
               num2str(cellsizeIn))
@@ -613,7 +614,7 @@ contains
     real(dp), intent(out) :: lowerBound  !< lower bound of coordinate variable
     integer(i4), intent(out) :: n  !< number of values in coordinate variable
     real(dp), intent(out) :: cellsize  !< stepsize of coordinate values
-    
+
     type(NcVariable) :: ncVar
     integer(i4), dimension(:), allocatable :: varShape
     real(dp), dimension(:), allocatable :: tempValues

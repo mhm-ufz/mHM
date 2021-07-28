@@ -18,7 +18,7 @@ if(NOT ${FORCES_NAME}_FOUND)
   FetchContent_Declare(
     ${FORCES_NAME}
     GIT_REPOSITORY https://git.ufz.de/chs/forces.git
-    GIT_TAG        v0.1.0
+    GIT_TAG        fix_error_message
     SOURCE_SUBDIR  src
   )
   set (${FORCES_NAME}_BUILD_TESTING OFF)

@@ -323,7 +323,7 @@ end subroutine mrm_configuration
     implicit none
 
     character(*), intent(in) :: file_namelist, file_namelist_param
-    character(1024) :: message_text
+    character(4096) :: message_text
 
     ! Date and time
     integer(i4), dimension(8) :: datetime
@@ -523,7 +523,7 @@ end subroutine mrm_configuration
     integer(i4), intent(in) :: L0Domain_iDomain
 
     integer(i4) :: k
-    character(1024) :: message_text
+    character(4096) :: message_text
 
 
     do k = level0(L0Domain_iDomain)%iStart, level0(L0Domain_iDomain)%iEnd
