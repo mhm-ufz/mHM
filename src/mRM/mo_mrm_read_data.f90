@@ -57,7 +57,7 @@ contains
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : L0_elev, L0_LCover, level0, domainMeta, processMatrix
     use mo_grid, only: Grid
-    use mo_message, only : error_message
+    use mo_message, only : error_message, message
     use mo_mrm_file, only : file_facc, file_fdir, file_gaugeloc
     use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, domain_mrm, dirGauges
     use mo_read_latlon, only : read_latlon
@@ -149,8 +149,8 @@ contains
           call ncVar%getData(data_i4_2d, mask=mask_2d)
           if ( size(data_i4_2d, 1) /= level0_iDomain%nrows .or. size(data_i4_2d, 2) /= level0_iDomain%ncols) then
             call error_message('***ERROR: read_forcing_nc: mHM generated x and y: ', &
-                    level0_iDomain%nrows, level0_iDomain%ncols , &
-                    'are not matching NetCDF dimensions: ', shape(data_i4_2d))
+                    num2str(level0_iDomain%nrows), num2str(level0_iDomain%ncols) , &
+                    'are not matching NetCDF dimensions: ', num2str(size(data_i4_2d, 1)), num2str(size(data_i4_2d, 2)))
           end if
 
           ! flip the data if any dimension is not sorted correctly

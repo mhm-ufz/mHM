@@ -136,17 +136,17 @@ CONTAINS
               (abs(dummy%cellsize - level2(iDomain)%cellsize)  > tiny(1.0_dp))) then
         errorString = '   ***ERROR: size mismatch in grid file for meteo input in domain ' // &
                 trim(adjustl(num2str(iDomain))) // '!' // '  Provided (in precipitation file):' // &
-                '... rows:     ', trim(adjustl(num2str(level2(iDomain)%nrows))), ', ') // &
-                '... cols:     ', trim(adjustl(num2str(level2(iDomain)%ncols))), ', ') // &
-                '... cellsize: ', trim(adjustl(num2str(level2(iDomain)%cellsize))), ', ') // &
-                '... xllcorner:', trim(adjustl(num2str(level2(iDomain)%xllcorner))), ', ') // &
-                '... yllcorner:', trim(adjustl(num2str(level2(iDomain)%yllcorner))), ', ') // &
-                '  Expected to have following properties (based on level 1):') // &
-                '... rows:     ', trim(adjustl(num2str(dummy%nrows))), ', ') // &
-                '... cols:     ', trim(adjustl(num2str(dummy%ncols))), ', ') // &
-                '... cellsize: ', trim(adjustl(num2str(dummy%cellsize))), ', ') // &
-                '... xllcorner:', trim(adjustl(num2str(dummy%xllcorner))), ', ') // &
-                '... yllcorner:', trim(adjustl(num2str(dummy%yllcorner))), ', ')
+                '... rows:     '// trim(adjustl(num2str(level2(iDomain)%nrows)))// ', ' // &
+                '... cols:     '// trim(adjustl(num2str(level2(iDomain)%ncols)))// ', ' // &
+                '... cellsize: '// trim(adjustl(num2str(level2(iDomain)%cellsize)))// ', ' // &
+                '... xllcorner:'// trim(adjustl(num2str(level2(iDomain)%xllcorner)))// ', ' // &
+                '... yllcorner:'// trim(adjustl(num2str(level2(iDomain)%yllcorner)))// ', ' // &
+                '  Expected to have following properties (based on level 1):' // &
+                '... rows:     '// trim(adjustl(num2str(dummy%nrows)))// ', ' // &
+                '... cols:     '// trim(adjustl(num2str(dummy%ncols)))// ', ' // &
+                '... cellsize: '// trim(adjustl(num2str(dummy%cellsize)))// ', ' // &
+                '... xllcorner:'// trim(adjustl(num2str(dummy%xllcorner)))// ', ' // &
+                '... yllcorner:'// trim(adjustl(num2str(dummy%yllcorner)))
         call error_message(trim(errorString))
       end if
 

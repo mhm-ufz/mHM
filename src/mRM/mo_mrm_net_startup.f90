@@ -224,7 +224,7 @@ contains
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : domainMeta, level0
     use mo_grid, only: Grid
-    use mo_message, only : error_message, error
+    use mo_message, only : error_message, message
     use mo_mrm_global_variables, only : L0_draSC, L0_fAcc, L0_fDir, L0_l11_remap, L11_colOut, L11_fDir, &
                                         L11_nOutlets, L11_rowOut, domain_mrm, level11
     use mo_string_utils, only : num2str

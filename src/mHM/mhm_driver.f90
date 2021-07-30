@@ -116,7 +116,7 @@ PROGRAM mhm_driver
         nTstepDay, &      ! number of timesteps per day (former: NAGG)
         simPer      ! simulation period
   USE mo_kind, ONLY : i4, dp                         ! number precision
-  use mo_message, only : error_message          ! For print out
+  use mo_message, only : error_message, message          ! For print out
   USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval, ONLY : mhm_eval
   USE mo_read_optional_data, ONLY : readOptidataObs ! read optional observed data

@@ -110,6 +110,8 @@ contains
     ! check if model domain is covered by data
     integer(i4) :: inctimestep
 
+    ! error string for error message
+    character(4096) :: errorString
 
     ! check optional nctimestep
     inctimestep = -1
@@ -136,8 +138,8 @@ contains
     ! get dimensions and check if plane is correct
     var_shape = var%getShape()
     if ((var_shape(1) /= nRows) .or. (var_shape(2) /= nCols)) then
-      call error_message('***ERROR: read_nc: mHM generated x and y: ', nRows, nCols , &
-              'are not matching NetCDF dimensions: ', var_shape(1), var_shape(2))
+      call error_message('***ERROR: read_nc: mHM generated x and y: ', num2str(nRows), num2str(nCols) , &
+              'are not matching NetCDF dimensions: ', num2str(var_shape(1)), num2str(var_shape(2)))
     end if
 
     ! determine no data value, use _FillValue first, fall back to missing_value
@@ -176,8 +178,8 @@ contains
           do j = 1, size(data, dim = 2)
             do k = 1, size(data, dim = 1)
               if (eq(data(k, j, i), nodata_value) .and. (mask(k, j))) then
-                call error_message('at index: ', k, j, ' data is ', data(k, j, i), &
-                        ' with nodata_value ', nodata_value, ' and mask ', mask(k, j))
+                call error_message('at index: ', num2str(k), num2str(j), ' data is ', num2str(data(k, j, i)), &
+                        ' with nodata_value ', num2str(nodata_value), ' and mask ', merge('T', 'F', mask(k, j)))
               end if
             end do
           end do
@@ -266,8 +268,8 @@ contains
     var_shape = var%getShape()
     if (present(nRows) .and. present(nCols)) then
       if ( var_shape(1) /= nRows .or. var_shape(2) /= nCols) then
-        call error_message('***ERROR: read_forcing_nc: mHM generated x and y: ', nRows, nCols , &
-              'are not matching NetCDF dimensions: ', var_shape(1), var_shape(2))
+        call error_message('***ERROR: read_forcing_nc: mHM generated x and y: ', num2str(nRows), num2str(nCols) , &
+              'are not matching NetCDF dimensions: ', num2str(var_shape(1)), num2str(var_shape(2)))
       end if
       ! extract data and select time slice
       call var%getData(data, start=(/1,1/), cnt=(/nRows,nCols/))
@@ -341,6 +343,8 @@ contains
     ! shape of NetCDF variable
     integer(i4), allocatable, dimension(:) :: var_shape
 
+    ! error string for error message
+    character(4096) :: errorString
 
     checking = .TRUE.
     if (present(nocheck)) checking = .NOT. nocheck
@@ -358,8 +362,8 @@ contains
     ! get dimensions
     var_shape = var%getShape()
     if ((var_shape(1) /= nRows) .or. (var_shape(2) /= nCols)) then
-      call error_message('***ERROR: read_nc: mHM generated x and y: ', nRows, nCols , &
-              'are not matching NetCDF dimensions: ', var_shape(1), var_shape(2))
+      call error_message('***ERROR: read_nc: mHM generated x and y: ', num2str(nRows), num2str(nCols) , &
+              'are not matching NetCDF dimensions: ', num2str(var_shape(1)), num2str(var_shape(2)))
     end if
 
     ! determine no data value
@@ -389,8 +393,8 @@ contains
             do k = 1, size(data, dim = 2)
               do l = 1, size(data, dim = 1)
                 if (eq(data(l, k, j, i), nodata_value) .and. (mask(l, k))) then
-                  call error_message('at index: ', l, k, ' data is ', data(l, k, j, i), &
-                          ' with nodata_value ', nodata_value, ' and mask ', mask(l, k))
+                  call error_message('at index: ', num2str(l), num2str(k), ' data is ', num2str(data(l, k, j, i)), &
+                          ' with nodata_value ', num2str(nodata_value), ' and mask ', merge("T", "F", mask(l, k)))
                 end if
               end do
             end do
@@ -408,7 +412,7 @@ contains
         end if
 
         if (present(upper)) then
-          if (any((data(:, :, i) .gt. upper) .AND. mask(:, :))) then
+          if (any((data(:, :, i, j) .gt. upper) .AND. mask(:, :))) then
             errorString = '***ERROR: read_nc: values in variable "' // trim(varName) // '" are greater than ' // &
                     trim(num2str(upper, '(F7.2)')) // ' at hour: ' // trim(num2str(i)) // '. File: ' // &
                     trim(fName) // '.Maxval at hour: ' // trim(num2str(maxval(data(:, :, i, j)))) // &

@@ -620,7 +620,7 @@ contains
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level0, level1, domainMeta, processMatrix, domainMeta
     use mo_kind, only : dp, i4
-    use mo_message, only : error_message
+    use mo_message, only : error_message, message
     use mo_mpr_global_variables, only : L0_slope
     use mo_mrm_global_variables, only : L0_fdir, L0_fAcc, L0_streamnet, &
                                         L11_L1_Id, L11_TSrout, L11_aFloodPlain, L11_colOut, L11_fCol, &

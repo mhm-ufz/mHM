@@ -505,6 +505,7 @@ CONTAINS
   SUBROUTINE multi_objective_runoff(parameterset, eval, multi_objectives)
 
     use mo_common_variables, only : opti_function
+    use mo_message, only: error_message
 
     implicit none
 

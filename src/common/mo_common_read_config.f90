@@ -675,7 +675,7 @@ CONTAINS
     use mo_common_functions, only : in_bound
     use mo_common_variables, only : global_parameters, global_parameters_name, domainMeta, processMatrix, dummy_global_parameters, &
           dummy_global_parameters_name
-    use mo_message, only : error_message
+    use mo_message, only : error_message, message
     use mo_mpr_constants, only : maxGeoUnit, &
                                  maxNoSoilHorizons
     use mo_mpr_global_variables, only : HorizonDepth_mHM, dirgridded_LAI, fracSealed_cityArea, iFlag_soilDB, &
