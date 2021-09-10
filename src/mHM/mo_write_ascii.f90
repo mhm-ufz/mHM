@@ -120,7 +120,7 @@ CONTAINS
     call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
     open(uconfig, file = fName, status = 'unknown', action = 'write', iostat = err)
     if (err /= 0) then
-      call error_message('  Problems while creating File', trim(fName), '  Error-Code', num2str(err))
+      call error_message('  Problems while creating File', trim(fName), new_line('a'), '  Error-Code', num2str(err))
     end if
     write(uconfig, 200)
     write(uconfig, 100) 'mHM-UFZ v-' // trim(version)

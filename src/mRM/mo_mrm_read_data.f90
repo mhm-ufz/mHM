@@ -306,7 +306,7 @@ contains
                 data_dp_1d, mask = mask_1d, nMeasPerDay = nMeasPerDay)
         if (.NOT. (all(mask_1d))) then
           call error_message('***ERROR: Nodata values in inflow gauge time series. File: ', trim(fName), &
-                  '          During simulation period from ', num2str(simPer(iDomain)%yStart) &
+                  new_line('a'), '          During simulation period from ', num2str(simPer(iDomain)%yStart) &
                   , ' to ', num2str(simPer(iDomain)%yEnd))
         end if
         data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)

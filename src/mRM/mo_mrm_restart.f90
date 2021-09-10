@@ -682,8 +682,8 @@ contains
     call var%getData(dummyI1)
     if (dummyI1(8) /= processMatrix(8, 1)) then
       call error_message('***ERROR mrm_read_restart_config: ', &
-              'process description for routing given in restart file does not match', &
-              ' that in namelist restart file value:. ', num2str(dummyI1(8), '(i2)'), &
+              'process description for routing given in restart file does not match that in ', new_line('a'), &
+              ' namelist restart file value:. ', num2str(dummyI1(8), '(i2)'), new_line('a'), &
               ' namelist value:..... ', num2str(processMatrix(8, 1), '(i2)'))
     end if
     deallocate(dummyI1)

@@ -213,7 +213,7 @@ CONTAINS
 
     ! check for possible options
     if(.NOT. (iFlag_coordinate_sys == 0 .OR. iFlag_coordinate_sys == 1)) then
-      call message('***ERROR: coordinate system for the model run should be 0 or 1')
+      call error_message('***ERROR: coordinate system for the model run should be 0 or 1')
     end if
 
     !===============================================================
@@ -654,6 +654,7 @@ CONTAINS
       else if ((nint(cellFactorRbyH * 100.0_dp) .gt. 100) .and. .not.allow_subgrid_routing) then
         if(nint(mod(cellFactorRbyH, 2.0_dp) * 100.0_dp) .ne. 0) then
           call error_message('***ERROR: Resolution of routing is not a multiple of hydrological model resolution!', &
+                  new_line('a'), &
                   '   FILE: mhm.nml, namelist: mainconfig, variable: resolutionRouting')
         end if
         !

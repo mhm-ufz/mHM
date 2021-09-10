@@ -75,6 +75,7 @@ CONTAINS
     ! check for L0 and L1 scale consistency
     if(resolutionHydrology(iDomain) .LT. level0_iDomain%cellsize) then
       call error_message('***ERROR: resolutionHydrology (L1) should be smaller than the input data resolution (L0)', &
+              new_line('a'), &
               '          check set-up (in mhm.nml) for domain: ', trim(adjustl(num2str(domainID))), ' ...')
     end if
 

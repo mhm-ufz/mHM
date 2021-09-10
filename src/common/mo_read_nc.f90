@@ -189,8 +189,9 @@ contains
       if (present(lower)) then
         if (any((data(:, :, i) .lt. lower) .AND. mask(:, :))) then
           errorString = '***ERROR: read_nc: values in variable "' // trim(varName) // '" are lower than ' // &
-                  trim(num2str(lower, '(F7.2)')) // ' at timestep: ' // trim(num2str(i)) // '. File: ' // &
-                  trim(fName) // '.Minval at timestep: ' // trim(num2str(minval(data(:, :, i)))) // &
+                  trim(num2str(lower, '(F7.2)')) // ' at timestep: ' // trim(num2str(i)) // new_line('a') // &
+                  'File: ' // trim(fName) //  new_line('a') // &
+                  'Minval at timestep: ' // trim(num2str(minval(data(:, :, i)))) //  new_line('a') // &
                   'Total minval: ' // trim(num2str(minval(data(:, :, :))))
           call error_message(errorString)
         end if
@@ -199,8 +200,9 @@ contains
       if (present(upper)) then
         if (any((data(:, :, i) .gt. upper) .AND. mask(:, :))) then
           errorString = '***ERROR: read_nc: values in variable "' // trim(varName) // '" are greater than ' // &
-                  trim(num2str(upper, '(F7.2)')) // ' at timestep: ' // trim(num2str(i)) // '. File: ' // &
-                  trim(fName) // '.Maxval at timestep: ' // trim(num2str(maxval(data(:, :, i)))) // &
+                  trim(num2str(upper, '(F7.2)')) // ' at timestep: ' // trim(num2str(i)) //  new_line('a') // &
+                  'File: ' // trim(fName) //  new_line('a') // &
+                  'Maxval at timestep: ' // trim(num2str(maxval(data(:, :, i)))) //  new_line('a') // &
                   'Total maxval: ' // trim(num2str(maxval(data(:, :, :))))
           call error_message(errorString)
         end if
@@ -404,8 +406,9 @@ contains
         if (present(lower)) then
           if (any((data(:, :, i, j) .lt. lower) .AND. mask(:, :))) then
             errorString = '***ERROR: read_nc: values in variable "' // trim(varName) // '" are lower than ' // &
-                    trim(num2str(lower, '(F7.2)')) // ' at hour: ' // trim(num2str(i)) // '. File: ' // &
-                    trim(fName) // '.Minval at hour: ' // trim(num2str(minval(data(:, :, i, j)))) // &
+                    trim(num2str(lower, '(F7.2)')) // ' at hour: ' // trim(num2str(i)) //  new_line('a') // &
+                    'File: ' // trim(fName) // new_line('a') // &
+                    'Minval at hour: ' // trim(num2str(minval(data(:, :, i, j)))) // new_line('a') // &
                     'Total minval: ' // trim(num2str(minval(data(:, :, :, :))))
             call error_message(errorString)
           end if
@@ -414,8 +417,9 @@ contains
         if (present(upper)) then
           if (any((data(:, :, i, j) .gt. upper) .AND. mask(:, :))) then
             errorString = '***ERROR: read_nc: values in variable "' // trim(varName) // '" are greater than ' // &
-                    trim(num2str(upper, '(F7.2)')) // ' at hour: ' // trim(num2str(i)) // '. File: ' // &
-                    trim(fName) // '.Maxval at hour: ' // trim(num2str(maxval(data(:, :, i, j)))) // &
+                    trim(num2str(upper, '(F7.2)')) // ' at hour: ' // trim(num2str(i)) // new_line('a') // &
+                    'File: ' // trim(fName) // new_line('a') //&
+                    'Maxval at hour: ' // trim(num2str(maxval(data(:, :, i, j)))) // new_line('a') // &
                     'Total maxval: ' // trim(num2str(maxval(data(:, :, :, :))))
             call error_message(errorString)
           end if
@@ -1055,7 +1059,7 @@ contains
         ! soil moisture
         if (nSoilHorizons_sm_input > nSoilHorizons) then
           call error_message('***ERROR: Number of soil horizons representative for input soil moisture exceeded', &
-                  '          defined number of soil horizions in mHM: ', &
+                   new_line('a'), '          defined number of soil horizions in mHM: ', &
                   adjustl(trim(num2str(nSoilHorizons))), '!')
         end if
       end select
