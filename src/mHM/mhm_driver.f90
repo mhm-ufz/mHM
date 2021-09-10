@@ -116,7 +116,7 @@ PROGRAM mhm_driver
         nTstepDay, &      ! number of timesteps per day (former: NAGG)
         simPer      ! simulation period
   USE mo_kind, ONLY : i4, dp                         ! number precision
-  USE mo_message, ONLY : message          ! For print out
+  use mo_message, only : error_message, message          ! For print out
   USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval, ONLY : mhm_eval
   USE mo_read_optional_data, ONLY : readOptidataObs ! read optional observed data
@@ -413,9 +413,8 @@ PROGRAM mhm_driver
       call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
 #endif
     case default
-      call message('***ERROR: mhm_driver: The given objective function number ', &
+      call error_message('***ERROR: mhm_driver: The given objective function number ', &
               trim(adjustl(num2str(opti_function))), ' in mhm.nml is not valid!')
-      stop 1
     end select
 #ifdef MPI
   if (rank == 0 .and. domainMeta%isMasterInComLocal) then

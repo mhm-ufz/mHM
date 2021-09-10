@@ -514,7 +514,7 @@ end subroutine mrm_configuration
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : level0
     use mo_kind, only : i4
-    use mo_message, only : message
+    use mo_message, only : error_message
     use mo_mrm_global_variables, only : L0_fAcc, L0_fDir
     use mo_string_utils, only : num2str
 
@@ -530,16 +530,14 @@ end subroutine mrm_configuration
       ! flow direction [-]
       if (L0_fDir(k) .eq. nodata_i4) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iDomain, '(I5)'))
-        call message(' Error: flow direction has missing value within the valid masked area at cell in domain ', &
+        call error_message(' Error: flow direction has missing value within the valid masked area at cell in domain ', &
                 trim(message_text))
-        stop
       end if
       ! flow accumulation [-]
       if (L0_fAcc(k) .eq. nodata_i4) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iDomain, '(I5)'))
-        call message(' Error: flow accumulation has missing values within the valid masked area at cell in domain ', &
+        call error_message(' Error: flow accumulation has missing values within the valid masked area at cell in domain ', &
                 trim(message_text))
-        stop
       end if
     end do
 

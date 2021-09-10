@@ -102,7 +102,7 @@ CONTAINS
                                     read_meteo_weights, timeStep_model_outputs, &
                                     timestep_model_inputs, nSoilHorizons, &
                                     output_deflate_level, output_double_precision
-    use mo_message, only : message
+    use mo_message, only : error_message, message
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
 
@@ -242,15 +242,11 @@ CONTAINS
     ! consistency check for timestep_model_inputs
     if (any(timestep_model_inputs .ne. 0) .and. &
             .not. all(timestep_model_inputs .ne. 0)) then
-      call message()
-      call message('***ERROR: timestep_model_inputs either have to be all zero or all non-zero')
-      stop
+      call error_message('***ERROR: timestep_model_inputs either have to be all zero or all non-zero')
     end if
     ! check for optimzation and timestep_model_inputs options
     if (optimize .and. (any(timestep_model_inputs .ne. 0))) then
-      call message()
-      call message('***ERROR: optimize and chunk read is switched on! (set timestep_model_inputs to zero)')
-      stop
+      call error_message('***ERROR: optimize and chunk read is switched on! (set timestep_model_inputs to zero)')
     end if
 
     !===============================================================
@@ -270,10 +266,9 @@ CONTAINS
           L1_smObs(iDomain)%varname = 'sm'
         end do
         if (nSoilHorizons_sm_input .GT. nSoilHorizons) then
-          call message()
-          call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
-          call message('          defined number of soil horizions: ', adjustl(trim(num2str(nSoilHorizons))), '!')
-          stop
+          call error_message('***ERROR: Number of soil horizons representative for input soil moisture exceeded', &
+                  new_line('a'), &
+                  '          defined number of soil horizions: ', adjustl(trim(num2str(nSoilHorizons))), '!')
         end if
       case(17)
         ! neutrons

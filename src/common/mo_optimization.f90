@@ -60,7 +60,7 @@ contains
     use mo_dds, only : dds
     use mo_finish, only : finish
     use mo_mcmc, only : mcmc, mcmc_stddev
-    use mo_message, only : message
+    use mo_message, only : error_message, message
     use mo_sce, only : sce
     use mo_string_utils, only : num2str
     use mo_timer, only : timer_get, timer_start, &
@@ -193,8 +193,7 @@ contains
                 seed_in = iseed, loglike_in = .true., printflag_in = .true.)
       case (4)
         if (optimize_restart) then
-          call message('ERROR: A restart of this optimization method is not implemented yet!')
-          stop 1
+          call error_message('ERROR: A restart of this optimization method is not implemented yet!')
         end if
         call message('    Use MCMC_STDDEV')
         call mcmc_stddev(eval, objective, local_parameters(:, 3), local_parameters(:, 1 : 2), mcmc_paras, burnin_paras, &
@@ -202,8 +201,7 @@ contains
                 maskpara_in = local_maskpara, &
                 seed_in = iseed, loglike_in = .true., printflag_in = .true.)
       case default
-        call message("Error objective: This opti_function is either not implemented yet.")
-        stop 1
+        call error_message("Error objective: This opti_function is either not implemented yet.")
       end select
 
     case (1)
@@ -212,8 +210,7 @@ contains
       tFile = trim(adjustl(dirConfigOut)) // 'dds_results.out'
 
       if (optimize_restart) then
-        call message('ERROR: A restart of this optimization method is not implemented yet!')
-        stop 1
+        call error_message('ERROR: A restart of this optimization method is not implemented yet!')
       end if
       ! use fixed user-defined seed
 #ifdef MPI
@@ -234,8 +231,7 @@ contains
       tFile = trim(adjustl(dirConfigOut)) // 'anneal_results.out'
 
       if (optimize_restart) then
-        call message('ERROR: A restart of this optimization method is not implemented yet!')
-        stop 1
+        call error_message('ERROR: A restart of this optimization method is not implemented yet!')
       end if
 
       if (sa_temp .gt. 0.0_dp) then

@@ -75,7 +75,7 @@ CONTAINS
     use mo_init_states, only : variables_alloc
     use mo_global_variables, only : dirPrecipitation
     use mo_string_utils, only : num2str
-    use mo_message, only : message
+    use mo_message, only : error_message
     use mo_restart, only: read_restart_states
     use mo_file, only: file_namelist_mhm, file_namelist_mhm_param, unamelist_mhm, unamelist_mhm_param
     use mo_mhm_mpr_interface, only: call_mpr
@@ -88,6 +88,7 @@ CONTAINS
     integer(i4) :: iDomain, domainID, uniqueIDomain
     type(Grid) :: dummy
     type(Grid), pointer :: level1_iDomain
+    character(2048) :: errorString
 
     ! constants initialization
     allocate(level2(domainMeta%nDomains))
@@ -133,21 +134,20 @@ CONTAINS
               (abs(dummy%xllcorner - level2(iDomain)%xllcorner) > tiny(1.0_dp))     .or. &
               (abs(dummy%yllcorner - level2(iDomain)%yllcorner) > tiny(1.0_dp))     .or. &
               (abs(dummy%cellsize - level2(iDomain)%cellsize)  > tiny(1.0_dp))) then
-        call message('   ***ERROR: size mismatch in grid file for meteo input in domain ', &
-                trim(adjustl(num2str(iDomain))), '!')
-        call message('  Provided (in precipitation file):')
-        call message('... rows:     ', trim(adjustl(num2str(level2(iDomain)%nrows))), ', ')
-        call message('... cols:     ', trim(adjustl(num2str(level2(iDomain)%ncols))), ', ')
-        call message('... cellsize: ', trim(adjustl(num2str(level2(iDomain)%cellsize))), ', ')
-        call message('... xllcorner:', trim(adjustl(num2str(level2(iDomain)%xllcorner))), ', ')
-        call message('... yllcorner:', trim(adjustl(num2str(level2(iDomain)%yllcorner))), ', ')
-        call message('  Expected to have following properties (based on level 1):')
-        call message('... rows:     ', trim(adjustl(num2str(dummy%nrows))), ', ')
-        call message('... cols:     ', trim(adjustl(num2str(dummy%ncols))), ', ')
-        call message('... cellsize: ', trim(adjustl(num2str(dummy%cellsize))), ', ')
-        call message('... xllcorner:', trim(adjustl(num2str(dummy%xllcorner))), ', ')
-        call message('... yllcorner:', trim(adjustl(num2str(dummy%yllcorner))), ', ')
-        stop 1
+        errorString = '   ***ERROR: size mismatch in grid file for meteo input in domain ' // &
+                trim(adjustl(num2str(iDomain))) // '!' // new_line('a') // '  Provided (in precipitation file):' // &
+                '... rows:     '// trim(adjustl(num2str(level2(iDomain)%nrows)))// ', ' // new_line('a') // &
+                '... cols:     '// trim(adjustl(num2str(level2(iDomain)%ncols)))// ', ' // new_line('a') // &
+                '... cellsize: '// trim(adjustl(num2str(level2(iDomain)%cellsize)))// ', ' // new_line('a') // &
+                '... xllcorner:'// trim(adjustl(num2str(level2(iDomain)%xllcorner)))// ', ' // new_line('a') // &
+                '... yllcorner:'// trim(adjustl(num2str(level2(iDomain)%yllcorner)))// ', ' // new_line('a') // &
+                '  Expected to have following properties (based on level 1):' // new_line('a') // &
+                '... rows:     '// trim(adjustl(num2str(dummy%nrows)))// ', ' // new_line('a') // &
+                '... cols:     '// trim(adjustl(num2str(dummy%ncols)))// ', ' // new_line('a') // &
+                '... cellsize: '// trim(adjustl(num2str(dummy%cellsize)))// ', ' // new_line('a') // &
+                '... xllcorner:'// trim(adjustl(num2str(dummy%xllcorner)))// ', ' // new_line('a') // &
+                '... yllcorner:'// trim(adjustl(num2str(dummy%yllcorner)))
+        call error_message(trim(errorString))
       end if
 
 
@@ -183,7 +183,6 @@ CONTAINS
     use mo_common_datetime_type, only: timestep
     use mo_file, only : file_namelist_mhm_param
     use mo_global_variables, only : neutron_integral_AFast
-    use mo_message, only : message
     use mo_mpr_file, only : file_hydrogeoclass
     use mo_mpr_global_variables, only : GeoUnitList
     use mo_neutrons, only : TabularIntegralAFast

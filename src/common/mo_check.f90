@@ -24,7 +24,7 @@ CONTAINS
 
   subroutine check_dir(path, text_, throwError_, tab_, text_length_)
 
-    use mo_message, only : message
+    use mo_message, only : message, error_message
     use mo_os, only : path_split, path_isdir
 
     IMPLICIT NONE
@@ -72,7 +72,7 @@ CONTAINS
       trim(prefix_info) &
     )
     ! throw error if wanted
-    if (.not. is_dir .and. throwError) stop 1
+    if (.not. is_dir .and. throwError) call error_message()
 
   end subroutine check_dir
 

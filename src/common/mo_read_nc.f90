@@ -9,7 +9,7 @@
 module mo_read_nc
   use mo_kind, only : dp, i4
   use mo_netcdf,           only: NcDataset, NcVariable, NcDimension
-  use mo_message,          only: message
+  use mo_message,          only: message, error_message
   use mo_string_utils,     only: num2str
   use mo_utils,            only: eq, ne, flip
 
@@ -110,6 +110,8 @@ contains
     ! check if model domain is covered by data
     integer(i4) :: inctimestep
 
+    ! error string for error message
+    character(4096) :: errorString
 
     ! check optional nctimestep
     inctimestep = -1
@@ -136,9 +138,8 @@ contains
     ! get dimensions and check if plane is correct
     var_shape = var%getShape()
     if ((var_shape(1) /= nRows) .or. (var_shape(2) /= nCols)) then
-      print*, '***ERROR: read_nc: mHM generated x and y: ', nRows, nCols , &
-              'are not matching NetCDF dimensions: ', var_shape(1), var_shape(2)
-      stop 1
+      call error_message('***ERROR: read_nc: mHM generated x and y: ', num2str(nRows), num2str(nCols) , &
+              'are not matching NetCDF dimensions: ', num2str(var_shape(1)), num2str(var_shape(2)))
     end if
 
     ! determine no data value, use _FillValue first, fall back to missing_value
@@ -147,7 +148,7 @@ contains
     else if (var%hasAttribute("missing_value")) then
       call var%getAttribute('missing_value', nodata_value)
     else
-      stop '***ERROR: read_nc: there must be either the attribute "missing_value" or "_FillValue"'
+      call error_message('***ERROR: read_nc: there must be either the attribute "missing_value" or "_FillValue"')
     end if
 
     ! get time variable
@@ -177,9 +178,8 @@ contains
           do j = 1, size(data, dim = 2)
             do k = 1, size(data, dim = 1)
               if (eq(data(k, j, i), nodata_value) .and. (mask(k, j))) then
-                print*, 'at index: ', k, j, ' data is ', data(k, j, i), &
-                        ' with nodata_value ', nodata_value, ' and mask ', mask(k, j)
-                stop 1
+                call error_message('at index: ', num2str(k), num2str(j), ' data is ', num2str(data(k, j, i)), &
+                        ' with nodata_value ', num2str(nodata_value), ' and mask ', merge('T', 'F', mask(k, j)))
               end if
             end do
           end do
@@ -188,28 +188,23 @@ contains
       ! optional check
       if (present(lower)) then
         if (any((data(:, :, i) .lt. lower) .AND. mask(:, :))) then
-          call message('***ERROR: read_nc: values in variable "', &
-                  trim(varName), &
-                  '" are lower than ', trim(num2str(lower, '(F7.2)')))
-          call message('          at timestep  : ', trim(num2str(i)))
-          call message('File: ', trim(fName))
-          call message('Minval at timestep: ', trim(num2str(minval(data(:, :, i)))))
-          call message('Total minval: ', trim(num2str(minval(data(:, :, :)))))
-          stop
+          errorString = '***ERROR: read_nc: values in variable "' // trim(varName) // '" are lower than ' // &
+                  trim(num2str(lower, '(F7.2)')) // ' at timestep: ' // trim(num2str(i)) // new_line('a') // &
+                  'File: ' // trim(fName) //  new_line('a') // &
+                  'Minval at timestep: ' // trim(num2str(minval(data(:, :, i)))) //  new_line('a') // &
+                  'Total minval: ' // trim(num2str(minval(data(:, :, :))))
+          call error_message(errorString)
         end if
       end if
 
       if (present(upper)) then
         if (any((data(:, :, i) .gt. upper) .AND. mask(:, :))) then
-          call message('***ERROR: read_nc: values in variable "', &
-                  trim(varName), &
-                  '" are greater than ', trim(num2str(upper, '(F7.2)')))
-          call message('          at timestep  : ', trim(num2str(i)))
-          call message('File: ', trim(fName))
-          call message('Maxval at timestep: ', trim(num2str(maxval(data(:, :, i)))))
-          call message('Total maxval: ', trim(num2str(maxval(data(:, :, :)))))
-          print*, data(:, :, i)
-          stop
+          errorString = '***ERROR: read_nc: values in variable "' // trim(varName) // '" are greater than ' // &
+                  trim(num2str(upper, '(F7.2)')) // ' at timestep: ' // trim(num2str(i)) //  new_line('a') // &
+                  'File: ' // trim(fName) //  new_line('a') // &
+                  'Maxval at timestep: ' // trim(num2str(maxval(data(:, :, i)))) //  new_line('a') // &
+                  'Total maxval: ' // trim(num2str(maxval(data(:, :, :))))
+          call error_message(errorString)
         end if
       end if
 
@@ -268,16 +263,15 @@ contains
     else if (var%hasAttribute("missing_value")) then
       call var%getAttribute('missing_value', nodata_value)
     else
-      stop '***ERROR: read_const_nc: there must be either the attribute "missing_value" or "_FillValue"'
+      call error_message('***ERROR: read_const_nc: there must be either the attribute "missing_value" or "_FillValue"')
     end if
 
     ! get dimensions and check if plane is correct
     var_shape = var%getShape()
     if (present(nRows) .and. present(nCols)) then
       if ( var_shape(1) /= nRows .or. var_shape(2) /= nCols) then
-        print*, '***ERROR: read_forcing_nc: mHM generated x and y: ', nRows, nCols , &
-              'are not matching NetCDF dimensions: ', var_shape(1), var_shape(2)
-        stop 1
+        call error_message('***ERROR: read_forcing_nc: mHM generated x and y: ', num2str(nRows), num2str(nCols) , &
+              'are not matching NetCDF dimensions: ', num2str(var_shape(1)), num2str(var_shape(2)))
       end if
       ! extract data and select time slice
       call var%getData(data, start=(/1,1/), cnt=(/nRows,nCols/))
@@ -351,6 +345,8 @@ contains
     ! shape of NetCDF variable
     integer(i4), allocatable, dimension(:) :: var_shape
 
+    ! error string for error message
+    character(4096) :: errorString
 
     checking = .TRUE.
     if (present(nocheck)) checking = .NOT. nocheck
@@ -368,9 +364,8 @@ contains
     ! get dimensions
     var_shape = var%getShape()
     if ((var_shape(1) /= nRows) .or. (var_shape(2) /= nCols)) then
-      print*, '***ERROR: read_nc: mHM generated x and y: ', nRows, nCols , &
-              'are not matching NetCDF dimensions: ', var_shape(1), var_shape(2)
-      stop 1
+      call error_message('***ERROR: read_nc: mHM generated x and y: ', num2str(nRows), num2str(nCols) , &
+              'are not matching NetCDF dimensions: ', num2str(var_shape(1)), num2str(var_shape(2)))
     end if
 
     ! determine no data value
@@ -400,9 +395,8 @@ contains
             do k = 1, size(data, dim = 2)
               do l = 1, size(data, dim = 1)
                 if (eq(data(l, k, j, i), nodata_value) .and. (mask(l, k))) then
-                  print*, 'at index: ', l, k, ' data is ', data(l, k, j, i), &
-                          ' with nodata_value ', nodata_value, ' and mask ', mask(l, k)
-                  stop 1
+                  call error_message('at index: ', num2str(l), num2str(k), ' data is ', num2str(data(l, k, j, i)), &
+                          ' with nodata_value ', num2str(nodata_value), ' and mask ', merge("T", "F", mask(l, k)))
                 end if
               end do
             end do
@@ -411,30 +405,25 @@ contains
         ! optional check
         if (present(lower)) then
           if (any((data(:, :, i, j) .lt. lower) .AND. mask(:, :))) then
-            call message('***ERROR: read_nc: values in variable "', &
-                    trim(varName), &
-                    '" are lower than ', trim(num2str(lower, '(F7.2)')))
-            call message('          at hour  : ', trim(num2str(i)))
-            call message('File: ', trim(fName))
-            call message('Minval at hour: ', trim(num2str(minval(data(:, :, i, j)), '(F7.2)')))
-            call message('Total minval: ', trim(num2str(minval(data(:, :, :, :)), '(F7.2)')))
-            stop
+            errorString = '***ERROR: read_nc: values in variable "' // trim(varName) // '" are lower than ' // &
+                    trim(num2str(lower, '(F7.2)')) // ' at hour: ' // trim(num2str(i)) //  new_line('a') // &
+                    'File: ' // trim(fName) // new_line('a') // &
+                    'Minval at hour: ' // trim(num2str(minval(data(:, :, i, j)))) // new_line('a') // &
+                    'Total minval: ' // trim(num2str(minval(data(:, :, :, :))))
+            call error_message(errorString)
           end if
         end if
 
         if (present(upper)) then
           if (any((data(:, :, i, j) .gt. upper) .AND. mask(:, :))) then
-            call message('***ERROR: read_nc: values in variable "', &
-                    trim(varName), &
-                    '" are greater than ', trim(num2str(upper, '(F7.2)')))
-            call message('          at hour  : ', trim(num2str(i)))
-            call message('File: ', trim(fName))
-            call message('Maxval at hour: ', trim(num2str(maxval(data(:, :, i, j)), '(F7.2)')))
-            call message('Total maxval: ', trim(num2str(maxval(data(:, :, :, :)), '(F7.2)')))
-            stop
+            errorString = '***ERROR: read_nc: values in variable "' // trim(varName) // '" are greater than ' // &
+                    trim(num2str(upper, '(F7.2)')) // ' at hour: ' // trim(num2str(i)) // new_line('a') // &
+                    'File: ' // trim(fName) // new_line('a') //&
+                    'Maxval at hour: ' // trim(num2str(maxval(data(:, :, i, j)))) // new_line('a') // &
+                    'Total maxval: ' // trim(num2str(maxval(data(:, :, :, :))))
+            call error_message(errorString)
           end if
         end if
-
       end do
     end do
 
@@ -528,9 +517,8 @@ contains
     else if (strArr(1) .eq. 'seconds') then
       time_step_seconds = 1_i8
     else
-      call message('***ERROR: Please provide the input data in (days, hours, minutes, seconds) ', &
+      call error_message('***ERROR: Please provide the input data in (days, hours, minutes, seconds) ', &
               'since YYYY-MM-DD[ HH:MM:SS] in the netcdf file. Found: ', trim(AttValues))
-      stop 1
     end if
 
     ! get the time vector
@@ -540,8 +528,7 @@ contains
 
     ! check for length of time vector, needs to be at least of length 2, otherwise step width check fails
     if (size(time_data) .le. 1) then
-      call message('***ERROR: length of time dimension needs to be at least 2 in file: ' // trim(fname))
-      stop 1
+      call error_message('***ERROR: length of time dimension needs to be at least 2 in file: ' // trim(fname))
     end if
 
     ! check for equal timesteps and timestep must not be multiple of native timestep
@@ -571,8 +558,7 @@ contains
     case(-1) ! daily
       ! difference must be 1 day
       if (.not. all(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs - 1._dp) .lt. 1.e-6)) then
-        call message(error_msg // trim('daily'))
-        stop 1
+        call error_message(error_msg // trim('daily'))
       end if
       ncJulSta1 = nc_period%julStart
       time_start = clip_period%julStart - ncJulSta1 + 1_i4
@@ -581,8 +567,7 @@ contains
       ! difference must be between 28 and 31 days
       if (any(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs) .gt. 31._dp) .or. &
               any(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs) .lt. 28._dp)) then
-        call message(error_msg // trim('monthly'))
-        stop 1
+        call error_message(error_msg // trim('monthly'))
       end if
 
       call caldat(clip_period%julStart, dd, mmcalstart, yycalstart)
@@ -596,8 +581,7 @@ contains
       ! difference must be between 365 and 366 days
       if (any(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs) .gt. (YearDays + 1._dp)) .or. &
               any(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs) .lt. YearDays)) then
-        call message(error_msg // 'yearly')
-        stop 1
+        call error_message(error_msg // 'yearly')
       end if
       call caldat(clip_period%julStart, dd, mmcalstart, yycalstart)
       call caldat(nc_period%julStart, dd, mmncstart, yyncstart)
@@ -609,22 +593,19 @@ contains
     case(-4) ! hourly
       ! difference must be 1 hour
       if (.not. all(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / 3600._dp - 1._dp) .lt. 1.e-6)) then
-        call message(error_msg // 'hourly')
-        stop 1
+        call error_message(error_msg // 'hourly')
       end if
       ncJulSta1 = nc_period%julStart
       time_start = (clip_period%julStart - ncJulSta1) * 24_i4 + 1_i4 ! convert to hours; always starts at one
       time_cnt = (clip_period%julEnd - clip_period%julStart + 1_i4) * 24_i4 ! convert to hours
     case default ! no output at all
-      call message('***ERROR: read_nc: unknown nctimestep switch.')
-      stop 1
+      call error_message('***ERROR: read_nc: unknown nctimestep switch.')
     end select
 
     ! Check if time steps in file cover simulation period
     if (.not. ((ncJulSta1 .LE. clip_period%julStart) .AND. (nc_period%julEnd .GE. clip_period%julEnd))) then
-      call message('***ERROR: read_nc: time period of input data: ', trim(fname), &
+      call error_message('***ERROR: read_nc: time period of input data: ', trim(fname), &
               '          is not matching modelling period.')
-      stop 1
     end if
 
   end subroutine get_time_vector_and_select
@@ -943,28 +924,25 @@ contains
 
     ! check if number of periods in namelist is enough
     if (nLandCoverPeriods < select_index) then
-      call message('The number of selected land cover periods for domain ', compress(num2str(iDomain)), &
+      call error_message('The number of selected land cover periods for domain ', compress(num2str(iDomain)), &
               ' is bigger than allowed (', &
               compress(num2str(nLandCoverPeriods)), '). Please set nLandCoverPeriods in namelist.')
-      stop 1
     end if
 
     ! check if both start and end are covered
     select_indices_temp = [select_indices_mask, .false.]
     if (minval(boundaries, mask=select_indices_temp) > simPer(iDomain)%ystart) then
-      call message('The selected land cover periods for domain ', compress(trim(num2str(iDomain))), &
+      call error_message('The selected land cover periods for domain ', compress(trim(num2str(iDomain))), &
               ' (', compress(trim(num2str(minval(boundaries, mask=select_indices_temp)))), &
               ') do not cover the beginning of the simulation period (', &
               compress(trim(num2str(simPer(iDomain)%ystart))), ').')
-      stop 1
     end if
     select_indices_temp = [.false., select_indices_mask]
     if (maxval(boundaries, mask=select_indices_temp) < simPer(iDomain)%yend) then
-      call message('The selected land cover periods for domain ', compress(trim(num2str(iDomain))), &
+      call error_message('The selected land cover periods for domain ', compress(trim(num2str(iDomain))), &
               ' (', compress(trim(num2str(maxval(boundaries, mask=select_indices_temp)))), &
               ' ) do not cover the end of the simulation period (', &
               compress(trim(num2str(simPer(iDomain)%yend))), ').')
-      stop 1
     end if
   end subroutine common_check_dimension_consistency
 
@@ -1003,32 +981,28 @@ contains
     else
       ! check if it conforms with global
       if (nSoilHorizons /= nSoilHorizons_temp) then
-        call message('The number of soil horizons for domain 1 (', compress(trim(num2str(nSoilHorizons))), &
+        call error_message('The number of soil horizons for domain 1 (', compress(trim(num2str(nSoilHorizons))), &
                 ') does not conform with the number of soil horizons for domain ', &
                 compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nSoilHorizons_temp))), ').')
-        stop 1
       end if
       if (nLAIs /= nLAIs_temp) then
-        call message('The number of soil horizons for domain 1 (', compress(trim(num2str(nLAIs))), &
+        call error_message('The number of soil horizons for domain 1 (', compress(trim(num2str(nLAIs))), &
                 ') does not conform with the number of soil horizons for domain ', &
                 compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nLAIs_temp))), ').')
-        stop 1
       end if
       do k=1, nSoilHorizons+1
         if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k))) then
-          call message('The ',compress(trim(num2str(k))),'th soil horizon boundary for domain 1 (', &
+          call error_message('The ',compress(trim(num2str(k))),'th soil horizon boundary for domain 1 (', &
                   compress(trim(num2str(soilHorizonBoundaries(k)))), &
                   ') does not conform with domain ', &
                   compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(soilHorizonBoundaries_temp(k)))), ').')
-          stop 1
         end if
       end do
       do k=1, nLAIs+1
         if (ne(LAIBoundaries(k), LAIBoundaries_temp(k))) then
-          call message('The ',compress(trim(num2str(k))),'th LAI period boundary for domain 1 (', &
+          call error_message('The ',compress(trim(num2str(k))),'th LAI period boundary for domain 1 (', &
                   compress(trim(num2str(LAIBoundaries(k)))), ') does not conform with domain ', &
                   compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(LAIBoundaries_temp(k)))), ').')
-          stop 1
         end if
       end do
     end if
@@ -1046,12 +1020,11 @@ contains
     integer(i4), intent(in) :: iDomain
 
     if (ne(item1, item2)) then
-      call message('The ', trim(name),&
+      call error_message('The ', trim(name),&
                   ' as set in the configuration file (', &
                   compress(trim(num2str(item1))), &
                   ') does not conform with domain ', &
                   compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(item2))), ').')
-      stop 1
     end if
   end subroutine check_consistency_element_dp
 
@@ -1065,12 +1038,11 @@ contains
     integer(i4), intent(in) :: iDomain
 
     if (item1 /= item2) then
-      call message('The ', trim(name),&
+      call error_message('The ', trim(name),&
                   ' as set in the configuration file (', &
                   compress(trim(num2str(item1))), &
                   ') does not conform with domain ', &
                   compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(item2))), ').')
-      stop 1
     end if
   end subroutine check_consistency_element_i4
 
@@ -1086,11 +1058,9 @@ contains
       case(10 : 13, 28)
         ! soil moisture
         if (nSoilHorizons_sm_input > nSoilHorizons) then
-          call message()
-          call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
-          call message('          defined number of soil horizions in mHM: ', &
+          call error_message('***ERROR: Number of soil horizons representative for input soil moisture exceeded', &
+                   new_line('a'), '          defined number of soil horizions in mHM: ', &
                   adjustl(trim(num2str(nSoilHorizons))), '!')
-          stop 1
         end if
       end select
     end if

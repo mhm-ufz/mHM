@@ -108,7 +108,7 @@ CONTAINS
                                         L1_wiltingPoint, are_parameter_initialized
     use mo_init_states, only : variables_default_init
     use mo_julian, only : caldat, julday
-    use mo_message, only : message
+    use mo_message, only : error_message
     use mo_string_utils, only : num2str
     use mo_meteo_forcings, only : prepare_meteo_forcings_data
     use mo_mhm, only : mhm
@@ -252,9 +252,8 @@ CONTAINS
         end if
         domainID = domainMeta%indices(iDomain)
         if (.not. domainMeta%doRouting(iDomain)) then
-          call message("***ERROR: runoff for domain", trim(num2str(domainID)),&
+          call error_message("***ERROR: runoff for domain", trim(num2str(domainID)),&
                         "can not be produced, since routing process is off in Process Matrix")
-          stop
         end if
       end do
     end if
