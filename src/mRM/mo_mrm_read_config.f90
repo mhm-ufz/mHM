@@ -223,12 +223,12 @@ contains
           call error_message('***ERROR: ', trim(file_namelist), ': ID ', &
                   trim(adjustl(num2str(Gauge_id(domainID, iGauge)))), ' of evaluation gauge ', &
                   trim(adjustl(num2str(iGauge))), ' for subdomain ', &
-                  trim(adjustl(num2str(iDomain))), ' is not defined!', new_line('a'), &
+                  trim(adjustl(num2str(iDomain))), ' is not defined!'//new_line('a'), &
                   '          Error occured in namelist: evaluation_gauges')
         else if (trim(gauge_filename(domainID, iGauge)) .EQ. trim(num2str(nodata_i4))) then
           call error_message('***ERROR: ', trim(file_namelist), ': Filename of evaluation gauge ', &
                   trim(adjustl(num2str(iGauge))), ' for subdomain ', &
-                  trim(adjustl(num2str(iDomain))), ' is not defined!', new_line('a'), &
+                  trim(adjustl(num2str(iDomain))), ' is not defined!'//new_line('a'), &
                   '          Error occured in namelist: evaluation_gauges')
         end if
         !
