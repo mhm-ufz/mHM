@@ -207,9 +207,16 @@ CONTAINS
                 slow_interflow, snow, throughfall, total_runoff, alpha, deg_day_incr, deg_day_max, deg_day_noprec, &
                 deg_day, fAsp, petLAIcorFactorL1, HarSamCoeff, PrieTayAlpha, aeroResist, surfResist, frac_roots, &
                 interc_max, karst_loss, k0, k1, k2, kp, soil_moist_FC, soil_moist_sat, soil_moist_exponen, &
-                jarvis_thresh_c1, temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point)
+                jarvis_thresh_c1, temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point, &
+				L1_bulkDens , L1_latticeWater , L1_COSMICL3)
 
-    use mo_Temporal_Disagg_Forcing, only : Temporal_Disagg_Forcing
+        ! subroutines required to estimate variables prior to the MPR call
+    use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
+    use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
+    use mo_pet,                     only: pet_hargreaves, pet_priestly,  & ! calc. of pot. evapotranspiration
+                                          pet_penman
+	
+	use mo_Temporal_Disagg_Forcing, only : Temporal_Disagg_Forcing
     use mo_canopy_interc, only : canopy_interc
     use mo_julian, only : date2dec, dec2date
     use mo_mhm_constants, only : HarSamConst
@@ -464,6 +471,11 @@ CONTAINS
 
     ! Permanent wilting point for each horizon
     real(dp), dimension(:, :), intent(inout) :: wilting_point
+	
+	real(dp), dimension(:,:),      intent(inout) ::  L1_bulkDens
+    real(dp), dimension(:,:),      intent(inout) ::  L1_latticeWater
+    real(dp), dimension(:,:),      intent(inout) ::  L1_COSMICL3
+
 
     ! is day or night
     logical :: isday
@@ -597,21 +609,29 @@ CONTAINS
       call L1_total_runoff(fSealed1(k), fast_interflow(k), slow_interflow(k), baseflow(k), & ! Intent IN
               runoff_sealed(k), & ! Intent IN
               total_runoff(k))                                                                    ! Intent OUT
-
+      end do
+    !$OMP end do
+    !$OMP end parallel
+	do k=1,nCells1
       !-------------------------------------------------------------------
       ! Nested model: Neutrons state variable, related to soil moisture
       !-------------------------------------------------------------------
 
-      ! based on soilMoisture
-      if (processMatrix(10, 1) .eq. 1) &
-              call DesiletsN0(soilMoisture(k, :), horizon_depth(:), &
-                      global_parameters(processMatrix(10, 3) - processMatrix(10, 2) + 1), &
-                      neutrons(k))
-      if (processMatrix(10, 1) .eq. 2) &
-              call COSMIC(soilMoisture(k, :), horizon_depth(:), &
-                      global_parameters(processMatrix(10, 3) - processMatrix(10, 2) + 2 : processMatrix(10, 3)), &
-                      neutron_integral_AFast(:), &
-                      neutrons(k))
+       ! based on soilMoisture
+       if ( processMatrix(10, 1) .eq. 1 ) &
+           call DesiletsN0(soilMoisture(k,:), horizon_depth(:), &
+                           global_parameters(processMatrix(10,3)-processMatrix(10,2)+1), &
+                           neutrons(k))
+       if ( processMatrix(10, 1) .eq. 2 ) &
+           call COSMIC( soilMoisture(k,:), horizon_depth(:), &
+                       global_parameters(processMatrix(10,3)-processMatrix(10,2)+2:processMatrix(10,3)), &
+                       neutron_integral_AFast(:), &
+					   L1_bulkDens(k,:), &
+                       L1_latticeWater(k,:), &
+                       L1_COSMICL3(k,:), &
+                       interc(k)              , & ! Interception
+                       snowpack(k)            , & ! Snowpack
+                       neutrons(k))
     end do
     !$OMP end do
     !$OMP end parallel
