@@ -39,7 +39,7 @@ rootFractionCoefficient_sand 	     =  0.0010,      0.0900,          0.09,     1,
 rootFractionCoefficient_clay   	   =  0.9000,      0.9990,          0.98,     1,       1
 ! only for - &processSelection - processCase(3) == [3] (see mhm.nml for details)
 FCmin_glob                         =  0.1000,      0.2000,          0.15,     0,       1
-FCmin_glob                         =  0.1000,      0.2000,          0.15,     0,       1
+FCdelta_glob                       =  0.1000,      0.4000,          0.25,     0,       1
 ! --------------------------------------------------------------------------------------
 ! directSealedAreaRunoff
 imperviousStorageCapacity          =  0.0000,      5.0000,           0.5,     1,       1
