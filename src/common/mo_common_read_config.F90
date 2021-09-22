@@ -740,6 +740,8 @@ CONTAINS
 
     real(dp), dimension(nColPars) :: orgMatterContent_pervious
 
+    real(dp), dimension(nColPars) :: orgMatterSwitch
+
     real(dp), dimension(nColPars) :: PTF_lower66_5_constant
 
     real(dp), dimension(nColPars) :: PTF_lower66_5_clay
@@ -873,7 +875,7 @@ CONTAINS
             degreeDayFactor_impervious, &
             degreeDayFactor_pervious, increaseDegreeDayFactorByPrecip, maxDegreeDayFactor_forest, &
             maxDegreeDayFactor_impervious, maxDegreeDayFactor_pervious, orgMatterContent_forest, &
-            orgMatterContent_impervious, orgMatterContent_pervious, &
+            orgMatterContent_impervious, orgMatterContent_pervious, orgMatterSwitch, &
             PTF_lower66_5_constant, PTF_lower66_5_clay, PTF_lower66_5_Db, PTF_higher66_5_constant, &
             PTF_higher66_5_clay, PTF_higher66_5_Db, PTF_Ks_constant, &
             PTF_Ks_sand, PTF_Ks_clay, PTF_Ks_curveSlope, &
@@ -1074,14 +1076,16 @@ CONTAINS
               rootFractionCoefficient_clay(3), &
               jarvis_sm_threshold_c1(3), &
               FCmin_glob(3), &
-              FCdelta_glob(3) &
+              FCdelta_glob(3), &
+              orgMatterSwitch(3) &
       ])
       call append(dummy_global_parameters_name, [&
               'rootFractionCoefficient_sand      ', &
                       'rootFractionCoefficient_clay      ', &
                       'jarvis_sm_threshold_c1            ', &
                       'FCmin_glob                        ', &
-                      'FCdelta_glob                      ' &
+                      'FCdelta_glob                      ', &
+                      'orgMatterSwitch                   ' &
       ])
       ! 2- Jarvis equation for PET reduction, bucket approach, Brooks-Corey like
     case(2)
@@ -1093,31 +1097,35 @@ CONTAINS
               rootFractionCoefficient_sand(3), &
               rootFractionCoefficient_clay(3), &
               FCmin_glob(3), &
-              FCdelta_glob(3) &
+              FCdelta_glob(3), &
+              orgMatterSwitch(3) &
       ])
       call append(dummy_global_parameters_name, [&
               'rootFractionCoefficient_sand      ', &
                       'rootFractionCoefficient_clay      ', &
                       'FCmin_glob                        ', &
-                      'FCdelta_glob                      ' &
+                      'FCdelta_glob                      ', &
+                      'orgMatterSwitch                   ' &
       ])
 
       ! 3- Jarvis equation for ET reduction and FC dependency on root fraction coefficient
     case(3)
-      processMatrix(3, 2) = 22_i4
+      processMatrix(3, 2) = 23_i4
       processMatrix(3, 3) = sum(processMatrix(1 : 3, 2))
       call append(global_parameters, reshape(rootFractionCoefficient_sand, [1, nColPars]))
       call append(global_parameters, reshape(rootFractionCoefficient_clay, [1, nColPars]))
       call append(global_parameters, reshape(FCmin_glob, [1, nColPars]))
       call append(global_parameters, reshape(FCdelta_glob, [1, nColPars]))
       call append(global_parameters, reshape(jarvis_sm_threshold_c1, [1, nColPars]))
+      call append(global_parameters, reshape(orgMatterSwitch, [1, nColPars]))
 
       call append(global_parameters_name, [ &
                       'rootFractionCoefficient_sand      ', &
                       'rootFractionCoefficient_clay      ', &
                       'FCmin_glob                        ', &
                       'FCdelta_glob                      ', &
-                      'jarvis_sm_threshold_c1            ' &
+                      'jarvis_sm_threshold_c1            ', &
+                      'orgMatterSwitch                   ' &
 ])
       ! 4- Feddes equation for ET reduction and FC dependency on root fraction coefficient
     case(4)
@@ -1135,10 +1143,12 @@ CONTAINS
                       'FCdelta_glob                      ' &
       ])
       call append(dummy_global_parameters, [ &
-              jarvis_sm_threshold_c1(3) &
+              jarvis_sm_threshold_c1(3), &
+              orgMatterSwitch(3) &
       ])
       call append(dummy_global_parameters_name, [&
-              'jarvis_sm_threshold_c1            ' &
+              'jarvis_sm_threshold_c1            ', &
+              'orgMatterSwitch                   ' &
       ])
 
     case DEFAULT
