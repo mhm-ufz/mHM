@@ -110,7 +110,7 @@ CONTAINS
       call call_mpr(parameterValues, parameterNames, level1, .true., opti_domain_indices)
     end if
 
-    call constants_init()
+    ! call constants_init()
 
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
@@ -177,31 +177,31 @@ CONTAINS
   ! Juliane Mai & Matthias Cuntz Nov 2013 - check timeStep
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine constants_init
+  ! subroutine constants_init
 
-    use mo_common_variables, only : processMatrix, c2TSTu
-    use mo_common_datetime_type, only: timestep
-    use mo_file, only : file_namelist_mhm_param
-    use mo_global_variables, only : neutron_integral_AFast
-    use mo_mpr_file, only : file_hydrogeoclass
-    use mo_mpr_global_variables, only : GeoUnitList
-    use mo_neutrons, only : TabularIntegralAFast
-    use mo_string_utils, only : num2str
+  !   use mo_common_variables, only : processMatrix, c2TSTu
+  !   use mo_common_datetime_type, only: timestep
+  !   use mo_file, only : file_namelist_mhm_param
+  !   use mo_global_variables, only : neutron_integral_AFast
+  !   use mo_mpr_file, only : file_hydrogeoclass
+  !   use mo_mpr_global_variables, only : GeoUnitList
+  !   use mo_neutrons, only : TabularIntegralAFast
+  !   use mo_string_utils, only : num2str
 
-    implicit none
+  !   implicit none
 
 
-    !Fill Tabular for neutron flux integral
-    if (processMatrix(10, 1) .eq. 2) then
-      allocate(neutron_integral_AFast(10000 + 2))
-      call TabularIntegralAFast(neutron_integral_AFast, 20.0_dp)
-    else
-      allocate(neutron_integral_AFast(1))
-      neutron_integral_AFast(:) = 0.0_dp
-    endif
+  !   !Fill Tabular for neutron flux integral
+  !   if (processMatrix(10, 1) .eq. 2) then
+  !     allocate(neutron_integral_AFast(10000 + 2))
+  !     call TabularIntegralAFast(neutron_integral_AFast, 20.0_dp)
+  !   else
+  !     allocate(neutron_integral_AFast(1))
+  !     neutron_integral_AFast(:) = 0.0_dp
+  !   endif
 
-    c2TSTu = real(timeStep, dp) / 24.0_dp   ! from per timeStep to per day
+  !   c2TSTu = real(timeStep, dp) / 24.0_dp   ! from per timeStep to per day
 
-  end subroutine constants_init
+  ! end subroutine constants_init
 
 END MODULE mo_startup
