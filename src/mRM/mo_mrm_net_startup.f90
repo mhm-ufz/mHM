@@ -2215,13 +2215,14 @@ contains
     use mo_common_constants, only: nodata_i4, nodata_dp
     use mo_mad, only: mad
     use mo_append, only: append
-    use mo_mpr_global_variables, only: &
-        L0_slope               ! IN:    slope [%]
+    ! use mo_mpr_global_variables, only: &
+    !     L0_slope               ! IN:    slope [%]
     use mo_common_variables, only: &
         domainMeta,          & ! IN:    for L0 Domain indexer
         level0                 ! IN:    level 0 grid
     use mo_grid, only: Grid
     use mo_mrm_global_variables, only: &
+        L0_slope,            & ! IN:    slope [%]
         L0_fDir,             & ! IN:    flow direction (standard notation) L0
         L0_fAcc,             & ! IN:    flow accumulation (number of cells)?
         L0_streamNet,        & ! IN:    stream Network at Level 0

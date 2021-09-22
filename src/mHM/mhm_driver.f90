@@ -96,7 +96,8 @@ PROGRAM mhm_driver
           L1_etObs, &
           L1_neutronsObs, &
           L1_smObs, &
-          are_parameter_initialized
+          are_parameter_initialized, &
+          pathMprNml
   USE mo_optimization_types, ONLY : &
           optidata ! type for opti data
   USE mo_common_variables, ONLY : &
@@ -106,6 +107,7 @@ PROGRAM mhm_driver
           dirConfigOut, &
           dirMorpho, dirLCover, &                                         ! directories
           dirOut, &      ! directories
+          L0_Domain, &
           domainMeta, &
 #ifdef MPI
           comm, &
@@ -271,8 +273,9 @@ PROGRAM mhm_driver
     call message('  --------------')
     call message('      DOMAIN                  ', num2str(domainID, '(I3)'))
     call message('  --------------')
-    call check_dir(dirMorpho(iDomain), "Morphological directory:", .false., 4, 30)
-    call check_dir(dirLCover(iDomain), "Land cover directory:", .false., 4, 30)
+    call message('    Configuration file for MPR: ', trim(pathMprNml(L0_Domain(iDomain))))
+    ! call check_dir(dirMorpho(iDomain), "Morphological directory:", .false., 4, 30)
+    ! call check_dir(dirLCover(iDomain), "Land cover directory:", .false., 4, 30)
     call check_dir(dirPrecipitation(iDomain), "Precipitation directory:", .false., 4, 30)
     call check_dir(dirTemperature(iDomain), "Temperature directory:", .false., 4, 30)
     select case (processMatrix(5, 1))
