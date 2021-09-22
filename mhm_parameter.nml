@@ -40,7 +40,6 @@ rootFractionCoefficient_clay   	   =  0.9000,      0.9990,          0.98,     1,
 ! only for - &processSelection - processCase(3) == [3] (see mhm.nml for details)
 FCmin_glob                         =  0.1000,      0.2000,          0.15,     0,       1
 FCmin_glob                         =  0.1000,      0.2000,          0.15,     0,       1
-orgMatterSwitch                    =  0.0000,      1.0000,          0.00,     0,       1
 ! --------------------------------------------------------------------------------------
 ! directSealedAreaRunoff
 imperviousStorageCapacity          =  0.0000,      5.0000,           0.5,     1,       1

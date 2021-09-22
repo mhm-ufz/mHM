@@ -1044,6 +1044,13 @@ CONTAINS
     call append(global_parameters, reshape(rootFractionCoefficient_impervious, [1, nColPars]))
     call append(global_parameters, reshape(rootFractionCoefficient_pervious, [1, nColPars]))
     call append(global_parameters, reshape(infiltrationShapeFactor, [1, nColPars]))
+    if (processMatrix(3, 1) == 3_i4 .or. processMatrix(3, 1) == 4_i4) then
+      orgMatterSwitch = [0.0_dp, 1.0_dp, 1.0_dp, 0.0_dp, 1.0_dp]
+    else
+      orgMatterSwitch = [0.0_dp, 1.0_dp, 0.0_dp, 0.0_dp, 1.0_dp]
+    end if
+
+    call append(global_parameters, reshape(orgMatterSwitch, [1, nColPars]))
 
     call append(global_parameters_name, [     &
               'orgMatterContent_forest           ', &
@@ -1062,13 +1069,14 @@ CONTAINS
                       'rootFractionCoefficient_forest    ', &
                       'rootFractionCoefficient_impervious', &
                       'rootFractionCoefficient_pervious  ', &
-                    'infiltrationShapeFactor           '])
+                      'infiltrationShapeFactor           ', &
+                      'orgMatterSwitch                   '])
 
     select case (processMatrix(3, 1))
 
       ! 1 - Feddes equation for PET reduction, bucket approach, Brooks-Corey like
     case(1)
-      processMatrix(3, 2) = 17_i4
+      processMatrix(3, 2) = 18_i4
       processMatrix(3, 3) = sum(processMatrix(1:3, 2))
 
       call append(dummy_global_parameters, [ &
@@ -1076,20 +1084,18 @@ CONTAINS
               rootFractionCoefficient_clay(3), &
               jarvis_sm_threshold_c1(3), &
               FCmin_glob(3), &
-              FCdelta_glob(3), &
-              orgMatterSwitch(3) &
+              FCdelta_glob(3) &
       ])
       call append(dummy_global_parameters_name, [&
               'rootFractionCoefficient_sand      ', &
                       'rootFractionCoefficient_clay      ', &
                       'jarvis_sm_threshold_c1            ', &
                       'FCmin_glob                        ', &
-                      'FCdelta_glob                      ', &
-                      'orgMatterSwitch                   ' &
+                      'FCdelta_glob                      ' &
       ])
       ! 2- Jarvis equation for PET reduction, bucket approach, Brooks-Corey like
     case(2)
-      processMatrix(3, 2) = 18_i4
+      processMatrix(3, 2) = 19_i4
       processMatrix(3, 3) = sum(processMatrix(1 : 3, 2))
       call append(global_parameters, reshape(jarvis_sm_threshold_c1, [1, nColPars]))
       call append(global_parameters_name, ['jarvis_sm_threshold_c1            '])
@@ -1104,8 +1110,7 @@ CONTAINS
               'rootFractionCoefficient_sand      ', &
                       'rootFractionCoefficient_clay      ', &
                       'FCmin_glob                        ', &
-                      'FCdelta_glob                      ', &
-                      'orgMatterSwitch                   ' &
+                      'FCdelta_glob                      ' &
       ])
 
       ! 3- Jarvis equation for ET reduction and FC dependency on root fraction coefficient
@@ -1117,19 +1122,17 @@ CONTAINS
       call append(global_parameters, reshape(FCmin_glob, [1, nColPars]))
       call append(global_parameters, reshape(FCdelta_glob, [1, nColPars]))
       call append(global_parameters, reshape(jarvis_sm_threshold_c1, [1, nColPars]))
-      call append(global_parameters, reshape(orgMatterSwitch, [1, nColPars]))
 
       call append(global_parameters_name, [ &
                       'rootFractionCoefficient_sand      ', &
                       'rootFractionCoefficient_clay      ', &
                       'FCmin_glob                        ', &
                       'FCdelta_glob                      ', &
-                      'jarvis_sm_threshold_c1            ', &
-                      'orgMatterSwitch                   ' &
+                      'jarvis_sm_threshold_c1            ' &
 ])
       ! 4- Feddes equation for ET reduction and FC dependency on root fraction coefficient
     case(4)
-      processMatrix(3, 2) = 21_i4
+      processMatrix(3, 2) = 22_i4
       processMatrix(3, 3) = sum(processMatrix(1 : 3, 2))
       call append(global_parameters, reshape(rootFractionCoefficient_sand, [1, nColPars]))
       call append(global_parameters, reshape(rootFractionCoefficient_clay, [1, nColPars]))
@@ -1143,12 +1146,10 @@ CONTAINS
                       'FCdelta_glob                      ' &
       ])
       call append(dummy_global_parameters, [ &
-              jarvis_sm_threshold_c1(3), &
-              orgMatterSwitch(3) &
+              jarvis_sm_threshold_c1(3) &
       ])
       call append(dummy_global_parameters_name, [&
-              'jarvis_sm_threshold_c1            ', &
-              'orgMatterSwitch                   ' &
+              'jarvis_sm_threshold_c1            ' &
       ])
 
     case DEFAULT
