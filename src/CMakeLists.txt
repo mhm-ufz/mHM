@@ -1,43 +1,41 @@
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules)
 
-include(FetchContent)
-
-set (LIB_NAME mhm_lib)
+set(LIB_NAME mhm_lib)
 # use all mo_*.f90 files for the library
 file(GLOB sources_mhm ./mHM/*mo_*.f90)
 file(GLOB sources_mrm ./mRM/*mo_*.f90)
 file(GLOB sources_common ./common/*mo_*.f90)
-file(GLOB sources_mpr ./MPR/*mo_*.f90)
-list(APPEND sources ${sources_mhm} ${sources_mrm} ${sources_common} ${sources_common_mHM_mRM} ${sources_mpr})
+list(APPEND sources ${sources_mhm} ${sources_mrm} ${sources_common})
 add_library(${LIB_NAME} ${sources})
 
-set (FORCES_NAME forces)
-find_package(${FORCES_NAME})
+include(CPM)
+CPMAddPackage(
+  NAME            forces
+  GIT_REPOSITORY  https://git.ufz.de/chs/forces.git
+  GIT_TAG         fix_error_message
+  OPTIONS
+    "BUILD_TESTING OFF"
+)
+target_link_libraries(${LIB_NAME} PUBLIC forces)
 
-if(NOT ${FORCES_NAME}_FOUND)
-  FetchContent_Declare(
-    ${FORCES_NAME}
-    GIT_REPOSITORY https://git.ufz.de/chs/forces.git
-    GIT_TAG        fix_error_message
-    SOURCE_SUBDIR  src
-  )
-  set (${FORCES_NAME}_BUILD_TESTING OFF)
-  FetchContent_MakeAvailable(${FORCES_NAME})
-endif()
-target_link_libraries(${LIB_NAME} PUBLIC ${FORCES_NAME})
-
-set (MPR_NAME MPR)
-find_package(${MPR_NAME})
-if(NOT ${MPR_NAME}_FOUND)
-  FetchContent_Declare(
-    ${MPR_NAME}
-    GIT_REPOSITORY https://git.ufz.de/chs/mpr.git
-    GIT_TAG        1.0.2
-  )
-  set (${MPR_NAME}_BUILD_TESTING OFF)
-  FetchContent_MakeAvailable(${MPR_NAME})
-endif()
-# target_link_libraries(${LIB_NAME} PUBLIC ${MPR_NAME})
+# Namelist files for MPR
+set(GENERATE_TFS_CONFIG 
+  "${PROJECT_SOURCE_DIR}/mpr_mhm.nml"
+  CACHE FILEPATH "path to config file for MPR" 
+)
+set(GENERATE_TFS_PARAM 
+  "${PROJECT_SOURCE_DIR}/mpr_global_parameter_mhm.nml"
+  CACHE FILEPATH "path to config file with extra parameters for MPR" 
+)
+CPMAddPackage(
+  NAME            mpr
+  GIT_REPOSITORY  https://git.ufz.de/chs/mpr.git
+  GIT_TAG         cmake_python_option
+  # SOURCE_SUBDIR   src
+  OPTIONS
+    "BUILD_TESTING OFF"
+)
+target_link_libraries(${LIB_NAME} PUBLIC mpr)
 
 # get pre-processor flag for current compiler (-fpp or -cpp) and 'cpp_definitions' function
 include(fortranpreprocessor)
