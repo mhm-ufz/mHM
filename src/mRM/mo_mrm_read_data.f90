@@ -55,7 +55,7 @@ contains
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
-    use mo_common_variables, only : L0_elev, L0_LCover, level0, domainMeta, processMatrix
+    use mo_common_variables, only : L0_elev, L0_LCover, level0, domainMeta, processMatrix, nuniqueL0Domains
     use mo_grid, only: Grid
     use mo_message, only : error_message, message
     use mo_mrm_file, only : file_facc, file_fdir, file_gaugeloc
@@ -78,6 +78,7 @@ contains
     integer(i4) :: nunit
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
+    real(dp), dimension(:, :), allocatable :: data_dp_2d
     logical, dimension(:, :), allocatable :: mask_2d
 
     type(Grid), pointer :: level0_iDomain => null()
@@ -85,6 +86,10 @@ contains
     type(NcVariable)                       :: ncVar        ! variables for data form netcdf
     integer(i4)                            :: nodata_value ! data nodata value
 
+
+    if (.not. allocated(level0)) then
+      allocate(level0(nuniqueL0Domains))
+    end if
 
     do iDomain = 1, domainMeta%nDomains
       ! ************************************************
@@ -106,10 +111,9 @@ contains
       !
       call message('      Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
 
-      ! TODO: MPR this needs to be reactivated
-      !  call read_dem(iDomain, level0_iDomain, data_dp_2d)
-      ! ! put data in variable
-      ! call append(L0_elev, pack(data_dp_2d, level0_iDomain%mask))
+      call read_dem(iDomain, level0_iDomain, data_dp_2d)
+      ! put data in variable
+      call append(L0_elev, pack(data_dp_2d, level0_iDomain%mask))
 
       if (do_readlcover) then
         if (processMatrix(8, 1) .eq. 1) then
