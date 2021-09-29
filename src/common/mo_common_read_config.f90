@@ -189,9 +189,9 @@ CONTAINS
     allocate(L0_Domain(domainMeta%nDomains))
 
     ! TODO: MPR this block will go
-    ! allocate(dirMorpho(domainMeta%nDomains))
-    ! allocate(dirLCover(domainMeta%nDomains))
-    ! allocate(fileLatLon(domainMeta%nDomains))
+    allocate(dirMorpho(domainMeta%nDomains))
+    allocate(dirLCover(domainMeta%nDomains))
+    allocate(fileLatLon(domainMeta%nDomains))
 
     nuniqueL0Domains = 0_i4
     do iDomain = 1, domainMeta%nDomains
@@ -231,9 +231,9 @@ CONTAINS
       mrmFileRestartOut(iDomain)   = mrm_file_RestartOut(domainID)
       dirOut(iDomain)              = dir_Out(domainID)
       ! TODO: MPR this will go
-      ! dirMorpho(iDomain)           = dir_Morpho(domainID)
-      ! dirLCover(iDomain)           = dir_LCover(domainID)
-      ! fileLatLon(iDomain)          = file_LatLon(domainID)
+      dirMorpho(iDomain)           = dir_Morpho(domainID)
+      dirLCover(iDomain)           = dir_LCover(domainID)
+      fileLatLon(iDomain)          = file_LatLon(domainID)
     end do
 
     ! ToDo: add test if opti_function matches at least one domainMeta%optidata
