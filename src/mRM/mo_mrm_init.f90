@@ -146,6 +146,9 @@ end subroutine mrm_configuration
       if (processMatrix(8, 1) .eq. 3_i4) call mrm_read_L0_data(.false.)
     end if
 
+    ! TODO: MPR this is not there but actually makes sense being there
+    call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
+
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       if (mrm_read_river_network) then
@@ -183,8 +186,6 @@ end subroutine mrm_configuration
 
     call set_domain_indices(level11)
     call set_domain_indices(level1)
-    ! TODO: MPR this is not there but actually makes sense being there
-    call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
 
     ! ----------------------------------------------------------
     ! INITIALIZE STATES AND ROUTING PARAMETERS
