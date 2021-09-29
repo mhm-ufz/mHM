@@ -82,7 +82,7 @@ contains
     ! if (allocated(L0_slope)) deallocate(L0_slope)
     ! if (allocated(L0_slope_emp)) deallocate(L0_slope_emp)
     ! if (allocated(L0_soilId)) deallocate(L0_soilId)
-    if (allocated(level0)) deallocate(level0)
+    ! if (allocated(level0)) deallocate(level0)
     if (allocated(LAIBoundaries)) deallocate(LAIBoundaries)
     if (allocated(l0_l1_remap)) deallocate(l0_l1_remap)
 
@@ -159,6 +159,9 @@ contains
     use mo_append, only: append, add_nodata_slice
     use mo_constants, only: nodata_dp
   
+    use mo_mrm_global_variables, only: &
+    L0_slope
+
     integer(i4), intent(in) :: iUniqueDomain
     type(grid_type), intent(inout) :: grid
     logical, intent(in), optional :: do_init_arg
@@ -179,7 +182,6 @@ contains
     newSlices = size(landCoverSelect)
     ! init the parameters
     do iDA = 1, maxNoDataArrays
-      print*, MPR_DATA_ARRAYS(iDA)%name !TODO: remove
       ! stop if no name is initialized
       if (MPR_DATA_ARRAYS(iDA)%name(1:3) == 'L1_') then
         if (.not. do_init) then
@@ -192,101 +194,101 @@ contains
           ! then, we need to have nLandCoverPeriods in the arrays last dimensions, newSlices may be different
           ! to fulfill that, we add dummy slices in the last dimension
           select case(trim(MPR_DATA_ARRAYS(iDA)%name))
-          case('L1_SealedFraction')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            L1_fSealed(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
-          case('L1_Alpha')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            L1_alpha(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
-          case('L1_DegDayInc')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            L1_degDayInc(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
-          case('L1_DegDayMax')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            L1_degDayMax(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
-          case('L1_DegDayNoPre')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            L1_degDayNoPre(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
-          case('L1_KarstLoss')
-            ! rows, cols
-            L1_karstLoss(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
-          case('L1_Max_Canopy_Intercept')
-            ! rows, cols, lais
-            L1_maxInter(s1:e1, :) = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs])
-          case('L1_FastFlow')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            L1_kFastFlow(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
-          case('L1_SlowFlow')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            L1_kSlowFlow(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
-          case('L1_kBaseFlow')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            L1_kBaseFlow(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
-          case('L1_Kperco')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            L1_kPerco(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
-          case('L1_FieldCap')
-            ! rows, cols, soil, lcscenes
-            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
-            L1_soilMoistFC(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
-          case('L1_SatSoilMoisture')
-            ! rows, cols, soil, lcscenes
-            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
-            L1_soilMoistSat(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
-          case('L1_SoilMoistureExponent')
-            ! rows, cols, soil, lcscenes
-            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
-            L1_soilMoistExp(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
-          case('L1_PermWiltPoint')
-            ! rows, cols, lais, lcscenes
-            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
-            L1_wiltingPoint(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
-          case('L1_TempThresh')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            L1_tempThresh(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
-          case('L1_UnsatThreshold')
-            ! rows, cols
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            L1_unsatThresh(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
-          case('L1_SealedThresh')
-            ! rows, cols
-            L1_sealedThresh(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
-          case('L1_Jarvis_Threshold')
-            ! rows, cols
-            L1_jarvis_thresh_c1(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
-          case('L1_PET_LAI_correction_factor')
-            ! rows, cols, lais, lcscenes
-            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs, nSlices])
-            L1_petLAIcorFactor(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
-          case('L1_HarSamCoeff')
-            ! rows, cols
-            L1_HarSamCoeff(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
-          case('L1_PrieTayAlpha')
-            ! rows, cols, lais
-            L1_PrieTayAlpha(s1:e1, :) = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs])
-          case('L1_Aerodyn_resist')
-            ! rows, cols, lais, lcscenes
-            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs, nSlices])
-            L1_aeroResist(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
-          case('L1_Bulk_Surface_Resist')
-            ! rows, cols, lais
-            L1_surfResist(s1:e1, :) = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs])
-          case('L1_fAsp')
-            ! rows, cols
-            L1_fAsp(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
-          case('L1_latitude')
-            ! rows, cols
-            L1_latitude(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
+            case('L1_SealedFraction')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              L1_fSealed(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+            case('L1_Alpha')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              L1_alpha(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+            case('L1_DegDayInc')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              L1_degDayInc(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+            case('L1_DegDayMax')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              L1_degDayMax(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+            case('L1_DegDayNoPre')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              L1_degDayNoPre(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+            case('L1_KarstLoss')
+              ! rows, cols
+              L1_karstLoss(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
+            case('L1_Max_Canopy_Intercept')
+              ! rows, cols, lais
+              L1_maxInter(s1:e1, :) = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs])
+            case('L1_FastFlow')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              L1_kFastFlow(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+            case('L1_SlowFlow')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              L1_kSlowFlow(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+            case('L1_kBaseFlow')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              L1_kBaseFlow(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+            case('L1_Kperco')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              L1_kPerco(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+            case('L1_FieldCap')
+              ! rows, cols, soil, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
+              L1_soilMoistFC(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+            case('L1_SatSoilMoisture')
+              ! rows, cols, soil, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
+              L1_soilMoistSat(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+            case('L1_SoilMoistureExponent')
+              ! rows, cols, soil, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
+              L1_soilMoistExp(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+            case('L1_PermWiltPoint')
+              ! rows, cols, lais, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
+              L1_wiltingPoint(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+            case('L1_TempThresh')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              L1_tempThresh(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+            case('L1_UnsatThreshold')
+              ! rows, cols
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              L1_unsatThresh(s1:e1, 1:newSlices) = dummy2D(:, landCoverSelect)
+            case('L1_SealedThresh')
+              ! rows, cols
+              L1_sealedThresh(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
+            case('L1_Jarvis_Threshold')
+              ! rows, cols
+              L1_jarvis_thresh_c1(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
+            case('L1_PET_LAI_correction_factor')
+              ! rows, cols, lais, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs, nSlices])
+              L1_petLAIcorFactor(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+            case('L1_HarSamCoeff')
+              ! rows, cols
+              L1_HarSamCoeff(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
+            case('L1_PrieTayAlpha')
+              ! rows, cols, lais
+              L1_PrieTayAlpha(s1:e1, :) = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs])
+            case('L1_Aerodyn_resist')
+              ! rows, cols, lais, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs, nSlices])
+              L1_aeroResist(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
+            case('L1_Bulk_Surface_Resist')
+              ! rows, cols, lais
+              L1_surfResist(s1:e1, :) = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs])
+            case('L1_fAsp')
+              ! rows, cols
+              L1_fAsp(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
+            case('L1_latitude')
+              ! rows, cols
+              L1_latitude(s1:e1) = MPR_DATA_ARRAYS(iDA)%data
           end select
           ! process-sensitive types of calculation for parameters
           if (processMatrix(3,1) == 3) then
@@ -306,136 +308,135 @@ contains
           end if
         else
           select case(trim(MPR_DATA_ARRAYS(iDA)%name))
-          case('L1_SealedFraction')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            dummy2D = dummy2D(:, landCoverSelect)
-            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_fSealed, dummy2D)
-          case('L1_Alpha')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            dummy2D = dummy2D(:, landCoverSelect)
-            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_alpha, dummy2D)
-          case('L1_DegDayInc')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            dummy2D = dummy2D(:, landCoverSelect)
-            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_degDayInc, dummy2D)
-          case('L1_DegDayMax')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            dummy2D = dummy2D(:, landCoverSelect)
-            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_degDayMax, dummy2D)
-          case('L1_DegDayNoPre')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            dummy2D = dummy2D(:, landCoverSelect)
-            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_degDayNoPre, dummy2D)
-          case('L1_KarstLoss')
-            ! rows, cols
-            call append(L1_karstLoss, MPR_DATA_ARRAYS(iDA)%data)
-          case('L1_Max_Canopy_Intercept')
-            ! rows, cols, lais
-            call append(L1_maxInter, reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs]))
-          case('L1_FastFlow')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            dummy2D = dummy2D(:, landCoverSelect)
-            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_kFastFlow, dummy2D)
-          case('L1_SlowFlow')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            dummy2D = dummy2D(:, landCoverSelect)
-            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_kSlowFlow, dummy2D)
-          case('L1_kBaseFlow')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            dummy2D = dummy2D(:, landCoverSelect)
-            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_kBaseFlow, dummy2D)
-          case('L1_Kperco')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            dummy2D = dummy2D(:, landCoverSelect)
-            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_kPerco, dummy2D)
-          case('L1_FieldCap')
-            ! rows, cols, soil, lcscenes
-            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
-            dummy3D = dummy3D(:, :, landCoverSelect)
-            call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_soilMoistFC, dummy3D, idim=1)
-          case('L1_SatSoilMoisture')
-            ! rows, cols, soil, lcscenes
-            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
-            print*, "test", landCoverSelect !TODO: remove
-            dummy3D = dummy3D(:, :, landCoverSelect)
-            call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_soilMoistSat, dummy3D, idim=1)
-          case('L1_SoilMoistureExponent')
-            ! rows, cols, soil, lcscenes
-            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
-            dummy3D = dummy3D(:, :, landCoverSelect)
-            call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_soilMoistExp, dummy3D, idim=1)
-          case('L1_PermWiltPoint')
-            ! rows, cols, lais, lcscenes
-            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
-            dummy3D = dummy3D(:, :, landCoverSelect)
-            call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_wiltingPoint, dummy3D, idim=1)
-          case('L1_TempThresh')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            dummy2D = dummy2D(:, landCoverSelect)
-            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_tempThresh, dummy2D)
-          case('L1_UnsatThreshold')
-            ! rows, cols, lcscenes
-            dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
-            dummy2D = dummy2D(:, landCoverSelect)
-            call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_unsatThresh, dummy2D)
-          case('L1_SealedThresh')
-            ! rows, cols
-            call append(L1_sealedThresh, MPR_DATA_ARRAYS(iDA)%data)
-          case('L1_Jarvis_Threshold')
-            ! rows, cols
-            call append(L1_jarvis_thresh_c1, MPR_DATA_ARRAYS(iDA)%data)
-          case('L1_PET_LAI_correction_factor')
-            ! rows, cols, lais, lcscenes
-            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs, nSlices])
-            dummy3D = dummy3D(:, :, landCoverSelect)
-            call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_petLAIcorFactor, dummy3D)
-          case('L1_HarSamCoeff')
-            ! rows, cols
-            call append(L1_HarSamCoeff, MPR_DATA_ARRAYS(iDA)%data)
-          case('L1_PrieTayAlpha')
-            ! rows, cols, lais
-            call append(L1_PrieTayAlpha, reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs]))
-          case('L1_Aerodyn_resist')
-            ! rows, cols, lais, lcscenes
-            dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs, nSlices])
-            dummy3D = dummy3D(:, :, landCoverSelect)
-            call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
-            call append(L1_aeroResist, dummy3D)
-          case('L1_Bulk_Surface_Resist')
-            ! rows, cols, lais
-            call append(L1_surfResist, reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs]))
-          case('L1_fAsp')
-            ! rows, cols
-            call append(L1_fAsp, MPR_DATA_ARRAYS(iDA)%data)
-          case('L1_latitude')
-            ! rows, cols
-            call append(L1_latitude, MPR_DATA_ARRAYS(iDA)%data)
+            case('L1_SealedFraction')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              dummy2D = dummy2D(:, landCoverSelect)
+              call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_fSealed, dummy2D)
+            case('L1_Alpha')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              dummy2D = dummy2D(:, landCoverSelect)
+              call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_alpha, dummy2D)
+            case('L1_DegDayInc')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              dummy2D = dummy2D(:, landCoverSelect)
+              call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_degDayInc, dummy2D)
+            case('L1_DegDayMax')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              dummy2D = dummy2D(:, landCoverSelect)
+              call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_degDayMax, dummy2D)
+            case('L1_DegDayNoPre')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              dummy2D = dummy2D(:, landCoverSelect)
+              call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_degDayNoPre, dummy2D)
+            case('L1_KarstLoss')
+              ! rows, cols
+              call append(L1_karstLoss, MPR_DATA_ARRAYS(iDA)%data)
+            case('L1_Max_Canopy_Intercept')
+              ! rows, cols, lais
+              call append(L1_maxInter, reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs]))
+            case('L1_FastFlow')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              dummy2D = dummy2D(:, landCoverSelect)
+              call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_kFastFlow, dummy2D)
+            case('L1_SlowFlow')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              dummy2D = dummy2D(:, landCoverSelect)
+              call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_kSlowFlow, dummy2D)
+            case('L1_kBaseFlow')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              dummy2D = dummy2D(:, landCoverSelect)
+              call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_kBaseFlow, dummy2D)
+            case('L1_Kperco')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              dummy2D = dummy2D(:, landCoverSelect)
+              call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_kPerco, dummy2D)
+            case('L1_FieldCap')
+              ! rows, cols, soil, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
+              dummy3D = dummy3D(:, :, landCoverSelect)
+              call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_soilMoistFC, dummy3D, idim=1)
+            case('L1_SatSoilMoisture')
+              ! rows, cols, soil, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
+              dummy3D = dummy3D(:, :, landCoverSelect)
+              call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_soilMoistSat, dummy3D, idim=1)
+            case('L1_SoilMoistureExponent')
+              ! rows, cols, soil, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
+              dummy3D = dummy3D(:, :, landCoverSelect)
+              call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_soilMoistExp, dummy3D, idim=1)
+            case('L1_PermWiltPoint')
+              ! rows, cols, lais, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
+              dummy3D = dummy3D(:, :, landCoverSelect)
+              call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_wiltingPoint, dummy3D, idim=1)
+            case('L1_TempThresh')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              dummy2D = dummy2D(:, landCoverSelect)
+              call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_tempThresh, dummy2D)
+            case('L1_UnsatThreshold')
+              ! rows, cols, lcscenes
+              dummy2D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSlices])
+              dummy2D = dummy2D(:, landCoverSelect)
+              call add_nodata_slice(dummy2D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_unsatThresh, dummy2D)
+            case('L1_SealedThresh')
+              ! rows, cols
+              call append(L1_sealedThresh, MPR_DATA_ARRAYS(iDA)%data)
+            case('L1_Jarvis_Threshold')
+              ! rows, cols
+              call append(L1_jarvis_thresh_c1, MPR_DATA_ARRAYS(iDA)%data)
+            case('L1_PET_LAI_correction_factor')
+              ! rows, cols, lais, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs, nSlices])
+              dummy3D = dummy3D(:, :, landCoverSelect)
+              call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_petLAIcorFactor, dummy3D)
+            case('L1_HarSamCoeff')
+              ! rows, cols
+              call append(L1_HarSamCoeff, MPR_DATA_ARRAYS(iDA)%data)
+            case('L1_PrieTayAlpha')
+              ! rows, cols, lais
+              call append(L1_PrieTayAlpha, reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs]))
+            case('L1_Aerodyn_resist')
+              ! rows, cols, lais, lcscenes
+              dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs, nSlices])
+              dummy3D = dummy3D(:, :, landCoverSelect)
+              call add_nodata_slice(dummy3D, nLandCoverPeriods - newSlices, nodata_dp)
+              call append(L1_aeroResist, dummy3D)
+            case('L1_Bulk_Surface_Resist')
+              ! rows, cols, lais
+              call append(L1_surfResist, reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nLAIs]))
+            case('L1_fAsp')
+              ! rows, cols
+              call append(L1_fAsp, MPR_DATA_ARRAYS(iDA)%data)
+            case('L1_latitude')
+              ! rows, cols
+              call append(L1_latitude, MPR_DATA_ARRAYS(iDA)%data)
           end select
           ! process-sensitive types of calculation for parameters
           if (processMatrix(3,1) == 3) then
@@ -458,6 +459,8 @@ contains
             end select
           end if
         end if
+      else if (trim(MPR_DATA_ARRAYS(iDA)%name) == 'slope') then
+        call append(L0_slope, MPR_DATA_ARRAYS(iDA)%data)
       end if
     end do
   
