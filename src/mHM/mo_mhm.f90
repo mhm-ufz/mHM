@@ -633,8 +633,6 @@ CONTAINS
                        snowpack(k)            , & ! Snowpack
                        neutrons(k))
     end do
-    !$OMP end do
-    !$OMP end parallel
 
   end subroutine mHM
 
