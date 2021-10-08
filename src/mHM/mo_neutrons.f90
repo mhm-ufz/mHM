@@ -150,10 +150,11 @@ CONTAINS
                        snowpack            , & ! Snowpack
                        neutrons)
     
-    use mo_mhm_constants, only: H2Odens, &
-        COSMIC_N, COSMIC_alpha, &
-        COSMIC_L1, COSMIC_L2, COSMIC_L4
     use mo_constants, only: PI_dp
+	use mo_mhm_constants, only: H2Odens, &
+        COSMIC_N, COSMIC_alpha, COSMIC_bd, COSMIC_vwclat, &
+        COSMIC_L1, COSMIC_L2, COSMIC_L3, COSMIC_L4
+		
 
     implicit none
 
