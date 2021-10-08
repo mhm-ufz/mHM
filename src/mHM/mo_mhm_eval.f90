@@ -91,7 +91,7 @@ CONTAINS
     use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, &
                                     L1_absvappress, L1_baseflow, L1_fastRunoff, L1_infilSoil, L1_inter, L1_melt, &
                                     L1_netrad, L1_neutrons, L1_percol, L1_pet, L1_pet_calc, L1_pet_weights, L1_pre, &
-									L1_bulkDens, L1_latticeWater, L1_COSMICL3,&
+                                    L1_bulkDens, L1_latticeWater, L1_COSMICL3, &
                                     L1_preEffect, L1_pre_weights, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
                                     L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_temp, L1_temp_weights, L1_tmax, &
                                     L1_tmin, L1_total_runoff, L1_unsatSTW, L1_windspeed, evap_coeff, &
@@ -468,9 +468,9 @@ CONTAINS
                 L1_tempThresh(s1 : e1, 1, domainDateTime%yId), L1_unsatThresh(s1 : e1, 1, 1), & ! INOUT E1
                 L1_sealedThresh(s1 : e1, 1, 1), & ! INOUT E1
                 L1_wiltingPoint(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
-				L1_bulkDens(s1:e1,:),& ! INOUT L1
-               L1_latticeWater(s1:e1,:), & ! INOUT L1
-               L1_COSMICL3(s1:e1,:)) ! INOUT E1
+                L1_bulkDens(s1:e1,:), &     ! INOUT L1
+                L1_latticeWater(s1:e1,:), & ! INOUT L1
+                L1_COSMICL3(s1:e1,:) )      ! INOUT E1
 
 
         ! call mRM routing
