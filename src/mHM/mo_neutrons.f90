@@ -148,10 +148,10 @@ CONTAINS
                        L1_COSMICL3, &
                        interc              , & ! Interception
                        snowpack            , & ! Snowpack
-                       neutrons)
+                       neutrons )
     
-    use mo_constants, only: PI_dp
-	use mo_mhm_constants, only: H2Odens, &
+    use mo_constants,     only: PI_dp
+    use mo_mhm_constants, only: H2Odens, &
         COSMIC_N, COSMIC_alpha, COSMIC_bd, COSMIC_vwclat, &
         COSMIC_L1, COSMIC_L2, COSMIC_L3, COSMIC_L4
 		
@@ -170,21 +170,21 @@ CONTAINS
     ! Tabular for Int Approx
     real(dp), dimension(:), intent(in) :: neutron_integral_AFast
 	
-    real(dp), dimension(:),intent(in) :: L1_bulkDens
-    real(dp), dimension(:),intent(in) :: L1_latticeWater
-    real(dp), dimension(:),intent(in) :: L1_COSMICL3
-    real(dp),              intent(in) :: interc
-    real(dp),              intent(in) :: snowpack
+    real(dp), dimension(:), intent(in) :: L1_bulkDens
+    real(dp), dimension(:), intent(in) :: L1_latticeWater
+    real(dp), dimension(:), intent(in) :: L1_COSMICL3
+    real(dp),               intent(in) :: interc
+    real(dp),               intent(in) :: snowpack
 
     ! Neutron counts
-    real(dp), intent(inout) :: neutrons
+    real(dp), intent(inout)           :: neutrons
 
     real(dp) :: lambdaHigh
 
     real(dp) :: lambdaFast
 
     real(dp) :: totflux
-	real(dp) :: sm             ! SoilMoisture
+    real(dp) :: sm         ! SoilMoisture
     real(dp) :: lw             ! lattice water
     real(dp) :: bd             ! bulk density
     real(dp) :: L3
@@ -206,8 +206,8 @@ CONTAINS
     ! Fast neutron source strength of layer
     real(dp), dimension(:), allocatable :: xeff
 	
-	! "Effective" height of water in layer (g/cm3)
-	real(dp), dimension(:), allocatable     :: h2oeffheight
+    ! "Effective" height of water in layer (g/cm3)
+    real(dp), dimension(:), allocatable     :: h2oeffheight
 
     ! "Effective" density of water in layer (g/cm3)
     real(dp), dimension(:), allocatable :: h2oeffdens
@@ -234,12 +234,12 @@ CONTAINS
     hiflux(:) = 0.0_dp
     xeff(:) = 0.0_dp
     h2oeffdens(:) = 0.0_dp
-	h2oeffheight(:)= 0.0_dp
+   h2oeffheight(:)= 0.0_dp
     fastflux(:) = 0.0_dp
     lambdaHigh = 0.0_dp
     lambdaFast = 0.0_dp
     totflux = 0.0_dp
-	sm = 0.0_dp
+    sm = 0.0_dp
     lw = 0.0_dp
     bd = 0.0_dp
     L3 = 1.0_dp
@@ -264,7 +264,7 @@ CONTAINS
 
        if (zthick(ll).gt.0.0_dp .and. (snowlayer.gt.0 .or. ll.ne.1)) then
           call loopConstants(ll,&
-                    SoilMoisture(:),L1_bulkDens(:),L1_latticeWater(:),&
+                    SoilMoisture(:), L1_bulkDens(:),L1_latticeWater(:),&
                     L1_COSMICL3(:),sm,bd,lw,L3)
 
 

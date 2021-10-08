@@ -468,8 +468,8 @@ CONTAINS
                 L1_tempThresh(s1 : e1, 1, domainDateTime%yId), L1_unsatThresh(s1 : e1, 1, 1), & ! INOUT E1
                 L1_sealedThresh(s1 : e1, 1, 1), & ! INOUT E1
                 L1_wiltingPoint(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
-                L1_bulkDens(s1:e1,:), &     ! INOUT L1
-                L1_latticeWater(s1:e1,:), & ! INOUT L1
+                L1_bulkDens(s1:e1,:), &     ! INOUT E1
+                L1_latticeWater(s1:e1,:), & ! INOUT E1
                 L1_COSMICL3(s1:e1,:) )      ! INOUT E1
 
 
