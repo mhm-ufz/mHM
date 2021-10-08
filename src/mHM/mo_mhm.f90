@@ -208,7 +208,7 @@ CONTAINS
                 deg_day, fAsp, petLAIcorFactorL1, HarSamCoeff, PrieTayAlpha, aeroResist, surfResist, frac_roots, &
                 interc_max, karst_loss, k0, k1, k2, kp, soil_moist_FC, soil_moist_sat, soil_moist_exponen, &
                 jarvis_thresh_c1, temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point, &
-				L1_bulkDens , L1_latticeWater , L1_COSMICL3)
+		bulkDens, latticeWater, COSMICL3)
 
         ! subroutines required to estimate variables prior to the MPR call
     use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
@@ -472,9 +472,9 @@ CONTAINS
     ! Permanent wilting point for each horizon
     real(dp), dimension(:, :), intent(inout) :: wilting_point
 	
-	real(dp), dimension(:,:),      intent(inout) ::  L1_bulkDens
-    real(dp), dimension(:,:),      intent(inout) ::  L1_latticeWater
-    real(dp), dimension(:,:),      intent(inout) ::  L1_COSMICL3
+    real(dp), dimension(:,:), intent(inout) ::  bulkDens
+    real(dp), dimension(:,:), intent(inout) ::  latticeWater
+    real(dp), dimension(:,:), intent(inout) ::  COSMICL3
 
 
     ! is day or night
@@ -626,12 +626,12 @@ CONTAINS
            call COSMIC( soilMoisture(k,:), horizon_depth(:), &
                        global_parameters(processMatrix(10,3)-processMatrix(10,2)+2:processMatrix(10,3)), &
                        neutron_integral_AFast(:), &
-					   L1_bulkDens(k,:), &
-                       L1_latticeWater(k,:), &
-                       L1_COSMICL3(k,:), &
-                       interc(k)              , & ! Interception
-                       snowpack(k)            , & ! Snowpack
-                       neutrons(k))
+                       bulkDens(k,:),     &
+                       latticeWater(k,:), &
+                       COSMICL3(k,:), &
+                       interc(k)    , & ! Interception
+                       snowpack(k)  , & ! Snowpack
+                       neutrons(k)  )
     end do
 
   end subroutine mHM

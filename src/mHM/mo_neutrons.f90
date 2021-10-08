@@ -170,11 +170,11 @@ CONTAINS
     ! Tabular for Int Approx
     real(dp), dimension(:), intent(in) :: neutron_integral_AFast
 	
-	real(dp), dimension(:),          intent(in)     :: L1_bulkDens
-    real(dp), dimension(:),          intent(in)     :: L1_latticeWater
-    real(dp), dimension(:),          intent(in)     :: L1_COSMICL3
-    real(dp),                        intent(in)     :: interc
-    real(dp),                        intent(in)     :: snowpack
+    real(dp), dimension(:),intent(in) :: L1_bulkDens
+    real(dp), dimension(:),intent(in) :: L1_latticeWater
+    real(dp), dimension(:),intent(in) :: L1_COSMICL3
+    real(dp),              intent(in) :: interc
+    real(dp),              intent(in) :: snowpack
 
     ! Neutron counts
     real(dp), intent(inout) :: neutrons
