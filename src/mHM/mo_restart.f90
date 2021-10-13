@@ -298,7 +298,7 @@ CONTAINS
       call var%setData(unpack(L1_total_runoff(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "total runoff at level 1")
 
-       var = nc%setVariable("L1_degDay", "f64", [rows1, cols1])
+      var = nc%setVariable("L1_degDay", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
       call var%setData(unpack(L1_degDay(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "degree-day factor with no precipitation at level 1")
