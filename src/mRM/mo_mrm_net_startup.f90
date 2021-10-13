@@ -1536,7 +1536,7 @@ contains
       uniqueIDomain = domainMeta%L0DataFrom(iDomain)
       iDomainNLandCoverPeriods = maxval(LCyearId(:, uniqueIDomain))
       ! TODO: MPR comment next line
-      iDomainNLandCoverPeriods = nLandCoverPeriods
+      ! iDomainNLandCoverPeriods = nLandCoverPeriods
       allocate(temp_array(level11(iDomain)%nCells, iDomainNLandCoverPeriods))
       temp_array = nodata_dp
       if (do_init) then
@@ -1558,7 +1558,7 @@ contains
         end do
       end if
       ! TODO: MPR uncomment next line
-      ! call add_nodata_slice(temp_array, nLandCoverPeriods - iDomainNLandCoverPeriods, nodata_dp)
+      call add_nodata_slice(temp_array, nLandCoverPeriods - iDomainNLandCoverPeriods, nodata_dp)
       call append(L11_nLinkFracFPimp, temp_array(:,:))
       deallocate(temp_array)
     end do
