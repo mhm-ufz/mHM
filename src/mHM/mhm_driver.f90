@@ -153,10 +153,8 @@ PROGRAM mhm_driver
   USE mpi_f08
 #endif
 
-#ifdef NAG
-  USE f90_unix_dir, ONLY : CHDIR, GETCWD
-#endif
   USE mo_check, ONLY: check_dir
+  USE mo_mhm_cli, ONLY: parse_command_line
 
   IMPLICIT NONE
 
@@ -173,7 +171,7 @@ PROGRAM mhm_driver
   procedure(mhm_eval), pointer :: eval
   procedure(objective), pointer :: obj_func
 
-  character(len=255)  :: cur_work_dir, new_work_dir
+  character(len=255)  :: cur_work_dir
 
   logical :: ReadLatLon
 
@@ -198,9 +196,10 @@ PROGRAM mhm_driver
   logical :: compiled_with_mpi = .false.
 #endif
 
+  ! parse command line arguments
+  call parse_command_line()
+
   ! check for working dir (added argument to the executable)
-  CALL get_command_argument(1, new_work_dir)
-  IF (len_trim(new_work_dir) .ne. 0) call chdir(trim(new_work_dir))
   CALL getcwd(cur_work_dir)
 
   ! --------------------------------------------------------------------------
