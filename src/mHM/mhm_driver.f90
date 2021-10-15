@@ -78,104 +78,84 @@
 ! M.C. Demirel, Simon Stisen    Jun 2020 - New Soil Moisture Process: Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 PROGRAM mhm_driver
 
-  USE mo_file, ONLY : &
-          version, version_date, file_main, &      ! main info
+  use mo_file, only: &
           file_namelist_mhm, unamelist_mhm, &      ! filename of namelist: main setup
-          file_namelist_mhm_param, unamelist_mhm_param, &      ! filename of namelist: mhm model parameter
-          file_defOutput                                               ! filename of namelist: output setup
-  USE mo_finish, ONLY : finish                         ! Finish with style
-  USE mo_global_variables, ONLY : &
-          dirPrecipitation, &      ! directories
-          dirTemperature, &      ! directories
-          dirReferenceET, &      ! PET input path  if process 5 is 'PET is input' (case 0)
-          dirMinTemperature, dirMaxTemperature, &      ! PET input paths if process 5 is Hargreaves-Samani  (case 1)
-          dirNetRadiation, &      ! PET input paths if process 5 is Priestley-Taylor (case 2)
-          dirabsVapPressure, dirwindspeed, &      ! PET input paths if process 5 is Penman-Monteith  (case 3)
+          file_namelist_mhm_param, unamelist_mhm_param    ! filename of namelist: mhm model parameter
+  use mo_finish, only: finish                         ! Finish with style
+  use mo_global_variables, only: &
           timestep_model_inputs, & !frequency of input read
           L1_twsaObs, &
           L1_etObs, &
           L1_neutronsObs, &
-          L1_smObs, &
-          are_parameter_initialized
-  USE mo_optimization_types, ONLY : &
+          L1_smObs
+  use mo_optimization_types, only: &
           optidata ! type for opti data
-  USE mo_common_variables, ONLY : &
+  use mo_common_variables, only: &
           optimize, opti_function, &                                   ! optimization on/off and optimization method
           write_restart, &      ! restart writing flags
           mhmFileRestartOut, &
           dirConfigOut, &
-          dirMorpho, dirLCover, &                                         ! directories
-          dirOut, &      ! directories
           domainMeta, &
 #ifdef MPI
           comm, &
 #endif
           processMatrix, &      ! domain information,  processMatrix
           global_parameters, global_parameters_name      ! mhm parameters (gamma) and their clear names
-  use mo_common_datetime_type, only: &
-        nTstepDay, &      ! number of timesteps per day (former: NAGG)
-        simPer      ! simulation period
-  USE mo_kind, ONLY : i4, dp                         ! number precision
+  use mo_kind, only: i4, dp                         ! number precision
   use mo_message, only : error_message, message          ! For print out
-  USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data
-  USE mo_mhm_eval, ONLY : mhm_eval
-  USE mo_read_optional_data, ONLY : readOptidataObs ! read optional observed data
-  USE mo_common_read_config, ONLY : common_read_config, &       ! Read main configuration files
+  use mo_meteo_forcings, only: prepare_meteo_forcings_data
+  use mo_mhm_eval, only: mhm_eval
+  use mo_read_optional_data, only: readOptidataObs ! read optional observed data
+  use mo_common_read_config, only: common_read_config, &       ! Read main configuration files
                                     check_optimization_settings ! Read main configuration files
-  USE mo_mhm_read_config, ONLY : mhm_read_config                    ! Read main configuration files
-  USE mo_restart, ONLY : write_restart_files
-  USE mo_startup, ONLY : mhm_initialize
-  USE mo_string_utils, ONLY : num2str, separator             ! String magic
-  USE mo_timer, ONLY : &
+  use mo_mhm_read_config, only: mhm_read_config                    ! Read main configuration files
+  use mo_restart, only: write_restart_files
+  use mo_startup, only: mhm_initialize
+  use mo_string_utils, only: num2str             ! String magic
+  use mo_timer, only: &
           timers_init, timer_start, timer_stop, timer_get              ! Timing of processes
-  USE mo_write_ascii, ONLY : &
+  use mo_write_ascii, only: &
           write_configfile, &      ! Writing Configuration file
           write_optifile, &      ! Writing optimized parameter set and objective
           write_optinamelist     ! Writing optimized parameter set to a namelist
-  USE mo_objective_function, ONLY : &
+  use mo_objective_function, only: &
 #ifdef MPI
           objective_subprocess, &
           objective_master, &
 #endif
           objective                 ! objective functions and likelihoods
-  USE mo_optimization, ONLY : optimization
-  USE mo_mrm_objective_function_runoff, ONLY : &
+  use mo_optimization, only: optimization
+  use mo_mrm_objective_function_runoff, only: &
 #ifdef MPI
           single_objective_runoff_master, &
           single_objective_runoff_subprocess, &
 #endif
           single_objective_runoff
-  USE mo_mrm_init, ONLY : mrm_init, mrm_configuration
-  USE mo_mrm_write, only : mrm_write
+  use mo_mrm_init, only: mrm_init, mrm_configuration
+  use mo_mrm_write, only : mrm_write
 
-  !$ USE omp_lib, ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
+  !$ use omp_lib, only: OMP_GET_NUM_THREADS           ! OpenMP routines
 #ifdef MPI
-  USE mpi_f08
+  use mpi_f08
 #endif
 
-  USE mo_check, ONLY: check_dir
-  USE mo_mhm_cli, ONLY: parse_command_line
+  use mo_check, only: check_dir
+  use mo_mhm_cli, only: parse_command_line
+  use mo_mhm_messages, only: startup_message, domain_dir_check_message, finish_message
 
   IMPLICIT NONE
 
   ! local
-  character(4096) :: message_text
-  integer(i4), dimension(8) :: datetime         ! Date and time
   !$ integer(i4)                        :: n_threads        ! OpenMP number of parallel threads
   integer(i4) :: domainID, iDomain               ! Counters
   integer(i4) :: itimer           ! Current timer number
-  integer(i4) :: nTimeSteps
   real(dp) :: funcbest         ! best objective function achivied during optimization
   logical, dimension(:), allocatable :: maskpara ! true  = parameter will be optimized, = parameter(i,4) = 1
   !                                              ! false = parameter will not be optimized = parameter(i,4) = 0
   procedure(mhm_eval), pointer :: eval
   procedure(objective), pointer :: obj_func
 
-  character(len=255)  :: cur_work_dir
-
   logical :: ReadLatLon
-
-  logical :: compiled_with_openmp = .false.
 
 #ifdef MPI
   integer             :: ierror
@@ -196,60 +176,12 @@ PROGRAM mhm_driver
   logical :: compiled_with_mpi = .false.
 #endif
 
-  ! --------------------------------------------------------------------------
-  ! START
-  ! --------------------------------------------------------------------------
-  call message(separator)
-  call message('              mHM-UFZ')
-  call message()
-  call message('    MULTISCALE HYDROLOGIC MODEL')
-  call message('           Version: ', trim(version))
-  call message('           Date:    ', trim(version_date))
-  call message()
-  call message('Originally by L. Samaniego & R. Kumar')
-
-  call message(separator)
-
-  call message()
-  !$ compiled_with_openmp = .true.
-  if (compiled_with_openmp) then
-    call message('OpenMP used.')
-  else
-    call message('Openmp not used.')
-  end if
-  if (compiled_with_mpi) then
-    call message('MPI used.')
-  else
-    call message('MPI not used.')
-  end if
-
-  call message()
   ! parse command line arguments
   call parse_command_line()
-  ! check for working dir (optional argument to the executable)
-  CALL getcwd(cur_work_dir)
+  ! startup message
+  call startup_message(compiled_with_mpi)
 
-  call date_and_time(values = datetime)
-  message_text = trim(num2str(datetime(3), '(I2.2)')) // "." // trim(num2str(datetime(2), '(I2.2)')) &
-          // "." // trim(num2str(datetime(1), '(I4.4)')) // " " // trim(num2str(datetime(5), '(I2.2)')) &
-          // ":" // trim(num2str(datetime(6), '(I2.2)')) // ":" // trim(num2str(datetime(7), '(I2.2)'))
-  call message('Start at ', trim(message_text), '.')
-  call message('Working directory: ', trim(cur_work_dir))
-  call message('Using main file ', trim(file_main), ' and namelists: ')
-  call message('     ', trim(file_namelist_mhm))
-  call message('     ', trim(file_namelist_mhm_param))
-  call message('     ', trim(file_defOutput))
-  call message()
-
-  !$OMP PARALLEL
-  !$ n_threads = OMP_GET_NUM_THREADS()
-  !$OMP END PARALLEL
-  !$ call message('Run with OpenMP with ', trim(num2str(n_threads)), ' threads.')
-
-  call message()
-  call message('Read namelist file: ', trim(file_namelist_mhm))
-  call message('Read namelist file: ', trim(file_namelist_mhm_param))
-  call message('Read namelist file: ', trim(file_defOutput))
+  ! read configs
   call common_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
 #ifdef MPI
   call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
@@ -261,35 +193,8 @@ PROGRAM mhm_driver
           file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon)
   call check_optimization_settings()
 
-  call message()
-  call message('# of domains:         ', trim(num2str(domainMeta%overallNumberOfDomains)))
-  call message()
-  call message('  Input data directories:')
-  do iDomain = 1, domainMeta%nDomains
-    domainID = domainMeta%indices(iDomain)
-    call message('  --------------')
-    call message('      DOMAIN                  ', num2str(domainID, '(I3)'))
-    call message('  --------------')
-    call check_dir(dirMorpho(iDomain), "Morphological directory:", .false., 4, 30)
-    call check_dir(dirLCover(iDomain), "Land cover directory:", .false., 4, 30)
-    call check_dir(dirPrecipitation(iDomain), "Precipitation directory:", .false., 4, 30)
-    call check_dir(dirTemperature(iDomain), "Temperature directory:", .false., 4, 30)
-    select case (processMatrix(5, 1))
-      case(-1 : 0) ! PET is input
-        call check_dir(dirReferenceET(iDomain), "PET directory:", .false., 4, 30)
-      case(1) ! Hargreaves-Samani
-        call check_dir(dirMinTemperature(iDomain), "Min. temperature directory:", .false., 4, 30)
-        call check_dir(dirMaxTemperature(iDomain), "Max. temperature directory:", .false., 4, 30)
-      case(2) ! Priestely-Taylor
-        call check_dir(dirNetRadiation(iDomain), "Net radiation directory:", .false., 4, 30)
-      case(3) ! Penman-Monteith
-        call check_dir(dirNetRadiation(iDomain), "Net radiation directory:", .false., 4, 30)
-        call check_dir(dirabsVapPressure(iDomain), "Abs. vap. press. directory:", .false., 4, 30)
-        call check_dir(dirwindspeed(iDomain), "Windspeed directory:", .false., 4, 30)
-    end select
-    call check_dir(dirOut(iDomain), "Output directory:", .true., 4, 30)
-    call message()
-  end do
+  ! Message about input directories
+  call domain_dir_check_message()
 
   ! Start timings
   call timers_init
@@ -477,25 +382,7 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! FINISH UP
   ! --------------------------------------------------------------------------
-  itimer = itimer + 1
-  ! call message()
-  ! call message('  Write ouput data')
-  ! call timer_start(itimer)
-  ! ! call write_data()
-  ! call timer_stop(itimer)
-  ! call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-
-  nTimeSteps = maxval(simPer(1 : domainMeta%nDomains)%julEnd - simPer(1 : domainMeta%nDomains)%julStart + 1) * nTstepDay
-  call date_and_time(values = datetime)
-  call message()
-  message_text = 'Done ' // trim(num2str(nTimeSteps, '(I10)')) // " time steps."
-  call message(trim(message_text))
-  message_text = trim(num2str(datetime(3), '(I2.2)')) // "." // trim(num2str(datetime(2), '(I2.2)')) &
-          // "." // trim(num2str(datetime(1), '(I4.4)')) // " " // trim(num2str(datetime(5), '(I2.2)')) &
-          // ":" // trim(num2str(datetime(6), '(I2.2)')) // ":" // trim(num2str(datetime(7), '(I2.2)'))
-  call message('Finished at ', trim(message_text), '.')
-  call message()
-  call finish('mHM', 'Finished!')
+  call finish_message()
 
 #ifdef MPI
   ! find number of processes nproc
