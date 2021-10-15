@@ -196,12 +196,6 @@ PROGRAM mhm_driver
   logical :: compiled_with_mpi = .false.
 #endif
 
-  ! parse command line arguments
-  call parse_command_line()
-
-  ! check for working dir (added argument to the executable)
-  CALL getcwd(cur_work_dir)
-
   ! --------------------------------------------------------------------------
   ! START
   ! --------------------------------------------------------------------------
@@ -228,6 +222,12 @@ PROGRAM mhm_driver
   else
     call message('MPI not used.')
   end if
+
+  call message()
+  ! parse command line arguments
+  call parse_command_line()
+  ! check for working dir (optional argument to the executable)
+  CALL getcwd(cur_work_dir)
 
   call date_and_time(values = datetime)
   message_text = trim(num2str(datetime(3), '(I2.2)')) // "." // trim(num2str(datetime(2), '(I2.2)')) &

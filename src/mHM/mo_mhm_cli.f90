@@ -61,7 +61,10 @@ contains
     use mo_cli, only: cli_parser
     use mo_file, only: version, file_namelist_mhm, file_namelist_mhm_param, file_defOutput
     use mo_mrm_file, only: mrm_file_defOutput => file_defOutput
+    use mo_os, only: path_isfile
+
     implicit none
+
     type(cli_parser) :: parser
 
     parser = cli_parser( &
@@ -106,15 +109,25 @@ contains
       default="mrm_outputs.nml", &
       help="The mRM output namelist.")
 
+    ! parse given command line arguments
     call parser%parse()
 
     ! change working directory first
     if (parser%option_was_read("cwd")) call chdir(parser%option_value("cwd"))
 
-    ! set file paths
+    ! mhm config namelist (mandatory)
     file_namelist_mhm = parser%option_value("nml")
+    call path_isfile(path = file_namelist_mhm, quiet_ = .true., throwError_ = .true.)
+
+    ! mhm parameter namelist (mandatory)
     file_namelist_mhm_param = parser%option_value("parameter")
+    call path_isfile(path = file_namelist_mhm_param, quiet_ = .true., throwError_ = .true.)
+
+    ! mhm output namelist (mandatory)
     file_defOutput = parser%option_value("mhm_output")
+    call path_isfile(path = file_defOutput, quiet_ = .true., throwError_ = .true.)
+
+    ! mrm output namelist (optional)
     mrm_file_defOutput = parser%option_value("mrm_output")
 
   end subroutine parse_command_line
