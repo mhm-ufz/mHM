@@ -134,7 +134,6 @@ PROGRAM mhm_driver
   use mo_mrm_init, only: mrm_init, mrm_configuration
   use mo_mrm_write, only : mrm_write
 
-  !$ use omp_lib, only: OMP_GET_NUM_THREADS           ! OpenMP routines
 #ifdef MPI
   use mpi_f08
 #endif

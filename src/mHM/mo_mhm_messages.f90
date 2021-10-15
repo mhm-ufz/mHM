@@ -26,11 +26,13 @@ contains
   !> \brief write startup message of mHM.
   subroutine startup_message(compiled_with_mpi)
     use mo_file, only: &
-      version, version_date, &
+      version, &
+      version_date, &
       file_namelist_mhm, &
       file_namelist_mhm_param, &
       file_defOutput
     use mo_os, only: path_isfile
+    !$ use omp_lib, only: OMP_GET_NUM_THREADS
 #ifdef NAG
     use f90_unix_dir, only: GETCWD
 #endif
