@@ -139,14 +139,12 @@ PROGRAM mhm_driver
   use mpi_f08
 #endif
 
-  use mo_check, only: check_dir
   use mo_mhm_cli, only: parse_command_line
   use mo_mhm_messages, only: startup_message, domain_dir_check_message, finish_message
 
   IMPLICIT NONE
 
   ! local
-  !$ integer(i4)                        :: n_threads        ! OpenMP number of parallel threads
   integer(i4) :: domainID, iDomain               ! Counters
   integer(i4) :: itimer           ! Current timer number
   real(dp) :: funcbest         ! best objective function achivied during optimization

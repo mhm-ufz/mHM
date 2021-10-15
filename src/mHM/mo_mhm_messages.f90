@@ -43,6 +43,7 @@ contains
     integer(i4), dimension(8) :: datetime
     logical :: compiled_with_openmp = .false.
     character(len=255)  :: cur_work_dir
+    !$ integer(i4) :: n_threads
 
   ! check for working dir (optional argument to the executable)
     CALL getcwd(cur_work_dir)
