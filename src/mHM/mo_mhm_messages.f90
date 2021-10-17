@@ -24,7 +24,7 @@ module mo_mhm_messages
 contains
 
   !> \brief write startup message of mHM.
-  subroutine startup_message(compiled_with_mpi)
+  subroutine startup_message()
     use mo_file, only: &
       version, &
       version_date, &
@@ -39,15 +39,18 @@ contains
 
     implicit none
 
-    logical, intent(in) :: compiled_with_mpi !< whether mHM was compiled with MPI support
-
     character(4096) :: message_text
     integer(i4), dimension(8) :: datetime
     logical :: compiled_with_openmp = .false.
     character(len=255)  :: cur_work_dir
+    logical :: compiled_with_mpi = .false.
     !$ integer(i4) :: n_threads
 
-  ! check for working dir (optional argument to the executable)
+#ifdef MPI
+    compiled_with_mpi = .true.
+#endif
+
+    ! check for working dir (optional argument to the executable)
     CALL getcwd(cur_work_dir)
 
     call message(separator)
