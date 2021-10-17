@@ -19,11 +19,14 @@ module mo_mhm_interface
 
   public :: mhm_interface_init
   public :: mhm_interface_get_parameter
+  public :: mhm_interface_get_parameter_number
+  public :: mhm_interface_run
+  public :: mhm_interface_write_restart
 
 contains
 
   !> \brief initialize mHM from given namelist paths.
-  subroutine mhm_interface_init(namelist_mhm, namelist_mhm_param, namelist_mhm_output, namelist_mrm_output)
+  subroutine mhm_interface_init(namelist_mhm, namelist_mhm_param, namelist_mhm_output, namelist_mrm_output, cwd)
     use mo_file, only: &
       file_namelist_mhm, &
       unamelist_mhm, &
@@ -72,12 +75,17 @@ contains
     use mpi_f08
 #endif
 
+#ifdef NAG
+    use f90_unix_dir, only: chdir
+#endif
+
     implicit none
 
     character(*), optional, intent(in) :: namelist_mhm !< path to mHM configuration namelist
     character(*), optional, intent(in) :: namelist_mhm_param !< path to mHM parameter namelist
     character(*), optional, intent(in) :: namelist_mhm_output !< path to mHM output namelist
     character(*), optional, intent(in) :: namelist_mrm_output !< path to mRM output namelist
+    character(*), optional, intent(in) :: cwd !< desired working directory
 
     integer(i4) :: domainID, iDomain
 
@@ -90,6 +98,8 @@ contains
     if (present(namelist_mhm_param)) file_namelist_mhm_param = namelist_mhm_param
     if (present(namelist_mhm_output)) file_defOutput = namelist_mhm_output
     if (present(namelist_mrm_output)) mrm_file_defOutput = namelist_mrm_output
+    ! change working directory
+    if (present(cwd)) call chdir(cwd)
 
     ! startup message
     call startup_message()
@@ -201,5 +211,83 @@ contains
     para = global_parameters(:, 3)
 
   end subroutine mhm_interface_get_parameter
+
+  !> \brief Get number of current global parameter value of mHM.
+  subroutine mhm_interface_get_parameter_number(n)
+    use mo_common_variables, only: global_parameters
+
+    implicit none
+
+    integer(i4), intent(out) :: n !< number of global parameter values of mHM
+
+    n = size(global_parameters, dim=1)
+
+  end subroutine mhm_interface_get_parameter_number
+
+  !> \brief Run mHM with current settings.
+  subroutine mhm_interface_run()
+    use mo_common_variables, only: &
+      itimer, &
+      global_parameters
+    use mo_timer, only: &
+      timer_start, &
+      timer_stop, &
+      timer_get
+    use mo_mhm_eval, only: mhm_eval
+
+    implicit none
+
+    ! --------------------------------------------------------------------------
+    ! call mHM
+    ! get runoff timeseries if possible (i.e. when domainMeta%doRouting,
+    ! processMatrix(8,1) > 0)
+    ! get other model outputs  (i.e. gridded fields of model output)
+    ! --------------------------------------------------------------------------
+    call message('  Run mHM')
+    call timer_start(itimer)
+    call mhm_eval(global_parameters(:, 3))
+    call timer_stop(itimer)
+    call message('    in ', trim(num2str(timer_get(itimer), '(F12.3)')), ' seconds.')
+
+  end subroutine mhm_interface_run
+
+
+  !> \brief Write mHM restart.
+  subroutine mhm_interface_write_restart()
+    use mo_common_variables, only: &
+      itimer, &
+      optimize, &
+      mhmFileRestartOut, &
+      write_restart, &
+      processMatrix
+    use mo_timer, only: &
+      timer_start, &
+      timer_stop, &
+      timer_get
+    use mo_restart, only: write_restart_files
+    use mo_mrm_write, only : mrm_write
+
+    implicit none
+
+    ! --------------------------------------------------------------------------
+    ! WRITE RESTART files
+    ! --------------------------------------------------------------------------
+    if (write_restart  .AND. (.NOT. optimize)) then
+      itimer = itimer + 1
+      call message()
+      call message('  Write restart file')
+      call timer_start(itimer)
+      call write_restart_files(mhmFileRestartOut)
+      call timer_stop(itimer)
+      call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
+    end if
+
+    ! --------------------------------------------------------------------------
+    ! WRITE RUNOFF (INCLUDING RESTART FILES, has to be called after mHM restart
+    ! files are written)
+    ! --------------------------------------------------------------------------
+    if (processMatrix(8, 1) > 0) call mrm_write()
+
+  end subroutine mhm_interface_write_restart
 
 end module mo_mhm_interface

@@ -78,7 +78,6 @@
 ! M.C. Demirel, Simon Stisen    Jun 2020 - New Soil Moisture Process: Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 PROGRAM mhm_driver
 
-  use mo_finish, only: finish                         ! Finish with style
   use mo_optimization_types, only: &
           optidata ! type for opti data
   use mo_common_variables, only: &
@@ -132,7 +131,10 @@ PROGRAM mhm_driver
 
   use mo_mhm_cli, only: parse_command_line
   use mo_mhm_messages, only: startup_message, domain_dir_check_message, finish_message
-  use mo_mhm_interface, only: mhm_interface_init
+  use mo_mhm_interface, only: &
+    mhm_interface_init, &
+    mhm_interface_run, &
+    mhm_interface_write_restart
 
   IMPLICIT NONE
 
@@ -165,12 +167,19 @@ PROGRAM mhm_driver
   ! initialize mhm
   call mhm_interface_init()
 
+#ifdef MPI
+  call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
+  ! find the number the process is referred to, called rank
+  call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
+#endif
+
   ! --------------------------------------------------------------------------
   ! RUN OR OPTIMIZE
   ! --------------------------------------------------------------------------
   itimer = itimer + 1
   call message()
-  if (optimize) then
+
+  run_mhm: if (optimize) then
     eval => mhm_eval
 
     select case(opti_function)
@@ -223,49 +232,28 @@ PROGRAM mhm_driver
 #ifdef MPI
   end if
 #endif
-  else
+
+  else run_mhm
 
 #ifdef MPI
     if (rank > 0 .and. domainMeta%isMasterInComLocal) then
 #endif
-      ! --------------------------------------------------------------------------
-      ! call mHM
-      ! get runoff timeseries if possible (i.e. when domainMeta%doRouting,
-      ! processMatrix(8,1) > 0)
-      ! get other model outputs  (i.e. gridded fields of model output)
-      ! --------------------------------------------------------------------------
-      call message('  Run mHM')
-      call timer_start(itimer)
-      call mhm_eval(global_parameters(:, 3))
-      call timer_stop(itimer)
-      call message('    in ', trim(num2str(timer_get(itimer), '(F12.3)')), ' seconds.')
+
+    ! single mhm run with current settings
+    call mhm_interface_run()
+
 #ifdef MPI
     endif
 #endif
 
-  end if
+  end if run_mhm
 
 #ifdef MPI
   if (rank > 0 .and. domainMeta%isMasterInComLocal) then
 #endif
-  ! --------------------------------------------------------------------------
-  ! WRITE RESTART files
-  ! --------------------------------------------------------------------------
-  if (write_restart  .AND. (.NOT. optimize)) then
-    itimer = itimer + 1
-    call message()
-    call message('  Write restart file')
-    call timer_start(itimer)
-    call write_restart_files(mhmFileRestartOut)
-    call timer_stop(itimer)
-    call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
-  end if
 
-  ! --------------------------------------------------------------------------
-  ! WRITE RUNOFF (INCLUDING RESTART FILES, has to be called after mHM restart
-  ! files are written)
-  ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) > 0) call mrm_write()
+  ! WRITE RESTART files and RUNOFF
+  call mhm_interface_write_restart()
 
 #ifdef MPI
   end if
