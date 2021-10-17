@@ -40,20 +40,18 @@ contains
   !>       \param[in] "integer :: unamelist, unamelist_param"
   !>       \param[in] "logical :: do_message"                              - flag for writing mHM standard messages
 
-  !    INTENT(OUT)
-  !>       \param[out] "logical :: readLatLon" - flag for reading LatLon file
-
   !    HISTORY
   !>       \authors Stephan Thober
 
   !>       \date Aug 2015
 
   ! Modifications:
-  ! Stephan Thober  Sep 2015 - removed stop condition when routing resolution is smaller than hydrologic resolution
-  ! Stephan Thober  Oct 2015 - added NLoutputResults namelist, fileLatLon to directories_general namelist, and readLatLon flag
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Stephan Thober    Sep 2015 - removed stop condition when routing resolution is smaller than hydrologic resolution
+  ! Stephan Thober    Oct 2015 - added NLoutputResults namelist, fileLatLon to directories_general namelist, and readLatLon flag
+  ! Robert Schweppe   Jun 2018 - refactoring and reformatting
+  ! Sebastian Mueller Oct 2021 - made readLatLon a global variable
 
-  subroutine mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, do_message, readLatLon)
+  subroutine mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, do_message)
 
     use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_read_config, only : common_check_resolution
@@ -66,7 +64,8 @@ contains
                                         nGaugesTotal, nGaugesLocal, nInflowGaugesTotal, outputFlxState_mrm, &
                                         timeStep_model_outputs_mrm, &
                                         varnameTotalRunoff, gw_coupling, &
-                                        output_deflate_level_mrm, output_double_precision_mrm
+                                        output_deflate_level_mrm, output_double_precision_mrm, &
+                                        readLatLon
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
 
@@ -78,9 +77,6 @@ contains
 
     ! - flag for writing mHM standard messages
     logical, intent(in) :: do_message
-
-    ! - flag for reading LatLon file
-    logical, intent(out) :: readLatLon
 
     integer(i4), dimension(maxNoDomains) :: NoGauges_domain
 
