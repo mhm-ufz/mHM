@@ -78,7 +78,10 @@ CONTAINS
                                         L1_fSealed, L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, &
                                         L1_karstLoss, L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, &
                                         L1_soilMoistExp, L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, &
-                                        L1_unsatThresh, L1_wiltingPoint
+                                        L1_unsatThresh, L1_wiltingPoint, &
+                                        ! neutron count
+                                        L1_No_Count, L1_bulkDens, L1_latticeWater, L1_COSMICL3
+
     use mo_multi_param_reg, only : mpr
     use mo_string_utils, only : num2str
     use mo_timer, only : timer_clear, timer_get, timer_start, timer_stop
@@ -146,7 +149,8 @@ CONTAINS
               L1_soilMoistExp(s1 : e1, :, :), L1_jarvis_thresh_c1(s1 : e1, :, :), &
               L1_tempThresh(s1 : e1, :, :), L1_unsatThresh(s1 : e1, :, :), L1_sealedThresh(s1 : e1, :, :), &
               L1_wiltingPoint(s1 : e1, :, :), L1_maxInter(s1 : e1, :, :), L1_petLAIcorFactor(s1 : e1, :, :), &
-              parameterset)
+              L1_No_Count(s1:e1,:,:), L1_bulkDens(s1:e1,:,:), L1_latticeWater(s1:e1,:,:), L1_COSMICL3(s1:e1,:,:), &
+              parameterset )
 
     end do
     call timer_stop(itimer)

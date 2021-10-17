@@ -376,7 +376,7 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) > 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
+  if (processMatrix(8, 1) .GT. 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
           file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon=ReadLatLon)
 
   !this call may be moved to another position as it writes the master config out file for all domains

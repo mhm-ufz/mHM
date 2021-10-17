@@ -100,7 +100,12 @@ contains
   !>       \param[inout] "real(dp), dimension(:, :, :) :: wiltingPoint1"    [10^-3 m] permanent wilting point
   !>       \param[inout] "real(dp), dimension(:, :, :) :: maxInter1"
   !>       \param[inout] "real(dp), dimension(:, :, :) :: petLAIcorFactor"
-
+  !
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: N0_Count1"     [-]  inital count
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: bulkDens1"     [gcm-3] bulk density
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: latticeWater1" [mm/mm] lattice water content
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: COSMICL31"     [-] cosmic L3 parameter
+  
   !    INTENT(IN), OPTIONAL
   !>       \param[in] "real(dp), dimension(:), optional :: parameterset"
 
@@ -125,7 +130,9 @@ contains
                 left_bound1, right_bound1, n_subcells1, fSealed1, alpha1, degDayInc1, degDayMax1, degDayNoPre1, fAsp1, &
                 HarSamCoeff1, PrieTayAlpha1, aeroResist1, surfResist1, fRoots1, kFastFlow1, kSlowFlow1, kBaseFlow1, &
                 kPerco1, karstLoss1, soilMoistFC1, soilMoistSat1, soilMoistExp1, jarvis_thresh_c1, tempThresh1, &
-                unsatThresh1, sealedThresh1, wiltingPoint1, maxInter1, petLAIcorFactor, parameterset)
+                unsatThresh1, sealedThresh1, wiltingPoint1, maxInter1, petLAIcorFactor, &
+                No_Count1, bulkDens1, latticeWater1, COSMICL31, &
+                parameterset )
 
     use mo_common_variables, only : global_parameters, processMatrix
     use mo_message, only : message
@@ -137,7 +144,7 @@ contains
     use mo_mpr_soilmoist, only : mpr_sm
     use mo_upscaling_operators, only : L0_fractionalCover_in_Lx, &
                                        upscale_arithmetic_mean
-
+    use mo_mpr_neutrons,        only: mpr_neutrons
     implicit none
 
     ! mask at level 0 field
@@ -266,6 +273,12 @@ contains
 
     real(dp), dimension(:, :, :), intent(inout) :: petLAIcorFactor
 
+    !>> neutron count related parameters
+    real(dp), dimension(:, :, :), intent(inout) :: No_Count1
+    real(dp), dimension(:, :, :), intent(inout) :: bulkDens1
+    real(dp), dimension(:, :, :), intent(inout) :: latticeWater1
+    real(dp), dimension(:, :, :), intent(inout) :: COSMICL31
+
     real(dp), dimension(:), intent(in), optional, target :: parameterset
 
     ! array of global parameters
@@ -288,6 +301,13 @@ contains
     real(dp), dimension(:, :), allocatable :: thetaFC
 
     real(dp), dimension(:, :), allocatable :: thetaPW
+
+    ! neutron count
+    real(dp), dimension(:,:,:), allocatable :: latWat_till
+    real(dp), dimension(:,:,:), allocatable :: COSMIC_L3_till
+    real(dp), dimension(:,:), allocatable   :: latWat         ! lattice water
+    real(dp), dimension(:,:), allocatable   :: COSMIC_L3      ! COSMIC parameter L3
+    
 
     ! relative variability of saturated
     ! hydraulic cound. for Horizantal flow
@@ -345,7 +365,9 @@ contains
       param => parameterset
     else
       param => global_parameters(:, 3)
-    end if
+   end if
+
+   
     ! loop over all LCover scenes
     do iiLC = 1, size(LCover0, 2)
 
@@ -431,6 +453,13 @@ contains
       allocate(Ks(msoil, mHor, mLC))
       allocate(Db(msoil, mHor, mLC))
 
+      ! neutron count related ones
+      allocate(   latWat_till(msoil, mtill, mLC )) 
+      allocate(COSMIC_L3_till(msoil, mtill, mLC ))  
+      allocate(        latWat(msoil, mHor       )) 
+      allocate(     COSMIC_L3(msoil, mHor       ))  
+
+      
       ! earlier these variables were allocated with  size(soilId0,1)
       ! in which the variable "soilId0" changes according to the iFlag_soilDB
       ! so better to use other variable which is common to both soilDB (0 AND 1) flags
@@ -503,18 +532,42 @@ contains
               Id0, soilId0, LCover0(:, iiLC), &
               thetaS_till, thetaFC_till, thetaPW_till, thetaS, &
               thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
+      
+      !>> neutron count related parameters
+      if ( processMatrix(10,1) .EQ. 2 ) &
+           call mpr_neutrons( param( processMatrix(10,3)-processMatrix(10,2)+1:processMatrix(10,3) ) , & ! IN:  global parameter set
+           soilDB%is_present       , & ! IN:  flag indicating presence of soil
+           soilDB%nHorizons        , & ! IN:  Number of Horizons of Soiltype
+           soilDB%nTillHorizons    , & ! IN:  Number of tillage Horizons
+           LCover0(:, iiLC)        , & ! IN:  land cover ids at level 0
+           soilDB%clay             , & ! IN:  clay content
+           soilDB%DbM              , & ! IN:  mineral Bulk density
+           Db                      , & ! IN: Bulk density
+           COSMIC_L3_till          , & ! OUT: COSMIC parameter L3 tillage layer
+           latWat_till             , & ! OUT: COSMIC parameter Lattice Water tillage layer
+           COSMIC_L3               , & ! OUT: COSMIC parameter L3
+           latWat                    & ! OUT: COSMIC parameter Lattice Water
+           )
+
 
       call mpr_SMhorizons(param(iStart2 : iEnd2), processMatrix, &
               iFlag_soilDB, nSoilHorizons_mHM, HorizonDepth_mHM, &
               LCover0(:, iiLC), soilId0, &
               soilDB%nHorizons, soilDB%nTillHorizons, &
               thetaS_till, thetaFC_till, thetaPW_till, &
-              thetaS, thetaFC, thetaPW, soilDB%Wd, Db, soilDB%DbM, soilDB%RZdepth, &
+              thetaS, thetaFC, thetaPW, &
+              soilDB%Wd, Db, soilDB%DbM, soilDB%RZdepth, &
               mask0, Id0, &
               upper_bound1, lower_bound1, left_bound1, right_bound1, n_subcells1, &
               soilMoistExp1(:, :, iiLC), soilMoistSat1(:, :, iiLC), soilMoistFC1(:, :, iiLC), &
-              wiltingPoint1(:, :, iiLC), fRoots1(:, :, iiLC))
+              wiltingPoint1(:, :, iiLC), fRoots1(:, :, iiLC), &
+              !>>>>>> neutron count
+              latWat_till, COSMIC_L3_till, latWat, COSMIC_L3, &
+              bulkDens1(:,:,iiLC), latticeWater1(:,:,iiLC), COSMICL31(:,:,iiLC) &
+              )
 
+      
+      
       deallocate(thetaS_till)
       deallocate(thetaFC_till)
       deallocate(thetaPW_till)
@@ -523,6 +576,12 @@ contains
       deallocate(thetaPW)
       deallocate(Ks)
       deallocate(Db)
+
+      ! neutron count
+      deallocate( latWat_till    ) 
+      deallocate( COSMIC_L3_till ) 
+      deallocate( latWat     ) 
+      deallocate( COSMIC_L3  ) 
 
       ! ------------------------------------------------------------------
       ! potential evapotranspiration (PET)
@@ -590,7 +649,9 @@ contains
       deallocate(KsVar_V0)
       deallocate(SMs_FC0)
 
-    end do
+   end do !!>>>>>>> LAND COVER SCENE LOOP
+
+   
     ! ------------------------------------------------------------------
     ! sealed area threshold for runoff generation
     ! ------------------------------------------------------------------
@@ -668,8 +729,32 @@ contains
       call message()
       call message('***ERROR: Process description for process "baseflow Recession" does not exist! mo_multi_param_reg')
       stop
-    end select
+   end select
 
+   ! ------------------------------------------------------------------
+   ! Neutron count related parameters
+   ! >> only N0 parameter - others are defined above in soil parameters
+   ! ------------------------------------------------------------------
+   select case(processMatrix(10, 1))
+   case(0)
+      ! do nothing
+   case(1)
+      ! the number of process parameters, so the number in processMatrix(9,2) has
+      iStart = processMatrix(10, 3) - processMatrix(10, 2) + 1
+      iEnd = processMatrix(10, 3)
+      No_Count1 = param(iStart)  !>> 1st parameter --> N0 parameter 
+   case(2)
+      ! the number of process parameters, so the number in processMatrix(9,2) has
+      iStart = processMatrix(10, 3) - processMatrix(10, 2) + 1
+      iEnd = processMatrix(10, 3)
+      No_Count1 = param(iStart)  !>> 1st parameter --> N0 parameter
+   case DEFAULT
+      call message()
+      call message('***ERROR: Process description for process "Neutron count" does not exist! mo_multi_param_reg')
+      stop
+   end select
+   
+  
     !-------------------------------------------------------------------
     ! call regionalization of parameters related to LAI
     ! it is now outside of mHM since LAI is now dynamic variable

@@ -66,8 +66,7 @@ CONTAINS
     use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
                                     L1_fastRunoff, L1_infilSoil, L1_inter, L1_melt, L1_neutrons, L1_percol, &
                                     L1_pet_calc, L1_preEffect, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
-                                    L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_total_runoff, L1_unsatSTW, &
-                                    L1_neutrons, L1_bulkDens, L1_latticeWater, L1_COSMICL3
+                                    L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_total_runoff, L1_unsatSTW
     use mo_mpr_constants, only : C1_InitStateSM, P2_InitStateFluxes, P3_InitStateFluxes, &
                                  P4_InitStateFluxes, P5_InitStateFluxes
     use mo_mpr_global_variables, only : HorizonDepth_mHM, nSoilHorizons_mHM
@@ -155,28 +154,6 @@ CONTAINS
     dummy_2D(:, nSoilHorizons_mHM) = (P5_InitStateFluxes - &
             HorizonDepth_mHM(nSoilHorizons_mHM - 1)) * C1_InitStateSM
     call append(L1_soilMoist, dummy_2D)
-
-
-
-    !!>>>>>>>>>> ONLY WHEN COSMIC NEUTRON ROUTINE IS ON <<<<<<<<<<<
-    ! ground albedo neutrons
-    dummy_1D(:) = P1_InitStateFluxes
-    call append( L1_neutrons,   dummy_1D )
-
-    ! bulk density
-    dummy_2D(:,:) = P1_InitStateFluxes
-    call append( L1_bulkDens, dummy_2D )
-
-    ! lattice water
-    dummy_2D(:,:) = P1_InitStateFluxes
-    call append( L1_latticeWater, dummy_2D )
-
-    ! COSMIC L3 coefficient
-    dummy_2D(:,:) = P1_InitStateFluxes
-    call append( L1_COSMICL3, dummy_2D )
-
-    !!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    
 
     ! free space
     if (allocated(dummy_1D)) deallocate(dummy_1D)

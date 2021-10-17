@@ -121,8 +121,16 @@ contains
   subroutine mpr_SMhorizons(param, processMatrix, iFlag_soil, nHorizons_mHM, HorizonDepth, LCOVER0, soilID0, nHorizons, &
                            nTillHorizons, thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Wd, Db, &
                            DbM, RZdepth, mask0, cell_id0, upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1, &
-                           L1_beta, L1_SMs, L1_FC, L1_PW, L1_fRoots)
-
+                           L1_beta, L1_SMs, L1_FC, L1_PW, L1_fRoots, &
+                           ! neutron count
+                           latWat_till   , & ! lattice water upto tillage depth
+                           COSMIC_L3_till, & ! COSMIC parameter L3 upto tillage depth
+                           latWat        , & ! lattice water
+                           COSMIC_L3     , & ! COSMIC paramter L3
+                           L1_bulkDens   , & ! L bulk density
+                           L1_latticeWater,& ! L1 lattice water content
+                           L1_COSMICL3   )   ! L1 COSMIC L3 parameter from neutron module
+ 
     use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_upscaling_operators, only : upscale_harmonic_mean
@@ -236,6 +244,17 @@ contains
     ! fraction of roots in soil horizons
     real(dp), dimension(:, :), intent(inout) :: L1_fRoots
 
+    ! neutron count
+    real(dp),    dimension(:,:,:), intent(in) :: latWat_till   ! lattice water
+    real(dp),    dimension(:,:,:), intent(in) :: COSMIC_L3_till! COSMIC parameter L3
+    real(dp),    dimension(:,:),   intent(in) :: latWat        ! lattice water
+    real(dp),    dimension(:,:),   intent(in) :: COSMIC_L3     ! COSMIC paramter L3
+    ! out
+    real(dp),   dimension(:,:), intent(inout) :: L1_bulkDens
+    real(dp),   dimension(:,:), intent(inout) :: L1_latticeWater
+    real(dp),   dimension(:,:), intent(inout) :: L1_COSMICL3
+
+
     ! loop index
     integer(i4) :: h
 
@@ -268,6 +287,11 @@ contains
 
     ! [10^-3 m] permanent wilting point
     real(dp), dimension(size(LCOVER0, 1)) :: PW0
+
+    ! neutron count
+    real(dp), dimension(size(LCOVER0,1))    :: LW0     ! lattice water
+    real(dp), dimension(size(LCOVER0,1))    :: L30     ! COSMIC parameter L3
+ 
 
     ! fraction of roots in soil horizons
     real(dp), dimension(size(LCOVER0, 1)) :: fRoots0
@@ -342,6 +366,12 @@ contains
         PW0 = nodata_dp
         fRoots0 = nodata_dp
         tmp_rootFractionCoefficient_perviousFC = nodata_dp
+
+        ! neutron count
+        LW0 = nodata_dp
+        L30 = nodata_dp
+
+        
         ! Initalise mHM horizon depth
         ! Last layer depth is soil type dependent, and hence it assigned within the inner loop
         ! by default for the first soil layer
@@ -385,6 +415,22 @@ contains
                   + sum(thetaPW(S, nTillHorizons(S) + 1 - min_nTH : nHorizons(s) - min_nTH) &
                           * Wd(S, H, nTillHorizons(S) + 1 : nHorizons(S)), &
                           Wd(S, H, nTillHorizons(S) + 1 : nHorizons(S)) > 0.0_dp)
+
+          ! neutron count --> depth weightage LW and L30
+          LW0(k) = sum( latWat_till(S, :nTillHorizons(s), L) &
+               * Wd(S, H, 1:nTillHorizons(S) ), &
+               Wd(S, H, 1:nTillHorizons(S)) > 0.0_dp ) &
+               + sum( latWat(S,nTillHorizons(S)+1-min_nTH : nHorizons(s) - min_nTH) &
+               * Wd(S, H, nTillHorizons(S)+1:nHorizons(S)), &
+               Wd(S, H, nTillHorizons(S)+1:nHorizons(S)) > 0.0_dp )
+          L30(k) = sum( COSMIC_L3_till(S, :nTillHorizons(s), L) &
+               * Wd(S, H, 1:nTillHorizons(S) ), &
+               Wd(S, H, 1:nTillHorizons(S)) > 0.0_dp ) &
+               + sum( COSMIC_L3(S,nTillHorizons(S)+1-min_nTH : nHorizons(s) - min_nTH) &
+               * Wd(S, H, nTillHorizons(S)+1:nHorizons(S)), &
+               Wd(S, H, nTillHorizons(S)+1:nHorizons(S)) > 0.0_dp )
+
+          
           ! Horizon depths: last soil horizon is varying, and thus the depth
           ! of the horizon too...
           if(H .eq. nHorizons_mHM) then
@@ -393,8 +439,10 @@ contains
           end if
           ! other soil properties [SMs, FC, PWP in mm]
           SMs0(k) = SMs0(k) * (dpth_t - dpth_f)
-          FC0(k) = FC0(k) * (dpth_t - dpth_f)
-          PW0(k) = PW0(k) * (dpth_t - dpth_f)
+          FC0(k)  = FC0(k)  * (dpth_t - dpth_f)
+          PW0(k)  = PW0(k)  * (dpth_t - dpth_f)
+          LW0(k)  = LW0(k)  * (dpth_t - dpth_f)
+       !  L30(k)  = L30(k)  * (dpth_t - dpth_f)
         end do cellloop0
         !$OMP END DO
         !$OMP END PARALLEL
@@ -403,8 +451,6 @@ contains
 
         !$OMP PARALLEL
         !$OMP DO PRIVATE( l, tmp_rootFractionCoefficient_perviousFC, FCnorm ) SCHEDULE( STATIC )
-
-
         celllloop0 : do k = 1, size(LCOVER0, 1)
           l = LCOVER0(k)
           !---------------------------------------------------------------------
@@ -512,9 +558,18 @@ contains
         L1_FC(:, h) = upscale_harmonic_mean(nL0_in_L1, Upp_row_L1, Low_row_L1, &
                 Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, FC0)
         L1_fRoots(:, h) = upscale_harmonic_mean(nL0_in_L1, Upp_row_L1, Low_row_L1, &
-                Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, fRoots0)
-
+             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, fRoots0)
+        
+        !> neutron count
+        L1_bulkDens(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, Bd0 )
+        L1_latticeWater(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, LW0 )
+        L1_COSMICL3(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, L30 )
+ 
       end do
+
       ! to handle multiple soil horizons with unique soil class
     CASE(1)
       ! horizon wise calculation
@@ -525,6 +580,11 @@ contains
         PW0 = nodata_dp
         fRoots0 = nodata_dp
         tmp_rootFractionCoefficient_perviousFC = nodata_dp
+
+        ! neutron count
+        LW0     = nodata_dp
+        L30     = nodata_dp
+        
         ! initalise mHM horizon depth
         if (h .eq. 1) then
           dpth_f = 0.0_dp
@@ -545,11 +605,21 @@ contains
             SMs0(k) = thetaS_till (s, 1, L) * (dpth_t - dpth_f) ! in mm
             FC0(k) = thetaFC_till(s, 1, L) * (dpth_t - dpth_f) ! in mm
             PW0(k) = thetaPW_till(s, 1, L) * (dpth_t - dpth_f) ! in mm
+            
+            ! neutron count
+            LW0(k)  = latWat_till   (s,1,L) * (dpth_t - dpth_f) ! in mm
+  !         L30(k)  = COSMIC_L3_till(s,1,L) * (dpth_t - dpth_f) ! in mm
+
           else
             Bd0(k) = DbM(s, 1)
             SMs0(k) = thetaS (s, 1) * (dpth_t - dpth_f) ! in mm
             FC0(k) = thetaFC(s, 1) * (dpth_t - dpth_f) ! in mm
             PW0(k) = thetaPW(s, 1) * (dpth_t - dpth_f) ! in mm
+            
+            ! neutron count
+            LW0(k)  = latWat(s,1) * (dpth_t - dpth_f) ! in mm          
+  !         L30(k)  = COSMIC_L3(s,1) * (dpth_t - dpth_f) ! in mm  
+            
           end if
         end do cellloop1
         !$OMP END DO
@@ -599,7 +669,6 @@ contains
                  FCnorm=1.0_dp
               end if
 
-
               tmp_rootFractionCoefficient_perviousFC = (FCnorm * tmp_rootFractionCoefficient_clay) &
                       + ((1 - FCnorm) * tmp_rootFractionCoefficient_sand) 
 
@@ -609,11 +678,9 @@ contains
 
             end select
 
-
-
-              if((fRoots0(k) .lt. 0.0_dp) .OR. (fRoots0(k) .gt. 1.0_dp)) then
-                call message('***ERROR: Fraction of roots out of range [0,1]. Cell', &
-                        num2str(k), ' has value ', num2str(fRoots0(k)))
+            if((fRoots0(k) .lt. 0.0_dp) .OR. (fRoots0(k) .gt. 1.0_dp)) then
+               call message('***ERROR: Fraction of roots out of range [0,1]. Cell', &
+                    num2str(k), ' has value ', num2str(fRoots0(k)))
                 ! stop
               end if
           end select
@@ -635,7 +702,15 @@ contains
         L1_FC(:, h) = upscale_harmonic_mean(nL0_in_L1, Upp_row_L1, Low_row_L1, &
                 Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, FC0)
         L1_fRoots(:, h) = upscale_harmonic_mean(nL0_in_L1, Upp_row_L1, Low_row_L1, &
-                Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, fRoots0)
+             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, fRoots0)
+
+        ! neutron count
+        L1_bulkDens(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, Bd0 )
+       L1_latticeWater(:,h)   = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, LW0  )
+        L1_COSMICL3(:,h)   = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, L30  )
 
       end do
       ! anything else
@@ -673,6 +748,10 @@ contains
       end If
     end do
 
+    !! one possible check
+    ! lattice water should be less than PWP
+
+    
     !$OMP END DO
     !$OMP END PARALLEL
 !close(1)

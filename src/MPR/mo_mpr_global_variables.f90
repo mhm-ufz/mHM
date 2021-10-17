@@ -144,17 +144,23 @@ module mo_mpr_global_variables
   real(dp), public, dimension(:, :, :), allocatable :: L1_kBaseFlow           ! [d-1]  Baseflow recession coefficient
   real(dp), public, dimension(:, :, :), allocatable :: L1_kPerco              ! [d-1]  percolation coefficient
   real(dp), public, dimension(:, :, :), allocatable :: L1_soilMoistFC         ! [mm]   Soil moisture below which actual ET
-  !                                                                         !        is reduced linearly till PWP
+  !                                                                           !        is reduced linearly till PWP
   real(dp), public, dimension(:, :, :), allocatable :: L1_soilMoistSat        ! [mm]   Saturation soil moisture for each horizon [mm]
   real(dp), public, dimension(:, :, :), allocatable :: L1_soilMoistExp        ! [1]    Exponential parameter to how non-linear
-  !                                                                         !        is the soil water retention
+  !                                                                           !        is the soil water retention
   real(dp), public, dimension(:, :, :), allocatable :: L1_jarvis_thresh_c1    ![1] jarvis critical value for normalized soil
-  !                                                                         !        water content
+  !                                                                           !        water content
   real(dp), public, dimension(:, :, :), allocatable :: L1_tempThresh          ! [degC]   Threshold temperature for snow/rain
   real(dp), public, dimension(:, :, :), allocatable :: L1_unsatThresh         ! [mm]  Threshold waterdepth controlling fast interflow
   real(dp), public, dimension(:, :, :), allocatable :: L1_sealedThresh        ! [mm]  Threshold waterdepth for surface runoff
-  !                                                                         !       in sealed surfaces
+  !                                                                           !       in sealed surfaces
   real(dp), public, dimension(:, :, :), allocatable :: L1_wiltingPoint        ! [mm]  Permanent wilting point: below which neither
-  !                                                                         !       plant can take water nor water can drain in
+  !                                                                           !       plant can take water nor water can drain in
+  !>> COSMIC neutron count realated parameters -- only those which are regionlized
+  !!   defined here others are treated as global parameters...
+  real(dp), public, dimension(:,:,:), allocatable :: L1_No_Count     !   N0 COUNT      >> in Desilets and COSMIC routines 
+  real(dp), public, dimension(:,:,:), allocatable :: L1_bulkDens     !   Bulk density  >> in COSMIC routines 
+  real(dp), public, dimension(:,:,:), allocatable :: L1_latticeWater !   lattice water >> in COSMIC routines 
+  real(dp), public, dimension(:,:,:), allocatable :: L1_COSMICL3     !   !COSMIC L3    >> in COSMIC routines 
 
 end module mo_mpr_global_variables

@@ -24,7 +24,7 @@ MODULE mo_mpr_restart
 
   PRIVATE
 
-  PUBLIC :: write_eff_params        ! read restart files for configuration from a given path
+  PUBLIC :: write_eff_params            ! read restart files for configuration from a given path
   PUBLIC :: write_mpr_restart_files     ! write restart files for configuration to a given path
 
   !    NAME
@@ -216,7 +216,10 @@ CONTAINS
                                         L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, &
                                         L1_kSlowFlow, L1_karstLoss, L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, &
                                         L1_sealedThresh, L1_soilMoistExp, L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, &
-                                        L1_tempThresh, L1_unsatThresh, L1_wiltingPoint
+                                        L1_tempThresh, L1_unsatThresh, L1_wiltingPoint, &
+                                        ! neutron count
+                                        L1_No_Count, L1_bulkDens, L1_latticeWater, L1_COSMICL3
+    
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
 
     implicit none
@@ -361,7 +364,29 @@ CONTAINS
               (/rows1, cols1, lais/), nodata_dp, L1_surfResist(s1 : e1, :, 1), mask1, &
               "bulk surface resitance")
 
-    end select
+   end select
+
+   ! neutron count
+   select case (processMatrix(10, 1))
+   case(1) ! deslet
+      call unpack_field_and_write(nc, "L1_No_Count", &
+           (/rows1, cols1/), nodata_dp, L1_No_Count(s1 : e1, 1, 1), mask1, &
+           "N0 count at level 1")
+   case(2) ! COSMIC
+      call unpack_field_and_write(nc, "L1_No_Count", &
+           (/rows1, cols1/), nodata_dp, L1_No_Count(s1 : e1, 1, 1), mask1, &
+           "N0 count at level 1")
+      call unpack_field_and_write(nc, "L1_bulkDens", &
+           (/rows1, cols1, soil1, lcscenes/), nodata_dp, L1_bulkDens(s1 : e1, :, :), mask1, &
+           "Bulk density at level 1 for processCase(10)=2")
+      call unpack_field_and_write(nc, "L1_latticeWater", &
+           (/rows1, cols1, soil1, lcscenes/), nodata_dp, L1_latticeWater(s1 : e1, :, :), mask1, &
+           "Lattice water content at level 1 for processCase(10)=2")
+      call unpack_field_and_write(nc, "L1_COSMICL3", &
+           (/rows1, cols1, soil1, lcscenes/), nodata_dp, L1_COSMICL3(s1 : e1, :, :), mask1, &
+           "COSMIC L3 parameter at level 1 for processCase(10)=2")
+   end select
+
 
   end subroutine write_eff_params
 

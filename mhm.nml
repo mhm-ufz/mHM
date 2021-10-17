@@ -97,7 +97,7 @@ L0Domain(2) = 2
 !-----------------------------------------------------------------------------
 !> flag for writing restart output
 !-----------------------------------------------------------------------------
-write_restart = .False.
+write_restart = .FALSE.
 !-----------------------------------------------------------------------------
 !> read domain specific optional data
 !-----------------------------------------------------------------------------
@@ -144,7 +144,7 @@ timestep = 1
 !> mrm_read_river_network = .True. allows to read the river network for mRM
 !> read_restart = .True. forces mrm_read_river_network = .True.
 !-----------------------------------------------------------------------------
-read_restart  = .False.
+read_restart  = .TRUE.
 mrm_read_river_network = .False.
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
@@ -299,8 +299,8 @@ dir_Morpho(2)        = "test_domain_2/input/morph/"
 !> directory where land cover files are located
 dir_LCover(2)        = "test_domain_2/input/luse/"
 !> directory where restart output should be written
-mhm_file_RestartOut(2)    = "test_domain/restart/mHM_restart_002.nc"
-mrm_file_RestartOut(2)    = "test_domain/restart/mRM_restart_002.nc"
+mhm_file_RestartOut(2)    = "test_domain_2/restart/mHM_restart_002.nc"
+mrm_file_RestartOut(2)    = "test_domain_2/restart/mRM_restart_002.nc"
 !> directory where output should be written
 dir_Out(2)           = "test_domain_2/output/"
 !> file containing latitude and longitude on the resolution_Hydrology
@@ -501,7 +501,7 @@ processCase(9) = 1
 !> 0 - deactivated
 !> 1 - inverse N0 based on Desilets et al. 2010
 !> 2 - COSMIC forward operator by Shuttleworth et al. 2013
-processCase(10) = 0
+processCase(10) = 2
 !> river temperature routing (needs routing)
 !> 0 - deactivated
 !> 1 - following: Beek et al., 2012
