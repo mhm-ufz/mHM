@@ -78,19 +78,11 @@
 ! M.C. Demirel, Simon Stisen    Jun 2020 - New Soil Moisture Process: Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 PROGRAM mhm_driver
 
-  use mo_file, only: &
-          file_namelist_mhm, unamelist_mhm, &      ! filename of namelist: main setup
-          file_namelist_mhm_param, unamelist_mhm_param    ! filename of namelist: mhm model parameter
   use mo_finish, only: finish                         ! Finish with style
-  use mo_global_variables, only: &
-          timestep_model_inputs, & !frequency of input read
-          L1_twsaObs, &
-          L1_etObs, &
-          L1_neutronsObs, &
-          L1_smObs
   use mo_optimization_types, only: &
           optidata ! type for opti data
   use mo_common_variables, only: &
+          itimer, &
           optimize, opti_function, &                                   ! optimization on/off and optimization method
           write_restart, &      ! restart writing flags
           mhmFileRestartOut, &
@@ -140,26 +132,22 @@ PROGRAM mhm_driver
 
   use mo_mhm_cli, only: parse_command_line
   use mo_mhm_messages, only: startup_message, domain_dir_check_message, finish_message
+  use mo_mhm_interface, only: mhm_interface_init
 
   IMPLICIT NONE
 
   ! local
-  integer(i4) :: domainID, iDomain               ! Counters
-  integer(i4) :: itimer           ! Current timer number
   real(dp) :: funcbest         ! best objective function achivied during optimization
   logical, dimension(:), allocatable :: maskpara ! true  = parameter will be optimized, = parameter(i,4) = 1
   !                                              ! false = parameter will not be optimized = parameter(i,4) = 0
   procedure(mhm_eval), pointer :: eval
   procedure(objective), pointer :: obj_func
 
-  logical :: ReadLatLon
+  ! MPI variables
+  integer             :: ierror
+  integer(i4)         :: nproc, rank, oldrank
 
 #ifdef MPI
-  integer             :: ierror
-  integer(i4)         :: nproc
-  integer(i4)         :: rank, oldrank
-  logical :: compiled_with_mpi = .true.
-
   ! Initialize MPI
   call MPI_Init(ierror)
   call MPI_Comm_dup(MPI_COMM_WORLD, comm, ierror)
@@ -169,107 +157,14 @@ PROGRAM mhm_driver
   call MPI_Comm_rank(comm, rank, ierror)
   oldrank = rank
   write(*,*) 'MPI!, comm', rank, nproc
-#else
-  logical :: compiled_with_mpi = .false.
 #endif
 
   ! parse command line arguments
   call parse_command_line()
-  ! startup message
-  call startup_message(compiled_with_mpi)
 
-  ! read configs
-  call common_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
-#ifdef MPI
-  call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
-  ! find the number the process is referred to, called rank
-  call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
-#endif
-  call mhm_read_config(file_namelist_mhm, unamelist_mhm)
-  call mrm_configuration(file_namelist_mhm, unamelist_mhm, &
-          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon)
-  call check_optimization_settings()
+  ! initialize mhm
+  call mhm_interface_init()
 
-  ! Message about input directories
-  call domain_dir_check_message()
-
-  ! Start timings
-  call timers_init
-
-  ! --------------------------------------------------------------------------
-  ! READ AND INITIALIZE
-  ! --------------------------------------------------------------------------
-  itimer = 1
-#ifdef MPI
-  ! ComLocal is a communicator, i.e. a group of processes assigned to the same
-  ! domain, with a master and subprocesses. Only the master processes of these
-  ! groups need to read the data. The master process with rank 0 only
-  ! coordinates the other processes and does not need to read the data.
-  if (rank > 0 .and. domainMeta%isMasterInComLocal) then
-#endif
-  call message()
-
-  ! read data for every domain
-  itimer = itimer + 1
-  call message('  Initialize domains ...')
-  call timer_start(itimer)
-  call mhm_initialize(global_parameters(:, 3), global_parameters_name)
-  call timer_stop(itimer)
-  call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
-  if (processMatrix(8, 1) > 0) call mrm_init(file_namelist_mhm, unamelist_mhm, &
-          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon)
-
-  itimer = itimer + 1
-  call message('  Read forcing and optional data ...')
-  call timer_start(itimer)
-
-  do iDomain = 1, domainMeta%nDomains
-    domainID = domainMeta%indices(iDomain)
-    ! read meteorology now, if optimization is switched on
-    ! meteorological forcings (reading, upscaling or downscaling)
-    if (timestep_model_inputs(iDomain) .eq. 0_i4) then
-      call prepare_meteo_forcings_data(iDomain, 1)
-    end if
-
-    ! read optional optional data if necessary
-    if (optimize) then
-      select case (opti_function)
-        case(10 : 13, 28)
-          ! read optional spatio-temporal soil mositure data
-          call readOptidataObs(iDomain, domainID, L1_smObs(iDomain))
-        case(17)
-          ! read optional spatio-temporal neutrons data
-          call readOptidataObs(iDomain, domainID, L1_neutronsObs(iDomain))
-        case(27, 29, 30)
-          ! read optional spatio-temporal evapotranspiration data
-          call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
-        case(15)
-          ! read optional spatio-temporal tws data
-          call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
-        case(33)
-          ! read optional spatio-temporal evapotranspiration data
-          if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
-            domainMeta%optidata(iDomain) == 6 ) then
-            call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
-          end if
-          ! read optional spatio-temporal tws data
-          if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
-            domainMeta%optidata(iDomain) == 6 ) then
-            call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
-          end if
-      end select
-    end if
-
-  end do
-  call timer_stop(itimer)
-  call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
-
-  !this call may be moved to another position as it writes the master config out file for all domains
-  call write_configfile()
-
-#ifdef MPI
-  end if
-#endif
   ! --------------------------------------------------------------------------
   ! RUN OR OPTIMIZE
   ! --------------------------------------------------------------------------
