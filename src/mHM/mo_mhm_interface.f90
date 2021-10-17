@@ -9,7 +9,7 @@
 !> \details Interfaces to control the mHM workflow from outside (init, run, get infos, etc.).
 module mo_mhm_interface
 
-  use mo_kind, only: i4
+  use mo_kind, only: i4, dp
   use mo_message, only: message
   use mo_string_utils, only: num2str, separator
 
@@ -18,6 +18,7 @@ module mo_mhm_interface
   private
 
   public :: mhm_interface_init
+  public :: mhm_interface_get_parameter
 
 contains
 
@@ -184,6 +185,21 @@ contains
 #ifdef MPI
     end if
 #endif
+
   end subroutine mhm_interface_init
+
+  !> \brief Get current global parameter value of mHM.
+  subroutine mhm_interface_get_parameter(para)
+    use mo_common_variables, only: global_parameters
+
+    implicit none
+
+    real(dp), dimension(:), allocatable, intent(out) :: para !< global parameter values of mHM
+
+    allocate(para(size(global_parameters, dim=1)))
+
+    para = global_parameters(:, 3)
+
+  end subroutine mhm_interface_get_parameter
 
 end module mo_mhm_interface
