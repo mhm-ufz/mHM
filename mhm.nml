@@ -144,7 +144,7 @@ timestep = 1
 !> mrm_read_river_network = .True. allows to read the river network for mRM
 !> read_restart = .True. forces mrm_read_river_network = .True.
 !-----------------------------------------------------------------------------
-read_restart  = .TRUE.
+read_restart  = .FALSE.
 mrm_read_river_network = .False.
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization

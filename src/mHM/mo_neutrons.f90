@@ -134,6 +134,7 @@ CONTAINS
   !>        \param[in] "real(dp), dimension(:)   :: neutron_integral_AFast" Tabular for Int Approx
   !>        \param[in] "real(dp)                 :: interc" interception 
   !>        \param[in] "real(dp)                 :: snowpack" snowpack
+  !>        \param[in] "real(dp)                 :: L1_No_count" L1_No_count
   !>        \param[in] "real(dp), dimension(:)   :: L1_bulkDens" Bulk Density
   !>        \param[in] "real(dp), dimension(:)   :: L1_latticeWater" Lattice Water
   !>        \param[in] "real(dp), dimension(:)   :: L1_COSMICL3" L3 from the COSMIC module 
@@ -174,7 +175,9 @@ CONTAINS
   !>        \date Mar 2015
   
   subroutine COSMIC(SoilMoisture, Horizons, neutron_integral_AFast, &
-       interc, snowpack, L1_bulkDens, L1_latticeWater, L1_COSMICL3, neutrons)
+       interc, snowpack, &
+       L1_N0, L1_bulkDens, L1_latticeWater, L1_COSMICL3, &
+       neutrons )
     
     use mo_mhm_constants, only: H2Odens, COSMIC_N, COSMIC_alpha, COSMIC_L1, COSMIC_L2, COSMIC_L4
     use mo_constants, only: PI_dp
@@ -185,6 +188,7 @@ CONTAINS
     real(dp), dimension(:),          intent(in)     :: neutron_integral_AFast
     real(dp),                        intent(in)     :: interc
     real(dp),                        intent(in)     :: snowpack
+    real(dp),                        intent(in)     :: L1_N0
     real(dp), dimension(:),          intent(in)     :: L1_bulkDens
     real(dp), dimension(:),          intent(in)     :: L1_latticeWater
     real(dp), dimension(:),          intent(in)     :: L1_COSMICL3
@@ -289,14 +293,23 @@ CONTAINS
 
        endif
     enddo
-    neutrons=COSMIC_N*totflux
-    
-    deallocate( hiflux,&
-           xeff, h2oeffheight, h2oeffdens, fastflux,&
+    !  neutrons=COSMIC_N*totflux
+    !!>> no based on global parameter given in mhm_paramater.nml
+    neutrons=L1_N0*totflux
+
+    !! free space
+    deallocate( hiflux, xeff, h2oeffheight, h2oeffdens, fastflux,&
            isoimass, iwatmass)
            
   end subroutine COSMIC
 
+
+
+
+
+
+
+  
   subroutine loopConstants(ll,&
                     SoilMoisture,L1_bulkDens,L1_latticeWater,&
                     L1_COSMICL3,sm,bd,lw,L3)
