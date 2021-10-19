@@ -3,11 +3,11 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules
 include(FetchContent)
 
 set (LIB_NAME mhm_lib)
-# use all mo_*.f90 files for the library
-file(GLOB sources_mhm ./mHM/*mo_*.f90)
-file(GLOB sources_mrm ./mRM/*mo_*.f90)
-file(GLOB sources_common ./common/*mo_*.f90)
-file(GLOB sources_mpr ./MPR/*mo_*.f90)
+# use all mo_*.f90/F90 files for the library
+file(GLOB sources_mhm ./mHM/*mo_*.*90)
+file(GLOB sources_mrm ./mRM/*mo_*.*90)
+file(GLOB sources_common ./common/*mo_*.*90)
+file(GLOB sources_mpr ./MPR/*mo_*.*90)
 list(APPEND sources ${sources_mhm} ${sources_mrm} ${sources_common} ${sources_common_mHM_mRM} ${sources_mpr})
 add_library(${LIB_NAME} ${sources})
 
@@ -39,9 +39,6 @@ if(NOT ${MPR_NAME}_FOUND)
 endif()
 # target_link_libraries(${LIB_NAME} PUBLIC ${MPR_NAME})
 
-# get pre-processor flag for current compiler (-fpp or -cpp) and 'cpp_definitions' function
-include(fortranpreprocessor)
-get_preproc_flag(XPP_FLAG)
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
 include(compileoptions)
 # add MPI pre-processor directive (also for mhm exe)
@@ -54,7 +51,6 @@ set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS
   "${MPI_Fortran_LINK_FLAGS} ${OpenMP_Fortran_FLAGS} ${LAPACK_LINKER_FLAGS}"
 )
 target_compile_options(${LIB_NAME} PUBLIC
-  ${XPP_FLAG}
   ${MPI_Fortran_COMPILE_FLAGS}
   ${OpenMP_Fortran_FLAGS}
 )
