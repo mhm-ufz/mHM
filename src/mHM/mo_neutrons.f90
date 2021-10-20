@@ -128,7 +128,7 @@ CONTAINS
 	SWC_L1 = SoilMoisture(1)
 	SWC_L2 = SoilMoisture(2)
 	SWC_L3 = SoilMoisture(3)
-	do ll = 1,layers
+   do ll = 1,layers
 	!write(*,*)'Day:',k
         swc_mean=(SWC_L1(ll)/50+SWC_L2(ll)/150+SWC_L3(ll)/250)/3
         Layer_swc1 = (SWC_L1(ll)/50)
@@ -178,7 +178,7 @@ CONTAINS
         !write(*,*)'weighted average swc3 %:', weighted_swc3
 		VWM = weighted_swc1 + weighted_swc2 + weighted_swc3
         !write(*,*)'Vertical weighted Mean:', VWM
-	end do
+   end do
       ! only use first soil layer
     neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (VWM + Desilets_a2))
   end subroutine DesiletsN0
