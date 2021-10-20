@@ -107,6 +107,7 @@ CONTAINS
    double precision swc_mean, D_86,bulk_density, D_mm,L_weights1,L_weights2,L_weights3,Layer_swc1,Layer_swc2,Layer_swc3
    double precision weighted_swc1,weighted_swc2,weighted_swc3,Sum_Weights
    real, DIMENSION(450) :: layer_min, layer_max
+   save layer_min, layer_max
    real   :: W1,W2,W3,VWM
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     do i=1,20
