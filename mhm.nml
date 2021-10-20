@@ -97,7 +97,7 @@ L0Domain(2) = 2
 !-----------------------------------------------------------------------------
 !> flag for writing restart output
 !-----------------------------------------------------------------------------
-write_restart = .False.
+write_restart = .True.
 !-----------------------------------------------------------------------------
 !> read domain specific optional data
 !-----------------------------------------------------------------------------
@@ -276,15 +276,9 @@ dir_riv_widths(2) = 'test_domain_2/input/optional_data/'
 !> config run out file common to all modeled domains should be written to directory
 dirConfigOut = "test_domain/"
 !
-!> directory where common input files should be located for all modeled domains
-!> (only for *_classdefinition files)
-dirCommonFiles = "test_domain/input/mpr/"
-!
 !**** for Domain 1
-!> directory where morphological files are located
-dir_Morpho(1)        = "test_domain/input/mpr/"
-!> directory where land cover files are located
-dir_LCover(1)        = "test_domain/input/mpr/"
+!> directory where input files are located
+dir_In(1)        = "test_domain/input/mpr/"
 !> directory where restart output should be written
 mhm_file_RestartOut(1)    = "test_domain/restart/mHM_restart_001.nc"
 mrm_file_RestartOut(1)    = "test_domain/restart/mRM_restart_001.nc"
@@ -294,10 +288,8 @@ dir_Out(1)           = "test_domain/output_b1/"
 file_LatLon(1)       = "test_domain/input/mpr/latlon_1.nc"
 
 ! **** for Domain 2
-!> directory where morphological files are located
-dir_Morpho(2)        = "test_domain_2/input/mpr/"
-!> directory where land cover files are located
-dir_LCover(2)        = "test_domain_2/input/mpr/"
+!> directory where input files are located
+dir_In(2)        = "test_domain_2/input/mpr/"
 !> directory where restart output should be written
 mhm_file_RestartOut(2)    = "test_domain_2/restart/mHM_restart_002.nc"
 mrm_file_RestartOut(2)    = "test_domain_2/restart/mRM_restart_002.nc"
@@ -509,28 +501,7 @@ processCase(11) = 0
 ! LAND COVER (mandatory)
 !******************************************************************************************
 &LCover
-!> Variables given in this namelist are common to all domains to be modeled.
-!> Please make sure that the land cover periods are covering the simulation period.
-!> number of land cover scenes to be used
-!> The land cover scene periods are shared by all catchments.
-!> The names should be equal for all domains. The land cover scnes have to be ordered
-!> chronologically.
 nLandCoverPeriods = 2
-! indicate period with brackets behind variable
-! first scene
-!> starting year of land cover scene 1
-LCoverYearStart(1) = 1981
-!> ending year of land cover scnene 1
-LCoverYearEnd(1)   = 1990
-!> name of land cover file for scnene 1
-LCoverfName(1)     = 'lc_1981.asc'
-
-!> starting year of land cover scene 2
-LCoverYearStart(2) = 1991
-!> ending year of land cover scnene 2
-LCoverYearEnd(2)   = 2000
-!> name of land cover file for scnene 2
-LCoverfName(2)     = 'lc_1991.asc'
 /
 
 !******************************************************************************************

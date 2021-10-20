@@ -60,7 +60,6 @@ contains
     use mo_message, only : error_message, message
     use mo_mrm_file, only : file_facc, file_fdir, file_gaugeloc
     use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, domain_mrm, dirGauges
-    use mo_read_latlon, only : read_latlon
     use mo_string_utils, only : num2str
 
     implicit none

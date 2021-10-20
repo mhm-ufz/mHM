@@ -5,6 +5,8 @@
 module mo_common_file
 
   implicit none
+  !> variable name of lat lon for level 11 in netCDF file
+  character(len = *), parameter :: varNameLatLon = 'latlon'
   !> variable name of digital elevation model in netCDF file
   character(len = *), parameter :: varNameDem = 'dem'
   !> variable name of land cover in netCDF file

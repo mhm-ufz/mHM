@@ -105,8 +105,8 @@ PROGRAM mhm_driver
           write_restart, &      ! restart writing flags
           mhmFileRestartOut, &
           dirConfigOut, &
-          dirMorpho, dirLCover, &                                         ! directories
-          dirOut, &      ! directories
+          dirIn, & ! directories
+          dirOut, & ! directories
           L0_Domain, &
           domainMeta, &
 #ifdef MPI
@@ -274,8 +274,6 @@ PROGRAM mhm_driver
     call message('      DOMAIN                  ', num2str(domainID, '(I3)'))
     call message('  --------------')
     call message('    Configuration file for MPR: ', trim(pathMprNml(L0_Domain(iDomain))))
-    ! call check_dir(dirMorpho(iDomain), "Morphological directory:", .false., 4, 30)
-    ! call check_dir(dirLCover(iDomain), "Land cover directory:", .false., 4, 30)
     call check_dir(dirPrecipitation(iDomain), "Precipitation directory:", .false., 4, 30)
     call check_dir(dirTemperature(iDomain), "Temperature directory:", .false., 4, 30)
     select case (processMatrix(5, 1))
@@ -292,6 +290,7 @@ PROGRAM mhm_driver
         call check_dir(dirwindspeed(iDomain), "Windspeed directory:", .false., 4, 30)
     end select
     call check_dir(dirOut(iDomain), "Output directory:", .true., 4, 30)
+    call check_dir(dirOut(iDomain), "Input  directory:", .true., 4, 30)
     call message()
   end do
 
