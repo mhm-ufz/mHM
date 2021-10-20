@@ -170,9 +170,9 @@ CONTAINS
         weighted_swc3 =0.0
         weighted_swc3 = (Layer_swc3 * W3)/Sum_Weights
         !write(*,*)'weighted average swc3 %:', weighted_swc3
-		VWM = weighted_swc1 + weighted_swc2 + weighted_swc3
+        VWM = weighted_swc1 + weighted_swc2 + weighted_swc3
         !write(*,*)'Vertical weighted Mean:', VWM
-      ! only use first soil layer
+      ! Use the Vertical Weighted Mean in Desilets Equaction
     neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (VWM + Desilets_a2))
   end subroutine DesiletsN0
   ! -----------------------------------------------------------------------------------
