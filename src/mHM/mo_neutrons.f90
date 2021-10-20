@@ -128,7 +128,7 @@ CONTAINS
 	SWC_L1 = SoilMoisture(1)
 	SWC_L2 = SoilMoisture(2)
 	SWC_L3 = SoilMoisture(3)
-do ll = 1,layers
+   do ll = 1,layers
 	!write(*,*)'Day:',k
 	! Horizons(1)=50mm, Horizons(2)=150mm, Horizons(3)=250mm
         swc_mean=(SWC_L1(ll)/Horizons(1)+SWC_L2(ll)/Horizons(2)+SWC_L3(ll)/Horizons(3))/3
