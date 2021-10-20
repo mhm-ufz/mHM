@@ -177,7 +177,7 @@ CONTAINS
         weighted_swc3 =0.0
         weighted_swc3 = (Layer_swc3 * W3)/Sum_Weights
         !write(*,*)'weighted average swc3 %:', weighted_swc3
-		VWM = weighted_swc1 + weighted_swc2 + weighted_swc3
+        VWM = weighted_swc1 + weighted_swc2 + weighted_swc3
         !write(*,*)'Vertical weighted Mean:', VWM
    end do
       ! only use first soil layer
