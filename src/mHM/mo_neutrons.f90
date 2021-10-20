@@ -115,10 +115,10 @@ CONTAINS
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     do i=1,20
     layer_min(i)=i*10
-	end do
+    end do
     do i=5,45
     layer_max(i)=i*10
-	end do
+    end do
 	min_layer=minval(layer_min)
 	max_layer=maxval(layer_max)
 	!IMPORT OUR TEXT FILE FROM DATA FOLDER
