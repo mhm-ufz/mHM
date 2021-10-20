@@ -107,31 +107,33 @@ CONTAINS
    double precision swc_mean, D_86,bulk_density, D_mm,L_weights1,L_weights2,L_weights3,Layer_swc1,Layer_swc2,Layer_swc3
    double precision weighted_swc1,weighted_swc2,weighted_swc3,Sum_Weights
    real, dimension(2000) :: SWC_L1,SWC_L2,SWC_L3
-   REAL, DIMENSION(450) :: layer_min, layer_max
+   real, DIMENSION(450) :: layer_min, layer_max
    real   :: W1,W2,W3,VWM
    save SWC_L1, SWC_L2, SWC_L3,layer_min, layer_max
+   integer(i4) :: layers=1                 ! Total number of soil layers
+   integer(i4) :: ll=1
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   do i=1,20
+    do i=1,20
     layer_min(i)=i*10
-   end do
-   do i=5,45
+	end do
+    do i=5,45
     layer_max(i)=i*10
 	end do
 	min_layer=minval(layer_min)
 	max_layer=maxval(layer_max)
 	!IMPORT OUR TEXT FILE FROM DATA FOLDER
-    SWC_L1 = SoilMoisture(1)
+	bulk_density=1.387
+	layers   = size(SoilMoisture)+1 ! 3, one additional snowpack layer
+	!allocate(SWC_L1(layers),SWC_L2(layers),SWC_L3(layers))
+	SWC_L1 = SoilMoisture(1)
 	SWC_L2 = SoilMoisture(2)
 	SWC_L3 = SoilMoisture(3)
-	!WRITE MY ACTUAL CODE
-	bulk_density=1.387
-	itra=1652
-	do k=1,itra
+	do ll = 1,layers
 	!write(*,*)'Day:',k
-    swc_mean=(SWC_L1(k)/50+SWC_L2(k)/150+SWC_L3(k)/250)/3
-    Layer_swc1 = (SWC_L1(k)/50)
-    Layer_swc2 = (SWC_L2(k)/150)
-    Layer_swc3 = (SWC_L3(k)/250)
+        swc_mean=(SWC_L1(ll)/50+SWC_L2(ll)/150+SWC_L3(ll)/250)/3
+        Layer_swc1 = (SWC_L1(ll)/50)
+        Layer_swc2 = (SWC_L2(ll)/150)
+        Layer_swc3 = (SWC_L3(ll)/250)
     !write(*,*),'Mean=',swc_mean
 	D_86 = 1/bulk_density * (8.321 + 0.14249 * (0.96655 + Exp(-0.01)) * (20.0 + swc_mean)/(0.0429 + swc_mean))
 	D_mm = D_86 * 10 !# convert cm to mm
