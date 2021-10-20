@@ -54,10 +54,9 @@ module mo_common_variables
   character(256), public :: dirConfigOut
   character(256), public :: dirCommonFiles ! directory where common input files should be located
   character(256), dimension(:), allocatable, public :: dirOut ! Directory where output is written to
-  !TODO: MPR this will go, level0 is moved to mRM
-  character(256), dimension(:), allocatable, public :: dirMorpho ! Directory where morphological files are located
-  character(256), dimension(:), allocatable, public :: dirLCover ! Directory where land cover files are located
+  character(256), dimension(:), allocatable, public :: dirIn ! Directory where input is located
   character(256), dimension(:), allocatable, public :: fileLatLon ! Directory where the Lat Lon Files are located
+  !TODO: MPR this will go, level0 is moved to mRM
   type(Grid), dimension(:), target, allocatable, public :: level0 ! grid information at morphological level (e.g., dem, fDir)
   type(GridRemapper), dimension(:), allocatable, public :: l0_l1_remap  ! grid information at morphological level (e.g., dem, fDir)
   ! -------------------------------------------------------------------

@@ -86,7 +86,7 @@ CONTAINS
 
     use mo_common_file, only : file_config, uconfig
     use mo_common_variables, only : evalPer, read_restart, warmPer, &
-                                    dirConfigOut, dirLCover, dirMorpho, dirOut, &
+                                    dirConfigOut, dirIn, dirOut, &
                                     global_parameters, global_parameters_name, level0, level1, &
                                     domainMeta, nLandCoverPeriods, resolutionHydrology, write_restart, processMatrix, &
                                     resolutionRouting, mhmFileRestartOut
@@ -252,8 +252,7 @@ CONTAINS
       write(uconfig, 222)   'Directory list'
 
       write(uconfig, 224) 'Configuration file for MPR               ', pathMprNml(iDomain)
-      write(uconfig, 224) 'Directory to morphological input         ', dirMorpho(iDomain)
-      write(uconfig, 224) 'Directory to land cover input            ', dirLCover(iDomain)
+      write(uconfig, 224) 'Directory to input                       ', dirIn(iDomain)
       if (domainMeta%doRouting(iDomain)) then
         write(uconfig, 224) 'Directory to gauging station input       ', dirGauges(iDomain)
       end if

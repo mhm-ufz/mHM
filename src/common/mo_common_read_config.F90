@@ -50,7 +50,7 @@ CONTAINS
 
     use mo_common_constants, only : maxNLcovers, maxNoDomains, floatComparisonPrecision, float_comparison_precision
     use mo_common_variables, only : Conventions, contact, L0_Domain, &
-                                    dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, &
+                                    dirConfigOut, dirIn, dirOut, &
                                     mhmFileRestartOut, mrmFileRestartOut, &
                                     fileLatLon, history, mHM_details, domainMeta, nLandCoverPeriods, &
                                     nProcesses, nuniqueL0Domains, processMatrix, project_details, resolutionHydrology, &
@@ -83,16 +83,12 @@ CONTAINS
     ! Choosen process description number
     integer(i4), dimension(nProcesses) :: processCase
 
-    character(256), dimension(maxNoDomains) :: dir_Morpho
-
     character(256), dimension(maxNoDomains) :: mhm_file_RestartOut
-
     character(256), dimension(maxNoDomains) :: mrm_file_RestartOut
-
-    character(256), dimension(maxNoDomains) :: dir_LCover
-
+    character(256), dimension(maxNoDomains) :: mhm_file_RestartIn
+    character(256), dimension(maxNoDomains) :: mrm_file_RestartIn
+    character(256), dimension(maxNoDomains) :: dir_In
     character(256), dimension(maxNoDomains) :: dir_Out
-
     character(256), dimension(maxNoDomains) :: file_LatLon
 
     real(dp), dimension(maxNoDomains) :: resolution_Hydrology
@@ -100,15 +96,6 @@ CONTAINS
     integer(i4), dimension(maxNoDomains) :: L0Domain
 
     integer(i4), dimension(maxNoDomains) :: read_opt_domain_data
-
-    ! starting year LCover
-    integer(i4), dimension(maxNLCovers) :: LCoverYearStart
-
-    ! ending year LCover
-    integer(i4), dimension(maxNLCovers) :: LCoverYearEnd
-
-    ! filename of Lcover file
-    character(256), dimension(maxNLCovers) :: LCoverfName
 
     integer(i4) :: i, newDomainID, domainID, iDomain, nDomains
 
@@ -123,17 +110,13 @@ CONTAINS
 
     real(dp), dimension(maxNoDomains) :: resolution_Routing
 
-    character(256), dimension(maxNoDomains) :: mhm_file_RestartIn
-    character(256), dimension(maxNoDomains) :: mrm_file_RestartIn
 
     ! define namelists
     ! namelist directories
     namelist /project_description/ project_details, setup_description, simulation_type, &
             Conventions, contact, mHM_details, history
-    namelist /directories_general/ dirConfigOut, dirCommonFiles, &
-            dir_Morpho, dir_LCover, &
-            dir_Out, mhm_file_RestartOut, mrm_file_RestartOut, &
-            file_LatLon
+    namelist /directories_general/ dirConfigOut, dir_In, &
+            dir_Out, mhm_file_RestartOut, mrm_file_RestartOut, file_LatLon
     ! namelist spatial & temporal resolution, optimization information
     namelist /mainconfig/ iFlag_coordinate_sys, resolution_Hydrology, nDomains, L0Domain, write_restart, &
             read_opt_domain_data, float_comparison_precision
@@ -141,7 +124,7 @@ CONTAINS
     namelist /processSelection/ processCase
 
     ! namelist for land cover scenes
-    namelist/LCover/nLandCoverPeriods, LCoverYearStart, LCoverYearEnd, LCoverfName
+    namelist/LCover/nLandCoverPeriods
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig_mhm_mrm/ timestep, resolution_Routing, optimize, &
             optimize_restart, opti_method, opti_function, &
@@ -186,11 +169,8 @@ CONTAINS
     allocate(mhmFileRestartOut(domainMeta%nDomains))
     allocate(mrmFileRestartOut(domainMeta%nDomains))
     allocate(dirOut(domainMeta%nDomains))
+    allocate(dirIn(domainMeta%nDomains))
     allocate(L0_Domain(domainMeta%nDomains))
-
-    ! TODO: MPR this block will go
-    allocate(dirMorpho(domainMeta%nDomains))
-    allocate(dirLCover(domainMeta%nDomains))
     allocate(fileLatLon(domainMeta%nDomains))
 
     nuniqueL0Domains = 0_i4
@@ -230,15 +210,12 @@ CONTAINS
       mhmFileRestartOut(iDomain)   = mhm_file_RestartOut(domainID)
       mrmFileRestartOut(iDomain)   = mrm_file_RestartOut(domainID)
       dirOut(iDomain)              = dir_Out(domainID)
-      ! TODO: MPR this will go
-      dirMorpho(iDomain)           = dir_Morpho(domainID)
-      dirLCover(iDomain)           = dir_LCover(domainID)
+      dirIn(iDomain)               = dir_In(domainID)
       fileLatLon(iDomain)          = file_LatLon(domainID)
     end do
 
     ! ToDo: add test if opti_function matches at least one domainMeta%optidata
     ! as soon as common and common_mRM_mHM are merged, if that is the plan
-
 
     !===============================================================
     ! Read process selection list
@@ -372,7 +349,7 @@ CONTAINS
 
     call close_nml(unamelist)
 
-    call read_mhm_parameters(file_namelist, unamelist, file_namelist_param, unamelist_param)
+    call read_mhm_parameters(file_namelist_param, unamelist_param)
 
   end subroutine common_read_config
 
@@ -671,7 +648,7 @@ CONTAINS
 
   end subroutine common_check_resolution
 
-  subroutine read_mhm_parameters(file_namelist, unamelist, file_namelist_param, unamelist_param)
+  subroutine read_mhm_parameters(file_namelist_param, unamelist_param)
 
     use mo_append, only : append
     use mo_common_constants, only : eps_dp, maxNoDomains, nColPars, nodata_dp
@@ -691,22 +668,11 @@ CONTAINS
 
     implicit none
 
-    character(*), intent(in) :: file_namelist
-
-    integer, intent(in) :: unamelist
-
     character(*), intent(in) :: file_namelist_param
 
     integer, intent(in) :: unamelist_param
 
     integer(i4) :: nGeoUnits, ii
-
-    ! depth of the single horizons
-    real(dp), dimension(maxNoSoilHorizons) :: soil_Depth
-
-    ! directory of gridded LAI data
-    ! used when timeStep_LAI_input<0
-    character(256), dimension(maxNoDomains) :: dir_gridded_LAI
 
     character(256) :: dummy
 
@@ -860,16 +826,6 @@ CONTAINS
 
     integer(i4) :: iDomain, domainID
 
-
-    ! namelist directories
-    namelist /directories_MPR/ dir_gridded_LAI
-    ! namelist soil database
-    ! namelist /soildata/ iFlag_soilDB, tillageDepth, nSoilHorizons_mHM, soil_Depth
-    ! namelist for LAI related data
-    ! namelist /LAI_data_information/ inputFormat_gridded_LAI, timeStep_LAI_input
-    ! namelist for land cover scenes
-    ! namelist /LCover_MPR/ fracSealed_cityArea
-
     ! namelist parameters
     namelist /mhm_parameters/ canopyInterceptionFactor, snowThresholdTemperature, degreeDayFactor_forest, &
             degreeDayFactor_impervious, &
@@ -898,81 +854,9 @@ CONTAINS
     !===============================================================
     ! INITIALIZATION
     !===============================================================
-    soil_Depth = 0.0_dp
     dummy_2d_dp = nodata_dp
     dummy_2d_dp_2 = nodata_dp
     GeoParam = nodata_dp
-
-    call open_nml(file_namelist, unamelist, quiet = .true.)
-
-    !===============================================================
-    !  Read namelist for LCover
-    !===============================================================
-    ! call position_nml('LCover_MPR', unamelist)
-    ! read(unamelist, nml = LCover_MPR)
-
-    !===============================================================
-    ! Read soil layering information
-    !===============================================================
-    ! call position_nml('soildata', unamelist)
-    ! read(unamelist, nml = soildata)
-
-    ! TODO: MPR remove allocation here
-    ! nSoilHorizons = nSoilHorizons_mHM
-    ! allocate(soilHorizonBoundaries(nSoilHorizons+1))
-    ! allocate(HorizonDepth_mHM(nSoilHorizons))
-    ! soilHorizonBoundaries(:) = 0.0_dp
-    ! ! last layer is reset to 0 in MPR in case of iFlag_soilDB is 0
-    ! soilHorizonBoundaries(2 : nSoilHorizons+1) = soil_Depth(1 : nSoilHorizons)
-
-    ! counter checks -- soil horizons
-    ! if (nSoilHorizons .GT. maxNoSoilHorizons) then
-    !   call error_message('***ERROR: Number of soil horizons is resticted to ', trim(num2str(maxNoSoilHorizons)), '!')
-    ! end if
-
-    ! the default is the HorizonDepths are all set up to last
-    ! as is the default for option-1 where horizon specific information are taken into consideration
-    ! if(iFlag_soilDB .eq. 0) then
-    !   ! classical mhm soil database
-    !   soilHorizonBoundaries(nSoilHorizons+1) = 0.0_dp
-    ! else if(iFlag_soilDB .ne. 1) then
-    !   call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
-    ! end if
-    ! lowestDepth = soilHorizonBoundaries(nSoilHorizons+1)
-    ! TODO: MPR remove this duplications
-    ! HorizonDepth_mHM = soilHorizonBoundaries(2 : nSoilHorizons+1)
-    ! ! some consistency checks for the specification of the tillage depth
-    ! if(iFlag_soilDB .eq. 1) then
-    !   if(count(abs(soilHorizonBoundaries(2 : nSoilHorizons+1) - tillageDepth) .lt. eps_dp)  .eq. 0) then
-    !     call error_message('***ERROR: Soil tillage depth must conform with one of the specified horizon (lower) depth.')
-    !   end if
-    ! end if
-
-    !===============================================================
-    ! Read LAI related information
-    !===============================================================
-    ! call position_nml('LAI_data_information', unamelist)
-    ! read(unamelist, nml = LAI_data_information)
-
-    ! if (timeStep_LAI_input .ne. 0) then
-    !   !===============================================================
-    !   !  Read namelist for main directories
-    !   !===============================================================
-    !   call position_nml('directories_MPR', unamelist)
-    !   read(unamelist, nml = directories_MPR)
-
-    !   allocate(dirgridded_LAI(domainMeta%nDomains))
-    !   do iDomain = 1, domainMeta%nDomains
-    !     domainID = domainMeta%indices(iDomain)
-    !     dirgridded_LAI(iDomain) = dir_gridded_LAI(domainID)
-    !   end do
-
-    !   if (timeStep_LAI_input .GT. 1) then
-    !     call error_message('***ERROR: option for selected timeStep_LAI_input not coded yet')
-    !   end if
-    ! end if
-
-    call close_nml(unamelist)
 
     !===============================================================
     ! Read namelist global parameters

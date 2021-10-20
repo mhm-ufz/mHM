@@ -42,7 +42,7 @@ CONTAINS
 
     use mo_append, only : append
     use mo_common_file, only : varNameDem
-    use mo_common_variables, only : dirMorpho, level0, domainMeta, resolutionHydrology
+    use mo_common_variables, only : dirIn, level0, domainMeta, resolutionHydrology
     use mo_grid, only : infer_grid_info, Grid
     use mo_message, only : error_message, message
     use mo_string_utils, only : num2str
@@ -68,7 +68,7 @@ CONTAINS
     ! ************************************************
     call message('      Reading dem for domain: ', trim(adjustl(num2str(domainMeta%indices(iDomain)))), ' ...')
 
-    fName = trim(dirMorpho(iDomain)) // trim(varNameDem) // '.nc'
+    fName = trim(dirIn(iDomain)) // trim(varNameDem) // '.nc'
     ! use the dem variable to create the mask
     call infer_grid_info(fName, 'lon', 'lat', trim(varNameDem), level0_iDomain)
 
@@ -110,7 +110,7 @@ CONTAINS
     use mo_append, only : append, paste
     use mo_common_constants, only : nodata_i4
     use mo_common_file, only : varNameLandCover
-    use mo_common_variables, only : L0_LCover, dirLCover, level0, domainMeta, nLandCoverPeriods
+    use mo_common_variables, only : L0_LCover, dirIn, level0, domainMeta, nLandCoverPeriods
     use mo_grid, only: Grid
     use mo_message, only : message
     use mo_string_utils, only : num2str
@@ -137,7 +137,7 @@ CONTAINS
 
     call message('      Reading lcover for domain: ', trim(adjustl(num2str(domainMeta%indices(iDomain)))), ' ...')
     level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
-    fName = trim(dirLCover(iDomain)) // trim(varNameLandCover) // '.nc'
+    fName = trim(dirIn(iDomain)) // trim(varNameLandCover) // '.nc'
     ! read the Dataset
     nc = NcDataset(fname, "r")
     ! get the variable
