@@ -128,13 +128,14 @@ CONTAINS
 	SWC_L1 = SoilMoisture(1)
 	SWC_L2 = SoilMoisture(2)
 	SWC_L3 = SoilMoisture(3)
-   do ll = 1,layers
+	do ll = 1,layers
 	!write(*,*)'Day:',k
-        swc_mean=(SWC_L1(ll)/50+SWC_L2(ll)/150+SWC_L3(ll)/250)/3
-        Layer_swc1 = (SWC_L1(ll)/50)
-        Layer_swc2 = (SWC_L2(ll)/150)
-        Layer_swc3 = (SWC_L3(ll)/250)
-    !write(*,*),'Mean=',swc_mean
+	! Horizons(1)=50mm, Horizons(2)=150mm, Horizons(3)=250mm
+        swc_mean=(SWC_L1(ll)/Horizons(1)+SWC_L2(ll)/Horizons(2)+SWC_L3(ll)/Horizons(3))/3
+        Layer_swc1 = (SWC_L1(ll)/Horizons(1))
+        Layer_swc2 = (SWC_L2(ll)/Horizons(2))
+        Layer_swc3 = (SWC_L3(ll)/Horizons(3))
+   !write(*,*),'Mean=',swc_mean
 	D_86 = 1/bulk_density * (8.321 + 0.14249 * (0.96655 + Exp(-0.01)) * (20.0 + swc_mean)/(0.0429 + swc_mean))
 	D_mm = D_86 * 10 !# convert cm to mm
 	
