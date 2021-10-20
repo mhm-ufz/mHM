@@ -103,39 +103,31 @@ CONTAINS
     real(dp),                        intent(in)    :: N0           ! from global parameters
     real(dp),                        intent(inout) :: neutrons
     
-   integer :: i, itra,k,L_depth,L, min_layer,max_layer
+   integer :: i,L_depth,L, min_layer,max_layer
    double precision swc_mean, D_86,bulk_density, D_mm,L_weights1,L_weights2,L_weights3,Layer_swc1,Layer_swc2,Layer_swc3
    double precision weighted_swc1,weighted_swc2,weighted_swc3,Sum_Weights
-   real, dimension(2000) :: SWC_L1,SWC_L2,SWC_L3
    real, DIMENSION(450) :: layer_min, layer_max
    real   :: W1,W2,W3,VWM
-   save SWC_L1, SWC_L2, SWC_L3,layer_min, layer_max
-   integer(i4) :: layers=1                 ! Total number of soil layers
-   integer(i4) :: ll=1
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     do i=1,20
     layer_min(i)=i*10
-    end do
+	end do
     do i=5,45
     layer_max(i)=i*10
-    end do
+	end do
 	min_layer=minval(layer_min)
 	max_layer=maxval(layer_max)
 	!IMPORT OUR TEXT FILE FROM DATA FOLDER
+   
+	!WRITE MY ACTUAL CODE
 	bulk_density=1.387
-	layers   = size(SoilMoisture)+1 ! 3, one additional snowpack layer
-	!allocate(SWC_L1(layers),SWC_L2(layers),SWC_L3(layers))
-	SWC_L1 = SoilMoisture(1)
-	SWC_L2 = SoilMoisture(2)
-	SWC_L3 = SoilMoisture(3)
-   do ll = 1,layers
-	!write(*,*)'Day:',k
+	
 	! Horizons(1)=50mm, Horizons(2)=150mm, Horizons(3)=250mm
-        swc_mean=(SWC_L1(ll)/Horizons(1)+SWC_L2(ll)/Horizons(2)+SWC_L3(ll)/Horizons(3))/3
-        Layer_swc1 = (SWC_L1(ll)/Horizons(1))
-        Layer_swc2 = (SWC_L2(ll)/Horizons(2))
-        Layer_swc3 = (SWC_L3(ll)/Horizons(3))
-   !write(*,*),'Mean=',swc_mean
+        swc_mean=(SoilMoisture(1)/Horizons(1)+SoilMoisture(2)/Horizons(2)+SoilMoisture(3)/Horizons(3))/3
+        Layer_swc1 = (SoilMoisture(1)/Horizons(1))
+        Layer_swc2 = (SoilMoisture(2)/Horizons(2))
+        Layer_swc3 = (SoilMoisture(3)/Horizons(3))
+    !write(*,*),'Mean=',swc_mean
 	D_86 = 1/bulk_density * (8.321 + 0.14249 * (0.96655 + Exp(-0.01)) * (20.0 + swc_mean)/(0.0429 + swc_mean))
 	D_mm = D_86 * 10 !# convert cm to mm
 	
@@ -177,13 +169,11 @@ CONTAINS
         weighted_swc3 =0.0
         weighted_swc3 = (Layer_swc3 * W3)/Sum_Weights
         !write(*,*)'weighted average swc3 %:', weighted_swc3
-        VWM = weighted_swc1 + weighted_swc2 + weighted_swc3
+		VWM = weighted_swc1 + weighted_swc2 + weighted_swc3
         !write(*,*)'Vertical weighted Mean:', VWM
-   end do
       ! only use first soil layer
     neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (VWM + Desilets_a2))
   end subroutine DesiletsN0
-
   ! -----------------------------------------------------------------------------------
   !     NAME
   !         COSMIC
