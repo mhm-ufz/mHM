@@ -102,78 +102,10 @@ CONTAINS
     real(dp), dimension(:),          intent(in)    :: Horizons
     real(dp),                        intent(in)    :: N0           ! from global parameters
     real(dp),                        intent(inout) :: neutrons
+
+    ! only use first soil layer
+    neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (SoilMoisture(1)/Horizons(1) + Desilets_a2) )
     
-   integer :: i,L_depth,L, min_layer,max_layer
-   double precision swc_mean, D_86,bulk_density, D_mm,L_weights1,L_weights2,L_weights3,Layer_swc1,Layer_swc2,Layer_swc3
-   double precision weighted_swc1,weighted_swc2,weighted_swc3,Sum_Weights
-   real, DIMENSION(450) :: layer_min, layer_max
-   save layer_min, layer_max
-   real   :: W1,W2,W3,VWM
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    do i=1,20
-    layer_min(i)=i*10
-	end do
-    do i=5,45
-    layer_max(i)=i*10
-	end do
-	min_layer=minval(layer_min)
-	max_layer=maxval(layer_max)
-	!IMPORT OUR TEXT FILE FROM DATA FOLDER
-   
-	!WRITE MY ACTUAL CODE
-	bulk_density=1.387
-	
-	! Horizons(1)=50mm, Horizons(2)=150mm, Horizons(3)=250mm
-        swc_mean=(SoilMoisture(1)/Horizons(1)+SoilMoisture(2)/Horizons(2)+SoilMoisture(3)/Horizons(3))/3
-        Layer_swc1 = (SoilMoisture(1)/Horizons(1))
-        Layer_swc2 = (SoilMoisture(2)/Horizons(2))
-        Layer_swc3 = (SoilMoisture(3)/Horizons(3))
-    !write(*,*),'Mean=',swc_mean
-	D_86 = 1/bulk_density * (8.321 + 0.14249 * (0.96655 + Exp(-0.01)) * (20.0 + swc_mean)/(0.0429 + swc_mean))
-	D_mm = D_86 * 10 !# convert cm to mm
-	
-	W1 = 0.0
-	W2 = 0.0
-	W3 = 0.0
-      do L=min_layer,max_layer,10  !# 10 mm = 1 cm steps
-        L_depth=L
-        IF (L_depth < 50) THEN
-        L_weights1 =exp(-2*L_depth/D_mm)
-		!sum up y, this is your integral and gives you the weight W_L
-        W1= W1 +  L_weights1
-       ! write(*,*)'Layer 1:','', 'depth:',L ,'mm,','weight:',L_weights1,'T.Weight:', W1
-
-        ELSE IF (L_depth <= 200) THEN
-        L_weights2 =exp(-2*L_depth/D_mm)
-		!sum up y, this is your integral and gives you the weight W_L
-        W2= W2 + L_weights2
-       ! write(*,*)'Layer 2:','', 'depth:',L ,'mm,','weight:',L_weights2,'T.Weight:', W2
-
-        ELSE IF (L_depth <= 450) THEN
-        L_weights3 =exp(-2*L_depth/D_mm)
-		!sum up y, this is your integral and gives you the weight W_L
-        W3= W3 +  L_weights3
-       ! write(*,*)'Layer 3:','', 'depth:',L ,'mm,','weight:',L_weights3,'T.Weight:', W3
-        END IF
-      end do
-
-       !write(*,*) 'Simple average swc %:', 100*swc_mean
-	   !Sum up all the weighted SMs and devide by the sum of W_Ls to get the weighted soil moisture.
-          Sum_Weights = W1 +W2 +W3
-        weighted_swc1 =0.0
-		!multiply W_L with SM_L (the water content of that layer in mm/mm)
-        weighted_swc1 = (Layer_swc1 * W1)/Sum_Weights
-        !write(*,*) 'weighted average swc1 %:', weighted_swc1
-        weighted_swc2 =0.0
-        weighted_swc2 = (Layer_swc2 * W2)/Sum_Weights
-        !write(*,*) 'weighted average swc2 %:', weighted_swc2
-        weighted_swc3 =0.0
-        weighted_swc3 = (Layer_swc3 * W3)/Sum_Weights
-        !write(*,*)'weighted average swc3 %:', weighted_swc3
-        VWM = weighted_swc1 + weighted_swc2 + weighted_swc3
-        !write(*,*)'Vertical weighted Mean:', VWM
-      ! Use the Vertical Weighted Mean in Desilets Equaction
-    neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (VWM + Desilets_a2))
   end subroutine DesiletsN0
   ! -----------------------------------------------------------------------------------
   !     NAME
