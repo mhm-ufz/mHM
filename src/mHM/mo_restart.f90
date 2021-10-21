@@ -789,8 +789,26 @@ CONTAINS
       ! N0 count
       var = nc%getVariable("L1_No_Count")
       call var%getData(dummyD2)
-      L1_No_Count(s1 : e1, 1, 1) = pack(dummyD2, mask1)
-            
+      L1_No_Count(s1:e1, 1, 1) = pack(dummyD2, mask1)
+
+      ! Bulk density
+      var = nc%getVariable("L1_bulkDens")
+      call var%getData(dummyD4)
+      do jj = 1, nLCoverScene
+         do ii = 1, nSoilHorizons_mHM
+            L1_bulkDens(s1:e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
+         end do
+      end do
+
+      ! Lattice water 
+      var = nc%getVariable("L1_latticeWater")
+      call var%getData(dummyD4)
+      do jj = 1, nLCoverScene
+         do ii = 1, nSoilHorizons_mHM
+            L1_latticeWater(s1:e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
+         end do
+      end do
+      
    case(2) ! COSMIC
       ! N0 count
       var = nc%getVariable("L1_No_Count")
@@ -802,7 +820,7 @@ CONTAINS
       call var%getData(dummyD4)
       do jj = 1, nLCoverScene
          do ii = 1, nSoilHorizons_mHM
-            L1_bulkDens(s1 : e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
+            L1_bulkDens(s1:e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
          end do
       end do
 
@@ -811,7 +829,7 @@ CONTAINS
       call var%getData(dummyD4)
       do jj = 1, nLCoverScene
          do ii = 1, nSoilHorizons_mHM
-            L1_latticeWater(s1 : e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
+            L1_latticeWater(s1: e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
          end do
       end do
 
@@ -820,10 +838,10 @@ CONTAINS
       call var%getData(dummyD4)
       do jj = 1, nLCoverScene
          do ii = 1, nSoilHorizons_mHM
-            L1_COSMICL3(s1 : e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
+            L1_COSMICL3(s1:e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
          end do
       end do
-      !
+
    end select
    
    ! close file

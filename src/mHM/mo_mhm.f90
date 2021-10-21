@@ -618,12 +618,13 @@ CONTAINS
       ! Nested model: Neutrons state variable, related to soil moisture
       !-------------------------------------------------------------------
       ! DESLET
-      if ( processMatrix(10, 1) .eq. 1 ) &
-           call DesiletsN0(soilMoisture(k,:), horizon_depth(:), No_count(k), & ! Intent IN
-           neutrons(k) ) ! Intent INOUT
+      if ( processMatrix(10, 1) .EQ. 1 ) &
+           call DesiletsN0( soilMoisture(k,:), horizon_depth(:), & ! Intent IN
+           bulkDens(k,:), latticeWater(k,:),  No_count(k),       & ! Intent IN
+           neutrons(k) )                                           ! Intent INOUT
       
       ! COSMIC
-      if ( processMatrix(10, 1) .eq. 2 ) &
+      if ( processMatrix(10, 1) .EQ. 2 ) &
            call COSMIC( soilMoisture(k,:), horizon_depth(:), neutron_integral_AFast(:), &  ! Intent IN
            interc(k), snowpack(k),                                        &  ! Intent IN
            No_count(k), bulkDens(k,:), latticeWater(k,:), COSMICL3(k,:),  &  ! Intent IN

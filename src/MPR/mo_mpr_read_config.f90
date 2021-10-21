@@ -214,6 +214,10 @@ contains
 
     real(dp), dimension(nColPars) :: Desilets_N0
 
+    real(dp), dimension(nColPars) :: Desilets_LW0
+    
+    real(dp), dimension(nColPars) :: Desilets_LW1
+    
     real(dp), dimension(nColPars) :: COSMIC_N0
 
     real(dp), dimension(nColPars) :: COSMIC_N1
@@ -290,7 +294,7 @@ contains
     namelist /interflow1/ interflowStorageCapacityFactor, interflowRecession_slope, fastInterflowRecession_forest, &
             slowInterflowRecession_Ks, exponentSlowInterflow
     namelist /percolation1/ rechargeCoefficient, rechargeFactor_karstic, gain_loss_GWreservoir_karstic
-    namelist /neutrons1/ Desilets_N0
+    namelist /neutrons1/ Desilets_N0, Desilets_LW0, Desilets_LW1
     namelist /neutrons2/ COSMIC_N0, COSMIC_N1, COSMIC_N2, COSMIC_alpha0, COSMIC_alpha1, COSMIC_L30, COSMIC_L31, &
          COSMIC_LW0, COSMIC_LW1
          
@@ -993,11 +997,17 @@ contains
       call position_nml('neutrons1', unamelist_param)
       read(unamelist_param, nml = neutrons1)
 
-      processMatrix(10,2) = 1_i4
+      processMatrix(10,2) = 3_i4
       processMatrix(10,3) = sum(processMatrix(1:10, 2))
-      call append(global_parameters, reshape(Desilets_N0, (/1, nColPars/)))
-      call append(global_parameters_name, (/ 'Desilets_N0   '/))
+      call append(global_parameters, reshape(Desilets_N0,  (/1, nColPars/)))
+      call append(global_parameters, reshape(Desilets_LW0, (/1, nColPars/)))
+      call append(global_parameters, reshape(Desilets_LW1, (/1, nColPars/)))
 
+       call append(global_parameters_name, (/  &
+           'Desilets_N0   ', &
+           'Desilets_LW0  ', &
+           'Desilets_LW1  '/))
+ 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
         call message('***ERROR: parameter in namelist "neutrons1" out of bound in ', &
@@ -1006,7 +1016,7 @@ contains
       end if
 
     case(2)
-      ! 1 - inverse N0 based on Desilets et al. 2010
+      ! 2 - COSMIC version
       call position_nml('neutrons2', unamelist_param)
       read(unamelist_param, nml = neutrons2)
 

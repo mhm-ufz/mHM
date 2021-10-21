@@ -163,8 +163,7 @@ CONTAINS
       ! write the dimension to the file
       lais = nc%setDimension(trim(LAIVarName), nLAI)
 
-
-      ! for appending and intialization
+     ! for appending and intialization
       allocate(mask1(rows1%getLength(), cols1%getLength()))
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
@@ -370,23 +369,29 @@ CONTAINS
    select case (processMatrix(10, 1))
    case(1) ! deslet
       call unpack_field_and_write(nc, "L1_No_Count", &
-           (/rows1, cols1/), nodata_dp, L1_No_Count(s1 : e1, 1, 1), mask1, &
+           (/rows1, cols1/), nodata_dp, L1_No_Count(s1:e1, 1, 1), mask1, &
            "N0 count at level 1")
+      call unpack_field_and_write(nc, "L1_bulkDens", &
+           (/rows1, cols1, soil1, lcscenes/), nodata_dp, L1_bulkDens(s1:e1, :, :), mask1, &
+           "Bulk density at level 1 for processCase(10)")
+      call unpack_field_and_write(nc, "L1_latticeWater", &
+           (/rows1, cols1, soil1, lcscenes/), nodata_dp, L1_latticeWater(s1:e1, :, :), mask1, &
+           "Lattice water content at level 1 for processCase(10)")
+      
    case(2) ! COSMIC
       call unpack_field_and_write(nc, "L1_No_Count", &
            (/rows1, cols1/), nodata_dp, L1_No_Count(s1 : e1, 1, 1), mask1, &
            "N0 count at level 1")
       call unpack_field_and_write(nc, "L1_bulkDens", &
            (/rows1, cols1, soil1, lcscenes/), nodata_dp, L1_bulkDens(s1 : e1, :, :), mask1, &
-           "Bulk density at level 1 for processCase(10)=2")
+           "Bulk density at level 1 for processCase(10)")
       call unpack_field_and_write(nc, "L1_latticeWater", &
            (/rows1, cols1, soil1, lcscenes/), nodata_dp, L1_latticeWater(s1 : e1, :, :), mask1, &
-           "Lattice water content at level 1 for processCase(10)=2")
+           "Lattice water content at level 1 for processCase(10)")
       call unpack_field_and_write(nc, "L1_COSMICL3", &
            (/rows1, cols1, soil1, lcscenes/), nodata_dp, L1_COSMICL3(s1 : e1, :, :), mask1, &
-           "COSMIC L3 parameter at level 1 for processCase(10)=2")
+           "COSMIC L3 parameter at level 1 for processCase(10)")
    end select
-
 
   end subroutine write_eff_params
 

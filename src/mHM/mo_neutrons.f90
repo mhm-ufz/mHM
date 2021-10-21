@@ -39,7 +39,7 @@ CONTAINS
   !         DesiletsN0
   !
   !     PURPOSE
-  !>        \brief Calculate neutrons from soil moisture in the first layer.
+  !>        \brief Calculate neutrons from soil moisture for effective soil layer
   !>        \details Using the N0-relation derived by Desilets, neutron
   !>        counts above the ground (one value per cell in mHM) can be 
   !>        derived by a semi-empirical, semi-physical relation. 
@@ -55,8 +55,10 @@ CONTAINS
   !
   !     INTENT(IN)
   !>        \param[in] "real(dp), dimension(:)   :: SoilMoisture" Soil Moisture
-  !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
-  !>        \param[in] "real(dp)                 :: N0" dry neutron counts
+  !>        \param[in] "real(dp), dimension(:)   :: Horizon_depth" Horizon depths
+  !>        \param[in] "real(dp), dimension(:)   :: Bd"       Bulk density
+  !>        \param[in] "real(dp), dimension(:)   :: LatWater" Lattice water
+  !>        \param[in] "real(dp)                 :: N0"       dry neutron counts
   !
   !     INTENT(INOUT)
   !         None
@@ -80,7 +82,7 @@ CONTAINS
   !         Horizons(1) must not be zero.
   !
   !     EXAMPLE
-  !         N0=1500cph, SoilMoisture(1,1)=700mm, Horizons(1)=200mm
+  !         N0=1500cph, SoilMoisture(1,1)=70mm, Horizons(1)=200mm
   !         1500*(0.372+0.0808/ (70mm/200mm + 0.115))
   !         DesiletsN0 = 819cph
   !
@@ -93,19 +95,97 @@ CONTAINS
   !>        \author Martin Schroen
   !>        \date Mar 2015
 
-  subroutine DesiletsN0(SoilMoisture, Horizons, N0, neutrons)
+  subroutine DesiletsN0(SoilMoisture, Horizon_depth, Bd, latWater, N0, neutrons)
 
     use mo_mhm_constants, only: Desilets_a0, Desilets_a1, Desilets_a2
+    use mo_moment,        only: average
     implicit none
     
     real(dp), dimension(:),          intent(in)    :: SoilMoisture
-    real(dp), dimension(:),          intent(in)    :: Horizons
+    real(dp), dimension(:),          intent(in)    :: Horizon_depth
+    real(dp), dimension(:),          intent(in)    :: Bd
+    real(dp), dimension(:),          intent(in)    :: latWater
     real(dp),                        intent(in)    :: N0           ! from global parameters
     real(dp),                        intent(inout) :: neutrons
+    ! local variables
+    integer(i4)                                    :: nLayers, LL, nn, nIntervals
+    real(dp), dimension(:), allocatable            :: Layer_min, Layer_max, Layer_depth 
+    real(dp)                                       :: average_swc, average_bd
+    real(dp)                                       :: D_86_in_cm,  D_86_in_mm
+    real(dp), dimension(:), allocatable            :: cummulative_Layer_weight
+    real(dp)                                       :: depth, weight_10mm_spacing 
+
+    ! get the # of soil hoizons
+    nLayers = size(SoilMoisture)
+    allocate(  Layer_min(nLayers)  )
+    allocate(  Layer_max(nLayers)  )
+    allocate( Layer_depth(nLayers) )
+
+    ! assign layer-1
+    Layer_min(1) = 0.0_dp
+    Layer_max(1) = Horizon_depth(1)
+    ! rest layers
+    do LL = 2, nLayers
+       Layer_min(LL) = Layer_max(LL-1)
+       Layer_max(LL) = Horizon_depth(LL)
+    end do
+
+    ! estimate layer depth [mm] 
+    Layer_depth(:) = Layer_max(:) - Layer_min(:)
+
+    ! average soil water content (volumetric ones) and Bulk density
+    average_swc = average( SoilMoisture(:)/Layer_depth(:) )
+    average_bd  = average( Bd(:) ) 
+
+    ! estimate D86 [in cm and mm ] 
+    D_86_in_cm = ( 1.0_dp/average_bd ) * &
+         ( 8.321_dp + 0.14249_dp * (0.96655_dp + exp(-0.01_dp)) * (20.0_dp + average_swc)/(0.0429_dp + average_swc) )
+    D_86_in_mm = D_86_in_cm * 10.0_dp  !# convert cm to mm
+
+
+    ! initalise cummulative layer specific weight
+    allocate( cummulative_Layer_weight(nLayers)  )
+    cummulative_Layer_weight(:) = 0.0_dp
+
+    !! only once to calculate weight at equal space at every 10 mm spacing
+    nIntervals = nint( maxval(Horizon_depth(:))/10.0_dp )
     
-    ! only use first soil layer
-    neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (SoilMoisture(1)/Horizons(1) + Desilets_a2))
-  
+    ! calculate 10 mm spacing and on fly the cummulative weights 
+    depth = 0.0_dp
+    do nn = 1, nIntervals
+       weight_10mm_spacing = exp(-2.0_dp * depth / D_86_in_mm )
+ 
+       ! estimate the layer specific cummulative weights 
+       do LL = 1, nLayers
+          if(  (depth .GE. Layer_min(LL))  .AND. (depth .LT. Layer_max(LL))  ) then
+             cummulative_Layer_weight(LL) = cummulative_Layer_weight(LL) + weight_10mm_spacing 
+          end if
+       end do
+       ! update depth
+       depth = depth + 10.0_dp
+    end do
+
+
+    ! estimate weightage SWC
+    average_swc = 0.0_dp
+    do LL = 1, nLayers
+       average_swc = average_swc + ( (SoilMoisture(LL)/Layer_depth(LL)) * cummulative_Layer_weight(LL) )
+    end do
+    average_swc = average_swc / sum( cummulative_Layer_weighT(:) )
+
+    !>>>>> add lattice water now ->
+    ! lattice water taken as average over the modeled layers
+    !>>>>> discuss with Martin >>>>>>> organic water **
+    average_swc = average_swc + average( latWater(:)/Layer_depth(:) )
+
+    ! calculate neutron count based on depth weighted SM of *D86*
+    neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (average_swc + Desilets_a2) )
+
+    
+    !! deallocate variables
+    deallocate(Layer_min, Layer_max, Layer_depth, cummulative_Layer_weight)
+
+    !
   end subroutine DesiletsN0
 
   ! -----------------------------------------------------------------------------------
@@ -294,19 +374,14 @@ CONTAINS
        endif
     enddo
     !  neutrons=COSMIC_N*totflux
-    !!>> no based on global parameter given in mhm_paramater.nml
-    neutrons=L1_N0*totflux
+    !!>> now based on global parameter given in mhm_paramater.nml
+    neutrons = L1_N0*totflux
 
     !! free space
     deallocate( hiflux, xeff, h2oeffheight, h2oeffdens, fastflux,&
            isoimass, iwatmass)
            
   end subroutine COSMIC
-
-
-
-
-
 
 
   
@@ -345,13 +420,14 @@ CONTAINS
      real(dp),                 intent(in) :: interc
      real(dp),                 intent(in) :: snowpack
      real(dp),dimension(:)                :: zthick
-       if (ll.eq.1) then
-          zthick(ll)=(snowpack+interc)/10.0_dp
-       else if (ll.eq.2) then
-          zthick(ll)=Horizons(ll-1)/10.0_dp
-       else
-          zthick(ll)=(Horizons(ll-1)-Horizons(ll-2))/10.0_dp
-       endif
+     
+     if (ll.eq.1) then
+        zthick(ll)=(snowpack+interc)/10.0_dp
+     else if (ll.eq.2) then
+        zthick(ll)=Horizons(ll-1)/10.0_dp
+     else
+        zthick(ll)=(Horizons(ll-1)-Horizons(ll-2))/10.0_dp
+     endif
   end subroutine
 
   subroutine layerWaterHeight(ll,sm,h2oeffheight)

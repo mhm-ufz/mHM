@@ -501,7 +501,7 @@ processCase(9) = 1
 !> 0 - deactivated
 !> 1 - inverse N0 based on Desilets et al. 2010
 !> 2 - COSMIC forward operator by Shuttleworth et al. 2013
-processCase(10) = 2
+processCase(10) = 1
 !> river temperature routing (needs routing)
 !> 0 - deactivated
 !> 1 - following: Beek et al., 2012
@@ -641,7 +641,7 @@ iFlag_soilDB = 0
 tillageDepth = 200
 !
 !> No. of soil horizons to be modeled
-nSoilHorizons_mHM =2
+nSoilHorizons_mHM = 4
 !
 ! soil depth information
 !> IF (iFlag_soilDB = 0)
@@ -650,8 +650,10 @@ nSoilHorizons_mHM =2
 !>    Provide below the soil_Depth() for every 1,2..n-1,*n* soil horizons. You must have soil_class-id gridded file for each layer
 !>    Also check your tillage layer depth. It should conform with one of the below specified soil_Depth.
 !
-!> Soil_Horizon   Depth[mm]      ! depth of soil horizons w.r.t. ground surface (positive downwards)
-soil_Depth(1) = 200
+!> Soil_Horizon   Depth[mm]      ! bottom depth of soil horizons w.r.t. ground surface (positive downwards)
+soil_Depth(1) = 50  
+soil_Depth(2) = 200  
+soil_Depth(3) = 450
 /
 
 !******************************************************************************************

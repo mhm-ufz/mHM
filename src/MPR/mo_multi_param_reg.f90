@@ -534,8 +534,9 @@ contains
               thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
       
       !>> neutron count related parameters
-      if ( processMatrix(10,1) .EQ. 2 ) &
-           call mpr_neutrons( param( processMatrix(10,3)-processMatrix(10,2)+1:processMatrix(10,3) ) , & ! IN:  global parameter set
+      if ( processMatrix(10,1) .GT. 0 ) &
+           call mpr_neutrons( processMatrix(10,1), &  ! IN: processmatrix case
+           param( processMatrix(10,3)-processMatrix(10,2)+1:processMatrix(10,3) ) , & ! IN:  global parameter set
            soilDB%is_present       , & ! IN:  flag indicating presence of soil
            soilDB%nHorizons        , & ! IN:  Number of Horizons of Soiltype
            soilDB%nTillHorizons    , & ! IN:  Number of tillage Horizons
@@ -548,9 +549,10 @@ contains
            COSMIC_L3               , & ! OUT: COSMIC parameter L3
            latWat                    & ! OUT: COSMIC parameter Lattice Water
            )
+      
 
 
-      call mpr_SMhorizons(param(iStart2 : iEnd2), processMatrix, &
+      call mpr_SMhorizons(param(iStart2:iEnd2), processMatrix, &
               iFlag_soilDB, nSoilHorizons_mHM, HorizonDepth_mHM, &
               LCover0(:, iiLC), soilId0, &
               soilDB%nHorizons, soilDB%nTillHorizons, &
@@ -566,8 +568,6 @@ contains
               bulkDens1(:,:,iiLC), latticeWater1(:,:,iiLC), COSMICL31(:,:,iiLC) &
               )
 
-      
-      
       deallocate(thetaS_till)
       deallocate(thetaFC_till)
       deallocate(thetaPW_till)

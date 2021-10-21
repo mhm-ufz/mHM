@@ -187,7 +187,9 @@ slope_factor                       =     0.1,        100.,           30.,     0,
 ! DESILET version
 ! THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
 &neutrons1
-Desilets_N0                        =  300.0,       2000.0,        1500.0,     0,       1
+Desilets_N0                 =  300.0,       2000.0,        1500.0,    0,       1
+Desilets_LW0                =    0.0,          0.2,       0.1783,     0,       1
+Desilets_LW1                =    0.0,         0.05,          0.0,     0,       1
 /
 
 ! ground albedo neutrons

@@ -84,7 +84,8 @@ contains
   !>        \date Dec 2017
 
 
-  subroutine mpr_neutrons( param , & ! IN:  global parameter set
+  subroutine mpr_neutrons( process_case, & ! IN: process case
+       param               , & ! IN:  global parameter set
        is_present          , & ! IN:  flag indicating presence of soil
        nHorizons           , & ! IN:  Number of Horizons of Soiltype
        nTillHorizons       , & ! IN:  Number of tillage Horizons
@@ -100,13 +101,14 @@ contains
 
     ! lots of lines copy-pasted from mo_mpr_soilmoist.f90
     use mo_message,              only: message
-    use mo_mpr_global_variables, only : iFlag_soilDB
+    use mo_mpr_global_variables, only: iFlag_soilDB
     !$  use omp_lib
 
     implicit none
 
     ! Input --------------------------------------------------------------------
-    real(dp),    dimension(9),     intent(in)  :: param        ! global parameters
+    integer(i4),                   intent(in)  :: process_case ! process case
+    real(dp),    dimension(:),     intent(in)  :: param        ! global parameters   !! dim = 3 for case 1 and 9 for case 2 
     integer(i4), dimension(:),     intent(in)  :: is_present   ! indicates whether soiltype is present
     integer(i4), dimension(:),     intent(in)  :: nHorizons    ! Number of Horizons per soiltype
     integer(i4), dimension(:),     intent(in)  :: nTillHorizons! Number of Tillage Horizons
@@ -128,11 +130,12 @@ contains
     integer(i4)                               :: l               ! loop index
     integer(i4)                               :: tmp_minSoilHorizon
 
+
     tmp_minSoilHorizon = minval(nTillHorizons(:))
 
     COSMIC_L3_till  = 0.0_dp
-    latWat_till     = 0.0_dp
     COSMIC_L3       = 0.0_dp
+    latWat_till     = 0.0_dp
     latWat          = 0.0_dp
 
     ! select case according to a given soil database flag
@@ -147,13 +150,19 @@ contains
                 if ( j .le. nTillHorizons(i) ) then
                    ! LC class
                    do L = 1, maxval( LCOVER0 )
-                      call calcL3(param(6:7), Db(i,j,L), COSMIC_L3_till(i,j,L))
-                      call latticeWater(param(8:9), clay(i,j), latWat_till(i,j,L))
+                      if(process_case .EQ. 1) call latticeWater(param(2:3), clay(i,j), latWat_till(i,j,L))
+                      if(process_case .EQ. 2) then
+                         call calcL3(param(6:7), Db(i,j,L), COSMIC_L3_till(i,j,L))
+                         call latticeWater(param(8:9), clay(i,j), latWat_till(i,j,L))
+                      end if
                    end do
                 ! deeper layers
                 else
-                   call calcL3(param(6:7), DbM(i,j), COSMIC_L3(i,j-tmp_minSoilHorizon))
-                   call latticeWater(param(8:9), clay(i,j), latWat(i,j-tmp_minSoilHorizon))
+                   if(process_case .EQ. 1) call latticeWater(param(2:3), clay(i,j), latWat(i,j-tmp_minSoilHorizon))
+                   if(process_case .EQ. 2) then
+                      call calcL3(param(6:7), DbM(i,j), COSMIC_L3(i,j-tmp_minSoilHorizon))
+                      call latticeWater(param(8:9), clay(i,j), latWat(i,j-tmp_minSoilHorizon))
+                   end if
                 end if
              end do horizon
           end do
@@ -167,14 +176,20 @@ contains
              do j = 1, 1   
                 ! tillage horizons properties depending on the LC class
                 do L = 1, maxval( LCOVER0 )
-                   call calcL3(param(6:7), Db(i,j,L), COSMIC_L3_till(i,j,L))
-                   call latticeWater(param(8:9), clay(i,j), latWat_till(i,j,L))
+                   if(process_case .EQ. 1) call latticeWater(param(2:3), clay(i,j), latWat_till(i,j,L))
+                   if(process_case .EQ. 2) then
+                      call calcL3(param(6:7), Db(i,j,L), COSMIC_L3_till(i,j,L))
+                      call latticeWater(param(8:9), clay(i,j), latWat_till(i,j,L))
+                   end if
                 end do
                 
                 ! *** FOR NON-TILLAGE TYPE OF SOILS ***
                 ! note j = 1
-                call calcL3(param(6:7), DbM(i,j), COSMIC_L3(i,j))
-                call latticeWater(param(8:9), clay(i,j), latWat(i,j))
+                if(process_case .EQ. 1) call latticeWater(param(2:3), clay(i,j), latWat(i,j))
+                if(process_case .EQ. 2) then
+                   call calcL3(param(6:7), DbM(i,j), COSMIC_L3(i,j))
+                   call latticeWater(param(8:9), clay(i,j), latWat(i,j))
+                end if
 
              end do  !>> HORIZON
           end do   !>> SOIL TYPE
@@ -190,15 +205,16 @@ contains
 
   !!>> L3 parameter
   subroutine calcL3(param, bulkDensity, L3)
-    ! param( 1) = COSMIC_L30
-    ! param( 2) = COSMIC_L31
+    ! param(1) = COSMIC_L30
+    ! param(2) = COSMIC_L31
     implicit none
     real(dp), dimension(2),  intent(in)       :: param
     real(dp),                intent(in)       :: bulkDensity
     real(dp),                intent(inout)    :: L3
+    !
     L3 = bulkDensity*param(1) - param(2)
-    if( bulkDensity .LT. 0.4 ) then ! bulkDensity<0.39 yields negative L3, bulkDensity=0.39 yields L3=0
-       L3 = 1.0 ! Prevent division by zero later on; added by joost Iwema to COSMIC 1.13, Feb. 2017
+    if( bulkDensity .LT. 0.4_dp ) then ! bulkDensity<0.39 yields negative L3, bulkDensity=0.39 yields L3=0
+       L3 = 1.0_dp ! Prevent division by zero later on; added by joost Iwema to COSMIC 1.13, Feb. 2017
     endif
     !
   end subroutine calcL3
@@ -206,8 +222,8 @@ contains
 
   !!>>>> lattice water
   subroutine latticeWater( param, clay, latWat )
-    ! param( 1) = COSMIC_LW0
-    ! param( 2) = COSMIC_LW1
+    ! param(1) = COSMIC_LW0 or deslet_LW0
+    ! param(2) = COSMIC_LW1 or deslet_LW0
     implicit none
     ! Input
     real(dp), dimension(2), intent(in)  :: param
