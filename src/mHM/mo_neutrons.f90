@@ -107,7 +107,6 @@ CONTAINS
     real(dp), dimension(:),          intent(in)    :: latWater
     real(dp),                        intent(in)    :: N0           ! from global parameters
     real(dp),                        intent(inout) :: neutrons
-<<<<<<< HEAD
     ! local variables
     integer(i4)                                    :: nLayers, LL, nn, nIntervals
     real(dp), dimension(:), allocatable            :: Layer_min, Layer_max, Layer_depth 
@@ -182,17 +181,9 @@ CONTAINS
     ! calculate neutron count based on depth weighted SM of *D86*
     neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (average_swc + Desilets_a2) )
 
-    
-    !! deallocate variables
+     !! deallocate variables
     deallocate(Layer_min, Layer_max, Layer_depth, cummulative_Layer_weight)
-
-    !
-=======
-
-    ! only use first soil layer
-    neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (SoilMoisture(1)/Horizons(1) + Desilets_a2) )
     
->>>>>>> 696c95d82c6973726bcc85b49f97487519b235c2
   end subroutine DesiletsN0
   ! -----------------------------------------------------------------------------------
   !     NAME
