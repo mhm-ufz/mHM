@@ -107,6 +107,7 @@ CONTAINS
     real(dp), dimension(:),          intent(in)    :: latWater
     real(dp),                        intent(in)    :: N0           ! from global parameters
     real(dp),                        intent(inout) :: neutrons
+<<<<<<< HEAD
     ! local variables
     integer(i4)                                    :: nLayers, LL, nn, nIntervals
     real(dp), dimension(:), allocatable            :: Layer_min, Layer_max, Layer_depth 
@@ -186,8 +187,13 @@ CONTAINS
     deallocate(Layer_min, Layer_max, Layer_depth, cummulative_Layer_weight)
 
     !
-  end subroutine DesiletsN0
+=======
 
+    ! only use first soil layer
+    neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (SoilMoisture(1)/Horizons(1) + Desilets_a2) )
+    
+>>>>>>> 696c95d82c6973726bcc85b49f97487519b235c2
+  end subroutine DesiletsN0
   ! -----------------------------------------------------------------------------------
   !     NAME
   !         COSMIC
@@ -384,6 +390,10 @@ CONTAINS
   end subroutine COSMIC
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 696c95d82c6973726bcc85b49f97487519b235c2
   
   subroutine loopConstants(ll,&
                     SoilMoisture,L1_bulkDens,L1_latticeWater,&
