@@ -94,6 +94,8 @@ CONTAINS
   !     HISTORY
   !>        \author Martin Schroen
   !>        \date Mar 2015
+  !>        Modified Rohini Kumar         Oct 2021 - Vertical weighting approach
+  !>                                      for the Neutron count module to mHM - develop branch 
 
   subroutine DesiletsN0(SoilMoisture, Horizon_depth, Bd, latWater, N0, neutrons)
 
@@ -250,7 +252,7 @@ CONTAINS
   !     HISTORY
   !>        \author Martin Schroen, originally written by Rafael Rosolem
   !>        \date Mar 2015
-  
+  !>         Rohini Kumar                  Oct 2021 - Neutron count module to mHM (5.11.2) - develop branch 
   subroutine COSMIC(SoilMoisture, Horizons, neutron_integral_AFast, &
        interc, snowpack, &
        L1_N0, L1_bulkDens, L1_latticeWater, L1_COSMICL3, &

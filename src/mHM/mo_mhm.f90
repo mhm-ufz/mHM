@@ -201,7 +201,7 @@ CONTAINS
   ! Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval
   ! Robert Schweppe                 Jun 2018 - refactoring and reformatting
   ! Robert Schweppe                 Nov 2018 - added c2TSTu for unit conversion (moved here from MPR)
-
+  ! Rohini Kumar                    Oct 2021 - Neutron count module to mHM integrate into develop branch (5.11.2)
   subroutine mHM(read_states, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
                 c2TSTu, neutron_integral_AFast, &
                 latitude, evap_coeff, fday_prec, fnight_prec, fday_pet, &

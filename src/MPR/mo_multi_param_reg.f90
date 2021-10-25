@@ -125,6 +125,7 @@ contains
   ! Robert Schweppe          Dec 2017 - added loop over LCscenes inside MPR, renamed variables rewrite
   ! Robert Schweppe          Jun 2018 - refactoring and reformatting
   ! Demirel M.C. & S. Stisen Jun 2020 - Added Feddes and global FC dependency on root fraction coefficient at SM process(3)=4
+  ! Rohini Kumar             Oct 2021 - Added Neutron count module to mHM integrate into develop branch (5.11.2)
 
   subroutine mpr(mask0, geoUnit0, soilId0, Asp0, gridded_LAI0, LCover0, slope_emp0, y0, Id0, upper_bound1, lower_bound1, &
                 left_bound1, right_bound1, n_subcells1, fSealed1, alpha1, degDayInc1, degDayMax1, degDayNoPre1, fAsp1, &

@@ -96,6 +96,7 @@ contains
   ! Rohini Kumar   Mar 2016 - changes for handling multiple soil database options
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
+  ! Rohini Kumar                    Oct 2021 - Neutron count module to mHM integrate into develop branch (5.11.2)
 
   subroutine mpr_sm(param, processMatrix, is_present, nHorizons, nTillHorizons, sand, clay, DbM, ID0, soilId0, LCover0, &
                    thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)

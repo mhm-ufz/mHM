@@ -13,6 +13,7 @@
 ! Robert Schweppe Dec 2017 - adapted for MPR
 ! Robert Schweppe Jun 2018 - refactoring and reformatting
 ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
+! Rohini Kumar                    Oct 2021 - Added Neutron count module to mHM integrate into develop branch (5.11.2)
 module mo_mpr_read_config
 
   use mo_kind, only : i4, dp
@@ -50,6 +51,7 @@ contains
   ! Stephan Thober  Sep 2015 - removed stop condition when routing resolution is smaller than hydrologic resolution
   ! Stephan Thober  Oct 2015 - added NLoutputResults namelist, fileLatLon to directories_general namelist, and readLatLon flag
   ! Robert Schweppe Dec 2017 - adapted for MPR
+  !  Rohini Kumar   Oct 2021 - Added Neutron count module to mHM integrate into develop branch (5.11.2)
 
   subroutine mpr_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
 

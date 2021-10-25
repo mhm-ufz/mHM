@@ -202,6 +202,9 @@ CONTAINS
   !>       \authors Robert Schweppe
 
   !>       \date Jun 2018
+  !> Rohini Kumar             Oct 2021 - Added Neutron count module
+  !                                      to mHM integrate into develop branch (5.11.2)
+  
 
   ! Modifications:
 

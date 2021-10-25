@@ -396,7 +396,8 @@ CONTAINS
   ! S. Thober          Aug 2015 - removed routing related variables
   ! Zink M. Demirel C. Mar 2017 - Init Jarvis soil water stress variable at SM process(3)
   ! Robert Schweppe    Dec 2017 - restructured allocation in variables_alloc, expanded dimensions of effective parameters
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Robert Schweppe    Jun 2018 - refactoring and reformatting
+  ! Rohini Kumar       Oct 2021 - Added Neutron count module to mHM integrate into develop branch (5.11.2)
 
   subroutine init_eff_params(ncells1)
 
