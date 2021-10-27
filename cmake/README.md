@@ -56,7 +56,7 @@ Copied from [NOAA-EMC/CMakeModules](https://github.com/NOAA-EMC/CMakeModules/blo
 Can be used like:
 ```cmake
 find_package(NetCDF COMPONENTS Fortran)
-target_link_libraries(<lib_name> PUBLIC NetCDF::NetCDF_Fortran)
+target_link_libraries(<target> PUBLIC NetCDF::NetCDF_Fortran)
 ```
 
 ### `version.cmake`
@@ -66,6 +66,24 @@ Can be included and used with (`PROJECT_VER_DEV` will hold the develop version s
 ```cmake
 include(version)
 get_version(PROJECT_VER PROJECT_VER_DEV PROJECT_DATE)
+```
+
+### `CPM.cmake` (v0.34.0)
+CPM.cmake is a CMake script that adds dependency management capabilities to CMake.
+It's built as a thin wrapper around CMake's [FetchContent](https://cmake.org/cmake/help/latest/module/FetchContent.html)
+module that adds version control, caching, a simple API [and more](#comparison-to-pure-fetchcontent--externalproject).
+
+Copied from: https://github.com/cpm-cmake/CPM.cmake
+
+Can be used like:
+```cmake
+include(CPM)
+CPMAddPackage(
+  NAME            forces
+  GIT_REPOSITORY  https://git.ufz.de/chs/forces.git
+  GIT_TAG         v0.1.0
+)
+target_link_libraries(<project> PUBLIC forces)
 ```
 
 ## Cmake Cache Files
