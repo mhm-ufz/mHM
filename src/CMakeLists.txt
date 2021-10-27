@@ -10,6 +10,7 @@ file(GLOB sources_common ./common/*mo_*.*90)
 file(GLOB sources_mpr ./MPR/*mo_*.*90)
 list(APPEND sources ${sources_mhm} ${sources_mrm} ${sources_common} ${sources_common_mHM_mRM} ${sources_mpr})
 add_library(${LIB_NAME} ${sources})
+target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 set (FORCES_NAME forces)
 find_package(${FORCES_NAME})
@@ -26,44 +27,29 @@ if(NOT ${FORCES_NAME}_FOUND)
 endif()
 target_link_libraries(${LIB_NAME} PUBLIC ${FORCES_NAME})
 
-set (MPR_NAME MPR)
-find_package(${MPR_NAME})
-if(NOT ${MPR_NAME}_FOUND)
-  FetchContent_Declare(
-    ${MPR_NAME}
-    GIT_REPOSITORY https://git.ufz.de/chs/mpr.git
-    GIT_TAG        1.0.2
-  )
-  set (${MPR_NAME}_BUILD_TESTING OFF)
-  FetchContent_MakeAvailable(${MPR_NAME})
-endif()
+# set (MPR_NAME MPR)
+# find_package(${MPR_NAME})
+# if(NOT ${MPR_NAME}_FOUND)
+#   FetchContent_Declare(
+#     ${MPR_NAME}
+#     GIT_REPOSITORY https://git.ufz.de/chs/mpr.git
+#     GIT_TAG        1.0.2
+#   )
+#   set (${MPR_NAME}_BUILD_TESTING OFF)
+#   FetchContent_MakeAvailable(${MPR_NAME})
+# endif()
 # target_link_libraries(${LIB_NAME} PUBLIC ${MPR_NAME})
 
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
 include(compileoptions)
-# add MPI pre-processor directive (also for mhm exe)
 if (CMAKE_WITH_MPI)
   target_compile_definitions(${LIB_NAME} PUBLIC MPI)
+  target_link_libraries(${LIB_NAME} PUBLIC MPI::MPI_Fortran)
 endif()
-# all compile and link options are PUBLIC in order to be forwared to 'mhm' exe
-# target_link_options only available in cmake 3.13 (but NETCDF_LDFLAGS_OTHER not working)
-set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS
-  "${MPI_Fortran_LINK_FLAGS} ${OpenMP_Fortran_FLAGS} ${LAPACK_LINKER_FLAGS}"
-)
-target_compile_options(${LIB_NAME} PUBLIC
-  ${MPI_Fortran_COMPILE_FLAGS}
-  ${OpenMP_Fortran_FLAGS}
-)
-target_include_directories(${LIB_NAME} PUBLIC
-  ${MPI_Fortran_INCLUDE_PATH}
-  ${OpenMP_Fortran_LIBRARY}
-  ${CMAKE_CURRENT_BINARY_DIR} # needed for mhm exe
-)
-target_link_libraries(${LIB_NAME} PUBLIC
-  ${MPI_Fortran_LIBRARIES}
-  ${OpenMP_Fortran_LIBRARIES}
-  ${LAPACK_LIBRARIES}
-)
+if (CMAKE_WITH_OpenMP)
+  target_link_libraries(${LIB_NAME} PUBLIC OpenMP::OpenMP_Fortran)
+endif()
+
 # by setting compile options and definitions PUBLIC, they are also used by
 # programms linking agains it (mhm exe in this case)
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
