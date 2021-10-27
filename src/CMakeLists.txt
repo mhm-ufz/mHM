@@ -17,6 +17,7 @@ CPMAddPackage(
   NAME            forces
   GIT_REPOSITORY  https://git.ufz.de/chs/forces.git
   GIT_TAG         fix_error_message
+  SOURCE_SUBDIR  src
   OPTIONS
     "BUILD_TESTING OFF"
 )
