@@ -12,33 +12,15 @@ list(APPEND sources ${sources_mhm} ${sources_mrm} ${sources_common} ${sources_co
 add_library(${LIB_NAME} ${sources})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-set (FORCES_NAME forces)
-find_package(${FORCES_NAME})
-
-if(NOT ${FORCES_NAME}_FOUND)
-  FetchContent_Declare(
-    ${FORCES_NAME}
-    GIT_REPOSITORY https://git.ufz.de/chs/forces.git
-    GIT_TAG        fix_error_message
-    SOURCE_SUBDIR  src
-  )
-  set (${FORCES_NAME}_BUILD_TESTING OFF)
-  FetchContent_MakeAvailable(${FORCES_NAME})
-endif()
-target_link_libraries(${LIB_NAME} PUBLIC ${FORCES_NAME})
-
-# set (MPR_NAME MPR)
-# find_package(${MPR_NAME})
-# if(NOT ${MPR_NAME}_FOUND)
-#   FetchContent_Declare(
-#     ${MPR_NAME}
-#     GIT_REPOSITORY https://git.ufz.de/chs/mpr.git
-#     GIT_TAG        1.0.2
-#   )
-#   set (${MPR_NAME}_BUILD_TESTING OFF)
-#   FetchContent_MakeAvailable(${MPR_NAME})
-# endif()
-# target_link_libraries(${LIB_NAME} PUBLIC ${MPR_NAME})
+include(CPM)
+CPMAddPackage(
+  NAME            forces
+  GIT_REPOSITORY  https://git.ufz.de/chs/forces.git
+  GIT_TAG         fix_error_message
+  OPTIONS
+    "BUILD_TESTING OFF"
+)
+target_link_libraries(${LIB_NAME} PUBLIC forces)
 
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
 include(compileoptions)
