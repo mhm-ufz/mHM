@@ -9,7 +9,12 @@ file(GLOB sources_mrm ./mRM/*mo_*.*90)
 file(GLOB sources_common ./common/*mo_*.*90)
 file(GLOB sources_mpr ./MPR/*mo_*.*90)
 list(APPEND sources ${sources_mhm} ${sources_mrm} ${sources_common} ${sources_common_mHM_mRM} ${sources_mpr})
-add_library(${LIB_NAME} ${sources})
+option(BUILD_MHM_LIB_SHARED "Build mhm library as shared." OFF)
+if(BUILD_MHM_LIB_SHARED)
+  add_library(${LIB_NAME} SHARED ${sources})
+else()
+  add_library(${LIB_NAME} STATIC ${sources})
+endif()
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 include(CPM)
@@ -17,10 +22,11 @@ CPMAddPackage(
   NAME            forces
   GIT_REPOSITORY  https://git.ufz.de/chs/forces.git
   GIT_TAG         fix_error_message
-  SOURCE_SUBDIR  src
-  OPTIONS
-    "BUILD_TESTING OFF"
+  OPTIONS         "BUILD_TESTING OFF"
 )
+if(BUILD_MHM_LIB_SHARED)
+  set_property(TARGET forces PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
 target_link_libraries(${LIB_NAME} PUBLIC forces)
 
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
