@@ -76,53 +76,14 @@
 ! Robert Schweppe               Jun 2018 - refactoring and reformatting
 ! Maren Kaluza                  Oct 2019 - TWS to data structure
 ! M.C. Demirel, Simon Stisen    Jun 2020 - New Soil Moisture Process: Feddes and FC dependency on root fraction coefficient processCase(3) = 4
+! Sebastian Müller              Nov 2021 - refactoring driver to use provided interfaces
 PROGRAM mhm_driver
-
-  use mo_optimization_types, only: &
-          optidata ! type for opti data
-  use mo_common_variables, only: &
-#ifdef MPI
-          comm, &
-#endif
-          optimize                                   ! optimization on/off and optimization method
-  use mo_kind, only: i4                         ! number precision
-  use mo_meteo_forcings, only: prepare_meteo_forcings_data
-  use mo_mhm_eval, only: mhm_eval
-  use mo_read_optional_data, only: readOptidataObs ! read optional observed data
-  use mo_common_read_config, only: common_read_config, &       ! Read main configuration files
-                                    check_optimization_settings ! Read main configuration files
-  use mo_mhm_read_config, only: mhm_read_config                    ! Read main configuration files
-  use mo_restart, only: write_restart_files
-  use mo_startup, only: mhm_initialize
-  use mo_string_utils, only: num2str             ! String magic
-  use mo_timer, only: &
-          timers_init, timer_start, timer_stop, timer_get              ! Timing of processes
-  use mo_write_ascii, only: &
-          write_configfile, &      ! Writing Configuration file
-          write_optifile, &      ! Writing optimized parameter set and objective
-          write_optinamelist     ! Writing optimized parameter set to a namelist
-  use mo_objective_function, only: &
-#ifdef MPI
-          objective_subprocess, &
-          objective_master, &
-#endif
-          objective                 ! objective functions and likelihoods
-  use mo_optimization, only: optimization
-  use mo_mrm_objective_function_runoff, only: &
-#ifdef MPI
-          single_objective_runoff_master, &
-          single_objective_runoff_subprocess, &
-#endif
-          single_objective_runoff
-  use mo_mrm_init, only: mrm_init, mrm_configuration
-  use mo_mrm_write, only : mrm_write
-
-#ifdef MPI
-  use mpi_f08
-#endif
-
+  use mo_common_variables, only: optimize
+  use mo_common_mpi_tools, only: &
+    mpi_tools_init, &
+    mpi_tools_finalize
   use mo_mhm_cli, only: parse_command_line
-  use mo_mhm_messages, only: startup_message, domain_dir_check_message, finish_message
+  use mo_mhm_messages, only: finish_message
   use mo_mhm_interface, only: &
     mhm_interface_init, &
     mhm_interface_run, &
@@ -131,24 +92,8 @@ PROGRAM mhm_driver
 
   IMPLICIT NONE
 
-  procedure(mhm_eval), pointer :: eval
-  procedure(objective), pointer :: obj_func
-
-  ! MPI variables
-  integer             :: ierror
-  integer(i4)         :: nproc, rank, oldrank
-
-#ifdef MPI
-  ! Initialize MPI
-  call MPI_Init(ierror)
-  call MPI_Comm_dup(MPI_COMM_WORLD, comm, ierror)
-  ! find number of processes nproc
-  call MPI_Comm_size(comm, nproc, ierror)
-  ! find the number the process is referred to, called rank
-  call MPI_Comm_rank(comm, rank, ierror)
-  oldrank = rank
-  write(*,*) 'MPI!, comm', rank, nproc
-#endif
+  ! setup MPI if wanted
+  call mpi_tools_init()
 
   ! parse command line arguments
   call parse_command_line()
@@ -156,9 +101,7 @@ PROGRAM mhm_driver
   ! initialize mhm
   call mhm_interface_init()
 
-  ! --------------------------------------------------------------------------
   ! RUN OR OPTIMIZE
-  ! --------------------------------------------------------------------------
   if (optimize) then
     call mhm_interface_run_optimization()
   else
@@ -166,20 +109,10 @@ PROGRAM mhm_driver
     call mhm_interface_run()
   end if
 
-  ! WRITE RESTART files and RUNOFF
+  ! WRITE RESTART files and RUNOFF and finish
   call mhm_interface_finalize()
 
-  ! --------------------------------------------------------------------------
-  ! FINISH UP
-  ! --------------------------------------------------------------------------
-  call finish_message()
-
-#ifdef MPI
-  ! find number of processes nproc
-  call MPI_Comm_size(comm, nproc, ierror)
-  call MPI_Comm_rank(comm, rank, ierror)
-  write(*,*) 'MPI finished', rank, nproc
-  call MPI_Finalize(ierror)
-#endif
+  ! finalize MPI
+  call mpi_tools_finalize()
 
 END PROGRAM mhm_driver

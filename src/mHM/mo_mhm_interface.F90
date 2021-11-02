@@ -228,8 +228,10 @@ contains
   !> \brief Run mHM with current settings.
   subroutine mhm_interface_run()
     use mo_common_variables, only: &
-      itimer, &
+#ifdef MPI
       domainMeta, &
+#endif
+      itimer, &
       global_parameters
     use mo_timer, only: &
       timer_start, &
@@ -396,11 +398,13 @@ contains
   !> \brief Write mHM restart.
   subroutine mhm_interface_finalize()
     use mo_common_variables, only: &
+#ifdef MPI
+      domainMeta, &
+#endif
       itimer, &
       optimize, &
       mhmFileRestartOut, &
       write_restart, &
-      domainMeta, &
       processMatrix
     use mo_timer, only: &
       timer_start, &
@@ -408,6 +412,7 @@ contains
       timer_get
     use mo_restart, only: write_restart_files
     use mo_mrm_write, only : mrm_write
+    use mo_mhm_messages, only: finish_message
 
     implicit none
     ! MPI variables
@@ -443,6 +448,8 @@ contains
 #ifdef MPI
     end if
 #endif
+
+    call finish_message()
 
   end subroutine mhm_interface_finalize
 
