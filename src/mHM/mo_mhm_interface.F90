@@ -10,8 +10,12 @@
 module mo_mhm_interface
 
   use mo_kind, only: i4, dp
-  use mo_message, only: message
+  use mo_message, only: message, error_message
   use mo_string_utils, only: num2str, separator
+
+#ifdef MPI
+  use mpi_f08
+#endif
 
   implicit none
 
@@ -21,7 +25,8 @@ module mo_mhm_interface
   public :: mhm_interface_get_parameter
   public :: mhm_interface_get_parameter_number
   public :: mhm_interface_run
-  public :: mhm_interface_write_restart
+  public :: mhm_interface_run_optimization
+  public :: mhm_interface_finalize
 
 contains
 
@@ -70,10 +75,6 @@ contains
     use mo_meteo_forcings, only: prepare_meteo_forcings_data
     use mo_read_optional_data, only: readOptidataObs
     use mo_write_ascii, only: write_configfile
-
-#ifdef MPI
-    use mpi_f08
-#endif
 
 #ifdef NAG
     use f90_unix_dir, only: chdir
@@ -228,6 +229,7 @@ contains
   subroutine mhm_interface_run()
     use mo_common_variables, only: &
       itimer, &
+      domainMeta, &
       global_parameters
     use mo_timer, only: &
       timer_start, &
@@ -237,28 +239,168 @@ contains
 
     implicit none
 
+    ! MPI variables
+    integer             :: ierror
+    integer(i4)         :: nproc, rank
+
+#ifdef MPI
+    call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
+    ! find the number the process is referred to, called rank
+    call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
+#endif
+
+    itimer = itimer + 1
+
     ! --------------------------------------------------------------------------
     ! call mHM
     ! get runoff timeseries if possible (i.e. when domainMeta%doRouting,
     ! processMatrix(8,1) > 0)
     ! get other model outputs  (i.e. gridded fields of model output)
     ! --------------------------------------------------------------------------
+
+#ifdef MPI
+    if (rank > 0 .and. domainMeta%isMasterInComLocal) then
+#endif
+
     call message('  Run mHM')
     call timer_start(itimer)
     call mhm_eval(global_parameters(:, 3))
     call timer_stop(itimer)
     call message('    in ', trim(num2str(timer_get(itimer), '(F12.3)')), ' seconds.')
 
+#ifdef MPI
+    endif
+#endif
+
   end subroutine mhm_interface_run
 
+  !> \brief Run mHM optimization with current settings.
+  subroutine mhm_interface_run_optimization()
+    use mo_common_variables, only: &
+#ifdef MPI
+      domainMeta, &
+#endif
+      itimer, &
+      opti_function, &
+      dirConfigOut, &
+      global_parameters,&
+      global_parameters_name, &
+      processMatrix     ! domain information,  processMatrix
+    use mo_timer, only: &
+      timer_start, &
+      timer_stop, &
+      timer_get
+    use mo_mhm_eval, only: mhm_eval
+    use mo_objective_function, only: &
+#ifdef MPI
+      objective_subprocess, &
+      objective_master, &
+#endif
+      objective
+    use mo_optimization, only: optimization
+    use mo_mrm_objective_function_runoff, only: &
+#ifdef MPI
+      single_objective_runoff_master, &
+      single_objective_runoff_subprocess, &
+#endif
+      single_objective_runoff
+    use mo_write_ascii, only: &
+      write_optifile, &      ! Writing optimized parameter set and objective
+      write_optinamelist     ! Writing optimized parameter set to a namelist
+
+    implicit none
+
+    procedure(mhm_eval), pointer :: eval
+    procedure(objective), pointer :: obj_func
+
+    real(dp) :: funcbest         ! best objective function achivied during optimization
+    logical, dimension(:), allocatable :: maskpara ! true  = parameter will be optimized, = parameter(i,4) = 1
+    !                                              ! false = parameter will not be optimized = parameter(i,4) = 0
+    ! MPI variables
+    integer             :: ierror
+    integer(i4)         :: nproc, rank, oldrank
+
+#ifdef MPI
+    call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
+    ! find the number the process is referred to, called rank
+    call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
+#endif
+
+    itimer = itimer + 1
+    call message('  Run mHM optimization')
+    call timer_start(itimer)
+
+    eval => mhm_eval
+
+    select case(opti_function)
+      case(1 : 9, 14, 31 : 32)
+        ! call optimization against only runoff (no other variables)
+        obj_func => single_objective_runoff
+#ifdef MPI
+        if (rank == 0 .and. domainMeta%isMasterInComLocal) then
+          obj_func => single_objective_runoff_master
+          call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
+        else if (domainMeta%isMasterInComLocal) then
+          ! In case of a master process from ComLocal, i.e. a master of a group of
+          ! processes that are assigned to a single domain, this process calls the
+          ! objective subroutine directly. The master over all processes collects
+          ! the data and runs the dds/sce/other opti method.
+          call single_objective_runoff_subprocess(eval)
+        end if
+#else
+        call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
+#endif
+
+      case(10 : 13, 15, 17, 27, 28, 29, 30, 33)
+        ! call optimization for other variables
+        obj_func => objective
+#ifdef MPI
+        if (rank == 0 .and. domainMeta%isMasterInComLocal) then
+          obj_func => objective_master
+          call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
+        else if (domainMeta%isMasterInComLocal) then
+          ! In case of a master process from ComLocal, i.e. a master of a group of
+          ! processes that are assigned to a single domain, this process calls the
+          ! objective subroutine directly. The master over all processes collects
+          ! the data and runs the dds/sce/other opti method.
+          call objective_subprocess(eval)
+        end if
+#else
+        call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
+#endif
+
+      case default
+        call error_message('***ERROR: mhm_driver: The given objective function number ', &
+                           trim(adjustl(num2str(opti_function))), ' in mhm.nml is not valid!')
+    end select
+
+#ifdef MPI
+    if (rank == 0 .and. domainMeta%isMasterInComLocal) then
+#endif
+
+    ! write a file with final objective function and the best parameter set
+    call write_optifile(funcbest, global_parameters(:, 3), global_parameters_name(:))
+    ! write a file with final best parameter set in a namlist format
+    call write_optinamelist(processMatrix, global_parameters, maskpara, global_parameters_name(:))
+    deallocate(maskpara)
+
+#ifdef MPI
+    end if
+#endif
+
+    call timer_stop(itimer)
+    call message('    in ', trim(num2str(timer_get(itimer), '(F12.3)')), ' seconds.')
+
+  end subroutine mhm_interface_run_optimization
 
   !> \brief Write mHM restart.
-  subroutine mhm_interface_write_restart()
+  subroutine mhm_interface_finalize()
     use mo_common_variables, only: &
       itimer, &
       optimize, &
       mhmFileRestartOut, &
       write_restart, &
+      domainMeta, &
       processMatrix
     use mo_timer, only: &
       timer_start, &
@@ -268,6 +410,16 @@ contains
     use mo_mrm_write, only : mrm_write
 
     implicit none
+    ! MPI variables
+    integer             :: ierror
+    integer(i4)         :: nproc, rank, oldrank
+
+#ifdef MPI
+    call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
+    ! find the number the process is referred to, called rank
+    call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
+    if (rank > 0 .and. domainMeta%isMasterInComLocal) then
+#endif
 
     ! --------------------------------------------------------------------------
     ! WRITE RESTART files
@@ -288,6 +440,10 @@ contains
     ! --------------------------------------------------------------------------
     if (processMatrix(8, 1) > 0) call mrm_write()
 
-  end subroutine mhm_interface_write_restart
+#ifdef MPI
+    end if
+#endif
+
+  end subroutine mhm_interface_finalize
 
 end module mo_mhm_interface

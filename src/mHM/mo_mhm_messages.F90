@@ -153,6 +153,7 @@ contains
       call check_dir(dirOut(iDomain), "Output directory:", .true., 4, 30)
       call message()
     end do
+    call message()
 
   end subroutine domain_dir_check_message
 
@@ -160,7 +161,6 @@ contains
   subroutine finish_message()
     use mo_common_variables, only: domainMeta
     use mo_common_datetime_type, only: simPer, nTstepDay
-    use mo_finish, only: finish
 
     implicit none
 
@@ -178,7 +178,9 @@ contains
             // ":" // trim(num2str(datetime(6), '(I2.2)')) // ":" // trim(num2str(datetime(7), '(I2.2)'))
     call message('Finished at ', trim(message_text), '.')
     call message()
-    call finish('mHM', 'Finished!')
+    call message(separator)
+    call message('mHM: Finished!')
+    call message(separator)
 
   end subroutine finish_message
 

@@ -81,19 +81,11 @@ PROGRAM mhm_driver
   use mo_optimization_types, only: &
           optidata ! type for opti data
   use mo_common_variables, only: &
-          itimer, &
-          optimize, opti_function, &                                   ! optimization on/off and optimization method
-          write_restart, &      ! restart writing flags
-          mhmFileRestartOut, &
-          dirConfigOut, &
-          domainMeta, &
 #ifdef MPI
           comm, &
 #endif
-          processMatrix, &      ! domain information,  processMatrix
-          global_parameters, global_parameters_name      ! mhm parameters (gamma) and their clear names
-  use mo_kind, only: i4, dp                         ! number precision
-  use mo_message, only : error_message, message          ! For print out
+          optimize                                   ! optimization on/off and optimization method
+  use mo_kind, only: i4                         ! number precision
   use mo_meteo_forcings, only: prepare_meteo_forcings_data
   use mo_mhm_eval, only: mhm_eval
   use mo_read_optional_data, only: readOptidataObs ! read optional observed data
@@ -134,14 +126,11 @@ PROGRAM mhm_driver
   use mo_mhm_interface, only: &
     mhm_interface_init, &
     mhm_interface_run, &
-    mhm_interface_write_restart
+    mhm_interface_run_optimization, &
+    mhm_interface_finalize
 
   IMPLICIT NONE
 
-  ! local
-  real(dp) :: funcbest         ! best objective function achivied during optimization
-  logical, dimension(:), allocatable :: maskpara ! true  = parameter will be optimized, = parameter(i,4) = 1
-  !                                              ! false = parameter will not be optimized = parameter(i,4) = 0
   procedure(mhm_eval), pointer :: eval
   procedure(objective), pointer :: obj_func
 
@@ -167,97 +156,18 @@ PROGRAM mhm_driver
   ! initialize mhm
   call mhm_interface_init()
 
-#ifdef MPI
-  call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
-  ! find the number the process is referred to, called rank
-  call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
-#endif
-
   ! --------------------------------------------------------------------------
   ! RUN OR OPTIMIZE
   ! --------------------------------------------------------------------------
-  itimer = itimer + 1
-  call message()
-
-  run_mhm: if (optimize) then
-    eval => mhm_eval
-
-    select case(opti_function)
-     case(1 : 9, 14, 31 : 32)
-      ! call optimization against only runoff (no other variables)
-      obj_func => single_objective_runoff
-#ifdef MPI
-      if (rank == 0 .and. domainMeta%isMasterInComLocal) then
-        obj_func => single_objective_runoff_master
-        call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
-      else if (domainMeta%isMasterInComLocal) then
-        ! In case of a master process from ComLocal, i.e. a master of a group of
-        ! processes that are assigned to a single domain, this process calls the
-        ! objective subroutine directly. The master over all processes collects
-        ! the data and runs the dds/sce/other opti method.
-        call single_objective_runoff_subprocess(eval)
-      end if
-#else
-      call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
-#endif
-     case(10 : 13, 15, 17, 27, 28, 29, 30, 33)
-      ! call optimization for other variables
-      obj_func => objective
-#ifdef MPI
-      if (rank == 0 .and. domainMeta%isMasterInComLocal) then
-        obj_func => objective_master
-        call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
-      else if (domainMeta%isMasterInComLocal) then
-        ! In case of a master process from ComLocal, i.e. a master of a group of
-        ! processes that are assigned to a single domain, this process calls the
-        ! objective subroutine directly. The master over all processes collects
-        ! the data and runs the dds/sce/other opti method.
-        call objective_subprocess(eval)
-      end if
-#else
-      call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
-#endif
-    case default
-      call error_message('***ERROR: mhm_driver: The given objective function number ', &
-              trim(adjustl(num2str(opti_function))), ' in mhm.nml is not valid!')
-    end select
-#ifdef MPI
-  if (rank == 0 .and. domainMeta%isMasterInComLocal) then
-#endif
-    ! write a file with final objective function and the best parameter set
-    call write_optifile(funcbest, global_parameters(:, 3), global_parameters_name(:))
-    ! write a file with final best parameter set in a namlist format
-    call write_optinamelist(processMatrix, global_parameters, maskpara, global_parameters_name(:))
-    deallocate(maskpara)
-#ifdef MPI
-  end if
-#endif
-
-  else run_mhm
-
-#ifdef MPI
-    if (rank > 0 .and. domainMeta%isMasterInComLocal) then
-#endif
-
+  if (optimize) then
+    call mhm_interface_run_optimization()
+  else
     ! single mhm run with current settings
     call mhm_interface_run()
-
-#ifdef MPI
-    endif
-#endif
-
-  end if run_mhm
-
-#ifdef MPI
-  if (rank > 0 .and. domainMeta%isMasterInComLocal) then
-#endif
+  end if
 
   ! WRITE RESTART files and RUNOFF
-  call mhm_interface_write_restart()
-
-#ifdef MPI
-  end if
-#endif
+  call mhm_interface_finalize()
 
   ! --------------------------------------------------------------------------
   ! FINISH UP
