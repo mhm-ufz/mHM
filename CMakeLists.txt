@@ -16,10 +16,13 @@ project(mhm
 add_compile_definitions(MHMVERSION='${MHM_VER_DEV}' MHMDATE='${MHM_DATE}')
 # Compile
 add_subdirectory(./src)  # the lib folder containing mhm_lib
-add_executable(mhm ./src/mHM/mhm_driver.F90)
-target_link_libraries(mhm PRIVATE mhm_lib)
-if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_GPROF)
-  target_link_options(mhm PUBLIC -pg)
+option(BUILD_MHM_DRIVER "Build mHM with executable driver." ON)
+if(BUILD_MHM_DRIVER)
+  add_executable(mhm ./src/mHM/mhm_driver.F90)
+  target_link_libraries(mhm PRIVATE mhm_lib)
+  if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_GPROF)
+    target_link_options(mhm PUBLIC -pg)
+  endif()
 endif()
 
 # setup coverage with GNU
