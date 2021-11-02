@@ -83,7 +83,6 @@ PROGRAM mhm_driver
     mpi_tools_init, &
     mpi_tools_finalize
   use mo_mhm_cli, only: parse_command_line
-  use mo_mhm_messages, only: finish_message
   use mo_mhm_interface, only: &
     mhm_interface_init, &
     mhm_interface_run, &

@@ -11,7 +11,7 @@ module mo_mhm_interface
 
   use mo_kind, only: i4, dp
   use mo_message, only: message, error_message
-  use mo_string_utils, only: num2str, separator
+  use mo_string_utils, only: num2str
 
 #ifdef MPI
   use mpi_f08
