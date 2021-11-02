@@ -68,9 +68,8 @@ contains
     implicit none
 
 #ifdef MPI
-    ! MPI variables
     integer             :: ierror
-    integer(i4)         :: nproc, rank, oldrank
+    integer(i4)         :: nproc, rank
 
     ! Initialize MPI
     call MPI_Init(ierror)
@@ -79,7 +78,6 @@ contains
     call MPI_Comm_size(comm, nproc, ierror)
     ! find the number the process is referred to, called rank
     call MPI_Comm_rank(comm, rank, ierror)
-    oldrank = rank
     write(*,*) 'MPI!, comm', rank, nproc
 #endif
 

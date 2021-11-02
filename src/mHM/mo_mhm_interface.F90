@@ -90,9 +90,10 @@ contains
 
     integer(i4) :: domainID, iDomain
 
-    ! MPI variables
+#ifdef MPI
     integer             :: ierror
-    integer(i4)         :: nproc, rank, oldrank
+    integer(i4)         :: nproc, rank
+#endif
 
     ! reset nml paths if wanted
     if (present(namelist_mhm)) file_namelist_mhm = namelist_mhm
@@ -107,11 +108,6 @@ contains
 
     ! read configs
     call common_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
-#ifdef MPI
-    call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
-    ! find the number the process is referred to, called rank
-    call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
-#endif
     call mhm_read_config(file_namelist_mhm, unamelist_mhm)
     call mrm_configuration(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
     call check_optimization_settings()
@@ -127,6 +123,9 @@ contains
     ! --------------------------------------------------------------------------
     itimer = 1
 #ifdef MPI
+    call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
+    ! find the number the process is referred to, called rank
+    call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
     ! ComLocal is a communicator, i.e. a group of processes assigned to the same
     ! domain, with a master and subprocesses. Only the master processes of these
     ! groups need to read the data. The master process with rank 0 only
@@ -241,11 +240,10 @@ contains
 
     implicit none
 
-    ! MPI variables
+#ifdef MPI
     integer             :: ierror
     integer(i4)         :: nproc, rank
 
-#ifdef MPI
     call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
     ! find the number the process is referred to, called rank
     call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
@@ -318,11 +316,11 @@ contains
     real(dp) :: funcbest         ! best objective function achivied during optimization
     logical, dimension(:), allocatable :: maskpara ! true  = parameter will be optimized, = parameter(i,4) = 1
     !                                              ! false = parameter will not be optimized = parameter(i,4) = 0
-    ! MPI variables
-    integer             :: ierror
-    integer(i4)         :: nproc, rank, oldrank
 
 #ifdef MPI
+    integer             :: ierror
+    integer(i4)         :: nproc, rank
+
     call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
     ! find the number the process is referred to, called rank
     call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
@@ -415,11 +413,11 @@ contains
     use mo_mhm_messages, only: finish_message
 
     implicit none
-    ! MPI variables
-    integer             :: ierror
-    integer(i4)         :: nproc, rank, oldrank
 
 #ifdef MPI
+    integer             :: ierror
+    integer(i4)         :: nproc, rank
+
     call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
     ! find the number the process is referred to, called rank
     call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
