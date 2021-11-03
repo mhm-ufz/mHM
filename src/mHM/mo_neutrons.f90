@@ -429,7 +429,7 @@ CONTAINS
      else if (ll.eq.2) then
         zthick(ll)=Horizons(ll-1)/10.0_dp
      else
-        zthick(ll)=(Horizons(ll-1)-Horizons(ll-2))/10.0_dp
+        zthick(ll)=(Horizons(ll-2) - Horizons(ll-1))/10.0_dp
      endif
   end subroutine
 
