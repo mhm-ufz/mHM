@@ -404,7 +404,7 @@ CONTAINS
     use mo_append, only : append
     use mo_constants, only : YearMonths_i4
     use mo_common_constants, only : P1_InitStateFluxes
-    use mo_common_variables, only : nLCoverScene, processMatrix
+    use mo_common_variables, only : nLCoverScene 
     use mo_mpr_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, &
                                         L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
                                         L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
@@ -486,14 +486,12 @@ CONTAINS
     call append(L1_sealedThresh, dummy_3D(:, 1 : 1, 1 : 1))
     ! Permanent wilting point
     call append(L1_wiltingPoint, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLCoverScene))
-
-   !>>>>>>>>>> neutron count related parameters <<<<<<<<<<<
-    call append(L1_No_Count,     dummy_3D(:, 1:1,                 1:1))  ! N0 count   
-    call append(L1_bulkDens,     dummy_3D(:, 1:nSoilHorizons_mHM, 1:nLCoverScene))
-    call append(L1_latticeWater, dummy_3D(:, 1:nSoilHorizons_mHM, 1:nLCoverScene))
-    call append(L1_COSMICL3,     dummy_3D(:, 1:nSoilHorizons_mHM, 1:nLCoverScene))
-    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
+    ! neutron count related parameters 
+    call append(L1_No_Count,     dummy_3D(:, 1:1,                 1:1))            ! N0 count   
+    call append(L1_bulkDens,     dummy_3D(:, 1:nSoilHorizons_mHM, 1:nLCoverScene)) ! bulk density
+    call append(L1_latticeWater, dummy_3D(:, 1:nSoilHorizons_mHM, 1:nLCoverScene)) ! lattice water
+    call append(L1_COSMICL3,     dummy_3D(:, 1:nSoilHorizons_mHM, 1:nLCoverScene)) ! cosmic L3 parameter
+   
     ! free space
     if (allocated(dummy_3D)) deallocate(dummy_3D)
 
