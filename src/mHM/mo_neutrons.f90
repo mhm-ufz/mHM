@@ -381,12 +381,6 @@ CONTAINS
            isoimass, iwatmass)
            
   end subroutine COSMIC
-
-
-<<<<<<< HEAD
-=======
-
->>>>>>> 696c95d82c6973726bcc85b49f97487519b235c2
   
   subroutine loopConstants(ll,&
                     SoilMoisture,L1_bulkDens,L1_latticeWater,&
