@@ -33,10 +33,10 @@ target_link_libraries(${LIB_NAME} PUBLIC forces)
 include(compileoptions)
 if (CMAKE_WITH_MPI)
   target_compile_definitions(${LIB_NAME} PRIVATE MPI)
-  target_link_libraries(${LIB_NAME} PUBLIC MPI::MPI_Fortran)
+  target_link_libraries(${LIB_NAME} PRIVATE MPI::MPI_Fortran)
 endif()
 if (CMAKE_WITH_OpenMP)
-  target_link_libraries(${LIB_NAME} PUBLIC OpenMP::OpenMP_Fortran)
+  target_link_libraries(${LIB_NAME} PRIVATE OpenMP::OpenMP_Fortran)
 endif()
 
 # by setting compile options and definitions PUBLIC, they are also used by
