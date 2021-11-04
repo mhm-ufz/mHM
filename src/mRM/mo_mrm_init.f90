@@ -144,9 +144,10 @@ end subroutine mrm_configuration
       if (processMatrix(8, 1) .eq. 1_i4) call mrm_read_L0_data(.true.)
       if (processMatrix(8, 1) .eq. 2_i4) call mrm_read_L0_data(.false.)
       if (processMatrix(8, 1) .eq. 3_i4) call mrm_read_L0_data(.false.)
+
     end if
 
-    ! TODO: MPR this is not there but actually makes sense being there
+    if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains))
     call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
 
     do iDomain = 1, domainMeta%nDomains
@@ -155,7 +156,6 @@ end subroutine mrm_configuration
         ! this reads the domain properties
         ! TODO: MPR these two lines need to go?
         ! ToDo: L0_Domain, parallel
-        if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains))
         call read_grid_info(domainMeta%indices(domainMeta%L0DataFrom(iDomain)), mrmFileRestartIn(iDomain), &
                                                      "0", level0(domainMeta%L0DataFrom(iDomain)))
         call read_grid_info(domainID, mrmFileRestartIn(iDomain), "11", level11(iDomain))
