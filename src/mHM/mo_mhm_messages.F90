@@ -117,6 +117,7 @@ contains
     use mo_common_variables, only: &
       ! dirMorpho, &
       ! dirLCover, &
+      dirIn, &
       dirOut, &
       domainMeta, &
       processMatrix, &
@@ -153,6 +154,7 @@ contains
           call check_dir(dirabsVapPressure(iDomain), "Abs. vap. press. directory:", .false., 4, 30)
           call check_dir(dirwindspeed(iDomain), "Windspeed directory:", .false., 4, 30)
       end select
+      call check_dir(dirOut(iDomain), "Input  directory:", .true., 4, 30)
       call check_dir(dirOut(iDomain), "Output directory:", .true., 4, 30)
       call message()
     end do
