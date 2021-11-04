@@ -661,8 +661,8 @@ CONTAINS
 
         call domainDateTime%increment()
 
-        if (.not. optimize) then
-          if (any(outputFlxState_mrm)) then
+        if ( .not. optimize ) then
+          if (any(outputFlxState_mrm) .AND. (processMatrix(8, 1) .NE. 0) ) then
             call mrm_write_output_fluxes( &
               iDomain, & ! Domain id
               level11(iDomain)%nCells, & ! nCells in Domain
