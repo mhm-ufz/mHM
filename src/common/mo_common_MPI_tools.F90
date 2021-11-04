@@ -3,8 +3,9 @@
 !> \details \copydetails mo_common_mpi_tools
 
 !> \brief   tools for MPI communication that are mHM or mRM specific
-!> \authors Maren Kaluza
-!> \date    Jul 2019
+!> \author  Maren Kaluza
+!> \author  Sebastian Mueller
+!> \date    2019-2021
 !> \details This module contains sending and receiving subroutines for
 !!          data that are specific for mHM or mRM
 MODULE mo_common_mpi_tools
@@ -30,6 +31,7 @@ MODULE mo_common_mpi_tools
 
 contains
 #ifdef MPI
+  !> \brief Distrubute parameter set with MPI.
   subroutine distribute_parameterset(parameterset)
     use mo_common_variables, only : domainMeta
     real(dp), dimension(:),    intent(in) :: parameterset
@@ -47,6 +49,7 @@ contains
     end do
   end subroutine distribute_parameterset
 
+  !> \brief Get distrubuted parameter set with MPI.
   subroutine get_parameterset(parameterset)
     use mpi_f08
     use mo_common_variables, only : domainMeta

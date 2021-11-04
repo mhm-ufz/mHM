@@ -91,7 +91,7 @@ PROGRAM mhm_driver
 
   IMPLICIT NONE
 
-  ! setup MPI if wanted
+  ! setup MPI if wanted (does nothing if not compiled with MPI support)
   call mpi_tools_init()
 
   ! parse command line arguments
@@ -111,7 +111,7 @@ PROGRAM mhm_driver
   ! WRITE RESTART files and RUNOFF and finish
   call mhm_interface_finalize()
 
-  ! finalize MPI
+  ! finalize MPI (does nothing if not compiled with MPI support)
   call mpi_tools_finalize()
 
 END PROGRAM mhm_driver
