@@ -40,17 +40,17 @@ MODULE mo_file
   !> Driver file
   CHARACTER(len = *), PARAMETER :: file_main = 'mhm_driver.f90'
   !> Namelist file name
-  CHARACTER(len = *), PARAMETER :: file_namelist_mhm = 'mhm.nml'
+  character(:), allocatable :: file_namelist_mhm ! = 'mhm.nml'
   !> Unit for namelist
   INTEGER, PARAMETER :: unamelist_mhm = 30
   !> Parameter namelists file name
-  CHARACTER(len = *), PARAMETER :: file_namelist_mhm_param = 'mhm_parameter.nml'
+  character(:), allocatable :: file_namelist_mhm_param ! = 'mhm_parameter.nml'
   !> Unit for namelist
   INTEGER, PARAMETER :: unamelist_mhm_param = 31
   !> Unit for namelist
   INTEGER, PARAMETER :: unamelist_mpr = 32                            !
   !> file defining mHM's outputs
-  CHARACTER(len = *), PARAMETER :: file_defOutput = 'mhm_outputs.nml'
+  character(:), allocatable :: file_defOutput ! = 'mhm_outputs.nml'
   !> Unit for file defining mHM's outputs
   INTEGER, PARAMETER :: udefOutput = 67
   CHARACTER(len = *), PARAMETER :: varNameLAIclass = 'lai_class'

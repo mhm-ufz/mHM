@@ -1,0 +1,138 @@
+module test_grid
+  use funit
+  use mo_grid
+  use mo_kind, only: dp, i4
+  use mo_common_variables, only : Grid, GridRemapper
+
+  implicit none
+
+  private
+
+  public :: test_set_domain_indices, test_init_lowres_level
+
+contains
+
+   @test
+  subroutine test_init_lowres_level()
+
+    type(Grid) :: highres, res_lowres, ref_lowres
+    type(GridRemapper) :: res_h_l_remap, ref_h_l_remap
+    integer :: i, j
+    logical, dimension(7) :: mask_val1 = [.true.,.false.,.false.,.false.,.true.,.true.,.false.]
+    logical, dimension(7) :: mask_val2 = [.false.,.true.,.true.,.false.,.true.,.true.,.true.]
+
+    highres%nrows = 6
+    highres%ncols = 7
+    highres%xllcorner = 3973
+    highres%yllcorner = 2735
+    highres%cellsize = 10 
+    allocate(highres%mask(6,7))
+    do i = 1, 3
+      do j = 1, 7
+        highres%mask(2*i-1,j) = mask_val1(j)
+        highres%mask(2*i  ,j) = mask_val2(j)
+      end do
+    end do
+    allocate(highres%CellArea(42))
+    highres%CellArea(:) = 25
+    ref_lowres%nrows = 2
+    ref_lowres%ncols = 2
+    ref_lowres%xllcorner = 3943
+    ref_lowres%yllcorner = 2695
+    ref_lowres%cellsize = 50
+    allocate(ref_lowres%cellCoor(4,2))
+    ref_lowres%cellCoor(1,1) = 1
+    ref_lowres%cellCoor(1,2) = 1
+    ref_lowres%cellCoor(2,1) = 2
+    ref_lowres%cellCoor(2,2) = 1
+    ref_lowres%cellCoor(3,1) = 1
+    ref_lowres%cellCoor(3,2) = 2
+    ref_lowres%cellCoor(4,1) = 2
+    ref_lowres%cellCoor(4,2) = 2
+    allocate(ref_lowres%CellArea(4))
+    ref_lowres%CellArea(1) = 300
+    ref_lowres%CellArea(2) = 75
+    ref_lowres%CellArea(3) = 175
+    ref_lowres%CellArea(4) = 50
+    allocate(ref_h_l_remap%lower_bound(4))
+    allocate(ref_h_l_remap%upper_bound(4))
+    allocate(ref_h_l_remap%left_bound(4))
+    allocate(ref_h_l_remap%right_bound(4))
+    allocate(ref_h_l_remap%n_subcells(4))
+    allocate(ref_h_l_remap%lowres_id_on_highres(6,7))
+    ref_h_l_remap%lower_bound = [5,6,5,6]
+    ref_h_l_remap%upper_bound = [1,6,1,6]
+    ref_h_l_remap%left_bound = [1,1,6,6]
+    ref_h_l_remap%right_bound = [5,5,7,7]
+    ref_h_l_remap%n_subcells = [12,3,7,2]
+    ref_h_l_remap%lowres_id_on_highres(1:5,1:5) = 1
+    ref_h_l_remap%lowres_id_on_highres(1:5,6:7) = 3
+    ref_h_l_remap%lowres_id_on_highres(6:6,1:5) = 2
+    ref_h_l_remap%lowres_id_on_highres(6:6,6:7) = 4
+
+    call init_lowres_level(highres, 50.0_dp, res_lowres, res_h_l_remap)      
+    @assertEqual(ref_lowres%nrows, res_lowres%nrows, message='init_lowres_level, lowres%nrows: with remap')
+    @assertEqual(ref_lowres%ncols, res_lowres%ncols, message='init_lowres_level, lowres%ncols: with remap')
+    @assertEqual(ref_lowres%xllcorner, res_lowres%xllcorner, message='init_lowres_level, lowres%xllcorner: with remap')
+    @assertEqual(ref_lowres%yllcorner, res_lowres%yllcorner, message='init_lowres_level, lowres%yllcorner: with remap')
+    @assertEqual(ref_lowres%cellsize, res_lowres%cellsize, message='init_lowres_level, lowres%cellsize: with remap')
+    @assertEqual(ref_lowres%cellCoor, res_lowres%cellCoor, message='init_lowres_level, lowres%cellCoor: with remap')
+    @assertEqual(ref_lowres%CellArea, res_lowres%CellArea, message='init_lowres_level, lowres%CellArea: with remap')
+    @assertEqual(ref_h_l_remap%lower_bound, res_h_l_remap%lower_bound, message='init_lowres_level, hlr%lower_bound: with remap')
+    @assertEqual(ref_h_l_remap%upper_bound, res_h_l_remap%upper_bound, message='init_lowres_level, hlr%upper_bound: with remap')
+    @assertEqual(ref_h_l_remap%left_bound, res_h_l_remap%left_bound, message='init_lowres_level, hlr%left_bound: with remap')
+    @assertEqual(ref_h_l_remap%right_bound, res_h_l_remap%right_bound, message='init_lowres_level, hlr%right_bound: with remap')
+    @assertEqual(ref_h_l_remap%n_subcells, res_h_l_remap%n_subcells, message='init_lowres_level, hlr%n_subcells: with remap')
+    @assertEqual(ref_h_l_remap%lowres_id_on_highres, res_h_l_remap%lowres_id_on_highres, message='i_l_l, hlr%id:with remap')
+
+    deallocate(highres%mask)
+    deallocate(highres%CellArea)
+    deallocate(ref_lowres%CellArea)
+    deallocate(ref_h_l_remap%lower_bound)
+    deallocate(ref_h_l_remap%upper_bound)
+    deallocate(ref_h_l_remap%left_bound)
+    deallocate(ref_h_l_remap%right_bound)
+    deallocate(ref_h_l_remap%n_subcells)
+    deallocate(ref_h_l_remap%lowres_id_on_highres)
+  
+  end subroutine test_init_lowres_level
+
+
+  @test
+  subroutine test_set_domain_indices()
+
+    type(Grid), dimension(2) :: res_grids, ref_grids
+    integer(i4), dimension(2) :: indices = [1,2]
+
+    res_grids(1)%nCells = 46545_i4
+    res_grids(2)%nCells = 21025_i4
+    res_grids(1)%iStart = 538976288_i4
+    res_grids(1)%iEnd = 538976288_i4
+    res_grids(2)%iStart = 538976288_i4
+    res_grids(2)%iEnd = 538976288_i4
+
+    ref_grids(1)%nCells = 46545_i4
+    ref_grids(2)%nCells = 21025_i4
+    ref_grids(1)%iStart = 1_i4
+    ref_grids(1)%iEnd = 46545_i4
+    ref_grids(2)%iStart = 46546_i4
+    ref_grids(2)%iEnd = 67570_i4
+
+    call set_domain_indices(res_grids)
+    @assertEqual(ref_grids%nCells, res_grids%nCells, message='set_domain_indices, nCells: without indices')
+    @assertEqual(ref_grids%iStart, res_grids%iStart, message='set_domain_indices, iStart: without indices')
+    @assertEqual(ref_grids%iEnd, res_grids%iEnd, message='set_domain_indices, iEnd: without indices')
+
+    res_grids(1)%iStart = 538976288_i4
+    res_grids(1)%iEnd = 538976288_i4
+    res_grids(2)%iStart = 538976288_i4
+    res_grids(2)%iEnd = 538976288_i4
+
+    call set_domain_indices(res_grids, indices)
+    @assertEqual(ref_grids%nCells, res_grids%nCells, message='set_domain_indices, nCells: with indices')
+    @assertEqual(ref_grids%iStart, res_grids%iStart, message='set_domain_indices, iStart: with indices')
+    @assertEqual(ref_grids%iEnd, res_grids%iEnd, message='set_domain_indices, iEnd: with indices')
+
+  end subroutine test_set_domain_indices
+
+end module test_grid
