@@ -152,7 +152,6 @@ end subroutine mrm_configuration
     end if
 
     if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains))
-    call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
 
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
@@ -188,6 +187,7 @@ end subroutine mrm_configuration
       end if
     end do
 
+    call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
     call set_domain_indices(level11)
     call set_domain_indices(level1)
 
