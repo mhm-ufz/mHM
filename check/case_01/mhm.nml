@@ -16,6 +16,7 @@
     dir_referenceet(1) = '../../test_domain/input/meteo/'
     dir_temperature(1) = '../../test_domain/input/meteo/'
     dir_windspeed(1) = '../../test_domain/input/meteo/'
+    path_mpr_nml(1) = '../../test_domain/test_domain_mpr.nml'
     time_step_model_inputs(1) = 0
 /
 
@@ -39,17 +40,8 @@
     noinflowgauges_domain(1) = 0
 /
 
-&lai_data_information
-    inputformat_gridded_lai = 'nc'
-    timestep_lai_input = 0
-/
-
 &lcover
     nLandCoverPeriods = 2
-/
-
-&lcover_mpr
-    fracsealed_cityarea = 0.6
 /
 
 &mainconfig
@@ -118,13 +110,6 @@
     project_details = 'mHM test domain project'
     setup_description = 'model run for the Mosel domain, forced with the E-OBS meteorologic data'
     simulation_type = 'historical simulation'
-/
-
-&soildata
-    iflag_soildb = 0
-    nsoilhorizons_mhm = 2
-    soil_depth(1) = 200
-    tillagedepth = 200
 /
 
 &time_periods

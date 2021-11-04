@@ -1,10 +1,7 @@
 &directories_general
-    dir_lcover(1:6) = '../../test_domain/input/mpr/', '../../test_domain/input/mpr/',
-                      '../../test_domain/input/mpr/', '../../test_domain/input/mpr/',
-                      '../../test_domain/input/mpr/', '../../test_domain/input/mpr/'
-    dir_morpho(1:6) = '../../test_domain/input/mpr/', '../../test_domain/input/mpr/',
-                      '../../test_domain/input/mpr/', '../../test_domain/input/mpr/',
-                      '../../test_domain/input/mpr/', '../../test_domain/input/mpr/'
+    dir_in(1:6) = '../../test_domain/input/mpr/', '../../test_domain/input/mpr/',
+                  '../../test_domain/input/mpr/', '../../test_domain/input/mpr/',
+                  '../../test_domain/input/mpr/', '../../test_domain/input/mpr/'
     dir_out(1:6) = 'output_b1/b1_', 'output_b1/b2_', 'output_b1/b3_', 'output_b1/b4_',
                    'output_b1/b5_', 'output_b1/b6_'
     mhm_file_restartout(1:6) = 'output_b1/b1_mHM_restart_001.nc', 'output_b1/b2_mHM_restart_002.nc',
@@ -13,7 +10,6 @@
     mrm_file_restartout(1:6) = 'output_b1/b1_mRM_restart_001.nc', 'output_b1/b2_mRM_restart_002.nc',
                                'output_b1/b3_mRM_restart_003.nc', 'output_b1/b4_mRM_restart_004.nc',
                                'output_b1/b5_mRM_restart_005.nc', 'output_b1/b6_mRM_restart_006.nc'
-    dircommonfiles = '../../test_domain/input/mpr/'
     dirconfigout = 'output_b1/'
     file_latlon(1:6) = '../../test_domain/input/mpr/latlon_1.nc', '../../test_domain/input/mpr/latlon_1.nc',
                        '../../test_domain/input/mpr/latlon_1.nc', '../../test_domain/input/mpr/latlon_1.nc',
@@ -35,6 +31,9 @@
                            '../../test_domain/input/meteo/', '../../test_domain/input/meteo/',
                            '../../test_domain/input/meteo/', '../../test_domain/input/meteo/'
     dir_windspeed(1) = '../../test_domain/input/meteo/'
+    path_mpr_nml(1:6) = '../../test_domain/test_domain_mpr.nml', '../../test_domain/test_domain_mpr.nml',
+                        '../../test_domain/test_domain_mpr.nml', '../../test_domain/test_domain_mpr.nml',
+                        '../../test_domain/test_domain_mpr.nml', '../../test_domain/test_domain_mpr.nml'
     time_step_model_inputs(1:6) = 0, 0, 0, 0, 0, 0
 /
 
@@ -90,20 +89,8 @@
     noinflowgauges_domain(1) = 0
 /
 
-&lai_data_information
-    inputformat_gridded_lai = 'nc'
-    timestep_lai_input = 0
-/
-
 &lcover
-    lcoverfname(1:2) = 'lc_1981.asc', 'lc_1991.asc'
-    lcoveryearend(1:2) = 1990, 2000
-    lcoveryearstart(1:2) = 1981, 1991
     nLandCoverPeriods = 2
-/
-
-&lcover_mpr
-    fracsealed_cityarea = 0.6
 /
 
 &mainconfig
@@ -170,13 +157,6 @@
     project_details = 'mHM test domain project'
     setup_description = 'model run for the Mosel domain, forced with the E-OBS meteorologic data'
     simulation_type = 'historical simulation'
-/
-
-&soildata
-    iflag_soildb = 0
-    nsoilhorizons_mhm = 2
-    soil_depth(1) = 200
-    tillagedepth = 200
 /
 
 &time_periods
