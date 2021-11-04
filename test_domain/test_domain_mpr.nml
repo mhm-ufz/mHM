@@ -1,5 +1,5 @@
 &main
-out_filename = "test_domain/restart/mHM_parameter_restart_001.nc"
+out_filename = "mHM_parameter_restart_001.nc"
 coordinate_aliases(:,1) = "lon", "lon_out", "x", "lon_all", "xc_l0"
 coordinate_aliases(:,2) = "lat", "lat_out", "y", "lat_all", "yc_l0"
 coordinate_aliases(:,3) = "horizon_out", "horizon", "z", "horizon_all", "horizon_till", "horizon_notill"
