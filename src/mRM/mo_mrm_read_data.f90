@@ -55,7 +55,7 @@ contains
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
-    use mo_common_variables, only : L0_elev, L0_LCover, level0, domainMeta, processMatrix, nuniqueL0Domains
+    use mo_common_variables, only : L0_elev, L0_LCover, level0, domainMeta, processMatrix
     use mo_grid, only: Grid
     use mo_message, only : error_message, message
     use mo_mrm_file, only : file_facc, file_fdir, file_gaugeloc
@@ -76,6 +76,8 @@ contains
 
     integer(i4) :: nunit
 
+    integer(i4) :: nCells
+
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
     real(dp), dimension(:, :), allocatable :: data_dp_2d
     logical, dimension(:, :), allocatable :: mask_2d
@@ -85,10 +87,6 @@ contains
     type(NcVariable)                       :: ncVar        ! variables for data form netcdf
     integer(i4)                            :: nodata_value ! data nodata value
 
-
-    if (.not. allocated(level0)) then
-      allocate(level0(nuniqueL0Domains))
-    end if
 
     do iDomain = 1, domainMeta%nDomains
       ! ************************************************
@@ -209,6 +207,15 @@ contains
         !
       end do
     end do
+
+    ! some sanity checks
+    if ( any (L0_fAcc == nodata_i4)) then
+      call error_message(' Error: flow accumulation field has missing values within the valid masked area')
+    end if
+    if ( any (L0_fDir == nodata_i4)) then
+      call error_message(' Error: flow direction field has missing values within the valid masked area')
+    end if
+
 
   end subroutine mrm_read_L0_data
   ! ---------------------------------------------------------------------------

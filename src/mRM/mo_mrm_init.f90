@@ -138,34 +138,35 @@ end subroutine mrm_configuration
     allocate(l0_l11_remap(domainMeta%nDomains))
     allocate(l1_l11_remap(domainMeta%nDomains))
 
+    if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains))
+
+    ! INIT all level 0 related information
     if (.not. mrm_read_river_network) then
-      ! read all (still) necessary level 0 data
+      ! read all necessary level 0 data
       ! do_reinit, do_readlatlon, do_readlcover
       if (processMatrix(8, 1) .eq. 1_i4) call mrm_read_L0_data(.true.)
       if (processMatrix(8, 1) .eq. 2_i4) call mrm_read_L0_data(.false.)
       if (processMatrix(8, 1) .eq. 3_i4) call mrm_read_L0_data(.false.)
-
-    end if
-
-    if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains))
-
-    do iDomain = 1, domainMeta%nDomains
-      domainID = domainMeta%indices(iDomain)
-      if (mrm_read_river_network) then
+    else
+      do iDomain = 1, domainMeta%nDomains
+        domainID = domainMeta%indices(iDomain)
         ! this reads the domain properties
-        ! TODO: MPR these two lines need to go?
         ! ToDo: L0_Domain, parallel
         call read_grid_info(domainMeta%indices(domainMeta%L0DataFrom(iDomain)), mrmFileRestartIn(iDomain), &
                                                      "0", level0(domainMeta%L0DataFrom(iDomain)))
+      end do
+    end if
+    call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
+
+    ! INIT all level 11 and 1 related information
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      if (mrm_read_river_network) then
+        ! read information of l11 grids directly from restart file
         call read_grid_info(domainID, mrmFileRestartIn(iDomain), "11", level11(iDomain))
         call mrm_read_restart_config(iDomain, mrmFileRestartIn(iDomain))
       else
-        if (iDomain .eq. 1) then
-          call L0_check_input_routing(domainMeta%L0DataFrom(iDomain))
-        else if ((domainMeta%L0DataFrom(iDomain) == iDomain)) then
-          call L0_check_input_routing(domainMeta%L0DataFrom(iDomain))
-        end if
-
+        ! init l11 grids from l0 grid
         call init_lowres_level(level0(domainMeta%L0DataFrom(iDomain)), resolutionRouting(iDomain), &
                 level11(iDomain), l0_l11_remap(iDomain))
         call init_lowres_level(level1(iDomain), resolutionRouting(iDomain), &
@@ -183,7 +184,6 @@ end subroutine mrm_configuration
       end if
     end do
 
-    call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
     call set_domain_indices(level11)
     call set_domain_indices(level1)
 
@@ -483,62 +483,6 @@ end subroutine mrm_configuration
     L11_C2 = P1_InitStateFluxes
 
   end subroutine variables_default_init_routing
-
-
-  ! --------------------------------------------------------------------------
-  ! L0_check_input_routing
-  ! --------------------------------------------------------------------------
-  !    NAME
-  !        L0_check_input_routing
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: L0Domain_iDomain"
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
-  subroutine L0_check_input_routing(L0Domain_iDomain)
-
-    use mo_common_constants, only : nodata_i4
-    use mo_common_variables, only : level0
-    use mo_kind, only : i4
-    use mo_message, only : error_message
-    use mo_mrm_global_variables, only : L0_fAcc, L0_fDir
-    use mo_string_utils, only : num2str
-
-    implicit none
-
-    integer(i4), intent(in) :: L0Domain_iDomain
-
-    integer(i4) :: k
-    character(4096) :: message_text
-
-
-    do k = level0(L0Domain_iDomain)%iStart, level0(L0Domain_iDomain)%iEnd
-      ! flow direction [-]
-      if (L0_fDir(k) .eq. nodata_i4) then
-        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iDomain, '(I5)'))
-        call error_message(' Error: flow direction has missing value within the valid masked area at cell in domain ', &
-                trim(message_text))
-      end if
-      ! flow accumulation [-]
-      if (L0_fAcc(k) .eq. nodata_i4) then
-        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iDomain, '(I5)'))
-        call error_message(' Error: flow accumulation has missing values within the valid masked area at cell in domain ', &
-                trim(message_text))
-      end if
-    end do
-
-  end subroutine L0_check_input_routing
 
 
   ! --------------------------------------------------------------------------
