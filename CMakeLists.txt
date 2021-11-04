@@ -23,6 +23,8 @@ if(BUILD_MHM_DRIVER)
   if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_GPROF)
     target_link_options(mhm PUBLIC -pg)
   endif()
+  # add install option
+  install(TARGETS mhm DESTINATION bin)
 endif()
 
 # setup coverage with GNU

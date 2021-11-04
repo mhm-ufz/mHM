@@ -21,13 +21,12 @@ MODULE mo_pet
 
   IMPLICIT NONE
 
-  PRIVATE :: extraterr_rad_approx
-  PRIVATE :: sat_vap_pressure
-
   PUBLIC :: pet_hargreaves ! Hargreaves-Samani
   PUBLIC :: pet_priestly   ! Priestley-Taylor
   PUBLIC :: pet_penman     ! Penman-Monteith
   PUBLIC :: slope_satpressure
+  PUBLIC :: extraterr_rad_approx
+  PUBLIC :: sat_vap_pressure
 
 
   ! ------------------------------------------------------------------

@@ -1,0 +1,95 @@
+module test_snow_accum_melt
+  use funit
+  use mo_snow_accum_melt
+  use mo_kind, only: dp
+
+  implicit none
+
+  private
+
+  public :: test_snow_accum_mel
+
+  real(dp) :: t = 0.001_dp
+
+contains
+
+  @test
+  subroutine test_snow_accum_mel
+
+    real(dp) :: ref_snow_pack, ref_deg_day, ref_melt, ref_prec_effect, &
+                ref_rain, ref_snow
+    real(dp) :: res_snow_pack, res_deg_day, res_melt, res_prec_effect, &
+                res_rain, res_snow
+
+    ref_snow_pack = 0.0_dp
+    ref_deg_day = 0.182_dp
+    ref_melt = 0.0_dp
+    ref_prec_effect = 0.195_dp
+    ref_rain = 0.195_dp
+    ref_snow = 0.0_dp
+    res_snow_pack = 0.0_dp
+
+    call snow_accum_melt(0.5_dp, 0.232_dp, 0.078_dp, 0.208_dp, 8.31_dp, 1.0_dp, 0.195_dp, &
+                         res_snow_pack, res_deg_day, res_melt, res_prec_effect, res_rain, res_snow)
+
+    @assertEqual(ref_snow_pack, res_snow_pack, tolerance=t, message='snow_accum_melt: snow_pack, pos. temp.')
+    @assertEqual(ref_deg_day, res_deg_day, tolerance=t, message='snow_accum_melt: deg_day, pos. temp.')
+    @assertEqual(ref_melt, res_melt, tolerance=t, message='snow_accum_melt: melt, pos. temp.')
+    @assertEqual(ref_prec_effect, res_prec_effect, tolerance=t, message='snow_accum_melt: prec_effect, pos. temp.')
+    @assertEqual(ref_rain, res_rain, tolerance=t, message='snow_accum_melt: rain, pos. temp.')
+    @assertEqual(ref_snow, res_snow, tolerance=t, message='snow_accum_melt: snow, pos. temp.')
+
+    ref_snow_pack = 0.195_dp
+    ref_rain = 0.0_dp
+    ref_snow = 0.195_dp
+    ref_prec_effect = 0.0_dp
+    res_snow_pack = 0.0_dp
+
+    call snow_accum_melt(0.5_dp, 0.232_dp, 0.078_dp, 0.208_dp, -8.31_dp, 1.0_dp, 0.195_dp, &
+                         res_snow_pack, res_deg_day, res_melt, res_prec_effect, res_rain, res_snow)
+
+    @assertEqual(ref_snow_pack, res_snow_pack, tolerance=t, message='snow_accum_melt: snow_pack, neg. temp.')
+    @assertEqual(ref_deg_day, res_deg_day, tolerance=t, message='snow_accum_melt: deg_day, neg. temp.')
+    @assertEqual(ref_melt, res_melt, tolerance=t, message='snow_accum_melt: melt, neg. temp.')
+    @assertEqual(ref_prec_effect, res_prec_effect, tolerance=t, message='snow_accum_melt: prec_effect, neg. temp.')
+    @assertEqual(ref_rain, res_rain, tolerance=t, message='snow_accum_melt: rain, neg. temp.')
+    @assertEqual(ref_snow, res_snow, tolerance=t, message='snow_accum_melt: snow, neg. temp.')
+
+    ref_snow_pack = 0.0_dp
+    ref_melt = 0.3_dp
+    ref_prec_effect = 0.495_dp
+    ref_rain = 0.195_dp
+    ref_snow = 0.0_dp
+    res_snow_pack = 0.3_dp
+
+    call snow_accum_melt(0.5_dp, 0.232_dp, 0.078_dp, 0.208_dp, 3.0_dp, 1.0_dp, 0.195_dp, &
+                         res_snow_pack, res_deg_day, res_melt, res_prec_effect, res_rain, res_snow)
+
+    @assertEqual(ref_snow_pack, res_snow_pack, tolerance=t, message='snow_accum_melt: snow_pack, with snow pack')
+    @assertEqual(ref_deg_day, res_deg_day, tolerance=t, message='snow_accum_melt: deg_day, with snow pack')
+    @assertEqual(ref_melt, res_melt, tolerance=t, message='snow_accum_melt: melt, with snow pack')
+    @assertEqual(ref_prec_effect, res_prec_effect, tolerance=t, message='snow_accum_melt: prec_effect, with snow pack')
+    @assertEqual(ref_rain, res_rain, tolerance=t, message='snow_accum_melt: rain, with snow pack')
+    @assertEqual(ref_snow, res_snow, tolerance=t, message='snow_accum_melt: snow, with snow pack')
+
+    ref_snow_pack = 0.136_dp
+    ref_deg_day = 0.232_dp
+    ref_melt = 0.464_dp
+    ref_prec_effect = 0.659_dp
+    ref_rain = 0.195_dp
+    ref_snow = 0.0_dp
+    res_snow_pack = 0.6_dp
+
+    call snow_accum_melt(0.5_dp, 0.232_dp, 0.232_dp, 0.208_dp, 3.0_dp, 1.0_dp, 0.195_dp, &
+                         res_snow_pack, res_deg_day, res_melt, res_prec_effect, res_rain, res_snow)
+
+    @assertEqual(ref_snow_pack, res_snow_pack, tolerance=t, message='snow_accum_melt: snow_pack, snow pack & max=noprec')
+    @assertEqual(ref_deg_day, res_deg_day, tolerance=t, message='snow_accum_melt: deg_day, snow pack & max=noprec')
+    @assertEqual(ref_melt, res_melt, tolerance=t, message='snow_accum_melt: melt, snow pack & max=noprec')
+    @assertEqual(ref_prec_effect, res_prec_effect, tolerance=t, message='snow_accum_melt: prec_effect, snow pack & max=noprec')
+    @assertEqual(ref_rain, res_rain, tolerance=t, message='snow_accum_melt: rain, snow pack & max=noprec')
+    @assertEqual(ref_snow, res_snow, tolerance=t, message='snow_accum_melt: snow, snow pack & max=noprec')
+
+  end subroutine test_snow_accum_mel
+
+end module test_snow_accum_melt
