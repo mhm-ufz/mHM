@@ -1,0 +1,805 @@
+&main
+out_filename = "mHM_parameter_restart_001.nc"
+coordinate_aliases(:,1) = "lon", "lon_out", "x", "lon_all", "xc_l0"
+coordinate_aliases(:,2) = "lat", "lat_out", "y", "lat_all", "yc_l0"
+coordinate_aliases(:,3) = "horizon_out", "horizon", "z", "horizon_all", "horizon_till", "horizon_notill"
+coordinate_aliases(:,4) = "land_cover_period", "land_cover_period_out"
+coordinate_aliases(:,5) = "month_of_year", "time_all"
+/
+
+&Coordinates
+coord_name(1:6) = "horizon", "horizon_out", "lat_out", "lon_out", "horizon_all", "land_cover_period"
+coord_name(7:12) = "land_cover_period_out", "horizon_till", "horizon_notill", "month_of_year", "lon_all", "lat_all"
+coord_stagger(1:12) = "end", "end", "center", "center", "end", "start", "start", "end", "end", "end", "end", "end"
+coord_from_values_bound(1:2) = 0.0, 0.0
+coord_from_values(:,2) = 0.2, 1.0
+coord_from_range_step(3:4) = 24000, 24000
+coord_from_range_count(5) = 1
+coord_from_values_bound(6) = 2001
+coord_from_values_bound(7) = 2001
+coord_from_values(:,7) = 1981, 1991
+coord_from_values_bound(8:9) = 0.0, 0.2
+coord_from_values(:,8) = 0.2
+coord_from_values(:,9) = 1.0
+coord_from_range_count(10) = 1
+coord_from_range_count(11) = 1
+coord_from_range_count(12) = 1
+coord_attribute_names(:,2) = "standard_name", "long_name", "units", "positive", "axis"
+coord_attribute_values(:,2) = "depth", "positive downwards upper boundary of soil horizons", "m", "down", "Z"
+coord_attribute_names(:,3) = "standard_name", "long_name", "units", "positive", "axis"
+coord_attribute_values(:,3) = "latitude", "latitude", "m", "up", "Y"
+coord_attribute_names(:,4) = "standard_name", "long_name", "units", "positive", "axis"
+coord_attribute_values(:,4) = "longitude", "longitude", "m", "up", "X"
+coord_attribute_names(:,7) = "standard_name", "long_name", "units", "positive", "axis"
+coord_attribute_values(:,7) = "land cover period", "start year for period of constant land cover", "years", "up", "T"
+/
+
+&Parameters
+! [g/cm3] from W.R. RAWLS
+parameter_names(1) = "BulkDens_OrgMatter"
+parameter_values(1) = 0.224
+parameter_names(2) = "100.0"
+parameter_values(2) = 100.0
+parameter_names(3) = "1.0"
+parameter_values(3) = 1.0
+parameter_names(4) = "Ks_c_base"
+parameter_values(4) = 10.0
+parameter_names(5) = "vGenu_tresh"
+parameter_values(5) = 66.5
+parameter_names(6) = "vGenu_N_c01"
+parameter_values(6) = 1.392
+parameter_names(7) = "vGenu_N_c02"
+parameter_values(7) = 0.418
+parameter_names(8) = "vGenu_N_c03"
+parameter_values(8) = -0.024
+parameter_names(9) = "vGenu_N_c04"
+parameter_values(9) = 1.212
+parameter_names(10) = "vGenu_N_c05"
+parameter_values(10) = -0.704
+parameter_names(11) = "vGenu_N_c06"
+parameter_values(11) = -0.648
+parameter_names(12) = "vGenu_N_c07"
+parameter_values(12) = 0.023
+parameter_names(13) = "vGenu_N_c08"
+parameter_values(13) = 0.044
+parameter_names(14) = "vGenu_N_c09"
+parameter_values(14) = 3.168
+parameter_names(15) = "vGenu_N_c10"
+parameter_values(15) = -2.562
+parameter_names(16) = "vGenu_N_c11"
+parameter_values(16) = 7.0E-9
+parameter_names(17) = "vGenu_N_c12"
+parameter_values(17) = 4.004
+parameter_names(18) = "vGenu_N_c13"
+parameter_values(18) = 3.750
+parameter_names(19) = "vGenu_N_c14"
+parameter_values(19) = -0.016
+parameter_names(20) = "vGenu_N_c15"
+parameter_values(20) = -4.197
+parameter_names(21) = "vGenu_N_c16"
+parameter_values(21) = 0.013
+parameter_names(22) = "vGenu_N_c17"
+parameter_values(22) = 0.076
+parameter_names(23) = "vGenu_N_c18"
+parameter_values(23) = 0.276
+! constants for determinination of the field capacity following Twarakavi
+parameter_names(28) = "FieldCap_c1"
+parameter_values(28) = -0.6
+parameter_names(29) = "FieldCap_c2"
+parameter_values(29) = 2.0
+parameter_names(30) = "PWP_c"
+parameter_values(30) = 1.0
+! [hPa] matrix potential of -1500 kPa, assumed as thetaR=0
+parameter_names(31) = "PWP_matPot_ThetaR"
+parameter_values(31) = 15000.0
+parameter_names(32) = "0.1"
+parameter_values(32) = 0.1
+parameter_names(33) = "0.99"
+parameter_values(33) = 0.99
+parameter_names(34) = "2.0"
+parameter_values(34) = 2.0
+! parameter_names(35) = "gain_loss_GWreservoir_karstic"
+! parameter_values(35) = 1.0
+parameter_names(36) = "Default_Wind_Measurement_Height"
+parameter_values(36) = 10.0
+parameter_names(37) = "karman"
+parameter_values(37) = 0.41
+! LAI factor for bulk surface resistance formulation
+parameter_names(38) = "LAI_factor_surfResi"
+parameter_values(38) = 0.3
+! LAI offset for bulk surface resistance formulation
+parameter_names(39) = "LAI_offset_surfResi"
+parameter_values(39) = 1.2
+parameter_names(40) = "fracSealed_cityArea"
+parameter_values(40) = 0.6
+! some thresholds
+parameter_names(42) = "4.5"
+parameter_values(42) = 4.5
+parameter_names(43) = "5.5"
+parameter_values(43) = 5.5
+parameter_names(44) = "6.5"
+parameter_values(44) = 6.5
+parameter_names(45) = "7.5"
+parameter_values(45) = 7.5
+parameter_names(46) = "8.5"
+parameter_values(46) = 8.5
+parameter_names(47) = "9.5"
+parameter_values(47) = 9.5
+parameter_names(48) = "10.5"
+parameter_values(48) = 10.5
+parameter_names(49) = "0.5"
+parameter_values(49) = 0.5
+parameter_names(50) = "1.5"
+parameter_values(50) = 1.5
+parameter_names(51) = "2.5"
+parameter_values(51) = 2.5
+parameter_names(52) = "3.5"
+parameter_values(52) = 3.5
+parameter_names(53) = "360.0"
+parameter_values(53) = 360.0
+parameter_names(54) = "1000.0"
+parameter_values(54) = 1000.0
+parameter_names(55) = "0.0"
+parameter_values(55) = 0.0
+/
+
+&Data_Arrays
+name(1) = "bd"
+from_file(1) = "../../test_domain/input/mpr/bd.nc"
+to_file(1) = .false.
+
+name(2) = "sand"
+from_file(2) = "../../test_domain/input/mpr/sand.nc"
+to_file(2) = .false.
+
+name(3) = "clay"
+from_file(3) = "../../test_domain/input/mpr/clay.nc"
+to_file(3) = .false.
+
+name(4) = "land_cover"
+from_file(4) = "../../test_domain/input/mpr/land_cover.nc"
+to_file(4) = .false.
+
+name(5) = "bd_till"
+from_data_arrays(1,5) = "bd"
+target_coord_names(1:4,5) = "land_cover_period", "horizon_till", "lat", "lon"
+upscale_ops(1:4,5) = "1.0", "1.0", "1.0", "1.0"
+to_file(5) = .false.
+
+name(6) = "pOM"
+! this is based on integer values...
+! orgMatterContent_eff = "
+!  if      (orgMatterSwitch == 0) then orgMatterContent_forest + orgMatterContent_pervious 
+!  else if (orgMatterSwitch == 1) then orgMatterContent_pervious"
+! transfer_func(6) = "
+!  where      (land_cover == 1) orgMatterContent_eff
+!  else where (land_cover == 2) orgMatterContent_impervious 
+!  else where (land_cover == 3) orgMatterContent_pervious"
+transfer_func(6) = " where (land_cover > 0.5 .and. land_cover < 1.5) 
+ (1.0 - orgMatterSwitch) * orgMatterContent_forest + orgMatterContent_pervious
+ else where (land_cover < 2.5) orgMatterContent_impervious
+ else where (land_cover < 3.5) orgMatterContent_pervious"
+from_data_arrays(1,6) = "land_cover"
+! broadcasting to new shape, so further calculations work
+target_coord_names(1:4,6) = "land_cover_period", "horizon_till", "lat", "lon"
+upscale_ops(1:4,6) = "1.0", "1.0", "1.0", "1.0"
+to_file(6) = .false.
+
+name(7) = "pM"
+transfer_func(7) = "100.0 - pOM"
+from_data_arrays(1,7) = "pOM"
+to_file(7) = .false.
+
+name(8) = "bd_eff_till"
+transfer_func(8) = "100.0 / ((pOM / BulkDens_OrgMatter) + (pM / bd_till))"
+from_data_arrays(1:3,8) = "bd_till", "pOM", "pM"
+to_file(8) = .false.
+
+name(9) = "KSat"
+transfer_func(9) = "PTF_Ks_curveSlope * exp((PTF_Ks_constant + PTF_Ks_sand * sand - PTF_Ks_clay * clay) * log(Ks_c_base))"
+from_data_arrays(1:2,9) = "sand", "clay"
+limits(1,9) = 1.1
+to_file(9) = .false.
+
+name(10) = "KSat_till_temp"
+from_data_arrays(1,10) = "KSat"
+target_coord_names(1:4,10) = "land_cover_period", "horizon_till", "lat", "lon"
+upscale_ops(1:4,10) = "1.0", "1.0", "1.0", "1.0"
+to_file(10) = .false.
+
+name(11) = "KSat_till"
+transfer_func(11) = "KSat_till_temp * (bd_till / bd_eff_till)"
+from_data_arrays(1:3,11) = "KSat_till_temp", "bd_till", "bd_eff_till"
+to_file(11) = .false.
+
+name(12) = "KSat_notill"
+from_data_arrays(1,12) = "KSat"
+target_coord_names(1:4,12) = "land_cover_period", "horizon_notill", "lat", "lon"
+upscale_ops(1:4,12) = "1.0", "1.0", "1.0", "1.0"
+to_file(12) = .false.
+
+name(13) = "KSat_all"
+from_data_arrays(1:2,13) = "KSat_till", "KSat_notill"
+to_file(13) = .false.
+
+name(14) = "sand_till"
+from_data_arrays(1,14) = "sand"
+target_coord_names(1:4,14) = "land_cover_period", "horizon_till", "lat", "lon"
+upscale_ops(1:4,14) = "1.0", "1.0", "1.0", "1.0"
+to_file(14) = .false.
+
+name(15) = "clay_till"
+from_data_arrays(1,15) = "clay"
+target_coord_names(1:4,15) = "land_cover_period", "horizon_till", "lat", "lon"
+upscale_ops(1:4,15) = "1.0", "1.0", "1.0", "1.0"
+to_file(15) = .false.
+
+name(16) = "ThetaS_till"
+transfer_func(16) = "where (sand_till < vGenu_tresh ) PTF_lower66_5_constant + PTF_lower66_5_clay *
+clay_till + PTF_lower66_5_Db * bd_eff_till else where ( sand_till >= vGenu_tresh )
+PTF_higher66_5_constant + PTF_higher66_5_clay *
+clay_till + PTF_higher66_5_Db * bd_eff_till"
+from_data_arrays(1:3,16) = "sand_till", "clay_till", "bd_eff_till"
+limits(1:2,16) = 0.01, 1.0
+to_file(16) = .false.
+
+name(17) = "vGenu_n_till"
+transfer_func(17) = "where (sand_till < vGenu_tresh )
+vGenu_N_c01 - vGenu_N_c02 * (sand_till ** (vGenu_N_c03)) + vGenu_N_c04 * (clay_till **(vGenu_N_c05))
+else where ( sand_till >= vGenu_tresh )
+vGenu_N_c10 + vGenu_N_c11 * (sand_till ** (vGenu_N_c12)) + vGenu_N_c13 * (clay_till **(vGenu_N_c14))"
+from_data_arrays(1:2,17) = "sand_till", "clay_till"
+limits(1,17) = 1.01
+to_file(17) = .false.
+
+name(18) = "vGenu_alpha_till"
+transfer_func(18) = "where (sand_till < vGenu_tresh )
+exp(vGenu_N_c06 + vGenu_N_c07 * sand_till + vGenu_N_c08 * clay_till - vGenu_N_c09 * bd_eff_till)
+else where ( sand_till >= vGenu_tresh )
+exp(vGenu_N_c15 + vGenu_N_c16 * sand_till + vGenu_N_c17 * clay_till - vGenu_N_c18 * bd_eff_till)"
+from_data_arrays(1:3,18) = "sand_till", "clay_till", "bd_eff_till"
+limits(1,18) = 0.00001
+to_file(18) = .false.
+
+name(19) = "ThetaS_notill"
+transfer_func(19) = "where (sand < vGenu_tresh ) PTF_lower66_5_constant + PTF_lower66_5_clay *
+clay + PTF_lower66_5_Db * bd else where ( sand >= vGenu_tresh )
+PTF_higher66_5_constant + PTF_higher66_5_clay *
+clay + PTF_higher66_5_Db * bd"
+from_data_arrays(1:3,19) = "sand", "clay", "bd"
+target_coord_names(1:4,19) = "land_cover_period", "horizon_notill", "lat", "lon"
+upscale_ops(1:4,19) = "1.0", "1.0", "1.0", "1.0"
+limits(1:2,19) = 0.01, 1.0
+to_file(19) = .false.
+
+name(20) = "vGenu_n_notill"
+transfer_func(20) = "where (sand < vGenu_tresh )
+vGenu_N_c01 - vGenu_N_c02 * (sand **(vGenu_N_c03)) + vGenu_N_c04 * (clay **(vGenu_N_c05))
+else where ( sand >= vGenu_tresh )
+vGenu_N_c10 + vGenu_N_c11 * (sand**(vGenu_N_c12)) + vGenu_N_c13 * (clay **(vGenu_N_c14))"
+from_data_arrays(1:2,20) = "sand", "clay"
+target_coord_names(1:4,20) = "land_cover_period", "horizon_notill", "lat", "lon"
+upscale_ops(1:4,20) = "1.0", "1.0", "1.0", "1.0"
+limits(1,20) = 1.01
+to_file(20) = .false.
+
+name(21) = "vGenu_alpha_notill"
+transfer_func(21) = "where (sand < vGenu_tresh )
+exp(vGenu_N_c06 + vGenu_N_c07 * sand + vGenu_N_c08 * clay - vGenu_N_c09 * bd)
+else where ( sand >= vGenu_tresh )
+exp(vGenu_N_c15 + vGenu_N_c16 * sand + vGenu_N_c17 * clay - vGenu_N_c18 * bd)"
+from_data_arrays(1:3,21) = "sand", "clay", "bd"
+target_coord_names(1:4,21) = "land_cover_period", "horizon_notill", "lat", "lon"
+upscale_ops(1:4,21) = "1.0", "1.0", "1.0", "1.0"
+limits(1,21) = 0.00001
+to_file(21) = .false.
+
+name(22) = "FieldCap_till"
+transfer_func(22) = "ThetaS_till * exp(FieldCap_c1 * (FieldCap_c2 + log10(KSat_till)) * log(vGenu_n_till))"
+from_data_arrays(1:3,22) = "ThetaS_till", "KSat_till", "vGenu_n_till"
+to_file(22) = .false.
+
+name(23) = "FieldCap_notill"
+transfer_func(23) = "ThetaS_notill * exp(FieldCap_c1 * (FieldCap_c2 + log10(KSat_notill)) * log(vGenu_n_notill))"
+from_data_arrays(1:3,23) = "ThetaS_notill", "KSat_notill", "vGenu_n_notill"
+to_file(23) = .false.
+
+name(24) = "PermWiltPoint_temp_till"
+transfer_func(24) = "exp ((PWP_c - (PWP_c / vGenu_n_till)) *
+log(PWP_c + exp(vGenu_n_till * log(vGenu_alpha_till * PWP_matPot_ThetaR))))"
+from_data_arrays(1:2,24) = "vGenu_alpha_till", "vGenu_n_till"
+to_file(24) = .false.
+
+name(25) = "PermWiltPoint_till"
+transfer_func(25) = "where (PermWiltPoint_temp_till < 1.0) ThetaS_till else ThetaS_till / PermWiltPoint_temp_till"
+from_data_arrays(1:2,25) = "ThetaS_till", "PermWiltPoint_temp_till"
+to_file(25) = .false.
+
+name(26) = "PermWiltPoint_temp_notill"
+transfer_func(26) = "exp ((PWP_c - (PWP_c / vGenu_n_notill)) *
+log(PWP_c + exp(vGenu_n_notill * log(vGenu_alpha_notill * PWP_matPot_ThetaR))))"
+from_data_arrays(1:2,26) = "vGenu_alpha_notill", "vGenu_n_notill"
+to_file(26) = .false.
+
+name(27) = "PermWiltPoint_notill"
+transfer_func(27) = "where (PermWiltPoint_temp_notill < 1.0) ThetaS_notill else ThetaS_notill / PermWiltPoint_temp_notill"
+from_data_arrays(1:2,27) = "ThetaS_notill", "PermWiltPoint_temp_notill"
+to_file(27) = .false.
+
+name(28) = "bd_notill"
+from_data_arrays(1,28) = "bd"
+target_coord_names(1:4,28) = "land_cover_period", "horizon_notill", "lat", "lon"
+upscale_ops(1:4,28) = "1.0", "1.0", "1.0", "1.0"
+to_file(28) = .false.
+
+name(29) = "bd_all"
+from_data_arrays(1:2,29) = "bd_eff_till", "bd_notill"
+to_file(29) = .false.
+
+name(30) = "ThetaS_all"
+from_data_arrays(1:2,30) = "ThetaS_till", "ThetaS_notill"
+to_file(30) = .false.
+
+name(31) = "PermWiltPoint_out"
+from_data_arrays(1:2,31) = "PermWiltPoint_till", "PermWiltPoint_notill"
+target_coord_names(1:4,31) = "land_cover_period_out", "horizon_out", "lat", "lon"
+upscale_ops(1:4,31) = "1.0", "1.0", "1.0", "1.0"
+to_file(31) = .false.
+
+name(32) = "FieldCap_total"
+from_data_arrays(1:2,32) = "FieldCap_till", "FieldCap_notill"
+target_coord_names(1:4,32) = "land_cover_period", "horizon_all", "lat", "lon"
+upscale_ops(1:4,32) = "1.0", "sum", "1.0", "1.0"
+to_file(32) = .false.
+
+name(33) = "SatSoilMoistureContent_total"
+from_data_arrays(1,33) = "ThetaS_all"
+target_coord_names(1:4,33) = "land_cover_period", "horizon_all", "lat", "lon"
+upscale_ops(1:4,33) = "1.0", "sum", "1.0", "1.0"
+to_file(33) = .false.
+
+name(34) = "VarKSat_horizontal_total"
+transfer_func(34) = "ThetaS_all * KSat_all"
+from_data_arrays(1:2,34) = "ThetaS_all", "KSat_all"
+target_coord_names(1:4,34) = "land_cover_period", "horizon_all", "lat", "lon"
+upscale_ops(1:4,34) = "1.0", "sum", "1.0", "1.0"
+to_file(34) = .false.
+
+name(35) = "VarKSat_vertical_total"
+transfer_func(35) = "ThetaS_all / KSat_all"
+from_data_arrays(1:2,35) = "ThetaS_all", "KSat_all"
+target_coord_names(1:4,35) = "land_cover_period", "horizon_all", "lat", "lon"
+upscale_ops(1:4,35) = "1.0", "sum", "1.0", "1.0"
+to_file(35) = .false.
+
+! soil moisture saturation deficit relative to the field capacity soil moisture
+name(36) = "SoilMoistureSaturationDeficit"
+transfer_func(36) = "(SatSoilMoistureContent_total - FieldCap_total) / SatSoilMoistureContent_total"
+from_data_arrays(1:2,36) = "SatSoilMoistureContent_total", "FieldCap_total"
+to_file(36) = .false.
+
+! KSat variability over the whole soil column depth for
+! both horizontal and vertical flows including relative variabilities
+name(37) = "VarKSat_horizontal_relative"
+transfer_func(37) = "VarKSat_horizontal_total / SatSoilMoistureContent_total / PTF_Ks_curveSlope"
+from_data_arrays(1:2,37) = "SatSoilMoistureContent_total", "VarKSat_horizontal_total"
+to_file(37) = .false.
+
+name(38) = "VarKSat_vertical_relative"
+transfer_func(38) = "SatSoilMoistureContent_total / VarKSat_vertical_total / PTF_Ks_curveSlope"
+from_data_arrays(1:2,38) = "SatSoilMoistureContent_total", "VarKSat_vertical_total"
+to_file(38) = .false.
+
+name(39) = "ThetaS_out"
+from_data_arrays(1,39) = "ThetaS_all"
+target_coord_names(1:4,39) = "land_cover_period_out", "horizon_out", "lat", "lon"
+upscale_ops(1:4,39) = "1.0", "1.0", "1.0", "1.0"
+to_file(39) = .false.
+
+name(40) = "z_lower_bound"
+transfer_func(40) = "z.lower_bound"
+from_data_arrays(1:2,40) = "ThetaS_out", "z.lower_bound"
+to_file(40) = .false.
+
+name(41) = "z_upper_bound"
+transfer_func(41) = "z.upper_bound"
+from_data_arrays(1:2,41) = "ThetaS_out", "z.upper_bound"
+to_file(41) = .false.
+
+name(42) = "L1_SatSoilMoisture"
+transfer_func(42) = "ThetaS_out * (z_upper_bound - z_lower_bound) * 1000.0"
+from_data_arrays(1:3,42) = "ThetaS_out", "z_lower_bound", "z_upper_bound"
+target_coord_names(1:4,42) = "land_cover_period_out", "horizon_out", "lat_out", "lon_out"
+upscale_ops(1:4,42) = "1.0", "1.0", "-1.0", "-1.0"
+limits(1,42) = 0.0001
+
+name(43) = "PermWiltPoint_temp"
+transfer_func(43) = "PermWiltPoint_out * (z_upper_bound - z_lower_bound) * 1000.0"
+from_data_arrays(1:3,43) = "PermWiltPoint_out", "z_lower_bound", "z_upper_bound"
+target_coord_names(1:4,43) = "land_cover_period_out", "horizon_out", "lat_out", "lon_out"
+upscale_ops(1:4,43) = "1.0", "sum", "-1.0", "-1.0"
+to_file(43) = .false.
+
+name(44) = "FieldCap_out"
+from_data_arrays(1:2,44) = "FieldCap_till", "FieldCap_notill"
+target_coord_names(1:4,44) = "land_cover_period_out", "horizon_out", "lat", "lon"
+upscale_ops(1:4,44) = "1.0", "1.0", "1.0", "1.0"
+to_file(44) = .false.
+
+name(45) = "FieldCap_absolute_temp"
+transfer_func(45) = "FieldCap_out * (z_upper_bound - z_lower_bound) * 1000.0"
+from_data_arrays(1:3,45) = "FieldCap_out", "z_lower_bound", "z_upper_bound"
+to_file(45) = .false.
+
+name(46) = "FieldCap_temp"
+from_data_arrays(1:3,46) = "FieldCap_absolute_temp"
+target_coord_names(1:4,46) = "land_cover_period_out", "horizon_out", "lat_out", "lon_out"
+upscale_ops(1:4,46) = "1.0", "sum", "-1.0", "-1.0"
+to_file(46) = .false.
+
+name(47) = "L1_SoilMoistureExponent"
+transfer_func(47) = "bd_all * infiltrationShapeFactor"
+from_data_arrays(1,47) = "bd_all"
+target_coord_names(1:4,47) = "land_cover_period_out", "horizon_out", "lat_out", "lon_out"
+upscale_ops(1:4,47) = "1.0", "1.0", "-1.0", "-1.0"
+
+name(48) = "L1_FieldCap"
+transfer_func(48) = "where (FieldCap_temp > L1_SatSoilMoisture) 0.99 * L1_SatSoilMoisture else FieldCap_temp"
+from_data_arrays(1:2,48) = "FieldCap_temp", "L1_SatSoilMoisture"
+limits(1,48) = 0.0001
+
+name(49) = "L1_PermWiltPoint"
+transfer_func(49) = "where (PermWiltPoint_temp > L1_FieldCap) 0.99 * L1_FieldCap else PermWiltPoint_temp"
+from_data_arrays(1:2,49) = "PermWiltPoint_temp", "L1_FieldCap"
+limits(1,49) = 0.0001
+
+name(50) = "land_cover_horizon"
+from_data_arrays(1,50) = "land_cover"
+target_coord_names(1:4,50) = "land_cover_period", "horizon_out", "lat", "lon"
+upscale_ops(1:4,50) = "1.0", "1.0", "1.0", "1.0"
+to_file(50) = .false.
+
+!!! this is the non-field capacity-dependent case
+name(51) = "fRoots_temp"
+transfer_func(51) = "where (land_cover_horizon > 0.5 .and. land_cover_horizon < 1.5)
+(1.0 - rootFractionCoefficient_forest ** (z_upper_bound * 100.0)) - (1.0 - rootFractionCoefficient_forest ** (z_lower_bound * 100.0))
+else where (land_cover_horizon < 2.5)
+(1.0 - rootFractionCoefficient_impervious ** (z_upper_bound * 100.0)) - (1.0 - rootFractionCoefficient_impervious ** (z_lower_bound * 100.0))
+else where (land_cover_horizon < 3.5)
+(1.0 - (rootFractionCoefficient_forest - rootFractionCoefficient_pervious) ** (z_upper_bound * 100.0)) -
+(1.0 - (rootFractionCoefficient_forest - rootFractionCoefficient_pervious) ** (z_lower_bound * 100.0))
+"
+from_data_arrays(1:3,51) = "land_cover_horizon", "z_lower_bound", "z_upper_bound"
+target_coord_names(1:4,51) = "land_cover_period_out", "horizon_out", "lat_out", "lon_out"
+upscale_ops(1:4,51) = "1.0", "sum", "-1.0", "-1.0"
+to_file(51) = .false.
+
+!!! this is the field capacity-dependent case
+name(52) = "FCnorm"
+transfer_func(52) = "(FieldCap_out - FCmin_glob) / FCdelta_glob"
+from_data_arrays(1,52) = "FieldCap_out"
+limits(1:2,52) = 0.0, 1.0
+to_file(52) = .false.
+
+name(53) = "FC_rootFractionCoefficient_pervious"
+transfer_func(53) = "(FCnorm * rootFractionCoefficient_clay)
++ (1.0 - FCnorm) * (rootFractionCoefficient_clay - rootFractionCoefficient_sand)"
+from_data_arrays(1,53) = "FCnorm"
+limits(1:2,53) = 0.0, 1.0
+to_file(53) = .false.
+
+name(54) = "fRoots_temp_FC"
+transfer_func(54) = "where (land_cover_horizon > 0.5 .and. land_cover_horizon < 1.5)
+(1.0 - rootFractionCoefficient_forest ** (z_upper_bound * 100.0)) - (1.0 - rootFractionCoefficient_forest ** (z_lower_bound * 100.0))
+else where (land_cover_horizon < 2.5)
+(1.0 - rootFractionCoefficient_impervious ** (z_upper_bound * 100.0)) - (1.0 - rootFractionCoefficient_impervious ** (z_lower_bound * 100.0))
+else where (land_cover_horizon < 3.5)
+(1.0 - (FC_rootFractionCoefficient_pervious) ** (z_upper_bound * 100.0)) -
+(1.0 - (FC_rootFractionCoefficient_pervious) ** (z_lower_bound * 100.0))"
+from_data_arrays(1:4,54) = "land_cover_horizon", "z_lower_bound", "z_upper_bound", "FC_rootFractionCoefficient_pervious"
+target_coord_names(1:4,54) = "land_cover_period_out", "horizon_out", "lat_out", "lon_out"
+upscale_ops(1:4,54) = "1.0", "sum", "-1.0", "-1.0"
+to_file(54) = .false.
+
+name(55) = "fRoots_total"
+from_data_arrays(1,55) = "fRoots_temp"
+target_coord_names(1:4,55) = "land_cover_period_out", "horizon_all", "lat_out", "lon_out"
+upscale_ops(1:4,55) = "1.0", "sum", "1.0", "1.0"
+to_file(55) = .false.
+
+name(56) = "fRoots_rescaled_total"
+from_data_arrays(1,56) = "fRoots_total"
+target_coord_names(1:4,56) = "land_cover_period_out", "horizon_out", "lat_out", "lon_out"
+upscale_ops(1:4,56) = "1.0", "1.0", "1.0", "1.0"
+to_file(56) = .false.
+
+name(57) = "L1_fRoots"
+transfer_func(57) = "fRoots_temp / fRoots_rescaled_total"
+from_data_arrays(1:2,57) = "fRoots_temp", "fRoots_rescaled_total"
+
+name(58) = "L1_UnsatThreshold"
+transfer_func(58) = "interflowStorageCapacityFactor * SoilMoistureSaturationDeficit"
+from_data_arrays(1,58) = "SoilMoistureSaturationDeficit"
+target_coord_names(1:4,58) = "land_cover_period_out", "horizon_all", "lat_out", "lon_out"
+upscale_ops(1:4,58) = "1.0", "1.0", "1.0", "1.0"
+
+name(59) = "slope"
+from_file(59) = "../../test_domain/input/mpr/slope.nc"
+limits(1,59) = 0.01
+to_file(59) = .false.
+
+name(60) = "slope_emp"
+transfer_func(60) = "empirical_cdf"
+from_data_arrays(1,60) = "slope"
+target_coord_names(1:4,60) = "land_cover_period", "horizon_all", "lat", "lon"
+upscale_ops(1:4,60) = "1.0", "1.0", "1.0", "1.0"
+to_file(60) = .false.
+
+name(61) = "land_cover_horizon_all"
+from_data_arrays(1,61) = "land_cover"
+target_coord_names(1:4,61) = "land_cover_period", "horizon_all", "lat", "lon"
+upscale_ops(1:4,61) = "1.0", "1.0", "1.0", "1.0"
+to_file(61) = .false.
+
+name(62) = "FastFlow_temp"
+transfer_func(62) = "where (land_cover_horizon_all > 0.5 .and. land_cover_horizon_all < 1.5)
+fastInterflowRecession_forest * interflowRecession_slope * (2.0 - slope_emp)
+else interflowRecession_slope * (2.0 - slope_emp)"
+from_data_arrays(1:2,62) = "slope_emp", "land_cover_horizon_all"
+! technically this depends only on lat and lon, but comparison is done with L1_SlowFlow
+target_coord_names(1:4,62) = "land_cover_period_out", "horizon_all", "lat_out", "lon_out"
+upscale_ops(1:4,62) = "1.0", "1.0", "1.0", "1.0"
+limits(1,62) = 1.0
+to_file(62) = .false.
+
+name(63) = "L1_SlowFlow"
+transfer_func(63) = "interflowRecession_slope * (2.0 - slope_emp) +
+slowInterflowRecession_Ks * (1.0 + VarKSat_horizontal_relative)"
+from_data_arrays(1:2,63) = "slope_emp", "VarKSat_horizontal_relative"
+target_coord_names(1:4,63) = "land_cover_period_out", "horizon_all", "lat_out", "lon_out"
+upscale_ops(1:4,63) = "1.0", "1.0", "1.0", "1.0"
+limits(1,63) = 2.0
+
+name(64) = "L1_FastFlow"
+transfer_func(64) = "where (FastFlow_temp > L1_SlowFlow) L1_SlowFlow else FastFlow_temp"
+from_data_arrays(1:2,64) = "FastFlow_temp", "L1_SlowFlow"
+
+name(65) = "L1_Alpha"
+transfer_func(65) = "exponentSlowInterflow * (1.0 / VarKSat_horizontal_relative) *
+(1.0 / (1.0 + SoilMoistureSaturationDeficit))"
+from_data_arrays(1:2,65) = "VarKSat_horizontal_relative", "SoilMoistureSaturationDeficit"
+target_coord_names(1:4,65) = "land_cover_period_out", "horizon_all", "lat_out", "lon_out"
+upscale_ops(1:4,65) = "1.0", "1.0", "1.0", "1.0"
+
+name(66) = "L1_Kperco"
+transfer_func(66) = "rechargeCoefficient * (1.0 + SoilMoistureSaturationDeficit) / (1.0 + VarKSat_vertical_relative)"
+from_data_arrays(1:2,66) = "VarKSat_vertical_relative", "SoilMoistureSaturationDeficit"
+target_coord_names(1:4,66) = "land_cover_period_out", "horizon_all", "lat_out", "lon_out"
+upscale_ops(1:4,66) = "1.0", "1.0", "1.0", "1.0"
+limits(1,66) = 2.0
+
+! this is a new field and denotes the fraction of karstic area per cell [0-1] (equivalent to geo unit)
+name(67) = "karstic"
+from_file(67) = "../../test_domain/input/mpr/karstic.nc"
+target_coord_names(1:2,67) = "lat_out", "lon_out"
+upscale_ops(1:2,67) = "1.0", "1.0"
+to_file(67) = .false.
+
+name(68) = "L1_KarstLoss"
+transfer_func(68) = "1.0 - (rechargeFactor_karstic * karstic)"
+from_data_arrays(1:2,68) = "karstic"
+! this is a the geo unit field
+
+name(69) = "classunit"
+from_file(69) = "../../test_domain/input/mpr/classunit.nc"
+transfer_func(69) = "where
+ (classunit > 0.5 .and. classunit < 1.5) base_flow_geo_unit_01 else where
+ (classunit < 2.5) base_flow_geo_unit_02 else where
+ (classunit < 3.5) base_flow_geo_unit_03 else where
+ (classunit < 4.5) base_flow_geo_unit_04 else where
+ (classunit < 5.5) base_flow_geo_unit_05 else where
+ (classunit < 6.5) base_flow_geo_unit_06 else where
+ (classunit < 7.5) base_flow_geo_unit_07 else where
+ (classunit < 8.5) base_flow_geo_unit_08 else where
+ (classunit < 9.5) base_flow_geo_unit_09 else where
+ (classunit < 10.5) base_flow_geo_unit_10"
+target_coord_names(1:4,69) = "land_cover_period_out", "horizon_all", "lat_out", "lon_out"
+upscale_ops(1:4,69) = "1.0", "1.0", "1.0", "1.0"
+to_file(69) = .false.
+
+name(70) = "L1_kBaseFlow"
+transfer_func(70) = "where (classunit < L1_SlowFlow) L1_SlowFlow else classunit"
+from_data_arrays(1:2,70) = "classunit", "L1_SlowFlow"
+
+name(71) = "L1_SealedThresh"
+transfer_func(71) = "imperviousStorageCapacity"
+from_data_arrays(1,71) = "slope"
+target_coord_names(1:2,71) = "lat_out", "lon_out"
+upscale_ops(1:2,71) = "1.0", "1.0"
+
+name(72) = "L1_Jarvis_Threshold"
+transfer_func(72) = "jarvis_sm_threshold_c1"
+from_data_arrays(1,72) = "slope"
+target_coord_names(1:2,72) = "lat_out", "lon_out"
+upscale_ops(1:2,72) = "1.0", "1.0"
+
+name(73) = "forest_frac"
+transfer_func(73) = "where (land_cover > 0.5 .and. land_cover < 1.5) 1.0 else 0.0"
+from_data_arrays(1,73) = "land_cover"
+target_coord_names(1:3,73) = "land_cover_period_out", "lat_out", "lon_out"
+upscale_ops(1:3,73) = "1.0", "1.0", "1.0"
+to_file(73) = .false.
+
+name(74) = "sealed_temp"
+transfer_func(74) = "where (land_cover > 1.5 .and. land_cover < 2.5) 1.0 else 0.0"
+from_data_arrays(1,74) = "land_cover"
+target_coord_names(1:3,74) = "land_cover_period_out", "lat_out", "lon_out"
+upscale_ops(1:3,74) = "1.0", "1.0", "1.0"
+to_file(74) = .false.
+
+! name(78) = "pervious_temp"
+! transfer_func(78) = "where (land_cover > 2.5 .and. land_cover < 3.5) 1.0 else 0.0"
+! from_data_arrays(1,78) = "land_cover"
+! target_coord_names(1:3,78) = "land_cover_period_out", "lat_out", "lon_out"
+! upscale_ops(1:3,78) = "1.0", "1.0", "1.0"
+! to_file(78) = .false.
+
+name(75) = "L1_SealedFraction"
+transfer_func(75) = "sealed_temp * fracSealed_cityArea"
+from_data_arrays(1,75) = "sealed_temp"
+
+name(76) = "pervious_frac"
+transfer_func(76) = "1.0 - forest_frac - L1_SealedFraction"
+from_data_arrays(1:2,76) = "forest_frac", "L1_SealedFraction"
+to_file(76) = .false.
+
+name(77) = "L1_TempThresh"
+transfer_func(77) = "snowThresholdTemperature"
+from_data_arrays(1,77) = "L1_SealedFraction"
+
+name(78) = "L1_DegDayInc"
+transfer_func(78) = "increaseDegreeDayFactorByPrecip"
+from_data_arrays(1,78) = "L1_SealedFraction"
+
+name(79) = "L1_DegDayNoPre"
+transfer_func(79) = "degreeDayFactor_forest * forest_frac +
+(degreeDayFactor_forest + degreeDayFactor_pervious + degreeDayFactor_impervious) * L1_SealedFraction +
+(degreeDayFactor_forest + degreeDayFactor_pervious) * pervious_frac"
+from_data_arrays(1:3,79) = "L1_SealedFraction", "forest_frac", "pervious_frac"
+
+name(80) = "L1_DegDayMax"
+transfer_func(80) = "(degreeDayFactor_forest + maxDegreeDayFactor_forest) * forest_frac +
+(degreeDayFactor_forest + degreeDayFactor_pervious + degreeDayFactor_impervious + maxDegreeDayFactor_impervious) * L1_SealedFraction +
+(degreeDayFactor_forest + degreeDayFactor_pervious + maxDegreeDayFactor_pervious) * pervious_frac"
+from_data_arrays(1:3,80) = "L1_SealedFraction", "forest_frac", "pervious_frac"
+
+name(81) = "lai_class"
+from_file(81) = "../../test_domain/input/mpr/lai_class.nc"
+limits(1:2,81) = 1.00E-10, 30.0
+to_file(81) = .false.
+
+name(82) = "LAI_month"
+from_data_arrays(1,82) = "lai_class"
+target_coord_names(1:4,82) = "land_cover_period", "month_of_year", "lat", "lon"
+upscale_ops(1:4,82) = "1.0", "1.0", "1.0", "1.0"
+to_file(82) = .false.
+
+name(83) = "LAI_max_temp"
+from_data_arrays(1,83) = "lai_class"
+target_coord_names(1:4,83) = "land_cover_period", "month_of_year", "lat", "lon"
+upscale_ops(1:4,83) = "1.0", "max", "1.0", "1.0"
+to_file(83) = .false.
+
+name(84) = "LAI_max_broadcast"
+from_data_arrays(1,84) = "LAI_max_temp"
+target_coord_names(1:4,84) = "land_cover_period", "month_of_year", "lat", "lon"
+upscale_ops(1:4,84) = "1.0", "1.0", "1.0", "1.0"
+to_file(84) = .false.
+
+name(85) = "land_cover_month"
+from_data_arrays(1,85) = "land_cover"
+target_coord_names(1:4,85) = "land_cover_period", "month_of_year", "lat", "lon"
+upscale_ops(1:4,85) = "1.0", "1.0", "1.0", "1.0"
+to_file(85) = .false.
+
+name(86) = "canopy_height"
+transfer_func(86) = "where (land_cover_month > 0.5 .and. land_cover_month < 1.5) canopyheight_forest else where
+(land_cover_month < 2.5) canopyheight_impervious else where
+(land_cover_month < 3.5) canopyheight_pervious * LAI_month / LAI_max_broadcast"
+from_data_arrays(1:3,86) = "land_cover_month", "LAI_month", "LAI_max_broadcast"
+to_file(86) = .false.
+
+name(87) = "wind_measurement_height"
+transfer_func(87) = "where (Default_Wind_Measurement_Height < canopy_height)
+canopy_height + Default_Wind_Measurement_Height else Default_Wind_Measurement_Height"
+from_data_arrays(1,87) = "canopy_height"
+to_file(87) = .false.
+
+name(88) = "L1_Aerodyn_resist"
+transfer_func(88) = "log((wind_measurement_height - displacementheight_coeff * canopy_height) /
+(roughnesslength_momentum_coeff * canopy_height)) * log((wind_measurement_height - displacementheight_coeff *
+canopy_height) / (roughnesslength_momentum_coeff * roughnesslength_heat_coeff * canopy_height)) / (karman ** 2.0)"
+from_data_arrays(1:2,88) = "canopy_height", "wind_measurement_height"
+target_coord_names(1:4,88) = "land_cover_period_out", "month_of_year", "lat_out", "lon_out"
+upscale_ops(1:4,88) = "1.0", "1.0", "1.0", "1.0"
+
+name(89) = "L1_PET_LAI_correction_factor"
+transfer_func(89) = "where (land_cover_month > 0.5 .and. land_cover_month < 1.5)
+PET_a_forest + (PET_b * (1.0 - exp(PET_c * LAI_month)))
+else where (land_cover_month < 2.5)
+PET_a_impervious + (PET_b * (1.0 - exp(PET_c * LAI_month)))
+else where (land_cover_month < 3.5)
+PET_a_pervious + (PET_b * (1.0 - exp(PET_c * LAI_month)))"
+from_data_arrays(1:2,89) = "land_cover_month", "LAI_month"
+target_coord_names(1:4,89) = "land_cover_period_out", "month_of_year", "lat_out", "lon_out"
+upscale_ops(1:4,89) = "1.0", "-1.0", "-1.0", "1.0"
+
+name(90) = "aspect"
+from_file(90) = "../../test_domain/input/mpr/aspect.nc"
+limits(1,90) = 1.0
+to_file(90) = .false.
+
+name(91) = "lat_l0"
+from_file(91) = "../../test_domain/input/mpr/latlon_1.nc"
+to_file(91) = .false.
+
+name(92) = "L1_fAsp"
+transfer_func(92) = "where (lat_l0 > 0.0 .and. aspect < aspectThresholdPET)
+minCorrectionFactorPET + maxCorrectionFactorPET / aspectThresholdPET * aspect else where (lat_l0 > 0.0)
+minCorrectionFactorPET + maxCorrectionFactorPET / (360.0 - aspectThresholdPET) * (360.0 - aspect)
+else where (aspect < aspectThresholdPET)
+minCorrectionFactorPET + maxCorrectionFactorPET / (360.0 - aspectThresholdPET) * (360.0 - aspect)
+else minCorrectionFactorPET + maxCorrectionFactorPET / aspectThresholdPET * aspect"
+from_data_arrays(1:2,92) = "aspect", "lat_l0"
+target_coord_names(1:2,92) = "lat_out", "lon_out"
+upscale_ops(1:2,92) = "1.0", "1.0"
+
+name(93) = "L1_HarSamCoeff"
+transfer_func(93) = "HargreavesSamaniCoeff"
+from_data_arrays(1,93) = "slope"
+target_coord_names(1:2,93) = "lat_out", "lon_out"
+upscale_ops(1:2,93) = "1.0", "1.0"
+
+name(94) = "L1_PrieTayAlpha"
+transfer_func(94) = "PriestleyTaylorCoeff + PriestleyTaylorLAIcorr * lai_class"
+from_data_arrays(1,94) = "lai_class"
+target_coord_names(1:3,94) = "month_of_year", "lat_out", "lon_out"
+upscale_ops(1:3,94) = "1.0", "1.0", "1.0"
+
+name(95) = "L1_Bulk_Surface_Resist"
+transfer_func(95) = "stomatal_resistance / (lai_class / (LAI_factor_surfResi * lai_class + LAI_offset_surfResi))"
+from_data_arrays(1,95) = "lai_class"
+target_coord_names(1:3,95) = "month_of_year", "lat_out", "lon_out"
+upscale_ops(1:3,95) = "1.0", "1.0", "1.0"
+limits(2,95) = 251.0
+
+name(96) = "L1_Max_Canopy_Intercept"
+transfer_func(96) = "canopyInterceptionFactor * lai_class"
+from_data_arrays(1,96) = "lai_class"
+target_coord_names(1:3,96) = "month_of_year", "lat_out", "lon_out"
+upscale_ops(1:3,96) = "1.0", "1.0", "1.0"
+
+name(97) = "fRoots_total_FC"
+from_data_arrays(1,97) = "fRoots_temp_FC"
+target_coord_names(1:4,97) = "land_cover_period_out", "horizon_all", "lat_out", "lon_out"
+upscale_ops(1:4,97) = "1.0", "sum", "1.0", "1.0"
+to_file(97) = .false.
+
+name(98) = "fRoots_rescaled_total_FC"
+from_data_arrays(1,98) = "fRoots_total_FC"
+target_coord_names(1:4,98) = "land_cover_period_out", "horizon_out", "lat_out", "lon_out"
+upscale_ops(1:4,98) = "1.0", "1.0", "1.0", "1.0"
+to_file(98) = .false.
+
+name(99) = "L1_fRoots_FC"
+transfer_func(99) = "fRoots_temp_FC / fRoots_rescaled_total_FC"
+from_data_arrays(1:2,99) = "fRoots_temp_FC", "fRoots_rescaled_total_FC"
+
+name(100) = "L1_latitude"
+transfer_func(100) = "lat_l0"
+! the aspect is only here to use its mask
+from_data_arrays(1:2,100) = "lat_l0", "aspect"
+target_coord_names(1:2,100) = "lat_out", "lon_out"
+upscale_ops(1:2,100) = "1.0", "1.0"
+
+/
