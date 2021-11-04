@@ -27,7 +27,7 @@ MODULE mo_mrm_init
 
 CONTAINS
 
-subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
+subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param)
     use mo_common_variables, only : processMatrix
     use mo_mrm_read_config, only : mrm_read_config
     use mo_mrm_global_variables, only: riv_temp_pcs
@@ -39,8 +39,6 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
     character(*), intent(in) :: file_namelist, file_namelist_param
 
     integer, intent(in) :: unamelist, unamelist_param
-
-    logical, intent(out) :: ReadLatLon
 
     call message('')
     call message('  Inititalize mRM')
@@ -54,8 +52,7 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
     end if
 
     ! read config for mrm, readlatlon is set here depending on whether output is needed
-    call mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, &
-            .false., ReadLatLon)
+    call mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, .false.)
 
 end subroutine mrm_configuration
   ! ------------------------------------------------------------------
@@ -91,7 +88,7 @@ end subroutine mrm_configuration
   ! Stephan Thober May 2019 - added init of level0 in case of read restart
 
 
-  subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
+  subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_grid, only : read_grid_info
@@ -105,7 +102,8 @@ end subroutine mrm_configuration
                                         l0_l11_remap, l1_l11_remap, level11, &
                                         gw_coupling, L0_river_head_mon_sum, &
                                         L11_netPerm, L11_fromN, L11_length, L11_nOutlets, &
-                                        riv_temp_pcs
+                                        riv_temp_pcs, &
+                                        readLatLon
     use mo_mrm_net_startup, only : L11_flow_direction, L11_flow_accumulation, L11_fraction_sealed_floodplain, &
                                    L11_link_location, L11_routing_order, L11_set_drain_outlet_gauges, &
                                    L11_set_network_topology, L11_stream_features, l11_l1_mapping
@@ -122,8 +120,6 @@ end subroutine mrm_configuration
     character(*), intent(in) :: file_namelist, file_namelist_param
 
     integer, intent(in) :: unamelist, unamelist_param
-
-    logical, optional, intent(in) :: ReadLatLon
 
     ! start and end index for routing parameters
     integer(i4) :: iStart, iEnd

@@ -43,10 +43,10 @@ MODULE mo_mrm_file
 
   !> gauge location input data file
   CHARACTER(len = *), PARAMETER :: file_gaugeloc = 'idgauges.nc'                ! gauge location
-  !> unit for discharge time series 
+  !> unit for discharge time series
   INTEGER, PARAMETER :: udischarge = 66                            !
   !> file defining mRM's outputs
-  CHARACTER(len = *), PARAMETER :: file_defOutput = 'mrm_outputs.nml'             ! output states and fluxes
+  character(:), allocatable :: file_defOutput ! = 'mrm_outputs.nml'             ! output states and fluxes
   !> Unit for file defining mRM's outputs
   INTEGER, PARAMETER :: udefOutput = 67                            !
 
