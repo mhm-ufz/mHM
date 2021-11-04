@@ -1,10 +1,8 @@
 &directories_general
-    dir_lcover(1) = '../../test_domain/input/mpr/'
-    dir_morpho(1) = '../../test_domain/input/mpr/'
+    dir_in(1) = '../../test_domain/input/mpr/'
     dir_out(1) = 'output_b1/b1_'
     mhm_file_restartout(1) = 'output_b1/b1_mHM_restart_001.nc'
     mrm_file_restartout(1) = 'output_b1/b1_mRM_restart_001.nc'
-    dircommonfiles = '../../test_domain/input/mpr/'
     dirconfigout = 'output_b1/'
     file_latlon(1) = '../../test_domain/input/mpr/latlon_1.nc'
 /
@@ -47,9 +45,6 @@
 /
 
 &lcover
-    lcoverfname(1:2) = 'lc_1981.asc', 'lc_1991.asc'
-    lcoveryearend(1:2) = 1990, 2000
-    lcoveryearstart(1:2) = 1981, 1991
     nLandCoverPeriods = 2
 /
 
