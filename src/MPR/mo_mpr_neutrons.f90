@@ -137,7 +137,7 @@ contains
     ! with zero there will be problem with
     ! upscaling with harmonic mean for the COMSIC_L3
     ! in case of process_case .EQ. 1
-    COSMIC_L3_till  = 0.000001_dp
+    COSMIC_L3_till = 0.000001_dp
     COSMIC_L3       = 0.000001_dp
     latWat_till     = 0.000001_dp
     latWat          = 0.000001_dp

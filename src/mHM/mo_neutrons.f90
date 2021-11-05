@@ -115,7 +115,7 @@ CONTAINS
     real(dp)                                       :: average_swc, average_bd
     real(dp)                                       :: D_86_in_cm,  D_86_in_mm
     real(dp), dimension(:), allocatable            :: cummulative_Layer_weight
-    real(dp)                                       :: depth, weight_10mm_spacing 
+    real(dp)                                       :: depth, weight_10mm_spacing, grav_swc
 
     ! get the # of soil hoizons
     nLayers = size(SoilMoisture)
@@ -172,14 +172,11 @@ CONTAINS
     ! here average_swc is gravemtric swc = vol.swc/Bulk density
     average_swc = 0.0_dp
     do LL = 1, nLayers
-       average_swc = average_swc + ( (SoilMoisture(LL)/Layer_depth(LL))/Bd(LL)  * cummulative_Layer_weight(LL) )
+       !!>> add here if organic water is coming !!>> SoilMoisture(LL) + latWater(LL) + organic_water(LL)...
+       grav_swc = ( SoilMoisture(LL) + latWater(LL) )/Layer_depth(LL)/Bd(LL)  
+       average_swc = average_swc + ( grav_swc * cummulative_Layer_weight(LL) ) 
     end do
     average_swc = average_swc / sum( cummulative_Layer_weighT(:) )
-
-    !>>>>> add lattice water now ->
-    ! lattice water taken as average over the modeled layers
-    !>>>>> discuss with Martin >>>>>>> organic water **
-    average_swc = average_swc + average( latWater(:)/Layer_depth(:) )  
 
     ! calculate neutron count based on depth weighted SM of *D86*
     neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (average_swc + Desilets_a2) )    
@@ -334,6 +331,7 @@ CONTAINS
        ! except the top layer thickness, which is dependend on the snow for example
        ! zthick will be in cm, as all heigths are in cm in this module
        call layerThickness(ll,Horizons,interc,snowpack,zthick)
+       
 
        if ( ( zthick(ll) .gt. 0.0_dp ) .and. ( (iFlag_snowlayer_intecept .gt. 0 ) .or. (ll.ne.1) ) ) then
           call loopConstants(ll,&
@@ -356,7 +354,7 @@ CONTAINS
           ! we integrate the bulkdensity/h2oeffdens down to the middle of the layer ll:
           isoimass(ll) = bd*(0.5_dp*zthick(ll))*1.0_dp 
           iwatmass(ll) = h2oeffdens(ll)*(0.5_dp*zthick(ll))*1.0_dp
-          if (ll .gt. 1) then
+          if ( ll .gt. 1 ) then
             isoimass(ll) = isoimass(ll)+isoimass(ll-1)+bd*(0.5_dp*zthick(ll-1))*1.0_dp
             iwatmass(ll) = iwatmass(ll)+iwatmass(ll-1)+h2oeffdens(ll-1)*(0.5_dp*zthick(ll-1))*1.0_dp
           endif
