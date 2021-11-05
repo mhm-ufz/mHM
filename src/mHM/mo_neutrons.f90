@@ -134,7 +134,7 @@ CONTAINS
 
     ! estimate layer depth [mm] 
     Layer_depth(:) = Layer_max(:) - Layer_min(:)
-
+    
     ! average soil water content (volumetric ones) and Bulk density
     average_swc = average( SoilMoisture(:)/Layer_depth(:) )
     average_bd  = average( Bd(:) ) 

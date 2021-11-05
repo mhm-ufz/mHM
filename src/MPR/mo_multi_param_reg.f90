@@ -551,9 +551,7 @@ contains
            latWat                    & ! OUT: COSMIC parameter Lattice Water
            )
       
-
-
-      call mpr_SMhorizons(param(iStart2:iEnd2), processMatrix, &
+     call mpr_SMhorizons(param(iStart2:iEnd2), processMatrix, &
               iFlag_soilDB, nSoilHorizons_mHM, HorizonDepth_mHM, &
               LCover0(:, iiLC), soilId0, &
               soilDB%nHorizons, soilDB%nTillHorizons, &

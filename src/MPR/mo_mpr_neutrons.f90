@@ -131,16 +131,20 @@ contains
     integer(i4)                               :: tmp_minSoilHorizon
 
 
+    !min soil horizon
     tmp_minSoilHorizon = minval(nTillHorizons(:))
 
-    COSMIC_L3_till  = 0.0_dp
-    COSMIC_L3       = 0.0_dp
-    latWat_till     = 0.0_dp
-    latWat          = 0.0_dp
-
+    ! with zero there will be problem with
+    ! upscaling with harmonic mean for the COMSIC_L3
+    ! in case of process_case .EQ. 1
+    COSMIC_L3_till  = 0.000001_dp
+    COSMIC_L3       = 0.000001_dp
+    latWat_till     = 0.000001_dp
+    latWat          = 0.000001_dp
     
     ! select case according to a given soil database flag
     SELECT CASE(iFlag_soilDB)
+       
        ! classical mHM soil database format
        CASE(0)
           do i = 1, size(is_present)
@@ -167,6 +171,7 @@ contains
                 end if
              end do horizon
           end do
+
        ! to handle multiple soil horizons with unique soil class   
        CASE(1)
            do i = 1, size(is_present)
@@ -213,12 +218,13 @@ contains
     real(dp), dimension(2),  intent(in)       :: param
     real(dp),                intent(in)       :: bulkDensity
     real(dp),                intent(inout)    :: L3
-    !
+ 
     L3 = bulkDensity*param(1) - param(2)
     if( bulkDensity .LT. 0.4_dp ) then ! bulkDensity<0.39 yields negative L3, bulkDensity=0.39 yields L3=0
-       L3 = 1.0_dp ! Prevent division by zero later on; added by joost Iwema to COSMIC 1.13, Feb. 2017
+       L3 = 1.0_dp                     ! Prevent division by zero later on; added by joost Iwema to COSMIC 1.13, Feb. 2017
     endif
-    !
+    print*, L3
+
   end subroutine calcL3
 
 
@@ -235,7 +241,7 @@ contains
 
     !Martin Schroen's dissertation
     latWat = ( param(1)*clay/100.0_dp + param(2) )
-    !
+ 
   end subroutine latticeWater
 
 end module mo_mpr_neutrons
