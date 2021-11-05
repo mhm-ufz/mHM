@@ -326,33 +326,33 @@ contains
 
 
     min_nTH = minval(nTillHorizons(:))
-    tmp_rootFractionCoefficient_forest = param(1)            ! min(1.0_dp, param(2) + param(3) + param(1))
+    tmp_rootFractionCoefficient_forest     = param(1)     ! min(1.0_dp, param(2) + param(3) + param(1))
     tmp_rootFractionCoefficient_impervious = param(2)
 
     ! decide which parameterization should be used for route fraction:
     select case (processMatrix(3, 1))
     case(1,2)
-    ! 1 and 2 - dependent on land cover
-      tmp_rootFractionCoefficient_pervious = param(1) - param(3) ! min(1.0_dp, param(2) + param(3))
-          !write(*,*) 'tmp_rootFractionCoefficient_forest = ', tmp_rootFractionCoefficient_forest
-          !write(*,*) 'tmp_rootFractionCoefficient_impervious = ', tmp_rootFractionCoefficient_impervious
-          !write(*,*) 'tmp_rootFractionCoefficient_pervious = ', tmp_rootFractionCoefficient_pervious
+       ! 1 and 2 - dependent on land cover
+       tmp_rootFractionCoefficient_pervious = param(1) - param(3) ! min(1.0_dp, param(2) + param(3))
+       !write(*,*) 'tmp_rootFractionCoefficient_forest     = ', tmp_rootFractionCoefficient_forest
+       !write(*,*) 'tmp_rootFractionCoefficient_impervious = ', tmp_rootFractionCoefficient_impervious
+       !write(*,*) 'tmp_rootFractionCoefficient_pervious   = ', tmp_rootFractionCoefficient_pervious
     case(3,4)
-    ! 3 and 4 - dependent on land cover and additionally soil texture
-      tmp_rootFractionCoefficient_pervious = param(3) ! min(1.0_dp, param(2) + param(3))
-      !delta approach is used as in tmp_rootFractionCoefficient_pervious
-      tmp_rootFractionCoefficient_sand = param(6) - param(5)
-      !the value in parameter namelist is before substraction i.e. param(5)
-      tmp_rootFractionCoefficient_clay = param(6)
-      FCmin_glob=param(7)
-      FCmax_glob=param(7)+param(8)
-          !write(*,*) 'tmp_rootFractionCoefficient_forest = ', tmp_rootFractionCoefficient_forest
-          !write(*,*) 'tmp_rootFractionCoefficient_impervious = ', tmp_rootFractionCoefficient_impervious
-          !write(*,*) 'tmp_rootFractionCoefficient_pervious = ', tmp_rootFractionCoefficient_pervious
-          !write(*,*) 'tmp_rootFractionCoefficient_sand = ', tmp_rootFractionCoefficient_sand
-          !write(*,*) 'tmp_rootFractionCoefficient_clay = ', tmp_rootFractionCoefficient_clay
-          !write(*,*) 'FCmin_glob = ', FCmin_glob
-          !write(*,*) 'FCmax_glob = ', FCmax_glob
+       ! 3 and 4 - dependent on land cover and additionally soil texture
+       tmp_rootFractionCoefficient_pervious = param(3) ! min(1.0_dp, param(2) + param(3))
+       !delta approach is used as in tmp_rootFractionCoefficient_pervious
+       tmp_rootFractionCoefficient_sand = param(6) - param(5)
+       !the value in parameter namelist is before substraction i.e. param(5)
+       tmp_rootFractionCoefficient_clay = param(6)
+       FCmin_glob=param(7)
+       FCmax_glob=param(7)+param(8)
+       !write(*,*) 'tmp_rootFractionCoefficient_forest     = ', tmp_rootFractionCoefficient_forest
+       !write(*,*) 'tmp_rootFractionCoefficient_impervious = ', tmp_rootFractionCoefficient_impervious
+       !write(*,*) 'tmp_rootFractionCoefficient_pervious   = ', tmp_rootFractionCoefficient_pervious
+       !write(*,*) 'tmp_rootFractionCoefficient_sand       = ', tmp_rootFractionCoefficient_sand
+       !write(*,*) 'tmp_rootFractionCoefficient_clay       = ', tmp_rootFractionCoefficient_clay
+       !write(*,*) 'FCmin_glob = ', FCmin_glob
+       !write(*,*) 'FCmax_glob = ', FCmax_glob
     end select
 
 
@@ -379,8 +379,8 @@ contains
           dpth_f = 0.0_dp
           dpth_t = HorizonDepth(H)
           ! check for the layer (2, ... n-1 layers) update depth
-          if(H .gt. 1 .and. H .lt. nHorizons_mHM) then
-             dpth_f = HorizonDepth(H - 1)
+          if( (H .gt. 1) .and. (H .lt. nHorizons_mHM) ) then
+             dpth_f = HorizonDepth(H-1)
              dpth_t = HorizonDepth(H)
           end if
           
@@ -419,18 +419,18 @@ contains
 
              ! neutron count --> depth weightage LW and L30
              LW0(k) = sum( latWat_till(S, : nTillHorizons(s), L) &
-                  * Wd(S, H, 1:nTillHorizons(S) ), &
-                  Wd(S, H, 1:nTillHorizons(S)) > 0.0_dp ) &
-                  + sum( latWat(S,nTillHorizons(S) + 1-min_nTH : nHorizons(s) - min_nTH) &
+                  * Wd(S, H, 1 : nTillHorizons(S) ), &
+                  Wd(S, H, 1 : nTillHorizons(S)) > 0.0_dp ) &
+                  + sum( latWat(S,nTillHorizons(S) + 1 - min_nTH : nHorizons(s) - min_nTH) &
                   * Wd(S, H, nTillHorizons(S) + 1 : nHorizons(S)), &
                   Wd(S, H, nTillHorizons(S) + 1 : nHorizons(S)) > 0.0_dp )
-
+             
              L30(k) = sum( COSMIC_L3_till(S, : nTillHorizons(s), L) &
                   * Wd(S, H, 1 : nTillHorizons(S) ), &
                   Wd(S, H, 1 : nTillHorizons(S)) > 0.0_dp ) &
-                  + sum( COSMIC_L3(S,nTillHorizons(S)+1-min_nTH : nHorizons(s) - min_nTH) &
-                  * Wd(S, H, nTillHorizons(S)+1 : nHorizons(S)), &
-                  Wd(S, H, nTillHorizons(S)+1 : nHorizons(S)) > 0.0_dp )
+                  + sum( COSMIC_L3(S,nTillHorizons(S) + 1 - min_nTH : nHorizons(s) - min_nTH) &
+                  * Wd(S, H, nTillHorizons(S) + 1 : nHorizons(S)), &
+                  Wd(S, H, nTillHorizons(S) + 1 : nHorizons(S)) > 0.0_dp )
 
 
              ! Horizon depths: last soil horizon is varying, and thus the depth
@@ -598,24 +598,16 @@ contains
           s = soilID0(k, h)
           if (h .le. nTillHorizons(1)) then
             Bd0(k) = Db(s, 1, L)
-            SMs0(k) = thetaS_till (s, 1, L) * (dpth_t - dpth_f) ! in mm
-            FC0(k) = thetaFC_till(s, 1, L) * (dpth_t - dpth_f) ! in mm
-            PW0(k) = thetaPW_till(s, 1, L) * (dpth_t - dpth_f) ! in mm
-            
-            ! neutron count
-            LW0(k)  = latWat_till   (s,1,L) * (dpth_t - dpth_f) ! in mm
-  !         L30(k)  = COSMIC_L3_till(s,1,L) * (dpth_t - dpth_f) ! in mm
-
+            SMs0(k)= thetaS_till (s, 1, L) * (dpth_t - dpth_f)  ! in mm
+            FC0(k) = thetaFC_till(s, 1, L) * (dpth_t - dpth_f)  ! in mm
+            PW0(k) = thetaPW_till(s, 1, L) * (dpth_t - dpth_f)  ! in mm
+            LW0(k) = latWat_till(s, 1, L)  * (dpth_t - dpth_f)  ! in mm  !>> neutron count
           else
             Bd0(k) = DbM(s, 1)
-            SMs0(k) = thetaS (s, 1) * (dpth_t - dpth_f) ! in mm
-            FC0(k) = thetaFC(s, 1) * (dpth_t - dpth_f) ! in mm
-            PW0(k) = thetaPW(s, 1) * (dpth_t - dpth_f) ! in mm
-            
-            ! neutron count
-            LW0(k)  = latWat(s,1) * (dpth_t - dpth_f) ! in mm          
-  !         L30(k)  = COSMIC_L3(s,1) * (dpth_t - dpth_f) ! in mm  
-            
+            SMs0(k)= thetaS (s, 1) * (dpth_t - dpth_f)  ! in mm
+            FC0(k) = thetaFC(s, 1) * (dpth_t - dpth_f)  ! in mm
+            PW0(k) = thetaPW(s, 1) * (dpth_t - dpth_f)  ! in mm
+            LW0(k) = latWat(s, 1)  * (dpth_t - dpth_f)  ! in mm  !>> neutron count       
           end if
         end do cellloop1
         !$OMP END DO
@@ -645,11 +637,11 @@ contains
           case(3)
 
             select case (processMatrix(3, 1))
-            case(1 , 2)
+            case(1,2)
               ! permeable
               fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_t * 0.1_dp)) &
                       - (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_f * 0.1_dp))
-            case(3 , 4)
+            case(3,4)
               ! permeable
               ! introducing global FC dependency on root frac. coef. by Simon Stisen and M. Cuneyd Demirel from GEUS.dk
               ! The normalization is based on Demirel et al 2018 (doi: 10.5194/hess-22-1299-2018)
@@ -727,11 +719,11 @@ contains
     ! than correct it --> threshold limit = 1% of the upper ones
     !------------------------------------------------------------------------
     L1_FC = merge(L1_SMs - 0.01_dp * L1_SMs, L1_FC, L1_FC .gt. L1_SMs)
-    L1_PW = merge(L1_FC - 0.01_dp * L1_FC, L1_PW, L1_PW .gt. L1_FC)
+    L1_PW = merge(L1_FC - 0.01_dp  * L1_FC,  L1_PW, L1_PW .gt. L1_FC )
     ! check the physical limit
     L1_SMs = merge(0.0001_dp, L1_SMs, L1_SMs .lt. 0.0_dp)
-    L1_FC = merge(0.0001_dp, L1_FC, L1_FC  .lt. 0.0_dp)
-    L1_PW = merge(0.0001_dp, L1_PW, L1_PW  .lt. 0.0_dp)
+    L1_FC  = merge(0.0001_dp, L1_FC,  L1_FC  .lt. 0.0_dp)
+    L1_PW  = merge(0.0001_dp, L1_PW,  L1_PW  .lt. 0.0_dp)
     ! Normalise the vertical root distribution profile such that [sum(fRoots) = 1.0]
     !$OMP DO PRIVATE( fTotRoots ) SCHEDULE( STATIC )
     do k = 1, size(L1_fRoots, 1)
@@ -744,10 +736,6 @@ contains
       end If
     end do
 
-    !! one possible check
-    ! lattice water should be less than PWP
-
-    
     !$OMP END DO
     !$OMP END PARALLEL
 !close(1)

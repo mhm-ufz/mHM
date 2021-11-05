@@ -117,13 +117,12 @@ contains
     integer(i4), dimension(:),     intent(in)  :: LCOVER0      ! land cover ids at level 0
     real(dp),    dimension(:,:),   intent(in)  :: clay         ! clay content
 
-
     ! Output -------------------------------------------------------------------
-    real(dp),    dimension(:,:,:), intent(out) :: COSMIC_L3_till! COSMIC parameter L3 tillage layer
-    real(dp),    dimension(:,:,:), intent(out) :: latWat_till   ! lattice water content tillage layer
-    real(dp),    dimension(:,:),   intent(out) :: COSMIC_L3     ! COSMIC parameter L3
-    real(dp),    dimension(:,:),   intent(out) :: latWat        ! lattice water content
-    !                                                           ! field cap. w.r.t to saturation
+    real(dp),    dimension(:,:,:), intent(out) :: COSMIC_L3_till ! COSMIC parameter L3 tillage layer
+    real(dp),    dimension(:,:,:), intent(out) :: latWat_till    ! lattice water content tillage layer
+    real(dp),    dimension(:,:),   intent(out) :: COSMIC_L3      ! COSMIC parameter L3
+    real(dp),    dimension(:,:),   intent(out) :: latWat         ! lattice water content
+                                                              
     ! Local variables
     integer(i4)                               :: i               ! loop index
     integer(i4)                               :: j               ! loop index
@@ -138,9 +137,9 @@ contains
     ! upscaling with harmonic mean for the COMSIC_L3
     ! in case of process_case .EQ. 1
     COSMIC_L3_till = 0.000001_dp
-    COSMIC_L3       = 0.000001_dp
-    latWat_till     = 0.000001_dp
-    latWat          = 0.000001_dp
+    COSMIC_L3      = 0.000001_dp
+    latWat_till    = 0.000001_dp
+    latWat         = 0.000001_dp
     
     ! select case according to a given soil database flag
     SELECT CASE(iFlag_soilDB)
