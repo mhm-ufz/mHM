@@ -182,7 +182,7 @@ CONTAINS
     average_swc = average_swc + average( latWater(:)/Layer_depth(:) )  
 
     ! calculate neutron count based on depth weighted SM of *D86*
-    neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (average_swc + Desilets_a2) )
+    neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (average_swc + Desilets_a2) )    
 
     !! deallocate variables
     deallocate(Layer_min, Layer_max, Layer_depth, cummulative_Layer_weight)
@@ -342,7 +342,7 @@ CONTAINS
                L1_COSMICL3(:),sm,bd,lw,L3)
 
 
-          if (ll.eq.1) then
+          if (ll .eq. 1) then
              h2oeffdens(ll) = H2Odens/1000.0_dp
           else
              ! calculate the effective height of water in each layer in cm
@@ -356,7 +356,7 @@ CONTAINS
           ! we integrate the bulkdensity/h2oeffdens down to the middle of the layer ll:
           isoimass(ll) = bd*(0.5_dp*zthick(ll))*1.0_dp 
           iwatmass(ll) = h2oeffdens(ll)*(0.5_dp*zthick(ll))*1.0_dp
-          if (ll.gt.1) then
+          if (ll .gt. 1) then
             isoimass(ll) = isoimass(ll)+isoimass(ll-1)+bd*(0.5_dp*zthick(ll-1))*1.0_dp
             iwatmass(ll) = iwatmass(ll)+iwatmass(ll-1)+h2oeffdens(ll-1)*(0.5_dp*zthick(ll-1))*1.0_dp
           endif
@@ -429,7 +429,7 @@ CONTAINS
      else if (ll.eq.2) then
         zthick(ll)=Horizons(ll-1)/10.0_dp
      else
-        zthick(ll)=(Horizons(ll-2) - Horizons(ll-1))/10.0_dp
+        zthick(ll)=(Horizons(ll-1) - Horizons(ll-2))/10.0_dp
      endif
   end subroutine
 
