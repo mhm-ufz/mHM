@@ -219,21 +219,20 @@ contains
     ! saturated hydraulic conductivity
     real(dp), dimension(:, :), allocatable :: Ks_non_till
 
-     ! Case 1 and 4 is based on Jarvis https://doi.org/10.1016/0022-1694(89)90050-4
-     ! Case 2 and 3 is based on Feddes https://doi.org/10.1016/0022-1694(76)90017-2
-
+    ! Case 1 and 4 is based on Jarvis https://doi.org/10.1016/0022-1694(89)90050-4
+    ! Case 2 and 3 is based on Feddes https://doi.org/10.1016/0022-1694(76)90017-2
     select case (processMatrix(3, 1))
-    case(1 , 2)
-    tmp_orgMatterContent_forest = param(3) + param(1)
-    case(3 , 4)
-    tmp_orgMatterContent_forest = param(1)
+    case(1,2)
+       tmp_orgMatterContent_forest = param(3) + param(1)
+    case(3,4)
+       tmp_orgMatterContent_forest = param(1)
     end select
 
     tmp_orgMatterContent_impervious = param(2)
-    tmp_orgMatterContent_pervious = param(3)
-        !write(*,*) 'tmp_orgMatterContent_forest = ', tmp_orgMatterContent_forest
-        !write(*,*) 'tmp_orgMatterContent_impervious = ', tmp_orgMatterContent_impervious
-        !write(*,*) 'tmp_orgMatterContent_pervious = ', tmp_orgMatterContent_pervious
+    tmp_orgMatterContent_pervious   = param(3)
+    !write(*,*) 'tmp_orgMatterContent_forest = ', tmp_orgMatterContent_forest
+    !write(*,*) 'tmp_orgMatterContent_impervious = ', tmp_orgMatterContent_impervious
+    !write(*,*) 'tmp_orgMatterContent_pervious = ', tmp_orgMatterContent_pervious
 
     tmp_minSoilHorizon = minval(nTillHorizons(:))
 

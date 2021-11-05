@@ -105,7 +105,7 @@ contains
   !>       \param[inout] "real(dp), dimension(:, :, :) :: bulkDens1"     [gcm-3] bulk density
   !>       \param[inout] "real(dp), dimension(:, :, :) :: latticeWater1" [mm/mm] lattice water content
   !>       \param[inout] "real(dp), dimension(:, :, :) :: COSMICL31"     [-] cosmic L3 parameter
-  
+
   !    INTENT(IN), OPTIONAL
   !>       \param[in] "real(dp), dimension(:), optional :: parameterset"
 
@@ -128,23 +128,23 @@ contains
   ! Rohini Kumar             Oct 2021 - Added Neutron count module to mHM integrate into develop branch (5.11.2)
 
   subroutine mpr(mask0, geoUnit0, soilId0, Asp0, gridded_LAI0, LCover0, slope_emp0, y0, Id0, upper_bound1, lower_bound1, &
-                left_bound1, right_bound1, n_subcells1, fSealed1, alpha1, degDayInc1, degDayMax1, degDayNoPre1, fAsp1, &
-                HarSamCoeff1, PrieTayAlpha1, aeroResist1, surfResist1, fRoots1, kFastFlow1, kSlowFlow1, kBaseFlow1, &
-                kPerco1, karstLoss1, soilMoistFC1, soilMoistSat1, soilMoistExp1, jarvis_thresh_c1, tempThresh1, &
-                unsatThresh1, sealedThresh1, wiltingPoint1, maxInter1, petLAIcorFactor, &
-                No_Count1, bulkDens1, latticeWater1, COSMICL31, &
-                parameterset )
+       left_bound1, right_bound1, n_subcells1, fSealed1, alpha1, degDayInc1, degDayMax1, degDayNoPre1, fAsp1, &
+       HarSamCoeff1, PrieTayAlpha1, aeroResist1, surfResist1, fRoots1, kFastFlow1, kSlowFlow1, kBaseFlow1, &
+       kPerco1, karstLoss1, soilMoistFC1, soilMoistSat1, soilMoistExp1, jarvis_thresh_c1, tempThresh1, &
+       unsatThresh1, sealedThresh1, wiltingPoint1, maxInter1, petLAIcorFactor, &
+       No_Count1, bulkDens1, latticeWater1, COSMICL31, &
+       parameterset )
 
     use mo_common_variables, only : global_parameters, processMatrix
     use mo_message, only : message
     use mo_mpr_SMhorizons, only : mpr_SMhorizons
     use mo_mpr_global_variables, only : HorizonDepth_mHM, fracSealed_CityArea, iFlag_soilDB, nSoilHorizons_mHM, &
-                                        soilDB
+         soilDB
     use mo_mpr_pet, only : bulksurface_resistance, pet_correctbyASP, pet_correctbyLAI, priestley_taylor_alpha
     use mo_mpr_runoff, only : mpr_runoff
     use mo_mpr_soilmoist, only : mpr_sm
     use mo_upscaling_operators, only : L0_fractionalCover_in_Lx, &
-                                       upscale_arithmetic_mean
+         upscale_arithmetic_mean
     use mo_mpr_neutrons,        only: mpr_neutrons
     implicit none
 
@@ -308,7 +308,7 @@ contains
     real(dp), dimension(:,:,:), allocatable :: COSMIC_L3_till
     real(dp), dimension(:,:), allocatable   :: latWat         ! lattice water
     real(dp), dimension(:,:), allocatable   :: COSMIC_L3      ! COSMIC parameter L3
-    
+
 
     ! relative variability of saturated
     ! hydraulic cound. for Horizantal flow
@@ -363,306 +363,312 @@ contains
 
 
     if (present(parameterset)) then
-      param => parameterset
+       param => parameterset
     else
-      param => global_parameters(:, 3)
-   end if
+       param => global_parameters(:, 3)
+    end if
 
-   
+
     ! loop over all LCover scenes
     do iiLC = 1, size(LCover0, 2)
 
-      ! estimate land cover fractions for dominant landcover class
-      ! fSealed is intent inout, the rest only intent in
-      fForest1(:) = L0_fractionalCover_in_Lx(LCover0(:, iiLC), 1, mask0, &
-              upper_bound1, &
-              lower_bound1, &
-              left_bound1, &
-              right_bound1, &
-              n_subcells1)
-      fSealed1(:, 1, iiLC) = L0_fractionalCover_in_Lx(LCover0(:, iiLC), 2, mask0, &
-              upper_bound1, &
-              lower_bound1, &
-              left_bound1, &
-              right_bound1, &
-              n_subcells1)
-      fPerm1(:) = L0_fractionalCover_in_Lx(LCover0(:, iiLC), 3, mask0, &
-              upper_bound1, &
-              lower_bound1, &
-              left_bound1, &
-              right_bound1, &
-              n_subcells1)
-      !---------------------------------------------------------
-      ! Update fractions of sealed area fractions
-      ! based on the sealing fraction[0-1] in cities
-      !---------------------------------------------------------
-      ! a factor is applied to the sealed area, effectively reducing it
-      fSealed1(:, 1, iiLC) = fracSealed_CityArea * fSealed1(:, 1, iiLC)
-      ! the forest area is kept constant, but the permeable area is increased so that the
-      ! sum off all fractions equals 1 again
-      fPerm1(:) = 1.0_dp - fSealed1(:, 1, iiLC) - fForest1(:)
+       ! estimate land cover fractions for dominant landcover class
+       ! fSealed is intent inout, the rest only intent in
+       fForest1(:) = L0_fractionalCover_in_Lx(LCover0(:, iiLC), 1, mask0, &
+            upper_bound1, &
+            lower_bound1, &
+            left_bound1, &
+            right_bound1, &
+            n_subcells1)
+       fSealed1(:, 1, iiLC) = L0_fractionalCover_in_Lx(LCover0(:, iiLC), 2, mask0, &
+            upper_bound1, &
+            lower_bound1, &
+            left_bound1, &
+            right_bound1, &
+            n_subcells1)
+       fPerm1(:) = L0_fractionalCover_in_Lx(LCover0(:, iiLC), 3, mask0, &
+            upper_bound1, &
+            lower_bound1, &
+            left_bound1, &
+            right_bound1, &
+            n_subcells1)
+       !---------------------------------------------------------
+       ! Update fractions of sealed area fractions
+       ! based on the sealing fraction[0-1] in cities
+       !---------------------------------------------------------
+       ! a factor is applied to the sealed area, effectively reducing it
+       fSealed1(:, 1, iiLC) = fracSealed_CityArea * fSealed1(:, 1, iiLC)
+       ! the forest area is kept constant, but the permeable area is increased so that the
+       ! sum off all fractions equals 1 again
+       fPerm1(:) = 1.0_dp - fSealed1(:, 1, iiLC) - fForest1(:)
+       
+       ! ------------------------------------------------------------------
+       ! snow parameters 
+       ! ------------------------------------------------------------------
+       select case(processMatrix(2,1))
+       case(1)
 
-      ! ------------------------------------------------------------------
-      ! snow parameters 
-      ! ------------------------------------------------------------------
-      select case(processMatrix(2, 1))
-      case(1)
+          iStart = processMatrix(2, 3) - processMatrix(2, 2) + 1
+          iEnd = processMatrix(2, 3)
 
-        iStart = processMatrix(2, 3) - processMatrix(2, 2) + 1
-        iEnd = processMatrix(2, 3)
+          call snow_acc_melt_param(param(iStart : iEnd), & ! intent(in)
+               fForest1, fSealed1(:, 1, iiLC), fPerm1, & ! intent(in)
+               tempThresh1(:, 1, iiLC), degDayNoPre1(:, 1, iiLC), & ! intent(out)
+               degDayInc1(:, 1, iiLC), degDayMax1(:, 1, iiLC) & ! intent(out)
+               )
+       case DEFAULT
+          call message()
+          call message('***ERROR: Process description for process "snow pack" does not exist! mo_multi_param_reg')
+          stop
+       end select
 
-        call snow_acc_melt_param(param(iStart : iEnd), & ! intent(in)
-                fForest1, fSealed1(:, 1, iiLC), fPerm1, & ! intent(in)
-                tempThresh1(:, 1, iiLC), degDayNoPre1(:, 1, iiLC), & ! intent(out)
-                degDayInc1(:, 1, iiLC), degDayMax1(:, 1, iiLC) & ! intent(out)
-                )
-      case DEFAULT
-        call message()
-        call message('***ERROR: Process description for process "snow pack" does not exist! mo_multi_param_reg')
-        stop
-      end select
+       ! ------------------------------------------------------------------
+       ! Soil moisture parametrization 
+       ! ------------------------------------------------------------------
+       msoil = size(soilDB%is_present, 1)
+       mLC = maxval(LCover0(:, iiLC), (LCover0(:, iiLC) .ne. nodata_i4))
 
-      ! ------------------------------------------------------------------
-      ! Soil moisture parametrization 
-      ! ------------------------------------------------------------------
-      msoil = size(soilDB%is_present, 1)
-      mLC = maxval(LCover0(:, iiLC), (LCover0(:, iiLC) .ne. nodata_i4))
+       ! depending on which kind of soil database processing is to be performed
+       if(iFlag_soilDB .eq. 0)then
+          mtill = maxval(soilDB%nTillHorizons, (soilDB%nTillHorizons .ne. nodata_i4))
+          mHor  = maxval(soilDB%nHorizons,     (soilDB%nHorizons     .ne. nodata_i4))
+       else if(iFlag_soilDB .eq. 1) then
+          ! here for each soil type both till and non-till soil hydraulic properties are to be estimated
+          ! since a given soil type can lie in any horizon (till or non-till ones)
+          ! adopt it in a way that it do not break the consistency of iFlag_soilDB = 0
+          ! ** NOTE: SDB_nTillHorizons and SDB_nHorizons are also assigned in
+          !          this flag option (see mo_soildatabase.f90 file - read_soil_LUT).
+          !          But we are not using those variables here since in this case we have not
+          !          varying number of soil horizons or either tillage horizons.
+          !          So assigning them with a value = 1 is more than enough.
+          mtill = 1
+          mHor  = 1
+       end if
 
-      ! depending on which kind of soil database processing is to be performed
-      if(iFlag_soilDB .eq. 0)then
-        mtill = maxval(soilDB%nTillHorizons, (soilDB%nTillHorizons .ne. nodata_i4))
-        mHor = maxval(soilDB%nHorizons, (soilDB%nHorizons     .ne. nodata_i4))
-      else if(iFlag_soilDB .eq. 1) then
-        ! here for each soil type both till and non-till soil hydraulic properties are to be estimated
-        ! since a given soil type can lie in any horizon (till or non-till ones)
-        ! adopt it in a way that it do not break the consistency of iFlag_soilDB = 0
-        ! ** NOTE: SDB_nTillHorizons and SDB_nHorizons are also assigned in
-        !          this flag option (see mo_soildatabase.f90 file - read_soil_LUT).
-        !          But we are not using those variables here since in this case we have not
-        !          varying number of soil horizons or either tillage horizons.
-        !          So assigning them with a value = 1 is more than enough.
-        mtill = 1
-        mHor = 1
-      end if
+       allocate(thetaS_till(msoil, mtill,  mLC))
+       allocate(thetaFC_till(msoil, mtill, mLC))
+       allocate(thetaPW_till(msoil, mtill, mLC))
+       allocate(thetaS(msoil,  mHor))
+       allocate(thetaFC(msoil, mHor))
+       allocate(thetaPW(msoil, mHor))
+       allocate(Ks(msoil, mHor, mLC))
+       allocate(Db(msoil, mHor, mLC))
 
-      allocate(thetaS_till(msoil, mtill, mLC))
-      allocate(thetaFC_till(msoil, mtill, mLC))
-      allocate(thetaPW_till(msoil, mtill, mLC))
-      allocate(thetaS(msoil, mHor))
-      allocate(thetaFC(msoil, mHor))
-      allocate(thetaPW(msoil, mHor))
-      allocate(Ks(msoil, mHor, mLC))
-      allocate(Db(msoil, mHor, mLC))
+       ! neutron count related ones
+       ! allocate and initalize here
+       allocate(   latWat_till(msoil, mtill, mLC)) 
+       allocate(COSMIC_L3_till(msoil, mtill, mLC))  
+       allocate(        latWat(msoil, mHor      )) 
+       allocate(     COSMIC_L3(msoil, mHor      ))
+       latWat_till    = 0.000001_dp
+       COSMIC_L3_till = 0.000001_dp
+       COSMIC_L3      = 0.000001_dp
+       latWat         = 0.000001_dp
+       
 
-      ! neutron count related ones
-      allocate(   latWat_till(msoil, mtill, mLC )) 
-      allocate(COSMIC_L3_till(msoil, mtill, mLC ))  
-      allocate(        latWat(msoil, mHor       )) 
-      allocate(     COSMIC_L3(msoil, mHor       ))  
 
-      
-      ! earlier these variables were allocated with  size(soilId0,1)
-      ! in which the variable "soilId0" changes according to the iFlag_soilDB
-      ! so better to use other variable which is common to both soilDB (0 AND 1) flags
-      allocate(KsVar_H0(size(Id0, 1)))
-      allocate(KsVar_V0(size(Id0, 1)))
-      allocate(SMs_FC0(size(Id0, 1)))
+       ! earlier these variables were allocated with  size(soilId0,1)
+       ! in which the variable "soilId0" changes according to the iFlag_soilDB
+       ! so better to use other variable which is common to both soilDB (0 AND 1) flags
+       allocate(KsVar_H0(size(Id0, 1)))
+       allocate(KsVar_V0(size(Id0, 1)))
+       allocate( SMs_FC0(size(Id0, 1)))
 
-      select case(processMatrix(3, 1))
-      case(1)
-        ! first thirteen parameters go to this routine
-        iStart = processMatrix(3, 3) - processMatrix(3, 2) + 1
-        iEnd = processMatrix(3, 3) - 4
+       select case(processMatrix(3,1))
+       case(1)
+          ! first thirteen parameters go to this routine
+          iStart = processMatrix(3, 3) - processMatrix(3, 2) + 1
+          iEnd = processMatrix(3, 3) - 4
 
-        ! next four parameters go here
-        ! (the first three for the fRoots and the fourth one for the beta)
-        iStart2 = processMatrix(3, 3) - 4 + 1
-        iEnd2 = processMatrix(3, 3)
+          ! next four parameters go here
+          ! (the first three for the fRoots and the fourth one for the beta)
+          iStart2 = processMatrix(3, 3) - 4 + 1
+          iEnd2 = processMatrix(3, 3)
 
-      case(2)
-        ! first thirteen parameters go to this routine
-        iStart = processMatrix(3, 3) - processMatrix(3, 2) + 1
-        iEnd = processMatrix(3, 3) - 5
+       case(2)
+          ! first thirteen parameters go to this routine
+          iStart = processMatrix(3, 3) - processMatrix(3, 2) + 1
+          iEnd = processMatrix(3, 3) - 5
 
-        ! next four parameters go here
-        ! (the first three for the fRoots and the fourth one for the beta)
-        iStart2 = processMatrix(3, 3) - 5 + 1
-        iEnd2 = processMatrix(3, 3) - 1
-        ! last parameter is jarvis parameter - no need to be regionalized
-        jarvis_thresh_c1 = param(processMatrix(3, 3))
-        !write(*,*) 'jarvis_thresh_c1 = ', jarvis_thresh_c1
-        !write(*,*) 'iStart, iEnd, iStart2, iEnd2 = ', iStart, iEnd, iStart2, iEnd2
+          ! next four parameters go here
+          ! (the first three for the fRoots and the fourth one for the beta)
+          iStart2 = processMatrix(3, 3) - 5 + 1
+          iEnd2 = processMatrix(3, 3) - 1
+          ! last parameter is jarvis parameter - no need to be regionalized
+          jarvis_thresh_c1 = param(processMatrix(3, 3))
+          !write(*,*) 'jarvis_thresh_c1 = ', jarvis_thresh_c1
+          !write(*,*) 'iStart, iEnd, iStart2, iEnd2 = ', iStart, iEnd, iStart2, iEnd2
 
-      case(3)
-        ! first thirteen parameters go to this routine
-        iStart = processMatrix(3, 3) - processMatrix(3, 2) + 1
-        iEnd = processMatrix(3, 3) - 9
+       case(3)
+          ! first thirteen parameters go to this routine
+          iStart = processMatrix(3, 3) - processMatrix(3, 2) + 1
+          iEnd = processMatrix(3, 3) - 9
 
-        ! next four parameters go here
-        ! (the first three for the fRoots and the fourth one for the beta)
-        iStart2 = processMatrix(3, 3) - 8
-        iEnd2 = processMatrix(3, 3) - 1
+          ! next four parameters go here
+          ! (the first three for the fRoots and the fourth one for the beta)
+          iStart2 = processMatrix(3, 3) - 8
+          iEnd2 = processMatrix(3, 3) - 1
 
-        ! last parameter is jarvis parameter - no need to be regionalized
-        jarvis_thresh_c1 = param(processMatrix(3, 3))
+          ! last parameter is jarvis parameter - no need to be regionalized
+          jarvis_thresh_c1 = param(processMatrix(3, 3))
 
-        !write(*,*) 'iStart, iEnd, iStart2, iEnd2 = ', iStart, iEnd, iStart2, iEnd2
-        !write(*,*) 'jarvis_thresh_c1 = ', jarvis_thresh_c1
+          !write(*,*) 'iStart, iEnd, iStart2, iEnd2 = ', iStart, iEnd, iStart2, iEnd2
+          !write(*,*) 'jarvis_thresh_c1 = ', jarvis_thresh_c1
 
-      case(4)
-        ! first thirteen parameters go to this routine
-        iStart = processMatrix(3, 3) - processMatrix(3, 2) + 1
-        iEnd = processMatrix(3, 3) - 8
+       case(4)
+          ! first thirteen parameters go to this routine
+          iStart = processMatrix(3, 3) - processMatrix(3, 2) + 1
+          iEnd = processMatrix(3, 3) - 8
 
-        ! next four parameters go here
-        ! (the first three for the fRoots and the fourth one for the beta)
-        iStart2 = processMatrix(3, 3) - 7
-        iEnd2 = processMatrix(3, 3)
-        !write(*,*) 'iStart, iEnd, iStart2, iEnd2 = ', iStart, iEnd, iStart2, iEnd2
+          ! next four parameters go here
+          ! (the first three for the fRoots and the fourth one for the beta)
+          iStart2 = processMatrix(3, 3) - 7
+          iEnd2 = processMatrix(3, 3)
+          !write(*,*) 'iStart, iEnd, iStart2, iEnd2 = ', iStart, iEnd, iStart2, iEnd2
 
-      case DEFAULT
-        call message()
-        call message('***ERROR: Process description for process "soil moisture parametrization"', &
-                'does not exist! mo_multi_param_reg')
-        stop 1
-      end select
+       case DEFAULT
+          call message()
+          call message('***ERROR: Process description for process "soil moisture parametrization"', &
+               'does not exist! mo_multi_param_reg')
+          stop 1
+       end select
 
-      call mpr_sm(param(iStart : iEnd), processMatrix, &
-              soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons, &
-              soilDB%sand, soilDB%clay, soilDB%DbM, &
-              Id0, soilId0, LCover0(:, iiLC), &
-              thetaS_till, thetaFC_till, thetaPW_till, thetaS, &
-              thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
-      
-      !>> neutron count related parameters
-      if ( processMatrix(10,1) .GT. 0 ) &
-           call mpr_neutrons( processMatrix(10,1), &  ! IN: processmatrix case
-           param( processMatrix(10,3)-processMatrix(10,2)+1:processMatrix(10,3) ) , & ! IN:  global parameter set
-           soilDB%is_present       , & ! IN:  flag indicating presence of soil
-           soilDB%nHorizons        , & ! IN:  Number of Horizons of Soiltype
-           soilDB%nTillHorizons    , & ! IN:  Number of tillage Horizons
-           LCover0(:, iiLC)        , & ! IN:  land cover ids at level 0
-           soilDB%clay             , & ! IN:  clay content
-           soilDB%DbM              , & ! IN:  mineral Bulk density
-           Db                      , & ! IN: Bulk density
-           COSMIC_L3_till          , & ! OUT: COSMIC parameter L3 tillage layer
-           latWat_till             , & ! OUT: COSMIC parameter Lattice Water tillage layer
-           COSMIC_L3               , & ! OUT: COSMIC parameter L3
-           latWat                    & ! OUT: COSMIC parameter Lattice Water
-           )
-      
-     call mpr_SMhorizons(param(iStart2:iEnd2), processMatrix, &
-              iFlag_soilDB, nSoilHorizons_mHM, HorizonDepth_mHM, &
-              LCover0(:, iiLC), soilId0, &
-              soilDB%nHorizons, soilDB%nTillHorizons, &
-              thetaS_till, thetaFC_till, thetaPW_till, &
-              thetaS, thetaFC, thetaPW, &
-              soilDB%Wd, Db, soilDB%DbM, soilDB%RZdepth, &
-              mask0, Id0, &
-              upper_bound1, lower_bound1, left_bound1, right_bound1, n_subcells1, &
-              soilMoistExp1(:, :, iiLC), soilMoistSat1(:, :, iiLC), soilMoistFC1(:, :, iiLC), &
-              wiltingPoint1(:, :, iiLC), fRoots1(:, :, iiLC), &
-              !>>>>>> neutron count
-              latWat_till, COSMIC_L3_till, latWat, COSMIC_L3, &
-              bulkDens1(:,:,iiLC), latticeWater1(:,:,iiLC), COSMICL31(:,:,iiLC) &
-              )
+       call mpr_sm(param(iStart : iEnd), processMatrix, &
+            soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons, &
+            soilDB%sand, soilDB%clay, soilDB%DbM, &
+            Id0, soilId0, LCover0(:, iiLC), &
+            thetaS_till, thetaFC_till, thetaPW_till, thetaS, &
+            thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
 
-      deallocate(thetaS_till)
-      deallocate(thetaFC_till)
-      deallocate(thetaPW_till)
-      deallocate(thetaS)
-      deallocate(thetaFC)
-      deallocate(thetaPW)
-      deallocate(Ks)
-      deallocate(Db)
+       !>> neutron count related parameters
+       if ( processMatrix(10,1) .GT. 0 ) &
+            call mpr_neutrons( processMatrix(10,1), &  ! IN: processmatrix case
+            param( processMatrix(10,3)-processMatrix(10,2)+1:processMatrix(10,3) ) , & ! IN:  global parameter set
+            soilDB%is_present       , & ! IN:  flag indicating presence of soil
+            soilDB%nHorizons        , & ! IN:  Number of Horizons of Soiltype
+            soilDB%nTillHorizons    , & ! IN:  Number of tillage Horizons
+            LCover0(:, iiLC)        , & ! IN:  land cover ids at level 0
+            soilDB%clay             , & ! IN:  clay content
+            soilDB%DbM              , & ! IN:  mineral Bulk density
+            Db                      , & ! IN: Bulk density
+            COSMIC_L3_till          , & ! OUT: COSMIC parameter L3 tillage layer
+            latWat_till             , & ! OUT: COSMIC parameter Lattice Water tillage layer
+            COSMIC_L3               , & ! OUT: COSMIC parameter L3
+            latWat                    & ! OUT: COSMIC parameter Lattice Water
+            )
 
-      ! neutron count
-      deallocate( latWat_till    ) 
-      deallocate( COSMIC_L3_till ) 
-      deallocate( latWat     ) 
-      deallocate( COSMIC_L3  ) 
+       call mpr_SMhorizons(param(iStart2:iEnd2), processMatrix, &
+            iFlag_soilDB, nSoilHorizons_mHM, HorizonDepth_mHM, &
+            LCover0(:, iiLC), soilId0, &
+            soilDB%nHorizons, soilDB%nTillHorizons, &
+            thetaS_till, thetaFC_till, thetaPW_till, &
+            thetaS, thetaFC, thetaPW, &
+            soilDB%Wd, Db, soilDB%DbM, soilDB%RZdepth, &
+            mask0, Id0, &
+            upper_bound1, lower_bound1, left_bound1, right_bound1, n_subcells1, &
+            soilMoistExp1(:, :, iiLC), soilMoistSat1(:, :, iiLC), soilMoistFC1(:, :, iiLC), &
+            wiltingPoint1(:, :, iiLC), fRoots1(:, :, iiLC), &
+            !>>>>>> neutron count
+            latWat_till, COSMIC_L3_till, latWat, COSMIC_L3, &
+            bulkDens1(:,:,iiLC), latticeWater1(:,:,iiLC), COSMICL31(:,:,iiLC) &
+            )
 
-      ! ------------------------------------------------------------------
-      ! potential evapotranspiration (PET)
-      ! ------------------------------------------------------------------
-      ! Penman-Monteith method is only method that is LCscene dependent
-      if (processMatrix(5, 1) == 3) then
-        iStart = processMatrix(5, 3) - processMatrix(5, 2) + 1
-        iEnd = processMatrix(5, 3)
-        call aerodynamical_resistance(gridded_LAI0, LCover0(:, iiLC), param(iStart : iEnd - 1), mask0, &
-                Id0, n_subcells1, upper_bound1, lower_bound1, left_bound1, right_bound1, &
-                aeroResist1(:, :, iiLC))
-      else if (processMatrix(5, 1) == -1) then
-        iStart = processMatrix(5, 3) - processMatrix(5, 2) + 1
-        iEnd = processMatrix(5, 3)
+       deallocate(thetaS_till)
+       deallocate(thetaFC_till)
+       deallocate(thetaPW_till)
+       deallocate(thetaS)
+       deallocate(thetaFC)
+       deallocate(thetaPW)
+       deallocate(Ks)
+       deallocate(Db)
 
-        call pet_correctbyLAI(param(iStart : iEnd), nodata_dp, &
-                LCover0(:, iiLC), gridded_LAI0, mask0, Id0, &
-                upper_bound1, lower_bound1, left_bound1, &
-                right_bound1, n_subcells1, petLAIcorFactor(:, :, iiLC))
-      end if
+       ! neutron count
+       deallocate( latWat_till    ) 
+       deallocate( COSMIC_L3_till ) 
+       deallocate( latWat     ) 
+       deallocate( COSMIC_L3  ) 
 
-      ! ------------------------------------------------------------------
-      ! interflow
-      ! ------------------------------------------------------------------
-      select case(processMatrix(6, 1))
-      case (1)
-        !
-        iStart = processMatrix(6, 3) - processMatrix(6, 2) + 1
-        iEnd = processMatrix(6, 3)
-        ! TODO: this subroutine should be split into each param (or at least extract kFastFlow1)
-        ! because it is in the loop unnecessarily
-        call mpr_runoff(LCover0(:, iiLC), mask0, SMs_FC0, slope_emp0, &
-                KsVar_H0, param(iStart : iEnd), Id0, upper_bound1, lower_bound1, &
-                left_bound1, right_bound1, n_subcells1, unsatThresh1(:, 1, 1), kFastFlow1(:, 1, iiLC), &
-                kSlowFlow1(:, 1, 1), alpha1(:, 1, 1))
-      case DEFAULT
-        call message()
-        call message('***ERROR: Process description for process "interflow" does not exist! mo_multi_param_reg')
-        stop
-      END select
+       ! ------------------------------------------------------------------
+       ! potential evapotranspiration (PET)
+       ! ------------------------------------------------------------------
+       ! Penman-Monteith method is only method that is LCscene dependent
+       if (processMatrix(5, 1) == 3) then
+          iStart = processMatrix(5, 3) - processMatrix(5, 2) + 1
+          iEnd = processMatrix(5, 3)
+          call aerodynamical_resistance(gridded_LAI0, LCover0(:, iiLC), param(iStart : iEnd - 1), mask0, &
+               Id0, n_subcells1, upper_bound1, lower_bound1, left_bound1, right_bound1, &
+               aeroResist1(:, :, iiLC))
+       else if (processMatrix(5, 1) == -1) then
+          iStart = processMatrix(5, 3) - processMatrix(5, 2) + 1
+          iEnd = processMatrix(5, 3)
 
-      ! ------------------------------------------------------------------
-      ! percolation cofficient, karstic percolation loss
-      ! ------------------------------------------------------------------
-      select case(processMatrix(7, 1))
-      case(1)
+          call pet_correctbyLAI(param(iStart : iEnd), nodata_dp, &
+               LCover0(:, iiLC), gridded_LAI0, mask0, Id0, &
+               upper_bound1, lower_bound1, left_bound1, &
+               right_bound1, n_subcells1, petLAIcorFactor(:, :, iiLC))
+       end if
 
-        iStart = processMatrix(7, 3) - processMatrix(7, 2) + 1
-        iEnd = processMatrix(7, 3)
-        call karstic_layer(& ! In
-                param(iStart : iEnd), & ! In
-                geoUnit0, mask0, & ! In
-                SMs_FC0, KsVar_V0, Id0, & ! In
-                n_subcells1, upper_bound1, lower_bound1, left_bound1, right_bound1, & ! In
-                karstLoss1(:, 1, 1), kPerco1(:, 1, 1)                                & ! Out
-                )
+       ! ------------------------------------------------------------------
+       ! interflow
+       ! ------------------------------------------------------------------
+       select case(processMatrix(6, 1))
+       case (1)
+          !
+          iStart = processMatrix(6, 3) - processMatrix(6, 2) + 1
+          iEnd = processMatrix(6, 3)
+          ! TODO: this subroutine should be split into each param (or at least extract kFastFlow1)
+          ! because it is in the loop unnecessarily
+          call mpr_runoff(LCover0(:, iiLC), mask0, SMs_FC0, slope_emp0, &
+               KsVar_H0, param(iStart : iEnd), Id0, upper_bound1, lower_bound1, &
+               left_bound1, right_bound1, n_subcells1, unsatThresh1(:, 1, 1), kFastFlow1(:, 1, iiLC), &
+               kSlowFlow1(:, 1, 1), alpha1(:, 1, 1))
+       case DEFAULT
+          call message()
+          call message('***ERROR: Process description for process "interflow" does not exist! mo_multi_param_reg')
+          stop
+       END select
 
-      case DEFAULT
-        call message()
-        call message('***ERROR: Process description for process "percolation" does not exist! mo_multi_param_reg')
-        stop
-      end select
+       ! ------------------------------------------------------------------
+       ! percolation cofficient, karstic percolation loss
+       ! ------------------------------------------------------------------
+       select case(processMatrix(7, 1))
+       case(1)
 
-      deallocate(KsVar_H0)
-      deallocate(KsVar_V0)
-      deallocate(SMs_FC0)
+          iStart = processMatrix(7, 3) - processMatrix(7, 2) + 1
+          iEnd = processMatrix(7, 3)
+          call karstic_layer(& ! In
+               param(iStart : iEnd), & ! In
+               geoUnit0, mask0, & ! In
+               SMs_FC0, KsVar_V0, Id0, & ! In
+               n_subcells1, upper_bound1, lower_bound1, left_bound1, right_bound1, & ! In
+               karstLoss1(:, 1, 1), kPerco1(:, 1, 1)                                & ! Out
+               )
 
-   end do !!>>>>>>> LAND COVER SCENE LOOP
+       case DEFAULT
+          call message()
+          call message('***ERROR: Process description for process "percolation" does not exist! mo_multi_param_reg')
+          stop
+       end select
 
-   
+       deallocate(KsVar_H0)
+       deallocate(KsVar_V0)
+       deallocate(SMs_FC0)
+
+    end do !!>>>>>>> LAND COVER SCENE LOOP
+
+
     ! ------------------------------------------------------------------
     ! sealed area threshold for runoff generation
     ! ------------------------------------------------------------------
     select case(processMatrix(4, 1))
     case (1)
-      iStart = processMatrix(4, 3) - processMatrix(4, 2) + 1
-      iEnd = processMatrix(4, 3)
-      call iper_thres_runoff(param(iStart : iEnd), sealedThresh1)
+       iStart = processMatrix(4, 3) - processMatrix(4, 2) + 1
+       iEnd = processMatrix(4, 3)
+       call iper_thres_runoff(param(iStart : iEnd), sealedThresh1)
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "runoff_generation" does not exist! mo_multi_param_reg')
-      stop
+       call message()
+       call message('***ERROR: Process description for process "runoff_generation" does not exist! mo_multi_param_reg')
+       stop
     end select
 
     ! ------------------------------------------------------------------
@@ -670,37 +676,37 @@ contains
     ! ------------------------------------------------------------------
     select case(processMatrix(5, 1))
     case(-1) ! LAI correction of input PET
-      iEnd = -9999 ! dummy statement
+       iEnd = -9999 ! dummy statement
     case(0) ! aspect correction of input PET
-      iStart = processMatrix(5, 3) - processMatrix(5, 2) + 1
-      iEnd = processMatrix(5, 3)
-      call pet_correctbyASP(Id0, y0, Asp0, param(iStart : iEnd), nodata_dp, fAsp0)
-      fAsp1(:, 1, 1) = upscale_arithmetic_mean(n_subcells1, upper_bound1, lower_bound1, &
-              left_bound1, right_bound1, Id0, mask0, nodata_dp, fAsp0)
+       iStart = processMatrix(5, 3) - processMatrix(5, 2) + 1
+       iEnd = processMatrix(5, 3)
+       call pet_correctbyASP(Id0, y0, Asp0, param(iStart : iEnd), nodata_dp, fAsp0)
+       fAsp1(:, 1, 1) = upscale_arithmetic_mean(n_subcells1, upper_bound1, lower_bound1, &
+            left_bound1, right_bound1, Id0, mask0, nodata_dp, fAsp0)
     case(1) ! Hargreaves-Samani method
-      iStart = processMatrix(5, 3) - processMatrix(5, 2) + 1
-      iEnd = processMatrix(5, 3)
-      call pet_correctbyASP(Id0, y0, Asp0, param(iStart : iEnd - 1), nodata_dp, fAsp0)
-      fAsp1(:, 1, 1) = upscale_arithmetic_mean(n_subcells1, upper_bound1, lower_bound1, &
-              left_bound1, right_bound1, Id0, mask0, nodata_dp, fAsp0)
-      HarSamCoeff1 = param(iEnd)
+       iStart = processMatrix(5, 3) - processMatrix(5, 2) + 1
+       iEnd = processMatrix(5, 3)
+       call pet_correctbyASP(Id0, y0, Asp0, param(iStart : iEnd - 1), nodata_dp, fAsp0)
+       fAsp1(:, 1, 1) = upscale_arithmetic_mean(n_subcells1, upper_bound1, lower_bound1, &
+            left_bound1, right_bound1, Id0, mask0, nodata_dp, fAsp0)
+       HarSamCoeff1 = param(iEnd)
     case(2) ! Priestley-Taylor Method
-      iStart = processMatrix(5, 3) - processMatrix(5, 2) + 1
-      iEnd = processMatrix(5, 3)
-      call priestley_taylor_alpha(gridded_LAI0, param(iStart : iEnd), &
-              mask0, nodata_dp, Id0, n_subcells1, upper_bound1, lower_bound1, left_bound1, right_bound1, &
-              PrieTayAlpha1(:, :, 1))
+       iStart = processMatrix(5, 3) - processMatrix(5, 2) + 1
+       iEnd = processMatrix(5, 3)
+       call priestley_taylor_alpha(gridded_LAI0, param(iStart : iEnd), &
+            mask0, nodata_dp, Id0, n_subcells1, upper_bound1, lower_bound1, left_bound1, right_bound1, &
+            PrieTayAlpha1(:, :, 1))
     case(3) ! Penman-Monteith method
-      ! aerodynamic resistance is calculated inside LCscene loop
-      iStart = processMatrix(5, 3) - processMatrix(5, 2) + 1
-      iEnd = processMatrix(5, 3)
-      call bulksurface_resistance(gridded_LAI0, param(iEnd), mask0, &
-              nodata_dp, Id0, n_subcells1, upper_bound1, lower_bound1, left_bound1, right_bound1, &
-              surfResist1(:, :, 1))
+       ! aerodynamic resistance is calculated inside LCscene loop
+       iStart = processMatrix(5, 3) - processMatrix(5, 2) + 1
+       iEnd = processMatrix(5, 3)
+       call bulksurface_resistance(gridded_LAI0, param(iEnd), mask0, &
+            nodata_dp, Id0, n_subcells1, upper_bound1, lower_bound1, left_bound1, right_bound1, &
+            surfResist1(:, :, 1))
     case default
-      call message()
-      call message('***ERROR: Process description for process "pet correction" does not exist! mo_multi_param_reg')
-      stop
+       call message()
+       call message('***ERROR: Process description for process "pet correction" does not exist! mo_multi_param_reg')
+       stop
     end select
     ! ------------------------------------------------------------------
     ! baseflow recession parameter
@@ -708,59 +714,59 @@ contains
     select case(processMatrix(9, 1))
     case(1)
 
-      ! the number of process parameters, so the number in processMatrix(9,2) has
-      ! to be equal to the size of geo_unit_list
-      iStart = processMatrix(9, 3) - processMatrix(9, 2) + 1
-      iEnd = processMatrix(9, 3)
+       ! the number of process parameters, so the number in processMatrix(9,2) has
+       ! to be equal to the size of geo_unit_list
+       iStart = processMatrix(9, 3) - processMatrix(9, 2) + 1
+       iEnd = processMatrix(9, 3)
 
-      call baseflow_param(param(iStart : iEnd), &
-              geoUnit0, k2_0)
-      !
-      ! Upscale by arithmetic mean
-      kBaseFlow1(:, 1, 1) = upscale_arithmetic_mean(n_subcells1, upper_bound1, lower_bound1, &
-              left_bound1, right_bound1, Id0, mask0, nodata_dp, k2_0)
-      !
-      ! correction and unit conversion
-      ! if percolation is ON: correct K2 such that it is at least k1
-      if (processMatrix(7, 1) .gt. 0) kBaseFlow1 = merge(kSlowFlow1, kBaseFlow1, kBaseFlow1 .lt. kSlowFlow1)
-      !
+       call baseflow_param(param(iStart : iEnd), &
+            geoUnit0, k2_0)
+       !
+       ! Upscale by arithmetic mean
+       kBaseFlow1(:, 1, 1) = upscale_arithmetic_mean(n_subcells1, upper_bound1, lower_bound1, &
+            left_bound1, right_bound1, Id0, mask0, nodata_dp, k2_0)
+       !
+       ! correction and unit conversion
+       ! if percolation is ON: correct K2 such that it is at least k1
+       if (processMatrix(7, 1) .gt. 0) kBaseFlow1 = merge(kSlowFlow1, kBaseFlow1, kBaseFlow1 .lt. kSlowFlow1)
+       !
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "baseflow Recession" does not exist! mo_multi_param_reg')
-      stop
-   end select
+       call message()
+       call message('***ERROR: Process description for process "baseflow Recession" does not exist! mo_multi_param_reg')
+       stop
+    end select
 
-   ! ------------------------------------------------------------------
-   ! Neutron count related parameters
-   ! >> only N0 parameter - others are defined above in soil parameters
-   ! ------------------------------------------------------------------
-   select case(processMatrix(10, 1))
-   case(0)
-      ! do nothing
-   case(1)
-      ! the number of process parameters, so the number in processMatrix(9,2) has
-      iStart = processMatrix(10, 3) - processMatrix(10, 2) + 1
-      iEnd = processMatrix(10, 3)
-      No_Count1 = param(iStart)  !>> 1st parameter --> N0 parameter 
-   case(2)
-      ! the number of process parameters, so the number in processMatrix(9,2) has
-      iStart = processMatrix(10, 3) - processMatrix(10, 2) + 1
-      iEnd = processMatrix(10, 3)
-      No_Count1 = param(iStart)  !>> 1st parameter --> N0 parameter
-   case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "Neutron count" does not exist! mo_multi_param_reg')
-      stop
-   end select
-   
-  
+    ! ------------------------------------------------------------------
+    ! Neutron count related parameters
+    ! >> only N0 parameter - others are defined above in soil parameters
+    ! ------------------------------------------------------------------
+    select case(processMatrix(10, 1))
+    case(0)
+       ! do nothing
+    case(1)
+       ! the number of process parameters, so the number in processMatrix(9,2) has
+       iStart = processMatrix(10, 3) - processMatrix(10, 2) + 1
+       iEnd = processMatrix(10, 3)
+       No_Count1 = param(iStart)  !>> 1st parameter --> N0 parameter 
+    case(2)
+       ! the number of process parameters, so the number in processMatrix(9,2) has
+       iStart = processMatrix(10, 3) - processMatrix(10, 2) + 1
+       iEnd = processMatrix(10, 3)
+       No_Count1 = param(iStart)  !>> 1st parameter --> N0 parameter
+    case DEFAULT
+       call message()
+       call message('***ERROR: Process description for process "Neutron count" does not exist! mo_multi_param_reg')
+       stop
+    end select
+
+
     !-------------------------------------------------------------------
     ! call regionalization of parameters related to LAI
     ! it is now outside of mHM since LAI is now dynamic variable
     !-------------------------------------------------------------------
     call canopy_intercept_param(processMatrix, param(:), &
-            gridded_LAI0, n_subcells1, upper_bound1, lower_bound1, left_bound1, right_bound1, Id0, mask0, &
-            nodata_dp, maxInter1(:, :, 1))
+         gridded_LAI0, n_subcells1, upper_bound1, lower_bound1, left_bound1, right_bound1, Id0, mask0, &
+         nodata_dp, maxInter1(:, :, 1))
 
   end subroutine mpr
 
@@ -821,16 +827,16 @@ contains
 
 
     if (size(param) .ne. size(geoUnitList)) &
-            stop ' mo_multi_param_reg: baseflow_param: size mismatch, subroutine baseflow parameters '
+         stop ' mo_multi_param_reg: baseflow_param: size mismatch, subroutine baseflow parameters '
 
     k2_0 = nodata_dp
 
     !$OMP PARALLEL
     !$OMP DO PRIVATE(gg) SCHEDULE(STATIC)
     do ii = 1, size(k2_0)
-      ! get parameter index in geoUnitList
-      gg = minloc(abs(geoUnitList - geoUnit0(ii)))
-      k2_0(ii) = param(gg(1))
+       ! get parameter index in geoUnitList
+       gg = minloc(abs(geoUnitList - geoUnit0(ii)))
+       k2_0(ii) = param(gg(1))
     end do
     !$OMP END DO
     !$OMP END PARALLEL
@@ -909,7 +915,7 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine snow_acc_melt_param(param, fForest1, fIperm1, fPerm1, tempThresh1, degDayNoPre1, degDayInc1, &
-                                degDayMax1)
+       degDayMax1)
     implicit none
 
     ! eight global parameters
@@ -952,13 +958,13 @@ contains
     degDayInc1 = param(5)
 
     degDayNoPre1 = (&
-            tmp_degreeDayFactor_forest * fForest1 + &
-                    tmp_degreeDayFactor_impervious * fIperm1 + &
-                    tmp_degreeDayFactor_pervious * fPerm1)
+         tmp_degreeDayFactor_forest * fForest1 + &
+         tmp_degreeDayFactor_impervious * fIperm1 + &
+         tmp_degreeDayFactor_pervious * fPerm1)
     degDayMax1 = (&
-            tmp_maxDegreeDayFactor_forest * fForest1 + &
-                    tmp_maxDegreeDayFactor_impervious * fIperm1 + &
-                    tmp_maxDegreeDayFactor_pervious * fPerm1)
+         tmp_maxDegreeDayFactor_forest * fForest1 + &
+         tmp_maxDegreeDayFactor_impervious * fIperm1 + &
+         tmp_maxDegreeDayFactor_pervious * fPerm1)
 
   end subroutine snow_acc_melt_param
 
@@ -1053,7 +1059,7 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine karstic_layer(param, geoUnit0, mask0, SMs_FC0, KsVar_V0, Id0, n_subcells1, upper_bound1, lower_bound1, &
-                          left_bound1, right_bound1, karstLoss1, L1_Kp)
+       left_bound1, right_bound1, karstLoss1, L1_Kp)
 
     use mo_mpr_global_variables, only : GeoUnitList, geoUnitKar
     use mo_upscaling_operators, only : L0_fractionalCover_in_Lx, upscale_arithmetic_mean
@@ -1118,11 +1124,11 @@ contains
     ! Regionalise Kp with variability of last soil layer property
     !$OMP PARALLEL
     tmp = merge(param(1) * (1.0_dp + SMs_FC0) / (1.0_dp + KsVar_V0), &
-            nodata_dp, Id0 .ne. nodata_i4)
+         nodata_dp, Id0 .ne. nodata_i4)
     !$OMP END PARALLEL
 
     L1_Kp = upscale_arithmetic_mean(n_subcells1, upper_bound1, lower_bound1, &
-            left_bound1, right_bound1, Id0, mask0, nodata_dp, tmp)
+         left_bound1, right_bound1, Id0, mask0, nodata_dp, tmp)
 
     ! minimum constrains
     L1_Kp = merge(2.0_dp, L1_Kp, L1_Kp .lt. 2.0_dp)
@@ -1134,9 +1140,9 @@ contains
     fKarArea = 0.0_dp
 
     do i = 1, nGeoUnits
-      if(GeoUnitKar(i) .eq. 0) cycle
-      fKarArea(:) = L0_fractionalCover_in_Lx(geoUnit0, geoUnitlist(i), mask0, &
-              upper_bound1, lower_bound1, left_bound1, right_bound1, n_subcells1)
+       if(GeoUnitKar(i) .eq. 0) cycle
+       fKarArea(:) = L0_fractionalCover_in_Lx(geoUnit0, geoUnitlist(i), mask0, &
+            upper_bound1, lower_bound1, left_bound1, right_bound1, n_subcells1)
     end do
 
     ! 2nd calculate karstLoss1
@@ -1185,7 +1191,7 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine canopy_intercept_param(processMatrix, param, LAI0, n_subcells1, upper_bound1, lower_bound1, left_bound1, &
-                                   right_bound1, Id0, mask0, nodata, max_intercept1)
+       right_bound1, Id0, mask0, nodata, max_intercept1)
 
     use mo_message, only : message
     use mo_string_utils, only : num2str
@@ -1241,32 +1247,32 @@ contains
     ! ------------------------------------------------------------------
     select case(processMatrix(1, 1))
     case(1)
-      iStart = processMatrix(1, 3) - processMatrix(1, 2) + 1
-      iEnd = processMatrix(1, 3)
+       iStart = processMatrix(1, 3) - processMatrix(1, 2) + 1
+       iEnd = processMatrix(1, 3)
 
-      ! allocate space
-      allocate(gamma_intercept(iEnd - iStart + 1))
-      allocate(max_intercept0 (size(Id0, 1)))
+       ! allocate space
+       allocate(gamma_intercept(iEnd - iStart + 1))
+       allocate(max_intercept0 (size(Id0, 1)))
 
-      ! estimate max. intercept at Level-0
-      gamma_intercept(:) = param(iStart : iEnd)
+       ! estimate max. intercept at Level-0
+       gamma_intercept(:) = param(iStart : iEnd)
 
-      do it = 1, size(LAI0, 2)
-        !$OMP PARALLEL
-        max_intercept0(:) = LAI0(:, it) * gamma_intercept(1)
-        !$OMP END PARALLEL
+       do it = 1, size(LAI0, 2)
+          !$OMP PARALLEL
+          max_intercept0(:) = LAI0(:, it) * gamma_intercept(1)
+          !$OMP END PARALLEL
 
-        ! Upscale by arithmetic mean
-        max_intercept1(:, it) = upscale_arithmetic_mean(n_subcells1, upper_bound1, lower_bound1, left_bound1, &
-                right_bound1, Id0, mask0, nodata, max_intercept0(:))
+          ! Upscale by arithmetic mean
+          max_intercept1(:, it) = upscale_arithmetic_mean(n_subcells1, upper_bound1, lower_bound1, left_bound1, &
+               right_bound1, Id0, mask0, nodata, max_intercept0(:))
 
-      end do
+       end do
 
-      deallocate(gamma_intercept)
-      deallocate(max_intercept0)
+       deallocate(gamma_intercept)
+       deallocate(max_intercept0)
     CASE DEFAULT
-      call message('mo_multi_param_reg: This processMatrix=', num2str(processMatrix(1, 1)), ' is not implemented!')
-      stop
+       call message('mo_multi_param_reg: This processMatrix=', num2str(processMatrix(1, 1)), ' is not implemented!')
+       stop
     end select
 
   end subroutine canopy_intercept_param
@@ -1314,7 +1320,7 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine aerodynamical_resistance(LAI0, LCover0, param, mask0, Id0, n_subcells1, upper_bound1, lower_bound1, &
-                                     left_bound1, right_bound1, aerodyn_resistance1)
+       left_bound1, right_bound1, aerodyn_resistance1)
 
     use mo_common_constants, only : eps_dp
     use mo_mpr_constants, only : WindMeasHeight, karman
@@ -1390,24 +1396,24 @@ contains
 
     do tt = 1, size(LAI0, 2)
 
-      ! pervious canopy height is scaled with LAI
-      canopy_height0 = merge((param(3) * LAI0(:, tt) / maxLAI), canopy_height0, LCover0 == 3)  ! pervious
+       ! pervious canopy height is scaled with LAI
+       canopy_height0 = merge((param(3) * LAI0(:, tt) / maxLAI), canopy_height0, LCover0 == 3)  ! pervious
 
-      ! estimation of the aerodynamic resistance on the lower level
-      ! see FAO Irrigation and Drainage Paper No. 56 (p. 19 ff) for more information
-      zm = WindMeasHeight
-      ! correction: if wind measurement height is below canopy height loagarithm becomes negative
-      zm = merge(canopy_height0 + zm, zm, ((abs(zm - nodata_dp) .GT. eps_dp) .AND. (zm .LT. canopy_height0)))
+       ! estimation of the aerodynamic resistance on the lower level
+       ! see FAO Irrigation and Drainage Paper No. 56 (p. 19 ff) for more information
+       zm = WindMeasHeight
+       ! correction: if wind measurement height is below canopy height loagarithm becomes negative
+       zm = merge(canopy_height0 + zm, zm, ((abs(zm - nodata_dp) .GT. eps_dp) .AND. (zm .LT. canopy_height0)))
 
-      ! zh       = zm
-      displace = param(4) * canopy_height0
-      zm_zero = param(5) * canopy_height0
-      zh_zero = param(6) * zm_zero
-      !
-      ! calculate aerodynamic resistance (changes monthly)
-      aerodyn_resistance0(:, tt) = log((zm - displace) / zm_zero) * log((zm - displace) / zh_zero) / (karman**2.0_dp)
-      aerodyn_resistance1(:, tt) = upscale_arithmetic_mean(n_subcells1, upper_bound1, lower_bound1, &
-              left_bound1, right_bound1, Id0, mask0, nodata_dp, aerodyn_resistance0(:, tt))
+       ! zh       = zm
+       displace = param(4) * canopy_height0
+       zm_zero = param(5) * canopy_height0
+       zh_zero = param(6) * zm_zero
+       !
+       ! calculate aerodynamic resistance (changes monthly)
+       aerodyn_resistance0(:, tt) = log((zm - displace) / zm_zero) * log((zm - displace) / zh_zero) / (karman**2.0_dp)
+       aerodyn_resistance1(:, tt) = upscale_arithmetic_mean(n_subcells1, upper_bound1, lower_bound1, &
+            left_bound1, right_bound1, Id0, mask0, nodata_dp, aerodyn_resistance0(:, tt))
 
     end do
 

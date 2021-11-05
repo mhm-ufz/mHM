@@ -245,14 +245,14 @@ contains
     real(dp), dimension(:, :), intent(inout) :: L1_fRoots
 
     ! neutron count
-    real(dp),    dimension(:,:,:), intent(in) :: latWat_till   ! lattice water
-    real(dp),    dimension(:,:,:), intent(in) :: COSMIC_L3_till! COSMIC parameter L3
-    real(dp),    dimension(:,:),   intent(in) :: latWat        ! lattice water
-    real(dp),    dimension(:,:),   intent(in) :: COSMIC_L3     ! COSMIC paramter L3
+    real(dp), dimension(:,:,:), intent(in) :: latWat_till   ! lattice water
+    real(dp), dimension(:,:,:), intent(in) :: COSMIC_L3_till! COSMIC parameter L3
+    real(dp), dimension(:,:),   intent(in) :: latWat        ! lattice water
+    real(dp), dimension(:,:),   intent(in) :: COSMIC_L3     ! COSMIC paramter L3
     ! out
-    real(dp),   dimension(:,:), intent(inout) :: L1_bulkDens
-    real(dp),   dimension(:,:), intent(inout) :: L1_latticeWater
-    real(dp),   dimension(:,:), intent(inout) :: L1_COSMICL3
+    real(dp), dimension(:,:), intent(inout) :: L1_bulkDens
+    real(dp), dimension(:,:), intent(inout) :: L1_latticeWater
+    real(dp), dimension(:,:), intent(inout) :: L1_COSMICL3
 
 
     ! loop index
