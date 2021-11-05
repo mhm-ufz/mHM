@@ -122,7 +122,7 @@ CONTAINS
     allocate(  Layer_min(nLayers)  )
     allocate(  Layer_max(nLayers)  )
     allocate( Layer_depth(nLayers) )
-
+    
     ! assign layer-1
     Layer_min(1) = 0.0_dp
     Layer_max(1) = Horizon_depth(1)
@@ -169,21 +169,22 @@ CONTAINS
 
 
     ! estimate weightage SWC
+    ! here average_swc is gravemtric swc = vol.swc/Bulk density
     average_swc = 0.0_dp
     do LL = 1, nLayers
-       average_swc = average_swc + ( (SoilMoisture(LL)/Layer_depth(LL)) * cummulative_Layer_weight(LL) )
+       average_swc = average_swc + ( (SoilMoisture(LL)/Layer_depth(LL))/Bd(LL)  * cummulative_Layer_weight(LL) )
     end do
     average_swc = average_swc / sum( cummulative_Layer_weighT(:) )
 
     !>>>>> add lattice water now ->
     ! lattice water taken as average over the modeled layers
     !>>>>> discuss with Martin >>>>>>> organic water **
-    average_swc = average_swc + average( latWater(:)/Layer_depth(:) )
+    average_swc = average_swc + average( latWater(:)/Layer_depth(:) )  
 
     ! calculate neutron count based on depth weighted SM of *D86*
     neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (average_swc + Desilets_a2) )
 
-     !! deallocate variables
+    !! deallocate variables
     deallocate(Layer_min, Layer_max, Layer_depth, cummulative_Layer_weight)
     
   end subroutine DesiletsN0
@@ -259,7 +260,7 @@ CONTAINS
        neutrons )
     
     use mo_mhm_constants, only: H2Odens, COSMIC_N, COSMIC_alpha, COSMIC_L1, COSMIC_L2, COSMIC_L4
-    use mo_constants, only: PI_dp
+    use mo_constants,     only: PI_dp
     implicit none
     
     real(dp), dimension(:),          intent(in)     :: SoilMoisture
@@ -280,7 +281,7 @@ CONTAINS
     real(dp) :: lw             ! lattice water
     real(dp) :: bd             ! bulk density
     real(dp) :: L3
-    integer(i4):: snowlayer    ! 1 if snowlayer is active, 0 else
+    integer(i4):: iFlag_snowlayer_intecept                 ! 1 if snowlayer is active, 0 else
 
     real(dp), dimension(size(Horizons)+1)   :: zthick      ! Soil layer thickness (cm)
     real(dp), dimension(:), allocatable     :: isoimass    ! Integrated dry soil mass above layer (g)
@@ -316,7 +317,11 @@ CONTAINS
     bd             = 0.0_dp
     L3             = 1.0_dp
 
-    snowlayer=0
+    ! switch of snowlayer+Intercept ON and off
+    ! ON = 1; OFF = 0
+    ! its hardocded here but can be later part of *.nml file
+    iFlag_snowlayer_intecept = 0
+
     
     !layer 1 is the surface layer. layer 2 up to layers are the usual layers
     do ll = 1,layers
@@ -330,10 +335,11 @@ CONTAINS
        ! zthick will be in cm, as all heigths are in cm in this module
        call layerThickness(ll,Horizons,interc,snowpack,zthick)
 
-       if (zthick(ll).gt.0.0_dp .and. (snowlayer.gt.0 .or. ll.ne.1)) then
+       if ( ( zthick(ll) .gt. 0.0_dp ) .and. ( (iFlag_snowlayer_intecept .gt. 0 ) .or. (ll.ne.1) ) ) then
           call loopConstants(ll,&
-                    SoilMoisture(:),L1_bulkDens(:),L1_latticeWater(:),&
-                    L1_COSMICL3(:),sm,bd,lw,L3)
+               SoilMoisture(:),L1_bulkDens(:),&
+               L1_latticeWater(:), &
+               L1_COSMICL3(:),sm,bd,lw,L3)
 
 
           if (ll.eq.1) then

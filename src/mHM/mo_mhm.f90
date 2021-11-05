@@ -616,19 +616,26 @@ CONTAINS
 
       !-------------------------------------------------------------------
       ! Nested model: Neutrons state variable, related to soil moisture
+      ! >> NOTE THAT SINCE LAST mHM layer is variable iFlag_soilDB = 0
+      !    the neuton count is estimated only upto nHorizons_mHM-1
+      !    set your horizon depth accordingly 
       !-------------------------------------------------------------------
       ! DESLET
       if ( processMatrix(10, 1) .EQ. 1 ) &
-           call DesiletsN0( soilMoisture(k,:), horizon_depth(:), & ! Intent IN
-           bulkDens(k,:), latticeWater(k,:),  No_count(k),       & ! Intent IN
-           neutrons(k) )                                           ! Intent INOUT
+           call DesiletsN0( soilMoisture(k,1:nHorizons_mHM-1),& ! Intent IN
+           horizon_depth(1:nHorizons_mHM-1),                  & ! Intent IN
+           bulkDens(k,1:nHorizons_mHM-1),                     & ! Intent IN
+           latticeWater(k,1:nHorizons_mHM-1), No_count(k),    & ! Intent IN
+           neutrons(k) )                                        ! Intent INOUT
       
       ! COSMIC
       if ( processMatrix(10, 1) .EQ. 2 ) &
-           call COSMIC( soilMoisture(k,:), horizon_depth(:), neutron_integral_AFast(:), &  ! Intent IN
-           interc(k), snowpack(k),                                        &  ! Intent IN
-           No_count(k), bulkDens(k,:), latticeWater(k,:), COSMICL3(k,:),  &  ! Intent IN
-           neutrons(k)  )                                                    ! Intent INOUT
+           call COSMIC( soilMoisture(k,1:nHorizons_mHM-1), horizon_depth(1:nHorizons_mHM-1),&
+           neutron_integral_AFast(1:nHorizons_mHM-1),                         &  ! Intent IN
+           interc(k), snowpack(k),                                            &  ! Intent IN
+           No_count(k), bulkDens(k,1:nHorizons_mHM-1),                        &  ! Intent IN
+           latticeWater(k,1:nHorizons_mHM-1), COSMICL3(k,1:nHorizons_mHM-1),  &  ! Intent IN
+           neutrons(k)  )                                                        ! Intent INOUT
    end do
    !$OMP end do
    !$OMP end parallel

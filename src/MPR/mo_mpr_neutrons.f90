@@ -138,6 +138,7 @@ contains
     latWat_till     = 0.0_dp
     latWat          = 0.0_dp
 
+    
     ! select case according to a given soil database flag
     SELECT CASE(iFlag_soilDB)
        ! classical mHM soil database format
@@ -199,7 +200,8 @@ contains
           call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
           stop
        END SELECT
-    
+
+       
    end subroutine
 
 
