@@ -269,7 +269,7 @@ CONTAINS
       call variables_default_init()
       call mpr_eval(parameterset)
 
-       if (processMatrix(8, 1) .GT. 0) then
+       if (processMatrix(8, 1) > 0) then
         !-------------------------------------------
         ! L11 ROUTING STATE VARIABLES, FLUXES AND
         !             PARAMETERS
