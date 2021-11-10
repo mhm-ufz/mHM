@@ -166,6 +166,10 @@ end subroutine mrm_configuration
         call read_grid_info(domainID, mrmFileRestartIn(iDomain), "11", level11(iDomain))
         call mrm_read_restart_config(iDomain, mrmFileRestartIn(iDomain))
       else
+        ! TODO: this sets the lat lon values (can be projected!) and effective cellArea of level1
+        ! think about how this can be done in MPR
+        call init_lowres_level(level0(domainMeta%L0DataFrom(iDomain)), resolutionHydrology(iDomain), &
+                level1(iDomain), l0_l1_remap(iDomain))
         ! init l11 grids from l0 grid
         call init_lowres_level(level0(domainMeta%L0DataFrom(iDomain)), resolutionRouting(iDomain), &
                 level11(iDomain), l0_l11_remap(iDomain))
