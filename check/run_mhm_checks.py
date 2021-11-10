@@ -104,6 +104,10 @@ IGNORE_VARS = [
     "gaugeNodeList",  # is now adapted to lat-sorted axis with new links
     "ProcessMatrix",  # fails if new process is added
     "L1_degDay",  # is not a parameter anymore but a state variable
+    "L1_domain_lon",  # is now depending on MPR coordinates and always non-projected
+    "L1_domain_lat",  # is now depending on MPR coordinates and always non-projected
+    "L1_SoilHorizons_bnds",  # is now in SI unit [m] and always has an upper bound (positive downwards)
+    "L1_LAITimesteps_bnds",  # is now 0-index based as other coordinates
 ]
 MHM_EXE = ["../mhm"]
 # case 5 and 7 don't work with MPI. case 4 has a bug working with ifort+debug
