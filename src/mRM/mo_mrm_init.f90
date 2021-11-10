@@ -135,6 +135,7 @@ end subroutine mrm_configuration
     ! READ DATA
     ! ----------------------------------------------------------
     allocate(level11(domainMeta%nDomains))
+    allocate(l0_l1_remap(domainMeta%nDomains))
     allocate(l0_l11_remap(domainMeta%nDomains))
     allocate(l1_l11_remap(domainMeta%nDomains))
 
