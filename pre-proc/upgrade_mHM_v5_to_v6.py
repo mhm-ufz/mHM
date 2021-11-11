@@ -17,6 +17,7 @@ import pathlib
 import re
 import sys
 from itertools import product
+from warnings import warn
 
 import numpy
 import pandas as pd
@@ -37,7 +38,7 @@ IN_DIR = '/Users/ottor/nc/Home/local_libs/fortran/mhm_original/test_domain/input
 OUT_DIR = '../../MPR/reference/test_domain/input/temp'
 OUT_DIR = '/Users/ottor/temp/test_domain'
 # all folders scanned in input directory
-FOLDER_LIST = ['lai', 'luse', 'morph', 'latlon', 'optional_data', 'meteo', 'pet', 'pre', 'tavg', 'restart']
+FOLDER_LIST = ['input', 'lai', 'luse', 'morph', 'latlon', 'optional_data', 'meteo', 'pet', 'pre', 'tavg', 'restart']
 
 LAT_ATTRS = {'standard_name': 'latitude',
              'long_name': 'latitude',
@@ -618,6 +619,8 @@ if __name__ == '__main__':
                 kwargs['index_as_col'] = True
         elif '_class_horizon_' in path.stem:
             kwargs['lookup'] = pathlib.Path(input_dir, path.parent, 'soil_classdefinition_iFlag_soilDB_1.txt')
+            warn(f'Detected file {path.stem}. Ignoring it to not overwrite horizon-unspecific files.')
+            continue
         my_conv = MyAsciiToNetcdfConverter(
             input_file=pathlib.Path(input_dir, path),
             output_file=pathlib.Path(args.output_dir, path.stem + '.nc'),
@@ -636,8 +639,8 @@ if __name__ == '__main__':
     for nc_file in path_list:
         print('working on file: {}'.format(nc_file))
         # if we have a netcdf file, perform flipping
-        output_file = pathlib.Path(args.output_dir, PROPERTIES_MAPPING.get(path.stem, ('mpr',))[0],
-                                   path.stem + '.nc')
+        output_file = pathlib.Path(args.output_dir, PROPERTIES_MAPPING.get(nc_file.stem, ('mpr',))[0],
+                                   nc_file.stem + '.nc')
         # NOTE: in some cases header files need to be used to impose correct x and y coordinate values in netcdf files
         # e.g. test basin in mHM repo
         sort_y_dim(pathlib.Path(input_dir, nc_file), output_file, y_dims=('y', 'ncols', 'northing'))
