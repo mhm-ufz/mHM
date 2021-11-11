@@ -61,7 +61,7 @@ coord_from_values(:,20) = 0.2
 coord_name(21) = "horizon_notill"
 coord_stagger(21) = "end"
 coord_from_values_bound(21) = 0.2
-coord_from_values(:,21) = 1.0
+coord_from_values(:,21) = 0.3, 1.0
 
 ! intermediate coordinates for aggregation over coordinates
 coord_name(22) = "horizon_all"
