@@ -145,15 +145,15 @@ parameter_values(55) = 0.0
 
 &Data_Arrays
 name(1) = "bd"
-from_file(1) = "../../test_domain/input/mpr/bd.nc"
+from_file(1) = "../../test_domain/input/mpr/bd.nc.mod"
 to_file(1) = .false.
 
 name(2) = "sand"
-from_file(2) = "../../test_domain/input/mpr/sand.nc"
+from_file(2) = "../../test_domain/input/mpr/sand.nc.mod"
 to_file(2) = .false.
 
 name(3) = "clay"
-from_file(3) = "../../test_domain/input/mpr/clay.nc"
+from_file(3) = "../../test_domain/input/mpr/clay.nc.mod"
 to_file(3) = .false.
 
 name(4) = "land_cover"
