@@ -103,6 +103,7 @@ IGNORE_VARS = [
     "InflowGaugeNodeList",  # is now adapted to lat-sorted axis with new links
     "gaugeNodeList",  # is now adapted to lat-sorted axis with new links
     "ProcessMatrix",  # fails if new process is added
+    # other
     "L1_degDay",  # is not a parameter anymore but a state variable
     "L1_domain_lon",  # is now depending on MPR coordinates and always non-projected
     "L1_domain_lat",  # is now depending on MPR coordinates and always non-projected
