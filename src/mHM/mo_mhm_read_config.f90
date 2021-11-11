@@ -265,11 +265,6 @@ CONTAINS
           L1_smObs(iDomain)%timeStepInput = timeStep_sm_input
           L1_smObs(iDomain)%varname = 'sm'
         end do
-        if (nSoilHorizons_sm_input .GT. nSoilHorizons) then
-          call error_message('***ERROR: Number of soil horizons representative for input soil moisture exceeded', &
-                  new_line('a'), &
-                  '          defined number of soil horizions: ', adjustl(trim(num2str(nSoilHorizons))), '!')
-        end if
       case(17)
         ! neutrons
         call position_nml('optional_data', unamelist)

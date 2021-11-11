@@ -987,8 +987,7 @@ CONTAINS
               rootFractionCoefficient_sand(3), &
               rootFractionCoefficient_clay(3), &
               FCmin_glob(3), &
-              FCdelta_glob(3), &
-              orgMatterSwitch(3) &
+              FCdelta_glob(3) &
       ])
       call append(dummy_global_parameters_name, [&
               'rootFractionCoefficient_sand      ', &

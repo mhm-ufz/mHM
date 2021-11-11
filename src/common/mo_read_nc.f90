@@ -1047,25 +1047,4 @@ contains
     end if
   end subroutine check_consistency_element_i4
 
-  subroutine check_consistency()
-    use mo_global_variables, only : nSoilHorizons
-    use mo_common_variables, only : opti_function, optimize
-    use mo_global_variables, only : nSoilHorizons_sm_input
-    use mo_string_utils, only: num2str
-    use mo_message, only: message
-
-    if (optimize) then
-      select case (opti_function)
-      case(10 : 13, 28)
-        ! soil moisture
-        if (nSoilHorizons_sm_input > nSoilHorizons) then
-          call error_message('***ERROR: Number of soil horizons representative for input soil moisture exceeded', &
-                   new_line('a'), '          defined number of soil horizions in mHM: ', &
-                  adjustl(trim(num2str(nSoilHorizons))), '!')
-        end if
-      end select
-    end if
-
-  end subroutine check_consistency
-
 end module mo_read_nc
