@@ -169,10 +169,9 @@ contains
     nts = nc%setDimension("TS", 1)
     nproc = nc%setDimension("Nprocesses", size(processMatrix, dim = 1))
 
-    iDomainNLandCoverPeriods = maxval(LCyearId(:, domainMeta%L0DataFrom(iDomain)), &
-            mask=LCyearId(:, domainMeta%L0DataFrom(iDomain)) /= nodata_i4)
+    iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain), mask=LCyearId(:, iDomain) /= nodata_i4)
     allocate(landCoverPeriodBoundaries_(iDomainNLandCoverPeriods+1))
-    landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, domainMeta%L0DataFrom(iDomain)), dp)
+    landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, iDomain), dp)
     lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &
             landCoverPeriodBoundaries_, 0_i4)
     deallocate(landCoverPeriodBoundaries_)
@@ -521,7 +520,7 @@ contains
     ! allocate(landCoverPeriodBoundaries_temp(0: nLandCoverPeriods_temp))
     ! landCoverPeriodBoundaries_temp(0:nLandCoverPeriods_temp-1) = dummyD2(:,1)
     ! landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp) = dummyD2(nLandCoverPeriods_temp,2)
-    ! call common_check_dimension_consistency(iBasin, landCoverPeriodBoundaries_temp, landCoverPeriodSelect)
+    ! call get_land_cover_period_indices(iBasin, landCoverPeriodBoundaries_temp, landCoverPeriodSelect)
 
     ! simulated discharge at each node
     var = nc%getVariable("L11_Qmod")

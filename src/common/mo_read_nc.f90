@@ -18,7 +18,7 @@ module mo_read_nc
   public :: read_const_nc
   public :: read_weights_nc
   public :: check_sort_order
-  public :: common_check_dimension_consistency
+  public :: get_land_cover_period_indices
   public :: check_dimension_consistency
   interface check_consistency_element
     module procedure check_consistency_element_i4, &
@@ -880,15 +880,15 @@ contains
 
   end subroutine check_sort_order_4DI4
 
-  subroutine common_check_dimension_consistency(iDomain, uniqueIDomain, boundaries, select_indices)
+  subroutine get_land_cover_period_indices(iDomain, boundaries, select_indices)
     use mo_common_variables, only: nLandCoverPeriods, landCoverPeriodBoundaries
     use mo_string_utils, only: compress
     use mo_common_datetime_type, only: simPer, LCyearId
 
-    integer(i4), intent(in) :: iDomain, uniqueIDomain
-
+    integer(i4), intent(in) :: iDomain
     real(dp), dimension(:), intent(inout) :: boundaries
     integer(i4), dimension(:), intent(out), allocatable :: select_indices
+
     logical, dimension(size(boundaries) - 1) :: select_indices_mask
     logical, dimension(size(boundaries)) :: select_indices_temp
 
@@ -914,10 +914,10 @@ contains
         ! set the correct LCyearId
         LCyearId(&
                 maxval([int(boundaries(iBoundary)), LCyearStart]):&
-                minval([int(boundaries(iBoundary+1)), LCyearEnd]), uniqueIDomain) = select_index
+                minval([int(boundaries(iBoundary+1)), LCyearEnd]), iDomain) = select_index
         ! set the boundaries as parsed
-        landCoverPeriodBoundaries(select_index, uniqueIDomain) = int(boundaries(iBoundary))
-        landCoverPeriodBoundaries(select_index + 1, uniqueIDomain) = int(boundaries(iBoundary + 1))
+        landCoverPeriodBoundaries(select_index, iDomain) = int(boundaries(iBoundary))
+        landCoverPeriodBoundaries(select_index + 1, iDomain) = int(boundaries(iBoundary + 1))
       end if
     end do
     select_indices = pack([(iBoundary, iBoundary=1, size(boundaries) - 1)], select_indices_mask)
@@ -944,35 +944,26 @@ contains
               ' ) do not cover the end of the simulation period (', &
               compress(trim(num2str(simPer(iDomain)%yend))), ').')
     end if
-  end subroutine common_check_dimension_consistency
+  end subroutine get_land_cover_period_indices
 
-  subroutine check_dimension_consistency(iDomain, uniqueIDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
-          nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp, &
-          landCoverSelect, check_all_arg)
+  subroutine check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
+          nLAIs_temp, LAIBoundaries_temp)
     use mo_global_variables, only: nSoilHorizons, soilHorizonBoundaries, nLAIs, LAIBoundaries
-    use mo_common_variables, only: nLandCoverPeriods
     use mo_string_utils, only: compress, num2str
     use mo_utils, only: ne
     use mo_message, only: message
 
-    integer(i4), intent(in) :: iDomain, uniqueIDomain
-
-    integer(i4), intent(in) :: nSoilHorizons_temp, nLAIs_temp, nLandCoverPeriods_temp
-    real(dp), dimension(:), intent(inout) :: landCoverPeriodBoundaries_temp, soilHorizonBoundaries_temp, &
+    integer(i4), intent(in) :: iDomain
+    integer(i4), intent(in) :: nSoilHorizons_temp, nLAIs_temp
+    real(dp), dimension(:), intent(inout) :: soilHorizonBoundaries_temp, &
             LAIBoundaries_temp
-    integer(i4), dimension(:), allocatable, intent(out) :: landCoverSelect
-    logical, intent(in), optional :: check_all_arg
 
     integer(i4) :: k
-    logical :: check_all
 
-    check_all = .true.
-    if (present(check_all_arg)) check_all = check_all_arg
-    if (iDomain == 1 .and. check_all) then
+    if (iDomain == 1) then
       ! set local to global
       nSoilHorizons = nSoilHorizons_temp
       nLAIs = nLAIs_temp
-      nLandCoverPeriods = nLandCoverPeriods_temp
       ! TODO: MPR remove if clause here
       if (.not. allocated(soilHorizonBoundaries)) allocate(soilHorizonBoundaries(nSoilHorizons))
       soilHorizonBoundaries = soilHorizonBoundaries_temp
@@ -1007,7 +998,6 @@ contains
       !   end if
       ! end do
     end if
-    call common_check_dimension_consistency(iDomain, uniqueIDomain, landCoverPeriodBoundaries_temp, landCoverSelect)
 
   end subroutine check_dimension_consistency
 

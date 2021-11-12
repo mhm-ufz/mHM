@@ -40,7 +40,6 @@ CONTAINS
 
   subroutine read_dem(iDomain, level0_iDomain, data_dp_2d)
 
-    use mo_append, only : append
     use mo_common_file, only : varNameDem
     use mo_common_variables, only : dirIn, level0, domainMeta, resolutionHydrology
     use mo_grid, only : infer_grid_info, Grid
@@ -107,7 +106,7 @@ CONTAINS
 
   subroutine read_lcover(iDomain, dataMatrix_i4, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)
 
-    use mo_append, only : append, paste
+    use mo_append, only : paste
     use mo_common_constants, only : nodata_i4
     use mo_common_file, only : varNameLandCover
     use mo_common_variables, only : L0_LCover, dirIn, level0, domainMeta, nLandCoverPeriods
@@ -149,6 +148,8 @@ CONTAINS
       ! this explicit prior allocation is done so that gFortran does not complain with:
       ! "Fortran runtime error: Array bound mismatch for dimension 1 of array 'data_i4_2d' (0/288)"
       allocate(data_i4_2d(size(data_i4_3d, 1), size(data_i4_3d, 2)))
+      print*, 'here with', shape(data_i4_3d)
+      print*, 'here with', shape(mask_3d)
       data_i4_2d = merge(data_i4_3d(:,:,iVar), nodata_i4, mask_3d(:,:,iVar))
       call paste(dataMatrix_i4, pack(data_i4_2d, level0_iDomain%mask), nodata_i4)
       deallocate(data_i4_2d)
