@@ -107,9 +107,11 @@ CONTAINS
 
       end do
     else
+      ! domain loop is inside call_mpr
       call call_mpr(parameterValues, parameterNames, level1, .true., opti_domain_indices)
     end if
 
+    call set_domain_indices(level1)
     call constants_init()
 
     do iDomain = 1, domainMeta%nDomains

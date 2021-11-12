@@ -294,7 +294,6 @@ CONTAINS
       else
         iDomain = ii
       end if
-      domainID = domainMeta%indices(iDomain)
 
       ! evapotranspiration optimization
       if (present(etOptiSim)) call etOptiSim(iDomain)%init(L1_etObs(iDomain))
