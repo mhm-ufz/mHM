@@ -118,12 +118,13 @@ CONTAINS
       domainID = domainMeta%indices(iDomain)
       ! State variables and fluxes
       ! have to be allocated and initialised in any case
-      call variables_alloc(level1(iDomain)%nCells)
+      call variables_alloc(level1(domainID)%nCells)
 
       ! L2 inialization
       call infer_grid_info(trim(dirPrecipitation(iDomain)) // 'pre.nc', 'x', 'y', 'pre', level2(iDomain))
 
-      level1_iDomain => level1(iDomain)
+      ! calculate a dummy grid based on level1 grid and level2 cellsize and see if it actually matches
+      level1_iDomain => level1(domainID)
       call calculate_grid_properties(level1_iDomain%nrows, level1_iDomain%ncols, &
         level1_iDomain%xllcorner, level1_iDomain%yllcorner, level1_iDomain%cellsize, &
         level2(iDomain)%cellsize, &
@@ -151,8 +152,6 @@ CONTAINS
                 '... yllcorner:'// trim(adjustl(num2str(dummy%yllcorner)))
         call error_message(trim(errorString))
       end if
-
-
     end do
 
     call set_domain_indices(level2)
