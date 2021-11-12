@@ -222,7 +222,6 @@ contains
     if( bulkDensity .LT. 0.4_dp ) then ! bulkDensity<0.39 yields negative L3, bulkDensity=0.39 yields L3=0
        L3 = 1.0_dp                     ! Prevent division by zero later on; added by joost Iwema to COSMIC 1.13, Feb. 2017
     endif
-    print*, L3
 
   end subroutine calcL3
 
