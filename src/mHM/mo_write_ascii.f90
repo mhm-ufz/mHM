@@ -87,7 +87,7 @@ CONTAINS
     use mo_common_file, only : file_config, uconfig
     use mo_common_variables, only : evalPer, read_restart, warmPer, &
                                     dirConfigOut, dirIn, dirOut, &
-                                    global_parameters, global_parameters_name, level0, level1, &
+                                    global_parameters, global_parameters_name, level1, &
                                     domainMeta, nLandCoverPeriods, resolutionHydrology, write_restart, processMatrix, &
                                     resolutionRouting, mhmFileRestartOut
     use mo_common_datetime_type, only: LCyearId, SimPer, timeStep
@@ -136,7 +136,7 @@ CONTAINS
     write(uconfig, 103)    'Time Step [h]               ', timeStep
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      write(uconfig, 103) 'Domain  ', domainID, 'No. of cells L0             ', level0(domainMeta%L0DataFrom(iDomain))%nCells
+      ! no information on level0 anymore as this is not available for restart case
       write(uconfig, 103) 'Domain  ', domainID, 'No. of cells L1             ', level1(iDomain)%nCells
       if (domainMeta%doRouting(iDomain)) then
         write(uconfig, 103) 'Total No. of nodes          ', level11(iDomain)%nCells

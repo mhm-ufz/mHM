@@ -1,6 +1,43 @@
 !>       \file mo_mhm_mpr_interface.f90
-!>       \brief TODO: add description
-!>       \details TODO: add description
+!>       \brief calls the MPR library for parameter estimation of mHM parameters
+!>       \details - MPR is called with global parameters and path to its namelist
+!>                - MPR reads all the land surface properties on the level 0 grid(s)
+!>                - it then estimates the parameters and scaled them to level 1 (mHM grid (hydrology_resolution))
+!>                - parameter names have to conform with mHM parameter names
+!>                - level1 grid is inferred from MPR coordinates 'lon_out' and 'lat_out'
+!>                - level1 grid mask is inferred from field 'L1_latitude'
+!>                - land cover scenes are inferred from MPR coordinate 'land_cover_period_out'
+!>                - soil horizons are inferred from MPR coordinate 'horizon_out'
+!>                - lai periods are inferred from 3rd coordinate of field 'L1_Max_Canopy_Intercept' (name can be flexible)
+!>                - mHM parameters required are:
+!>                   - L1_SealedFraction            (rows, cols, lcscenes)
+!>                   - L1_Alpha                     (rows, cols, lcscenes)
+!>                   - L1_DegDayInc                 (rows, cols, lcscenes)
+!>                   - L1_DegDayMax                 (rows, cols, lcscenes)
+!>                   - L1_DegDayNoPre               (rows, cols, lcscenes)
+!>                   - L1_KarstLoss                 (rows, cols)
+!>                   - L1_Max_Canopy_Intercept      (rows, cols, lais)
+!>                   - L1_FastFlow                  (rows, cols, lcscenes)
+!>                   - L1_SlowFlow                  (rows, cols, lcscenes)
+!>                   - L1_kBaseFlow                 (rows, cols, lcscenes)
+!>                   - L1_Kperco                    (rows, cols, lcscenes)
+!>                   - L1_FieldCap                  (rows, cols, horizons, lcscenes)
+!>                   - L1_SatSoilMoisture           (rows, cols, horizons, lcscenes)
+!>                   - L1_SoilMoistureExponent      (rows, cols, horizons, lcscenes)
+!>                   - L1_PermWiltPoint             (rows, cols, horizons, lcscenes)
+!>                   - L1_TempThresh                (rows, cols, lcscenes)
+!>                   - L1_UnsatThreshold            (rows, cols)
+!>                   - L1_SealedThresh              (rows, cols)
+!>                   - L1_Jarvis_Threshold          (rows, cols)
+!>                   - L1_PET_LAI_correction_factor (rows, cols, lais, lcscenes)
+!>                   - L1_HarSamCoeff               (rows, cols)
+!>                   - L1_PrieTayAlpha              (rows, cols, lais)
+!>                   - L1_Aerodyn_resist            (rows, cols, lais, lcscenes)
+!>                   - L1_Bulk_Surface_Resist       (rows, cols, lais)
+!>                   - L1_fAsp                      (rows, cols)
+!>                   - L1_latitude                  (rows, cols)
+!>                   - L1_fRoots_FC (case 3 == 3)   (rows, cols, horizons, lcscenes)
+!>                   - L1_fRoots (case 3 != 3)      (rows, cols, horizons, lcscenes)
 
 module mo_mhm_mpr_interface
 
@@ -12,15 +49,11 @@ module mo_mhm_mpr_interface
   private
 
   public :: call_mpr
-  ! public :: init_eff_params_from_data_arrays
-
-
   ! ------------------------------------------------------------------
 
 contains
 
-    subroutine call_mpr(parameterValues, parameterNames, grids, do_init_arg, opti_domain_indices)
-    ! use mo_mpr_global_variables, only : soilDB, L0_asp, L0_geoUnit, L0_gridded_LAI, L0_slope, L0_slope_emp, L0_soilId
+  subroutine call_mpr(parameterValues, parameterNames, grids, do_init_arg, opti_domain_indices)
     use mo_mpr_global_variables, only : out_filename
     use mo_mpr_read_config, only : mpr_read_config
     use mo_mpr_constants, only : maxNoDataArrays
@@ -33,9 +66,6 @@ contains
     use mo_file, only : unamelist_mpr
     use mo_global_variables, only: pathMprNml, are_parameter_initialized, LAIBoundaries
     use mo_grid, only: Grid
-    ! use mo_mpr_eval, only: mpr_eval
-    ! use mo_mpr_startup, only: mpr_initialize
-    ! use mo_read_wrapper, only: read_data
     use mo_common_datetime_type, only: simPer
     USE mo_timer, ONLY : timer_start, timer_stop
     use mo_restart, only: reset_eff_params
@@ -54,49 +84,10 @@ contains
     type(NcDataset) :: nc
 
     ! deallocate everything in case optimization is active
-    ! if (allocated(soilDB%id)) deallocate(soilDB%id)
-    ! if (allocated(soilDB%nHorizons)) deallocate(soilDB%nHorizons)
-    ! if (allocated(soilDB%is_present)) deallocate(soilDB%is_present)
-    ! if (allocated(soilDB%UD)) deallocate(soilDB%UD)
-    ! if (allocated(soilDB%LD)) deallocate(soilDB%LD)
-    ! if (allocated(soilDB%clay)) deallocate(soilDB%clay)
-    ! if (allocated(soilDB%sand)) deallocate(soilDB%sand)
-    ! if (allocated(soilDB%DbM)) deallocate(soilDB%DbM)
-    ! if (allocated(soilDB%depth)) deallocate(soilDB%depth)
-    ! if (allocated(soilDB%RZdepth)) deallocate(soilDB%RZdepth)
-    ! if (allocated(soilDB%Wd)) deallocate(soilDB%Wd)
-    ! if (allocated(soilDB%nTillHorizons)) deallocate(soilDB%nTillHorizons)
-    ! if (allocated(soilDB%thetaS_Till)) deallocate(soilDB%thetaS_Till)
-    ! if (allocated(soilDB%thetaS)) deallocate(soilDB%thetaS)
-    ! if (allocated(soilDB%Db)) deallocate(soilDB%Db)
-    ! if (allocated(soilDB%thetaFC_Till)) deallocate(soilDB%thetaFC_Till)
-    ! if (allocated(soilDB%thetaFC)) deallocate(soilDB%thetaFC)
-    ! if (allocated(soilDB%thetaPW_Till)) deallocate(soilDB%thetaPW_Till)
-    ! if (allocated(soilDB%thetaPW)) deallocate(soilDB%thetaPW)
-    ! if (allocated(soilDB%Ks)) deallocate(soilDB%Ks)
-    ! if (allocated(L0_asp)) deallocate(L0_asp)
     if (allocated(L0_LCover)) deallocate(L0_LCover)
     if (allocated(L0_elev)) deallocate(L0_elev)
-    ! if (allocated(L0_geoUnit)) deallocate(L0_geoUnit)
-    ! if (allocated(L0_gridded_LAI)) deallocate(L0_gridded_LAI)
-    ! if (allocated(L0_slope)) deallocate(L0_slope)
-    ! if (allocated(L0_slope_emp)) deallocate(L0_slope_emp)
-    ! if (allocated(L0_soilId)) deallocate(L0_soilId)
-    ! if (allocated(level0)) deallocate(level0)
     if (allocated(LAIBoundaries)) deallocate(LAIBoundaries)
     if (allocated(l0_l1_remap)) deallocate(l0_l1_remap)
-
-    ! do_init = .true.
-    ! if (present(do_init_arg)) do_init = do_init_arg
-
-    ! if (do_init) then
-    !   call read_data(simPer)
-    !   call mpr_initialize()
-    ! else
-    !   call reset_eff_params()
-    ! end if
-
-    ! call mpr_eval(parameterValues, opti_domain_indices)
 
     parameterValuesConcat = parameterValues
     parameterNamesConcat = parameterNames
@@ -109,6 +100,8 @@ contains
               parameterValues=parameterValuesConcat, parameterNames=parameterNamesConcat)
     
       ! reorder data array to minimize storage requirement and assure that all required input fields have been read before
+      ! TODO: add feature to mpr code, that reorder_data_arrays also considers the init of coordinates
+      !   (this is the reason that this call is not active, as coordinates are not initialized properly)
       ! call reorder_data_arrays(MPR_DATA_ARRAYS)
     
       if (write_restart) then
@@ -249,7 +242,7 @@ contains
               dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
               L1_soilMoistExp(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
             case('L1_PermWiltPoint')
-              ! rows, cols, lais, lcscenes
+              ! rows, cols, soil, lcscenes
               dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nSoilHorizons, nSlices])
               L1_wiltingPoint(s1:e1, :, 1:newSlices) = dummy3D(:, :, landCoverSelect)
             case('L1_TempThresh')
@@ -494,6 +487,7 @@ contains
     if (present(do_init_arg)) do_init = do_init_arg
   
     if (do_init) then
+      ! TODO: make all that more flexible (coordinate and mask detection)
       ! get the x dimension
       iDim_x = get_index_in_coordinate('lon_out')
       ! get the y dimension
