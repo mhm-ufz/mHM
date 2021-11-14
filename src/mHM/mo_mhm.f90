@@ -631,7 +631,7 @@ CONTAINS
       ! COSMIC
       if ( processMatrix(10, 1) .EQ. 2 ) &
            call COSMIC( soilMoisture(k,1:nHorizons_mHM-1), horizon_depth(1:nHorizons_mHM-1),&
-           neutron_integral_AFast(1:nHorizons_mHM-1),                         &  ! Intent IN
+           neutron_integral_AFast(:),                                         &  ! Intent IN
            interc(k), snowpack(k),                                            &  ! Intent IN
            No_count(k), bulkDens(k,1:nHorizons_mHM-1),                        &  ! Intent IN
            latticeWater(k,1:nHorizons_mHM-1), COSMICL3(k,1:nHorizons_mHM-1),  &  ! Intent IN

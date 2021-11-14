@@ -122,7 +122,7 @@ CONTAINS
     allocate(  Layer_min(nLayers)  )
     allocate(  Layer_max(nLayers)  )
     allocate( Layer_depth(nLayers) )
-    
+
     ! assign layer-1
     Layer_min(1) = 0.0_dp
     Layer_max(1) = Horizon_depth(1)
@@ -252,8 +252,7 @@ CONTAINS
   !>        \date Mar 2015
   !>         Rohini Kumar                  Oct 2021 - Neutron count module to mHM (5.11.2) - develop branch 
   subroutine COSMIC(SoilMoisture, Horizons, neutron_integral_AFast, &
-       interc, snowpack, &
-       L1_N0, L1_bulkDens, L1_latticeWater, L1_COSMICL3, &
+       interc, snowpack, L1_N0, L1_bulkDens, L1_latticeWater, L1_COSMICL3, &
        neutrons )
     
     use mo_mhm_constants, only: H2Odens, COSMIC_N, COSMIC_alpha, COSMIC_L1, COSMIC_L2, COSMIC_L4
@@ -289,15 +288,18 @@ CONTAINS
     real(dp), dimension(:), allocatable     :: h2oeffdens  ! "Effective" density of water in layer (g/cm3)
     real(dp), dimension(:), allocatable     :: fastflux    ! Contribution to above-ground neutron flux
 
-    integer(i4) :: layers=1                 ! Total number of soil layers
-    integer(i4) :: ll=1
+    integer(i4)                             :: layers      ! Total number of soil layers
+    integer(i4)                             :: ll 
 
-    layers   = size(SoilMoisture)+1 ! 3, one additional snowpack layer
+
+    ! # of layers
+    layers   = size(SoilMoisture) + 1 ! soil horizons + one additional snowpack and interception layer
     
+    ! allocate and initalize
     allocate(hiflux(layers),xeff(layers),&
              h2oeffdens(layers),h2oeffheight(layers),fastflux(layers),&
              isoimass(layers),iwatmass(layers))
-
+    
     zthick(:)      = 0.0_dp 
     isoimass(:)    = 0.0_dp
     iwatmass(:)    = 0.0_dp
@@ -319,8 +321,7 @@ CONTAINS
     ! its hardocded here but can be later part of *.nml file
     iFlag_snowlayer_intecept = 0
 
-    
-    !layer 1 is the surface layer. layer 2 up to layers are the usual layers
+    ! layer 1 is the surface layer. layer 2 up to layers are the usual layers
     do ll = 1,layers
           
        ! High energy neutron downward flux
@@ -332,22 +333,19 @@ CONTAINS
        ! zthick will be in cm, as all heigths are in cm in this module
        call layerThickness(ll,Horizons,interc,snowpack,zthick)
        
+       if( ( zthick(ll) .GT. 0.0_dp ) .AND. ( (iFlag_snowlayer_intecept .GT. 0 ) .OR. (ll.NE.1) ) ) then
+          
+          call loopConstants(ll, SoilMoisture(:), L1_bulkDens(:), &
+               L1_latticeWater(:), L1_COSMICL3(:), sm, bd, lw, L3)
 
-       if ( ( zthick(ll) .gt. 0.0_dp ) .and. ( (iFlag_snowlayer_intecept .gt. 0 ) .or. (ll.ne.1) ) ) then
-          call loopConstants(ll,&
-               SoilMoisture(:),L1_bulkDens(:),&
-               L1_latticeWater(:), &
-               L1_COSMICL3(:),sm,bd,lw,L3)
-
-
-          if (ll .eq. 1) then
+          if (ll .EQ. 1) then
              h2oeffdens(ll) = H2Odens/1000.0_dp
           else
              ! calculate the effective height of water in each layer in cm
              ! because neutron standard measurements are in cm
              call layerWaterHeight(ll,sm,h2oeffheight)
              ! divided by the thickness of the layers,we get the effective density
-             h2oeffdens(ll) = (h2oeffheight(ll) +lw/10.0_dp)*H2Odens/zthick(ll)/1000.0_dp  
+             h2oeffdens(ll) = (h2oeffheight(ll) + lw/10.0_dp)/zthick(ll)*H2Odens/1000.0_dp  
           endif
 
           ! Assuming an area of 1 cm2
@@ -362,65 +360,71 @@ CONTAINS
           lambdaHigh = isoimass(ll)/COSMIC_L1 + iwatmass(ll)/COSMIC_L2
           lambdaFast = isoimass(ll)/L3 + iwatmass(ll)/COSMIC_L4
 
-          hiflux(ll)  = exp(-lambdaHigh)
-          xeff(ll) = zthick(ll)*(COSMIC_alpha*bd + h2oeffdens(ll))
+          hiflux(ll) = exp(-lambdaHigh)
+          xeff(ll)   = zthick(ll)*(COSMIC_alpha*bd + h2oeffdens(ll))
 
           call lookUpIntegral(fastflux(ll),neutron_integral_AFast,lambdaFast)
 
           ! After contribution from all directions are taken into account,
           ! need to multiply fastflux by 2/pi
-          fastflux(ll)=(2.0_dp/PI_dp)*fastflux(ll)
+          fastflux(ll) = (2.0_dp/PI_dp) * fastflux(ll)
 
           ! Low energy (fast) neutron upward flux
-          totflux=totflux+hiflux(ll)*xeff(ll)*fastflux(ll)
-
+          totflux = totflux + hiflux(ll) * xeff(ll) * fastflux(ll)
        endif
+       
     enddo
+
     !  neutrons=COSMIC_N*totflux
     !!>> now based on global parameter given in mhm_paramater.nml
     neutrons = L1_N0*totflux
 
     !! free space
-    deallocate( hiflux, xeff, h2oeffheight, h2oeffdens, fastflux,&
-           isoimass, iwatmass)
+    deallocate( hiflux, xeff, h2oeffheight, h2oeffdens, fastflux, isoimass, iwatmass)
            
   end subroutine COSMIC
+
+
+
   
-  subroutine loopConstants(ll,&
-                    SoilMoisture,L1_bulkDens,L1_latticeWater,&
-                    L1_COSMICL3,sm,bd,lw,L3)
+  !>>> Loop constants
+  subroutine loopConstants(ll, SoilMoisture,L1_bulkDens,L1_latticeWater,&
+       L1_COSMICL3,sm,bd,lw,L3 )
      implicit none
-     integer(i4), intent(in)                    :: ll
-     real(dp), dimension(:),        intent(in)  :: SoilMoisture
-     real(dp), dimension(:),        intent(in)  :: L1_bulkDens
-     real(dp), dimension(:),        intent(in)  :: L1_latticeWater
-     real(dp), dimension(:),        intent(in)  :: L1_COSMICL3
-     real(dp) :: sm  ! SoilMoisture
-     real(dp) :: bd  ! bulk density
-     real(dp) :: lw  ! lattice water
-     real(dp) :: L3
+     integer(i4),            intent(in)  :: ll
+     real(dp), dimension(:), intent(in)  :: SoilMoisture
+     real(dp), dimension(:), intent(in)  :: L1_bulkDens
+     real(dp), dimension(:), intent(in)  :: L1_latticeWater
+     real(dp), dimension(:), intent(in)  :: L1_COSMICL3
+     real(dp),               intent(out) :: sm  ! SoilMoisture
+     real(dp),               intent(out) :: bd  ! Bulk density
+     real(dp),               intent(out) :: lw  ! Lattice water
+     real(dp),               intent(out) :: L3  ! L3
 
-     if (ll.eq.1) then
+     if( ll .EQ. 1 ) then
        !ToDo
-       sm=0.0_dp
-       bd=0.0_dp
-       lw=0.0_dp
-       L3=1.0_dp
+       sm = 0.0_dp
+       bd = 0.0_dp
+       lw = 0.0_dp
+       L3 = 1.0_dp
      else
-       sm=SoilMoisture(ll-1)
-       bd=L1_bulkDens(ll-1)
-       lw=L1_latticeWater(ll-1)
-       L3=L1_COSMICL3(ll-1)
+       sm = SoilMoisture(ll-1)
+       bd = L1_bulkDens(ll-1)
+       lw = L1_latticeWater(ll-1)
+       L3 = L1_COSMICL3(ll-1)
      endif
-  end subroutine
+   end subroutine loopConstants
 
+   
+
+  !>> layer thickness
   subroutine layerThickness(ll,Horizons,interc,snowpack,zthick)
      implicit none
      integer(i4), intent(in)              :: ll
      real(dp),dimension(:),    intent(in) :: Horizons
      real(dp),                 intent(in) :: interc
      real(dp),                 intent(in) :: snowpack
-     real(dp),dimension(:)                :: zthick
+     real(dp),dimension(:), intent(out)   :: zthick
      
      if (ll.eq.1) then
         zthick(ll)=(snowpack+interc)/10.0_dp
@@ -431,11 +435,13 @@ CONTAINS
      endif
   end subroutine
 
+
+  !>> layer specific water height
   subroutine layerWaterHeight(ll,sm,h2oeffheight)
      implicit none
-     integer(i4), intent(in) :: ll
-     real(dp),    intent(in) :: sm
-     real(dp),dimension(:)   :: h2oeffheight
+     integer(i4),           intent(in)  :: ll
+     real(dp),              intent(in)  :: sm
+     real(dp),dimension(:), intent(out) :: h2oeffheight
     ! The effective water height in each layer in each profile:
     ! ToDo:This should include in future: roots, soil organic matter 
     h2oeffheight(ll) = sm/10.0_dp
@@ -689,9 +695,9 @@ CONTAINS
   subroutine lookUpIntegral(res,integral,c)
      use mo_constants, only: PI_dp
      implicit none
-     real(dp)                         :: res
-     real(dp), dimension(:),intent(in):: integral
-     real(dp), intent(in)             :: c
+     real(dp),              intent(out):: res
+     real(dp), dimension(:),intent(in) :: integral
+     real(dp),              intent(in) :: c
 
      !local variables
      integer(i4) :: place
@@ -817,18 +823,16 @@ CONTAINS
      ! rr: Using 0.5 deg angle intervals appears to be sufficient
      ! rr: (smaller angles increase the computing time for COSMIC)
 
-     dtheta   = 0.5_dp*(PI_dp/180.0_dp)
+     dtheta = 0.5_dp*(PI_dp/180.0_dp)
 
      ! This second loop needs to be done for the distribution of angles for fast neutron release
      ! the intent is to loop from 0 to 89.5 by 0.5 degrees - or similar.
      ! Because Fortran loop indices are integers, we have to divide the indices by 10 - you get the idea.  
-
-     res=0.0_dp
+     res = 0.0_dp
      do angle=0,179
         zdeg     = real(angle,dp)*0.5_dp
         zrad     = (zdeg*PI_dp)/180.0_dp
         costheta = cos(zrad)
-
         ! Angle-dependent low energy (fast) neutron upward flux
         res  = res + exp(-c/costheta)*dtheta
      enddo
