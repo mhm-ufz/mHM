@@ -149,7 +149,6 @@ contains
         end do
       end do
     end if
-
     ! L1 data sets
     call append(L1_L11_Id, pack (L11Id_on_L1(:, :), level1(iDomain)%mask))
     ! L11 data sets
@@ -1506,7 +1505,7 @@ contains
   subroutine L11_fraction_sealed_floodplain(LCClassImp, do_init)
 
     use mo_append, only : append, add_nodata_slice
-    use mo_common_constants, only : nodata_dp
+    use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_grid, only: Grid
     use mo_common_variables, only : domainMeta, L0_LCover, level0, domainMeta, nLandCoverPeriods
     use mo_common_datetime_type, only: LCyearId

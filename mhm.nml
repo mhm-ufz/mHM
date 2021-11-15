@@ -501,6 +501,7 @@ processCase(11) = 0
 ! LAND COVER (mandatory)
 !******************************************************************************************
 &LCover
+!> the maximum number of different land cover periods needed for a given domains's simulation period
 nLandCoverPeriods = 2
 /
 

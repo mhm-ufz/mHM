@@ -120,8 +120,8 @@ contains
           ! select the needed periods and fill remaining slices so appending works
           ! background: all domains can have different number of land cover periods but data are in one big
           ! pre-allocated array for all domains
-          call add_nodata_slice(data_i4_2d(:, landCoverSelect), nLandCoverPeriods - nLandCoverPeriods_temp, nodata_dp)
-          call append(L0_LCover, data_i4_2d)
+          data_i4_2d = data_i4_2d(:, landCoverSelect)
+          call add_nodata_slice(data_i4_2d, nLandCoverPeriods - size(landCoverSelect), nodata_i4)
         else if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
           allocate(data_i4_2d(level0_iDomain%nCells, nLandCoverPeriods))
           data_i4_2d = nodata_i4
