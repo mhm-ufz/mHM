@@ -109,7 +109,7 @@ CONTAINS
     use mo_append, only : paste
     use mo_common_constants, only : nodata_i4
     use mo_common_file, only : varNameLandCover
-    use mo_common_variables, only : L0_LCover, dirIn, level0, domainMeta, nLandCoverPeriods
+    use mo_common_variables, only : dirIn, level0, domainMeta, nLandCoverPeriods
     use mo_grid, only: Grid
     use mo_message, only : message
     use mo_string_utils, only : num2str
@@ -142,14 +142,13 @@ CONTAINS
     ! get the variable
     ncVar = nc%getVariable(trim(varNameLandCover))
     call ncVar%getData(data_i4_3d, mask=mask_3d)
-    ! LCover read in is realized seperated because of unknown number of scenes
+    ! LCover read in is realized seperated from dem because of unknown number of scenes
+    ! all lcover periods are read for now, selected only later
     do iVar = 1, size(data_i4_3d, 3)
       ! put global nodata value into array (probably not all grid cells have values)
       ! this explicit prior allocation is done so that gFortran does not complain with:
       ! "Fortran runtime error: Array bound mismatch for dimension 1 of array 'data_i4_2d' (0/288)"
       allocate(data_i4_2d(size(data_i4_3d, 1), size(data_i4_3d, 2)))
-      print*, 'here with', shape(data_i4_3d)
-      print*, 'here with', shape(mask_3d)
       data_i4_2d = merge(data_i4_3d(:,:,iVar), nodata_i4, mask_3d(:,:,iVar))
       call paste(dataMatrix_i4, pack(data_i4_2d, level0_iDomain%mask), nodata_i4)
       deallocate(data_i4_2d)

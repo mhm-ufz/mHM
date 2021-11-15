@@ -52,7 +52,7 @@ contains
 
   subroutine mrm_read_L0_data(do_readlcover)
 
-    use mo_append, only : append
+    use mo_append, only : append, add_nodata_slice
     use mo_common_constants, only : nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : L0_elev, L0_LCover, level0, domainMeta, processMatrix
@@ -61,22 +61,22 @@ contains
     use mo_mrm_file, only : file_facc, file_fdir, file_gaugeloc
     use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, domain_mrm, dirGauges
     use mo_string_utils, only : num2str
+    use mo_read_nc, only: get_land_cover_period_indices
+    use mo_common_variables, only: nLandCoverPeriods
 
     implicit none
 
     logical, intent(in) :: do_readlcover
-
     integer(i4) ::domainID, iDomain
-
     integer(i4) :: iVar
-
     integer(i4) :: iGauge
-
     character(256) :: fname, varName
-
     integer(i4) :: nunit
-
     integer(i4) :: nCells
+    integer(i4) :: nLandCoverPeriods_temp
+    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp
+    integer(i4), dimension(:), allocatable :: landCoverSelect
+
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
     real(dp), dimension(:, :), allocatable :: data_dp_2d
@@ -98,27 +98,32 @@ contains
 
       ! check whether L0 data is shared
       if (domainMeta%L0DataFrom(iDomain) < iDomain) then
-        !
         call message('      Using data of domain ', &
                 trim(adjustl(num2str(domainMeta%indices(domainMeta%L0DataFrom(iDomain))))), ' for domain: ',&
                 trim(adjustl(num2str(domainID))), '...')
         cycle
-        !
       end if
-      !
-      call message('      Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
 
+      call message('      Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
       call read_dem(iDomain, level0_iDomain, data_dp_2d)
       ! put data in variable
       call append(L0_elev, pack(data_dp_2d, level0_iDomain%mask))
 
       if (do_readlcover) then
-        ! TODO: check how to read lcover and set correct number of land cover periods so append works
-        ! in check case 04, there is domain1 with 2 scenes and domain3 with 5 and it does not work
+        ! if case 8==1, then we need lcover for parameter estimation
         if (processMatrix(8, 1) .eq. 1) then
-          call read_lcover(iDomain, data_i4_2d)
+          ! read the land cover file, all periods
+          call read_lcover(iDomain, data_i4_2d, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)
+          ! compare the simulation period and the land cover periods in the file,
+          ! get a boolean vector with periods to select
+          call get_land_cover_period_indices(iDomain, landCoverPeriodBoundaries_temp, landCoverSelect)
+          ! select the needed periods and fill remaining slices so appending works
+          ! background: all domains can have different number of land cover periods but data are in one big
+          ! pre-allocated array for all domains
+          call add_nodata_slice(data_i4_2d(:, landCoverSelect), nLandCoverPeriods - nLandCoverPeriods_temp, nodata_dp)
+          call append(L0_LCover, data_i4_2d)
         else if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
-          allocate(data_i4_2d(level0_iDomain%nCells, 1_i4))
+          allocate(data_i4_2d(level0_iDomain%nCells, nLandCoverPeriods))
           data_i4_2d = nodata_i4
         end if
         call append(L0_LCover, data_i4_2d)

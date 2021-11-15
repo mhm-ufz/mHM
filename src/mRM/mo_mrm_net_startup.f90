@@ -1517,27 +1517,19 @@ contains
 
     ! Impervious land cover class Id, e.g. = 2 (old code)
     integer(i4), intent(in) :: LCClassImp
-
     logical, intent(in) :: do_init
-
     integer(i4) :: nLinks
-
     real(dp), dimension(:), pointer :: nLinkAFloodPlain => null()
-
     real(dp), dimension(:,:), allocatable :: temp_array
-
     integer(i4) :: ii, iDomain, iiLC, s0, e0, iDomainNLandCoverPeriods, uniqueIDomain
-
     type(Grid), pointer :: level0_iDomain => null()
 
 
     ! initialization
     do iDomain = 1, domainMeta%nDomains
       uniqueIDomain = domainMeta%L0DataFrom(iDomain)
-      iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain))
-      ! TODO: MPR comment next line
-      ! iDomainNLandCoverPeriods = nLandCoverPeriods
-      allocate(temp_array(level11(iDomain)%nCells, iDomainNLandCoverPeriods))
+      iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain), mask=LCyearId(:, iDomain) /= nodata_i4)
+      allocate(temp_array(level11(iDomain)%nCells, nLandCoverPeriods))
       temp_array = nodata_dp
       if (do_init) then
         level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
@@ -1557,8 +1549,6 @@ contains
           end if
         end do
       end if
-      ! TODO: MPR uncomment next line
-      call add_nodata_slice(temp_array, nLandCoverPeriods - iDomainNLandCoverPeriods, nodata_dp)
       call append(L11_nLinkFracFPimp, temp_array(:,:))
       deallocate(temp_array)
     end do
