@@ -95,11 +95,10 @@ MODULE mo_common_datetime_type
 
   contains
 
-  subroutine datetimeinfo_init(this, iDomain, uniqueIDomain)
+  subroutine datetimeinfo_init(this, iDomain)
     use mo_julian, only : caldat
     class(datetimeinfo), intent(inout) :: this
     integer(i4),     intent(in)    :: iDomain
-    integer(i4),     intent(in)    :: uniqueIDomain
 
     ! calculate NtimeSteps for this basin
     this%nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nTstepDay
@@ -118,7 +117,7 @@ MODULE mo_common_datetime_type
     this%is_new_year  = .true.
 
     ! initialize arrays and counters
-    this%yId  = LCyearId(this%year, uniqueIDomain)
+    this%yId  = LCyearId(this%year, iDomain)
     this%hour = -timestep
     this%iLAI = 0
 

@@ -163,7 +163,7 @@ CONTAINS
     type(OutputDataset) :: nc
 
     ! Counters
-    integer(i4) :: domainID, iDomain, tt, uniqueIDomain
+    integer(i4) :: domainID, iDomain, tt
 
     ! No. of cells at level 1 for current Domain
     integer(i4) :: nCells
@@ -266,9 +266,8 @@ CONTAINS
         else
           iDomain = ii
         end if
-        uniqueIDomain = domainMeta%L0DataFrom(iDomain)
         ! this reads the eff. parameters and optionally the states and fluxes
-        call read_restart_states(iDomain, uniqueIDomain, mhmFileRestartIn(iDomain), do_read_dims_arg=.false.)
+        call read_restart_states(iDomain, mhmFileRestartIn(iDomain), do_read_dims_arg=.false.)
       end do
     end if
     if (.not. are_parameter_initialized) then
@@ -314,7 +313,6 @@ CONTAINS
       s1_param = s1
       e1_param = e1
 
-      uniqueIDomain = domainMeta%L0DataFrom(iDomain)
       ! this is done for correct handling of soil horizons in mHM subroutine, it is rather hacky, so it gets a TODO
       allocate(mhmHorizons(nSoilHorizons))
       mhmHorizons(:) = soilHorizonBoundaries(2: nSoilHorizons+1)
@@ -353,7 +351,7 @@ CONTAINS
       end if
 
       ! init datetime variable
-      call domainDateTime%init(iDomain, uniqueIDomain)
+      call domainDateTime%init(iDomain)
 
       ! Loop over time
       TimeLoop: do tt = 1, domainDateTime%nTimeSteps
@@ -819,7 +817,7 @@ CONTAINS
             print*, 'WARNING', tt, domainDateTime%year
             cycle
           end if
-          domainDateTime%yId = LCyearId(domainDateTime%year, uniqueIDomain)
+          domainDateTime%yId = LCyearId(domainDateTime%year, iDomain)
         end if
 
       end do TimeLoop !<< TIME STEPS LOOP

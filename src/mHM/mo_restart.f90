@@ -174,12 +174,9 @@ CONTAINS
       ! write the dimension to the file
       lais = nc%setCoordinate(trim(LAIVarName), nLAIs, LAIBoundaries, 0_i4)
 
-      iDomainNLandCoverPeriods = maxval(LCyearId(:, uniqueIDomain), mask=LCyearId(:, uniqueIDomain) /= nodata_i4)
+      iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain), mask=LCyearId(:, iDomain) /= nodata_i4)
       allocate(landCoverPeriodBoundaries_(iDomainNLandCoverPeriods+1))
-      landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, uniqueIDomain), dp)
-      print*, iDomain, iDomainNLandCoverPeriods
-      print*, LCyearId(:, uniqueIDomain)
-      print*, landCoverPeriodBoundaries_
+      landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, iDomain), dp)
       lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &
               landCoverPeriodBoundaries_, 0_i4)
       deallocate(landCoverPeriodBoundaries_)
@@ -340,7 +337,7 @@ CONTAINS
   ! Stephan Thober Nov  2016 - moved processMatrix to common variables
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_restart_states(iDomain, uniqueIDomain, InFile, do_read_states_arg, do_read_dims_arg)
+  subroutine read_restart_states(iDomain, InFile, do_read_states_arg, do_read_dims_arg)
 
     use mo_common_variables, only : level1, nLandCoverPeriods, processMatrix
     use mo_kind, only : dp, i4
@@ -357,12 +354,12 @@ CONTAINS
                                         L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, L1_wiltingPoint
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
-    use mo_read_nc, only: check_dimension_consistency
+    use mo_read_nc, only: check_dimension_consistency, get_land_cover_period_indices
 
     implicit none
 
     ! number of domain
-    integer(i4), intent(in) :: iDomain, uniqueIDomain
+    integer(i4), intent(in) :: iDomain
 
     ! Input Path including trailing slash
     character(256), intent(in) :: InFile
@@ -455,9 +452,13 @@ CONTAINS
       LAIBoundaries_temp = [(ii, ii=1, nLAIs_temp+1)]
     end if
 
-    call check_dimension_consistency(iDomain, uniqueIDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
-          nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp, &
-            landCoverPeriodSelect, do_read_dims)
+    call check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
+          nLAIs_temp, LAIBoundaries_temp)
+    if (iDomain == 1) then
+      nLandCoverPeriods = nLandCoverPeriods_temp
+    end if
+
+    call get_land_cover_period_indices(iDomain, landCoverPeriodBoundaries_temp, landCoverPeriodSelect)
 
     if (do_read_states) then
       allocate(mask_soil1 (level1(iDomain)%nrows, level1(iDomain)%ncols, nSoilHorizons))

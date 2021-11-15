@@ -113,6 +113,8 @@ contains
       call append(L0_elev, pack(data_dp_2d, level0_iDomain%mask))
 
       if (do_readlcover) then
+        ! TODO: check how to read lcover and set correct number of land cover periods so append works
+        ! in check case 04, there is domain1 with 2 scenes and domain3 with 5 and it does not work
         if (processMatrix(8, 1) .eq. 1) then
           call read_lcover(iDomain, data_i4_2d)
         else if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then

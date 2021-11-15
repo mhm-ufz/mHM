@@ -85,7 +85,7 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: parameterValues
     character(64), dimension(:), intent(in) :: parameterNames
     integer(i4), dimension(:), optional, intent(in) :: opti_domain_indices
-    integer(i4) :: iDomain, domainID, uniqueIDomain
+    integer(i4) :: iDomain, domainID
     type(Grid) :: dummy
     type(Grid), pointer :: level1_iDomain
     character(2048) :: errorString
@@ -97,13 +97,12 @@ CONTAINS
     if (read_restart) then
       do iDomain = 1, domainMeta%nDomains
         domainID = domainMeta%indices(iDomain)
-        uniqueIDomain = domainMeta%L0DataFrom(iDomain)
 
         ! this reads only the domain properties
         ! domainID, inputFile, level_name, new_grid
         call read_grid_info(domainID, mhmFileRestartIn(iDomain), "1", level1(iDomain))
 
-        call read_restart_states(iDomain, uniqueIDomain, mhmFileRestartIn(iDomain), do_read_states_arg=.false.)
+        call read_restart_states(iDomain, mhmFileRestartIn(iDomain), do_read_states_arg=.false.)
 
       end do
     else
@@ -118,13 +117,13 @@ CONTAINS
       domainID = domainMeta%indices(iDomain)
       ! State variables and fluxes
       ! have to be allocated and initialised in any case
-      call variables_alloc(level1(domainID)%nCells)
+      call variables_alloc(level1(iDomain)%nCells)
 
       ! L2 inialization
       call infer_grid_info(trim(dirPrecipitation(iDomain)) // 'pre.nc', 'x', 'y', 'pre', level2(iDomain))
 
       ! calculate a dummy grid based on level1 grid and level2 cellsize and see if it actually matches
-      level1_iDomain => level1(domainID)
+      level1_iDomain => level1(iDomain)
       call calculate_grid_properties(level1_iDomain%nrows, level1_iDomain%ncols, &
         level1_iDomain%xllcorner, level1_iDomain%yllcorner, level1_iDomain%cellsize, &
         level2(iDomain)%cellsize, &

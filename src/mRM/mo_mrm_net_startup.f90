@@ -1534,7 +1534,7 @@ contains
     ! initialization
     do iDomain = 1, domainMeta%nDomains
       uniqueIDomain = domainMeta%L0DataFrom(iDomain)
-      iDomainNLandCoverPeriods = maxval(LCyearId(:, uniqueIDomain))
+      iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain))
       ! TODO: MPR comment next line
       ! iDomainNLandCoverPeriods = nLandCoverPeriods
       allocate(temp_array(level11(iDomain)%nCells, iDomainNLandCoverPeriods))
