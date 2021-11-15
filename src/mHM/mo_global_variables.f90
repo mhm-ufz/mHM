@@ -145,6 +145,7 @@ MODULE mo_global_variables
   real(dp), public, dimension(:), allocatable :: L1_satSTW       ! [mm]  groundwater storage
   real(dp), public, dimension(:), allocatable :: L1_neutrons     ! [mm]  Ground Albedo Neutrons
 
+
   ! Fluxes
   ! dim1 = number grid cells L1
   ! dim2 = number model soil horizons
@@ -185,9 +186,6 @@ MODULE mo_global_variables
   ! -------------------------------------------------------------------
   ! AUXILIARY VARIABLES
   ! -------------------------------------------------------------------
-  !
-
-  real(dp), public, dimension(:), allocatable :: neutron_integral_AFast ! pre-calculated integrand for
-  ! vertical projection of isotropic neutron flux
+  real(dp), public, dimension(:), allocatable :: neutron_integral_AFast ! pre-calculated integrand for vertical projection of isotropic neutron flux
 
 END MODULE mo_global_variables

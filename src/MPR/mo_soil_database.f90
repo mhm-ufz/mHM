@@ -134,7 +134,7 @@ CONTAINS
         ! initalise soil id
         soilDB%Id(ii) = ii
         soilDB%nHorizons(ii) = jj
-        if(anint(down, dp) .gt. soilDB%RZdepth(ii)) soilDB%RZdepth(ii) = anint(down, dp)
+        if( anint(down, dp) .gt. soilDB%RZdepth(ii) ) soilDB%RZdepth(ii) = anint(down, dp)
 
         nR = nR + 1_i4
 

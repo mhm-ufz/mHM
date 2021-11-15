@@ -72,7 +72,6 @@ CONTAINS
   !>       \param[in] "real(dp) :: ntimesteps_day"                       number of time intervals per day, transformed
   !>       in dp
   !>       \param[in] "real(dp), dimension(:) :: neutron_integral_AFast" tabular for neutron flux approximation
-  !>       \param[in] "real(dp), dimension(:) :: global_parameters"      global mHM parameters
   !>       \param[in] "real(dp), dimension(:) :: latitude"               latitude on level 1
   !>       \param[in] "real(dp), dimension(:) :: evap_coeff"             Evaporation coefficent for free-water surface
   !>       of that current month
@@ -162,7 +161,13 @@ CONTAINS
   !>       \param[inout] "real(dp), dimension(:) :: unsat_thresh"          Threshold water depth in upper reservoir
   !>       \param[inout] "real(dp), dimension(:) :: water_thresh_sealed"   Threshold water depth in impervious areas
   !>       \param[inout] "real(dp), dimension(:, :) :: wilting_point"      Permanent wilting point for each horizon
+  !
+  !>       \param[inout] "real(dp), dimension(:) :: No_count"            
+  !>       \param[inout] "real(dp), dimension(:) :: bulkDens"           
+  !>       \param[inout] "real(dp), dimension(:) :: latticeWater"   
+  !>       \param[inout] "real(dp), dimension(:, :) :: COSMICL3"      
 
+  
   !    HISTORY
   !>       \authors Luis Samaniego & Rohini Kumar
 
@@ -196,10 +201,10 @@ CONTAINS
   ! Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval
   ! Robert Schweppe                 Jun 2018 - refactoring and reformatting
   ! Robert Schweppe                 Nov 2018 - added c2TSTu for unit conversion (moved here from MPR)
-
+  ! Rohini Kumar                    Oct 2021 - Neutron count module to mHM integrate into develop branch (5.11.2)
   subroutine mHM(read_states, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
                 c2TSTu, neutron_integral_AFast, &
-                global_parameters, latitude, evap_coeff, fday_prec, fnight_prec, fday_pet, &
+                latitude, evap_coeff, fday_prec, fnight_prec, fday_pet, &
                 fnight_pet, fday_temp, fnight_temp, temp_weights, pet_weights, pre_weights, read_meteo_weights, pet_in, &
                 tmin_in, tmax_in, netrad_in, absvappres_in, windspeed_in, prec_in, temp_in, fSealed1, interc, snowpack, &
                 sealedStorage, soilMoisture, unsatStorage, satStorage, neutrons, pet_calc, aet_soil, aet_canopy, &
@@ -207,8 +212,15 @@ CONTAINS
                 slow_interflow, snow, throughfall, total_runoff, alpha, deg_day_incr, deg_day_max, deg_day_noprec, &
                 deg_day, fAsp, petLAIcorFactorL1, HarSamCoeff, PrieTayAlpha, aeroResist, surfResist, frac_roots, &
                 interc_max, karst_loss, k0, k1, k2, kp, soil_moist_FC, soil_moist_sat, soil_moist_exponen, &
-                jarvis_thresh_c1, temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point)
+                jarvis_thresh_c1, temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point, &
+                No_count, bulkDens, latticeWater, COSMICL3)
 
+    ! subroutines required to estimate variables prior to the MPR call
+    use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
+    use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
+    use mo_pet,                     only: pet_hargreaves, pet_priestly,  & ! calc. of pot. evapotranspiration
+                                          pet_penman
+	
     use mo_Temporal_Disagg_Forcing, only : Temporal_Disagg_Forcing
     use mo_canopy_interc, only : canopy_interc
     use mo_julian, only : date2dec, dec2date
@@ -251,9 +263,6 @@ CONTAINS
 
     ! tabular for neutron flux approximation
     real(dp), dimension(:), intent(in) :: neutron_integral_AFast
-
-    ! global mHM parameters
-    real(dp), dimension(:), intent(in) :: global_parameters
 
     ! latitude on level 1
     real(dp), dimension(:), intent(in) :: latitude
@@ -465,6 +474,13 @@ CONTAINS
     ! Permanent wilting point for each horizon
     real(dp), dimension(:, :), intent(inout) :: wilting_point
 
+    ! neutron count
+    real(dp), dimension(:), intent(inout)   ::  No_count
+    real(dp), dimension(:,:), intent(inout) ::  bulkDens
+    real(dp), dimension(:,:), intent(inout) ::  latticeWater
+    real(dp), dimension(:,:), intent(inout) ::  COSMICL3
+
+
     ! is day or night
     logical :: isday
 
@@ -600,21 +616,29 @@ CONTAINS
 
       !-------------------------------------------------------------------
       ! Nested model: Neutrons state variable, related to soil moisture
+      ! >> NOTE THAT SINCE LAST mHM layer is variable iFlag_soilDB = 0
+      !    the neuton count is estimated only upto nHorizons_mHM-1
+      !    set your horizon depth accordingly 
       !-------------------------------------------------------------------
-
-      ! based on soilMoisture
-      if (processMatrix(10, 1) .eq. 1) &
-              call DesiletsN0(soilMoisture(k, :), horizon_depth(:), &
-                      global_parameters(processMatrix(10, 3) - processMatrix(10, 2) + 1), &
-                      neutrons(k))
-      if (processMatrix(10, 1) .eq. 2) &
-              call COSMIC(soilMoisture(k, :), horizon_depth(:), &
-                      global_parameters(processMatrix(10, 3) - processMatrix(10, 2) + 2 : processMatrix(10, 3)), &
-                      neutron_integral_AFast(:), &
-                      neutrons(k))
-    end do
-    !$OMP end do
-    !$OMP end parallel
+      ! DESLET
+      if ( processMatrix(10, 1) .EQ. 1 ) &
+           call DesiletsN0( soilMoisture(k,1:nHorizons_mHM-1),& ! Intent IN
+           horizon_depth(1:nHorizons_mHM-1),                  & ! Intent IN
+           bulkDens(k,1:nHorizons_mHM-1),                     & ! Intent IN
+           latticeWater(k,1:nHorizons_mHM-1), No_count(k),    & ! Intent IN
+           neutrons(k) )                                        ! Intent INOUT
+      
+      ! COSMIC
+      if ( processMatrix(10, 1) .EQ. 2 ) &
+           call COSMIC( soilMoisture(k,1:nHorizons_mHM-1), horizon_depth(1:nHorizons_mHM-1),&
+           neutron_integral_AFast(:),                                         &  ! Intent IN
+           interc(k), snowpack(k),                                            &  ! Intent IN
+           No_count(k), bulkDens(k,1:nHorizons_mHM-1),                        &  ! Intent IN
+           latticeWater(k,1:nHorizons_mHM-1), COSMICL3(k,1:nHorizons_mHM-1),  &  ! Intent IN
+           neutrons(k)  )                                                        ! Intent INOUT
+   end do
+   !$OMP end do
+   !$OMP end parallel
 
   end subroutine mHM
 

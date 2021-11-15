@@ -35,7 +35,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   target_compile_definitions(${LIB_NAME} PUBLIC GFORTRAN)
   target_compile_options(${LIB_NAME} PUBLIC
     -ffree-form -ffixed-line-length-132
-    $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
+    $<$<CONFIG:DEBUG>:-fbacktrace -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
     $<$<CONFIG:RELEASE>:-O3>
     $<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
   )
@@ -51,7 +51,7 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
   target_compile_definitions(${LIB_NAME} PUBLIC NAG)
   target_compile_options(${LIB_NAME} PUBLIC
     -colour -unsharedf95 -ideclient
-    $<$<CONFIG:DEBUG>:-g -nan -O0 -C=all -strict95 -ieee=stop>
+    $<$<CONFIG:DEBUG>:-gline -g -nan -O0 -C=all -strict95 -ieee=stop>
     $<$<CONFIG:RELEASE>:-O4 -ieee=full>
   )
 endif()
