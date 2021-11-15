@@ -84,7 +84,7 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
   target_compile_definitions(${LIB_NAME} PRIVATE NAG)
   target_compile_options(${LIB_NAME} PUBLIC
     -colour -unsharedf95 -ideclient
-    $<$<CONFIG:DEBUG>:-g -nan -O0 -C=all -strict95 -ieee=stop>
+    $<$<CONFIG:DEBUG>:-gline -g -nan -O0 -C=all -strict95 -ieee=stop>
     $<$<CONFIG:RELEASE>:-O4 -ieee=full>
   )
 endif()
