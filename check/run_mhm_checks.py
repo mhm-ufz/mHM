@@ -239,11 +239,11 @@ def print_comparison(*result, tab_n=3):
         "{} of {} records differ more than {}".format(big_diff_n, total, ATOL),
     )
     if miss:
-        print(tab(tab_n), "Missing: ", *miss)
+        print(tab(tab_n), "Missing: ", ", ".join(miss))
     if diff_vars:
-        print(tab(tab_n), "Differing: ", *diff_vars)
+        print(tab(tab_n), "Differing: ", ", ".join(diff_vars))
     if diff_shape:
-        print(tab(tab_n), "Shape missmatch: ", *diff_shape)
+        print(tab(tab_n), "Shape missmatch: ", ", ".join(diff_shape))
 
 
 def create_out_dir(path):
@@ -367,21 +367,31 @@ def compare_xarrays(ds_new, ds_ref, match=None, ignore=None):
         if new_var_name in ds_new.data_vars:
             if not ds_new[new_var_name].equals(ds_ref[var_name]):
                 diff_n += 1
-                if np.shape(ds_new[new_var_name].values) != np.shape(
-                    ds_ref[var_name].values
-                ):
-                    diff_vars.append(str(var_name))
-                    diff_shape.append(str(var_name))
+                ref_shape = np.shape(ds_ref[var_name].values)
+                new_shape = np.shape(ds_new[new_var_name].values)
+                if new_shape != ref_shape:
+                    diff_vars.append(f"{var_name}")
+                    diff_shape.append(
+                        f"{var_name} (in: {new_shape}, ref: {ref_shape})"
+                    )
                     big_diff_n += 1
-                elif not np.allclose(
-                    ds_new[new_var_name].values,
-                    ds_ref[var_name].values,
-                    equal_nan=True,
-                    rtol=RTOL,
-                    atol=ATOL,
-                ):
-                    diff_vars.append(str(var_name))
-                    big_diff_n += 1
+                else:
+                    diff_mask = ~np.isclose(
+                        ds_new[new_var_name].values,
+                        ds_ref[var_name].values,
+                        equal_nan=True,
+                        rtol=RTOL,
+                        atol=ATOL,
+                    )
+                    if np.any(diff_mask):
+                        diff = np.max(
+                            np.abs(
+                                ds_new[new_var_name].values[diff_mask]
+                                - ds_ref[var_name].values[diff_mask]
+                            )
+                        )
+                        diff_vars.append(f"{var_name} (max: {diff:.2e})")
+                        big_diff_n += 1
         else:
             miss.append(str(var_name))
             diff_n += 1
