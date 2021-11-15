@@ -510,6 +510,11 @@ contains
     new_grid%ncols = MPR_COORDINATES(iDim_y(1))%count
     new_grid%cellsize = MPR_COORDINATES(iDim_x(1))%step
 
+    ! TODO: this is here as in optimization case, this gets called again and again, can we prevent that?
+    if (allocated(new_grid%x)) deallocate(new_grid%x)
+    if (allocated(new_grid%y)) deallocate(new_grid%y)
+    if (allocated(new_grid%mask)) deallocate(new_grid%mask)
+
     ! allocate all 2d properties, now that we know the dimensionality
     allocate(new_grid%x(new_grid%nrows, new_grid%ncols))
     allocate(new_grid%y(new_grid%nrows, new_grid%ncols))

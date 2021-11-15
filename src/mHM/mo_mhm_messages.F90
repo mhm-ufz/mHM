@@ -136,7 +136,7 @@ contains
       call message('  --------------')
       call message('      DOMAIN                  ', num2str(domainID, '(I3)'))
       call message('  --------------')
-      call message('    Configuration file for MPR: ', trim(pathMprNml(L0_Domain(iDomain))))
+      call message('    Configuration file for MPR:   ', trim(pathMprNml(L0_Domain(iDomain))))
       ! call check_dir(dirMorpho(iDomain), "Morphological directory:", .false., 4, 30)
       ! call check_dir(dirLCover(iDomain), "Land cover directory:", .false., 4, 30)
       call check_dir(dirPrecipitation(iDomain), "Precipitation directory:", .false., 4, 30)

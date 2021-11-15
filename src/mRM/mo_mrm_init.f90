@@ -95,7 +95,7 @@ end subroutine mrm_configuration
     use mo_common_variables, only : domainMeta, global_parameters, l0_l1_remap, level0, level1, domainMeta, &
                                     processMatrix, resolutionHydrology, mrmFileRestartIn, &
                                     mrm_read_river_network, resolutionRouting
-    use mo_grid, only : init_advanced_grid_properties, init_lowres_level, set_domain_indices
+    use mo_grid, only : init_lowres_level, set_domain_indices
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_mrm_global_variables, only : domain_mrm, &
