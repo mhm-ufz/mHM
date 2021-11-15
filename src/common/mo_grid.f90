@@ -264,11 +264,6 @@ contains
     ! level-0 information
     new_grid%nCells = count(new_grid%mask)
 
-    ! TODO: this is here as in optimization case, this gets called again and again, can we prevent that?
-    if (allocated(new_grid%CellCoor)) deallocate(new_grid%CellCoor)
-    if (allocated(new_grid%Id)) deallocate(new_grid%Id)
-    if (allocated(new_grid%CellArea)) deallocate(new_grid%CellArea)
-
     allocate(new_grid%CellCoor(new_grid%nCells, 2))
     allocate(new_grid%Id(new_grid%nCells))
     allocate(new_grid%CellArea(new_grid%nCells))

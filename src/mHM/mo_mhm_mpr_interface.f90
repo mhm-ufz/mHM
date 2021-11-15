@@ -497,64 +497,60 @@ contains
     integer(i4), dimension(:), allocatable :: iDim_x, iDim_y, iDim
     character(maxNameLength) :: LAI_dim_name
   
-    ! TODO: make all that more flexible (coordinate and mask detection)
-    ! get the x dimension
-    iDim_x = get_index_in_coordinate('lon_out')
-    ! get the y dimension
-    iDim_y = get_index_in_coordinate('lat_out')
+    if (do_init_arg) then
+      ! TODO: make all that more flexible (coordinate and mask detection)
+      ! get the x dimension
+      iDim_x = get_index_in_coordinate('lon_out')
+      ! get the y dimension
+      iDim_y = get_index_in_coordinate('lat_out')
 
-    ! init some main properties
-    new_grid%xllcorner = MPR_COORDINATES(iDim_x(1))%bounds(1)
-    new_grid%yllcorner = MPR_COORDINATES(iDim_y(1))%bounds(1)
-    new_grid%nrows = MPR_COORDINATES(iDim_x(1))%count
-    new_grid%ncols = MPR_COORDINATES(iDim_y(1))%count
-    new_grid%cellsize = MPR_COORDINATES(iDim_x(1))%step
+      ! init some main properties
+      new_grid%xllcorner = MPR_COORDINATES(iDim_x(1))%bounds(1)
+      new_grid%yllcorner = MPR_COORDINATES(iDim_y(1))%bounds(1)
+      new_grid%nrows = MPR_COORDINATES(iDim_x(1))%count
+      new_grid%ncols = MPR_COORDINATES(iDim_y(1))%count
+      new_grid%cellsize = MPR_COORDINATES(iDim_x(1))%step
 
-    ! TODO: this is here as in optimization case, this gets called again and again, can we prevent that?
-    if (allocated(new_grid%x)) deallocate(new_grid%x)
-    if (allocated(new_grid%y)) deallocate(new_grid%y)
-    if (allocated(new_grid%mask)) deallocate(new_grid%mask)
+      ! allocate all 2d properties, now that we know the dimensionality
+      allocate(new_grid%x(new_grid%nrows, new_grid%ncols))
+      allocate(new_grid%y(new_grid%nrows, new_grid%ncols))
+      allocate(new_grid%mask(new_grid%nrows, new_grid%ncols))
 
-    ! allocate all 2d properties, now that we know the dimensionality
-    allocate(new_grid%x(new_grid%nrows, new_grid%ncols))
-    allocate(new_grid%y(new_grid%nrows, new_grid%ncols))
-    allocate(new_grid%mask(new_grid%nrows, new_grid%ncols))
+      ! for historic reasons this is in 2d
+      new_grid%x = spread(MPR_COORDINATES(iDim_x(1))%values(1:), 2, new_grid%ncols)
+      new_grid%y = spread(MPR_COORDINATES(iDim_y(1))%values(1:), 1, new_grid%nrows)
 
-    ! for historic reasons this is in 2d
-    new_grid%x = spread(MPR_COORDINATES(iDim_x(1))%values(1:), 2, new_grid%ncols)
-    new_grid%y = spread(MPR_COORDINATES(iDim_y(1))%values(1:), 1, new_grid%nrows)
+      ! use a 2d field for inferring the mask (cannot be derived from dimensions)
+      iDA = get_index_in_vector('L1_latitude', MPR_DATA_ARRAYS)
+      new_grid%mask = reshape(MPR_DATA_ARRAYS(iDA)%reshapedMask, [new_grid%nrows, new_grid%ncols])
+      call init_advanced_grid_properties(new_grid)
 
-    ! use a 2d field for inferring the mask (cannot be derived from dimensions)
-    iDA = get_index_in_vector('L1_latitude', MPR_DATA_ARRAYS)
-    new_grid%mask = reshape(MPR_DATA_ARRAYS(iDA)%reshapedMask, [new_grid%nrows, new_grid%ncols])
-    call init_advanced_grid_properties(new_grid)
+      ! get the z dimension
+      iDim = get_index_in_coordinate('horizon_out')
+      nSoilHorizons_temp = MPR_COORDINATES(iDim(1))%count
+      allocate(soilHorizonBoundaries_temp(0: nSoilHorizons_temp))
+      soilHorizonBoundaries_temp = MPR_COORDINATES(iDim(1))%values(0: nSoilHorizons_temp)
 
-    ! get the z dimension
-    iDim = get_index_in_coordinate('horizon_out')
-    nSoilHorizons_temp = MPR_COORDINATES(iDim(1))%count
-    allocate(soilHorizonBoundaries_temp(0: nSoilHorizons_temp))
-    soilHorizonBoundaries_temp = MPR_COORDINATES(iDim(1))%values(0: nSoilHorizons_temp)
-  
+      ! use a field for inferring that dimension (name depends on the input data and is flexible)
+      iDA = get_index_in_vector('L1_Max_Canopy_Intercept', MPR_DATA_ARRAYS)
+      LAI_dim_name = MPR_DATA_ARRAYS(iDA)%coords(3)%coord_p%name
+
+      ! get the LAI dimension
+      iDim = get_index_in_coordinate(trim(LAI_dim_name))
+      nLAIs_temp = MPR_COORDINATES(iDim(1))%count
+      allocate(LAIBoundaries_temp(0: nLAIs_temp))
+      LAIBoundaries_temp = MPR_COORDINATES(iDim(1))%values(0: nLAIs_temp)
+
+      ! check if soil and LAI are consistent with other domains, set to global if domain == 1
+      call check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
+            nLAIs_temp, LAIBoundaries_temp)
+    end if
+
     ! get the landcover dimension
     iDim = get_index_in_coordinate('land_cover_period_out')
     nLandCoverPeriods_temp = MPR_COORDINATES(iDim(1))%count
     allocate(landCoverPeriodBoundaries_temp(0: nLandCoverPeriods_temp))
     landCoverPeriodBoundaries_temp = MPR_COORDINATES(iDim(1))%values(0: nLandCoverPeriods_temp)
-
-    ! use a field for inferring that dimension (name depends on the input data and is flexible)
-    iDA = get_index_in_vector('L1_Max_Canopy_Intercept', MPR_DATA_ARRAYS)
-    LAI_dim_name = MPR_DATA_ARRAYS(iDA)%coords(3)%coord_p%name
-  
-    ! get the LAI dimension
-    iDim = get_index_in_coordinate(trim(LAI_dim_name))
-    nLAIs_temp = MPR_COORDINATES(iDim(1))%count
-    allocate(LAIBoundaries_temp(0: nLAIs_temp))
-    LAIBoundaries_temp = MPR_COORDINATES(iDim(1))%values(0: nLAIs_temp)
-
-    ! check if soil and LAI are consistent with other domains, set to global if domain == 1
-    call check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
-          nLAIs_temp, LAIBoundaries_temp)
-  
   
   end subroutine init_grid
 

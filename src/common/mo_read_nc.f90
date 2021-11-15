@@ -964,10 +964,7 @@ contains
       ! set local to global
       nSoilHorizons = nSoilHorizons_temp
       nLAIs = nLAIs_temp
-      ! TODO: this is here as in optimization case, this gets called again and again, can we prevent that?
-      if (.not. allocated(soilHorizonBoundaries)) allocate(soilHorizonBoundaries(nSoilHorizons))
       soilHorizonBoundaries = soilHorizonBoundaries_temp
-      if (.not. allocated(LAIBoundaries)) allocate(LAIBoundaries(nLAIs+1))
       LAIBoundaries = LAIBoundaries_temp
     else
       ! check if it conforms with global
