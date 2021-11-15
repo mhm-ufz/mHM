@@ -113,11 +113,9 @@ IGNORE_VARS = [
 MHM_EXE = ["../mhm"]
 # case 5 and 7 don't work with MPI. case 4 has a bug working with ifort+debug
 # TODO: this needs proper MPI debugging to activate them again
-SKIP_CASES_MPI = [f'case_{i:02}' for i in range(3, 9)]
+SKIP_CASES_MPI = [f"case_{i:02}" for i in range(3, 9)]
 # those cases are currently ignored as there are some problems with init from restart, case11 needs to be reconsidered
-SKIP = [
-    "case_11"
-]
+SKIP = ["case_11"]
 
 
 # ARGUMENT PARSER #############################################################
@@ -234,7 +232,7 @@ def sep_text(*texts, sep_n=70, tab_n=0):
 
 def print_comparison(*result, tab_n=3):
     """Print the result of a file comparison."""
-    diff_n, big_diff_n, total, miss, diff_vars = result
+    diff_n, big_diff_n, total, miss, diff_vars, diff_shape = result
     print(tab(tab_n), "{} of {} records differ".format(diff_n, total))
     print(
         tab(tab_n),
@@ -244,6 +242,8 @@ def print_comparison(*result, tab_n=3):
         print(tab(tab_n), "Missing: ", *miss)
     if diff_vars:
         print(tab(tab_n), "Differing: ", *diff_vars)
+    if diff_shape:
+        print(tab(tab_n), "Shape missmatch: ", *diff_shape)
 
 
 def create_out_dir(path):
@@ -277,11 +277,22 @@ def compare_patterns(patterns, new_dir, ref_dir, tab_n=2):
     for ref_file, ref_name in zip(ref_files, ref_names):
         print(tab(tab_n), ref_name)
         if ref_name in new_names:
-            diff_n, big_diff_n, total, miss, diff_vars = compare_files(
-                new_files[new_names.index(ref_name)], ref_file
-            )
+            (
+                diff_n,
+                big_diff_n,
+                total,
+                miss,
+                diff_vars,
+                diff_shape,
+            ) = compare_files(new_files[new_names.index(ref_name)], ref_file)
             print_comparison(
-                diff_n, big_diff_n, total, miss, diff_vars, tab_n=tab_n + 1
+                diff_n,
+                big_diff_n,
+                total,
+                miss,
+                diff_vars,
+                diff_shape,
+                tab_n=tab_n + 1,
             )
             diff_sum += diff_n
             big_diff_sum += big_diff_n
@@ -347,6 +358,7 @@ def compare_xarrays(ds_new, ds_ref, match=None, ignore=None):
     total = len(ds_ref.data_vars)
     miss = []
     diff_vars = []
+    diff_shape = []
     for var_name in ds_ref.data_vars:
         if var_name in ignore:
             continue
@@ -355,7 +367,13 @@ def compare_xarrays(ds_new, ds_ref, match=None, ignore=None):
         if new_var_name in ds_new.data_vars:
             if not ds_new[new_var_name].equals(ds_ref[var_name]):
                 diff_n += 1
-                if not np.allclose(
+                if np.shape(ds_new[new_var_name].values) != np.shape(
+                    ds_ref[var_name].values
+                ):
+                    diff_vars.append(str(var_name))
+                    diff_shape.append(str(var_name))
+                    big_diff_n += 1
+                elif not np.allclose(
                     ds_new[new_var_name].values,
                     ds_ref[var_name].values,
                     equal_nan=True,
@@ -368,7 +386,7 @@ def compare_xarrays(ds_new, ds_ref, match=None, ignore=None):
             miss.append(str(var_name))
             diff_n += 1
             big_diff_n += 1
-    return diff_n, big_diff_n, total, miss, diff_vars
+    return diff_n, big_diff_n, total, miss, diff_vars, diff_shape
 
 
 # CALL ROUTINES ###############################################################
@@ -606,7 +624,7 @@ if __name__ == "__main__":
             )
             print(sep_text("SUMMARY: " + case_base, sep_n=50, tab_n=2))
             print_comparison(
-                diff_sum, big_diff_sum, total_sum, miss, [], tab_n=3
+                diff_sum, big_diff_sum, total_sum, miss, [], [], tab_n=3
             )
             # define the result
             # "success" could be false-negative
