@@ -147,7 +147,7 @@ def parse_args():
         nargs="+",
         default=MHM_EXE,
         dest="exe",
-        help="Paths to mhm exe[s]. (default: {})".format(MHM_EXE),
+        help=f"Paths to mhm exe[s]. (default: {MHM_EXE})",
     )
     parser.add_argument(
         "-v",
@@ -190,7 +190,7 @@ def parse_args():
         nargs="*",
         default=SKIP,
         dest="skip",
-        help="skip cases (case_01 case_03 ..) (default: {})".format(SKIP),
+        help=f"skip cases (case_01 case_03 ..) (default: {SKIP})",
     )
     parser.add_argument(
         "-o",
@@ -233,19 +233,19 @@ def sep_text(*texts, sep_n=70, tab_n=0):
 def print_comparison(*result, tab_n=3):
     """Print the result of a file comparison."""
     diff_n, big_diff_n, total, miss, diff_vars, diff_shape, warn_shape = result
-    print(tab(tab_n), "{} of {} records differ".format(diff_n, total))
+    print(tab(tab_n), f"{diff_n} of {total} records differ")
     print(
         tab(tab_n),
-        "{} of {} records differ more than {}".format(big_diff_n, total, ATOL),
+        f"{big_diff_n} of {total} records differ more than {ATOL}",
     )
     if miss:
-        print(tab(tab_n), "Missing: ", ", ".join(miss))
+        print(tab(tab_n), "Missing:", ", ".join(miss))
     if diff_vars:
-        print(tab(tab_n), "Differing: ", ", ".join(diff_vars))
+        print(tab(tab_n), "Differing:", ", ".join(diff_vars))
     if diff_shape:
-        print(tab(tab_n), "Shape missmatch: ", ", ".join(diff_shape))
+        print(tab(tab_n), "Shape missmatch:", ", ".join(diff_shape))
     if warn_shape:
-        print(tab(tab_n), "Shape warnings: ", ", ".join(warn_shape))
+        print(tab(tab_n), "Shape warnings:", ", ".join(warn_shape))
 
 
 def create_out_dir(path):
@@ -603,11 +603,11 @@ if __name__ == "__main__":
         exe_name = os.path.relpath(exe, start=cases_path)
         print(
             sep_text(
-                "checking exe: {}".format(exe_name),
-                "print log: {}".format(print_log),
-                "log path: {}".format(log_path),
-                "mpi processes: {}".format(mpi_nop),
-                "openMP threads: {}".format(omp_n),
+                f"checking exe: {exe_name}",
+                f"print log: {print_log}",
+                f"log path: {log_path}",
+                f"mpi processes: {mpi_nop}",
+                f"openMP threads: {omp_n}",
                 sep_n=70,
             )
         )
@@ -620,9 +620,9 @@ if __name__ == "__main__":
                 continue
             # skip case if wanted
             if case_base in skip:
-                print(sep_text("skip case: " + case_base, sep_n=60, tab_n=1))
+                print(sep_text(f"skip case: {case_base}", sep_n=60, tab_n=1))
                 continue
-            print(sep_text("checking case: " + case_base, sep_n=60, tab_n=1))
+            print(sep_text(f"checking case: {case_base}", sep_n=60, tab_n=1))
             # get the output and reference directories
             out_dir = os.path.join(case, OUT)
             ref_dir = os.path.join(case, REF)
@@ -643,7 +643,7 @@ if __name__ == "__main__":
             diff_sum, big_diff_sum, total_sum, miss, info = compare_patterns(
                 PATTERNS, out_dir, ref_dir, tab_n=3
             )
-            print(sep_text("SUMMARY: " + case_base, sep_n=50, tab_n=2))
+            print(sep_text(f"SUMMARY: {case_base}", sep_n=50, tab_n=2))
             print_comparison(
                 diff_sum, big_diff_sum, total_sum, miss, [], [], [], tab_n=3
             )
@@ -652,14 +652,14 @@ if __name__ == "__main__":
             # ... = success and not big_diff_sum and not miss_files
             results[case_base] = not big_diff_sum and not miss
         # summary
-        print(sep_text("CHECK SUMMARY: " + exe_name, sep_n=60, tab_n=1))
+        print(sep_text(f"CHECK SUMMARY: {exe_name}", sep_n=60, tab_n=1))
         for case_n in results:
             print(tab(2), case_n, "succeeded:", results[case_n])
             exe_result &= results[case_n]
         print(
             sep_text(
-                "FINISHED: " + exe_name,
-                "...succeeded: {}".format(exe_result),
+                f"FINISHED: {exe_name}",
+                f"...succeeded: {exe_result}",
                 sep_n=70,
             )
         )
@@ -677,11 +677,8 @@ if __name__ == "__main__":
                 print(tab(2), case_n, "failed")
     # print missing cases (specified by "only" arg)
     if missing_cases:
-        miss_case_str = str(missing_cases)
-        print(sep_text("CASES not found: " + miss_case_str, sep_n=60, tab_n=1))
-    print(
-        sep_text("FINISHED", "...succeeded: {}".format(final_result), sep_n=70)
-    )
+        print(sep_text(f"CASES not found: {missing_cases}", sep_n=60, tab_n=1))
+    print(sep_text("FINISHED", f"...succeeded: {final_result}", sep_n=70))
     # assert that the final result is positive
     if not final_result:
         raise AssertionError("mHM checks were not successful.")
