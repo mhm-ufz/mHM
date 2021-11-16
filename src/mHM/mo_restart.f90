@@ -454,9 +454,6 @@ CONTAINS
 
     call check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
           nLAIs_temp, LAIBoundaries_temp)
-    if (iDomain == 1) then
-      nLandCoverPeriods = nLandCoverPeriods_temp
-    end if
 
     call get_land_cover_period_indices(iDomain, landCoverPeriodBoundaries_temp, landCoverPeriodSelect)
 

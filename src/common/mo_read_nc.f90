@@ -884,6 +884,9 @@ contains
     use mo_common_variables, only: nLandCoverPeriods, landCoverPeriodBoundaries
     use mo_string_utils, only: compress
     use mo_common_datetime_type, only: simPer, LCyearId
+    use mo_common_constants, only: keepUnneededLandCoverPeriods
+    use mo_message, only: error_message
+    use mo_string_utils, only: num2str
 
     integer(i4), intent(in) :: iDomain
     real(dp), dimension(:), intent(inout) :: boundaries
@@ -894,6 +897,12 @@ contains
 
     integer(i4) :: select_index, iBoundary, LCyearStart, LCyearEnd
 
+    ! sanity check
+    if (size(boundaries) - 1 > nLandCoverPeriods) then
+      call error_message('There is a maximum of ', trim(num2str(nLandCoverPeriods)), &
+              ' land cover periods allowed. Passed ', trim(num2str(size(boundaries) - 1)), &
+              ' for domain ', num2str(iDomain), '.')
+    end if
     allocate(select_indices(size(boundaries) - 1))
     select_index = 0_i4
     select_indices_mask = .false.
@@ -904,9 +913,8 @@ contains
     do iBoundary=1, size(boundaries) - 1
       ! check for overlap ((StartA <= EndB) and (EndA >= StartB))
       ! https://stackoverflow.com/questions/325933/
-      ! TODO: MPR reinstate, if all landcover periods are to be set
       if ((boundaries(iBoundary) <= simPer(iDomain)%yend) .and. &
-             ((boundaries(iBoundary+1)-1) >= simPer(iDomain)%ystart)) then
+             ((boundaries(iBoundary+1)-1) >= simPer(iDomain)%ystart) .or. keepUnneededLandCoverPeriods) then
         ! advance counter
         select_index = select_index + 1_i4
         ! select this iBoundary from dimension
