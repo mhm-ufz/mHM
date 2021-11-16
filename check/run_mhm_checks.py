@@ -232,7 +232,7 @@ def sep_text(*texts, sep_n=70, tab_n=0):
 
 def print_comparison(*result, tab_n=3):
     """Print the result of a file comparison."""
-    diff_n, big_diff_n, total, miss, diff_vars, diff_shape = result
+    diff_n, big_diff_n, total, miss, diff_vars, diff_shape, warn_shape = result
     print(tab(tab_n), "{} of {} records differ".format(diff_n, total))
     print(
         tab(tab_n),
@@ -244,6 +244,8 @@ def print_comparison(*result, tab_n=3):
         print(tab(tab_n), "Differing: ", ", ".join(diff_vars))
     if diff_shape:
         print(tab(tab_n), "Shape missmatch: ", ", ".join(diff_shape))
+    if warn_shape:
+        print(tab(tab_n), "Shape warnings: ", ", ".join(warn_shape))
 
 
 def create_out_dir(path):
@@ -284,6 +286,7 @@ def compare_patterns(patterns, new_dir, ref_dir, tab_n=2):
                 miss,
                 diff_vars,
                 diff_shape,
+                warn_shape,
             ) = compare_files(new_files[new_names.index(ref_name)], ref_file)
             print_comparison(
                 diff_n,
@@ -292,6 +295,7 @@ def compare_patterns(patterns, new_dir, ref_dir, tab_n=2):
                 miss,
                 diff_vars,
                 diff_shape,
+                warn_shape,
                 tab_n=tab_n + 1,
             )
             diff_sum += diff_n
@@ -359,6 +363,7 @@ def compare_xarrays(ds_new, ds_ref, match=None, ignore=None):
     miss = []
     diff_vars = []
     diff_shape = []
+    warn_shape = []
     for var_name in ds_ref.data_vars:
         if var_name in ignore:
             continue
@@ -367,36 +372,42 @@ def compare_xarrays(ds_new, ds_ref, match=None, ignore=None):
         if new_var_name in ds_new.data_vars:
             if not ds_new[new_var_name].equals(ds_ref[var_name]):
                 diff_n += 1
-                ref_shape = np.shape(ds_ref[var_name].values)
-                new_shape = np.shape(ds_new[new_var_name].values)
-                if new_shape != ref_shape:
+                ref_val = ds_ref[var_name].values
+                new_val = ds_new[new_var_name].values
+                ref_shape = np.shape(ref_val)
+                new_shape = np.shape(new_val)
+                # squeeze values for comparison
+                ref_val = ref_val.squeeze()
+                new_val = new_val.squeeze()
+                ref_shape_squeeze = np.shape(ref_val)
+                new_shape_squeeze = np.shape(new_val)
+                if ref_shape_squeeze != new_shape_squeeze:
+                    big_diff_n += 1
                     diff_vars.append(f"{var_name}")
                     diff_shape.append(
                         f"{var_name} (in: {new_shape}, ref: {ref_shape})"
                     )
-                    big_diff_n += 1
                 else:
                     diff_mask = ~np.isclose(
-                        ds_new[new_var_name].values,
-                        ds_ref[var_name].values,
+                        new_val,
+                        ref_val,
                         equal_nan=True,
                         rtol=RTOL,
                         atol=ATOL,
                     )
                     if np.any(diff_mask):
-                        diff = np.max(
-                            np.abs(
-                                ds_new[new_var_name].values[diff_mask]
-                                - ds_ref[var_name].values[diff_mask]
-                            )
-                        )
-                        diff_vars.append(f"{var_name} (max: {diff:.2e})")
                         big_diff_n += 1
+                        diff = np.max(np.abs(new_val - ref_val)[diff_mask])
+                        diff_vars.append(f"{var_name} (max: {diff:.2e})")
+                    if ref_shape != new_shape:
+                        warn_shape.append(
+                            f"{var_name} (in: {new_shape}, ref: {ref_shape})"
+                        )
         else:
             miss.append(str(var_name))
             diff_n += 1
             big_diff_n += 1
-    return diff_n, big_diff_n, total, miss, diff_vars, diff_shape
+    return diff_n, big_diff_n, total, miss, diff_vars, diff_shape, warn_shape
 
 
 # CALL ROUTINES ###############################################################
@@ -634,7 +645,7 @@ if __name__ == "__main__":
             )
             print(sep_text("SUMMARY: " + case_base, sep_n=50, tab_n=2))
             print_comparison(
-                diff_sum, big_diff_sum, total_sum, miss, [], [], tab_n=3
+                diff_sum, big_diff_sum, total_sum, miss, [], [], [], tab_n=3
             )
             # define the result
             # "success" could be false-negative
