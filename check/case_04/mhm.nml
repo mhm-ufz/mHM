@@ -72,7 +72,7 @@
 /
 
 &lcover
-    nLandCoverPeriods = 2
+    nLandCoverPeriods = 5
 /
 
 &mainconfig

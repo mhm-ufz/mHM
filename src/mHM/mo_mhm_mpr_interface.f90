@@ -141,9 +141,6 @@ contains
     
       ! TODO: we need to make sure there is no data gaps in data arrays... (former L0_check_input)
       call init_grid(grids(iDomain), iDomain, landCoverPeriodBoundaries_temp, nSlices, do_init_arg)
-      if (iDomain == 1) then
-        nLandCoverPeriods = nSlices
-      end if
       ! set new landCoverperiod
       call get_land_cover_period_indices(iDomain, landCoverPeriodBoundaries_temp, landCoverSelect)
       ! set parameters
