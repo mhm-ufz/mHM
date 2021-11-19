@@ -105,7 +105,7 @@ CONTAINS
                                         L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
                                         L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
                                         L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                        L1_wiltingPoint, are_parameter_initialized
+                                        L1_wiltingPoint, are_parameter_initialized, L1_latitude
     use mo_init_states, only : variables_default_init
     use mo_julian, only : caldat, julday
     use mo_message, only : error_message
@@ -428,7 +428,9 @@ CONTAINS
                 nCells, nSoilHorizons, real(nTstepDay, dp), c2TSTu,  & ! IN C
                 neutron_integral_AFast, & ! IN C
                 parameterset, & ! IN
-                pack(level1(iDomain)%y, level1(iDomain)%mask), & ! IN L1
+                ! TODO MPR: reactivate this in version 6: pack(level1(iDomain)%y, level1(iDomain)%mask), & ! IN L1
+                ! for backward compat and check cases, use the latitude from the extra parameter
+                L1_latitude(s1 : e1), & ! IN L1
                 evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet, & ! IN F
                 fday_temp, fnight_temp, & ! IN F
                 L1_temp_weights(s1 : e1, :, :), & ! IN F

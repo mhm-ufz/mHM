@@ -109,6 +109,7 @@ IGNORE_VARS = [
     "L1_domain_lat",  # is now depending on MPR coordinates and always non-projected
     "L1_SoilHorizons_bnds",  # is now in SI unit [m] and always has an upper bound (positive downwards)
     "L1_LAITimesteps_bnds",  # is now 0-index based as other coordinates
+    "L1_domain_cellarea",  # this is ignored for now and should only be part of mRM (a.k.a. moved from mHM)
 ]
 MHM_EXE = ["../mhm"]
 # case 5 and 7 don't work with MPI. case 4 has a bug working with ifort+debug
