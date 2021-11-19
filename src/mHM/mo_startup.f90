@@ -54,8 +54,8 @@ CONTAINS
 
   ! Modifications:
   ! Luis Samaniego Mar 2008 - fully distributed multilayer
-  ! Rohini Kumar   Oct 2010 - matrix to vector version 
-  !                         - openmp parallelization 
+  ! Rohini Kumar   Oct 2010 - matrix to vector version
+  !                         - openmp parallelization
   !                         - routing level 11
   ! Luis Samaniego Jul 2012 - removal of IMSL dependencies
   ! Luis Samaniego Dec 2012 - modular version
@@ -100,7 +100,7 @@ CONTAINS
 
         ! this reads only the domain properties
         ! domainID, inputFile, level_name, new_grid
-        call read_grid_info(domainID, mhmFileRestartIn(iDomain), "1", level1(iDomain))
+        call read_grid_info(domainID, mhmFileRestartIn(iDomain), "1", level1(iDomain), read_cell_area=domainMeta%doRouting(iDomain))
 
         call read_restart_states(iDomain, mhmFileRestartIn(iDomain), do_read_states_arg=.false.)
 
@@ -173,7 +173,7 @@ CONTAINS
   !>       \date Dec 2012
 
   ! Modifications:
-  ! Rohini Kumar                 Jan 2013 - 
+  ! Rohini Kumar                 Jan 2013 -
   ! Juliane Mai & Matthias Cuntz Nov 2013 - check timeStep
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 

@@ -164,7 +164,7 @@ CONTAINS
 
       nc = NcDataset(fname, "w")
 
-      call write_grid_info(level1(iDomain), "1", nc)
+      call write_grid_info(level1(iDomain), "1", nc, write_cell_area=domainMeta%doRouting(iDomain))
 
       rows1 = nc%getDimension("nrows1")
       cols1 = nc%getDimension("ncols1")
