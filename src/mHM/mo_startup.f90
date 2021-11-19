@@ -71,7 +71,7 @@ CONTAINS
 
     use mo_grid, only : read_grid_info, set_domain_indices, calculate_grid_properties,  infer_grid_info, Grid
     use mo_common_variables, only : level0, level1, domainMeta, mhmFileRestartIn, read_restart, nuniqueL0Domains
-    use mo_global_variables, only : level2
+    use mo_global_variables, only : level2, L1_latitude
     use mo_init_states, only : variables_alloc
     use mo_global_variables, only : dirPrecipitation
     use mo_string_utils, only : num2str

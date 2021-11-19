@@ -49,8 +49,8 @@ coord_name(13) = "land_cover_period_out"
 coord_stagger(13) = "start"
 coord_attribute_names(:,13) = "standard_name", "long_name", "units", "positive", "axis"
 coord_attribute_values(:,13) = "land cover period", "start year for period of constant land cover", "years", "up", "T"
-coord_from_values(:,13) = 1981, 1990, 1991, 2000, 2006
-coord_from_values_bound(13) = 2011
+coord_from_values(:,13) = 1981, 1991
+coord_from_values_bound(13) = 1996
 
 ! intermediate coordinates for tillage setup
 coord_name(20) = "horizon_till"

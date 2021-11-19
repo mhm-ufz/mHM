@@ -346,7 +346,7 @@ CONTAINS
                                     L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
                                     L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_total_runoff, L1_unsatSTW, &
             nSoilHorizons, are_parameter_initialized, nLAIs, &
-            L1_HarSamCoeff, &
+            L1_HarSamCoeff, L1_latitude, &
                                         L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, L1_degDayInc, L1_degDayMax, &
                                         L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, &
                                     L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, L1_kFastFlow, L1_maxInter, &
@@ -584,6 +584,8 @@ CONTAINS
       if (nc%hasVariable('L1_fSealed')) then
         ! Parameter fields have to be allocated in any case
         call init_eff_params(level1(iDomain)%nCells)
+        ! init the latitude array by the level1 grid
+        L1_latitude(s1 : e1) = pack(level1(iDomain)%y, mask1)
 
         !-------------------------------------------
         ! EFFECTIVE PARAMETERS
@@ -1287,7 +1289,7 @@ CONTAINS
     use mo_kind, only: i4, dp
     use mo_common_constants, only : P1_InitStateFluxes
     use mo_common_variables, only: nLandCoverPeriods
-    use mo_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, &
+    use mo_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_latitude, &
                                     L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
                                     L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
                                     L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
@@ -1373,8 +1375,10 @@ CONTAINS
     call append(L1_HarSamCoeff, dummy_1D)
     ! jarvis critical value for normalized soil water content
     call append(L1_jarvis_thresh_c1, dummy_1D)
-    ! Threshhold water depth for surface runoff in sealed surfaces
+    ! Threshold water depth for surface runoff in sealed surfaces
     call append(L1_sealedThresh, dummy_1D)
+    ! L1 latitude
+    call append(L1_latitude, dummy_1D)
     deallocate(dummy_1D)
 
 
