@@ -732,7 +732,7 @@ else where (land_cover_month < 3.5)
 PET_a_pervious + (PET_b * (1.0 - exp(PET_c * LAI_month)))"
 from_data_arrays(1:2,89) = "land_cover_month", "LAI_month"
 target_coord_names(1:4,89) = "land_cover_period_out", "month_of_year", "lat_out", "lon_out"
-upscale_ops(1:4,89) = "1.0", "-1.0", "-1.0", "1.0"
+upscale_ops(1:4,89) = "1.0", "1.0", "-1.0", "-1.0"
 
 name(90) = "aspect"
 from_file(90) = "../../test_domain/input/mpr/aspect.nc"
