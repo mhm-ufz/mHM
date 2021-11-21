@@ -16,7 +16,7 @@
     dir_referenceet(1) = '../../test_domain/input/meteo/'
     dir_temperature(1) = '../../test_domain/input/meteo/'
     dir_windspeed(1) = '../../test_domain/input/meteo/'
-    path_mpr_nml(1) = '../test_domain_mpr_check.nml'
+    path_mpr_nml(1) = '../test_domain_mpr_check_root_FC_dep.nml'
     time_step_model_inputs(1) = -2
 /
 

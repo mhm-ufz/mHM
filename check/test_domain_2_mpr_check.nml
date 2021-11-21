@@ -25,6 +25,9 @@ coord_stagger(2) = "start"
 !coord_name(4) = "lon"
 !coord_stagger(4) = "center"
 
+!coord_name(4) = "month_of_year"
+!coord_stagger(4) = "start"
+
 ! final output coordinates
 coord_name(10) = "horizon_out"
 coord_stagger(10) = "end"
@@ -734,7 +737,7 @@ to_file(82) = .false.
 
 name(83) = "LAI_max_temp"
 from_data_arrays(1,83) = "lai_class"
-target_coord_names(1:4,83) = "land_cover_period", "month_of_year", "lat", "lon"
+target_coord_names(1:4,83) = "land_cover_period", "time_all", "lat", "lon"
 upscale_ops(1:4,83) = "1.0", "max", "1.0", "1.0"
 to_file(83) = .false.
 
@@ -819,7 +822,7 @@ transfer_func(95) = "stomatal_resistance / (lai_class / (LAI_factor_surfResi * l
 from_data_arrays(1,95) = "lai_class"
 target_coord_names(1:3,95) = "month_of_year", "lat_out", "lon_out"
 upscale_ops(1:3,95) = "1.0", "1.0", "1.0"
-limits(2,95) = 251.0
+limits(2,95) = 250.0
 
 name(96) = "L1_Max_Canopy_Intercept"
 transfer_func(96) = "canopyInterceptionFactor * lai_class"
@@ -843,11 +846,15 @@ name(99) = "L1_fRoots_FC"
 transfer_func(99) = "fRoots_temp_FC / fRoots_rescaled_total_FC"
 from_data_arrays(1:2,99) = "fRoots_temp_FC", "fRoots_rescaled_total_FC"
 
-name(100) = "L1_latitude"
-transfer_func(100) = "lat_l0"
-! the aspect is only here to use its mask
-from_data_arrays(1:2,100) = "lat_l0", "aspect"
-target_coord_names(1:2,100) = "lat_out", "lon_out"
-upscale_ops(1:2,100) = "1.0", "1.0"
+name(100) = "lat"
+from_file(100) = "../../test_domain_2/input/mpr/latlon_1.nc"
+to_file(100) = .false.
+
+name(101) = "L1_latitude"
+transfer_func(101) = "lat"
+! the L1_fAsp is only here to use its mask
+from_data_arrays(1:2,101) = "lat", "L1_fAsp"
+target_coord_names(1:2,101) = "lat_out", "lon_out"
+upscale_ops(1:2,101) = "1.0", "1.0"
 
 /
