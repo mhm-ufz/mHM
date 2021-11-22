@@ -89,8 +89,9 @@
     noinflowgauges_domain(1) = 0
 /
 
-&lcover
-    nLandCoverPeriods = 2
+&aggregate_periods
+nLandCoverPeriods = 2
+nlaiPeriods = 12
 /
 
 &mainconfig

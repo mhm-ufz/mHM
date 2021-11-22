@@ -884,7 +884,7 @@ contains
     use mo_common_variables, only: nLandCoverPeriods, landCoverPeriodBoundaries
     use mo_string_utils, only: compress
     use mo_common_datetime_type, only: simPer, LCyearId
-    use mo_common_constants, only: keepUnneededLandCoverPeriods
+    use mo_common_constants, only: keepUnneededPeriods
     use mo_message, only: error_message
     use mo_string_utils, only: num2str
 
@@ -914,7 +914,7 @@ contains
       ! check for overlap ((StartA <= EndB) and (EndA >= StartB))
       ! https://stackoverflow.com/questions/325933/
       if ((boundaries(iBoundary) <= simPer(iDomain)%yend) .and. &
-             ((boundaries(iBoundary+1)-1) >= simPer(iDomain)%ystart) .or. keepUnneededLandCoverPeriods) then
+             ((boundaries(iBoundary+1)-1) >= simPer(iDomain)%ystart) .or. keepUnneededPeriods) then
         ! advance counter
         select_index = select_index + 1_i4
         ! select this iBoundary from dimension
@@ -954,26 +954,22 @@ contains
     end if
   end subroutine get_land_cover_period_indices
 
-  subroutine check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
-          nLAIs_temp, LAIBoundaries_temp)
-    use mo_global_variables, only: nSoilHorizons, soilHorizonBoundaries, nLAIs, LAIBoundaries
+  subroutine check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp)
+    use mo_global_variables, only: nSoilHorizons, soilHorizonBoundaries
     use mo_string_utils, only: compress, num2str
     use mo_utils, only: ne
     use mo_message, only: message
 
     integer(i4), intent(in) :: iDomain
-    integer(i4), intent(in) :: nSoilHorizons_temp, nLAIs_temp
-    real(dp), dimension(:), intent(inout) :: soilHorizonBoundaries_temp, &
-            LAIBoundaries_temp
+    integer(i4), intent(in) :: nSoilHorizons_temp
+    real(dp), dimension(:), intent(inout) :: soilHorizonBoundaries_temp
 
     integer(i4) :: k
 
     if (iDomain == 1) then
       ! set local to global
       nSoilHorizons = nSoilHorizons_temp
-      nLAIs = nLAIs_temp
       soilHorizonBoundaries = soilHorizonBoundaries_temp
-      LAIBoundaries = LAIBoundaries_temp
     else
       ! check if it conforms with global
       if (nSoilHorizons /= nSoilHorizons_temp) then
@@ -981,12 +977,7 @@ contains
                 ') does not conform with the number of soil horizons for domain ', &
                 compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nSoilHorizons_temp))), ').')
       end if
-      if (nLAIs /= nLAIs_temp) then
-        call error_message('The number of soil horizons for domain 1 (', compress(trim(num2str(nLAIs))), &
-                ') does not conform with the number of soil horizons for domain ', &
-                compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nLAIs_temp))), ').')
-      end if
-      ! TODO-MPR: re-enable checks (false input for test domains) 
+      ! TODO-MPR: re-enable checks (false input for test domains)
       ! do k=1, nSoilHorizons+1
       !   if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k))) then
       !     call error_message('The ',compress(trim(num2str(k))),'th soil horizon boundary for domain 1 (', &

@@ -172,8 +172,10 @@ CONTAINS
       ! write the dimension to the file and also save bounds
       soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons, soilHorizonBoundaries, 2_i4)
       ! write the dimension to the file
+      ! TODO: write units and more information on time step
       lais = nc%setCoordinate(trim(LAIVarName), nLAIs, LAIBoundaries, 0_i4)
 
+      ! TODO: write units and more information on time step
       iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain), mask=LCyearId(:, iDomain) /= nodata_i4)
       allocate(landCoverPeriodBoundaries_(iDomainNLandCoverPeriods+1))
       landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, iDomain), dp)
@@ -339,13 +341,13 @@ CONTAINS
 
   subroutine read_restart_states(iDomain, InFile, do_read_states_arg, do_read_dims_arg)
 
-    use mo_common_variables, only : level1, nLandCoverPeriods, processMatrix
+    use mo_common_variables, only : level1, processMatrix
     use mo_kind, only : dp, i4
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, &
                                     L1_aETSealed, L1_aETSoil, L1_baseflow, L1_fastRunoff, L1_infilSoil, L1_melt, &
                                     L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
                                     L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_total_runoff, L1_unsatSTW, &
-            nSoilHorizons, are_parameter_initialized, nLAIs, &
+            nSoilHorizons, are_parameter_initialized, &
             L1_HarSamCoeff, L1_latitude, &
                                         L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, L1_degDayInc, L1_degDayMax, &
                                         L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, &
@@ -354,7 +356,9 @@ CONTAINS
                                         L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, L1_wiltingPoint
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
-    use mo_read_nc, only: check_dimension_consistency, get_land_cover_period_indices
+    use mo_read_nc, only: check_dimension_consistency
+    use mo_common_datetime_type, only: get_land_cover_period_indices, nLandCoverPeriods, nlaiPeriods, simPer
+    use mo_common_constants, only: maxNLcovers, maxNLais
 
     implicit none
 
@@ -403,6 +407,7 @@ CONTAINS
             LAIBoundaries_temp
     integer(i4), dimension(:), allocatable :: landCoverPeriodSelect
     integer(i4), dimension(:), allocatable :: varShape
+    character(256) :: units
 
 
     do_read_states = .true.
@@ -429,6 +434,9 @@ CONTAINS
     soilHorizonBoundaries_temp(1:nSoilHorizons_temp) = dummyD2(1,:)
     soilHorizonBoundaries_temp(nSoilHorizons_temp+1) = dummyD2(2, nSoilHorizons_temp)
 
+    ! check if soil and LAI are consistent with other domains, set to global if domain == 1
+    call check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp)
+
     ! get the landcover dimension
     var = nc%getVariable(trim(landCoverPeriodsVarName)//'_bnds')
     call var%getData(dummyD2)
@@ -437,7 +445,12 @@ CONTAINS
     landCoverPeriodBoundaries_temp(1:nLandCoverPeriods_temp) = dummyD2(1,:)
     landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1) = dummyD2(2, nLandCoverPeriods_temp)
 
+    call landCoverPeriods(iDomain)%init(n=nLandCoverPeriods_temp, nMax=maxNLcovers, name='land cover', simPerArg=simPer(iDomain), &
+            dimName=trim(landCoverPeriodsVarName), &
+            dimValues=landCoverPeriodBoundaries_temp, landCoverPeriodSelect)
+
     ! get the LAI dimension
+    ! TODO: get units
     if (nc%hasVariable(trim(LAIVarName)//'_bnds')) then
       var = nc%getVariable(trim(LAIVarName)//'_bnds')
       call var%getData(dummyD2)
@@ -450,12 +463,14 @@ CONTAINS
       nLAIs_temp = nc_dim%getLength()
       allocate(LAIBoundaries_temp(nLAIs_temp+1))
       LAIBoundaries_temp = [(ii, ii=1, nLAIs_temp+1)]
+    else
+      ! TODO: raise error
+      cycle
     end if
 
-    call check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
-          nLAIs_temp, LAIBoundaries_temp)
-
-    call get_land_cover_period_indices(iDomain, landCoverPeriodBoundaries_temp, landCoverPeriodSelect)
+    call laiPeriods(iDomain)%init(n=nLAIs_temp, nMax=maxNLais, name='LAI', simPerArg=simPer(iDomain), &
+        dimName=trim(LAI_dim_name), dimUnits=units, &
+        dimValues=LAIBoundaries_temp, laiSelect)
 
     if (do_read_states) then
       allocate(mask_soil1 (level1(iDomain)%nrows, level1(iDomain)%ncols, nSoilHorizons))
@@ -582,6 +597,7 @@ CONTAINS
       end if
 
       if (nc%hasVariable('L1_fSealed')) then
+        ! TODO: adapt the select like in mpr_mhm_interface
         ! Parameter fields have to be allocated in any case
         call init_eff_params(level1(iDomain)%nCells)
         ! init the latitude array by the level1 grid
@@ -1150,7 +1166,7 @@ CONTAINS
     !-------------------------------------------
     ! EFFECTIVE PARAMETERS
     !-------------------------------------------
-    ! TODO: MPR add dims
+    ! TODO: MPR update the routine based on new bounds
     call unpack_field_and_write(nc, "L1_fSealed", &
             [rows1, cols1, lcscenes], nodata_dp, L1_fSealed(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
             "fraction of Sealed area at level 1")
