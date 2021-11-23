@@ -109,7 +109,7 @@ CONTAINS
     use mo_append, only : paste
     use mo_common_constants, only : nodata_i4
     use mo_common_file, only : varNameLandCover
-    use mo_common_variables, only : dirIn, level0, domainMeta, nLandCoverPeriods
+    use mo_common_variables, only : dirIn, level0, domainMeta
     use mo_grid, only: Grid
     use mo_message, only : message
     use mo_string_utils, only : num2str

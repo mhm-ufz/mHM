@@ -53,7 +53,7 @@ CONTAINS
     use mo_common_variables, only : Conventions, contact, L0_Domain, &
                                     dirConfigOut, dirIn, dirOut, &
                                     mhmFileRestartOut, mrmFileRestartOut, &
-                                    fileLatLon, history, mHM_details, domainMeta, nLandCoverPeriods, &
+                                    fileLatLon, history, mHM_details, domainMeta, &
                                     nProcesses, nuniqueL0Domains, processMatrix, project_details, resolutionHydrology, &
                                     setup_description, simulation_type, write_restart, &
                                     dds_r, mhmFileRestartIn, mrmFileRestartIn, evalPer,&
@@ -61,7 +61,7 @@ CONTAINS
                                     opti_function, opti_method, optimize, optimize_restart, &
                                     read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
                                     sce_ngs, sce_npg, sce_nps, seed, &
-                                    warmPer, warmingDays, landCoverPeriodBoundaries
+                                    warmPer, warmingDays
     use mo_common_datetime_type, only: simPer, timestep, nTStepDay, period, &
             landCoverPeriods, laiPeriods, nLandCoverPeriods, nlaiPeriods
     use mo_julian, only : caldat, julday
@@ -668,7 +668,6 @@ CONTAINS
                                  maxNoSoilHorizons
     ! use mo_mpr_global_variables, only : HorizonDepth_mHM, dirgridded_LAI, fracSealed_cityArea, iFlag_soilDB, &
     !                                     inputFormat_gridded_LAI, nGeoUnits, nSoilHorizons_mHM, tillageDepth
-    use mo_common_datetime_type, only : timeStep_LAI_input
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
     use mo_utils, only : EQ

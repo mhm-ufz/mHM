@@ -61,8 +61,7 @@ contains
     use mo_mrm_file, only : file_facc, file_fdir, file_gaugeloc
     use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, domain_mrm, dirGauges
     use mo_string_utils, only : num2str
-    use mo_read_nc, only: get_land_cover_period_indices
-    use mo_common_variables, only: nLandCoverPeriods
+    use mo_common_datetime_type, only: get_land_cover_period_indices, simPer, nLandCoverPeriods
 
     implicit none
 
@@ -116,7 +115,8 @@ contains
           call read_lcover(iDomain, data_i4_2d, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)
           ! compare the simulation period and the land cover periods in the file,
           ! get a boolean vector with periods to select
-          call get_land_cover_period_indices(iDomain, landCoverPeriodBoundaries_temp, landCoverSelect)
+          call get_land_cover_period_indices(simPer(iDomain), landCoverPeriodBoundaries_temp, &
+                  selectIndices=landCoverSelect)
           ! select the needed periods and fill remaining slices so appending works
           ! background: all domains can have different number of land cover periods but data are in one big
           ! pre-allocated array for all domains

@@ -500,7 +500,7 @@ contains
     use mo_mpr_coordinate, only: get_index_in_coordinate, MPR_COORDINATES
     use mo_mpr_utils, only: get_index_in_vector
     use mo_mpr_constants, only : maxNoDataArrays, maxNameLength
-    use mo_read_nc, only: check_dimension_consistency
+    use mo_read_nc, only: check_soil_dimension_consistency
     use mo_common_datetime_type, only: simPer, laiPeriods, landCoverPeriods
     use mo_common_constants, only: maxNLais, maxNLcovers
 
@@ -556,7 +556,7 @@ contains
       soilHorizonBoundaries_temp = MPR_COORDINATES(iDim(1))%values(0: nSoilHorizons_temp)
 
       ! check if soil and LAI are consistent with other domains, set to global if domain == 1
-      call check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp)
+      call check_soil_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp)
 
     end if
 

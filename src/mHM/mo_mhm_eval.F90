@@ -83,7 +83,7 @@ CONTAINS
   SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
 
     use mo_optimization_types, only : optidata_sim
-    use mo_common_datetime_type, only : datetimeinfo, LCyearId, nTstepDay, simPer, timeStep, landCoverPeriods, laiPeriods
+    use mo_common_datetime_type, only : datetimeinfo, nTstepDay, simPer, timeStep, landCoverPeriods, laiPeriods
     use mo_common_variables, only : mhmFileRestartIn, mrmFileRestartIn, global_parameters_name, &
                                             optimize, readPer, read_restart, &
                                             warmingDays, c2TSTu, level1, domainMeta, processMatrix

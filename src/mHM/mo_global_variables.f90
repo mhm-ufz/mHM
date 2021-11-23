@@ -64,14 +64,10 @@ MODULE mo_global_variables
   logical, public :: read_meteo_weights         ! read weights for tavg and pet
   character(256), public :: inputFormat_meteo_forcings ! format of meteo input data (nc)
 
-  ! TODO: MPR this moved all here
-  integer(i4), public :: timeStep_LAI_input         ! time step of gridded LAI input
   integer(i4), public :: nSoilHorizons  !       Number of horizons to model
-  real(dp), dimension(:), allocatable, public :: soilHorizonBoundaries   ! [mm]  Horizon boundaries from surface,
+  real(dp), dimension(:), allocatable, public :: soilHorizonBoundaries   ! [m]  Horizon boundaries from surface,
   !                                                                               positive downwards (0:nSoilHorizons)
-  real(dp), public :: lowestDepth   ! [mm] lowest depth
-  integer(i4), public :: nLAIs  !       Number of LAI periods
-  real(dp), dimension(:), allocatable, public :: LAIBoundaries   ! [mm]  LAI periods,
+  real(dp), public :: lowestDepth   ! [m] lowest depth
   !                                                                               positive downwards (0:nSoilHorizons)
 
   ! Optional data

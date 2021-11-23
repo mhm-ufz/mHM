@@ -88,9 +88,9 @@ CONTAINS
     use mo_common_variables, only : evalPer, read_restart, warmPer, &
                                     dirConfigOut, dirIn, dirOut, &
                                     global_parameters, global_parameters_name, level1, &
-                                    domainMeta, nLandCoverPeriods, resolutionHydrology, write_restart, processMatrix, &
+                                    domainMeta, resolutionHydrology, write_restart, processMatrix, &
                                     resolutionRouting, mhmFileRestartOut
-    use mo_common_datetime_type, only: LCyearId, SimPer, timeStep
+    use mo_common_datetime_type, only: SimPer, timeStep, landCoverPeriods
     use mo_grid, only : iFlag_coordinate_sys
     use mo_file, only : version
     use mo_global_variables, only : dirPrecipitation, dirReferenceET, &
@@ -195,7 +195,7 @@ CONTAINS
       write(uconfig, 118) '     Land Cover Observations for Domain ', num2str(domainID)
       write(uconfig, 119) ' Year', '   Land cover period'
       do i = simPer(iDomain)%ystart, simPer(iDomain)%yend
-        write(uconfig, 120) i, LCyearId(i, iDomain)
+        write(uconfig, 120) i, landCoverPeriods(iDomain)%yearIds(i)
       end do
     end do
     !*********************************

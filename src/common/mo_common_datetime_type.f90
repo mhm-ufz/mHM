@@ -20,13 +20,11 @@ MODULE mo_common_datetime_type
 
   IMPLICIT NONE
 
-  public :: datetimeinfo, period
-
   private
 
-  integer(i4), public :: timeStep_LAI_input         ! time step of gridded LAI input
-  integer(i4), public :: timeStep                   ! [h] simulation time step (= TS) in [h]
-  integer(i4), dimension(:, :), allocatable, public :: LCyearId            ! Mapping of landcover scenes (1, 2,..) for each domain
+  public :: datetimeinfo, period, get_land_cover_period_indices
+
+  integer(i4), public :: timeStep           ! [h] simulation time step (= TS) in [h]
   integer(i4), public :: nTstepDay          !       Number of time intervals per day
 
   type aggregateperiod
@@ -34,7 +32,8 @@ MODULE mo_common_datetime_type
     character(256) :: name
     integer(i4) :: i
     integer(i4), dimension(:), allocatable :: yearId      ! mapping of ids to each simPer year
-    integer(i4), dimension(:), allocatable :: boundaries  ! all boundaries of input data (nIds + 1)
+    integer(i4), dimension(:), allocatable :: boundaries  ! all boundaries of input data (nIds + 1) in case of
+                                                          ! isRegular == .false. and timeStep yearly
     integer(i4) :: timeStep
     logical :: isAveraged
     logical :: isRegular
@@ -277,13 +276,14 @@ MODULE mo_common_datetime_type
         selectIndices = [(iSel, iSel=1, n)]
         ! select moy, keepUnneededPeriods is ignored (one year simPerArg is assumed), values 1:12 is assumed
         this%i = simPerArg%mStart
+      ! first is default in MPR, second in restart file
       case('land_cover_period_out', 'L1_LandCoverPeriods')
         this%isAveraged = .false.
         this%timeStep = -3_i4
         this%isRegular = .false.
         allocate(this%yearIds(simPerArg%yStart: simPerArg%yEnd))
         ! dimValues are boundaries here and thus are of size n+1 !!!
-        call get_land_cover_period_indices(simPerArg, dimValues, this%yearIds, selectIndices)
+        call get_land_cover_period_indices(simPerArg, dimValues, yearIds=this%yearIds, selectIndices=selectIndices)
         allocate(this%boundaries(size(selectIndices)+1))
         this%boundaries(1) = dimValues(selectIndices(1))
         do iSel=1, size(selectIndices)
@@ -468,16 +468,14 @@ MODULE mo_common_datetime_type
   end subroutine check_time_unit
     
   subroutine get_land_cover_period_indices(simPerArg, boundaries, yearIds, selectIndices)
-    use mo_common_variables, only: nLandCoverPeriods, landCoverPeriodBoundaries
     use mo_string_utils, only: compress
-    use mo_common_datetime_type, only: simPer, LCyearId
     use mo_common_constants, only: keepUnneededPeriods
     use mo_message, only: error_message
     use mo_string_utils, only: num2str
 
     class(period), intent(in) :: simPerArg
     real(dp), dimension(:), intent(in) :: boundaries
-    integer(i4), dimension(:), intent(out) :: yearIds
+    integer(i4), dimension(:), intent(out), optional :: yearIds
     integer(i4), dimension(size(boundaries)-1), intent(out) :: selectIndices
 
     logical, dimension(size(boundaries) - 1) :: select_indices_mask
