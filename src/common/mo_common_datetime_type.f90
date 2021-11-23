@@ -33,7 +33,8 @@ MODULE mo_common_datetime_type
     integer(i4) :: nIds
     character(256) :: name
     integer(i4) :: i
-    integer(i4), dimension(:), allocatable :: yearId            ! Mapping of periods (1, 2,..) for each domain
+    integer(i4), dimension(:), allocatable :: yearId      ! mapping of ids to each simPer year
+    integer(i4), dimension(:), allocatable :: boundaries  ! all boundaries of input data (nIds + 1)
     integer(i4) :: timeStep
     logical :: isAveraged
     logical :: isRegular
@@ -42,6 +43,8 @@ MODULE mo_common_datetime_type
 
     procedure :: init => init_aggregateperiod
     procedure :: increment => increment_aggregateperiod
+    procedure :: get_values => get_values_aggregateperiod
+    procedure :: get_unit => get_unit_aggregateperiod
 
   end type aggregateperiod
 
@@ -281,7 +284,13 @@ MODULE mo_common_datetime_type
         allocate(this%yearIds(simPerArg%yStart: simPerArg%yEnd))
         ! dimValues are boundaries here and thus are of size n+1 !!!
         call get_land_cover_period_indices(simPerArg, dimValues, this%yearIds, selectIndices)
+        allocate(this%boundaries(size(selectIndices)+1))
+        this%boundaries(1) = dimValues(selectIndices(1))
+        do iSel=1, size(selectIndices)
+          this%boundaries(iSel+1) = dimValues(selectIndices(iSel)+1)
+        end do
         this%i = this%yearIds(simPerArg%yStart)
+        this%nIds = size(selectIndices)
       case default
         if (.not. present(dimUnits)) then
           call error_message('Cannot init aggregate period by name "', trim(dimName), '", but without units.')
@@ -290,6 +299,7 @@ MODULE mo_common_datetime_type
         this%isAveraged = .false.
         this%timeStep = timeStep
         call get_period_indices(simPerArg, dimValues, timeStep, inPeriod, this%i, selectIndices)
+        this%nIds = size(selectIndices)
       end select
     end if
 
@@ -332,6 +342,54 @@ MODULE mo_common_datetime_type
     end if
 
   end subroutine increment_aggregateperiod
+
+  function get_unit_aggregateperiod(this) result(units)
+    use mo_julian, only: dec2date
+    class(aggregateperiod), intent(inout) :: this
+    character(256) :: units
+
+    if (this%isAveraged) then
+      select case (this%timeStep)
+      case(-1) ! day of year
+        units = 'day of year'
+      case(-2) ! month of year
+        units = 'month of year'
+      end select
+    else
+      call dec2date(this%refJulDate, dd, mm, yy)
+      select case (this%timeStep)
+      case(-1) ! daily timestep
+        units = 'days since '//yy//'-'//mm//'-'//dd
+      case(-2) ! monthly timestep
+        units = 'months since '//yy//'-'//mm//'-'//dd
+      case(-3) ! yearly timestep
+        if (.not. this%isRegular) then
+          units = 'years since '//yy//'-'//mm//'-'//dd
+        else
+          units = 'years since '//yy//'-'//mm//'-'//dd
+        end if
+      end select
+    end if
+
+  end function get_unit_aggregateperiod
+
+  function get_values_aggregateperiod(this) result(values)
+    use mo_julian, only: dec2date
+    class(aggregateperiod), intent(inout) :: this
+    integer(i4), dimension(:), allocatable :: values
+    integer(i4) :: iVal
+
+    if (this%isAveraged) then
+      values = [(iVal, iVal=1_i4, this%nIds + 1)]
+    else
+      if (.not. this%isRegular) then
+        values = this%boundaries
+      else
+        values = [(iVal, iVal=0_i4, this%nIds)]
+      end if
+    end if
+
+  end function get_values_aggregateperiod
 
   subroutine check_time_unit(dimUnits, dimValues, jRef, timeStepSeconds, timeStep, inPeriod)
     use mo_constants, only : DayHours, DaySecs, YearDays

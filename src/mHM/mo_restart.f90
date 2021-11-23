@@ -102,7 +102,7 @@ CONTAINS
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_grid, only : write_grid_info
     use mo_common_variables, only : level1, nLandCoverPeriods, domainMeta, landCoverPeriodBoundaries, level0
-    use mo_common_datetime_type, only: simPer, LCyearId
+    use mo_common_datetime_type, only: simPer, LCyearId, laiPeriods, landCoverPeriods
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
                                     L1_fastRunoff, L1_infilSoil, L1_melt, L1_percol, L1_preEffect, L1_rain, &
                                     L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
@@ -172,16 +172,11 @@ CONTAINS
       ! write the dimension to the file and also save bounds
       soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons, soilHorizonBoundaries, 2_i4)
       ! write the dimension to the file
-      ! TODO: write units and more information on time step
-      lais = nc%setCoordinate(trim(LAIVarName), nLAIs, LAIBoundaries, 0_i4)
-
-      ! TODO: write units and more information on time step
-      iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain), mask=LCyearId(:, iDomain) /= nodata_i4)
-      allocate(landCoverPeriodBoundaries_(iDomainNLandCoverPeriods+1))
-      landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, iDomain), dp)
-      lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &
-              landCoverPeriodBoundaries_, 0_i4)
-      deallocate(landCoverPeriodBoundaries_)
+      lais = nc%setCoordinate(trim(LAIVarName), laiPeriods(iDomain)%nIds, laiPeriods(iDomain)%get_boundaries(), 0_i4, &
+          attribute_names='units', attribute_values=laiPeriods%get_unit())
+      lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), landCoverPeriods(iDomain)%nIds, &
+              landCoverPeriods(iDomain)%get_boundaries(), 0_i4, attribute_names='units', &
+              attribute_values=landCoverPeriods(iDomain)%get_unit())
 
       ! for appending and intialization
       allocate(mask1(rows1%getLength(), cols1%getLength()))
@@ -302,7 +297,8 @@ CONTAINS
       call var%setData(unpack(L1_degDay(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "degree-day factor with no precipitation at level 1")
 
-      call write_eff_params(mask1, s1, e1, rows1, cols1, soil1, lcscenes, lais, nc, iDomainNLandCoverPeriods)
+      call write_eff_params(mask1, s1, e1, rows1, cols1, soil1, lcscenes, lais, nc, &
+              landCoverPeriods(iDomain)%nIds, laiPeriods(iDomain)%nIds)
 
       call nc%close()
 
@@ -359,53 +355,39 @@ CONTAINS
     use mo_read_nc, only: check_dimension_consistency
     use mo_common_datetime_type, only: get_land_cover_period_indices, nLandCoverPeriods, nlaiPeriods, simPer
     use mo_common_constants, only: maxNLcovers, maxNLais
+    use mo_message, only: error_message
 
     implicit none
-
     ! number of domain
     integer(i4), intent(in) :: iDomain
-
     ! Input Path including trailing slash
     character(256), intent(in) :: InFile
-
     logical, intent(in), optional :: do_read_states_arg, do_read_dims_arg
-
+    
     character(256) :: Fname
-
     ! loop index
     integer(i4) :: ii, jj
-
     ! start index at level 1
     integer(i4) :: s1
-
     ! end index at level 1
     integer(i4) :: e1
-
     logical :: do_read_states, do_read_dims
-
     ! mask at level 1
     logical, dimension(:, :), allocatable :: mask1
     logical, dimension(:, :, :), allocatable :: mask_soil1
-
     ! dummy, 2 dimension
     real(dp), dimension(:, :), allocatable :: dummyD2
-
     ! dummy, 3 dimension
     real(dp), dimension(:, :, :), allocatable :: dummyD3
-
     ! dummy, 3 dimension
     real(dp), dimension(:, :, :, :), allocatable :: dummyD4
-
     type(NcDataset) :: nc
-
     type(NcVariable) :: var
-
     type(NcDimension) :: nc_dim
-
     integer(i4) :: nSoilHorizons_temp, nLAIs_temp, nLandCoverPeriods_temp
     real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp, soilHorizonBoundaries_temp, &
             LAIBoundaries_temp
-    integer(i4), dimension(:), allocatable :: landCoverPeriodSelect
+    integer(i4), dimension(:), allocatable :: landCoverSelect, laiSelect
     integer(i4), dimension(:), allocatable :: varShape
     character(256) :: units
 
@@ -447,7 +429,7 @@ CONTAINS
 
     call landCoverPeriods(iDomain)%init(n=nLandCoverPeriods_temp, nMax=maxNLcovers, name='land cover', simPerArg=simPer(iDomain), &
             dimName=trim(landCoverPeriodsVarName), &
-            dimValues=landCoverPeriodBoundaries_temp, landCoverPeriodSelect)
+            dimValues=landCoverPeriodBoundaries_temp, landCoverSelect)
 
     ! get the LAI dimension
     ! TODO: get units
@@ -464,8 +446,7 @@ CONTAINS
       allocate(LAIBoundaries_temp(nLAIs_temp+1))
       LAIBoundaries_temp = [(ii, ii=1, nLAIs_temp+1)]
     else
-      ! TODO: raise error
-      cycle
+      call error_message('Could not find LAI period coordinate variable in file ', trim(Fname))
     end if
 
     call laiPeriods(iDomain)%init(n=nLAIs_temp, nMax=maxNLais, name='LAI', simPerArg=simPer(iDomain), &
@@ -597,7 +578,6 @@ CONTAINS
       end if
 
       if (nc%hasVariable('L1_fSealed')) then
-        ! TODO: adapt the select like in mpr_mhm_interface
         ! Parameter fields have to be allocated in any case
         call init_eff_params(level1(iDomain)%nCells)
         ! init the latitude array by the level1 grid
@@ -608,7 +588,7 @@ CONTAINS
         !-------------------------------------------
         var = nc%getVariable("L1_fSealed")
         call var%getData(dummyD3)
-        dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        dummyD3 = dummyD3(:, :, landCoverSelect)
         do ii = 1, size(dummyD3, 3)
           L1_fSealed(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
@@ -618,7 +598,7 @@ CONTAINS
         call var%getData(dummyD2)
         L1_alpha(s1 : e1, 1) = pack(dummyD2, mask1)
         ! call var%getData(dummyD3)
-        ! dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        ! dummyD3 = dummyD3(:, :, landCoverSelect)
         ! do ii = 1, size(dummyD3, 3)
         !   L1_alpha(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         ! end do
@@ -626,7 +606,7 @@ CONTAINS
         ! increase of the Degree-day factor per mm of increase in precipitation
         var = nc%getVariable("L1_degDayInc")
         call var%getData(dummyD3)
-        dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        dummyD3 = dummyD3(:, :, landCoverSelect)
         do ii = 1, size(dummyD3, 3)
           L1_degDayInc(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
@@ -634,7 +614,7 @@ CONTAINS
         ! maximum degree-day factor
         var = nc%getVariable("L1_degDayMax")
         call var%getData(dummyD3)
-        dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        dummyD3 = dummyD3(:, :, landCoverSelect)
         do ii = 1, size(dummyD3, 3)
           L1_degDayMax(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
@@ -642,7 +622,7 @@ CONTAINS
         ! degree-day factor with no precipitation
         var = nc%getVariable("L1_degDayNoPre")
         call var%getData(dummyD3)
-        dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        dummyD3 = dummyD3(:, :, landCoverSelect)
         do ii = 1, size(dummyD3, 3)
           L1_degDayNoPre(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
@@ -655,7 +635,7 @@ CONTAINS
         ! Fraction of roots in soil horizons
         var = nc%getVariable("L1_fRoots")
         call var%getData(dummyD4)
-        dummyD4 = dummyD4(:, :, :, landCoverPeriodSelect)
+        dummyD4 = dummyD4(:, :, :, landCoverSelect)
         do jj = 1, size(dummyD4, 4)
           L1_fRoots(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
         end do
@@ -663,14 +643,15 @@ CONTAINS
         ! Maximum interception
         var = nc%getVariable("L1_maxInter")
         call var%getData(dummyD3)
-        do ii = 1, nLAIs
+        dummyD3 = dummyD3(:, :, laiSelect)
+        do ii = 1, size(dummyD3, 3)
           L1_maxInter(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
 
         ! fast interflow recession coefficient
         var = nc%getVariable("L1_kFastFlow")
         call var%getData(dummyD3)
-        dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        dummyD3 = dummyD3(:, :, landCoverSelect)
         do ii = 1, size(dummyD3, 3)
           L1_kFastFlow(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
@@ -680,7 +661,7 @@ CONTAINS
         call var%getData(dummyD2)
         L1_kSlowFlow(s1 : e1, 1) = pack(dummyD2, mask1)
         !call var%getData(dummyD3)
-        !dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        !dummyD3 = dummyD3(:, :, landCoverSelect)
         ! do ii = 1, size(dummyD3, 3)
         !   L1_kSlowFlow(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         ! end do
@@ -690,7 +671,7 @@ CONTAINS
         call var%getData(dummyD2)
         L1_kBaseFlow(s1 : e1, 1) = pack(dummyD2, mask1)
         ! call var%getData(dummyD3)
-        ! dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        ! dummyD3 = dummyD3(:, :, landCoverSelect)
         ! do ii = 1, size(dummyD3, 3)
         !   L1_kBaseFlow(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         ! end do
@@ -700,7 +681,7 @@ CONTAINS
         call var%getData(dummyD2)
         L1_kPerco(s1 : e1, 1) = pack(dummyD2, mask1)
         ! call var%getData(dummyD3)
-        ! dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        ! dummyD3 = dummyD3(:, :, landCoverSelect)
         ! do ii = 1, size(dummyD3, 3)
         !   L1_kPerco(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         ! end do
@@ -709,7 +690,7 @@ CONTAINS
         ! for processCase(3) = 1
         var = nc%getVariable("L1_soilMoistFC")
         call var%getData(dummyD4)
-        dummyD4 = dummyD4(:, :, :, landCoverPeriodSelect)
+        dummyD4 = dummyD4(:, :, :, landCoverSelect)
         do jj = 1, size(dummyD4, 4)
           L1_soilMoistFC(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
         end do
@@ -717,7 +698,7 @@ CONTAINS
         ! Saturation soil moisture for each horizon [mm]
         var = nc%getVariable("L1_soilMoistSat")
         call var%getData(dummyD4)
-        dummyD4 = dummyD4(:, :, :, landCoverPeriodSelect)
+        dummyD4 = dummyD4(:, :, :, landCoverSelect)
         do jj = 1, size(dummyD4, 4)
           L1_soilMoistSat(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
         end do
@@ -725,7 +706,7 @@ CONTAINS
         ! Exponential parameter to how non-linear is the soil water retention
         var = nc%getVariable("L1_soilMoistExp")
         call var%getData(dummyD4)
-        dummyD4 = dummyD4(:, :, :, landCoverPeriodSelect)
+        dummyD4 = dummyD4(:, :, :, landCoverSelect)
         do jj = 1, size(dummyD4, 4)
           L1_soilMoistExp(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
         end do
@@ -740,7 +721,7 @@ CONTAINS
         ! Threshold temperature for snow/rain
         var = nc%getVariable("L1_tempThresh")
         call var%getData(dummyD3)
-        dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        dummyD3 = dummyD3(:, :, landCoverSelect)
         do ii = 1, size(dummyD3, 3)
           L1_tempThresh(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
@@ -750,7 +731,7 @@ CONTAINS
         call var%getData(dummyD2)
         L1_unsatThresh(s1 : e1, 1) = pack(dummyD2, mask1)
         ! call var%getData(dummyD3)
-        ! dummyD3 = dummyD3(:, :, landCoverPeriodSelect)
+        ! dummyD3 = dummyD3(:, :, landCoverSelect)
         ! do ii = 1, size(dummyD3, 3)
         !   L1_unsatThresh(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         ! end do
@@ -763,7 +744,7 @@ CONTAINS
         ! Permanent wilting point
         var = nc%getVariable("L1_wiltingPoint")
         call var%getData(dummyD4)
-        dummyD4 = dummyD4(:, :, :, landCoverPeriodSelect)
+        dummyD4 = dummyD4(:, :, :, landCoverSelect)
         do jj = 1, size(dummyD4, 4)
           L1_wiltingPoint(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
         end do
@@ -775,9 +756,9 @@ CONTAINS
           ! PET correction factor due to LAI
           var = nc%getVariable("L1_petLAIcorFactor")
           call var%getData(dummyD4)
-          dummyD4 = dummyD4(:, :, :, landCoverPeriodSelect)
+          dummyD4 = dummyD4(:, :, laiSelect, landCoverSelect)
           do jj = 1, size(dummyD4, 4)
-            do ii = 1, nLAIs
+            do ii = 1, size(dummyD4, 3)
               L1_petLAIcorFactor(s1 : e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
             end do
           end do
@@ -806,7 +787,8 @@ CONTAINS
           ! Priestley Taylor coeffiecient (alpha)
           var = nc%getVariable("L1_PrieTayAlpha")
           call var%getData(dummyD3)
-          do ii = 1, nLAIs
+          dummyD3 = dummyD3(:, :, laiSelect)
+          do ii = 1, size(dummyD3, 3)
             L1_PrieTayAlpha(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
           end do
 
@@ -815,9 +797,9 @@ CONTAINS
           ! aerodynamical resitance
           var = nc%getVariable("L1_aeroResist")
           call var%getData(dummyD4)
-          dummyD4 = dummyD4(:, :, :, landCoverPeriodSelect)
+          dummyD4 = dummyD4(:, :, laiSelect, landCoverSelect)
           do jj = 1, size(dummyD4, 4)
-            do ii = 1, nLAIs
+            do ii = 1, size(dummyD4, 3)
               L1_aeroResist(s1 : e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
             end do
           end do
@@ -825,7 +807,8 @@ CONTAINS
           ! bulk surface resitance
           var = nc%getVariable("L1_surfResist")
           call var%getData(dummyD3)
-          do ii = 1, nLAIs
+          dummyD3 = dummyD3(:, :, laiSelect)
+          do ii = 1, size(dummyD3, 3)
             L1_surfResist(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
           end do
 
@@ -1138,7 +1121,7 @@ CONTAINS
 
   ! Modifications:
 
-  subroutine write_eff_params(mask1, s1, e1, rows1, cols1, soil1, lcscenes, lais, nc, iDomainNLandCoverPeriods)
+  subroutine write_eff_params(mask1, s1, e1, rows1, cols1, soil1, lcscenes, lais, nc, nLandCoverPeriods_, nlaiPeriods_)
 
     use mo_constants, only : nodata_dp
     use mo_common_variables, only : processMatrix
