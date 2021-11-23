@@ -14,7 +14,8 @@
 !< timestep_model_input
 
 MODULE mo_common_datetime_type
-  use mo_kind, only : i4, dp
+  use mo_kind, only : i4, dp, i8
+  use mo_message, only: error_message
 
   ! Written Maren Kaluza, March 2019
 
@@ -31,10 +32,11 @@ MODULE mo_common_datetime_type
     integer(i4) :: nIds
     character(256) :: name
     integer(i4) :: i
-    integer(i4), dimension(:), allocatable :: yearId      ! mapping of ids to each simPer year
+    integer(i4), dimension(:), allocatable :: yearIds     ! mapping of ids to each simPer year
     integer(i4), dimension(:), allocatable :: boundaries  ! all boundaries of input data (nIds + 1) in case of
                                                           ! isRegular == .false. and timeStep yearly
     integer(i4) :: timeStep
+    integer(i4) :: refJulDate
     logical :: isAveraged
     logical :: isRegular
 
@@ -87,7 +89,6 @@ MODULE mo_common_datetime_type
     procedure :: increment => datetimeinfo_increment
     ! function, returns boolean dependent on tIndex_out and is_new_{period}
     procedure :: writeout => datetimeinfo_writeout
-    procedure :: get_doy => datetimeinfo_get_doy
   end type datetimeinfo
 
   ! -------------------------------------------------------------------
@@ -203,18 +204,18 @@ MODULE mo_common_datetime_type
 
   end function datetimeinfo_writeout
 
-  function datetimeinfo_get_doy(this) result(doy)
-    class(datetimeinfo), intent(in)    ::  this
+  function get_doy(yy, mm, dd) result(doy)
+    integer(i4), intent(in)    ::  yy, mm, dd
     integer(i4), dimension(12), parameter :: months = [31,28,31,30,31,30,31,31,30,31,30,31]
     integer(i4) :: doy
 
     integer(i4) :: leapDay = 0_i4
 
     !leap year
-    if (is_leap_year(this%year)) leapDay = 1_i4
-    doy = sum(months(1:this%month-1)) + this%day + leapDay
+    if (is_leap_year(yy)) leapDay = 1_i4
+    doy = sum(months(1:mm-1)) + dd + leapDay
 
-  end function datetimeinfo_get_doy
+  end function get_doy
 
   subroutine period_copy_period_data(this, toPeriod)
     class(period), intent(inout) :: this
@@ -269,7 +270,7 @@ MODULE mo_common_datetime_type
         this%timeStep = -1_i4
         selectIndices = [(iSel, iSel=1, n)]
         ! select doy, keepUnneededPeriods is ignored (one year simPerArg is assumed), values 1:366 is assumed
-        this%i = simPerArg%get_doy()
+        this%i = get_doy(simPerArg%yStart, simPerArg%mStart, simPerArg%dStart)
       case('month_of_year')
         this%isAveraged = .true.
         this%timeStep = -2_i4
@@ -295,9 +296,10 @@ MODULE mo_common_datetime_type
         if (.not. present(dimUnits)) then
           call error_message('Cannot init aggregate period by name "', trim(dimName), '", but without units.')
         end if
-        call check_time_unit(dimUnits, dimValues, timeStepSeconds, timeStep, inPeriod)
+        call check_time_unit(dimUnits, dimValues, jRef, timeStepSeconds, timeStep, inPeriod)
         this%isAveraged = .false.
         this%timeStep = timeStep
+        this%refJulDate = jRef
         call get_period_indices(simPerArg, dimValues, timeStep, inPeriod, this%i, selectIndices)
         this%nIds = size(selectIndices)
       end select
@@ -331,8 +333,8 @@ MODULE mo_common_datetime_type
           if (.not. this%isRegular) then
             ! this is hackish thing as it might be that this routine is called after the domainDateTime is incremented
             ! over the last valid this%years
-            if (domainDateTime%year < ubound(this%years, dim=1)) then
-              this%i = this%years(datetimeinfoArg%year)
+            if (datetimeinfoArg%year < ubound(this%yearIds, dim=1)) then
+              this%i = this%yearIds(datetimeinfoArg%year)
             end if
           else
             this%i = this%i + 1
@@ -405,7 +407,7 @@ MODULE mo_common_datetime_type
     type(period), intent(out) :: inPeriod
 
     ! reference time
-    integer(i4) :: yRef, dRef, mRef, hRef, jRef
+    integer(i4) :: yRef, dRef, mRef, hRef
     ! helper variable for error output
     integer(i4) :: hstart_int, hend_int
 
@@ -547,7 +549,7 @@ MODULE mo_common_datetime_type
     integer(i4), dimension(size(dimValues)), intent(out) :: selectIndices
 
 
-    integer(i4) :: ncJulSta1, dd, nTime, iInd
+    integer(i4) :: ncJulSta1, dd, nTime, iInd, nSel
     integer(i4) :: mmcalstart, mmcalend, yycalstart, yycalend
     integer(i4) :: mmncstart, yyncstart
     ! helper variable for error output
@@ -609,7 +611,7 @@ MODULE mo_common_datetime_type
       i = (simPerArg%julStart - ncJulSta1) * 24_i4 + 1_i4 ! convert to hours; always starts at one
       nSel = (simPerArg%julEnd - simPerArg%julStart + 1_i4) * 24_i4 ! convert to hours
     case default ! no output at all
-      call error_message('***ERROR: read_nc: unknown nctimestep switch.')
+      call error_message('***ERROR: unknown nctimestep switch.')
     end select
     if (.not. keepUnneededPeriods) then
       ! we select only the relevant slice of dates
@@ -620,8 +622,7 @@ MODULE mo_common_datetime_type
 
     ! Check if time steps in file cover simulation period
     if (.not. ((ncJulSta1 <= simPerArg%julStart) .AND. (inPeriod%julEnd >= simPerArg%julEnd))) then
-      call error_message('***ERROR: read_nc: time period of input data: ', trim(fname), &
-              '          is not matching modelling period.')
+      call error_message('***ERROR: time period of input data is not matching modelling period.')
     end if
 
   end subroutine get_period_indices
