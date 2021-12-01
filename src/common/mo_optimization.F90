@@ -58,7 +58,6 @@ contains
     use mo_common_variables, only : domainMeta
 #endif
     use mo_dds, only : dds
-    use mo_finish, only : finish
     use mo_mcmc, only : mcmc, mcmc_stddev
     use mo_message, only : error_message, message
     use mo_sce, only : sce

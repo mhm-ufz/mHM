@@ -291,7 +291,6 @@ MODULE mo_common_datetime_type
         this%isAveraged = .false.
         this%timeStep = -3_i4
         this%isRegular = .false.
-        allocate(this%yearIds(simPerArg%yStart: simPerArg%yEnd))
         ! dimValues are boundaries here and thus are of size n+1 !!!
         call get_land_cover_period_indices(simPerArg, dimValues, keepUnneededPeriods, &
                 yearIds=this%yearIds, selectIndices=selectIndices)
@@ -495,8 +494,8 @@ MODULE mo_common_datetime_type
     class(period), intent(in) :: simPerArg
     integer(i4), dimension(:), intent(in) :: boundaries
     logical, intent(in) :: keepUnneededPeriods
-    integer(i4), dimension(:), intent(out), optional :: yearIds
-    integer(i4), dimension(size(boundaries)-1), intent(out) :: selectIndices
+    integer(i4), dimension(:), allocatable, intent(out), optional :: yearIds
+    integer(i4), dimension(:), allocatable, intent(out) :: selectIndices
 
     logical, dimension(size(boundaries) - 1) :: select_indices_mask
     logical, dimension(size(boundaries)) :: select_indices_temp
@@ -505,8 +504,12 @@ MODULE mo_common_datetime_type
 
     select_index = 0_i4
     select_indices_mask = .false.
-    LCyearStart = lbound(yearIds, dim=1)
-    LCyearEnd = ubound(yearIds, dim=1)
+    if (present(yearIds)) then
+      allocate(yearIds(simPerArg%yStart: simPerArg%yEnd))
+    end if
+    LCyearStart = simPerArg%yStart
+    LCyearEnd = simPerArg%yEnd
+    allocate(selectIndices(size(boundaries) - 1))
 
     ! set the correct indices to use
     do iBoundary=1, size(boundaries) - 1
@@ -519,14 +522,18 @@ MODULE mo_common_datetime_type
         ! select this iBoundary from dimension
         select_indices_mask(iBoundary) = .true.
         ! set the correct yearIds
-        yearIds(&
-                maxval([boundaries(iBoundary), LCyearStart]):&
-                minval([boundaries(iBoundary+1), LCyearEnd])) = select_index
+        if (present(yearIds)) then
+          yearIds(&
+                  maxval([boundaries(iBoundary), LCyearStart]):&
+                  minval([boundaries(iBoundary+1), LCyearEnd])) = select_index
+
+        end if
       end if
     end do
     selectIndices = pack([(iBoundary, iBoundary=1, size(boundaries) - 1)], select_indices_mask)
 
     ! check if both start and end are covered
+    ! this effectively selects the start boundaries (yStart)
     select_indices_temp = [select_indices_mask, .false.]
     if (minval(boundaries, mask=select_indices_temp) > simPerArg%ystart) then
       call error_message('The selected land cover periods ', &
@@ -534,6 +541,7 @@ MODULE mo_common_datetime_type
               ') do not cover the beginning of the simulation period (', &
               compress(trim(num2str(simPerArg%ystart))), ').')
     end if
+    ! this effectively selects the end boundaries (yEnd)
     select_indices_temp = [.false., select_indices_mask]
     if (maxval(boundaries, mask=select_indices_temp) < simPerArg%yend) then
       call error_message('The selected land cover periods ', &
@@ -541,6 +549,7 @@ MODULE mo_common_datetime_type
               ' ) do not cover the end of the simulation period (', &
               compress(trim(num2str(simPerArg%yend))), ').')
     end if
+
   end subroutine get_land_cover_period_indices
 
   !>       \brief Extract time vector
