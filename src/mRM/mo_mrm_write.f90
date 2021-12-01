@@ -156,7 +156,7 @@ contains
                                     global_parameters_name, level0, level1, domainMeta, processMatrix, &
                                     resolutionHydrology, write_restart, evalPer, &
                                     read_restart, resolutionRouting, warmPer
-    use mo_common_datetime_type, only: simPer, timeStep, nLandCoverPeriods
+    use mo_common_datetime_type, only: simPer, timeStep, landCoverPeriods
     use mo_kind, only : dp, i4
     use mo_message, only : error_message, message
     use mo_mrm_file, only : version

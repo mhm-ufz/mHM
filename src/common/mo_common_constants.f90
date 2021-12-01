@@ -48,6 +48,8 @@ MODULE mo_common_constants
   character(64), public, parameter :: landCoverPeriodsVarName = "L1_LandCoverPeriods"
   character(64), public, parameter :: LAIVarName = "L1_LAITimesteps"
 
-  logical, public, parameter :: keepUnneededPeriods = .true.
+  ! flags controlling the selection of input landcover and LAI periods based on simulation period
+  logical, public, parameter :: keepUnneededPeriodsLandCover = .true.
+  logical, public, parameter :: keepUnneededPeriodsLAI = .false.
 
 END MODULE mo_common_constants

@@ -169,8 +169,8 @@ contains
     nproc = nc%setDimension("Nprocesses", size(processMatrix, dim = 1))
 
     lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), landCoverPeriods(iDomain)%nIds, &
-        landCoverPeriods(iDomain)%get_boundaries(), 0_i4, attribute_names='units', &
-        attribute_values=landCoverPeriods(iDomain)%get_unit())
+        real(landCoverPeriods(iDomain)%get_values(), kind=dp), 0_i4, attribute_names=['units'], &
+        attribute_values=[landCoverPeriods(iDomain)%get_unit()])
 
     ! add processMatrix
     var = nc%setVariable("ProcessMatrix", "i32", (/nproc/))

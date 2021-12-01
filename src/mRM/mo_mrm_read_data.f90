@@ -53,7 +53,7 @@ contains
   subroutine mrm_read_L0_data(do_readlcover)
 
     use mo_append, only : append, add_nodata_slice
-    use mo_common_constants, only : nodata_i4
+    use mo_common_constants, only : nodata_i4, keepUnneededPeriodsLandCover
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : L0_elev, L0_LCover, level0, domainMeta, processMatrix
     use mo_grid, only: Grid
@@ -115,8 +115,8 @@ contains
           call read_lcover(iDomain, data_i4_2d, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)
           ! compare the simulation period and the land cover periods in the file,
           ! get a boolean vector with periods to select
-          call get_land_cover_period_indices(simPer(iDomain), landCoverPeriodBoundaries_temp, &
-                  selectIndices=landCoverSelect)
+          call get_land_cover_period_indices(simPer(iDomain), int(landCoverPeriodBoundaries_temp, kind=i4), &
+                  keepUnneededPeriods=keepUnneededPeriodsLandCover, selectIndices=landCoverSelect)
           ! select the needed periods and fill remaining slices so appending works
           ! background: all domains can have different number of land cover periods but data are in one big
           ! pre-allocated array for all domains

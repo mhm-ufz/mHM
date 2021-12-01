@@ -172,11 +172,12 @@ CONTAINS
       ! write the dimension to the file and also save bounds
       soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons, soilHorizonBoundaries, 2_i4)
       ! write the dimension to the file
-      lais = nc%setCoordinate(trim(LAIVarName), laiPeriods(iDomain)%nIds, laiPeriods(iDomain)%get_boundaries(), 0_i4, &
-          attribute_names='units', attribute_values=laiPeriods%get_unit())
+      lais = nc%setCoordinate(trim(LAIVarName), laiPeriods(iDomain)%nIds, &
+              real(laiPeriods(iDomain)%get_values(), kind=dp), 0_i4, &
+              attribute_names=['units'], attribute_values=[laiPeriods(iDomain)%get_unit()])
       lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), landCoverPeriods(iDomain)%nIds, &
-              landCoverPeriods(iDomain)%get_boundaries(), 0_i4, attribute_names='units', &
-              attribute_values=landCoverPeriods(iDomain)%get_unit())
+              real(landCoverPeriods(iDomain)%get_values(), kind=dp), 0_i4, attribute_names=['units'], &
+              attribute_values=[landCoverPeriods(iDomain)%get_unit()])
 
       ! for appending and intialization
       allocate(mask1(rows1%getLength(), cols1%getLength()))
@@ -297,8 +298,8 @@ CONTAINS
       call var%setData(unpack(L1_degDay(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "degree-day factor with no precipitation at level 1")
 
-      call write_eff_params(mask1, s1, e1, rows1, cols1, soil1, lcscenes, lais, nc, &
-              landCoverPeriods(iDomain)%nIds, laiPeriods(iDomain)%nIds)
+      call write_eff_params(mask1, s1, e1, rows1, cols1, soil1, lcscenes, lais, &
+              landCoverPeriods(iDomain)%nIds, laiPeriods(iDomain)%nIds, nc)
 
       call nc%close()
 
@@ -353,8 +354,8 @@ CONTAINS
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
     use mo_read_nc, only: check_soil_dimension_consistency
-    use mo_common_datetime_type, only: get_land_cover_period_indices, nLandCoverPeriods, nlaiPeriods, simPer
-    use mo_common_constants, only: maxNLcovers, maxNLais
+    use mo_common_datetime_type, only: nLandCoverPeriods, nlaiPeriods, simPer, landCoverPeriods, laiPeriods
+    use mo_common_constants, only: maxNLcovers, maxNLais, keepUnneededPeriodsLandCover, keepUnneededPeriodsLAI
     use mo_message, only: error_message
 
     implicit none
@@ -390,6 +391,7 @@ CONTAINS
     integer(i4), dimension(:), allocatable :: landCoverSelect, laiSelect
     integer(i4), dimension(:), allocatable :: varShape
     character(256) :: units
+    character(256) :: laiDimName
 
 
     do_read_states = .true.
@@ -427,14 +429,16 @@ CONTAINS
     landCoverPeriodBoundaries_temp(1:nLandCoverPeriods_temp) = dummyD2(1,:)
     landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1) = dummyD2(2, nLandCoverPeriods_temp)
 
-    call landCoverPeriods(iDomain)%init(n=nLandCoverPeriods_temp, nMax=maxNLcovers, name='land cover', simPerArg=simPer(iDomain), &
-            dimName=trim(landCoverPeriodsVarName), &
-            dimValues=landCoverPeriodBoundaries_temp, landCoverSelect)
+    call landCoverPeriods(iDomain)%init(n=nLandCoverPeriods_temp, nMax=maxNLcovers, name='land cover', &
+            simPerArg=simPer(iDomain), &
+            dimName=trim(landCoverPeriodsVarName), dimValues=nint(landCoverPeriodBoundaries_temp), &
+            keepUnneededPeriods=keepUnneededPeriodsLandCover, selectIndices=landCoverSelect)
 
     ! the default unit, use if not specified otherwise in file
     units = 'month of year'
     ! get the LAI dimension
     if (nc%hasVariable(trim(LAIVarName)//'_bnds')) then
+      laiDimName = trim(LAIVarName)
       var = nc%getVariable(trim(LAIVarName)//'_bnds')
       call var%getData(dummyD2)
       nLAIs_temp = size(dummyD2, 2)
@@ -445,17 +449,18 @@ CONTAINS
         call var%getAttribute('units', units)
       end if
     else if (nc%hasDimension('L1_LAITimesteps')) then
+      laiDimName = 'L1_LAITimesteps'
       nc_dim = nc%getDimension('L1_LAITimesteps')
       nLAIs_temp = nc_dim%getLength()
       allocate(LAIBoundaries_temp(nLAIs_temp+1))
-      LAIBoundaries_temp = [(ii, ii=1, nLAIs_temp+1)]
+      LAIBoundaries_temp = [(real(ii, kind=dp), ii=1, nLAIs_temp+1)]
     else
       call error_message('Could not find LAI period coordinate variable in file ', trim(Fname))
     end if
 
     call laiPeriods(iDomain)%init(n=nLAIs_temp, nMax=maxNLais, name='LAI', simPerArg=simPer(iDomain), &
-        dimName=trim(LAI_dim_name), dimUnits=units, &
-        dimValues=LAIBoundaries_temp, laiSelect)
+        dimName=trim(laiDimName), dimUnits=units, &
+        dimValues=nint(LAIBoundaries_temp), selectIndices=laiSelect)
 
     if (do_read_states) then
       allocate(mask_soil1 (level1(iDomain)%nrows, level1(iDomain)%ncols, nSoilHorizons))
@@ -1125,18 +1130,18 @@ CONTAINS
 
   ! Modifications:
 
-  subroutine write_eff_params(mask1, s1, e1, iDomainNLandCoverPeriods, iDomainNlaiPeriods, &
-          rows1, cols1, soil1, lcscenes, lais, nc)
+  subroutine write_eff_params(mask1, s1, e1, rows1, cols1, soil1, lcscenes, lais, &
+          iDomainNLandCoverPeriods, iDomainNlaiPeriods, nc)
 
     use mo_constants, only : nodata_dp
     use mo_common_variables, only : processMatrix
     use mo_kind, only : i4
     use mo_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, &
-                                        L1_alpha, L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, &
-                                        L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, &
-                                        L1_kSlowFlow, L1_karstLoss, L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, &
-                                        L1_sealedThresh, L1_soilMoistExp, L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, &
-                                        L1_tempThresh, L1_unsatThresh, L1_wiltingPoint, nSoilHorizons
+            L1_alpha, L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, &
+            L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, &
+            L1_kSlowFlow, L1_karstLoss, L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, &
+            L1_sealedThresh, L1_soilMoistExp, L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, &
+            L1_tempThresh, L1_unsatThresh, L1_wiltingPoint, nSoilHorizons
     use mo_netcdf, only : NcDataset, NcDimension
 
     implicit none
@@ -1145,9 +1150,10 @@ CONTAINS
     logical, dimension(:, :), intent(in) :: mask1
 
     ! start and end index at level 1, number of land cover and lai periods
-    integer(i4), intent(in) :: s1, e1, iDomainNLandCoverPeriods, iDomainNlaiPeriods
+    integer(i4), intent(in) :: s1, e1
 
     type(NcDimension), intent(in) :: rows1, cols1, soil1, lcscenes, lais
+    integer(i4), intent(in) :: iDomainNLandCoverPeriods, iDomainNlaiPeriods
 
     type(NcDataset), intent(inout) :: nc
 
@@ -1298,7 +1304,7 @@ CONTAINS
                                     L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
                                     L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
                                     L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                    L1_wiltingPoint, iDomainNlaiPeriods, nSoilHorizons
+                                    L1_wiltingPoint, nSoilHorizons
 
     implicit none
 
@@ -1394,7 +1400,7 @@ CONTAINS
                                 L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
                                 L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
                                 L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                L1_wiltingPoint, iDomainNlaiPeriods, nSoilHorizons
+                                L1_wiltingPoint
 
     deallocate(L1_fRoots)
     deallocate(L1_soilMoistFC)

@@ -264,7 +264,7 @@ contains
               tmp_file = tFile, popul_file = pFile, &
               bestf = funcbest)
     case default
-      call finish('mRM', 'This optimization method is not implemented.')
+      call error_message('mRM', 'This optimization method is not implemented.')
     end select
     call timer_stop(iTimer)
     call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')

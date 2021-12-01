@@ -177,7 +177,7 @@ contains
     integer(i4), dimension(:), allocatable, intent(in) :: laiSelect
     logical, intent(in), optional :: do_init_arg
     
-    integer(i4) :: nCells, iDA, s1, e1, newLandCoverSlices, newlaiSlices
+    integer(i4) :: nCells, iDA, s1, e1, newLandCoverSlices, newlaiSlices, iLC
     logical :: do_init
     real(dp), dimension(:, :, :), allocatable :: dummy3D, dummy3D_temp
     real(dp), dimension(:, :), allocatable :: dummy2D
@@ -444,10 +444,10 @@ contains
               dummy3D = reshape(MPR_DATA_ARRAYS(iDA)%data, [nCells, nlaiPeriodsRaw, nLandCoverPeriodsRaw])
               dummy3D = dummy3D(:, laiSelect, landCoverSelect)
               allocate(dummy3D_temp(nCells, nlaiPeriods, nLandCoverPeriodsRaw))
-              do i=1, size(landCoverSelect)
-                dummy2D = dummy3D(:,:,i)
+              do iLC=1, size(landCoverSelect)
+                dummy2D = dummy3D(:,:,iLC)
                 call add_nodata_slice(dummy2D, nlaiPeriods - newlaiSlices, nodata_dp)
-                dummy3D_temp(:, :, i) = dummy2D
+                dummy3D_temp(:, :, iLC) = dummy2D
               end do
               call add_nodata_slice(dummy3D_temp, nLandCoverPeriods - newLandCoverSlices, nodata_dp)
               call append(L1_aeroResist, dummy3D_temp)
@@ -502,7 +502,7 @@ contains
     use mo_mpr_constants, only : maxNoDataArrays, maxNameLength
     use mo_read_nc, only: check_soil_dimension_consistency
     use mo_common_datetime_type, only: simPer, laiPeriods, landCoverPeriods
-    use mo_common_constants, only: maxNLais, maxNLcovers
+    use mo_common_constants, only: maxNLais, maxNLcovers, keepUnneededPeriodsLAI, keepUnneededPeriodsLandCover
 
   
     ! grid to save information to
@@ -510,7 +510,7 @@ contains
     integer(i4), intent(in) :: iDomain
     integer(i4), dimension(:), allocatable, intent(out) :: landCoverSelect
     integer(i4), intent(out) :: nLandCoverPeriods_temp
-    real(dp), dimension(:), allocatable, intent(out) :: laiSelect
+    integer(i4), dimension(:), allocatable, intent(out) :: laiSelect
     integer(i4), intent(out) :: nLAIs_temp
     logical, intent(in), optional :: do_init_arg
   
@@ -531,8 +531,8 @@ contains
       ! init some main properties
       new_grid%xllcorner = MPR_COORDINATES(iDim_x(1))%bounds(1)
       new_grid%yllcorner = MPR_COORDINATES(iDim_y(1))%bounds(1)
-      new_grid%nrows = MPR_COORDINATES(iDim_x(1))%count
-      new_grid%ncols = MPR_COORDINATES(iDim_y(1))%count
+      new_grid%nrows = int(MPR_COORDINATES(iDim_x(1))%count, kind=i4)
+      new_grid%ncols = int(MPR_COORDINATES(iDim_y(1))%count, kind=i4)
       new_grid%cellsize = MPR_COORDINATES(iDim_x(1))%step
 
       ! allocate all 2d properties, now that we know the dimensionality
@@ -551,7 +551,7 @@ contains
 
       ! get the z dimension
       iDim = get_index_in_coordinate('horizon_out')
-      nSoilHorizons_temp = MPR_COORDINATES(iDim(1))%count
+      nSoilHorizons_temp = int(MPR_COORDINATES(iDim(1))%count, kind=i4)
       allocate(soilHorizonBoundaries_temp(0: nSoilHorizons_temp))
       soilHorizonBoundaries_temp = MPR_COORDINATES(iDim(1))%values(0: nSoilHorizons_temp)
 
@@ -566,19 +566,24 @@ contains
 
     ! get the LAI dimension
     iDim = get_index_in_coordinate(trim(LAI_dim_name))
-    nLAIs_temp = MPR_COORDINATES(iDim(1))%count
+    nLAIs_temp = int(MPR_COORDINATES(iDim(1))%count, kind=i4)
 
+    ! converting real values to integer
     call laiPeriods(iDomain)%init(n=nLAIs_temp, nMax=maxNLais, name='LAI', simPerArg=simPer(iDomain), &
-            dimName=trim(LAI_dim_name), dimUnits=MPR_COORDINATES(iDim(1))%units, &
-            dimValues=MPR_COORDINATES(iDim(1))%values(1: nLAIs_temp), laiSelect)
+            dimName=trim(LAI_dim_name), dimUnits=MPR_COORDINATES(iDim(1))%unit, &
+            dimValues=nint(MPR_COORDINATES(iDim(1))%values(1: nLAIs_temp)), &
+            keepUnneededPeriods=keepUnneededPeriodsLandCover, selectIndices=laiSelect)
 
     ! get the landcover dimension
     iDim = get_index_in_coordinate('land_cover_period_out')
-    nLandCoverPeriods_temp = MPR_COORDINATES(iDim(1))%count
+    nLandCoverPeriods_temp = int(MPR_COORDINATES(iDim(1))%count, kind=i4)
 
-    call landCoverPeriods(iDomain)%init(n=nLandCoverPeriods_temp, nMax=maxNLcovers, name='land cover', simPerArg=simPer(iDomain), &
-            dimName='land_cover_period_out', dimUnits=MPR_COORDINATES(iDim(1))%units, &
-            dimValues=MPR_COORDINATES(iDim(1))%values(1: nLandCoverPeriods_temp), landCoverSelect)
+    ! converting real values to integer
+    call landCoverPeriods(iDomain)%init(n=nLandCoverPeriods_temp, nMax=maxNLcovers, name='land cover', &
+            simPerArg=simPer(iDomain), &
+            dimName='land_cover_period_out', dimUnits=MPR_COORDINATES(iDim(1))%unit, &
+            dimValues=nint(MPR_COORDINATES(iDim(1))%values(1: nLandCoverPeriods_temp)), &
+            keepUnneededPeriods=keepUnneededPeriodsLandCover, selectIndices=landCoverSelect)
 
   end subroutine init_grid
 
