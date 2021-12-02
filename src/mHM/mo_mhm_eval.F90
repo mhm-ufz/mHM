@@ -406,7 +406,9 @@ CONTAINS
             iMeteo_p5 = [iMeteoTS, 1, 1, iMeteoTS, iMeteoTS, iMeteoTS ]
         end select
 
-        if (tt < domainDateTime%nTimeSteps) then
+        ! TODO: this is bad design really...
+        ! we should increment all time counters together AFTER the mhm execution and writeout at end of time loop!!!
+        if (tt > 1) then
           call laiPeriods(iDomain)%increment(domainDateTime)
         end if
         lcId = landCoverPeriods(iDomain)%i
