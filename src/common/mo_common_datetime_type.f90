@@ -418,7 +418,7 @@ MODULE mo_common_datetime_type
     integer(i4), intent(out) :: jRef
     class(period), intent(out) :: inPeriod
     !> the values in seconds and i8, thus seperate from dimValues
-    integer(i8), dimension(size(dimValues)), intent(out) :: dimValuesSeconds
+    integer(i8), dimension(:), allocatable, intent(out) :: dimValuesSeconds
 
     ! reference time
     integer(i4) :: yRef, dRef, mRef, hRef
@@ -475,13 +475,13 @@ MODULE mo_common_datetime_type
     ! compare the read period from ncfile to the period required
     ! convert julian second information back to date via conversion to float
     ! the 0.5_dp is for the different reference of fractional julian days, hours are truncated
-    nTime = size(dimValues)
-    call dec2date(dimValues(1) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, inPeriod%dStart, inPeriod%mStart, &
+    nTime = size(dimValuesSeconds)
+    call dec2date(dimValuesSeconds(1) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, inPeriod%dStart, inPeriod%mStart, &
             inPeriod%yStart, hstart_int)
-    inPeriod%julStart = int(dimValues(1) / DaySecs + jRef + hRef / 24._dp)
-    call dec2date(dimValues(nTime) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, inPeriod%dEnd, inPeriod%mEnd, &
+    inPeriod%julStart = int(dimValuesSeconds(1) / DaySecs + jRef + hRef / 24._dp)
+    call dec2date(dimValuesSeconds(nTime) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, inPeriod%dEnd, inPeriod%mEnd, &
             inPeriod%yEnd, hend_int)
-    inPeriod%julEnd = int(dimValues(nTime) / DaySecs + jRef + hRef / 24._dp)
+    inPeriod%julEnd = int(dimValuesSeconds(nTime) / DaySecs + jRef + hRef / 24._dp)
 
 
   end subroutine check_time_unit
@@ -573,7 +573,7 @@ MODULE mo_common_datetime_type
     !> start index for counter
     integer(i4), intent(out) :: i
     !> indices to select from inPeriod
-    integer(i4), dimension(size(dimValues)), intent(out) :: selectIndices
+    integer(i4), dimension(:), allocatable, intent(out) :: selectIndices
 
 
     real(dp), dimension(size(dimValues)-1) :: dimValuesDiff
@@ -584,7 +584,8 @@ MODULE mo_common_datetime_type
     character(256) :: error_msg
     
     ! default in case of use keepUnneededPeriods: use all indices of inPeriod
-    selectIndices = [(iInd, iInd=1, size(selectIndices))]
+    nTime = size(dimValues)
+    selectIndices = [(iInd, iInd=1, nTime-1)]
     dimValuesDiff = real(abs(dimValues(2 : nTime) - dimValues(1 : nTime - 1)), kind=dp)
 
     ! prepare the selection and check for required time_step
@@ -635,14 +636,16 @@ MODULE mo_common_datetime_type
     end if
     if (.not. keepUnneededPeriods) then
       ! we select only the relevant slice of dates
-      selectIndices = selectIndices(i: i+nSel)
+      selectIndices = selectIndices(i: i+nSel-1)
       ! ... and thus start with index 1
       i = 1_i4
     end if
 
     ! Check if time steps in file cover simulation period
     if (.not. ((ncJulSta1 <= simPerArg%julStart) .AND. (inPeriod%julEnd >= simPerArg%julEnd))) then
-      call error_message('***ERROR: time period of input data is not matching modelling period.')
+      call error_message('***ERROR: time period of input data (', &
+              trim(num2str(ncJulSta1)), trim(num2str(inPeriod%julEnd)), ') is not matching modelling period (',&
+              trim(num2str(simPerArg%julStart)), trim(num2str(simPerArg%julEnd)), ').')
     end if
 
   end subroutine get_period_indices

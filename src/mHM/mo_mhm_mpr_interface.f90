@@ -572,7 +572,7 @@ contains
     call laiPeriods(iDomain)%init(n=nLAIs_temp, nMax=maxNLais, name='LAI', simPerArg=simPer(iDomain), &
             dimName=trim(LAI_dim_name), dimUnits=MPR_COORDINATES(iDim(1))%unit, &
             dimValues=nint(MPR_COORDINATES(iDim(1))%values), &
-            keepUnneededPeriods=keepUnneededPeriodsLandCover, selectIndices=laiSelect)
+            keepUnneededPeriods=keepUnneededPeriodsLAI, selectIndices=laiSelect)
 
     ! get the landcover dimension
     iDim = get_index_in_coordinate('land_cover_period_out')
