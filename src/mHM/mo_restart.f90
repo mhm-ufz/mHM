@@ -115,7 +115,7 @@ CONTAINS
 
     implicit none
 
-    character(256) :: Fname
+    character(256) :: filename
 
     ! Output Path for each domain
     character(256), dimension(:), intent(in) :: OutFile
@@ -158,11 +158,11 @@ CONTAINS
       uniqueIDomain = domainMeta%L0DataFrom(iDomain)
 
       ! write restart file for iDomain
-      Fname = trim(OutFile(iDomain))
+      filename = trim(OutFile(iDomain))
       ! print a message
-      call message("    Writing Restart-file: ", trim(adjustl(Fname)), " ...")
+      call message("    Writing Restart-file: ", trim(adjustl(filename)), " ...")
 
-      nc = NcDataset(fname, "w")
+      nc = NcDataset(filename, "w")
 
       call write_grid_info(level1(iDomain), "1", nc, write_cell_area=domainMeta%doRouting(iDomain))
 
@@ -365,7 +365,7 @@ CONTAINS
     character(256), intent(in) :: InFile
     logical, intent(in), optional :: do_read_states_arg, do_read_dims_arg
     
-    character(256) :: Fname
+    character(256) :: filename
     ! loop index
     integer(i4) :: ii, jj
     ! start index at level 1
@@ -391,7 +391,6 @@ CONTAINS
     integer(i4), dimension(:), allocatable :: landCoverSelect, laiSelect
     integer(i4), dimension(:), allocatable :: varShape
     character(256) :: units
-    character(256) :: laiDimName
 
 
     do_read_states = .true.
@@ -399,16 +398,15 @@ CONTAINS
     do_read_dims = .true.
     if (present(do_read_dims_arg)) do_read_dims = do_read_dims_arg
 
-    Fname = trim(InFile)
-    ! call message('    Reading states from ', trim(adjustl(Fname)),' ...')
+    filename = trim(InFile)
+    ! call message('    Reading states from ', trim(adjustl(filename)),' ...')
+    nc = NcDataset(filename, "r")
 
     ! get domain information at level 1
     allocate(mask1 (level1(iDomain)%nrows, level1(iDomain)%ncols))
     mask1 = level1(iDomain)%mask
     s1 = level1(iDomain)%iStart
     e1 = level1(iDomain)%iEnd
-
-    nc = NcDataset(fname, "r")
 
     ! get the dimensions
     var = nc%getVariable(trim(soilHorizonsVarName)//'_bnds')
@@ -429,16 +427,16 @@ CONTAINS
     landCoverPeriodBoundaries_temp(1:nLandCoverPeriods_temp) = dummyD2(1,:)
     landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1) = dummyD2(2, nLandCoverPeriods_temp)
 
+    units = 'years'
     call landCoverPeriods(iDomain)%init(n=nLandCoverPeriods_temp, nMax=maxNLcovers, name='land cover', &
             simPerArg=simPer(iDomain), &
-            dimName=trim(landCoverPeriodsVarName), dimValues=nint(landCoverPeriodBoundaries_temp), &
+            units=trim(units), periodValues=nint(landCoverPeriodBoundaries_temp), &
             keepUnneededPeriods=keepUnneededPeriodsLandCover, selectIndices=landCoverSelect)
 
     ! the default unit, use if not specified otherwise in file
     units = 'month of year'
     ! get the LAI dimension
     if (nc%hasVariable(trim(LAIVarName)//'_bnds')) then
-      laiDimName = trim(LAIVarName)
       var = nc%getVariable(trim(LAIVarName)//'_bnds')
       call var%getData(dummyD2)
       nLAIs_temp = size(dummyD2, 2)
@@ -448,19 +446,18 @@ CONTAINS
       if (var%hasAttribute('units')) then
         call var%getAttribute('units', units)
       end if
-    else if (nc%hasDimension('L1_LAITimesteps')) then
-      laiDimName = 'L1_LAITimesteps'
-      nc_dim = nc%getDimension('L1_LAITimesteps')
+    else if (nc%hasDimension(trim(LAIVarName))) then
+      nc_dim = nc%getDimension(trim(LAIVarName))
       nLAIs_temp = nc_dim%getLength()
       allocate(LAIBoundaries_temp(nLAIs_temp+1))
       LAIBoundaries_temp = [(real(ii, kind=dp), ii=1, nLAIs_temp+1)]
     else
-      call error_message('Could not find LAI period coordinate variable in file ', trim(Fname))
+      call error_message('Could not find LAI period coordinate variable in file ', trim(filename))
     end if
 
     call laiPeriods(iDomain)%init(n=nLAIs_temp, nMax=maxNLais, name='LAI', simPerArg=simPer(iDomain), &
-        dimName=trim(laiDimName), dimUnits=units, &
-        dimValues=nint(LAIBoundaries_temp), selectIndices=laiSelect)
+            units=trim(units), periodValues=nint(LAIBoundaries_temp), &
+            keepUnneededPeriods=keepUnneededPeriodsLAI, selectIndices=laiSelect)
 
     if (do_read_states) then
       allocate(mask_soil1 (level1(iDomain)%nrows, level1(iDomain)%ncols, nSoilHorizons))
@@ -1160,7 +1157,6 @@ CONTAINS
     !-------------------------------------------
     ! EFFECTIVE PARAMETERS
     !-------------------------------------------
-    ! TODO: MPR update the routine based on new bounds
     call unpack_field_and_write(nc, "L1_fSealed", &
             [rows1, cols1, lcscenes], nodata_dp, L1_fSealed(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
             "fraction of Sealed area at level 1")

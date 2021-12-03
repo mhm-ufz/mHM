@@ -570,8 +570,8 @@ contains
 
     ! converting real values to integer
     call laiPeriods(iDomain)%init(n=nLAIs_temp, nMax=maxNLais, name='LAI', simPerArg=simPer(iDomain), &
-            dimName=trim(LAI_dim_name), dimUnits=MPR_COORDINATES(iDim(1))%unit, &
-            dimValues=nint(MPR_COORDINATES(iDim(1))%values), &
+            units=MPR_COORDINATES(iDim(1))%unit, &
+            periodValues=nint(MPR_COORDINATES(iDim(1))%values), &
             keepUnneededPeriods=keepUnneededPeriodsLAI, selectIndices=laiSelect)
 
     ! get the landcover dimension
@@ -581,8 +581,8 @@ contains
     ! converting real values to integer
     call landCoverPeriods(iDomain)%init(n=nLandCoverPeriods_temp, nMax=maxNLcovers, name='land cover', &
             simPerArg=simPer(iDomain), &
-            dimName='land_cover_period_out', dimUnits=MPR_COORDINATES(iDim(1))%unit, &
-            dimValues=nint(MPR_COORDINATES(iDim(1))%values), &
+            units=MPR_COORDINATES(iDim(1))%unit, &
+            periodValues=nint(MPR_COORDINATES(iDim(1))%values), &
             keepUnneededPeriods=keepUnneededPeriodsLandCover, selectIndices=landCoverSelect)
 
   end subroutine init_grid

@@ -244,22 +244,28 @@ MODULE mo_common_datetime_type
 
   end subroutine init_period
 
-  subroutine init_aggregateperiod(this, n, nMax, name, simPerArg, dimName, dimUnits, dimValues, &
+  subroutine init_aggregateperiod(this, n, nMax, name, simPerArg, units, periodValues, &
           keepUnneededPeriods, selectIndices)
 
     class(aggregateperiod), intent(inout) :: this
+    !> size of aggregatePeriod values and maximum size allowed (error is raised here, if violated)
     integer(i4), intent(in) :: n, nMax
+    !> name of the aggregatePeriod (currently used for either land cover or LAI)
     character(*), intent(in) :: name
+    !> reference simulation period (used for validity checking and selection)
     class(period), intent(in) :: simPerArg
-    character(*), intent(in), optional :: dimName
-    character(*), intent(in), optional :: dimUnits
-    integer(i4), dimension(:), intent(in), optional :: dimValues
+    !> units of the values to describe aggregateperiod
+    character(*), intent(in) :: units
+    !> values for the aggregatePeriod (e.g. read from netcdf file)
+    integer(i4), dimension(:), intent(in), optional :: periodValues
+    !> flag whether to select periodValues so values not in simPerArg are discarded
     logical, intent(in), optional :: keepUnneededPeriods
+    !> integer vector containing indices of periodValues to select (depends on keepUnneededPeriods)
     integer(i4), dimension(:), allocatable, intent(out) :: selectIndices
 
     integer(i4) :: iSel
     type(period) :: inPeriod
-    integer(i8), dimension(:), allocatable :: dimValuesSeconds
+    integer(i8), dimension(:), allocatable :: periodValuesSeconds
 
     this%nIds = n
     this%name = name
@@ -270,54 +276,51 @@ MODULE mo_common_datetime_type
     end if
 
     this%isRegular = .true.
-    if (present(dimName)) then
-      select case(dimName)
-      case('day_of_year', 'day of year')
-        this%isAveraged = .true.
-        this%timeStep = -1_i4
-        selectIndices = [(iSel, iSel=1, n)]
-        ! select doy, keepUnneededPeriods is ignored (one year simPerArg is assumed), values 1:366 is assumed
-        this%i = get_doy(simPerArg%yStart, simPerArg%mStart, simPerArg%dStart)
-      case('month_of_year', 'month of year')
-        this%isAveraged = .true.
-        this%timeStep = -2_i4
-        selectIndices = [(iSel, iSel=1, n)]
-        ! select moy, keepUnneededPeriods is ignored (one year simPerArg is assumed), values 1:12 is assumed
-        this%i = simPerArg%mStart
-      ! first is default in MPR, second in restart file
-      case('land_cover_period_out', 'L1_LandCoverPeriods')
-        if (.not. present(keepUnneededPeriods)) then
-          call error_message('Cannot init aggregate period by name "', trim(dimName), &
-                  '", without flag keepUnneededPeriods.')
-        end if
-        this%isAveraged = .false.
-        this%timeStep = -3_i4
-        this%isRegular = .false.
-        ! dimValues are boundaries here and thus are of size n+1 !!!
-        call get_land_cover_period_indices(simPerArg, dimValues, keepUnneededPeriods, &
-                yearIds=this%yearIds, selectIndices=selectIndices)
-        allocate(this%boundaries(size(selectIndices)+1))
-        this%boundaries(1) = dimValues(selectIndices(1))
-        do iSel=1, size(selectIndices)
-          this%boundaries(iSel+1) = dimValues(selectIndices(iSel)+1)
-        end do
-        this%i = this%yearIds(simPerArg%yStart)
-        this%nIds = size(selectIndices)
-      case default
-        if (.not. present(dimUnits)) then
-          call error_message('Cannot init aggregate period by name "', trim(dimName), '", but without units.')
-        end if
-        if (.not. present(keepUnneededPeriods)) then
-          call error_message('Cannot init aggregate period by name "', trim(dimName), &
-                  '", without flag keepUnneededPeriods.')
-        end if
-        call check_time_unit(dimUnits, dimValues, this%refJulDate, inPeriod, this%secondsSince)
-        this%isAveraged = .false.
-        call get_period_indices(simPerArg, this%secondsSince, inPeriod, keepUnneededPeriods, &
-                this%timeStep, this%i, selectIndices)
-        this%nIds = size(selectIndices)
-      end select
-    end if
+    select case(units)
+    case('day_of_year', 'day of year')
+      this%isAveraged = .true.
+      this%timeStep = -1_i4
+      selectIndices = [(iSel, iSel=1, n)]
+      ! select doy, keepUnneededPeriods is ignored (one year simPerArg is assumed), values 1:366 is assumed
+      this%i = get_doy(simPerArg%yStart, simPerArg%mStart, simPerArg%dStart)
+    case('month_of_year', 'month of year')
+      this%isAveraged = .true.
+      this%timeStep = -2_i4
+      selectIndices = [(iSel, iSel=1, n)]
+      ! select moy, keepUnneededPeriods is ignored (one year simPerArg is assumed), values 1:12 is assumed
+      this%i = simPerArg%mStart
+    ! first is default in MPR, second in restart file
+    ! TODO: switch to a CF-compatible representation and naming
+    case('years', 'year')
+      if (.not. present(keepUnneededPeriods)) then
+        call error_message('Cannot init aggregate period by units "', trim(units), &
+                '", without flag keepUnneededPeriods.')
+      end if
+      this%isAveraged = .false.
+      this%timeStep = -3_i4
+      this%isRegular = .false.
+      ! periodValues are boundaries here and thus are of size n+1 !!!
+      call get_land_cover_period_indices(simPerArg, periodValues, keepUnneededPeriods, &
+              yearIds=this%yearIds, selectIndices=selectIndices)
+      if (allocated(this%boundaries)) deallocate(this%boundaries)
+      allocate(this%boundaries(size(selectIndices)+1))
+      this%boundaries(1) = periodValues(selectIndices(1))
+      do iSel=1, size(selectIndices)
+        this%boundaries(iSel+1) = periodValues(selectIndices(iSel)+1)
+      end do
+      this%i = this%yearIds(simPerArg%yStart)
+      this%nIds = size(selectIndices)
+    case default
+      if (.not. present(keepUnneededPeriods)) then
+        call error_message('Cannot init aggregate period by name "', trim(units), &
+                '", without flag keepUnneededPeriods.')
+      end if
+      call check_time_unit(units, periodValues, this%refJulDate, inPeriod, this%secondsSince)
+      this%isAveraged = .false.
+      call get_period_indices(simPerArg, this%secondsSince, inPeriod, keepUnneededPeriods, &
+              this%timeStep, this%i, selectIndices)
+      this%nIds = size(selectIndices)
+    end select
 
   end subroutine init_aggregateperiod
 
@@ -379,7 +382,7 @@ MODULE mo_common_datetime_type
         write(units, '(A)') 'years'
       else
         call dec2date(real(this%refJulDate, kind=dp), dd, mm, yy)
-        write(units, '(A,I4,A,I2,A,I2)') 'days since ',yy, '-', mm, '-', dd
+        write(units, '(A,I0.4,A,I0.2,A,I0.2)') 'days since ',yy, '-', mm, '-', dd
       end if
     end if
 
@@ -403,20 +406,20 @@ MODULE mo_common_datetime_type
 
   end function get_values_aggregateperiod
 
-  subroutine check_time_unit(dimUnits, dimValues, jRef, inPeriod, dimValuesSeconds)
-    !< reads dimUnits string, converts dimValues to unit "seconds since date" (dimValuesSeconds, jRef) and also
-    !< outputs the period covered by dimValues
+  subroutine check_time_unit(dimUnits, periodValues, jRef, inPeriod, periodValuesSeconds)
+    !< reads dimUnits string, converts periodValues to unit "seconds since date" (periodValuesSeconds, jRef) and also
+    !< outputs the period covered by periodValues
     use mo_constants, only : DayHours, DaySecs, YearDays
     use mo_julian, only : caldat, dec2date, julday
     use mo_kind, only : i8
     use mo_string_utils, only : divide_string
 
     character(*), intent(in) :: dimUnits
-    integer(i4), dimension(:), intent(in) :: dimValues
+    integer(i4), dimension(:), intent(in) :: periodValues
     integer(i4), intent(out) :: jRef
     class(period), intent(out), optional :: inPeriod
-    !> the values in seconds and i8, thus seperate from dimValues
-    integer(i8), dimension(:), allocatable, intent(out) :: dimValuesSeconds
+    !> the values in seconds and i8, thus seperate from periodValues
+    integer(i8), dimension(:), allocatable, intent(out) :: periodValuesSeconds
 
     ! reference time
     integer(i4) :: yRef, dRef, mRef, hRef
@@ -463,24 +466,24 @@ MODULE mo_common_datetime_type
     end if
     
     ! convert array from units since to seconds
-    dimValuesSeconds = int(dimValues, kind=i8) * timeStepSeconds
+    periodValuesSeconds = int(periodValues, kind=i8) * timeStepSeconds
 
 
     if (present(inPeriod)) then
       ! check for length of time vector, needs to be at least of length 2, otherwise step width check fails
-      if (size(dimValues) < 2_i4) then
+      if (size(periodValues) < 2_i4) then
         call error_message('***ERROR: length of time dimension needs to be at least 2')
       end if
       ! compare the read period from ncfile to the period required
       ! convert julian second information back to date via conversion to float
       ! the 0.5_dp is for the different reference of fractional julian days, hours are truncated
-      nTime = size(dimValuesSeconds)
-      call dec2date(dimValuesSeconds(1) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, inPeriod%dStart, inPeriod%mStart, &
+      nTime = size(periodValuesSeconds)
+      call dec2date(periodValuesSeconds(1) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, inPeriod%dStart, inPeriod%mStart, &
               inPeriod%yStart, hstart_int)
-      inPeriod%julStart = int(dimValuesSeconds(1) / DaySecs + jRef + hRef / 24._dp)
-      call dec2date(dimValuesSeconds(nTime) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, inPeriod%dEnd, inPeriod%mEnd, &
+      inPeriod%julStart = int(periodValuesSeconds(1) / DaySecs + jRef + hRef / 24._dp)
+      call dec2date(periodValuesSeconds(nTime) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, inPeriod%dEnd, inPeriod%mEnd, &
               inPeriod%yEnd, hend_int)
-      inPeriod%julEnd = int(dimValuesSeconds(nTime) / DaySecs + jRef + hRef / 24._dp)
+      inPeriod%julEnd = int(periodValuesSeconds(nTime) / DaySecs + jRef + hRef / 24._dp)
     end if
 
 
@@ -554,7 +557,7 @@ MODULE mo_common_datetime_type
 
   !>       \brief Extract time vector
   !>       \details Extract time vector in unit julian hours and get supposed time step in hours
-  subroutine get_period_indices(simPerArg, dimValues, inPeriod, keepUnneededPeriods, timeStep, i, selectIndices)
+  subroutine get_period_indices(simPerArg, periodValues, inPeriod, keepUnneededPeriods, timeStep, i, selectIndices)
 
     use mo_constants, only : DayHours, DaySecs, YearDays
     use mo_julian, only : caldat, julday
@@ -563,7 +566,7 @@ MODULE mo_common_datetime_type
     !> simulation period
     class(period), intent(in) :: simPerArg
     !> vector of date values [s]
-    integer(i8), dimension(:), allocatable, intent(inout) :: dimValues
+    integer(i8), dimension(:), allocatable, intent(inout) :: periodValues
     !> period of input data which needs to be indexed/selected
     class(period), intent(in) :: inPeriod
     !> flag indicating whether to select only needed periods (defined by simulationperiod)
@@ -576,7 +579,7 @@ MODULE mo_common_datetime_type
     integer(i4), dimension(:), allocatable, intent(out) :: selectIndices
 
 
-    real(dp), dimension(size(dimValues)-1) :: dimValuesDiff
+    real(dp), dimension(size(periodValues)-1) :: periodValuesDiff
     integer(i4) :: ncJulSta1, dd, nTime, iInd, nSel, iErr
     integer(i4) :: mmcalstart, mmcalend, yycalstart, yycalend
     integer(i4) :: mmncstart, yyncstart
@@ -584,21 +587,21 @@ MODULE mo_common_datetime_type
     character(256) :: error_msg
     
     ! default in case of use keepUnneededPeriods: use all indices of inPeriod
-    nTime = size(dimValues)
+    nTime = size(periodValues)
     selectIndices = [(iInd, iInd=1, nTime-1)]
-    dimValuesDiff = real(abs(dimValues(2 : nTime) - dimValues(1 : nTime - 1)), kind=dp)
+    periodValuesDiff = real(abs(periodValues(2 : nTime) - periodValues(1 : nTime - 1)), kind=dp)
 
     ! prepare the selection and check for required time_step
     ! sanity check: difference must be 1 day
-    if (all((dimValuesDiff / DaySecs - 1._dp) <= 1.e-6)) then
+    if (all((periodValuesDiff / DaySecs - 1._dp) <= 1.e-6)) then
       ncJulSta1 = inPeriod%julStart
       ! in case of use keepUnneededPeriods: this is the first valid index for simPerArg
       i = simPerArg%julStart - ncJulSta1 + 1_i4
       nSel = simPerArg%julEnd - simPerArg%julStart + 1_i4
       timeStep = -1
     ! sanity check: difference must be between 28 and 31 days
-    elseif (all((dimValuesDiff / DaySecs) <= 31._dp) .and. &
-            all((dimValuesDiff / DaySecs) >= 28._dp)) then
+    elseif (all((periodValuesDiff / DaySecs) <= 31._dp) .and. &
+            all((periodValuesDiff / DaySecs) >= 28._dp)) then
       call caldat(simPerArg%julStart, dd, mmcalstart, yycalstart)
       call caldat(inPeriod%julStart, dd, mmncstart, yyncstart)
       ! monthly timesteps are usually set by month end, so for beginning, we need 1st of month
@@ -609,8 +612,8 @@ MODULE mo_common_datetime_type
       nSel = (yycalend * 12 + mmcalend) - (yycalstart * 12 + mmcalstart) + 1_i4
       timeStep = -2  ! monthly time step
     ! difference must be between 365 and 366 days
-    elseif (all((dimValuesDiff / DaySecs) <= (YearDays + 1._dp)) .and. &
-            all((dimValuesDiff / DaySecs) >= YearDays)) then
+    elseif (all((periodValuesDiff / DaySecs) <= (YearDays + 1._dp)) .and. &
+            all((periodValuesDiff / DaySecs) >= YearDays)) then
       call caldat(simPerArg%julStart, dd, mmcalstart, yycalstart)
       call caldat(inPeriod%julStart, dd, mmncstart, yyncstart)
       ! yearly timesteps are usually set by year end, so for beginning, we need 1st of year
@@ -621,15 +624,15 @@ MODULE mo_common_datetime_type
       nSel = yycalend - yycalstart + 1_i4
       timeStep = -3  ! yearly time step
     ! difference must be 1 hour
-    elseif (all((dimValuesDiff / 3600._dp - 1._dp) <= 1.e-6)) then
+    elseif (all((periodValuesDiff / 3600._dp - 1._dp) <= 1.e-6)) then
       ncJulSta1 = inPeriod%julStart
       i = (simPerArg%julStart - ncJulSta1) * 24_i4 + 1_i4 ! convert to hours; always starts at one
       nSel = (simPerArg%julEnd - simPerArg%julStart + 1_i4) * 24_i4 ! convert to hours
       timeStep = -4  ! hourly time step
     else
       call message('First time step differences in file [days]:')
-      do iErr=1, max(3_i4, size(dimValuesDiff))
-        call message(trim(num2str(iErr)), ' :', trim(num2str(dimValuesDiff(iErr) / DaySecs)))
+      do iErr=1, max(3_i4, size(periodValuesDiff))
+        call message(trim(num2str(iErr)), ' :', trim(num2str(periodValuesDiff(iErr) / DaySecs)))
       end do
       call error_message('***ERROR: time step cannot be inferred because steps are not equal over all times ', &
               'and/or do not conform to any common timestep.' )
@@ -638,7 +641,7 @@ MODULE mo_common_datetime_type
       ! we select only the relevant slice of dates
       selectIndices = selectIndices(i: i+nSel-1)
       ! apply it to values stored
-      dimValues = dimValues(i: i+nSel)
+      periodValues = periodValues(i: i+nSel)
       ! ... and thus start with index 1
       i = 1_i4
     end if
