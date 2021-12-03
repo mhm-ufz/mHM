@@ -519,8 +519,9 @@ contains
     real(dp), dimension(:), allocatable :: soilHorizonBoundaries_temp
     integer(i4) :: iDA, uniqueIDomain
     integer(i4), dimension(:), allocatable :: iDim_x, iDim_y, iDim
-    character(maxNameLength) :: LAI_dim_name
-  
+    character(maxNameLength) :: laiDimName
+    character(2048) :: units
+
     if (do_init_arg) then
       ! TODO: make all that more flexible (coordinate and mask detection)
       ! get the x dimension
@@ -562,26 +563,28 @@ contains
 
     ! use a field for inferring that dimension (name depends on the input data and is flexible)
     iDA = get_index_in_vector('L1_Max_Canopy_Intercept', MPR_DATA_ARRAYS)
-    LAI_dim_name = MPR_DATA_ARRAYS(iDA)%coords(3)%coord_p%name
+    laiDimName = MPR_DATA_ARRAYS(iDA)%coords(3)%coord_p%name
 
     ! get the LAI dimension
-    iDim = get_index_in_coordinate(trim(LAI_dim_name))
+    iDim = get_index_in_coordinate(trim(laiDimName))
     nLAIs_temp = int(MPR_COORDINATES(iDim(1))%count, kind=i4)
+    call MPR_COORDINATES(iDim(1))%get_attribute('units', units)
 
     ! converting real values to integer
     call laiPeriods(iDomain)%init(n=nLAIs_temp, nMax=maxNLais, name='LAI', simPerArg=simPer(iDomain), &
-            units=MPR_COORDINATES(iDim(1))%unit, &
+            units=units, &
             periodValues=nint(MPR_COORDINATES(iDim(1))%values), &
             keepUnneededPeriods=keepUnneededPeriodsLAI, selectIndices=laiSelect)
 
     ! get the landcover dimension
     iDim = get_index_in_coordinate('land_cover_period_out')
     nLandCoverPeriods_temp = int(MPR_COORDINATES(iDim(1))%count, kind=i4)
+    call MPR_COORDINATES(iDim(1))%get_attribute('units', units)
 
     ! converting real values to integer
     call landCoverPeriods(iDomain)%init(n=nLandCoverPeriods_temp, nMax=maxNLcovers, name='land cover', &
             simPerArg=simPer(iDomain), &
-            units=MPR_COORDINATES(iDim(1))%unit, &
+            units=units, &
             periodValues=nint(MPR_COORDINATES(iDim(1))%values), &
             keepUnneededPeriods=keepUnneededPeriodsLandCover, selectIndices=landCoverSelect)
 
