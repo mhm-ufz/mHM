@@ -347,7 +347,7 @@ MODULE mo_common_datetime_type
           if (.not. this%isRegular) then
             ! this is hackish thing as it might be that this routine is called after the domainDateTime is incremented
             ! over the last valid this%years
-            if (datetimeinfoArg%year < ubound(this%yearIds, dim=1)) then
+            if (datetimeinfoArg%year <= ubound(this%yearIds, dim=1)) then
               this%i = this%yearIds(datetimeinfoArg%year)
             end if
           else
@@ -563,7 +563,7 @@ MODULE mo_common_datetime_type
     !> simulation period
     class(period), intent(in) :: simPerArg
     !> vector of date values [s]
-    integer(i8), dimension(:), intent(in) :: dimValues
+    integer(i8), dimension(:), allocatable, intent(inout) :: dimValues
     !> period of input data which needs to be indexed/selected
     class(period), intent(in) :: inPeriod
     !> flag indicating whether to select only needed periods (defined by simulationperiod)
@@ -637,6 +637,8 @@ MODULE mo_common_datetime_type
     if (.not. keepUnneededPeriods) then
       ! we select only the relevant slice of dates
       selectIndices = selectIndices(i: i+nSel-1)
+      ! apply it to values stored
+      dimValues = dimValues(i: i+nSel)
       ! ... and thus start with index 1
       i = 1_i4
     end if

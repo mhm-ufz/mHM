@@ -171,12 +171,12 @@ CONTAINS
 
       ! write the dimension to the file and also save bounds
       soil1 = nc%setCoordinate(trim(soilHorizonsVarName), nSoilHorizons, soilHorizonBoundaries, 2_i4)
-      ! write the dimension to the file
+      ! write the dimension to the file, set correct units and set end-stagger
       lais = nc%setCoordinate(trim(LAIVarName), laiPeriods(iDomain)%nIds, &
-              real(laiPeriods(iDomain)%get_values(), kind=dp), 0_i4, &
+              real(laiPeriods(iDomain)%get_values(), kind=dp), 2_i4, &
               attribute_names=['units'], attribute_values=[laiPeriods(iDomain)%get_unit()])
       lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), landCoverPeriods(iDomain)%nIds, &
-              real(landCoverPeriods(iDomain)%get_values(), kind=dp), 0_i4, attribute_names=['units'], &
+              real(landCoverPeriods(iDomain)%get_values(), kind=dp), 2_i4, attribute_names=['units'], &
               attribute_values=[landCoverPeriods(iDomain)%get_unit()])
 
       ! for appending and intialization
