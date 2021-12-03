@@ -9,7 +9,6 @@
 !< 
 !< also contains nTimestep, and tIndex_out for writing
 !<
-!< finally, contains iLAI and yId that are time dependent and updating routines
 !< for these, and a function returning a boolean for writeout, dependent on the
 !< timestep_model_input
 
@@ -35,9 +34,11 @@ MODULE mo_common_datetime_type
     integer(i4) :: i
     integer(i4), dimension(:), allocatable :: yearIds     ! mapping of ids to each simPer year
     integer(i4), dimension(:), allocatable :: boundaries  ! all boundaries of input data (nIds + 1) in case of
-                                                          ! isRegular == .false. and timeStep yearly
-    integer(i4) :: timeStep
+                                                          ! isRegular == .false. and timeStep yearly, needed for
+                                                          ! writing to restart file
+    integer(i8), dimension(:), allocatable :: secondsSince  ! seconds since refJulDate
     integer(i4) :: refJulDate
+    integer(i4) :: timeStep
     logical :: isAveraged
     logical :: isRegular
 
@@ -210,9 +211,10 @@ MODULE mo_common_datetime_type
     integer(i4), dimension(12), parameter :: months = [31,28,31,30,31,30,31,31,30,31,30,31]
     integer(i4) :: doy
 
-    integer(i4) :: leapDay = 0_i4
+    integer(i4) :: leapDay
 
     !leap year
+     leapDay = 0_i4
     if (is_leap_year(yy)) leapDay = 1_i4
     doy = sum(months(1:mm-1)) + dd + leapDay
 
@@ -309,9 +311,9 @@ MODULE mo_common_datetime_type
           call error_message('Cannot init aggregate period by name "', trim(dimName), &
                   '", without flag keepUnneededPeriods.')
         end if
-        call check_time_unit(dimUnits, dimValues, this%refJulDate, inPeriod, dimValuesSeconds)
+        call check_time_unit(dimUnits, dimValues, this%refJulDate, inPeriod, this%secondsSince)
         this%isAveraged = .false.
-        call get_period_indices(simPerArg, dimValuesSeconds, inPeriod, keepUnneededPeriods, &
+        call get_period_indices(simPerArg, this%secondsSince, inPeriod, keepUnneededPeriods, &
                 this%timeStep, this%i, selectIndices)
         this%nIds = size(selectIndices)
       end select
@@ -373,24 +375,18 @@ MODULE mo_common_datetime_type
         units = 'month of year'
       end select
     else
-      call dec2date(real(this%refJulDate, kind=dp), dd, mm, yy)
-      select case (this%timeStep)
-      case(-1) ! daily timestep
+      if (.not. this%isRegular) then
+        write(units, '(A)') 'years'
+      else
+        call dec2date(real(this%refJulDate, kind=dp), dd, mm, yy)
         write(units, '(A,I4,A,I2,A,I2)') 'days since ',yy, '-', mm, '-', dd
-      case(-2) ! monthly timestep
-        write(units, '(A,I4,A,I2,A,I2)') 'months since ',yy, '-', mm, '-', dd
-      case(-3) ! yearly timestep
-        if (.not. this%isRegular) then
-          write(units, '(A)') 'years'
-        else
-          write(units, '(A,I4,A,I2,A,I2)') 'years since ',yy, '-', mm, '-', dd
-        end if
-      end select
+      end if
     end if
 
   end function get_unit_aggregateperiod
 
   function get_values_aggregateperiod(this) result(values)
+    use mo_constants, only: DaySecs
     class(aggregateperiod), intent(inout) :: this
     integer(i4), dimension(:), allocatable :: values
     integer(i4) :: iVal
@@ -401,13 +397,15 @@ MODULE mo_common_datetime_type
       if (.not. this%isRegular) then
         values = this%boundaries
       else
-        values = [(iVal, iVal=0_i4, this%nIds)]
+        values = int(this%secondsSince / DaySecs, kind=i4)
       end if
     end if
 
   end function get_values_aggregateperiod
 
   subroutine check_time_unit(dimUnits, dimValues, jRef, inPeriod, dimValuesSeconds)
+    !< reads dimUnits string, converts dimValues to unit "seconds since date" (dimValuesSeconds, jRef) and also
+    !< outputs the period covered by dimValues
     use mo_constants, only : DayHours, DaySecs, YearDays
     use mo_julian, only : caldat, dec2date, julday
     use mo_kind, only : i8
@@ -416,7 +414,7 @@ MODULE mo_common_datetime_type
     character(*), intent(in) :: dimUnits
     integer(i4), dimension(:), intent(in) :: dimValues
     integer(i4), intent(out) :: jRef
-    class(period), intent(out) :: inPeriod
+    class(period), intent(out), optional :: inPeriod
     !> the values in seconds and i8, thus seperate from dimValues
     integer(i8), dimension(:), allocatable, intent(out) :: dimValuesSeconds
 
@@ -467,21 +465,23 @@ MODULE mo_common_datetime_type
     ! convert array from units since to seconds
     dimValuesSeconds = int(dimValues, kind=i8) * timeStepSeconds
 
-    ! check for length of time vector, needs to be at least of length 2, otherwise step width check fails
-    if (size(dimValues) < 2_i4) then
-      call error_message('***ERROR: length of time dimension needs to be at least 2')
-    end if
 
-    ! compare the read period from ncfile to the period required
-    ! convert julian second information back to date via conversion to float
-    ! the 0.5_dp is for the different reference of fractional julian days, hours are truncated
-    nTime = size(dimValuesSeconds)
-    call dec2date(dimValuesSeconds(1) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, inPeriod%dStart, inPeriod%mStart, &
-            inPeriod%yStart, hstart_int)
-    inPeriod%julStart = int(dimValuesSeconds(1) / DaySecs + jRef + hRef / 24._dp)
-    call dec2date(dimValuesSeconds(nTime) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, inPeriod%dEnd, inPeriod%mEnd, &
-            inPeriod%yEnd, hend_int)
-    inPeriod%julEnd = int(dimValuesSeconds(nTime) / DaySecs + jRef + hRef / 24._dp)
+    if (present(inPeriod)) then
+      ! check for length of time vector, needs to be at least of length 2, otherwise step width check fails
+      if (size(dimValues) < 2_i4) then
+        call error_message('***ERROR: length of time dimension needs to be at least 2')
+      end if
+      ! compare the read period from ncfile to the period required
+      ! convert julian second information back to date via conversion to float
+      ! the 0.5_dp is for the different reference of fractional julian days, hours are truncated
+      nTime = size(dimValuesSeconds)
+      call dec2date(dimValuesSeconds(1) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, inPeriod%dStart, inPeriod%mStart, &
+              inPeriod%yStart, hstart_int)
+      inPeriod%julStart = int(dimValuesSeconds(1) / DaySecs + jRef + hRef / 24._dp)
+      call dec2date(dimValuesSeconds(nTime) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, inPeriod%dEnd, inPeriod%mEnd, &
+              inPeriod%yEnd, hend_int)
+      inPeriod%julEnd = int(dimValuesSeconds(nTime) / DaySecs + jRef + hRef / 24._dp)
+    end if
 
 
   end subroutine check_time_unit
