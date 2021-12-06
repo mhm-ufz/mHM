@@ -74,7 +74,6 @@ contains
 
     real(dp), dimension(:), allocatable :: parameterValuesConcat
     character(maxNameLength), dimension(:), allocatable :: parameterNamesConcat
-    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp, LAIBoundaries_temp
     integer(i4), dimension(:), allocatable :: landCoverSelect, laiSelect
     integer(i4) :: iDomain, previousDomain, iDA, nLandCoverPeriods_temp, nLAIs_temp
     type(NcDataset) :: nc
@@ -88,6 +87,7 @@ contains
     do iDomain = 1, domainMeta%nDomains
       
       if (allocated(landCoverSelect)) deallocate(landCoverSelect)
+      if (allocated(laiSelect)) deallocate(laiSelect)
       ! read the config
       if (domainMeta%L0DataFrom(iDomain) == previousDomain) then
         ! use grid from previousDomain
