@@ -18,8 +18,7 @@ module mo_read_nc
   public :: read_const_nc
   public :: read_weights_nc
   public :: check_sort_order
-  public :: get_land_cover_period_indices
-  public :: check_dimension_consistency
+  public :: check_soil_dimension_consistency
   interface check_consistency_element
     module procedure check_consistency_element_i4, &
             check_consistency_element_dp
@@ -880,100 +879,22 @@ contains
 
   end subroutine check_sort_order_4DI4
 
-  subroutine get_land_cover_period_indices(iDomain, boundaries, select_indices)
-    use mo_common_variables, only: nLandCoverPeriods, landCoverPeriodBoundaries
-    use mo_string_utils, only: compress
-    use mo_common_datetime_type, only: simPer, LCyearId
-    use mo_common_constants, only: keepUnneededLandCoverPeriods
-    use mo_message, only: error_message
-    use mo_string_utils, only: num2str
-
-    integer(i4), intent(in) :: iDomain
-    real(dp), dimension(:), intent(inout) :: boundaries
-    integer(i4), dimension(:), intent(out), allocatable :: select_indices
-
-    logical, dimension(size(boundaries) - 1) :: select_indices_mask
-    logical, dimension(size(boundaries)) :: select_indices_temp
-
-    integer(i4) :: select_index, iBoundary, LCyearStart, LCyearEnd
-
-    ! sanity check
-    if (size(boundaries) - 1 > nLandCoverPeriods) then
-      call error_message('There is a maximum of ', trim(num2str(nLandCoverPeriods)), &
-              ' land cover periods allowed. Passed ', trim(num2str(size(boundaries) - 1)), &
-              ' for domain ', num2str(iDomain), '.')
-    end if
-    allocate(select_indices(size(boundaries) - 1))
-    select_index = 0_i4
-    select_indices_mask = .false.
-    LCyearStart = lbound(LCyearId, dim=1)
-    LCyearEnd = ubound(LCyearId, dim=1)
-
-    ! set the correct indices to use
-    do iBoundary=1, size(boundaries) - 1
-      ! check for overlap ((StartA <= EndB) and (EndA >= StartB))
-      ! https://stackoverflow.com/questions/325933/
-      if ((boundaries(iBoundary) <= simPer(iDomain)%yend) .and. &
-             ((boundaries(iBoundary+1)-1) >= simPer(iDomain)%ystart) .or. keepUnneededLandCoverPeriods) then
-        ! advance counter
-        select_index = select_index + 1_i4
-        ! select this iBoundary from dimension
-        select_indices_mask(iBoundary) = .true.
-        ! set the correct LCyearId
-        LCyearId(&
-                maxval([int(boundaries(iBoundary)), LCyearStart]):&
-                minval([int(boundaries(iBoundary+1)), LCyearEnd]), iDomain) = select_index
-        ! set the boundaries as parsed
-        landCoverPeriodBoundaries(select_index, iDomain) = int(boundaries(iBoundary))
-        landCoverPeriodBoundaries(select_index + 1, iDomain) = int(boundaries(iBoundary + 1))
-      end if
-    end do
-    select_indices = pack([(iBoundary, iBoundary=1, size(boundaries) - 1)], select_indices_mask)
-
-    ! check if number of periods in namelist is enough
-    if (nLandCoverPeriods < select_index) then
-      call error_message('The number of selected land cover periods for domain ', compress(num2str(iDomain)), &
-              ' is bigger than allowed (', &
-              compress(num2str(nLandCoverPeriods)), '). Please set nLandCoverPeriods in namelist.')
-    end if
-
-    ! check if both start and end are covered
-    select_indices_temp = [select_indices_mask, .false.]
-    if (minval(boundaries, mask=select_indices_temp) > simPer(iDomain)%ystart) then
-      call error_message('The selected land cover periods for domain ', compress(trim(num2str(iDomain))), &
-              ' (', compress(trim(num2str(minval(boundaries, mask=select_indices_temp)))), &
-              ') do not cover the beginning of the simulation period (', &
-              compress(trim(num2str(simPer(iDomain)%ystart))), ').')
-    end if
-    select_indices_temp = [.false., select_indices_mask]
-    if (maxval(boundaries, mask=select_indices_temp) < simPer(iDomain)%yend) then
-      call error_message('The selected land cover periods for domain ', compress(trim(num2str(iDomain))), &
-              ' (', compress(trim(num2str(maxval(boundaries, mask=select_indices_temp)))), &
-              ' ) do not cover the end of the simulation period (', &
-              compress(trim(num2str(simPer(iDomain)%yend))), ').')
-    end if
-  end subroutine get_land_cover_period_indices
-
-  subroutine check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
-          nLAIs_temp, LAIBoundaries_temp)
-    use mo_global_variables, only: nSoilHorizons, soilHorizonBoundaries, nLAIs, LAIBoundaries
+  subroutine check_soil_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp)
+    use mo_global_variables, only: nSoilHorizons, soilHorizonBoundaries
     use mo_string_utils, only: compress, num2str
     use mo_utils, only: ne
     use mo_message, only: message
 
     integer(i4), intent(in) :: iDomain
-    integer(i4), intent(in) :: nSoilHorizons_temp, nLAIs_temp
-    real(dp), dimension(:), intent(inout) :: soilHorizonBoundaries_temp, &
-            LAIBoundaries_temp
+    integer(i4), intent(in) :: nSoilHorizons_temp
+    real(dp), dimension(:), intent(inout) :: soilHorizonBoundaries_temp
 
     integer(i4) :: k
 
     if (iDomain == 1) then
       ! set local to global
       nSoilHorizons = nSoilHorizons_temp
-      nLAIs = nLAIs_temp
       soilHorizonBoundaries = soilHorizonBoundaries_temp
-      LAIBoundaries = LAIBoundaries_temp
     else
       ! check if it conforms with global
       if (nSoilHorizons /= nSoilHorizons_temp) then
@@ -981,12 +902,7 @@ contains
                 ') does not conform with the number of soil horizons for domain ', &
                 compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nSoilHorizons_temp))), ').')
       end if
-      if (nLAIs /= nLAIs_temp) then
-        call error_message('The number of soil horizons for domain 1 (', compress(trim(num2str(nLAIs))), &
-                ') does not conform with the number of soil horizons for domain ', &
-                compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(nLAIs_temp))), ').')
-      end if
-      ! TODO-MPR: re-enable checks (false input for test domains) 
+      ! TODO-MPR: re-enable checks (false input for test domains)
       ! do k=1, nSoilHorizons+1
       !   if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k))) then
       !     call error_message('The ',compress(trim(num2str(k))),'th soil horizon boundary for domain 1 (', &
@@ -995,16 +911,9 @@ contains
       !             compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(soilHorizonBoundaries_temp(k)))), ').')
       !   end if
       ! end do
-      ! do k=1, nLAIs+1
-      !   if (ne(LAIBoundaries(k), LAIBoundaries_temp(k))) then
-      !     call error_message('The ',compress(trim(num2str(k))),'th LAI period boundary for domain 1 (', &
-      !             compress(trim(num2str(LAIBoundaries(k)))), ') does not conform with domain ', &
-      !             compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(LAIBoundaries_temp(k)))), ').')
-      !   end if
-      ! end do
     end if
 
-  end subroutine check_dimension_consistency
+  end subroutine check_soil_dimension_consistency
 
   subroutine check_consistency_element_dp(item1, item2, name, iDomain)
     use mo_utils, only: ne

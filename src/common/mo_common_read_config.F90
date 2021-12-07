@@ -48,11 +48,12 @@ CONTAINS
 
   subroutine common_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
-    use mo_common_constants, only : maxNLcovers, maxNoDomains, floatComparisonPrecision, float_comparison_precision
+    use mo_common_constants, only : maxNLcovers, maxNLais ,maxNoDomains, &
+            floatComparisonPrecision, float_comparison_precision
     use mo_common_variables, only : Conventions, contact, L0_Domain, &
                                     dirConfigOut, dirIn, dirOut, &
                                     mhmFileRestartOut, mrmFileRestartOut, &
-                                    fileLatLon, history, mHM_details, domainMeta, nLandCoverPeriods, &
+                                    fileLatLon, history, mHM_details, domainMeta, &
                                     nProcesses, nuniqueL0Domains, processMatrix, project_details, resolutionHydrology, &
                                     setup_description, simulation_type, write_restart, &
                                     dds_r, mhmFileRestartIn, mrmFileRestartIn, evalPer,&
@@ -60,8 +61,9 @@ CONTAINS
                                     opti_function, opti_method, optimize, optimize_restart, &
                                     read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
                                     sce_ngs, sce_npg, sce_nps, seed, &
-                                    warmPer, warmingDays, landCoverPeriodBoundaries
-    use mo_common_datetime_type, only: LCyearId, simPer, timestep, nTStepDay, period
+                                    warmPer, warmingDays
+    use mo_common_datetime_type, only: simPer, timestep, nTStepDay, period, &
+            landCoverPeriods, laiPeriods, nLandCoverPeriods, nlaiPeriods
     use mo_julian, only : caldat, julday
     use mo_message, only : error_message, message
     use mo_nml, only : close_nml, open_nml, position_nml
@@ -124,7 +126,7 @@ CONTAINS
     namelist /processSelection/ processCase
 
     ! namelist for land cover scenes
-    namelist/LCover/nLandCoverPeriods
+    namelist/aggregate_periods/nLandCoverPeriods, nlaiPeriods
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig_mhm_mrm/ timestep, resolution_Routing, optimize, &
             optimize_restart, opti_method, opti_function, &
@@ -282,6 +284,8 @@ CONTAINS
     allocate(evalPer(domainMeta%nDomains))
     allocate(warmingDays(domainMeta%nDomains))
     allocate(warmPer(domainMeta%nDomains))
+    allocate(laiPeriods(domainMeta%nDomains))
+    allocate(landCoverPeriods(domainMeta%nDomains))
 
     !===============================================================
     !  read simulation time periods incl. warming days
@@ -329,14 +333,18 @@ CONTAINS
     end do
 
     !===============================================================
-    ! Read land cover
+    ! Read aggregate_periods
     !===============================================================
-    call position_nml('LCover', unamelist)
-    read(unamelist, nml = LCover)
-    allocate(landCoverPeriodBoundaries(nLandCoverPeriods+1, domainMeta%nDomains))
-    allocate(LCyearId(minval(simPer(1:domainMeta%nDomains)%yStart):maxval(simPer(1:domainMeta%nDomains)%yEnd), domainMeta%nDomains))
-    landCoverPeriodBoundaries = nodata_i4
-    LCyearId = nodata_i4
+    call position_nml('aggregate_periods', unamelist)
+    read(unamelist, nml = aggregate_periods)
+    if (nLandCoverPeriods > maxNLcovers) then
+      call error_message('There is a maximum of ', trim(num2str(maxNLcovers)), &
+              'land cover periods allowed. Passed ', trim(num2str(nLandCoverPeriods)), '.')
+    end if
+    if (nlaiPeriods > maxNLais) then
+      call error_message('There is a maximum of ', trim(num2str(maxNLais)), &
+              'land cover periods allowed. Passed ', trim(num2str(nlaiPeriods)), '.')
+    end if
 
     !===============================================================
     ! Settings for Optimization
@@ -660,7 +668,6 @@ CONTAINS
                                  maxNoSoilHorizons
     ! use mo_mpr_global_variables, only : HorizonDepth_mHM, dirgridded_LAI, fracSealed_cityArea, iFlag_soilDB, &
     !                                     inputFormat_gridded_LAI, nGeoUnits, nSoilHorizons_mHM, tillageDepth
-    use mo_common_datetime_type, only : timeStep_LAI_input
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
     use mo_utils, only : EQ
