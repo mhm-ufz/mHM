@@ -386,7 +386,7 @@ CONTAINS
     type(NcVariable) :: var
     type(NcDimension) :: nc_dim
     integer(i4) :: nSoilHorizons_temp, nLAIs_temp, nLandCoverPeriods_temp
-    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp, soilHorizonBoundaries_temp, &
+    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp, soilHorizonBoundariesTemp, &
             LAIBoundaries_temp
     integer(i4), dimension(:), allocatable :: landCoverSelect, laiSelect
     integer(i4), dimension(:), allocatable :: varShape
@@ -412,12 +412,12 @@ CONTAINS
     var = nc%getVariable(trim(soilHorizonsVarName)//'_bnds')
     call var%getData(dummyD2)
     nSoilHorizons_temp = size(dummyD2, 2)
-    allocate(soilHorizonBoundaries_temp(nSoilHorizons_temp+1))
-    soilHorizonBoundaries_temp(1:nSoilHorizons_temp) = dummyD2(1,:)
-    soilHorizonBoundaries_temp(nSoilHorizons_temp+1) = dummyD2(2, nSoilHorizons_temp)
+    allocate(soilHorizonBoundariesTemp(nSoilHorizons_temp+1))
+    soilHorizonBoundariesTemp(1:nSoilHorizons_temp) = dummyD2(1,:)
+    soilHorizonBoundariesTemp(nSoilHorizons_temp+1) = dummyD2(2, nSoilHorizons_temp)
 
     ! check if soil and LAI are consistent with other domains, set to global if domain == 1
-    call check_soil_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp)
+    call check_soil_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundariesTemp)
 
     ! get the landcover dimension
     var = nc%getVariable(trim(landCoverPeriodsVarName)//'_bnds')

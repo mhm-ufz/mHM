@@ -3,7 +3,7 @@
 !>       \details - MPR is called with global parameters and path to its namelist
 !>                - MPR reads all the land surface properties on the level 0 grid(s)
 !>                - it then estimates the parameters and scaled them to level 1 (mHM grid (hydrology_resolution))
-!>                - parameter names have to conform with mHM parameter names
+!>                - parameter names have to conform with mHM parameter names (e.g. start with "L1_")
 !>                - level1 grid is inferred from MPR coordinates 'lon_out' and 'lat_out'
 !>                - level1 grid mask is inferred from field 'L1_latitude'
 !>                - land cover scenes are inferred from MPR coordinate 'land_cover_period_out'
@@ -41,6 +41,7 @@
 
 module mo_mhm_mpr_interface
 
+  ! some imports relevant for all routines in the module
   use mo_mpr_data_array, only : MPR_DATA_ARRAYS
   use mo_mpr_constants, only : maxNameLength
   use mo_kind, only : i4, dp
@@ -49,16 +50,19 @@ module mo_mhm_mpr_interface
   private
 
   public :: call_mpr
-  ! ------------------------------------------------------------------
 
 contains
 
-  subroutine call_mpr(parameterValues, parameterNames, grids, do_init_arg, opti_domain_indices)
+  subroutine call_mpr(parameterValues, parameterNames, grids, doInitArg)
+    !< this calls the external mpr library
+    !< the parameters stored in MPR_DATA_ARRAYS are explicitly read and iterated over
+    !< coordinate information are inferred implicitly through attributes of MPR_DATA_ARRAYS
+
     use mo_mpr_global_variables, only : out_filename
     use mo_mpr_read_config, only : mpr_read_config
     use mo_mpr_constants, only : maxNoDataArrays
     use mo_mpr_reset, only: reset
-    ! use mo_mpr_reorder_data_array, only: reorder_data_arrays
+
     use mo_netcdf, only : NcDataset
     use mo_common_variables, only : write_restart, dummy_global_parameters, dummy_global_parameters_name, domainMeta
     use mo_append, only: append
@@ -66,46 +70,51 @@ contains
     use mo_global_variables, only: pathMprNml, are_parameter_initialized
     use mo_grid, only: Grid
 
+    !> the vector of parameter values passed from mHM
     real(dp), dimension(:), intent(in) :: parameterValues
+    !> the vector of parameter names passed from mHM
     character(*), dimension(:), intent(in) :: parameterNames
+    !> the Grid type that stores the lat-lon grid of the parameters
     type(Grid), dimension(:), intent(inout) :: grids
-    logical, intent(in), optional :: do_init_arg
-    integer(i4), dimension(:), optional, intent(in) :: opti_domain_indices
+    !> boolean flag indicating whether initalize grid, land_cover and LAI period coordinates
+    logical, intent(in), optional :: doInitArg
 
     real(dp), dimension(:), allocatable :: parameterValuesConcat
     character(maxNameLength), dimension(:), allocatable :: parameterNamesConcat
     integer(i4), dimension(:), allocatable :: landCoverSelect, laiSelect
-    integer(i4) :: iDomain, previousDomain, iDA, nLandCoverPeriods_temp, nLAIs_temp
+    integer(i4) :: iDomain, previousDomain, iDA, nLandCoverPeriodsTemp, nLaisTemp
     type(NcDataset) :: nc
 
+    ! as the mHM configuration might not provide parameters for all data arrays in the mpr.nml -
+    ! dummy values for the global parameters missing are inserted here
     parameterValuesConcat = parameterValues
     parameterNamesConcat = parameterNames
     call append(parameterValuesConcat, dummy_global_parameters)
     call append(parameterNamesConcat, dummy_global_parameters_name)
 
+    ! loop over all domains
     previousDomain = 0
     do iDomain = 1, domainMeta%nDomains
       
       if (allocated(landCoverSelect)) deallocate(landCoverSelect)
       if (allocated(laiSelect)) deallocate(laiSelect)
-      ! read the config
+      ! if L0 data is shared ...
       if (domainMeta%L0DataFrom(iDomain) == previousDomain) then
         ! use grid from previousDomain
         grids(iDomain) = grids(previousDomain)
         ! get new landCoverperiod indices
-        call init_grid(grids(iDomain), iDomain, landCoverSelect, nLandCoverPeriods_temp, &
-            laiSelect, nLAIs_temp, .false.)
+        call init_grid(grids(iDomain), iDomain, landCoverSelect, nLandCoverPeriodsTemp, &
+            laiSelect, nLaisTemp, .false.)
         ! use parameters from previousDomain but use iDomains landCoverSeelct (based also on simulation period)
-        call init_eff_params_from_data_arrays(iDomain, grids(iDomain), nLandCoverPeriods_temp, landCoverSelect, &
-                nLAIs_temp, laiSelect, do_init_arg)
+        call init_eff_params_from_data_arrays(grids(iDomain), nLandCoverPeriodsTemp, landCoverSelect, &
+                nLaisTemp, laiSelect, doInsertArg=doInitArg)
         cycle
       end if
       
       previousDomain = domainMeta%L0DataFrom(iDomain)
-      
       ! delete MPR_DATA_ARRAYS
       call reset()
-
+      ! read the configuration file
       call mpr_read_config(pathMprNml(iDomain), unamelist_mpr, &
               parameterValues=parameterValuesConcat, parameterNames=parameterNamesConcat)
     
@@ -120,18 +129,16 @@ contains
       end if
     
       do iDA = 1, maxNoDataArrays
-        ! stop if no name is initialized
+        ! stop if no name is initialized by the configuration file
         if (.not. MPR_DATA_ARRAYS(iDA)%is_initialized) then
           cycle
         end if
-    
         ! execute MPR on each DataArray
         call MPR_DATA_ARRAYS(iDA)%execute()
         if (write_restart .and. MPR_DATA_ARRAYS(iDA)%toFile) then
           ! write the current parameter to the output file
           call MPR_DATA_ARRAYS(iDA)%write(nc)
         end if
-    
       end do
     
       if (write_restart) then
@@ -139,29 +146,34 @@ contains
         call nc%close()
       end if
     
-      ! TODO: we need to make sure there is no data gaps in data arrays... (former L0_check_input)
-      call init_grid(grids(iDomain), iDomain, landCoverSelect, nLandCoverPeriods_temp, &
-              laiSelect, nLAIs_temp, do_init_arg)
-      ! set parameters
-      call init_eff_params_from_data_arrays(iDomain, grids(iDomain), nLandCoverPeriods_temp, landCoverSelect, &
-              nLAIs_temp, laiSelect, do_init_arg)
+      ! TODO: MPR we need to make sure there is no data gaps in data arrays... (former L0_check_input)
+      ! - are all parameters initialized?
+      ! - same grids etc.
+      call init_grid(grids(iDomain), iDomain, landCoverSelect, nLandCoverPeriodsTemp, &
+              laiSelect, nLaisTemp, doInitArg)
+      ! set parameters (moves values from MPR_DATA_ARRAYS to mo_global_variables data structures)
+      call init_eff_params_from_data_arrays(grids(iDomain), nLandCoverPeriodsTemp, landCoverSelect, &
+              nLaisTemp, laiSelect, doInsertArg=doInitArg)
     end do
     ! delete MPR_DATA_ARRAYS
     call reset()
-    
+    ! some sanity checks
     call check_consistency()
     are_parameter_initialized = .true.
 
   end subroutine call_mpr
 
-  subroutine init_eff_params_from_data_arrays(iDomain, grid, nLandCoverPeriodsRaw, landCoverSelect, &
-          nlaiPeriodsRaw, laiSelect, do_init_arg)
+  subroutine init_eff_params_from_data_arrays(grid, nLandCoverPeriodsRaw, landCoverSelect, &
+          nlaiPeriodsRaw, laiSelect, doInsertArg)
+    !< fills and appends the effective parameters (mo_global_variables) based on MPR_DATA_ARRAYS
+    !< those parameters are stored in a lat-lon packed mode and are appended on this packed dimension (cells)
+    !< however, as land cover periods and LAI periods can vary over domains, empty slices might have to be inserted
     use mo_global_variables, only: nSoilHorizons, L1_fSealed, L1_alpha, L1_degDayInc, L1_degDayMax, &
             L1_degDayNoPre, L1_karstLoss, L1_maxInter, L1_kFastFlow, L1_kSlowFlow, &
             L1_kBaseFlow, L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp, L1_jarvis_thresh_c1, &
             L1_petLAIcorFactor, L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint, L1_fAsp, &
             L1_latitude, L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_fRoots, L1_surfResist
-    use mo_common_variables, only: domainMeta, processMatrix
+    use mo_common_variables, only: processMatrix
     use mo_grid, only: grid_type => Grid
     use mo_common_datetime_type, only: nLandCoverPeriods, nlaiPeriods
     use mo_mpr_constants, only: maxNoDataArrays
@@ -169,21 +181,26 @@ contains
     use mo_constants, only: nodata_dp
     use mo_mrm_global_variables, only: L0_slope
 
-    integer(i4), intent(in) :: iDomain
-    type(grid_type), intent(inout) :: grid
+    !> grid that contains critical information for appending values for domains >=2
+    type(grid_type), intent(in) :: grid
+    !> how many land cover periods are present in MPR_DATA_ARRAYS
     integer(i4), intent(in) :: nLandCoverPeriodsRaw
+    !> indices which land cover periods to select from MPR_DATA_ARRAYS
     integer(i4), dimension(:), allocatable, intent(in) :: landCoverSelect
+    !> how many LAI periods are present in MPR_DATA_ARRAYS
     integer(i4), intent(in) :: nlaiPeriodsRaw
+    !> indices which LAI periods to select from MPR_DATA_ARRAYS
     integer(i4), dimension(:), allocatable, intent(in) :: laiSelect
-    logical, intent(in), optional :: do_init_arg
+    !> optional flag indicating whether
+    logical, intent(in), optional :: doInsertArg
     
     integer(i4) :: nCells, iDA, s1, e1, newLandCoverSlices, newlaiSlices, iLC
-    logical :: do_init
+    logical :: doInsert
     real(dp), dimension(:, :, :), allocatable :: dummy3D, dummy3D_temp
     real(dp), dimension(:, :), allocatable :: dummy2D
   
-    do_init = .true.
-    if (present(do_init_arg)) do_init = do_init_arg
+    doInsert = .true.
+    if (present(doInsertArg)) doInsert = doInsertArg
   
     nCells = grid%nCells
     newLandCoverSlices = size(landCoverSelect)
@@ -192,7 +209,7 @@ contains
     do iDA = 1, maxNoDataArrays
       ! stop if no name is initialized
       if (MPR_DATA_ARRAYS(iDA)%name(1:3) == 'L1_') then
-        if (.not. do_init) then
+        if (.not. doInsert) then
           s1 = grid%iStart
           e1 = grid%iEnd
           ! The data arrays are selected based on name
@@ -490,74 +507,85 @@ contains
       end if
     end do
   
-  
   end subroutine init_eff_params_from_data_arrays
 
-  subroutine init_grid(new_grid, iDomain, landCoverSelect, nLandCoverPeriods_temp, &
-          laiSelect, nLAIs_temp, do_init_arg)
-    use mo_common_variables, only : Grid, domainMeta
+  subroutine init_grid(newGrid, iDomain, landCoverSelect, nLandCoverPeriodsTemp, laiSelect, nLaisTemp, doInitArg)
+    !< initialize the lat-lon grid, the land cover period and lai period objects and return the information
+    !< for those periods to select (n and ids)
+    use mo_common_variables, only : Grid
     use mo_grid, only : init_advanced_grid_properties
     use mo_mpr_coordinate, only: get_index_in_coordinate, MPR_COORDINATES
     use mo_mpr_utils, only: get_index_in_vector
-    use mo_mpr_constants, only : maxNoDataArrays, maxNameLength
+    use mo_mpr_constants, only : maxNameLength
     use mo_read_nc, only: check_soil_dimension_consistency
     use mo_common_datetime_type, only: simPer, laiPeriods, landCoverPeriods
     use mo_common_constants, only: maxNLais, maxNLcovers, keepUnneededPeriodsLAI, keepUnneededPeriodsLandCover
 
-  
-    ! grid to save information to
-    type(Grid), intent(inout) :: new_grid
+    !> grid to save information to
+    type(Grid), intent(inout) :: newGrid
+    !> domain index (if 1, set soil information as reference for all other domains)
     integer(i4), intent(in) :: iDomain
+    !> ids for land cover periods in nc file to select
     integer(i4), dimension(:), allocatable, intent(out) :: landCoverSelect
-    integer(i4), intent(out) :: nLandCoverPeriods_temp
+    !> total number of land cover periods in nc file
+    integer(i4), intent(out) :: nLandCoverPeriodsTemp
+    !> ids for lai periods in nc file to select
     integer(i4), dimension(:), allocatable, intent(out) :: laiSelect
-    integer(i4), intent(out) :: nLAIs_temp
-    logical, intent(in), optional :: do_init_arg
+    !> total number of lai periods in nc file
+    integer(i4), intent(out) :: nLaisTemp
+    !> optional flag whether to initialize the latlon grid (can be shared among domains)
+    logical, intent(in), optional :: doInitArg
   
-    logical :: do_init
-    integer(i4) :: nSoilHorizons_temp
-    real(dp), dimension(:), allocatable :: soilHorizonBoundaries_temp
-    integer(i4) :: iDA, uniqueIDomain
-    integer(i4), dimension(:), allocatable :: iDim_x, iDim_y, iDim
+    logical :: doInit
+    integer(i4) :: nSoilHorizonsTemp
+    real(dp), dimension(:), allocatable :: soilHorizonBoundariesTemp
+    integer(i4) :: iDA
+    integer(i4), dimension(:), allocatable :: iDimX, iDimY, iDim
     character(maxNameLength) :: laiDimName
     character(2048) :: units
 
-    if (do_init_arg) then
+    if (present(doInitArg)) then
+      doInit = doInitArg
+    else
+      doInit = .false.
+    end if
+
+    if (doInitArg) then
       ! TODO: make all that more flexible (coordinate and mask detection)
       ! get the x dimension
-      iDim_x = get_index_in_coordinate('lon_out')
+      iDimX = get_index_in_coordinate('lon_out')
       ! get the y dimension
-      iDim_y = get_index_in_coordinate('lat_out')
+      iDimY = get_index_in_coordinate('lat_out')
 
       ! init some main properties
-      new_grid%xllcorner = MPR_COORDINATES(iDim_x(1))%bounds(1)
-      new_grid%yllcorner = MPR_COORDINATES(iDim_y(1))%bounds(1)
-      new_grid%nrows = int(MPR_COORDINATES(iDim_x(1))%count, kind=i4)
-      new_grid%ncols = int(MPR_COORDINATES(iDim_y(1))%count, kind=i4)
-      new_grid%cellsize = MPR_COORDINATES(iDim_x(1))%step
+      newGrid%xllcorner = MPR_COORDINATES(iDimX(1))%bounds(1)
+      newGrid%yllcorner = MPR_COORDINATES(iDimY(1))%bounds(1)
+      newGrid%nrows = int(MPR_COORDINATES(iDimX(1))%count, kind=i4)
+      newGrid%ncols = int(MPR_COORDINATES(iDimY(1))%count, kind=i4)
+      newGrid%cellsize = MPR_COORDINATES(iDimX(1))%step
 
       ! allocate all 2d properties, now that we know the dimensionality
-      allocate(new_grid%x(new_grid%nrows, new_grid%ncols))
-      allocate(new_grid%y(new_grid%nrows, new_grid%ncols))
-      allocate(new_grid%mask(new_grid%nrows, new_grid%ncols))
+      allocate(newGrid%x(newGrid%nrows, newGrid%ncols))
+      allocate(newGrid%y(newGrid%nrows, newGrid%ncols))
+      allocate(newGrid%mask(newGrid%nrows, newGrid%ncols))
 
       ! for historic reasons this is in 2d
-      new_grid%x = spread(MPR_COORDINATES(iDim_x(1))%values(1:), 2, new_grid%ncols)
-      new_grid%y = spread(MPR_COORDINATES(iDim_y(1))%values(1:), 1, new_grid%nrows)
+      newGrid%x = spread(MPR_COORDINATES(iDimX(1))%values(1:), 2, newGrid%ncols)
+      newGrid%y = spread(MPR_COORDINATES(iDimY(1))%values(1:), 1, newGrid%nrows)
 
       ! use a 2d field for inferring the mask (cannot be derived from dimensions)
       iDA = get_index_in_vector('L1_latitude', MPR_DATA_ARRAYS)
-      new_grid%mask = reshape(MPR_DATA_ARRAYS(iDA)%reshapedMask, [new_grid%nrows, new_grid%ncols])
-      call init_advanced_grid_properties(new_grid)
+      newGrid%mask = reshape(MPR_DATA_ARRAYS(iDA)%reshapedMask, [newGrid%nrows, newGrid%ncols])
+      call init_advanced_grid_properties(newGrid)
 
       ! get the z dimension
       iDim = get_index_in_coordinate('horizon_out')
-      nSoilHorizons_temp = int(MPR_COORDINATES(iDim(1))%count, kind=i4)
-      allocate(soilHorizonBoundaries_temp(0: nSoilHorizons_temp))
-      soilHorizonBoundaries_temp = MPR_COORDINATES(iDim(1))%values(0: nSoilHorizons_temp)
+      nSoilHorizonsTemp = int(MPR_COORDINATES(iDim(1))%count, kind=i4)
+      allocate(soilHorizonBoundariesTemp(0: nSoilHorizonsTemp))
+      soilHorizonBoundariesTemp = MPR_COORDINATES(iDim(1))%values(0: nSoilHorizonsTemp)
 
       ! check if soil and LAI are consistent with other domains, set to global if domain == 1
-      call check_soil_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp)
+      call check_soil_dimension_consistency(iDomain, nSoilHorizonsTemp, soilHorizonBoundariesTemp)
 
     end if
 
@@ -567,22 +595,22 @@ contains
 
     ! get the LAI dimension
     iDim = get_index_in_coordinate(trim(laiDimName))
-    nLAIs_temp = int(MPR_COORDINATES(iDim(1))%count, kind=i4)
+    nLaisTemp = int(MPR_COORDINATES(iDim(1))%count, kind=i4)
     call MPR_COORDINATES(iDim(1))%get_attribute('units', units)
 
     ! converting real values to integer
-    call laiPeriods(iDomain)%init(n=nLAIs_temp, nMax=maxNLais, name='LAI', simPerArg=simPer(iDomain), &
+    call laiPeriods(iDomain)%init(n=nLaisTemp, nMax=maxNLais, name='LAI', simPerArg=simPer(iDomain), &
             units=units, &
             periodValues=nint(MPR_COORDINATES(iDim(1))%values), &
             keepUnneededPeriods=keepUnneededPeriodsLAI, selectIndices=laiSelect)
 
     ! get the landcover dimension
     iDim = get_index_in_coordinate('land_cover_period_out')
-    nLandCoverPeriods_temp = int(MPR_COORDINATES(iDim(1))%count, kind=i4)
+    nLandCoverPeriodsTemp = int(MPR_COORDINATES(iDim(1))%count, kind=i4)
     call MPR_COORDINATES(iDim(1))%get_attribute('units', units)
 
     ! converting real values to integer
-    call landCoverPeriods(iDomain)%init(n=nLandCoverPeriods_temp, nMax=maxNLcovers, name='land cover', &
+    call landCoverPeriods(iDomain)%init(n=nLandCoverPeriodsTemp, nMax=maxNLcovers, name='land cover', &
             simPerArg=simPer(iDomain), &
             units=units, &
             periodValues=nint(MPR_COORDINATES(iDim(1))%values), &
@@ -591,6 +619,7 @@ contains
   end subroutine init_grid
 
   subroutine check_consistency()
+    !< routine collecting all checks on the parameter fields read from MPR and its coordinates
     use mo_global_variables, only : nSoilHorizons
     use mo_common_variables, only : opti_function, optimize
     use mo_global_variables, only : nSoilHorizons_sm_input
