@@ -20,7 +20,7 @@ include(CPM)
 CPMAddPackage(
   NAME            forces
   GIT_REPOSITORY  https://git.ufz.de/chs/forces.git
-  GIT_TAG         develop
+  GIT_TAG         31-bug-in-mo_netcdf-subroutine-set_1d_coordinate_variable
   OPTIONS
     "BUILD_TESTING OFF"
 )
@@ -41,7 +41,7 @@ set(GENERATE_TFS_PARAM
 CPMAddPackage(
   NAME            mpr
   GIT_REPOSITORY  https://git.ufz.de/chs/mpr.git
-  GIT_TAG         develop
+  GIT_TAG         cmake_python_option
   # SOURCE_SUBDIR   src
   OPTIONS
     "BUILD_TESTING OFF"

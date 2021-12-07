@@ -168,7 +168,7 @@ to_file(5) = .false.
 
 name(6) = "pOM"
 transfer_func(6) = " where (land_cover > 0.5 .and. land_cover < 1.5)
- (1.0 - orgMatterSwitch) * orgMatterContent_forest + orgMatterContent_pervious
+ (1.0 - orgMatterSwitch) * orgMatterContent_pervious + orgMatterContent_forest
  else where (land_cover < 2.5) orgMatterContent_impervious
  else where (land_cover < 3.5) orgMatterContent_pervious"
 from_data_arrays(1,6) = "land_cover"

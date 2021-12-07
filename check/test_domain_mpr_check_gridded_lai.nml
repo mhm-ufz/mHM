@@ -4,12 +4,12 @@ coordinate_aliases(:,1) = "lon", "lon_out", "x", "lon_all", "xc_l0", "xc"
 coordinate_aliases(:,2) = "lat", "lat_out", "y", "lat_all", "yc_l0", "yc"
 coordinate_aliases(:,3) = "horizon_out", "horizon", "z", "horizon_all", "horizon_till", "horizon_notill"
 coordinate_aliases(:,4) = "land_cover_period", "land_cover_period_out"
-coordinate_aliases(:,5) = "month", "time_all"
+coordinate_aliases(:,5) = "time", "time_all"
 /
 
 &Coordinates
 coord_name(1:6) = "horizon", "horizon_out", "lat_out", "lon_out", "horizon_all", "land_cover_period"
-coord_name(7:13) = "land_cover_period_out", "horizon_till", "horizon_notill", "time_all", "lon_all", "lat_all", "month"
+coord_name(7:13) = "land_cover_period_out", "horizon_till", "horizon_notill", "time_all", "lon_all", "lat_all", "time"
 coord_stagger(1:13) = "end", "end", "center", "center", "end", "start", "start", "end", "end", "end", "end", "end", "end"
 coord_from_values_bound(1:2) = 0.0, 0.0
 coord_from_values(:,2) = 0.2, 1.0
@@ -176,7 +176,7 @@ name(6) = "pOM"
 !  else where (land_cover == 2) orgMatterContent_impervious 
 !  else where (land_cover == 3) orgMatterContent_pervious"
 transfer_func(6) = " where (land_cover > 0.5 .and. land_cover < 1.5) 
- (1.0 - orgMatterSwitch) * orgMatterContent_forest + orgMatterContent_pervious
+ (1.0 - orgMatterSwitch) * orgMatterContent_pervious + orgMatterContent_forest
  else where (land_cover < 2.5) orgMatterContent_impervious
  else where (land_cover < 3.5) orgMatterContent_pervious"
 from_data_arrays(1,6) = "land_cover"
@@ -680,7 +680,7 @@ to_file(81) = .false.
 
 name(82) = "LAI_month"
 from_data_arrays(1,82) = "lai"
-target_coord_names(1:4,82) = "land_cover_period", "month", "lat", "lon"
+target_coord_names(1:4,82) = "land_cover_period", "time", "lat", "lon"
 upscale_ops(1:4,82) = "1.0", "1.0", "1.0", "1.0"
 to_file(82) = .false.
 
@@ -692,13 +692,13 @@ to_file(83) = .false.
 
 name(84) = "LAI_max_broadcast"
 from_data_arrays(1,84) = "LAI_max_temp"
-target_coord_names(1:4,84) = "land_cover_period", "month", "lat", "lon"
+target_coord_names(1:4,84) = "land_cover_period", "time", "lat", "lon"
 upscale_ops(1:4,84) = "1.0", "1.0", "1.0", "1.0"
 to_file(84) = .false.
 
 name(85) = "land_cover_month"
 from_data_arrays(1,85) = "land_cover"
-target_coord_names(1:4,85) = "land_cover_period", "month", "lat", "lon"
+target_coord_names(1:4,85) = "land_cover_period", "time", "lat", "lon"
 upscale_ops(1:4,85) = "1.0", "1.0", "1.0", "1.0"
 to_file(85) = .false.
 
@@ -720,7 +720,7 @@ transfer_func(88) = "log((wind_measurement_height - displacementheight_coeff * c
 (roughnesslength_momentum_coeff * canopy_height)) * log((wind_measurement_height - displacementheight_coeff *
 canopy_height) / (roughnesslength_momentum_coeff * roughnesslength_heat_coeff * canopy_height)) / (karman ** 2.0)"
 from_data_arrays(1:2,88) = "canopy_height", "wind_measurement_height"
-target_coord_names(1:4,88) = "land_cover_period_out", "month", "lat_out", "lon_out"
+target_coord_names(1:4,88) = "land_cover_period_out", "time", "lat_out", "lon_out"
 upscale_ops(1:4,88) = "1.0", "1.0", "1.0", "1.0"
 
 name(89) = "L1_PET_LAI_correction_factor"
@@ -731,7 +731,7 @@ PET_a_impervious + (PET_b * (1.0 - exp(PET_c * LAI_month)))
 else where (land_cover_month < 3.5)
 PET_a_pervious + (PET_b * (1.0 - exp(PET_c * LAI_month)))"
 from_data_arrays(1:2,89) = "land_cover_month", "LAI_month"
-target_coord_names(1:4,89) = "land_cover_period_out", "month", "lat_out", "lon_out"
+target_coord_names(1:4,89) = "land_cover_period_out", "time", "lat_out", "lon_out"
 upscale_ops(1:4,89) = "1.0", "1.0", "-1.0", "-1.0"
 
 name(90) = "aspect"
@@ -763,20 +763,20 @@ upscale_ops(1:2,93) = "1.0", "1.0"
 name(94) = "L1_PrieTayAlpha"
 transfer_func(94) = "PriestleyTaylorCoeff + PriestleyTaylorLAIcorr * lai"
 from_data_arrays(1,94) = "lai"
-target_coord_names(1:3,94) = "month", "lat_out", "lon_out"
+target_coord_names(1:3,94) = "time", "lat_out", "lon_out"
 upscale_ops(1:3,94) = "1.0", "1.0", "1.0"
 
 name(95) = "L1_Bulk_Surface_Resist"
 transfer_func(95) = "stomatal_resistance / (lai / (LAI_factor_surfResi * lai + LAI_offset_surfResi))"
 from_data_arrays(1,95) = "lai"
-target_coord_names(1:3,95) = "month", "lat_out", "lon_out"
+target_coord_names(1:3,95) = "time", "lat_out", "lon_out"
 upscale_ops(1:3,95) = "1.0", "1.0", "1.0"
 limits(2,95) = 250.0
 
 name(96) = "L1_Max_Canopy_Intercept"
 transfer_func(96) = "canopyInterceptionFactor * lai"
 from_data_arrays(1,96) = "lai"
-target_coord_names(1:3,96) = "month", "lat_out", "lon_out"
+target_coord_names(1:3,96) = "time", "lat_out", "lon_out"
 upscale_ops(1:3,96) = "1.0", "1.0", "1.0"
 
 name(97) = "fRoots_total_FC"

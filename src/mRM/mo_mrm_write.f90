@@ -153,10 +153,10 @@ contains
     use mo_common_constants, only : nodata_dp
     use mo_common_file, only : file_config, uconfig
     use mo_common_variables, only : dirConfigOut, dirIn, dirOut, mrmFileRestartOut, global_parameters, &
-                                    global_parameters_name, level0, level1, domainMeta, nLandCoverPeriods, processMatrix, &
+                                    global_parameters_name, level0, level1, domainMeta, processMatrix, &
                                     resolutionHydrology, write_restart, evalPer, &
                                     read_restart, resolutionRouting, warmPer
-    use mo_common_datetime_type, only: LCyearId, SimPer, timeStep
+    use mo_common_datetime_type, only: simPer, timeStep, landCoverPeriods
     use mo_kind, only : dp, i4
     use mo_message, only : error_message, message
     use mo_mrm_file, only : version
@@ -244,7 +244,7 @@ contains
         write(uconfig, 118) '       Land Cover Observations for domain ', num2str(domainID)
         write(uconfig, 119) ' Year', '    Land cover period'
         do i = simPer(iDomain)%ystart, simPer(iDomain)%yend
-          write(uconfig, 120) i, LCyearId(i, iDomain)
+          write(uconfig, 120) i, landCoverPeriods(iDomain)%yearIds(i)
         end do
       end do
     end if

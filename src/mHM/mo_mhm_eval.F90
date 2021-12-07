@@ -83,7 +83,7 @@ CONTAINS
   SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
 
     use mo_optimization_types, only : optidata_sim
-    use mo_common_datetime_type, only : datetimeinfo, LCyearId, nTstepDay, simPer, timeStep
+    use mo_common_datetime_type, only : datetimeinfo, nTstepDay, simPer, timeStep, landCoverPeriods, laiPeriods
     use mo_common_variables, only : mhmFileRestartIn, mrmFileRestartIn, global_parameters_name, &
                                             optimize, readPer, read_restart, &
                                             warmingDays, c2TSTu, level1, domainMeta, processMatrix
@@ -163,7 +163,7 @@ CONTAINS
     type(OutputDataset) :: nc
 
     ! Counters
-    integer(i4) :: domainID, iDomain, tt
+    integer(i4) :: domainID, iDomain, tt, lcId, laiId
 
     ! No. of cells at level 1 for current Domain
     integer(i4) :: nCells
@@ -406,7 +406,13 @@ CONTAINS
             iMeteo_p5 = [iMeteoTS, 1, 1, iMeteoTS, iMeteoTS, iMeteoTS ]
         end select
 
-        call domainDateTime%update_LAI_timestep()
+        ! TODO: this is bad design really...
+        ! we should increment all time counters together AFTER the mhm execution and writeout at end of time loop!!!
+        if (tt > 1) then
+          call laiPeriods(iDomain)%increment(domainDateTime)
+        end if
+        lcId = landCoverPeriods(iDomain)%i
+        laiId = laiPeriods(iDomain)%i
 
         ! -------------------------------------------------------------------------
         ! ARGUMENT LIST KEY FOR mHM
@@ -445,7 +451,7 @@ CONTAINS
                 L1_windspeed(s_p5(6) : e_p5(6), iMeteo_p5(6)), & ! IN F:PET
                 L1_pre(s_meteo : e_meteo, iMeteoTS), & ! IN F:Pre
                 L1_temp(s_meteo : e_meteo, iMeteoTS), & ! IN F:Temp
-                L1_fSealed(s1_param : e1_param, domainDateTime%yId), & ! INOUT L1
+                L1_fSealed(s1_param : e1_param, lcId), & ! INOUT L1
                 L1_inter(s1 : e1), L1_snowPack(s1 : e1), L1_sealSTW(s1 : e1), & ! INOUT S
                 L1_soilMoist(s1 : e1, :), L1_unsatSTW(s1 : e1), L1_satSTW(s1 : e1), & ! INOUT S
                 L1_neutrons(s1 : e1), & ! INOUT S
@@ -456,28 +462,28 @@ CONTAINS
                 L1_runoffSeal(s1 : e1), L1_slowRunoff(s1 : e1), L1_snow(s1 : e1), & ! INOUT X
                 L1_Throughfall(s1 : e1), L1_total_runoff(s1 : e1), & ! INOUT X
                 ! TODO: MPR comment more distributed parameters
-                ! L1_alpha(s1_param : e1_param, domainDateTime%yId), L1_degDayInc(s1_param : e1_param, domainDateTime%yId), &
-                L1_alpha(s1_param : e1_param, 1), L1_degDayInc(s1_param : e1_param, domainDateTime%yId), &
-                L1_degDayMax(s1_param : e1_param, domainDateTime%yId), & ! INOUT E1
-                L1_degDayNoPre(s1_param : e1_param, domainDateTime%yId), L1_degDay(s1 : e1), & ! INOUT E1
+                ! L1_alpha(s1_param : e1_param, lcId), L1_degDayInc(s1_param : e1_param, lcId), &
+                L1_alpha(s1_param : e1_param, 1), L1_degDayInc(s1_param : e1_param, lcId), &
+                L1_degDayMax(s1_param : e1_param, lcId), & ! INOUT E1
+                L1_degDayNoPre(s1_param : e1_param, lcId), L1_degDay(s1 : e1), & ! INOUT E1
                 L1_fAsp(s1_param : e1_param), & ! INOUT E1
-                L1_petLAIcorFactor(s1_param : e1_param, domainDateTime%iLAI, domainDateTime%yId), & ! INOUT E1
+                L1_petLAIcorFactor(s1_param : e1_param, laiId, lcId), & ! INOUT E1
                 L1_HarSamCoeff(s1_param : e1_param), & ! INOUT E1
-                L1_PrieTayAlpha(s1_param : e1_param, domainDateTime%iLAI), & ! INOUT E1
-                L1_aeroResist(s1_param : e1_param, domainDateTime%iLAI, domainDateTime%yId), & ! INOUT E1
-                L1_surfResist(s1_param : e1_param, domainDateTime%iLAI), L1_fRoots(s1_param : e1_param, :, domainDateTime%yId), & ! INOUT E1
-                L1_maxInter(s1_param : e1_param, domainDateTime%iLAI), L1_karstLoss(s1_param : e1_param), & ! INOUT E1
-                ! L1_kFastFlow(s1_param : e1_param, domainDateTime%yId), L1_kSlowFlow(s1_param : e1_param, domainDateTime%yId), & ! INOUT E1
-                L1_kFastFlow(s1_param : e1_param, domainDateTime%yId), L1_kSlowFlow(s1_param : e1_param, 1), & ! INOUT E1
-                ! L1_kBaseFlow(s1_param : e1_param, domainDateTime%yId), L1_kPerco(s1_param : e1_param, domainDateTime%yId), & ! INOUT E1
+                L1_PrieTayAlpha(s1_param : e1_param, laiId), & ! INOUT E1
+                L1_aeroResist(s1_param : e1_param, laiId, lcId), & ! INOUT E1
+                L1_surfResist(s1_param : e1_param, laiId), L1_fRoots(s1_param : e1_param, :, lcId), & ! INOUT E1
+                L1_maxInter(s1_param : e1_param, laiId), L1_karstLoss(s1_param : e1_param), & ! INOUT E1
+                ! L1_kFastFlow(s1_param : e1_param, lcId), L1_kSlowFlow(s1_param : e1_param, lcId), & ! INOUT E1
+                L1_kFastFlow(s1_param : e1_param, lcId), L1_kSlowFlow(s1_param : e1_param, 1), & ! INOUT E1
+                ! L1_kBaseFlow(s1_param : e1_param, lcId), L1_kPerco(s1_param : e1_param, lcId), & ! INOUT E1
                 L1_kBaseFlow(s1_param : e1_param, 1), L1_kPerco(s1_param : e1_param, 1), & ! INOUT E1
-                L1_soilMoistFC(s1_param : e1_param, :, domainDateTime%yId), & ! INOUT E1
-                L1_soilMoistSat(s1_param : e1_param, :, domainDateTime%yId), & ! INOUT E1
-                L1_soilMoistExp(s1_param : e1_param, :, domainDateTime%yId), L1_jarvis_thresh_c1(s1_param : e1_param), & ! INOUT E1
-                ! L1_tempThresh(s1_param : e1_param, domainDateTime%yId), L1_unsatThresh(s1_param : e1_param, domainDateTime%yId), & ! INOUT E1
-                L1_tempThresh(s1_param : e1_param, domainDateTime%yId), L1_unsatThresh(s1_param : e1_param, 1), & ! INOUT E1
+                L1_soilMoistFC(s1_param : e1_param, :, lcId), & ! INOUT E1
+                L1_soilMoistSat(s1_param : e1_param, :, lcId), & ! INOUT E1
+                L1_soilMoistExp(s1_param : e1_param, :, lcId), L1_jarvis_thresh_c1(s1_param : e1_param), & ! INOUT E1
+                ! L1_tempThresh(s1_param : e1_param, lcId), L1_unsatThresh(s1_param : e1_param, lcId), & ! INOUT E1
+                L1_tempThresh(s1_param : e1_param, lcId), L1_unsatThresh(s1_param : e1_param, 1), & ! INOUT E1
                 L1_sealedThresh(s1_param : e1_param), & ! INOUT E1
-                L1_wiltingPoint(s1_param : e1_param, :, domainDateTime%yId)) ! INOUT E1
+                L1_wiltingPoint(s1_param : e1_param, :, lcId)) ! INOUT E1
 
         ! call mRM routing
         if (domainMeta%doRouting(iDomain)) then
@@ -556,7 +562,7 @@ CONTAINS
             call riv_temp_pcs%acc_source_E( &
               domainDateTime%newTime - 0.5_dp, &
               real(nTstepDay, dp), &
-              L1_fSealed(s1_param : e1_param, domainDateTime%yId), &
+              L1_fSealed(s1_param : e1_param, lcId), &
               L1_fastRunoff(s1 : e1), &
               L1_slowRunoff(s1 : e1), &
               L1_baseflow(s1 : e1), &
@@ -613,7 +619,7 @@ CONTAINS
             ! original routing specific input variables
             L11_length(s11 : e11 - 1), & ! link length
             L11_slope(s11 : e11 - 1), &
-            L11_nLinkFracFPimp(s11 : e11, domainDateTime%yID), & ! fraction of impervious layer at L11 scale
+            L11_nLinkFracFPimp(s11 : e11, lcId), & ! fraction of impervious layer at L11 scale
             ! general INPUT/OUTPUT variables
             L11_C1(s11 : e11), & ! first muskingum parameter
             L11_C2(s11 : e11), & ! second muskigum parameter
@@ -685,12 +691,12 @@ CONTAINS
           call nc%updateDataset(&
             s1, e1, &
             s1_param, e1_param, &
-            L1_fSealed(:, domainDateTime%yId), &
-            L1_fNotSealed(:, domainDateTime%yId), &
+            L1_fSealed(:, lcId), &
+            L1_fNotSealed(:, lcId), &
             L1_inter, &
             L1_snowPack, &
             L1_soilMoist, &
-            L1_soilMoistSat(:, :, domainDateTime%yId), &
+            L1_soilMoistSat(:, :, lcId), &
             L1_sealSTW, &
             L1_unsatSTW, &
             L1_satSTW, &
@@ -736,7 +742,7 @@ CONTAINS
             if (tt /= domainDateTime%nTimeSteps) then
               ! aggregate soil moisture to needed time step for optimization
               call smOptiSim(iDomain)%average_add(sum(L1_soilMoist(:, 1 : nSoilHorizons_sm_input), dim = 2) / &
-                              sum(L1_soilMoistSat(:, 1 : nSoilHorizons_sm_input, domainDateTime%yId), dim = 2))
+                              sum(L1_soilMoistSat(:, 1 : nSoilHorizons_sm_input, lcId), dim = 2))
             end if
           end if
         end if
@@ -779,9 +785,9 @@ CONTAINS
             if (tt /= domainDateTime%nTimeSteps) then
               ! aggregate evapotranspiration to needed time step for optimization
               call etOptiSim(iDomain)%add(sum(L1_aETSoil(s1 : e1, :), dim = 2) * &
-                      L1_fNotSealed(s1_param : e1_param, domainDateTime%yId) + &
+                      L1_fNotSealed(s1_param : e1_param, lcId) + &
                       L1_aETCanopy(s1 : e1) + &
-                      L1_aETSealed(s1 : e1) * L1_fSealed(s1_param : e1_param, domainDateTime%yId))
+                      L1_aETSealed(s1 : e1) * L1_fSealed(s1_param : e1_param, lcId))
             end if
           end if
         end if
@@ -812,14 +818,8 @@ CONTAINS
 
         ! TODO-RIV-TEMP: add OptiSim for river temperature
 
-        ! update the year-dependent domainDateTime%yId (land cover id)
-        if (domainDateTime%is_new_year .and. tt < domainDateTime%nTimeSteps) then
-          if (domainDateTime%year > ubound(LCyearId, dim=1)) then
-            ! TODO: temporary hack
-            print*, 'WARNING', tt, domainDateTime%year
-            cycle
-          end if
-          domainDateTime%yId = LCyearId(domainDateTime%year, iDomain)
+        if (tt < domainDateTime%nTimeSteps) then
+          call landCoverPeriods(iDomain)%increment(domainDateTime)
         end if
 
       end do TimeLoop !<< TIME STEPS LOOP
