@@ -272,14 +272,12 @@ CONTAINS
     end if
     if (.not. are_parameter_initialized) then
       !-------------------------------------------------------------------
-      ! All variables had been allocated to the required
-      ! space before this point (see, mo_startup: initialise) and initialised
-      !-------------------------------------------------------------------
-      ! as default values,
-      ! all cells for all modeled Domains are simultenously initalized ONLY ONCE
+      ! this part is entered when optimization is active and arrays are already allocated
+      ! set the state, flux and parameter variables to their default values
       call variables_default_init()
 
-      call call_mpr(parameterset, global_parameters_name, level1, .false., opti_domain_indices)
+      ! TODO: MPR how need the opti_domain_indices considered in the domain loop in MPR (@kaluza)
+      call call_mpr(parameterset, global_parameters_name, level1, doInitArg=.false.)
     end if
 
     allocate(L1_fNotSealed(size(L1_fSealed, 1), size(L1_fSealed, 2)))

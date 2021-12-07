@@ -107,7 +107,7 @@ CONTAINS
       end do
     else
       ! domain loop is inside call_mpr
-      call call_mpr(parameterValues, parameterNames, level1, .true., opti_domain_indices)
+      call call_mpr(parameterValues, parameterNames, level1, doInitArg=.true.)
     end if
 
     call set_domain_indices(level1)

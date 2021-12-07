@@ -879,7 +879,7 @@ contains
 
   end subroutine check_sort_order_4DI4
 
-  subroutine check_soil_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp)
+  subroutine check_soil_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundariesTemp)
     use mo_global_variables, only: nSoilHorizons, soilHorizonBoundaries
     use mo_string_utils, only: compress, num2str
     use mo_utils, only: ne
@@ -887,14 +887,14 @@ contains
 
     integer(i4), intent(in) :: iDomain
     integer(i4), intent(in) :: nSoilHorizons_temp
-    real(dp), dimension(:), intent(inout) :: soilHorizonBoundaries_temp
+    real(dp), dimension(:), intent(inout) :: soilHorizonBoundariesTemp
 
     integer(i4) :: k
 
     if (iDomain == 1) then
       ! set local to global
       nSoilHorizons = nSoilHorizons_temp
-      soilHorizonBoundaries = soilHorizonBoundaries_temp
+      soilHorizonBoundaries = soilHorizonBoundariesTemp
     else
       ! check if it conforms with global
       if (nSoilHorizons /= nSoilHorizons_temp) then
@@ -904,11 +904,11 @@ contains
       end if
       ! TODO-MPR: re-enable checks (false input for test domains)
       ! do k=1, nSoilHorizons+1
-      !   if (ne(soilHorizonBoundaries(k), soilHorizonBoundaries_temp(k))) then
+      !   if (ne(soilHorizonBoundaries(k), soilHorizonBoundariesTemp(k))) then
       !     call error_message('The ',compress(trim(num2str(k))),'th soil horizon boundary for domain 1 (', &
       !             compress(trim(num2str(soilHorizonBoundaries(k)))), &
       !             ') does not conform with domain ', &
-      !             compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(soilHorizonBoundaries_temp(k)))), ').')
+      !             compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(soilHorizonBoundariesTemp(k)))), ').')
       !   end if
       ! end do
     end if
