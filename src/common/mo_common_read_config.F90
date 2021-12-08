@@ -51,17 +51,17 @@ CONTAINS
     use mo_common_constants, only : maxNLcovers, maxNLais ,maxNoDomains, &
             floatComparisonPrecision, float_comparison_precision
     use mo_common_variables, only : Conventions, contact, L0_Domain, &
-                                    dirConfigOut, dirIn, dirOut, &
-                                    mhmFileRestartOut, mrmFileRestartOut, &
-                                    fileLatLon, history, mHM_details, domainMeta, &
-                                    nProcesses, nuniqueL0Domains, processMatrix, project_details, resolutionHydrology, &
-                                    setup_description, simulation_type, write_restart, &
-                                    dds_r, mhmFileRestartIn, mrmFileRestartIn, evalPer,&
-                                    mcmc_error_params, mcmc_opti, nIterations, &
-                                    opti_function, opti_method, optimize, optimize_restart, &
-                                    read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
-                                    sce_ngs, sce_npg, sce_nps, seed, &
-                                    warmPer, warmingDays
+            dirConfigOut, dirIn, dirOut, &
+            mhmFileRestartOut, mrmFileRestartOut, &
+            fileLatLon, history, mHM_details, domainMeta, &
+            nProcesses, nuniqueL0Domains, processMatrix, project_details, resolutionHydrology, &
+            setup_description, simulation_type, write_restart, &
+            dds_r, mhmFileRestartIn, mrmFileRestartIn, evalPer,&
+            mcmc_error_params, mcmc_opti, nIterations, &
+            opti_function, opti_method, optimize, optimize_restart, &
+            read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
+            sce_ngs, sce_npg, sce_nps, seed, &
+            warmPer, warmingDays
     use mo_common_datetime_type, only: simPer, timestep, nTStepDay, period, &
             landCoverPeriods, laiPeriods, nLandCoverPeriods, nlaiPeriods
     use mo_julian, only : caldat, julday
@@ -69,7 +69,6 @@ CONTAINS
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
     use mo_grid, only : iFlag_coordinate_sys
-    use mo_common_constants, only: nodata_i4
 
     implicit none
 
@@ -397,11 +396,13 @@ CONTAINS
     integer(i4), dimension(:), intent(in) :: optiData
     type(domain_meta), intent(inout) :: domainMeta
 
+#ifdef MPI
+    integer(i4)         :: rank
     integer             :: ierror
     integer(i4)         :: nproc
-    integer(i4)         :: rank
-    integer(i4)         :: iDomain
     integer(i4)         :: colDomain, colMasters
+#endif
+    integer(i4)         :: iDomain
 
     domainMeta%overallNumberOfDomains = nDomains
 #ifdef MPI
@@ -659,19 +660,17 @@ CONTAINS
   subroutine read_mhm_parameters(file_namelist_param, unamelist_param)
 
     use mo_append, only : append
-    use mo_common_constants, only : eps_dp, maxNoDomains, nColPars, nodata_dp
+    use mo_common_constants, only : nColPars, nodata_dp
     use mo_common_functions, only : in_bound
-    use mo_common_variables, only : global_parameters, global_parameters_name, domainMeta, processMatrix, dummy_global_parameters, &
+    use mo_common_variables, only : global_parameters, global_parameters_name, processMatrix, dummy_global_parameters, &
           dummy_global_parameters_name
     use mo_message, only : error_message, message
-    use mo_mhm_constants, only : maxGeoUnit, &
-                                 maxNoSoilHorizons
+    use mo_mhm_constants, only : maxGeoUnit
     ! use mo_mpr_global_variables, only : HorizonDepth_mHM, dirgridded_LAI, fracSealed_cityArea, iFlag_soilDB, &
     !                                     inputFormat_gridded_LAI, nGeoUnits, nSoilHorizons_mHM, tillageDepth
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
     use mo_utils, only : EQ
-    use mo_global_variables, only: soilHorizonBoundaries, nSoilHorizons, lowestDepth
 
     implicit none
 
@@ -830,8 +829,6 @@ CONTAINS
     real(dp), dimension(nColPars) :: COSMIC_L30
 
     real(dp), dimension(nColPars) :: COSMIC_L31
-
-    integer(i4) :: iDomain, domainID
 
     ! namelist parameters
     namelist /mhm_parameters/ canopyInterceptionFactor, snowThresholdTemperature, degreeDayFactor_forest, &

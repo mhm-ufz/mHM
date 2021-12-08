@@ -18,21 +18,20 @@ MODULE mo_mrm_init
 
   ! Written  Luis Samaniego, Mar 2005
 
-  IMPLICIT NONE
+  implicit none
 
   ! TODO: MPR no mrm_configuration, but mrm_update_param moved here
   public :: mrm_init, mrm_configuration
 
   private
 
-CONTAINS
+contains
 
-subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param)
+  subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param)
     use mo_common_variables, only : processMatrix
     use mo_mrm_read_config, only : mrm_read_config
     use mo_mrm_global_variables, only: riv_temp_pcs
     use mo_common_read_config, only : check_optimization_settings
-    use mo_kind, only : i4
     use mo_message, only : message
     implicit none
 
@@ -54,7 +53,7 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
     ! read config for mrm, readlatlon is set here depending on whether output is needed
     call mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, .false.)
 
-end subroutine mrm_configuration
+  end subroutine mrm_configuration
   ! ------------------------------------------------------------------
 
   !    NAME
@@ -87,8 +86,7 @@ end subroutine mrm_configuration
   ! Stephan Thober Jun 2018 - refactored for mpr_extract version
   ! Stephan Thober May 2019 - added init of level0 in case of read restart
 
-
-  subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param)
+  subroutine mrm_init
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_grid, only : read_grid_info
@@ -114,12 +112,6 @@ end subroutine mrm_configuration
     use mo_mrm_river_head, only: init_masked_zeros_l0, create_output, calc_channel_elevation
     use mo_mrm_mpr, only : mrm_init_param
     use mo_common_read_config, only : check_optimization_settings
-
-    implicit none
-
-    character(*), intent(in) :: file_namelist, file_namelist_param
-
-    integer, intent(in) :: unamelist, unamelist_param
 
     ! start and end index for routing parameters
     integer(i4) :: iStart, iEnd
@@ -153,8 +145,7 @@ end subroutine mrm_configuration
         domainID = domainMeta%indices(iDomain)
         ! this reads the domain properties
         ! ToDo: L0_Domain, parallel
-        call read_grid_info(domainMeta%indices(domainMeta%L0DataFrom(iDomain)), mrmFileRestartIn(iDomain), &
-                                                     "0", level0(domainMeta%L0DataFrom(iDomain)))
+        call read_grid_info(mrmFileRestartIn(iDomain), "0", level0(domainMeta%L0DataFrom(iDomain)))
       end do
     end if
     call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
@@ -164,7 +155,7 @@ end subroutine mrm_configuration
       domainID = domainMeta%indices(iDomain)
       if (mrm_read_river_network) then
         ! read information of l11 grids directly from restart file
-        call read_grid_info(domainID, mrmFileRestartIn(iDomain), "11", level11(iDomain))
+        call read_grid_info(mrmFileRestartIn(iDomain), "11", level11(iDomain))
         call mrm_read_restart_config(iDomain, mrmFileRestartIn(iDomain))
       else
         ! TODO: this sets the lat lon values (can be projected!) and effective cellArea of level1
@@ -291,141 +282,6 @@ end subroutine mrm_configuration
     call message('  Finished Initialization of mRM')
 
   end subroutine mrm_init
-
-
-  !===============================================================
-  ! PRINT STARTUP MESSAGE
-  !===============================================================
-  !    NAME
-  !        print_startup_message
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "character(*) :: file_namelist, file_namelist_param"
-  !>       \param[in] "character(*) :: file_namelist, file_namelist_param"
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
-  subroutine print_startup_message(file_namelist, file_namelist_param)
-
-    use mo_kind, only : i4
-    use mo_message, only : message
-    use mo_mrm_file, only : file_defOutput, file_main, version, version_date
-    use mo_string_utils, only : num2str, separator
-
-    implicit none
-
-    character(*), intent(in) :: file_namelist, file_namelist_param
-    character(4096) :: message_text
-
-    ! Date and time
-    integer(i4), dimension(8) :: datetime
-
-
-    call message(separator)
-    call message('              mRM-UFZ')
-    call message()
-    call message('    MULTISCALE ROUTING MODEL')
-    call message('           Version ', trim(version))
-    call message('           ', trim(version_date))
-    call message()
-    call message('Made available by S. Thober & M. Cuntz')
-    call message()
-    call message('Based on mHM-UFZ by L. Samaniego & R. Kumar')
-
-    call message(separator)
-
-    call message()
-    call date_and_time(values = datetime)
-    message_text = trim(num2str(datetime(3), '(I2.2)')) // "." // trim(num2str(datetime(2), '(I2.2)')) &
-            // "." // trim(num2str(datetime(1), '(I4.4)')) // " " // trim(num2str(datetime(5), '(I2.2)')) &
-            // ":" // trim(num2str(datetime(6), '(I2.2)')) // ":" // trim(num2str(datetime(7), '(I2.2)'))
-    call message('Start at ', trim(message_text), '.')
-    call message('Using main file ', trim(file_main), ' and namelists: ')
-    call message('     ', trim(file_namelist))
-    call message('     ', trim(file_namelist_param))
-    call message('     ', trim(file_defOutput), ' (if it is given)')
-    call message()
-
-  end subroutine print_startup_message
-
-
-  !---------------------------------------------------------------
-  ! Config output
-  !---------------------------------------------------------------
-  !    NAME
-  !        config_output
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
-  subroutine config_output
-
-    use mo_common_variables, only : dirOut, domainMeta
-    use mo_kind, only : i4
-    use mo_message, only : message
-    use mo_mrm_file, only : file_defOutput, file_namelist_mrm, file_namelist_param_mrm
-    use mo_mrm_global_variables, only : domain_mrm, &
-                                        dirGauges
-    use mo_string_utils, only : num2str
-
-    implicit none
-
-    integer(i4) :: domainID, iDomain
-
-    integer(i4) :: jj
-
-
-    !
-    call message()
-    call message('Read namelist file: ', trim(file_namelist_mrm))
-    call message('Read namelist file: ', trim(file_namelist_param_mrm))
-    call message('Read namelist file: ', trim(file_defOutput), ' (if it is given)')
-
-    call message()
-    call message('  # of domains:         ', trim(num2str(domainMeta%nDomains)))
-    call message()
-    call message('  Input data directories:')
-    do iDomain = 1, domainMeta%nDomains
-      domainID = domainMeta%indices(iDomain)
-      call message('  --------------')
-      call message('      DOMAIN                   ', num2str(domainID, '(I3)'))
-      call message('  --------------')
-      call message('    Discharge directory:        ', trim(dirGauges(iDomain)))
-      call message('    Output directory:           ', trim(dirOut(iDomain)))
-      call message('    Evaluation gauge            ', 'ID')
-      do jj = 1, domain_mrm(iDomain)%nGauges
-        call message('    ', trim(adjustl(num2str(jj))), '                           ', &
-                trim(adjustl(num2str(domain_mrm(iDomain)%gaugeIdList(jj)))))
-      end do
-      if (domain_mrm(iDomain)%nInflowGauges .GT. 0) then
-        call message('    Inflow gauge              ', 'ID')
-        do jj = 1, domain_mrm(iDomain)%nInflowGauges
-          call message('    ', trim(adjustl(num2str(jj))), '                         ', &
-                  trim(adjustl(num2str(domain_mrm(iDomain)%InflowGaugeIdList(jj)))))
-        end do
-      end if
-    end do
-  end subroutine config_output
-
 
   ! ------------------------------------------------------------------
 

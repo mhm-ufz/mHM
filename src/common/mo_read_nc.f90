@@ -19,11 +19,6 @@ module mo_read_nc
   public :: read_weights_nc
   public :: check_sort_order
   public :: check_soil_dimension_consistency
-  interface check_consistency_element
-    module procedure check_consistency_element_i4, &
-            check_consistency_element_dp
-  end interface check_consistency_element
-
 
   ! TODO: fyppify this, then generate docstrings for each procedure
   interface check_sort_order
@@ -153,6 +148,7 @@ contains
     ! get time variable
     time_var = nc%getVariable('time')
     ! read the time vector and get start index and count of selection
+    ! TODO: replace this by the check_time_unit in mo_common_datetime_type and delete get_time_vector_and_select
     call get_time_vector_and_select(time_var, fname, inctimestep, time_start, time_cnt, target_period)
     ! extract data and select time slice
     call var%getData(data, start = (/1, 1, time_start/), cnt = (/nRows, nCols, time_cnt/))
@@ -516,6 +512,8 @@ contains
     else if (strArr(1) .eq. 'seconds') then
       time_step_seconds = 1_i8
     else
+      ! to suppress compiler warnings
+      time_step_seconds = -9999_i8
       call error_message('***ERROR: Please provide the input data in (days, hours, minutes, seconds) ', &
               'since YYYY-MM-DD[ HH:MM:SS] in the netcdf file. Found: ', trim(AttValues))
     end if
@@ -553,13 +551,13 @@ contains
     end if
 
     ! prepare the selection and check for required time_step
+    ncJulSta1 = nc_period%julStart
     select case(inctimestep)
     case(-1) ! daily
       ! difference must be 1 day
       if (.not. all(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs - 1._dp) .lt. 1.e-6)) then
         call error_message(error_msg // trim('daily'))
       end if
-      ncJulSta1 = nc_period%julStart
       time_start = clip_period%julStart - ncJulSta1 + 1_i4
       time_cnt = clip_period%julEnd - clip_period%julStart + 1_i4
     case(-2) ! monthly
@@ -594,7 +592,6 @@ contains
       if (.not. all(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / 3600._dp - 1._dp) .lt. 1.e-6)) then
         call error_message(error_msg // 'hourly')
       end if
-      ncJulSta1 = nc_period%julStart
       time_start = (clip_period%julStart - ncJulSta1) * 24_i4 + 1_i4 ! convert to hours; always starts at one
       time_cnt = (clip_period%julEnd - clip_period%julStart + 1_i4) * 24_i4 ! convert to hours
     case default ! no output at all
@@ -889,7 +886,7 @@ contains
     integer(i4), intent(in) :: nSoilHorizons_temp
     real(dp), dimension(:), intent(inout) :: soilHorizonBoundariesTemp
 
-    integer(i4) :: k
+    ! integer(i4) :: k
 
     if (iDomain == 1) then
       ! set local to global
@@ -914,41 +911,5 @@ contains
     end if
 
   end subroutine check_soil_dimension_consistency
-
-  subroutine check_consistency_element_dp(item1, item2, name, iDomain)
-    use mo_utils, only: ne
-    use mo_string_utils, only: compress, num2str
-    use mo_message, only: message
-
-    real(dp), intent(in) :: item1, item2
-    character(*), intent(in) :: name
-    integer(i4), intent(in) :: iDomain
-
-    if (ne(item1, item2)) then
-      call error_message('The ', trim(name),&
-                  ' as set in the configuration file (', &
-                  compress(trim(num2str(item1))), &
-                  ') does not conform with domain ', &
-                  compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(item2))), ').')
-    end if
-  end subroutine check_consistency_element_dp
-
-  subroutine check_consistency_element_i4(item1, item2, name, iDomain)
-    use mo_utils, only: ne
-    use mo_string_utils, only: compress, num2str
-    use mo_message, only: message
-
-    integer(i4), intent(in) :: item1, item2
-    character(*), intent(in) :: name
-    integer(i4), intent(in) :: iDomain
-
-    if (item1 /= item2) then
-      call error_message('The ', trim(name),&
-                  ' as set in the configuration file (', &
-                  compress(trim(num2str(item1))), &
-                  ') does not conform with domain ', &
-                  compress(trim(num2str(iDomain))), ' (', compress(trim(num2str(item2))), ').')
-    end if
-  end subroutine check_consistency_element_i4
 
 end module mo_read_nc

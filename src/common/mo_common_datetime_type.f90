@@ -2,12 +2,11 @@
 
 !< author: Maren Kaluza
 !< date: March 2019
-!< summary: type for date time information with an increment subroutine
-
-!< Contains a current day, month, year, hour matching newTime, aswell as
-!< previous day, month, year. Theses all get updated on increment
-!< 
-!< also contains nTimestep, and tIndex_out for writing
+!< summary: types for datetime information, contains:
+!<   - type: datetimeinfo
+!<      - contains a current day, month, year, hour matching newTime, as well as previous day, month, year.
+!<      - theses all get updated on increment routine
+!<      - nTimestep, and tIndex_out for writing
 !<
 !< for these, and a function returning a boolean for writeout, dependent on the
 !< timestep_model_input
@@ -25,21 +24,32 @@ MODULE mo_common_datetime_type
 
   public :: datetimeinfo, period, get_land_cover_period_indices
 
-  integer(i4), public :: timeStep           ! [h] simulation time step (= TS) in [h]
-  integer(i4), public :: nTstepDay          !       Number of time intervals per day
+  !> [h] simulation time step (= TS) in [h]
+  integer(i4), public :: timeStep
+  !> Number of time intervals per day
+  integer(i4), public :: nTstepDay
 
   type aggregateperiod
+    !< multiple consecutive periods defining the coordinate information for mHM parameters
+    !> number of periods/ids
     integer(i4) :: nIds
+    !> name of periods (e.g. land cover or LAI)
     character(256) :: name
+    !> currently active index (iterator incremented by increment procedure)
     integer(i4) :: i
-    integer(i4), dimension(:), allocatable :: yearIds     ! mapping of ids to each simPer year
-    integer(i4), dimension(:), allocatable :: boundaries  ! all boundaries of input data (nIds + 1) in case of
-                                                          ! isRegular == .false. and timeStep yearly, needed for
-                                                          ! writing to restart file
-    integer(i8), dimension(:), allocatable :: secondsSince  ! seconds since refJulDate
+    !> mapping of ids to each simPer year (TODO: merge into seondsSince/refJulDate structure at some point)
+    integer(i4), dimension(:), allocatable :: yearIds
+    !> all boundaries of input data (nIds + 1) in case of isRegular == .false. and timeStep yearly
+    integer(i4), dimension(:), allocatable :: boundaries
+    !> seconds since refJulDate (size nIds)
+    integer(i8), dimension(:), allocatable :: secondsSince
+    !> reference Julian date for time information
     integer(i4) :: refJulDate
+    !> time step, by which aggregatePeriod is incremented
     integer(i4) :: timeStep
+    !> flag showing, whether averaged values are used (day of year, month of year)
     logical :: isAveraged
+    !> flag showing, whether timeStep is equal of all periods
     logical :: isRegular
 
   contains
@@ -51,12 +61,17 @@ MODULE mo_common_datetime_type
 
   end type aggregateperiod
 
+  !> periods for each domain specifying the lai time information
   type(aggregateperiod), dimension(:), allocatable, public :: laiPeriods
+  !> periods for each domain specifying the land cover time information
   type(aggregateperiod), dimension(:), allocatable, public :: landCoverPeriods
-  integer(i4), public :: nLandCoverPeriods
+  !> number of maximum lai periods defined globally through mhm.nml
   integer(i4), public :: nlaiPeriods
+  !> number of maximum land cover periods defined globally through mhm.nml
+  integer(i4), public :: nLandCoverPeriods
 
   type datetimeinfo
+    !< type for describing a timestamp with additional information needed to handle mHM time loop
     !> number of timesteps in simulation period
     integer(i4)          :: nTimeSteps
     !> starts with simPer(iDomain)%julStart, then increments with
@@ -93,10 +108,8 @@ MODULE mo_common_datetime_type
     procedure :: writeout => datetimeinfo_writeout
   end type datetimeinfo
 
-  ! -------------------------------------------------------------------
-  ! PERIOD description
-  ! -------------------------------------------------------------------
   type period
+    !< type for describing a period (time interval) defined by start and end date
     integer(i4) :: dStart      ! first day
     integer(i4) :: mStart      ! first month
     integer(i4) :: yStart      ! first year
@@ -115,7 +128,7 @@ MODULE mo_common_datetime_type
 
   type(period), dimension(:), allocatable, public :: simPer      ! warmPer + evalPer
 
-  contains
+contains
 
   subroutine datetimeinfo_init(this, iDomain)
     use mo_julian, only : caldat
@@ -207,18 +220,40 @@ MODULE mo_common_datetime_type
   end function datetimeinfo_writeout
 
   function get_doy(yy, mm, dd) result(doy)
+    !< helper function returning the day of year for a given calendar day
+    !> input day, month and year integer values
+    ! TODO: think about moving to mo_julian
     integer(i4), intent(in)    ::  yy, mm, dd
+
     integer(i4), dimension(12), parameter :: months = [31,28,31,30,31,30,31,31,30,31,30,31]
     integer(i4) :: doy
-
     integer(i4) :: leapDay
 
-    !leap year
-     leapDay = 0_i4
+    ! leap year
+    leapDay = 0_i4
     if (is_leap_year(yy)) leapDay = 1_i4
+    ! calculate doy as cumulative sum
     doy = sum(months(1:mm-1)) + dd + leapDay
 
   end function get_doy
+
+  function is_leap_year(year) result(isLeapYear)
+    !< \brief checks if a year is a leap year
+    !< \details checks if a year is a leap year
+    ! TODO: think about moving to mo_julian
+    integer(i4), intent(in) :: year
+    logical :: isLeapYear
+
+    if (mod(year, 400_i4) == 0 ) then
+      isLeapYear = .true.
+    elseif (mod(year, 100_i4) == 0 ) then
+      isLeapYear = .false.
+    elseif (mod(year, 4_i4) == 0 ) then
+      isLeapYear = .true.
+    else
+      isLeapYear = .false.
+    end if
+  end function is_leap_year
 
   subroutine period_copy_period_data(this, toPeriod)
     class(period), intent(inout) :: this
@@ -246,6 +281,7 @@ MODULE mo_common_datetime_type
 
   subroutine init_aggregateperiod(this, n, nMax, name, simPerArg, units, periodValues, &
           keepUnneededPeriods, selectIndices)
+    !< initializes an aggregateperiod instance
 
     class(aggregateperiod), intent(inout) :: this
     !> size of aggregatePeriod values and maximum size allowed (error is raised here, if violated)
@@ -265,7 +301,6 @@ MODULE mo_common_datetime_type
 
     integer(i4) :: iSel
     type(period) :: inPeriod
-    integer(i8), dimension(:), allocatable :: periodValuesSeconds
 
     this%nIds = n
     this%name = name
@@ -276,22 +311,26 @@ MODULE mo_common_datetime_type
     end if
 
     this%isRegular = .true.
+    ! decide type of aggregateperiod based on units information
     select case(units)
     case('day_of_year', 'day of year')
       this%isAveraged = .true.
       this%timeStep = -1_i4
+      ! keepUnneededPeriods is ignored (simPerArg is assumed to cover whole calender year), range 1:366 is assumed
+      ! TODO: check this
       selectIndices = [(iSel, iSel=1, n)]
-      ! select doy, keepUnneededPeriods is ignored (one year simPerArg is assumed), values 1:366 is assumed
+      ! select the doy for the simulation period start as initial counter
       this%i = get_doy(simPerArg%yStart, simPerArg%mStart, simPerArg%dStart)
     case('month_of_year', 'month of year')
       this%isAveraged = .true.
       this%timeStep = -2_i4
+      ! keepUnneededPeriods is ignored (simPerArg is assumed to cover whole calender year), range 1:12 is assumed
       selectIndices = [(iSel, iSel=1, n)]
-      ! select moy, keepUnneededPeriods is ignored (one year simPerArg is assumed), values 1:12 is assumed
+      ! select the moy for the simulation period start as initial counter
       this%i = simPerArg%mStart
-    ! first is default in MPR, second in restart file
     ! TODO: switch to a CF-compatible representation and naming
     case('years', 'year')
+      ! this is custom land cover scene or land cover period information used in mHM
       if (.not. present(keepUnneededPeriods)) then
         call error_message('Cannot init aggregate period by units "', trim(units), &
                 '", without flag keepUnneededPeriods.')
@@ -304,19 +343,24 @@ MODULE mo_common_datetime_type
               yearIds=this%yearIds, selectIndices=selectIndices)
       if (allocated(this%boundaries)) deallocate(this%boundaries)
       allocate(this%boundaries(size(selectIndices)+1))
+      ! set the boundaries based on the selection used
       this%boundaries(1) = periodValues(selectIndices(1))
       do iSel=1, size(selectIndices)
         this%boundaries(iSel+1) = periodValues(selectIndices(iSel)+1)
       end do
+      ! set inital counter value to that of start year
       this%i = this%yearIds(simPerArg%yStart)
       this%nIds = size(selectIndices)
     case default
+      ! this should be a string like "days since 1:2:3"
       if (.not. present(keepUnneededPeriods)) then
         call error_message('Cannot init aggregate period by name "', trim(units), &
                 '", without flag keepUnneededPeriods.')
       end if
+      ! check the units attribute and convert all periodValues to secondSince
       call check_time_unit(units, periodValues, this%refJulDate, inPeriod, this%secondsSince)
       this%isAveraged = .false.
+      ! get correct selection of for the given simPerArg
       call get_period_indices(simPerArg, this%secondsSince, inPeriod, keepUnneededPeriods, &
               this%timeStep, this%i, selectIndices)
       this%nIds = size(selectIndices)
@@ -325,7 +369,10 @@ MODULE mo_common_datetime_type
   end subroutine init_aggregateperiod
 
   subroutine increment_aggregateperiod(this, datetimeinfoArg)
+    !< increment an aggregatePeriod counter based on the datetimeinfo argument
+    !> aggregateperiod to increment
     class(aggregateperiod), intent(inout) :: this
+    !> datetimeinfo to be used as reference
     class(datetimeinfo), intent(in) :: datetimeinfoArg
 
     if (this%isAveraged) then
@@ -350,6 +397,7 @@ MODULE mo_common_datetime_type
           if (.not. this%isRegular) then
             ! this is hackish thing as it might be that this routine is called after the domainDateTime is incremented
             ! over the last valid this%years
+            ! TODO: change this one the increment routines are called from the same spot in mhm_eval
             if (datetimeinfoArg%year <= ubound(this%yearIds, dim=1)) then
               this%i = this%yearIds(datetimeinfoArg%year)
             end if
@@ -363,9 +411,12 @@ MODULE mo_common_datetime_type
   end subroutine increment_aggregateperiod
 
   function get_unit_aggregateperiod(this) result(units)
+    !< get unit attribute to be put to netcdf file
     use mo_julian, only: dec2date
 
+    !> aggregateperiod containing the unit information
     class(aggregateperiod), intent(inout) :: this
+    !> time unit descriptor
     character(256) :: units
 
     integer(i4) :: yy, mm, dd
@@ -381,6 +432,7 @@ MODULE mo_common_datetime_type
       if (.not. this%isRegular) then
         write(units, '(A)') 'years'
       else
+        ! this is the only CF conventions compatible attribute so far
         call dec2date(real(this%refJulDate, kind=dp), dd, mm, yy)
         write(units, '(A,I0.4,A,I0.2,A,I0.2)') 'days since ',yy, '-', mm, '-', dd
       end if
@@ -389,9 +441,15 @@ MODULE mo_common_datetime_type
   end function get_unit_aggregateperiod
 
   function get_values_aggregateperiod(this) result(values)
+    !< get unit attribute to be put to netcdf file
+
     use mo_constants, only: DaySecs
+
+    !> aggregateperiod containing the value information
     class(aggregateperiod), intent(inout) :: this
+    !> vector of period values (bounds for each period, thus size nIds+1)
     integer(i4), dimension(:), allocatable :: values
+
     integer(i4) :: iVal
 
     if (this%isAveraged) then
@@ -406,35 +464,37 @@ MODULE mo_common_datetime_type
 
   end function get_values_aggregateperiod
 
-  subroutine check_time_unit(dimUnits, periodValues, jRef, inPeriod, periodValuesSeconds)
-    !< reads dimUnits string, converts periodValues to unit "seconds since date" (periodValuesSeconds, jRef) and also
+  subroutine check_time_unit(units, periodValues, jRef, inPeriod, periodValuesSeconds)
+    !< reads units string, converts periodValues to unit "seconds since date" (periodValuesSeconds, jRef) and also
     !< outputs the period covered by periodValues
-    use mo_constants, only : DayHours, DaySecs, YearDays
+    use mo_constants, only : DayHours, DaySecs
     use mo_julian, only : caldat, dec2date, julday
     use mo_kind, only : i8
     use mo_string_utils, only : divide_string
 
-    character(*), intent(in) :: dimUnits
+    !> time units descriptor
+    character(*), intent(in) :: units
+    !> periodValues for each Timestamp (center of interval/period)
     integer(i4), dimension(:), intent(in) :: periodValues
+    !> reference julian date
     integer(i4), intent(out) :: jRef
+    !> period covered by periodValues 
     class(period), intent(out), optional :: inPeriod
     !> the values in seconds and i8, thus seperate from periodValues
     integer(i8), dimension(:), allocatable, intent(out) :: periodValuesSeconds
 
     ! reference time
     integer(i4) :: yRef, dRef, mRef, hRef
-    !
+    ! helper variables
     integer(i8) :: timeStepSeconds
     integer(i4) :: nTime
-    ! helper variable for error output
     integer(i4) :: hstart_int, hend_int
-
     ! dummies for netcdf attribute handling
     character(256), dimension(:), allocatable :: strArr, date, time
 
-    ! dimUnits looks like "<unit> since YYYY-MM-DD[ HH:MM:SS]"
+    ! units looks like "<unit> since YYYY-MM-DD[ HH:MM:SS]"
     ! split at space
-    call divide_string(trim(dimUnits), ' ', strArr)
+    call divide_string(trim(units), ' ', strArr)
 
     ! determine reference time at '-' and convert to integer
     call divide_string(trim(strArr(3)), '-', date)
@@ -461,13 +521,14 @@ MODULE mo_common_datetime_type
     else if (strArr(1) == 'seconds') then
       timeStepSeconds = 1_i8
     else
+      ! to suppress compiler warnings
+      timeStepSeconds = -9999_i8
       call error_message('***ERROR: Please provide the input data in (days, hours, minutes, seconds) ', &
-              'since YYYY-MM-DD[ HH:MM:SS] in the netcdf file. Found: ', trim(dimUnits))
+              'since YYYY-MM-DD[ HH:MM:SS] in the netcdf file. Found: ', trim(units))
     end if
     
     ! convert array from units since to seconds
     periodValuesSeconds = int(periodValues, kind=i8) * timeStepSeconds
-
 
     if (present(inPeriod)) then
       ! check for length of time vector, needs to be at least of length 2, otherwise step width check fails
@@ -486,18 +547,23 @@ MODULE mo_common_datetime_type
       inPeriod%julEnd = int(periodValuesSeconds(nTime) / DaySecs + jRef + hRef / 24._dp)
     end if
 
-
   end subroutine check_time_unit
     
   subroutine get_land_cover_period_indices(simPerArg, boundaries, keepUnneededPeriods, yearIds, selectIndices)
+    !< compare periods defined by yearly boundary values to simulation period and retrieve vector of indices
     use mo_string_utils, only: compress
     use mo_message, only: error_message
     use mo_string_utils, only: num2str
 
+    !> simulation period to be compared against
     class(period), intent(in) :: simPerArg
+    !> year boundaries describing the aggregationperiod
     integer(i4), dimension(:), intent(in) :: boundaries
+    !> flag describing whether to intersect boundaries with simPerArg
     logical, intent(in) :: keepUnneededPeriods
+    !> vector of indices of the period for each simulation period year
     integer(i4), dimension(:), allocatable, intent(out), optional :: yearIds
+    !> vector of indices of the periods to be selected
     integer(i4), dimension(:), allocatable, intent(out) :: selectIndices
 
     logical, dimension(size(boundaries) - 1) :: select_indices_mask
@@ -555,11 +621,11 @@ MODULE mo_common_datetime_type
 
   end subroutine get_land_cover_period_indices
 
-  !>       \brief Extract time vector
-  !>       \details Extract time vector in unit julian hours and get supposed time step in hours
   subroutine get_period_indices(simPerArg, periodValues, inPeriod, keepUnneededPeriods, timeStep, i, selectIndices)
+    !< \brief Extract time vector
+    !< \details Extract time vector in unit julian hours and get supposed time step in hours
 
-    use mo_constants, only : DayHours, DaySecs, YearDays
+    use mo_constants, only : DaySecs, YearDays
     use mo_julian, only : caldat, julday
     use mo_kind, only : i8
 
@@ -583,9 +649,7 @@ MODULE mo_common_datetime_type
     integer(i4) :: ncJulSta1, dd, nTime, iInd, nSel, iErr
     integer(i4) :: mmcalstart, mmcalend, yycalstart, yycalend
     integer(i4) :: mmncstart, yyncstart
-    ! helper variable for error output
-    character(256) :: error_msg
-    
+
     ! default in case of use keepUnneededPeriods: use all indices of inPeriod
     nTime = size(periodValues)
     selectIndices = [(iInd, iInd=1, nTime-1)]
@@ -654,23 +718,5 @@ MODULE mo_common_datetime_type
     end if
 
   end subroutine get_period_indices
-
-  !> \brief checks if a year is a leap year
-  !> \details checks if a year is a leap year
-    ! TODO: think about moving to mo_julian
-  function is_leap_year(year) result(isLeapYear)
-    integer(i4), intent(in) :: year
-    logical :: isLeapYear
-
-    if (mod(year, 400_i4) == 0 ) then
-      isLeapYear = .true.
-    elseif (mod(year, 100_i4) == 0 ) then
-      isLeapYear = .false.
-    elseif (mod(year, 4_i4) == 0 ) then
-      isLeapYear = .true.
-    else
-      isLeapYear = .false.
-    end if
-  end function is_leap_year
 
 END MODULE mo_common_datetime_type

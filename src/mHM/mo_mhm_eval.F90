@@ -227,7 +227,7 @@ CONTAINS
     logical, pointer, dimension(:, :) :: mask11
 
     ! flag for performing routing
-    logical :: do_rout
+    logical :: doRoute
 
     integer(i4) :: gg
 
@@ -484,6 +484,7 @@ CONTAINS
                 L1_wiltingPoint(s1_param : e1_param, :, lcId)) ! INOUT E1
 
         ! call mRM routing
+        doRoute = .false.
         if (domainMeta%doRouting(iDomain)) then
           ! set discharge timestep
           iDischargeTS = ceiling(real(tt, dp) / real(nTstepDay, dp))
@@ -492,7 +493,7 @@ CONTAINS
             ! >>>
             ! >>> original Muskingum routing, executed every time
             ! >>>
-            do_rout = .True.
+            doRoute = .True.
             tsRoutFactorIn = 1._dp
             timestep_rout = timestep
             RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TS-1] mm per timestep
@@ -503,7 +504,7 @@ CONTAINS
             ! >>>
             ! >>> adaptive timestep
             ! >>>
-            do_rout = .False.
+            doRoute = .False.
             ! calculate factor
             tsRoutFactor = L11_tsRout(iDomain) / (timestep * HourSecs)
             ! print *, 'routing factor: ', tsRoutFactor
@@ -517,7 +518,7 @@ CONTAINS
               RunToRout = L1_total_runoff(s1 : e1) ! runoff [mm TS-1] mm per timestep
               InflowDischarge = InflowGauge%Q(iDischargeTS, :) ! inflow discharge in [m3 s-1]
               timestep_rout = timestep
-              do_rout = .True.
+              doRoute = .True.
             else
               ! ----------------------------------------------------------------
               ! routing timesteps are longer than hydrologic time steps
@@ -534,7 +535,7 @@ CONTAINS
                 ! Inflow discharge is given as flow-rate and has to be converted to [m3]
                 InflowDischarge = InflowDischarge / tsRoutFactorIn
                 timestep_rout = timestep * nint(tsRoutFactorIn, i4)
-                do_rout = .True.
+                doRoute = .True.
               end if
             end if
           end if
@@ -576,7 +577,7 @@ CONTAINS
               fday_strd, fnight_strd  &
             )
             ! if routing should be performed, scale source energy to L11 level
-            if ( do_rout ) call riv_temp_pcs%finalize_source_E( &
+            if ( doRoute ) call riv_temp_pcs%finalize_source_E( &
               level1(iDomain)%CellArea * 1.E-6_dp, &
               L1_L11_Id(s1 : e1), &
               level11(iDomain)%CellArea * 1.E-6_dp, &
@@ -588,7 +589,7 @@ CONTAINS
           ! -------------------------------------------------------------------
           ! execute routing
           ! -------------------------------------------------------------------
-          if (do_rout) call mRM_routing(&
+          if (doRoute) call mRM_routing(&
             ! general INPUT variables
             read_restart, &
             processMatrix(8, 1), & ! parse process Case to be used
@@ -644,7 +645,7 @@ CONTAINS
             InflowDischarge = 0._dp
             RunToRout = 0._dp
           else if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
-            if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. do_rout) then
+            if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. doRoute) then
               do jj = 1, nint(tsRoutFactorIn) ! BUG: this should start at 2
                 mRM_runoff(tt - jj + 1, :) = mRM_runoff(tt, :)
               end do
@@ -665,7 +666,7 @@ CONTAINS
         call domainDateTime%increment()
 
         if ( .not. optimize ) then
-          if (any(outputFlxState_mrm) .AND. (processMatrix(8, 1) .NE. 0) ) then
+          if (any(outputFlxState_mrm) .AND. (domainMeta%doRouting(iDomain))) then
             call mrm_write_output_fluxes( &
               iDomain, & ! Domain id
               level11(iDomain)%nCells, & ! nCells in Domain

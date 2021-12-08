@@ -99,10 +99,10 @@ CONTAINS
 
   subroutine write_restart_files(OutFile)
 
-    use mo_common_constants, only : nodata_dp, nodata_i4
+    use mo_common_constants, only : nodata_dp
     use mo_grid, only : write_grid_info
     use mo_common_variables, only : level1, domainMeta
-    use mo_common_datetime_type, only: simPer, laiPeriods, landCoverPeriods, nLandCoverPeriods, nlaiPeriods
+    use mo_common_datetime_type, only: laiPeriods, landCoverPeriods, nLandCoverPeriods, nlaiPeriods
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
                                     L1_fastRunoff, L1_infilSoil, L1_melt, L1_percol, L1_preEffect, L1_rain, &
                                     L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
@@ -120,9 +120,7 @@ CONTAINS
     ! Output Path for each domain
     character(256), dimension(:), intent(in) :: OutFile
 
-    integer(i4) :: iDomain, domainID, iYear, iBoundary, uniqueIDomain
-
-    integer(i4) :: ii
+    integer(i4) :: iDomain, domainID, uniqueIDomain
 
     ! start index at level 1
     integer(i4) :: s1
@@ -130,16 +128,9 @@ CONTAINS
     ! end index at level 1
     integer(i4) :: e1
 
-    ! number of landcoverperiods for current domain
-    integer(i4) :: iDomainNLandCoverPeriods
-
     ! mask at level 1
     logical, dimension(:, :), allocatable :: mask1
     logical, dimension(:, :, :), allocatable :: mask_soil1
-
-    ! dummy variable
-    real(dp), dimension(:, :, :), allocatable :: dummy_3D
-    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_
 
     integer(i4) :: max_extent
 
@@ -354,7 +345,7 @@ CONTAINS
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
     use mo_read_nc, only: check_soil_dimension_consistency
-    use mo_common_datetime_type, only: nLandCoverPeriods, nlaiPeriods, simPer, landCoverPeriods, laiPeriods
+    use mo_common_datetime_type, only: simPer, landCoverPeriods, laiPeriods
     use mo_common_constants, only: maxNLcovers, maxNLais, keepUnneededPeriodsLandCover, keepUnneededPeriodsLAI
     use mo_message, only: error_message
 
@@ -389,7 +380,6 @@ CONTAINS
     real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp, soilHorizonBoundariesTemp, &
             LAIBoundaries_temp
     integer(i4), dimension(:), allocatable :: landCoverSelect, laiSelect
-    integer(i4), dimension(:), allocatable :: varShape
     character(256) :: units
 
 

@@ -70,8 +70,6 @@ contains
     integer(i4) :: iVar
     integer(i4) :: iGauge
     character(256) :: fname, varName
-    integer(i4) :: nunit
-    integer(i4) :: nCells
     integer(i4) :: nLandCoverPeriods_temp
     real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp
     integer(i4), dimension(:), allocatable :: landCoverSelect
@@ -84,7 +82,6 @@ contains
     type(Grid), pointer :: level0_iDomain => null()
     type(NcDataset)                        :: nc           ! netcdf file
     type(NcVariable)                       :: ncVar        ! variables for data form netcdf
-    integer(i4)                            :: nodata_value ! data nodata value
 
 
     do iDomain = 1, domainMeta%nDomains
@@ -522,6 +519,7 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine rotate_fdir_variable(x)
+    !TODO: this routine can be removed? only legacy
 
     use mo_common_constants, only : nodata_i4
 

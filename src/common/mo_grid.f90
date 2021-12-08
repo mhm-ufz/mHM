@@ -222,7 +222,7 @@ contains
         grids(iDomain)%iStart = 1_i4
       else
         if (present(indices)) then
-          grids(iDomain)%iStart = grids(indices(iDomain - 1))%iEnd + 1_i4
+          grids(iDomain)%iStart = grids(indices(iDomain - 1_i4))%iEnd + 1_i4
         else
           grids(iDomain)%iStart = grids(iDomain - 1_i4)%iEnd + 1_i4
         end if
@@ -490,7 +490,7 @@ contains
 
   !>       \brief reads complete Grid properties from NetCDF file
   !>       \details reads complete Grid properties from NetCDF file
-  subroutine read_grid_info(domainID, inputFile, level_name, new_grid, read_cell_area)
+  subroutine read_grid_info(inputFile, level_name, new_grid, read_cell_area)
 
     use mo_kind, only : dp, i4
     use mo_message, only : message
@@ -500,8 +500,6 @@ contains
 
     implicit none
 
-    !> number of domainID
-    integer(i4), intent(in) :: domainID
     !> complete path to file
     character(256), intent(in) :: inputFile
     !> name of level (used to label the grid, e.g. "0", "1", "11", "2")
@@ -584,7 +582,6 @@ contains
   !>       this is attempted by scanning for known x and y coordinate names and inferred by mask of given variable
   subroutine infer_grid_info(inputFile, xCoordName, yCoordName, maskVar, new_grid)
 
-    use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
@@ -690,7 +687,6 @@ contains
     real(dp), dimension(:, :), allocatable :: dummyD2
     real(dp), dimension(:), allocatable :: dummyD1
     integer(i4), dimension(:), allocatable :: ncVarShape
-    integer(i4) :: i
 
     if (.not. allocated(new_grid%mask)) allocate(new_grid%mask(new_grid%nrows, new_grid%ncols))
     if (.not. allocated(new_grid%x)) allocate(new_grid%x(new_grid%nrows, new_grid%ncols))

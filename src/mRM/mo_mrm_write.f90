@@ -162,7 +162,7 @@ contains
     use mo_mrm_file, only : version
     use mo_mrm_global_variables, only : InflowGauge, L11_L1_Id, L11_fromN, L11_label, &
                                         L11_length, L11_netPerm, L11_rOrder, L11_slope, L11_toN, L1_L11_Id, domain_mrm, &
-                                        dirGauges, dirTotalRunoff, gauge, level11, nGaugesTotal, nInflowGaugesTotal
+                                        dirGauges, gauge, level11, nGaugesTotal, nInflowGaugesTotal
     use mo_string_utils, only : num2str
     use mo_utils, only : ge
     use mo_os, only : path_isdir
@@ -814,7 +814,7 @@ contains
   subroutine mrm_write_optinamelist(parameters, maskpara, parameters_name)
 
     use mo_common_file, only : file_opti_nml, uopti_nml
-    use mo_common_variables, only : dirConfigOut, processMatrix
+    use mo_common_variables, only : dirConfigOut
     use mo_message, only : error_message, message
     use mo_string_utils, only : num2str
 

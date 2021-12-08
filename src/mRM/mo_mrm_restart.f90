@@ -123,10 +123,6 @@ contains
 
     ! dummy variable
     real(dp), dimension(:, :, :), allocatable :: dummy_d3
-    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_
-
-    ! number of landcoverperiods for current domain
-    integer(i4) :: iDomainNLandCoverPeriods
 
     type(NcDataset) :: nc
 
@@ -269,7 +265,7 @@ contains
     call var%setAttribute("long_name", "Routing parameter C2=f(K,xi, DT) (Chow, 25-41) at level 11")
 
     deallocate(dummy_d3)
-    allocate(dummy_d3(nrows11, ncols11, iDomainNLandCoverPeriods))
+    allocate(dummy_d3(nrows11, ncols11, landCoverPeriods(iDomain)%nIds))
     do ii = 1, size(dummy_d3, 3)
       dummy_d3(:, :, ii) = unpack(L11_nLinkFracFPimp(s11 : e11, ii), mask11, nodata_dp)
     end do
