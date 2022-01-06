@@ -196,8 +196,9 @@ CONTAINS
   ! Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval
   ! Robert Schweppe                 Jun 2018 - refactoring and reformatting
   ! Robert Schweppe                 Nov 2018 - added c2TSTu for unit conversion (moved here from MPR)
+  ! Stephan Thober                  Jan 2022 - added is_hourly_forcing
 
-  subroutine mHM(read_states, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
+  subroutine mHM(read_states, is_hourly_forcing, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
                 c2TSTu, neutron_integral_AFast, &
                 global_parameters, latitude, evap_coeff, fday_prec, fnight_prec, fday_pet, &
                 fnight_pet, fday_temp, fnight_temp, temp_weights, pet_weights, pre_weights, read_meteo_weights, pet_in, &
@@ -224,6 +225,9 @@ CONTAINS
 
     ! indicated whether states have been read from file
     logical, intent(in) :: read_states
+
+    ! indicate whether forcing is hourly timestep
+    logical, intent(in) :: is_hourly_forcing
 
     ! simulation time step
     integer(i4), intent(in) :: tt
@@ -556,13 +560,19 @@ CONTAINS
 
       end select
       ! temporal disaggreagtion of forcing variables
-      call temporal_disagg_forcing(isday, ntimesteps_day, prec_in(k), & ! Intent IN
+      if (is_hourly_forcing) then
+         prec = prec_in(k)
+         pet_calc(k) = pet
+         temp = temp_in(k)
+      else
+         call temporal_disagg_forcing(isday, ntimesteps_day, prec_in(k), & ! Intent IN
               pet, temp_in(k), fday_prec(month), fday_pet(month), & ! Intent IN
               fday_temp(month), fnight_prec(month), fnight_pet(month), fnight_temp(month), & ! Intent IN
               temp_weights(k, month, hour + 1), pet_weights(k, month, hour + 1), & ! Intent IN
               pre_weights(k, month, hour + 1), & ! Intent IN
               read_meteo_weights, & ! Intent IN
               prec, pet_calc(k), temp)                                                            ! Intent OUT
+      end if
       call canopy_interc(pet_calc(k), interc_max(k), prec, & ! Intent IN
               interc(k), & ! Intent INOUT
               throughfall(k), aet_canopy(k))                                                      ! Intent OUT

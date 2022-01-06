@@ -45,6 +45,7 @@ module mo_common_mHM_mRM_variables
   ! CONSTANT
   ! ------------------------------------------------------------------
   integer(i4), public :: nTstepDay          !       Number of time intervals per day
+  integer(i4), public :: nTstepForcingDay   !       Number of forcing intervals per day
 
   ! ------------------------------------------------------------------
   ! DIRECTORIES
