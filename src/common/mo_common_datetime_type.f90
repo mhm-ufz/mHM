@@ -28,6 +28,7 @@ MODULE mo_common_datetime_type
   integer(i4), public :: timeStep                   ! [h] simulation time step (= TS) in [h]
   integer(i4), dimension(:, :), allocatable, public :: LCyearId            ! Mapping of landcover scenes (1, 2,..) for each domain
   integer(i4), public :: nTstepDay          !       Number of time intervals per day
+  integer(i4), public :: nTstepForcingDay   !       Number of forcing intervals per day
 
 
   type datetimeinfo

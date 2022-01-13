@@ -79,11 +79,12 @@ CONTAINS
   ! Zink M. Demirel C.   Mar 2017 - Added Jarvis soil water stress function at SM process(3)
   ! Robert Schweppe      Dec 2017 - extracted call to mpr from inside mhm
   ! Robert Schweppe      Jun 2018 - refactoring and reformatting
+  ! Stephan Thober       Jan 2022 - added nTstepForcingDay and is_hourly_forcing flag
 
   SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
 
     use mo_optimization_types, only : optidata_sim
-    use mo_common_datetime_type, only : datetimeinfo, LCyearId, nTstepDay, simPer, timeStep
+    use mo_common_datetime_type, only : datetimeinfo, LCyearId, nTstepDay, simPer, timeStep, nTstepForcingDay
     use mo_common_variables, only : mhmFileRestartIn, mrmFileRestartIn, global_parameters_name, &
                                             optimize, readPer, read_restart, &
                                             warmingDays, c2TSTu, level1, domainMeta, processMatrix
@@ -195,6 +196,9 @@ CONTAINS
     ! calculations
     type(datetimeinfo) :: domainDateTime
 
+    ! flag wether forcings are given at hourly timestep
+    logical :: is_hourly_forcing
+
     integer(i4) :: jj
 
     ! discharge timestep
@@ -240,6 +244,8 @@ CONTAINS
     else
       nDomains = domainMeta%nDomains
     end if
+
+    is_hourly_forcing = (nTstepForcingDay .eq. 24_i4)
     !----------------------------------------------------------
     ! Check optionals and initialize
     !----------------------------------------------------------
@@ -366,7 +372,8 @@ CONTAINS
           s_meteo = s1
           e_meteo = e1
           ! time step for meteorological variable (daily values)
-          iMeteoTS = ceiling(real(tt, dp) / real(nTstepDay, dp))
+          ! iMeteoTS = ceiling(real(tt, dp) / real(nTstepDay, dp))
+          iMeteoTS = ceiling(real(tt, dp) / real(nint( 24._dp / real(nTstepForcingDay, dp)), dp))
         else
           ! read chunk of meteorological forcings data (reading, upscaling/downscaling)
           call prepare_meteo_forcings_data(iDomain, tt)
@@ -374,7 +381,7 @@ CONTAINS
           s_meteo = 1
           e_meteo = e1 - s1 + 1
           ! time step for meteorological variable (daily values)
-          iMeteoTS = ceiling(real(tt, dp) / real(nTstepDay, dp)) &
+          iMeteoTS = ceiling(real(tt, dp) / real(nint( 24._dp / real(nTstepForcingDay, dp)), dp)) &
                   - (readPer%julStart - simPer(iDomain)%julStart)
         end if
 
@@ -425,7 +432,7 @@ CONTAINS
         !  S    STATE VARIABLES L1
         !  X    FLUXES (L1, L11 levels)
         ! --------------------------------------------------------------------------
-        call mhm(read_restart, & ! IN C
+        call mhm(read_restart, is_hourly_forcing, & ! IN C
                 tt, domainDateTime%newTime - 0.5_dp, processMatrix, &
                 mhmHorizons, & ! IN C
                 nCells, nSoilHorizons, real(nTstepDay, dp), c2TSTu,  & ! IN C

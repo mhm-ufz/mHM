@@ -47,9 +47,11 @@ contains
   !>       If the optinal argument nocheck is true, the data are not checked for coverage with the input mask.
   !>       Additionally in this case an mask of vild data points can be received from the routine in maskout.
   subroutine read_nc(folder, nRows, nCols, varName, mask, data, target_period, lower, upper, nctimestep, &
-                            fileName, nocheck, maskout)
+                            fileName, nocheck, maskout, is_meteo)
 
     use mo_common_datetime_type, only: period
+    use mo_constants, only : nodata_i4
+    use mo_common_datetime_type, only : nTstepForcingDay
 
     implicit none
 
@@ -79,6 +81,8 @@ contains
     real(dp), dimension(:, :, :), allocatable, intent(out) :: data
     !> mask of validdata points
     logical, dimension(:, :, :), allocatable, optional, intent(out) :: maskout
+    !> logical whether meteorology is currently read
+    logical, optional, intent(in) :: is_meteo
 
     ! netcdf file
     type(NcDataset) :: nc
@@ -109,13 +113,6 @@ contains
 
     ! check if model domain is covered by data
     integer(i4) :: inctimestep
-
-    ! error string for error message
-    character(4096) :: errorString
-
-    ! check optional nctimestep
-    inctimestep = -1
-    if (present(nctimestep)) inctimestep = nctimestep
 
     ! default value for performing checks on read input
     checking = .TRUE.
@@ -155,6 +152,43 @@ contains
     time_var = nc%getVariable('time')
     ! read the time vector and get start index and count of selection
     call get_time_vector_and_select(time_var, fname, inctimestep, time_start, time_cnt, target_period)
+    
+    if (present(is_meteo)) then
+       if (is_meteo) then
+          select case(inctimestep)
+          case(-1) ! daily
+             if (nTstepForcingDay .eq. nodata_i4) then
+                nTstepForcingDay = 1_i4
+             else if (nTstepForcingDay .ne. 1_i4) then
+                call message('***ERROR: read_forcing_nc: expected daily input forcing, but read something else. ' // &
+                     'Check consistency in input reading')
+                stop 1
+             end if
+          case(-4) ! hourly
+             if (nTstepForcingDay .eq. nodata_i4) then
+                nTstepForcingDay = 24_i4
+             else if (nTstepForcingDay .ne. 24_i4) then
+                call message('***ERROR: read_forcing_nc: expected hourly input forcing, but read something else. ' // &
+                     'Check consistency in input reading')
+                stop 1
+             end if
+          case default ! no output at all
+             call message('***ERROR: read_nc: unknown nctimestep switch.')
+             stop
+          end select
+       end if
+    end if
+
+    ! check optional nctimestep
+    if (present(nctimestep)) then
+       if (inctimestep .ne. nctimestep) then
+          call message('***ERROR: provided timestep ' // num2str(nctimestep) //&
+                       ' does not match with the one in file ' // num2str(inctimestep))
+          call message('File: ' // trim(fname))
+          stop 1
+       end if
+    end if
+
     ! extract data and select time slice
     call var%getData(data, start = (/1, 1, time_start/), cnt = (/nRows, nCols, time_cnt/))
 
@@ -448,7 +482,7 @@ contains
     !> fname of ncfile for error message
     character(256), intent(in) :: fname
     !> flag for requested time step
-    integer(i4), intent(in) :: inctimestep
+    integer(i4), intent(out) :: inctimestep
     !> time_start index of time selection
     integer(i4), intent(out) :: time_start
     !> time_count of indexes of time selection
@@ -470,6 +504,7 @@ contains
 
     ! time vector
     integer(i8), allocatable, dimension(:) :: time_data
+    integer(i8), allocatable, dimension(:) :: time_diff
 
     ! period of ncfile, for clipping
     type(period) :: nc_period, clip_period
@@ -553,23 +588,32 @@ contains
       clip_period = nc_period
     end if
 
+    ! calculate input resolution
+    time_diff = (time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs
+    ! difference must be 1 day
+    if (all(abs(time_diff - 1._dp) .lt. 1._dp)) then
+       inctimestep = -1 ! daily
+    ! difference must be between 28 and 31 days
+    else if (all(abs(time_diff) .lt. 32._dp) .and. all(abs(time_diff) .gt. 27._dp)) then
+       inctimestep = -2 ! monthly
+    ! difference must be between 365 and 366 days
+    else if ((all(abs(time_diff) .lt. YearDays + 2)) .and. (all(abs(time_diff) .gt. YearDays - 1._dp))) then
+       inctimestep = -3 ! yearly
+    ! difference must be 1 hour
+    else if (all(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / 3600._dp - 1._dp) .lt. 1.e-6)) then
+       inctimestep = -4 ! hourly
+    else
+       call message('***ERROR: read_forcing_nc: unknown nctimestep switch.')
+       stop 1
+    end if
+
     ! prepare the selection and check for required time_step
     select case(inctimestep)
     case(-1) ! daily
-      ! difference must be 1 day
-      if (.not. all(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs - 1._dp) .lt. 1.e-6)) then
-        call error_message(error_msg // trim('daily'))
-      end if
       ncJulSta1 = nc_period%julStart
       time_start = clip_period%julStart - ncJulSta1 + 1_i4
       time_cnt = clip_period%julEnd - clip_period%julStart + 1_i4
     case(-2) ! monthly
-      ! difference must be between 28 and 31 days
-      if (any(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs) .gt. 31._dp) .or. &
-              any(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs) .lt. 28._dp)) then
-        call error_message(error_msg // trim('monthly'))
-      end if
-
       call caldat(clip_period%julStart, dd, mmcalstart, yycalstart)
       call caldat(nc_period%julStart, dd, mmncstart, yyncstart)
       ! monthly timesteps are usually set by month end, so for beginning, we need 1st of month
@@ -578,11 +622,6 @@ contains
       time_start = (yycalstart * 12 + mmcalstart) - (yyncstart * 12 + mmncstart) + 1_i4
       time_cnt = (yycalend * 12 + mmcalend) - (yycalstart * 12 + mmcalstart) + 1_i4
     case(-3) ! yearly
-      ! difference must be between 365 and 366 days
-      if (any(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs) .gt. (YearDays + 1._dp)) .or. &
-              any(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs) .lt. YearDays)) then
-        call error_message(error_msg // 'yearly')
-      end if
       call caldat(clip_period%julStart, dd, mmcalstart, yycalstart)
       call caldat(nc_period%julStart, dd, mmncstart, yyncstart)
       ! yearly timesteps are usually set by year end, so for beginning, we need 1st of year
@@ -591,10 +630,6 @@ contains
       time_start = yycalstart - yyncstart + 1_i4
       time_cnt = yycalend - yycalstart + 1_i4
     case(-4) ! hourly
-      ! difference must be 1 hour
-      if (.not. all(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / 3600._dp - 1._dp) .lt. 1.e-6)) then
-        call error_message(error_msg // 'hourly')
-      end if
       ncJulSta1 = nc_period%julStart
       time_start = (clip_period%julStart - ncJulSta1) * 24_i4 + 1_i4 ! convert to hours; always starts at one
       time_cnt = (clip_period%julEnd - clip_period%julStart + 1_i4) * 24_i4 ! convert to hours
@@ -607,6 +642,9 @@ contains
       call error_message('***ERROR: read_nc: time period of input data: ', trim(fname), &
               '          is not matching modelling period.')
     end if
+
+    ! free memory
+    deallocate(time_diff)
 
   end subroutine get_time_vector_and_select
 

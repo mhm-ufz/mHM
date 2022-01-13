@@ -326,21 +326,21 @@ CONTAINS
 
       if(present(lower) .AND. (.not. present(upper))) then
         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
-                lower = lower)
+                lower = lower, is_meteo=.True.)
       end if
       !
       if(present(upper) .AND. (.not. present(lower))) then
-        CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
-                upper = upper)
+         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
+              upper = upper, is_meteo=.True.)
       end if
       !
       if(present(lower) .AND. present(upper)) then
-        CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
-                lower = lower, upper = upper)
+         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
+              lower = lower, upper = upper, is_meteo=.True.)
       end if
       !
       if((.not. present(lower)) .AND. (.not. present(upper))) then
-        CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer)
+         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, is_meteo=.True.)
       end if
     ! cellfactor to decide on the upscaling or downscaling of meteo. fields
     cellFactorHbyM = level1(iDomain)%cellsize / level2(iDomain)%cellsize
