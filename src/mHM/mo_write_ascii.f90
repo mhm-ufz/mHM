@@ -86,11 +86,11 @@ CONTAINS
 
     use mo_common_file, only : file_config, uconfig
     use mo_common_variables, only : evalPer, read_restart, warmPer, &
-                                    dirConfigOut, dirLCover, dirMorpho, dirOut, &
-                                    global_parameters, global_parameters_name, level0, level1, &
-                                    domainMeta, nLandCoverPeriods, resolutionHydrology, write_restart, processMatrix, &
+                                    dirConfigOut, dirIn, dirOut, &
+                                    global_parameters, global_parameters_name, level1, &
+                                    domainMeta, resolutionHydrology, write_restart, processMatrix, &
                                     resolutionRouting, mhmFileRestartOut
-    use mo_common_datetime_type, only: LCyearId, SimPer, timeStep
+    use mo_common_datetime_type, only: SimPer, timeStep, landCoverPeriods
     use mo_grid, only : iFlag_coordinate_sys
     use mo_file, only : version
     use mo_global_variables, only : dirPrecipitation, dirReferenceET, &
@@ -136,7 +136,7 @@ CONTAINS
     write(uconfig, 103)    'Time Step [h]               ', timeStep
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      write(uconfig, 103) 'Domain  ', domainID, 'No. of cells L0             ', level0(domainMeta%L0DataFrom(iDomain))%nCells
+      ! no information on level0 anymore as this is not available for restart case
       write(uconfig, 103) 'Domain  ', domainID, 'No. of cells L1             ', level1(iDomain)%nCells
       if (domainMeta%doRouting(iDomain)) then
         write(uconfig, 103) 'Total No. of nodes          ', level11(iDomain)%nCells
@@ -195,7 +195,7 @@ CONTAINS
       write(uconfig, 118) '     Land Cover Observations for Domain ', num2str(domainID)
       write(uconfig, 119) ' Year', '   Land cover period'
       do i = simPer(iDomain)%ystart, simPer(iDomain)%yend
-        write(uconfig, 120) i, LCyearId(i, uniqueIDomain)
+        write(uconfig, 120) i, landCoverPeriods(iDomain)%yearIds(i)
       end do
     end do
     !*********************************
@@ -252,8 +252,7 @@ CONTAINS
       write(uconfig, 222)   'Directory list'
 
       write(uconfig, 224) 'Configuration file for MPR               ', pathMprNml(iDomain)
-      write(uconfig, 224) 'Directory to morphological input         ', dirMorpho(iDomain)
-      write(uconfig, 224) 'Directory to land cover input            ', dirLCover(iDomain)
+      write(uconfig, 224) 'Directory to input                       ', dirIn(iDomain)
       if (domainMeta%doRouting(iDomain)) then
         write(uconfig, 224) 'Directory to gauging station input       ', dirGauges(iDomain)
       end if

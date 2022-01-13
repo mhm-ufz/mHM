@@ -149,7 +149,6 @@ contains
         end do
       end do
     end if
-
     ! L1 data sets
     call append(L1_L11_Id, pack (L11Id_on_L1(:, :), level1(iDomain)%mask))
     ! L11 data sets
@@ -1508,8 +1507,8 @@ contains
     use mo_append, only : append, add_nodata_slice
     use mo_common_constants, only : nodata_dp
     use mo_grid, only: Grid
-    use mo_common_variables, only : domainMeta, L0_LCover, level0, domainMeta, nLandCoverPeriods
-    use mo_common_datetime_type, only: LCyearId
+    use mo_common_variables, only : domainMeta, L0_LCover, level0
+    use mo_common_datetime_type, only: nLandCoverPeriods, landCoverPeriods
     use mo_mrm_global_variables, only : L0_floodPlain, L11_aFloodPlain, &
                                         L11_nLinkFracFPimp, L11_nOutlets, level11
 
@@ -1517,27 +1516,19 @@ contains
 
     ! Impervious land cover class Id, e.g. = 2 (old code)
     integer(i4), intent(in) :: LCClassImp
-
     logical, intent(in) :: do_init
-
     integer(i4) :: nLinks
-
     real(dp), dimension(:), pointer :: nLinkAFloodPlain => null()
-
     real(dp), dimension(:,:), allocatable :: temp_array
-
     integer(i4) :: ii, iDomain, iiLC, s0, e0, iDomainNLandCoverPeriods, uniqueIDomain
-
     type(Grid), pointer :: level0_iDomain => null()
 
 
     ! initialization
     do iDomain = 1, domainMeta%nDomains
       uniqueIDomain = domainMeta%L0DataFrom(iDomain)
-      iDomainNLandCoverPeriods = maxval(LCyearId(:, uniqueIDomain))
-      ! TODO: MPR comment next line
-      iDomainNLandCoverPeriods = nLandCoverPeriods
-      allocate(temp_array(level11(iDomain)%nCells, iDomainNLandCoverPeriods))
+      iDomainNLandCoverPeriods = landCoverPeriods(iDomain)%nIds
+      allocate(temp_array(level11(iDomain)%nCells, nLandCoverPeriods))
       temp_array = nodata_dp
       if (do_init) then
         level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
@@ -1557,8 +1548,6 @@ contains
           end if
         end do
       end if
-      ! TODO: MPR uncomment next line
-      ! call add_nodata_slice(temp_array, nLandCoverPeriods - iDomainNLandCoverPeriods, nodata_dp)
       call append(L11_nLinkFracFPimp, temp_array(:,:))
       deallocate(temp_array)
     end do
@@ -2215,13 +2204,14 @@ contains
     use mo_common_constants, only: nodata_i4, nodata_dp
     use mo_mad, only: mad
     use mo_append, only: append
-    use mo_mpr_global_variables, only: &
-        L0_slope               ! IN:    slope [%]
+    ! use mo_mpr_global_variables, only: &
+    !     L0_slope               ! IN:    slope [%]
     use mo_common_variables, only: &
         domainMeta,          & ! IN:    for L0 Domain indexer
         level0                 ! IN:    level 0 grid
     use mo_grid, only: Grid
     use mo_mrm_global_variables, only: &
+        L0_slope,            & ! IN:    slope [%]
         L0_fDir,             & ! IN:    flow direction (standard notation) L0
         L0_fAcc,             & ! IN:    flow accumulation (number of cells)?
         L0_streamNet,        & ! IN:    stream Network at Level 0

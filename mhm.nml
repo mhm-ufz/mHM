@@ -97,7 +97,7 @@ L0Domain(2) = 2
 !-----------------------------------------------------------------------------
 !> flag for writing restart output
 !-----------------------------------------------------------------------------
-write_restart = .False.
+write_restart = .True.
 !-----------------------------------------------------------------------------
 !> read domain specific optional data
 !-----------------------------------------------------------------------------
@@ -276,15 +276,9 @@ dir_riv_widths(2) = 'test_domain_2/input/optional_data/'
 !> config run out file common to all modeled domains should be written to directory
 dirConfigOut = "test_domain/"
 !
-!> directory where common input files should be located for all modeled domains
-!> (only for *_classdefinition files)
-dirCommonFiles = "test_domain/input/mpr/"
-!
 !**** for Domain 1
-!> directory where morphological files are located
-dir_Morpho(1)        = "test_domain/input/mpr/"
-!> directory where land cover files are located
-dir_LCover(1)        = "test_domain/input/mpr/"
+!> directory where input files are located
+dir_In(1)        = "test_domain/input/mpr/"
 !> directory where restart output should be written
 mhm_file_RestartOut(1)    = "test_domain/restart/mHM_restart_001.nc"
 mrm_file_RestartOut(1)    = "test_domain/restart/mRM_restart_001.nc"
@@ -294,13 +288,11 @@ dir_Out(1)           = "test_domain/output_b1/"
 file_LatLon(1)       = "test_domain/input/mpr/latlon_1.nc"
 
 ! **** for Domain 2
-!> directory where morphological files are located
-dir_Morpho(2)        = "test_domain_2/input/mpr/"
-!> directory where land cover files are located
-dir_LCover(2)        = "test_domain_2/input/mpr/"
+!> directory where input files are located
+dir_In(2)        = "test_domain_2/input/mpr/"
 !> directory where restart output should be written
-mhm_file_RestartOut(2)    = "test_domain/restart/mHM_restart_002.nc"
-mrm_file_RestartOut(2)    = "test_domain/restart/mRM_restart_002.nc"
+mhm_file_RestartOut(2)    = "test_domain_2/restart/mHM_restart_002.nc"
+mrm_file_RestartOut(2)    = "test_domain_2/restart/mRM_restart_002.nc"
 !> directory where output should be written
 dir_Out(2)           = "test_domain_2/output/"
 !> file containing latitude and longitude on the resolution_Hydrology
@@ -336,7 +328,7 @@ dir_absVapPressure(1)  = "test_domain/input/meteo/"
 dir_windspeed(1)       = "test_domain/input/meteo/"
 !> if processCase(11) == 1  input directory of (long/short-wave)radiation has to be specified
 dir_Radiation(1)    = "test_domain/input/meteo/"
-path_mpr_nml(1) = "mpr_test_domain.nml"
+path_mpr_nml(1) = "test_domain/test_domain_mpr.nml"
 !
 !**** for Domain 2
 !> directory where meteorological input is located
@@ -360,7 +352,7 @@ dir_absVapPressure(2)  = "test_domain_2/input/meteo/"
 dir_windspeed(2)       = "test_domain_2/input/meteo/"
 !> if processCase(11) == 1  input directory of (long/short-wave)radiation has to be specified
 dir_Radiation(2)    = "test_domain_2/input/meteo/"
-path_mpr_nml(2) = "mpr_test_domain2.nml"
+path_mpr_nml(2) = "test_domain_2/test_domain_2_mpr.nml"
 !> switch to control read input frequency of the gridded meteo input,
 !> i.e. precipitation, potential evapotransiration, and temperature
 !>      >0: after each <timeStep_model_inputs> days
@@ -506,31 +498,12 @@ processCase(11) = 0
 /
 
 !******************************************************************************************
-! LAND COVER (mandatory)
+! AGGREGATE PERIODS (mandatory)
 !******************************************************************************************
-&LCover
-!> Variables given in this namelist are common to all domains to be modeled.
-!> Please make sure that the land cover periods are covering the simulation period.
-!> number of land cover scenes to be used
-!> The land cover scene periods are shared by all catchments.
-!> The names should be equal for all domains. The land cover scnes have to be ordered
-!> chronologically.
+&aggregate_periods
+!> the maximum number of different land cover/lai periods needed for a given domains's simulation period
 nLandCoverPeriods = 2
-! indicate period with brackets behind variable
-! first scene
-!> starting year of land cover scene 1
-LCoverYearStart(1) = 1981
-!> ending year of land cover scnene 1
-LCoverYearEnd(1)   = 1990
-!> name of land cover file for scnene 1
-LCoverfName(1)     = 'lc_1981.asc'
-
-!> starting year of land cover scene 2
-LCoverYearStart(2) = 1991
-!> ending year of land cover scnene 2
-LCoverYearEnd(2)   = 2000
-!> name of land cover file for scnene 2
-LCoverfName(2)     = 'lc_1991.asc'
+nlaiPeriods = 12
 /
 
 !******************************************************************************************
@@ -575,125 +548,6 @@ eval_Per(1)%dEnd   = 31
 eval_Per(2)%dEnd   = 31
 /
 
-!******************************************************************************************
-! INPUT SOIL DATABASE AND mHM LAYERING (MPR-related)
-!******************************************************************************************
-!> Namelist controlling the layer information of the soil database
-!> Variables given in this namelist are common to all domains to be modeled.
-&soildata
-!----------------------------------------------------------------------------------------------------------
-!> iFlag_soilDB:
-!>            flag to handle multiple types of soil databases and their processing within the mHM.
-!>            This flag is unique and valid for all domains.
-!>            Depending on the choice of this flag you need to process your soil database differently.
-!
-!> iFlag_soilDB = 0:
-!>            Read and process the soil database in a classical mHM format which requires:
-!>               i) a single gridded ASCII file of soil-id (soil_class.asc - hard coded file name)
-!>              ii) a single soil look-up-table file (soil_classdefinition.txt) with information of
-!>                  soil textural properties for every horizon.
-!
-!>            Here mHM is quite flexible to handle multiple soil layers as specified in "nSoilHorizons_mHM"
-!>            and depths provided in "soil_Depth(:)".
-!
-!>            The tillage depth is flexible in this case.
-!
-!>            The depth of last mHM modeling layer is determined according the information given in the
-!>            input soil database, which could vary spatially depending on the soil type. Therefore the
-!>            user should not provide the depth of the last modeling layer. For example if you choose
-!>            nSoilHorizons_mHM = 3, then soil_Depth should be given for only soil_Depth(1) and soil_Depth(2).
-!>            Any additional depth related information would be discarded
-!
-!> iFlag_soilDB = 1:
-!>            Handle the harmonised horizon specific soil information, requires
-!>               i) multiple (horizon specific) gridded ASCII files containing info of soil-ids.
-!>                 (e.g., soil_class_horizon001.asc, soil_class_horizon002.asc, ....)
-!>                 File names are automatically generated within mHM as per the given soil_Depth(:).
-!>                 The format follows the FORTRAN coding style: "soil_class_horizon_"XX".asc"
-!>                 where XX represents the horizon id with 2 spaces allocated for this number
-!>                 and the empty spaces are (trailed) filled with Zeros. FORTRAN CODE I2.2
-!>                 The horizon is numbered sequentially from top to bottom soil layers.
-!>                 E.g., for 1st horizon it is soil_class_horizon_01.asc,
-!>                 for 2nd it is soil_class_horizon_02.asc, ... and so on.
-!
-!>              ii) a single soil look-up-table file with information of soil textural properties for each soil type.
-!>                  Note that there should be no horizon specific information in this LUT file
-!>                  (soil_classdefinition_iFlag_soilDB_1.txt - filename is hard coded).
-!
-!>            The modeling soil horizons is as per the input data (i.e. for which the gridded ASCII files are available).
-!
-!>            The depth of the last mHM horizon should be specified. It is fixed and uniform across the entire modeling domain.
-!
-!>            The tillage depth should conform with one of the horizon (lower) layer depths.
-!
-!>            There is an overhead cost of reading and storing multiple (horizon specific) gridded ASCII files
-!
-!> Note: For both cases: The present model code mHM can handle maximum of 10 soil horizons (hard coded).
-!>        To increase this number, edit the variable "maxNoSoilHorizons" in the "/src/mhm/mo_mhm_constants.f90" file
-!
-!----------------------------------------------------------------------------------------------------------
-iFlag_soilDB = 0
-!
-!> [mm] soil depth down to which organic matter is possible
-tillageDepth = 200
-!
-!> No. of soil horizons to be modeled
-nSoilHorizons_mHM =2
-!
-! soil depth information
-!> IF (iFlag_soilDB = 0)
-!>    Provide below the soil_Depth() for 1,2,..,*n-1* soil horizons. Depth of the last layer(n) is taken from the soil LUT
-!> IF (iFlag_soilDB = 1)
-!>    Provide below the soil_Depth() for every 1,2..n-1,*n* soil horizons. You must have soil_class-id gridded file for each layer
-!>    Also check your tillage layer depth. It should conform with one of the below specified soil_Depth.
-!
-!> Soil_Horizon   Depth[mm]      ! depth of soil horizons w.r.t. ground surface (positive downwards)
-soil_Depth(1) = 200
-/
-
-!******************************************************************************************
-! INFORMATION RELATED TO LAI DATA (MPR-related)
-!******************************************************************************************
-&LAI_data_information
-!
-!-----------------------------------------------------------------------------------
-!> Flag timeStep_LAI_input identifies how LAI is read in mHM.
-!> This flag is unique and valid for all domains.
-!
-!> timeStep_LAI_input
-!>
-!>  0: read LAI from long term monthly mean lookup table (related to land cover file).
-!>     The filename (LAI_classdefinition.txt) for the LUT is hard coded in mo_file.f90
-!>         Information regarding long-term monthly mean LAI for land cover classes
-!>         appearing in all modeled domains should be included in this LUT file.
-!>         This is an unique file applicable to all domains to be modeled.
-!>     The respective plant functional type is in LAI_class.asc, which must be also given
-!>         and should be located in each domain's morph directory.
-!>
-!>  < 0: Read gridded LAI files.
-!>     -1: gridded LAI are daily values
-!>     -2: gridded LAI are monthly values
-!>     -3: gridded LAI are yearly values
-!
-!>  1: read mean monthly gridded LAI values.
-!>     must be a separate *.nc file for every (modeled) domains.
-!-----------------------------------------------------------------------------------
-timeStep_LAI_input = 0
-!> input file format of gridded file (if timeStep_LAI_input < 0)
-!>     nc  - assume one file with name lai.nc
-!> input file format of gridded file (if timeStep_LAI_input == 1)
-!>     nc  - assume one file with name lai.nc with 12 monthly grids of mean LAI estimates
-inputFormat_gridded_LAI = "nc"
-/
-
-!
-!******************************************************************************************
-! LCover information (MPR-related)
-!******************************************************************************************
-&LCover_MPR
-!>fraction of area within city assumed to be fully sealed [0.0-1.0]
-fracSealed_cityArea = 0.6
-/
 
 !******************************************************************************************
 ! LAI gridded time series folder definition (optional, MPR-related)
@@ -703,7 +557,7 @@ fracSealed_cityArea = 0.6
 !> directory where gridded LAI files are located
 dir_gridded_LAI(1)   = "test_domain/input/mpr/"
 !> directory where gridded LAI files are located
-dir_gridded_LAI(2)   = "test_domain/input/mpr/"
+dir_gridded_LAI(2)   = "test_domain_2/input/mpr/"
 /
 
 !******************************************************************************************

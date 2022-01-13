@@ -48,27 +48,27 @@ CONTAINS
 
   subroutine common_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
-    use mo_common_constants, only : maxNLcovers, maxNoDomains, floatComparisonPrecision, &
-                                    float_comparison_precision, nodata_i4
-    use mo_common_variables, only : Conventions, contact, &
-                                    dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, &
-                                    mhmFileRestartOut, mrmFileRestartOut, &
-                                    fileLatLon, history, mHM_details, domainMeta, nLandCoverPeriods, &
-                                    nProcesses, nuniqueL0Domains, processMatrix, project_details, resolutionHydrology, &
-                                    setup_description, simulation_type, write_restart, &
-                                    dds_r, mhmFileRestartIn, mrmFileRestartIn, evalPer,&
-                                    mcmc_error_params, mcmc_opti, nIterations, &
-                                    opti_function, opti_method, optimize, optimize_restart, &
-                                    read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
-                                    sce_ngs, sce_npg, sce_nps, seed, &
-                                    warmPer, warmingDays, landCoverPeriodBoundaries
-    use mo_common_datetime_type, only: LCyearId, simPer, timestep, nTStepDay, period, nTStepForcingDay
+    use mo_common_constants, only : maxNLcovers, maxNLais ,maxNoDomains, &
+            floatComparisonPrecision, float_comparison_precision, nodata_i4
+    use mo_common_variables, only : Conventions, contact, L0_Domain, &
+            dirConfigOut, dirIn, dirOut, &
+            mhmFileRestartOut, mrmFileRestartOut, &
+            fileLatLon, history, mHM_details, domainMeta, &
+            nProcesses, nuniqueL0Domains, processMatrix, project_details, resolutionHydrology, &
+            setup_description, simulation_type, write_restart, &
+            dds_r, mhmFileRestartIn, mrmFileRestartIn, evalPer,&
+            mcmc_error_params, mcmc_opti, nIterations, &
+            opti_function, opti_method, optimize, optimize_restart, &
+            read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
+            sce_ngs, sce_npg, sce_nps, seed, &
+            warmPer, warmingDays
+    use mo_common_datetime_type, only: simPer, timestep, nTStepDay, period, &
+            landCoverPeriods, laiPeriods, nLandCoverPeriods, nlaiPeriods, nTStepForcingDay
     use mo_julian, only : caldat, julday
     use mo_message, only : error_message, message
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
     use mo_grid, only : iFlag_coordinate_sys
-    use mo_common_constants, only: nodata_i4
 
     implicit none
 
@@ -84,16 +84,12 @@ CONTAINS
     ! Choosen process description number
     integer(i4), dimension(nProcesses) :: processCase
 
-    character(256), dimension(maxNoDomains) :: dir_Morpho
-
     character(256), dimension(maxNoDomains) :: mhm_file_RestartOut
-
     character(256), dimension(maxNoDomains) :: mrm_file_RestartOut
-
-    character(256), dimension(maxNoDomains) :: dir_LCover
-
+    character(256), dimension(maxNoDomains) :: mhm_file_RestartIn
+    character(256), dimension(maxNoDomains) :: mrm_file_RestartIn
+    character(256), dimension(maxNoDomains) :: dir_In
     character(256), dimension(maxNoDomains) :: dir_Out
-
     character(256), dimension(maxNoDomains) :: file_LatLon
 
     real(dp), dimension(maxNoDomains) :: resolution_Hydrology
@@ -101,15 +97,6 @@ CONTAINS
     integer(i4), dimension(maxNoDomains) :: L0Domain
 
     integer(i4), dimension(maxNoDomains) :: read_opt_domain_data
-
-    ! starting year LCover
-    integer(i4), dimension(maxNLCovers) :: LCoverYearStart
-
-    ! ending year LCover
-    integer(i4), dimension(maxNLCovers) :: LCoverYearEnd
-
-    ! filename of Lcover file
-    character(256), dimension(maxNLCovers) :: LCoverfName
 
     integer(i4) :: i, newDomainID, domainID, iDomain, nDomains
 
@@ -124,17 +111,13 @@ CONTAINS
 
     real(dp), dimension(maxNoDomains) :: resolution_Routing
 
-    character(256), dimension(maxNoDomains) :: mhm_file_RestartIn
-    character(256), dimension(maxNoDomains) :: mrm_file_RestartIn
 
     ! define namelists
     ! namelist directories
     namelist /project_description/ project_details, setup_description, simulation_type, &
             Conventions, contact, mHM_details, history
-    namelist /directories_general/ dirConfigOut, dirCommonFiles, &
-            dir_Morpho, dir_LCover, &
-            dir_Out, mhm_file_RestartOut, mrm_file_RestartOut, &
-            file_LatLon
+    namelist /directories_general/ dirConfigOut, dir_In, &
+            dir_Out, mhm_file_RestartOut, mrm_file_RestartOut, file_LatLon
     ! namelist spatial & temporal resolution, optimization information
     namelist /mainconfig/ iFlag_coordinate_sys, resolution_Hydrology, nDomains, L0Domain, write_restart, &
             read_opt_domain_data, float_comparison_precision
@@ -142,7 +125,7 @@ CONTAINS
     namelist /processSelection/ processCase
 
     ! namelist for land cover scenes
-    namelist/LCover/nLandCoverPeriods, LCoverYearStart, LCoverYearEnd, LCoverfName
+    namelist/aggregate_periods/nLandCoverPeriods, nlaiPeriods
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig_mhm_mrm/ timestep, resolution_Routing, optimize, &
             optimize_restart, opti_method, opti_function, &
@@ -187,16 +170,15 @@ CONTAINS
     allocate(mhmFileRestartOut(domainMeta%nDomains))
     allocate(mrmFileRestartOut(domainMeta%nDomains))
     allocate(dirOut(domainMeta%nDomains))
-
-    ! TODO: MPR this block will go
-    allocate(dirMorpho(domainMeta%nDomains))
-    allocate(dirLCover(domainMeta%nDomains))
+    allocate(dirIn(domainMeta%nDomains))
+    allocate(L0_Domain(domainMeta%nDomains))
     allocate(fileLatLon(domainMeta%nDomains))
 
     nuniqueL0Domains = 0_i4
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       resolutionHydrology(iDomain) = resolution_Hydrology(domainID)
+      L0_Domain(iDomain) = L0Domain(domainID)
       ! if a domain uses the same L0 data as a previous one, write
       ! the index into domainMeta%L0DataFrom
       newDomainID = L0Domain(domainID)
@@ -229,15 +211,12 @@ CONTAINS
       mhmFileRestartOut(iDomain)   = mhm_file_RestartOut(domainID)
       mrmFileRestartOut(iDomain)   = mrm_file_RestartOut(domainID)
       dirOut(iDomain)              = dir_Out(domainID)
-      ! TODO: MPR this will go
-      dirMorpho(iDomain)           = dir_Morpho(domainID)
-      dirLCover(iDomain)           = dir_LCover(domainID)
+      dirIn(iDomain)               = dir_In(domainID)
       fileLatLon(iDomain)          = file_LatLon(domainID)
     end do
 
     ! ToDo: add test if opti_function matches at least one domainMeta%optidata
     ! as soon as common and common_mRM_mHM are merged, if that is the plan
-
 
     !===============================================================
     ! Read process selection list
@@ -305,6 +284,8 @@ CONTAINS
     allocate(evalPer(domainMeta%nDomains))
     allocate(warmingDays(domainMeta%nDomains))
     allocate(warmPer(domainMeta%nDomains))
+    allocate(laiPeriods(domainMeta%nDomains))
+    allocate(landCoverPeriods(domainMeta%nDomains))
 
     !===============================================================
     !  read simulation time periods incl. warming days
@@ -352,14 +333,18 @@ CONTAINS
     end do
 
     !===============================================================
-    ! Read land cover
+    ! Read aggregate_periods
     !===============================================================
-    call position_nml('LCover', unamelist)
-    read(unamelist, nml = LCover)
-    allocate(landCoverPeriodBoundaries(nLandCoverPeriods+1, domainMeta%nDomains))
-    allocate(LCyearId(minval(simPer(1:domainMeta%nDomains)%yStart):maxval(simPer(1:domainMeta%nDomains)%yEnd), domainMeta%nDomains))
-    landCoverPeriodBoundaries = nodata_i4
-    LCyearId = nodata_i4
+    call position_nml('aggregate_periods', unamelist)
+    read(unamelist, nml = aggregate_periods)
+    if (nLandCoverPeriods > maxNLcovers) then
+      call error_message('There is a maximum of ', trim(num2str(maxNLcovers)), &
+              'land cover periods allowed. Passed ', trim(num2str(nLandCoverPeriods)), '.')
+    end if
+    if (nlaiPeriods > maxNLais) then
+      call error_message('There is a maximum of ', trim(num2str(maxNLais)), &
+              'land cover periods allowed. Passed ', trim(num2str(nlaiPeriods)), '.')
+    end if
 
     !===============================================================
     ! Settings for Optimization
@@ -372,7 +357,7 @@ CONTAINS
 
     call close_nml(unamelist)
 
-    call read_mhm_parameters(file_namelist, unamelist, file_namelist_param, unamelist_param)
+    call read_mhm_parameters(file_namelist_param, unamelist_param)
 
   end subroutine common_read_config
 
@@ -412,11 +397,13 @@ CONTAINS
     integer(i4), dimension(:), intent(in) :: optiData
     type(domain_meta), intent(inout) :: domainMeta
 
+#ifdef MPI
+    integer(i4)         :: rank
     integer             :: ierror
     integer(i4)         :: nproc
-    integer(i4)         :: rank
-    integer(i4)         :: iDomain
     integer(i4)         :: colDomain, colMasters
+#endif
+    integer(i4)         :: iDomain
 
     domainMeta%overallNumberOfDomains = nDomains
 #ifdef MPI
@@ -671,42 +658,28 @@ CONTAINS
 
   end subroutine common_check_resolution
 
-  subroutine read_mhm_parameters(file_namelist, unamelist, file_namelist_param, unamelist_param)
+  subroutine read_mhm_parameters(file_namelist_param, unamelist_param)
 
     use mo_append, only : append
-    use mo_common_constants, only : eps_dp, maxNoDomains, nColPars, nodata_dp
+    use mo_common_constants, only : nColPars, nodata_dp
     use mo_common_functions, only : in_bound
-    use mo_common_variables, only : global_parameters, global_parameters_name, domainMeta, processMatrix, dummy_global_parameters, &
+    use mo_common_variables, only : global_parameters, global_parameters_name, processMatrix, dummy_global_parameters, &
           dummy_global_parameters_name
     use mo_message, only : error_message, message
-    use mo_mpr_constants, only : maxGeoUnit, &
-                                 maxNoSoilHorizons
-    use mo_mpr_global_variables, only : HorizonDepth_mHM, dirgridded_LAI, fracSealed_cityArea, iFlag_soilDB, &
-                                        inputFormat_gridded_LAI, nGeoUnits, nSoilHorizons_mHM, tillageDepth
-    use mo_common_datetime_type, only : timeStep_LAI_input
+    use mo_mhm_constants, only : maxGeoUnit
+    ! use mo_mpr_global_variables, only : HorizonDepth_mHM, dirgridded_LAI, fracSealed_cityArea, iFlag_soilDB, &
+    !                                     inputFormat_gridded_LAI, nGeoUnits, nSoilHorizons_mHM, tillageDepth
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
     use mo_utils, only : EQ
-    use mo_global_variables, only: soilHorizonBoundaries, nSoilHorizons, lowestDepth
 
     implicit none
-
-    character(*), intent(in) :: file_namelist
-
-    integer, intent(in) :: unamelist
 
     character(*), intent(in) :: file_namelist_param
 
     integer, intent(in) :: unamelist_param
 
-    integer(i4) :: ii
-
-    ! depth of the single horizons
-    real(dp), dimension(maxNoSoilHorizons) :: soil_Depth
-
-    ! directory of gridded LAI data
-    ! used when timeStep_LAI_input<0
-    character(256), dimension(maxNoDomains) :: dir_gridded_LAI
+    integer(i4) :: nGeoUnits, ii
 
     character(256) :: dummy
 
@@ -739,6 +712,8 @@ CONTAINS
     real(dp), dimension(nColPars) :: orgMatterContent_impervious
 
     real(dp), dimension(nColPars) :: orgMatterContent_pervious
+
+    real(dp), dimension(nColPars) :: orgMatterSwitch
 
     real(dp), dimension(nColPars) :: PTF_lower66_5_constant
 
@@ -856,24 +831,12 @@ CONTAINS
 
     real(dp), dimension(nColPars) :: COSMIC_L31
 
-    integer(i4) :: iDomain, domainID
-
-
-    ! namelist directories
-    namelist /directories_MPR/ dir_gridded_LAI
-    ! namelist soil database
-    namelist /soildata/ iFlag_soilDB, tillageDepth, nSoilHorizons_mHM, soil_Depth
-    ! namelist for LAI related data
-    namelist /LAI_data_information/ inputFormat_gridded_LAI, timeStep_LAI_input
-    ! namelist for land cover scenes
-    namelist /LCover_MPR/ fracSealed_cityArea
-
     ! namelist parameters
     namelist /mhm_parameters/ canopyInterceptionFactor, snowThresholdTemperature, degreeDayFactor_forest, &
             degreeDayFactor_impervious, &
             degreeDayFactor_pervious, increaseDegreeDayFactorByPrecip, maxDegreeDayFactor_forest, &
             maxDegreeDayFactor_impervious, maxDegreeDayFactor_pervious, orgMatterContent_forest, &
-            orgMatterContent_impervious, orgMatterContent_pervious, &
+            orgMatterContent_impervious, orgMatterContent_pervious, orgMatterSwitch, &
             PTF_lower66_5_constant, PTF_lower66_5_clay, PTF_lower66_5_Db, PTF_higher66_5_constant, &
             PTF_higher66_5_clay, PTF_higher66_5_Db, PTF_Ks_constant, &
             PTF_Ks_sand, PTF_Ks_clay, PTF_Ks_curveSlope, &
@@ -896,81 +859,9 @@ CONTAINS
     !===============================================================
     ! INITIALIZATION
     !===============================================================
-    soil_Depth = 0.0_dp
     dummy_2d_dp = nodata_dp
     dummy_2d_dp_2 = nodata_dp
     GeoParam = nodata_dp
-
-    call open_nml(file_namelist, unamelist, quiet = .true.)
-
-    !===============================================================
-    !  Read namelist for LCover
-    !===============================================================
-    call position_nml('LCover_MPR', unamelist)
-    read(unamelist, nml = LCover_MPR)
-
-    !===============================================================
-    ! Read soil layering information
-    !===============================================================
-    call position_nml('soildata', unamelist)
-    read(unamelist, nml = soildata)
-
-    ! TODO: MPR remove allocation here
-    nSoilHorizons = nSoilHorizons_mHM
-    allocate(soilHorizonBoundaries(nSoilHorizons+1))
-    allocate(HorizonDepth_mHM(nSoilHorizons))
-    soilHorizonBoundaries(:) = 0.0_dp
-    ! last layer is reset to 0 in MPR in case of iFlag_soilDB is 0
-    soilHorizonBoundaries(2 : nSoilHorizons+1) = soil_Depth(1 : nSoilHorizons)
-
-    ! counter checks -- soil horizons
-    if (nSoilHorizons .GT. maxNoSoilHorizons) then
-      call error_message('***ERROR: Number of soil horizons is resticted to ', trim(num2str(maxNoSoilHorizons)), '!')
-    end if
-
-    ! the default is the HorizonDepths are all set up to last
-    ! as is the default for option-1 where horizon specific information are taken into consideration
-    if(iFlag_soilDB .eq. 0) then
-      ! classical mhm soil database
-      soilHorizonBoundaries(nSoilHorizons+1) = 0.0_dp
-    else if(iFlag_soilDB .ne. 1) then
-      call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
-    end if
-    lowestDepth = soilHorizonBoundaries(nSoilHorizons+1)
-    ! TODO: MPR remove this duplications
-    HorizonDepth_mHM = soilHorizonBoundaries(2 : nSoilHorizons+1)
-    ! some consistency checks for the specification of the tillage depth
-    if(iFlag_soilDB .eq. 1) then
-      if(count(abs(soilHorizonBoundaries(2 : nSoilHorizons+1) - tillageDepth) .lt. eps_dp)  .eq. 0) then
-        call error_message('***ERROR: Soil tillage depth must conform with one of the specified horizon (lower) depth.')
-      end if
-    end if
-
-    !===============================================================
-    ! Read LAI related information
-    !===============================================================
-    call position_nml('LAI_data_information', unamelist)
-    read(unamelist, nml = LAI_data_information)
-
-    if (timeStep_LAI_input .ne. 0) then
-      !===============================================================
-      !  Read namelist for main directories
-      !===============================================================
-      call position_nml('directories_MPR', unamelist)
-      read(unamelist, nml = directories_MPR)
-
-      allocate(dirgridded_LAI(domainMeta%nDomains))
-      do iDomain = 1, domainMeta%nDomains
-        domainID = domainMeta%indices(iDomain)
-        dirgridded_LAI(iDomain) = dir_gridded_LAI(domainID)
-      end do
-
-      if (timeStep_LAI_input .GT. 1) then
-        call error_message('***ERROR: option for selected timeStep_LAI_input not coded yet')
-      end if
-    end if
-
-    call close_nml(unamelist)
 
     !===============================================================
     ! Read namelist global parameters
@@ -1042,6 +933,13 @@ CONTAINS
     call append(global_parameters, reshape(rootFractionCoefficient_impervious, [1, nColPars]))
     call append(global_parameters, reshape(rootFractionCoefficient_pervious, [1, nColPars]))
     call append(global_parameters, reshape(infiltrationShapeFactor, [1, nColPars]))
+    if (processMatrix(3, 1) == 3_i4 .or. processMatrix(3, 1) == 4_i4) then
+      orgMatterSwitch = [0.0_dp, 1.0_dp, 1.0_dp, 0.0_dp, 1.0_dp]
+    else
+      orgMatterSwitch = [0.0_dp, 1.0_dp, 0.0_dp, 0.0_dp, 1.0_dp]
+    end if
+
+    call append(global_parameters, reshape(orgMatterSwitch, [1, nColPars]))
 
     call append(global_parameters_name, [     &
               'orgMatterContent_forest           ', &
@@ -1060,13 +958,14 @@ CONTAINS
                       'rootFractionCoefficient_forest    ', &
                       'rootFractionCoefficient_impervious', &
                       'rootFractionCoefficient_pervious  ', &
-                    'infiltrationShapeFactor           '])
+                      'infiltrationShapeFactor           ', &
+                      'orgMatterSwitch                   '])
 
     select case (processMatrix(3, 1))
 
       ! 1 - Feddes equation for PET reduction, bucket approach, Brooks-Corey like
     case(1)
-      processMatrix(3, 2) = 17_i4
+      processMatrix(3, 2) = 18_i4
       processMatrix(3, 3) = sum(processMatrix(1:3, 2))
 
       call append(dummy_global_parameters, [ &
@@ -1085,7 +984,7 @@ CONTAINS
       ])
       ! 2- Jarvis equation for PET reduction, bucket approach, Brooks-Corey like
     case(2)
-      processMatrix(3, 2) = 18_i4
+      processMatrix(3, 2) = 19_i4
       processMatrix(3, 3) = sum(processMatrix(1 : 3, 2))
       call append(global_parameters, reshape(jarvis_sm_threshold_c1, [1, nColPars]))
       call append(global_parameters_name, ['jarvis_sm_threshold_c1            '])
@@ -1104,7 +1003,7 @@ CONTAINS
 
       ! 3- Jarvis equation for ET reduction and FC dependency on root fraction coefficient
     case(3)
-      processMatrix(3, 2) = 22_i4
+      processMatrix(3, 2) = 23_i4
       processMatrix(3, 3) = sum(processMatrix(1 : 3, 2))
       call append(global_parameters, reshape(rootFractionCoefficient_sand, [1, nColPars]))
       call append(global_parameters, reshape(rootFractionCoefficient_clay, [1, nColPars]))
@@ -1121,7 +1020,7 @@ CONTAINS
 ])
       ! 4- Feddes equation for ET reduction and FC dependency on root fraction coefficient
     case(4)
-      processMatrix(3, 2) = 21_i4
+      processMatrix(3, 2) = 22_i4
       processMatrix(3, 3) = sum(processMatrix(1 : 3, 2))
       call append(global_parameters, reshape(rootFractionCoefficient_sand, [1, nColPars]))
       call append(global_parameters, reshape(rootFractionCoefficient_clay, [1, nColPars]))

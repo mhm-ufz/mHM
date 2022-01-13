@@ -40,9 +40,8 @@ CONTAINS
 
   subroutine read_dem(iDomain, level0_iDomain, data_dp_2d)
 
-    use mo_append, only : append
     use mo_common_file, only : varNameDem
-    use mo_common_variables, only : dirMorpho, level0, domainMeta, resolutionHydrology
+    use mo_common_variables, only : dirIn, domainMeta, resolutionHydrology
     use mo_grid, only : infer_grid_info, Grid
     use mo_message, only : error_message, message
     use mo_string_utils, only : num2str
@@ -68,7 +67,7 @@ CONTAINS
     ! ************************************************
     call message('      Reading dem for domain: ', trim(adjustl(num2str(domainMeta%indices(iDomain)))), ' ...')
 
-    fName = trim(dirMorpho(iDomain)) // trim(varNameDem) // '.nc'
+    fName = trim(dirIn(iDomain)) // trim(varNameDem) // '.nc'
     ! use the dem variable to create the mask
     call infer_grid_info(fName, 'lon', 'lat', trim(varNameDem), level0_iDomain)
 
@@ -107,10 +106,10 @@ CONTAINS
 
   subroutine read_lcover(iDomain, dataMatrix_i4, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)
 
-    use mo_append, only : append, paste
+    use mo_append, only : paste
     use mo_common_constants, only : nodata_i4
     use mo_common_file, only : varNameLandCover
-    use mo_common_variables, only : L0_LCover, dirLCover, level0, domainMeta, nLandCoverPeriods
+    use mo_common_variables, only : dirIn, level0, domainMeta
     use mo_grid, only: Grid
     use mo_message, only : message
     use mo_string_utils, only : num2str
@@ -123,7 +122,7 @@ CONTAINS
     integer(i4), intent(out), optional :: nLandCoverPeriods_temp
     real(dp), dimension(:), allocatable, intent(out), optional :: landCoverPeriodBoundaries_temp
 
-    integer(i4) :: domainID, iVar
+    integer(i4) :: iVar
     character(256) :: fName
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
@@ -137,13 +136,14 @@ CONTAINS
 
     call message('      Reading lcover for domain: ', trim(adjustl(num2str(domainMeta%indices(iDomain)))), ' ...')
     level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
-    fName = trim(dirLCover(iDomain)) // trim(varNameLandCover) // '.nc'
+    fName = trim(dirIn(iDomain)) // trim(varNameLandCover) // '.nc'
     ! read the Dataset
     nc = NcDataset(fname, "r")
     ! get the variable
     ncVar = nc%getVariable(trim(varNameLandCover))
     call ncVar%getData(data_i4_3d, mask=mask_3d)
-    ! LCover read in is realized seperated because of unknown number of scenes
+    ! LCover read in is realized seperated from dem because of unknown number of scenes
+    ! all lcover periods are read for now, selected only later
     do iVar = 1, size(data_i4_3d, 3)
       ! put global nodata value into array (probably not all grid cells have values)
       ! this explicit prior allocation is done so that gFortran does not complain with:

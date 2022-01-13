@@ -103,16 +103,20 @@ IGNORE_VARS = [
     "InflowGaugeNodeList",  # is now adapted to lat-sorted axis with new links
     "gaugeNodeList",  # is now adapted to lat-sorted axis with new links
     "ProcessMatrix",  # fails if new process is added
+    # other
     "L1_degDay",  # is not a parameter anymore but a state variable
+    "L1_domain_lon",  # is now depending on MPR coordinates and always non-projected
+    "L1_domain_lat",  # is now depending on MPR coordinates and always non-projected
+    "L1_SoilHorizons_bnds",  # is now in SI unit [m] and always has an upper bound (positive downwards)
+    "L1_LAITimesteps_bnds",  # is now 0-index based as other coordinates
+    "L1_domain_cellarea",  # this is ignored for now and should only be part of mRM (a.k.a. moved from mHM)
 ]
 MHM_EXE = ["../mhm"]
 # case 5 and 7 don't work with MPI. case 4 has a bug working with ifort+debug
 # TODO: this needs proper MPI debugging to activate them again
-SKIP_CASES_MPI = [f'case_{i:02}' for i in range(3, 9)]
+SKIP_CASES_MPI = [f"case_{i:02}" for i in range(3, 9)]
 # those cases are currently ignored as there are some problems with init from restart, case11 needs to be reconsidered
-SKIP = [
-    "case_11"
-]
+SKIP = ["case_11"]
 
 
 # ARGUMENT PARSER #############################################################
@@ -144,7 +148,7 @@ def parse_args():
         nargs="+",
         default=MHM_EXE,
         dest="exe",
-        help="Paths to mhm exe[s]. (default: {})".format(MHM_EXE),
+        help=f"Paths to mhm exe[s]. (default: {MHM_EXE})",
     )
     parser.add_argument(
         "-v",
@@ -187,7 +191,7 @@ def parse_args():
         nargs="*",
         default=SKIP,
         dest="skip",
-        help="skip cases (case_01 case_03 ..) (default: {})".format(SKIP),
+        help=f"skip cases (case_01 case_03 ..) (default: {SKIP})",
     )
     parser.add_argument(
         "-o",
@@ -229,16 +233,20 @@ def sep_text(*texts, sep_n=70, tab_n=0):
 
 def print_comparison(*result, tab_n=3):
     """Print the result of a file comparison."""
-    diff_n, big_diff_n, total, miss, diff_vars = result
-    print(tab(tab_n), "{} of {} records differ".format(diff_n, total))
+    diff_n, big_diff_n, total, miss, diff_vars, diff_shape, warn_shape = result
+    print(tab(tab_n), f"{diff_n} of {total} records differ")
     print(
         tab(tab_n),
-        "{} of {} records differ more than {}".format(big_diff_n, total, ATOL),
+        f"{big_diff_n} of {total} records differ more than {ATOL}",
     )
     if miss:
-        print(tab(tab_n), "Missing: ", *miss)
+        print(tab(tab_n), "Missing:", ", ".join(miss))
     if diff_vars:
-        print(tab(tab_n), "Differing: ", *diff_vars)
+        print(tab(tab_n), "Differing:", ", ".join(diff_vars))
+    if diff_shape:
+        print(tab(tab_n), "Shape missmatch:", ", ".join(diff_shape))
+    if warn_shape:
+        print(tab(tab_n), "Shape warnings:", ", ".join(warn_shape))
 
 
 def create_out_dir(path):
@@ -272,11 +280,24 @@ def compare_patterns(patterns, new_dir, ref_dir, tab_n=2):
     for ref_file, ref_name in zip(ref_files, ref_names):
         print(tab(tab_n), ref_name)
         if ref_name in new_names:
-            diff_n, big_diff_n, total, miss, diff_vars = compare_files(
-                new_files[new_names.index(ref_name)], ref_file
-            )
+            (
+                diff_n,
+                big_diff_n,
+                total,
+                miss,
+                diff_vars,
+                diff_shape,
+                warn_shape,
+            ) = compare_files(new_files[new_names.index(ref_name)], ref_file)
             print_comparison(
-                diff_n, big_diff_n, total, miss, diff_vars, tab_n=tab_n + 1
+                diff_n,
+                big_diff_n,
+                total,
+                miss,
+                diff_vars,
+                diff_shape,
+                warn_shape,
+                tab_n=tab_n + 1,
             )
             diff_sum += diff_n
             big_diff_sum += big_diff_n
@@ -342,6 +363,8 @@ def compare_xarrays(ds_new, ds_ref, match=None, ignore=None):
     total = len(ds_ref.data_vars)
     miss = []
     diff_vars = []
+    diff_shape = []
+    warn_shape = []
     for var_name in ds_ref.data_vars:
         if var_name in ignore:
             continue
@@ -350,20 +373,42 @@ def compare_xarrays(ds_new, ds_ref, match=None, ignore=None):
         if new_var_name in ds_new.data_vars:
             if not ds_new[new_var_name].equals(ds_ref[var_name]):
                 diff_n += 1
-                if not np.allclose(
-                    ds_new[new_var_name].values,
-                    ds_ref[var_name].values,
-                    equal_nan=True,
-                    rtol=RTOL,
-                    atol=ATOL,
-                ):
-                    diff_vars.append(str(var_name))
+                ref_val = ds_ref[var_name].values
+                new_val = ds_new[new_var_name].values
+                ref_shape = np.shape(ref_val)
+                new_shape = np.shape(new_val)
+                # squeeze values for comparison
+                ref_val = ref_val.squeeze()
+                new_val = new_val.squeeze()
+                ref_shape_squeeze = np.shape(ref_val)
+                new_shape_squeeze = np.shape(new_val)
+                if ref_shape_squeeze != new_shape_squeeze:
                     big_diff_n += 1
+                    diff_vars.append(f"{var_name}")
+                    diff_shape.append(
+                        f"{var_name} (in: {new_shape}, ref: {ref_shape})"
+                    )
+                else:
+                    diff_mask = ~np.isclose(
+                        new_val,
+                        ref_val,
+                        equal_nan=True,
+                        rtol=RTOL,
+                        atol=ATOL,
+                    )
+                    if np.any(diff_mask):
+                        big_diff_n += 1
+                        diff = np.max(np.abs(new_val - ref_val)[diff_mask])
+                        diff_vars.append(f"{var_name} (max: {diff:.2e})")
+                    if ref_shape != new_shape:
+                        warn_shape.append(
+                            f"{var_name} (in: {new_shape}, ref: {ref_shape})"
+                        )
         else:
             miss.append(str(var_name))
             diff_n += 1
             big_diff_n += 1
-    return diff_n, big_diff_n, total, miss, diff_vars
+    return diff_n, big_diff_n, total, miss, diff_vars, diff_shape, warn_shape
 
 
 # CALL ROUTINES ###############################################################
@@ -559,11 +604,11 @@ if __name__ == "__main__":
         exe_name = os.path.relpath(exe, start=cases_path)
         print(
             sep_text(
-                "checking exe: {}".format(exe_name),
-                "print log: {}".format(print_log),
-                "log path: {}".format(log_path),
-                "mpi processes: {}".format(mpi_nop),
-                "openMP threads: {}".format(omp_n),
+                f"checking exe: {exe_name}",
+                f"print log: {print_log}",
+                f"log path: {log_path}",
+                f"mpi processes: {mpi_nop}",
+                f"openMP threads: {omp_n}",
                 sep_n=70,
             )
         )
@@ -576,9 +621,9 @@ if __name__ == "__main__":
                 continue
             # skip case if wanted
             if case_base in skip:
-                print(sep_text("skip case: " + case_base, sep_n=60, tab_n=1))
+                print(sep_text(f"skip case: {case_base}", sep_n=60, tab_n=1))
                 continue
-            print(sep_text("checking case: " + case_base, sep_n=60, tab_n=1))
+            print(sep_text(f"checking case: {case_base}", sep_n=60, tab_n=1))
             # get the output and reference directories
             out_dir = os.path.join(case, OUT)
             ref_dir = os.path.join(case, REF)
@@ -599,23 +644,23 @@ if __name__ == "__main__":
             diff_sum, big_diff_sum, total_sum, miss, info = compare_patterns(
                 PATTERNS, out_dir, ref_dir, tab_n=3
             )
-            print(sep_text("SUMMARY: " + case_base, sep_n=50, tab_n=2))
+            print(sep_text(f"SUMMARY: {case_base}", sep_n=50, tab_n=2))
             print_comparison(
-                diff_sum, big_diff_sum, total_sum, miss, [], tab_n=3
+                diff_sum, big_diff_sum, total_sum, miss, [], [], [], tab_n=3
             )
             # define the result
             # "success" could be false-negative
             # ... = success and not big_diff_sum and not miss_files
             results[case_base] = not big_diff_sum and not miss
         # summary
-        print(sep_text("CHECK SUMMARY: " + exe_name, sep_n=60, tab_n=1))
+        print(sep_text(f"CHECK SUMMARY: {exe_name}", sep_n=60, tab_n=1))
         for case_n in results:
             print(tab(2), case_n, "succeeded:", results[case_n])
             exe_result &= results[case_n]
         print(
             sep_text(
-                "FINISHED: " + exe_name,
-                "...succeeded: {}".format(exe_result),
+                f"FINISHED: {exe_name}",
+                f"...succeeded: {exe_result}",
                 sep_n=70,
             )
         )
@@ -633,11 +678,8 @@ if __name__ == "__main__":
                 print(tab(2), case_n, "failed")
     # print missing cases (specified by "only" arg)
     if missing_cases:
-        miss_case_str = str(missing_cases)
-        print(sep_text("CASES not found: " + miss_case_str, sep_n=60, tab_n=1))
-    print(
-        sep_text("FINISHED", "...succeeded: {}".format(final_result), sep_n=70)
-    )
+        print(sep_text(f"CASES not found: {missing_cases}", sep_n=60, tab_n=1))
+    print(sep_text("FINISHED", f"...succeeded: {final_result}", sep_n=70))
     # assert that the final result is positive
     if not final_result:
         raise AssertionError("mHM checks were not successful.")

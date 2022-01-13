@@ -22,6 +22,7 @@ MODULE mo_mhm_constants
   ! natural
   real(dp), public, parameter :: H2Odens = 1000.0_dp ! Density of water (kg/m3)
   integer(i4), public, parameter :: maxGeoUnit = 25_i4     ! maximum number of allowed geological classes
+  integer(i4), public, parameter :: maxNoSoilHorizons = 10_i4     ! maximum number of allowed soil layers
 
   ! default inital values for states and fluxes as well as parameter fields
   real(dp), public, parameter :: P2_InitStateFluxes = 15.00_dp

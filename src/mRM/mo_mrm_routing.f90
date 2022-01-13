@@ -283,8 +283,10 @@ CONTAINS
       L11_qMod = L11_qAcc / real(rout_loop, dp)
     else
       L11_Qmod = L11_qOUT
-      if ( riv_temp_pcs%active ) riv_temp_pcs%river_temp(s11 : e11) = &
+      if ( riv_temp_pcs%active ) then
+        riv_temp_pcs%river_temp(s11 : e11) = &
         max(riv_temp_pcs%delta_T, riv_temp_pcs%netNode_E_out(s11 : e11) / L11_qOUT - T0_dp)
+      end if
     end if
 
     !----------------------------------------------------------------------

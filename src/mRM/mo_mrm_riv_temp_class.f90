@@ -122,7 +122,7 @@ contains
     unamelist_param &
   )
 
-    use mo_common_constants, only : maxNoDomains, nodata_i4
+    use mo_common_constants, only : maxNoDomains
     use mo_common_variables, only : domainMeta
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_check, only : check_dir
@@ -550,8 +550,6 @@ contains
     map_flag &
   )
 
-    use mo_constants, only : T0_dp, cp_w_dp
-    use mo_mhm_constants, only : H2Odens
     use mo_julian, only : dec2date
     use mo_temporal_disagg_forcing, only : temporal_disagg_meteo_weights, temporal_disagg_state_daynight
     use mo_mrm_pre_routing, only : L11_meteo_acc, L11_runoff_acc
@@ -610,7 +608,7 @@ contains
   !> \return outgoing longwave radiation
   real(dp) function get_lrad_out(self, riv_temp) result(lrad_out)
 
-    use mo_constants, only: sigma_dp, T0_dp
+    use mo_constants, only: sigma_dp
 
     implicit none
 

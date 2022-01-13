@@ -56,14 +56,13 @@ contains
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_grid, only : write_grid_info
-    use mo_common_variables, only : level0, level1, nLandCoverPeriods, processMatrix, domainMeta, &
-            landCoverPeriodBoundaries
-    use mo_common_datetime_type, only: LCyearId
+    use mo_common_variables, only : level0, level1, processMatrix, domainMeta
+    use mo_common_datetime_type, only: landCoverPeriods
     use mo_common_constants, only : landCoverPeriodsVarName
     use mo_message, only : message
     use mo_mrm_constants, only : nRoutingStates
-    use mo_mpr_global_variables, only : L0_slope
-    use mo_mrm_global_variables, only : L0_fdir, L0_fAcc, L0_streamnet, &
+    ! use mo_mpr_global_variables, only : L0_slope
+    use mo_mrm_global_variables, only : L0_slope, L0_fdir, L0_fAcc, L0_streamnet, &
                                         L1_L11_Id, &
                                         L11_C1, L11_C2, L11_K, L11_L1_Id, L11_Qmod, &
                                         L11_TSrout, L11_aFloodPlain, L11_colOut, L11_colOut, L11_fCol, L11_fDir, &
@@ -124,10 +123,6 @@ contains
 
     ! dummy variable
     real(dp), dimension(:, :, :), allocatable :: dummy_d3
-    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_
-
-    ! number of landcoverperiods for current domain
-    integer(i4) :: iDomainNLandCoverPeriods
 
     type(NcDataset) :: nc
 
@@ -169,13 +164,9 @@ contains
     nts = nc%setDimension("TS", 1)
     nproc = nc%setDimension("Nprocesses", size(processMatrix, dim = 1))
 
-    iDomainNLandCoverPeriods = maxval(LCyearId(:, domainMeta%L0DataFrom(iDomain)), &
-            mask=LCyearId(:, domainMeta%L0DataFrom(iDomain)) /= nodata_i4)
-    allocate(landCoverPeriodBoundaries_(iDomainNLandCoverPeriods+1))
-    landCoverPeriodBoundaries_ = real(landCoverPeriodBoundaries(1:iDomainNLandCoverPeriods+1, domainMeta%L0DataFrom(iDomain)), dp)
-    lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), iDomainNLandCoverPeriods, &
-            landCoverPeriodBoundaries_, 0_i4)
-    deallocate(landCoverPeriodBoundaries_)
+    lcscenes = nc%setCoordinate(trim(landCoverPeriodsVarName), landCoverPeriods(iDomain)%nIds, &
+        real(landCoverPeriods(iDomain)%get_values(), kind=dp), 0_i4, attribute_names=['units'], &
+        attribute_values=[landCoverPeriods(iDomain)%get_unit()])
 
     ! add processMatrix
     var = nc%setVariable("ProcessMatrix", "i32", (/nproc/))
@@ -274,7 +265,7 @@ contains
     call var%setAttribute("long_name", "Routing parameter C2=f(K,xi, DT) (Chow, 25-41) at level 11")
 
     deallocate(dummy_d3)
-    allocate(dummy_d3(nrows11, ncols11, iDomainNLandCoverPeriods))
+    allocate(dummy_d3(nrows11, ncols11, landCoverPeriods(iDomain)%nIds))
     do ii = 1, size(dummy_d3, 3)
       dummy_d3(:, :, ii) = unpack(L11_nLinkFracFPimp(s11 : e11, ii), mask11, nodata_dp)
     end do
@@ -460,7 +451,6 @@ contains
 
   subroutine mrm_read_restart_states(iDomain, InFile)
 
-    use mo_common_variables, only : nLandCoverPeriods
     use mo_mrm_constants, only : nRoutingStates
     use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, L11_Qmod, L11_Qout, L11_nLinkFracFPimp, L11_qTIN, L11_qTR, &
                                         L11_xi, level11
@@ -518,10 +508,13 @@ contains
     ! var = nc%getVariable(trim(landCoverPeriodsVarName)//'_bnds')
     ! call var%getData(dummyD2)
     ! nLandCoverPeriods_temp = size(dummyD2, 1)
-    ! allocate(landCoverPeriodBoundaries_temp(0: nLandCoverPeriods_temp))
-    ! landCoverPeriodBoundaries_temp(0:nLandCoverPeriods_temp-1) = dummyD2(:,1)
-    ! landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp) = dummyD2(nLandCoverPeriods_temp,2)
-    ! call common_check_dimension_consistency(iBasin, landCoverPeriodBoundaries_temp, landCoverPeriodSelect)
+    ! allocate(landCoverPeriodBoundaries_temp(0: nLandCoverPeriods_temp+1))
+    ! landCoverPeriodBoundaries_temp(1:nLandCoverPeriods_temp) = dummyD2(1,:)
+    ! landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1) = dummyD2(2,nLandCoverPeriods_temp)
+    ! call landCoverPeriods(iDomain)%init(n=nLandCoverPeriods_temp, nMax=maxNLcovers, name='land cover', simPerArg=simPer(iDomain), &
+    !         dimName=trim(landCoverPeriodsVarName), &
+    !         dimValues=landCoverPeriodBoundaries_temp, landCoverSelect)
+
 
     ! simulated discharge at each node
     var = nc%getVariable("L11_Qmod")
@@ -621,8 +614,8 @@ contains
     use mo_common_variables, only : level0, level1, domainMeta, processMatrix, domainMeta
     use mo_kind, only : dp, i4
     use mo_message, only : error_message, message
-    use mo_mpr_global_variables, only : L0_slope
-    use mo_mrm_global_variables, only : L0_fdir, L0_fAcc, L0_streamnet, &
+    ! use mo_mpr_global_variables, only : L0_slope
+    use mo_mrm_global_variables, only : L0_slope, L0_fdir, L0_fAcc, L0_streamnet, &
                                         L11_L1_Id, L11_TSrout, L11_aFloodPlain, L11_colOut, L11_fCol, &
                                         L11_fDir, L11_fAcc, L11_fRow, L11_fromN, L11_label, L11_length, L11_nOutlets, L11_netPerm, &
                                         L11_rOrder, L11_rowOut, L11_sink, L11_slope, L11_tCol, L11_tRow, L11_toN, &

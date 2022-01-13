@@ -41,7 +41,7 @@ CONTAINS
   !>       variables latitude and longitude.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ii"            domain indexFile name of the domains must be xxx_latlon.nc, wherexxx
+  !>       \param[in] "integer(i4) :: iDomain"            domain indexFile name of the domains must be xxx_latlon.nc, wherexxx
   !>       is the domain id. Variable names in the netcdf filehave to be 'lat' for latitude and 'lon' for longitude.
   !>       \param[in] "character(*) :: lon_var_name"
   !>       \param[in] "character(*) :: lat_var_name"
@@ -62,7 +62,7 @@ CONTAINS
   ! Robert Schweppe, Mar 2018 - major rewrite
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_latlon(ii, lon_var_name, lat_var_name, level_name, level)
+  subroutine read_latlon(iDomain, lon_var_name, lat_var_name, level_name, level)
 
     use mo_common_variables, only : fileLatLon
     use mo_grid, only: Grid
@@ -74,7 +74,7 @@ CONTAINS
 
     ! domain indexFile name of the domains must be xxx_latlon.nc, wherexxx is the domain id. Variable names in the netcdf
     ! filehave to be 'lat' for latitude and 'lon' for longitude.
-    integer(i4), intent(in) :: ii
+    integer(i4), intent(in) :: iDomain
 
     character(*), intent(in) :: lon_var_name
 
@@ -96,7 +96,7 @@ CONTAINS
 
 
     ! construct filename
-    fname = trim(fileLatLon(ii))
+    fname = trim(fileLatLon(iDomain))
 
     nc = NcDataset(fname, "r")
 
@@ -109,7 +109,7 @@ CONTAINS
     if ((size(dummy, dim = 1) .NE. level%nrows) .or. &
             (size(dummy, dim = 2) .NE. level%ncols)) then
       call error_message('   ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file '// trim(fname), &
-              ' for '// trim(level_name), ' in domain '// trim(adjustl(num2str(ii))), new_line('a'), &
+              ' for '// trim(level_name), ' in domain '// trim(adjustl(num2str(iDomain))), new_line('a'), &
               '!  Latitude expected to have following dimensions ... rows:', &
               trim(adjustl(num2str(level%nrows))) // ', cols:'// trim(adjustl(num2str(level%ncols))), new_line('a'), &
               '  Latitude provided ... rows:', &
@@ -123,7 +123,7 @@ CONTAINS
     if ((size(dummy, dim = 1) .NE. level%nrows) .or. &
             (size(dummy, dim = 2) .NE. level%ncols)) then
       call error_message('   ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file for ', &
-              trim(level_name) // ' in domain ' // trim(adjustl(num2str(ii))), new_line('a'), &
+              trim(level_name) // ' in domain ' // trim(adjustl(num2str(iDomain))), new_line('a'), &
               '! Longitude expected to have following dimensions ... rows:', &
               trim(adjustl(num2str(level%nrows)))// ', cols:'// trim(adjustl(num2str(level%ncols))), new_line('a'), &
               '  Longitude provided ... rows:', &

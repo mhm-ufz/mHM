@@ -112,13 +112,16 @@ contains
       dirMaxTemperature, &
       dirNetRadiation, &
       dirabsVapPressure, &
-      dirwindspeed
+      dirwindspeed, &
+      pathMprNml
     use mo_common_variables, only: &
-      dirMorpho, &
-      dirLCover, &
+      ! dirMorpho, &
+      ! dirLCover, &
+      dirIn, &
       dirOut, &
       domainMeta, &
-      processMatrix
+      processMatrix, &
+      L0_Domain
 
     implicit none
 
@@ -133,8 +136,9 @@ contains
       call message('  --------------')
       call message('      DOMAIN                  ', num2str(domainID, '(I3)'))
       call message('  --------------')
-      call check_dir(dirMorpho(iDomain), "Morphological directory:", .false., 4, 30)
-      call check_dir(dirLCover(iDomain), "Land cover directory:", .false., 4, 30)
+      call message('    Configuration file for MPR:   ', trim(pathMprNml(L0_Domain(iDomain))))
+      ! call check_dir(dirMorpho(iDomain), "Morphological directory:", .false., 4, 30)
+      ! call check_dir(dirLCover(iDomain), "Land cover directory:", .false., 4, 30)
       call check_dir(dirPrecipitation(iDomain), "Precipitation directory:", .false., 4, 30)
       call check_dir(dirTemperature(iDomain), "Temperature directory:", .false., 4, 30)
       select case (processMatrix(5, 1))
@@ -150,6 +154,7 @@ contains
           call check_dir(dirabsVapPressure(iDomain), "Abs. vap. press. directory:", .false., 4, 30)
           call check_dir(dirwindspeed(iDomain), "Windspeed directory:", .false., 4, 30)
       end select
+      call check_dir(dirIn(iDomain), "Input  directory:", .true., 4, 30)
       call check_dir(dirOut(iDomain), "Output directory:", .true., 4, 30)
       call message()
     end do

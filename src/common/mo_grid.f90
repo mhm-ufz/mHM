@@ -91,7 +91,7 @@ contains
 
     integer(i4) :: i, j, k, ic, jc, iValue
 
-    ! STEPS :: 
+    ! STEPS ::
 
     !--------------------------------------------------------
     ! 1) Estimate each variable locally for a given domain
@@ -222,7 +222,7 @@ contains
         grids(iDomain)%iStart = 1_i4
       else
         if (present(indices)) then
-          grids(iDomain)%iStart = grids(indices(iDomain - 1))%iEnd + 1_i4
+          grids(iDomain)%iStart = grids(indices(iDomain - 1_i4))%iEnd + 1_i4
         else
           grids(iDomain)%iStart = grids(iDomain - 1_i4)%iEnd + 1_i4
         end if
@@ -259,7 +259,7 @@ contains
     ! STEPS ::
     !--------------------------------------------------------
     ! 1) Estimate each variable locally for a given domain
-    ! 2) Pad each variable to its corresponding global one
+    ! 2) Pad each variable to its corresponding global ONE
     !--------------------------------------------------------
     ! level-0 information
     new_grid%nCells = count(new_grid%mask)
@@ -418,7 +418,7 @@ contains
 
   !>       \brief write restart file
   !>       \details write restart file for given Grid to given NcDataset
-  subroutine write_grid_info(grid_in, level_name, nc)
+  subroutine write_grid_info(grid_in, level_name, nc, write_cell_area)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_kind, only : dp, i4
@@ -432,12 +432,18 @@ contains
     character(*), intent(in) :: level_name
     !> NcDataset to write information to
     type(NcDataset), intent(inout) :: nc
+    !> whether to write the cell area (only if mrm is activated)
+    logical, intent(in), optional :: write_cell_area
 
     ! dummy for gnu73
     integer(i4), allocatable :: dummy(:, :)
     type(NcDimension) :: rows, cols
     type(NcVariable) :: var
 
+    logical :: write_area
+
+    write_area = .true.
+    if ( present(write_cell_area) ) write_area = write_cell_area
 
     rows = nc%setDimension("nrows" // trim(level_name), grid_in%nrows)
     cols = nc%setDimension("ncols" // trim(level_name), grid_in%ncols)
@@ -464,10 +470,13 @@ contains
     call var%setData(grid_in%x)
     call var%setAttribute("long_name", "Longitude at level " // trim(level_name))
 
-    var = nc%setVariable("L" // trim(level_name) // "_domain_cellarea", "f64", (/rows, cols/))
-    call var%setFillValue(nodata_dp)
-    call var%setData(unpack(grid_in%CellArea * 1.0E-6_dp, grid_in%mask, nodata_dp))
-    call var%setAttribute("long_name", "Cell area at level " // trim(level_name))
+    ! only write cellarea if routing is activated
+    if (write_area) then
+      var = nc%setVariable("L" // trim(level_name) // "_domain_cellarea", "f64", (/rows, cols/))
+      call var%setFillValue(nodata_dp)
+      call var%setData(unpack(grid_in%CellArea * 1.0E-6_dp, grid_in%mask, nodata_dp))
+      call var%setAttribute("long_name", "Cell area at level " // trim(level_name))
+    end if
 
     call nc%setAttribute("xllcorner_L" // trim(level_name), grid_in%xllcorner)
     call nc%setAttribute("yllcorner_L" // trim(level_name), grid_in%yllcorner)
@@ -481,7 +490,7 @@ contains
 
   !>       \brief reads complete Grid properties from NetCDF file
   !>       \details reads complete Grid properties from NetCDF file
-  subroutine read_grid_info(domainID, inputFile, level_name, new_grid)
+  subroutine read_grid_info(inputFile, level_name, new_grid, read_cell_area)
 
     use mo_kind, only : dp, i4
     use mo_message, only : message
@@ -491,14 +500,14 @@ contains
 
     implicit none
 
-    !> number of domainID
-    integer(i4), intent(in) :: domainID
     !> complete path to file
     character(256), intent(in) :: inputFile
     !> name of level (used to label the grid, e.g. "0", "1", "11", "2")
     character(*), intent(in) :: level_name
     !> grid to save information to
     type(Grid), intent(inout) :: new_grid
+    !> whether to read the cell area (only if mrm is activated)
+    logical, intent(in), optional :: read_cell_area
 
     ! dummy, 2 dimension I4
     integer(i4), dimension(:, :), allocatable :: dummyI2
@@ -514,6 +523,10 @@ contains
 
     integer(i4) :: k
 
+    logical :: read_area
+
+    read_area = .true.
+    if ( present(read_cell_area) ) read_area = read_cell_area
 
     ! read config
     fname = trim(inputFile)
@@ -549,10 +562,13 @@ contains
     var = nc%getVariable("L" // trim(level_name) // "_domain_lon")
     call var%getData(new_grid%x)
 
-    var = nc%getVariable("L" // trim(level_name) // "_domain_cellarea")
-    call var%getData(dummyD2)
-    if (.not. allocated(new_grid%CellArea)) new_grid%CellArea = pack(dummyD2 / 1.0E-6_dp, new_grid%mask)
-    ! new_grid%CellArea = pack(dummyD2 / 1.0E-6_dp, new_grid%mask)
+    ! only read cellarea if routing is activated
+    if (read_area) then
+      var = nc%getVariable("L" // trim(level_name) // "_domain_cellarea")
+      call var%getData(dummyD2)
+      if (.not. allocated(new_grid%CellArea)) new_grid%CellArea = pack(dummyD2 / 1.0E-6_dp, new_grid%mask)
+      ! new_grid%CellArea = pack(dummyD2 / 1.0E-6_dp, new_grid%mask)
+    end if
 
     call nc%close()
 
@@ -566,7 +582,6 @@ contains
   !>       this is attempted by scanning for known x and y coordinate names and inferred by mask of given variable
   subroutine infer_grid_info(inputFile, xCoordName, yCoordName, maskVar, new_grid)
 
-    use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
@@ -672,7 +687,6 @@ contains
     real(dp), dimension(:, :), allocatable :: dummyD2
     real(dp), dimension(:), allocatable :: dummyD1
     integer(i4), dimension(:), allocatable :: ncVarShape
-    integer(i4) :: i
 
     if (.not. allocated(new_grid%mask)) allocate(new_grid%mask(new_grid%nrows, new_grid%ncols))
     if (.not. allocated(new_grid%x)) allocate(new_grid%x(new_grid%nrows, new_grid%ncols))

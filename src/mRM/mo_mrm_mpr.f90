@@ -145,14 +145,11 @@ contains
   subroutine mrm_init_param(iDomain, param)
 
     use mo_constants, only : HourSecs
-    use mo_common_variables, only : domainMeta, processMatrix, resolutionRouting, &
-            optimize
+    use mo_common_variables, only : domainMeta, processMatrix
     use mo_common_datetime_type, only: timeStep
-    use mo_grid, only : iFlag_coordinate_sys
     use mo_kind, only : dp, i4
     use mo_message, only : message
-    use mo_mrm_constants, only : given_TS
-    use mo_mrm_global_variables, only : level11, L11_tsRout, domain_mrm, L11_celerity
+    use mo_mrm_global_variables, only : level11, L11_tsRout, domain_mrm
     use mo_string_utils, only : num2str
     use mo_utils, only : locate, notequal
     use mo_mrm_net_startup, only : L11_calc_celerity
@@ -164,15 +161,6 @@ contains
 
     ! input parameter (param(1) is celerity in m/s)
     real(dp), dimension(:), intent(in) :: param
-
-    ! index selected from given_TS
-    integer(i4) :: index
-
-    ! spatial routing resolution
-    real(dp) :: deltaX
-
-    ! [s] wave travel time parameter
-    real(dp) :: K
 
     ! start and end index at level11
     integer(i4) :: s11, e11
@@ -251,14 +239,10 @@ contains
          L11_celerity, L11_nOutlets, L11_length, &
          ! output variables
          L11_C1, L11_C2
-    use mo_common_variables, only: resolutionRouting, optimize, optimize, processMatrix
-    use mo_common_datetime_type, only: timeStep
-    use mo_grid, only : iFlag_coordinate_sys
+    use mo_common_variables, only: processMatrix
     use mo_mrm_constants, only: rout_space_weight, given_TS
     use mo_utils, only: locate
     use mo_mrm_net_startup, only: L11_calc_celerity
-    use mo_mrm_constants, only: given_TS
-    use mo_constants, only: HourSecs
     use mo_message, only: message
     use mo_string_utils, only: num2str
     use mo_utils, only: locate
@@ -277,10 +261,6 @@ contains
 
     ! index selected from given_TS
     integer(i4) :: ind
-
-    ! spatial routing resolution
-    real(dp) :: deltaX
-    real(dp), allocatable :: length(:)
 
     ! [s] wave travel time parameter
     real(dp), allocatable :: K(:)
