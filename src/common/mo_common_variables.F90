@@ -112,19 +112,6 @@ module mo_common_variables
   type(domain_meta), public :: domainMeta
   integer(i4), public :: nuniqueL0Domains ! Number of unique domains for L0
 
-  !TODO: MPR this will go
-  ! -----------------------------------------------------------------
-  ! LAND COVER DATA
-  ! -----------------------------------------------------------------
-  ! Land cover information
-  integer(i4), public :: nLandCoverPeriods        ! Number of land cover scene (lcs)
-  integer(i4), dimension(:, :), allocatable,  public :: landCoverPeriodBoundaries  !       Number of land cover periods
-  character(256), dimension(:), allocatable, public :: LCfilename          ! file names for the different lcs
-  integer(i4), dimension(:), allocatable, public :: LC_year_start       ! vector of start years for lcs
-  integer(i4), dimension(:), allocatable, public :: LC_year_end         ! vector of end years for lcs
-  integer(i4), dimension(:, :), allocatable, public :: LCyearId  ! Mapping of landcover scenes (1, 2,..) for each basin
-                                                                 ! dimensions ( year, iBasin) (year as integer!!!)
-
   ! -------------------------------------------------------------------
   ! PROCESSES description
   ! -------------------------------------------------------------------

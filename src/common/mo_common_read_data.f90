@@ -41,7 +41,7 @@ CONTAINS
   subroutine read_dem(iDomain, level0_iDomain, data_dp_2d)
 
     use mo_common_file, only : varNameDem
-    use mo_common_variables, only : dirIn, level0, domainMeta, resolutionHydrology
+    use mo_common_variables, only : dirIn, domainMeta, resolutionHydrology
     use mo_grid, only : infer_grid_info, Grid
     use mo_message, only : error_message, message
     use mo_string_utils, only : num2str
@@ -109,7 +109,7 @@ CONTAINS
     use mo_append, only : paste
     use mo_common_constants, only : nodata_i4
     use mo_common_file, only : varNameLandCover
-    use mo_common_variables, only : dirIn, level0, domainMeta, nLandCoverPeriods
+    use mo_common_variables, only : dirIn, level0, domainMeta
     use mo_grid, only: Grid
     use mo_message, only : message
     use mo_string_utils, only : num2str
@@ -122,7 +122,7 @@ CONTAINS
     integer(i4), intent(out), optional :: nLandCoverPeriods_temp
     real(dp), dimension(:), allocatable, intent(out), optional :: landCoverPeriodBoundaries_temp
 
-    integer(i4) :: domainID, iVar
+    integer(i4) :: iVar
     character(256) :: fName
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d

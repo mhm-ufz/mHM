@@ -20,9 +20,8 @@ include(CPM)
 CPMAddPackage(
   NAME            forces
   GIT_REPOSITORY  https://git.ufz.de/chs/forces.git
-  GIT_TAG         v0.1.1
-  OPTIONS
-    "BUILD_TESTING OFF"
+  GIT_TAG         develop
+  OPTIONS         "BUILD_TESTING OFF"
 )
 if(BUILD_MHM_LIB_SHARED)
   set_property(TARGET forces PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -41,7 +40,7 @@ set(GENERATE_TFS_PARAM
 CPMAddPackage(
   NAME            mpr
   GIT_REPOSITORY  https://git.ufz.de/chs/mpr.git
-  GIT_TAG         pre_proc_fix
+  GIT_TAG         develop
   # SOURCE_SUBDIR   src
   OPTIONS
     "BUILD_TESTING OFF"

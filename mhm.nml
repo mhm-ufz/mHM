@@ -498,11 +498,12 @@ processCase(11) = 0
 /
 
 !******************************************************************************************
-! LAND COVER (mandatory)
+! AGGREGATE PERIODS (mandatory)
 !******************************************************************************************
-&LCover
-!> the maximum number of different land cover periods needed for a given domains's simulation period
+&aggregate_periods
+!> the maximum number of different land cover/lai periods needed for a given domains's simulation period
 nLandCoverPeriods = 2
+nlaiPeriods = 12
 /
 
 !******************************************************************************************

@@ -1505,10 +1505,10 @@ contains
   subroutine L11_fraction_sealed_floodplain(LCClassImp, do_init)
 
     use mo_append, only : append, add_nodata_slice
-    use mo_common_constants, only : nodata_dp, nodata_i4
+    use mo_common_constants, only : nodata_dp
     use mo_grid, only: Grid
-    use mo_common_variables, only : domainMeta, L0_LCover, level0, domainMeta, nLandCoverPeriods
-    use mo_common_datetime_type, only: LCyearId
+    use mo_common_variables, only : domainMeta, L0_LCover, level0
+    use mo_common_datetime_type, only: nLandCoverPeriods, landCoverPeriods
     use mo_mrm_global_variables, only : L0_floodPlain, L11_aFloodPlain, &
                                         L11_nLinkFracFPimp, L11_nOutlets, level11
 
@@ -1527,7 +1527,7 @@ contains
     ! initialization
     do iDomain = 1, domainMeta%nDomains
       uniqueIDomain = domainMeta%L0DataFrom(iDomain)
-      iDomainNLandCoverPeriods = maxval(LCyearId(:, iDomain), mask=LCyearId(:, iDomain) /= nodata_i4)
+      iDomainNLandCoverPeriods = landCoverPeriods(iDomain)%nIds
       allocate(temp_array(level11(iDomain)%nCells, nLandCoverPeriods))
       temp_array = nodata_dp
       if (do_init) then

@@ -220,7 +220,9 @@ CONTAINS
 
     do hh = 1, size(soil_moist_sat, 1) ! nHorizons
       ! input for other layers is the infiltration from its immediate upper layer will be input
-      if (hh .NE. 1) prec_effec_soil = infiltration(hh - 1)
+      if (hh > 1) then
+        prec_effec_soil = infiltration(hh - 1)
+      end if
 
       !  start processing for soil moisture process
       !  BASED ON SMs as its upper LIMIT
@@ -436,11 +438,9 @@ CONTAINS
     if (theta_inorm .GT. 1.0_dp)    theta_inorm = 1.0_dp
 
     ! estimate fraction of ET demand based on root fraction and SM status using theta_inorm
-    ! theta_inorm >= jarvis_thresh_c1
-    if (theta_inorm .GE. jarvis_thresh_c1) then
+    if (theta_inorm >= jarvis_thresh_c1) then
       jarvis_et_reduction = frac_roots
-      ! 0 < theta_inorm < jarvis_thresh_c1
-    else if (theta_inorm .LT. jarvis_thresh_c1) then
+    else
       jarvis_et_reduction = frac_roots * (theta_inorm / jarvis_thresh_c1)
     end if
 

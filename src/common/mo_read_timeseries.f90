@@ -211,40 +211,40 @@ CONTAINS
     length_file = (endJul_file - startJul_file + 1)
     length_period = (endJul_period - startJul_period + 1)
 
-    !       |---------------------------------|    FILE
-    !                  |--------------|            PERIOD
-    if ((startJul_period .ge. startJul_file) .and. (endJul_period .le. endJul_file)) then
-      idx_st_period = 1
-      idx_en_period = length_period * timestep_file
-      idx_st_file = (startJul_period - startJul_file + 1) * timestep_file
-      idx_en_file = (idx_st_file + length_period - 1) * timestep_file
-    end if
-
-    !                  |--------------|            FILE
-    !       |---------------------------------|    PERIOD
-    if ((startJul_period .lt. startJul_file) .and. (endJul_period .gt. endJul_file)) then
-      idx_st_period = (startJul_file - startJul_period + 1) * timestep_file
-      idx_en_period = (idx_st_period + length_file - 1) * timestep_file
-      idx_st_file = 1
-      idx_en_file = length_file * timestep_file
-    end if
-
-    !  |--------------|                            FILE
-    !       |---------------------------------|    PERIOD
-    if ((startJul_period .ge. startJul_file) .and. (endJul_period .gt. endJul_file)) then
-      idx_st_period = 1
-      idx_en_period = (endJul_file - startJul_period + 1) * timestep_file
-      idx_st_file = (startJul_period - startJul_file + 1) * timestep_file
-      idx_en_file = length_file * timestep_file
-    end if
-
-    !                          |--------------|    FILE
-    !  |---------------------------------|         PERIOD
-    if ((startJul_period .lt. startJul_file) .and. (endJul_period .le. endJul_file)) then
-      idx_st_period = (startJul_file - startJul_period + 1) * timestep_file
-      idx_en_period = (length_period) * timestep_file
-      idx_st_file = 1
-      idx_en_file = (endJul_period - startJul_file + 1) * timestep_file
+    if (startJul_period .ge. startJul_file) then
+      if (endJul_period .le. endJul_file) then
+        !       |---------------------------------|    FILE
+        !                  |--------------|            PERIOD
+        idx_st_period = 1
+        idx_en_period = length_period * timestep_file
+        idx_st_file = (startJul_period - startJul_file + 1) * timestep_file
+        idx_en_file = (idx_st_file + length_period - 1) * timestep_file
+      else
+        !  |--------------|                            FILE
+        !       |---------------------------------|    PERIOD
+        idx_st_period = 1
+        idx_en_period = (endJul_file - startJul_period + 1) * timestep_file
+        idx_st_file = (startJul_period - startJul_file + 1) * timestep_file
+        idx_en_file = length_file * timestep_file
+      end if
+    else
+      if (endJul_period .gt. endJul_file) then
+        !                  |--------------|            FILE
+        !       |---------------------------------|    PERIOD
+        idx_st_period = (startJul_file - startJul_period + 1) * timestep_file
+        idx_en_period = (idx_st_period + length_file - 1) * timestep_file
+        idx_st_file = 1
+        idx_en_file = length_file * timestep_file
+      else
+        if ((startJul_period .lt. startJul_file) .and. (endJul_period .le. endJul_file)) then
+          !                          |--------------|    FILE
+          !  |---------------------------------|         PERIOD
+          idx_st_period = (startJul_file - startJul_period + 1) * timestep_file
+          idx_en_period = (length_period) * timestep_file
+          idx_st_file = 1
+          idx_en_file = (endJul_period - startJul_file + 1) * timestep_file
+        end if
+      end if
     end if
 
     data(idx_st_period : idx_en_period) = data_file(idx_st_file : idx_en_file)

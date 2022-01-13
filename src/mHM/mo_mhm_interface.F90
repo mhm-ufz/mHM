@@ -141,8 +141,7 @@ contains
     call mhm_initialize(global_parameters(:, 3), global_parameters_name)
     call timer_stop(itimer)
     call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
-    if (processMatrix(8, 1) > 0) &
-        call mrm_init(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
+    if (processMatrix(8, 1) > 0) call mrm_init
 
     itimer = itimer + 1
     call message('  Read forcing and optional data ...')
@@ -292,11 +291,12 @@ contains
       timer_get
     use mo_mhm_eval, only: mhm_eval
     use mo_objective_function, only: &
-#ifdef MPI
-      objective_subprocess, &
-      objective_master, &
-#endif
       objective
+#ifdef MPI
+    use mo_objective_function, only: &
+      objective_subprocess, &
+      objective_master
+#endif
     use mo_optimization, only: optimization
     use mo_mrm_objective_function_runoff, only: &
 #ifdef MPI

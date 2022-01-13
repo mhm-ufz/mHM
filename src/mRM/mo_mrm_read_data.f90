@@ -53,7 +53,7 @@ contains
   subroutine mrm_read_L0_data(do_readlcover)
 
     use mo_append, only : append, add_nodata_slice
-    use mo_common_constants, only : nodata_i4
+    use mo_common_constants, only : nodata_i4, keepUnneededPeriodsLandCover
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : L0_elev, L0_LCover, level0, domainMeta, processMatrix
     use mo_grid, only: Grid
@@ -61,8 +61,7 @@ contains
     use mo_mrm_file, only : file_facc, file_fdir, file_gaugeloc
     use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, domain_mrm, dirGauges
     use mo_string_utils, only : num2str
-    use mo_read_nc, only: get_land_cover_period_indices
-    use mo_common_variables, only: nLandCoverPeriods
+    use mo_common_datetime_type, only: get_land_cover_period_indices, simPer, nLandCoverPeriods
 
     implicit none
 
@@ -71,8 +70,6 @@ contains
     integer(i4) :: iVar
     integer(i4) :: iGauge
     character(256) :: fname, varName
-    integer(i4) :: nunit
-    integer(i4) :: nCells
     integer(i4) :: nLandCoverPeriods_temp
     real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp
     integer(i4), dimension(:), allocatable :: landCoverSelect
@@ -85,7 +82,6 @@ contains
     type(Grid), pointer :: level0_iDomain => null()
     type(NcDataset)                        :: nc           ! netcdf file
     type(NcVariable)                       :: ncVar        ! variables for data form netcdf
-    integer(i4)                            :: nodata_value ! data nodata value
 
 
     do iDomain = 1, domainMeta%nDomains
@@ -116,7 +112,8 @@ contains
           call read_lcover(iDomain, data_i4_2d, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)
           ! compare the simulation period and the land cover periods in the file,
           ! get a boolean vector with periods to select
-          call get_land_cover_period_indices(iDomain, landCoverPeriodBoundaries_temp, landCoverSelect)
+          call get_land_cover_period_indices(simPer(iDomain), int(landCoverPeriodBoundaries_temp, kind=i4), &
+                  keepUnneededPeriods=keepUnneededPeriodsLandCover, selectIndices=landCoverSelect)
           ! select the needed periods and fill remaining slices so appending works
           ! background: all domains can have different number of land cover periods but data are in one big
           ! pre-allocated array for all domains
@@ -522,6 +519,7 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine rotate_fdir_variable(x)
+    !TODO: this routine can be removed? only legacy
 
     use mo_common_constants, only : nodata_i4
 

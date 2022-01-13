@@ -90,7 +90,7 @@ CONTAINS
 
     use mo_common_constants, only : maxNoDomains
     use mo_common_read_config, only : common_check_resolution
-    use mo_common_variables, only : domainMeta, processMatrix, opti_function, optimize, nuniqueL0Domains
+    use mo_common_variables, only : domainMeta, processMatrix, opti_function, optimize
     use mo_file, only : file_defOutput, udefOutput
     use mo_global_variables, only : L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
                                     dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirPrecipitation, &
@@ -100,8 +100,7 @@ CONTAINS
                                     fnight_pet, fnight_prec, fnight_temp, fnight_ssrd, fnight_strd, &
                                     nSoilHorizons_sm_input, outputFlxState, &
                                     read_meteo_weights, timeStep_model_outputs, &
-                                    timestep_model_inputs, nSoilHorizons, &
-                                    output_deflate_level, output_double_precision
+                                    timestep_model_inputs, output_deflate_level, output_double_precision
     use mo_message, only : error_message, message
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str

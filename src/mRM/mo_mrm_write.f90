@@ -153,16 +153,16 @@ contains
     use mo_common_constants, only : nodata_dp
     use mo_common_file, only : file_config, uconfig
     use mo_common_variables, only : dirConfigOut, dirIn, dirOut, mrmFileRestartOut, global_parameters, &
-                                    global_parameters_name, level0, level1, domainMeta, nLandCoverPeriods, processMatrix, &
+                                    global_parameters_name, level0, level1, domainMeta, processMatrix, &
                                     resolutionHydrology, write_restart, evalPer, &
                                     read_restart, resolutionRouting, warmPer
-    use mo_common_datetime_type, only: LCyearId, SimPer, timeStep
+    use mo_common_datetime_type, only: simPer, timeStep, landCoverPeriods
     use mo_kind, only : dp, i4
     use mo_message, only : error_message, message
     use mo_mrm_file, only : version
     use mo_mrm_global_variables, only : InflowGauge, L11_L1_Id, L11_fromN, L11_label, &
                                         L11_length, L11_netPerm, L11_rOrder, L11_slope, L11_toN, L1_L11_Id, domain_mrm, &
-                                        dirGauges, dirTotalRunoff, gauge, level11, nGaugesTotal, nInflowGaugesTotal
+                                        dirGauges, gauge, level11, nGaugesTotal, nInflowGaugesTotal
     use mo_string_utils, only : num2str
     use mo_utils, only : ge
     use mo_os, only : path_isdir
@@ -244,7 +244,7 @@ contains
         write(uconfig, 118) '       Land Cover Observations for domain ', num2str(domainID)
         write(uconfig, 119) ' Year', '    Land cover period'
         do i = simPer(iDomain)%ystart, simPer(iDomain)%yend
-          write(uconfig, 120) i, LCyearId(i, iDomain)
+          write(uconfig, 120) i, landCoverPeriods(iDomain)%yearIds(i)
         end do
       end do
     end if
@@ -814,7 +814,7 @@ contains
   subroutine mrm_write_optinamelist(parameters, maskpara, parameters_name)
 
     use mo_common_file, only : file_opti_nml, uopti_nml
-    use mo_common_variables, only : dirConfigOut, processMatrix
+    use mo_common_variables, only : dirConfigOut
     use mo_message, only : error_message, message
     use mo_string_utils, only : num2str
 
