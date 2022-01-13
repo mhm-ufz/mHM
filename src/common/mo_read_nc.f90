@@ -114,6 +114,9 @@ contains
     ! check if model domain is covered by data
     integer(i4) :: inctimestep
 
+    ! error string for error message
+    character(4096) :: errorString
+
     ! default value for performing checks on read input
     checking = .TRUE.
     if (present(nocheck)) checking = .NOT. nocheck
@@ -152,7 +155,7 @@ contains
     time_var = nc%getVariable('time')
     ! read the time vector and get start index and count of selection
     call get_time_vector_and_select(time_var, fname, inctimestep, time_start, time_cnt, target_period)
-    
+
     if (present(is_meteo)) then
        if (is_meteo) then
           select case(inctimestep)
