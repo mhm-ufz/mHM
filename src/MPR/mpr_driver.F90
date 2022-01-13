@@ -58,7 +58,8 @@
 #ifdef MPR_STANDALONE
 program mpr_driver
 
-  use mo_finish, only : finish
+  use mo_message, only : message
+  use mo_string_utils, only : seperator
   use mo_mpr_eval, only : mpr_eval
   use mo_read_wrapper, only : read_data
   use mo_mpr_read_config, only : mpr_read_config
@@ -101,7 +102,9 @@ program mpr_driver
   ! --------------------------------------------------------------------------
   ! FINISH UP
   ! --------------------------------------------------------------------------
-  call finish('MPR', 'Finished!')
+  call message(seperator)
+  call message('MPR Finished!')
+  call message(seperator)
 end program mpr_driver
 #else
 ! dummy module such that this file is never empty for compilation

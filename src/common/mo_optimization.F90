@@ -58,11 +58,10 @@ contains
     use mo_common_variables, only : domainMeta
 #endif
     use mo_dds, only : dds
-    use mo_finish, only : finish
     use mo_mcmc, only : mcmc, mcmc_stddev
     use mo_message, only : error_message, message
     use mo_sce, only : sce
-    use mo_string_utils, only : num2str
+    use mo_string_utils, only : num2str, seperator
     use mo_timer, only : timer_get, timer_start, &
                          timer_stop
     use mo_xor4096, only : get_timeseed
@@ -264,7 +263,9 @@ contains
               tmp_file = tFile, popul_file = pFile, &
               bestf = funcbest)
     case default
-      call finish('mRM', 'This optimization method is not implemented.')
+      call message(seperator)
+      call message('mRM This optimization method is not implemented.')
+      call message(seperator)
     end select
     call timer_stop(iTimer)
     call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
