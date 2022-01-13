@@ -21,7 +21,7 @@ include(CPM)
 CPMAddPackage(
   NAME            forces
   GIT_REPOSITORY  https://git.ufz.de/chs/forces.git
-  GIT_TAG         fix_error_message
+  GIT_TAG         develop
   OPTIONS         "BUILD_TESTING OFF"
 )
 if(BUILD_MHM_LIB_SHARED)
