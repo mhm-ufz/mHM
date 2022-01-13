@@ -61,7 +61,7 @@ contains
     use mo_mcmc, only : mcmc, mcmc_stddev
     use mo_message, only : error_message, message
     use mo_sce, only : sce
-    use mo_string_utils, only : num2str
+    use mo_string_utils, only : num2str, separator
     use mo_timer, only : timer_get, timer_start, &
                          timer_stop
     use mo_xor4096, only : get_timeseed

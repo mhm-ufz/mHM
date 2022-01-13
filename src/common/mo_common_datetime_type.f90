@@ -28,6 +28,8 @@ MODULE mo_common_datetime_type
   integer(i4), public :: timeStep
   !> Number of time intervals per day
   integer(i4), public :: nTstepDay
+  !> Number of forcing intervals per day
+  integer(i4), public :: nTstepForcingDay
 
   type aggregateperiod
     !< multiple consecutive periods defining the coordinate information for mHM parameters
@@ -478,7 +480,7 @@ contains
     integer(i4), dimension(:), intent(in) :: periodValues
     !> reference julian date
     integer(i4), intent(out) :: jRef
-    !> period covered by periodValues 
+    !> period covered by periodValues
     class(period), intent(out), optional :: inPeriod
     !> the values in seconds and i8, thus seperate from periodValues
     integer(i8), dimension(:), allocatable, intent(out) :: periodValuesSeconds
@@ -526,7 +528,7 @@ contains
       call error_message('***ERROR: Please provide the input data in (days, hours, minutes, seconds) ', &
               'since YYYY-MM-DD[ HH:MM:SS] in the netcdf file. Found: ', trim(units))
     end if
-    
+
     ! convert array from units since to seconds
     periodValuesSeconds = int(periodValues, kind=i8) * timeStepSeconds
 
@@ -548,7 +550,7 @@ contains
     end if
 
   end subroutine check_time_unit
-    
+
   subroutine get_land_cover_period_indices(simPerArg, boundaries, keepUnneededPeriods, yearIds, selectIndices)
     !< compare periods defined by yearly boundary values to simulation period and retrieve vector of indices
     use mo_string_utils, only: compress
