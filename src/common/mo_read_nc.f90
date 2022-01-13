@@ -592,6 +592,7 @@ contains
     end if
 
     ! calculate input resolution
+    allocate(time_diff(size(time_data) - 1))
     time_diff = (time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs
     ! difference must be 1 day
     if (all(abs(time_diff - 1._dp) .lt. 1._dp)) then
