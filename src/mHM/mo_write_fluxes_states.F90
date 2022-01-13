@@ -63,9 +63,6 @@ module mo_write_fluxes_states
   private
 
   public :: OutputDataset
-#ifdef pgiFortran154
-  public :: newOutputDataset
-#endif
 
 contains
 
@@ -584,196 +581,113 @@ contains
 
     if (outputFlxState(1)) then
       ii = ii + 1
-#ifdef pgiFortran
-       call updateVariable(vars(ii), L1_inter(sidx : eidx))
-#else
-       call vars(ii)%updateVariable(L1_inter(sidx : eidx))
-#endif
+      call vars(ii)%updateVariable(L1_inter(sidx : eidx))
     end if
 
     if (outputFlxState(2)) then
       ii = ii + 1
-#ifdef pgiFortran
-       call updateVariable(vars(ii), L1_snowPack(sidx : eidx))
-#else
-       call vars(ii)%updateVariable(L1_snowPack(sidx : eidx))
-#endif
+      call vars(ii)%updateVariable(L1_snowPack(sidx : eidx))
     end if
 
     if (outputFlxState(3)) then
       do nn = 1, nSoilHorizons
         ii = ii + 1
-#ifdef pgiFortran
-        call updateVariable(vars(ii), L1_soilMoist(sidx : eidx, nn))
-#else
         call vars(ii)%updateVariable(L1_soilMoist(sidx : eidx, nn))
-#endif
-       end do
+      end do
     end if
 
     if (outputFlxState(4)) then
       do nn = 1, nSoilHorizons
         ii = ii + 1
-#ifdef pgiFortran
-        call updateVariable(vars(ii), L1_soilMoist(sidx : eidx, nn) &
-                / L1_soilMoistSat(sIdxParam : eIdxParam, nn))
-#else
         call vars(ii)%updateVariable(L1_soilMoist(sidx : eidx, nn) &
                 / L1_soilMoistSat(sIdxParam : eIdxParam, nn))
-#endif
        end do
     end if
 
     if (outputFlxState(5)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), sum(L1_soilMoist(sidx : eidx, :), dim = 2) &
-              / sum(L1_soilMoistSat(sIdxParam : eIdxParam, :), dim = 2))
-#else
       call vars(ii)%updateVariable(sum(L1_soilMoist(sidx : eidx, :), dim = 2) &
               / sum(L1_soilMoistSat(sIdxParam : eIdxParam, :), dim = 2))
-#endif
     end if
 
     if (outputFlxState(6)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_sealSTW(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_sealSTW(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(7)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_unsatSTW(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_unsatSTW(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(8)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_satSTW(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_satSTW(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(18)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_neutrons(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_neutrons(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(9)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_pet(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_pet(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(10)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), sum(L1_aETSoil(sidx : eidx, :), dim = 2) * L1_fNotSealed(sIdxParam : eIdxParam) &
-              + L1_aETCanopy(sidx : eidx) + L1_aETSealed(sidx : eidx) * L1_fSealed(sIdxParam : eIdxParam))
-#else
       call vars(ii)%updateVariable(sum(L1_aETSoil(sidx : eidx, :), dim = 2) * L1_fNotSealed(sIdxParam : eIdxParam) &
               + L1_aETCanopy(sidx : eidx) + L1_aETSealed(sidx : eidx) * L1_fSealed(sIdxParam : eIdxParam))
-#endif
     end if
 
     if (outputFlxState(11)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_total_runoff(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_total_runoff(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(12)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_runoffSeal(sidx : eidx) * L1_fSealed(sIdxParam : eIdxParam))
-#else
       call vars(ii)%updateVariable(L1_runoffSeal(sidx : eidx) * L1_fSealed(sIdxParam : eIdxParam))
-#endif
     end if
 
     if (outputFlxState(13)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_fastRunoff(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_fastRunoff(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(14)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_slowRunoff(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_slowRunoff(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(15)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_baseflow(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_baseflow(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(16)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_percol(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_percol(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(17)) then
       do nn = 1, nSoilHorizons
         ii = ii + 1
-#ifdef pgiFortran
-        call updateVariable(vars(ii), L1_infilSoil(sidx : eidx, nn) * L1_fNotSealed(sidx : eidx))
-#else
         call vars(ii)%updateVariable(L1_infilSoil(sidx : eidx, nn) * L1_fNotSealed(sidx : eidx))
-#endif
        end do
     end if
 
     if (outputFlxState(19)) then
       do nn = 1, nSoilHorizons
         ii = ii + 1
-#ifdef pgiFortran
-        call updateVariable(vars(ii), L1_aETSoil(sidx : eidx, nn) * L1_fNotSealed(sidx : eidx))
-#else
         call vars(ii)%updateVariable(L1_aETSoil(sidx : eidx, nn) * L1_fNotSealed(sidx : eidx))
-#endif
-       end do
+      end do
     end if
 
     if (outputFlxState(20)) then
       ii = ii + 1
-#ifdef pgiFortran
-        call updateVariable(vars(ii), L1_preEffect(sidx : eidx))
-#else
         call vars(ii)%updateVariable(L1_preEffect(sidx : eidx))
-#endif
     end if
 
   end subroutine updateDataset

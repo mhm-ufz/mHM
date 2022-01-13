@@ -131,9 +131,6 @@ CONTAINS
     use mo_utils, only : ge
     use mo_mrm_river_head, only: calc_river_head, avg_and_write_timestep
     use mo_mhm_mpr_interface, only: call_mpr
-#ifdef pgiFortran154
-    use mo_write_fluxes_states, only : newOutputDataset
-#endif
 
     implicit none
 
@@ -687,11 +684,7 @@ CONTAINS
         if ((any(outputFlxState)) .and. (domainDateTime%tIndex_out > 0_i4)) then
 
           if (domainDateTime%tIndex_out == 1) then
-#ifdef pgiFortran154
-            nc = newOutputDataset(iDomain, mask1, level1(iDomain)%nCells)
-#else
             nc = OutputDataset(iDomain, mask1, level1(iDomain)%nCells)
-#endif
           end if
 
           call nc%updateDataset(&
