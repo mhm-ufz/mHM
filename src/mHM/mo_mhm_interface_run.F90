@@ -36,7 +36,7 @@ module mo_mhm_interface_run
     level1, &
     domainMeta, &
     processMatrix
-  use mo_global_variables, only :
+  use mo_global_variables, only : &
     L1, &
     evap_coeff, &
     fday_pet, &
@@ -70,7 +70,7 @@ module mo_mhm_interface_run
   use mo_constants, only : HourSecs
   use mo_common_variables, only : resolutionRouting
   use mo_common_variables, only : resolutionHydrology
-  use mo_mrm_global_variables, only :
+  use mo_mrm_global_variables, only : &
     InflowGauge, &
     L11_C1, &
     L11_C2, &
@@ -119,7 +119,7 @@ contains
     integer(i4) :: i, iDomain, domainID
 
     ! run_cfg%output_runoff = .false. by default
-    if present(runoff_present) run_cfg%output_runoff = runoff_present
+    if (present(runoff_present)) run_cfg%output_runoff = runoff_present
 
     ! store current parameter set
     if (.not. present(parameterset) .and. optimize) then
@@ -161,7 +161,7 @@ contains
 
 
     if (read_restart) then
-      do i = 1, nDomains
+      do i = 1, run_cfg%nDomains
         iDomain = run_cfg%get_domain_index(i)
         ! this reads the eff. parameters and optionally the states and fluxes
         call read_restart_states(iDomain, mhmFileRestartIn(iDomain), do_read_dims_arg=.false.)
@@ -286,7 +286,7 @@ contains
   subroutine mhm_interface_run_do_time_step()
     implicit none
 
-    integer(i4) :: iDomain, tt
+    integer(i4) :: iDomain, tt, jj
 
     ! increment time step count (first input is 0)
     run_cfg%time_step = run_cfg%time_step + 1_i4
@@ -365,7 +365,7 @@ contains
     !  S    STATE VARIABLES L1
     !  X    FLUXES (L1, L11 levels)
     ! --------------------------------------------------------------------------
-    call mhm(
+    call mhm( &
       read_restart, run_cfg%is_hourly_forcing, & ! IN C
       tt, run_cfg%domainDateTime%newTime - 0.5_dp, processMatrix, &
       run_cfg%mhmHorizons * 1000_dp, & ! IN C
@@ -552,7 +552,7 @@ contains
       ! -------------------------------------------------------------------
       ! execute routing
       ! -------------------------------------------------------------------
-      if (doRoute) call mRM_routing(&
+      if (run_cfg%doRoute) call mRM_routing(&
         ! general INPUT variables
         read_restart, &
         processMatrix(8, 1), & ! parse process Case to be used

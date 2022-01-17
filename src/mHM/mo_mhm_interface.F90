@@ -66,7 +66,7 @@ contains
     use mo_file, only: &
       unamelist_mhm, &
       unamelist_mhm_param
-    use mo_global_variables, only: timestep_model_inputs
+    use mo_global_variables, only: L1, timestep_model_inputs
     use mo_meteo_forcings, only: prepare_meteo_forcings_data
     use mo_read_optional_data, only: readOptidataObs
     use mo_write_ascii, only: write_configfile

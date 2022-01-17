@@ -7,7 +7,8 @@
 !>       \date Feb 2013
 MODULE mo_mhm_eval
 
-  USE mo_kind, ONLY : i4, dp
+  use mo_kind, only : i4, dp
+  use mo_optimization_types, only : optidata_sim
   use mo_mhm_interface_run, only : &
     mhm_interface_run_prepare, &
     mhm_interface_run_get_ndomains, &
@@ -115,7 +116,7 @@ CONTAINS
 
     ! get number of domains to loop over
     call mhm_interface_run_get_ndomains(nDomains)
-
+    print*, "### run domain loop"
     ! loop over Domains
     DomainLoop: do ii = 1, nDomains
 
@@ -132,7 +133,7 @@ CONTAINS
         call mhm_interface_run_do_time_step()
 
         ! write output
-        call mhm_interface_run_write_output(time_loop_finished)
+        call mhm_interface_run_write_output()
 
         ! update optisim data
         call mhm_interface_run_update_optisim(etOptiSim, twsOptiSim, neutronsOptiSim, smOptiSim)
@@ -148,9 +149,8 @@ CONTAINS
     end do DomainLoop !<< Domain LOOP
 
     ! SET RUNOFF OUTPUT VARIABLE; reset init-flag for MPR
-    mhm_interface_run_finalize(runoff)
+    call mhm_interface_run_finalize(runoff)
 
   end SUBROUTINE mhm_eval
-
 
 END MODULE mo_mhm_eval
