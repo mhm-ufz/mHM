@@ -103,10 +103,7 @@ CONTAINS
     use mo_grid, only : write_grid_info
     use mo_common_variables, only : level1, domainMeta
     use mo_common_datetime_type, only: laiPeriods, landCoverPeriods, nLandCoverPeriods, nlaiPeriods
-    use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
-                                    L1_fastRunoff, L1_infilSoil, L1_melt, L1_percol, L1_preEffect, L1_rain, &
-                                    L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
-                                    L1_soilMoist, L1_total_runoff, L1_unsatSTW, L1_degDay, &
+    use mo_global_variables, only : L1, &
                                     nSoilHorizons, soilHorizonBoundaries
     use mo_kind, only : dp, i4
     use mo_message, only : message
@@ -181,112 +178,112 @@ CONTAINS
 
       var = nc%setVariable("L1_Inter", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_inter(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%inter(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "Interception storage at level 1")
 
       var = nc%setVariable("L1_snowPack", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_snowPack(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%snowPack(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "Snowpack at level 1")
 
       var = nc%setVariable("L1_sealSTW", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_sealSTW(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%sealSTW(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "Retention storage of impervious areas at level 1")
 
       var = nc%setVariable("L1_soilMoist", "f64", [rows1, cols1, soil1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(pack(L1_soilMoist(s1 : e1, :), .true.), mask_soil1, nodata_dp))
+      call var%setData(unpack(pack(L1%soilMoist(s1 : e1, :), .true.), mask_soil1, nodata_dp))
       call var%setAttribute("long_name", "soil moisture at level 1")
 
       var = nc%setVariable("L1_unsatSTW", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_unsatSTW(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%unsatSTW(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "upper soil storage at level 1")
 
       var = nc%setVariable("L1_satSTW", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_satSTW(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%satSTW(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "groundwater storage at level 1")
 
       var = nc%setVariable("L1_aETSoil", "f64", [rows1, cols1, soil1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(pack(L1_aETSoil(s1 : e1, :), .true.), mask_soil1, nodata_dp))
+      call var%setData(unpack(pack(L1%aETSoil(s1 : e1, :), .true.), mask_soil1, nodata_dp))
       call var%setAttribute("long_name", "soil actual ET at level 1")
 
       var = nc%setVariable("L1_aETCanopy", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_aETCanopy(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%aETCanopy(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "canopy actual ET at level 1")
 
       var = nc%setVariable("L1_aETSealed", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_aETSealed(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%aETSealed(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "sealed actual ET at level 1")
 
       var = nc%setVariable("L1_baseflow", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_baseflow(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%baseflow(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "baseflow at level 1")
 
       var = nc%setVariable("L1_infilSoil", "f64", [rows1, cols1, soil1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(pack(L1_infilSoil(s1 : e1, :), .true.), mask_soil1, nodata_dp))
+      call var%setData(unpack(pack(L1%infilSoil(s1 : e1, :), .true.), mask_soil1, nodata_dp))
       call var%setAttribute("long_name", "soil in-exfiltration at level 1")
 
       var = nc%setVariable("L1_fastRunoff", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_fastRunoff(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%fastRunoff(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "fast runoff")
 
       var = nc%setVariable("L1_percol", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_percol(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%percol(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "percolation at level 1")
 
       var = nc%setVariable("L1_melt", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_melt(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%melt(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "snow melt at level 1")
 
       var = nc%setVariable("L1_preEffect", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_preEffect(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%preEffect(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "effective precip. depth (snow melt + rain) at level 1")
 
       var = nc%setVariable("L1_rain", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_rain(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%rain(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "rain (liquid water) at level 1")
 
       var = nc%setVariable("L1_runoffSeal", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_runoffSeal(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%runoffSeal(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "runoff from impervious area at level 1")
 
       var = nc%setVariable("L1_slowRunoff", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_slowRunoff(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%slowRunoff(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "slow runoff at level 1")
 
       var = nc%setVariable("L1_snow", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_snow(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%snow(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "snow (solid water) at level 1")
 
       var = nc%setVariable("L1_Throughfall", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_Throughfall(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%Throughfall(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "throughfall at level 1")
 
       var = nc%setVariable("L1_total_runoff", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_total_runoff(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%total_runoff(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "total runoff at level 1")
 
       var = nc%setVariable("L1_degDay", "f64", [rows1, cols1])
       call var%setFillValue(nodata_dp)
-      call var%setData(unpack(L1_degDay(s1 : e1), mask1, nodata_dp))
+      call var%setData(unpack(L1%degDay(s1 : e1), mask1, nodata_dp))
       call var%setAttribute("long_name", "degree-day factor with no precipitation at level 1")
 
       call write_eff_params(mask1, s1, e1, rows1, cols1, soil1, lcscenes, lais, &
@@ -331,17 +328,7 @@ CONTAINS
 
     use mo_common_variables, only : level1, processMatrix
     use mo_kind, only : dp, i4
-    use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, &
-                                    L1_aETSealed, L1_aETSoil, L1_baseflow, L1_fastRunoff, L1_infilSoil, L1_melt, &
-                                    L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
-                                    L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_total_runoff, L1_unsatSTW, &
-            nSoilHorizons, are_parameter_initialized, &
-            L1_HarSamCoeff, L1_latitude, &
-                                        L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, L1_degDayInc, L1_degDayMax, &
-                                        L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, &
-                                    L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, L1_kFastFlow, L1_maxInter, &
-                                        L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, L1_soilMoistFC, &
-                                        L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, L1_wiltingPoint
+    use mo_global_variables, only : L1, nSoilHorizons, are_parameter_initialized
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
     use mo_read_nc, only: check_soil_dimension_consistency
@@ -355,7 +342,7 @@ CONTAINS
     ! Input Path including trailing slash
     character(256), intent(in) :: InFile
     logical, intent(in), optional :: do_read_states_arg, do_read_dims_arg
-    
+
     character(256) :: filename
     ! loop index
     integer(i4) :: ii, jj
@@ -461,37 +448,37 @@ CONTAINS
         ! Interception
         var = nc%getVariable("L1_Inter")
         call var%getData(dummyD2)
-        L1_inter(s1 : e1) = pack(dummyD2, mask1)
+        L1%inter(s1 : e1) = pack(dummyD2, mask1)
 
         ! Snowpack
         var = nc%getVariable("L1_snowPack")
         call var%getData(dummyD2)
-        L1_snowPack(s1 : e1) = pack(dummyD2, mask1)
+        L1%snowPack(s1 : e1) = pack(dummyD2, mask1)
 
         ! Retention storage of impervious areas
         var = nc%getVariable("L1_sealSTW")
         call var%getData(dummyD2)
-        L1_sealSTW(s1 : e1) = pack(dummyD2, mask1)
+        L1%sealSTW(s1 : e1) = pack(dummyD2, mask1)
 
         ! upper soil storage
         var = nc%getVariable("L1_unsatSTW")
         call var%getData(dummyD2)
-        L1_unsatSTW(s1 : e1) = pack(dummyD2, mask1)
+        L1%unsatSTW(s1 : e1) = pack(dummyD2, mask1)
 
         ! groundwater storage
         var = nc%getVariable("L1_satSTW")
         call var%getData(dummyD2)
-        L1_satSTW(s1 : e1) = pack(dummyD2, mask1)
+        L1%satSTW(s1 : e1) = pack(dummyD2, mask1)
 
         ! degree-day factor
         var = nc%getVariable("L1_degDay")
         call var%getData(dummyD2)
-        L1_degDay(s1 : e1) = pack(dummyD2, mask1)
+        L1%degDay(s1 : e1) = pack(dummyD2, mask1)
 
         ! Soil moisture of each horizon
         var = nc%getVariable("L1_soilMoist")
         call var%getData(dummyD3)
-        L1_soilMoist(s1 : e1, :) = reshape(pack(dummyD3(:, :, :), mask_soil1), [e1-s1+1, nSoilHorizons])
+        L1%soilMoist(s1 : e1, :) = reshape(pack(dummyD3(:, :, :), mask_soil1), [e1-s1+1, nSoilHorizons])
 
         !-------------------------------------------
         ! FLUXES (optionally)
@@ -500,84 +487,84 @@ CONTAINS
         !  soil actual ET
         var = nc%getVariable("L1_aETSoil")
         call var%getData(dummyD3)
-        L1_aETSoil(s1 : e1, : ) = reshape(pack(dummyD3(:, :, :), mask_soil1), [e1-s1+1, nSoilHorizons])
+        L1%aETSoil(s1 : e1, : ) = reshape(pack(dummyD3(:, :, :), mask_soil1), [e1-s1+1, nSoilHorizons])
 
         ! canopy actual ET
         var = nc%getVariable("L1_aETCanopy")
         call var%getData(dummyD2)
-        L1_aETCanopy(s1 : e1) = pack(dummyD2, mask1)
+        L1%aETCanopy(s1 : e1) = pack(dummyD2, mask1)
 
         ! sealed area actual ET
         var = nc%getVariable("L1_aETSealed")
         call var%getData(dummyD2)
-        L1_aETSealed(s1 : e1) = pack(dummyD2, mask1)
+        L1%aETSealed(s1 : e1) = pack(dummyD2, mask1)
 
         ! baseflow
         var = nc%getVariable("L1_baseflow")
         call var%getData(dummyD2)
-        L1_baseflow(s1 : e1) = pack(dummyD2, mask1)
+        L1%baseflow(s1 : e1) = pack(dummyD2, mask1)
 
         ! soil in-exfiltration
         var = nc%getVariable("L1_infilSoil")
         call var%getData(dummyD3)
-        L1_infilSoil(s1 : e1, :) = reshape(pack(dummyD3(:, :, :), mask_soil1), [e1-s1+1, nSoilHorizons])
+        L1%infilSoil(s1 : e1, :) = reshape(pack(dummyD3(:, :, :), mask_soil1), [e1-s1+1, nSoilHorizons])
 
         ! fast runoff
         var = nc%getVariable("L1_fastRunoff")
         call var%getData(dummyD2)
-        L1_fastRunoff(s1 : e1) = pack(dummyD2, mask1)
+        L1%fastRunoff(s1 : e1) = pack(dummyD2, mask1)
 
         ! snow melt
         var = nc%getVariable("L1_melt")
         call var%getData(dummyD2)
-        L1_melt(s1 : e1) = pack(dummyD2, mask1)
+        L1%melt(s1 : e1) = pack(dummyD2, mask1)
 
         ! percolation
         var = nc%getVariable("L1_percol")
         call var%getData(dummyD2)
-        L1_percol(s1 : e1) = pack(dummyD2, mask1)
+        L1%percol(s1 : e1) = pack(dummyD2, mask1)
 
         ! effective precip. depth (snow melt + rain)
         var = nc%getVariable("L1_preEffect")
         call var%getData(dummyD2)
-        L1_preEffect(s1 : e1) = pack(dummyD2, mask1)
+        L1%preEffect(s1 : e1) = pack(dummyD2, mask1)
 
         ! rain (liquid water)
         var = nc%getVariable("L1_rain")
         call var%getData(dummyD2)
-        L1_rain(s1 : e1) = pack(dummyD2, mask1)
+        L1%rain(s1 : e1) = pack(dummyD2, mask1)
 
         ! runoff from impervious area
         var = nc%getVariable("L1_runoffSeal")
         call var%getData(dummyD2)
-        L1_runoffSeal(s1 : e1) = pack(dummyD2, mask1)
+        L1%runoffSeal(s1 : e1) = pack(dummyD2, mask1)
 
         ! slow runoff
         var = nc%getVariable("L1_slowRunoff")
         call var%getData(dummyD2)
-        L1_slowRunoff(s1 : e1) = pack(dummyD2, mask1)
+        L1%slowRunoff(s1 : e1) = pack(dummyD2, mask1)
 
         ! snow (solid water)
         var = nc%getVariable("L1_snow")
         call var%getData(dummyD2)
-        L1_snow(s1 : e1) = pack(dummyD2, mask1)
+        L1%snow(s1 : e1) = pack(dummyD2, mask1)
 
         ! throughfall
         var = nc%getVariable("L1_Throughfall")
         call var%getData(dummyD2)
-        L1_Throughfall(s1 : e1) = pack(dummyD2, mask1)
+        L1%Throughfall(s1 : e1) = pack(dummyD2, mask1)
 
         ! total runoff
         var = nc%getVariable("L1_total_runoff")
         call var%getData(dummyD2)
-        L1_total_runoff(s1 : e1) = pack(dummyD2, mask1)
+        L1%total_runoff(s1 : e1) = pack(dummyD2, mask1)
       end if
 
       if (nc%hasVariable('L1_fSealed')) then
         ! Parameter fields have to be allocated in any case
         call init_eff_params(level1(iDomain)%nCells)
         ! init the latitude array by the level1 grid
-        L1_latitude(s1 : e1) = pack(level1(iDomain)%y, mask1)
+        L1%latitude(s1 : e1) = pack(level1(iDomain)%y, mask1)
 
         !-------------------------------------------
         ! EFFECTIVE PARAMETERS
@@ -586,17 +573,17 @@ CONTAINS
         call var%getData(dummyD3)
         dummyD3 = dummyD3(:, :, landCoverSelect)
         do ii = 1, size(dummyD3, 3)
-          L1_fSealed(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+          L1%fSealed(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
 
         ! exponent for the upper reservoir
         var = nc%getVariable("L1_alpha")
         call var%getData(dummyD2)
-        L1_alpha(s1 : e1, 1) = pack(dummyD2, mask1)
+        L1%alpha(s1 : e1, 1) = pack(dummyD2, mask1)
         ! call var%getData(dummyD3)
         ! dummyD3 = dummyD3(:, :, landCoverSelect)
         ! do ii = 1, size(dummyD3, 3)
-        !   L1_alpha(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+        !   L1%alpha(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         ! end do
 
         ! increase of the Degree-day factor per mm of increase in precipitation
@@ -604,7 +591,7 @@ CONTAINS
         call var%getData(dummyD3)
         dummyD3 = dummyD3(:, :, landCoverSelect)
         do ii = 1, size(dummyD3, 3)
-          L1_degDayInc(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+          L1%degDayInc(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
 
         ! maximum degree-day factor
@@ -612,7 +599,7 @@ CONTAINS
         call var%getData(dummyD3)
         dummyD3 = dummyD3(:, :, landCoverSelect)
         do ii = 1, size(dummyD3, 3)
-          L1_degDayMax(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+          L1%degDayMax(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
 
         ! degree-day factor with no precipitation
@@ -620,20 +607,20 @@ CONTAINS
         call var%getData(dummyD3)
         dummyD3 = dummyD3(:, :, landCoverSelect)
         do ii = 1, size(dummyD3, 3)
-          L1_degDayNoPre(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+          L1%degDayNoPre(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
 
         ! Karstic percolation loss
         var = nc%getVariable("L1_karstLoss")
         call var%getData(dummyD2)
-        L1_karstLoss(s1 : e1) = pack(dummyD2, mask1)
+        L1%karstLoss(s1 : e1) = pack(dummyD2, mask1)
 
         ! Fraction of roots in soil horizons
         var = nc%getVariable("L1_fRoots")
         call var%getData(dummyD4)
         dummyD4 = dummyD4(:, :, :, landCoverSelect)
         do jj = 1, size(dummyD4, 4)
-          L1_fRoots(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
+          L1%fRoots(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
         end do
 
         ! Maximum interception
@@ -641,7 +628,7 @@ CONTAINS
         call var%getData(dummyD3)
         dummyD3 = dummyD3(:, :, laiSelect)
         do ii = 1, size(dummyD3, 3)
-          L1_maxInter(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+          L1%maxInter(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
 
         ! fast interflow recession coefficient
@@ -649,37 +636,37 @@ CONTAINS
         call var%getData(dummyD3)
         dummyD3 = dummyD3(:, :, landCoverSelect)
         do ii = 1, size(dummyD3, 3)
-          L1_kFastFlow(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+          L1%kFastFlow(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
 
         ! slow interflow recession coefficient
         var = nc%getVariable("L1_kSlowFlow")
         call var%getData(dummyD2)
-        L1_kSlowFlow(s1 : e1, 1) = pack(dummyD2, mask1)
+        L1%kSlowFlow(s1 : e1, 1) = pack(dummyD2, mask1)
         !call var%getData(dummyD3)
         !dummyD3 = dummyD3(:, :, landCoverSelect)
         ! do ii = 1, size(dummyD3, 3)
-        !   L1_kSlowFlow(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+        !   L1%kSlowFlow(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         ! end do
 
         ! baseflow recession coefficient
         var = nc%getVariable("L1_kBaseFlow")
         call var%getData(dummyD2)
-        L1_kBaseFlow(s1 : e1, 1) = pack(dummyD2, mask1)
+        L1%kBaseFlow(s1 : e1, 1) = pack(dummyD2, mask1)
         ! call var%getData(dummyD3)
         ! dummyD3 = dummyD3(:, :, landCoverSelect)
         ! do ii = 1, size(dummyD3, 3)
-        !   L1_kBaseFlow(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+        !   L1%kBaseFlow(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         ! end do
 
         ! percolation coefficient
         var = nc%getVariable("L1_kPerco")
         call var%getData(dummyD2)
-        L1_kPerco(s1 : e1, 1) = pack(dummyD2, mask1)
+        L1%kPerco(s1 : e1, 1) = pack(dummyD2, mask1)
         ! call var%getData(dummyD3)
         ! dummyD3 = dummyD3(:, :, landCoverSelect)
         ! do ii = 1, size(dummyD3, 3)
-        !   L1_kPerco(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+        !   L1%kPerco(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         ! end do
 
         ! Soil moisture below which actual ET is reduced linearly till PWP
@@ -688,7 +675,7 @@ CONTAINS
         call var%getData(dummyD4)
         dummyD4 = dummyD4(:, :, :, landCoverSelect)
         do jj = 1, size(dummyD4, 4)
-          L1_soilMoistFC(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
+          L1%soilMoistFC(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
         end do
 
         ! Saturation soil moisture for each horizon [mm]
@@ -696,7 +683,7 @@ CONTAINS
         call var%getData(dummyD4)
         dummyD4 = dummyD4(:, :, :, landCoverSelect)
         do jj = 1, size(dummyD4, 4)
-          L1_soilMoistSat(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
+          L1%soilMoistSat(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
         end do
 
         ! Exponential parameter to how non-linear is the soil water retention
@@ -704,14 +691,14 @@ CONTAINS
         call var%getData(dummyD4)
         dummyD4 = dummyD4(:, :, :, landCoverSelect)
         do jj = 1, size(dummyD4, 4)
-          L1_soilMoistExp(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
+          L1%soilMoistExp(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
         end do
 
         if (any(processMatrix(3, 1) == [2, 3])) then
           ! jarvis critical value for normalized soil water content
           var = nc%getVariable("L1_jarvis_thresh_c1")
           call var%getData(dummyD2)
-          L1_jarvis_thresh_c1(s1 : e1) = pack(dummyD2, mask1)
+          L1%jarvis_thresh_c1(s1 : e1) = pack(dummyD2, mask1)
         end if
 
         ! Threshold temperature for snow/rain
@@ -719,30 +706,30 @@ CONTAINS
         call var%getData(dummyD3)
         dummyD3 = dummyD3(:, :, landCoverSelect)
         do ii = 1, size(dummyD3, 3)
-          L1_tempThresh(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+          L1%tempThresh(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         end do
 
         ! Threshold water depth controlling fast interflow
         var = nc%getVariable("L1_unsatThresh")
         call var%getData(dummyD2)
-        L1_unsatThresh(s1 : e1, 1) = pack(dummyD2, mask1)
+        L1%unsatThresh(s1 : e1, 1) = pack(dummyD2, mask1)
         ! call var%getData(dummyD3)
         ! dummyD3 = dummyD3(:, :, landCoverSelect)
         ! do ii = 1, size(dummyD3, 3)
-        !   L1_unsatThresh(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+        !   L1%unsatThresh(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
         ! end do
 
         ! Threshold water depth for surface runoff in sealed surfaces
         var = nc%getVariable("L1_sealedThresh")
         call var%getData(dummyD2)
-        L1_sealedThresh(s1 : e1) = pack(dummyD2, mask1)
+        L1%sealedThresh(s1 : e1) = pack(dummyD2, mask1)
 
         ! Permanent wilting point
         var = nc%getVariable("L1_wiltingPoint")
         call var%getData(dummyD4)
         dummyD4 = dummyD4(:, :, :, landCoverSelect)
         do jj = 1, size(dummyD4, 4)
-          L1_wiltingPoint(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
+          L1%wiltingPoint(s1 : e1, :, jj) = reshape(pack(dummyD4(:, :, :, jj), mask_soil1), [e1-s1+1, nSoilHorizons])
         end do
 
         ! different parameters dependent on PET formulation
@@ -755,7 +742,7 @@ CONTAINS
           dummyD4 = dummyD4(:, :, laiSelect, landCoverSelect)
           do jj = 1, size(dummyD4, 4)
             do ii = 1, size(dummyD4, 3)
-              L1_petLAIcorFactor(s1 : e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
+              L1%petLAIcorFactor(s1 : e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
             end do
           end do
 
@@ -764,19 +751,19 @@ CONTAINS
           ! PET correction factor due to terrain aspect
           var = nc%getVariable("L1_fAsp")
           call var%getData(dummyD2)
-          L1_fAsp(s1 : e1) = pack(dummyD2, mask1)
+          L1%fAsp(s1 : e1) = pack(dummyD2, mask1)
 
         case(1) ! Hargreaves-Samani
 
           ! PET correction factor due to terrain aspect
           var = nc%getVariable("L1_fAsp")
           call var%getData(dummyD2)
-          L1_fAsp(s1 : e1) = pack(dummyD2, mask1)
+          L1%fAsp(s1 : e1) = pack(dummyD2, mask1)
 
           ! Hargreaves Samani coeffiecient
           var = nc%getVariable("L1_HarSamCoeff")
           call var%getData(dummyD2)
-          L1_HarSamCoeff(s1 : e1) = pack(dummyD2, mask1)
+          L1%HarSamCoeff(s1 : e1) = pack(dummyD2, mask1)
 
         case(2) ! Priestely-Taylor
 
@@ -785,7 +772,7 @@ CONTAINS
           call var%getData(dummyD3)
           dummyD3 = dummyD3(:, :, laiSelect)
           do ii = 1, size(dummyD3, 3)
-            L1_PrieTayAlpha(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+            L1%PrieTayAlpha(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
           end do
 
         case(3) ! Penman-Monteith
@@ -796,7 +783,7 @@ CONTAINS
           dummyD4 = dummyD4(:, :, laiSelect, landCoverSelect)
           do jj = 1, size(dummyD4, 4)
             do ii = 1, size(dummyD4, 3)
-              L1_aeroResist(s1 : e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
+              L1%aeroResist(s1 : e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
             end do
           end do
 
@@ -805,7 +792,7 @@ CONTAINS
           call var%getData(dummyD3)
           dummyD3 = dummyD3(:, :, laiSelect)
           do ii = 1, size(dummyD3, 3)
-            L1_surfResist(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
+            L1%surfResist(s1 : e1, ii) = pack(dummyD3(:, :, ii), mask1)
           end do
 
         end select
@@ -1123,12 +1110,7 @@ CONTAINS
     use mo_constants, only : nodata_dp
     use mo_common_variables, only : processMatrix
     use mo_kind, only : i4
-    use mo_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, &
-            L1_alpha, L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, &
-            L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, &
-            L1_kSlowFlow, L1_karstLoss, L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, &
-            L1_sealedThresh, L1_soilMoistExp, L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, &
-            L1_tempThresh, L1_unsatThresh, L1_wiltingPoint, nSoilHorizons
+    use mo_global_variables, only : L1, nSoilHorizons
     use mo_netcdf, only : NcDataset, NcDimension
 
     implicit none
@@ -1148,131 +1130,131 @@ CONTAINS
     ! EFFECTIVE PARAMETERS
     !-------------------------------------------
     call unpack_field_and_write(nc, "L1_fSealed", &
-            [rows1, cols1, lcscenes], nodata_dp, L1_fSealed(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1, lcscenes], nodata_dp, L1%fSealed(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
             "fraction of Sealed area at level 1")
 
     call unpack_field_and_write(nc, "L1_alpha", &
-            ![rows1, cols1, lcscenes], nodata_dp, L1_alpha(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
-            [rows1, cols1], nodata_dp, L1_alpha(s1 : e1, 1), mask1, &
+            ![rows1, cols1, lcscenes], nodata_dp, L1%alpha(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1], nodata_dp, L1%alpha(s1 : e1, 1), mask1, &
             "exponent for the upper reservoir at level 1")
 
     call unpack_field_and_write(nc, "L1_degDayInc", &
-            [rows1, cols1, lcscenes], nodata_dp, L1_degDayInc(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1, lcscenes], nodata_dp, L1%degDayInc(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
             "increase of the Degree-day factor per mm of increase in precipitation at level 1")
 
     call unpack_field_and_write(nc, "L1_degDayMax", &
-            [rows1, cols1, lcscenes], nodata_dp, L1_degDayMax(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1, lcscenes], nodata_dp, L1%degDayMax(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
             "maximum degree-day factor at level 1")
 
     call unpack_field_and_write(nc, "L1_degDayNoPre", &
-            [rows1, cols1, lcscenes], nodata_dp, L1_degDayNoPre(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1, lcscenes], nodata_dp, L1%degDayNoPre(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
             "degree-day factor with no precipitation at level 1")
 
     call unpack_field_and_write(nc, "L1_karstLoss", &
-            [rows1, cols1], nodata_dp, L1_karstLoss(s1 : e1), mask1, &
+            [rows1, cols1], nodata_dp, L1%karstLoss(s1 : e1), mask1, &
             "Karstic percolation loss at level 1")
 
     call unpack_field_and_write_soil(nc, "L1_fRoots", &
-            [rows1, cols1, soil1, lcscenes], nodata_dp, L1_fRoots(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1, soil1, lcscenes], nodata_dp, L1%fRoots(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
             "Fraction of roots in soil horizons at level 1")
 
     call unpack_field_and_write(nc, "L1_maxInter", &
-            [rows1, cols1, lais], nodata_dp, L1_maxInter(s1 : e1, 1:iDomainNlaiPeriods), mask1, &
+            [rows1, cols1, lais], nodata_dp, L1%maxInter(s1 : e1, 1:iDomainNlaiPeriods), mask1, &
             "Maximum interception at level 1")
 
     call unpack_field_and_write(nc, "L1_kFastFlow", &
-            [rows1, cols1, lcscenes], nodata_dp, L1_kFastFlow(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1, lcscenes], nodata_dp, L1%kFastFlow(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
             "fast interflow recession coefficient at level 1")
 
     call unpack_field_and_write(nc, "L1_kSlowFlow", &
-            ! [rows1, cols1, lcscenes], nodata_dp, L1_kSlowFlow(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
-            [rows1, cols1], nodata_dp, L1_kSlowFlow(s1 : e1, 1), mask1, &
+            ! [rows1, cols1, lcscenes], nodata_dp, L1%kSlowFlow(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1], nodata_dp, L1%kSlowFlow(s1 : e1, 1), mask1, &
             "slow interflow recession coefficient at level 1")
 
     call unpack_field_and_write(nc, "L1_kBaseFlow", &
-            ! [rows1, cols1, lcscenes], nodata_dp, L1_kBaseFlow(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
-            [rows1, cols1], nodata_dp, L1_kBaseFlow(s1 : e1, 1), mask1, &
+            ! [rows1, cols1, lcscenes], nodata_dp, L1%kBaseFlow(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1], nodata_dp, L1%kBaseFlow(s1 : e1, 1), mask1, &
             "baseflow recession coefficient at level 1")
 
     call unpack_field_and_write(nc, "L1_kPerco", &
-            ! [rows1, cols1, lcscenes], nodata_dp, L1_kPerco(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
-            [rows1, cols1], nodata_dp, L1_kPerco(s1 : e1, 1), mask1, &
+            ! [rows1, cols1, lcscenes], nodata_dp, L1%kPerco(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1], nodata_dp, L1%kPerco(s1 : e1, 1), mask1, &
             "percolation coefficient at level 1")
 
     call unpack_field_and_write_soil(nc, "L1_soilMoistFC", &
             [rows1, cols1, soil1, lcscenes], nodata_dp, &
-            L1_soilMoistFC(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
+            L1%soilMoistFC(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
             "SM below which actual ET is reduced linearly till PWP at level 1 for processCase(3)=1")
 
     call unpack_field_and_write_soil(nc, "L1_soilMoistSat", &
             [rows1, cols1, soil1, lcscenes], nodata_dp, &
-            L1_soilMoistSat(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
+            L1%soilMoistSat(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
             "Saturation soil moisture for each horizon [mm] at level 1")
 
     call unpack_field_and_write_soil(nc, "L1_soilMoistExp", &
             [rows1, cols1, soil1, lcscenes], nodata_dp, &
-            L1_soilMoistExp(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
+            L1%soilMoistExp(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
             "Exponential parameter to how non-linear is the soil water retention at level 1")
 
     if (processMatrix(3, 1) == 2 .or. processMatrix(3, 1) == 3) then
       call unpack_field_and_write(nc, "L1_jarvis_thresh_c1", &
-              [rows1, cols1], nodata_dp, L1_jarvis_thresh_c1(s1 : e1), mask1, &
+              [rows1, cols1], nodata_dp, L1%jarvis_thresh_c1(s1 : e1), mask1, &
               "jarvis critical value for normalized soil water content")
     end if
 
     if (processMatrix(5, 1) == -1) then
       call unpack_field_and_write(nc, "L1_petLAIcorFactor", &
               [rows1, cols1, lais, lcscenes], nodata_dp, &
-              L1_petLAIcorFactor(s1 : e1, 1:iDomainNlaiPeriods, 1:iDomainNLandCoverPeriods), mask1, &
+              L1%petLAIcorFactor(s1 : e1, 1:iDomainNlaiPeriods, 1:iDomainNLandCoverPeriods), mask1, &
               "PET correction factor based on LAI")
     end if
 
     call unpack_field_and_write(nc, "L1_tempThresh", &
-            [rows1, cols1, lcscenes], nodata_dp, L1_tempThresh(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1, lcscenes], nodata_dp, L1%tempThresh(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
             "Threshold temperature for snow/rain at level 1")
 
     call unpack_field_and_write(nc, "L1_unsatThresh", &
-            ! [rows1, cols1, lcscenes], nodata_dp, L1_unsatThresh(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
-            [rows1, cols1], nodata_dp, L1_unsatThresh(s1 : e1, 1), mask1, &
+            ! [rows1, cols1, lcscenes], nodata_dp, L1%unsatThresh(s1 : e1, 1:iDomainNLandCoverPeriods), mask1, &
+            [rows1, cols1], nodata_dp, L1%unsatThresh(s1 : e1, 1), mask1, &
             "Threshold water depth controlling fast interflow at level 1")
 
     call unpack_field_and_write(nc, "L1_sealedThresh", &
-            [rows1, cols1], nodata_dp, L1_sealedThresh(s1 : e1), mask1, &
+            [rows1, cols1], nodata_dp, L1%sealedThresh(s1 : e1), mask1, &
             "Threshold water depth for surface runoff in sealed surfaces at level 1")
 
     call unpack_field_and_write_soil(nc, "L1_wiltingPoint", &
             [rows1, cols1, soil1, lcscenes], nodata_dp, &
-            L1_wiltingPoint(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
+            L1%wiltingPoint(s1 : e1, 1:nSoilHorizons, 1:iDomainNLandCoverPeriods), mask1, &
             "Permanent wilting point at level 1")
 
     select case (processMatrix(5, 1))
     case(-1 : 0) ! PET is input
       call unpack_field_and_write(nc, "L1_fAsp", &
-              [rows1, cols1], nodata_dp, L1_fAsp(s1 : e1), mask1, &
+              [rows1, cols1], nodata_dp, L1%fAsp(s1 : e1), mask1, &
               "PET correction factor due to terrain aspect at level 1")
 
     case(1) ! Hargreaves-Samani
       call unpack_field_and_write(nc, "L1_fAsp", &
-              [rows1, cols1], nodata_dp, L1_fAsp(s1 : e1), mask1, &
+              [rows1, cols1], nodata_dp, L1%fAsp(s1 : e1), mask1, &
               "PET correction factor due to terrain aspect at level 1")
 
       call unpack_field_and_write(nc, "L1_HarSamCoeff", &
-              [rows1, cols1], nodata_dp, L1_HarSamCoeff(s1 : e1), mask1, &
+              [rows1, cols1], nodata_dp, L1%HarSamCoeff(s1 : e1), mask1, &
               "Hargreaves-Samani coefficient")
 
     case(2) ! Priestley-Taylor
       call unpack_field_and_write(nc, "L1_PrieTayAlpha", &
-              [rows1, cols1, lais], nodata_dp, L1_PrieTayAlpha(s1 : e1, 1:iDomainNlaiPeriods), mask1, &
+              [rows1, cols1, lais], nodata_dp, L1%PrieTayAlpha(s1 : e1, 1:iDomainNlaiPeriods), mask1, &
               "Priestley Taylor coeffiecient (alpha)")
 
     case(3) ! Penman-Monteith
       call unpack_field_and_write(nc, "L1_aeroResist", &
               [rows1, cols1, lais, lcscenes], nodata_dp, &
-              L1_aeroResist(s1 : e1, 1:iDomainNlaiPeriods, 1:iDomainNLandCoverPeriods), mask1, &
+              L1%aeroResist(s1 : e1, 1:iDomainNlaiPeriods, 1:iDomainNLandCoverPeriods), mask1, &
               "aerodynamical resitance")
 
       call unpack_field_and_write(nc, "L1_surfResist", &
-              [rows1, cols1, lais], nodata_dp, L1_surfResist(s1 : e1, 1:iDomainNlaiPeriods), mask1, &
+              [rows1, cols1, lais], nodata_dp, L1%surfResist(s1 : e1, 1:iDomainNlaiPeriods), mask1, &
               "bulk surface resitance")
 
     end select
@@ -1285,12 +1267,7 @@ CONTAINS
     use mo_kind, only: i4, dp
     use mo_common_constants, only : P1_InitStateFluxes
     use mo_common_datetime_type, only: nLandCoverPeriods, nlaiPeriods
-    use mo_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_latitude, &
-                                    L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
-                                    L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
-                                    L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
-                                    L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                    L1_wiltingPoint, nSoilHorizons
+    use mo_global_variables, only : L1, nSoilHorizons
 
     implicit none
 
@@ -1307,113 +1284,108 @@ CONTAINS
     allocate(dummy_3D(nCells1, nSoilHorizons, nLandCoverPeriods))
     dummy_3D = P1_InitStateFluxes
     ! Fraction of roots in soil horizons
-    call append(L1_fRoots, dummy_3D)
+    call append(L1%fRoots, dummy_3D)
     ! Soil moisture below which actual ET is reduced linearly till PWP
-    call append(L1_soilMoistFC, dummy_3D)
+    call append(L1%soilMoistFC, dummy_3D)
     ! Saturation soil moisture for each horizon [mm]
-    call append(L1_soilMoistSat, dummy_3D)
+    call append(L1%soilMoistSat, dummy_3D)
     ! Exponential parameter to how non-linear is the soil water retention
-    call append(L1_soilMoistExp, dummy_3D)
+    call append(L1%soilMoistExp, dummy_3D)
     ! Permanent wilting point
-    call append(L1_wiltingPoint, dummy_3D)
+    call append(L1%wiltingPoint, dummy_3D)
     deallocate(dummy_3D)
 
     allocate(dummy_3D(nCells1, nlaiPeriods, nLandCoverPeriods))
     dummy_3D = P1_InitStateFluxes
     ! PET correction factor due to LAI
-    call append(L1_petLAIcorFactor, dummy_3D)
+    call append(L1%petLAIcorFactor, dummy_3D)
     ! PET aerodynamical resistance
-    call append(L1_aeroResist, dummy_3D)
+    call append(L1%aeroResist, dummy_3D)
     deallocate(dummy_3D)
 
     allocate(dummy_2D(nCells1, nLandCoverPeriods))
     dummy_2D = P1_InitStateFluxes
-    call append(L1_fSealed, dummy_2D)
+    call append(L1%fSealed, dummy_2D)
     ! increase of the Degree-day factor per mm of increase in precipitation
-    call append(L1_degDayInc, dummy_2D)
+    call append(L1%degDayInc, dummy_2D)
     ! maximum degree-day factor
-    call append(L1_degDayMax, dummy_2D)
+    call append(L1%degDayMax, dummy_2D)
     ! degree-day factor with no precipitation
-    call append(L1_degDayNoPre, dummy_2D)
+    call append(L1%degDayNoPre, dummy_2D)
     ! fast interflow recession coefficient
-    call append(L1_kFastFlow, dummy_2D)
+    call append(L1%kFastFlow, dummy_2D)
     ! Threshold temperature for snow/rain
-    call append(L1_tempThresh, dummy_2D)
+    call append(L1%tempThresh, dummy_2D)
     ! Threshold water depth controlling fast interflow
-    call append(L1_unsatThresh, dummy_2D)
+    call append(L1%unsatThresh, dummy_2D)
     ! slow interflow recession coefficient
-    call append(L1_kSlowFlow, dummy_2D)
+    call append(L1%kSlowFlow, dummy_2D)
     ! percolation coefficient
-    call append(L1_kPerco, dummy_2D)
+    call append(L1%kPerco, dummy_2D)
     ! exponent for the upper reservoir
-    call append(L1_alpha, dummy_2D)
+    call append(L1%alpha, dummy_2D)
     ! baseflow recession coefficient
-    call append(L1_kBaseFlow, dummy_2D)
+    call append(L1%kBaseFlow, dummy_2D)
     deallocate(dummy_2D)
 
     allocate(dummy_2D(nCells1, nlaiPeriods))
     dummy_2D = P1_InitStateFluxes
     ! PET Prietley Taylor coefficient
-    call append(L1_PrieTayAlpha, dummy_2D)
+    call append(L1%PrieTayAlpha, dummy_2D)
     ! PET bulk surface resistance
-    call append(L1_surfResist, dummy_2D)
+    call append(L1%surfResist, dummy_2D)
     ! Maximum interception
-    call append(L1_maxInter, dummy_2D)
+    call append(L1%maxInter, dummy_2D)
     deallocate(dummy_2D)
 
     allocate(dummy_1D(nCells1))
     dummy_1D = P1_InitStateFluxes
     ! Karstic percolation loss
-    call append(L1_karstLoss, dummy_1D)
+    call append(L1%karstLoss, dummy_1D)
     ! PET correction factor due to terrain aspect
-    call append(L1_fAsp, dummy_1D)
+    call append(L1%fAsp, dummy_1D)
     ! PET Hargreaves Samani coefficient
-    call append(L1_HarSamCoeff, dummy_1D)
+    call append(L1%HarSamCoeff, dummy_1D)
     ! jarvis critical value for normalized soil water content
-    call append(L1_jarvis_thresh_c1, dummy_1D)
+    call append(L1%jarvis_thresh_c1, dummy_1D)
     ! Threshold water depth for surface runoff in sealed surfaces
-    call append(L1_sealedThresh, dummy_1D)
+    call append(L1%sealedThresh, dummy_1D)
     ! L1 latitude
-    call append(L1_latitude, dummy_1D)
+    call append(L1%latitude, dummy_1D)
     deallocate(dummy_1D)
 
 
   end subroutine init_eff_params
 
   subroutine reset_eff_params()
-    use mo_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, &
-                                L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
-                                L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
-                                L1_kFastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
-                                L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                L1_wiltingPoint
+    use mo_global_variables, only : L1
 
-    deallocate(L1_fRoots)
-    deallocate(L1_soilMoistFC)
-    deallocate(L1_soilMoistSat)
-    deallocate(L1_soilMoistExp)
-    deallocate(L1_wiltingPoint)
-    deallocate(L1_petLAIcorFactor)
-    deallocate(L1_aeroResist)
-    deallocate(L1_fSealed)
-    deallocate(L1_degDayInc)
-    deallocate(L1_degDayMax)
-    deallocate(L1_degDayNoPre)
-    deallocate(L1_kFastFlow)
-    deallocate(L1_tempThresh)
-    deallocate(L1_unsatThresh)
-    deallocate(L1_kSlowFlow)
-    deallocate(L1_kPerco)
-    deallocate(L1_alpha)
-    deallocate(L1_kBaseFlow)
-    deallocate(L1_PrieTayAlpha)
-    deallocate(L1_surfResist)
-    deallocate(L1_maxInter)
-    deallocate(L1_karstLoss)
-    deallocate(L1_fAsp)
-    deallocate(L1_HarSamCoeff)
-    deallocate(L1_jarvis_thresh_c1)
-    deallocate(L1_sealedThresh)
+    deallocate(L1%fRoots)
+    deallocate(L1%soilMoistFC)
+    deallocate(L1%soilMoistSat)
+    deallocate(L1%soilMoistExp)
+    deallocate(L1%wiltingPoint)
+    deallocate(L1%petLAIcorFactor)
+    deallocate(L1%aeroResist)
+    deallocate(L1%fSealed)
+    deallocate(L1%degDayInc)
+    deallocate(L1%degDayMax)
+    deallocate(L1%degDayNoPre)
+    deallocate(L1%kFastFlow)
+    deallocate(L1%tempThresh)
+    deallocate(L1%unsatThresh)
+    deallocate(L1%kSlowFlow)
+    deallocate(L1%kPerco)
+    deallocate(L1%alpha)
+    deallocate(L1%kBaseFlow)
+    deallocate(L1%PrieTayAlpha)
+    deallocate(L1%surfResist)
+    deallocate(L1%maxInter)
+    deallocate(L1%karstLoss)
+    deallocate(L1%fAsp)
+    deallocate(L1%HarSamCoeff)
+    deallocate(L1%jarvis_thresh_c1)
+    deallocate(L1%sealedThresh)
 
   end subroutine reset_eff_params
 

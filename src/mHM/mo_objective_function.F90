@@ -496,7 +496,7 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : KGE
-    use mo_global_variables, only : L1_smObs
+    use mo_global_variables, only : L1
     use mo_message, only : message
     use mo_moment, only : average
     use mo_string_utils, only : num2str
@@ -569,13 +569,13 @@ CONTAINS
 
         ! check for enough data points in timesteps for KGE calculation
         ! more then 10 percent avaiable in current field
-        if (count(L1_smObs(iDomain)%maskObs(:, iTime)) .LE. (0.10_dp * real(nCells1, dp))) then
+        if (count(L1%smObs(iDomain)%maskObs(:, iTime)) .LE. (0.10_dp * real(nCells1, dp))) then
           invalid_times = invalid_times + 1.0_dp
           mask_times(iTime) = .FALSE.
           cycle
         end if
-        sm_catch_avg_domain(iTime) = average(L1_smObs(iDomain)%dataObs(:, iTime), mask = L1_smObs(iDomain)%maskObs(:, iTime))
-        sm_opti_catch_avg_domain(iTime) = average(smOptiSim(iDomain)%dataSim(:, iTime), mask = L1_smObs(iDomain)%maskObs(:, iTime))
+        sm_catch_avg_domain(iTime) = average(L1%smObs(iDomain)%dataObs(:, iTime), mask = L1%smObs(iDomain)%maskObs(:, iTime))
+        sm_opti_catch_avg_domain(iTime) = average(smOptiSim(iDomain)%dataSim(:, iTime), mask = L1%smObs(iDomain)%maskObs(:, iTime))
       end do
 
       ! user information about invalid times
@@ -640,7 +640,7 @@ CONTAINS
     use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : domainMeta
-    use mo_global_variables, only : L1_etObs, L1_twsaObs
+    use mo_global_variables, only : L1
     use mo_errormeasures, only : kge
     use mo_message, only : message
     use mo_moment, only : average
@@ -750,17 +750,17 @@ CONTAINS
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_ET_TWS)
         iDomain = opti_domain_indices_ET_TWS(i)
-        call convert_tws_to_twsa(twsOptiSim(iDomain), L1_twsaObs(iDomain), twsaOptiSim(iDomain))
-        do iCell = 1, size(L1_etObs(iDomain)%maskObs(:, :), dim = 1)
+        call convert_tws_to_twsa(twsOptiSim(iDomain), L1%twsaObs(iDomain), twsaOptiSim(iDomain))
+        do iCell = 1, size(L1%etObs(iDomain)%maskObs(:, :), dim = 1)
           kge_et = kge_et + &
-            (1.0_dp - KGE(L1_etObs(iDomain)%dataObs(iCell, :), etOptiSim(iDomain)%dataSim(iCell, :),&
-                           mask = L1_etObs(iDomain)%maskObs(iCell, :)))**6
+            (1.0_dp - KGE(L1%etObs(iDomain)%dataObs(iCell, :), etOptiSim(iDomain)%dataSim(iCell, :),&
+                           mask = L1%etObs(iDomain)%maskObs(iCell, :)))**6
           numberOfSummands = numberOfSummands + 1
         end do
-        do iCell = 1, size(L1_twsaObs(iDomain)%maskObs(:, :), dim = 1)
+        do iCell = 1, size(L1%twsaObs(iDomain)%maskObs(:, :), dim = 1)
           kge_tws = kge_tws + &
-            (1.0_dp - KGE(L1_twsaObs(iDomain)%dataObs(iCell, :), twsaOptiSim(iDomain)%dataSim(iCell, :),&
-                           mask = L1_twsaObs(iDomain)%maskObs(iCell, :)))**6
+            (1.0_dp - KGE(L1%twsaObs(iDomain)%dataObs(iCell, :), twsaOptiSim(iDomain)%dataSim(iCell, :),&
+                           mask = L1%twsaObs(iDomain)%maskObs(iCell, :)))**6
           numberOfSummands = numberOfSummands + 1
         end do
         ! deallocate
@@ -788,11 +788,11 @@ CONTAINS
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_TWS)
         iDomain = opti_domain_indices_TWS(i)
-        call convert_tws_to_twsa(twsOptiSim(iDomain), L1_twsaObs(iDomain), twsaOptiSim(iDomain))
-        do iCell = 1, size(L1_twsaObs(iDomain)%maskObs(:, :), dim = 1)
+        call convert_tws_to_twsa(twsOptiSim(iDomain), L1%twsaObs(iDomain), twsaOptiSim(iDomain))
+        do iCell = 1, size(L1%twsaObs(iDomain)%maskObs(:, :), dim = 1)
           kge_tws = kge_tws + &
-            (1.0_dp - KGE(L1_twsaObs(iDomain)%dataObs(iCell, :), twsaOptiSim(iDomain)%dataSim(iCell, :),&
-                           mask = L1_twsaObs(iDomain)%maskObs(iCell, :)))**6
+            (1.0_dp - KGE(L1%twsaObs(iDomain)%dataObs(iCell, :), twsaOptiSim(iDomain)%dataSim(iCell, :),&
+                           mask = L1%twsaObs(iDomain)%maskObs(iCell, :)))**6
           numberOfSummands = numberOfSummands + 1
         end do
         call twsOptiSim(iDomain)%destroy()
@@ -815,10 +815,10 @@ CONTAINS
       ! for all domains that have ET and TWS
       do i = 1, size(opti_domain_indices_ET)
         iDomain = opti_domain_indices_ET(i)
-        do iCell = 1, size(L1_etObs(iDomain)%maskObs(:, :), dim = 1)
+        do iCell = 1, size(L1%etObs(iDomain)%maskObs(:, :), dim = 1)
           kge_et = kge_et + &
-            (1.0_dp - KGE(L1_etObs(iDomain)%dataObs(iCell, :), etOptiSim(iDomain)%dataSim(iCell, :),&
-                           mask = L1_etObs(iDomain)%maskObs(iCell, :)))**6
+            (1.0_dp - KGE(L1%etObs(iDomain)%dataObs(iCell, :), etOptiSim(iDomain)%dataSim(iCell, :),&
+                           mask = L1%etObs(iDomain)%maskObs(iCell, :)))**6
           numberOfSummands = numberOfSummands + 1
         end do
         call etOptiSim(iDomain)%destroy()
@@ -975,7 +975,7 @@ CONTAINS
 
     use mo_optimization_types, only : optidata_sim
     use mo_common_variables, only : level1, domainMeta
-    use mo_global_variables, only : L1_smObs
+    use mo_global_variables, only : L1
     use mo_message, only : message
     use mo_moment, only : correlation
     use mo_string_utils, only : num2str
@@ -1027,16 +1027,16 @@ CONTAINS
       invalid_cells = 0.0_dp
       ! temporal correlation is calculated on individual gridd cells
 
-      do iCell = 1, size(L1_smObs(iDomain)%maskObs(:, :), dim = 1)
+      do iCell = 1, size(L1%smObs(iDomain)%maskObs(:, :), dim = 1)
 
         ! check for enough data points in time for correlation
-        if (count(L1_smObs(iDomain)%maskObs(iCell, :)) .LE. 0.10_dp * real(size(L1_smObs(iDomain)%dataObs(:, :), dim = 2), dp)) then
+        if (count(L1%smObs(iDomain)%maskObs(iCell, :)) .LE. 0.10_dp * real(size(L1%smObs(iDomain)%dataObs(:, :), dim = 2), dp)) then
           invalid_cells = invalid_cells + 1.0_dp
           cycle
         end if
         objective_sm_corr_domain = objective_sm_corr_domain + &
-                correlation(L1_smObs(iDomain)%dataObs(iCell, :), smOptiSim(iDomain)%dataSim(iCell, :), &
-                                                           mask = L1_smObs(iDomain)%maskObs(iCell, :))
+                correlation(L1%smObs(iDomain)%dataObs(iCell, :), smOptiSim(iDomain)%dataSim(iCell, :), &
+                                                           mask = L1%smObs(iDomain)%maskObs(iCell, :))
       end do
 
       ! user information about invalid cells
@@ -1110,7 +1110,7 @@ CONTAINS
     use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level1, domainMeta
-    use mo_global_variables, only : L1_smObs
+    use mo_global_variables, only : L1
     use mo_message, only : error_message, message
     use mo_spatialsimilarity, only : PD
     use mo_string_utils, only : num2str
@@ -1184,9 +1184,9 @@ CONTAINS
 
       ! calculate pattern similarity criterion
       do iTime = 1, size(smOptiSim(iDomain)%dataSim, dim = 2)
-        mat1 = unpack(L1_smObs(iDomain)%dataObs(:, iTime), mask1, nodata_dp)
+        mat1 = unpack(L1%smObs(iDomain)%dataObs(:, iTime), mask1, nodata_dp)
         mat2 = unpack(smOptiSim(iDomain)%dataSim(:, iTime), mask1, nodata_dp)
-        mask_sm = unpack(L1_smObs(iDomain)%maskObs(:, iTime), mask1, .FALSE.)
+        mask_sm = unpack(L1%smObs(iDomain)%maskObs(:, iTime), mask1, .FALSE.)
         pd_time_series = PD(mat1, mat2, mask = mask_sm, valid = mask_times(itime))
       end do
 
@@ -1265,7 +1265,7 @@ CONTAINS
     use mo_optimization_types, only : optidata_sim
     use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : SSE
-    use mo_global_variables, only : L1_smObs
+    use mo_global_variables, only : L1
     use mo_message, only : message
     use mo_standard_score, only : standard_score
     use mo_string_utils, only : num2str
@@ -1316,17 +1316,17 @@ CONTAINS
 
       invalid_cells = 0.0_dp
       ! standard_score signal is calculated on individual grid cells
-      do iCell = 1, size(L1_smObs(iDomain)%maskObs(:, :), dim = 1)
+      do iCell = 1, size(L1%smObs(iDomain)%maskObs(:, :), dim = 1)
 
         ! check for enough data points in time for statistical calculations (e.g. mean, stddev)
-        if (count(L1_smObs(iDomain)%maskObs(iCell, :)) .LE. (0.10_dp * real(size(L1_smObs(iDomain)%dataObs, dim = 2), dp))) then
+        if (count(L1%smObs(iDomain)%maskObs(iCell, :)) .LE. (0.10_dp * real(size(L1%smObs(iDomain)%dataObs, dim = 2), dp))) then
           invalid_cells = invalid_cells + 1.0_dp
           cycle
         end if
         objective_sm_sse_standard_score_domain = objective_sm_sse_standard_score_domain + &
-                SSE(standard_score(L1_smObs(iDomain)%dataObs(iCell, :), mask = L1_smObs(iDomain)%maskObs(iCell, :)), &
-                        standard_score(smOptiSim(iDomain)%dataSim(iCell, :), mask = L1_smObs(iDomain)%maskObs(iCell, :)), &
-                                                          mask = L1_smObs(iDomain)%maskObs(iCell, :))
+                SSE(standard_score(L1%smObs(iDomain)%dataObs(iCell, :), mask = L1%smObs(iDomain)%maskObs(iCell, :)), &
+                        standard_score(smOptiSim(iDomain)%dataSim(iCell, :), mask = L1%smObs(iDomain)%maskObs(iCell, :)), &
+                                                          mask = L1%smObs(iDomain)%maskObs(iCell, :))
 
       end do
 
@@ -1385,7 +1385,7 @@ CONTAINS
     use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_variables, only : domainMeta, evalPer
-    use mo_global_variables, only : L1_twsaObs
+    use mo_global_variables, only : L1
     use mo_errormeasures, only : rmse
     use mo_julian, only : caldat
     use mo_message, only : message
@@ -1472,7 +1472,7 @@ CONTAINS
     rmse_tws(:) = nodata_dp
 
     do iDomain = 1, domainMeta%nDomains
-      if (.not. (L1_twsaObs(iDomain)%timeStepInput == -2)) then
+      if (.not. (L1%twsaObs(iDomain)%timeStepInput == -2)) then
         call message('objective_kge_q_rmse_tws: current implementation of this subroutine only allows monthly timesteps')
       end if
       domainID = domainMeta%indices(iDomain)
@@ -1622,7 +1622,7 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : domainMeta
     use mo_errormeasures, only : KGE
-    use mo_global_variables, only : L1_neutronsObs
+    use mo_global_variables, only : L1
     use mo_message, only : message
     use mo_moment, only : average
     use mo_string_utils, only : num2str
@@ -1682,17 +1682,17 @@ CONTAINS
       do iTime = 1, size(neutronsOptiSim(iDomain)%dataSim, dim = 2)
 
         ! check for enough data points in time for correlation
-        if (all(.NOT. L1_neutronsObs(iDomain)%maskObs(:, iTime))) then
+        if (all(.NOT. L1%neutronsObs(iDomain)%maskObs(:, iTime))) then
           call message('WARNING: neutrons data at time ', num2str(iTime, '(I10)'), ' is empty.')
           !call message('WARNING: objective_neutrons_kge_catchment_avg: ignored current time step since less than')
           !call message('         10 valid cells available in soil moisture observation')
           mask_times(iTime) = .FALSE.
           cycle
         end if
-        neutrons_catch_avg_domain(iTime) = average(L1_neutronsObs(iDomain)%dataObs(:, iTime), &
-                                            mask = L1_neutronsObs(iDomain)%maskObs(:, iTime))
+        neutrons_catch_avg_domain(iTime) = average(L1%neutronsObs(iDomain)%dataObs(:, iTime), &
+                                            mask = L1%neutronsObs(iDomain)%maskObs(:, iTime))
         neutrons_opti_catch_avg_domain(iTime) = average(neutronsOptiSim(iDomain)%dataSim(:, iTime), &
-                                         mask = L1_neutronsObs(iDomain)%maskObs(:, iTime))
+                                         mask = L1%neutronsObs(iDomain)%maskObs(:, iTime))
       end do
 
       ! calculate average neutrons KGE over all domains with power law
@@ -1869,7 +1869,7 @@ CONTAINS
 
     use mo_optimization_types, only : optidata_sim
     use mo_common_variables, only : level1, domainMeta
-    use mo_global_variables, only : L1_smObs
+    use mo_global_variables, only : L1
     use mo_message, only : message
     use mo_moment, only : correlation
     use mo_string_utils, only : num2str
@@ -1947,18 +1947,18 @@ CONTAINS
 
       ! correlation signal is calculated on individual grid cells
       invalid_cells = 0.0_dp
-      do iCell = 1, size(L1_smObs(iDomain)%maskObs(:, :), dim = 1)
+      do iCell = 1, size(L1%smObs(iDomain)%maskObs(:, :), dim = 1)
 
         ! check for enough data points in time for statistical calculations (e.g. mean, stddev)
-        if (count(L1_smObs(iDomain)%maskObs(iCell, :)) .LE. (0.10_dp * real(size(L1_smObs(iDomain)%dataObs, dim = 2), dp))) then
+        if (count(L1%smObs(iDomain)%maskObs(iCell, :)) .LE. (0.10_dp * real(size(L1%smObs(iDomain)%dataObs, dim = 2), dp))) then
           invalid_cells = invalid_cells + 1.0_dp
           cycle
         end if
 
         ! calculate ojective function
         objective_sm_domain = objective_sm_domain + &
-                correlation(L1_smObs(iDomain)%dataObs(iCell, :), smOptiSim(iDomain)%dataSim(iCell, :), &
-                                                           mask = L1_smObs(iDomain)%maskObs(iCell, :))
+                correlation(L1%smObs(iDomain)%dataObs(iCell, :), smOptiSim(iDomain)%dataSim(iCell, :), &
+                                                           mask = L1%smObs(iDomain)%maskObs(iCell, :))
       end do
 
       ! user information about invalid cells
@@ -2050,7 +2050,7 @@ CONTAINS
     use mo_optimization_types, only : optidata_sim
     use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : kge
-    use mo_global_variables, only : L1_etObs
+    use mo_global_variables, only : L1
     use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_mrm_objective_function_runoff, only : extract_runoff
@@ -2126,19 +2126,19 @@ CONTAINS
 
       ! correlation signal is calculated on individual grid cells
       invalid_cells = 0.0_dp
-      do iCell = 1, size(L1_etObs(iDomain)%maskObs, dim = 1)
+      do iCell = 1, size(L1%etObs(iDomain)%maskObs, dim = 1)
 
         ! check for enough data points in time for statistical calculations (e.g. mean, stddev)
-        if (count(L1_etObs(iDomain)%maskObs(iCell, :)) .LE. &
-                            (0.10_dp * real(size(L1_etObs(iDomain)%dataObs(:, :), dim = 2), dp))) then
+        if (count(L1%etObs(iDomain)%maskObs(iCell, :)) .LE. &
+                            (0.10_dp * real(size(L1%etObs(iDomain)%dataObs(:, :), dim = 2), dp))) then
           invalid_cells = invalid_cells + 1.0_dp
           cycle
         end if
 
         ! calculate ojective function
         objective_et_domain = objective_et_domain + &
-                kge(L1_etObs(iDomain)%dataObs(iCell, :), etOptiSim(iDomain)%dataSim(iCell, :), &
-                                                   mask = L1_etObs(iDomain)%maskObs(iCell, :))
+                kge(L1%etObs(iDomain)%dataObs(iCell, :), etOptiSim(iDomain)%dataSim(iCell, :), &
+                                                   mask = L1%etObs(iDomain)%maskObs(iCell, :))
       end do
 
       ! user information about invalid cells
@@ -2228,7 +2228,7 @@ CONTAINS
     use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_variables, only : domainMeta, evalPer
     use mo_errormeasures, only : rmse
-    use mo_global_variables, only : L1_etObs
+    use mo_global_variables, only : L1
     use mo_julian, only : caldat
     use mo_message, only : error_message, message
     use mo_moment, only : average, mean
@@ -2338,7 +2338,7 @@ CONTAINS
       ! calculate catchment average evapotranspiration
       do iTime = 1, size(etOptiSim(iDomain)%dataSim, dim = 2)
         ! check for enough data points in time for correlation
-        if (all(.NOT. L1_etObs(iDomain)%maskObs(:, iTime))) then
+        if (all(.NOT. L1%etObs(iDomain)%maskObs(:, iTime))) then
           !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
           !call message('WARNING: objective_et_kge_catchment_avg: ignored current time step since less than')
           !call message('         10 valid cells available in evapotranspiration observation')
@@ -2346,11 +2346,11 @@ CONTAINS
           cycle
         end if
         ! spatial average of observed ET
-        et_catch_avg_domain(iTime) = average(L1_etObs(iDomain)%dataObs(:, iTime), &
-                                      mask = L1_etObs(iDomain)%maskObs(:, iTime))
+        et_catch_avg_domain(iTime) = average(L1%etObs(iDomain)%dataObs(:, iTime), &
+                                      mask = L1%etObs(iDomain)%maskObs(:, iTime))
         ! spatial avergae of modeled ET
         et_opti_catch_avg_domain(iTime) = average(etOptiSim(iDomain)%dataSim(:, iTime), &
-                                            mask = L1_etObs(iDomain)%maskObs(:, iTime))
+                                            mask = L1%etObs(iDomain)%maskObs(:, iTime))
       end do
 
       ! get initial time of the evaluation period
@@ -2360,7 +2360,7 @@ CONTAINS
       call caldat(int(initTime(iDomain)), yy = year, mm = month, dd = day)
 
       ! if evapotranspiration input daily
-      select case(L1_etObs(iDomain)%timeStepInput)
+      select case(L1%etObs(iDomain)%timeStepInput)
         ! JBJBJB
         ! daily: aggregate to monthly mean
       case(-1)
@@ -2476,7 +2476,7 @@ CONTAINS
                                            tws_opti_catch_avg_domain, mask_times)
     use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
-    use mo_global_variables, only : L1_twsaObs
+    use mo_global_variables, only : L1
     use mo_moment, only : average
     ! current domain Id
     integer(i4), intent(in) :: iDomain
@@ -2511,7 +2511,7 @@ CONTAINS
     do iTime = 1, size(twsOptiSim(iDomain)%dataSim, dim = 2)
 
       ! check for enough data points in time for correlation
-      if (all(.NOT. L1_twsaObs(iDomain)%maskObs(:, iTime))) then
+      if (all(.NOT. L1%twsaObs(iDomain)%maskObs(:, iTime))) then
         !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
         !call message('WARNING: objective_et_kge_catchment_avg: ignored current time step since less than')
         !call message('         10 valid cells available in evapotranspiration observation')
@@ -2519,10 +2519,10 @@ CONTAINS
         cycle
       end if
 
-      tws_catch_avg_domain(iTime) = average(L1_twsaObs(iDomain)%dataObs(:, iTime), &
-                                     mask = L1_twsaObs(iDomain)%maskObs(:, iTime))
+      tws_catch_avg_domain(iTime) = average(L1%twsaObs(iDomain)%dataObs(:, iTime), &
+                                     mask = L1%twsaObs(iDomain)%maskObs(:, iTime))
       tws_opti_catch_avg_domain(iTime) = average(twsOptiSim(iDomain)%dataSim(:, iTime), &
-                                     mask = L1_twsaObs(iDomain)%maskObs(:, iTime))
+                                     mask = L1%twsaObs(iDomain)%maskObs(:, iTime))
     end do
 
   end subroutine create_domain_avg_tws
@@ -2531,7 +2531,7 @@ CONTAINS
                                            et_opti_catch_avg_domain, mask_times)
     use mo_optimization_types, only : optidata_sim
     use mo_common_constants, only : nodata_dp
-    use mo_global_variables, only : L1_etObs
+    use mo_global_variables, only : L1
     use mo_moment, only : average
     ! current domain Id
     integer(i4), intent(in) :: iDomain
@@ -2566,7 +2566,7 @@ CONTAINS
     do iTime = 1, size(etOptiSim(iDomain)%dataSim, dim = 2)
 
       ! check for enough data points in time for correlation
-      if (all(.NOT. L1_etObs(iDomain)%maskObs(:, iTime))) then
+      if (all(.NOT. L1%etObs(iDomain)%maskObs(:, iTime))) then
         !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
         !call message('WARNING: objective_et_kge_catchment_avg: ignored current time step since less than')
         !call message('         10 valid cells available in evapotranspiration observation')
@@ -2574,10 +2574,10 @@ CONTAINS
         cycle
       end if
 
-      et_catch_avg_domain(iTime) = average(L1_etObs(iDomain)%dataObs(:, iTime), &
-                                    mask = L1_etObs(iDomain)%maskObs(:, iTime))
+      et_catch_avg_domain(iTime) = average(L1%etObs(iDomain)%dataObs(:, iTime), &
+                                    mask = L1%etObs(iDomain)%maskObs(:, iTime))
       et_opti_catch_avg_domain(iTime) = average(etOptiSim(iDomain)%dataSim(:, iTime), &
-                                          mask = L1_etObs(iDomain)%maskObs(:, iTime))
+                                          mask = L1%etObs(iDomain)%maskObs(:, iTime))
     end do
 
   end subroutine create_domain_avg_et
