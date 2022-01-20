@@ -47,6 +47,7 @@ CPMAddPackage(
 )
 if(BUILD_MHM_LIB_SHARED)
   set_property(TARGET mpr PROPERTY POSITION_INDEPENDENT_CODE ON)
+  set_property(TARGET flogging PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 target_link_libraries(${LIB_NAME} PUBLIC mpr)
 
