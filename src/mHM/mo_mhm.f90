@@ -162,12 +162,12 @@ CONTAINS
   !>       \param[inout] "real(dp), dimension(:) :: water_thresh_sealed"   Threshold water depth in impervious areas
   !>       \param[inout] "real(dp), dimension(:, :) :: wilting_point"      Permanent wilting point for each horizon
   !
-  !>       \param[inout] "real(dp), dimension(:) :: No_count"            
-  !>       \param[inout] "real(dp), dimension(:) :: bulkDens"           
-  !>       \param[inout] "real(dp), dimension(:) :: latticeWater"   
-  !>       \param[inout] "real(dp), dimension(:, :) :: COSMICL3"      
+  !>       \param[inout] "real(dp), dimension(:) :: No_count"
+  !>       \param[inout] "real(dp), dimension(:) :: bulkDens"
+  !>       \param[inout] "real(dp), dimension(:) :: latticeWater"
+  !>       \param[inout] "real(dp), dimension(:, :) :: COSMICL3"
 
-  
+
   !    HISTORY
   !>       \authors Luis Samaniego & Rohini Kumar
 
@@ -202,7 +202,8 @@ CONTAINS
   ! Robert Schweppe                 Jun 2018 - refactoring and reformatting
   ! Robert Schweppe                 Nov 2018 - added c2TSTu for unit conversion (moved here from MPR)
   ! Rohini Kumar                    Oct 2021 - Neutron count module to mHM integrate into develop branch (5.11.2)
-  subroutine mHM(read_states, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
+  ! Stephan Thober                  Jan 2022 - added is_hourly_forcing
+subroutine mHM(read_states, is_hourly_forcing, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
                 c2TSTu, neutron_integral_AFast, &
                 latitude, evap_coeff, fday_prec, fnight_prec, fday_pet, &
                 fnight_pet, fday_temp, fnight_temp, temp_weights, pet_weights, pre_weights, read_meteo_weights, pet_in, &
@@ -220,7 +221,7 @@ CONTAINS
     use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
     use mo_pet,                     only: pet_hargreaves, pet_priestly,  & ! calc. of pot. evapotranspiration
                                           pet_penman
-	
+
     use mo_Temporal_Disagg_Forcing, only : Temporal_Disagg_Forcing
     use mo_canopy_interc, only : canopy_interc
     use mo_julian, only : date2dec, dec2date
@@ -236,6 +237,9 @@ CONTAINS
 
     ! indicated whether states have been read from file
     logical, intent(in) :: read_states
+
+    ! indicate whether forcing is hourly timestep
+    logical, intent(in) :: is_hourly_forcing
 
     ! simulation time step
     integer(i4), intent(in) :: tt
@@ -572,13 +576,19 @@ CONTAINS
 
       end select
       ! temporal disaggreagtion of forcing variables
-      call temporal_disagg_forcing(isday, ntimesteps_day, prec_in(k), & ! Intent IN
+      if (is_hourly_forcing) then
+         prec = prec_in(k)
+         pet_calc(k) = pet
+         temp = temp_in(k)
+      else
+         call temporal_disagg_forcing(isday, ntimesteps_day, prec_in(k), & ! Intent IN
               pet, temp_in(k), fday_prec(month), fday_pet(month), & ! Intent IN
               fday_temp(month), fnight_prec(month), fnight_pet(month), fnight_temp(month), & ! Intent IN
               temp_weights(k, month, hour + 1), pet_weights(k, month, hour + 1), & ! Intent IN
               pre_weights(k, month, hour + 1), & ! Intent IN
               read_meteo_weights, & ! Intent IN
               prec, pet_calc(k), temp)                                                            ! Intent OUT
+      end if
       call canopy_interc(pet_calc(k), interc_max(k), prec, & ! Intent IN
               interc(k), & ! Intent INOUT
               throughfall(k), aet_canopy(k))                                                      ! Intent OUT
@@ -618,7 +628,7 @@ CONTAINS
       ! Nested model: Neutrons state variable, related to soil moisture
       ! >> NOTE THAT SINCE LAST mHM layer is variable iFlag_soilDB = 0
       !    the neuton count is estimated only upto nHorizons_mHM-1
-      !    set your horizon depth accordingly 
+      !    set your horizon depth accordingly
       !-------------------------------------------------------------------
       ! DESLET
       if ( processMatrix(10, 1) .EQ. 1 ) &
@@ -627,7 +637,7 @@ CONTAINS
            bulkDens(k,1:nHorizons_mHM-1),                     & ! Intent IN
            latticeWater(k,1:nHorizons_mHM-1), No_count(k),    & ! Intent IN
            neutrons(k) )                                        ! Intent INOUT
-      
+
       ! COSMIC
       if ( processMatrix(10, 1) .EQ. 2 ) &
            call COSMIC( soilMoisture(k,1:nHorizons_mHM-1), horizon_depth(1:nHorizons_mHM-1),&

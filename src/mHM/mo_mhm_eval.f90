@@ -79,13 +79,14 @@ CONTAINS
   ! Zink M. Demirel C.   Mar 2017 - Added Jarvis soil water stress function at SM process(3)
   ! Robert Schweppe      Dec 2017 - extracted call to mpr from inside mhm
   ! Robert Schweppe      Jun 2018 - refactoring and reformatting
+  ! Stephan Thober       Jan 2022 - added nTstepForcingDay and is_hourly_forcing flag
 
   SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
 
     use mo_optimization_types, only : optidata_sim
     use mo_common_datetime_type, only : datetimeinfo
     use mo_common_mHM_mRM_variables, only : LCyearId, mhmFileRestartIn, mrmFileRestartIn, nTstepDay,&
-                                            optimize, readPer, read_restart, simPer, timeStep, &
+                                    nTstepForcingDay, optimize, readPer, read_restart, simPer, timeStep, &
                                             warmingDays, c2TSTu
     use mo_common_variables, only : level1, domainMeta, processMatrix
     use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, &
@@ -126,7 +127,7 @@ CONTAINS
                                         L11_netPerm, L11_qMod, L11_qOUT, L11_qTIN, L11_qTR, L11_slope, L11_toN, &
                                         L1_L11_Id, domain_mrm, level11, mRM_runoff, outputFlxState_mrm, &
                                         timeStep_model_outputs_mrm, gw_coupling, L0_river_head_mon_sum, &
-                                        riv_temp_pcs 
+                                        riv_temp_pcs
     use mo_mrm_init, only : variables_default_init_routing
     use mo_mrm_mpr, only : mrm_update_param
     use mo_mrm_restart, only : mrm_read_restart_states
@@ -197,6 +198,9 @@ CONTAINS
     ! calculations
     type(datetimeinfo) :: domainDateTime
 
+    ! flag wether forcings are given at hourly timestep
+    logical :: is_hourly_forcing
+
     integer(i4) :: jj
 
     ! discharge timestep
@@ -240,6 +244,8 @@ CONTAINS
     else
       nDomains = domainMeta%nDomains
     end if
+
+    is_hourly_forcing = (nTstepForcingDay .eq. 24_i4)
     !----------------------------------------------------------
     ! Check optionals and initialize
     !----------------------------------------------------------
@@ -362,7 +368,8 @@ CONTAINS
           s_meteo = s1
           e_meteo = e1
           ! time step for meteorological variable (daily values)
-          iMeteoTS = ceiling(real(tt, dp) / real(nTstepDay, dp))
+          ! iMeteoTS = ceiling(real(tt, dp) / real(nTstepDay, dp))
+          iMeteoTS = ceiling(real(tt, dp) / real(nint( 24._dp / real(nTstepForcingDay, dp)), dp))
         else
           ! read chunk of meteorological forcings data (reading, upscaling/downscaling)
           call prepare_meteo_forcings_data(iDomain, domainID, tt)
@@ -370,7 +377,7 @@ CONTAINS
           s_meteo = 1
           e_meteo = e1 - s1 + 1
           ! time step for meteorological variable (daily values)
-          iMeteoTS = ceiling(real(tt, dp) / real(nTstepDay, dp)) &
+          iMeteoTS = ceiling(real(tt, dp) / real(nint( 24._dp / real(nTstepForcingDay, dp)), dp)) &
                   - (readPer%julStart - simPer(iDomain)%julStart)
         end if
 
@@ -421,60 +428,59 @@ CONTAINS
         !  S    STATE VARIABLES L1
         !  X    FLUXES (L1, L11 levels)
         ! --------------------------------------------------------------------------
-        call mhm(read_restart, & ! IN C
-             tt, domainDateTime%newTime - 0.5_dp, processMatrix, HorizonDepth_mHM, & ! IN C
-             nCells, nSoilHorizons_mHM, real(nTstepDay, dp), c2TSTu,  & ! IN C
-             neutron_integral_AFast, & ! IN C
-             pack(level1(iDomain)%y, level1(iDomain)%mask), & ! IN L1
-             evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet, & ! IN F
-             fday_temp, fnight_temp, & ! IN F
-             L1_temp_weights(s1 : e1, :, :), & ! IN F
-             L1_pet_weights(s1 : e1, :, :), & ! IN F
-             L1_pre_weights(s1 : e1, :, :), & ! IN F
-             read_meteo_weights, & ! IN F
-             L1_pet(s_p5(1) : e_p5(1), iMeteo_p5(1)), & ! INOUT F:PET
-             L1_tmin(s_p5(2) : e_p5(2), iMeteo_p5(2)), & ! IN F:PET
-             L1_tmax(s_p5(3) : e_p5(3), iMeteo_p5(3)), & ! IN F:PET
-             L1_netrad(s_p5(4) : e_p5(4), iMeteo_p5(4)), & ! IN F:PET
-             L1_absvappress(s_p5(5) : e_p5(5), iMeteo_p5(5)), & ! IN F:PET
-             L1_windspeed(s_p5(6) : e_p5(6), iMeteo_p5(6)), & ! IN F:PET
-             L1_pre(s_meteo : e_meteo, iMeteoTS), & ! IN F:Pre
-             L1_temp(s_meteo : e_meteo, iMeteoTS), & ! IN F:Temp
-             L1_fSealed(s1 : e1, 1, domainDateTime%yId), & ! INOUT L1
-             L1_inter(s1 : e1), L1_snowPack(s1 : e1), L1_sealSTW(s1 : e1), & ! INOUT S
-             L1_soilMoist(s1 : e1, :), L1_unsatSTW(s1 : e1), L1_satSTW(s1 : e1), & ! INOUT S
-             L1_neutrons(s1 : e1), & ! INOUT S
-             L1_pet_calc(s1 : e1), & ! INOUT X
-             L1_aETSoil(s1 : e1, :), L1_aETCanopy(s1 : e1), L1_aETSealed(s1 : e1), & ! INOUT X
-             L1_baseflow(s1 : e1), L1_infilSoil(s1 : e1, :), L1_fastRunoff(s1 : e1), & ! INOUT X
-             L1_melt(s1 : e1), L1_percol(s1 : e1), L1_preEffect(s1 : e1), L1_rain(s1 : e1), & ! INOUT X
-             L1_runoffSeal(s1 : e1), L1_slowRunoff(s1 : e1), L1_snow(s1 : e1), & ! INOUT X
-             L1_Throughfall(s1 : e1), L1_total_runoff(s1 : e1), & ! INOUT X
-             L1_alpha(s1 : e1, 1, 1), L1_degDayInc(s1 : e1, 1, domainDateTime%yId), &
-             L1_degDayMax(s1 : e1, 1, domainDateTime%yId), & ! INOUT E1
-             L1_degDayNoPre(s1 : e1, 1, domainDateTime%yId), L1_degDay(s1 : e1, 1, 1), & ! INOUT E1
-             L1_fAsp(s1 : e1, 1, 1), & ! INOUT E1
-             L1_petLAIcorFactor(s1 : e1, domainDateTime%iLAI, domainDateTime%yId), & ! INOUT E1
-             L1_HarSamCoeff(s1 : e1, 1, 1), & ! INOUT E1
-             L1_PrieTayAlpha(s1 : e1, domainDateTime%iLAI, 1), & ! INOUT E1
-             L1_aeroResist(s1 : e1, domainDateTime%iLAI, domainDateTime%yId), & ! INOUT E1
-             L1_surfResist(s1 : e1, domainDateTime%iLAI, 1), L1_fRoots(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
-             L1_maxInter(s1 : e1, domainDateTime%iLAI, 1), L1_karstLoss(s1 : e1, 1, 1), & ! INOUT E1
-             L1_kFastFlow(s1 : e1, 1, domainDateTime%yId), L1_kSlowFlow(s1 : e1, 1, 1), & ! INOUT E1
-             L1_kBaseFlow(s1 : e1, 1, 1), L1_kPerco(s1 : e1, 1, 1), & ! INOUT E1
-             L1_soilMoistFC(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
-             L1_soilMoistSat(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
-             L1_soilMoistExp(s1 : e1, :, domainDateTime%yId), L1_jarvis_thresh_c1(s1 : e1, 1, 1), & ! INOUT E1
-             L1_tempThresh(s1 : e1, 1, domainDateTime%yId), L1_unsatThresh(s1 : e1, 1, 1), & ! INOUT E1
-             L1_sealedThresh(s1 : e1, 1, 1), & ! INOUT E1
-             L1_wiltingPoint(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
-             !>> neutron count
-             L1_No_Count(s1:e1, 1, 1),  &                     ! INOUT E1
-             L1_bulkDens(s1:e1,     :, domainDateTime%yId), & ! INOUT E1
-             L1_latticeWater(s1:e1, :, domainDateTime%yId), & ! INOUT E1
-             L1_COSMICL3(s1:e1,     :, domainDateTime%yId)  & ! INOUT E1
-             )      
- 
+        call mhm(read_restart, is_hourly_forcing, & ! IN C
+          tt, domainDateTime%newTime - 0.5_dp, processMatrix, HorizonDepth_mHM, & ! IN C
+          nCells, nSoilHorizons_mHM, real(nTstepDay, dp), c2TSTu,  & ! IN C
+          neutron_integral_AFast, & ! IN C
+          pack(level1(iDomain)%y, level1(iDomain)%mask), & ! IN L1
+          evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet, & ! IN F
+          fday_temp, fnight_temp, & ! IN F
+          L1_temp_weights(s1 : e1, :, :), & ! IN F
+          L1_pet_weights(s1 : e1, :, :), & ! IN F
+          L1_pre_weights(s1 : e1, :, :), & ! IN F
+          read_meteo_weights, & ! IN F
+          L1_pet(s_p5(1) : e_p5(1), iMeteo_p5(1)), & ! INOUT F:PET
+          L1_tmin(s_p5(2) : e_p5(2), iMeteo_p5(2)), & ! IN F:PET
+          L1_tmax(s_p5(3) : e_p5(3), iMeteo_p5(3)), & ! IN F:PET
+          L1_netrad(s_p5(4) : e_p5(4), iMeteo_p5(4)), & ! IN F:PET
+          L1_absvappress(s_p5(5) : e_p5(5), iMeteo_p5(5)), & ! IN F:PET
+          L1_windspeed(s_p5(6) : e_p5(6), iMeteo_p5(6)), & ! IN F:PET
+          L1_pre(s_meteo : e_meteo, iMeteoTS), & ! IN F:Pre
+          L1_temp(s_meteo : e_meteo, iMeteoTS), & ! IN F:Temp
+          L1_fSealed(s1 : e1, 1, domainDateTime%yId), & ! INOUT L1
+          L1_inter(s1 : e1), L1_snowPack(s1 : e1), L1_sealSTW(s1 : e1), & ! INOUT S
+          L1_soilMoist(s1 : e1, :), L1_unsatSTW(s1 : e1), L1_satSTW(s1 : e1), & ! INOUT S
+          L1_neutrons(s1 : e1), & ! INOUT S
+          L1_pet_calc(s1 : e1), & ! INOUT X
+          L1_aETSoil(s1 : e1, :), L1_aETCanopy(s1 : e1), L1_aETSealed(s1 : e1), & ! INOUT X
+          L1_baseflow(s1 : e1), L1_infilSoil(s1 : e1, :), L1_fastRunoff(s1 : e1), & ! INOUT X
+          L1_melt(s1 : e1), L1_percol(s1 : e1), L1_preEffect(s1 : e1), L1_rain(s1 : e1), & ! INOUT X
+          L1_runoffSeal(s1 : e1), L1_slowRunoff(s1 : e1), L1_snow(s1 : e1), & ! INOUT X
+          L1_Throughfall(s1 : e1), L1_total_runoff(s1 : e1), & ! INOUT X
+          L1_alpha(s1 : e1, 1, 1), L1_degDayInc(s1 : e1, 1, domainDateTime%yId), &
+          L1_degDayMax(s1 : e1, 1, domainDateTime%yId), & ! INOUT E1
+          L1_degDayNoPre(s1 : e1, 1, domainDateTime%yId), L1_degDay(s1 : e1, 1, 1), & ! INOUT E1
+          L1_fAsp(s1 : e1, 1, 1), & ! INOUT E1
+          L1_petLAIcorFactor(s1 : e1, domainDateTime%iLAI, domainDateTime%yId), & ! INOUT E1
+          L1_HarSamCoeff(s1 : e1, 1, 1), & ! INOUT E1
+          L1_PrieTayAlpha(s1 : e1, domainDateTime%iLAI, 1), & ! INOUT E1
+          L1_aeroResist(s1 : e1, domainDateTime%iLAI, domainDateTime%yId), & ! INOUT E1
+          L1_surfResist(s1 : e1, domainDateTime%iLAI, 1), L1_fRoots(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
+          L1_maxInter(s1 : e1, domainDateTime%iLAI, 1), L1_karstLoss(s1 : e1, 1, 1), & ! INOUT E1
+          L1_kFastFlow(s1 : e1, 1, domainDateTime%yId), L1_kSlowFlow(s1 : e1, 1, 1), & ! INOUT E1
+          L1_kBaseFlow(s1 : e1, 1, 1), L1_kPerco(s1 : e1, 1, 1), & ! INOUT E1
+          L1_soilMoistFC(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
+          L1_soilMoistSat(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
+          L1_soilMoistExp(s1 : e1, :, domainDateTime%yId), L1_jarvis_thresh_c1(s1 : e1, 1, 1), & ! INOUT E1
+          L1_tempThresh(s1 : e1, 1, domainDateTime%yId), L1_unsatThresh(s1 : e1, 1, 1), & ! INOUT E1
+          L1_sealedThresh(s1 : e1, 1, 1), & ! INOUT E1
+          L1_wiltingPoint(s1 : e1, :, domainDateTime%yId), & ! INOUT E1
+          !>> neutron count
+          L1_No_Count(s1:e1, 1, 1),  &                     ! INOUT E1
+          L1_bulkDens(s1:e1,     :, domainDateTime%yId), & ! INOUT E1
+          L1_latticeWater(s1:e1, :, domainDateTime%yId), & ! INOUT E1
+          L1_COSMICL3(s1:e1,     :, domainDateTime%yId)  & ! INOUT E1
+        )
 
         ! call mRM routing
         if (domainMeta%doRouting(iDomain)) then

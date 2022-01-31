@@ -1,5 +1,12 @@
 # mHM Release Notes
 
+## mHM v5.x (unreleased)
+
+### Enhancements
+
+- model now runs with hourly forcing ([!39](https://git.ufz.de/mhm/mhm/-/merge_requests/39))
+
+
 ## mHM v5.11.2 (Jul 2021)
 
 ### Enhancements

@@ -45,13 +45,14 @@ CONTAINS
 
   ! Modifications:
   ! Robert Schweppe Dec  2017 - based on mhm_read_config
+  ! Stephan Thober Jan 2022 - added nTStepForcingDay
 
   subroutine common_mHM_mRM_read_config(file_namelist, unamelist)
 
-    use mo_common_constants, only : maxNoDomains
+    use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_mHM_mRM_variables, only : LCyearId, dds_r, mhmFileRestartIn, mrmFileRestartIn, evalPer,&
                                             mcmc_error_params, mcmc_opti, nIterations, &
-                                            nTStepDay, opti_function, opti_method, optimize, optimize_restart, &
+                                            nTStepDay, nTStepForcingDay, opti_function, opti_method, optimize, optimize_restart, &
                                             read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
                                             sce_ngs, sce_npg, sce_nps, seed, &
                                             simPer, timestep, warmPer, warmingDays
@@ -148,6 +149,7 @@ CONTAINS
       stop 1
     end if
     nTStepDay = 24_i4 / timeStep            ! # of time steps per day
+    nTStepForcingDay = nodata_i4            ! # init of number of forcing timesteps, will be set when reading forcings
 
     ! allocate time periods
     allocate(simPer(domainMeta%nDomains))
