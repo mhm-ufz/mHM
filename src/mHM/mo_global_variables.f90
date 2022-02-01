@@ -102,118 +102,124 @@ MODULE mo_global_variables
   ! Forcings
   ! dim1 = number grid cells L1
   ! dim2 = number of meteorological time steps
-  real(dp), public, dimension(:, :, :), allocatable :: L1_temp_weights  ! hourly temperature weights for daily values
-  real(dp), public, dimension(:, :, :), allocatable :: L1_pet_weights   ! hourly pet weights for daily values
-  real(dp), public, dimension(:, :, :), allocatable :: L1_pre_weights   ! hourly pre weights for daily values
-  real(dp), public, dimension(:, :), allocatable :: L1_pre           ! [mm]    Precipitation
-  real(dp), public, dimension(:, :), allocatable :: L1_temp          ! [degC]  Air temperature
-  real(dp), public, dimension(:, :), allocatable :: L1_pet           ! [mm TS-1] Potential evapotranspiration
-  real(dp), public, dimension(:, :), allocatable :: L1_tmin          ! [degC]  minimum daily air temperature
-  real(dp), public, dimension(:, :), allocatable :: L1_tmax          ! [degC]  maximum daily air temperature
-  real(dp), public, dimension(:, :), allocatable :: L1_netrad        ! [W m2]  net radiation
-  real(dp), public, dimension(:, :), allocatable :: L1_absvappress   ! [Pa]    absolute vapour pressure
-  real(dp), public, dimension(:, :), allocatable :: L1_windspeed     ! [m s-1] windspeed
-  ! riv-temp related
-  real(dp), public, dimension(:, :), allocatable :: L1_ssrd          ! [W m2]  short wave radiation
-  real(dp), public, dimension(:, :), allocatable :: L1_strd          ! [W m2]  long wave radiation
-  real(dp), public, dimension(:, :), allocatable :: L1_tann          ! [degC]  annual mean air temperature
+  type L1_type
+    real(dp), dimension(:, :, :), allocatable :: temp_weights  ! hourly temperature weights for daily values
+    real(dp), dimension(:, :, :), allocatable :: pet_weights   ! hourly pet weights for daily values
+    real(dp), dimension(:, :, :), allocatable :: pre_weights   ! hourly pre weights for daily values
+    real(dp), dimension(:, :), allocatable :: pre           ! [mm]    Precipitation
+    real(dp), dimension(:, :), allocatable :: temp          ! [degC]  Air temperature
+    real(dp), dimension(:, :), allocatable :: pet           ! [mm TS-1] Potential evapotranspiration
+    real(dp), dimension(:, :), allocatable :: tmin          ! [degC]  minimum daily air temperature
+    real(dp), dimension(:, :), allocatable :: tmax          ! [degC]  maximum daily air temperature
+    real(dp), dimension(:, :), allocatable :: netrad        ! [W m2]  net radiation
+    real(dp), dimension(:, :), allocatable :: absvappress   ! [Pa]    absolute vapour pressure
+    real(dp), dimension(:, :), allocatable :: windspeed     ! [m s-1] windspeed
+    ! riv-temp related
+    real(dp), dimension(:, :), allocatable :: ssrd          ! [W m2]  short wave radiation
+    real(dp), dimension(:, :), allocatable :: strd          ! [W m2]  long wave radiation
+    real(dp), dimension(:, :), allocatable :: tann          ! [degC]  annual mean air temperature
 
 
-  ! soil moisture
-  real(dp), public, dimension(:, :), allocatable :: L1_sm                  ! [-] soil moisture input for optimization
-  logical, public, dimension(:, :), allocatable :: L1_sm_mask             ! [-] mask for valid data in L1_sm
-  ! neutrons
-  real(dp), public, dimension(:, :), allocatable :: L1_neutronsdata            ! [cph] ground albedo neutrons input
-  logical, public, dimension(:, :), allocatable :: L1_neutronsdata_mask       ! [cph] mask for valid data in L1_neutrons
+    ! soil moisture
+    real(dp), dimension(:, :), allocatable :: sm                  ! [-] soil moisture input for optimization
+    logical, dimension(:, :), allocatable :: sm_mask             ! [-] mask for valid data in L1_sm
+    ! neutrons
+    real(dp), dimension(:, :), allocatable :: neutronsdata            ! [cph] ground albedo neutrons input
+    logical, dimension(:, :), allocatable :: neutronsdata_mask       ! [cph] mask for valid data in L1_neutrons
+
+    type(optidata), dimension(:), allocatable :: smObs
+    ! neutrons
+    type(optidata), dimension(:), allocatable :: neutronsObs
+    ! evapotranspiration
+    type(optidata), dimension(:), allocatable :: etObs
+    ! tws
+    type(optidata), dimension(:), allocatable :: twsaObs ! this stores L1_tws, the mask, the directory of the
+                                                                ! observerd data, and the
+                                                                ! timestepInput of the simulated data
+                                                                ! ToDo: add unit
+
+
+    ! State variables
+    ! dim1 = number grid cells L1
+    ! dim2 = number model soil horizons
+    real(dp), dimension(:), allocatable :: inter        ! [mm]  Interception
+    real(dp), dimension(:), allocatable :: snowPack     ! [mm]  Snowpack
+    real(dp), dimension(:), allocatable :: sealSTW      ! [mm]  Retention storage of impervious areas
+    real(dp), dimension(:, :), allocatable :: soilMoist    ! [mm]  Soil moisture of each horizon
+    real(dp), dimension(:), allocatable :: unsatSTW     ! [mm]  upper soil storage
+    real(dp), dimension(:), allocatable :: satSTW       ! [mm]  groundwater storage
+    real(dp), dimension(:), allocatable :: neutrons     ! [mm]  Ground Albedo Neutrons
+    real(dp), dimension(:), allocatable :: degDay       ! [mm d-1degC-1] Degree-day factor.
+
+    ! Fluxes
+    ! dim1 = number grid cells L1
+    ! dim2 = number model soil horizons
+    real(dp), dimension(:), allocatable :: pet_calc     ! [mm TS-1] estimated/corrected potential evapotranspiration
+    real(dp), dimension(:, :), allocatable :: aETSoil      ! [mm TS-1] Actual ET from soil layers
+    real(dp), dimension(:), allocatable :: aETCanopy    ! [mm TS-1] Real evaporation intensity from canopy
+    real(dp), dimension(:), allocatable :: aETSealed    ! [mm TS-1] Real evap. from free water surfaces
+    real(dp), dimension(:), allocatable :: baseflow     ! [mm TS-1] Baseflow
+    real(dp), dimension(:, :), allocatable :: infilSoil    ! [mm TS-1] Infiltration intensity each soil horizon
+    real(dp), dimension(:), allocatable :: fastRunoff   ! [mm TS-1] Fast runoff component
+    real(dp), dimension(:), allocatable :: melt         ! [mm TS-1] Melting snow depth.
+    real(dp), dimension(:), allocatable :: percol       ! [mm TS-1] Percolation.
+    real(dp), dimension(:), allocatable :: preEffect    ! [mm TS-1] Effective precip. depth (snow melt + rain)
+    real(dp), dimension(:), allocatable :: rain         ! [mm TS-1] Rain precipitation depth
+    real(dp), dimension(:), allocatable :: runoffSeal   ! [mm TS-1] Direct runoff from impervious areas
+    real(dp), dimension(:), allocatable :: slowRunoff   ! [mm TS-1] Slow runoff component
+    real(dp), dimension(:), allocatable :: snow         ! [mm TS-1] Snow precipitation depth
+    real(dp), dimension(:), allocatable :: Throughfall  ! [mm TS-1] Throughfall.
+    real(dp), dimension(:), allocatable :: total_runoff ! [m3 TS-1] Generated runoff
+
+    ! Effective parameters
+    ! dim1 = number grid cells L1
+    ! dim2 = number model soil horizons or YearMonths or other auxiliary dimension
+    ! dim3 = number of LCscenes
+    real(dp), dimension(:, :), allocatable :: fSealed       ! [1]  Fraction of sealed area (nCells, nLCscenes)
+
+    real(dp), dimension(:, :), allocatable :: alpha               ! [1]            Exponent for the upper reservoir
+    real(dp), dimension(:, :), allocatable :: degDayInc           ! [d-1 degC-1]   Increase of the Degree-day factor
+    !                                                                        !                per mm of increase in precipitation
+    real(dp), dimension(:, :), allocatable :: degDayMax           ! [mm-1 degC-1]  Maximum Degree-day factor
+    real(dp), dimension(:, :), allocatable :: degDayNoPre         ! [mm-1 degC-1]  Degree-day factor with no
+                                                                                ! precipitation.
+    real(dp), dimension(:), allocatable :: karstLoss           ! [1]    Karstic percolation loss
+    real(dp), dimension(:), allocatable :: fAsp                ! [1]    PET correction for aspect
+    real(dp), dimension(:), allocatable :: latitude                ! [1]    Latitude
+    real(dp), dimension(:, :, :), allocatable :: petLAIcorFactor     ! [-]   PET correction based on LAI (KC by GEUS.dk)
+
+    real(dp), dimension(:), allocatable :: HarSamCoeff         ! [1]    Hargreaves Samani coeffiecient
+    real(dp), dimension(:, :), allocatable :: PrieTayAlpha        ! [1]    Priestley Taylor coeffiecient
+    real(dp), dimension(:, :, :), allocatable :: aeroResist          ! [s m-1] aerodynamical resitance
+    real(dp), dimension(:, :), allocatable :: surfResist          ! [s m-1] bulk surface resitance
+    real(dp), dimension(:, :), allocatable :: maxInter            ! [mm]   Maximum interception
+
+    real(dp), dimension(:, :), allocatable :: kFastFlow           ! [d-1]  Fast interflow recession coefficient
+    real(dp), dimension(:, :), allocatable :: kSlowFlow           ! [d-1]  Slow interflow recession coefficient
+    real(dp), dimension(:, :), allocatable :: kBaseFlow           ! [d-1]  Baseflow recession coefficient
+    real(dp), dimension(:, :), allocatable :: kPerco              ! [d-1]  percolation coefficient
+    real(dp), dimension(:, :, :), allocatable :: fRoots              ! [1]    Fraction of roots in soil horizons
+    real(dp), dimension(:, :, :), allocatable :: soilMoistFC         ! [mm]   Soil moisture below which actual ET
+    !                                                                           !        is reduced linearly till PWP
+    real(dp), dimension(:, :, :), allocatable :: soilMoistSat        ! [mm]   Saturation soil moisture for each horizon [mm]
+    real(dp), dimension(:, :, :), allocatable :: soilMoistExp        ! [1]    Exponential parameter to how non-linear
+    !                                                                           !        is the soil water retention
+    real(dp), dimension(:, :, :), allocatable :: wiltingPoint        ! [mm]  Permanent wilting point: below which neither
+    !                                                                         !       plant can take water nor water can drain in
+    real(dp), dimension(:), allocatable :: jarvis_thresh_c1    ![1] jarvis critical value for normalized soil
+    !                                                                     !        water content
+    real(dp), dimension(:, :), allocatable :: tempThresh          ! [degC]   Threshold temperature for snow/rain
+    real(dp), dimension(:, :), allocatable :: unsatThresh         ! [mm]  Threshold waterdepth controlling fast interflow
+    real(dp), dimension(:), allocatable :: sealedThresh        ! [mm]  Threshold waterdepth for surface runoff
+    !                                                                     !       in sealed surfaces
+  end type L1_type
+
+  !> all L1 variables in a container
+  type(L1_type), public :: L1
 
   ! soil moisture
   integer(i4) :: nSoilHorizons_sm_input ! No. of mhm soil horizons equivalent to sm input
 
-  type(optidata), public, dimension(:), allocatable :: L1_smObs
-  ! neutrons
-  type(optidata), public, dimension(:), allocatable :: L1_neutronsObs
-  ! evapotranspiration
-  type(optidata), public, dimension(:), allocatable :: L1_etObs
-  ! tws
-  type(optidata), public, dimension(:), allocatable :: L1_twsaObs ! this stores L1_tws, the mask, the directory of the
-                                                              ! observerd data, and the
-                                                              ! timestepInput of the simulated data
-                                                              ! ToDo: add unit
-
-
-  ! State variables
-  ! dim1 = number grid cells L1
-  ! dim2 = number model soil horizons
-  real(dp), public, dimension(:), allocatable :: L1_inter        ! [mm]  Interception
-  real(dp), public, dimension(:), allocatable :: L1_snowPack     ! [mm]  Snowpack
-  real(dp), public, dimension(:), allocatable :: L1_sealSTW      ! [mm]  Retention storage of impervious areas
-  real(dp), public, dimension(:, :), allocatable :: L1_soilMoist    ! [mm]  Soil moisture of each horizon
-  real(dp), public, dimension(:), allocatable :: L1_unsatSTW     ! [mm]  upper soil storage
-  real(dp), public, dimension(:), allocatable :: L1_satSTW       ! [mm]  groundwater storage
-  real(dp), public, dimension(:), allocatable :: L1_neutrons     ! [mm]  Ground Albedo Neutrons
-  real(dp), public, dimension(:), allocatable :: L1_degDay       ! [mm d-1degC-1] Degree-day factor.
-
-  ! Fluxes
-  ! dim1 = number grid cells L1
-  ! dim2 = number model soil horizons
-  real(dp), public, dimension(:), allocatable :: L1_pet_calc     ! [mm TS-1] estimated/corrected potential evapotranspiration
-  real(dp), public, dimension(:, :), allocatable :: L1_aETSoil      ! [mm TS-1] Actual ET from soil layers
-  real(dp), public, dimension(:), allocatable :: L1_aETCanopy    ! [mm TS-1] Real evaporation intensity from canopy
-  real(dp), public, dimension(:), allocatable :: L1_aETSealed    ! [mm TS-1] Real evap. from free water surfaces
-  real(dp), public, dimension(:), allocatable :: L1_baseflow     ! [mm TS-1] Baseflow
-  real(dp), public, dimension(:, :), allocatable :: L1_infilSoil    ! [mm TS-1] Infiltration intensity each soil horizon
-  real(dp), public, dimension(:), allocatable :: L1_fastRunoff   ! [mm TS-1] Fast runoff component
-  real(dp), public, dimension(:), allocatable :: L1_melt         ! [mm TS-1] Melting snow depth.
-  real(dp), public, dimension(:), allocatable :: L1_percol       ! [mm TS-1] Percolation.
-  real(dp), public, dimension(:), allocatable :: L1_preEffect    ! [mm TS-1] Effective precip. depth (snow melt + rain)
-  real(dp), public, dimension(:), allocatable :: L1_rain         ! [mm TS-1] Rain precipitation depth
-  real(dp), public, dimension(:), allocatable :: L1_runoffSeal   ! [mm TS-1] Direct runoff from impervious areas
-  real(dp), public, dimension(:), allocatable :: L1_slowRunoff   ! [mm TS-1] Slow runoff component
-  real(dp), public, dimension(:), allocatable :: L1_snow         ! [mm TS-1] Snow precipitation depth
-  real(dp), public, dimension(:), allocatable :: L1_Throughfall  ! [mm TS-1] Throughfall.
-  real(dp), public, dimension(:), allocatable :: L1_total_runoff ! [m3 TS-1] Generated runoff
-
-  ! Effective parameters
-  ! dim1 = number grid cells L1
-  ! dim2 = number model soil horizons or YearMonths or other auxiliary dimension
-  ! dim3 = number of LCscenes
-  real(dp), public, dimension(:, :), allocatable :: L1_fSealed       ! [1]  Fraction of sealed area (nCells, nLCscenes)
-
-  real(dp), public, dimension(:, :), allocatable :: L1_alpha               ! [1]            Exponent for the upper reservoir
-  real(dp), public, dimension(:, :), allocatable :: L1_degDayInc           ! [d-1 degC-1]   Increase of the Degree-day factor
-  !                                                                        !                per mm of increase in precipitation
-  real(dp), public, dimension(:, :), allocatable :: L1_degDayMax           ! [mm-1 degC-1]  Maximum Degree-day factor
-  real(dp), public, dimension(:, :), allocatable :: L1_degDayNoPre         ! [mm-1 degC-1]  Degree-day factor with no
-                                                                              ! precipitation.
-  real(dp), public, dimension(:), allocatable :: L1_karstLoss           ! [1]    Karstic percolation loss
-  real(dp), public, dimension(:), allocatable :: L1_fAsp                ! [1]    PET correction for aspect
-  real(dp), public, dimension(:), allocatable :: L1_latitude                ! [1]    Latitude
-  real(dp), public, dimension(:, :, :), allocatable :: L1_petLAIcorFactor     ! [-]   PET correction based on LAI (KC by GEUS.dk)
-
-  real(dp), public, dimension(:), allocatable :: L1_HarSamCoeff         ! [1]    Hargreaves Samani coeffiecient
-  real(dp), public, dimension(:, :), allocatable :: L1_PrieTayAlpha        ! [1]    Priestley Taylor coeffiecient
-  real(dp), public, dimension(:, :, :), allocatable :: L1_aeroResist          ! [s m-1] aerodynamical resitance
-  real(dp), public, dimension(:, :), allocatable :: L1_surfResist          ! [s m-1] bulk surface resitance
-  real(dp), public, dimension(:, :), allocatable :: L1_maxInter            ! [mm]   Maximum interception
-
-  real(dp), public, dimension(:, :), allocatable :: L1_kFastFlow           ! [d-1]  Fast interflow recession coefficient
-  real(dp), public, dimension(:, :), allocatable :: L1_kSlowFlow           ! [d-1]  Slow interflow recession coefficient
-  real(dp), public, dimension(:, :), allocatable :: L1_kBaseFlow           ! [d-1]  Baseflow recession coefficient
-  real(dp), public, dimension(:, :), allocatable :: L1_kPerco              ! [d-1]  percolation coefficient
-  real(dp), public, dimension(:, :, :), allocatable :: L1_fRoots              ! [1]    Fraction of roots in soil horizons
-  real(dp), public, dimension(:, :, :), allocatable :: L1_soilMoistFC         ! [mm]   Soil moisture below which actual ET
-  !                                                                           !        is reduced linearly till PWP
-  real(dp), public, dimension(:, :, :), allocatable :: L1_soilMoistSat        ! [mm]   Saturation soil moisture for each horizon [mm]
-  real(dp), public, dimension(:, :, :), allocatable :: L1_soilMoistExp        ! [1]    Exponential parameter to how non-linear
-  !                                                                           !        is the soil water retention
-  real(dp), public, dimension(:, :, :), allocatable :: L1_wiltingPoint        ! [mm]  Permanent wilting point: below which neither
-  !                                                                         !       plant can take water nor water can drain in
-  real(dp), public, dimension(:), allocatable :: L1_jarvis_thresh_c1    ![1] jarvis critical value for normalized soil
-  !                                                                     !        water content
-  real(dp), public, dimension(:, :), allocatable :: L1_tempThresh          ! [degC]   Threshold temperature for snow/rain
-  real(dp), public, dimension(:, :), allocatable :: L1_unsatThresh         ! [mm]  Threshold waterdepth controlling fast interflow
-  real(dp), public, dimension(:), allocatable :: L1_sealedThresh        ! [mm]  Threshold waterdepth for surface runoff
-  !                                                                     !       in sealed surfaces
   ! flag for this purpose:
   ! default = false,
   ! after startup = true (called MPR),

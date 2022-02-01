@@ -92,8 +92,7 @@ CONTAINS
     use mo_common_read_config, only : common_check_resolution
     use mo_common_variables, only : domainMeta, processMatrix, opti_function, optimize
     use mo_file, only : file_defOutput, udefOutput
-    use mo_global_variables, only : L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
-                                    dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirPrecipitation, &
+    use mo_global_variables, only : L1, dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirPrecipitation, &
                                     dirReferenceET, dirTemperature, dirabsVapPressure, dirwindspeed, dirRadiation, &
                                     evap_coeff, pathMprNml, &
                                     fday_pet, fday_prec, fday_temp, fday_ssrd, fday_strd, &
@@ -207,10 +206,10 @@ CONTAINS
     allocate(dirMaxTemperature(domainMeta%nDomains))
     allocate(dirNetRadiation(domainMeta%nDomains))
     allocate(dirRadiation(domainMeta%nDomains))
-    allocate(L1_twsaObs(domainMeta%nDomains))
-    allocate(L1_etObs(domainMeta%nDomains))
-    allocate(L1_smObs(domainMeta%nDomains))
-    allocate(L1_neutronsObs(domainMeta%nDomains))
+    allocate(L1%twsaObs(domainMeta%nDomains))
+    allocate(L1%etObs(domainMeta%nDomains))
+    allocate(L1%smObs(domainMeta%nDomains))
+    allocate(L1%neutronsObs(domainMeta%nDomains))
     allocate(pathMprNml(domainMeta%nDomains))
     ! allocate time periods
     allocate(timestep_model_inputs(domainMeta%nDomains))
@@ -260,9 +259,9 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          L1_smObs(iDomain)%dir = dir_Soil_moisture(domainID)
-          L1_smObs(iDomain)%timeStepInput = timeStep_sm_input
-          L1_smObs(iDomain)%varname = 'sm'
+          L1%smObs(iDomain)%dir = dir_Soil_moisture(domainID)
+          L1%smObs(iDomain)%timeStepInput = timeStep_sm_input
+          L1%smObs(iDomain)%varname = 'sm'
         end do
       case(17)
         ! neutrons
@@ -270,10 +269,10 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          L1_neutronsObs(iDomain)%dir = dir_neutrons(domainID)
-          L1_neutronsObs(iDomain)%timeStepInput = timeStep_neutrons_input
-          L1_neutronsObs(iDomain)%timeStepInput = -1 ! TODO: daily, hard-coded, to be flexibilized
-          L1_neutronsObs(iDomain)%varname = 'neutrons'
+          L1%neutronsObs(iDomain)%dir = dir_neutrons(domainID)
+          L1%neutronsObs(iDomain)%timeStepInput = timeStep_neutrons_input
+          L1%neutronsObs(iDomain)%timeStepInput = -1 ! TODO: daily, hard-coded, to be flexibilized
+          L1%neutronsObs(iDomain)%varname = 'neutrons'
         end do
       case(27, 29, 30)
         ! evapotranspiration
@@ -281,9 +280,9 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          L1_etObs(iDomain)%dir = dir_evapotranspiration(domainID)
-          L1_etObs(iDomain)%timeStepInput = timeStep_et_input
-          L1_etObs(iDomain)%varname = 'et'
+          L1%etObs(iDomain)%dir = dir_evapotranspiration(domainID)
+          L1%etObs(iDomain)%timeStepInput = timeStep_et_input
+          L1%etObs(iDomain)%varname = 'et'
         end do
       case(15)
         ! domain average TWS data
@@ -291,9 +290,9 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          L1_twsaObs(iDomain)%dir = dir_TWS(domainID)
-          L1_twsaObs(iDomain)%timeStepInput = timeStep_tws_input
-          L1_twsaObs(iDomain)%varname = 'twsa'
+          L1%twsaObs(iDomain)%dir = dir_TWS(domainID)
+          L1%twsaObs(iDomain)%timeStepInput = timeStep_tws_input
+          L1%twsaObs(iDomain)%varname = 'twsa'
         end do
       case(33)
         ! evapotranspiration
@@ -301,9 +300,9 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          L1_etObs(iDomain)%dir = dir_evapotranspiration(domainID)
-          L1_etObs(iDomain)%timeStepInput = timeStep_et_input
-          L1_etObs(iDomain)%varname = 'et'
+          L1%etObs(iDomain)%dir = dir_evapotranspiration(domainID)
+          L1%etObs(iDomain)%timeStepInput = timeStep_et_input
+          L1%etObs(iDomain)%varname = 'et'
         end do
 
         ! domain average TWS data
@@ -311,9 +310,9 @@ CONTAINS
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
-          L1_twsaObs(iDomain)%dir = dir_TWS(domainID)
-          L1_twsaObs(iDomain)%timeStepInput = timeStep_tws_input
-          L1_twsaObs(iDomain)%varname = 'twsa'
+          L1%twsaObs(iDomain)%dir = dir_TWS(domainID)
+          L1%twsaObs(iDomain)%timeStepInput = timeStep_tws_input
+          L1%twsaObs(iDomain)%varname = 'twsa'
         end do
 
       end select

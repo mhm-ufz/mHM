@@ -66,12 +66,7 @@ contains
     use mo_file, only: &
       unamelist_mhm, &
       unamelist_mhm_param
-    use mo_global_variables, only: &
-      timestep_model_inputs, &
-      L1_twsaObs, &
-      L1_etObs, &
-      L1_neutronsObs, &
-      L1_smObs
+    use mo_global_variables, only: L1, timestep_model_inputs
     use mo_meteo_forcings, only: prepare_meteo_forcings_data
     use mo_read_optional_data, only: readOptidataObs
     use mo_write_ascii, only: write_configfile
@@ -160,26 +155,26 @@ contains
         select case (opti_function)
             case(10 : 13, 28)
             ! read optional spatio-temporal soil mositure data
-            call readOptidataObs(iDomain, domainID, L1_smObs(iDomain))
+            call readOptidataObs(iDomain, domainID, L1%smObs(iDomain))
             case(17)
             ! read optional spatio-temporal neutrons data
-            call readOptidataObs(iDomain, domainID, L1_neutronsObs(iDomain))
+            call readOptidataObs(iDomain, domainID, L1%neutronsObs(iDomain))
             case(27, 29, 30)
             ! read optional spatio-temporal evapotranspiration data
-            call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
+            call readOptidataObs(iDomain, domainID, L1%etObs(iDomain))
             case(15)
             ! read optional spatio-temporal tws data
-            call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
+            call readOptidataObs(iDomain, domainID, L1%twsaObs(iDomain))
             case(33)
             ! read optional spatio-temporal evapotranspiration data
             if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
                 domainMeta%optidata(iDomain) == 6 ) then
-                call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
+                call readOptidataObs(iDomain, domainID, L1%etObs(iDomain))
             end if
             ! read optional spatio-temporal tws data
             if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
                 domainMeta%optidata(iDomain) == 6 ) then
-                call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
+                call readOptidataObs(iDomain, domainID, L1%twsaObs(iDomain))
             end if
         end select
         end if

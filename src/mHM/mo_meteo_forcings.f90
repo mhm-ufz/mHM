@@ -63,12 +63,10 @@ CONTAINS
   subroutine prepare_meteo_forcings_data(iDomain, tt)
 
     use mo_common_variables, only : domainMeta, processMatrix, readPer
-    use mo_global_variables, only : L1_absvappress, L1_netrad, L1_pet, L1_pet_weights, L1_pre, L1_pre_weights, L1_temp, &
-                                    L1_temp_weights, L1_tmax, L1_tmin, L1_windspeed, dirMaxTemperature, &
+    use mo_global_variables, only : L1, dirMaxTemperature, &
                                     dirMinTemperature, dirNetRadiation, dirPrecipitation, dirReferenceET, dirTemperature, &
                                     dirabsVapPressure, dirwindspeed, dirRadiation, &
-                                    read_meteo_weights, timeStep_model_inputs, &
-                                    L1_ssrd, L1_strd, L1_tann  ! riv-temp related
+                                    read_meteo_weights, timeStep_model_inputs
     use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_timer, only : timer_get, timer_start, timer_stop
@@ -96,27 +94,27 @@ CONTAINS
         ! TODO-RIV-TEMP: No NC files for weights for radiation at the moment
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read meteo weights for tavg     ...')
         call meteo_weights_wrapper(iDomain, read_meteo_weights, dirTemperature(iDomain), &
-                L1_temp_weights, ncvarName = 'tavg_weight')
+                L1%temp_weights, ncvarName = 'tavg_weight')
 
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read meteo weights for pet     ...')
         call meteo_weights_wrapper(iDomain, read_meteo_weights, dirReferenceET(iDomain), &
-                L1_pet_weights, ncvarName = 'pet_weight')
+                L1%pet_weights, ncvarName = 'pet_weight')
 
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read meteo weights for pre     ...')
         call meteo_weights_wrapper(iDomain, read_meteo_weights, dirPrecipitation(iDomain), &
-                L1_pre_weights, ncvarName = 'pre_weight')
+                L1%pre_weights, ncvarName = 'pre_weight')
       end if
 
       ! free L1 variables if chunk read is activated
       if (timeStep_model_inputs(iDomain) .ne. 0) then
-        if (allocated(L1_pre)) deallocate(L1_pre)
-        if (allocated(L1_temp)) deallocate(L1_temp)
-        if (allocated(L1_pet)) deallocate(L1_pet)
-        if (allocated(L1_tmin)) deallocate(L1_tmin)
-        if (allocated(L1_tmax)) deallocate(L1_tmax)
-        if (allocated(L1_netrad)) deallocate(L1_netrad)
-        if (allocated(L1_absvappress)) deallocate(L1_absvappress)
-        if (allocated(L1_windspeed)) deallocate(L1_windspeed)
+        if (allocated(L1%pre)) deallocate(L1%pre)
+        if (allocated(L1%temp)) deallocate(L1%temp)
+        if (allocated(L1%pet)) deallocate(L1%pet)
+        if (allocated(L1%tmin)) deallocate(L1%tmin)
+        if (allocated(L1%tmax)) deallocate(L1%tmax)
+        if (allocated(L1%netrad)) deallocate(L1%netrad)
+        if (allocated(L1%absvappress)) deallocate(L1%absvappress)
+        if (allocated(L1%windspeed)) deallocate(L1%windspeed)
       end if
 
       !  Domain characteristics and read meteo header
@@ -129,12 +127,12 @@ CONTAINS
       ! precipitation
       if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read precipitation        ...')
       call meteo_forcings_wrapper(iDomain, dirPrecipitation(iDomain), &
-              L1_pre, lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pre')
+              L1%pre, lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pre')
 
       ! temperature
       if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read temperature          ...')
       call meteo_forcings_wrapper(iDomain, dirTemperature(iDomain), &
-              L1_temp, lower = -100._dp, upper = 100._dp, ncvarName = 'tavg')
+              L1%temp, lower = -100._dp, upper = 100._dp, ncvarName = 'tavg')
 
       ! read input for PET (process 5) depending on specified option
       ! 0 - input, 1 - Hargreaves-Samani, 2 - Priestley-Taylor, 3 - Penman-Monteith
@@ -143,51 +141,51 @@ CONTAINS
       case(-1 : 0) ! pet is input
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read pet                  ...')
         call meteo_forcings_wrapper(iDomain, dirReferenceET(iDomain), &
-                L1_pet, lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pet')
+                L1%pet, lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pet')
         ! allocate PET and dummies for mhm_call
         if ((iDomain.eq.domainMeta%nDomains) .OR. (timeStep_model_inputs(iDomain) .NE. 0)) then
-          allocate(L1_tmin(1, 1)); allocate(L1_tmax(1, 1)); allocate(L1_netrad(1, 1))
-          allocate(L1_absvappress(1, 1)); allocate(L1_windspeed(1, 1))
+          allocate(L1%tmin(1, 1)); allocate(L1%tmax(1, 1)); allocate(L1%netrad(1, 1))
+          allocate(L1%absvappress(1, 1)); allocate(L1%windspeed(1, 1))
         end if
 
       case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read min. temperature     ...')
         call meteo_forcings_wrapper(iDomain, dirMinTemperature(iDomain), &
-                L1_tmin, lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmin')
+                L1%tmin, lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmin')
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read max. temperature     ...')
         call meteo_forcings_wrapper(iDomain, dirMaxTemperature(iDomain), &
-                L1_tmax, lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmax')
+                L1%tmax, lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmax')
         ! allocate PET and dummies for mhm_call
         if ((iDomain .eq. domainMeta%nDomains) .OR. (timeStep_model_inputs(iDomain) .NE. 0)) then
-          allocate(L1_pet    (size(L1_tmax, dim = 1), size(L1_tmax, dim = 2)))
-          allocate(L1_netrad(1, 1)); allocate(L1_absvappress(1, 1)); allocate(L1_windspeed(1, 1))
+          allocate(L1%pet    (size(L1%tmax, dim = 1), size(L1%tmax, dim = 2)))
+          allocate(L1%netrad(1, 1)); allocate(L1%absvappress(1, 1)); allocate(L1%windspeed(1, 1))
         end if
 
       case(2) ! Priestley-Taylor formulation (input: net radiation)
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read net radiation        ...')
         call meteo_forcings_wrapper(iDomain, dirNetRadiation(iDomain), &
-                L1_netrad, lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad')
+                L1%netrad, lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad')
         ! allocate PET and dummies for mhm_call
         if ((iDomain .eq. domainMeta%nDomains) .OR. (timeStep_model_inputs(iDomain) .NE. 0)) then
-          allocate(L1_pet    (size(L1_netrad, dim = 1), size(L1_netrad, dim = 2)))
-          allocate(L1_tmin(1, 1)); allocate(L1_tmax(1, 1))
-          allocate(L1_absvappress(1, 1)); allocate(L1_windspeed(1, 1))
+          allocate(L1%pet    (size(L1%netrad, dim = 1), size(L1%netrad, dim = 2)))
+          allocate(L1%tmin(1, 1)); allocate(L1%tmax(1, 1))
+          allocate(L1%absvappress(1, 1)); allocate(L1%windspeed(1, 1))
         end if
 
       case(3) ! Penman-Monteith formulation (input: net radiationm absulute vapour pressure, windspeed)
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read net radiation        ...')
         call meteo_forcings_wrapper(iDomain, dirNetRadiation(iDomain), &
-                L1_netrad, lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad')
+                L1%netrad, lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad')
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read absolute vapour pressure  ...')
         call meteo_forcings_wrapper(iDomain, dirabsVapPressure(iDomain), &
-                L1_absvappress, lower = 0.0_dp, upper = 15000.0_dp, ncvarName = 'eabs')
+                L1%absvappress, lower = 0.0_dp, upper = 15000.0_dp, ncvarName = 'eabs')
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read windspeed            ...')
         call meteo_forcings_wrapper(iDomain, dirwindspeed(iDomain), &
-                L1_windspeed, lower = 0.0_dp, upper = 250.0_dp, ncvarName = 'windspeed')
+                L1%windspeed, lower = 0.0_dp, upper = 250.0_dp, ncvarName = 'windspeed')
         ! allocate PET and dummies for mhm_call
         if ((iDomain.eq.domainMeta%nDomains) .OR. (timeStep_model_inputs(iDomain) .NE. 0)) then
-          allocate(L1_pet    (size(L1_absvappress, dim = 1), size(L1_absvappress, dim = 2)))
-          allocate(L1_tmin(1, 1)); allocate(L1_tmax(1, 1))
+          allocate(L1%pet    (size(L1%absvappress, dim = 1), size(L1%absvappress, dim = 2)))
+          allocate(L1%tmin(1, 1)); allocate(L1%tmax(1, 1))
         end if
       end select
 
@@ -195,22 +193,22 @@ CONTAINS
       if ( processMatrix(11, 1) .ne. 0 ) then
         ! free L1 variables if chunk read is activated
         if (timeStep_model_inputs(iDomain) .ne. 0) then
-          if (allocated(L1_ssrd)) deallocate(L1_ssrd)
-          if (allocated(L1_strd)) deallocate(L1_strd)
-          if (allocated(L1_tann)) deallocate(L1_tann)
+          if (allocated(L1%ssrd)) deallocate(L1%ssrd)
+          if (allocated(L1%strd)) deallocate(L1%strd)
+          if (allocated(L1%tann)) deallocate(L1%tann)
         end if
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read short-wave radiation ...')
           call meteo_forcings_wrapper( &
                 iDomain, dirRadiation(iDomain), &
-                L1_ssrd, lower = 0.0_dp, upper = 1500._dp, ncvarName = 'ssrd')
+                L1%ssrd, lower = 0.0_dp, upper = 1500._dp, ncvarName = 'ssrd')
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read long-wave radiation ...')
           call meteo_forcings_wrapper( &
                 iDomain, dirRadiation(iDomain), &
-                L1_strd, lower = 0.0_dp, upper = 1500._dp, ncvarName = 'strd')
+                L1%strd, lower = 0.0_dp, upper = 1500._dp, ncvarName = 'strd')
         if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read annual mean temperature ...')
           call meteo_forcings_wrapper( &
                 iDomain, dirTemperature(iDomain), &
-                L1_tann, lower = -100.0_dp, upper = 100._dp, ncvarName = 'tann')
+                L1%tann, lower = -100.0_dp, upper = 100._dp, ncvarName = 'tann')
       end if
 
       if (timeStep_model_inputs(iDomain) .eq. 0) then

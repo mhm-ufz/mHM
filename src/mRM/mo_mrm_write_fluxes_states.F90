@@ -361,20 +361,12 @@ contains
 
     if (outputFlxState_mrm(1)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L11_Qmod(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L11_Qmod(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState_mrm(2) .AND. present(L11_riv_temp)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L11_riv_temp(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L11_riv_temp(sidx : eidx))
-#endif
     end if
 
   end subroutine updateDataset
