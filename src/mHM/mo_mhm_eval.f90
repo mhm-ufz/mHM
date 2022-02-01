@@ -116,7 +116,7 @@ CONTAINS
 
     ! get number of domains to loop over
     call mhm_interface_run_get_ndomains(nDomains)
-    print*, "### run domain loop"
+
     ! loop over Domains
     DomainLoop: do ii = 1, nDomains
 
