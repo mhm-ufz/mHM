@@ -13,7 +13,7 @@
 ##
 ##  Output:    animate.gif, animate.pdf
 ##
-##  Detail:    Creates multi-plonts of all variables in mHM and mRM flux states files
+##  Detail:    Creates multi-plots of all variables in mHM and mRM flux states files
 ##
 ##  Reference: https://sites.google.com/view/climate-access-cooperative/code?authuser=0 
 ##
@@ -126,8 +126,8 @@ if (temp_res_check <= 1) {
 
 # Determine the matrix layout of multiplot
 cols <- ceiling(sqrt(nvar))
-rows <- floor(sqrt(nvar)) 
-              + as.integer( nvar/ ( ceiling(sqrt(nvar))*floor(sqrt(nvar)) + 1) )
+rows <- floor(sqrt(nvar)) +
+              as.integer( nvar/ ( ceiling(sqrt(nvar))*floor(sqrt(nvar)) + 1) )
 
 # Lat-Lon suitable intervals for snapping
 latlon_cutpts <- c(0.1, 0.2, 0.25, 0.5, 1, 2, 5)
@@ -292,7 +292,7 @@ animate <- function(rows, cols, nvar) {
   p <- list() # Defining p as list
 
   for (itime in 1:nt) { # ======================== time loop
-  
+    
     var_count = 0
     
     for (ifile in 1:nfiles) { # ================== file loop 
@@ -316,7 +316,7 @@ animate <- function(rows, cols, nvar) {
       tunits <- ncatt_get(ncin,"time","units") 
       nt <- dim(nctime)  
       
-      tustr <- strsplit(tunits$value, " ")
+      tustr <- strsplit(tunits$value, " +")
       tdstr <- strsplit(unlist(tustr)[3], "-")
       tmonth <- as.integer(unlist(tdstr)[2])
       tday <- as.integer(unlist(tdstr)[3])
@@ -338,11 +338,17 @@ animate <- function(rows, cols, nvar) {
       }
       
       # get LAT LON
-      lon <- ncvar_get(ncin,"lon") 
-      lon <- lon[,1] # we just need a vector of values in the direction in which lon changes
+      
+      lon <- ncvar_get(ncin,"lon")
+      if (length(dim(lon)) == 2){ # check for 2D lon
+        lon <- lon[,1] # we just need a vector of values in the direction in which lon changes
+      }
       nlon <- length(lon)
+      
       lat <- ncvar_get(ncin,"lat") 
-      lat <- lat[1,] # we just need a vector of values in the direction in which lat changes
+      if (length(dim(lat)) == 2){ # check for 2D lat
+        lat <- lat[1,] # we just need a vector of values in the direction in which lat changes
+      }
       nlat <- length(lat) 
       
       lat <- rev(lat) # latitude flipping needed for mHM output netCDFs!
@@ -365,6 +371,9 @@ animate <- function(rows, cols, nvar) {
         # get VARIABLE and its attributes 
         tmp.array <- ncvar_get(ncin,varlist[ivar]) # dimensions (row=lon,col=lat,time) 
         dunits<- ncatt_get(ncin,varlist[ivar],"unit") 
+        if (!dunits$hasatt){ # check whether the attribute name for unit is "unit" or "units"
+          dunits<- ncatt_get(ncin,varlist[ivar],"units") 
+        }
         
         # Prepare grid, color and date
         grid <- expand.grid(lon=lon, lat=lat)
@@ -395,6 +404,7 @@ animate <- function(rows, cols, nvar) {
         # Progress bar update
         setTxtProgressBar(pb, (itime-1)*nvar + ivar)
         
+        
       } # ========== variable loop close
     } # ========== file loop close
 
@@ -403,10 +413,10 @@ animate <- function(rows, cols, nvar) {
     count_empty_plots <- cols * rows - nvar    # number of empty plot to pad to the layout
     
     if (count_empty_plots != 0){
-      xlay <- matrix(c(seq(1,length(p)),replicate(count_empty_plots,NA)), nrow = rows, ncol = cols, 
+      xlay <- matrix(c(seq(1,length(p[])),replicate(count_empty_plots,NA)), nrow = rows, ncol = cols, 
         byrow = TRUE)
     } else { # 'replicate' creates problem when count_empty_plots = 0
-      xlay <- matrix(c(seq(1,length(p))), nrow = rows, ncol = cols, byrow = TRUE)
+      xlay <- matrix(c(seq(1,length(p[]))), nrow = rows, ncol = cols, byrow = TRUE)
     }
     
     select_grobs <- function(lay) {
