@@ -19,7 +19,6 @@ test_domain/output_b1/
 test_domain_2/output/
 test_domain/restart/
 test_domain_2/restart/
-release/
 *prog_for_check
 *terminal
 
