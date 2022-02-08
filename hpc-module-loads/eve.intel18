@@ -1,0 +1,8 @@
+module purge
+module use /global/apps/modulefiles
+module load python_env_mpr
+module load iomkl/2018b
+module load netCDF-Fortran
+module load CMake
+module load pFUnit/4.2.2_ifort18.0.3
+export FC=ifort

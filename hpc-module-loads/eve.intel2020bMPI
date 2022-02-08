@@ -1,0 +1,8 @@
+module purge
+module use /global/apps/modulefiles
+module load python_env_mpr
+module load iomkl/2020b
+module load netCDF-Fortran/4.5.3
+module load CMake
+module load pFUnit/4.2.2_iomkl2020b
+export FC=mpifort

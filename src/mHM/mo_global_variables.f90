@@ -42,7 +42,7 @@ MODULE mo_global_variables
   !           Robert Schweppe,    Dec 2017 - merged duplicated variables with mrm into common variables
 
   USE mo_kind, ONLY : i4, dp
-  USE mo_constants, ONLY : YearMonths_i4
+  USE mo_constants, ONLY : YearMonths
   USE mo_mhm_constants, ONLY : nOutFlxState
   USE mo_optimization_types, ONLY : optidata
   use mo_common_variables, only : Grid
@@ -171,17 +171,17 @@ MODULE mo_global_variables
   ! for temporal disaggregation
   ! -------------------------------------------------------------------
   ! dim1 = number of months in a year
-  real(dp), public, dimension(YearMonths_i4) :: evap_coeff     ! [-] Evap. coef. for free-water surfaces
-  real(dp), public, dimension(YearMonths_i4) :: fday_prec      ! [-] Day ratio precipitation < 1
-  real(dp), public, dimension(YearMonths_i4) :: fnight_prec    ! [-] Night ratio precipitation < 1
-  real(dp), public, dimension(YearMonths_i4) :: fday_pet       ! [-] Day ratio PET  < 1
-  real(dp), public, dimension(YearMonths_i4) :: fnight_pet     ! [-] Night ratio PET  < 1
-  real(dp), public, dimension(YearMonths_i4) :: fday_temp      ! [-] Day factor mean temp
-  real(dp), public, dimension(YearMonths_i4) :: fnight_temp    ! [-] Night factor mean temp
-  real(dp), public, dimension(YearMonths_i4) :: fday_ssrd      ! [-] Day factor short-wave rad.
-  real(dp), public, dimension(YearMonths_i4) :: fnight_ssrd    ! [-] Night factor short-wave rad.
-  real(dp), public, dimension(YearMonths_i4) :: fday_strd      ! [-] Day factor long-wave rad.
-  real(dp), public, dimension(YearMonths_i4) :: fnight_strd    ! [-] Night factor long-wave rad.
+  real(dp), public, dimension(int(YearMonths, i4)) :: evap_coeff     ! [-] Evap. coef. for free-water surfaces
+  real(dp), public, dimension(int(YearMonths, i4)) :: fday_prec      ! [-] Day ratio precipitation < 1
+  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_prec    ! [-] Night ratio precipitation < 1
+  real(dp), public, dimension(int(YearMonths, i4)) :: fday_pet       ! [-] Day ratio PET  < 1
+  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_pet     ! [-] Night ratio PET  < 1
+  real(dp), public, dimension(int(YearMonths, i4)) :: fday_temp      ! [-] Day factor mean temp
+  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_temp    ! [-] Night factor mean temp
+  real(dp), public, dimension(int(YearMonths, i4)) :: fday_ssrd      ! [-] Day factor short-wave rad.
+  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_ssrd    ! [-] Night factor short-wave rad.
+  real(dp), public, dimension(int(YearMonths, i4)) :: fday_strd      ! [-] Day factor long-wave rad.
+  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_strd    ! [-] Night factor long-wave rad.
 
   ! -------------------------------------------------------------------
   ! AUXILIARY VARIABLES
