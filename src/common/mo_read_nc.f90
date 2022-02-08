@@ -771,7 +771,7 @@ contains
 
     ! calculate input resolution
     allocate(time_diff(n_time - 1))
-    time_diff = (time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs
+    time_diff = (time_data(2 : n_time) - time_data(1 : n_time - 1)) / int(DaySecs, i8)
     ! difference must be 1 day
     if (all(abs(time_diff - 1._dp) .lt. 1._dp)) then
        inctimestep = -1 ! daily
