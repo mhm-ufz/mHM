@@ -83,7 +83,6 @@ PROGRAM mhm_driver
           file_namelist_mhm, unamelist_mhm, &      ! filename of namelist: main setup
           file_namelist_mhm_param, unamelist_mhm_param, &      ! filename of namelist: mhm model parameter
           file_defOutput                                               ! filename of namelist: output setup
-  USE mo_finish, ONLY : finish                         ! Finish with style
   USE mo_global_variables, ONLY : &
           dirPrecipitation, &      ! directories
           dirTemperature, &      ! directories
@@ -116,7 +115,7 @@ PROGRAM mhm_driver
           processMatrix, &      ! domain information,  processMatrix
           global_parameters, global_parameters_name      ! mhm parameters (gamma) and their clear names
   USE mo_kind, ONLY : i4, dp                         ! number precision
-  USE mo_message, ONLY : message, message_text          ! For print out
+  USE mo_message, ONLY : message          ! For print out
   USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval, ONLY : mhm_eval
   USE mo_read_optional_data, ONLY : readOptidataObs ! read optional observed data
@@ -175,6 +174,7 @@ PROGRAM mhm_driver
   procedure(mhm_eval), pointer :: eval
   procedure(objective), pointer :: obj_func
 
+  CHARACTER(len=1024) :: message_text = ''
   character(len=255)  :: cur_work_dir, new_work_dir
 
   logical :: ReadLatLon
@@ -513,7 +513,9 @@ PROGRAM mhm_driver
           // ":" // trim(num2str(datetime(6), '(I2.2)')) // ":" // trim(num2str(datetime(7), '(I2.2)'))
   call message('Finished at ', trim(message_text), '.')
   call message()
-  call finish('mHM', 'Finished!')
+  call message(separator)
+  call message('mHM: Finished!')
+  call message(separator)
 
 #ifdef MPI
   ! find number of processes nproc
