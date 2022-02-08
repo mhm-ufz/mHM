@@ -160,7 +160,7 @@ contains
   !> \brief Finish message for mHM.
   subroutine finish_message()
     use mo_common_variables, only: domainMeta
-    use mo_common_datetime_type, only: simPer, nTstepDay
+    use mo_common_mHM_mRM_variables, only: simPer, nTstepDay
 
     implicit none
 

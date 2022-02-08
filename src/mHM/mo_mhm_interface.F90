@@ -40,20 +40,25 @@ contains
       file_defOutput
     use mo_mrm_file, only: mrm_file_defOutput => file_defOutput
     use mo_common_read_config, only: &
-      common_read_config, &
+      common_read_config
+    use mo_common_mHM_mRM_read_config, only : &
+      common_mHM_mRM_read_config, &
       check_optimization_settings
+    use mo_mpr_read_config, only: mpr_read_config
     use mo_mhm_read_config, only: mhm_read_config
+    use mo_read_wrapper, only : read_data
     use mo_mrm_init, only: &
       mrm_init, &
       mrm_configuration
     use mo_common_variables, only: &
       itimer, &
       domainMeta, &
-      global_parameters, &
-      global_parameters_name, &
-      processMatrix, &
+      processMatrix
+    use mo_common_mHM_mRM_variables, only : &
+      simPer, &
       optimize, &
-      opti_function
+      opti_function, &
+      mrm_coupling_mode
     use mo_mhm_messages, only: &
       startup_message, &
       domain_dir_check_message
@@ -107,8 +112,11 @@ contains
     call startup_message()
 
     ! read configs
-    call common_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
+    call common_read_config(file_namelist_mhm, unamelist_mhm)
+    call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
+    call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
     call mhm_read_config(file_namelist_mhm, unamelist_mhm)
+    mrm_coupling_mode = 2_i4
     call mrm_configuration(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
     call check_optimization_settings()
 
@@ -134,11 +142,19 @@ contains
 #endif
     call message()
 
+    call message('  Read data ...')
+    call timer_start(itimer)
+    ! for DEM, slope, ... define nGvar local
+    ! read_data has a domain loop inside
+    call read_data(simPer)
+    call timer_stop(itimer)
+    call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
+
     ! read data for every domain
     itimer = itimer + 1
     call message('  Initialize domains ...')
     call timer_start(itimer)
-    call mhm_initialize(global_parameters(:, 3), global_parameters_name)
+    call mhm_initialize()
     call timer_stop(itimer)
     call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
     if (processMatrix(8, 1) > 0) &
@@ -153,7 +169,7 @@ contains
         ! read meteorology now, if optimization is switched on
         ! meteorological forcings (reading, upscaling or downscaling)
         if (timestep_model_inputs(iDomain) .eq. 0_i4) then
-        call prepare_meteo_forcings_data(iDomain, 1)
+          call prepare_meteo_forcings_data(iDomain, domainID, 1)
         end if
 
         ! read optional optional data if necessary
@@ -174,13 +190,13 @@ contains
             case(33)
             ! read optional spatio-temporal evapotranspiration data
             if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
-                domainMeta%optidata(iDomain) == 6 ) then
-                call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
+              domainMeta%optidata(iDomain) == 6 ) then
+              call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
             end if
             ! read optional spatio-temporal tws data
             if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 3 .or. &
-                domainMeta%optidata(iDomain) == 6 ) then
-                call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
+              domainMeta%optidata(iDomain) == 6 ) then
+              call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
             end if
         end select
         end if
@@ -281,11 +297,12 @@ contains
       domainMeta, &
 #endif
       itimer, &
-      opti_function, &
       dirConfigOut, &
       global_parameters,&
       global_parameters_name, &
-      processMatrix     ! domain information,  processMatrix
+      processMatrix
+    use mo_common_mHM_mRM_variables, only : &
+      opti_function
     use mo_timer, only: &
       timer_start, &
       timer_stop, &
@@ -400,10 +417,11 @@ contains
       domainMeta, &
 #endif
       itimer, &
-      optimize, &
       mhmFileRestartOut, &
       write_restart, &
       processMatrix
+    use mo_common_mHM_mRM_variables, only : &
+      optimize
     use mo_timer, only: &
       timer_start, &
       timer_stop, &
