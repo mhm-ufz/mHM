@@ -233,7 +233,7 @@ CONTAINS
   FUNCTION single_objective_runoff_master(parameterset, eval, arg1, arg2, arg3)
 
     use mo_common_mHM_mRM_variables, only : opti_function, opti_method
-    use mo_common_mHM_mRM_MPI_tools, only : distribute_parameterset
+    use mo_common_mpi_tools, only : distribute_parameterset
     use mo_mrm_global_variables, only: nGaugesTotal
     use mo_common_variables, only : domainMeta
     use mo_message, only : message
@@ -381,7 +381,7 @@ CONTAINS
   subroutine single_objective_runoff_subprocess(eval, arg1, arg2, arg3)
 
     use mo_common_mHM_mRM_variables, only : opti_function, opti_method
-    use mo_common_mHM_mRM_MPI_tools, only : get_parameterset
+    use mo_common_mpi_tools, only : get_parameterset
     use mo_common_variables, only : domainMeta
     use mo_message, only : message
     use mpi_f08

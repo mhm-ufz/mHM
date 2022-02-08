@@ -38,6 +38,7 @@ module mo_mrm_global_variables
   integer(i4) :: timeStep_model_outputs_mrm ! timestep for writing model outputs
   logical, dimension(nOutFlxState) :: outputFlxState_mrm         ! Define model outputs see "mhm_outputs.nml"
   !                                                            dim1 = number of output variables to be written
+  logical :: readLatLon
 
   ! ------------------------------------------------------------------
   ! DIRECTORIES
