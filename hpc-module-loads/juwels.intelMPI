@@ -1,0 +1,6 @@
+# source ~/source_code/loadscripts/bashsetup
+module purge
+module load Intel ParaStationMPI
+module load netCDF-Fortran/4.4.5
+module load CMake
+export FC=mpif90
