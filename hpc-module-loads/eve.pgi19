@@ -1,0 +1,7 @@
+module purge
+module use /global/apps/modulefiles
+module load python_env_mpr
+module load PGI/19.10-GCC-8.3.0-2.32
+module load netcdf-fortran/4.5.2-PGI-19.10-GCC-8.3.0-2.32-1
+module load CMake
+export FC=pgfortran

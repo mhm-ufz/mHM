@@ -1,5 +1,0 @@
-module purge
-module load foss/2018b
-module load netCDF-Fortran
-module load CMake
-export FC=gfortran

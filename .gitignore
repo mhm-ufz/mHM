@@ -1,5 +1,15 @@
 # Created by .ignore support plugin (hsz.mobi)
 
+# build related
+build/
+release/
+debug/
+mpi_release/
+mpi_debug/
+openmp_release/
+openmp_debug/
+src/tests/*.F90
+
 # ignore Doxygen specific files
 html
 latex

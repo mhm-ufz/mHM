@@ -1,5 +1,0 @@
-module purge
-module load iomkl/2020a
-module load netCDF-Fortran
-module load CMake
-export FC=ifort

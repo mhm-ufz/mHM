@@ -1,0 +1,4 @@
+module purge
+module use /global/apps/modulefiles
+module load chs-fortran-conda/0.1.0
+export FC=gfortran
