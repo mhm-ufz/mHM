@@ -205,7 +205,7 @@ contains
     time_var = nc%getVariable('time')
     ! read the time vector and get start index and count of selection
     call get_time_vector_and_select(time_var, fname, inctimestep, time_start, time_cnt, target_period)
-    
+
     if (present(is_meteo)) then
        if (is_meteo) then
           select case(inctimestep)
@@ -616,16 +616,16 @@ contains
   !    INTENT(IN)
   !>       \param[in] "type(NcVariable) :: var"    variable of interest
   !>       \param[in] "character(256) :: fname"    fname of ncfile for error message
-  
+
   !    INTENT(OUT)
   !>       \param[out] "integer(i4) :: time_start" time_start index of time selection
   !>       \param[out] "integer(i4) :: time_cnt"   time_count of indexes of time selection
   !>       \param[out] "integer(i4) :: inctimestep" flag for requested time step
-  
+
   !    INTENT(IN), OPTIONAL
   !>       \param[in] "type(period), optional :: target_period" reference period
 
-  
+
   !    HISTORY
   !>       \authors Matthias Zink
 
@@ -770,6 +770,7 @@ contains
     end if
 
     ! calculate input resolution
+    allocate(time_diff(n_time - 1))
     time_diff = (time_data(2 : n_time) - time_data(1 : n_time - 1)) / DaySecs
     ! difference must be 1 day
     if (all(abs(time_diff - 1._dp) .lt. 1._dp)) then
