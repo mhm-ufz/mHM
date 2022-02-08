@@ -1,19 +1,21 @@
-!>       \file mo_common_mHM_mRM_MPI_tools.f90
+!> \file    mo_common_mpi_tools.f90
+!> \brief   tools for MPI communication that are mHM or mRM specific
+!> \details \copydetails mo_common_mpi_tools
 
-!>       \brief tools for MPI communication that are mHM or mRM specific
-
-!>       \details This module contains sending and receiving subroutines for
-!>                data that are specific for mHM or mRM
-
-!>       \authors Maren Kaluza
-
-!>       \date Jul 2019
-
-! Modifications:
-
-MODULE mo_common_mhm_mrm_mpi_tools
+!> \brief   tools for MPI communication that are mHM or mRM specific
+!> \author  Maren Kaluza
+!> \author  Sebastian Mueller
+!> \date    2019-2021
+!> \details This module contains sending and receiving subroutines for
+!!          data that are specific for mHM or mRM
+MODULE mo_common_mpi_tools
 
   use mo_kind, only : i4, dp
+
+#ifdef MPI
+  use mo_common_variables, only: comm
+  use mpi_f08
+#endif
 
   IMPLICIT NONE
 
@@ -22,13 +24,15 @@ MODULE mo_common_mhm_mrm_mpi_tools
 #ifdef MPI
   PUBLIC :: distribute_parameterset, get_parameterset
 #endif
+  public :: mpi_tools_init
+  public :: mpi_tools_finalize
 
   ! ------------------------------------------------------------------
 
 contains
 #ifdef MPI
+  !> \brief Distrubute parameter set with MPI.
   subroutine distribute_parameterset(parameterset)
-    use mpi_f08
     use mo_common_variables, only : domainMeta
     real(dp), dimension(:),    intent(in) :: parameterset
 
@@ -45,6 +49,7 @@ contains
     end do
   end subroutine distribute_parameterset
 
+  !> \brief Get distrubuted parameter set with MPI.
   subroutine get_parameterset(parameterset)
     use mpi_f08
     use mo_common_variables, only : domainMeta
@@ -59,4 +64,44 @@ contains
     call MPI_Recv(parameterset, dimen, MPI_DOUBLE_PRECISION, 0, 0, domainMeta%comMaster, status, ierror)
   end subroutine get_parameterset
 #endif
-END MODULE mo_common_mhm_mrm_mpi_tools
+
+  !> \brief Finalize the MPI run of mHM.
+  subroutine mpi_tools_init()
+
+    implicit none
+
+#ifdef MPI
+    integer             :: ierror
+    integer(i4)         :: nproc, rank
+
+    ! Initialize MPI
+    call MPI_Init(ierror)
+    call MPI_Comm_dup(MPI_COMM_WORLD, comm, ierror)
+    ! find number of processes nproc
+    call MPI_Comm_size(comm, nproc, ierror)
+    ! find the number the process is referred to, called rank
+    call MPI_Comm_rank(comm, rank, ierror)
+    write(*,*) 'MPI!, comm', rank, nproc
+#endif
+
+  end subroutine mpi_tools_init
+
+  !> \brief Finalize the MPI run of mHM.
+  subroutine mpi_tools_finalize()
+
+    implicit none
+
+#ifdef MPI
+    integer             :: ierror
+    integer(i4)         :: nproc, rank
+
+    ! find number of processes nproc
+    call MPI_Comm_size(comm, nproc, ierror)
+    call MPI_Comm_rank(comm, rank, ierror)
+    write(*,*) 'MPI finished', rank, nproc
+    call MPI_Finalize(ierror)
+#endif
+
+  end subroutine mpi_tools_finalize
+
+END MODULE mo_common_mpi_tools

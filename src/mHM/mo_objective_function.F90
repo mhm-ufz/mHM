@@ -203,7 +203,7 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : opti_function
-    use mo_common_mHM_mRM_MPI_tools, only : distribute_parameterset
+    use mo_common_mpi_tools, only : distribute_parameterset
     use mo_common_variables, only : domainMeta
     use mo_message, only : message
     use mo_string_utils, only : num2str
@@ -355,7 +355,7 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : opti_function
-    use mo_common_mHM_mRM_MPI_tools, only : get_parameterset
+    use mo_common_mpi_tools, only : get_parameterset
     use mo_common_variables, only : domainMeta
     use mo_message, only : message
     use mpi_f08
