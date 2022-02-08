@@ -644,9 +644,10 @@ contains
     ! dummy, 2 dimension I4
     integer(i4), allocatable, dimension(:, :) :: dummyI2
 
-    ! dummy, 1 dimension DP
+    ! dummy, DP
     real(dp), allocatable, dimension(:) :: dummyD1
     real(dp), allocatable, dimension(:, :) :: dummyD2
+    real(dp), allocatable :: dummyD0
 
     type(NcDataset) :: nc
 
@@ -718,7 +719,8 @@ contains
       L11_tsRout = nodata_dp
     end if
     var = nc%getVariable("L11_TSrout")
-    call var%getData(L11_TSrout) ! (iDomain)
+    call var%getData(dummyD0)
+    L11_TSrout(iDomain) = dummyD0
 
     ! L11 data sets
     ! Mapping of L1 Ids on L1
