@@ -30,17 +30,17 @@ target_link_libraries(${LIB_NAME} PUBLIC forces)
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
 include(compileoptions)
 if (CMAKE_WITH_MPI)
-  target_compile_definitions(${LIB_NAME} PUBLIC MPI)
-  target_link_libraries(${LIB_NAME} PUBLIC MPI::MPI_Fortran)
+  target_compile_definitions(${LIB_NAME} PRIVATE MPI)
+  target_link_libraries(${LIB_NAME} PRIVATE MPI::MPI_Fortran)
 endif()
 if (CMAKE_WITH_OpenMP)
-  target_link_libraries(${LIB_NAME} PUBLIC OpenMP::OpenMP_Fortran)
+  target_link_libraries(${LIB_NAME} PRIVATE OpenMP::OpenMP_Fortran)
 endif()
 
 # by setting compile options and definitions PUBLIC, they are also used by
 # programms linking agains it (mhm exe in this case)
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-  target_compile_definitions(${LIB_NAME} PUBLIC GFORTRAN)
+  target_compile_definitions(${LIB_NAME} PRIVATE GFORTRAN)
   target_compile_options(${LIB_NAME} PUBLIC
     -ffree-form -ffixed-line-length-132
     $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -fimplicit-none -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=snan -pedantic-errors>
@@ -50,14 +50,14 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   )
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   # https://discourse.cmake.org/t/preserving-options-with-spaces-in-add-compile-options/1551/2
-  target_compile_definitions(${LIB_NAME} PUBLIC INTEL)
+  target_compile_definitions(${LIB_NAME} PRIVATE INTEL)
   target_compile_options(${LIB_NAME} PUBLIC
     -nofixed "SHELL:-assume byterecl" "SHELL:-fp-model source" -m64 "SHELL:-assume realloc-lhs"
     $<$<CONFIG:DEBUG>:-g "SHELL:-warn all" "SHELL:-check all" -debug -traceback -fp-stack-check -O0>
     $<$<CONFIG:RELEASE>:-O3 -qoverride-limits>
   )
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
-  target_compile_definitions(${LIB_NAME} PUBLIC NAG)
+  target_compile_definitions(${LIB_NAME} PRIVATE NAG)
   target_compile_options(${LIB_NAME} PUBLIC
     -colour -unsharedf95 -ideclient
     $<$<CONFIG:DEBUG>:-gline -g -nan -O0 -C=all -strict95 -ieee=stop>

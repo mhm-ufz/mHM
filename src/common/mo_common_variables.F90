@@ -23,6 +23,8 @@ module mo_common_variables
 #endif
   implicit none
 
+  integer(i4) :: itimer           ! Current timer number
+
   ! -------------------------------------------------------------------
   ! PROJECT DESCRIPTION for the NETCDF output file
   ! -------------------------------------------------------------------
