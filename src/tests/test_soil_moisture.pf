@@ -153,8 +153,8 @@ contains
 
     reference = 0.6_dp
 
-    result = jarvis_et_reduction(48.1_dp, 32.2_dp, 32.2_dp, 0.6_dp, 0.5_dp)
-    @assertEqual(reference, result, tolerance=t, message='jarvis_et_reduction: soil_moist_sat .EQ. wilting_point')
+    ! result = jarvis_et_reduction(48.1_dp, 32.2_dp, 32.2_dp, 0.6_dp, 0.5_dp)
+    ! @assertEqual(reference, result, tolerance=t, message='jarvis_et_reduction: soil_moist_sat .EQ. wilting_point')
 
     reference = 0.0_dp
 
