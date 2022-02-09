@@ -511,20 +511,14 @@ coverage-gfortran73:
   stage: code-analysis
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
-  needs:
-    - job: check-gfortran73
   script:
     # gcov is part of GCC
-    - source hpc-module-loads/eve.gfortran73
-    # we need lcov from the conda environment to create html sites
-    - module load Anaconda3
-    - source activate /global/apps/mhm_checks/mhm_env
-    # create build folder
-    - mkdir build && cd build
+    - source hpc-module-loads/eve.chs-conda01
     # run cmake with coverage support
-    - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON ..
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON -B build
+    - cmake --build build --parallel
     # run all check-case for coverage calculation
-    - make mhm_coverage_CI
+    - cd build && make mhm_coverage_CI
     # copy the output to a top-level folder
     - cd .. && mkdir coverage
     - cp build/mhm_coverage_CI/* coverage -R
