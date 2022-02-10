@@ -33,8 +33,6 @@ show-env-vars:
 
 documentation:
   stage: build
-  variables:
-    GIT_FETCH_EXTRA_FLAGS: --all --no-tags --prune --quiet
   script:
     - source hpc-module-loads/eve.chs-conda01
     - module load GCCcore/9.3.0 texlive/2020
@@ -61,6 +59,7 @@ documentation_stable:
     - develop
   stage: build
   variables:
+    GIT_DEPTH: 0  # to have all tags
     GIT_FETCH_EXTRA_FLAGS: --all --prune --quiet
   script:
     # doc for latest version tag
