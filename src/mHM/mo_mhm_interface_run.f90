@@ -187,13 +187,12 @@ contains
     if (present(runoff_present)) run_cfg%output_runoff = runoff_present
 
     ! store current parameter set
+    if (.not.allocated(run_cfg%parameterset)) allocate(run_cfg%parameterset(size(global_parameters, dim=1)))
     if (.not. present(parameterset) .and. optimize) then
       call error_message("mhm_interface_run_prepare: Can't optimize without parameter!")
     else if (.not. present(parameterset)) then
-      allocate(run_cfg%parameterset(size(global_parameters, dim=1)))
       run_cfg%parameterset = global_parameters(:, 3)
     else
-      allocate(run_cfg%parameterset(size(parameterset)))
       run_cfg%parameterset = parameterset
     end if
 
