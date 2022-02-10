@@ -31,19 +31,13 @@ module mo_common_run_variables
     !> selected domains
     integer(i4), dimension(:), allocatable :: domain_indices
     !> fraction of NOT sealed area
-    real(dp), dimension(:, :), allocatable :: L1_fNotSealed
+    real(dp), dimension(:, :, :), allocatable :: L1_fNotSealed
     !> output NetCDF object
     type(OutputDataset) :: nc
-    !> land cover ID
-    integer(i4) :: lcId
-    !> LAI ID
-    integer(i4) :: laiId
     !> No. of cells at level 1 for current Domain
     integer(i4) :: nCells
     !> start and end index at level 1 for current Domain
     integer(i4) :: s1, e1
-    !> start and end index for parameter at level 1 for current Domain
-    integer(i4) :: s1_param, e1_param
     !> meteorological time step for process 5 (PET)
     integer(i4), dimension(6) :: iMeteo_p5
     !> process 5: start and end index of vectors
@@ -76,8 +70,6 @@ module mo_common_run_variables
     integer(i4) :: timestep_rout
     !> Runoff that is input for routing
     real(dp), allocatable, dimension(:) :: RunToRout
-    !> horizons at the current domain
-    real(dp), allocatable, dimension(:) :: mhmHorizons
     !> inflowing discharge
     real(dp), allocatable, dimension(:) :: InflowDischarge
     !> pointer to current domain L11 mask

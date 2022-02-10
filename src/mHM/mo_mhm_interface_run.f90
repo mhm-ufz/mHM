@@ -16,7 +16,8 @@ module mo_mhm_interface_run
   use mo_common_run_variables, only : run_cfg
   use mo_optimization_types, only : optidata_sim
   use mo_common_datetime_type, only : datetimeinfo
-  use mo_common_mHM_mRM_variables, only :
+  use mo_common_mHM_mRM_variables, only : &
+    resolutionRouting, &
     LCyearId, &
     mhmFileRestartIn, &
     mrmFileRestartIn, &
@@ -30,6 +31,7 @@ module mo_mhm_interface_run
     warmingDays, &
     c2TSTu
   use mo_common_variables, only : &
+    global_parameters, &
     level1, &
     domainMeta, &
     processMatrix
@@ -101,7 +103,6 @@ module mo_mhm_interface_run
   use mo_restart, only : read_restart_states
   use mo_write_fluxes_states, only : OutputDataset
   use mo_constants, only : HourSecs
-  use mo_common_variables, only : resolutionRouting
   use mo_common_variables, only : resolutionHydrology
   use mo_mrm_global_variables, only : &
     InflowGauge, &
@@ -237,7 +238,7 @@ contains
       if (processMatrix(8, 1) > 0) call variables_default_init_routing()
     end if
 
-    allocate(run_cfg%L1_fNotSealed(size(L1_fSealed, 1), size(L1_fSealed, 2)))
+    allocate(run_cfg%L1_fNotSealed(size(L1_fSealed, 1), size(L1_fSealed, 2), size(L1_fSealed, 3)))
     run_cfg%L1_fNotSealed = 1.0_dp - L1_fSealed
 
   end subroutine mhm_interface_run_prepare
@@ -421,7 +422,7 @@ contains
       read_restart, run_cfg%is_hourly_forcing, & ! IN C
       tt, run_cfg%domainDateTime%newTime - 0.5_dp, processMatrix, &
       HorizonDepth_mHM, & ! IN C
-      run_cfg%nCells, nSoilHorizons, real(nTstepDay, dp), c2TSTu,  & ! IN C
+      run_cfg%nCells, nSoilHorizons_mHM, real(nTstepDay, dp), c2TSTu,  & ! IN C
       neutron_integral_AFast, & ! IN C
       run_cfg%parameterset, & ! IN
       pack(level1(iDomain)%y, level1(iDomain)%mask), & ! IN L1
@@ -439,7 +440,7 @@ contains
       L1_windspeed(run_cfg%s_p5(6) : run_cfg%e_p5(6), run_cfg%iMeteo_p5(6)), & ! IN F:PET
       L1_pre(run_cfg%s_meteo : run_cfg%e_meteo, run_cfg%iMeteoTS), & ! IN F:Pre
       L1_temp(run_cfg%s_meteo : run_cfg%e_meteo, run_cfg%iMeteoTS), & ! IN F:Temp
-      L1_fSealed(run_cfg%s1 : run_cfg%e1, run_cfg%domainDateTime%yId), & ! INOUT L1
+      L1_fSealed(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), & ! INOUT L1
       L1_inter(run_cfg%s1 : run_cfg%e1), &
       L1_snowPack(run_cfg%s1 : run_cfg%e1), &
       L1_sealSTW(run_cfg%s1 : run_cfg%e1), & ! INOUT S
@@ -570,7 +571,7 @@ contains
         call riv_temp_pcs%acc_source_E( &
           run_cfg%domainDateTime%newTime - 0.5_dp, &
           real(nTstepDay, dp), &
-          L1_fSealed(run_cfg%s1 : run_cfg%e1, run_cfg%domainDateTime%yId), &
+          L1_fSealed(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), &
           L1_fastRunoff(run_cfg%s1 : run_cfg%e1), &
           L1_slowRunoff(run_cfg%s1 : run_cfg%e1), &
           L1_baseflow(run_cfg%s1 : run_cfg%e1), &
@@ -712,8 +713,8 @@ contains
 
         call run_cfg%nc%updateDataset(&
           run_cfg%s1, run_cfg%e1, &
-          L1_fSealed(:, run_cfg%domainDateTime%yId), &
-          run_cfg%L1_fNotSealed(:, run_cfg%domainDateTime%yId), &
+          L1_fSealed(:, 1, run_cfg%domainDateTime%yId), &
+          run_cfg%L1_fNotSealed(:, 1, run_cfg%domainDateTime%yId), &
           L1_inter, &
           L1_snowPack, &
           L1_soilMoist, &
@@ -858,7 +859,7 @@ contains
           ! aggregate evapotranspiration to needed time step for optimization
           call twsOptiSim(iDomain)%average_add(L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
             L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1))
-          do gg = 1, nSoilHorizons
+          do gg = 1, nSoilHorizons_mHM
             call twsOptiSim(iDomain)%add(L1_soilMoist (s1 : e1, gg))
           end do
         end if
@@ -884,7 +885,6 @@ contains
       deallocate(run_cfg%RunToRout)
       if ( riv_temp_pcs%active ) call riv_temp_pcs%dealloc_lateral()
     end if
-    deallocate(run_cfg%mhmHorizons)
 
   end subroutine mhm_interface_run_finalize_domain
 
