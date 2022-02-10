@@ -6,6 +6,7 @@
 
 variables:
   GIT_DEPTH: 10
+  GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
 
 stages:
   - info
@@ -19,7 +20,6 @@ show-env-vars:
   stage: info
   variables:
     GIT_STRATEGY: none
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME
     SEP: "##################################################################"
     S00: "commit date - "
     S01: "project: ${CI_PROJECT_PATH}"
@@ -32,20 +32,11 @@ show-env-vars:
     - echo -e "${SEP}\n${S00}$(date)\n${SEP}\n${S01}\n${S02}\n${S03}\n${S04}\n${SEP}\n${S05}${GIT_CLONE_PATH}\n${S06}\n${SEP}"
 
 documentation:
-  only:
-    - develop
   stage: build
-  variables:
-    GIT_DEPTH: 0
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
-    GIT_FETCH_EXTRA_FLAGS: --all --no-tags --prune --quiet
   script:
-    - module load foss/2019b
-    - module load texlive/2019
-    - module load Graphviz/2.42.2
-    - module load Anaconda3
-    - source activate /global/apps/mhm_checks/mhm_env
-    # use doxygen from the mhm_env conda environment
+    - source hpc-module-loads/eve.chs-conda01
+    - module load GCCcore/9.3.0 texlive/2020
+    # use doxygen from the chs conda environment
     - doxygen doc/doxygen.config > doxygen_log_dev.txt
     # create pdf documentation
     - cd latex/ && make > ../doxygen_latex_dev.txt
@@ -53,16 +44,6 @@ documentation:
     - cp refman.pdf ../mhm_doc_dev.pdf
     - cd .. && mv html html_dev
     - mv doxygen_warn.txt doxygen_warn_dev.txt
-    - rm -rf latex
-    # same for master
-    - git checkout master
-    - doxygen doc/doxygen.config > doxygen_log_mas.txt
-    - cd latex/ && make > ../doxygen_latex_mas.txt
-    - cp refman.pdf ../html/mhm_doc.pdf
-    - cp refman.pdf ../mhm_doc_mas.pdf
-    - cd .. && mv html html_mas
-    # care about warnings file (maybe missing on master)
-    - mv doxygen_warn.txt doxygen_warn_mas.txt
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:
@@ -71,17 +52,39 @@ documentation:
       - doxygen_log_dev.txt
       - doxygen_latex_dev.txt
       - doxygen_warn_dev.txt
-      - html_mas
-      - mhm_doc_mas.pdf
-      - doxygen_log_mas.txt
-      - doxygen_latex_mas.txt
-      - doxygen_warn_mas.txt
+  when: always
+
+documentation_stable:
+  only:
+    - develop
+  stage: build
+  variables:
+    GIT_DEPTH: 0  # to have all tags
+    GIT_FETCH_EXTRA_FLAGS: --all --prune --quiet
+  script:
+    - source hpc-module-loads/eve.chs-conda01
+    # doc for latest version tag
+    - git checkout $(git describe --match "v*" --abbrev=0 --tags $(git rev-list --tags --max-count=1))
+    - module load GCCcore/9.3.0 texlive/2020
+    # use doxygen from the chs conda environment
+    - doxygen doc/doxygen.config > doxygen_log_tag.txt
+    - cd latex/ && make > ../doxygen_latex_tag.txt
+    - cp refman.pdf ../html/mhm_doc.pdf
+    - cp refman.pdf ../mhm_doc_tag.pdf
+    - cd .. && mv html html_tag
+    - mv doxygen_warn.txt doxygen_warn_tag.txt
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME"
+    paths:
+      - html_tag
+      - mhm_doc_tag.pdf
+      - doxygen_log_tag.txt
+      - doxygen_latex_tag.txt
+      - doxygen_warn_tag.txt
   when: always
 
 cmake-nagfor62:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source hpc-module-loads/eve.nagfor62
     - source CI-scripts/compile
@@ -93,8 +96,6 @@ cmake-nagfor62:
 
 cmake-gfortran73:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source hpc-module-loads/eve.gfortran73
     - source CI-scripts/compile
@@ -110,8 +111,6 @@ cmake-gfortran73:
 
 cmake-gfortran73MPI:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source hpc-module-loads/eve.gfortran73MPI
     - source CI-scripts/compile_MPI
@@ -123,8 +122,6 @@ cmake-gfortran73MPI:
 
 cmake-gfortran83:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source hpc-module-loads/eve.gfortran83
     - source CI-scripts/compile
@@ -140,8 +137,6 @@ cmake-gfortran83:
 
 cmake-gfortran83MPI:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source hpc-module-loads/eve.gfortran83MPI
     - source CI-scripts/compile_MPI
@@ -153,8 +148,6 @@ cmake-gfortran83MPI:
 
 cmake-intel18:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source hpc-module-loads/eve.intel18
     - source CI-scripts/compile
@@ -170,8 +163,6 @@ cmake-intel18:
 
 cmake-intel18MPI:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source hpc-module-loads/eve.intel18MPI
     - source CI-scripts/compile_MPI
@@ -183,8 +174,6 @@ cmake-intel18MPI:
 
 cmake-intel19:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source hpc-module-loads/eve.intel19
     - source CI-scripts/compile
@@ -200,8 +189,6 @@ cmake-intel19:
 
 cmake-intel19MPI:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
     - source hpc-module-loads/eve.intel19MPI
     - source CI-scripts/compile_MPI
@@ -211,54 +198,9 @@ cmake-intel19MPI:
     - mhm_mpi
     - mhm_mpi_debug
 
-# only check latest compiler versions with valgrind
-# valgrind-gfortran73:
-#   when: always
-#   stage: valgrind
-#   variables:
-#     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
-#   needs:
-#     - job: cmake-gfortran73
-#       artifacts: true
-#   script:
-#     - source hpc-module-loads/eve.gfortran73
-#     - module load Anaconda3
-#     - source activate /global/apps/mhm_checks/mhm_env
-#     - valgrind --version
-#     - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
-#     # execute mem-use check
-#     - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
-#     - ms_print massif.out.0
-#   artifacts:
-#     paths:
-#     - massif.out.0
-#
-# valgrind-intel18:
-#   when: always
-#   stage: valgrind
-#   variables:
-#     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
-#   needs:
-#     - job: cmake-intel18
-#       artifacts: true
-#   script:
-#     - source hpc-module-loads/eve.intel18
-#     - module load Anaconda3
-#     - source activate /global/apps/mhm_checks/mhm_env
-#     - valgrind --version
-#     - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
-#     # execute mem-use check
-#     - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
-#     - ms_print massif.out.0
-#   artifacts:
-#     paths:
-#     - massif.out.0
-
 valgrind-nagfor62:
   when: always
   stage: valgrind
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-nagfor62
       artifacts: true
@@ -278,8 +220,6 @@ valgrind-nagfor62:
 valgrind-gfortran83:
   when: always
   stage: valgrind
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-gfortran83
       artifacts: true
@@ -299,8 +239,6 @@ valgrind-gfortran83:
 valgrind-intel19:
   when: always
   stage: valgrind
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-intel19
       artifacts: true
@@ -320,8 +258,6 @@ valgrind-intel19:
 check-nagfor62:
   when: always
   stage: check-cases
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-nagfor62
       artifacts: true
@@ -337,8 +273,6 @@ check-nagfor62:
 check-nagfor62DEBUG:
   when: always
   stage: check-cases
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-nagfor62
       artifacts: true
@@ -355,8 +289,6 @@ check-nagfor62DEBUG:
 check-gfortran73:
   when: always
   stage: check-cases
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-gfortran73
       artifacts: true
@@ -372,8 +304,6 @@ check-gfortran73:
 check-gfortran73MPI:
   when: always
   stage: check-cases
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-gfortran73MPI
       artifacts: true
@@ -389,8 +319,6 @@ check-gfortran73MPI:
 check-gfortran83:
   when: always
   stage: check-cases
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-gfortran83
       artifacts: true
@@ -406,8 +334,6 @@ check-gfortran83:
 check-gfortran83MPI:
   when: always
   stage: check-cases
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-gfortran83MPI
       artifacts: true
@@ -423,8 +349,6 @@ check-gfortran83MPI:
 check-intel18:
   when: always
   stage: check-cases
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-intel18
       artifacts: true
@@ -440,8 +364,6 @@ check-intel18:
 check-intel18MPI:
   when: always
   stage: check-cases
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-intel18MPI
       artifacts: true
@@ -457,8 +379,6 @@ check-intel18MPI:
 check-intel19:
   when: always
   stage: check-cases
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-intel19
       artifacts: true
@@ -474,8 +394,6 @@ check-intel19:
 check-intel19MPI:
   when: always
   stage: check-cases
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-intel19MPI
       artifacts: true
@@ -491,8 +409,6 @@ check-intel19MPI:
 unittest-gfortran83:
   when: always
   stage: code-analysis
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
     - job: cmake-gfortran83
   script:
@@ -506,11 +422,10 @@ unittest-gfortran83:
     # run all pfUnit tests in src/tests
     - ctest -V
 
-coverage-gfortran73:
+coverage:
   when: always
   stage: code-analysis
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  needs: []
   script:
     # gcov is part of GCC
     - source hpc-module-loads/eve.chs-conda01
@@ -533,7 +448,8 @@ pages:
   stage: deploy
   dependencies:
     - documentation
-    - coverage-gfortran73
+    - documentation_stable
+    - coverage
   script:
     # create public dir (remove if already present)
     - test -d public && rm -rf public
@@ -542,7 +458,7 @@ pages:
     - mkdir public/stable/
     - mkdir public/latest/
     # copy the doxygen generated html page to the public site
-    - cp html_mas/* public/stable/ -R
+    - cp html_tag/* public/stable/ -R
     - cp html_dev/* public/latest/ -R
     # create an index.html that redirects to the master documentation (in master folder)
     - cp doc/html_files/index.html public/
