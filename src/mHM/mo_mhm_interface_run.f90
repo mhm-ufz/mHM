@@ -187,7 +187,7 @@ contains
     if (present(runoff_present)) run_cfg%output_runoff = runoff_present
 
     ! store current parameter set
-    if (.not.allocated(run_cfg%parameterset)) allocate(run_cfg%parameterset(size(global_parameters, dim=1)))
+    allocate(run_cfg%parameterset(size(global_parameters, dim=1)))
     if (.not. present(parameterset) .and. optimize) then
       call error_message("mhm_interface_run_prepare: Can't optimize without parameter!")
     else if (.not. present(parameterset)) then
@@ -894,6 +894,10 @@ contains
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff
 
     if (present(runoff) .and. (processMatrix(8, 1) > 0)) runoff = mRM_runoff
+
+    if (allocated(run_cfg%parameterset)) deallocate(run_cfg%parameterset)
+    if (allocated(run_cfg%L1_fNotSealed)) deallocate(run_cfg%L1_fNotSealed)
+    if (allocated(run_cfg%domain_indices)) deallocate(run_cfg%domain_indices)
 
   end subroutine mhm_interface_run_finalize
 
