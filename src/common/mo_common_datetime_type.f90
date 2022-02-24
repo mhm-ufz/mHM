@@ -6,7 +6,7 @@
 
 !< Contains a current day, month, year, hour matching newTime, aswell as
 !< previous day, month, year. Theses all get updated on increment
-!< 
+!<
 !< also contains nTimestep, and tIndex_out for writing
 !<
 !< finally, contains iLAI and yId that are time dependent and updating routines
@@ -23,7 +23,7 @@ MODULE mo_common_datetime_type
   public :: datetimeinfo
 
   private
-  
+
   type datetimeinfo
     !> number of timesteps in simulation period
     integer(i4)          :: nTimeSteps
@@ -38,7 +38,7 @@ MODULE mo_common_datetime_type
     !> current year
     integer(i4)          :: year
     ! hour is only local, only used for calculating other output
-    integer(i4), private :: hour
+    integer(i4)          :: hour
 
     ! prev_day, prev_month, prev_year also are only used to store data to
     ! calculate is_new_day/month/year. These are only used locally
@@ -132,7 +132,7 @@ MODULE mo_common_datetime_type
   subroutine datetimeinfo_update_LAI_timestep(this)
     use mo_mpr_global_variables, only : timeStep_LAI_input
     class(datetimeinfo), intent(inout) :: this
-    
+
     select case (timeStep_LAI_input)
     case(0 : 1) ! long term mean monthly gridded fields or LUT-based values
       this%iLAI = this%month
