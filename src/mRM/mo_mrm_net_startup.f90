@@ -2303,6 +2303,7 @@ contains
     allocate ( nLinkToRow  ( nNodes ) )  
     allocate ( nLinkToCol  ( nNodes ) ) 
     allocate ( celerity11  ( nNodes ) )
+    allocate ( slope_tmp   ( nNodes ) )
 
     allocate (nodata_i4_tmp( nrows0, ncols0 ) )
     allocate (nodata_dp_tmp( nrows0, ncols0 ) )
