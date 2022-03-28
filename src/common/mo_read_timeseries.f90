@@ -207,7 +207,7 @@ CONTAINS
       ! read date and data
       read(fileunit, *) (time_file(j), j = 1, 5), data_file(i)
     end do
-    time_file(1) = time_file(2) + 1   ! only to avoid warning
+    time_file(1) = time_file(2) + 1   ! only to avoid warning ! PKS - why do we need this? 
 
     length_file = (endJul_file - startJul_file + 1)
     length_period = (endJul_period - startJul_period + 1)
@@ -217,14 +217,14 @@ CONTAINS
     if ((startJul_period .ge. startJul_file) .and. (endJul_period .le. endJul_file)) then
       idx_st_period = 1
       idx_en_period = length_period * timestep_file
-      idx_st_file = (startJul_period - startJul_file + 1) * timestep_file
+      idx_st_file = (startJul_period - startJul_file) * timestep_file + 1
       idx_en_file = (idx_st_file + length_period - 1) * timestep_file
     end if
 
     !                  |--------------|            FILE
     !       |---------------------------------|    PERIOD
     if ((startJul_period .lt. startJul_file) .and. (endJul_period .gt. endJul_file)) then
-      idx_st_period = (startJul_file - startJul_period + 1) * timestep_file
+      idx_st_period = (startJul_file - startJul_period) * timestep_file + 1
       idx_en_period = (idx_st_period + length_file - 1) * timestep_file
       idx_st_file = 1
       idx_en_file = length_file * timestep_file
@@ -234,18 +234,18 @@ CONTAINS
     !       |---------------------------------|    PERIOD
     if ((startJul_period .ge. startJul_file) .and. (endJul_period .gt. endJul_file)) then
       idx_st_period = 1
-      idx_en_period = (endJul_file - startJul_period + 1) * timestep_file
-      idx_st_file = (startJul_period - startJul_file + 1) * timestep_file
+      idx_en_period = (endJul_file - startJul_period) * timestep_file + 1
+      idx_st_file = (startJul_period - startJul_file) * timestep_file + 1
       idx_en_file = length_file * timestep_file
     end if
 
     !                          |--------------|    FILE
     !  |---------------------------------|         PERIOD
     if ((startJul_period .lt. startJul_file) .and. (endJul_period .le. endJul_file)) then
-      idx_st_period = (startJul_file - startJul_period + 1) * timestep_file
+      idx_st_period = (startJul_file - startJul_period) * timestep_file + 1
       idx_en_period = (length_period) * timestep_file
       idx_st_file = 1
-      idx_en_file = (endJul_period - startJul_file + 1) * timestep_file
+      idx_en_file = (endJul_period - startJul_file) * timestep_file + 1
     end if
 
     data(idx_st_period : idx_en_period) = data_file(idx_st_file : idx_en_file)
