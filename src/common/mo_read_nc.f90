@@ -214,7 +214,7 @@ contains
                 nTstepForcingDay = 1_i4
              else if (nTstepForcingDay .ne. 1_i4) then
                 call message('***ERROR: read_forcing_nc: expected daily input forcing, but read something else. ' // &
-                     'Check consistency in input reading')
+                     'Ensure all input time steps have the same units across all input files')
                 stop 1
              end if
           case(-4) ! hourly
@@ -222,7 +222,7 @@ contains
                 nTstepForcingDay = 24_i4
              else if (nTstepForcingDay .ne. 24_i4) then
                 call message('***ERROR: read_forcing_nc: expected hourly input forcing, but read something else. ' // &
-                     'Check consistency in input reading')
+                     'Ensure all input time steps have the same units across all input files')
                 stop 1
              end if
           case default ! no output at all
