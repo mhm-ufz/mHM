@@ -37,13 +37,12 @@ options(warn = oldw)
 
 
 
-plot_hydrograph <- function(path, gID, title_text, ylimit ){
+plot_hydrograph <- function(path, gID, title_text, fType, ylimit ){
 
 
   # ========  CONTROL  =============================================
   
   # Parameters
-  fName = "discharge.nc"
   misVal = -9999.0
   
   # Graph control
@@ -54,25 +53,50 @@ plot_hydrograph <- function(path, gID, title_text, ylimit ){
   
   # ========  READ  =============================================
   
-  # Read the netCDF discharge file
-  ncin <- nc_open(paste(path,fName,sep = "/"))
-  # get VARIABLES
-  q_obs <- ncvar_get(ncin, paste("Qobs_", str_pad(gID, 10, pad = "0"), sep = ""))
-  q_sim <- ncvar_get(ncin, paste("Qsim_", str_pad(gID, 10, pad = "0"), sep = ""))
-  q_obs[q_obs == misVal] <- NA
-  q_obs_2 <- q_obs
-  q_sim_2 <- q_sim
-  q_obs_2[q_obs_2 <= 0] <- NA
-  q_sim_2[q_sim_2 <= 0] <- NA
-  # if (metric1 == "logNSE"){
-  #   q_obs[q_obs == 0] <- NA # to avoid the log(0) issue
-  # }
-  # Read time attribute
-  nctime <- ncvar_get(ncin,"time")
-  tunits <- ncatt_get(ncin,"time","units")
-  nt <- dim(nctime)
-  # Close file
-  nc_close(ncin)
+  # Source file
+  if (missing(fType)){
+    fName = "discharge.nc"
+  } else {
+    if (fType == "txt"){
+      fName = "daily_discharge.out"
+    } else {
+      fName = "discharge.nc"
+    }
+  }
+
+  if (fName == "discharge.nc"){
+
+    # Read the netCDF discharge file
+    ncin <- nc_open(paste(path,fName,sep = "/"))
+    # get VARIABLES
+    q_obs <- ncvar_get(ncin, paste("Qobs_", str_pad(gID, 10, pad = "0"), sep = ""))
+    q_sim <- ncvar_get(ncin, paste("Qsim_", str_pad(gID, 10, pad = "0"), sep = ""))
+    # Read time attribute
+    nctime <- ncvar_get(ncin,"time")
+    tunits <- ncatt_get(ncin,"time","units")
+    # Close file
+    nc_close(ncin)
+  
+    # Prepare the time origin
+    tustr <- unlist(strsplit(tunits$value, " "))
+    tdstr <- unlist(strsplit((rev(tustr))[2], "-"))
+    tmonth <- as.integer(tdstr)[2]
+    tday <- as.integer(tdstr)[3]
+    tyear <- as.integer(tdstr)[1]
+    tchron <- chron(dates. = nctime/24, origin=c(tmonth, tday, tyear)) # nctime (hours)
+
+  } else {
+
+    # Reading the TEXT discharge file
+    data = data.frame(read.delim(paste(path,fName,sep="/"), header = TRUE, sep = ""))  # reading all the data
+    q_obs <- data[[paste("Qobs_", str_pad(gID, 10, pad = "0"), sep = "")]]
+    q_sim <- data[[paste("Qsim_", str_pad(gID, 10, pad = "0"), sep = "")]]
+    nData <- length(data[,1])
+    dStart <- as.Date(paste(data[1,4],"-",data[1,3],"-",data[1,2],sep=""))  # Infering the start date
+    dEnd <- as.Date(paste(data[nData,4],"-",data[nData,3],"-",data[nData,2],sep=""))  # Infering the end date
+    tchron <- seq.Date(dStart,dEnd, by= "days")
+
+  }
   
   
   
@@ -80,13 +104,9 @@ plot_hydrograph <- function(path, gID, title_text, ylimit ){
   
   # ========  PROCESS  =============================================
   
-  # Prepare the time origin
-  tustr <- unlist(strsplit(tunits$value, " "))
-  tdstr <- unlist(strsplit((rev(tustr))[2], "-"))
-  tmonth <- as.integer(tdstr)[2]
-  tday <- as.integer(tdstr)[3]
-  tyear <- as.integer(tdstr)[1]
-  tchron <- chron(dates. = nctime/24, origin=c(tmonth, tday, tyear)) # nctime (hours)
+  # Replacing missing values by NA
+  q_obs[q_obs == misVal] <- NA
+  q_sim[q_sim == misVal] <- NA
   
   # convert to xts
   q_obs <- xts(as.numeric(q_obs), order.by = tchron) # xts/ time series object created
