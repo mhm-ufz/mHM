@@ -54,6 +54,7 @@ contains
 
   subroutine mrm_write
 
+    use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer, mrm_coupling_mode, nTstepDay, simPer, warmingDays
     use mo_common_variables, only : mrmFileRestartOut, domainMeta, write_restart
     use mo_mrm_global_variables, only : domain_mrm, &
@@ -128,22 +129,22 @@ contains
     maxMeasTimeSteps  = maxval(evalPer(1 : domainMeta%nDomains)%julEnd - evalPer(1 : domainMeta%nDomains)%julStart + 1) * TPD_obs
     allocate(d_Qmod     (maxDailyTimeSteps, nGaugesTotal))
     allocate(d_Qobs     (maxDailyTimeSteps, nGaugesTotal))
-    allocate(subd_Qmod ( maxMeasTimeSteps, nGaugesTotal))
-    allocate(subd_Qobs ( maxMeasTimeSteps, nGaugesTotal))
-    d_Qmod     = 0.0_dp
-    d_Qobs     = 0.0_dp
-    subd_Qmod  = 0.0_dp
-    subd_Qobs  = 0.0_dp
+    allocate(subd_Qmod  ( maxMeasTimeSteps, nGaugesTotal))
+    allocate(subd_Qobs  ( maxMeasTimeSteps, nGaugesTotal))
+    d_Qmod     = nodata_dp
+    d_Qobs     = nodata_dp
+    subd_Qmod  = nodata_dp
+    subd_Qobs  = nodata_dp
 
 
     ! loop over domains
     do iDomain = 1, domainMeta%nDomains
       if (domainMeta%doRouting(iDomain)) then
         domainID = domainMeta%indices(iDomain)
+
+        ! Convert simulated values to daily
         nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nTstepDay
         iDay  = 0
-        iSubDay = 0
-        ! loop over timesteps (daily)
         do tt = warmingDays(iDomain) * nTstepDay + 1, nTimeSteps, nTstepDay
           iS = tt
           iE = tt + nTstepDay - 1
@@ -153,28 +154,56 @@ contains
             ! simulation
             d_Qmod(iDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
                     sum(mRM_runoff(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(nTstepDay, dp)
-            ! observation
-            d_Qobs(iDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
-                    sum(gauge%Q(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(nTstepDay, dp)
           end do
-          !
         end do
-        ! loop over timesteps (subdaily timesteps)
-        do tt = warmingDays(iDomain) * nTstepDay + 1, nTimeSteps, factor
+
+        ! Convert observed values to daily
+        nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nMeasPerDay
+        iDay  = 0
+        do tt = 1, nTimeSteps, nMeasPerDay
           iS = tt
-          iE = tt + factor - 1
-          iSubDay = iSubDay + 1
+          iE = tt + nMeasPerDay - 1
+          iDay = iDay + 1
           ! over gauges
           do gg = 1, domain_mrm(iDomain)%nGauges
-            ! simulation
-            subd_Qmod(iSubDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
-                    sum(mRM_runoff(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(factor, dp)
-            ! observation
-            subd_Qobs(iSubDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
-                    sum(gauge%Q(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(factor, dp)
+            ! when -9999 value/s are present in current day, daily value remain -9999.
+            if (.not.(any(gauge%Q(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg)) == nodata_dp))) then
+              ! observation
+              d_Qobs(iDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
+                      sum( gauge%Q(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(nMeasPerDay, dp)
+            end if
           end do
-          !
         end do
+
+
+        subdaily: if (nMeasPerDay > 1) then
+
+          ! Convert simulated values to subdaily
+          nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nTstepDay
+          iSubDay = 0
+          do tt = warmingDays(iDomain) * nTstepDay + 1, nTimeSteps, factor
+            iS = tt
+            iE = tt + factor - 1
+            iSubDay = iSubDay + 1
+            ! over gauges
+            do gg = 1, domain_mrm(iDomain)%nGauges
+              ! simulation
+              subd_Qmod(iSubDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
+                      sum(mRM_runoff(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(factor, dp)
+            end do
+          end do
+
+          ! Convert observed values to subdaily
+
+          ! observed values are already at subdaily (nMeasPerDay) and stored for evalper
+          ! over gauges
+          do gg = 1, domain_mrm(iDomain)%nGauges
+            ! observation
+            subd_Qobs(:, domain_mrm(iDomain)%gaugeIndexList(gg)) = gauge%Q(:, domain_mrm(iDomain)%gaugeIndexList(gg))
+          end do
+
+        end if subdaily
+
       end if
     end do
 
