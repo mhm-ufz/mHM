@@ -157,26 +157,35 @@ contains
           end do
         end do
 
-        ! Convert observed values to daily
-        nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nMeasPerDay
-        iDay  = 0
-        do tt = 1, nTimeSteps, nMeasPerDay
-          iS = tt
-          iE = tt + nMeasPerDay - 1
-          iDay = iDay + 1
+        dailycheck: if (nMeasPerDay > 1) then
+          ! Convert observed values to daily
+          nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nMeasPerDay
+          iDay  = 0
+          do tt = 1, nTimeSteps, nMeasPerDay
+            iS = tt
+            iE = tt + nMeasPerDay - 1
+            iDay = iDay + 1
+            ! over gauges
+            do gg = 1, domain_mrm(iDomain)%nGauges
+              ! when -9999 value/s are present in current day, daily value remain -9999.
+              if (.not.(any(gauge%Q(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg)) == nodata_dp))) then
+                ! observation
+                d_Qobs(iDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
+                        sum( gauge%Q(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(nMeasPerDay, dp)
+              end if
+            end do
+          end do
+        else
+          ! observed values are already at daily (nMeasPerDay = 1) and stored for evalper
           ! over gauges
           do gg = 1, domain_mrm(iDomain)%nGauges
-            ! when -9999 value/s are present in current day, daily value remain -9999.
-            if (.not.(any(gauge%Q(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg)) == nodata_dp))) then
-              ! observation
-              d_Qobs(iDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
-                      sum( gauge%Q(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(nMeasPerDay, dp)
-            end if
+            ! observation
+            d_Qobs(:, domain_mrm(iDomain)%gaugeIndexList(gg)) = gauge%Q(:, domain_mrm(iDomain)%gaugeIndexList(gg))
           end do
-        end do
+        end if dailycheck
 
 
-        subdaily: if (nMeasPerDay > 1) then
+        subdailycheck: if (nMeasPerDay > 1) then
 
           ! Convert simulated values to subdaily
           nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nTstepDay
@@ -202,7 +211,7 @@ contains
             subd_Qobs(:, domain_mrm(iDomain)%gaugeIndexList(gg)) = gauge%Q(:, domain_mrm(iDomain)%gaugeIndexList(gg))
           end do
 
-        end if subdaily
+        end if subdailycheck
 
       end if
     end do
