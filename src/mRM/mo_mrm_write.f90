@@ -50,22 +50,25 @@ contains
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Pallav Shrestha, Husain Najafi Mar 2022 - refactoring for measured timestep output
 
   subroutine mrm_write
 
+    use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer, mrm_coupling_mode, nTstepDay, simPer, warmingDays
     use mo_common_variables, only : mrmFileRestartOut, domainMeta, write_restart
     use mo_mrm_global_variables, only : domain_mrm, &
-                                        gauge, mRM_runoff, nGaugesTotal
+                                        gauge, mRM_runoff, nGaugesTotal, nMeasPerDay
     use mo_mrm_restart, only : mrm_write_restart
+    use mo_message, only : message
 
     implicit none
 
     integer(i4) :: domainID, iDomain
 
-    integer(i4) :: iDay, iS, iE
+    integer(i4) :: iDay, iSubDay, iS, iE
 
-    integer(i4) :: ii
+    integer(i4) :: maxDailyTimeSteps, maxMeasTimeSteps
 
     integer(i4) :: tt
 
@@ -73,8 +76,17 @@ contains
 
     integer(i4) :: nTimeSteps
 
-    real(dp), dimension(:, :), allocatable :: d_Qmod
+    real(dp), dimension(:, :), allocatable :: d_Qmod, subd_Qmod ! Sim discharge at daily and subdaily time step
+    real(dp), dimension(:, :), allocatable :: d_Qobs, subd_Qobs ! Obs discharge at daily and subdaily time step
 
+    ! between simulated and measured time scale
+    integer(i4) :: factor
+
+    ! simulated Timesteps per Day
+    integer(i4) :: TPD_sim
+
+    ! observed Timesteps per Day
+    integer(i4) :: TPD_obs
 
     ! --------------------------------------------------------------------------
     ! WRITE CONFIG FILE
@@ -99,35 +111,122 @@ contains
     ! Note:: Observed Q are stored only for the evaluation period and not for
     !        the warming days
     ! --------------------------------------------------------------------------
-    ii = maxval(evalPer(1 : domainMeta%nDomains)%julEnd - evalPer(1 : domainMeta%nDomains)%julStart + 1)
-    allocate(d_Qmod(ii, nGaugesTotal))
-    d_Qmod = 0.0_dp
+    
+    ! copy time resolution to local variables
+    TPD_sim = nTstepDay
+    TPD_obs = nMeasPerDay
+
+    ! check if modelled timestep is an integer multiple of measured timesteps
+    if (modulo(TPD_sim, TPD_obs) .eq. 0) then
+      factor = TPD_sim / TPD_obs
+    else
+      call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
+      stop
+    end if
+
+
+    maxDailyTimeSteps = maxval(evalPer(1 : domainMeta%nDomains)%julEnd - evalPer(1 : domainMeta%nDomains)%julStart + 1)
+    maxMeasTimeSteps  = maxval(evalPer(1 : domainMeta%nDomains)%julEnd - evalPer(1 : domainMeta%nDomains)%julStart + 1) * TPD_obs
+    allocate(d_Qmod     (maxDailyTimeSteps, nGaugesTotal))
+    allocate(d_Qobs     (maxDailyTimeSteps, nGaugesTotal))
+    allocate(subd_Qmod  ( maxMeasTimeSteps, nGaugesTotal))
+    allocate(subd_Qobs  ( maxMeasTimeSteps, nGaugesTotal))
+    d_Qmod     = nodata_dp
+    d_Qobs     = nodata_dp
+    subd_Qmod  = nodata_dp
+    subd_Qobs  = nodata_dp
+
 
     ! loop over domains
     do iDomain = 1, domainMeta%nDomains
       if (domainMeta%doRouting(iDomain)) then
         domainID = domainMeta%indices(iDomain)
-        nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * NTSTEPDAY
-        iDay = 0
-        ! loop over timesteps
-        do tt = warmingDays(iDomain) * NTSTEPDAY + 1, nTimeSteps, NTSTEPDAY
+
+        ! Convert simulated values to daily
+        nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nTstepDay
+        iDay  = 0
+        do tt = warmingDays(iDomain) * nTstepDay + 1, nTimeSteps, nTstepDay
           iS = tt
-          iE = tt + NTSTEPDAY - 1
+          iE = tt + nTstepDay - 1
           iDay = iDay + 1
           ! over gauges
           do gg = 1, domain_mrm(iDomain)%nGauges
+            ! simulation
             d_Qmod(iDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
-                    sum(mRM_runoff(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(NTSTEPDAY, dp)
+                    sum(mRM_runoff(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(nTstepDay, dp)
           end do
-          !
         end do
+
+        dailycheck: if (nMeasPerDay > 1) then
+          ! Convert observed values to daily
+          nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nMeasPerDay
+          iDay  = 0
+          do tt = 1, nTimeSteps, nMeasPerDay
+            iS = tt
+            iE = tt + nMeasPerDay - 1
+            iDay = iDay + 1
+            ! over gauges
+            do gg = 1, domain_mrm(iDomain)%nGauges
+              ! when -9999 value/s are present in current day, daily value remain -9999.
+              if (.not.(any(gauge%Q(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg)) == nodata_dp))) then
+                ! observation
+                d_Qobs(iDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
+                        sum( gauge%Q(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(nMeasPerDay, dp)
+              end if
+            end do
+          end do
+        else
+          ! observed values are already at daily (nMeasPerDay = 1) and stored for evalper
+          ! over gauges
+          do gg = 1, domain_mrm(iDomain)%nGauges
+            ! observation
+            d_Qobs(:, domain_mrm(iDomain)%gaugeIndexList(gg)) = gauge%Q(:, domain_mrm(iDomain)%gaugeIndexList(gg))
+          end do
+        end if dailycheck
+
+
+        subdailycheck: if (nMeasPerDay > 1) then
+
+          ! Convert simulated values to subdaily
+          nTimeSteps = (simPer(iDomain)%julEnd - simPer(iDomain)%julStart + 1) * nTstepDay
+          iSubDay = 0
+          do tt = warmingDays(iDomain) * nTstepDay + 1, nTimeSteps, factor
+            iS = tt
+            iE = tt + factor - 1
+            iSubDay = iSubDay + 1
+            ! over gauges
+            do gg = 1, domain_mrm(iDomain)%nGauges
+              ! simulation
+              subd_Qmod(iSubDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
+                      sum(mRM_runoff(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(factor, dp)
+            end do
+          end do
+
+          ! Convert observed values to subdaily
+
+          ! observed values are already at subdaily (nMeasPerDay) and stored for evalper
+          ! over gauges
+          do gg = 1, domain_mrm(iDomain)%nGauges
+            ! observation
+            subd_Qobs(:, domain_mrm(iDomain)%gaugeIndexList(gg)) = gauge%Q(:, domain_mrm(iDomain)%gaugeIndexList(gg))
+          end do
+
+        end if subdailycheck
+
       end if
     end do
+
+
     ! write in an ASCII file          ! OBS[nModeling_days X nGauges_total] , SIM[nModeling_days X nGauges_total]
     ! ToDo: is this if statement reasonable
-    if (allocated(gauge%Q)) call write_daily_obs_sim_discharge(gauge%Q(:, :), d_Qmod(:, :))
+    if (allocated(gauge%Q)) call write_daily_obs_sim_discharge(d_Qobs(:, :), d_Qmod(:, :))
+
+    ! write in an ASCII file          ! OBS[nMeasPerDay X nGauges_total] , SIM[nMeasPerDay X nGauges_total]
+    if (nMeasPerDay > 1 .and. allocated(gauge%Q)) call write_subdaily_obs_sim_discharge(subd_Qobs(:, :), subd_Qmod(:, :), factor)
+    ! The subdaily routine is only called if subdaily Q data is provided
+    
     ! free space
-    deallocate(d_Qmod)
+    deallocate(d_Qmod, d_Qobs, subd_Qmod, subd_Qobs)
   end subroutine mrm_write
   ! ------------------------------------------------------------------
 
@@ -482,7 +581,7 @@ contains
     use mo_julian, only : dec2date
     use mo_message, only : message
     use mo_mrm_file, only : file_daily_discharge, ncfile_discharge, udaily_discharge
-    use mo_mrm_global_variables, only : domain_mrm, gauge
+    use mo_mrm_global_variables, only : domain_mrm, gauge, nMeasPerDay
     use mo_ncwrite, only : var2nc
     use mo_string_utils, only : num2str
     use mo_utils, only : ge
@@ -607,15 +706,215 @@ contains
       ! ======================================================================
       ! screen output
       ! ======================================================================
+
+      ! if ( nMeasPerDay == 1_i4 ) then ! only print daily stats for daily Qobs
+
+        call message()
+        write(dummy, '(I3)') domainID
+        call message('  OUTPUT: saved daily discharge file for domain ', trim(adjustl(dummy)))
+        call message('    to ', trim(fname))
+        do gg = igauge_start, igauge_end
+          if (count(ge(Qobs(:, gg), 0.0_dp)) > 1)  then
+            call message('    KGE of daily discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
+                    trim(adjustl(num2str(kge(Qobs(:, gg), Qsim(:, gg), mask = (ge(Qobs(:, gg), 0.0_dp)))))))
+            call message('    NSE of daily discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
+                    trim(adjustl(num2str(nse(Qobs(:, gg), Qsim(:, gg), mask = (ge(Qobs(:, gg), 0.0_dp)))))))
+          end if
+        end do
+        
+      ! end if
+
+      ! update igauge_start
+      igauge_start = igauge_end + 1
+      !
+    end do
+    !
+  end subroutine write_daily_obs_sim_discharge
+
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        write_subdaily_obs_sim_discharge
+
+  !    PURPOSE
+  !>       \brief Write a file for the simulated discharge timeseries
+  !>       during the evaluation period for each gauging station
+
+  !>       \details Write a file for the simulated discharge timeseries
+  !>       during the evaluation period for each gauging station
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:, :) :: Qobs"  time series of observed discharge dims = (nMeasTimeSteps ,
+  !>       nGauges_total)
+  !>       \param[in] "real(dp), dimension(:, :) :: Qsim"  time series of modeled discharge dims = (nMeasTimeSteps ,
+  !>       nGauges_total)
+  !>       \param[in] "integer(i4),              :: factor" ratio of modelled time steps per day to observation time steps per day
+
+  !    HISTORY
+  !>       \authors Rohini Kumar
+
+  !>       \date August 2013
+
+  ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Pallav Shrestha Jul 2021 - ported for printing out simulations at hourly time step
+  ! Pallav Shrestha, Husain Najafi Mar 2022 - refactoring for subdaily timestep output
+
+  subroutine write_subdaily_obs_sim_discharge(Qobs, Qsim, factor)
+
+    use mo_common_constants, only : nodata_dp
+    use mo_common_mhm_mrm_variables, only : evalPer
+    use mo_common_variables, only : dirOut, domainMeta
+    use mo_errormeasures, only : kge, nse
+    use mo_julian, only : dec2date
+    use mo_message, only : message
+    use mo_mrm_file, only : ncfile_subdaily_discharge, file_subdaily_discharge, &
+                            usubdaily_discharge
+    use mo_mrm_global_variables, only : domain_mrm, gauge, nMeasPerDay
+    use mo_ncwrite, only : var2nc
+    use mo_string_utils, only : num2str
+    use mo_utils, only : ge
+
+    implicit none
+
+    ! time series of observed discharge. dims = (nMeasTimeSteps , nGauges_total)
+    real(dp), dimension(:, :), intent(in) :: Qobs
+
+    ! time series of modeled discharge. dims = (nMeasTimeSteps , nGauges_total)
+    real(dp), dimension(:, :), intent(in) :: Qsim
+
+    ! ratio of modelled time steps per day to observation time steps per day
+    integer(i4),               intent(in) :: factor
+
+    character(256) :: fName, formHeader, formData, dummy
+    character(256), dimension(1) :: dnames
+
+    integer(i4) :: domainID, iDomain, gg, tt, err
+
+    integer(i4) :: igauge_start, igauge_end
+
+    integer(i4) :: hour, day, month, year
+
+    integer(i4) :: tlength
+
+    ! time axis
+    integer(i4), allocatable, dimension(:) :: taxis
+
+    real(dp) :: newTime
+
+    logical :: create
+
+
+    ! initalize igauge_start
+    igauge_start = 1
+
+    ! domain loop
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      if(domain_mrm(iDomain)%nGauges .lt. 1) cycle
+
+      ! estimate igauge_end
+      igauge_end = igauge_start + domain_mrm(iDomain)%nGauges - 1
+
+
+      ! ======================================================================
+      ! write text file
+      ! ======================================================================
+
+      ! check the existance of file
+      fName = trim(adjustl(dirOut(iDomain))) // trim(adjustl(file_subdaily_discharge))
+      open(usubdaily_discharge, file = trim(fName), status = 'unknown', action = 'write', iostat = err)
+      if(err .ne. 0) then
+        call message ('  IOError while openening ', trim(fName))
+        call message ('  Error-Code ', num2str(err))
+        stop
+      end if
+
+      ! header
+      write(formHeader, *) '( 5a8, ', domain_mrm(iDomain)%nGauges, '(2X, a5, i10.10, 2X, a5, i10.10) )'
+      write(usubdaily_discharge, formHeader) 'No', 'Hour', 'Day', 'Mon', 'Year', &
+              ('Qobs_', gauge%gaugeId(gg), &
+                      'Qsim_', gauge%gaugeId(gg), gg = igauge_start, igauge_end)
+
+      ! form data
+      write(formData, *) '( 5I8, ', domain_mrm(iDomain)%nGauges, '(2X,   f15.7 , 2X,  f15.7  ) )'
+
+      ! write data
+      newTime = real(evalPer(iDomain)%julStart, dp) - 0.5_dp
+
+      do tt = 1, (evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1) * nMeasPerDay
+        call dec2date(newTime, yy = year, mm = month, dd = day, hh = hour)
+        write(usubdaily_discharge, formData) tt, hour, day, month, year, (Qobs(tt, gg), Qsim(tt, gg), gg = igauge_start, igauge_end)
+        newTime = newTime + 1.0_dp / real(nMeasPerDay, dp)
+      end do
+
+      ! close file
+      close(usubdaily_discharge)
+
+
+      ! ======================================================================
+      ! write netcdf file
+      ! ======================================================================
+      dnames(1) = 'time'
+      ! dnames(2) = 'gauges'
+      fName = trim(adjustl(dirOut(iDomain))) // trim(adjustl(ncfile_subdaily_discharge))
+      tlength = (evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1) * nMeasPerDay
+      create = .true.
+      do gg = igauge_start, igauge_end
+        ! write simulated discharge at that gauge
+        call var2nc( &
+          f_name = trim(fName), &
+          arr = Qsim(1 : tlength, gg), &
+          dnames = dnames(1 : 1), &
+          v_name = 'Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
+          create = create, &
+          units = 'm3 s-1', &
+          long_name = 'simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
+          missing_value = nodata_dp &
+        )
+        create = .false.
+        ! write observed discharge at that gauge
+        call var2nc( &
+          f_name = trim(fName), &
+          arr = Qobs(1 : tlength, gg), &
+          dnames = dnames(1 : 1), &
+          v_name = 'Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
+          create = create, &
+          units = 'm3 s-1', &
+          long_name = 'observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
+          missing_value = nodata_dp &
+        )
+      end do
+      ! add time axis
+      allocate(taxis(tlength))
+      forall(tt = 1 : tlength) taxis(tt) = (tt - 1) * factor
+      call dec2date(real(evalPer(iDomain)%julStart, dp) - 0.5_dp, yy = year, mm = month, dd = day, &
+                                                                  hh = hour)
+      call var2nc( &
+        f_name = trim(fName), &
+        arr = taxis, &
+        dnames = dnames(1 : 1), &
+        v_name = dnames(1), &
+        units = 'hours since ' // &
+                trim(num2str(year)) // '-' // trim(num2str(month, '(i2.2)')) // '-' // trim(num2str(day, '(i2.2)')) // &
+                ' ' // trim(num2str(hour, '(i2.2)')) // ':00:00', &
+        long_name = 'time in hours' &
+      )
+      deallocate(taxis)
+
+      ! ======================================================================
+      ! screen output
+      ! ======================================================================
       call message()
       write(dummy, '(I3)') domainID
-      call message('  OUTPUT: saved daily discharge file for domain ', trim(adjustl(dummy)))
+      call message('  OUTPUT: saved subdaily discharge file for domain ', trim(adjustl(dummy)))
       call message('    to ', trim(fname))
       do gg = igauge_start, igauge_end
         if (count(ge(Qobs(:, gg), 0.0_dp)) > 1)  then
-          call message('    KGE of daily discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
+          call message('    KGE of subdaily discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
                   trim(adjustl(num2str(kge(Qobs(:, gg), Qsim(:, gg), mask = (ge(Qobs(:, gg), 0.0_dp)))))))
-          call message('    NSE of daily discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
+          call message('    NSE of subdaily discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
                   trim(adjustl(num2str(nse(Qobs(:, gg), Qsim(:, gg), mask = (ge(Qobs(:, gg), 0.0_dp)))))))
         end if
       end do
@@ -625,7 +924,8 @@ contains
       !
     end do
     !
-  end subroutine write_daily_obs_sim_discharge
+  end subroutine write_subdaily_obs_sim_discharge
+
 
   ! ------------------------------------------------------------------
 
