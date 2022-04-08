@@ -72,4 +72,11 @@ MODULE mo_mrm_file
 !> file containing mrm output for groundwater coupling
   character(len = *), PARAMETER :: file_gw_output = 'mRM_gw_Fluxes_States.nc'
 
+  !> file defining optimazation outputs
+  CHARACTER(len = *), PARAMETER :: file_subdaily_discharge = 'subdaily_discharge.out'         ! input_timestep discharge file
+  !> Unit for file optimazation outputs
+  INTEGER, PARAMETER :: usubdaily_discharge = 75                            !
+  !> file containing simulated discharge at observat time step
+  CHARACTER(len = *), PARAMETER :: ncfile_subdaily_discharge = 'subdaily_discharge.nc'    ! discharge file as netcdf
+
 END MODULE mo_mrm_file
