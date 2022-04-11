@@ -694,8 +694,10 @@ contains
 
     ! calculate BFI releated after warming days if wanted
     if ( run_cfg%output_BFI .and. (run_cfg%domainDateTime%tIndex_out > 0_i4) ) then
-      BFI_q2_sum(iDomain) = BFI_q2_sum(iDomain) + L1_fastRunoff(run_cfg%s1 : run_cfg%e1) * level1(iDomain)%CellArea
-      BFI_qT_sum(iDomain) = BFI_qT_sum(iDomain) + L1_total_runoff(run_cfg%s1 : run_cfg%e1) * level1(iDomain)%CellArea
+      BFI_q2_sum(iDomain) = BFI_q2_sum(iDomain) &
+        + sum(L1_fastRunoff(run_cfg%s1 : run_cfg%e1) * level1(iDomain)%CellArea) / level1(iDomain)%nCells
+      BFI_qT_sum(iDomain) = BFI_qT_sum(iDomain) &
+        + sum(L1_total_runoff(run_cfg%s1 : run_cfg%e1) * level1(iDomain)%CellArea) / level1(iDomain)%nCells
     end if
 
   end subroutine mhm_interface_run_do_time_step
