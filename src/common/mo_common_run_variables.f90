@@ -26,6 +26,8 @@ module mo_common_run_variables
     logical :: is_hourly_forcing
     !> output runoff
     logical :: output_runoff = .false.
+    !> output BFI
+    logical :: output_BFI = .false.
     !> currently used parameter set
     real(dp), dimension(:), allocatable :: parameterset
     !> selected domains

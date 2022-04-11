@@ -350,7 +350,7 @@ contains
     eval => mhm_eval
 
     select case(opti_function)
-      case(1 : 9, 14, 31 : 32)
+      case(1 : 9, 14, 31 : 32, 34)
         ! call optimization against only runoff (no other variables)
         obj_func => single_objective_runoff
 #ifdef MPI
