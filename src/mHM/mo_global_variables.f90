@@ -132,7 +132,7 @@ MODULE mo_global_variables
                                                               ! observerd data, and the
                                                               ! timestepInput of the simulated data
                                                               ! ToDo: add unit
-
+  real(dp), public, dimension(:), allocatable :: BFI_obs      ! given base-flow index per domain
 
   ! State variables
   ! dim1 = number grid cells L1
