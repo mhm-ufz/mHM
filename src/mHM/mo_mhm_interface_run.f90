@@ -94,7 +94,7 @@ module mo_mhm_interface_run
     fnight_ssrd, &
     fday_strd, &
     fnight_strd, &
-    BFI_q2_sum, &
+    BFI_qBF_sum, &
     BFI_qT_sum
   use mo_init_states, only : variables_default_init
   use mo_julian, only : caldat, julday
@@ -231,9 +231,9 @@ contains
 
     ! prepare BFI calculation
     if (run_cfg%output_BFI) then
-      allocate(BFI_q2_sum(run_cfg%nDomains))
+      allocate(BFI_qBF_sum(run_cfg%nDomains))
       allocate(BFI_qT_sum(run_cfg%nDomains))
-      BFI_q2_sum = 0.0_dp
+      BFI_qBF_sum = 0.0_dp
       BFI_qT_sum = 0.0_dp
     end if
 
@@ -694,8 +694,8 @@ contains
 
     ! calculate BFI releated after warming days if wanted
     if ( run_cfg%output_BFI .and. (run_cfg%domainDateTime%tIndex_out > 0_i4) ) then
-      BFI_q2_sum(iDomain) = BFI_q2_sum(iDomain) &
-        + sum(L1_fastRunoff(run_cfg%s1 : run_cfg%e1) * level1(iDomain)%CellArea) / level1(iDomain)%nCells
+      BFI_qBF_sum(iDomain) = BFI_qBF_sum(iDomain) &
+        + sum(L1_baseflow(run_cfg%s1 : run_cfg%e1) * level1(iDomain)%CellArea) / level1(iDomain)%nCells
       BFI_qT_sum(iDomain) = BFI_qT_sum(iDomain) &
         + sum(L1_total_runoff(run_cfg%s1 : run_cfg%e1) * level1(iDomain)%CellArea) / level1(iDomain)%nCells
     end if
@@ -918,8 +918,8 @@ contains
 
     if (present(runoff) .and. (processMatrix(8, 1) > 0)) runoff = mRM_runoff
     if (present(BFI)) then
-      BFI = BFI_q2_sum / BFI_qT_sum
-      deallocate(BFI_q2_sum)
+      BFI = BFI_qBF_sum / BFI_qT_sum
+      deallocate(BFI_qBF_sum)
       deallocate(BFI_qT_sum)
     end if
 
