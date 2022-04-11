@@ -334,7 +334,6 @@ CONTAINS
 
         case(34)
           !baseflow index optimization
-          BFI_obs
           call position_nml('BFI_inputs', unamelist)
           read(unamelist, nml = BFI_inputs)
 
