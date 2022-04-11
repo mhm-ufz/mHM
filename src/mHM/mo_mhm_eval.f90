@@ -151,7 +151,7 @@ CONTAINS
     end do DomainLoop !<< Domain LOOP
 
     ! SET RUNOFF OUTPUT VARIABLE; reset init-flag for MPR
-    call mhm_interface_run_finalize(runoff)
+    call mhm_interface_run_finalize(runoff, BFI)
 
   end SUBROUTINE mhm_eval
 
