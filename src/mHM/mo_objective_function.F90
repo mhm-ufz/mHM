@@ -2274,10 +2274,13 @@ CONTAINS
     !> baseflow index for each domain
     real(dp), dimension(:), allocatable :: BFI
 
-    ! gauges counter
-    integer(i4) :: gg, iloc
+    ! counter
+    integer(i4) :: gg, i
 
     integer(i4) :: nGaugesTotal
+
+    ! aggregated simulated runoff
+    integer(i4), dimension(:), allocatable :: domain_ids, domain_ids_pack
 
     ! aggregated simulated runoff
     real(dp), dimension(:), allocatable :: runoff_agg
@@ -2300,10 +2303,13 @@ CONTAINS
     objective_BFI = 0.0_dp
 
     if ( any(BFI_obs < 0.0_dp) ) then
-      iloc = findloc((BFI_obs < 0.0_dp), .true., dim=1, kind=i4)
+      allocate(domain_ids(domainMeta%nDomains))
+      allocate(domain_ids_pack(count(BFI_obs < 0.0_dp)))
+      domain_ids = [(i, i=1,size(domain_ids))]
+      domain_ids_pack = pack(domain_ids, mask=(BFI_obs < 0.0_dp))
       call error_message( &
         "objective_kge_q_BFI: missing BFI values for domain ", &
-        trim(adjustl(num2str(iloc))) &
+        trim(adjustl(num2str(domain_ids_pack(1)))) &
       )
     end if
 
