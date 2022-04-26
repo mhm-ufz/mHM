@@ -2275,7 +2275,7 @@ CONTAINS
     real(dp), dimension(:), allocatable :: BFI
 
     ! gauges counter
-    integer(i4) :: gg
+    integer(i4) :: gg, iloc
 
     integer(i4) :: nGaugesTotal
 
@@ -2299,10 +2299,13 @@ CONTAINS
     ! initialize some variables
     objective_BFI = 0.0_dp
 
-    if ( any(BFI_obs < 0.0_dp) ) call error_message( &
-      "objective_kge_q_BFI: missing BFI values for domain ", &
-      trim(adjustl(num2str(findloc((BFI_obs < 0.0_dp), .true., dim=1, kind=i4)))) &
-    )
+    if ( any(BFI_obs < 0.0_dp) ) then
+      iloc = findloc((BFI_obs < 0.0_dp), .true., dim=1, kind=i4)
+      call error_message( &
+        "objective_kge_q_BFI: missing BFI values for domain ", &
+        trim(adjustl(num2str(iloc))) &
+      )
+    end if
 
     ! loop over domain - for applying power law later on
     do iDomain = 1, domainMeta%nDomains
