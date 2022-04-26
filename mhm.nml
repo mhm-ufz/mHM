@@ -851,10 +851,15 @@ mcmc_error_params = 0.01, 0.6
 /
 
 !******************************************************************************************
-! SETTINGS FOR OPTIMIZATION for baseflow-index
+! SETTINGS FOR OPTIMIZATION for baseflow-index (opti_function = 34)
 !******************************************************************************************
 &BFI_inputs
-!> baseflow index per domain
-BFI_obs(1) = 0.0
-BFI_obs(2) = 0.0
+!> Calculate BFI from discharge time series with the Eckhardt filter
+!> Eckhardt et al. (2008, doi: 10.1016/j.jhydrol.2008.01.005)
+!> This option **requires** one gauge per domain at the outlet of the basin.
+BFI_calc = .true.
+!> baseflow index per domain. Only needed if not calculated (calculate_BFI_from_gauge = .false.)
+!> You can overwrite single BFI values to not calculate them internally (if BFI_calc = .true.).
+! BFI_obs(1) = 0.124
+! BFI_obs(2) = 0.256
 /
