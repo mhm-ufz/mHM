@@ -132,6 +132,7 @@ MODULE mo_global_variables
                                                               ! observerd data, and the
                                                               ! timestepInput of the simulated data
                                                               ! ToDo: add unit
+  logical, public                             :: BFI_calc     !< calculate observed BFI from gauges with Eckhardt filter
   real(dp), public, dimension(:), allocatable :: BFI_obs      !< given base-flow index per domain
   real(dp), public, dimension(:), allocatable :: BFI_qBF_sum  !< q2 weighted sum for each domain
   real(dp), public, dimension(:), allocatable :: BFI_qT_sum   !< q2 weighted sum for each domain

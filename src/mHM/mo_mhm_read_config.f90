@@ -104,7 +104,7 @@ CONTAINS
       read_meteo_weights, timeStep_model_outputs, &
       timestep_model_inputs, &
       output_deflate_level, output_double_precision, &
-      BFI_obs
+      BFI_calc, BFI_obs
     use mo_message, only : message
     use mo_mpr_constants, only : maxNoSoilHorizons
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
@@ -196,7 +196,7 @@ CONTAINS
             timeStep_model_outputs, &
             outputFlxState
     ! namelist for baseflow index optimzation
-    namelist /BFI_inputs/ BFI_obs
+    namelist /BFI_inputs/ BFI_calc, BFI_obs
 
     !===============================================================
     !  Read namelist main directories
@@ -220,7 +220,8 @@ CONTAINS
     allocate(timestep_model_inputs(domainMeta%nDomains))
     ! observed baseflow indizes
     allocate(BFI_obs(domainMeta%nDomains))
-    BFI_obs = 0.0_dp
+    BFI_obs = -1.0_dp  ! negative value to flag missing values
+    BFI_calc = .false.
 
     !===============================================================
     !  Read namelist for mainpaths

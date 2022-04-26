@@ -2245,7 +2245,7 @@ CONTAINS
     use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : kge
     use mo_global_variables, only : BFI_obs
-    use mo_message, only : message
+    use mo_message, only : message, error_message
     use mo_string_utils, only : num2str
     use mo_mrm_objective_function_runoff, only : extract_runoff
 
@@ -2298,6 +2298,11 @@ CONTAINS
 
     ! initialize some variables
     objective_BFI = 0.0_dp
+
+    if ( any(BFI_obs < 0.0_dp) ) call error_message( &
+      "objective_kge_q_BFI: missing BFI values for domain ", &
+      trim(adjustl(num2str(findloc((BFI_obs < 0.0_dp), .true., dim=1, kind=i4)))) &
+    )
 
     ! loop over domain - for applying power law later on
     do iDomain = 1, domainMeta%nDomains
