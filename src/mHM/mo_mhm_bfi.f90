@@ -15,7 +15,7 @@ module mo_mhm_bfi
 
 contains
 
-  !> \brief parse the given command line arguments.
+  !> \brief Calculate BFI from given discharge observation.
   subroutine calculate_BFI()
     use mo_common_mhm_mrm_variables, only : evalPer, nTstepDay, warmingDays
     use mo_common_variables, only : domainMeta
@@ -40,9 +40,6 @@ contains
     if (size(gauge%domainId) /= domainMeta%nDomains) call error_message("BFI: number of gauges and domains need to be equal!")
     allocate(id_sort(size(gauge%domainId)))
     id_sort = sort_index(gauge%domainId)
-
-    ! print*, "id_sort ", id_sort
-    ! print*, "gauge%domainId ", gauge%domainId
 
     call message()
     do iDomain = 1, domainMeta%nDomains
