@@ -19,7 +19,7 @@ include(CPM)
 CPMAddPackage(
   NAME            forces
   GIT_REPOSITORY  https://git.ufz.de/chs/forces.git
-  GIT_TAG         opti_add_BFI_output
+  GIT_TAG         v0.3.0
   OPTIONS         "BUILD_TESTING OFF"
 )
 if(BUILD_MHM_LIB_SHARED)
