@@ -414,13 +414,10 @@ unittest-gfortran83:
   script:
     # we need pfUnit
     - source hpc-module-loads/eve.gfortran83
-    # create build folder
-    - mkdir build && cd build
-    # run cmake with testing support and build mhm
-    - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON ..
-    - make -j 4
-    # run all pfUnit tests in src/tests
-    - ctest -V
+    # run cmake with testing support, build mhm and run pfunit tests
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -B build
+    - cmake --build build --parallel
+    - cmake --build build --target test
 
 coverage:
   when: always
@@ -429,13 +426,12 @@ coverage:
   script:
     # gcov is part of GCC
     - source hpc-module-loads/eve.chs-conda01
-    # run cmake with coverage support
+    # run cmake with coverage support and run tests
     - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON -B build
     - cmake --build build --parallel
-    # run all check-case for coverage calculation
-    - cd build && make mhm_coverage_CI
+    - cmake --build build --target mhm_coverage_CI
     # copy the output to a top-level folder
-    - cd .. && mkdir coverage
+    - mkdir coverage
     - cp build/mhm_coverage_CI/* coverage -R
   artifacts:
     when: always
