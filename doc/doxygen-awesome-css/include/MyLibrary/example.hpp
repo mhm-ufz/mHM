@@ -6,7 +6,7 @@ namespace MyLibrary {
 enum Color { red, green, blue };
 
 /**
- * Example class to demonstrate the features of the custom CSS.
+ * @brief Example class to demonstrate the features of the custom CSS.
  *
  * @author jothepro
  *
@@ -24,6 +24,14 @@ public:
      *
      * These elements have been tested with the custom CSS.
      *
+     * ## Tables
+     *
+     * The table content is scrollable if the table gets too wide.
+     * 
+     * | first_column | second_column | third_column | fourth_column | fifth_column | sixth_column | seventh_column | eighth_column | ninth_column |
+     * |--------------|---------------|--------------|---------------|--------------|--------------|----------------|---------------|--------------|
+     * | 1            | 2             | 3            | 4             | 5            | 6            | 7              | 8             | 9            |
+     *
      *
      * ## Lists
      *
@@ -38,20 +46,22 @@ public:
      *
      * ## Quotes
      *
-     * > This is an **awesome** design...
-     * >
-     * > ...do you agree?
+     * > Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt 
+     * > ut labore et dolore magna aliqua. Vitae proin sagittis nisl rhoncus mattis rhoncus urna neque viverra. 
+     * > Velit sed ullamcorper morbi tincidunt ornare. 
+     * > 
+     * > Lorem ipsum dolor sit amet consectetur adipiscing elit duis.
      * *- jothepro*
      *
      * ## Code block
      *
-     * ```
-     * code within md fences (```)
+     * ```cpp
+     * auto x = "code within md fences (```)";
      * ```
      *
      * @code{.cpp}
      * // code within @code block
-     * if(true) {
+     * while(true) {
      *    auto example = std::make_shared<Example>(5);
      *    example->test("test");
      * }
@@ -62,10 +72,10 @@ public:
      *     auto test = std::shared_ptr<Example(5);
      *
      *
-     * Inline `code` elements in a text. Lorem Ipsum set dolor. This also works within multiline text and does not break the `layout`.
+     * Inline `code` elements in a text. *Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.* This also works within multiline text and does not break the `layout`.
      *
      *
-     * ## special hints
+     * ## Special hints
      *
      * @warning this is a warning only for demonstration purposes
      *
@@ -74,7 +84,7 @@ public:
      * void this_looks_awesome();
      * @endcode
      *
-     * @bug this css has no bugs, it is perfect... NOT!
+     * @bug example bug
      *
      * @deprecated None of this will be deprecated, because it's beautiful!
      *
@@ -82,7 +92,9 @@ public:
      *
      * @pre This is a precondition
      *
+     * @todo This theme is never finished!
      *
+     * @remark This is awesome!
      *
      */
     std::string test(const std::string& test);
