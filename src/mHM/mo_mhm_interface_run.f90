@@ -93,7 +93,9 @@ module mo_mhm_interface_run
     fday_ssrd, &
     fnight_ssrd, &
     fday_strd, &
-    fnight_strd
+    fnight_strd, &
+    BFI_qBF_sum, &
+    BFI_qT_sum
   use mo_init_states, only : variables_default_init
   use mo_julian, only : caldat, julday
   use mo_message, only : error_message
@@ -172,19 +174,23 @@ module mo_mhm_interface_run
 contains
 
   !> \brief prepare single run of mHM
-  subroutine mhm_interface_run_prepare(parameterset, opti_domain_indices, runoff_present)
+  subroutine mhm_interface_run_prepare(parameterset, opti_domain_indices, runoff_present, BFI_present)
     implicit none
     !> a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
     real(dp), dimension(:), optional, intent(in) :: parameterset
     !> selected domains for optimization
     integer(i4), dimension(:), optional, intent(in) :: opti_domain_indices
-    !> wether runoff is present
+    !> whether runoff is present
     logical, optional, intent(in) :: runoff_present
+    !> whether BFI is present
+    logical, optional, intent(in) :: BFI_present
 
     integer(i4) :: i, iDomain, domainID
 
     ! run_cfg%output_runoff = .false. by default
     if (present(runoff_present)) run_cfg%output_runoff = runoff_present
+    ! run_cfg%output_BFI = .false. by default
+    if (present(BFI_present)) run_cfg%output_BFI = BFI_present
 
     ! store current parameter set
     allocate(run_cfg%parameterset(size(global_parameters, dim=1)))
@@ -223,6 +229,13 @@ contains
       end do
     end if
 
+    ! prepare BFI calculation
+    if (run_cfg%output_BFI) then
+      allocate(BFI_qBF_sum(run_cfg%nDomains))
+      allocate(BFI_qT_sum(run_cfg%nDomains))
+      BFI_qBF_sum = 0.0_dp
+      BFI_qT_sum = 0.0_dp
+    end if
 
     if (read_restart) then
       do i = 1, run_cfg%nDomains
@@ -679,6 +692,14 @@ contains
       run_cfg%domainDateTime%yId = LCyearId(run_cfg%domainDateTime%year, iDomain)
     end if
 
+    ! calculate BFI releated after warming days if wanted
+    if ( run_cfg%output_BFI .and. (run_cfg%domainDateTime%tIndex_out > 0_i4) ) then
+      BFI_qBF_sum(iDomain) = BFI_qBF_sum(iDomain) &
+        + sum(L1_baseflow(run_cfg%s1 : run_cfg%e1) * level1(iDomain)%CellArea) / level1(iDomain)%nCells
+      BFI_qT_sum(iDomain) = BFI_qT_sum(iDomain) &
+        + sum(L1_total_runoff(run_cfg%s1 : run_cfg%e1) * level1(iDomain)%CellArea) / level1(iDomain)%nCells
+    end if
+
   end subroutine mhm_interface_run_do_time_step
 
   !> \brief write output after current time-step
@@ -888,12 +909,19 @@ contains
   end subroutine mhm_interface_run_finalize_domain
 
   !> \brief finalize run
-  subroutine mhm_interface_run_finalize(runoff)
+  subroutine mhm_interface_run_finalize(runoff, BFI)
     implicit none
     !> returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff
+    !> baseflow index, dim1=domainID
+    real(dp), dimension(:), allocatable, optional, intent(out) :: BFI
 
     if (present(runoff) .and. (processMatrix(8, 1) > 0)) runoff = mRM_runoff
+    if (present(BFI)) then
+      BFI = BFI_qBF_sum / BFI_qT_sum
+      deallocate(BFI_qBF_sum)
+      deallocate(BFI_qT_sum)
+    end if
 
     if (allocated(run_cfg%parameterset)) deallocate(run_cfg%parameterset)
     if (allocated(run_cfg%L1_fNotSealed)) deallocate(run_cfg%L1_fNotSealed)

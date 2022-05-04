@@ -76,10 +76,12 @@ contains
       L1_twsaObs, &
       L1_etObs, &
       L1_neutronsObs, &
-      L1_smObs
+      L1_smObs, &
+      BFI_calc
     use mo_meteo_forcings, only: prepare_meteo_forcings_data
     use mo_read_optional_data, only: readOptidataObs
     use mo_write_ascii, only: write_configfile
+    use mo_mhm_bfi, only: calculate_BFI
 
 #ifdef NAG
     use f90_unix_dir, only: chdir
@@ -165,29 +167,29 @@ contains
     call timer_start(itimer)
 
     do iDomain = 1, domainMeta%nDomains
-        domainID = domainMeta%indices(iDomain)
-        ! read meteorology now, if optimization is switched on
-        ! meteorological forcings (reading, upscaling or downscaling)
-        if (timestep_model_inputs(iDomain) .eq. 0_i4) then
-          call prepare_meteo_forcings_data(iDomain, domainID, 1)
-        end if
+      domainID = domainMeta%indices(iDomain)
+      ! read meteorology now, if optimization is switched on
+      ! meteorological forcings (reading, upscaling or downscaling)
+      if (timestep_model_inputs(iDomain) .eq. 0_i4) then
+        call prepare_meteo_forcings_data(iDomain, domainID, 1)
+      end if
 
-        ! read optional optional data if necessary
-        if (optimize) then
+      ! read optional optional data if necessary
+      if (optimize) then
         select case (opti_function)
-            case(10 : 13, 28)
+          case(10 : 13, 28)
             ! read optional spatio-temporal soil mositure data
             call readOptidataObs(iDomain, domainID, L1_smObs(iDomain))
-            case(17)
+          case(17)
             ! read optional spatio-temporal neutrons data
             call readOptidataObs(iDomain, domainID, L1_neutronsObs(iDomain))
-            case(27, 29, 30)
+          case(27, 29, 30)
             ! read optional spatio-temporal evapotranspiration data
             call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
-            case(15)
+          case(15)
             ! read optional spatio-temporal tws data
             call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
-            case(33)
+          case(33)
             ! read optional spatio-temporal evapotranspiration data
             if (domainMeta%optidata(iDomain) == 0 .or. domainMeta%optidata(iDomain) == 5 .or. &
               domainMeta%optidata(iDomain) == 6 ) then
@@ -199,9 +201,12 @@ contains
               call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
             end if
         end select
-        end if
-
+      end if
     end do
+
+    ! calculate observed BFI if wanted
+    if ( optimize .and. opti_function==34 .and. BFI_calc ) call calculate_BFI()
+
     call timer_stop(itimer)
     call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
@@ -368,7 +373,7 @@ contains
         call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
 #endif
 
-      case(10 : 13, 15, 17, 27, 28, 29, 30, 33)
+      case(10 : 13, 15, 17, 27, 28, 29, 30, 33, 34)
         ! call optimization for other variables
         obj_func => objective
 #ifdef MPI
