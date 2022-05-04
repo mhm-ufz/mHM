@@ -51,13 +51,19 @@ include(compileoptions)
 ```
 
 ### `FindNetCDF.cmake`
-Copied from [NOAA-EMC/CMakeModules](https://github.com/NOAA-EMC/CMakeModules/blob/develop/Modules/FindNetCDF.cmake).
 
 Can be used like:
 ```cmake
 find_package(NetCDF COMPONENTS Fortran)
 target_link_libraries(<target> PUBLIC NetCDF::NetCDF_Fortran)
 ```
+
+To specify a particular NetCDF library, use
+
+    cmake -DNetCDF_ROOT=/path/to/netcdff -B build
+
+or set environment variable `NetCDF_ROOT=/path/to/netcdff`.
+
 
 ### `version.cmake`
 Provides a function to read version and date from a given files `version.txt` and `version-date.txt`.
@@ -68,7 +74,7 @@ include(version)
 get_version(PROJECT_VER PROJECT_VER_DEV PROJECT_DATE)
 ```
 
-### `CPM.cmake` (v0.34.0)
+### `CPM.cmake` (v0.35.0)
 CPM.cmake is a CMake script that adds dependency management capabilities to CMake.
 It's built as a thin wrapper around CMake's [FetchContent](https://cmake.org/cmake/help/latest/module/FetchContent.html)
 module that adds version control, caching, a simple API [and more](#comparison-to-pure-fetchcontent--externalproject).
