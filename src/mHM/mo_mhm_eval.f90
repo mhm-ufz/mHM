@@ -87,7 +87,7 @@ CONTAINS
   ! Robert Schweppe      Jun 2018 - refactoring and reformatting
   ! Stephan Thober       Jan 2022 - added nTstepForcingDay and is_hourly_forcing flag
 
-  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
+  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, BFI)
     implicit none
 
     !> a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
@@ -104,6 +104,8 @@ CONTAINS
     type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim
     !> returns tws time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells, nTimeSteps]
     type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim
+    !> baseflow index, dim1=domainID
+    real(dp), dimension(:), allocatable, optional, intent(out) :: BFI
 
     ! number of domains simulated in this mhm_eval run. Depends on opti_function
     integer(i4) :: nDomains, ii
@@ -112,7 +114,7 @@ CONTAINS
     logical :: time_loop_finished
 
     ! prepare the mhm run
-    call mhm_interface_run_prepare(parameterset, opti_domain_indices, present(runoff))
+    call mhm_interface_run_prepare(parameterset, opti_domain_indices, present(runoff), present(BFI))
 
     ! get number of domains to loop over
     call mhm_interface_run_get_ndomains(nDomains)
@@ -149,7 +151,7 @@ CONTAINS
     end do DomainLoop !<< Domain LOOP
 
     ! SET RUNOFF OUTPUT VARIABLE; reset init-flag for MPR
-    call mhm_interface_run_finalize(runoff)
+    call mhm_interface_run_finalize(runoff, BFI)
 
   end SUBROUTINE mhm_eval
 

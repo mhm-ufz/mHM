@@ -93,16 +93,18 @@ CONTAINS
     use mo_common_mhm_mrm_variables, only : opti_function, optimize
     use mo_common_variables, only : domainMeta, processMatrix
     use mo_file, only : file_defOutput, udefOutput
-    use mo_global_variables, only : L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
-                                    dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirPrecipitation, &
-                                    dirReferenceET, dirTemperature, dirabsVapPressure, dirwindspeed, dirRadiation, &
-                                    evap_coeff, &
-                                    fday_pet, fday_prec, fday_temp, fday_ssrd, fday_strd, &
-                                    fnight_pet, fnight_prec, fnight_temp, fnight_ssrd, fnight_strd, &
-                                    inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
-                                    read_meteo_weights, timeStep_model_outputs, &
-                                    timestep_model_inputs, &
-                                    output_deflate_level, output_double_precision
+    use mo_global_variables, only : &
+      L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
+      dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirPrecipitation, &
+      dirReferenceET, dirTemperature, dirabsVapPressure, dirwindspeed, dirRadiation, &
+      evap_coeff, &
+      fday_pet, fday_prec, fday_temp, fday_ssrd, fday_strd, &
+      fnight_pet, fnight_prec, fnight_temp, fnight_ssrd, fnight_strd, &
+      inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
+      read_meteo_weights, timeStep_model_outputs, &
+      timestep_model_inputs, &
+      output_deflate_level, output_double_precision, &
+      BFI_calc, BFI_obs
     use mo_message, only : message
     use mo_mpr_constants, only : maxNoSoilHorizons
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
@@ -193,6 +195,8 @@ CONTAINS
             output_double_precision, &
             timeStep_model_outputs, &
             outputFlxState
+    ! namelist for baseflow index optimzation
+    namelist /BFI_inputs/ BFI_calc, BFI_obs
 
     !===============================================================
     !  Read namelist main directories
@@ -214,6 +218,10 @@ CONTAINS
     allocate(L1_neutronsObs(domainMeta%nDomains))
     ! allocate time periods
     allocate(timestep_model_inputs(domainMeta%nDomains))
+    ! observed baseflow indizes
+    allocate(BFI_obs(domainMeta%nDomains))
+    BFI_obs = -1.0_dp  ! negative value to flag missing values
+    BFI_calc = .false.
 
     !===============================================================
     !  Read namelist for mainpaths
@@ -257,73 +265,78 @@ CONTAINS
     ! read optional optional data if necessary
     if (optimize) then
       select case (opti_function)
-      case(10 : 13, 28)
-        ! soil moisture
-        call position_nml('optional_data', unamelist)
-        read(unamelist, nml = optional_data)
-        do iDomain = 1, domainMeta%nDomains
-          domainID = domainMeta%indices(iDomain)
-          L1_smObs(iDomain)%dir = dir_Soil_moisture(domainID)
-          L1_smObs(iDomain)%timeStepInput = timeStep_sm_input
-          L1_smObs(iDomain)%varname = 'sm'
-        end do
-        if (nSoilHorizons_sm_input .GT. nSoilHorizons_mHM) then
-          call message()
-          call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
-          call message('          defined number of soil horizions: ', adjustl(trim(num2str(maxNoSoilHorizons))), '!')
-          stop
-        end if
-      case(17)
-        ! neutrons
-        call position_nml('optional_data', unamelist)
-        read(unamelist, nml = optional_data)
-        do iDomain = 1, domainMeta%nDomains
-          domainID = domainMeta%indices(iDomain)
-          L1_neutronsObs(iDomain)%dir = dir_neutrons(domainID)
-          L1_neutronsObs(iDomain)%timeStepInput = timeStep_neutrons_input
-          L1_neutronsObs(iDomain)%timeStepInput = -1 ! TODO: daily, hard-coded, to be flexibilized
-          L1_neutronsObs(iDomain)%varname = 'neutrons'
-        end do
-      case(27, 29, 30)
-        ! evapotranspiration
-        call position_nml('optional_data', unamelist)
-        read(unamelist, nml = optional_data)
-        do iDomain = 1, domainMeta%nDomains
-          domainID = domainMeta%indices(iDomain)
-          L1_etObs(iDomain)%dir = dir_evapotranspiration(domainID)
-          L1_etObs(iDomain)%timeStepInput = timeStep_et_input
-          L1_etObs(iDomain)%varname = 'et'
-        end do
-      case(15)
-        ! domain average TWS data
-        call position_nml('optional_data', unamelist)
-        read(unamelist, nml = optional_data)
-        do iDomain = 1, domainMeta%nDomains
-          domainID = domainMeta%indices(iDomain)
-          L1_twsaObs(iDomain)%dir = dir_TWS(domainID)
-          L1_twsaObs(iDomain)%timeStepInput = timeStep_tws_input
-          L1_twsaObs(iDomain)%varname = 'twsa'
-        end do
-      case(33)
-        ! evapotranspiration
-        call position_nml('optional_data', unamelist)
-        read(unamelist, nml = optional_data)
-        do iDomain = 1, domainMeta%nDomains
-          domainID = domainMeta%indices(iDomain)
-          L1_etObs(iDomain)%dir = dir_evapotranspiration(domainID)
-          L1_etObs(iDomain)%timeStepInput = timeStep_et_input
-          L1_etObs(iDomain)%varname = 'et'
-        end do
+        case(10 : 13, 28)
+          ! soil moisture
+          call position_nml('optional_data', unamelist)
+          read(unamelist, nml = optional_data)
+          do iDomain = 1, domainMeta%nDomains
+            domainID = domainMeta%indices(iDomain)
+            L1_smObs(iDomain)%dir = dir_Soil_moisture(domainID)
+            L1_smObs(iDomain)%timeStepInput = timeStep_sm_input
+            L1_smObs(iDomain)%varname = 'sm'
+          end do
+          if (nSoilHorizons_sm_input .GT. nSoilHorizons_mHM) then
+            call message()
+            call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
+            call message('          defined number of soil horizions: ', adjustl(trim(num2str(maxNoSoilHorizons))), '!')
+            stop
+          end if
+        case(17)
+          ! neutrons
+          call position_nml('optional_data', unamelist)
+          read(unamelist, nml = optional_data)
+          do iDomain = 1, domainMeta%nDomains
+            domainID = domainMeta%indices(iDomain)
+            L1_neutronsObs(iDomain)%dir = dir_neutrons(domainID)
+            L1_neutronsObs(iDomain)%timeStepInput = timeStep_neutrons_input
+            L1_neutronsObs(iDomain)%timeStepInput = -1 ! TODO: daily, hard-coded, to be flexibilized
+            L1_neutronsObs(iDomain)%varname = 'neutrons'
+          end do
+        case(27, 29, 30)
+          ! evapotranspiration
+          call position_nml('optional_data', unamelist)
+          read(unamelist, nml = optional_data)
+          do iDomain = 1, domainMeta%nDomains
+            domainID = domainMeta%indices(iDomain)
+            L1_etObs(iDomain)%dir = dir_evapotranspiration(domainID)
+            L1_etObs(iDomain)%timeStepInput = timeStep_et_input
+            L1_etObs(iDomain)%varname = 'et'
+          end do
+        case(15)
+          ! domain average TWS data
+          call position_nml('optional_data', unamelist)
+          read(unamelist, nml = optional_data)
+          do iDomain = 1, domainMeta%nDomains
+            domainID = domainMeta%indices(iDomain)
+            L1_twsaObs(iDomain)%dir = dir_TWS(domainID)
+            L1_twsaObs(iDomain)%timeStepInput = timeStep_tws_input
+            L1_twsaObs(iDomain)%varname = 'twsa'
+          end do
+        case(33)
+          ! evapotranspiration
+          call position_nml('optional_data', unamelist)
+          read(unamelist, nml = optional_data)
+          do iDomain = 1, domainMeta%nDomains
+            domainID = domainMeta%indices(iDomain)
+            L1_etObs(iDomain)%dir = dir_evapotranspiration(domainID)
+            L1_etObs(iDomain)%timeStepInput = timeStep_et_input
+            L1_etObs(iDomain)%varname = 'et'
+          end do
 
-        ! domain average TWS data
-        call position_nml('optional_data', unamelist)
-        read(unamelist, nml = optional_data)
-        do iDomain = 1, domainMeta%nDomains
-          domainID = domainMeta%indices(iDomain)
-          L1_twsaObs(iDomain)%dir = dir_TWS(domainID)
-          L1_twsaObs(iDomain)%timeStepInput = timeStep_tws_input
-          L1_twsaObs(iDomain)%varname = 'twsa'
-        end do
+          ! domain average TWS data
+          call position_nml('optional_data', unamelist)
+          read(unamelist, nml = optional_data)
+          do iDomain = 1, domainMeta%nDomains
+            domainID = domainMeta%indices(iDomain)
+            L1_twsaObs(iDomain)%dir = dir_TWS(domainID)
+            L1_twsaObs(iDomain)%timeStepInput = timeStep_tws_input
+            L1_twsaObs(iDomain)%varname = 'twsa'
+          end do
+
+        case(34)
+          !baseflow index optimization
+          call position_nml('BFI_inputs', unamelist)
+          read(unamelist, nml = BFI_inputs)
 
       end select
     end if

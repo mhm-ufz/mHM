@@ -155,6 +155,9 @@ CONTAINS
     case (33)
       multiple_objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
       objective = multiple_objective(1)
+    case (34)
+      ! KGE for Q * Absolute-Error for BFI
+      objective = objective_kge_q_BFI(parameterset, eval)
 
     case default
       call message("Error objective: opti_function not implemented yet.")
@@ -2209,6 +2212,139 @@ CONTAINS
     !    print*, "1-SM 2-Q : ", 1.0_dp-objective_sm, 1.0_dp-objective_kge ! MZMZMZMZ
 
   END FUNCTION objective_kge_q_et
+
+
+  ! -----------------------------------------------------------------
+
+  !    NAME
+  !        objective_kge_q_BFI
+
+  !    PURPOSE
+  !>       \brief Objective function of KGE for runoff and BFI absulute difference
+
+  !>       \details Objective function of KGE for runoff and KGE for ET.
+  !>       Further details can be found in the documentation of objective functions
+  !>       '14 - objective_multiple_gauges_kge_power6'.
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_kge_q_BFI &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Sebastian Müller
+
+  !>       \date Apr 2022
+
+  FUNCTION objective_kge_q_BFI(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_variables, only : level1, domainMeta
+    use mo_errormeasures, only : kge
+    use mo_global_variables, only : BFI_obs
+    use mo_message, only : message, error_message
+    use mo_string_utils, only : num2str
+    use mo_mrm_objective_function_runoff, only : extract_runoff
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    real(dp) :: objective_kge_q_BFI
+    real(dp) :: objective_BFI
+    real(dp) :: objective_q
+
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+
+    ! number of invalid cells in catchment
+    real(dp) :: invalid_cells
+
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! domain loop counter
+    integer(i4) :: iDomain
+
+    !> baseflow index for each domain
+    real(dp), dimension(:), allocatable :: BFI
+
+    ! counter
+    integer(i4) :: gg, i
+
+    integer(i4) :: nGaugesTotal
+
+    ! aggregated simulated runoff
+    integer(i4), dimension(:), allocatable :: domain_ids, domain_ids_pack
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+    ! run mHM
+    allocate(BFI(domainMeta%nDomains))
+    call eval(parameterset, runoff = runoff, BFI = BFI)
+
+    ! -----------------------------
+    ! BFI
+    ! -----------------------------
+
+    ! initialize some variables
+    objective_BFI = 0.0_dp
+
+    if ( any(BFI_obs < 0.0_dp) ) then
+      allocate(domain_ids(domainMeta%nDomains))
+      allocate(domain_ids_pack(count(BFI_obs < 0.0_dp)))
+      domain_ids = [(i, i=1,size(domain_ids))]
+      domain_ids_pack = pack(domain_ids, mask=(BFI_obs < 0.0_dp))
+      call error_message( &
+        "objective_kge_q_BFI: missing BFI values for domain ", &
+        trim(adjustl(num2str(domain_ids_pack(1)))) &
+      )
+    end if
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+      objective_BFI = objective_BFI + abs(BFI(iDomain) - BFI_obs(iDomain)) / domainMeta%nDomains
+    end do
+
+    ! -----------------------------
+    ! RUNOFF
+    ! -----------------------------
+    objective_q = 0.0_dp
+    nGaugesTotal = size(runoff, dim = 2)
+
+    do gg = 1, nGaugesTotal
+
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+
+      ! KGE
+      objective_q = objective_q + &
+              ((1.0_dp - kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)) / real(nGaugesTotal, dp))**6
+
+    end do
+
+    deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
+
+    ! compromise solution - sixth root
+    objective_q = objective_q**onesixth
+
+    objective_kge_q_BFI = (objective_BFI + 1._dp)*objective_q
+    call message('    objective_kge_q_BFI = ', num2str(objective_kge_q_BFI, '(F9.5)'))
+
+  END FUNCTION objective_kge_q_BFI
+
 
   ! -----------------------------------------------------------------
 
