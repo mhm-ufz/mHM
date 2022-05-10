@@ -40,7 +40,6 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     -ffree-form -ffixed-line-length-132
     $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -fimplicit-none -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=snan -pedantic-errors>
     $<$<CONFIG:RELEASE>:-O3>
-    $<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
     $<$<BOOL:${CMAKE_WITH_GPROF}>:-pg>
   )
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")

@@ -12,9 +12,8 @@ project(mhm
   HOMEPAGE_URL "https://www.ufz.de/mhm"
   LANGUAGES Fortran
 )
-# add full version and date to pre-processor flags (qoutes need in before hand)
-add_compile_definitions(MHMVERSION='${MHM_VER_DEV}' MHMDATE='${MHM_DATE}')
-# Compile
+
+# add lib and exe
 add_subdirectory(./src)  # the lib folder containing mhm_lib
 option(BUILD_MHM_DRIVER "Build mHM with executable driver." ON)
 if(BUILD_MHM_DRIVER)
@@ -27,10 +26,17 @@ if(BUILD_MHM_DRIVER)
   install(TARGETS mhm DESTINATION bin)
 endif()
 
+# add full version and date to pre-processor flags (qoutes need in before hand)
+target_compile_definitions(mhm_lib PRIVATE
+  MHMVERSION='${MHM_VER_DEV}'
+  MHMDATE='${MHM_DATE}'
+)
+
 # setup coverage with GNU
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE)
   include(CodeCoverage)
-  append_coverage_compiler_flags()
+  target_compile_options(mhm_lib PUBLIC -g --coverage)
+  target_link_libraries(mhm_lib PUBLIC gcov)
   SETUP_TARGET_FOR_COVERAGE_LCOV(
     NAME mhm_coverage_CI
     EXECUTABLE ../CI-scripts/run_cmake_coverage.sh
