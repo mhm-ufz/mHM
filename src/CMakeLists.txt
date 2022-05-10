@@ -16,12 +16,7 @@ endif()
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 include(CPM)
-CPMAddPackage(
-  NAME            forces
-  GIT_REPOSITORY  https://git.ufz.de/chs/forces.git
-  GIT_TAG         v0.3.0
-  OPTIONS         "BUILD_TESTING OFF"
-)
+CPMAddPackage("https://git.ufz.de/chs/forces.git@0.3.1")
 if(BUILD_MHM_LIB_SHARED)
   set_property(TARGET forces PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
