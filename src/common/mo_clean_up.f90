@@ -209,6 +209,16 @@ module mo_clean_up
       riv_temp_pcs, &
       mrm_L0_slope => L0_slope
 
+    use mo_common_mHM_mRM_variables, only : &
+      resolutionRouting, &
+      warmPer, &
+      evalPer, &
+      simPer, &
+      warmingDays, &
+      LCyearId, &
+      mhmFileRestartIn, &
+      mrmFileRestartIn
+
     ! mo_global_variables
     if ( allocated(timeStep_model_inputs) ) deallocate(timeStep_model_inputs)
     if ( allocated(dirPrecipitation) ) deallocate(dirPrecipitation)
@@ -431,6 +441,16 @@ module mo_clean_up
     if ( allocated(InflowGauge%Q) ) deallocate(InflowGauge%Q)
     if ( allocated(InflowGauge%T) ) deallocate(InflowGauge%T)
     call riv_temp_pcs%clean_up()
+
+    ! mo_common_mHM_mRM_variables
+    if ( allocated(resolutionRouting) ) deallocate(resolutionRouting)
+    if ( allocated(warmPer) ) deallocate(warmPer)
+    if ( allocated(evalPer) ) deallocate(evalPer)
+    if ( allocated(simPer) ) deallocate(simPer)
+    if ( allocated(warmingDays) ) deallocate(warmingDays)
+    if ( allocated(LCyearId) ) deallocate(LCyearId)
+    if ( allocated(mhmFileRestartIn) ) deallocate(mhmFileRestartIn)
+    if ( allocated(mrmFileRestartIn) ) deallocate(mrmFileRestartIn)
 
     ! mo_common_run_variables
     call run_cfg%clean_up()
