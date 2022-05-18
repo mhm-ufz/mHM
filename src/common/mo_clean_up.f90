@@ -15,6 +15,7 @@ module mo_clean_up
 
   !> \brief Deallocate all global variables.
   subroutine deallocate_global_variables()
+    use mo_common_run_variables, only : run_cfg
     use mo_global_variables, only : &
       timeStep_model_inputs, &
       dirPrecipitation, &
@@ -97,7 +98,8 @@ module mo_clean_up
       LC_year_start, &
       LC_year_end, &
       global_parameters, &
-      global_parameters_name
+      global_parameters_name, &
+      domainMeta
 
     use mo_mpr_global_variables, only : &
       HorizonDepth_mHM, &
@@ -140,7 +142,8 @@ module mo_clean_up
       L1_tempThresh, &
       L1_unsatThresh, &
       L1_sealedThresh, &
-      L1_wiltingPoint
+      L1_wiltingPoint, &
+      soilDB
 
     use mo_mrm_global_variables, only : &
       dirGauges, &
@@ -201,6 +204,9 @@ module mo_clean_up
       L0_channel_depth, &
       L0_channel_elevation, &
       L0_river_head_mon_sum, &
+      gauge, &
+      InflowGauge, &
+      riv_temp_pcs, &
       mrm_L0_slope => L0_slope
 
     ! mo_global_variables
@@ -286,6 +292,10 @@ module mo_clean_up
     if ( allocated(LC_year_end) ) deallocate(LC_year_end)
     if ( allocated(global_parameters) ) deallocate(global_parameters)
     if ( allocated(global_parameters_name) ) deallocate(global_parameters_name)
+    if ( allocated(domainMeta%indices) ) deallocate(domainMeta%indices)
+    if ( allocated(domainMeta%L0DataFrom) ) deallocate(domainMeta%L0DataFrom)
+    if ( allocated(domainMeta%optidata) ) deallocate(domainMeta%optidata)
+    if ( allocated(domainMeta%doRouting) ) deallocate(domainMeta%doRouting)
 
     ! mo_mpr_global_variables
     if ( allocated(HorizonDepth_mHM) ) deallocate(HorizonDepth_mHM)
@@ -329,6 +339,26 @@ module mo_clean_up
     if ( allocated(L1_unsatThresh) ) deallocate(L1_unsatThresh)
     if ( allocated(L1_sealedThresh) ) deallocate(L1_sealedThresh)
     if ( allocated(L1_wiltingPoint) ) deallocate(L1_wiltingPoint)
+    if ( allocated(soilDB%id) ) deallocate(soilDB%id)
+    if ( allocated(soilDB%nHorizons) ) deallocate(soilDB%nHorizons)
+    if ( allocated(soilDB%is_present) ) deallocate(soilDB%is_present)
+    if ( allocated(soilDB%UD) ) deallocate(soilDB%UD)
+    if ( allocated(soilDB%LD) ) deallocate(soilDB%LD)
+    if ( allocated(soilDB%clay) ) deallocate(soilDB%clay)
+    if ( allocated(soilDB%sand) ) deallocate(soilDB%sand)
+    if ( allocated(soilDB%DbM) ) deallocate(soilDB%DbM)
+    if ( allocated(soilDB%depth) ) deallocate(soilDB%depth)
+    if ( allocated(soilDB%RZdepth) ) deallocate(soilDB%RZdepth)
+    if ( allocated(soilDB%Wd) ) deallocate(soilDB%Wd)
+    if ( allocated(soilDB%nTillHorizons) ) deallocate(soilDB%nTillHorizons)
+    if ( allocated(soilDB%thetaS_Till) ) deallocate(soilDB%thetaS_Till)
+    if ( allocated(soilDB%thetaS) ) deallocate(soilDB%thetaS)
+    if ( allocated(soilDB%Db) ) deallocate(soilDB%Db)
+    if ( allocated(soilDB%thetaFC_Till) ) deallocate(soilDB%thetaFC_Till)
+    if ( allocated(soilDB%thetaFC) ) deallocate(soilDB%thetaFC)
+    if ( allocated(soilDB%thetaPW_Till) ) deallocate(soilDB%thetaPW_Till)
+    if ( allocated(soilDB%thetaPW) ) deallocate(soilDB%thetaPW)
+    if ( allocated(soilDB%Ks) ) deallocate(soilDB%Ks)
 
     ! mo_mrm_global_variables
     if ( allocated(dirGauges) ) deallocate(dirGauges)
@@ -390,6 +420,20 @@ module mo_clean_up
     if ( allocated(L0_channel_elevation) ) deallocate(L0_channel_elevation)
     if ( allocated(L0_river_head_mon_sum) ) deallocate(L0_river_head_mon_sum)
     if ( allocated(mrm_L0_slope) ) deallocate(mrm_L0_slope)
+    if ( allocated(gauge%domainId) ) deallocate(gauge%domainId)
+    if ( allocated(gauge%fname) ) deallocate(gauge%fname)
+    if ( allocated(gauge%gaugeId) ) deallocate(gauge%gaugeId)
+    if ( allocated(gauge%Q) ) deallocate(gauge%Q)
+    if ( allocated(gauge%T) ) deallocate(gauge%T)
+    if ( allocated(InflowGauge%domainId) ) deallocate(InflowGauge%domainId)
+    if ( allocated(InflowGauge%fname) ) deallocate(InflowGauge%fname)
+    if ( allocated(InflowGauge%gaugeId) ) deallocate(InflowGauge%gaugeId)
+    if ( allocated(InflowGauge%Q) ) deallocate(InflowGauge%Q)
+    if ( allocated(InflowGauge%T) ) deallocate(InflowGauge%T)
+    call riv_temp_pcs%clean_up()
+
+    ! mo_common_run_variables
+    call run_cfg%clean_up()
 
   end subroutine deallocate_global_variables
 
