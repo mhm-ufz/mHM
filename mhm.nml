@@ -305,8 +305,8 @@ dir_Morpho(2)        = "test_domain_2/input/morph/"
 !> directory where land cover files are located
 dir_LCover(2)        = "test_domain_2/input/luse/"
 !> directory where restart output should be written
-mhm_file_RestartOut(2)    = "test_domain/restart/mHM_restart_002.nc"
-mrm_file_RestartOut(2)    = "test_domain/restart/mRM_restart_002.nc"
+mhm_file_RestartOut(2)    = "test_domain_2/restart/mHM_restart_002.nc"
+mrm_file_RestartOut(2)    = "test_domain_2/restart/mRM_restart_002.nc"
 !> directory where output should be written
 dir_Out(2)           = "test_domain_2/output/"
 !> file containing latitude and longitude on the resolution_Hydrology

@@ -385,7 +385,7 @@ CONTAINS
     logical, dimension(:, :), allocatable :: mask1
 
     ! dummy, 2 dimension
-    real(dp), dimension(:, :), allocatable :: dummyD2
+    real(dp), dimension(:, :), allocatable :: dummyD2, dummyD2_T
 
     ! dummy, 3 dimension
     real(dp), dimension(:, :, :), allocatable :: dummyD3
@@ -417,7 +417,8 @@ CONTAINS
 
     ! get the dimensions
     var = nc%getVariable(trim(soilHorizonsVarName)//'_bnds')
-    call var%getData(dummyD2)
+    call var%getData(dummyD2_T)
+    dummyD2 = transpose(dummyD2_T)
     nSoilHorizons_temp = size(dummyD2, 1)
     allocate(soilHorizonBoundaries_temp(nSoilHorizons_temp+1))
     soilHorizonBoundaries_temp(1:nSoilHorizons_temp) = dummyD2(:,1)
@@ -425,7 +426,8 @@ CONTAINS
 
     ! get the landcover dimension
     var = nc%getVariable(trim(landCoverPeriodsVarName)//'_bnds')
-    call var%getData(dummyD2)
+    call var%getData(dummyD2_T)
+    dummyD2 = transpose(dummyD2_T)
     nLandCoverPeriods_temp = size(dummyD2, 1)
     allocate(landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1))
     landCoverPeriodBoundaries_temp(1:nLandCoverPeriods_temp) = dummyD2(:,1)
@@ -434,7 +436,8 @@ CONTAINS
     ! get the LAI dimension
     if (nc%hasVariable(trim(LAIVarName)//'_bnds')) then
       var = nc%getVariable(trim(LAIVarName)//'_bnds')
-      call var%getData(dummyD2)
+      call var%getData(dummyD2_T)
+      dummyD2 = transpose(dummyD2_T)
       nLAIs_temp = size(dummyD2, 1)
       allocate(LAIBoundaries_temp(nLAIs_temp+1))
       LAIBoundaries_temp(1:nLAIs_temp) = dummyD2(:,1)
