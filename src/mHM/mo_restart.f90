@@ -359,6 +359,7 @@ CONTAINS
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
     use mo_common_mHM_mRM_restart, only: check_dimension_consistency
+    use mo_common_mHM_mRM_variables, only: read_old_style_restart_bounds
 
     implicit none
 
@@ -385,7 +386,7 @@ CONTAINS
     logical, dimension(:, :), allocatable :: mask1
 
     ! dummy, 2 dimension
-    real(dp), dimension(:, :), allocatable :: dummyD2, dummyD2_T
+    real(dp), dimension(:, :), allocatable :: dummyD2
 
     ! dummy, 3 dimension
     real(dp), dimension(:, :, :), allocatable :: dummyD3
@@ -417,37 +418,38 @@ CONTAINS
 
     ! get the dimensions
     var = nc%getVariable(trim(soilHorizonsVarName)//'_bnds')
-    call var%getData(dummyD2_T)
-    dummyD2 = transpose(dummyD2_T)
-    nSoilHorizons_temp = size(dummyD2, 1)
+    call var%getData(dummyD2)
+    if ( read_old_style_restart_bounds ) dummyD2 = transpose(dummyD2)
+    nSoilHorizons_temp = size(dummyD2, 2)
     allocate(soilHorizonBoundaries_temp(nSoilHorizons_temp+1))
-    soilHorizonBoundaries_temp(1:nSoilHorizons_temp) = dummyD2(:,1)
-    soilHorizonBoundaries_temp(nSoilHorizons_temp+1) = dummyD2(nSoilHorizons_temp,2)
+    soilHorizonBoundaries_temp(1:nSoilHorizons_temp) = dummyD2(1, :)
+    soilHorizonBoundaries_temp(nSoilHorizons_temp+1) = dummyD2(2, nSoilHorizons_temp)
 
     ! get the landcover dimension
     var = nc%getVariable(trim(landCoverPeriodsVarName)//'_bnds')
-    call var%getData(dummyD2_T)
-    dummyD2 = transpose(dummyD2_T)
-    nLandCoverPeriods_temp = size(dummyD2, 1)
+    call var%getData(dummyD2)
+    if ( read_old_style_restart_bounds ) dummyD2 = transpose(dummyD2)
+    nLandCoverPeriods_temp = size(dummyD2, 2)
     allocate(landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1))
-    landCoverPeriodBoundaries_temp(1:nLandCoverPeriods_temp) = dummyD2(:,1)
-    landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1) = dummyD2(nLandCoverPeriods_temp,2)
+    landCoverPeriodBoundaries_temp(1:nLandCoverPeriods_temp) = dummyD2(1, :)
+    landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1) = dummyD2(2, nLandCoverPeriods_temp)
 
     ! get the LAI dimension
     if (nc%hasVariable(trim(LAIVarName)//'_bnds')) then
       var = nc%getVariable(trim(LAIVarName)//'_bnds')
-      call var%getData(dummyD2_T)
-      dummyD2 = transpose(dummyD2_T)
-      nLAIs_temp = size(dummyD2, 1)
+      call var%getData(dummyD2)
+      if ( read_old_style_restart_bounds ) dummyD2 = transpose(dummyD2)
+      nLAIs_temp = size(dummyD2, 2)
       allocate(LAIBoundaries_temp(nLAIs_temp+1))
-      LAIBoundaries_temp(1:nLAIs_temp) = dummyD2(:,1)
-      LAIBoundaries_temp(nLAIs_temp+1) = dummyD2(nLAIs_temp,2)
+      LAIBoundaries_temp(1:nLAIs_temp) = dummyD2(1, :)
+      LAIBoundaries_temp(nLAIs_temp+1) = dummyD2(2, nLAIs_temp)
     else if (nc%hasDimension('L1_LAITimesteps')) then
       nc_dim = nc%getDimension('L1_LAITimesteps')
       nLAIs_temp = nc_dim%getLength()
       allocate(LAIBoundaries_temp(nLAIs_temp+1))
       LAIBoundaries_temp = [(ii, ii=1, nLAIs_temp+1)]
     end if
+
 
     call check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
           nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)

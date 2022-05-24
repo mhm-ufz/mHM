@@ -55,7 +55,7 @@ CONTAINS
                                             nTStepDay, nTStepForcingDay, opti_function, opti_method, optimize, optimize_restart, &
                                             read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
                                             sce_ngs, sce_npg, sce_nps, seed, &
-                                            simPer, timestep, warmPer, warmingDays
+                                            simPer, timestep, warmPer, warmingDays, read_old_style_restart_bounds
     use mo_common_read_config, only : set_land_cover_scenes_id
     use mo_common_variables, only : LCfilename, domainMeta, period, processMatrix
     use mo_julian, only : caldat, julday
@@ -86,7 +86,8 @@ CONTAINS
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig_mhm_mrm/ timestep, resolution_Routing, optimize, &
             optimize_restart, opti_method, opti_function, &
-            read_restart, mrm_read_river_network, mhm_file_RestartIn, mrm_file_RestartIn
+            read_restart, mrm_read_river_network, read_old_style_restart_bounds, &
+            mhm_file_RestartIn, mrm_file_RestartIn
     ! namelist for optimization settings
     namelist /Optimization/ nIterations, seed, dds_r, sa_temp, sce_ngs, &
             sce_npg, sce_nps, mcmc_opti, mcmc_error_params
@@ -95,6 +96,7 @@ CONTAINS
 
     ! set default values for optional arguments
     mrm_read_river_network = .false.
+    read_old_style_restart_bounds = .false.
 
     !===============================================================
     !  Read namelist main directories

@@ -143,9 +143,11 @@ timestep = 1
 !> mrm_read_river_network is an optional flag
 !> mrm_read_river_network = .True. allows to read the river network for mRM
 !> read_restart = .True. forces mrm_read_river_network = .True.
+!> read_old_style_restart_bounds = .True. if you want to use an old-style restart file created by mhm<=v5.11
 !-----------------------------------------------------------------------------
-read_restart  = .False.
+read_restart  = .True.
 mrm_read_river_network = .False.
+read_old_style_restart_bounds = .False.
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition
