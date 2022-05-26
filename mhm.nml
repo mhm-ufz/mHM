@@ -145,7 +145,7 @@ timestep = 1
 !> read_restart = .True. forces mrm_read_river_network = .True.
 !> read_old_style_restart_bounds = .True. if you want to use an old-style restart file created by mhm<=v5.11
 !-----------------------------------------------------------------------------
-read_restart  = .True.
+read_restart  = .False.
 mrm_read_river_network = .False.
 read_old_style_restart_bounds = .False.
 !-----------------------------------------------------------------------------
