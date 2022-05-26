@@ -386,7 +386,7 @@ CONTAINS
     logical, dimension(:, :), allocatable :: mask1
 
     ! dummy, 2 dimension
-    real(dp), dimension(:, :), allocatable :: dummyD2
+    real(dp), dimension(:, :), allocatable :: dummyD2, dummyD2_tmp
 
     ! dummy, 3 dimension
     real(dp), dimension(:, :, :), allocatable :: dummyD3
@@ -418,8 +418,13 @@ CONTAINS
 
     ! get the dimensions
     var = nc%getVariable(trim(soilHorizonsVarName)//'_bnds')
-    call var%getData(dummyD2)
-    if ( read_old_style_restart_bounds ) dummyD2 = transpose(dummyD2)
+    call var%getData(dummyD2_tmp)
+    if ( read_old_style_restart_bounds ) then
+      dummyD2 = transpose(dummyD2_tmp)
+    else
+      dummyD2 = dummyD2_tmp
+    end if
+    deallocate(dummyD2_tmp)
     nSoilHorizons_temp = size(dummyD2, 2)
     allocate(soilHorizonBoundaries_temp(nSoilHorizons_temp+1))
     soilHorizonBoundaries_temp(1:nSoilHorizons_temp) = dummyD2(1, :)
@@ -427,8 +432,13 @@ CONTAINS
 
     ! get the landcover dimension
     var = nc%getVariable(trim(landCoverPeriodsVarName)//'_bnds')
-    call var%getData(dummyD2)
-    if ( read_old_style_restart_bounds ) dummyD2 = transpose(dummyD2)
+    call var%getData(dummyD2_tmp)
+    if ( read_old_style_restart_bounds ) then
+      dummyD2 = transpose(dummyD2_tmp)
+    else
+      dummyD2 = dummyD2_tmp
+    end if
+    deallocate(dummyD2_tmp)
     nLandCoverPeriods_temp = size(dummyD2, 2)
     allocate(landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1))
     landCoverPeriodBoundaries_temp(1:nLandCoverPeriods_temp) = dummyD2(1, :)
@@ -437,8 +447,13 @@ CONTAINS
     ! get the LAI dimension
     if (nc%hasVariable(trim(LAIVarName)//'_bnds')) then
       var = nc%getVariable(trim(LAIVarName)//'_bnds')
-      call var%getData(dummyD2)
-      if ( read_old_style_restart_bounds ) dummyD2 = transpose(dummyD2)
+      call var%getData(dummyD2_tmp)
+      if ( read_old_style_restart_bounds ) then
+        dummyD2 = transpose(dummyD2_tmp)
+      else
+        dummyD2 = dummyD2_tmp
+      end if
+      deallocate(dummyD2_tmp)
       nLAIs_temp = size(dummyD2, 2)
       allocate(LAIBoundaries_temp(nLAIs_temp+1))
       LAIBoundaries_temp(1:nLAIs_temp) = dummyD2(1, :)
