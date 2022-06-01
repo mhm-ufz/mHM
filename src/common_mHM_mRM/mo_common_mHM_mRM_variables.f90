@@ -32,7 +32,9 @@ module mo_common_mHM_mRM_variables
   real(dp), public :: c2TSTu            !       Unit transformation = timeStep/24
   real(dp), dimension(:), allocatable, public :: resolutionRouting          ! [m or degree] resolution of routing - Level 11
   logical, public :: read_restart               ! flag
-  logical, public :: mrm_read_river_network               ! flag
+  logical, public :: mrm_read_river_network     ! flag
+  logical, public :: read_old_style_restart_bounds     ! flag
+  
 
   type(period), dimension(:), allocatable, public :: warmPer     ! time period for warming
   type(period), dimension(:), allocatable, public :: evalPer     ! time period for model evaluation
