@@ -81,6 +81,8 @@ module mo_common_run_variables
   contains
     !> \copydoc mo_common_run_variables::get_domain_index
     procedure :: get_domain_index!< \see mo_common_run_variables::get_domain_index
+    !> \copydoc mo_common_run_variables::clean_up
+    procedure :: clean_up!< \see mo_common_run_variables::clean_up
   end type run_cfg_t
 
   !> This is a container to hold all information while running mHM
@@ -96,5 +98,16 @@ contains
     integer(i4), intent(in) :: i !< domain loop counter
     idx = self%domain_indices(i)
   end function get_domain_index
+
+  !> \brief clean up run variables
+  subroutine clean_up(self)
+    implicit none
+    class(run_cfg_t), intent(inout) :: self
+    if ( allocated(self%parameterset) ) deallocate(self%parameterset)
+    if ( allocated(self%domain_indices) ) deallocate(self%domain_indices)
+    if ( allocated(self%L1_fNotSealed) ) deallocate(self%L1_fNotSealed)
+    if ( allocated(self%RunToRout) ) deallocate(self%RunToRout)
+    if ( allocated(self%InflowDischarge) ) deallocate(self%InflowDischarge)
+  end subroutine clean_up
 
 end module mo_common_run_variables

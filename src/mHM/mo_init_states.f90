@@ -65,7 +65,8 @@ CONTAINS
     use mo_common_constants, only : P1_InitStateFluxes
     use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
                                     L1_fastRunoff, L1_infilSoil, L1_inter, L1_melt, L1_neutrons, L1_percol, &
-                                    L1_pet_calc, L1_preEffect, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
+                                    L1_pet_calc, L1_temp_calc, L1_prec_calc, &
+                                    L1_preEffect, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
                                     L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_total_runoff, L1_unsatSTW
     use mo_mpr_constants, only : C1_InitStateSM, P2_InitStateFluxes, P3_InitStateFluxes, &
                                  P4_InitStateFluxes, P5_InitStateFluxes
@@ -94,6 +95,10 @@ CONTAINS
     !-------------------------------------------
     ! calculated / corrected potential evapotranspiration
     call append(L1_pet_calc, dummy_1D)
+    ! temperature for current time step
+    call append(L1_temp_calc, dummy_1D)
+    ! precipitation for current time step
+    call append(L1_prec_calc, dummy_1D)
     !  soil actual ET
     call append(L1_aETSoil, dummy_2D)
     ! canopy actual ET
@@ -194,7 +199,8 @@ CONTAINS
     use mo_common_constants, only : P1_InitStateFluxes
     use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
                                     L1_fastRunoff, L1_infilSoil, &
-                                    L1_inter, L1_melt, L1_neutrons, L1_percol, L1_pet_calc, L1_preEffect, L1_rain, &
+                                    L1_inter, L1_melt, L1_neutrons, L1_percol, L1_pet_calc, L1_temp_calc, L1_prec_calc, &
+                                    L1_preEffect, L1_rain, &
                                     L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
                                     L1_soilMoist, L1_total_runoff, L1_unsatSTW
     use mo_mpr_constants, only : C1_InitStateSM, P2_InitStateFluxes, P3_InitStateFluxes, &
@@ -249,6 +255,12 @@ CONTAINS
 
     ! corrected / calculated potential ET
     L1_pet_calc = P1_InitStateFluxes
+
+    ! temperature for current time step
+    L1_temp_calc = P1_InitStateFluxes
+
+    ! precipitation for current time step
+    L1_prec_calc = P1_InitStateFluxes
 
     !  soil actual ET
     L1_aETSoil = P1_InitStateFluxes
