@@ -420,10 +420,11 @@ CONTAINS
     var = nc%getVariable(trim(soilHorizonsVarName)//'_bnds')
     call var%getData(dummyD2_tmp)
     if (allocated(dummyD2)) deallocate(dummyD2)
-    allocate(dummyD2(size(dummyD2_tmp,1), size(dummyD2_tmp,2)))
     if ( read_old_style_restart_bounds ) then
+      allocate(dummyD2(size(dummyD2_tmp,2), size(dummyD2_tmp,1)))
       dummyD2 = transpose(dummyD2_tmp)
     else
+      allocate(dummyD2(size(dummyD2_tmp,1), size(dummyD2_tmp,2)))
       dummyD2 = dummyD2_tmp
     end if
     deallocate(dummyD2_tmp)
@@ -436,10 +437,11 @@ CONTAINS
     var = nc%getVariable(trim(landCoverPeriodsVarName)//'_bnds')
     call var%getData(dummyD2_tmp)
     if (allocated(dummyD2)) deallocate(dummyD2)
-    allocate(dummyD2(size(dummyD2_tmp,1), size(dummyD2_tmp,2)))
     if ( read_old_style_restart_bounds ) then
+      allocate(dummyD2(size(dummyD2_tmp,2), size(dummyD2_tmp,1)))
       dummyD2 = transpose(dummyD2_tmp)
     else
+      allocate(dummyD2(size(dummyD2_tmp,1), size(dummyD2_tmp,2)))
       dummyD2 = dummyD2_tmp
     end if
     deallocate(dummyD2_tmp)
@@ -453,10 +455,11 @@ CONTAINS
       var = nc%getVariable(trim(LAIVarName)//'_bnds')
       call var%getData(dummyD2_tmp)
       if (allocated(dummyD2)) deallocate(dummyD2)
-      allocate(dummyD2(size(dummyD2_tmp,1), size(dummyD2_tmp,2)))
       if ( read_old_style_restart_bounds ) then
+        allocate(dummyD2(size(dummyD2_tmp,2), size(dummyD2_tmp,1)))
         dummyD2 = transpose(dummyD2_tmp)
       else
+        allocate(dummyD2(size(dummyD2_tmp,1), size(dummyD2_tmp,2)))
         dummyD2 = dummyD2_tmp
       end if
       deallocate(dummyD2_tmp)
