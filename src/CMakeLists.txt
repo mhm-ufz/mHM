@@ -1,5 +1,3 @@
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules)
-
 set (LIB_NAME mhm_lib)
 # use all mo_*.f90/F90 files for the library
 file(GLOB sources_mpr MPR/*mo_*.*90)
@@ -15,7 +13,7 @@ else()
 endif()
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-include(CPM)
+include(../cmake/cmake-modules/CPM.cmake)
 CPMAddPackage("https://git.ufz.de/chs/forces.git@0.3.1")
 if(BUILD_MHM_LIB_SHARED)
   set_property(TARGET forces PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -23,7 +21,7 @@ endif()
 target_link_libraries(${LIB_NAME} PUBLIC forces)
 
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
-include(compileoptions)
+include(../cmake/cmake-modules/compileoptions.cmake)
 if (CMAKE_WITH_MPI)
   target_compile_definitions(${LIB_NAME} PRIVATE MPI)
   target_link_libraries(${LIB_NAME} PRIVATE MPI::MPI_Fortran)
