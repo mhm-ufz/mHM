@@ -2,10 +2,10 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules
 
 set (LIB_NAME mhm_lib)
 # use all mo_*.f90/F90 files for the library
-file(GLOB sources_mpr ./MPR/*mo_*.*90)
-file(GLOB sources_mhm ./mHM/*mo_*.*90)
-file(GLOB sources_mrm ./mRM/*mo_*.*90)
-file(GLOB sources_common ./common/*mo_*.*90 ./common_mHM_mRM/*mo_*.*90)
+file(GLOB sources_mpr MPR/*mo_*.*90)
+file(GLOB sources_mhm mHM/*mo_*.*90)
+file(GLOB sources_mrm mRM/*mo_*.*90)
+file(GLOB sources_common common*/*mo_*.*90)
 list(APPEND sources ${sources_mpr} ${sources_mhm} ${sources_mrm} ${sources_common})
 option(BUILD_MHM_LIB_SHARED "Build mhm library as shared." OFF)
 if(BUILD_MHM_LIB_SHARED)

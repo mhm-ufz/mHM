@@ -14,10 +14,10 @@ project(mhm
 )
 
 # add lib and exe
-add_subdirectory(./src)  # the lib folder containing mhm_lib
+add_subdirectory(src)
 option(BUILD_MHM_DRIVER "Build mHM with executable driver." ON)
 if(BUILD_MHM_DRIVER)
-  add_executable(mhm ./src/mHM/mhm_driver.f90)
+  add_executable(mhm src/mHM/mhm_driver.f90)
   target_link_libraries(mhm PRIVATE mhm_lib)
   # add install option
   install(TARGETS mhm DESTINATION bin)
@@ -47,7 +47,7 @@ option(BUILD_TESTING "Build with pfUnit tests." OFF)
 include(CTest)
 # add pfunit test folder
 if(BUILD_TESTING)
-  add_subdirectory(./src/tests)
+  add_subdirectory(src/tests)
 endif()
 
 # With this, paths are added to the INSTALL_RPATH, and via the second command also to the build.
