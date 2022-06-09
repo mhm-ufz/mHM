@@ -14,7 +14,7 @@ endif()
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 include(../cmake/cmake-modules/CPM.cmake)
-CPMAddPackage("https://git.ufz.de/chs/forces.git@0.3.1")
+CPMAddPackage("https://git.ufz.de/chs/forces.git@0.3.2")
 if(BUILD_MHM_LIB_SHARED)
   set_property(TARGET forces PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
