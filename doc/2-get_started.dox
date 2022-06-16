@@ -1,84 +1,14 @@
 /**
 \page getstarted Getting Started
 
-This chapter will introduce the structure of mHM technically.
+For compile and installation instructions see: https://mhm-ufz.org/guides/
 
-\section receive Receive mHM
+\section test Test mHM on Example domain
 
-As from June 2018, the current release of mHM is available through a code repository provided by the version control system GitLab
-(<a href="https://git.ufz.de/mhm/mhm">https://git.ufz.de/mhm/mhm</a>). If you like to contribute to the code developement,
-external accounts be granted upon request through email to mhm-admin@ufz.de.
-
-\section NETCDF Install NETCDF
-
-The mHM input and output file format is NETCDF, so the according library is required on your system. Please go to
-<a href="http://www.unidata.ucar.edu/software/netcdf/">www.unidata.ucar.edu/software/netcdf</a> in order to download the current version.
-
-\li <b>on Linux:</b> When using ubuntu and gcc, you can use apt to install NETCDF:
-<br><tt>sudo apt-get install libnetcdf-dev libnetcdff-dev</tt>
-\li <b>on MacOS:</b> You can use <a href="https://formulae.brew.sh/formula/netcdf">Homebrew</a>
-to install NETCDF but you need to specify the path in cmake later on:
-<br><tt>brew install netcdf</tt>
-
-\section windows Run mHM under CYGWIN on Windows
-
-As from June 2019, we encourage users to make use of cmake guide:\n
-<a href="https://git.ufz.de/mhm/mhm/blob/develop/doc/INSTALL.md">https://git.ufz.de/mhm/mhm/blob/develop/doc/INSTALL.md</a>
-
-Further CYGWIN related details might be obsolete.
-
-A NETCDF installation under Windows7 and Windows10 has only been tested using CYGWIN (https://www.cygwin.com/). When executing the CYGWIN setup, the following packages have to be installed (as of May 2018, screenshots kindly provided by Mehmet Cuneyd Demirel):
-
-First, the following netcdf packages have to be installed (\ref fig_cygwin_netcdf):
-
-\image html cygwin_netcdf.png "netcdf packages for CYGWIN"
-\anchor fig_cygwin_netcdf \image latex cygwin_netcdf.pdf "netcdf packages for CYGWIN" width=14.5cm
-
-Second, the following hdf5 version has to be installed for netcdf-4 support.
-
-\image html cygwin_hdf5.png "hdf5 packages for CYGWIN"
-\image latex cygwin_hdf5.pdf "hdf5 packages for CYGWIN" width=14cm
-
-Third, the gfortran compiler (\ref fig_cygwin_gfortran) and (\ref fig_cygwin_libgfortran) have to be installed:
-
-\image html cygwin_gfortran.png "gfortran packages for CYGWIN"
-\anchor fig_cygwin_gfortran \image latex cygwin_gfortran.pdf "gfortran packages for CYGWIN" width=14cm
-
-\image html cygwin_libgfortran.png "libgfortran packages for CYGWIN"
-\anchor fig_cygwin_libgfortran \image latex cygwin_libgfortran.pdf "libgfortran packages for CYGWIN" width=14cm
-
-Fourth, GNU <code>make</code> has to be made available by selecting the following:
-
-\image html cygwin_make.png "make packages for CYGWIN"
-\image latex cygwin_make.pdf "make packages for CYGWIN" width=15cm
-
-Note that Cygwin users are advised to define following flag in the Makefile, otherwise compilation won't be successful.
+The mHM distribution usually comes with two example test domains located in
 \code
-EXTRA_LDFLAGS += -Wl,--stack,12485760
-EXTRA_CFLAGS  += -Wl,--stack,12485760
-\endcode
-
-Additionally, make sure to have <code>\cygwin64\bin</code> folder in your environmental path (\ref fig_cygwin_path).
-
-\image html cygwin_path.png "setup environmental path CYGWIN"
-\anchor fig_cygwin_path \image latex cygwin_path.pdf "setup environmental path CYGWIN" width=17cm
-
-Finally, once the installation of CYGWIN including the packages outlined above is completed, you have to change the system in the Makefile to 'cygwin'.
-Then, the mhm has proven to compile (simply type <code>make\bin</code> on the command line) under Windows.
-This will produce an executable <code>mhm\bin</code> which can be launched by <code>./mhm\bin</code> and results for the test basins can be found
-under <code>./test_basin/output_b1/</code> and <code>./test_basin_2/output_b1/</code>.
-
-\section compile Compile mHM
-
-As from June 2019, we encourage users to make use of cmake guide:\n
-<a href="https://git.ufz.de/mhm/mhm/blob/develop/doc/INSTALL.md">https://git.ufz.de/mhm/mhm/blob/develop/doc/INSTALL.md</a>
-
-
-\section test Test mHM on Example Basin
-
-The mHM distribution usually comes with an example test basin located in
-\code
-test_basin/
+test_domain/
+test_domain_2/
 \endcode
 The directory provides input data for the test basin and output examples. Detailled information about this test basin can be found in the chapter \ref testbasin. All parameters and paths are already set by default to the test case, so you can just start the simulation with the command
 \code
