@@ -1,13 +1,16 @@
+html {
+  --top-height: 165px;
+}
 /* Sets properties of images in HTML */
-div.image img{ 
+div.image img{
         /* border:1px solid #5555FF; */
-        width:500px; 
-} 
+        width:500px;
+}
 
 /* Sets properties of image captions in HTML */
-div.image div.caption{ 
-        font:"Times New Roman",Georgia,Serif; 
-        font-size: medium; 
-        font-weight: bold; 
+div.image div.caption{
+        font:"Times New Roman",Georgia,Serif;
+        font-size: medium;
+        font-weight: bold;
         /* color:#5555FF; */
-} 
+}
