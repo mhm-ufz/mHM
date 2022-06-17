@@ -271,9 +271,6 @@ CONTAINS
     !> tabular for neutron flux approximation
     real(dp), dimension(:), intent(in) :: neutron_integral_AFast
 
-    !> global mHM parameters
-    real(dp), dimension(:), intent(in) :: global_parameters
-
     !> latitude on level 1
     real(dp), dimension(:), intent(in) :: latitude
 
