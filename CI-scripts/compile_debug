@@ -1,6 +1,3 @@
-mkdir debug
-cd debug/
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-make -j 4
-cd ..
+cmake -B debug -DCMAKE_BUILD_TYPE=Debug ${1}
+cmake --build debug --parallel
 cp debug/mhm ./mhm_debug

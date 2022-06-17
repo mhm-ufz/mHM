@@ -1,6 +1,3 @@
-mkdir mpi_release
-cd mpi_release/
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_WITH_MPI=ON ..
-make -j 4
-cd ..
+cmake -B mpi_release -DCMAKE_WITH_MPI=ON -DCMAKE_BUILD_TYPE=Release ${1}
+cmake --build mpi_release --parallel
 cp mpi_release/mhm ./mhm_mpi
