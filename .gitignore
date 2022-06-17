@@ -26,10 +26,14 @@ doxygen_warn.txt
 mhm_env/
 src/*/*.release/
 src/*/*.debug/
-test_domain/output_b1/
-test_domain_2/output/
-test_domain/restart/
-test_domain_2/restart/
+test_domain/output_b1/**
+!test_domain/output_b1/.gitkeep
+test_domain_2/output/**
+!test_domain_2/output/.gitkeep
+test_domain/restart/**
+!test_domain/restart/.gitkeep
+test_domain_2/restart/**
+!test_domain_2/restart/.gitkeep
 *prog_for_check
 *terminal
 
