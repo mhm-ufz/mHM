@@ -74,7 +74,8 @@ CONTAINS
                             nMeasPerDay)
 
     use mo_julian, only : julday
-    use mo_message, only : message
+    use mo_message, only : message, error_message
+    use mo_string_utils, only : num2str
 
     implicit none
 
@@ -119,7 +120,7 @@ CONTAINS
     ! year, month, day, hour, minute
     integer(i4), dimension(5) :: time_file
 
-    integer(i4) :: i, j
+    integer(i4) :: i, j, i_max, ios
 
     ! index to put data from file to data
     integer(i4) :: idx_st_period
@@ -203,11 +204,16 @@ CONTAINS
     end if
 
     ! read data from file to temporal array
-    do i = 1, (endJul_file - startJul_file + 1_i4) * timestep_file
+    i_max = (endJul_file - startJul_file + 1_i4) * timestep_file
+    do i = 1, i_max
       ! read date and data
-      read(fileunit, *) (time_file(j), j = 1, 5), data_file(i)
+      read(fileunit, *, iostat=ios) (time_file(j), j = 1, 5), data_file(i)
+      if ( ios /= 0 ) call error_message( &
+        "ERROR: wanted to read ", num2str(i_max), " time-steps from ", &
+        filename, ", but reached end-of-file at ", num2str(i) &
+      )
     end do
-    time_file(1) = time_file(2) + 1   ! only to avoid warning ! PKS - why do we need this? 
+    time_file(1) = time_file(2) + 1   ! only to avoid warning ! PKS - why do we need this?
 
     length_file = (endJul_file - startJul_file + 1)
     length_period = (endJul_period - startJul_period + 1)
