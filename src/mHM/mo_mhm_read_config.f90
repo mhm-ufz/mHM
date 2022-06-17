@@ -450,6 +450,9 @@ CONTAINS
     if (outputFlxState(20)) then
       call message('    effective precipitation                     (L1_preEffect) [mm/T]')
     end if
+    if (outputFlxState(21)) then
+      call message('    snow melt                                        (L1_melt) [mm/T]')
+    end if
     call message('')
     call message('FINISHED reading config')
 
