@@ -175,6 +175,19 @@ You can execute it with:
 ```
 
 
+## Installation
+
+To install mhm after compilation, i.e. make it available as a command `mhm`, you can do the following (assuming you used the release compile script, otherwise replace `release` with the respective build folder):
+```bash
+cmake --install release
+```
+
+If you need to provide a prefix, where to install it, you can just pass one. For example, if you used a conda environment for compilation, you can also install mhm there with:
+```bash
+cmake --install release --prefix $CONDA_PREFIX
+```
+
+
 ## Compilation without Internet
 
 Starting with version 5.12, mHM is depending on [FORCES](https://git.ufz.de/chs/forces/), our Fortran library for Computational Environmental Systems.
