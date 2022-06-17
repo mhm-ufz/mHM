@@ -17,12 +17,31 @@ $mathjax
 <link href="$relpath^$stylesheet" rel="stylesheet" type="text/css" />
 $extrastylesheet
 <script type="text/javascript" src="$relpath^doxygen-awesome-darkmode-toggle.js"></script>
+<script type="text/javascript" src="$relpath^doxygen-awesome-fragment-copy-button.js"></script>
+<script type="text/javascript" src="$relpath^doxygen-awesome-paragraph-link.js"></script>
+<script type="text/javascript">
+  DoxygenAwesomeFragmentCopyButton.init()
+  DoxygenAwesomeDarkModeToggle.init()
+  DoxygenAwesomeParagraphLink.init()
+</script>
 </head>
 <body>
 <div id="top"><!-- do not remove this div, it is closed by doxygen! -->
 
 <!--BEGIN TITLEAREA-->
 <div id="titlearea">
+<div align="right" style="padding-bottom:10px;padding-top:2px;">
+  <!--BEGIN PROJECT_NUMBER-->
+  <span id="projectnumber">$projectnumber</span>
+  <!--END PROJECT_NUMBER-->
+  <select id="Version" name="Version" onchange="window.open(this.value,'_self')">
+    <option value="" hidden disabled selected>Version ...</option>
+    <option value="mhm_doc.pdf">current as pdf</option>
+    <option value="../coverage/">coverage</option>
+    <option value="../stable/">stable</option>
+    <option value="../latest/">latest</option>
+  </select>
+</div>
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr style="height: 56px;">
@@ -30,33 +49,17 @@ $extrastylesheet
   <td id="projectlogo"><img alt="Logo" src="$relpath^$projectlogo"/></td>
   <!--END PROJECT_LOGO-->
   <!--BEGIN PROJECT_NAME-->
-  <td width="100%" id="projectalign" style="padding-left: 0.5em;">
-   <div id="projectname">$projectname
-   <!--BEGIN PROJECT_NUMBER-->&#160;<span id="projectnumber">$projectnumber</span><!--END PROJECT_NUMBER-->
-   </div>
-   <!--BEGIN PROJECT_BRIEF--><div id="projectbrief">$projectbrief</div><!--END PROJECT_BRIEF-->
+  <td width="100%" id="projectalign" style="padding-left: 0.5em;padding-right: 0.5em;">
+    <div id="projectname">$projectname</div>
+    <!--BEGIN PROJECT_BRIEF-->
+    <div id="projectbrief">$projectbrief</div>
+    <!--END PROJECT_BRIEF-->
   </td>
   <!--END PROJECT_NAME-->
-  <td align="right">
-    <select id="Version" name="Version" onchange="window.open(this.value,'_self')">
-      <option value="" hidden disabled selected>Version ...</option>
-      <option value="mhm_doc.pdf">current as pdf</option>
-      <option value="../coverage/">coverage</option>
-      <option value="../stable/">stable</option>
-      <option value="../latest/">latest</option>
-    </select>
-  <td>
-  <!--BEGIN !PROJECT_NAME-->
-   <!--BEGIN PROJECT_BRIEF-->
-    <td style="padding-left: 0.5em;">
-    <div id="projectbrief">$projectbrief</div>
-    </td>
-   <!--END PROJECT_BRIEF-->
-  <!--END !PROJECT_NAME-->
   <!--BEGIN DISABLE_INDEX-->
-   <!--BEGIN SEARCHENGINE-->
-   <td>$searchbox</td>
-   <!--END SEARCHENGINE-->
+  <!--BEGIN SEARCHENGINE-->
+  <td>$searchbox</td>
+  <!--END SEARCHENGINE-->
   <!--END DISABLE_INDEX-->
  </tr>
  </tbody>

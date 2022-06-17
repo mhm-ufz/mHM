@@ -1,6 +1,3 @@
-mkdir openmp_release
-cd openmp_release/
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_WITH_OpenMP=ON ..
-make -j 4
-cd ..
+cmake -B openmp_release -DCMAKE_BUILD_TYPE=Release -DCMAKE_WITH_OpenMP=ON ${1}
+cmake --build openmp_release --parallel
 cp openmp_release/mhm ./mhm_openmp

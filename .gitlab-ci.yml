@@ -37,6 +37,7 @@ documentation:
     - source hpc-module-loads/eve.chs-conda01
     - module load GCCcore/9.3.0 texlive/2020
     # use doxygen from the chs conda environment
+    - export PROJECT_NUMBER="$(cat version.txt)"
     - doxygen doc/doxygen.config > doxygen_log_dev.txt
     # create pdf documentation
     - cd latex/ && make > ../doxygen_latex_dev.txt
@@ -67,6 +68,7 @@ documentation_stable:
     - git checkout $(git describe --match "v*" --abbrev=0 --tags $(git rev-list --tags --max-count=1))
     - module load GCCcore/9.3.0 texlive/2020
     # use doxygen from the chs conda environment
+    - export PROJECT_NUMBER="$(cat version.txt)"
     - doxygen doc/doxygen.config > doxygen_log_tag.txt
     - cd latex/ && make > ../doxygen_latex_tag.txt
     - cp refman.pdf ../html/mhm_doc.pdf

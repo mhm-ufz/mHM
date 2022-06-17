@@ -1,11 +1,30 @@
 # mHM Release Notes
 
-## mHM v5.x (unreleased)
+## mHM v5.12.0 (unreleased)
 
 ### Enhancements
 
-- model now runs with hourly forcing ([!39](https://git.ufz.de/mhm/mhm/-/merge_requests/39))
+- model can now run with hourly forcing ([!39](https://git.ufz.de/mhm/mhm/-/merge_requests/39))
+- new neutron module ([!92](https://git.ufz.de/mhm/mhm/-/merge_requests/92))
+- Post-proc R scripts update ([!102](https://git.ufz.de/mhm/mhm/-/merge_requests/102))
+- add [FORCES](https://git.ufz.de/chs/forces/) as a dependency ([!103](https://git.ufz.de/mhm/mhm/-/merge_requests/103))
+- new command line interface to pass used pathes to mhm ([!105](https://git.ufz.de/mhm/mhm/-/merge_requests/105))
+- new target function (`opti_function=34`) for baseflow index optimization ([!116](https://git.ufz.de/mhm/mhm/-/merge_requests/116))
+- add L1_temp_calc and L1_prec_calc as global variables for coupling ([!120](https://git.ufz.de/mhm/mhm/-/merge_requests/120))
+- new sub-daily discharge output ([!114](https://git.ufz.de/mhm/mhm/-/merge_requests/114))
+- add option to place a copy of forces in the root directory to prevent downloading ([!124](https://git.ufz.de/mhm/mhm/-/merge_requests/124))
+- updated install instructions for all systems ([!124](https://git.ufz.de/mhm/mhm/-/merge_requests/124))
 
+
+### Changes
+
+- refactoring of mhm_eval to use interfaces ([!108](https://git.ufz.de/mhm/mhm/-/merge_requests/108))
+- PGI support was dropped ([!108](https://git.ufz.de/mhm/mhm/-/merge_requests/108))
+
+### Bugfixes
+
+- bug fix of mo_restart on reading the correct dimension of land-cover ([!121](https://git.ufz.de/mhm/mhm/-/merge_requests/121))
+- cmake doesn't alter `CMAKE_MODULE_PATH` anymore ([!122](https://git.ufz.de/mhm/mhm/-/merge_requests/122))
 
 ## mHM v5.11.2 (Jul 2021)
 
@@ -23,6 +42,7 @@
 - fixed: `mrm` tried to write output even if routing was switched off (!82)
 - unreachable `else` branch in `feddes_et_reduction` removed (!77)
 - unnecessary `inout` variable intent in `soil_moisture` removed (!77)
+
 
 ## mHM v5.11.1 (Mar 2021)
 
