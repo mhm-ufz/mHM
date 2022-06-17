@@ -134,15 +134,14 @@ git checkout v5.11.2
 Afterwards you can continue with the compilation.
 
 
-## Installation commands
+## Compilation commands
 
 It could be necessary to set your desired fortran compiler with an environment variable, e.g.:
 ```bash
 export FC=gfortran
 ```
 
-If you already have all dependencies installed (otherwise see below),
-we prepared a set of scripts to automatize the build and compilation process to generate an executable in the root directory with the following naming scheme:
+We prepared a set of scripts to automatize the build and compilation process to generate an executable in the root directory with the following naming scheme:
 
 - Release version `mhm`:
   ```bash
@@ -173,4 +172,61 @@ Then you can find an executable `mhm` (or `mhm[_mpi|_openmp][_debug]`) in the cu
 You can execute it with:
 ```bash
 ./mhm
+```
+
+
+## Compilation without Internet
+
+Starting with version 5.12, mHM is depending on [FORCES](https://git.ufz.de/chs/forces/), our Fortran library for Computational Environmental Systems.
+This library is downloaded on the fly by [CPM](https://github.com/cpm-cmake/CPM.cmake), the cmake package manager.
+
+If you don't want to download it indirectly, know you wont have internet during your development or you want to work on routines provided by FORCES, you can place a copy of the FORCES repository in the root of your cloned mHM repository by e.g.:
+```bash
+git clone https://git.ufz.de/chs/forces.git
+```
+The new folder `forces/` will be automatically recognized during compilation as described above and nothing will be downloaded.
+
+If you just want a specific version (see `src/CMakeLists.txt` for the currently used one), do this:
+```bash
+git clone --branch v0.3.2 --depth 1 https://git.ufz.de/chs/forces.git
+```
+
+If you have already cloned FORCES somewhere else, you can also provide a path to this repository. You can do this with all mentioned compile scripts, e.g.:
+```bash
+source CI-scripts/compile -DCPM_forces_SOURCE=<path/to/your/forces/repo>
+```
+
+For example, if you have cloned FORCES next to mhm, this could look like this:
+```bash
+source CI-scripts/compile -DCPM_forces_SOURCE=../forces
+```
+
+
+## Additional CMake infos
+
+The presented compile scripts all just execute two cmake commands with a specific set of configuration flags.
+The basic cmake workflow, to configure and compile in a `build/` folder, is:
+```bash
+cmake -B build
+cmake --build build
+```
+
+You can control all `cmake` options by passing them as directives staring with `-D` to the cmake configuration.
+For example for debug configuration, you can do the following:
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
+```
+
+To configure the build interactively, you can also use [ccmake](https://cmake.org/cmake/help/latest/manual/ccmake.1.html) (command line tool) or the [CMake GUI](https://cmake.org/cmake/help/latest/manual/cmake-gui.1.html) (graphical user interface).
+Check their respective documentation for further information.
+To use `ccmake` you can do the following:
+```bash
+cmake -B build
+ccmake build
+```
+
+Then set your desired options and re-configure your build (by pressing `c`).
+Afterwards build you project as always by executing:
+```bash
+cmake --build build --parallel
 ```
