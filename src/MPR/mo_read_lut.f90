@@ -150,7 +150,7 @@ CONTAINS
 
   subroutine read_lai_lut(filename, fileunit, nLAI, LAIIDlist, LAI)
 
-    use mo_common_constants, only : YearMonths
+    use mo_constants, only : YearMonths
 
     implicit none
 

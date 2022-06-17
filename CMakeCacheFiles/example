@@ -1,5 +1,0 @@
-##-D CMAKE_WITH_MPI:STRING=ON
-set(CMAKE_WITH_MPI OFF CACHE STRING "build the module with MPI, so it can be executed using mpirun")
-#set(CMAKE_pgiFortran ON CACHE STRING "Code exchange for pgi compiler dependent issues")
-#set(CMAKE_MPR_STANDALONE ON CACHE STRING "If set to ON, only MPR is compiled")
-#set(CMAKE_ABSOFT ON CACHE STRING "Documentation to be added. If you you are developer, you might edit this string in CMakeLists.txt")

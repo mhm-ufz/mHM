@@ -331,25 +331,26 @@ CONTAINS
     ncols2 = level2(iDomain)%ncols
     mask2 = level2(iDomain)%mask
 
+
     select case (trim(inputFormat))
     case('nc')
       if(present(lower) .AND. (.not. present(upper))) then
         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
-                lower = lower)
+                lower = lower, is_meteo=.True.)
       end if
       !
       if(present(upper) .AND. (.not. present(lower))) then
-        CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
-                upper = upper)
+         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
+              upper = upper, is_meteo=.True.)
       end if
       !
       if(present(lower) .AND. present(upper)) then
-        CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
-                lower = lower, upper = upper)
+         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
+              lower = lower, upper = upper, is_meteo=.True.)
       end if
       !
       if((.not. present(lower)) .AND. (.not. present(upper))) then
-        CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer)
+         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, is_meteo=.True.)
       end if
     case DEFAULT
       stop '***ERROR: meteo_forcings_wrapper: Not recognized input format'

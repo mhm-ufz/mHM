@@ -4,24 +4,22 @@
 #     enabled = true
 # This will prevent git clone conflicts for jobs ran in parallel
 
+variables:
+  GIT_DEPTH: 10
+  GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+
 stages:
   - info
   - build
   - valgrind
-  - test
-  - coverage
+  - check-cases
+  - code-analysis
   - deploy
-
-cache:
-  # Required to keep artifacts from old builds, e.g. from master/develop
-  paths:
-    - public
 
 show-env-vars:
   stage: info
   variables:
     GIT_STRATEGY: none
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME
     SEP: "##################################################################"
     S00: "commit date - "
     S01: "project: ${CI_PROJECT_PATH}"
@@ -36,33 +34,59 @@ show-env-vars:
 documentation:
   stage: build
   script:
-    - module load foss/2019b
-    - module load texlive/2019
-    - module load Graphviz/2.42.2
-    - module load Anaconda3
-    - source activate /global/apps/mhm_checks/mhm_env
-    # use doxygen from the mhm_env conda environment
-    - doxygen doc/doxygen.config > doxygen_log.txt
+    - source hpc-module-loads/eve.chs-conda01
+    - module load GCCcore/9.3.0 texlive/2020
+    # use doxygen from the chs conda environment
+    - doxygen doc/doxygen.config > doxygen_log_dev.txt
     # create pdf documentation
-    - cd latex/ && make > ../doxygen_latex.txt
+    - cd latex/ && make > ../doxygen_latex_dev.txt
     - cp refman.pdf ../html/mhm_doc.pdf
-    - cp refman.pdf ../mhm_doc.pdf
+    - cp refman.pdf ../mhm_doc_dev.pdf
+    - cd .. && mv html html_dev
+    - mv doxygen_warn.txt doxygen_warn_dev.txt
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:
-      - html
-      - mhm_doc.pdf
-      - doxygen_log.txt
-      - doxygen_latex.txt
-      - doxygen_warn.txt
+      - html_dev
+      - mhm_doc_dev.pdf
+      - doxygen_log_dev.txt
+      - doxygen_latex_dev.txt
+      - doxygen_warn_dev.txt
   when: always
 
-cmake-nag62:
+documentation_stable:
+  only:
+    - develop
   stage: build
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+    GIT_DEPTH: 0  # to have all tags
+    GIT_FETCH_EXTRA_FLAGS: --all --prune --quiet
   script:
-    - source moduleLoadScripts/eve.nag62
+    - source hpc-module-loads/eve.chs-conda01
+    # doc for latest version tag
+    - git checkout $(git describe --match "v*" --abbrev=0 --tags $(git rev-list --tags --max-count=1))
+    - module load GCCcore/9.3.0 texlive/2020
+    # use doxygen from the chs conda environment
+    - doxygen doc/doxygen.config > doxygen_log_tag.txt
+    - cd latex/ && make > ../doxygen_latex_tag.txt
+    - cp refman.pdf ../html/mhm_doc.pdf
+    - cp refman.pdf ../mhm_doc_tag.pdf
+    - cd .. && mv html html_tag
+    - mv doxygen_warn.txt doxygen_warn_tag.txt
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME"
+    paths:
+      - html_tag
+      - mhm_doc_tag.pdf
+      - doxygen_log_tag.txt
+      - doxygen_latex_tag.txt
+      - doxygen_warn_tag.txt
+  when: always
+
+cmake-nagfor62:
+  stage: build
+  script:
+    - source hpc-module-loads/eve.nagfor62
     - source CI-scripts/compile
     - source CI-scripts/compile_debug
   artifacts:
@@ -70,12 +94,10 @@ cmake-nag62:
     - mhm
     - mhm_debug
 
-cmake-gcc73:
+cmake-gfortran73:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
-    - source moduleLoadScripts/eve.gcc73
+    - source hpc-module-loads/eve.gfortran73
     - source CI-scripts/compile
     - source CI-scripts/compile_debug
     - source CI-scripts/compile_OpenMP
@@ -87,12 +109,10 @@ cmake-gcc73:
     - mhm_openmp
     - mhm_openmp_debug
 
-cmake-gcc73MPI:
+cmake-gfortran73MPI:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
-    - source moduleLoadScripts/eve.gcc73MPI
+    - source hpc-module-loads/eve.gfortran73MPI
     - source CI-scripts/compile_MPI
     - source CI-scripts/compile_MPI_debug
   artifacts:
@@ -100,12 +120,10 @@ cmake-gcc73MPI:
     - mhm_mpi
     - mhm_mpi_debug
 
-cmake-gcc83:
+cmake-gfortran83:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
-    - source moduleLoadScripts/eve.gcc83
+    - source hpc-module-loads/eve.gfortran83
     - source CI-scripts/compile
     - source CI-scripts/compile_debug
     - source CI-scripts/compile_OpenMP
@@ -117,12 +135,10 @@ cmake-gcc83:
     - mhm_openmp
     - mhm_openmp_debug
 
-cmake-gcc83MPI:
+cmake-gfortran83MPI:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
-    - source moduleLoadScripts/eve.gcc83MPI
+    - source hpc-module-loads/eve.gfortran83MPI
     - source CI-scripts/compile_MPI
     - source CI-scripts/compile_MPI_debug
   artifacts:
@@ -132,10 +148,8 @@ cmake-gcc83MPI:
 
 cmake-intel18:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
-    - source moduleLoadScripts/eve.intel18
+    - source hpc-module-loads/eve.intel18
     - source CI-scripts/compile
     - source CI-scripts/compile_debug
     - source CI-scripts/compile_OpenMP
@@ -149,10 +163,8 @@ cmake-intel18:
 
 cmake-intel18MPI:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
-    - source moduleLoadScripts/eve.intel18MPI
+    - source hpc-module-loads/eve.intel18MPI
     - source CI-scripts/compile_MPI
     - source CI-scripts/compile_MPI_debug
   artifacts:
@@ -160,12 +172,10 @@ cmake-intel18MPI:
     - mhm_mpi
     - mhm_mpi_debug
 
-cmake-intel20:
+cmake-intel19:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
-    - source moduleLoadScripts/eve.intel20
+    - source hpc-module-loads/eve.intel19
     - source CI-scripts/compile
     - source CI-scripts/compile_debug
     - source CI-scripts/compile_OpenMP
@@ -177,12 +187,10 @@ cmake-intel20:
     - mhm_openmp
     - mhm_openmp_debug
 
-cmake-intel20MPI:
+cmake-intel19MPI:
   stage: build
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   script:
-    - source moduleLoadScripts/eve.intel20MPI
+    - source hpc-module-loads/eve.intel19MPI
     - source CI-scripts/compile_MPI
     - source CI-scripts/compile_MPI_debug
   artifacts:
@@ -190,59 +198,14 @@ cmake-intel20MPI:
     - mhm_mpi
     - mhm_mpi_debug
 
-# only check latest compiler versions with valgrind
-# valgrind-gcc73:
-#   when: always
-#   stage: valgrind
-#   variables:
-#     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
-#   needs:
-#     - job: cmake-gcc73
-#       artifacts: true
-#   script:
-#     - source moduleLoadScripts/eve.gcc73
-#     - module load Anaconda3
-#     - source activate /global/apps/mhm_checks/mhm_env
-#     - valgrind --version
-#     - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
-#     # execute mem-use check
-#     - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
-#     - ms_print massif.out.0
-#   artifacts:
-#     paths:
-#     - massif.out.0
-#
-# valgrind-intel18:
-#   when: always
-#   stage: valgrind
-#   variables:
-#     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
-#   needs:
-#     - job: cmake-intel18
-#       artifacts: true
-#   script:
-#     - source moduleLoadScripts/eve.intel18
-#     - module load Anaconda3
-#     - source activate /global/apps/mhm_checks/mhm_env
-#     - valgrind --version
-#     - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
-#     # execute mem-use check
-#     - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
-#     - ms_print massif.out.0
-#   artifacts:
-#     paths:
-#     - massif.out.0
-
-valgrind-nag62:
+valgrind-nagfor62:
   when: always
   stage: valgrind
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
-    - job: cmake-nag62
+    - job: cmake-nagfor62
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.nag62
+    - source hpc-module-loads/eve.nagfor62
     - module load Anaconda3
     - source activate /global/apps/mhm_checks/mhm_env
     - valgrind --version
@@ -254,16 +217,14 @@ valgrind-nag62:
     paths:
     - massif.out.0
 
-valgrind-gcc83:
+valgrind-gfortran83:
   when: always
   stage: valgrind
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
-    - job: cmake-gcc83
+    - job: cmake-gfortran83
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.gcc83
+    - source hpc-module-loads/eve.gfortran83
     - module load Anaconda3
     - source activate /global/apps/mhm_checks/mhm_env
     - valgrind --version
@@ -275,16 +236,14 @@ valgrind-gcc83:
     paths:
     - massif.out.0
 
-valgrind-intel20:
+valgrind-intel19:
   when: always
   stage: valgrind
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
   needs:
-    - job: cmake-intel20
+    - job: cmake-intel19
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.intel20
+    - source hpc-module-loads/eve.intel19
     - module load Anaconda3
     - source activate /global/apps/mhm_checks/mhm_env
     - valgrind --version
@@ -296,16 +255,14 @@ valgrind-intel20:
     paths:
     - massif.out.0
 
-check-nag62:
+check-nagfor62:
   when: always
-  stage: test
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  stage: check-cases
   needs:
-    - job: cmake-nag62
+    - job: cmake-nagfor62
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.nag62
+    - source hpc-module-loads/eve.nagfor62
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm
   artifacts:
@@ -313,16 +270,14 @@ check-nag62:
     paths:
     - check/logs/
 
-check-nag62DEBUG:
+check-nagfor62DEBUG:
   when: always
-  stage: test
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  stage: check-cases
   needs:
-    - job: cmake-nag62
+    - job: cmake-nagfor62
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.nag62
+    - source hpc-module-loads/eve.nagfor62
     - source CI-scripts/pre_check
     # skip cases with optimization due to overflow in the random-number-generator (NAG uses -ieee=stop in DEBUG)
     - python -u run_mhm_checks.py -l logs -e ../mhm_debug -s case_03 case_06 case_07 case_08 case_11
@@ -331,16 +286,14 @@ check-nag62DEBUG:
     paths:
     - check/logs/
 
-check-gcc73:
+check-gfortran73:
   when: always
-  stage: test
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  stage: check-cases
   needs:
-    - job: cmake-gcc73
+    - job: cmake-gfortran73
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.gcc73
+    - source hpc-module-loads/eve.gfortran73
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
   artifacts:
@@ -348,16 +301,14 @@ check-gcc73:
     paths:
     - check/logs/
 
-check-gcc73MPI:
+check-gfortran73MPI:
   when: always
-  stage: test
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  stage: check-cases
   needs:
-    - job: cmake-gcc73MPI
+    - job: cmake-gfortran73MPI
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.gcc73MPI
+    - source hpc-module-loads/eve.gfortran73MPI
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
   artifacts:
@@ -365,16 +316,14 @@ check-gcc73MPI:
     paths:
     - check/logs/
 
-check-gcc83:
+check-gfortran83:
   when: always
-  stage: test
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  stage: check-cases
   needs:
-    - job: cmake-gcc83
+    - job: cmake-gfortran83
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.gcc83
+    - source hpc-module-loads/eve.gfortran83
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
   artifacts:
@@ -382,16 +331,14 @@ check-gcc83:
     paths:
     - check/logs/
 
-check-gcc83MPI:
+check-gfortran83MPI:
   when: always
-  stage: test
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  stage: check-cases
   needs:
-    - job: cmake-gcc83MPI
+    - job: cmake-gfortran83MPI
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.gcc83MPI
+    - source hpc-module-loads/eve.gfortran83MPI
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
   artifacts:
@@ -401,14 +348,12 @@ check-gcc83MPI:
 
 check-intel18:
   when: always
-  stage: test
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  stage: check-cases
   needs:
     - job: cmake-intel18
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.intel18
+    - source hpc-module-loads/eve.intel18
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
   artifacts:
@@ -418,14 +363,12 @@ check-intel18:
 
 check-intel18MPI:
   when: always
-  stage: test
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  stage: check-cases
   needs:
     - job: cmake-intel18MPI
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.intel18MPI
+    - source hpc-module-loads/eve.intel18MPI
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
   artifacts:
@@ -433,16 +376,14 @@ check-intel18MPI:
     paths:
     - check/logs/
 
-check-intel20:
+check-intel19:
   when: always
-  stage: test
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  stage: check-cases
   needs:
-    - job: cmake-intel20
+    - job: cmake-intel19
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.intel20
+    - source hpc-module-loads/eve.intel19
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
   artifacts:
@@ -450,16 +391,14 @@ check-intel20:
     paths:
     - check/logs/
 
-check-intel20MPI:
+check-intel19MPI:
   when: always
-  stage: test
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  stage: check-cases
   needs:
-    - job: cmake-intel20MPI
+    - job: cmake-intel19MPI
       artifacts: true
   script:
-    - source moduleLoadScripts/eve.intel20MPI
+    - source hpc-module-loads/eve.intel19MPI
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
   artifacts:
@@ -467,27 +406,32 @@ check-intel20MPI:
     paths:
     - check/logs/
 
-coverage-gcc73:
+unittest-gfortran83:
   when: always
-  stage: coverage
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  stage: code-analysis
   needs:
-    - job: check-gcc73
+    - job: cmake-gfortran83
+  script:
+    # we need pfUnit
+    - source hpc-module-loads/eve.gfortran83
+    # run cmake with testing support, build mhm and run pfunit tests
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -B build
+    - cmake --build build --parallel
+    - cmake --build build --target test
+
+coverage:
+  when: always
+  stage: code-analysis
+  needs: []
   script:
     # gcov is part of GCC
-    - source moduleLoadScripts/eve.gcc73
-    # we need lcov from the conda environment to create html sites
-    - module load Anaconda3
-    - source activate /global/apps/mhm_checks/mhm_env
-    # create build folder
-    - mkdir build && cd build
-    # run cmake with coverage support
-    - cmake -DCMAKE_WITH_COVERAGE:STRING=ON ..
-    # run all check-case for coverage calculation
-    - make mhm_coverage_CI
+    - source hpc-module-loads/eve.chs-conda01
+    # run cmake with coverage support and run tests
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON -B build
+    - cmake --build build --parallel
+    - cmake --build build --target mhm_coverage_CI
     # copy the output to a top-level folder
-    - cd .. && mkdir coverage
+    - mkdir coverage
     - cp build/mhm_coverage_CI/* coverage -R
   artifacts:
     when: always
@@ -495,24 +439,28 @@ coverage-gcc73:
     - coverage
 
 pages:
+  only:
+    - develop
   stage: deploy
   dependencies:
     - documentation
-    - coverage-gcc73
+    - documentation_stable
+    - coverage
   script:
-    # create public dir if not already present
+    # create public dir (remove if already present)
+    - test -d public && rm -rf public
     - mkdir -p public
-    # remove the branch specific subdir if present
-    - rm -rf public/$CI_COMMIT_REF_NAME/
-    # recreate the subdir
-    - mkdir public/$CI_COMMIT_REF_NAME/
+    # create the subdir
+    - mkdir public/stable/
+    - mkdir public/latest/
     # copy the doxygen generated html page to the public site
-    - cp html/* public/$CI_COMMIT_REF_NAME/ -R
+    - cp html_tag/* public/stable/ -R
+    - cp html_dev/* public/latest/ -R
     # create an index.html that redirects to the master documentation (in master folder)
     - cp doc/html_files/index.html public/
     # create the coverage site
-    - mkdir -p public/$CI_COMMIT_REF_NAME/coverage
-    - cp coverage/* public/$CI_COMMIT_REF_NAME/coverage/ -R
+    - mkdir -p public/coverage
+    - cp coverage/* public/coverage/ -R
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:

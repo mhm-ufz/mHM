@@ -1,0 +1,171 @@
+module test_soil_moisture
+  use funit
+  use mo_soil_moisture
+  use mo_kind, only: dp
+  use mo_common_constants, only: eps_dp
+
+  implicit none
+
+  private
+
+  public :: test_soil_moist, test_feddes_et_reduction, test_jarvis_et_reduction
+
+  real(dp) :: t = 0.001_dp
+
+contains
+
+  @test
+  subroutine test_soil_moist()
+
+    real(dp)                            :: ref_prec_effec, ref_runoff_sealed, ref_storage_sealed, ref_aet_sealed
+    real(dp), dimension(:), allocatable :: ref_infiltration, ref_soil_moist, ref_aet
+    real(dp)                            :: res_prec_effec, res_runoff_sealed, res_storage_sealed, res_aet_sealed
+    real(dp), dimension(:), allocatable :: res_infiltration, res_soil_moist, res_aet
+
+    ! 1st value set
+    allocate (ref_infiltration(2))
+    allocate (ref_soil_moist(2))
+    allocate (ref_aet(2))
+    allocate (res_infiltration(2))
+    allocate (res_soil_moist(2))
+    allocate (res_aet(2))
+    ref_runoff_sealed = 0.0_dp
+    ref_storage_sealed = 0.0_dp
+    ref_infiltration = [0.0_dp, 0.0_dp]
+    ref_soil_moist = [42.887_dp, 69.887_dp]
+    ref_aet = [0.112_dp, 0.112_dp]
+    ref_aet_sealed = 0.0_dp
+    res_runoff_sealed = 0.0_dp
+    res_storage_sealed = 0.0_dp
+    res_soil_moist = [43.0_dp, 70.0_dp]
+
+    call soil_moisture(2, 0.03_dp, 0.5_dp, 0.3_dp, 1.0_dp, [91.0_dp, 65.0_dp], &
+                       [0.6_dp, 0.6_dp], [67.0_dp, 67.0_dp], [21.2_dp, 21.2_dp], &
+                       [2.2_dp, 2.2_dp], 0.5_dp, 0.0_dp, 0.0_dp, &
+                       res_runoff_sealed, res_storage_sealed, res_infiltration, &
+                       res_soil_moist, res_aet, res_aet_sealed)
+    @assertEqual(ref_runoff_sealed, res_runoff_sealed, tolerance=t, message='soil_moist: runoff_sealed, 1st value set')
+    @assertEqual(ref_storage_sealed, res_storage_sealed, tolerance=t, message='soil_moist: storage_sealed, 1st value set')
+    @assertEqual(ref_infiltration, res_infiltration, tolerance=t, message='soil_moist: infiltration, 1st value set')
+    @assertEqual(ref_soil_moist, res_soil_moist, tolerance=t, message='soil_moist: soil_moist, 1st value set')
+    @assertEqual(ref_aet, res_aet, tolerance=t, message='soil_moist: aet, 1st value set')
+    @assertEqual(ref_aet_sealed, res_aet_sealed, tolerance=t, message='soil_moist: aet_sealed, 1st value set')
+
+    deallocate (ref_infiltration)
+    deallocate (ref_soil_moist)
+    deallocate (ref_aet)
+    deallocate (res_infiltration)
+    deallocate (res_soil_moist)
+    deallocate (res_aet)
+
+    ! 2nd value set
+    allocate (ref_infiltration(1))
+    allocate (ref_soil_moist(1))
+    allocate (ref_aet(1))
+    allocate (res_infiltration(1))
+    allocate (res_soil_moist(1))
+    allocate (res_aet(1))
+    ref_runoff_sealed = 10.5_dp
+    ref_storage_sealed = 0.0_dp
+    ref_infiltration = [9.0_dp]
+    ref_soil_moist = [1.0_dp]
+    ref_aet = [0.0_dp]
+    ref_aet_sealed = 0.0_dp
+    res_runoff_sealed = 0.0_dp
+    res_storage_sealed = 0.5_dp
+    res_soil_moist = [0.0_dp]
+
+    call soil_moisture(1, 0.03_dp, 0.0_dp, 0.3_dp, 1.0_dp, [1.0_dp], &
+                       [0.6_dp], [0.0_dp], [5.0_dp], &
+                       [2.2_dp], 0.5_dp, 0.5_dp, 10.0_dp, &
+                       res_runoff_sealed, res_storage_sealed, res_infiltration, &
+                       res_soil_moist, res_aet, res_aet_sealed)
+    @assertEqual(ref_runoff_sealed, res_runoff_sealed, tolerance=t, message='soil_moist: runoff_sealed, 2nd value set')
+    @assertEqual(ref_storage_sealed, res_storage_sealed, tolerance=t, message='soil_moist: storage_sealed, 2nd value set')
+    @assertEqual(ref_infiltration, res_infiltration, tolerance=t, message='soil_moist: infiltration, 2nd value set')
+    @assertEqual(ref_soil_moist, res_soil_moist, tolerance=t, message='soil_moist: soil_moist, 2nd value set')
+    @assertEqual(ref_aet, res_aet, tolerance=t, message='soil_moist: aet, 2nd value set')
+    @assertEqual(ref_aet_sealed, res_aet_sealed, tolerance=t, message='soil_moist: aet_sealed, 2nd value set')
+
+    ! 3rd value set
+    ref_runoff_sealed = 1.5_dp
+    ref_storage_sealed = 0.5_dp
+    ref_infiltration = [1.0_dp]
+    ref_soil_moist = [eps_dp]
+    ref_aet = [0.0_dp]
+    ref_aet_sealed = 0.0_dp
+    res_runoff_sealed = 0.0_dp
+    res_storage_sealed = 1.0_dp
+    res_soil_moist = [0.5_dp*eps_dp]
+
+    call soil_moisture(1, 0.03_dp, 0.5_dp, 0.3_dp, 1.0_dp, [0.0_dp], &
+                       [0.6_dp], [0.0_dp], [5.0_dp], &
+                       [2.2_dp], 0.5_dp, 0.5_dp, 1.0_dp, &
+                       res_runoff_sealed, res_storage_sealed, res_infiltration, &
+                       res_soil_moist, res_aet, res_aet_sealed)
+    @assertEqual(ref_runoff_sealed, res_runoff_sealed, tolerance=t, message='soil_moist: runoff_sealed, 3rd value set')
+    @assertEqual(ref_storage_sealed, res_storage_sealed, tolerance=t, message='soil_moist: storage_sealed, 3rd value set')
+    @assertEqual(ref_infiltration, res_infiltration, tolerance=t, message='soil_moist: infiltration, 3rd value set')
+    @assertEqual(ref_soil_moist, res_soil_moist, tolerance=t, message='soil_moist: soil_moist, 3rd value set')
+    @assertEqual(ref_aet, res_aet, tolerance=t, message='soil_moist: aet, 3rd value set')
+    @assertEqual(ref_aet_sealed, res_aet_sealed, tolerance=t, message='soil_moist: aet_sealed, 3rd value set')
+
+    deallocate (ref_infiltration)
+    deallocate (ref_soil_moist)
+    deallocate (ref_aet)
+    deallocate (res_infiltration)
+    deallocate (res_soil_moist)
+    deallocate (res_aet)
+
+  end subroutine test_soil_moist
+
+  @test
+  subroutine test_feddes_et_reduction()
+
+    real(dp) :: reference, result
+
+    reference = 0.0_dp
+
+    result = feddes_et_reduction(38.5_dp, 77.0_dp, 43.6_dp, 0.6_dp)
+    @assertEqual(reference, result, tolerance=t, message='feddes_et_reduction: SM<=PW')
+
+    reference = 0.04_dp
+
+    result = feddes_et_reduction(35.5_dp, 71.1_dp, 33.0_dp, 0.618_dp)
+    @assertEqual(reference, result, tolerance=t, message='feddes_et_reduction: PW<SM<FC')
+
+    reference = 0.618_dp
+
+    result = feddes_et_reduction(35.5_dp, 35.5_dp, 33.0_dp, 0.618_dp)
+    @assertEqual(reference, result, tolerance=t, message='feddes_et_reduction: PW<SM<FC')
+
+  end subroutine test_feddes_et_reduction
+
+  @test
+  subroutine test_jarvis_et_reduction()
+
+    real(dp) :: reference, result
+
+    reference = 0.315_dp
+
+    result = jarvis_et_reduction(48.1_dp, 92.6_dp, 32.2_dp, 0.6_dp, 0.5_dp)
+    @assertEqual(reference, result, tolerance=t, message='jarvis_et_reduction: theta_inorm .LT. jarvis_thresh_c1')
+
+    reference = 0.6_dp
+
+    ! result = jarvis_et_reduction(48.1_dp, 32.2_dp, 32.2_dp, 0.6_dp, 0.5_dp)
+    ! @assertEqual(reference, result, tolerance=t, message='jarvis_et_reduction: soil_moist_sat .EQ. wilting_point')
+
+    reference = 0.0_dp
+
+    result = jarvis_et_reduction(128.4_dp, 319.0_dp, 144.5_dp, 0.4_dp, 0.5_dp)
+    @assertEqual(reference, result, tolerance=t, message='jarvis_et_reduction: theta_inorm .LT. 0')
+
+    reference = 0.6_dp
+
+    result = jarvis_et_reduction(91.3_dp, 50.5_dp, 38.2_dp, 0.6_dp, 0.5_dp)
+    @assertEqual(reference, result, tolerance=t, message='jarvis_et_reduction: theta_inorm .GT. 1')
+
+  end subroutine test_jarvis_et_reduction
+
+end module test_soil_moisture

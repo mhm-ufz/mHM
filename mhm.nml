@@ -143,9 +143,11 @@ timestep = 1
 !> mrm_read_river_network is an optional flag
 !> mrm_read_river_network = .True. allows to read the river network for mRM
 !> read_restart = .True. forces mrm_read_river_network = .True.
+!> read_old_style_restart_bounds = .True. if you want to use an old-style restart file created by mhm<=v5.11
 !-----------------------------------------------------------------------------
 read_restart  = .False.
 mrm_read_river_network = .False.
+read_old_style_restart_bounds = .False.
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition
@@ -198,6 +200,12 @@ opti_method = 1
 !> (29) SO: Q + ET: weighted OF using ET (OF27) and Q (OF14) equally weighted
 !> (30) SO: Q + domain_avg_ET: [1.0-KGE(Q)]*RMSE(domain_avg_ET) - objective function using Q and domain average ET (standard score)$
 !> (31) SO: Q: 1  - weighted NSE (NSE is weighted with observed discharge)
+!> (32) SO: objective_sse_boxcox
+!> (33) MO: objective_q_et_tws_kge_catchment_avg
+!> (34) SO: Q: (1 + |BFI_o - BFI_s|)(1 - KGE)
+!>             BFI_s = mean_t(<q_2>) / mean_t(<q_total>)
+!>             BFI_o = given in separate namelist per domain
+!>             <.> is a spatial average
 
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
 opti_function = 10
@@ -299,8 +307,8 @@ dir_Morpho(2)        = "test_domain_2/input/morph/"
 !> directory where land cover files are located
 dir_LCover(2)        = "test_domain_2/input/luse/"
 !> directory where restart output should be written
-mhm_file_RestartOut(2)    = "test_domain/restart/mHM_restart_002.nc"
-mrm_file_RestartOut(2)    = "test_domain/restart/mRM_restart_002.nc"
+mhm_file_RestartOut(2)    = "test_domain_2/restart/mHM_restart_002.nc"
+mrm_file_RestartOut(2)    = "test_domain_2/restart/mRM_restart_002.nc"
 !> directory where output should be written
 dir_Out(2)           = "test_domain_2/output/"
 !> file containing latitude and longitude on the resolution_Hydrology
@@ -842,4 +850,18 @@ mcmc_opti = .false.
 !> Parameters of error model if mcmc_opti=.false.
 !> e.g. for opti_function=8: two parameters a and b: err = a + b*Q
 mcmc_error_params = 0.01, 0.6
+/
+
+!******************************************************************************************
+! SETTINGS FOR OPTIMIZATION for baseflow-index (opti_function = 34)
+!******************************************************************************************
+&BFI_inputs
+!> Calculate BFI from discharge time series with the Eckhardt filter
+!> Eckhardt et al. (2008, doi: 10.1016/j.jhydrol.2008.01.005)
+!> This option **requires** one gauge per domain at the outlet of the basin.
+BFI_calc = .true.
+!> baseflow index per domain. Only needed if not calculated (BFI_calc = .false.)
+!> You can overwrite single BFI values to not calculate them internally (if BFI_calc = .true.).
+! BFI_obs(1) = 0.124
+! BFI_obs(2) = 0.256
 /

@@ -1,0 +1,217 @@
+module test_spatial_agg_disagg_forcing
+  use funit
+  use mo_spatial_agg_disagg_forcing, only: spatial_aggregation, spatial_disaggregation
+  use mo_kind, only: dp, i4
+  use mo_common_constants, only: nodata_dp
+
+  implicit none
+
+  private
+
+  public :: test_spatial_aggregation_3d, test_spatial_aggregation_4d, test_spatial_disaggregation_3d, test_spatial_disaggregation_4d
+
+  real(dp) :: t = 0.001_dp
+  logical, dimension(20) :: val_mask = [.false., .true., .true., .false., .false., .false., .false., .false., .false., &
+                                        .true., .false., .true., .true., .true., .true., .false., .true., .true., .true., .true.]
+
+contains
+
+  @test
+  subroutine test_spatial_aggregation_3d()
+
+    real(dp), dimension(:, :, :), allocatable :: ref_data1, res_data1
+    real(dp), dimension(20, 20, 2) :: data2
+    logical, dimension(2, 2) :: mask1
+    logical, dimension(20, 20) :: mask2
+    integer(i4) :: i, j
+    real(dp), dimension(10, 2) :: val_data2 = reshape( &
+                                  [0.21_dp, 0.27_dp, 0.21_dp, 0.27_dp, 0.26_dp, 0.28_dp, 0.28_dp, 0.29_dp, 0.32_dp, &
+                                   0.3_dp, 0.33_dp, 0.32_dp, 0.33_dp, 0.32_dp, 0.32_dp, 0.33_dp, 0.32_dp, 0.34_dp, &
+                                   0.27_dp, 0.23_dp], [10, 2])
+    allocate (ref_data1(2, 2, 2))
+
+    ref_data1(1, 1, 1) = nodata_dp
+    ref_data1(1, 1, 2) = nodata_dp
+    ref_data1(2, 1, 1) = 0.26_dp
+    ref_data1(2, 1, 2) = 0.293_dp
+    ref_data1(1, 2, 1) = nodata_dp
+    ref_data1(2, 2, 1) = 0.275_dp
+    ref_data1(1, 2, 2) = nodata_dp
+    ref_data1(2, 2, 2) = 0.306_dp
+    do i = 1, 20
+      do j = 1, 10
+        mask2(i, j) = val_mask(j)
+        data2(i, j, 1) = val_data2(j, 1)
+        data2(i, j, 2) = val_data2(j, 2)
+      end do
+      do j = 1, 10
+        mask2(i, j + 10) = val_mask(j + 10)
+        data2(i, j + 10, 1) = val_data2(j, 1)
+        data2(i, j + 10, 2) = val_data2(j, 2)
+      end do
+    end do
+    mask1 = reshape([.false., .true., .false., .true.], [2, 2])
+
+    call spatial_aggregation(data2, 1.0_dp, 10.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_aggregation_3d')
+
+  end subroutine test_spatial_aggregation_3d
+
+  @test
+  subroutine test_spatial_aggregation_4d()
+
+    real(dp), dimension(:, :, :, :), allocatable :: ref_data1, res_data1
+    real(dp), dimension(20, 20, 2, 2) :: data2
+    logical, dimension(2, 2) :: mask1
+    logical, dimension(20, 20) :: mask2
+    integer(i4) :: i, j
+    real(dp), dimension(10, 2, 2) :: val_data2 = reshape( &
+                                     [0.21_dp, 0.27_dp, 0.21_dp, 0.27_dp, 0.26_dp, 0.28_dp, 0.28_dp, 0.29_dp, 0.32_dp, &
+                                      0.3_dp, 0.33_dp, 0.32_dp, 0.33_dp, 0.32_dp, 0.32_dp, 0.33_dp, 0.32_dp, 0.34_dp, &
+                                      0.27_dp, 0.23_dp, 0.21_dp, 0.27_dp, 0.21_dp, 0.27_dp, 0.26_dp, 0.28_dp, 0.28_dp, 0.29_dp, &
+                                      0.32_dp, 0.3_dp, 0.33_dp, 0.32_dp, 0.33_dp, 0.32_dp, 0.32_dp, 0.33_dp, 0.32_dp, 0.34_dp, &
+                                      0.27_dp, 0.23_dp], [10, 2, 2])
+    allocate (ref_data1(2, 2, 2, 2))
+
+    ref_data1(1, 1, 1, 1) = nodata_dp
+    ref_data1(1, 1, 2, 1) = nodata_dp
+    ref_data1(2, 1, 1, 1) = 0.26_dp
+    ref_data1(2, 1, 2, 1) = 0.293_dp
+    ref_data1(1, 2, 1, 1) = nodata_dp
+    ref_data1(2, 2, 1, 1) = 0.275_dp
+    ref_data1(1, 2, 2, 1) = nodata_dp
+    ref_data1(2, 2, 2, 1) = 0.306_dp
+    ref_data1(1, 1, 1, 2) = nodata_dp
+    ref_data1(1, 1, 2, 2) = nodata_dp
+    ref_data1(2, 1, 1, 2) = 0.26_dp
+    ref_data1(2, 1, 2, 2) = 0.293_dp
+    ref_data1(1, 2, 1, 2) = nodata_dp
+    ref_data1(2, 2, 1, 2) = 0.275_dp
+    ref_data1(1, 2, 2, 2) = nodata_dp
+    ref_data1(2, 2, 2, 2) = 0.306_dp
+    do i = 1, 20
+      do j = 1, 10
+        mask2(i, j) = val_mask(j)
+        data2(i, j, 1, 1) = val_data2(j, 1, 1)
+        data2(i, j, 2, 1) = val_data2(j, 2, 1)
+        data2(i, j, 1, 2) = val_data2(j, 1, 2)
+        data2(i, j, 2, 2) = val_data2(j, 2, 2)
+      end do
+      do j = 1, 10
+        mask2(i, j + 10) = val_mask(j + 10)
+        data2(i, j + 10, 1, 1) = val_data2(j, 1, 1)
+        data2(i, j + 10, 2, 1) = val_data2(j, 2, 1)
+        data2(i, j + 10, 1, 2) = val_data2(j, 1, 2)
+        data2(i, j + 10, 2, 2) = val_data2(j, 2, 2)
+      end do
+    end do
+    mask1 = reshape([.false., .true., .false., .true.], [2, 2])
+
+    call spatial_aggregation(data2, 1.0_dp, 10.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_aggregation_4d')
+
+  end subroutine test_spatial_aggregation_4d
+
+  @test
+  subroutine test_spatial_disaggregation_3d()
+
+    real(dp), dimension(:, :, :), allocatable :: ref_data1, res_data1
+    real(dp), dimension(2, 2, 2) :: data2
+    logical, dimension(2, 2) :: mask2
+    logical, dimension(20, 20) :: mask1
+    integer(i4) :: i, j
+    allocate (ref_data1(20, 20, 2))
+
+    ref_data1(:, :, :) = nodata_dp
+    data2(1, 1, 1) = 0.21_dp
+    data2(1, 1, 2) = 0.27_dp
+    data2(2, 1, 1) = 0.26_dp
+    data2(2, 1, 2) = 0.28_dp
+    data2(1, 2, 1) = 0.21_dp
+    data2(2, 2, 1) = 0.28_dp
+    data2(1, 2, 2) = 0.27_dp
+    data2(2, 2, 2) = 0.29_dp
+    do i = 1, 10
+      do j = 1, 20
+        mask1(i, j) = val_mask(j)
+      end do
+    end do
+    do i = 11, 20
+      do j = 1, 10
+        mask1(i, j) = val_mask(j)
+        ref_data1(i, j, 1) = 0.26_dp
+        ref_data1(i, j, 2) = 0.28_dp
+      end do
+      do j = 1, 10
+        mask1(i, j + 10) = val_mask(j + 10)
+        ref_data1(i, j + 10, 1) = 0.28_dp
+        ref_data1(i, j + 10, 2) = 0.29_dp
+      end do
+    end do
+    mask2 = reshape([.false., .true., .false., .true.], [2, 2])
+
+    call spatial_disaggregation(data2, 10.0_dp, 1.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_disaggregation_3d')
+
+  end subroutine test_spatial_disaggregation_3d
+
+  @test
+  subroutine test_spatial_disaggregation_4d()
+
+    real(dp), dimension(:, :, :, :), allocatable :: ref_data1, res_data1
+    real(dp), dimension(2, 2, 2, 2) :: data2
+    logical, dimension(2, 2) :: mask2
+    logical, dimension(20, 20) :: mask1
+    integer(i4) :: i, j
+    allocate (ref_data1(20, 20, 2, 2))
+
+    ref_data1(:, :, :, :) = nodata_dp
+    data2(1, 1, 1, 1) = 0.21_dp
+    data2(1, 1, 2, 1) = 0.27_dp
+    data2(2, 1, 1, 1) = 0.26_dp
+    data2(2, 1, 2, 1) = 0.28_dp
+    data2(1, 2, 1, 1) = 0.21_dp
+    data2(2, 2, 1, 1) = 0.28_dp
+    data2(1, 2, 2, 1) = 0.27_dp
+    data2(2, 2, 2, 1) = 0.29_dp
+    data2(1, 1, 1, 2) = 0.21_dp
+    data2(1, 1, 2, 2) = 0.27_dp
+    data2(2, 1, 1, 2) = 0.26_dp
+    data2(2, 1, 2, 2) = 0.28_dp
+    data2(1, 2, 1, 2) = 0.21_dp
+    data2(2, 2, 1, 2) = 0.28_dp
+    data2(1, 2, 2, 2) = 0.27_dp
+    data2(2, 2, 2, 2) = 0.29_dp
+    do i = 1, 10
+      do j = 1, 20
+        mask1(i, j) = val_mask(j)
+      end do
+    end do
+    do i = 11, 20
+      do j = 1, 10
+        mask1(i, j) = val_mask(j)
+        ref_data1(i, j, 1, 1) = 0.26_dp
+        ref_data1(i, j, 1, 2) = 0.26_dp
+        ref_data1(i, j, 2, 1) = 0.28_dp
+        ref_data1(i, j, 2, 2) = 0.28_dp
+      end do
+      do j = 1, 10
+        mask1(i, j + 10) = val_mask(j + 10)
+        ref_data1(i, j + 10, 1, 1) = 0.28_dp
+        ref_data1(i, j + 10, 1, 2) = 0.28_dp
+        ref_data1(i, j + 10, 2, 1) = 0.29_dp
+        ref_data1(i, j + 10, 2, 2) = 0.29_dp
+      end do
+    end do
+    mask2 = reshape([.false., .true., .false., .true.], [2, 2])
+
+    call spatial_disaggregation(data2, 10.0_dp, 1.0_dp, mask1, mask2, res_data1)
+
+    @assertEqual(ref_data1, res_data1, tolerance=t, message='spatial_disaggregation_4d')
+
+  end subroutine test_spatial_disaggregation_4d
+
+end module test_spatial_agg_disagg_forcing

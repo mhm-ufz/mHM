@@ -20,6 +20,7 @@ module mo_write_fluxes_states
           Conventions, contact, mHM_details, history
   use mo_common_constants, only : nodata_dp
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable
+  use mo_global_variables, only : output_deflate_level, output_double_precision
 
   implicit none
 
@@ -62,9 +63,6 @@ module mo_write_fluxes_states
   private
 
   public :: OutputDataset
-#ifdef pgiFortran154
-  public :: newOutputDataset
-#endif
 
 contains
 
@@ -123,7 +121,7 @@ contains
 
 
     allocate(out%data(ncells))
-    out%nc = nc%setVariable(name, dtype, dims, deflate_level = 1, shuffle = .true.)
+    out%nc = nc%setVariable(name, dtype, dims, deflate_level = output_deflate_level, shuffle = .true.)
     out%data = 0
     out%mask => mask
     if (present(avg)) out%avg = avg
@@ -269,7 +267,11 @@ contains
     type(OutputVariable), dimension(size(outputFlxState) * nSoilHorizons_mHM) :: tmpvars
 
 
-    dtype = "f64"
+    if ( output_double_precision ) then
+      dtype = "f64"
+    else
+      dtype = "f32"
+    end if
     unit = fluxesUnit(iDomain)
 
     if (iFlag_cordinate_sys == 0) then
@@ -580,196 +582,111 @@ contains
 
     if (outputFlxState(1)) then
       ii = ii + 1
-#ifdef pgiFortran
-       call updateVariable(vars(ii), L1_inter(sidx : eidx))
-#else
-       call vars(ii)%updateVariable(L1_inter(sidx : eidx))
-#endif
+      call vars(ii)%updateVariable(L1_inter(sidx : eidx))
     end if
 
     if (outputFlxState(2)) then
       ii = ii + 1
-#ifdef pgiFortran
-       call updateVariable(vars(ii), L1_snowPack(sidx : eidx))
-#else
-       call vars(ii)%updateVariable(L1_snowPack(sidx : eidx))
-#endif
+      call vars(ii)%updateVariable(L1_snowPack(sidx : eidx))
     end if
 
     if (outputFlxState(3)) then
       do nn = 1, nSoilHorizons_mHM
         ii = ii + 1
-#ifdef pgiFortran
-        call updateVariable(vars(ii), L1_soilMoist(sidx : eidx, nn))
-#else
         call vars(ii)%updateVariable(L1_soilMoist(sidx : eidx, nn))
-#endif
-       end do
+      end do
     end if
 
     if (outputFlxState(4)) then
       do nn = 1, nSoilHorizons_mHM
         ii = ii + 1
-#ifdef pgiFortran
-        call updateVariable(vars(ii), L1_soilMoist(sidx : eidx, nn) &
-                / L1_soilMoistSat(sidx : eidx, nn))
-#else
-        call vars(ii)%updateVariable(L1_soilMoist(sidx : eidx, nn) &
-                / L1_soilMoistSat(sidx : eidx, nn))
-#endif
-       end do
+        call vars(ii)%updateVariable(L1_soilMoist(sidx : eidx, nn) / L1_soilMoistSat(sidx : eidx, nn))
+      end do
     end if
 
     if (outputFlxState(5)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), sum(L1_soilMoist(sidx : eidx, :), dim = 2) &
-              / sum(L1_soilMoistSat(sidx : eidx, :), dim = 2))
-#else
-      call vars(ii)%updateVariable(sum(L1_soilMoist(sidx : eidx, :), dim = 2) &
-              / sum(L1_soilMoistSat(sidx : eidx, :), dim = 2))
-#endif
+      call vars(ii)%updateVariable(sum(L1_soilMoist(sidx : eidx, :), dim = 2) / sum(L1_soilMoistSat(sidx : eidx, :), dim = 2))
     end if
 
     if (outputFlxState(6)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_sealSTW(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_sealSTW(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(7)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_unsatSTW(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_unsatSTW(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(8)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_satSTW(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_satSTW(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(18)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_neutrons(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_neutrons(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(9)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_pet(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_pet(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(10)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), sum(L1_aETSoil(sidx : eidx, :), dim = 2) * L1_fNotSealed(sidx : eidx) &
-              + L1_aETCanopy(sidx : eidx) + L1_aETSealed(sidx : eidx) * L1_fSealed(sidx : eidx))
-#else
       call vars(ii)%updateVariable(sum(L1_aETSoil(sidx : eidx, :), dim = 2) * L1_fNotSealed(sidx : eidx) &
               + L1_aETCanopy(sidx : eidx) + L1_aETSealed(sidx : eidx) * L1_fSealed(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(11)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_total_runoff(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_total_runoff(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(12)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_runoffSeal(sidx : eidx) * L1_fSealed(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_runoffSeal(sidx : eidx) * L1_fSealed(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(13)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_fastRunoff(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_fastRunoff(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(14)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_slowRunoff(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_slowRunoff(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(15)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_baseflow(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_baseflow(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(16)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L1_percol(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L1_percol(sidx : eidx) * L1_fNotSealed(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState(17)) then
       do nn = 1, nSoilHorizons_mHM
         ii = ii + 1
-#ifdef pgiFortran
-        call updateVariable(vars(ii), L1_infilSoil(sidx : eidx, nn) * L1_fNotSealed(sidx : eidx))
-#else
         call vars(ii)%updateVariable(L1_infilSoil(sidx : eidx, nn) * L1_fNotSealed(sidx : eidx))
-#endif
-       end do
+      end do
     end if
 
     if (outputFlxState(19)) then
       do nn = 1, nSoilHorizons_mHM
         ii = ii + 1
-#ifdef pgiFortran
-        call updateVariable(vars(ii), L1_aETSoil(sidx : eidx, nn) * L1_fNotSealed(sidx : eidx))
-#else
         call vars(ii)%updateVariable(L1_aETSoil(sidx : eidx, nn) * L1_fNotSealed(sidx : eidx))
-#endif
-       end do
+      end do
     end if
 
     if (outputFlxState(20)) then
       ii = ii + 1
-#ifdef pgiFortran
-        call updateVariable(vars(ii), L1_preEffect(sidx : eidx))
-#else
-        call vars(ii)%updateVariable(L1_preEffect(sidx : eidx))
-#endif
+      call vars(ii)%updateVariable(L1_preEffect(sidx : eidx))
     end if
 
   end subroutine updateDataset
@@ -916,7 +833,13 @@ contains
 
     real(dp), allocatable, dimension(:, :) :: lat2d, lon2d ! temporary storage of mHM's 2D latlon array.
                                                            ! Used as 2d lat lon arrays if coordinate system is X & Y
+    character(3) :: dtype
 
+    if ( output_double_precision ) then
+      dtype = "f64"
+    else
+      dtype = "f32"
+    end if
 
     fname = trim(dirOut(iDomain)) // 'mHM_Fluxes_States.nc'
     call geoCoordinates(level1(iDomain), lat2d, lon2d)
@@ -936,23 +859,23 @@ contains
                       nc%setDimension("time", 0) &
               /)
       ! northing
-      var = nc%setVariable("northing", "f64", (/ dimids1(2) /))
+      var = nc%setVariable("northing", dtype, (/ dimids1(2) /))
       call var%setData(northing)
       call var%setAttribute("units", "m or degrees_north")
       call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
       ! easting
-      var = nc%setVariable("easting", "f64", (/ dimids1(1) /))
+      var = nc%setVariable("easting", dtype, (/ dimids1(1) /))
       call var%setData(easting)
       call var%setAttribute("units", "m or degrees_north")
       call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
       ! lon
-      var = nc%setVariable("lon", "f64", dimids1(1 : 2))
+      var = nc%setVariable("lon", dtype, dimids1(1 : 2))
       call var%setData(lon2d)
       call var%setAttribute("units", "degrees_east")
       call var%setAttribute("long_name", "longitude")
       call var%setAttribute("missing_value", nodata_dp)
       ! lat
-      var = nc%setVariable("lat", "f64", dimids1(1 : 2))
+      var = nc%setVariable("lat", dtype, dimids1(1 : 2))
       call var%setData(lat2d)
       call var%setAttribute("units", "degrees_north")
       call var%setAttribute("long_name", "latitude")
@@ -970,13 +893,13 @@ contains
                       nc%setDimension("time", 0) &
               /)
       ! lon
-      var = nc%setVariable("lon", "f64", (/ dimids1(1) /)) ! sufficient to store lon as vector
+      var = nc%setVariable("lon", dtype, (/ dimids1(1) /)) ! sufficient to store lon as vector
       call var%setData(lon1d)
       call var%setAttribute("units", "degrees_east")
       call var%setAttribute("long_name", "longitude")
       call var%setAttribute("missing_value", nodata_dp)
       ! lat
-      var = nc%setVariable("lat", "f64", (/ dimids1(2) /)) ! sufficient to store lat as vector
+      var = nc%setVariable("lat", dtype, (/ dimids1(2) /)) ! sufficient to store lat as vector
       call var%setData(lat1d)
       call var%setAttribute("units", "degrees_north")
       call var%setAttribute("long_name", "latitude")

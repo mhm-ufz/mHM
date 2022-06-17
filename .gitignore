@@ -1,5 +1,20 @@
 # Created by .ignore support plugin (hsz.mobi)
 
+# build related
+build/
+release/
+debug/
+mpi_release/
+mpi_debug/
+openmp_release/
+openmp_debug/
+src/tests/*.F90
+
+# ignore Doxygen specific files
+html
+latex
+doxygen_warn.txt
+
 # Exclusions
 ./mhm
 *.g90
@@ -7,6 +22,7 @@
 *.mod
 *.a
 *.so
+mhm_env/
 src/*/*.release/
 src/*/*.debug/
 test_domain/output_b1/

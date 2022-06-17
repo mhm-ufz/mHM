@@ -107,7 +107,7 @@ CONTAINS
   !>       \param[inout] "real(dp), dimension(:) :: unsatStorage"          Upper soil storage
   !>       \param[inout] "real(dp), dimension(:) :: satStorage"            Groundwater storage
   !>       \param[inout] "real(dp), dimension(:) :: neutrons"              Ground albedo neutrons
-  !>       \param[inout] "real(dp), dimension(:) :: pet_calc"              [mm TST-1] estimated PET (if PET is input =
+  !>       \param[inout] "real(dp), dimension(:) :: pet_calc"              [mm TS-1] estimated PET (if PET is input =
   !>       corrected values (fAsp*PET))
   !>       \param[inout] "real(dp), dimension(:, :) :: aet_soil"           actual ET
   !>       \param[inout] "real(dp), dimension(:) :: aet_canopy"            Real evaporation intensity from canopy
@@ -173,7 +173,7 @@ CONTAINS
   ! Luis Samaniego                  Feb 2013 - call routine
   ! Rohini Kumar                    Feb 2013 - MPR call and other pre-requisite variables for this call
   ! Rohini Kumar                    May 2013 - Error checks
-  ! Rohini Kumar                    Jun 2013 - sealed area correction in total runoff 
+  ! Rohini Kumar                    Jun 2013 - sealed area correction in total runoff
   !                                          - initalization of soil moist. at first timestep
   ! Rohini Kumar                    Aug 2013 - dynamic LAI option included, and changed within the code
   !                                            made accordingly (e.g., canopy intecpt.)
@@ -193,16 +193,19 @@ CONTAINS
   ! Zink M. Demirel C.              Mar 2017 - added Jarvis soil water stress function at SM process(3)
   ! M.Cuneyd Demirel & Simon Stisen May 2017 - added FC dependency on root fraction coef. at SM process(3)
   ! M.Cuneyd Demirel & Simon Stisen Jun 2017 - added PET correction based on LAI at PET process(5)
-  ! Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval 
+  ! Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval
   ! Robert Schweppe                 Jun 2018 - refactoring and reformatting
   ! Robert Schweppe                 Nov 2018 - added c2TSTu for unit conversion (moved here from MPR)
+  ! Stephan Thober                  Jan 2022 - added is_hourly_forcing
+  ! Sebastian Mueller               May 2022 - added temp_calc and prec_calc for coupling to other models
 
-  subroutine mHM(read_states, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
+  subroutine mHM(read_states, is_hourly_forcing, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
                 c2TSTu, neutron_integral_AFast, &
                 global_parameters, latitude, evap_coeff, fday_prec, fnight_prec, fday_pet, &
                 fnight_pet, fday_temp, fnight_temp, temp_weights, pet_weights, pre_weights, read_meteo_weights, pet_in, &
                 tmin_in, tmax_in, netrad_in, absvappres_in, windspeed_in, prec_in, temp_in, fSealed1, interc, snowpack, &
-                sealedStorage, soilMoisture, unsatStorage, satStorage, neutrons, pet_calc, aet_soil, aet_canopy, &
+                sealedStorage, soilMoisture, unsatStorage, satStorage, neutrons, pet_calc, temp_calc, prec_calc, &
+                aet_soil, aet_canopy, &
                 aet_sealed, baseflow, infiltration, fast_interflow, melt, perc, prec_effect, rain, runoff_sealed, &
                 slow_interflow, snow, throughfall, total_runoff, alpha, deg_day_incr, deg_day_max, deg_day_noprec, &
                 deg_day, fAsp, petLAIcorFactorL1, HarSamCoeff, PrieTayAlpha, aeroResist, surfResist, frac_roots, &
@@ -222,247 +225,256 @@ CONTAINS
 
     implicit none
 
-    ! indicated whether states have been read from file
+    !> indicated whether states have been read from file
     logical, intent(in) :: read_states
 
-    ! simulation time step
+    !> indicate whether forcing is hourly timestep
+    logical, intent(in) :: is_hourly_forcing
+
+    !> simulation time step
     integer(i4), intent(in) :: tt
 
-    ! current decimal Julian day
+    !> current decimal Julian day
     real(dp), intent(in) :: time
 
-    ! mHM process configuration matrix
+    !> mHM process configuration matrix
     integer(i4), dimension(:, :), intent(in) :: processMatrix
 
-    ! Depth of each horizon in mHM
+    !> Depth of each horizon in mHM
     real(dp), dimension(:), intent(in) :: horizon_depth
 
-    ! number of cells in a given domain at level L1
+    !> number of cells in a given domain at level L1
     integer(i4), intent(in) :: nCells1
 
-    ! Number of Horizons in mHM
+    !> Number of Horizons in mHM
     integer(i4), intent(in) :: nHorizons_mHM
 
-    ! number of time intervals per day, transformed in dp
+    !> number of time intervals per day, transformed in dp
     real(dp), intent(in) :: ntimesteps_day
 
-    ! unit conversion
+    !> unit conversion
     real(dp), intent(in) :: c2TSTu
 
-    ! tabular for neutron flux approximation
+    !> tabular for neutron flux approximation
     real(dp), dimension(:), intent(in) :: neutron_integral_AFast
 
-    ! global mHM parameters
+    !> global mHM parameters
     real(dp), dimension(:), intent(in) :: global_parameters
 
-    ! latitude on level 1
+    !> latitude on level 1
     real(dp), dimension(:), intent(in) :: latitude
 
-    ! Evaporation coefficent for free-water surface of that current month
+    !> Evaporation coefficent for free-water surface of that current month
     real(dp), dimension(:), intent(in) :: evap_coeff
 
-    ! [-] day ratio precipitation < 1
+    !> [-] day ratio precipitation < 1
     real(dp), dimension(:), intent(in) :: fday_prec
 
-    ! [-] night ratio precipitation < 1
+    !> [-] night ratio precipitation < 1
     real(dp), dimension(:), intent(in) :: fnight_prec
 
-    ! [-] day ratio PET  < 1
+    !> [-] day ratio PET  < 1
     real(dp), dimension(:), intent(in) :: fday_pet
 
-    ! [-] night ratio PET  < 1
+    !> [-] night ratio PET  < 1
     real(dp), dimension(:), intent(in) :: fnight_pet
 
-    ! [-] day factor mean temp
+    !> [-] day factor mean temp
     real(dp), dimension(:), intent(in) :: fday_temp
 
-    ! [-] night factor mean temp
+    !> [-] night factor mean temp
     real(dp), dimension(:), intent(in) :: fnight_temp
 
-    ! multiplicative weights for temperature (deg K)
+    !> multiplicative weights for temperature (deg K)
     real(dp), dimension(:, :, :), intent(in) :: temp_weights
 
-    ! multiplicative weights for potential evapotranspiration
+    !> multiplicative weights for potential evapotranspiration
     real(dp), dimension(:, :, :), intent(in) :: pet_weights
 
-    ! multiplicative weights for precipitation
+    !> multiplicative weights for precipitation
     real(dp), dimension(:, :, :), intent(in) :: pre_weights
 
-    ! flag whether weights for tavg and pet have read and should be used
+    !> flag whether weights for tavg and pet have read and should be used
     logical, intent(in) :: read_meteo_weights
 
-    ! [mm d-1] Daily potential evapotranspiration (input)
+    !> [mm d-1] Daily potential evapotranspiration (input)
     real(dp), dimension(:), intent(in) :: pet_in
 
-    ! [degc]   Daily minimum temperature
+    !> [degc]   Daily minimum temperature
     real(dp), dimension(:), intent(in) :: tmin_in
 
-    ! [degc]   Daily maxumum temperature
+    !> [degc]   Daily maxumum temperature
     real(dp), dimension(:), intent(in) :: tmax_in
 
-    ! [w m2]   Daily average net radiation
+    !> [w m2]   Daily average net radiation
     real(dp), dimension(:), intent(in) :: netrad_in
 
-    ! [Pa]     Daily average absolute vapour pressure
+    !> [Pa]     Daily average absolute vapour pressure
     real(dp), dimension(:), intent(in) :: absvappres_in
 
-    ! [m s-1]  Daily average wind speed
+    !> [m s-1]  Daily average wind speed
     real(dp), dimension(:), intent(in) :: windspeed_in
 
-    ! [mm d-1] Daily mean precipitation
+    !> [mm d-1] Daily mean precipitation
     real(dp), dimension(:), intent(in) :: prec_in
 
-    ! [degc]   Daily average temperature
+    !> [degc]   Daily average temperature
     real(dp), dimension(:), intent(in) :: temp_in
 
-    ! fraction of sealed area at scale L1
+    !> fraction of sealed area at scale L1
     real(dp), dimension(:), intent(inout) :: fSealed1
 
-    ! Interception
+    !> Interception
     real(dp), dimension(:), intent(inout) :: interc
 
-    ! Snowpack
+    !> Snowpack
     real(dp), dimension(:), intent(inout) :: snowpack
 
-    ! Retention storage of impervious areas
+    !> Retention storage of impervious areas
     real(dp), dimension(:), intent(inout) :: sealedStorage
 
-    ! Soil moisture of each horizon
+    !> Soil moisture of each horizon
     real(dp), dimension(:, :), intent(inout) :: soilMoisture
 
-    ! Upper soil storage
+    !> Upper soil storage
     real(dp), dimension(:), intent(inout) :: unsatStorage
 
-    ! Groundwater storage
+    !> Groundwater storage
     real(dp), dimension(:), intent(inout) :: satStorage
 
-    ! Ground albedo neutrons
+    !> Ground albedo neutrons
     real(dp), dimension(:), intent(inout) :: neutrons
 
-    ! [mm TST-1] estimated PET (if PET is input = corrected values (fAsp*PET))
+    !> [mm TS-1] estimated PET (if PET is input = corrected values (fAsp*PET))
     real(dp), dimension(:), intent(inout) :: pet_calc
 
-    ! actual ET
+    !> [degC] temperature for current time step
+    real(dp), dimension(:), intent(inout) :: temp_calc
+
+    !> [mm TS-1] precipitation for current time step
+    real(dp), dimension(:), intent(inout) :: prec_calc
+
+    !> actual ET
     real(dp), dimension(:, :), intent(inout) :: aet_soil
 
-    ! Real evaporation intensity from canopy
+    !> Real evaporation intensity from canopy
     real(dp), dimension(:), intent(inout) :: aet_canopy
 
-    ! Actual ET from free-water surfaces
+    !> Actual ET from free-water surfaces
     real(dp), dimension(:), intent(inout) :: aet_sealed
 
-    ! Baseflow
+    !> Baseflow
     real(dp), dimension(:), intent(inout) :: baseflow
 
-    ! Recharge, infiltration intensity or effective precipitation of each horizon
+    !> Recharge, infiltration intensity or effective precipitation of each horizon
     real(dp), dimension(:, :), intent(inout) :: infiltration
 
-    ! Fast runoff component
+    !> Fast runoff component
     real(dp), dimension(:), intent(inout) :: fast_interflow
 
-    ! Melting snow depth
+    !> Melting snow depth
     real(dp), dimension(:), intent(inout) :: melt
 
-    ! Percolation
+    !> Percolation
     real(dp), dimension(:), intent(inout) :: perc
 
-    ! Effective precipitation depth (snow melt + rain)
+    !> Effective precipitation depth (snow melt + rain)
     real(dp), dimension(:), intent(inout) :: prec_effect
 
-    ! Rain precipitation depth
+    !> Rain precipitation depth
     real(dp), dimension(:), intent(inout) :: rain
 
-    ! Direct runoff from impervious areas
+    !> Direct runoff from impervious areas
     real(dp), dimension(:), intent(inout) :: runoff_sealed
 
-    ! Slow runoff component
+    !> Slow runoff component
     real(dp), dimension(:), intent(inout) :: slow_interflow
 
-    ! Snow precipitation depth
+    !> Snow precipitation depth
     real(dp), dimension(:), intent(inout) :: snow
 
-    ! Throughfall
+    !> Throughfall
     real(dp), dimension(:), intent(inout) :: throughfall
 
-    ! Generated runoff
+    !> Generated runoff
     real(dp), dimension(:), intent(inout) :: total_runoff
 
-    ! Exponent for the upper reservoir
+    !> Exponent for the upper reservoir
     real(dp), dimension(:), intent(inout) :: alpha
 
-    ! Increase of the Degree-day factor per mm of increase in precipitation
+    !> Increase of the Degree-day factor per mm of increase in precipitation
     real(dp), dimension(:), intent(inout) :: deg_day_incr
 
-    ! Maximum Degree-day factor
+    !> Maximum Degree-day factor
     real(dp), dimension(:), intent(inout) :: deg_day_max
 
-    ! Degree-day factor with no precipitation
+    !> Degree-day factor with no precipitation
     real(dp), dimension(:), intent(inout) :: deg_day_noprec
 
-    ! Degree-day factor
+    !> Degree-day factor
     real(dp), dimension(:), intent(inout) :: deg_day
 
-    ! [1]     PET correction for Aspect at level 1
+    !> [1]     PET correction for Aspect at level 1
     real(dp), dimension(:), intent(inout) :: fAsp
 
-    ! PET correction factor based on LAI at level 1
+    !> PET correction factor based on LAI at level 1
     real(dp), dimension(:), intent(inout) :: petLAIcorFactorL1
 
-    ! [1]     PET Hargreaves Samani coefficient at level 1
+    !> [1]     PET Hargreaves Samani coefficient at level 1
     real(dp), dimension(:), intent(inout) :: HarSamCoeff
 
-    ! [1]     PET Priestley Taylor coefficient at level 1
+    !> [1]     PET Priestley Taylor coefficient at level 1
     real(dp), dimension(:), intent(inout) :: PrieTayAlpha
 
-    ! [s m-1] PET aerodynamical resitance at level 1
+    !> [s m-1] PET aerodynamical resitance at level 1
     real(dp), dimension(:), intent(inout) :: aeroResist
 
-    ! [s m-1] PET bulk surface resitance at level 1
+    !> [s m-1] PET bulk surface resitance at level 1
     real(dp), dimension(:), intent(inout) :: surfResist
 
-    ! Fraction of Roots in soil horizon
+    !> Fraction of Roots in soil horizon
     real(dp), dimension(:, :), intent(inout) :: frac_roots
 
-    ! Maximum interception
+    !> Maximum interception
     real(dp), dimension(:), intent(inout) :: interc_max
 
-    ! Karstic percolation loss
+    !> Karstic percolation loss
     real(dp), dimension(:), intent(inout) :: karst_loss
 
-    ! Recession coefficient of the upper reservoir, upper outlet
+    !> Recession coefficient of the upper reservoir, upper outlet
     real(dp), dimension(:), intent(inout) :: k0
 
-    ! Recession coefficient of the upper reservoir, lower outlet
+    !> Recession coefficient of the upper reservoir, lower outlet
     real(dp), dimension(:), intent(inout) :: k1
 
-    ! Baseflow recession coefficient
+    !> Baseflow recession coefficient
     real(dp), dimension(:), intent(inout) :: k2
 
-    ! Percolation coefficient
+    !> Percolation coefficient
     real(dp), dimension(:), intent(inout) :: kp
 
-    ! Soil moisture below which actual ET is reduced
+    !> Soil moisture below which actual ET is reduced
     real(dp), dimension(:, :), intent(inout) :: soil_moist_FC
 
-    ! Saturation soil moisture for each horizon [mm]
+    !> Saturation soil moisture for each horizon [mm]
     real(dp), dimension(:, :), intent(inout) :: soil_moist_sat
 
-    ! Exponential parameter to how non-linear is the soil water retention
+    !> Exponential parameter to how non-linear is the soil water retention
     real(dp), dimension(:, :), intent(inout) :: soil_moist_exponen
 
-    ! jarvis critical value for normalized soil water content
+    !> jarvis critical value for normalized soil water content
     real(dp), dimension(:), intent(inout) :: jarvis_thresh_c1
 
-    ! Threshold temperature for snow/rain
+    !> Threshold temperature for snow/rain
     real(dp), dimension(:), intent(inout) :: temp_thresh
 
-    ! Threshold water depth in upper reservoir
+    !> Threshold water depth in upper reservoir
     real(dp), dimension(:), intent(inout) :: unsat_thresh
 
-    ! Threshold water depth in impervious areas
+    !> Threshold water depth in impervious areas
     real(dp), dimension(:), intent(inout) :: water_thresh_sealed
 
-    ! Permanent wilting point for each horizon
+    !> Permanent wilting point for each horizon
     real(dp), dimension(:, :), intent(inout) :: wilting_point
 
     ! is day or night
@@ -485,12 +497,8 @@ CONTAINS
 
     ! cell index
     integer(i4) :: k
-
+    ! pet in [mm d-1]
     real(dp) :: pet
-
-    real(dp) :: prec
-
-    real(dp) :: temp
 
     real(dp), dimension(size(infiltration, 2)) :: tmp_infiltration
 
@@ -523,7 +531,7 @@ CONTAINS
     ! HYDROLOGICAL PROCESSES at L1-LEVEL
     !-------------------------------------------------------------------
     !$OMP parallel default(shared) &
-    !$OMP private(k, prec, pet, temp, tmp_soilmoisture, tmp_infiltration, tmp_aet_soil)
+    !$OMP private(k, pet, tmp_soilmoisture, tmp_infiltration, tmp_aet_soil)
     !$OMP do SCHEDULE(STATIC)
     do k = 1, nCells1
 
@@ -546,6 +554,7 @@ CONTAINS
                 tmin_in(k), latitude(k), doy)
 
       case(2) ! Priestley-Taylor
+
         ! Priestley Taylor is not defined for values netrad < 0.0_dp
         pet = pet_priestly(PrieTayAlpha(k), max(netrad_in(k), 0.0_dp), temp_in(k))
 
@@ -555,18 +564,24 @@ CONTAINS
 
       end select
       ! temporal disaggreagtion of forcing variables
-      call temporal_disagg_forcing(isday, ntimesteps_day, prec_in(k), & ! Intent IN
+      if (is_hourly_forcing) then
+         prec_calc(k) = prec_in(k)
+         pet_calc(k) = pet
+         temp_calc(k) = temp_in(k)
+      else
+         call temporal_disagg_forcing(isday, ntimesteps_day, prec_in(k), & ! Intent IN
               pet, temp_in(k), fday_prec(month), fday_pet(month), & ! Intent IN
               fday_temp(month), fnight_prec(month), fnight_pet(month), fnight_temp(month), & ! Intent IN
               temp_weights(k, month, hour + 1), pet_weights(k, month, hour + 1), & ! Intent IN
               pre_weights(k, month, hour + 1), & ! Intent IN
               read_meteo_weights, & ! Intent IN
-              prec, pet_calc(k), temp)                                                            ! Intent OUT
-      call canopy_interc(pet_calc(k), interc_max(k), prec, & ! Intent IN
+              prec_calc(k), pet_calc(k), temp_calc(k))                                                            ! Intent OUT
+      end if
+      call canopy_interc(pet_calc(k), interc_max(k), prec_calc(k), & ! Intent IN
               interc(k), & ! Intent INOUT
               throughfall(k), aet_canopy(k))                                                      ! Intent OUT
       call snow_accum_melt(deg_day_incr(k), deg_day_max(k) * c2TSTu, & ! Intent IN
-              deg_day_noprec(k) * c2TSTu, prec, temp, temp_thresh(k), throughfall(k), & ! Intent IN
+              deg_day_noprec(k) * c2TSTu, prec_calc(k), temp_calc(k), temp_thresh(k), throughfall(k), & ! Intent IN
               snowpack(k), & ! Intent INOUT
               deg_day(k), & ! Intent OUT
               melt(k), prec_effect(k), rain(k), snow(k))                                          ! Intent OUT

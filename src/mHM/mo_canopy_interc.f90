@@ -50,7 +50,7 @@ CONTAINS
   !>       canopy_interc(pet, interc_month_max, interc_max, precip, throughfall, evap_canopy, interc)
 
   !    INTENT(IN)
-  !>       \param[in] "REAL(dp) :: pet"        Potential evapotranspiration [mm s-1]
+  !>       \param[in] "REAL(dp) :: pet"        Potential evapotranspiration [mm TS-1]
   !>       \param[in] "REAL(dp) :: interc_max" Maximum interception [mm]
   !>       \param[in] "REAL(dp) :: precip"     Daily mean precipitation [mm]
 
@@ -58,8 +58,8 @@ CONTAINS
   !>       \param[inout] "REAL(dp) :: interc" Interception [mm]
 
   !    INTENT(OUT)
-  !>       \param[out] "REAL(dp) :: throughfall" Throughfall [mm s-1]
-  !>       \param[out] "REAL(dp) :: evap_canopy" Real evaporation intensity from canopy[mm s-1]
+  !>       \param[out] "REAL(dp) :: throughfall" Throughfall [mm TS-1]
+  !>       \param[out] "REAL(dp) :: evap_canopy" Real evaporation intensity from canopy[mm TS-1]
 
   !    HISTORY
   !>       \authors Vladyslav Prykhodko
@@ -74,7 +74,7 @@ CONTAINS
   ELEMENTAL PURE SUBROUTINE canopy_interc(pet, interc_max, precip, interc, throughfall, evap_canopy)
     implicit none
 
-    ! Potential evapotranspiration [mm s-1]
+    ! Potential evapotranspiration [mm TS-1]
     REAL(dp), INTENT(IN) :: pet
 
     ! Maximum interception [mm]
@@ -86,10 +86,10 @@ CONTAINS
     ! Interception [mm]
     REAL(dp), INTENT(INOUT) :: interc
 
-    ! Throughfall [mm s-1]
+    ! Throughfall [mm TS-1]
     REAL(dp), INTENT(OUT) :: throughfall
 
-    ! Real evaporation intensity from canopy[mm s-1]
+    ! Real evaporation intensity from canopy[mm TS-1]
     REAL(dp), INTENT(OUT) :: evap_canopy
 
     ! Auxiliary helping variable [-]

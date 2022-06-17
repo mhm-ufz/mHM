@@ -40,9 +40,6 @@ contains
   !>       \param[in] "integer :: unamelist, unamelist_param"
   !>       \param[in] "logical :: do_message"                              - flag for writing mHM standard messages
 
-  !    INTENT(OUT)
-  !>       \param[out] "logical :: readLatLon" - flag for reading LatLon file
-
   !    HISTORY
   !>       \authors Stephan Thober
 
@@ -53,7 +50,7 @@ contains
   ! Stephan Thober  Oct 2015 - added NLoutputResults namelist, fileLatLon to directories_general namelist, and readLatLon flag
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, do_message, readLatLon)
+  subroutine mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, do_message)
 
     use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_mHM_mRM_read_config, only : common_check_resolution
@@ -65,7 +62,9 @@ contains
                                         dirGauges, dirTotalRunoff, filenameTotalRunoff, dirBankfullRunoff, gauge, is_start, &
                                         nGaugesTotal, nGaugesLocal, nInflowGaugesTotal, outputFlxState_mrm, &
                                         timeStep_model_outputs_mrm, &
-                                        varnameTotalRunoff, gw_coupling
+                                        varnameTotalRunoff, gw_coupling, &
+                                        output_deflate_level_mrm, output_double_precision_mrm, &
+                                        readLatLon
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
 
@@ -77,9 +76,6 @@ contains
 
     ! - flag for writing mHM standard messages
     logical, intent(in) :: do_message
-
-    ! - flag for reading LatLon file
-    logical, intent(out) :: readLatLon
 
     integer(i4), dimension(maxNoDomains) :: NoGauges_domain
 
@@ -122,7 +118,11 @@ contains
     namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_domain, InflowGauge_id, &
             InflowGauge_filename, InflowGauge_Headwater
     ! name list regarding output
-    namelist /NLoutputResults/timeStep_model_outputs_mrm, outputFlxState_mrm
+    namelist /NLoutputResults/ &
+            output_deflate_level_mrm, &
+            output_double_precision_mrm, &
+            timeStep_model_outputs_mrm, &
+            outputFlxState_mrm
 
     !===============================================================
     ! INITIALIZATION
@@ -354,6 +354,8 @@ contains
     !===============================================================
     ! Read Output specifications for mRM
     !===============================================================
+    output_deflate_level_mrm = 6
+    output_double_precision_mrm = .true.
     outputFlxState_mrm = .FALSE.
     timeStep_model_outputs_mrm = -2
     inquire(file = file_defOutput, exist = file_exists)
@@ -372,7 +374,12 @@ contains
     if (any(outputFlxState_mrm)) then
       call message('')
       call message('    Following output will be written:')
-
+      call message('    NetCDF deflate level: ', adjustl(trim(num2str(output_deflate_level_mrm))))
+      if ( output_double_precision_mrm ) then
+        call message('    NetCDF output precision: double')
+      else
+        call message('    NetCDF output precision: single')
+      end if
       call message('    FLUXES:')
       if (outputFlxState_mrm(1)) then
         call message('      routed streamflow      (L11_qMod)                [m3 s-1]')

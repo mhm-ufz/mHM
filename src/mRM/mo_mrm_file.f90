@@ -35,22 +35,22 @@ MODULE mo_mrm_file
   !> flow direction input data file
   CHARACTER(len = *), PARAMETER :: file_fdir = 'fdir.asc'                    ! flow direction
   !> Unit for  flow direction input data file
-  INTEGER,          PARAMETER :: ufdir = 57                            ! 
+  INTEGER,          PARAMETER :: ufdir = 57                            !
   !> flow direction input data file
   CHARACTER(len=*), PARAMETER :: file_slope              = 'slope.asc'                    ! slope
   !> Unit for  flow direction input data file
-  INTEGER,          PARAMETER :: uslope                  = 59                            ! 
+  INTEGER,          PARAMETER :: uslope                  = 59                            !
 
   !> gauge location input data file
   CHARACTER(len = *), PARAMETER :: file_gaugeloc = 'idgauges.asc'                ! gauge location
   !> Unit for  gauge location input data file
   INTEGER, PARAMETER :: ugaugeloc = 62                            !
 
-  !> unit for discharge time series 
+  !> unit for discharge time series
   INTEGER, PARAMETER :: udischarge = 66                            !
 
   !> file defining mRM's outputs
-  CHARACTER(len = *), PARAMETER :: file_defOutput = 'mrm_outputs.nml'             ! output states and fluxes
+  character(:), allocatable :: file_defOutput ! = 'mrm_outputs.nml'             ! output states and fluxes
   !> Unit for file defining mRM's outputs
   INTEGER, PARAMETER :: udefOutput = 67                            !
 
@@ -71,5 +71,12 @@ MODULE mo_mrm_file
 
 !> file containing mrm output for groundwater coupling
   character(len = *), PARAMETER :: file_gw_output = 'mRM_gw_Fluxes_States.nc'
+
+  !> file defining optimazation outputs
+  CHARACTER(len = *), PARAMETER :: file_subdaily_discharge = 'subdaily_discharge.out'         ! input_timestep discharge file
+  !> Unit for file optimazation outputs
+  INTEGER, PARAMETER :: usubdaily_discharge = 75                            !
+  !> file containing simulated discharge at observat time step
+  CHARACTER(len = *), PARAMETER :: ncfile_subdaily_discharge = 'subdaily_discharge.nc'    ! discharge file as netcdf
 
 END MODULE mo_mrm_file

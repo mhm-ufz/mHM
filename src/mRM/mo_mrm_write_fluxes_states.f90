@@ -20,6 +20,7 @@ module mo_mrm_write_fluxes_states
           Conventions, contact, mHM_details, history
   use mo_common_constants, only : nodata_dp
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable
+  use mo_mrm_global_variables, only : output_deflate_level_mrm, output_double_precision_mrm
 
   implicit none
 
@@ -120,7 +121,7 @@ contains
 
 
     allocate(out%data(ncells))
-    out%nc = nc%setVariable(name, dtype, dims, deflate_level = 1, shuffle = .true.)
+    out%nc = nc%setVariable(name, dtype, dims, deflate_level = output_deflate_level_mrm, shuffle = .true.)
     out%data = 0
     out%mask => mask
     if (present(avg)) out%avg = avg
@@ -262,7 +263,11 @@ contains
 
     type(OutputVariable), dimension(size(outputFlxState_mrm)) :: tmpvars
 
-    dtype = "f64"
+    if ( output_double_precision_mrm ) then
+      dtype = "f64"
+    else
+      dtype = "f32"
+    end if
 
     if (iFlag_cordinate_sys == 0) then
       dims1 = (/"easting ", "northing", "time    "/) ! X & Y coordinate system
@@ -356,20 +361,12 @@ contains
 
     if (outputFlxState_mrm(1)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L11_Qmod(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L11_Qmod(sidx : eidx))
-#endif
     end if
 
     if (outputFlxState_mrm(2) .AND. present(L11_riv_temp)) then
       ii = ii + 1
-#ifdef pgiFortran
-      call updateVariable(vars(ii), L11_riv_temp(sidx : eidx))
-#else
       call vars(ii)%updateVariable(L11_riv_temp(sidx : eidx))
-#endif
     end if
 
   end subroutine updateDataset
@@ -518,7 +515,13 @@ contains
 
     real(dp), allocatable, dimension(:, :) :: lat2d, lon2d ! temporary storage of mHM's 2D latlon array.
                                                            ! Used as 2d lat lon arrays if coordinate system is X & Y
+    character(3) :: dtype
 
+    if ( output_double_precision_mrm ) then
+      dtype = "f64"
+    else
+      dtype = "f32"
+    end if
 
     fname = trim(dirOut(iDomain)) // trim(file_mrm_output)
     call geoCoordinates(level11(iDomain), lat2d, lon2d)
@@ -538,23 +541,23 @@ contains
                       nc%setDimension("time", 0) &
               /)
       ! northing
-      var = nc%setVariable("northing", "f64", (/ dimids1(2) /))
+      var = nc%setVariable("northing", dtype, (/ dimids1(2) /))
       call var%setData(northing)
       call var%setAttribute("units", "m")
       call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
       ! easting
-      var = nc%setVariable("easting", "f64", (/ dimids1(1) /))
+      var = nc%setVariable("easting", dtype, (/ dimids1(1) /))
       call var%setData(easting)
       call var%setAttribute("units", "m")
       call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
       ! lon
-      var = nc%setVariable("lon", "f64", dimids1(1 : 2))
+      var = nc%setVariable("lon", dtype, dimids1(1 : 2))
       call var%setData(lon2d)
       call var%setAttribute("units", "degrees_east")
       call var%setAttribute("long_name", "longitude")
       call var%setAttribute("missing_value", nodata_dp)
       ! lat
-      var = nc%setVariable("lat", "f64", dimids1(1 : 2))
+      var = nc%setVariable("lat", dtype, dimids1(1 : 2))
       call var%setData(lat2d)
       call var%setAttribute("units", "degrees_north")
       call var%setAttribute("long_name", "latitude")
@@ -572,13 +575,13 @@ contains
                       nc%setDimension("time", 0) &
               /)
       ! lon
-      var = nc%setVariable("lon", "f64", (/ dimids1(1) /)) ! sufficient to store lon as vector
+      var = nc%setVariable("lon", dtype, (/ dimids1(1) /)) ! sufficient to store lon as vector
       call var%setData(lon1d)
       call var%setAttribute("units", "degrees_east")
       call var%setAttribute("long_name", "longitude")
       call var%setAttribute("missing_value", nodata_dp)
       ! lat
-      var = nc%setVariable("lat", "f64", (/ dimids1(2) /)) ! sufficient to store lat as vector
+      var = nc%setVariable("lat", dtype, (/ dimids1(2) /)) ! sufficient to store lat as vector
       call var%setData(lat1d)
       call var%setAttribute("units", "degrees_north")
       call var%setAttribute("long_name", "latitude")

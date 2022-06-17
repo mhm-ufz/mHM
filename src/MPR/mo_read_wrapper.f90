@@ -63,7 +63,8 @@ CONTAINS
   subroutine read_data(LAIPer)
 
     use mo_append, only : append, paste
-    use mo_common_constants, only : YearMonths_i4, nodata_dp, nodata_i4
+    use mo_constants, only : YearMonths
+    use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : Grid, dirCommonFiles, dirMorpho, &
                                     global_parameters, level0, domainMeta, period, processMatrix
@@ -250,7 +251,7 @@ CONTAINS
       case(0) ! long term mean monthly values per class with LUT
         ! only set if not yet allocated (e.g. domain 1)
         if (.not. allocated(LAIBoundaries)) then
-          nLAI = YearMonths_i4
+          nLAI = int(YearMonths, i4)
           allocate(LAIBoundaries(nLAI+1))
           LAIBoundaries = [(iMon, iMon=1, nLAI+1)]
         end if
