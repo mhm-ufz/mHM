@@ -20,7 +20,7 @@ MODULE mo_soil_database
   ! Written  Juliane Mai, Dec 2012
 
   use mo_kind, only : i4, dp
-  use mo_message, only : message
+  use mo_message, only : message, error_message
   use mo_string_utils, only : num2str
   use mo_os, only : path_isfile
 
@@ -77,7 +77,7 @@ CONTAINS
 
     integer(i4) :: ii, jj, kk
 
-    integer(i4) :: nR, nH
+    integer(i4) :: nR, nH, max_i
 
     real(dp) :: up, down
 
@@ -111,6 +111,8 @@ CONTAINS
       soilDB%nTillHorizons(:) = nodata_i4
       soilDB%RZdepth(:) = nodata_dp
 
+      ! check if max soil_type id is equal to nSoilTypes
+      max_i = 0_i4
       ! initalise total rows to read
       nR = 0_i4
       read(usoil_database, *) dummy
@@ -132,13 +134,23 @@ CONTAINS
         end if
 
         ! initalise soil id
+        if ( ii > size(soilDB%Id) ) call error_message( &
+          "ERROR: nSoil_Types (", num2str(size(soilDB%Id)), &
+          ") in soil_classdefinition.txt seems to be to low! Tried to read: ", num2str(ii) &
+        )
         soilDB%Id(ii) = ii
         soilDB%nHorizons(ii) = jj
         if(anint(down, dp) .gt. soilDB%RZdepth(ii)) soilDB%RZdepth(ii) = anint(down, dp)
 
         nR = nR + 1_i4
+        max_i = max(max_i, ii)
 
       end do
+
+      if ( max_i < nSoilTypes ) call error_message( &
+        "ERROR: nSoil_Types (", num2str(size(soilDB%Id)), &
+        ") in soil_classdefinition.txt seems to be to high! Highest read value: ", num2str(max_i) &
+      )
 
       ! initalise minimum root zone depth among all soil types
       dMin = minval(soilDB%RZdepth(:), soilDB%RZdepth(:) .gt. 0.0_dp)
@@ -294,7 +306,7 @@ CONTAINS
       allocate(soilDB%Db(1, 1, 1))
       allocate(soilDB%Ks(1, 1, 1))
 
-      
+
 
       !checking whether the file exists
       call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
@@ -310,7 +322,11 @@ CONTAINS
       soilDB%dbM (:, :) = nodata_dp
       read(usoil_database, *) dummy
       do kk = 1, nSoilTypes
-        read(usoil_database, *) jj, cly, snd, bd
+        read(usoil_database, *, iostat=ios) jj, cly, snd, bd
+        if ( ios /= 0 ) call error_message( &
+          "ERROR: nSoil_Types (", num2str(nSoilTypes), ") in soil_classdefinition_iFlag_soilDB_1.txt ", &
+          "seems to be higher than available soil types!" &
+        )
         ! to avoid numerical errors in PTF
         if(cly .lt. 1.0_dp) cly = 1.0_dp
         if(snd .lt. 1.0_dp) snd = 1.0_dp
@@ -506,7 +522,7 @@ CONTAINS
     CASE(1)
       ! right now nothing is done here
       ! *** reserved for future changes
-      allocate(soilDB%Wd(1,1,1)) 
+      allocate(soilDB%Wd(1,1,1))
 
     CASE DEFAULT
       call message()
