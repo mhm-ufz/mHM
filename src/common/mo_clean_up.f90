@@ -143,8 +143,11 @@ module mo_clean_up
       L1_unsatThresh, &
       L1_sealedThresh, &
       L1_wiltingPoint, &
-      soilDB
-
+      soilDB, &
+      L1_No_Count, &
+      L1_bulkDens, &
+      L1_latticeWater, &
+      L1_COSMICL3
     use mo_mrm_global_variables, only : &
       dirGauges, &
       dirTotalRunoff, &
@@ -369,6 +372,10 @@ module mo_clean_up
     if ( allocated(soilDB%thetaPW_Till) ) deallocate(soilDB%thetaPW_Till)
     if ( allocated(soilDB%thetaPW) ) deallocate(soilDB%thetaPW)
     if ( allocated(soilDB%Ks) ) deallocate(soilDB%Ks)
+    if ( allocated(L1_No_Count) ) deallocate(L1_No_Count)
+    if ( allocated(L1_bulkDens) ) deallocate(L1_bulkDens)
+    if ( allocated(L1_latticeWater) ) deallocate(L1_latticeWater)
+    if ( allocated(L1_COSMICL3) ) deallocate(L1_COSMICL3)
 
     ! mo_mrm_global_variables
     if ( allocated(dirGauges) ) deallocate(dirGauges)
