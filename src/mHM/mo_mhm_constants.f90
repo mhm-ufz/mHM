@@ -30,7 +30,7 @@ MODULE mo_mhm_constants
   real(dp), public, parameter :: C1_InitStateSM = 0.25_dp
 
   ! maximum number of outputs (fluxes states) for mHM
-  integer(i4), public, parameter :: nOutFlxState = 20_i4     ! max. number of outputs to write into a netcdf file
+  integer(i4), public, parameter :: nOutFlxState = 21_i4     ! max. number of outputs to write into a netcdf file
 
   !> Hargreaves-Samani ref. ET formula [deg C]
   real(dp), public, parameter :: HarSamConst = 17.800_dp

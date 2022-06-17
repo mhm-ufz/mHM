@@ -766,7 +766,8 @@ contains
           L1_baseflow, &
           L1_percol, &
           L1_infilSoil, &
-          L1_preEffect &
+          L1_preEffect, &
+          L1_melt &
         )
 
         ! write data

@@ -454,6 +454,14 @@ contains
               tmpvars(ii), "effective precipitation", trim(unit))
     end if
 
+    if (outputFlxState(21)) then
+      ii = ii + 1
+      tmpvars(ii) = OutputVariable(&
+              nc, "Qsm", dtype, dims1, nCells, mask1)
+      call writeVariableAttributes(&
+              tmpvars(ii), "Average liquid water generated from solid to liquid phase change in the snow", trim(unit))
+    end if
+
     out%vars = tmpvars(1 : ii)
     out%nc = nc
     out%iDomain = iDomain
@@ -517,7 +525,7 @@ contains
   subroutine updateDataset(self, sidx, eidx, L1_fSealed, L1_fNotSealed, L1_inter, L1_snowPack, L1_soilMoist, &
                           L1_soilMoistSat, L1_sealSTW, L1_unsatSTW, L1_satSTW, L1_neutrons, L1_pet, L1_aETSoil, &
                           L1_aETCanopy, L1_aETSealed, L1_total_runoff, L1_runoffSeal, L1_fastRunoff, L1_slowRunoff, &
-                          L1_baseflow, L1_percol, L1_infilSoil, L1_preEffect)
+                          L1_baseflow, L1_percol, L1_infilSoil, L1_preEffect, L1_melt)
 
     use mo_global_variables, only : outputFlxState
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
@@ -571,6 +579,8 @@ contains
     real(dp), intent(in), dimension(:, :) :: L1_infilSoil
 
     real(dp), intent(in), dimension(:) :: L1_preEffect
+
+    real(dp), intent(in), dimension(:) :: L1_melt
 
     type(OutputVariable), pointer, dimension(:) :: vars
 
@@ -687,6 +697,11 @@ contains
     if (outputFlxState(20)) then
       ii = ii + 1
       call vars(ii)%updateVariable(L1_preEffect(sidx : eidx))
+    end if
+
+    if (outputFlxState(21)) then
+      ii = ii + 1
+      call vars(ii)%updateVariable(L1_melt(sidx : eidx))
     end if
 
   end subroutine updateDataset

@@ -93,5 +93,7 @@ outputFlxState(19)=.TRUE.
 !
 ! effective precipitation            (L1_preEffect)    [mm/T]         -- case 20
 outputFlxState(20)=.TRUE.
+!
+! snow melt                               (L1_melt)    [mm/T]         -- case 21
+outputFlxState(21)=.TRUE.
 /
-
