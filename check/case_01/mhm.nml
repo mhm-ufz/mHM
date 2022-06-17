@@ -75,6 +75,7 @@
     optimize = .false.
     optimize_restart = .false.
     read_restart = .true.
+    read_old_style_restart_bounds = .true.
     resolution_routing(1) = 24000
     timestep = 1
 /

@@ -51,6 +51,8 @@ module mo_mhm_interface_run
     L1_percol, &
     L1_pet, &
     L1_pet_calc, &
+    L1_temp_calc, &
+    L1_prec_calc, &
     L1_pet_weights, &
     L1_pre, &
     L1_preEffect, &
@@ -464,6 +466,8 @@ contains
       L1_satSTW(run_cfg%s1 : run_cfg%e1), & ! INOUT S
       L1_neutrons(run_cfg%s1 : run_cfg%e1), & ! INOUT S
       L1_pet_calc(run_cfg%s1 : run_cfg%e1), & ! INOUT X
+      L1_temp_calc(run_cfg%s1 : run_cfg%e1), & ! INOUT X
+      L1_prec_calc(run_cfg%s1 : run_cfg%e1), & ! INOUT X
       L1_aETSoil(run_cfg%s1 : run_cfg%e1, :), &
       L1_aETCanopy(run_cfg%s1 : run_cfg%e1), &
       L1_aETSealed(run_cfg%s1 : run_cfg%e1), & ! INOUT X

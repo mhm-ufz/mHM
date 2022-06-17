@@ -108,10 +108,39 @@ module mo_mrm_riv_temp_class
     procedure :: alloc_lateral !< \see mo_mrm_riv_temp_class::alloc_lateral
     !> \copydoc mo_mrm_riv_temp_class::dealloc_lateral
     procedure :: dealloc_lateral !< \see mo_mrm_riv_temp_class::dealloc_lateral
+    !> \copydoc mo_mrm_riv_temp_class::clean_up
+    procedure :: clean_up !< \see mo_mrm_riv_temp_class::clean_up
 
   end type riv_temp_type
 
 contains
+
+
+  !> \brief clean up
+  subroutine clean_up( &
+    self &
+  )
+    implicit none
+
+    class(riv_temp_type), intent(inout) :: self
+
+    if ( allocated(self%L1_runoff_E) ) deallocate(self%L1_runoff_E)
+    if ( allocated(self%L1_acc_strd) ) deallocate(self%L1_acc_strd)
+    if ( allocated(self%L1_acc_ssrd) ) deallocate(self%L1_acc_ssrd)
+    if ( allocated(self%L1_acc_temp) ) deallocate(self%L1_acc_temp)
+    if ( allocated(self%dir_riv_widths) ) deallocate(self%dir_riv_widths)
+    if ( allocated(self%L11_riv_widths) ) deallocate(self%L11_riv_widths)
+    if ( allocated(self%L11_riv_areas) ) deallocate(self%L11_riv_areas)
+    if ( allocated(self%netNode_E_IN) ) deallocate(self%netNode_E_IN)
+    if ( allocated(self%netNode_E_R) ) deallocate(self%netNode_E_R)
+    if ( allocated(self%netNode_E_mod) ) deallocate(self%netNode_E_mod)
+    if ( allocated(self%netNode_E_out) ) deallocate(self%netNode_E_out)
+    if ( allocated(self%L11_srad_net) ) deallocate(self%L11_srad_net)
+    if ( allocated(self%L11_lrad_in) ) deallocate(self%L11_lrad_in)
+    if ( allocated(self%L11_air_temp) ) deallocate(self%L11_air_temp)
+    if ( allocated(self%river_temp) ) deallocate(self%river_temp)
+
+  end subroutine clean_up
 
   !> \brief configure the \ref riv_temp_type class from the mhm namelist
   subroutine config( &

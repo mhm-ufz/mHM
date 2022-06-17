@@ -434,6 +434,7 @@ contains
     use mo_restart, only: write_restart_files
     use mo_mrm_write, only : mrm_write
     use mo_mhm_messages, only: finish_message
+    use mo_clean_up, only: deallocate_global_variables
 
     implicit none
 
@@ -471,6 +472,9 @@ contains
 #endif
 
     call finish_message()
+
+    ! clean up all allocated variables
+    call deallocate_global_variables()
 
   end subroutine mhm_interface_finalize
 

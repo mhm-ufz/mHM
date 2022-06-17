@@ -4,7 +4,7 @@ set(LIB_NAME mhm_lib)
 find_package(PFUNIT)
 
 if(PFUNIT_FOUND)
-  file(GLOB testfiles ./*.pf)
+  file(GLOB testfiles *.pf)
   foreach(file ${testfiles})
     get_filename_component(testname ${file} NAME_WE)
     add_pfunit_ctest(${testname} TEST_SOURCES ${file} LINK_LIBRARIES ${LIB_NAME})
