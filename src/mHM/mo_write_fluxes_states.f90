@@ -868,20 +868,20 @@ contains
       !============================================================
       call mapCoordinates(level1(iDomain), northing, easting)
 
-      dimids1 = (/&
-              nc%setDimension("easting", size(easting)), &
-                      nc%setDimension("northing", size(northing)), &
-                      nc%setDimension("time", 0) &
-              /)
+      dimids1 = (/ &
+        nc%setDimension("easting", size(easting)), &
+        nc%setDimension("northing", size(northing)), &
+        nc%setDimension("time", 0) &
+      /)
       ! northing
       var = nc%setVariable("northing", dtype, (/ dimids1(2) /))
       call var%setData(northing)
-      call var%setAttribute("units", "m or degrees_north")
+      call var%setAttribute("units", "m")
       call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
       ! easting
       var = nc%setVariable("easting", dtype, (/ dimids1(1) /))
       call var%setData(easting)
-      call var%setAttribute("units", "m or degrees_north")
+      call var%setAttribute("units", "m")
       call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
       ! lon
       var = nc%setVariable("lon", dtype, dimids1(1 : 2))
@@ -902,11 +902,11 @@ contains
       !============================================================
       lat1d = lat2d(1, :) ! first row info is sufficient
       lon1d = lon2d(:, 1) ! first column info is sufficient
-      dimids1 = (/&
-              nc%setDimension("lon", size(lon1d)), &
-                      nc%setDimension("lat", size(lat1d)), &
-                      nc%setDimension("time", 0) &
-              /)
+      dimids1 = (/ &
+        nc%setDimension("lon", size(lon1d)), &
+        nc%setDimension("lat", size(lat1d)), &
+        nc%setDimension("time", 0) &
+      /)
       ! lon
       var = nc%setVariable("lon", dtype, (/ dimids1(1) /)) ! sufficient to store lon as vector
       call var%setData(lon1d)
