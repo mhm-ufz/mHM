@@ -96,6 +96,7 @@ contains
   ! Rohini Kumar   Mar 2016 - changes for handling multiple soil database options
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
+  ! Rohini Kumar                    Oct 2021 - Neutron count module to mHM integrate into develop branch (5.11.2)
 
   subroutine mpr_sm(param, processMatrix, is_present, nHorizons, nTillHorizons, sand, clay, DbM, ID0, soilId0, LCover0, &
                    thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
@@ -218,21 +219,20 @@ contains
     ! saturated hydraulic conductivity
     real(dp), dimension(:, :), allocatable :: Ks_non_till
 
-     ! Case 1 and 4 is based on Jarvis https://doi.org/10.1016/0022-1694(89)90050-4
-     ! Case 2 and 3 is based on Feddes https://doi.org/10.1016/0022-1694(76)90017-2
-
+    ! Case 1 and 4 is based on Jarvis https://doi.org/10.1016/0022-1694(89)90050-4
+    ! Case 2 and 3 is based on Feddes https://doi.org/10.1016/0022-1694(76)90017-2
     select case (processMatrix(3, 1))
-    case(1 , 2)
-    tmp_orgMatterContent_forest = param(3) + param(1)
-    case(3 , 4)
-    tmp_orgMatterContent_forest = param(1)
+    case(1,2)
+       tmp_orgMatterContent_forest = param(3) + param(1)
+    case(3,4)
+       tmp_orgMatterContent_forest = param(1)
     end select
 
     tmp_orgMatterContent_impervious = param(2)
-    tmp_orgMatterContent_pervious = param(3)
-        !write(*,*) 'tmp_orgMatterContent_forest = ', tmp_orgMatterContent_forest
-        !write(*,*) 'tmp_orgMatterContent_impervious = ', tmp_orgMatterContent_impervious
-        !write(*,*) 'tmp_orgMatterContent_pervious = ', tmp_orgMatterContent_pervious
+    tmp_orgMatterContent_pervious   = param(3)
+    !write(*,*) 'tmp_orgMatterContent_forest = ', tmp_orgMatterContent_forest
+    !write(*,*) 'tmp_orgMatterContent_impervious = ', tmp_orgMatterContent_impervious
+    !write(*,*) 'tmp_orgMatterContent_pervious = ', tmp_orgMatterContent_pervious
 
     tmp_minSoilHorizon = minval(nTillHorizons(:))
 

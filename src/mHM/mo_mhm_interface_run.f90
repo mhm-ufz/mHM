@@ -162,6 +162,10 @@ module mo_mhm_interface_run
     L1_tempThresh, &
     L1_unsatThresh, &
     L1_wiltingPoint, &
+    L1_No_Count, &
+    L1_bulkDens, &
+    L1_latticeWater, &
+    L1_COSMICL3, &
     HorizonDepth_mHM, &
     nSoilHorizons_mHM
   use mo_mrm_init, only : variables_default_init_routing
@@ -438,7 +442,6 @@ contains
       HorizonDepth_mHM, & ! IN C
       run_cfg%nCells, nSoilHorizons_mHM, real(nTstepDay, dp), c2TSTu,  & ! IN C
       neutron_integral_AFast, & ! IN C
-      run_cfg%parameterset, & ! IN
       pack(level1(iDomain)%y, level1(iDomain)%mask), & ! IN L1
       evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet, & ! IN F
       fday_temp, fnight_temp, & ! IN F
@@ -506,7 +509,12 @@ contains
       L1_tempThresh(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), &
       L1_unsatThresh(run_cfg%s1 : run_cfg%e1, 1, 1), & ! INOUT E1
       L1_sealedThresh(run_cfg%s1 : run_cfg%e1, 1, 1), & ! INOUT E1
-      L1_wiltingPoint(run_cfg%s1 : run_cfg%e1, :, run_cfg%domainDateTime%yId) & ! INOUT E1
+      L1_wiltingPoint(run_cfg%s1 : run_cfg%e1, :, run_cfg%domainDateTime%yId), & ! INOUT E1
+      !>> neutron count
+      L1_No_Count(run_cfg%s1:run_cfg%e1, 1, 1),  &                     ! INOUT E1
+      L1_bulkDens(run_cfg%s1:run_cfg%e1,     :, run_cfg%domainDateTime%yId), & ! INOUT E1
+      L1_latticeWater(run_cfg%s1:run_cfg%e1, :, run_cfg%domainDateTime%yId), & ! INOUT E1
+      L1_COSMICL3(run_cfg%s1:run_cfg%e1,     :, run_cfg%domainDateTime%yId)  & ! INOUT E1
     )
 
     ! call mRM routing

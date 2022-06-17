@@ -105,6 +105,7 @@ CONTAINS
                                     L1_fastRunoff, L1_infilSoil, L1_melt, L1_percol, L1_preEffect, L1_rain, &
                                     L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
                                     L1_soilMoist, L1_total_runoff, L1_unsatSTW
+
     use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_mpr_global_variables, only : nLAI, nSoilHorizons_mHM, HorizonDepth_mHM, LAIBoundaries
@@ -355,7 +356,10 @@ CONTAINS
                                         L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, L1_kfastFlow, L1_maxInter, &
                                         L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, L1_soilMoistFC, &
                                         L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, L1_wiltingPoint, &
-                                        nLAI, nSoilHorizons_mHM
+                                        nLAI, nSoilHorizons_mHM, &
+                                        ! neutron count
+                                        L1_No_Count, L1_bulkDens, L1_latticeWater, L1_COSMICL3
+    
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
     use mo_common_mHM_mRM_restart, only: check_dimension_consistency
@@ -807,7 +811,70 @@ CONTAINS
 
     end select
 
-    call nc%close()
+
+   ! neutron count
+   select case (processMatrix(10, 1))
+   case(1) ! deslet
+      ! N0 count
+      var = nc%getVariable("L1_No_Count")
+      call var%getData(dummyD2)
+      L1_No_Count(s1:e1, 1, 1) = pack(dummyD2, mask1)
+
+      ! Bulk density
+      var = nc%getVariable("L1_bulkDens")
+      call var%getData(dummyD4)
+      do jj = 1, nLCoverScene
+         do ii = 1, nSoilHorizons_mHM
+            L1_bulkDens(s1:e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
+         end do
+      end do
+
+      ! Lattice water 
+      var = nc%getVariable("L1_latticeWater")
+      call var%getData(dummyD4)
+      do jj = 1, nLCoverScene
+         do ii = 1, nSoilHorizons_mHM
+            L1_latticeWater(s1:e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
+         end do
+      end do
+      
+   case(2) ! COSMIC
+      ! N0 count
+      var = nc%getVariable("L1_No_Count")
+      call var%getData(dummyD2)
+      L1_No_Count(s1 : e1, 1, 1) = pack(dummyD2, mask1)
+
+      ! Bulk density
+      var = nc%getVariable("L1_bulkDens")
+      call var%getData(dummyD4)
+      do jj = 1, nLCoverScene
+         do ii = 1, nSoilHorizons_mHM
+            L1_bulkDens(s1:e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
+         end do
+      end do
+
+      ! Lattice water 
+      var = nc%getVariable("L1_latticeWater")
+      call var%getData(dummyD4)
+      do jj = 1, nLCoverScene
+         do ii = 1, nSoilHorizons_mHM
+            L1_latticeWater(s1: e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
+         end do
+      end do
+
+      ! COSMIC L3 parameter 
+      var = nc%getVariable("L1_COSMICL3")
+      call var%getData(dummyD4)
+      do jj = 1, nLCoverScene
+         do ii = 1, nSoilHorizons_mHM
+            L1_COSMICL3(s1:e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
+         end do
+      end do
+
+   end select
+   
+   ! close file
+   call nc%close()
 
   end subroutine read_restart_states
 

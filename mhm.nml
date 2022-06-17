@@ -97,7 +97,7 @@ L0Domain(2) = 2
 !-----------------------------------------------------------------------------
 !> flag for writing restart output
 !-----------------------------------------------------------------------------
-write_restart = .False.
+write_restart = .FALSE.
 !-----------------------------------------------------------------------------
 !> read domain specific optional data
 !-----------------------------------------------------------------------------
@@ -145,7 +145,7 @@ timestep = 1
 !> read_restart = .True. forces mrm_read_river_network = .True.
 !> read_old_style_restart_bounds = .True. if you want to use an old-style restart file created by mhm<=v5.11
 !-----------------------------------------------------------------------------
-read_restart  = .False.
+read_restart  = .FALSE.
 mrm_read_river_network = .False.
 read_old_style_restart_bounds = .False.
 !-----------------------------------------------------------------------------
@@ -649,7 +649,7 @@ iFlag_soilDB = 0
 tillageDepth = 200
 !
 !> No. of soil horizons to be modeled
-nSoilHorizons_mHM =2
+nSoilHorizons_mHM = 2
 !
 ! soil depth information
 !> IF (iFlag_soilDB = 0)
@@ -658,7 +658,7 @@ nSoilHorizons_mHM =2
 !>    Provide below the soil_Depth() for every 1,2..n-1,*n* soil horizons. You must have soil_class-id gridded file for each layer
 !>    Also check your tillage layer depth. It should conform with one of the below specified soil_Depth.
 !
-!> Soil_Horizon   Depth[mm]      ! depth of soil horizons w.r.t. ground surface (positive downwards)
+!> Soil_Horizon   Depth[mm]      ! bottom depth of soil horizons w.r.t. ground surface (positive downwards)
 soil_Depth(1) = 200
 /
 

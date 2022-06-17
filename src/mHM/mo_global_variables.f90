@@ -148,6 +148,7 @@ MODULE mo_global_variables
   real(dp), public, dimension(:), allocatable :: L1_satSTW       !< [mm]  groundwater storage
   real(dp), public, dimension(:), allocatable :: L1_neutrons     !< [mm]  Ground Albedo Neutrons
 
+
   ! Fluxes
   ! dim1 = number grid cells L1
   ! dim2 = number model soil horizons

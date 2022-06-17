@@ -397,20 +397,22 @@ CONTAINS
   ! S. Thober          Aug 2015 - removed routing related variables
   ! Zink M. Demirel C. Mar 2017 - Init Jarvis soil water stress variable at SM process(3)
   ! Robert Schweppe    Dec 2017 - restructured allocation in variables_alloc, expanded dimensions of effective parameters
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Robert Schweppe    Jun 2018 - refactoring and reformatting
+  ! Rohini Kumar       Oct 2021 - Added Neutron count module to mHM integrate into develop branch (5.11.2)
 
   subroutine init_eff_params(ncells1)
 
     use mo_append, only : append
     use mo_constants, only : YearMonths
     use mo_common_constants, only : P1_InitStateFluxes
-    use mo_common_variables, only : nLCoverScene
+    use mo_common_variables, only : nLCoverScene 
     use mo_mpr_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, &
                                         L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
                                         L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
                                         L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
                                         L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
-                                        L1_wiltingPoint, nLAI, nSoilHorizons_mHM
+                                        L1_wiltingPoint, nLAI, nSoilHorizons_mHM, &
+                                        L1_No_Count, L1_bulkDens, L1_latticeWater, L1_COSMICL3
 
     implicit none
 
@@ -479,13 +481,18 @@ CONTAINS
     call append(L1_soilMoistExp, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLCoverScene))
     ! Threshold temperature for snow/rain
     call append(L1_tempThresh, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
-    ! Threshhold water depth controlling fast interflow
+    ! Threshold water depth controlling fast interflow
     call append(L1_unsatThresh, dummy_3D(:, 1 : 1, 1 : 1))
-    ! Threshhold water depth for surface runoff in sealed surfaces
+    ! Threshold water depth for surface runoff in sealed surfaces
     call append(L1_sealedThresh, dummy_3D(:, 1 : 1, 1 : 1))
     ! Permanent wilting point
     call append(L1_wiltingPoint, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLCoverScene))
-
+    ! neutron count related parameters 
+    call append(L1_No_Count,     dummy_3D(:, 1:1,                 1:1))            ! N0 count   
+    call append(L1_bulkDens,     dummy_3D(:, 1:nSoilHorizons_mHM, 1:nLCoverScene)) ! bulk density
+    call append(L1_latticeWater, dummy_3D(:, 1:nSoilHorizons_mHM, 1:nLCoverScene)) ! lattice water
+    call append(L1_COSMICL3,     dummy_3D(:, 1:nSoilHorizons_mHM, 1:nLCoverScene)) ! cosmic L3 parameter
+   
     ! free space
     if (allocated(dummy_3D)) deallocate(dummy_3D)
 
