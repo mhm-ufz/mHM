@@ -14,6 +14,7 @@
 MODULE mo_read_wrapper
 
   USE mo_kind, ONLY : i4, dp
+  use mo_common_constants, only : nodata_dp, nodata_i4
 
   IMPLICIT NONE
 
@@ -64,7 +65,6 @@ CONTAINS
 
     use mo_append, only : append, paste
     use mo_constants, only : YearMonths
-    use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : Grid, dirCommonFiles, dirMorpho, &
                                     global_parameters, level0, domainMeta, period, processMatrix
@@ -367,7 +367,7 @@ CONTAINS
 
   subroutine check_consistency_lut_map(data, lookuptable, filename, unique_values)
 
-    use mo_message, only : message
+    use mo_message, only : message, error_message
     use mo_orderpack, only : unista
     use mo_string_utils, only : num2str
 
@@ -400,6 +400,11 @@ CONTAINS
     call unista(temp, n_unique_elements)
     ! check if unit exists in look up table
     do ielement = 1, n_unique_elements
+      if ( temp(ielement) == nodata_i4 ) call error_message( &
+        '***ERROR: Class ', trim(adjustl(num2str(temp(ielement)))), &
+        ' was searched in ', trim(adjustl(filename)), &
+        ' which indicates a masking problem!' &
+      )
       if (.not. ANY(lookuptable .EQ. temp(ielement))) then
         call message()
         call message('***ERROR: Class ', trim(adjustl(num2str(temp(ielement)))), ' is missing')
