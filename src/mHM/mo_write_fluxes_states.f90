@@ -454,6 +454,14 @@ contains
               tmpvars(ii), "effective precipitation", trim(unit))
     end if
 
+    if (outputFlxState(21)) then
+      ii = ii + 1
+      tmpvars(ii) = OutputVariable(&
+              nc, "Qsm", dtype, dims1, nCells, mask1)
+      call writeVariableAttributes(&
+              tmpvars(ii), "Average liquid water generated from solid to liquid phase change in the snow", trim(unit))
+    end if
+
     out%vars = tmpvars(1 : ii)
     out%nc = nc
     out%iDomain = iDomain
@@ -517,7 +525,7 @@ contains
   subroutine updateDataset(self, sidx, eidx, L1_fSealed, L1_fNotSealed, L1_inter, L1_snowPack, L1_soilMoist, &
                           L1_soilMoistSat, L1_sealSTW, L1_unsatSTW, L1_satSTW, L1_neutrons, L1_pet, L1_aETSoil, &
                           L1_aETCanopy, L1_aETSealed, L1_total_runoff, L1_runoffSeal, L1_fastRunoff, L1_slowRunoff, &
-                          L1_baseflow, L1_percol, L1_infilSoil, L1_preEffect)
+                          L1_baseflow, L1_percol, L1_infilSoil, L1_preEffect, L1_melt)
 
     use mo_global_variables, only : outputFlxState
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
@@ -571,6 +579,8 @@ contains
     real(dp), intent(in), dimension(:, :) :: L1_infilSoil
 
     real(dp), intent(in), dimension(:) :: L1_preEffect
+
+    real(dp), intent(in), dimension(:) :: L1_melt
 
     type(OutputVariable), pointer, dimension(:) :: vars
 
@@ -687,6 +697,11 @@ contains
     if (outputFlxState(20)) then
       ii = ii + 1
       call vars(ii)%updateVariable(L1_preEffect(sidx : eidx))
+    end if
+
+    if (outputFlxState(21)) then
+      ii = ii + 1
+      call vars(ii)%updateVariable(L1_melt(sidx : eidx))
     end if
 
   end subroutine updateDataset
@@ -853,20 +868,20 @@ contains
       !============================================================
       call mapCoordinates(level1(iDomain), northing, easting)
 
-      dimids1 = (/&
-              nc%setDimension("easting", size(easting)), &
-                      nc%setDimension("northing", size(northing)), &
-                      nc%setDimension("time", 0) &
-              /)
+      dimids1 = (/ &
+        nc%setDimension("easting", size(easting)), &
+        nc%setDimension("northing", size(northing)), &
+        nc%setDimension("time", 0) &
+      /)
       ! northing
       var = nc%setVariable("northing", dtype, (/ dimids1(2) /))
       call var%setData(northing)
-      call var%setAttribute("units", "m or degrees_north")
+      call var%setAttribute("units", "m")
       call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
       ! easting
       var = nc%setVariable("easting", dtype, (/ dimids1(1) /))
       call var%setData(easting)
-      call var%setAttribute("units", "m or degrees_north")
+      call var%setAttribute("units", "m")
       call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
       ! lon
       var = nc%setVariable("lon", dtype, dimids1(1 : 2))
@@ -889,11 +904,11 @@ contains
       !============================================================
       lat1d = lat2d(1, :) ! first row info is sufficient
       lon1d = lon2d(:, 1) ! first column info is sufficient
-      dimids1 = (/&
-              nc%setDimension("lon", size(lon1d)), &
-                      nc%setDimension("lat", size(lat1d)), &
-                      nc%setDimension("time", 0) &
-              /)
+      dimids1 = (/ &
+        nc%setDimension("lon", size(lon1d)), &
+        nc%setDimension("lat", size(lat1d)), &
+        nc%setDimension("time", 0) &
+      /)
       ! lon
       var = nc%setVariable("lon", dtype, (/ dimids1(1) /)) ! sufficient to store lon as vector
       call var%setAttribute("_FillValue", nodata_dp)

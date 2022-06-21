@@ -177,10 +177,12 @@ CONTAINS
       write(uconfig, 117)  &
               'Warming Period (1)            ', &
               warmPer(iDomain)%dStart, warmPer(iDomain)%mStart, warmPer(iDomain)%yStart, &
-              warmPer(iDomain)%dEnd, warmPer(iDomain)%mEnd, warmPer(iDomain)%yEnd, &
+              warmPer(iDomain)%dEnd, warmPer(iDomain)%mEnd, warmPer(iDomain)%yEnd
+      write(uconfig, 117)  &
               'Evaluation Period (2)         ', &
               evalPer(iDomain)%dStart, evalPer(iDomain)%mStart, evalPer(iDomain)%yStart, &
-              evalPer(iDomain)%dEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%yEnd, &
+              evalPer(iDomain)%dEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%yEnd
+      write(uconfig, 117)  &
               'Simulation Period (1)+(2)     ', &
               SimPer(iDomain)%dStart, SimPer(iDomain)%mStart, SimPer(iDomain)%yStart, &
               SimPer(iDomain)%dEnd, SimPer(iDomain)%mEnd, SimPer(iDomain)%yEnd

@@ -2,7 +2,7 @@
 
 - The latest mHM release can be found [here][0].
 - The changelog can be found in the file [RELEASES][3].
-- General information can be found on the [mHM website](http://www.ufz.de/mhm/).
+- General information can be found on the [mHM website](https://mhm-ufz.org/).
 - The mHM comes with a [LICENSE][6] agreement, this includes also the GNU Lesser General Public License.
 - There is a list of [publications using mHM][7].
 
@@ -43,12 +43,11 @@ See also the [documentation][5] for detailed instructions to setup mHM.
 3. Explore the results in the [output directory](test_domain/), e.g. by using the NetCDF viewer `ncview`.
 
 [0]: https://git.ufz.de/mhm/mhm/-/releases
-[1]: https://git.ufz.de/mhm/mhm/tree/5.10
 [3]: doc/RELEASES.md
 [4]: https://git.ufz.de/mhm/mhm/tags/
 [5]: https://mhm.pages.ufz.de/mhm
 [6]: LICENSE
-[7]: doc/mhm_papers.md
+[7]: https://mhm-ufz.org/about/publications/
 [8]: doc/DEPENDENCIES.md
 [9]: doc/INSTALL.md
 [10]: https://zenodo.org/record/3239055

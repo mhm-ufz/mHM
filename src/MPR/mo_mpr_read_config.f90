@@ -13,6 +13,7 @@
 ! Robert Schweppe Dec 2017 - adapted for MPR
 ! Robert Schweppe Jun 2018 - refactoring and reformatting
 ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
+! Rohini Kumar                    Oct 2021 - Added Neutron count module to mHM integrate into develop branch (5.11.2)
 module mo_mpr_read_config
 
   use mo_kind, only : i4, dp
@@ -50,6 +51,7 @@ contains
   ! Stephan Thober  Sep 2015 - removed stop condition when routing resolution is smaller than hydrologic resolution
   ! Stephan Thober  Oct 2015 - added NLoutputResults namelist, fileLatLon to directories_general namelist, and readLatLon flag
   ! Robert Schweppe Dec 2017 - adapted for MPR
+  !  Rohini Kumar   Oct 2021 - Added Neutron count module to mHM integrate into develop branch (5.11.2)
 
   subroutine mpr_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
@@ -214,6 +216,10 @@ contains
 
     real(dp), dimension(nColPars) :: Desilets_N0
 
+    real(dp), dimension(nColPars) :: Desilets_LW0
+    
+    real(dp), dimension(nColPars) :: Desilets_LW1
+    
     real(dp), dimension(nColPars) :: COSMIC_N0
 
     real(dp), dimension(nColPars) :: COSMIC_N1
@@ -227,6 +233,10 @@ contains
     real(dp), dimension(nColPars) :: COSMIC_L30
 
     real(dp), dimension(nColPars) :: COSMIC_L31
+    
+    real(dp), dimension(nColPars) :: COSMIC_LW0
+    
+    real(dp), dimension(nColPars) :: COSMIC_LW1
 
     integer(i4) :: iDomain, domainID
 
@@ -286,7 +296,10 @@ contains
     namelist /interflow1/ interflowStorageCapacityFactor, interflowRecession_slope, fastInterflowRecession_forest, &
             slowInterflowRecession_Ks, exponentSlowInterflow
     namelist /percolation1/ rechargeCoefficient, rechargeFactor_karstic, gain_loss_GWreservoir_karstic
-    namelist /neutrons1/ Desilets_N0, COSMIC_N0, COSMIC_N1, COSMIC_N2, COSMIC_alpha0, COSMIC_alpha1, COSMIC_L30, COSMIC_L31
+    namelist /neutrons1/ Desilets_N0, Desilets_LW0, Desilets_LW1
+    namelist /neutrons2/ COSMIC_N0, COSMIC_N1, COSMIC_N2, COSMIC_alpha0, COSMIC_alpha1, COSMIC_L30, COSMIC_L31, &
+         COSMIC_LW0, COSMIC_LW1
+         
     !
     namelist /geoparameter/ GeoParam
 
@@ -966,51 +979,85 @@ contains
       call message()
       call message('***ERROR: Process description for process "geoparameter" does not exist!')
       stop
-    end select
-
+   end select
+   
+    !===============================================================
+    ! NEUTRON COUNT
+    !===============================================================
     ! Process 10 - neutrons
     !   0 - deactivated
     !   1 - inverse N0 based on Desilets et al. 2010
     !   2 - COSMIC forward operator by Shuttlworth et al. 2013
-    if (processMatrix(10, 1) .gt. 0) then
-
+    select case (processMatrix(10, 1))
+    case(0)
+      ! 0 - deactivated
+      call message()
+      call message('***SELECTION: Neutron count routine is deativated! ')
+      
+    case(1)
+      ! 1 - inverse N0 based on Desilets et al. 2010
       call position_nml('neutrons1', unamelist_param)
       read(unamelist_param, nml = neutrons1)
 
-      processMatrix(10, 2) = 8_i4
-      processMatrix(10, 3) = sum(processMatrix(1 : 10, 2))
-      call append(global_parameters, reshape(Desilets_N0, (/1, nColPars/)))
-      call append(global_parameters, reshape(COSMIC_N0, (/1, nColPars/)))
-      call append(global_parameters, reshape(COSMIC_N1, (/1, nColPars/)))
-      call append(global_parameters, reshape(COSMIC_N2, (/1, nColPars/)))
-      call append(global_parameters, reshape(COSMIC_alpha0, (/1, nColPars/)))
-      call append(global_parameters, reshape(COSMIC_alpha1, (/1, nColPars/)))
-      call append(global_parameters, reshape(COSMIC_L30, (/1, nColPars/)))
-      call append(global_parameters, reshape(COSMIC_L31, (/1, nColPars/)))
+      processMatrix(10,2) = 3_i4
+      processMatrix(10,3) = sum(processMatrix(1:10, 2))
+      call append(global_parameters, reshape(Desilets_N0,  (/1, nColPars/)))
+      call append(global_parameters, reshape(Desilets_LW0, (/1, nColPars/)))
+      call append(global_parameters, reshape(Desilets_LW1, (/1, nColPars/)))
 
-      call append(global_parameters_name, (/  &
-              'Desilets_N0   ', &
-                      'COSMIC_N0     ', &
-                      'COSMIC_N1     ', &
-                      'COSMIC_N2     ', &
-                      'COSMIC_alpha0 ', &
-                      'COSMIC_alpha1 ', &
-                      'COSMIC_L30    ', &
-                      'COSMIC_L31    '/))
-
+       call append(global_parameters_name, (/  &
+           'Desilets_N0   ', &
+           'Desilets_LW0  ', &
+           'Desilets_LW1  '/))
+ 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
         call message('***ERROR: parameter in namelist "neutrons1" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
         stop
       end if
-    else
-      call message(' INFO: Process (10, neutrons) is deactivated, so output will be suppressed.')
-      ! this is done below, where nml_output is read
-      processMatrix(10, 2) = 0_i4
-      processMatrix(10, 3) = sum(processMatrix(1 : 10, 2))
-    end if
 
+    case(2)
+      ! 2 - COSMIC version
+      call position_nml('neutrons2', unamelist_param)
+      read(unamelist_param, nml = neutrons2)
+
+      processMatrix(10,2) = 9_i4
+      processMatrix(10,3) = sum(processMatrix(1:10, 2))
+      call append(global_parameters, reshape(COSMIC_N0,     (/1, nColPars/)))
+      call append(global_parameters, reshape(COSMIC_N1,     (/1, nColPars/)))
+      call append(global_parameters, reshape(COSMIC_N2,     (/1, nColPars/)))
+      call append(global_parameters, reshape(COSMIC_alpha0, (/1, nColPars/)))
+      call append(global_parameters, reshape(COSMIC_alpha1, (/1, nColPars/)))
+      call append(global_parameters, reshape(COSMIC_L30,    (/1, nColPars/)))
+      call append(global_parameters, reshape(COSMIC_L31,    (/1, nColPars/)))
+      call append(global_parameters, reshape(COSMIC_LW0,    (/1, nColPars/)))
+      call append(global_parameters, reshape(COSMIC_LW1,    (/1, nColPars/)))
+
+      call append(global_parameters_name, (/  &
+           'COSMIC_N0     ', &
+           'COSMIC_N1     ', &
+           'COSMIC_N2     ', &
+           'COSMIC_alpha0 ', &
+           'COSMIC_alpha1 ', &
+           'COSMIC_L30    ', &
+           'COSMIC_L31    ', &
+           'COSMIC_LW0    ', &
+           'COSMIC_LW1    '/))
+      ! check if parameter are in range
+      if (.not. in_bound(global_parameters)) then
+        call message('***ERROR: parameter in namelist "neutrons2" out of bound in ', &
+                trim(adjustl(file_namelist_param)))
+        stop
+      end if
+      
+     case DEFAULT
+      call message()
+      call message('***ERROR: Process description for process "NEUTRON count" does not exist!')
+      stop
+   end select
+
+    
     call close_nml(unamelist_param)
 
   end subroutine mpr_read_config

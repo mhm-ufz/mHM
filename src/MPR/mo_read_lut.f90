@@ -20,6 +20,8 @@ MODULE mo_read_lut
 
   USE mo_kind, ONLY : i4, dp
   USE mo_os, ONLY: path_isfile
+  use mo_string_utils, ONLY: num2str
+  use mo_message, ONLY: error_message
 
   IMPLICIT NONE
 
@@ -86,7 +88,7 @@ CONTAINS
     ! ID of the Karstic formation (0 == does not exist)
     integer(i4), dimension(:), allocatable, intent(out) :: geo_karstic
 
-    integer(i4) :: i
+    integer(i4) :: i, ios
 
     character(256) :: dummy
 
@@ -105,7 +107,11 @@ CONTAINS
 
     ! read data
     do i = 1, nGeo
-      read(fileunit, *) dummy, geo_unit(i), geo_karstic(i), dummy
+      read(fileunit, *, iostat=ios) dummy, geo_unit(i), geo_karstic(i), dummy
+      if ( ios /= 0 ) call error_message( &
+        "ERROR: nGeo_Formations (", num2str(nGeo), ") in geology_classdefinition.txt ", &
+        "seems to be higher than available geology classes!" &
+      )
     end do
 
     close(fileunit)
@@ -169,7 +175,7 @@ CONTAINS
     ! LAI per class (row) and month (col)
     real(dp), dimension(:, :), allocatable, intent(out) :: LAI
 
-    integer(i4) :: i, j
+    integer(i4) :: i, j, ios
 
     character(256) :: dummy
 
@@ -188,7 +194,11 @@ CONTAINS
 
     ! read data
     do i = 1, nLAI
-      read(fileunit, *) LAIIDList(i), dummy, (LAI(i, j), j = 1, int(YearMonths, i4))
+      read(fileunit, *, iostat=ios) LAIIDList(i), dummy, (LAI(i, j), j = 1, int(YearMonths, i4))
+      if ( ios /= 0 ) call error_message( &
+        "ERROR: NoLAIclasses (", num2str(nLAI), ") in LAI_classdefinition.txt ", &
+        "seems to be higher than available LAI classes!" &
+      )
     end do
 
     close(fileunit)

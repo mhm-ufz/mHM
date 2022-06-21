@@ -111,7 +111,7 @@ contains
     ! Note:: Observed Q are stored only for the evaluation period and not for
     !        the warming days
     ! --------------------------------------------------------------------------
-    
+
     ! copy time resolution to local variables
     TPD_sim = nTstepDay
     TPD_obs = nMeasPerDay
@@ -224,7 +224,7 @@ contains
     ! write in an ASCII file          ! OBS[nMeasPerDay X nGauges_total] , SIM[nMeasPerDay X nGauges_total]
     if (nMeasPerDay > 1 .and. allocated(gauge%Q)) call write_subdaily_obs_sim_discharge(subd_Qobs(:, :), subd_Qmod(:, :), factor)
     ! The subdaily routine is only called if subdaily Q data is provided
-    
+
     ! free space
     deallocate(d_Qmod, d_Qobs, subd_Qmod, subd_Qobs)
   end subroutine mrm_write
@@ -333,10 +333,12 @@ contains
       write(uconfig, 117)  &
               'Warming Period (1)            ', &
               warmPer(iDomain)%dStart, warmPer(iDomain)%mStart, warmPer(iDomain)%yStart, &
-              warmPer(iDomain)%dEnd, warmPer(iDomain)%mEnd, warmPer(iDomain)%yEnd, &
+              warmPer(iDomain)%dEnd, warmPer(iDomain)%mEnd, warmPer(iDomain)%yEnd
+      write(uconfig, 117)  &
               'Evaluation Period (2)         ', &
               evalPer(iDomain)%dStart, evalPer(iDomain)%mStart, evalPer(iDomain)%yStart, &
-              evalPer(iDomain)%dEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%yEnd, &
+              evalPer(iDomain)%dEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%yEnd
+      write(uconfig, 117)  &
               'Simulation Period (1)+(2)     ', &
               SimPer(iDomain)%dStart, SimPer(iDomain)%mStart, SimPer(iDomain)%yStart, &
               SimPer(iDomain)%dEnd, SimPer(iDomain)%mEnd, SimPer(iDomain)%yEnd
@@ -721,7 +723,7 @@ contains
                     trim(adjustl(num2str(nse(Qobs(:, gg), Qsim(:, gg), mask = (ge(Qobs(:, gg), 0.0_dp)))))))
           end if
         end do
-        
+
       ! end if
 
       ! update igauge_start
