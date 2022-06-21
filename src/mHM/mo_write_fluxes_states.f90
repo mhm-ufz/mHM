@@ -870,18 +870,18 @@ contains
       call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
       ! lon
       var = nc%setVariable("lon", dtype, dimids1(1 : 2))
+      call var%setAttribute("_FillValue", nodata_dp)
       call var%setData(lon2d)
       call var%setAttribute("units", "degrees_east")
       call var%setAttribute("long_name", "longitude")
       call var%setAttribute("missing_value", nodata_dp)
-      call var%setAttribute("_FillValue", nodata_dp)
       ! lat
       var = nc%setVariable("lat", dtype, dimids1(1 : 2))
+      call var%setAttribute("_FillValue", nodata_dp)
       call var%setData(lat2d)
       call var%setAttribute("units", "degrees_north")
       call var%setAttribute("long_name", "latitude")
       call var%setAttribute("missing_value", nodata_dp)
-      call var%setAttribute("_FillValue", nodata_dp)
 
     else
 
@@ -896,18 +896,18 @@ contains
               /)
       ! lon
       var = nc%setVariable("lon", dtype, (/ dimids1(1) /)) ! sufficient to store lon as vector
+      call var%setAttribute("_FillValue", nodata_dp)
       call var%setData(lon1d)
       call var%setAttribute("units", "degrees_east")
       call var%setAttribute("long_name", "longitude")
       call var%setAttribute("missing_value", nodata_dp)
-      call var%setAttribute("_FillValue", nodata_dp)
       ! lat
       var = nc%setVariable("lat", dtype, (/ dimids1(2) /)) ! sufficient to store lat as vector
+      call var%setAttribute("_FillValue", nodata_dp)
       call var%setData(lat1d)
       call var%setAttribute("units", "degrees_north")
       call var%setAttribute("long_name", "latitude")
       call var%setAttribute("missing_value", nodata_dp)
-      call var%setAttribute("_FillValue", nodata_dp)
 
     endif
 

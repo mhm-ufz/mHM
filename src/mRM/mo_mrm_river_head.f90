@@ -262,35 +262,35 @@ module mo_mrm_river_head
 
     ! northing
     var = nc%setVariable( "northing", "f64", [ dimids0(2) ] )
+    call var%setAttribute( "_FillValue", nodata_dp )
     call var%setData( northing )
     call var%setAttribute( "units", "m or deg. dec." )
     call var%setAttribute( "long_name", "y-coordinate in the given coordinate system" )
     call var%setAttribute( "missing_value", nodata_dp )
-    call var%setAttribute( "_FillValue", nodata_dp )
 
     ! easting
     var = nc%setVariable( "easting", "f64", [ dimids0(1) ] )
+    call var%setAttribute( "_FillValue", nodata_dp )
     call var%setData( easting )
     call var%setAttribute( "units", "m or deg. dec." )
     call var%setAttribute( "long_name", "x-coordinate in the given coordinate system" )
     call var%setAttribute( "missing_value", nodata_dp )
-    call var%setAttribute( "_FillValue", nodata_dp )
 
     ! lon
     var = nc%setVariable( "lon", "f64", dimids0(1 : 2) )
+    call var%setAttribute( "_FillValue", nodata_dp )
     call var%setData( lon )
     call var%setAttribute( "units", "deg. dec." )
     call var%setAttribute( "long_name", "longitude" )
     call var%setAttribute( "missing_value", nodata_dp )
-    call var%setAttribute( "_FillValue", nodata_dp )
 
     ! lat
     var = nc%setVariable( "lat", "f64", dimids0(1 : 2) )
+    call var%setAttribute( "_FillValue", nodata_dp )
     call var%setData( lat )
     call var%setAttribute( "units", "deg. dec." )
     call var%setAttribute( "long_name", "latitude" )
     call var%setAttribute( "missing_value", nodata_dp )
-    call var%setAttribute( "_FillValue", nodata_dp )
 
     if (.not. allocated(nc_riverhead)) then
         allocate(nc_riverhead(domainMeta%nDomains))
