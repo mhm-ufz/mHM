@@ -64,9 +64,9 @@ To specify a particular NetCDF library, use
 
 or set environment variable `NetCDF_ROOT=/path/to/netcdff`.
 
-
 ### `version.cmake`
-Provides a function to read version and date from a given files `version.txt` and `version-date.txt`.
+
+Provides a function to read version and date from given files `version.txt` and (optional) `version_date.txt`.
 
 Can be included and used with (`PROJECT_VER_DEV` will hold the develop version string):
 ```cmake
@@ -74,7 +74,13 @@ include(version)
 get_version(PROJECT_VER PROJECT_VER_DEV PROJECT_DATE)
 ```
 
-### `CPM.cmake` (v0.35.0)
+If a development version was found (e.g. `1.0.0-dev0`), it will try to determine the latest git commit short hash and add it (e.g. `1.0.0-dev0+02d7e12`).
+If there is no `version_date.txt` file or a development version was found, the script will try to determine the latest git commit date or use the current date.
+`PROJECT_VER` will hold the simple version to be used with cmakes `project` command (e.g. `1.0.0`).
+A prefixed `v` in the version will be ignored.
+
+### `CPM.cmake` (v0.35.1)
+
 CPM.cmake is a CMake script that adds dependency management capabilities to CMake.
 It's built as a thin wrapper around CMake's [FetchContent](https://cmake.org/cmake/help/latest/module/FetchContent.html)
 module that adds version control, caching, a simple API [and more](#comparison-to-pure-fetchcontent--externalproject).
@@ -84,13 +90,10 @@ Copied from: https://github.com/cpm-cmake/CPM.cmake
 Can be used like:
 ```cmake
 include(CPM)
-CPMAddPackage(
-  NAME            forces
-  GIT_REPOSITORY  https://git.ufz.de/chs/forces.git
-  GIT_TAG         v0.1.0
-)
+CPMAddPackage("https://git.ufz.de/chs/forces.git@0.3.2")
 target_link_libraries(<project> PUBLIC forces)
 ```
+
 
 ## Cmake Cache Files
 
