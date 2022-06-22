@@ -42,18 +42,54 @@ function(get_version ver_short ver_full ver_date)
   # create version x.y.z
   set(ver ${ver_major}.${ver_minor}.${ver_patch})
 
-  # check date file (if not a development version)
-  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/version_date.txt" AND (NOT (${ver_pre} MATCHES "^dev.*")))
+  # whether it is a development version (e.g.: 1.1.0-dev0)
+  set(is_dev_ver (${ver_pre} MATCHES "^dev.*"))
+
+  # use git to get commit SHA and commit date
+  find_package(Git QUIET)
+
+  # set date, check date file (if not a development version)
+  string(TIMESTAMP date "%Y-%m-%d") # current date
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/version_date.txt" AND (NOT is_dev_ver))
     file(STRINGS "version_date.txt" date LIMIT_COUNT 1)
   else()
-    string(TIMESTAMP date "%Y-%m-%d") # current date
+    if(Git_FOUND)
+      execute_process(
+        COMMAND "${GIT_EXECUTABLE}" log -1 --format=%cd --date=format:%Y-%m-%d
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        RESULT_VARIABLE res
+        OUTPUT_VARIABLE out
+        ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE
+      )
+      if(res EQUAL 0)
+        set(date "${out}")
+      endif()
+    endif()
   endif()
 
-  message(STATUS "use VERSION: ${ver} (from ${ver_file})")
-  message(STATUS "use DATE:    ${date}")
+  # add commit SHA to development version
+  set(ver_dev "${ver_file}")
+  if(is_dev_ver)
+    if(Git_FOUND)
+      execute_process(
+        COMMAND "${GIT_EXECUTABLE}" log -1 --format=%h
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        RESULT_VARIABLE res
+        OUTPUT_VARIABLE out
+        ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE
+      )
+      if(res EQUAL 0)
+        set(ver_dev "${ver_file}+${out}")
+      endif()
+    endif()
+    message(STATUS "use DEV-VERSION: ${ver_dev}")
+  endif()
+
+  message(STATUS "use VERSION    : ${ver} (from ${ver_file})")
+  message(STATUS "use DATE       : ${date}")
 
   # set given variables in parent scope
   set(${ver_date} ${date} PARENT_SCOPE)
-  set(${ver_full} ${ver_file} PARENT_SCOPE)
+  set(${ver_full} ${ver_dev} PARENT_SCOPE)
   set(${ver_short} ${ver} PARENT_SCOPE)
 endfunction()
