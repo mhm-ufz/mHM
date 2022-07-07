@@ -262,6 +262,7 @@ module mo_mrm_river_head
 
     ! northing
     var = nc%setVariable( "northing", "f64", [ dimids0(2) ] )
+    call var%setFillValue(nodata_dp)
     call var%setData( northing )
     call var%setAttribute( "units", "m or deg. dec." )
     call var%setAttribute( "long_name", "y-coordinate in the given coordinate system" )
@@ -269,6 +270,7 @@ module mo_mrm_river_head
 
     ! easting
     var = nc%setVariable( "easting", "f64", [ dimids0(1) ] )
+    call var%setFillValue(nodata_dp)
     call var%setData( easting )
     call var%setAttribute( "units", "m or deg. dec." )
     call var%setAttribute( "long_name", "x-coordinate in the given coordinate system" )
@@ -276,6 +278,7 @@ module mo_mrm_river_head
 
     ! lon
     var = nc%setVariable( "lon", "f64", dimids0(1 : 2) )
+    call var%setFillValue(nodata_dp)
     call var%setData( lon )
     call var%setAttribute( "units", "deg. dec." )
     call var%setAttribute( "long_name", "longitude" )
@@ -283,6 +286,7 @@ module mo_mrm_river_head
 
     ! lat
     var = nc%setVariable( "lat", "f64", dimids0(1 : 2) )
+    call var%setFillValue(nodata_dp)
     call var%setData( lat )
     call var%setAttribute( "units", "deg. dec." )
     call var%setAttribute( "long_name", "latitude" )
@@ -295,6 +299,7 @@ module mo_mrm_river_head
     call var%setAttribute( "units", "m" )
     call var%setAttribute( "long_name", "simulated riverhead at each node at level 0" )
     call var%setAttribute( "missing_value", nodata_dp )
+    call var%setFillValue(nodata_dp)
     nc_riverhead(iDomain) = var
 
     ! global attributes
