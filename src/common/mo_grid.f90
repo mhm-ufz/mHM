@@ -81,7 +81,7 @@ contains
 
     integer(i4) :: i, j, k, ic, jc
 
-    ! STEPS :: 
+    ! STEPS ::
 
     !--------------------------------------------------------
     ! 1) Estimate each variable locally for a given domain
@@ -95,7 +95,7 @@ contains
               lowres%nrows, lowres%ncols, &
               lowres%xllcorner, lowres%yllcorner, lowres%cellsize)
       ! cellfactor = leve1-1 / level-0
-      cellFactor = lowres%cellsize / highres%cellsize
+      cellFactor = anint(lowres%cellsize / highres%cellsize)
 
       ! allocation and initalization of mask at level-1
       allocate(lowres%mask(lowres%nrows, lowres%ncols))
@@ -280,7 +280,7 @@ contains
 
     real(dp) :: rdum, degree_to_radian, degree_to_metre
 
-    ! STEPS :: 
+    ! STEPS ::
 
 
     !--------------------------------------------------------
@@ -527,12 +527,15 @@ contains
     ! cell size at an output level
     real(dp), intent(out) :: cellsizeOut
 
-    real(dp) :: cellfactor
+    real(dp) :: cellFactor, rounded
+    integer(i4) :: rounded_int
 
 
     cellFactor = aimingResolution / cellsizeIn
+    rounded = anint(cellFactor)
+    rounded_int = nint(cellFactor)
 
-    if (nint(mod(aimingResolution, cellsizeIn)) /= 0) then
+    if (abs(rounded - cellFactor) > 1.e-9_dp) then
       call message()
       call message('***ERROR: Two resolutions size do not confirm: ', &
               trim(adjustl(num2str(nint(AimingResolution)))), &
@@ -540,9 +543,14 @@ contains
       stop 1
     end if
 
-    cellsizeOut = cellsizeIn * cellFactor
-    ncolsOut = ceiling(real(ncolsIn, dp) / cellFactor)
-    nrowsOut = ceiling(real(nrowsIn, dp) / cellFactor)
+    cellsizeOut = cellsizeIn * rounded
+    ncolsOut = nint(real(ncolsIn, dp) / cellFactor)
+    nrowsOut = nint(real(nrowsIn, dp) / cellFactor)
+
+    ! if we rounded down, but now we would miss cells, add rows and/or cols
+    if ( ncolsOut * rounded_int < ncolsIn ) ncolsOut = ncolsOut + 1_i4
+    if ( nrowsOut * rounded_int < nrowsIn ) nrowsOut = nrowsOut + 1_i4
+
     xllcornerOut = xllcornerIn + real(ncolsIn, dp) * cellsizeIn - real(ncolsOut, dp) * cellsizeOut
     yllcornerOut = yllcornerIn + real(nrowsIn, dp) * cellsizeIn - real(nrowsOut, dp) * cellsizeOut
 
