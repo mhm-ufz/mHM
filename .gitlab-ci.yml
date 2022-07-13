@@ -61,7 +61,6 @@ documentation_stable:
   stage: build
   variables:
     GIT_DEPTH: 0  # to have all tags
-    GIT_FETCH_EXTRA_FLAGS: --all --prune --quiet
   script:
     - source hpc-module-loads/eve.chs-conda01
     # doc for latest version tag
