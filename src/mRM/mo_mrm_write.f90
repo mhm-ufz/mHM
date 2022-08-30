@@ -583,10 +583,10 @@ contains
     use mo_julian, only : dec2date
     use mo_message, only : message
     use mo_mrm_file, only : file_daily_discharge, ncfile_discharge, udaily_discharge
-    use mo_mrm_global_variables, only : domain_mrm, gauge, nMeasPerDay
-    use mo_ncwrite, only : var2nc
+    use mo_mrm_global_variables, only : domain_mrm, gauge
     use mo_string_utils, only : num2str
     use mo_utils, only : ge
+    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
 
     implicit none
 
@@ -597,7 +597,6 @@ contains
     real(dp), dimension(:, :), intent(in) :: Qsim
 
     character(256) :: fName, formHeader, formData, dummy
-    character(256), dimension(1) :: dnames
 
     integer(i4) :: domainID, iDomain, gg, tt, err
 
@@ -612,8 +611,10 @@ contains
 
     real(dp) :: newTime
 
-    logical :: create
-
+    ! nc related variables
+    type(NcDataset) :: nc_out
+    type(NcDimension) :: dim
+    type(NcVariable) :: var
 
     ! initalize igauge_start
     igauge_start = 1
@@ -659,51 +660,39 @@ contains
       ! ======================================================================
       ! write netcdf file
       ! ======================================================================
-      dnames(1) = 'time'
-      ! dnames(2) = 'gauges'
       fName = trim(adjustl(dirOut(iDomain))) // trim(adjustl(ncfile_discharge))
+      nc_out = NcDataset(trim(fName), "w")
       tlength = evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1
-      create = .true.
-      do gg = igauge_start, igauge_end
-        ! write simulated discharge at that gauge
-        call var2nc( &
-          f_name = trim(fName), &
-          arr = Qsim(1 : tlength, gg), &
-          dnames = dnames(1 : 1), &
-          v_name = 'Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
-          create = create, &
-          units = 'm3 s-1', &
-          long_name = 'simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
-          missing_value = nodata_dp &
-        )
-        create = .false.
-        ! write observed discharge at that gauge
-        call var2nc( &
-          f_name = trim(fName), &
-          arr = Qobs(1 : tlength, gg), &
-          dnames = dnames(1 : 1), &
-          v_name = 'Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
-          create = create, &
-          units = 'm3 s-1', &
-          long_name = 'observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
-          missing_value = nodata_dp &
-        )
-      end do
-      ! add time axis
+      ! write time
       allocate(taxis(tlength))
       forall(tt = 1 : tlength) taxis(tt) = tt * 24 - 1
       call dec2date(real(evalPer(iDomain)%julStart, dp) - 0.5_dp, yy = year, mm = month, dd = day)
-      call var2nc( &
-        f_name = trim(fName), &
-        arr = taxis, &
-        dnames = dnames(1 : 1), &
-        v_name = dnames(1), &
-        units = 'hours since ' // &
-                trim(num2str(year)) // '-' // trim(num2str(month, '(i2.2)')) // '-' // trim(num2str(day, '(i2.2)')) // &
-                ' 00:00:00', &
-        long_name = 'time in hours' &
+      dim = nc_out%setDimension("time", tlength)
+      var = nc_out%setVariable("time", "i32", [dim])
+      call var%setData(taxis)
+      call var%setAttribute( &
+        "units", &
+        'hours since '//trim(num2str(year))//'-'//trim(num2str(month, '(i2.2)'))//'-'//trim(num2str(day, '(i2.2)'))//' 00:00:00' &
       )
+      call var%setAttribute("long_name", "time in hours")
       deallocate(taxis)
+      ! write gauges
+      do gg = igauge_start, igauge_end
+        var = nc_out%setVariable('Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), "f64", [dim])
+        call var%setFillValue(nodata_dp)
+        call var%setData(Qsim(1 : tlength, gg))
+        call var%setAttribute("units", "m3 s-1")
+        call var%setAttribute("long_name", 'simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')))
+        call var%setAttribute("missing_value", nodata_dp)
+        ! write observed discharge at that gauge
+        var = nc_out%setVariable('Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), "f64", [dim])
+        call var%setFillValue(nodata_dp)
+        call var%setData(Qobs(1 : tlength, gg))
+        call var%setAttribute("units", "m3 s-1")
+        call var%setAttribute("long_name", 'observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')))
+        call var%setAttribute("missing_value", nodata_dp)
+      end do
+      call nc_out%close()
 
       ! ======================================================================
       ! screen output
@@ -711,18 +700,18 @@ contains
 
       ! if ( nMeasPerDay == 1_i4 ) then ! only print daily stats for daily Qobs
 
-        call message()
-        write(dummy, '(I3)') domainID
-        call message('  OUTPUT: saved daily discharge file for domain ', trim(adjustl(dummy)))
-        call message('    to ', trim(fname))
-        do gg = igauge_start, igauge_end
-          if (count(ge(Qobs(:, gg), 0.0_dp)) > 1)  then
-            call message('    KGE of daily discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
-                    trim(adjustl(num2str(kge(Qobs(:, gg), Qsim(:, gg), mask = (ge(Qobs(:, gg), 0.0_dp)))))))
-            call message('    NSE of daily discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
-                    trim(adjustl(num2str(nse(Qobs(:, gg), Qsim(:, gg), mask = (ge(Qobs(:, gg), 0.0_dp)))))))
-          end if
-        end do
+      call message()
+      write(dummy, '(I3)') domainID
+      call message('  OUTPUT: saved daily discharge file for domain ', trim(adjustl(dummy)))
+      call message('    to ', trim(fname))
+      do gg = igauge_start, igauge_end
+        if (count(ge(Qobs(:, gg), 0.0_dp)) > 1)  then
+          call message('    KGE of daily discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
+                  trim(adjustl(num2str(kge(Qobs(:, gg), Qsim(:, gg), mask = (ge(Qobs(:, gg), 0.0_dp)))))))
+          call message('    NSE of daily discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
+                  trim(adjustl(num2str(nse(Qobs(:, gg), Qsim(:, gg), mask = (ge(Qobs(:, gg), 0.0_dp)))))))
+        end if
+      end do
 
       ! end if
 
@@ -774,9 +763,9 @@ contains
     use mo_mrm_file, only : ncfile_subdaily_discharge, file_subdaily_discharge, &
                             usubdaily_discharge
     use mo_mrm_global_variables, only : domain_mrm, gauge, nMeasPerDay
-    use mo_ncwrite, only : var2nc
     use mo_string_utils, only : num2str
     use mo_utils, only : ge
+    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
 
     implicit none
 
@@ -790,7 +779,6 @@ contains
     integer(i4),               intent(in) :: factor
 
     character(256) :: fName, formHeader, formData, dummy
-    character(256), dimension(1) :: dnames
 
     integer(i4) :: domainID, iDomain, gg, tt, err
 
@@ -805,7 +793,10 @@ contains
 
     real(dp) :: newTime
 
-    logical :: create
+    ! nc related variables
+    type(NcDataset) :: nc_out
+    type(NcDimension) :: dim
+    type(NcVariable) :: var
 
 
     ! initalize igauge_start
@@ -854,56 +845,43 @@ contains
       ! close file
       close(usubdaily_discharge)
 
-
       ! ======================================================================
       ! write netcdf file
       ! ======================================================================
-      dnames(1) = 'time'
-      ! dnames(2) = 'gauges'
       fName = trim(adjustl(dirOut(iDomain))) // trim(adjustl(ncfile_subdaily_discharge))
+      nc_out = NcDataset(trim(fName), "w")
       tlength = (evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1) * nMeasPerDay
-      create = .true.
-      do gg = igauge_start, igauge_end
-        ! write simulated discharge at that gauge
-        call var2nc( &
-          f_name = trim(fName), &
-          arr = Qsim(1 : tlength, gg), &
-          dnames = dnames(1 : 1), &
-          v_name = 'Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
-          create = create, &
-          units = 'm3 s-1', &
-          long_name = 'simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
-          missing_value = nodata_dp &
-        )
-        create = .false.
-        ! write observed discharge at that gauge
-        call var2nc( &
-          f_name = trim(fName), &
-          arr = Qobs(1 : tlength, gg), &
-          dnames = dnames(1 : 1), &
-          v_name = 'Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
-          create = create, &
-          units = 'm3 s-1', &
-          long_name = 'observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), &
-          missing_value = nodata_dp &
-        )
-      end do
-      ! add time axis
+      ! write time
       allocate(taxis(tlength))
       forall(tt = 1 : tlength) taxis(tt) = (tt - 1) * factor
-      call dec2date(real(evalPer(iDomain)%julStart, dp) - 0.5_dp, yy = year, mm = month, dd = day, &
-                                                                  hh = hour)
-      call var2nc( &
-        f_name = trim(fName), &
-        arr = taxis, &
-        dnames = dnames(1 : 1), &
-        v_name = dnames(1), &
-        units = 'hours since ' // &
-                trim(num2str(year)) // '-' // trim(num2str(month, '(i2.2)')) // '-' // trim(num2str(day, '(i2.2)')) // &
-                ' ' // trim(num2str(hour, '(i2.2)')) // ':00:00', &
-        long_name = 'time in hours' &
+      call dec2date(real(evalPer(iDomain)%julStart, dp) - 0.5_dp, yy = year, mm = month, dd = day, hh = hour)
+      dim = nc_out%setDimension("time", tlength)
+      var = nc_out%setVariable("time", "i32", [dim])
+      call var%setData(taxis)
+      call var%setAttribute( &
+        "units", &
+        'hours since '//trim(num2str(year))//'-'//trim(num2str(month, '(i2.2)'))//'-'//trim(num2str(day, '(i2.2)'))//' '// &
+        trim(num2str(hour, '(i2.2)'))//':00:00' &
       )
+      call var%setAttribute("long_name", "time in hours")
       deallocate(taxis)
+      ! write gauges
+      do gg = igauge_start, igauge_end
+        var = nc_out%setVariable('Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), "f64", [dim])
+        call var%setFillValue(nodata_dp)
+        call var%setData(Qsim(1 : tlength, gg))
+        call var%setAttribute("units", "m3 s-1")
+        call var%setAttribute("long_name", 'simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')))
+        call var%setAttribute("missing_value", nodata_dp)
+        ! write observed discharge at that gauge
+        var = nc_out%setVariable('Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), "f64", [dim])
+        call var%setFillValue(nodata_dp)
+        call var%setData(Qobs(1 : tlength, gg))
+        call var%setAttribute("units", "m3 s-1")
+        call var%setAttribute("long_name", 'observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')))
+        call var%setAttribute("missing_value", nodata_dp)
+      end do
+      call nc_out%close()
 
       ! ======================================================================
       ! screen output
