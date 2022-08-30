@@ -14,3 +14,11 @@ div.image div.caption{
         font-weight: bold;
         /* color:#5555FF; */
 }
+
+/* maximal table width */
+table.markdownTable, table.fieldtable {
+  width: 100%;
+}
+table.markdownTable td:last-child, table.markdownTable th:last-child, table.fieldtable dt:last-child {
+  width: 100%;
+}
