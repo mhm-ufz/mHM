@@ -32,7 +32,6 @@ To cite a certain version, have a look at the [Zenodo site][10].
 ## Install
 
 mHM can be compiled with cmake. See more details under [cmake manual][9].
-Please see the file [DEPENDENCIES][8] for external software required to run mHM.
 See also the [documentation][5] for detailed instructions to setup mHM.
 
 
@@ -48,6 +47,5 @@ See also the [documentation][5] for detailed instructions to setup mHM.
 [5]: https://mhm.pages.ufz.de/mhm
 [6]: LICENSE
 [7]: https://mhm-ufz.org/about/publications/
-[8]: doc/DEPENDENCIES.md
 [9]: doc/INSTALL.md
 [10]: https://zenodo.org/record/3239055
