@@ -196,7 +196,7 @@ CONTAINS
             timeStep_model_outputs, &
             outputFlxState
     ! namelist for baseflow index optimzation
-    namelist /BFI_inputs/ BFI_calc, BFI_obs
+    namelist /baseflow_config/ BFI_calc, BFI_obs
 
     !===============================================================
     !  Read namelist main directories
@@ -335,8 +335,8 @@ CONTAINS
 
         case(34)
           !baseflow index optimization
-          call position_nml('BFI_inputs', unamelist)
-          read(unamelist, nml = BFI_inputs)
+          call position_nml('baseflow_config', unamelist)
+          read(unamelist, nml = baseflow_config)
 
       end select
     end if
