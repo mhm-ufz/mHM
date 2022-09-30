@@ -1,21 +1,13 @@
 /**
 \mainpage Introduction to mHM
 
+\tableofcontents
+
 Welcome to the documentation of mHM version
 \htmlinclude version.txt
 \latexinclude version.txt
 
 \image html mHM_textlogo.png
-
-This chapter is divided in the following sections:\n
-- \ref description
-- \ref mHM
-- \ref model
-- \ref mpr
-- \ref param_est
-- \ref cal
-- \ref basininfo
-- \ref protocols
 
 \section description Short Description
 
@@ -106,7 +98,7 @@ describe the evolution of the state variables at a given location
 where
 
 <CENTER>
-|<b>Variable</b>         |<b><center>Description</center></b>                        |
+|<b>Variable</b>         |<b>Description</b>                        |
 | :--------------------- | :-------------------------------------------------------- |
 |<b>Inputs</b>||
 |\f$P\f$                 | Daily precipitation depth,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
@@ -293,8 +285,6 @@ calibration options can be found in the section \ref paramopt "Calibration Optio
 
 \section links Helpful links
 
-Coding and Documentation Style (see \ref style) \n
-Setup netCDF on your MacOS system (see \ref NETCDF) \n
 Data Preparation for mHM (see \ref data) \n
 
 \section basininfo Test basin

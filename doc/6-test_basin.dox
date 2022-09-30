@@ -1,6 +1,8 @@
 /**
 \page testbasin The details about the test basin
 
+\tableofcontents
+
 The test data coming with the mHM source code are for the Moselle
 River basin upstream of Perl, a place, where the Moselle River leaves
 France and enters Luxembourg and Germany (\ref fig_moselle_dem "Moselle Basin").
@@ -10,8 +12,8 @@ m. a.m.s.l. The Moselle River originates from the Vosges Mountains and
 is a tributary of the Rhine River. The origin of data used in the test
 example is listed below. \n
 
-<b>Meteorological forcings (temperature and precipitation):</b> \n We
-acknowledge the E-OBS dataset from the EU-FP6 project ENSEMBLES
+\section met Meteorological forcings (temperature/precipitation)
+We acknowledge the E-OBS dataset from the EU-FP6 project ENSEMBLES
 (http://ensembles-eu.metoffice.com) and the data providers in the
 ECA&D project (http://www.ecad.eu). \n "Haylock, M.R., N. Hofstra,
 A.M.G. Klein Tank, E.J. Klok, P.D. Jones, M. New. 2008: A European
@@ -20,19 +22,22 @@ precipitation. J. Geophys. Res (Atmospheres), 113, D20119,
 doi:10.1029/2008JD10201". \n
 (http://www.ecad.eu/download/ensembles/ensembles.php 02.04.2014)
 
-<b>Hydrological observations:</b> \n We acknowledge the Global Runoff
+\section hyd Hydrological observations
+We acknowledge the Global Runoff
 Data Centre (GRDC), a repository for the world's river discharge data
 and associated metadata for providing the discharge data. \n
 (http://www.bafg.de/GRDC/EN/01_GRDC/12_plcy/policy_guidelines.pdf;jsessionid=AA96F6F200B3880575879F15534B6669.live2052?__blob=publicationFile
 02.04.2014)
 
-<b>SRTM (Shuttle Radar Topography Mission):</b> \n We acknowledge the
+\section topo SRTM (Shuttle Radar Topography Mission)
+We acknowledge the
 U.S. Geological Survey's Earth Resources Observation and Science
 (EROS) Center or NASA's Land Processes Distributed Active Archive
 Center (LP DAAC) for providing the digital elevation model. \n
 (http://www2.jpl.nasa.gov/srtm/cbanddataproducts.html 15.05.2014)
 
-<b>Harmonized world soil database:</b> \n We acknowledge the use of
+\section soil Harmonized world soil database
+We acknowledge the use of
 Harmonized World Soil Database dataset of the Food and Agriculture
 Organization of the United Nations (FAO) the International Institute
 for Applied Systems Analysis (IIASA), International Soil Reference and
@@ -42,11 +47,13 @@ Commission (JRC). \n
 (http://webarchive.iiasa.ac.at/Research/LUC/External-World-soil-database/HTML/
 02.04.2014)
 
-<b>European soil database:</b> \n We acknowledge the European
+\section euro European soil database
+We acknowledge the European
 Commission for providing the European soil database. \n
 (http://ec.europa.eu/geninfo/legal_notices_en.htm 02.04.2013)
 
-<b>Land cover:</b> \n We acknowledge the European Environment Agency
+\section land Land cover
+We acknowledge the European Environment Agency
 for providing the CORINE land cover dataset. \n
 (http://www.eea.europa.eu/publications/COR0-landcover -- 15.04.2014)
 

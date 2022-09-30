@@ -1,13 +1,7 @@
 /**
 \page data Data Preparation for mHM
 
-This chapter is divided in the following sections:\n
-- \ref starting
-- \ref meteo
-- \ref morph
-- \ref gis
-- \ref tables
-- \ref lcover
+\tableofcontents
 
 \section starting Getting Started
 
@@ -419,7 +413,7 @@ As previously stated, the input datasets 'soil_class.asc', 'geology_class.asc', 
 All these look-up tables specify the total number of classes/units to read in the very first line,
 following the keywords 'nSoil_Types', 'nGeo_Formations' and 'NoLAIclasses' respectively. The second line
 acts as a header describing the contents of the following data. In the subsection \ref soil_table
-\ref, hydrogeo_table and \ref lai_table screenshots of shorted, but sufficient table
+\ref hydrogeo_table and \ref lai_table screenshots of shorted, but sufficient table
 files are presented. All fields are further listed and described in the repective tables.
 
 \subsection soil_table The soil look-up table

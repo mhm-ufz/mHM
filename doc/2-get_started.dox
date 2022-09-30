@@ -1,6 +1,8 @@
 /**
 \page getstarted Getting Started
 
+\tableofcontents
+
 For compile and installation instructions see: https://mhm-ufz.org/guides/
 
 \section test Test mHM on Example domain
@@ -42,7 +44,6 @@ each single setting, this section will only roughly describe the structure of th
 \li <b>LAI data:</b> Switch for choosing LAI option. The user can either select to run mHM with monthly look-up-table
 LAI values defined for 10 land classes or choose to run mHM using gridded LAI input data (e.g., MODIS).
 Gridded LAI data must be provided on a daily time-step at the Level-0 resolution.
-/*!
 \li <b>Process Switches:</b>
 *  - Proccess case 5 - potential evapotranspiration (PET):
 *      -# PET is input (processCase(5)=0)
@@ -67,8 +68,8 @@ and seem to be transferabel to other catchments. If you come up with a very diff
 
 \section calibration Calibration and Optimization
 
-By default, mHM runs without caring about observed discharge data. It will use default values of the global regionalised parameters \gamma, defined in
-<code>mhm_parameters.nml</code> . In order to fit discharge to observed data, mHM has to be recalibrated. This will optimise the \gamma parameters
+By default, mHM runs without caring about observed discharge data. It will use default values of the global regionalised parameters \f$\gamma\f$, defined in
+<code>mhm_parameters.nml</code> . In order to fit discharge to observed data, mHM has to be recalibrated. This will optimise the \f$\gamma\f$ parameters
 such that mHM arrives at a best fit for discharge. The optimization procedure runs mHM many many times, sampling parameters in their given ranges for each iteration,
 until the objective function converges to a confident best fit.
 

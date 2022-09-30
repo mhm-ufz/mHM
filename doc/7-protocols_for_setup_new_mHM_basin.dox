@@ -1,12 +1,9 @@
 /**
 \page check_protocols Protocols for setting up a new mHM basin
 
-The following checks and protocols describe some standard procedures for the setup of a new basin in mHM. They are based on the personal experience of the authors and do not cover all possible subjects. They are to be seen as a first guideline when working with a new basin in mHM but do not represent a complete instruction.\n
+\tableofcontents
 
-This chapter is divided into the following sections:\n
-- \ref check for input data errors
-- \ref protocol for generating a restart file
-- \ref protocol for determining the warm-up period for a new basin
+The following checks and protocols describe some standard procedures for the setup of a new basin in mHM. They are based on the personal experience of the authors and do not cover all possible subjects. They are to be seen as a first guideline when working with a new basin in mHM but do not represent a complete instruction.\n
 
 \section check1 Check for possible input data errors using mHM outputs
 

@@ -1,5 +1,7 @@
 # mHM Release Notes
 
+[TOC]
+
 ## mHM v5.12.0 (Oct 2022)
 
 ### Enhancements

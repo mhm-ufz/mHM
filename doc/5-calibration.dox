@@ -1,6 +1,8 @@
 /**
 \page calopt Calibration Options
 
+\tableofcontents
+
 \section paramopt Calibration of Parameters on Observations
 
 In order to use the calibration feature of mHM, turn the <code>optimize</code> switch in <code>mhm.nml</code> to

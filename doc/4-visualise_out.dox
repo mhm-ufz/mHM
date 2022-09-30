@@ -1,6 +1,8 @@
 /**
 \page output Visualizing Model Output
 
+\tableofcontents
+
 mHM usually writes two files into the output directory specified in mhm.nml:
 \code
     ConfigFile.log
@@ -19,7 +21,7 @@ In addition to these, three restart files are saved into the restart directory a
 
 The first file ConfigFile.log is ASCII type and summarizes the main configuration of mHM. The second file daily_discharge.out is ASCII type and can be read by any standard editor or ASCII interpreting scripts. It contains the simulated and observed discharge. The same timeseries are stored for all gauges in discharge.nc (the third file), but in NETCDF format. In mHM_Fluxes_States.nc all the spatial and temporal output is written, with the exception of routed discharge which can be found in mRM_Fluxes_States.nc (also a NETCDF file).  These binary NETCDF files can be visualised with NCVIEW (part of the NETCDF library), VISIT (LLNL Software) or analysis scripts based on Python (PyNGL). Please note that daily_discharge.out, discharge.nc and mRM_Fluxes_States will only be written if the routing is switched on (i.e., process_case 8 equals one).
 
-The restarting files are mainly intended for improving model performance (i.e,. to avoid spin-up time) rather than for visualization purposes. The xxx prefix indicate the basin number. Since these files are also written into a binary NETCDF file, some remarks will be make below for the right interpretation of their content.  
+The restarting files are mainly intended for improving model performance (i.e,. to avoid spin-up time) rather than for visualization purposes. The xxx prefix indicate the basin number. Since these files are also written into a binary NETCDF file, some remarks will be make below for the right interpretation of their content.
 
 For a quick analysis we recommend NCVIEW since it quickly visualises those files via command-line and X-forwarding. Make sure to load the NC module before starting.
 \code
@@ -30,7 +32,7 @@ In order to hide unnecessary output messages, you may pipe them to a log file:
 \code
     ncview FILE.nc 1> ~/log/ncview.out 2> ~/log/ncview.err
 \endcode
-If you want to transfer large nc files through servers or visualise them locally, it might be useful to compress the data before. 
+If you want to transfer large nc files through servers or visualise them locally, it might be useful to compress the data before.
 The featured nc file deflation with the <code>ncks</code> module will decrease the file size usually by 30-60%. Choose the deflation level from minimum (0) to maximum (9). The <code>-4</code> switch in the following command will convert netcdf3 files to version 4 simultanously.
 \code
 ncks -4 -L 9 IN.nc OUT.nc

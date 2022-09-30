@@ -14,3 +14,7 @@ div.image div.caption{
         font-weight: bold;
         /* color:#5555FF; */
 }
+
+table{
+  padding:1px;
+}
