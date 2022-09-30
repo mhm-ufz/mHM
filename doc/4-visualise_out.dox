@@ -3,6 +3,8 @@
 
 \tableofcontents
 
+\section ncview ncview
+
 mHM usually writes two files into the output directory specified in mhm.nml:
 \code
     ConfigFile.log
@@ -38,7 +40,7 @@ The featured nc file deflation with the <code>ncks</code> module will decrease t
 ncks -4 -L 9 IN.nc OUT.nc
 \endcode
 
-<b>Using X-Forwarding under Windows</b>
+\section xfor Using X-Forwarding under Windows
 
 On Windows we recommend CYGWIN including MINTTY, OPENSSH and XINIT, XMING as the X server. An alternative is PUTTY using X-forwarding.
 The workflow in MINTTY is as follows:
@@ -53,14 +55,13 @@ In some cases it has proven to be necessary to add the following line to /etc/pr
     export DISPLAY=:0
 \endcode
 
-<b>Exploring the contents of the Restarting files</b>
+\section restartview Exploring the contents of the Restarting files
 
 Restarting files are simple binary dumps of arrays and vectors of all constants, parameters, state variables (1D, 2D) and fluxes at a given point in time of a simulation that are needed for executing the subsequent mHM time step in a new instance of this model without performing spin-out simulations and additional run time up to the previos time point. The stored information is divided into three categories: 1) Configuration variables at L0 and L1 levels (xxx_config.nc), 2) configuration variables at L11 level (i.e., routing) (xxx_L11_config.nc),  and  3) and effective parameters, state variables and fluxes at L1 and L11 levels  (xxx_states.nc).
 
-<b>WARNINGS</b>
+\section warnview WARNINGS
 
-1) Results may appear inverted in NCVIEW with respect to the geographical coordinates used to describe the basin domain. This is due to the lack of geographical coordinates in this NetCDF visualizer and the fact that it simply dumps the content of a 2D array in C convection (row first, DIM2). In addition to that, mHM 2D arrays are stored in (lon, lat) or (X,Y) ordering, which is the transpose of the ESRI convention (lat, lon) or (Y,X).
-
-2) Caution should be taken to interpret flow direction variables (i.e., variable L11_fDir in xxx_L11_config.nc) if visualized with NCVIEW because of its implicit 90 \f$^{\circ}\f$ counter-clockwise rotation. Hence the values depicted NCVIEW using 8-flow direction convention (1,2,4,8,16,32,64,128) (i.e., 1 pointing to the east and then moving clockwise every 45 \f$ ^{\circ}\f$) have to be rotated accordingly. In other words, direction 1 should be interpreted as 64, 2 as 128, and so on. All 2D variables, however, included the previous one, will produce consistent maps as that shown in (\ref fig_moselle_dem "Moselle Basin") if plotted with appropriate routines (e.g., Python or NCL) that take into account the geographic coordinates stored within the NetCDF file.
+1. Results may appear inverted in NCVIEW with respect to the geographical coordinates used to describe the basin domain. This is due to the lack of geographical coordinates in this NetCDF visualizer and the fact that it simply dumps the content of a 2D array in C convection (row first, DIM2). In addition to that, mHM 2D arrays are stored in (lon, lat) or (X,Y) ordering, which is the transpose of the ESRI convention (lat, lon) or (Y,X).
+2. Caution should be taken to interpret flow direction variables (i.e., variable L11_fDir in xxx_L11_config.nc) if visualized with NCVIEW because of its implicit 90 \f$^{\circ}\f$ counter-clockwise rotation. Hence the values depicted NCVIEW using 8-flow direction convention (1,2,4,8,16,32,64,128) (i.e., 1 pointing to the east and then moving clockwise every 45 \f$ ^{\circ}\f$) have to be rotated accordingly. In other words, direction 1 should be interpreted as 64, 2 as 128, and so on. All 2D variables, however, included the previous one, will produce consistent maps as that shown in (\ref fig_moselle_dem "Moselle Basin") if plotted with appropriate routines (e.g., Python or NCL) that take into account the geographic coordinates stored within the NetCDF file.
 
 */
