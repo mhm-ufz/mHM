@@ -15,6 +15,11 @@ div.image div.caption{
         /* color:#5555FF; */
 }
 
-table{
-  padding:1px;
+.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname) {
+  display: block;
+}
+
+.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname) tbody {
+  display: table;
+  width: 100%;
 }

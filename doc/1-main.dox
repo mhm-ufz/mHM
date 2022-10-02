@@ -97,9 +97,8 @@ describe the evolution of the state variables at a given location
 
 where
 
-<CENTER>
 |<b>Variable</b>         |<b>Description</b>                        |
-| :--------------------- | :-------------------------------------------------------- |
+| ---------------------- | --------------------------------------------------------- |
 |<b>Inputs</b>||
 |\f$P\f$                 | Daily precipitation depth,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
 |\f$E_p\f$               | Daily potential evapotranspiration (PET), \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
@@ -134,7 +133,6 @@ where
 |\f$l\f$                 | Index denoting a root zone horizon, \f$l=1,\ldots,L\f$ (say \f$L=3\f$), in the first layer, \f$0 \leq z \leq z_1\f$
 |\f$t\f$                 | Time index for each \f$\Delta t\f$ interval
 |\f$\rho^l\f$            | Overall influx fraction accounting for the impervious cover within a cell
-</CENTER>
 
 
 \section mpr The Multiscale Parameter Regionalization Technique
