@@ -83,6 +83,10 @@
 #     - Change gcovr output from -o <filename> for --xml <filename> and --html <filename> output respectively.
 #       This will allow for Multiple Output Formats at the same time by making use of GCOVR_ADDITIONAL_ARGS, e.g. GCOVR_ADDITIONAL_ARGS "--txt".
 #
+# 2022-09-28, Sebastian Mueller
+#     - fix append_coverage_compiler_flags_to_target to correctly add flags
+#     - replace "-fprofile-arcs -ftest-coverage" with "--coverage" (equivalent)
+#
 # USAGE:
 #
 # 1. Copy this file into your cmake modules path.
@@ -147,24 +151,20 @@ if(NOT GCOV_PATH)
     message(FATAL_ERROR "gcov not found! Aborting...")
 endif() # NOT GCOV_PATH
 
+# Check supported compiler (Clang, GNU and Flang)
 get_property(LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
-list(GET LANGUAGES 0 LANG)
-
-if("${CMAKE_${LANG}_COMPILER_ID}" MATCHES "(Apple)?[Cc]lang")
+foreach(LANG ${LANGUAGES})
+  if("${CMAKE_${LANG}_COMPILER_ID}" MATCHES "(Apple)?[Cc]lang")
     if("${CMAKE_${LANG}_COMPILER_VERSION}" VERSION_LESS 3)
-        message(FATAL_ERROR "Clang version must be 3.0.0 or greater! Aborting...")
+      message(FATAL_ERROR "Clang version must be 3.0.0 or greater! Aborting...")
     endif()
-elseif(NOT CMAKE_COMPILER_IS_GNUCXX)
-    if("${CMAKE_Fortran_COMPILER_ID}" MATCHES "[Ff]lang")
-        # Do nothing; exit conditional without error if true
-    elseif("${CMAKE_Fortran_COMPILER_ID}" MATCHES "GNU")
-        # Do nothing; exit conditional without error if true
-    else()
-        message(FATAL_ERROR "Compiler is not GNU gcc! Aborting...")
-    endif()
-endif()
+  elseif(NOT "${CMAKE_${LANG}_COMPILER_ID}" MATCHES "GNU"
+         AND NOT "${CMAKE_${LANG}_COMPILER_ID}" MATCHES "(LLVM)?[Ff]lang")
+    message(FATAL_ERROR "Compiler is not GNU or Flang! Aborting...")
+  endif()
+endforeach()
 
-set(COVERAGE_COMPILER_FLAGS "-g -fprofile-arcs -ftest-coverage"
+set(COVERAGE_COMPILER_FLAGS "-g --coverage"
     CACHE INTERNAL "")
 if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
     include(CheckCXXCompilerFlag)
@@ -228,7 +228,7 @@ endif()
 # )
 function(setup_target_for_coverage_lcov)
 
-    set(options NO_DEMANGLE)
+    set(options NO_DEMANGLE SONARQUBE)
     set(oneValueArgs BASE_DIRECTORY NAME)
     set(multiValueArgs EXCLUDE EXECUTABLE EXECUTABLE_ARGS DEPENDENCIES LCOV_ARGS GENHTML_ARGS)
     cmake_parse_arguments(Coverage "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -262,43 +262,55 @@ function(setup_target_for_coverage_lcov)
     if(CPPFILT_PATH AND NOT ${Coverage_NO_DEMANGLE})
       set(GENHTML_EXTRA_ARGS "--demangle-cpp")
     endif()
-     
+
     # Setting up commands which will be run to generate coverage data.
     # Cleanup lcov
-    set(LCOV_CLEAN_CMD 
-        ${LCOV_PATH} ${Coverage_LCOV_ARGS} --gcov-tool ${GCOV_PATH} -directory . 
+    set(LCOV_CLEAN_CMD
+        ${LCOV_PATH} ${Coverage_LCOV_ARGS} --gcov-tool ${GCOV_PATH} -directory .
         -b ${BASEDIR} --zerocounters
     )
     # Create baseline to make sure untouched files show up in the report
-    set(LCOV_BASELINE_CMD 
-        ${LCOV_PATH} ${Coverage_LCOV_ARGS} --gcov-tool ${GCOV_PATH} -c -i -d . -b 
+    set(LCOV_BASELINE_CMD
+        ${LCOV_PATH} ${Coverage_LCOV_ARGS} --gcov-tool ${GCOV_PATH} -c -i -d . -b
         ${BASEDIR} -o ${Coverage_NAME}.base
     )
     # Run tests
-    set(LCOV_EXEC_TESTS_CMD 
+    set(LCOV_EXEC_TESTS_CMD
         ${Coverage_EXECUTABLE} ${Coverage_EXECUTABLE_ARGS}
-    )    
+    )
     # Capturing lcov counters and generating report
-    set(LCOV_CAPTURE_CMD 
-        ${LCOV_PATH} ${Coverage_LCOV_ARGS} --gcov-tool ${GCOV_PATH} --directory . -b 
+    set(LCOV_CAPTURE_CMD
+        ${LCOV_PATH} ${Coverage_LCOV_ARGS} --gcov-tool ${GCOV_PATH} --directory . -b
         ${BASEDIR} --capture --output-file ${Coverage_NAME}.capture
     )
     # add baseline counters
     set(LCOV_BASELINE_COUNT_CMD
-        ${LCOV_PATH} ${Coverage_LCOV_ARGS} --gcov-tool ${GCOV_PATH} -a ${Coverage_NAME}.base 
+        ${LCOV_PATH} ${Coverage_LCOV_ARGS} --gcov-tool ${GCOV_PATH} -a ${Coverage_NAME}.base
         -a ${Coverage_NAME}.capture --output-file ${Coverage_NAME}.total
-    ) 
+    )
     # filter collected data to final coverage report
-    set(LCOV_FILTER_CMD 
-        ${LCOV_PATH} ${Coverage_LCOV_ARGS} --gcov-tool ${GCOV_PATH} --remove 
+    set(LCOV_FILTER_CMD
+        ${LCOV_PATH} ${Coverage_LCOV_ARGS} --gcov-tool ${GCOV_PATH} --remove
         ${Coverage_NAME}.total ${LCOV_EXCLUDES} --output-file ${Coverage_NAME}.info
-    )    
+    )
     # Generate HTML output
     set(LCOV_GEN_HTML_CMD
-        ${GENHTML_PATH} ${GENHTML_EXTRA_ARGS} ${Coverage_GENHTML_ARGS} -o 
+        ${GENHTML_PATH} ${GENHTML_EXTRA_ARGS} ${Coverage_GENHTML_ARGS} -o
         ${Coverage_NAME} ${Coverage_NAME}.info
     )
-    
+    if(${Coverage_SONARQUBE})
+        # Generate SonarQube output
+        set(GCOVR_XML_CMD
+            ${GCOVR_PATH} --sonarqube ${Coverage_NAME}_sonarqube.xml -r ${BASEDIR} ${GCOVR_ADDITIONAL_ARGS}
+            ${GCOVR_EXCLUDE_ARGS} --object-directory=${PROJECT_BINARY_DIR}
+        )
+        set(GCOVR_XML_CMD_COMMAND
+            COMMAND ${GCOVR_XML_CMD}
+        )
+        set(GCOVR_XML_CMD_BYPRODUCTS ${Coverage_NAME}_sonarqube.xml)
+        set(GCOVR_XML_CMD_COMMENT COMMENT "SonarQube code coverage info report saved in ${Coverage_NAME}_sonarqube.xml.")
+    endif()
+
 
     if(CODE_COVERAGE_VERBOSE)
         message(STATUS "Executed command report")
@@ -329,17 +341,24 @@ function(setup_target_for_coverage_lcov)
         message(STATUS "Command to generate lcov HTML output: ")
         string(REPLACE ";" " " LCOV_GEN_HTML_CMD_SPACED "${LCOV_GEN_HTML_CMD}")
         message(STATUS "${LCOV_GEN_HTML_CMD_SPACED}")
+
+        if(${Coverage_SONARQUBE})
+            message(STATUS "Command to generate SonarQube XML output: ")
+            string(REPLACE ";" " " GCOVR_XML_CMD_SPACED "${GCOVR_XML_CMD}")
+            message(STATUS "${GCOVR_XML_CMD_SPACED}")
+        endif()
     endif()
 
     # Setup target
     add_custom_target(${Coverage_NAME}
         COMMAND ${LCOV_CLEAN_CMD}
-        COMMAND ${LCOV_BASELINE_CMD} 
+        COMMAND ${LCOV_BASELINE_CMD}
         COMMAND ${LCOV_EXEC_TESTS_CMD}
         COMMAND ${LCOV_CAPTURE_CMD}
         COMMAND ${LCOV_BASELINE_COUNT_CMD}
-        COMMAND ${LCOV_FILTER_CMD} 
+        COMMAND ${LCOV_FILTER_CMD}
         COMMAND ${LCOV_GEN_HTML_CMD}
+        ${GCOVR_XML_CMD_COMMAND}
 
         # Set output files as GENERATED (will be removed on 'make clean')
         BYPRODUCTS
@@ -347,6 +366,7 @@ function(setup_target_for_coverage_lcov)
             ${Coverage_NAME}.capture
             ${Coverage_NAME}.total
             ${Coverage_NAME}.info
+            ${GCOVR_XML_CMD_BYPRODUCTS}
             ${Coverage_NAME}/index.html
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
         DEPENDS ${Coverage_DEPENDENCIES}
@@ -358,6 +378,7 @@ function(setup_target_for_coverage_lcov)
     add_custom_command(TARGET ${Coverage_NAME} POST_BUILD
         COMMAND ;
         COMMENT "Lcov code coverage info report saved in ${Coverage_NAME}.info."
+        ${GCOVR_XML_CMD_COMMENT}
     )
 
     # Show info where to find the report
@@ -418,7 +439,7 @@ function(setup_target_for_coverage_gcovr_xml)
         list(APPEND GCOVR_EXCLUDE_ARGS "-e")
         list(APPEND GCOVR_EXCLUDE_ARGS "${EXCLUDE}")
     endforeach()
-    
+
     # Set up commands which will be run to generate coverage data
     # Run tests
     set(GCOVR_XML_EXEC_TESTS_CMD
@@ -429,7 +450,7 @@ function(setup_target_for_coverage_gcovr_xml)
         ${GCOVR_PATH} --xml ${Coverage_NAME}.xml -r ${BASEDIR} ${GCOVR_ADDITIONAL_ARGS}
         ${GCOVR_EXCLUDE_ARGS} --object-directory=${PROJECT_BINARY_DIR}
     )
-    
+
     if(CODE_COVERAGE_VERBOSE)
         message(STATUS "Executed command report")
 
@@ -445,7 +466,7 @@ function(setup_target_for_coverage_gcovr_xml)
     add_custom_target(${Coverage_NAME}
         COMMAND ${GCOVR_XML_EXEC_TESTS_CMD}
         COMMAND ${GCOVR_XML_CMD}
-        
+
         BYPRODUCTS ${Coverage_NAME}.xml
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
         DEPENDS ${Coverage_DEPENDENCIES}
@@ -623,7 +644,7 @@ function(setup_target_for_coverage_fastcov)
         --exclude ${FASTCOV_EXCLUDES}
         --exclude ${FASTCOV_EXCLUDES}
     )
-    
+
     set(FASTCOV_CONVERT_CMD ${FASTCOV_PATH}
         -C ${Coverage_NAME}.json --lcov --output ${Coverage_NAME}.info
     )
@@ -714,6 +735,7 @@ endfunction() # append_coverage_compiler_flags
 
 # Setup coverage for specific library
 function(append_coverage_compiler_flags_to_target name)
-    target_compile_options(${name}
-        PRIVATE ${COVERAGE_COMPILER_FLAGS})
+    separate_arguments(_flag_list NATIVE_COMMAND "${COVERAGE_COMPILER_FLAGS}")
+    target_compile_options(${name} PRIVATE ${_flag_list})
+    target_link_libraries(${name} PRIVATE gcov)
 endfunction()

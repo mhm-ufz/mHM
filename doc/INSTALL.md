@@ -1,5 +1,7 @@
 # Compilation
 
+[TOC]
+
 The section 'Dependencies' lists the general requirements
 for the compilation. The section 'System-dependent dependency installation'
 gives some instructions on how to install these dependencies on Windows,

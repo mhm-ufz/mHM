@@ -26,7 +26,7 @@ Taken from: https://github.com/bilke/cmake-modules/blob/master/CodeCoverage.cmak
 Can be included and set up with:
 ```cmake
 include(CodeCoverage)
-append_coverage_compiler_flags()
+append_coverage_compiler_flags_to_target(PROJECT)
 SETUP_TARGET_FOR_COVERAGE_LCOV(
   NAME PROJECT_coverage_CI
   EXECUTABLE PROJECT
@@ -79,7 +79,7 @@ If there is no `version_date.txt` file or a development version was found, the s
 `PROJECT_VER` will hold the simple version to be used with cmakes `project` command (e.g. `1.0.0`).
 A prefixed `v` in the version will be ignored.
 
-### `CPM.cmake` (v0.35.1)
+### `CPM.cmake` (v0.35.6)
 
 CPM.cmake is a CMake script that adds dependency management capabilities to CMake.
 It's built as a thin wrapper around CMake's [FetchContent](https://cmake.org/cmake/help/latest/module/FetchContent.html)

@@ -30,13 +30,12 @@ target_compile_definitions(mhm_lib PRIVATE
 # setup coverage with GNU
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE)
   include(cmake/cmake-modules/CodeCoverage.cmake)
-  target_compile_options(mhm_lib PUBLIC -g --coverage)
-  target_link_libraries(mhm_lib PUBLIC gcov)
+  append_coverage_compiler_flags_to_target(mhm_lib)
+  append_coverage_compiler_flags_to_target(mhm)
   SETUP_TARGET_FOR_COVERAGE_LCOV(
     NAME mhm_coverage_CI
     EXECUTABLE ../CI-scripts/run_cmake_coverage.sh
     DEPENDENCIES mhm mhm_lib
-    EXCLUDE src/lib/*
     GENHTML_ARGS -t "mHM coverage" --html-prolog ../doc/html_files/cov_header.prolog
   )
 endif()

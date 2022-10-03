@@ -1,21 +1,13 @@
 /**
 \mainpage Introduction to mHM
 
+\tableofcontents
+
 Welcome to the documentation of mHM version
 \htmlinclude version.txt
 \latexinclude version.txt
 
 \image html mHM_textlogo.png
-
-This chapter is divided in the following sections:\n
-- \ref description
-- \ref mHM
-- \ref model
-- \ref mpr
-- \ref param_est
-- \ref cal
-- \ref basininfo
-- \ref protocols
 
 \section description Short Description
 
@@ -105,49 +97,42 @@ describe the evolution of the state variables at a given location
 
 where
 
-<b>Inputs | Description  </b>
---------- | ---------------------------------------------------------
-\f$P\f$   | Daily precipitation depth,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$E_p\f$ | Daily potential evapotranspiration (PET), \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$T\f$   | Daily mean air temperature,               \f$^{\circ}C\f$
-
-<b>Fluxes    | Description  </b>
------------- | ---------------------------------------------------------
-\f$S\f$      | Snow precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$R\f$      | Rain precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$M\f$      | Melting snow depth,                                          \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$E_p\f$    | Potential evapotranspiration,                                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$F\f$      | Throughfall,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$E_1\f$    | Actual evaporation intensity from the canopy,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$E_2\f$    | Actual evapotranspiration intensity,                         \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$E_3\f$    | Actual evaporation from free-water bodies,                   \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$I\f$      | Recharge, infiltration intensity or effective precipitation, \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$C\f$      | Percolation,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$q_{1}\f$  | Surface runoff from impervious areas,                        \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$q_{2}\f$  | Fast interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$q_{3}\f$  | Slow interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-\f$q_{4}\f$  | Baseflow,                                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-
-<b> Outputs      | Description </b>
----------------- | ---------------------------------------------------------
-\f$Q_{i}^{0}\f$  |  Simulated discharge entering the river stretch at cell \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$
-\f$Q_{i}^{1}\f$  |  Simulated discharge leaving the river stretch at cell  \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$
-
-<b> States | Description  </b>
----------- | ---------------------------------------------------------
-\f$x_1\f$  | Depth of the canopy storage,                                           \f$\mathrm{mm}\f$
-\f$x_2\f$  | Depth of the snowpack,                                                 \f$\mathrm{mm}\f$
-\f$x_3\f$  | Depth of soil moisture content in the root zone,                       \f$\mathrm{mm}\f$
-\f$x_4\f$  | Depth of impounded water in reservoirs, water bodies, or sealed areas, \f$\mathrm{mm}\f$
-\f$x_5\f$  | Depth of the water storage in the subsurface reservoir,                \f$\mathrm{mm}\f$
-\f$x_6\f$  | Depth of the water storage in the groundwater reservoir,               \f$\mathrm{mm}\f$
-\f$x_7\f$  | Depth of the water storage in the channel reservoir,                   \f$\mathrm{mm}\f$
-
-<b> Indices  | Description </b>
------------- | ---------------------------------------------------------
-\f$l\f$      | Index denoting a root zone horizon, \f$l=1,\ldots,L\f$ (say \f$L=3\f$), in the first layer, \f$0 \leq z \leq z_1\f$
-\f$t\f$      | Time index for each \f$\Delta t\f$ interval
-\f$\rho^l\f$ | Overall influx fraction accounting for the impervious cover within a cell
+|<b>Variable</b>         |<b>Description</b>                        |
+| ---------------------- | --------------------------------------------------------- |
+|<b>Inputs</b>||
+|\f$P\f$                 | Daily precipitation depth,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$E_p\f$               | Daily potential evapotranspiration (PET), \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$T\f$                 | Daily mean air temperature,               \f$^{\circ}C\f$
+|<b>Fluxes</b>||
+|\f$S\f$                 | Snow precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$R\f$                 | Rain precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$M\f$                 | Melting snow depth,                                          \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$E_p\f$               | Potential evapotranspiration,                                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$F\f$                 | Throughfall,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$E_1\f$               | Actual evaporation intensity from the canopy,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$E_2\f$               | Actual evapotranspiration intensity,                         \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$E_3\f$               | Actual evaporation from free-water bodies,                   \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$I\f$                 | Recharge, infiltration intensity or effective precipitation, \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$C\f$                 | Percolation,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$q_{1}\f$             | Surface runoff from impervious areas,                        \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$q_{2}\f$             | Fast interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$q_{3}\f$             | Slow interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|\f$q_{4}\f$             | Baseflow,                                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+|<b>Outputs</b>||
+|\f$Q_{i}^{0}\f$         |  Simulated discharge entering the river stretch at cell \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$
+|\f$Q_{i}^{1}\f$         |  Simulated discharge leaving the river stretch at cell  \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$
+|<b>States</b>||
+|\f$x_1\f$               | Depth of the canopy storage,                                           \f$\mathrm{mm}\f$
+|\f$x_2\f$               | Depth of the snowpack,                                                 \f$\mathrm{mm}\f$
+|\f$x_3\f$               | Depth of soil moisture content in the root zone,                       \f$\mathrm{mm}\f$
+|\f$x_4\f$               | Depth of impounded water in reservoirs, water bodies, or sealed areas, \f$\mathrm{mm}\f$
+|\f$x_5\f$               | Depth of the water storage in the subsurface reservoir,                \f$\mathrm{mm}\f$
+|\f$x_6\f$               | Depth of the water storage in the groundwater reservoir,               \f$\mathrm{mm}\f$
+|\f$x_7\f$               | Depth of the water storage in the channel reservoir,                   \f$\mathrm{mm}\f$
+|<b>Indices</b>||
+|\f$l\f$                 | Index denoting a root zone horizon, \f$l=1,\ldots,L\f$ (say \f$L=3\f$), in the first layer, \f$0 \leq z \leq z_1\f$
+|\f$t\f$                 | Time index for each \f$\Delta t\f$ interval
+|\f$\rho^l\f$            | Overall influx fraction accounting for the impervious cover within a cell
 
 
 \section mpr The Multiscale Parameter Regionalization Technique
@@ -298,8 +283,6 @@ calibration options can be found in the section \ref paramopt "Calibration Optio
 
 \section links Helpful links
 
-Coding and Documentation Style (see \ref style) \n
-Setup netCDF on your MacOS system (see \ref NETCDF) \n
 Data Preparation for mHM (see \ref data) \n
 
 \section basininfo Test basin

@@ -5,8 +5,8 @@
 ;
 [subrepo]
 	remote = https://git.ufz.de/chs/cmake-fortran-scripts.git
-	branch = v1.7
-	commit = b4ffa3641b3d1ab733d98500dc2364a91eda15e5
-	parent = 02d7e12dec8a300b7fa1f0cd2b22d92df9b00fd2
+	branch = v1.8
+	commit = cd0fbc5c5dc01cafe054eb421e3287624fb3750b
+	parent = 775f51f2a607c2fa49f3b8356668ddfd607beb4d
 	method = merge
 	cmdver = 0.4.3

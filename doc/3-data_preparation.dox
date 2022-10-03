@@ -1,13 +1,7 @@
 /**
 \page data Data Preparation for mHM
 
-This chapter is divided in the following sections:\n
-- \ref starting
-- \ref meteo
-- \ref morph
-- \ref gis
-- \ref tables
-- \ref lcover
+\tableofcontents
 
 \section starting Getting Started
 
@@ -27,10 +21,12 @@ air temperature, using the Hargreaves-Samani method.
 
 The two meteorological variables which are needed:
 
+
 <b> Name                          | Unit                    | Temporal resolution </b>
-----------------------------------|-------------------------|---------------------
+| -------------------------- | -------------------------- | -------------------------- |
 Precipitation                     | \f$\mathrm{mm}\f$       | hourly to daily
 Average air temperature           | \f$^\circ \mathrm{C}\f$ | hourly to daily
+
 
 
 Dependent of the specification for the potential evapotranspiration (processCase(5)) additional
@@ -41,8 +37,9 @@ meteorological variables may be need:
 \li processCase(5) = 2 - Priestley-Taylor equation
 \li processCase(5) = 3 - Penam-Monteith equation
 
-<b> Name                          | Unit                    | Temporal resolution </b>
-----------------------------------|-------------------------|---------------------
+
+<b> Name                          | Unit                    | Temporal resolution </b> |
+| -------------------------- | -------------------------- | -------------------------- |
 0 - Potential evapotranspiration  | \f$\mathrm{mm}\f$       | hourly to daily
 1 - Minimum air temperature       | \f$^\circ \mathrm{C}\f$ | daily
 1 - Maximum air temperature       | \f$^\circ \mathrm{C}\f$ | daily
@@ -50,6 +47,7 @@ meteorological variables may be need:
 3 - Net radiation                 | \f$ W\;m^{-2}       \f$ | daily
 3 - Absolut vapur pressure of air | \f$ Pa              \f$ | daily
 3 - Windspeed                     | \f$ m\;s^{-1}       \f$ | daily
+
 
 \subsection morph_data Morphological variables
 
@@ -62,11 +60,12 @@ SRTM data and a number of derived products in different resolutions are availabl
 Soil and hydrogeological data is usually provided by the geological surveys. On the soil side the
 Harmonized World Soil Database would be a free alternative (http://webarchive.iiasa.ac.at/Research/LUC/External-World-soil-database/HTML/).
 
+
 <b> Name                 | Unit  | Temporal resolution </b>
------------------------- | ----- | ---
+| -------------------------- | -------------------------- | -------------------------- |
 Digital elevation model  | \f$\mathrm{m}\f$ | -
-Soil maps with textural properties (\% sand and clay contents, bulk density per horizon, and root depth zone) | -  | -
-Geological maps with aquifer properties  (specific yield, permeability, aquifer thickness)                    | -  | -
+Soil maps with textural properties<br />(\% sand and clay contents, bulk density per horizon,<br />and root depth zone) | -  | -
+Geological maps with aquifer properties<br />(specific yield, permeability, aquifer thickness)                    | -  | -
 Streamflow location      | \f$(\mathrm{m}, \mathrm{m})\f$ (lat,lon)                                                | -
 
 
@@ -76,8 +75,9 @@ Free land cover data is available from different sources. The Corine programm pr
 with resolutions of 100m and 250m (http://www.eea.europa.eu/publications/COR0-landcover), the Global Land Cover Map 2000
 a dateset covers the entire world in a resolution of 1km.
 
+
 <b> Name                 | Unit  | Temporal resolution </b>
------------------------- | ----- | ---
+| -------------------------- | -------------------------- | -------------------------- |
 Land cover scenes        |  -    | monthly to annual
 Leaf area index          |  -    |  weekly to monthly
 
@@ -87,14 +87,17 @@ Leaf area index          |  -    |  weekly to monthly
 Streamflow measurments should also be available from federal authorities. In addition, the Global Runoff Data Center provides
 timeseries of varying length for several thousand gauging stations all over the world (http://www.bafg.de/GRDC)
 
-<b> Name                 | Unit                               | Temporal resolution </b>
------------------------- | -----------------------------------| ---
-Streamflow  measurements | \f$\mathrm{m}^3 \mathrm{s}^{-1}\f$ | hourly to daily
+
+| <b>Name</b>                 | <b>Unit</b>                               | <b>Temporal resolution </b> |
+| -------------------------- | -------------------------- | -------------------------- |
+| Streamflow  measurements | \f$\mathrm{m}^3 \mathrm{s}^{-1}\f$ | hourly to daily
+
 
 \subsection optional Optional Data
 
-<b> Name                         | Unit                                     | Temporal resolution </b>
--------------------------------- | ---------------------------------------- | ---
+
+|<b> Name                         | Unit                                     | Temporal resolution </b>
+| -------------------------- | -------------------------- | -------------------------- |
 Snow cover                       | -                                        | daily to weekly
 Land surface temperature         | \f$\mathrm{K}\f$                         | daily to weekly
 Groundwater station location     | \f$(\mathrm{m}, \mathrm{m})\f$ (lat,lon) |  -
@@ -236,8 +239,9 @@ MHM needs several morphological input datasets. All these have to be provided as
 
 The required datasets and their corresponding filenames:
 
-<b> Description	  	    	       	    | Raster file name  | Table file name        </b>
---------------------------------------------|-------------------|----------------
+
+<b> Description	  	    	       	    | Raster file name  | Table file name        </b> |
+| -------------------------- | -------------------------- | -------------------------- |
 Sink filled Digital Elevevation Model (DEM) | dem.asc	        | -
 Slope map   	        		    | slope.asc	        | -
 Aspect Map			            | aspect.asc	| -
@@ -248,6 +252,7 @@ Soil map	     		       	    | soil_class.asc    | soil_classdefinition.txt
 Hydrogeological map		       	    | geology_class.asc | geology_classdefinition.txt
 Leaf Area Index (LAI) map	       	    | LAI_class.asc     | LAI_classdefinition.txt
 Land use map   			       	    | your choice       | -
+
 
 \section gis A possible GIS workflow
 
@@ -393,8 +398,9 @@ In case the necessary stream network file is not available, you can get one from
 Unlike the other classified datasets (soils, hydrogeology, LAI), where as much information as available can be added, the land use data is restricted to
 three different classes, which are listed below:
 
-Class | Description
-------|------------
+
+Class | Description |
+| -------------------------- | -------------------------- |
 1     | Forest
 2     | Impervious
 3     | Pervious
@@ -407,7 +413,7 @@ As previously stated, the input datasets 'soil_class.asc', 'geology_class.asc', 
 All these look-up tables specify the total number of classes/units to read in the very first line,
 following the keywords 'nSoil_Types', 'nGeo_Formations' and 'NoLAIclasses' respectively. The second line
 acts as a header describing the contents of the following data. In the subsection \ref soil_table
-\ref, hydrogeo_table and \ref lai_table screenshots of shorted, but sufficient table
+\ref hydrogeo_table and \ref lai_table screenshots of shorted, but sufficient table
 files are presented. All fields are further listed and described in the repective tables.
 
 \subsection soil_table The soil look-up table
@@ -415,27 +421,31 @@ files are presented. All fields are further listed and described in the repectiv
 \image html soil_classdefinition.png "A possible 'soil_classdefinion.txt' file"
 \anchor fig_soil_classdefinition \image latex soil_classdefinition.pdf "A possible 'soil_classdefinion.txt' file" width=16cm
 
-Field     | Description
-----------|---------------------
+
+| Field     | Description
+| -------------------------- | -------------------------- |
 MU_GLOBAL | Soil id as given in the corresponding 'soil_class.asc' map. All raster map ids must be given here
-HORIZON   | Horizon number starting at the top of the soil column. Your are free to provide any number of horizons for each soil individually
-UD[mm]    | Upper depth of the horizon in millimeter. Should be 0 for the first, and the lower depth of the superimposing horizon for all others
+HORIZON   | Horizon number starting at the top of the soil column.<br />Your are free to provide any number of horizons for each soil individually
+UD[mm]    | Upper depth of the horizon in millimeter.<br />Should be 0 for the first, and the lower depth of the superimposing horizon for all others
 LD[mm]    | Lower depth of the horizon in millimeter
 CLAY[%]   | Clay content in percent
 SAND[%]   | Sand content in percent
 BD[gcm-3] | Mineral bulk density in grams per cubic centimeter
+
 
 \subsection hydrogeo_table The hydrogeolgy look-up table
 
 \image html geology_classdefinition.png "A possible 'geology_classdefinion.txt' file"
 \anchor fig_geology_classdefinition \image latex geology_classdefinition.pdf "A possible 'geology_classdefinion.txt' file" width=16cm
 
+
 Field        | Description
--------------|---------------------
+| -------------------------- | -------------------------- |
 GeoParam(i)  | Parameter number of the formation, the link to 'mhm_parameter.nml'
 ClassUnit    | Class id as present in the 'hydrogeology_class.asc' raster map
 Karstic      | Presence of karstic formation (0: False, 1: True)
 Description  | Text description of the unit
+
 
 \subsection lai_table The LAI look-up table
 
@@ -444,10 +454,11 @@ Description  | Text description of the unit
 
 
 Field        | Description
--------------|---------------------
+| -------------------------- | -------------------------- |
 ID           | LAI class id as given in the file LAI_class.asc
 LAND-USE     | Description of the LAI class
 Jan. to Dec. | Monthly LAI values
+
 
 \subsection gauge_files The gauge files
 
@@ -458,14 +469,16 @@ Jan. to Dec. | Monthly LAI values
 The structure of the gauge files is different from the look-up tables listed
 so far. The following table describes its content.
 
+
 Line      | Description
-----------|-----------------
+| -------------------------- | -------------------------- |
 1         | Gives basic information about the gauging station (Station-Id:Station-Name/River-Name)
 2         | Specifies the nodata value
 3         | The number of measurements per day
 4         | The start date of the time series in the format given in parentheses
 5         | The end date of the time series in the format given in parentheses
-6 to end  | The measurement data in cubic meter per second preceded by the actual date in the same format as the dates of lines four and five
+6 to end  | The measurement data in cubic meter per second <br />preceded by the actual date in the same format as the dates of lines four and five
+
 
 For every gauge id given in 'idgauges.asc' one gauge file has to be created as outlined above. The file name has to <b> exactly </b> reflect the gauge id and carry a '.txt' extension.
 The table data file for a gauge with an id of 0343 in 'idgauges.asc' should

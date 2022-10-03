@@ -43,7 +43,10 @@ function(get_version ver_short ver_full ver_date)
   set(ver ${ver_major}.${ver_minor}.${ver_patch})
 
   # whether it is a development version (e.g.: 1.1.0-dev0)
-  set(is_dev_ver (${ver_pre} MATCHES "^dev.*"))
+  set(is_dev_ver FALSE)
+  if(${ver_pre} MATCHES "^dev.*")
+      set(is_dev_ver TRUE)
+  endif()
 
   # use git to get commit SHA and commit date
   find_package(Git QUIET)

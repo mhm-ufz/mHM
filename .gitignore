@@ -17,7 +17,12 @@ latex
 doxygen_warn.txt
 
 # Exclusions
-./mhm
+mhm
+mhm_debug
+mhm_mpi
+mhm_mpi_debug
+mhm_openmp
+mhm_openmp_debug
 *.g90
 *.o
 *.mod

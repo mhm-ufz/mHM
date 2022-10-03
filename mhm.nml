@@ -789,8 +789,9 @@ evap_coeff =  1.30,   1.20,   0.72,   0.75,  1.00,  1.00,  1.00,  1.00,  1.00,  
 !> Alternatively to night day ratios, explicit weights for pet and average temperature can
 !> be read. The dimension for the weights are in FORTRAN-notation (rows, colums, months=12, hours=24)
 !> and in C-notation (hours=24, months=12, colums, rows).
-!> The array for temperature weights are called tavg_weight in the file: <dir_Temperature>/tavg_weight.nc
-!> The array for pet weights are called pet_weight in the file: <dir_ReferenceET>/pet_weight.nc
+!> The array for temperature weights is called tavg_weight in the file: <dir_Temperature>/tavg_weight.nc
+!> The array for pet weights is called pet_weight in the file: <dir_ReferenceET>/pet_weight.nc
+!> The array for precipitation weights is called pet_weight in the file: <dir_Precipitation>/pre_weight.nc
 !> If read_meteo_weights is False than night fractions below are used
 read_meteo_weights = .FALSE.
 !> night ratio for precipitation
@@ -855,7 +856,7 @@ mcmc_error_params = 0.01, 0.6
 !******************************************************************************************
 ! SETTINGS FOR OPTIMIZATION for baseflow-index (opti_function = 34)
 !******************************************************************************************
-&BFI_inputs
+&baseflow_config
 !> Calculate BFI from discharge time series with the Eckhardt filter
 !> Eckhardt et al. (2008, doi: 10.1016/j.jhydrol.2008.01.005)
 !> This option **requires** one gauge per domain at the outlet of the basin.

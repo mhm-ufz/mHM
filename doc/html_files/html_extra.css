@@ -15,10 +15,11 @@ div.image div.caption{
         /* color:#5555FF; */
 }
 
-/* maximal table width */
-table.markdownTable, table.fieldtable {
-  width: 100%;
+.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname) {
+  display: block;
 }
-table.markdownTable td:last-child, table.markdownTable th:last-child, table.fieldtable dt:last-child {
+
+.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname) tbody {
+  display: table;
   width: 100%;
 }
