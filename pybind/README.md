@@ -2,7 +2,7 @@
 
 Python bindings to control mHH.
 
-The wrapper (`src/mhm/wrapper.f90`) is just a small layer on top of these
+The wrapper (`mhm/wrapper.f90`) is just a small layer on top of these
 interfaces to be compatible with [f2py](https://numpy.org/doc/stable/f2py/index.html).
 
 To compile everything locally

@@ -62,7 +62,7 @@ Tracker = "https://www.mhm-ufz.org"
 mhm = "mhm.cli:mhm"
 
 [tool.setuptools_scm]
-write_to = "src/mhm/_version.py"
+write_to = "pybind/mhm/_version.py"
 write_to_template = "__version__ = '{version}'"
 local_scheme = "no-local-version"
 fallback_version = "0.0.0.dev0"

@@ -1,0 +1,8 @@
+prune **
+graft src/
+graft pybind/
+graft cmake/
+include LICENSE pyproject.toml setup.py CMakeLists.txt
+include version.txt version_date.txt
+global-exclude __pycache__ *.py[co] *.so
+exclude pybind/mhm/mhm

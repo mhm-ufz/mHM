@@ -18,7 +18,7 @@ doxygen_warn.txt
 
 # Exclusions
 mhm
-!pybind/src/mhm
+!pybind/mhm
 mhm_debug
 mhm_mpi
 mhm_mpi_debug

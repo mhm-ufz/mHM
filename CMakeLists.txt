@@ -11,14 +11,31 @@ project(mhm
   LANGUAGES Fortran
 )
 
-# add lib and exe
-add_subdirectory(src)
 option(BUILD_MHM_DRIVER "Build mHM with executable driver." ON)
+option(BUILD_MHM_PYBIND "Build mHM python bindings." OFF)
+
+if(BUILD_MHM_PYBIND)
+  set(BUILD_MHM_LIB_SHARED ON)
+  set(BUILD_MHM_DRIVER ON)
+endif()
+
+add_subdirectory(src)
+
 if(BUILD_MHM_DRIVER)
   add_executable(mhm src/mHM/mhm_driver.f90)
   target_link_libraries(mhm PRIVATE mhm_lib)
   # add install option
-  install(TARGETS mhm DESTINATION bin)
+  if(NOT BUILD_MHM_PYBIND)
+    install(TARGETS mhm DESTINATION bin)
+  endif()
+endif()
+
+if(BUILD_MHM_PYBIND)
+  enable_language(C)
+  find_package(PythonExtensions REQUIRED)
+  find_package(NumPy REQUIRED)
+  find_package(F2PY REQUIRED)
+  add_subdirectory(pybind/mhm)
 endif()
 
 # add full version and date to pre-processor flags (qoutes need in before hand)

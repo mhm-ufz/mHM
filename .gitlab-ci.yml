@@ -34,10 +34,12 @@ show-env-vars:
 pybindings:
   stage: build
   script:
-    - source hpc-module-loads/eve.chs-conda01
-    - python -m venv ./test_pybind_venv
-    - source ./test_pybind_venv/bin/activate
-    - pip install ./pybind
+    - module load Anaconda3
+    - conda create -p ./test_pybind
+    - conda activate ./test_pybind
+    - conda install -c conda-forge -y mamba
+    - mamba install -c conda-forge -y pip netcdf-fortran fortran-compiler
+    - pip install -v -e .
     - python -c "import mhm; print(mhm.__version__)"
     - which mhm
     - cat $(which mhm)

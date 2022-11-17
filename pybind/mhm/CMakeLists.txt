@@ -1,8 +1,3 @@
-# get mHM lib
-set(BUILD_MHM_DRIVER ON)
-set(BUILD_MHM_LIB_SHARED ON)
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../../../" "mhm_main")
-
 # rpath should be set to look locally for the needed .so file
 if (APPLE)
   set(rpath "@loader_path")
