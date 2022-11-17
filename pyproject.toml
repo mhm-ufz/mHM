@@ -1,0 +1,106 @@
+[build-system]
+requires = [
+    "setuptools>=63,<64",
+    "setuptools_scm[toml]>=6.4",
+    "scikit-build>=0.16,<0.17",
+    "cmake",
+    "ninja",
+    "oldest_supported_numpy",
+    "fypp",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+requires-python = ">=3.7"
+name = "mhm"
+description = "Python distribution of mHM with bindings."
+authors = [{name = "Sebastian Müller", email = "sebastian.mueller@ufz.de"}]
+readme = "README.md"
+license = {text = "LGPL-3.0"}
+dynamic = ["version"]
+keywords = [
+    "mHM",
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+    "Natural Language :: English",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Hydrology",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "numpy>=1.14.5",
+]
+
+[project.urls]
+Changelog = "https://www.mhm-ufz.org"
+Conda-Forge = "https://anaconda.org/conda-forge/mhm"
+Documentation = "https://www.mhm-ufz.org"
+Homepage = "https://www.mhm-ufz.org"
+Source = "https://www.mhm-ufz.org"
+Tracker = "https://www.mhm-ufz.org"
+
+[project.scripts]
+mhm = "mhm.cli:mhm"
+
+[tool.setuptools_scm]
+write_to = "pybind/mhm/_version.py"
+write_to_template = "__version__ = '{version}'"
+local_scheme = "no-local-version"
+fallback_version = "0.0.0.dev0"
+search_parent_directories = true
+
+[tool.black]
+exclude = "_version.py"
+target-version = ["py37"]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+
+[tool.cibuildwheel]
+# Super-verbose output for debugging purpose
+build-verbosity = 3
+
+# We restrict ourselves to CPython 3.8 for now
+build = ["cp38-*"]
+
+# skip pypy and musl
+skip = ["pp*", "*-musllinux_*"]
+
+# check command
+test-command = "mhm -h"
+
+manylinux-x86_64-image = "manylinux_2_24"
+
+[tool.cibuildwheel.linux]
+environment = { FC="gfortran" }
+# before-all = "yum -y install netcdf-fortran-devel"
+before-all = [
+    "apt-get update -y",
+    "apt-get install -y libnetcdff-dev",
+]
+
+[tool.cibuildwheel.macos]
+environment = { FC="gfortran-11" }
+before-all = "brew install netcdf"
+
