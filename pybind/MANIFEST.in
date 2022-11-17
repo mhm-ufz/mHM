@@ -1,0 +1,6 @@
+prune **
+graft src/mhm
+graft examples
+include LICENSE README.md pyproject.toml setup.py CMakeLists.txt
+global-exclude __pycache__ *.py[co] *.so
+exclude src/mhm/mhm
