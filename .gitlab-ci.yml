@@ -31,6 +31,20 @@ show-env-vars:
   script:
     - echo -e "${SEP}\n${S00}$(date)\n${SEP}\n${S01}\n${S02}\n${S03}\n${S04}\n${SEP}\n${S05}${GIT_CLONE_PATH}\n${S06}\n${SEP}"
 
+pybindings:
+  stage: build
+  script:
+    - source hpc-module-loads/eve.chs-conda01
+    - python -m venv ./test_pybind_venv
+    - source ./test_pybind_venv/bin/activate
+    - pip install ./pybind
+    - python -c "import mhm; print(mhm.__version__)"
+    - which mhm
+    - cat $(which mhm)
+    - mhm -v
+    - mhm -h
+    - mhm
+
 documentation:
   stage: build
   script:
