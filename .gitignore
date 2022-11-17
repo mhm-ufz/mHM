@@ -18,6 +18,7 @@ doxygen_warn.txt
 
 # Exclusions
 mhm
+!pybind/src/mhm
 mhm_debug
 mhm_mpi
 mhm_mpi_debug
@@ -68,6 +69,9 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+_version.py
+*.whl
+_skbuild/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
