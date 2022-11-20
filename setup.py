@@ -1,3 +1,4 @@
+"""Python bindings for mHM."""
 import os
 
 from skbuild import setup

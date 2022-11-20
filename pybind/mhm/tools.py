@@ -1,3 +1,4 @@
+"""Tools to interact with mHM."""
 import numpy as np
 
 from .wrapper import get
@@ -9,6 +10,30 @@ def get_runoff():
 
 
 def get_variable(name, index=1, indexing="xy"):
+    """
+    Get a specific variable from mHM in the current time-step.
+
+    Parameters
+    ----------
+    name : string
+        Name of the variable
+    index : int, optional
+        If the variable has an additional dimension,
+        one needs to specify an index, by default 1
+    indexing : str, optional
+        Indexing for the 2D variable,
+        either "xy" or "ij", by default "xy"
+
+    Returns
+    -------
+    numpy.ndarray
+        Numpy array holding the desired variable.
+
+    Raises
+    ------
+    ValueError
+        If the variable name doesn't start with "L0", "L1", "L11" or "L2".
+    """
     name = name.upper()  # convention
     grid = name.split("_")[0].lower()
     if grid not in ["l0", "l1", "l11", "l2"]:

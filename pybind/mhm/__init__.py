@@ -1,3 +1,4 @@
+"""Python bindings of mHM."""
 from . import cli
 from .tools import get_runoff, get_variable
 from .wrapper import get, model, run, set

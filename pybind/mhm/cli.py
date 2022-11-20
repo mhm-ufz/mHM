@@ -1,3 +1,4 @@
+"""Module to provide a script to execute mHM."""
 import os
 import subprocess
 import sys
