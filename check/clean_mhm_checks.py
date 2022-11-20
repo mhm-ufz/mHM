@@ -10,9 +10,9 @@ Created
 -------
     Feb 2020
 """
+import glob
 import os
 import shutil
-import glob
 
 # output folder and reference folder
 OUT = "output_b1"
