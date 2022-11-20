@@ -5,6 +5,14 @@ from .wrapper import get
 
 
 def get_runoff():
+    """
+    Get 2D array of runoff time-series for all gauges.
+
+    Returns
+    -------
+    numpy.ndarray
+        The runoff for all gauges with dims (time, gauge).
+    """
     shp = get.runoff_shape()
     return get.runoff(*shp)
 
@@ -17,9 +25,11 @@ def get_variable(name, index=1, indexing="xy"):
     ----------
     name : string
         Name of the variable
+
     index : int, optional
         If the variable has an additional dimension,
         one needs to specify an index, by default 1
+
     indexing : str, optional
         Indexing for the 2D variable,
         either "xy" or "ij", by default "xy"
