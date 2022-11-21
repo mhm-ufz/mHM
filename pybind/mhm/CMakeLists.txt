@@ -1,3 +1,7 @@
+enable_language(C)
+find_package(PythonExtensions REQUIRED)
+find_package(NumPy REQUIRED)
+find_package(F2PY REQUIRED)
 # rpath should be set to look locally for the needed .so file
 if (APPLE)
   set(rpath "@loader_path")

@@ -31,10 +31,6 @@ if(BUILD_MHM_DRIVER)
 endif()
 
 if(BUILD_MHM_PYBIND)
-  enable_language(C)
-  find_package(PythonExtensions REQUIRED)
-  find_package(NumPy REQUIRED)
-  find_package(F2PY REQUIRED)
   add_subdirectory(pybind/mhm)
 endif()
 
