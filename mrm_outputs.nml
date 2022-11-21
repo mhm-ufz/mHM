@@ -1,12 +1,15 @@
 
-! Emacs: -*- mode: f90 -*-
-!1)  First give the timestep for writing gridded model outputs
-!    It should be integer and has to be perfectly divisible
-!    by the number of total modeling time steps
-!2) Define main outputs of the model as namelist
-!   the particular output flag is specified as .TRUE. / .FALSE
-!   for writing /not writing the output to a file
-! SYNTAX = ".TRUE." or ".FALSE."
+!> \file mrm_outputs.nml
+!> \brief Namelist for mRM output configuration
+!> \details This file contains the namelist for mRM outputs.
+!! 1. First give the timestep for writing gridded model outputs
+!!    It should be integer and has to be perfectly divisible
+!!    by the number of total modeling time steps
+!! 2. Define main outputs of the model as namelist
+!!    the particular output flag is specified as .TRUE. / .FALSE
+!!    for writing /not writing the output to a file
+!!
+!! SYNTAX = ".TRUE." or ".FALSE."
 &NLoutputResults
 !
 ! NetCDF output settings

@@ -1,5 +1,8 @@
-! global_parameters
-! PARAMETER                       lower_bound  upper_bound          value   FLAG  SCALING
+!> \file mhm_parameter.nml
+!> \brief Parameters for mHM.
+!> \details This files sets all parameters (value, bounds, optimization selection).
+!!
+!! PARAMETER =                    lower_bound, upper_bound,         value,  FLAG, SCALING
 ! interception
 &interception1
 ! multiplier to relate LAI to interception storage [-]
@@ -217,7 +220,7 @@ Desilets_LW1                =    0.0,         0.05,          0.0,     0,       1
 ! ground albedo neutrons
 ! COSMIC version
 ! THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
-&neutrons2                                                 
+&neutrons2
 COSMIC_N0                          =  300.0,       2000.0,        1500.0,     0,       1
 COSMIC_N1                          =    0.01,        10.0,           1.0,     0,       1
 COSMIC_N2                          =    0.01,        10.0,           1.0,     0,       1
