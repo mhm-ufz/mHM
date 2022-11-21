@@ -1,0 +1,88 @@
+[build-system]
+requires = [
+    "setuptools>=63,<64",
+    "setuptools_scm[toml]>=7",
+    "scikit-build>=0.16,<0.17",
+    "oldest_supported_numpy",
+    "cmake",
+    "ninja",
+    "fypp",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+requires-python = ">=3.8"
+name = "mhm"
+description = "Python distribution of mHM with bindings."
+authors = [{name = "mHM Developers", email = "mhm-admin@ufz.de"}]
+readme = "README.md"
+license = {text = "LGPL-3.0"}
+dynamic = ["version"]
+keywords = ["mHM"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+    "Natural Language :: English",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Hydrology",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Utilities",
+]
+dependencies = ["numpy>=1.17.3"]
+
+[project.urls]
+Changelog = "https://www.mhm-ufz.org"
+Conda-Forge = "https://anaconda.org/conda-forge/mhm"
+Documentation = "https://www.mhm-ufz.org"
+Homepage = "https://www.mhm-ufz.org"
+Source = "https://www.mhm-ufz.org"
+Tracker = "https://www.mhm-ufz.org"
+
+[project.scripts]
+mhm = "mhm.cli:mhm"
+
+[tool.setuptools_scm]
+write_to = "pybind/mhm/_version.py"
+write_to_template = "__version__ = '{version}'"
+local_scheme = "no-local-version"
+fallback_version = "0.0.0.dev0"
+search_parent_directories = true
+
+[tool.black]
+exclude = "_version.py"
+target-version = ["py38"]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+known_first_party = ["mhm"]
+
+[tool.cibuildwheel]
+# Super-verbose output for debugging purpose
+build-verbosity = 3
+# skip py37, pypy and musl
+skip = ["cp37*", "pp*", "*-musllinux_*"]
+# check command
+test-command = "mhm -h && mhm {project}"
+
+[tool.cibuildwheel.linux]
+environment = { FC="gfortran", F77="gfortran", CC="gcc", CXX="g++" }
+before-all = "source CI-scripts/install-deps /usr && ldconfig"
+
+[tool.cibuildwheel.macos]
+environment = { FC="gfortran-11", F77="gfortran-11", CC="gcc-11", CXX="g++-11" }
+before-all = "source CI-scripts/install-deps-sudo /opt/local"

@@ -1,9 +1,10 @@
 !>       \file    mo_check.f90
+!>       \copydoc mo_check
+
 !>       \brief   Input checking routines
 !>       \details This module provides sanity checks for the input data.
 !>       \authors Sebastian Mueller
 !>       \date    Nov 2020
-
 MODULE mo_check
 
   USE mo_kind, ONLY : i4, dp

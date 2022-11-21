@@ -31,6 +31,30 @@ show-env-vars:
   script:
     - echo -e "${SEP}\n${S00}$(date)\n${SEP}\n${S01}\n${S02}\n${S03}\n${S04}\n${SEP}\n${S05}${GIT_CLONE_PATH}\n${S06}\n${SEP}"
 
+pybindings:
+  stage: build
+  variables:
+    GIT_DEPTH: 0  # to have all tags
+  script:
+    - module load Anaconda3
+    - conda create -p ./test_pybind
+    - conda activate ./test_pybind
+    - conda install -c conda-forge -y mamba
+    - mamba install -c conda-forge -y pip netcdf-fortran fortran-compiler python-build black isort
+    # check source code
+    - black --check --diff pybind
+    - isort --check --diff pybind
+    # create sdist and install it
+    - python -m build --sdist --outdir dist .
+    - pip install -v dist/mhm-*.tar.gz
+    # check installation
+    - python -c "import mhm; print(mhm.__version__)"
+    - which mhm
+    - cat $(which mhm)
+    - mhm -v
+    - mhm -h
+    - mhm
+
 documentation:
   stage: build
   script:

@@ -1,10 +1,6 @@
-! Emacs: -*- mode: f90 -*-
 !> \file mhm.nml
-!
-!> \brief Namelists of mHM, MPR, mRM
-!
+!> \brief General Namelists of mHM, MPR, mRM.
 !> \details This files provides all namelists for mHM, MPR, mRM.
-!
 !> \authors Matthias Zink, Matthias Cuntz
 !> \date Jan 2013
 ! Modified,
