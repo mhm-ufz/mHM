@@ -130,7 +130,7 @@ cd mhm/
 
 If you then want to compile a specific version (different from the latest development version), you can check that out with e.g.:
 ```bash
-git checkout v5.11.2
+git checkout v5.12.0
 ```
 
 Afterwards you can continue with the compilation.

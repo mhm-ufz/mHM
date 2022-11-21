@@ -9,6 +9,24 @@ interfaces provided by mHM to be compatible with [f2py](https://numpy.org/doc/st
 
 ## Installation
 
+In order to install the Python bindings you need:
+1. [Python](https://www.python.org/) with version at least v3.8 and [pip](https://pip.pypa.io/)
+2. a Fortran and a C compiler (set the environment variables `FC` and `CC` accordingly).
+    In case of gcc, this could look like:
+    ```bash
+    export FC="gfortran"
+    export CC="gcc"
+    ```
+3. [NetCDF-Fortran](https://github.com/Unidata/netcdf-fortran) installed in your system path
+
+See the [Compilation](../doc/INSTALL.md) instructions for these dependencies.
+
+You can also use a conda environment (set up with [miniforge](https://mhm-ufz.org/guides/install-unix/) for example)
+to get everything:
+```bash
+conda install -y pip fortran-compiler netcdf-fortran
+```
+
 To compile everything after cloning/downloading, you can use pip:
 
 ```bash
@@ -21,7 +39,7 @@ To install it directly from the git repository you can type:
 pip install -v git+https://git.ufz.de/mhm/mhm.git
 ```
 
-There will be a PyPI package in the future to install the latest release with:
+There will be a [PyPI package](https://pypi.org/project/mhm) in the future to install the latest release with:
 
 ```bash
 pip install mhm
