@@ -1,24 +1,30 @@
 # mHM - Python bindings
 
-Python bindings to control mHH.
+[TOC]
 
-The wrapper (`mhm/wrapper.f90`) is just a small layer on top of these
-interfaces to be compatible with [f2py](https://numpy.org/doc/stable/f2py/index.html).
+Python bindings to control mHM.
 
-To compile everything locally
-([editable install](https://pip.pypa.io/en/stable/cli/pip_install/#install-editable)),
-you can use pip:
+The wrapper (`mhm/wrapper.f90`) is just a small layer on top of the
+interfaces provided by mHM to be compatible with [f2py](https://numpy.org/doc/stable/f2py/index.html).
+
+## Installation
+
+To compile everything after cloning, you can use pip:
 
 ```bash
-pip install -e .
+pip install -v .
 ```
 
-## Example
+To install it directly from the git repository you can type:
 
-Assuming to have the [mhm repository](https://git.ufz.de/mhm/mhm), with the default `develop` branch checked out,
-cloned next to this parents folder.
+```bash
+pip install -v .
+```
 
-Then you can do the following to simply run mhm without optimization:
+## Examples
+
+If you have cloned the repository, you can do the following to simply run mhm without optimization:
+
 ```python
 import mhm
 
@@ -28,7 +34,7 @@ mhm.model.init(
     namelist_mhm_param="mhm_parameter.nml",
     namelist_mhm_output="mhm_outputs.nml",
     namelist_mrm_output="mrm_outputs.nml",
-    cwd="../mhm",
+    cwd=".",
 )
 mhm.model.run()
 mhm.model.finalize()
@@ -44,7 +50,7 @@ mhm.model.init(
     namelist_mhm_param="mhm_parameter.nml",
     namelist_mhm_output="mhm_outputs.nml",
     namelist_mrm_output="mrm_outputs.nml",
-    cwd="../mhm",
+    cwd=".",
 )
 
 mhm.run.prepare() # global_parameters(:, 3) by default
@@ -59,3 +65,5 @@ mhm.run.finalize()
 
 mhm.model.finalize()
 ```
+
+See also the `examples` folder.
