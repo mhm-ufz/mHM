@@ -2,6 +2,13 @@
 
 [TOC]
 
+## mHM v5.12.1 (unreleased)
+
+### Enhancements
+
+- Python bindings and wheel distribution for mHM ([!138](https://git.ufz.de/mhm/mhm/-/merge_requests/138))
+
+
 ## mHM v5.12.0 (Oct 2022)
 
 ### Enhancements
