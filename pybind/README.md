@@ -27,6 +27,12 @@ There will be a PyPI package in the future to install the latest release with:
 pip install mhm
 ```
 
+Installing the mHM Python package will provide the `mhm` command to execute mHM the traditional way.
+
+## Documentation
+
+See `mhm.tools` and `wrapper.f90` for further information on the provided routines.
+
 ## Examples
 
 If you have cloned the repository, you can do the following to simply run mhm without optimization:
