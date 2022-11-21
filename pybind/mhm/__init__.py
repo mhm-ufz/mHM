@@ -11,6 +11,7 @@ except ModuleNotFoundError:  # pragma: no cover
 
 
 def __getattr__(name):
+    """Magic method to provide 'f_version' in Python."""
     if name == "f_version":
         return model.version().decode("utf-8").strip()
     raise AttributeError(f"module {__name__} has no attribute {name}")

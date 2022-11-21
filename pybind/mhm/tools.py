@@ -8,10 +8,7 @@ def get_runoff():
     """
     Get 2D array of runoff time-series for all gauges.
 
-    Returns
-    -------
-    numpy.ndarray
-        The runoff for all gauges with dims (time, gauge).
+    @retval runoff (numpy.ndarray): The runoff for all gauges with dims (time, gauge).
     """
     shp = get.runoff_shape()
     return get.runoff(*shp)
@@ -21,28 +18,13 @@ def get_variable(name, index=1, indexing="xy"):
     """
     Get a specific variable from mHM in the current time-step.
 
-    Parameters
-    ----------
-    name : string
-        Name of the variable
-
-    index : int, optional
-        If the variable has an additional dimension,
+    @param name (str): Name of the variable
+    @param index (int, optional): If the variable has an additional dimension,
         one needs to specify an index, by default 1
-
-    indexing : str, optional
-        Indexing for the 2D variable,
+    @param indexing (str, optional): Indexing for the 2D variable,
         either "xy" or "ij", by default "xy"
-
-    Returns
-    -------
-    numpy.ndarray
-        Numpy array holding the desired variable.
-
-    Raises
-    ------
-    ValueError
-        If the variable name doesn't start with "L0", "L1", "L11" or "L2".
+    @retval variable (numpy.ndarray): Numpy array holding the desired variable.
+    @throws ValueError: If the variable name doesn't start with "L0", "L1", "L11" or "L2".
     """
     name = name.upper()  # convention
     grid = name.split("_")[0].lower()
