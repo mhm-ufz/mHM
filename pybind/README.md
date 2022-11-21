@@ -9,7 +9,7 @@ interfaces provided by mHM to be compatible with [f2py](https://numpy.org/doc/st
 
 ## Installation
 
-To compile everything after cloning, you can use pip:
+To compile everything after cloning/downloading, you can use pip:
 
 ```bash
 pip install -v .
@@ -18,7 +18,13 @@ pip install -v .
 To install it directly from the git repository you can type:
 
 ```bash
-pip install -v .
+pip install -v git+https://git.ufz.de/mhm/mhm.git
+```
+
+There will be a PyPI package in the future to install the latest release with:
+
+```bash
+pip install mhm
 ```
 
 ## Examples
