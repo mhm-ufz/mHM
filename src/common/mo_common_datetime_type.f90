@@ -118,9 +118,8 @@ MODULE mo_common_datetime_type
     this%is_new_year  = .false.
 
     ! increment of timestep
+    this%newTime = julday(this%day, this%month, this%year) + real(this%hour + timestep, dp) / 24._dp
     this%hour = mod(this%hour + timestep, 24)
-    this%newTime = julday(this%day, this%month, this%year)&
-            + real(this%hour + timestep, dp) / 24._dp
     ! calculate new year, month and day
     call caldat(int(this%newTime), yy = this%year, mm = this%month, dd = this%day)
     ! update the flags
