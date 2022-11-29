@@ -63,7 +63,7 @@ contains
                                         nGaugesTotal, nGaugesLocal, nInflowGaugesTotal, outputFlxState_mrm, &
                                         timeStep_model_outputs_mrm, &
                                         varnameTotalRunoff, gw_coupling, &
-                                        output_deflate_level_mrm, output_double_precision_mrm, &
+                                        output_deflate_level_mrm, output_double_precision_mrm, output_time_reference_mrm, &
                                         readLatLon
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
@@ -121,6 +121,7 @@ contains
     namelist /NLoutputResults/ &
             output_deflate_level_mrm, &
             output_double_precision_mrm, &
+            output_time_reference_mrm, &
             timeStep_model_outputs_mrm, &
             outputFlxState_mrm
 
@@ -355,6 +356,7 @@ contains
     ! Read Output specifications for mRM
     !===============================================================
     output_deflate_level_mrm = 6
+    output_time_reference_mrm = 0
     output_double_precision_mrm = .true.
     outputFlxState_mrm = .FALSE.
     timeStep_model_outputs_mrm = -2
@@ -380,6 +382,14 @@ contains
       else
         call message('    NetCDF output precision: single')
       end if
+      select case(output_time_reference_mrm)
+        case(0)
+          call message('    NetCDF output time reference point: start of time interval')
+        case(1)
+          call message('    NetCDF output time reference point: center of time interval')
+        case(2)
+          call message('    NetCDF output time reference point: end of time interval')
+      end select
       call message('    FLUXES:')
       if (outputFlxState_mrm(1)) then
         call message('      routed streamflow      (L11_qMod)                [m3 s-1]')

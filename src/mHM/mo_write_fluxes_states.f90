@@ -20,7 +20,8 @@ module mo_write_fluxes_states
           Conventions, contact, mHM_details, history
   use mo_common_constants, only : nodata_dp
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable
-  use mo_global_variables, only : output_deflate_level, output_double_precision
+  use mo_global_variables, only : output_deflate_level, output_double_precision, output_time_reference, timeStep_model_outputs
+  use mo_common_mHM_mRM_variables, only: timeStep
 
   implicit none
 
@@ -48,7 +49,7 @@ module mo_write_fluxes_states
     type(OutputVariable), allocatable :: vars(:)     !< store all created (dynamic) variables
     integer(i4) :: counter = 0 !< count written time steps
     integer(i4) :: previous_time = 0 !< previous time steps for bounds
-
+    integer(i4) :: time_unit_factor = 1 !< possible factor to convert hours to minutes when using center as time reference
   contains
     procedure, public :: updateDataset
     procedure, public :: writeTimestep
@@ -467,6 +468,14 @@ contains
     out%nc = nc
     out%iDomain = iDomain
 
+    ! check if we need minutes instead of hours as time unit and set the time unit factor accordingly
+    if ( (timeStep_model_outputs > 0) &
+         .and. (mod(timestep * timeStep_model_outputs, 2) == 1) &
+         .and. (output_time_reference == 1) &
+    ) then
+      out%time_unit_factor = 60
+    end if
+
   end function newOutputDataset
 
   !------------------------------------------------------------------
@@ -750,11 +759,18 @@ contains
 
     ! add to time variable
     tvar = self%nc%getVariable("time")
-    call tvar%setData(timestep, (/self%counter/))
+    select case( output_time_reference)
+      case(0)
+        call tvar%setData(self%previous_time * self%time_unit_factor, (/self%counter/))
+      case(1)
+        call tvar%setData((self%previous_time + timestep) * self%time_unit_factor / 2, (/self%counter/))
+      case(2)
+        call tvar%setData(timestep * self%time_unit_factor, (/self%counter/))
+    end select
     ! add bounds (with current time at end)
     tvar = self%nc%getVariable("time_bnds")
-    call tvar%setData(self%previous_time, (/1, self%counter/))
-    call tvar%setData(timestep, (/2, self%counter/))
+    call tvar%setData(self%previous_time * self%time_unit_factor, (/1, self%counter/))
+    call tvar%setData(timestep * self%time_unit_factor, (/2, self%counter/))
     self%previous_time = timestep
 
     do ii = 1, size(self%vars)
@@ -941,7 +957,16 @@ contains
     ! set record dimension
     ! time units
     call dec2date(real(evalPer(iDomain)%julStart, dp), dd = day, mm = month, yy = year)
-    write(unit, "('hours since ', i4, '-' ,i2.2, '-', i2.2, 1x, '00:00:00')") year, month, day
+
+    ! check if we need minutes instead of hours as time unit
+    if ( (timeStep_model_outputs > 0) &
+         .and. (mod(timestep * timeStep_model_outputs, 2) == 1) &
+         .and. (output_time_reference == 1) &
+    ) then
+      write(unit, "('minutes since ', i4, '-' ,i2.2, '-', i2.2, 1x, '00:00:00')") year, month, day
+    else
+      write(unit, "('hours since ', i4, '-' ,i2.2, '-', i2.2, 1x, '00:00:00')") year, month, day
+    end if
 
     ! time
     var = nc%setVariable("time", "i32", (/ dimids1(3) /))
@@ -1035,8 +1060,7 @@ contains
 
   function fluxesUnit(iDomain)
 
-    use mo_common_mhm_mrm_variables, only : nTstepDay, simPer, timestep
-    use mo_global_variables, only : timeStep_model_outputs
+    use mo_common_mhm_mrm_variables, only : nTstepDay, simPer
 
     implicit none
 

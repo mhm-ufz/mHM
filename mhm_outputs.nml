@@ -15,6 +15,12 @@
 output_deflate_level = 6
 output_double_precision = .true.
 !
+! location of reference time point in outputs:
+!  0: start of the time interval (i.e. 1990-01-01 00:00 for daily output on 1990-01-01)
+!  1: center of the time interval (i.e. 1990-01-01 12:00 for daily output on 1990-01-01)
+!  2: end of the time interval (i.e. 1990-01-02 00:00 for daily output on 1990-01-01)
+output_time_reference = 0
+!
 ! switch to control write out frequency of the gridded model outputs below
 ! >0: after each <timeStep_model_outputs> time steps
 !  0: only at end of run

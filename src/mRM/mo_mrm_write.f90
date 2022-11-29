@@ -16,6 +16,7 @@ module mo_mrm_write
 
   use mo_kind, only : i4, dp
   use mo_mrm_write_fluxes_states, only : OutputDataset
+  use mo_mrm_global_variables, only : output_time_reference_mrm
 
   implicit none
 
@@ -613,7 +614,7 @@ contains
 
     ! nc related variables
     type(NcDataset) :: nc_out
-    type(NcDimension) :: dim
+    type(NcDimension) :: dim, dim_bnd
     type(NcVariable) :: var
 
     ! initalize igauge_start
@@ -665,7 +666,16 @@ contains
       tlength = evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1
       ! write time
       allocate(taxis(tlength))
-      forall(tt = 1 : tlength) taxis(tt) = tt * 24 - 1
+
+      select case( output_time_reference_mrm)
+        case(0)
+          forall(tt = 1 : tlength) taxis(tt) = (tt-1) * 24
+        case(1)
+          forall(tt = 1 : tlength) taxis(tt) = tt * 24 - 12
+        case(2)
+          forall(tt = 1 : tlength) taxis(tt) = tt * 24
+      end select
+
       call dec2date(real(evalPer(iDomain)%julStart, dp) - 0.5_dp, yy = year, mm = month, dd = day)
       dim = nc_out%setDimension("time", tlength)
       var = nc_out%setVariable("time", "i32", [dim])
@@ -675,6 +685,14 @@ contains
         'hours since '//trim(num2str(year))//'-'//trim(num2str(month, '(i2.2)'))//'-'//trim(num2str(day, '(i2.2)'))//' 00:00:00' &
       )
       call var%setAttribute("long_name", "time in hours")
+      call var%setAttribute("bounds", "time_bnds")
+      call var%setAttribute("axis", "T")
+      dim_bnd = nc_out%setDimension("bnds", 2)
+      var = nc_out%setVariable("time_bnds", "i32", [dim_bnd, dim])
+      do tt = 1, tlength
+        call var%setData((tt - 1) * 24, (/1, tt/))
+        call var%setData(tt * 24, (/2, tt/))
+      end do
       deallocate(taxis)
       ! write gauges
       do gg = igauge_start, igauge_end
@@ -795,9 +813,12 @@ contains
 
     ! nc related variables
     type(NcDataset) :: nc_out
-    type(NcDimension) :: dim
+    type(NcDimension) :: dim, dim_bnd
     type(NcVariable) :: var
 
+    ! use minutes if needed
+    logical :: use_minutes
+    integer(i4) :: time_unit_factor
 
     ! initalize igauge_start
     igauge_start = 1
@@ -853,17 +874,50 @@ contains
       tlength = (evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1) * nMeasPerDay
       ! write time
       allocate(taxis(tlength))
-      forall(tt = 1 : tlength) taxis(tt) = (tt - 1) * factor
+
+      use_minutes = .false.
+      time_unit_factor = 1
+      if ( mod(factor, 2) == 1 ) then
+        use_minutes = .true.
+        time_unit_factor = 60
+      end if
+
+      select case( output_time_reference_mrm)
+        case(0)
+          forall(tt = 1 : tlength) taxis(tt) = (tt-1) * factor * time_unit_factor
+        case(1)
+          forall(tt = 1 : tlength) taxis(tt) = tt * factor - factor * time_unit_factor / 2
+        case(2)
+          forall(tt = 1 : tlength) taxis(tt) = tt * factor * time_unit_factor
+      end select
+
       call dec2date(real(evalPer(iDomain)%julStart, dp) - 0.5_dp, yy = year, mm = month, dd = day, hh = hour)
       dim = nc_out%setDimension("time", tlength)
       var = nc_out%setVariable("time", "i32", [dim])
       call var%setData(taxis)
-      call var%setAttribute( &
-        "units", &
-        'hours since '//trim(num2str(year))//'-'//trim(num2str(month, '(i2.2)'))//'-'//trim(num2str(day, '(i2.2)'))//' '// &
-        trim(num2str(hour, '(i2.2)'))//':00:00' &
-      )
-      call var%setAttribute("long_name", "time in hours")
+      if (use_minutes) then
+        call var%setAttribute( &
+          "units", &
+          'minutes since '//trim(num2str(year))//'-'//trim(num2str(month, '(i2.2)'))//'-'//trim(num2str(day, '(i2.2)'))//' '// &
+          trim(num2str(hour, '(i2.2)'))//':00:00' &
+        )
+        call var%setAttribute("long_name", "time in minutes")
+      else
+        call var%setAttribute( &
+          "units", &
+          'hours since '//trim(num2str(year))//'-'//trim(num2str(month, '(i2.2)'))//'-'//trim(num2str(day, '(i2.2)'))//' '// &
+          trim(num2str(hour, '(i2.2)'))//':00:00' &
+        )
+        call var%setAttribute("long_name", "time in hours")
+      end if
+      call var%setAttribute("bounds", "time_bnds")
+      call var%setAttribute("axis", "T")
+      dim_bnd = nc_out%setDimension("bnds", 2)
+      var = nc_out%setVariable("time_bnds", "i32", [dim_bnd, dim])
+      do tt = 1, tlength
+        call var%setData((tt - 1) * factor * time_unit_factor, (/1, tt/))
+        call var%setData(tt * factor * time_unit_factor, (/2, tt/))
+      end do
       deallocate(taxis)
       ! write gauges
       do gg = igauge_start, igauge_end
