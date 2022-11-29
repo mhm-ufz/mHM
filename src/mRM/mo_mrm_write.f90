@@ -991,7 +991,7 @@ contains
 
       ! write data
       if (domainDateTime%writeout(timeStep_model_outputs, tt)) then
-        call nc%writeTimestep(domainDateTime%tIndex_out * timestep - 1)
+        call nc%writeTimestep(domainDateTime%tIndex_out * timestep)
       end if
 
       ! close dataset

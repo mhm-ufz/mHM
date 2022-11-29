@@ -25,11 +25,11 @@ module mo_mrm_write_fluxes_states
   implicit none
 
   type OutputVariable
-    type(NcVariable) :: nc                 !> NcDataset which contains the variable
-    logical :: avg = .false.      !> average data before writing
-    logical, pointer :: mask(:, :)          !> mask to reconstruct data
-    real(dp), allocatable :: data(:)            !> store the data between writes
-    integer(i4) :: counter = 0        !> count the number of updateVariable calls
+    type(NcVariable) :: nc                 !< NcDataset which contains the variable
+    logical :: avg = .false.      !< average data before writing
+    logical, pointer :: mask(:, :)          !< mask to reconstruct data
+    real(dp), allocatable :: data(:)            !< store the data between writes
+    integer(i4) :: counter = 0        !< count the number of updateVariable calls
 
   contains
     procedure, public :: updateVariable
@@ -43,10 +43,11 @@ module mo_mrm_write_fluxes_states
   end interface OutputVariable
 
   type OutputDataset
-    integer(i4) :: iDomain      !> domain id
-    type(NcDataset) :: nc          !> NcDataset to write
-    type(OutputVariable), allocatable :: vars(:)     !> store all created (dynamic) variables
-    integer(i4) :: counter = 0 !> count written time steps
+    integer(i4) :: iDomain      !< domain id
+    type(NcDataset) :: nc          !< NcDataset to write
+    type(OutputVariable), allocatable :: vars(:)     !< store all created (dynamic) variables
+    integer(i4) :: counter = 0 !< count written time steps
+    integer(i4) :: previous_time = 0 !< previous time steps for bounds
 
   contains
     procedure, public :: updateDataset
@@ -402,7 +403,7 @@ contains
 
     class(OutputDataset), intent(inout), target :: self
 
-    ! The model timestep to write
+    !> The model timestep to write
     integer(i4), intent(in) :: timestep
 
     integer(i4) :: ii
@@ -415,6 +416,11 @@ contains
     ! add to time variable
     tvar = self%nc%getVariable("time")
     call tvar%setData(timestep, (/self%counter/))
+    ! add bounds (with current time at end)
+    tvar = self%nc%getVariable("time_bnds")
+    call tvar%setData(self%previous_time, (/1, self%counter/))
+    call tvar%setData(timestep, (/2, self%counter/))
+    self%previous_time = timestep
 
     do ii = 1, size(self%vars)
       call self%vars(ii)%writeVariableTimestep(self%counter)
@@ -499,7 +505,7 @@ contains
 
     type(NcDataset) :: nc
 
-    type(NcDimension), dimension(3) :: dimids1
+    type(NcDimension), dimension(4) :: dimids1
 
     type(NcVariable) :: var
 
@@ -536,18 +542,21 @@ contains
       call mapCoordinates(level11(iDomain), northing, easting)
 
       dimids1 = (/&
-              nc%setDimension("easting", size(easting)), &
-                      nc%setDimension("northing", size(northing)), &
-                      nc%setDimension("time", 0) &
-              /)
+        nc%setDimension("easting", size(easting)), &
+        nc%setDimension("northing", size(northing)), &
+        nc%setDimension("time", 0), &
+        nc%setDimension("bnds", 2) &
+      /)
       ! northing
       var = nc%setVariable("northing", dtype, (/ dimids1(2) /))
       call var%setData(northing)
+      call var%setAttribute("axis", "Y")
       call var%setAttribute("units", "m")
       call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
       ! easting
       var = nc%setVariable("easting", dtype, (/ dimids1(1) /))
       call var%setData(easting)
+      call var%setAttribute("axis", "X")
       call var%setAttribute("units", "m")
       call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
       ! lon
@@ -572,14 +581,16 @@ contains
       lat1d = lat2d(1, :) ! first row info is sufficient
       lon1d = lon2d(:, 1) ! first column info is sufficient
       dimids1 = (/&
-              nc%setDimension("lon", size(lon1d)), &
-                      nc%setDimension("lat", size(lat1d)), &
-                      nc%setDimension("time", 0) &
-              /)
+        nc%setDimension("lon", size(lon1d)), &
+        nc%setDimension("lat", size(lat1d)), &
+        nc%setDimension("time", 0), &
+        nc%setDimension("bnds", 2) &
+      /)
       ! lon
       var = nc%setVariable("lon", dtype, (/ dimids1(1) /)) ! sufficient to store lon as vector
       call var%setFillValue(nodata_dp)
       call var%setData(lon1d)
+      call var%setAttribute("axis", "X")
       call var%setAttribute("units", "degrees_east")
       call var%setAttribute("long_name", "longitude")
       call var%setAttribute("missing_value", nodata_dp)
@@ -587,6 +598,7 @@ contains
       var = nc%setVariable("lat", dtype, (/ dimids1(2) /)) ! sufficient to store lat as vector
       call var%setFillValue(nodata_dp)
       call var%setData(lat1d)
+      call var%setAttribute("axis", "Y")
       call var%setAttribute("units", "degrees_north")
       call var%setAttribute("long_name", "latitude")
       call var%setAttribute("missing_value", nodata_dp)
@@ -602,6 +614,9 @@ contains
     var = nc%setVariable("time", "i32", (/ dimids1(3) /))
     call var%setAttribute("units", unit)
     call var%setAttribute("long_name", "time")
+    call var%setAttribute("bounds", "time_bnds")
+    call var%setAttribute("axis", "T")
+    var = nc%setVariable("time_bnds", "i32", (/ dimids1(4), dimids1(3) /))
 
     ! global attributes
     call date_and_time(date = date, time = time)
