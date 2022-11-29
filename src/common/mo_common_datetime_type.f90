@@ -91,7 +91,7 @@ MODULE mo_common_datetime_type
 
     ! initialize arrays and counters
     this%yId  = LCyearId(this%year, iDomain)
-    this%hour = -timestep
+    this%hour = 0
     this%iLAI = 0
 
     ! this has no relevance yet. it is only so the variables are initialized
@@ -99,7 +99,7 @@ MODULE mo_common_datetime_type
     this%prev_month = this%month
     this%prev_year  = this%year
 
-    this%tIndex_out = 1 ! tt if write out of warming period
+    this%tIndex_out = 0 ! tt if write out of warming period
   end subroutine datetimeinfo_init
 
   subroutine datetimeinfo_increment(this)

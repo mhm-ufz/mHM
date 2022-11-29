@@ -772,7 +772,7 @@ contains
 
         ! write data
         if (run_cfg%domainDateTime%writeout(timeStep_model_outputs, tt)) then
-          call run_cfg%nc%writeTimestep(run_cfg%domainDateTime%tIndex_out * timestep - 1)
+          call run_cfg%nc%writeTimestep(run_cfg%domainDateTime%tIndex_out * timestep)
         end if
 
         if(tt == run_cfg%domainDateTime%nTimeSteps) then
