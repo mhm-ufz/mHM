@@ -1,3 +1,7 @@
+!> \dir MPR
+!> \brief \copybrief f_mpr
+!> \details \copydetails f_mpr
+
 !> \defgroup   f_mpr MPR - Fortran modules
 !> \brief      Core modules of MPR.
 !> \details    These modules provide the core components of the Multiscale Parameter Regionalization scheme of mHM.

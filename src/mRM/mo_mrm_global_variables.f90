@@ -1,3 +1,7 @@
+!> \dir mRM
+!> \brief \copybrief f_mrm
+!> \details \copydetails f_mrm
+
 !> \defgroup   f_mrm mRM - Fortran modules
 !> \brief      Core modules of mRM.
 !> \details    These modules provide the core components of mRM.

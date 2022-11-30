@@ -1,6 +1,14 @@
 """Python bindings of mHM."""
 
 ##
+# @dir pybind
+# @brief @copybrief mhm
+# @details @copydetails mhm
+#
+# @dir mhm
+# @brief mhm Python package
+# @details @copydetails mhm
+#
 # @defgroup   mhm mhm - Python bindings
 # @brief      Python wrapper to control mHM.
 # @details    The mhm python package provides a wrapper module to control mHM from Python.

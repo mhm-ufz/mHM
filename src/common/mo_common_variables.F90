@@ -1,3 +1,7 @@
+!> \dir common
+!> \brief \copybrief f_common
+!> \details \copydetails f_common
+
 !> \defgroup   f_common common - Fortran modules
 !> \brief      Common modules used by mHM, mRM and MPR.
 !> \details    This module provides different routines, constants and structures for all components of mHM.

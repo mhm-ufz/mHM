@@ -1,3 +1,11 @@
+!> \dir src
+!> \brief Source code of mHM.
+!> \details All Fortran source files for mHM, mRM and MPR.
+
+!> \dir mHM
+!> \brief \copybrief f_mhm
+!> \details \copydetails f_mhm
+
 !> \defgroup   f_mhm mHM - Fortran modules
 !> \brief      Core modules of mHM.
 !> \details    These modules provide the core components of mHM.
