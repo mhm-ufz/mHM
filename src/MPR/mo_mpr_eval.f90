@@ -1,15 +1,12 @@
-!>       \file mo_mpr_eval.f90
+!> \file mo_mpr_eval.f90
+!> \brief \copybrief mo_mpr_eval
+!> \details \copydetails mo_mpr_eval
 
-!>       \brief Runs MPR and writes to global effective parameters
-
-!>       \details Runs MPR and writes to global effective parameters
-
-!>       \authors Robert Schweppe
-
-!>       \date Feb 2018
-
-! Modifications:
-
+!> \brief Runs MPR
+!> \details Runs MPR and writes to global effective parameters
+!> \authors Robert Schweppe
+!> \date Feb 2018
+!> \ingroup f_mpr
 MODULE mo_mpr_eval
 
   USE mo_kind, ONLY : i4, dp

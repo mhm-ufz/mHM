@@ -1,19 +1,17 @@
-!>       \file mo_mpr_restart.f90
+!> \file mo_mpr_restart.f90
+!> \brief \copybrief mo_mpr_restart
+!> \details \copydetails mo_mpr_restart
 
-!>       \brief reading and writing states, fluxes and configuration for restart of mHM.
-
-!>       \details routines are seperated for reading and writing variables for:
-!>       - states and fluxes, and
-!>       - configuration.
-!>       Reading of L11 configuration is also seperated from the rest,
-!>       since it is only required when routing is activated.
-
-!>       \authors Stephan Thober
-
-!>       \date Jul 2013
-
-! Modifications:
-
+!> \brief reading and writing states, fluxes and configuration for restart of mHM.
+!> \details routines are seperated for reading and writing variables for:
+!! - states and fluxes, and
+!! - configuration.
+!!
+!! Reading of L11 configuration is also seperated from the rest, since it is only required when routing is activated.
+!!
+!> \authors Stephan Thober
+!> \date Jul 2013
+!> \ingroup f_mpr
 MODULE mo_mpr_restart
 
   ! This module is a restart for the UFZ CHS mesoscale hydrologic model mHM.
@@ -204,7 +202,7 @@ CONTAINS
   !>       \date Jun 2018
   !> Rohini Kumar             Oct 2021 - Added Neutron count module
   !                                      to mHM integrate into develop branch (5.11.2)
-  
+
 
   ! Modifications:
 
@@ -221,7 +219,7 @@ CONTAINS
                                         L1_tempThresh, L1_unsatThresh, L1_wiltingPoint, &
                                         ! neutron count
                                         L1_No_Count, L1_bulkDens, L1_latticeWater, L1_COSMICL3
-    
+
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
 
     implicit none
@@ -380,7 +378,7 @@ CONTAINS
       call unpack_field_and_write(nc, "L1_latticeWater", &
            (/rows1, cols1, soil1, lcscenes/), nodata_dp, L1_latticeWater(s1:e1, :, :), mask1, &
            "Lattice water content at level 1 for processCase(10)")
-      
+
    case(2) ! COSMIC
       call unpack_field_and_write(nc, "L1_No_Count", &
            (/rows1, cols1/), nodata_dp, L1_No_Count(s1 : e1, 1, 1), mask1, &

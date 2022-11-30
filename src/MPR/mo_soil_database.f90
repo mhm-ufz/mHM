@@ -1,18 +1,15 @@
-!>       \file mo_soil_database.f90
+!> \file mo_soil_database.f90
+!> \brief \copybrief mo_soil_database
+!> \details \copydetails mo_soil_database
 
-!>       \brief Generating soil database from input file.
-
-!>       \details This module provides the routines for generating the soil database for mHM from an ASCII input file.
-!>       One routine \e read_soil_LUT reads a soil LookUpTable, performs some consistency checks and returns an initial
-!>       soil database.
-!>       The second routine \e generate_soil_database calculates based on the initial one the proper soil database.
-
-!>       \authors Juliane Mai
-
-!>       \date Dec 2012
-
-! Modifications:
-
+!> \brief Generating soil database from input file.
+!> \details This module provides the routines for generating the soil database for mHM from an ASCII input file.
+!! One routine \e read_soil_LUT reads a soil LookUpTable, performs some consistency checks and returns an initial
+!! soil database.
+!! The second routine \e generate_soil_database calculates based on the initial one the proper soil database.
+!> \authors Juliane Mai
+!> \date Dec 2012
+!> \ingroup f_mpr
 MODULE mo_soil_database
 
   ! This module to provide a soil database for mHM.

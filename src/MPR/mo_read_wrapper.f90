@@ -1,16 +1,13 @@
-!>       \file mo_read_wrapper.f90
+!> \file mo_read_wrapper.f90
+!> \brief \copybrief mo_read_wrapper
+!> \details \copydetails mo_read_wrapper
 
-!>       \brief Wrapper for all reading routines.
-
-!>       \details This module is to wrap up all reading routines.
-!>       The general written reading routines are used to store now the read data into global variables.
-
-!>       \authors Juliane Mai, Matthias Zink
-
-!>       \date Jan 2013
-
-! Modifications:
-
+!> \brief Wrapper for all reading routines.
+!> \details This module is to wrap up all reading routines.
+!! The general written reading routines are used to store now the read data into global variables.
+!> \authors Juliane Mai, Matthias Zink
+!> \date Jan 2013
+!> \ingroup f_mpr
 MODULE mo_read_wrapper
 
   USE mo_kind, ONLY : i4, dp

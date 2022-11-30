@@ -1,15 +1,12 @@
-!>       \file mo_mpr_pet.f90
+!> \file mo_mpr_pet.f90
+!> \brief \copybrief mo_mpr_pet
+!> \details \copydetails mo_mpr_pet
 
-!>       \brief TODO: add description
-
-!>       \details This module sets up pet correction factor at level-1 based on LAI
-
-!>       \authors Mehmet Cuneyd Demirel, Simon Stisen
-
-!>       \date May 2017
-
-! Modifications:
-
+!> \brief MPR routine for PET.
+!> \details This module sets up pet correction factor at level-1 based on LAI
+!> \authors Mehmet Cuneyd Demirel, Simon Stisen
+!> \date May 2017
+!> \ingroup f_mpr
 module mo_mpr_pet
 
   use mo_kind, only : i4, dp
@@ -268,7 +265,7 @@ contains
 
     !$OMP PARALLEL
     fAsp0 = merge(fAsp0, fAsp0S, mask_north_hemisphere_l0)
-    !$OMP END PARALLEL 
+    !$OMP END PARALLEL
 
   end subroutine pet_correctbyASP
 
