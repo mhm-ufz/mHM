@@ -1,3 +1,12 @@
+!> \file    mo_mrm_river_head.f90
+!> \brief   \copybrief mo_mrm_river_head
+!> \details \copydetails mo_mrm_river_head
+
+!> \brief   River head calculation
+!> \details Enables river - groundwater interaction in mRM.
+!> \authors Lennart Schueler
+!> \date    Jul 2018
+!> \ingroup f_mrm
 module mo_mrm_river_head
   use mo_common_variables,     only : level0, domainMeta
   use mo_mrm_global_variables, only : L0_L11_remap, L11_bankfull_runoff_in, &

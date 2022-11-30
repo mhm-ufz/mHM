@@ -1,11 +1,14 @@
 !> \file    mo_mrm_riv_temp_class.f90
+!> \brief   \copybrief mo_mrm_riv_temp_class
+!> \details \copydetails mo_mrm_riv_temp_class
 
 !> \brief   Class for the river temperature calculations
-!> \warning This feature is still experimental!
+!> \details River temperature routing on top of mRM.
+!> \warning This feature is still experimental! River freezing is still missing.
 !> \version 0.1
 !> \authors Sebastian Mueller
 !> \date    Sep 2020
-
+!> \ingroup f_mrm
 module mo_mrm_riv_temp_class
 
   use mo_kind, only: dp, i4

@@ -1,18 +1,20 @@
-!>       \file mo_mrm_global_variables.f90
+!> \defgroup   f_mrm mRM - Fortran modules
+!> \brief      Core modules of mRM.
+!> \details    These modules provide the core components of mRM.
 
-!>       \brief Global variables for mRM only
-!>       \details
+!> \file mo_mrm_global_variables.f90
+!> \brief \copybrief mo_mrm_global_variables
+!> \details \copydetails mo_mrm_global_variables
 
-!>       \details TODO: add description
-
-!>       \authors Luis Samaniego, Stephan Thober
-
-!>       \date Aug 2015
-
-! Modifications:
-! Robert Schweppe Dec 2017 - merged duplicated variables with mhm into common variables
-! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+!> \brief Global variables for mRM only
+!> \details Global variables used to run mRM for mHM.
+!! Modifications:
+!! - Robert Schweppe Dec 2017 - merged duplicated variables with mhm into common variables
+!! - Robert Schweppe Jun 2018 - refactoring and reformatting
+!!
+!> \authors Luis Samaniego, Stephan Thober
+!> \date Aug 2015
+!> \ingroup f_mrm
 module mo_mrm_global_variables
 
   use mo_kind, only : i4, i8, dp

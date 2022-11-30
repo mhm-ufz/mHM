@@ -1,17 +1,12 @@
-!>       \file mo_mrm_write.f90
+!> \file mo_mrm_write.f90
+!> \brief   \copybrief mo_mrm_write
+!> \details \copydetails mo_mrm_write
 
-!>       \brief write of discharge and restart files
-
-!>       \details This module contains the subroutines for
-!>       writing the discharge files and optionally the restart
-!>       files.
-
-!>       \authors Stephan Thober
-
-!>       \date Aug 2015
-
-! Modifications:
-
+!> \brief write of discharge and restart files
+!> \details This module contains the subroutines for writing the discharge files and optionally the restart files.
+!> \authors Stephan Thober
+!> \date Aug 2015
+!> \ingroup f_mrm
 module mo_mrm_write
 
   use mo_kind, only : i4, dp
