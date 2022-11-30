@@ -8,6 +8,7 @@ def get_runoff():
     """
     Get 2D array of runoff time-series for all gauges.
 
+    @ingroup mhm
     @retval runoff (numpy.ndarray): The runoff for all gauges with dims (time, gauge).
     """
     shp = get.runoff_shape()
@@ -18,6 +19,7 @@ def get_variable(name, index=1, indexing="ij"):
     """
     Get a specific variable from mHM in the current time-step.
 
+    @ingroup mhm
     @param name (str): Name of the variable
     @param index (int, optional): If the variable has an additional dimension,
         one needs to specify an index, by default 1

@@ -1,4 +1,14 @@
 """Python bindings of mHM."""
+
+##
+# @defgroup   mhm mhm - Python bindings
+# @brief      Python wrapper to control mHM.
+# @details    The mhm python package provides a wrapper module to control mHM from Python.
+#             This includes:
+#             - initialization, running and finalizing a model run
+#             - control of time stepping
+#             - access to internal variables
+
 from . import cli
 from .tools import get_runoff, get_variable
 from .wrapper import get, model, run, set
