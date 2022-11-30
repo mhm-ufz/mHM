@@ -1,6 +1,6 @@
 !> \file mo_common_mhm_mrm_restart.f90
-!> \brief \copybrief mo_common_mHM_mRM_read_config
-!> \details \copydetails mo_common_mHM_mRM_read_config
+!> \brief \copybrief mo_common_mhm_mrm_read_config
+!> \details \copydetails mo_common_mhm_mrm_read_config
 
 !> \brief restart file utilities
 !> \details Utility routines to check data consistency for restart files.

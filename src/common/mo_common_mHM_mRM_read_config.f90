@@ -1,6 +1,6 @@
 !> \file mo_common_mHM_mRM_read_config.f90
-!> \brief \copybrief mo_common_mHM_mRM_read_config
-!> \details \copydetails mo_common_mHM_mRM_read_config
+!> \brief \copybrief mo_common_mhm_mrm_read_config
+!> \details \copydetails mo_common_mhm_mrm_read_config
 
 !> \brief Reading of main model configurations.
 !> \details This routine reads the configurations of common program parts

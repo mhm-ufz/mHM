@@ -1,6 +1,6 @@
 !> \file mo_common_mHM_mRM_variables.f90
-!> \brief \copybrief mo_common_mHM_mRM_variables
-!> \details \copydetails mo_common_mHM_mRM_variables
+!> \brief \copybrief mo_common_mhm_mrm_variables
+!> \details \copydetails mo_common_mhm_mrm_variables
 
 !> \brief Provides structures needed by mHM, mRM and/or mpr.
 !> \details Provides the global structure period that is used by both mHM and mRM.
