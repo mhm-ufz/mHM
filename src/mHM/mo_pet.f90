@@ -1,18 +1,16 @@
-!>       \file mo_pet.f90
+!> \file mo_pet.f90
+!> \brief   \copybrief mo_pet
+!> \details \copydetails mo_pet
 
-!>       \brief Module for calculating reference/potential evapotranspiration  [mm d-1]
-
-!>       \details This module calculates PET [mm/d] based on one of the methods
-!>       - Hargreaves-Samani (1982)
-!>       - Priestly-Taylor (1972)
-!>       - Penman-Monteith FAO (1998)
-
-!>       \authors Matthias Zink, Christoph Schneider, Matthias Cuntz
-
-!>       \date Apr 2014
-
-! Modifications:
-
+!> \brief Module for calculating reference/potential evapotranspiration  [mm d-1]
+!> \details This module calculates PET [mm/d] based on one of the methods
+!!       - Hargreaves-Samani (1982)
+!!       - Priestly-Taylor (1972)
+!!       - Penman-Monteith FAO (1998)
+!!
+!> \authors Matthias Zink, Christoph Schneider, Matthias Cuntz
+!> \date Apr 2014
+!> \ingroup f_mhm
 MODULE mo_pet
 
   ! This module is for the UFZ CHS mesoscale hydrologic model mHM.

@@ -1,16 +1,16 @@
-!>       \file mo_canopy_interc.f90
+!> \file mo_canopy_interc.f90
+!> \brief \copybrief mo_canopy_interc
+!> \details \copydetails mo_canopy_interc
 
-!>       \brief Canopy interception.
-
-!>       \details This module deals with processes related to canopy interception, evaporation and throughfall.
-
-!>       \authors Vladyslav Prykhodko
-
-!>       \date Dec 2012
-
-! Modifications:
-! RK Sep 2013 - Documentation updated (formula and a short description added)
-
+!> \brief Canopy interception.
+!> \details This module deals with processes related to canopy interception, evaporation and throughfall.
+!!
+!! Modifications:
+!! - RK Sep 2013 - Documentation updated (formula and a short description added)
+!!
+!> \authors Vladyslav Prykhodko
+!> \date Dec 2012
+!> \ingroup f_mhm
 MODULE mo_canopy_interc
 
   USE mo_kind, ONLY : dp

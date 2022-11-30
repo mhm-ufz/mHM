@@ -1,5 +1,5 @@
 !> \file    mo_mhm_cli.f90
-!> \brief   Module to parse command line arguments of mHM.
+!> \brief   \copybrief mo_mhm_cli
 !> \details \copydetails mo_mhm_cli
 
 !> \brief   Module to parse command line arguments of mHM.
@@ -42,6 +42,8 @@
 !!              Description: The mRM output namelist.
 !!              Default: mrm_output.nml
 !!          \endcode
+!!
+!> \ingroup f_mhm
 module mo_mhm_cli
 
 #ifdef NAG

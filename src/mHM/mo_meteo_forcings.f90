@@ -1,15 +1,12 @@
-!>       \file mo_meteo_forcings.f90
+!> \file mo_meteo_forcings.f90
+!> \brief \copybrief mo_meteo_forcings
+!> \details \copydetails mo_meteo_forcings
 
-!>       \brief Prepare meteorological forcings data for mHM.
-
-!>       \details Prepare meteorological forcings data for mHM.
-
-!>       \authors Rohini Kumar
-
-!>       \date Jan 2012
-
-! Modifications:
-
+!> \brief Prepare meteorological forcings data for mHM.
+!> \details Prepare meteorological forcings data for mHM.
+!> \authors Rohini Kumar
+!> \date Jan 2012
+!> \ingroup f_mhm
 MODULE mo_meteo_forcings
 
   ! This module provides routines to read meteorological data.

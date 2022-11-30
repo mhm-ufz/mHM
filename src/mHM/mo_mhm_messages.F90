@@ -1,12 +1,13 @@
 !> \file    mo_mhm_messages.f90
-!> \brief   Module for mHM messages.
+!> \brief   \copybrief mo_mhm_messages
 !> \details \copydetails mo_mhm_messages
 
 !> \brief   Module for mHM messages.
-!> \version 0.1
-!> \authors Sebastian Mueller
-!> \date    Oct 2021
 !> \details Write out messages of mHM (startup, checks, status, finish, ect.).
+!> \authors Sebastian Mueller
+!> \version 0.1
+!> \date    Oct 2021
+!> \ingroup f_mhm
 module mo_mhm_messages
 
     use mo_kind, only: i4

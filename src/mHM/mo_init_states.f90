@@ -1,18 +1,17 @@
-!>       \file mo_init_states.f90
+!> \file mo_init_states.f90
+!> \brief \copybrief mo_init_states
+!> \details \copydetails mo_init_states
 
-!>       \brief Initialization of all state variables of mHM.
-
-!>       \details This module initializes all state variables required to run mHM.
-!>       Two options are provided:
-!>       - (1) default values
-!>       - (2) from nc file
-
-!>       \authors Luis Samaniego & Rohini Kumar
-
-!>       \date Dec 2012
-
-! Modifications:
-
+!> \brief Initialization of all state variables of mHM.
+!> \details This module initializes all state variables required to run mHM.
+!!
+!!       Two options are provided:
+!!       - (1) default values
+!!       - (2) from nc file
+!!
+!> \authors Luis Samaniego & Rohini Kumar
+!> \date Dec 2012
+!> \ingroup f_mhm
 MODULE mo_init_states
 
   ! This module provides the startup routines for mHM.

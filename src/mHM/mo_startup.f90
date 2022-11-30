@@ -1,17 +1,14 @@
-!>       \file mo_startup.f90
+!> \file mo_startup.f90
+!> \brief \copybrief mo_startup
+!> \details \copydetails mo_startup
 
-!>       \brief Startup procedures for mHM.
-
-!>       \details This module initializes all variables required to run mHM. This
-!>       module needs to be run only one time at the beginning of a simulation if
-!>       re-starting files do not exist.
-
-!>       \authors Luis Samaniego, Rohini Kumar
-
-!>       \date Dec 2012
-
-! Modifications:
-
+!> \brief Startup procedures for mHM.
+!> \details This module initializes all variables required to run mHM. This
+!> module needs to be run only one time at the beginning of a simulation if
+!> re-starting files do not exist.
+!> \authors Luis Samaniego, Rohini Kumar
+!> \date Dec 2012
+!> \ingroup f_mhm
 MODULE mo_startup
 
   ! This module provides the startup routines for mHM.
@@ -54,8 +51,8 @@ CONTAINS
 
   ! Modifications:
   ! Luis Samaniego Mar 2008 - fully distributed multilayer
-  ! Rohini Kumar   Oct 2010 - matrix to vector version 
-  !                         - openmp parallelization 
+  ! Rohini Kumar   Oct 2010 - matrix to vector version
+  !                         - openmp parallelization
   !                         - routing level 11
   ! Luis Samaniego Jul 2012 - removal of IMSL dependencies
   ! Luis Samaniego Dec 2012 - modular version
@@ -137,7 +134,7 @@ CONTAINS
   !>       \date Dec 2012
 
   ! Modifications:
-  ! Rohini Kumar                 Jan 2013 - 
+  ! Rohini Kumar                 Jan 2013 -
   ! Juliane Mai & Matthias Cuntz Nov 2013 - check timeStep
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 

@@ -1,41 +1,71 @@
-!>       \file mo_mhm.f90
+!> \file mo_mhm.f90
+!> \brief   \copybrief mo_mhm
+!> \details \copydetails mo_mhm
 
-!>       \brief Call all main processes of mHM.
-
-!>       \details This module calls all processes of mHM for a given configuration.
-!>       The configuration of the model is stored in the a process matrix.
-!>       This configuration is specified in the namelist mhm.nml.
-
-!>       The processes are executed in ascending order. At the moment only
-!>       process 5 and 8 have options.
-
-!>       Currently the following processes are implemented:
-
-!>       Process    | Name                      | Flag  | Description
-!>       ---------- | ------------------------- | ----- | ------------------------------------------
-!>       1          | interception              |   1   | Maximum interception
-!>       2          | snow and melting          |   1   | Degree-day
-!>       3          | soil moisture             |   1   | Feddes equation for ET reduction, Brooks-Corey like
-!>       3          | soil moisture             |   2   | Jarvis equation for ET reduction, Brooks-Corey like
-!>       3          | soil moisture             |   3   | Jarvis eq. for ET red. + FC dependency on root frac. coef.
-!>       4          | direct runoff             |   1   | Linear reservoir exceedance
-!>       5          | PET                       |  -1   | PET is input, LAI based correction, dynamic scaling func.
-!>       5          | PET                       |   0   | PET is input, Aspect based correction
-!>       5          | PET                       |   1   | Hargreaves-Samani
-!>       5          | PET                       |   2   | Priestley-Taylor
-!>       5          | PET                       |   3   | Penman-Monteith
-!>       6          | interflow                 |   1   | Nonlinear reservoir with saturation excess
-!>       7          | percolation and base flow |   1   | GW linear reservoir
-!>       8          | routing                   |   0   | no routing
-!>       8          | routing                   |   1   | use mRM i.e. Muskingum
-!>       8          | routing                   |   2   | use mRM i.e. adaptive timestep
-
-!>       \authors Luis Samaniego
-
-!>       \date Dec 2012
-
-! Modifications:
-
+!> \brief Call all main processes of mHM.
+!> \details This module calls all processes of mHM for a given configuration.
+!!       The configuration of the model is stored in the a process matrix.
+!!       This configuration is specified in the namelist mhm.nml.
+!!
+!!       The processes are executed in ascending order. At the moment only
+!!       process 5 and 8 have options.
+!!
+!!       Currently the following processes are implemented:
+!!
+!!       Process    | Name                      | Flag  | Description
+!!       ---------- | ------------------------- | ----- | ------------------------------------------
+!!       1          | interception              |   1   | Maximum interception
+!!       2          | snow and melting          |   1   | Degree-day
+!!       3          | soil moisture             |   1   | Feddes equation for ET reduction, Brooks-Corey like
+!!       3          | soil moisture             |   2   | Jarvis equation for ET reduction, Brooks-Corey like
+!!       3          | soil moisture             |   3   | Jarvis eq. for ET red. + FC dependency on root frac. coef.
+!!       4          | direct runoff             |   1   | Linear reservoir exceedance
+!!       5          | PET                       |  -1   | PET is input, LAI based correction, dynamic scaling func.
+!!       5          | PET                       |   0   | PET is input, Aspect based correction
+!!       5          | PET                       |   1   | Hargreaves-Samani
+!!       5          | PET                       |   2   | Priestley-Taylor
+!!       5          | PET                       |   3   | Penman-Monteith
+!!       6          | interflow                 |   1   | Nonlinear reservoir with saturation excess
+!!       7          | percolation and base flow |   1   | GW linear reservoir
+!!       8          | routing                   |   0   | no routing
+!!       8          | routing                   |   1   | use mRM i.e. Muskingum
+!!       8          | routing                   |   2   | use mRM i.e. adaptive timestep
+!!
+!! Modifications:
+!! - Luis Samaniego, Rohini Kumar    Dec 2012 - modularization
+!! - Luis Samaniego                  Feb 2013 - call routine
+!! - Rohini Kumar                    Feb 2013 - MPR call and other pre-requisite variables for this call
+!! - Rohini Kumar                    May 2013 - Error checks
+!! - Rohini Kumar                    Jun 2013 - sealed area correction in total runoff
+!!                                            - initalization of soil moist. at first timestep
+!! - Rohini Kumar                    Aug 2013 - dynamic LAI option included, and changed within the code
+!!                                              made accordingly (e.g., canopy intecpt.)
+!!                                            - max. canopy interception is estimated outside of MPR call
+!! - Matthias Zink                   Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
+!! - Matthias Zink                   Mar 2014 - added inflow from upstream areas
+!! - Matthias Zink                   Apr 2014 - added PET calculation: Priestley-Taylor and Penman-Monteith
+!! -                                            and its parameterization (Process 5)
+!! - Rohini Kumar                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
+!! - Stephan Thober                  Jun 2014 - added flag for switching of MPR
+!! - Matthias Cuntz & Juliane Mai    Nov 2014 - LAI input from daily, monthly or yearly files
+!! - Matthias Zink                   Dec 2014 - adopted inflow gauges to ignore headwater cells
+!! - Stephan Thober                  Aug 2015 - moved routing to mRM
+!! - Rohini Kumar                    Mar 2016 - changes for handling multiple soil database options
+!! - Rohini Kumar                    Dec 2016 - changes for reading gridded mean monthly LAI fields
+!! - Stephan Thober                  Jan 2017 - added prescribed weights for tavg and pet
+!! - Zink M. Demirel C.              Mar 2017 - added Jarvis soil water stress function at SM process(3)
+!! - M.Cuneyd Demirel & Simon Stisen May 2017 - added FC dependency on root fraction coef. at SM process(3)
+!! - M.Cuneyd Demirel & Simon Stisen Jun 2017 - added PET correction based on LAI at PET process(5)
+!! - Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval
+!! - Robert Schweppe                 Jun 2018 - refactoring and reformatting
+!! - Robert Schweppe                 Nov 2018 - added c2TSTu for unit conversion (moved here from MPR)
+!! - Rohini Kumar                    Oct 2021 - Neutron count module to mHM integrate into develop branch (5.11.2)
+!! - Stephan Thober                  Jan 2022 - added is_hourly_forcing
+!! - Sebastian Mueller               May 2022 - added temp_calc and prec_calc for coupling to other models
+!!
+!> \authors Luis Samaniego
+!> \date Dec 2012
+!> \ingroup f_mhm
 MODULE mo_mHM
 
   use mo_kind, only : i4, dp
@@ -172,39 +202,6 @@ CONTAINS
   !>       \authors Luis Samaniego & Rohini Kumar
 
   !>       \date Dec 2012
-
-  ! Modifications:
-  ! Luis Samaniego, Rohini Kumar    Dec 2012 - modularization
-  ! Luis Samaniego                  Feb 2013 - call routine
-  ! Rohini Kumar                    Feb 2013 - MPR call and other pre-requisite variables for this call
-  ! Rohini Kumar                    May 2013 - Error checks
-  ! Rohini Kumar                    Jun 2013 - sealed area correction in total runoff
-  !                                          - initalization of soil moist. at first timestep
-  ! Rohini Kumar                    Aug 2013 - dynamic LAI option included, and changed within the code
-  !                                            made accordingly (e.g., canopy intecpt.)
-  !                                          - max. canopy interception is estimated outside of MPR call
-  ! Matthias Zink                   Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
-  ! Matthias Zink                   Mar 2014 - added inflow from upstream areas
-  ! Matthias Zink                   Apr 2014 - added PET calculation: Priestley-Taylor and Penman-Monteith
-  !                                            and its parameterization (Process 5)
-  ! Rohini Kumar                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
-  ! Stephan Thober                  Jun 2014 - added flag for switching of MPR
-  ! Matthias Cuntz & Juliane Mai    Nov 2014 - LAI input from daily, monthly or yearly files
-  ! Matthias Zink                   Dec 2014 - adopted inflow gauges to ignore headwater cells
-  ! Stephan Thober                  Aug 2015 - moved routing to mRM
-  ! Rohini Kumar                    Mar 2016 - changes for handling multiple soil database options
-  ! Rohini Kumar                    Dec 2016 - changes for reading gridded mean monthly LAI fields
-  ! Stephan Thober                  Jan 2017 - added prescribed weights for tavg and pet
-  ! Zink M. Demirel C.              Mar 2017 - added Jarvis soil water stress function at SM process(3)
-  ! M.Cuneyd Demirel & Simon Stisen May 2017 - added FC dependency on root fraction coef. at SM process(3)
-  ! M.Cuneyd Demirel & Simon Stisen Jun 2017 - added PET correction based on LAI at PET process(5)
-  ! Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval
-  ! Robert Schweppe                 Jun 2018 - refactoring and reformatting
-  ! Robert Schweppe                 Nov 2018 - added c2TSTu for unit conversion (moved here from MPR)
-  ! Rohini Kumar                    Oct 2021 - Neutron count module to mHM integrate into develop branch (5.11.2)
-  ! Stephan Thober                  Jan 2022 - added is_hourly_forcing
-  ! Sebastian Mueller               May 2022 - added temp_calc and prec_calc for coupling to other models
-
   subroutine mHM(read_states, is_hourly_forcing, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
                 c2TSTu, neutron_integral_AFast, &
                 latitude, evap_coeff, fday_prec, fnight_prec, fday_pet, &
