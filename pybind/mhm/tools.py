@@ -14,7 +14,7 @@ def get_runoff():
     return get.runoff(*shp)
 
 
-def get_variable(name, index=1, indexing="xy"):
+def get_variable(name, index=1, indexing="ij"):
     """
     Get a specific variable from mHM in the current time-step.
 
@@ -43,5 +43,5 @@ def get_variable(name, index=1, indexing="xy"):
     output.fill_value = grid_info[-1]
     output.mask = ~mask
     output[mask] = var
-    output = output.reshape((grid_info[1], grid_info[0]), order="F")
-    return output.T if indexing == "ij" else output
+    output = output.reshape((grid_info[0], grid_info[1]), order="C")
+    return output.T if indexing == "xy" else output
