@@ -533,6 +533,8 @@ contains
     character(128) :: unit, date, time, datetime
 
     real(dp), allocatable, dimension(:) :: easting, northing
+    real(dp), allocatable, dimension(:, :) :: x_bnds, y_bnds
+    real(dp) :: half_step
 
     real(dp), allocatable, dimension(:) :: lat1d, lon1d    ! 1D lat lon vectors. Used if coordinate system is lat & lon
 
@@ -546,6 +548,9 @@ contains
       dtype = "f32"
     end if
 
+    ! half cell step to calculate cell bounds from center
+    half_step = level11(iDomain)%cellsize / 2.0_dp
+
     fname = trim(dirOut(iDomain)) // trim(file_mrm_output)
     call geoCoordinates(level11(iDomain), lat2d, lon2d)
 
@@ -557,6 +562,12 @@ contains
       ! X & Y coordinate system; 2D lat lon!
       !============================================================
       call mapCoordinates(level11(iDomain), northing, easting)
+      allocate(x_bnds(2, size(easting)))
+      allocate(y_bnds(2, size(northing)))
+      x_bnds(1, :) = easting - half_step
+      x_bnds(2, :) = easting + half_step
+      y_bnds(1, :) = northing - half_step
+      y_bnds(2, :) = northing + half_step
 
       dimids1 = (/&
         nc%setDimension("easting", size(easting)), &
@@ -564,18 +575,24 @@ contains
         nc%setDimension("time", 0), &
         nc%setDimension("bnds", 2) &
       /)
-      ! northing
-      var = nc%setVariable("northing", dtype, (/ dimids1(2) /))
-      call var%setData(northing)
-      call var%setAttribute("axis", "Y")
-      call var%setAttribute("units", "m")
-      call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
       ! easting
       var = nc%setVariable("easting", dtype, (/ dimids1(1) /))
       call var%setData(easting)
       call var%setAttribute("axis", "X")
       call var%setAttribute("units", "m")
       call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
+      call var%setAttribute("bounds", "easting_bnds")
+      var = nc%setVariable("easting_bnds", dtype, (/ dimids1(4), dimids1(1) /))
+      call var%setData(x_bnds)
+      ! northing
+      var = nc%setVariable("northing", dtype, (/ dimids1(2) /))
+      call var%setData(northing)
+      call var%setAttribute("axis", "Y")
+      call var%setAttribute("units", "m")
+      call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
+      call var%setAttribute("bounds", "northing_bnds")
+      var = nc%setVariable("northing_bnds", dtype, (/ dimids1(4), dimids1(2) /))
+      call var%setData(y_bnds)
       ! lon
       var = nc%setVariable("lon", dtype, dimids1(1 : 2))
       call var%setFillValue(nodata_dp)
@@ -595,8 +612,16 @@ contains
 
       ! lat & lon coordinate system; 1D lat lon!
       !============================================================
-      lat1d = lat2d(1, :) ! first row info is sufficient
       lon1d = lon2d(:, 1) ! first column info is sufficient
+      lat1d = lat2d(1, :) ! first row info is sufficient
+      allocate(x_bnds(2, size(lon1d)))
+      allocate(y_bnds(2, size(lat1d)))
+      ! cellsize is given in degree in case of lat-lon coordinates
+      x_bnds(1, :) = lon1d - half_step
+      x_bnds(2, :) = lon1d + half_step
+      y_bnds(1, :) = lat1d - half_step
+      y_bnds(2, :) = lat1d + half_step
+
       dimids1 = (/&
         nc%setDimension("lon", size(lon1d)), &
         nc%setDimension("lat", size(lat1d)), &
@@ -611,6 +636,9 @@ contains
       call var%setAttribute("units", "degrees_east")
       call var%setAttribute("long_name", "longitude")
       call var%setAttribute("missing_value", nodata_dp)
+      call var%setAttribute("bounds", "lon_bnds")
+      var = nc%setVariable("lon_bnds", dtype, (/ dimids1(4), dimids1(1) /))
+      call var%setData(x_bnds)
       ! lat
       var = nc%setVariable("lat", dtype, (/ dimids1(2) /)) ! sufficient to store lat as vector
       call var%setFillValue(nodata_dp)
@@ -619,6 +647,9 @@ contains
       call var%setAttribute("units", "degrees_north")
       call var%setAttribute("long_name", "latitude")
       call var%setAttribute("missing_value", nodata_dp)
+      call var%setAttribute("bounds", "lat_bnds")
+      var = nc%setVariable("lat_bnds", dtype, (/ dimids1(4), dimids1(2) /))
+      call var%setData(y_bnds)
 
     endif
 
@@ -638,10 +669,10 @@ contains
 
     ! time
     var = nc%setVariable("time", "i32", (/ dimids1(3) /))
+    call var%setAttribute("axis", "T")
     call var%setAttribute("units", unit)
     call var%setAttribute("long_name", "time")
     call var%setAttribute("bounds", "time_bnds")
-    call var%setAttribute("axis", "T")
     var = nc%setVariable("time_bnds", "i32", (/ dimids1(4), dimids1(3) /))
 
     ! global attributes
