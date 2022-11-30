@@ -1,5 +1,5 @@
 !> \file    mo_common_mpi_tools.f90
-!> \brief   tools for MPI communication that are mHM or mRM specific
+!> \brief   \copybrief mo_common_mpi_tools
 !> \details \copydetails mo_common_mpi_tools
 
 !> \brief   tools for MPI communication that are mHM or mRM specific
@@ -8,6 +8,7 @@
 !> \date    2019-2021
 !> \details This module contains sending and receiving subroutines for
 !!          data that are specific for mHM or mRM
+!> \ingroup f_common
 MODULE mo_common_mpi_tools
 
   use mo_kind, only : i4, dp

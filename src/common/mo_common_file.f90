@@ -1,17 +1,16 @@
 !>       \file mo_common_file.f90
+!> \brief \copybrief mo_common_file
+!> \details \copydetails mo_common_file
 
 !>       \brief Provides file names and units for mRM
-
 !>       \details Provides all filenames as well as all units used for the multiscale Routing Model mRM.
-
+!!
+!!       Modifications:
+!!       - Robert Schweppe Jun 2018 - refactoring and reformatting
+!!
 !>       \authors Matthias Cuntz, Stephan Thober
-
 !>       \date Aug 2015
-
-! Modifications:
-! Robert Schweppe Jun 2018 - refactoring and reformatting
-
-
+!> \ingroup f_common
 MODULE mo_common_file
 
   IMPLICIT NONE

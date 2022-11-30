@@ -1,16 +1,16 @@
-!>       \file mo_common_constants.f90
+!> \file mo_common_constants.f90
+!> \brief \copybrief mo_common_constants
+!> \details \copydetails mo_common_constants
 
 !>       \brief Provides constants commonly used by mHM, mRM and MPR
-
 !>       \details Provides commonly used by mHM, mRM and MPR such as no_data values and eps
-
+!!
+!!       Modifications
+!!       - Robert Schweppe Jun 2018 - refactoring and reformatting
+!!
 !>       \authors Robert Schweppe
-
 !>       \date Dec 2017
-
-! Modifications:
-! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+!> \ingroup f_common
 MODULE mo_common_constants
 
   USE mo_kind, ONLY : i4, dp, sp

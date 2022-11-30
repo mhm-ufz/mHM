@@ -1,15 +1,12 @@
-!>       \file mo_common_mhm_mrm_restart.f90
+!> \file mo_common_mhm_mrm_restart.f90
+!> \brief \copybrief mo_common_mHM_mRM_read_config
+!> \details \copydetails mo_common_mHM_mRM_read_config
 
-!>       \brief TODO: add description
-
-!>       \details TODO: add description
-
-!>       \authors Robert Schweppe
-
-!>       \date Aug 2019
-
-! Modifications:
-
+!> \brief restart file utilities
+!> \details Utility routines to check data consistency for restart files.
+!> \authors Robert Schweppe
+!> \date Aug 2019
+!> \ingroup f_common
 module mo_common_mHM_mRM_restart
 
   use mo_kind, only : i4, dp

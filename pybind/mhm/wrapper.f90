@@ -5,7 +5,6 @@
 
 !> \brief   Python wrapper module to control a mHM model.
 !> \ingroup mhm
-
 module model
   implicit none
 contains

@@ -1,24 +1,21 @@
-!>       \file mo_read_spatial_data.f90
+!> \file mo_read_spatial_data.f90
+!> \brief \copybrief mo_read_spatial_data
+!> \details \copydetails mo_read_spatial_data
 
-!>       \brief Reads spatial input data.
-
-!>       \details This module is to read spatial input data, e.g. dem, aspect, flow direction.
-!>       The module provides a subroutine for ASCII files.
-!>       (Subroutine for NetCDF files will come with release 5.1).
-!>       The data are read from the specified directory.
-
-!>       \authors Juliane Mai
-
-!>       \date Dec 2012
-
-! Modifications:
-
+!> \brief Reads spatial input data.
+!> \details This module is to read spatial input data, e.g. dem, aspect, flow direction.
+!! The module provides a subroutine for ASCII files.
+!! (Subroutine for NetCDF files will come with release 5.1).
+!! The data are read from the specified directory.
+!> \authors Juliane Mai
+!> \date Dec 2012
+!> \ingroup f_common
 MODULE mo_read_spatial_data
 
   ! This module provides routines to read spatial data.
 
   ! Written  Juliane Mai, Jan 2013
-  ! Modified 
+  ! Modified
 
   USE mo_kind, ONLY : i4, dp
   USE mo_os, ONLY : path_isfile
@@ -170,7 +167,7 @@ CONTAINS
     allocate(tmp_mask(file_nrows, file_ncols))
     tmp_mask = .true.
 
-    
+
     !checking whether the file exists
     call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
     ! read in

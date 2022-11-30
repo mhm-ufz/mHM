@@ -1,20 +1,22 @@
-!>       \file mo_common_variables.f90
+!> \defgroup   f_common common - Fortran modules
+!> \brief      Common modules used by mHM, mRM and MPR.
+!> \details    This module provides different routines, constants and structures for all components of mHM.
 
-!>       \brief Provides structures needed by mHM, mRM and/or mpr.
+!> \file mo_common_variables.f90
+!> \brief \copybrief mo_common_variables
+!> \details \copydetails mo_common_variables
 
-!>       \details Provides the global structure period that is used
-!>       by both mHM and mRM.
-
-!>       \authors Stephan Thober
-
-!>       \date Sep 2015
-
-! Modifications:
-! Stephan Thober  Nov 2016 - moved processdescription from mo_global_variables to here
-! Robert Schweppe Dec 2017 - merged more duplicated variables from mhm and mrm global variables
-! Robert Schweppe Jun 2018 - refactoring and reformatting
-
-
+!> \brief Provides structures needed by mHM, mRM and/or mpr.
+!> \details Provides the global structure period that is used by both mHM and mRM.
+!!
+!! Modifications
+!! - Stephan Thober  Nov 2016 - moved processdescription from mo_global_variables to here
+!! - Robert Schweppe Dec 2017 - merged more duplicated variables from mhm and mrm global variables
+!! - Robert Schweppe Jun 2018 - refactoring and reformatting
+!!
+!> \authors Stephan Thober
+!> \date Sep 2015
+!> \ingroup f_common
 module mo_common_variables
 
   use mo_kind, only : i4, i8, dp

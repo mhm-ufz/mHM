@@ -1,15 +1,12 @@
-!>       \file mo_grid.f90
+!> \file mo_grid.f90
+!> \brief \copybrief mo_grid
+!> \details \copydetails mo_grid
 
-!>       \brief TODO: add description
-
-!>       \details TODO: add description
-
-!>       \authors Robert Schweppe
-
-!>       \date Jun 2018
-
-! Modifications:
-
+!> \brief gridding tools
+!> \details Common tools to deal with grids in mHM.
+!> \authors Robert Schweppe
+!> \date Jun 2018
+!> \ingroup f_common
 module mo_grid
   use mo_kind, only : dp, i4
 
