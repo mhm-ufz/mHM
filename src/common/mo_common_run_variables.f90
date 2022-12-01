@@ -9,7 +9,7 @@ module mo_common_run_variables
 
   use mo_kind, only : i4, dp
   use mo_common_datetime_type, only : datetimeinfo
-  use mo_write_fluxes_states, only : OutputDataset
+  use mo_nc_output, only : OutputDataset
 
   implicit none
 
@@ -34,8 +34,10 @@ module mo_common_run_variables
     integer(i4), dimension(:), allocatable :: domain_indices
     !> fraction of NOT sealed area
     real(dp), dimension(:, :, :), allocatable :: L1_fNotSealed
-    !> output NetCDF object
-    type(OutputDataset) :: nc
+    !> output mHM NetCDF object
+    type(OutputDataset) :: nc_mhm
+    !> output mRM NetCDF object
+    type(OutputDataset) :: nc_mrm
     !> No. of cells at level 1 for current Domain
     integer(i4) :: nCells
     !> start and end index at level 1 for current Domain

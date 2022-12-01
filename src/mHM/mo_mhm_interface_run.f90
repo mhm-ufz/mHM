@@ -105,7 +105,7 @@ module mo_mhm_interface_run
   use mo_meteo_forcings, only : prepare_meteo_forcings_data
   use mo_mhm, only : mhm
   use mo_restart, only : read_restart_states
-  use mo_write_fluxes_states, only : OutputDataset
+  use mo_write_fluxes_states, only : mHM_updateDataset, mHM_OutputDataset
   use mo_constants, only : HourSecs
   use mo_common_variables, only : resolutionHydrology
   use mo_mrm_global_variables, only : &
@@ -727,6 +727,11 @@ contains
 
     if ( .not. optimize ) then
       if (any(outputFlxState_mrm) .AND. (domainMeta%doRouting(iDomain))) then
+
+        ! if (run_cfg%domainDateTime%tIndex_out == 1) then
+        !   run_cfg%nc_mrm = OutputDataset(iDomain, run_cfg%mask1, level11(iDomain)%nCells)
+        ! end if
+
         call mrm_write_output_fluxes( &
           iDomain, & ! Domain id
           level11(iDomain)%nCells, & ! nCells in Domain
@@ -735,15 +740,26 @@ contains
           run_cfg%mask11, & ! mask specification
           L11_qmod(run_cfg%s11 : run_cfg%e11) & ! output variables
         )
+
+        ! write data
+        ! if (run_cfg%domainDateTime%writeout(timeStep_model_outputs, tt)) then
+        !   call run_cfg%nc_mrm%writeTimestep(run_cfg%domainDateTime%tIndex_out * timestep)
+        ! end if
+
+        ! if(tt == run_cfg%domainDateTime%nTimeSteps) then
+        !   call run_cfg%nc_mrm%close()
+        ! end if
+
       end if
 
       if ((any(outputFlxState)) .and. (run_cfg%domainDateTime%tIndex_out > 0_i4)) then
 
         if (run_cfg%domainDateTime%tIndex_out == 1) then
-          run_cfg%nc = OutputDataset(iDomain, run_cfg%mask1, level1(iDomain)%nCells)
+          run_cfg%nc_mhm = mHM_OutputDataset(iDomain, run_cfg%mask1)
         end if
 
-        call run_cfg%nc%updateDataset(&
+        call mHM_updateDataset(&
+          run_cfg%nc_mhm, &
           run_cfg%s1, run_cfg%e1, &
           L1_fSealed(:, 1, run_cfg%domainDateTime%yId), &
           run_cfg%L1_fNotSealed(:, 1, run_cfg%domainDateTime%yId), &
@@ -772,11 +788,11 @@ contains
 
         ! write data
         if (run_cfg%domainDateTime%writeout(timeStep_model_outputs, tt)) then
-          call run_cfg%nc%writeTimestep(run_cfg%domainDateTime%tIndex_out * timestep)
+          call run_cfg%nc_mhm%writeTimestep(run_cfg%domainDateTime%tIndex_out * timestep)
         end if
 
         if(tt == run_cfg%domainDateTime%nTimeSteps) then
-          call run_cfg%nc%close()
+          call run_cfg%nc_mhm%close()
         end if
 
       end if
