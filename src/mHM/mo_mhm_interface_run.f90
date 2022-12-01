@@ -106,6 +106,7 @@ module mo_mhm_interface_run
   use mo_mhm, only : mhm
   use mo_restart, only : read_restart_states
   use mo_write_fluxes_states, only : mHM_updateDataset, mHM_OutputDataset
+  use mo_mrm_write_fluxes_states, only : mRM_updateDataset, mRM_OutputDataset
   use mo_constants, only : HourSecs
   use mo_common_variables, only : resolutionHydrology
   use mo_mrm_global_variables, only : &
@@ -172,7 +173,6 @@ module mo_mhm_interface_run
   use mo_mrm_mpr, only : mrm_update_param
   use mo_mrm_restart, only : mrm_read_restart_states
   use mo_mrm_routing, only : mrm_routing
-  use mo_mrm_write, only : mrm_write_output_fluxes
   use mo_utils, only : ge
   use mo_mrm_river_head, only: calc_river_head, avg_and_write_timestep
   use mo_mpr_eval, only : mpr_eval
@@ -725,34 +725,33 @@ contains
     ! get domain index
     iDomain = run_cfg%get_domain_index(run_cfg%selected_domain)
 
-    if ( .not. optimize ) then
+    if ( (.not. optimize) .and. (run_cfg%domainDateTime%tIndex_out > 0_i4)) then
       if (any(outputFlxState_mrm) .AND. (domainMeta%doRouting(iDomain))) then
 
-        ! if (run_cfg%domainDateTime%tIndex_out == 1) then
-        !   run_cfg%nc_mrm = OutputDataset(iDomain, run_cfg%mask1, level11(iDomain)%nCells)
-        ! end if
+        if (run_cfg%domainDateTime%tIndex_out == 1) then
+          run_cfg%nc_mrm = mRM_OutputDataset(iDomain, run_cfg%mask11)
+        end if
 
-        call mrm_write_output_fluxes( &
-          iDomain, & ! Domain id
-          level11(iDomain)%nCells, & ! nCells in Domain
-          timeStep_model_outputs_mrm, & ! output specification
-          run_cfg%domainDateTime, tt, timestep, & ! time specification
-          run_cfg%mask11, & ! mask specification
-          L11_qmod(run_cfg%s11 : run_cfg%e11) & ! output variables
-        )
+        ! update Dataset (riv-temp as optional input)
+        if ( riv_temp_pcs%active ) then
+          call mRM_updateDataset(run_cfg%nc_mrm, &
+            L11_qmod(run_cfg%s11 : run_cfg%e11), riv_temp_pcs%river_temp(riv_temp_pcs%s11 : riv_temp_pcs%e11))
+        else
+          call mRM_updateDataset(run_cfg%nc_mrm, L11_qmod(run_cfg%s11 : run_cfg%e11))
+        end if
 
         ! write data
-        ! if (run_cfg%domainDateTime%writeout(timeStep_model_outputs, tt)) then
-        !   call run_cfg%nc_mrm%writeTimestep(run_cfg%domainDateTime%tIndex_out * timestep)
-        ! end if
+        if (run_cfg%domainDateTime%writeout(timeStep_model_outputs_mrm, tt)) then
+          call run_cfg%nc_mrm%writeTimestep(run_cfg%domainDateTime%tIndex_out * timestep)
+        end if
 
-        ! if(tt == run_cfg%domainDateTime%nTimeSteps) then
-        !   call run_cfg%nc_mrm%close()
-        ! end if
+        if(tt == run_cfg%domainDateTime%nTimeSteps) then
+          call run_cfg%nc_mrm%close()
+        end if
 
       end if
 
-      if ((any(outputFlxState)) .and. (run_cfg%domainDateTime%tIndex_out > 0_i4)) then
+      if (any(outputFlxState)) then
 
         if (run_cfg%domainDateTime%tIndex_out == 1) then
           run_cfg%nc_mhm = mHM_OutputDataset(iDomain, run_cfg%mask1)

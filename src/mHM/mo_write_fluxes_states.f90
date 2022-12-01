@@ -264,6 +264,7 @@ contains
               tmpvars(ii), "Average liquid water generated from solid to liquid phase change in the snow", trim(unit))
     end if
 
+    allocate(out%vars(ii))
     out%vars = tmpvars(1 : ii)
 
   end function mHM_OutputDataset

@@ -21,7 +21,6 @@ module mo_mrm_write
   implicit none
 
   public :: mrm_write
-  public :: mrm_write_output_fluxes
   public :: mrm_write_optinamelist
   public :: mrm_write_optifile
 
@@ -959,101 +958,6 @@ contains
     end do
     !
   end subroutine write_subdaily_obs_sim_discharge
-
-
-  ! ------------------------------------------------------------------
-
-  !    NAME
-  !        mrm_write_output_fluxes
-
-  !    PURPOSE
-  !>       \brief write fluxes to netcdf output files
-
-  !>       \details This subroutine creates a netcdf data set
-  !>       for writing L11_QTIN for different time averages.
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain"
-  !>       \param[in] "integer(i4) :: nCells"
-  !>       \param[in] "integer(i4) :: timeStep_model_outputs" timestep of model outputs
-  !>       \param[in] "integer(i4) :: warmingDays"            number of warming days
-  !>       \param[in] "real(dp) :: newTime"                   julian date of next time step
-  !>       \param[in] "integer(i4) :: nTimeSteps"             number of total timesteps
-  !>       \param[in] "integer(i4) :: nTStepDay"              number of timesteps per day
-  !>       \param[in] "integer(i4) :: tt"                     current model timestep
-  !>       \param[in] "integer(i4) :: day"                    current day of the year
-  !>       \param[in] "integer(i4) :: month"                  current month of the year
-  !>       \param[in] "integer(i4) :: year"                   current year
-  !>       \param[in] "integer(i4) :: timestep"               current model time resolution
-  !>       \param[in] "logical, dimension(:, :) :: mask11"    mask at level 11
-  !>       \param[in] "real(dp), dimension(:) :: L11_qMod"    current routed streamflow
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Aug 2015
-
-  ! Modifications:
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-  ! Sebastian Mueller Jul 2020 - added output for river-temperature
-
-  subroutine mrm_write_output_fluxes(iDomain, nCells, timeStep_model_outputs, domainDateTime, &
-                                    tt, timestep, mask11, L11_qmod)
-
-    use mo_julian, only : caldat
-    use mo_kind, only : dp, i4
-    use mo_common_datetime_type, only : datetimeinfo
-    use mo_mrm_global_variables, only : riv_temp_pcs
-
-    implicit none
-
-    integer(i4), intent(in) :: iDomain
-
-    integer(i4), intent(in) :: nCells
-
-    ! timestep of model outputs
-    integer(i4), intent(in) :: timeStep_model_outputs
-
-    ! datetimeinfo variable
-    type(datetimeinfo), intent(in) :: domainDateTime
-
-    ! current model timestep
-    integer(i4), intent(in) :: tt
-
-    ! current model time resolution
-    integer(i4), intent(in) :: timestep
-
-    ! mask at level 11
-    logical, intent(in), dimension(:, :), pointer :: mask11
-
-    ! current routed streamflow
-    real(dp), intent(in), dimension(:) :: L11_qMod
-
-    ! update the counters
-
-    if ((domainDateTime%tIndex_out > 0_i4)) then
-
-      ! create output dataset
-      if (domainDateTime%tIndex_out == 1) nc = OutputDataset(iDomain, mask11, nCells)
-
-      ! update Dataset (riv-temp as optional input)
-      if ( riv_temp_pcs%active ) then
-        call nc%updateDataset(1, size(L11_Qmod), L11_Qmod, riv_temp_pcs%river_temp(riv_temp_pcs%s11 : riv_temp_pcs%e11))
-      else
-        call nc%updateDataset(1, size(L11_Qmod), L11_Qmod)
-      end if
-
-      ! write data
-      if (domainDateTime%writeout(timeStep_model_outputs, tt)) then
-        call nc%writeTimestep(domainDateTime%tIndex_out * timestep)
-      end if
-
-      ! close dataset
-      if (tt == domainDateTime%nTimeSteps) call nc%close()
-
-    end if
-
-  end subroutine mrm_write_output_fluxes
 
   ! ------------------------------------------------------------------
 
