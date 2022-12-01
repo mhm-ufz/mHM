@@ -1,4 +1,8 @@
-"""Tools to interact with mHM."""
+"""
+Tools to interact with mHM.
+
+@ingroup mhm
+"""
 import numpy as np
 
 from .wrapper import get
@@ -8,7 +12,6 @@ def get_runoff():
     """
     Get 2D array of runoff time-series for all gauges.
 
-    @ingroup mhm
     @retval runoff (numpy.ndarray): The runoff for all gauges with dims (time, gauge).
     """
     shp = get.runoff_shape()
@@ -19,12 +22,11 @@ def get_variable(name, index=1, indexing="ij"):
     """
     Get a specific variable from mHM in the current time-step.
 
-    @ingroup mhm
     @param name (str): Name of the variable
     @param index (int, optional): If the variable has an additional dimension,
         one needs to specify an index, by default 1
     @param indexing (str, optional): Indexing for the 2D variable,
-        either "xy" or "ij", by default "xy"
+        either "xy" or "ij", by default "ij"
     @retval variable (numpy.ndarray): Numpy array holding the desired variable.
     @throws ValueError: If the variable name doesn't start with "L0", "L1", "L11" or "L2".
     """
