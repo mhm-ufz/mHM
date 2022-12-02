@@ -26,7 +26,7 @@ module mo_nc_output
 
   implicit none
 
-  public :: OutputDataset, OutputVariable, writeVariableAttributes
+  public :: OutputDataset, OutputVariable, writeVariableAttributes, data_dims, data_dtype
 
   private
 
@@ -71,6 +71,30 @@ module mo_nc_output
   end interface OutputDataset
 
 contains
+
+  !> \brief Output variable dtype for single of double precision.
+  !> \return "f64" or "f32"
+  character(3) function data_dtype(double_precision)
+    implicit none
+    logical, intent(in) :: double_precision !< flag to use double precision
+    if ( double_precision ) then
+      data_dtype = "f64"
+    else
+      data_dtype = "f32"
+    end if
+  end function data_dtype
+
+  !> \brief Output variable dimension names.
+  !> \return (X, Y, T) names tuple
+  function data_dims()
+    implicit none
+    character(16), dimension(3) :: data_dims
+    if (iFlag_cordinate_sys == 0) then
+      data_dims = (/"easting ", "northing", "time    "/) ! X & Y coordinate system
+    else
+      data_dims = (/"lon ", "lat ", "time"/) ! lat & lon coordinate system
+    endif
+  end function data_dims
 
   !> \brief Initialize OutputVariable
   !> \details Modifications:
@@ -160,14 +184,10 @@ contains
   !> \return type(OutputDataset)
   !> \authors Matthias Zink
   !> \date Apr 2013
-  function newOutputDataset( &
-    iDomain, mask, nCells, level, file_name, double_precision, outputs_frequence, time_reference &
-  ) result(out)
+  function newOutputDataset( iDomain, level, file_name, double_precision, outputs_frequence, time_reference ) result(out)
     implicit none
 
     integer(i4), intent(in) :: iDomain !< domain id
-    logical, intent(in), pointer, dimension(:, :) :: mask !< mask on desired level
-    integer(i4), intent(in) :: nCells !< number of cells
     type(Grid), dimension(:), allocatable, target, intent(in) :: level !< level definitions for all domains
     character(*), intent(in) :: file_name !< long name of the variable
     logical, intent(in) :: double_precision !< mask on desired level
@@ -307,11 +327,7 @@ contains
                                                            ! Used as 2d lat lon arrays if coordinate system is X & Y
     character(3) :: dtype
 
-    if ( double_precision ) then
-      dtype = "f64"
-    else
-      dtype = "f32"
-    end if
+    dtype = data_dtype(double_precision)
 
     ! half cell step to calculate cell bounds from center
     half_step = level(iDomain)%cellsize / 2.0_dp
