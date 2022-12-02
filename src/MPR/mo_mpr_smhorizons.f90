@@ -1,15 +1,12 @@
-!>       \file mo_mpr_smhorizons.f90
+!> \file mo_mpr_smhorizons.f90
+!> \brief \copybrief mo_mpr_smhorizons
+!> \details \copydetails mo_mpr_smhorizons
 
-!>       \brief setting up the soil moisture horizons
-
-!>       \details This module sets up the soil moisture horizons
-
-!>       \authors Stephan Thober, Rohini Kumar
-
-!>       \date Dec 2012
-
-! Modifications:
-
+!> \brief setting up the soil moisture horizons
+!> \details This module sets up the soil moisture horizons
+!> \authors Stephan Thober, Rohini Kumar
+!> \date Dec 2012
+!> \ingroup f_mpr
 module mo_mpr_SMhorizons
 
   use mo_kind, only : i4, dp
@@ -130,7 +127,7 @@ contains
                            L1_bulkDens   , & ! L bulk density
                            L1_latticeWater,& ! L1 lattice water content
                            L1_COSMICL3   )   ! L1 COSMIC L3 parameter from neutron module
- 
+
     use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_upscaling_operators, only : upscale_harmonic_mean
@@ -291,7 +288,7 @@ contains
     ! neutron count
     real(dp), dimension(size(LCOVER0,1))    :: LW0     ! lattice water
     real(dp), dimension(size(LCOVER0,1))    :: L30     ! COSMIC parameter L3
- 
+
 
     ! fraction of roots in soil horizons
     real(dp), dimension(size(LCOVER0, 1)) :: fRoots0
@@ -383,7 +380,7 @@ contains
              dpth_f = HorizonDepth(H-1)
              dpth_t = HorizonDepth(H)
           end if
-          
+
           !$OMP PARALLEL
           !$OMP DO PRIVATE( l, s ) SCHEDULE( STATIC )
           cellloop0 : do k = 1, size(LCOVER0, 1)
@@ -424,7 +421,7 @@ contains
                   + sum( latWat(S,nTillHorizons(S) + 1 - min_nTH : nHorizons(s) - min_nTH) &
                   * Wd(S, H, nTillHorizons(S) + 1 : nHorizons(S)), &
                   Wd(S, H, nTillHorizons(S) + 1 : nHorizons(S)) > 0.0_dp )
-             
+
              L30(k) = sum( COSMIC_L3_till(S, : nTillHorizons(s), L) &
                   * Wd(S, H, 1 : nTillHorizons(S) ), &
                   Wd(S, H, 1 : nTillHorizons(S)) > 0.0_dp ) &
@@ -522,7 +519,7 @@ contains
                    end if
 
                    tmp_rootFractionCoefficient_perviousFC = (FCnorm * tmp_rootFractionCoefficient_clay) &
-                        + ((1 - FCnorm) * tmp_rootFractionCoefficient_sand) 
+                        + ((1 - FCnorm) * tmp_rootFractionCoefficient_sand)
 
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t * 0.1_dp)) &
                         - (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_f * 0.1_dp))
@@ -541,7 +538,7 @@ contains
           !$OMP END PARALLEL
 
           beta0 = Bd0 * param(4)
-          
+
           !---------------------------------------------
           ! Upscale the soil related parameters
           !---------------------------------------------
@@ -565,7 +562,7 @@ contains
                Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, L30 )
 
        end do
-      
+
       ! to handle multiple soil horizons with unique soil class
     CASE(1)
       ! horizon wise calculation
@@ -580,7 +577,7 @@ contains
         ! neutron count
         LW0     = nodata_dp
         L30     = nodata_dp
-        
+
         ! initalise mHM horizon depth
         if (h .eq. 1) then
           dpth_f = 0.0_dp
@@ -607,7 +604,7 @@ contains
             SMs0(k)= thetaS (s, 1) * (dpth_t - dpth_f)  ! in mm
             FC0(k) = thetaFC(s, 1) * (dpth_t - dpth_f)  ! in mm
             PW0(k) = thetaPW(s, 1) * (dpth_t - dpth_f)  ! in mm
-            LW0(k) = latWat(s, 1)  * (dpth_t - dpth_f)  ! in mm  !>> neutron count       
+            LW0(k) = latWat(s, 1)  * (dpth_t - dpth_f)  ! in mm  !>> neutron count
           end if
         end do cellloop1
         !$OMP END DO
@@ -658,7 +655,7 @@ contains
               end if
 
               tmp_rootFractionCoefficient_perviousFC = (FCnorm * tmp_rootFractionCoefficient_clay) &
-                      + ((1 - FCnorm) * tmp_rootFractionCoefficient_sand) 
+                      + ((1 - FCnorm) * tmp_rootFractionCoefficient_sand)
 
 
               fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t * 0.1_dp)) &

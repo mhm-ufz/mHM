@@ -1,4 +1,8 @@
-"""Tools to interact with mHM."""
+"""
+Tools to interact with mHM.
+
+@ingroup mhm
+"""
 import numpy as np
 
 from .wrapper import get
@@ -14,7 +18,7 @@ def get_runoff():
     return get.runoff(*shp)
 
 
-def get_variable(name, index=1, indexing="xy"):
+def get_variable(name, index=1, indexing="ij"):
     """
     Get a specific variable from mHM in the current time-step.
 
@@ -22,7 +26,7 @@ def get_variable(name, index=1, indexing="xy"):
     @param index (int, optional): If the variable has an additional dimension,
         one needs to specify an index, by default 1
     @param indexing (str, optional): Indexing for the 2D variable,
-        either "xy" or "ij", by default "xy"
+        either "xy" or "ij", by default "ij"
     @retval variable (numpy.ndarray): Numpy array holding the desired variable.
     @throws ValueError: If the variable name doesn't start with "L0", "L1", "L11" or "L2".
     """
@@ -43,5 +47,5 @@ def get_variable(name, index=1, indexing="xy"):
     output.fill_value = grid_info[-1]
     output.mask = ~mask
     output[mask] = var
-    output = output.reshape((grid_info[1], grid_info[0]), order="F")
-    return output.T if indexing == "ij" else output
+    output = output.reshape((grid_info[0], grid_info[1]), order="C")
+    return output.T if indexing == "xy" else output

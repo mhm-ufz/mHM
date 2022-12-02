@@ -1,18 +1,17 @@
-!>       \file mo_mrm_write_fluxes_states.f90
+!> \file mo_mrm_write_fluxes_states.f90
+!> \brief   \copybrief mo_mrm_write_fluxes_states
+!> \details \copydetails mo_mrm_write_fluxes_states
 
-!>       \brief Creates NetCDF output for different fluxes and state variables of mHM.
-
-!>       \details NetCDF is first initialized and later on variables are put to the NetCDF.
-
-!>       \authors Matthias Zink
-
-!>       \date Apr 2013
-
-! Modifications:
-! David Schaefer       Aug 2015 - major rewrite
-! Stephan Thober       Oct 2015 - adapted to mRM
-! O. Rakovec, R. Kumar Nov 2017 - added project description for the netcdf outputs
-
+!> \brief Creates NetCDF output for different fluxes and state variables of mHM.
+!> \details NetCDF is first initialized and later on variables are put to the NetCDF.
+!!
+!! Modifications:
+!! - David Schaefer       Aug 2015 - major rewrite
+!! - Stephan Thober       Oct 2015 - adapted to mRM
+!! - O. Rakovec, R. Kumar Nov 2017 - added project description for the netcdf outputs
+!> \authors Matthias Zink
+!> \date Apr 2013
+!> \ingroup f_mrm
 module mo_mrm_write_fluxes_states
 
   use mo_kind, only : i4, dp

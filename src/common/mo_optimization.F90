@@ -1,16 +1,12 @@
-!>       \file mo_optimization.f90
+!> \file mo_optimization.f90
+!> \brief \copybrief mo_optimization
+!> \details \copydetails mo_optimization
 
-!>       \brief Wrapper subroutine for optimization against runoff and sm.
-
-!>       \details This module provides a wrapper subroutine for optimization of mRM/mHM
-!>       against runoff or soil moisture.
-
-!>       \authors Stephan Thober
-
-!>       \date Oct 2015
-
-! Modifications:
-
+!> \brief Wrapper subroutine for optimization against runoff and sm.
+!> \details This module provides a wrapper subroutine for optimization of mRM/mHM against runoff or soil moisture.
+!> \authors Stephan Thober
+!> \date Oct 2015
+!> \ingroup f_common
 module mo_optimization
   use mo_kind, only : i4, i8, dp
   use mo_optimization_utils, only : eval_interface, objective_interface

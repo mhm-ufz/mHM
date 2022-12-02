@@ -1,23 +1,23 @@
-!>       \file mo_mrm_net_startup.f90
+!> \file mo_mrm_net_startup.f90
+!> \brief \copybrief mo_mrm_net_startup
+!> \details \copydetails mo_mrm_net_startup
 
-!>       \brief Startup drainage network for mHM.
-
-!>       \details This module initializes the drainage network at L11 in mHM.
-!>       - Delineation of drainage network at level 11.
-!>       - Setting network topology (i.e. nodes and link).
-!>       - Determining routing order.
-!>       - Determining cell locations for network links.
-!>       - Find drainage outlet.
-!>       - Determine stream (links) features.
-
-!>       \authors Luis Samaniego
-
-!>       \date Dec 2012
-
-! Modifications:
-! Rohini Kumar May 2014 - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
-! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+!> \brief Startup drainage network for mHM.
+!> \details This module initializes the drainage network at L11 in mHM.
+!! - Delineation of drainage network at level 11.
+!! - Setting network topology (i.e. nodes and link).
+!! - Determining routing order.
+!! - Determining cell locations for network links.
+!! - Find drainage outlet.
+!! - Determine stream (links) features.
+!!
+!! Modifications:
+!! - Rohini Kumar May 2014 - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
+!! - Robert Schweppe Jun 2018 - refactoring and reformatting
+!!
+!> \authors Luis Samaniego
+!> \date Dec 2012
+!> \ingroup f_mrm
 module mo_mrm_net_startup
   use mo_kind, only : i4, dp
   implicit none
@@ -365,7 +365,7 @@ contains
         draSC0(ii, jj) = kk
       end do
 
-      ! case where routing and input data scale differs 
+      ! case where routing and input data scale differs
     ELSE
       ! =======================================================================
       ! ST: find all cells whose downstream cells are outside the domain
@@ -644,7 +644,7 @@ contains
 
 
     !     Routing network vectors have nNodes size instead of nLinks to
-    !     avoid the need of having two extra indices to identify a Domain. 
+    !     avoid the need of having two extra indices to identify a Domain.
     ! allocate
     allocate (nLinkFromN (level11(iDomain)%nCells))  ! valid from (1 : nLinks)
     allocate (nLinkToN   (level11(iDomain)%nCells))  ! "
@@ -658,7 +658,7 @@ contains
     nLinkToN(:) = nodata_i4
     fDir11(:, :) = nodata_i4
 
-    ! get grids of L11 
+    ! get grids of L11
     fDir11(:, :) = UNPACK(L11_fDir (level11(iDomain)%iStart : level11(iDomain)%iEnd), level11(iDomain)%mask, nodata_i4)
 
     ! ------------------------------------------------------------------
@@ -758,7 +758,7 @@ contains
 
     nLinks = level11(iDomain)%nCells - L11_nOutlets(iDomain)
     !  Routing network vectors have nNodes size instead of nLinks to
-    !  avoid the need of having two extra indices to identify a Domain. 
+    !  avoid the need of having two extra indices to identify a Domain.
 
     ! allocate
     allocate (nLinkFromN  (level11(iDomain)%nCells))  ! all vectors valid from (1 : nLinks)
@@ -779,7 +779,7 @@ contains
 
     ! for a single node model run
     if(level11(iDomain)%nCells .GT. 1) then
-      ! get network vectors of L11 
+      ! get network vectors of L11
       nLinkFromN(:) = L11_fromN (level11(iDomain)%iStart : level11(iDomain)%iEnd)
       nLinkToN(:) = L11_toN   (level11(iDomain)%iStart : level11(iDomain)%iEnd)
 
@@ -841,7 +841,7 @@ contains
     !--------------------------------------------------------
     ! Start padding up local variables to global variables
     !--------------------------------------------------------
-    ! L11 network data sets 
+    ! L11 network data sets
     call append(L11_rOrder, nLinkROrder(:))
     call append(L11_label, nLinkLabel(:))
     call append(L11_sink, nLinkSink(:))
@@ -942,7 +942,7 @@ contains
     nLinks = level11(iDomain)%nCells - nOutlets
 
     !  Routing network vectors have level11(iDomain)%nCells size instead of nLinks to
-    !  avoid the need of having two extra indices to identify a Domain. 
+    !  avoid the need of having two extra indices to identify a Domain.
     ! allocate
     allocate (rowOut        (level11(iDomain)%nCells))
     allocate (colOut        (level11(iDomain)%nCells))
@@ -973,7 +973,7 @@ contains
       fDir0(:, :) = UNPACK(L0_fDir  (s0 : e0), level0_iDomain%mask, nodata_i4)
       draSC0(:, :) = UNPACK(L0_draSC (s0 : e0), level0_iDomain%mask, nodata_i4)
 
-      ! get network vectors of L11 
+      ! get network vectors of L11
       nLinkFromN(:) = L11_fromN   (level11(iDomain)%iStart : level11(iDomain)%iEnd)
       netPerm(:) = L11_netPerm (level11(iDomain)%iStart : level11(iDomain)%iEnd)
       rowOut(:) = L11_rowOut  (level11(iDomain)%iStart : level11(iDomain)%iEnd)
@@ -1037,7 +1037,7 @@ contains
     !--------------------------------------------------------
     ! Start padding up local variables to global variables
     !--------------------------------------------------------
-    ! L11 network data sets 
+    ! L11 network data sets
     call append(L11_fRow, nLinkFromRow(:))
     call append(L11_fCol, nLinkFromCol(:))
     call append(L11_tRow, nLinkToRow(:))
@@ -2165,7 +2165,7 @@ contains
   !>        \details L11 celerity based on L0 elevation and L0 fAcc
 
   !     INTENT(IN)
-  !>        \param[in] 
+  !>        \param[in]
 
   !     INTENT(INOUT)
   !         None
@@ -2215,10 +2215,10 @@ contains
         L0_fAcc,             & ! IN:    flow accumulation (number of cells)?
         L0_streamNet,        & ! IN:    stream Network at Level 0
         level11,             & ! IN:    level 11 grid
-        L11_fRow,            & ! IN:    from row in L0 grid 
+        L11_fRow,            & ! IN:    from row in L0 grid
         L11_fCol,            & ! IN:    from col in L0 grid
-        L11_tRow,            & ! IN:    to row in L0 grid 
-        L11_tCol,            & ! IN:    to col in L0 grid 
+        L11_tRow,            & ! IN:    to row in L0 grid
+        L11_tCol,            & ! IN:    to col in L0 grid
         L11_netPerm,         & ! IN:    routing order (permutation)
         L11_nOutlets,        & ! IN:    Number of Outlets/Sinks
         L11_celerity,        & ! INOUT: averaged celerity
@@ -2226,8 +2226,8 @@ contains
 
     implicit none
 
-    integer(i4), intent(in)                  :: iDomain         ! Domain 
-    real(dp), dimension(:), intent(in)       :: param 
+    integer(i4), intent(in)                  :: iDomain         ! Domain
+    real(dp), dimension(:), intent(in)       :: param
 
     ! local
     integer(i4)                              :: nCells0
@@ -2245,10 +2245,10 @@ contains
     real(dp),    dimension(:), allocatable :: slope_tmp
     real(dp),    dimension(:,:), allocatable :: cellarea0
     integer(i4), dimension(:),   allocatable :: netPerm         ! routing order (permutation)
-    integer(i4), dimension(:),   allocatable :: nLinkFromRow   
+    integer(i4), dimension(:),   allocatable :: nLinkFromRow
     integer(i4), dimension(:),   allocatable :: nLinkFromCol
-    integer(i4), dimension(:),   allocatable :: nLinkToRow     
-    integer(i4), dimension(:),   allocatable :: nLinkToCol  
+    integer(i4), dimension(:),   allocatable :: nLinkToRow
+    integer(i4), dimension(:),   allocatable :: nLinkToCol
     integer(i4)                              :: ii, rr, ns
     integer(i4)                              :: frow, fcol
     integer(i4)                              :: fId,  tId
@@ -2295,13 +2295,13 @@ contains
     !  Routing network vectors have nNodes size instead of nLinks to
     !  avoid the need of having two extra indices to identify a Domain.
     allocate ( stack       ( 1 ) )
-    allocate ( append_chunk( 1 ) ) 
+    allocate ( append_chunk( 1 ) )
     allocate ( dummy_1d    ( 2 ))
-    allocate ( netPerm     ( nNodes ) )  
+    allocate ( netPerm     ( nNodes ) )
     allocate ( nLinkFromRow( nNodes ) )
     allocate ( nLinkFromCol( nNodes ) )
-    allocate ( nLinkToRow  ( nNodes ) )  
-    allocate ( nLinkToCol  ( nNodes ) ) 
+    allocate ( nLinkToRow  ( nNodes ) )
+    allocate ( nLinkToCol  ( nNodes ) )
     allocate ( celerity11  ( nNodes ) )
     allocate ( slope_tmp   ( nNodes ) )
 
@@ -2350,7 +2350,7 @@ contains
       end if
       slope0(:,:) = UNPACK(slope_tmp,  mask0, nodata_dp_tmp )
 
-      ! get network vectors of L11 
+      ! get network vectors of L11
       netPerm(:)      = L11_netPerm ( iStart11 : iEnd11 )
       nLinkFromRow(:) = L11_fRow    ( iStart11 : iEnd11 )
       nLinkFromCol(:) = L11_fCol    ( iStart11 : iEnd11 )
@@ -2376,7 +2376,7 @@ contains
           stack(ns) = param(1) * sqrt(L0_link_slope)
 
           celerity0(frow, fcol) = stack(ns)
-          ns = ns + 1                
+          ns = ns + 1
           fId = iD0(frow, fcol)
           if( .NOT. (fID == tID)) then
             call append(stack, append_chunk)
@@ -2409,7 +2409,7 @@ contains
     deallocate (&
         mask0, iD0, slope_tmp, slopemask0, &
         slope0, fDir0, cellarea0,   &
-        stack, netPerm, nLinkFromRow, nLinkFromCol, nLinkToRow, nLinkToCol) 
+        stack, netPerm, nLinkFromRow, nLinkFromCol, nLinkToRow, nLinkToCol)
 
   end subroutine L11_calc_celerity
 

@@ -1,15 +1,12 @@
-!>       \file mo_read_optional_data.f90
+!> \file mo_read_optional_data.f90
+!> \brief   \copybrief mo_read_optional_data
+!> \details \copydetails mo_read_optional_data
 
-!>       \brief Read optional data for mHM calibration.
-
-!>       \details Data have to be provided in resolution of the hydrology.
-
-!>       \authors Matthias Zink
-
-!>       \date Mar 2015
-
-! Modifications:
-
+!> \brief Read optional data for mHM calibration.
+!> \details Data have to be provided in resolution of the hydrology.
+!> \authors Matthias Zink
+!> \date Mar 2015
+!> \ingroup f_mhm
 MODULE mo_read_optional_data
 
   USE mo_kind, ONLY : i4, dp

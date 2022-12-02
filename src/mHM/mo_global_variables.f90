@@ -1,45 +1,51 @@
-!>       \file mo_global_variables.f90
+!> \dir src
+!> \brief Source code of mHM.
+!> \details All Fortran source files for mHM, mRM and MPR.
 
-!>       \brief Global variables ONLY used in reading, writing and startup.
+!> \dir mHM
+!> \brief \copybrief f_mhm
+!> \details \copydetails f_mhm
 
-!>       \details TODO: add description
+!> \defgroup   f_mhm mHM - Fortran modules
+!> \brief      Core modules of mHM.
+!> \details    These modules provide the core components of mHM.
 
-!>       \authors Luis Samaniego
+!> \file mo_global_variables.f90
+!> \brief \copybrief mo_global_variables
+!> \details \copydetails mo_global_variables
 
-!>       \date Dec 2012
-
-! Modifications:
-! Robert Schweppe Jun 2018 - refactoring and reformatting
-
-
+!> \brief Main global variables for mHM.
+!> \details Global variables ONLY used in reading, writing and startup.
+!!
+!! Modifications:
+!! - Robert Schweppe Jun 2018 - refactoring and reformatting
+!! - Luis Samaniego,     Feb 2013 - new variable names, new modules, units
+!! - Rohini Kumar,       Jul 2013 - fraction of perfectly sealed area within city added
+!! - Rohini Kumar,       Aug 2013 - name changed "inputFormat" to "inputFormat_meteo_forcings"
+!! - Rohini Kumar,       Aug 2013 - name changed from "L0_LAI" to "L0_LCover_LAI"
+!! - Rohini Kumar,       Aug 2013 - added dirSoil_LUT and dirGeology_LUT
+!! - Luis Samaniego,     Nov 2013 - documentation of dimensions
+!! - Matthias Zink,      Nov 2013 - added "InflowGauge" and inflow gauge variabels in Domain
+!! - Rohini Kumar,       May 2014 - added options for the model run cordinate system
+!! - Stephan Thober,     Jun 2014 - added timeStep_model_inputs and readPer
+!! - Stephan Thober,     Jun 2014 - added perform_mpr, updated restart flags
+!! - Cuntz M. & Mai J.,  Nov 2014 - LAI input from daily, monthly or yearly files
+!! - Matthias Zink,      Dec 2014 - adopted inflow gauges to ignore headwater cells
+!! - Matthias Zink,      Mar 2015 - added optional soil mositure readin: dirSoil_moisture, L1_sm
+!! - Stephan Thober,     Aug 2015 - moved routing related variables to mRM
+!! - Oldrich Rakovec,    Oct 2015 - added definition of Domain averaged TWS data
+!! - Rohini Kumar,       Mar 2016 - new variables for handling different soil databases
+!! - Johann Brenner,     Feb 2017 - added optional evapotranspiration readin: dirEvapotranspiration, L1_et
+!! - Zink M. Demirel C., Mar 2017 - added Jarvis soil water stress variable for SM process(3)
+!! - Demirel M.C.        May 2017 - added L1_petLAIcorFactor for PET correction
+!! - O. Rakovec, R.Kumar Nov 2017 - added project description for the netcdf outputs
+!! - Robert Schweppe,    Dec 2017 - expanded dimensions of effective parameters
+!! - Robert Schweppe,    Dec 2017 - merged duplicated variables with mrm into common variables
+!!
+!> \authors Luis Samaniego
+!> \date Dec 2012
+!> \ingroup f_mhm
 MODULE mo_global_variables
-
-  ! This module provides
-
-  !
-  ! Written   Luis Samaniego,     Dec 2005
-  ! Modified  Luis Samaniego,     Feb 2013 - new variable names, new modules, units
-  !           Rohini Kumar,       Jul 2013 - fraction of perfectly sealed area within city added
-  !           Rohini Kumar,       Aug 2013 - name changed "inputFormat" to "inputFormat_meteo_forcings"
-  !           Rohini Kumar,       Aug 2013 - name changed from "L0_LAI" to "L0_LCover_LAI"
-  !           Rohini Kumar,       Aug 2013 - added dirSoil_LUT and dirGeology_LUT
-  !           Luis Samaniego,     Nov 2013 - documentation of dimensions
-  !           Matthias Zink,      Nov 2013 - added "InflowGauge" and inflow gauge variabels in Domain
-  !           Rohini Kumar,       May 2014 - added options for the model run cordinate system
-  !           Stephan Thober,     Jun 2014 - added timeStep_model_inputs and readPer
-  !           Stephan Thober,     Jun 2014 - added perform_mpr, updated restart flags
-  !           Cuntz M. & Mai J.,  Nov 2014 - LAI input from daily, monthly or yearly files
-  !           Matthias Zink,      Dec 2014 - adopted inflow gauges to ignore headwater cells
-  !           Matthias Zink,      Mar 2015 - added optional soil mositure readin: dirSoil_moisture, L1_sm
-  !           Stephan Thober,     Aug 2015 - moved routing related variables to mRM
-  !           Oldrich Rakovec,    Oct 2015 - added definition of Domain averaged TWS data
-  !           Rohini Kumar,       Mar 2016 - new variables for handling different soil databases
-  !           Johann Brenner,     Feb 2017 - added optional evapotranspiration readin: dirEvapotranspiration, L1_et
-  !           Zink M. Demirel C., Mar 2017 - added Jarvis soil water stress variable for SM process(3)
-  !           Demirel M.C.        May 2017 - added L1_petLAIcorFactor for PET correction
-  !           O. Rakovec, R.Kumar Nov 2017 - added project description for the netcdf outputs
-  !           Robert Schweppe,    Dec 2017 - expanded dimensions of effective parameters
-  !           Robert Schweppe,    Dec 2017 - merged duplicated variables with mrm into common variables
 
   USE mo_kind, ONLY : i4, dp
   USE mo_constants, ONLY : YearMonths

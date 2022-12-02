@@ -1,15 +1,12 @@
-!>       \file mo_upscaling_operators.f90
+!> \file mo_upscaling_operators.f90
+!> \brief \copybrief mo_upscaling_operators
+!> \details \copydetails mo_upscaling_operators
 
-!>       \brief Module containing upscaling operators.
-
-!>       \details This module provides the routines for upscaling_operators.
-
-!>       \authors Giovanni Dalmasso, Rohini Kumar
-
-!>       \date Dec 2012
-
-! Modifications:
-
+!> \brief Module containing upscaling operators.
+!> \details This module provides the routines for upscaling_operators.
+!> \authors Giovanni Dalmasso, Rohini Kumar
+!> \date Dec 2012
+!> \ingroup f_mpr
 module mo_upscaling_operators
 
   ! This module contains the functions for upscaling grid L0_fineScale_2D_data.

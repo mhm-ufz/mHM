@@ -1,15 +1,12 @@
-!>       \file mo_prepare_gridded_lai.f90
+!> \file mo_prepare_gridded_lai.f90
+!> \brief \copybrief mo_prepare_gridded_lai
+!> \details \copydetails mo_prepare_gridded_lai
 
-!>       \brief Prepare daily LAI fields (e.g., MODIS data) for mHM
-
-!>       \details Prepare daily LAI fields(e.g., MODIS data) for mHM
-
-!>       \authors John Craven & Rohini Kumar
-
-!>       \date Aug 2013
-
-! Modifications:
-
+!> \brief Prepare daily LAI fields (e.g., MODIS data) for mHM
+!> \details Prepare daily LAI fields(e.g., MODIS data) for mHM
+!> \authors John Craven & Rohini Kumar
+!> \date Aug 2013
+!> \ingroup f_mpr
 MODULE mo_prepare_gridded_LAI
 
   ! This module provides routines to read daily gridded LAI data.

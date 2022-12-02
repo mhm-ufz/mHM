@@ -1,16 +1,12 @@
-!>       \file mo_mrm_read_config.f90
+!> \file mo_mrm_read_config.f90
+!> \brief \copybrief mo_mrm_read_config
+!> \details \copydetails mo_mrm_read_config
 
-!>       \brief read mRM config
-
-!>       \details This module contains all mRM subroutines related to
-!>       reading the mRM configuration either from file or copy from mHM.
-
-!>       \authors Stephan Thober
-
-!>       \date Aug 2015
-
-! Modifications:
-
+!> \brief read mRM config
+!> \details This module contains all mRM subroutines related to reading the mRM configuration either from file or copy from mHM.
+!> \authors Stephan Thober
+!> \date Aug 2015
+!> \ingroup f_mrm
 module mo_mrm_read_config
 
   use mo_kind, only : i4, dp

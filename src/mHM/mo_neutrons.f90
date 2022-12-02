@@ -1,39 +1,36 @@
 !> \file mo_neutrons.f90
+!> \brief   \copybrief mo_neutrons
+!> \details \copydetails mo_neutrons
+
 !> \brief Models to predict neutron intensities above soils
-
 !> \details The number of neutrons above the ground is directly related to
-!> the number soil water content in the ground, air, vegetation and/or snow.
-!> This module forward-models neutron abundance as a state variable for each cell.
-
+!! the number soil water content in the ground, air, vegetation and/or snow.
+!! This module forward-models neutron abundance as a state variable for each cell.
 !> \authors Martin Schroen
 !> \date Mar 2015
-
-!> THIS MODULE IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH.
-
-! TODO make it faster with pre-calculated horizons and variables
-! TODO use global parameters as linear model 
-
+!> \warning THIS MODULE IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH.
+!> \ingroup f_mhm
 MODULE mo_neutrons
 
-  ! Written  Martin Schroen, Mar 2015
-  ! Modified 
-  
+  ! TODO make it faster with pre-calculated horizons and variables
+  ! TODO use global parameters as linear model
+
   USE mo_kind, ONLY: i4, dp
   IMPLICIT NONE
 
   ! Neutron forward model using particle transport physics, see Shuttleworth et al. 2013
-  PUBLIC :: COSMIC     
-  
-  ! inverse \theta(N) relation based on Desilets et al. 2010
-  PUBLIC :: DesiletsN0 
+  PUBLIC :: COSMIC
 
-  ! integration tabular for approximating the neutron flux integral 
+  ! inverse \theta(N) relation based on Desilets et al. 2010
+  PUBLIC :: DesiletsN0
+
+  ! integration tabular for approximating the neutron flux integral
   PUBLIC :: TabularIntegralAFast
-  
+
   PRIVATE
 
 CONTAINS
-  
+
   ! -----------------------------------------------------------------------------------
   !     NAME
   !         DesiletsN0
@@ -41,12 +38,12 @@ CONTAINS
   !     PURPOSE
   !>        \brief Calculate neutrons from soil moisture for effective soil layer
   !>        \details Using the N0-relation derived by Desilets, neutron
-  !>        counts above the ground (one value per cell in mHM) can be 
-  !>        derived by a semi-empirical, semi-physical relation. 
+  !>        counts above the ground (one value per cell in mHM) can be
+  !>        derived by a semi-empirical, semi-physical relation.
   !>        The result depends on N0, the neutron counts for 0% soil mositure.
   !>        This variable is site-specific and is a global parameter in mHM.
   !         ------------------------------------------------------------------
-  !         N0 formula based on Desilets et al. 2010                          
+  !         N0 formula based on Desilets et al. 2010
   !         ------------------------------------------------------------------
   !
   !     CALLING SEQUENCE
@@ -95,14 +92,14 @@ CONTAINS
   !>        \author Martin Schroen
   !>        \date Mar 2015
   !>        Modified Rohini Kumar         Oct 2021 - Vertical weighting approach
-  !>                                      for the Neutron count module to mHM - develop branch 
+  !>                                      for the Neutron count module to mHM - develop branch
 
   subroutine DesiletsN0(SoilMoisture, Horizon_depth, Bd, latWater, N0, neutrons)
 
     use mo_mhm_constants, only: Desilets_a0, Desilets_a1, Desilets_a2
     use mo_moment,        only: average
     implicit none
-    
+
     real(dp), dimension(:),          intent(in)    :: SoilMoisture
     real(dp), dimension(:),          intent(in)    :: Horizon_depth
     real(dp), dimension(:),          intent(in)    :: Bd
@@ -111,7 +108,7 @@ CONTAINS
     real(dp),                        intent(inout) :: neutrons
     ! local variables
     integer(i4)                                    :: nLayers, LL, nn, nIntervals
-    real(dp), dimension(:), allocatable            :: Layer_min, Layer_max, Layer_depth 
+    real(dp), dimension(:), allocatable            :: Layer_min, Layer_max, Layer_depth
     real(dp)                                       :: average_swc, average_bd
     real(dp)                                       :: D_86_in_cm,  D_86_in_mm
     real(dp), dimension(:), allocatable            :: cummulative_Layer_weight
@@ -132,14 +129,14 @@ CONTAINS
        Layer_max(LL) = Horizon_depth(LL)
     end do
 
-    ! estimate layer depth [mm] 
+    ! estimate layer depth [mm]
     Layer_depth(:) = Layer_max(:) - Layer_min(:)
-    
+
     ! average soil water content (volumetric ones) and Bulk density
     average_swc = average( SoilMoisture(:)/Layer_depth(:) )
-    average_bd  = average( Bd(:) ) 
+    average_bd  = average( Bd(:) )
 
-    ! estimate D86 [in cm and mm ] 
+    ! estimate D86 [in cm and mm ]
     D_86_in_cm = ( 1.0_dp/average_bd ) * &
          ( 8.321_dp + 0.14249_dp * (0.96655_dp + exp(-0.01_dp)) * (20.0_dp + average_swc)/(0.0429_dp + average_swc) )
     D_86_in_mm = D_86_in_cm * 10.0_dp  !# convert cm to mm
@@ -151,16 +148,16 @@ CONTAINS
 
     !! only once to calculate weight at equal space at every 10 mm spacing
     nIntervals = nint( maxval(Horizon_depth(:))/10.0_dp )
-    
-    ! calculate 10 mm spacing and on fly the cummulative weights 
+
+    ! calculate 10 mm spacing and on fly the cummulative weights
     depth = 0.0_dp
     do nn = 1, nIntervals
        weight_10mm_spacing = exp(-2.0_dp * depth / D_86_in_mm )
- 
-       ! estimate the layer specific cummulative weights 
+
+       ! estimate the layer specific cummulative weights
        do LL = 1, nLayers
           if(  (depth .GE. Layer_min(LL))  .AND. (depth .LT. Layer_max(LL))  ) then
-             cummulative_Layer_weight(LL) = cummulative_Layer_weight(LL) + weight_10mm_spacing 
+             cummulative_Layer_weight(LL) = cummulative_Layer_weight(LL) + weight_10mm_spacing
           end if
        end do
        ! update depth
@@ -173,17 +170,17 @@ CONTAINS
     average_swc = 0.0_dp
     do LL = 1, nLayers
        !!>> add here if organic water is coming !!>> SoilMoisture(LL) + latWater(LL) + organic_water(LL)...
-       grav_swc = ( SoilMoisture(LL) + latWater(LL) )/Layer_depth(LL)/Bd(LL)  
-       average_swc = average_swc + ( grav_swc * cummulative_Layer_weight(LL) ) 
+       grav_swc = ( SoilMoisture(LL) + latWater(LL) )/Layer_depth(LL)/Bd(LL)
+       average_swc = average_swc + ( grav_swc * cummulative_Layer_weight(LL) )
     end do
     average_swc = average_swc / sum( cummulative_Layer_weighT(:) )
 
     ! calculate neutron count based on depth weighted SM of *D86*
-    neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (average_swc + Desilets_a2) )    
+    neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (average_swc + Desilets_a2) )
 
     !! deallocate variables
     deallocate(Layer_min, Layer_max, Layer_depth, cummulative_Layer_weight)
-    
+
   end subroutine DesiletsN0
   ! -----------------------------------------------------------------------------------
   !     NAME
@@ -194,11 +191,11 @@ CONTAINS
   !>        \details Neutron counts above the ground (one value per cell in mHM)
   !>        can be derived by a simplified physical neutron transport simulation.
   !>        Fast cosmic-Ray neutrons are generated in the soil and attenuated
-  !>        differently in water and soil. The remaining neutrons that reached 
+  !>        differently in water and soil. The remaining neutrons that reached
   !>        the surface relate to the profile of soil water content below.
   !>        Variables like N, alpha and L3 are site-specific and need to be calibrated.
   !         ------------------------------------------------------------------
-  !         COSMIC model based on Shuttleworth et al. 2013                    
+  !         COSMIC model based on Shuttleworth et al. 2013
   !         ------------------------------------------------------------------
   !
   !     CALLING SEQUENCE
@@ -209,12 +206,12 @@ CONTAINS
   !>        \param[in] "real(dp), dimension(:)   :: SoilMoisture" Soil Moisture
   !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
   !>        \param[in] "real(dp), dimension(:)   :: neutron_integral_AFast" Tabular for Int Approx
-  !>        \param[in] "real(dp)                 :: interc" interception 
+  !>        \param[in] "real(dp)                 :: interc" interception
   !>        \param[in] "real(dp)                 :: snowpack" snowpack
   !>        \param[in] "real(dp)                 :: L1_No_count" L1_No_count
   !>        \param[in] "real(dp), dimension(:)   :: L1_bulkDens" Bulk Density
   !>        \param[in] "real(dp), dimension(:)   :: L1_latticeWater" Lattice Water
-  !>        \param[in] "real(dp), dimension(:)   :: L1_COSMICL3" L3 from the COSMIC module 
+  !>        \param[in] "real(dp), dimension(:)   :: L1_COSMICL3" L3 from the COSMIC module
 
   !
   !     INTENT(INOUT)
@@ -250,15 +247,15 @@ CONTAINS
   !     HISTORY
   !>        \author Martin Schroen, originally written by Rafael Rosolem
   !>        \date Mar 2015
-  !>         Rohini Kumar                  Oct 2021 - Neutron count module to mHM (5.11.2) - develop branch 
+  !>         Rohini Kumar                  Oct 2021 - Neutron count module to mHM (5.11.2) - develop branch
   subroutine COSMIC(SoilMoisture, Horizons, neutron_integral_AFast, &
        interc, snowpack, L1_N0, L1_bulkDens, L1_latticeWater, L1_COSMICL3, &
        neutrons )
-    
+
     use mo_mhm_constants, only: H2Odens, COSMIC_N, COSMIC_alpha, COSMIC_L1, COSMIC_L2, COSMIC_L4
     use mo_constants,     only: PI_dp
     implicit none
-    
+
     real(dp), dimension(:),          intent(in)     :: SoilMoisture
     real(dp), dimension(:),          intent(in)     :: Horizons
     real(dp), dimension(:),          intent(in)     :: neutron_integral_AFast
@@ -289,18 +286,18 @@ CONTAINS
     real(dp), dimension(:), allocatable     :: fastflux    ! Contribution to above-ground neutron flux
 
     integer(i4)                             :: layers      ! Total number of soil layers
-    integer(i4)                             :: ll 
+    integer(i4)                             :: ll
 
 
     ! # of layers
     layers   = size(SoilMoisture) + 1 ! soil horizons + one additional snowpack and interception layer
-    
+
     ! allocate and initalize
     allocate(hiflux(layers),xeff(layers),&
              h2oeffdens(layers),h2oeffheight(layers),fastflux(layers),&
              isoimass(layers),iwatmass(layers))
-    
-    zthick(:)      = 0.0_dp 
+
+    zthick(:)      = 0.0_dp
     isoimass(:)    = 0.0_dp
     iwatmass(:)    = 0.0_dp
     hiflux(:)      = 0.0_dp
@@ -323,7 +320,7 @@ CONTAINS
 
     ! layer 1 is the surface layer. layer 2 up to layers are the usual layers
     do ll = 1,layers
-          
+
        ! High energy neutron downward flux
        ! The integration is now performed at the node of each layer (i.e., center of the layer)
 
@@ -332,9 +329,9 @@ CONTAINS
        ! except the top layer thickness, which is dependend on the snow for example
        ! zthick will be in cm, as all heigths are in cm in this module
        call layerThickness(ll,Horizons,interc,snowpack,zthick)
-       
+
        if( ( zthick(ll) .GT. 0.0_dp ) .AND. ( (iFlag_snowlayer_intecept .GT. 0 ) .OR. (ll.NE.1) ) ) then
-          
+
           call loopConstants(ll, SoilMoisture(:), L1_bulkDens(:), &
                L1_latticeWater(:), L1_COSMICL3(:), sm, bd, lw, L3)
 
@@ -345,12 +342,12 @@ CONTAINS
              ! because neutron standard measurements are in cm
              call layerWaterHeight(ll,sm,h2oeffheight)
              ! divided by the thickness of the layers,we get the effective density
-             h2oeffdens(ll) = (h2oeffheight(ll) + lw/10.0_dp)/zthick(ll)*H2Odens/1000.0_dp  
+             h2oeffdens(ll) = (h2oeffheight(ll) + lw/10.0_dp)/zthick(ll)*H2Odens/1000.0_dp
           endif
 
           ! Assuming an area of 1 cm2
           ! we integrate the bulkdensity/h2oeffdens down to the middle of the layer ll:
-          isoimass(ll) = bd*(0.5_dp*zthick(ll))*1.0_dp 
+          isoimass(ll) = bd*(0.5_dp*zthick(ll))*1.0_dp
           iwatmass(ll) = h2oeffdens(ll)*(0.5_dp*zthick(ll))*1.0_dp
           if ( ll .gt. 1 ) then
             isoimass(ll) = isoimass(ll)+isoimass(ll-1)+bd*(0.5_dp*zthick(ll-1))*1.0_dp
@@ -372,7 +369,7 @@ CONTAINS
           ! Low energy (fast) neutron upward flux
           totflux = totflux + hiflux(ll) * xeff(ll) * fastflux(ll)
        endif
-       
+
     enddo
 
     !  neutrons=COSMIC_N*totflux
@@ -381,12 +378,12 @@ CONTAINS
 
     !! free space
     deallocate( hiflux, xeff, h2oeffheight, h2oeffdens, fastflux, isoimass, iwatmass)
-           
+
   end subroutine COSMIC
 
 
 
-  
+
   !>>> Loop constants
   subroutine loopConstants(ll, SoilMoisture,L1_bulkDens,L1_latticeWater,&
        L1_COSMICL3,sm,bd,lw,L3 )
@@ -415,7 +412,7 @@ CONTAINS
      endif
    end subroutine loopConstants
 
-   
+
 
   !>> layer thickness
   subroutine layerThickness(ll,Horizons,interc,snowpack,zthick)
@@ -425,7 +422,7 @@ CONTAINS
      real(dp),                 intent(in) :: interc
      real(dp),                 intent(in) :: snowpack
      real(dp),dimension(:), intent(out)   :: zthick
-     
+
      if (ll.eq.1) then
         zthick(ll)=(snowpack+interc)/10.0_dp
      else if (ll.eq.2) then
@@ -443,7 +440,7 @@ CONTAINS
      real(dp),              intent(in)  :: sm
      real(dp),dimension(:), intent(out) :: h2oeffheight
     ! The effective water height in each layer in each profile:
-    ! ToDo:This should include in future: roots, soil organic matter 
+    ! ToDo:This should include in future: roots, soil organic matter
     h2oeffheight(ll) = sm/10.0_dp
   end subroutine
 
@@ -477,7 +474,7 @@ CONTAINS
      integer(i4) :: stepstemp
      real(dp)  :: fxmintemp
      real(dp)  :: fxmaxtemp
-     
+
      ! init
      if (.not. present(eps)) then
         epstemp=0.001_dp
@@ -532,7 +529,7 @@ CONTAINS
 
      xm = (xmax+xmin)/2.0_dp
      fxm= f(c,xm)
-     
+
      err=abs((fxmax-fxm)*(xmax-xm))
      if ((err .gt. eps).and.(steps .gt. 1)) then
         call approx_mon_int_steps(res,f,c,xm,xmax,eps/2.0,steps-steps/2,fxm,fxmax)
@@ -566,7 +563,7 @@ CONTAINS
 
      xm = (xmax+xmin)/2.0_dp
      fxm= f(c,xm)
-     
+
      err=abs((fxmax-fxm)*(xmax-xm))
      if (err .gt. eps) then
         call approx_mon_int_eps(res,f,c,xm,xmax,eps/2.0,fxm,fxmax)
@@ -602,7 +599,7 @@ CONTAINS
   !>            estimate A_fast, if 0<c<maxC, otherwise the recursive
   !>            approximation is used.
   !         ------------------------------------------------------------------
-  !         TabularIntegralAFast: a tabular for calculations with splines                
+  !         TabularIntegralAFast: a tabular for calculations with splines
   !         ------------------------------------------------------------------
   !
   !     CALLING SEQUENCE
@@ -709,7 +706,7 @@ CONTAINS
      maxC=integral(intsize+2)
      mu=c*real(intsize,dp)/maxC
      place=int(mu,i4)+1
-     if (place .gt. intsize) then 
+     if (place .gt. intsize) then
        !call approx_mon_int(res,intgrandFast,c,0.0_dp,PI_dp/2.0_dp,steps=1024,fxmax=0.0_dp)
        !write(*,*) 'Warning: Lambda_Fast is huge. Slow integration used.'
        res=(PI_dp/2.0_dp)*exp(-1.57406_dp*c**0.815488_dp)
@@ -735,14 +732,14 @@ CONTAINS
 
      mu=c*real(intsize/2,dp)/maxC
      place=int(mu,i4)+1
-     if (place .gt. intsize) then 
+     if (place .gt. intsize) then
        !call approx_mon_int(res,intgrandFast,c,0.0_dp,PI_dp/2.0_dp,steps=1024,fxmax=0.0_dp)
        !write(*,*) 'Warning: Lambda_Fast is huge. Slow integration used.'
        res=(PI_dp/2.0_dp)*exp(-1.57406_dp*c**0.815488_dp)
      else
         mu=mu-real(place-1,dp)
         res=h00(mu)*integral(2*place-1)+h01(mu)*integral(2*place+1)+&
-            h10(mu)*integral(2*place  )+h11(mu)*integral(2*place+2)   
+            h10(mu)*integral(2*place  )+h11(mu)*integral(2*place+2)
      end if
   end subroutine
 
@@ -803,7 +800,7 @@ CONTAINS
         res=expPolynomDeg3(x,a,b,c,d)
       !  write(*,*) 'c6'
      endif
-     
+
   end subroutine
 
   subroutine oldIntegration(res,c)
@@ -813,10 +810,10 @@ CONTAINS
      real(dp),                        intent(in)  :: c
 
      ! local variables
-     real(dp) :: zdeg         
-     real(dp) :: zrad         
-     real(dp) :: costheta     
-     real(dp) :: dtheta       
+     real(dp) :: zdeg
+     real(dp) :: zrad
+     real(dp) :: costheta
+     real(dp) :: dtheta
 
      integer(i4) :: angle ! loop indices for an integration interval
      ! Angle distribution parameters (HARDWIRED)
@@ -827,7 +824,7 @@ CONTAINS
 
      ! This second loop needs to be done for the distribution of angles for fast neutron release
      ! the intent is to loop from 0 to 89.5 by 0.5 degrees - or similar.
-     ! Because Fortran loop indices are integers, we have to divide the indices by 10 - you get the idea.  
+     ! Because Fortran loop indices are integers, we have to divide the indices by 10 - you get the idea.
      res = 0.0_dp
      do angle=0,179
         zdeg     = real(angle,dp)*0.5_dp

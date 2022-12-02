@@ -1,10 +1,12 @@
 !> \file    mo_clean_up.f90
-!> \copydoc mo_clean_up
+!> \brief   \copybrief mo_clean_up
+!> \details \copydetails mo_clean_up
 
 !> \brief   Module to clean up after a mHM run.
 !> \version 0.1
 !> \authors Sebastian Mueller
 !> \date    May 2022
+!> \ingroup f_common
 module mo_clean_up
 
   implicit none

@@ -1,19 +1,17 @@
-!>       \file mo_restart.f90
+!> \file mo_restart.f90
+!> \brief   \copybrief mo_restart
+!> \details \copydetails mo_restart
 
-!>       \brief reading and writing states, fluxes and configuration for restart of mHM.
-
-!>       \details routines are seperated for reading and writing variables for:
-!>       - states and fluxes, and
-!>       - configuration.
-!>       Reading of L11 configuration is also seperated from the rest,
-!>       since it is only required when routing is activated.
-
-!>       \authors Stephan Thober
-
-!>       \date Jul 2013
-
-! Modifications:
-
+!> \brief reading and writing states, fluxes and configuration for restart of mHM.
+!> \details routines are seperated for reading and writing variables for:
+!!       - states and fluxes, and
+!!       - configuration.
+!!
+!! Reading of L11 configuration is also seperated from the rest,
+!! since it is only required when routing is activated.
+!> \authors Stephan Thober
+!> \date Jul 2013
+!> \ingroup f_mhm
 MODULE mo_restart
 
   ! This module is a restart for the UFZ CHS mesoscale hydrologic model mHM.
@@ -359,7 +357,7 @@ CONTAINS
                                         nLAI, nSoilHorizons_mHM, &
                                         ! neutron count
                                         L1_No_Count, L1_bulkDens, L1_latticeWater, L1_COSMICL3
-    
+
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
     use mo_common_mHM_mRM_restart, only: check_dimension_consistency
@@ -829,7 +827,7 @@ CONTAINS
          end do
       end do
 
-      ! Lattice water 
+      ! Lattice water
       var = nc%getVariable("L1_latticeWater")
       call var%getData(dummyD4)
       do jj = 1, nLCoverScene
@@ -837,7 +835,7 @@ CONTAINS
             L1_latticeWater(s1:e1, ii, jj) = pack(dummyD4(:, :, ii, jj), mask1)
          end do
       end do
-      
+
    case(2) ! COSMIC
       ! N0 count
       var = nc%getVariable("L1_No_Count")
@@ -853,7 +851,7 @@ CONTAINS
          end do
       end do
 
-      ! Lattice water 
+      ! Lattice water
       var = nc%getVariable("L1_latticeWater")
       call var%getData(dummyD4)
       do jj = 1, nLCoverScene
@@ -862,7 +860,7 @@ CONTAINS
          end do
       end do
 
-      ! COSMIC L3 parameter 
+      ! COSMIC L3 parameter
       var = nc%getVariable("L1_COSMICL3")
       call var%getData(dummyD4)
       do jj = 1, nLCoverScene
@@ -872,7 +870,7 @@ CONTAINS
       end do
 
    end select
-   
+
    ! close file
    call nc%close()
 

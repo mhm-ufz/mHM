@@ -1,22 +1,19 @@
-!>       \file mo_soil_moisture.f90
+!> \file mo_soil_moisture.f90
+!> \brief \copybrief mo_soil_moisture
+!> \details \copydetails mo_soil_moisture
 
-!>       \brief Soil moisture of the different layers
-
-!>       \details Soil moisture in the different layers is calculated with
-!>       infiltration as \f$ (\theta / \theta_{sat})^\beta \f$
-!>       Then evapotranspiration is calculated from PET with a soil water stress  factor \f$ f_{SM} \f$
-!>       either using  the Feddes equation - precessCase(1):
-!>       \f$ f_{SM} = \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} \f$
-!>       or using the Jarvis equation - precessCase(1):
-!>       \f$ f_{SM} = \frac{1}{\theta_\mathit{stress-index-C1}}
-!>       \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{sat} - \theta_\mathit{pwp}} \f$.
-
-!>       \authors Matthias Cuntz, Luis Samaniego
-
-!>       \date Dec 2012
-
-! Modifications:
-
+!> \brief Soil moisture of the different layers
+!> \details Soil moisture in the different layers is calculated with
+!! infiltration as \f$ (\theta / \theta_{sat})^\beta \f$
+!! Then evapotranspiration is calculated from PET with a soil water stress  factor \f$ f_{SM} \f$
+!! either using  the Feddes equation - processCase(3) = 1:
+!! \f[ f_{SM} = \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} \f]
+!! or using the Jarvis equation - processCase(3) = 2:
+!! \f[ f_{SM} = \frac{1}{\theta_\mathit{stress-index-C1}}
+!! \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{sat} - \theta_\mathit{pwp}} \f]
+!> \authors Matthias Cuntz, Luis Samaniego
+!> \date Dec 2012
+!> \ingroup f_mhm
 MODULE mo_soil_moisture
 
   USE mo_kind, ONLY : i4, dp
@@ -25,7 +22,7 @@ MODULE mo_soil_moisture
 
   PUBLIC :: feddes_et_reduction
   PUBLIC :: jarvis_et_reduction
-  
+
   PUBLIC :: soil_moisture  ! Soil moisture in different soil horizons
 
   ! ------------------------------------------------------------------

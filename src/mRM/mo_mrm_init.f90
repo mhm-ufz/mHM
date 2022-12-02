@@ -1,15 +1,12 @@
-!>       \file mo_mrm_init.f90
+!> \file mo_mrm_init.f90
+!> \brief \copybrief mo_mrm_init
+!> \details \copydetails mo_mrm_init
 
-!>       \brief Wrapper for initializing Routing.
-
-!>       \details Calling all routines to initialize all mRM variables
-
-!>       \authors Luis Samaniego, Rohini Kumar and Stephan Thober
-
-!>       \date Aug 2015
-
-! Modifications:
-
+!> \brief Wrapper for initializing Routing.
+!> \details Calling all routines to initialize all mRM variables
+!> \authors Luis Samaniego, Rohini Kumar and Stephan Thober
+!> \date Aug 2015
+!> \ingroup f_mrm
 MODULE mo_mrm_init
 
     use mo_common_variables, only : dirOut

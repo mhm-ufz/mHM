@@ -1,32 +1,29 @@
-!>       \file mo_write_ascii.f90
+!> \file mo_write_ascii.f90
+!> \brief \copybrief mo_write_ascii
+!> \details \copydetails mo_write_ascii
 
-!>       \brief Module to write ascii file output.
-
-!>       \details Module to write ascii file output.
-!>       Writing model output to ASCII should be the exception. Therefore, output is written usually as NetCDF
-!>       and only:
-!>       (1) The configuration file of mHM,
-!>       (2) the final parameter set after optimization, and
-!>       (3) the simulated vs. observed daily discharge
-!>       is written in ASCII file format to allow for a quick assurance of proper model runs.
-
-!>       \authors Christoph Schneider, Juliane Mai, Luis Samaniego
-
-!>       \date May 2013
-
-! Modifications:
-
+!> \brief Module to write ascii file output.
+!> \details Module to write ascii file output.
+!! Writing model output to ASCII should be the exception. Therefore, output is written usually as NetCDF
+!! and only:
+!! 1. The configuration file of mHM,
+!! 2. the final parameter set after optimization, and
+!! 3. the simulated vs. observed daily discharge
+!!     is written in ASCII file format to allow for a quick assurance of proper model runs.
+!!
+!! Modifications
+!! - Modified, Juliane Mai,        May 2013 - module version and documentation
+!! - Modified, Luis Samaniego,     Nov 2013 - improving all formats
+!! - Modified, Luis Samaniego,     Mar 2014 - added inflow gauge information write out
+!! - Modified, Stephan Thober,     Jun 2014 - bug fixed: in writing network properties
+!! - Modified, Rohini Kumar,       Jun 2014 - bug fixed: writing of max and min value of discharge
+!! - Modified, Stephan Thober,     Aug 2015 - moved write_daily_obs_sim_discharge to mRM
+!!
+!> \authors Christoph Schneider, Juliane Mai, Luis Samaniego
+!> \date May 2013
+!> \ingroup f_mhm
 MODULE mo_write_ascii
 
-  ! This module is a template for the UFZ CHS mesoscale hydrologic model mHM.
-
-  ! Written  Christoph Schneider, May 2013
-  ! Modified, Juliane Mai,        May 2013 - module version and documentation
-  ! Modified, Luis Samaniego,     Nov 2013 - improving all formats
-  ! Modified, Luis Samaniego,     Mar 2014 - added inflow gauge information write out
-  ! Modified, Stephan Thober,     Jun 2014 - bug fixed: in writing network properties
-  ! Modified, Rohini Kumar,       Jun 2014 - bug fixed: writing of max and min value of discharge
-  ! Modified, Stephan Thober,     Aug 2015 - moved write_daily_obs_sim_discharge to mRM
 
   USE mo_kind, ONLY : i4, dp
   IMPLICIT NONE

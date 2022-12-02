@@ -1,16 +1,12 @@
-!>       \file mo_mrm_read_data.f90
+!> \file mo_mrm_read_data.f90
+!> \brief \copybrief mo_mrm_read_data
+!> \details \copydetails mo_mrm_read_data
 
-!>       \brief This module contains all routines to read mRM data from file.
-!>       \details
-
-!>       \details TODO: add description
-
-!>       \authors Stephan Thober
-
-!>       \date Aug 2015
-
-! Modifications:
-
+!> \brief mRM reading routines
+!> \details This module contains all routines to read mRM data from file.
+!> \authors Stephan Thober
+!> \date Aug 2015
+!> \ingroup f_mrm
 module mo_mrm_read_data
   use mo_kind, only : i4, dp
   implicit none

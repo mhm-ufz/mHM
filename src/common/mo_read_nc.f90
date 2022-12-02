@@ -1,24 +1,24 @@
-!>       \file mo_read_nc.f90
+!> \file mo_read_nc.f90
+!> \brief \copybrief mo_read_nc
+!> \details \copydetails mo_read_nc
 
-!>       \brief Reads forcing input data.
-
-!>       \details This module is to read forcing input data contained in netcdf files, e.g. temperature, precipitation,
-!>       total_runoff, lai. Timesteps can be hourly, daily, monthly, and annual. The module provides a subroutine
-!>       for NetCDF files only. First, the dimensions given are cross-checked with header.txt information. Second,
-!>       the data of the specified period are read from the specified directory.
-!>       If the optional lower and/or upper bound for the data values is given, the read data are checked for validity.
-!>       The program is stopped if any value lies out of range.
-
-!>       \authors Juliane Mai
-
-!>       \date Dec 2012
-
-! Modifications:
-! Stephan Thober  Sep 2015 - separated routines for netcdf files from routines for binary files
-! Stephan Thober  Jan 2017 - added reading weights for disaggregation of daily meteorological values to hourly ones
-! Robert Schweppe Nov 2017 - switched to mo_netcdf library and restuctured routines
-! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+!> \brief Reads forcing input data.
+!> \details This module is to read forcing input data contained in netcdf files, e.g. temperature, precipitation,
+!! total_runoff, lai. Timesteps can be hourly, daily, monthly, and annual. The module provides a subroutine
+!! for NetCDF files only. First, the dimensions given are cross-checked with header.txt information. Second,
+!! the data of the specified period are read from the specified directory.
+!! If the optional lower and/or upper bound for the data values is given, the read data are checked for validity.
+!! The program is stopped if any value lies out of range.
+!!
+!! Modifications:
+!! - Stephan Thober  Sep 2015 - separated routines for netcdf files from routines for binary files
+!! - Stephan Thober  Jan 2017 - added reading weights for disaggregation of daily meteorological values to hourly ones
+!! - Robert Schweppe Nov 2017 - switched to mo_netcdf library and restuctured routines
+!! - Robert Schweppe Jun 2018 - refactoring and reformatting
+!!
+!> \authors Juliane Mai
+!> \date Dec 2012
+!> \ingroup f_common
 module mo_read_nc
   implicit none
   public :: read_nc

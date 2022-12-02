@@ -1,54 +1,52 @@
-!>       \file mo_mrm_objective_function_runoff.f90
+!> \file mo_mrm_objective_function_runoff.f90
+!> \brief \copybrief mo_mrm_objective_function_runoff
+!> \details \copydetails mo_mrm_objective_function_runoff
 
-!>       \brief Objective Functions for Optimization of mHM/mRM against runoff.
-
-!>       \details This module provides a wrapper for several objective functions used to optimize mRM/mHM against
-!>       runoff.
-!>       If the objective contains besides runoff another variable like TWS move it to mHM/mo_objective_function.f90.
-!>       If it is only regarding runoff implement it here.
-
-!>       All the objective functions are supposed to be minimized!
-!>       (1)  SO: Q:        1.0 - NSE
-!>       (2)  SO: Q:        1.0 - lnNSE
-!>       (3)  SO: Q:        1.0 - 0.5*(NSE+lnNSE)
-!>       (4)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors and
-!>       then lag(1)-autocorrelation removed
-!>       (5)  SO: Q:        ((1-NSE)**6+(1-lnNSE)**6)**(1/6)
-!>       (6)  SO: Q:        SSE
-!>       (7)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors
-!>       (8)  SO: Q:       -1.0 * loglikelihood with trend removed from the relative errors and
-!>       then lag(1)-autocorrelation removed
-!>       (9)  SO: Q:        1.0 - KGE (Kling-Gupta efficiency measure)
-!>       (14) SO: Q:        sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of
-!>       every gauging station based on a power-6 norm
-!>       (16) MO: Q:        1st objective: 1.0 - NSE
-!>       Q:        2nd objective: 1.0 - lnNSE
-!>       (18) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)
-!>       Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
-!>       (19) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)
-!>       Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)eshold for Q
-!>       (20) MO: Q:        1st objective: absolute difference in FDC's low-segment volume
-!>       Q:        2nd objective: 1.0 - NSE of discharge of months DJF
-!>       (31) SO: Q:        1.0 - wNSE - weighted NSE
-!>       (32) SO: Q:        SSE of boxcox-transformed streamflow
-
-!>       \authors Juliane Mai
-
-!>       \date Dec 2012
-
-! Modifications:
-! Stephan Thober             Oct 2015 - adapted for mRM
-! Juliane Mai                Nov 2015 - introducing multi
-!                                     - and single-objective
-!                                     - first multi-objective function (16), but not used yet
-! Juliane Mai                Feb 2016 - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows)
-!                                     - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows)
-!                                     - multi-objective function (20) using FDC and discharge of months DJF
-! Stephan Thober,Bjoern Guse May 2018 - single objective function (21) using weighted NSE following
-!                                       (Hundecha and Bardossy, 2004)
-! Robert Schweppe            Jun 2018 - refactoring and reformatting
-! Stephan Thober             Aug 2019 - added OF 32: SSE of boxcox-transformed streamflow
-
+!> \brief Objective Functions for Optimization of mHM/mRM against runoff.
+!> \details This module provides a wrapper for several objective functions used to optimize mRM/mHM against
+!> runoff.
+!!
+!> If the objective contains besides runoff another variable like TWS move it to mHM/mo_objective_function.f90.
+!> If it is only regarding runoff implement it here.
+!!
+!! All the objective functions are supposed to be minimized!
+!! 1.  SO: Q:        1.0 - NSE
+!! 2.  SO: Q:        1.0 - lnNSE
+!! 3.  SO: Q:        1.0 - 0.5*(NSE+lnNSE)
+!! 4.  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed
+!! 5.  SO: Q:        ((1-NSE)**6+(1-lnNSE)**6)**(1/6)
+!! 6.  SO: Q:        SSE
+!! 7.  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors
+!! 8.  SO: Q:       -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed
+!! 9.  SO: Q:        1.0 - KGE (Kling-Gupta efficiency measure)
+!! 14. SO: Q:        sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm
+!! 16. MO: Q:        1st objective: 1.0 - NSE
+!!         Q:        2nd objective: 1.0 - lnNSE
+!! 18. MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)
+!!         Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
+!! 19. MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)
+!!         Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)eshold for Q
+!! 20. MO: Q:        1st objective: absolute difference in FDC's low-segment volume
+!!         Q:        2nd objective: 1.0 - NSE of discharge of months DJF
+!! 31. SO: Q:        1.0 - wNSE - weighted NSE
+!! 32. SO: Q:        SSE of boxcox-transformed streamflow
+!!
+!! Modifications:
+!! - Stephan Thober             Oct 2015 - adapted for mRM
+!! - Juliane Mai                Nov 2015 - introducing multi
+!!                                       - and single-objective
+!!                                       - first multi-objective function (16), but not used yet
+!! - Juliane Mai                Feb 2016 - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows)
+!!                                       - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows)
+!!                                       - multi-objective function (20) using FDC and discharge of months DJF
+!! - Stephan Thober,Bjoern Guse May 2018 - single objective function (21) using weighted NSE following
+!!                                         (Hundecha and Bardossy, 2004)
+!! - Robert Schweppe            Jun 2018 - refactoring and reformatting
+!! - Stephan Thober             Aug 2019 - added OF 32: SSE of boxcox-transformed streamflow
+!!
+!> \authors Juliane Mai
+!> \date Dec 2012
+!> \ingroup f_mrm
 MODULE mo_mrm_objective_function_runoff
 
   ! This module provides objective functions for optimization of the UFZ CHS mesoscale hydrologic model mHM.

@@ -1,19 +1,18 @@
-!>       \file mo_mrm_routing.f90
+!> \file mo_mrm_routing.f90
+!> \brief   \copybrief mo_mrm_routing
+!> \details \copydetails mo_mrm_routing
 
-!>       \brief Performs runoff routing for mHM at level L11.
-
-!>       \details This module performs flood routing at a given time step
-!>       through the stream network at level L11 to the sink cell.
-!>       The Muskingum flood routing algorithm is used.
-
-!>       \authors Luis Samaniego
-
-!>       \date Dec 2012
-
-! Modifications:
-! Stephan Thober Aug 2015 - adapted to mRM
-! Sebastian Mueller Jun 2020 - outsourcing helper functions
-
+!> \brief Performs runoff routing for mHM at level L11.
+!> \details This module performs flood routing at a given time step through the stream network at level L11 to the sink cell.
+!! The Muskingum flood routing algorithm is used.
+!!
+!! Modifications:
+!! - Stephan Thober Aug 2015 - adapted to mRM
+!! - Sebastian Mueller Jun 2020 - outsourcing helper functions
+!!
+!> \authors Luis Samaniego
+!> \date Dec 2012
+!> \ingroup f_mrm
 MODULE mo_mrm_routing
 
   ! This module performs runoff flood routing for mHM.

@@ -1,15 +1,12 @@
-!>       \file mo_common_restart.f90
+!> \file mo_common_restart.f90
+!> \brief   \copybrief mo_common_read_data
+!> \details \copydetails mo_common_read_data
 
-!>       \brief TODO: add description
-
-!>       \details TODO: add description
-
-!>       \authors Robert Schweppe
-
-!>       \date Jun 2018
-
-! Modifications:
-
+!> \brief common restart tools
+!> \details Routines to deal with grid infos for restart files
+!> \authors Robert Schweppe
+!> \date Jun 2018
+!> \ingroup f_common
 module mo_common_restart
 
   IMPLICIT NONE

@@ -1,16 +1,12 @@
-!>       \file mo_mrm_restart.f90
+!> \file mo_mrm_restart.f90
+!> \brief \copybrief mo_mrm_restart
+!> \details \copydetails mo_mrm_restart
 
-!>       \brief Restart routines
-
-!>       \details This module contains the subroutines for reading and writing
-!>       routing related variables to file.
-
-!>       \authors Stephan Thober
-
-!>       \date Aug 2015
-
-! Modifications:
-
+!> \brief Restart routines
+!> \details This module contains the subroutines for reading and writing routing related variables to file.
+!> \authors Stephan Thober
+!> \date Aug 2015
+!> \ingroup f_mrm
 module mo_mrm_restart
   use mo_kind, only : i4, dp
   implicit none

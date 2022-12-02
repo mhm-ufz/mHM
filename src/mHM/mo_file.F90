@@ -1,23 +1,3 @@
-!>       \file mo_file.f90
-
-!>       \brief Provides file names and units for mHM
-
-!>       \details Provides all filenames as well as all units used for the hydrologic model mHM.
-!!                The \c version parameter will be set during compilation to
-!!                \"\htmlinclude version.txt \latexinclude version.txt\".
-!!                The \c version_date parameter will be set during compilation to
-!!                \"\htmlinclude version_date.txt \latexinclude version_date.txt\",
-!!                if it is a release version, otherwise it will be the current date.
-
-!>       \authors Matthias Cuntz
-!>       \authors Sebastian Mueller
-
-!>       \date Jan 2012
-
-! Modifications:
-! Robert Schweppe Jun 2018 - refactoring and reformatting
-! Sebastian Mueller Sep 2020 - setting version with pre-processor from version file
-
 #ifndef MHMVERSION
 #define MHMVERSION "0.0.0-dev0"
 #endif
@@ -27,6 +7,26 @@
 #define set_version(x) CHARACTER(len = *), PARAMETER :: version = x
 #define set_date(x) CHARACTER(len = *), PARAMETER :: version_date = x
 
+!> \file mo_file.F90
+!> \brief \copybrief mo_file
+!> \details \copydetails mo_file
+
+!> \brief Provides file names and units for mHM
+!> \details Provides all filenames as well as all units used for the hydrologic model mHM.
+!! The \c version parameter will be set during compilation to
+!! \"\htmlinclude version.txt \latexinclude version.txt\".
+!! The \c version_date parameter will be set during compilation to
+!! \"\htmlinclude version_date.txt \latexinclude version_date.txt\",
+!! if it is a release version, otherwise it will be the current date.
+!!
+!! Modifications:
+!! - Robert Schweppe Jun 2018 - refactoring and reformatting
+!! - Sebastian Mueller Sep 2020 - setting version with pre-processor from version file
+!!
+!> \authors Matthias Cuntz
+!> \authors Sebastian Mueller
+!> \date Jan 2012
+!> \ingroup f_mhm
 MODULE mo_file
 
   IMPLICIT NONE

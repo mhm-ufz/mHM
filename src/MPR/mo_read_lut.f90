@@ -1,18 +1,16 @@
-!>       \file mo_read_lut.f90
+!> \file mo_read_lut.f90
+!> \brief \copybrief mo_read_lut
+!> \details \copydetails mo_read_lut
 
-!>       \brief Routines reading lookup tables (lut).
-
-!>       \details This module contains routines reading various lookup tables (lut).
-!>       (1) LUT containing gauge information.
-!>       (2) LUT containing geological formation information.
-!>       (3) LUT containing LAI class information.
-
-!>       \authors Juliane Mai, Matthias Zink
-
-!>       \date Jan 2013
-
-! Modifications:
-
+!> \brief Routines reading lookup tables (lut).
+!> \details This module contains routines reading various lookup tables (lut).
+!! 1. LUT containing gauge information.
+!! 2. LUT containing geological formation information.
+!! 3. LUT containing LAI class information.
+!!
+!> \authors Juliane Mai, Matthias Zink
+!> \date Jan 2013
+!> \ingroup f_mpr
 MODULE mo_read_lut
 
   ! Written    Juliane Mai,    Jan 2013

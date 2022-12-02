@@ -1,19 +1,18 @@
-!>       \file mo_common_mHM_mRM_variables.f90
+!> \file mo_common_mHM_mRM_variables.f90
+!> \brief \copybrief mo_common_mhm_mrm_variables
+!> \details \copydetails mo_common_mhm_mrm_variables
 
-!>       \brief Provides structures needed by mHM, mRM and/or mpr.
-
-!>       \details Provides the global structure period that is used
-!>       by both mHM and mRM.
-
-!>       \authors Stephan Thober
-
-!>       \date Sep 2015
-
-! Modifications:
-! Stephan Thober  Nov 2016 - moved processdescription from mo_global_variables to here
-! Robert Schweppe Dec 2017 - merged more duplicated variables from mhm and mrm global variables
-! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+!> \brief Provides structures needed by mHM, mRM and/or mpr.
+!> \details Provides the global structure period that is used by both mHM and mRM.
+!!
+!! Modifications:
+!! - Stephan Thober  Nov 2016 - moved processdescription from mo_global_variables to here
+!! - Robert Schweppe Dec 2017 - merged more duplicated variables from mhm and mrm global variables
+!! - Robert Schweppe Jun 2018 - refactoring and reformatting
+!!
+!> \authors Stephan Thober
+!> \date Sep 2015
+!> \ingroup f_common
 module mo_common_mHM_mRM_variables
 
   use mo_kind, only : i4, i8, dp
@@ -34,7 +33,7 @@ module mo_common_mHM_mRM_variables
   logical, public :: read_restart               ! flag
   logical, public :: mrm_read_river_network     ! flag
   logical, public :: read_old_style_restart_bounds     ! flag
-  
+
 
   type(period), dimension(:), allocatable, public :: warmPer     ! time period for warming
   type(period), dimension(:), allocatable, public :: evalPer     ! time period for model evaluation

@@ -1,10 +1,12 @@
 !> \file mo_common_run_variables.f90
-!> \copydoc mo_common_run_variables
+!> \brief \copybrief mo_common_run_variables
+!> \details \copydetails mo_common_run_variables
 
 !> \brief Provides structures needed by mhm_eval to store current run config.
 !> \author Sebastian Mueller
 !> \date Jan 2022
 !> \version 0.1
+!> \ingroup f_common
 module mo_common_run_variables
 
   use mo_kind, only : i4, dp

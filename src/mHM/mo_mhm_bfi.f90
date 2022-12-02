@@ -1,10 +1,12 @@
 !> \file    mo_mhm_bfi.f90
-!> \copydoc mo_mhm_bfi
+!> \brief   \copybrief mo_mhm_bfi
+!> \details \copydetails mo_mhm_bfi
 
 !> \brief   Module to calculate BFI form gauging stations in mHM.
 !> \version 0.1
 !> \authors Sebastian Mueller
 !> \date    Apr 2022
+!> \ingroup f_mhm
 module mo_mhm_bfi
 
   use mo_kind,       only: i4, dp

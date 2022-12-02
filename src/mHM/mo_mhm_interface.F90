@@ -1,12 +1,13 @@
 !> \file    mo_mhm_interface.f90
-!> \brief   Module providing interfaces for mHM.
+!> \brief   \copybrief mo_mhm_interface
 !> \details \copydetails mo_mhm_interface
 
 !> \brief   Module providing interfaces for mHM.
-!> \version 0.1
-!> \authors Sebastian Mueller
-!> \date    Oct 2021
 !> \details Interfaces to control the mHM workflow from outside (init, run, get infos, etc.).
+!> \authors Sebastian Mueller
+!> \version 0.1
+!> \date    Oct 2021
+!> \ingroup f_mhm
 module mo_mhm_interface
 
   use mo_kind, only: i4, dp

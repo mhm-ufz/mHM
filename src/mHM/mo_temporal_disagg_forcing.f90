@@ -1,16 +1,13 @@
-!>       \file mo_temporal_disagg_forcing.f90
+!> \file mo_temporal_disagg_forcing.f90
+!> \brief \copybrief mo_temporal_disagg_forcing
+!> \details \copydetails mo_temporal_disagg_forcing
 
-!>       \brief Temporal disaggregation of daily input values
-
-!>       \details Calculate actual values for precipitation, PET and temperature from daily mean inputs
-!>       ote There is not PET correction for aspect in this routine. Use pet * fasp before or after the routine.
-
-!>       \authors Matthias Cuntz
-
-!>       \date Dec 2012
-
-! Modifications:
-
+!> \brief Temporal disaggregation of daily input values
+!> \details Calculate actual values for precipitation, PET and temperature from daily mean inputs
+!> \note There is not PET correction for aspect in this routine. Use pet * fasp before or after the routine.
+!> \authors Matthias Cuntz
+!> \date Dec 2012
+!> \ingroup f_mhm
 MODULE mo_temporal_disagg_forcing
 
   USE mo_kind, ONLY : dp

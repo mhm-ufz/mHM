@@ -4,6 +4,7 @@
 !> \date    Nov 2022
 
 !> \brief   Python wrapper module to control a mHM model.
+!> \ingroup mhm
 module model
   implicit none
 contains
@@ -59,6 +60,7 @@ contains
 end module model
 
 !> \brief   Python wrapper module to control a mHM model run per time step.
+!> \ingroup mhm
 module run
   implicit none
 contains
@@ -138,9 +140,13 @@ contains
 end module run
 
 !> \brief   Python wrapper module to get internal variables of a mHM model run.
+!> \ingroup mhm
 module get
   implicit none
 contains
+
+  !> \name runoff
+
   !> \brief Get the shape of mHM model runoff output.
   subroutine runoff_shape(shp)
     use mo_mrm_global_variables, only: mRM_runoff
@@ -148,6 +154,9 @@ contains
     integer, intent(out) :: shp(2) !< 2D shape of the runoff
     shp = shape(mRM_runoff)
   end subroutine runoff_shape
+
+  !> \name runoff
+  !> \brief access generated runoff of mHM
 
   !> \brief Get the mHM model runoff output.
   subroutine runoff(output, m, n)
@@ -158,6 +167,8 @@ contains
     real*8, intent(out) :: output(m, n) !< runoff
     output = mRM_runoff
   end subroutine runoff
+
+  !> \name Level 0
 
   !> \brief Get number of unmasked celles on Level-0 of the mHM model.
   subroutine L0_domain_size(n, domain)
@@ -174,6 +185,8 @@ contains
     n = level0(iDomain)%nCells
   end subroutine L0_domain_size
 
+  !> \name Level 0
+
   !> \brief Get the shape of Level-0 of the mHM model.
   subroutine L0_domain_shape(shp, domain)
     use mo_common_variables, only : level0
@@ -188,6 +201,8 @@ contains
     iDomain = run_cfg%get_domain_index(i)
     shp = shape(level0(iDomain)%mask)
   end subroutine L0_domain_shape
+
+  !> \name Level 0
 
   !> \brief Get the mask of Level-0 of the mHM model.
   subroutine L0_domain_mask(mask, n, m, domain)
@@ -205,6 +220,8 @@ contains
     iDomain = run_cfg%get_domain_index(i)
     mask = level0(iDomain)%mask
   end subroutine L0_domain_mask
+
+  !> \name Level 0
 
   !> \brief Get the information of Level-0 of the mHM model.
   subroutine L0_domain_info(ncols, nrows, ncells, xll, yll, cell_size, no_data, domain)
@@ -235,6 +252,9 @@ contains
     no_data = nodata_dp
   end subroutine L0_domain_info
 
+  !> \name Level 0
+  !> \brief access Level 0 information and variables
+
   !> \brief Get a variable on Level-0 of the mHM model.
   subroutine L0_variable(output, n, name, idx)
     use mo_common_run_variables, only : run_cfg
@@ -260,6 +280,8 @@ contains
     end select
   end subroutine L0_variable
 
+  !> \name Level 1
+
   !> \brief Get number of unmasked celles on Level-1 of the mHM model.
   subroutine L1_domain_size(n, domain)
     use mo_common_variables, only : level1
@@ -275,6 +297,8 @@ contains
     n = level1(iDomain)%nCells
   end subroutine L1_domain_size
 
+  !> \name Level 1
+
   !> \brief Get the shape of Level-1 of the mHM model.
   subroutine L1_domain_shape(shp, domain)
     use mo_common_variables, only : level1
@@ -289,6 +313,8 @@ contains
     iDomain = run_cfg%get_domain_index(i)
     shp = shape(level1(iDomain)%mask)
   end subroutine L1_domain_shape
+
+  !> \name Level 1
 
   !> \brief Get the mask of Level-1 of the mHM model.
   subroutine L1_domain_mask(mask, n, m, domain)
@@ -306,6 +332,9 @@ contains
     iDomain = run_cfg%get_domain_index(i)
     mask = level1(iDomain)%mask
   end subroutine L1_domain_mask
+
+  !> \name Level 1
+  !> \brief access Level 1 information and variables
 
   !> \brief Get the information of Level-1 of the mHM model.
   subroutine L1_domain_info(ncols, nrows, ncells, xll, yll, cell_size, no_data, domain)
@@ -335,6 +364,9 @@ contains
     ! no_data = level1(iDomain)%nodata_value
     no_data = nodata_dp
   end subroutine L1_domain_info
+
+  !> \name Level 1
+  !> \brief access Level 1 information and variables
 
   !> \brief Get a variable on Level-1 of the mHM model.
   subroutine L1_variable(output, n, name, idx)
@@ -431,6 +463,8 @@ contains
     end select
   end subroutine L1_variable
 
+  !> \name Level 11
+
   !> \brief Get number of unmasked celles on Level-11 of the mHM model.
   subroutine L11_domain_size(n, domain)
     use mo_mrm_global_variables, only : level11
@@ -446,6 +480,8 @@ contains
     n = level11(iDomain)%nCells
   end subroutine L11_domain_size
 
+  !> \name Level 11
+
   !> \brief Get the shape of Level-11 of the mHM model.
   subroutine L11_domain_shape(shp, domain)
     use mo_mrm_global_variables, only : level11
@@ -460,6 +496,8 @@ contains
     iDomain = run_cfg%get_domain_index(i)
     shp = shape(level11(iDomain)%mask)
   end subroutine L11_domain_shape
+
+  !> \name Level 11
 
   !> \brief Get the mask of Level-11 of the mHM model.
   subroutine L11_domain_mask(mask, n, m, domain)
@@ -477,6 +515,8 @@ contains
     iDomain = run_cfg%get_domain_index(i)
     mask = level11(iDomain)%mask
   end subroutine L11_domain_mask
+
+  !> \name Level 11
 
   !> \brief Get the information of Level-11 of the mHM model.
   subroutine L11_domain_info(ncols, nrows, ncells, xll, yll, cell_size, no_data, domain)
@@ -507,6 +547,9 @@ contains
     no_data = nodata_dp
   end subroutine L11_domain_info
 
+  !> \name Level 11
+  !> \brief access Level 11 information and variables
+
   !> \brief Get a variable on Level-11 of the mHM model.
   subroutine L11_variable(output, n, name, idx)
     use mo_common_run_variables, only : run_cfg
@@ -536,6 +579,8 @@ contains
     end select
   end subroutine L11_variable
 
+  !> \name Level 2
+
   !> \brief Get number of unmasked celles on Level-2 of the mHM model.
   subroutine L2_domain_size(n, domain)
     use mo_global_variables, only : level2
@@ -551,6 +596,8 @@ contains
     n = level2(iDomain)%nCells
   end subroutine L2_domain_size
 
+  !> \name Level 2
+
   !> \brief Get the shape of Level-2 of the mHM model.
   subroutine L2_domain_shape(shp, domain)
     use mo_global_variables, only : level2
@@ -565,6 +612,8 @@ contains
     iDomain = run_cfg%get_domain_index(i)
     shp = shape(level2(iDomain)%mask)
   end subroutine L2_domain_shape
+
+  !> \name Level 2
 
   !> \brief Get the mask of Level-2 of the mHM model.
   subroutine L2_domain_mask(mask, n, m, domain)
@@ -582,6 +631,9 @@ contains
     iDomain = run_cfg%get_domain_index(i)
     mask = level2(iDomain)%mask
   end subroutine L2_domain_mask
+
+  !> \name Level 2
+  !> \brief access Level 2 information
 
   !> \brief Get the information of Level-2 of the mHM model.
   subroutine L2_domain_info(ncols, nrows, ncells, xll, yll, cell_size, no_data, domain)
@@ -615,9 +667,14 @@ contains
 end module get
 
 !> \brief   Python wrapper module to set internal variables of a mHM model run.
+!> \ingroup mhm
 module set
   implicit none
 contains
+
+  !> \name Level 0
+  !> \brief alter Level 0 variables
+
   !> \brief Set a variable on Level-0 of the mHM model.
   subroutine L0_variable(input, n, name, idx)
     use mo_common_run_variables, only : run_cfg

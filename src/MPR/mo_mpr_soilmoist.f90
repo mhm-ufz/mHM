@@ -1,16 +1,12 @@
-!>       \file mo_mpr_soilmoist.f90
+!> \file mo_mpr_soilmoist.f90
+!> \brief \copybrief mo_mpr_soilmoist
+!> \details \copydetails mo_mpr_soilmoist
 
-!>       \brief Multiscale parameter regionalization (MPR) for soil moisture
-
-!>       \details This module contains all routines required for parametrizing
-!>       soil moisture processes.
-
-!>       \authors Stephan Thober, Rohini Kumar
-
-!>       \date Dec 2012
-
-! Modifications:
-
+!> \brief Multiscale parameter regionalization (MPR) for soil moisture
+!> \details This module contains all routines required for parametrizing soil moisture processes.
+!> \authors Stephan Thober, Rohini Kumar
+!> \date Dec 2012
+!> \ingroup f_mpr
 module mo_mpr_soilmoist
 
   use mo_kind, only : i4, dp

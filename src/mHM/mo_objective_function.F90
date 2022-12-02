@@ -1,31 +1,31 @@
-!>       \file mo_objective_function.f90
+!> \file mo_objective_function.f90
+!> \brief   \copybrief mo_objective_function
+!> \details \copydetails mo_objective_function
 
-!>       \brief Objective Functions for Optimization of mHM.
+! ToDo: change comment for OF 15
 
-!>       \details This module provides a wrapper for several objective functions used to optimize mHM against various
-!>       variables.
-!>       If the objective is only regarding runoff move it to mRM/mo_mrm_objective_function_runoff.f90.
-!>       If it contains besides runoff another variable like TWS implement it here.
-
-!>       All the objective functions are supposed to be minimized!
-!>       (10) SO: SM:       1.0 - KGE of catchment average soilmoisture
-!>       (11) SO: SM:       1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture
-!>       (12) SO: SM:       Sum of squared errors (SSE) of spatially distributed standard score (normalization)
-!>       of soil moisture
-!>       (13) SO: SM:       1.0 - average temporal correlation of spatially distributed soil moisture
-!>       (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(domain_avg_TWS) - objective function using Q and domain average !ToDo: change comment
-!>       (standard score) TWS
-!>       (17) SO: N:        1.0 - KGE of spatio-temporal neutron data, catchment-average
-!>       (27) SO: ET:       1.0 - KGE of catchment average evapotranspiration
-
-!>       \authors Juliane Mai
-
-!>       \date Dec 2012
-
-! Modifications:
-! Oldrich Rakovec Oct 2015 - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_domain_avg_tws routine, former basin_avg
-! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+!> \brief Objective Functions for Optimization of mHM.
+!> \details This module provides a wrapper for several objective functions used to optimize mHM against various
+!!       variables.
+!!       If the objective is only regarding runoff move it to mRM/mo_mrm_objective_function_runoff.f90.
+!!       If it contains besides runoff another variable like TWS implement it here.
+!!
+!!       All the objective functions are supposed to be minimized!
+!!       - (10) SO: SM:       1.0 - KGE of catchment average soilmoisture
+!!       - (11) SO: SM:       1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture
+!!       - (12) SO: SM:       Sum of squared errors (SSE) of spatially distributed standard score (normalization) of soil moisture
+!!       - (13) SO: SM:       1.0 - average temporal correlation of spatially distributed soil moisture
+!!       - (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(domain_avg_TWS) - objective function using Q and domain average (standard score) TWS
+!!       - (17) SO: N:        1.0 - KGE of spatio-temporal neutron data, catchment-average
+!!       - (27) SO: ET:       1.0 - KGE of catchment average evapotranspiration
+!!
+!! Modifications:
+!! - Oldrich Rakovec Oct 2015 - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_domain_avg_tws routine, former basin_avg
+!! - Robert Schweppe Jun 2018 - refactoring and reformatting
+!!
+!> \authors Juliane Mai
+!> \date Dec 2012
+!> \ingroup f_mhm
 MODULE mo_objective_function
 
   ! This module provides objective functions for optimization of the UFZ CHS mesoscale hydrologic model mHM.

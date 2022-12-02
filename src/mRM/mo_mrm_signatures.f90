@@ -1,20 +1,19 @@
-!>       \file mo_mrm_signatures.f90
+!> \file mo_mrm_signatures.f90
+!> \brief   \copybrief mo_mrm_signatures
+!> \details \copydetails mo_mrm_signatures
 
-!>       \brief Module with calculations for several hydrological signatures.
-
-!>       \details This module contains calculations for hydrological signatures.
-!>       It contains:
-!>       * Autocorrelation
-!>       * Rising and declining limb densities
-!>       * Flow duration curves
-!>       * Peak distribution
-
-!>       \authors Remko Nijzink,
-
-!>       \date March 2014
-
-! Modifications:
-
+!> \brief Module with calculations for several hydrological signatures.
+!> \details This module contains calculations for hydrological signatures.
+!!
+!! It contains:
+!! - Autocorrelation
+!! - Rising and declining limb densities
+!! - Flow duration curves
+!! - Peak distribution
+!!
+!> \authors Remko Nijzink,
+!> \date March 2014
+!> \ingroup f_mrm
 MODULE mo_mrm_signatures
 
   USE mo_kind, ONLY : i4, sp, dp
@@ -27,7 +26,7 @@ MODULE mo_mrm_signatures
   PUBLIC :: Moments                 ! Moments of data and log-transformed data, e.g. mean and standard deviation.
   PUBLIC :: PeakDistribution        ! Peak distribution parameter
   PUBLIC :: RunoffRatio             ! Runoff ratio (accumulated daily discharge [mm/d] / accumulated daily precipitation [mm/d])
-  PUBLIC :: ZeroFlowRatio           ! Ratio of zero flow days to total observation days                             
+  PUBLIC :: ZeroFlowRatio           ! Ratio of zero flow days to total observation days
 
   ! ------------------------------------------------------------------
 
@@ -191,9 +190,9 @@ CONTAINS
   !>       \date March 2014
 
   ! Modifications:
-  ! Juliane Mai Jun 2015 - mask added 
-  !                      - function instead of subroutine 
-  !                      - use of percentile 
+  ! Juliane Mai Jun 2015 - mask added
+  !                      - function instead of subroutine
+  !                      - use of percentile
   !                      - add concavity_index
   ! Juliane Mai Jun 2015 - add mid_segment_slope, mhigh_segment_volume, high_segment_volume, low_segment_volume
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
@@ -334,7 +333,7 @@ CONTAINS
   !>       \date March 2014
 
   ! Modifications:
-  ! Juliane Mai Jun 2015 - RLD and DLD as optional 
+  ! Juliane Mai Jun 2015 - RLD and DLD as optional
   !                      - optional mask for data can be given
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
@@ -780,8 +779,8 @@ CONTAINS
   !>       \date March 2014
 
   ! Modifications:
-  ! Juliane Mai Jun 2015 - mask added 
-  !                      - function instead of subroutine 
+  ! Juliane Mai Jun 2015 - mask added
+  !                      - function instead of subroutine
   !                      - use of percentile
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 

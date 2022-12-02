@@ -1,15 +1,12 @@
-!>       \file mo_mpr_runoff.f90
+!> \file mo_mpr_runoff.f90
+!> \brief \copybrief mo_mpr_runoff
+!> \details \copydetails mo_mpr_runoff
 
-!>       \brief multiscale parameter regionalization for runoff generation
-
-!>       \details This contains the routine for multiscale parameter regionalization of the runoff parametrization.
-
-!>       \authors Stephan Thober, Rohini Kumar
-
-!>       \date Dec 2012
-
-! Modifications:
-
+!> \brief multiscale parameter regionalization for runoff generation
+!> \details This contains the routine for multiscale parameter regionalization of the runoff parametrization.
+!> \authors Stephan Thober, Rohini Kumar
+!> \date Dec 2012
+!> \ingroup f_mpr
 module mo_mpr_runoff
 
   use mo_kind, only : i4, dp
@@ -138,7 +135,7 @@ contains
     ! HL1 = f(soil properties; No reference found)
     ! Based on the saturation deficit from the field capacity status
     ! seems more reasonable and intutative.
-    ! NOTE: This value for the sandy soils will have higher value of HL1, as compared to 
+    ! NOTE: This value for the sandy soils will have higher value of HL1, as compared to
     !       to clayey soil and so these soils can hold larger amount of amount.
     tmp = merge(param(1) * SMs_FC0, nodata_dp, cell_id0 .ne. nodata_i4)
     L1_HL1 = upscale_arithmetic_mean(nL0_in_L1, Upp_row_L1, Low_row_L1, &
@@ -158,14 +155,14 @@ contains
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, tmp)
 
     ! To avoid numerical error in fully impervious areas (K0 == 0)
-    ! minimum value of K0 is 1-day 
+    ! minimum value of K0 is 1-day
     L1_K0 = merge(1.0_dp, L1_K0, L1_K0 .lt. 1.0_dp)
 
     ! ------------------------------------------------------------------
     ! SLOW INTERFLOW
     ! ------------------------------------------------------------------
     !   K1 = f(terrian slope, Booij, et. al.(2005), JoH)
-    !      = f(soil properties, LC & New modification)  
+    !      = f(soil properties, LC & New modification)
     !  K1  = K0 + K1(soil-Ks)
 
     tmp = merge(param(2) * (2.0_dp - slope_emp0) + param(4) * (1.0_dp + KsVar_H0), &

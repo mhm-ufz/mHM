@@ -1,18 +1,17 @@
 !> \file mo_common_datetime_type.f90
+!> \brief \copybrief mo_common_datetime_type
+!> \details \copydetails mo_common_datetime_type
 
-!< author: Maren Kaluza
-!< date: March 2019
-!< summary: type for date time information with an increment subroutine
-
-!< Contains a current day, month, year, hour matching newTime, aswell as
-!< previous day, month, year. Theses all get updated on increment
-!<
-!< also contains nTimestep, and tIndex_out for writing
-!<
-!< finally, contains iLAI and yId that are time dependent and updating routines
-!< for these, and a function returning a boolean for writeout, dependent on the
-!< timestep_model_input
-
+!> \brief type for date time information with an increment subroutine
+!> \details Contains a current day, month, year, hour matching newTime, aswell as
+!! previous day, month, year. Theses all get updated on increment
+!! also contains nTimestep, and tIndex_out for writing
+!! finally, contains iLAI and yId that are time dependent and updating routines
+!! for these, and a function returning a boolean for writeout, dependent on the
+!! timestep_model_input
+!> \author Maren Kaluza
+!> \date March 2019
+!> \ingroup f_common
 MODULE mo_common_datetime_type
   use mo_kind, only : i4, dp
 

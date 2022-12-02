@@ -1,16 +1,13 @@
-!>       \file mo_read_timeseries.f90
+!> \file mo_read_timeseries.f90
+!> \brief \copybrief mo_read_timeseries
+!> \details \copydetails mo_read_timeseries
 
-!>       \brief Routines to read files containing timeseries data.
-
-!>       \details This routine is reading time series input data for a particular time period. The files need to have a
-!>       specific header specified in the different routines.
-
-!>       \authors Matthias Zink, Juliane Mai
-
-!>       \date Jan 2013
-
-! Modifications:
-
+!> \brief Routines to read files containing timeseries data.
+!> \details This routine is reading time series input data for a particular time period. The files need to have a
+!! specific header specified in the different routines.
+!> \authors Matthias Zink, Juliane Mai
+!> \date Jan 2013
+!> \ingroup f_common
 MODULE mo_read_timeseries
 
   USE mo_kind, ONLY : i4, dp

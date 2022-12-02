@@ -1,16 +1,20 @@
-!>       \file mo_mpr_global_variables.f90
+!> \dir MPR
+!> \brief \copybrief f_mpr
+!> \details \copydetails f_mpr
 
-!>       \brief Global variables for mpr only
-!>       \details
+!> \defgroup   f_mpr MPR - Fortran modules
+!> \brief      Core modules of MPR.
+!> \details    These modules provide the core components of the Multiscale Parameter Regionalization scheme of mHM.
 
-!>       \details TODO: add description
+!> \file mo_mpr_global_variables.f90
+!> \brief \copybrief mo_mpr_global_variables
+!> \details \copydetails mo_mpr_global_variables
 
-!>       \authors Robert Schweppe
-
-!>       \date Dec 2017
-
-! Modifications:
-
+!> \brief Global variables for mpr only
+!> \details Global variables used to run MPR for mHM.
+!> \authors Robert Schweppe
+!> \date Dec 2017
+!> \ingroup f_mpr
 module mo_mpr_global_variables
 
   use mo_kind, only : i4, dp
@@ -158,9 +162,9 @@ module mo_mpr_global_variables
   !                                                                           !       plant can take water nor water can drain in
   !>> COSMIC neutron count realated parameters -- only those which are regionlized
   !!   defined here others are treated as global parameters...
-  real(dp), public, dimension(:,:,:), allocatable :: L1_No_Count     !   N0 COUNT      >> in Desilets and COSMIC routines 
-  real(dp), public, dimension(:,:,:), allocatable :: L1_bulkDens     !   Bulk density  >> in COSMIC routines 
-  real(dp), public, dimension(:,:,:), allocatable :: L1_latticeWater !   lattice water >> in COSMIC routines 
-  real(dp), public, dimension(:,:,:), allocatable :: L1_COSMICL3     !   !COSMIC L3    >> in COSMIC routines 
+  real(dp), public, dimension(:,:,:), allocatable :: L1_No_Count     !   N0 COUNT      >> in Desilets and COSMIC routines
+  real(dp), public, dimension(:,:,:), allocatable :: L1_bulkDens     !   Bulk density  >> in COSMIC routines
+  real(dp), public, dimension(:,:,:), allocatable :: L1_latticeWater !   lattice water >> in COSMIC routines
+  real(dp), public, dimension(:,:,:), allocatable :: L1_COSMICL3     !   !COSMIC L3    >> in COSMIC routines
 
 end module mo_mpr_global_variables

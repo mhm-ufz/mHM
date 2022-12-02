@@ -1,19 +1,19 @@
-!>       \file mo_mpr_read_config.f90
+!> \file mo_mpr_read_config.f90
+!> \brief \copybrief mo_mpr_read_config
+!> \details \copydetails mo_mpr_read_config
 
-!>       \brief read mpr config
-
-!>       \details This module contains all mpr subroutines related to
-!>       reading the mpr configuration from file.
-
-!>       \authors Stephan Thober
-
-!>       \date Aug 2015
-
-! Modifications:
-! Robert Schweppe Dec 2017 - adapted for MPR
-! Robert Schweppe Jun 2018 - refactoring and reformatting
-! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
-! Rohini Kumar                    Oct 2021 - Added Neutron count module to mHM integrate into develop branch (5.11.2)
+!> \brief read mpr config
+!> \details This module contains all mpr subroutines related to reading the mpr configuration from file.
+!!
+!! Modifications:
+!! - Robert Schweppe Dec 2017 - adapted for MPR
+!! - Robert Schweppe Jun 2018 - refactoring and reformatting
+!! - M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
+!! - Rohini Kumar                    Oct 2021 - Added Neutron count module to mHM integrate into develop branch (5.11.2)
+!!
+!> \authors Stephan Thober
+!> \date Aug 2015
+!> \ingroup f_mpr
 module mo_mpr_read_config
 
   use mo_kind, only : i4, dp
@@ -217,9 +217,9 @@ contains
     real(dp), dimension(nColPars) :: Desilets_N0
 
     real(dp), dimension(nColPars) :: Desilets_LW0
-    
+
     real(dp), dimension(nColPars) :: Desilets_LW1
-    
+
     real(dp), dimension(nColPars) :: COSMIC_N0
 
     real(dp), dimension(nColPars) :: COSMIC_N1
@@ -233,9 +233,9 @@ contains
     real(dp), dimension(nColPars) :: COSMIC_L30
 
     real(dp), dimension(nColPars) :: COSMIC_L31
-    
+
     real(dp), dimension(nColPars) :: COSMIC_LW0
-    
+
     real(dp), dimension(nColPars) :: COSMIC_LW1
 
     integer(i4) :: iDomain, domainID
@@ -299,7 +299,7 @@ contains
     namelist /neutrons1/ Desilets_N0, Desilets_LW0, Desilets_LW1
     namelist /neutrons2/ COSMIC_N0, COSMIC_N1, COSMIC_N2, COSMIC_alpha0, COSMIC_alpha1, COSMIC_L30, COSMIC_L31, &
          COSMIC_LW0, COSMIC_LW1
-         
+
     !
     namelist /geoparameter/ GeoParam
 
@@ -980,7 +980,7 @@ contains
       call message('***ERROR: Process description for process "geoparameter" does not exist!')
       stop
    end select
-   
+
     !===============================================================
     ! NEUTRON COUNT
     !===============================================================
@@ -993,7 +993,7 @@ contains
       ! 0 - deactivated
       call message()
       call message('***SELECTION: Neutron count routine is deativated! ')
-      
+
     case(1)
       ! 1 - inverse N0 based on Desilets et al. 2010
       call position_nml('neutrons1', unamelist_param)
@@ -1009,7 +1009,7 @@ contains
            'Desilets_N0   ', &
            'Desilets_LW0  ', &
            'Desilets_LW1  '/))
- 
+
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
         call message('***ERROR: parameter in namelist "neutrons1" out of bound in ', &
@@ -1050,14 +1050,14 @@ contains
                 trim(adjustl(file_namelist_param)))
         stop
       end if
-      
+
      case DEFAULT
       call message()
       call message('***ERROR: Process description for process "NEUTRON count" does not exist!')
       stop
    end select
 
-    
+
     call close_nml(unamelist_param)
 
   end subroutine mpr_read_config

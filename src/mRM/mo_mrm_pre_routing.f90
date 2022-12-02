@@ -1,17 +1,17 @@
-!>       \file mo_mrm_routing.f90
+!> \file mo_mrm_pre_routing.f90
+!> \brief \copybrief mo_mrm_pre_routing
+!> \details \copydetails mo_mrm_pre_routing
 
-!>       \brief Performs pre-processing for routing for mHM at level L11.
-
-!>       \details This module performs runoff accumulation from L1 to L11 and inflow summation.
-
-!>       \authors Luis Samaniego
-
-!>       \date Dec 2012
-
-! Modifications:
-! Stephan Thober Aug 2015 - adapted to mRM
-! Sebastian Mueller Jun 2020 - separate module for pre-processing
-
+!> \brief Performs pre-processing for routing for mHM at level L11.
+!> \details This module performs runoff accumulation from L1 to L11 and inflow summation.
+!!
+!! Modifications:
+!! - Stephan Thober Aug 2015 - adapted to mRM
+!! - Sebastian Mueller Jun 2020 - separate module for pre-processing
+!!
+!> \authors Luis Samaniego
+!> \date Dec 2012
+!> \ingroup f_mrm
 MODULE mo_mrm_pre_routing
 
   ! This module performs  pre-processing for routing for mHM at level L11.

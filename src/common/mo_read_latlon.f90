@@ -1,21 +1,13 @@
-!>       \file mo_read_latlon.f90
+!> \file mo_read_latlon.f90
+!> \brief \copybrief mo_read_latlon
+!> \details \copydetails mo_read_latlon
 
-!>       \brief reading latitude and longitude coordinates for each domain
-
-!>       \details TODO: add description
-
-!>       \authors Stephan Thober
-
-!>       \date Nov 2013
-
-! Modifications:
-
+!> \brief reading latitude and longitude coordinates for each domain
+!> \details This module provides routines for reading latitude and longitude coordinates from file.
+!> \authors Stephan Thober
+!> \date Nov 2013
+!> \ingroup f_common
 MODULE mo_read_latlon
-
-  ! This module provides routines for reading latitude and longitude coordinates
-  ! from file.
-
-  ! Written  Stephan Thober, Nov 2013
 
   USE mo_kind, ONLY : i4, dp
 

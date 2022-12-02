@@ -1,15 +1,12 @@
-!>       \file mo_common_read_data.f90
+!> \file mo_common_read_data.f90
+!> \brief   \copybrief mo_common_read_data
+!> \details \copydetails mo_common_read_data
 
-!>       \brief TODO: add description
-
-!>       \details TODO: add description
-
-!>       \authors Robert Schweppe
-
-!>       \date Jun 2018
-
-! Modifications:
-
+!> \brief Common reading routines
+!> \details Routines to read the DEM and landcover files.
+!> \authors Robert Schweppe
+!> \date Jun 2018
+!> \ingroup f_common
 module mo_common_read_data
   USE mo_kind, ONLY : i4, dp
 

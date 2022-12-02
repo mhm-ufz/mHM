@@ -1,13 +1,12 @@
 !> \file mo_mpr_neutrons.f90
+!> \brief \copybrief mo_mpr_neutrons
+!> \details \copydetails mo_mpr_neutrons
 
 !> \brief   Multiscale parameter regionalization (MPR) for neutrons
-
-!> \details This module contains all routines required for parametrizing
-!>          neutrons processes.
-
+!> \details This module contains all routines required for parametrizing neutrons processes.
 !> \author Maren Kaluza
 !> \date Dec 2017
-
+!> \ingroup f_mpr
 module mo_mpr_neutrons
 
   use mo_kind, only: i4, dp
@@ -108,7 +107,7 @@ contains
 
     ! Input --------------------------------------------------------------------
     integer(i4),                   intent(in)  :: process_case ! process case
-    real(dp),    dimension(:),     intent(in)  :: param        ! global parameters   !! dim = 3 for case 1 and 9 for case 2 
+    real(dp),    dimension(:),     intent(in)  :: param        ! global parameters   !! dim = 3 for case 1 and 9 for case 2
     integer(i4), dimension(:),     intent(in)  :: is_present   ! indicates whether soiltype is present
     integer(i4), dimension(:),     intent(in)  :: nHorizons    ! Number of Horizons per soiltype
     integer(i4), dimension(:),     intent(in)  :: nTillHorizons! Number of Tillage Horizons
@@ -122,7 +121,7 @@ contains
     real(dp),    dimension(:,:,:), intent(out) :: latWat_till    ! lattice water content tillage layer
     real(dp),    dimension(:,:),   intent(out) :: COSMIC_L3      ! COSMIC parameter L3
     real(dp),    dimension(:,:),   intent(out) :: latWat         ! lattice water content
-                                                              
+
     ! Local variables
     integer(i4)                               :: i               ! loop index
     integer(i4)                               :: j               ! loop index
@@ -140,10 +139,10 @@ contains
     COSMIC_L3      = 0.000001_dp
     latWat_till    = 0.000001_dp
     latWat         = 0.000001_dp
-    
+
     ! select case according to a given soil database flag
     SELECT CASE(iFlag_soilDB)
-       
+
        ! classical mHM soil database format
        CASE(0)
           do i = 1, size(is_present)
@@ -171,14 +170,14 @@ contains
              end do horizon
           end do
 
-       ! to handle multiple soil horizons with unique soil class   
+       ! to handle multiple soil horizons with unique soil class
        CASE(1)
            do i = 1, size(is_present)
              if ( is_present(i) .lt. 1 ) cycle
              ! **** FOR THE TILLAGE TYPE OF SOIL *****
              ! there is actually no soil horizons/soil type in this case
              ! but we assign of j = 1 to use variables as defined in the classical option (iFlag_soil = 0)
-             do j = 1, 1   
+             do j = 1, 1
                 ! tillage horizons properties depending on the LC class
                 do L = 1, maxval( LCOVER0 )
                    if(process_case .EQ. 1) call latticeWater(param(2:3), clay(i,j), latWat_till(i,j,L))
@@ -187,7 +186,7 @@ contains
                       call latticeWater(param(8:9), clay(i,j), latWat_till(i,j,L))
                    end if
                 end do
-                
+
                 ! *** FOR NON-TILLAGE TYPE OF SOILS ***
                 ! note j = 1
                 if(process_case .EQ. 1) call latticeWater(param(2:3), clay(i,j), latWat(i,j))
@@ -198,14 +197,14 @@ contains
 
              end do  !>> HORIZON
           end do   !>> SOIL TYPE
-          
+
        CASE DEFAULT
           call message()
           call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
           stop
        END SELECT
        !
-       
+
    end subroutine
 
 
@@ -217,7 +216,7 @@ contains
     real(dp), dimension(2),  intent(in)       :: param
     real(dp),                intent(in)       :: bulkDensity
     real(dp),                intent(inout)    :: L3
- 
+
     L3 = bulkDensity*param(1) - param(2)
     if( bulkDensity .LT. 0.4_dp ) then ! bulkDensity<0.39 yields negative L3, bulkDensity=0.39 yields L3=0
        L3 = 1.0_dp                     ! Prevent division by zero later on; added by joost Iwema to COSMIC 1.13, Feb. 2017
@@ -239,7 +238,7 @@ contains
 
     !Martin Schroen's dissertation
     latWat = ( param(1)*clay/100.0_dp + param(2) )
- 
+
   end subroutine latticeWater
 
 end module mo_mpr_neutrons

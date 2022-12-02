@@ -1,15 +1,12 @@
-!>       \file mo_common_mHM_mRM_read_config.f90
+!> \file mo_common_mHM_mRM_read_config.f90
+!> \brief \copybrief mo_common_mhm_mrm_read_config
+!> \details \copydetails mo_common_mhm_mrm_read_config
 
-!>       \brief Reading of main model configurations.
-
-!>       \details This routine reads the configurations of common program parts
-
-!>       \authors Matthias Zink
-
-!>       \date Dec 2012
-
-! Modifications:
-
+!> \brief Reading of main model configurations.
+!> \details This routine reads the configurations of common program parts
+!> \authors Matthias Zink
+!> \date Dec 2012
+!> \ingroup f_common
 MODULE mo_common_mHM_mRM_read_config
 
   USE mo_kind, ONLY : i4, dp

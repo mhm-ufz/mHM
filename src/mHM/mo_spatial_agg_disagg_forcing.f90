@@ -1,17 +1,13 @@
-!>       \file mo_spatial_agg_disagg_forcing.f90
+!> \file mo_spatial_agg_disagg_forcing.f90
+!> \brief \copybrief mo_spatial_agg_disagg_forcing
+!> \details \copydetails mo_spatial_agg_disagg_forcing
 
-!>       \brief Spatial aggegation or disaggregation of meteorological input data.
-
-!>       \details This module contains two subroutines to upscale and downscale, respectively,
-!>       the level-2 meterological inputs to a required Level-1 hydrological spatial
-!>       resolution.
-
-!>       \authors Rohini Kumar
-
-!>       \date Jan 2013
-
-! Modifications:
-
+!> \brief Spatial aggegation or disaggregation of meteorological input data.
+!> \details This module contains two subroutines to upscale and downscale, respectively,
+!! the level-2 meterological inputs to a required Level-1 hydrological spatial resolution.
+!> \authors Rohini Kumar
+!> \date Jan 2013
+!> \ingroup f_mhm
 MODULE mo_spatial_agg_disagg_forcing
 
   ! This module provides routines for spatial aggegation or disaggregation of meteorological input data.
@@ -133,7 +129,7 @@ CONTAINS
 
 
     ! get number of rows and cols at level-2 from mask2
-    ! and the total time steps 
+    ! and the total time steps
     nr2 = size(data2, 1)
     nc2 = size(data2, 2)
     nTimeSteps = size(data2, 3)
@@ -196,7 +192,7 @@ CONTAINS
 
     end do
 
-    ! free space 
+    ! free space
     deallocate(nTCells)
 
   end subroutine spatial_aggregation_3d
@@ -241,7 +237,7 @@ CONTAINS
 
 
     ! get number of rows and cols at level-2 from mask2
-    ! and the total time steps 
+    ! and the total time steps
     nr2 = size(data2, 1)
     nc2 = size(data2, 2)
     nMonths = size(data2, 3)
@@ -307,7 +303,7 @@ CONTAINS
       end do
     end do
 
-    ! free space 
+    ! free space
     deallocate(nTCells)
 
   end subroutine spatial_aggregation_4d
@@ -353,7 +349,7 @@ CONTAINS
     ! cellFactor = level-2 resolution (meteo) / level-1 resolution (hydro)
     cellFactor = cellsize2 / cellsize1
 
-    ! total time steps 
+    ! total time steps
     nTimeSteps = size(data2, 3)
 
     ! allocate and initalize L1_data
@@ -419,7 +415,7 @@ CONTAINS
     ! cellFactor = level-2 resolution (meteo) / level-1 resolution (hydro)
     cellFactor = cellsize2 / cellsize1
 
-    ! time axis 
+    ! time axis
     nMonths = size(data2, 3)
     nHours = size(data2, 4)
 

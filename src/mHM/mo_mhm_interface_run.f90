@@ -1,11 +1,13 @@
 !> \file    mo_mhm_interface_run.f90
-!> \copydoc mo_mhm_interface_run
+!> \brief   \copybrief mo_mhm_interface_run
+!> \details \copydetails mo_mhm_interface_run
 
 !> \brief   Module providing interfaces for running preconfigured mHM.
-!> \version 0.1
-!> \authors Sebastian Mueller, Matthias Kelbling
-!> \date    Jan 2022
 !> \details Interfaces to control the mHM run from outside (prepare domain, do timestep, ...).
+!> \authors Sebastian Mueller, Matthias Kelbling
+!> \version 0.1
+!> \date    Jan 2022
+!> \ingroup f_mhm
 module mo_mhm_interface_run
 
   ! forces

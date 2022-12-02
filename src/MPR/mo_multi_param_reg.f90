@@ -1,15 +1,12 @@
-!>       \file mo_multi_param_reg.f90
+!> \file mo_multi_param_reg.f90
+!> \brief \copybrief mo_multi_param_reg
+!> \details \copydetails mo_multi_param_reg
 
-!>       \brief Multiscale parameter regionalization (MPR).
-
-!>       \details This module provides the routines for multiscale parameter regionalization (MPR).
-
-!>       \authors Stephan Thober, Rohini Kumar
-
-!>       \date Dec 2012
-
-! Modifications:
-
+!> \brief Multiscale parameter regionalization (MPR).
+!> \details This module provides the routines for multiscale parameter regionalization (MPR).
+!> \authors Stephan Thober, Rohini Kumar
+!> \date Dec 2012
+!> \ingroup f_mpr
 MODULE mo_multi_param_reg
 
   use mo_kind, only : i4, dp
@@ -401,9 +398,9 @@ contains
        ! the forest area is kept constant, but the permeable area is increased so that the
        ! sum off all fractions equals 1 again
        fPerm1(:) = 1.0_dp - fSealed1(:, 1, iiLC) - fForest1(:)
-       
+
        ! ------------------------------------------------------------------
-       ! snow parameters 
+       ! snow parameters
        ! ------------------------------------------------------------------
        select case(processMatrix(2,1))
        case(1)
@@ -423,7 +420,7 @@ contains
        end select
 
        ! ------------------------------------------------------------------
-       ! Soil moisture parametrization 
+       ! Soil moisture parametrization
        ! ------------------------------------------------------------------
        msoil = size(soilDB%is_present, 1)
        mLC = maxval(LCover0(:, iiLC), (LCover0(:, iiLC) .ne. nodata_i4))
@@ -456,15 +453,15 @@ contains
 
        ! neutron count related ones
        ! allocate and initalize here
-       allocate(   latWat_till(msoil, mtill, mLC)) 
-       allocate(COSMIC_L3_till(msoil, mtill, mLC))  
-       allocate(        latWat(msoil, mHor      )) 
+       allocate(   latWat_till(msoil, mtill, mLC))
+       allocate(COSMIC_L3_till(msoil, mtill, mLC))
+       allocate(        latWat(msoil, mHor      ))
        allocate(     COSMIC_L3(msoil, mHor      ))
        latWat_till    = 0.000001_dp
        COSMIC_L3_till = 0.000001_dp
        COSMIC_L3      = 0.000001_dp
        latWat         = 0.000001_dp
-       
+
 
 
        ! earlier these variables were allocated with  size(soilId0,1)
@@ -583,10 +580,10 @@ contains
        deallocate(Db)
 
        ! neutron count
-       deallocate( latWat_till    ) 
-       deallocate( COSMIC_L3_till ) 
-       deallocate( latWat     ) 
-       deallocate( COSMIC_L3  ) 
+       deallocate( latWat_till    )
+       deallocate( COSMIC_L3_till )
+       deallocate( latWat     )
+       deallocate( COSMIC_L3  )
 
        ! ------------------------------------------------------------------
        ! potential evapotranspiration (PET)
@@ -747,7 +744,7 @@ contains
        ! the number of process parameters, so the number in processMatrix(9,2) has
        iStart = processMatrix(10, 3) - processMatrix(10, 2) + 1
        iEnd = processMatrix(10, 3)
-       No_Count1 = param(iStart)  !>> 1st parameter --> N0 parameter 
+       No_Count1 = param(iStart)  !>> 1st parameter --> N0 parameter
     case(2)
        ! the number of process parameters, so the number in processMatrix(9,2) has
        iStart = processMatrix(10, 3) - processMatrix(10, 2) + 1
@@ -1055,7 +1052,7 @@ contains
 
   ! Modifications:
   ! Stephan Thober Dec 2013 - changed intent(inout) to intent(out)
-  ! Stephan Thober Dec 2013 - changed intent(inout) to intent(out) 
+  ! Stephan Thober Dec 2013 - changed intent(inout) to intent(out)
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine karstic_layer(param, geoUnit0, mask0, SMs_FC0, KsVar_V0, Id0, n_subcells1, upper_bound1, lower_bound1, &
@@ -1243,7 +1240,7 @@ contains
 
 
     ! ------------------------------------------------------------------
-    ! Maximum interception parameter 
+    ! Maximum interception parameter
     ! ------------------------------------------------------------------
     select case(processMatrix(1, 1))
     case(1)
