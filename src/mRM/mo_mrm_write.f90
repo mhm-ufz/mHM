@@ -26,8 +26,6 @@ module mo_mrm_write
 
   private
 
-  type(OutputDataset) :: nc ! netcdf Output Dataset
-
 contains
 
   ! ------------------------------------------------------------------
@@ -666,6 +664,7 @@ contains
       ! write time
       allocate(taxis(tlength))
 
+      ! tt is dependent on the unit of the time axis and is set to hours in mRM
       select case( output_time_reference_mrm)
         case(0)
           forall(tt = 1 : tlength) taxis(tt) = (tt-1) * 24
@@ -881,6 +880,7 @@ contains
         time_unit_factor = 60
       end if
 
+      ! tt is dependent on the unit of the time axis and is set to hours in mRM
       select case( output_time_reference_mrm)
         case(0)
           forall(tt = 1 : tlength) taxis(tt) = (tt-1) * factor * time_unit_factor
