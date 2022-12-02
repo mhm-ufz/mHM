@@ -38,6 +38,8 @@ module mo_common_run_variables
     type(OutputDataset) :: nc_mhm
     !> output mRM NetCDF object
     type(OutputDataset) :: nc_mrm
+    !> output groundwater NetCDF object
+    type(OutputDataset) :: nc_gw
     !> No. of cells at level 1 for current Domain
     integer(i4) :: nCells
     !> start and end index at level 1 for current Domain

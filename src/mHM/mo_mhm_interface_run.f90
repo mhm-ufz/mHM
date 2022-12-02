@@ -32,6 +32,7 @@ module mo_mhm_interface_run
     c2TSTu
   use mo_common_variables, only : &
     global_parameters, &
+    level0, &
     level1, &
     domainMeta, &
     processMatrix
@@ -106,7 +107,7 @@ module mo_mhm_interface_run
   use mo_mhm, only : mhm
   use mo_restart, only : read_restart_states
   use mo_write_fluxes_states, only : mHM_updateDataset, mHM_OutputDataset
-  use mo_mrm_write_fluxes_states, only : mRM_updateDataset, mRM_OutputDataset
+  use mo_mrm_write_fluxes_states, only : mRM_updateDataset, mRM_OutputDataset, GW_OutputDataset, GW_updateDataset
   use mo_constants, only : HourSecs
   use mo_common_variables, only : resolutionHydrology
   use mo_mrm_global_variables, only : &
@@ -174,7 +175,7 @@ module mo_mhm_interface_run
   use mo_mrm_restart, only : mrm_read_restart_states
   use mo_mrm_routing, only : mrm_routing
   use mo_utils, only : ge
-  use mo_mrm_river_head, only: calc_river_head, avg_and_write_timestep
+  use mo_mrm_river_head, only: calc_river_head
   use mo_mpr_eval, only : mpr_eval
 
 contains
@@ -666,10 +667,7 @@ contains
       ! groundwater coupling
       ! -------------------------------------------------------------------
       if (gw_coupling) then
-          call calc_river_head(iDomain, L11_Qmod, L0_river_head_mon_sum)
-          if (run_cfg%domainDateTime%is_new_month .and. tt > 1) then
-              call avg_and_write_timestep(iDomain, tt, L0_river_head_mon_sum)
-          end if
+        call calc_river_head(iDomain, L11_Qmod, L0_river_head_mon_sum)
       end if
       ! -------------------------------------------------------------------
       ! reset variables
@@ -717,7 +715,7 @@ contains
   !> \brief write output after current time-step
   subroutine mhm_interface_run_write_output()
     implicit none
-    integer(i4) :: iDomain, tt
+    integer(i4) :: iDomain, tt, s0, e0
 
     ! get time step
     tt = run_cfg%time_step
@@ -747,6 +745,25 @@ contains
 
         if(tt == run_cfg%domainDateTime%nTimeSteps) then
           call run_cfg%nc_mrm%close()
+        end if
+
+        if ( gw_coupling ) then
+          ! create
+          if (run_cfg%domainDateTime%tIndex_out == 1) then
+            run_cfg%nc_gw = GW_OutputDataset(iDomain, level0(iDomain)%mask)
+          end if
+          ! add data
+          s0 = level0(iDomain)%iStart
+          e0 = level0(iDomain)%iEnd
+          call GW_updateDataset(run_cfg%nc_gw, L0_river_head_mon_sum(s0 : e0))
+          ! write
+          if (run_cfg%domainDateTime%writeout(-2, tt)) then ! -2 for monthly
+            call run_cfg%nc_gw%writeTimestep(run_cfg%domainDateTime%tIndex_out * timestep)
+          end if
+          ! close
+          if(tt == run_cfg%domainDateTime%nTimeSteps) then
+            call run_cfg%nc_gw%close()
+          end if
         end if
 
       end if

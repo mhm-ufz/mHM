@@ -131,7 +131,7 @@ end subroutine mrm_configuration
                                  mrm_read_total_runoff, mrm_read_bankfull_runoff
     use mo_mrm_restart, only : mrm_read_restart_config
     use mo_read_latlon, only : read_latlon
-    use mo_mrm_river_head, only: init_masked_zeros_l0, create_output, calc_channel_elevation
+    use mo_mrm_river_head, only: init_masked_zeros_l0, calc_channel_elevation
     use mo_mrm_mpr, only : mrm_init_param
 
     implicit none
@@ -286,13 +286,13 @@ end subroutine mrm_configuration
     ! discharge data
     call mrm_read_discharge()
 
+    ! init groundwater coupling
     if (gw_coupling) then
-        do iDomain = 1, domainMeta%nDomains
-            call init_masked_zeros_l0(iDomain, L0_river_head_mon_sum)
-            call mrm_read_bankfull_runoff(iDomain)
-            call create_output(iDomain, dirOut(iDomain))
-        end do
-        call calc_channel_elevation()
+      do iDomain = 1, domainMeta%nDomains
+        call init_masked_zeros_l0(iDomain, L0_river_head_mon_sum)
+        call mrm_read_bankfull_runoff(iDomain)
+      end do
+      call calc_channel_elevation()
     end if
 
     ! init riv temp

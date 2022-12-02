@@ -15,7 +15,7 @@
 
 module mo_mrm_write_fluxes_states
 
-  use mo_nc_output, only: OutputDataset, OutputVariable, writeVariableAttributes
+  use mo_nc_output, only: OutputDataset, OutputVariable, writeVariableAttributes, data_dims, data_dtype
   use mo_kind, only : i4, dp
   use mo_common_constants, only : nodata_dp
   use mo_netcdf, only : NcDataset, NcVariable
@@ -23,7 +23,8 @@ module mo_mrm_write_fluxes_states
     output_time_reference_mrm, timeStep_model_outputs_mrm, outputFlxState_mrm, riv_temp_pcs, level11
   use mo_common_mHM_mRM_variables, only: timeStep
   use mo_mrm_file, only : file_mrm_output
-  use mo_common_variables, only : iFlag_cordinate_sys
+  use mo_common_variables, only : iFlag_cordinate_sys, level0
+  use mo_String_utils, only : num2str
 
   implicit none
 
@@ -51,46 +52,32 @@ contains
 
     integer(i4) :: ii, nCells
     character(3) :: dtype
-    character(16), dimension(3) :: dims1
-    type(NcDataset) :: nc
+    character(16), dimension(3) :: dims
     type(OutputVariable), dimension(size(outputFlxState_mrm)) :: tmpvars
-
-    nCells = level11(iDomain)%nCells
 
     out = OutputDataset( &
       iDomain=iDomain, &
-      mask=mask, &
-      nCells=nCells, &
       level=level11, &
       file_name=file_mrm_output, &
       double_precision=output_double_precision_mrm, &
       outputs_frequence=timeStep_model_outputs_mrm, &
       time_reference=output_time_reference_mrm &
     )
-
-    if ( output_double_precision_mrm ) then
-      dtype = "f64"
-    else
-      dtype = "f32"
-    end if
-
-    if (iFlag_cordinate_sys == 0) then
-      dims1 = (/"easting ", "northing", "time    "/) ! X & Y coordinate system
-    else
-      dims1 = (/"lon ", "lat ", "time"/) ! lat & lon coordinate system
-    endif
+    dtype = data_dtype(output_double_precision_mrm)
+    dims = data_dims()
+    nCells = level11(iDomain)%nCells
 
     ii = 0
 
     if (outputFlxState_mrm(1)) then
       ii = ii + 1
-      tmpvars(ii) = OutputVariable(out%nc, "Qrouted", dtype, dims1, nCells, mask, output_deflate_level_mrm, .true.)
+      tmpvars(ii) = OutputVariable(out%nc, "Qrouted", dtype, dims, nCells, mask, output_deflate_level_mrm, .true.)
       call writeVariableAttributes(tmpvars(ii), "routed streamflow", "m3 s-1")
     end if
 
     if (outputFlxState_mrm(2) .AND. riv_temp_pcs%active) then
       ii = ii + 1
-      tmpvars(ii) = OutputVariable(out%nc, "RivTemp", dtype, dims1, nCells, mask, output_deflate_level_mrm, .true.)
+      tmpvars(ii) = OutputVariable(out%nc, "RivTemp", dtype, dims, nCells, mask, output_deflate_level_mrm, .true.)
       call writeVariableAttributes(tmpvars(ii), "routed river temperature", "degC")
     end if
 
@@ -124,10 +111,6 @@ contains
     implicit none
 
     class(OutputDataset), intent(inout), target :: nc_mrm
-
-    ! - end index of the domain related data in L1_* arguments
-    integer(i4) :: sidx, eidx
-
     real(dp), intent(in), dimension(:) :: L11_Qmod
     real(dp), intent(in), dimension(:), optional :: L11_riv_temp
 
@@ -149,5 +132,63 @@ contains
     end if
 
   end subroutine mRM_updateDataset
+
+  !> \brief Initialize groundwater coupling OutputDataset
+  !> \details Create and initialize the output file. If new a new output
+  !! variable needs to be written, this is the first of two
+  !! procedures to change (second: updateDataset)
+  !> \return type(OutputDataset)
+  !> \authors Sebastian Mueller
+  !> \date Dec 2022
+  function GW_OutputDataset(iDomain, mask) result(out)
+    implicit none
+
+    integer(i4), intent(in) :: iDomain !< domain id
+    logical, intent(in), target, dimension(:, :) :: mask !< L11 mask
+
+    type(OutputDataset) :: out
+
+    integer(i4) :: nCells
+    character(3) :: dtype
+    character(16), dimension(3) :: dims
+
+    out = OutputDataset( &
+      iDomain=iDomain, &
+      level=level0, &
+      file_name='mRM_riverhead_' // trim(num2str(iDomain, '(i3.3)')) // '.nc', &
+      double_precision=output_double_precision_mrm, &
+      outputs_frequence=timeStep_model_outputs_mrm, &
+      time_reference=output_time_reference_mrm &
+    )
+    dtype = data_dtype(output_double_precision_mrm)
+    dims = data_dims()
+    nCells = level0(iDomain)%nCells
+
+    allocate(out%vars(1))
+    out%vars(1) = OutputVariable(out%nc, "riverhead", dtype, dims, nCells, mask, output_deflate_level_mrm, .true.)
+    call writeVariableAttributes(out%vars(1), "simulated riverhead at each node at level 0", "m")
+
+  end function GW_OutputDataset
+
+  !> \brief Update riverhead.
+  !> \details Call the type bound procedure updateVariable for
+  !! all output variables. If a new output
+  !! variable needs to be written, this is the second
+  !! of two procedures to change (first: newOutputDataset)
+  !> \authors Sebastian Mueller
+  !> \date Dec 2022
+  subroutine GW_updateDataset(nc_gw, L0_river_head)
+
+    implicit none
+
+    class(OutputDataset), intent(inout), target :: nc_gw
+    real(dp), intent(in), dimension(:) :: L0_river_head
+
+    type(OutputVariable), pointer, dimension(:) :: vars
+
+    vars => nc_gw%vars
+    call vars(1)%updateVariable(L0_river_head)
+
+  end subroutine GW_updateDataset
 
 end module mo_mrm_write_fluxes_states
