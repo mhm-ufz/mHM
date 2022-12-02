@@ -51,5 +51,7 @@ MODULE mo_file
   character(:), allocatable :: file_defOutput ! = 'mhm_outputs.nml'
   !> Unit for file defining mHM's outputs
   INTEGER, PARAMETER :: udefOutput = 67
+  !> file containing mhm output
+  character(len = *), PARAMETER :: file_mhm_output = 'mHM_Fluxes_States.nc'
 
 END MODULE mo_file
