@@ -14,7 +14,7 @@
 
 module mo_write_fluxes_states
 
-  use mo_nc_output, only: OutputDataset, OutputVariable, writeVariableAttributes
+  use mo_nc_output, only: OutputDataset, OutputVariable, writeVariableAttributes, data_dims, data_dtype
   use mo_kind, only : i4, dp
   use mo_string_utils, only : num2str
   use mo_common_constants, only : nodata_dp
@@ -24,6 +24,7 @@ module mo_write_fluxes_states
   use mo_common_mHM_mRM_variables, only: timeStep
   use mo_mpr_global_variables, only : nSoilHorizons_mHM
   use mo_common_variables, only : iFlag_cordinate_sys, level1
+  use mo_file, only : file_mhm_output
 
   implicit none
 
@@ -36,7 +37,7 @@ contains
   !!
   !! Modifications:
   !! - Robert Schweppe Jun 2018 - refactoring and reformatting
-  !! - Pallav Shrestha Mar 2020 - iFlag_cordinate_sys based dimensions (dims1)
+  !! - Pallav Shrestha Mar 2020 - iFlag_cordinate_sys based dimensions (dims)
   !!
   !> \return type(OutputDataset)
   !> \authors Matthias Zink
@@ -53,43 +54,31 @@ contains
 
     integer(i4) :: ii, nn, nCells
     character(3) :: dtype
-    character(16), dimension(3) :: dims1
+    character(16), dimension(3) :: dims
     character(16) :: unit
-    type(NcDataset) :: nc
     type(OutputVariable), dimension(size(outputFlxState) * nSoilHorizons_mHM) :: tmpvars
 
     nCells = level1(iDomain)%nCells
 
     out = OutputDataset( &
       iDomain=iDomain, &
-      mask=mask1, &
-      nCells=nCells, &
       level=level1, &
-      file_name='mHM_Fluxes_States.nc', &
+      file_name=file_mhm_output, &
       double_precision=output_double_precision, &
       outputs_frequence=timeStep_model_outputs, &
       time_reference=output_time_reference &
     )
 
-    if ( output_double_precision ) then
-      dtype = "f64"
-    else
-      dtype = "f32"
-    end if
+    dtype = data_dtype(output_double_precision)
     unit = fluxesUnit(iDomain)
-
-    if (iFlag_cordinate_sys == 0) then
-      dims1 = (/"easting ", "northing", "time    "/) ! X & Y coordinate system
-    else
-      dims1 = (/"lon ", "lat ", "time"/) ! lat & lon coordinate system
-    endif
+    dims = data_dims()
 
     ii = 0
 
     if (outputFlxState(1)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "interception", dtype, dims1, nCells, mask1, output_deflate_level, .true.)
+              out%nc, "interception", dtype, dims, nCells, mask1, output_deflate_level, .true.)
       call writeVariableAttributes(&
               tmpvars(ii), "canopy interception storage", "mm")
     end if
@@ -97,7 +86,7 @@ contains
     if (outputFlxState(2)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "snowpack", dtype, dims1, nCells, mask1, output_deflate_level, .true.)
+              out%nc, "snowpack", dtype, dims, nCells, mask1, output_deflate_level, .true.)
       call writeVariableAttributes(tmpvars(ii), "depth of snowpack", "mm")
     end if
 
@@ -105,7 +94,7 @@ contains
       do nn = 1, nSoilHorizons_mHM
         ii = ii + 1
         tmpvars(ii) = OutputVariable(out%nc, "SWC_L" // trim(num2str(nn, '(i2.2)')), &
-                dtype, dims1, nCells, mask1, output_deflate_level, .true.)
+                dtype, dims, nCells, mask1, output_deflate_level, .true.)
         call writeVariableAttributes(tmpvars(ii), &
                 'soil water content of soil layer' // trim(num2str(nn)), "mm")
       end do
@@ -115,7 +104,7 @@ contains
       do nn = 1, nSoilHorizons_mHM
         ii = ii + 1
         tmpvars(ii) = OutputVariable(out%nc, "SM_L" // trim(num2str(nn, '(i2.2)')), &
-                dtype, dims1, nCells, mask1, output_deflate_level, .true.)
+                dtype, dims, nCells, mask1, output_deflate_level, .true.)
         call writeVariableAttributes(tmpvars(ii), &
                 'volumetric soil moisture of soil layer' // trim(num2str(nn)), "mm mm-1")
       end do
@@ -124,7 +113,7 @@ contains
     if (outputFlxState(5)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "SM_Lall", dtype, dims1, nCells, mask1, output_deflate_level, .true.)
+              out%nc, "SM_Lall", dtype, dims, nCells, mask1, output_deflate_level, .true.)
       call writeVariableAttributes(&
               tmpvars(ii), "average soil moisture over all layers", "mm mm-1")
     end if
@@ -132,7 +121,7 @@ contains
     if (outputFlxState(6)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "sealedSTW", dtype, dims1, nCells, mask1, output_deflate_level, .true.)
+              out%nc, "sealedSTW", dtype, dims, nCells, mask1, output_deflate_level, .true.)
       call writeVariableAttributes(&
               tmpvars(ii), "reservoir of sealed areas (sealedSTW)", "mm")
     end if
@@ -140,7 +129,7 @@ contains
     if (outputFlxState(7)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "unsatSTW", dtype, dims1, nCells, mask1, output_deflate_level, .true.)
+              out%nc, "unsatSTW", dtype, dims, nCells, mask1, output_deflate_level, .true.)
       call writeVariableAttributes(&
               tmpvars(ii), "reservoir of unsaturated zone", "mm")
     end if
@@ -148,7 +137,7 @@ contains
     if (outputFlxState(8)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "satSTW", dtype, dims1, nCells, mask1, output_deflate_level, .true.)
+              out%nc, "satSTW", dtype, dims, nCells, mask1, output_deflate_level, .true.)
       call writeVariableAttributes(&
               tmpvars(ii), "water level in groundwater reservoir", "mm")
     end if
@@ -156,7 +145,7 @@ contains
     if (outputFlxState(18)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "neutrons", dtype, dims1, nCells, mask1, output_deflate_level, .true.)
+              out%nc, "neutrons", dtype, dims, nCells, mask1, output_deflate_level, .true.)
       call writeVariableAttributes(&
               tmpvars(ii), "ground albedo neutrons", "cph")
     end if
@@ -164,7 +153,7 @@ contains
     if (outputFlxState(9)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "PET", dtype, dims1, nCells, mask1, output_deflate_level)
+              out%nc, "PET", dtype, dims, nCells, mask1, output_deflate_level)
       call writeVariableAttributes(&
               tmpvars(ii), "potential Evapotranspiration", trim(unit))
     end if
@@ -172,7 +161,7 @@ contains
     if (outputFlxState(10)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "aET", dtype, dims1, nCells, mask1, output_deflate_level)
+              out%nc, "aET", dtype, dims, nCells, mask1, output_deflate_level)
       call writeVariableAttributes(&
               tmpvars(ii), "actual Evapotranspiration", trim(unit))
     end if
@@ -180,7 +169,7 @@ contains
     if (outputFlxState(11)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "Q", dtype, dims1, nCells, mask1, output_deflate_level)
+              out%nc, "Q", dtype, dims, nCells, mask1, output_deflate_level)
       call writeVariableAttributes(&
               tmpvars(ii), "total runoff generated by every cell", trim(unit))
     end if
@@ -188,7 +177,7 @@ contains
     if (outputFlxState(12)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "QD", dtype, dims1, nCells, mask1, output_deflate_level)
+              out%nc, "QD", dtype, dims, nCells, mask1, output_deflate_level)
       call writeVariableAttributes(tmpvars(ii), &
               "direct runoff generated by every cell (runoffSeal)", trim(unit))
     end if
@@ -196,7 +185,7 @@ contains
     if (outputFlxState(13)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "QIf", dtype, dims1, nCells, mask1, output_deflate_level)
+              out%nc, "QIf", dtype, dims, nCells, mask1, output_deflate_level)
       call writeVariableAttributes(tmpvars(ii), &
               "fast interflow generated by every cell (fastRunoff)", trim(unit))
     end if
@@ -204,7 +193,7 @@ contains
     if (outputFlxState(14)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "QIs", dtype, dims1, nCells, mask1, output_deflate_level)
+              out%nc, "QIs", dtype, dims, nCells, mask1, output_deflate_level)
       call writeVariableAttributes(tmpvars(ii), &
               "slow interflow generated by every cell (slowRunoff)", trim(unit))
     end if
@@ -212,7 +201,7 @@ contains
     if (outputFlxState(15)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "QB", dtype, dims1, nCells, mask1, output_deflate_level)
+              out%nc, "QB", dtype, dims, nCells, mask1, output_deflate_level)
       call writeVariableAttributes(&
               tmpvars(ii), "baseflow generated by every cell", trim(unit))
     end if
@@ -220,7 +209,7 @@ contains
     if (outputFlxState(16)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "recharge", dtype, dims1, nCells, mask1, output_deflate_level)
+              out%nc, "recharge", dtype, dims, nCells, mask1, output_deflate_level)
       call writeVariableAttributes(&
               tmpvars(ii), "groundwater recharge", trim(unit))
     end if
@@ -230,7 +219,7 @@ contains
         ii = ii + 1
         tmpvars(ii) = OutputVariable(&
                 out%nc, "soil_infil_L" // trim(num2str(nn, '(i2.2)')), &
-                dtype, dims1, nCells, mask1, output_deflate_level)
+                dtype, dims, nCells, mask1, output_deflate_level)
         call writeVariableAttributes(tmpvars(ii), &
                 "infiltration flux from soil layer" // trim(num2str(nn)), unit)
       end do
@@ -241,7 +230,7 @@ contains
         ii = ii + 1
         tmpvars(ii) = OutputVariable(&
                 out%nc, "aET_L" // trim(num2str(nn, '(i2.2)')), &
-                dtype, dims1, nCells, mask1, output_deflate_level)
+                dtype, dims, nCells, mask1, output_deflate_level)
         call writeVariableAttributes(tmpvars(ii), &
                 'actual Evapotranspiration from soil layer' // trim(num2str(nn)), &
                 "mm " // trim(unit))
@@ -251,7 +240,7 @@ contains
     if (outputFlxState(20)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "preEffect", dtype, dims1, nCells, mask1, output_deflate_level)
+              out%nc, "preEffect", dtype, dims, nCells, mask1, output_deflate_level)
       call writeVariableAttributes(&
               tmpvars(ii), "effective precipitation", trim(unit))
     end if
@@ -259,7 +248,7 @@ contains
     if (outputFlxState(21)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(&
-              out%nc, "Qsm", dtype, dims1, nCells, mask1, output_deflate_level)
+              out%nc, "Qsm", dtype, dims, nCells, mask1, output_deflate_level)
       call writeVariableAttributes(&
               tmpvars(ii), "Average liquid water generated from solid to liquid phase change in the snow", trim(unit))
     end if
