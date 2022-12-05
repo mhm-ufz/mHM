@@ -278,10 +278,9 @@ contains
 
     class(OutputDataset) :: self
 
-
     call self%nc%close()
     call message('  OUTPUT: saved netCDF file for domain', trim(num2str(self%iDomain)))
-    call message('    to ', trim(dirOut(self%iDomain)))
+    call message('    to ', trim(self%nc%fname))
 
   end subroutine close
 
@@ -362,6 +361,7 @@ contains
       call var%setAttribute("axis", "X")
       call var%setAttribute("units", "m")
       call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
+      call var%setAttribute("standard_name", "projection_x_coordinate")
       call var%setAttribute("bounds", "easting_bnds")
       var = nc%setVariable("easting_bnds", dtype, (/ dimids1(4), dimids1(1) /))
       call var%setData(x_bnds)
@@ -371,6 +371,7 @@ contains
       call var%setAttribute("axis", "Y")
       call var%setAttribute("units", "m")
       call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
+      call var%setAttribute("standard_name", "projection_y_coordinate")
       call var%setAttribute("bounds", "northing_bnds")
       var = nc%setVariable("northing_bnds", dtype, (/ dimids1(4), dimids1(2) /))
       call var%setData(y_bnds)
@@ -380,6 +381,7 @@ contains
       call var%setData(lon2d)
       call var%setAttribute("units", "degrees_east")
       call var%setAttribute("long_name", "longitude")
+      call var%setAttribute("standard_name", "longitude")
       call var%setAttribute("missing_value", nodata_dp)
       ! lat
       var = nc%setVariable("lat", dtype, dimids1(1 : 2))
@@ -387,6 +389,7 @@ contains
       call var%setData(lat2d)
       call var%setAttribute("units", "degrees_north")
       call var%setAttribute("long_name", "latitude")
+      call var%setAttribute("standard_name", "latitude")
       call var%setAttribute("missing_value", nodata_dp)
 
     else
@@ -415,6 +418,7 @@ contains
       call var%setAttribute("axis", "X")
       call var%setAttribute("units", "degrees_east")
       call var%setAttribute("long_name", "longitude")
+      call var%setAttribute("standard_name", "longitude")
       call var%setAttribute("bounds", "lon_bnds")
       var = nc%setVariable("lon_bnds", dtype, (/ dimids1(4), dimids1(1) /))
       call var%setData(x_bnds)
@@ -424,6 +428,7 @@ contains
       call var%setAttribute("axis", "Y")
       call var%setAttribute("units", "degrees_north")
       call var%setAttribute("long_name", "latitude")
+      call var%setAttribute("standard_name", "latitude")
       call var%setAttribute("bounds", "lat_bnds")
       var = nc%setVariable("lat_bnds", dtype, (/ dimids1(4), dimids1(2) /))
       call var%setData(y_bnds)
@@ -449,6 +454,7 @@ contains
     call var%setAttribute("axis", "T")
     call var%setAttribute("units", unit)
     call var%setAttribute("long_name", "time")
+    call var%setAttribute("standard_name", "time")
     call var%setAttribute("bounds", "time_bnds")
     var = nc%setVariable("time_bnds", "i32", (/ dimids1(4), dimids1(3) /))
 
