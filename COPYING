@@ -1,201 +1,7 @@
-==============
-SOFTWARE LICENCE
-==============
-
-This file is part of the UFZ CHS mesoscale hydrologic model mHM which
-is a spatially explicit distributed hydrologic model that uses grid
-cells as a primary hydrologic unit.
-
-
-------------------
-
-Copyright(c) 2005-2021,
-Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
-All rights reserved.
-
-The code is a property of:
-
-Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ
-Registered Office: Leipzig
-Registration Office: Amtsgericht Leipzig
-Trade Register: Nr. B 4703
-Chairman of the Supervisory Board: MinDirig Wilfried Kraus
-Scientific Director: Prof. Dr. Dr. h.c. Georg Teutsch
-Administrative Director: Dr. Heike Grassmann
-
-------------------
-
-
-The UFZ CHS mesoscale hydrologic model mHM is free software. You can
-redistribute it and/or modify it under the terms of the GNU General
-Public License as published by the free Software Foundation either
-version 3 of the License, or (at your option) any later version.
-
-
-This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-
-You received a copy of the GNU Lesser General Public License along
-with the UFZ CHS mesoscale hydrologic model mHM. It can be found
-in the section "GNU General Public License" in this document. The
-complete GNU license text can also be found at
-<http://www.gnu.org/licenses/>.
-
-
-==============
-Contact
-==============
-
-Dr. Luis Samaniego
-Dr. Rohini Kumar
-Department Computational Hydrosystems
-
-Mail: Permoserstrasse 15, 04318 Leipzig, Germany
-E-mail: luis.samaniego@ufz.de
-E-mail: rohini.kumar@ufz.de
-
-
-==============
-Redistribution
-==============
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-*  Redistributions of source code must retain the above
-   copyright notice, this list of conditions, the following disclaimer
-   and the modification conditions.
-*  Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions, the following disclaimer and the
-   modification conditions in the documentation and/or other materials
-   provided with the distribution.
-*  Neither the name of Helmholtz-Zentrum fuer Umweltforschung GmbH -
-   UFZ, nor the names of its contributors may be used to endorse or
-   promote products derived from this software without specific prior
-   written permission.
-*  Redistributions of source code are allowed for research purposes
-   ONLY. For commercial applications you need to consult the
-   authorities of the UFZ.
-
-
-==============
-Modification
-==============
-
-If software is modified to produce derivative works, such modified
-software should be clearly marked, so as not to confuse it with the
-version available from UFZ. The following sources are to be
-acknowledged:
-
-*   Samaniego L., R. Kumar, S. Attinger (2010): Multiscale parameter
-    regionalization of a grid-based hydrologic model at the mesoscale.
-    Water Resour. Res., 46,W05523, doi:10.1029/2008WR007327.
-*   Kumar, R., L. Samaniego, and S. Attinger(2013): Implications of
-    distributed hydrologic model parameterization on water fluxes at
-    multiple scales and locations, Water Resour. Res., 49,
-    doi:10.1029/2012WR012195.
-
-
-==============
-Disclaimer of Warranty
-==============
-
-THERE IS NO WARRANTY FOR THIS SOFTWARE, TO THE EXTENT PERMITTED BY
-APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE
-HELMHOLTZ-ZENTRUM FUER UMWELTFORSCHUNG GMBH - UFZ AND CONTRIBUTORS
-PROVIDE THIS SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
-EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
-THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE SOFTWARE IS
-WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME THE COST OF
-ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
-
-
-==============
-Limitation of Liability
-==============
-
-IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
-WILL THE HELMHOLTZ-ZENTRUM FUER UMWELTFORSCHUNG GMBH - UFZ AND
-CONTRIBUTORS OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS THE
-SOFTWARE AS PERMITTED BY GNU GENERAL PUBLIC LICENSE, BE LIABLE FOR
-DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL
-DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE SOFTWARE
-(INCLUDING BUT NOT LIMITED TO LOSS OF DATA, OR DATA BEING RENDERED
-INACCURATE OR LOSSES SUSTAINED BY THE USER OR THIRD PARTIES OR A
-FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER PROGRAMS),  EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
-==============
-Redistribution of Example Data
-==============
-
-The example data provided with the UFZ CHS mesoscale hydrologic model
-mHM are strictly for use in non-commercial research and non-commercial
-education projects only. They are not to be redistributed or used
-without the consideration of the licenses they were originally provided
-under. The following list acknowledges the providers of the example
-data for mHM and links to the licenses the data was provided under.
-
--- E-OBS gridded dataset
-**  We acknowledge the E-OBS dataset for temperature and precipitation
-    from the EU-FP6 project ENSEMBLES
-    (http://ensembles-eu.metoffice.com) and the data providers in the
-    ECA&D project (http://www.ecad.eu)
-
-**  Haylock, M.R., N. Hofstra, A.M.G. Klein Tank, E.J. Klok,
-    P.D. Jones, M. New. 2008: A European daily high-resolution gridded
-    dataset of surface temperature and precipitation.
-    J. Geophys. Res (Atmospheres), 113, D20119, doi:10.1029/2008JD10201
-
-**  http://www.ecad.eu/download/ensembles/ensembles.php (08.04.2014)
-
-
--- Harmonized World Soil Database
-**  We acknowledge the Harmonized World Soil Database dataset of the
-    Food and Agriculture Organization of the United Nations (FAO), the
-    International Institute for Applied Systems Analysis (IIASA),
-    International Soil Reference and Information Centre (ISRIC),
-    Institute of Soil Science at Chinese Academy of Sciences (ISSCAS)
-    and Joint Research Centre of the European Commission (JRC) for
-    providing the soil data.
-
-**  FAO/IIASA/ISRIC/ISSCAS/JRC, 2012. Harmonized World Soil Database
-    (version 1.2). FAO, Rome, Italy and IIASA, Laxenburg, Austria.
-
-**  http://webarchive.iiasa.ac.at/Research/LUC/External-World-soil-
-    database/HTML/ (08.04.2014)
-
-
--- SRTM
-**  We acknowledge the U.S. Geological Survey's Earth Resources
-    Observation and Science (EROS) Center and NASA's Land Processes
-    Distributed Active Archive Center (LP DAAC) for providing the
-    digital elevation model.
-
-**  https://lta.cr.usgs.gov/citation (08.04.2014)
-
-
--- European Soil Database
-**  We acknowledge the European Commission for providing
-    hydrogeological data.
-
-**  http://ec.europa.eu/geninfo/legal_notices_en.htm (08.04.2014)
-
-
-==============
-GNU General Public License
-==============
-
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
- Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
  Everyone is permitted to copy and distribute verbatim copies
  of this license document, but changing it is not allowed.
 
@@ -839,7 +645,7 @@ the "copyright" line and a pointer to where the full notice is found.
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 Also add information on how to contact you by electronic and paper mail.
 
@@ -858,14 +664,11 @@ might be different; for a GUI interface, you would use an "about box".
   You should also get your employer (if you work as a programmer) or school,
 if any, to sign a "copyright disclaimer" for the program, if necessary.
 For more information on this, and how to apply and follow the GNU GPL, see
-<http://www.gnu.org/licenses/>.
+<https://www.gnu.org/licenses/>.
 
   The GNU General Public License does not permit incorporating your program
 into proprietary programs.  If your program is a subroutine library, you
 may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
-<http://www.gnu.org/philosophy/why-not-lgpl.html>.
-
-
-
+<https://www.gnu.org/licenses/why-not-lgpl.html>.
