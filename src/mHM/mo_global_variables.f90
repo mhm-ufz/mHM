@@ -59,6 +59,7 @@ MODULE mo_global_variables
   ! DEFINE OUTPUTS
   ! -------------------------------------------------------------------
   integer(i4) :: output_deflate_level   !< deflate level in nc files
+  integer(i4) :: output_time_reference   !< time reference point location in output nc files
   logical :: output_double_precision    !< output precision in nc files
   integer(i4) :: timeStep_model_outputs !< timestep for writing model outputs
   logical, dimension(nOutFlxState) :: outputFlxState         !< Define model outputs see "mhm_outputs.nml"

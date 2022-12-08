@@ -39,10 +39,11 @@ module mo_mrm_global_variables
   ! DEFINE OUTPUTS
   ! -------------------------------------------------------------------
   !
-  integer(i4) :: output_deflate_level_mrm
-  logical :: output_double_precision_mrm
-  integer(i4) :: timeStep_model_outputs_mrm ! timestep for writing model outputs
-  logical, dimension(nOutFlxState) :: outputFlxState_mrm         ! Define model outputs see "mhm_outputs.nml"
+  integer(i4) :: output_deflate_level_mrm !< compression of output nc files
+  integer(i4) :: output_time_reference_mrm !< time reference point location in output nc files
+  logical :: output_double_precision_mrm !< float precision in output nc files
+  integer(i4) :: timeStep_model_outputs_mrm !< timestep for writing model outputs
+  logical, dimension(nOutFlxState) :: outputFlxState_mrm         !< Define model outputs see "mhm_outputs.nml"
   !                                                            dim1 = number of output variables to be written
   logical :: readLatLon
 

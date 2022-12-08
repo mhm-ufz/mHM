@@ -100,7 +100,7 @@ CONTAINS
       inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
       read_meteo_weights, timeStep_model_outputs, &
       timestep_model_inputs, &
-      output_deflate_level, output_double_precision, &
+      output_deflate_level, output_double_precision, output_time_reference, &
       BFI_calc, BFI_obs
     use mo_message, only : message
     use mo_mpr_constants, only : maxNoSoilHorizons
@@ -190,6 +190,7 @@ CONTAINS
     namelist /NLoutputResults/ &
             output_deflate_level, &
             output_double_precision, &
+            output_time_reference, &
             timeStep_model_outputs, &
             outputFlxState
     ! namelist for baseflow index optimzation
@@ -369,6 +370,7 @@ CONTAINS
     !===============================================================
     call open_nml(file_defOutput, udefOutput, quiet = .true.)
     output_deflate_level = 6
+    output_time_reference = 0
     output_double_precision = .true.
     outputFlxState = .FALSE.
     call position_nml('NLoutputResults', udefOutput)
@@ -383,6 +385,14 @@ CONTAINS
     else
       call message('  NetCDF output precision: single')
     end if
+    select case(output_time_reference)
+      case(0)
+        call message('    NetCDF output time reference point: start of time interval')
+      case(1)
+        call message('    NetCDF output time reference point: center of time interval')
+      case(2)
+        call message('    NetCDF output time reference point: end of time interval')
+    end select
     call message('  STATES:')
     if (outputFlxState(1)) then
       call message('    interceptional storage                          (L1_inter) [mm]')

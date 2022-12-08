@@ -90,7 +90,7 @@ MODULE mo_common_datetime_type
 
     ! initialize arrays and counters
     this%yId  = LCyearId(this%year, iDomain)
-    this%hour = -timestep
+    this%hour = 0
     this%iLAI = 0
 
     ! this has no relevance yet. it is only so the variables are initialized
@@ -98,7 +98,7 @@ MODULE mo_common_datetime_type
     this%prev_month = this%month
     this%prev_year  = this%year
 
-    this%tIndex_out = 1 ! tt if write out of warming period
+    this%tIndex_out = 0 ! tt if write out of warming period
   end subroutine datetimeinfo_init
 
   subroutine datetimeinfo_increment(this)
@@ -117,9 +117,11 @@ MODULE mo_common_datetime_type
     this%is_new_year  = .false.
 
     ! increment of timestep
-    this%hour = mod(this%hour + timestep, 24)
-    this%newTime = julday(this%day, this%month, this%year)&
-            + real(this%hour + timestep, dp) / 24._dp
+    this%hour = this%hour + timestep
+    this%newTime = julday(this%day, this%month, this%year) + real(this%hour, dp) / 24._dp
+    ! get correct hour for current day
+    this%hour = mod(this%hour, 24)
+
     ! calculate new year, month and day
     call caldat(int(this%newTime), yy = this%year, mm = this%month, dd = this%day)
     ! update the flags
