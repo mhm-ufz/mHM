@@ -55,9 +55,9 @@ module mo_nc_output
     integer(i4) :: counter !< count written time steps
     integer(i4) :: previous_time !< previous time steps for bounds
     integer(i4) :: time_unit_factor !< possible factor to convert hours to minutes when using center as time reference
-    integer(i4) :: outputs_frequence !< write out frequence (-3, -2, -1, 0, >0)
+    integer(i4) :: outputs_frequence !< write out frequence (-3: yearly, -2: monthly, -1: daily, 0: end of run, >0: after n steps)
     integer(i4) :: time_reference !< time stamp reference (0: begin, 1: center, 2: end of time interval)
-    logical :: double_precision !< mask on desired level
+    logical :: double_precision !< output precision switch for nc files
 
   contains
     procedure, public :: writeTimestep
@@ -440,9 +440,9 @@ contains
     call dec2date(real(evalPer(iDomain)%julStart, dp), dd = day, mm = month, yy = year)
 
     ! check if we need minutes instead of hours as time unit
-    if ( (outputs_frequence > 0) &
-         .and. (mod(timestep * outputs_frequence, 2) == 1) &
-         .and. (time_reference == 1) &
+    if ( (outputs_frequence > 0) &                           ! only for output after n steps
+         .and. (mod(timestep * outputs_frequence, 2) == 1) & ! only for uneven hours
+         .and. (time_reference == 1) &                       ! only when center of time span is used for time stamp
     ) then
       write(unit, "('minutes since ', i4, '-' ,i2.2, '-', i2.2, 1x, '00:00:00')") year, month, day
     else
