@@ -218,6 +218,33 @@ data for mHM and links to the licenses the data was provided under.
 -  http://ec.europa.eu/geninfo/legal_notices_en.htm (08.04.2014)
 
 
+## Used and included libraries
+
+- `doxygen-awesome-css` (`doc/doxygen-awesome-css/`)
+  - purpose: documentation formatting
+  - sources: https://github.com/jothepro/doxygen-awesome-css
+  - authors: jothepro
+  - license: MIT License (included)
+
+- `cmake-fortran-scripts` (`cmake/`)
+  - purpose: cmake scripts
+  - sources: https://git.ufz.de/chs/cmake-fortran-scripts
+  - authors: mHM Developers
+  - license: LGPLv3+ (included)
+
+- `HPC-Fortran-module-loads` (`hpc-module-loads/`)
+  - purpose: module load scripts
+  - sources: https://git.ufz.de/chs/HPC-Fortran-module-loads
+  - authors: mHM Developers
+  - license: LGPLv3+ (included)
+
+- `FORCES` (linked statically by default)
+  - purpose: fortran library
+  - sources: https://git.ufz.de/chs/forces
+  - authors: mHM Developers
+  - license: LGPLv3+
+
+
 ## mHM Developers
 
 The mHM Developers in chronological order from 2005 to present are:
