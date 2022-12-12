@@ -100,25 +100,21 @@ of the derivative code where pieces of the original mHM code
 have been taken:
 
 ```fortran
-!! ----------------------------------------------------------
-!> The following lines have been obtained from the mHM source.
-!!
-!> \brief Distributed precipitation-runoff model mHM
+!> \note The following lines have been obtained from the mHM source (https://git.ufz.de/mhm/mhm)
+!! - gitversion:        < Provide git version of the original source >
+!! - origin:            < Provide the name of the original subroutine >
+!! - lines:             < Provide from-to lines in the original subroutine >
+!! - authors:           < Provide the complete list of original authors >
+!! - modifications:     < Indicate in detail your contribution >
+!! - date_modification: < Indicate the date of the modification >
 !> \copyright (c) 2005 - today, mHM-Developers (CHS)
-!> \gitversion        < Provide git version of the original source >
-!> \origin            < Provide the name of the original subroutine >
-!> \lines             < Provide from-to lines in the original subroutine >
-!> \authors           < Provide the complete list of original authors >
-!> \modifications     < Indicate in detail your contribution >
-!> \date_modification < Indicate the date of the modification >
-!!
-!! ----------------------------------------------------------
 ```
 
-NOTE: Failure to provide this information in derivative works
-      constitutes a breach of the mHM Copyright.
-      < .. > Information to be provided by any developer using
-             The original code of mHM
+> **NOTE**
+> Failure to provide this information in derivative works
+> constitutes a breach of the mHM Copyright.
+> < .. > information need to be provided by any developer using
+> the original code of mHM.
 
 
 ## Breach of the Copyright
