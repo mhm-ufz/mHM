@@ -13,14 +13,14 @@ regionalization (MPR) technique.
 
 ## COPYRIGHT HOLDERS
 
-> Copyright(c) 2005-2022, the mHM Developers (*): All rights reserved.
->
-> The code is a property of:
->
+ Copyright(c) 2005-2022, the mHM Developers (*): All rights reserved.
+
+The code is a property of:
+
 > The Department Computational Hydrosystems (CHS) at the
-> Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ
-> Registered Office: Leipzig
-> Registration Office: Amtsgericht Leipzig
+> Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ<br/>
+> Registered Office: Leipzig<br/>
+> Registration Office: Amtsgericht Leipzig<br/>
 > Trade Register: Nr. B 4703
 
 The chronological list of mHM developers is provided at the end of this file.
