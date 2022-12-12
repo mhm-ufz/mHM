@@ -43,10 +43,15 @@ The complete GNU license text can also be found at <http://www.gnu.org/licenses/
 
 ## Contact
 
-- Prof. Dr. Luis Samaniego (E-mail: luis.samaniego@ufz.de)
+- mHM Admins (E-mail: mhm-admin@ufz.de)
+- Project Leader: Prof. Dr. Luis Samaniego (E-mail: luis.samaniego@ufz.de)
+- Supervisor: Prof. Dr. Sabine Attinger (E-mail: sabine.attinger@ufz.de)
 - Dr. Rohini Kumar (E-mail: rohini.kumar@ufz.de)
-- Department Computational Hydrosystems (CHS)
-- Mail: Permoserstrasse 15, 04318 Leipzig, Germany
+
+> Department Computational Hydrosystems (CHS)<br/>
+> Helmholtz Centre for Environmental Research - UFZ<br/>
+> Permoserstr. 15<br/>
+> 04318 Leipzig, Germany
 
 
 ## Redistribution
