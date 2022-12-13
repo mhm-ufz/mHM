@@ -45,8 +45,8 @@ The complete GNU license text can also be found at <http://www.gnu.org/licenses/
 
 - mHM Admins (E-mail: mhm-admin@ufz.de)
 - Project Leader: Prof. Dr. Luis Samaniego (E-mail: luis.samaniego@ufz.de)
-- Supervisor: Prof. Dr. Sabine Attinger (E-mail: sabine.attinger@ufz.de)
 - Dr. Rohini Kumar (E-mail: rohini.kumar@ufz.de)
+- Supervisor: Prof. Dr. Sabine Attinger (E-mail: sabine.attinger@ufz.de)
 
 > Department Computational Hydrosystems (CHS)<br/>
 > Helmholtz Centre for Environmental Research - UFZ<br/>
@@ -229,19 +229,19 @@ data for mHM and links to the licenses the data was provided under.
 - `cmake-fortran-scripts` (`cmake/`)
   - purpose: cmake scripts
   - sources: https://git.ufz.de/chs/cmake-fortran-scripts
-  - authors: mHM Developers
+  - authors: CHS Developers
   - license: LGPLv3+ (included)
 
 - `HPC-Fortran-module-loads` (`hpc-module-loads/`)
   - purpose: module load scripts
   - sources: https://git.ufz.de/chs/HPC-Fortran-module-loads
-  - authors: mHM Developers
+  - authors: CHS Developers
   - license: LGPLv3+ (included)
 
 - `FORCES` (linked statically by default)
   - purpose: fortran library
   - sources: https://git.ufz.de/chs/forces
-  - authors: mHM Developers
+  - authors: CHS Developers
   - license: LGPLv3+
 
 
