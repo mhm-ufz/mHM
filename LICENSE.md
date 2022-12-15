@@ -23,7 +23,7 @@ The code is a property of:
 > Registration Office: Amtsgericht Leipzig<br/>
 > Trade Register: Nr. B 4703
 
-The chronological list of mHM developers is provided at the end of this file.
+The chronological list of mHM developers is provided in the AUTHORS file.
 
 The UFZ(CHS) mesoscale hydrologic model mHM is free software. You can
 redistribute it and/or modify it under the terms of the GNU General
@@ -243,35 +243,3 @@ data for mHM and links to the licenses the data was provided under.
   - sources: https://git.ufz.de/chs/forces
   - authors: CHS Developers
   - license: LGPLv3+
-
-
-## mHM Developers
-
-The mHM Developers in chronological order from 2005 to present are:
-
-Luis Samaniego
-Rohini Kumar,
-Matthias Zink,
-Matthias Cuntz,
-Juliane Mai,
-Stephan Thober,
-Christoph Schneider,
-Giovanni Dalmasso,
-Jude Musuuza,
-Oldrich Rakovec,
-John Craven,
-David Schäfer,
-Vladyslav Prykhodko,
-Martin Schrön,
-Diana Spieler,
-Johannes Brenner,
-Ben Langenberg,
-Lennart Schüler,
-Simon Stisen,
-Cüneyd M. Demirel,
-Miao Jing,
-Nicola Döring,
-Maren Kaluza,
-Robert Schweppe,
-Pallav Shrestha,
-Sebastian Müller.
