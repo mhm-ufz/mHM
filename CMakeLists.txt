@@ -1,7 +1,7 @@
 # mHM cmake script
 cmake_minimum_required(VERSION 3.14)
 # get version and date from files (version.txt and version_date.txt)
-include(cmake/cmake-modules/version.cmake)
+include(cmake/version.cmake)
 get_version(MHM_VER MHM_VER_DEV MHM_DATE)
 # create the project
 project(mhm
@@ -42,7 +42,7 @@ target_compile_definitions(mhm_lib PRIVATE
 
 # setup coverage with GNU
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE)
-  include(cmake/cmake-modules/CodeCoverage.cmake)
+  include(cmake/CodeCoverage.cmake)
   append_coverage_compiler_flags_to_target(mhm_lib)
   append_coverage_compiler_flags_to_target(mhm)
   SETUP_TARGET_FOR_COVERAGE_LCOV(
