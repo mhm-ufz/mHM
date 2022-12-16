@@ -16,32 +16,53 @@
 
 !> \brief Main global variables for mHM.
 !> \details Global variables ONLY used in reading, writing and startup.
-!!
-!! Modifications:
-!! - Robert Schweppe Jun 2018 - refactoring and reformatting
-!! - Luis Samaniego,     Feb 2013 - new variable names, new modules, units
-!! - Rohini Kumar,       Jul 2013 - fraction of perfectly sealed area within city added
-!! - Rohini Kumar,       Aug 2013 - name changed "inputFormat" to "inputFormat_meteo_forcings"
-!! - Rohini Kumar,       Aug 2013 - name changed from "L0_LAI" to "L0_LCover_LAI"
-!! - Rohini Kumar,       Aug 2013 - added dirSoil_LUT and dirGeology_LUT
-!! - Luis Samaniego,     Nov 2013 - documentation of dimensions
-!! - Matthias Zink,      Nov 2013 - added "InflowGauge" and inflow gauge variabels in Domain
-!! - Rohini Kumar,       May 2014 - added options for the model run cordinate system
-!! - Stephan Thober,     Jun 2014 - added timeStep_model_inputs and readPer
-!! - Stephan Thober,     Jun 2014 - added perform_mpr, updated restart flags
-!! - Cuntz M. & Mai J.,  Nov 2014 - LAI input from daily, monthly or yearly files
-!! - Matthias Zink,      Dec 2014 - adopted inflow gauges to ignore headwater cells
-!! - Matthias Zink,      Mar 2015 - added optional soil mositure readin: dirSoil_moisture, L1_sm
-!! - Stephan Thober,     Aug 2015 - moved routing related variables to mRM
-!! - Oldrich Rakovec,    Oct 2015 - added definition of Domain averaged TWS data
-!! - Rohini Kumar,       Mar 2016 - new variables for handling different soil databases
-!! - Johann Brenner,     Feb 2017 - added optional evapotranspiration readin: dirEvapotranspiration, L1_et
-!! - Zink M. Demirel C., Mar 2017 - added Jarvis soil water stress variable for SM process(3)
-!! - Demirel M.C.        May 2017 - added L1_petLAIcorFactor for PET correction
-!! - O. Rakovec, R.Kumar Nov 2017 - added project description for the netcdf outputs
-!! - Robert Schweppe,    Dec 2017 - expanded dimensions of effective parameters
-!! - Robert Schweppe,    Dec 2017 - merged duplicated variables with mrm into common variables
-!!
+!> \changelog
+!! - Robert Schweppe Jun 2018
+!!   - refactoring and reformatting
+!! - Luis Samaniego,     Feb 2013
+!!   - new variable names, new modules, units
+!! - Rohini Kumar,       Jul 2013
+!!   - fraction of perfectly sealed area within city added
+!! - Rohini Kumar,       Aug 2013
+!!   - name changed "inputFormat" to "inputFormat_meteo_forcings"
+!! - Rohini Kumar,       Aug 2013
+!!   - name changed from "L0_LAI" to "L0_LCover_LAI"
+!! - Rohini Kumar,       Aug 2013
+!!   - added dirSoil_LUT and dirGeology_LUT
+!! - Luis Samaniego,     Nov 2013
+!!   - documentation of dimensions
+!! - Matthias Zink,      Nov 2013
+!!   - added "InflowGauge" and inflow gauge variabels in Domain
+!! - Rohini Kumar,       May 2014
+!!   - added options for the model run cordinate system
+!! - Stephan Thober,     Jun 2014
+!!   - added timeStep_model_inputs and readPer
+!! - Stephan Thober,     Jun 2014
+!!   - added perform_mpr, updated restart flags
+!! - Cuntz M. & Mai J.,  Nov 2014
+!!   - LAI input from daily, monthly or yearly files
+!! - Matthias Zink,      Dec 2014
+!!   - adopted inflow gauges to ignore headwater cells
+!! - Matthias Zink,      Mar 2015
+!!   - added optional soil mositure readin: dirSoil_moisture, L1_sm
+!! - Stephan Thober,     Aug 2015
+!!   - moved routing related variables to mRM
+!! - Oldrich Rakovec,    Oct 2015
+!!   - added definition of Domain averaged TWS data
+!! - Rohini Kumar,       Mar 2016
+!!   - new variables for handling different soil databases
+!! - Johann Brenner,     Feb 2017
+!!   - added optional evapotranspiration readin: dirEvapotranspiration, L1_et
+!! - Zink M. Demirel C., Mar 2017
+!!   - added Jarvis soil water stress variable for SM process(3)
+!! - Demirel M.C.        May 2017
+!!   - added L1_petLAIcorFactor for PET correction
+!! - O. Rakovec, R.Kumar Nov 2017
+!!   - added project description for the netcdf outputs
+!! - Robert Schweppe,    Dec 2017
+!!   - expanded dimensions of effective parameters
+!! - Robert Schweppe,    Dec 2017
+!!   - merged duplicated variables with mrm into common variables
 !> \authors Luis Samaniego
 !> \date Dec 2012
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.

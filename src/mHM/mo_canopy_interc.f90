@@ -4,10 +4,9 @@
 
 !> \brief Canopy interception.
 !> \details This module deals with processes related to canopy interception, evaporation and throughfall.
-!!
-!! Modifications:
-!! - RK Sep 2013 - Documentation updated (formula and a short description added)
-!!
+!> \changelog
+!! - RK Sep 2013
+!!   - Documentation updated (formula and a short description added)
 !> \authors Vladyslav Prykhodko
 !> \date Dec 2012
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.

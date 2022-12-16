@@ -5,11 +5,11 @@
 !> \brief Performs runoff routing for mHM at level L11.
 !> \details This module performs flood routing at a given time step through the stream network at level L11 to the sink cell.
 !! The Muskingum flood routing algorithm is used.
-!!
-!! Modifications:
-!! - Stephan Thober Aug 2015 - adapted to mRM
-!! - Sebastian Mueller Jun 2020 - outsourcing helper functions
-!!
+!> \changelog
+!! - Stephan Thober Aug 2015
+!!   - adapted to mRM
+!! - Sebastian Mueller Jun 2020
+!!   - outsourcing helper functions
 !> \authors Luis Samaniego
 !> \date Dec 2012
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.

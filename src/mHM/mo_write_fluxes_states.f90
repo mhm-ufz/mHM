@@ -4,11 +4,11 @@
 
 !> \brief Creates NetCDF output for different fluxes and state variables of mHM.
 !> \details NetCDF is first initialized and later on variables are put to the NetCDF.
-!!
-!! Modifications:
-!! - David Schaefer       Aug 2015 - major rewrite
-!! - O. Rakovec, R. Kumar Nov 2017 - added project description for the netcdf outputs
-!!
+!> \changelog
+!! - David Schaefer       Aug 2015
+!!   - major rewrite
+!! - O. Rakovec, R. Kumar Nov 2017
+!!   - added project description for the netcdf outputs
 !> \authors Matthias Zink
 !> \date Apr 2013
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
@@ -37,9 +37,11 @@ contains
   !!       variable needs to be written, this is the first of two
   !!       procedures to change (second: updateDataset)
   !!
-  !! Modifications:
-  !! - Robert Schweppe Jun 2018 - refactoring and reformatting
-  !! - Pallav Shrestha Mar 2020 - iFlag_cordinate_sys based dimensions (dims)
+  !> \changelog
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Pallav Shrestha Mar 2020
+  !!   - iFlag_cordinate_sys based dimensions (dims)
   !!
   !> \return type(OutputDataset)
   !> \authors Matthias Zink
@@ -266,14 +268,15 @@ contains
   !> variable needs to be written, this is the second
   !> of two procedures to change (first: newOutputDataset)
   !!
-  !! Modifications:
-  !! - L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014
-  !!                                 - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014
-  !!                                 - adding new variable infilSoil
-  !!                                 - case 16 David Schaefer      , Jun. 2015
-  !!                                 - major rewrite
-  !! - Robert Schweppe Jun 2018 - refactoring and reformatting
-  !!
+  !> \changelog
+  !! - L. Samaniego et al. Dec  2013
+  !!   - nullify pointer Matthias Zink,        Feb. 2014
+  !!   - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014
+  !!   - adding new variable infilSoil
+  !!   - case 16 David Schaefer      , Jun. 2015
+  !!   - major rewrite
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
   !> \authors Matthias Zink
   !> \date Apr 2013
   subroutine mHM_updateDataset(nc_mhm, sidx, eidx, L1_fSealed, L1_fNotSealed, L1_inter, L1_snowPack, L1_soilMoist, &
@@ -436,8 +439,9 @@ contains
   !> \brief Generate a unit string
   !> \details Generate the unit string for the output variable netcdf attribute based on modeling timestep
   !!
-  !! Modifications:
-  !! - Robert Schweppe Jun 2018 - refactoring and reformatting
+  !> \changelog
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
   !!
   !> \return character(16)
   !> \authors David Schaefer

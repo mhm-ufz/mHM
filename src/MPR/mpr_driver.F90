@@ -8,10 +8,9 @@
 !! one instance of mHM for a multiple domains and a given period.
 !! \image html  mhm5-logo.png "Typical mHM cell"
 !! \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
-!!
-!! Modifications:
-!! - Robert Schweppe Jun 2018 - refactored from mhm codebase
-!!
+!> \changelog
+!! - Robert Schweppe Jun 2018
+!!   - refactored from mhm codebase
 !> \authors Luis Samaniego & Rohini Kumar (UFZ)
 !> \date Dec 2015
 !> \version 0.1

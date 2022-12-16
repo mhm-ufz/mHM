@@ -4,13 +4,15 @@
 
 !> \brief read mpr config
 !> \details This module contains all mpr subroutines related to reading the mpr configuration from file.
-!!
-!! Modifications:
-!! - Robert Schweppe Dec 2017 - adapted for MPR
-!! - Robert Schweppe Jun 2018 - refactoring and reformatting
-!! - M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
-!! - Rohini Kumar                    Oct 2021 - Added Neutron count module to mHM integrate into develop branch (5.11.2)
-!!
+!> \changelog
+!! - Robert Schweppe Dec 2017
+!!   - adapted for MPR
+!! - Robert Schweppe Jun 2018
+!!   - refactoring and reformatting
+!! - M. Cuneyd Demirel, Simon Stisen Jun 2020
+!!   - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
+!! - Rohini Kumar                    Oct 2021
+!!   - Added Neutron count module to mHM integrate into develop branch (5.11.2)
 !> \authors Stephan Thober
 !> \date Aug 2015
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.

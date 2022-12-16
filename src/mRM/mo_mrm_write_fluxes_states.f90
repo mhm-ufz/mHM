@@ -4,11 +4,13 @@
 
 !> \brief Creates NetCDF output for different fluxes and state variables of mHM.
 !> \details NetCDF is first initialized and later on variables are put to the NetCDF.
-!!
-!! Modifications:
-!! - David Schaefer       Aug 2015 - major rewrite
-!! - Stephan Thober       Oct 2015 - adapted to mRM
-!! - O. Rakovec, R. Kumar Nov 2017 - added project description for the netcdf outputs
+!> \changelog
+!! - David Schaefer       Aug 2015
+!!   - major rewrite
+!! - Stephan Thober       Oct 2015
+!!   - adapted to mRM
+!! - O. Rakovec, R. Kumar Nov 2017
+!!   - added project description for the netcdf outputs
 !> \authors Matthias Zink
 !> \date Apr 2013
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
@@ -35,11 +37,11 @@ contains
   !> \details Create and initialize the output file. If new a new output
   !! variable needs to be written, this is the first of two
   !! procedures to change (second: updateDataset)
-  !!
-  !! Modifications:
-  !! - Robert Schweppe Jun 2018 - refactoring and reformatting
-  !! - Sebastian Mueller Jul 2020 - added output for river temperature
-  !!
+  !> \changelog
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Mueller Jul 2020
+  !!   - added output for river temperature
   !> \return type(OutputDataset)
   !> \authors Matthias Zink
   !> \date Apr 2013
@@ -93,17 +95,20 @@ contains
   !! variable needs to be written, this is the second
   !! of two procedures to change (first: newOutputDataset)
   !!
-  !! Modifications:
-  !! - L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014
-  !!                                 - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014
-  !!                                 - adding new variable infilSoil
-  !!                                 - case 16 David Schaefer      , Jun. 2015
-  !!                                 - major rewrite
-  !! - Stephan Thober      Oct  2015 - adapted to mRM
-  !! - Robert Schweppe     Jun  2018 - refactoring and reformatting
-  !! - Sebastian Mueller   Jul  2020 - add river temperature output (optional)
-  !!
-  !> \authors Matthias Zink
+  !> \changelog
+  !! - L. Samaniego et al. Dec  2013
+  !!   - nullify pointer Matthias Zink,        Feb. 2014
+  !!   - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014
+  !!   - adding new variable infilSoil
+  !!   - case 16 David Schaefer      , Jun. 2015
+  !!   - major rewrite
+  !! - Stephan Thober      Oct  2015
+  !!   - adapted to mRM
+  !! - Robert Schweppe     Jun  2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Mueller   Jul  2020
+  !!   - add river temperature output (optional)
+    !> \authors Matthias Zink
   !> \date Apr 2013
   subroutine mRM_updateDataset(nc_mrm, L11_Qmod, L11_riv_temp)
 

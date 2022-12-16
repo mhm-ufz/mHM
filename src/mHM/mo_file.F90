@@ -18,11 +18,11 @@
 !! The \c version_date parameter will be set during compilation to
 !! \"\htmlinclude version_date.txt \latexinclude version_date.txt\",
 !! if it is a release version, otherwise it will be the current date.
-!!
-!! Modifications:
-!! - Robert Schweppe Jun 2018 - refactoring and reformatting
-!! - Sebastian Mueller Sep 2020 - setting version with pre-processor from version file
-!!
+!> \changelog
+!! - Robert Schweppe Jun 2018
+!!   - refactoring and reformatting
+!! - Sebastian Mueller Sep 2020
+!!   - setting version with pre-processor from version file
 !> \authors Matthias Cuntz
 !> \authors Sebastian Mueller
 !> \date Jan 2012

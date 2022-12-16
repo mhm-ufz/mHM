@@ -12,12 +12,13 @@
 
 !> \brief Provides structures needed by mHM, mRM and/or mpr.
 !> \details Provides the global structure period that is used by both mHM and mRM.
-!!
-!! Modifications
-!! - Stephan Thober  Nov 2016 - moved processdescription from mo_global_variables to here
-!! - Robert Schweppe Dec 2017 - merged more duplicated variables from mhm and mrm global variables
-!! - Robert Schweppe Jun 2018 - refactoring and reformatting
-!!
+!> \changelog
+!! - Stephan Thober  Nov 2016
+!!   - moved processdescription from mo_global_variables to here
+!! - Robert Schweppe Dec 2017
+!!   - merged more duplicated variables from mhm and mrm global variables
+!! - Robert Schweppe Jun 2018
+!!   - refactoring and reformatting
 !> \authors Stephan Thober
 !> \date Sep 2015
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.

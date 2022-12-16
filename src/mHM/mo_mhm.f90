@@ -30,39 +30,61 @@
 !!       8          | routing                   |   0   | no routing
 !!       8          | routing                   |   1   | use mRM i.e. Muskingum
 !!       8          | routing                   |   2   | use mRM i.e. adaptive timestep
-!!
-!! Modifications:
-!! - Luis Samaniego, Rohini Kumar    Dec 2012 - modularization
-!! - Luis Samaniego                  Feb 2013 - call routine
-!! - Rohini Kumar                    Feb 2013 - MPR call and other pre-requisite variables for this call
-!! - Rohini Kumar                    May 2013 - Error checks
-!! - Rohini Kumar                    Jun 2013 - sealed area correction in total runoff
-!!                                            - initalization of soil moist. at first timestep
-!! - Rohini Kumar                    Aug 2013 - dynamic LAI option included, and changed within the code
-!!                                              made accordingly (e.g., canopy intecpt.)
-!!                                            - max. canopy interception is estimated outside of MPR call
-!! - Matthias Zink                   Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
-!! - Matthias Zink                   Mar 2014 - added inflow from upstream areas
-!! - Matthias Zink                   Apr 2014 - added PET calculation: Priestley-Taylor and Penman-Monteith
-!! -                                            and its parameterization (Process 5)
-!! - Rohini Kumar                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
-!! - Stephan Thober                  Jun 2014 - added flag for switching of MPR
-!! - Matthias Cuntz & Juliane Mai    Nov 2014 - LAI input from daily, monthly or yearly files
-!! - Matthias Zink                   Dec 2014 - adopted inflow gauges to ignore headwater cells
-!! - Stephan Thober                  Aug 2015 - moved routing to mRM
-!! - Rohini Kumar                    Mar 2016 - changes for handling multiple soil database options
-!! - Rohini Kumar                    Dec 2016 - changes for reading gridded mean monthly LAI fields
-!! - Stephan Thober                  Jan 2017 - added prescribed weights for tavg and pet
-!! - Zink M. Demirel C.              Mar 2017 - added Jarvis soil water stress function at SM process(3)
-!! - M.Cuneyd Demirel & Simon Stisen May 2017 - added FC dependency on root fraction coef. at SM process(3)
-!! - M.Cuneyd Demirel & Simon Stisen Jun 2017 - added PET correction based on LAI at PET process(5)
-!! - Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval
-!! - Robert Schweppe                 Jun 2018 - refactoring and reformatting
-!! - Robert Schweppe                 Nov 2018 - added c2TSTu for unit conversion (moved here from MPR)
-!! - Rohini Kumar                    Oct 2021 - Neutron count module to mHM integrate into develop branch (5.11.2)
-!! - Stephan Thober                  Jan 2022 - added is_hourly_forcing
-!! - Sebastian Mueller               May 2022 - added temp_calc and prec_calc for coupling to other models
-!!
+!> \changelog
+!! - Luis Samaniego, Rohini Kumar    Dec 2012
+!!   - modularization
+!! - Luis Samaniego                  Feb 2013
+!!   - call routine
+!! - Rohini Kumar                    Feb 2013
+!!   - MPR call and other pre-requisite variables for this call
+!! - Rohini Kumar                    May 2013
+!!   - Error checks
+!! - Rohini Kumar                    Jun 2013
+!!   - sealed area correction in total runoff
+!!   - initalization of soil moist. at first timestep
+!! - Rohini Kumar                    Aug 2013
+!!   - dynamic LAI option included, and changed within the code made accordingly (e.g., canopy intecpt.)
+!!   - max. canopy interception is estimated outside of MPR call
+!! - Matthias Zink                   Feb 2014
+!!   - added PET calculation: Hargreaves-Samani (Process 5)
+!! - Matthias Zink                   Mar 2014
+!!   - added inflow from upstream areas
+!! - Matthias Zink                   Apr 2014
+!!   - added PET calculation: Priestley-Taylor and Penman-Monteith and its parameterization (Process 5)
+!! - Rohini Kumar                    Apr 2014
+!!   - mHM run with a single L0 grid cell, also in the routing mode
+!! - Stephan Thober                  Jun 2014
+!!   - added flag for switching of MPR
+!! - Matthias Cuntz & Juliane Mai    Nov 2014
+!!   - LAI input from daily, monthly or yearly files
+!! - Matthias Zink                   Dec 2014
+!!   - adopted inflow gauges to ignore headwater cells
+!! - Stephan Thober                  Aug 2015
+!!   - moved routing to mRM
+!! - Rohini Kumar                    Mar 2016
+!!   - changes for handling multiple soil database options
+!! - Rohini Kumar                    Dec 2016
+!!   - changes for reading gridded mean monthly LAI fields
+!! - Stephan Thober                  Jan 2017
+!!   - added prescribed weights for tavg and pet
+!! - Zink M. Demirel C.              Mar 2017
+!!   - added Jarvis soil water stress function at SM process(3)
+!! - M.Cuneyd Demirel & Simon Stisen May 2017
+!!   - added FC dependency on root fraction coef. at SM process(3)
+!! - M.Cuneyd Demirel & Simon Stisen Jun 2017
+!!   - added PET correction based on LAI at PET process(5)
+!! - Robert Schweppe, Stephan Thober Nov 2017
+!!   - moved call to MPR to mhm_eval
+!! - Robert Schweppe                 Jun 2018
+!!   - refactoring and reformatting
+!! - Robert Schweppe                 Nov 2018
+!!   - added c2TSTu for unit conversion (moved here from MPR)
+!! - Rohini Kumar                    Oct 2021
+!!   - Neutron count module to mHM integrate into develop branch (5.11.2)
+!! - Stephan Thober                  Jan 2022
+!!   - added is_hourly_forcing
+!! - Sebastian Mueller               May 2022
+!!   - added temp_calc and prec_calc for coupling to other models
 !> \authors Luis Samaniego
 !> \date Dec 2012
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.

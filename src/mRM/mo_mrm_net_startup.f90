@@ -10,11 +10,11 @@
 !! - Determining cell locations for network links.
 !! - Find drainage outlet.
 !! - Determine stream (links) features.
-!!
-!! Modifications:
-!! - Rohini Kumar May 2014 - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
-!! - Robert Schweppe Jun 2018 - refactoring and reformatting
-!!
+!> \changelog
+!! - Rohini Kumar May 2014
+!!   - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
+!! - Robert Schweppe Jun 2018
+!!   - refactoring and reformatting
 !> \authors Luis Samaniego
 !> \date Dec 2012
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.

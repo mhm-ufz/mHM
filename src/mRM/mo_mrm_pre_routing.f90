@@ -4,11 +4,11 @@
 
 !> \brief Performs pre-processing for routing for mHM at level L11.
 !> \details This module performs runoff accumulation from L1 to L11 and inflow summation.
-!!
-!! Modifications:
-!! - Stephan Thober Aug 2015 - adapted to mRM
-!! - Sebastian Mueller Jun 2020 - separate module for pre-processing
-!!
+!> \changelog
+!! - Stephan Thober Aug 2015
+!!   - adapted to mRM
+!! - Sebastian Mueller Jun 2020
+!!   - separate module for pre-processing
 !> \authors Luis Samaniego
 !> \date Dec 2012
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.

@@ -2,14 +2,13 @@
 !> \brief \copybrief mo_common_constants
 !> \details \copydetails mo_common_constants
 
-!>       \brief Provides constants commonly used by mHM, mRM and MPR
-!>       \details Provides commonly used by mHM, mRM and MPR such as no_data values and eps
-!!
-!!       Modifications
-!!       - Robert Schweppe Jun 2018 - refactoring and reformatting
-!!
-!>       \authors Robert Schweppe
-!>       \date Dec 2017
+!> \brief Provides constants commonly used by mHM, mRM and MPR
+!> \details Provides commonly used by mHM, mRM and MPR such as no_data values and eps
+!> \changelog
+!!  - Robert Schweppe Jun 2018
+!!    - refactoring and reformatting
+!> \authors Robert Schweppe
+!> \date Dec 2017
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common

@@ -7,7 +7,6 @@
 !! 1. LUT containing gauge information.
 !! 2. LUT containing geological formation information.
 !! 3. LUT containing LAI class information.
-!!
 !> \authors Juliane Mai, Matthias Zink
 !> \date Jan 2013
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.

@@ -4,9 +4,9 @@
 
 !> \brief Provides mRM specific constants
 !> \details Provides mRM specific constants such as flood plain elevation.
-!! Modifications:
-!! - Robert Schweppe Jun 2018 - refactoring and reformatting
-!!
+!> \changelog
+!! - Robert Schweppe Jun 2018
+!!   - refactoring and reformatting
 !> \authors Stephan Thober
 !> \date Aug 2015
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.

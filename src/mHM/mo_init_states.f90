@@ -8,7 +8,6 @@
 !!       Two options are provided:
 !!       - (1) default values
 !!       - (2) from nc file
-!!
 !> \authors Luis Samaniego & Rohini Kumar
 !> \date Dec 2012
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.

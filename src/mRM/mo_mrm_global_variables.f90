@@ -12,10 +12,11 @@
 
 !> \brief Global variables for mRM only
 !> \details Global variables used to run mRM for mHM.
-!! Modifications:
-!! - Robert Schweppe Dec 2017 - merged duplicated variables with mhm into common variables
-!! - Robert Schweppe Jun 2018 - refactoring and reformatting
-!!
+!> \changelog
+!! - Robert Schweppe Dec 2017
+!!   - merged duplicated variables with mhm into common variables
+!! - Robert Schweppe Jun 2018
+!!   - refactoring and reformatting
 !> \authors Luis Samaniego, Stephan Thober
 !> \date Aug 2015
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.

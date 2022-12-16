@@ -10,7 +10,6 @@
 !! - Rising and declining limb densities
 !! - Flow duration curves
 !! - Peak distribution
-!!
 !> \authors Remko Nijzink,
 !> \date March 2014
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
