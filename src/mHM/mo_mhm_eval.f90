@@ -6,7 +6,7 @@
 !> \details Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
 !> \authors Juliane Mai, Rohini Kumar
 !> \date Feb 2013
-!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 MODULE mo_mhm_eval

@@ -6,7 +6,7 @@
 !> \details Prepare daily LAI fields(e.g., MODIS data) for mHM
 !> \authors John Craven & Rohini Kumar
 !> \date Aug 2013
-!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
 MODULE mo_prepare_gridded_LAI

@@ -6,7 +6,7 @@
 !> \details Data have to be provided in resolution of the hydrology.
 !> \authors Matthias Zink
 !> \date Mar 2015
-!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 MODULE mo_read_optional_data

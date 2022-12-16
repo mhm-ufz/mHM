@@ -6,7 +6,7 @@
 !> \details Calling all routines to initialize all mRM variables
 !> \authors Luis Samaniego, Rohini Kumar and Stephan Thober
 !> \date Aug 2015
-!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mrm
 MODULE mo_mrm_init

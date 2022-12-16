@@ -7,7 +7,7 @@
 !> \authors Sebastian Mueller, Matthias Kelbling
 !> \version 0.1
 !> \date    Jan 2022
-!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 module mo_mhm_interface_run
