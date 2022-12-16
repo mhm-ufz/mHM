@@ -76,6 +76,8 @@
 !! For commercial applications you have to consult the
 !! authorities of the UFZ.
 !!
+!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 PROGRAM mhm_driver
   use mo_common_mHM_mRM_variables, only: optimize

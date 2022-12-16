@@ -9,6 +9,8 @@
 !! The data are read from the specified directory.
 !> \authors Juliane Mai
 !> \date Dec 2012
+!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 MODULE mo_read_spatial_data
 

@@ -11,6 +11,8 @@
 !!
 !> \authors Matthias Zink
 !> \date Apr 2013
+!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 module mo_write_fluxes_states
 

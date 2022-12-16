@@ -7,6 +7,8 @@
 !! module needs to be run only one time at the beginning of a simulation if re-starting files do not exist.
 !> \authors Luis Samaniego, Rohini Kumar
 !> \date Dec 2012
+!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
 MODULE mo_mpr_startup
 

@@ -8,6 +8,8 @@
 !> \date    2019-2021
 !> \details This module contains sending and receiving subroutines for
 !!          data that are specific for mHM or mRM
+!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 MODULE mo_common_mpi_tools
 

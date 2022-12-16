@@ -1,12 +1,14 @@
-!>       \file    mo_check.f90
-!>       \brief   \copybrief mo_check
-!>       \details \copydetails mo_check
+!> \file    mo_check.f90
+!> \brief   \copybrief mo_check
+!> \details \copydetails mo_check
 
-!>       \brief   Input checking routines
-!>       \details This module provides sanity checks for the input data.
-!>       \authors Sebastian Mueller
-!>       \date    Nov 2020
-!>       \ingroup f_common
+!> \brief   Input checking routines
+!> \details This module provides sanity checks for the input data.
+!> \authors Sebastian Mueller
+!> \date    Nov 2020
+!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
+!> \ingroup f_common
 MODULE mo_check
 
   USE mo_kind, ONLY : i4, dp

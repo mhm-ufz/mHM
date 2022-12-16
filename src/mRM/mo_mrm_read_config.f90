@@ -6,6 +6,8 @@
 !> \details This module contains all mRM subroutines related to reading the mRM configuration either from file or copy from mHM.
 !> \authors Stephan Thober
 !> \date Aug 2015
+!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mrm
 module mo_mrm_read_config
 

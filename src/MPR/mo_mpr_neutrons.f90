@@ -6,6 +6,8 @@
 !> \details This module contains all routines required for parametrizing neutrons processes.
 !> \author Maren Kaluza
 !> \date Dec 2017
+!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
 module mo_mpr_neutrons
 

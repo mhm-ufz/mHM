@@ -6,6 +6,8 @@
 !> \author Sebastian Mueller
 !> \date Jan 2022
 !> \version 0.1
+!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 module mo_common_run_variables
 

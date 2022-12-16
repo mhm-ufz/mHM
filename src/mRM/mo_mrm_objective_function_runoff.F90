@@ -46,6 +46,8 @@
 !!
 !> \authors Juliane Mai
 !> \date Dec 2012
+!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mrm
 MODULE mo_mrm_objective_function_runoff
 

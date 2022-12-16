@@ -13,6 +13,8 @@
 !!
 !> \authors Stephan Thober
 !> \date Aug 2015
+!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
 module mo_mpr_read_config
 

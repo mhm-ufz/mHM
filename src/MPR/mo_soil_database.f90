@@ -9,6 +9,8 @@
 !! The second routine \e generate_soil_database calculates based on the initial one the proper soil database.
 !> \authors Juliane Mai
 !> \date Dec 2012
+!> \copyright Copyright 2005-	oday, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
 MODULE mo_soil_database
 
