@@ -80,3 +80,8 @@ All these scripts will load:
   source juwels.intelMPI
   ```
 
+## License
+
+MIT License (MIT)
+
+Copyright (c) 2020 - 2022 CHS Developers
