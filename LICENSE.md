@@ -230,13 +230,13 @@ data for mHM and links to the licenses the data was provided under.
   - purpose: cmake scripts
   - sources: https://git.ufz.de/chs/cmake-fortran-scripts
   - authors: CHS Developers
-  - license: LGPLv3+ (included)
+  - license: MIT License (included)
 
 - `HPC-Fortran-module-loads` (`hpc-module-loads/`)
   - purpose: module load scripts
   - sources: https://git.ufz.de/chs/HPC-Fortran-module-loads
   - authors: CHS Developers
-  - license: LGPLv3+ (included)
+  - license: MIT License (included)
 
 - `FORCES` (linked statically by default)
   - purpose: fortran library
