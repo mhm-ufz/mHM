@@ -2,8 +2,13 @@
 !> \brief   Module to wrap mHM with f2py to control it with Python.
 !> \authors Sebastian Mueller
 !> \date    Nov 2022
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 
 !> \brief   Python wrapper module to control a mHM model.
+!> \date    Nov 2022
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup mhm
 module model
   implicit none
@@ -60,6 +65,9 @@ contains
 end module model
 
 !> \brief   Python wrapper module to control a mHM model run per time step.
+!> \date    Nov 2022
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup mhm
 module run
   implicit none
@@ -140,6 +148,9 @@ contains
 end module run
 
 !> \brief   Python wrapper module to get internal variables of a mHM model run.
+!> \date    Nov 2022
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup mhm
 module get
   implicit none
@@ -667,6 +678,9 @@ contains
 end module get
 
 !> \brief   Python wrapper module to set internal variables of a mHM model run.
+!> \date    Nov 2022
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup mhm
 module set
   implicit none
