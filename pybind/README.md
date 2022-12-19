@@ -97,3 +97,8 @@ mhm.model.finalize()
 ```
 
 See also the `examples` folder.
+
+
+## License
+
+LGPLv3 (c) 2005-2022 mHM-Developers
