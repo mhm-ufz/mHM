@@ -41,7 +41,8 @@ target_compile_definitions(mhm_lib PRIVATE
 )
 
 # setup coverage with GNU
-if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE)
+if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE AND EXISTS "CI-scripts")
+  message(STATUS "mHM: add coverage")
   include(cmake/CodeCoverage.cmake)
   append_coverage_compiler_flags_to_target(mhm_lib)
   append_coverage_compiler_flags_to_target(mhm)
@@ -54,9 +55,9 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE)
 endif()
 # automatically enable testing (OFF by default)
 option(BUILD_TESTING "Build with pfUnit tests." OFF)
-include(CTest)
 # add pfunit test folder
-if(BUILD_TESTING)
+if(BUILD_TESTING AND EXISTS "src/tests")
+  include(CTest)
   add_subdirectory(src/tests)
 endif()
 
