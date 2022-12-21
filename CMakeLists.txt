@@ -55,9 +55,9 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE AND EXISTS "C
 endif()
 # automatically enable testing (OFF by default)
 option(BUILD_TESTING "Build with pfUnit tests." OFF)
+include(CTest)
 # add pfunit test folder
 if(BUILD_TESTING AND EXISTS "src/tests")
-  include(CTest)
   add_subdirectory(src/tests)
 endif()
 
