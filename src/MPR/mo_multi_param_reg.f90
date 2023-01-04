@@ -13,6 +13,7 @@ MODULE mo_multi_param_reg
 
   use mo_kind, only : i4, dp
   use mo_common_constants, only : nodata_dp, nodata_i4
+  use mo_message, only : message, error_message
 
   implicit none
 
@@ -135,7 +136,6 @@ contains
        parameterset )
 
     use mo_common_variables, only : global_parameters, processMatrix
-    use mo_message, only : message
     use mo_mpr_SMhorizons, only : mpr_SMhorizons
     use mo_mpr_global_variables, only : HorizonDepth_mHM, fracSealed_CityArea, iFlag_soilDB, nSoilHorizons_mHM, &
          soilDB
@@ -416,9 +416,7 @@ contains
                degDayInc1(:, 1, iiLC), degDayMax1(:, 1, iiLC) & ! intent(out)
                )
        case DEFAULT
-          call message()
-          call message('***ERROR: Process description for process "snow pack" does not exist! mo_multi_param_reg')
-          stop
+          call error_message('***ERROR: Process description for process "snow pack" does not exist! mo_multi_param_reg')
        end select
 
        ! ------------------------------------------------------------------
@@ -526,10 +524,8 @@ contains
           !write(*,*) 'iStart, iEnd, iStart2, iEnd2 = ', iStart, iEnd, iStart2, iEnd2
 
        case DEFAULT
-          call message()
-          call message('***ERROR: Process description for process "soil moisture parametrization"', &
+          call error_message('***ERROR: Process description for process "soil moisture parametrization"', &
                'does not exist! mo_multi_param_reg')
-          stop 1
        end select
 
        call mpr_sm(param(iStart : iEnd), processMatrix, &
@@ -622,9 +618,7 @@ contains
                left_bound1, right_bound1, n_subcells1, unsatThresh1(:, 1, 1), kFastFlow1(:, 1, iiLC), &
                kSlowFlow1(:, 1, 1), alpha1(:, 1, 1))
        case DEFAULT
-          call message()
-          call message('***ERROR: Process description for process "interflow" does not exist! mo_multi_param_reg')
-          stop
+          call error_message('***ERROR: Process description for process "interflow" does not exist! mo_multi_param_reg')
        END select
 
        ! ------------------------------------------------------------------
@@ -644,9 +638,7 @@ contains
                )
 
        case DEFAULT
-          call message()
-          call message('***ERROR: Process description for process "percolation" does not exist! mo_multi_param_reg')
-          stop
+          call error_message('***ERROR: Process description for process "percolation" does not exist! mo_multi_param_reg')
        end select
 
        deallocate(KsVar_H0)
@@ -665,9 +657,7 @@ contains
        iEnd = processMatrix(4, 3)
        call iper_thres_runoff(param(iStart : iEnd), sealedThresh1)
     case DEFAULT
-       call message()
-       call message('***ERROR: Process description for process "runoff_generation" does not exist! mo_multi_param_reg')
-       stop
+       call error_message('***ERROR: Process description for process "runoff_generation" does not exist! mo_multi_param_reg')
     end select
 
     ! ------------------------------------------------------------------
@@ -703,9 +693,7 @@ contains
             nodata_dp, Id0, n_subcells1, upper_bound1, lower_bound1, left_bound1, right_bound1, &
             surfResist1(:, :, 1))
     case default
-       call message()
-       call message('***ERROR: Process description for process "pet correction" does not exist! mo_multi_param_reg')
-       stop
+       call error_message('***ERROR: Process description for process "pet correction" does not exist! mo_multi_param_reg')
     end select
     ! ------------------------------------------------------------------
     ! baseflow recession parameter
@@ -730,9 +718,7 @@ contains
        if (processMatrix(7, 1) .gt. 0) kBaseFlow1 = merge(kSlowFlow1, kBaseFlow1, kBaseFlow1 .lt. kSlowFlow1)
        !
     case DEFAULT
-       call message()
-       call message('***ERROR: Process description for process "baseflow Recession" does not exist! mo_multi_param_reg')
-       stop
+       call error_message('***ERROR: Process description for process "baseflow Recession" does not exist! mo_multi_param_reg')
     end select
 
     ! ------------------------------------------------------------------
@@ -753,9 +739,7 @@ contains
        iEnd = processMatrix(10, 3)
        No_Count1 = param(iStart)  !>> 1st parameter --> N0 parameter
     case DEFAULT
-       call message()
-       call message('***ERROR: Process description for process "Neutron count" does not exist! mo_multi_param_reg')
-       stop
+       call error_message('***ERROR: Process description for process "Neutron count" does not exist! mo_multi_param_reg')
     end select
 
 
@@ -826,7 +810,7 @@ contains
 
 
     if (size(param) .ne. size(geoUnitList)) &
-         stop ' mo_multi_param_reg: baseflow_param: size mismatch, subroutine baseflow parameters '
+          call error_message(' mo_multi_param_reg: baseflow_param: size mismatch, subroutine baseflow parameters ')
 
     k2_0 = nodata_dp
 
@@ -1192,7 +1176,6 @@ contains
   subroutine canopy_intercept_param(processMatrix, param, LAI0, n_subcells1, upper_bound1, lower_bound1, left_bound1, &
        right_bound1, Id0, mask0, nodata, max_intercept1)
 
-    use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_upscaling_operators, only : upscale_arithmetic_mean
 
@@ -1270,8 +1253,7 @@ contains
        deallocate(gamma_intercept)
        deallocate(max_intercept0)
     CASE DEFAULT
-       call message('mo_multi_param_reg: This processMatrix=', num2str(processMatrix(1, 1)), ' is not implemented!')
-       stop
+       call error_message('mo_multi_param_reg: This processMatrix=', num2str(processMatrix(1, 1)), ' is not implemented!')
     end select
 
   end subroutine canopy_intercept_param

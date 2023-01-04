@@ -11,7 +11,11 @@
 !> \ingroup f_mrm
 module mo_mrm_read_data
   use mo_kind, only : i4, dp
+  use mo_message, only: message, error_message
+  use mo_constants, only : nerr ! stderr for error messages
+
   implicit none
+
   public :: mrm_read_L0_data
   public :: mrm_read_discharge
   public :: mrm_read_total_runoff
@@ -52,7 +56,6 @@ contains
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : Grid, L0_LCover, dirMorpho, level0, domainMeta, processMatrix
     use mo_mpr_file, only: file_slope, uslope
-    use mo_message, only : message
     use mo_mrm_file, only : file_facc, file_fdir, &
                             file_gaugeloc, ufacc, ufdir, ugaugeloc
     use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, domain_mrm
@@ -190,12 +193,10 @@ contains
           do iGauge = 1, domain_mrm(iDomain)%nGauges
             ! If gaugeId is found in gauging location file?
             if (.not. any(data_i4_2d .EQ. domain_mrm(iDomain)%gaugeIdList(iGauge))) then
-              call message()
               call message('***ERROR: Gauge ID "', trim(adjustl(num2str(domain_mrm(iDomain)%gaugeIdList(iGauge)))), &
-                      '" not found in ')
-              call message('          Gauge location input file: ', &
+                      '" not found in ', uni=nerr)
+              call error_message('          Gauge location input file: ', &
                       trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_gaugeloc)))
-              stop
             end if
           end do
 
@@ -208,13 +209,11 @@ contains
             do iGauge = 1, domain_mrm(iDomain)%nInflowGauges
               ! If InflowGaugeId is found in gauging location file?
               if (.not. any(data_i4_2d .EQ. domain_mrm(iDomain)%InflowGaugeIdList(iGauge))) then
-                call message()
                 call message('***ERROR: Inflow Gauge ID "', &
                         trim(adjustl(num2str(domain_mrm(iDomain)%InflowGaugeIdList(iGauge)))), &
-                        '" not found in ')
-                call message('          Gauge location input file: ', &
+                        '" not found in ', uni=nerr)
+                call error_message('          Gauge location input file: ', &
                         trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_gaugeloc)))
-                stop 1
               end if
             end do
           end if
@@ -257,7 +256,6 @@ contains
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : evalPer, nTstepDay, opti_function, optimize, simPer
     use mo_common_variables, only : domainMeta
-    use mo_message, only : message
     use mo_mrm_file, only : udischarge
     use mo_mrm_global_variables, only : InflowGauge, gauge, mRM_runoff, nGaugesLocal, &
                                         nInflowGaugesTotal, nMeasPerDay, &
@@ -328,11 +326,9 @@ contains
                 start_tmp, end_tmp, optimize, opti_function, &
                 data_dp_1d, mask = mask_1d, nMeasPerDay = nMeasPerDay)
         if (.NOT. (all(mask_1d))) then
-          call message()
-          call message('***ERROR: Nodata values in inflow gauge time series. File: ', trim(fName))
-          call message('          During simulation period from ', num2str(simPer(iDomain)%yStart) &
+          call message('***ERROR: Nodata values in inflow gauge time series. File: ', trim(fName), uni=nerr)
+          call error_message('          During simulation period from ', num2str(simPer(iDomain)%yStart) &
                   , ' to ', num2str(simPer(iDomain)%yEnd))
-          stop
         end if
         data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
         call paste(InflowGauge%Q, data_dp_1d, nodata_dp)

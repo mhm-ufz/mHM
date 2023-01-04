@@ -24,6 +24,9 @@
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 module mo_read_nc
+  use mo_message, only: message, error_message
+  use mo_constants, only : nerr ! stderr for error messages
+
   implicit none
   public :: read_nc
   public :: read_const_nc
@@ -93,7 +96,6 @@ contains
     use mo_common_variables, only : period
     use mo_common_mHM_mRM_variables, only : nTstepForcingDay
     use mo_kind, only : dp, i4
-    use mo_message, only : message
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
     use mo_utils, only : eq, ne
@@ -193,7 +195,7 @@ contains
     ! get dimensions and check if plane is correct
     var_shape = var%getShape()
     if ((var_shape(1) .ne. nRows) .or. (var_shape(2) .ne. nCols)) then
-      stop '***ERROR: read_nc: mHM generated x and y are not matching NetCDF dimensions'
+      call error_message('***ERROR: read_nc: mHM generated x and y are not matching NetCDF dimensions')
     end if
 
     ! determine no data value, use _FillValue first, fall back to missing_value
@@ -202,7 +204,7 @@ contains
     else if (var%hasAttribute("missing_value")) then
       call var%getAttribute('missing_value', nodata_value)
     else
-      stop '***ERROR: read_nc: there must be either the attribute "missing_value" or "_FillValue"'
+      call error_message('***ERROR: read_nc: there must be either the attribute "missing_value" or "_FillValue"')
     end if
 
     ! get time variable
@@ -217,21 +219,18 @@ contains
              if (nTstepForcingDay .eq. nodata_i4) then
                 nTstepForcingDay = 1_i4
              else if (nTstepForcingDay .ne. 1_i4) then
-                call message('***ERROR: read_forcing_nc: expected daily input forcing, but read something else. ' // &
+                call error_message('***ERROR: read_forcing_nc: expected daily input forcing, but read something else. ' // &
                      'Ensure all input time steps have the same units across all input files')
-                stop 1
              end if
           case(-4) ! hourly
              if (nTstepForcingDay .eq. nodata_i4) then
                 nTstepForcingDay = 24_i4
              else if (nTstepForcingDay .ne. 24_i4) then
-                call message('***ERROR: read_forcing_nc: expected hourly input forcing, but read something else. ' // &
+                call error_message('***ERROR: read_forcing_nc: expected hourly input forcing, but read something else. ' // &
                      'Ensure all input time steps have the same units across all input files')
-                stop 1
              end if
           case default ! no output at all
-             call message('***ERROR: read_nc: unknown nctimestep switch.')
-             stop
+             call error_message('***ERROR: read_nc: unknown nctimestep switch.')
           end select
        end if
     end if
@@ -240,9 +239,8 @@ contains
     if (present(nctimestep)) then
        if (inctimestep .ne. nctimestep) then
           call message('***ERROR: provided timestep ' // num2str(nctimestep) //&
-                       ' does not match with the one in file ' // num2str(inctimestep))
-          call message('File: ' // trim(fname))
-          stop 1
+                       ' does not match with the one in file ' // num2str(inctimestep), uni=nerr)
+          call error_message('File: ' // trim(fname))
        end if
     end if
 
@@ -260,37 +258,32 @@ contains
       ! neglect checking for nodata values if optional nocheck is given
       if (checking) then
         if (any(eq(data(:, :, i), nodata_value) .and. (mask))) then
-          call message('***ERROR: read_nc: nodata value within domain ')
-          call message('          boundary in variable: ', trim(varName))
-          call message('          at timestep         : ', trim(num2str(i)))
-          stop
+          call message('***ERROR: read_nc: nodata value within domain ', uni=nerr)
+          call message('          boundary in variable: ', trim(varName), uni=nerr)
+          call error_message('          at timestep         : ', trim(num2str(i)))
         end if
       end if
       ! optional check
       if (present(lower)) then
         if (any((data(:, :, i) .lt. lower) .AND. mask(:, :))) then
           call message('***ERROR: read_nc: values in variable "', &
-                  trim(varName), &
-                  '" are lower than ', trim(num2str(lower, '(F7.2)')))
-          call message('          at timestep  : ', trim(num2str(i)))
-          call message('File: ', trim(fName))
-          call message('Minval at timestep: ', trim(num2str(minval(data(:, :, i)))))
-          call message('Total minval: ', trim(num2str(minval(data(:, :, :)))))
-          stop
+                  trim(varName), '" are lower than ', trim(num2str(lower, '(F7.2)')), uni=nerr)
+          call message('          at timestep  : ', trim(num2str(i)), uni=nerr)
+          call message('File: ', trim(fName), uni=nerr)
+          call message('Minval at timestep: ', trim(num2str(minval(data(:, :, i)))), uni=nerr)
+          call error_message('Total minval: ', trim(num2str(minval(data(:, :, :)))))
         end if
       end if
 
       if (present(upper)) then
         if (any((data(:, :, i) .gt. upper) .AND. mask(:, :))) then
           call message('***ERROR: read_nc: values in variable "', &
-                  trim(varName), &
-                  '" are greater than ', trim(num2str(upper, '(F7.2)')))
-          call message('          at timestep  : ', trim(num2str(i)))
-          call message('File: ', trim(fName))
-          call message('Maxval at timestep: ', trim(num2str(maxval(data(:, :, i)))))
-          call message('Total maxval: ', trim(num2str(maxval(data(:, :, :)))))
-          print*, data(:, :, i)
-          stop
+                  trim(varName), '" are greater than ', trim(num2str(upper, '(F7.2)')), uni=nerr)
+          call message('          at timestep  : ', trim(num2str(i)), uni=nerr)
+          call message('File: ', trim(fName), uni=nerr)
+          call message('Maxval at timestep: ', trim(num2str(maxval(data(:, :, i)))), uni=nerr)
+          call error_message('Total maxval: ', trim(num2str(maxval(data(:, :, :)))))
+          ! print*, data(:, :, i)
         end if
       end if
 
@@ -397,7 +390,7 @@ contains
     ! get dimensions and check if plane is correct
     var_shape = var%getShape()
     if ( (var_shape(1) .ne. nRows) .or. (var_shape(2) .ne. nCols) ) then
-       stop '***ERROR: read_const_nc: mHM generated x and y are not matching NetCDF dimensions'
+       call error_message('***ERROR: read_const_nc: mHM generated x and y are not matching NetCDF dimensions')
     end if
 
     ! determine no data value, use _FillValue first, fall back to missing_value
@@ -406,7 +399,7 @@ contains
     else if (var%hasAttribute("missing_value")) then
       call var%getAttribute('missing_value', nodata_value)
     else
-      stop '***ERROR: read_const_nc: there must be either the attribute "missing_value" or "_FillValue"'
+       call error_message('***ERROR: read_const_nc: there must be either the attribute "missing_value" or "_FillValue"')
     end if
 
     ! extract data and select time slice
@@ -544,7 +537,7 @@ contains
     ! get dimensions
     var_shape = var%getShape()
     if ((var_shape(1) .ne. nRows) .or. (var_shape(2) .ne. nCols)) then
-      stop '***ERROR: read_nc: mHM generated x and y are not matching NetCDF dimensions'
+       call error_message('***ERROR: read_nc: mHM generated x and y are not matching NetCDF dimensions')
     end if
 
     ! determine no data value
@@ -565,36 +558,31 @@ contains
         ! neglect checking for naodata values if optional nocheck is given
         if (checking) then
           if (any(eq(data(:, :, i, j), nodata_value) .and. (mask))) then
-            call message('***ERROR: read_nc: nodata value within domain ')
-            call message('          boundary in variable: ', trim(varName))
-            call message('          at hour         : ', trim(num2str(i)))
-            stop
+            call message('***ERROR: read_nc: nodata value within domain ', uni=nerr)
+            call message('          boundary in variable: ', trim(varName), uni=nerr)
+            call error_message('          at hour         : ', trim(num2str(i)))
           end if
         end if
         ! optional check
         if (present(lower)) then
           if (any((data(:, :, i, j) .lt. lower) .AND. mask(:, :))) then
             call message('***ERROR: read_nc: values in variable "', &
-                    trim(varName), &
-                    '" are lower than ', trim(num2str(lower, '(F7.2)')))
-            call message('          at hour  : ', trim(num2str(i)))
-            call message('File: ', trim(fName))
-            call message('Minval at hour: ', trim(num2str(minval(data(:, :, i, j)), '(F7.2)')))
-            call message('Total minval: ', trim(num2str(minval(data(:, :, :, :)), '(F7.2)')))
-            stop
+                    trim(varName), '" are lower than ', trim(num2str(lower, '(F7.2)')), uni=nerr)
+            call message('          at hour  : ', trim(num2str(i)), uni=nerr)
+            call message('File: ', trim(fName), uni=nerr)
+            call message('Minval at hour: ', trim(num2str(minval(data(:, :, i, j)), '(F7.2)')), uni=nerr)
+            call error_message('Total minval: ', trim(num2str(minval(data(:, :, :, :)), '(F7.2)')))
           end if
         end if
 
         if (present(upper)) then
           if (any((data(:, :, i, j) .gt. upper) .AND. mask(:, :))) then
             call message('***ERROR: read_nc: values in variable "', &
-                    trim(varName), &
-                    '" are greater than ', trim(num2str(upper, '(F7.2)')))
-            call message('          at hour  : ', trim(num2str(i)))
-            call message('File: ', trim(fName))
-            call message('Maxval at hour: ', trim(num2str(maxval(data(:, :, i, j)), '(F7.2)')))
-            call message('Total maxval: ', trim(num2str(maxval(data(:, :, :, :)), '(F7.2)')))
-            stop
+                    trim(varName), '" are greater than ', trim(num2str(upper, '(F7.2)')), uni=nerr)
+            call message('          at hour  : ', trim(num2str(i)), uni=nerr)
+            call message('File: ', trim(fName), uni=nerr)
+            call message('Maxval at hour: ', trim(num2str(maxval(data(:, :, i, j)), '(F7.2)')), uni=nerr)
+            call error_message('Total maxval: ', trim(num2str(maxval(data(:, :, :, :)), '(F7.2)')))
           end if
         end if
 
@@ -735,9 +723,8 @@ contains
     else if (strArr(1) .eq. 'seconds') then
       time_step_seconds = 1_i8
     else
-      call message('***ERROR: Please provide the input data in (days, hours, minutes, seconds) ', &
+      call error_message('***ERROR: Please provide the input data in (days, hours, minutes, seconds) ', &
               'since YYYY-MM-DD[ HH:MM:SS] in the netcdf file. Found: ', trim(AttValues))
-      stop
     end if
 
     ! get the time vector
@@ -747,8 +734,7 @@ contains
 
     ! check for length of time vector, needs to be at least of length 2, otherwise step width check fails
     if (size(time_data) .le. 1) then
-      call message('***ERROR: length of time dimension needs to be at least 2 in file: ' // trim(fname))
-      stop
+      call error_message('***ERROR: length of time dimension needs to be at least 2 in file: ' // trim(fname))
     end if
 
     ! check for equal timesteps and timestep must not be multiple of native timestep
@@ -789,8 +775,7 @@ contains
     else if (all(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / 3600._dp - 1._dp) .lt. 1.e-6)) then
        inctimestep = -4 ! hourly
     else
-       call message('***ERROR: read_forcing_nc: unknown nctimestep switch.')
-       stop 1
+       call error_message('***ERROR: read_forcing_nc: unknown nctimestep switch.')
     end if
 
     ! prepare the selection and check for required time_step
@@ -820,15 +805,13 @@ contains
       time_start = (clip_period%julStart - ncJulSta1) * 24_i4 + 1_i4 ! convert to hours; always starts at one
       time_cnt = (clip_period%julEnd - clip_period%julStart + 1_i4) * 24_i4 ! convert to hours
     case default ! no output at all
-      call message('***ERROR: read_nc: unknown nctimestep switch.')
-      stop
+      call error_message('***ERROR: read_nc: unknown nctimestep switch.')
     end select
 
     ! Check if time steps in file cover simulation period
     if (.not. ((ncJulSta1 .LE. clip_period%julStart) .AND. (nc_period%julEnd .GE. clip_period%julEnd))) then
-      call message('***ERROR: read_nc: time period of input data: ', trim(fname), &
+      call error_message('***ERROR: read_nc: time period of input data: ', trim(fname), &
               '          is not matching modelling period.')
-      stop
     end if
 
     ! free memory

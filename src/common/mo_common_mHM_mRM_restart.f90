@@ -12,6 +12,8 @@
 module mo_common_mHM_mRM_restart
 
   use mo_kind, only : i4, dp
+  use mo_message, only: message, error_message
+
   IMPLICIT NONE
 
   PRIVATE
@@ -89,38 +91,36 @@ CONTAINS
   subroutine check_consistency_element_dp(item1, item2, name, iBasin)
     use mo_utils, only: ne
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: message
 
     real(dp), intent(in) :: item1, item2
     character(*), intent(in) :: name
     integer(i4), intent(in) :: iBasin
 
     if (ne(item1, item2)) then
-      call message('The ', trim(name),&
-                  ' as set in the configuration file (', &
-                  compress(trim(num2str(item1))), &
-                  ') does not conform with basin ', &
-                  compress(trim(num2str(iBasin))), ' (', compress(trim(num2str(item2))), ').')
-      stop 1
+      call error_message( &
+        'The ', trim(name),&
+        ' as set in the configuration file (', &
+        compress(trim(num2str(item1))), &
+        ') does not conform with basin ', &
+        compress(trim(num2str(iBasin))), ' (', compress(trim(num2str(item2))), ').')
     end if
   end subroutine check_consistency_element_dp
 
   subroutine check_consistency_element_i4(item1, item2, name, iBasin)
     use mo_utils, only: ne
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: message
 
     integer(i4), intent(in) :: item1, item2
     character(*), intent(in) :: name
     integer(i4), intent(in) :: iBasin
 
     if (item1 /= item2) then
-      call message('The ', trim(name),&
-                  ' as set in the configuration file (', &
-                  compress(trim(num2str(item1))), &
-                  ') does not conform with basin ', &
-                  compress(trim(num2str(iBasin))), ' (', compress(trim(num2str(item2))), ').')
-      stop 1
+      call error_message( &
+        'The ', trim(name),&
+        ' as set in the configuration file (', &
+        compress(trim(num2str(item1))), &
+        ') does not conform with basin ', &
+        compress(trim(num2str(iBasin))), ' (', compress(trim(num2str(item2))), ').')
     end if
   end subroutine check_consistency_element_i4
 

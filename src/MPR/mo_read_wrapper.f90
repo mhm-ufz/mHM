@@ -14,6 +14,8 @@ MODULE mo_read_wrapper
 
   USE mo_kind, ONLY : i4, dp
   use mo_common_constants, only : nodata_dp, nodata_i4
+  use mo_message, only: message, error_message
+  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -67,7 +69,6 @@ CONTAINS
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : Grid, dirCommonFiles, dirMorpho, &
                                     global_parameters, level0, domainMeta, period, processMatrix
-    use mo_message, only : message
     use mo_mpr_file, only : file_aspect, file_geolut, file_hydrogeoclass, &
                             file_laiclass, file_lailut, file_slope, file_soil_database, file_soil_database_1, &
                             file_soilclass, uaspect, ugeolut, uhydrogeoclass, ulaiclass, ulailut, uslope, usoilclass
@@ -366,7 +367,6 @@ CONTAINS
 
   subroutine check_consistency_lut_map(data, lookuptable, filename, unique_values)
 
-    use mo_message, only : message, error_message
     use mo_orderpack, only : unista
     use mo_string_utils, only : num2str
 
@@ -405,10 +405,8 @@ CONTAINS
         ' which indicates a masking problem!' &
       )
       if (.not. ANY(lookuptable .EQ. temp(ielement))) then
-        call message()
-        call message('***ERROR: Class ', trim(adjustl(num2str(temp(ielement)))), ' is missing')
-        call message('          in input file ', trim(adjustl(filename)), ' ...')
-        stop
+        call message('***ERROR: Class ', trim(adjustl(num2str(temp(ielement)))), ' is missing', uni=nerr)
+        call error_message('          in input file ', trim(adjustl(filename)), ' ...')
       end if
     end do
 

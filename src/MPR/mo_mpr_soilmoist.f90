@@ -100,7 +100,7 @@ contains
                    thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_message, only : message
+    use mo_message, only : message, error_message
     use mo_mpr_constants, only : BulkDens_OrgMatter
     use mo_mpr_global_variables, only : iFlag_soilDB
     !$ use omp_lib
@@ -290,7 +290,7 @@ contains
               case(3)               ! permeable
                 pOM = tmp_orgMatterContent_pervious
               case default
-                stop 'Error mpr_sm: pOM used uninitialized.'
+                 call error_message('Error mpr_sm: pOM used uninitialized.')
               end select
               pM = 100.0_dp - pOM
               ! bulk density acording to Rawl's (1982) paper
@@ -381,7 +381,7 @@ contains
             case(3)               ! permeable
               pOM = tmp_orgMatterContent_pervious
             case default
-              STOP 'Error mpr_sm: pOM used is not initialized.'
+               call error_message('Error mpr_sm: pOM used is not initialized.')
             end select
             pM = 100.0_dp - pOM
             ! bulk density acording to Rawl's (1982) paper
@@ -445,9 +445,7 @@ contains
       end do
 
     CASE DEFAULT
-      call message()
-      call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
-      stop
+      call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
     END SELECT
 
     ! free space **

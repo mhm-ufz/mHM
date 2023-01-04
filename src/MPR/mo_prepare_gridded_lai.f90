@@ -17,6 +17,8 @@ MODULE mo_prepare_gridded_LAI
   ! Modified from mo_meteo_forcings
 
   USE mo_kind, ONLY : i4, dp
+  use mo_message, only: message, error_message
+  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -61,7 +63,6 @@ CONTAINS
 
     use mo_append, only : append
     use mo_common_variables, only : period
-    use mo_message, only : message
     use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI, inputFormat_gridded_LAI, &
             nLAI, LAIBoundaries, timeStep_LAI_input
     use mo_read_nc, only : read_nc
@@ -93,9 +94,7 @@ CONTAINS
               'lai', mask, LAI0_3D, target_period = LAIPer_iDomain, &
               lower = 1.00E-10_dp, upper = 30.0_dp, nctimestep = timeStep_LAI_input)
     CASE DEFAULT
-      call message()
-      call message('***ERROR: No recognized input format')
-      stop 1
+      call error_message('***ERROR: No recognized input format')
 
     END SELECT
 
@@ -150,7 +149,6 @@ CONTAINS
   subroutine prepare_gridded_mean_monthly_LAI_data(iDomain, nrows, ncols, mask)
 
     use mo_append, only : append
-    use mo_message, only : message
     use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI, nLAI, LAIBoundaries
     use mo_ncread, only : Get_NcDim, Get_NcVar, Get_NcVarAtt
     use mo_string_utils, only : num2str
@@ -194,10 +192,10 @@ CONTAINS
     ! get dimensions
     dimen = Get_NcDim(trim(fName), 'lai')
     if ((dimen(1) .ne. nRows) .or. (dimen(2) .ne. nCols)) then
-      stop '***ERROR: read_nc: mHM generated x and y are not matching NetCDF dimensions'
+       call error_message('***ERROR: read_nc: mHM generated x and y are not matching NetCDF dimensions')
     end if
     if (dimen(3) .ne. 12) then
-      stop '***ERROR: read_nc: the time dimenion of LAI NetCDF file under the option-1 is not 12'
+       call error_message('***ERROR: read_nc: the time dimenion of LAI NetCDF file under the option-1 is not 12')
     end if
 
     ! determine no data value
@@ -211,28 +209,25 @@ CONTAINS
     do t = 1, dimen(3)
       ! checking for nodata values if optional nocheck is given
       if (any(eq(LAI0_3D(:, :, t), nodata_value) .and. (mask))) then
-        call message('***ERROR: read_nc: nodata value within domain ')
-        call message('          boundary in variable: ', 'lai')
-        call message('          at timestep         : ', trim(num2str(t)))
-        stop
+        call message('***ERROR: read_nc: nodata value within domain ', uni=nerr)
+        call message('          boundary in variable: ', 'lai', uni=nerr)
+        call error_message('          at timestep         : ', trim(num2str(t)))
       end if
       ! optional check
       if (any((LAI0_3D(:, :, t) .lt. 0.0_dp) .AND. mask(:, :))) then
-        call message('***ERROR: read_nc: values in variable lai are lower than ', trim(num2str(0, '(F7.2)')))
-        call message('          at timestep  : ', trim(num2str(t)))
-        call message('File: ', trim(fName))
-        call message('Minval at timestep: ', trim(num2str(minval(LAI0_3D(:, :, t)), '(F7.2)')))
-        call message('Total minval: ', trim(num2str(minval(LAI0_3D(:, :, :)), '(F7.2)')))
-        stop
+        call message('***ERROR: read_nc: values in variable lai are lower than ', trim(num2str(0, '(F7.2)')), uni=nerr)
+        call message('          at timestep  : ', trim(num2str(t)), uni=nerr)
+        call message('File: ', trim(fName), uni=nerr)
+        call message('Minval at timestep: ', trim(num2str(minval(LAI0_3D(:, :, t)), '(F7.2)')), uni=nerr)
+        call error_message('Total minval: ', trim(num2str(minval(LAI0_3D(:, :, :)), '(F7.2)')))
       end if
 
       if (any((LAI0_3D(:, :, t) .gt. 30.0_dp) .AND. mask(:, :))) then
-        call message('***ERROR: read_nc: values in variable lai are greater than ', trim(num2str(30, '(F7.2)')))
-        call message('          at timestep  : ', trim(num2str(t)))
-        call message('File: ', trim(fName))
-        call message('Maxval at timestep: ', trim(num2str(maxval(LAI0_3D(:, :, t)), '(F7.2)')))
-        call message('Total maxval: ', trim(num2str(maxval(LAI0_3D(:, :, :)), '(F7.2)')))
-        stop
+        call message('***ERROR: read_nc: values in variable lai are greater than ', trim(num2str(30, '(F7.2)')), uni=nerr)
+        call message('          at timestep  : ', trim(num2str(t)), uni=nerr)
+        call message('File: ', trim(fName), uni=nerr)
+        call message('Maxval at timestep: ', trim(num2str(maxval(LAI0_3D(:, :, t)), '(F7.2)')), uni=nerr)
+        call error_message('Total maxval: ', trim(num2str(maxval(LAI0_3D(:, :, :)), '(F7.2)')))
       end if
     end do
 

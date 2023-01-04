@@ -62,6 +62,8 @@ MODULE mo_mrm_objective_function_runoff
 
   USE mo_kind, ONLY : i4, dp
   use mo_optimization_utils, only : eval_interface
+  use mo_message, only: message, error_message
+  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -119,7 +121,6 @@ CONTAINS
   FUNCTION single_objective_runoff(parameterset, eval, arg1, arg2, arg3)
 
     use mo_common_mHM_mRM_variables, only : opti_function, opti_method
-    use mo_message, only : message
 
     implicit none
 
@@ -188,8 +189,7 @@ CONTAINS
       ! sum of squared errors (SSE) of boxcox_transformed streamflow
       single_objective_runoff = objective_sse_boxcox(parameterset, eval)
     case default
-      call message("Error objective: This opti_function is either not implemented yet or is not a single-objective one.")
-      stop 1
+      call error_message("Error objective: This opti_function is either not implemented yet or is not a single-objective one.")
     end select
 
   END FUNCTION single_objective_runoff
@@ -239,7 +239,6 @@ CONTAINS
     use mo_common_mpi_tools, only : distribute_parameterset
     use mo_mrm_global_variables, only: nGaugesTotal
     use mo_common_variables, only : domainMeta
-    use mo_message, only : message
     use mpi_f08
 
     implicit none
@@ -289,9 +288,8 @@ CONTAINS
     case(4, 7, 8)
       call message("case 4, 7, 8 are not implemented in parallel yet")
     case default
-      call message("Error single_objective_runoff_master:")
-      call message("This opti_function is either not implemented yet or is not a single-objective one.")
-      stop 1
+      call message("Error single_objective_runoff_master:", uni=nerr)
+      call error_message("This opti_function is either not implemented yet or is not a single-objective one.")
     end select
 
     select case (opti_function)
@@ -305,8 +303,7 @@ CONTAINS
       ! 1.0-0.5*(nse+lnnse)
       write(*, *) 'objective_equal_nse_lnnse = ', single_objective_runoff_master
     case (4)
-      call message("case 4, loglikelihood_stddev not implemented in parallel yet")
-      stop
+      call error_message("case 4, loglikelihood_stddev not implemented in parallel yet")
     case (5)
       ! ((1-NSE)**6+(1-lnNSE)**6)**(1/6)
       write(*, *) 'objective_power6_nse_lnnse = ', single_objective_runoff_master
@@ -315,11 +312,9 @@ CONTAINS
       write(*, *) 'objective_sse = ', single_objective_runoff_master
     case (7)
       ! -loglikelihood with trend removed from absolute errors
-      call message("case 7, single_objective_runoff_master not implemented in parallel yet")
-      stop
+      call error_message("case 7, single_objective_runoff_master not implemented in parallel yet")
     case (8)
-      call message("case 8, loglikelihood_evin2013_2 not implemented in parallel yet")
-      stop
+      call error_message("case 8, loglikelihood_evin2013_2 not implemented in parallel yet")
     case (9)
       ! KGE
       write(*, *) 'objective_kge (i.e., 1 - KGE) = ', single_objective_runoff_master
@@ -334,10 +329,9 @@ CONTAINS
       ! SSE of boxcox-transformed streamflow
       write(*,*) 'sse_boxcox_streamflow = ', single_objective_runoff_master
     case default
-      call message("Error single_objective_runoff_master:")
-      call message("This opti_function is either not implemented yet or is not a single-objective one.")
-      call message("This part of the code should never be executed.")
-      stop 1
+      call message("Error single_objective_runoff_master:", uni=nerr)
+      call message("This opti_function is either not implemented yet or is not a single-objective one.", uni=nerr)
+      call error_message("This part of the code should never be executed.")
     end select
 
   END FUNCTION single_objective_runoff_master
@@ -386,7 +380,6 @@ CONTAINS
     use mo_common_mHM_mRM_variables, only : opti_function, opti_method
     use mo_common_mpi_tools, only : get_parameterset
     use mo_common_variables, only : domainMeta
-    use mo_message, only : message
     use mpi_f08
 
     implicit none
@@ -429,8 +422,8 @@ CONTAINS
       case (4)
         if (opti_method .eq. 0_i4) then
           ! MCMC
-          stop
-          partial_single_objective_runoff = loglikelihood_stddev(parameterset, eval, arg1, arg2, arg3)
+          ! partial_single_objective_runoff = loglikelihood_stddev(parameterset, eval, arg1, arg2, arg3)
+          call error_message("Error single_objective_runoff_subprocess: case 4 with optimethod 0 not supported")
         else
           ! -loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed
           partial_single_objective_runoff = - loglikelihood_stddev(parameterset, eval, 1.0_dp)
@@ -443,13 +436,13 @@ CONTAINS
         partial_single_objective_runoff = objective_sse(parameterset, eval)
       case (7)
         ! -loglikelihood with trend removed from absolute errors
-        stop
-        partial_single_objective_runoff = -loglikelihood_trend_no_autocorr(parameterset, eval, 1.0_dp)
+        ! partial_single_objective_runoff = -loglikelihood_trend_no_autocorr(parameterset, eval, 1.0_dp)
+        call error_message("Error single_objective_runoff_subprocess: case 7 not supported")
       case (8)
         if (opti_method .eq. 0_i4) then
           ! MCMC
-          stop
-          partial_single_objective_runoff = loglikelihood_evin2013_2(parameterset, eval, regularize = .true.)
+          ! partial_single_objective_runoff = loglikelihood_evin2013_2(parameterset, eval, regularize = .true.)
+          call error_message("Error single_objective_runoff_subprocess: case 8 with optimethod 0 not supported")
         else
           ! -loglikelihood of approach 2 of Evin et al. (2013),
           !  i.e. linear error model with lag(1)-autocorrelation on relative errors
@@ -470,17 +463,15 @@ CONTAINS
          ! SSE of transformed streamflow
          partial_single_objective_runoff = objective_sse_boxcox(parameterset, eval)
       case default
-        call message("Error single_objective_runoff_subprocess:")
-        call message("This opti_function is either not implemented yet or is not a single-objective one.")
-        stop 1
+        call message("Error single_objective_runoff_subprocess:", uni=nerr)
+        call error_message("This opti_function is either not implemented yet or is not a single-objective one.")
       end select
 
       select case (opti_function)
       case (1 : 3, 5, 6, 9, 14, 31)
         call MPI_Send(partial_single_objective_runoff,1, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
-        call message("Error objective_subprocess: this part should not be executed -> error in the code.")
-        stop 1
+        call error_message("Error objective_subprocess: this part should not be executed -> error in the code.")
       end select
       deallocate(parameterset)
     end do
@@ -547,7 +538,7 @@ CONTAINS
       ! 2nd objective: 1.0 - NSE of discharge of months DJF
       multi_objectives = multi_objective_ae_fdc_lsv_nse_djf(parameterset, eval)
     case default
-      stop "Error objective: Either this opti_function is not implemented yet or it is not a multi-objective one."
+      call error_message("Error objective: Either this opti_function is not implemented yet or it is not a multi-objective one.")
     end select
 
   END SUBROUTINE multi_objective_runoff
@@ -2478,7 +2469,6 @@ CONTAINS
   subroutine extract_runoff(gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
 
     use mo_common_mhm_mrm_variables, only : evalPer, nTstepDay, warmingDays
-    use mo_message, only : message
     use mo_mrm_global_variables, only : gauge, nMeasPerDay
     use mo_utils, only : ge
 
@@ -2528,8 +2518,7 @@ CONTAINS
     if (modulo(TPD_sim, TPD_obs) .eq. 0) then
       factor = TPD_sim / TPD_obs
     else
-      call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-      stop
+      call error_message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
     end if
 
     ! extract domain Id from gauge Id

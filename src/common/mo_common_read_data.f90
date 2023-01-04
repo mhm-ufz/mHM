@@ -11,6 +11,8 @@
 !> \ingroup f_common
 module mo_common_read_data
   USE mo_kind, ONLY : i4, dp
+  use mo_message, only: message, error_message
+  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -45,7 +47,6 @@ CONTAINS
     use mo_common_variables, only : Grid,  L0_elev, dirMorpho, level0, domainMeta, &
                                     resolutionHydrology
     use mo_grid, only : set_domain_indices
-    use mo_message, only : message
     use mo_read_spatial_data, only : read_header_ascii, read_spatial_data_ascii
     use mo_string_utils, only : num2str
 
@@ -97,10 +98,8 @@ CONTAINS
 
       ! check for L0 and L1 scale consistency
       if(resolutionHydrology(iDomain) .LT. level0_iDomain%cellsize) then
-        call message()
-        call message('***ERROR: resolutionHydrology (L1) should be smaller than the input data resolution (L0)')
-        call message('          check set-up (in mhm.nml) for domain: ', trim(adjustl(num2str(domainID))), ' ...')
-        stop
+        call message('***ERROR: resolutionHydrology (L1) should be smaller than the input data resolution (L0)', uni=nerr)
+        call error_message('          check set-up (in mhm.nml) for domain: ', trim(adjustl(num2str(domainID))), ' ...')
       end if
 
       ! DEM + overall mask creation

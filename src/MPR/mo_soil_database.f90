@@ -19,7 +19,8 @@ MODULE mo_soil_database
   ! Written  Juliane Mai, Dec 2012
 
   use mo_kind, only : i4, dp
-  use mo_message, only : message, error_message
+  use mo_message, only: message, error_message
+  use mo_constants, only : nerr ! stderr for error messages
   use mo_string_utils, only : num2str
   use mo_os, only : path_isfile
 
@@ -120,16 +121,14 @@ CONTAINS
 
         ! Checks
         if(up .ge. down) then
-          call message('read_soil_LUT: ERROR occurred: Mixed horizon depths in soil type', &
+          call error_message('read_soil_LUT: ERROR occurred: Mixed horizon depths in soil type', &
                   num2str(ii, '(I3)'), ' and horizon no.', num2str(jj, '(I3)'))
-          stop
         end if
         if(cly .lt. 0.0_dp .OR. cly .gt. 100.0_dp .OR. &
                 snd .lt. 0.0_dp .OR. snd .gt. 100.0_dp .OR. &
                 bd  .lt. 0.0_dp .OR. bd  .gt.   5.0_dp) then
-          call message('read_soil_LUT: ERROR occurred: Inappropriate soil properties in soil type', &
+          call error_message('read_soil_LUT: ERROR occurred: Inappropriate soil properties in soil type', &
                   num2str(ii, '(I3)'), ' and horizon no.', num2str(jj, '(I3)'))
-          stop
         end if
 
         ! initalise soil id
@@ -156,11 +155,10 @@ CONTAINS
 
       ! check the tillage depth...(if possible adjust it..)
       if(tillageDepth .gt. dMin) then
-        call message('read_soil_LUT: ERROR occurred: ')
-        call message('    Tillage depth is greater than overall minimum total soil depth ')
-        call message('    So tillage depth should be at least', num2str(dMin, '(F7.2)'))
-        call message('    Please adjust!')
-        stop
+        call message('read_soil_LUT: ERROR occurred: ', uni=nerr)
+        call message('    Tillage depth is greater than overall minimum total soil depth ', uni=nerr)
+        call message('    So tillage depth should be at least', num2str(dMin, '(F7.2)'), uni=nerr)
+        call error_message('    Please adjust!')
       end if
 
       ! insert a new tillage soil layer, only in those soil types, in which it is not present
@@ -277,10 +275,9 @@ CONTAINS
 
         ! check for number of soil horizons...
         if(nH .gt. soilDB%nHorizons(jj)) then
-          call message('read_soil_LUT: ERROR occurred: ')
-          call message('    There is something wrong in allocating horizons in soil data base.')
-          call message('    Please check in code !')
-          STOP
+          call message('read_soil_LUT: ERROR occurred: ', uni=nerr)
+          call message('    There is something wrong in allocating horizons in soil data base.', uni=nerr)
+          call error_message('    Please check in code !')
         end if
 
         ! initalise the increment counter to zero
@@ -355,10 +352,8 @@ CONTAINS
       if(soilDB%nTillHorizons(1) .eq. -9) then
         ! rarely could happen *** since this is checked in reading of horizons depths only
         ! but is checked here for double confirmation
-        call message()
-        call message('***ERROR: specification of tillage depths is not confirming')
-        call message('          with given depths of soil horizons to be modeled.')
-        stop
+        call message('***ERROR: specification of tillage depths is not confirming', uni=nerr)
+        call error_message('          with given depths of soil horizons to be modeled.')
       else
         call message()
         call message('Tillage layers: the tillage horizons are modelled ')
@@ -366,9 +361,7 @@ CONTAINS
       end if
 
     CASE DEFAULT
-      call message()
-      call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
-      stop
+      call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
 
     END SELECT
 
@@ -421,14 +414,13 @@ CONTAINS
 
       ! check
       if (HorizonDepth_mHM(nSoilHorizons_mHM - 1) .ge. dMin) then
-        call message('generate_soil_database: ERROR occurred: ')
-        call message('    The depth of soil Horizons provided for modelling is not appropriate')
-        call message('    The global minimum of total soil horizon depth among all soil type is ', num2str(dMin, '(F7.2)'))
-        call message('    Adjust your modeling soil horizon depth in this range')
-        call message('    OR Increase the soil depth in data base for only those soil types')
-        call message('    whose total depth is smaller than your given modeling depth.')
-        STOP
-      end if
+        call message('generate_soil_database: ERROR occurred: ', uni=nerr)
+        call message('   The depth of soil Horizons provided for modelling is not appropriate', uni=nerr)
+        call message('   The global minimum of total soil horizon depth among all soil type is ', num2str(dMin, '(F7.2)'), uni=nerr)
+        call message('   Adjust your modeling soil horizon depth in this range', uni=nerr)
+        call message('   OR Increase the soil depth in data base for only those soil types', uni=nerr)
+        call error_message('   whose total depth is smaller than your given modeling depth.')
+     end if
 
       ! allocate and initalise depth weight
       allocate(soilDB%Wd(nSoilTypes, nSoilHorizons_mHM, maxval(soilDB%nHorizons(:))))
@@ -462,17 +454,15 @@ CONTAINS
 
           ! Check
           if(layer_f .le. 0_i4 .or. layer_t .le. 0_i4) then
-            call message('generate_soil_database: ERROR occurred: ')
-            call message('     Horizon depths to model do not lie in database for soil type', num2str(ii, '(I3)'))
-            call message('     Please check!')
-            STOP
+            call message('generate_soil_database: ERROR occurred: ', uni=nerr)
+            call message('     Horizon depths to model do not lie in database for soil type', num2str(ii, '(I3)'), uni=nerr)
+            call error_message('     Please check!')
           end if
           if(layer_f .gt. layer_t) then
-            call message('generate_soil_database: ERROR occurred: ')
-            call message('     Something is wrong in assignment of modeling soil horizons or')
-            call message('     database of soil type ', num2str(ii, '(I3)'))
-            call message('     Please check!')
-            STOP
+            call message('generate_soil_database: ERROR occurred: ', uni=nerr)
+            call message('     Something is wrong in assignment of modeling soil horizons or', uni=nerr)
+            call message('     database of soil type ', num2str(ii, '(I3)'), uni=nerr)
+            call error_message('     Please check!')
           end if
 
           ! iF modeling depth of a given horizon falls in a same soil layer
@@ -507,10 +497,9 @@ CONTAINS
             ! Check (small margin for numerical errors)
             if(sum(soilDB%Wd(ii, jj, :), soilDB%Wd(ii, jj, :) .gt. 0.0_dp) .le. 1.0_dp - small .or. &
                     sum(soilDB%Wd(ii, jj, :), soilDB%Wd(ii, jj, :) .gt. 0.0_dp) .ge. 1.0_dp + small) then
-              call message('generate_soil_database: ERROR occurred: ')
-              call message('     Weight assigned for each soil horizons are not correct.')
-              call message('     Please check!')
-              STOP
+              call message('generate_soil_database: ERROR occurred: ', uni=nerr)
+              call message('     Weight assigned for each soil horizons are not correct.', uni=nerr)
+              call error_message('     Please check!')
             end if
 
           end if
@@ -524,10 +513,7 @@ CONTAINS
       allocate(soilDB%Wd(1,1,1))
 
     CASE DEFAULT
-      call message()
-      call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
-      stop
-
+      call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
     END SELECT
 
   end subroutine generate_soil_database

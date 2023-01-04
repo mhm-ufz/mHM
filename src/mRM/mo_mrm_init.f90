@@ -12,6 +12,7 @@
 MODULE mo_mrm_init
 
     use mo_common_variables, only : dirOut
+    use mo_message, only : message, error_message
 
   ! This module sets the river network characteristics and routing order.
 
@@ -34,7 +35,6 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
     use mo_common_read_config, only : common_read_config
     use mo_common_mHM_mRM_read_config, only : check_optimization_settings, common_mHM_mRM_read_config
     use mo_kind, only : i4
-    use mo_message, only : message
     implicit none
 
     character(*), intent(in) :: file_namelist, file_namelist_param
@@ -116,7 +116,6 @@ end subroutine mrm_configuration
                                     processMatrix, resolutionHydrology
     use mo_grid, only : L0_grid_setup, init_lowres_level, set_domain_indices
     use mo_kind, only : i4
-    use mo_message, only : message
     use mo_mrm_global_variables, only : domain_mrm, &
                                         l0_l11_remap, l1_l11_remap, level11, &
                                         gw_coupling, L0_river_head_mon_sum, &
@@ -346,7 +345,6 @@ end subroutine mrm_configuration
   subroutine print_startup_message(file_namelist, file_namelist_param)
 
     use mo_kind, only : i4
-    use mo_message, only : message
     use mo_mrm_file, only : file_defOutput, file_main, version, version_date
     use mo_string_utils, only : num2str, separator
 
@@ -409,7 +407,6 @@ end subroutine mrm_configuration
 
     use mo_common_variables, only : dirLCover, dirMorpho, dirOut, domainMeta
     use mo_kind, only : i4
-    use mo_message, only : message
     use mo_mrm_file, only : file_defOutput, file_namelist_mrm, file_namelist_param_mrm
     use mo_mrm_global_variables, only : domain_mrm, &
                                         dirGauges
@@ -546,7 +543,6 @@ end subroutine mrm_configuration
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : level0
     use mo_kind, only : i4
-    use mo_message, only : message
     use mo_mrm_global_variables, only : L0_fAcc, L0_fDir
     use mo_string_utils, only : num2str
 
@@ -562,16 +558,14 @@ end subroutine mrm_configuration
       ! flow direction [-]
       if (L0_fDir(k) .eq. nodata_i4) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iDomain, '(I5)'))
-        call message(' Error: flow direction has missing value within the valid masked area at cell in domain ', &
+        call error_message(' Error: flow direction has missing value within the valid masked area at cell in domain ', &
                 trim(message_text))
-        stop
       end if
       ! flow accumulation [-]
       if (L0_fAcc(k) .eq. nodata_i4) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iDomain, '(I5)'))
-        call message(' Error: flow accumulation has missing values within the valid masked area at cell in domain ', &
+        call error_message(' Error: flow accumulation has missing values within the valid masked area at cell in domain ', &
                 trim(message_text))
-        stop
       end if
     end do
 

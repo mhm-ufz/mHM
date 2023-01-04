@@ -11,7 +11,9 @@
 !> \ingroup f_common
 MODULE mo_common_mHM_mRM_read_config
 
-  USE mo_kind, ONLY : i4, dp
+  use mo_kind, only : i4, dp
+  use mo_message, only : message, error_message
+  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -58,7 +60,6 @@ CONTAINS
     use mo_common_read_config, only : set_land_cover_scenes_id
     use mo_common_variables, only : LCfilename, domainMeta, period, processMatrix
     use mo_julian, only : caldat, julday
-    use mo_message, only : message
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
 
@@ -128,8 +129,7 @@ CONTAINS
     ! check for optimize and read restart
     if ((read_restart) .and. (optimize)) then
       call message()
-      call message('***ERROR: cannot read states from restart file when optimizing')
-      stop 1
+      call error_message('***ERROR: cannot read states from restart file when optimizing')
     end if
 
     do iDomain = 1, domainMeta%nDomains
@@ -146,8 +146,7 @@ CONTAINS
     !===============================================================
     ! transformation of time units & constants
     if (mod(24, timeStep) > 0) then
-      call message('mo_startup: timeStep must be a divisor of 24: ', num2str(timeStep))
-      stop 1
+      call error_message('mo_startup: timeStep must be a divisor of 24: ', num2str(timeStep))
     end if
     nTStepDay = 24_i4 / timeStep            ! # of time steps per day
     nTStepForcingDay = nodata_i4            ! # init of number of forcing timesteps, will be set when reading forcings
@@ -237,7 +236,6 @@ CONTAINS
 
     use mo_common_mHM_mRM_variables, only : dds_r, nIterations, sce_ngs, sce_npg, sce_nps
     use mo_common_variables, only : global_parameters
-    use mo_message, only : message
 
     implicit none
 
@@ -246,16 +244,13 @@ CONTAINS
 
     ! check and set default values
     if (nIterations .le. 0_i4) then
-      call message('Number of iterations for Optimization (nIterations) must be greater than zero')
-      stop 1
+      call error_message('Number of iterations for Optimization (nIterations) must be greater than zero')
     end if
     if (dds_r .lt. 0.0_dp .or. dds_r .gt. 1.0_dp) then
-      call message('dds_r must be between 0.0 and 1.0')
-      stop 1
+      call error_message('dds_r must be between 0.0 and 1.0')
     end if
     if (sce_ngs .lt. 1_i4) then
-      call message ('number of complexes in SCE (sce_ngs) must be at least 1')
-      stop 1
+      call error_message('number of complexes in SCE (sce_ngs) must be at least 1')
     end if
     ! number of points in each complex: default = 2n+1
     if (sce_npg .lt. 0_i4) then
@@ -268,9 +263,8 @@ CONTAINS
       sce_nps = n_true_pars + 1_i4
     end if
     if (sce_npg .lt. sce_nps) then
-      call message ('number of points per complex (sce_npg) must be greater or')
-      call message ('equal number of points per sub-complex (sce_nps)')
-      stop 1
+      call message('number of points per complex (sce_npg) must be greater or', uni=nerr)
+      call error_message('equal number of points per sub-complex (sce_nps)')
     end if
 
   end subroutine check_optimization_settings
@@ -298,7 +292,6 @@ CONTAINS
 
     use mo_common_mHM_mRM_variables, only : resolutionRouting
     use mo_common_variables, only : domainMeta, resolutionHydrology
-    use mo_message, only : message
     use mo_string_utils, only : num2str
 
     implicit none
@@ -336,10 +329,8 @@ CONTAINS
 
       else if ((nint(cellFactorRbyH * 100.0_dp) .gt. 100) .and. .not.allow_subgrid_routing) then
         if(nint(mod(cellFactorRbyH, 2.0_dp) * 100.0_dp) .ne. 0) then
-          call message()
-          call message('***ERROR: Resolution of routing is not a multiple of hydrological model resolution!')
-          call message('   FILE: mhm.nml, namelist: mainconfig, variable: resolutionRouting')
-          STOP
+          call message('***ERROR: Resolution of routing is not a multiple of hydrological model resolution!', uni=nerr)
+          call error_message('   FILE: mhm.nml, namelist: mainconfig, variable: resolutionRouting')
         end if
         !
         if (do_message) then

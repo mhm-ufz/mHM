@@ -11,6 +11,7 @@
 !> \ingroup f_mrm
 module mo_mrm_restart
   use mo_kind, only : i4, dp
+  use mo_message, only : message, error_message
   implicit none
   public :: mrm_write_restart
   public :: mrm_read_restart_states
@@ -57,7 +58,6 @@ contains
     use mo_common_variables, only : level0, level1, nLCoverScene, processMatrix, domainMeta, &
             LC_year_start, LC_year_end
     use mo_common_constants, only : landCoverPeriodsVarName
-    use mo_message, only : message
     use mo_mrm_constants, only : nRoutingStates
     use mo_mpr_global_variables, only : L0_slope
     use mo_mrm_global_variables, only : L0_fdir, L0_fAcc, L0_streamnet, &
@@ -604,7 +604,6 @@ contains
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level0, level1, domainMeta, processMatrix, domainMeta
     use mo_kind, only : dp, i4
-    use mo_message, only : message
     use mo_mpr_global_variables, only : L0_slope
     use mo_mrm_global_variables, only : L0_fdir, L0_fAcc, L0_streamnet, &
                                         L11_L1_Id, L11_TSrout, L11_aFloodPlain, L11_colOut, L11_fCol, &
@@ -675,7 +674,7 @@ contains
       call message('***ERROR: that in namelist')
       call message('***ERROR: restart file value:. ' // num2str(dummyI1(8), '(i2)'))
       call message('***ERROR: namelist value:..... ' // num2str(processMatrix(8, 1), '(i2)'))
-      stop 'ERROR: mrm_read_restart_config'
+      call error_message('ERROR: mrm_read_restart_config')
     end if
     deallocate(dummyI1)
 

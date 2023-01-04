@@ -12,6 +12,8 @@
 module mo_mrm_read_config
 
   use mo_kind, only : i4, dp
+  use mo_message, only: message, error_message
+  use mo_constants, only : nerr ! stderr for error messages
 
   implicit none
 
@@ -53,7 +55,6 @@ contains
     use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_mHM_mRM_read_config, only : common_check_resolution
     use mo_common_variables, only : ALMA_convention, domainMeta, processMatrix
-    use mo_message, only : message
     use mo_mrm_constants, only : maxNoGauges
     use mo_mrm_file, only : file_defOutput, udefOutput
     use mo_mrm_global_variables, only : InflowGauge, domainInfo_mRM, domain_mrm, &
@@ -170,11 +171,9 @@ contains
     read(unamelist, nml = evaluation_gauges)
 
     if (nGaugesTotal .GT. maxNoGauges) then
-      call message()
       call message('***ERROR: ', trim(file_namelist), ': Total number of evaluation gauges is restricted to', &
-              num2str(maxNoGauges))
-      call message('          Error occured in namlist: evaluation_gauges')
-      stop 1
+              num2str(maxNoGauges), uni=nerr)
+      call error_message('          Error occured in namlist: evaluation_gauges')
     end if
 
     ! ToDo: check
@@ -207,11 +206,9 @@ contains
       domain_mrm_iDomain%gaugeNodeList = nodata_i4
       ! check if NoGauges_domain has a valid value
       if (NoGauges_domain(domainID) .EQ. nodata_i4) then
-        call message()
         call message('***ERROR: ', trim(file_namelist), ': Number of evaluation gauges for subdomain ', &
-                trim(adjustl(num2str(domainID))), ' is not defined!')
-        call message('          Error occured in namelist: evaluation_gauges')
-        stop 1
+                trim(adjustl(num2str(domainID))), ' is not defined!', uni=nerr)
+        call error_message('          Error occured in namelist: evaluation_gauges')
       end if
 
       domain_mrm_iDomain%nGauges = NoGauges_domain(domainID)
@@ -219,20 +216,16 @@ contains
       do iGauge = 1, NoGauges_domain(domainID)
         ! check if NoGauges_domain has a valid value
         if (Gauge_id(domainID, iGauge) .EQ. nodata_i4) then
-          call message()
           call message('***ERROR: ', trim(file_namelist), ': ID ', &
                   trim(adjustl(num2str(Gauge_id(domainID, iGauge)))), ' of evaluation gauge ', &
                   trim(adjustl(num2str(iGauge))), ' for subdomain ', &
-                  trim(adjustl(num2str(iDomain))), ' is not defined!')
-          call message('          Error occured in namelist: evaluation_gauges')
-          stop 1
+                  trim(adjustl(num2str(iDomain))), ' is not defined!', uni=nerr)
+          call error_message('          Error occured in namelist: evaluation_gauges')
         else if (trim(gauge_filename(domainID, iGauge)) .EQ. trim(num2str(nodata_i4))) then
-          call message()
           call message('***ERROR: ', trim(file_namelist), ': Filename of evaluation gauge ', &
                   trim(adjustl(num2str(iGauge))), ' for subdomain ', &
-                  trim(adjustl(num2str(iDomain))), ' is not defined!')
-          call message('          Error occured in namelist: evaluation_gauges')
-          stop 1
+                  trim(adjustl(num2str(iDomain))), ' is not defined!', uni=nerr)
+          call error_message('          Error occured in namelist: evaluation_gauges')
         end if
         !
         idx = idx + 1
@@ -245,12 +238,10 @@ contains
     end do
 
     if (nGaugesLocal .NE. idx) then
-      call message()
       call message('***ERROR: ', trim(file_namelist), ': Total number of evaluation gauges (', &
               trim(adjustl(num2str(nGaugesLocal))), &
-              ') different from sum of gauges in subdomains (', trim(adjustl(num2str(idx))), ')!')
-      call message('          Error occured in namelist: evaluation_gauges')
-      stop
+              ') different from sum of gauges in subdomains (', trim(adjustl(num2str(idx))), ')!', uni=nerr)
+      call error_message('          Error occured in namelist: evaluation_gauges')
     end if
 
     !===============================================================
@@ -266,11 +257,9 @@ contains
     read(unamelist, nml = inflow_gauges)
 
     if (nInflowGaugesTotal .GT. maxNoGauges) then
-      call message()
       call message('***ERROR: ', trim(file_namelist), &
-              ':read_gauge_lut: Total number of inflow gauges is restricted to', num2str(maxNoGauges))
-      call message('          Error occured in namlist: inflow_gauges')
-      stop
+              ':read_gauge_lut: Total number of inflow gauges is restricted to', num2str(maxNoGauges), uni=nerr)
+      call error_message('          Error occured in namlist: inflow_gauges')
     end if
 
     ! allocation - max() to avoid allocation with zero, needed for mhm call
@@ -307,19 +296,15 @@ contains
       do iGauge = 1, NoInflowGauges_domain(domainID)
         ! check if NoInflowGauges_domain has a valid value
         if (InflowGauge_id(domainID, iGauge) .EQ. nodata_i4) then
-          call message()
           call message('***ERROR: ', trim(file_namelist), ':ID of inflow gauge ', &
                   trim(adjustl(num2str(iGauge))), ' for subdomain ', &
-                  trim(adjustl(num2str(iDomain))), ' is not defined!')
-          call message('          Error occured in namlist: inflow_gauges')
-          stop
+                  trim(adjustl(num2str(iDomain))), ' is not defined!', uni=nerr)
+          call error_message('          Error occured in namlist: inflow_gauges')
         else if (trim(InflowGauge_filename(domainID, iGauge)) .EQ. trim(num2str(nodata_i4))) then
-          call message()
           call message('***ERROR: ', trim(file_namelist), ':Filename of inflow gauge ', &
                   trim(adjustl(num2str(iGauge))), ' for subdomain ', &
-                  trim(adjustl(num2str(iDomain))), ' is not defined!')
-          call message('          Error occured in namlist: inflow_gauges')
-          stop
+                  trim(adjustl(num2str(iDomain))), ' is not defined!', uni=nerr)
+          call error_message('          Error occured in namlist: inflow_gauges')
         end if
         !
         idx = idx + 1
@@ -333,12 +318,10 @@ contains
     end do
 
     if (nInflowGaugesTotal .NE. idx) then
-      call message()
       call message('***ERROR: ', trim(file_namelist), ': Total number of inflow gauges (', &
               trim(adjustl(num2str(nInflowGaugesTotal))), &
-              ') different from sum of inflow gauges in subdomains (', trim(adjustl(num2str(idx))), ')!')
-      call message('          Error occured in namlist: inflow_gauges')
-      stop
+              ') different from sum of inflow gauges in subdomains (', trim(adjustl(num2str(idx))), ')!', uni=nerr)
+      call error_message('          Error occured in namlist: inflow_gauges')
     end if
 
     call common_check_resolution(do_message, .true.)
@@ -434,7 +417,6 @@ contains
     use mo_common_constants, only : nColPars
     use mo_common_functions, only : in_bound
     use mo_common_variables, only : global_parameters, global_parameters_name, processMatrix
-    use mo_message, only : message
     use mo_nml, only : close_nml, open_nml, position_nml
 
     implicit none
@@ -529,9 +511,8 @@ contains
 
     ! check if parameter are in range
     if (.not. in_bound(global_parameters)) then
-      call message('***ERROR: parameter in routing namelist out of bound in ', &
+      call error_message('***ERROR: parameter in routing namelist out of bound in ', &
               trim(adjustl(file_namelist_param)))
-      stop
     end if
 
     call close_nml(unamelist_param)

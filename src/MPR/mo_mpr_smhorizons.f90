@@ -130,7 +130,7 @@ contains
                            L1_latticeWater,& ! L1 lattice water content
                            L1_COSMICL3   )   ! L1 COSMIC L3 parameter from neutron module
 
-    use mo_message, only : message
+    use mo_message, only : message, error_message
     use mo_string_utils, only : num2str
     use mo_upscaling_operators, only : upscale_harmonic_mean
     !$ use omp_lib
@@ -702,9 +702,7 @@ contains
       end do
       ! anything else
     CASE DEFAULT
-      call message()
-      call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
-      stop
+      call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
     END SELECT
 
 

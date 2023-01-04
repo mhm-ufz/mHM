@@ -18,6 +18,8 @@ MODULE mo_startup
   ! Written Luis Samaniego, Rohini Kumar, Dec 2012
 
   USE mo_kind, ONLY : i4, dp
+  use mo_message, only: message, error_message
+  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -146,7 +148,6 @@ CONTAINS
     use mo_common_variables, only : processMatrix
     use mo_file, only : file_namelist_mhm_param
     use mo_global_variables, only : neutron_integral_AFast
-    use mo_message, only : message
     use mo_mpr_file, only : file_hydrogeoclass
     use mo_mpr_global_variables, only : GeoUnitList
     use mo_neutrons, only : TabularIntegralAFast
@@ -167,12 +168,10 @@ CONTAINS
     ! check if enough geoparameter are defined in mhm_parameter.nml
     ! this was formerly done after reading of data, but mHM and MPR are now seperate processes
     if ((processMatrix(9, 2)) .NE.  size(GeoUnitList, 1)) then
-      call message()
       call message('***ERROR: Mismatch: Number of geological units in ', trim(adjustl(file_hydrogeoclass)), &
-              ' is ', trim(adjustl(num2str(size(GeoUnitList, 1)))))
-      call message('          while it is ', trim(num2str(processMatrix(9, 2))), &
+              ' is ', trim(adjustl(num2str(size(GeoUnitList, 1)))), uni=nerr)
+      call error_message('          while it is ', trim(num2str(processMatrix(9, 2))), &
               ' in ', trim(file_namelist_mhm_param), '!')
-      stop 1
     end if
 
     c2TSTu = real(timeStep, dp) / 24.0_dp   ! from per timeStep to per day
@@ -212,7 +211,6 @@ CONTAINS
     use mo_common_variables, only : Grid
     use mo_global_variables, only : dirPrecipitation
     use mo_grid, only : init_lowres_level
-    use mo_message, only : message
     use mo_mpr_file, only : file_meteo_header, umeteo_header
     use mo_read_spatial_data, only : read_header_ascii
     use mo_string_utils, only : num2str
@@ -254,20 +252,19 @@ CONTAINS
             (abs(yllcorner2 - level2_iDomain%yllcorner) .gt. tiny(1.0_dp))     .or. &
             (abs(cellsize2 - level2_iDomain%cellsize)  .gt. tiny(1.0_dp))) then
       call message('   ***ERROR: subroutine L2_variable_init: size mismatch in grid file for level2 in domain ', &
-              trim(adjustl(num2str(iDomain))), '!')
-      call message('  Expected to have following properties (based on L0):')
-      call message('... rows:     ', trim(adjustl(num2str(level2_iDomain%nrows))), ', ')
-      call message('... cols:     ', trim(adjustl(num2str(level2_iDomain%ncols))), ', ')
-      call message('... cellsize: ', trim(adjustl(num2str(level2_iDomain%cellsize))), ', ')
-      call message('... xllcorner:', trim(adjustl(num2str(level2_iDomain%xllcorner))), ', ')
-      call message('... yllcorner:', trim(adjustl(num2str(level2_iDomain%yllcorner))), ', ')
-      call message('  Provided (in precipitation file):')
-      call message('... rows:     ', trim(adjustl(num2str(nrows2))), ', ')
-      call message('... cols:     ', trim(adjustl(num2str(ncols2))), ', ')
-      call message('... cellsize: ', trim(adjustl(num2str(cellsize2))), ', ')
-      call message('... xllcorner:', trim(adjustl(num2str(xllcorner2))), ', ')
-      call message('... yllcorner:', trim(adjustl(num2str(yllcorner2))), ', ')
-      stop 1
+              trim(adjustl(num2str(iDomain))), '!', uni=nerr)
+      call message('  Expected to have following properties (based on L0):', uni=nerr)
+      call message('... rows:     ', trim(adjustl(num2str(level2_iDomain%nrows))), ', ', uni=nerr)
+      call message('... cols:     ', trim(adjustl(num2str(level2_iDomain%ncols))), ', ', uni=nerr)
+      call message('... cellsize: ', trim(adjustl(num2str(level2_iDomain%cellsize))), ', ', uni=nerr)
+      call message('... xllcorner:', trim(adjustl(num2str(level2_iDomain%xllcorner))), ', ', uni=nerr)
+      call message('... yllcorner:', trim(adjustl(num2str(level2_iDomain%yllcorner))), ', ', uni=nerr)
+      call message('  Provided (in precipitation file):', uni=nerr)
+      call message('... rows:     ', trim(adjustl(num2str(nrows2))), ', ', uni=nerr)
+      call message('... cols:     ', trim(adjustl(num2str(ncols2))), ', ', uni=nerr)
+      call message('... cellsize: ', trim(adjustl(num2str(cellsize2))), ', ', uni=nerr)
+      call message('... xllcorner:', trim(adjustl(num2str(xllcorner2))), ', ', uni=nerr)
+      call error_message('... yllcorner:', trim(adjustl(num2str(yllcorner2))), ', ')
     end if
 
   end subroutine L2_variable_init

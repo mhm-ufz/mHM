@@ -37,6 +37,7 @@ MODULE mo_objective_function
 
   USE mo_kind, ONLY : i4, dp
   use mo_optimization_utils, only : eval_interface
+  use mo_message, only : message, error_message
 
   IMPLICIT NONE
 
@@ -91,7 +92,6 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : opti_function
-    use mo_message, only : message
 
     implicit none
 
@@ -111,8 +111,7 @@ CONTAINS
 
 
     if (present(arg1) .or. present(arg2) .or. present(arg3)) then
-      call message("Error mo_objective_function: Received unexpected argument, check optimization settings")
-      stop 1
+      call error_message("Error mo_objective_function: Received unexpected argument, check optimization settings")
     end if
 
     ! set these to nan so compiler does not complain
@@ -162,8 +161,7 @@ CONTAINS
       objective = objective_kge_q_BFI(parameterset, eval)
 
     case default
-      call message("Error objective: opti_function not implemented yet.")
-      stop 1
+      call error_message("Error objective: opti_function not implemented yet.")
     end select
 
   END FUNCTION objective
@@ -210,7 +208,6 @@ CONTAINS
     use mo_common_mHM_mRM_variables, only : opti_function
     use mo_common_mpi_tools, only : distribute_parameterset
     use mo_common_variables, only : domainMeta
-    use mo_message, only : message
     use mo_string_utils, only : num2str
     use mpi_f08
 
@@ -245,8 +242,7 @@ CONTAINS
 
 
     if (present(arg1) .or. present(arg2) .or. present(arg3)) then
-      call message("Error mo_objective_function: Received unexpected argument, check optimization settings")
-      stop 1
+      call error_message("Error mo_objective_function: Received unexpected argument, check optimization settings")
     end if
 
     ! set these to nan so compiler does not complain
@@ -269,8 +265,7 @@ CONTAINS
       objective_master = objective_master**onesixth
     case (15)
       ! KGE for Q * RMSE for domain_avg TWS (standarized scored)
-      call message("case 15, objective_kge_q_rmse_tws not implemented in parallel yet")
-      stop
+      call error_message("case 15, objective_kge_q_rmse_tws not implemented in parallel yet")
     case (30)
       ! KGE for Q * RMSE for domain_avg ET (standarized scored)
       ! objective_master = objective_kge_q_rmse_et(parameterset, eval)
@@ -288,8 +283,7 @@ CONTAINS
       objective_master = (objective_master/multiple_master_objective(4))**onesixth
 
     case default
-      call message("Error objective_master: opti_function not implemented yet.")
-      stop 1
+      call error_message("Error objective_master: opti_function not implemented yet.")
     end select
 
     select case (opti_function)
@@ -312,8 +306,7 @@ CONTAINS
     case(33)
       call message('    objective_q_et_tws_kge_catchment_avg = ', num2str(objective_master, '(F9.5)'))
     case default
-      call message("Error objective_master: opti_function not implemented yet, this part of the code should never execute.")
-      stop 1
+      call error_message("Error objective_master: opti_function not implemented yet, this part of the code should never execute.")
     end select
 
   END FUNCTION objective_master
@@ -362,7 +355,6 @@ CONTAINS
     use mo_common_mHM_mRM_variables, only : opti_function
     use mo_common_mpi_tools, only : get_parameterset
     use mo_common_variables, only : domainMeta
-    use mo_message, only : message
     use mpi_f08
 
     implicit none
@@ -393,8 +385,7 @@ CONTAINS
       if (.not. do_obj_loop) exit
 
       if (present(arg1) .or. present(arg2) .or. present(arg3)) then
-        call message("Error mo_objective_function: Received unexpected argument, check optimization settings")
-        stop 1
+        call error_message("Error mo_objective_function: Received unexpected argument, check optimization settings")
       end if
 
       ! set these to nan so compiler does not complain
@@ -421,7 +412,7 @@ CONTAINS
       case (15)
         ! KGE for Q * RMSE for domain_avg TWS (standarized scored)
         ! partial_objective = objective_kge_q_rmse_tws(parameterset, eval)
-        stop
+        call error_message("Error objective_subprocess: case 15 not supported with MPI.")
       case (17)
         ! KGE of catchment average SM
         partial_objective = objective_neutrons_kge_catchment_avg(parameterset, eval)
@@ -436,13 +427,12 @@ CONTAINS
         partial_objective = objective_kge_q_et(parameterset, eval)
       case (30)
         ! KGE for Q * RMSE for domain_avg ET (standarized scored)
-        partial_objective = objective_kge_q_rmse_et(parameterset, eval)
-        stop
+        ! partial_objective = objective_kge_q_rmse_et(parameterset, eval)
+        call error_message("Error objective_subprocess: case 30 not supported with MPI.")
       case(33)
         multiple_partial_objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
       case default
-        call message("Error objective_subprocess: opti_function not implemented yet.")
-        stop 1
+        call error_message("Error objective_subprocess: opti_function not implemented yet.")
       end select
 
       select case (opti_function)
@@ -451,8 +441,7 @@ CONTAINS
       case(33)
         call MPI_Send(multiple_partial_objective, 6, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
-        call message("Error objective_subprocess: this part should not be executed -> error in the code.")
-        stop 1
+        call error_message("Error objective_subprocess: this part should not be executed -> error in the code.")
       end select
 
       deallocate(parameterset)
@@ -513,7 +502,6 @@ CONTAINS
     use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : KGE
     use mo_global_variables, only : L1_smObs
-    use mo_message, only : message
     use mo_moment, only : average
     use mo_string_utils, only : num2str
 
@@ -658,7 +646,6 @@ CONTAINS
     use mo_common_variables, only : domainMeta
     use mo_global_variables, only : L1_etObs, L1_twsaObs
     use mo_errormeasures, only : kge
-    use mo_message, only : message
     use mo_moment, only : average
     use mo_string_utils, only : num2str
     use mo_mrm_objective_function_runoff, only : extract_runoff
@@ -911,7 +898,6 @@ CONTAINS
 
   !>       \date July 2019
   subroutine init_indexarray_for_opti_data(domainMeta, optidataOption, nOptiDomains, opti_domain_indices)
-    use mo_message, only : message
     use mo_common_variables, only : domain_meta
     !> meta data for all domains assigned to that process
     type(domain_meta),                                intent(in)    :: domainMeta
@@ -993,7 +979,6 @@ CONTAINS
     use mo_optimization_types, only : optidata_sim
     use mo_common_variables, only : level1, domainMeta
     use mo_global_variables, only : L1_smObs
-    use mo_message, only : message
     use mo_moment, only : correlation
     use mo_string_utils, only : num2str
 
@@ -1128,7 +1113,6 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : level1, domainMeta
     use mo_global_variables, only : L1_smObs
-    use mo_message, only : message
     use mo_spatialsimilarity, only : PD
     use mo_string_utils, only : num2str
 
@@ -1213,8 +1197,7 @@ CONTAINS
                 ((1.0_dp - sum(pd_time_series, mask = mask_times) / real(count(mask_times), dp)) / &
                                                     real(domainMeta%overallNumberOfDomains, dp))**6
       else
-        call message('***ERROR: mo_objective_funtion: objective_sm_pd: No soil moisture observations available!')
-        stop
+        call error_message('***ERROR: mo_objective_funtion: objective_sm_pd: No soil moisture observations available!')
       end if
 
       ! deallocate
@@ -1284,7 +1267,6 @@ CONTAINS
     use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : SSE
     use mo_global_variables, only : L1_smObs
-    use mo_message, only : message
     use mo_standard_score, only : standard_score
     use mo_string_utils, only : num2str
 
@@ -1407,7 +1389,6 @@ CONTAINS
     use mo_global_variables, only : L1_twsaObs
     use mo_errormeasures, only : rmse
     use mo_julian, only : caldat
-    use mo_message, only : message
     use mo_moment, only : mean
     use mo_standard_score, only : classified_standard_score
     use mo_string_utils, only : num2str
@@ -1642,7 +1623,6 @@ CONTAINS
     use mo_common_variables, only : domainMeta
     use mo_errormeasures, only : KGE
     use mo_global_variables, only : L1_neutronsObs
-    use mo_message, only : message
     use mo_moment, only : average
     use mo_string_utils, only : num2str
 
@@ -1788,7 +1768,6 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : domainMeta
     use mo_errormeasures, only : KGE
-    use mo_message, only : message
     use mo_moment, only : average
     use mo_string_utils, only : num2str
 
@@ -1889,7 +1868,6 @@ CONTAINS
     use mo_optimization_types, only : optidata_sim
     use mo_common_variables, only : level1, domainMeta
     use mo_global_variables, only : L1_smObs
-    use mo_message, only : message
     use mo_moment, only : correlation
     use mo_string_utils, only : num2str
     use mo_errormeasures, only : kge
@@ -2070,7 +2048,6 @@ CONTAINS
     use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : kge
     use mo_global_variables, only : L1_etObs
-    use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_mrm_objective_function_runoff, only : extract_runoff
 
@@ -2247,7 +2224,6 @@ CONTAINS
     use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : kge
     use mo_global_variables, only : BFI_obs
-    use mo_message, only : message, error_message
     use mo_string_utils, only : num2str
     use mo_mrm_objective_function_runoff, only : extract_runoff
 
@@ -2383,7 +2359,6 @@ CONTAINS
     use mo_errormeasures, only : rmse
     use mo_global_variables, only : L1_etObs
     use mo_julian, only : caldat
-    use mo_message, only : message
     use mo_moment, only : average, mean
     use mo_standard_score, only : classified_standard_score
     use mo_string_utils, only : num2str
@@ -2533,8 +2508,7 @@ CONTAINS
 
         ! yearly: ERROR stop program
       case(-3)
-        call message('***ERROR: objective_kge_q_rmse_et: time step of evapotranspiration yearly.')
-        stop
+        call error_message('***ERROR: objective_kge_q_rmse_et: time step of evapotranspiration yearly.')
       end select
       ! remove mean from modelled time series
       et_sim_m(:) = et_sim_m(:) - mean(et_sim_m(:))

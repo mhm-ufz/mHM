@@ -142,7 +142,7 @@ CONTAINS
 
     use mo_common_constants, only : eps_dp
     use mo_common_variables, only : L0_LCover, L0_elev, level0, nLCoverScene
-    use mo_message, only : message
+    use mo_message, only : message, error_message
     use mo_mpr_global_variables, only : L0_asp, L0_geoUnit, L0_gridded_LAI, &
                                         L0_slope, L0_soilId, iFlag_soilDB, nSoilHorizons_mHM, timeStep_LAI_input
     use mo_string_utils, only : num2str
@@ -163,25 +163,22 @@ CONTAINS
       ! elevation [m]
       if (abs(L0_elev(k) - nodata_dp) .lt. eps_dp) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)'))
-        call message(' Error: elevation has missing value within the valid masked area at cell in domain ', &
+        call error_message(' Error: elevation has missing value within the valid masked area at cell in domain ', &
                 trim(message_text))
-        stop
       end if
 
       ! slope [%]
       if (abs(L0_slope(k) - nodata_dp) .lt. eps_dp) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)'))
-        call message(' Error: slope has missing value within the valid masked area at cell in domain ', &
+        call error_message(' Error: slope has missing value within the valid masked area at cell in domain ', &
                 trim(message_text))
-        stop
       end if
 
       ! aspect [degree]
       if (abs(L0_asp(k) - nodata_dp) .lt. eps_dp) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)'))
-        call message(' Error: aspect has missing values within the valid masked area at cell in domain ', &
+        call error_message(' Error: aspect has missing values within the valid masked area at cell in domain ', &
                 trim(message_text))
-        stop
       end if
 
       ! soil-Id [-]
@@ -191,27 +188,24 @@ CONTAINS
       do n = 1, nH
         if (L0_soilId(k, n) .eq. nodata_i4) then
           message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)')) // ',' // trim(num2str(n, '(I5)'))
-          call message(' Error: soil id has missing values within the valid masked area at cell in domain and horizon ', &
+          call error_message(' Error: soil id has missing values within the valid masked area at cell in domain and horizon ', &
                   trim(message_text))
-          stop
         end if
       end do
 
       ! geological-Id [-]
       if (L0_geoUnit(k) .eq. nodata_i4) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)'))
-        call message(' Error: geological formation id has missing values within the valid masked area at cell in domain ', &
+        call error_message(' Error: geological formation id has missing values within the valid masked area at cell in domain ', &
                 trim(message_text))
-        stop
       end if
 
       ! landcover scenes
       do  n = 1, nLCoverScene
         if (L0_LCover(k, n) .eq. nodata_i4) then
           message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)')) // ',' // trim(num2str(n, '(I5)'))
-          call message(' Error: land cover id has missing values within the valid masked area at cell in domain and scene ', &
+          call error_message(' Error: land cover id has missing values within the valid masked area at cell in domain and scene ', &
                   trim(message_text))
-          stop
         end if
       end do
 
@@ -219,9 +213,8 @@ CONTAINS
       if(timeStep_LAI_input .EQ. 0) then
         if (eq(L0_gridded_LAI(k, 1), nodata_dp)) then
           message_text = trim(num2str(k, '(G5.3)')) // ',' // trim(num2str(iDomain, '(I5)'))
-          call message(' Error: gridded LAI has missing values within the valid masked area at cell in domain ', &
+          call error_message(' Error: gridded LAI has missing values within the valid masked area at cell in domain ', &
                   trim(message_text))
-          stop
         end if
       end if
 

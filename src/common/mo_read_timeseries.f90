@@ -170,9 +170,8 @@ CONTAINS
     read(fileunit, *)        dummy, (periodEnd_file(i), i = 1, 3)
     dummy = dummy // ''   ! only to avoid warning
     if ((timestep_file .lt. 1_i4) .or. (timestep_file .gt. 1440_i4)) then
-      call message('***ERROR: Number of measurements per day has to be between 1 (daily) and 1440 (every minute)! ', &
+      call error_message('***ERROR: Number of measurements per day has to be between 1 (daily) and 1440 (every minute)! ', &
               trim(filename))
-      stop
     end if
 
     ! checking if period is covered by data in file
@@ -187,8 +186,7 @@ CONTAINS
             (opti_function .eq. 31_i4) .or. &
             (opti_function .eq. 33_i4))) then
       ! adjust this whenever a new opti function on discharge is added to mhm!
-      call message('***ERROR: Simulation period is not covered by observations! ', trim(filename))
-      stop
+      call error_message('***ERROR: Simulation period is not covered by observations! ', trim(filename))
     end if
 
     ! allocation of arrays

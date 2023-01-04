@@ -14,6 +14,8 @@
 MODULE mo_mhm_read_config
 
   USE mo_kind, ONLY : i4, dp
+  use mo_message, only: message, error_message
+  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -104,7 +106,6 @@ CONTAINS
       timestep_model_inputs, &
       output_deflate_level, output_double_precision, output_time_reference, &
       BFI_calc, BFI_obs
-    use mo_message, only : message
     use mo_mpr_constants, only : maxNoSoilHorizons
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
     use mo_nml, only : close_nml, open_nml, position_nml
@@ -248,15 +249,11 @@ CONTAINS
     ! consistency check for timestep_model_inputs
     if (any(timestep_model_inputs .ne. 0) .and. &
             .not. all(timestep_model_inputs .ne. 0)) then
-      call message()
-      call message('***ERROR: timestep_model_inputs either have to be all zero or all non-zero')
-      stop
+      call error_message('***ERROR: timestep_model_inputs either have to be all zero or all non-zero')
     end if
     ! check for optimzation and timestep_model_inputs options
     if (optimize .and. (any(timestep_model_inputs .ne. 0))) then
-      call message()
-      call message('***ERROR: optimize and chunk read is switched on! (set timestep_model_inputs to zero)')
-      stop
+      call error_message('***ERROR: optimize and chunk read is switched on! (set timestep_model_inputs to zero)')
     end if
 
     !===============================================================
@@ -276,10 +273,8 @@ CONTAINS
             L1_smObs(iDomain)%varname = 'sm'
           end do
           if (nSoilHorizons_sm_input .GT. nSoilHorizons_mHM) then
-            call message()
-            call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
-            call message('          defined number of soil horizions: ', adjustl(trim(num2str(maxNoSoilHorizons))), '!')
-            stop
+            call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded', uni=nerr)
+            call error_message('          defined number of soil horizions: ', adjustl(trim(num2str(maxNoSoilHorizons))), '!')
           end if
         case(17)
           ! neutrons

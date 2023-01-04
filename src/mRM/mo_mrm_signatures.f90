@@ -18,6 +18,8 @@
 MODULE mo_mrm_signatures
 
   USE mo_kind, ONLY : i4, sp, dp
+  use mo_message, only : message, error_message
+  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -340,8 +342,6 @@ CONTAINS
 
   SUBROUTINE Limb_densities(data, mask, RLD, DLD)
 
-    use mo_message, only : message
-
     implicit none
 
     ! data series
@@ -386,8 +386,7 @@ CONTAINS
     end if
 
     if ((.not. present(RLD)) .and. (.not. present(DLD))) then
-      call message('mo_signatures: limb_densities: Neither RLD or DLD is specified in calling sequence.')
-      stop
+      call error_message('mo_signatures: limb_densities: Neither RLD or DLD is specified in calling sequence.')
     end if
 
     ! initialize
@@ -513,7 +512,6 @@ CONTAINS
   FUNCTION MaximumMonthlyFlow(data, mask, yr_start, mo_start, dy_start)
 
     use mo_julian, only : date2dec, dec2date
-    use mo_message, only : message
 
     implicit none
 
@@ -560,8 +558,7 @@ CONTAINS
     end if
 
     if (.not. present(yr_start)) then
-      call message('mo_signatures: MaximumMonthlyFlow: Year of of data point has to be given!')
-      stop
+      call error_message('mo_signatures: MaximumMonthlyFlow: Year of of data point has to be given!')
     else
       yr = yr_start
     end if
@@ -593,9 +590,7 @@ CONTAINS
     end do
 
     if (any(counter == 0_i4)) then
-      call message('mo_signatures: MaximumMonthlyFlow: There are months with no data points!')
-      call message('                                   Aborted!')
-      stop
+      call error_message('mo_signatures: MaximumMonthlyFlow: There are months with no data points!')
     end if
 
     ! average
@@ -660,7 +655,6 @@ CONTAINS
   SUBROUTINE Moments(data, mask, mean_data, stddev_data, median_data, max_data, mean_log, stddev_log, median_log, &
                     max_log)
 
-    use mo_message, only : message
     use mo_moment, only : mean, stddev
     use mo_percentile, only : median
 
@@ -711,8 +705,7 @@ CONTAINS
             .not.(present(median_data)) .and. .not.(present(max_data)) .and. &
                     .not.(present(mean_log))  .and. .not.(present(stddev_log)) .and. &
                             .not.(present(median_log))  .and. .not.(present(max_log))) then
-      call message('mo_signatures: Moments: None of the optional output arguments is specified')
-      stop
+      call error_message('mo_signatures: Moments: None of the optional output arguments is specified')
     end if
 
     if (present(mean_data))   mean_data = mean(data, mask = maske)
@@ -924,8 +917,6 @@ CONTAINS
 
   FUNCTION RunoffRatio(data, domain_area, mask, precip_series, precip_sum, log_data)
 
-    use mo_message, only : message
-
     implicit none
 
     ! array of data   [m**3/s]
@@ -975,17 +966,15 @@ CONTAINS
 
     if ((present(precip_series) .and. present(precip_sum)) .or. &
             (.not. present(precip_series) .and. .not. present(precip_sum))) then
-      call message('mo_signatures: RunoffRatio: Exactly one precipitation information')
-      call message('                            (precipitation series or sum of precipitation) ')
-      call message('                            has to be specified!')
-      stop
+      call message('mo_signatures: RunoffRatio: Exactly one precipitation information', uni=nerr)
+      call message('                            (precipitation series or sum of precipitation) ', uni=nerr)
+      call error_message('                            has to be specified!')
     end if
 
     if (present(mask) .and. present(precip_sum)) then
-      call message('mo_signatures: RunoffRatio: Already aggregated precipitation (precip_sum) and')
-      call message('                            mask can not be used together.')
-      call message('                            Precip_series should be used instead!')
-      stop
+      call message('mo_signatures: RunoffRatio: Already aggregated precipitation (precip_sum) and', uni=nerr)
+      call message('                            mask can not be used together.', uni=nerr)
+      call error_message('                            Precip_series should be used instead!')
     end if
 
     ! mhm output [m**3/s]  --> required [mm/d]
@@ -1044,7 +1033,6 @@ CONTAINS
 
   FUNCTION ZeroFlowRatio(data, mask)
 
-    use mo_message, only : message
     use mo_utils, only : eq
 
     implicit none
@@ -1081,8 +1069,7 @@ CONTAINS
     if (nall > 0) then
       ZeroFlowRatio = real(nzero, dp) / real(nall, dp)
     else
-      call message('mo_signatures: ZeroFlowRatio: all data points are masked')
-      stop
+      call error_message('mo_signatures: ZeroFlowRatio: all data points are masked')
     end if
 
   END FUNCTION ZeroFlowRatio

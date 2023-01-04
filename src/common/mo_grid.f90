@@ -488,7 +488,7 @@ contains
   subroutine calculate_grid_properties(nrowsIn, ncolsIn, xllcornerIn, yllcornerIn, cellsizeIn, aimingResolution, &
                                       nrowsOut, ncolsOut, xllcornerOut, yllcornerOut, cellsizeOut)
 
-    use mo_message, only : message
+    use mo_message, only : error_message
     use mo_string_utils, only : num2str
 
     implicit none
@@ -535,11 +535,10 @@ contains
     rounded_int = nint(cellFactor)
 
     if (abs(rounded - cellFactor) > 1.e-9_dp) then
-      call message()
-      call message('***ERROR: Two resolutions size do not confirm: ', &
-              trim(adjustl(num2str(nint(AimingResolution)))), &
-              trim(adjustl(num2str(nint(cellsizeIn)))))
-      stop 1
+      call error_message( &
+        '***ERROR: Two resolutions size do not confirm: ', &
+        trim(adjustl(num2str(nint(AimingResolution)))), &
+        trim(adjustl(num2str(nint(cellsizeIn)))))
     end if
 
     cellsizeOut = cellsizeIn * rounded

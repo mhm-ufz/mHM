@@ -12,6 +12,8 @@
 MODULE mo_common_read_config
 
   USE mo_kind, ONLY : i4, dp
+  use mo_message, only: message, error_message
+  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -55,7 +57,6 @@ CONTAINS
                                     fileLatLon, history, iFlag_cordinate_sys, mHM_details, domainMeta, nLcoverScene, &
                                     nProcesses, nuniqueL0Domains, processMatrix, project_details, resolutionHydrology, &
                                     setup_description, simulation_type, write_restart
-    use mo_message, only : message
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
 
@@ -140,9 +141,7 @@ CONTAINS
     call init_domain_variable(nDomains, read_opt_domain_data(1:nDomains), domainMeta)
 
     if (nDomains .GT. maxNoDomains) then
-      call message()
-      call message('***ERROR: Number of domains is resticted to ', trim(num2str(maxNoDomains)), '!')
-      stop 1
+      call error_message('***ERROR: Number of domains is resticted to ', trim(num2str(maxNoDomains)), '!')
     end if
 
     ! allocate patharray sizes
@@ -178,9 +177,7 @@ CONTAINS
 
     ! check for possible options
     if(.NOT. (iFlag_cordinate_sys == 0 .OR. iFlag_cordinate_sys == 1)) then
-      call message()
-      call message('***ERROR: coordinate system for the model run should be 0 or 1')
-      stop 1
+      call error_message('***ERROR: coordinate system for the model run should be 0 or 1')
     end if
 
     !===============================================================
@@ -270,7 +267,6 @@ CONTAINS
 
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : LC_year_end, LC_year_start, domainMeta, nLcoverScene, period
-    use mo_message, only : message
     use mo_string_utils, only : num2str
 
     implicit none
@@ -284,18 +280,14 @@ CONTAINS
 
     ! countercheck if land cover covers simulation period
     if (LC_year_start(1) .GT. minval(sim_Per(1 : domainMeta%nDomains)%yStart)) then
-      call message()
-      call message('***ERROR: Land cover for warming period is missing!')
-      call message('   SimStart   : ', trim(num2str(minval(sim_Per(1 : domainMeta%nDomains)%yStart))))
-      call message('   LCoverStart: ', trim(num2str(LC_year_start(1))))
-      stop 1
+      call message('***ERROR: Land cover for warming period is missing!', uni=nerr)
+      call message('   SimStart   : ', trim(num2str(minval(sim_Per(1 : domainMeta%nDomains)%yStart))), uni=nerr)
+      call error_message('   LCoverStart: ', trim(num2str(LC_year_start(1))))
     end if
     if (LC_year_end(nLCoverScene) .LT. maxval(sim_Per(1 : domainMeta%nDomains)%yEnd)) then
-      call message()
-      call message('***ERROR: Land cover period shorter than modelling period!')
-      call message('   SimEnd   : ', trim(num2str(maxval(sim_Per(1 : domainMeta%nDomains)%yEnd))))
-      call message('   LCoverEnd: ', trim(num2str(LC_year_end(nLCoverScene))))
-      stop 1
+      call message('***ERROR: Land cover period shorter than modelling period!', uni=nerr)
+      call message('   SimEnd   : ', trim(num2str(maxval(sim_Per(1 : domainMeta%nDomains)%yEnd))), uni=nerr)
+      call error_message('   LCoverEnd: ', trim(num2str(LC_year_end(nLCoverScene))))
     end if
     !
     allocate(LCyear_Id(minval(sim_Per(1 : domainMeta%nDomains)%yStart) : maxval(sim_Per(1 : domainMeta%nDomains)%yEnd), &
@@ -377,7 +369,7 @@ CONTAINS
     ! find the number the process is referred to, called rank
     call MPI_Comm_rank(comm, rank, ierror)
     if (nproc < 2) then
-      stop 'at least 2 processes are required'
+      call error_message('at least 2 processes are required')
     end if
     ! if there are more processes than domains
     if (nproc > domainMeta%overallNumberOfDomains + 1) then

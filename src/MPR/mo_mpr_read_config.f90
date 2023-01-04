@@ -63,7 +63,7 @@ contains
     use mo_common_constants, only : eps_dp, maxNoDomains, nColPars, nodata_dp
     use mo_common_functions, only : in_bound
     use mo_common_variables, only : global_parameters, global_parameters_name, domainMeta, processMatrix
-    use mo_message, only : message
+    use mo_message, only : message, error_message
     use mo_mpr_constants, only : maxGeoUnit, &
                                  maxNoSoilHorizons
     use mo_mpr_global_variables, only : HorizonDepth_mHM, dirgridded_LAI, fracSealed_cityArea, iFlag_soilDB, &
@@ -335,9 +335,7 @@ contains
 
     ! counter checks -- soil horizons
     if (nSoilHorizons_mHM .GT. maxNoSoilHorizons) then
-      call message()
-      call message('***ERROR: Number of soil horizons is resticted to ', trim(num2str(maxNoSoilHorizons)), '!')
-      stop
+      call error_message('***ERROR: Number of soil horizons is resticted to ', trim(num2str(maxNoSoilHorizons)), '!')
     end if
 
     ! the default is the HorizonDepths are all set up to last
@@ -346,17 +344,13 @@ contains
       ! classical mhm soil database
       HorizonDepth_mHM(nSoilHorizons_mHM) = 0.0_dp
     else if(iFlag_soilDB .ne. 1) then
-      call message()
-      call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
-      stop
+      call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
     end if
 
     ! some consistency checks for the specification of the tillage depth
     if(iFlag_soilDB .eq. 1) then
       if(count(abs(HorizonDepth_mHM(:) - tillageDepth) .lt. eps_dp)  .eq. 0) then
-        call message()
-        call message('***ERROR: Soil tillage depth must conform with one of the specified horizon (lower) depth.')
-        stop
+        call error_message('***ERROR: Soil tillage depth must conform with one of the specified horizon (lower) depth.')
       end if
     end if
 
@@ -380,9 +374,7 @@ contains
       end do
 
       if (timeStep_LAI_input .GT. 1) then
-        call message()
-        call message('***ERROR: option for selected timeStep_LAI_input not coded yet')
-        stop
+        call error_message('***ERROR: option for selected timeStep_LAI_input not coded yet')
       end if
     end if
 
@@ -410,15 +402,12 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "interception1" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "interception1" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "interception" does not exist!')
-      stop
+       call error_message('***ERROR: Process description for process "interception" does not exist!')
     end select
 
     ! Process 2 - snow
@@ -451,15 +440,12 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "snow1" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "snow1" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "snow" does not exist!')
-      stop
+       call error_message('***ERROR: Process description for process "snow" does not exist!')
     end select
 
     ! Process 3 - soilmoisture
@@ -510,9 +496,8 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "soilmoisture1" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "soilmoisture1" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
       ! 2- Jarvis equation for PET reduction, bucket approach, Brooks-Corey like
@@ -562,9 +547,8 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "soilmoisture2" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "soilmoisture2" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
       ! 3- Jarvis equation for ET reduction and FC dependency on root fraction coefficient
@@ -623,9 +607,8 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "soilmoisture3" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "soilmoisture3" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
       ! 4- Feddes equation for ET reduction and FC dependency on root fraction coefficient
@@ -681,16 +664,13 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "soilmoisture4" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "soilmoisture4" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "soilmoisture" does not exist!')
-      stop
+      call error_message('***ERROR: Process description for process "soilmoisture" does not exist!')
     end select
 
     ! Process 4 - sealed area directRunoff
@@ -707,15 +687,12 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "directRunoff1" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "directRunoff1" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "directRunoff" does not exist!')
-      stop
+      call error_message('***ERROR: Process description for process "directRunoff" does not exist!')
     end select
 
     ! Process 5 - potential evapotranspiration (PET)
@@ -740,9 +717,8 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "PETminus1" out of bound  n ', &
+        call error_message('***ERROR: parameter in namelist "PETminus1" out of bound  n ', &
                 trim(adjustl(file_namelist_param)))
-        stop 1
       end if
 
     case(0) ! 0 - PET is input, correct PET by aspect
@@ -761,9 +737,8 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "PET0" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "PET0" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
     case(1) ! 1 - Hargreaves-Samani method (HarSam) - additional input needed: Tmin, Tmax
@@ -783,9 +758,8 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "PET1" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "PET1" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
     case(2) ! 2 - Priestley-Taylor method (PrieTay) - additional input needed: net_rad
@@ -801,9 +775,8 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "PET2" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "PET2" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
     case(3) ! 3 - Penman-Monteith method - additional input needed: net_rad, abs. vapour pressue, windspeed
@@ -831,15 +804,12 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "PET3" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "PET3" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "actualET" does not exist!')
-      stop
+      call error_message('***ERROR: Process description for process "actualET" does not exist!')
     end select
 
 
@@ -866,15 +836,12 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "interflow1" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "interflow1" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "interflow" does not exist!')
-      stop
+      call error_message('***ERROR: Process description for process "interflow" does not exist!')
     end select
 
     ! Process 7 - percolation
@@ -896,15 +863,12 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "percolation1" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "percolation1" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "percolation" does not exist!')
-      stop
+      call error_message('***ERROR: Process description for process "percolation" does not exist!')
     end select
 
     ! Process 8 - routing
@@ -934,9 +898,7 @@ contains
       call append(global_parameters, dummy_2d_dp_2)
       call append(global_parameters_name, (/'dummy'/))
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "routing" does not exist!')
-      stop
+      call error_message('***ERROR: Process description for process "routing" does not exist!')
     end select
 
     !===============================================================
@@ -974,16 +936,13 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "geoparameter" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "geoparameter" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "geoparameter" does not exist!')
-      stop
-   end select
+      call error_message('***ERROR: Process description for process "geoparameter" does not exist!')
+    end select
 
     !===============================================================
     ! NEUTRON COUNT
@@ -1016,9 +975,8 @@ contains
 
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "neutrons1" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "neutrons1" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
     case(2)
@@ -1050,16 +1008,13 @@ contains
            'COSMIC_LW1    '/))
       ! check if parameter are in range
       if (.not. in_bound(global_parameters)) then
-        call message('***ERROR: parameter in namelist "neutrons2" out of bound in ', &
+        call error_message('***ERROR: parameter in namelist "neutrons2" out of bound in ', &
                 trim(adjustl(file_namelist_param)))
-        stop
       end if
 
-     case DEFAULT
-      call message()
-      call message('***ERROR: Process description for process "NEUTRON count" does not exist!')
-      stop
-   end select
+    case DEFAULT
+      call error_message('***ERROR: Process description for process "NEUTRON count" does not exist!')
+    end select
 
 
     call close_nml(unamelist_param)
