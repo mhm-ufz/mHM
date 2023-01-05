@@ -37,7 +37,7 @@ pybindings:
     GIT_DEPTH: 0  # to have all tags
   script:
     - module load Anaconda3
-    - conda create -p ./test_pybind python=3.10
+    - conda create -p ./test_pybind
     - conda activate ./test_pybind
     - conda install -c conda-forge -y mamba
     - mamba install -c conda-forge -y pip netcdf-fortran fortran-compiler c-compiler cxx-compiler python-build black isort
