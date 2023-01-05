@@ -352,7 +352,6 @@ contains
   subroutine read_const_nc(folder, nRows, nCols, varName, data, fileName)
 
     use mo_kind,             only: i4, dp
-    use mo_message,          only: message
     use mo_netcdf,           only: NcDataset, NcVariable, NcDimension
     use mo_string_utils,     only: num2str
     use mo_utils,            only: eq, ne
@@ -456,7 +455,6 @@ contains
   subroutine read_weights_nc(folder, nRows, nCols, varName, data, mask, lower, upper, nocheck, maskout, fileName)
 
     use mo_kind, only : dp, i4
-    use mo_message, only : message
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
     use mo_utils, only : eq, ne
@@ -637,7 +635,6 @@ contains
     use mo_constants, only : DayHours, DaySecs, YearDays
     use mo_julian, only : caldat, dec2date, julday
     use mo_kind, only : dp, i4, i8
-    use mo_message, only : message
     use mo_netcdf, only : NcVariable
     use mo_string_utils, only : DIVIDE_STRING
 

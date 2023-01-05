@@ -105,7 +105,6 @@ module mo_mhm_interface_run
     BFI_qT_sum
   use mo_init_states, only : variables_default_init
   use mo_julian, only : caldat, julday
-  use mo_message, only : error_message
   use mo_string_utils, only : num2str
   use mo_meteo_forcings, only : prepare_meteo_forcings_data
   use mo_mhm, only : mhm

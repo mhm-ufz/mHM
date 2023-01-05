@@ -144,7 +144,6 @@ CONTAINS
     use mo_common_constants, only : nodata_i4
     use mo_common_file, only : ulcoverclass
     use mo_common_variables, only : Grid, L0_LCover, LCfilename, dirLCover, level0, domainMeta, nLCoverScene
-    use mo_message, only : message
     use mo_read_spatial_data, only : read_spatial_data_ascii
     use mo_string_utils, only : num2str
 
