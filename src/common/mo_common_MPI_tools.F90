@@ -103,7 +103,7 @@ contains
     ! find number of processes nproc
     call MPI_Comm_size(comm, nproc, ierror)
     call MPI_Comm_rank(comm, rank, ierror)
-    call messasge('MPI finished ', num2str(rank), num2str(nproc))
+    call message('MPI finished ', num2str(rank), num2str(nproc))
     call MPI_Finalize(ierror)
 #endif
 
