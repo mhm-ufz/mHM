@@ -14,6 +14,8 @@
 MODULE mo_common_mpi_tools
 
   use mo_kind, only : i4, dp
+  use mo_message, only : message
+  use mo_string_utils, only : num2str
 
 #ifdef MPI
   use mo_common_variables, only: comm
@@ -84,7 +86,7 @@ contains
     call MPI_Comm_size(comm, nproc, ierror)
     ! find the number the process is referred to, called rank
     call MPI_Comm_rank(comm, rank, ierror)
-    write(*,*) 'MPI!, comm', rank, nproc
+    call message('MPI!, comm ', num2str(rank), num2str(nproc))
 #endif
 
   end subroutine mpi_tools_init
@@ -101,7 +103,7 @@ contains
     ! find number of processes nproc
     call MPI_Comm_size(comm, nproc, ierror)
     call MPI_Comm_rank(comm, rank, ierror)
-    write(*,*) 'MPI finished', rank, nproc
+    call messasge('MPI finished ', num2str(rank), num2str(nproc))
     call MPI_Finalize(ierror)
 #endif
 

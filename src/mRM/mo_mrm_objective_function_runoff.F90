@@ -64,6 +64,7 @@ MODULE mo_mrm_objective_function_runoff
   use mo_optimization_utils, only : eval_interface
   use mo_message, only: message, error_message
   use mo_constants, only : nerr ! stderr for error messages
+  use mo_string_utils, only : num2str
 
   IMPLICIT NONE
 
@@ -295,21 +296,21 @@ CONTAINS
     select case (opti_function)
     case (1)
       ! 1.0-nse
-      write(*, *) 'objective_nse (i.e., 1 - NSE) = ', single_objective_runoff_master
+      call message('objective_nse (i.e., 1 - NSE) = ', num2str(single_objective_runoff_master))
     case (2)
       ! 1.0-lnnse
-      write(*, *) 'objective_lnnse = ', single_objective_runoff_master
+      call message('objective_lnnse = ', num2str(single_objective_runoff_master))
     case (3)
       ! 1.0-0.5*(nse+lnnse)
-      write(*, *) 'objective_equal_nse_lnnse = ', single_objective_runoff_master
+      call message('objective_equal_nse_lnnse = ', num2str(single_objective_runoff_master))
     case (4)
       call error_message("case 4, loglikelihood_stddev not implemented in parallel yet")
     case (5)
       ! ((1-NSE)**6+(1-lnNSE)**6)**(1/6)
-      write(*, *) 'objective_power6_nse_lnnse = ', single_objective_runoff_master
+      call message('objective_power6_nse_lnnse = ', num2str(single_objective_runoff_master))
     case (6)
       ! SSE
-      write(*, *) 'objective_sse = ', single_objective_runoff_master
+      call message('objective_sse = ', num2str(single_objective_runoff_master))
     case (7)
       ! -loglikelihood with trend removed from absolute errors
       call error_message("case 7, single_objective_runoff_master not implemented in parallel yet")
@@ -317,17 +318,17 @@ CONTAINS
       call error_message("case 8, loglikelihood_evin2013_2 not implemented in parallel yet")
     case (9)
       ! KGE
-      write(*, *) 'objective_kge (i.e., 1 - KGE) = ', single_objective_runoff_master
+      call message('objective_kge (i.e., 1 - KGE) = ', num2str(single_objective_runoff_master))
     case (14)
       ! combination of KGE of every gauging station based on a power-6 norm \n
       ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6)
-      write(*, *) 'objective_multiple_gauges_kge_power6 = ', single_objective_runoff_master
+      call message('objective_multiple_gauges_kge_power6 = ', num2str(single_objective_runoff_master))
     case (31)
       ! weighted NSE with observed streamflow
-      write(*,*) 'objective_weighted_nse (i.e., 1 - wNSE) = ', single_objective_runoff_master
+      call message('objective_weighted_nse (i.e., 1 - wNSE) = ', num2str(single_objective_runoff_master))
     case (32)
       ! SSE of boxcox-transformed streamflow
-      write(*,*) 'sse_boxcox_streamflow = ', single_objective_runoff_master
+      call message('sse_boxcox_streamflow = ', num2str(single_objective_runoff_master))
     case default
       call message("Error single_objective_runoff_master:", uni=nerr)
       call message("This opti_function is either not implemented yet or is not a single-objective one.", uni=nerr)
@@ -666,7 +667,7 @@ CONTAINS
     loglikelihood_stddev = sum(errors(:) * errors(:) / stddev**2)
     loglikelihood_stddev = -0.5_dp * loglikelihood_stddev
 
-    write(*, *) '-loglikelihood_stddev = ', -loglikelihood_stddev
+    call message('-loglikelihood_stddev = ', num2str(-loglikelihood_stddev))
 
     stddev_tmp = sqrt(sum((errors(:) - mean(errors)) * (errors(:) - mean(errors))) / real(nmeas - 1, dp))
     if (present(stddev_new)) then
@@ -826,10 +827,17 @@ CONTAINS
               eq(global_parameters(1 : npara - 2, 4), 1.0_dp)) ! used/unused
 
       tmp = loglikelihood_evin2013_2 + penalty
-      write(*, *) '-loglikelihood_evin2013_2, + penalty, chi^2: ', -loglikelihood_evin2013_2, -tmp, -tmp / real(nmeas, dp)
+      call message( &
+        '-loglikelihood_evin2013_2, + penalty, chi^2: ', &
+        num2str(-loglikelihood_evin2013_2), &
+        num2str(-tmp), &
+        num2str(-tmp / real(nmeas, dp)))
       loglikelihood_evin2013_2 = tmp
     else
-      write(*, *) '-loglikelihood_evin2013_2, chi^2: ', -loglikelihood_evin2013_2, -loglikelihood_evin2013_2 / real(nmeas, dp)
+      call message( &
+        '-loglikelihood_evin2013_2, chi^2: ', &
+        num2str(-loglikelihood_evin2013_2), &
+        num2str(-loglikelihood_evin2013_2 / real(nmeas, dp)))
     end if
 
     deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs)
@@ -1020,7 +1028,7 @@ CONTAINS
     loglikelihood_trend_no_autocorr = sum(errors(:) * errors(:) / stddev_old**2)
     loglikelihood_trend_no_autocorr = -0.5_dp * loglikelihood_trend_no_autocorr
 
-    write(*, *) '-loglikelihood_trend_no_autocorr = ', -loglikelihood_trend_no_autocorr
+    call message('-loglikelihood_trend_no_autocorr = ', num2str(-loglikelihood_trend_no_autocorr))
 
     stddev_tmp = 1.0_dp  ! initialization
     if (present(stddev_new) .or. present(likeli_new)) then
@@ -1121,7 +1129,7 @@ CONTAINS
     ! objective function value which will be minimized
     objective_lnnse = 1.0_dp - objective_lnnse / real(nGaugesTotal, dp)
 
-    write(*, *) 'objective_lnnse = ', objective_lnnse
+    call message('objective_lnnse = ', num2str(objective_lnnse))
     ! pause
 #endif
 
@@ -1210,7 +1218,7 @@ CONTAINS
     ! objective_sse = objective_sse + sse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
     objective_sse = objective_sse / real(nGaugesTotal, dp)
 
-    write(*, *) 'objective_sse = ', objective_sse
+    call message('objective_sse = ', num2str(objective_sse))
     ! pause
 #endif
 
@@ -1300,7 +1308,7 @@ CONTAINS
     ! objective_nse = objective_nse + nse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
     objective_nse = 1.0_dp - objective_nse / real(nGaugesTotal, dp)
 
-    write(*, *) 'objective_nse (i.e., 1 - NSE) = ', objective_nse
+    call message('objective_nse (i.e., 1 - NSE) = ', num2str(objective_nse))
     ! pause
 #endif
 
@@ -1397,7 +1405,7 @@ CONTAINS
     ! objective function value which will be minimized
     objective_equal_nse_lnnse = 1.0_dp - objective_equal_nse_lnnse / real(nGaugesTotal, dp)
 
-    write(*, *) 'objective_equal_nse_lnnse = ', objective_equal_nse_lnnse
+    call message('objective_equal_nse_lnnse = ', num2str(objective_equal_nse_lnnse))
 #endif
 
     ! clean up
@@ -1937,7 +1945,9 @@ CONTAINS
     multi_objective_ae_fdc_lsv_nse_djf(2) = 1.0_dp &
             - multi_objective_ae_fdc_lsv_nse_djf(2) / real(nGaugesTotal, dp)
 
-    write(*, *) 'multi_objective_ae_fdc_lsv_nse_djf = ', multi_objective_ae_fdc_lsv_nse_djf
+    call message('multi_objective_ae_fdc_lsv_nse_djf = [', &
+      num2str(multi_objective_ae_fdc_lsv_nse_djf(1)), ', ', &
+      num2str(multi_objective_ae_fdc_lsv_nse_djf(2)), ']')
 
     ! clean up
     deallocate(runoff_agg, runoff_obs)
@@ -2034,7 +2044,7 @@ CONTAINS
     ! objective function value which will be minimized
     objective_power6_nse_lnnse = objective_power6_nse_lnnse / real(nGaugesTotal, dp)
 
-    write(*, *) 'objective_power6_nse_lnnse = ', objective_power6_nse_lnnse
+    call message('objective_power6_nse_lnnse = ', num2str(objective_power6_nse_lnnse))
     ! pause
 #endif
 
@@ -2132,7 +2142,7 @@ CONTAINS
     ! objective_kge = objective_kge + kge(gauge%Q, runoff_model_agg, runoff_model_agg_mask)
     objective_kge = 1.0_dp - objective_kge / real(nGaugesTotal, dp)
 
-    write(*, *) 'objective_kge (i.e., 1 - KGE) = ', objective_kge
+    call message('objective_kge (i.e., 1 - KGE) = ', num2str(objective_kge))
 #endif
     ! pause
 
@@ -2234,7 +2244,7 @@ CONTAINS
     end do
 #ifndef MPI
     objective_multiple_gauges_kge_power6 = objective_multiple_gauges_kge_power6**onesixth
-    write(*, *) 'objective_multiple_gauges_kge_power6 = ', objective_multiple_gauges_kge_power6
+    call message('objective_multiple_gauges_kge_power6 = ', num2str(objective_multiple_gauges_kge_power6))
 #endif
 
     deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
@@ -2321,7 +2331,7 @@ CONTAINS
     ! objective_nse = objective_nse + nse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
     objective_weighted_nse = 1.0_dp - objective_weighted_nse / real(nGaugesTotal,dp)
 
-    write(*,*) 'objective_weighted_nse (i.e., 1 - wNSE) = ',objective_weighted_nse
+    call message('objective_weighted_nse (i.e., 1 - wNSE) = ', num2str(objective_weighted_nse))
     ! pause
 #endif
 
@@ -2424,7 +2434,7 @@ CONTAINS
     ! objective_nse = objective_nse + nse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
     objective_sse_boxcox = objective_sse_boxcox / real(nGaugesTotal,dp)
 
-    write(*,*) 'objective_sse_boxcox = ',objective_sse_boxcox
+    call message('objective_sse_boxcox = ', num2str(objective_sse_boxcox))
     ! pause
 #endif
 
