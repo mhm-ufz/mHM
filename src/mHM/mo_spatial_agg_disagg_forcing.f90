@@ -7,6 +7,8 @@
 !! the level-2 meterological inputs to a required Level-1 hydrological spatial resolution.
 !> \authors Rohini Kumar
 !> \date Jan 2013
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 MODULE mo_spatial_agg_disagg_forcing
 

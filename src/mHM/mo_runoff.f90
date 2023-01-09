@@ -6,6 +6,8 @@
 !> \details This module generates the runoff for the unsaturated and saturated zones and provides runoff accumulation.
 !> \authors Vladyslav Prykhodko
 !> \date Dec 2012
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 MODULE mo_runoff
 

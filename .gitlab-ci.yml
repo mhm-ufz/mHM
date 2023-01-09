@@ -40,7 +40,7 @@ pybindings:
     - conda create -p ./test_pybind
     - conda activate ./test_pybind
     - conda install -c conda-forge -y mamba
-    - mamba install -c conda-forge -y pip netcdf-fortran fortran-compiler python-build black isort
+    - mamba install -c conda-forge -y pip netcdf-fortran fortran-compiler c-compiler cxx-compiler python-build black isort
     # check source code
     - black --check --diff pybind
     - isort --check --diff pybind

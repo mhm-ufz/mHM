@@ -11,6 +11,8 @@
 !! since it is only required when routing is activated.
 !> \authors Stephan Thober
 !> \date Jul 2013
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 MODULE mo_restart
 

@@ -6,6 +6,8 @@
 !> \details Provides all filenames as well as all units used for the multiscale Routing Model mRM.
 !> \authors Matthias Cuntz, Stephan Thober
 !> \date Aug 2015
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mrm
 MODULE mo_mrm_file
 

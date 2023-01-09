@@ -4,12 +4,13 @@
 
 !> \brief Provides small utility functions used by multiple parts of the code (mHM, mRM, MPR)
 !> \details Provides the functions in_bound used to check global_parameter ranges
-!!
-!! Modifications:
-!! Robert Schweppe Dec 2017 - refactoring
-!!
+!> \changelog
+!!  - Robert Schweppe Dec 2017
+!!    - refactoring
 !> \authors Robert Schweppe
 !> \date Dec 2017
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 module mo_common_functions
   use mo_kind, only : dp

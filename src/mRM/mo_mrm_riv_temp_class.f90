@@ -8,6 +8,8 @@
 !> \version 0.1
 !> \authors Sebastian Mueller
 !> \date    Sep 2020
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mrm
 module mo_mrm_riv_temp_class
 

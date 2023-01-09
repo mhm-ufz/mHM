@@ -6,6 +6,8 @@
 !> \details This module contains all routines to read mRM data from file.
 !> \authors Stephan Thober
 !> \date Aug 2015
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mrm
 module mo_mrm_read_data
   use mo_kind, only : i4, dp

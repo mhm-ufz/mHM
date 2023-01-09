@@ -1,0 +1,15 @@
+\n\n
+The UFZ(CHS) mesoscale hydrologic model mHM is free software. You can
+redistribute it and/or modify it under the terms of the GNU General
+Public License as published by the free Software Foundation either
+version 3 of the License, or (at your option) any later version.
+\n\n
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU General Public License for more details.
+\n\n
+You received a copy of the GNU Lesser General Public License along
+with the UFZ CHS mesoscale hydrologic model mHM. It can be found
+in the files `COPYING` and `COPYING.LESSER` provided with this software.
+The complete GNU license text can also be found at <http://www.gnu.org/licenses/>.

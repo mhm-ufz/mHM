@@ -6,6 +6,8 @@
 !> \details This module provides the routines for multiscale parameter regionalization (MPR).
 !> \authors Stephan Thober, Rohini Kumar
 !> \date Dec 2012
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
 MODULE mo_multi_param_reg
 

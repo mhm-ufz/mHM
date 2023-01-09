@@ -6,6 +6,8 @@
 !> \details Routines to read the DEM and landcover files.
 !> \authors Robert Schweppe
 !> \date Jun 2018
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 module mo_common_read_data
   USE mo_kind, ONLY : i4, dp

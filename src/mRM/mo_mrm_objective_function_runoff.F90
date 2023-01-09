@@ -30,22 +30,27 @@
 !!         Q:        2nd objective: 1.0 - NSE of discharge of months DJF
 !! 31. SO: Q:        1.0 - wNSE - weighted NSE
 !! 32. SO: Q:        SSE of boxcox-transformed streamflow
-!!
-!! Modifications:
-!! - Stephan Thober             Oct 2015 - adapted for mRM
-!! - Juliane Mai                Nov 2015 - introducing multi
-!!                                       - and single-objective
-!!                                       - first multi-objective function (16), but not used yet
-!! - Juliane Mai                Feb 2016 - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows)
-!!                                       - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows)
-!!                                       - multi-objective function (20) using FDC and discharge of months DJF
-!! - Stephan Thober,Bjoern Guse May 2018 - single objective function (21) using weighted NSE following
-!!                                         (Hundecha and Bardossy, 2004)
-!! - Robert Schweppe            Jun 2018 - refactoring and reformatting
-!! - Stephan Thober             Aug 2019 - added OF 32: SSE of boxcox-transformed streamflow
-!!
+!> \changelog
+!! - Stephan Thober             Oct 2015
+!!   - adapted for mRM
+!! - Juliane Mai                Nov 2015
+!!   - introducing multi
+!!   - and single-objective
+!!   - first multi-objective function (16), but not used yet
+!! - Juliane Mai                Feb 2016
+!!   - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows)
+!!   - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows)
+!!   - multi-objective function (20) using FDC and discharge of months DJF
+!! - Stephan Thober,Bjoern Guse May 2018
+!!   - single objective function (21) using weighted NSE following (Hundecha and Bardossy, 2004)
+!! - Robert Schweppe            Jun 2018
+!!   - refactoring and reformatting
+!! - Stephan Thober             Aug 2019
+!!   - added OF 32: SSE of boxcox-transformed streamflow
 !> \authors Juliane Mai
 !> \date Dec 2012
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mrm
 MODULE mo_mrm_objective_function_runoff
 

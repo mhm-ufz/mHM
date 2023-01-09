@@ -6,6 +6,8 @@
 !> \details This module contains all routines required for parametrizing soil moisture processes.
 !> \authors Stephan Thober, Rohini Kumar
 !> \date Dec 2012
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
 module mo_mpr_soilmoist
 

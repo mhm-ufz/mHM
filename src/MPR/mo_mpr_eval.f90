@@ -6,6 +6,8 @@
 !> \details Runs MPR and writes to global effective parameters
 !> \authors Robert Schweppe
 !> \date Feb 2018
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
 MODULE mo_mpr_eval
 

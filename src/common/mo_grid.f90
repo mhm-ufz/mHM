@@ -6,6 +6,8 @@
 !> \details Common tools to deal with grids in mHM.
 !> \authors Robert Schweppe
 !> \date Jun 2018
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 module mo_grid
   use mo_kind, only : dp, i4

@@ -9,15 +9,19 @@
 !! the data of the specified period are read from the specified directory.
 !! If the optional lower and/or upper bound for the data values is given, the read data are checked for validity.
 !! The program is stopped if any value lies out of range.
-!!
-!! Modifications:
-!! - Stephan Thober  Sep 2015 - separated routines for netcdf files from routines for binary files
-!! - Stephan Thober  Jan 2017 - added reading weights for disaggregation of daily meteorological values to hourly ones
-!! - Robert Schweppe Nov 2017 - switched to mo_netcdf library and restuctured routines
-!! - Robert Schweppe Jun 2018 - refactoring and reformatting
-!!
+!> \changelog
+!! - Stephan Thober  Sep 2015
+!!   - separated routines for netcdf files from routines for binary files
+!! - Stephan Thober  Jan 2017
+!!   - added reading weights for disaggregation of daily meteorological values to hourly ones
+!! - Robert Schweppe Nov 2017
+!!   - switched to mo_netcdf library and restuctured routines
+!! - Robert Schweppe Jun 2018
+!!   - refactoring and reformatting
 !> \authors Juliane Mai
 !> \date Dec 2012
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 module mo_read_nc
   implicit none

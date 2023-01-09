@@ -6,6 +6,8 @@
 !> \details This routine reads the configurations of common program parts
 !> \authors Matthias Zink
 !> \date Dec 2012
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 MODULE mo_common_mHM_mRM_read_config
 

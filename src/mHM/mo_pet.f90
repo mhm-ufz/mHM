@@ -7,9 +7,10 @@
 !!       - Hargreaves-Samani (1982)
 !!       - Priestly-Taylor (1972)
 !!       - Penman-Monteith FAO (1998)
-!!
 !> \authors Matthias Zink, Christoph Schneider, Matthias Cuntz
 !> \date Apr 2014
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 MODULE mo_pet
 

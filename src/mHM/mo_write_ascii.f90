@@ -10,17 +10,23 @@
 !! 2. the final parameter set after optimization, and
 !! 3. the simulated vs. observed daily discharge
 !!     is written in ASCII file format to allow for a quick assurance of proper model runs.
-!!
-!! Modifications
-!! - Modified, Juliane Mai,        May 2013 - module version and documentation
-!! - Modified, Luis Samaniego,     Nov 2013 - improving all formats
-!! - Modified, Luis Samaniego,     Mar 2014 - added inflow gauge information write out
-!! - Modified, Stephan Thober,     Jun 2014 - bug fixed: in writing network properties
-!! - Modified, Rohini Kumar,       Jun 2014 - bug fixed: writing of max and min value of discharge
-!! - Modified, Stephan Thober,     Aug 2015 - moved write_daily_obs_sim_discharge to mRM
-!!
+!> \changelog
+!! - Modified, Juliane Mai,        May 2013
+!!   - module version and documentation
+!! - Modified, Luis Samaniego,     Nov 2013
+!!   - improving all formats
+!! - Modified, Luis Samaniego,     Mar 2014
+!!   - added inflow gauge information write out
+!! - Modified, Stephan Thober,     Jun 2014
+!!   - bug fixed: in writing network properties
+!! - Modified, Rohini Kumar,       Jun 2014
+!!   - bug fixed: writing of max and min value of discharge
+!! - Modified, Stephan Thober,     Aug 2015
+!!   - moved write_daily_obs_sim_discharge to mRM
 !> \authors Christoph Schneider, Juliane Mai, Luis Samaniego
 !> \date May 2013
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 MODULE mo_write_ascii
 

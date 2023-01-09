@@ -1,15 +1,16 @@
-!>       \file mo_common_file.f90
+!> \file mo_common_file.f90
 !> \brief \copybrief mo_common_file
 !> \details \copydetails mo_common_file
 
-!>       \brief Provides file names and units for mRM
-!>       \details Provides all filenames as well as all units used for the multiscale Routing Model mRM.
-!!
-!!       Modifications:
-!!       - Robert Schweppe Jun 2018 - refactoring and reformatting
-!!
-!>       \authors Matthias Cuntz, Stephan Thober
-!>       \date Aug 2015
+!> \brief Provides file names and units for mRM
+!> \details Provides all filenames as well as all units used for the multiscale Routing Model mRM.
+!> \changelog
+!!  - Robert Schweppe Jun 2018
+!!    - refactoring and reformatting
+!> \authors Matthias Cuntz, Stephan Thober
+!> \date Aug 2015
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 MODULE mo_common_file
 

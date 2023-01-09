@@ -9,6 +9,8 @@
 !> \authors Martin Schroen
 !> \date Mar 2015
 !> \warning THIS MODULE IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 MODULE mo_neutrons
 

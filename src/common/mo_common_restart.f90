@@ -6,6 +6,8 @@
 !> \details Routines to deal with grid infos for restart files
 !> \authors Robert Schweppe
 !> \date Jun 2018
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 module mo_common_restart
 

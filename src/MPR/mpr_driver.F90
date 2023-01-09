@@ -8,10 +8,9 @@
 !! one instance of mHM for a multiple domains and a given period.
 !! \image html  mhm5-logo.png "Typical mHM cell"
 !! \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
-!!
-!! Modifications:
-!! - Robert Schweppe Jun 2018 - refactored from mhm codebase
-!!
+!> \changelog
+!! - Robert Schweppe Jun 2018
+!!   - refactored from mhm codebase
 !> \authors Luis Samaniego & Rohini Kumar (UFZ)
 !> \date Dec 2015
 !> \version 0.1
@@ -54,6 +53,8 @@
 !! For commercial applications you have to consult the
 !! authorities of the UFZ.
 !!
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
 program mpr_driver
 

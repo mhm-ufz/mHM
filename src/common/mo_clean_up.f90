@@ -6,6 +6,8 @@
 !> \version 0.1
 !> \authors Sebastian Mueller
 !> \date    May 2022
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 module mo_clean_up
 

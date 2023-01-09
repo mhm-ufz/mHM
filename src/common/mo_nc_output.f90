@@ -4,15 +4,19 @@
 
 !> \brief Creates NetCDF output for different fluxes and state variables of mHM.
 !> \details NetCDF is first initialized and later on variables are put to the NetCDF.
-!!
-!! Modifications:
-!! - David Schaefer       Aug 2015 - major rewrite
-!! - Stephan Thober       Oct 2015 - adapted to mRM
-!! - O. Rakovec, R. Kumar Nov 2017 - added project description for the netcdf outputs
-!! - S. Mueller,          Dec 2022 - unified module for mHM and mRM
-!!
+!> \changelog
+!! - David Schaefer       Aug 2015
+!!   - major rewrite
+!! - Stephan Thober       Oct 2015
+!!   - adapted to mRM
+!! - O. Rakovec, R. Kumar Nov 2017
+!!   - added project description for the netcdf outputs
+!! - S. Mueller,          Dec 2022
+!!   - unified module for mHM and mRM
 !> \authors Matthias Zink
 !> \date Apr 2013
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 module mo_nc_output
 
@@ -125,12 +129,10 @@ contains
   end function newOutputVariable
 
   !> \brief Update OutputVariable
-  !> \details Add the array given as actual argument
-  !> to the derived type's component 'data'
-  !!
-  !! Modifications:
-  !! - Robert Schweppe Jun 2018 - refactoring and reformatting
-  !!
+  !> \details Add the array given as actual argument to the derived type's component 'data'
+  !> \changelog
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
   !> \return type(OutputVariable)
   !> \authors David Schaefer
   !> \date June 2015
@@ -147,10 +149,9 @@ contains
 
   !> \brief Write timestep to file
   !> \details Write the content of the derived types's component 'data' to file, average if necessary
-  !!
-  !! Modifications:
-  !! - Robert Schweppe Jun 2018 - refactoring and reformatting
-  !!
+  !> \changelog
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
   !> \authors David Schafer
   !> \date June 2015
   subroutine writeVariableTimestep(self, current_time_step)
@@ -176,11 +177,11 @@ contains
   !> \details Create and initialize the output file. If new a new output
   !! variable needs to be written, this is the first of two
   !! procedures to change (second: updateDataset)
-  !!
-  !! Modifications:
-  !! - Robert Schweppe Jun 2018 - refactoring and reformatting
-  !! - Sebastian Mueller Jul 2020 - added output for river temperature
-  !!
+  !> \changelog
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Mueller Jul 2020
+  !!   - added output for river temperature
   !> \return type(OutputDataset)
   !> \authors Matthias Zink
   !> \date Apr 2013
@@ -218,10 +219,9 @@ contains
 
   !> \brief Write all accumulated data.
   !> \details Write all accumulated and potentially averaged data to disk.
-  !!
-  !! Modifications:
-  !! - Robert Schweppe Jun 2018 - refactoring and reformatting
-  !!
+  !> \changelog
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
   !> \authors David Schaefer
   !> \date June 2015
   subroutine writeTimestep(self, current_time_step)
@@ -262,11 +262,11 @@ contains
 
   !> \brief Close the file
   !> \details Close the file associated with variable of type(OutputDataset)
-  !!
-  !! Modifications:
-  !! - Stephan Thober Oct  2015 - adapted to mRM
-  !! - Robert Schweppe Jun 2018 - refactoring and reformatting
-  !!
+  !> \changelog
+  !! - Stephan Thober Oct  2015
+  !!   - adapted to mRM
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
   !> \authors Rohini Kumar & Stephan Thober
   !> \date August 2013
   subroutine close(self)
@@ -287,12 +287,13 @@ contains
   !> \brief Create and initialize output file for X & Y coordinate system
   !> \details Create output file, write all non-dynamic variables
   !!       and global attributes for the given domain for X & Y coordinate system
-  !!
-  !! Modifications:
-  !! - Stephan Thober  Oct 2015 - adapted to mRM
-  !! - Robert Schweppe Jun 2018 - refactoring and reformatting
-  !! - Pallav Shrestha Mar 2020 - output file lat and lon are 1d or 2d based on coordinate system
-  !!
+  !> \changelog
+  !! - Stephan Thober  Oct 2015
+  !!   - adapted to mRM
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Pallav Shrestha Mar 2020
+  !!   - output file lat and lon are 1d or 2d based on coordinate system
   !> \return type(NcDataset)
   !> \authors David Schaefer
   !> \date June 2015
@@ -478,7 +479,6 @@ contains
   !> \brief Write output variable attributes
   !> \details Modifications:
   !! - Robert Schweppe Jun 2018 - refactoring and reformatting
-  !!
   !> \authors David Schaefer
   !> \date June 2015
   subroutine writeVariableAttributes(var, long_name, unit)

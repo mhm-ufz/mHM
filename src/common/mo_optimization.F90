@@ -6,6 +6,8 @@
 !> \details This module provides a wrapper subroutine for optimization of mRM/mHM against runoff or soil moisture.
 !> \authors Stephan Thober
 !> \date Oct 2015
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 module mo_optimization
   use mo_kind, only : i4, i8, dp

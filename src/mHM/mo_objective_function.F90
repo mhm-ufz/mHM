@@ -18,13 +18,15 @@
 !!       - (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(domain_avg_TWS) - objective function using Q and domain average (standard score) TWS
 !!       - (17) SO: N:        1.0 - KGE of spatio-temporal neutron data, catchment-average
 !!       - (27) SO: ET:       1.0 - KGE of catchment average evapotranspiration
-!!
-!! Modifications:
-!! - Oldrich Rakovec Oct 2015 - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_domain_avg_tws routine, former basin_avg
-!! - Robert Schweppe Jun 2018 - refactoring and reformatting
-!!
+!> \changelog
+!! - Oldrich Rakovec Oct 2015
+!!   - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_domain_avg_tws routine, former basin_avg
+!! - Robert Schweppe Jun 2018
+!!   - refactoring and reformatting
 !> \authors Juliane Mai
 !> \date Dec 2012
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 MODULE mo_objective_function
 

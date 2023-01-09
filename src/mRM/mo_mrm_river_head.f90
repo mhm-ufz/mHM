@@ -6,6 +6,8 @@
 !> \details Enables river - groundwater interaction in mRM.
 !> \authors Lennart Schueler
 !> \date    Jul 2018
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mrm
 module mo_mrm_river_head
   use mo_common_variables,     only : level0, domainMeta

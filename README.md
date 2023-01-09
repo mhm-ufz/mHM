@@ -41,6 +41,11 @@ See also the [documentation][5] for detailed instructions to setup mHM.
 2. Run mHM on the test domains with the command `./mhm`, which uses settings from [mhm.nml](mhm.nml).
 3. Explore the results in the [output directory](test_domain/), e.g. by using the NetCDF viewer `ncview`.
 
+
+## License
+
+LGPLv3 (c) 2005-2022 mHM-Developers
+
 [0]: https://git.ufz.de/mhm/mhm/-/releases
 [3]: doc/RELEASES.md
 [4]: https://git.ufz.de/mhm/mhm/tags/
