@@ -1,0 +1,293 @@
+!> \file mhm.nml
+!> \brief General Namelists of mHM, MPR, mRM for test domain 1.
+!> \details This files provides all namelists for mHM, MPR, mRM.
+
+!******************************************************************************************
+! PROJECT DESCRIPTION (mandatory)
+!******************************************************************************************
+!-----------------------------------------------------------------------------
+!> Provide details on the model simulations, to appear in the netcdf output attributes
+!-----------------------------------------------------------------------------
+&project_description
+!> project name
+project_details="mHM test domain project"
+!> any specific description of simulation
+setup_description="model run for the Mosel domain, forced with the E-OBS meteorologic data"
+!> e.g. hindcast simulation, seasonal forecast, climate projection
+simulation_type="historical simulation"
+!> convention used for dataset
+Conventions="XXX"
+!> contact details, incl. PI name, modellers
+contact="mHM developers (email:mhm-developers@ufz.de)"
+!> developing institution, specific mHM revision, latest release version (automatically included)
+mHM_details="Helmholtz Center for Environmental Research - UFZ, Department Computational Hydrosystems, Stochastic Hydrology Group"
+!> some details on data/model run version (creation date is included automatically)
+history="model run version 1"
+/
+
+!> Main namelist
+&mainconfig
+!> 0 -> regular   X & Y   coordinate system (e.g., GK-4 or Lambert equal area system)
+iFlag_cordinate_sys = 0
+!> Number of domains to be modeled.
+nDomains             = 1
+!> resolution of Level-1 hydrological simulations in mHM [m] per domain
+resolution_Hydrology(1) = 24000
+!> specify same index for domains to share L0_data to save memory
+L0Domain(1) = 1
+!> flag for writing restart output
+write_restart = .FALSE.
+!> read domain specific optional data (the program decides)
+read_opt_domain_data(1) = 0
+/
+
+!> main config for mHM and mRM (mHM and mRM-related)
+&mainconfig_mhm_mrm
+!> directory where restart input is located
+mhm_file_RestartIn(1)     = "restart/mHM_restart_001.nc"
+mrm_file_RestartIn(1)     = "restart/mRM_restart_001.nc"
+!> resolution of Level-11 discharge routing [m] per domain
+resolution_Routing(1) = 24000
+!> model run timestep [h] either 1 or 24
+timestep = 1
+!> disabled restart and optimization (but needs to be given)
+read_restart  = .FALSE.
+optimize = .FALSE.
+optimize_restart = .FALSE.
+opti_method = 1
+opti_function = 10
+/
+
+!******************************************************************************************
+! main config for mRM (mRM-related)
+!******************************************************************************************
+&mainconfig_mrm
+! all defaults (does this rais an error?!)
+/
+
+!> DIRECTORIES
+&directories_general
+!> config run out file common to all modeled domains should be written to directory
+dirConfigOut = "./"
+!
+!> directory where common input files should be located for all modeled domains
+!> (only for *_classdefinition files)
+dirCommonFiles = "input/morph/"
+!> directory where morphological files are located
+dir_Morpho(1)        = "input/morph/"
+!> directory where land cover files are located
+dir_LCover(1)        = "input/luse/"
+!> directory where restart output should be written
+mhm_file_RestartOut(1)    = "restart/mHM_restart_001.nc"
+mrm_file_RestartOut(1)    = "restart/mRM_restart_001.nc"
+!> directory where output should be written
+dir_Out(1)           = "output_b1/"
+!> file containing latitude and longitude on the resolution_Hydrology
+file_LatLon(1)       = "input/latlon/latlon_1.nc"
+/
+!******************************************************************************************
+! directories (mHM-related)
+!******************************************************************************************
+&directories_mHM
+!> input format specification for the meteorological forcings: 'nc' only possible
+inputFormat_meteo_forcings = "nc"
+!> directory where meteorological input is located
+dir_Precipitation(1) = "input/meteo/pre/"
+dir_Temperature(1)   = "input/meteo/tavg/"
+!> if processCase(5) == 0  input directory of pet has to be specified
+dir_ReferenceET(1)     = "input/meteo/pet/"
+!> switch to control read input frequency of the gridded meteo input: only at beginning of the run
+time_step_model_inputs(1) = 0
+/
+
+!> directories (mRM-related)
+&directories_mRM
+!> directory where discharge files are located
+dir_Gauges(1)        = "input/gauge/"
+!> directory where simulated runoff can be found (only required if coupling mode equals 0)
+dir_Total_Runoff(1) = 'output_b1/'
+!> directory where runoff at bankfull conditions can be found (only for coupling to groundwater model)
+dir_Bankfull_Runoff(1) = 'input/optional_data/'
+/
+
+!> PROCESSES (mandatory)
+&processSelection
+!> interception
+!> 1 - maximum Interception
+processCase(1) = 1
+!> snow
+!> 1 - degree-day approach
+processCase(2) = 1
+!> soil moisture
+!> 1 - Feddes equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
+processCase(3) = 1
+!> directRunoff
+!> 1 - linear reservoir exceedance approach
+processCase(4) = 1
+!> interflow
+!> 1 - storage reservoir with one outflow threshold and nonlinear response
+processCase(6) = 1
+!> percolation
+!> 1 - GW  assumed as linear reservoir
+processCase(7) = 1
+!> routing
+!> 3 - adaptive timestep, spatially varying celerity
+processCase(8) = 3
+!> baseflow
+!> 1 - recession parameters (not regionalized yet)
+processCase(9) = 1
+/
+
+!> LAND COVER (mandatory)
+&LCover
+!> number of land cover scenes to be used
+nLCoverScene = 2
+!> starting year of land cover scene 1
+LCoverYearStart(1) = 1981
+!> ending year of land cover scnene 1
+LCoverYearEnd(1)   = 1990
+!> name of land cover file for scnene 1
+LCoverfName(1)     = 'lc_1981.asc'
+
+!> starting year of land cover scene 2
+LCoverYearStart(2) = 1991
+!> ending year of land cover scnene 2
+LCoverYearEnd(2)   = 2000
+!> name of land cover file for scnene 2
+LCoverfName(2)     = 'lc_1991.asc'
+/
+
+!******************************************************************************************
+! Time periods (mHM and mRM-related)
+!******************************************************************************************
+&time_periods
+!> specification of number of warming days [d] and the simulation period.
+warming_Days(1)    = 0
+!> first year of wanted simulation period
+eval_Per(1)%yStart = 1990
+!> first month of wanted simulation period
+eval_Per(1)%mStart = 01
+!> first day   of wanted simulation period
+eval_Per(1)%dStart = 01
+!> last year   of wanted simulation period
+eval_Per(1)%yEnd   = 1993
+!> last month  of wanted simulation period
+eval_Per(1)%mEnd   = 12
+!> last day    of wanted simulation period
+eval_Per(1)%dEnd   = 31
+/
+
+!> INPUT SOIL DATABASE AND mHM LAYERING (MPR-related)
+&soildata
+!> iFlag_soilDB:
+!>            flag to handle multiple types of soil databases and their processing within the mHM.
+!>            This flag is unique and valid for all domains.
+!>            Depending on the choice of this flag you need to process your soil database differently.
+!
+!> iFlag_soilDB = 0:
+!>            Read and process the soil database in a classical mHM format which requires:
+!>               i) a single gridded ASCII file of soil-id (soil_class.asc - hard coded file name)
+!>              ii) a single soil look-up-table file (soil_classdefinition.txt) with information of
+!>                  soil textural properties for every horizon.
+!
+!>            Here mHM is quite flexible to handle multiple soil layers as specified in "nSoilHorizons_mHM"
+!>            and depths provided in "soil_Depth(:)".
+!
+!>            The tillage depth is flexible in this case.
+!
+!>            The depth of last mHM modeling layer is determined according the information given in the
+!>            input soil database, which could vary spatially depending on the soil type. Therefore the
+!>            user should not provide the depth of the last modeling layer. For example if you choose
+!>            nSoilHorizons_mHM = 3, then soil_Depth should be given for only soil_Depth(1) and soil_Depth(2).
+!>            Any additional depth related information would be discarded
+iFlag_soilDB = 0
+!> [mm] soil depth down to which organic matter is possible
+tillageDepth = 200
+!> No. of soil horizons to be modeled
+nSoilHorizons_mHM = 2
+!> Provide below the soil_Depth() for 1,2,..,*n-1* soil horizons. Depth of the last layer(n) is taken from the soil LUT
+!> Soil_Horizon   Depth[mm]      ! bottom depth of soil horizons w.r.t. ground surface (positive downwards)
+soil_Depth(1) = 200
+/
+
+!> INFORMATION RELATED TO LAI DATA (MPR-related)
+&LAI_data_information
+!> timeStep_LAI_input
+!> 0: read LAI from long term monthly mean lookup table (related to land cover file).
+!>     The filename (LAI_classdefinition.txt) for the LUT is hard coded in mo_file.f90
+!>         Information regarding long-term monthly mean LAI for land cover classes
+!>         appearing in all modeled domains should be included in this LUT file.
+!>         This is an unique file applicable to all domains to be modeled.
+!>     The respective plant functional type is in LAI_class.asc, which must be also given
+!>         and should be located in each domain's morph directory.
+timeStep_LAI_input = 0
+!>     nc  - assume one file with name lai.nc with 12 monthly grids of mean LAI estimates
+inputFormat_gridded_LAI = "nc"
+/
+
+!> LCover information (MPR-related)
+&LCover_MPR
+!>fraction of area within city assumed to be fully sealed [0.0-1.0]
+fracSealed_cityArea = 0.6
+/
+
+!******************************************************************************************
+! Specifcation of evaluation and inflow gauges (mRM-related)
+!******************************************************************************************
+!> namelist controlling the gauging station information
+!> The ID has to correspond to the ID's given in the 'gaugelocation.asc' and
+!> to the filename containing the time series
+&evaluation_gauges
+!> Gauges for model evaluation
+!
+!> Total number of gauges (sum of all gauges in all domains)
+nGaugesTotal = 1
+!> structure of gauge_id(i,j) & gauge_filename(i,j):
+!> 1st dimension is the number of the subdomain i
+!> 2nd dimension is the number of the gauge j within the subdomain i
+!> numbering has to be consecutive
+!
+!> domain 1
+!> number of gauges for subdomain (1)
+NoGauges_domain(1)   = 1
+!> in subdomain(1), this is the id of gauge(1)  --> (1,1)
+Gauge_id(1,1)       = 398
+!> name of file with timeseries for subdomain(1) at gauge(1) --> (1,1)
+gauge_filename(1,1) = "00398.txt"
+/
+
+&inflow_gauges
+!> consider flows from upstream/headwater cells of inflow gauge(1) for subdomain(1) --> (1,1)
+InflowGauge_Headwater(1,1) = .FALSE.
+/
+
+!******************************************************************************************
+! ANNUAL CYCLE PAN EVAPORATION (mHM-related)
+!******************************************************************************************
+&panEvapo
+! MONTH       Jan     Feb     Mar     Apr    May    Jun    Jul    Aug    Sep    Oct    Nov    Dec
+!> monthly free pan evaporation
+evap_coeff =  1.30,   1.20,   0.72,   0.75,  1.00,  1.00,  1.00,  1.00,  1.00,  1.00,  1.00,  1.50
+/
+
+!******************************************************************************************
+! ANNUAL CYCLE METEOROLOGICAL FORCINGS (mHM-related)
+!******************************************************************************************
+&nightDayRatio
+!> If read_meteo_weights is False than night fractions below are used
+read_meteo_weights = .FALSE.
+!> night ratio for precipitation
+!> only night values required because day values are the opposite
+fnight_prec  =  0.46,   0.50,   0.52,   0.51,  0.48,  0.50,  0.49,  0.48,  0.52,  0.56,  0.50,  0.47
+!> night ratio for PET
+fnight_pet   =  0.10,   0.10,   0.10,   0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10
+!> night correction factor for temperature
+fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.60, -0.94, -0.53
+/
+
+&Optimization
+!> needed values (although optimization is turned of)
+nIterations = 7
+seed = 1235876
+sce_ngs = 2
+/
