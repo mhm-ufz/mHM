@@ -10,6 +10,21 @@ import numpy as np
 from .wrapper import get
 
 
+def get_parameter():
+    """
+    Get parameter names and configuration.
+
+    @retval names (List[Str]): Names of all used parameters in mHM.
+    @retval config (numpy.ndarray): Configuration for all used parameters (min, max, value, flag, scale).
+    """
+    para_n = get.parameter_length()
+    names = [
+        get.parameter_name(i).decode("utf-8").strip() for i in range(1, para_n + 1)
+    ]
+    config = get.parameter_config(para_n)
+    return names, config
+
+
 def get_runoff():
     """
     Get 2D array of runoff time-series for all gauges.
@@ -18,6 +33,16 @@ def get_runoff():
     """
     shp = get.runoff_shape()
     return get.runoff(*shp)
+
+
+def get_runoff_eval(gauge_id):
+    """
+    Get 2D array of simulated and observed runoff time-series for selected gauges.
+
+    @retval runoff (numpy.ndarray(TS, 2)): The runoff for selected gauges with dims (time-steps, 2).
+    """
+    length = get.runoff_eval_length(gauge_id)
+    return get.runoff_eval(gauge_id, length)
 
 
 def get_variable(name, index=1, indexing="ij"):
