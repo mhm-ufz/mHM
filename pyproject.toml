@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "setuptools>=63,<64",
-    "setuptools_scm[toml]>=7",
+    "setuptools_scm[toml]>=7,<8",
     "scikit-build>=0.16,<0.17",
     "oldest_supported_numpy",
     "cmake",
@@ -51,6 +51,10 @@ Documentation = "https://www.mhm-ufz.org"
 Homepage = "https://www.mhm-ufz.org"
 Source = "https://www.mhm-ufz.org"
 Tracker = "https://www.mhm-ufz.org"
+
+# https://github.com/pypa/setuptools/issues/3599
+[tool.setuptools]
+license-files = ["COPYING", "COPYING.LESSER", "LICENSE.md", "AUTHORS"]
 
 [tool.setuptools_scm]
 write_to = "pybind/mhm/_version.py"
