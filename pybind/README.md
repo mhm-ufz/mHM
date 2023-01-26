@@ -47,6 +47,15 @@ pip install mhm
 
 Installing the mHM Python package will provide the `mhm` command to execute mHM the traditional way.
 
+### Environment variables
+
+The following environment variables can be used to control the compilation and installation of the python bindings for mHM:
+
+- `MHM_BUILD_TYPE=[Release|Debug]`: build type for the mhm library (default: `Release`)
+- `MHM_BUILD_FORCES_PATH=<path>`: custom path to forces source dir (default: None)
+- `MHM_BUILD_PARALLEL=[0|1]`: whether to use OpenMP with mHM (default: `0`)
+- `MHM_BUILD_PY_SCRIPT=[0|1]`: whether to create a console script for mHM with the Python bindings (default: `1`)
+
 ## Documentation
 
 See `mhm.tools` and `wrapper.f90` for further information on the provided routines.
@@ -101,4 +110,4 @@ See also the `examples` folder.
 
 ## License
 
-LGPLv3 (c) 2005-2022 mHM-Developers
+LGPLv3 (c) 2005-2023 mHM-Developers
