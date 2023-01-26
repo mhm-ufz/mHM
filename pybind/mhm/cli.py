@@ -12,4 +12,6 @@ import sys
 def mhm():
     """Execute mhm as a command line program."""
     exe = os.path.join(os.path.dirname(__file__), "mhm")
+    if not os.path.exists(exe):
+        raise RuntimeError("mhm: python bindings were installed without driver.")
     raise SystemExit(subprocess.call([exe] + sys.argv[1:]))

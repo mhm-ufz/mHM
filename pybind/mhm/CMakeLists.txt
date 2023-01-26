@@ -5,23 +5,29 @@ find_package(F2PY REQUIRED)
 # rpath should be set to look locally for the needed .so file
 if (APPLE)
   set(rpath "@loader_path")
-  set_target_properties(mhm
-    PROPERTIES
-    INSTALL_RPATH "@loader_path"
-    BUILD_RPATH "@loader_path"
-  )
 else()
   set(rpath "$$ORIGIN")  # need double $ to not expand the variable
-  set_target_properties(mhm
-    PROPERTIES
-    BUILD_RPATH_USE_ORIGIN ON
-    INSTALL_RPATH "$ORIGIN"
-    BUILD_RPATH "$ORIGIN"
-  )
 endif()
 
 install(TARGETS mhm_lib LIBRARY DESTINATION .)
-install(TARGETS mhm RUNTIME DESTINATION .)
+if(BUILD_MHM_DRIVER)
+  # link to mhm-lib next to executable
+  if (APPLE)
+    set_target_properties(mhm
+      PROPERTIES
+      INSTALL_RPATH "@loader_path"
+      BUILD_RPATH "@loader_path"
+    )
+  else()
+    set_target_properties(mhm
+      PROPERTIES
+      BUILD_RPATH_USE_ORIGIN ON
+      INSTALL_RPATH "$ORIGIN"
+      BUILD_RPATH "$ORIGIN"
+    )
+  endif()
+  install(TARGETS mhm RUNTIME DESTINATION .)
+endif()
 
 get_target_property(LIB_INCLUDES mhm_lib INCLUDE_DIRECTORIES)
 message("includes: ${LIB_INCLUDES}")
