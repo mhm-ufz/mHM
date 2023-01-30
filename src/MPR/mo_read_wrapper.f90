@@ -15,7 +15,6 @@ MODULE mo_read_wrapper
   USE mo_kind, ONLY : i4, dp
   use mo_common_constants, only : nodata_dp, nodata_i4
   use mo_message, only: message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -405,7 +404,7 @@ CONTAINS
         ' which indicates a masking problem!' &
       )
       if (.not. ANY(lookuptable .EQ. temp(ielement))) then
-        call message('***ERROR: Class ', trim(adjustl(num2str(temp(ielement)))), ' is missing', uni=nerr)
+        call error_message('***ERROR: Class ', trim(adjustl(num2str(temp(ielement)))), ' is missing', raise=.false.)
         call error_message('          in input file ', trim(adjustl(filename)), ' ...')
       end if
     end do

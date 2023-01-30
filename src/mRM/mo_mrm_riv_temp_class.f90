@@ -236,10 +236,10 @@ contains
       domainID = domainMeta%indices(iDomain)
       call check_dir( &
         path=self%dir_riv_widths(iDomain), &
-        text_="(domain "//trim(num2str(domainID,'(I3)'))//") River widths directory:", &
-        throwError_=.true., &
-        tab_=4, &
-        text_length_=40 &
+        text="(domain "//trim(num2str(domainID,'(I3)'))//") River widths directory:", &
+        raise=.true., &
+        tab=4, &
+        text_length=40 &
       )
     end do
 

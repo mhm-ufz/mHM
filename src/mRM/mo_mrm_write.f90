@@ -278,7 +278,7 @@ contains
     call message()
     call message('  Log-file written to ', trim(fName))
     !checking whether the directory exists where the file shall be created or opened
-    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
+    call path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
     open(uconfig, file = fName, status = 'unknown', action = 'write', iostat = err)
     if (err .ne. 0) then
       call error_message('  Problems while creating File. Error-Code ', num2str(err))

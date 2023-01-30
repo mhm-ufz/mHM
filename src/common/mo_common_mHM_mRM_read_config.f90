@@ -13,7 +13,6 @@ MODULE mo_common_mHM_mRM_read_config
 
   use mo_kind, only : i4, dp
   use mo_message, only : message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -263,7 +262,7 @@ CONTAINS
       sce_nps = n_true_pars + 1_i4
     end if
     if (sce_npg .lt. sce_nps) then
-      call message('number of points per complex (sce_npg) must be greater or', uni=nerr)
+      call error_message('number of points per complex (sce_npg) must be greater or', raise=.false.)
       call error_message('equal number of points per sub-complex (sce_nps)')
     end if
 
@@ -329,7 +328,7 @@ CONTAINS
 
       else if ((nint(cellFactorRbyH * 100.0_dp) .gt. 100) .and. .not.allow_subgrid_routing) then
         if(nint(mod(cellFactorRbyH, 2.0_dp) * 100.0_dp) .ne. 0) then
-          call message('***ERROR: Resolution of routing is not a multiple of hydrological model resolution!', uni=nerr)
+          call error_message('***ERROR: Resolution of routing is not a multiple of hydrological model resolution!', raise=.false.)
           call error_message('   FILE: mhm.nml, namelist: mainconfig, variable: resolutionRouting')
         end if
         !

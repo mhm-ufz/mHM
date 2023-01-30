@@ -12,7 +12,6 @@
 module mo_mrm_read_data
   use mo_kind, only : i4, dp
   use mo_message, only: message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
 
   implicit none
 
@@ -193,8 +192,8 @@ contains
           do iGauge = 1, domain_mrm(iDomain)%nGauges
             ! If gaugeId is found in gauging location file?
             if (.not. any(data_i4_2d .EQ. domain_mrm(iDomain)%gaugeIdList(iGauge))) then
-              call message('***ERROR: Gauge ID "', trim(adjustl(num2str(domain_mrm(iDomain)%gaugeIdList(iGauge)))), &
-                      '" not found in ', uni=nerr)
+              call error_message('***ERROR: Gauge ID "', trim(adjustl(num2str(domain_mrm(iDomain)%gaugeIdList(iGauge)))), &
+                      '" not found in ', raise=.false.)
               call error_message('          Gauge location input file: ', &
                       trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_gaugeloc)))
             end if
@@ -209,9 +208,9 @@ contains
             do iGauge = 1, domain_mrm(iDomain)%nInflowGauges
               ! If InflowGaugeId is found in gauging location file?
               if (.not. any(data_i4_2d .EQ. domain_mrm(iDomain)%InflowGaugeIdList(iGauge))) then
-                call message('***ERROR: Inflow Gauge ID "', &
+                call error_message('***ERROR: Inflow Gauge ID "', &
                         trim(adjustl(num2str(domain_mrm(iDomain)%InflowGaugeIdList(iGauge)))), &
-                        '" not found in ', uni=nerr)
+                        '" not found in ', raise=.false.)
                 call error_message('          Gauge location input file: ', &
                         trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_gaugeloc)))
               end if
@@ -326,7 +325,7 @@ contains
                 start_tmp, end_tmp, optimize, opti_function, &
                 data_dp_1d, mask = mask_1d, nMeasPerDay = nMeasPerDay)
         if (.NOT. (all(mask_1d))) then
-          call message('***ERROR: Nodata values in inflow gauge time series. File: ', trim(fName), uni=nerr)
+          call error_message('***ERROR: Nodata values in inflow gauge time series. File: ', trim(fName), raise=.false.)
           call error_message('          During simulation period from ', num2str(simPer(iDomain)%yStart) &
                   , ' to ', num2str(simPer(iDomain)%yEnd))
         end if

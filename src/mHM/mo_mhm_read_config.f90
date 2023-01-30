@@ -15,7 +15,6 @@ MODULE mo_mhm_read_config
 
   USE mo_kind, ONLY : i4, dp
   use mo_message, only: message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -273,7 +272,7 @@ CONTAINS
             L1_smObs(iDomain)%varname = 'sm'
           end do
           if (nSoilHorizons_sm_input .GT. nSoilHorizons_mHM) then
-            call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded', uni=nerr)
+            call error_message('***ERROR: Number of soil horizons representative for input soil moisture exceeded', raise=.false.)
             call error_message('          defined number of soil horizions: ', adjustl(trim(num2str(maxNoSoilHorizons))), '!')
           end if
         case(17)

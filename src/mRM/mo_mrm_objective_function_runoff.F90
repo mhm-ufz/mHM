@@ -63,7 +63,6 @@ MODULE mo_mrm_objective_function_runoff
   USE mo_kind, ONLY : i4, dp
   use mo_optimization_utils, only : eval_interface
   use mo_message, only: message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
   use mo_string_utils, only : num2str
 
   IMPLICIT NONE
@@ -289,7 +288,7 @@ CONTAINS
     case(4, 7, 8)
       call message("case 4, 7, 8 are not implemented in parallel yet")
     case default
-      call message("Error single_objective_runoff_master:", uni=nerr)
+      call error_message("Error single_objective_runoff_master:", raise=.false.)
       call error_message("This opti_function is either not implemented yet or is not a single-objective one.")
     end select
 
@@ -330,8 +329,8 @@ CONTAINS
       ! SSE of boxcox-transformed streamflow
       call message('sse_boxcox_streamflow = ', num2str(single_objective_runoff_master))
     case default
-      call message("Error single_objective_runoff_master:", uni=nerr)
-      call message("This opti_function is either not implemented yet or is not a single-objective one.", uni=nerr)
+      call error_message("Error single_objective_runoff_master:", raise=.false.)
+      call error_message("This opti_function is either not implemented yet or is not a single-objective one.", raise=.false.)
       call error_message("This part of the code should never be executed.")
     end select
 
@@ -464,7 +463,7 @@ CONTAINS
          ! SSE of transformed streamflow
          partial_single_objective_runoff = objective_sse_boxcox(parameterset, eval)
       case default
-        call message("Error single_objective_runoff_subprocess:", uni=nerr)
+        call error_message("Error single_objective_runoff_subprocess:", raise=.false.)
         call error_message("This opti_function is either not implemented yet or is not a single-objective one.")
       end select
 

@@ -65,6 +65,7 @@ contains
     use mo_cli, only: cli_parser
     use mo_file, only: version, file_namelist_mhm, file_namelist_mhm_param, file_defOutput
     use mo_mrm_file, only: mrm_file_defOutput => file_defOutput
+    use mo_message, only: SHOW_MSG, SHOW_ERR
 
     implicit none
 
@@ -112,6 +113,12 @@ contains
       default="mrm_outputs.nml", &
       help="The mRM output namelist.")
 
+    call parser%add_option( &
+        name="quiet", &
+        s_name="q", &
+        repeated=.true., &
+        help="Decrease verbosity level.")
+
     ! parse given command line arguments
     call parser%parse()
 
@@ -123,6 +130,9 @@ contains
     file_namelist_mhm_param = parser%option_value("parameter")
     file_defOutput = parser%option_value("mhm_output")
     mrm_file_defOutput = parser%option_value("mrm_output")
+
+    if ( parser%option_read_count("quiet") > 0 ) SHOW_MSG = .false.
+    if ( parser%option_read_count("quiet") > 1 ) SHOW_ERR = .false.
 
   end subroutine parse_command_line
 

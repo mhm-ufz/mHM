@@ -25,7 +25,6 @@
 !> \ingroup f_common
 module mo_read_nc
   use mo_message, only: message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
 
   implicit none
   public :: read_nc
@@ -238,8 +237,8 @@ contains
     ! check optional nctimestep
     if (present(nctimestep)) then
        if (inctimestep .ne. nctimestep) then
-          call message('***ERROR: provided timestep ' // num2str(nctimestep) //&
-                       ' does not match with the one in file ' // num2str(inctimestep), uni=nerr)
+          call error_message('***ERROR: provided timestep ' // num2str(nctimestep) //&
+                       ' does not match with the one in file ' // num2str(inctimestep), raise=.false.)
           call error_message('File: ' // trim(fname))
        end if
     end if
@@ -258,30 +257,30 @@ contains
       ! neglect checking for nodata values if optional nocheck is given
       if (checking) then
         if (any(eq(data(:, :, i), nodata_value) .and. (mask))) then
-          call message('***ERROR: read_nc: nodata value within domain ', uni=nerr)
-          call message('          boundary in variable: ', trim(varName), uni=nerr)
+          call error_message('***ERROR: read_nc: nodata value within domain ', raise=.false.)
+          call error_message('          boundary in variable: ', trim(varName), raise=.false.)
           call error_message('          at timestep         : ', trim(num2str(i)))
         end if
       end if
       ! optional check
       if (present(lower)) then
         if (any((data(:, :, i) .lt. lower) .AND. mask(:, :))) then
-          call message('***ERROR: read_nc: values in variable "', &
-                  trim(varName), '" are lower than ', trim(num2str(lower, '(F7.2)')), uni=nerr)
-          call message('          at timestep  : ', trim(num2str(i)), uni=nerr)
-          call message('File: ', trim(fName), uni=nerr)
-          call message('Minval at timestep: ', trim(num2str(minval(data(:, :, i)))), uni=nerr)
+          call error_message('***ERROR: read_nc: values in variable "', &
+                  trim(varName), '" are lower than ', trim(num2str(lower, '(F7.2)')), raise=.false.)
+          call error_message('          at timestep  : ', trim(num2str(i)), raise=.false.)
+          call error_message('File: ', trim(fName), raise=.false.)
+          call error_message('Minval at timestep: ', trim(num2str(minval(data(:, :, i)))), raise=.false.)
           call error_message('Total minval: ', trim(num2str(minval(data(:, :, :)))))
         end if
       end if
 
       if (present(upper)) then
         if (any((data(:, :, i) .gt. upper) .AND. mask(:, :))) then
-          call message('***ERROR: read_nc: values in variable "', &
-                  trim(varName), '" are greater than ', trim(num2str(upper, '(F7.2)')), uni=nerr)
-          call message('          at timestep  : ', trim(num2str(i)), uni=nerr)
-          call message('File: ', trim(fName), uni=nerr)
-          call message('Maxval at timestep: ', trim(num2str(maxval(data(:, :, i)))), uni=nerr)
+          call error_message('***ERROR: read_nc: values in variable "', &
+                  trim(varName), '" are greater than ', trim(num2str(upper, '(F7.2)')), raise=.false.)
+          call error_message('          at timestep  : ', trim(num2str(i)), raise=.false.)
+          call error_message('File: ', trim(fName), raise=.false.)
+          call error_message('Maxval at timestep: ', trim(num2str(maxval(data(:, :, i)))), raise=.false.)
           call error_message('Total maxval: ', trim(num2str(maxval(data(:, :, :)))))
           ! print*, data(:, :, i)
         end if
@@ -556,30 +555,30 @@ contains
         ! neglect checking for naodata values if optional nocheck is given
         if (checking) then
           if (any(eq(data(:, :, i, j), nodata_value) .and. (mask))) then
-            call message('***ERROR: read_nc: nodata value within domain ', uni=nerr)
-            call message('          boundary in variable: ', trim(varName), uni=nerr)
+            call error_message('***ERROR: read_nc: nodata value within domain ', raise=.false.)
+            call error_message('          boundary in variable: ', trim(varName), raise=.false.)
             call error_message('          at hour         : ', trim(num2str(i)))
           end if
         end if
         ! optional check
         if (present(lower)) then
           if (any((data(:, :, i, j) .lt. lower) .AND. mask(:, :))) then
-            call message('***ERROR: read_nc: values in variable "', &
-                    trim(varName), '" are lower than ', trim(num2str(lower, '(F7.2)')), uni=nerr)
-            call message('          at hour  : ', trim(num2str(i)), uni=nerr)
-            call message('File: ', trim(fName), uni=nerr)
-            call message('Minval at hour: ', trim(num2str(minval(data(:, :, i, j)), '(F7.2)')), uni=nerr)
+            call error_message('***ERROR: read_nc: values in variable "', &
+                    trim(varName), '" are lower than ', trim(num2str(lower, '(F7.2)')), raise=.false.)
+            call error_message('          at hour  : ', trim(num2str(i)), raise=.false.)
+            call error_message('File: ', trim(fName), raise=.false.)
+            call error_message('Minval at hour: ', trim(num2str(minval(data(:, :, i, j)), '(F7.2)')), raise=.false.)
             call error_message('Total minval: ', trim(num2str(minval(data(:, :, :, :)), '(F7.2)')))
           end if
         end if
 
         if (present(upper)) then
           if (any((data(:, :, i, j) .gt. upper) .AND. mask(:, :))) then
-            call message('***ERROR: read_nc: values in variable "', &
-                    trim(varName), '" are greater than ', trim(num2str(upper, '(F7.2)')), uni=nerr)
-            call message('          at hour  : ', trim(num2str(i)), uni=nerr)
-            call message('File: ', trim(fName), uni=nerr)
-            call message('Maxval at hour: ', trim(num2str(maxval(data(:, :, i, j)), '(F7.2)')), uni=nerr)
+            call error_message('***ERROR: read_nc: values in variable "', &
+                    trim(varName), '" are greater than ', trim(num2str(upper, '(F7.2)')), raise=.false.)
+            call error_message('          at hour  : ', trim(num2str(i)), raise=.false.)
+            call error_message('File: ', trim(fName), raise=.false.)
+            call error_message('Maxval at hour: ', trim(num2str(maxval(data(:, :, i, j)), '(F7.2)')), raise=.false.)
             call error_message('Total maxval: ', trim(num2str(maxval(data(:, :, :, :)), '(F7.2)')))
           end if
         end if

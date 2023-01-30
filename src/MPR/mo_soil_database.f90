@@ -20,7 +20,6 @@ MODULE mo_soil_database
 
   use mo_kind, only : i4, dp
   use mo_message, only: message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
   use mo_string_utils, only : num2str
   use mo_os, only : path_isfile
 
@@ -95,7 +94,7 @@ CONTAINS
     CASE(0)
       ios = 0_i4
       !checking whether the file exists
-      call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
+      call path_isfile(path = filename, raise=.true.)
       open(usoil_database, file = filename, status = 'old', iostat = ios)
       read(usoil_database, *) dummy, nSoilTypes
       dummy = dummy // ''   ! only to avoid warning
@@ -155,9 +154,9 @@ CONTAINS
 
       ! check the tillage depth...(if possible adjust it..)
       if(tillageDepth .gt. dMin) then
-        call message('read_soil_LUT: ERROR occurred: ', uni=nerr)
-        call message('    Tillage depth is greater than overall minimum total soil depth ', uni=nerr)
-        call message('    So tillage depth should be at least', num2str(dMin, '(F7.2)'), uni=nerr)
+        call error_message('read_soil_LUT: ERROR occurred: ', raise=.false.)
+        call error_message('    Tillage depth is greater than overall minimum total soil depth ', raise=.false.)
+        call error_message('    So tillage depth should be at least', num2str(dMin, '(F7.2)'), raise=.false.)
         call error_message('    Please adjust!')
       end if
 
@@ -275,8 +274,8 @@ CONTAINS
 
         ! check for number of soil horizons...
         if(nH .gt. soilDB%nHorizons(jj)) then
-          call message('read_soil_LUT: ERROR occurred: ', uni=nerr)
-          call message('    There is something wrong in allocating horizons in soil data base.', uni=nerr)
+          call error_message('read_soil_LUT: ERROR occurred: ', raise=.false.)
+          call error_message('    There is something wrong in allocating horizons in soil data base.', raise=.false.)
           call error_message('    Please check in code !')
         end if
 
@@ -305,7 +304,7 @@ CONTAINS
 
 
       !checking whether the file exists
-      call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
+      call path_isfile(path = filename, raise=.true.)
       open(usoil_database, file = filename, status = 'old', action = 'read')
       read(usoil_database, *) dummy, nSoilTypes
       dummy = dummy // ''   ! only to avoid warning
@@ -352,7 +351,7 @@ CONTAINS
       if(soilDB%nTillHorizons(1) .eq. -9) then
         ! rarely could happen *** since this is checked in reading of horizons depths only
         ! but is checked here for double confirmation
-        call message('***ERROR: specification of tillage depths is not confirming', uni=nerr)
+        call error_message('***ERROR: specification of tillage depths is not confirming', raise=.false.)
         call error_message('          with given depths of soil horizons to be modeled.')
       else
         call message()
@@ -414,11 +413,11 @@ CONTAINS
 
       ! check
       if (HorizonDepth_mHM(nSoilHorizons_mHM - 1) .ge. dMin) then
-        call message('generate_soil_database: ERROR occurred: ', uni=nerr)
-        call message('   The depth of soil Horizons provided for modelling is not appropriate', uni=nerr)
-        call message('   The global minimum of total soil horizon depth among all soil type is ', num2str(dMin, '(F7.2)'), uni=nerr)
-        call message('   Adjust your modeling soil horizon depth in this range', uni=nerr)
-        call message('   OR Increase the soil depth in data base for only those soil types', uni=nerr)
+        call error_message('generate_soil_database: ERROR occurred: ', raise=.false.)
+        call error_message('   The depth of soil Horizons provided for modelling is not appropriate', raise=.false.)
+        call error_message('   The global minimum of total soil horizon depth among all soil type is ', num2str(dMin, '(F7.2)'), raise=.false.)
+        call error_message('   Adjust your modeling soil horizon depth in this range', raise=.false.)
+        call error_message('   OR Increase the soil depth in data base for only those soil types', raise=.false.)
         call error_message('   whose total depth is smaller than your given modeling depth.')
      end if
 
@@ -454,14 +453,14 @@ CONTAINS
 
           ! Check
           if(layer_f .le. 0_i4 .or. layer_t .le. 0_i4) then
-            call message('generate_soil_database: ERROR occurred: ', uni=nerr)
-            call message('     Horizon depths to model do not lie in database for soil type', num2str(ii, '(I3)'), uni=nerr)
+            call error_message('generate_soil_database: ERROR occurred: ', raise=.false.)
+            call error_message('     Horizon depths to model do not lie in database for soil type', num2str(ii, '(I3)'), raise=.false.)
             call error_message('     Please check!')
           end if
           if(layer_f .gt. layer_t) then
-            call message('generate_soil_database: ERROR occurred: ', uni=nerr)
-            call message('     Something is wrong in assignment of modeling soil horizons or', uni=nerr)
-            call message('     database of soil type ', num2str(ii, '(I3)'), uni=nerr)
+            call error_message('generate_soil_database: ERROR occurred: ', raise=.false.)
+            call error_message('     Something is wrong in assignment of modeling soil horizons or', raise=.false.)
+            call error_message('     database of soil type ', num2str(ii, '(I3)'), raise=.false.)
             call error_message('     Please check!')
           end if
 
@@ -497,8 +496,8 @@ CONTAINS
             ! Check (small margin for numerical errors)
             if(sum(soilDB%Wd(ii, jj, :), soilDB%Wd(ii, jj, :) .gt. 0.0_dp) .le. 1.0_dp - small .or. &
                     sum(soilDB%Wd(ii, jj, :), soilDB%Wd(ii, jj, :) .gt. 0.0_dp) .ge. 1.0_dp + small) then
-              call message('generate_soil_database: ERROR occurred: ', uni=nerr)
-              call message('     Weight assigned for each soil horizons are not correct.', uni=nerr)
+              call error_message('generate_soil_database: ERROR occurred: ', raise=.false.)
+              call error_message('     Weight assigned for each soil horizons are not correct.', raise=.false.)
               call error_message('     Please check!')
             end if
 

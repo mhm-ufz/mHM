@@ -12,7 +12,6 @@
 module mo_mrm_restart
   use mo_kind, only : i4, dp
   use mo_message, only : message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
 
   implicit none
 
@@ -672,11 +671,11 @@ contains
     allocate(dummyI1(size(processMatrix, dim = 1)))
     call var%getData(dummyI1)
     if (dummyI1(8) .ne. processMatrix(8, 1)) then
-      call message('***ERROR: process description for routing', uni=nerr)
-      call message('***ERROR: given in restart file does not match', uni=nerr)
-      call message('***ERROR: that in namelist', uni=nerr)
-      call message('***ERROR: restart file value:. ' // num2str(dummyI1(8), '(i2)'), uni=nerr)
-      call message('***ERROR: namelist value:..... ' // num2str(processMatrix(8, 1), '(i2)'), uni=nerr)
+      call error_message('***ERROR: process description for routing', raise=.false.)
+      call error_message('***ERROR: given in restart file does not match', raise=.false.)
+      call error_message('***ERROR: that in namelist', raise=.false.)
+      call error_message('***ERROR: restart file value:. ' // num2str(dummyI1(8), '(i2)'), raise=.false.)
+      call error_message('***ERROR: namelist value:..... ' // num2str(processMatrix(8, 1), '(i2)'), raise=.false.)
       call error_message('ERROR: mrm_read_restart_config')
     end if
     deallocate(dummyI1)

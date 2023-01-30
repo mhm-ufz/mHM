@@ -13,7 +13,6 @@ MODULE mo_read_latlon
 
   USE mo_kind, ONLY : i4, dp
   use mo_message, only: message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
   use mo_string_utils, only : num2str
 
   ! Of course
@@ -102,10 +101,10 @@ CONTAINS
     ! consistency check
     if ((size(dummy, dim = 1) .NE. level%nrows) .or. &
             (size(dummy, dim = 2) .NE. level%ncols)) then
-      call message('   ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file for ', trim(level_name), &
-              ' in domain ', trim(adjustl(num2str(ii))), '!', uni=nerr)
-      call message('  Latitude expected to have following dimensions ... rows:', &
-              trim(adjustl(num2str(level%nrows))), ', cols:', trim(adjustl(num2str(level%ncols))), uni=nerr)
+      call error_message('   ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file for ', trim(level_name), &
+              ' in domain ', trim(adjustl(num2str(ii))), '!', raise=.false.)
+      call error_message('  Latitude expected to have following dimensions ... rows:', &
+              trim(adjustl(num2str(level%nrows))), ', cols:', trim(adjustl(num2str(level%ncols))), raise=.false.)
       call error_message('  Latitude provided ... rows:', &
               trim(adjustl(num2str(size(dummy, dim = 1)))), ', cols:', trim(adjustl(num2str(size(dummy, dim = 2)))))
     end if
@@ -116,10 +115,10 @@ CONTAINS
     ! consistency check
     if ((size(dummy, dim = 1) .NE. level%nrows) .or. &
             (size(dummy, dim = 2) .NE. level%ncols)) then
-      call message('   ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file for ', trim(level_name), &
-              ' in domain ', trim(adjustl(num2str(ii))), '!', uni=nerr)
-      call message('  Longitude expected to have following dimensions ... rows:', &
-              trim(adjustl(num2str(level%nrows))), ', cols:', trim(adjustl(num2str(level%ncols))), uni=nerr)
+      call error_message('   ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file for ', trim(level_name), &
+              ' in domain ', trim(adjustl(num2str(ii))), '!', raise=.false.)
+      call error_message('  Longitude expected to have following dimensions ... rows:', &
+              trim(adjustl(num2str(level%nrows))), ', cols:', trim(adjustl(num2str(level%ncols))), raise=.false.)
       call error_message('  Longitude provided ... rows:', &
               trim(adjustl(num2str(size(dummy, dim = 1)))), ', cols:', trim(adjustl(num2str(size(dummy, dim = 2)))))
     end if

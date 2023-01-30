@@ -33,7 +33,6 @@ MODULE mo_write_ascii
 
   USE mo_kind, ONLY : i4, dp
   use mo_message, only: message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -122,7 +121,7 @@ CONTAINS
     call message()
     call message('  Log-file written to ', trim(fName))
     !checking whether the directory exists where the file shall be created or opened
-    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
+    call path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
     open(uconfig, file = fName, status = 'unknown', action = 'write', iostat = err)
     if (err .ne. 0) then
       call error_message('  Problems while creating File. ', 'Error-Code ', num2str(err))
@@ -455,7 +454,7 @@ CONTAINS
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti))
     !checking whether the directory exists where the file shall be created or opened
-    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
+    call path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
     open(uopti, file = fName, status = 'unknown', action = 'write', iostat = err, recl = (n_params + 1) * 40)
     if(err .ne. 0) then
       call error_message('  IOError while openening "', trim(fName), '". Error-Code ', num2str(err))
@@ -556,7 +555,7 @@ CONTAINS
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti_nml))
     !checking whether the directory exists where the file shall be created or opened
-    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
+    call path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
     open(uopti_nml, file = fName, status = 'unknown', action = 'write', iostat = err)
     if(err .ne. 0) then
       call error_message('  IOError while openening "', trim(fName), '". Error-Code ', num2str(err))

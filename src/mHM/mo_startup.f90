@@ -19,7 +19,6 @@ MODULE mo_startup
 
   USE mo_kind, ONLY : i4, dp
   use mo_message, only: message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -168,8 +167,8 @@ CONTAINS
     ! check if enough geoparameter are defined in mhm_parameter.nml
     ! this was formerly done after reading of data, but mHM and MPR are now seperate processes
     if ((processMatrix(9, 2)) .NE.  size(GeoUnitList, 1)) then
-      call message('***ERROR: Mismatch: Number of geological units in ', trim(adjustl(file_hydrogeoclass)), &
-              ' is ', trim(adjustl(num2str(size(GeoUnitList, 1)))), uni=nerr)
+      call error_message('***ERROR: Mismatch: Number of geological units in ', trim(adjustl(file_hydrogeoclass)), &
+              ' is ', trim(adjustl(num2str(size(GeoUnitList, 1)))), raise=.false.)
       call error_message('          while it is ', trim(num2str(processMatrix(9, 2))), &
               ' in ', trim(file_namelist_mhm_param), '!')
     end if
@@ -251,19 +250,19 @@ CONTAINS
             (abs(xllcorner2 - level2_iDomain%xllcorner) .gt. tiny(1.0_dp))     .or. &
             (abs(yllcorner2 - level2_iDomain%yllcorner) .gt. tiny(1.0_dp))     .or. &
             (abs(cellsize2 - level2_iDomain%cellsize)  .gt. tiny(1.0_dp))) then
-      call message('   ***ERROR: subroutine L2_variable_init: size mismatch in grid file for level2 in domain ', &
-              trim(adjustl(num2str(iDomain))), '!', uni=nerr)
-      call message('  Expected to have following properties (based on L0):', uni=nerr)
-      call message('... rows:     ', trim(adjustl(num2str(level2_iDomain%nrows))), ', ', uni=nerr)
-      call message('... cols:     ', trim(adjustl(num2str(level2_iDomain%ncols))), ', ', uni=nerr)
-      call message('... cellsize: ', trim(adjustl(num2str(level2_iDomain%cellsize))), ', ', uni=nerr)
-      call message('... xllcorner:', trim(adjustl(num2str(level2_iDomain%xllcorner))), ', ', uni=nerr)
-      call message('... yllcorner:', trim(adjustl(num2str(level2_iDomain%yllcorner))), ', ', uni=nerr)
-      call message('  Provided (in precipitation file):', uni=nerr)
-      call message('... rows:     ', trim(adjustl(num2str(nrows2))), ', ', uni=nerr)
-      call message('... cols:     ', trim(adjustl(num2str(ncols2))), ', ', uni=nerr)
-      call message('... cellsize: ', trim(adjustl(num2str(cellsize2))), ', ', uni=nerr)
-      call message('... xllcorner:', trim(adjustl(num2str(xllcorner2))), ', ', uni=nerr)
+      call error_message('   ***ERROR: subroutine L2_variable_init: size mismatch in grid file for level2 in domain ', &
+              trim(adjustl(num2str(iDomain))), '!', raise=.false.)
+      call error_message('  Expected to have following properties (based on L0):', raise=.false.)
+      call error_message('... rows:     ', trim(adjustl(num2str(level2_iDomain%nrows))), ', ', raise=.false.)
+      call error_message('... cols:     ', trim(adjustl(num2str(level2_iDomain%ncols))), ', ', raise=.false.)
+      call error_message('... cellsize: ', trim(adjustl(num2str(level2_iDomain%cellsize))), ', ', raise=.false.)
+      call error_message('... xllcorner:', trim(adjustl(num2str(level2_iDomain%xllcorner))), ', ', raise=.false.)
+      call error_message('... yllcorner:', trim(adjustl(num2str(level2_iDomain%yllcorner))), ', ', raise=.false.)
+      call error_message('  Provided (in precipitation file):', raise=.false.)
+      call error_message('... rows:     ', trim(adjustl(num2str(nrows2))), ', ', raise=.false.)
+      call error_message('... cols:     ', trim(adjustl(num2str(ncols2))), ', ', raise=.false.)
+      call error_message('... cellsize: ', trim(adjustl(num2str(cellsize2))), ', ', raise=.false.)
+      call error_message('... xllcorner:', trim(adjustl(num2str(xllcorner2))), ', ', raise=.false.)
       call error_message('... yllcorner:', trim(adjustl(num2str(yllcorner2))), ', ')
     end if
 

@@ -172,7 +172,7 @@ CONTAINS
 
 
     !checking whether the file exists
-    call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
+    call path_isfile(path = filename, raise=.true.)
     ! read in
     ! recl is only a rough estimate on bytes per line in the ascii
     ! default for nag: recl=1024(byte) which is not enough for 100s of columns
@@ -311,7 +311,7 @@ CONTAINS
     tmp_mask = .true.
 
     !checking whether the file exists
-    call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
+    call path_isfile(path = filename, raise=.true.)
     ! read in
     ! recl is only a rough estimate on bytes per line in the ascii
     ! default for nag: recl=1024(byte) which is not enough for 100s of columns
@@ -404,7 +404,7 @@ CONTAINS
 
 
     !checking whether the file exists
-    call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
+    call path_isfile(path = filename, raise=.true.)
     ! reading header from a file
     open (unit = fileunit, file = filename, status = 'old')
     read (fileunit, *) dummy, header_nCols

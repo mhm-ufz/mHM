@@ -13,7 +13,6 @@ MODULE mo_common_read_config
 
   USE mo_kind, ONLY : i4, dp
   use mo_message, only: message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -280,13 +279,13 @@ CONTAINS
 
     ! countercheck if land cover covers simulation period
     if (LC_year_start(1) .GT. minval(sim_Per(1 : domainMeta%nDomains)%yStart)) then
-      call message('***ERROR: Land cover for warming period is missing!', uni=nerr)
-      call message('   SimStart   : ', trim(num2str(minval(sim_Per(1 : domainMeta%nDomains)%yStart))), uni=nerr)
+      call error_message('***ERROR: Land cover for warming period is missing!', raise=.false.)
+      call error_message('   SimStart   : ', trim(num2str(minval(sim_Per(1 : domainMeta%nDomains)%yStart))), raise=.false.)
       call error_message('   LCoverStart: ', trim(num2str(LC_year_start(1))))
     end if
     if (LC_year_end(nLCoverScene) .LT. maxval(sim_Per(1 : domainMeta%nDomains)%yEnd)) then
-      call message('***ERROR: Land cover period shorter than modelling period!', uni=nerr)
-      call message('   SimEnd   : ', trim(num2str(maxval(sim_Per(1 : domainMeta%nDomains)%yEnd))), uni=nerr)
+      call error_message('***ERROR: Land cover period shorter than modelling period!', raise=.false.)
+      call error_message('   SimEnd   : ', trim(num2str(maxval(sim_Per(1 : domainMeta%nDomains)%yEnd))), raise=.false.)
       call error_message('   LCoverEnd: ', trim(num2str(LC_year_end(nLCoverScene))))
     end if
     !

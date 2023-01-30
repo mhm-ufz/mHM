@@ -19,7 +19,6 @@ MODULE mo_mrm_signatures
 
   USE mo_kind, ONLY : i4, sp, dp
   use mo_message, only : message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -966,14 +965,14 @@ CONTAINS
 
     if ((present(precip_series) .and. present(precip_sum)) .or. &
             (.not. present(precip_series) .and. .not. present(precip_sum))) then
-      call message('mo_signatures: RunoffRatio: Exactly one precipitation information', uni=nerr)
-      call message('                            (precipitation series or sum of precipitation) ', uni=nerr)
+      call error_message('mo_signatures: RunoffRatio: Exactly one precipitation information', raise=.false.)
+      call error_message('                            (precipitation series or sum of precipitation) ', raise=.false.)
       call error_message('                            has to be specified!')
     end if
 
     if (present(mask) .and. present(precip_sum)) then
-      call message('mo_signatures: RunoffRatio: Already aggregated precipitation (precip_sum) and', uni=nerr)
-      call message('                            mask can not be used together.', uni=nerr)
+      call error_message('mo_signatures: RunoffRatio: Already aggregated precipitation (precip_sum) and', raise=.false.)
+      call error_message('                            mask can not be used together.', raise=.false.)
       call error_message('                            Precip_series should be used instead!')
     end if
 

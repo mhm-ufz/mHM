@@ -12,7 +12,6 @@
 module mo_common_read_data
   USE mo_kind, ONLY : i4, dp
   use mo_message, only: message, error_message
-  use mo_constants, only : nerr ! stderr for error messages
 
   IMPLICIT NONE
 
@@ -98,7 +97,7 @@ CONTAINS
 
       ! check for L0 and L1 scale consistency
       if(resolutionHydrology(iDomain) .LT. level0_iDomain%cellsize) then
-        call message('***ERROR: resolutionHydrology (L1) should be smaller than the input data resolution (L0)', uni=nerr)
+        call error_message('***ERROR: resolutionHydrology (L1) should be smaller than the input data resolution (L0)', raise=.false.)
         call error_message('          check set-up (in mhm.nml) for domain: ', trim(adjustl(num2str(domainID))), ' ...')
       end if
 
