@@ -118,10 +118,10 @@ contains
       help="The mRM output namelist.")
 
     call parser%add_option( &
-        name="quiet", &
-        s_name="q", &
-        repeated=.true., &
-        help="Decrease verbosity level.")
+      name="quiet", &
+      s_name="q", &
+      repeated=.true., &
+      help="Decrease verbosity level.")
 
     ! parse given command line arguments
     call parser%parse()
