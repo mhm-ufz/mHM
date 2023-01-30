@@ -44,7 +44,7 @@ See also the [documentation][5] for detailed instructions to setup mHM.
 
 ## License
 
-LGPLv3 (c) 2005-2022 mHM-Developers
+LGPLv3 (c) 2005-2023 mHM-Developers
 
 [0]: https://git.ufz.de/mhm/mhm/-/releases
 [3]: doc/RELEASES.md

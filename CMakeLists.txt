@@ -16,7 +16,6 @@ option(BUILD_MHM_PYBIND "Build mHM python bindings." OFF)
 
 if(BUILD_MHM_PYBIND)
   set(BUILD_MHM_LIB_SHARED ON)
-  set(BUILD_MHM_DRIVER ON)
 endif()
 
 add_subdirectory(src)

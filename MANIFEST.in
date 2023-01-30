@@ -9,3 +9,10 @@ include version.txt version_date.txt
 global-exclude __pycache__ *.py[co] *.so *.mod
 exclude pybind/mhm/mhm
 exclude cmake/.gitrepo
+graft forces/
+prune forces/doc
+prune forces/hpc-module-loads
+prune forces/src/pf_tests
+prune forces/.git
+exclude forces/cmake/.gitrepo
+exclude forces/.git*
