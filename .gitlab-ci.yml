@@ -54,6 +54,10 @@ pybindings:
     - mhm --version
     - mhm --help
     - mhm
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME"
+    paths:
+      - dist
 
 documentation:
   stage: build
