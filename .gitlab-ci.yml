@@ -51,8 +51,8 @@ pybindings:
     - python -c "import mhm; print(mhm.__version__)"
     - which mhm
     - cat $(which mhm)
-    - mhm -v
-    - mhm -h
+    - mhm --version
+    - mhm --help
     - mhm
 
 documentation:

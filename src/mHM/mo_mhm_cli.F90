@@ -23,7 +23,7 @@
 !!          --help / -h
 !!              Description: Print this help message.
 !!
-!!          --version / -v
+!!          --version / -V
 !!              Description: Print the version of the program.
 !!
 !!          --nml / -n <path>
@@ -41,6 +41,10 @@
 !!          --mrm_output / -r <path>
 !!              Description: The mRM output namelist.
 !!              Default: mrm_output.nml
+!!
+!!          --quiet / -q
+!!              Description: Decrease verbosity level.
+!!              Can be repeated.
 !!          \endcode
 !!
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
