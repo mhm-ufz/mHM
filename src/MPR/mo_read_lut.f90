@@ -92,7 +92,7 @@ CONTAINS
     character(256) :: dummy
 
     !checking whether the file exists
-    call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
+    call path_isfile(path = filename, raise=.true.)
     open(fileunit, file = filename, action = 'read', status = 'old')
 
     ! read header
@@ -179,7 +179,7 @@ CONTAINS
     character(256) :: dummy
 
     !checking whether the file exists
-    call path_isfile(path = filename, quiet_ = .true., throwError_ = .true.)
+    call path_isfile(path = filename, raise=.true.)
     open(fileunit, file = filename, action = 'read')
 
     ! read header

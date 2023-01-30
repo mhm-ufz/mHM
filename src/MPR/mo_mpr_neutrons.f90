@@ -101,7 +101,7 @@ contains
        )
 
     ! lots of lines copy-pasted from mo_mpr_soilmoist.f90
-    use mo_message,              only: message
+    use mo_message, only: error_message
     use mo_mpr_global_variables, only: iFlag_soilDB
     !$  use omp_lib
 
@@ -201,9 +201,7 @@ contains
           end do   !>> SOIL TYPE
 
        CASE DEFAULT
-          call message()
-          call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
-          stop
+          call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
        END SELECT
        !
 

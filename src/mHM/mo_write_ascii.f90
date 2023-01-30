@@ -32,6 +32,8 @@ MODULE mo_write_ascii
 
 
   USE mo_kind, ONLY : i4, dp
+  use mo_message, only: message, error_message
+
   IMPLICIT NONE
 
   PUBLIC :: write_configfile                   ! Writes configuration file
@@ -97,7 +99,6 @@ CONTAINS
     use mo_global_variables, only : dirPrecipitation, dirReferenceET, &
                                     dirTemperature
     use mo_kind, only : i4
-    use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_os, only : path_isdir
     use mo_common_constants, only : nodata_dp
@@ -120,12 +121,10 @@ CONTAINS
     call message()
     call message('  Log-file written to ', trim(fName))
     !checking whether the directory exists where the file shall be created or opened
-    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
+    call path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
     open(uconfig, file = fName, status = 'unknown', action = 'write', iostat = err)
     if (err .ne. 0) then
-      call message('  Problems while creating File')
-      call message('  Error-Code', num2str(err))
-      stop
+      call error_message('  Problems while creating File. ', 'Error-Code ', num2str(err))
     end if
     write(uconfig, 200)
     write(uconfig, 100) 'mHM-UFZ v-' // trim(version)
@@ -431,7 +430,6 @@ CONTAINS
 
     use mo_common_mhm_mrm_file, only : file_opti, uopti
     use mo_common_variables, only : dirConfigOut
-    use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_os, only : path_isdir
 
@@ -456,12 +454,10 @@ CONTAINS
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti))
     !checking whether the directory exists where the file shall be created or opened
-    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
+    call path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
     open(uopti, file = fName, status = 'unknown', action = 'write', iostat = err, recl = (n_params + 1) * 40)
     if(err .ne. 0) then
-      call message ('  IOError while openening ', trim(fName))
-      call message ('  Error-Code ', num2str(err))
-      stop
+      call error_message('  IOError while openening "', trim(fName), '". Error-Code ', num2str(err))
     end if
 
     ! header
@@ -518,7 +514,6 @@ CONTAINS
 
     use mo_common_mhm_mrm_file, only : file_opti_nml, uopti_nml
     use mo_common_variables, only : dirConfigOut, nProcesses
-    use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_os, only : path_isdir
 
@@ -560,12 +555,10 @@ CONTAINS
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti_nml))
     !checking whether the directory exists where the file shall be created or opened
-    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
+    call path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
     open(uopti_nml, file = fName, status = 'unknown', action = 'write', iostat = err)
     if(err .ne. 0) then
-      call message ('  IOError while openening ', trim(fName))
-      call message ('  Error-Code ', num2str(err))
-      stop
+      call error_message('  IOError while openening "', trim(fName), '". Error-Code ', num2str(err))
     end if
 
     write(uopti_nml, *) '!global_parameters'

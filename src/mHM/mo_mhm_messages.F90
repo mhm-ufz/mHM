@@ -98,9 +98,9 @@ contains
     call message('     ', trim(file_defOutput))
     call message()
 
-    call path_isfile(path = file_namelist_mhm, quiet_ = .true., throwError_ = .true.)
-    call path_isfile(path = file_namelist_mhm_param, quiet_ = .true., throwError_ = .true.)
-    call path_isfile(path = file_defOutput, quiet_ = .true., throwError_ = .true.)
+    call path_isfile(path = file_namelist_mhm, raise=.true.)
+    call path_isfile(path = file_namelist_mhm_param, raise=.true.)
+    call path_isfile(path = file_defOutput, raise=.true.)
 
   end subroutine startup_message
 

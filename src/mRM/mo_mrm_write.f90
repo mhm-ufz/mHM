@@ -14,6 +14,7 @@ module mo_mrm_write
   use mo_kind, only : i4, dp
   use mo_mrm_write_fluxes_states, only : OutputDataset
   use mo_mrm_global_variables, only : output_time_reference_mrm
+  use mo_message, only : message, error_message
 
   implicit none
 
@@ -55,7 +56,6 @@ contains
     use mo_mrm_global_variables, only : domain_mrm, &
                                         gauge, mRM_runoff, nGaugesTotal, nMeasPerDay
     use mo_mrm_restart, only : mrm_write_restart
-    use mo_message, only : message
 
     implicit none
 
@@ -115,8 +115,7 @@ contains
     if (modulo(TPD_sim, TPD_obs) .eq. 0) then
       factor = TPD_sim / TPD_obs
     else
-      call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-      stop
+      call error_message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
     end if
 
 
@@ -258,7 +257,6 @@ contains
                                     global_parameters_name, level0, level1, domainMeta, nLCoverScene, processMatrix, &
                                     resolutionHydrology, write_restart
     use mo_kind, only : dp, i4
-    use mo_message, only : message
     use mo_mrm_file, only : version
     use mo_mrm_global_variables, only : InflowGauge, L11_L1_Id, L11_fromN, L11_label, &
                                         L11_length, L11_netPerm, L11_rOrder, L11_slope, L11_toN, L1_L11_Id, domain_mrm, &
@@ -280,12 +278,10 @@ contains
     call message()
     call message('  Log-file written to ', trim(fName))
     !checking whether the directory exists where the file shall be created or opened
-    call path_isdir(trim(adjustl(dirConfigOut)), quiet_=.true., throwError_=.true.)
+    call path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
     open(uconfig, file = fName, status = 'unknown', action = 'write', iostat = err)
     if (err .ne. 0) then
-      call message('  Problems while creating File')
-      call message('  Error-Code', num2str(err))
-      stop
+      call error_message('  Problems while creating File. Error-Code ', num2str(err))
     end if
     write(uconfig, 200)
     write(uconfig, 100) 'mRM-UFZ v-' // trim(version)
@@ -576,7 +572,6 @@ contains
     use mo_common_variables, only : dirOut, domainMeta
     use mo_errormeasures, only : kge, nse
     use mo_julian, only : dec2date
-    use mo_message, only : message
     use mo_mrm_file, only : file_daily_discharge, ncfile_discharge, udaily_discharge
     use mo_mrm_global_variables, only : domain_mrm, gauge
     use mo_string_utils, only : num2str
@@ -626,9 +621,7 @@ contains
       fName = trim(adjustl(dirOut(iDomain))) // trim(adjustl(file_daily_discharge))
       open(udaily_discharge, file = trim(fName), status = 'unknown', action = 'write', iostat = err)
       if(err .ne. 0) then
-        call message ('  IOError while openening ', trim(fName))
-        call message ('  Error-Code ', num2str(err))
-        stop
+        call error_message('  IOError while openening "', trim(fName), '". Error-Code ', num2str(err))
       end if
 
       ! header
@@ -772,7 +765,6 @@ contains
     use mo_common_variables, only : dirOut, domainMeta
     use mo_errormeasures, only : kge, nse
     use mo_julian, only : dec2date
-    use mo_message, only : message
     use mo_mrm_file, only : ncfile_subdaily_discharge, file_subdaily_discharge, &
                             usubdaily_discharge
     use mo_mrm_global_variables, only : domain_mrm, gauge, nMeasPerDay
@@ -835,9 +827,7 @@ contains
       fName = trim(adjustl(dirOut(iDomain))) // trim(adjustl(file_subdaily_discharge))
       open(usubdaily_discharge, file = trim(fName), status = 'unknown', action = 'write', iostat = err)
       if(err .ne. 0) then
-        call message ('  IOError while openening ', trim(fName))
-        call message ('  Error-Code ', num2str(err))
-        stop
+        call error_message('  IOError while openening "', trim(fName), '". Error-Code ', num2str(err))
       end if
 
       ! header
@@ -989,7 +979,6 @@ contains
 
     use mo_common_mhm_mrm_file, only : file_opti, uopti
     use mo_common_variables, only : dirConfigOut
-    use mo_message, only : message
     use mo_string_utils, only : num2str
 
     implicit none
@@ -1014,9 +1003,7 @@ contains
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti))
     open(uopti, file = fName, status = 'unknown', action = 'write', iostat = err, recl = (n_params + 1) * 40)
     if(err .ne. 0) then
-      call message ('  IOError while openening ', trim(fName))
-      call message ('  Error-Code ', num2str(err))
-      stop
+      call error_message('  IOError while openening "', trim(fName), '" Error-Code ', num2str(err))
     end if
 
     ! header
@@ -1068,7 +1055,6 @@ contains
 
     use mo_common_mhm_mrm_file, only : file_opti_nml, uopti_nml
     use mo_common_variables, only : dirConfigOut, processMatrix
-    use mo_message, only : message
     use mo_string_utils, only : num2str
 
     implicit none
@@ -1095,9 +1081,7 @@ contains
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti_nml))
     open(uopti_nml, file = fName, status = 'unknown', action = 'write', iostat = err)
     if(err .ne. 0) then
-      call message ('  IOError while openening ', trim(fName))
-      call message ('  Error-Code ', num2str(err))
-      stop
+      call message ('  IOError while openening "', trim(fName), '" Error-Code ', num2str(err))
     end if
 
     write(uopti_nml, *) '!global_parameters'

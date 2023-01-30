@@ -130,7 +130,7 @@ contains
                            L1_latticeWater,& ! L1 lattice water content
                            L1_COSMICL3   )   ! L1 COSMIC L3 parameter from neutron module
 
-    use mo_message, only : message
+    use mo_message, only : message, error_message
     use mo_string_utils, only : num2str
     use mo_upscaling_operators, only : upscale_harmonic_mean
     !$ use omp_lib
@@ -513,10 +513,10 @@ contains
                    FCnorm = (((FC0(k) / (dpth_t - dpth_f)) - FCmin_glob) / (FCmax_glob - FCmin_glob))
 
                    if(FCnorm .lt. 0.0_dp) then
-                      print*, "FCnorm is below 0, will become 0", FCnorm
+                      ! print*, "FCnorm is below 0, will become 0", FCnorm
                       FCnorm=0.0_dp
                    else if(FCnorm .gt. 1.0_dp) then
-                      print*, "FCnorm is above 1, will become 1", FCnorm
+                      ! print*, "FCnorm is above 1, will become 1", FCnorm
                       FCnorm=1.0_dp
                    end if
 
@@ -529,9 +529,10 @@ contains
                 end select
 
                 if((fRoots0(k) .lt. 0.0_dp) .OR. (fRoots0(k) .gt. 1.0_dp)) then
-                   call message('***ERROR: Fraction of roots out of range [0,1]. Cell', &
+                  ! why is this not stopping here?
+                  call message('***ERROR: Fraction of roots out of range [0,1]. Cell', &
                         num2str(k), ' has value ', num2str(fRoots0(k)))
-                   ! stop
+                  ! stop
                 end if
              end select
 
@@ -649,11 +650,11 @@ contains
               FCnorm = (((FC0(k) / (dpth_t - dpth_f)) - FCmin_glob) / (FCmax_glob - FCmin_glob))
 
               if(FCnorm .lt. 0.0_dp) then
-              print*, "FCnorm is below 0, will become 0", FCnorm
-                 FCnorm=0.0_dp
+                ! print*, "FCnorm is below 0, will become 0", FCnorm
+                FCnorm=0.0_dp
               else if(FCnorm .gt. 1.0_dp) then
-              print*, "FCnorm is above 1, will become 1", FCnorm
-                 FCnorm=1.0_dp
+                ! print*, "FCnorm is above 1, will become 1", FCnorm
+                FCnorm=1.0_dp
               end if
 
               tmp_rootFractionCoefficient_perviousFC = (FCnorm * tmp_rootFractionCoefficient_clay) &
@@ -666,10 +667,11 @@ contains
             end select
 
             if((fRoots0(k) .lt. 0.0_dp) .OR. (fRoots0(k) .gt. 1.0_dp)) then
-               call message('***ERROR: Fraction of roots out of range [0,1]. Cell', &
+              ! why is this not stopping here?
+              call message('***ERROR: Fraction of roots out of range [0,1]. Cell', &
                     num2str(k), ' has value ', num2str(fRoots0(k)))
-                ! stop
-              end if
+              ! stop
+            end if
           end select
 
         end do celllloop1
@@ -702,9 +704,7 @@ contains
       end do
       ! anything else
     CASE DEFAULT
-      call message()
-      call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
-      stop
+      call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
     END SELECT
 
 

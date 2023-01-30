@@ -6,7 +6,36 @@
 
 ### Enhancements
 
+- added simple namelists in each test-domain folder for single domain run ([!144](https://git.ufz.de/mhm/mhm/-/merge_requests/144))
+  - can be run by `mhm ./test_domain`
 - Python bindings and wheel distribution for mHM ([!138](https://git.ufz.de/mhm/mhm/-/merge_requests/138))
+- updated FORCES to v0.4 ([!141](https://git.ufz.de/mhm/mhm/-/merge_requests/141))
+- added silent mode (`--quiet / -q`) ([!141](https://git.ufz.de/mhm/mhm/-/merge_requests/141))
+- Output: unification, selectable time reference point and bounds for all coordinates ([!139](https://git.ufz.de/mhm/mhm/-/merge_requests/139))
+  - added option `output_time_reference[_mrm]` to `m[h|r]m_outputs.nml` where users can now select the reference time stamp for the current time interval:
+    ```
+    location of reference time point in outputs:
+    0: start of the time interval (i.e. 1990-01-01 00:00 for daily output on 1990-01-01)
+    1: center of the time interval (i.e. 1990-01-01 12:00 for daily output on 1990-01-01)
+    2: end of the time interval (i.e. 1990-01-02 00:00 for daily output on 1990-01-01)
+    ```
+    - This will be `0` by default. Before it was always the end of the time interval -1h (that is why we always had 23h as timestamp)
+    - When using the start of the time interval we actually match the time-stamps of the gauge time-series (that was shifted in `discharge.nc`)
+    - When using center of time interval output unit may change to minutes (to get center of an hour)
+  - added `time_bnds` to all netcdf outputs to explicitly describe the time-span for the given time-stamp (following cf-conventions)
+  - addad `axis` attribute to all coordinates in all netcdf outputs (following cf-conventions)
+  - added `bounds` for all spatial coordinate axes (either easting/northing or lon/lat)
+  - unified output handling in `mo_nc_output`
+  - use new output handler for groundwater coupling
+
+### Changes
+
+- all errors are now printed to std-err and raise exit code 1 ([!141](https://git.ufz.de/mhm/mhm/-/merge_requests/141))
+- changed command line option short name for version from `-v` to `-V` (`-v` reserved for verbosity) ([!141](https://git.ufz.de/mhm/mhm/-/merge_requests/141))
+
+ ### Bugfixes
+
+- fixed indexing in groundwater coupling calculations ([!139](https://git.ufz.de/mhm/mhm/-/merge_requests/139))
 
 
 ## mHM v5.12.0 (Oct 2022)

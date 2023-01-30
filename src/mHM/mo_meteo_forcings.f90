@@ -17,6 +17,7 @@ MODULE mo_meteo_forcings
   ! Modified
 
   USE mo_kind, ONLY : i4, dp
+  use mo_message, only: message, error_message
 
   IMPLICIT NONE
 
@@ -70,7 +71,6 @@ CONTAINS
                                     inputFormat_meteo_forcings, read_meteo_weights, &
                                     timeStep_model_inputs, &
                                     L1_ssrd, L1_strd, L1_tann  ! riv-temp related
-    use mo_message, only : message
     use mo_string_utils, only : num2str
     use mo_timer, only : timer_get, timer_start, timer_stop
 
@@ -352,7 +352,7 @@ CONTAINS
          CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, is_meteo=.True.)
       end if
     case DEFAULT
-      stop '***ERROR: meteo_forcings_wrapper: Not recognized input format'
+      call error_message('***ERROR: meteo_forcings_wrapper: Not recognized input format')
     end select
     ! cellfactor to decide on the upscaling or downscaling of meteo. fields
     cellFactorHbyM = level1(iDomain)%cellsize / level2(iDomain)%cellsize
@@ -437,7 +437,6 @@ CONTAINS
     use mo_global_variables, only : level2
     use mo_read_nc, only : read_weights_nc
     use mo_spatial_agg_disagg_forcing, only : spatial_aggregation, spatial_disaggregation
-    use mo_message, only : message
 
     implicit none
 
@@ -651,7 +650,6 @@ CONTAINS
     use mo_global_variables, only : timeStep_model_inputs
     use mo_julian, only : caldat
     use mo_kind, only : i4
-    use mo_message, only : message
 
     implicit none
 
@@ -723,8 +721,7 @@ CONTAINS
           if (year .ne. year_before) is_read = .true.
         end if
       case default ! not specified correctly
-        call message('ERROR*** mo_meteo_forcings: function is_read: timStep_model_inputs not specified correctly!')
-        stop
+        call error_message('ERROR*** mo_meteo_forcings: function is_read: timStep_model_inputs not specified correctly!')
       end select
     end if
 
@@ -763,7 +760,6 @@ CONTAINS
     use mo_global_variables, only : timeStep_model_inputs
     use mo_julian, only : caldat, julday
     use mo_kind, only : i4
-    use mo_message, only : message
 
     implicit none
 
@@ -819,8 +815,7 @@ CONTAINS
       call caldat(simPer(iDomain)%julStart + Ndays, dd = day, mm = month, yy = year)
       readPer%julEnd = julday(dd = 31, mm = 12, yy = year)
     case default ! not specified correctly
-      call message('ERROR*** mo_meteo_forcings: chunk_size: timStep_model_inputs not specified correctly!')
-      stop
+      call error_message('ERROR*** mo_meteo_forcings: chunk_size: timStep_model_inputs not specified correctly!')
     end select
 
     ! end date should not be greater than end of simulation period

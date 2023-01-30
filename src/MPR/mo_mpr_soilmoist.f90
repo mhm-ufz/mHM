@@ -12,6 +12,7 @@
 module mo_mpr_soilmoist
 
   use mo_kind, only : i4, dp
+  use mo_message, only : message, error_message
 
   implicit none
 
@@ -100,7 +101,6 @@ contains
                    thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_message, only : message
     use mo_mpr_constants, only : BulkDens_OrgMatter
     use mo_mpr_global_variables, only : iFlag_soilDB
     !$ use omp_lib
@@ -290,7 +290,7 @@ contains
               case(3)               ! permeable
                 pOM = tmp_orgMatterContent_pervious
               case default
-                stop 'Error mpr_sm: pOM used uninitialized.'
+                 call error_message('Error mpr_sm: pOM used uninitialized.')
               end select
               pM = 100.0_dp - pOM
               ! bulk density acording to Rawl's (1982) paper
@@ -381,7 +381,7 @@ contains
             case(3)               ! permeable
               pOM = tmp_orgMatterContent_pervious
             case default
-              STOP 'Error mpr_sm: pOM used is not initialized.'
+               call error_message('Error mpr_sm: pOM used is not initialized.')
             end select
             pM = 100.0_dp - pOM
             ! bulk density acording to Rawl's (1982) paper
@@ -445,9 +445,7 @@ contains
       end do
 
     CASE DEFAULT
-      call message()
-      call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
-      stop
+      call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
     END SELECT
 
     ! free space **
@@ -679,21 +677,21 @@ contains
 
     ! hard coded limits, according to (Zacharias et al, 2007, soil Phy.)
     if (thetaS < 0.01_dp) then
-      write(*, *) 'thetaS below threshold limit 1e-2, reset.'
+      call message('thetaS below threshold limit 1e-2, reset.')
       ! Put constrains on theta_S
       thetaS = 0.01_dp
     end if
     if (thetaS > 1.0_dp) then
-      write(*, *) 'thetaS above 1, reset.'
+      call message('thetaS above 1, reset.')
       ! Put constrains on theta_S
       thetaS = 1.0_dp
     end if
     if (Genu_Mual_n < 1.01000_dp) then
-      write(*, *) 'Genu_Mual_n below threshold limit 1.01, reset.'
+      call message('Genu_Mual_n below threshold limit 1.01, reset.')
       Genu_Mual_n = 1.01000_dp
     end if
     if (Genu_Mual_alpha < 0.00001_dp) then
-      write(*, *) 'Genu_Mual_alpha below threshold limit 1e-5, reset.'
+      call message('Genu_Mual_alpha below threshold limit 1e-5, reset.')
       Genu_Mual_alpha = 0.00001_dp
     end if
 
@@ -765,7 +763,7 @@ contains
     Ks = param(4) * exp(X * log(Ks_c))
 
     if (Ks < 1.10_dp) then
-      write(*, *) 'JMJMJM-Ks-BAD'
+      call message('JMJMJM-Ks-BAD')
     end if
 
     ! minimum value of Ks = 1.1cm/d
