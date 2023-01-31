@@ -2,6 +2,7 @@
 import os
 import shutil
 import subprocess
+import tempfile
 
 import setuptools
 import skbuild
@@ -16,20 +17,28 @@ class sdist(setuptools.command.sdist.sdist):
         forces_dir = os.path.join(here, "forces")
         # remove potentially existing dir
         shutil.rmtree(forces_dir, ignore_errors=True)
-        # add forces to sdist by calling cmake (CPM will download correct version)
+        # download forces by calling cmake (CPM will download correct version)
         cmake = skbuild.constants.CMAKE_DEFAULT_EXECUTABLE
-        subprocess.check_call(
-            (cmake, "-Bbuild_sdist", "-DCPM_SOURCE_CACHE=."), cwd=here
-        )
-        shutil.rmtree(os.path.join(here, "build_sdist"))
-        # CPM stores forces in folder with git-hash
+        with tempfile.TemporaryDirectory(dir=here) as tmp_dir:
+            subprocess.run(
+                (cmake, f"-B{tmp_dir}", f"-DCPM_SOURCE_CACHE={here}"),
+                capture_output=True,
+                cwd=here,
+            )
+        # CPM stores forces in folder with git-hash as name
+        if not os.path.exists(forces_dir) or len(os.listdir(forces_dir)) != 1:
+            shutil.rmtree(forces_dir, ignore_errors=True)
+            raise RuntimeError("mHM Python sdist: could not download FORCES.")
         hash_dir = os.path.join(forces_dir, os.listdir(forces_dir)[0])
+        # copy contents to 'forces' top-folder
         shutil.copytree(
             hash_dir, forces_dir, copy_function=shutil.move, dirs_exist_ok=True
         )
         shutil.rmtree(hash_dir)
         # run sdist
         super().run()
+        # remove forces dir again
+        shutil.rmtree(forces_dir)
 
 
 # maybe overwrite the default version
