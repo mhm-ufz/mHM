@@ -32,6 +32,24 @@ contains
     call mhm_interface_run
   end subroutine run
 
+  !> \brief disable all mHM/mRM outputs during runtime.
+  subroutine disable_output()
+    use mo_mrm_global_variables, only : outputFlxState_mrm
+    use mo_global_variables, only : outputFlxState
+    implicit none
+    outputFlxState_mrm = .False.
+    outputFlxState = .False.
+  end subroutine disable_output
+
+  !> \brief Execute a mHM model with given parameters.
+  subroutine run_with_parameter(parameter, n)
+    use mo_mhm_eval, only: mhm_eval
+    implicit none
+    integer :: n !< number of parameters
+    real*8, intent(in) :: parameter(n) !< parameter
+    call mhm_eval(parameter)
+  end subroutine run_with_parameter
+
   !> \brief Execute a mHM model or an optimization depending on the configuration.
   subroutine run_or_optimize()
     use mo_common_mHM_mRM_variables, only: optimize
@@ -62,6 +80,14 @@ contains
     implicit none
     call mhm_interface_finalize
   end subroutine finalize
+
+  !> \brief Set verbosity level of mHM.
+  subroutine set_verbosity(level)
+    use mo_mhm_cli, only: set_verbosity_level
+    implicit none
+    integer, intent(in) :: level !< verbosity level (0, 1, 2)
+    call set_verbosity_level(level)
+  end subroutine set_verbosity
 end module model
 
 !> \brief   Python wrapper module to control a mHM model run per time step.
@@ -155,6 +181,80 @@ end module run
 module get
   implicit none
 contains
+
+  !> \name parameter
+
+  !> \brief Get the number of parameters in mHM.
+  subroutine parameter_length(length)
+    use mo_mhm_interface, only : mhm_interface_get_parameter_number
+    implicit none
+    integer, intent(out) :: length !< length of the parmeter array
+    call mhm_interface_get_parameter_number(length)
+  end subroutine parameter_length
+
+  !> \name parameter
+
+  !> \brief Get the parameter settings of mHM.
+  subroutine parameter_config(config, n)
+    use mo_common_variables, only: global_parameters
+
+    implicit none
+    integer :: n !< number of parameters
+    real*8, intent(out) :: config(n, 5) !< parameter configuration
+
+    config = global_parameters
+  end subroutine parameter_config
+
+  !> \name parameter
+  !> \brief access parameters of mHM
+
+  !> \brief Get the parameter names of mHM.
+  subroutine parameter_name(para_name, n)
+    use mo_common_variables, only: global_parameters_name
+
+    implicit none
+    character(256), intent(out) :: para_name !< parameter name
+    !f2py character(f2py_len=256) para_name
+    integer, intent(in) :: n !< number of parameters
+
+    para_name = global_parameters_name(n)
+  end subroutine parameter_name
+
+  !> \name runoff
+
+  !> \brief Get the shape of mHM model runoff output for evaluation.
+  subroutine runoff_eval_length(gauge_id, length)
+    use mo_common_mhm_mrm_variables, only : evalPer, nTstepDay, warmingDays
+    use mo_mrm_global_variables, only : gauge, nMeasPerDay
+    implicit none
+    integer, intent(in) :: gauge_id !< gauge id
+    integer, intent(out) :: length !< length of the runoff time series
+
+    integer :: iDomain
+
+    ! extract domain Id from gauge Id
+    iDomain = gauge%domainId(gauge_id)
+    ! get length of evaluation period times TPD_obs
+    length = (evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1) * nMeasPerDay
+  end subroutine runoff_eval_length
+
+  !> \brief Get the mHM model runoff output.
+  subroutine runoff_eval(gauge_id, output, m)
+    use mo_mrm_objective_function_runoff, only : extract_runoff
+    use mo_mrm_global_variables, only: mRM_runoff
+    implicit none
+    integer :: m !< number of time-steps for evaluation
+    real*8, intent(out) :: output(m, 2) !< runoff
+    integer, intent(in) :: gauge_id !< gauge id
+
+    ! aggregated simulated runoff
+    real*8, dimension(:), allocatable :: runoff_agg, runoff_obs
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+    call extract_runoff(gauge_id, mRM_runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+    output(:, 1) = runoff_agg
+    output(:, 2) = runoff_obs
+  end subroutine runoff_eval
 
   !> \name runoff
 

@@ -23,7 +23,7 @@ Python bindings of mHM.
 #             - access to internal variables
 
 from . import cli
-from .tools import get_runoff, get_variable
+from .tools import get_parameter, get_runoff, get_runoff_eval, get_variable
 from .wrapper import get, model, run, set
 
 try:
@@ -49,5 +49,7 @@ __all__ = [
     "f_version",
     "get_runoff",
     "get_variable",
+    "get_runoff_eval",
+    "get_parameter",
     "__version__",
 ]

@@ -53,14 +53,16 @@
 module mo_mhm_cli
 
 #ifdef NAG
-  USE f90_unix_dir, ONLY : CHDIR
+  use f90_unix_dir, only : CHDIR
 #endif
+  use mo_kind, only: i4
 
   implicit none
 
   private
 
   public :: parse_command_line
+  public :: set_verbosity_level
 
 contains
 
@@ -69,7 +71,6 @@ contains
     use mo_cli, only: cli_parser
     use mo_file, only: version, file_namelist_mhm, file_namelist_mhm_param, file_defOutput
     use mo_mrm_file, only: mrm_file_defOutput => file_defOutput
-    use mo_message, only: SHOW_MSG, SHOW_ERR
 
     implicit none
 
@@ -134,10 +135,21 @@ contains
     file_namelist_mhm_param = parser%option_value("parameter")
     file_defOutput = parser%option_value("mhm_output")
     mrm_file_defOutput = parser%option_value("mrm_output")
-
-    if ( parser%option_read_count("quiet") > 0 ) SHOW_MSG = .false.
-    if ( parser%option_read_count("quiet") > 1 ) SHOW_ERR = .false.
+    call set_verbosity_level(2_i4 - parser%option_read_count("quiet"))
 
   end subroutine parse_command_line
+
+  !> \brief Set the verbosity level of mHM.
+  subroutine set_verbosity_level(level)
+    use mo_message, only: SHOW_MSG, SHOW_ERR
+    implicit none
+    integer(i4), intent(in), optional :: level !< verbosity level (0: no output, 1: errors, 2: all)
+    integer(i4) :: level_ = 2_i4
+    SHOW_MSG = .false.
+    SHOW_ERR = .false.
+    if ( present(level) ) level_ = level
+    if ( level_ > 0 ) SHOW_ERR = .true.
+    if ( level_ > 1 ) SHOW_MSG = .true.
+  end subroutine set_verbosity_level
 
 end module mo_mhm_cli
