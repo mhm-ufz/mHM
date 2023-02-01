@@ -1,6 +1,7 @@
 """
 Copyright 2023 by Sebastian Müller and Tobias Houska
 """
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import spotpy
@@ -50,6 +51,9 @@ class spot_setup:
         gauge_id=1,
         minimize=False,
     ):
+        # only show errors
+        mhm.model.set_verbosity(level=1)
+        # initialize model
         mhm.model.init(
             namelist_mhm=namelist_mhm,
             namelist_mhm_param=namelist_mhm_param,
@@ -98,7 +102,10 @@ class spot_setup:
 
 
 if __name__ == "__main__":
-    spot_setup = spot_setup(gauge_id=1, minimize=False)
+    here = Path(__file__).parent
+    # only use test domain 1
+    test_domain = here / ".." / ".." / "test_domain"
+    spot_setup = spot_setup(gauge_id=1, minimize=False, cwd=test_domain)
 
     # Start a spotpy analysis
     sampler = spotpy.algorithms.lhs(spot_setup, dbname="LHS_mHM", dbformat="csv")
