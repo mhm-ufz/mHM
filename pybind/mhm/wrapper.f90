@@ -80,6 +80,14 @@ contains
     implicit none
     call mhm_interface_finalize
   end subroutine finalize
+
+  !> \brief Set verbosity level of mHM.
+  subroutine set_verbosity(level)
+    use mo_mhm_cli, only: set_verbosity_level
+    implicit none
+    integer, intent(in) :: level !< verbosity level (0, 1, 2)
+    call set_verbosity_level(level)
+  end subroutine set_verbosity
 end module model
 
 !> \brief   Python wrapper module to control a mHM model run per time step.
