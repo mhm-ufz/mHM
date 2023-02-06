@@ -35,7 +35,6 @@ def download_test(branch=None, domain=1, path=None):
     @param path (pathlike, optional): Destination path for the downloaded folder,
         by default original name of the test domain folder
     """
-    print(branch, domain, path)
     # format fixed to tar.gz
     format = "tar.gz"
     # determine branch from mhm version
@@ -43,7 +42,6 @@ def download_test(branch=None, domain=1, path=None):
         from . import __version__
 
         branch = "main" if "dev" in __version__ else f"v{__version__}"
-        print(__version__, branch)
     # check test domain
     if domain not in [1, 2]:
         msg = f"mhm-download: 'domain' needs to be 1 or 2. Got: '{domain}'"
