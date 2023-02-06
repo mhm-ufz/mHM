@@ -61,13 +61,13 @@ if forces_path:
     cmake_args += [f"-DCPM_forces_SOURCE={forces_path}"]
     print(f"## mHM Python setup: using forces path '{forces_path}'")
 
+entry_points = {"console_scripts": ["mhm-download = mhm.download:cli"]}
 # env var to control the installation of a console script for mHM
 if int(os.getenv("MHM_BUILD_PY_SCRIPT", "1")):
-    entry_points = {"console_scripts": ["mhm = mhm.cli:mhm"]}
+    entry_points["console_scripts"].append("mhm = mhm.cli:mhm")
     cmake_args += ["-DBUILD_MHM_DRIVER=ON"]
     print("## mHM Python setup: creating console script for mHM driver")
 else:
-    entry_points = {}
     cmake_args += ["-DBUILD_MHM_DRIVER=OFF"]
     print("## mHM Python setup: no console script for mHM driver")
 
