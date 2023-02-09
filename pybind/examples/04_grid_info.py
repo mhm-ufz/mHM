@@ -1,17 +1,13 @@
-import matplotlib.pyplot as plt
+from pathlib import Path
 
 import mhm
 
-# assuming the mhm repo to be in the parent dir
-mhm.model.init(
-    namelist_mhm="mhm.nml",
-    namelist_mhm_param="mhm_parameter.nml",
-    namelist_mhm_output="mhm_outputs.nml",
-    namelist_mrm_output="mrm_outputs.nml",
-    cwd="../mhm",
-)
-mhm.run.prepare()  # global_parameters(:, 3) by default
-# mhm.run.prepare_domain()
+here = Path(__file__).parent
+mhm.model.set_verbosity(level=1)
+# use single test domain 1
+mhm.model.init(cwd=here / ".." / ".." / "test_domain")
+mhm.run.prepare()
+
 print("ncols, nrows, ncells, xll, yll, cell_size, no_data")
 print("L0 :", mhm.get.l0_domain_info(domain=1))
 print("L1 :", mhm.get.l1_domain_info(domain=1))

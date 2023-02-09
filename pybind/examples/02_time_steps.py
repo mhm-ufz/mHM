@@ -1,17 +1,14 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
-import numpy as np
 
 import mhm
 
-# assuming the mhm repo to be in the parent dir
-mhm.model.init(
-    namelist_mhm="mhm.nml",
-    namelist_mhm_param="mhm_parameter.nml",
-    namelist_mhm_output="mhm_outputs.nml",
-    namelist_mrm_output="mrm_outputs.nml",
-    cwd="../mhm",
-)
-mhm.run.prepare()  # global_parameters(:, 3) by default
+here = Path(__file__).parent
+
+# assuming to be in the mhm repo
+mhm.model.init(cwd=here / ".." / "..")
+mhm.run.prepare()
 ndomians = mhm.run.get_ndomains()
 for i in range(1, ndomians + 1):
     mhm.run.prepare_domain(i)  # 1 by default
@@ -20,11 +17,10 @@ for i in range(1, ndomians + 1):
         mhm.run.write_output()
     mhm.run.finalize_domain()
 mhm.run.finalize()
-
+# get runoff before deallocation
 runoff = mhm.get_runoff()
-
 # this will deallocate all internal variables
 mhm.model.finalize()
-
+# plot runoff
 plt.plot(runoff[:, 0])
 plt.show()

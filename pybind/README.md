@@ -67,14 +67,10 @@ If you have cloned the repository, you can do the following to simply run mhm wi
 ```python
 import mhm
 
-# assuming the mhm repo to be in the parent dir
-mhm.model.init(
-    namelist_mhm="mhm.nml",
-    namelist_mhm_param="mhm_parameter.nml",
-    namelist_mhm_output="mhm_outputs.nml",
-    namelist_mrm_output="mrm_outputs.nml",
-    cwd=".",
-)
+# download test domain 1
+mhm.download_test(path="example_domain")
+# run the downloaded example
+mhm.model.init(cwd="example_domain")
 mhm.model.run()
 mhm.model.finalize()
 ```
@@ -83,16 +79,9 @@ Or you can do the following to control each timestep:
 ```python
 import mhm
 
-# assuming the mhm repo to be in the parent dir
-mhm.model.init(
-    namelist_mhm="mhm.nml",
-    namelist_mhm_param="mhm_parameter.nml",
-    namelist_mhm_output="mhm_outputs.nml",
-    namelist_mrm_output="mrm_outputs.nml",
-    cwd=".",
-)
-
-mhm.run.prepare() # global_parameters(:, 3) by default
+# assuming to run from the mhm repo root
+mhm.model.init()
+mhm.run.prepare()
 ndomians = mhm.run.get_ndomains()
 for i in range(1, ndomians + 1):
     mhm.run.prepare_domain(domain=i) # 0 by default
@@ -101,7 +90,6 @@ for i in range(1, ndomians + 1):
         mhm.run.write_output()
     mhm.run.finalize_domain()
 mhm.run.finalize()
-
 mhm.model.finalize()
 ```
 
