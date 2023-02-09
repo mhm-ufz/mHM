@@ -99,6 +99,7 @@ contains
     character(*), optional, intent(in) :: cwd !< desired working directory
 
     integer(i4) :: domainID, iDomain
+    integer             :: chdir_error
 
 #ifdef MPI
     integer             :: ierror
@@ -111,7 +112,10 @@ contains
     if (present(namelist_mhm_output)) file_defOutput = namelist_mhm_output
     if (present(namelist_mrm_output)) mrm_file_defOutput = namelist_mrm_output
     ! change working directory
-    if (present(cwd)) call chdir(cwd)
+    if (present(cwd)) then
+      call chdir(cwd, chdir_error)
+      if (chdir_error /= 0) call error_message("Can't open directory: ", cwd)
+    end if
 
     ! startup message
     call startup_message()
