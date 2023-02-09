@@ -29,8 +29,8 @@ def download_test(branch=None, domain=1, path=None):
     """
     Download a test domain for mHM.
 
-    @param branch (str or None, optional): Branch, tag, or commit of the mHM repository
-        to take the test domain from, by default tag determined from the mHM version
+    @param branch (str, optional): Branch, tag, or commit of the mHM repository to
+        take the test domain from, by default tag determined from the mHM version
     @param domain (int, optional): Test domain 1 or 2, by default 1
     @param path (pathlike, optional): Destination path for the downloaded folder,
         by default original name of the test domain folder
@@ -69,9 +69,18 @@ def download_test(branch=None, domain=1, path=None):
 
 def cli(argv=None):
     """Command line interface to download test domains for mHM."""
+    from . import __version__
+
     parser = argparse.ArgumentParser(
         description="Download tool to retrieve test the domains for mHM.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "-V",
+        "--version",
+        action="version",
+        version=__version__,
+        help="display version information",
     )
     parser.add_argument(
         "-b",
