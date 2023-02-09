@@ -54,7 +54,9 @@ pybindings:
     - mhm --version
     - mhm --help
     # will always download from main repo (no testing to prevent errors in forks)
-    - mhm-download --path test_download/
+    - mhm-download -V
+    - mhm-download -h
+    - mhm-download -v --path test_download/
     - ls test_download/ && rm -rf test_download/
     - mhm test_domain/
   artifacts:
