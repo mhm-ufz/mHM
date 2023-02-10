@@ -410,7 +410,7 @@ CONTAINS
     ! [m3 s-1] Simulated routed discharge
     real(dp), dimension(nNodes), intent(out) :: netNode_Qmod
 
-    integer(i4) :: i, k, iNode, tNode
+    integer(i4) :: g, i, k, iNode, tNode
     ! current routing state (2)
     integer(i4), parameter :: IT = 2
     ! past routing state (1)
@@ -431,7 +431,7 @@ CONTAINS
     !--------------------------------------------------------------------------
     ! ST - decent parallelization has to be done!!!
     !!$OMP parallel
-    !!$OMP do private( i, inode, tnode)
+    !!$OMP do private(g, i, inode, tnode)
     do k = 1, nLinks
       ! get LINK routing order -> i
       i = netPerm(k)
@@ -448,9 +448,9 @@ CONTAINS
 
       ! check if the inflow from upstream cells should be deactivated
       if (nInflowGauges .GT. 0) then
-        do i = 1, nInflowGauges
+        do g = 1, nInflowGauges
           ! check if downstream Node (tNode) is inflow gauge and headwaters should be ignored
-          if ((tNode == InflowNodeList(i)) .AND. (.NOT. InflowHeadwater(i))) netNode_qTR(iNode, IT) = 0.0_dp
+          if ((tNode == InflowNodeList(g)) .AND. (.NOT. InflowHeadwater(g))) netNode_qTR(iNode, IT) = 0.0_dp
         end do
       end if
 
