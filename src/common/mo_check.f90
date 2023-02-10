@@ -41,8 +41,8 @@ CONTAINS
     integer(i4), INTENT(in), OPTIONAL      :: tab         !< tab-depth
     integer(i4), INTENT(in), OPTIONAL      :: text_length !< maximal text length (for aligning)
 
-    LOGICAL            :: raise_ = .false.
-    integer(i4)        :: tab_ = 0
+    LOGICAL            :: raise_
+    integer(i4)        :: tab_
     integer(i4)        :: text_length_, uni
     LOGICAL            :: is_dir, error, show
     CHARACTER(len=255) :: head, tail, info, prefix_info, ws, text_
@@ -51,6 +51,8 @@ CONTAINS
     prefix_info = ""
     ws = " " ! this should hold 255 whitespaces
     text_ = "Directory:"
+    raise_ = .false.
+    tab_ = 0
     if (present(text)) text_ = text
     if (present(raise)) raise_ = raise
     if (present(tab)) tab_ = tab

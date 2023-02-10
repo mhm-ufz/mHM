@@ -148,9 +148,10 @@ contains
     use mo_message, only: SHOW_MSG, SHOW_ERR
     implicit none
     integer(i4), intent(in), optional :: level !< verbosity level (0: no output, 1: errors, 2: all)
-    integer(i4) :: level_ = 2_i4
+    integer(i4) :: level_
     SHOW_MSG = .false.
     SHOW_ERR = .false.
+    level_ = 2_i4
     if ( present(level) ) level_ = level
     if ( level_ > 0 ) SHOW_ERR = .true.
     if ( level_ > 1 ) SHOW_MSG = .true.
