@@ -18,10 +18,15 @@ contains
     use mo_mhm_interface, only: mhm_interface_init
     implicit none
     character(*), intent(in) :: namelist_mhm !< path to mHM configuration namelist
+    !f2py character(*) :: namelist_mhm = "mhm.nml"
     character(*), intent(in) :: namelist_mhm_param !< path to mHM parameter namelist
+    !f2py character(*) :: namelist_mhm_param = "mhm_parameter.nml"
     character(*), intent(in) :: namelist_mhm_output !< path to mHM output namelist
+    !f2py character(*) :: namelist_mhm_output = "mhm_outputs.nml"
     character(*), intent(in) :: namelist_mrm_output !< path to mRM output namelist
+    !f2py character(*) :: namelist_mrm_output = "mrm_outputs.nml"
     character(*), intent(in) :: cwd !< desired working directory
+    !f2py character(*) :: cwd = "."
     call mhm_interface_init(namelist_mhm, namelist_mhm_param, namelist_mhm_output, namelist_mrm_output, cwd)
   end subroutine init
 

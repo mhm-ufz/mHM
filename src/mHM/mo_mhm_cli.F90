@@ -71,10 +71,12 @@ contains
     use mo_cli, only: cli_parser
     use mo_file, only: version, file_namelist_mhm, file_namelist_mhm_param, file_defOutput
     use mo_mrm_file, only: mrm_file_defOutput => file_defOutput
+    use mo_message, only: error_message
 
     implicit none
 
     type(cli_parser) :: parser
+    integer          :: chdir_error
 
     parser = cli_parser( &
       description="The mesoscale hydrological model - mHM", &
@@ -127,15 +129,17 @@ contains
     ! parse given command line arguments
     call parser%parse()
 
-    ! change working directory first
-    if (parser%option_was_read("cwd")) call chdir(parser%option_value("cwd"))
-
     ! set nml file paths
     file_namelist_mhm = parser%option_value("nml")
     file_namelist_mhm_param = parser%option_value("parameter")
     file_defOutput = parser%option_value("mhm_output")
     mrm_file_defOutput = parser%option_value("mrm_output")
     call set_verbosity_level(2_i4 - parser%option_read_count("quiet"))
+    ! change working directory first
+    if (parser%option_was_read("cwd")) then
+      call chdir(parser%option_value("cwd"), chdir_error)
+      if (chdir_error /= 0) call error_message("Can't open directory: ", parser%option_value("cwd"))
+    end if
 
   end subroutine parse_command_line
 

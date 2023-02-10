@@ -22,7 +22,8 @@ Python bindings of mHM.
 #             - control of time stepping
 #             - access to internal variables
 
-from . import cli
+from . import cli, download
+from .download import download_test
 from .tools import get_parameter, get_runoff, get_runoff_eval, get_variable
 from .wrapper import get, model, run, set
 
@@ -46,6 +47,8 @@ __all__ = [
     "get",
     "set",
     "run",
+    "download",
+    "download_test",
     "f_version",
     "get_runoff",
     "get_variable",

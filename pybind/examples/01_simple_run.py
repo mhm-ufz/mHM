@@ -2,14 +2,10 @@ import matplotlib.pyplot as plt
 
 import mhm
 
-# assuming the mhm repo to be in the parent dir
-mhm.model.init(
-    namelist_mhm="mhm.nml",
-    namelist_mhm_param="mhm_parameter.nml",
-    namelist_mhm_output="mhm_outputs.nml",
-    namelist_mrm_output="mrm_outputs.nml",
-    cwd="../mhm",
-)
+# download test domain 1
+mhm.download_test(path="example_domain")
+# run the downloaded example
+mhm.model.init(cwd="example_domain")
 mhm.model.run()
 runoff = mhm.get_runoff()
 

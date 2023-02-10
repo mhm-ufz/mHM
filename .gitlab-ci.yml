@@ -40,7 +40,7 @@ pybindings:
     - conda create -p ./test_pybind
     - conda activate ./test_pybind
     - conda install -c conda-forge -y mamba
-    - mamba install -c conda-forge -y pip netcdf-fortran fortran-compiler c-compiler cxx-compiler python-build black isort
+    - mamba install -c conda-forge -y python=3.10 pip netcdf-fortran fortran-compiler c-compiler cxx-compiler python-build black isort
     # check source code
     - black --check --diff pybind
     - isort --check --diff pybind
@@ -53,7 +53,12 @@ pybindings:
     - cat $(which mhm)
     - mhm --version
     - mhm --help
-    - mhm
+    # will always download from main repo (no testing to prevent errors in forks)
+    - mhm-download -V
+    - mhm-download -h
+    - mhm-download -v --path test_download/
+    - ls test_download/ && rm -rf test_download/
+    - mhm test_domain/
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:
