@@ -85,10 +85,7 @@ contains
     use mo_read_optional_data, only: readOptidataObs
     use mo_write_ascii, only: write_configfile
     use mo_mhm_bfi, only: calculate_BFI
-
-#ifdef NAG
-    use f90_unix_dir, only: chdir
-#endif
+    use mo_mhm_cli, only: change_dir
 
     implicit none
 
@@ -99,7 +96,6 @@ contains
     character(*), optional, intent(in) :: cwd !< desired working directory
 
     integer(i4) :: domainID, iDomain
-    integer             :: chdir_error
 
 #ifdef MPI
     integer             :: ierror
@@ -112,10 +108,7 @@ contains
     if (present(namelist_mhm_output)) file_defOutput = namelist_mhm_output
     if (present(namelist_mrm_output)) mrm_file_defOutput = namelist_mrm_output
     ! change working directory
-    if (present(cwd)) then
-      call chdir(cwd, chdir_error)
-      if (chdir_error /= 0) call error_message("Can't open directory: ", cwd)
-    end if
+    if (present(cwd)) call change_dir(cwd)
 
     ! startup message
     call startup_message()
