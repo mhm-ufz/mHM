@@ -1,6 +1,14 @@
+# versions (branch names)
+VZLIB="2.0.6"
+VHDF5="hdf5-1_12_2"
+VNC_C="v4.9.0"
+VNC_F="v4.6.0"
+
+# default args
 SUCMD=""
 INSTDIR="/opt/local"
 CONFIG=NO
+# parse args
 while [[ $# -gt 0 ]]; do
   case $1 in
     -p|--path)
@@ -35,36 +43,32 @@ rm -rf _tmp_mhm_deps
 mkdir -p _tmp_mhm_deps && cd _tmp_mhm_deps
 
 ## ZLIB
-git clone https://github.com/zlib-ng/zlib-ng.git
+git clone --depth 1 --branch ${VZLIB} https://github.com/zlib-ng/zlib-ng.git
 cd zlib-ng
-git checkout 2.0.6 # or the version you want
 ./configure --prefix=${INSTDIR} --zlib-compat
 make -j
 ${SUCMD}make install
 cd ..
 
 ## HDF5
-git clone https://github.com/HDFGroup/hdf5.git
+git clone --depth 1 --branch ${VHDF5} https://github.com/HDFGroup/hdf5.git
 cd hdf5
-git checkout hdf5-1_12_2 # or the version you want
 ./configure --disable-tests --disable-tools --with-zlib=${INSTDIR} --prefix=${INSTDIR} --enable-hl
 make -j
 ${SUCMD}make install
 cd ..
 
 ## NetCDF-C
-git clone https://github.com/Unidata/netcdf-c.git
+git clone --depth 1 --branch ${VNC_C} https://github.com/Unidata/netcdf-c.git
 cd netcdf-c
-git checkout v4.9.0 # or the version you want
 CPPFLAGS=-I${INSTDIR}/include LDFLAGS=-L${INSTDIR}/lib ./configure --prefix=${INSTDIR} --disable-dap
 make -j
 ${SUCMD}make install
 cd ..
 
 ## NetCDF-Fortran
-git clone https://github.com/Unidata/netcdf-fortran.git
+git clone --depth 1 --branch ${VNC_F} https://github.com/Unidata/netcdf-fortran.git
 cd netcdf-fortran
-git checkout v4.6.0 # or the version you want
 LD_LIBRARY_PATH=${INSTDIR}/lib:${LD_LIBRARY_PATH} CPPFLAGS=-I${INSTDIR}/include LDFLAGS=-L${INSTDIR}/lib ./configure --prefix=${INSTDIR}
 make -j
 ${SUCMD}make install
