@@ -7,15 +7,26 @@ Python bindings to control mHM.
 The wrapper (`mhm/wrapper.f90`) is just a small layer on top of the
 interfaces provided by mHM to be compatible with [f2py](https://numpy.org/doc/stable/f2py/index.html).
 
+
 ## Installation
 
-In order to install the Python bindings you need:
+There is a [PyPI package](https://pypi.org/project/mhm) to install the latest release:
+
+```bash
+pip install mhm
+```
+
+Installing the mHM Python package will provide the `mhm` command to execute mHM the traditional way.
+
+In order to compile the Python bindings from scratch you need:
 1. [Python](https://www.python.org/) with version at least v3.8 and [pip](https://pip.pypa.io/)
-2. a Fortran and a C compiler (set the environment variables `FC` and `CC` accordingly).
+2. a Fortran, a C and a C++ compiler (set the environment variables `FC` (and `F77`), `CC` and `CXX` accordingly).
     In case of gcc, this could look like:
     ```bash
     export FC="gfortran"
+    export F77="gfortran"
     export CC="gcc"
+    export CXX="g++"
     ```
 3. [NetCDF-Fortran](https://github.com/Unidata/netcdf-fortran) installed in your system path
 
@@ -24,7 +35,7 @@ See the [Compilation](../doc/INSTALL.md) instructions for these dependencies.
 You can also use a conda environment (set up with [miniforge](https://mhm-ufz.org/guides/install-unix/) for example)
 to get everything:
 ```bash
-conda install -y pip fortran-compiler netcdf-fortran
+conda install -y pip netcdf-fortran fortran-compiler c-compiler cxx-compiler
 ```
 
 To compile everything after cloning/downloading, you can use pip:
@@ -39,14 +50,6 @@ To install it directly from the git repository you can type:
 pip install -v git+https://git.ufz.de/mhm/mhm.git
 ```
 
-There will be a [PyPI package](https://pypi.org/project/mhm) in the future to install the latest release with:
-
-```bash
-pip install mhm
-```
-
-Installing the mHM Python package will provide the `mhm` command to execute mHM the traditional way.
-
 ### Environment variables
 
 The following environment variables can be used to control the compilation and installation of the python bindings for mHM:
@@ -56,9 +59,46 @@ The following environment variables can be used to control the compilation and i
 - `MHM_BUILD_PARALLEL=[0|1]`: whether to use OpenMP with mHM (default: `0`)
 - `MHM_BUILD_PY_SCRIPT=[0|1]`: whether to create a console script for mHM with the Python bindings (default: `1`)
 
+
+## Test domain download tool
+
+Together with the Python bindings comes a command line script to download the test domains:
+```bash
+mhm-download --verbose --branch develop --domain 1 --path mhm_domain/
+```
+
+You can then run mHM on this test domain with:
+```bash
+mhm mhm_domain/
+```
+
+You can get help on how to use this script with `mhm-download -h`:
+```
+$ mhm-download -h
+usage: mhm-download [-h] [-V] [-v] [-b BRANCH] [-d {1,2}] [-p PATH]
+
+Download tool to retrieve the test domains for mHM.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -V, --version         display version information
+  -v, --verbose         be verbose (default: False)
+  -b BRANCH, --branch BRANCH
+                        branch, tag, or commit of the mHM repository to take the test domain from,
+                        by default tag determined from the mHM version (default: None)
+  -d {1,2}, --domain {1,2}
+                        test domain '1' or '2' (default: 1)
+  -p PATH, --path PATH  destination path for the downloaded folder,
+                        by default the original folder name in the current directory (default: None)
+```
+
+Within python scripts, you can use this tool with `mhm.download_test`. See below for examples.
+
+
 ## Documentation
 
 See `mhm.tools` and `wrapper.f90` for further information on the provided routines.
+
 
 ## Examples
 

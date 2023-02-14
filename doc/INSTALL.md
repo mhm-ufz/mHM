@@ -203,7 +203,7 @@ The new folder `forces/` will be automatically recognized during compilation as 
 
 If you just want a specific version (see `src/CMakeLists.txt` for the currently used one), do this:
 ```bash
-git clone --branch v0.3.2 --depth 1 https://git.ufz.de/chs/forces.git
+git clone --branch v0.4.0 --depth 1 https://git.ufz.de/chs/forces.git
 ```
 
 If you have already cloned FORCES somewhere else, you can also provide a path to this repository. You can do this with all mentioned compile scripts, e.g.:
@@ -244,4 +244,40 @@ Then set your desired options and re-configure your build (by pressing `c`).
 Afterwards build you project as always by executing:
 ```bash
 cmake --build build --parallel
+```
+
+
+## Compilation of Dependencies
+
+We also provide a script to install the dependencies to a place of your choice:
+
+```bash
+bash CI-scripts/install-deps
+```
+
+This will install [zlib-ng](https://github.com/zlib-ng/zlib-ng), [HDF5](https://github.com/HDFGroup/hdf5),
+[NetCDF-C](https://github.com/Unidata/netcdf-c) and [NetCDF-Fortran](https://github.com/Unidata/netcdf-fortran)
+to `"/opt/local"`.
+
+You can provide command line arguments to control the installation:
+- `-s`/`--sudo`: use sudo to install
+- `-c`/`--config`: run `ldconfig` after installation
+- `-p <path>`/`--path <path>`: installation path (`"/opt/local"` by default)
+
+If you want a special location for your installation, you have to tell `cmake` then, where to find NetCDF-Fortran by setting `NetCDF_ROOT`.
+For example:
+```bash
+bash CI-scripts/install-deps -p ~/.mhm_deps
+source CI-scripts/compile -DNetCDF_ROOT="~/.mhm_deps"
+```
+
+You may need to prepend your `LD_LIBRARY_PATH` environment variable with your install path.
+
+You also may need to set environment variables for you compilers used before calling the `install-deps` script.
+For example in case of the GNU Compiler Collection:
+```bash
+export FC="gfortran"
+export F77="gfortran"
+export CC="gcc"
+export CXX="g++"
 ```
