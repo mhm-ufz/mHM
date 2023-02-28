@@ -593,8 +593,12 @@ CONTAINS
       L1_maxInter(s1 : e1, ii, 1) = pack(dummyD3(:, :, ii), mask1)
     end do
 
-    ! fast interflow recession coefficient
-    var = nc%getVariable("L1_kFastFlow")
+    ! fast interflow recession coefficient ("L1_kFastFlow" or "L1_kfastFlow")
+    if (nc%hasvariable("L1_kFastFlow")) then
+      var = nc%getVariable("L1_kFastFlow")
+    else
+      var = nc%getVariable("L1_kfastFlow")
+    end if
     call var%getData(dummyD3)
     do ii = 1, nLCoverScene
       L1_kfastFlow(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
