@@ -427,7 +427,7 @@ CONTAINS
     !-------------------------------------------
     call append(L1_fSealed, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
     ! exponent for the upper reservoir
-    call append(L1_alpha, dummy_3D(:, 1 : 1, 1 : 1))
+    call append(L1_alpha, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
     ! increase of the Degree-day factor per mm of increase in precipitation
     call append(L1_degDayInc, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
     ! maximum degree-day factor
@@ -457,11 +457,11 @@ CONTAINS
     ! fast interflow recession coefficient
     call append(L1_kfastFlow, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
     ! slow interflow recession coefficient
-    call append(L1_kSlowFlow, dummy_3D(:, 1 : 1, 1 : 1))
+    call append(L1_kSlowFlow, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
     ! baseflow recession coefficient
-    call append(L1_kBaseFlow, dummy_3D(:, 1 : 1, 1 : 1))
+    call append(L1_kBaseFlow, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
     ! percolation coefficient
-    call append(L1_kPerco, dummy_3D(:, 1 : 1, 1 : 1))
+    call append(L1_kPerco, dummy_3D(:, 1 : 1, 1 : nLCoverScene))
     ! Soil moisture below which actual ET is reduced linearly till PWP
     call append(L1_soilMoistFC, dummy_3D(:, 1 : nSoilHorizons_mHM, 1 : nLCoverScene))
     ! Saturation soil moisture for each horizon [mm]
