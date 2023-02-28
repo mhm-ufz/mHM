@@ -631,24 +631,60 @@ CONTAINS
 
     ! slow interflow recession coefficient
     var = nc%getVariable("L1_kSlowFlow")
-    call var%getData(dummyD3)
-    do ii = 1, nLCoverScene
-      L1_kSlowFlow(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
-    end do
+    var_rank = var%getrank()
+    select case(var_rank)
+      case(2)
+        ! distribute over all land cover scenes
+        call var%getData(dummyD2)
+        do ii = 1, nLCoverScene
+          L1_kSlowFlow(s1 : e1, 1, ii) = pack(dummyD2, mask1)
+        end do
+      case(3)
+        call var%getData(dummyD3)
+        do ii = 1, nLCoverScene
+          L1_kSlowFlow(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+        end do
+      case default
+        call error_message("Restart: L1_kSlowFlow rank needs to be 2 or 3")
+    end select
 
     ! baseflow recession coefficient
     var = nc%getVariable("L1_kBaseFlow")
-    call var%getData(dummyD3)
-    do ii = 1, nLCoverScene
-      L1_kBaseFlow(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
-    end do
+    var_rank = var%getrank()
+    select case(var_rank)
+      case(2)
+        ! distribute over all land cover scenes
+        call var%getData(dummyD2)
+        do ii = 1, nLCoverScene
+          L1_kBaseFlow(s1 : e1, 1, ii) = pack(dummyD2, mask1)
+        end do
+      case(3)
+        call var%getData(dummyD3)
+        do ii = 1, nLCoverScene
+          L1_kBaseFlow(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+        end do
+      case default
+        call error_message("Restart: L1_kBaseFlow rank needs to be 2 or 3")
+    end select
 
     ! percolation coefficient
     var = nc%getVariable("L1_kPerco")
-    call var%getData(dummyD3)
-    do ii = 1, nLCoverScene
-      L1_kPerco(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
-    end do
+    var_rank = var%getrank()
+    select case(var_rank)
+      case(2)
+        ! distribute over all land cover scenes
+        call var%getData(dummyD2)
+        do ii = 1, nLCoverScene
+          L1_kPerco(s1 : e1, 1, ii) = pack(dummyD2, mask1)
+        end do
+      case(3)
+        call var%getData(dummyD3)
+        do ii = 1, nLCoverScene
+          L1_kPerco(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+        end do
+      case default
+        call error_message("Restart: L1_kPerco rank needs to be 2 or 3")
+    end select
 
     ! Soil moisture below which actual ET is reduced linearly till PWP
     ! for processCase(3) = 1
