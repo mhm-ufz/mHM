@@ -579,12 +579,23 @@ CONTAINS
     end do
 
     ! degree-day factor
-    ! ST: is 3d in write restart and here only 2d for Ulysses global restart file
     var = nc%getVariable("L1_degDay")
-    call var%getData(dummyD2)
-    do ii = 1, nLCoverScene
-      L1_degDay(s1 : e1, 1, ii) = pack(dummyD2, mask1)
-    end do
+    var_rank = var%getrank()
+    select case(var_rank)
+      case(2)
+        ! distribute over all land cover scenes
+        call var%getData(dummyD2)
+        do ii = 1, nLCoverScene
+          L1_degDay(s1 : e1, 1, ii) = pack(dummyD2, mask1)
+        end do
+      case(3)
+        call var%getData(dummyD3)
+        do ii = 1, nLCoverScene
+          L1_degDay(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+        end do
+      case default
+        call error_message("Restart: L1_degDay rank needs to be 2 or 3")
+    end select
 
     ! Karstic percolation loss
     var = nc%getVariable("L1_karstLoss")
