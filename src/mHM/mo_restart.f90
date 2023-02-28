@@ -376,6 +376,8 @@ CONTAINS
     character(256), intent(in) :: InFile
 
     character(256) :: Fname
+    ! variable rank
+    integer(i4) :: var_rank
     ! loop index
     integer(i4) :: ii, jj
     ! start index at level 1
@@ -538,10 +540,22 @@ CONTAINS
 
     ! exponent for the upper reservoir
     var = nc%getVariable("L1_alpha")
-    call var%getData(dummyD3)
-    do ii = 1, nLCoverScene
-      L1_alpha(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
-    end do
+    var_rank = var%getrank()
+    select case(var_rank)
+      case(2)
+        ! distribute over all land cover scenes
+        call var%getData(dummyD2)
+        do ii = 1, nLCoverScene
+          L1_alpha(s1 : e1, 1, ii) = pack(dummyD2, mask1)
+        end do
+      case(3)
+        call var%getData(dummyD3)
+        do ii = 1, nLCoverScene
+          L1_alpha(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+        end do
+      case default
+        call error_message("Restart: L1_alpha rank needs to be 2 or 3")
+    end select
 
     ! increase of the Degree-day factor per mm of increase in precipitation
     var = nc%getVariable("L1_degDayInc")
