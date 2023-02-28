@@ -245,6 +245,11 @@ CONTAINS
   end subroutine read_grid_info
 
 
+  !>       \brief read nubmer of LAI time steps and check dimension configurations read from restart file
+  !>       \author Robert Schweppe
+  !>       \date Aug 2019
+  !>       \author Sebastian Mueller
+  !>       \date Feb 2023
   subroutine read_nLAI_and_check_dims(iDomain, InFile)
 
     use mo_mpr_global_variables, only: nSoilHorizons_mHM, HorizonDepth_mHM, nLAI, LAIBoundaries ! may read from restart
