@@ -249,7 +249,7 @@ CONTAINS
             "fraction of Sealed area at level 1")
 
     call unpack_field_and_write(nc, "L1_alpha", &
-            (/rows1, cols1/), nodata_dp, L1_alpha(s1 : e1, 1, 1), mask1, &
+            (/rows1, cols1, lcscenes/), nodata_dp, L1_alpha(s1 : e1, 1, :), mask1, &
             "exponent for the upper reservoir at level 1")
 
     call unpack_field_and_write(nc, "L1_degDayInc", &
@@ -285,15 +285,15 @@ CONTAINS
             "fast interflow recession coefficient at level 1")
 
     call unpack_field_and_write(nc, "L1_kSlowFlow", &
-            (/rows1, cols1/), nodata_dp, L1_kSlowFlow(s1 : e1, 1, 1), mask1, &
+            (/rows1, cols1, lcscenes/), nodata_dp, L1_kSlowFlow(s1 : e1, 1, :), mask1, &
             "slow interflow recession coefficient at level 1")
 
     call unpack_field_and_write(nc, "L1_kBaseFlow", &
-            (/rows1, cols1/), nodata_dp, L1_kBaseFlow(s1 : e1, 1, 1), mask1, &
+            (/rows1, cols1, lcscenes/), nodata_dp, L1_kBaseFlow(s1 : e1, 1, :), mask1, &
             "baseflow recession coefficient at level 1")
 
     call unpack_field_and_write(nc, "L1_kPerco", &
-            (/rows1, cols1/), nodata_dp, L1_kPerco(s1 : e1, 1, 1), mask1, &
+            (/rows1, cols1, lcscenes/), nodata_dp, L1_kPerco(s1 : e1, 1, :), mask1, &
             "percolation coefficient at level 1")
 
     call unpack_field_and_write(nc, "L1_soilMoistFC", &
