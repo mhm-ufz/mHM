@@ -22,6 +22,7 @@ MODULE mo_mrm_init
 
   public :: mrm_init, mrm_configuration
   public :: variables_default_init_routing
+  public :: fluxes_states_default_init_routing
 
   private
 
@@ -484,27 +485,21 @@ end subroutine mrm_configuration
   !>       \date Jun 2018
 
   ! Modifications:
-
   subroutine variables_default_init_routing
 
     use mo_common_constants, only : P1_InitStateFluxes
-    use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, L11_Qmod, L11_qOUT, L11_qTIN, L11_qTR, L11_xi
+    use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, L11_xi
 
     implicit none
-
 
     !-------------------------------------------
     ! L11 ROUTING STATE VARIABLES, FLUXES AND
     !             PARAMETERS
     !-------------------------------------------
-    ! simulated discharge at each node
-    L11_Qmod = P1_InitStateFluxes
-    ! Total outflow from cells L11 at time tt
-    L11_qOUT = P1_InitStateFluxes
-    ! Total discharge inputs at t-1 and t
-    L11_qTIN = P1_InitStateFluxes
-    !  Routed outflow leaving a node
-    L11_qTR = P1_InitStateFluxes
+
+    ! fluxes and states
+    call fluxes_states_default_init_routing()
+
     ! kappa: Muskingum travel time parameter.
     L11_K = P1_InitStateFluxes
     ! xi:    Muskingum diffusion parameter
@@ -515,6 +510,50 @@ end subroutine mrm_configuration
     L11_C2 = P1_InitStateFluxes
 
   end subroutine variables_default_init_routing
+
+  !> \brief initialize fluxes and states with default values for mRM
+  subroutine fluxes_states_default_init_routing(iDomain)
+
+    use mo_kind, only: i4
+    use mo_mrm_global_variables, only : level11
+    use mo_common_constants, only : P1_InitStateFluxes
+    use mo_mrm_global_variables, only : L11_Qmod, L11_qOUT, L11_qTIN, L11_qTR
+
+    implicit none
+
+    !> number of Domain (if not present, set for all)
+    integer(i4), intent(in), optional :: iDomain
+
+    integer(i4) :: s11, e11
+
+    !-------------------------------------------
+    ! L11 ROUTING STATE VARIABLES, FLUXES AND
+    !             PARAMETERS
+    !-------------------------------------------
+
+    if (present(iDomain)) then
+      s11 = level11(iDomain)%iStart
+      e11 = level11(iDomain)%iEnd
+      ! simulated discharge at each node
+      L11_Qmod(s11 : e11) = P1_InitStateFluxes
+      ! Total outflow from cells L11 at time tt
+      L11_qOUT(s11 : e11) = P1_InitStateFluxes
+      ! Total discharge inputs at t-1 and t
+      L11_qTIN(s11 : e11, :) = P1_InitStateFluxes
+      !  Routed outflow leaving a node
+      L11_qTR(s11 : e11, :) = P1_InitStateFluxes
+    else
+      ! simulated discharge at each node
+      L11_Qmod = P1_InitStateFluxes
+      ! Total outflow from cells L11 at time tt
+      L11_qOUT = P1_InitStateFluxes
+      ! Total discharge inputs at t-1 and t
+      L11_qTIN = P1_InitStateFluxes
+      !  Routed outflow leaving a node
+      L11_qTR = P1_InitStateFluxes
+    end if
+
+  end subroutine fluxes_states_default_init_routing
 
 
   ! --------------------------------------------------------------------------
