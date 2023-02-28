@@ -134,11 +134,28 @@
 /
 
 &time_periods
-    eval_per(1)%dend = 30
+    !> starting from restart file
+    warming_days(1) = 184
+    eval_per(1)%ystart = 1991
+    eval_per(1)%mstart = 1
     eval_per(1)%dstart = 1
-    eval_per(1)%mend = 6
-    eval_per(1)%mstart = 7
     eval_per(1)%yend = 1991
-    eval_per(1)%ystart = 1990
-    warming_days(1) = 181
+    eval_per(1)%mend = 12
+    eval_per(1)%dend = 31
+    !> writing restart (read_restart = .false.)
+    ! warming_days(1) = 0
+    ! eval_per(1)%ystart = 1990
+    ! eval_per(1)%mstart = 1
+    ! eval_per(1)%dstart = 1
+    ! eval_per(1)%yend = 1990
+    ! eval_per(1)%mend = 6
+    ! eval_per(1)%dend = 30
+    !> reference without restart (read_restart = .false.)
+    ! warming_days(1) = 365
+    ! eval_per(1)%ystart = 1991
+    ! eval_per(1)%mstart = 1
+    ! eval_per(1)%dstart = 1
+    ! eval_per(1)%yend = 1991
+    ! eval_per(1)%mend = 12
+    ! eval_per(1)%dend = 31
 /

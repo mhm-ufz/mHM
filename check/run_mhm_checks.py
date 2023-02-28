@@ -68,13 +68,13 @@ MATCH_VARS = {
     # "L11_nLinkFracFPimp": "L11_FracFPimp",
 }
 IGNORE_VARS = [
+    "ProcessMatrix",  # fails if new process is added
     # "L1_basin_lat",
     # "L11_basin_lat",
     # "L1_basin_lon",
     # "L11_basin_lon",
     # "LC_year_start",
     # "LC_year_end",
-    # "ProcessMatrix",  # fails if new process is added
     # "L1_LAITimesteps_bnds",  # changed bounds shape (2,12) -> (12,2)
 ]
 MHM_EXE = ["../mhm"]
