@@ -61,21 +61,21 @@ OUT = "output_b1"
 REF = "output_save"
 # patterns for comparison of restart files
 MATCH_VARS = {
-    "L1_basin_mask": "L1_basin_Mask",
-    "L1_basin_cellarea": "L1_areaCell",
-    "L11_basin_mask": "L11_basin_Mask",
-    "L11_basin_cellarea": "L11_areaCell",
+    # "L1_basin_mask": "L1_basin_Mask",
+    # "L1_basin_cellarea": "L1_areaCell",
+    # "L11_basin_mask": "L11_basin_Mask",
+    # "L11_basin_cellarea": "L11_areaCell",
     # "L11_nLinkFracFPimp": "L11_FracFPimp",
 }
 IGNORE_VARS = [
-    "L1_basin_lat",
-    "L11_basin_lat",
-    "L1_basin_lon",
-    "L11_basin_lon",
-    "LC_year_start",
-    "LC_year_end",
-    "ProcessMatrix",  # fails if new process is added
-    "L1_LAITimesteps_bnds",  # changed bounds shape (2,12) -> (12,2)
+    # "L1_basin_lat",
+    # "L11_basin_lat",
+    # "L1_basin_lon",
+    # "L11_basin_lon",
+    # "LC_year_start",
+    # "LC_year_end",
+    # "ProcessMatrix",  # fails if new process is added
+    # "L1_LAITimesteps_bnds",  # changed bounds shape (2,12) -> (12,2)
 ]
 MHM_EXE = ["../mhm"]
 # case 5 and 7 don't work with MPI. case 4 has a bug working with ifort+debug

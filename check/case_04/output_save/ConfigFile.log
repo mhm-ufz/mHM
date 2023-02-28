@@ -1,120 +1,132 @@
 --------------------------------------------------------------------------------
-                                                                   mHM-UFZ v-5.9
+                                                  mHM-UFZ v-5.12.1-dev0+8a8333ce
                                                     L. Samaniego & R. Kumar, UFZ
 --------------------------------------------------------------------------------
 
          M A I N  mHM  C O N F I G U R A T I O N  I N F O R M A T I O N         
 
-Number of basins                       6
+Number of domain                       6
 Total No. of gauges                    6
 Time Step [h]                          1
-             Basin                     1
+            Domain                     1
 No. of cells L0                    46545
-             Basin                     1
+            Domain                     1
 No. of cells L1                       34
 Total No. of nodes                    34
 Total No. of reaches                  33
 No. of cells L11                      34
 Total No. of gauges                    6
-Basin   1   Hydrology Resolution [m]              24000.
-Basin   1   Routing Resolution [m]                24000.
-             Basin                     2
+Domain  1   Hydrology Resolution [m]              24000.
+Domain  1   Routing Resolution [m]                24000.
+            Domain                     2
 No. of cells L0                    46545
-             Basin                     2
+            Domain                     2
 No. of cells L1                      109
 Total No. of nodes                    34
 Total No. of reaches                  33
 No. of cells L11                      34
 Total No. of gauges                    6
-Basin   2   Hydrology Resolution [m]              12000.
-Basin   2   Routing Resolution [m]                24000.
-             Basin                     3
+Domain  2   Hydrology Resolution [m]              12000.
+Domain  2   Routing Resolution [m]                24000.
+            Domain                     3
 No. of cells L0                    21025
-             Basin                     3
+            Domain                     3
 No. of cells L1                       19
 Total No. of nodes                    19
 Total No. of reaches                  18
 No. of cells L11                      19
 Total No. of gauges                    6
-Basin   3   Hydrology Resolution [m]              24000.
-Basin   3   Routing Resolution [m]                24000.
-             Basin                     4
+Domain  3   Hydrology Resolution [m]              24000.
+Domain  3   Routing Resolution [m]                24000.
+            Domain                     4
 No. of cells L0                    46545
-             Basin                     4
+            Domain                     4
 No. of cells L1                       34
 Total No. of nodes                    34
 Total No. of reaches                  33
 No. of cells L11                      34
 Total No. of gauges                    6
-Basin   4   Hydrology Resolution [m]              24000.
-Basin   4   Routing Resolution [m]                24000.
-             Basin                     5
+Domain  4   Hydrology Resolution [m]              24000.
+Domain  4   Routing Resolution [m]                24000.
+            Domain                     5
 No. of cells L0                    46545
-             Basin                     5
+            Domain                     5
 No. of cells L1                      109
 Total No. of nodes                   109
 Total No. of reaches                 108
 No. of cells L11                     109
 Total No. of gauges                    6
-Basin   5   Hydrology Resolution [m]              12000.
-Basin   5   Routing Resolution [m]                12000.
-             Basin                     6
+Domain  5   Hydrology Resolution [m]              12000.
+Domain  5   Routing Resolution [m]                12000.
+            Domain                     6
 No. of cells L0                    21025
-             Basin                     6
+            Domain                     6
 No. of cells L1                       19
 Total No. of nodes                    19
 Total No. of reaches                  18
 No. of cells L11                      19
 Total No. of gauges                    6
-Basin   6   Hydrology Resolution [m]              24000.
-Basin   6   Routing Resolution [m]                24000.
+Domain  6   Hydrology Resolution [m]              24000.
+Domain  6   Routing Resolution [m]                24000.
 Flag READ  restart                     F
 Flag WRITE restart                     T
 
 -------------------------------------------------------------
-                      Model Run Periods for Basin          1
+                      Model Run Periods for Domain         1
 -------------------------------------------------------------
                                        From                To
                             Day Month  Year   Day Month  Year
-Warming Period (1)            2     1  1990    30     6  1990Evaluation Period (2)         1     7  1990    31    12  1990Simulation Period (1)+(2)     2     1  1990    31    12  1990
+Warming Period (1)            2     1  1990    30     6  1990
+Evaluation Period (2)         1     7  1990    31    12  1990
+Simulation Period (1)+(2)     2     1  1990    31    12  1990
 
 -------------------------------------------------------------
-                      Model Run Periods for Basin          2
+                      Model Run Periods for Domain         2
 -------------------------------------------------------------
                                        From                To
                             Day Month  Year   Day Month  Year
-Warming Period (1)            5     7  1990    31    12  1990Evaluation Period (2)         1     1  1991    31    12  1992Simulation Period (1)+(2)     5     7  1990    31    12  1992
+Warming Period (1)            5     7  1990    31    12  1990
+Evaluation Period (2)         1     1  1991    31    12  1992
+Simulation Period (1)+(2)     5     7  1990    31    12  1992
 
 -------------------------------------------------------------
-                      Model Run Periods for Basin          3
+                      Model Run Periods for Domain         3
 -------------------------------------------------------------
                                        From                To
                             Day Month  Year   Day Month  Year
-Warming Period (1)            5     7  1992    31    12  1992Evaluation Period (2)         1     1  1993    31    12  1993Simulation Period (1)+(2)     5     7  1992    31    12  1993
+Warming Period (1)            5     7  1992    31    12  1992
+Evaluation Period (2)         1     1  1993    31    12  1993
+Simulation Period (1)+(2)     5     7  1992    31    12  1993
 
 -------------------------------------------------------------
-                      Model Run Periods for Basin          4
+                      Model Run Periods for Domain         4
 -------------------------------------------------------------
                                        From                To
                             Day Month  Year   Day Month  Year
-Warming Period (1)            6     7  1989    30     6  1990Evaluation Period (2)         1     7  1990    31    12  1990Simulation Period (1)+(2)     6     7  1989    31    12  1990
+Warming Period (1)            6     7  1989    30     6  1990
+Evaluation Period (2)         1     7  1990    31    12  1990
+Simulation Period (1)+(2)     6     7  1989    31    12  1990
 
 -------------------------------------------------------------
-                      Model Run Periods for Basin          5
+                      Model Run Periods for Domain         5
 -------------------------------------------------------------
                                        From                To
                             Day Month  Year   Day Month  Year
-Warming Period (1)           12    11  1991    31    12  1991Evaluation Period (2)         1     1  1992    31    12  1992Simulation Period (1)+(2)    12    11  1991    31    12  1992
+Warming Period (1)           12    11  1991    31    12  1991
+Evaluation Period (2)         1     1  1992    31    12  1992
+Simulation Period (1)+(2)    12    11  1991    31    12  1992
 
 -------------------------------------------------------------
-                      Model Run Periods for Basin          6
+                      Model Run Periods for Domain         6
 -------------------------------------------------------------
                                        From                To
                             Day Month  Year   Day Month  Year
-Warming Period (1)            1     1  1991    31    12  1990Evaluation Period (2)         1     1  1991    31    12  1991Simulation Period (1)+(2)     1     1  1991    31    12  1991
+Warming Period (1)            1     1  1991    31    12  1990
+Evaluation Period (2)         1     1  1991    31    12  1991
+Simulation Period (1)+(2)     1     1  1991    31    12  1991
 
 --------------------------------------------------
-       Land Cover Observations for Basin         7
+       Land Cover Observations for Domai         1
 --------------------------------------------------
  Start Yea  End Year    Land cover scene     Land Cover File
 
@@ -122,7 +134,7 @@ Warming Period (1)            1     1  1991    31    12  1990Evaluation Period (
       1991      2000               -9999         lc_1991.asc
 
 --------------------------------------------------
-       Land Cover Observations for Basin         3
+       Land Cover Observations for Domai         2
 --------------------------------------------------
  Start Yea  End Year    Land cover scene     Land Cover File
 
@@ -130,7 +142,7 @@ Warming Period (1)            1     1  1991    31    12  1990Evaluation Period (
       1991      2000                   2         lc_1991.asc
 
 --------------------------------------------------
-       Land Cover Observations for Basin         3
+       Land Cover Observations for Domai         3
 --------------------------------------------------
  Start Yea  End Year    Land cover scene     Land Cover File
 
@@ -138,7 +150,7 @@ Warming Period (1)            1     1  1991    31    12  1990Evaluation Period (
       1991      2000                   2         lc_1991.asc
 
 --------------------------------------------------
-       Land Cover Observations for Basin         3
+       Land Cover Observations for Domai         4
 --------------------------------------------------
  Start Yea  End Year    Land cover scene     Land Cover File
 
@@ -146,7 +158,7 @@ Warming Period (1)            1     1  1991    31    12  1990Evaluation Period (
       1991      2000               -9999         lc_1991.asc
 
 --------------------------------------------------
-       Land Cover Observations for Basin         3
+       Land Cover Observations for Domai         5
 --------------------------------------------------
  Start Yea  End Year    Land cover scene     Land Cover File
 
@@ -154,7 +166,7 @@ Warming Period (1)            1     1  1991    31    12  1990Evaluation Period (
       1991      2000                   2         lc_1991.asc
 
 --------------------------------------------------
-       Land Cover Observations for Basin         3
+       Land Cover Observations for Domai         6
 --------------------------------------------------
  Start Yea  End Year    Land cover scene     Land Cover File
 
@@ -220,31 +232,30 @@ Warming Period (1)            1     1  1991    31    12  1990Evaluation Period (
         53          1.000       1000.000        100.000                     GeoParam(10,:)
 
 --------------------------------------------------
-                 Basin Runoff Data                
+                Domain Runoff Data                
 --------------------------------------------------
- Gauge No.  Basin Id     Qmax[m3/s]     Qmin[m3/s]
+ Gauge No.  Domain I     Qmax[m3/s]     Qmin[m3/s]
          1         1        774.000         16.000
          2         2        932.000         11.000
-         3         3       1185.000         32.800
-         4         4        774.000         16.000
-         5         5        661.000         19.000
-         6         6      -9999.000      -9999.000
+         3         4        774.000         16.000
+         4         5        661.000         19.000
+         5         6      -9999.000      -9999.000
 
 --------------------------------------------------------------------------------
-                          Basin-wise Configuration
+                          Domain-wise Configuratio
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin/input/morph/                                                                                                                                                                                                                                   
-Directory to land cover input                ../../test_basin/input/luse/                                                                                                                                                                                                                                    
-Directory to gauging station input           ../../test_basin/input/gauge/                                                                                                                                                                                                                                   
-Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
-Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
-Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
+Directory to morphological input             ../../test_domain/input/morph/                                                                                                                                                                                                                                  
+Directory to land cover input                ../../test_domain/input/luse/                                                                                                                                                                                                                                   
+Directory to gauging station input           ../../test_domain/input/gauge/                                                                                                                                                                                                                                  
+Directory to precipitation input             ../../test_domain/input/meteo/pre/                                                                                                                                                                                                                              
+Directory to temperature input               ../../test_domain/input/meteo/tavg/                                                                                                                                                                                                                             
+Directory to reference ET input              ../../test_domain/input/meteo/pet/                                                                                                                                                                                                                              
 Directory to write output by default         output_b1/b1_                                                                                                                                                                                                                                                   
-Directory to write output when restarted     output_b1/b1_                                                                                                                                                                                                                                                   
+File to write mHM output when restarted      output_b1/b1_mHM_restart_001.nc                                                                                                                                                                                                                                 
 
 ------------------------------
 River Network  (Routing level)
@@ -293,7 +304,7 @@ River Network  (Routing level)
          5         6         2        33         2         14.692     0.100
 
 --------------------
-   Overall     Basin
+   Overall     Domai
       Cell   Routing
         Id   Node Id
 --------------------
@@ -378,14 +389,14 @@ River Network  (Routing level)
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin/input/morph/                                                                                                                                                                                                                                   
-Directory to land cover input                ../../test_basin/input/luse/                                                                                                                                                                                                                                    
-Directory to gauging station input           ../../test_basin/input/gauge/                                                                                                                                                                                                                                   
-Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
-Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
-Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
+Directory to morphological input             ../../test_domain/input/morph/                                                                                                                                                                                                                                  
+Directory to land cover input                ../../test_domain/input/luse/                                                                                                                                                                                                                                   
+Directory to gauging station input           ../../test_domain/input/gauge/                                                                                                                                                                                                                                  
+Directory to precipitation input             ../../test_domain/input/meteo/pre/                                                                                                                                                                                                                              
+Directory to temperature input               ../../test_domain/input/meteo/tavg/                                                                                                                                                                                                                             
+Directory to reference ET input              ../../test_domain/input/meteo/pet/                                                                                                                                                                                                                              
 Directory to write output by default         output_b1/b2_                                                                                                                                                                                                                                                   
-Directory to write output when restarted     output_b1/b2_                                                                                                                                                                                                                                                   
+File to write mHM output when restarted      output_b1/b2_mHM_restart_002.nc                                                                                                                                                                                                                                 
 
 ------------------------------
 River Network  (Routing level)
@@ -434,7 +445,7 @@ River Network  (Routing level)
         39         6         2        33         2         14.692     0.100
 
 --------------------
-   Overall     Basin
+   Overall     Domai
       Cell   Routing
         Id   Node Id
 --------------------
@@ -594,14 +605,14 @@ River Network  (Routing level)
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin_2/input/morph/                                                                                                                                                                                                                                 
-Directory to land cover input                ../../test_basin_2/input/luse/                                                                                                                                                                                                                                  
-Directory to gauging station input           ../../test_basin_2/input/gauge/                                                                                                                                                                                                                                 
-Directory to precipitation input             ../../test_basin_2/input/meteo/pre/                                                                                                                                                                                                                             
-Directory to temperature input               ../../test_basin_2/input/meteo/tavg/                                                                                                                                                                                                                            
-Directory to reference ET input              ../../test_basin_2/input/meteo/pet/                                                                                                                                                                                                                             
+Directory to morphological input             ../../test_domain_2/input/morph/                                                                                                                                                                                                                                
+Directory to land cover input                ../../test_domain_2/input/luse/                                                                                                                                                                                                                                 
+Directory to gauging station input           ../../test_domain_2/input/gauge/                                                                                                                                                                                                                                
+Directory to precipitation input             ../../test_domain_2/input/meteo/pre/                                                                                                                                                                                                                            
+Directory to temperature input               ../../test_domain_2/input/meteo/tavg/                                                                                                                                                                                                                           
+Directory to reference ET input              ../../test_domain_2/input/meteo/pet/                                                                                                                                                                                                                            
 Directory to write output by default         output_b1/b3_                                                                                                                                                                                                                                                   
-Directory to write output when restarted     output_b1/b3_                                                                                                                                                                                                                                                   
+File to write mHM output when restarted      output_b1/b3_mHM_restart_003.nc                                                                                                                                                                                                                                 
 
 ------------------------------
 River Network  (Routing level)
@@ -635,7 +646,7 @@ River Network  (Routing level)
         80        13         9        18         2         10.157     0.100
 
 --------------------
-   Overall     Basin
+   Overall     Domai
       Cell   Routing
         Id   Node Id
 --------------------
@@ -690,14 +701,14 @@ River Network  (Routing level)
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin/input/morph/                                                                                                                                                                                                                                   
-Directory to land cover input                ../../test_basin/input/luse/                                                                                                                                                                                                                                    
-Directory to gauging station input           ../../test_basin/input/gauge/                                                                                                                                                                                                                                   
-Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
-Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
-Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
+Directory to morphological input             ../../test_domain/input/morph/                                                                                                                                                                                                                                  
+Directory to land cover input                ../../test_domain/input/luse/                                                                                                                                                                                                                                   
+Directory to gauging station input           ../../test_domain/input/gauge/                                                                                                                                                                                                                                  
+Directory to precipitation input             ../../test_domain/input/meteo/pre/                                                                                                                                                                                                                              
+Directory to temperature input               ../../test_domain/input/meteo/tavg/                                                                                                                                                                                                                             
+Directory to reference ET input              ../../test_domain/input/meteo/pet/                                                                                                                                                                                                                              
 Directory to write output by default         output_b1/b4_                                                                                                                                                                                                                                                   
-Directory to write output when restarted     output_b1/b4_                                                                                                                                                                                                                                                   
+File to write mHM output when restarted      output_b1/b4_mHM_restart_004.nc                                                                                                                                                                                                                                 
 
 ------------------------------
 River Network  (Routing level)
@@ -746,7 +757,7 @@ River Network  (Routing level)
         92         6         2        33         2         14.692     0.100
 
 --------------------
-   Overall     Basin
+   Overall     Domai
       Cell   Routing
         Id   Node Id
 --------------------
@@ -831,14 +842,14 @@ River Network  (Routing level)
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin/input/morph/                                                                                                                                                                                                                                   
-Directory to land cover input                ../../test_basin/input/luse/                                                                                                                                                                                                                                    
-Directory to gauging station input           ../../test_basin/input/gauge/                                                                                                                                                                                                                                   
-Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
-Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
-Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
+Directory to morphological input             ../../test_domain/input/morph/                                                                                                                                                                                                                                  
+Directory to land cover input                ../../test_domain/input/luse/                                                                                                                                                                                                                                   
+Directory to gauging station input           ../../test_domain/input/gauge/                                                                                                                                                                                                                                  
+Directory to precipitation input             ../../test_domain/input/meteo/pre/                                                                                                                                                                                                                              
+Directory to temperature input               ../../test_domain/input/meteo/tavg/                                                                                                                                                                                                                             
+Directory to reference ET input              ../../test_domain/input/meteo/pet/                                                                                                                                                                                                                              
 Directory to write output by default         output_b1/b5_                                                                                                                                                                                                                                                   
-Directory to write output when restarted     output_b1/b5_                                                                                                                                                                                                                                                   
+File to write mHM output when restarted      output_b1/b5_mHM_restart_005.nc                                                                                                                                                                                                                                 
 
 ------------------------------
 River Network  (Routing level)
@@ -962,7 +973,7 @@ River Network  (Routing level)
        126         5         6       108         2          3.207     9.354
 
 --------------------
-   Overall     Basin
+   Overall     Domai
       Cell   Routing
         Id   Node Id
 --------------------
@@ -1197,14 +1208,14 @@ River Network  (Routing level)
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin_2/input/morph/                                                                                                                                                                                                                                 
-Directory to land cover input                ../../test_basin_2/input/luse/                                                                                                                                                                                                                                  
-Directory to gauging station input           ../../test_basin_2/input/gauge/                                                                                                                                                                                                                                 
-Directory to precipitation input             ../../test_basin_2/input/meteo/pre/                                                                                                                                                                                                                             
-Directory to temperature input               ../../test_basin_2/input/meteo/tavg/                                                                                                                                                                                                                            
-Directory to reference ET input              ../../test_basin_2/input/meteo/pet/                                                                                                                                                                                                                             
+Directory to morphological input             ../../test_domain_2/input/morph/                                                                                                                                                                                                                                
+Directory to land cover input                ../../test_domain_2/input/luse/                                                                                                                                                                                                                                 
+Directory to gauging station input           ../../test_domain_2/input/gauge/                                                                                                                                                                                                                                
+Directory to precipitation input             ../../test_domain_2/input/meteo/pre/                                                                                                                                                                                                                            
+Directory to temperature input               ../../test_domain_2/input/meteo/tavg/                                                                                                                                                                                                                           
+Directory to reference ET input              ../../test_domain_2/input/meteo/pet/                                                                                                                                                                                                                            
 Directory to write output by default         output_b1/b6_                                                                                                                                                                                                                                                   
-Directory to write output when restarted     output_b1/b6_                                                                                                                                                                                                                                                   
+File to write mHM output when restarted      output_b1/b6_mHM_restart_006.nc                                                                                                                                                                                                                                 
 
 ------------------------------
 River Network  (Routing level)
@@ -1238,7 +1249,7 @@ River Network  (Routing level)
        242        13         9        18         2         10.157     0.100
 
 --------------------
-   Overall     Basin
+   Overall     Domai
       Cell   Routing
         Id   Node Id
 --------------------
@@ -1289,4 +1300,4 @@ River Network  (Routing level)
 ------------------------------
      Total[km2]       5256.250
 
- 
+

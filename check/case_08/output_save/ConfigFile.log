@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
-                                                           mHM-UFZ v-5.11.3-dev0
+                                                  mHM-UFZ v-5.12.1-dev0+8a8333ce
                                                     L. Samaniego & R. Kumar, UFZ
 --------------------------------------------------------------------------------
 
@@ -26,7 +26,9 @@ Flag WRITE restart                     T
 -------------------------------------------------------------
                                        From                To
                             Day Month  Year   Day Month  Year
-Warming Period (1)            1     1  1990    30     6  1990Evaluation Period (2)         1     7  1990    30     6  1991Simulation Period (1)+(2)     1     1  1990    30     6  1991
+Warming Period (1)            1     1  1990    30     6  1990
+Evaluation Period (2)         1     7  1990    30     6  1991
+Simulation Period (1)+(2)     1     1  1990    30     6  1991
 
 --------------------------------------------------
        Land Cover Observations for Domai         1

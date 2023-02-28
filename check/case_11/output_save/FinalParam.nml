@@ -12,7 +12,7 @@
                      degreeDayFactor_impervious =      0.000000000000,       1.000000000000,       0.500000000000,        1,       1
                        degreeDayFactor_pervious =      0.000000000000,       2.000000000000,       0.500000000000,        1,       1
                 increaseDegreeDayFactorByPrecip =      0.100000000000,       0.900000000000,       0.435979410360,        1,       1
-                      maxDegreeDayFactor_forest =      0.000000000000,       8.000000000000,       3.000000000000,        1,       1
+                      maxDegreeDayFactor_forest =      0.000000000000,       8.000000000000,       0.696320388802,        1,       1
                   maxDegreeDayFactor_impervious =      0.000000000000,       8.000000000000,       4.577211790374,        1,       1
                     maxDegreeDayFactor_pervious =      0.000000000000,       8.000000000000,       4.000000000000,        1,       1
  /
@@ -86,5 +86,8 @@
  /
   
  ! neutrons
+ /
+  
+ ! 
  /
   
