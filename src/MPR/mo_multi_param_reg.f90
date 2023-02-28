@@ -722,6 +722,7 @@ contains
 
         ! correction and unit conversion
         ! if percolation is ON: correct K2 such that it is at least k1
+        ! since kSlowFlow1 is LCover dependent, kBaseFlow1 is too
         if (processMatrix(7, 1) .gt. 0) kBaseFlow1 = merge(kSlowFlow1, kBaseFlow1, kBaseFlow1 .lt. kSlowFlow1)
 
       case DEFAULT
