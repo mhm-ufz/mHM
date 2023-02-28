@@ -324,6 +324,9 @@ contains
     ! L0 baseflow parameter
     real(dp), dimension(size(Id0, 1)) :: k2_0
 
+    ! L1 baseflow parameter
+    real(dp), dimension(:), allocatable :: k2_1
+
     ! L0 Aspect
     real(dp), dimension(size(Id0, 1)) :: fAsp0
 
@@ -616,7 +619,7 @@ contains
           call mpr_runoff(LCover0(:, iiLC), mask0, SMs_FC0, slope_emp0, &
                KsVar_H0, param(iStart : iEnd), Id0, upper_bound1, lower_bound1, &
                left_bound1, right_bound1, n_subcells1, unsatThresh1(:, 1, 1), kFastFlow1(:, 1, iiLC), &
-               kSlowFlow1(:, 1, 1), alpha1(:, 1, 1))
+               kSlowFlow1(:, 1, iiLC), alpha1(:, 1, iiLC))
        case DEFAULT
           call error_message('***ERROR: Process description for process "interflow" does not exist! mo_multi_param_reg')
        END select
@@ -634,7 +637,7 @@ contains
                geoUnit0, mask0, & ! In
                SMs_FC0, KsVar_V0, Id0, & ! In
                n_subcells1, upper_bound1, lower_bound1, left_bound1, right_bound1, & ! In
-               karstLoss1(:, 1, 1), kPerco1(:, 1, 1)                                & ! Out
+               karstLoss1(:, 1, 1), kPerco1(:, 1, iiLC)                            & ! Out
                )
 
        case DEFAULT
@@ -699,26 +702,30 @@ contains
     ! baseflow recession parameter
     ! ------------------------------------------------------------------
     select case(processMatrix(9, 1))
-    case(1)
+      case(1)
+        ! the number of process parameters, so the number in processMatrix(9,2) has
+        ! to be equal to the size of geo_unit_list
+        iStart = processMatrix(9, 3) - processMatrix(9, 2) + 1
+        iEnd = processMatrix(9, 3)
 
-       ! the number of process parameters, so the number in processMatrix(9,2) has
-       ! to be equal to the size of geo_unit_list
-       iStart = processMatrix(9, 3) - processMatrix(9, 2) + 1
-       iEnd = processMatrix(9, 3)
+        call baseflow_param(param(iStart : iEnd), geoUnit0, k2_0)
 
-       call baseflow_param(param(iStart : iEnd), &
-            geoUnit0, k2_0)
-       !
-       ! Upscale by arithmetic mean
-       kBaseFlow1(:, 1, 1) = upscale_arithmetic_mean(n_subcells1, upper_bound1, lower_bound1, &
+        ! Upscale by arithmetic mean
+        allocate(k2_1(size(kBaseFlow1, 1)))
+        k2_1 = upscale_arithmetic_mean(n_subcells1, upper_bound1, lower_bound1, &
             left_bound1, right_bound1, Id0, mask0, nodata_dp, k2_0)
-       !
-       ! correction and unit conversion
-       ! if percolation is ON: correct K2 such that it is at least k1
-       if (processMatrix(7, 1) .gt. 0) kBaseFlow1 = merge(kSlowFlow1, kBaseFlow1, kBaseFlow1 .lt. kSlowFlow1)
-       !
-    case DEFAULT
-       call error_message('***ERROR: Process description for process "baseflow Recession" does not exist! mo_multi_param_reg')
+        ! loop over all LCover scenes
+        do iiLC = 1, size(LCover0, 2)
+          kBaseFlow1(:, 1, iiLC) = k2_1
+        end do
+        deallocate(k2_1)
+
+        ! correction and unit conversion
+        ! if percolation is ON: correct K2 such that it is at least k1
+        if (processMatrix(7, 1) .gt. 0) kBaseFlow1 = merge(kSlowFlow1, kBaseFlow1, kBaseFlow1 .lt. kSlowFlow1)
+
+      case DEFAULT
+        call error_message('***ERROR: Process description for process "baseflow Recession" does not exist! mo_multi_param_reg')
     end select
 
     ! ------------------------------------------------------------------
