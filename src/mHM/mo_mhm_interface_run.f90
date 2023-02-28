@@ -488,7 +488,7 @@ contains
       L1_Throughfall(run_cfg%s1 : run_cfg%e1), &
       L1_total_runoff(run_cfg%s1 : run_cfg%e1), & ! INOUT X
       ! MPR
-      L1_alpha(run_cfg%s1 : run_cfg%e1, 1, 1), &
+      L1_alpha(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), &
       L1_degDayInc(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), &
       L1_degDayMax(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), & ! INOUT E1
       L1_degDayNoPre(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), &
@@ -503,9 +503,9 @@ contains
       L1_maxInter(run_cfg%s1 : run_cfg%e1, run_cfg%domainDateTime%iLAI, 1), &
       L1_karstLoss(run_cfg%s1 : run_cfg%e1, 1, 1), & ! INOUT E1
       L1_kFastFlow(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), &
-      L1_kSlowFlow(run_cfg%s1 : run_cfg%e1, 1, 1), & ! INOUT E1
-      L1_kBaseFlow(run_cfg%s1 : run_cfg%e1, 1, 1), &
-      L1_kPerco(run_cfg%s1 : run_cfg%e1, 1, 1), & ! INOUT E1
+      L1_kSlowFlow(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), & ! INOUT E1
+      L1_kBaseFlow(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), &
+      L1_kPerco(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), & ! INOUT E1
       L1_soilMoistFC(run_cfg%s1 : run_cfg%e1, :, run_cfg%domainDateTime%yId), & ! INOUT E1
       L1_soilMoistSat(run_cfg%s1 : run_cfg%e1, :, run_cfg%domainDateTime%yId), & ! INOUT E1
       L1_soilMoistExp(run_cfg%s1 : run_cfg%e1, :, run_cfg%domainDateTime%yId), &
