@@ -70,13 +70,14 @@ CONTAINS
   subroutine mhm_initialize
 
     use mo_common_mHM_mRM_variables, only : mhmFileRestartIn, read_restart
-    use mo_common_restart, only : read_grid_info
+    use mo_common_restart, only : read_grid_info, read_nLAI_and_check_dims
     use mo_common_variables, only : level0, level1, domainMeta
     use mo_global_variables, only : level2
     use mo_grid, only : set_domain_indices
     use mo_init_states, only : variables_alloc
     use mo_kind, only : i4
     use mo_mpr_startup, only : init_eff_params, mpr_initialize
+    use mo_mpr_global_variables, only: nLAI
 
     implicit none
 
@@ -89,6 +90,9 @@ CONTAINS
 
     if (read_restart) then
       allocate(level1(domainMeta%nDomains))
+      allocate(level0(domainMeta%nDomains))
+      ! read nLAI from restart files (-1 indicates first reading)
+      nLAI = -1_i4
     else
       call mpr_initialize()
     end if
@@ -98,7 +102,10 @@ CONTAINS
 
       if (read_restart) then
         ! this reads only the domain properties
+        call read_grid_info(domainID, mhmFileRestartIn(iDomain), "0", level0(iDomain))
         call read_grid_info(domainID, mhmFileRestartIn(iDomain), "1", level1(iDomain))
+        ! read nLAI from restart
+        call read_nLAI_and_check_dims(iDomain, mhmFileRestartIn(iDomain))
         ! Parameter fields have to be allocated in any case
         call init_eff_params(level1(iDomain)%nCells)
       end if
@@ -142,8 +149,7 @@ CONTAINS
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine constants_init
-
-    use mo_common_mHM_mRM_variables, only : timestep, c2TSTu
+    use mo_common_mHM_mRM_variables, only : timestep, c2TSTu, read_restart
     use mo_common_variables, only : processMatrix
     use mo_file, only : file_namelist_mhm_param
     use mo_global_variables, only : neutron_integral_AFast
@@ -164,13 +170,16 @@ CONTAINS
       neutron_integral_AFast(:) = 0.0_dp
     endif
 
-    ! check if enough geoparameter are defined in mhm_parameter.nml
-    ! this was formerly done after reading of data, but mHM and MPR are now seperate processes
-    if ((processMatrix(9, 2)) .NE.  size(GeoUnitList, 1)) then
-      call error_message('***ERROR: Mismatch: Number of geological units in ', trim(adjustl(file_hydrogeoclass)), &
-              ' is ', trim(adjustl(num2str(size(GeoUnitList, 1)))), raise=.false.)
-      call error_message('          while it is ', trim(num2str(processMatrix(9, 2))), &
-              ' in ', trim(file_namelist_mhm_param), '!')
+    ! if reading restart, we don't need GeoUnitList
+    if (.not. read_restart) then
+      ! check if enough geoparameter are defined in mhm_parameter.nml
+      ! this was formerly done after reading of data, but mHM and MPR are now seperate processes
+      if ((processMatrix(9, 2)) .NE.  size(GeoUnitList, 1)) then
+        call error_message('***ERROR: Mismatch: Number of geological units in ', trim(adjustl(file_hydrogeoclass)), &
+                ' is ', trim(adjustl(num2str(size(GeoUnitList, 1)))), raise=.false.)
+        call error_message('          while it is ', trim(num2str(processMatrix(9, 2))), &
+                ' in ', trim(file_namelist_mhm_param), '!')
+      end if
     end if
 
     c2TSTu = real(timeStep, dp) / 24.0_dp   ! from per timeStep to per day

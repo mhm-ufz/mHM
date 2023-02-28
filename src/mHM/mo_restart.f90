@@ -94,13 +94,14 @@ CONTAINS
   ! Stephan Thober     Nov  2016 - moved processMatrix to common variables
   ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
   ! Robert Schweppe    Feb 2018 - Removed all L0 references
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Robert Schweppe    Jun 2018 - refactoring and reformatting
+  ! Stephan Thober     Dec 2022 - added grid info for level0
 
   subroutine write_restart_files(OutFile)
 
     use mo_common_constants, only : nodata_dp
     use mo_common_restart, only : write_grid_info
-    use mo_common_variables, only : level1, nLCoverScene, domainMeta, LC_year_start, LC_year_end
+    use mo_common_variables, only : level0, level1, nLCoverScene, domainMeta, LC_year_start, LC_year_end
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
                                     L1_fastRunoff, L1_infilSoil, L1_melt, L1_percol, L1_preEffect, L1_rain, &
                                     L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
@@ -160,6 +161,7 @@ CONTAINS
       nc = NcDataset(fname, "w")
 
       call write_grid_info(level1(iDomain), "1", nc)
+      call write_grid_info(level0(iDomain), "0", nc)
 
       rows1 = nc%getDimension("nrows1")
       cols1 = nc%getDimension("ncols1")
@@ -362,55 +364,39 @@ CONTAINS
 
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
-    use mo_common_mHM_mRM_restart, only: check_dimension_consistency
-    use mo_common_mHM_mRM_variables, only: read_old_style_restart_bounds
+    use mo_message, only: message, error_message
 
     implicit none
 
-    ! number of domain
+    !> number of domain
     integer(i4), intent(in) :: iDomain
-
+    !> ID of domain
     integer(i4), intent(in) :: domainID
-
-    ! Input Path including trailing slash
+    !> Input Path including trailing slash
     character(256), intent(in) :: InFile
 
     character(256) :: Fname
-
     ! loop index
     integer(i4) :: ii, jj
-
     ! start index at level 1
     integer(i4) :: s1
-
     ! end index at level 1
     integer(i4) :: e1
-
     ! mask at level 1
     logical, dimension(:, :), allocatable :: mask1
-
     ! dummy, 2 dimension
-    real(dp), dimension(:, :), allocatable :: dummyD2, dummyD2_tmp
-
+    real(dp), dimension(:, :), allocatable :: dummyD2
     ! dummy, 3 dimension
     real(dp), dimension(:, :, :), allocatable :: dummyD3
-
-    ! dummy, 3 dimension
+    ! dummy, 4 dimension
     real(dp), dimension(:, :, :, :), allocatable :: dummyD4
 
     type(NcDataset) :: nc
-
     type(NcVariable) :: var
-
-    type(NcDimension) :: nc_dim
-
-    integer(i4) :: nSoilHorizons_temp, nLAIs_temp, nLandCoverPeriods_temp
-    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp, soilHorizonBoundaries_temp, &
-            LAIBoundaries_temp
 
 
     Fname = trim(InFile)
-    ! call message('    Reading states from ', trim(adjustl(Fname)),' ...')
+    call message('    Reading states from ', trim(adjustl(Fname)),' ...')
 
     ! get domain information at level 1
     allocate(mask1 (level1(iDomain)%nrows, level1(iDomain)%ncols))
@@ -419,69 +405,6 @@ CONTAINS
     e1 = level1(iDomain)%iEnd
 
     nc = NcDataset(fname, "r")
-
-    ! get the dimensions
-    var = nc%getVariable(trim(soilHorizonsVarName)//'_bnds')
-    call var%getData(dummyD2_tmp)
-    if (allocated(dummyD2)) deallocate(dummyD2)
-    if ( read_old_style_restart_bounds ) then
-      allocate(dummyD2(size(dummyD2_tmp,2), size(dummyD2_tmp,1)))
-      dummyD2 = transpose(dummyD2_tmp)
-    else
-      allocate(dummyD2(size(dummyD2_tmp,1), size(dummyD2_tmp,2)))
-      dummyD2 = dummyD2_tmp
-    end if
-    deallocate(dummyD2_tmp)
-    nSoilHorizons_temp = size(dummyD2, 2)
-    allocate(soilHorizonBoundaries_temp(nSoilHorizons_temp+1))
-    soilHorizonBoundaries_temp(1:nSoilHorizons_temp) = dummyD2(1, :)
-    soilHorizonBoundaries_temp(nSoilHorizons_temp+1) = dummyD2(2, nSoilHorizons_temp)
-
-    ! get the landcover dimension
-    var = nc%getVariable(trim(landCoverPeriodsVarName)//'_bnds')
-    call var%getData(dummyD2_tmp)
-    if (allocated(dummyD2)) deallocate(dummyD2)
-    if ( read_old_style_restart_bounds ) then
-      allocate(dummyD2(size(dummyD2_tmp,2), size(dummyD2_tmp,1)))
-      dummyD2 = transpose(dummyD2_tmp)
-    else
-      allocate(dummyD2(size(dummyD2_tmp,1), size(dummyD2_tmp,2)))
-      dummyD2 = dummyD2_tmp
-    end if
-    deallocate(dummyD2_tmp)
-    nLandCoverPeriods_temp = size(dummyD2, 2)
-    allocate(landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1))
-    landCoverPeriodBoundaries_temp(1:nLandCoverPeriods_temp) = dummyD2(1, :)
-    landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1) = dummyD2(2, nLandCoverPeriods_temp)
-
-    ! get the LAI dimension
-    if (nc%hasVariable(trim(LAIVarName)//'_bnds')) then
-      var = nc%getVariable(trim(LAIVarName)//'_bnds')
-      call var%getData(dummyD2_tmp)
-      if (allocated(dummyD2)) deallocate(dummyD2)
-      if ( read_old_style_restart_bounds ) then
-        allocate(dummyD2(size(dummyD2_tmp,2), size(dummyD2_tmp,1)))
-        dummyD2 = transpose(dummyD2_tmp)
-      else
-        allocate(dummyD2(size(dummyD2_tmp,1), size(dummyD2_tmp,2)))
-        dummyD2 = dummyD2_tmp
-      end if
-      deallocate(dummyD2_tmp)
-      nLAIs_temp = size(dummyD2, 2)
-      allocate(LAIBoundaries_temp(nLAIs_temp+1))
-      LAIBoundaries_temp(1:nLAIs_temp) = dummyD2(1, :)
-      LAIBoundaries_temp(nLAIs_temp+1) = dummyD2(2, nLAIs_temp)
-    else if (nc%hasDimension('L1_LAITimesteps')) then
-      nc_dim = nc%getDimension('L1_LAITimesteps')
-      nLAIs_temp = nc_dim%getLength()
-      allocate(LAIBoundaries_temp(nLAIs_temp+1))
-      LAIBoundaries_temp = [(ii, ii=1, nLAIs_temp+1)]
-    end if
-
-
-    call check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
-          nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)
-
 
     if (nc%hasVariable('L1_Inter')) then
       !-------------------------------------------
@@ -615,8 +538,10 @@ CONTAINS
 
     ! exponent for the upper reservoir
     var = nc%getVariable("L1_alpha")
-    call var%getData(dummyD2)
-    L1_alpha(s1 : e1, 1, 1) = pack(dummyD2, mask1)
+    call var%getData(dummyD3)
+    do ii = 1, nLCoverScene
+      L1_alpha(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+    end do
 
     ! increase of the Degree-day factor per mm of increase in precipitation
     var = nc%getVariable("L1_degDayInc")
@@ -640,10 +565,11 @@ CONTAINS
     end do
 
     ! degree-day factor
+    ! ST: is 3d in write restart and here only 2d for Ulysses global restart file
     var = nc%getVariable("L1_degDay")
-    call var%getData(dummyD3)
+    call var%getData(dummyD2)
     do ii = 1, nLCoverScene
-      L1_degDay(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+      L1_degDay(s1 : e1, 1, ii) = pack(dummyD2, mask1)
     end do
 
     ! Karstic percolation loss
@@ -668,7 +594,7 @@ CONTAINS
     end do
 
     ! fast interflow recession coefficient
-    var = nc%getVariable("L1_kfastFlow")
+    var = nc%getVariable("L1_kFastFlow")
     call var%getData(dummyD3)
     do ii = 1, nLCoverScene
       L1_kfastFlow(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
@@ -676,18 +602,24 @@ CONTAINS
 
     ! slow interflow recession coefficient
     var = nc%getVariable("L1_kSlowFlow")
-    call var%getData(dummyD2)
-    L1_kSlowFlow(s1 : e1, 1, 1) = pack(dummyD2, mask1)
+    call var%getData(dummyD3)
+    do ii = 1, nLCoverScene
+      L1_kSlowFlow(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+    end do
 
     ! baseflow recession coefficient
     var = nc%getVariable("L1_kBaseFlow")
-    call var%getData(dummyD2)
-    L1_kBaseFlow(s1 : e1, 1, 1) = pack(dummyD2, mask1)
+    call var%getData(dummyD3)
+    do ii = 1, nLCoverScene
+      L1_kBaseFlow(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+    end do
 
     ! percolation coefficient
     var = nc%getVariable("L1_kPerco")
-    call var%getData(dummyD2)
-    L1_kPerco(s1 : e1, 1, 1) = pack(dummyD2, mask1)
+    call var%getData(dummyD3)
+    do ii = 1, nLCoverScene
+      L1_kPerco(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+    end do
 
     ! Soil moisture below which actual ET is reduced linearly till PWP
     ! for processCase(3) = 1

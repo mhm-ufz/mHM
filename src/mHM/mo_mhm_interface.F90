@@ -61,7 +61,8 @@ contains
       simPer, &
       optimize, &
       opti_function, &
-      mrm_coupling_mode
+      mrm_coupling_mode, &
+      read_restart
     use mo_mhm_messages, only: &
       startup_message, &
       domain_dir_check_message
@@ -144,13 +145,15 @@ contains
 #endif
     call message()
 
-    call message('  Read data ...')
-    call timer_start(itimer)
-    ! for DEM, slope, ... define nGvar local
-    ! read_data has a domain loop inside
-    call read_data(simPer)
-    call timer_stop(itimer)
-    call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
+    if (.not. read_restart) then
+      call message('  Read data ...')
+      call timer_start(itimer)
+      ! for DEM, slope, ... define nGvar local
+      ! read_data has a domain loop inside
+      call read_data(simPer)
+      call timer_stop(itimer)
+      call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
+    end if
 
     ! read data for every domain
     itimer = itimer + 1
