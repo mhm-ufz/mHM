@@ -102,7 +102,11 @@ CONTAINS
 
       if (read_restart) then
         ! this reads only the domain properties
-        call read_grid_info(domainID, mhmFileRestartIn(iDomain), "0", level0(iDomain))
+        if (domainMeta%L0DataFrom(iDomain) == iDomain) then
+          ! only read level0 data if it is new
+          ! similar to mo_common_read_data::read_dem
+          call read_grid_info(domainID, mhmFileRestartIn(iDomain), "0", level0(iDomain))
+        endif
         call read_grid_info(domainID, mhmFileRestartIn(iDomain), "1", level1(iDomain))
         ! read nLAI from restart
         call read_nLAI_and_check_dims(iDomain, mhmFileRestartIn(iDomain))
@@ -121,6 +125,7 @@ CONTAINS
 
     ! if no restart, this is done already in MPR
     if (read_restart) then
+      call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
       call set_domain_indices(level1)
     end if
 

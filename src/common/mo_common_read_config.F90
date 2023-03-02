@@ -143,6 +143,8 @@ CONTAINS
       call error_message('***ERROR: Number of domains is resticted to ', trim(num2str(maxNoDomains)), '!')
     end if
 
+    call check_L0Domain(L0Domain, nDomains)
+
     ! allocate patharray sizes
     allocate(resolutionHydrology(domainMeta%nDomains))
     allocate(dirMorpho(domainMeta%nDomains))
@@ -518,5 +520,39 @@ CONTAINS
     deallocate(treeDomainList)
   end subroutine
 #endif
+
+  subroutine check_L0Domain(L0Domain, nDomains)
+    use mo_common_constants, only : maxNoDomains
+    use mo_string_utils, only : num2str
+
+    integer(i4), dimension(maxNoDomains), intent(in) ::L0Domain !< given L0
+    integer(i4), intent(in) :: nDomains
+
+    integer(i4) :: i
+
+    do i = 1, nDomains
+      if (L0Domain(i) < 0) call error_message( &
+        "L0Domain values need to be positive: ", &
+        "L0Domain(", trim(adjustl(num2str(i))), ") = ", trim(adjustl(num2str(L0Domain(i)))))
+      if (L0Domain(i) > i) call error_message( &
+        "L0Domain values need to be less or equal to the domain index: ", &
+        "L0Domain(", trim(adjustl(num2str(i))), ") = ", trim(adjustl(num2str(L0Domain(i)))))
+      ! check for increasing values
+      if (i > 1) then
+        if (L0Domain(i) < L0Domain(i-1)) call error_message( &
+          "L0Domain values need to be increasing: ", &
+          "L0Domain(", trim(adjustl(num2str(i-1))), ") = ", trim(adjustl(num2str(L0Domain(i-1)))), &
+          ", L0Domain(", trim(adjustl(num2str(i))), ") = ", trim(adjustl(num2str(L0Domain(i)))))
+      end if
+      ! if lower, check that the reference domain uses its own L0Data
+      if (L0Domain(i) < i) then
+        if (L0Domain(L0Domain(i)) /= L0Domain(i)) call error_message( &
+          "L0Domain values should be taken from a domain with its own L0 data: ", &
+          "L0Domain(", trim(adjustl(num2str(i))), ") = ", trim(adjustl(num2str(L0Domain(i)))), &
+          ", L0Domain(", trim(adjustl(num2str(L0Domain(i)))), ") = ", trim(adjustl(num2str(L0Domain(L0Domain(i))))))
+      end if
+    end do
+
+  end subroutine check_L0Domain
 
 END MODULE mo_common_read_config
