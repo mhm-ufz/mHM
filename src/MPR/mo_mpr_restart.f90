@@ -4,8 +4,8 @@
 
 !> \brief reading and writing states, fluxes and configuration for restart of mHM.
 !> \details routines are seperated for reading and writing variables for:
-!! - states and fluxes, and
-!! - configuration.
+!!  - states and fluxes, and
+!!  - configuration.
 !!
 !! Reading of L11 configuration is also seperated from the rest, since it is only required when routing is activated.
 !> \authors Stephan Thober
@@ -26,35 +26,17 @@ MODULE mo_mpr_restart
   PUBLIC :: write_eff_params            ! read restart files for configuration from a given path
   PUBLIC :: write_mpr_restart_files     ! write restart files for configuration to a given path
 
-  !    NAME
-  !        unpack_field_and_write
 
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to add variable to
-
-  !    INTENT(IN)
-  !>       \param[in] "character(*) :: var_name"                    variable name
-  !>       \param[in] "type(NcDimension), dimension(:) :: var_dims" vector of Variable dimensions
-  !>       \param[in] "integer(i4) :: fill_value"                   fill value used for missing values
-  !>       \param[in] "integer(i4), dimension(:) :: data"           packed data to be set to variable
-  !>       \param[in] "logical, dimension(:, :) :: mask"            mask used for unpacking
-
-  !    INTENT(IN), OPTIONAL
-  !>       \param[in] "character(*), optional :: var_long_name" variable long name attribute
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
-
+  !> \brief unpack parameter fields and write them to file
+  !> \param[inout] "type(NcDataset) :: nc"                    NcDataset to add variable to
+  !> \param[in] "character(*) :: var_name"                    variable name
+  !> \param[in] "type(NcDimension), dimension(:) :: var_dims" vector of Variable dimensions
+  !> \param[in] "integer(i4) :: fill_value"                   fill value used for missing values
+  !> \param[in] "integer(i4/dp), dimension(...) :: data"      packed data to be set to variable
+  !> \param[in] "logical, dimension(:, :) :: mask"            mask used for unpacking
+  !> \param[in] "character(*), optional :: var_long_name"     variable long name attribute
+  !> \authors Robert Schweppe
+  !> \date Jun 2018
   INTERFACE unpack_field_and_write
     MODULE PROCEDURE unpack_field_and_write_1d_i4, &
             unpack_field_and_write_1d_dp, &
@@ -64,36 +46,26 @@ MODULE mo_mpr_restart
 
 
 CONTAINS
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        write_mpr_restart_files
-
-  !    PURPOSE
-  !>       \brief write restart files for each domain
-
-  !>       \details write restart files for each domain. For each domain
-  !>       three restart files are written. These are xxx_states.nc,
-  !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
-  !>       domain index). If a variable is added here, it should also be added
-  !>       in the read restart routines below.
-  !>       ADDITIONAL INFORMATION
-  !>       write_restart
-
-  !    INTENT(IN)
-  !>       \param[in] "character(256), dimension(:) :: OutFile" Output Path for each domain
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Jun 2014
-
-  ! Modifications:
-  ! Stephan Thober     Aug  2015 - moved write of routing states to mRM
-  ! David Schaefer     Nov  2015 - mo_netcdf
-  ! Stephan Thober     Nov  2016 - moved processMatrix to common variables
-  ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
-
+  !> \brief write restart files for each domain
+  !> \details write restart files for each domain. For each domain
+  !! three restart files are written. These are xxx_states.nc,
+  !! xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
+  !! domain index). If a variable is added here, it should also be added
+  !! in the read restart routines below.
+  !! ADDITIONAL INFORMATION
+  !! write_restart
+  !> \changelog
+  !! - Stephan Thober Aug 2015
+  !!   - moved write of routing states to mRM
+  !! - David Schaefer Nov 2015
+  !!   - mo_netcdf
+  !! - Stephan Thober Nov 2016
+  !!   - moved processMatrix to common variables
+  !! - Zink M. Demirel C. Mar 2017
+  !!   - Added Jarvis soil water stress function at SM process(3)
+  !> \authors Stephan Thober
+  !> \date Jun 2014
   subroutine write_mpr_restart_files(OutFile)
 
     use mo_common_restart, only : write_grid_info
@@ -109,7 +81,7 @@ CONTAINS
 
     character(256) :: Fname
 
-    ! Output Path for each domain
+    !> Output Path for each domain
     character(256), dimension(:), intent(in) :: OutFile
 
     integer(i4) :: iDomain, domainID
@@ -176,37 +148,15 @@ CONTAINS
 
   end subroutine write_mpr_restart_files
 
-  !    NAME
-  !        write_eff_params
 
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "logical, dimension(:, :) :: mask1"                        mask at level 1
-  !>       \param[in] "integer(i4) :: s1"                                        start index at level 1
-  !>       \param[in] "integer(i4) :: e1"                                        end index at level 1
-  !>       \param[in] "type(NcDimension) :: rows1, cols1, soil1, lcscenes, lais"
-  !>       \param[in] "type(NcDimension) :: rows1, cols1, soil1, lcscenes, lais"
-  !>       \param[in] "type(NcDimension) :: rows1, cols1, soil1, lcscenes, lais"
-  !>       \param[in] "type(NcDimension) :: rows1, cols1, soil1, lcscenes, lais"
-  !>       \param[in] "type(NcDimension) :: rows1, cols1, soil1, lcscenes, lais"
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(NcDataset) :: nc"
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-  !> Rohini Kumar             Oct 2021 - Added Neutron count module
-  !                                      to mHM integrate into develop branch (5.11.2)
-
-
-  ! Modifications:
-
+  !> \brief write effective parameter fields to given restart file
+  !> \changelog
+  !!  - Rohini Kumar Oct 2021
+  !!    - Added Neutron count module to mHM integrate into develop branch (5.11.2)
+  !!  - Sebastian Müller Mar 2023
+  !!    - made L1_alpha, L1_kSlowFlow, L1_kBaseFlow and L1_kPerco land cover dependent
+  !> \authors Robert Schweppe
+  !> \date Jun 2018
   subroutine write_eff_params(mask1, s1, e1, rows1, cols1, soil1, lcscenes, lais, nc)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
@@ -225,21 +175,17 @@ CONTAINS
 
     implicit none
 
-    ! mask at level 1
-    logical, dimension(:, :), allocatable, intent(in) :: mask1
-
-    ! start index at level 1
-    integer(i4), intent(in) :: s1
-
-    ! end index at level 1
-    integer(i4), intent(in) :: e1
-
-    type(NcDimension), intent(in) :: rows1, cols1, soil1, lcscenes, lais
-
-    type(NcDataset), intent(inout) :: nc
+    logical, dimension(:, :), allocatable, intent(in) :: mask1 !< mask at level 1
+    integer(i4), intent(in) :: s1 !< start index at level 1
+    integer(i4), intent(in) :: e1 !< end index at level 1
+    type(NcDimension), intent(in) :: rows1 !< y dimension
+    type(NcDimension), intent(in) :: cols1 !< x dimension
+    type(NcDimension), intent(in) :: soil1 !< soil dimension
+    type(NcDimension), intent(in) :: lcscenes !< land conver scenes dimension
+    type(NcDimension), intent(in) :: lais !< LAI dimension
+    type(NcDataset), intent(inout) :: nc !< NetCDF file to write to
 
     type(NcVariable) :: var
-
 
     !-------------------------------------------
     ! EFFECTIVE PARAMETERS
@@ -397,6 +343,7 @@ CONTAINS
 
   end subroutine write_eff_params
 
+  !> \copydoc unpack_field_and_write
   subroutine unpack_field_and_write_1d_i4(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
 
     use mo_kind, only : i4
@@ -442,6 +389,7 @@ CONTAINS
 
   end subroutine
 
+  !> \copydoc unpack_field_and_write
   subroutine unpack_field_and_write_1d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
 
     use mo_kind, only : dp
@@ -487,6 +435,7 @@ CONTAINS
 
   end subroutine
 
+  !> \copydoc unpack_field_and_write
   subroutine unpack_field_and_write_2d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
 
     use mo_kind, only : dp, i4
@@ -544,6 +493,7 @@ CONTAINS
 
   end subroutine
 
+  !> \copydoc unpack_field_and_write
   subroutine unpack_field_and_write_3d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
 
     use mo_kind, only : dp, i4
