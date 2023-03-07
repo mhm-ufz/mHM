@@ -22,50 +22,39 @@ module mo_common_restart
   PUBLIC :: read_grid_info     ! read restart files for configuration from a given path
   PUBLIC :: read_nLAI_and_check_dims
 
+
+  !> \brief check consistency of two given items
   INTERFACE check_consistency_element
     MODULE PROCEDURE check_consistency_element_i4, check_consistency_element_dp
   end interface check_consistency_element
 
 
-  ! ------------------------------------------------------------------
-
 CONTAINS
 
 
-  !    NAME
-  !        write_grid_info
-
-  !    PURPOSE
-  !>       \brief write restart files for each domain
-
-  !>       \details write restart files for each domain. For each domain
-  !>       three restart files are written. These are xxx_states.nc,
-  !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
-  !>       domain index). If a variable is added here, it should also be added
-  !>       in the read restart routines below.
-
-  !    INTENT(IN)
-  !>       \param[in] "type(Grid) :: grid_in"      level to be written
-  !>       \param[in] "character(*) :: level_name" level_id
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to write information to
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Jun 2014
-
-  ! Modifications:
-  ! Stephan Thober     Aug  2015 - moved write of routing states to mRM
-  ! David Schaefer     Nov  2015 - mo_netcdf
-  ! Stephan Thober     Nov  2016 - moved processMatrix to common variables
-  ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
-  ! Robert Schweppe    Feb 2018 - Removed all L0 references
-  ! Robert Schweppe    Jun 2018 - refactoring and reformatting
-  ! Stephan Thober     May 2019 - where statement for gnu73 to translate level0 mask
-
-
+  !> \brief write restart files for each domain
+  !> \details write restart files for each domain. For each domain
+  !! three restart files are written. These are xxx_states.nc,
+  !! xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
+  !! domain index). If a variable is added here, it should also be added
+  !! in the read restart routines below.
+  !> \changelog
+  !! - Stephan Thober     Aug  2015
+  !!   - moved write of routing states to mRM
+  !! - David Schaefer     Nov  2015
+  !!   - mo_netcdf
+  !! - Stephan Thober     Nov  2016
+  !!   - moved processMatrix to common variables
+  !! - Zink M. Demirel C. Mar 2017
+  !!   - Added Jarvis soil water stress function at SM process(3)
+  !! - Robert Schweppe    Feb 2018
+  !!   - Removed all L0 references
+  !! - Robert Schweppe    Jun 2018
+  !!   - refactoring and reformatting
+  !! - Stephan Thober     May 2019
+  !!   - where statement for gnu73 to translate level0 mask
+  !> \authors Stephan Thober
+  !> \date Jun 2014
   subroutine write_grid_info(grid_in, level_name, nc)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
@@ -74,17 +63,17 @@ CONTAINS
 
     implicit none
 
-    ! level to be written
+    !> level to be written
     type(Grid), intent(in) :: grid_in
 
-    ! level_id
+    !> level_id
     character(*), intent(in) :: level_name
+
+    !> NcDataset to write information to
+    type(NcDataset), intent(inout) :: nc
 
     ! dummy for gnu73
     integer(i4), allocatable :: dummy(:, :)
-
-    ! NcDataset to write information to
-    type(NcDataset), intent(inout) :: nc
 
     type(NcDimension) :: rows, cols
 
@@ -131,40 +120,24 @@ CONTAINS
   end subroutine write_grid_info
 
 
-  ! ------------------------------------------------------------------
-
-  !    NAME
-  !        read_grid_info
-
-  !    PURPOSE
-  !>       \brief reads configuration apart from Level 11 configuration
-  !>       from a restart directory
-
-  !>       \details read configuration variables from a given restart
-  !>       directory and initializes all configuration variables,
-  !>       that are initialized in the subroutine initialise,
-  !>       contained in module mo_startup.
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain"      number of domain
-  !>       \param[in] "character(256) :: InFile"   Input Path including trailing slash
-  !>       \param[in] "character(*) :: level_name" level_name (id)
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(Grid) :: new_grid" grid to save information to
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Apr 2013
-
-  ! Modifications:
-  ! David Schaefer     Nov 2015 - mo_netcdf
-  ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
-  ! Robert Schweppe    Feb 2018 - Removed all L0 references
-  ! Robert Schweppe    Jun 2018 - refactoring and reformatting
-  ! Stephan Thober     May 2019 - added allocation check for mask and cellArea because cellArea needs to be read by mRM, but mask is created before by mHM
-
+  !> \brief reads configuration apart from Level 11 configuration from a restart directory
+  !> \details read configuration variables from a given restart
+  !> directory and initializes all configuration variables,
+  !> that are initialized in the subroutine initialise,
+  !> contained in module mo_startup.
+  !> \changelog
+  !! - David Schaefer     Nov 2015
+  !!   - mo_netcdf
+  !! - Zink M. Demirel C. Mar 2017
+  !!   - Added Jarvis soil water stress function at SM process(3)
+  !! - Robert Schweppe    Feb 2018
+  !!   - Removed all L0 references
+  !! - Robert Schweppe    Jun 2018
+  !!   - refactoring and reformatting
+  !! - Stephan Thober     May 2019
+  !!   - added allocation check for mask and cellArea because cellArea needs to be read by mRM, but mask is created before by mHM
+  !> \authors Stephan Thober
+  !> \date Apr 2013
   subroutine read_grid_info(domainID, InFile, level_name, new_grid)
 
     use mo_common_variables, only : Grid
@@ -173,16 +146,16 @@ CONTAINS
 
     implicit none
 
-    ! number of domain
+    !> number of domain
     integer(i4), intent(in) :: domainID
 
-    ! Input Path including trailing slash
+    !> Input Path including trailing slash
     character(256), intent(in) :: InFile
 
-    ! level_name (id)
+    !> level_name (id)
     character(*), intent(in) :: level_name
 
-    ! grid to save information to
+    !> grid to save information to
     type(Grid), intent(inout) :: new_grid
 
     ! dummy, 2 dimension I4
@@ -245,11 +218,11 @@ CONTAINS
   end subroutine read_grid_info
 
 
-  !>       \brief read nubmer of LAI time steps and check dimension configurations read from restart file
-  !>       \author Robert Schweppe
-  !>       \date Aug 2019
-  !>       \author Sebastian Mueller
-  !>       \date Feb 2023
+  !> \brief read nubmer of LAI time steps and check dimension configurations read from restart file
+  !> \author Robert Schweppe
+  !> \date Aug 2019
+  !> \author Sebastian Mueller
+  !> \date Feb 2023
   subroutine read_nLAI_and_check_dims(iDomain, InFile)
 
     use mo_mpr_global_variables, only: nSoilHorizons_mHM, HorizonDepth_mHM, nLAI, LAIBoundaries ! may read from restart
@@ -359,9 +332,9 @@ CONTAINS
 
   end subroutine read_nLAI_and_check_dims
 
-  !>       \brief checks dimension configurations read from restart file
-  !>       \authors Robert Schweppe
-  !>       \date Aug 2019
+  !> \brief checks dimension configurations read from restart file
+  !> \authors Robert Schweppe
+  !> \date Aug 2019
   subroutine check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
       nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)
 
@@ -406,6 +379,7 @@ CONTAINS
 
   end subroutine check_dimension_consistency
 
+  !> \copydoc check_consistency_element
   subroutine check_consistency_element_dp(item1, item2, name, iDomain)
     use mo_utils, only: ne
     use mo_string_utils, only: compress, num2str
@@ -424,6 +398,7 @@ CONTAINS
     end if
   end subroutine check_consistency_element_dp
 
+  !> \copydoc check_consistency_element
   subroutine check_consistency_element_i4(item1, item2, name, iDomain)
     use mo_utils, only: ne
     use mo_string_utils, only: compress, num2str
