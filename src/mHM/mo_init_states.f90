@@ -15,10 +15,6 @@
 !> \ingroup f_mhm
 MODULE mo_init_states
 
-  ! This module provides the startup routines for mHM.
-
-  ! Written Luis Samaniego & Rohini Kumar, Dec 2012
-
   USE mo_kind, ONLY : i4, dp
 
   IMPLICIT NONE
@@ -31,35 +27,25 @@ MODULE mo_init_states
 
 CONTAINS
 
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        variables_alloc
-
-  !    PURPOSE
-  !>       \brief Allocation of space for mHM related L1 and L11 variables.
-
-  !>       \details Allocation of space for mHM related L1 and L11 variables (e.g., states,
-  !>       fluxes, and parameters) for a given domain. Variables allocated here is
-  !>       defined in them mo_global_variables.f90 file. After allocating any variable
-  !>       in this routine, initalize them in the following variables_default_init
-  !>       subroutine:
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ncells1"
-
-  !    HISTORY
-  !>       \authors Rohini Kumar
-
-  !>       \date Jan 2013
-
-  ! Modifications:
-  ! R. Kumar           Sep 2013 - documentation added according to the template
-  ! S. Thober          Aug 2015 - removed routing related variables
-  ! Zink M. Demirel C. Mar 2017 - Init Jarvis soil water stress variable at SM process(3)
-  ! Robert Schweppe    Dec 2017 - restructured allocation in variables_alloc, expanded dimensions of effective parameters
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+  !> \brief Allocation of space for mHM related L1 and L11 variables.
+  !> \details Allocation of space for mHM related L1 and L11 variables (e.g., states,
+  !! fluxes, and parameters) for a given domain. Variables allocated here is
+  !! defined in them mo_global_variables.f90 file. After allocating any variable
+  !! in this routine, initalize them in the following variables_default_init subroutine.
+  !> \changelog
+  !! - R. Kumar           Sep 2013
+  !!   - documentation added according to the template
+  !! - S. Thober          Aug 2015
+  !!   - removed routing related variables
+  !! - Zink M. Demirel C. Mar 2017
+  !!   - Init Jarvis soil water stress variable at SM process(3)
+  !! - Robert Schweppe    Dec 2017
+  !!   - restructured allocation in variables_alloc, expanded dimensions of effective parameters
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !> \authors Rohini Kumar
+  !> \date Jan 2013
   subroutine variables_alloc(ncells1)
 
     use mo_append, only : append
@@ -75,7 +61,7 @@ CONTAINS
 
     implicit none
 
-    integer(i4), intent(in) :: ncells1
+    integer(i4), intent(in) :: ncells1 !< number of level-1 cells
 
     integer(i4) :: i
 
@@ -167,31 +153,27 @@ CONTAINS
 
   end subroutine variables_alloc
 
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        variables_default_init
-
-  !    PURPOSE
-  !>       \brief Default initalization mHM related L1 variables
-
-  !>       \details Default initalization of mHM related L1 variables (e.g., states,
-  !>       fluxes, and parameters) as per given constant values given in mo_mhm_constants.
-  !>       Variables initalized here is defined in the mo_global_variables.f90 file.
-  !>       Only Variables that are defined in the variables_alloc subroutine are
-  !>       intialized here.
-  !>       If a variable is added or removed here, then it also has to be added or removed
-  !>       in the subroutine state_variables_set in the module mo_restart and in the
-  !>       subroutine set_state in the module mo_set_netcdf_restart.
-
-  !    HISTORY
-  !>       \authors R. Kumar & J. Mai
-  !>       \date Sep 2013
-
-  ! Modifications:
-  ! R. Kumar       Sep 2013 - documentation added according to the template
-  ! Stephan Thober Aug 2015 - moved routing variables to mRM
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  !> \brief Default initalization mHM related L1 variables
+  !> \details Default initalization of mHM related L1 variables (e.g., states,
+  !! fluxes, and parameters) as per given constant values given in mo_mhm_constants.
+  !! Variables initalized here is defined in the mo_global_variables.f90 file.
+  !! Only Variables that are defined in the variables_alloc subroutine are
+  !! intialized here.
+  !! If a variable is added or removed here, then it also has to be added or removed
+  !! in the subroutine state_variables_set in the module mo_restart and in the
+  !! subroutine set_state in the module mo_set_netcdf_restart.
+  !> \changelog
+  !! - R. Kumar       Sep 2013
+  !!   - documentation added according to the template
+  !! - Stephan Thober Aug 2015
+  !!   - moved routing variables to mRM
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Müller Mar 2023
+  !!   - added separate fluxes_states_default_init
+  !> \authors R. Kumar & J. Mai
+  !> \date Sep 2013
   subroutine variables_default_init
 
     use mo_common_constants, only : P1_InitStateFluxes
@@ -269,7 +251,10 @@ CONTAINS
 
   end subroutine variables_default_init
 
+
   !> \brief initialize fluxes and states with default values
+  !> \authors Sebastian Müller
+  !> \date Mar 2023
   subroutine fluxes_states_default_init
 
     use mo_common_constants, only : P1_InitStateFluxes
