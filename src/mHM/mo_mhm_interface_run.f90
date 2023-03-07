@@ -273,7 +273,7 @@ contains
   !> \brief get number of domains for looping
   subroutine mhm_interface_run_get_ndomains(ndomains)
     implicit none
-    integer(i4), intent(inout) :: ndomains
+    integer(i4), intent(inout) :: ndomains !< number of domains
     ndomains = run_cfg%nDomains
   end subroutine mhm_interface_run_get_ndomains
 
@@ -363,7 +363,7 @@ contains
   !> \brief check if current time loop is finished
   subroutine mhm_interface_run_finished(time_loop_finished)
     implicit none
-    logical, intent(inout) :: time_loop_finished
+    logical, intent(inout) :: time_loop_finished !< flag to indicate end of timeloop
     time_loop_finished = run_cfg%time_step == run_cfg%domainDateTime%nTimeSteps
   end subroutine mhm_interface_run_finished
 

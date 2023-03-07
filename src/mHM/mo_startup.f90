@@ -13,10 +13,6 @@
 !> \ingroup f_mhm
 MODULE mo_startup
 
-  ! This module provides the startup routines for mHM.
-
-  ! Written Luis Samaniego, Rohini Kumar, Dec 2012
-
   USE mo_kind, ONLY : i4, dp
   use mo_message, only: message, error_message
 
@@ -28,45 +24,47 @@ MODULE mo_startup
 
 CONTAINS
 
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        mhm_initialize
-
-  !    PURPOSE
-  !>       \brief Initialize main mHM variables
-
-  !>       \details Initialize main mHM variables for a given domain.
-  !>       Calls the following procedures in this order:
-  !>       - Constant initialization.
-  !>       - Generate soil database.
-  !>       - Checking inconsistencies input fields.
-  !>       - Variable initialization at level-0.
-  !>       - Variable initialization at level-1.
-  !>       - Variable initialization at level-11.
-  !>       - Space allocation of remaining variable/parameters.
-  !>       Global variables will be used at this stage.
-
-  !    HISTORY
-  !>       \authors Luis Samaniego, Rohini Kumar
-
-  !>       \date Dec 2012
-
-  ! Modifications:
-  ! Luis Samaniego Mar 2008 - fully distributed multilayer
-  ! Rohini Kumar   Oct 2010 - matrix to vector version
-  !                         - openmp parallelization
-  !                         - routing level 11
-  ! Luis Samaniego Jul 2012 - removal of IMSL dependencies
-  ! Luis Samaniego Dec 2012 - modular version
-  ! Rohini Kumar   May 2013 - code cleaned and error checks
-  ! Rohini Kumar   Nov 2013 - updated documentation
-  ! Stephan Thober Jun 2014 - copied L2 initialization from mo_meteo_forcings
-  ! Stephan Thober Jun 2014 - updated flag for read_restart
-  ! Stephan Thober Aug 2015 - removed initialisation of routing
-  ! Rohini Kumar   Mar 2016 - changes for handling multiple soil database options
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+  !> \brief Initialize main mHM variables
+  !> \details Initialize main mHM variables for a given domain.
+  !! Calls the following procedures in this order:
+  !! - Constant initialization.
+  !! - Generate soil database.
+  !! - Checking inconsistencies input fields.
+  !! - Variable initialization at level-0.
+  !! - Variable initialization at level-1.
+  !! - Variable initialization at level-11.
+  !! - Space allocation of remaining variable/parameters.
+  !! Global variables will be used at this stage.
+  !> \changelog
+  !! - Luis Samaniego Mar 2008
+  !!   - fully distributed multilayer
+  !! - Rohini Kumar   Oct 2010
+  !!   - matrix to vector version
+  !!   - openmp parallelization
+  !!   - routing level 11
+  !! - Luis Samaniego Jul 2012
+  !!   - removal of IMSL dependencies
+  !! - Luis Samaniego Dec 2012
+  !!   - modular version
+  !! - Rohini Kumar   May 2013
+  !!   - code cleaned and error checks
+  !! - Rohini Kumar   Nov 2013
+  !!   - updated documentation
+  !! - Stephan Thober Jun 2014
+  !!   - copied L2 initialization from mo_meteo_forcings
+  !! - Stephan Thober Jun 2014
+  !!   - updated flag for read_restart
+  !! - Stephan Thober Aug 2015
+  !!   - removed initialisation of routing
+  !! - Rohini Kumar   Mar 2016
+  !!   - changes for handling multiple soil database options
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Müller Mar 2023
+  !!   - added separate read_nLAI_and_check_dims to correctly read nLAI from restart
+  !> \authors Luis Samaniego, Rohini Kumar
+  !> \date Dec 2012
   subroutine mhm_initialize
 
     use mo_common_mHM_mRM_variables, only : mhmFileRestartIn, read_restart
@@ -133,26 +131,17 @@ CONTAINS
 
   end subroutine mhm_initialize
 
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        constants_init
-
-  !    PURPOSE
-  !>       \brief Initialize mHM constants
-
-  !>       \details transformation of time units & initialize constants
-
-  !    HISTORY
-  !>       \authors Luis Samaniego
-
-  !>       \date Dec 2012
-
-  ! Modifications:
-  ! Rohini Kumar                 Jan 2013 -
-  ! Juliane Mai & Matthias Cuntz Nov 2013 - check timeStep
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+  !> \brief Initialize mHM constants
+  !> \details transformation of time units & initialize constants
+  !> \changelog
+  !! - Rohini Kumar                 Jan 2013
+  !! - Juliane Mai & Matthias Cuntz Nov 2013
+  !!   - check timeStep
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !> \authors Luis Samaniego
+  !> \date Dec 2012
   subroutine constants_init
     use mo_common_mHM_mRM_variables, only : timestep, c2TSTu, read_restart
     use mo_common_variables, only : processMatrix
@@ -164,7 +153,6 @@ CONTAINS
     use mo_string_utils, only : num2str
 
     implicit none
-
 
     !Fill Tabular for neutron flux integral
     if (processMatrix(10, 1) .eq. 2) then
@@ -191,34 +179,17 @@ CONTAINS
 
   end subroutine constants_init
 
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        L2_variable_init
-
-  !    PURPOSE
-  !>       \brief Initalize Level-2 meteorological forcings data
-
-  !>       \details following tasks are performed
-  !>       1)  cell id & numbering
-  !>       2)  mask creation
-  !>       3)  append variable of intrest to global ones
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain"       domain Id
-  !>       \param[in] "type(Grid) :: level0_iDomain"
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(Grid) :: level2_iDomain"
-
-  !    HISTORY
-  !>       \authors Rohini Kumar
-
-  !>       \date Feb 2013
-
-  ! Modifications:
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+  !> \brief Initalize Level-2 meteorological forcings data
+  !> \details following tasks are performed
+  !! 1)  cell id & numbering
+  !! 2)  mask creation
+  !! 3)  append variable of intrest to global ones
+  !> \changelog
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !> \authors Rohini Kumar
+  !> \date Feb 2013
   subroutine L2_variable_init(iDomain, level0_iDomain, level2_iDomain)
 
     use mo_common_variables, only : Grid
@@ -230,19 +201,16 @@ CONTAINS
 
     implicit none
 
-    ! domain Id
+    !> domain Id
     integer(i4), intent(in) :: iDomain
-
+    !> associated level-0 grid
     type(Grid), intent(in) :: level0_iDomain
-
+    !> associated level-2 grid to populate
     type(Grid), intent(inout) :: level2_iDomain
 
     integer(i4) :: nrows2, ncols2
-
     real(dp) :: xllcorner2, yllcorner2
-
     real(dp) :: cellsize2, nodata_dummy
-
     character(256) :: fName
 
     !--------------------------------------------------------
