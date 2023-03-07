@@ -81,7 +81,6 @@ CONTAINS
 
     integer(i4) :: iDomain, domainID
 
-
     ! constants initialization
     call constants_init()
     allocate(level2(domainMeta%nDomains))

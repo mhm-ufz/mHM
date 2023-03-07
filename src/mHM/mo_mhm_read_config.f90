@@ -95,14 +95,9 @@ CONTAINS
     use mo_file, only : file_defOutput, udefOutput
     use mo_global_variables, only : &
       L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
-      dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirPrecipitation, &
-      dirReferenceET, dirTemperature, dirabsVapPressure, dirwindspeed, dirRadiation, &
       evap_coeff, &
-      fday_pet, fday_prec, fday_temp, fday_ssrd, fday_strd, &
-      fnight_pet, fnight_prec, fnight_temp, fnight_ssrd, fnight_strd, &
-      inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
-      read_meteo_weights, timeStep_model_outputs, &
-      timestep_model_inputs, &
+      nSoilHorizons_sm_input, outputFlxState, &
+      timeStep_model_outputs, &
       output_deflate_level, output_double_precision, output_time_reference, &
       BFI_calc, BFI_obs
     use mo_mpr_constants, only : maxNoSoilHorizons
@@ -117,27 +112,6 @@ CONTAINS
     integer, intent(in) :: unamelist
 
     integer(i4) :: iDomain, domainID
-
-    integer(i4), dimension(maxNoDomains) :: time_step_model_inputs
-
-    character(256), dimension(maxNoDomains) :: dir_Precipitation
-
-    character(256), dimension(maxNoDomains) :: dir_Temperature
-
-    character(256), dimension(maxNoDomains) :: dir_MinTemperature
-
-    character(256), dimension(maxNoDomains) :: dir_MaxTemperature
-
-    character(256), dimension(maxNoDomains) :: dir_NetRadiation
-
-    character(256), dimension(maxNoDomains) :: dir_windspeed
-
-    character(256), dimension(maxNoDomains) :: dir_absVapPressure
-
-    character(256), dimension(maxNoDomains) :: dir_ReferenceET
-
-    ! riv-temp related
-    character(256), dimension(maxNoDomains) :: dir_Radiation
 
     ! soil moisture input
     character(256), dimension(maxNoDomains) :: dir_soil_moisture
@@ -158,19 +132,6 @@ CONTAINS
 
 
     ! define namelists
-    ! namelist directories
-    namelist /directories_mHM/ &
-            inputFormat_meteo_forcings, &
-            dir_Precipitation, &
-            dir_Temperature, &
-            dir_ReferenceET, &
-            dir_MinTemperature, &
-            dir_MaxTemperature, &
-            dir_absVapPressure, &
-            dir_windspeed, &
-            dir_NetRadiation, &
-            dir_Radiation, &
-            time_step_model_inputs
     ! optional data used for optimization
     namelist /optional_data/ &
             dir_soil_moisture, &
@@ -185,9 +146,6 @@ CONTAINS
     ! namelist for pan evaporation
     namelist /panEvapo/evap_coeff
 
-    ! namelist for night-day ratio of precipitation, referenceET and temperature
-    namelist /nightDayRatio/ read_meteo_weights, &
-      fnight_prec, fnight_pet, fnight_temp, fnight_ssrd, fnight_strd
     ! name list regarding output
     namelist /NLoutputResults/ &
             output_deflate_level, &
@@ -203,57 +161,14 @@ CONTAINS
     !===============================================================
     call open_nml(file_namelist, unamelist, quiet = .true.)
 
-    allocate(dirPrecipitation(domainMeta%nDomains))
-    allocate(dirTemperature(domainMeta%nDomains))
-    allocate(dirwindspeed(domainMeta%nDomains))
-    allocate(dirabsVapPressure(domainMeta%nDomains))
-    allocate(dirReferenceET(domainMeta%nDomains))
-    allocate(dirMinTemperature(domainMeta%nDomains))
-    allocate(dirMaxTemperature(domainMeta%nDomains))
-    allocate(dirNetRadiation(domainMeta%nDomains))
-    allocate(dirRadiation(domainMeta%nDomains))
     allocate(L1_twsaObs(domainMeta%nDomains))
     allocate(L1_etObs(domainMeta%nDomains))
     allocate(L1_smObs(domainMeta%nDomains))
     allocate(L1_neutronsObs(domainMeta%nDomains))
-    ! allocate time periods
-    allocate(timestep_model_inputs(domainMeta%nDomains))
     ! observed baseflow indizes
     allocate(BFI_obs(domainMeta%nDomains))
     BFI_obs = -1.0_dp  ! negative value to flag missing values
     BFI_calc = .false.
-
-    !===============================================================
-    !  Read namelist for mainpaths
-    !===============================================================
-    call position_nml('directories_mHM', unamelist)
-    read(unamelist, nml = directories_mHM)
-
-    do iDomain = 1, domainMeta%nDomains
-      domainID = domainMeta%indices(iDomain)
-
-      dirPrecipitation(iDomain) = dir_Precipitation(domainID)
-      dirTemperature(iDomain) = dir_Temperature(domainID)
-      dirReferenceET(iDomain) = dir_ReferenceET(domainID)
-      dirMinTemperature(iDomain) = dir_MinTemperature(domainID)
-      dirMaxTemperature(iDomain) = dir_MaxTemperature(domainID)
-      dirNetRadiation(iDomain) = dir_NetRadiation(domainID)
-      dirwindspeed(iDomain) = dir_windspeed(domainID)
-      dirabsVapPressure(iDomain) = dir_absVapPressure(domainID)
-      timestep_model_inputs(iDomain) = time_step_model_inputs(domainID)
-      ! riv-temp related
-      dirRadiation(iDomain) = dir_Radiation(domainID)
-    end do
-
-    ! consistency check for timestep_model_inputs
-    if (any(timestep_model_inputs .ne. 0) .and. &
-            .not. all(timestep_model_inputs .ne. 0)) then
-      call error_message('***ERROR: timestep_model_inputs either have to be all zero or all non-zero')
-    end if
-    ! check for optimzation and timestep_model_inputs options
-    if (optimize .and. (any(timestep_model_inputs .ne. 0))) then
-      call error_message('***ERROR: optimize and chunk read is switched on! (set timestep_model_inputs to zero)')
-    end if
 
     !===============================================================
     !  Read namelist of optional input data
@@ -336,26 +251,11 @@ CONTAINS
     end if
 
     !===============================================================
-    ! Read night-day ratios and pan evaporation
+    ! Read pan evaporation
     !===============================================================
-    ! default values for long/shortwave rad.
-    fnight_ssrd = 0.0_dp
-    fnight_strd = 0.45_dp
     ! Evap. coef. for free-water surfaces
     call position_nml('panEvapo', unamelist)
     read(unamelist, nml = panEvapo)
-    ! namelist for night-day ratio of precipitation, referenceET and temperature
-    call position_nml('nightDayRatio', unamelist)
-    read(unamelist, nml = nightDayRatio)
-    !
-    fday_prec = 1.0_dp - fnight_prec
-    fday_pet = 1.0_dp - fnight_pet
-    fday_temp = -1.0_dp * fnight_temp
-    fday_ssrd = 1.0_dp - fnight_ssrd
-    fday_strd = 1.0_dp - fnight_strd
-
-    ! TODO-RIV-TEMP:
-    ! - add short- and long-wave raidiation weights (nc files)
 
     call common_check_resolution(.true., .false.)
 

@@ -76,6 +76,7 @@ contains
       unamelist_mhm, &
       unamelist_mhm_param
     use mo_global_variables, only: &
+      meteo_handler, &
       timestep_model_inputs, &
       L1_twsaObs, &
       L1_etObs, &
@@ -119,6 +120,7 @@ contains
     call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
     call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
     call mhm_read_config(file_namelist_mhm, unamelist_mhm)
+    call meteo_handler%config(file_namelist_mhm, unamelist_mhm)
     mrm_coupling_mode = 2_i4
     call mrm_configuration(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
     call check_optimization_settings()
@@ -171,6 +173,7 @@ contains
 
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
+      ! TODO: move to meteo-handler
       ! read meteorology now, if optimization is switched on
       ! meteorological forcings (reading, upscaling or downscaling)
       if (timestep_model_inputs(iDomain) .eq. 0_i4) then
