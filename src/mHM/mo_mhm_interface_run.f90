@@ -524,7 +524,7 @@ contains
       L1_unsatThresh(run_cfg%s1 : run_cfg%e1, 1, 1), & ! INOUT E1
       L1_sealedThresh(run_cfg%s1 : run_cfg%e1, 1, 1), & ! INOUT E1
       L1_wiltingPoint(run_cfg%s1 : run_cfg%e1, :, run_cfg%domainDateTime%yId), & ! INOUT E1
-      !>> neutron count
+      ! >> neutron count
       L1_No_Count(run_cfg%s1:run_cfg%e1, 1, 1),  &                     ! INOUT E1
       L1_bulkDens(run_cfg%s1:run_cfg%e1,     :, run_cfg%domainDateTime%yId), & ! INOUT E1
       L1_latticeWater(run_cfg%s1:run_cfg%e1, :, run_cfg%domainDateTime%yId), & ! INOUT E1

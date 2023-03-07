@@ -197,8 +197,8 @@ contains
                    call latticeWater(param(8:9), clay(i,j), latWat(i,j))
                 end if
 
-             end do  !>> HORIZON
-          end do   !>> SOIL TYPE
+             end do  ! >> HORIZON
+          end do   ! >> SOIL TYPE
 
        CASE DEFAULT
           call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
@@ -208,7 +208,7 @@ contains
    end subroutine
 
 
-  !!>> L3 parameter
+  !! >> L3 parameter
   subroutine calcL3(param, bulkDensity, L3)
     ! param(1) = COSMIC_L30
     ! param(2) = COSMIC_L31
@@ -225,7 +225,7 @@ contains
   end subroutine calcL3
 
 
-  !!>>>> lattice water
+  !! >>>> lattice water
   subroutine latticeWater( param, clay, latWat )
     ! param(1) = COSMIC_LW0 or deslet_LW0
     ! param(2) = COSMIC_LW1 or deslet_LW0

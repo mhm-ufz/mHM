@@ -36,6 +36,7 @@ contains
   !! - threshold parameter for runoff generation on impervious layer
   !! - karstic percolation loss
   !! - setting up the Regionalized Routing Parameters
+  !!
   !> \changelog
   !! - Stephan Thober           Jan 2013
   !!   - updated calling sequence for upscaling operators
@@ -429,7 +430,7 @@ subroutine mpr(mask0, geoUnit0, soilId0, Asp0, gridded_LAI0, LCover0, slope_emp0
             thetaS_till, thetaFC_till, thetaPW_till, thetaS, &
             thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
 
-       !>> neutron count related parameters
+       ! >> neutron count related parameters
        if ( processMatrix(10,1) .GT. 0 ) &
             call mpr_neutrons( processMatrix(10,1), &  ! IN: processmatrix case
             param( processMatrix(10,3)-processMatrix(10,2)+1:processMatrix(10,3) ) , & ! IN:  global parameter set
@@ -457,7 +458,7 @@ subroutine mpr(mask0, geoUnit0, soilId0, Asp0, gridded_LAI0, LCover0, slope_emp0
             upper_bound1, lower_bound1, left_bound1, right_bound1, n_subcells1, &
             soilMoistExp1(:, :, iiLC), soilMoistSat1(:, :, iiLC), soilMoistFC1(:, :, iiLC), &
             wiltingPoint1(:, :, iiLC), fRoots1(:, :, iiLC), &
-            !>>>>>> neutron count
+            ! >>>>>> neutron count
             latWat_till, COSMIC_L3_till, latWat, COSMIC_L3, &
             bulkDens1(:,:,iiLC), latticeWater1(:,:,iiLC), COSMICL31(:,:,iiLC) &
             )
@@ -539,7 +540,7 @@ subroutine mpr(mask0, geoUnit0, soilId0, Asp0, gridded_LAI0, LCover0, slope_emp0
        deallocate(KsVar_V0)
        deallocate(SMs_FC0)
 
-    end do !!>>>>>>> LAND COVER SCENE LOOP
+    end do !! >>>>>>> LAND COVER SCENE LOOP
 
 
     ! ------------------------------------------------------------------
@@ -631,12 +632,12 @@ subroutine mpr(mask0, geoUnit0, soilId0, Asp0, gridded_LAI0, LCover0, slope_emp0
        ! the number of process parameters, so the number in processMatrix(9,2) has
        iStart = processMatrix(10, 3) - processMatrix(10, 2) + 1
        iEnd = processMatrix(10, 3)
-       No_Count1 = param(iStart)  !>> 1st parameter --> N0 parameter
+       No_Count1 = param(iStart)  ! >> 1st parameter --> N0 parameter
     case(2)
        ! the number of process parameters, so the number in processMatrix(9,2) has
        iStart = processMatrix(10, 3) - processMatrix(10, 2) + 1
        iEnd = processMatrix(10, 3)
-       No_Count1 = param(iStart)  !>> 1st parameter --> N0 parameter
+       No_Count1 = param(iStart)  ! >> 1st parameter --> N0 parameter
     case DEFAULT
        call error_message('***ERROR: Process description for process "Neutron count" does not exist! mo_multi_param_reg')
     end select

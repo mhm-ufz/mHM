@@ -325,8 +325,8 @@ contains
 
       ! calculate other soil properties at each location [L0] for regionalising model parameters
       !$OMP DO PRIVATE( s, j ) SCHEDULE( STATIC )
-      cellloop : do i = 1, size(soilId0, 1) !>> here = ncells0
-        s = soilId0(i, 1)                    !>> in this case the second dimension of soilId0 = 1
+      cellloop : do i = 1, size(soilId0, 1) ! >> here = ncells0
+        s = soilId0(i, 1)                    ! >> in this case the second dimension of soilId0 = 1
         do j = 1, nHorizons(s)
           if (j .le. nTillHorizons(s)) then
             ! Soil properties over the whole soil coloum depth
@@ -368,8 +368,8 @@ contains
         do j = 1, 1
           ! calculating vertical hydraulic conductivity
           call hydro_cond(Ks_tmp, param(10 : 13), sand(i, j), clay(i, j))
-          Ks_non_till(i, j) = Ks_tmp  !>> non-till
-          Ks(i, j, :) = Ks_tmp  !>> till layers
+          Ks_non_till(i, j) = Ks_tmp  ! >> non-till
+          Ks(i, j, :) = Ks_tmp  ! >> till layers
           ! calculating other soil hydraulic properties
           ! tillage horizons properties depending on the LC class
           do L = 1, max_LCover
@@ -411,8 +411,8 @@ contains
           ! estimate permanent wilting point
           call PWP(Genu_Mual_n, Genu_Mual_alpha, thetaS(i, j), thetaPW(i, j))
 
-        end do  !>> HORIZON
-      end do   !>> SOIL TYPE
+        end do  ! >> HORIZON
+      end do   ! >> SOIL TYPE
 
       ! calculate other soil properties at each location [L0] for regionalising model parameters
       do i = 1, size(soilId0, 1)     !! over all cells
