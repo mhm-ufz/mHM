@@ -36,6 +36,7 @@ module mo_common_mHM_mRM_variables
   logical, public :: read_restart               ! flag
   logical, public :: mrm_read_river_network     ! flag
   logical, public :: read_old_style_restart_bounds     ! flag
+  logical, public :: restart_reset_fluxes_states     !< flag to reset fluxes and states read from restart to default values
 
 
   type(period), dimension(:), allocatable, public :: warmPer     ! time period for warming

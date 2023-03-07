@@ -16,9 +16,6 @@
 !> \ingroup f_mhm
 MODULE mo_restart
 
-  ! This module is a restart for the UFZ CHS mesoscale hydrologic model mHM.
-
-  ! Written  Stephan Thober, Apr 2011
   use mo_common_constants, only : soilHorizonsVarName, landCoverPeriodsVarName, LAIVarName
 
   IMPLICIT NONE
@@ -28,79 +25,36 @@ MODULE mo_restart
   PUBLIC :: read_restart_states     ! read restart files for state variables from a given path
   PUBLIC :: write_restart_files     ! write restart files for configuration to a given path
 
-  !    NAME
-  !        unpack_field_and_write
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to add variable to
-
-  !    INTENT(IN)
-  !>       \param[in] "character(*) :: var_name"                    variable name
-  !>       \param[in] "type(NcDimension), dimension(:) :: var_dims" vector of Variable dimensions
-  !>       \param[in] "integer(i4) :: fill_value"                   fill value used for missing values
-  !>       \param[in] "integer(i4), dimension(:) :: data"           packed data to be set to variable
-  !>       \param[in] "logical, dimension(:, :) :: mask"            mask used for unpacking
-
-  !    INTENT(IN), OPTIONAL
-  !>       \param[in] "character(*), optional :: var_long_name" variable long name attribute
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
-
-  INTERFACE unpack_field_and_write
-    MODULE PROCEDURE unpack_field_and_write_1d_i4, &
-            unpack_field_and_write_1d_dp, &
-            unpack_field_and_write_2d_dp, &
-            unpack_field_and_write_3d_dp
-  end interface unpack_field_and_write
-
-
 CONTAINS
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        write_restart_files
-
-  !    PURPOSE
-  !>       \brief write restart files for each domain
-
-  !>       \details write restart files for each domain. For each domain
-  !>       three restart files are written. These are xxx_states.nc,
-  !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
-  !>       domain index). If a variable is added here, it should also be added
-  !>       in the read restart routines below.
-
-  !    INTENT(IN)
-  !>       \param[in] "character(256), dimension(:) :: OutFile" Output Path for each domain
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Jun 2014
-
-  ! Modifications:
-  ! Stephan Thober     Aug  2015 - moved write of routing states to mRM
-  ! David Schaefer     Nov  2015 - mo_netcdf
-  ! Stephan Thober     Nov  2016 - moved processMatrix to common variables
-  ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
-  ! Robert Schweppe    Feb 2018 - Removed all L0 references
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+  !> \brief write restart files for each domain
+  !> \details write restart files for each domain. For each domain
+  !! three restart files are written. These are xxx_states.nc,
+  !! xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
+  !! domain index). If a variable is added here, it should also be added
+  !! in the read restart routines below.
+  !> \changelog
+  !! - Stephan Thober     Aug  2015
+  !!   - moved write of routing states to mRM
+  !! - David Schaefer     Nov  2015
+  !!   - mo_netcdf
+  !! - Stephan Thober     Nov  2016
+  !!   - moved processMatrix to common variables
+  !! - Zink M. Demirel C. Mar 2017
+  !!   - Added Jarvis soil water stress function at SM process(3)
+  !! - Robert Schweppe    Feb 2018
+  !!   - Removed all L0 references
+  !! - Robert Schweppe    Jun 2018
+  !!   - refactoring and reformatting
+  !! - Stephan Thober     Dec 2022
+  !!   - added grid info for level0
+  !> \authors Stephan Thober
+  !> \date Jun 2014
   subroutine write_restart_files(OutFile)
 
     use mo_common_constants, only : nodata_dp
     use mo_common_restart, only : write_grid_info
-    use mo_common_variables, only : level1, nLCoverScene, domainMeta, LC_year_start, LC_year_end
+    use mo_common_variables, only : level0, level1, nLCoverScene, domainMeta, LC_year_start, LC_year_end
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
                                     L1_fastRunoff, L1_infilSoil, L1_melt, L1_percol, L1_preEffect, L1_rain, &
                                     L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
@@ -160,6 +114,7 @@ CONTAINS
       nc = NcDataset(fname, "w")
 
       call write_grid_info(level1(iDomain), "1", nc)
+      call write_grid_info(level0(domainMeta%L0DataFrom(iDomain)), "0", nc)
 
       rows1 = nc%getDimension("nrows1")
       cols1 = nc%getDimension("ncols1")
@@ -314,34 +269,26 @@ CONTAINS
 
   end subroutine write_restart_files
 
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        read_restart_states
-
-  !    PURPOSE
-  !>       \brief reads fluxes and state variables from file
-
-  !>       \details read fluxes and state variables from given
-  !>       restart directory and initialises all state variables
-  !>       that are initialized in the subroutine initialise,
-  !>       contained in module mo_startup.
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain"    number of domains
-  !>       \param[in] "character(256) :: InFile" Input Path including trailing slash
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Apr 2013
-
-  ! Modifications:
-  ! Stephan Thober Aug  2015 - moved read of routing states to mRM
-  ! David Schaefer Nov  2015 - mo_netcdf
-  ! Stephan Thober Nov  2016 - moved processMatrix to common variables
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+  !> \brief reads fluxes and state variables from file
+  !> \details read fluxes and state variables from given
+  !! restart directory and initialises all state variables
+  !! that are initialized in the subroutine initialise,
+  !! contained in module mo_startup.
+  !> \changelog
+  !! - Stephan Thober Aug  2015
+  !!   - moved read of routing states to mRM
+  !! - David Schaefer Nov  2015
+  !!   - mo_netcdf
+  !! - Stephan Thober Nov  2016
+  !!   - moved processMatrix to common variables
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Müller Mar 2023
+  !!   - compatibility layer for 2D/3D data
+  !!   - move reading of nLAI to mo_startup (needed beforehand)
+  !> \authors Stephan Thober
+  !> \date Apr 2013
   subroutine read_restart_states(iDomain, domainID, InFile)
 
     use mo_common_variables, only : LC_year_end, LC_year_start, level1, nLCoverScene, processMatrix
@@ -362,55 +309,41 @@ CONTAINS
 
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
-    use mo_common_mHM_mRM_restart, only: check_dimension_consistency
-    use mo_common_mHM_mRM_variables, only: read_old_style_restart_bounds
+    use mo_message, only: message, error_message
 
     implicit none
 
-    ! number of domain
+    !> number of domain
     integer(i4), intent(in) :: iDomain
-
+    !> ID of domain
     integer(i4), intent(in) :: domainID
-
-    ! Input Path including trailing slash
+    !> Input Path including trailing slash
     character(256), intent(in) :: InFile
 
     character(256) :: Fname
-
+    ! variable rank
+    integer(i4) :: var_rank
     ! loop index
     integer(i4) :: ii, jj
-
     ! start index at level 1
     integer(i4) :: s1
-
     ! end index at level 1
     integer(i4) :: e1
-
     ! mask at level 1
     logical, dimension(:, :), allocatable :: mask1
-
     ! dummy, 2 dimension
-    real(dp), dimension(:, :), allocatable :: dummyD2, dummyD2_tmp
-
+    real(dp), dimension(:, :), allocatable :: dummyD2
     ! dummy, 3 dimension
     real(dp), dimension(:, :, :), allocatable :: dummyD3
-
-    ! dummy, 3 dimension
+    ! dummy, 4 dimension
     real(dp), dimension(:, :, :, :), allocatable :: dummyD4
 
     type(NcDataset) :: nc
-
     type(NcVariable) :: var
-
-    type(NcDimension) :: nc_dim
-
-    integer(i4) :: nSoilHorizons_temp, nLAIs_temp, nLandCoverPeriods_temp
-    real(dp), dimension(:), allocatable :: landCoverPeriodBoundaries_temp, soilHorizonBoundaries_temp, &
-            LAIBoundaries_temp
 
 
     Fname = trim(InFile)
-    ! call message('    Reading states from ', trim(adjustl(Fname)),' ...')
+    call message('    Reading states from ', trim(adjustl(Fname)),' ...')
 
     ! get domain information at level 1
     allocate(mask1 (level1(iDomain)%nrows, level1(iDomain)%ncols))
@@ -419,69 +352,6 @@ CONTAINS
     e1 = level1(iDomain)%iEnd
 
     nc = NcDataset(fname, "r")
-
-    ! get the dimensions
-    var = nc%getVariable(trim(soilHorizonsVarName)//'_bnds')
-    call var%getData(dummyD2_tmp)
-    if (allocated(dummyD2)) deallocate(dummyD2)
-    if ( read_old_style_restart_bounds ) then
-      allocate(dummyD2(size(dummyD2_tmp,2), size(dummyD2_tmp,1)))
-      dummyD2 = transpose(dummyD2_tmp)
-    else
-      allocate(dummyD2(size(dummyD2_tmp,1), size(dummyD2_tmp,2)))
-      dummyD2 = dummyD2_tmp
-    end if
-    deallocate(dummyD2_tmp)
-    nSoilHorizons_temp = size(dummyD2, 2)
-    allocate(soilHorizonBoundaries_temp(nSoilHorizons_temp+1))
-    soilHorizonBoundaries_temp(1:nSoilHorizons_temp) = dummyD2(1, :)
-    soilHorizonBoundaries_temp(nSoilHorizons_temp+1) = dummyD2(2, nSoilHorizons_temp)
-
-    ! get the landcover dimension
-    var = nc%getVariable(trim(landCoverPeriodsVarName)//'_bnds')
-    call var%getData(dummyD2_tmp)
-    if (allocated(dummyD2)) deallocate(dummyD2)
-    if ( read_old_style_restart_bounds ) then
-      allocate(dummyD2(size(dummyD2_tmp,2), size(dummyD2_tmp,1)))
-      dummyD2 = transpose(dummyD2_tmp)
-    else
-      allocate(dummyD2(size(dummyD2_tmp,1), size(dummyD2_tmp,2)))
-      dummyD2 = dummyD2_tmp
-    end if
-    deallocate(dummyD2_tmp)
-    nLandCoverPeriods_temp = size(dummyD2, 2)
-    allocate(landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1))
-    landCoverPeriodBoundaries_temp(1:nLandCoverPeriods_temp) = dummyD2(1, :)
-    landCoverPeriodBoundaries_temp(nLandCoverPeriods_temp+1) = dummyD2(2, nLandCoverPeriods_temp)
-
-    ! get the LAI dimension
-    if (nc%hasVariable(trim(LAIVarName)//'_bnds')) then
-      var = nc%getVariable(trim(LAIVarName)//'_bnds')
-      call var%getData(dummyD2_tmp)
-      if (allocated(dummyD2)) deallocate(dummyD2)
-      if ( read_old_style_restart_bounds ) then
-        allocate(dummyD2(size(dummyD2_tmp,2), size(dummyD2_tmp,1)))
-        dummyD2 = transpose(dummyD2_tmp)
-      else
-        allocate(dummyD2(size(dummyD2_tmp,1), size(dummyD2_tmp,2)))
-        dummyD2 = dummyD2_tmp
-      end if
-      deallocate(dummyD2_tmp)
-      nLAIs_temp = size(dummyD2, 2)
-      allocate(LAIBoundaries_temp(nLAIs_temp+1))
-      LAIBoundaries_temp(1:nLAIs_temp) = dummyD2(1, :)
-      LAIBoundaries_temp(nLAIs_temp+1) = dummyD2(2, nLAIs_temp)
-    else if (nc%hasDimension('L1_LAITimesteps')) then
-      nc_dim = nc%getDimension('L1_LAITimesteps')
-      nLAIs_temp = nc_dim%getLength()
-      allocate(LAIBoundaries_temp(nLAIs_temp+1))
-      LAIBoundaries_temp = [(ii, ii=1, nLAIs_temp+1)]
-    end if
-
-
-    call check_dimension_consistency(iDomain, nSoilHorizons_temp, soilHorizonBoundaries_temp, &
-          nLAIs_temp, LAIBoundaries_temp, nLandCoverPeriods_temp, landCoverPeriodBoundaries_temp)
-
 
     if (nc%hasVariable('L1_Inter')) then
       !-------------------------------------------
@@ -615,8 +485,22 @@ CONTAINS
 
     ! exponent for the upper reservoir
     var = nc%getVariable("L1_alpha")
-    call var%getData(dummyD2)
-    L1_alpha(s1 : e1, 1, 1) = pack(dummyD2, mask1)
+    var_rank = var%getrank()
+    select case(var_rank)
+      case(2)
+        ! distribute over all land cover scenes
+        call var%getData(dummyD2)
+        do ii = 1, nLCoverScene
+          L1_alpha(s1 : e1, 1, ii) = pack(dummyD2, mask1)
+        end do
+      case(3)
+        call var%getData(dummyD3)
+        do ii = 1, nLCoverScene
+          L1_alpha(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+        end do
+      case default
+        call error_message("Restart: L1_alpha rank needs to be 2 or 3")
+    end select
 
     ! increase of the Degree-day factor per mm of increase in precipitation
     var = nc%getVariable("L1_degDayInc")
@@ -641,10 +525,22 @@ CONTAINS
 
     ! degree-day factor
     var = nc%getVariable("L1_degDay")
-    call var%getData(dummyD3)
-    do ii = 1, nLCoverScene
-      L1_degDay(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
-    end do
+    var_rank = var%getrank()
+    select case(var_rank)
+      case(2)
+        ! distribute over all land cover scenes
+        call var%getData(dummyD2)
+        do ii = 1, nLCoverScene
+          L1_degDay(s1 : e1, 1, ii) = pack(dummyD2, mask1)
+        end do
+      case(3)
+        call var%getData(dummyD3)
+        do ii = 1, nLCoverScene
+          L1_degDay(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+        end do
+      case default
+        call error_message("Restart: L1_degDay rank needs to be 2 or 3")
+    end select
 
     ! Karstic percolation loss
     var = nc%getVariable("L1_karstLoss")
@@ -667,8 +563,12 @@ CONTAINS
       L1_maxInter(s1 : e1, ii, 1) = pack(dummyD3(:, :, ii), mask1)
     end do
 
-    ! fast interflow recession coefficient
-    var = nc%getVariable("L1_kfastFlow")
+    ! fast interflow recession coefficient ("L1_kFastFlow" or "L1_kfastFlow")
+    if (nc%hasvariable("L1_kFastFlow")) then
+      var = nc%getVariable("L1_kFastFlow")
+    else
+      var = nc%getVariable("L1_kfastFlow")
+    end if
     call var%getData(dummyD3)
     do ii = 1, nLCoverScene
       L1_kfastFlow(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
@@ -676,18 +576,60 @@ CONTAINS
 
     ! slow interflow recession coefficient
     var = nc%getVariable("L1_kSlowFlow")
-    call var%getData(dummyD2)
-    L1_kSlowFlow(s1 : e1, 1, 1) = pack(dummyD2, mask1)
+    var_rank = var%getrank()
+    select case(var_rank)
+      case(2)
+        ! distribute over all land cover scenes
+        call var%getData(dummyD2)
+        do ii = 1, nLCoverScene
+          L1_kSlowFlow(s1 : e1, 1, ii) = pack(dummyD2, mask1)
+        end do
+      case(3)
+        call var%getData(dummyD3)
+        do ii = 1, nLCoverScene
+          L1_kSlowFlow(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+        end do
+      case default
+        call error_message("Restart: L1_kSlowFlow rank needs to be 2 or 3")
+    end select
 
     ! baseflow recession coefficient
     var = nc%getVariable("L1_kBaseFlow")
-    call var%getData(dummyD2)
-    L1_kBaseFlow(s1 : e1, 1, 1) = pack(dummyD2, mask1)
+    var_rank = var%getrank()
+    select case(var_rank)
+      case(2)
+        ! distribute over all land cover scenes
+        call var%getData(dummyD2)
+        do ii = 1, nLCoverScene
+          L1_kBaseFlow(s1 : e1, 1, ii) = pack(dummyD2, mask1)
+        end do
+      case(3)
+        call var%getData(dummyD3)
+        do ii = 1, nLCoverScene
+          L1_kBaseFlow(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+        end do
+      case default
+        call error_message("Restart: L1_kBaseFlow rank needs to be 2 or 3")
+    end select
 
     ! percolation coefficient
     var = nc%getVariable("L1_kPerco")
-    call var%getData(dummyD2)
-    L1_kPerco(s1 : e1, 1, 1) = pack(dummyD2, mask1)
+    var_rank = var%getrank()
+    select case(var_rank)
+      case(2)
+        ! distribute over all land cover scenes
+        call var%getData(dummyD2)
+        do ii = 1, nLCoverScene
+          L1_kPerco(s1 : e1, 1, ii) = pack(dummyD2, mask1)
+        end do
+      case(3)
+        call var%getData(dummyD3)
+        do ii = 1, nLCoverScene
+          L1_kPerco(s1 : e1, 1, ii) = pack(dummyD3(:, :, ii), mask1)
+        end do
+      case default
+        call error_message("Restart: L1_kPerco rank needs to be 2 or 3")
+    end select
 
     ! Soil moisture below which actual ET is reduced linearly till PWP
     ! for processCase(3) = 1
@@ -877,211 +819,5 @@ CONTAINS
    call nc%close()
 
   end subroutine read_restart_states
-
-  subroutine unpack_field_and_write_1d_i4(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
-
-    use mo_kind, only : i4
-    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
-
-    implicit none
-
-    ! NcDataset to add variable to
-    type(NcDataset), intent(inout) :: nc
-
-    ! variable name
-    character(*), intent(in) :: var_name
-
-    ! vector of Variable dimensions
-    type(NcDimension), dimension(:), intent(in) :: var_dims
-
-    ! fill value used for missing values
-    integer(i4), intent(in) :: fill_value
-
-    ! packed data to be set to variable
-    integer(i4), dimension(:), intent(in) :: data
-
-    ! mask used for unpacking
-    logical, dimension(:, :), intent(in) :: mask
-
-    ! variable long name attribute
-    character(*), optional, intent(in) :: var_long_name
-
-    type(NcVariable) :: var
-
-
-    ! set variable
-    var = nc%setVariable(var_name, "i32", var_dims)
-    call var%setFillValue(fill_value)
-
-    ! set the unpacked data
-    call var%setData(unpack(data, mask, fill_value))
-
-    ! optionally set attributes
-    if (present(var_long_name)) then
-      call var%setAttribute("long_name", trim(var_long_name))
-    end if
-
-  end subroutine
-
-  subroutine unpack_field_and_write_1d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
-
-    use mo_kind, only : dp
-    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
-
-    implicit none
-
-    ! NcDataset to add variable to
-    type(NcDataset), intent(inout) :: nc
-
-    ! variable name
-    character(*), intent(in) :: var_name
-
-    ! vector of Variable dimensions
-    type(NcDimension), dimension(:), intent(in) :: var_dims
-
-    ! fill value used for missing values
-    real(dp), intent(in) :: fill_value
-
-    ! packed data to be set to variable
-    real(dp), dimension(:), intent(in) :: data
-
-    ! mask used for unpacking
-    logical, dimension(:, :), intent(in) :: mask
-
-    ! variable long name attribute
-    character(*), optional, intent(in) :: var_long_name
-
-    type(NcVariable) :: var
-
-
-    ! set variable
-    var = nc%setVariable(var_name, "f64", var_dims)
-    call var%setFillValue(fill_value)
-
-    ! set the unpacked data
-    call var%setData(unpack(data, mask, fill_value))
-
-    ! optionally set attributes
-    if (present(var_long_name)) then
-      call var%setAttribute("long_name", trim(var_long_name))
-    end if
-
-  end subroutine
-
-  subroutine unpack_field_and_write_2d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
-
-    use mo_kind, only : dp, i4
-    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
-
-    implicit none
-
-    ! NcDataset to add variable to
-    type(NcDataset), intent(inout) :: nc
-
-    ! variable name
-    character(*), intent(in) :: var_name
-
-    ! vector of Variable dimensions
-    type(NcDimension), dimension(:), intent(in) :: var_dims
-
-    ! fill value used for missing values
-    real(dp), intent(in) :: fill_value
-
-    ! packed data to be set to variable
-    real(dp), dimension(:, :), intent(in) :: data
-
-    ! mask used for unpacking
-    logical, dimension(:, :), intent(in) :: mask
-
-    ! variable long name attribute
-    character(*), optional, intent(in) :: var_long_name
-
-    type(NcVariable) :: var
-
-    real(dp), dimension(:, :, :), allocatable :: dummy_arr
-
-    integer(i4), dimension(3) :: dim_length
-
-    integer(i4) :: ii
-
-
-    ! set variable
-    var = nc%setVariable(var_name, "f64", var_dims)
-    call var%setFillValue(fill_value)
-
-    dim_length = var%getShape()
-    allocate(dummy_arr(dim_length(1), dim_length(2), dim_length(3)))
-    do ii = 1, size(data, 2)
-      dummy_arr(:, :, ii) = unpack(data(:, ii), mask, fill_value)
-    end do
-
-    ! set the unpacked data
-    call var%setData(dummy_arr)
-
-    ! optionally set attributes
-    if (present(var_long_name)) then
-      call var%setAttribute("long_name", trim(var_long_name))
-    end if
-
-  end subroutine
-
-  subroutine unpack_field_and_write_3d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
-
-    use mo_kind, only : dp, i4
-    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
-
-    implicit none
-
-    ! NcDataset to add variable to
-    type(NcDataset), intent(inout) :: nc
-
-    ! variable name
-    character(*), intent(in) :: var_name
-
-    ! vector of Variable dimensions
-    type(NcDimension), dimension(:), intent(in) :: var_dims
-
-    ! fill value used for missing values
-    real(dp), intent(in) :: fill_value
-
-    ! packed data to be set to variable
-    real(dp), dimension(:, :, :), intent(in) :: data
-
-    ! mask used for unpacking
-    logical, dimension(:, :), intent(in) :: mask
-
-    ! variable long name attribute
-    character(*), optional, intent(in) :: var_long_name
-
-    type(NcVariable) :: var
-
-    real(dp), dimension(:, :, :, :), allocatable :: dummy_arr
-
-    integer(i4), dimension(4) :: dim_length
-
-    integer(i4) :: ii, jj
-
-
-    ! set variable
-    var = nc%setVariable(var_name, "f64", var_dims)
-    call var%setFillValue(fill_value)
-
-    dim_length = var%getShape()
-    allocate(dummy_arr(dim_length(1), dim_length(2), dim_length(3), dim_length(4)))
-    do ii = 1, size(data, 2)
-      do jj = 1, size(data, 3)
-        dummy_arr(:, :, ii, jj) = unpack(data(:, ii, jj), mask, fill_value)
-      end do
-    end do
-
-    ! set the unpacked data
-    call var%setData(dummy_arr)
-
-    ! optionally set attributes
-    if (present(var_long_name)) then
-      call var%setAttribute("long_name", trim(var_long_name))
-    end if
-
-  end subroutine
 
 END MODULE mo_restart

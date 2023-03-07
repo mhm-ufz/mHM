@@ -171,7 +171,7 @@ CONTAINS
     ! here average_swc is gravemtric swc = vol.swc/Bulk density
     average_swc = 0.0_dp
     do LL = 1, nLayers
-       !!>> add here if organic water is coming !!>> SoilMoisture(LL) + latWater(LL) + organic_water(LL)...
+       !! >> add here if organic water is coming !! >> SoilMoisture(LL) + latWater(LL) + organic_water(LL)...
        grav_swc = ( SoilMoisture(LL) + latWater(LL) )/Layer_depth(LL)/Bd(LL)
        average_swc = average_swc + ( grav_swc * cummulative_Layer_weight(LL) )
     end do
@@ -375,7 +375,7 @@ CONTAINS
     enddo
 
     !  neutrons=COSMIC_N*totflux
-    !!>> now based on global parameter given in mhm_paramater.nml
+    !! >> now based on global parameter given in mhm_paramater.nml
     neutrons = L1_N0*totflux
 
     !! free space
@@ -386,7 +386,7 @@ CONTAINS
 
 
 
-  !>>> Loop constants
+  ! >>> Loop constants
   subroutine loopConstants(ll, SoilMoisture,L1_bulkDens,L1_latticeWater,&
        L1_COSMICL3,sm,bd,lw,L3 )
      implicit none
@@ -416,7 +416,7 @@ CONTAINS
 
 
 
-  !>> layer thickness
+  ! >> layer thickness
   subroutine layerThickness(ll,Horizons,interc,snowpack,zthick)
      implicit none
      integer(i4), intent(in)              :: ll
@@ -435,7 +435,7 @@ CONTAINS
   end subroutine
 
 
-  !>> layer specific water height
+  ! >> layer specific water height
   subroutine layerWaterHeight(ll,sm,h2oeffheight)
      implicit none
      integer(i4),           intent(in)  :: ll

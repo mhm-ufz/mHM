@@ -10,6 +10,7 @@
 !! - Determining cell locations for network links.
 !! - Find drainage outlet.
 !! - Determine stream (links) features.
+!!
 !> \changelog
 !! - Rohini Kumar May 2014
 !!   - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
@@ -1156,7 +1157,7 @@ contains
       end do
       draCell0(ii, jj) = iSC
 
-      ! find cell at L11 corresponding to gauges in Domain at L0 !>> L11_on_L0 is Id of
+      ! find cell at L11 corresponding to gauges in Domain at L0 ! >> L11_on_L0 is Id of
       ! the routing cell at level-11
       if (gaugeLoc0(ii, jj) .NE. nodata_i4) then
         ! evaluation gauges
@@ -1307,7 +1308,7 @@ contains
 
     !  Routing network vectors have nNodes size instead of nLinks to
     !  avoid the need of having two extra indices to identify a Domain.
-    allocate (stack             (level11(iDomain)%nCells, 2)) !>> stack(nNodes, 2)
+    allocate (stack             (level11(iDomain)%nCells, 2)) ! >> stack(nNodes, 2)
     allocate (dummy_1d          (2))
     allocate (append_chunk      (8, 2))
     allocate (netPerm           (level11(iDomain)%nCells))

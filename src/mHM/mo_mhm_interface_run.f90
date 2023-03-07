@@ -33,7 +33,8 @@ module mo_mhm_interface_run
     simPer, &
     timeStep, &
     warmingDays, &
-    c2TSTu
+    c2TSTu, &
+    restart_reset_fluxes_states
   use mo_common_variables, only : &
     global_parameters, &
     level0, &
@@ -103,7 +104,7 @@ module mo_mhm_interface_run
     fnight_strd, &
     BFI_qBF_sum, &
     BFI_qT_sum
-  use mo_init_states, only : variables_default_init
+  use mo_init_states, only : variables_default_init, fluxes_states_default_init
   use mo_julian, only : caldat, julday
   use mo_string_utils, only : num2str
   use mo_meteo_forcings, only : prepare_meteo_forcings_data
@@ -173,7 +174,7 @@ module mo_mhm_interface_run
     L1_COSMICL3, &
     HorizonDepth_mHM, &
     nSoilHorizons_mHM
-  use mo_mrm_init, only : variables_default_init_routing
+  use mo_mrm_init, only : variables_default_init_routing, fluxes_states_default_init_routing
   use mo_mrm_mpr, only : mrm_update_param
   use mo_mrm_restart, only : mrm_read_restart_states
   use mo_mrm_routing, only : mrm_routing
@@ -254,6 +255,10 @@ contains
         ! this reads the eff. parameters and optionally the states and fluxes
         call read_restart_states(iDomain, domainID, mhmFileRestartIn(iDomain))
       end do
+      if (restart_reset_fluxes_states) then
+        call message('    Resetting mHM states and fluxes from restart files ...')
+        call fluxes_states_default_init()
+      end if
     else
       call variables_default_init()
       call mpr_eval(run_cfg%parameterset)
@@ -268,7 +273,7 @@ contains
   !> \brief get number of domains for looping
   subroutine mhm_interface_run_get_ndomains(ndomains)
     implicit none
-    integer(i4), intent(inout) :: ndomains
+    integer(i4), intent(inout) :: ndomains !< number of domains
     ndomains = run_cfg%nDomains
   end subroutine mhm_interface_run_get_ndomains
 
@@ -318,8 +323,13 @@ contains
       run_cfg%InflowDischarge = 0._dp
 
       ! read states from restart
-      if (read_restart) call mrm_read_restart_states(iDomain, domainID, mrmFileRestartIn(iDomain))
-
+      if (read_restart) then
+        call mrm_read_restart_states(iDomain, domainID, mrmFileRestartIn(iDomain))
+        if (restart_reset_fluxes_states) then
+          call message('    Resetting mRM states and fluxes from restart files for domain ', num2str(iDomain), ' ...')
+          call fluxes_states_default_init_routing(iDomain)
+        end if
+      end if
       ! get Domain information at L11 if routing is activated
       run_cfg%s11 = level11(iDomain)%iStart
       run_cfg%e11 = level11(iDomain)%iEnd
@@ -353,7 +363,7 @@ contains
   !> \brief check if current time loop is finished
   subroutine mhm_interface_run_finished(time_loop_finished)
     implicit none
-    logical, intent(inout) :: time_loop_finished
+    logical, intent(inout) :: time_loop_finished !< flag to indicate end of timeloop
     time_loop_finished = run_cfg%time_step == run_cfg%domainDateTime%nTimeSteps
   end subroutine mhm_interface_run_finished
 
@@ -488,7 +498,7 @@ contains
       L1_Throughfall(run_cfg%s1 : run_cfg%e1), &
       L1_total_runoff(run_cfg%s1 : run_cfg%e1), & ! INOUT X
       ! MPR
-      L1_alpha(run_cfg%s1 : run_cfg%e1, 1, 1), &
+      L1_alpha(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), &
       L1_degDayInc(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), &
       L1_degDayMax(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), & ! INOUT E1
       L1_degDayNoPre(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), &
@@ -503,9 +513,9 @@ contains
       L1_maxInter(run_cfg%s1 : run_cfg%e1, run_cfg%domainDateTime%iLAI, 1), &
       L1_karstLoss(run_cfg%s1 : run_cfg%e1, 1, 1), & ! INOUT E1
       L1_kFastFlow(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), &
-      L1_kSlowFlow(run_cfg%s1 : run_cfg%e1, 1, 1), & ! INOUT E1
-      L1_kBaseFlow(run_cfg%s1 : run_cfg%e1, 1, 1), &
-      L1_kPerco(run_cfg%s1 : run_cfg%e1, 1, 1), & ! INOUT E1
+      L1_kSlowFlow(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), & ! INOUT E1
+      L1_kBaseFlow(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), &
+      L1_kPerco(run_cfg%s1 : run_cfg%e1, 1, run_cfg%domainDateTime%yId), & ! INOUT E1
       L1_soilMoistFC(run_cfg%s1 : run_cfg%e1, :, run_cfg%domainDateTime%yId), & ! INOUT E1
       L1_soilMoistSat(run_cfg%s1 : run_cfg%e1, :, run_cfg%domainDateTime%yId), & ! INOUT E1
       L1_soilMoistExp(run_cfg%s1 : run_cfg%e1, :, run_cfg%domainDateTime%yId), &
@@ -514,7 +524,7 @@ contains
       L1_unsatThresh(run_cfg%s1 : run_cfg%e1, 1, 1), & ! INOUT E1
       L1_sealedThresh(run_cfg%s1 : run_cfg%e1, 1, 1), & ! INOUT E1
       L1_wiltingPoint(run_cfg%s1 : run_cfg%e1, :, run_cfg%domainDateTime%yId), & ! INOUT E1
-      !>> neutron count
+      ! >> neutron count
       L1_No_Count(run_cfg%s1:run_cfg%e1, 1, 1),  &                     ! INOUT E1
       L1_bulkDens(run_cfg%s1:run_cfg%e1,     :, run_cfg%domainDateTime%yId), & ! INOUT E1
       L1_latticeWater(run_cfg%s1:run_cfg%e1, :, run_cfg%domainDateTime%yId), & ! INOUT E1

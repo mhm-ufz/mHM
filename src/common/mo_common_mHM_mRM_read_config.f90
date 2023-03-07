@@ -20,33 +20,17 @@ MODULE mo_common_mHM_mRM_read_config
 
   PUBLIC :: common_mHM_mRM_read_config, common_check_resolution, check_optimization_settings
 
-  ! ------------------------------------------------------------------
-
 CONTAINS
 
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        common_mHM_mRM_read_config
-
-  !    PURPOSE
-  !>       \brief Read main configurations for common parts
-
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "character(*) :: file_namelist"
-  !>       \param[in] "integer :: unamelist"
-
-  !    HISTORY
-  !>       \authors Matthias Zink
-
-  !>       \date Dec 2012
-
-  ! Modifications:
-  ! Robert Schweppe Dec  2017 - based on mhm_read_config
-  ! Stephan Thober Jan 2022 - added nTStepForcingDay
-
+  !> \brief Read main configurations for common parts
+  !> \changelog
+  !! - Robert Schweppe Dec  2017
+  !!   - based on mhm_read_config
+  !! - Stephan Thober Jan 2022
+  !!   - added nTStepForcingDay
+  !> \authors Matthias Zink
+  !> \date Dec 2012
   subroutine common_mHM_mRM_read_config(file_namelist, unamelist)
 
     use mo_common_constants, only : maxNoDomains, nodata_i4
@@ -55,7 +39,8 @@ CONTAINS
                                             nTStepDay, nTStepForcingDay, opti_function, opti_method, optimize, optimize_restart, &
                                             read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
                                             sce_ngs, sce_npg, sce_nps, seed, &
-                                            simPer, timestep, warmPer, warmingDays, read_old_style_restart_bounds
+                                            simPer, timestep, warmPer, warmingDays, read_old_style_restart_bounds, &
+                                            restart_reset_fluxes_states
     use mo_common_read_config, only : set_land_cover_scenes_id
     use mo_common_variables, only : LCfilename, domainMeta, period, processMatrix
     use mo_julian, only : caldat, julday
@@ -64,9 +49,8 @@ CONTAINS
 
     implicit none
 
-    character(*), intent(in) :: file_namelist
-
-    integer, intent(in) :: unamelist
+    character(*), intent(in) :: file_namelist !< namelist file name
+    integer, intent(in) :: unamelist !< unit to open namelist file
 
     integer(i4) :: jday
 
@@ -85,7 +69,7 @@ CONTAINS
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig_mhm_mrm/ timestep, resolution_Routing, optimize, &
             optimize_restart, opti_method, opti_function, &
-            read_restart, mrm_read_river_network, read_old_style_restart_bounds, &
+            read_restart, mrm_read_river_network, read_old_style_restart_bounds, restart_reset_fluxes_states, &
             mhm_file_RestartIn, mrm_file_RestartIn
     ! namelist for optimization settings
     namelist /Optimization/ nIterations, seed, dds_r, sa_temp, sce_ngs, &
@@ -96,6 +80,7 @@ CONTAINS
     ! set default values for optional arguments
     mrm_read_river_network = .false.
     read_old_style_restart_bounds = .false.
+    restart_reset_fluxes_states = .false.
 
     !===============================================================
     !  Read namelist main directories
@@ -216,21 +201,10 @@ CONTAINS
 
   end subroutine common_mHM_mRM_read_config
 
-  !    NAME
-  !        check_optimization_settings
 
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
+  !> \brief check optimization settings
+  !> \authors Robert Schweppe
+  !> \date Jun 2018
   subroutine check_optimization_settings
 
     use mo_common_mHM_mRM_variables, only : dds_r, nIterations, sce_ngs, sce_npg, sce_nps
@@ -268,25 +242,10 @@ CONTAINS
 
   end subroutine check_optimization_settings
 
-  !    NAME
-  !        common_check_resolution
 
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "logical :: do_message"
-  !>       \param[in] "logical :: allow_subgrid_routing"
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
+  !> \brief check resolution
+  !> \authors Robert Schweppe
+  !> \date Jun 2018
   subroutine common_check_resolution(do_message, allow_subgrid_routing)
 
     use mo_common_mHM_mRM_variables, only : resolutionRouting
@@ -295,9 +254,8 @@ CONTAINS
 
     implicit none
 
-    logical, intent(in) :: do_message
-
-    logical, intent(in) :: allow_subgrid_routing
+    logical, intent(in) :: do_message !< flag to print messages
+    logical, intent(in) :: allow_subgrid_routing !< flag to allow subgrid routing
 
     integer(i4) :: iDomain, domainID
 
@@ -343,11 +301,13 @@ CONTAINS
 
   end subroutine common_check_resolution
 
+
   ! ToDo: make this a procedure of period
+  !> \brief copy period data
   subroutine period_copy_period_data(toPeriod, fromPeriod)
     use mo_common_variables, only : period
-    type(period), intent(inout) :: toPeriod
-    type(period), intent(in)    :: fromPeriod
+    type(period), intent(inout) :: toPeriod !< copy to this period
+    type(period), intent(in)    :: fromPeriod !< copy from this period
 
     toPeriod%dStart   = fromPeriod%dStart    ! first day
     toPeriod%mStart   = fromPeriod%mStart    ! first month
@@ -360,4 +320,5 @@ CONTAINS
     toPeriod%nObs     = 0 ! total number of observations
 
   end subroutine period_copy_period_data
+
 END MODULE mo_common_mHM_mRM_read_config

@@ -22,12 +22,14 @@ MODULE mo_mrm_init
 
   public :: mrm_init, mrm_configuration
   public :: variables_default_init_routing
+  public :: fluxes_states_default_init_routing
 
   private
 
 CONTAINS
 
-subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param)
+  !> \brief read mRM configuration from namelists
+  subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param)
     use mo_common_mHM_mRM_variables, only : mrm_coupling_mode
     use mo_common_variables, only : processMatrix
     use mo_mrm_read_config, only : mrm_read_config
@@ -37,9 +39,10 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
     use mo_kind, only : i4
     implicit none
 
-    character(*), intent(in) :: file_namelist, file_namelist_param
-
-    integer, intent(in) :: unamelist, unamelist_param
+    character(*), intent(in) :: file_namelist !< namelist file name
+    integer, intent(in) :: unamelist !< unit to open namelist
+    character(*), intent(in) :: file_namelist_param !< parameter namelist file name
+    integer, intent(in) :: unamelist_param !< unit to open parameter namelist
 
     if (mrm_coupling_mode .eq. 0_i4) then
       call common_read_config(file_namelist, unamelist)
@@ -72,40 +75,29 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
       !-----------------------------------------------------------
       call config_output()
     end if
-end subroutine mrm_configuration
-  ! ------------------------------------------------------------------
-
-  !    NAME
-  !        mrm_init
-
-  !    PURPOSE
-  !>       \brief Initialize all mRM variables at all levels (i.e., L0, L1, and L11).
-
-  !>       \details Initialize all mRM variables at all levels (i.e., L0, L1, and L11)
-  !>       either with default values or with values from restart file. The L0 mask (L0_mask),
-  !>       L0 elevation (L0_elev), and L0 land cover (L0_LCover) can be provided as optional
-  !>       variables to save memory because these variable will then not be read in again.
-
-  !    INTENT(IN)
-  !>       \param[in] "character(*) :: file_namelist, file_namelist_param"
-  !>       \param[in] "integer :: unamelist, unamelist_param"
-  !>       \param[in] "character(*) :: file_namelist, file_namelist_param"
-  !>       \param[in] "integer :: unamelist, unamelist_param"
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Aug 2015
-
-  ! Modifications:
-  ! Stephan Thober Sep 2015 - added L0_mask, L0_elev, and L0_LCover
-  ! Stephan Thober May 2016 - added warning message in case no gauge is found in modelling domain
-  ! Matthias Kelbling Aug 2017 - added L11_flow_accumulation to Initialize Stream Netwo
-  ! Lennart Schueler May 2018 - added initialization for groundwater coupling
-  ! Stephan Thober Jun 2018 - refactored for mpr_extract version
-  ! Stephan Thober May 2019 - added init of level0 in case of read restart
+  end subroutine mrm_configuration
 
 
+  !> \brief Initialize all mRM variables at all levels (i.e., L0, L1, and L11).
+  !> \details Initialize all mRM variables at all levels (i.e., L0, L1, and L11)
+  !! either with default values or with values from restart file. The L0 mask (L0_mask),
+  !! L0 elevation (L0_elev), and L0 land cover (L0_LCover) can be provided as optional
+  !! variables to save memory because these variable will then not be read in again.
+  !> \changelog
+  !! - Stephan Thober Sep 2015
+  !!   - added L0_mask, L0_elev, and L0_LCover
+  !! - Stephan Thober May 2016
+  !!   - added warning message in case no gauge is found in modelling domain
+  !! - Matthias Kelbling Aug 2017
+  !!   - added L11_flow_accumulation to Initialize Stream Netwo
+  !! - Lennart Schueler May 2018
+  !!   - added initialization for groundwater coupling
+  !! - Stephan Thober Jun 2018
+  !!   - refactored for mpr_extract version
+  !! - Stephan Thober May 2019
+  !!   - added init of level0 in case of read restart
+  !> \authors Stephan Thober
+  !> \date Aug 2015
   subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
@@ -134,9 +126,10 @@ end subroutine mrm_configuration
 
     implicit none
 
-    character(*), intent(in) :: file_namelist, file_namelist_param
-
-    integer, intent(in) :: unamelist, unamelist_param
+    character(*), intent(in) :: file_namelist !< namelist file name
+    integer, intent(in) :: unamelist !< unit to open namelist
+    character(*), intent(in) :: file_namelist_param !< parameter namelist file name
+    integer, intent(in) :: unamelist_param !< unit to open parameter namelist
 
     ! start and end index for routing parameters
     integer(i4) :: iStart, iEnd
@@ -320,28 +313,9 @@ end subroutine mrm_configuration
   end subroutine mrm_init
 
 
-  !===============================================================
-  ! PRINT STARTUP MESSAGE
-  !===============================================================
-  !    NAME
-  !        print_startup_message
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "character(*) :: file_namelist, file_namelist_param"
-  !>       \param[in] "character(*) :: file_namelist, file_namelist_param"
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
+  !> \brief Print mRM startup message
+  !> \authors Robert Schweppe
+  !> \date Jun 2018
   subroutine print_startup_message(file_namelist, file_namelist_param)
 
     use mo_kind, only : i4
@@ -350,7 +324,8 @@ end subroutine mrm_configuration
 
     implicit none
 
-    character(*), intent(in) :: file_namelist, file_namelist_param
+    character(*), intent(in) :: file_namelist !< namelist file name
+    character(*), intent(in) :: file_namelist_param !< parameter namelist file name
 
     ! Date and time
     integer(i4), dimension(8) :: datetime
@@ -385,24 +360,9 @@ end subroutine mrm_configuration
   end subroutine print_startup_message
 
 
-  !---------------------------------------------------------------
-  ! Config output
-  !---------------------------------------------------------------
-  !    NAME
-  !        config_output
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
+  !> \brief print mRM configuration
+  !> \authors Robert Schweppe
+  !> \date Jun 2018
   subroutine config_output
 
     use mo_common_variables, only : dirLCover, dirMorpho, dirOut, domainMeta
@@ -454,57 +414,34 @@ end subroutine mrm_configuration
   end subroutine config_output
 
 
-  ! ------------------------------------------------------------------
-
-  !    NAME
-  !        variables_default_init_routing
-
-  !    PURPOSE
-  !>       \brief Default initalization mRM related L11 variables
-
-  !>       \details Default initalization of mHM related L11 variables (e.g., states,
-  !>       fluxes, and parameters) as per given constant values given in mo_mhm_constants.
-  !>       Variables initalized here is defined in the mo_global_variables.f90 file.
-  !>       Only Variables that are defined in the variables_alloc subroutine are
-  !>       intialized here.
-  !>       If a variable is added or removed here, then it also has to be added or removed
-  !>       in the subroutine state_variables_set in the module mo_restart and in the
-  !>       subroutine set_state in the module mo_set_netcdf_restart.
-  !>       ADDITIONAL INFORMATION
-  !>       variables_default_init_routing
-
-
-  !>       call variables_default_init()
-  !>       \authors  Stephan Thober, Rohini Kumar, and Juliane Mai
-  !>       \date    Aug 2015
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
+  !> \brief Default initalization mRM related L11 variables
+  !> \details Default initalization of mHM related L11 variables (e.g., states,
+  !! fluxes, and parameters) as per given constant values given in mo_mhm_constants.
+  !! Variables initalized here is defined in the mo_global_variables.f90 file.
+  !! Only Variables that are defined in the variables_alloc subroutine are
+  !! intialized here.
+  !! If a variable is added or removed here, then it also has to be added or removed
+  !! in the subroutine state_variables_set in the module mo_restart and in the
+  !! subroutine set_state in the module mo_set_netcdf_restart.
+  !> \authors  Stephan Thober, Rohini Kumar, and Juliane Mai
+  !> \date    Aug 2015
+  !> \authors Robert Schweppe
+  !> \date Jun 2018
   subroutine variables_default_init_routing
 
     use mo_common_constants, only : P1_InitStateFluxes
-    use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, L11_Qmod, L11_qOUT, L11_qTIN, L11_qTR, L11_xi
+    use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, L11_xi
 
     implicit none
-
 
     !-------------------------------------------
     ! L11 ROUTING STATE VARIABLES, FLUXES AND
     !             PARAMETERS
     !-------------------------------------------
-    ! simulated discharge at each node
-    L11_Qmod = P1_InitStateFluxes
-    ! Total outflow from cells L11 at time tt
-    L11_qOUT = P1_InitStateFluxes
-    ! Total discharge inputs at t-1 and t
-    L11_qTIN = P1_InitStateFluxes
-    !  Routed outflow leaving a node
-    L11_qTR = P1_InitStateFluxes
+
+    ! fluxes and states
+    call fluxes_states_default_init_routing()
+
     ! kappa: Muskingum travel time parameter.
     L11_K = P1_InitStateFluxes
     ! xi:    Muskingum diffusion parameter
@@ -516,28 +453,54 @@ end subroutine mrm_configuration
 
   end subroutine variables_default_init_routing
 
+  !> \brief initialize fluxes and states with default values for mRM
+  subroutine fluxes_states_default_init_routing(iDomain)
 
-  ! --------------------------------------------------------------------------
-  ! L0_check_input_routing
-  ! --------------------------------------------------------------------------
-  !    NAME
-  !        L0_check_input_routing
+    use mo_kind, only: i4
+    use mo_mrm_global_variables, only : level11
+    use mo_common_constants, only : P1_InitStateFluxes
+    use mo_mrm_global_variables, only : L11_Qmod, L11_qOUT, L11_qTIN, L11_qTR
 
-  !    PURPOSE
-  !>       \brief TODO: add description
+    implicit none
 
-  !>       \details TODO: add description
+    !> number of Domain (if not present, set for all)
+    integer(i4), intent(in), optional :: iDomain
 
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: L0Domain_iDomain"
+    integer(i4) :: s11, e11
 
-  !    HISTORY
-  !>       \authors Robert Schweppe
+    !-------------------------------------------
+    ! L11 ROUTING STATE VARIABLES, FLUXES AND
+    !             PARAMETERS
+    !-------------------------------------------
 
-  !>       \date Jun 2018
+    if (present(iDomain)) then
+      s11 = level11(iDomain)%iStart
+      e11 = level11(iDomain)%iEnd
+      ! simulated discharge at each node
+      L11_Qmod(s11 : e11) = P1_InitStateFluxes
+      ! Total outflow from cells L11 at time tt
+      L11_qOUT(s11 : e11) = P1_InitStateFluxes
+      ! Total discharge inputs at t-1 and t
+      L11_qTIN(s11 : e11, :) = P1_InitStateFluxes
+      !  Routed outflow leaving a node
+      L11_qTR(s11 : e11, :) = P1_InitStateFluxes
+    else
+      ! simulated discharge at each node
+      L11_Qmod = P1_InitStateFluxes
+      ! Total outflow from cells L11 at time tt
+      L11_qOUT = P1_InitStateFluxes
+      ! Total discharge inputs at t-1 and t
+      L11_qTIN = P1_InitStateFluxes
+      !  Routed outflow leaving a node
+      L11_qTR = P1_InitStateFluxes
+    end if
 
-  ! Modifications:
+  end subroutine fluxes_states_default_init_routing
 
+
+  !> \brief check routing input on level-0
+  !> \authors Robert Schweppe
+  !> \date Jun 2018
   subroutine L0_check_input_routing(L0Domain_iDomain)
 
     use mo_common_constants, only : nodata_i4
@@ -548,7 +511,7 @@ end subroutine mrm_configuration
 
     implicit none
 
-    integer(i4), intent(in) :: L0Domain_iDomain
+    integer(i4), intent(in) :: L0Domain_iDomain !< domain index for associated level-0 data
 
     integer(i4) :: k
 
@@ -572,28 +535,9 @@ end subroutine mrm_configuration
   end subroutine L0_check_input_routing
 
 
-  ! --------------------------------------------------------------------------
-  ! L11 ROUTING STATE VARIABLES, FLUXES AND
-  !             PARAMETERS
-  ! --------------------------------------------------------------------------
-  !    NAME
-  !        variables_alloc_routing
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain"
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
+  !> \brief allocated routing related variables
+  !> \authors Robert Schweppe
+  !> \date Jun 2018
   subroutine variables_alloc_routing(iDomain)
 
     use mo_append, only : append
@@ -606,7 +550,7 @@ end subroutine mrm_configuration
 
     implicit none
 
-    integer(i4), intent(in) :: iDomain
+    integer(i4), intent(in) :: iDomain !< domain index
 
     real(dp), dimension(:), allocatable :: dummy_Vector11
 

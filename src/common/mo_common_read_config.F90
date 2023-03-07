@@ -24,29 +24,17 @@ MODULE mo_common_read_config
 
 CONTAINS
 
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        common_read_config
-
-  !    PURPOSE
-  !>       \brief Read main configurations commonly used by mHM, mRM and MPR
-
-  !>       \details Read the main configurations commonly used by mHM, mRM and MPR, namely:
-  !>       project_description, directories_general, mainconfig, processSelection, LCover
-
-  !    INTENT(IN)
-  !>       \param[in] "character(*) :: file_namelist" name of file
-  !>       \param[in] "integer :: unamelist"          id of file
-
-  !    HISTORY
-  !>       \authors Matthias Zink
-
-  !>       \date Dec 2012
-
-  ! Modifications:
-  ! Robert Schweppe Dec  2018 - refactoring and restructuring
-
+  !> \brief Read main configurations commonly used by mHM, mRM and MPR
+  !> \details Read the main configurations commonly used by mHM, mRM and MPR, namely:
+  !! project_description, directories_general, mainconfig, processSelection, LCover
+  !> \changelog
+  !! - Robert Schweppe Dec  2018
+  !!   - refactoring and restructuring
+  !! - Sebastian Müller Mar 2023
+  !!   - added check_L0Domain
+  !> \authors Matthias Zink
+  !> \date Dec 2012
   subroutine common_read_config(file_namelist, unamelist)
 
     use mo_common_constants, only : maxNLcovers, maxNoDomains
@@ -61,10 +49,10 @@ CONTAINS
 
     implicit none
 
-    ! name of file
+    !> name of file
     character(*), intent(in) :: file_namelist
 
-    ! id of file
+    !> id of file
     integer, intent(in) :: unamelist
 
     ! Choosen process description number
@@ -142,6 +130,8 @@ CONTAINS
     if (nDomains .GT. maxNoDomains) then
       call error_message('***ERROR: Number of domains is resticted to ', trim(num2str(maxNoDomains)), '!')
     end if
+
+    call check_L0Domain(L0Domain, nDomains)
 
     ! allocate patharray sizes
     allocate(resolutionHydrology(domainMeta%nDomains))
@@ -236,32 +226,13 @@ CONTAINS
 
   end subroutine common_read_config
 
-    ! ------------------------------------------------------------------
 
-  !    NAME
-  !        set_land_cover_scenes_id
-
-  !    PURPOSE
-  !>       \brief Read main configurations commonly used by mHM, mRM and MPR
-
-  !>       \details Read the main configurations commonly used by mHM, mRM and MPR, namely:
-  !>       project_description, directories_general, mainconfig, processSelection, LCover
-
-  !    INTENT(IN)
-  !>       \param[in] "type(period), dimension(:) :: sim_Per"
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "integer(i4), dimension(:, :) :: LCyear_Id"
-  !>       \param[inout] "character(256), dimension(:) :: LCfilename"
-
-  !    HISTORY
-  !>       \authors Matthias Zink
-
-  !>       \date Dec 2012
-
-  ! Modifications:
-  ! Robert Schweppe Dec  2018 - refactoring and restructuring
-
+  !> \brief Set land cover scenes IDs
+  !> \changelog
+  !! - Robert Schweppe Dec  2018
+  !!   - refactoring and restructuring
+  !> \authors Matthias Zink
+  !> \date Dec 2012
   subroutine set_land_cover_scenes_id(sim_Per, LCyear_Id)
 
     use mo_common_constants, only : nodata_i4
@@ -270,9 +241,8 @@ CONTAINS
 
     implicit none
 
-    type(period), dimension(:), intent(in) :: sim_Per
-
-    integer(i4), dimension(:, :), allocatable, intent(inout) :: LCyear_Id
+    type(period), dimension(:), intent(in) :: sim_Per !< simulation period
+    integer(i4), dimension(:, :), allocatable, intent(inout) :: LCyear_Id !< land cover year ID
 
     integer(i4) :: ii, iDomain
 
@@ -321,39 +291,40 @@ CONTAINS
 
   end subroutine set_land_cover_scenes_id
 
-!< author: Maren Kaluza
-!< date: September 2019
-!< summary: Initialization of the domain variable for all domain loops and if activated for parallelization
 
-!< In case of MPI parallelization domainMeta%overAllNumberOfDomains is a
-!< variable where the number of domains from the namelist is stored. By this
-!< every process knows the total number of domains. Then, in a loop the
-!< domains are distributed onto the processes. There is a master process
-!< and several subprocesses. The master process only reads the confings in the
-!< mHM driver.
-!<
-!< The subprocesses get a number of domains. domainMeta%nDomain refers
-!< to the number of domains assigned to a specific process. It is a local
-!< variable and therefore has a different value for each process.
-!<
-!< In case more domains are there than processes, currently the domains
-!< are distributed round robin, i.e. like cards in a card game.
-!<
-!< In case less domains than processes exist, all remaining processes
-!< are assigned to the routing domains round robin. In that case the
-!< local communicator is of interest: It is a group of processes assigned
-!< to a routing domain again with a master process
-!< (domainMeta%isMasterInComLocal) and subprocesses. This communicator can
-!< in future be passed to the routing parallelization.
+  !> \brief Initialization of the domain variables
+  !> \details Initialization of the domain variable for all domain loops and if activated for parallelization
+  !! In case of MPI parallelization domainMeta%overAllNumberOfDomains is a
+  !! variable where the number of domains from the namelist is stored. By this
+  !! every process knows the total number of domains. Then, in a loop the
+  !! domains are distributed onto the processes. There is a master process
+  !! and several subprocesses. The master process only reads the confings in the
+  !! mHM driver.
+  !!
+  !! The subprocesses get a number of domains. domainMeta%nDomain refers
+  !! to the number of domains assigned to a specific process. It is a local
+  !! variable and therefore has a different value for each process.
+  !!
+  !! In case more domains are there than processes, currently the domains
+  !! are distributed round robin, i.e. like cards in a card game.
+  !!
+  !! In case less domains than processes exist, all remaining processes
+  !! are assigned to the routing domains round robin. In that case the
+  !! local communicator is of interest: It is a group of processes assigned
+  !! to a routing domain again with a master process
+  !! (domainMeta%isMasterInComLocal) and subprocesses. This communicator can
+  !! in future be passed to the routing parallelization.
+  !> \author Maren Kaluza
+  !> \date Sep 2019
   subroutine init_domain_variable(nDomains, optiData, domainMeta)
     use mo_common_variables, only: domain_meta
 #ifdef MPI
     use mo_common_variables, only: comm
     use mpi_f08
 #endif
-    integer(i4),       intent(in)    :: nDomains
-    integer(i4), dimension(:), intent(in) :: optiData
-    type(domain_meta), intent(inout) :: domainMeta
+    integer(i4),       intent(in)    :: nDomains !< number of domains
+    integer(i4), dimension(:), intent(in) :: optiData !< optimization data
+    type(domain_meta), intent(inout) :: domainMeta !< domain meta info
 
     integer             :: ierror
     integer(i4)         :: nproc
@@ -441,7 +412,6 @@ CONTAINS
 
   end subroutine init_domain_variable_for_master
 
-
   subroutine distributeDomainsRoundRobin(nproc, rank, domainMeta)
     use mo_common_variables, only: domain_meta
     integer(i4),       intent(in)    :: nproc
@@ -518,5 +488,42 @@ CONTAINS
     deallocate(treeDomainList)
   end subroutine
 #endif
+
+  ! \brief check the L0Domain variable from the namelist
+  !> \authors Sebastian Müller
+  !> \date Mar 2023
+  subroutine check_L0Domain(L0Domain, nDomains)
+    use mo_common_constants, only : maxNoDomains
+    use mo_string_utils, only : num2str
+
+    integer(i4), dimension(maxNoDomains), intent(in) ::L0Domain !< given L0Domain variable
+    integer(i4), intent(in) :: nDomains !< number of domains
+
+    integer(i4) :: i
+
+    do i = 1, nDomains
+      if (L0Domain(i) < 0) call error_message( &
+        "L0Domain values need to be positive: ", &
+        "L0Domain(", trim(adjustl(num2str(i))), ") = ", trim(adjustl(num2str(L0Domain(i)))))
+      if (L0Domain(i) > i) call error_message( &
+        "L0Domain values need to be less or equal to the domain index: ", &
+        "L0Domain(", trim(adjustl(num2str(i))), ") = ", trim(adjustl(num2str(L0Domain(i)))))
+      ! check for increasing values
+      if (i > 1) then
+        if (L0Domain(i) < L0Domain(i-1)) call error_message( &
+          "L0Domain values need to be increasing: ", &
+          "L0Domain(", trim(adjustl(num2str(i-1))), ") = ", trim(adjustl(num2str(L0Domain(i-1)))), &
+          ", L0Domain(", trim(adjustl(num2str(i))), ") = ", trim(adjustl(num2str(L0Domain(i)))))
+      end if
+      ! if lower, check that the reference domain uses its own L0Data
+      if (L0Domain(i) < i) then
+        if (L0Domain(L0Domain(i)) /= L0Domain(i)) call error_message( &
+          "L0Domain values should be taken from a domain with its own L0 data: ", &
+          "L0Domain(", trim(adjustl(num2str(i))), ") = ", trim(adjustl(num2str(L0Domain(i)))), &
+          ", L0Domain(", trim(adjustl(num2str(L0Domain(i)))), ") = ", trim(adjustl(num2str(L0Domain(L0Domain(i))))))
+      end if
+    end do
+
+  end subroutine check_L0Domain
 
 END MODULE mo_common_read_config

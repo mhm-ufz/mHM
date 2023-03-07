@@ -387,7 +387,7 @@ contains
           !$OMP DO PRIVATE( l, s ) SCHEDULE( STATIC )
           cellloop0 : do k = 1, size(LCOVER0, 1)
              l = LCOVER0(k)
-             s = soilID0(k, 1)  !>> in this case the second dimension of soilId0 = 1
+             s = soilID0(k, 1)  ! >> in this case the second dimension of soilId0 = 1
              ! depth weightage bulk density
              Bd0(k) = sum(Db(s, : nTillHorizons(s), L) * Wd(S, H, 1 : nTillHorizons(S)), &
                   Wd(S, H, 1 : nTillHorizons(S)) > 0.0_dp) &
@@ -601,13 +601,13 @@ contains
             SMs0(k)= thetaS_till (s, 1, L) * (dpth_t - dpth_f)  ! in mm
             FC0(k) = thetaFC_till(s, 1, L) * (dpth_t - dpth_f)  ! in mm
             PW0(k) = thetaPW_till(s, 1, L) * (dpth_t - dpth_f)  ! in mm
-            LW0(k) = latWat_till(s, 1, L)  * (dpth_t - dpth_f)  ! in mm  !>> neutron count
+            LW0(k) = latWat_till(s, 1, L)  * (dpth_t - dpth_f)  ! in mm  ! >> neutron count
           else
             Bd0(k) = DbM(s, 1)
             SMs0(k)= thetaS (s, 1) * (dpth_t - dpth_f)  ! in mm
             FC0(k) = thetaFC(s, 1) * (dpth_t - dpth_f)  ! in mm
             PW0(k) = thetaPW(s, 1) * (dpth_t - dpth_f)  ! in mm
-            LW0(k) = latWat(s, 1)  * (dpth_t - dpth_f)  ! in mm  !>> neutron count
+            LW0(k) = latWat(s, 1)  * (dpth_t - dpth_f)  ! in mm  ! >> neutron count
           end if
         end do cellloop1
         !$OMP END DO
