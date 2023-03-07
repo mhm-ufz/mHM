@@ -16,9 +16,6 @@
 !> \ingroup f_mhm
 MODULE mo_restart
 
-  ! This module is a restart for the UFZ CHS mesoscale hydrologic model mHM.
-
-  ! Written  Stephan Thober, Apr 2011
   use mo_common_constants, only : soilHorizonsVarName, landCoverPeriodsVarName, LAIVarName
 
   IMPLICIT NONE
@@ -28,75 +25,31 @@ MODULE mo_restart
   PUBLIC :: read_restart_states     ! read restart files for state variables from a given path
   PUBLIC :: write_restart_files     ! write restart files for configuration to a given path
 
-  !    NAME
-  !        unpack_field_and_write
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to add variable to
-
-  !    INTENT(IN)
-  !>       \param[in] "character(*) :: var_name"                    variable name
-  !>       \param[in] "type(NcDimension), dimension(:) :: var_dims" vector of Variable dimensions
-  !>       \param[in] "integer(i4) :: fill_value"                   fill value used for missing values
-  !>       \param[in] "integer(i4), dimension(:) :: data"           packed data to be set to variable
-  !>       \param[in] "logical, dimension(:, :) :: mask"            mask used for unpacking
-
-  !    INTENT(IN), OPTIONAL
-  !>       \param[in] "character(*), optional :: var_long_name" variable long name attribute
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
-
-  INTERFACE unpack_field_and_write
-    MODULE PROCEDURE unpack_field_and_write_1d_i4, &
-            unpack_field_and_write_1d_dp, &
-            unpack_field_and_write_2d_dp, &
-            unpack_field_and_write_3d_dp
-  end interface unpack_field_and_write
-
-
 CONTAINS
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        write_restart_files
-
-  !    PURPOSE
-  !>       \brief write restart files for each domain
-
-  !>       \details write restart files for each domain. For each domain
-  !>       three restart files are written. These are xxx_states.nc,
-  !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
-  !>       domain index). If a variable is added here, it should also be added
-  !>       in the read restart routines below.
-
-  !    INTENT(IN)
-  !>       \param[in] "character(256), dimension(:) :: OutFile" Output Path for each domain
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Jun 2014
-
-  ! Modifications:
-  ! Stephan Thober     Aug  2015 - moved write of routing states to mRM
-  ! David Schaefer     Nov  2015 - mo_netcdf
-  ! Stephan Thober     Nov  2016 - moved processMatrix to common variables
-  ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
-  ! Robert Schweppe    Feb 2018 - Removed all L0 references
-  ! Robert Schweppe    Jun 2018 - refactoring and reformatting
-  ! Stephan Thober     Dec 2022 - added grid info for level0
-
+  !> \brief write restart files for each domain
+  !> \details write restart files for each domain. For each domain
+  !! three restart files are written. These are xxx_states.nc,
+  !! xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
+  !! domain index). If a variable is added here, it should also be added
+  !! in the read restart routines below.
+  !> \changelog
+  !! - Stephan Thober     Aug  2015
+  !!   - moved write of routing states to mRM
+  !! - David Schaefer     Nov  2015
+  !!   - mo_netcdf
+  !! - Stephan Thober     Nov  2016
+  !!   - moved processMatrix to common variables
+  !! - Zink M. Demirel C. Mar 2017
+  !!   - Added Jarvis soil water stress function at SM process(3)
+  !! - Robert Schweppe    Feb 2018
+  !!   - Removed all L0 references
+  !! - Robert Schweppe    Jun 2018
+  !!   - refactoring and reformatting
+  !! - Stephan Thober     Dec 2022
+  !!   - added grid info for level0
+  !> \authors Stephan Thober
+  !> \date Jun 2014
   subroutine write_restart_files(OutFile)
 
     use mo_common_constants, only : nodata_dp
@@ -316,34 +269,26 @@ CONTAINS
 
   end subroutine write_restart_files
 
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        read_restart_states
-
-  !    PURPOSE
-  !>       \brief reads fluxes and state variables from file
-
-  !>       \details read fluxes and state variables from given
-  !>       restart directory and initialises all state variables
-  !>       that are initialized in the subroutine initialise,
-  !>       contained in module mo_startup.
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain"    number of domains
-  !>       \param[in] "character(256) :: InFile" Input Path including trailing slash
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Apr 2013
-
-  ! Modifications:
-  ! Stephan Thober Aug  2015 - moved read of routing states to mRM
-  ! David Schaefer Nov  2015 - mo_netcdf
-  ! Stephan Thober Nov  2016 - moved processMatrix to common variables
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
+  !> \brief reads fluxes and state variables from file
+  !> \details read fluxes and state variables from given
+  !! restart directory and initialises all state variables
+  !! that are initialized in the subroutine initialise,
+  !! contained in module mo_startup.
+  !> \changelog
+  !! - Stephan Thober Aug  2015
+  !!   - moved read of routing states to mRM
+  !! - David Schaefer Nov  2015
+  !!   - mo_netcdf
+  !! - Stephan Thober Nov  2016
+  !!   - moved processMatrix to common variables
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Müller Mar 2023
+  !!   - compatibility layer for 2D/3D data
+  !!   - move reading of nLAI to mo_startup (needed beforehand)
+  !> \authors Stephan Thober
+  !> \date Apr 2013
   subroutine read_restart_states(iDomain, domainID, InFile)
 
     use mo_common_variables, only : LC_year_end, LC_year_start, level1, nLCoverScene, processMatrix
@@ -874,211 +819,5 @@ CONTAINS
    call nc%close()
 
   end subroutine read_restart_states
-
-  subroutine unpack_field_and_write_1d_i4(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
-
-    use mo_kind, only : i4
-    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
-
-    implicit none
-
-    ! NcDataset to add variable to
-    type(NcDataset), intent(inout) :: nc
-
-    ! variable name
-    character(*), intent(in) :: var_name
-
-    ! vector of Variable dimensions
-    type(NcDimension), dimension(:), intent(in) :: var_dims
-
-    ! fill value used for missing values
-    integer(i4), intent(in) :: fill_value
-
-    ! packed data to be set to variable
-    integer(i4), dimension(:), intent(in) :: data
-
-    ! mask used for unpacking
-    logical, dimension(:, :), intent(in) :: mask
-
-    ! variable long name attribute
-    character(*), optional, intent(in) :: var_long_name
-
-    type(NcVariable) :: var
-
-
-    ! set variable
-    var = nc%setVariable(var_name, "i32", var_dims)
-    call var%setFillValue(fill_value)
-
-    ! set the unpacked data
-    call var%setData(unpack(data, mask, fill_value))
-
-    ! optionally set attributes
-    if (present(var_long_name)) then
-      call var%setAttribute("long_name", trim(var_long_name))
-    end if
-
-  end subroutine
-
-  subroutine unpack_field_and_write_1d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
-
-    use mo_kind, only : dp
-    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
-
-    implicit none
-
-    ! NcDataset to add variable to
-    type(NcDataset), intent(inout) :: nc
-
-    ! variable name
-    character(*), intent(in) :: var_name
-
-    ! vector of Variable dimensions
-    type(NcDimension), dimension(:), intent(in) :: var_dims
-
-    ! fill value used for missing values
-    real(dp), intent(in) :: fill_value
-
-    ! packed data to be set to variable
-    real(dp), dimension(:), intent(in) :: data
-
-    ! mask used for unpacking
-    logical, dimension(:, :), intent(in) :: mask
-
-    ! variable long name attribute
-    character(*), optional, intent(in) :: var_long_name
-
-    type(NcVariable) :: var
-
-
-    ! set variable
-    var = nc%setVariable(var_name, "f64", var_dims)
-    call var%setFillValue(fill_value)
-
-    ! set the unpacked data
-    call var%setData(unpack(data, mask, fill_value))
-
-    ! optionally set attributes
-    if (present(var_long_name)) then
-      call var%setAttribute("long_name", trim(var_long_name))
-    end if
-
-  end subroutine
-
-  subroutine unpack_field_and_write_2d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
-
-    use mo_kind, only : dp, i4
-    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
-
-    implicit none
-
-    ! NcDataset to add variable to
-    type(NcDataset), intent(inout) :: nc
-
-    ! variable name
-    character(*), intent(in) :: var_name
-
-    ! vector of Variable dimensions
-    type(NcDimension), dimension(:), intent(in) :: var_dims
-
-    ! fill value used for missing values
-    real(dp), intent(in) :: fill_value
-
-    ! packed data to be set to variable
-    real(dp), dimension(:, :), intent(in) :: data
-
-    ! mask used for unpacking
-    logical, dimension(:, :), intent(in) :: mask
-
-    ! variable long name attribute
-    character(*), optional, intent(in) :: var_long_name
-
-    type(NcVariable) :: var
-
-    real(dp), dimension(:, :, :), allocatable :: dummy_arr
-
-    integer(i4), dimension(3) :: dim_length
-
-    integer(i4) :: ii
-
-
-    ! set variable
-    var = nc%setVariable(var_name, "f64", var_dims)
-    call var%setFillValue(fill_value)
-
-    dim_length = var%getShape()
-    allocate(dummy_arr(dim_length(1), dim_length(2), dim_length(3)))
-    do ii = 1, size(data, 2)
-      dummy_arr(:, :, ii) = unpack(data(:, ii), mask, fill_value)
-    end do
-
-    ! set the unpacked data
-    call var%setData(dummy_arr)
-
-    ! optionally set attributes
-    if (present(var_long_name)) then
-      call var%setAttribute("long_name", trim(var_long_name))
-    end if
-
-  end subroutine
-
-  subroutine unpack_field_and_write_3d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
-
-    use mo_kind, only : dp, i4
-    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
-
-    implicit none
-
-    ! NcDataset to add variable to
-    type(NcDataset), intent(inout) :: nc
-
-    ! variable name
-    character(*), intent(in) :: var_name
-
-    ! vector of Variable dimensions
-    type(NcDimension), dimension(:), intent(in) :: var_dims
-
-    ! fill value used for missing values
-    real(dp), intent(in) :: fill_value
-
-    ! packed data to be set to variable
-    real(dp), dimension(:, :, :), intent(in) :: data
-
-    ! mask used for unpacking
-    logical, dimension(:, :), intent(in) :: mask
-
-    ! variable long name attribute
-    character(*), optional, intent(in) :: var_long_name
-
-    type(NcVariable) :: var
-
-    real(dp), dimension(:, :, :, :), allocatable :: dummy_arr
-
-    integer(i4), dimension(4) :: dim_length
-
-    integer(i4) :: ii, jj
-
-
-    ! set variable
-    var = nc%setVariable(var_name, "f64", var_dims)
-    call var%setFillValue(fill_value)
-
-    dim_length = var%getShape()
-    allocate(dummy_arr(dim_length(1), dim_length(2), dim_length(3), dim_length(4)))
-    do ii = 1, size(data, 2)
-      do jj = 1, size(data, 3)
-        dummy_arr(:, :, ii, jj) = unpack(data(:, ii, jj), mask, fill_value)
-      end do
-    end do
-
-    ! set the unpacked data
-    call var%setData(dummy_arr)
-
-    ! optionally set attributes
-    if (present(var_long_name)) then
-      call var%setAttribute("long_name", trim(var_long_name))
-    end if
-
-  end subroutine
 
 END MODULE mo_restart
