@@ -12,7 +12,7 @@
 MODULE mo_common_read_config
 
   USE mo_kind, ONLY : i4, dp
-  use mo_message, only: message, error_message
+  use mo_message, only: error_message
 
   IMPLICIT NONE
 
