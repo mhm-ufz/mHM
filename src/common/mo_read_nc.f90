@@ -24,7 +24,7 @@
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 module mo_read_nc
-  use mo_message, only: message, error_message
+  use mo_message, only: error_message
 
   implicit none
   public :: read_nc
@@ -354,9 +354,7 @@ contains
   subroutine read_const_nc(folder, nRows, nCols, varName, data, fileName)
 
     use mo_kind,             only: i4, dp
-    use mo_netcdf,           only: NcDataset, NcVariable, NcDimension
-    use mo_string_utils,     only: num2str
-    use mo_utils,            only: eq, ne
+    use mo_netcdf,           only: NcDataset, NcVariable
 
     implicit none
 
@@ -688,10 +686,6 @@ contains
     ! helper variable for error output
     integer(i4) :: hstart_int, hend_int
 
-    ! helper variable for error output
-    character(256) :: error_msg
-
-
     call var%getAttribute('units', AttValues)
     ! AttValues looks like "<unit> since YYYY-MM-DD[ HH:MM:SS]"
     ! split at space
@@ -736,10 +730,6 @@ contains
       call error_message('***ERROR: length of time dimension needs to be at least 2 in file: ' // trim(fname))
     end if
 
-    ! check for equal timesteps and timestep must not be multiple of native timestep
-    error_msg = '***ERROR: time_steps are not equal over all times in file and/or do not conform to' // &
-            ' requested timestep in file (' // trim(fname) // ') : '
-
     ! compare the read period from ncfile to the period required
     ! convert julian second information back to date via conversion to float
     ! the 0.5_dp is for the different reference of fractional julian days, hours are truncated
@@ -774,7 +764,8 @@ contains
     else if (all(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / 3600._dp - 1._dp) .lt. 1.e-6)) then
        inctimestep = -4 ! hourly
     else
-       call error_message('***ERROR: read_forcing_nc: unknown nctimestep switch.')
+       call error_message('***ERROR: time_steps are not equal over all times in file and/or do not conform to' // &
+       ' requested timestep in file (', trim(fname), ')')
     end if
 
     ! prepare the selection and check for required time_step

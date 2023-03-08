@@ -11,7 +11,7 @@
 !> \ingroup f_common
 MODULE mo_check
 
-  USE mo_kind, ONLY : i4, dp
+  USE mo_kind, ONLY : i4
 
   IMPLICIT NONE
 

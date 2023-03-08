@@ -73,7 +73,7 @@ CONTAINS
                             nMeasPerDay)
 
     use mo_julian, only : julday
-    use mo_message, only : message, error_message
+    use mo_message, only : error_message
     use mo_string_utils, only : num2str
 
     implicit none

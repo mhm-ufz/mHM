@@ -69,7 +69,7 @@ MODULE mo_common_datetime_type
   contains
 
   subroutine datetimeinfo_init(this, iDomain)
-    use mo_common_mHM_mRM_variables, only : LCyearId, simPer, timeStep, nTstepDay
+    use mo_common_mHM_mRM_variables, only : LCyearId, simPer, nTstepDay
     use mo_julian, only : caldat
     class(datetimeinfo), intent(inout) :: this
     integer(i4),     intent(in)    :: iDomain
