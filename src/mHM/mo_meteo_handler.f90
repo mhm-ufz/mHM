@@ -116,8 +116,8 @@ module mo_meteo_handler
     procedure :: config !< \see mo_meteo_handler::config
     !> \copydoc mo_meteo_handler::initialize
     procedure :: initialize !< \see mo_meteo_handler::initialize
-    !> \copydoc mo_meteo_handler::L2_variable_init
-    procedure :: L2_variable_init !< \see mo_meteo_handler::L2_variable_init
+    !> \copydoc mo_meteo_handler::l2_variable_init
+    procedure :: l2_variable_init !< \see mo_meteo_handler::l2_variable_init
     !> \copydoc mo_meteo_handler::prepare_data
     procedure :: prepare_data !< \see mo_meteo_handler::prepare_data
     !> \copydoc mo_meteo_handler::update_timestep
