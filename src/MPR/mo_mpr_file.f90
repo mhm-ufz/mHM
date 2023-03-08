@@ -66,13 +66,4 @@ MODULE mo_mpr_file
   !> Unit for LAI classes lookup table file
   INTEGER, PARAMETER :: ulailut = 65                            !
 
-  !> Input nCols and nRows of binary meteo and LAI files are in header file
-  CHARACTER(len = *), PARAMETER :: file_meteo_header = 'header.txt'                  ! Meteo and LAI header
-  !> Unit for meteo header file
-  INTEGER, PARAMETER :: umeteo_header = 50                            !
-  !> File ending of meteo files
-  CHARACTER(len = *), PARAMETER :: file_meteo_binary_end = '.bin'                        ! Meteo and LAI
-  !> Unit for meteo files
-  INTEGER, PARAMETER :: umeteo = 51                            !
-
 END MODULE mo_mpr_file

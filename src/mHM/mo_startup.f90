@@ -70,10 +70,8 @@ CONTAINS
     use mo_common_mHM_mRM_variables, only : mhmFileRestartIn, read_restart
     use mo_common_restart, only : read_grid_info, read_nLAI_and_check_dims
     use mo_common_variables, only : level0, level1, domainMeta
-    use mo_global_variables, only : level2
     use mo_grid, only : set_domain_indices
     use mo_init_states, only : variables_alloc
-    use mo_kind, only : i4
     use mo_mpr_startup, only : init_eff_params, mpr_initialize
     use mo_mpr_global_variables, only: nLAI
 
@@ -83,7 +81,6 @@ CONTAINS
 
     ! constants initialization
     call constants_init()
-    allocate(level2(domainMeta%nDomains))
 
     if (read_restart) then
       allocate(level1(domainMeta%nDomains))
@@ -115,9 +112,6 @@ CONTAINS
       ! have to be allocated and initialised in any case
       call variables_alloc(level1(iDomain)%nCells)
 
-      ! L2 inialization
-      call L2_variable_init(iDomain, level0(domainMeta%L0DataFrom(iDomain)), level2(iDomain))
-
     end do
 
     ! if no restart, this is done already in MPR
@@ -125,8 +119,6 @@ CONTAINS
       call set_domain_indices(level0, indices=domainMeta%L0DataFrom)
       call set_domain_indices(level1)
     end if
-
-    call set_domain_indices(level2)
 
   end subroutine mhm_initialize
 
@@ -177,76 +169,5 @@ CONTAINS
     c2TSTu = real(timeStep, dp) / 24.0_dp   ! from per timeStep to per day
 
   end subroutine constants_init
-
-
-  !> \brief Initalize Level-2 meteorological forcings data
-  !> \details following tasks are performed
-  !! 1)  cell id & numbering
-  !! 2)  mask creation
-  !! 3)  append variable of intrest to global ones
-  !> \changelog
-  !! - Robert Schweppe Jun 2018
-  !!   - refactoring and reformatting
-  !> \authors Rohini Kumar
-  !> \date Feb 2013
-  subroutine L2_variable_init(iDomain, level0_iDomain, level2_iDomain)
-
-    use mo_common_types, only: Grid
-    use mo_global_variables, only : dirPrecipitation
-    use mo_grid, only : init_lowres_level
-    use mo_mpr_file, only : file_meteo_header, umeteo_header
-    use mo_read_spatial_data, only : read_header_ascii
-    use mo_string_utils, only : num2str
-
-    implicit none
-
-    !> domain Id
-    integer(i4), intent(in) :: iDomain
-    !> associated level-0 grid
-    type(Grid), intent(in) :: level0_iDomain
-    !> associated level-2 grid to populate
-    type(Grid), intent(inout) :: level2_iDomain
-
-    integer(i4) :: nrows2, ncols2
-    real(dp) :: xllcorner2, yllcorner2
-    real(dp) :: cellsize2, nodata_dummy
-    character(256) :: fName
-
-    !--------------------------------------------------------
-    ! 1) Estimate each variable locally for a given domain
-    ! 2) Pad each variable to its corresponding global one
-    !--------------------------------------------------------
-    ! read header file
-    ! NOTE: assuming the header file for all meteo variables are same as that of precip.
-    fName = trim(adjustl(dirPrecipitation(iDomain))) // trim(adjustl(file_meteo_header))
-    call read_header_ascii(trim(fName), umeteo_header, &
-            nrows2, ncols2, xllcorner2, &
-            yllcorner2, cellsize2, nodata_dummy)
-
-    call init_lowres_level(level0_iDomain, cellsize2, level2_iDomain)
-
-    ! check
-    if ((ncols2     .ne.  level2_iDomain%ncols)         .or. &
-            (nrows2     .ne.  level2_iDomain%nrows)         .or. &
-            (abs(xllcorner2 - level2_iDomain%xllcorner) .gt. tiny(1.0_dp))     .or. &
-            (abs(yllcorner2 - level2_iDomain%yllcorner) .gt. tiny(1.0_dp))     .or. &
-            (abs(cellsize2 - level2_iDomain%cellsize)  .gt. tiny(1.0_dp))) then
-      call error_message('   ***ERROR: subroutine L2_variable_init: size mismatch in grid file for level2 in domain ', &
-              trim(adjustl(num2str(iDomain))), '!', raise=.false.)
-      call error_message('  Expected to have following properties (based on L0):', raise=.false.)
-      call error_message('... rows:     ', trim(adjustl(num2str(level2_iDomain%nrows))), ', ', raise=.false.)
-      call error_message('... cols:     ', trim(adjustl(num2str(level2_iDomain%ncols))), ', ', raise=.false.)
-      call error_message('... cellsize: ', trim(adjustl(num2str(level2_iDomain%cellsize))), ', ', raise=.false.)
-      call error_message('... xllcorner:', trim(adjustl(num2str(level2_iDomain%xllcorner))), ', ', raise=.false.)
-      call error_message('... yllcorner:', trim(adjustl(num2str(level2_iDomain%yllcorner))), ', ', raise=.false.)
-      call error_message('  Provided (in precipitation file):', raise=.false.)
-      call error_message('... rows:     ', trim(adjustl(num2str(nrows2))), ', ', raise=.false.)
-      call error_message('... cols:     ', trim(adjustl(num2str(ncols2))), ', ', raise=.false.)
-      call error_message('... cellsize: ', trim(adjustl(num2str(cellsize2))), ', ', raise=.false.)
-      call error_message('... xllcorner:', trim(adjustl(num2str(xllcorner2))), ', ', raise=.false.)
-      call error_message('... yllcorner:', trim(adjustl(num2str(yllcorner2))), ', ')
-    end if
-
-  end subroutine L2_variable_init
 
 END MODULE mo_startup

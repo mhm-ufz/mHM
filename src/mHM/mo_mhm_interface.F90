@@ -54,6 +54,7 @@ contains
       mrm_init, &
       mrm_configuration
     use mo_common_variables, only: &
+      level0, &
       level1, &
       itimer, &
       domainMeta, &
@@ -165,6 +166,7 @@ contains
     call message('  Initialize domains ...')
     call timer_start(itimer)
     call mhm_initialize()
+    call meteo_handler%initialize(domainMeta, level0)
     call timer_stop(itimer)
     call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
     if (processMatrix(8, 1) > 0) &
@@ -176,7 +178,6 @@ contains
 
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      ! TODO: move to meteo-handler
       ! read meteorology now, if optimization is switched on
       ! meteorological forcings (reading, upscaling or downscaling)
       if (timestep_model_inputs(iDomain) .eq. 0_i4) then
