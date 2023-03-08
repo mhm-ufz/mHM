@@ -164,12 +164,11 @@ CONTAINS
         ! this reads the domain properties
         if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains))
         ! ToDo: L0_Domain, parallel
-        call read_grid_info(domainMeta%indices(domainMeta%L0DataFrom(iDomain)), mrmFileRestartIn(iDomain), &
-                                                     "0", level0(domainMeta%L0DataFrom(iDomain)))
+        call read_grid_info(mrmFileRestartIn(iDomain), "0", level0(domainMeta%L0DataFrom(iDomain)))
         if (mrm_coupling_mode .eq. 0_i4) then
-          call read_grid_info(domainID, mrmFileRestartIn(iDomain), "1", level1(iDomain))
+          call read_grid_info(mrmFileRestartIn(iDomain), "1", level1(iDomain))
         end if
-        call read_grid_info(domainID, mrmFileRestartIn(iDomain), "11", level11(iDomain))
+        call read_grid_info(mrmFileRestartIn(iDomain), "11", level11(iDomain))
         call mrm_read_restart_config(iDomain, domainID, mrmFileRestartIn(iDomain))
       else
         if (iDomain .eq. 1) then

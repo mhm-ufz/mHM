@@ -138,15 +138,12 @@ CONTAINS
   !!   - added allocation check for mask and cellArea because cellArea needs to be read by mRM, but mask is created before by mHM
   !> \authors Stephan Thober
   !> \date Apr 2013
-  subroutine read_grid_info(domainID, InFile, level_name, new_grid)
+  subroutine read_grid_info(InFile, level_name, new_grid)
 
     use mo_common_types, only: Grid
     use mo_netcdf, only : NcDataset, NcVariable
 
     implicit none
-
-    !> number of domain
-    integer(i4), intent(in) :: domainID
 
     !> Input Path including trailing slash
     character(256), intent(in) :: InFile

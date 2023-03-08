@@ -77,7 +77,7 @@ CONTAINS
 
     implicit none
 
-    integer(i4) :: iDomain, domainID
+    integer(i4) :: iDomain
 
     ! constants initialization
     call constants_init()
@@ -92,16 +92,15 @@ CONTAINS
     end if
 
     do iDomain = 1, domainMeta%nDomains
-      domainID = domainMeta%indices(iDomain)
 
       if (read_restart) then
         ! this reads only the domain properties
         if (domainMeta%L0DataFrom(iDomain) == iDomain) then
           ! only read level0 data if it is new
           ! similar to mo_common_read_data::read_dem
-          call read_grid_info(domainID, mhmFileRestartIn(iDomain), "0", level0(iDomain))
+          call read_grid_info(mhmFileRestartIn(iDomain), "0", level0(iDomain))
         endif
-        call read_grid_info(domainID, mhmFileRestartIn(iDomain), "1", level1(iDomain))
+        call read_grid_info(mhmFileRestartIn(iDomain), "1", level1(iDomain))
         ! read nLAI from restart
         call read_nLAI_and_check_dims(iDomain, mhmFileRestartIn(iDomain))
         ! Parameter fields have to be allocated in any case
