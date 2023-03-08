@@ -133,11 +133,10 @@ contains
   end subroutine clean_up
 
   !> \brief configure the \ref meteo_handler_type class from the mhm namelist
-  subroutine config(self, file_namelist, unamelist)
+  subroutine config(self, file_namelist, unamelist, optimize, domainMeta)
 
-    use mo_common_mhm_mrm_variables, only : optimize
     use mo_common_constants, only : maxNoDomains, nodata_i4
-    use mo_common_variables, only : domainMeta
+    use mo_common_types, only : domain_meta
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_check, only : check_dir
     USE mo_string_utils, ONLY : num2str
@@ -147,6 +146,8 @@ contains
     class(meteo_handler_type), intent(inout) :: self
     character(*), intent(in) :: file_namelist !< mhm namelist file
     integer, intent(in) :: unamelist !< unit to open namelist file
+    logical, intent(in) :: optimize !< Optimization flag
+    type(domain_meta), intent(in) :: domainMeta !< domain general description
 
     integer(i4), dimension(maxNoDomains) :: time_step_model_inputs
     character(256), dimension(maxNoDomains) :: dir_Precipitation

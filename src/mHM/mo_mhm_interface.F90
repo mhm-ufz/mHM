@@ -120,7 +120,7 @@ contains
     call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
     call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
     call mhm_read_config(file_namelist_mhm, unamelist_mhm)
-    call meteo_handler%config(file_namelist_mhm, unamelist_mhm)
+    call meteo_handler%config(file_namelist_mhm, unamelist_mhm, optimize, domainMeta)
     mrm_coupling_mode = 2_i4
     call mrm_configuration(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
     call check_optimization_settings()
