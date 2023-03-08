@@ -17,7 +17,7 @@ MODULE mo_prepare_gridded_LAI
   ! Modified from mo_meteo_forcings
 
   USE mo_kind, ONLY : i4, dp
-  use mo_message, only: message, error_message
+  use mo_message, only: error_message
 
   IMPLICIT NONE
 

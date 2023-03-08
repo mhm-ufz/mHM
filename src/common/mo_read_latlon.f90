@@ -12,7 +12,7 @@
 MODULE mo_read_latlon
 
   USE mo_kind, ONLY : i4, dp
-  use mo_message, only: message, error_message
+  use mo_message, only: error_message
   use mo_string_utils, only : num2str
 
   ! Of course

@@ -142,7 +142,6 @@ CONTAINS
 
     use mo_common_types, only: Grid
     use mo_netcdf, only : NcDataset, NcVariable
-    use mo_string_utils, only : num2str
 
     implicit none
 
@@ -225,7 +224,7 @@ CONTAINS
   !> \date Feb 2023
   subroutine read_nLAI_and_check_dims(iDomain, InFile)
 
-    use mo_mpr_global_variables, only: nSoilHorizons_mHM, HorizonDepth_mHM, nLAI, LAIBoundaries ! may read from restart
+    use mo_mpr_global_variables, only: nLAI, LAIBoundaries ! may read from restart
     use mo_netcdf, only : NcDataset, NcVariable, NcDimension
     use mo_common_constants, only : soilHorizonsVarName, landCoverPeriodsVarName, LAIVarName
     use mo_common_mHM_mRM_variables, only: read_old_style_restart_bounds
@@ -399,7 +398,6 @@ CONTAINS
 
   !> \copydoc check_consistency_element
   subroutine check_consistency_element_i4(item1, item2, name, iDomain)
-    use mo_utils, only: ne
     use mo_string_utils, only: compress, num2str
 
     integer(i4), intent(in) :: item1, item2
