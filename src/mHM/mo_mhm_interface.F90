@@ -60,7 +60,6 @@ contains
       domainMeta, &
       processMatrix
     use mo_common_mHM_mRM_variables, only : &
-      nTstepDay, &
       timeStep, &
       simPer, &
       optimize, &

@@ -174,8 +174,6 @@ contains
     use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_types, only : domain_meta
     use mo_nml, only : close_nml, open_nml, position_nml
-    use mo_check, only : check_dir
-    USE mo_string_utils, ONLY : num2str
     use mo_common_variables, only : nProcesses
 
     implicit none
@@ -201,15 +199,10 @@ contains
     character(256) :: inputFormat_meteo_forcings
 
     logical :: read_meteo_weights
-    real(dp), dimension(int(YearMonths, i4)) :: fday_prec
     real(dp), dimension(int(YearMonths, i4)) :: fnight_prec
-    real(dp), dimension(int(YearMonths, i4)) :: fday_pet
     real(dp), dimension(int(YearMonths, i4)) :: fnight_pet
-    real(dp), dimension(int(YearMonths, i4)) :: fday_temp
     real(dp), dimension(int(YearMonths, i4)) :: fnight_temp
-    real(dp), dimension(int(YearMonths, i4)) :: fday_ssrd
     real(dp), dimension(int(YearMonths, i4)) :: fnight_ssrd
-    real(dp), dimension(int(YearMonths, i4)) :: fday_strd
     real(dp), dimension(int(YearMonths, i4)) :: fnight_strd
 
     integer(i4) :: domainID, iDomain
@@ -328,7 +321,6 @@ contains
   !> \brief update the current time-step of the \ref meteo_handler_type class
   subroutine update_timestep(self, tt, iDomain, domainMeta, level1, simPer)
     use mo_common_types, only : domain_meta
-    use mo_common_variables, only : nProcesses
 
     implicit none
 
@@ -392,7 +384,6 @@ contains
   subroutine prepare_data(self, tt, iDomain, domainMeta, level1, simPer)
 
     use mo_common_types, only : domain_meta
-    use mo_common_variables, only : nProcesses
     use mo_string_utils, only : num2str
     use mo_timer, only : timer_get, timer_start, timer_stop
     use mo_meteo_forcings, only : meteo_forcings_wrapper, meteo_weights_wrapper, chunk_config
