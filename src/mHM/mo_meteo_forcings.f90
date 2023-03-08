@@ -69,7 +69,7 @@ CONTAINS
     !> start and end dates of read period
     type(period), intent(in) :: readPer
     !> Number of forcing intervals per day
-    integer(i4), intent(in) :: nTstepForcingDay
+    integer(i4), intent(inout) :: nTstepForcingDay
     !> grid information at hydrologic level
     type(Grid), dimension(:), intent(in) :: level1
     !> Reference of the metereological variables

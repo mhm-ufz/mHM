@@ -81,13 +81,11 @@ contains
       unamelist_mhm_param
     use mo_global_variables, only: &
       meteo_handler, &
-      timestep_model_inputs, &
       L1_twsaObs, &
       L1_etObs, &
       L1_neutronsObs, &
       L1_smObs, &
       BFI_calc
-    use mo_meteo_forcings, only: prepare_meteo_forcings_data
     use mo_read_optional_data, only: readOptidataObs
     use mo_write_ascii, only: write_configfile
     use mo_mhm_bfi, only: calculate_BFI
@@ -124,7 +122,7 @@ contains
     call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
     call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
     call mhm_read_config(file_namelist_mhm, unamelist_mhm)
-    call meteo_handler%config(file_namelist_mhm, unamelist_mhm, optimize, domainMeta, processMatrix)
+    call meteo_handler%config(file_namelist_mhm, unamelist_mhm, optimize, domainMeta, processMatrix, timestep)
     mrm_coupling_mode = 2_i4
     call mrm_configuration(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
     call check_optimization_settings()
@@ -180,8 +178,8 @@ contains
       domainID = domainMeta%indices(iDomain)
       ! read meteorology now, if optimization is switched on
       ! meteorological forcings (reading, upscaling or downscaling)
-      if (timestep_model_inputs(iDomain) .eq. 0_i4) then
-        call meteo_handler%prepare_data(iDomain, domainID, 1, domainMeta, level1, nTstepDay, simPer, timestep)
+      if (meteo_handler%timestep_model_inputs(iDomain) .eq. 0_i4) then
+        call meteo_handler%prepare_data(1, iDomain, domainMeta, level1, simPer)
       end if
 
       ! read optional optional data if necessary
@@ -221,7 +219,7 @@ contains
     call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
     !this call may be moved to another position as it writes the master config out file for all domains
-    call write_configfile()
+    call write_configfile(meteo_handler%dirPrecipitation, meteo_handler%dirReferenceET, meteo_handler%dirTemperature)
 
 #ifdef MPI
     end if

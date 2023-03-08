@@ -15,6 +15,7 @@ module mo_meteo_handler
   USE mo_kind, ONLY : i4, dp
   USE mo_constants, ONLY : YearMonths
   use mo_common_types, only: Grid, period
+  use mo_message, only : message, error_message
 
   implicit none
 
@@ -35,6 +36,11 @@ module mo_meteo_handler
     integer(i4) :: riv_temp_case                                           !< process case for river temperature (processCase(11))
     type(period), public :: readPer                                        !< start and end dates of read period
     integer(i4), public :: nTstepForcingDay                                !< Number of forcing intervals per day
+    !> flag wether forcings are given at hourly timestep
+    logical, public :: is_hourly_forcing
+    integer(i4), public :: timeStep                                        !< [h] simulation time step (= TS) in [h]
+    integer(i4), public :: nTstepDay                                       !< Number of time intervals per day
+    real(dp), public :: nTstepDay_dp                                       !< Number of time intervals per day as real
     ! -------------------------------------------------------------------
     ! level 2 description
     ! -------------------------------------------------------------------
@@ -100,24 +106,6 @@ module mo_meteo_handler
     ! -------------------------------------------------------------------
     ! current mHM array indizes
     ! -------------------------------------------------------------------
-    !> meteorological time step for process 5 (PET)
-    integer(i4), dimension(6) :: iMeteo_p5
-    !> process 5: start index of vectors
-    !! index 1: pet
-    !! index 2: tmin
-    !! index 3: tmax
-    !! index 4: netrad
-    !! index 5: absolute vapour pressure
-    !! index 6: windspeed
-    integer(i4), dimension(6) :: s_p5
-    !> process 5: end index of vectors
-    !! index 1: pet
-    !! index 2: tmin
-    !! index 3: tmax
-    !! index 4: netrad
-    !! index 5: absolute vapour pressure
-    !! index 6: windspeed
-    integer(i4), dimension(6) :: e_p5
     !> start and end index of meteo variables
     integer(i4) :: s_meteo, e_meteo
     !> index of meteo time-step
@@ -134,6 +122,12 @@ module mo_meteo_handler
     procedure :: prepare_data !< \see mo_meteo_handler::prepare_data
     !> \copydoc mo_meteo_handler::update_timestep
     procedure :: update_timestep !< \see mo_meteo_handler::update_timestep
+    !> \copydoc mo_meteo_handler::get_pet
+    procedure :: get_pet !< \see mo_meteo_handler::get_pet
+    !> \copydoc mo_meteo_handler::get_temp
+    procedure :: get_temp !< \see mo_meteo_handler::get_temp
+    !> \copydoc mo_meteo_handler::get_prec
+    procedure :: get_prec !< \see mo_meteo_handler::get_prec
     !> \copydoc mo_meteo_handler::clean_up
     procedure :: clean_up !< \see mo_meteo_handler::clean_up
   end type meteo_handler_type
@@ -175,13 +169,14 @@ contains
   end subroutine clean_up
 
   !> \brief configure the \ref meteo_handler_type class from the mhm namelist
-  subroutine config(self, file_namelist, unamelist, optimize, domainMeta, processMatrix)
+  subroutine config(self, file_namelist, unamelist, optimize, domainMeta, processMatrix, timeStep)
 
     use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_types, only : domain_meta
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_check, only : check_dir
     USE mo_string_utils, ONLY : num2str
+    use mo_common_variables, only : nProcesses
 
     implicit none
 
@@ -191,6 +186,7 @@ contains
     logical, intent(in) :: optimize !< Optimization flag
     type(domain_meta), intent(in) :: domainMeta !< domain general description
     integer(i4), dimension(nProcesses, 3), intent(in) :: processMatrix !< Info about which process runs in which option
+    integer(i4), intent(in) :: timeStep !< [h] simulation time step (= TS) in [h]
 
     integer(i4), dimension(maxNoDomains) :: time_step_model_inputs
     character(256), dimension(maxNoDomains) :: dir_Precipitation
@@ -215,6 +211,8 @@ contains
     real(dp), dimension(int(YearMonths, i4)) :: fnight_ssrd
     real(dp), dimension(int(YearMonths, i4)) :: fday_strd
     real(dp), dimension(int(YearMonths, i4)) :: fnight_strd
+
+    integer(i4) :: domainID, iDomain
 
     ! namelist directories
     namelist /directories_mHM/ &
@@ -245,6 +243,10 @@ contains
     ! store important process cases
     self%pet_case = processMatrix(5,1)
     self%riv_temp_case = processMatrix(11,1)
+    ! store time-stepping info
+    self%timeStep = timeStep
+    self%nTStepDay = 24_i4 / timeStep ! # of time steps per day
+    self%nTstepDay_dp = real(self%nTStepDay, dp)
 
     ! allocate variables
     allocate(self%dirPrecipitation(domainMeta%nDomains))
@@ -257,7 +259,7 @@ contains
     allocate(self%dirNetRadiation(domainMeta%nDomains))
     allocate(self%dirRadiation(domainMeta%nDomains))
     ! allocate time periods
-    allocate(timestep_model_inputs(domainMeta%nDomains))
+    allocate(self%timestep_model_inputs(domainMeta%nDomains))
 
     ! open the namelist file
     call open_nml(file_namelist, unamelist, quiet=.true.)
@@ -285,11 +287,11 @@ contains
     end do
 
     ! consistency check for timestep_model_inputs
-    if (any(timestep_model_inputs .ne. 0) .and. .not. all(timestep_model_inputs .ne. 0)) then
+    if (any(self%timestep_model_inputs .ne. 0) .and. .not. all(self%timestep_model_inputs .ne. 0)) then
       call error_message('***ERROR: timestep_model_inputs either have to be all zero or all non-zero')
     end if
     ! check for optimzation and timestep_model_inputs options
-    if (optimize .and. (any(timestep_model_inputs .ne. 0))) then
+    if (optimize .and. (any(self%timestep_model_inputs .ne. 0))) then
       call error_message('***ERROR: optimize and chunk read is switched on! (set timestep_model_inputs to zero)')
     end if
 
@@ -324,7 +326,7 @@ contains
   end subroutine config
 
   !> \brief update the current time-step of the \ref meteo_handler_type class
-  subroutine update_timestep(self, tt, iDomain, domainID, domainMeta, level1, nTstepDay, simPer, timestep)
+  subroutine update_timestep(self, tt, iDomain, domainMeta, level1, simPer)
     use mo_common_types, only : domain_meta
     use mo_common_variables, only : nProcesses
 
@@ -333,16 +335,11 @@ contains
     class(meteo_handler_type), intent(inout) :: self
     integer(i4), intent(in) :: tt !< current time step
     integer(i4), intent(in) :: iDomain !< current domain
-    integer(i4), intent(in) :: domainID !< current domain ID
     type(domain_meta), intent(in) :: domainMeta !< domain general description
     !> grid information at hydrologic level
     type(Grid), dimension(:), intent(in) :: level1
-    !> Number of time intervals per day
-    integer(i4), intent(in) :: nTstepDay
     !> warmPer + evalPer
     type(period), dimension(:), intent(in) :: simPer
-    !> [h] simulation time step (= TS) in [h]
-    integer(i4), intent(in) :: timeStep
 
     ! time increment is done right after call to mrm (and initially before looping)
     if (self%timeStep_model_inputs(iDomain) .eq. 0_i4) then
@@ -357,38 +354,15 @@ contains
       self%iMeteoTS = ceiling(real(tt, dp) / real(nint( 24._dp / real(self%nTstepForcingDay, dp)), dp))
     else
       ! read chunk of meteorological forcings data (reading, upscaling/downscaling)
-      call self%prepare_data(iDomain, domainID, tt, domainMeta, level1, nTstepDay, simPer, timestep)
+      call self%prepare_data(tt, iDomain, domainMeta, level1, simPer)
       ! set start and end of meteo position
       self%s_meteo = 1
-      self%e_meteo = e1 - s1 + 1
+      self%e_meteo = level1(iDomain)%iEnd - level1(iDomain)%iStart + 1
       ! time step for meteorological variable (daily values)
       self%iMeteoTS = &
         ceiling(real(tt, dp) / real(nint( 24._dp / real(self%nTstepForcingDay, dp)), dp)) &
         - (self%readPer%julStart - simPer(iDomain)%julStart)
     end if
-
-    ! preapare vector length specifications depending on the process case
-    ! process 5 - PET
-    ! customize iMeteoTS for process 5 - PET
-    select case (self%pet_case)
-      ! s_p5/e_p5:  [pet,        tmax,    tmin,  netrad, absVapP,windspeed]
-      case(-1 : 0) ! PET is input
-        self%s_p5 = [self%s_meteo, 1, 1, 1, 1, 1]
-        self%e_p5 = [self%e_meteo, 1, 1, 1, 1, 1]
-        self%iMeteo_p5 = [self%iMeteoTS, 1, 1, 1, 1, 1 ]
-      case(1) ! Hargreaves-Samani
-        self%s_p5 = [self%s_meteo, self%s_meteo, self%s_meteo, 1, 1, 1]
-        self%e_p5 = [self%e_meteo, self%e_meteo, self%e_meteo, 1, 1, 1]
-        self%iMeteo_p5 = [self%iMeteoTS, self%iMeteoTS, self%iMeteoTS, 1, 1, 1 ]
-      case(2) ! Priestely-Taylor
-        self%s_p5 = [self%s_meteo, 1, 1, self%s_meteo, 1, 1]
-        self%e_p5 = [self%e_meteo, 1, 1, self%e_meteo, 1, 1]
-        self%iMeteo_p5 = [self%iMeteoTS, 1, 1, self%iMeteoTS, 1, 1 ]
-      case(3) ! Penman-Monteith
-        self%s_p5 = [self%s_meteo, 1, 1, self%s_meteo, self%s_meteo, self%s_meteo]
-        self%e_p5 = [self%e_meteo, 1, 1, self%e_meteo, self%e_meteo, self%e_meteo]
-        self%iMeteo_p5 = [self%iMeteoTS, 1, 1, self%iMeteoTS, self%iMeteoTS, self%iMeteoTS ]
-    end select
 
   end subroutine update_timestep
 
@@ -415,7 +389,7 @@ contains
   !!   - converted routine to meteo-handler method
   !> \authors Rohini Kumar
   !> \date Jan 2013
-  subroutine prepare_data(self, iDomain, domainID, tt, domainMeta, level1, nTstepDay, simPer, timestep)
+  subroutine prepare_data(self, tt, iDomain, domainMeta, level1, simPer)
 
     use mo_common_types, only : domain_meta
     use mo_common_variables, only : nProcesses
@@ -426,24 +400,22 @@ contains
     implicit none
 
     class(meteo_handler_type), intent(inout) :: self
-    integer(i4), intent(in) :: iDomain !< Domain number
-    integer(i4), intent(in) :: domainID !< Domain ID
     integer(i4), intent(in) :: tt !< current timestep
+    integer(i4), intent(in) :: iDomain !< Domain number
     type(domain_meta), intent(in) :: domainMeta !< domain general description
     !> grid information at hydrologic level
     type(Grid), dimension(:), intent(in) :: level1
-    !> Number of time intervals per day
-    integer(i4), intent(in) :: nTstepDay
     !> warmPer + evalPer
     type(period), dimension(:), intent(in) :: simPer
-    !> [h] simulation time step (= TS) in [h]
-    integer(i4), intent(in) :: timeStep
 
     ! indicate whether data should be read
     logical :: read_flag
+    integer(i4) :: domainID ! current domain ID
+
+    domainID = domainMeta%indices(iDomain)
 
     ! configuration of chunk_read
-    call chunk_config(iDomain, tt, nTstepDay, simPer, timestep, self%timeStep_model_inputs, read_flag, self%readPer)
+    call chunk_config(iDomain, tt, self%nTstepDay, simPer, self%timestep, self%timeStep_model_inputs, read_flag, self%readPer)
 
     ! only read, if read_flag is true
     if (read_flag) then
@@ -607,6 +579,9 @@ contains
       end if
     end if
 
+    ! set hourly flag
+    self%is_hourly_forcing = (self%nTstepForcingDay .eq. 24_i4)
+
   end subroutine prepare_data
 
   !> \brief Initialize meteo data and level-2 grid
@@ -625,14 +600,14 @@ contains
     integer(i4) :: iDomain
 
     ! constants initialization
-    allocate(level2(domainMeta%nDomains))
+    allocate(self%level2(domainMeta%nDomains))
 
     do iDomain = 1, domainMeta%nDomains
       ! L2 inialization
       call self%L2_variable_init(iDomain, level0(domainMeta%L0DataFrom(iDomain)))
     end do
 
-    call set_domain_indices(level2)
+    call set_domain_indices(self%level2)
 
   end subroutine initialize
 
@@ -704,5 +679,294 @@ contains
     end if
 
   end subroutine L2_variable_init
+
+  !> \brief get PET for the current timestep and domain
+  subroutine get_pet(self, pet_calc, time, level1, &
+    petLAIcorFactorL1, fAsp, HarSamCoeff, latitude, PrieTayAlpha, aeroResist, surfResist)
+
+    use mo_common_types, only: Grid
+    use mo_mhm_constants, only : HarSamConst
+    use mo_julian, only : date2dec, dec2date
+    use mo_temporal_disagg_forcing, only : temporal_disagg_meteo_weights, temporal_disagg_flux_daynight
+    use mo_string_utils, only : num2str
+    use mo_pet, only : pet_hargreaves, pet_penman, pet_priestly
+
+    implicit none
+
+    class(meteo_handler_type), intent(inout) :: self
+    !> [mm TS-1] estimated PET (if PET is input = corrected values (fAsp*PET))
+    real(dp), dimension(:), intent(inout) :: pet_calc
+    !> current decimal Julian day
+    real(dp), intent(in) :: time
+    !> grid information at hydrologic level for current domain
+    type(Grid), intent(in) :: level1
+    !> PET correction factor based on LAI at level 1
+    real(dp), dimension(:), intent(in) :: petLAIcorFactorL1
+    !> [1]     PET correction for Aspect at level 1
+    real(dp), dimension(:), intent(in) :: fAsp
+    !> [1]     PET Hargreaves Samani coefficient at level 1
+    real(dp), dimension(:), intent(in) :: HarSamCoeff
+    !> latitude on level 1
+    real(dp), dimension(:), intent(in) :: latitude
+    !> [1]     PET Priestley Taylor coefficient at level 1
+    real(dp), dimension(:), intent(in) :: PrieTayAlpha
+    !> [s m-1] PET aerodynamical resitance at level 1
+    real(dp), dimension(:), intent(in) :: aeroResist
+    !> [s m-1] PET bulk surface resitance at level 1
+    real(dp), dimension(:), intent(in) :: surfResist
+
+    ! pet in [mm d-1]
+    real(dp) :: pet
+    ! is day or night
+    logical :: isday
+    ! current hour of a given day
+    integer(i4) :: hour
+    ! day of the month     [1-28 or 1-29 or 1-30 or 1-31]
+    integer(i4) :: day
+    ! Month of current day [1-12]
+    integer(i4) :: month
+    ! year
+    integer(i4) :: year
+    ! doy of the year [1-365 or 1-366]
+    integer(i4) :: doy
+
+    ! number of L1 cells
+    integer(i4) :: nCells1
+    ! cell index
+    integer(i4) :: k, i, s1
+
+    nCells1 = level1%nCells
+    s1 = level1%iStart
+
+    ! date and month of this timestep
+    call dec2date(time, yy = year, mm = month, dd = day, hh = hour)
+
+    ! flag for day or night depending on hours of the day
+    isday = (hour .gt. 6) .AND. (hour .le. 18)
+    doy = nint(date2dec(day, month, year, 12) - date2dec(1, 1, year, 12)) + 1
+
+    !$OMP parallel default(shared) &
+    !$OMP private(k, pet, i)
+    !$OMP do SCHEDULE(STATIC)
+    do k = 1, nCells1
+
+      ! correct index on concatenated arrays
+      i = self%s_meteo - 1 + k
+
+      ! PET calculation
+      select case (self%pet_case)
+        case(-1) ! PET is input ! correct pet for every day only once at the first time step
+          pet = petLAIcorFactorL1(k) * self%L1_pet(i, self%iMeteoTS)
+
+        case(0) ! PET is input ! correct pet for every day only once at the first time step
+          pet = fAsp(k) * self%L1_pet(i, self%iMeteoTS)
+
+        case(1) ! Hargreaves-Samani
+          ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
+          if (self%L1_tmax(i, self%iMeteoTS) .lt. self%L1_tmin(i, self%iMeteoTS)) &
+            call message('WARNING: tmax smaller than tmin at doy ', &
+                         num2str(doy), ' in year ', num2str(year), ' at cell', num2str(k), '!')
+          pet = fAsp(k) * pet_hargreaves( &
+            HarSamCoeff=HarSamCoeff(k), &
+            HarSamConst=HarSamConst, &
+            tavg=self%L1_temp(i, self%iMeteoTS), &
+            tmax=self%L1_tmax(i, self%iMeteoTS), &
+            tmin=self%L1_tmin(i, self%iMeteoTS), &
+            latitude=latitude(k), &
+            doy=doy)
+
+        case(2) ! Priestley-Taylor
+          ! Priestley Taylor is not defined for values netrad < 0.0_dp
+          pet = pet_priestly( &
+            PrieTayParam=PrieTayAlpha(k), &
+            Rn=max(self%L1_netrad(i, self%iMeteoTS), 0.0_dp), &
+            tavg=self%L1_temp(i, self%iMeteoTS))
+
+        case(3) ! Penman-Monteith
+          pet = pet_penman( &
+            net_rad=max(self%L1_netrad(i, self%iMeteoTS), 0.0_dp), &
+            tavg=self%L1_temp(i, self%iMeteoTS), &
+            act_vap_pressure=self%L1_absvappress(i, self%iMeteoTS) / 1000.0_dp, &
+            aerodyn_resistance=aeroResist(k) / self%L1_windspeed(i, self%iMeteoTS), &
+            bulksurface_resistance=surfResist(k), &
+            a_s=1.0_dp, &
+            a_sh=1.0_dp)
+      end select
+
+      ! temporal disaggreagtion of forcing variables
+      if (self%is_hourly_forcing) then
+         pet_calc(k) = pet
+      else
+        if (self%read_meteo_weights) then
+          ! all meteo forcings are disaggregated with given weights
+          call temporal_disagg_meteo_weights( &
+            meteo_val_day=pet, &
+            meteo_val_weights=self%L1_pet_weights(s1 - 1 + k, month, hour + 1), &
+            meteo_val=pet_calc(k))
+        else
+          ! all meteo forcings are disaggregated with day-night correction values
+          call temporal_disagg_flux_daynight( &
+            isday=isday, &
+            ntimesteps_day=self%nTstepDay_dp, &
+            meteo_val_day=pet, &
+            fday_meteo_val=self%fday_pet(month), &
+            fnight_meteo_val=self%fnight_pet(month), &
+            meteo_val=pet_calc(k))
+        end if
+      end if
+    end do
+    !$OMP end do
+    !$OMP end parallel
+
+  end subroutine get_pet
+
+  !> \brief get surface temperature for the current timestep and domain
+  subroutine get_temp(self, temp_calc, time, level1)
+
+    use mo_common_types, only: Grid
+    use mo_julian, only : dec2date
+    use mo_temporal_disagg_forcing, only : temporal_disagg_meteo_weights, temporal_disagg_state_daynight
+    use mo_constants, only : T0_dp  ! 273.15 - Celcius <-> Kelvin [K]
+
+    implicit none
+
+    class(meteo_handler_type), intent(inout) :: self
+    !> [degC] temperature for current time step
+    real(dp), dimension(:), intent(inout) :: temp_calc
+    !> current decimal Julian day
+    real(dp), intent(in) :: time
+    !> grid information at hydrologic level for current domain
+    type(Grid), intent(in) :: level1
+
+    ! is day or night
+    logical :: isday
+    ! current hour of a given day
+    integer(i4) :: hour
+    ! Month of current day [1-12]
+    integer(i4) :: month
+
+    ! number of L1 cells
+    integer(i4) :: nCells1
+    ! cell index
+    integer(i4) :: k, i, s1
+
+    nCells1 = level1%nCells
+    s1 = level1%iStart
+
+    ! date and month of this timestep
+    call dec2date(time, mm = month, hh = hour)
+
+    ! flag for day or night depending on hours of the day
+    isday = (hour .gt. 6) .AND. (hour .le. 18)
+
+    !$OMP parallel default(shared) &
+    !$OMP private(k, i)
+    !$OMP do SCHEDULE(STATIC)
+    do k = 1, nCells1
+
+      ! correct index on concatenated arrays
+      i = self%s_meteo - 1 + k
+
+      ! temporal disaggreagtion of forcing variables
+      if (self%is_hourly_forcing) then
+        temp_calc(k) = self%L1_temp(i, self%iMeteoTS)
+      else
+        if (self%read_meteo_weights) then
+          ! all meteo forcings are disaggregated with given weights
+          call temporal_disagg_meteo_weights( &
+            meteo_val_day=self%L1_temp(i, self%iMeteoTS), &
+            meteo_val_weights=self%L1_temp_weights(s1 - 1 + k, month, hour + 1), &
+            meteo_val=temp_calc(k), &
+            weights_correction=T0_dp)
+        else
+          ! all meteo forcings are disaggregated with day-night correction values
+          call temporal_disagg_state_daynight( &
+            isday=isday, &
+            ntimesteps_day=self%nTstepDay_dp, &
+            meteo_val_day=self%L1_temp(i, self%iMeteoTS), &
+            fday_meteo_val=self%fday_temp(month), &
+            fnight_meteo_val=self%fnight_temp(month), &
+            meteo_val=temp_calc(k), &
+            add_correction=.true.)
+        end if
+      end if
+    end do
+    !$OMP end do
+    !$OMP end parallel
+
+  end subroutine get_temp
+
+  !> \brief get precipitation for the current timestep and domain
+  subroutine get_prec(self, prec_calc, time, level1)
+
+    use mo_common_types, only: Grid
+    use mo_julian, only : dec2date
+    use mo_temporal_disagg_forcing, only : temporal_disagg_meteo_weights, temporal_disagg_flux_daynight
+
+    implicit none
+
+    class(meteo_handler_type), intent(inout) :: self
+    !> [mm TS-1] precipitation for current time step
+    real(dp), dimension(:), intent(inout) :: prec_calc
+    !> current decimal Julian day
+    real(dp), intent(in) :: time
+    !> grid information at hydrologic level for current domain
+    type(Grid), intent(in) :: level1
+
+    ! is day or night
+    logical :: isday
+    ! current hour of a given day
+    integer(i4) :: hour
+    ! Month of current day [1-12]
+    integer(i4) :: month
+
+    ! number of L1 cells
+    integer(i4) :: nCells1
+    ! cell index
+    integer(i4) :: k, i, s1
+
+    nCells1 = level1%nCells
+    s1 = level1%iStart
+
+    ! date and month of this timestep
+    call dec2date(time, mm = month, hh = hour)
+
+    ! flag for day or night depending on hours of the day
+    isday = (hour .gt. 6) .AND. (hour .le. 18)
+
+    !$OMP parallel default(shared) &
+    !$OMP private(k, i)
+    !$OMP do SCHEDULE(STATIC)
+    do k = 1, nCells1
+
+      ! correct index on concatenated arrays
+      i = self%s_meteo - 1 + k
+
+      ! temporal disaggreagtion of forcing variables
+      if (self%is_hourly_forcing) then
+        prec_calc(k) = self%L1_pre(i, self%iMeteoTS)
+      else
+        if (self%read_meteo_weights) then
+          ! all meteo forcings are disaggregated with given weights
+          call temporal_disagg_meteo_weights( &
+            meteo_val_day=self%L1_pre(i, self%iMeteoTS), &
+            meteo_val_weights=self%L1_pre_weights(s1 - 1 + k, month, hour + 1), &
+            meteo_val=prec_calc(k))
+        else
+          ! all meteo forcings are disaggregated with day-night correction values
+          call temporal_disagg_flux_daynight( &
+            isday=isday, &
+            ntimesteps_day=self%nTstepDay_dp, &
+            meteo_val_day=self%L1_pre(i, self%iMeteoTS), &
+            fday_meteo_val=self%fday_prec(month), &
+            fnight_meteo_val=self%fnight_prec(month), &
+            meteo_val=prec_calc(k))
+        end if
+      end if
+    end do
+    !$OMP end do
+    !$OMP end parallel
+
+  end subroutine get_prec
 
 end module mo_meteo_handler
