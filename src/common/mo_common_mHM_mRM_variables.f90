@@ -19,7 +19,7 @@
 module mo_common_mHM_mRM_variables
 
   use mo_kind, only : i4, i8, dp
-  use mo_common_variables, only : period
+  use mo_common_types, only: period
   implicit none
 
   ! -------------------------------------------------------------------

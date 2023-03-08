@@ -20,7 +20,7 @@
 module mo_mpr_global_variables
 
   use mo_kind, only : i4, dp
-  use mo_common_variables, only : period
+  use mo_common_types, only: period
 
   implicit none
 

@@ -58,7 +58,7 @@ contains
   subroutine init_lowres_level(highres, target_resolution, lowres, highres_lowres_remap)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_common_variables, only : Grid, GridRemapper
+    use mo_common_types, only : Grid, GridRemapper
 
     implicit none
 
@@ -203,7 +203,7 @@ contains
 
   subroutine set_domain_indices(grids, indices)
 
-    use mo_common_variables, only : Grid
+    use mo_common_types, only: Grid
 
     implicit none
 
@@ -266,7 +266,8 @@ contains
 
   subroutine L0_grid_setup(new_grid)
 
-    use mo_common_variables, only : Grid, iFlag_cordinate_sys
+    use mo_common_types, only: Grid
+    use mo_common_variables, only : iFlag_cordinate_sys
     use mo_constants, only : RadiusEarth_dp, TWOPI_dp
 
     implicit none
@@ -368,7 +369,7 @@ contains
 
   subroutine mapCoordinates(level, y, x)
 
-    use mo_common_variables, only : Grid
+    use mo_common_types, only: Grid
 
     implicit none
 
@@ -431,7 +432,7 @@ contains
 
   subroutine geoCoordinates(level, lat, lon)
 
-    use mo_common_variables, only : Grid
+    use mo_common_types, only: Grid
 
     implicit none
 

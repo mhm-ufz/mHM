@@ -92,7 +92,7 @@ contains
                             fileName, nocheck, maskout, is_meteo)
 
     use mo_constants, only : nodata_i4
-    use mo_common_variables, only : period
+    use mo_common_types, only: period
     use mo_common_mHM_mRM_variables, only : nTstepForcingDay
     use mo_kind, only : dp, i4
     use mo_netcdf, only : NcDataset, NcVariable
@@ -630,7 +630,7 @@ contains
 
   subroutine get_time_vector_and_select(var, fname, inctimestep, time_start, time_cnt, target_period)
 
-    use mo_common_variables, only : period
+    use mo_common_types, only: period
     use mo_constants, only : DayHours, DaySecs, YearDays
     use mo_julian, only : caldat, dec2date, julday
     use mo_kind, only : dp, i4, i8

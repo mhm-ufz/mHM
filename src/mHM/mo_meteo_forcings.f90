@@ -583,7 +583,7 @@ CONTAINS
   subroutine chunk_config(iDomain, tt, read_flag, readPer)
 
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : period
+    use mo_common_types, only: period
     use mo_kind, only : i4
 
     implicit none
@@ -756,7 +756,7 @@ CONTAINS
   subroutine chunk_size(iDomain, tt, readPer)
 
     use mo_common_mhm_mrm_variables, only : nTstepDay, simPer
-    use mo_common_variables, only : period
+    use mo_common_types, only: period
     use mo_global_variables, only : timeStep_model_inputs
     use mo_julian, only : caldat, julday
     use mo_kind, only : i4

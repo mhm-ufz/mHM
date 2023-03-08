@@ -58,7 +58,7 @@ CONTAINS
   subroutine write_grid_info(grid_in, level_name, nc)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_common_variables, only : Grid
+    use mo_common_types, only: Grid
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
 
     implicit none
@@ -140,7 +140,7 @@ CONTAINS
   !> \date Apr 2013
   subroutine read_grid_info(domainID, InFile, level_name, new_grid)
 
-    use mo_common_variables, only : Grid
+    use mo_common_types, only: Grid
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
 

@@ -66,8 +66,9 @@ CONTAINS
     use mo_append, only : append, paste
     use mo_constants, only : YearMonths
     use mo_common_read_data, only : read_dem, read_lcover
-    use mo_common_variables, only : Grid, dirCommonFiles, dirMorpho, &
-                                    global_parameters, level0, domainMeta, period, processMatrix
+    use mo_common_types, only: period, Grid
+    use mo_common_variables, only : dirCommonFiles, dirMorpho, &
+                                    global_parameters, level0, domainMeta, processMatrix
     use mo_mpr_file, only : file_aspect, file_geolut, file_hydrogeoclass, &
                             file_laiclass, file_lailut, file_slope, file_soil_database, file_soil_database_1, &
                             file_soilclass, uaspect, ugeolut, uhydrogeoclass, ulaiclass, ulailut, uslope, usoilclass

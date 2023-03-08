@@ -898,7 +898,7 @@ CONTAINS
 
   !>       \date July 2019
   subroutine init_indexarray_for_opti_data(domainMeta, optidataOption, nOptiDomains, opti_domain_indices)
-    use mo_common_variables, only : domain_meta
+    use mo_common_types, only: domain_meta
     !> meta data for all domains assigned to that process
     type(domain_meta),                                intent(in)    :: domainMeta
     !> which opti data should be used in the eval called after calling this subroutine

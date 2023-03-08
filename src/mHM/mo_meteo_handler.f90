@@ -14,7 +14,7 @@ module mo_meteo_handler
 
   USE mo_kind, ONLY : i4, dp
   USE mo_constants, ONLY : YearMonths
-  use mo_common_variables, only : Grid
+  use mo_common_types, only: Grid
 
   implicit none
 
@@ -90,7 +90,6 @@ module mo_meteo_handler
     real(dp), public, dimension(int(YearMonths, i4)) :: fnight_strd        !< [-] Night factor long-wave rad.
 
   contains
-    ! config and inits
     !> \copydoc mo_meteo_handler::config
     procedure :: config !< \see mo_meteo_handler::config
     !> \copydoc mo_meteo_handler::clean_up

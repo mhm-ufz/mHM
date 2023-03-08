@@ -42,7 +42,8 @@ CONTAINS
                                             simPer, timestep, warmPer, warmingDays, read_old_style_restart_bounds, &
                                             restart_reset_fluxes_states
     use mo_common_read_config, only : set_land_cover_scenes_id
-    use mo_common_variables, only : LCfilename, domainMeta, period, processMatrix
+    use mo_common_types, only: period
+    use mo_common_variables, only : LCfilename, domainMeta, processMatrix
     use mo_julian, only : caldat, julday
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
@@ -305,7 +306,7 @@ CONTAINS
   ! ToDo: make this a procedure of period
   !> \brief copy period data
   subroutine period_copy_period_data(toPeriod, fromPeriod)
-    use mo_common_variables, only : period
+    use mo_common_types, only: period
     type(period), intent(inout) :: toPeriod !< copy to this period
     type(period), intent(in)    :: fromPeriod !< copy from this period
 

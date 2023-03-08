@@ -43,7 +43,8 @@ CONTAINS
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
     use mo_common_file, only : file_dem, udem
-    use mo_common_variables, only : Grid,  L0_elev, dirMorpho, level0, domainMeta, &
+    use mo_common_types, only: Grid
+    use mo_common_variables, only : L0_elev, dirMorpho, level0, domainMeta, &
                                     resolutionHydrology
     use mo_grid, only : set_domain_indices
     use mo_read_spatial_data, only : read_header_ascii, read_spatial_data_ascii
@@ -142,7 +143,8 @@ CONTAINS
     use mo_append, only : append, paste
     use mo_common_constants, only : nodata_i4
     use mo_common_file, only : ulcoverclass
-    use mo_common_variables, only : Grid, L0_LCover, LCfilename, dirLCover, level0, domainMeta, nLCoverScene
+    use mo_common_types, only: Grid
+    use mo_common_variables, only : L0_LCover, LCfilename, dirLCover, level0, domainMeta, nLCoverScene
     use mo_read_spatial_data, only : read_spatial_data_ascii
     use mo_string_utils, only : num2str
 

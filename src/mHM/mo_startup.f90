@@ -191,7 +191,7 @@ CONTAINS
   !> \date Feb 2013
   subroutine L2_variable_init(iDomain, level0_iDomain, level2_iDomain)
 
-    use mo_common_variables, only : Grid
+    use mo_common_types, only: Grid
     use mo_global_variables, only : dirPrecipitation
     use mo_grid, only : init_lowres_level
     use mo_mpr_file, only : file_meteo_header, umeteo_header
