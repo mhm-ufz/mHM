@@ -28,7 +28,6 @@ module mo_mhm_interface_run
     nTstepDay, &
     nTstepForcingDay, &
     optimize, &
-    readPer, &
     read_restart, &
     simPer, &
     timeStep, &
@@ -224,6 +223,7 @@ contains
       run_cfg%domain_indices = [(i, i=1, run_cfg%nDomains)]
     end if
 
+    ! TODO: move to meteo-handler
     run_cfg%is_hourly_forcing = (nTstepForcingDay .eq. 24_i4)
 
     !----------------------------------------------------------
@@ -380,59 +380,6 @@ contains
     ! get domain index
     iDomain = run_cfg%get_domain_index(run_cfg%selected_domain)
     domainID = domainMeta%indices(iDomain)
-
-    ! time increment is done right after call to mrm (and initially before looping)
-    if (timeStep_model_inputs(iDomain) .eq. 0_i4) then
-      ! whole meteorology is already read
-
-      ! set start and end of meteo position
-      run_cfg%s_meteo = run_cfg%s1
-      run_cfg%e_meteo = run_cfg%e1
-      ! time step for meteorological variable (daily values)
-      ! iMeteoTS = ceiling(real(tt, dp) / real(nTstepDay, dp))
-      run_cfg%iMeteoTS = ceiling(real(tt, dp) / real(nint( 24._dp / real(nTstepForcingDay, dp)), dp))
-    else
-      ! read chunk of meteorological forcings data (reading, upscaling/downscaling)
-      call prepare_meteo_forcings_data(iDomain, domainID, tt)
-      ! set start and end of meteo position
-      run_cfg%s_meteo = 1
-      run_cfg%e_meteo = run_cfg%e1 - run_cfg%s1 + 1
-      ! time step for meteorological variable (daily values)
-      run_cfg%iMeteoTS = &
-        ceiling(real(tt, dp) / real(nint( 24._dp / real(nTstepForcingDay, dp)), dp)) &
-        - (readPer%julStart - simPer(iDomain)%julStart)
-    end if
-
-    ! preapare vector length specifications depending on the process case
-    ! process 5 - PET
-    select case (processMatrix(5, 1))
-      !      [pet,        tmax,    tmin,  netrad, absVapP,windspeed]
-      case(-1 : 0) ! PET is input
-        run_cfg%s_p5 = [run_cfg%s_meteo, 1, 1, 1, 1, 1]
-        run_cfg%e_p5 = [run_cfg%e_meteo, 1, 1, 1, 1, 1]
-      case(1) ! Hargreaves-Samani
-        run_cfg%s_p5 = [run_cfg%s_meteo, run_cfg%s_meteo, run_cfg%s_meteo, 1, 1, 1]
-        run_cfg%e_p5 = [run_cfg%e_meteo, run_cfg%e_meteo, run_cfg%e_meteo, 1, 1, 1]
-      case(2) ! Priestely-Taylor
-        run_cfg%s_p5 = [run_cfg%s_meteo, 1, 1, run_cfg%s_meteo, 1, 1]
-        run_cfg%e_p5 = [run_cfg%e_meteo, 1, 1, run_cfg%e_meteo, 1, 1]
-      case(3) ! Penman-Monteith
-        run_cfg%s_p5 = [run_cfg%s_meteo, 1, 1, run_cfg%s_meteo, run_cfg%s_meteo, run_cfg%s_meteo]
-        run_cfg%e_p5 = [run_cfg%e_meteo, 1, 1, run_cfg%e_meteo, run_cfg%e_meteo, run_cfg%e_meteo]
-    end select
-
-    ! customize iMeteoTS for process 5 - PET
-    select case (processMatrix(5, 1))
-      !              [     pet,     tmin,     tmax,   netrad,  absVapP,windspeed ]
-      case(-1 : 0) ! PET is input
-        run_cfg%iMeteo_p5 = [run_cfg%iMeteoTS, 1, 1, 1, 1, 1 ]
-      case(1) ! Hargreaves-Samani
-        run_cfg%iMeteo_p5 = [run_cfg%iMeteoTS, run_cfg%iMeteoTS, run_cfg%iMeteoTS, 1, 1, 1 ]
-      case(2) ! Priestely-Taylor
-        run_cfg%iMeteo_p5 = [run_cfg%iMeteoTS, 1, 1, run_cfg%iMeteoTS, 1, 1 ]
-      case(3) ! Penman-Monteith
-        run_cfg%iMeteo_p5 = [run_cfg%iMeteoTS, 1, 1, run_cfg%iMeteoTS, run_cfg%iMeteoTS, run_cfg%iMeteoTS ]
-    end select
 
     call run_cfg%domainDateTime%update_LAI_timestep()
 

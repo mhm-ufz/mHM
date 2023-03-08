@@ -36,7 +36,7 @@ CONTAINS
     use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_mHM_mRM_variables, only : LCyearId, dds_r, mhmFileRestartIn, mrmFileRestartIn, evalPer,&
                                             mcmc_error_params, mcmc_opti, nIterations, &
-                                            nTStepDay, nTStepForcingDay, opti_function, opti_method, optimize, optimize_restart, &
+                                            nTStepDay, opti_function, opti_method, optimize, optimize_restart, &
                                             read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
                                             sce_ngs, sce_npg, sce_nps, seed, &
                                             simPer, timestep, warmPer, warmingDays, read_old_style_restart_bounds, &
@@ -134,7 +134,6 @@ CONTAINS
       call error_message('mo_startup: timeStep must be a divisor of 24: ', num2str(timeStep))
     end if
     nTStepDay = 24_i4 / timeStep            ! # of time steps per day
-    nTStepForcingDay = nodata_i4            ! # init of number of forcing timesteps, will be set when reading forcings
 
     ! allocate time periods
     allocate(simPer(domainMeta%nDomains))

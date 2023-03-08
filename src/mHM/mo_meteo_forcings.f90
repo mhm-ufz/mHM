@@ -23,303 +23,78 @@ MODULE mo_meteo_forcings
 
   PRIVATE
 
-  PUBLIC :: prepare_meteo_forcings_data
-
-  ! ------------------------------------------------------------------
+  public :: meteo_forcings_wrapper
+  public :: meteo_weights_wrapper
+  public :: chunk_config
 
 CONTAINS
 
-  ! ------------------------------------------------------------------
-
-  !    NAME
-  !        prepare_meteo_forcings_data
-
-  !    PURPOSE
-  !>       \brief Prepare meteorological forcings data for a given variable
-
-  !>       \details Prepare meteorological forcings data for a given variable.
-  !>       Internally this subroutine calls another routine meteo_wrapper
-  !>       for different meterological variables
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain" Domain Id
-  !>       \param[in] "integer(i4) :: tt"     current timestep
-
-  !    HISTORY
-  !>       \authors Rohini Kumar
-
-  !>       \date Jan 2013
-
-  ! Modifications:
-  ! Matthias Zink,   Jun 2013 - addded NetCDf reader
-  ! Rohini Kumar,    Aug 2013 - name changed "inputFormat" to inputFormat_meteo_forcings
-  ! Matthias Zink,   Feb 2014 - added read in for different PET processes (process 5)
-  ! Stephan Thober,  Jun 2014 - add chunk_config for chunk read,
-  !                             copied L2 initialization to mo_startup
-  ! Stephan Thober,  Nov 2016 - moved processMatrix to common variables
-  ! Stephan Thober,  Jan 2017 - added subroutine for meteo_weights
-  ! Robert Schweppe  Jun 2018 - refactoring and reformatting
-
-  subroutine prepare_meteo_forcings_data(iDomain, domainID, tt)
-
-    use mo_common_mhm_mrm_variables, only : readPer
-    use mo_common_variables, only : domainMeta, processMatrix
-    use mo_global_variables, only : L1_absvappress, L1_netrad, L1_pet, L1_pet_weights, L1_pre, L1_pre_weights, L1_temp, &
-                                    L1_temp_weights, L1_tmax, L1_tmin, L1_windspeed, dirMaxTemperature, &
-                                    dirMinTemperature, dirNetRadiation, dirPrecipitation, dirReferenceET, dirTemperature, &
-                                    dirabsVapPressure, dirwindspeed, dirRadiation, &
-                                    inputFormat_meteo_forcings, read_meteo_weights, &
-                                    timeStep_model_inputs, &
-                                    L1_ssrd, L1_strd, L1_tann  ! riv-temp related
-    use mo_string_utils, only : num2str
-    use mo_timer, only : timer_get, timer_start, timer_stop
-
-    implicit none
-
-    ! Domain number
-    integer(i4), intent(in) :: iDomain
-
-    ! Domain ID
-    integer(i4), intent(in) :: domainID
-
-    ! current timestep
-    integer(i4), intent(in) :: tt
-
-    ! indicate whether data should be read
-    logical :: read_flag
-
-
-    ! configuration of chunk_read
-    call chunk_config(iDomain, tt, read_flag, readPer)
-
-    ! only read, if read_flag is true
-    if (read_flag) then
-
-      ! read weights for hourly disaggregation of temperature
-      if (tt .eq. 1) then
-        ! TODO-RIV-TEMP: No NC files for weights for radiation at the moment
-        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read meteo weights for tavg     ...')
-        call meteo_weights_wrapper(iDomain, read_meteo_weights, dirTemperature(iDomain), &
-                L1_temp_weights, ncvarName = 'tavg_weight')
-
-        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read meteo weights for pet     ...')
-        call meteo_weights_wrapper(iDomain, read_meteo_weights, dirReferenceET(iDomain), &
-                L1_pet_weights, ncvarName = 'pet_weight')
-
-        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read meteo weights for pre     ...')
-        call meteo_weights_wrapper(iDomain, read_meteo_weights, dirPrecipitation(iDomain), &
-                L1_pre_weights, ncvarName = 'pre_weight')
-      end if
-
-      ! free L1 variables if chunk read is activated
-      if (timeStep_model_inputs(iDomain) .ne. 0) then
-        if (allocated(L1_pre)) deallocate(L1_pre)
-        if (allocated(L1_temp)) deallocate(L1_temp)
-        if (allocated(L1_pet)) deallocate(L1_pet)
-        if (allocated(L1_tmin)) deallocate(L1_tmin)
-        if (allocated(L1_tmax)) deallocate(L1_tmax)
-        if (allocated(L1_netrad)) deallocate(L1_netrad)
-        if (allocated(L1_absvappress)) deallocate(L1_absvappress)
-        if (allocated(L1_windspeed)) deallocate(L1_windspeed)
-      end if
-
-      !  Domain characteristics and read meteo header
-      if (timeStep_model_inputs(iDomain) .eq. 0) then
-        call message('  Reading meteorological forcings for Domain: ', trim(adjustl(num2str(domainID))), ' ...')
-        call timer_start(1)
-      end if
-
-      ! precipitation
-      if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read precipitation        ...')
-      call meteo_forcings_wrapper(iDomain, dirPrecipitation(iDomain), inputFormat_meteo_forcings, &
-              L1_pre, lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pre')
-
-      ! temperature
-      if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read temperature          ...')
-      call meteo_forcings_wrapper(iDomain, dirTemperature(iDomain), inputFormat_meteo_forcings, &
-              L1_temp, lower = -100._dp, upper = 100._dp, ncvarName = 'tavg')
-
-      ! read input for PET (process 5) depending on specified option
-      ! 0 - input, 1 - Hargreaves-Samani, 2 - Priestley-Taylor, 3 - Penman-Monteith
-      select case (processMatrix(5, 1))
-
-      case(-1 : 0) ! pet is input
-        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read pet                  ...')
-        call meteo_forcings_wrapper(iDomain, dirReferenceET(iDomain), inputFormat_meteo_forcings, &
-                L1_pet, lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pet')
-        ! allocate PET and dummies for mhm_call
-        if ((iDomain.eq.domainMeta%nDomains) .OR. (timeStep_model_inputs(iDomain) .NE. 0)) then
-          allocate(L1_tmin(1, 1)); allocate(L1_tmax(1, 1)); allocate(L1_netrad(1, 1))
-          allocate(L1_absvappress(1, 1)); allocate(L1_windspeed(1, 1))
-        end if
-
-      case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
-        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read min. temperature     ...')
-        call meteo_forcings_wrapper(iDomain, dirMinTemperature(iDomain), inputFormat_meteo_forcings, &
-                L1_tmin, lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmin')
-        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read max. temperature     ...')
-        call meteo_forcings_wrapper(iDomain, dirMaxTemperature(iDomain), inputFormat_meteo_forcings, &
-                L1_tmax, lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmax')
-        ! allocate PET and dummies for mhm_call
-        if ((iDomain .eq. domainMeta%nDomains) .OR. (timeStep_model_inputs(iDomain) .NE. 0)) then
-          allocate(L1_pet    (size(L1_tmax, dim = 1), size(L1_tmax, dim = 2)))
-          allocate(L1_netrad(1, 1)); allocate(L1_absvappress(1, 1)); allocate(L1_windspeed(1, 1))
-        end if
-
-      case(2) ! Priestley-Taylor formulation (input: net radiation)
-        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read net radiation        ...')
-        call meteo_forcings_wrapper(iDomain, dirNetRadiation(iDomain), inputFormat_meteo_forcings, &
-                L1_netrad, lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad')
-        ! allocate PET and dummies for mhm_call
-        if ((iDomain .eq. domainMeta%nDomains) .OR. (timeStep_model_inputs(iDomain) .NE. 0)) then
-          allocate(L1_pet    (size(L1_netrad, dim = 1), size(L1_netrad, dim = 2)))
-          allocate(L1_tmin(1, 1)); allocate(L1_tmax(1, 1))
-          allocate(L1_absvappress(1, 1)); allocate(L1_windspeed(1, 1))
-        end if
-
-      case(3) ! Penman-Monteith formulation (input: net radiationm absulute vapour pressure, windspeed)
-        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read net radiation        ...')
-        call meteo_forcings_wrapper(iDomain, dirNetRadiation(iDomain), inputFormat_meteo_forcings, &
-                L1_netrad, lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad')
-        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read absolute vapour pressure  ...')
-        call meteo_forcings_wrapper(iDomain, dirabsVapPressure(iDomain), inputFormat_meteo_forcings, &
-                L1_absvappress, lower = 0.0_dp, upper = 15000.0_dp, ncvarName = 'eabs')
-        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read windspeed            ...')
-        call meteo_forcings_wrapper(iDomain, dirwindspeed(iDomain), inputFormat_meteo_forcings, &
-                L1_windspeed, lower = 0.0_dp, upper = 250.0_dp, ncvarName = 'windspeed')
-        ! allocate PET and dummies for mhm_call
-        if ((iDomain.eq.domainMeta%nDomains) .OR. (timeStep_model_inputs(iDomain) .NE. 0)) then
-          allocate(L1_pet    (size(L1_absvappress, dim = 1), size(L1_absvappress, dim = 2)))
-          allocate(L1_tmin(1, 1)); allocate(L1_tmax(1, 1))
-        end if
-      end select
-
-      ! long/short-wave radiation and annual mean temperature for river-temperature routing
-      if ( processMatrix(11, 1) .ne. 0 ) then
-        ! free L1 variables if chunk read is activated
-        if (timeStep_model_inputs(iDomain) .ne. 0) then
-          if (allocated(L1_ssrd)) deallocate(L1_ssrd)
-          if (allocated(L1_strd)) deallocate(L1_strd)
-          if (allocated(L1_tann)) deallocate(L1_tann)
-        end if
-        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read short-wave radiation ...')
-          call meteo_forcings_wrapper( &
-                iDomain, dirRadiation(iDomain), inputFormat_meteo_forcings, &
-                L1_ssrd, lower = 0.0_dp, upper = 1500._dp, ncvarName = 'ssrd')
-        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read long-wave radiation ...')
-          call meteo_forcings_wrapper( &
-                iDomain, dirRadiation(iDomain), inputFormat_meteo_forcings, &
-                L1_strd, lower = 0.0_dp, upper = 1500._dp, ncvarName = 'strd')
-        if (timeStep_model_inputs(iDomain) .eq. 0) call message('    read annual mean temperature ...')
-          call meteo_forcings_wrapper( &
-                iDomain, dirTemperature(iDomain), inputFormat_meteo_forcings, &
-                L1_tann, lower = -100.0_dp, upper = 100._dp, ncvarName = 'tann')
-      end if
-
-      if (timeStep_model_inputs(iDomain) .eq. 0) then
-        call timer_stop(1)
-        call message('    in ', trim(num2str(timer_get(1), '(F9.3)')), ' seconds.')
-      end if
-    end if
-
-  end subroutine prepare_meteo_forcings_data
-
-
-  ! ------------------------------------------------------------------
-
-  !    NAME
-  !        meteo_forcings_wrapper
-
-  !    PURPOSE
-  !>       \brief Prepare meteorological forcings data for mHM at Level-1
-
-  !>       \details Prepare meteorological forcings data for mHM, which include
-  !>       1) Reading meteo. datasets at their native resolution for every Domain
-  !>       2) Perform aggregation or disaggregation of meteo. datasets from their
-  !>       native resolution (level-2) to the required hydrologic resolution (level-1)
-  !>       3) Pad the above datasets of every Domain to their respective global ones
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain"             Domain Id
-  !>       \param[in] "character(len = *) :: dataPath"    Data path where a given meteo. variable is stored
-  !>       \param[in] "character(len = *) :: inputFormat" only 'nc' possible at the moment
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "real(dp), dimension(:, :) :: dataOut1" Packed meterological variable for the whole simulation
-  !>       period
-
-  !    INTENT(IN), OPTIONAL
-  !>       \param[in] "real(dp), optional :: lower"               Lower bound for check of validity of data values
-  !>       \param[in] "real(dp), optional :: upper"               Upper bound for check of validity of data values
-  !>       \param[in] "character(len = *), optional :: ncvarName" name of the variable (for .nc files)
-
-  !    HISTORY
-  !>       \authors Rohini Kumar
-
-  !>       \date Jan 2013
-
-  ! Modifications:
-  ! Stephan Thober Jun 2014 - changed to readPer
-  ! Stephan Thober Feb 2016 - refactored deallocate statements
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
-  subroutine meteo_forcings_wrapper(iDomain, dataPath, inputFormat, dataOut1, lower, upper, ncvarName)
+  !> \brief Prepare meteorological forcings data for mHM at Level-1
+  !> \details Prepare meteorological forcings data for mHM, which include
+  !! 1) Reading meteo. datasets at their native resolution for every Domain
+  !! 2) Perform aggregation or disaggregation of meteo. datasets from their
+  !! native resolution (level-2) to the required hydrologic resolution (level-1)
+  !! 3) Pad the above datasets of every Domain to their respective global ones
+  !> \changelog
+  !! - Stephan Thober Jun 2014
+  !!   - changed to readPer
+  !! - Stephan Thober Feb 2016
+  !!   - refactored deallocate statements
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Müller Mar 2023
+  !!   - used by meteo-handler
+  !!   - now independent of global variables
+  !> \authors Rohini Kumar
+  !> \date Jan 2013
+  subroutine meteo_forcings_wrapper( &
+    iDomain, dataPath, inputFormat, dataOut1, readPer, nTstepForcingDay, level1, level2, lower, upper, ncvarName)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
-    use mo_common_mhm_mrm_variables, only : readPer, nTstepForcingDay
-    use mo_common_variables, only : level1
-    use mo_global_variables, only : level2
+    use mo_common_types, only : period, grid
     use mo_read_nc, only : read_nc
     use mo_spatial_agg_disagg_forcing, only : spatial_aggregation, spatial_disaggregation
 
     implicit none
 
-    ! Domain Id
+    !> Domain Id
     integer(i4), intent(in) :: iDomain
-
-    ! Data path where a given meteo. variable is stored
+    !> Data path where a given meteo. variable is stored
     character(len = *), intent(in) :: dataPath
-
-    ! only 'nc' possible at the moment
+    !> only 'nc' possible at the moment
     character(len = *), intent(in) :: inputFormat
-
-    ! Packed meterological variable for the whole simulation period
+    !> Packed meterological variable for the whole simulation period
     real(dp), dimension(:, :), allocatable, intent(inout) :: dataOut1
-
-    ! Lower bound for check of validity of data values
+    !> start and end dates of read period
+    type(period), intent(in) :: readPer
+    !> Number of forcing intervals per day
+    integer(i4), intent(in) :: nTstepForcingDay
+    !> grid information at hydrologic level
+    type(Grid), dimension(:), intent(in) :: level1
+    !> Reference of the metereological variables
+    type(Grid), dimension(:), intent(in) :: level2
+    !> Lower bound for check of validity of data values
     real(dp), optional, intent(in) :: lower
-
-    ! Upper bound for check of validity of data values
+    !> Upper bound for check of validity of data values
     real(dp), optional, intent(in) :: upper
-
-    ! name of the variable (for .nc files)
+    !> name of the variable (for .nc files)
     character(len = *), optional, intent(in) :: ncvarName
 
     logical, dimension(:, :), allocatable :: mask1
-
     integer(i4) :: ncells1
-
     integer(i4) :: nrows2, ncols2
-
     logical, dimension(:, :), allocatable :: mask2
-
     ! meteo data at level-2
     real(dp), dimension(:, :, :), allocatable :: L2_data
-
     ! meteo data at level-1
     real(dp), dimension(:, :, :), allocatable :: L1_data
-
     ! packed meteo data at level-1 from 3D to 2D
     real(dp), dimension(:, :), allocatable :: L1_data_packed
-
     integer(i4) :: nTimeSteps
-
     ! level-1_resolution/level-2_resolution
     real(dp) :: cellFactorHbyM
-
     integer(i4) :: t
-
 
     ! get basic Domain information at level-1
     nCells1 = level1(iDomain)%nCells
@@ -393,99 +168,67 @@ CONTAINS
   end subroutine meteo_forcings_wrapper
 
 
-  ! ------------------------------------------------------------------
-  !    NAME
-  !        meteo_weights_wrapper
-
-  !    PURPOSE
-  !>       \brief Prepare weights for meteorological forcings data for mHM at Level-1
-
-  !>       \details Prepare meteorological weights data for mHM, which include
-  !>       1) Reading meteo. weights datasets at their native resolution for every Domain
-  !>       2) Perform aggregation or disaggregation of meteo. weights datasets from their
-  !>       native resolution (level-2) to the required hydrologic resolution (level-1)
-  !>       3) Pad the above datasets of every Domain to their respective global ones
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain"          Domain Id
-  !>       \param[in] "logical :: read_meteo_weights"  Flag for reading meteo weights
-  !>       \param[in] "character(len = *) :: dataPath" Data path where a given meteo. variable is stored
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: dataOut1" Packed meterological variable for the whole
-  !>       simulation period
-
-  !    INTENT(IN), OPTIONAL
-  !>       \param[in] "real(dp), optional :: lower"               Lower bound for check of validity of data values
-  !>       \param[in] "real(dp), optional :: upper"               Upper bound for check of validity of data values
-  !>       \param[in] "character(len = *), optional :: ncvarName" name of the variable (for .nc files)
-
-  !    HISTORY
-  !>       \authors Stephan Thober & Rohini Kumar
-
-  !>       \date Jan 2017
-
-  ! Modifications:
-  ! Stephan Thober May 2017 - updated documentation
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-  ! Oldrich Rakovec Aug 2018 - adding message about reading meteo_weights
-
-  subroutine meteo_weights_wrapper(iDomain, read_meteo_weights, dataPath, dataOut1, lower, upper, ncvarName)
+  !> \brief Prepare weights for meteorological forcings data for mHM at Level-1
+  !> \details Prepare meteorological weights data for mHM, which include
+  !! 1) Reading meteo. weights datasets at their native resolution for every Domain
+  !! 2) Perform aggregation or disaggregation of meteo. weights datasets from their
+  !! native resolution (level-2) to the required hydrologic resolution (level-1)
+  !! 3) Pad the above datasets of every Domain to their respective global ones
+  !> \changelog
+  !! - Stephan Thober May 2017
+  !!   - updated documentation
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Oldrich Rakovec Aug 2018
+  !!   - adding message about reading meteo_weights
+  !! - Sebastian Müller Mar 2023
+  !!   - used by meteo-handler
+  !!   - now independent of global variables
+  !> \authors Stephan Thober & Rohini Kumar
+  !> \date Jan 2017
+  subroutine meteo_weights_wrapper(iDomain, read_meteo_weights, dataPath, dataOut1, level1, level2, lower, upper, ncvarName)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : level1
-    use mo_global_variables, only : level2
+    use mo_common_types, only : grid
     use mo_read_nc, only : read_weights_nc
     use mo_spatial_agg_disagg_forcing, only : spatial_aggregation, spatial_disaggregation
 
     implicit none
 
-    ! Domain Id
+    !> Domain Id
     integer(i4), intent(in) :: iDomain
-
-    ! Flag for reading meteo weights
+    !> Flag for reading meteo weights
     logical, intent(in) :: read_meteo_weights
-
-    ! Data path where a given meteo. variable is stored
+    !> Data path where a given meteo. variable is stored
     character(len = *), intent(in) :: dataPath
-
-    ! Packed meterological variable for the whole simulation period
+    !> Packed meterological variable for the whole simulation period
     real(dp), dimension(:, :, :), allocatable, intent(inout) :: dataOut1
-
-    ! Lower bound for check of validity of data values
+    !> grid information at hydrologic level
+    type(Grid), dimension(:), intent(in) :: level1
+    !> Reference of the metereological variables
+    type(Grid), dimension(:), intent(in) :: level2
+    !> Lower bound for check of validity of data values
     real(dp), optional, intent(in) :: lower
-
-    ! Upper bound for check of validity of data values
+    !> Upper bound for check of validity of data values
     real(dp), optional, intent(in) :: upper
-
-    ! name of the variable (for .nc files)
+    !> name of the variable (for .nc files)
     character(len = *), optional, intent(in) :: ncvarName
 
     logical, dimension(:, :), allocatable :: mask1
-
     integer(i4) :: ncells1
-
     integer(i4) :: nrows2, ncols2
-
     logical, dimension(:, :), allocatable :: mask2
-
     ! meteo weights data at level-2
     real(dp), dimension(:, :, :, :), allocatable :: L2_data
-
     ! meteo weights data at level-1
     real(dp), dimension(:, :, :, :), allocatable :: L1_data
-
     ! packed meteo weights data at level-1 from 4D to 3D
     real(dp), dimension(:, :, :), allocatable :: L1_data_packed
-
     integer(i4) :: nMonths, nHours
-
     ! level-1_resolution/level-2_resolution
     real(dp) :: cellFactorHbyM
-
     integer(i4) :: t, j
-
 
     ! get basic Domain information at level-1
     nCells1 = level1(iDomain)%nCells
@@ -556,48 +299,36 @@ CONTAINS
   end subroutine meteo_weights_wrapper
 
 
-  ! ------------------------------------------------------------------
-  !    NAME
-  !        chunk_config
-
-  !    PURPOSE
-  !>       \brief determines the start date, end date, and read_flag given Domain id and current timestep
-
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain" current Domain
-  !>       \param[in] "integer(i4) :: tt"     current timestep
-
-  !    INTENT(OUT)
-  !>       \param[out] "logical :: read_flag"    indicate whether reading data should be read
-  !>       \param[out] "type(period) :: readPer" start and end dates of reading Period
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Jun 2014
-
-  ! Modifications:
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
-  subroutine chunk_config(iDomain, tt, read_flag, readPer)
+  !> \brief determines the start date, end date, and read_flag given Domain id and current timestep
+  !> \changelog
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Müller Mar 2023
+  !!   - used by meteo-handler
+  !!   - now independent of global variables
+  !> \authors Stephan Thober
+  !> \date Jun 2014
+  subroutine chunk_config(iDomain, tt, nTstepDay, simPer, timestep, timeStep_model_inputs, read_flag, readPer)
 
     use mo_common_constants, only : nodata_dp
     use mo_common_types, only: period
-    use mo_kind, only : i4
 
     implicit none
 
-    ! current Domain
+    !> current Domain
     integer(i4), intent(in) :: iDomain
-
-    ! current timestep
+    !> current timestep
     integer(i4), intent(in) :: tt
-
-    ! indicate whether reading data should be read
+    !> Number of time intervals per day
+    integer(i4), intent(in) :: nTstepDay
+    !> warmPer + evalPer
+    type(period), dimension(:), intent(in) :: simPer
+    !> [h] simulation time step (= TS) in [h]
+    integer(i4), intent(in) :: timeStep
+    !> frequency for reading meteo input
+    integer(i4), dimension(:), intent(in) :: timeStep_model_inputs
+    !> indicate whether reading data should be read
     logical, intent(out) :: read_flag
-
     ! start and end dates of reading Period
     type(period), intent(out) :: readPer
 
@@ -617,75 +348,61 @@ CONTAINS
     end if
 
     ! evaluate date and timeStep_model_inputs to get read_flag -------
-    read_flag = is_read(iDomain, tt)
+    read_flag = is_read(iDomain, tt, nTstepDay, simPer, timestep, timeStep_model_inputs)
     !
     ! determine start and end date of chunk to read
-    if (read_flag) call chunk_size(iDomain, tt, readPer)
+    if (read_flag) call chunk_size(iDomain, tt, nTstepDay, simPer, timeStep_model_inputs, readPer)
     !
   end subroutine chunk_config
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        is_read
 
-  !    PURPOSE
-  !>       \brief evaluate whether new chunk should be read at this timestep
+  !> \brief evaluate whether new chunk should be read at this timestep
+  !> \changelog
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Müller Mar 2023
+  !!   - used by meteo-handler
+  !!   - now independent of global variables
+  !> \authors Stephan Thober
+  !> \date Jun 2014
+  function is_read(iDomain, tt, nTstepDay, simPer, timestep, timeStep_model_inputs)
 
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain" current Domain
-  !>       \param[in] "integer(i4) :: tt"     current time step
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Jun 2014
-
-  ! Modifications:
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
-  function is_read(iDomain, tt)
-
-    use mo_common_mhm_mrm_variables, only : nTstepDay, simPer, timestep
-    use mo_global_variables, only : timeStep_model_inputs
+    use mo_common_types, only : period
     use mo_julian, only : caldat
-    use mo_kind, only : i4
 
     implicit none
 
-    ! current Domain
+    !> current Domain
     integer(i4), intent(in) :: iDomain
-
-    ! current time step
+    !> current time step
     integer(i4), intent(in) :: tt
+    !> Number of time intervals per day
+    integer(i4), intent(in) :: nTstepDay
+    !> warmPer + evalPer
+    type(period), dimension(:), intent(in) :: simPer
+    !> [h] simulation time step (= TS) in [h]
+    integer(i4), intent(in) :: timeStep
+    !> frequency for reading meteo input
+    integer(i4), dimension(:), intent(in) :: timeStep_model_inputs
 
     logical :: is_read
 
     ! number of simulated days
     integer(i4) :: Ndays
-
     ! day
     integer(i4) :: day
-
     ! months
     integer(i4) :: month
-
     ! years
     integer(i4) :: year
-
     ! number of simulated days one timestep before
     integer(i4) :: Ndays_before
-
     ! day one simulated timestep before
     integer(i4) :: day_before
-
     ! month one simulated timestep before
     integer(i4) :: month_before
-
     ! year one simulated timestep before
     integer(i4) :: year_before
-
 
     ! initialize
     is_read = .false.
@@ -727,64 +444,47 @@ CONTAINS
     end if
 
   end function is_read
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        chunk_size
 
-  !    PURPOSE
-  !>       \brief calculate beginning and end of read Period, i.e. that
-  !>       is length of current chunk to read
+  !> \brief calculate beginning and end of read Period, i.e. that is length of current chunk to read
+  !> \changelog
+  !! - Stephan Thober  Jan 2015
+  !!   - added iDomain
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Müller Mar 2023
+  !!   - used by meteo-handler
+  !!   - now independent of global variables
+  !> \authors Stephan Thober
+  !> \date Jun 2014
+  subroutine chunk_size(iDomain, tt, nTstepDay, simPer, timeStep_model_inputs, readPer)
 
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain" current Domain to process
-  !>       \param[in] "integer(i4) :: tt"     current time step
-
-  !    INTENT(OUT)
-  !>       \param[out] "type(period) :: readPer" start and end dates of read Period
-
-  !    HISTORY
-  !>       \authors Stephan Thober
-
-  !>       \date Jun 2014
-
-  ! Modifications:
-  ! Stephan Thober  Jan 2015 - added iDomain
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
-  subroutine chunk_size(iDomain, tt, readPer)
-
-    use mo_common_mhm_mrm_variables, only : nTstepDay, simPer
     use mo_common_types, only: period
-    use mo_global_variables, only : timeStep_model_inputs
     use mo_julian, only : caldat, julday
-    use mo_kind, only : i4
 
     implicit none
 
-    ! current time step
-    integer(i4), intent(in) :: tt
-
-    ! current Domain to process
+    !> current Domain to process
     integer(i4), intent(in) :: iDomain
-
-    ! start and end dates of read Period
+    !> current time step
+    integer(i4), intent(in) :: tt
+    !> Number of time intervals per day
+    integer(i4), intent(in) :: nTstepDay
+    !> warmPer + evalPer
+    type(period), dimension(:), intent(in) :: simPer
+    !> frequency for reading meteo input
+    integer(i4), dimension(:), intent(in) :: timeStep_model_inputs
+    !> start and end dates of read Period
     type(period), intent(out) :: readPer
 
     ! number of simulated days
     integer(i4) :: Ndays
-
     ! day
     integer(i4) :: day
-
     ! months
     integer(i4) :: month
-
     ! years
     integer(i4) :: year
-
 
     ! calculate date of start date
     Ndays = ceiling(real(tt, dp) / real(nTstepDay, dp))
@@ -828,5 +528,5 @@ CONTAINS
     readPer%Nobs = readPer%julEnd - readPer%julstart + 1
 
   end subroutine chunk_size
-  !
+
 END MODULE mo_meteo_forcings

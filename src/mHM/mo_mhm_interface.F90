@@ -54,10 +54,13 @@ contains
       mrm_init, &
       mrm_configuration
     use mo_common_variables, only: &
+      level1, &
       itimer, &
       domainMeta, &
       processMatrix
     use mo_common_mHM_mRM_variables, only : &
+      nTstepDay, &
+      timeStep, &
       simPer, &
       optimize, &
       opti_function, &
@@ -120,7 +123,7 @@ contains
     call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
     call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
     call mhm_read_config(file_namelist_mhm, unamelist_mhm)
-    call meteo_handler%config(file_namelist_mhm, unamelist_mhm, optimize, domainMeta)
+    call meteo_handler%config(file_namelist_mhm, unamelist_mhm, optimize, domainMeta, processMatrix)
     mrm_coupling_mode = 2_i4
     call mrm_configuration(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
     call check_optimization_settings()
@@ -177,7 +180,7 @@ contains
       ! read meteorology now, if optimization is switched on
       ! meteorological forcings (reading, upscaling or downscaling)
       if (timestep_model_inputs(iDomain) .eq. 0_i4) then
-        call prepare_meteo_forcings_data(iDomain, domainID, 1)
+        call meteo_handler%prepare_data(iDomain, domainID, 1, domainMeta, level1, nTstepDay, simPer, timestep)
       end if
 
       ! read optional optional data if necessary
