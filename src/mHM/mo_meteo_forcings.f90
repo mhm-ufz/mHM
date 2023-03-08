@@ -267,7 +267,7 @@ CONTAINS
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
-    use mo_common_mhm_mrm_variables, only : readPer
+    use mo_common_mhm_mrm_variables, only : readPer, nTstepForcingDay
     use mo_common_variables, only : level1
     use mo_global_variables, only : level2
     use mo_read_nc, only : read_nc
@@ -335,21 +335,22 @@ CONTAINS
     case('nc')
       if(present(lower) .AND. (.not. present(upper))) then
         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
-                lower = lower, is_meteo=.True.)
+                lower = lower, is_meteo=.True., nTstepForcingDay=nTstepForcingDay)
       end if
       !
       if(present(upper) .AND. (.not. present(lower))) then
          CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
-              upper = upper, is_meteo=.True.)
+              upper = upper, is_meteo=.True., nTstepForcingDay=nTstepForcingDay)
       end if
       !
       if(present(lower) .AND. present(upper)) then
          CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
-              lower = lower, upper = upper, is_meteo=.True.)
+              lower = lower, upper = upper, is_meteo=.True., nTstepForcingDay=nTstepForcingDay)
       end if
       !
       if((.not. present(lower)) .AND. (.not. present(upper))) then
-         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, is_meteo=.True.)
+         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
+              is_meteo=.True., nTstepForcingDay=nTstepForcingDay)
       end if
     case DEFAULT
       call error_message('***ERROR: meteo_forcings_wrapper: Not recognized input format')

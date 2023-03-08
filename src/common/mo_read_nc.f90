@@ -89,11 +89,10 @@ contains
   !       Robert Schweppe    Jun 2018 - refactoring and reformatting
 
   subroutine read_nc(folder, nRows, nCols, varName, mask, data, target_period, lower, upper, nctimestep, &
-                            fileName, nocheck, maskout, is_meteo)
+                            fileName, nocheck, maskout, is_meteo, nTstepForcingDay)
 
     use mo_constants, only : nodata_i4
     use mo_common_types, only: period
-    use mo_common_mHM_mRM_variables, only : nTstepForcingDay
     use mo_kind, only : dp, i4
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
@@ -142,6 +141,9 @@ contains
 
     ! logical whether meteorology is currently read
     logical, optional, intent(in) :: is_meteo
+
+    ! Number of datapoints in longitudinal direction
+    integer(i4), optional, intent(inout) :: nTstepForcingDay
 
     ! netcdf file
     type(NcDataset) :: nc
@@ -212,26 +214,27 @@ contains
     call get_time_vector_and_select(time_var, fname, inctimestep, time_start, time_cnt, target_period)
 
     if (present(is_meteo)) then
-       if (is_meteo) then
-          select case(inctimestep)
+      if (.not. present(nTstepForcingDay)) call error_message("read_nc: meteo file given but 'nTstepForcingDay' not passed")
+      if (is_meteo) then
+        select case(inctimestep)
           case(-1) ! daily
-             if (nTstepForcingDay .eq. nodata_i4) then
-                nTstepForcingDay = 1_i4
-             else if (nTstepForcingDay .ne. 1_i4) then
-                call error_message('***ERROR: read_forcing_nc: expected daily input forcing, but read something else. ' // &
-                     'Ensure all input time steps have the same units across all input files')
-             end if
+            if (nTstepForcingDay .eq. nodata_i4) then
+              nTstepForcingDay = 1_i4
+            else if (nTstepForcingDay .ne. 1_i4) then
+              call error_message('***ERROR: read_forcing_nc: expected daily input forcing, but read something else. ' // &
+                    'Ensure all input time steps have the same units across all input files')
+            end if
           case(-4) ! hourly
-             if (nTstepForcingDay .eq. nodata_i4) then
-                nTstepForcingDay = 24_i4
-             else if (nTstepForcingDay .ne. 24_i4) then
-                call error_message('***ERROR: read_forcing_nc: expected hourly input forcing, but read something else. ' // &
-                     'Ensure all input time steps have the same units across all input files')
-             end if
+            if (nTstepForcingDay .eq. nodata_i4) then
+              nTstepForcingDay = 24_i4
+            else if (nTstepForcingDay .ne. 24_i4) then
+              call error_message('***ERROR: read_forcing_nc: expected hourly input forcing, but read something else. ' // &
+                    'Ensure all input time steps have the same units across all input files')
+            end if
           case default ! no output at all
-             call error_message('***ERROR: read_nc: unknown nctimestep switch.')
-          end select
-       end if
+            call error_message('***ERROR: read_nc: unknown nctimestep switch.')
+        end select
+      end if
     end if
 
     ! check optional nctimestep
