@@ -163,7 +163,7 @@ contains
     call message('  Initialize domains ...')
     call timer_start(itimer)
     call mhm_initialize()
-    call meteo_handler%initialize(domainMeta, level0)
+    call meteo_handler%initialize(level0)
     call timer_stop(itimer)
     call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
     if (processMatrix(8, 1) > 0) &
@@ -178,7 +178,7 @@ contains
       ! read meteorology now, if optimization is switched on
       ! meteorological forcings (reading, upscaling or downscaling)
       if (meteo_handler%timestep_model_inputs(iDomain) .eq. 0_i4) then
-        call meteo_handler%prepare_data(1, iDomain, domainMeta, level1, simPer)
+        call meteo_handler%prepare_data(1, iDomain, level1, simPer)
       end if
 
       ! read optional optional data if necessary

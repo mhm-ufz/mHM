@@ -113,10 +113,22 @@ module mo_meteo_handler
     ! -------------------------------------------------------------------
     ! current mHM array indizes
     ! -------------------------------------------------------------------
-    !> start and end index of meteo variables
-    integer(i4) :: s_meteo, e_meteo
+    !> start index of meteo variables
+    integer(i4) :: s_meteo
+    !> end index of meteo variables
+    integer(i4) :: e_meteo
     !> index of meteo time-step
     integer(i4) :: iMeteoTS
+    !> start index of level-1 variables
+    integer(i4) :: s1
+    !> end index of level-1 variables
+    integer(i4) :: e1
+    !> number of domains
+    integer(i4) :: nDomains
+    integer(i4), dimension(:), allocatable :: indices !< indices
+    integer(i4), dimension(:), allocatable :: L0DataFrom !< index of associated level-0 domain
+    !> current julian time
+    real(dp) :: time
 
   contains
     !> \copydoc mo_meteo_handler::config
@@ -147,6 +159,8 @@ contains
 
     class(meteo_handler_type), intent(inout) :: self
 
+    if ( allocated(self%indices) ) deallocate(self%indices)
+    if ( allocated(self%L0DataFrom) ) deallocate(self%L0DataFrom)
     if ( allocated(self%timeStep_model_inputs) ) deallocate(self%timeStep_model_inputs)
     if ( allocated(self%dirPrecipitation) ) deallocate(self%dirPrecipitation)
     if ( allocated(self%dirTemperature) ) deallocate(self%dirTemperature)
@@ -238,6 +252,13 @@ contains
       fnight_ssrd, &
       fnight_strd
 
+    ! store needed domain meta infos
+    self%nDomains = domainMeta%nDomains
+    allocate(self%indices(self%nDomains))
+    allocate(self%L0DataFrom(self%nDomains))
+    self%indices(:) = domainMeta%indices(:)
+    self%L0DataFrom(:) = domainMeta%L0DataFrom(:)
+
     ! # init of number of forcing timesteps, will be set when reading forcings
     self%nTStepForcingDay = nodata_i4
 
@@ -250,17 +271,17 @@ contains
     self%nTstepDay_dp = real(self%nTStepDay, dp)
 
     ! allocate variables
-    allocate(self%dirPrecipitation(domainMeta%nDomains))
-    allocate(self%dirTemperature(domainMeta%nDomains))
-    allocate(self%dirwindspeed(domainMeta%nDomains))
-    allocate(self%dirabsVapPressure(domainMeta%nDomains))
-    allocate(self%dirReferenceET(domainMeta%nDomains))
-    allocate(self%dirMinTemperature(domainMeta%nDomains))
-    allocate(self%dirMaxTemperature(domainMeta%nDomains))
-    allocate(self%dirNetRadiation(domainMeta%nDomains))
-    allocate(self%dirRadiation(domainMeta%nDomains))
+    allocate(self%dirPrecipitation(self%nDomains))
+    allocate(self%dirTemperature(self%nDomains))
+    allocate(self%dirwindspeed(self%nDomains))
+    allocate(self%dirabsVapPressure(self%nDomains))
+    allocate(self%dirReferenceET(self%nDomains))
+    allocate(self%dirMinTemperature(self%nDomains))
+    allocate(self%dirMaxTemperature(self%nDomains))
+    allocate(self%dirNetRadiation(self%nDomains))
+    allocate(self%dirRadiation(self%nDomains))
     ! allocate time periods
-    allocate(self%timestep_model_inputs(domainMeta%nDomains))
+    allocate(self%timestep_model_inputs(self%nDomains))
 
     ! open the namelist file
     call open_nml(file_namelist, unamelist, quiet=.true.)
@@ -276,7 +297,7 @@ contains
     self%bound_error = bound_error
     self%inputFormat_meteo_forcings = inputFormat_meteo_forcings
 
-    do iDomain = 1, domainMeta%nDomains
+    do iDomain = 1, self%nDomains
       domainID = domainMeta%indices(iDomain)
       self%timestep_model_inputs(iDomain) = time_step_model_inputs(domainID)
       self%dirPrecipitation(iDomain) = dir_Precipitation(domainID)
@@ -331,19 +352,23 @@ contains
   end subroutine config
 
   !> \brief update the current time-step of the \ref meteo_handler_type class
-  subroutine update_timestep(self, tt, iDomain, domainMeta, level1, simPer)
-    use mo_common_types, only : domain_meta
+  subroutine update_timestep(self, tt, time, iDomain, level1, simPer)
 
     implicit none
 
     class(meteo_handler_type), intent(inout) :: self
     integer(i4), intent(in) :: tt !< current time step
+    real(dp), intent(in) :: time !< current decimal Julian day
     integer(i4), intent(in) :: iDomain !< current domain
-    type(domain_meta), intent(in) :: domainMeta !< domain general description
     !> grid information at hydrologic level
     type(Grid), dimension(:), intent(in) :: level1
     !> warmPer + evalPer
     type(period), dimension(:), intent(in) :: simPer
+
+    ! store current indizes and time
+    self%s1 = level1(iDomain)%iStart
+    self%e1 = level1(iDomain)%iEnd
+    self%time = time
 
     ! time increment is done right after call to mrm (and initially before looping)
     if (self%timeStep_model_inputs(iDomain) .eq. 0_i4) then
@@ -358,7 +383,7 @@ contains
       self%iMeteoTS = ceiling(real(tt, dp) / real(nint( 24._dp / real(self%nTstepForcingDay, dp)), dp))
     else
       ! read chunk of meteorological forcings data (reading, upscaling/downscaling)
-      call self%prepare_data(tt, iDomain, domainMeta, level1, simPer)
+      call self%prepare_data(tt, iDomain, level1, simPer)
       ! set start and end of meteo position
       self%s_meteo = 1
       self%e_meteo = level1(iDomain)%iEnd - level1(iDomain)%iStart + 1
@@ -393,9 +418,8 @@ contains
   !!   - converted routine to meteo-handler method
   !> \authors Rohini Kumar
   !> \date Jan 2013
-  subroutine prepare_data(self, tt, iDomain, domainMeta, level1, simPer)
+  subroutine prepare_data(self, tt, iDomain, level1, simPer)
 
-    use mo_common_types, only : domain_meta
     use mo_string_utils, only : num2str
     use mo_timer, only : timer_get, timer_start, timer_stop
     use mo_meteo_forcings, only : meteo_forcings_wrapper, meteo_weights_wrapper, chunk_config
@@ -405,7 +429,6 @@ contains
     class(meteo_handler_type), intent(inout) :: self
     integer(i4), intent(in) :: tt !< current timestep
     integer(i4), intent(in) :: iDomain !< Domain number
-    type(domain_meta), intent(in) :: domainMeta !< domain general description
     !> grid information at hydrologic level
     type(Grid), dimension(:), intent(in) :: level1
     !> warmPer + evalPer
@@ -415,7 +438,7 @@ contains
     logical :: read_flag
     integer(i4) :: domainID ! current domain ID
 
-    domainID = domainMeta%indices(iDomain)
+    domainID = self%indices(iDomain)
 
     ! configuration of chunk_read
     call chunk_config(iDomain, tt, self%nTstepDay, simPer, self%timestep, self%timeStep_model_inputs, read_flag, self%readPer)
@@ -482,7 +505,7 @@ contains
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
             lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pet', bound_error=self%bound_error)
           ! allocate PET and dummies for mhm_call
-          if ((iDomain.eq.domainMeta%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
+          if ((iDomain.eq.self%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
             allocate(self%L1_tmin(1, 1))
             allocate(self%L1_tmax(1, 1))
             allocate(self%L1_netrad(1, 1))
@@ -502,7 +525,7 @@ contains
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
             lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmax', bound_error=self%bound_error)
           ! allocate PET and dummies for mhm_call
-          if ((iDomain .eq. domainMeta%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
+          if ((iDomain .eq. self%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
             allocate(self%L1_pet    (size(self%L1_tmax, dim = 1), size(self%L1_tmax, dim = 2)))
             allocate(self%L1_netrad(1, 1))
             allocate(self%L1_absvappress(1, 1))
@@ -516,7 +539,7 @@ contains
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
             lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad', bound_error=self%bound_error)
           ! allocate PET and dummies for mhm_call
-          if ((iDomain .eq. domainMeta%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
+          if ((iDomain .eq. self%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
             allocate(self%L1_pet    (size(self%L1_netrad, dim = 1), size(self%L1_netrad, dim = 2)))
             allocate(self%L1_tmin(1, 1))
             allocate(self%L1_tmax(1, 1))
@@ -541,7 +564,7 @@ contains
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
             lower = 0.0_dp, upper = 250.0_dp, ncvarName = 'windspeed', bound_error=self%bound_error)
           ! allocate PET and dummies for mhm_call
-          if ((iDomain.eq.domainMeta%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
+          if ((iDomain.eq.self%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
             allocate(self%L1_pet    (size(self%L1_absvappress, dim = 1), size(self%L1_absvappress, dim = 2)))
             allocate(self%L1_tmin(1, 1))
             allocate(self%L1_tmax(1, 1))
@@ -588,7 +611,7 @@ contains
   end subroutine prepare_data
 
   !> \brief Initialize meteo data and level-2 grid
-  subroutine initialize(self, domainMeta, level0)
+  subroutine initialize(self, level0)
 
     use mo_grid, only : set_domain_indices
     use mo_common_types, only : domain_meta, grid
@@ -596,18 +619,17 @@ contains
     implicit none
 
     class(meteo_handler_type), intent(inout) :: self
-    type(domain_meta), intent(in) :: domainMeta !< domain general description
-    !> grid information at hydrologic level
+    !> grid information at level-0
     type(Grid), dimension(:), intent(in) :: level0
 
     integer(i4) :: iDomain
 
     ! constants initialization
-    allocate(self%level2(domainMeta%nDomains))
+    allocate(self%level2(self%nDomains))
 
-    do iDomain = 1, domainMeta%nDomains
+    do iDomain = 1, self%nDomains
       ! L2 inialization
-      call self%L2_variable_init(iDomain, level0(domainMeta%L0DataFrom(iDomain)))
+      call self%L2_variable_init(iDomain, level0(self%L0DataFrom(iDomain)))
     end do
 
     call set_domain_indices(self%level2)
@@ -684,7 +706,7 @@ contains
   end subroutine L2_variable_init
 
   !> \brief get corrected PET for the current timestep and domain
-  subroutine get_corrected_pet(self, pet_calc, time, level1, &
+  subroutine get_corrected_pet(self, pet_calc, &
     petLAIcorFactorL1, fAsp, HarSamCoeff, latitude, PrieTayAlpha, aeroResist, surfResist)
 
     use mo_common_types, only: Grid
@@ -699,10 +721,6 @@ contains
     class(meteo_handler_type), intent(inout) :: self
     !> [mm TS-1] estimated PET (if PET is input = corrected values (fAsp*PET))
     real(dp), dimension(:), intent(inout) :: pet_calc
-    !> current decimal Julian day
-    real(dp), intent(in) :: time
-    !> grid information at hydrologic level for current domain
-    type(Grid), intent(in) :: level1
     !> PET correction factor based on LAI at level 1
     real(dp), dimension(:), intent(in) :: petLAIcorFactorL1
     !> [1]     PET correction for Aspect at level 1
@@ -738,11 +756,11 @@ contains
     ! cell index
     integer(i4) :: k, i, s1
 
-    nCells1 = level1%nCells
-    s1 = level1%iStart
+    nCells1 = self%e1 - self%s1 + 1
+    s1 = self%s1
 
     ! date and month of this timestep
-    call dec2date(time, yy = year, mm = month, dd = day, hh = hour)
+    call dec2date(self%time, yy = year, mm = month, dd = day, hh = hour)
 
     ! flag for day or night depending on hours of the day
     isday = (hour .gt. 6) .AND. (hour .le. 18)
@@ -824,7 +842,7 @@ contains
   end subroutine get_corrected_pet
 
   !> \brief get surface temperature for the current timestep and domain
-  subroutine get_temp(self, temp_calc, time, level1)
+  subroutine get_temp(self, temp_calc)
 
     use mo_common_types, only: Grid
     use mo_julian, only : dec2date
@@ -836,10 +854,6 @@ contains
     class(meteo_handler_type), intent(inout) :: self
     !> [degC] temperature for current time step
     real(dp), dimension(:), intent(inout) :: temp_calc
-    !> current decimal Julian day
-    real(dp), intent(in) :: time
-    !> grid information at hydrologic level for current domain
-    type(Grid), intent(in) :: level1
 
     ! is day or night
     logical :: isday
@@ -853,11 +867,11 @@ contains
     ! cell index
     integer(i4) :: k, i, s1
 
-    nCells1 = level1%nCells
-    s1 = level1%iStart
+    nCells1 = self%e1 - self%s1 + 1
+    s1 = self%s1
 
     ! date and month of this timestep
-    call dec2date(time, mm = month, hh = hour)
+    call dec2date(self%time, mm = month, hh = hour)
 
     ! flag for day or night depending on hours of the day
     isday = (hour .gt. 6) .AND. (hour .le. 18)
@@ -900,7 +914,7 @@ contains
   end subroutine get_temp
 
   !> \brief get precipitation for the current timestep and domain
-  subroutine get_prec(self, prec_calc, time, level1)
+  subroutine get_prec(self, prec_calc)
 
     use mo_common_types, only: Grid
     use mo_julian, only : dec2date
@@ -911,10 +925,6 @@ contains
     class(meteo_handler_type), intent(inout) :: self
     !> [mm TS-1] precipitation for current time step
     real(dp), dimension(:), intent(inout) :: prec_calc
-    !> current decimal Julian day
-    real(dp), intent(in) :: time
-    !> grid information at hydrologic level for current domain
-    type(Grid), intent(in) :: level1
 
     ! is day or night
     logical :: isday
@@ -928,11 +938,11 @@ contains
     ! cell index
     integer(i4) :: k, i, s1
 
-    nCells1 = level1%nCells
-    s1 = level1%iStart
+    nCells1 = self%e1 - self%s1 + 1
+    s1 = self%s1
 
     ! date and month of this timestep
-    call dec2date(time, mm = month, hh = hour)
+    call dec2date(self%time, mm = month, hh = hour)
 
     ! flag for day or night depending on hours of the day
     isday = (hour .gt. 6) .AND. (hour .le. 18)
