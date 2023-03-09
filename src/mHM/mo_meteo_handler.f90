@@ -3,7 +3,12 @@
 !> \details \copydetails mo_meteo_handler
 
 !> \brief   Class for the meteo handler
-!> \details River temperature routing on top of mRM.
+!> \details Handler for meteorological forcings in mHM.
+!!          Is independent of global variables and provides 3 methods to access forcings:
+!!          - get_pet : get the modified pet for mHM for the current timestep
+!!          - get_temp : get the temporal disaggregated temperature for the current timestep
+!!          - get_prec : get the temporal disaggregated percipitation for the current timestep
+!!
 !> \version 0.1
 !> \authors Sebastian Mueller
 !> \date    Mar 2023
