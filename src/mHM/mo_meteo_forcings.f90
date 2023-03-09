@@ -48,7 +48,7 @@ CONTAINS
   !> \authors Rohini Kumar
   !> \date Jan 2013
   subroutine meteo_forcings_wrapper( &
-    iDomain, dataPath, inputFormat, dataOut1, readPer, nTstepForcingDay, level1, level2, lower, upper, ncvarName)
+    iDomain, dataPath, inputFormat, dataOut1, readPer, nTstepForcingDay, level1, level2, lower, upper, ncvarName, bound_error)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -80,6 +80,8 @@ CONTAINS
     real(dp), optional, intent(in) :: upper
     !> name of the variable (for .nc files)
     character(len = *), optional, intent(in) :: ncvarName
+    !> .FALSE. to only warn about bound (lower, upper) violations, default = .TRUE. - raise an error
+    logical, optional, intent(in) :: bound_error
 
     logical, dimension(:, :), allocatable :: mask1
     integer(i4) :: ncells1
@@ -110,7 +112,7 @@ CONTAINS
       case('nc')
         ! Fortran 2008 allowes to pass optional dummy arguments to another routine (when they are optional there too)
         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period=readPer, &
-                     lower=lower, upper=upper, is_meteo=.True., nTstepForcingDay=nTstepForcingDay)
+                     lower=lower, upper=upper, is_meteo=.True., bound_error=bound_error, nTstepForcingDay=nTstepForcingDay)
       case DEFAULT
         call error_message('***ERROR: meteo_forcings_wrapper: Not recognized input format')
     end select

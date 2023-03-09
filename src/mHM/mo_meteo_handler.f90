@@ -32,6 +32,8 @@ module mo_meteo_handler
     CHARACTER(256) :: file_meteo_header = 'header.txt'
     !> Unit for meteo header file
     INTEGER :: umeteo_header = 50
+    !> .FALSE. to only warn about bound (lower, upper) violations in meteo files, default = .TRUE. - raise an error
+    logical :: bound_error
     integer(i4) :: pet_case                                                !< process case for PET (processCase(5))
     integer(i4) :: riv_temp_case                                           !< process case for river temperature (processCase(11))
     type(period), public :: readPer                                        !< start and end dates of read period
@@ -198,7 +200,7 @@ contains
     character(256), dimension(maxNoDomains) :: dir_Radiation ! riv-temp related
     character(256) :: inputFormat_meteo_forcings
 
-    logical :: read_meteo_weights
+    logical :: read_meteo_weights, bound_error
     real(dp), dimension(int(YearMonths, i4)) :: fnight_prec
     real(dp), dimension(int(YearMonths, i4)) :: fnight_pet
     real(dp), dimension(int(YearMonths, i4)) :: fnight_temp
@@ -210,6 +212,7 @@ contains
     ! namelist directories
     namelist /directories_mHM/ &
       inputFormat_meteo_forcings, &
+      bound_error, &
       dir_Precipitation, &
       dir_Temperature, &
       dir_ReferenceET, &
@@ -260,10 +263,14 @@ contains
     !===============================================================
     !  Read namelist main directories
     !===============================================================
+    inputFormat_meteo_forcings = "nc"
+    bound_error = .TRUE.
     call position_nml(self%dir_nml_name, unamelist)
     read(unamelist, nml = directories_mHM)
 
+    self%bound_error = bound_error
     self%inputFormat_meteo_forcings = inputFormat_meteo_forcings
+
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       self%timestep_model_inputs(iDomain) = time_step_model_inputs(domainID)
@@ -451,14 +458,14 @@ contains
       call meteo_forcings_wrapper(iDomain, self%dirPrecipitation(iDomain), self%inputFormat_meteo_forcings, &
         dataOut1=self%L1_pre, &
         readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-        lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pre')
+        lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pre', bound_error=self%bound_error)
 
       ! temperature
       if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read temperature          ...')
       call meteo_forcings_wrapper(iDomain, self%dirTemperature(iDomain), self%inputFormat_meteo_forcings, &
         dataOut1=self%L1_temp, &
         readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-        lower = -100._dp, upper = 100._dp, ncvarName = 'tavg')
+        lower = -100._dp, upper = 100._dp, ncvarName = 'tavg', bound_error=self%bound_error)
 
       ! read input for PET (process 5) depending on specified option
       ! 0 - input, 1 - Hargreaves-Samani, 2 - Priestley-Taylor, 3 - Penman-Monteith
@@ -468,7 +475,7 @@ contains
           call meteo_forcings_wrapper(iDomain, self%dirReferenceET(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_pet, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pet')
+            lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pet', bound_error=self%bound_error)
           ! allocate PET and dummies for mhm_call
           if ((iDomain.eq.domainMeta%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
             allocate(self%L1_tmin(1, 1))
@@ -483,12 +490,12 @@ contains
           call meteo_forcings_wrapper(iDomain, self%dirMinTemperature(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_tmin, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmin')
+            lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmin', bound_error=self%bound_error)
           if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read max. temperature     ...')
           call meteo_forcings_wrapper(iDomain, self%dirMaxTemperature(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_tmax, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmax')
+            lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmax', bound_error=self%bound_error)
           ! allocate PET and dummies for mhm_call
           if ((iDomain .eq. domainMeta%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
             allocate(self%L1_pet    (size(self%L1_tmax, dim = 1), size(self%L1_tmax, dim = 2)))
@@ -502,7 +509,7 @@ contains
           call meteo_forcings_wrapper(iDomain, self%dirNetRadiation(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_netrad, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad')
+            lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad', bound_error=self%bound_error)
           ! allocate PET and dummies for mhm_call
           if ((iDomain .eq. domainMeta%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
             allocate(self%L1_pet    (size(self%L1_netrad, dim = 1), size(self%L1_netrad, dim = 2)))
@@ -517,17 +524,17 @@ contains
           call meteo_forcings_wrapper(iDomain, self%dirNetRadiation(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_netrad, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad')
+            lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad', bound_error=self%bound_error)
           if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read absolute vapour pressure  ...')
           call meteo_forcings_wrapper(iDomain, self%dirabsVapPressure(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_absvappress, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = 0.0_dp, upper = 15000.0_dp, ncvarName = 'eabs')
+            lower = 0.0_dp, upper = 15000.0_dp, ncvarName = 'eabs', bound_error=self%bound_error)
           if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read windspeed            ...')
           call meteo_forcings_wrapper(iDomain, self%dirwindspeed(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_windspeed, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = 0.0_dp, upper = 250.0_dp, ncvarName = 'windspeed')
+            lower = 0.0_dp, upper = 250.0_dp, ncvarName = 'windspeed', bound_error=self%bound_error)
           ! allocate PET and dummies for mhm_call
           if ((iDomain.eq.domainMeta%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
             allocate(self%L1_pet    (size(self%L1_absvappress, dim = 1), size(self%L1_absvappress, dim = 2)))
@@ -549,19 +556,19 @@ contains
           iDomain, self%dirRadiation(iDomain), self%inputFormat_meteo_forcings, &
           dataOut1=self%L1_ssrd, &
           readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-          lower = 0.0_dp, upper = 1500._dp, ncvarName = 'ssrd')
+          lower = 0.0_dp, upper = 1500._dp, ncvarName = 'ssrd', bound_error=self%bound_error)
         if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read long-wave radiation ...')
         call meteo_forcings_wrapper( &
           iDomain, self%dirRadiation(iDomain), self%inputFormat_meteo_forcings, &
           dataOut1=self%L1_strd, &
           readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-          lower = 0.0_dp, upper = 1500._dp, ncvarName = 'strd')
+          lower = 0.0_dp, upper = 1500._dp, ncvarName = 'strd', bound_error=self%bound_error)
         if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read annual mean temperature ...')
         call meteo_forcings_wrapper( &
           iDomain, self%dirTemperature(iDomain), self%inputFormat_meteo_forcings, &
           dataOut1=self%L1_tann, &
           readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-          lower = -100.0_dp, upper = 100._dp, ncvarName = 'tann')
+          lower = -100.0_dp, upper = 100._dp, ncvarName = 'tann', bound_error=self%bound_error)
       end if
 
       if (self%timeStep_model_inputs(iDomain) .eq. 0) then
