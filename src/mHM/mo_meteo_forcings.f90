@@ -107,28 +107,12 @@ CONTAINS
 
 
     select case (trim(inputFormat))
-    case('nc')
-      if(present(lower) .AND. (.not. present(upper))) then
-        CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
-                lower = lower, is_meteo=.True., nTstepForcingDay=nTstepForcingDay)
-      end if
-      !
-      if(present(upper) .AND. (.not. present(lower))) then
-         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
-              upper = upper, is_meteo=.True., nTstepForcingDay=nTstepForcingDay)
-      end if
-      !
-      if(present(lower) .AND. present(upper)) then
-         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
-              lower = lower, upper = upper, is_meteo=.True., nTstepForcingDay=nTstepForcingDay)
-      end if
-      !
-      if((.not. present(lower)) .AND. (.not. present(upper))) then
-         CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
-              is_meteo=.True., nTstepForcingDay=nTstepForcingDay)
-      end if
-    case DEFAULT
-      call error_message('***ERROR: meteo_forcings_wrapper: Not recognized input format')
+      case('nc')
+        ! Fortran 2008 allowes to pass optional dummy arguments to another routine (when they are optional there too)
+        CALL read_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period=readPer, &
+                     lower=lower, upper=upper, is_meteo=.True., nTstepForcingDay=nTstepForcingDay)
+      case DEFAULT
+        call error_message('***ERROR: meteo_forcings_wrapper: Not recognized input format')
     end select
     ! cellfactor to decide on the upscaling or downscaling of meteo. fields
     cellFactorHbyM = level1(iDomain)%cellsize / level2(iDomain)%cellsize
@@ -241,21 +225,7 @@ CONTAINS
 
     if (read_meteo_weights) then
       call message('  read_meteo_weights = .TRUE. ... Reading meteo weights ... ')
-      if(present(lower) .AND. (.not. present(upper))) then
-        CALL read_weights_nc(dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, lower = lower)
-      end if
-      !
-      if(present(upper) .AND. (.not. present(lower))) then
-        CALL read_weights_nc(dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, upper = upper)
-      end if
-      !
-      if(present(lower) .AND. present(upper)) then
-        CALL read_weights_nc(dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, lower = lower, upper = upper)
-      end if
-
-      if((.not. present(lower)) .AND. (.not. present(upper))) then
-        CALL read_weights_nc(dataPath, nRows2, nCols2, ncvarName, L2_data, mask2)
-      end if
+      CALL read_weights_nc(dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, lower=lower, upper=upper)
 
       ! cellfactor to decide on the upscaling or downscaling of meteo. fields
       cellFactorHbyM = level1(iDomain)%cellsize / level2(iDomain)%cellsize
