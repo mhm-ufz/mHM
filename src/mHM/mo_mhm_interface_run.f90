@@ -357,7 +357,7 @@ contains
     call meteo_handler%update_timestep(tt, iDomain, domainMeta, level1, simPer)
 
     ! get meteo arrays
-    call meteo_handler%get_pet( &
+    call meteo_handler%get_corrected_pet( &
       pet_calc=L1_pet_calc(run_cfg%s1 : run_cfg%e1), &
       ! current state
       time=run_cfg%domainDateTime%newTime - 0.5_dp, &

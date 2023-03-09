@@ -5,7 +5,7 @@
 !> \brief   Class for the meteo handler
 !> \details Handler for meteorological forcings in mHM.
 !!          Is independent of global variables and provides 3 methods to access forcings:
-!!          - get_pet : get the modified pet for mHM for the current timestep
+!!          - get_corrected_pet : get the modified pet for mHM for the current timestep
 !!          - get_temp : get the temporal disaggregated temperature for the current timestep
 !!          - get_prec : get the temporal disaggregated percipitation for the current timestep
 !!
@@ -129,8 +129,8 @@ module mo_meteo_handler
     procedure :: prepare_data !< \see mo_meteo_handler::prepare_data
     !> \copydoc mo_meteo_handler::update_timestep
     procedure :: update_timestep !< \see mo_meteo_handler::update_timestep
-    !> \copydoc mo_meteo_handler::get_pet
-    procedure :: get_pet !< \see mo_meteo_handler::get_pet
+    !> \copydoc mo_meteo_handler::get_corrected_pet
+    procedure :: get_corrected_pet !< \see mo_meteo_handler::get_corrected_pet
     !> \copydoc mo_meteo_handler::get_temp
     procedure :: get_temp !< \see mo_meteo_handler::get_temp
     !> \copydoc mo_meteo_handler::get_prec
@@ -683,8 +683,8 @@ contains
 
   end subroutine L2_variable_init
 
-  !> \brief get PET for the current timestep and domain
-  subroutine get_pet(self, pet_calc, time, level1, &
+  !> \brief get corrected PET for the current timestep and domain
+  subroutine get_corrected_pet(self, pet_calc, time, level1, &
     petLAIcorFactorL1, fAsp, HarSamCoeff, latitude, PrieTayAlpha, aeroResist, surfResist)
 
     use mo_common_types, only: Grid
@@ -821,7 +821,7 @@ contains
     !$OMP end do
     !$OMP end parallel
 
-  end subroutine get_pet
+  end subroutine get_corrected_pet
 
   !> \brief get surface temperature for the current timestep and domain
   subroutine get_temp(self, temp_calc, time, level1)

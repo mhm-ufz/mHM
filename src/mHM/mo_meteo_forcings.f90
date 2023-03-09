@@ -304,7 +304,6 @@ CONTAINS
     ! start and end dates of reading Period
     type(period), intent(out) :: readPer
 
-
     ! initialize
     read_flag = .false.
     if (tt .eq. 1_i4) then
