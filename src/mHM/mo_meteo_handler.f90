@@ -135,8 +135,6 @@ module mo_meteo_handler
     procedure :: config !< \see mo_meteo_handler::config
     !> \copydoc mo_meteo_handler::initialize
     procedure :: initialize !< \see mo_meteo_handler::initialize
-    !> \copydoc mo_meteo_handler::l2_variable_init
-    procedure :: l2_variable_init !< \see mo_meteo_handler::l2_variable_init
     !> \copydoc mo_meteo_handler::prepare_data
     procedure :: prepare_data !< \see mo_meteo_handler::prepare_data
     !> \copydoc mo_meteo_handler::update_timestep
@@ -298,7 +296,7 @@ contains
     self%inputFormat_meteo_forcings = inputFormat_meteo_forcings
 
     do iDomain = 1, self%nDomains
-      domainID = domainMeta%indices(iDomain)
+      domainID = self%indices(iDomain)
       self%timestep_model_inputs(iDomain) = time_step_model_inputs(domainID)
       self%dirPrecipitation(iDomain) = dir_Precipitation(domainID)
       self%dirTemperature(iDomain) = dir_Temperature(domainID)
@@ -351,6 +349,68 @@ contains
 
   end subroutine config
 
+  !> \brief Initialize meteo data and level-2 grid
+  subroutine initialize(self, level0)
+
+    use mo_grid, only : set_domain_indices
+    use mo_common_types, only : grid
+    use mo_grid, only : init_lowres_level
+    use mo_read_spatial_data, only : read_header_ascii
+    use mo_string_utils, only : num2str
+
+    implicit none
+
+    class(meteo_handler_type), intent(inout) :: self
+    !> grid information at level-0
+    type(Grid), dimension(:), intent(in) :: level0
+
+    ! header info
+    integer(i4) :: nrows2, ncols2
+    real(dp) :: xllcorner2, yllcorner2
+    real(dp) :: cellsize2, nodata_dummy
+    ! file name
+    character(256) :: fName
+    ! looping variable
+    integer(i4) :: iDomain
+
+    ! create level-2 info
+    allocate(self%level2(self%nDomains))
+
+    do iDomain = 1, self%nDomains
+      ! read header
+      fName = trim(adjustl(self%dirPrecipitation(iDomain))) // trim(adjustl(self%file_meteo_header))
+      call read_header_ascii(trim(fName), self%umeteo_header, &
+        nrows2, ncols2, xllcorner2, yllcorner2, cellsize2, nodata_dummy)
+      ! check grid compatibility
+      call init_lowres_level(level0(self%L0DataFrom(iDomain)), cellsize2, self%level2(iDomain))
+      ! check
+      if ((ncols2     .ne.  self%level2(iDomain)%ncols)         .or. &
+          (nrows2     .ne.  self%level2(iDomain)%nrows)         .or. &
+          (abs(xllcorner2 - self%level2(iDomain)%xllcorner) .gt. tiny(1.0_dp))     .or. &
+          (abs(yllcorner2 - self%level2(iDomain)%yllcorner) .gt. tiny(1.0_dp))     .or. &
+          (abs(cellsize2  - self%level2(iDomain)%cellsize)  .gt. tiny(1.0_dp))) then
+        call error_message('   ***ERROR: subroutine L2_variable_init: size mismatch in grid file for level2 in domain ', &
+                           trim(adjustl(num2str(iDomain))), '!', raise=.false.)
+        call error_message('  Expected to have following properties (based on L0):', raise=.false.)
+        call error_message('... rows:     ', trim(adjustl(num2str(self%level2(iDomain)%nrows))), ', ', raise=.false.)
+        call error_message('... cols:     ', trim(adjustl(num2str(self%level2(iDomain)%ncols))), ', ', raise=.false.)
+        call error_message('... cellsize: ', trim(adjustl(num2str(self%level2(iDomain)%cellsize))), ', ', raise=.false.)
+        call error_message('... xllcorner:', trim(adjustl(num2str(self%level2(iDomain)%xllcorner))), ', ', raise=.false.)
+        call error_message('... yllcorner:', trim(adjustl(num2str(self%level2(iDomain)%yllcorner))), ', ', raise=.false.)
+        call error_message('  Provided (in precipitation file):', raise=.false.)
+        call error_message('... rows:     ', trim(adjustl(num2str(nrows2))), ', ', raise=.false.)
+        call error_message('... cols:     ', trim(adjustl(num2str(ncols2))), ', ', raise=.false.)
+        call error_message('... cellsize: ', trim(adjustl(num2str(cellsize2))), ', ', raise=.false.)
+        call error_message('... xllcorner:', trim(adjustl(num2str(xllcorner2))), ', ', raise=.false.)
+        call error_message('... yllcorner:', trim(adjustl(num2str(yllcorner2))), ', ')
+      end if
+    end do
+
+    ! set indices
+    call set_domain_indices(self%level2)
+
+  end subroutine initialize
+
   !> \brief update the current time-step of the \ref meteo_handler_type class
   subroutine update_timestep(self, tt, time, iDomain, level1, simPer)
 
@@ -366,6 +426,7 @@ contains
     type(period), dimension(:), intent(in) :: simPer
 
     ! store current indizes and time
+    ! only needed for the "get_<var>" methods
     self%s1 = level1(iDomain)%iStart
     self%e1 = level1(iDomain)%iEnd
     self%time = time
@@ -609,101 +670,6 @@ contains
     self%is_hourly_forcing = (self%nTstepForcingDay .eq. 24_i4)
 
   end subroutine prepare_data
-
-  !> \brief Initialize meteo data and level-2 grid
-  subroutine initialize(self, level0)
-
-    use mo_grid, only : set_domain_indices
-    use mo_common_types, only : domain_meta, grid
-
-    implicit none
-
-    class(meteo_handler_type), intent(inout) :: self
-    !> grid information at level-0
-    type(Grid), dimension(:), intent(in) :: level0
-
-    integer(i4) :: iDomain
-
-    ! constants initialization
-    allocate(self%level2(self%nDomains))
-
-    do iDomain = 1, self%nDomains
-      ! L2 inialization
-      call self%L2_variable_init(iDomain, level0(self%L0DataFrom(iDomain)))
-    end do
-
-    call set_domain_indices(self%level2)
-
-  end subroutine initialize
-
-  !> \brief Initalize Level-2 meteorological forcings data
-  !> \details following tasks are performed
-  !! 1)  cell id & numbering
-  !! 2)  mask creation
-  !! 3)  append variable of intrest to global ones
-  !> \changelog
-  !! - Robert Schweppe Jun 2018
-  !!   - refactoring and reformatting
-  !! - Sebastian Müller Mar 2023
-  !!   - moved to meteo-handler
-  !> \authors Rohini Kumar
-  !> \date Feb 2013
-  subroutine L2_variable_init(self, iDomain, level0_iDomain)
-
-    use mo_common_types, only: Grid
-    use mo_grid, only : init_lowres_level
-    use mo_read_spatial_data, only : read_header_ascii
-    use mo_string_utils, only : num2str
-
-    implicit none
-
-    class(meteo_handler_type), intent(inout) :: self
-    !> domain Id
-    integer(i4), intent(in) :: iDomain
-    !> associated level-0 grid
-    type(Grid), intent(in) :: level0_iDomain
-
-    integer(i4) :: nrows2, ncols2
-    real(dp) :: xllcorner2, yllcorner2
-    real(dp) :: cellsize2, nodata_dummy
-    character(256) :: fName
-
-    !--------------------------------------------------------
-    ! 1) Estimate each variable locally for a given domain
-    ! 2) Pad each variable to its corresponding global one
-    !--------------------------------------------------------
-    ! read header file
-    ! NOTE: assuming the header file for all meteo variables are same as that of precip.
-    fName = trim(adjustl(self%dirPrecipitation(iDomain))) // trim(adjustl(self%file_meteo_header))
-    call read_header_ascii(trim(fName), self%umeteo_header, &
-            nrows2, ncols2, xllcorner2, &
-            yllcorner2, cellsize2, nodata_dummy)
-
-    call init_lowres_level(level0_iDomain, cellsize2, self%level2(iDomain))
-
-    ! check
-    if ((ncols2     .ne.  self%level2(iDomain)%ncols)         .or. &
-            (nrows2     .ne.  self%level2(iDomain)%nrows)         .or. &
-            (abs(xllcorner2 - self%level2(iDomain)%xllcorner) .gt. tiny(1.0_dp))     .or. &
-            (abs(yllcorner2 - self%level2(iDomain)%yllcorner) .gt. tiny(1.0_dp))     .or. &
-            (abs(cellsize2 - self%level2(iDomain)%cellsize)  .gt. tiny(1.0_dp))) then
-      call error_message('   ***ERROR: subroutine L2_variable_init: size mismatch in grid file for level2 in domain ', &
-              trim(adjustl(num2str(iDomain))), '!', raise=.false.)
-      call error_message('  Expected to have following properties (based on L0):', raise=.false.)
-      call error_message('... rows:     ', trim(adjustl(num2str(self%level2(iDomain)%nrows))), ', ', raise=.false.)
-      call error_message('... cols:     ', trim(adjustl(num2str(self%level2(iDomain)%ncols))), ', ', raise=.false.)
-      call error_message('... cellsize: ', trim(adjustl(num2str(self%level2(iDomain)%cellsize))), ', ', raise=.false.)
-      call error_message('... xllcorner:', trim(adjustl(num2str(self%level2(iDomain)%xllcorner))), ', ', raise=.false.)
-      call error_message('... yllcorner:', trim(adjustl(num2str(self%level2(iDomain)%yllcorner))), ', ', raise=.false.)
-      call error_message('  Provided (in precipitation file):', raise=.false.)
-      call error_message('... rows:     ', trim(adjustl(num2str(nrows2))), ', ', raise=.false.)
-      call error_message('... cols:     ', trim(adjustl(num2str(ncols2))), ', ', raise=.false.)
-      call error_message('... cellsize: ', trim(adjustl(num2str(cellsize2))), ', ', raise=.false.)
-      call error_message('... xllcorner:', trim(adjustl(num2str(xllcorner2))), ', ', raise=.false.)
-      call error_message('... yllcorner:', trim(adjustl(num2str(yllcorner2))), ', ')
-    end if
-
-  end subroutine L2_variable_init
 
   !> \brief get corrected PET for the current timestep and domain
   subroutine get_corrected_pet(self, pet_calc, &
