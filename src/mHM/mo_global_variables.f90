@@ -93,11 +93,6 @@ MODULE mo_global_variables
   logical, dimension(nOutFlxState) :: outputFlxState         !< Define model outputs see "mhm_outputs.nml"
                                                              !< dim1 = number of output variables to be written
 
-  ! ------------------------------------------------------------------
-  ! CONSTANT
-  ! ------------------------------------------------------------------
-  integer(i4), public, parameter :: routingStates = 2  !< [-]   Routing states (2=current, 1=past)
-
   ! soil moisture
   real(dp), public, dimension(:, :), allocatable :: L1_sm                  !< [-] soil moisture input for optimization
   logical, public, dimension(:, :), allocatable :: L1_sm_mask             !< [-] mask for valid data in L1_sm
