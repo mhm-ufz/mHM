@@ -135,6 +135,8 @@ module mo_meteo_handler
     procedure :: clean_up !< \see mo_meteo_handler::clean_up
     !> \copydoc mo_meteo_handler::config
     procedure :: config !< \see mo_meteo_handler::config
+    !> \copydoc mo_meteo_handler::single_read
+    procedure :: single_read !< \see mo_meteo_handler::single_read
     !> \copydoc mo_meteo_handler::initialize
     procedure :: initialize !< \see mo_meteo_handler::initialize
     !> \copydoc mo_meteo_handler::prepare_data
@@ -355,6 +357,21 @@ contains
 
   end subroutine config
 
+  !> \brief whether meteo data should be read completely at the begining
+  !> \return True if meteo data is retrieved with a single read
+  logical function single_read(self, iDomain)
+
+    use mo_constants, only: sigma_dp
+
+    implicit none
+
+    class(meteo_handler_type), intent(in) :: self
+    integer(i4), intent(in) :: iDomain !< current domain
+
+    single_read = self%timeStep_model_inputs(iDomain) == 0_i4
+
+  end function single_read
+
   !> \brief Initialize meteo data and level-2 grid
   subroutine initialize(self, level0)
 
@@ -438,7 +455,7 @@ contains
     self%time = time
 
     ! time increment is done right after call to mrm (and initially before looping)
-    if (self%timeStep_model_inputs(iDomain) .eq. 0_i4) then
+    if (self%single_read(iDomain)) then
       ! whole meteorology is already read
 
       ! set start and end of meteo position
@@ -516,15 +533,15 @@ contains
       ! read weights for hourly disaggregation of temperature
       if (tt .eq. 1) then
         ! TODO-RIV-TEMP: No NC files for weights for radiation at the moment
-        if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read meteo weights for tavg     ...')
+        if (self%single_read(iDomain)) call message('    read meteo weights for tavg     ...')
         call meteo_weights_wrapper(iDomain, self%read_meteo_weights, self%dirTemperature(iDomain), &
           self%L1_temp_weights, level1=level1, level2=self%level2, ncvarName = 'tavg_weight')
 
-        if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read meteo weights for pet     ...')
+        if (self%single_read(iDomain)) call message('    read meteo weights for pet     ...')
         call meteo_weights_wrapper(iDomain, self%read_meteo_weights, self%dirReferenceET(iDomain), &
           self%L1_pet_weights, level1=level1, level2=self%level2, ncvarName = 'pet_weight')
 
-        if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read meteo weights for pre     ...')
+        if (self%single_read(iDomain)) call message('    read meteo weights for pre     ...')
         call meteo_weights_wrapper(iDomain, self%read_meteo_weights, self%dirPrecipitation(iDomain), &
           self%L1_pre_weights, level1=level1, level2=self%level2, ncvarName = 'pre_weight')
       end if
@@ -543,13 +560,13 @@ contains
       end if
 
       !  Domain characteristics and read meteo header
-      if (self%timeStep_model_inputs(iDomain) .eq. 0) then
+      if (self%single_read(iDomain)) then
         call message('  Reading meteorological forcings for Domain: ', trim(adjustl(num2str(domainID))), ' ...')
         call timer_start(1)
       end if
 
       ! precipitation
-      if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read precipitation        ...')
+      if (self%single_read(iDomain)) call message('    read precipitation        ...')
       ! upper bound: 1825 mm/d in La Réunion 7-8 Jan 1966
       call meteo_forcings_wrapper(iDomain, self%dirPrecipitation(iDomain), self%inputFormat_meteo_forcings, &
         dataOut1=self%L1_pre, &
@@ -557,7 +574,7 @@ contains
         lower = 0.0_dp, upper = 2000._dp, ncvarName = 'pre', bound_error=self%bound_error)
 
       ! temperature
-      if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read temperature          ...')
+      if (self%single_read(iDomain)) call message('    read temperature          ...')
       call meteo_forcings_wrapper(iDomain, self%dirTemperature(iDomain), self%inputFormat_meteo_forcings, &
         dataOut1=self%L1_temp, &
         readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
@@ -567,7 +584,7 @@ contains
       ! 0 - input, 1 - Hargreaves-Samani, 2 - Priestley-Taylor, 3 - Penman-Monteith
       select case (self%pet_case)
         case(-1 : 0) ! pet is input
-          if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read pet                  ...')
+          if (self%single_read(iDomain)) call message('    read pet                  ...')
           call meteo_forcings_wrapper(iDomain, self%dirReferenceET(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_pet, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
@@ -582,12 +599,12 @@ contains
           end if
 
         case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
-          if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read min. temperature     ...')
+          if (self%single_read(iDomain)) call message('    read min. temperature     ...')
           call meteo_forcings_wrapper(iDomain, self%dirMinTemperature(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_tmin, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
             lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmin', bound_error=self%bound_error)
-          if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read max. temperature     ...')
+          if (self%single_read(iDomain)) call message('    read max. temperature     ...')
           call meteo_forcings_wrapper(iDomain, self%dirMaxTemperature(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_tmax, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
@@ -601,7 +618,7 @@ contains
           end if
 
         case(2) ! Priestley-Taylor formulation (input: net radiation)
-          if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read net radiation        ...')
+          if (self%single_read(iDomain)) call message('    read net radiation        ...')
           call meteo_forcings_wrapper(iDomain, self%dirNetRadiation(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_netrad, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
@@ -616,17 +633,17 @@ contains
           end if
 
         case(3) ! Penman-Monteith formulation (input: net radiationm absulute vapour pressure, windspeed)
-          if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read net radiation        ...')
+          if (self%single_read(iDomain)) call message('    read net radiation        ...')
           call meteo_forcings_wrapper(iDomain, self%dirNetRadiation(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_netrad, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
             lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad', bound_error=self%bound_error)
-          if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read absolute vapour pressure  ...')
+          if (self%single_read(iDomain)) call message('    read absolute vapour pressure  ...')
           call meteo_forcings_wrapper(iDomain, self%dirabsVapPressure(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_absvappress, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
             lower = 0.0_dp, upper = 15000.0_dp, ncvarName = 'eabs', bound_error=self%bound_error)
-          if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read windspeed            ...')
+          if (self%single_read(iDomain)) call message('    read windspeed            ...')
           call meteo_forcings_wrapper(iDomain, self%dirwindspeed(iDomain), self%inputFormat_meteo_forcings, &
             dataOut1=self%L1_windspeed, &
             readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
@@ -647,19 +664,19 @@ contains
           if (allocated(self%L1_strd)) deallocate(self%L1_strd)
           if (allocated(self%L1_tann)) deallocate(self%L1_tann)
         end if
-        if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read short-wave radiation ...')
+        if (self%single_read(iDomain)) call message('    read short-wave radiation ...')
         call meteo_forcings_wrapper( &
           iDomain, self%dirRadiation(iDomain), self%inputFormat_meteo_forcings, &
           dataOut1=self%L1_ssrd, &
           readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
           lower = 0.0_dp, upper = 1500._dp, ncvarName = 'ssrd', bound_error=self%bound_error)
-        if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read long-wave radiation ...')
+        if (self%single_read(iDomain)) call message('    read long-wave radiation ...')
         call meteo_forcings_wrapper( &
           iDomain, self%dirRadiation(iDomain), self%inputFormat_meteo_forcings, &
           dataOut1=self%L1_strd, &
           readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
           lower = 0.0_dp, upper = 1500._dp, ncvarName = 'strd', bound_error=self%bound_error)
-        if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read annual mean temperature ...')
+        if (self%single_read(iDomain)) call message('    read annual mean temperature ...')
         call meteo_forcings_wrapper( &
           iDomain, self%dirTemperature(iDomain), self%inputFormat_meteo_forcings, &
           dataOut1=self%L1_tann, &
@@ -667,7 +684,7 @@ contains
           lower = -100.0_dp, upper = 100._dp, ncvarName = 'tann', bound_error=self%bound_error)
       end if
 
-      if (self%timeStep_model_inputs(iDomain) .eq. 0) then
+      if (self%single_read(iDomain)) then
         call timer_stop(1)
         call message('    in ', trim(num2str(timer_get(1), '(F9.3)')), ' seconds.')
       end if

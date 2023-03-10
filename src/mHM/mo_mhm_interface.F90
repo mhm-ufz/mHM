@@ -175,11 +175,8 @@ contains
 
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      ! read meteorology now, if optimization is switched on
-      ! meteorological forcings (reading, upscaling or downscaling)
-      if (meteo_handler%timestep_model_inputs(iDomain) .eq. 0_i4) then
-        call meteo_handler%prepare_data(1, iDomain, level1, simPer)
-      end if
+      ! read meteorology now, if it should be loaded in one go
+      if (meteo_handler%single_read(iDomain)) call meteo_handler%prepare_data(1, iDomain, level1, simPer)
 
       ! read optional optional data if necessary
       if (optimize) then
