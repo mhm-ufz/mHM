@@ -534,14 +534,14 @@ contains
     rounded = anint(cellFactor)
     rounded_int = nint(cellFactor)
 
-    if (abs(rounded - cellFactor) > 1.e-9_dp) then
+    if (abs(rounded - cellFactor) > 1.e-7_dp) then
       call error_message( &
         '***ERROR: Two resolutions size do not confirm: ', &
         trim(adjustl(num2str(nint(AimingResolution)))), &
         trim(adjustl(num2str(nint(cellsizeIn)))))
     end if
 
-    cellsizeOut = cellsizeIn * rounded
+    cellsizeOut = aimingResolution
     ncolsOut = nint(real(ncolsIn, dp) / cellFactor)
     nrowsOut = nint(real(nrowsIn, dp) / cellFactor)
 
@@ -549,10 +549,9 @@ contains
     if ( ncolsOut * rounded_int < ncolsIn ) ncolsOut = ncolsOut + 1_i4
     if ( nrowsOut * rounded_int < nrowsIn ) nrowsOut = nrowsOut + 1_i4
 
-    xllcornerOut = xllcornerIn + real(ncolsIn, dp) * cellsizeIn - real(ncolsOut, dp) * cellsizeOut
-    yllcornerOut = yllcornerIn + real(nrowsIn, dp) * cellsizeIn - real(nrowsOut, dp) * cellsizeOut
+    xllcornerOut = xllcornerIn + real(ncolsIn, dp) * aimingResolution / rounded - real(ncolsOut, dp) * cellsizeOut
+    yllcornerOut = yllcornerIn + real(nrowsIn, dp) * aimingResolution / rounded - real(nrowsOut, dp) * cellsizeOut
 
   end subroutine calculate_grid_properties
 
 end module mo_grid
-
