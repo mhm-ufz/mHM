@@ -550,10 +550,11 @@ contains
 
       ! precipitation
       if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read precipitation        ...')
+      ! upper bound: 1825 mm/d in La Réunion 7-8 Jan 1966
       call meteo_forcings_wrapper(iDomain, self%dirPrecipitation(iDomain), self%inputFormat_meteo_forcings, &
         dataOut1=self%L1_pre, &
         readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-        lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pre', bound_error=self%bound_error)
+        lower = 0.0_dp, upper = 2000._dp, ncvarName = 'pre', bound_error=self%bound_error)
 
       ! temperature
       if (self%timeStep_model_inputs(iDomain) .eq. 0) call message('    read temperature          ...')
