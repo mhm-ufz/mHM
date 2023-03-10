@@ -515,44 +515,35 @@ contains
       ! prepare temperature routing
       if ( riv_temp_pcs%active ) then
         ! init riv-temp from current air temp
-        ! TODO-RIV-TEMP: use meteo-handler logic
         if ( tt .eq. 1_i4 ) call riv_temp_pcs%init_riv_temp( &
           temp_air     = L1_temp_calc(s1 : e1), &
-          ! mapping info
           efecarea     = level1(iDomain)%CellArea * 1.E-6_dp, &
           L1_L11_Id    = L1_L11_Id(s1 : e1), &
           L11_areacell = level11(iDomain)%CellArea * 1.E-6_dp, &
           L11_L1_Id    = L11_L1_Id(run_cfg%s11 : run_cfg%e11), &
-          ! map_flag
           map_flag     = ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)) &
         )
+        ! get riv-temp specific meteo arrays
+        call meteo_handler%get_ssrd(riv_temp_pcs%L1_ssrd_calc)
+        call meteo_handler%get_strd(riv_temp_pcs%L1_strd_calc)
+        call meteo_handler%get_tann(riv_temp_pcs%L1_tann_calc)
         ! accumulate source Energy at L1 level
         call riv_temp_pcs%acc_source_E( &
-          run_cfg%domainDateTime%newTime - 0.5_dp, &
-          real(nTstepDay, dp), &
-          L1_fSealed(s1 : e1, 1, run_cfg%domainDateTime%yId), &
-          L1_fastRunoff(s1 : e1), &
-          L1_slowRunoff(s1 : e1), &
-          L1_baseflow(s1 : e1), &
-          L1_runoffSeal(s1 : e1), &
-          meteo_handler%L1_temp(meteo_handler%s_meteo : meteo_handler%e_meteo, meteo_handler%iMeteoTS), &
-          meteo_handler%L1_tann(meteo_handler%s_meteo : meteo_handler%e_meteo, meteo_handler%iMeteoTS), &
-          meteo_handler%L1_ssrd(meteo_handler%s_meteo : meteo_handler%e_meteo, meteo_handler%iMeteoTS), &
-          meteo_handler%L1_strd(meteo_handler%s_meteo : meteo_handler%e_meteo, meteo_handler%iMeteoTS), &
-          meteo_handler%read_meteo_weights, &
-          meteo_handler%L1_temp_weights(s1 : e1, :, :), &
-          meteo_handler%fday_temp, meteo_handler%fnight_temp, &
-          meteo_handler%fday_ssrd, meteo_handler%fnight_ssrd, &
-          meteo_handler%fday_strd, meteo_handler%fnight_strd  &
+          fSealed_area_fraction = L1_fSealed(s1 : e1, 1, run_cfg%domainDateTime%yId), &
+          fast_interflow        = L1_fastRunoff(s1 : e1), &
+          slow_interflow        = L1_slowRunoff(s1 : e1), &
+          baseflow              = L1_baseflow(s1 : e1), &
+          direct_runoff         = L1_runoffSeal(s1 : e1), &
+          temp_air              = L1_temp_calc(s1 : e1) &
         )
         ! if routing should be performed, scale source energy to L11 level
         if ( run_cfg%doRoute ) call riv_temp_pcs%finalize_source_E( &
-          level1(iDomain)%CellArea * 1.E-6_dp, &
-          L1_L11_Id(s1 : e1), &
-          level11(iDomain)%CellArea * 1.E-6_dp, &
-          L11_L1_Id(run_cfg%s11 : run_cfg%e11), &
-          run_cfg%timestep_rout, &
-          ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)) &
+          efecarea     = level1(iDomain)%CellArea * 1.E-6_dp, &
+          L1_L11_Id    = L1_L11_Id(s1 : e1), &
+          L11_areacell = level11(iDomain)%CellArea * 1.E-6_dp, &
+          L11_L1_Id    = L11_L1_Id(run_cfg%s11 : run_cfg%e11), &
+          timestep     = run_cfg%timestep_rout, &
+          map_flag     = ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)) &
         )
       end if
       ! -------------------------------------------------------------------

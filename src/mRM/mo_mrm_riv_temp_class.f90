@@ -57,7 +57,10 @@ module mo_mrm_riv_temp_class
     real(dp), dimension(:), allocatable :: L1_runoff_E !< runoff energy at L1 level
     real(dp), dimension(:), allocatable :: L1_acc_ssrd !< accumulated shortwave radiation at L1 level
     real(dp), dimension(:), allocatable :: L1_acc_strd !< accumulated longwave radiation at L1 level
-    real(dp), dimension(:), allocatable :: L1_acc_temp !< accumulated air temperature radiation at L1 level
+    real(dp), dimension(:), allocatable :: L1_acc_temp !< accumulated air temperature at L1 level
+    real(dp), dimension(:), allocatable :: L1_ssrd_calc !< current shortwave radiation at L1 level
+    real(dp), dimension(:), allocatable :: L1_strd_calc !< current longwave radiation at L1 level
+    real(dp), dimension(:), allocatable :: L1_tann_calc !< current mean air temperature at L1 level
     integer(i4) :: ts_cnt !< sub time-step counter for accumulation of meteo
     ! vars for routing
     integer(i4) :: s11 !< starting index for current L11 domain
@@ -144,6 +147,10 @@ contains
     if ( allocated(self%L11_lrad_in) ) deallocate(self%L11_lrad_in)
     if ( allocated(self%L11_air_temp) ) deallocate(self%L11_air_temp)
     if ( allocated(self%river_temp) ) deallocate(self%river_temp)
+    ! meteo arrays
+    if ( allocated(self%L1_ssrd_calc) ) deallocate(self%L1_ssrd_calc)
+    if ( allocated(self%L1_strd_calc) ) deallocate(self%L1_strd_calc)
+    if ( allocated(self%L1_tann_calc) ) deallocate(self%L1_tann_calc)
 
   end subroutine clean_up
 
@@ -257,7 +264,7 @@ contains
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    integer(i4), intent(in) :: nCells !< number of cells for the current domain
+    integer(i4), intent(in) :: nCells !< number of level-11 cells for the current domain
 
     real(dp), dimension(:), allocatable :: dummy_Vector11
     real(dp), dimension(:, :), allocatable :: dummy_Matrix11_IT
@@ -265,26 +272,23 @@ contains
     ! dummy vector and matrix
     allocate(dummy_Vector11   (nCells))
     allocate(dummy_Matrix11_IT(nCells, nRoutingStates))
+    dummy_Vector11(:) = 0.0_dp
+    dummy_Matrix11_IT(:, :) = 0.0_dp
 
     ! simulated energy flux at each node
-    dummy_Vector11(:) = 0.0_dp
     call append(self%netNode_E_mod, dummy_Vector11)
     ! simulated river temperature at each node
-    dummy_Vector11(:) = 0.0_dp
     call append(self%river_temp, dummy_Vector11)
     ! Total outflow from cells L11 at time tt
-    dummy_Vector11(:) = 0.0_dp
     call append(self%netNode_E_out, dummy_Vector11)
     ! Total discharge inputs at t-1 and t
-    dummy_Matrix11_IT(:, :) = 0.0_dp
     call append(self%netNode_E_IN, dummy_Matrix11_IT)
     !  Routed outflow leaving a node
-    dummy_Matrix11_IT(:, :) = 0.0_dp
     call append(self%netNode_E_R, dummy_Matrix11_IT)
 
     ! free space
-    if (allocated(dummy_Vector11)) deallocate(dummy_Vector11)
-    if (allocated(dummy_Matrix11_IT)) deallocate(dummy_Matrix11_IT)
+    deallocate(dummy_Vector11)
+    deallocate(dummy_Matrix11_IT)
 
   end subroutine init
 
@@ -408,12 +412,16 @@ contains
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    integer(i4), intent(in) :: nCells !< number of cells for the current domain
+    integer(i4), intent(in) :: nCells !< number of level-1 cells for the current domain
 
     allocate(self%L1_runoff_E(nCells))
     allocate(self%L1_acc_strd(nCells))
     allocate(self%L1_acc_ssrd(nCells))
     allocate(self%L1_acc_temp(nCells))
+    ! meteo arrays
+    allocate(self%L1_ssrd_calc(nCells))
+    allocate(self%L1_strd_calc(nCells))
+    allocate(self%L1_tann_calc(nCells))
     ! init these arrays to 0
     call self%reset_timestep()
 
@@ -431,108 +439,50 @@ contains
     deallocate(self%L1_acc_strd)
     deallocate(self%L1_acc_ssrd)
     deallocate(self%L1_acc_temp)
+    deallocate(self%L1_ssrd_calc)
+    deallocate(self%L1_strd_calc)
+    deallocate(self%L1_tann_calc)
 
   end subroutine dealloc_lateral
 
   !> \brief accumulate energy sources of \ref riv_temp_type
   subroutine acc_source_e( &
     self, &
-    time, &
-    ntimesteps_day, &
     fSealed_area_fraction, &
     fast_interflow, &
     slow_interflow, &
     baseflow, &
     direct_runoff, &
-    temp_air, &
-    mean_temp_air, &
-    ssrd_day, &
-    strd_day, &
-    read_meteo_weights, &
-    temp_weights, &
-    fday_temp, &
-    fnight_temp, &
-    fday_ssrd, &
-    fnight_ssrd, &
-    fday_strd, &
-    fnight_strd &
+    temp_air &
   )
 
-    use mo_constants, only : T0_dp  ! 273.15 - Celcius <-> Kelvin [K]
-    use mo_julian, only : dec2date
-    use mo_temporal_disagg_forcing, only: temporal_disagg_meteo_weights, temporal_disagg_state_daynight
     use mo_mrm_pre_routing, only : calc_L1_runoff_E
 
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    real(dp), intent(in) :: time !< current decimal Julian day
-    real(dp), intent(in) :: ntimesteps_day !< number of time intervals per day, transformed in dp
     real(dp), dimension(:), intent(in) :: fSealed_area_fraction !< sealed area fraction [1]
     real(dp), dimension(:), intent(in) :: fast_interflow !< \f$ q_0 \f$ Fast runoff component [mm TS-1]
     real(dp), dimension(:), intent(in) :: slow_interflow !< \f$ q_1 \f$ Slow runoff component [mm TS-1]
     real(dp), dimension(:), intent(in) :: baseflow !< \f$ q_2 \f$ Baseflow [mm TS-1]
     real(dp), dimension(:), intent(in) :: direct_runoff !< \f$ q_D \f$ Direct runoff from impervious areas  [mm TS-1]
     real(dp), dimension(:), intent(in) :: temp_air !< air temperature [K]
-    real(dp), dimension(:), intent(in) :: mean_temp_air !< annual mean air temperature [K]
-    real(dp), dimension(:), intent(in) :: ssrd_day !< Daily mean short radiation
-    real(dp), dimension(:), intent(in) :: strd_day !< Daily mean longwave radiation
-    logical, intent(in) :: read_meteo_weights !< flag whether weights for tavg and pet have read and should be used
-    real(dp), dimension(:, :, :), intent(in) :: temp_weights !< multiplicative weights for temperature (deg K)
-    real(dp), dimension(:), intent(in) :: fday_temp !< [-] day factor mean temp
-    real(dp), dimension(:), intent(in) :: fnight_temp !< [-] night factor mean temp
-    real(dp), dimension(:), intent(in) :: fday_ssrd !< Daytime fraction of ssrd
-    real(dp), dimension(:), intent(in) :: fnight_ssrd !< Nighttime fraction of ssrd
-    real(dp), dimension(:), intent(in) :: fday_strd !< Daytime fraction of strd
-    real(dp), dimension(:), intent(in) :: fnight_strd !< Nighttime fraction of strd
-
-    ! internal temperature
-    real(dp), dimension(size(temp_air)) :: temp
-    ! internal ssrd
-    real(dp), dimension(size(ssrd_day)) :: ssrd
-    ! internal strd
-    real(dp), dimension(size(strd_day)) :: strd
-    ! is day or night
-    logical :: isday
-    ! current hour of a given day
-    integer(i4) :: hour
-    ! Month of current day [1-12]
-    integer(i4) :: month
 
     ! increase the sub time-step counter
     self%ts_cnt = self%ts_cnt + 1_i4
-
-    call dec2date(time, mm=month, hh=hour)
-    ! flag for day or night depending on hours of the day
-    isday = (hour .gt. 6) .AND. (hour .le. 18)
-
-    ! temporal disaggregate air temperature
-    if (read_meteo_weights) then
-      call temporal_disagg_meteo_weights( &
-        temp_air, temp_weights(:, month, hour + 1), temp, weights_correction=T0_dp)
-    else
-      call temporal_disagg_state_daynight( &
-        isday, ntimesteps_day, temp_air, fday_temp(month), fnight_temp(month), temp, add_correction=.true.)
-    end if
-    ! temporal disaggregate ssrd
-    call temporal_disagg_state_daynight( &
-      isday, ntimesteps_day, ssrd_day, fday_ssrd(month), fnight_ssrd(month), ssrd)
-    ! temporal disaggregate strd
-    call temporal_disagg_state_daynight( &
-      isday, ntimesteps_day, strd_day, fday_strd(month), fnight_strd(month), strd)
 
     ! caclucate the temperature energy of the runoffs at L1 in [K mm]
     ! automatically accumulate them
     call calc_L1_runoff_E( &
       fSealed_area_fraction, &
       fast_interflow, slow_interflow, baseflow, direct_runoff, &
-      temp, mean_temp_air, &
+      temp_air, self%L1_tann_calc, &
       self%L1_runoff_E & ! will be added here
     )
     ! accumulate meteo forcings (will be averaged with sub time-step counter later)
-    self%L1_acc_ssrd = self%L1_acc_ssrd + ssrd
-    self%L1_acc_strd = self%L1_acc_strd + strd
-    self%L1_acc_temp = self%L1_acc_temp + temp
+    self%L1_acc_ssrd = self%L1_acc_ssrd + self%L1_ssrd_calc
+    self%L1_acc_strd = self%L1_acc_strd + self%L1_strd_calc
+    self%L1_acc_temp = self%L1_acc_temp + temp_air
 
   end subroutine acc_source_e
 
@@ -547,10 +497,6 @@ contains
     map_flag &
   )
 
-    use mo_constants, only : T0_dp, cp_w_dp
-    use mo_mhm_constants, only : H2Odens
-    use mo_julian, only : dec2date
-    use mo_temporal_disagg_forcing, only : temporal_disagg_meteo_weights, temporal_disagg_state_daynight
     use mo_mrm_pre_routing, only : L11_meteo_acc, L11_runoff_acc
 
     implicit none
@@ -607,7 +553,7 @@ contains
   !> \return outgoing longwave radiation
   real(dp) function get_lrad_out(self, riv_temp) result(lrad_out)
 
-    use mo_constants, only: sigma_dp, T0_dp
+    use mo_constants, only: sigma_dp
 
     implicit none
 

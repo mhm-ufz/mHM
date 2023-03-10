@@ -131,6 +131,8 @@ module mo_meteo_handler
     real(dp) :: time
 
   contains
+    !> \copydoc mo_meteo_handler::clean_up
+    procedure :: clean_up !< \see mo_meteo_handler::clean_up
     !> \copydoc mo_meteo_handler::config
     procedure :: config !< \see mo_meteo_handler::config
     !> \copydoc mo_meteo_handler::initialize
@@ -145,8 +147,12 @@ module mo_meteo_handler
     procedure :: get_temp !< \see mo_meteo_handler::get_temp
     !> \copydoc mo_meteo_handler::get_prec
     procedure :: get_prec !< \see mo_meteo_handler::get_prec
-    !> \copydoc mo_meteo_handler::clean_up
-    procedure :: clean_up !< \see mo_meteo_handler::clean_up
+    !> \copydoc mo_meteo_handler::get_ssrd
+    procedure :: get_ssrd !< \see mo_meteo_handler::get_ssrd
+    !> \copydoc mo_meteo_handler::get_strd
+    procedure :: get_strd !< \see mo_meteo_handler::get_strd
+    !> \copydoc mo_meteo_handler::get_tann
+    procedure :: get_tann !< \see mo_meteo_handler::get_tann
   end type meteo_handler_type
 
 contains
@@ -675,7 +681,6 @@ contains
   subroutine get_corrected_pet(self, pet_calc, &
     petLAIcorFactorL1, fAsp, HarSamCoeff, latitude, PrieTayAlpha, aeroResist, surfResist)
 
-    use mo_common_types, only: Grid
     use mo_mhm_constants, only : HarSamConst
     use mo_julian, only : date2dec, dec2date
     use mo_temporal_disagg_forcing, only : temporal_disagg_meteo_weights, temporal_disagg_flux_daynight
@@ -810,7 +815,6 @@ contains
   !> \brief get surface temperature for the current timestep and domain
   subroutine get_temp(self, temp_calc)
 
-    use mo_common_types, only: Grid
     use mo_julian, only : dec2date
     use mo_temporal_disagg_forcing, only : temporal_disagg_meteo_weights, temporal_disagg_state_daynight
     use mo_constants, only : T0_dp  ! 273.15 - Celcius <-> Kelvin [K]
@@ -882,7 +886,6 @@ contains
   !> \brief get precipitation for the current timestep and domain
   subroutine get_prec(self, prec_calc)
 
-    use mo_common_types, only: Grid
     use mo_julian, only : dec2date
     use mo_temporal_disagg_forcing, only : temporal_disagg_meteo_weights, temporal_disagg_flux_daynight
 
@@ -947,5 +950,139 @@ contains
     !$OMP end parallel
 
   end subroutine get_prec
+
+  !> \brief get surface short-wave (solar) radiation downwards for the current timestep and domain
+  subroutine get_ssrd(self, ssrd_calc)
+
+    use mo_julian, only : dec2date
+    use mo_temporal_disagg_forcing, only : temporal_disagg_state_daynight
+
+    implicit none
+
+    class(meteo_handler_type), intent(inout) :: self
+    !> [W m2] surface short-wave (solar) radiation downwards for current time step
+    real(dp), dimension(:), intent(inout) :: ssrd_calc
+
+    ! is day or night
+    logical :: isday
+    ! current hour of a given day
+    integer(i4) :: hour
+    ! Month of current day [1-12]
+    integer(i4) :: month
+
+    ! number of L1 cells
+    integer(i4) :: nCells1
+    ! cell index
+    integer(i4) :: k, i, s1
+
+    nCells1 = self%e1 - self%s1 + 1
+    s1 = self%s1
+
+    ! date and month of this timestep
+    call dec2date(self%time, mm = month, hh = hour)
+
+    ! flag for day or night depending on hours of the day
+    isday = (hour .gt. 6) .AND. (hour .le. 18)
+
+    !$OMP parallel default(shared) &
+    !$OMP private(k, i)
+    !$OMP do SCHEDULE(STATIC)
+    do k = 1, nCells1
+
+      ! correct index on concatenated arrays
+      i = self%s_meteo - 1 + k
+
+      ! temporal disaggreagtion of forcing variables
+      if (self%is_hourly_forcing) then
+        ssrd_calc(k) = self%L1_ssrd(i, self%iMeteoTS)
+      else
+        ! TODO-RIV-TEMP: add weights for ssrd
+        call temporal_disagg_state_daynight( &
+          isday=isday, &
+          ntimesteps_day=self%nTstepDay_dp, &
+          meteo_val_day=self%L1_ssrd(i, self%iMeteoTS), &
+          fday_meteo_val=self%fday_ssrd(month), &
+          fnight_meteo_val=self%fnight_ssrd(month), &
+          meteo_val=ssrd_calc(k))
+      end if
+    end do
+    !$OMP end do
+    !$OMP end parallel
+
+  end subroutine get_ssrd
+
+  !> \brief get surface long-wave (thermal) radiation downwards for the current timestep and domain
+  subroutine get_strd(self, strd_calc)
+
+    use mo_julian, only : dec2date
+    use mo_temporal_disagg_forcing, only : temporal_disagg_state_daynight
+
+    implicit none
+
+    class(meteo_handler_type), intent(inout) :: self
+    !> [W m2] surface long-wave (thermal) radiation downwards for current time step
+    real(dp), dimension(:), intent(inout) :: strd_calc
+
+    ! is day or night
+    logical :: isday
+    ! current hour of a given day
+    integer(i4) :: hour
+    ! Month of current day [1-12]
+    integer(i4) :: month
+
+    ! number of L1 cells
+    integer(i4) :: nCells1
+    ! cell index
+    integer(i4) :: k, i, s1
+
+    nCells1 = self%e1 - self%s1 + 1
+    s1 = self%s1
+
+    ! date and month of this timestep
+    call dec2date(self%time, mm = month, hh = hour)
+
+    ! flag for day or night depending on hours of the day
+    isday = (hour .gt. 6) .AND. (hour .le. 18)
+
+    !$OMP parallel default(shared) &
+    !$OMP private(k, i)
+    !$OMP do SCHEDULE(STATIC)
+    do k = 1, nCells1
+
+      ! correct index on concatenated arrays
+      i = self%s_meteo - 1 + k
+
+      ! temporal disaggreagtion of forcing variables
+      if (self%is_hourly_forcing) then
+        strd_calc(k) = self%L1_strd(i, self%iMeteoTS)
+      else
+        ! TODO-RIV-TEMP: add weights for strd
+        call temporal_disagg_state_daynight( &
+          isday=isday, &
+          ntimesteps_day=self%nTstepDay_dp, &
+          meteo_val_day=self%L1_strd(i, self%iMeteoTS), &
+          fday_meteo_val=self%fday_strd(month), &
+          fnight_meteo_val=self%fnight_strd(month), &
+          meteo_val=strd_calc(k))
+      end if
+    end do
+    !$OMP end do
+    !$OMP end parallel
+
+  end subroutine get_strd
+
+  !> \brief get annual mean surface temperature for the current timestep and domain
+  subroutine get_tann(self, tann_calc)
+
+    implicit none
+
+    class(meteo_handler_type), intent(inout) :: self
+    !> [degC]  annual mean air temperature
+    real(dp), dimension(:), intent(inout) :: tann_calc
+
+    ! annual temperature is not disaggregated
+    tann_calc(:) = self%L1_tann(self%s_meteo : self%e_meteo, self%iMeteoTS)
+
+  end subroutine get_tann
 
 end module mo_meteo_handler
