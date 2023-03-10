@@ -517,19 +517,14 @@ contains
         ! init riv-temp from current air temp
         ! TODO-RIV-TEMP: use meteo-handler logic
         if ( tt .eq. 1_i4 ) call riv_temp_pcs%init_riv_temp( &
-          run_cfg%domainDateTime%newTime - 0.5_dp, &
-          real(nTstepDay, dp), &
-          meteo_handler%L1_temp(meteo_handler%s_meteo : meteo_handler%e_meteo, meteo_handler%iMeteoTS), &
-          meteo_handler%read_meteo_weights, &
-          meteo_handler%L1_temp_weights(s1 : e1, :, :), &
-          meteo_handler%fday_temp, meteo_handler%fnight_temp, &
+          temp_air     = L1_temp_calc(s1 : e1), &
           ! mapping info
-          level1(iDomain)%CellArea * 1.E-6_dp, &
-          L1_L11_Id(s1 : e1), &
-          level11(iDomain)%CellArea * 1.E-6_dp, &
-          L11_L1_Id(run_cfg%s11 : run_cfg%e11), &
+          efecarea     = level1(iDomain)%CellArea * 1.E-6_dp, &
+          L1_L11_Id    = L1_L11_Id(s1 : e1), &
+          L11_areacell = level11(iDomain)%CellArea * 1.E-6_dp, &
+          L11_L1_Id    = L11_L1_Id(run_cfg%s11 : run_cfg%e11), &
           ! map_flag
-          ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)) &
+          map_flag     = ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)) &
         )
         ! accumulate source Energy at L1 level
         call riv_temp_pcs%acc_source_E( &

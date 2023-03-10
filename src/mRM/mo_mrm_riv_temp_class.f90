@@ -355,13 +355,7 @@ contains
   !> \brief initialize the river temperature of \ref riv_temp_type class for the current domain
   subroutine init_riv_temp( &
     self, &
-    time, &
-    ntimesteps_day, &
     temp_air, &
-    read_meteo_weights, &
-    temp_weights, &
-    fday_temp, &
-    fnight_temp, &
     efecarea, &
     L1_L11_Id, &
     L11_areacell, &
@@ -369,52 +363,21 @@ contains
     map_flag &
   )
 
-    use mo_constants, only : T0_dp  ! 273.15 - Celcius <-> Kelvin [K]
-    use mo_julian, only : dec2date
-    use mo_temporal_disagg_forcing, only: temporal_disagg_meteo_weights, temporal_disagg_state_daynight
     use mo_mrm_pre_routing, only : L11_meteo_acc
 
     implicit none
 
     class(riv_temp_type), intent(inout) :: self
-    real(dp), intent(in) :: time !< current decimal Julian day
-    real(dp), intent(in) :: ntimesteps_day !< number of time intervals per day, transformed in dp
-    real(dp), dimension(:), intent(in) :: temp_air !< air temperature [K]
-    logical, intent(in) :: read_meteo_weights !< flag whether weights for tavg and pet have read and should be used
-    real(dp), dimension(:, :, :), intent(in) :: temp_weights !< multiplicative weights for temperature (deg K)
-    real(dp), dimension(:), intent(in) :: fday_temp !< [-] day factor mean temp
-    real(dp), dimension(:), intent(in) :: fnight_temp !< [-] night factor mean temp
+    real(dp), dimension(:), intent(in) :: temp_air !< air temperature [degC] for current timestep
     real(dp), intent(in), dimension(:) :: efecarea !< effective area in [km2] at Level 1
     integer(i4), intent(in), dimension(:) :: L1_L11_Id !< L11 Ids mapped on L1
     real(dp), intent(in), dimension(:) :: L11_areacell !< effective area in [km2] at Level 11
     integer(i4), intent(in), dimension(:) :: L11_L1_Id !< L1 Ids mapped on L11
     logical, intent(in) :: map_flag !< Flag indicating whether routing resolution is higher than hydrologic one
 
-    ! internal temperature
-    real(dp), dimension(size(temp_air)) :: temp
-    ! is day or night
-    logical :: isday
-    ! current hour of a given day [0-23]
-    integer(i4) :: hour
-    ! Month of current day [1-12]
-    integer(i4) :: month
-
-    call dec2date(time, mm=month, hh=hour)
-    ! flag for day or night depending on hours of the day
-    isday = (hour .gt. 6) .AND. (hour .le. 18)
-
-    ! temporal disaggregate air temperature
-    if (read_meteo_weights) then
-      call temporal_disagg_meteo_weights( &
-        temp_air, temp_weights(:, month, hour + 1), temp, weights_correction=T0_dp)
-    else
-      call temporal_disagg_state_daynight( &
-        isday, ntimesteps_day, temp_air, fday_temp(month), fnight_temp(month), temp, add_correction=.true.)
-    end if
-
     ! map temperature from L1 to L11
     call L11_meteo_acc( &
-      temp, efecarea, L1_L11_Id, L11_areacell, L11_L1_Id, map_flag, self%river_temp(self%s11 : self%e11))
+      temp_air, efecarea, L1_L11_Id, L11_areacell, L11_L1_Id, map_flag, self%river_temp(self%s11 : self%e11))
 
     ! assure positive temperature
     self%river_temp(self%s11 : self%e11) = max(self%delta_T, self%river_temp(self%s11 : self%e11))
