@@ -313,7 +313,6 @@ CONTAINS
       nLAIs_temp = nc_dim%getLength()
       allocate(LAIBoundaries_temp(nLAIs_temp+1))
       LAIBoundaries_temp = [(ii, ii=1, nLAIs_temp+1)]
-      nLAI = nLAIs_temp
     else
       call error_message('***ERROR: no LAI information in restart file for reading')
     end if
