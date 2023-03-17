@@ -52,12 +52,6 @@
 !> \ingroup f_mhm
 module mo_mhm_cli
 
-#ifdef NAG
-  use f90_unix_dir, only : CHDIR
-#endif
-#ifdef INTEL
-  use ifport, only : CHDIR
-#endif
   use mo_kind, only: i4
 
   implicit none
@@ -66,7 +60,6 @@ module mo_mhm_cli
 
   public :: parse_command_line
   public :: set_verbosity_level
-  public :: change_dir
 
 contains
 
@@ -75,6 +68,7 @@ contains
     use mo_cli, only: cli_parser
     use mo_file, only: version, file_namelist_mhm, file_namelist_mhm_param, file_defOutput
     use mo_mrm_file, only: mrm_file_defOutput => file_defOutput
+    use mo_os, only: change_dir
 
     implicit none
 
@@ -155,22 +149,5 @@ contains
     if ( level_ > 0 ) SHOW_ERR = .true.
     if ( level_ > 1 ) SHOW_MSG = .true.
   end subroutine set_verbosity_level
-
-  !> \brief Change current working directory.
-  subroutine change_dir(path)
-    use mo_message, only: error_message
-    implicit none
-    character(*), optional, intent(in) :: path !< path to change CWD to
-    integer :: chdir_error
-
-#ifdef INTEL
-    chdir_error = chdir(path)
-#else
-    call chdir(path, chdir_error)
-#endif
-
-    if (chdir_error /= 0) call error_message("Can't open directory: ", path)
-
-  end subroutine change_dir
 
 end module mo_mhm_cli

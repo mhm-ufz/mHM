@@ -34,11 +34,8 @@ contains
       file_namelist_mhm, &
       file_namelist_mhm_param, &
       file_defOutput
-    use mo_os, only: path_isfile
+    use mo_os, only: check_path_isfile, get_cwd
     !$ use omp_lib, only: OMP_GET_NUM_THREADS
-#ifdef NAG
-    use f90_unix_dir, only: GETCWD
-#endif
 
     implicit none
 
@@ -54,7 +51,7 @@ contains
 #endif
 
     ! check for working dir (optional argument to the executable)
-    CALL getcwd(cur_work_dir)
+    CALL get_cwd(cur_work_dir)
 
     call message(separator)
     call message('              mHM-UFZ')
@@ -98,9 +95,9 @@ contains
     call message('     ', trim(file_defOutput))
     call message()
 
-    call path_isfile(path = file_namelist_mhm, raise=.true.)
-    call path_isfile(path = file_namelist_mhm_param, raise=.true.)
-    call path_isfile(path = file_defOutput, raise=.true.)
+    call check_path_isfile(path = file_namelist_mhm, raise=.true.)
+    call check_path_isfile(path = file_namelist_mhm_param, raise=.true.)
+    call check_path_isfile(path = file_defOutput, raise=.true.)
 
   end subroutine startup_message
 

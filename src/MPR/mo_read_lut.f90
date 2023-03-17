@@ -18,7 +18,7 @@ MODULE mo_read_lut
   ! Modified   Matthias Zink,  Jan 2013 - add read_gauge_lut
 
   USE mo_kind, ONLY : i4, dp
-  USE mo_os, ONLY: path_isfile
+  USE mo_os, ONLY: check_path_isfile
   use mo_string_utils, ONLY: num2str
   use mo_message, ONLY: error_message
 
@@ -92,7 +92,7 @@ CONTAINS
     character(256) :: dummy
 
     !checking whether the file exists
-    call path_isfile(path = filename, raise=.true.)
+    call check_path_isfile(path = filename, raise=.true.)
     open(fileunit, file = filename, action = 'read', status = 'old')
 
     ! read header
@@ -179,7 +179,7 @@ CONTAINS
     character(256) :: dummy
 
     !checking whether the file exists
-    call path_isfile(path = filename, raise=.true.)
+    call check_path_isfile(path = filename, raise=.true.)
     open(fileunit, file = filename, action = 'read')
 
     ! read header

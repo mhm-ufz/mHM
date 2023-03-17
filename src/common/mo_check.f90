@@ -62,7 +62,7 @@ CONTAINS
     ! split path to retrieve potential prefix to output files
     call path_split(path, head, tail)
     ! check if base directory exists
-    call path_isdir(head, answer=is_dir, verbose=.false.) ! allow file prefix as path tail
+    is_dir = path_isdir(head) ! allow file prefix as path tail
 
     if ( is_dir ) then
       info = trim(head) // " (found)"

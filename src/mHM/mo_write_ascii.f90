@@ -100,7 +100,7 @@ CONTAINS
                                     dirTemperature
     use mo_kind, only : i4
     use mo_string_utils, only : num2str
-    use mo_os, only : path_isdir
+    use mo_os, only : check_path_isdir
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : resolutionRouting
     use mo_common_variables, only : processMatrix
@@ -121,7 +121,7 @@ CONTAINS
     call message()
     call message('  Log-file written to ', trim(fName))
     !checking whether the directory exists where the file shall be created or opened
-    call path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
+    call check_path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
     open(uconfig, file = fName, status = 'unknown', action = 'write', iostat = err)
     if (err .ne. 0) then
       call error_message('  Problems while creating File. ', 'Error-Code ', num2str(err))
@@ -431,7 +431,7 @@ CONTAINS
     use mo_common_mhm_mrm_file, only : file_opti, uopti
     use mo_common_variables, only : dirConfigOut
     use mo_string_utils, only : num2str
-    use mo_os, only : path_isdir
+    use mo_os, only : check_path_isdir
 
     implicit none
 
@@ -454,7 +454,7 @@ CONTAINS
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti))
     !checking whether the directory exists where the file shall be created or opened
-    call path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
+    call check_path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
     open(uopti, file = fName, status = 'unknown', action = 'write', iostat = err, recl = (n_params + 1) * 40)
     if(err .ne. 0) then
       call error_message('  IOError while openening "', trim(fName), '". Error-Code ', num2str(err))
@@ -515,7 +515,7 @@ CONTAINS
     use mo_common_mhm_mrm_file, only : file_opti_nml, uopti_nml
     use mo_common_variables, only : dirConfigOut, nProcesses
     use mo_string_utils, only : num2str
-    use mo_os, only : path_isdir
+    use mo_os, only : check_path_isdir
 
     implicit none
 
@@ -555,7 +555,7 @@ CONTAINS
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti_nml))
     !checking whether the directory exists where the file shall be created or opened
-    call path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
+    call check_path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
     open(uopti_nml, file = fName, status = 'unknown', action = 'write', iostat = err)
     if(err .ne. 0) then
       call error_message('  IOError while openening "', trim(fName), '". Error-Code ', num2str(err))
