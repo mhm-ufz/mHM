@@ -86,7 +86,7 @@ contains
     use mo_read_optional_data, only: readOptidataObs
     use mo_write_ascii, only: write_configfile
     use mo_mhm_bfi, only: calculate_BFI
-    use mo_mhm_cli, only: change_dir
+    use mo_os, only: change_dir
 
     implicit none
 
