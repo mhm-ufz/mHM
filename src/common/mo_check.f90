@@ -31,7 +31,7 @@ CONTAINS
 
     use mo_constants, ONLY : nout, nerr
     use mo_message, only : message, show_msg, show_err
-    use mo_os, only : path_split, check_path_isdir
+    use mo_os, only : path_split, path_isdir
 
     IMPLICIT NONE
 
@@ -62,7 +62,7 @@ CONTAINS
     ! split path to retrieve potential prefix to output files
     call path_split(path, head, tail)
     ! check if base directory exists
-    call check_path_isdir(head, answer=is_dir, verbose=.false.) ! allow file prefix as path tail
+    is_dir = path_isdir(head) ! allow file prefix as path tail
 
     if ( is_dir ) then
       info = trim(head) // " (found)"
