@@ -21,7 +21,7 @@ MODULE mo_soil_database
   use mo_kind, only : i4, dp
   use mo_message, only: message, error_message
   use mo_string_utils, only : num2str
-  use mo_os, only : path_isfile
+  use mo_os, only : check_path_isfile
 
   IMPLICIT NONE
 
@@ -94,7 +94,7 @@ CONTAINS
     CASE(0)
       ios = 0_i4
       !checking whether the file exists
-      call path_isfile(path = filename, raise=.true.)
+      call check_path_isfile(path = filename, raise=.true.)
       open(usoil_database, file = filename, status = 'old', iostat = ios)
       read(usoil_database, *) dummy, nSoilTypes
       dummy = dummy // ''   ! only to avoid warning
@@ -304,7 +304,7 @@ CONTAINS
 
 
       !checking whether the file exists
-      call path_isfile(path = filename, raise=.true.)
+      call check_path_isfile(path = filename, raise=.true.)
       open(usoil_database, file = filename, status = 'old', action = 'read')
       read(usoil_database, *) dummy, nSoilTypes
       dummy = dummy // ''   ! only to avoid warning

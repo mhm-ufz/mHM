@@ -13,7 +13,7 @@
 MODULE mo_read_timeseries
 
   USE mo_kind, ONLY : i4, dp
-  USE mo_os, ONLY : path_isfile
+  USE mo_os, ONLY : check_path_isfile
 
   IMPLICIT NONE
 
@@ -160,7 +160,7 @@ CONTAINS
 
 
     !checking whether the file exists
-    call path_isfile(path = filename, raise=.true.)
+    call check_path_isfile(path = filename, raise=.true.)
     open(unit = fileunit, file = filename, action = 'read', status = 'old')
     ! read header
     read(fileunit, '(a256)') dummy

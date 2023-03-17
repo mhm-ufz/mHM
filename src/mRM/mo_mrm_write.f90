@@ -263,7 +263,7 @@ contains
                                         dirGauges, dirTotalRunoff, gauge, level11, nGaugesTotal, nInflowGaugesTotal
     use mo_string_utils, only : num2str
     use mo_utils, only : ge
-    use mo_os, only : path_isdir
+    use mo_os, only : check_path_isdir
 
     implicit none
 
@@ -278,7 +278,7 @@ contains
     call message()
     call message('  Log-file written to ', trim(fName))
     !checking whether the directory exists where the file shall be created or opened
-    call path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
+    call check_path_isdir(trim(adjustl(dirConfigOut)), raise=.true.)
     open(uconfig, file = fName, status = 'unknown', action = 'write', iostat = err)
     if (err .ne. 0) then
       call error_message('  Problems while creating File. Error-Code ', num2str(err))
