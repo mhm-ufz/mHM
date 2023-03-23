@@ -1,6 +1,6 @@
-!> \file mo_meteo_forcings.f90
-!> \brief \copybrief mo_meteo_forcings
-!> \details \copydetails mo_meteo_forcings
+!> \file mo_meteo_helper.f90
+!> \brief \copybrief mo_meteo_helper
+!> \details \copydetails mo_meteo_helper
 
 !> \brief Prepare meteorological forcings data for mHM.
 !> \details Prepare meteorological forcings data for mHM.
@@ -9,7 +9,7 @@
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
-MODULE mo_meteo_forcings
+MODULE mo_meteo_helper
 
   ! This module provides routines to read meteorological data.
 
@@ -410,7 +410,7 @@ CONTAINS
           if (year .ne. year_before) is_read = .true.
         end if
       case default ! not specified correctly
-        call error_message('ERROR*** mo_meteo_forcings: function is_read: timStep_model_inputs not specified correctly!')
+        call error_message('ERROR*** mo_meteo_helper: function is_read: timStep_model_inputs not specified correctly!')
       end select
     end if
 
@@ -487,7 +487,7 @@ CONTAINS
       call caldat(simPer(iDomain)%julStart + Ndays, dd = day, mm = month, yy = year)
       readPer%julEnd = julday(dd = 31, mm = 12, yy = year)
     case default ! not specified correctly
-      call error_message('ERROR*** mo_meteo_forcings: chunk_size: timStep_model_inputs not specified correctly!')
+      call error_message('ERROR*** mo_meteo_helper: chunk_size: timStep_model_inputs not specified correctly!')
     end select
 
     ! end date should not be greater than end of simulation period
@@ -500,4 +500,4 @@ CONTAINS
 
   end subroutine chunk_size
 
-END MODULE mo_meteo_forcings
+END MODULE mo_meteo_helper

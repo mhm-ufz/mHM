@@ -1,3 +1,11 @@
+!> \dir meteo
+!> \brief \copybrief f_meteo
+!> \details \copydetails f_meteo
+
+!> \defgroup   f_meteo Meteo - Fortran modules
+!> \brief      Core modules to deal with meteorological forcings.
+!> \details    These modules provide the meteo handler, the spatial and temporal remapping algorithms and helper routines.
+
 !> \file    mo_meteo_handler.f90
 !> \brief   \copybrief mo_meteo_handler
 !> \details \copydetails mo_meteo_handler
@@ -506,7 +514,7 @@ contains
 
     use mo_string_utils, only : num2str
     use mo_timer, only : timer_get, timer_start, timer_stop
-    use mo_meteo_forcings, only : meteo_forcings_wrapper, meteo_weights_wrapper, chunk_config
+    use mo_meteo_helper, only : meteo_forcings_wrapper, meteo_weights_wrapper, chunk_config
 
     implicit none
 
