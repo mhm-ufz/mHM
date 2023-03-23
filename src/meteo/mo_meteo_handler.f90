@@ -709,7 +709,7 @@ contains
 
     use mo_mhm_constants, only : HarSamConst
     use mo_julian, only : date2dec, dec2date
-    use mo_temporal_disagg_forcing, only : temporal_disagg_meteo_weights, temporal_disagg_flux_daynight
+    use mo_meteo_temporal_tools, only : temporal_disagg_meteo_weights, temporal_disagg_flux_daynight
     use mo_string_utils, only : num2str
     use mo_pet, only : pet_hargreaves, pet_penman, pet_priestly
 
@@ -842,7 +842,7 @@ contains
   subroutine get_temp(self, temp_calc)
 
     use mo_julian, only : dec2date
-    use mo_temporal_disagg_forcing, only : temporal_disagg_meteo_weights, temporal_disagg_state_daynight
+    use mo_meteo_temporal_tools, only : temporal_disagg_meteo_weights, temporal_disagg_state_daynight
     use mo_constants, only : T0_dp  ! 273.15 - Celcius <-> Kelvin [K]
 
     implicit none
@@ -913,7 +913,7 @@ contains
   subroutine get_prec(self, prec_calc)
 
     use mo_julian, only : dec2date
-    use mo_temporal_disagg_forcing, only : temporal_disagg_meteo_weights, temporal_disagg_flux_daynight
+    use mo_meteo_temporal_tools, only : temporal_disagg_meteo_weights, temporal_disagg_flux_daynight
 
     implicit none
 
@@ -981,7 +981,7 @@ contains
   subroutine get_ssrd(self, ssrd_calc)
 
     use mo_julian, only : dec2date
-    use mo_temporal_disagg_forcing, only : temporal_disagg_state_daynight
+    use mo_meteo_temporal_tools, only : temporal_disagg_state_daynight
 
     implicit none
 
@@ -1041,7 +1041,7 @@ contains
   subroutine get_strd(self, strd_calc)
 
     use mo_julian, only : dec2date
-    use mo_temporal_disagg_forcing, only : temporal_disagg_state_daynight
+    use mo_meteo_temporal_tools, only : temporal_disagg_state_daynight
 
     implicit none
 

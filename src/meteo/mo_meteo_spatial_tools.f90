@@ -1,6 +1,6 @@
-!> \file mo_spatial_agg_disagg_forcing.f90
-!> \brief \copybrief mo_spatial_agg_disagg_forcing
-!> \details \copydetails mo_spatial_agg_disagg_forcing
+!> \file mo_meteo_spatial_tools.f90
+!> \brief \copybrief mo_meteo_spatial_tools
+!> \details \copydetails mo_meteo_spatial_tools
 
 !> \brief Spatial aggegation or disaggregation of meteorological input data.
 !> \details This module contains two subroutines to upscale and downscale, respectively,
@@ -10,7 +10,7 @@
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_meteo
-MODULE mo_spatial_agg_disagg_forcing
+MODULE mo_meteo_spatial_tools
 
   ! This module provides routines for spatial aggegation or disaggregation of meteorological input data.
 
@@ -444,4 +444,4 @@ CONTAINS
 
   end subroutine spatial_disaggregation_4d
 
-END MODULE mo_spatial_agg_disagg_forcing
+END MODULE mo_meteo_spatial_tools

@@ -54,7 +54,7 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_types, only : period, grid
     use mo_read_nc, only : read_nc
-    use mo_spatial_agg_disagg_forcing, only : spatial_aggregation, spatial_disaggregation
+    use mo_meteo_spatial_tools, only : spatial_aggregation, spatial_disaggregation
 
     implicit none
 
@@ -178,7 +178,7 @@ CONTAINS
     use mo_common_constants, only : nodata_dp
     use mo_common_types, only : grid
     use mo_read_nc, only : read_weights_nc
-    use mo_spatial_agg_disagg_forcing, only : spatial_aggregation, spatial_disaggregation
+    use mo_meteo_spatial_tools, only : spatial_aggregation, spatial_disaggregation
 
     implicit none
 

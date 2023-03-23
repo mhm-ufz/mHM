@@ -1,6 +1,6 @@
-!> \file mo_temporal_disagg_forcing.f90
-!> \brief \copybrief mo_temporal_disagg_forcing
-!> \details \copydetails mo_temporal_disagg_forcing
+!> \file mo_meteo_temporal_tools.f90
+!> \brief \copybrief mo_meteo_temporal_tools
+!> \details \copydetails mo_meteo_temporal_tools
 
 !> \brief Temporal disaggregation of daily input values
 !> \details Calculate actual values for precipitation, PET and temperature from daily mean inputs
@@ -10,7 +10,7 @@
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_meteo
-MODULE mo_temporal_disagg_forcing
+MODULE mo_meteo_temporal_tools
 
   USE mo_kind, ONLY : dp
 
@@ -160,4 +160,4 @@ CONTAINS
 
   end subroutine temporal_disagg_state_daynight
 
-END MODULE mo_temporal_disagg_forcing
+END MODULE mo_meteo_temporal_tools
