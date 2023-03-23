@@ -1,6 +1,6 @@
 module test_temporal_disagg_forcing
   use funit
-  use mo_temporal_disagg_forcing
+  use mo_meteo_temporal_tools
   use mo_kind, only: dp
 
   implicit none
