@@ -241,11 +241,8 @@ CONTAINS
                 jarvis_thresh_c1, temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point, &
                 No_count, bulkDens, latticeWater, COSMICL3)
 
-    ! subroutines required to estimate variables prior to the MPR call
-    use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
-    use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
-    use mo_canopy_interc, only : canopy_interc
     use mo_julian, only : dec2date
+    use mo_canopy_interc, only : canopy_interc
     use mo_neutrons, only : COSMIC, DesiletsN0
     use mo_runoff, only : L1_total_runoff, runoff_sat_zone, runoff_unsat_zone
     use mo_snow_accum_melt, only : snow_accum_melt
