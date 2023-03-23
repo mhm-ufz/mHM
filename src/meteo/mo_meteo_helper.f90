@@ -8,7 +8,7 @@
 !> \date Jan 2012
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
-!> \ingroup f_mhm
+!> \ingroup f_meteo
 MODULE mo_meteo_helper
 
   ! This module provides routines to read meteorological data.

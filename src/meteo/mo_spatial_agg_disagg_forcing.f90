@@ -9,7 +9,7 @@
 !> \date Jan 2013
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
-!> \ingroup f_mhm
+!> \ingroup f_meteo
 MODULE mo_spatial_agg_disagg_forcing
 
   ! This module provides routines for spatial aggegation or disaggregation of meteorological input data.

@@ -9,7 +9,7 @@
 !> \date Dec 2012
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
-!> \ingroup f_mhm
+!> \ingroup f_meteo
 MODULE mo_temporal_disagg_forcing
 
   USE mo_kind, ONLY : dp

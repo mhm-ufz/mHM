@@ -22,7 +22,7 @@
 !> \date    Mar 2023
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
-!> \ingroup f_mhm
+!> \ingroup f_meteo
 module mo_meteo_handler
 
   USE mo_kind, ONLY : i4, dp
