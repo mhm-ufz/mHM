@@ -1,0 +1,5 @@
+dict(
+    integer=dict(i1='signed_char', i2='short', i4='int', i8='long_long'),
+    real=dict(sp='float', dp='double', qp='long_double'),
+    complex=dict(spc='complex_float', dpc='complex_double', qpc='complex_long_double'),
+)
