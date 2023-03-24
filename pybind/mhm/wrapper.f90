@@ -11,6 +11,7 @@
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup mhm
 module model
+  use mo_kind, only : i4, dp
   implicit none
 contains
   !> \brief Initialize a mHM model.
@@ -50,8 +51,8 @@ contains
   subroutine run_with_parameter(parameter, n)
     use mo_mhm_eval, only: mhm_eval
     implicit none
-    integer :: n !< number of parameters
-    real*8, intent(in) :: parameter(n) !< parameter
+    integer(i4) :: n !< number of parameters
+    real(dp), intent(in) :: parameter(n) !< parameter
     call mhm_eval(parameter)
   end subroutine run_with_parameter
 
@@ -90,7 +91,7 @@ contains
   subroutine set_verbosity(level)
     use mo_mhm_cli, only: set_verbosity_level
     implicit none
-    integer, intent(in) :: level !< verbosity level (0, 1, 2)
+    integer(i4), intent(in) :: level !< verbosity level (0, 1, 2)
     call set_verbosity_level(level)
   end subroutine set_verbosity
 end module model
@@ -101,6 +102,7 @@ end module model
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup mhm
 module run
+  use mo_kind, only : i4, dp
   implicit none
 contains
   !> \brief Prepare a mHM model run.
@@ -114,7 +116,7 @@ contains
   subroutine get_ndomains(n)
     use mo_mhm_interface_run, only: mhm_interface_run_get_ndomains
     implicit none
-    integer, intent(out) :: n !< number of domains
+    integer(i4), intent(out) :: n !< number of domains
     call mhm_interface_run_get_ndomains(n)
   end subroutine get_ndomains
 
@@ -122,7 +124,7 @@ contains
   subroutine prepare_domain(domain)
     use mo_mhm_interface_run, only: mhm_interface_run_prepare_domain
     implicit none
-    integer, intent(in) :: domain !< domain index (1 based and 1 by default)
+    integer(i4), intent(in) :: domain !< domain index (1 based and 1 by default)
     !f2py integer :: domain = 1
     call mhm_interface_run_prepare_domain(domain)
   end subroutine prepare_domain
@@ -167,10 +169,10 @@ contains
   subroutine current_time(year, month, day, hour)
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer, intent(out) :: year !< current year
-    integer, intent(out) :: month !< current month
-    integer, intent(out) :: day !< current day
-    integer, intent(out) :: hour !< current hour
+    integer(i4), intent(out) :: year !< current year
+    integer(i4), intent(out) :: month !< current month
+    integer(i4), intent(out) :: day !< current day
+    integer(i4), intent(out) :: hour !< current hour
     year = run_cfg%domainDateTime%year
     month = run_cfg%domainDateTime%month
     day = run_cfg%domainDateTime%day
@@ -184,6 +186,7 @@ end module run
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup mhm
 module get
+  use mo_kind, only : i4, dp
   implicit none
 contains
 
@@ -193,7 +196,7 @@ contains
   subroutine parameter_length(length)
     use mo_mhm_interface, only : mhm_interface_get_parameter_number
     implicit none
-    integer, intent(out) :: length !< length of the parmeter array
+    integer(i4), intent(out) :: length !< length of the parmeter array
     call mhm_interface_get_parameter_number(length)
   end subroutine parameter_length
 
@@ -204,8 +207,8 @@ contains
     use mo_common_variables, only: global_parameters
 
     implicit none
-    integer :: n !< number of parameters
-    real*8, intent(out) :: config(n, 5) !< parameter configuration
+    integer(i4) :: n !< number of parameters
+    real(dp), intent(out) :: config(n, 5) !< parameter configuration
 
     config = global_parameters
   end subroutine parameter_config
@@ -220,7 +223,7 @@ contains
     implicit none
     character(256), intent(out) :: para_name !< parameter name
     !f2py character(f2py_len=256) para_name
-    integer, intent(in) :: n !< number of parameters
+    integer(i4), intent(in) :: n !< number of parameters
 
     para_name = global_parameters_name(n)
   end subroutine parameter_name
@@ -232,10 +235,10 @@ contains
     use mo_common_mhm_mrm_variables, only : evalPer, nTstepDay, warmingDays
     use mo_mrm_global_variables, only : gauge, nMeasPerDay
     implicit none
-    integer, intent(in) :: gauge_id !< gauge id
-    integer, intent(out) :: length !< length of the runoff time series
+    integer(i4), intent(in) :: gauge_id !< gauge id
+    integer(i4), intent(out) :: length !< length of the runoff time series
 
-    integer :: iDomain
+    integer(i4) :: iDomain
 
     ! extract domain Id from gauge Id
     iDomain = gauge%domainId(gauge_id)
@@ -248,12 +251,12 @@ contains
     use mo_mrm_objective_function_runoff, only : extract_runoff
     use mo_mrm_global_variables, only: mRM_runoff
     implicit none
-    integer :: m !< number of time-steps for evaluation
-    real*8, intent(out) :: output(m, 2) !< runoff
-    integer, intent(in) :: gauge_id !< gauge id
+    integer(i4) :: m !< number of time-steps for evaluation
+    real(dp), intent(out) :: output(m, 2) !< runoff
+    integer(i4), intent(in) :: gauge_id !< gauge id
 
     ! aggregated simulated runoff
-    real*8, dimension(:), allocatable :: runoff_agg, runoff_obs
+    real(dp), dimension(:), allocatable :: runoff_agg, runoff_obs
     logical, dimension(:), allocatable :: runoff_obs_mask
 
     call extract_runoff(gauge_id, mRM_runoff, runoff_agg, runoff_obs, runoff_obs_mask)
@@ -267,7 +270,7 @@ contains
   subroutine runoff_shape(shp)
     use mo_mrm_global_variables, only: mRM_runoff
     implicit none
-    integer, intent(out) :: shp(2) !< 2D shape of the runoff
+    integer(i4), intent(out) :: shp(2) !< 2D shape of the runoff
     shp = shape(mRM_runoff)
   end subroutine runoff_shape
 
@@ -278,9 +281,9 @@ contains
   subroutine runoff(output, m, n)
     use mo_mrm_global_variables, only: mRM_runoff
     implicit none
-    integer :: m !< number of time-steps
-    integer :: n !< number of gauges
-    real*8, intent(out) :: output(m, n) !< runoff
+    integer(i4) :: m !< number of time-steps
+    integer(i4) :: n !< number of gauges
+    real(dp), intent(out) :: output(m, n) !< runoff
     output = mRM_runoff
   end subroutine runoff
 
@@ -291,10 +294,10 @@ contains
     use mo_common_variables, only : level0
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer, intent(out) :: n !< number of unmasked celles
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(out) :: n !< number of unmasked celles
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -308,10 +311,10 @@ contains
     use mo_common_variables, only : level0
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer, intent(out) :: shp(2) !< shape of Level-0
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(out) :: shp(2) !< shape of Level-0
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -325,12 +328,12 @@ contains
     use mo_common_variables, only : level0
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer :: m !< number of columns
-    integer :: n !< number of rows
+    integer(i4) :: m !< number of columns
+    integer(i4) :: n !< number of rows
     logical, intent(out) :: mask(m, n) !< mask at Level-0
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -345,16 +348,16 @@ contains
     use mo_common_constants, only : nodata_dp
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer, intent(out) :: ncols !< number of columns
-    integer, intent(out) :: nrows !< number of rows
-    integer, intent(out) :: ncells !< number of cells
-    real*8, intent(out) :: xll !< x coordinate of lower left corner
-    real*8, intent(out) :: yll !< y coordinate of lower left corner
-    real*8, intent(out) :: cell_size !< cell-size
-    real*8, intent(out) :: no_data !< no data value
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(out) :: ncols !< number of columns
+    integer(i4), intent(out) :: nrows !< number of rows
+    integer(i4), intent(out) :: ncells !< number of cells
+    real(dp), intent(out) :: xll !< x coordinate of lower left corner
+    real(dp), intent(out) :: yll !< y coordinate of lower left corner
+    real(dp), intent(out) :: cell_size !< cell-size
+    real(dp), intent(out) :: no_data !< no data value
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -377,12 +380,12 @@ contains
     use mo_common_variables, only : level0, domainMeta
     use mo_mpr_global_variables, only : L0_gridded_LAI
     implicit none
-    integer :: n !< size of the variable
-    real*8, intent(out) :: output(n) !< the desired variable
+    integer(i4) :: n !< size of the variable
+    real(dp), intent(out) :: output(n) !< the desired variable
     character(*), intent(in) :: name !< name to select the variable
-    integer, intent(in) :: idx !< optional index if the variable has multiple layer (1 by default)
+    integer(i4), intent(in) :: idx !< optional index if the variable has multiple layer (1 by default)
     !f2py integer :: idx = 1
-    integer :: iDomain, s0, e0
+    integer(i4) :: iDomain, s0, e0
 
     iDomain = run_cfg%get_domain_index(run_cfg%selected_domain)
     s0 = level0(domainMeta%L0DataFrom(iDomain))%iStart
@@ -403,10 +406,10 @@ contains
     use mo_common_variables, only : level1
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer, intent(out) :: n !< number of unmasked celles
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(out) :: n !< number of unmasked celles
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -420,10 +423,10 @@ contains
     use mo_common_variables, only : level1
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer, intent(out) :: shp(2) !< shape of Level-1
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(out) :: shp(2) !< shape of Level-1
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -437,12 +440,12 @@ contains
     use mo_common_variables, only : level1
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer :: m !< number of columns
-    integer :: n !< number of rows
+    integer(i4) :: m !< number of columns
+    integer(i4) :: n !< number of rows
     logical, intent(out) :: mask(m, n) !< mask at Level-1
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -458,16 +461,16 @@ contains
     use mo_common_constants, only : nodata_dp
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer, intent(out) :: ncols !< number of columns
-    integer, intent(out) :: nrows !< number of rows
-    integer, intent(out) :: ncells !< number of cells
-    real*8, intent(out) :: xll !< x coordinate of lower left corner
-    real*8, intent(out) :: yll !< y coordinate of lower left corner
-    real*8, intent(out) :: cell_size !< cell-size
-    real*8, intent(out) :: no_data !< no data value
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(out) :: ncols !< number of columns
+    integer(i4), intent(out) :: nrows !< number of rows
+    integer(i4), intent(out) :: ncells !< number of cells
+    real(dp), intent(out) :: xll !< x coordinate of lower left corner
+    real(dp), intent(out) :: yll !< y coordinate of lower left corner
+    real(dp), intent(out) :: cell_size !< cell-size
+    real(dp), intent(out) :: no_data !< no data value
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -513,10 +516,10 @@ contains
       L1_infilSoil, & ! 2d
       L1_preEffect ! 1d
     implicit none
-    integer :: n !< size of the variable
-    real*8, intent(out) :: output(n) !< the desired variable
+    integer(i4) :: n !< size of the variable
+    real(dp), intent(out) :: output(n) !< the desired variable
     character(*), intent(in) :: name !< name to select the variable
-    integer, intent(in) :: idx !< optional index if the variable has multiple layer (1 by default)
+    integer(i4), intent(in) :: idx !< optional index if the variable has multiple layer (1 by default)
     !f2py integer :: idx = 1
     select case(name)
       case("L1_FSEALED")
@@ -586,10 +589,10 @@ contains
     use mo_mrm_global_variables, only : level11
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer, intent(out) :: n !< number of unmasked celles
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(out) :: n !< number of unmasked celles
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -603,10 +606,10 @@ contains
     use mo_mrm_global_variables, only : level11
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer, intent(out) :: shp(2) !< shape of Level-11
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(out) :: shp(2) !< shape of Level-11
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -620,12 +623,12 @@ contains
     use mo_mrm_global_variables, only : level11
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer :: m !< number of columns
-    integer :: n !< number of rows
+    integer(i4) :: m !< number of columns
+    integer(i4) :: n !< number of rows
     logical, intent(out) :: mask(m, n) !< mask at Level-11
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -640,16 +643,16 @@ contains
     use mo_common_constants, only : nodata_dp
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer, intent(out) :: ncols !< number of columns
-    integer, intent(out) :: nrows !< number of rows
-    integer, intent(out) :: ncells !< number of cells
-    real*8, intent(out) :: xll !< x coordinate of lower left corner
-    real*8, intent(out) :: yll !< y coordinate of lower left corner
-    real*8, intent(out) :: cell_size !< cell-size
-    real*8, intent(out) :: no_data !< no data value
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(out) :: ncols !< number of columns
+    integer(i4), intent(out) :: nrows !< number of rows
+    integer(i4), intent(out) :: ncells !< number of cells
+    real(dp), intent(out) :: xll !< x coordinate of lower left corner
+    real(dp), intent(out) :: yll !< y coordinate of lower left corner
+    real(dp), intent(out) :: cell_size !< cell-size
+    real(dp), intent(out) :: no_data !< no data value
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -675,10 +678,10 @@ contains
       L11_qTIN, &
       L11_qTR
     implicit none
-    integer :: n !< size of the variable
-    real*8, intent(out) :: output(n) !< the desired variable
+    integer(i4) :: n !< size of the variable
+    real(dp), intent(out) :: output(n) !< the desired variable
     character(*), intent(in) :: name !< name to select the variable
-    integer, intent(in) :: idx !< optional index if the variable has multiple layer (1 by default)
+    integer(i4), intent(in) :: idx !< optional index if the variable has multiple layer (1 by default)
     !f2py integer :: idx = 1
     select case(name)
       case("L11_QMOD")
@@ -702,10 +705,10 @@ contains
     use mo_global_variables, only : level2
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer, intent(out) :: n !< number of unmasked celles
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(out) :: n !< number of unmasked celles
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -719,10 +722,10 @@ contains
     use mo_global_variables, only : level2
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer, intent(out) :: shp(2) !< shape of Level-2
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(out) :: shp(2) !< shape of Level-2
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -736,12 +739,12 @@ contains
     use mo_global_variables, only : level2
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer :: m !< number of columns
-    integer :: n !< number of rows
+    integer(i4) :: m !< number of columns
+    integer(i4) :: n !< number of rows
     logical, intent(out) :: mask(m, n) !< mask at Level-2
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -757,16 +760,16 @@ contains
     use mo_common_constants, only : nodata_dp
     use mo_common_run_variables, only : run_cfg
     implicit none
-    integer, intent(out) :: ncols !< number of columns
-    integer, intent(out) :: nrows !< number of rows
-    integer, intent(out) :: ncells !< number of cells
-    real*8, intent(out) :: xll !< x coordinate of lower left corner
-    real*8, intent(out) :: yll !< y coordinate of lower left corner
-    real*8, intent(out) :: cell_size !< cell-size
-    real*8, intent(out) :: no_data !< no data value
-    integer, intent(in) :: domain !< selected domain (0 by default for current domain)
+    integer(i4), intent(out) :: ncols !< number of columns
+    integer(i4), intent(out) :: nrows !< number of rows
+    integer(i4), intent(out) :: ncells !< number of cells
+    real(dp), intent(out) :: xll !< x coordinate of lower left corner
+    real(dp), intent(out) :: yll !< y coordinate of lower left corner
+    real(dp), intent(out) :: cell_size !< cell-size
+    real(dp), intent(out) :: no_data !< no data value
+    integer(i4), intent(in) :: domain !< selected domain (0 by default for current domain)
     !f2py integer :: domain = 0
-    integer :: iDomain, i
+    integer(i4) :: iDomain, i
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
@@ -788,6 +791,7 @@ end module get
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup mhm
 module set
+  use mo_kind, only : i4, dp
   implicit none
 contains
 
@@ -800,12 +804,12 @@ contains
     use mo_common_variables, only : level0, domainMeta
     use mo_mpr_global_variables, only : L0_gridded_LAI
     implicit none
-    integer :: n !< size of the variable
-    real*8, intent(in) :: input(n) !< the variable value
+    integer(i4) :: n !< size of the variable
+    real(dp), intent(in) :: input(n) !< the variable value
     character(*), intent(in) :: name !< name to select the variable
-    integer, intent(in) :: idx !< optional index if the variable has multiple layer (1 by default)
+    integer(i4), intent(in) :: idx !< optional index if the variable has multiple layer (1 by default)
     !f2py integer :: idx = 1
-    integer :: iDomain, s0, e0
+    integer(i4) :: iDomain, s0, e0
 
     iDomain = run_cfg%get_domain_index(run_cfg%selected_domain)
     s0 = level0(domainMeta%L0DataFrom(iDomain))%iStart
