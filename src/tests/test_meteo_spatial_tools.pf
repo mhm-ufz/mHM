@@ -1,4 +1,4 @@
-module test_spatial_agg_disagg_forcing
+module test_meteo_spatial_tools
   use funit
   use mo_meteo_spatial_tools, only: spatial_aggregation, spatial_disaggregation
   use mo_kind, only: dp, i4
@@ -214,4 +214,4 @@ contains
 
   end subroutine test_spatial_disaggregation_4d
 
-end module test_spatial_agg_disagg_forcing
+end module test_meteo_spatial_tools

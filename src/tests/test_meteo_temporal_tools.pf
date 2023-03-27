@@ -1,4 +1,4 @@
-module test_temporal_disagg_forcing
+module test_meteo_temporal_tools
   use funit
   use mo_meteo_temporal_tools
   use mo_kind, only: dp
@@ -61,4 +61,4 @@ contains
 
   end subroutine test_temporal_disagg_state_daynight
 
-end module test_temporal_disagg_forcing
+end module test_meteo_temporal_tools
