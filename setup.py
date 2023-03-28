@@ -1,11 +1,27 @@
 """Python bindings for mHM."""
 import os
 import shutil
-import subprocess
+import tarfile
 import tempfile
+from pathlib import Path
+from urllib.request import urlretrieve
 
 import setuptools
 import skbuild
+
+FORCES_URL = "https://git.ufz.de/chs/forces/-/archive/{branch}/forces-{branch}.tar.gz"
+
+
+def _download_tar(url, path):
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tar_file = Path(tmp_dir) / "temp.tar.gz"
+        tar_dir = Path(tmp_dir) / "temp"
+        urlretrieve(url, tar_file)
+        with tarfile.open(tar_file, "r:gz") as tar:
+            tar.extractall(path=tar_dir)
+        # move sub-folder content to desired path
+        first_sub = tar_dir / os.listdir(tar_dir)[0]
+        shutil.copytree(first_sub, path, ignore_dangling_symlinks=True)
 
 
 class sdist(setuptools.command.sdist.sdist):
@@ -13,28 +29,15 @@ class sdist(setuptools.command.sdist.sdist):
 
     def run(self):
         print("## mHM Python setup: adding FORCES to sdist")
-        here = os.getcwd()
-        forces_dir = os.path.join(here, "forces")
+        here = Path(__file__).parent
+        ver_file = here / "version_forces.txt"
+        forces_dir = here / "forces"
+        forces_ver = ver_file.read_text().strip()
+        forces_url = FORCES_URL.format(branch=forces_ver)
         # remove potentially existing dir
         shutil.rmtree(forces_dir, ignore_errors=True)
-        # download forces by calling cmake (CPM will download correct version)
-        cmake = skbuild.constants.CMAKE_DEFAULT_EXECUTABLE
-        with tempfile.TemporaryDirectory(dir=here) as tmp_dir:
-            subprocess.run(
-                (cmake, f"-B{tmp_dir}", f"-DCPM_SOURCE_CACHE={here}"),
-                capture_output=True,
-                cwd=here,
-            )
-        # CPM stores forces in folder with git-hash as name
-        if not os.path.exists(forces_dir) or len(os.listdir(forces_dir)) != 1:
-            shutil.rmtree(forces_dir, ignore_errors=True)
-            raise RuntimeError("mHM Python sdist: could not download FORCES.")
-        hash_dir = os.path.join(forces_dir, os.listdir(forces_dir)[0])
-        # copy contents to 'forces' top-folder
-        shutil.copytree(
-            hash_dir, forces_dir, copy_function=shutil.move, dirs_exist_ok=True
-        )
-        shutil.rmtree(hash_dir)
+        # download forces
+        _download_tar(url=forces_url, path=forces_dir)
         # run sdist
         super().run()
         # remove forces dir again
