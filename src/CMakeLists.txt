@@ -13,6 +13,7 @@ else()
 endif()
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
+# add FORCES
 include(../cmake/CPM.cmake)
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../forces")
   message(STATUS "mHM: found local forces directory")
@@ -20,7 +21,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../forces")
 else()
   set(CPM_forces_SOURCE "" CACHE PATH "Local source path for FORCES.")
 endif()
-CPMAddPackage("https://git.ufz.de/chs/forces.git@0.5.0")
+# check forces version file
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../version_forces.txt")
+  file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/../version_forces.txt" ver_forces LIMIT_COUNT 1)
+else()
+  set(ver_forces "main") # default version
+endif()
+set(CPM_forces_VERSION "${ver_forces}" CACHE STRING "FORCES version to download.")
+CPMAddPackage("https://git.ufz.de/chs/forces.git#${CPM_forces_VERSION}")
 if(BUILD_MHM_LIB_SHARED)
   set_property(TARGET forces PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
