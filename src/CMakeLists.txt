@@ -22,12 +22,9 @@ else()
   set(CPM_forces_SOURCE "" CACHE PATH "Local source path for FORCES.")
 endif()
 # check forces version file
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../version_forces.txt")
-  file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/../version_forces.txt" ver_forces LIMIT_COUNT 1)
-else()
-  set(ver_forces "main") # default version
-endif()
-set(CPM_forces_VERSION "${ver_forces}" CACHE STRING "FORCES version to download.")
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/../version_forces.txt" ver_forces LIMIT_COUNT 1)
+# cmake directive to specify forces version: CPM_forces_VERSION
+set(CPM_forces_VERSION "${ver_forces}" CACHE STRING "FORCES version to download with CPM.")
 CPMAddPackage("https://git.ufz.de/chs/forces.git#${CPM_forces_VERSION}")
 if(BUILD_MHM_LIB_SHARED)
   set_property(TARGET forces PROPERTY POSITION_INDEPENDENT_CODE ON)
