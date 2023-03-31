@@ -401,14 +401,14 @@ contains
       /)
       ! lon
       var = nc%setVariable("lon", dtype, (/ dimids1(1) /)) ! sufficient to store lon as vector
-      call var%setData(lon1d)
       call set_attributes(var, "longitude", unit="degrees_east", standard_name="longitude", axis="X", bounds="lon_bnds")
+      call var%setData(lon1d)
       var = nc%setVariable("lon_bnds", dtype, (/ dimids1(4), dimids1(1) /))
       call var%setData(x_bnds)
       ! lat
       var = nc%setVariable("lat", dtype, (/ dimids1(2) /)) ! sufficient to store lat as vector
-      call var%setData(lat1d)
       call set_attributes(var, "latitude", unit="degrees_north", standard_name="latitude", axis="Y", bounds="lat_bnds")
+      call var%setData(lat1d)
       var = nc%setVariable("lat_bnds", dtype, (/ dimids1(4), dimids1(2) /))
       call var%setData(y_bnds)
 
