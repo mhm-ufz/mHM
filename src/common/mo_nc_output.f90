@@ -20,7 +20,7 @@
 !> \ingroup f_common
 module mo_nc_output
 
-  use mo_kind, only : i4, dp
+  use mo_kind, only : i4, dp, sp
   use mo_common_variables, only : project_details, setup_description, simulation_type, &
           Conventions, contact, mHM_details, history, dirOut, iFlag_cordinate_sys, Grid
   use mo_file, only : version
@@ -30,7 +30,7 @@ module mo_nc_output
 
   implicit none
 
-  public :: OutputDataset, OutputVariable, writeVariableAttributes, data_dims, data_dtype
+  public :: OutputDataset, OutputVariable, set_attributes, data_dims, data_dtype
 
   private
 
@@ -76,7 +76,7 @@ module mo_nc_output
 
 contains
 
-  !> \brief Output variable dtype for single of double precision.
+  !> \brief Output variable dtype for single or double precision.
   !> \return "f64" or "f32"
   character(3) function data_dtype(double_precision)
     implicit none
@@ -358,40 +358,26 @@ contains
       /)
       ! easting
       var = nc%setVariable("easting", dtype, (/ dimids1(1) /))
+      call set_attributes(var, "x-coordinate in the given coordinate system", &
+        unit="m", standard_name="projection_x_coordinate", axis="X", bounds="easting_bnds")
       call var%setData(easting)
-      call var%setAttribute("axis", "X")
-      call var%setAttribute("units", "m")
-      call var%setAttribute("long_name", "x-coordinate in the given coordinate system")
-      call var%setAttribute("standard_name", "projection_x_coordinate")
-      call var%setAttribute("bounds", "easting_bnds")
       var = nc%setVariable("easting_bnds", dtype, (/ dimids1(4), dimids1(1) /))
       call var%setData(x_bnds)
       ! northing
       var = nc%setVariable("northing", dtype, (/ dimids1(2) /))
+      call set_attributes(var, "y-coordinate in the given coordinate system", &
+        unit="m", standard_name="projection_y_coordinate", axis="Y", bounds="northing_bnds")
       call var%setData(northing)
-      call var%setAttribute("axis", "Y")
-      call var%setAttribute("units", "m")
-      call var%setAttribute("long_name", "y-coordinate in the given coordinate system")
-      call var%setAttribute("standard_name", "projection_y_coordinate")
-      call var%setAttribute("bounds", "northing_bnds")
       var = nc%setVariable("northing_bnds", dtype, (/ dimids1(4), dimids1(2) /))
       call var%setData(y_bnds)
       ! lon
       var = nc%setVariable("lon", dtype, dimids1(1 : 2))
-      call var%setFillValue(nodata_dp)
+      call set_attributes(var, "longitude", unit="degrees_east", double_precision=double_precision, standard_name="longitude")
       call var%setData(lon2d)
-      call var%setAttribute("units", "degrees_east")
-      call var%setAttribute("long_name", "longitude")
-      call var%setAttribute("standard_name", "longitude")
-      call var%setAttribute("missing_value", nodata_dp)
       ! lat
       var = nc%setVariable("lat", dtype, dimids1(1 : 2))
-      call var%setFillValue(nodata_dp)
+      call set_attributes(var, "latitude", unit="degrees_north", double_precision=double_precision, standard_name="latitude")
       call var%setData(lat2d)
-      call var%setAttribute("units", "degrees_north")
-      call var%setAttribute("long_name", "latitude")
-      call var%setAttribute("standard_name", "latitude")
-      call var%setAttribute("missing_value", nodata_dp)
 
     else
 
@@ -416,21 +402,13 @@ contains
       ! lon
       var = nc%setVariable("lon", dtype, (/ dimids1(1) /)) ! sufficient to store lon as vector
       call var%setData(lon1d)
-      call var%setAttribute("axis", "X")
-      call var%setAttribute("units", "degrees_east")
-      call var%setAttribute("long_name", "longitude")
-      call var%setAttribute("standard_name", "longitude")
-      call var%setAttribute("bounds", "lon_bnds")
+      call set_attributes(var, "longitude", unit="degrees_east", standard_name="longitude", axis="X", bounds="lon_bnds")
       var = nc%setVariable("lon_bnds", dtype, (/ dimids1(4), dimids1(1) /))
       call var%setData(x_bnds)
       ! lat
       var = nc%setVariable("lat", dtype, (/ dimids1(2) /)) ! sufficient to store lat as vector
       call var%setData(lat1d)
-      call var%setAttribute("axis", "Y")
-      call var%setAttribute("units", "degrees_north")
-      call var%setAttribute("long_name", "latitude")
-      call var%setAttribute("standard_name", "latitude")
-      call var%setAttribute("bounds", "lat_bnds")
+      call set_attributes(var, "latitude", unit="degrees_north", standard_name="latitude", axis="Y", bounds="lat_bnds")
       var = nc%setVariable("lat_bnds", dtype, (/ dimids1(4), dimids1(2) /))
       call var%setData(y_bnds)
 
@@ -452,11 +430,7 @@ contains
 
     ! time
     var = nc%setVariable("time", "i32", (/ dimids1(3) /))
-    call var%setAttribute("axis", "T")
-    call var%setAttribute("units", unit)
-    call var%setAttribute("long_name", "time")
-    call var%setAttribute("standard_name", "time")
-    call var%setAttribute("bounds", "time_bnds")
+    call set_attributes(var, "time", unit=unit, standard_name="time", axis="T", bounds="time_bnds")
     var = nc%setVariable("time_bnds", "i32", (/ dimids1(4), dimids1(3) /))
 
     ! global attributes
@@ -481,20 +455,35 @@ contains
   !! - Robert Schweppe Jun 2018 - refactoring and reformatting
   !> \authors David Schaefer
   !> \date June 2015
-  subroutine writeVariableAttributes(var, long_name, unit)
+  subroutine set_attributes(var, long_name, unit, double_precision, standard_name, axis, bounds)
     implicit none
 
-    type(OutputVariable), intent(inout) :: var !< NetCDF variable
+    type(NcVariable), intent(inout) :: var !< NetCDF variable
     character(*), intent(in) :: long_name !< long name of the variable
     character(*), intent(in) :: unit !< unit of the variable
+    logical, intent(in), optional :: double_precision !< precision flag, if missing, no fill-value and missing-value is written
+    character(*), intent(in), optional :: standard_name !< standard name of the variable
+    character(*), intent(in), optional :: axis !< axis attribute
+    character(*), intent(in), optional :: bounds !< bounds attribute
 
-    call var%nc%setFillValue(nodata_dp)
-    call var%nc%setAttribute("long_name", long_name)
-    call var%nc%setAttribute("units", unit)
-    call var%nc%setAttribute("scale_factor", 1.0_dp)
-    call var%nc%setAttribute("missing_value", nodata_dp)
-    call var%nc%setAttribute("coordinates", "lat lon")
+    if (present(double_precision)) then
+      if (double_precision) then
+        call var%setFillValue(nodata_dp)
+        call var%setAttribute("missing_value", nodata_dp)
+        ! call var%setAttribute("scale_factor", 1.0_dp) ! not needed if just 1
+      else
+        call var%setFillValue(real(nodata_dp, kind=sp))
+        call var%setAttribute("missing_value", real(nodata_dp, kind=sp))
+        ! call var%setAttribute("scale_factor", 1.0_sp) ! not needed if just 1
+      end if
+    end if
+    call var%setAttribute("long_name", long_name)
+    call var%setAttribute("units", unit)
+    call var%setAttribute("coordinates", "lat lon")
+    if (present(standard_name)) call var%setAttribute("standard_name", standard_name)
+    if (present(axis)) call var%setAttribute("axis", axis)
+    if (present(bounds)) call var%setAttribute("bounds", bounds)
 
-  end subroutine writeVariableAttributes
+  end subroutine set_attributes
 
 end module mo_nc_output
