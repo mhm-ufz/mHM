@@ -359,24 +359,26 @@ contains
       ! easting
       var = nc%setVariable("easting", dtype, (/ dimids1(1) /))
       call set_attributes(var, "x-coordinate in the given coordinate system", &
-        unit="m", standard_name="projection_x_coordinate", axis="X", bounds="easting_bnds")
+        unit="m", standard_name="projection_x_coordinate", add_coords=.false., axis="X", bounds="easting_bnds")
       call var%setData(easting)
       var = nc%setVariable("easting_bnds", dtype, (/ dimids1(4), dimids1(1) /))
       call var%setData(x_bnds)
       ! northing
       var = nc%setVariable("northing", dtype, (/ dimids1(2) /))
       call set_attributes(var, "y-coordinate in the given coordinate system", &
-        unit="m", standard_name="projection_y_coordinate", axis="Y", bounds="northing_bnds")
+        unit="m", standard_name="projection_y_coordinate", add_coords=.false., axis="Y", bounds="northing_bnds")
       call var%setData(northing)
       var = nc%setVariable("northing_bnds", dtype, (/ dimids1(4), dimids1(2) /))
       call var%setData(y_bnds)
       ! lon
       var = nc%setVariable("lon", dtype, dimids1(1 : 2))
-      call set_attributes(var, "longitude", unit="degrees_east", double_precision=double_precision, standard_name="longitude")
+      call set_attributes(var, "longitude", unit="degrees_east", &
+       double_precision=double_precision, add_coords=.false., standard_name="longitude")
       call var%setData(lon2d)
       ! lat
       var = nc%setVariable("lat", dtype, dimids1(1 : 2))
-      call set_attributes(var, "latitude", unit="degrees_north", double_precision=double_precision, standard_name="latitude")
+      call set_attributes(var, "latitude", unit="degrees_north", &
+        double_precision=double_precision, add_coords=.false., standard_name="latitude")
       call var%setData(lat2d)
 
     else
@@ -401,13 +403,15 @@ contains
       /)
       ! lon
       var = nc%setVariable("lon", dtype, (/ dimids1(1) /)) ! sufficient to store lon as vector
-      call set_attributes(var, "longitude", unit="degrees_east", standard_name="longitude", axis="X", bounds="lon_bnds")
+      call set_attributes(var, "longitude", unit="degrees_east", &
+        add_coords=.false., standard_name="longitude", axis="X", bounds="lon_bnds")
       call var%setData(lon1d)
       var = nc%setVariable("lon_bnds", dtype, (/ dimids1(4), dimids1(1) /))
       call var%setData(x_bnds)
       ! lat
       var = nc%setVariable("lat", dtype, (/ dimids1(2) /)) ! sufficient to store lat as vector
-      call set_attributes(var, "latitude", unit="degrees_north", standard_name="latitude", axis="Y", bounds="lat_bnds")
+      call set_attributes(var, "latitude", unit="degrees_north", &
+        add_coords=.false., standard_name="latitude", axis="Y", bounds="lat_bnds")
       call var%setData(lat1d)
       var = nc%setVariable("lat_bnds", dtype, (/ dimids1(4), dimids1(2) /))
       call var%setData(y_bnds)
@@ -430,7 +434,7 @@ contains
 
     ! time
     var = nc%setVariable("time", "i32", (/ dimids1(3) /))
-    call set_attributes(var, "time", unit=unit, standard_name="time", axis="T", bounds="time_bnds")
+    call set_attributes(var, "time", unit=unit, add_coords=.false., standard_name="time", axis="T", bounds="time_bnds")
     var = nc%setVariable("time_bnds", "i32", (/ dimids1(4), dimids1(3) /))
 
     ! global attributes
@@ -455,16 +459,22 @@ contains
   !! - Robert Schweppe Jun 2018 - refactoring and reformatting
   !> \authors David Schaefer
   !> \date June 2015
-  subroutine set_attributes(var, long_name, unit, double_precision, standard_name, axis, bounds)
+  subroutine set_attributes(var, long_name, unit, double_precision, add_coords, standard_name, axis, bounds)
     implicit none
 
     type(NcVariable), intent(inout) :: var !< NetCDF variable
-    character(*), intent(in) :: long_name !< long name of the variable
-    character(*), intent(in) :: unit !< unit of the variable
+    character(*), intent(in), optional :: long_name !< long name of the variable
+    character(*), intent(in), optional :: unit !< unit of the variable
     logical, intent(in), optional :: double_precision !< precision flag, if missing, no fill-value and missing-value is written
+    logical, intent(in), optional :: add_coords !< whether to add the "coordiantes" attribute "lat lon", .true. by defult
     character(*), intent(in), optional :: standard_name !< standard name of the variable
     character(*), intent(in), optional :: axis !< axis attribute
     character(*), intent(in), optional :: bounds !< bounds attribute
+
+    logical :: add_coords_
+
+    add_coords_ = .true.
+    if (present(add_coords)) add_coords_ = add_coords
 
     if (present(double_precision)) then
       if (double_precision) then
@@ -479,7 +489,7 @@ contains
     end if
     call var%setAttribute("long_name", long_name)
     call var%setAttribute("units", unit)
-    call var%setAttribute("coordinates", "lat lon")
+    if (add_coords_) call var%setAttribute("coordinates", "lat lon")
     if (present(standard_name)) call var%setAttribute("standard_name", standard_name)
     if (present(axis)) call var%setAttribute("axis", axis)
     if (present(bounds)) call var%setAttribute("bounds", bounds)
