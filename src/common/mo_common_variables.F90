@@ -26,7 +26,8 @@
 !> \ingroup f_common
 module mo_common_variables
 
-  use mo_kind, only : i4, i8, dp
+  use mo_kind, only : i4, dp
+  use mo_common_types, only: grid, gridremapper, domain_meta
 #ifdef MPI
   USE mpi_f08
 #endif
@@ -67,61 +68,10 @@ module mo_common_variables
   character(256), dimension(:), allocatable, public :: fileLatLon ! Directory where the Lat Lon Files are located
 
   ! -------------------------------------------------------------------
-  ! PERIOD description
-  ! -------------------------------------------------------------------
-  type period
-    integer(i4) :: dStart      ! first day
-    integer(i4) :: mStart      ! first month
-    integer(i4) :: yStart      ! first year
-    integer(i4) :: dEnd        ! last  day
-    integer(i4) :: mEnd        ! last  month
-    integer(i4) :: yEnd        ! last  year
-    integer(i4) :: julStart    ! first julian day
-    integer(i4) :: julEnd      ! last  julian day
-    integer(i4) :: nObs        ! total number of observations
-  end type period
-
-  ! -------------------------------------------------------------------
   ! GRID description
   ! -------------------------------------------------------------------
-  type Grid
-    ! general domain information
-    integer(i4) :: ncols     ! Number of columns
-    integer(i4) :: nrows     ! Number of rows
-    integer(i4) :: nCells    ! Number of cells in mask
-    real(dp) :: xllcorner    ! x coordinate of the lowerleft corner
-    real(dp) :: yllcorner    ! y coordinate of the lowerleft corner
-    real(dp) :: cellsize     ! Cellsize x = cellsize y
-    real(dp) :: nodata_value ! Code to define the mask
-    real(dp), dimension(:, :), allocatable :: x  ! 2d longitude array (unmasked version is needed for output anyway)
-    real(dp), dimension(:, :), allocatable :: y  ! 2d latitude  array (unmasked version is needed for output anyway)
-    logical, dimension(:, :), allocatable :: mask  ! the mask for valid cells in the original grid (nrows*ncols)
-    ! for referencing values in the nValidCells vector
-    integer(i4) :: iStart          ! Starting cell index of a given domain
-    integer(i4) :: iEnd            ! Ending cell index of a given domain
-    ! dimension(nCells, (x,y) )
-    integer(i4), dimension(:, :), allocatable :: CellCoor  ! this is only used for mRM
-    real(dp), dimension(:), allocatable :: CellArea  ! area of the cell in sq m
-    integer(i4), dimension(:), allocatable :: Id
-
-  end type Grid
-
   type(Grid), dimension(:), target, allocatable, public :: level0 ! grid information at morphological level (e.g., dem, fDir)
   type(Grid), dimension(:), target, allocatable, public :: level1 ! grid information at hydrologic level
-
-  type GridRemapper
-    type(Grid), pointer :: high_res_grid
-    type(Grid), pointer :: low_res_grid
-
-    ! dimension nCells
-    integer(i4), dimension(:), allocatable :: lower_bound  ! 1d index of lower side subgrid
-    integer(i4), dimension(:), allocatable :: upper_bound  ! 1d index of upper side subgrid
-    integer(i4), dimension(:), allocatable :: left_bound  ! 1d index of left side subgrid
-    integer(i4), dimension(:), allocatable :: right_bound  ! 1d index of right side subgrid
-    integer(i4), dimension(:), allocatable :: n_subcells   ! 1d numberof valid subgrid cells
-    integer(i4), dimension(:, :), allocatable :: lowres_id_on_highres   ! 2d index array of lowres id
-
-  end type GridRemapper
 
   type(GridRemapper), dimension(:), allocatable, public :: l0_l1_remap  ! grid information at morphological level (e.g., dem, fDir)
 
@@ -146,29 +96,6 @@ module mo_common_variables
   ! -------------------------------------------------------------------
   ! DOMAIN general description
   ! -------------------------------------------------------------------
-  type domain_meta
-    integer(i4)                            :: nDomains
-    integer(i4)                            :: overallNumberOfDomains  ! Number of domains for multi-domain optimization
-    integer(i4), dimension(:), allocatable :: indices
-    integer(i4), dimension(:), allocatable :: L0DataFrom
-    ! optidata saves for each domain which optional data is assigned to it
-    ! (0) default: the program decides. If you are confused, choose 0
-    ! (1) runoff
-    ! (2) sm
-    ! (3) tws
-    ! (4) neutons
-    ! (5) et
-    ! (6) et & tws
-    integer(i4), dimension(:), allocatable :: optidata
-    logical,     dimension(:), allocatable :: doRouting
-#ifdef MPI
-    logical                                :: isMasterInComLocal  ! true if the process is master proc in comLocal
-    type(MPI_Comm)                         :: comMaster ! the communicater the domains are using to send messages to each other
-                                                        ! here are all processes wich have rank 0 in comLocal
-    type(MPI_Comm)                         :: comLocal  ! the communicater the domain internal communication takes place
-#endif
-  end type domain_meta
-
   type(domain_meta), public :: domainMeta
   integer(i4), public :: nuniqueL0Domains ! Number of unique domains for L0
 

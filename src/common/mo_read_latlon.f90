@@ -12,7 +12,7 @@
 MODULE mo_read_latlon
 
   USE mo_kind, ONLY : i4, dp
-  use mo_message, only: message, error_message
+  use mo_message, only: error_message
   use mo_string_utils, only : num2str
 
   ! Of course
@@ -60,7 +60,8 @@ CONTAINS
 
   subroutine read_latlon(ii, lon_var_name, lat_var_name, level_name, level)
 
-    use mo_common_variables, only : Grid, fileLatLon
+    use mo_common_types, only: Grid
+    use mo_common_variables, only : fileLatLon
     use mo_netcdf, only : NcDataset, NcVariable
 
     implicit none

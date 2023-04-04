@@ -21,8 +21,9 @@
 module mo_nc_output
 
   use mo_kind, only : i4, dp, sp
+  use mo_common_types, only: Grid
   use mo_common_variables, only : project_details, setup_description, simulation_type, &
-          Conventions, contact, mHM_details, history, dirOut, iFlag_cordinate_sys, Grid
+          Conventions, contact, mHM_details, history, dirOut, iFlag_cordinate_sys
   use mo_file, only : version
   use mo_common_constants, only : nodata_dp
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable

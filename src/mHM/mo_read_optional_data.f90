@@ -52,8 +52,6 @@ CONTAINS
 
   subroutine readOptidataObs(iDomain, domainID, L1_optiObs)
 
-    use mo_append, only : append
-    use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_common_variables, only : level1
     use mo_optimization_types, only: optidata

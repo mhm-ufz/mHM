@@ -26,8 +26,6 @@ module mo_common_run_variables
     integer(i4) :: selected_domain
     !> number of domains simulated in this mhm_eval run. Depends on opti_function
     integer(i4) :: nDomains
-    !> flag wether forcings are given at hourly timestep
-    logical :: is_hourly_forcing
     !> output runoff
     logical :: output_runoff = .false.
     !> output BFI

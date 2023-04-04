@@ -18,13 +18,16 @@
 !!   - switched to mo_netcdf library and restuctured routines
 !! - Robert Schweppe Jun 2018
 !!   - refactoring and reformatting
+!! - Sebastian Müller Mar 2023
+!!   - documentation update
+!!   - added bound_error to control if an error is raised if boundaries are violated
 !> \authors Juliane Mai
 !> \date Dec 2012
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_common
 module mo_read_nc
-  use mo_message, only: message, error_message
+  use mo_message, only: error_message
 
   implicit none
   public :: read_nc
@@ -34,66 +37,37 @@ module mo_read_nc
   !
 contains
 
-
-  ! ------------------------------------------------------------------
-
-  !    NAME
-  !        read_nc
-
-  !    PURPOSE
-  !>       \brief Reads forcing input in NetCDF file format.
-
-  !>       \details Reads netCDF forcing files.
-  !>       First, the dimensions given are cross-checked with header.txt information. Second, the data of the
-  !>       specified period are read from the specified directory.
-  !>       If the optional lower and/or upper bound for the data values is given, the read data are checked for
-  !>       validity.
-  !>       The program is stopped if any value lies out of range.
-  !>       If the optinal argument nocheck is true, the data are not checked for coverage with the input mask.
-  !>       Additionally in this case an mask of vild data points can be received from the routine in maskout.
-
-  !    INTENT(IN)
-  !>       \param[in] "character(len = *) :: folder"     Name of the folder where data are stored
-  !>       \param[in] "integer(i4) :: nRows"             Number of datapoints in longitudinal direction
-  !>       \param[in] "integer(i4) :: nCols"             Number of datapoints in latitudinal  direction
-  !>       \param[in] "character(len = *) :: varName"    Name of variable name to read
-  !>       \param[in] "logical, dimension(:, :) :: mask" mask of valid data fields
-
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp), dimension(:, :, :) :: data" Data matrixdim_1 = longitude, dim_2 = latitude, dim_3 =
-  !>       time
-
-  !    INTENT(IN), OPTIONAL
-  !>       \param[in] "type(period), optional :: target_period" Period the data are needed for
-  !>       \param[in] "real(dp), optional :: lower"             Lower bound for check of validity of data values
-  !>       \param[in] "real(dp), optional :: upper"             Upper bound for check of validity of data values
-  !>       \param[in] "integer(i4), optional :: nctimestep"     timestep in netcdf file
-  !>       \param[in] "character(256), optional :: fileName"    name of file, defaults to varName
-  !>       \param[in] "logical, optional :: nocheck"            .TRUE. if check for nodata values deactivateddefault =
-  !>       .FALSE. - check is done
-
-  !    INTENT(OUT), OPTIONAL
-  !>       \param[out] "logical, dimension(:, :, :), optional :: maskout" ! mask of validdata points
-
-  !    HISTORY
-  !>       \authors Matthias Zink
-
-  !>       \date May 2013
-
-  ! Modifications:
-  !       Stephan Thober     Nov 2013 - only read required chunk from nc file
-  !       Matthias Cuntz & Juliane Mai Nov 2014 - read daily, monthly or yearly files
-  !       Matthias Zink      Mar 2014 - added optional nocheck flag and optional maskout
-  !       Stephan Thober     Sep 2015 - added read for hourly data
-  !       Robert Schweppe    Nov 2017 - switched to mo_netcdf library and restuctured routines
-  !       Robert Schweppe    Jun 2018 - refactoring and reformatting
-
+  !> \brief Reads forcing input in NetCDF file format.
+  !> \details Reads netCDF forcing files.
+  !! First, the dimensions given are cross-checked with header.txt information. Second, the data of the
+  !! specified period are read from the specified directory.
+  !! If the optional lower and/or upper bound for the data values is given, the read data are checked for
+  !! validity.
+  !! The program is stopped if any value lies out of range.
+  !! If the optinal argument nocheck is true, the data are not checked for coverage with the input mask.
+  !! Additionally in this case an mask of vild data points can be received from the routine in maskout.
+  !> \changelog
+  !! - Stephan Thober     Nov 2013
+  !!   - only read required chunk from nc file
+  !! - Matthias Cuntz & Juliane Mai Nov 2014 - read daily, monthly or yearly files
+  !! - Matthias Zink      Mar 2014
+  !!   - added optional nocheck flag and optional maskout
+  !! - Stephan Thober     Sep 2015
+  !!   - added read for hourly data
+  !! - Robert Schweppe    Nov 2017
+  !!   - switched to mo_netcdf library and restuctured routines
+  !! - Robert Schweppe    Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Müller   Mar 2023
+  !!   - added bound_error to control if an error is raised if boundaries are violated
+  !!   - add nTstepForcingDay as argument to be independent of global variables
+  !> \authors Matthias Zink
+  !> \date May 2013
   subroutine read_nc(folder, nRows, nCols, varName, mask, data, target_period, lower, upper, nctimestep, &
-                            fileName, nocheck, maskout, is_meteo)
+                            fileName, nocheck, maskout, is_meteo, bound_error, nTstepForcingDay)
 
     use mo_constants, only : nodata_i4
-    use mo_common_variables, only : period
-    use mo_common_mHM_mRM_variables, only : nTstepForcingDay
+    use mo_common_types, only: period
     use mo_kind, only : dp, i4
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
@@ -101,81 +75,69 @@ contains
 
     implicit none
 
-    ! Name of the folder where data are stored
+    !> Name of the folder where data are stored
     character(len = *), intent(in) :: folder
-
-    ! Number of datapoints in longitudinal direction
+    !> Number of datapoints in longitudinal direction
     integer(i4), intent(in) :: nRows
-
-    ! Number of datapoints in latitudinal  direction
+    !> Number of datapoints in latitudinal  direction
     integer(i4), intent(in) :: nCols
-
-    ! Name of variable name to read
+    !> Name of variable name to read
     character(len = *), intent(in) :: varName
-
-    ! mask of valid data fields
+    !> mask of valid data fields
     logical, dimension(:, :), intent(in) :: mask
-
-    ! Period the data are needed for
-    type(period), optional, intent(in) :: target_period
-
-    ! Lower bound for check of validity of data values
-    real(dp), optional, intent(in) :: lower
-
-    ! Upper bound for check of validity of data values
-    real(dp), optional, intent(in) :: upper
-
-    ! timestep in netcdf file
-    integer(i4), optional, intent(in) :: nctimestep
-
-    ! name of file, defaults to varName
-    character(256), optional, intent(in) :: fileName
-
-    ! .TRUE. if check for nodata values deactivateddefault = .FALSE. - check is done
-    logical, optional, intent(in) :: nocheck
-
-    ! Data matrixdim_1 = longitude, dim_2 = latitude, dim_3 = time
+    !> Data matrixdim_1 = longitude, dim_2 = latitude, dim_3 = time
     real(dp), dimension(:, :, :), allocatable, intent(out) :: data
-
-    ! ! mask of validdata points
+    !> Period the data are needed for
+    type(period), optional, intent(in) :: target_period
+    !> Lower bound for check of validity of data values
+    real(dp), optional, intent(in) :: lower
+    !> Upper bound for check of validity of data values
+    real(dp), optional, intent(in) :: upper
+    !> timestep in netcdf file
+    integer(i4), optional, intent(in) :: nctimestep
+    !> name of file, defaults to varName
+    character(256), optional, intent(in) :: fileName
+    !> .TRUE. if check for nodata values deactivated, default = .FALSE. - check is done
+    logical, optional, intent(in) :: nocheck
+    !> mask of validdata points
     logical, dimension(:, :, :), allocatable, optional, intent(out) :: maskout
-
-    ! logical whether meteorology is currently read
+    !> logical whether meteorology is currently read
     logical, optional, intent(in) :: is_meteo
+    !> .FALSE. to only warn about bound (lower, upper) violations, default = .TRUE. - raise an error
+    logical, optional, intent(in) :: bound_error
+    !> Number of datapoints in longitudinal direction
+    integer(i4), optional, intent(inout) :: nTstepForcingDay
 
     ! netcdf file
     type(NcDataset) :: nc
-
     ! variables for data and time form netcdf
     type(NcVariable) :: var, time_var
-
     ! shape of NetCDF variable
     integer(i4), allocatable, dimension(:) :: var_shape
-
     ! index for selecting time vector
     integer(i4) :: time_start
-
     ! length of vector of selected time values
     integer(i4) :: time_cnt
-
     ! name of NetCDF file
     character(256) :: fName
-
     ! loop variable
     integer(i4) :: i
-
     ! data nodata value
     real(dp) :: nodata_value
-
     ! check if model domain is covered by data
     logical :: checking
-
     ! check if model domain is covered by data
     integer(i4) :: inctimestep
+    ! raise error or only warn for bound violations
+    logical :: bound_error_
 
     ! default value for performing checks on read input
     checking = .TRUE.
     if (present(nocheck)) checking = .NOT. nocheck
+
+    ! default value for errors on bound violations
+    bound_error_ = .TRUE.
+    if (present(bound_error)) bound_error_ = bound_error
 
     ! default: fName = varname + '.nc'
     ! optional: fName = filename + '.nc'
@@ -212,26 +174,27 @@ contains
     call get_time_vector_and_select(time_var, fname, inctimestep, time_start, time_cnt, target_period)
 
     if (present(is_meteo)) then
-       if (is_meteo) then
-          select case(inctimestep)
+      if (.not. present(nTstepForcingDay)) call error_message("read_nc: meteo file given but 'nTstepForcingDay' not passed")
+      if (is_meteo) then
+        select case(inctimestep)
           case(-1) ! daily
-             if (nTstepForcingDay .eq. nodata_i4) then
-                nTstepForcingDay = 1_i4
-             else if (nTstepForcingDay .ne. 1_i4) then
-                call error_message('***ERROR: read_forcing_nc: expected daily input forcing, but read something else. ' // &
-                     'Ensure all input time steps have the same units across all input files')
-             end if
+            if (nTstepForcingDay .eq. nodata_i4) then
+              nTstepForcingDay = 1_i4
+            else if (nTstepForcingDay .ne. 1_i4) then
+              call error_message('***ERROR: read_forcing_nc: expected daily input forcing, but read something else. ' // &
+                    'Ensure all input time steps have the same units across all input files')
+            end if
           case(-4) ! hourly
-             if (nTstepForcingDay .eq. nodata_i4) then
-                nTstepForcingDay = 24_i4
-             else if (nTstepForcingDay .ne. 24_i4) then
-                call error_message('***ERROR: read_forcing_nc: expected hourly input forcing, but read something else. ' // &
-                     'Ensure all input time steps have the same units across all input files')
-             end if
+            if (nTstepForcingDay .eq. nodata_i4) then
+              nTstepForcingDay = 24_i4
+            else if (nTstepForcingDay .ne. 24_i4) then
+              call error_message('***ERROR: read_forcing_nc: expected hourly input forcing, but read something else. ' // &
+                    'Ensure all input time steps have the same units across all input files')
+            end if
           case default ! no output at all
-             call error_message('***ERROR: read_nc: unknown nctimestep switch.')
-          end select
-       end if
+            call error_message('***ERROR: read_nc: unknown nctimestep switch.')
+        end select
+      end if
     end if
 
     ! check optional nctimestep
@@ -270,7 +233,7 @@ contains
           call error_message('          at timestep  : ', trim(num2str(i)), raise=.false.)
           call error_message('File: ', trim(fName), raise=.false.)
           call error_message('Minval at timestep: ', trim(num2str(minval(data(:, :, i)))), raise=.false.)
-          call error_message('Total minval: ', trim(num2str(minval(data(:, :, :)))))
+          call error_message('Total minval: ', trim(num2str(minval(data(:, :, :)))), raise=bound_error_)
         end if
       end if
 
@@ -281,8 +244,7 @@ contains
           call error_message('          at timestep  : ', trim(num2str(i)), raise=.false.)
           call error_message('File: ', trim(fName), raise=.false.)
           call error_message('Maxval at timestep: ', trim(num2str(maxval(data(:, :, i)))), raise=.false.)
-          call error_message('Total maxval: ', trim(num2str(maxval(data(:, :, :)))))
-          ! print*, data(:, :, i)
+          call error_message('Total maxval: ', trim(num2str(maxval(data(:, :, :)))), raise=bound_error_)
         end if
       end if
 
@@ -290,80 +252,36 @@ contains
 
   end subroutine read_nc
 
-  ! ------------------------------------------------------------------
 
-  !     NAME
-  !         read_const_nc
-
-  !     PURPOSE
-  !>        \brief Reads time independent forcing input in NetCDF file format.
-
-  !>        \details Reads time independent netCDF forcing files.  \n
-  !>        First, the dimensions given are cross-checked with header.txt information. Second, the data of the
-  !>        specified period are read from the specified directory.
-  !>        If the optional lower and/or upper bound for the data values is given, the read data are checked for validity.
-  !>        The program is stopped if any value lies out of range.\n
-  !>        If the optinal argument nocheck is true, the data are not checked for coverage with the input mask.
-  !>        Additionally in this case an mask of vild data points can be received from the routine in maskout.
-
-  !     INTENT(IN)
-  !>        \param[in] "character(len=*) :: folder"        Name of the folder where data are stored
-  !>        \param[in] "integer(i4)      :: nRows"         Number of datapoints in longitudinal direction
-  !>        \param[in] "integer(i4)      :: nCols"         Number of datapoints in latitudinal  direction
-  !>        \param[in] "character(len=*) :: varName"       Name of variable name to read
-  !>        \param[in] "logical, dimension(:,:) :: mask"   mask of valid data fields
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp), dimension(:,:,:) :: data"     Data matrix
-  !>                                                             dim_1 = longitude, dim_2 = latitude
-
-  !     INTENT(IN), OPTIONAL
-  !>       \param[in] "character(256), optional :: fileName"    name of file, defaults to varName
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !>                                                                                                  data points
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>        \note Files have to be called like defined in mo_files. Furthermore the variable names have to be called
-  !>              like they are defined in the declaration of this subroutine. The NetCDF file has to have 2 dimensions:
-  !>              1. x, 2. y, It is expected that the variables (especially)within the NetCDF files contain an
-  !>              unit attribute. The timestep has to be equidistant.
-
-  !     EXAMPLE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Lennart Schueler, heavily influenced by read_nc
-  !>        \date May 2018
-
+  !> \brief Reads time independent forcing input in NetCDF file format.
+  !> \details Reads time independent netCDF forcing files.  \n
+  !! First, the dimensions given are cross-checked with header.txt information. Second, the data of the
+  !! specified period are read from the specified directory.
+  !! If the optional lower and/or upper bound for the data values is given, the read data are checked for validity.
+  !! The program is stopped if any value lies out of range.\n
+  !! If the optinal argument nocheck is true, the data are not checked for coverage with the input mask.
+  !! Additionally in this case an mask of vild data points can be received from the routine in maskout.
+  !!
+  !! \note Files have to be called like defined in mo_files. Furthermore the variable names have to be called
+  !!       like they are defined in the declaration of this subroutine. The NetCDF file has to have 2 dimensions:
+  !!       1. x, 2. y, It is expected that the variables (especially)within the NetCDF files contain an
+  !!       unit attribute. The timestep has to be equidistant.
+  !!
+  !> \author Lennart Schueler, heavily influenced by read_nc
+  !> \date May 2018
   subroutine read_const_nc(folder, nRows, nCols, varName, data, fileName)
 
     use mo_kind,             only: i4, dp
-    use mo_netcdf,           only: NcDataset, NcVariable, NcDimension
-    use mo_string_utils,     only: num2str
-    use mo_utils,            only: eq, ne
+    use mo_netcdf,           only: NcDataset, NcVariable
 
     implicit none
 
-    character(len=*),                      intent(in)  :: folder  ! folder where data are stored
-    integer(i4),                           intent(in)  :: nRows   ! number of rows of data fields:
-    integer(i4),                           intent(in)  :: nCols   ! number of columns of data fields:
-    character(len=*),                      intent(in)  :: varName ! name of NetCDF variable
-    real(dp), dimension(:,:), allocatable, intent(out) :: data    ! data read in
-    ! name of file, defaults to varName
-    character(256), optional, intent(in) :: fileName
+    character(len=*),                      intent(in)  :: folder   !< folder where data are stored
+    integer(i4),                           intent(in)  :: nRows    !< number of rows of data fields:
+    integer(i4),                           intent(in)  :: nCols    !< number of columns of data fields:
+    character(len=*),                      intent(in)  :: varName  !< name of NetCDF variable
+    real(dp), dimension(:,:), allocatable, intent(out) :: data     !< data read in
+    character(256),              optional, intent(in)  :: fileName !< name of file, defaults to varName
 
     ! local variables
     type(NcDataset)                        :: nc           ! netcdf file
@@ -405,53 +323,24 @@ contains
 
   end subroutine read_const_nc
 
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        read_weights_nc
-
-  !    PURPOSE
-  !>       \brief Reads weights for meteo forcings input in NetCDF file format.
-
-  !>       \details Reads netCDF weight files.
-  !>       First, the dimensions given are cross-checked with header.txt information. If the optional lower
-  !>       and/or upper bound for the data values is given, the read data are checked for validity.
-  !>       The program is stopped if any value lies out of range.
-  !>       If the optinal argument nocheck is true, the data are not checked for coverage with the input mask.
-  !>       Additionally in this case an mask of vild data points can be received from the routine in maskout.
-
-  !    INTENT(IN)
-  !>       \param[in] "character(len = *) :: folder"     Name of the folder where data are stored
-  !>       \param[in] "integer(i4) :: nRows"             Number of datapoints in longitudinal direction
-  !>       \param[in] "integer(i4) :: nCols"             Number of datapoints in latitudinal  direction
-  !>       \param[in] "character(len = *) :: varName"    Name of variable name to read
-  !>       \param[in] "logical, dimension(:, :) :: mask" mask of valid data fields
-
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp), dimension(:, :, :, :) :: data" Data matrixdim_1 = longitude, dim_2 = latitude, dim_3 =
-  !>       months, dim_4 = hours
-
-  !    INTENT(IN), OPTIONAL
-  !>       \param[in] "real(dp), optional :: lower"          Lower bound for check of validity of data values
-  !>       \param[in] "real(dp), optional :: upper"          Upper bound for check of validity of data values
-  !>       \param[in] "logical, optional :: nocheck"         .TRUE. if check for nodata values deactivateddefault =
-  !>       .FALSE. - check is done
-  !>       \param[in] "character(256), optional :: fileName" name of variable, defaults to fileName
-
-  !    INTENT(OUT), OPTIONAL
-  !>       \param[out] "logical, dimension(:, :, :, :), optional :: maskout" ! mask of validdata points
-
-  !    HISTORY
-  !>       \authors Stephan Thober & Matthias Zink
-
-  !>       \date Jan 2017
-
-  ! Modifications:
-  ! Robert Schweppe    Nov 2017 - switched to mo_netcdf library and restuctured routine
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
-
-
-  subroutine read_weights_nc(folder, nRows, nCols, varName, data, mask, lower, upper, nocheck, maskout, fileName)
+  !> \brief Reads weights for meteo forcings input in NetCDF file format.
+  !> \details Reads netCDF weight files.
+  !! First, the dimensions given are cross-checked with header.txt information. If the optional lower
+  !! and/or upper bound for the data values is given, the read data are checked for validity.
+  !! The program is stopped if any value lies out of range.
+  !! If the optinal argument nocheck is true, the data are not checked for coverage with the input mask.
+  !! Additionally in this case an mask of vild data points can be received from the routine in maskout.
+  !> \changelog
+  !! - Robert Schweppe    Nov 2017
+  !!   - switched to mo_netcdf library and restuctured routine
+  !! - Robert Schweppe Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Müller Mar 2023
+  !!   - added bound_error to control if an error is raised if boundaries are violated
+  !> \authors Stephan Thober & Matthias Zink
+  !> \date Jan 2017
+  subroutine read_weights_nc(folder, nRows, nCols, varName, data, mask, lower, upper, nocheck, maskout, fileName, bound_error)
 
     use mo_kind, only : dp, i4
     use mo_netcdf, only : NcDataset, NcVariable
@@ -460,66 +349,56 @@ contains
 
     implicit none
 
-    ! Name of the folder where data are stored
+    !> Name of the folder where data are stored
     character(len = *), intent(in) :: folder
-
-    ! Number of datapoints in longitudinal direction
+    !> Number of datapoints in longitudinal direction
     integer(i4), intent(in) :: nRows
-
-    ! Number of datapoints in latitudinal  direction
+    !> Number of datapoints in latitudinal  direction
     integer(i4), intent(in) :: nCols
-
-    ! Name of variable name to read
+    !> Name of variable name to read
     character(len = *), intent(in) :: varName
-
-    ! mask of valid data fields
-    logical, dimension(:, :), intent(in) :: mask
-
-    ! Lower bound for check of validity of data values
-    real(dp), optional, intent(in) :: lower
-
-    ! Upper bound for check of validity of data values
-    real(dp), optional, intent(in) :: upper
-
-    ! .TRUE. if check for nodata values deactivateddefault = .FALSE. - check is done
-    logical, optional, intent(in) :: nocheck
-
-    ! name of variable, defaults to fileName
-    character(256), optional, intent(in) :: fileName
-
-    ! Data matrixdim_1 = longitude, dim_2 = latitude, dim_3 = months, dim_4 = hours
+    !> Data matrixdim_1 = longitude, dim_2 = latitude, dim_3 = months, dim_4 = hours
     real(dp), dimension(:, :, :, :), allocatable, intent(out) :: data
-
-    ! ! mask of validdata points
+    !> mask of valid data fields
+    logical, dimension(:, :), intent(in) :: mask
+    !> Lower bound for check of validity of data values
+    real(dp), optional, intent(in) :: lower
+    !> Upper bound for check of validity of data values
+    real(dp), optional, intent(in) :: upper
+    !> .TRUE. if check for nodata values deactivateddefault = .FALSE. - check is done
+    logical, optional, intent(in) :: nocheck
+    !> name of variable, defaults to fileName
+    character(256), optional, intent(in) :: fileName
+    !> ! mask of validdata points
     logical, dimension(:, :, :, :), allocatable, optional, intent(out) :: maskout
+    !> .FALSE. to only warn about bound (lower, upper) violations, default = .TRUE. - raise an error
+    logical, optional, intent(in) :: bound_error
 
     ! name of NetCDF file
     character(256) :: fName
-
     ! loop variable
     integer(i4) :: i
-
     ! loop variable
     integer(i4) :: j
-
     ! data nodata value
     real(dp) :: nodata_value
-
     ! check if model domain is covered by data
     logical :: checking
-
     ! container for Netcdf data
     type(NcDataset) :: nc
-
     ! container for Netcdf variable
     type(NcVariable) :: var
-
     ! shape of NetCDF variable
     integer(i4), allocatable, dimension(:) :: var_shape
-
+    ! raise error or only warn for bound violations
+    logical :: bound_error_
 
     checking = .TRUE.
     if (present(nocheck)) checking = .NOT. nocheck
+
+    ! default value for errors on bound violations
+    bound_error_ = .TRUE.
+    if (present(bound_error)) bound_error_ = bound_error
 
     fName = varName
     if (present(fileName)) then
@@ -534,7 +413,7 @@ contains
     ! get dimensions
     var_shape = var%getShape()
     if ((var_shape(1) .ne. nRows) .or. (var_shape(2) .ne. nCols)) then
-       call error_message('***ERROR: read_nc: mHM generated x and y are not matching NetCDF dimensions')
+       call error_message('***ERROR: read_weights_nc: mHM generated x and y are not matching NetCDF dimensions')
     end if
 
     ! determine no data value
@@ -555,7 +434,7 @@ contains
         ! neglect checking for naodata values if optional nocheck is given
         if (checking) then
           if (any(eq(data(:, :, i, j), nodata_value) .and. (mask))) then
-            call error_message('***ERROR: read_nc: nodata value within domain ', raise=.false.)
+            call error_message('***ERROR: read_weights_nc: nodata value within domain ', raise=.false.)
             call error_message('          boundary in variable: ', trim(varName), raise=.false.)
             call error_message('          at hour         : ', trim(num2str(i)))
           end if
@@ -563,23 +442,23 @@ contains
         ! optional check
         if (present(lower)) then
           if (any((data(:, :, i, j) .lt. lower) .AND. mask(:, :))) then
-            call error_message('***ERROR: read_nc: values in variable "', &
+            call error_message('***ERROR: read_weights_nc: values in variable "', &
                     trim(varName), '" are lower than ', trim(num2str(lower, '(F7.2)')), raise=.false.)
             call error_message('          at hour  : ', trim(num2str(i)), raise=.false.)
             call error_message('File: ', trim(fName), raise=.false.)
             call error_message('Minval at hour: ', trim(num2str(minval(data(:, :, i, j)), '(F7.2)')), raise=.false.)
-            call error_message('Total minval: ', trim(num2str(minval(data(:, :, :, :)), '(F7.2)')))
+            call error_message('Total minval: ', trim(num2str(minval(data(:, :, :, :)), '(F7.2)')), raise=bound_error_)
           end if
         end if
 
         if (present(upper)) then
           if (any((data(:, :, i, j) .gt. upper) .AND. mask(:, :))) then
-            call error_message('***ERROR: read_nc: values in variable "', &
+            call error_message('***ERROR: read_weights_nc: values in variable "', &
                     trim(varName), '" are greater than ', trim(num2str(upper, '(F7.2)')), raise=.false.)
             call error_message('          at hour  : ', trim(num2str(i)), raise=.false.)
             call error_message('File: ', trim(fName), raise=.false.)
             call error_message('Maxval at hour: ', trim(num2str(maxval(data(:, :, i, j)), '(F7.2)')), raise=.false.)
-            call error_message('Total maxval: ', trim(num2str(maxval(data(:, :, :, :)), '(F7.2)')))
+            call error_message('Total maxval: ', trim(num2str(maxval(data(:, :, :, :)), '(F7.2)')), raise=bound_error_)
           end if
         end if
 
@@ -588,49 +467,26 @@ contains
 
   end subroutine read_weights_nc
 
-  ! ------------------------------------------------------------------
 
-  !    NAME
-  !        get_time_vector_and_select
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !>       ADDITIONAL INFORMATION
-  !>       get_time_vector_and_select
-  !>       Extract time vector in unit julian hours and get supposed time step in hours
-
-  !    INTENT(IN)
-  !>       \param[in] "type(NcVariable) :: var"    variable of interest
-  !>       \param[in] "character(256) :: fname"    fname of ncfile for error message
-
-  !    INTENT(OUT)
-  !>       \param[out] "integer(i4) :: time_start" time_start index of time selection
-  !>       \param[out] "integer(i4) :: time_cnt"   time_count of indexes of time selection
-  !>       \param[out] "integer(i4) :: inctimestep" flag for requested time step
-
-  !    INTENT(IN), OPTIONAL
-  !>       \param[in] "type(period), optional :: target_period" reference period
-
-
-  !    HISTORY
-  !>       \authors Matthias Zink
-
-  !>       \date Oct 2012
-
-  ! Modifications:
-  ! Matthias Cuntz & Juliane Mai Nov 2014 - time int or double
-  ! Stephan Thober               Sep 2015 - added read for hourly data
-  ! Robert Schweppe              Nov 2017 - restructured routine, reads vector now
-  ! Maren Kaluza                 May 2018 - fixed bug in time reading
-  ! Stephan Thober               Aug 2020 - fixed hourly reading
-  ! Stephan Thober               Jan 2022 - deactivated monthly and annual reading added nTstepForcingDay for hourly reading
-
+  !> \brief Extract time vector in unit julian hours and get supposed time step in hours
+  !> \changelog
+  !! - Matthias Cuntz & Juliane Mai Nov 2014
+  !!   - time int or double
+  !! - Stephan Thober               Sep 2015
+  !!   - added read for hourly data
+  !! - Robert Schweppe              Nov 2017
+  !!   - restructured routine, reads vector now
+  !! - Maren Kaluza                 May 2018
+  !!   - fixed bug in time reading
+  !! - Stephan Thober               Aug 2020
+  !!   - fixed hourly reading
+  !! - Stephan Thober               Jan 2022
+  !!   - deactivated monthly and annual reading added nTstepForcingDay for hourly reading
+  !> \authors Matthias Zink
+  !> \date Oct 2012
   subroutine get_time_vector_and_select(var, fname, inctimestep, time_start, time_cnt, target_period)
 
-    use mo_common_variables, only : period
+    use mo_common_types, only: period
     use mo_constants, only : DayHours, DaySecs, YearDays
     use mo_julian, only : caldat, dec2date, julday
     use mo_kind, only : dp, i4, i8
@@ -639,55 +495,37 @@ contains
 
     implicit none
 
-    ! variable of interest
+    !> variable of interest
     type(NcVariable), intent(in) :: var
-
-    ! fname of ncfile for error message
+    !> fname of ncfile for error message
     character(256), intent(in) :: fname
-
-    ! flag for requested time step
+    !> flag for requested time step
     integer(i4), intent(out) :: inctimestep
-
-    ! time_start index of time selection
+    !> time_start index of time selection
     integer(i4), intent(out) :: time_start
-
-    ! time_count of indexes of time selection
+    !> time_count of indexes of time selection
     integer(i4), intent(out) :: time_cnt
-
-    ! reference period
+    !> reference period
     type(period), intent(in), optional :: target_period
 
     ! reference time of NetCDF
     integer(i4) :: yRef, dRef, mRef, hRef, jRef
-
     ! netcdf attribute values
     character(256) :: AttValues
-
     ! dummies for netcdf attribute handling
     character(256), dimension(:), allocatable :: strArr, date, time
-
     ! native time step converter in ncfile
     integer(i8) :: time_step_seconds
-
     ! time vector
     integer(i8), allocatable, dimension(:) :: time_data
     integer(i8), allocatable, dimension(:) :: time_diff
-
     ! period of ncfile, for clipping
     type(period) :: nc_period, clip_period
-
     integer(i4) :: ncJulSta1, dd, n_time
-
     integer(i4) :: mmcalstart, mmcalend, yycalstart, yycalend
-
     integer(i4) :: mmncstart, yyncstart
-
     ! helper variable for error output
     integer(i4) :: hstart_int, hend_int
-
-    ! helper variable for error output
-    character(256) :: error_msg
-
 
     call var%getAttribute('units', AttValues)
     ! AttValues looks like "<unit> since YYYY-MM-DD[ HH:MM:SS]"
@@ -733,10 +571,6 @@ contains
       call error_message('***ERROR: length of time dimension needs to be at least 2 in file: ' // trim(fname))
     end if
 
-    ! check for equal timesteps and timestep must not be multiple of native timestep
-    error_msg = '***ERROR: time_steps are not equal over all times in file and/or do not conform to' // &
-            ' requested timestep in file (' // trim(fname) // ') : '
-
     ! compare the read period from ncfile to the period required
     ! convert julian second information back to date via conversion to float
     ! the 0.5_dp is for the different reference of fractional julian days, hours are truncated
@@ -771,7 +605,8 @@ contains
     else if (all(abs((time_data(2 : n_time) - time_data(1 : n_time - 1)) / 3600._dp - 1._dp) .lt. 1.e-6)) then
        inctimestep = -4 ! hourly
     else
-       call error_message('***ERROR: read_forcing_nc: unknown nctimestep switch.')
+       call error_message('***ERROR: time_steps are not equal over all times in file and/or do not conform to' // &
+       ' requested timestep in file (', trim(fname), ')')
     end if
 
     ! prepare the selection and check for required time_step

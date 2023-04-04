@@ -315,7 +315,7 @@ contains
 
     real(dp) :: FCmin_glob
 
-    real(dp) :: FCdelta_glob
+    ! real(dp) :: FCdelta_glob
 
     real(dp) :: FCmax_glob
 

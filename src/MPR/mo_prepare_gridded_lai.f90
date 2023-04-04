@@ -17,7 +17,7 @@ MODULE mo_prepare_gridded_LAI
   ! Modified from mo_meteo_forcings
 
   USE mo_kind, ONLY : i4, dp
-  use mo_message, only: message, error_message
+  use mo_message, only: error_message
 
   IMPLICIT NONE
 
@@ -61,7 +61,7 @@ CONTAINS
   subroutine prepare_gridded_daily_LAI_data(iDomain, nrows, ncols, mask, LAIPer_iDomain)
 
     use mo_append, only : append
-    use mo_common_variables, only : period
+    use mo_common_types, only: period
     use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI, inputFormat_gridded_LAI, &
             nLAI, LAIBoundaries, timeStep_LAI_input
     use mo_read_nc, only : read_nc

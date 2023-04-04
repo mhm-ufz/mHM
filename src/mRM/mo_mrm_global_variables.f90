@@ -26,7 +26,7 @@ module mo_mrm_global_variables
 
   use mo_kind, only : i4, i8, dp
   use mo_mrm_constants, only : nOutFlxState
-  use mo_common_variables, only : Grid, GridRemapper
+  use mo_common_types, only : Grid, GridRemapper
   use mo_mrm_riv_temp_class, only : riv_temp_type
 
   implicit none

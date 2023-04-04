@@ -699,7 +699,7 @@ contains
 
   !> \brief Get number of unmasked celles on Level-2 of the mHM model.
   subroutine L2_domain_size(n, domain)
-    use mo_global_variables, only : level2
+    use mo_global_variables, only : meteo_handler
     use mo_common_run_variables, only : run_cfg
     implicit none
     integer, intent(out) :: n !< number of unmasked celles
@@ -709,14 +709,14 @@ contains
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
-    n = level2(iDomain)%nCells
+    n = meteo_handler%level2(iDomain)%nCells
   end subroutine L2_domain_size
 
   !> \name Level 2
 
   !> \brief Get the shape of Level-2 of the mHM model.
   subroutine L2_domain_shape(shp, domain)
-    use mo_global_variables, only : level2
+    use mo_global_variables, only : meteo_handler
     use mo_common_run_variables, only : run_cfg
     implicit none
     integer, intent(out) :: shp(2) !< shape of Level-2
@@ -726,14 +726,14 @@ contains
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
-    shp = shape(level2(iDomain)%mask)
+    shp = shape(meteo_handler%level2(iDomain)%mask)
   end subroutine L2_domain_shape
 
   !> \name Level 2
 
   !> \brief Get the mask of Level-2 of the mHM model.
   subroutine L2_domain_mask(mask, n, m, domain)
-    use mo_global_variables, only : level2
+    use mo_global_variables, only : meteo_handler
     use mo_common_run_variables, only : run_cfg
     implicit none
     integer :: m !< number of columns
@@ -745,7 +745,7 @@ contains
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
-    mask = level2(iDomain)%mask
+    mask = meteo_handler%level2(iDomain)%mask
   end subroutine L2_domain_mask
 
   !> \name Level 2
@@ -753,7 +753,7 @@ contains
 
   !> \brief Get the information of Level-2 of the mHM model.
   subroutine L2_domain_info(ncols, nrows, ncells, xll, yll, cell_size, no_data, domain)
-    use mo_global_variables, only : level2
+    use mo_global_variables, only : meteo_handler
     use mo_common_constants, only : nodata_dp
     use mo_common_run_variables, only : run_cfg
     implicit none
@@ -770,13 +770,13 @@ contains
     i = domain
     if ( i == 0 ) i = run_cfg%selected_domain
     iDomain = run_cfg%get_domain_index(i)
-    ncols = level2(iDomain)%ncols
-    nrows = level2(iDomain)%nrows
-    ncells = level2(iDomain)%nCells
-    xll = level2(iDomain)%xllcorner
-    yll = level2(iDomain)%yllcorner
-    cell_size = level2(iDomain)%cellsize
-    ! no_data = level2(iDomain)%nodata_value
+    ncols = meteo_handler%level2(iDomain)%ncols
+    nrows = meteo_handler%level2(iDomain)%nrows
+    ncells = meteo_handler%level2(iDomain)%nCells
+    xll = meteo_handler%level2(iDomain)%xllcorner
+    yll = meteo_handler%level2(iDomain)%yllcorner
+    cell_size = meteo_handler%level2(iDomain)%cellsize
+    ! no_data = meteo_handler%level2(iDomain)%nodata_value
     no_data = nodata_dp
   end subroutine L2_domain_info
 

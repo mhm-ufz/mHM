@@ -1,46 +1,19 @@
-module test_temporal_disagg_forcing
+module test_meteo_temporal_tools
   use funit
-  use mo_temporal_disagg_forcing
+  use mo_meteo_temporal_tools
   use mo_kind, only: dp
 
   implicit none
 
   private
 
-  public :: test_temporal_disagg_forc, test_temporal_disagg_meteo_weights, &
-            test_temporal_disagg_flux_daynight, test_temporal_disagg_state_daynight
+  public :: test_temporal_disagg_meteo_weights
+  public :: test_temporal_disagg_flux_daynight
+  public :: test_temporal_disagg_state_daynight
 
   real(dp) :: t = 0.001_dp
 
 contains
-
-  @test
-  subroutine test_temporal_disagg_forc()
-
-    real(dp) :: ref_prec, ref_pet, ref_temp
-    real(dp) :: res_prec, res_pet, res_temp
-
-    ref_prec = 0.0_dp
-    ref_pet = 0.2055_dp
-    ref_temp = 1.02_dp
-
-    call temporal_disagg_forcing(.true., 24.0_dp, 0.0_dp, 2.74_dp, 0.49_dp, 0.1_dp, 0.9_dp, 0.53_dp, 0.47_dp, 0.1_dp, &
-                                 -0.53_dp, 0.0_dp, 0.0_dp, 0.0_dp, .false., res_prec, res_pet, res_temp)
-    @assertEqual(ref_pet, res_pet, tolerance=t, message='temporal_disagg_forcing: pet, day-night correction')
-    @assertEqual(ref_prec, res_prec, tolerance=t, message='temporal_disagg_forcing: prec, day-night correction')
-    @assertEqual(ref_temp, res_temp, tolerance=t, message='temporal_disagg_forcing: temp, day-night correction')
-
-    ref_prec = 0.0_dp
-    ref_pet = 0.822_dp
-    ref_temp = -54.238_dp
-
-    call temporal_disagg_forcing(.true., 24.0_dp, 0.0_dp, 2.74_dp, 0.49_dp, 0.1_dp, 0.9_dp, 0.53_dp, 0.47_dp, 0.1_dp, &
-                                 -0.53_dp, 0.8_dp, 0.3_dp, 0.47_dp, .true., res_prec, res_pet, res_temp)
-    @assertEqual(ref_pet, res_pet, tolerance=t, message='temporal_disagg_forcing: pet, given weights')
-    @assertEqual(ref_prec, res_prec, tolerance=t, message='temporal_disagg_forcing: prec, given weights')
-    @assertEqual(ref_temp, res_temp, tolerance=t, message='temporal_disagg_forcing: temp, given weights')
-
-  end subroutine test_temporal_disagg_forc
 
   @test
   subroutine test_temporal_disagg_meteo_weights()
@@ -88,4 +61,4 @@ contains
 
   end subroutine test_temporal_disagg_state_daynight
 
-end module test_temporal_disagg_forcing
+end module test_meteo_temporal_tools

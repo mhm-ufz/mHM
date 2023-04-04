@@ -13,11 +13,10 @@
 !> \ingroup f_common
 MODULE mo_common_mpi_tools
 
+#ifdef MPI
   use mo_kind, only : i4, dp
   use mo_message, only : message
   use mo_string_utils, only : num2str
-
-#ifdef MPI
   use mo_common_variables, only: comm
   use mpi_f08
 #endif

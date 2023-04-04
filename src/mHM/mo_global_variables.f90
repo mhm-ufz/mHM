@@ -74,9 +74,14 @@ MODULE mo_global_variables
   USE mo_constants, ONLY : YearMonths
   USE mo_mhm_constants, ONLY : nOutFlxState
   USE mo_optimization_types, ONLY : optidata
-  use mo_common_variables, only : Grid
+  use mo_meteo_handler, only : meteo_handler_type
 
   IMPLICIT NONE
+
+  ! -------------------------------------------------------------------
+  ! METEO HANDLER
+  ! -------------------------------------------------------------------
+  type(meteo_handler_type), public :: meteo_handler !< the meteo handler class
 
   ! -------------------------------------------------------------------
   ! DEFINE OUTPUTS
@@ -87,60 +92,6 @@ MODULE mo_global_variables
   integer(i4) :: timeStep_model_outputs !< timestep for writing model outputs
   logical, dimension(nOutFlxState) :: outputFlxState         !< Define model outputs see "mhm_outputs.nml"
                                                              !< dim1 = number of output variables to be written
-  ! -------------------------------------------------------------------
-  ! INPUT variables for configuration of mHM
-  ! -------------------------------------------------------------------
-  integer(i4), dimension(:), allocatable, public :: timeStep_model_inputs !< frequency for reading meteo input
-  logical, public :: read_meteo_weights                                   !< read weights for tavg and pet
-  character(256), public :: inputFormat_meteo_forcings                    !< format of meteo input data (nc)
-  ! Optional data
-  ! ------------------------------------------------------------------
-  ! DIRECTORIES
-  ! ------------------------------------------------------------------
-  ! has the dimension of nDomains
-  character(256), dimension(:), allocatable, public :: dirPrecipitation   !< Directory where precipitation files are located
-  character(256), dimension(:), allocatable, public :: dirTemperature     !< Directory where temperature files are located
-  character(256), dimension(:), allocatable, public :: dirMinTemperature  !< Directory where minimum temp. files are located
-  character(256), dimension(:), allocatable, public :: dirMaxTemperature  !< Directory where maximum temp. files are located
-  character(256), dimension(:), allocatable, public :: dirNetRadiation    !< Directory where abs. vap. pressure files are located
-  character(256), dimension(:), allocatable, public :: dirabsVapPressure  !< Directory where abs. vap. pressure files are located
-  character(256), dimension(:), allocatable, public :: dirwindspeed       !< Directory where windspeed files are located
-  character(256), dimension(:), allocatable, public :: dirReferenceET     !< Directory where reference-ET files are located
-  ! riv-temp releated
-  character(256), dimension(:), allocatable, public :: dirRadiation       !< Directory where short/long-wave rad. files are located
-
-  ! ------------------------------------------------------------------
-  ! CONSTANT
-  ! ------------------------------------------------------------------
-  integer(i4), public, parameter :: routingStates = 2  !< [-]   Routing states (2=current, 1=past)
-
-  ! -------------------------------------------------------------------
-  ! GRID description
-  ! -------------------------------------------------------------------
-  type(Grid), dimension(:), allocatable, public :: level2       !< Reference of the metereological variables
-
-  ! -------------------------------------------------------------------
-  ! L1 DOMAIN description
-  ! -------------------------------------------------------------------
-  ! Forcings
-  ! dim1 = number grid cells L1
-  ! dim2 = number of meteorological time steps
-  real(dp), public, dimension(:, :, :), allocatable :: L1_temp_weights  !< hourly temperature weights for daily values
-  real(dp), public, dimension(:, :, :), allocatable :: L1_pet_weights   !< hourly pet weights for daily values
-  real(dp), public, dimension(:, :, :), allocatable :: L1_pre_weights   !< hourly pre weights for daily values
-  real(dp), public, dimension(:, :), allocatable :: L1_pre           !< [mm]    Precipitation
-  real(dp), public, dimension(:, :), allocatable :: L1_temp          !< [degC]  Air temperature
-  real(dp), public, dimension(:, :), allocatable :: L1_pet           !< [mm TS-1] Potential evapotranspiration
-  real(dp), public, dimension(:, :), allocatable :: L1_tmin          !< [degC]  minimum daily air temperature
-  real(dp), public, dimension(:, :), allocatable :: L1_tmax          !< [degC]  maximum daily air temperature
-  real(dp), public, dimension(:, :), allocatable :: L1_netrad        !< [W m2]  net radiation
-  real(dp), public, dimension(:, :), allocatable :: L1_absvappress   !< [Pa]    absolute vapour pressure
-  real(dp), public, dimension(:, :), allocatable :: L1_windspeed     !< [m s-1] windspeed
-  ! riv-temp related
-  real(dp), public, dimension(:, :), allocatable :: L1_ssrd          !< [W m2]  short wave radiation
-  real(dp), public, dimension(:, :), allocatable :: L1_strd          !< [W m2]  long wave radiation
-  real(dp), public, dimension(:, :), allocatable :: L1_tann          !< [degC]  annual mean air temperature
-
 
   ! soil moisture
   real(dp), public, dimension(:, :), allocatable :: L1_sm                  !< [-] soil moisture input for optimization
@@ -178,13 +129,14 @@ MODULE mo_global_variables
   real(dp), public, dimension(:), allocatable :: L1_satSTW       !< [mm]  groundwater storage
   real(dp), public, dimension(:), allocatable :: L1_neutrons     !< [mm]  Ground Albedo Neutrons
 
-
   ! Fluxes
   ! dim1 = number grid cells L1
-  ! dim2 = number model soil horizons
+  ! disaggregated meteo forcings
   real(dp), public, dimension(:), allocatable :: L1_pet_calc     !< [mm TS-1] estimated/corrected potential evapotranspiration
   real(dp), public, dimension(:), allocatable :: L1_temp_calc    !< [degC] temperature for current time step
   real(dp), public, dimension(:), allocatable :: L1_prec_calc    !< [mm TS-1] precipitation for current time step
+  ! dim2 = number model soil horizons
+  ! states and fluxes
   real(dp), public, dimension(:, :), allocatable :: L1_aETSoil   !< [mm TS-1] Actual ET from soil layers
   real(dp), public, dimension(:), allocatable :: L1_aETCanopy    !< [mm TS-1] Real evaporation intensity from canopy
   real(dp), public, dimension(:), allocatable :: L1_aETSealed    !< [mm TS-1] Real evap. from free water surfaces
@@ -207,16 +159,6 @@ MODULE mo_global_variables
   ! -------------------------------------------------------------------
   ! dim1 = number of months in a year
   real(dp), public, dimension(int(YearMonths, i4)) :: evap_coeff     !< [-] Evap. coef. for free-water surfaces
-  real(dp), public, dimension(int(YearMonths, i4)) :: fday_prec      !< [-] Day ratio precipitation < 1
-  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_prec    !< [-] Night ratio precipitation < 1
-  real(dp), public, dimension(int(YearMonths, i4)) :: fday_pet       !< [-] Day ratio PET  < 1
-  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_pet     !< [-] Night ratio PET  < 1
-  real(dp), public, dimension(int(YearMonths, i4)) :: fday_temp      !< [-] Day factor mean temp
-  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_temp    !< [-] Night factor mean temp
-  real(dp), public, dimension(int(YearMonths, i4)) :: fday_ssrd      !< [-] Day factor short-wave rad.
-  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_ssrd    !< [-] Night factor short-wave rad.
-  real(dp), public, dimension(int(YearMonths, i4)) :: fday_strd      !< [-] Day factor long-wave rad.
-  real(dp), public, dimension(int(YearMonths, i4)) :: fnight_strd    !< [-] Night factor long-wave rad.
 
   ! -------------------------------------------------------------------
   ! AUXILIARY VARIABLES

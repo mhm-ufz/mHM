@@ -254,7 +254,7 @@ CONTAINS
        interc, snowpack, L1_N0, L1_bulkDens, L1_latticeWater, L1_COSMICL3, &
        neutrons )
 
-    use mo_mhm_constants, only: H2Odens, COSMIC_N, COSMIC_alpha, COSMIC_L1, COSMIC_L2, COSMIC_L4
+    use mo_mhm_constants, only: H2Odens, COSMIC_alpha, COSMIC_L1, COSMIC_L2, COSMIC_L4 !, COSMIC_N
     use mo_constants,     only: PI_dp
     implicit none
 

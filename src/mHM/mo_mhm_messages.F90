@@ -104,15 +104,7 @@ contains
   !> \brief Check input directories for mHM.
   subroutine domain_dir_check_message()
     use mo_check, only: check_dir
-    use mo_global_variables, only: &
-      dirPrecipitation, &
-      dirTemperature, &
-      dirReferenceET, &
-      dirMinTemperature, &
-      dirMaxTemperature, &
-      dirNetRadiation, &
-      dirabsVapPressure, &
-      dirwindspeed
+    use mo_global_variables, only: meteo_handler
     use mo_common_variables, only: &
       dirMorpho, &
       dirLCover, &
@@ -135,20 +127,20 @@ contains
       call message('  --------------')
       call check_dir(dirMorpho(iDomain), "Morphological directory:", .false., 4, 30)
       call check_dir(dirLCover(iDomain), "Land cover directory:", .false., 4, 30)
-      call check_dir(dirPrecipitation(iDomain), "Precipitation directory:", .false., 4, 30)
-      call check_dir(dirTemperature(iDomain), "Temperature directory:", .false., 4, 30)
+      call check_dir(meteo_handler%dirPrecipitation(iDomain), "Precipitation directory:", .false., 4, 30)
+      call check_dir(meteo_handler%dirTemperature(iDomain), "Temperature directory:", .false., 4, 30)
       select case (processMatrix(5, 1))
         case(-1 : 0) ! PET is input
-          call check_dir(dirReferenceET(iDomain), "PET directory:", .false., 4, 30)
+          call check_dir(meteo_handler%dirReferenceET(iDomain), "PET directory:", .false., 4, 30)
         case(1) ! Hargreaves-Samani
-          call check_dir(dirMinTemperature(iDomain), "Min. temperature directory:", .false., 4, 30)
-          call check_dir(dirMaxTemperature(iDomain), "Max. temperature directory:", .false., 4, 30)
+          call check_dir(meteo_handler%dirMinTemperature(iDomain), "Min. temperature directory:", .false., 4, 30)
+          call check_dir(meteo_handler%dirMaxTemperature(iDomain), "Max. temperature directory:", .false., 4, 30)
         case(2) ! Priestely-Taylor
-          call check_dir(dirNetRadiation(iDomain), "Net radiation directory:", .false., 4, 30)
+          call check_dir(meteo_handler%dirNetRadiation(iDomain), "Net radiation directory:", .false., 4, 30)
         case(3) ! Penman-Monteith
-          call check_dir(dirNetRadiation(iDomain), "Net radiation directory:", .false., 4, 30)
-          call check_dir(dirabsVapPressure(iDomain), "Abs. vap. press. directory:", .false., 4, 30)
-          call check_dir(dirwindspeed(iDomain), "Windspeed directory:", .false., 4, 30)
+          call check_dir(meteo_handler%dirNetRadiation(iDomain), "Net radiation directory:", .false., 4, 30)
+          call check_dir(meteo_handler%dirabsVapPressure(iDomain), "Abs. vap. press. directory:", .false., 4, 30)
+          call check_dir(meteo_handler%dirwindspeed(iDomain), "Windspeed directory:", .false., 4, 30)
       end select
       call check_dir(dirOut(iDomain), "Output directory:", .true., 4, 30)
       call message()

@@ -228,7 +228,8 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
-    use mo_common_variables, only : Grid, domainMeta, level0
+    use mo_common_types, only: Grid
+    use mo_common_variables, only : domainMeta, level0
     use mo_mrm_global_variables, only : L0_draSC, L0_fAcc, L0_fDir, L0_l11_remap, L11_colOut, L11_fDir, &
                                         L11_nOutlets, L11_rowOut, domain_mrm, level11
     use mo_string_utils, only : num2str
@@ -887,7 +888,8 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
-    use mo_common_variables, only : Grid, domainMeta, level0
+    use mo_common_types, only: Grid
+    use mo_common_variables, only : domainMeta, level0
     use mo_mrm_global_variables, only : L0_draSC, L0_fDir, L11_colOut, L11_fCol, L11_fRow, L11_fromN, &
                                         L11_nOutlets, L11_netPerm, L11_rowOut, L11_tCol, L11_tRow, domain_mrm, level11
     use mo_string_utils, only : num2str
@@ -1087,7 +1089,8 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
-    use mo_common_variables, only : Grid, domainMeta, level0
+    use mo_common_types, only: Grid
+    use mo_common_variables, only : domainMeta, level0
     use mo_mrm_global_variables, only : L0_InflowgaugeLoc, L0_draCell, L0_draSC, L0_fDir, L0_gaugeLoc, domain_mrm, &
                                         l0_l11_remap
 
@@ -1231,7 +1234,8 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_common_variables, only : Grid, domainMeta, L0_elev, iFlag_cordinate_sys, level0, processMatrix
+    use mo_common_types, only: Grid
+    use mo_common_variables, only : domainMeta, L0_elev, iFlag_cordinate_sys, level0, processMatrix
     use mo_mrm_global_variables, only : L0_fDir, &
         L0_floodPlain, L0_streamNet, L11_aFloodPlain, L11_fCol, L11_fRow, L11_length, &
         L11_nOutlets, L11_netPerm, L11_slope, L11_tCol, L11_tRow, level11
@@ -1507,7 +1511,8 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : Grid, domainMeta, L0_LCover, level0, domainMeta, nLCoverScene
+    use mo_common_types, only: Grid
+    use mo_common_variables, only : domainMeta, L0_LCover, level0, domainMeta, nLCoverScene
     use mo_mrm_global_variables, only : L0_floodPlain, L11_aFloodPlain, &
                                         L11_nLinkFracFPimp, L11_nOutlets, level11
 
@@ -1825,7 +1830,8 @@ contains
 
   subroutine cellLength(iDomain, fDir, iRow, jCol, iCoorSystem, length)
 
-    use mo_common_variables, only : Grid, domainMeta, level0
+    use mo_common_types, only: Grid
+    use mo_common_variables, only : domainMeta, level0
     use mo_constants, only : SQRT2_dp
 
     implicit none
@@ -2209,8 +2215,8 @@ contains
     use mo_append, only: append
     use mo_mpr_global_variables, only: &
         L0_slope               ! IN:    slope [%]
+    use mo_common_types, only: Grid
     use mo_common_variables, only: &
-        Grid,                &
         domainMeta,          & ! IN:    for L0 Domain indexer
         level0                 ! IN:    level 0 grid
     use mo_mrm_global_variables, only: &

@@ -19,7 +19,7 @@
 module mo_common_mHM_mRM_variables
 
   use mo_kind, only : i4, i8, dp
-  use mo_common_variables, only : period
+  use mo_common_types, only: period
   implicit none
 
   ! -------------------------------------------------------------------
@@ -42,7 +42,6 @@ module mo_common_mHM_mRM_variables
   type(period), dimension(:), allocatable, public :: warmPer     ! time period for warming
   type(period), dimension(:), allocatable, public :: evalPer     ! time period for model evaluation
   type(period), dimension(:), allocatable, public :: simPer      ! warmPer + evalPer
-  type(period), public :: readPer     ! start and end dates of read period
   integer(i4), dimension(:), allocatable, public :: warmingDays ! number of days for warm up period
   integer(i4), dimension(:, :), allocatable, public :: LCyearId            ! Mapping of landcover scenes (1, 2,..) for each domain
 
@@ -50,7 +49,6 @@ module mo_common_mHM_mRM_variables
   ! CONSTANT
   ! ------------------------------------------------------------------
   integer(i4), public :: nTstepDay          !       Number of time intervals per day
-  integer(i4), public :: nTstepForcingDay   !       Number of forcing intervals per day
 
   ! ------------------------------------------------------------------
   ! DIRECTORIES

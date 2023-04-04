@@ -12,7 +12,7 @@
 MODULE mo_common_read_config
 
   USE mo_kind, ONLY : i4, dp
-  use mo_message, only: message, error_message
+  use mo_message, only: error_message
 
   IMPLICIT NONE
 
@@ -236,7 +236,8 @@ CONTAINS
   subroutine set_land_cover_scenes_id(sim_Per, LCyear_Id)
 
     use mo_common_constants, only : nodata_i4
-    use mo_common_variables, only : LC_year_end, LC_year_start, domainMeta, nLcoverScene, period
+    use mo_common_types, only: period
+    use mo_common_variables, only : LC_year_end, LC_year_start, domainMeta, nLcoverScene
     use mo_string_utils, only : num2str
 
     implicit none
@@ -317,7 +318,7 @@ CONTAINS
   !> \author Maren Kaluza
   !> \date Sep 2019
   subroutine init_domain_variable(nDomains, optiData, domainMeta)
-    use mo_common_variables, only: domain_meta
+    use mo_common_types, only: domain_meta
 #ifdef MPI
     use mo_common_variables, only: comm
     use mpi_f08
@@ -394,7 +395,7 @@ CONTAINS
 
 #ifdef MPI
   subroutine init_domain_variable_for_master(domainMeta, colMasters, colDomain)
-    use mo_common_variables, only: domain_meta
+    use mo_common_types, only: domain_meta
     type(domain_meta), intent(inout) :: domainMeta
     integer(i4),       intent(out)   :: colMasters
     integer(i4),       intent(out)   :: colDomain
@@ -413,7 +414,7 @@ CONTAINS
   end subroutine init_domain_variable_for_master
 
   subroutine distributeDomainsRoundRobin(nproc, rank, domainMeta)
-    use mo_common_variables, only: domain_meta
+    use mo_common_types, only: domain_meta
     integer(i4),       intent(in)    :: nproc
     integer(i4),       intent(in)    :: rank
     type(domain_meta), intent(inout) :: domainMeta
@@ -437,7 +438,7 @@ CONTAINS
 
   subroutine distribute_processes_to_domains_according_to_role(optiData, rank, &
                                                domainMeta, colMasters, colDomain)
-    use mo_common_variables, only: domain_meta
+    use mo_common_types, only: domain_meta
     integer(i4), dimension(:), intent(in)    :: optiData
     integer(i4),               intent(in)    :: rank
     type(domain_meta),         intent(inout) :: domainMeta

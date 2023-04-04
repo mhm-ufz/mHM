@@ -21,31 +21,7 @@ module mo_clean_up
   subroutine deallocate_global_variables()
     use mo_common_run_variables, only : run_cfg
     use mo_global_variables, only : &
-      timeStep_model_inputs, &
-      dirPrecipitation, &
-      dirTemperature, &
-      dirMinTemperature, &
-      dirMaxTemperature, &
-      dirNetRadiation, &
-      dirabsVapPressure, &
-      dirwindspeed, &
-      dirReferenceET, &
-      dirRadiation, &
-      level2, &
-      L1_temp_weights, &
-      L1_pet_weights, &
-      L1_pre_weights, &
-      L1_pre, &
-      L1_temp, &
-      L1_pet, &
-      L1_tmin, &
-      L1_tmax, &
-      L1_netrad, &
-      L1_absvappress, &
-      L1_windspeed, &
-      L1_ssrd, &
-      L1_strd, &
-      L1_tann, &
+      meteo_handler, &
       L1_sm, &
       L1_sm_mask, &
       L1_neutronsdata, &
@@ -227,31 +203,6 @@ module mo_clean_up
       mrmFileRestartIn
 
     ! mo_global_variables
-    if ( allocated(timeStep_model_inputs) ) deallocate(timeStep_model_inputs)
-    if ( allocated(dirPrecipitation) ) deallocate(dirPrecipitation)
-    if ( allocated(dirTemperature) ) deallocate(dirTemperature)
-    if ( allocated(dirMinTemperature) ) deallocate(dirMinTemperature)
-    if ( allocated(dirMaxTemperature) ) deallocate(dirMaxTemperature)
-    if ( allocated(dirNetRadiation) ) deallocate(dirNetRadiation)
-    if ( allocated(dirabsVapPressure) ) deallocate(dirabsVapPressure)
-    if ( allocated(dirwindspeed) ) deallocate(dirwindspeed)
-    if ( allocated(dirReferenceET) ) deallocate(dirReferenceET)
-    if ( allocated(dirRadiation) ) deallocate(dirRadiation)
-    if ( allocated(level2) ) deallocate(level2)
-    if ( allocated(L1_temp_weights) ) deallocate(L1_temp_weights)
-    if ( allocated(L1_pet_weights) ) deallocate(L1_pet_weights)
-    if ( allocated(L1_pre_weights) ) deallocate(L1_pre_weights)
-    if ( allocated(L1_pre) ) deallocate(L1_pre)
-    if ( allocated(L1_temp) ) deallocate(L1_temp)
-    if ( allocated(L1_pet) ) deallocate(L1_pet)
-    if ( allocated(L1_tmin) ) deallocate(L1_tmin)
-    if ( allocated(L1_tmax) ) deallocate(L1_tmax)
-    if ( allocated(L1_netrad) ) deallocate(L1_netrad)
-    if ( allocated(L1_absvappress) ) deallocate(L1_absvappress)
-    if ( allocated(L1_windspeed) ) deallocate(L1_windspeed)
-    if ( allocated(L1_ssrd) ) deallocate(L1_ssrd)
-    if ( allocated(L1_strd) ) deallocate(L1_strd)
-    if ( allocated(L1_tann) ) deallocate(L1_tann)
     if ( allocated(L1_sm) ) deallocate(L1_sm)
     if ( allocated(L1_sm_mask) ) deallocate(L1_sm_mask)
     if ( allocated(L1_neutronsdata) ) deallocate(L1_neutronsdata)
@@ -465,6 +416,9 @@ module mo_clean_up
 
     ! mo_common_run_variables
     call run_cfg%clean_up()
+
+    ! meteo handler clean up
+    call meteo_handler%clean_up()
 
   end subroutine deallocate_global_variables
 

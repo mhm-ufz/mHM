@@ -87,7 +87,7 @@ CONTAINS
   ! P Shrestha, S Thober Aug 2018 - resolved bug while printing River Network in
   !                                 cases with multiple outlets.
 
-  Subroutine write_configfile
+  Subroutine write_configfile(dirPrecipitation, dirReferenceET, dirTemperature)
 
     use mo_common_file, only : file_config, uconfig
     use mo_common_mHM_mRM_variables, only : LCyearId, SimPer, evalPer, read_restart, timeStep, warmPer
@@ -96,8 +96,6 @@ CONTAINS
                                     global_parameters, global_parameters_name, iFlag_cordinate_sys, level0, level1, &
                                     domainMeta, nLCoverScene, resolutionHydrology, write_restart
     use mo_file, only : version
-    use mo_global_variables, only : dirPrecipitation, dirReferenceET, &
-                                    dirTemperature
     use mo_kind, only : i4
     use mo_string_utils, only : num2str
     use mo_os, only : check_path_isdir
@@ -109,6 +107,10 @@ CONTAINS
                                         nGaugesLocal, nInflowGaugesTotal, L11_nOutlets
 
     implicit none
+
+    character(256), dimension(:), intent(in) :: dirPrecipitation  !< Directory where precipitation files are located
+    character(256), dimension(:), intent(in) :: dirReferenceET    !< Directory where reference-ET files are located
+    character(256), dimension(:), intent(in) :: dirTemperature    !< Directory where temperature files are located
 
     character(256) :: fName
 

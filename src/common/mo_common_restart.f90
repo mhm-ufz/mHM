@@ -58,7 +58,7 @@ CONTAINS
   subroutine write_grid_info(grid_in, level_name, nc)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_common_variables, only : Grid
+    use mo_common_types, only: Grid
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
 
     implicit none
@@ -138,16 +138,12 @@ CONTAINS
   !!   - added allocation check for mask and cellArea because cellArea needs to be read by mRM, but mask is created before by mHM
   !> \authors Stephan Thober
   !> \date Apr 2013
-  subroutine read_grid_info(domainID, InFile, level_name, new_grid)
+  subroutine read_grid_info(InFile, level_name, new_grid)
 
-    use mo_common_variables, only : Grid
+    use mo_common_types, only: Grid
     use mo_netcdf, only : NcDataset, NcVariable
-    use mo_string_utils, only : num2str
 
     implicit none
-
-    !> number of domain
-    integer(i4), intent(in) :: domainID
 
     !> Input Path including trailing slash
     character(256), intent(in) :: InFile
@@ -225,7 +221,7 @@ CONTAINS
   !> \date Feb 2023
   subroutine read_nLAI_and_check_dims(iDomain, InFile)
 
-    use mo_mpr_global_variables, only: nSoilHorizons_mHM, HorizonDepth_mHM, nLAI, LAIBoundaries ! may read from restart
+    use mo_mpr_global_variables, only: nLAI, LAIBoundaries ! may read from restart
     use mo_netcdf, only : NcDataset, NcVariable, NcDimension
     use mo_common_constants, only : soilHorizonsVarName, landCoverPeriodsVarName, LAIVarName
     use mo_common_mHM_mRM_variables, only: read_old_style_restart_bounds
@@ -399,7 +395,6 @@ CONTAINS
 
   !> \copydoc check_consistency_element
   subroutine check_consistency_element_i4(item1, item2, name, iDomain)
-    use mo_utils, only: ne
     use mo_string_utils, only: compress, num2str
 
     integer(i4), intent(in) :: item1, item2

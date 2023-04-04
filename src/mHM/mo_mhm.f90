@@ -226,44 +226,32 @@ CONTAINS
   !>       \authors Luis Samaniego & Rohini Kumar
 
   !>       \date Dec 2012
-  subroutine mHM(read_states, is_hourly_forcing, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
+  subroutine mHM(read_states, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, &
                 c2TSTu, neutron_integral_AFast, &
-                latitude, evap_coeff, fday_prec, fnight_prec, fday_pet, &
-                fnight_pet, fday_temp, fnight_temp, temp_weights, pet_weights, pre_weights, read_meteo_weights, pet_in, &
-                tmin_in, tmax_in, netrad_in, absvappres_in, windspeed_in, prec_in, temp_in, fSealed1, interc, snowpack, &
-                sealedStorage, soilMoisture, unsatStorage, satStorage, neutrons, pet_calc, temp_calc, prec_calc, &
+                evap_coeff, &
+                fSealed1, interc, snowpack, &
+                sealedStorage, soilMoisture, unsatStorage, satStorage, neutrons, &
+                pet_calc, temp_calc, prec_calc, &
                 aet_soil, aet_canopy, &
                 aet_sealed, baseflow, infiltration, fast_interflow, melt, perc, prec_effect, rain, runoff_sealed, &
-                slow_interflow, snow, throughfall, total_runoff, alpha, deg_day_incr, deg_day_max, deg_day_noprec, &
-                deg_day, fAsp, petLAIcorFactorL1, HarSamCoeff, PrieTayAlpha, aeroResist, surfResist, frac_roots, &
+                slow_interflow, snow, throughfall, total_runoff, &
+                alpha, deg_day_incr, deg_day_max, deg_day_noprec, &
+                deg_day, frac_roots, &
                 interc_max, karst_loss, k0, k1, k2, kp, soil_moist_FC, soil_moist_sat, soil_moist_exponen, &
                 jarvis_thresh_c1, temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point, &
                 No_count, bulkDens, latticeWater, COSMICL3)
 
-    ! subroutines required to estimate variables prior to the MPR call
-    use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
-    use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
-    use mo_pet,                     only: pet_hargreaves, pet_priestly,  & ! calc. of pot. evapotranspiration
-                                          pet_penman
-
-    use mo_Temporal_Disagg_Forcing, only : Temporal_Disagg_Forcing
+    use mo_julian, only : dec2date
     use mo_canopy_interc, only : canopy_interc
-    use mo_julian, only : date2dec, dec2date
-    use mo_mhm_constants, only : HarSamConst
     use mo_neutrons, only : COSMIC, DesiletsN0
-    use mo_pet, only : pet_hargreaves, pet_penman, pet_priestly
     use mo_runoff, only : L1_total_runoff, runoff_sat_zone, runoff_unsat_zone
     use mo_snow_accum_melt, only : snow_accum_melt
     use mo_soil_moisture, only : soil_moisture
-    use mo_string_utils, only : num2str
 
     implicit none
 
     !> indicated whether states have been read from file
     logical, intent(in) :: read_states
-
-    !> indicate whether forcing is hourly timestep
-    logical, intent(in) :: is_hourly_forcing
 
     !> simulation time step
     integer(i4), intent(in) :: tt
@@ -283,77 +271,17 @@ CONTAINS
     !> Number of Horizons in mHM
     integer(i4), intent(in) :: nHorizons_mHM
 
-    !> number of time intervals per day, transformed in dp
-    real(dp), intent(in) :: ntimesteps_day
-
     !> unit conversion
     real(dp), intent(in) :: c2TSTu
 
     !> tabular for neutron flux approximation
     real(dp), dimension(:), intent(in) :: neutron_integral_AFast
 
-    !> latitude on level 1
-    real(dp), dimension(:), intent(in) :: latitude
-
     !> Evaporation coefficent for free-water surface of that current month
     real(dp), dimension(:), intent(in) :: evap_coeff
 
-    !> [-] day ratio precipitation < 1
-    real(dp), dimension(:), intent(in) :: fday_prec
-
-    !> [-] night ratio precipitation < 1
-    real(dp), dimension(:), intent(in) :: fnight_prec
-
-    !> [-] day ratio PET  < 1
-    real(dp), dimension(:), intent(in) :: fday_pet
-
-    !> [-] night ratio PET  < 1
-    real(dp), dimension(:), intent(in) :: fnight_pet
-
-    !> [-] day factor mean temp
-    real(dp), dimension(:), intent(in) :: fday_temp
-
-    !> [-] night factor mean temp
-    real(dp), dimension(:), intent(in) :: fnight_temp
-
-    !> multiplicative weights for temperature (deg K)
-    real(dp), dimension(:, :, :), intent(in) :: temp_weights
-
-    !> multiplicative weights for potential evapotranspiration
-    real(dp), dimension(:, :, :), intent(in) :: pet_weights
-
-    !> multiplicative weights for precipitation
-    real(dp), dimension(:, :, :), intent(in) :: pre_weights
-
-    !> flag whether weights for tavg and pet have read and should be used
-    logical, intent(in) :: read_meteo_weights
-
-    !> [mm d-1] Daily potential evapotranspiration (input)
-    real(dp), dimension(:), intent(in) :: pet_in
-
-    !> [degc]   Daily minimum temperature
-    real(dp), dimension(:), intent(in) :: tmin_in
-
-    !> [degc]   Daily maxumum temperature
-    real(dp), dimension(:), intent(in) :: tmax_in
-
-    !> [w m2]   Daily average net radiation
-    real(dp), dimension(:), intent(in) :: netrad_in
-
-    !> [Pa]     Daily average absolute vapour pressure
-    real(dp), dimension(:), intent(in) :: absvappres_in
-
-    !> [m s-1]  Daily average wind speed
-    real(dp), dimension(:), intent(in) :: windspeed_in
-
-    !> [mm d-1] Daily mean precipitation
-    real(dp), dimension(:), intent(in) :: prec_in
-
-    !> [degc]   Daily average temperature
-    real(dp), dimension(:), intent(in) :: temp_in
-
     !> fraction of sealed area at scale L1
-    real(dp), dimension(:), intent(inout) :: fSealed1
+    real(dp), dimension(:), intent(in) :: fSealed1
 
     !> Interception
     real(dp), dimension(:), intent(inout) :: interc
@@ -445,24 +373,6 @@ CONTAINS
     !> Degree-day factor
     real(dp), dimension(:), intent(inout) :: deg_day
 
-    !> [1]     PET correction for Aspect at level 1
-    real(dp), dimension(:), intent(inout) :: fAsp
-
-    !> PET correction factor based on LAI at level 1
-    real(dp), dimension(:), intent(inout) :: petLAIcorFactorL1
-
-    !> [1]     PET Hargreaves Samani coefficient at level 1
-    real(dp), dimension(:), intent(inout) :: HarSamCoeff
-
-    !> [1]     PET Priestley Taylor coefficient at level 1
-    real(dp), dimension(:), intent(inout) :: PrieTayAlpha
-
-    !> [s m-1] PET aerodynamical resitance at level 1
-    real(dp), dimension(:), intent(inout) :: aeroResist
-
-    !> [s m-1] PET bulk surface resitance at level 1
-    real(dp), dimension(:), intent(inout) :: surfResist
-
     !> Fraction of Roots in soil horizon
     real(dp), dimension(:, :), intent(inout) :: frac_roots
 
@@ -515,40 +425,19 @@ CONTAINS
     real(dp), dimension(:,:), intent(inout) ::  COSMICL3
 
 
-    ! is day or night
-    logical :: isday
-
-    ! current hour of a given day
-    integer(i4) :: hour
-
-    ! day of the month     [1-28 or 1-29 or 1-30 or 1-31]
-    integer(i4) :: day
-
     ! Month of current day [1-12]
     integer(i4) :: month
-
-    ! year
-    integer(i4) :: year
-
-    ! doy of the year [1-365 or 1-366]
-    integer(i4) :: doy
-
     ! cell index
     integer(i4) :: k
-    ! pet in [mm d-1]
-    real(dp) :: pet
 
     real(dp), dimension(size(infiltration, 2)) :: tmp_infiltration
-
     real(dp), dimension(size(soilMoisture, 2)) :: tmp_soilMoisture
-
     real(dp), dimension(size(aet_soil, 2)) :: tmp_aet_soil
-
 
     !-------------------------------------------------------------------
     ! date and month of this timestep
     !-------------------------------------------------------------------
-    call dec2date(time, yy = year, mm = month, dd = day, hh = hour)
+    call dec2date(time, mm = month)
 
     !-------------------------------------------------------------------
     ! Update the inital states of soil water content for the first time
@@ -561,60 +450,13 @@ CONTAINS
     end if
 
     !-------------------------------------------------------------------
-    ! flag for day or night depending on hours of the day
-    !-------------------------------------------------------------------
-    isday = (hour .gt. 6) .AND. (hour .le. 18)
-
-    !-------------------------------------------------------------------
     ! HYDROLOGICAL PROCESSES at L1-LEVEL
     !-------------------------------------------------------------------
     !$OMP parallel default(shared) &
-    !$OMP private(k, pet, tmp_soilmoisture, tmp_infiltration, tmp_aet_soil)
+    !$OMP private(k, tmp_soilmoisture, tmp_infiltration, tmp_aet_soil)
     !$OMP do SCHEDULE(STATIC)
     do k = 1, nCells1
 
-      ! PET calculation
-      select case (processMatrix(5, 1))
-      case(-1) ! PET is input ! correct pet for every day only once at the first time step
-        pet = petLAIcorFactorL1(k) * pet_in(k)
-
-      case(0) ! PET is input ! correct pet for every day only once at the first time step
-        pet = fAsp(k) * pet_in(k)
-
-      case(1) ! Hargreaves-Samani
-        ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
-        doy = nint(date2dec(day, month, year, 12) - date2dec(1, 1, year, 12)) + 1
-
-        if (tmax_in(k) .lt. tmin_in(k)) call message('WARNING: tmax smaller than tmin at doy ', &
-                num2str(doy), ' in year ', num2str(year), ' at cell', num2str(k), '!')
-
-        pet = fAsp(k) * pet_hargreaves(HarSamCoeff(k), HarSamConst, temp_in(k), tmax_in(k), &
-                tmin_in(k), latitude(k), doy)
-
-      case(2) ! Priestley-Taylor
-
-        ! Priestley Taylor is not defined for values netrad < 0.0_dp
-        pet = pet_priestly(PrieTayAlpha(k), max(netrad_in(k), 0.0_dp), temp_in(k))
-
-      case(3) ! Penman-Monteith
-        pet = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), absvappres_in(k) / 1000.0_dp, &
-                aeroResist(k) / windspeed_in(k), surfResist(k), 1.0_dp, 1.0_dp)
-
-      end select
-      ! temporal disaggreagtion of forcing variables
-      if (is_hourly_forcing) then
-         prec_calc(k) = prec_in(k)
-         pet_calc(k) = pet
-         temp_calc(k) = temp_in(k)
-      else
-         call temporal_disagg_forcing(isday, ntimesteps_day, prec_in(k), & ! Intent IN
-              pet, temp_in(k), fday_prec(month), fday_pet(month), & ! Intent IN
-              fday_temp(month), fnight_prec(month), fnight_pet(month), fnight_temp(month), & ! Intent IN
-              temp_weights(k, month, hour + 1), pet_weights(k, month, hour + 1), & ! Intent IN
-              pre_weights(k, month, hour + 1), & ! Intent IN
-              read_meteo_weights, & ! Intent IN
-              prec_calc(k), pet_calc(k), temp_calc(k))                                                            ! Intent OUT
-      end if
       call canopy_interc(pet_calc(k), interc_max(k), prec_calc(k), & ! Intent IN
               interc(k), & ! Intent INOUT
               throughfall(k), aet_canopy(k))                                                      ! Intent OUT
