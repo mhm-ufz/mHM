@@ -18,7 +18,7 @@
 !> \ingroup f_mrm
 module mo_mrm_write_fluxes_states
 
-  use mo_nc_output, only: OutputDataset, OutputVariable, writeVariableAttributes, data_dims, data_dtype
+  use mo_nc_output, only: OutputDataset, OutputVariable, set_attributes, data_dims, data_dtype
   use mo_kind, only : i4, dp
   use mo_common_constants, only : nodata_dp
   use mo_netcdf, only : NcDataset, NcVariable
@@ -75,13 +75,13 @@ contains
     if (outputFlxState_mrm(1)) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(out%nc, "Qrouted", dtype, dims, nCells, mask, output_deflate_level_mrm, .true.)
-      call writeVariableAttributes(tmpvars(ii), "routed streamflow", "m3 s-1")
+      call set_attributes(tmpvars(ii)%nc, "routed streamflow", "m3 s-1", output_double_precision_mrm)
     end if
 
     if (outputFlxState_mrm(2) .AND. riv_temp_pcs%active) then
       ii = ii + 1
       tmpvars(ii) = OutputVariable(out%nc, "RivTemp", dtype, dims, nCells, mask, output_deflate_level_mrm, .true.)
-      call writeVariableAttributes(tmpvars(ii), "routed river temperature", "degC")
+      call set_attributes(tmpvars(ii)%nc, "routed river temperature", "degC", output_double_precision_mrm)
     end if
 
     allocate(out%vars(ii))
@@ -172,7 +172,7 @@ contains
 
     allocate(out%vars(1))
     out%vars(1) = OutputVariable(out%nc, "riverhead", dtype, dims, nCells, mask, output_deflate_level_mrm, .true.)
-    call writeVariableAttributes(out%vars(1), "simulated riverhead at each node at level 0", "m")
+    call set_attributes(out%vars(1)%nc, "simulated riverhead at each node at level 0", "m", output_double_precision_mrm)
 
   end function GW_OutputDataset
 
