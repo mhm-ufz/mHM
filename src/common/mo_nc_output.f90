@@ -487,8 +487,8 @@ contains
         ! call var%setAttribute("scale_factor", 1.0_sp) ! not needed if just 1
       end if
     end if
-    call var%setAttribute("long_name", long_name)
-    call var%setAttribute("units", unit)
+    if (present(long_name)) call var%setAttribute("long_name", long_name)
+    if (present(unit)) call var%setAttribute("units", unit)
     if (add_coords_) call var%setAttribute("coordinates", "lat lon")
     if (present(standard_name)) call var%setAttribute("standard_name", standard_name)
     if (present(axis)) call var%setAttribute("axis", axis)
