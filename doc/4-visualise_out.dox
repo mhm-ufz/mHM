@@ -9,7 +9,7 @@ mHM usually writes two files into the output directory specified in mhm.nml:
 \code
     ConfigFile.log
     daily_discharge.out
-    dischage.nc
+    discharge.nc
     mHM_Fluxes_States.nc
     mRM_Fluxes_States.nc
 \endcode
@@ -35,7 +35,7 @@ In order to hide unnecessary output messages, you may pipe them to a log file:
     ncview FILE.nc 1> ~/log/ncview.out 2> ~/log/ncview.err
 \endcode
 If you want to transfer large nc files through servers or visualise them locally, it might be useful to compress the data before.
-The featured nc file deflation with the <code>ncks</code> module will decrease the file size usually by 30-60%. Choose the deflation level from minimum (0) to maximum (9). The <code>-4</code> switch in the following command will convert netcdf3 files to version 4 simultanously.
+The featured nc file deflation with the <code>ncks</code> module will decrease the file size usually by 30-60%. Choose the deflation level from minimum (0) to maximum (9). The <code>-4</code> switch in the following command will convert netcdf3 files to version 4 simultaneously.
 \code
 ncks -4 -L 9 IN.nc OUT.nc
 \endcode
@@ -57,7 +57,7 @@ In some cases it has proven to be necessary to add the following line to /etc/pr
 
 \section restartview Exploring the contents of the Restarting files
 
-Restarting files are simple binary dumps of arrays and vectors of all constants, parameters, state variables (1D, 2D) and fluxes at a given point in time of a simulation that are needed for executing the subsequent mHM time step in a new instance of this model without performing spin-out simulations and additional run time up to the previos time point. The stored information is divided into three categories: 1) Configuration variables at L0 and L1 levels (xxx_config.nc), 2) configuration variables at L11 level (i.e., routing) (xxx_L11_config.nc),  and  3) and effective parameters, state variables and fluxes at L1 and L11 levels  (xxx_states.nc).
+Restarting files are simple binary dumps of arrays and vectors of all constants, parameters, state variables (1D, 2D) and fluxes at a given point in time of a simulation that are needed for executing the subsequent mHM time step in a new instance of this model without performing spin-out simulations and additional run time up to the previous time point. The stored information is divided into three categories: 1) Configuration variables at L0 and L1 levels (xxx_config.nc), 2) configuration variables at L11 level (i.e., routing) (xxx_L11_config.nc),  and  3) and effective parameters, state variables and fluxes at L1 and L11 levels  (xxx_states.nc).
 
 \section warnview WARNINGS
 

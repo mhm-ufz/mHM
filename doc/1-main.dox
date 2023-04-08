@@ -254,7 +254,7 @@ observed and calculated streamflows using three different time scales
 streamflow to downplay the effects of the peak flows over the low
 flows \cite HB2005 . These objective functions are denoted by
 \f$\phi_k,\, k=1,4\f$. Every objective function should be normalized
-in the interval [0,1], with 1 representing the best posible solution.
+in the interval [0,1], with 1 representing the best possible solution.
 The overall objective function to be minimized is then
 
 \f[
