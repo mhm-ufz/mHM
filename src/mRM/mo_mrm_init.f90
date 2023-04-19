@@ -109,7 +109,7 @@ CONTAINS
     use mo_grid, only : L0_grid_setup, init_lowres_level, set_domain_indices
     use mo_kind, only : i4
     use mo_mrm_global_variables, only : domain_mrm, &
-                                        l0_l11_remap, l1_l11_remap, level11, &
+                                        l0_l11_remap, level11, &
                                         gw_coupling, L0_river_head_mon_sum, &
                                         L11_netPerm, L11_fromN, L11_length, L11_nOutlets, &
                                         riv_temp_pcs, &
@@ -149,7 +149,6 @@ CONTAINS
     ! ----------------------------------------------------------
     allocate(level11(domainMeta%nDomains))
     allocate(l0_l11_remap(domainMeta%nDomains))
-    allocate(l1_l11_remap(domainMeta%nDomains))
 
     if (.not. mrm_read_river_network) then
       ! read all (still) necessary level 0 data
@@ -189,8 +188,6 @@ CONTAINS
         end if
         call init_lowres_level(level0(domainMeta%L0DataFrom(iDomain)), resolutionRouting(iDomain), &
                 level11(iDomain), l0_l11_remap(iDomain))
-        call init_lowres_level(level1(iDomain), resolutionRouting(iDomain), &
-                level11(iDomain), l1_l11_remap(iDomain))
         call L11_L1_mapping(iDomain)
 
         if (ReadLatLon) then

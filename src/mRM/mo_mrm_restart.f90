@@ -225,7 +225,6 @@ contains
 
     var = nc%setVariable("L1_L11_Id", "i32", (/rows1, cols1/))
     call var%setFillValue(nodata_i4)
-    ! call var%setData(L1_L11_remap(iDomain)%lowres_id_on_highres)
     call var%setData(unpack(L1_L11_Id(s1 : e1), mask1, nodata_i4))
     call var%setAttribute("long_name", "Mapping of L1 Id on L11")
 

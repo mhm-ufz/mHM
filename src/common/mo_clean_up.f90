@@ -134,7 +134,6 @@ module mo_clean_up
       dirBankfullRunoff, &
       level11, &
       l0_l11_remap, &
-      l1_l11_remap, &
       mRM_runoff, &
       domain_mrm, &
       L0_gaugeLoc, &
@@ -338,7 +337,6 @@ module mo_clean_up
     if ( allocated(dirBankfullRunoff) ) deallocate(dirBankfullRunoff)
     if ( allocated(level11) ) deallocate(level11)
     if ( allocated(l0_l11_remap) ) deallocate(l0_l11_remap)
-    if ( allocated(l1_l11_remap) ) deallocate(l1_l11_remap)
     if ( allocated(mRM_runoff) ) deallocate(mRM_runoff)
     if ( allocated(domain_mrm) ) deallocate(domain_mrm)
     if ( allocated(L0_gaugeLoc) ) deallocate(L0_gaugeLoc)
