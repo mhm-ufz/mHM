@@ -374,6 +374,7 @@ CONTAINS
 
   subroutine read_header_ascii(filename, fileunit, header_ncols, header_nrows, header_xllcorner, header_yllcorner, &
                               header_cellsize, header_nodata)
+    use mo_common_constants, only : nodata_dp
     implicit none
 
     ! Name of file and its location
@@ -401,7 +402,7 @@ CONTAINS
     real(dp), intent(out) :: header_nodata
 
     character(5) :: dummy
-
+    integer(i4) :: io
 
     !checking whether the file exists
     call check_path_isfile(path = filename, raise=.true.)
@@ -412,7 +413,9 @@ CONTAINS
     read (fileunit, *) dummy, header_xllcorner
     read (fileunit, *) dummy, header_yllcorner
     read (fileunit, *) dummy, header_cellsize
-    read (fileunit, *) dummy, header_nodata
+    read (fileunit, *, iostat=io) dummy, header_nodata
+    ! EOF reached (nodata not present, use default value)
+    if (io < 0) header_nodata = nodata_dp
     close(fileunit)
     dummy = dummy // ''   ! only to avoid warning
 

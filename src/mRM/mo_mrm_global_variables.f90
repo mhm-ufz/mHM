@@ -71,7 +71,6 @@ module mo_mrm_global_variables
   ! -------------------------------------------------------------------
   type(Grid), dimension(:), allocatable, target, public :: level11 ! Reference of the routing variables
   type(GridRemapper), dimension(:), allocatable, public :: l0_l11_remap ! grid information at runoff level
-  type(GridRemapper), dimension(:), allocatable, public :: l1_l11_remap ! grid information at runoff level
 
 
   ! -----------------------------------------------------------------
