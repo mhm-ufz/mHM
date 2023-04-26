@@ -264,7 +264,7 @@ contains
     class(couple_cfg_type), intent(inout) :: self
 
     if (.not. any(self%case == [0, 1])) &
-    call error_message("Coupling: case needs to be 0 or 1. Got: ", num2str(self%case))
+      call error_message("Coupling: case needs to be 0 or 1. Got: ", num2str(self%case))
 
     ! if meteo data is expected, an associated time-step needs to be given
     if (self%case /= 0 .and. self%any_meteo_expected() .and. self%meteo_timestep == 0) &
