@@ -29,6 +29,7 @@ module mo_meteo_handler
   USE mo_constants, ONLY : YearMonths
   use mo_common_types, only: Grid, period
   use mo_message, only : message, error_message
+  use mo_coupling_type, only : couple_cfg_type
 
   implicit none
 
@@ -138,6 +139,11 @@ module mo_meteo_handler
     !> current julian time
     real(dp) :: time
 
+    ! -------------------------------------------------------------------
+    ! coupling settings
+    ! -------------------------------------------------------------------
+    type(couple_cfg_type), public :: couple_cfg !< coupling configuration class
+
   contains
     !> \copydoc mo_meteo_handler::clean_up
     procedure :: clean_up !< \see mo_meteo_handler::clean_up
@@ -204,7 +210,7 @@ contains
   end subroutine clean_up
 
   !> \brief configure the \ref meteo_handler_type class from the mhm namelist
-  subroutine config(self, file_namelist, unamelist, optimize, domainMeta, processMatrix, timeStep)
+  subroutine config(self, file_namelist, unamelist, optimize, domainMeta, processMatrix, timeStep, couple_cfg)
 
     use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_types, only : domain_meta
@@ -220,6 +226,7 @@ contains
     type(domain_meta), intent(in) :: domainMeta !< domain general description
     integer(i4), dimension(nProcesses, 3), intent(in) :: processMatrix !< Info about which process runs in which option
     integer(i4), intent(in) :: timeStep !< [h] simulation time step (= TS) in [h]
+    type(couple_cfg_type), intent(in) :: couple_cfg !< coupling configuration class
 
     integer(i4), dimension(maxNoDomains) :: time_step_model_inputs
     character(256), dimension(maxNoDomains) :: dir_Precipitation
@@ -265,6 +272,9 @@ contains
       fnight_temp, &
       fnight_ssrd, &
       fnight_strd
+
+    ! store coupling config
+    self%couple_cfg = couple_cfg
 
     ! store needed domain meta infos
     self%nDomains = domainMeta%nDomains
@@ -362,6 +372,40 @@ contains
 
     ! closing the namelist file
     call close_nml(unamelist)
+
+    ! check coupling configuration matching process cases
+    select case (self%pet_case)
+      case(-1 : 0) ! pet is input
+        if (self%couple_cfg%meteo_expect_tmin) call error_message("Coupling: tmin expected but not needed for PET.")
+        if (self%couple_cfg%meteo_expect_tmax) call error_message("Coupling: tmax expected but not needed for PET.")
+        if (self%couple_cfg%meteo_expect_netrad) call error_message("Coupling: netrad expected but not needed for PET.")
+        if (self%couple_cfg%meteo_expect_absvappress) call error_message("Coupling: absvappress expected but not needed for PET.")
+        if (self%couple_cfg%meteo_expect_windspeed) call error_message("Coupling: windspeed expected but not needed for PET.")
+
+      case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
+        if (self%couple_cfg%meteo_expect_pet) call error_message("Coupling: pet expected but not needed for PET.")
+        if (self%couple_cfg%meteo_expect_netrad) call error_message("Coupling: netrad expected but not needed for PET.")
+        if (self%couple_cfg%meteo_expect_absvappress) call error_message("Coupling: absvappress expected but not needed for PET.")
+        if (self%couple_cfg%meteo_expect_windspeed) call error_message("Coupling: windspeed expected but not needed for PET.")
+
+      case(2) ! Priestley-Taylor formulation (input: net radiation)
+        if (self%couple_cfg%meteo_expect_pet) call error_message("Coupling: pet expected but not needed for PET.")
+        if (self%couple_cfg%meteo_expect_tmin) call error_message("Coupling: tmin expected but not needed for PET.")
+        if (self%couple_cfg%meteo_expect_tmax) call error_message("Coupling: tmax expected but not needed for PET.")
+        if (self%couple_cfg%meteo_expect_absvappress) call error_message("Coupling: absvappress expected but not needed for PET.")
+        if (self%couple_cfg%meteo_expect_windspeed) call error_message("Coupling: windspeed expected but not needed for PET.")
+
+      case(3) ! Penman-Monteith formulation (input: net radiationm absulute vapour pressure, windspeed)
+        if (self%couple_cfg%meteo_expect_pet) call error_message("Coupling: pet expected but not needed for PET.")
+        if (self%couple_cfg%meteo_expect_tmin) call error_message("Coupling: tmin expected but not needed for PET.")
+        if (self%couple_cfg%meteo_expect_tmax) call error_message("Coupling: tmax expected but not needed for PET.")
+    end select
+
+    if ( self%riv_temp_case == 0 ) then
+      if (self%couple_cfg%meteo_expect_ssrd) call error_message("Coupling: ssrd expected but river temperature not activated.")
+      if (self%couple_cfg%meteo_expect_strd) call error_message("Coupling: strd expected but river temperature not activated.")
+      if (self%couple_cfg%meteo_expect_tann) call error_message("Coupling: tann expected but river temperature not activated.")
+    end if
 
   end subroutine config
 
@@ -480,9 +524,8 @@ contains
       self%s_meteo = 1
       self%e_meteo = level1(iDomain)%iEnd - level1(iDomain)%iStart + 1
       ! time step for meteorological variable (daily values)
-      self%iMeteoTS = &
-        ceiling(real(tt, dp) / real(nint( 24._dp / real(self%nTstepForcingDay, dp)), dp)) &
-        - (self%readPer%julStart - simPer(iDomain)%julStart)
+      self%iMeteoTS = ceiling(real(tt, dp) / real(nint( 24._dp / real(self%nTstepForcingDay, dp)), dp)) &
+                      - (self%readPer%julStart - simPer(iDomain)%julStart)
     end if
 
   end subroutine update_timestep
@@ -751,10 +794,11 @@ contains
     ! number of L1 cells
     integer(i4) :: nCells1
     ! cell index
-    integer(i4) :: k, i, s1
+    integer(i4) :: k, i, s1, mTS
 
     nCells1 = self%e1 - self%s1 + 1
     s1 = self%s1
+    mTS = self%iMeteoTS
 
     ! date and month of this timestep
     call dec2date(self%time, yy = year, mm = month, dd = day, hh = hour)
@@ -774,22 +818,22 @@ contains
       ! PET calculation
       select case (self%pet_case)
         case(-1) ! PET is input ! correct pet for every day only once at the first time step
-          pet = petLAIcorFactorL1(k) * self%L1_pet(i, self%iMeteoTS)
+          pet = petLAIcorFactorL1(k) * self%L1_pet(i, mTS)
 
         case(0) ! PET is input ! correct pet for every day only once at the first time step
-          pet = fAsp(k) * self%L1_pet(i, self%iMeteoTS)
+          pet = fAsp(k) * self%L1_pet(i, mTS)
 
         case(1) ! Hargreaves-Samani
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
-          if (self%L1_tmax(i, self%iMeteoTS) .lt. self%L1_tmin(i, self%iMeteoTS)) &
+          if (self%L1_tmax(i, mTS) .lt. self%L1_tmin(i, mTS)) &
             call message('WARNING: tmax smaller than tmin at doy ', &
                          num2str(doy), ' in year ', num2str(year), ' at cell', num2str(k), '!')
           pet = fAsp(k) * pet_hargreaves( &
             HarSamCoeff=HarSamCoeff(k), &
             HarSamConst=HarSamConst, &
-            tavg=self%L1_temp(i, self%iMeteoTS), &
-            tmax=self%L1_tmax(i, self%iMeteoTS), &
-            tmin=self%L1_tmin(i, self%iMeteoTS), &
+            tavg=self%L1_temp(i, mTS), &
+            tmax=self%L1_tmax(i, mTS), &
+            tmin=self%L1_tmin(i, mTS), &
             latitude=latitude(k), &
             doy=doy)
 
@@ -797,15 +841,15 @@ contains
           ! Priestley Taylor is not defined for values netrad < 0.0_dp
           pet = pet_priestly( &
             PrieTayParam=PrieTayAlpha(k), &
-            Rn=max(self%L1_netrad(i, self%iMeteoTS), 0.0_dp), &
-            tavg=self%L1_temp(i, self%iMeteoTS))
+            Rn=max(self%L1_netrad(i, mTS), 0.0_dp), &
+            tavg=self%L1_temp(i, mTS))
 
         case(3) ! Penman-Monteith
           pet = pet_penman( &
-            net_rad=max(self%L1_netrad(i, self%iMeteoTS), 0.0_dp), &
-            tavg=self%L1_temp(i, self%iMeteoTS), &
-            act_vap_pressure=self%L1_absvappress(i, self%iMeteoTS) / 1000.0_dp, &
-            aerodyn_resistance=aeroResist(k) / self%L1_windspeed(i, self%iMeteoTS), &
+            net_rad=max(self%L1_netrad(i, mTS), 0.0_dp), &
+            tavg=self%L1_temp(i, mTS), &
+            act_vap_pressure=self%L1_absvappress(i, mTS) / 1000.0_dp, &
+            aerodyn_resistance=aeroResist(k) / self%L1_windspeed(i, mTS), &
             bulksurface_resistance=surfResist(k), &
             a_s=1.0_dp, &
             a_sh=1.0_dp)
@@ -861,10 +905,11 @@ contains
     ! number of L1 cells
     integer(i4) :: nCells1
     ! cell index
-    integer(i4) :: k, i, s1
+    integer(i4) :: k, i, s1, mTS
 
     nCells1 = self%e1 - self%s1 + 1
     s1 = self%s1
+    mTS = self%iMeteoTS
 
     ! date and month of this timestep
     call dec2date(self%time, mm = month, hh = hour)
@@ -882,12 +927,12 @@ contains
 
       ! temporal disaggreagtion of forcing variables
       if (self%is_hourly_forcing) then
-        temp_calc(k) = self%L1_temp(i, self%iMeteoTS)
+        temp_calc(k) = self%L1_temp(i, mTS)
       else
         if (self%read_meteo_weights) then
           ! all meteo forcings are disaggregated with given weights
           call temporal_disagg_meteo_weights( &
-            meteo_val_day=self%L1_temp(i, self%iMeteoTS), &
+            meteo_val_day=self%L1_temp(i, mTS), &
             meteo_val_weights=self%L1_temp_weights(s1 - 1 + k, month, hour + 1), &
             meteo_val=temp_calc(k), &
             weights_correction=T0_dp)
@@ -896,7 +941,7 @@ contains
           call temporal_disagg_state_daynight( &
             isday=isday, &
             ntimesteps_day=self%nTstepDay_dp, &
-            meteo_val_day=self%L1_temp(i, self%iMeteoTS), &
+            meteo_val_day=self%L1_temp(i, mTS), &
             fday_meteo_val=self%fday_temp(month), &
             fnight_meteo_val=self%fnight_temp(month), &
             meteo_val=temp_calc(k), &
@@ -931,10 +976,11 @@ contains
     ! number of L1 cells
     integer(i4) :: nCells1
     ! cell index
-    integer(i4) :: k, i, s1
+    integer(i4) :: k, i, s1, mTS
 
     nCells1 = self%e1 - self%s1 + 1
     s1 = self%s1
+    mTS = self%iMeteoTS
 
     ! date and month of this timestep
     call dec2date(self%time, mm = month, hh = hour)
@@ -952,12 +998,12 @@ contains
 
       ! temporal disaggreagtion of forcing variables
       if (self%is_hourly_forcing) then
-        prec_calc(k) = self%L1_pre(i, self%iMeteoTS)
+        prec_calc(k) = self%L1_pre(i, mTS)
       else
         if (self%read_meteo_weights) then
           ! all meteo forcings are disaggregated with given weights
           call temporal_disagg_meteo_weights( &
-            meteo_val_day=self%L1_pre(i, self%iMeteoTS), &
+            meteo_val_day=self%L1_pre(i, mTS), &
             meteo_val_weights=self%L1_pre_weights(s1 - 1 + k, month, hour + 1), &
             meteo_val=prec_calc(k))
         else
@@ -965,7 +1011,7 @@ contains
           call temporal_disagg_flux_daynight( &
             isday=isday, &
             ntimesteps_day=self%nTstepDay_dp, &
-            meteo_val_day=self%L1_pre(i, self%iMeteoTS), &
+            meteo_val_day=self%L1_pre(i, mTS), &
             fday_meteo_val=self%fday_prec(month), &
             fnight_meteo_val=self%fnight_prec(month), &
             meteo_val=prec_calc(k))
@@ -999,10 +1045,11 @@ contains
     ! number of L1 cells
     integer(i4) :: nCells1
     ! cell index
-    integer(i4) :: k, i, s1
+    integer(i4) :: k, i, s1, mTS
 
     nCells1 = self%e1 - self%s1 + 1
     s1 = self%s1
+    mTS = self%iMeteoTS
 
     ! date and month of this timestep
     call dec2date(self%time, mm = month, hh = hour)
@@ -1020,13 +1067,13 @@ contains
 
       ! temporal disaggreagtion of forcing variables
       if (self%is_hourly_forcing) then
-        ssrd_calc(k) = self%L1_ssrd(i, self%iMeteoTS)
+        ssrd_calc(k) = self%L1_ssrd(i, mTS)
       else
         ! TODO-RIV-TEMP: add weights for ssrd
         call temporal_disagg_state_daynight( &
           isday=isday, &
           ntimesteps_day=self%nTstepDay_dp, &
-          meteo_val_day=self%L1_ssrd(i, self%iMeteoTS), &
+          meteo_val_day=self%L1_ssrd(i, mTS), &
           fday_meteo_val=self%fday_ssrd(month), &
           fnight_meteo_val=self%fnight_ssrd(month), &
           meteo_val=ssrd_calc(k))
@@ -1059,10 +1106,11 @@ contains
     ! number of L1 cells
     integer(i4) :: nCells1
     ! cell index
-    integer(i4) :: k, i, s1
+    integer(i4) :: k, i, s1, mTS
 
     nCells1 = self%e1 - self%s1 + 1
     s1 = self%s1
+    mTS = self%iMeteoTS
 
     ! date and month of this timestep
     call dec2date(self%time, mm = month, hh = hour)
@@ -1080,13 +1128,13 @@ contains
 
       ! temporal disaggreagtion of forcing variables
       if (self%is_hourly_forcing) then
-        strd_calc(k) = self%L1_strd(i, self%iMeteoTS)
+        strd_calc(k) = self%L1_strd(i, mTS)
       else
         ! TODO-RIV-TEMP: add weights for strd
         call temporal_disagg_state_daynight( &
           isday=isday, &
           ntimesteps_day=self%nTstepDay_dp, &
-          meteo_val_day=self%L1_strd(i, self%iMeteoTS), &
+          meteo_val_day=self%L1_strd(i, mTS), &
           fday_meteo_val=self%fday_strd(month), &
           fnight_meteo_val=self%fnight_strd(month), &
           meteo_val=strd_calc(k))
@@ -1106,8 +1154,11 @@ contains
     !> [degC]  annual mean air temperature
     real(dp), dimension(:), intent(inout) :: tann_calc
 
+    integer(i4) :: mTS
+    mTS = self%iMeteoTS
+
     ! annual temperature is not disaggregated
-    tann_calc(:) = self%L1_tann(self%s_meteo : self%e_meteo, self%iMeteoTS)
+    tann_calc(:) = self%L1_tann(self%s_meteo : self%e_meteo, mTS)
 
   end subroutine get_tann
 

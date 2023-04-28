@@ -32,6 +32,7 @@ module mo_coupling_type
     logical :: read_nml = .true.            !< whether to read the namelist (or set via routine)
     integer(i4) :: case                     !< coupling case (0: no coupling, 1: single domain coupling)
     integer(i4) :: meteo_timestep           !< timestep for meteo-data from coupling
+    logical :: meteo_time_ref_endpoint      !< expect meteo has time reference point at end of associated time interval
     logical :: meteo_expect_pre             !< expect meteo from coupling: [mm]      Precipitation
     logical :: meteo_expect_temp            !< expect meteo from coupling: [degC]    Air temperature
     logical :: meteo_expect_pet             !< expect meteo from coupling: [mm TS-1] Potential evapotranspiration
@@ -82,6 +83,7 @@ contains
 
     integer(i4) :: case                 ! coupling case
     integer(i4) :: meteo_timestep       ! timestep for meteo-data from coupling
+    logical :: meteo_time_ref_endpoint  ! expect meteo has time reference point at end of associated time interval
     logical :: meteo_expect_pre         ! expect meteo from coupling: [mm]      Precipitation
     logical :: meteo_expect_temp        ! expect meteo from coupling: [degC]    Air temperature
     logical :: meteo_expect_pet         ! expect meteo from coupling: [mm TS-1] Potential evapotranspiration
@@ -100,6 +102,7 @@ contains
     namelist /coupling/ &
       case, &
       meteo_timestep, &
+      meteo_time_ref_endpoint, &
       meteo_expect_pre, &
       meteo_expect_temp, &
       meteo_expect_pet, &
@@ -121,6 +124,7 @@ contains
     ! get defaults for local variables
     case = self%case
     meteo_timestep = self%meteo_timestep
+    meteo_time_ref_endpoint = self%meteo_time_ref_endpoint
     meteo_expect_pre = self%meteo_expect_pre
     meteo_expect_temp = self%meteo_expect_temp
     meteo_expect_pet = self%meteo_expect_pet
@@ -148,6 +152,7 @@ contains
 
     self%case = case
     self%meteo_timestep = meteo_timestep
+    self%meteo_time_ref_endpoint = meteo_time_ref_endpoint
     self%meteo_expect_pre = meteo_expect_pre
     self%meteo_expect_temp = meteo_expect_temp
     self%meteo_expect_pet = meteo_expect_pet
@@ -167,6 +172,7 @@ contains
     self, &
     case, &
     meteo_timestep, &
+    meteo_time_ref_endpoint, &
     meteo_expect_pre, &
     meteo_expect_temp, &
     meteo_expect_pet, &
@@ -185,6 +191,7 @@ contains
     class(couple_cfg_type), intent(inout) :: self
     integer(i4), intent(in), optional :: case                 !< coupling case
     integer(i4), intent(in), optional :: meteo_timestep       !< timestep for meteo-data from coupling
+    logical, intent(in), optional :: meteo_time_ref_endpoint  !< expect meteo has time reference point at end of time interval
     logical, intent(in), optional :: meteo_expect_pre         !< expect meteo from coupling: [mm]      Precipitation
     logical, intent(in), optional :: meteo_expect_temp        !< expect meteo from coupling: [degC]    Air temperature
     logical, intent(in), optional :: meteo_expect_pet         !< expect meteo from coupling: [mm TS-1] Potential evapotranspiration
@@ -201,6 +208,7 @@ contains
     ! defaults
     self%case = 0_i4 ! no coupling by default
     self%meteo_timestep = 0_i4 ! only valid if no meteo expected
+    self%meteo_time_ref_endpoint = .false. ! meteo data usually given at begin of time interval (i.e. 00:00 for current day)
     self%meteo_expect_pre = .false.
     self%meteo_expect_temp = .false.
     self%meteo_expect_pet = .false.
@@ -218,6 +226,7 @@ contains
 
     if (present(case)) self%case = case
     if (present(meteo_timestep)) self%meteo_timestep = meteo_timestep
+    if (present(meteo_time_ref_endpoint)) self%meteo_time_ref_endpoint = meteo_time_ref_endpoint
     if (present(meteo_expect_pre)) self%meteo_expect_pre = meteo_expect_pre
     if (present(meteo_expect_temp)) self%meteo_expect_temp = meteo_expect_temp
     if (present(meteo_expect_pet)) self%meteo_expect_pet = meteo_expect_pet
@@ -256,19 +265,25 @@ contains
   end function any_meteo_expected
 
   !> \brief check configuration
-  subroutine check(self)
+  subroutine check(self, domainMeta)
     use mo_message, only : error_message
     use mo_string_utils, only : num2str
+    use mo_common_types, only : domain_meta
     implicit none
 
     class(couple_cfg_type), intent(inout) :: self
+    type(domain_meta), intent(in) :: domainMeta !< domain general description
 
     if (.not. any(self%case == [0, 1])) &
       call error_message("Coupling: case needs to be 0 or 1. Got: ", num2str(self%case))
 
-    ! if meteo data is expected, an associated time-step needs to be given
-    if (self%case /= 0 .and. self%any_meteo_expected() .and. self%meteo_timestep == 0) &
-      call error_message("Coupling: meteo data expected but no time-step given for it.")
+    ! coupling case 1 for single domain coupling
+    if (self%case == 1 .and. domainMeta%nDomains > 1) &
+      call error_message("Coupling: Only one domain allowed when coupling.")
+
+    ! if meteo data is expected, an associated time-step (1 or 24) needs to be given
+    if (self%case /= 0 .and. self%any_meteo_expected() .and. .not. any(self%meteo_timestep == [1, 24])) &
+      call error_message("Coupling: meteo data expected but no valid time-step (1 or 24) given for it.")
 
   end subroutine check
 

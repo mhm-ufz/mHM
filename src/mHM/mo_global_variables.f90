@@ -75,8 +75,14 @@ MODULE mo_global_variables
   USE mo_mhm_constants, ONLY : nOutFlxState
   USE mo_optimization_types, ONLY : optidata
   use mo_meteo_handler, only : meteo_handler_type
+  use mo_coupling_type, only : couple_cfg_type
 
   IMPLICIT NONE
+
+  ! -------------------------------------------------------------------
+  ! COUPLING CONFIG
+  ! -------------------------------------------------------------------
+  type(couple_cfg_type), public :: couple_cfg !< coupling configuration class
 
   ! -------------------------------------------------------------------
   ! METEO HANDLER

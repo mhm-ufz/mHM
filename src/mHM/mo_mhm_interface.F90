@@ -79,6 +79,7 @@ contains
       unamelist_mhm, &
       unamelist_mhm_param
     use mo_global_variables, only: &
+      couple_cfg, &
       meteo_handler, &
       L1_twsaObs, &
       L1_etObs, &
@@ -116,13 +117,16 @@ contains
     ! startup message
     call startup_message()
 
+    ! coupling configuration
+    call couple_cfg%read_config(file_namelist_mhm, unamelist_mhm)
     ! read configs
     call common_read_config(file_namelist_mhm, unamelist_mhm)
     call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
     call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
     call mhm_read_config(file_namelist_mhm, unamelist_mhm)
-    call meteo_handler%config(file_namelist_mhm, unamelist_mhm, optimize, domainMeta, processMatrix, timestep)
-    mrm_coupling_mode = 2_i4
+    call couple_cfg%check(domainMeta)
+    call meteo_handler%config(file_namelist_mhm, unamelist_mhm, optimize, domainMeta, processMatrix, timestep, couple_cfg)
+    mrm_coupling_mode = 2_i4 ! TODO: this shouldn't be needed
     call mrm_configuration(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
     call check_optimization_settings()
 
