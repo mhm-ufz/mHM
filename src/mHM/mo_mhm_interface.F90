@@ -124,7 +124,7 @@ contains
     call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
     call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
     call mhm_read_config(file_namelist_mhm, unamelist_mhm)
-    call couple_cfg%check(domainMeta)
+    call couple_cfg%check(domainMeta, optimize)
     call meteo_handler%config(file_namelist_mhm, unamelist_mhm, optimize, domainMeta, processMatrix, timestep, couple_cfg)
     mrm_coupling_mode = 2_i4 ! TODO: this shouldn't be needed
     call mrm_configuration(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)

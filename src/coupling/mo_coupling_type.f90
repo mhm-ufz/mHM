@@ -265,7 +265,7 @@ contains
   end function any_meteo_expected
 
   !> \brief check configuration
-  subroutine check(self, domainMeta)
+  subroutine check(self, domainMeta, optimize)
     use mo_message, only : error_message
     use mo_string_utils, only : num2str
     use mo_common_types, only : domain_meta
@@ -273,6 +273,7 @@ contains
 
     class(couple_cfg_type), intent(inout) :: self
     type(domain_meta), intent(in) :: domainMeta !< domain general description
+    logical, intent(in) :: optimize             !< Optimization (.true. ) or Evaluation run (.false.)
 
     if (.not. any(self%case == [0, 1])) &
       call error_message("Coupling: case needs to be 0 or 1. Got: ", num2str(self%case))
@@ -280,6 +281,10 @@ contains
     ! coupling case 1 for single domain coupling
     if (self%case == 1 .and. domainMeta%nDomains > 1) &
       call error_message("Coupling: Only one domain allowed when coupling.")
+
+    ! coupling only without internal optimization
+    if (self%case /= 0 .and. optimize) &
+      call error_message("Coupling: no internal optimization allowed when coupling.")
 
     ! if meteo data is expected, an associated time-step (1 or 24) needs to be given
     if (self%case /= 0 .and. self%any_meteo_expected() .and. .not. any(self%meteo_timestep == [1, 24])) &
