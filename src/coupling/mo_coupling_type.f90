@@ -57,6 +57,8 @@ module mo_coupling_type
     procedure :: clean_up !< \see mo_coupling_type::clean_up
     !> \copydoc mo_coupling_type::check
     procedure :: check !< \see mo_coupling_type::check
+    !> \copydoc mo_coupling_type::active
+    procedure :: active !< \see mo_coupling_type::active
   end type couple_cfg_type
 
 contains
@@ -291,5 +293,13 @@ contains
       call error_message("Coupling: meteo data expected but no valid time-step (1 or 24) given for it.")
 
   end subroutine check
+
+  !> \brief whether coupling is actived
+  !> \return True if any case > 0, else False
+  logical function active(self)
+    implicit none
+    class(couple_cfg_type), intent(in) :: self
+    active = self%case > 0_i4
+  end function active
 
 end module mo_coupling_type
