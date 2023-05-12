@@ -30,6 +30,7 @@ module mo_meteo_handler
   use mo_common_types, only: Grid, period
   use mo_message, only : message, error_message
   use mo_coupling_type, only : couple_cfg_type
+  use mo_sentinel, only : set_sentinel, check_sentinel
   use mo_datetime, only : datetime, timedelta, zero_delta
 
   implicit none
@@ -72,6 +73,7 @@ module mo_meteo_handler
     ! DIRECTORIES
     ! ------------------------------------------------------------------
     ! has the dimension of nDomains
+    character(256), dimension(:), allocatable, public :: dir_meteo_header  !< Directory where the meteo header file is located
     character(256), dimension(:), allocatable, public :: dirPrecipitation  !< Directory where precipitation files are located
     character(256), dimension(:), allocatable, public :: dirTemperature    !< Directory where temperature files are located
     character(256), dimension(:), allocatable, public :: dirMinTemperature !< Directory where minimum temp. files are located
@@ -194,6 +196,7 @@ contains
     if ( allocated(self%indices) ) deallocate(self%indices)
     if ( allocated(self%L0DataFrom) ) deallocate(self%L0DataFrom)
     if ( allocated(self%timeStep_model_inputs) ) deallocate(self%timeStep_model_inputs)
+    if ( allocated(self%dir_meteo_header) ) deallocate(self%dir_meteo_header)
     if ( allocated(self%dirPrecipitation) ) deallocate(self%dirPrecipitation)
     if ( allocated(self%dirTemperature) ) deallocate(self%dirTemperature)
     if ( allocated(self%dirMinTemperature) ) deallocate(self%dirMinTemperature)
@@ -241,6 +244,7 @@ contains
     type(couple_cfg_type), intent(in) :: couple_cfg !< coupling configuration class
 
     integer(i4), dimension(maxNoDomains) :: time_step_model_inputs
+    character(256), dimension(maxNoDomains) :: dir_meteo_header
     character(256), dimension(maxNoDomains) :: dir_Precipitation
     character(256), dimension(maxNoDomains) :: dir_Temperature
     character(256), dimension(maxNoDomains) :: dir_MinTemperature
@@ -265,6 +269,7 @@ contains
     namelist /directories_mHM/ &
       inputFormat_meteo_forcings, &
       bound_error, &
+      dir_meteo_header, &
       dir_Precipitation, &
       dir_Temperature, &
       dir_ReferenceET, &
@@ -307,6 +312,7 @@ contains
     self%nTstepDay_dp = real(self%nTStepDay, dp)
 
     ! allocate variables
+    allocate(self%dir_meteo_header(self%nDomains))
     allocate(self%dirPrecipitation(self%nDomains))
     allocate(self%dirTemperature(self%nDomains))
     allocate(self%dirwindspeed(self%nDomains))
@@ -325,6 +331,7 @@ contains
     !===============================================================
     !  Read namelist main directories
     !===============================================================
+    call set_sentinel(dir_meteo_header) ! set sentinal to check reading
     inputFormat_meteo_forcings = "nc"
     bound_error = .TRUE.
     call position_nml(self%dir_nml_name, unamelist)
@@ -346,6 +353,12 @@ contains
       self%dirabsVapPressure(iDomain) = dir_absVapPressure(domainID)
       ! riv-temp related
       self%dirRadiation(iDomain) = dir_Radiation(domainID)
+      ! meteo header directory (if not given, use precipitation dir)
+      if (check_sentinel(dir_meteo_header(domainID))) then
+        self%dir_meteo_header(iDomain) = self%dirPrecipitation(iDomain)
+      else
+        self%dir_meteo_header(iDomain) = dir_meteo_header(domainID)
+      end if
     end do
 
     ! consistency check for timestep_model_inputs
@@ -439,7 +452,6 @@ contains
   !> \brief whether meteo data should be read completely at the begining
   !> \return True if meteo data is retrieved with a single read
   logical function single_read(self, iDomain)
-    use mo_constants, only: sigma_dp
     implicit none
     class(meteo_handler_type), intent(in) :: self
     integer(i4), intent(in) :: iDomain !< current domain
@@ -475,7 +487,7 @@ contains
 
     do iDomain = 1, self%nDomains
       ! read header
-      fName = trim(adjustl(self%dirPrecipitation(iDomain))) // trim(adjustl(self%file_meteo_header))
+      fName = trim(adjustl(self%dir_meteo_header(iDomain))) // trim(adjustl(self%file_meteo_header))
       call read_header_ascii(trim(fName), self%umeteo_header, &
         nrows2, ncols2, xllcorner2, yllcorner2, cellsize2, nodata_dummy)
       ! check grid compatibility
@@ -643,7 +655,6 @@ contains
         ! only allocate the array with correct size
         allocate(self%L1_pre(level1(iDomain)%nCells, 1))
       else
-        ! precipitation
         if (self%single_read(iDomain)) call message('    read precipitation        ...')
         ! upper bound: 1825 mm/d in La Réunion 7-8 Jan 1966
         call meteo_forcings_wrapper(iDomain, self%dirPrecipitation(iDomain), self%inputFormat_meteo_forcings, &
