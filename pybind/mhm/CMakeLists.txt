@@ -1,9 +1,8 @@
+cmake_minimum_required(VERSION 3.17.2...3.24)
 enable_language(C)
-find_package(PythonExtensions REQUIRED)
-find_package(NumPy REQUIRED)
-find_package(F2PY REQUIRED)
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module NumPy)
 
-install(TARGETS mhm_lib LIBRARY DESTINATION .)
+install(TARGETS mhm_lib LIBRARY DESTINATION mhm)
 if(BUILD_MHM_DRIVER)
   # link to mhm-lib next to executable
   if (APPLE)
@@ -20,8 +19,16 @@ if(BUILD_MHM_DRIVER)
       BUILD_RPATH "$ORIGIN"
     )
   endif()
-  install(TARGETS mhm RUNTIME DESTINATION .)
+  install(TARGETS mhm RUNTIME DESTINATION mhm)
 endif()
+
+# Grab the variables from a local Python installation F2PY headers
+execute_process(
+  COMMAND "${Python_EXECUTABLE}" -c
+    "import os; from numpy import f2py; print(f2py.get_include() if hasattr(f2py, 'get_include') else os.path.join(os.path.dirname(f2py.__file__), 'src'))"
+  OUTPUT_VARIABLE F2PY_INCLUDE_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
 set(f2py_module_name "wrapper")
 set(f2py_module_name_c "${f2py_module_name}module.c")
@@ -37,7 +44,7 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/.f2py_f2cmap" "${CMAKE_CURRENT_BINAR
 # only use f2py to create c-wrapper for fortran module
 add_custom_command(
   OUTPUT ${f2py_module_name_c} ${f2py_module_name_f}
-  COMMAND ${F2PY_EXECUTABLE}
+  COMMAND ${Python_EXECUTABLE} -m "numpy.f2py"
     -m ${f2py_module_name}
     ${fortran_src_file}
     --lower
@@ -46,8 +53,8 @@ add_custom_command(
 )
 
 # add python module for wrapper
-add_library(${f2py_module_name}
-  MODULE
+python_add_library(${f2py_module_name}
+  MODULE WITH_SOABI
   ${f2py_module_name_c}
   ${f2py_fortranobject}
   ${f2py_module_name_f}
@@ -55,17 +62,8 @@ add_library(${f2py_module_name}
 )
 
 # link mhm to wrapper
-target_link_libraries(${f2py_module_name} mhm_lib)
-target_include_directories(${f2py_module_name}
-  PUBLIC
-  ${F2PY_INCLUDE_DIRS}
-  ${NumPy_INCLUDE_DIRS}
-  ${PYTHON_INCLUDE_DIRS}
-)
-
-# ensure correct name of python extension
-set_target_properties(${f2py_module_name} PROPERTIES SUFFIX ${PYTHON_EXTENSION_MODULE_SUFFIX})
-set_target_properties(${f2py_module_name} PROPERTIES PREFIX "")
+target_include_directories(${f2py_module_name} PUBLIC ${F2PY_INCLUDE_DIR})
+target_link_libraries(${f2py_module_name} PUBLIC mhm_lib Python::NumPy)
 
 # linker flags (rpath)
 if (UNIX)
@@ -89,8 +87,4 @@ endif()
 add_dependencies(${f2py_module_name} genpyf)
 
 # install
-if (SKBUILD)
-  install(TARGETS ${f2py_module_name} DESTINATION .)
-else()
-  install(TARGETS ${f2py_module_name} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
-endif()
+install(TARGETS ${f2py_module_name} DESTINATION mhm)

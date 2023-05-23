@@ -1,14 +1,15 @@
 [build-system]
 requires = [
-    "setuptools>=63,<64",
+    "scikit_build_core",
+    "setuptools",
     "setuptools_scm[toml]>=7,<8",
-    "scikit-build>=0.16,<0.17",
+    # "scikit-build>=0.16,<0.17",
     "oldest_supported_numpy",
     "cmake",
     "ninja",
     "fypp",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "scikit_build_core.setuptools.build_meta"
 
 [project]
 requires-python = ">=3.8"

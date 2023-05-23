@@ -7,7 +7,8 @@ from pathlib import Path
 from urllib.request import urlretrieve
 
 import setuptools
-import skbuild
+from setuptools.command.sdist import sdist
+
 
 FORCES_URL = "https://git.ufz.de/chs/forces/-/archive/{branch}/forces-{branch}.tar.gz"
 
@@ -24,7 +25,7 @@ def _download_tar(url, path):
         shutil.copytree(first_sub, path, ignore_dangling_symlinks=True)
 
 
-class sdist(setuptools.command.sdist.sdist):
+class mhm_sdist(sdist):
     """Custom sdist command to include FORCES in source distribution."""
 
     def run(self):
@@ -79,12 +80,14 @@ else:
     cmake_args += ["-DBUILD_MHM_DRIVER=OFF"]
     print("## mHM Python setup: no console script for mHM driver")
 
-skbuild.setup(
+setuptools.setup(
     packages=["mhm"],
     package_dir={"": "pybind"},
-    cmake_install_dir="pybind/mhm",
+    include_package_data=True,
+    exclude_package_data={"mhm": ["CMakeLists.txt", ".f2py_f2cmap", "wrapper.f90"]},
+    cmake_source_dir=".",
     cmake_args=cmake_args,
     zip_safe=False,
     entry_points=entry_points,
-    cmdclass={"sdist": sdist},
+    cmdclass={"sdist": mhm_sdist},
 )
