@@ -6,3 +6,6 @@ module load netCDF-Fortran/4.5.3
 module load CMake
 module load pFUnit/4.2.2_iomkl2020b
 export FC=mpifort
+export F77=mpifort
+export CC=mpicc
+export CXX=mpic++

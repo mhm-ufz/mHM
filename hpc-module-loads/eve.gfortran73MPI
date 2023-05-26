@@ -6,3 +6,6 @@ module load netCDF-Fortran
 module load CMake
 module load pFUnit/4.2.1_foss2018b
 export FC=mpifort
+export F77=mpifort
+export CC=mpicc
+export CXX=mpic++
