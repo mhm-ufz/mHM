@@ -80,8 +80,42 @@ All these scripts will load:
   source juwels.intelMPI
   ```
 
+## Toolchains on Atos
+
+All these scripts will load:
+
+- the respective fortran compiler and set `FC` env-var
+- MPI
+- netCDF-Fortran parallel
+- CMake
+
+## Toolchain on Levante
+
+This script will load the following modules on [Levante](https://docs.dkrz.de/doc/levante/index.html) at [DKRZ](https://www.dkrz.de):
+
+```bash
+source levante.gfortran112
+```
+
+- git
+- gfortran 11.2 compiler and set `FC` env-var
+- netCDF-Fortran 4.5.3
+- CMake (build tools)
+
+## Toolchain on LUMI
+
+This script will load the following modules on [LUMI](https://www.lumi-supercomputer.eu/):
+
+```bash
+source lumi.gfortran112
+```
+
+- gfortran 11.2 compiler and set `FC` env-var
+- netCDF-Fortran
+- CMake (build tools)
+
 ## License
 
 MIT License (MIT)
 
-Copyright (c) 2020 - 2022 CHS Developers
+Copyright (c) 2020 - 2023 CHS Developers

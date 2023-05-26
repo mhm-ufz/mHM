@@ -1,0 +1,5 @@
+module purge
+module load gcc/11.2.0-gcc-11.2.0
+module load git/2.31.1-gcc-11.2.0
+module load netcdf-fortran/4.5.3-gcc-11.2.0
+export FC=gfortran
