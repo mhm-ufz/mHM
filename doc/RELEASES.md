@@ -2,14 +2,14 @@
 
 [TOC]
 
-## mHM v5.12.1 (unreleased)
+## mHM v5.13.0 (May 2023)
 
 ### Enhancements
 
 - added simple namelists in each test-domain folder for single domain run ([!144](https://git.ufz.de/mhm/mhm/-/merge_requests/144))
   - can be run by `mhm ./test_domain`
 - Python bindings and wheel distribution for mHM ([!138](https://git.ufz.de/mhm/mhm/-/merge_requests/138))
-- updated FORCES to v0.4 ([!141](https://git.ufz.de/mhm/mhm/-/merge_requests/141))
+- updated FORCES to v0.5 ([!141](https://git.ufz.de/mhm/mhm/-/merge_requests/141), [!157](https://git.ufz.de/mhm/mhm/-/merge_requests/157))
 - added silent mode (`--quiet / -q`) ([!141](https://git.ufz.de/mhm/mhm/-/merge_requests/141))
 - Output: unification, selectable time reference point and bounds for all coordinates ([!139](https://git.ufz.de/mhm/mhm/-/merge_requests/139))
   - added option `output_time_reference[_mrm]` to `m[h|r]m_outputs.nml` where users can now select the reference time stamp for the current time interval:
@@ -27,6 +27,9 @@
   - added `bounds` for all spatial coordinate axes (either easting/northing or lon/lat)
   - unified output handling in `mo_nc_output`
   - use new output handler for groundwater coupling
+- test-domain download helper command added with python-bindings `mhm-download` ([!149](https://git.ufz.de/mhm/mhm/-/merge_requests/149))
+- added a dependency install script `CI-scripts/install-deps` ([!152](https://git.ufz.de/mhm/mhm/-/merge_requests/152))
+- added demonstration script to optimize mHM with [Spotpy](https://github.com/thouska/spotpy) ([!145](https://git.ufz.de/mhm/mhm/-/merge_requests/145))
 
 ### Changes
 
@@ -36,6 +39,9 @@
  ### Bugfixes
 
 - fixed indexing in groundwater coupling calculations ([!139](https://git.ufz.de/mhm/mhm/-/merge_requests/139))
+- fixed reading restart without original input files ([!154](https://git.ufz.de/mhm/mhm/-/merge_requests/154), [!156](https://git.ufz.de/mhm/mhm/-/merge_requests/156))
+- output: fixed single precision output writing ([!159](https://git.ufz.de/mhm/mhm/-/merge_requests/159))
+- several internal cleanups
 
 
 ## mHM v5.12.0 (Oct 2022)

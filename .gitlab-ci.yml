@@ -127,32 +127,6 @@ cmake-nagfor62:
     - mhm
     - mhm_debug
 
-cmake-gfortran73:
-  stage: build
-  script:
-    - source hpc-module-loads/eve.gfortran73
-    - source CI-scripts/compile
-    - source CI-scripts/compile_debug
-    - source CI-scripts/compile_OpenMP
-    - source CI-scripts/compile_OpenMP_debug
-  artifacts:
-    paths:
-    - mhm
-    - mhm_debug
-    - mhm_openmp
-    - mhm_openmp_debug
-
-cmake-gfortran73MPI:
-  stage: build
-  script:
-    - source hpc-module-loads/eve.gfortran73MPI
-    - source CI-scripts/compile_MPI
-    - source CI-scripts/compile_MPI_debug
-  artifacts:
-    paths:
-    - mhm_mpi
-    - mhm_mpi_debug
-
 cmake-gfortran83:
   stage: build
   script:
@@ -172,6 +146,58 @@ cmake-gfortran83MPI:
   stage: build
   script:
     - source hpc-module-loads/eve.gfortran83MPI
+    - source CI-scripts/compile_MPI
+    - source CI-scripts/compile_MPI_debug
+  artifacts:
+    paths:
+    - mhm_mpi
+    - mhm_mpi_debug
+
+cmake-gfortran102:
+  stage: build
+  script:
+    - source hpc-module-loads/eve.gfortran102
+    - source CI-scripts/compile
+    - source CI-scripts/compile_debug
+    - source CI-scripts/compile_OpenMP
+    - source CI-scripts/compile_OpenMP_debug
+  artifacts:
+    paths:
+    - mhm
+    - mhm_debug
+    - mhm_openmp
+    - mhm_openmp_debug
+
+cmake-gfortran102MPI:
+  stage: build
+  script:
+    - source hpc-module-loads/eve.gfortran102MPI
+    - source CI-scripts/compile_MPI
+    - source CI-scripts/compile_MPI_debug
+  artifacts:
+    paths:
+    - mhm_mpi
+    - mhm_mpi_debug
+
+cmake-gfortran122:
+  stage: build
+  script:
+    - source hpc-module-loads/eve.gfortran122
+    - source CI-scripts/compile
+    - source CI-scripts/compile_debug
+    - source CI-scripts/compile_OpenMP
+    - source CI-scripts/compile_OpenMP_debug
+  artifacts:
+    paths:
+    - mhm
+    - mhm_debug
+    - mhm_openmp
+    - mhm_openmp_debug
+
+cmake-gfortran122MPI:
+  stage: build
+  script:
+    - source hpc-module-loads/eve.gfortran122MPI
     - source CI-scripts/compile_MPI
     - source CI-scripts/compile_MPI_debug
   artifacts:
@@ -224,6 +250,32 @@ cmake-intel19MPI:
   stage: build
   script:
     - source hpc-module-loads/eve.intel19MPI
+    - source CI-scripts/compile_MPI
+    - source CI-scripts/compile_MPI_debug
+  artifacts:
+    paths:
+    - mhm_mpi
+    - mhm_mpi_debug
+
+cmake-intel2020b:
+  stage: build
+  script:
+    - source hpc-module-loads/eve.intel2020b
+    - source CI-scripts/compile
+    - source CI-scripts/compile_debug
+    - source CI-scripts/compile_OpenMP
+    - source CI-scripts/compile_OpenMP_debug
+  artifacts:
+    paths:
+    - mhm
+    - mhm_debug
+    - mhm_openmp
+    - mhm_openmp_debug
+
+cmake-intel2020bMPI:
+  stage: build
+  script:
+    - source hpc-module-loads/eve.intel2020bMPI
     - source CI-scripts/compile_MPI
     - source CI-scripts/compile_MPI_debug
   artifacts:
@@ -319,36 +371,6 @@ check-nagfor62DEBUG:
     paths:
     - check/logs/
 
-check-gfortran73:
-  when: always
-  stage: check-cases
-  needs:
-    - job: cmake-gfortran73
-      artifacts: true
-  script:
-    - source hpc-module-loads/eve.gfortran73
-    - source CI-scripts/pre_check
-    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
-  artifacts:
-    when: always
-    paths:
-    - check/logs/
-
-check-gfortran73MPI:
-  when: always
-  stage: check-cases
-  needs:
-    - job: cmake-gfortran73MPI
-      artifacts: true
-  script:
-    - source hpc-module-loads/eve.gfortran73MPI
-    - source CI-scripts/pre_check
-    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
-  artifacts:
-    when: always
-    paths:
-    - check/logs/
-
 check-gfortran83:
   when: always
   stage: check-cases
@@ -372,6 +394,66 @@ check-gfortran83MPI:
       artifacts: true
   script:
     - source hpc-module-loads/eve.gfortran83MPI
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
+
+check-gfortran102:
+  when: always
+  stage: check-cases
+  needs:
+    - job: cmake-gfortran102
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.gfortran102
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
+
+check-gfortran102MPI:
+  when: always
+  stage: check-cases
+  needs:
+    - job: cmake-gfortran102MPI
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.gfortran102MPI
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
+
+check-gfortran122:
+  when: always
+  stage: check-cases
+  needs:
+    - job: cmake-gfortran122
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.gfortran122
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
+
+check-gfortran122MPI:
+  when: always
+  stage: check-cases
+  needs:
+    - job: cmake-gfortran122MPI
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.gfortran122MPI
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
   artifacts:
@@ -432,6 +514,36 @@ check-intel19MPI:
       artifacts: true
   script:
     - source hpc-module-loads/eve.intel19MPI
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
+
+check-intel2020b:
+  when: always
+  stage: check-cases
+  needs:
+    - job: cmake-intel2020b
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.intel2020b
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
+
+check-intel2020bMPI:
+  when: always
+  stage: check-cases
+  needs:
+    - job: cmake-intel2020bMPI
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.intel2020bMPI
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
   artifacts:

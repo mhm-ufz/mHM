@@ -6,7 +6,7 @@ Module load scripts on HPC Clusters for Fortran Projects at CHS.
 
 All these scripts will load:
 
-- the respective fortran compiler and set `FC` env-var (optional MPI support)
+- the respective compilers and set `FC`, `F77`, `CC` and `CXX` env-var (optional MPI support)
 - netCDF-Fortran
 - CMake
 - the MPR Python Environment (_except chs-conda environment_)
@@ -36,6 +36,11 @@ All these scripts will load:
   ```bash
   source eve.gfortran102 # or
   source eve.gfortran102MPI
+  ```
+- GNU 12.2 compiler (`foss/2022b` Toolchain):
+  ```bash
+  source eve.gfortran122 # or
+  source eve.gfortran122MPI
   ```
 - Intel 18 compiler (`iomkl/2018b` Toolchain):
   ```bash
@@ -80,8 +85,42 @@ All these scripts will load:
   source juwels.intelMPI
   ```
 
+## Toolchains on Atos
+
+All these scripts will load:
+
+- the respective fortran compiler and set `FC` env-var
+- MPI
+- netCDF-Fortran parallel
+- CMake
+
+## Toolchain on Levante
+
+This script will load the following modules on [Levante](https://docs.dkrz.de/doc/levante/index.html) at [DKRZ](https://www.dkrz.de):
+
+```bash
+source levante.gfortran112
+```
+
+- git
+- gfortran 11.2 compiler and set `FC` env-var
+- netCDF-Fortran 4.5.3
+- CMake (build tools)
+
+## Toolchain on LUMI
+
+This script will load the following modules on [LUMI](https://www.lumi-supercomputer.eu/):
+
+```bash
+source lumi.gfortran112
+```
+
+- gfortran 11.2 compiler and set `FC` env-var
+- netCDF-Fortran
+- CMake (build tools)
+
 ## License
 
 MIT License (MIT)
 
-Copyright (c) 2020 - 2022 CHS Developers
+Copyright (c) 2020 - 2023 CHS Developers

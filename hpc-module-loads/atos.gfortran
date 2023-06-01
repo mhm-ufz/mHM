@@ -1,0 +1,6 @@
+module load prgenv/gnu
+module load openmpi 
+module load hdf5-parallel
+module load netcdf4-parallel
+module load cmake
+export FC=mpifort

@@ -5,3 +5,6 @@ module load foss/2018a
 module load netCDF-Fortran
 module load CMake
 export FC=gfortran
+export F77=gfortran
+export CC=gcc
+export CXX=g++
