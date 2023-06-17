@@ -31,7 +31,7 @@ module mo_meteo_handler
   use mo_message, only : message, error_message
   use mo_coupling_type, only : couple_cfg_type
   use mo_sentinel, only : set_sentinel, check_sentinel
-  use mo_datetime, only : datetime, timedelta, zero_delta
+  use mo_datetime, only : datetime, timedelta, zero_delta, one_hour, one_day
 
   implicit none
 
@@ -158,6 +158,7 @@ module mo_meteo_handler
     type(datetime) :: couple_ssrd_time !< current time from coupling for ssrd
     type(datetime) :: couple_strd_time !< current time from coupling for strd
     type(datetime) :: couple_tann_time !< current time from coupling for tann
+    logical :: all_coupled !< flag to indicated that all meteo-data is coming from the coupler
   contains
     !> \copydoc mo_meteo_handler::clean_up
     procedure :: clean_up !< \see mo_meteo_handler::clean_up
@@ -183,6 +184,8 @@ module mo_meteo_handler
     procedure :: get_strd !< \see mo_meteo_handler::get_strd
     !> \copydoc mo_meteo_handler::get_tann
     procedure :: get_tann !< \see mo_meteo_handler::get_tann
+    !> \copydoc mo_meteo_handler::set_meteo
+    procedure :: set_meteo !< \see mo_meteo_handler::set_meteo
   end type meteo_handler_type
 
 contains
@@ -399,23 +402,28 @@ contains
     call close_nml(unamelist)
 
     ! check coupling configuration matching process cases
+    self%all_coupled = .false.
     if (self%couple_cfg%active()) then
       self%couple_step_delta = timedelta(hours=self%couple_cfg%meteo_timestep)
       ! default init values for coupling times: 0001-01-01
-      if (self%couple_cfg%meteo_expect_pre) self%couple_pre_time = datetime(1, 1, 1)
-      if (self%couple_cfg%meteo_expect_temp) self%couple_temp_time = datetime(1, 1, 1)
-      if (self%couple_cfg%meteo_expect_pet) self%couple_pet_time = datetime(1, 1, 1)
-      if (self%couple_cfg%meteo_expect_tmin) self%couple_tmin_time = datetime(1, 1, 1)
-      if (self%couple_cfg%meteo_expect_tmax) self%couple_tmax_time = datetime(1, 1, 1)
-      if (self%couple_cfg%meteo_expect_netrad) self%couple_netrad_time = datetime(1, 1, 1)
-      if (self%couple_cfg%meteo_expect_absvappress) self%couple_absvappress_time = datetime(1, 1, 1)
-      if (self%couple_cfg%meteo_expect_windspeed) self%couple_windspeed_time = datetime(1, 1, 1)
-      if (self%couple_cfg%meteo_expect_ssrd) self%couple_ssrd_time = datetime(1, 1, 1)
-      if (self%couple_cfg%meteo_expect_strd) self%couple_strd_time = datetime(1, 1, 1)
-      if (self%couple_cfg%meteo_expect_tann) self%couple_tann_time = datetime(1, 1, 1)
+      if (self%couple_cfg%meteo_expect_pre) self%couple_pre_time = datetime()
+      if (self%couple_cfg%meteo_expect_temp) self%couple_temp_time = datetime()
+      ! PET releated
+      if (self%couple_cfg%meteo_expect_pet) self%couple_pet_time = datetime()
+      if (self%couple_cfg%meteo_expect_tmin) self%couple_tmin_time = datetime()
+      if (self%couple_cfg%meteo_expect_tmax) self%couple_tmax_time = datetime()
+      if (self%couple_cfg%meteo_expect_netrad) self%couple_netrad_time = datetime()
+      if (self%couple_cfg%meteo_expect_absvappress) self%couple_absvappress_time = datetime()
+      if (self%couple_cfg%meteo_expect_windspeed) self%couple_windspeed_time = datetime()
+      ! RIV-TEMP releated
+      if (self%couple_cfg%meteo_expect_ssrd) self%couple_ssrd_time = datetime()
+      if (self%couple_cfg%meteo_expect_strd) self%couple_strd_time = datetime()
+      if (self%couple_cfg%meteo_expect_tann) self%couple_tann_time = datetime()
       ! PET related meteo
+      self%all_coupled = self%couple_cfg%meteo_expect_pre .and. self%couple_cfg%meteo_expect_temp
       select case (self%pet_case)
         case(-1 : 0) ! pet is input
+          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_pet
           if (self%couple_cfg%meteo_expect_tmin) call error_message("Coupling: tmin expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_tmax) call error_message("Coupling: tmax expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_netrad) call error_message("Coupling: netrad expected but not needed for PET.")
@@ -423,12 +431,15 @@ contains
           if (self%couple_cfg%meteo_expect_windspeed) call error_message("Coupling: windspeed expected but not needed for PET.")
 
         case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
+          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_tmin
+          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_tmax
           if (self%couple_cfg%meteo_expect_pet) call error_message("Coupling: pet expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_netrad) call error_message("Coupling: netrad expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_absvappress) call error_message("Coupling: absvappress expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_windspeed) call error_message("Coupling: windspeed expected but not needed for PET.")
 
         case(2) ! Priestley-Taylor formulation (input: net radiation)
+          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_netrad
           if (self%couple_cfg%meteo_expect_pet) call error_message("Coupling: pet expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_tmin) call error_message("Coupling: tmin expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_tmax) call error_message("Coupling: tmax expected but not needed for PET.")
@@ -436,6 +447,9 @@ contains
           if (self%couple_cfg%meteo_expect_windspeed) call error_message("Coupling: windspeed expected but not needed for PET.")
 
         case(3) ! Penman-Monteith formulation (input: net radiationm absulute vapour pressure, windspeed)
+          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_netrad
+          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_absvappress
+          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_windspeed
           if (self%couple_cfg%meteo_expect_pet) call error_message("Coupling: pet expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_tmin) call error_message("Coupling: tmin expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_tmax) call error_message("Coupling: tmax expected but not needed for PET.")
@@ -445,6 +459,10 @@ contains
         if (self%couple_cfg%meteo_expect_ssrd) call error_message("Coupling: ssrd expected but river temperature not activated.")
         if (self%couple_cfg%meteo_expect_strd) call error_message("Coupling: strd expected but river temperature not activated.")
         if (self%couple_cfg%meteo_expect_tann) call error_message("Coupling: tann expected but river temperature not activated.")
+      else
+        self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_ssrd
+        self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_strd
+        self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_tann
       end if
     end if
   end subroutine config
@@ -459,7 +477,7 @@ contains
   end function single_read
 
   !> \brief Initialize meteo data and level-2 grid
-  subroutine initialize(self, level0)
+  subroutine initialize(self, level0, level1)
 
     use mo_grid, only : set_domain_indices
     use mo_common_types, only : grid
@@ -472,6 +490,8 @@ contains
     class(meteo_handler_type), intent(inout) :: self
     !> grid information at level-0
     type(Grid), dimension(:), intent(in) :: level0
+    !> grid information at level-1 if all meteo data is coupled
+    type(Grid), dimension(:), intent(in) :: level1
 
     ! header info
     integer(i4) :: nrows2, ncols2
@@ -484,6 +504,12 @@ contains
 
     ! create level-2 info
     allocate(self%level2(self%nDomains))
+
+    ! we don't need level 2 if all meteo data comes from the coupler
+    if (self%all_coupled) then
+      self%level2(:) = level1(:)
+      return
+    end if
 
     do iDomain = 1, self%nDomains
       ! read header
@@ -541,8 +567,8 @@ contains
     self%time = time
 
     ! time increment is done right after call to mrm (and initially before looping)
-    if (self%single_read(iDomain)) then
-      ! whole meteorology is already read
+    if (self%single_read(iDomain) .or. self%all_coupled) then
+      ! whole meteorology is already read or all meteo is coupled
 
       ! set start and end of meteo position
       self%s_meteo = level1(iDomain)%iStart
@@ -550,7 +576,11 @@ contains
 
       ! time step for meteorological variable (daily values)
       ! iMeteoTS = ceiling(real(tt, dp) / real(nTstepDay, dp))
-      self%iMeteoTS = ceiling(real(tt, dp) / real(nint( 24._dp / real(self%nTstepForcingDay, dp)), dp))
+      if (self%all_coupled) then
+        self%iMeteoTS = 1_i4
+      else
+        self%iMeteoTS = ceiling(real(tt, dp) / real(nint( 24._dp / real(self%nTstepForcingDay, dp)), dp))
+      end if
     else
       ! read chunk of meteorological forcings data (reading, upscaling/downscaling)
       call self%prepare_data(tt, iDomain, level1, simPer)
@@ -606,6 +636,25 @@ contains
     ! indicate whether data should be read
     logical :: read_flag
     integer(i4) :: domainID ! current domain ID
+    logical :: pre_couple, temp_couple, pet_couple, tmin_couple, tmax_couple, netrad_couple, absvappress_couple, windspeed_couple
+    logical :: ssrd_couple, strd_couple, tann_couple
+
+    pre_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_pre
+    temp_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_temp
+    pet_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_pet
+    tmin_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_tmin
+    tmax_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_tmax
+    netrad_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_netrad
+    absvappress_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_absvappress
+    windspeed_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_windspeed
+    ssrd_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_ssrd
+    strd_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_strd
+    tann_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_tann
+
+    if (pre_couple) then
+      ! only allocate the array with correct size
+      allocate(self%L1_pre(level1(iDomain)%nCells, 1))
+    end if
 
     domainID = self%indices(iDomain)
 
@@ -633,15 +682,14 @@ contains
 
       ! free L1 variables if chunk read is activated
       if (self%timeStep_model_inputs(iDomain) .ne. 0) then
-        if (allocated(self%L1_pre)) deallocate(self%L1_pre)
-        if (allocated(self%L1_temp)) deallocate(self%L1_temp)
-        if (allocated(self%L1_pet)) deallocate(self%L1_pet)
-        if (allocated(self%L1_tmin)) deallocate(self%L1_tmin)
-        if (allocated(self%L1_tmax)) deallocate(self%L1_tmax)
-        if (allocated(self%L1_netrad)) deallocate(self%L1_netrad)
-        if (allocated(self%L1_absvappress)) deallocate(self%L1_absvappress)
-        if (allocated(self%L1_windspeed)) deallocate(self%L1_windspeed)
-        ! TODO-RIV-TEMP: deallocate riv-temp related vars also
+        if (.not. pre_couple .and. allocated(self%L1_pre)) deallocate(self%L1_pre)
+        if (.not. temp_couple .and. allocated(self%L1_temp)) deallocate(self%L1_temp)
+        if (.not. pet_couple .and. allocated(self%L1_pet)) deallocate(self%L1_pet)
+        if (.not. tmin_couple .and. allocated(self%L1_tmin)) deallocate(self%L1_tmin)
+        if (.not. tmax_couple .and. allocated(self%L1_tmax)) deallocate(self%L1_tmax)
+        if (.not. netrad_couple .and. allocated(self%L1_netrad)) deallocate(self%L1_netrad)
+        if (.not. absvappress_couple .and. allocated(self%L1_absvappress)) deallocate(self%L1_absvappress)
+        if (.not. windspeed_couple .and. allocated(self%L1_windspeed)) deallocate(self%L1_windspeed)
       end if
 
       !  Domain characteristics and read meteo header
@@ -651,10 +699,7 @@ contains
       end if
 
       ! precipitation
-      if (self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_pre) then
-        ! only allocate the array with correct size
-        allocate(self%L1_pre(level1(iDomain)%nCells, 1))
-      else
+      if (.not. pre_couple) then
         if (self%single_read(iDomain)) call message('    read precipitation        ...')
         ! upper bound: 1825 mm/d in La Réunion 7-8 Jan 1966
         call meteo_forcings_wrapper(iDomain, self%dirPrecipitation(iDomain), self%inputFormat_meteo_forcings, &
@@ -750,9 +795,9 @@ contains
       if ( self%riv_temp_case .ne. 0 ) then
         ! free L1 variables if chunk read is activated
         if (self%timeStep_model_inputs(iDomain) .ne. 0) then
-          if (allocated(self%L1_ssrd)) deallocate(self%L1_ssrd)
-          if (allocated(self%L1_strd)) deallocate(self%L1_strd)
-          if (allocated(self%L1_tann)) deallocate(self%L1_tann)
+          if (.not. ssrd_couple .and. allocated(self%L1_ssrd)) deallocate(self%L1_ssrd)
+          if (.not. strd_couple .and. allocated(self%L1_strd)) deallocate(self%L1_strd)
+          if (.not. tann_couple .and. allocated(self%L1_tann)) deallocate(self%L1_tann)
         end if
         if (self%single_read(iDomain)) call message('    read short-wave radiation ...')
         call meteo_forcings_wrapper( &
@@ -781,8 +826,12 @@ contains
     end if
 
     ! set hourly flag
-    self%is_hourly_forcing = (self%nTstepForcingDay .eq. 24_i4)
-
+    if (self%all_coupled) then
+      self%nTstepForcingDay = int(one_day() / self%couple_step_delta, i4)
+      self%is_hourly_forcing = self%couple_step_delta == one_hour()
+    else
+      self%is_hourly_forcing = (self%nTstepForcingDay .eq. 24_i4)
+    end if
   end subroutine prepare_data
 
   !> \brief get corrected PET for the current timestep and domain
@@ -1026,13 +1075,19 @@ contains
       curr_dt = datetime(year, month, day, hour)
       meteo_time_delta = curr_dt - self%couple_pre_time
       ! check that the precipitation from the interface has the correct time-stamp
-      if (meteo_time_delta < zero_delta .or. meteo_time_delta >= self%couple_step_delta) &
+      if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
         call error_message("meteo_handler: precipitation was expected from coupler, but has a wrong time-stamp.")
       mTS = 1_i4
-      is_hourly = self%couple_cfg%meteo_timestep == 1_i4
+      is_hourly = self%couple_step_delta == one_hour()
     else
       mTS = self%iMeteoTS
       is_hourly = self%is_hourly_forcing
+    end if
+
+    ! shortcut hourly data
+    if (is_hourly) then
+      prec_calc(:) = self%L1_pre(self%s_meteo : self%e_meteo, mTS)
+      return
     end if
 
     ! flag for day or night depending on hours of the day
@@ -1047,25 +1102,21 @@ contains
       i = self%s_meteo - 1 + k
 
       ! temporal disaggreagtion of forcing variables
-      if (is_hourly) then
-        prec_calc(k) = self%L1_pre(i, mTS)
+      if (self%read_meteo_weights) then
+        ! all meteo forcings are disaggregated with given weights
+        call temporal_disagg_meteo_weights( &
+          meteo_val_day=self%L1_pre(i, mTS), &
+          meteo_val_weights=self%L1_pre_weights(s1 - 1 + k, month, hour + 1), &
+          meteo_val=prec_calc(k))
       else
-        if (self%read_meteo_weights) then
-          ! all meteo forcings are disaggregated with given weights
-          call temporal_disagg_meteo_weights( &
-            meteo_val_day=self%L1_pre(i, mTS), &
-            meteo_val_weights=self%L1_pre_weights(s1 - 1 + k, month, hour + 1), &
-            meteo_val=prec_calc(k))
-        else
-          ! all meteo forcings are disaggregated with day-night correction values
-          call temporal_disagg_flux_daynight( &
-            isday=isday, &
-            ntimesteps_day=self%nTstepDay_dp, &
-            meteo_val_day=self%L1_pre(i, mTS), &
-            fday_meteo_val=self%fday_prec(month), &
-            fnight_meteo_val=self%fnight_prec(month), &
-            meteo_val=prec_calc(k))
-        end if
+        ! all meteo forcings are disaggregated with day-night correction values
+        call temporal_disagg_flux_daynight( &
+          isday=isday, &
+          ntimesteps_day=self%nTstepDay_dp, &
+          meteo_val_day=self%L1_pre(i, mTS), &
+          fday_meteo_val=self%fday_prec(month), &
+          fnight_meteo_val=self%fnight_prec(month), &
+          meteo_val=prec_calc(k))
       end if
     end do
     !$OMP end do
@@ -1261,12 +1312,19 @@ contains
       call error_message("meteo_handler%set_meteo: hour for the meteo date needs to be given if the timestep is not daily.")
     input_time = datetime(year, month, day, hour_)
 
+    ! fix input time, if reference point is at the end of the time interval
+    if (self%couple_cfg%meteo_time_ref_endpoint) input_time = input_time - self%couple_step_delta
+
+    ! check if input time matches the required time step
+    if (mod(input_time%hour, self%couple_cfg%meteo_timestep) /= 0) &
+      call error_message("meteo_handler%set_meteo: given time doesn't match couple timestep: ", input_time%str())
+
     ! precipitation
     if (present(pre)) then
       if (.not. self%couple_cfg%meteo_expect_pre) &
         call error_message("meteo_handler%set_meteo: precipitation was not set to be coupled.")
       self%couple_pre_time = input_time
-      self%L1_pre(self%s_meteo : self%e_meteo, 1_i4) = pre(:)
+      self%L1_pre(:, 1_i4) = pre(:)
     end if
 
   end subroutine set_meteo

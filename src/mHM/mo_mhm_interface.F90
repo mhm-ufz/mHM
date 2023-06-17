@@ -167,7 +167,7 @@ contains
     call message('  Initialize domains ...')
     call timer_start(itimer)
     call mhm_initialize()
-    call meteo_handler%initialize(level0)
+    call meteo_handler%initialize(level0, level1)
     call timer_stop(itimer)
     call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
     if (processMatrix(8, 1) > 0) &
