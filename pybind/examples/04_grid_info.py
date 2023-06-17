@@ -21,3 +21,5 @@ print("L2 :", mhm.get.l2_domain_size(domain=1))
 print("L2 :", mhm.get.l2_domain_shape(domain=1))
 print("L2 :", mhm.get.l2_domain_mask(*shp, domain=1))
 print(msk.shape)
+
+mhm.model.finalize()

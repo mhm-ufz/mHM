@@ -17,7 +17,7 @@ times = [dt.combine(d, t) for d, t in zip(pre.time.dt.date.data, pre.time.dt.tim
 meteo_ts = (times[1] - times[0]) // td(hours=1)  # 1 or 24
 
 # only show errors
-mhm.model.set_verbosity(level=2)
+mhm.model.set_verbosity(level=1)
 # configure coupling and init model
 mhm.model.config_coupling(meteo_expect_pre=True, meteo_timestep=meteo_ts)
 mhm.model.init(cwd=test_domain)

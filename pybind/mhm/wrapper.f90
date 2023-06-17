@@ -443,6 +443,7 @@ contains
 
   !> \brief Get a variable on Level-0 of the mHM model.
   subroutine L0_variable(output, name, idx, n)
+    use mo_message, only : error_message
     use mo_common_run_variables, only : run_cfg
     use mo_common_variables, only : level0, domainMeta
     use mo_mpr_global_variables, only : L0_gridded_LAI
@@ -461,8 +462,7 @@ contains
       case("L0_GRIDDED_LAI")
         output = L0_gridded_LAI(s0 : e0, idx)
       case default
-        print*, "unknown variable: " // name
-        stop "get.L0_variable: unknown variable"
+        call error_message("get.L0_variable: unkown variable name: ", name)
     end select
   end subroutine L0_variable
 
@@ -556,6 +556,7 @@ contains
 
   !> \brief Get a variable on Level-1 of the mHM model.
   subroutine L1_variable(output, name, idx, n)
+    use mo_message, only : error_message
     use mo_common_run_variables, only : run_cfg
     use mo_mpr_global_variables, only : &
       L1_fSealed, & ! 1d
@@ -644,8 +645,7 @@ contains
       case("L1_INFILSOIL")
         output = L1_infilSoil(run_cfg%s1 : run_cfg%e1, idx)
       case default
-        print*, "unknown variable: " // name
-        stop "get.variable: unknown variable"
+        call error_message("get.L1_variable: unkown variable name: ", name)
     end select
   end subroutine L1_variable
 
@@ -738,6 +738,7 @@ contains
 
   !> \brief Get a variable on Level-11 of the mHM model.
   subroutine L11_variable(output, name, idx, n)
+    use mo_message, only : error_message
     use mo_common_run_variables, only : run_cfg
     use mo_mrm_global_variables, only : &
       L11_qMod, &
@@ -760,8 +761,7 @@ contains
       case("L11_QTR")
         output = L11_qTR(run_cfg%s11 : run_cfg%e11, idx)
       case default
-        print*, "unknown variable: " // name
-        stop "get.L11_variable: unknown variable"
+        call error_message("get.L11_variable: unkown variable name: ", name)
     end select
   end subroutine L11_variable
 
@@ -867,6 +867,7 @@ contains
 
   !> \brief Set a variable on Level-0 of the mHM model.
   subroutine L0_variable(input, name, idx, n)
+    use mo_message, only: error_message
     use mo_common_run_variables, only : run_cfg
     use mo_common_variables, only : level0, domainMeta
     use mo_mpr_global_variables, only : L0_gridded_LAI
@@ -885,8 +886,7 @@ contains
       case("L0_GRIDDED_LAI")
         L0_gridded_LAI(s0 : e0, idx) = input
       case default
-        print*, "unknown variable: " // name
-        stop "set.L0_variable: unknown variable"
+        call error_message("set.L0_variable: unkown variable name: ", name)
     end select
   end subroutine L0_variable
 
@@ -895,10 +895,10 @@ contains
 
   !> \brief Set a meteo variable on Level-1 of the mHM model.
   subroutine meteo(input, name, year, month, day, hour, n)
+    use mo_message, only: error_message
     use mo_common_run_variables, only : run_cfg
     use mo_common_variables, only : level1, domainMeta
     use mo_global_variables, only : meteo_handler
-    use mo_message, only: error_message
     implicit none
     integer(i4) :: n !< size of the variable
     real(dp), intent(in) :: input(n) !< the variable value
@@ -912,7 +912,7 @@ contains
       case("PRE")
         call meteo_handler%set_meteo(year=year, month=month, day=day, hour=hour, pre=input)
       case default
-        call error_message("set::meteo: unkown variable name: ", name)
+        call error_message("set.meteo: unkown variable name: ", name)
     end select
   end subroutine meteo
 end module set
