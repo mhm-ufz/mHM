@@ -14,6 +14,73 @@ module model
   use mo_kind, only : i4, dp
   implicit none
 contains
+
+  !> \brief Configure coupling mode of mHM.
+  !> \details This will prevent reading the "coupling" namelist.
+  subroutine config_coupling( &
+    case, &
+    meteo_timestep, &
+    meteo_time_ref_endpoint, &
+    meteo_expect_pre, &
+    meteo_expect_temp, &
+    meteo_expect_pet, &
+    meteo_expect_tmin, &
+    meteo_expect_tmax, &
+    meteo_expect_netrad, &
+    meteo_expect_absvappress, &
+    meteo_expect_windspeed, &
+    meteo_expect_ssrd, &
+    meteo_expect_strd, &
+    meteo_expect_tann &
+  )
+    use mo_global_variables, only: couple_cfg
+    implicit none
+    integer(i4), intent(in) :: case                 !< coupling case
+    !f2py integer :: case = 1
+    integer(i4), intent(in) :: meteo_timestep       !< timestep for meteo-data from coupling
+    !f2py integer :: meteo_timestep = 24
+    logical, intent(in) :: meteo_time_ref_endpoint  !< expect meteo has time reference point at end of time interval
+    !f2py logical :: meteo_time_ref_endpoint = 0
+    logical, intent(in) :: meteo_expect_pre         !< expect meteo from coupling: [mm]      Precipitation
+    !f2py logical :: meteo_expect_pre = 0
+    logical, intent(in) :: meteo_expect_temp        !< expect meteo from coupling: [degC]    Air temperature
+    !f2py logical :: meteo_expect_temp = 0
+    logical, intent(in) :: meteo_expect_pet         !< expect meteo from coupling: [mm TS-1] Potential evapotranspiration
+    !f2py logical :: meteo_expect_pet = 0
+    logical, intent(in) :: meteo_expect_tmin        !< expect meteo from coupling: [degC]    minimum daily air temperature
+    !f2py logical :: meteo_expect_tmin = 0
+    logical, intent(in) :: meteo_expect_tmax        !< expect meteo from coupling: [degC]    maximum daily air temperature
+    !f2py logical :: meteo_expect_tmax = 0
+    logical, intent(in) :: meteo_expect_netrad      !< expect meteo from coupling: [W m2]    net radiation
+    !f2py logical :: meteo_expect_netrad = 0
+    logical, intent(in) :: meteo_expect_absvappress !< expect meteo from coupling: [Pa]      absolute vapour pressure
+    !f2py logical :: meteo_expect_absvappress = 0
+    logical, intent(in) :: meteo_expect_windspeed   !< expect meteo from coupling: [m s-1]   windspeed
+    !f2py logical :: meteo_expect_windspeed = 0
+    logical, intent(in) :: meteo_expect_ssrd        !< expect meteo from coupling: [W m2]    short wave radiation
+    !f2py logical :: meteo_expect_ssrd = 0
+    logical, intent(in) :: meteo_expect_strd        !< expect meteo from coupling: [W m2]    long wave radiation
+    !f2py logical :: meteo_expect_strd = 0
+    logical, intent(in) :: meteo_expect_tann        !< expect meteo from coupling: [degC]    annual mean air temperature
+    !f2py logical :: meteo_expect_tann = 0
+    call couple_cfg%set_config( &
+      case, &
+      meteo_timestep, &
+      meteo_time_ref_endpoint, &
+      meteo_expect_pre, &
+      meteo_expect_temp, &
+      meteo_expect_pet, &
+      meteo_expect_tmin, &
+      meteo_expect_tmax, &
+      meteo_expect_netrad, &
+      meteo_expect_absvappress, &
+      meteo_expect_windspeed, &
+      meteo_expect_ssrd, &
+      meteo_expect_strd, &
+      meteo_expect_tann &
+    )
+  end subroutine config_coupling
+
   !> \brief Initialize a mHM model.
   subroutine init(namelist_mhm, namelist_mhm_param, namelist_mhm_output, namelist_mrm_output, cwd)
     use mo_mhm_interface, only: mhm_interface_init
@@ -375,7 +442,7 @@ contains
   !> \brief access Level 0 information and variables
 
   !> \brief Get a variable on Level-0 of the mHM model.
-  subroutine L0_variable(output, n, name, idx)
+  subroutine L0_variable(output, name, idx, n)
     use mo_common_run_variables, only : run_cfg
     use mo_common_variables, only : level0, domainMeta
     use mo_mpr_global_variables, only : L0_gridded_LAI
@@ -488,7 +555,7 @@ contains
   !> \brief access Level 1 information and variables
 
   !> \brief Get a variable on Level-1 of the mHM model.
-  subroutine L1_variable(output, n, name, idx)
+  subroutine L1_variable(output, name, idx, n)
     use mo_common_run_variables, only : run_cfg
     use mo_mpr_global_variables, only : &
       L1_fSealed, & ! 1d
@@ -670,7 +737,7 @@ contains
   !> \brief access Level 11 information and variables
 
   !> \brief Get a variable on Level-11 of the mHM model.
-  subroutine L11_variable(output, n, name, idx)
+  subroutine L11_variable(output, name, idx, n)
     use mo_common_run_variables, only : run_cfg
     use mo_mrm_global_variables, only : &
       L11_qMod, &
@@ -799,7 +866,7 @@ contains
   !> \brief alter Level 0 variables
 
   !> \brief Set a variable on Level-0 of the mHM model.
-  subroutine L0_variable(input, n, name, idx)
+  subroutine L0_variable(input, name, idx, n)
     use mo_common_run_variables, only : run_cfg
     use mo_common_variables, only : level0, domainMeta
     use mo_mpr_global_variables, only : L0_gridded_LAI
@@ -822,4 +889,30 @@ contains
         stop "set.L0_variable: unknown variable"
     end select
   end subroutine L0_variable
+
+  !> \name Meteo
+  !> \brief set meteo values
+
+  !> \brief Set a meteo variable on Level-1 of the mHM model.
+  subroutine meteo(input, name, year, month, day, hour, n)
+    use mo_common_run_variables, only : run_cfg
+    use mo_common_variables, only : level1, domainMeta
+    use mo_global_variables, only : meteo_handler
+    use mo_message, only: error_message
+    implicit none
+    integer(i4) :: n !< size of the variable
+    real(dp), intent(in) :: input(n) !< the variable value
+    character(*), intent(in) :: name !< name to select the variable
+    integer(i4), intent(in) :: year !< year of the input time
+    integer(i4), intent(in) :: month !< month of the input time
+    integer(i4), intent(in) :: day !< day of the input time
+    integer(i4), intent(in) :: hour !< optional hour of the input time
+    !f2py integer :: hour = 0
+    select case(name)
+      case("PRE")
+        call meteo_handler%set_meteo(year=year, month=month, day=day, hour=hour, pre=input)
+      case default
+        call error_message("set::meteo: unkown variable name: ", name)
+    end select
+  end subroutine meteo
 end module set
