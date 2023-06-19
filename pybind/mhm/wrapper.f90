@@ -18,7 +18,7 @@ contains
   !> \brief Configure coupling mode of mHM.
   !> \details This will prevent reading the "coupling" namelist.
   subroutine config_coupling( &
-    case, &
+    couple_case, &
     meteo_timestep, &
     meteo_time_ref_endpoint, &
     meteo_expect_pre, &
@@ -35,8 +35,8 @@ contains
   )
     use mo_global_variables, only: couple_cfg
     implicit none
-    integer(i4), intent(in) :: case                 !< coupling case
-    !f2py integer :: case = 1
+    integer(i4), intent(in) :: couple_case          !< coupling case
+    !f2py integer :: couple_case = 1
     integer(i4), intent(in) :: meteo_timestep       !< timestep for meteo-data from coupling
     !f2py integer :: meteo_timestep = 24
     logical, intent(in) :: meteo_time_ref_endpoint  !< expect meteo has time reference point at end of time interval
@@ -64,7 +64,7 @@ contains
     logical, intent(in) :: meteo_expect_tann        !< expect meteo from coupling: [degC]    annual mean air temperature
     !f2py logical :: meteo_expect_tann = 0
     call couple_cfg%set_config( &
-      case, &
+      couple_case, &
       meteo_timestep, &
       meteo_time_ref_endpoint, &
       meteo_expect_pre, &
@@ -911,6 +911,8 @@ contains
     select case(name)
       case("PRE")
         call meteo_handler%set_meteo(year=year, month=month, day=day, hour=hour, pre=input)
+      case("TEMP")
+        call meteo_handler%set_meteo(year=year, month=month, day=day, hour=hour, temp=input)
       case default
         call error_message("set.meteo: unkown variable name: ", name)
     end select

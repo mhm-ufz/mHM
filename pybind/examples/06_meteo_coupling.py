@@ -11,13 +11,19 @@ import mhm
 here = Path(__file__).parent
 test_domain = here / ".." / ".." / "test_domain"
 pre = xr.open_dataset(test_domain / "input" / "meteo" / "pre" / "pre.nc")
+temp = xr.open_dataset(test_domain / "input" / "meteo" / "tavg" / "tavg.nc")
 
-# determine meteo timestep from first two time stamps
+# determine meteo timestep from first two time stamps (in pre)
 times = [dt.combine(d, t) for d, t in zip(pre.time.dt.date.data, pre.time.dt.time.data)]
 meteo_ts = (times[1] - times[0]) // td(hours=1)  # 1 or 24
 
 # configure coupling and init model
-mhm.model.config_coupling(meteo_expect_pre=True, meteo_timestep=meteo_ts)
+mhm.model.config_coupling(
+    couple_case=1,
+    meteo_expect_pre=True,
+    meteo_expect_temp=True,
+    meteo_timestep=meteo_ts,
+)
 mhm.model.init(cwd=test_domain)
 # coupled run only supports one domain
 mhm.run.prepare()
@@ -27,6 +33,7 @@ while not mhm.run.finished():
     time = dt(*mhm.run.current_time())
     if time.hour % meteo_ts == 0:
         mhm.set_meteo(time=time, pre=pre["pre"].sel(time=time).data)
+        mhm.set_meteo(time=time, temp=temp["tavg"].sel(time=time).data)
     mhm.run.do_time_step()
     mhm.run.write_output()
 mhm.run.finalize_domain()
