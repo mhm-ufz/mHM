@@ -158,7 +158,18 @@ module mo_meteo_handler
     type(datetime) :: couple_ssrd_time !< current time from coupling for ssrd
     type(datetime) :: couple_strd_time !< current time from coupling for strd
     type(datetime) :: couple_tann_time !< current time from coupling for tann
-    logical :: all_coupled !< flag to indicated that all meteo-data is coming from the coupler
+    logical, public :: couple_pre !< coupling config for pre
+    logical, public :: couple_temp !< coupling config for temp
+    logical, public :: couple_pet !< coupling config for pet
+    logical, public :: couple_tmin !< coupling config for tmin
+    logical, public :: couple_tmax !< coupling config for tmax
+    logical, public :: couple_netrad !< coupling config for netrad
+    logical, public :: couple_absvappress !< coupling config for absvappress
+    logical, public :: couple_windspeed !< coupling config for windspeed
+    logical, public :: couple_ssrd !< coupling config for ssrd
+    logical, public :: couple_strd !< coupling config for strd
+    logical, public :: couple_tann !< coupling config for tann
+    logical, public :: couple_all !< flag to indicated that all meteo-data is coming from the coupler
   contains
     !> \copydoc mo_meteo_handler::clean_up
     procedure :: clean_up !< \see mo_meteo_handler::clean_up
@@ -166,8 +177,8 @@ module mo_meteo_handler
     procedure :: config !< \see mo_meteo_handler::config
     !> \copydoc mo_meteo_handler::single_read
     procedure :: single_read !< \see mo_meteo_handler::single_read
-    !> \copydoc mo_meteo_handler::initialize
-    procedure :: initialize !< \see mo_meteo_handler::initialize
+    !> \copydoc mo_meteo_handler::init_level2
+    procedure :: init_level2 !< \see mo_meteo_handler::init_level2
     !> \copydoc mo_meteo_handler::prepare_data
     procedure :: prepare_data !< \see mo_meteo_handler::prepare_data
     !> \copydoc mo_meteo_handler::update_timestep
@@ -402,7 +413,18 @@ contains
     call close_nml(unamelist)
 
     ! check coupling configuration matching process cases
-    self%all_coupled = .false.
+    self%couple_all = .false.
+    self%couple_pre = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_pre
+    self%couple_temp = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_temp
+    self%couple_pet = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_pet
+    self%couple_tmin = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_tmin
+    self%couple_tmax = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_tmax
+    self%couple_netrad = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_netrad
+    self%couple_absvappress = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_absvappress
+    self%couple_windspeed = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_windspeed
+    self%couple_ssrd = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_ssrd
+    self%couple_strd = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_strd
+    self%couple_tann = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_tann
     if (self%couple_cfg%active()) then
       self%couple_step_delta = timedelta(hours=self%couple_cfg%meteo_timestep)
       ! default init values for coupling times: 0001-01-01
@@ -420,10 +442,10 @@ contains
       if (self%couple_cfg%meteo_expect_strd) self%couple_strd_time = datetime()
       if (self%couple_cfg%meteo_expect_tann) self%couple_tann_time = datetime()
       ! PET related meteo
-      self%all_coupled = self%couple_cfg%meteo_expect_pre .and. self%couple_cfg%meteo_expect_temp
+      self%couple_all = self%couple_cfg%meteo_expect_pre .and. self%couple_cfg%meteo_expect_temp
       select case (self%pet_case)
         case(-1 : 0) ! pet is input
-          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_pet
+          self%couple_all = self%couple_all .and. self%couple_cfg%meteo_expect_pet
           if (self%couple_cfg%meteo_expect_tmin) call error_message("Coupling: tmin expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_tmax) call error_message("Coupling: tmax expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_netrad) call error_message("Coupling: netrad expected but not needed for PET.")
@@ -431,15 +453,15 @@ contains
           if (self%couple_cfg%meteo_expect_windspeed) call error_message("Coupling: windspeed expected but not needed for PET.")
 
         case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
-          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_tmin
-          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_tmax
+          self%couple_all = self%couple_all .and. self%couple_cfg%meteo_expect_tmin
+          self%couple_all = self%couple_all .and. self%couple_cfg%meteo_expect_tmax
           if (self%couple_cfg%meteo_expect_pet) call error_message("Coupling: pet expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_netrad) call error_message("Coupling: netrad expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_absvappress) call error_message("Coupling: absvappress expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_windspeed) call error_message("Coupling: windspeed expected but not needed for PET.")
 
         case(2) ! Priestley-Taylor formulation (input: net radiation)
-          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_netrad
+          self%couple_all = self%couple_all .and. self%couple_cfg%meteo_expect_netrad
           if (self%couple_cfg%meteo_expect_pet) call error_message("Coupling: pet expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_tmin) call error_message("Coupling: tmin expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_tmax) call error_message("Coupling: tmax expected but not needed for PET.")
@@ -447,9 +469,9 @@ contains
           if (self%couple_cfg%meteo_expect_windspeed) call error_message("Coupling: windspeed expected but not needed for PET.")
 
         case(3) ! Penman-Monteith formulation (input: net radiationm absulute vapour pressure, windspeed)
-          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_netrad
-          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_absvappress
-          self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_windspeed
+          self%couple_all = self%couple_all .and. self%couple_cfg%meteo_expect_netrad
+          self%couple_all = self%couple_all .and. self%couple_cfg%meteo_expect_absvappress
+          self%couple_all = self%couple_all .and. self%couple_cfg%meteo_expect_windspeed
           if (self%couple_cfg%meteo_expect_pet) call error_message("Coupling: pet expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_tmin) call error_message("Coupling: tmin expected but not needed for PET.")
           if (self%couple_cfg%meteo_expect_tmax) call error_message("Coupling: tmax expected but not needed for PET.")
@@ -460,9 +482,9 @@ contains
         if (self%couple_cfg%meteo_expect_strd) call error_message("Coupling: strd expected but river temperature not activated.")
         if (self%couple_cfg%meteo_expect_tann) call error_message("Coupling: tann expected but river temperature not activated.")
       else
-        self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_ssrd
-        self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_strd
-        self%all_coupled = self%all_coupled .and. self%couple_cfg%meteo_expect_tann
+        self%couple_all = self%couple_all .and. self%couple_cfg%meteo_expect_ssrd
+        self%couple_all = self%couple_all .and. self%couple_cfg%meteo_expect_strd
+        self%couple_all = self%couple_all .and. self%couple_cfg%meteo_expect_tann
       end if
     end if
   end subroutine config
@@ -477,7 +499,7 @@ contains
   end function single_read
 
   !> \brief Initialize meteo data and level-2 grid
-  subroutine initialize(self, level0, level1)
+  subroutine init_level2(self, level0, level1)
 
     use mo_grid, only : set_domain_indices
     use mo_common_types, only : grid
@@ -506,7 +528,7 @@ contains
     allocate(self%level2(self%nDomains))
 
     ! we don't need level 2 if all meteo data comes from the coupler
-    if (self%all_coupled) then
+    if (self%couple_all) then
       self%level2(:) = level1(:)
       return
     end if
@@ -544,7 +566,7 @@ contains
     ! set indices
     call set_domain_indices(self%level2)
 
-  end subroutine initialize
+  end subroutine init_level2
 
   !> \brief update the current time-step of the \ref meteo_handler_type class
   subroutine update_timestep(self, tt, time, iDomain, level1, simPer)
@@ -567,7 +589,7 @@ contains
     self%time = time
 
     ! time increment is done right after call to mrm (and initially before looping)
-    if (self%single_read(iDomain) .or. self%all_coupled) then
+    if (self%single_read(iDomain) .or. self%couple_all) then
       ! whole meteorology is already read or all meteo is coupled
 
       ! set start and end of meteo position
@@ -576,7 +598,7 @@ contains
 
       ! time step for meteorological variable (daily values)
       ! iMeteoTS = ceiling(real(tt, dp) / real(nTstepDay, dp))
-      if (self%all_coupled) then
+      if (self%couple_all) then
         self%iMeteoTS = 1_i4
       else
         self%iMeteoTS = ceiling(real(tt, dp) / real(nint( 24._dp / real(self%nTstepForcingDay, dp)), dp))
@@ -636,25 +658,19 @@ contains
     ! indicate whether data should be read
     logical :: read_flag
     integer(i4) :: domainID ! current domain ID
-    logical :: pre_couple, temp_couple, pet_couple, tmin_couple, tmax_couple, netrad_couple, absvappress_couple, windspeed_couple
-    logical :: ssrd_couple, strd_couple, tann_couple
 
-    pre_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_pre
-    temp_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_temp
-    pet_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_pet
-    tmin_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_tmin
-    tmax_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_tmax
-    netrad_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_netrad
-    absvappress_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_absvappress
-    windspeed_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_windspeed
-    ssrd_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_ssrd
-    strd_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_strd
-    tann_couple = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_tann
-
-    if (pre_couple) then
-      ! only allocate the array with correct size
-      allocate(self%L1_pre(level1(iDomain)%nCells, 1))
-    end if
+    ! allocate arrays only once if they are coupled
+    if (self%couple_pre .and. .not. allocated(self%L1_pre)) allocate(self%L1_pre(level1(iDomain)%nCells, 1))
+    if (self%couple_temp .and. .not. allocated(self%L1_temp)) allocate(self%L1_temp(level1(iDomain)%nCells, 1))
+    if (self%couple_pet .and. .not. allocated(self%L1_pet)) allocate(self%L1_pet(level1(iDomain)%nCells, 1))
+    if (self%couple_tmin .and. .not. allocated(self%L1_tmin)) allocate(self%L1_tmin(level1(iDomain)%nCells, 1))
+    if (self%couple_tmax .and. .not. allocated(self%L1_tmax)) allocate(self%L1_tmax(level1(iDomain)%nCells, 1))
+    if (self%couple_netrad .and. .not. allocated(self%L1_netrad)) allocate(self%L1_netrad(level1(iDomain)%nCells, 1))
+    if (self%couple_absvappress .and. .not. allocated(self%L1_absvappress)) allocate(self%L1_absvappress(level1(iDomain)%nCells, 1))
+    if (self%couple_windspeed .and. .not. allocated(self%L1_windspeed)) allocate(self%L1_windspeed(level1(iDomain)%nCells, 1))
+    if (self%couple_ssrd .and. .not. allocated(self%L1_ssrd)) allocate(self%L1_ssrd(level1(iDomain)%nCells, 1))
+    if (self%couple_strd .and. .not. allocated(self%L1_strd)) allocate(self%L1_strd(level1(iDomain)%nCells, 1))
+    if (self%couple_tann .and. .not. allocated(self%L1_tann)) allocate(self%L1_tann(level1(iDomain)%nCells, 1))
 
     domainID = self%indices(iDomain)
 
@@ -682,14 +698,14 @@ contains
 
       ! free L1 variables if chunk read is activated
       if (self%timeStep_model_inputs(iDomain) .ne. 0) then
-        if (.not. pre_couple .and. allocated(self%L1_pre)) deallocate(self%L1_pre)
-        if (.not. temp_couple .and. allocated(self%L1_temp)) deallocate(self%L1_temp)
-        if (.not. pet_couple .and. allocated(self%L1_pet)) deallocate(self%L1_pet)
-        if (.not. tmin_couple .and. allocated(self%L1_tmin)) deallocate(self%L1_tmin)
-        if (.not. tmax_couple .and. allocated(self%L1_tmax)) deallocate(self%L1_tmax)
-        if (.not. netrad_couple .and. allocated(self%L1_netrad)) deallocate(self%L1_netrad)
-        if (.not. absvappress_couple .and. allocated(self%L1_absvappress)) deallocate(self%L1_absvappress)
-        if (.not. windspeed_couple .and. allocated(self%L1_windspeed)) deallocate(self%L1_windspeed)
+        if (.not. self%couple_pre .and. allocated(self%L1_pre)) deallocate(self%L1_pre)
+        if (.not. self%couple_temp .and. allocated(self%L1_temp)) deallocate(self%L1_temp)
+        if (.not. self%couple_pet .and. allocated(self%L1_pet)) deallocate(self%L1_pet)
+        if (.not. self%couple_tmin .and. allocated(self%L1_tmin)) deallocate(self%L1_tmin)
+        if (.not. self%couple_tmax .and. allocated(self%L1_tmax)) deallocate(self%L1_tmax)
+        if (.not. self%couple_netrad .and. allocated(self%L1_netrad)) deallocate(self%L1_netrad)
+        if (.not. self%couple_absvappress .and. allocated(self%L1_absvappress)) deallocate(self%L1_absvappress)
+        if (.not. self%couple_windspeed .and. allocated(self%L1_windspeed)) deallocate(self%L1_windspeed)
       end if
 
       !  Domain characteristics and read meteo header
@@ -699,7 +715,7 @@ contains
       end if
 
       ! precipitation
-      if (.not. pre_couple) then
+      if (.not. self%couple_pre) then
         if (self%single_read(iDomain)) call message('    read precipitation        ...')
         ! upper bound: 1825 mm/d in La Réunion 7-8 Jan 1966
         call meteo_forcings_wrapper(iDomain, self%dirPrecipitation(iDomain), self%inputFormat_meteo_forcings, &
@@ -709,21 +725,25 @@ contains
       end if
 
       ! temperature
-      if (self%single_read(iDomain)) call message('    read temperature          ...')
-      call meteo_forcings_wrapper(iDomain, self%dirTemperature(iDomain), self%inputFormat_meteo_forcings, &
-        dataOut1=self%L1_temp, &
-        readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-        lower = -100._dp, upper = 100._dp, ncvarName = 'tavg', bound_error=self%bound_error)
+      if (.not. self%couple_temp) then
+        if (self%single_read(iDomain)) call message('    read temperature          ...')
+        call meteo_forcings_wrapper(iDomain, self%dirTemperature(iDomain), self%inputFormat_meteo_forcings, &
+          dataOut1=self%L1_temp, &
+          readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
+          lower = -100._dp, upper = 100._dp, ncvarName = 'tavg', bound_error=self%bound_error)
+      end if
 
       ! read input for PET (process 5) depending on specified option
       ! 0 - input, 1 - Hargreaves-Samani, 2 - Priestley-Taylor, 3 - Penman-Monteith
       select case (self%pet_case)
         case(-1 : 0) ! pet is input
-          if (self%single_read(iDomain)) call message('    read pet                  ...')
-          call meteo_forcings_wrapper(iDomain, self%dirReferenceET(iDomain), self%inputFormat_meteo_forcings, &
-            dataOut1=self%L1_pet, &
-            readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pet', bound_error=self%bound_error)
+          if (.not. self%couple_pet) then
+            if (self%single_read(iDomain)) call message('    read pet                  ...')
+            call meteo_forcings_wrapper(iDomain, self%dirReferenceET(iDomain), self%inputFormat_meteo_forcings, &
+              dataOut1=self%L1_pet, &
+              readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
+              lower = 0.0_dp, upper = 1000._dp, ncvarName = 'pet', bound_error=self%bound_error)
+          end if
           ! allocate PET and dummies for mhm_call
           if ((iDomain.eq.self%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
             allocate(self%L1_tmin(1, 1))
@@ -735,15 +755,19 @@ contains
 
         case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
           if (self%single_read(iDomain)) call message('    read min. temperature     ...')
-          call meteo_forcings_wrapper(iDomain, self%dirMinTemperature(iDomain), self%inputFormat_meteo_forcings, &
-            dataOut1=self%L1_tmin, &
-            readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmin', bound_error=self%bound_error)
-          if (self%single_read(iDomain)) call message('    read max. temperature     ...')
-          call meteo_forcings_wrapper(iDomain, self%dirMaxTemperature(iDomain), self%inputFormat_meteo_forcings, &
-            dataOut1=self%L1_tmax, &
-            readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmax', bound_error=self%bound_error)
+          if (.not. self%couple_tmin) then
+            call meteo_forcings_wrapper(iDomain, self%dirMinTemperature(iDomain), self%inputFormat_meteo_forcings, &
+              dataOut1=self%L1_tmin, &
+              readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
+              lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmin', bound_error=self%bound_error)
+          end if
+          if (.not. self%couple_tmax) then
+            if (self%single_read(iDomain)) call message('    read max. temperature     ...')
+            call meteo_forcings_wrapper(iDomain, self%dirMaxTemperature(iDomain), self%inputFormat_meteo_forcings, &
+              dataOut1=self%L1_tmax, &
+              readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
+              lower = -100.0_dp, upper = 100._dp, ncvarName = 'tmax', bound_error=self%bound_error)
+          end if
           ! allocate PET and dummies for mhm_call
           if ((iDomain .eq. self%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
             allocate(self%L1_pet    (size(self%L1_tmax, dim = 1), size(self%L1_tmax, dim = 2)))
@@ -753,11 +777,13 @@ contains
           end if
 
         case(2) ! Priestley-Taylor formulation (input: net radiation)
-          if (self%single_read(iDomain)) call message('    read net radiation        ...')
-          call meteo_forcings_wrapper(iDomain, self%dirNetRadiation(iDomain), self%inputFormat_meteo_forcings, &
-            dataOut1=self%L1_netrad, &
-            readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad', bound_error=self%bound_error)
+          if (.not. self%couple_netrad) then
+            if (self%single_read(iDomain)) call message('    read net radiation        ...')
+            call meteo_forcings_wrapper(iDomain, self%dirNetRadiation(iDomain), self%inputFormat_meteo_forcings, &
+              dataOut1=self%L1_netrad, &
+              readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
+              lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad', bound_error=self%bound_error)
+          end if
           ! allocate PET and dummies for mhm_call
           if ((iDomain .eq. self%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
             allocate(self%L1_pet    (size(self%L1_netrad, dim = 1), size(self%L1_netrad, dim = 2)))
@@ -768,21 +794,27 @@ contains
           end if
 
         case(3) ! Penman-Monteith formulation (input: net radiationm absulute vapour pressure, windspeed)
-          if (self%single_read(iDomain)) call message('    read net radiation        ...')
-          call meteo_forcings_wrapper(iDomain, self%dirNetRadiation(iDomain), self%inputFormat_meteo_forcings, &
-            dataOut1=self%L1_netrad, &
-            readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad', bound_error=self%bound_error)
-          if (self%single_read(iDomain)) call message('    read absolute vapour pressure  ...')
-          call meteo_forcings_wrapper(iDomain, self%dirabsVapPressure(iDomain), self%inputFormat_meteo_forcings, &
-            dataOut1=self%L1_absvappress, &
-            readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = 0.0_dp, upper = 15000.0_dp, ncvarName = 'eabs', bound_error=self%bound_error)
-          if (self%single_read(iDomain)) call message('    read windspeed            ...')
-          call meteo_forcings_wrapper(iDomain, self%dirwindspeed(iDomain), self%inputFormat_meteo_forcings, &
-            dataOut1=self%L1_windspeed, &
-            readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-            lower = 0.0_dp, upper = 250.0_dp, ncvarName = 'windspeed', bound_error=self%bound_error)
+          if (.not. self%couple_netrad) then
+            if (self%single_read(iDomain)) call message('    read net radiation        ...')
+            call meteo_forcings_wrapper(iDomain, self%dirNetRadiation(iDomain), self%inputFormat_meteo_forcings, &
+              dataOut1=self%L1_netrad, &
+              readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
+              lower = -500.0_dp, upper = 1500._dp, ncvarName = 'net_rad', bound_error=self%bound_error)
+          end if
+          if (.not. self%couple_absvappress) then
+            if (self%single_read(iDomain)) call message('    read absolute vapour pressure  ...')
+            call meteo_forcings_wrapper(iDomain, self%dirabsVapPressure(iDomain), self%inputFormat_meteo_forcings, &
+              dataOut1=self%L1_absvappress, &
+              readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
+              lower = 0.0_dp, upper = 15000.0_dp, ncvarName = 'eabs', bound_error=self%bound_error)
+          end if
+          if (.not. self%couple_windspeed) then
+            if (self%single_read(iDomain)) call message('    read windspeed            ...')
+            call meteo_forcings_wrapper(iDomain, self%dirwindspeed(iDomain), self%inputFormat_meteo_forcings, &
+              dataOut1=self%L1_windspeed, &
+              readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
+              lower = 0.0_dp, upper = 250.0_dp, ncvarName = 'windspeed', bound_error=self%bound_error)
+          end if
           ! allocate PET and dummies for mhm_call
           if ((iDomain.eq.self%nDomains) .OR. (self%timeStep_model_inputs(iDomain) .NE. 0)) then
             allocate(self%L1_pet    (size(self%L1_absvappress, dim = 1), size(self%L1_absvappress, dim = 2)))
@@ -795,28 +827,34 @@ contains
       if ( self%riv_temp_case .ne. 0 ) then
         ! free L1 variables if chunk read is activated
         if (self%timeStep_model_inputs(iDomain) .ne. 0) then
-          if (.not. ssrd_couple .and. allocated(self%L1_ssrd)) deallocate(self%L1_ssrd)
-          if (.not. strd_couple .and. allocated(self%L1_strd)) deallocate(self%L1_strd)
-          if (.not. tann_couple .and. allocated(self%L1_tann)) deallocate(self%L1_tann)
+          if (.not. self%couple_ssrd .and. allocated(self%L1_ssrd)) deallocate(self%L1_ssrd)
+          if (.not. self%couple_strd .and. allocated(self%L1_strd)) deallocate(self%L1_strd)
+          if (.not. self%couple_tann .and. allocated(self%L1_tann)) deallocate(self%L1_tann)
         end if
-        if (self%single_read(iDomain)) call message('    read short-wave radiation ...')
-        call meteo_forcings_wrapper( &
-          iDomain, self%dirRadiation(iDomain), self%inputFormat_meteo_forcings, &
-          dataOut1=self%L1_ssrd, &
-          readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-          lower = 0.0_dp, upper = 1500._dp, ncvarName = 'ssrd', bound_error=self%bound_error)
-        if (self%single_read(iDomain)) call message('    read long-wave radiation ...')
-        call meteo_forcings_wrapper( &
-          iDomain, self%dirRadiation(iDomain), self%inputFormat_meteo_forcings, &
-          dataOut1=self%L1_strd, &
-          readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-          lower = 0.0_dp, upper = 1500._dp, ncvarName = 'strd', bound_error=self%bound_error)
-        if (self%single_read(iDomain)) call message('    read annual mean temperature ...')
-        call meteo_forcings_wrapper( &
-          iDomain, self%dirTemperature(iDomain), self%inputFormat_meteo_forcings, &
-          dataOut1=self%L1_tann, &
-          readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
-          lower = -100.0_dp, upper = 100._dp, ncvarName = 'tann', bound_error=self%bound_error)
+        if (.not. self%couple_ssrd) then
+          if (self%single_read(iDomain)) call message('    read short-wave radiation ...')
+          call meteo_forcings_wrapper( &
+            iDomain, self%dirRadiation(iDomain), self%inputFormat_meteo_forcings, &
+            dataOut1=self%L1_ssrd, &
+            readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
+            lower = 0.0_dp, upper = 1500._dp, ncvarName = 'ssrd', bound_error=self%bound_error)
+        end if
+        if (.not. self%couple_strd) then
+          if (self%single_read(iDomain)) call message('    read long-wave radiation ...')
+          call meteo_forcings_wrapper( &
+            iDomain, self%dirRadiation(iDomain), self%inputFormat_meteo_forcings, &
+            dataOut1=self%L1_strd, &
+            readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
+            lower = 0.0_dp, upper = 1500._dp, ncvarName = 'strd', bound_error=self%bound_error)
+        end if
+        if (.not. self%couple_tann) then
+          if (self%single_read(iDomain)) call message('    read annual mean temperature ...')
+          call meteo_forcings_wrapper( &
+            iDomain, self%dirTemperature(iDomain), self%inputFormat_meteo_forcings, &
+            dataOut1=self%L1_tann, &
+            readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
+            lower = -100.0_dp, upper = 100._dp, ncvarName = 'tann', bound_error=self%bound_error)
+        end if
       end if
 
       if (self%single_read(iDomain)) then
@@ -826,7 +864,7 @@ contains
     end if
 
     ! set hourly flag
-    if (self%all_coupled) then
+    if (self%couple_all) then
       self%nTstepForcingDay = int(one_day() / self%couple_step_delta, i4)
       self%is_hourly_forcing = self%couple_step_delta == one_hour()
     else
@@ -1071,7 +1109,7 @@ contains
 
     nCells1 = self%e1 - self%s1 + 1
     s1 = self%s1
-    if (self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_pre) then
+    if (self%couple_pre) then
       curr_dt = datetime(year, month, day, hour)
       meteo_time_delta = curr_dt - self%couple_pre_time
       ! check that the precipitation from the interface has the correct time-stamp
@@ -1321,7 +1359,7 @@ contains
 
     ! precipitation
     if (present(pre)) then
-      if (.not. self%couple_cfg%meteo_expect_pre) &
+      if (.not. self%couple_pre) &
         call error_message("meteo_handler%set_meteo: precipitation was not set to be coupled.")
       self%couple_pre_time = input_time
       self%L1_pre(:, 1_i4) = pre(:)
