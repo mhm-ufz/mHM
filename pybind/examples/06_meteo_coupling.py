@@ -3,7 +3,6 @@ from datetime import timedelta as td
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
 import xarray as xr
 
 import mhm
@@ -12,6 +11,7 @@ here = Path(__file__).parent
 test_domain = here / ".." / ".." / "test_domain"
 pre = xr.open_dataset(test_domain / "input" / "meteo" / "pre" / "pre.nc")
 temp = xr.open_dataset(test_domain / "input" / "meteo" / "tavg" / "tavg.nc")
+pet = xr.open_dataset(test_domain / "input" / "meteo" / "pet" / "pet.nc")
 
 # determine meteo timestep from first two time stamps (in pre)
 times = [dt.combine(d, t) for d, t in zip(pre.time.dt.date.data, pre.time.dt.time.data)]
@@ -22,6 +22,7 @@ mhm.model.config_coupling(
     couple_case=1,
     meteo_expect_pre=True,
     meteo_expect_temp=True,
+    meteo_expect_pet=True,
     meteo_timestep=meteo_ts,
 )
 mhm.model.init(cwd=test_domain)
@@ -34,6 +35,7 @@ while not mhm.run.finished():
     if time.hour % meteo_ts == 0:
         mhm.set_meteo(time=time, pre=pre["pre"].sel(time=time).data)
         mhm.set_meteo(time=time, temp=temp["tavg"].sel(time=time).data)
+        mhm.set_meteo(time=time, pet=pet["pet"].sel(time=time).data)
     mhm.run.do_time_step()
     mhm.run.write_output()
 mhm.run.finalize_domain()
@@ -43,6 +45,8 @@ runoff_sim_obs = mhm.get_runoff_eval(gauge_id=1)
 # this will deallocate all internal variables
 mhm.model.finalize()
 pre.close()
+temp.close()
+pet.close()
 
 # plotting
 plt.plot(runoff_sim_obs[:, 0])
