@@ -1021,24 +1021,39 @@ contains
     !> [degC] temperature for current time step
     real(dp), dimension(:), intent(inout) :: temp_calc
 
-    ! is day or night
-    logical :: isday
-    ! current hour of a given day
-    integer(i4) :: hour
-    ! Month of current day [1-12]
-    integer(i4) :: month
+    logical :: isday, is_hourly
+    integer(i4) :: year, month, day, hour
+    type(datetime) :: curr_dt
+    type(timedelta) :: meteo_time_delta
 
     ! number of L1 cells
     integer(i4) :: nCells1
     ! cell index
     integer(i4) :: k, i, s1, mTS
 
+    ! date and month of this timestep
+    call dec2date(self%time, yy=year, mm=month, dd=day, hh=hour)
+
     nCells1 = self%e1 - self%s1 + 1
     s1 = self%s1
-    mTS = self%iMeteoTS
+    if (self%couple_temp) then
+      curr_dt = datetime(year, month, day, hour)
+      meteo_time_delta = curr_dt - self%couple_temp_time
+      ! check that the temperature from the interface has the correct time-stamp
+      if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
+        call error_message("meteo_handler: temperature was expected from coupler, but has a wrong time-stamp.")
+      mTS = 1_i4
+      is_hourly = self%couple_step_delta == one_hour()
+    else
+      mTS = self%iMeteoTS
+      is_hourly = self%is_hourly_forcing
+    end if
 
-    ! date and month of this timestep
-    call dec2date(self%time, mm = month, hh = hour)
+    ! shortcut hourly data
+    if (is_hourly) then
+      temp_calc(:) = self%L1_temp(self%s_meteo : self%e_meteo, mTS)
+      return
+    end if
 
     ! flag for day or night depending on hours of the day
     isday = (hour .gt. 6) .AND. (hour .le. 18)
@@ -1051,28 +1066,23 @@ contains
       ! correct index on concatenated arrays
       i = self%s_meteo - 1 + k
 
-      ! temporal disaggreagtion of forcing variables
-      if (self%is_hourly_forcing) then
-        temp_calc(k) = self%L1_temp(i, mTS)
+      if (self%read_meteo_weights) then
+        ! all meteo forcings are disaggregated with given weights
+        call temporal_disagg_meteo_weights( &
+          meteo_val_day=self%L1_temp(i, mTS), &
+          meteo_val_weights=self%L1_temp_weights(s1 - 1 + k, month, hour + 1), &
+          meteo_val=temp_calc(k), &
+          weights_correction=T0_dp)
       else
-        if (self%read_meteo_weights) then
-          ! all meteo forcings are disaggregated with given weights
-          call temporal_disagg_meteo_weights( &
-            meteo_val_day=self%L1_temp(i, mTS), &
-            meteo_val_weights=self%L1_temp_weights(s1 - 1 + k, month, hour + 1), &
-            meteo_val=temp_calc(k), &
-            weights_correction=T0_dp)
-        else
-          ! all meteo forcings are disaggregated with day-night correction values
-          call temporal_disagg_state_daynight( &
-            isday=isday, &
-            ntimesteps_day=self%nTstepDay_dp, &
-            meteo_val_day=self%L1_temp(i, mTS), &
-            fday_meteo_val=self%fday_temp(month), &
-            fnight_meteo_val=self%fnight_temp(month), &
-            meteo_val=temp_calc(k), &
-            add_correction=.true.)
-        end if
+        ! all meteo forcings are disaggregated with day-night correction values
+        call temporal_disagg_state_daynight( &
+          isday=isday, &
+          ntimesteps_day=self%nTstepDay_dp, &
+          meteo_val_day=self%L1_temp(i, mTS), &
+          fday_meteo_val=self%fday_temp(month), &
+          fnight_meteo_val=self%fnight_temp(month), &
+          meteo_val=temp_calc(k), &
+          add_correction=.true.)
       end if
     end do
     !$OMP end do
@@ -1092,9 +1102,7 @@ contains
     !> [mm TS-1] precipitation for current time step
     real(dp), dimension(:), intent(inout) :: prec_calc
 
-    ! is day or night
     logical :: isday, is_hourly
-    ! current datetime
     integer(i4) :: year, month, day, hour
     type(datetime) :: curr_dt
     type(timedelta) :: meteo_time_delta
@@ -1363,6 +1371,14 @@ contains
         call error_message("meteo_handler%set_meteo: precipitation was not set to be coupled.")
       self%couple_pre_time = input_time
       self%L1_pre(:, 1_i4) = pre(:)
+    end if
+
+    ! temperature
+    if (present(temp)) then
+      if (.not. self%couple_temp) &
+        call error_message("meteo_handler%set_meteo: avg. temperature was not set to be coupled.")
+      self%couple_temp_time = input_time
+      self%L1_temp(:, 1_i4) = temp(:)
     end if
 
   end subroutine set_meteo
