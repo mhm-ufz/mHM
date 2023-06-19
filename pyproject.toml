@@ -52,6 +52,12 @@ Homepage = "https://www.mhm-ufz.org"
 Source = "https://www.mhm-ufz.org"
 Tracker = "https://www.mhm-ufz.org"
 
+[project.optional-dependencies]
+test = [
+    "pytest-cov>=3",
+    "xarray",
+]
+
 # https://github.com/pypa/setuptools/issues/3599
 [tool.setuptools]
 license-files = ["COPYING", "COPYING.LESSER", "LICENSE.md", "AUTHORS"]
