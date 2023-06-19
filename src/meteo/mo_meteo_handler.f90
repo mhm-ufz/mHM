@@ -170,6 +170,7 @@ module mo_meteo_handler
     logical, public :: couple_strd !< coupling config for strd
     logical, public :: couple_tann !< coupling config for tann
     logical, public :: couple_all !< flag to indicated that all meteo-data is coming from the coupler
+    logical, public :: couple_is_hourly !< flag to indicated hourly data from coupler
   contains
     !> \copydoc mo_meteo_handler::clean_up
     procedure :: clean_up !< \see mo_meteo_handler::clean_up
@@ -413,6 +414,7 @@ contains
     call close_nml(unamelist)
 
     ! check coupling configuration matching process cases
+    self%couple_is_hourly = .false.
     self%couple_all = .false.
     self%couple_pre = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_pre
     self%couple_temp = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_temp
@@ -427,6 +429,7 @@ contains
     self%couple_tann = self%couple_cfg%active() .and. self%couple_cfg%meteo_expect_tann
     if (self%couple_cfg%active()) then
       self%couple_step_delta = timedelta(hours=self%couple_cfg%meteo_timestep)
+      self%couple_is_hourly = self%couple_step_delta == one_hour()
       ! default init values for coupling times: 0001-01-01
       if (self%couple_cfg%meteo_expect_pre) self%couple_pre_time = datetime()
       if (self%couple_cfg%meteo_expect_temp) self%couple_temp_time = datetime()
@@ -680,7 +683,7 @@ contains
     ! only read, if read_flag is true
     if (read_flag) then
 
-      ! read weights for hourly disaggregation of temperature
+      ! read weights for hourly disaggregation
       if (tt .eq. 1) then
         ! TODO-RIV-TEMP: No NC files for weights for radiation at the moment
         if (self%single_read(iDomain)) call message('    read meteo weights for tavg     ...')
@@ -863,13 +866,49 @@ contains
       end if
     end if
 
-    ! set hourly flag
-    if (self%couple_all) then
-      self%nTstepForcingDay = int(one_day() / self%couple_step_delta, i4)
-      self%is_hourly_forcing = self%couple_step_delta == one_hour()
-    else
-      self%is_hourly_forcing = (self%nTstepForcingDay .eq. 24_i4)
+    if (tt .eq. 1) then
+      ! set hourly flags (once at begining)
+      if (self%couple_all) then
+        self%nTstepForcingDay = int(one_day() / self%couple_step_delta, i4)
+        self%is_hourly_forcing = self%couple_is_hourly
+      else
+        self%is_hourly_forcing = (self%nTstepForcingDay .eq. 24_i4)
+      end if
+
+      ! check hourly data for PET (once at begining)
+      select case (self%pet_case)
+        case(1) ! Hargreaves-Samani formulation
+          if (self%couple_temp .and. self%couple_tmin .and. self%couple_tmax) then
+            if (self%couple_is_hourly) call error_message("Coupling: PET - Hargreaves-Samani needs daily data. Got hourly.")
+          else if (self%couple_temp .or. self%couple_tmin .or. self%couple_tmax) then
+            if (self%couple_is_hourly) call error_message("Coupling: PET - Hargreaves-Samani needs daily data. Got hourly.")
+            if (self%is_hourly_forcing) call error_message("Meteo: PET - Hargreaves-Samani needs daily data. Got hourly.")
+          else
+            if (self%is_hourly_forcing) call error_message("Meteo: PET - Hargreaves-Samani needs daily data. Got hourly.")
+          end if
+
+        case(2) ! Priestley-Taylor formulation
+          if (self%couple_temp .and. self%couple_netrad) then
+            if (self%couple_is_hourly) call error_message("Coupling: PET - Priestley-Taylor needs daily data. Got hourly.")
+          else if (self%couple_temp .or. self%couple_netrad) then
+            if (self%couple_is_hourly) call error_message("Coupling: PET - Priestley-Taylor needs daily data. Got hourly.")
+            if (self%is_hourly_forcing) call error_message("Meteo: PET - Priestley-Taylor needs daily data. Got hourly.")
+          else
+            if (self%is_hourly_forcing) call error_message("Meteo: PET - Priestley-Taylor needs daily data. Got hourly.")
+          end if
+
+        case(3) ! Penman-Monteith formulation
+          if (self%couple_temp .and. self%couple_netrad .and. self%couple_absvappress .and. self%couple_windspeed) then
+            if (self%couple_is_hourly) call error_message("Coupling: PET - Penman-Monteith needs daily data. Got hourly.")
+          else if (self%couple_temp .or. self%couple_netrad .or. self%couple_absvappress .or. self%couple_windspeed) then
+            if (self%couple_is_hourly) call error_message("Coupling: PET - Penman-Monteith needs daily data. Got hourly.")
+            if (self%is_hourly_forcing) call error_message("Meteo: PET - Penman-Monteith needs daily data. Got hourly.")
+          else
+            if (self%is_hourly_forcing) call error_message("Meteo: PET - Penman-Monteith needs daily data. Got hourly.")
+          end if
+      end select
     end if
+
   end subroutine prepare_data
 
   !> \brief get corrected PET for the current timestep and domain
@@ -904,34 +943,109 @@ contains
 
     ! pet in [mm d-1]
     real(dp) :: pet
-    ! is day or night
-    logical :: isday
-    ! current hour of a given day
-    integer(i4) :: hour
-    ! day of the month     [1-28 or 1-29 or 1-30 or 1-31]
-    integer(i4) :: day
-    ! Month of current day [1-12]
-    integer(i4) :: month
-    ! year
-    integer(i4) :: year
+    logical :: isday, is_hourly
+    integer(i4) :: year, month, day, hour
+    type(datetime) :: curr_dt
+    type(timedelta) :: meteo_time_delta
+
     ! doy of the year [1-365 or 1-366]
     integer(i4) :: doy
 
     ! number of L1 cells
     integer(i4) :: nCells1
     ! cell index
-    integer(i4) :: k, i, s1, mTS
-
-    nCells1 = self%e1 - self%s1 + 1
-    s1 = self%s1
-    mTS = self%iMeteoTS
+    integer(i4) :: k, i, s1
+    ! individual meteo time-steps for all variables due to possible coupling
+    integer(i4) :: mTS_pet, mTS_temp, mTS_tmin, mTS_tmax, mTS_rn, mTS_avp, mTS_ws
 
     ! date and month of this timestep
     call dec2date(self%time, yy = year, mm = month, dd = day, hh = hour)
+    curr_dt = datetime(year, month, day, hour)
+    doy = curr_dt%doy()
+
+    nCells1 = self%e1 - self%s1 + 1
+    s1 = self%s1
+
+    if (self%couple_pet) then
+      meteo_time_delta = curr_dt - self%couple_pet_time
+      ! check that the PET from the interface has the correct time-stamp
+      if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
+        call error_message("meteo_handler: PET was expected from coupler, but has a wrong time-stamp.")
+      mTS_pet = 1_i4
+      is_hourly = self%couple_is_hourly
+    else
+      mTS_pet = self%iMeteoTS
+      is_hourly = self%is_hourly_forcing ! not needed to set with other variables
+    end if
+
+    if (self%couple_temp) then
+      meteo_time_delta = curr_dt - self%couple_temp_time
+      ! check that the temperature from the interface has the correct time-stamp
+      if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
+        call error_message("meteo_handler: temperature was expected from coupler, but has a wrong time-stamp.")
+      mTS_temp = 1_i4
+      is_hourly = .false.
+    else
+      mTS_temp = self%iMeteoTS
+    end if
+
+    if (self%couple_tmin) then
+      meteo_time_delta = curr_dt - self%couple_tmin_time
+      ! check that the tmin from the interface has the correct time-stamp
+      if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
+        call error_message("meteo_handler: minimum temperature was expected from coupler, but has a wrong time-stamp.")
+      mTS_tmin = 1_i4
+      is_hourly = .false.
+    else
+      mTS_tmin = self%iMeteoTS
+    end if
+
+    if (self%couple_tmax) then
+      meteo_time_delta = curr_dt - self%couple_tmax_time
+      ! check that the tmax from the interface has the correct time-stamp
+      if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
+        call error_message("meteo_handler: maximum temperature was expected from coupler, but has a wrong time-stamp.")
+      mTS_tmax = 1_i4
+      is_hourly = .false.
+    else
+      mTS_tmax = self%iMeteoTS
+    end if
+
+    if (self%couple_netrad) then
+      meteo_time_delta = curr_dt - self%couple_netrad_time
+      ! check that the netrad from the interface has the correct time-stamp
+      if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
+        call error_message("meteo_handler: net-radiation was expected from coupler, but has a wrong time-stamp.")
+      mTS_rn = 1_i4
+      is_hourly = .false.
+    else
+      mTS_rn = self%iMeteoTS
+    end if
+
+    if (self%couple_absvappress) then
+      meteo_time_delta = curr_dt - self%couple_absvappress_time
+      ! check that the absvappress from the interface has the correct time-stamp
+      if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
+        call error_message("meteo_handler: Abs. vapour pressure was expected from coupler, but has a wrong time-stamp.")
+      mTS_avp = 1_i4
+      is_hourly = .false.
+    else
+      mTS_avp = self%iMeteoTS
+    end if
+
+    if (self%couple_windspeed) then
+      meteo_time_delta = curr_dt - self%couple_windspeed_time
+      ! check that the windspeed from the interface has the correct time-stamp
+      if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
+        call error_message("meteo_handler: windspeed was expected from coupler, but has a wrong time-stamp.")
+      mTS_ws = 1_i4
+      is_hourly = .false.
+    else
+      mTS_ws = self%iMeteoTS
+    end if
 
     ! flag for day or night depending on hours of the day
     isday = (hour .gt. 6) .AND. (hour .le. 18)
-    doy = nint(date2dec(day, month, year, 12) - date2dec(1, 1, year, 12)) + 1
 
     !$OMP parallel default(shared) &
     !$OMP private(k, pet, i)
@@ -944,22 +1058,22 @@ contains
       ! PET calculation
       select case (self%pet_case)
         case(-1) ! PET is input ! correct pet for every day only once at the first time step
-          pet = petLAIcorFactorL1(k) * self%L1_pet(i, mTS)
+          pet = petLAIcorFactorL1(k) * self%L1_pet(i, mTS_pet)
 
         case(0) ! PET is input ! correct pet for every day only once at the first time step
-          pet = fAsp(k) * self%L1_pet(i, mTS)
+          pet = fAsp(k) * self%L1_pet(i, mTS_pet)
 
         case(1) ! Hargreaves-Samani
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
-          if (self%L1_tmax(i, mTS) .lt. self%L1_tmin(i, mTS)) &
+          if (self%L1_tmax(i, mTS_tmax) .lt. self%L1_tmin(i, mTS_tmin)) &
             call message('WARNING: tmax smaller than tmin at doy ', &
                          num2str(doy), ' in year ', num2str(year), ' at cell', num2str(k), '!')
           pet = fAsp(k) * pet_hargreaves( &
             HarSamCoeff=HarSamCoeff(k), &
             HarSamConst=HarSamConst, &
-            tavg=self%L1_temp(i, mTS), &
-            tmax=self%L1_tmax(i, mTS), &
-            tmin=self%L1_tmin(i, mTS), &
+            tavg=self%L1_temp(i, mTS_temp), &
+            tmax=self%L1_tmax(i, mTS_tmax), &
+            tmin=self%L1_tmin(i, mTS_tmin), &
             latitude=latitude(k), &
             doy=doy)
 
@@ -967,15 +1081,15 @@ contains
           ! Priestley Taylor is not defined for values netrad < 0.0_dp
           pet = pet_priestly( &
             PrieTayParam=PrieTayAlpha(k), &
-            Rn=max(self%L1_netrad(i, mTS), 0.0_dp), &
-            tavg=self%L1_temp(i, mTS))
+            Rn=max(self%L1_netrad(i, mTS_rn), 0.0_dp), &
+            tavg=self%L1_temp(i, mTS_temp))
 
         case(3) ! Penman-Monteith
           pet = pet_penman( &
-            net_rad=max(self%L1_netrad(i, mTS), 0.0_dp), &
-            tavg=self%L1_temp(i, mTS), &
-            act_vap_pressure=self%L1_absvappress(i, mTS) / 1000.0_dp, &
-            aerodyn_resistance=aeroResist(k) / self%L1_windspeed(i, mTS), &
+            net_rad=max(self%L1_netrad(i, mTS_rn), 0.0_dp), &
+            tavg=self%L1_temp(i, mTS_temp), &
+            act_vap_pressure=self%L1_absvappress(i, mTS_avp) / 1000.0_dp, &
+            aerodyn_resistance=aeroResist(k) / self%L1_windspeed(i, mTS_ws), &
             bulksurface_resistance=surfResist(k), &
             a_s=1.0_dp, &
             a_sh=1.0_dp)
@@ -1043,7 +1157,7 @@ contains
       if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
         call error_message("meteo_handler: temperature was expected from coupler, but has a wrong time-stamp.")
       mTS = 1_i4
-      is_hourly = self%couple_step_delta == one_hour()
+      is_hourly = self%couple_is_hourly
     else
       mTS = self%iMeteoTS
       is_hourly = self%is_hourly_forcing
@@ -1124,7 +1238,7 @@ contains
       if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
         call error_message("meteo_handler: precipitation was expected from coupler, but has a wrong time-stamp.")
       mTS = 1_i4
-      is_hourly = self%couple_step_delta == one_hour()
+      is_hourly = self%couple_is_hourly
     else
       mTS = self%iMeteoTS
       is_hourly = self%is_hourly_forcing
@@ -1379,6 +1493,54 @@ contains
         call error_message("meteo_handler%set_meteo: avg. temperature was not set to be coupled.")
       self%couple_temp_time = input_time
       self%L1_temp(:, 1_i4) = temp(:)
+    end if
+
+    ! PET
+    if (present(pet)) then
+      if (.not. self%couple_pet) &
+        call error_message("meteo_handler%set_meteo: PET was not set to be coupled.")
+      self%couple_pet_time = input_time
+      self%L1_pet(:, 1_i4) = pet(:)
+    end if
+
+    ! tmin
+    if (present(tmin)) then
+      if (.not. self%couple_tmin) &
+        call error_message("meteo_handler%set_meteo: tmin was not set to be coupled.")
+      self%couple_tmin_time = input_time
+      self%L1_tmin(:, 1_i4) = tmin(:)
+    end if
+
+    ! tmax
+    if (present(tmax)) then
+      if (.not. self%couple_tmax) &
+        call error_message("meteo_handler%set_meteo: tmax was not set to be coupled.")
+      self%couple_tmax_time = input_time
+      self%L1_tmax(:, 1_i4) = tmax(:)
+    end if
+
+    ! netrad
+    if (present(netrad)) then
+      if (.not. self%couple_netrad) &
+        call error_message("meteo_handler%set_meteo: netrad was not set to be coupled.")
+      self%couple_netrad_time = input_time
+      self%L1_netrad(:, 1_i4) = netrad(:)
+    end if
+
+    ! absvappress
+    if (present(absvappress)) then
+      if (.not. self%couple_absvappress) &
+        call error_message("meteo_handler%set_meteo: absvappress was not set to be coupled.")
+      self%couple_absvappress_time = input_time
+      self%L1_absvappress(:, 1_i4) = absvappress(:)
+    end if
+
+    ! windspeed
+    if (present(windspeed)) then
+      if (.not. self%couple_windspeed) &
+        call error_message("meteo_handler%set_meteo: windspeed was not set to be coupled.")
+      self%couple_windspeed_time = input_time
+      self%L1_windspeed(:, 1_i4) = windspeed(:)
     end if
 
   end subroutine set_meteo
