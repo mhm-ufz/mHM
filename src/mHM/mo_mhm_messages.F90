@@ -119,7 +119,7 @@ contains
     call message()
     call message('# of domains:         ', trim(num2str(domainMeta%overallNumberOfDomains)))
     call message()
-    call message('  Input data directories:')
+    call message('  Given data directories:')
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       call message('  --------------')
@@ -128,7 +128,7 @@ contains
       call check_dir(dirMorpho(iDomain), "Morphological directory:", .false., 4, 30)
       call check_dir(dirLCover(iDomain), "Land cover directory:", .false., 4, 30)
       if (.not. meteo_handler%couple_all) &
-        call check_dir(meteo_handler%dir_meteo_header(iDomain), "Level2-header directory:", .false., 4, 30)
+        call check_dir(meteo_handler%dir_meteo_header(iDomain), "Level-2 header directory:", .false., 4, 30)
       if (.not. meteo_handler%couple_pre) &
         call check_dir(meteo_handler%dirPrecipitation(iDomain), "Precipitation directory:", .false., 4, 30)
       if (.not. meteo_handler%couple_temp) &
