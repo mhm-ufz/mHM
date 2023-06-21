@@ -1,3 +1,4 @@
+import os
 import shutil
 import unittest
 from datetime import datetime as dt
@@ -10,16 +11,17 @@ from numpy.testing import assert_allclose
 
 import mhm
 
-HERE = Path(__file__).parent
+HERE = Path(__file__).parent.absolute()
 
 
 class TestPybind(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.test_domain = HERE / "test_domain"
         mhm.download_test(path=self.test_domain)
-        self.ref_runoff = np.loadtxt(HERE / "test_files" / "ref_runoff.txt")
 
     def test_coupling(self):
+        ref_runoff = np.loadtxt(HERE / "test_files" / "ref_runoff.txt")
         pre = xr.open_dataset(self.test_domain / "input" / "meteo" / "pre" / "pre.nc")
         temp = xr.open_dataset(
             self.test_domain / "input" / "meteo" / "tavg" / "tavg.nc"
@@ -43,6 +45,7 @@ class TestPybind(unittest.TestCase):
         )
         mhm.model.set_verbosity(level=1)
         mhm.model.init(cwd=self.test_domain)
+        mhm.model.disable_output()
         # coupled run only supports one domain
         mhm.run.prepare()
         mhm.run.prepare_domain()  # domain=1 by default
@@ -64,9 +67,32 @@ class TestPybind(unittest.TestCase):
         pre.close()
         temp.close()
         pet.close()
-        assert_allclose(runoff_sim_obs, self.ref_runoff)
+        assert_allclose(runoff_sim_obs, ref_runoff)
+        # move out of test-domain directory
+        os.chdir(HERE)
 
-    def tearDown(self):
+    def test_get_variable(self):
+        ref_stream = np.loadtxt(HERE / "test_files" / "ref_stream_mean.txt")
+        stream = 0.0
+        n = 0
+        mhm.model.set_verbosity(level=1)
+        mhm.model.init(cwd=self.test_domain)
+        mhm.model.disable_output()
+        mhm.run.prepare()
+        mhm.run.prepare_domain()
+        while not mhm.run.finished():
+            mhm.run.do_time_step()
+            stream = (stream * n + mhm.get_variable("L11_QMOD")) / (n + 1)
+            n += 1  # increase counter
+        mhm.run.finalize_domain()
+        mhm.run.finalize()
+        mhm.model.finalize()
+        assert_allclose(stream.filled(fill_value=np.nan), ref_stream, equal_nan=True)
+        # move out of test-domain directory
+        os.chdir(HERE)
+
+    @classmethod
+    def tearDownClass(self):
         shutil.rmtree(self.test_domain)
 
 
