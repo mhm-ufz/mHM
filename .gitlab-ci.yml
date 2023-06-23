@@ -55,7 +55,7 @@ pybindings:
     - which mhm-download
     - mhm-download -V
     - mhm-download -h
-    - python -m pytest --cov mhm --cov-report html --cov-report xml -v pybind/tests/
+    - python -m pytest --cov mhm --cov-report term-missing --cov-report html --cov-report xml -v pybind/tests/
     - rm -rf test_pybind/
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
