@@ -72,7 +72,7 @@ def download_test(branch=None, domain=1, path=None, verbose=False):
         shutil.copytree(folder_path, path, ignore_dangling_symlinks=True)
 
 
-def cli(argv=None):
+def cli(argv=None):  # pragma: no cover
     """Command line interface to download test domains for mHM."""
     from . import __version__
 

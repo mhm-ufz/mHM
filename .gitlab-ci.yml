@@ -52,9 +52,10 @@ pybindings:
     - which mhm
     - mhm --version
     # will always download from main repo (no testing to prevent errors in forks)
+    - which mhm-download
     - mhm-download -V
     - mhm-download -h
-    - python -m pytest --cov mhm  --cov-report term-missing --cov-report html:cov --cov-report xml:cov.xml -v pybind/tests/
+    - python -m pytest --cov mhm --cov-report html --cov-report xml -v pybind/tests/
     - rm -rf test_pybind/
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
@@ -62,10 +63,10 @@ pybindings:
     reports:
       coverage_report:
         coverage_format: cobertura
-        path: cov.xml
+        path: coverage.xml
     paths:
       - dist
-      - cov
+      - htmlcov
 
 documentation:
   stage: build

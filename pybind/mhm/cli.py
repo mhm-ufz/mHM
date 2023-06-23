@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 
-def mhm():
+def mhm():  # pragma: no cover
     """Execute mhm as a command line program."""
     exe = os.path.join(os.path.dirname(__file__), "mhm")
     if not os.path.exists(exe):

@@ -79,6 +79,13 @@ profile = "black"
 multi_line_output = 3
 known_first_party = ["mhm"]
 
+[tool.coverage.run]
+source = ["mhm"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover"]
+show_missing = true
+
 [tool.cibuildwheel]
 # Super-verbose output for debugging purpose
 build-verbosity = 3

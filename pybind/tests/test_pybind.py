@@ -96,6 +96,11 @@ class TestPybind(unittest.TestCase):
         mhm.model.finalize()
         assert_allclose(stream.filled(fill_value=np.nan), ref_stream, equal_nan=True)
 
+    def test_version(self):
+        fv = mhm.f_version
+        pv = mhm.__version__
+        self.assertTrue(fv.split(".")[:2] == pv.split(".")[:2])
+
 
 if __name__ == "__main__":
     unittest.main()
