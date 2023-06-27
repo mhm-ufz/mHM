@@ -925,6 +925,12 @@ contains
         call meteo_handler%set_meteo(year=year, month=month, day=day, hour=hour, absvappress=input)
       case("WINDSPEED")
         call meteo_handler%set_meteo(year=year, month=month, day=day, hour=hour, windspeed=input)
+      case("SSRD")
+        call meteo_handler%set_meteo(year=year, month=month, day=day, hour=hour, ssrd=input)
+      case("STRD")
+        call meteo_handler%set_meteo(year=year, month=month, day=day, hour=hour, strd=input)
+      case("TANN")
+        call meteo_handler%set_meteo(year=year, month=month, day=day, hour=hour, tann=input)
       case default
         call error_message("set.meteo: unkown variable name: ", name)
     end select

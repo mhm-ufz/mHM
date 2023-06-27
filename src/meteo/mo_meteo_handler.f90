@@ -1296,49 +1296,56 @@ contains
     !> [W m2] surface short-wave (solar) radiation downwards for current time step
     real(dp), dimension(:), intent(inout) :: ssrd_calc
 
-    ! is day or night
-    logical :: isday
-    ! current hour of a given day
-    integer(i4) :: hour
-    ! Month of current day [1-12]
-    integer(i4) :: month
+    logical :: isday, is_hourly
+    integer(i4) :: year, month, day, hour
+    type(datetime) :: curr_dt
+    type(timedelta) :: meteo_time_delta
 
     ! number of L1 cells
     integer(i4) :: nCells1
     ! cell index
     integer(i4) :: k, i, s1, mTS
 
+    ! date and month of this timestep
+    call dec2date(self%time, yy=year, mm=month, dd=day, hh=hour)
+
     nCells1 = self%e1 - self%s1 + 1
     s1 = self%s1
-    mTS = self%iMeteoTS
+    if (self%couple_ssrd) then
+      curr_dt = datetime(year, month, day, hour)
+      meteo_time_delta = curr_dt - self%couple_ssrd_time
+      ! check that the ssrd from the interface has the correct time-stamp
+      if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
+        call error_message("meteo_handler: ssrd was expected from coupler, but has a wrong time-stamp.")
+      mTS = 1_i4
+      is_hourly = self%couple_is_hourly
+    else
+      mTS = self%iMeteoTS
+      is_hourly = self%is_hourly_forcing
+    end if
 
-    ! date and month of this timestep
-    call dec2date(self%time, mm = month, hh = hour)
-
-    ! flag for day or night depending on hours of the day
-    isday = (hour .gt. 6) .AND. (hour .le. 18)
+    ! shortcut hourly data
+    if (is_hourly) then
+      ssrd_calc(:) = self%L1_ssrd(self%s_meteo : self%e_meteo, mTS)
+      return
+    end if
 
     !$OMP parallel default(shared) &
     !$OMP private(k, i)
     !$OMP do SCHEDULE(STATIC)
     do k = 1, nCells1
-
       ! correct index on concatenated arrays
       i = self%s_meteo - 1 + k
-
+      ! TODO-RIV-TEMP: add weights for ssrd
       ! temporal disaggreagtion of forcing variables
-      if (self%is_hourly_forcing) then
-        ssrd_calc(k) = self%L1_ssrd(i, mTS)
-      else
-        ! TODO-RIV-TEMP: add weights for ssrd
-        call temporal_disagg_state_daynight( &
-          isday=isday, &
-          ntimesteps_day=self%nTstepDay_dp, &
-          meteo_val_day=self%L1_ssrd(i, mTS), &
-          fday_meteo_val=self%fday_ssrd(month), &
-          fnight_meteo_val=self%fnight_ssrd(month), &
-          meteo_val=ssrd_calc(k))
-      end if
+      call temporal_disagg_state_daynight( &
+        isday=isday, &
+        ntimesteps_day=self%nTstepDay_dp, &
+        meteo_val_day=self%L1_ssrd(i, mTS), &
+        fday_meteo_val=self%fday_ssrd(month), &
+        fnight_meteo_val=self%fnight_ssrd(month), &
+        meteo_val=ssrd_calc(k) &
+      )
     end do
     !$OMP end do
     !$OMP end parallel
@@ -1357,49 +1364,56 @@ contains
     !> [W m2] surface long-wave (thermal) radiation downwards for current time step
     real(dp), dimension(:), intent(inout) :: strd_calc
 
-    ! is day or night
-    logical :: isday
-    ! current hour of a given day
-    integer(i4) :: hour
-    ! Month of current day [1-12]
-    integer(i4) :: month
+    logical :: isday, is_hourly
+    integer(i4) :: year, month, day, hour
+    type(datetime) :: curr_dt
+    type(timedelta) :: meteo_time_delta
 
     ! number of L1 cells
     integer(i4) :: nCells1
     ! cell index
     integer(i4) :: k, i, s1, mTS
 
+    ! date and month of this timestep
+    call dec2date(self%time, yy=year, mm=month, dd=day, hh=hour)
+
     nCells1 = self%e1 - self%s1 + 1
     s1 = self%s1
-    mTS = self%iMeteoTS
+    if (self%couple_strd) then
+      curr_dt = datetime(year, month, day, hour)
+      meteo_time_delta = curr_dt - self%couple_strd_time
+      ! check that the strd from the interface has the correct time-stamp
+      if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
+        call error_message("meteo_handler: strd was expected from coupler, but has a wrong time-stamp.")
+      mTS = 1_i4
+      is_hourly = self%couple_is_hourly
+    else
+      mTS = self%iMeteoTS
+      is_hourly = self%is_hourly_forcing
+    end if
 
-    ! date and month of this timestep
-    call dec2date(self%time, mm = month, hh = hour)
-
-    ! flag for day or night depending on hours of the day
-    isday = (hour .gt. 6) .AND. (hour .le. 18)
+    ! shortcut hourly data
+    if (is_hourly) then
+      strd_calc(:) = self%L1_strd(self%s_meteo : self%e_meteo, mTS)
+      return
+    end if
 
     !$OMP parallel default(shared) &
     !$OMP private(k, i)
     !$OMP do SCHEDULE(STATIC)
     do k = 1, nCells1
-
       ! correct index on concatenated arrays
       i = self%s_meteo - 1 + k
-
+      ! TODO-RIV-TEMP: add weights for strd
       ! temporal disaggreagtion of forcing variables
-      if (self%is_hourly_forcing) then
-        strd_calc(k) = self%L1_strd(i, mTS)
-      else
-        ! TODO-RIV-TEMP: add weights for strd
-        call temporal_disagg_state_daynight( &
-          isday=isday, &
-          ntimesteps_day=self%nTstepDay_dp, &
-          meteo_val_day=self%L1_strd(i, mTS), &
-          fday_meteo_val=self%fday_strd(month), &
-          fnight_meteo_val=self%fnight_strd(month), &
-          meteo_val=strd_calc(k))
-      end if
+      call temporal_disagg_state_daynight( &
+        isday=isday, &
+        ntimesteps_day=self%nTstepDay_dp, &
+        meteo_val_day=self%L1_strd(i, mTS), &
+        fday_meteo_val=self%fday_strd(month), &
+        fnight_meteo_val=self%fnight_strd(month), &
+        meteo_val=strd_calc(k) &
+      )
     end do
     !$OMP end do
     !$OMP end parallel
@@ -1408,6 +1422,7 @@ contains
 
   !> \brief get annual mean surface temperature for the current timestep and domain
   subroutine get_tann(self, tann_calc)
+    use mo_julian, only : dec2date
 
     implicit none
 
@@ -1415,8 +1430,22 @@ contains
     !> [degC]  annual mean air temperature
     real(dp), dimension(:), intent(inout) :: tann_calc
 
-    integer(i4) :: mTS
-    mTS = self%iMeteoTS
+    type(datetime) :: curr_dt
+    type(timedelta) :: meteo_time_delta
+    integer(i4) :: year, month, day, hour, mTS
+
+    if (self%couple_tann) then
+      ! date and month of this timestep
+      call dec2date(self%time, yy=year, mm=month, dd=day, hh=hour)
+      curr_dt = datetime(year, month, day, hour)
+      meteo_time_delta = curr_dt - self%couple_tann_time
+      ! check that the tann from the interface has the correct time-stamp
+      if (meteo_time_delta < zero_delta() .or. meteo_time_delta >= self%couple_step_delta) &
+        call error_message("meteo_handler: tann was expected from coupler, but has a wrong time-stamp.")
+      mTS = 1_i4
+    else
+      mTS = self%iMeteoTS
+    end if
 
     ! annual temperature is not disaggregated
     tann_calc(:) = self%L1_tann(self%s_meteo : self%e_meteo, mTS)
@@ -1541,6 +1570,30 @@ contains
         call error_message("meteo_handler%set_meteo: windspeed was not set to be coupled.")
       self%couple_windspeed_time = input_time
       self%L1_windspeed(:, 1_i4) = windspeed(:)
+    end if
+
+    ! ssrd
+    if (present(ssrd)) then
+      if (.not. self%couple_ssrd) &
+        call error_message("meteo_handler%set_meteo: ssrd was not set to be coupled.")
+      self%couple_ssrd_time = input_time
+      self%L1_ssrd(:, 1_i4) = ssrd(:)
+    end if
+
+    ! strd
+    if (present(strd)) then
+      if (.not. self%couple_strd) &
+        call error_message("meteo_handler%set_meteo: strd was not set to be coupled.")
+      self%couple_strd_time = input_time
+      self%L1_strd(:, 1_i4) = strd(:)
+    end if
+
+    ! tann
+    if (present(tann)) then
+      if (.not. self%couple_tann) &
+        call error_message("meteo_handler%set_meteo: tann was not set to be coupled.")
+      self%couple_tann_time = input_time
+      self%L1_tann(:, 1_i4) = tann(:)
     end if
 
   end subroutine set_meteo
