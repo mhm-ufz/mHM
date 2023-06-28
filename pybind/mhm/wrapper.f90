@@ -257,6 +257,17 @@ module get
   implicit none
 contains
 
+  !> \name constants
+  !> \brief access constants of mHM
+
+  !> \brief Get the number of soil horizons in mHM.
+  subroutine number_of_horizons(n)
+    use mo_mpr_global_variables, only : nSoilHorizons_mHM
+    implicit none
+    integer(i4), intent(out) :: n !< number of soil horizons
+    n = nSoilHorizons_mHM
+  end subroutine number_of_horizons
+
   !> \name parameter
 
   !> \brief Get the number of parameters in mHM.
@@ -462,7 +473,7 @@ contains
       case("L0_GRIDDED_LAI")
         output = L0_gridded_LAI(s0 : e0, idx)
       case default
-        call error_message("get.L0_variable: unkown variable name: ", name)
+        call error_message("mhm.get.L0_variable: unkown variable name: ", name)
     end select
   end subroutine L0_variable
 
@@ -645,7 +656,7 @@ contains
       case("L1_INFILSOIL")
         output = L1_infilSoil(run_cfg%s1 : run_cfg%e1, idx)
       case default
-        call error_message("get.L1_variable: unkown variable name: ", name)
+        call error_message("mhm.get.L1_variable: unkown variable name: ", name)
     end select
   end subroutine L1_variable
 
@@ -761,7 +772,7 @@ contains
       case("L11_QTR")
         output = L11_qTR(run_cfg%s11 : run_cfg%e11, idx)
       case default
-        call error_message("get.L11_variable: unkown variable name: ", name)
+        call error_message("mhm.get.L11_variable: unkown variable name: ", name)
     end select
   end subroutine L11_variable
 
@@ -886,7 +897,7 @@ contains
       case("L0_GRIDDED_LAI")
         L0_gridded_LAI(s0 : e0, idx) = input
       case default
-        call error_message("set.L0_variable: unkown variable name: ", name)
+        call error_message("mhm.set.L0_variable: unkown variable name: ", name)
     end select
   end subroutine L0_variable
 
@@ -932,7 +943,7 @@ contains
       case("TANN")
         call meteo_handler%set_meteo(year=year, month=month, day=day, hour=hour, tann=input)
       case default
-        call error_message("set.meteo: unkown variable name: ", name)
+        call error_message("mhm.set.meteo: unkown variable name: ", name)
     end select
   end subroutine meteo
 end module set
