@@ -1330,6 +1330,9 @@ contains
       return
     end if
 
+    ! flag for day or night depending on hours of the day
+    isday = (hour .gt. 6) .AND. (hour .le. 18)
+
     !$OMP parallel default(shared) &
     !$OMP private(k, i)
     !$OMP do SCHEDULE(STATIC)
@@ -1397,6 +1400,9 @@ contains
       strd_calc(:) = self%L1_strd(self%s_meteo : self%e_meteo, mTS)
       return
     end if
+
+    ! flag for day or night depending on hours of the day
+    isday = (hour .gt. 6) .AND. (hour .le. 18)
 
     !$OMP parallel default(shared) &
     !$OMP private(k, i)
