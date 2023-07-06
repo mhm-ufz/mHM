@@ -1,1 +1,1 @@
-add_mo_datetime
+v0.6.0
