@@ -45,7 +45,7 @@ def get_runoff_eval(gauge_id):
     return wr.get.runoff_eval(gauge_id, length)
 
 
-def get_mask(level, indexing="ij", selection=True):
+def get_mask(level, indexing="ij", selection=False):
     """
     Get mask for a certain mHM level.
 
@@ -53,8 +53,7 @@ def get_mask(level, indexing="ij", selection=True):
     @param indexing (str, optional): Indexing for the 2D mask,
         either "xy" or "ij" (yx order), by default "ij"
     @param selection (bool): A masked value in mHM indicates cells inside the domain.
-        In numpy, masked values are outside the domain. That means, by default the
-        selection is returned.
+        In numpy, masked values are outside the domain. That means, by default False
     @retval mask (numpy.ndarray): Boolean numpy array holding the mask.
     @throws ValueError: If the level is not in ["L0", "L1", "L11" or "L2"].
     """
@@ -69,15 +68,17 @@ def get_mask(level, indexing="ij", selection=True):
     return mask.T if indexing == "ij" else mask
 
 
-def get_variable(name, index=1, indexing="ij"):
+def get_variable(name, index=1, indexing="ij", compressed=False):
     """
     Get a specific variable from mHM in the current time-step.
 
     @param name (str): Name of the variable
-    @param index (int, optional): If the variable has an additional dimension,
-        one needs to specify an index, by default 1
+    @param index (int, optional): If the variable has an additional dimension
+        (e.g. the horizon), one needs to specify an index, by default 1
     @param indexing (str, optional): Indexing for the 2D variable,
         either "xy" or "ij", by default "ij"
+    @param compressed (bool): Whether the data should be flattened and only contain
+        values for each unmasked domain cell. By default False
     @retval variable (numpy.ndarray): Numpy array holding the desired variable.
     @throws ValueError: If the variable name doesn't start with "L0", "L1", "L11" or "L2".
     """
@@ -86,12 +87,13 @@ def get_variable(name, index=1, indexing="ij"):
     if grid not in ["l0", "l1", "l11", "l2"]:
         raise ValueError(f"Unknown variable: {name}")
     n = getattr(wr.get, grid + "_domain_size")()
-    # mask in mHM is the opposite in numpy (selection)
-    sel = get_mask(grid, indexing="xy")
+    var = getattr(wr.get, grid + "_variable")(name=name, n=n, idx=index)
+    if compressed:
+        return np.asarray(var, dtype=float)
     # ncols, nrows, ncells, xll, yll, cell_size, no_data
     grid_info = getattr(wr.get, grid + "_domain_info")()
-    var = getattr(wr.get, grid + "_variable")(name=name, n=n, idx=index)
-    # reshaping
+    # mask in mHM is the opposite in numpy (selection)
+    sel = get_mask(grid, indexing="xy", selection=True)
     sel = sel.ravel(order="F")
     output = np.ma.empty_like(sel, dtype=float)
     output.fill_value = grid_info[-1]
@@ -132,12 +134,12 @@ def set_meteo(
     @param ssrd (numpy.ndarray, optional):        [W m2]    short wave radiation
     @param strd (numpy.ndarray, optional):        [W m2]    long wave radiation
     @param tann (numpy.ndarray, optional):        [degC]    annual mean air temperature
-    @param compressed (bool): Whether the data already flattened and only contains
-        data for each domain cell. By default False
+    @param compressed (bool): Whether the data is flattened and only contains
+        values for each unmasked domain cell. By default False
     @param indexing (str, optional): Indexing for 2D arrays if data is not compressed,
         either "xy" or "ij" (yx order), by default "ij"
     """
-    sel = slice(None) if compressed else get_mask("L1", indexing=indexing)
+    sel = slice(None) if compressed else get_mask("L1", indexing, selection=True)
     if pre is not None:
         wr.set.meteo(pre[sel], "PRE", time.year, time.month, time.day, time.hour)
     if temp is not None:

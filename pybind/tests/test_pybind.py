@@ -11,26 +11,25 @@ from numpy.testing import assert_allclose
 
 import mhm
 
-HERE = Path(__file__).parent
-
 
 class TestPybind(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-        os.chdir(HERE)
-        self.test_domain = HERE / "test_domain"
+        self.here = Path(__file__).parent
+        os.chdir(self.here)
+        self.test_domain = self.here / "test_domain"
         mhm.download_test(path=self.test_domain)
 
     def tearDown(self):
         # move out of test-domain directory after each test
-        os.chdir(HERE)
+        os.chdir(self.here)
 
     @classmethod
     def tearDownClass(self):
         shutil.rmtree(self.test_domain)
 
     def test_coupling(self):
-        ref_runoff = np.loadtxt(HERE / "test_files" / "ref_runoff.txt")
+        ref_runoff = np.loadtxt(self.here / "test_files" / "ref_runoff.txt")
         pre = xr.open_dataset(self.test_domain / "input" / "meteo" / "pre" / "pre.nc")
         temp = xr.open_dataset(
             self.test_domain / "input" / "meteo" / "tavg" / "tavg.nc"
@@ -79,7 +78,7 @@ class TestPybind(unittest.TestCase):
         assert_allclose(runoff_sim_obs, ref_runoff)
 
     def test_get_variable(self):
-        ref_stream = np.loadtxt(HERE / "test_files" / "ref_stream_mean.txt")
+        ref_stream = np.loadtxt(self.here / "test_files" / "ref_stream_mean.txt")
         stream = 0.0
         n = 0
         mhm.model.set_verbosity(level=1)
