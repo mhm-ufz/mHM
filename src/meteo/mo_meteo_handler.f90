@@ -757,8 +757,8 @@ contains
           end if
 
         case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
-          if (self%single_read(iDomain)) call message('    read min. temperature     ...')
           if (.not. self%couple_tmin) then
+            if (self%single_read(iDomain)) call message('    read min. temperature     ...')
             call meteo_forcings_wrapper(iDomain, self%dirMinTemperature(iDomain), self%inputFormat_meteo_forcings, &
               dataOut1=self%L1_tmin, &
               readPer=self%readPer, nTstepForcingDay=self%nTstepForcingDay, level1=level1, level2=self%level2, &
