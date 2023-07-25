@@ -60,6 +60,11 @@ if int(os.getenv("MHM_BUILD_PARALLEL", "0")):
     cmake_args += ["-DCMAKE_WITH_OpenMP=ON"]
     print("## mHM Python setup: OpenMP used by env-var.")
 
+# you can set MHM_BUILD_NINJA=0 or MHM_BUILD_NINJA=1
+if int(os.getenv("MHM_BUILD_NINJA", "0")):
+    cmake_args += ["-GNinja"]
+    print("## mHM Python setup: Force Ninja build system.")
+
 if forces_path:
     cmake_args += [f"-DCPM_forces_SOURCE={forces_path}"]
     print(f"## mHM Python setup: using forces path '{forces_path}'")
