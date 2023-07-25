@@ -33,6 +33,8 @@
   - added `mhm.model.config_coupling` to set coupling configuration as an alternative to the `coupling` namelist
   - added `mhm.get.number_of_horizons` to get the number of horizons of the current setup
 
+- Python setup: add switch to force using the [Ninja build system](https://ninja-build.org), fixing the [conda feedstock ninja patch](https://github.com/conda-forge/mhm-feedstock/blob/a77b4c0dae25bfcc3e77e87f6c5cdec8dff6339f/recipe/conda_force_ninja.patch#L7) ([!165](https://git.ufz.de/mhm/mhm/-/merge_requests/165))
+
 ### Bugfixes
 
 - Cmake: fixed compiling issue with Python bindings on MacOS using clang ([see conda feedstock patch](https://github.com/conda-forge/mhm-feedstock/blob/a77b4c0dae25bfcc3e77e87f6c5cdec8dff6339f/recipe/conda_clang_fixes.patch#L7))
