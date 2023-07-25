@@ -24,7 +24,14 @@ Python bindings of mHM.
 
 from . import cli, download
 from .download import download_test
-from .tools import get_parameter, get_runoff, get_runoff_eval, get_variable
+from .tools import (
+    get_mask,
+    get_parameter,
+    get_runoff,
+    get_runoff_eval,
+    get_variable,
+    set_meteo,
+)
 from .wrapper import get, model, run, set
 
 try:
@@ -54,5 +61,7 @@ __all__ = [
     "get_variable",
     "get_runoff_eval",
     "get_parameter",
+    "get_mask",
+    "set_meteo",
     "__version__",
 ]

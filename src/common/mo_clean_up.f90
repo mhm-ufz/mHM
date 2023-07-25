@@ -19,8 +19,10 @@ module mo_clean_up
 
   !> \brief Deallocate all global variables.
   subroutine deallocate_global_variables()
+    use mo_mhm_cli, only : set_verbosity_level
     use mo_common_run_variables, only : run_cfg
     use mo_global_variables, only : &
+      couple_cfg, &
       meteo_handler, &
       L1_sm, &
       L1_sm_mask, &
@@ -417,6 +419,12 @@ module mo_clean_up
 
     ! meteo handler clean up
     call meteo_handler%clean_up()
+
+    ! coupling config clean up
+    call couple_cfg%clean_up()
+
+    ! reset verbosity
+    call set_verbosity_level()
 
   end subroutine deallocate_global_variables
 

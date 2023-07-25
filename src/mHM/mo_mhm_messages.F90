@@ -119,7 +119,7 @@ contains
     call message()
     call message('# of domains:         ', trim(num2str(domainMeta%overallNumberOfDomains)))
     call message()
-    call message('  Input data directories:')
+    call message('  Given data directories:')
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       call message('  --------------')
@@ -127,20 +127,31 @@ contains
       call message('  --------------')
       call check_dir(dirMorpho(iDomain), "Morphological directory:", .false., 4, 30)
       call check_dir(dirLCover(iDomain), "Land cover directory:", .false., 4, 30)
-      call check_dir(meteo_handler%dirPrecipitation(iDomain), "Precipitation directory:", .false., 4, 30)
-      call check_dir(meteo_handler%dirTemperature(iDomain), "Temperature directory:", .false., 4, 30)
+      if (.not. meteo_handler%couple_all) &
+        call check_dir(meteo_handler%dir_meteo_header(iDomain), "Level-2 header directory:", .false., 4, 30)
+      if (.not. meteo_handler%couple_pre) &
+        call check_dir(meteo_handler%dirPrecipitation(iDomain), "Precipitation directory:", .false., 4, 30)
+      if (.not. meteo_handler%couple_temp) &
+        call check_dir(meteo_handler%dirTemperature(iDomain), "Temperature directory:", .false., 4, 30)
       select case (processMatrix(5, 1))
         case(-1 : 0) ! PET is input
-          call check_dir(meteo_handler%dirReferenceET(iDomain), "PET directory:", .false., 4, 30)
+          if (.not. meteo_handler%couple_pet) &
+            call check_dir(meteo_handler%dirReferenceET(iDomain), "PET directory:", .false., 4, 30)
         case(1) ! Hargreaves-Samani
-          call check_dir(meteo_handler%dirMinTemperature(iDomain), "Min. temperature directory:", .false., 4, 30)
-          call check_dir(meteo_handler%dirMaxTemperature(iDomain), "Max. temperature directory:", .false., 4, 30)
+          if (.not. meteo_handler%couple_tmin) &
+            call check_dir(meteo_handler%dirMinTemperature(iDomain), "Min. temperature directory:", .false., 4, 30)
+          if (.not. meteo_handler%couple_tmax) &
+            call check_dir(meteo_handler%dirMaxTemperature(iDomain), "Max. temperature directory:", .false., 4, 30)
         case(2) ! Priestely-Taylor
-          call check_dir(meteo_handler%dirNetRadiation(iDomain), "Net radiation directory:", .false., 4, 30)
+          if (.not. meteo_handler%couple_netrad) &
+            call check_dir(meteo_handler%dirNetRadiation(iDomain), "Net radiation directory:", .false., 4, 30)
         case(3) ! Penman-Monteith
-          call check_dir(meteo_handler%dirNetRadiation(iDomain), "Net radiation directory:", .false., 4, 30)
-          call check_dir(meteo_handler%dirabsVapPressure(iDomain), "Abs. vap. press. directory:", .false., 4, 30)
-          call check_dir(meteo_handler%dirwindspeed(iDomain), "Windspeed directory:", .false., 4, 30)
+          if (.not. meteo_handler%couple_netrad) &
+            call check_dir(meteo_handler%dirNetRadiation(iDomain), "Net radiation directory:", .false., 4, 30)
+          if (.not. meteo_handler%couple_absvappress) &
+            call check_dir(meteo_handler%dirabsVapPressure(iDomain), "Abs. vap. press. directory:", .false., 4, 30)
+          if (.not. meteo_handler%couple_windspeed) &
+            call check_dir(meteo_handler%dirwindspeed(iDomain), "Windspeed directory:", .false., 4, 30)
       end select
       call check_dir(dirOut(iDomain), "Output directory:", .true., 4, 30)
       call message()

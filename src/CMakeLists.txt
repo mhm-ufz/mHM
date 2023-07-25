@@ -5,7 +5,8 @@ file(GLOB sources_mhm mHM/*mo_*.*90)
 file(GLOB sources_mrm mRM/*mo_*.*90)
 file(GLOB sources_common common/*mo_*.*90)
 file(GLOB sources_meteo meteo/*mo_*.*90)
-list(APPEND sources ${sources_mpr} ${sources_mhm} ${sources_mrm} ${sources_common} ${sources_meteo})
+file(GLOB sources_coupling coupling/*mo_*.*90)
+list(APPEND sources ${sources_mpr} ${sources_mhm} ${sources_mrm} ${sources_common} ${sources_meteo} ${sources_coupling})
 option(BUILD_MHM_LIB_SHARED "Build mhm library as shared." OFF)
 if(BUILD_MHM_LIB_SHARED)
   add_library(${LIB_NAME} SHARED ${sources})
@@ -47,7 +48,7 @@ endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   target_compile_definitions(${LIB_NAME} PRIVATE GFORTRAN)
   target_compile_options(${LIB_NAME} PUBLIC
-    -ffree-form -ffixed-line-length-132
+    $<$<NOT:$<BOOL:${BUILD_MHM_PYBIND}>>:-ffree-form -ffixed-line-length-132>
     $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -fimplicit-none -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=snan -pedantic-errors>
     $<$<CONFIG:RELEASE>:-O3>
     $<$<BOOL:${CMAKE_WITH_GPROF}>:-pg>

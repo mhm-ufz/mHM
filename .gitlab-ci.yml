@@ -37,31 +37,36 @@ pybindings:
     GIT_DEPTH: 0  # to have all tags
   script:
     - module load Anaconda3
-    - conda create -p ./test_pybind
+    - conda create -p ./test_pybind -c conda-forge -y mamba python=3.10 pip
     - conda activate ./test_pybind
-    - conda install -c conda-forge -y python=3.10 pip netcdf-fortran fortran-compiler c-compiler cxx-compiler python-build black isort
+    - mamba install -c conda-forge -y netcdf-fortran fortran-compiler c-compiler cxx-compiler python-build black isort pytest-cov xarray netCDF4
     # check source code
     - black --check --diff pybind
     - isort --check --diff pybind
     # create sdist and install it
     - python -m build --sdist --outdir dist .
-    - pip install -v dist/mhm-*.tar.gz
+    - pip install -v -e .
     # check installation
     - python -c "import mhm; print(mhm.__version__)"
+    - python -c "import mhm; print(mhm.f_version)"
     - which mhm
-    - cat $(which mhm)
     - mhm --version
-    - mhm --help
     # will always download from main repo (no testing to prevent errors in forks)
+    - which mhm-download
     - mhm-download -V
     - mhm-download -h
-    - mhm-download -v --path test_download/
-    - ls test_download/ && rm -rf test_download/
-    - mhm test_domain/
+    - python -m pytest --cov mhm --cov-report term-missing --cov-report html --cov-report xml -v pybind/tests/
+    - rm -rf test_pybind/
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
     paths:
       - dist
+      - htmlcov
 
 documentation:
   stage: build
