@@ -58,6 +58,7 @@ The following environment variables can be used to control the compilation and i
 - `MHM_BUILD_FORCES_PATH=<path>`: custom path to forces source dir (default: None)
 - `MHM_BUILD_PARALLEL=[0|1]`: whether to use OpenMP with mHM (default: `0`)
 - `MHM_BUILD_PY_SCRIPT=[0|1]`: whether to create a console script for mHM with the Python bindings (default: `1`)
+- `MHM_BUILD_NINJA=[0|1]`: whether to force the usage of the Ninja build system (default: `0`)
 
 
 ## Test domain download tool
