@@ -1,0 +1,134 @@
+{
+    "license": "LGPL-3.0+",
+    "contributors": [
+        {
+            "orcid": "0000-0002-8449-4428",
+            "affiliation": "UFZ",
+            "type": "ProjectLeader",
+            "name": "Luis Samaniego"
+        },
+        {
+            "orcid": "0000-0002-7798-7080",
+            "affiliation": "UFZ",
+            "type": "Supervisor",
+            "name": "Sabine Attinger"
+        }
+    ],
+    "language": "eng",
+    "references": [
+        "Samaniego L., R. Kumar, S. Attinger (2010): Multiscale parameter regionalization of a grid-based hydrologic model at the mesoscale. Water Resour. Res., 46,W05523, doi:10.1029/2008WR007327, http://onlinelibrary.wiley.com/doi/10.1029/2008WR007327/abstract",
+        "Kumar, R., L. Samaniego, and S. Attinger (2013): Implications of distributed hydrologic model parameterization on water fluxes at multiple scales and locations, Water Resour. Res., 49, doi:10.1029/2012WR012195, http://onlinelibrary.wiley.com/doi/10.1029/2012WR012195/abstract"
+    ],
+    "keywords": [
+        "mesoscale hydrological model",
+        "multiscale parameter regionalization",
+        "seamless predictions"
+    ],
+    "creators": [
+        {
+            "orcid": "0000-0002-8449-4428",
+            "affiliation": "UFZ",
+            "name": "Luis Samaniego"
+        },
+        {
+            "orcid": "0000-0002-4396-2037",
+            "affiliation": "UFZ",
+            "name": "Rohini Kumar"
+        },
+        {
+            "orcid": "0000-0003-4085-7626",
+            "name": "Matthias Zink"
+        },
+        {
+            "orcid": "0000-0002-5966-1829",
+            "affiliation": "INRAE",
+            "name": "Matthias Cuntz"
+        },
+        {
+            "orcid": "0000-0002-1132-2342",
+            "affiliation": "UFZ",
+            "name": "Juliane Mai"
+        },
+        {
+            "orcid": "0000-0003-3939-1523",
+            "affiliation": "UFZ",
+            "name": "Stephan Thober"
+        },
+        {
+            "name": "Christoph Schneider"
+        },
+        {
+            "name": "Giovanni Dalmasso"
+        },
+        {
+            "name": "Jude Musuuza"
+        },
+        {
+            "orcid": "0000-0003-2451-3305",
+            "affiliation": "UFZ",
+            "name": "Oldrich Rakovec"
+        },
+        {
+            "name": "John Craven"
+        },
+        {
+            "affiliation": "UFZ",
+            "name": "David Sch\u00e4fer"
+        },
+        {
+            "name": "Vladyslav Prykhodko"
+        },
+        {
+            "orcid": "0000-0002-0220-0677",
+            "affiliation": "UFZ",
+            "name": "Martin Schr\u00f6n"
+        },
+        {
+            "name": "Diana Spieler"
+        },
+        {
+            "name": "Johannes Brenner"
+        },
+        {
+            "affiliation": "UFZ",
+            "name": "Ben Langenberg"
+        },
+        {
+            "orcid": "0000-0001-9362-1372",
+            "affiliation": "UFZ",
+            "name": "Lennart Sch\u00fcler"
+        },
+        {
+            "name": "Simon Stisen"
+        },
+        {
+            "orcid": "0000-0003-4402-906X",
+            "name": "C\u00fcneyd M. Demirel"
+        },
+        {
+            "name": "Miao Jing"
+        },
+        {
+            "affiliation": "UFZ",
+            "name": "Maren Kaluza"
+        },
+        {
+            "orcid": "0000-0002-0671-1415",
+            "affiliation": "UFZ",
+            "name": "Robert Schweppe"
+        },
+        {
+            "orcid": "0000-0001-5529-7460",
+            "affiliation": "UFZ",
+            "name": "Pallav Kumar Shrestha"
+        },
+        {
+            "name": "Nicola D\u00f6ring"
+        },
+        {
+            "orcid": "0000-0001-9060-4008",
+            "affiliation": "UFZ",
+            "name": "Sebastian M\u00fcller"
+        }
+    ]
+}
