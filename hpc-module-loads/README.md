@@ -15,7 +15,8 @@ All these scripts will load:
 ### Usage
 - Conda environment with gfortran:
   ```bash
-  source eve.chs-conda01
+  source eve.chs-conda01 # or
+  source eve.chs-conda02
   ```
 - GNU 6.4 compiler (`foss/2018a` Toolchain):
   ```bash
