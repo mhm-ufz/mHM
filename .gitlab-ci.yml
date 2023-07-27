@@ -75,9 +75,9 @@ documentation:
     - module load GCCcore/9.3.0 texlive/2020
     # use doxygen from the chs conda environment
     - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log_dev.txt
+    - doxygen doc/doxygen.config > doxygen_log_dev.txt 2>&1
     # create pdf documentation
-    - cd latex/ && make > ../doxygen_latex_dev.txt
+    - cd latex/ && make > ../doxygen_latex_dev.txt 2>&1
     - cp refman.pdf ../html/mhm_doc.pdf
     - cp refman.pdf ../mhm_doc_dev.pdf
     - cd .. && mv html html_dev
@@ -105,8 +105,9 @@ documentation_stable:
     - module load GCCcore/9.3.0 texlive/2020
     # use doxygen from the chs conda environment
     - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log_tag.txt
-    - cd latex/ && make > ../doxygen_latex_tag.txt
+    - doxygen doc/doxygen.config > doxygen_log_tag.txt 2>&1
+    # create pdf documentation
+    - cd latex/ && make > ../doxygen_latex_tag.txt 2>&1
     - cp refman.pdf ../html/mhm_doc.pdf
     - cp refman.pdf ../mhm_doc_tag.pdf
     - cd .. && mv html html_tag
