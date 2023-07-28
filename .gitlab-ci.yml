@@ -71,13 +71,13 @@ pybindings:
 documentation:
   stage: build
   script:
-    - source hpc-module-loads/eve.chs-conda01
+    - source hpc-module-loads/eve.chs-conda02
     - module load GCCcore/9.3.0 texlive/2020
     # use doxygen from the chs conda environment
     - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log_dev.txt
+    - doxygen doc/doxygen.config > doxygen_log_dev.txt 2>&1
     # create pdf documentation
-    - cd latex/ && make > ../doxygen_latex_dev.txt
+    - cd latex/ && make > ../doxygen_latex_dev.txt 2>&1
     - cp refman.pdf ../html/mhm_doc.pdf
     - cp refman.pdf ../mhm_doc_dev.pdf
     - cd .. && mv html html_dev
@@ -99,14 +99,15 @@ documentation_stable:
   variables:
     GIT_DEPTH: 0  # to have all tags
   script:
-    - source hpc-module-loads/eve.chs-conda01
+    - source hpc-module-loads/eve.chs-conda02
     # doc for latest version tag
     - git checkout $(git describe --match "v*" --abbrev=0 --tags $(git rev-list --tags --max-count=1))
     - module load GCCcore/9.3.0 texlive/2020
     # use doxygen from the chs conda environment
     - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log_tag.txt
-    - cd latex/ && make > ../doxygen_latex_tag.txt
+    - doxygen doc/doxygen.config > doxygen_log_tag.txt 2>&1
+    # create pdf documentation
+    - cd latex/ && make > ../doxygen_latex_tag.txt 2>&1
     - cp refman.pdf ../html/mhm_doc.pdf
     - cp refman.pdf ../mhm_doc_tag.pdf
     - cd .. && mv html html_tag
@@ -575,7 +576,7 @@ coverage:
   needs: []
   script:
     # gcov is part of GCC
-    - source hpc-module-loads/eve.chs-conda01
+    - source hpc-module-loads/eve.chs-conda02
     # run cmake with coverage support and run tests
     - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON -B build
     - cmake --build build --parallel

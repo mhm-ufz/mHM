@@ -1,0 +1,7 @@
+module purge
+module use /global/apps/modulefiles
+module load chs-fortran-conda/0.2.0
+export FC=gfortran
+export F77=gfortran
+export CC=gcc
+export CXX=g++
