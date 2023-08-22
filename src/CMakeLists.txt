@@ -23,6 +23,12 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../forces")
 else()
   set(CPM_forces_SOURCE "" CACHE PATH "Local source path for FORCES.")
 endif()
+# when building sdist download forces to top folder with CPM by setting "source cache"
+if(${SKBUILD_STATE} MATCHES "sdist")
+  message(STATUS "mHM: downloading forces for sdist")
+  set(CPM_SOURCE_CACHE "${CMAKE_CURRENT_SOURCE_DIR}/deps")
+  set(CPM_forces_SOURCE "")
+endif()
 # check forces version file
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/../version_forces.txt" ver_forces LIMIT_COUNT 1)
 # cmake directive to specify forces version: CPM_forces_VERSION
@@ -32,6 +38,14 @@ if(BUILD_MHM_LIB_SHARED)
   set_property(TARGET forces PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 target_link_libraries(${LIB_NAME} PUBLIC forces)
+
+if(${SKBUILD_STATE} MATCHES "sdist")
+    file(REMOVE_RECURSE "${CMAKE_CURRENT_SOURCE_DIR}/../forces")
+    file(GLOB _fpath RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/deps/forces" "${CMAKE_CURRENT_SOURCE_DIR}/deps/forces/*")
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/deps/forces/${_fpath}" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/..")
+    file(RENAME "${CMAKE_CURRENT_SOURCE_DIR}/../${_fpath}" "${CMAKE_CURRENT_SOURCE_DIR}/../forces")
+    message(STATUS "mHM: copy forces to ./forces")
+endif()
 
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
 include(../cmake/compileoptions.cmake)

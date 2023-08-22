@@ -1,6 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 
 # build related
+pybuild/
 forces/
 build/
 release/
