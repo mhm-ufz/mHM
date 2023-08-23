@@ -2,7 +2,13 @@ cmake_minimum_required(VERSION 3.17.2...3.24)
 enable_language(C)
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module NumPy)
 
-install(TARGETS mhm_lib LIBRARY DESTINATION mhm)
+if(${SKBUILD_STATE} MATCHES "editable")
+  set(mhm_install_dir "${CMAKE_CURRENT_SOURCE_DIR}")
+else()
+  set(mhm_install_dir "mhm")
+endif()
+
+install(TARGETS mhm_lib LIBRARY DESTINATION "${mhm_install_dir}")
 if(BUILD_MHM_DRIVER)
   # link to mhm-lib next to executable
   if (APPLE)
@@ -19,7 +25,7 @@ if(BUILD_MHM_DRIVER)
       BUILD_RPATH "$ORIGIN"
     )
   endif()
-  install(TARGETS mhm RUNTIME DESTINATION mhm)
+  install(TARGETS mhm RUNTIME DESTINATION "${mhm_install_dir}")
 endif()
 
 # Grab the variables from a local Python installation F2PY headers
@@ -87,4 +93,4 @@ endif()
 add_dependencies(${f2py_module_name} genpyf)
 
 # install
-install(TARGETS ${f2py_module_name} DESTINATION mhm)
+install(TARGETS ${f2py_module_name} DESTINATION "${mhm_install_dir}")
