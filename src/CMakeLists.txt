@@ -21,7 +21,13 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../forces")
   message(STATUS "mHM: found local forces directory")
   set(CPM_forces_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/../forces" CACHE PATH "Local source path for FORCES.")
 else()
-  set(CPM_forces_SOURCE "" CACHE PATH "Local source path for FORCES.")
+  set(CPM_forces_SOURCE $ENV{MHM_BUILD_FORCES_PATH} CACHE PATH "Local source path for FORCES.")
+endif()
+# when building sdist download forces to top folder with CPM by setting "source cache"
+if(${SKBUILD_STATE} MATCHES "sdist")
+  message(STATUS "mHM: downloading forces for sdist")
+  set(CPM_SOURCE_CACHE "${CMAKE_CURRENT_SOURCE_DIR}/deps")
+  set(CPM_forces_SOURCE "")
 endif()
 # check forces version file
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/../version_forces.txt" ver_forces LIMIT_COUNT 1)
@@ -33,6 +39,18 @@ if(BUILD_MHM_LIB_SHARED)
 endif()
 target_link_libraries(${LIB_NAME} PUBLIC forces)
 
+if(${SKBUILD_STATE} MATCHES "sdist")
+    file(REMOVE_RECURSE "${CMAKE_CURRENT_SOURCE_DIR}/../forces")
+    file(GLOB _fpath RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/deps/forces" "${CMAKE_CURRENT_SOURCE_DIR}/deps/forces/*")
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/deps/forces/${_fpath}" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/..")
+    file(RENAME "${CMAKE_CURRENT_SOURCE_DIR}/../${_fpath}" "${CMAKE_CURRENT_SOURCE_DIR}/../forces")
+    message(STATUS "mHM: copy forces to ./forces")
+endif()
+
+# check mhm specific env-vars
+if(DEFINED ENV{MHM_BUILD_PARALLEL})
+  set(CMAKE_WITH_OpenMP $ENV{MHM_BUILD_PARALLEL})
+endif()
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
 include(../cmake/compileoptions.cmake)
 if (CMAKE_WITH_MPI)
@@ -49,7 +67,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   target_compile_definitions(${LIB_NAME} PRIVATE GFORTRAN)
   target_compile_options(${LIB_NAME} PUBLIC
     $<$<NOT:$<BOOL:${BUILD_MHM_PYBIND}>>:-ffree-form -ffixed-line-length-132>
-    $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -fimplicit-none -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=snan -pedantic-errors>
+    $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -fimplicit-none -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=snan -pedantic>
     $<$<CONFIG:RELEASE>:-O3>
     $<$<BOOL:${CMAKE_WITH_GPROF}>:-pg>
   )

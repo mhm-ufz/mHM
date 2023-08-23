@@ -30,7 +30,7 @@ if(BUILD_MHM_DRIVER)
 endif()
 
 if(BUILD_MHM_PYBIND)
-  add_subdirectory(pybind/mhm)
+  add_subdirectory(pybind/src)
 endif()
 
 # add full version and date to pre-processor flags (qoutes need in before hand)
