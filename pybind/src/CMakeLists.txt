@@ -3,7 +3,7 @@ enable_language(C)
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module NumPy)
 
 if(${SKBUILD_STATE} MATCHES "editable")
-  set(mhm_install_dir "${CMAKE_CURRENT_SOURCE_DIR}")
+  set(mhm_install_dir "${CMAKE_CURRENT_SOURCE_DIR}/mhm")
 else()
   set(mhm_install_dir "mhm")
 endif()
