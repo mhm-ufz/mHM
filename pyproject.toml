@@ -14,7 +14,7 @@ description = "Python distribution of mHM with bindings."
 authors = [{name = "mHM Developers", email = "mhm-admin@ufz.de"}]
 readme = "pybind/README.md"
 license = {text = "LGPL-3.0"}
-dynamic = ["version", "entry-points"]
+dynamic = ["version"]
 keywords = ["mHM"]
 classifiers = [
     "Development Status :: 3 - Alpha",
