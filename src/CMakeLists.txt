@@ -25,6 +25,7 @@ else()
 endif()
 # when building sdist download forces to top folder with CPM by setting "source cache"
 if(${SKBUILD_STATE} MATCHES "sdist")
+  set(FORCES_WITH_NETCDF OFF)  # we don't need netcdf to create sdist
   message(STATUS "mHM: downloading forces for sdist")
   set(CPM_SOURCE_CACHE "${CMAKE_CURRENT_SOURCE_DIR}/deps")
   set(CPM_forces_SOURCE "")
