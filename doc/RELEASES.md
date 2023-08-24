@@ -2,7 +2,7 @@
 
 [TOC]
 
-## mHM v5.13.1 (unreleased)
+## mHM v5.13.1 (Aug 2023)
 
 ### Enhancements
 - Meteo Coupling ([!161](https://git.ufz.de/mhm/mhm/-/merge_requests/161))
@@ -33,13 +33,19 @@
   - added `mhm.model.config_coupling` to set coupling configuration as an alternative to the `coupling` namelist
   - added `mhm.get.number_of_horizons` to get the number of horizons of the current setup
 
-- Python setup: add switch to force using the [Ninja build system](https://ninja-build.org), fixing the [conda feedstock ninja patch](https://github.com/conda-forge/mhm-feedstock/blob/a77b4c0dae25bfcc3e77e87f6c5cdec8dff6339f/recipe/conda_force_ninja.patch#L7) ([!165](https://git.ufz.de/mhm/mhm/-/merge_requests/165))
+- Python setup ([!163](https://git.ufz.de/mhm/mhm/-/merge_requests/163))
+  - switching to [scikit-build-core](https://scikit-build-core.readthedocs.io) als build backend to be future-prove
+  - force using the [Ninja build system](https://ninja-build.org), fixing the [conda feedstock ninja patch](https://github.com/conda-forge/mhm-feedstock/blob/a77b4c0dae25bfcc3e77e87f6c5cdec8dff6339f/recipe/conda_force_ninja.patch#L7)
+  - mhm console script now always included
+  - slightly restructured python package to separate python files from wrapper for clean wheels
+  - editable installs more stable now
+  - cleaned up env-var configs for python installation
 
 ### Bugfixes
 
-- Cmake: fixed compiling issue with Python bindings on MacOS using clang ([see conda feedstock patch](https://github.com/conda-forge/mhm-feedstock/blob/a77b4c0dae25bfcc3e77e87f6c5cdec8dff6339f/recipe/conda_clang_fixes.patch#L7))
 - reset verbosity level when finalizing model
-
+- Cmake: fixed compiling issue with Python bindings on MacOS using clang ([see conda feedstock patch](https://github.com/conda-forge/mhm-feedstock/blob/a77b4c0dae25bfcc3e77e87f6c5cdec8dff6339f/recipe/conda_clang_fixes.patch#L7))
+- Documentation: now built with doxygen 1.9.7 for better type documentations and some minor fixes ([!167](https://git.ufz.de/mhm/mhm/-/merge_requests/167))
 
 ## mHM v5.13.0 (May 2023)
 
