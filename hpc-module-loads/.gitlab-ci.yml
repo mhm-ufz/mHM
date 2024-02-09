@@ -1,0 +1,48 @@
+variables:
+  GIT_DEPTH: 0
+  GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME/$CI_CONCURRENT_ID
+
+stages:
+  - info
+  - test
+
+#############
+### INFOS ###
+#############
+
+show-env-vars:
+  stage: info
+  variables:
+    SEP: "##################################################################"
+    S00: "commit date - "
+    S01: "project: ${CI_PROJECT_PATH}"
+    S02: "branch: ${CI_COMMIT_REF_NAME}"
+    S03: "commit: ${CI_COMMIT_SHA}"
+    S04: "commit msg: ${CI_COMMIT_MESSAGE}"
+    S05: "clone base path: "
+    S06: "runner token: ${CI_RUNNER_SHORT_TOKEN}"
+  script: echo -e "${SEP}\n${S00}$(date)\n${SEP}\n${S01}\n${S02}\n${S03}\n${S04}\n${SEP}\n${S05}${GIT_CLONE_PATH}\n${S06}\n${SEP}"
+
+#################
+### TEST JOBS ###
+#################
+
+eve.chs-conda01:
+  stage: test
+  script: source eve.chs-conda01
+
+eve.chs-conda02:
+  stage: test
+  script: source eve.chs-conda02
+
+eve.gfortran102:
+  stage: test
+  script: source eve.gfortran102
+
+eve.gfortran122:
+  stage: test
+  script: source eve.gfortran122
+
+eve.intel2020b:
+  stage: test
+  script: source eve.intel2020b
