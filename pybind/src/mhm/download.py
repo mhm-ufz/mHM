@@ -5,6 +5,7 @@ Download routines to get test domains for mHM.
     mHM is released under the LGPLv3+ license @license_note
 @ingroup mhm
 """
+
 import argparse
 import os
 import shutil
