@@ -36,10 +36,10 @@ pybindings:
   variables:
     GIT_DEPTH: 0  # to have all tags
   script:
-    - module load Anaconda3
-    - conda create -p ./mhm_env -c conda-forge -y mamba python=3.10 pip
-    - conda activate ./mhm_env
-    - mamba install -c conda-forge -y netcdf-fortran fortran-compiler c-compiler cxx-compiler fypp python-build black isort pytest-cov xarray netCDF4
+    - module use /global/apps/modulefiles/
+    - module load micromamba
+    - micromamba create -p ./mhm_env -y python=3.10 pip netcdf-fortran fortran-compiler c-compiler cxx-compiler fypp python-build black isort pytest-cov xarray netCDF4
+    - micromamba activate ./mhm_env
     # check source code
     - black --check --diff pybind
     - isort --check --diff pybind
