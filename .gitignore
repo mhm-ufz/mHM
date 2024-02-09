@@ -640,3 +640,6 @@ GitHub.sublime-settings
 
 # VSCode settings file
 .vscode/
+
+# additional folders
+info/
