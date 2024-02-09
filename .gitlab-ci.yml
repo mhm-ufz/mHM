@@ -72,7 +72,7 @@ documentation:
   stage: build
   script:
     - source hpc-module-loads/eve.chs-conda02
-    - module load GCCcore/9.3.0 texlive/2020
+    - module load GCC/12.2.0 texlive/20230904
     # use doxygen from the chs conda environment
     - export PROJECT_NUMBER="$(cat version.txt)"
     - doxygen doc/doxygen.config > doxygen_log_dev.txt 2>&1
@@ -121,43 +121,6 @@ documentation_stable:
       - doxygen_latex_tag.txt
       - doxygen_warn_tag.txt
   when: always
-
-cmake-nagfor62:
-  stage: build
-  script:
-    - source hpc-module-loads/eve.nagfor62
-    - source CI-scripts/compile
-    - source CI-scripts/compile_debug
-  artifacts:
-    paths:
-    - mhm
-    - mhm_debug
-
-cmake-gfortran83:
-  stage: build
-  script:
-    - source hpc-module-loads/eve.gfortran83
-    - source CI-scripts/compile
-    - source CI-scripts/compile_debug
-    - source CI-scripts/compile_OpenMP
-    - source CI-scripts/compile_OpenMP_debug
-  artifacts:
-    paths:
-    - mhm
-    - mhm_debug
-    - mhm_openmp
-    - mhm_openmp_debug
-
-cmake-gfortran83MPI:
-  stage: build
-  script:
-    - source hpc-module-loads/eve.gfortran83MPI
-    - source CI-scripts/compile_MPI
-    - source CI-scripts/compile_MPI_debug
-  artifacts:
-    paths:
-    - mhm_mpi
-    - mhm_mpi_debug
 
 cmake-gfortran102:
   stage: build
@@ -211,58 +174,6 @@ cmake-gfortran122MPI:
     - mhm_mpi
     - mhm_mpi_debug
 
-cmake-intel18:
-  stage: build
-  script:
-    - source hpc-module-loads/eve.intel18
-    - source CI-scripts/compile
-    - source CI-scripts/compile_debug
-    - source CI-scripts/compile_OpenMP
-    - source CI-scripts/compile_OpenMP_debug
-  artifacts:
-    paths:
-    - mhm
-    - mhm_debug
-    - mhm_openmp
-    - mhm_openmp_debug
-
-cmake-intel18MPI:
-  stage: build
-  script:
-    - source hpc-module-loads/eve.intel18MPI
-    - source CI-scripts/compile_MPI
-    - source CI-scripts/compile_MPI_debug
-  artifacts:
-    paths:
-    - mhm_mpi
-    - mhm_mpi_debug
-
-cmake-intel19:
-  stage: build
-  script:
-    - source hpc-module-loads/eve.intel19
-    - source CI-scripts/compile
-    - source CI-scripts/compile_debug
-    - source CI-scripts/compile_OpenMP
-    - source CI-scripts/compile_OpenMP_debug
-  artifacts:
-    paths:
-    - mhm
-    - mhm_debug
-    - mhm_openmp
-    - mhm_openmp_debug
-
-cmake-intel19MPI:
-  stage: build
-  script:
-    - source hpc-module-loads/eve.intel19MPI
-    - source CI-scripts/compile_MPI
-    - source CI-scripts/compile_MPI_debug
-  artifacts:
-    paths:
-    - mhm_mpi
-    - mhm_mpi_debug
-
 cmake-intel2020b:
   stage: build
   script:
@@ -289,14 +200,14 @@ cmake-intel2020bMPI:
     - mhm_mpi
     - mhm_mpi_debug
 
-valgrind-nagfor62:
+valgrind-gfortran122:
   when: always
   stage: valgrind
   needs:
-    - job: cmake-nagfor62
+    - job: cmake-gfortran122
       artifacts: true
   script:
-    - source hpc-module-loads/eve.nagfor62
+    - source hpc-module-loads/eve.gfortran122
     - module load Anaconda3
     - source activate /global/apps/mhm_checks/mhm_env
     - valgrind --version
@@ -308,14 +219,14 @@ valgrind-nagfor62:
     paths:
     - massif.out.0
 
-valgrind-gfortran83:
+valgrind-intel2020b:
   when: always
   stage: valgrind
   needs:
-    - job: cmake-gfortran83
+    - job: cmake-intel2020b
       artifacts: true
   script:
-    - source hpc-module-loads/eve.gfortran83
+    - source hpc-module-loads/eve.intel2020b
     - module load Anaconda3
     - source activate /global/apps/mhm_checks/mhm_env
     - valgrind --version
@@ -326,86 +237,6 @@ valgrind-gfortran83:
   artifacts:
     paths:
     - massif.out.0
-
-valgrind-intel19:
-  when: always
-  stage: valgrind
-  needs:
-    - job: cmake-intel19
-      artifacts: true
-  script:
-    - source hpc-module-loads/eve.intel19
-    - module load Anaconda3
-    - source activate /global/apps/mhm_checks/mhm_env
-    - valgrind --version
-    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
-    # execute mem-use check
-    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
-    - ms_print massif.out.0
-  artifacts:
-    paths:
-    - massif.out.0
-
-check-nagfor62:
-  when: always
-  stage: check-cases
-  needs:
-    - job: cmake-nagfor62
-      artifacts: true
-  script:
-    - source hpc-module-loads/eve.nagfor62
-    - source CI-scripts/pre_check
-    - python -u run_mhm_checks.py -l logs -e ../mhm
-  artifacts:
-    when: always
-    paths:
-    - check/logs/
-
-check-nagfor62DEBUG:
-  when: always
-  stage: check-cases
-  needs:
-    - job: cmake-nagfor62
-      artifacts: true
-  script:
-    - source hpc-module-loads/eve.nagfor62
-    - source CI-scripts/pre_check
-    # skip cases with optimization due to overflow in the random-number-generator (NAG uses -ieee=stop in DEBUG)
-    - python -u run_mhm_checks.py -l logs -e ../mhm_debug -s case_03 case_06 case_07 case_08 case_11
-  artifacts:
-    when: always
-    paths:
-    - check/logs/
-
-check-gfortran83:
-  when: always
-  stage: check-cases
-  needs:
-    - job: cmake-gfortran83
-      artifacts: true
-  script:
-    - source hpc-module-loads/eve.gfortran83
-    - source CI-scripts/pre_check
-    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
-  artifacts:
-    when: always
-    paths:
-    - check/logs/
-
-check-gfortran83MPI:
-  when: always
-  stage: check-cases
-  needs:
-    - job: cmake-gfortran83MPI
-      artifacts: true
-  script:
-    - source hpc-module-loads/eve.gfortran83MPI
-    - source CI-scripts/pre_check
-    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
-  artifacts:
-    when: always
-    paths:
-    - check/logs/
 
 check-gfortran102:
   when: always
@@ -467,66 +298,6 @@ check-gfortran122MPI:
     paths:
     - check/logs/
 
-check-intel18:
-  when: always
-  stage: check-cases
-  needs:
-    - job: cmake-intel18
-      artifacts: true
-  script:
-    - source hpc-module-loads/eve.intel18
-    - source CI-scripts/pre_check
-    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
-  artifacts:
-    when: always
-    paths:
-    - check/logs/
-
-check-intel18MPI:
-  when: always
-  stage: check-cases
-  needs:
-    - job: cmake-intel18MPI
-      artifacts: true
-  script:
-    - source hpc-module-loads/eve.intel18MPI
-    - source CI-scripts/pre_check
-    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
-  artifacts:
-    when: always
-    paths:
-    - check/logs/
-
-check-intel19:
-  when: always
-  stage: check-cases
-  needs:
-    - job: cmake-intel19
-      artifacts: true
-  script:
-    - source hpc-module-loads/eve.intel19
-    - source CI-scripts/pre_check
-    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
-  artifacts:
-    when: always
-    paths:
-    - check/logs/
-
-check-intel19MPI:
-  when: always
-  stage: check-cases
-  needs:
-    - job: cmake-intel19MPI
-      artifacts: true
-  script:
-    - source hpc-module-loads/eve.intel19MPI
-    - source CI-scripts/pre_check
-    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
-  artifacts:
-    when: always
-    paths:
-    - check/logs/
-
 check-intel2020b:
   when: always
   stage: check-cases
@@ -557,14 +328,14 @@ check-intel2020bMPI:
     paths:
     - check/logs/
 
-unittest-gfortran83:
+unittest-gfortran122:
   when: always
   stage: code-analysis
   needs:
-    - job: cmake-gfortran83
+    - job: cmake-gfortran122
   script:
     # we need pfUnit
-    - source hpc-module-loads/eve.gfortran83
+    - source hpc-module-loads/eve.gfortran122
     # run cmake with testing support, build mhm and run pfunit tests
     - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -B build
     - cmake --build build --parallel
