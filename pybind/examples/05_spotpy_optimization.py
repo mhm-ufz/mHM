@@ -1,6 +1,7 @@
 """
 Copyright 2023 by Sebastian Müller and Tobias Houska
 """
+
 from pathlib import Path
 
 import matplotlib.pyplot as plt
