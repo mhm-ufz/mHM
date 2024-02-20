@@ -46,3 +46,7 @@ eve.gfortran122:
 eve.intel2020b:
   stage: test
   script: source eve.intel2020b
+
+eve.intel2023b:
+  stage: test
+  script: source eve.intel2023b-llvm
