@@ -200,6 +200,32 @@ cmake-intel2020bMPI:
     - mhm_mpi
     - mhm_mpi_debug
 
+cmake-intel2023b-classic:
+  stage: build
+  script:
+    - source hpc-module-loads/eve.intel2023b-classic
+    - source CI-scripts/compile
+    - source CI-scripts/compile_debug
+    - source CI-scripts/compile_OpenMP
+    - source CI-scripts/compile_OpenMP_debug
+  artifacts:
+    paths:
+    - mhm
+    - mhm_debug
+    - mhm_openmp
+    - mhm_openmp_debug
+
+cmake-intel2023bMPI-classic:
+  stage: build
+  script:
+    - source hpc-module-loads/eve.intel2023bMPI-classic
+    - source CI-scripts/compile_MPI
+    - source CI-scripts/compile_MPI_debug
+  artifacts:
+    paths:
+    - mhm_mpi
+    - mhm_mpi_debug
+
 valgrind-gfortran122:
   when: always
   stage: valgrind
@@ -321,6 +347,36 @@ check-intel2020bMPI:
       artifacts: true
   script:
     - source hpc-module-loads/eve.intel2020bMPI
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
+
+check-intel2023b-classic:
+  when: always
+  stage: check-cases
+  needs:
+    - job: cmake-intel2023b-classic
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.intel2023b-classic
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
+
+check-intel2023bMPI-classic:
+  when: always
+  stage: check-cases
+  needs:
+    - job: cmake-intel2023bMPI-classic
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.intel2023bMPI-classic
     - source CI-scripts/pre_check
     - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
   artifacts:
