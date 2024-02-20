@@ -45,7 +45,7 @@ pybindings:
     - isort --check --diff pybind
     # create sdist and install it
     - python -m build --sdist --outdir dist .
-    - pip install -v -e .
+    - pip install -v .
     # check installation
     - python -c "import mhm; print(mhm.__version__)"
     - python -c "import mhm; print(mhm.f_version)"
@@ -56,6 +56,8 @@ pybindings:
     - mhm-download -V
     - mhm-download -h
     - python -m pytest --cov mhm --cov-report term-missing --cov-report html --cov-report xml -v pybind/tests/
+    # check editable installation last to not mess with pytest
+    - pip install -v -e .
     - rm -rf mhm_env/
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
