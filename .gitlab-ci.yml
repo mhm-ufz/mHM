@@ -58,6 +58,7 @@ pybindings:
     - python -m pytest --cov mhm --cov-report term-missing --cov-report html --cov-report xml -v pybind/tests/
     # check editable installation last to not mess with pytest
     - pip install -v -e .
+    - micromamba deactivate
     - rm -rf mhm_env/
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
