@@ -400,6 +400,19 @@ unittest-gfortran122:
     - cmake --build build --parallel
     - cmake --build build --target test
 
+unittest-intel2023b-classic:
+  when: always
+  stage: code-analysis
+  needs:
+    - job: cmake-intel2023b-classic
+  script:
+    # we need pfUnit
+    - source hpc-module-loads/eve.intel2023b-classic
+    # run cmake with testing support, build mhm and run pfunit tests
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -B build
+    - cmake --build build --parallel
+    - cmake --build build --target test
+
 coverage:
   when: always
   stage: code-analysis
