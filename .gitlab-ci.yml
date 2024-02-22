@@ -14,6 +14,7 @@ stages:
   - valgrind
   - check-cases
   - code-analysis
+  - doc
   - deploy
 
 show-env-vars:
@@ -70,60 +71,6 @@ pybindings:
     paths:
       - dist
       - htmlcov
-
-documentation:
-  stage: build
-  script:
-    - source hpc-module-loads/eve.chs-conda02
-    - module load GCC/12.2.0 texlive/20230904
-    # use doxygen from the chs conda environment
-    - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log_dev.txt 2>&1
-    # create pdf documentation
-    - cd latex/ && make > ../doxygen_latex_dev.txt 2>&1
-    - cp refman.pdf ../html/mhm_doc.pdf
-    - cp refman.pdf ../mhm_doc_dev.pdf
-    - cd .. && mv html html_dev
-    - mv doxygen_warn.txt doxygen_warn_dev.txt
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME"
-    paths:
-      - html_dev
-      - mhm_doc_dev.pdf
-      - doxygen_log_dev.txt
-      - doxygen_latex_dev.txt
-      - doxygen_warn_dev.txt
-  when: always
-
-documentation_stable:
-  only:
-    - develop
-  stage: build
-  variables:
-    GIT_DEPTH: 0  # to have all tags
-  script:
-    - source hpc-module-loads/eve.chs-conda02
-    # doc for latest version tag
-    - git checkout $(git describe --match "v*" --abbrev=0 --tags $(git rev-list --tags --max-count=1))
-    - module load GCCcore/9.3.0 texlive/2020
-    # use doxygen from the chs conda environment
-    - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log_tag.txt 2>&1
-    # create pdf documentation
-    - cd latex/ && make > ../doxygen_latex_tag.txt 2>&1
-    - cp refman.pdf ../html/mhm_doc.pdf
-    - cp refman.pdf ../mhm_doc_tag.pdf
-    - cd .. && mv html html_tag
-    - mv doxygen_warn.txt doxygen_warn_tag.txt
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME"
-    paths:
-      - html_tag
-      - mhm_doc_tag.pdf
-      - doxygen_log_tag.txt
-      - doxygen_latex_tag.txt
-      - doxygen_warn_tag.txt
-  when: always
 
 cmake-gfortran102:
   stage: build
@@ -437,6 +384,60 @@ coverage:
         path: coverage.xml
     paths:
     - coverage
+
+documentation:
+  stage: doc
+  script:
+    - source hpc-module-loads/eve.chs-conda02
+    - module load GCC/12.2.0 texlive/20230904
+    # use doxygen from the chs conda environment
+    - export PROJECT_NUMBER="$(cat version.txt)"
+    - doxygen doc/doxygen.config > doxygen_log_dev.txt 2>&1
+    # create pdf documentation
+    - cd latex/ && make -j > ../doxygen_latex_dev.txt 2>&1
+    - cp refman.pdf ../html/mhm_doc.pdf
+    - cp refman.pdf ../mhm_doc_dev.pdf
+    - cd .. && mv html html_dev
+    - mv doxygen_warn.txt doxygen_warn_dev.txt
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME"
+    paths:
+      - html_dev
+      - mhm_doc_dev.pdf
+      - doxygen_log_dev.txt
+      - doxygen_latex_dev.txt
+      - doxygen_warn_dev.txt
+  when: always
+
+documentation_stable:
+  only:
+    - develop
+  stage: doc
+  variables:
+    GIT_DEPTH: 0  # to have all tags
+  script:
+    - source hpc-module-loads/eve.chs-conda02
+    # doc for latest version tag
+    - git checkout $(git describe --match "v*" --abbrev=0 --tags $(git rev-list --tags --max-count=1))
+    - module load GCCcore/9.3.0 texlive/2020
+    # use doxygen from the chs conda environment
+    - export PROJECT_NUMBER="$(cat version.txt)"
+    - doxygen doc/doxygen.config > doxygen_log_tag.txt 2>&1
+    # create pdf documentation
+    - cd latex/ && make -j > ../doxygen_latex_tag.txt 2>&1
+    - cp refman.pdf ../html/mhm_doc.pdf
+    - cp refman.pdf ../mhm_doc_tag.pdf
+    - cd .. && mv html html_tag
+    - mv doxygen_warn.txt doxygen_warn_tag.txt
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME"
+    paths:
+      - html_tag
+      - mhm_doc_tag.pdf
+      - doxygen_log_tag.txt
+      - doxygen_latex_tag.txt
+      - doxygen_warn_tag.txt
+  when: always
 
 pages:
   only:
