@@ -248,14 +248,14 @@ valgrind-gfortran122:
     paths:
     - massif.out.0
 
-valgrind-intel2020b:
+valgrind-intel2023b-classic:
   when: always
   stage: valgrind
   needs:
-    - job: cmake-intel2020b
+    - job: cmake-intel2023b-classic
       artifacts: true
   script:
-    - source hpc-module-loads/eve.intel2020b
+    - source hpc-module-loads/eve.intel2023b-classic
     - module load Anaconda3
     - source activate /global/apps/mhm_checks/mhm_env
     - valgrind --version
