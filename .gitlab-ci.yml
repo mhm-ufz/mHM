@@ -421,7 +421,7 @@ documentation_stable:
     - source hpc-module-loads/eve.chs-conda02
     # doc for latest version tag
     - git checkout $(git describe --match "v*" --abbrev=0 --tags $(git rev-list --tags --max-count=1))
-    - module load GCCcore/9.3.0 texlive/2020
+    - module load GCC/12.2.0 texlive/20230904
     # use doxygen from the chs conda environment
     - export PROJECT_NUMBER="$(cat version.txt)"
     - doxygen doc/doxygen.config > doxygen_log_tag.txt 2>&1
