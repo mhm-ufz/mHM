@@ -11,7 +11,6 @@ variables:
 stages:
   - info
   - build
-  - valgrind
   - check-cases
   - code-analysis
   - doc
@@ -176,44 +175,6 @@ cmake-intel2023bMPI-classic:
     - mhm_mpi
     - mhm_mpi_debug
 
-valgrind-gfortran122:
-  when: always
-  stage: valgrind
-  needs:
-    - job: cmake-gfortran122
-      artifacts: true
-  script:
-    - source hpc-module-loads/eve.gfortran122
-    - module load Anaconda3
-    - source activate /global/apps/mhm_checks/mhm_env
-    - valgrind --version
-    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
-    # execute mem-use check
-    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
-    - ms_print massif.out.0
-  artifacts:
-    paths:
-    - massif.out.0
-
-valgrind-intel2023b-classic:
-  when: always
-  stage: valgrind
-  needs:
-    - job: cmake-intel2023b-classic
-      artifacts: true
-  script:
-    - source hpc-module-loads/eve.intel2023b-classic
-    - module load Anaconda3
-    - source activate /global/apps/mhm_checks/mhm_env
-    - valgrind --version
-    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
-    # execute mem-use check
-    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
-    - ms_print massif.out.0
-  artifacts:
-    paths:
-    - massif.out.0
-
 check-gfortran102:
   when: always
   stage: check-cases
@@ -360,6 +321,44 @@ unittest-intel2023b-classic:
     - cmake --build build --parallel
     - cmake --build build --target test
 
+valgrind-gfortran122:
+  when: always
+  stage: code-analysis
+  needs:
+    - job: cmake-gfortran122
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.gfortran122
+    - module load Anaconda3
+    - source activate /global/apps/mhm_checks/mhm_env
+    - valgrind --version
+    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
+    # execute mem-use check
+    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
+    - ms_print massif.out.0
+  artifacts:
+    paths:
+    - massif.out.0
+
+valgrind-intel2023b-classic:
+  when: always
+  stage: code-analysis
+  needs:
+    - job: cmake-intel2023b-classic
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.intel2023b-classic
+    - module load Anaconda3
+    - source activate /global/apps/mhm_checks/mhm_env
+    - valgrind --version
+    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
+    # execute mem-use check
+    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
+    - ms_print massif.out.0
+  artifacts:
+    paths:
+    - massif.out.0
+
 coverage:
   when: always
   stage: code-analysis
@@ -386,7 +385,9 @@ coverage:
     - coverage
 
 documentation:
+  when: always
   stage: doc
+  needs: []
   script:
     - source hpc-module-loads/eve.chs-conda02
     - module load GCC/12.2.0 texlive/20230904
@@ -407,12 +408,13 @@ documentation:
       - doxygen_log_dev.txt
       - doxygen_latex_dev.txt
       - doxygen_warn_dev.txt
-  when: always
 
 documentation_stable:
+  when: always
   only:
     - develop
   stage: doc
+  needs: []
   variables:
     GIT_DEPTH: 0  # to have all tags
   script:
@@ -437,7 +439,6 @@ documentation_stable:
       - doxygen_log_tag.txt
       - doxygen_latex_tag.txt
       - doxygen_warn_tag.txt
-  when: always
 
 pages:
   only:
@@ -466,4 +467,3 @@ pages:
     name: "$CI_COMMIT_REF_NAME"
     paths:
       - public
-  when: always
