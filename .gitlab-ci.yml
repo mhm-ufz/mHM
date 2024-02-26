@@ -289,7 +289,7 @@ check-intel2023bMPI-classic:
   script:
     - source hpc-module-loads/eve.intel2023bMPI-classic
     - source CI-scripts/pre_check
-    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4 -s case_11
+    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
   artifacts:
     when: always
     paths:
