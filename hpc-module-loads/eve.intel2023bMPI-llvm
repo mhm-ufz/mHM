@@ -1,0 +1,11 @@
+module purge
+module use /global/apps/modulefiles
+module load python_env_mpr
+module load intel/2023b
+module load netCDF-Fortran/4.6.1
+module load CMake
+module load pFUnit/4.8.0
+export FC=mpiifx
+export F77=mpiifx
+export CC=mpiicx
+export CXX=mpiicpx

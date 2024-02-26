@@ -33,6 +33,16 @@ All these scripts will load:
   source eve.intel2020b # or
   source eve.intel2020bMPI
   ```
+- Intel classic 2021.10.0 compiler (`intel/2023b` Toolchain):
+  ```bash
+  source eve.intel2023b-classic # or
+  source eve.intel2023bMPI-classic
+  ```
+- Intel oneAPI 2023.2.0 compiler (`intel/2023b` Toolchain):
+  ```bash
+  source eve.intel2023b-llvm # or
+  source eve.intel2023bMPI-llvm
+  ```
 
 ## Toolchains at Juwels
 
@@ -91,4 +101,4 @@ source lumi.gfortran112
 
 MIT License (MIT)
 
-Copyright (c) 2020 - 2023 CHS Developers
+Copyright (c) 2020 - 2024 CHS Developers

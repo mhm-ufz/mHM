@@ -11,9 +11,9 @@ variables:
 stages:
   - info
   - build
-  - valgrind
   - check-cases
   - code-analysis
+  - doc
   - deploy
 
 show-env-vars:
@@ -45,7 +45,7 @@ pybindings:
     - isort --check --diff pybind
     # create sdist and install it
     - python -m build --sdist --outdir dist .
-    - pip install -v -e .
+    - pip install -v .
     # check installation
     - python -c "import mhm; print(mhm.__version__)"
     - python -c "import mhm; print(mhm.f_version)"
@@ -56,6 +56,9 @@ pybindings:
     - mhm-download -V
     - mhm-download -h
     - python -m pytest --cov mhm --cov-report term-missing --cov-report html --cov-report xml -v pybind/tests/
+    # check editable installation last to not mess with pytest
+    - pip install -v -e .
+    - micromamba deactivate
     - rm -rf mhm_env/
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
@@ -67,60 +70,6 @@ pybindings:
     paths:
       - dist
       - htmlcov
-
-documentation:
-  stage: build
-  script:
-    - source hpc-module-loads/eve.chs-conda02
-    - module load GCC/12.2.0 texlive/20230904
-    # use doxygen from the chs conda environment
-    - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log_dev.txt 2>&1
-    # create pdf documentation
-    - cd latex/ && make > ../doxygen_latex_dev.txt 2>&1
-    - cp refman.pdf ../html/mhm_doc.pdf
-    - cp refman.pdf ../mhm_doc_dev.pdf
-    - cd .. && mv html html_dev
-    - mv doxygen_warn.txt doxygen_warn_dev.txt
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME"
-    paths:
-      - html_dev
-      - mhm_doc_dev.pdf
-      - doxygen_log_dev.txt
-      - doxygen_latex_dev.txt
-      - doxygen_warn_dev.txt
-  when: always
-
-documentation_stable:
-  only:
-    - develop
-  stage: build
-  variables:
-    GIT_DEPTH: 0  # to have all tags
-  script:
-    - source hpc-module-loads/eve.chs-conda02
-    # doc for latest version tag
-    - git checkout $(git describe --match "v*" --abbrev=0 --tags $(git rev-list --tags --max-count=1))
-    - module load GCCcore/9.3.0 texlive/2020
-    # use doxygen from the chs conda environment
-    - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log_tag.txt 2>&1
-    # create pdf documentation
-    - cd latex/ && make > ../doxygen_latex_tag.txt 2>&1
-    - cp refman.pdf ../html/mhm_doc.pdf
-    - cp refman.pdf ../mhm_doc_tag.pdf
-    - cd .. && mv html html_tag
-    - mv doxygen_warn.txt doxygen_warn_tag.txt
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME"
-    paths:
-      - html_tag
-      - mhm_doc_tag.pdf
-      - doxygen_log_tag.txt
-      - doxygen_latex_tag.txt
-      - doxygen_warn_tag.txt
-  when: always
 
 cmake-gfortran102:
   stage: build
@@ -200,43 +149,31 @@ cmake-intel2020bMPI:
     - mhm_mpi
     - mhm_mpi_debug
 
-valgrind-gfortran122:
-  when: always
-  stage: valgrind
-  needs:
-    - job: cmake-gfortran122
-      artifacts: true
+cmake-intel2023b-classic:
+  stage: build
   script:
-    - source hpc-module-loads/eve.gfortran122
-    - module load Anaconda3
-    - source activate /global/apps/mhm_checks/mhm_env
-    - valgrind --version
-    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
-    # execute mem-use check
-    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
-    - ms_print massif.out.0
+    - source hpc-module-loads/eve.intel2023b-classic
+    - source CI-scripts/compile
+    - source CI-scripts/compile_debug
+    - source CI-scripts/compile_OpenMP
+    - source CI-scripts/compile_OpenMP_debug
   artifacts:
     paths:
-    - massif.out.0
+    - mhm
+    - mhm_debug
+    - mhm_openmp
+    - mhm_openmp_debug
 
-valgrind-intel2020b:
-  when: always
-  stage: valgrind
-  needs:
-    - job: cmake-intel2020b
-      artifacts: true
+cmake-intel2023bMPI-classic:
+  stage: build
   script:
-    - source hpc-module-loads/eve.intel2020b
-    - module load Anaconda3
-    - source activate /global/apps/mhm_checks/mhm_env
-    - valgrind --version
-    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
-    # execute mem-use check
-    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
-    - ms_print massif.out.0
+    - source hpc-module-loads/eve.intel2023bMPI-classic
+    - source CI-scripts/compile_MPI
+    - source CI-scripts/compile_MPI_debug
   artifacts:
     paths:
-    - massif.out.0
+    - mhm_mpi
+    - mhm_mpi_debug
 
 check-gfortran102:
   when: always
@@ -328,6 +265,36 @@ check-intel2020bMPI:
     paths:
     - check/logs/
 
+check-intel2023b-classic:
+  when: always
+  stage: check-cases
+  needs:
+    - job: cmake-intel2023b-classic
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.intel2023b-classic
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
+
+check-intel2023bMPI-classic:
+  when: always
+  stage: check-cases
+  needs:
+    - job: cmake-intel2023bMPI-classic
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.intel2023bMPI-classic
+    - source CI-scripts/pre_check
+    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
+  artifacts:
+    when: always
+    paths:
+    - check/logs/
+
 unittest-gfortran122:
   when: always
   stage: code-analysis
@@ -340,6 +307,57 @@ unittest-gfortran122:
     - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -B build
     - cmake --build build --parallel
     - cmake --build build --target test
+
+unittest-intel2023b-classic:
+  when: always
+  stage: code-analysis
+  needs:
+    - job: cmake-intel2023b-classic
+  script:
+    # we need pfUnit
+    - source hpc-module-loads/eve.intel2023b-classic
+    # run cmake with testing support, build mhm and run pfunit tests
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -B build
+    - cmake --build build --parallel
+    - cmake --build build --target test
+
+valgrind-gfortran122:
+  when: always
+  stage: code-analysis
+  needs:
+    - job: cmake-gfortran122
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.gfortran122
+    - module load Anaconda3
+    - source activate /global/apps/mhm_checks/mhm_env
+    - valgrind --version
+    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
+    # execute mem-use check
+    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
+    - ms_print massif.out.0
+  artifacts:
+    paths:
+    - massif.out.0
+
+valgrind-intel2023b-classic:
+  when: always
+  stage: code-analysis
+  needs:
+    - job: cmake-intel2023b-classic
+      artifacts: true
+  script:
+    - source hpc-module-loads/eve.intel2023b-classic
+    - module load Anaconda3
+    - source activate /global/apps/mhm_checks/mhm_env
+    - valgrind --version
+    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
+    # execute mem-use check
+    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
+    - ms_print massif.out.0
+  artifacts:
+    paths:
+    - massif.out.0
 
 coverage:
   when: always
@@ -365,6 +383,62 @@ coverage:
         path: coverage.xml
     paths:
     - coverage
+
+documentation:
+  when: always
+  stage: doc
+  needs: []
+  script:
+    - source hpc-module-loads/eve.chs-conda02
+    - module load GCC/12.2.0 texlive/20230904
+    # use doxygen from the chs conda environment
+    - export PROJECT_NUMBER="$(cat version.txt)"
+    - doxygen doc/doxygen.config > doxygen_log_dev.txt 2>&1
+    # create pdf documentation
+    - cd latex/ && make -j > ../doxygen_latex_dev.txt 2>&1
+    - cp refman.pdf ../html/mhm_doc.pdf
+    - cp refman.pdf ../mhm_doc_dev.pdf
+    - cd .. && mv html html_dev
+    - mv doxygen_warn.txt doxygen_warn_dev.txt
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME"
+    paths:
+      - html_dev
+      - mhm_doc_dev.pdf
+      - doxygen_log_dev.txt
+      - doxygen_latex_dev.txt
+      - doxygen_warn_dev.txt
+
+documentation_stable:
+  when: always
+  only:
+    - develop
+  stage: doc
+  needs: []
+  variables:
+    GIT_DEPTH: 0  # to have all tags
+  script:
+    - source hpc-module-loads/eve.chs-conda02
+    # doc for latest version tag
+    - git checkout $(git describe --match "v*" --abbrev=0 --tags $(git rev-list --tags --max-count=1))
+    - module load GCC/12.2.0 texlive/20230904
+    # use doxygen from the chs conda environment
+    - export PROJECT_NUMBER="$(cat version.txt)"
+    - doxygen doc/doxygen.config > doxygen_log_tag.txt 2>&1
+    # create pdf documentation
+    - cd latex/ && make -j > ../doxygen_latex_tag.txt 2>&1
+    - cp refman.pdf ../html/mhm_doc.pdf
+    - cp refman.pdf ../mhm_doc_tag.pdf
+    - cd .. && mv html html_tag
+    - mv doxygen_warn.txt doxygen_warn_tag.txt
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME"
+    paths:
+      - html_tag
+      - mhm_doc_tag.pdf
+      - doxygen_log_tag.txt
+      - doxygen_latex_tag.txt
+      - doxygen_warn_tag.txt
 
 pages:
   only:
@@ -393,4 +467,3 @@ pages:
     name: "$CI_COMMIT_REF_NAME"
     paths:
       - public
-  when: always
