@@ -391,8 +391,15 @@ documentation:
     - module load GCC/12.2.0 texlive/20230904
     # use doxygen from the chs conda environment
     - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log_dev.txt 2>&1
-    # create pdf documentation
+    - sed -i '/GENERATE_LATEX.*=/s/^.*$/GENERATE_LATEX = NO/' doc/doxygen.config
+    - doxygen doc/doxygen.config > doxygen_log_dev_html.txt 2>&1
+    # create pdf documentation (no files and namespaces there)
+    - sed -i '/GENERATE_HTML.*=/s/^.*$/GENERATE_HTML = NO/' doc/doxygen.config
+    - sed -i '/GENERATE_LATEX.*=/s/^.*$/GENERATE_LATEX = YES/' doc/doxygen.config
+    - sed -i '/SHOW_FILES.*=/s/^.*$/SHOW_FILES = NO/' doc/doxygen.config
+    - sed -i '/SHOW_NAMESPACES.*=/s/^.*$/SHOW_NAMESPACES = NO/' doc/doxygen.config
+    - sed -i '/ALPHABETICAL_INDEX.*=/s/^.*$/ALPHABETICAL_INDEX = NO/' doc/doxygen.config
+    - doxygen doc/doxygen.config > doxygen_log_dev_latex.txt 2>&1
     - cd latex/ && make -j > ../doxygen_latex_dev.txt 2>&1
     - cp refman.pdf ../html/mhm_doc.pdf
     - cp refman.pdf ../mhm_doc_dev.pdf
@@ -403,7 +410,7 @@ documentation:
     paths:
       - html_dev
       - mhm_doc_dev.pdf
-      - doxygen_log_dev.txt
+      - doxygen_log_dev*.txt
       - doxygen_latex_dev.txt
       - doxygen_warn_dev.txt
 
@@ -422,8 +429,15 @@ documentation_stable:
     - module load GCC/12.2.0 texlive/20230904
     # use doxygen from the chs conda environment
     - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log_tag.txt 2>&1
-    # create pdf documentation
+    - sed -i '/GENERATE_LATEX.*=/s/^.*$/GENERATE_LATEX = NO/' doc/doxygen.config
+    - doxygen doc/doxygen.config > doxygen_log_tag_html.txt 2>&1
+    # create pdf documentation (no files and namespaces there)
+    - sed -i '/GENERATE_HTML.*=/s/^.*$/GENERATE_HTML = NO/' doc/doxygen.config
+    - sed -i '/GENERATE_LATEX.*=/s/^.*$/GENERATE_LATEX = YES/' doc/doxygen.config
+    - sed -i '/SHOW_FILES.*=/s/^.*$/SHOW_FILES = NO/' doc/doxygen.config
+    - sed -i '/SHOW_NAMESPACES.*=/s/^.*$/SHOW_NAMESPACES = NO/' doc/doxygen.config
+    - sed -i '/ALPHABETICAL_INDEX.*=/s/^.*$/ALPHABETICAL_INDEX = NO/' doc/doxygen.config
+    - doxygen doc/doxygen.config > doxygen_log_tag_latex.txt 2>&1
     - cd latex/ && make -j > ../doxygen_latex_tag.txt 2>&1
     - cp refman.pdf ../html/mhm_doc.pdf
     - cp refman.pdf ../mhm_doc_tag.pdf
@@ -434,7 +448,7 @@ documentation_stable:
     paths:
       - html_tag
       - mhm_doc_tag.pdf
-      - doxygen_log_tag.txt
+      - doxygen_log_tag*.txt
       - doxygen_latex_tag.txt
       - doxygen_warn_tag.txt
 
