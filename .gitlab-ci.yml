@@ -400,6 +400,8 @@ documentation:
     - sed -i '/SHOW_NAMESPACES.*=/s/^.*$/SHOW_NAMESPACES = NO/' doc/doxygen.config
     - sed -i '/ALPHABETICAL_INDEX.*=/s/^.*$/ALPHABETICAL_INDEX = NO/' doc/doxygen.config
     - doxygen doc/doxygen.config > doxygen_log_dev_latex.txt 2>&1
+    # rename second "Module Documentation" chapter to "Package Documentation" to match html docs
+    - sed -i '/\\chapter{Module Documentation}/{x;s/^/x/;/xx/{x;s/.*/\\chapter{Package Documentation}/;b};x;}' latex/refman.tex
     - cd latex/ && make -j > ../doxygen_latex_dev.txt 2>&1
     - cp refman.pdf ../html/mhm_doc.pdf
     - cp refman.pdf ../mhm_doc_dev.pdf
@@ -438,6 +440,8 @@ documentation_stable:
     - sed -i '/SHOW_NAMESPACES.*=/s/^.*$/SHOW_NAMESPACES = NO/' doc/doxygen.config
     - sed -i '/ALPHABETICAL_INDEX.*=/s/^.*$/ALPHABETICAL_INDEX = NO/' doc/doxygen.config
     - doxygen doc/doxygen.config > doxygen_log_tag_latex.txt 2>&1
+    # rename second "Module Documentation" chapter to "Package Documentation" to match html docs
+    - sed -i '/\\chapter{Module Documentation}/{x;s/^/x/;/xx/{x;s/.*/\\chapter{Package Documentation}/;b};x;}' latex/refman.tex
     - cd latex/ && make -j > ../doxygen_latex_tag.txt 2>&1
     - cp refman.pdf ../html/mhm_doc.pdf
     - cp refman.pdf ../mhm_doc_tag.pdf
