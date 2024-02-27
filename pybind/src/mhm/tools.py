@@ -5,6 +5,7 @@ Tools to interact with mHM.
     mHM is released under the LGPLv3+ license @license_note
 @ingroup mhm
 """
+
 import numpy as np
 
 from . import wrapper as wr

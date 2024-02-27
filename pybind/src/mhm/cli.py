@@ -4,6 +4,7 @@ Module to provide a script to execute mHM.
 @copyright Copyright 2005-@today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
     mHM is released under the LGPLv3+ license @license_note
 """
+
 import os
 import subprocess
 import sys
