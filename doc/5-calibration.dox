@@ -19,7 +19,7 @@ not to change the bounds, since they are the result of intensive sensitivity stu
 
 Different optimization methods are available to find the best configuration of parameters for the selected objective
 function. You may chose between Simulated Annealing (SA), Dynamically Dimensioned Search (DDS) and Shuffled Complex
-Evolution algorith (SCE). Details about these methods can be found in the module describtion part of this manual. At the
+Evolution algorithm (SCE). Details about these methods can be found in the module description part of this manual. At the
 very end of <code>mhm.nml</code> additional settings are offered for optimization.
 
 \subsection Objective Functions
@@ -47,7 +47,7 @@ modified with tools like <code>cdo</code> or <code>python</code>.
 \subsection Output
 
 Calibration runs result in a parameter file called <code>FinalParams.nml</code> which contains the optimized parameter
-set. Replace <code>mhm_parameters.nml</code> with <code>FinalParams.nml</code>, then run mHM in foreward mode in order
+set. Replace <code>mhm_parameters.nml</code> with <code>FinalParams.nml</code>, then run mHM in forward mode in order
 to obtain hydrologic predictions.
 
 */

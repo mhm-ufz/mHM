@@ -32,7 +32,7 @@ To cite a certain version, have a look at the [Zenodo site][10].
 ## Install
 
 mHM can be compiled with cmake. See more details under [cmake manual][9].
-See also the [documentation][5] for detailed instructions to setup mHM.
+See also the [documentation][5] for detailed instructions to set up mHM.
 
 
 ## Quick start

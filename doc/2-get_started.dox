@@ -12,11 +12,11 @@ The mHM distribution usually comes with two example test domains located in
 test_domain/
 test_domain_2/
 \endcode
-The directory provides input data for the test basin and output examples. Detailled information about this test basin can be found in the chapter \ref testbasin. All parameters and paths are already set by default to the test case, so you can just start the simulation with the command
+The directory provides input data for the test basin and output examples. Detailed information about this test basin can be found in the chapter \ref testbasin. All parameters and paths are already set by default to the test case, so you can just start the simulation with the command
 \code
 ./mhm
 \endcode
-This will run mHM on two basins simultanously and create output files for discharge and interception in <code>test/output_b*</code>.
+This will run mHM on two basins simultaneously and create output files for discharge and interception in <code>test/output_b*</code>.
 The chapter \ref output provides further information on visualising mHM results.
 
 \section owncatch Run your own Simulation
@@ -45,12 +45,12 @@ each single setting, this section will only roughly describe the structure of th
 LAI values defined for 10 land classes or choose to run mHM using gridded LAI input data (e.g., MODIS).
 Gridded LAI data must be provided on a daily time-step at the Level-0 resolution.
 \li <b>Process Switches:</b>
-*  - Proccess case 5 - potential evapotranspiration (PET):
+*  - Process case 5 - potential evapotranspiration (PET):
 *      -# PET is input (processCase(5)=0)
 *      -# PET after Hargreaves-Samani (processCase(5)=1)
 *      -# PET after Priestley-Taylor (processCase(5)=2)
 *      -# PET after Penman-Monteith (processCase(5)=3)
-*  - Proccess case 8 - routing  can be activated (=1) or deactivated (=0).
+*  - Process case 8 - routing  can be activated (=1) or deactivated (=0).
 \li <b>Annual Cycles:</b> Values for pan evaporation hold in impervious regions only. The meteorological forcing table disaggregates daily input data to hourly values.
 
 \subsection mhmoutputnml Output Configuration: Time Steps, States, Fluxes
@@ -62,7 +62,7 @@ because the file size will greatly increase with the number of containing variab
 \subsection mhmparameters Regionalised Parameters: Initial Values and Ranges
 
 The file <code>mhm_parameters.nml</code> contains all global parameters and their initial values. They have been determined by calibration in German basins
-and seem to be transferabel to other catchments. If you come up with a very different catchment or routing resolution, these parameters should be recalibrated
+and seem to be transferable to other catchments. If you come up with a very different catchment or routing resolution, these parameters should be recalibrated
 (see section \ref calibration).
 
 
@@ -77,7 +77,7 @@ until the objective function converges to a confident best fit.
 
 mHM comes with four available optimization methods:
 \li <b>MCMC:</b> The Monte Carlo Markov Chain sampling of parameter sets is recommended for estimation of parameter uncertainties. Intermediate results are written to <code>mcmc_tmp_parasets.nc</code> .
-\li <b>DDS:</b> The Dynamically Dimensioned Search is an optimization routine known improve the objective within a small number of iterations. However, the result of DDS is not neccessarily close to your global optimum. Intermediate results are written to <code>dds_results.out</code> .
+\li <b>DDS:</b> The Dynamically Dimensioned Search is an optimization routine known improve the objective within a small number of iterations. However, the result of DDS is not necessarily close to your global optimum. Intermediate results are written to <code>dds_results.out</code> .
 \li <b>Simulated Annealing:</b> Simulated Annealing is a global optimization algorithm. SA is known to require a large number of iterations before convergence (e.g. 100 times more than DDS), but finds parameter sets closer to the global minimum like DDS. Intermediate results are written to <code>anneal_results.out</code> .
 \li <b>SCE:</b> The Shuffled Complex Evolution is a global optimization algorithm which is based on the shuffling of parameter complexes. It needs more iterations compared to the DDS (e.g. 20 times more), but less compared to Simulated Annealing. The increasing computational effort (i.e. iterations) leads to more reliable estimation of the global optimum compared to DDS. Intermediate results are written to <code>sce_results.out</code> .
 
@@ -110,7 +110,7 @@ In <code>mhm_parameters.nml</code> you find the initial values and ranges from w
 Most ranges are very sensitive and have been determined by detailed sensitivity analysis, so we do not recommend to change them.
 With the FLAG column you may choose which parameters are allowed to be optimised. The parameter <code>gain_loss_GWreservoir_karstic</code> is not meant to be optimised.
 
-Please mind that optimization runs will take long and may demand a huge amount of hardware ressources. We recommend to submit those jobs to a cluster computing system.
+Please mind that optimization runs will take long and may demand a huge amount of hardware resources. We recommend to submit those jobs to a cluster computing system.
 
 \subsection optiafter Final Calibration Results
 
@@ -132,6 +132,6 @@ There are two scripts that help you with that:
 As soon as the new parameters are set, deactivate the <code>optimize</code> switch in <code>mhm.nml</code> and <b>rerun</b> mHM
 once in order to obtain the final optimised output.
 
-You should also have a look at the parameter evolution (e.g. <code>sce_results.out</code>) or final results. If any of the parameters stick to the very end of their allowed range, the result is not optimal and you will be in serious trouble. Possible reasons might be bad parameter ranges (even though they have been optimised mathematically, but in a basin or resoluion not comparable to yours) or bad input data.
+You should also have a look at the parameter evolution (e.g. <code>sce_results.out</code>) or final results. If any of the parameters stick to the very end of their allowed range, the result is not optimal and you will be in serious trouble. Possible reasons might be bad parameter ranges (even though they have been optimised mathematically, but in a basin or resolution not comparable to yours) or bad input data.
 
 */

@@ -62,7 +62,7 @@ Easiest way to do so is:
 
 3. Open Ubuntu from the new entry in the start menu
 
-Then you can follow the install instructions for Ubuntu from above.
+Then you can follow the installation instructions for Ubuntu from above.
 
 If you rather want to use [Cygwin](https://www.cygwin.com/)
 (tool providing Linux functionality on Windows), step-by-step guidelines on
@@ -195,7 +195,7 @@ cmake --install release --prefix $CONDA_PREFIX
 Starting with version 5.12, mHM is depending on [FORCES](https://git.ufz.de/chs/forces/), our Fortran library for Computational Environmental Systems.
 This library is downloaded on the fly by [CPM](https://github.com/cpm-cmake/CPM.cmake), the cmake package manager.
 
-If you don't want to download it indirectly, know you wont have internet during your development or you want to work on routines provided by FORCES, you can place a copy of the FORCES repository in the root of your cloned mHM repository by e.g.:
+If you don't want to download it indirectly, know you won't have internet during your development or you want to work on routines provided by FORCES, you can place a copy of the FORCES repository in the root of your cloned mHM repository by e.g.:
 ```bash
 git clone https://git.ufz.de/chs/forces.git
 ```
