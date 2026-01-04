@@ -91,7 +91,7 @@ CONTAINS
   ! Robert Schweppe      Jun 2018 - refactoring and reformatting
   ! Stephan Thober       Jan 2022 - added nTstepForcingDay and is_hourly_forcing flag
 
-  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, BFI)
+  SUBROUTINE mhm_eval(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, BFI, sweOptiSim)
     implicit none
 
     !> a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
@@ -110,6 +110,8 @@ CONTAINS
     type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim
     !> baseflow index, dim1=domainID
     real(dp), dimension(:), allocatable, optional, intent(out) :: BFI
+    !> returns swe time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells, nTimeSteps]
+    type(optidata_sim), dimension(:), optional, intent(inout) :: sweOptiSim
 
     ! number of domains simulated in this mhm_eval run. Depends on opti_function
     integer(i4) :: nDomains, ii
@@ -127,7 +129,7 @@ CONTAINS
     DomainLoop: do ii = 1, nDomains
 
       ! prepare current domain
-      call mhm_interface_run_prepare_domain(ii, etOptiSim, twsOptiSim, neutronsOptiSim, smOptiSim)
+      call mhm_interface_run_prepare_domain(ii, etOptiSim, twsOptiSim, neutronsOptiSim, smOptiSim, sweOptiSim)
 
       ! run time-loop at least once
       time_loop_finished = .false.
@@ -142,7 +144,7 @@ CONTAINS
         call mhm_interface_run_write_output()
 
         ! update optisim data
-        call mhm_interface_run_update_optisim(etOptiSim, twsOptiSim, neutronsOptiSim, smOptiSim)
+        call mhm_interface_run_update_optisim(etOptiSim, twsOptiSim, neutronsOptiSim, smOptiSim, sweOptiSim)
 
         ! check whether to run the time-loop further
         call mhm_interface_run_finished(time_loop_finished)

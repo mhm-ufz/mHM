@@ -18,7 +18,22 @@
 !!       - (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(domain_avg_TWS) - objective function using Q and domain average (standard score) TWS
 !!       - (17) SO: N:        1.0 - KGE of spatio-temporal neutron data, catchment-average
 !!       - (27) SO: ET:       1.0 - KGE of catchment average evapotranspiration
+!>       - (35) SO: SM:       1.0 - SPAEF of spatially distributed soil moisture                                                                                                                                                                          
+!>       - (36) SO: ET:       1.0 - SPAEF of spatially distributed evapotranspiration                                                                                                                                                                     
+!>       - (37) SO: SM + ET: 1.0 - 0.5 * [SPAEF(SM) + SPAEF(ET)]                                                                                                                                                                                    
+!>       - (38) SO: SM + Q : 1.0 - [input wt.* SPAEF(SM) + SPAEF(Q)]/(input wt. + 1)                                                                                                                                                                                      
+!>       - (39) SO: ET + Q : 1.0 - [input wt.* SPAEF(ET) + SPAEF(Q)]/(input wt. + 1)                                                                                                                                                                                      
+!>       - (40) SO: SM + ET + Q: 1.0 - [2.5* SPAEF(SM) + 2.5* SPAEF(ET) + SPAEF(Q)]/6  
+!>       - (41) SO: ET: 1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture                                                                                                                                                        
+!>       - (42) SO: SM + ET: 1.0 - 0.5 * [PD(SM) + PD(ET)]                                                                                                                                                                                    
+!>       - (43) SO: SM + Q : 1.0 - [input wt.* PD(SM) + PD(Q)]/(input wt. + 1)
+!>       - (44) SO: ET + Q : 1.0 - [input wt.* PD(ET) + PD(Q)]/(input wt. + 1)                                                                                                                                                                     
+!>       - (45) SO: SM + ET + Q: 1.0 - [0.5*input wt.* PD(SM) + 0.5*input wt.* PD(ET) + SPAEF(Q)]/(input wt. + 1) 
+!>       - (46) SO: SPF: 1.0 - CA(SPF)
+!>       - (47) SO: SPF+ Q : 1.0 - [input wt.* CA(SPF) + KGE(Q)]/(input wt. + 1) 
 !> \changelog
+!! - Oldrich Rakovec Oct 2015
+!!   - added obj. func. 35 to 47, related to spatial checks (SPAEF, CA, PD)
 !! - Oldrich Rakovec Oct 2015
 !!   - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_domain_avg_tws routine, former basin_avg
 !! - Robert Schweppe Jun 2018
@@ -159,6 +174,45 @@ CONTAINS
     case (34)
       ! KGE for Q * Absolute-Error for BFI
       objective = objective_kge_q_BFI(parameterset, eval)
+    case (35)
+      ! SPAEF for SM fields
+      objective = objective_spaef_sm(parameterset, eval)
+    case (36)
+      ! SPAEF for ET fields
+      objective = objective_spaef_et(parameterset, eval)
+    case (37)
+      ! SPAEF for SM fields * SPAEF for ET fields
+      objective = objective_spaef_sm_spaef_et(parameterset, eval)
+    case (38)
+      ! SPAEF for SM fields * KGE for Q
+      objective = objective_spaef_sm_kge_q(parameterset, eval)
+    case (39)
+      ! SPAEF for ET fields * KGE for Q
+      objective = objective_spaef_et_kge_q(parameterset, eval)
+    case (40)
+      ! SPAEF for SM fields * SPAEF for ET fields * KGE for Q
+      objective = objective_spaef_sm_spaef_et_kge_q(parameterset, eval)
+    case (41)
+      ! pattern dissimilarity (PD) of ET fields
+      objective = objective_pd_et(parameterset, eval)
+    case (42)
+      ! PD for SM fields * PD for ET fields
+      objective = objective_pd_sm_pd_et(parameterset, eval)
+    case (43)
+      ! PD for SM fields * KGE for Q
+      objective = objective_pd_sm_kge_q(parameterset, eval)
+    case (44)
+      ! PD for ET fields * KGE for Q
+      objective = objective_pd_et_kge_q(parameterset, eval)
+    case (45)
+      ! PD for SM fields * PD for ET fields * KGE for Q
+      objective = objective_pd_sm_pd_et_kge_q(parameterset, eval)
+    case (46)
+      ! Classification accuracy for SPF fields
+      objective = objective_ca_spf(parameterset, eval)
+    case (47)
+      ! Classification accuracy for SPF fields * KGE for Q
+      objective = objective_ca_spf_kge_q(parameterset, eval)
 
     case default
       call error_message("Error objective: opti_function not implemented yet.")
@@ -305,6 +359,32 @@ CONTAINS
       call message('    objective_kge_q_et = ', num2str(objective_master, '(F9.5)'))
     case(33)
       call message('    objective_q_et_tws_kge_catchment_avg = ', num2str(objective_master, '(F9.5)'))
+    case(35)
+      call message('    objective_spaef_sm = ', num2str(objective_master, '(F9.5)'))
+    case(36)
+      call message('    objective_spaef_et = ', num2str(objective_master, '(F9.5)'))
+    case(37)
+      call message('    objective_spaef_sm_spaef_et = ', num2str(objective_master, '(F9.5)'))
+    case(38)
+      call message('    objective_spaef_sm_kge_q = ', num2str(objective_master, '(F9.5)'))
+    case(39)
+      call message('    objective_spaef_et_kge_q = ', num2str(objective_master, '(F9.5)'))
+    case(40)
+      call message('    objective_spaef_sm_spaef_et_kge_q = ', num2str(objective_master, '(F9.5)'))
+    case(41)
+      call message('    objective_pd_et = ', num2str(objective_master, '(F9.5)'))
+    case(42)
+      call message('    objective_pd_sm_pd_et = ', num2str(objective_master, '(F9.5)'))
+    case(43)
+      call message('    objective_pd_sm_kge_q = ', num2str(objective_master, '(F9.5)'))
+    case(44)
+      call message('    objective_pd_et_kge_q = ', num2str(objective_master, '(F9.5)'))
+    case(45)
+      call message('    objective_pd_sm_pd_et_kge_q = ', num2str(objective_master, '(F9.5)'))
+    case(46)
+      call message('    objective_ca_spf = ', num2str(objective_master, '(F9.5)'))
+    case(47)
+      call message('    objective_ca_spf_kge_q = ', num2str(objective_master, '(F9.5)'))
     case default
       call error_message("Error objective_master: opti_function not implemented yet, this part of the code should never execute.")
     end select
@@ -431,12 +511,51 @@ CONTAINS
         call error_message("Error objective_subprocess: case 30 not supported with MPI.")
       case(33)
         multiple_partial_objective = objective_q_et_tws_kge_catchment_avg(parameterset, eval)
+      case (35)
+        ! SPAEF for SM fields
+        partial_objective = objective_spaef_sm(parameterset, eval)
+      case (36)
+        ! SPAEF for ET fields
+        partial_objective = objective_spaef_et(parameterset, eval)
+      case (37)
+        ! SPAEF for SM fields * SPAEF for ET fields
+        partial_objective = objective_spaef_sm_spaef_et(parameterset, eval)
+      case (38)
+        ! SPAEF for SM fields * KGE for Q
+        partial_objective = objective_spaef_sm_kge_q(parameterset, eval)
+      case (39)
+        ! SPAEF for ET fields * KGE for Q
+        partial_objective = objective_spaef_et_kge_q(parameterset, eval)
+      case (40)
+        ! SPAEF for SM fields * SPAEF for ET fields * KGE for Q
+        partial_objective = objective_spaef_sm_spaef_et_kge_q(parameterset, eval)
+      case (41)
+        ! pattern dissimilarity (PD) for ET fields
+        partial_objective = objective_pd_et(parameterset, eval)
+      case (42)
+        ! PD for SM fields * PD for ET fields
+        partial_objective = objective_pd_sm_pd_et(parameterset, eval)
+      case (43)
+        ! PD for SM fields * KGE for Q
+        partial_objective = objective_pd_sm_kge_q(parameterset, eval)
+      case (44)
+        ! PD for ET fields * KGE for Q
+        partial_objective = objective_pd_et_kge_q(parameterset, eval)
+      case (45)
+        ! PD for SM fields * PD for ET fields * KGE for Q
+        partial_objective = objective_pd_sm_pd_et_kge_q(parameterset, eval)
+      case (46)
+        ! Classification accuracy for SPF fields
+        partial_objective = objective_ca_spf(parameterset, eval)
+      case (47)
+        ! Classification accuracy for SPF fields * KGE for Q
+        partial_objective = objective_ca_spf_kge_q(parameterset, eval)
       case default
         call error_message("Error objective_subprocess: opti_function not implemented yet.")
       end select
 
       select case (opti_function)
-      case (10 : 13, 17, 27 : 29)
+      case (10 : 13, 17, 27 : 29, 35 : 47)
         call MPI_Send(partial_objective,1, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case(33)
         call MPI_Send(multiple_partial_objective, 6, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
@@ -2600,6 +2719,2286 @@ CONTAINS
 
   END FUNCTION objective_kge_q_rmse_et
 
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_spaef_sm
+
+  !    PURPOSE
+  !>       \brief Objective function for soil moisture.
+
+  !>       \details The Spatial Efficiency (SPAEF) of observed and modeled soil
+  !>       moisture fields is calculated - aim: matching spatial patterns
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_spaef_sm &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    LITERATURE
+  !         Koch, J., Demirel, M. C., & Stisen, S. (2018). The SPAtial EFficiency metric (SPAEF): 
+  !         Multiple-component evaluation of spatial patterns for optimization of hydrological models. 
+  !         Geoscientific Model Development, 11(5), 1873–1886. https://doi.org/10.5194/gmd-11-1873-2018
+
+
+  !    HISTORY
+  !>       \authors Pallav Shrestha
+
+  !>       \date Dec 2024
+
+  ! Modifications:
+
+
+  FUNCTION objective_spaef_sm(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, domainMeta
+    use mo_global_variables, only : L1_smObs
+    use mo_message, only : message
+    use mo_errormeasures, only : spaef
+    use mo_string_utils, only : num2str
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    ! objective function value
+    real(dp) :: objective_spaef_sm
+
+    ! domain loop counter
+    integer(i4) :: iDomain
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! for sixth root
+#ifndef MPI
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+    ! vectorized arrays of SM
+    real(dp), dimension(:), allocatable :: vec1, vec2
+
+    ! spaef at every time step
+    real(dp), dimension(:), allocatable :: spaef_time_series
+
+    ! simulated soil moisture
+    type(optidata_sim), dimension(:), allocatable :: smOptiSim
+
+    ! mask of valid sm cells
+    logical, dimension(:), allocatable :: mask_sm
+
+    ! mask for valid sm time steps
+    logical, dimension(:), allocatable :: mask_times
+
+
+    allocate(smOptiSim(domainMeta%nDomains))
+    call eval(parameterset, smOptiSim = smOptiSim)
+
+    ! initialize some variables
+    objective_spaef_sm = 0.0_dp
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! allocate
+      allocate(mask_times    (size(smOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(spaef_time_series(size(smOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(vec1   (size(smOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(vec2   (size(smOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(mask_sm(size(smOptiSim(iDomain)%dataSim, dim = 1)))
+
+      ! initalize
+      mask_times = .FALSE.
+      spaef_time_series = 0.0_dp
+
+      ! calculate the SPAEF criterion across each time step
+      do iTime = 1, size(smOptiSim(iDomain)%dataSim, dim = 2)
+        vec1 = L1_smObs(iDomain)%dataObs(:, iTime)
+        vec2 = smOptiSim(iDomain)%dataSim(:, iTime)
+        mask_sm = L1_smObs(iDomain)%maskObs(:, iTime)
+        if (count(mask_sm) > 1_i4) then ! sample size must be at least 2
+          mask_times(iTime) = .TRUE.
+          spaef_time_series(iTime) = spaef(vec1, vec2, mask = mask_sm)
+        end if
+      end do
+
+      if (count(mask_times) > 0_i4) then
+        ! calculate the temporal average of SPAEF, over all domains with power law -domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+        objective_spaef_sm = objective_spaef_sm + &
+                ((1.0_dp - sum(spaef_time_series, mask = mask_times) / real(count(mask_times), dp)) / &
+                                                    real(domainMeta%overallNumberOfDomains, dp))**6
+      else
+        call message('***ERROR: mo_objective_funtion: objective_spaef_sm: No soil moisture observations available!')
+        stop
+      end if
+
+      ! deallocate
+      deallocate(mask_times)
+      deallocate(spaef_time_series)
+      deallocate(vec1)
+      deallocate(vec2)
+      deallocate(mask_sm)
+      call smOptiSim(iDomain)%destroy()
+    end do
+    deallocate(smOptiSim)
+
+#ifndef MPI
+    objective_spaef_sm = objective_spaef_sm**onesixth
+
+    call message('    objective_spaef_sm = ', num2str(objective_spaef_sm, '(F9.5)'))
+    call message('    spaef_sm = ', num2str(1 - objective_spaef_sm, '(F9.5)'))
+#endif
+
+  END FUNCTION objective_spaef_sm
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_spaef_et
+
+  !    PURPOSE
+  !>       \brief Objective function for ET.
+
+  !>       \details The Spatial Efficiency (SPAEF) of observed and modeled ET
+  !>       fields is calculated - aim: matching spatial patterns
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_spaef_et &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    LITERATURE
+  !         Koch, J., Demirel, M. C., & Stisen, S. (2018). The SPAtial EFficiency metric (SPAEF): 
+  !         Multiple-component evaluation of spatial patterns for optimization of hydrological models. 
+  !         Geoscientific Model Development, 11(5), 1873–1886. https://doi.org/10.5194/gmd-11-1873-2018
+
+
+  !    HISTORY
+  !>       \authors Pallav Shrestha
+
+  !>       \date Dec 2024
+
+  ! Modifications:
+
+
+  FUNCTION objective_spaef_et(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, domainMeta
+    use mo_global_variables, only : L1_etObs
+    use mo_message, only : message
+    use mo_errormeasures, only : spaef
+    use mo_string_utils, only : num2str
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    ! objective function value
+    real(dp) :: objective_spaef_et
+
+    ! domain loop counter
+    integer(i4) :: iDomain
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! for sixth root
+#ifndef MPI
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+    ! vectorized arrays of ET
+    real(dp), dimension(:), allocatable :: vec1, vec2
+
+    ! spaef at every time step
+    real(dp), dimension(:), allocatable :: spaef_time_series
+
+    ! simulated ET
+    type(optidata_sim), dimension(:), allocatable :: etOptiSim
+
+    ! mask of valid ET cells
+    logical, dimension(:), allocatable :: mask_et
+
+    ! mask for valid ET time steps
+    logical, dimension(:), allocatable :: mask_times
+
+
+    allocate(etOptiSim(domainMeta%nDomains))
+    call eval(parameterset, etOptiSim = etOptiSim)
+
+    ! initialize some variables
+    objective_spaef_et = 0.0_dp
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! allocate
+      allocate(mask_times    (size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(spaef_time_series(size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(vec1   (size(etOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(vec2   (size(etOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(mask_et(size(etOptiSim(iDomain)%dataSim, dim = 1)))
+
+      ! initalize
+      mask_times = .FALSE.
+      spaef_time_series = 0.0_dp
+
+      ! calculate the SPAEF criterion across each time step
+      do iTime = 1, size(etOptiSim(iDomain)%dataSim, dim = 2)
+        vec1 = L1_etObs(iDomain)%dataObs(:, iTime)
+        vec2 = etOptiSim(iDomain)%dataSim(:, iTime)
+        mask_et = L1_etObs(iDomain)%maskObs(:, iTime)
+        if (count(mask_et) > 1_i4) then ! sample size must be at least 2
+          mask_times(iTime) = .TRUE.
+          spaef_time_series(iTime) = spaef(vec1, vec2, mask = mask_et)
+        end if
+      end do
+
+      if (count(mask_times) > 0_i4) then
+        ! calculate the temporal average of SPAEF, over all domains with power law -domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+        objective_spaef_et = objective_spaef_et + &
+                ((1.0_dp - sum(spaef_time_series, mask = mask_times) / real(count(mask_times), dp)) / &
+                                                    real(domainMeta%overallNumberOfDomains, dp))**6
+      else
+        call message('***ERROR: mo_objective_funtion: objective_spaef_et: No ET observations available!')
+        stop
+      end if
+
+      ! deallocate
+      deallocate(mask_times)
+      deallocate(spaef_time_series)
+      deallocate(vec1)
+      deallocate(vec2)
+      deallocate(mask_et)
+      call etOptiSim(iDomain)%destroy()
+    end do
+    deallocate(etOptiSim)
+
+#ifndef MPI
+    objective_spaef_et = objective_spaef_et**onesixth
+
+    call message('    objective_spaef_et = ', num2str(objective_spaef_et, '(F9.5)'))
+    call message('    spaef_et = ', num2str(1 - objective_spaef_et, '(F9.5)'))
+#endif
+
+  END FUNCTION objective_spaef_et
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_spaef_sm_spaef_et
+
+  !    PURPOSE
+  !>       \brief Bivariate Objective function for SM and ET.
+
+  !>       \details The Spatial Efficiency (SPAEF) of observed and modeled SM and ET
+  !>       fields (equal weights) is calculated - aim: matching spatial patterns
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_spaef_sm_spaef_et &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    LITERATURE
+  !         Koch, J., Demirel, M. C., & Stisen, S. (2018). The SPAtial EFficiency metric (SPAEF): 
+  !         Multiple-component evaluation of spatial patterns for optimization of hydrological models. 
+  !         Geoscientific Model Development, 11(5), 1873–1886. https://doi.org/10.5194/gmd-11-1873-2018
+
+
+  !    HISTORY
+  !>       \authors Pallav Shrestha
+
+  !>       \date Dec 2024
+
+  ! Modifications:
+
+
+  FUNCTION objective_spaef_sm_spaef_et(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, domainMeta
+    use mo_global_variables, only : L1_smObs, L1_etObs
+    use mo_message, only : message
+    use mo_errormeasures, only : spaef
+    use mo_string_utils, only : num2str
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    ! objective function value
+    real(dp) :: objective_spaef_sm_spaef_et
+
+    ! domain loop counter
+    integer(i4) :: iDomain
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! for sixth root
+#ifndef MPI
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+    ! vectorized arrays of SM and ET
+    real(dp), dimension(:), allocatable :: vec1_sm, vec2_sm, vec1_et, vec2_et
+
+    ! spaef at every time step
+    real(dp), dimension(:), allocatable :: spaef_time_series_sm, spaef_time_series_et
+
+    ! simulated SM
+    type(optidata_sim), dimension(:), allocatable :: smOptiSim
+
+    ! simulated ET
+    type(optidata_sim), dimension(:), allocatable :: etOptiSim
+
+    ! mask of valid cells
+    logical, dimension(:), allocatable :: mask_et, mask_sm
+
+    ! mask for valid time steps
+    logical, dimension(:), allocatable :: mask_times
+
+
+    allocate(smOptiSim(domainMeta%nDomains))
+    allocate(etOptiSim(domainMeta%nDomains))
+    call eval(parameterset, smOptiSim = smOptiSim, etOptiSim = etOptiSim)
+
+    ! initialize some variables
+    objective_spaef_sm_spaef_et = 0.0_dp
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! check whether the time dimension of SM and ET are same
+      if (size(etOptiSim(iDomain)%dataSim, dim = 2) /= size(smOptiSim(iDomain)%dataSim, dim = 2)) then
+          call message('***ERROR: mo_objective_funtion: objective_spaef_sm_spaef_et: The time dimension of SM (', &
+            trim(num2str(size(smOptiSim(iDomain)%dataSim, dim = 2))),') and ET (', &
+            trim(num2str(size(etOptiSim(iDomain)%dataSim, dim = 2))),') are not equal for domain ', &
+            trim(num2str(iDomain)), &
+            '. Are both of them at same temporal resolution?')
+          stop
+      end if
+
+      ! allocate
+      allocate(mask_times    (size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(spaef_time_series_sm(size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(spaef_time_series_et(size(etOptiSim(iDomain)%dataSim, dim = 2)))
+
+      allocate(vec1_et(size(etOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(vec2_et(size(etOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(mask_et(size(etOptiSim(iDomain)%dataSim, dim = 1)))
+      
+      allocate(vec1_sm(size(smOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(vec2_sm(size(smOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(mask_sm(size(smOptiSim(iDomain)%dataSim, dim = 1)))
+
+      ! initalize
+      mask_times = .FALSE.
+      spaef_time_series_sm = 0.0_dp
+      spaef_time_series_et = 0.0_dp
+
+      ! calculate the SPAEF criterion across each time step
+      do iTime = 1, size(etOptiSim(iDomain)%dataSim, dim = 2)
+
+        vec1_et = L1_etObs(iDomain)%dataObs(:, iTime)
+        vec2_et = etOptiSim(iDomain)%dataSim(:, iTime)
+        mask_et = L1_etObs(iDomain)%maskObs(:, iTime)
+
+        vec1_sm = L1_smObs(iDomain)%dataObs(:, iTime)
+        vec2_sm = smOptiSim(iDomain)%dataSim(:, iTime)
+        mask_sm = L1_smObs(iDomain)%maskObs(:, iTime)
+
+        if (count(mask_et) > 1_i4 .and. count(mask_sm) > 1_i4) then ! sample size must be at least 2
+          mask_times(iTime) = .TRUE.
+          spaef_time_series_sm(iTime) = spaef(vec1_sm, vec2_sm, mask = mask_sm)
+          spaef_time_series_et(iTime) = spaef(vec1_et, vec2_et, mask = mask_et)
+        end if
+      end do
+
+      if (count(mask_times) > 0_i4) then
+        ! calculate the temporal average of SPAEF, over all domains with power law -domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+        objective_spaef_sm_spaef_et = objective_spaef_sm_spaef_et + &
+                ( &
+                  (1.0_dp - ( &
+                    0.5 * sum(spaef_time_series_sm, mask = mask_times) + &
+                    0.5 * sum(spaef_time_series_et, mask = mask_times) &
+                    ) / real(count(mask_times), dp) &
+                  ) / real(domainMeta%overallNumberOfDomains, dp) &
+                )**6
+        call message('    spaef_sm = ', &
+          & num2str(sum(spaef_time_series_sm, mask = mask_times)/real(count(mask_times), dp), '(F9.5)'), &
+          &' for domain ', num2str(iDomain))
+        call message('    spaef_et = ', &
+          & num2str(sum(spaef_time_series_et, mask = mask_times)/real(count(mask_times), dp), '(F9.5)'), &
+          &' for domain ', num2str(iDomain))
+      else
+        call message('***ERROR: mo_objective_funtion: objective_spaef_sm_spaef_et: No SM and/or ET observations available!')
+        stop
+      end if
+
+      ! deallocate
+      deallocate(mask_times)
+      deallocate(spaef_time_series_sm, spaef_time_series_et)
+      deallocate(vec1_sm, vec1_et)
+      deallocate(vec2_sm, vec2_et)
+      deallocate(mask_et, mask_sm)
+      call smOptiSim(iDomain)%destroy()
+      call etOptiSim(iDomain)%destroy()
+    end do
+    deallocate(etOptiSim)
+    deallocate(smOptiSim)
+
+#ifndef MPI
+    objective_spaef_sm_spaef_et = objective_spaef_sm_spaef_et**onesixth
+
+    call message('    objective_spaef_sm_spaef_et = ', num2str(objective_spaef_sm_spaef_et, '(F9.5)'))
+#endif
+
+  END FUNCTION objective_spaef_sm_spaef_et
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_spaef_sm_kge_q
+
+  !    PURPOSE
+  !>       \brief Bivariate Objective function for SM and Q.
+
+  !>       \details The Spatial Efficiency (SPAEF) of observed and modeled SM
+  !>       fields and KGE of streamflow (input wt:1 weights) are calculated - aim: matching spatial patterns
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_spaef_sm_kge_q &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    LITERATURE
+  !         Koch, J., Demirel, M. C., & Stisen, S. (2018). The SPAtial EFficiency metric (SPAEF): 
+  !         Multiple-component evaluation of spatial patterns for optimization of hydrological models. 
+  !         Geoscientific Model Development, 11(5), 1873–1886. https://doi.org/10.5194/gmd-11-1873-2018
+
+
+  !    HISTORY
+  !>       \authors Pallav Shrestha
+
+  !>       \date Dec 2024
+
+  ! Modifications:
+
+
+  FUNCTION objective_spaef_sm_kge_q(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, domainMeta
+    use mo_global_variables, only : L1_smObs, wt_for_optional_data
+    use mo_message, only : message
+    use mo_errormeasures, only : spaef, kge
+    use mo_string_utils, only : num2str
+    use mo_mrm_global_variables, only : gauge
+    use mo_mrm_objective_function_runoff, only : extract_runoff
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    ! objective function value
+    real(dp) :: objective_spaef_sm_kge_q
+    real(dp) :: objective_kgeStreamflow
+
+    ! domain loop counter
+    integer(i4) :: iDomain, jDomain
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! for sixth root
+#ifndef MPI
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+    ! vectorized arrays of SM
+    real(dp), dimension(:), allocatable :: vec1_sm, vec2_sm
+
+    ! spaef at every time step
+    real(dp), dimension(:), allocatable :: spaef_time_series_sm
+
+    ! simulated streamflow
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! simulated SM
+    type(optidata_sim), dimension(:), allocatable :: smOptiSim
+
+    ! mask of valid cells
+    logical, dimension(:), allocatable :: mask_sm
+
+    ! mask for valid time steps
+    logical, dimension(:), allocatable :: mask_times
+
+    ! gauges counter
+    integer(i4) :: gg
+    integer(i4) :: nGaugesTotal
+
+    ! aggregated simulated
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! measured
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! mask for measured
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+
+
+    allocate(smOptiSim(domainMeta%nDomains))
+    call eval(parameterset, smOptiSim = smOptiSim, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
+
+    ! initialize some variables
+    objective_spaef_sm_kge_q = 0.0_dp
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! allocate
+      allocate(mask_times    (size(smOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(spaef_time_series_sm(size(smOptiSim(iDomain)%dataSim, dim = 2)))
+
+      allocate(vec1_sm(size(smOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(vec2_sm(size(smOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(mask_sm(size(smOptiSim(iDomain)%dataSim, dim = 1)))
+
+      ! initalize
+      mask_times = .FALSE.
+      spaef_time_series_sm = 0.0_dp
+      objective_kgeStreamflow = 0.0_dp
+
+      ! calculate the SPAEF criterion across each time step
+      do iTime = 1, size(smOptiSim(iDomain)%dataSim, dim = 2)
+
+        vec1_sm = L1_smObs(iDomain)%dataObs(:, iTime)
+        vec2_sm = smOptiSim(iDomain)%dataSim(:, iTime)
+        mask_sm = L1_smObs(iDomain)%maskObs(:, iTime)
+
+        if (count(mask_sm) > 1_i4) then ! sample size must be at least 2
+          mask_times(iTime) = .TRUE.
+          spaef_time_series_sm(iTime) = spaef(vec1_sm, vec2_sm, mask = mask_sm)
+        end if
+      end do
+
+      ! calculate the KGE of streamflow
+      do gg = 1, nGaugesTotal
+        ! get domain
+        jDomain = gauge%domainId(gg)
+        ! only proceed if current domain
+        if (iDomain == jDomain) then
+          ! extract runoff
+          call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+          ! kge
+          objective_kgeStreamflow = objective_kgeStreamflow + &
+                  kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+        end if
+      end do
+      objective_kgeStreamflow = objective_kgeStreamflow / real(nGaugesTotal, dp)
+
+      ! Combine
+      if (count(mask_times) > 0_i4) then
+        ! calculate the temporal average of SPAEF, over all domains with power law -domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+        objective_spaef_sm_kge_q = objective_spaef_sm_kge_q + &
+                ( &
+                  (1.0_dp - ( &
+                    wt_for_optional_data * sum(spaef_time_series_sm, mask = mask_times) / real(count(mask_times), dp) + &
+                    1_i4 * objective_kgeStreamflow) / (wt_for_optional_data + 1_i4) &
+                  ) / real(domainMeta%overallNumberOfDomains, dp) &
+                )**6
+        call message('    spaef_sm = ', &
+          & num2str(sum(spaef_time_series_sm, mask = mask_times)/real(count(mask_times), dp), '(F9.5)'), &
+          &' for domain ', num2str(iDomain))
+        call message('       kge_q = ', num2str(objective_kgeStreamflow, '(F9.5)'), ' for domain ', num2str(iDomain))
+      else
+        call message('***ERROR: mo_objective_funtion: objective_spaef_sm_kge_q: No SM observations available!')
+        stop
+      end if
+
+      ! deallocate
+      deallocate(mask_times)
+      deallocate(spaef_time_series_sm)
+      deallocate(vec1_sm)
+      deallocate(vec2_sm)
+      deallocate(mask_sm)
+      deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
+      call smOptiSim(iDomain)%destroy()
+    end do
+    deallocate(smOptiSim)
+
+#ifndef MPI
+    objective_spaef_sm_kge_q = objective_spaef_sm_kge_q**onesixth
+
+    call message('    objective_spaef_sm_kge_q = ', num2str(objective_spaef_sm_kge_q, '(F9.5)'))
+#endif
+
+  END FUNCTION objective_spaef_sm_kge_q
+
+
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_spaef_et_kge_q
+
+  !    PURPOSE
+  !>       \brief Bivariate Objective function for ET and Q.
+
+  !>       \details The Spatial Efficiency (SPAEF) of observed and modeled ET
+  !>       fields and KGE of streamflow (5:1 weights) are calculated - aim: matching spatial patterns
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_spaef_et_kge_q &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    LITERATURE
+  !         Koch, J., Demirel, M. C., & Stisen, S. (2018). The SPAtial EFficiency metric (SPAEF): 
+  !         Multiple-component evaluation of spatial patterns for optimization of hydrological models. 
+  !         Geoscientific Model Development, 11(5), 1873–1886. https://doi.org/10.5194/gmd-11-1873-2018
+
+
+  !    HISTORY
+  !>       \authors Pallav Shrestha
+
+  !>       \date Dec 2024
+
+  ! Modifications:
+
+
+  FUNCTION objective_spaef_et_kge_q(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, domainMeta
+    use mo_global_variables, only : L1_etObs, wt_for_optional_data
+    use mo_message, only : message
+    use mo_errormeasures, only : spaef, kge
+    use mo_string_utils, only : num2str
+    use mo_mrm_global_variables, only : gauge
+    use mo_mrm_objective_function_runoff, only : extract_runoff
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    ! objective function value
+    real(dp) :: objective_spaef_et_kge_q
+    real(dp) :: objective_kgeStreamflow
+
+    ! domain loop counter
+    integer(i4) :: iDomain, jDomain
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! for sixth root
+#ifndef MPI
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+    ! vectorized arrays of ET
+    real(dp), dimension(:), allocatable :: vec1_et, vec2_et
+
+    ! spaef at every time step
+    real(dp), dimension(:), allocatable :: spaef_time_series_et
+
+    ! simulated streamflow
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! simulated ET
+    type(optidata_sim), dimension(:), allocatable :: etOptiSim
+
+    ! mask of valid cells
+    logical, dimension(:), allocatable :: mask_et
+
+    ! mask for valid time steps
+    logical, dimension(:), allocatable :: mask_times
+
+    ! gauges counter
+    integer(i4) :: gg
+    integer(i4) :: nGaugesTotal, nGaugesDomain
+
+    ! aggregated simulated
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! measured
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! mask for measured
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+
+
+    allocate(etOptiSim(domainMeta%nDomains))
+    call eval(parameterset, etOptiSim = etOptiSim, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
+
+    ! initialize some variables
+    objective_spaef_et_kge_q = 0.0_dp
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! allocate
+      allocate(mask_times    (size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(spaef_time_series_et(size(etOptiSim(iDomain)%dataSim, dim = 2)))
+
+      allocate(vec1_et(size(etOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(vec2_et(size(etOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(mask_et(size(etOptiSim(iDomain)%dataSim, dim = 1)))
+
+      ! initalize
+      mask_times = .FALSE.
+      spaef_time_series_et = 0.0_dp
+      objective_kgeStreamflow = 0.0_dp
+      nGaugesDomain = 0._i4
+
+      ! calculate the SPAEF criterion across each time step
+      do iTime = 1, size(etOptiSim(iDomain)%dataSim, dim = 2)
+
+        vec1_et = L1_etObs(iDomain)%dataObs(:, iTime)
+        vec2_et = etOptiSim(iDomain)%dataSim(:, iTime)
+        mask_et = L1_etObs(iDomain)%maskObs(:, iTime)
+
+        if (count(mask_et) > 1_i4) then ! sample size must be at least 2
+          mask_times(iTime) = .TRUE.
+          spaef_time_series_et(iTime) = spaef(vec1_et, vec2_et, mask = mask_et)
+        end if
+      end do
+
+      ! calculate the KGE of streamflow
+      do gg = 1, nGaugesTotal
+        ! get domain
+        jDomain = gauge%domainId(gg)
+        ! only proceed if current domain
+        if (iDomain == jDomain) then
+          ! count
+          nGaugesDomain = nGaugesDomain + 1_i4
+          ! extract runoff
+          call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+          ! kge
+          objective_kgeStreamflow = objective_kgeStreamflow + &
+                  kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+        end if
+      end do
+      objective_kgeStreamflow = objective_kgeStreamflow / real(nGaugesDomain, dp)
+
+      ! Combine
+      if (count(mask_times) > 0_i4) then
+        ! calculate the temporal average of SPAEF, over all domains with power law -domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+        objective_spaef_et_kge_q = objective_spaef_et_kge_q + &
+                ( &
+                  (1.0_dp - ( &
+                    wt_for_optional_data * sum(spaef_time_series_et, mask = mask_times) / real(count(mask_times), dp) + &
+                    1 * objective_kgeStreamflow) / (wt_for_optional_data + 1_i4) &
+                  ) / real(domainMeta%overallNumberOfDomains, dp) &
+                )**6
+        call message('    spaef_et = ', &
+          & num2str(sum(spaef_time_series_et, mask = mask_times)/real(count(mask_times), dp), '(F9.5)'), &
+          &' for domain ', num2str(iDomain))
+        call message('       kge_q = ', num2str(objective_kgeStreamflow, '(F9.5)'), ' for domain ', num2str(iDomain))
+      else
+        call message('***ERROR: mo_objective_funtion: objective_spaef_et_kge_q: No ET observations available!')
+        stop
+      end if
+
+      ! deallocate
+      deallocate(mask_times)
+      deallocate(spaef_time_series_et)
+      deallocate(vec1_et)
+      deallocate(vec2_et)
+      deallocate(mask_et)
+      deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
+      call etOptiSim(iDomain)%destroy()
+    end do
+    deallocate(etOptiSim)
+
+#ifndef MPI
+    objective_spaef_et_kge_q = objective_spaef_et_kge_q**onesixth
+
+    call message('    objective_spaef_et_kge_q = ', num2str(objective_spaef_et_kge_q, '(F9.5)'))
+#endif
+
+  END FUNCTION objective_spaef_et_kge_q
+
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_spaef_sm_spaef_et_kge_q
+
+  !    PURPOSE
+  !>       \brief Trivariate Objective function for SM, ET and Q.
+
+  !>       \details The Spatial Efficiency (SPAEF) of observed and modeled ET
+  !>       fields and KGE of streamflow (5:1 weights) are calculated - aim: matching spatial patterns
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_spaef_sm_spaef_et_kge_q &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    LITERATURE
+  !         Koch, J., Demirel, M. C., & Stisen, S. (2018). The SPAtial EFficiency metric (SPAEF): 
+  !         Multiple-component evaluation of spatial patterns for optimization of hydrological models. 
+  !         Geoscientific Model Development, 11(5), 1873–1886. https://doi.org/10.5194/gmd-11-1873-2018
+
+
+  !    HISTORY
+  !>       \authors Pallav Shrestha
+
+  !>       \date Dec 2024
+
+  ! Modifications:
+
+
+  FUNCTION objective_spaef_sm_spaef_et_kge_q(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, domainMeta
+    use mo_global_variables, only : L1_etObs, L1_smObs, wt_for_optional_data
+    use mo_message, only : message
+    use mo_errormeasures, only : spaef, kge
+    use mo_string_utils, only : num2str
+    use mo_mrm_global_variables, only : gauge
+    use mo_mrm_objective_function_runoff, only : extract_runoff
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    ! objective function value
+    real(dp) :: objective_spaef_sm_spaef_et_kge_q
+    real(dp) :: objective_kgeStreamflow
+
+    ! domain loop counter
+    integer(i4) :: iDomain, jDomain
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! for sixth root
+#ifndef MPI
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+    ! vectorized arrays of ET and SM
+    real(dp), dimension(:), allocatable :: vec1_et, vec2_et, vec1_sm, vec2_sm
+
+    ! spaef at every time step
+    real(dp), dimension(:), allocatable :: spaef_time_series_et, spaef_time_series_sm
+
+    ! simulated streamflow
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! simulated ET and SM
+    type(optidata_sim), dimension(:), allocatable :: etOptiSim, smOptiSim
+
+    ! mask of valid cells
+    logical, dimension(:), allocatable :: mask_et, mask_sm
+
+    ! mask for valid time steps
+    logical, dimension(:), allocatable :: mask_times
+
+    ! gauges counter
+    integer(i4) :: gg
+    integer(i4) :: nGaugesTotal, nGaugesDomain
+
+    ! aggregated simulated
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! measured
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! mask for measured
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+
+
+    allocate(etOptiSim(domainMeta%nDomains))
+    allocate(smOptiSim(domainMeta%nDomains))
+    call eval(parameterset, smOptiSim = smOptiSim, etOptiSim = etOptiSim, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
+
+    ! initialize some variables
+    objective_spaef_sm_spaef_et_kge_q = 0.0_dp
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! check whether the time dimension of SM and ET are same
+      if (size(etOptiSim(iDomain)%dataSim, dim = 2) /= size(smOptiSim(iDomain)%dataSim, dim = 2)) then
+          call message('***ERROR: mo_objective_funtion: objective_spaef_sm_spaef_et: The time dimension of SM (', &
+            trim(num2str(size(smOptiSim(iDomain)%dataSim, dim = 2))),') and ET (', &
+            trim(num2str(size(etOptiSim(iDomain)%dataSim, dim = 2))),') are not equal for domain ', &
+            trim(num2str(iDomain)), &
+            '. Are both of them at same temporal resolution?')
+          stop
+      end if
+
+      ! allocate
+      allocate(mask_times    (size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(spaef_time_series_et(size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(spaef_time_series_sm(size(smOptiSim(iDomain)%dataSim, dim = 2)))
+
+      allocate(vec1_et(size(etOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(vec2_et(size(etOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(mask_et(size(etOptiSim(iDomain)%dataSim, dim = 1)))
+
+      allocate(vec1_sm(size(smOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(vec2_sm(size(smOptiSim(iDomain)%dataSim, dim = 1)))
+      allocate(mask_sm(size(smOptiSim(iDomain)%dataSim, dim = 1)))
+
+      ! initalize
+      mask_times = .FALSE.
+      spaef_time_series_sm = 0.0_dp
+      spaef_time_series_et = 0.0_dp
+      objective_kgeStreamflow = 0.0_dp
+      nGaugesDomain = 0._i4
+
+      ! calculate the SPAEF criterion across each time step
+      do iTime = 1, size(etOptiSim(iDomain)%dataSim, dim = 2)
+
+        vec1_sm = L1_smObs(iDomain)%dataObs(:, iTime)
+        vec2_sm = smOptiSim(iDomain)%dataSim(:, iTime)
+        mask_sm = L1_smObs(iDomain)%maskObs(:, iTime)
+
+        vec1_et = L1_etObs(iDomain)%dataObs(:, iTime)
+        vec2_et = etOptiSim(iDomain)%dataSim(:, iTime)
+        mask_et = L1_etObs(iDomain)%maskObs(:, iTime)
+
+        if (count(mask_sm) > 1_i4 .and. count(mask_et) > 1_i4) then ! sample size must be at least 2
+          mask_times(iTime) = .TRUE.
+          spaef_time_series_sm(iTime) = spaef(vec1_sm, vec2_sm, mask = mask_sm)
+          spaef_time_series_et(iTime) = spaef(vec1_et, vec2_et, mask = mask_et)
+        end if
+      end do
+
+      ! calculate the KGE of streamflow
+      do gg = 1, nGaugesTotal
+        ! get domain
+        jDomain = gauge%domainId(gg)
+        ! only proceed if current domain
+        if (iDomain == jDomain) then
+          ! count
+          nGaugesDomain = nGaugesDomain + 1_i4
+          ! extract runoff
+          call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+          ! kge
+          objective_kgeStreamflow = objective_kgeStreamflow + &
+                  kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+        end if
+      end do
+      objective_kgeStreamflow = objective_kgeStreamflow / real(nGaugesDomain, dp)
+
+      ! Combine
+      if (count(mask_times) > 0_i4) then
+        ! calculate the temporal average of SPAEF, over all domains with power law -domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+        objective_spaef_sm_spaef_et_kge_q = objective_spaef_sm_spaef_et_kge_q + &
+                ( &
+                  (1.0_dp - ( &
+                    0.5 * wt_for_optional_data * sum(spaef_time_series_sm, mask = mask_times) / real(count(mask_times), dp) + &
+                    0.5 * wt_for_optional_data * sum(spaef_time_series_et, mask = mask_times) / real(count(mask_times), dp) + &
+                    1 * objective_kgeStreamflow) / (wt_for_optional_data + 1_i4) &
+                  ) / real(domainMeta%overallNumberOfDomains, dp) &
+                )**6
+        call message('    spaef_sm = ', &
+          & num2str(sum(spaef_time_series_sm, mask = mask_times)/real(count(mask_times), dp), '(F9.5)'), &
+          &' for domain ', num2str(iDomain))
+        call message('    spaef_et = ', &
+          & num2str(sum(spaef_time_series_et, mask = mask_times)/real(count(mask_times), dp), '(F9.5)'), &
+          &' for domain ', num2str(iDomain))
+        call message('       kge_q = ', num2str(objective_kgeStreamflow, '(F9.5)'), ' for domain ', num2str(iDomain))
+      
+      else
+        call message('***ERROR: mo_objective_funtion: objective_spaef_sm_spaef_et_kge_q: No SM and/or ET observations available!')
+        stop
+      end if
+
+      ! deallocate
+      deallocate(mask_times)
+      deallocate(spaef_time_series_et, spaef_time_series_sm)
+      deallocate(vec1_et, vec1_sm)
+      deallocate(vec2_et, vec2_sm)
+      deallocate(mask_et, mask_sm)
+      deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
+      call smOptiSim(iDomain)%destroy()
+      call etOptiSim(iDomain)%destroy()
+    end do
+    deallocate(smOptiSim)
+    deallocate(etOptiSim)
+
+#ifndef MPI
+    objective_spaef_sm_spaef_et_kge_q = objective_spaef_sm_spaef_et_kge_q**onesixth
+
+    call message('    objective_spaef_sm_spaef_et_kge_q = ', num2str(objective_spaef_sm_spaef_et_kge_q, '(F9.5)'))
+#endif
+
+  END FUNCTION objective_spaef_sm_spaef_et_kge_q
+
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_pd_et
+
+  !    PURPOSE
+  !>       \brief Objective function for ET.
+
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+
+  !>       Therefore the Pattern Dissimilarity (PD) of observed and modeled ET
+  !>       fields is calculated - aim: matching spatial patters
+  !>       \f[ E(t) = PD\left( ET_{obs}(t), ET_{sim}(t) \right) \f]
+  !>       where
+  !>       \f$ PD \f$        = pattern dissimilarity function,
+  !>       \f$ ET_{obs} \f$  = observed ET,
+  !>       \f$ ET_{sim}  \f$ = simulated ET.
+  !>       \f$ E(t)  \f$     = pattern dissimilarity at timestep \f$ t \f$.
+  !>       The the pattern dissimilaity (E) is spatially averaged as
+  !>       \f[ \phi_{i} = \frac{1}{T} \cdot \sum_{t=1}^T E_t \f]
+  !>       where \f$ T \f$ denotes the number of time steps.
+  !>       Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
+  !>       norm to combine the \f$ \phi_{i} \f$ from all domains \f$ N \f$.
+  !>       \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 } . \f]
+  !>       The observed data L1_et, L1_et_mask are global in this module.
+  !>       The observed data L1_et, L1_et_mask are global in this module.
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objecive_sm_pd &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Matthias Zink
+
+  !>       \date May 2015
+
+  ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Pallav Shrestha Jan 2025 - adapting for ET
+
+  FUNCTION objective_pd_et(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, domainMeta
+    use mo_global_variables, only : L1_etObs
+    use mo_message, only : message
+    use mo_spatialsimilarity, only : PD
+    use mo_string_utils, only : num2str
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    ! objective function value
+    real(dp) :: objective_pd_et
+
+    ! domain loop counter
+    integer(i4) :: iDomain
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! level 1 number of columns and rows
+    integer(i4) :: nrows1, ncols1
+
+    ! for sixth root
+#ifndef MPI
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+    ! matrices of SM from vectorized arrays
+    real(dp), dimension(:, :), allocatable :: mat1, mat2
+
+    ! pattern dissimilarity (pd) at every time step
+    real(dp), dimension(:), allocatable :: pd_time_series
+
+    ! simulated ET
+    type(optidata_sim), dimension(:), allocatable :: etOptiSim
+
+    ! mask of valid cells at level1
+    logical, dimension(:, :), allocatable :: mask1
+
+    ! mask of valid sm cells
+    logical, dimension(:, :), allocatable :: mask_et
+
+    ! mask for valid sm catchment avg time steps
+    logical, dimension(:), allocatable :: mask_times
+
+
+    allocate(etOptiSim(domainMeta%nDomains))
+    call eval(parameterset, etOptiSim = etOptiSim)
+
+    ! initialize some variables
+    objective_pd_et = 0.0_dp
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! get domain information
+      mask1 = level1(iDomain)%mask
+      ncols1 = level1(iDomain)%ncols
+      nrows1 = level1(iDomain)%nrows
+
+      ! allocate
+      allocate(mask_times    (size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(pd_time_series(size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(mat1   (nrows1, ncols1))
+      allocate(mat2   (nrows1, ncols1))
+      allocate(mask_et(nrows1, ncols1))
+
+      ! initalize
+      mask_times = .FALSE.
+      pd_time_series = 0.0_dp
+
+      ! calculate pattern similarity criterion
+      do iTime = 1, size(etOptiSim(iDomain)%dataSim, dim = 2)
+        mat1 = unpack(L1_etObs(iDomain)%dataObs(:, iTime), mask1, nodata_dp)
+        mat2 = unpack(etOptiSim(iDomain)%dataSim(:, iTime), mask1, nodata_dp)
+        mask_et = unpack(L1_etObs(iDomain)%maskObs(:, iTime), mask1, .FALSE.)
+        pd_time_series = PD(mat1, mat2, mask = mask_et, valid = mask_times(itime))
+      end do
+
+      if (count(mask_times) > 0_i4) then
+        ! calculate avergae PD over all domains with power law -domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+        objective_pd_et = objective_pd_et + &
+                ((1.0_dp - sum(pd_time_series, mask = mask_times) / real(count(mask_times), dp)) / &
+                                                    real(domainMeta%overallNumberOfDomains, dp))**6
+      else
+        call message('***ERROR: mo_objective_funtion: objective_pd_et: No ET observations available!')
+        stop
+      end if
+
+      ! deallocate
+      deallocate(mask_times)
+      deallocate(pd_time_series)
+      deallocate(mat1)
+      deallocate(mat2)
+      deallocate(mask_et)
+      call etOptiSim(iDomain)%destroy()
+    end do
+    deallocate(etOptiSim)
+
+#ifndef MPI
+    objective_pd_et = objective_pd_et**onesixth
+
+    call message('    objective_pd_et = ', num2str(objective_pd_et, '(F9.5)'))
+    call message('    pd_et = ', num2str(1 - objective_pd_et, '(F9.5)'))
+#endif
+
+  END FUNCTION objective_pd_et
+
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_pd_sm_pd_et
+
+  !    PURPOSE
+  !>       \brief Bivariate Objective function for SM and ET.
+
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objecive_sm_pd &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Matthias Zink
+
+  !>       \date May 2015
+
+  ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Pallav Shrestha Jan 2025 - adapting for ET + SM
+
+  FUNCTION objective_pd_sm_pd_et(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, domainMeta
+    use mo_global_variables, only : L1_smObs, L1_etObs
+    use mo_message, only : message
+    use mo_spatialsimilarity, only : PD
+    use mo_string_utils, only : num2str
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    ! objective function value
+    real(dp) :: objective_pd_sm_pd_et
+
+    ! domain loop counter
+    integer(i4) :: iDomain
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! level 1 number of columns and rows
+    integer(i4) :: nrows1, ncols1
+
+    ! for sixth root
+#ifndef MPI
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+    ! matrices from vectorized arrays
+    real(dp), dimension(:, :), allocatable :: mat1_sm, mat2_sm, mat1_et, mat2_et
+
+    ! pattern dissimilarity (pd) at every time step
+    real(dp), dimension(:), allocatable :: pd_time_series_sm, pd_time_series_et
+
+    ! simulated SM
+    type(optidata_sim), dimension(:), allocatable :: smOptiSim
+
+    ! simulated ET
+    type(optidata_sim), dimension(:), allocatable :: etOptiSim
+
+    ! mask of valid cells at level1
+    logical, dimension(:, :), allocatable :: mask1
+
+    ! mask of valid cells
+    logical, dimension(:, :), allocatable :: mask_et, mask_sm
+
+    ! mask for valid catchment avg time steps
+    logical, dimension(:), allocatable :: mask_times
+
+
+    allocate(smOptiSim(domainMeta%nDomains))
+    allocate(etOptiSim(domainMeta%nDomains))
+    call eval(parameterset, smOptiSim = smOptiSim, etOptiSim = etOptiSim)
+
+    ! initialize some variables
+    objective_pd_sm_pd_et = 0.0_dp
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! check whether the time dimension of SM and ET are same
+      if (size(etOptiSim(iDomain)%dataSim, dim = 2) /= size(smOptiSim(iDomain)%dataSim, dim = 2)) then
+          call message('***ERROR: mo_objective_funtion: objective_pd_sm_pd_et: The time dimension of SM (', &
+            trim(num2str(size(smOptiSim(iDomain)%dataSim, dim = 2))),') and ET (', &
+            trim(num2str(size(etOptiSim(iDomain)%dataSim, dim = 2))),') are not equal for domain ', &
+            trim(num2str(iDomain)), &
+            '. Are both of them at same temporal resolution?')
+          stop
+      end if
+
+      ! get domain information
+      mask1 = level1(iDomain)%mask
+      ncols1 = level1(iDomain)%ncols
+      nrows1 = level1(iDomain)%nrows
+
+      ! allocate
+      allocate(mask_times    (size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(pd_time_series_sm(size(smOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(pd_time_series_et(size(etOptiSim(iDomain)%dataSim, dim = 2)))
+
+      allocate(mat1_sm(nrows1, ncols1))
+      allocate(mat2_sm(nrows1, ncols1))
+      allocate(mask_sm(nrows1, ncols1))
+
+      allocate(mat1_et(nrows1, ncols1))
+      allocate(mat2_et(nrows1, ncols1))
+      allocate(mask_et(nrows1, ncols1))
+
+      ! initalize
+      mask_times = .FALSE.
+      pd_time_series_sm = 0.0_dp
+      pd_time_series_et = 0.0_dp
+
+      ! calculate pattern similarity criterion
+      do iTime = 1, size(etOptiSim(iDomain)%dataSim, dim = 2)
+        
+        mat1_sm = unpack(L1_smObs(iDomain)%dataObs(:, iTime), mask1, nodata_dp)
+        mat2_sm = unpack(smOptiSim(iDomain)%dataSim(:, iTime), mask1, nodata_dp)
+        mask_sm = unpack(L1_smObs(iDomain)%maskObs(:, iTime), mask1, .FALSE.)
+        pd_time_series_sm = PD(mat1_sm, mat2_sm, mask = mask_sm, valid = mask_times(itime))
+        
+        mat1_et = unpack(L1_etObs(iDomain)%dataObs(:, iTime), mask1, nodata_dp)
+        mat2_et = unpack(etOptiSim(iDomain)%dataSim(:, iTime), mask1, nodata_dp)
+        mask_et = unpack(L1_etObs(iDomain)%maskObs(:, iTime), mask1, .FALSE.)
+        pd_time_series_et = PD(mat1_et, mat2_et, mask = mask_et, valid = mask_times(itime))
+      
+      end do
+
+      if (count(mask_times) > 0_i4) then
+        ! calculate avergae PD over all domains with power law -domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+        objective_pd_sm_pd_et = objective_pd_sm_pd_et + &
+                ( &
+                  (1.0_dp - ( &
+                    0.5 * sum(pd_time_series_sm, mask = mask_times) + &
+                    0.5 * sum(pd_time_series_et, mask = mask_times) &
+                    ) / real(count(mask_times), dp) &
+                  ) / real(domainMeta%overallNumberOfDomains, dp) &
+                )**6
+        call message('    pd_sm = ', &
+          & num2str(sum(pd_time_series_sm, mask = mask_times)/real(count(mask_times), dp), '(F9.5)'), &
+          &' for domain ', num2str(iDomain))
+        call message('    pd_et = ', &
+          & num2str(sum(pd_time_series_et, mask = mask_times)/real(count(mask_times), dp), '(F9.5)'), &
+          &' for domain ', num2str(iDomain))
+      else
+        call message('***ERROR: mo_objective_funtion: objective_pd_sm_pd_et: No SM and/or ET observations available!')
+        stop
+      end if
+
+      ! deallocate
+      deallocate(mask_times)
+      deallocate(pd_time_series_sm, pd_time_series_et)
+      deallocate(mat1_sm, mat1_et)
+      deallocate(mat2_sm, mat2_et)
+      deallocate(mask_sm, mask_et)
+      call etOptiSim(iDomain)%destroy()
+    end do
+    deallocate(smOptiSim)
+    deallocate(etOptiSim)
+
+#ifndef MPI
+    objective_pd_sm_pd_et = objective_pd_sm_pd_et**onesixth
+
+    call message('    objective_pd_sm_pd_et = ', num2str(objective_pd_sm_pd_et, '(F9.5)'))
+    call message('    pd_et = ', num2str(1 - objective_pd_sm_pd_et, '(F9.5)'))
+#endif
+
+  END FUNCTION objective_pd_sm_pd_et
+
+
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_pd_sm_kge_q
+
+  !    PURPOSE
+  !>       \brief Bivariate Objective function for SM and Q.
+
+  !>       \details The Pattern Dissimilarity (PD) of observed and modeled SM
+  !>       fields and KGE of streamflow (input wt:1 weights) are calculated - aim: matching spatial patterns
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objecive_sm_pd &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Matthias Zink
+
+  !>       \date May 2015
+
+  ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Pallav Shrestha Jan 2025 - adapting for PD of SM and KGE of Q
+
+  FUNCTION objective_pd_sm_kge_q(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, domainMeta
+    use mo_global_variables, only : L1_smObs, wt_for_optional_data
+    use mo_message, only : message
+    use mo_errormeasures, only : kge
+    use mo_spatialsimilarity, only : PD
+    use mo_string_utils, only : num2str
+    use mo_mrm_global_variables, only : gauge
+    use mo_mrm_objective_function_runoff, only : extract_runoff
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    ! objective function value
+    real(dp) :: objective_pd_sm_kge_q
+    real(dp) :: objective_kgeStreamflow
+
+    ! domain loop counter
+    integer(i4) :: iDomain, jDomain
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! level 1 number of columns and rows
+    integer(i4) :: nrows1, ncols1
+
+    ! for sixth root
+#ifndef MPI
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+    ! matrices of SM from vectorized arrays
+    real(dp), dimension(:, :), allocatable :: mat1_sm, mat2_sm
+
+    ! pattern dissimilarity (pd) at every time step
+    real(dp), dimension(:), allocatable :: pd_time_series_sm
+
+    ! simulated streamflow
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! simulated soil moisture
+    type(optidata_sim), dimension(:), allocatable :: smOptiSim
+
+    ! mask of valid cells at level1
+    logical, dimension(:, :), allocatable :: mask1
+
+    ! mask of valid sm cells
+    logical, dimension(:, :), allocatable :: mask_sm
+
+    ! mask for valid sm catchment avg time steps
+    logical, dimension(:), allocatable :: mask_times
+
+    ! gauges counter
+    integer(i4) :: gg
+    integer(i4) :: nGaugesTotal,  nGaugesDomain
+
+    ! aggregated simulated
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! measured
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! mask for measured
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+
+    allocate(smOptiSim(domainMeta%nDomains))
+    call eval(parameterset, smOptiSim = smOptiSim, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
+
+    ! initialize some variables
+    objective_pd_sm_kge_q = 0.0_dp
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! get domain information
+      mask1 = level1(iDomain)%mask
+      ncols1 = level1(iDomain)%ncols
+      nrows1 = level1(iDomain)%nrows
+
+      ! allocate
+      allocate(mask_times    (size(smOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(pd_time_series_sm(size(smOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(mat1_sm(nrows1, ncols1))
+      allocate(mat2_sm(nrows1, ncols1))
+      allocate(mask_sm(nrows1, ncols1))
+
+      ! initalize
+      mask_times = .FALSE.
+      pd_time_series_sm = 0.0_dp
+      objective_kgeStreamflow = 0.0_dp
+      nGaugesDomain = 0._i4
+
+      ! calculate pattern similarity criterion
+      do iTime = 1, size(smOptiSim(iDomain)%dataSim, dim = 2)
+        
+        mat1_sm = unpack(L1_smObs(iDomain)%dataObs(:, iTime), mask1, nodata_dp)
+        mat2_sm = unpack(smOptiSim(iDomain)%dataSim(:, iTime), mask1, nodata_dp)
+        mask_sm = unpack(L1_smObs(iDomain)%maskObs(:, iTime), mask1, .FALSE.)
+        pd_time_series_sm = PD(mat1_sm, mat2_sm, mask = mask_sm, valid = mask_times(itime))
+
+      end do
+
+      ! calculate the KGE of streamflow
+      do gg = 1, nGaugesTotal
+        ! get domain
+        jDomain = gauge%domainId(gg)
+        ! only proceed if current domain
+        if (iDomain == jDomain) then
+          ! count
+          nGaugesDomain = nGaugesDomain + 1_i4
+          ! extract runoff
+          call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+          ! kge
+          objective_kgeStreamflow = objective_kgeStreamflow + &
+                  kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+        end if
+      end do
+      objective_kgeStreamflow = objective_kgeStreamflow / real(nGaugesDomain, dp)
+
+      ! Combine
+      if (count(mask_times) > 0_i4) then
+        ! calculate the temporal average of PD, over all domains with power law -domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+        objective_pd_sm_kge_q = objective_pd_sm_kge_q + &
+                ( &
+                  (1.0_dp - ( &
+                    wt_for_optional_data * sum(pd_time_series_sm, mask = mask_times) / real(count(mask_times), dp) + &
+                    1_i4 * objective_kgeStreamflow) / (wt_for_optional_data + 1_i4) &
+                  ) / real(domainMeta%overallNumberOfDomains, dp) &
+                )**6
+        call message('    pd_sm = ', &
+          & num2str(sum(pd_time_series_sm, mask = mask_times)/real(count(mask_times), dp), '(F9.5)'), &
+          &' for domain ', num2str(iDomain))
+        call message('    kge_q = ', num2str(objective_kgeStreamflow, '(F9.5)'), ' for domain ', num2str(iDomain))
+      else
+        call message('***ERROR: mo_objective_funtion: objective_pd_sm_kge_q: No SM observations available!')
+        stop
+      end if
+
+      ! deallocate
+      deallocate(mask_times)
+      deallocate(pd_time_series_sm)
+      deallocate(mat1_sm)
+      deallocate(mat2_sm)
+      deallocate(mask_sm)
+      call smOptiSim(iDomain)%destroy()
+    end do
+    deallocate(smOptiSim)
+
+#ifndef MPI
+    objective_pd_sm_kge_q = objective_pd_sm_kge_q**onesixth
+
+    call message('    objective_pd_sm_kge_q = ', num2str(objective_pd_sm_kge_q, '(F9.5)'))
+#endif
+
+  END FUNCTION objective_pd_sm_kge_q
+
+
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_pd_et_kge_q
+
+  !    PURPOSE
+  !>       \brief Bivariate Objective function for ET and Q.
+
+  !>       \details The Pattern Dissimilarity (PD) of observed and modeled ET
+  !>       fields and KGE of streamflow (input wt:1 weights) are calculated - aim: matching spatial patterns
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objecive_sm_pd &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Matthias Zink
+
+  !>       \date May 2015
+
+  ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Pallav Shrestha Jan 2025 - adapting for PD of ET and KGE of Q
+
+  FUNCTION objective_pd_et_kge_q(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, domainMeta
+    use mo_global_variables, only : L1_etObs, wt_for_optional_data
+    use mo_message, only : message
+    use mo_errormeasures, only : kge
+    use mo_spatialsimilarity, only : PD
+    use mo_string_utils, only : num2str
+    use mo_mrm_global_variables, only : gauge
+    use mo_mrm_objective_function_runoff, only : extract_runoff
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    ! objective function value
+    real(dp) :: objective_pd_et_kge_q
+    real(dp) :: objective_kgeStreamflow
+
+    ! domain loop counter
+    integer(i4) :: iDomain, jDomain
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! level 1 number of columns and rows
+    integer(i4) :: nrows1, ncols1
+
+    ! for sixth root
+#ifndef MPI
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+    ! matrices of SM from vectorized arrays
+    real(dp), dimension(:, :), allocatable :: mat1_et, mat2_et
+
+    ! pattern dissimilarity (pd) at every time step
+    real(dp), dimension(:), allocatable :: pd_time_series_et
+
+    ! simulated streamflow
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! simulated soil moisture
+    type(optidata_sim), dimension(:), allocatable :: etOptiSim
+
+    ! mask of valid cells at level1
+    logical, dimension(:, :), allocatable :: mask1
+
+    ! mask of valid sm cells
+    logical, dimension(:, :), allocatable :: mask_et
+
+    ! mask for valid sm catchment avg time steps
+    logical, dimension(:), allocatable :: mask_times
+
+    ! gauges counter
+    integer(i4) :: gg
+    integer(i4) :: nGaugesTotal, nGaugesDomain
+
+    ! aggregated simulated
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! measured
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! mask for measured
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+
+    allocate(etOptiSim(domainMeta%nDomains))
+    call eval(parameterset, etOptiSim = etOptiSim, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
+
+    ! initialize some variables
+    objective_pd_et_kge_q = 0.0_dp
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! get domain information
+      mask1 = level1(iDomain)%mask
+      ncols1 = level1(iDomain)%ncols
+      nrows1 = level1(iDomain)%nrows
+
+      ! allocate
+      allocate(mask_times    (size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(pd_time_series_et(size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(mat1_et(nrows1, ncols1))
+      allocate(mat2_et(nrows1, ncols1))
+      allocate(mask_et(nrows1, ncols1))
+
+      ! initalize
+      mask_times = .FALSE.
+      pd_time_series_et = 0.0_dp
+      objective_kgeStreamflow = 0.0_dp
+      nGaugesDomain = 0._i4
+
+      ! calculate pattern similarity criterion
+      do iTime = 1, size(etOptiSim(iDomain)%dataSim, dim = 2)
+        
+        mat1_et = unpack(L1_etObs(iDomain)%dataObs(:, iTime), mask1, nodata_dp)
+        mat2_et = unpack(etOptiSim(iDomain)%dataSim(:, iTime), mask1, nodata_dp)
+        mask_et = unpack(L1_etObs(iDomain)%maskObs(:, iTime), mask1, .FALSE.)
+        pd_time_series_et = PD(mat1_et, mat2_et, mask = mask_et, valid = mask_times(itime))
+
+      end do
+
+      ! calculate the KGE of streamflow
+      do gg = 1, nGaugesTotal
+        ! get domain
+        jDomain = gauge%domainId(gg)
+        ! only proceed if current domain
+        if (iDomain == jDomain) then
+          ! count
+          nGaugesDomain = nGaugesDomain + 1_i4
+          ! extract runoff
+          call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+          ! kge
+          objective_kgeStreamflow = objective_kgeStreamflow + &
+                  kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+        end if
+      end do
+      objective_kgeStreamflow = objective_kgeStreamflow / real(nGaugesDomain, dp)
+
+      ! Combine
+      if (count(mask_times) > 0_i4) then
+        ! calculate the temporal average of PD, over all domains with power law -domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+        objective_pd_et_kge_q = objective_pd_et_kge_q + &
+                ( &
+                  (1.0_dp - ( &
+                    wt_for_optional_data * sum(pd_time_series_et, mask = mask_times) / real(count(mask_times), dp) + &
+                    1_i4 * objective_kgeStreamflow) / (wt_for_optional_data + 1_i4) &
+                  ) / real(domainMeta%overallNumberOfDomains, dp) &
+                )**6
+        call message('    pd_et = ', &
+          & num2str(sum(pd_time_series_et, mask = mask_times)/real(count(mask_times), dp), '(F9.5)'), &
+          &' for domain ', num2str(iDomain))
+        call message('    kge_q = ', num2str(objective_kgeStreamflow, '(F9.5)'), ' for domain ', num2str(iDomain))
+      else
+        call message('***ERROR: mo_objective_funtion: objective_pd_et_kge_q: No ET observations available!')
+        stop
+      end if
+
+      ! deallocate
+      deallocate(mask_times)
+      deallocate(pd_time_series_et)
+      deallocate(mat1_et)
+      deallocate(mat2_et)
+      deallocate(mask_et)
+      call etOptiSim(iDomain)%destroy()
+    end do
+    deallocate(etOptiSim)
+
+#ifndef MPI
+    objective_pd_et_kge_q = objective_pd_et_kge_q**onesixth
+
+    call message('    objective_pd_et_kge_q = ', num2str(objective_pd_et_kge_q, '(F9.5)'))
+#endif
+
+  END FUNCTION objective_pd_et_kge_q
+
+
+
+
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_pd_sm_pd_et_kge_q
+
+  !    PURPOSE
+  !>       \brief Trivariate Objective function for SM, ET and Q.
+
+  !>       \details The Pattern Dissimilarity (PD) of observed and modeled ET and SM
+  !>       fields and KGE of streamflow (input wt:1 weights) are calculated - aim: matching spatial patterns
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objecive_sm_pd &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Matthias Zink
+
+  !>       \date May 2015
+
+  ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Pallav Shrestha Jan 2025 - adapting for PD of ET, SM and KGE of Q
+
+  FUNCTION objective_pd_sm_pd_et_kge_q(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, domainMeta
+    use mo_global_variables, only : L1_etObs, L1_smObs, wt_for_optional_data
+    use mo_message, only : message
+    use mo_errormeasures, only : kge
+    use mo_spatialsimilarity, only : PD
+    use mo_string_utils, only : num2str
+    use mo_mrm_global_variables, only : gauge
+    use mo_mrm_objective_function_runoff, only : extract_runoff
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    ! objective function value
+    real(dp) :: objective_pd_sm_pd_et_kge_q
+    real(dp) :: objective_kgeStreamflow
+
+    ! domain loop counter
+    integer(i4) :: iDomain, jDomain
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! level 1 number of columns and rows
+    integer(i4) :: nrows1, ncols1
+
+    ! for sixth root
+#ifndef MPI
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+    ! matrices of SM from vectorized arrays
+    real(dp), dimension(:, :), allocatable :: mat1_sm, mat2_sm, mat1_et, mat2_et
+
+    ! pattern dissimilarity (pd) at every time step
+    real(dp), dimension(:), allocatable :: pd_time_series_sm, pd_time_series_et
+
+    ! simulated streamflow
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! simulated soil moisture
+    type(optidata_sim), dimension(:), allocatable :: etOptiSim, smOptiSim
+
+    ! mask of valid cells at level1
+    logical, dimension(:, :), allocatable :: mask1
+
+    ! mask of valid sm cells
+    logical, dimension(:, :), allocatable :: mask_sm, mask_et
+
+    ! mask for valid sm catchment avg time steps
+    logical, dimension(:), allocatable :: mask_times
+
+    ! gauges counter
+    integer(i4) :: gg
+    integer(i4) :: nGaugesTotal, nGaugesDomain
+
+    ! aggregated simulated
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! measured
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! mask for measured
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+
+    allocate(etOptiSim(domainMeta%nDomains))
+    allocate(smOptiSim(domainMeta%nDomains))
+    call eval(parameterset, smOptiSim = smOptiSim, etOptiSim = etOptiSim, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
+
+    ! initialize some variables
+    objective_pd_sm_pd_et_kge_q = 0.0_dp
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! check whether the time dimension of SM and ET are same
+      if (size(etOptiSim(iDomain)%dataSim, dim = 2) /= size(smOptiSim(iDomain)%dataSim, dim = 2)) then
+          call message('***ERROR: mo_objective_funtion: objective_spaef_sm_spaef_et: The time dimension of SM (', &
+            trim(num2str(size(smOptiSim(iDomain)%dataSim, dim = 2))),') and ET (', &
+            trim(num2str(size(etOptiSim(iDomain)%dataSim, dim = 2))),') are not equal for domain ', &
+            trim(num2str(iDomain)), &
+            '. Are both of them at same temporal resolution?')
+          stop
+      end if
+
+      ! get domain information
+      mask1 = level1(iDomain)%mask
+      ncols1 = level1(iDomain)%ncols
+      nrows1 = level1(iDomain)%nrows
+
+      ! allocate
+      allocate(mask_times    (size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(pd_time_series_sm(size(smOptiSim(iDomain)%dataSim, dim = 2)))
+      allocate(pd_time_series_et(size(etOptiSim(iDomain)%dataSim, dim = 2)))
+      
+      allocate(mat1_et(nrows1, ncols1))
+      allocate(mat2_et(nrows1, ncols1))
+      allocate(mask_et(nrows1, ncols1))
+
+      allocate(mat1_sm(nrows1, ncols1))
+      allocate(mat2_sm(nrows1, ncols1))
+      allocate(mask_sm(nrows1, ncols1))
+
+      ! initalize
+      mask_times = .FALSE.
+      pd_time_series_sm = 0.0_dp
+      pd_time_series_et = 0.0_dp
+      objective_kgeStreamflow = 0.0_dp
+      nGaugesDomain = 0._i4
+
+      ! calculate pattern similarity criterion
+      do iTime = 1, size(etOptiSim(iDomain)%dataSim, dim = 2)
+        
+        mat1_et = unpack(L1_etObs(iDomain)%dataObs(:, iTime), mask1, nodata_dp)
+        mat2_et = unpack(etOptiSim(iDomain)%dataSim(:, iTime), mask1, nodata_dp)
+        mask_et = unpack(L1_etObs(iDomain)%maskObs(:, iTime), mask1, .FALSE.)
+        pd_time_series_et = PD(mat1_et, mat2_et, mask = mask_et, valid = mask_times(itime))
+
+        mat1_sm = unpack(L1_smObs(iDomain)%dataObs(:, iTime), mask1, nodata_dp)
+        mat2_sm = unpack(smOptiSim(iDomain)%dataSim(:, iTime), mask1, nodata_dp)
+        mask_sm = unpack(L1_smObs(iDomain)%maskObs(:, iTime), mask1, .FALSE.)
+        pd_time_series_sm = PD(mat1_sm, mat2_sm, mask = mask_sm, valid = mask_times(itime))
+
+      end do
+
+      ! calculate the KGE of streamflow
+      do gg = 1, nGaugesTotal
+        ! get domain
+        jDomain = gauge%domainId(gg)
+        ! only proceed if current domain
+        if (iDomain == jDomain) then
+          ! count
+          nGaugesDomain = nGaugesDomain + 1_i4
+          ! extract runoff
+          call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+          ! kge
+          objective_kgeStreamflow = objective_kgeStreamflow + &
+                  kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+        end if
+      end do
+      objective_kgeStreamflow = objective_kgeStreamflow / real(nGaugesDomain, dp)
+
+      ! Combine
+      if (count(mask_times) > 0_i4) then
+        ! calculate the temporal average of PD, over all domains with power law -domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+        objective_pd_sm_pd_et_kge_q = objective_pd_sm_pd_et_kge_q + &
+                ( &
+                  (1.0_dp - ( &
+                    0.5 * wt_for_optional_data * sum(pd_time_series_sm, mask = mask_times) / real(count(mask_times), dp) + &
+                    0.5 * wt_for_optional_data * sum(pd_time_series_et, mask = mask_times) / real(count(mask_times), dp) + &
+                    1_i4 * objective_kgeStreamflow) / (wt_for_optional_data + 1_i4) &
+                  ) / real(domainMeta%overallNumberOfDomains, dp) &
+                )**6
+        call message('    pd_sm = ', &
+          & num2str(sum(pd_time_series_sm, mask = mask_times)/real(count(mask_times), dp), '(F9.5)'), &
+          &' for domain ', num2str(iDomain))
+        call message('    pd_et = ', &
+          & num2str(sum(pd_time_series_et, mask = mask_times)/real(count(mask_times), dp), '(F9.5)'), &
+          &' for domain ', num2str(iDomain))
+        call message('    kge_q = ', num2str(objective_kgeStreamflow, '(F9.5)'), ' for domain ', num2str(iDomain))
+      else
+        call message('***ERROR: mo_objective_funtion: objective_pd_sm_pd_et_kge_q: No ET observations available!')
+        stop
+      end if
+
+      ! deallocate
+      deallocate(mask_times)
+      deallocate(pd_time_series_sm, pd_time_series_et)
+      deallocate(mat1_sm, mat1_et)
+      deallocate(mat2_sm, mat2_et)
+      deallocate(mask_sm, mask_et)
+      call smOptiSim(iDomain)%destroy()
+      call etOptiSim(iDomain)%destroy()
+    end do
+    deallocate(smOptiSim)
+    deallocate(etOptiSim)
+
+#ifndef MPI
+    objective_pd_sm_pd_et_kge_q = objective_pd_sm_pd_et_kge_q**onesixth
+
+    call message('    objective_pd_sm_pd_et_kge_q = ', num2str(objective_pd_sm_pd_et_kge_q, '(F9.5)'))
+#endif
+
+  END FUNCTION objective_pd_sm_pd_et_kge_q
+
+
+
+
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_ca_spf
+
+  !    PURPOSE
+  !>       \brief Objective function for matching SPF.
+
+  !>       \details The Classification accuracy (CA) of observed and modeled snow presence flag (SPF)
+  !>       fields are calculated
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_ca_spf &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Pallav Shrestha, Ehsan Modiri
+
+  !>       \date July 2025
+
+  ! Modifications:
+
+    FUNCTION objective_ca_spf(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_variables, only : domainMeta
+    use mo_global_variables, only : L1_spfObs
+    use mo_errormeasures, only : CA
+    use mo_message, only : message
+    use mo_string_utils, only : num2str
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+
+    real(dp) :: objective_ca_spf, classification_accuracy
+
+    integer(i4) :: iDomain
+
+    ! simulated snow water equivalent
+    type(optidata_sim), dimension(:), allocatable :: sweOptiSim
+
+    ! converted snow presence flag
+    type(optidata_sim), dimension(:), allocatable :: spfOptiSim
+
+    ! for sixth root
+#ifndef MPI
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+
+    allocate(sweOptiSim(domainMeta%nDomains))
+    allocate(spfOptiSim(domainMeta%nDomains))
+    call eval(parameterset, sweOptiSim = sweOptiSim)
+
+    ! initialize some variables
+    objective_ca_spf = 0.0_dp
+
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! initalize
+      classification_accuracy = 0.0_dp
+
+      ! convert SWE to SPF
+      call convert_swe_to_spf(sweOptiSim(iDomain), spfOptiSim(iDomain))
+
+      ! Evaluate classification accuracy
+      classification_accuracy = CA(L1_spfObs(iDomain)%dataObs, spfOptiSim(iDomain)%dataSim, mask = L1_spfObs(iDomain)%maskObs)
+
+      objective_ca_spf = objective_ca_spf + &
+            ( ((1.0_dp - classification_accuracy )) / real(domainMeta%overallNumberOfDomains, dp) )**6
+
+
+      ! deallocate
+      call sweOptiSim(iDomain)%destroy()
+      call spfOptiSim(iDomain)%destroy()
+    end do
+    deallocate(sweOptiSim)
+    deallocate(spfOptiSim)
+
+#ifndef MPI
+    objective_ca_spf = objective_ca_spf**onesixth
+
+    call message('    objective_ca_spf = ', num2str(objective_ca_spf, '(F9.5)'))
+    call message('    classification_accuracy_spf = ', num2str(1 - objective_ca_spf, '(F9.5)'))
+#endif
+
+  END FUNCTION objective_ca_spf
+
+
+
+
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_ca_spf_kge_q
+
+  !    PURPOSE
+  !>       \brief Bivaiate objective function for matching SPF and KGE of streamflow.
+
+  !>       \details The Classification accuracy (CA) of observed and modeled snow presence flag (SPF)
+  !>       fields, and KGE of streamflow simulations at observation locations are calculated
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_ca_spf_kge_q &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Pallav Shrestha, Ehsan Modiri
+
+  !>       \date July 2025
+
+  ! Modifications:
+
+    FUNCTION objective_ca_spf_kge_q(parameterset, eval)
+
+    use mo_optimization_types, only : optidata_sim
+    use mo_common_variables, only : domainMeta
+    use mo_global_variables, only : L1_spfObs, wt_for_optional_data
+    use mo_errormeasures, only : CA, kge
+    use mo_message, only : message
+    use mo_string_utils, only : num2str
+    use mo_mrm_global_variables, only : gauge
+    use mo_mrm_objective_function_runoff, only : extract_runoff
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+
+    real(dp) :: objective_ca_spf_kge_q, classification_accuracy, kgeStreamflow
+
+    integer(i4) :: iDomain, jDomain
+
+    ! simulated snow water equivalent
+    type(optidata_sim), dimension(:), allocatable :: sweOptiSim
+
+    ! converted snow presence flag
+    type(optidata_sim), dimension(:), allocatable :: spfOptiSim
+
+    ! simulated streamflow
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+    integer(i4) :: nGaugesTotal,  nGaugesDomain
+
+    ! aggregated simulated
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! measured
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! mask for measured
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+    ! for sixth root
+#ifndef MPI
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
+
+
+    allocate(sweOptiSim(domainMeta%nDomains))
+    allocate(spfOptiSim(domainMeta%nDomains))
+    call eval(parameterset, sweOptiSim = sweOptiSim, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
+
+    ! initialize some variables
+    objective_ca_spf_kge_q = 0.0_dp
+
+
+    ! loop over domain - for applying power law later on
+    do iDomain = 1, domainMeta%nDomains
+
+      ! initalize
+      classification_accuracy = 0.0_dp
+      kgeStreamflow = 0.0_dp
+      nGaugesDomain = 0_i4
+
+      !! SNOW
+
+      ! convert SWE to SPF
+      call convert_swe_to_spf(sweOptiSim(iDomain), spfOptiSim(iDomain))
+
+      ! Evaluate classification accuracy
+      classification_accuracy = CA(L1_spfObs(iDomain)%dataObs, spfOptiSim(iDomain)%dataSim, mask = L1_spfObs(iDomain)%maskObs)
+
+      !! STREAMFLOW
+
+      ! calculate the KGE of streamflow
+      do gg = 1, nGaugesTotal
+        ! get domain
+        jDomain = gauge%domainId(gg)
+        ! only proceed if current domain
+        if (iDomain == jDomain) then
+          ! count
+          nGaugesDomain = nGaugesDomain + 1_i4
+          ! extract runoff
+          call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+          ! kge
+          kgeStreamflow = kgeStreamflow + &
+                  kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+        end if
+      end do
+      kgeStreamflow = kgeStreamflow / real(nGaugesDomain, dp)
+
+
+      !! COMBINE
+      objective_ca_spf_kge_q = objective_ca_spf_kge_q + &
+            ( &
+              (1.0_dp - ( &
+                  wt_for_optional_data * classification_accuracy + 1_i4 * kgeStreamflow) / (wt_for_optional_data + 1_i4) &
+              ) / real(domainMeta%overallNumberOfDomains, dp) &
+            )**6
+      call message('   ca_spf = ', num2str(classification_accuracy, '(F9.5)'), ' for domain ', num2str(iDomain))
+      call message('    kge_q = ', num2str(kgeStreamflow, '(F9.5)'), ' for domain ', num2str(iDomain))
+      
+
+      ! deallocate
+      call sweOptiSim(iDomain)%destroy()
+      call spfOptiSim(iDomain)%destroy()
+    end do
+    deallocate(sweOptiSim)
+    deallocate(spfOptiSim)
+
+#ifndef MPI
+    objective_ca_spf_kge_q = objective_ca_spf_kge_q**onesixth
+
+    call message('    objective_ca_spf_kge_q = ', num2str(objective_ca_spf_kge_q, '(F9.5)'))
+#endif
+
+  END FUNCTION objective_ca_spf_kge_q
+
+
+
+
+  
+
   subroutine create_domain_avg_tws(iDomain, twsOptiSim, tws_catch_avg_domain, &
                                            tws_opti_catch_avg_domain, mask_times)
     use mo_optimization_types, only : optidata_sim
@@ -2732,5 +5131,31 @@ CONTAINS
     end do
 
   end subroutine convert_tws_to_twsa
+
+  subroutine convert_swe_to_spf(sweOptiSim, spfOptiSim)
+    use mo_optimization_types, only : optidata_sim, optidata
+    use mo_global_variables,   only : swe_threshold_for_spf
+    ! simulated swe
+    type(optidata_sim), intent(in)    :: sweOptiSim
+    ! simulated spf
+    type(optidata_sim), intent(inout) :: spfOptiSim
+
+    ! local
+    integer(i4) :: iCell
+    real(dp)    :: twsa_av_cell
+
+    allocate(spfOptiSim%dataSim(size(sweOptiSim%dataSim(:, :), dim = 1), size(sweOptiSim%dataSim(:, :), dim = 2)))
+    ! initialize with no snow
+    spfOptiSim%dataSim = 0
+
+    where (sweOptiSim%dataSim > swe_threshold_for_spf) 
+      ! snow
+      spfOptiSim%dataSim = 1
+    elsewhere
+      ! no snow
+      spfOptiSim%dataSim = 0
+    endwhere
+
+  end subroutine convert_swe_to_spf
 
 END MODULE mo_objective_function

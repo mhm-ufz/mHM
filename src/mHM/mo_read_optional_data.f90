@@ -99,7 +99,7 @@ CONTAINS
     mask1 = level1(iDomain)%mask
 
     !  domain characteristics and read meteo header
-    call message('  Reading', trim(L1_optiObs%varname) ,'for domain:           ', trim(adjustl(num2str(domainID))), ' ...')
+    call message('  Reading ', trim(L1_optiObs%varname) ,' for domain:           ', trim(adjustl(num2str(domainID))), ' ...')
     call timer_start(1)
     call read_nc(L1_optiObs%dir, nRows1, nCols1, trim(L1_optiObs%varname), mask1, L1_data, &
             target_period = evalPer(iDomain), nctimestep = L1_optiObs%timeStepInput, nocheck = .TRUE., maskout = L1_mask)

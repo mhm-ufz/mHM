@@ -69,6 +69,7 @@ module mo_mhm_interface_run
     L1_twsaObs, &
     L1_etObs, &
     L1_smObs, &
+    L1_spfObs, &
     L1_neutronsObs, &
     evap_coeff, &
     nSoilHorizons_sm_input, &
@@ -249,7 +250,7 @@ contains
   end subroutine mhm_interface_run_get_ndomains
 
   !> \brief prepare single domain to run mHM on
-  subroutine mhm_interface_run_prepare_domain(domain, etOptiSim, twsOptiSim, neutronsOptiSim, smOptiSim)
+  subroutine mhm_interface_run_prepare_domain(domain, etOptiSim, twsOptiSim, neutronsOptiSim, smOptiSim, sweOptiSim)
     implicit none
     !> domain loop counter
     integer(i4), intent(in), optional :: domain
@@ -261,6 +262,8 @@ contains
     type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim
     !> returns tws time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells, nTimeSteps]
     type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim
+    !> returns swe time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells, nTimeSteps]
+    type(optidata_sim), dimension(:), optional, intent(inout) :: sweOptiSim
 
     integer(i4) :: iDomain, domainID
 
@@ -278,6 +281,8 @@ contains
     if (present(neutronsOptiSim)) call neutronsOptiSim(iDomain)%init(L1_neutronsObs(iDomain))
     ! sm optimization
     if (present(smOptiSim)) call smOptiSim(iDomain)%init(L1_smObs(iDomain))
+    ! swe optimization
+    if (present(sweOptiSim)) call sweOptiSim(iDomain)%init(L1_spfObs(iDomain))
 
     ! get Domain information
     run_cfg%nCells = level1(iDomain)%nCells
@@ -744,7 +749,7 @@ contains
   end subroutine mhm_interface_run_write_output
 
   !> \brief add simulation data to optimization data types
-  subroutine mhm_interface_run_update_optisim(etOptiSim, twsOptiSim, neutronsOptiSim, smOptiSim)
+  subroutine mhm_interface_run_update_optisim(etOptiSim, twsOptiSim, neutronsOptiSim, smOptiSim, sweOptiSim)
     implicit none
     !> returns soil moisture time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells, nTimeSteps]
     type(optidata_sim), dimension(:), optional, intent(inout) :: smOptiSim
@@ -754,6 +759,8 @@ contains
     type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim
     !> returns tws time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells, nTimeSteps]
     type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim
+    !> returns swe time series for all grid cells (of multiple Domains concatenated),DIMENSION [nCells, nTimeSteps]
+    type(optidata_sim), dimension(:), optional, intent(inout) :: sweOptiSim
 
     integer(i4) :: gg, s1, e1, lcId
 
@@ -854,6 +861,27 @@ contains
           do gg = 1, nSoilHorizons_mHM
             call twsOptiSim(iDomain)%add(L1_soilMoist (s1 : e1, gg))
           end do
+        end if
+      end if
+    end if
+
+    !----------------------------------------------------------------------
+    ! FOR SWE
+    ! NOTE:: modeled snow water equivalent is averaged according to input time step
+    !        snow presence flag (timeStep_spf_input).
+    !        The modelled snow water equivalent is converted into snow presence flag 
+    !        by convert_swe_to_spf in mo_objective_function.
+    !----------------------------------------------------------------------
+    if (present(sweOptiSim)) then
+      ! only for evaluation period - ignore warming days
+      if ((tt - warmingDays(iDomain) * nTstepDay) .GT. 0) then
+        ! decide for daily, monthly or yearly aggregation
+        call sweOptiSim(iDomain)%average_per_timestep(L1_spfObs(iDomain)%timeStepInput, &
+                     run_cfg%domainDateTime%is_new_day, run_cfg%domainDateTime%is_new_month, run_cfg%domainDateTime%is_new_year)
+        ! last timestep is already done - write_counter exceeds size(sweOptiSim(iDomain)%dataSim, dim=2)
+        if (tt /= run_cfg%domainDateTime%nTimeSteps) then
+          ! aggregate snow water equivalent to needed time step for optimization
+          call sweOptiSim(iDomain)%add(L1_snowPack(s1 : e1))
         end if
       end if
     end if

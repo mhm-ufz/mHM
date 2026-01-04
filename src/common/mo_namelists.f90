@@ -291,10 +291,16 @@ module mo_namelists
     character(256), dimension(maxNoDomains) :: dir_neutrons !< ground albedo neutron input
     character(256), dimension(maxNoDomains) :: dir_evapotranspiration !< evapotranspiration input
     character(256), dimension(maxNoDomains) :: dir_TWS !< tws input
+    character(256), dimension(maxNoDomains) :: dir_spf !< spf input
     integer(i4) :: timeStep_sm_input !< time step of optional data: sm
     integer(i4) :: timeStep_neutrons_input !< time step of optional data: neutrons
     integer(i4) :: timeStep_et_input !< time step of optional data: et
     integer(i4) :: timeStep_tws_input !< time step of optional data: tws
+    integer(i4) :: timeStep_spf_input !< time step of optional data: spf
+    integer(i4) :: weight_for_optional_data   ! weight of optional data in OF 67 to 69
+    integer(i4) :: snow_water_equivalent_threshold_for_spf ! threshold swe to convert to spf for OF 75, 76
+
+
   contains
     procedure, public :: read => read_optional_data
   end type nml_optional_data_t
@@ -1615,10 +1621,15 @@ contains
     character(256), dimension(maxNoDomains) :: dir_neutrons !< ground albedo neutron input
     character(256), dimension(maxNoDomains) :: dir_evapotranspiration !< evapotranspiration input
     character(256), dimension(maxNoDomains) :: dir_TWS !< tws input
+    character(256), dimension(maxNoDomains) :: dir_spf !< spf input
     integer(i4) :: timeStep_sm_input !< time step of optional data: sm
     integer(i4) :: timeStep_neutrons_input !< time step of optional data: neutrons
     integer(i4) :: timeStep_et_input !< time step of optional data: et
     integer(i4) :: timeStep_tws_input !< time step of optional data: tws
+    integer(i4) :: timeStep_spf_input !< time step of optional data: tws
+    integer(i4) :: weight_for_optional_data   ! weight of optional data in OF 67 to 69
+    integer(i4) :: snow_water_equivalent_threshold_for_spf ! threshold swe to convert to spf for OF 75, 76
+
 
     namelist /optional_data/ &
       nSoilHorizons_sm_input, &
@@ -1626,10 +1637,14 @@ contains
       dir_neutrons, &
       dir_evapotranspiration, &
       dir_TWS, &
+      dir_spf, &
       timeStep_sm_input, &
       timeStep_neutrons_input, &
       timeStep_et_input, &
-      timeStep_tws_input
+      timeStep_tws_input, &
+      timeStep_spf_input, &
+      weight_for_optional_data, &
+      snow_water_equivalent_threshold_for_spf
 
     if ( self%read_from_file ) then
       call open_new_nml(file, unit)
@@ -1641,10 +1656,14 @@ contains
       self%dir_neutrons = dir_neutrons
       self%dir_evapotranspiration = dir_evapotranspiration
       self%dir_TWS = dir_TWS
+      self%dir_spf = dir_spf
       self%timeStep_sm_input = timeStep_sm_input
       self%timeStep_neutrons_input = timeStep_neutrons_input
       self%timeStep_et_input = timeStep_et_input
       self%timeStep_tws_input = timeStep_tws_input
+      self%timeStep_spf_input = timeStep_spf_input
+      self%weight_for_optional_data = weight_for_optional_data
+      self%snow_water_equivalent_threshold_for_spf = snow_water_equivalent_threshold_for_spf
       self%read_from_file = .false.
     end if
   end subroutine read_optional_data

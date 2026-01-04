@@ -15,7 +15,8 @@ module mo_optimization_utils
 
   !> \brief Interface for evaluation routine.
   abstract interface
-    subroutine eval_interface(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, BFI)
+    subroutine eval_interface(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, BFI, &
+      sweOptiSim)
       use mo_kind, only : dp, i4
       use mo_optimization_types, only : optidata_sim
       real(dp),    dimension(:), intent(in) :: parameterset
@@ -25,6 +26,7 @@ module mo_optimization_utils
       type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim !< dim1=ncells, dim2=time
       type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim       !< dim1=ncells, dim2=time
       type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim      !< dim1=ncells, dim2=time
+      type(optidata_sim), dimension(:), optional, intent(inout) :: sweOptiSim      !< dim1=ncells, dim2=time
       real(dp),    dimension(:), allocatable, optional, intent(out) :: BFI         !< baseflow index, dim1=domainID
     end subroutine
   end interface
