@@ -297,8 +297,8 @@ module mo_namelists
     integer(i4) :: timeStep_et_input !< time step of optional data: et
     integer(i4) :: timeStep_tws_input !< time step of optional data: tws
     integer(i4) :: timeStep_spf_input !< time step of optional data: spf
-    integer(i4) :: weight_for_optional_data   ! weight of optional data in OF 67 to 69
-    integer(i4) :: snow_water_equivalent_threshold_for_spf ! threshold swe to convert to spf for OF 75, 76
+    integer(i4) :: weight_for_optional_data   ! weight of optional data in OF 39-41, 43-45 & 47
+    integer(i4) :: snow_water_equivalent_threshold_for_spf ! threshold swe to convert to spf for OF 46 & 47
 
 
   contains
@@ -1627,8 +1627,8 @@ contains
     integer(i4) :: timeStep_et_input !< time step of optional data: et
     integer(i4) :: timeStep_tws_input !< time step of optional data: tws
     integer(i4) :: timeStep_spf_input !< time step of optional data: tws
-    integer(i4) :: weight_for_optional_data   ! weight of optional data in OF 67 to 69
-    integer(i4) :: snow_water_equivalent_threshold_for_spf ! threshold swe to convert to spf for OF 75, 76
+    integer(i4) :: weight_for_optional_data   ! weight of optional data in OF 39-41, 43-45 & 47
+    integer(i4) :: snow_water_equivalent_threshold_for_spf ! threshold swe to convert to spf for OF 46 & 47
 
 
     namelist /optional_data/ &

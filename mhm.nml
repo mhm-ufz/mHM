@@ -211,7 +211,7 @@
   !> (37) SO: SM + ET: 1.0 - 0.5 * [SPAEF(SM) + SPAEF(ET)]                                                                                                                                                                                    
   !> (38) SO: SM + Q : 1.0 - [input wt.* SPAEF(SM) + KGE(Q)]/(input wt. + 1)                                                                                                                                                                                      
   !> (39) SO: ET + Q : 1.0 - [input wt.* SPAEF(ET) + KGE(Q)]/(input wt. + 1)                                                                                                                                                                                      
-  !> (40) SO: SM + ET + Q: 1.0 - [2.5* SPAEF(SM) + 2.5* SPAEF(ET) + KGE(Q)]/6  
+  !> (40) SO: SM + ET + Q: 1.0 - [0.5*input wt.* SPAEF(SM) + 0.5*input wt.* SPAEF(ET) + KGE(Q)]/(input wt. + 1) 
   !> (41) SO: ET: 1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture                                                                                                                                                        
   !> (42) SO: SM + ET: 1.0 - 0.5 * [PD(SM) + PD(ET)]                                                                                                                                                                                    
   !> (43) SO: SM + Q : 1.0 - [input wt.* PD(SM) + KGE(Q)]/(input wt. + 1)

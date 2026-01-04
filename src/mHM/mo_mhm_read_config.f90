@@ -135,8 +135,8 @@ CONTAINS
     integer(i4) :: timeStep_sm_input          ! time step of optional data: sm
     integer(i4) :: timeStep_neutrons_input    ! time step of optional data: neutrons
     integer(i4) :: timeStep_spf_input         ! time step of optional data: spf
-    integer(i4) :: weight_for_optional_data   ! weight of optional data in OF 67 to 69
-    integer(i4) :: snow_water_equivalent_threshold_for_spf ! threshold swe to convert to spf for OF 75, 76
+    integer(i4) :: weight_for_optional_data   ! weight of optional data in OF 39-41, 43-45 & 47
+    integer(i4) :: snow_water_equivalent_threshold_for_spf ! threshold swe to convert to spf for OF 46 & 47
 
 
     allocate(L1_twsaObs(domainMeta%nDomains))
