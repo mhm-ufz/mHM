@@ -1,0 +1,23 @@
+&output_mhm
+  output_deflate_level    = 6
+  output_double_precision = .false.
+  output_time_reference   = 2
+  output_frequency        = -1
+  ! output selectors
+  out_q                   = .true.
+  out_qd                  = .true.
+  out_qif                 = .true.
+  out_qis                 = .true.
+  out_qb                  = .true.
+  out_preeffect           = .true.
+/
+
+&output_mrm
+  output_deflate_level    = 6
+  output_double_precision = .false.
+  output_time_reference   = 2
+  output_frequency        = -1
+  ! output selectors
+  out_Qrouted             = .true.
+  out_RivTemp             = .false.
+/
