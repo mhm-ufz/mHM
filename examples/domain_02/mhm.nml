@@ -32,9 +32,9 @@
 /
 
 &config_input
-  pre_path            = "input/meteo/pre/pre.nc"
-  pet_path            = "input/meteo/pet/pet.nc"
-  temp_path           = "input/meteo/tavg/tavg.nc"
+  pre_path            = "input/meteo/pre.nc"
+  pet_path            = "input/meteo/pet.nc"
+  temp_path           = "input/meteo/tavg.nc"
   meteo_mask_path     = "input/meteo/mask.nc"
   dem_path            = "input/morph/input.nc"
   slope_path          = "input/morph/input.nc"
@@ -59,7 +59,7 @@
   tillage_depth       = 200
   soil_depth          = 200
   fracSealed_cityArea = 0.6
-  land_cover_path     = "input/luse/lc_periods.nc"
+  land_cover_path     = "input/morph/lc_periods.nc"
   land_cover_var      = "land_cover"
   lai_time_step       = 0
   soil_lut_path       = "input/morph/soil_classdefinition.txt"

@@ -41,9 +41,9 @@
 
 &config_input
   ! domain 1
-  pre_path(1)         = "domain_01/input/meteo/pre/pre.nc"
-  pet_path(1)         = "domain_01/input/meteo/pet/pet.nc"
-  temp_path(1)        = "domain_01/input/meteo/tavg/tavg.nc"
+  pre_path(1)         = "domain_01/input/meteo/pre.nc"
+  pet_path(1)         = "domain_01/input/meteo/pet.nc"
+  temp_path(1)        = "domain_01/input/meteo/tavg.nc"
   meteo_mask_path(1)  = "domain_01/input/meteo/mask.nc"
   dem_path(1)         = "domain_01/input/morph/input.nc"
   slope_path(1)       = "domain_01/input/morph/input.nc"
@@ -53,9 +53,9 @@
   soil_class_path(1)  = "domain_01/input/morph/input.nc"
   lai_class_path(1)   = "domain_01/input/morph/input.nc"
   ! domain 2
-  pre_path(2)         = "domain_02/input/meteo/pre/pre.nc"
-  pet_path(2)         = "domain_02/input/meteo/pet/pet.nc"
-  temp_path(2)        = "domain_02/input/meteo/tavg/tavg.nc"
+  pre_path(2)         = "domain_02/input/meteo/pre.nc"
+  pet_path(2)         = "domain_02/input/meteo/pet.nc"
+  temp_path(2)        = "domain_02/input/meteo/tavg.nc"
   meteo_mask_path(2)  = "domain_02/input/meteo/mask.nc"
   dem_path(2)         = "domain_02/input/morph/input.nc"
   slope_path(2)       = "domain_02/input/morph/input.nc"
@@ -83,7 +83,7 @@
   tillage_depth(1)      = 200
   soil_depth(1,1)       = 200
   fracSealed_cityArea(1)= 0.6
-  land_cover_path(1)    = "domain_01/input/luse/lc_periods.nc"
+  land_cover_path(1)    = "domain_01/input/morph/lc_periods.nc"
   land_cover_var(1)     = "land_cover"
   lai_time_step(1)      = 0
   soil_lut_path(1)      = "domain_01/input/morph/soil_classdefinition.txt"
@@ -95,7 +95,7 @@
   tillage_depth(2)      = 200
   soil_depth(1,2)       = 200
   fracSealed_cityArea(2)= 0.6
-  land_cover_path(2)    = "domain_02/input/luse/lc_periods.nc"
+  land_cover_path(2)    = "domain_02/input/morph/lc_periods.nc"
   land_cover_var(2)     = "land_cover"
   lai_time_step(2)      = 0
   soil_lut_path(2)      = "domain_02/input/morph/soil_classdefinition.txt"
