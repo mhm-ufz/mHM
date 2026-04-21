@@ -95,7 +95,7 @@
   tillage_depth(2)      = 200
   soil_depth(1,2)       = 200
   fracSealed_cityArea(2)= 0.6
-  land_cover_path(2)    = "domain_02/input/morph/lc_periods.nc"
+  land_cover_path(2)    = "domain_02/input/morph/lc_periods_2.nc"
   land_cover_var(2)     = "land_cover"
   lai_time_step(2)      = 0
   soil_lut_path(2)      = "domain_02/input/morph/soil_classdefinition.txt"

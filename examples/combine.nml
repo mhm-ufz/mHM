@@ -29,10 +29,3 @@
   routing            = 3
   temperature_routing = 0
 /
-
-&config_optimize
-  optimize          = .false.
-  optimize_restart  = .false.
-  opti_method       = 1
-  opti_function     = 10
-/
