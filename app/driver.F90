@@ -45,7 +45,7 @@ program driver
     value_name="path", default="mhm.nml", help="The mHM configuration namelist.")
 
   call parser%add_option(name="parameter", s_name="p", has_value=.true., &
-    value_name="path", default="mhm_parameter.nml", help="The mHM parameter namelist.")
+    value_name="path", default="parameter.nml", help="The mHM parameter namelist.")
 
   call parser%add_option(name="output", s_name="o", has_value=.true., &
     value_name="path", default="outputs.nml", help="The mHM output namelist.")
