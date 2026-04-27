@@ -16,7 +16,9 @@ program driver
   use mo_string_utils, only: n2s => num2str
   use mo_domain, only: domains, selected_domains, domain_t
   use mo_kind, only: i4
+  use mo_exchange_type, only: standard_path
   use nml_config_project, only: nml_config_project_t, NML_OK
+  use mo_string_utils, only: n2s => num2str
   !$ use omp_lib, only: omp_get_num_threads
   !$ integer(i4) :: n_threads
   logical :: openmp_enabled = .false.
@@ -24,14 +26,13 @@ program driver
   logical :: from_dirs
   integer(i4) :: n_domains, i, id
   character(len=*), parameter :: separator = repeat("-", 72)
-  character(len=:), allocatable :: cwd
   type(domain_t), pointer :: domain
   ! global configs
   type(nml_config_project_t) :: project
   ! command line interface parser
   type(cli_parser) :: parser
 
-  character(:), allocatable :: meta_file, main_file, para_file, out_file
+  character(:), allocatable :: cwd, domain_dir, meta_file, main_file, para_file, out_file
   character(1024) :: errmsg
   integer :: status
 
@@ -87,9 +88,9 @@ program driver
   call check_path_isdir(cwd, raise=.true.)
 
   ! global configs
-  meta_file = path_join(cwd, parser%option_value("nml"))
-  para_file = path_join(cwd, parser%option_value("parameter"))
-  out_file  = path_join(cwd, parser%option_value("output"))
+  meta_file = standard_path(cwd=cwd, file=parser%option_value("nml"))
+  para_file = standard_path(cwd=cwd, file=parser%option_value("parameter"))
+  out_file  = standard_path(cwd=cwd, file=parser%option_value("output"))
   log_info(*) "READ MAIN CONFIG: ", meta_file
   status = project%from_file(file=meta_file, errmsg=errmsg)
   if (status /= NML_OK) then
@@ -105,11 +106,12 @@ program driver
   ! determine number of domains
   n_domains = project%n_domains
   from_dirs = project%read_domains_from_dirs
-  main_file = meta_file
-  if (from_dirs) main_file = "mhm.nml" ! default main file name in each domain directory
   allocate(selected_domains(n_domains))
 
   log_info(*) "CREATE DOMAINS: ", n_domains
+  if (from_dirs) then
+    log_info(*) "Reading domains from separate directories."
+  end if
 
   ! create domain-list
   ! we use a linked list to be able to dynamically add domains
@@ -124,16 +126,27 @@ program driver
   log_debug(*) "Selected domains", selected_domains
 
   ! read configs
+  domain_dir = cwd
+  main_file = meta_file
   do i = 1_i4, size(selected_domains)
     id = selected_domains(i)
     log_text(*) separator
     log_info(*) "CONFIGURE DOMAIN: ", id
+    if (from_dirs) then
+      status = project%is_set("domain_dirs", idx=[id], errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Directory not specified for domain ", n2s(id), ": ", trim(errmsg)
+        error stop 1
+      end if
+      domain_dir = standard_path(cwd=cwd, path=project%domain_dirs(id))
+      main_file = standard_path(cwd=domain_dir, file=project%domain_nmls(id))
+    end if
     ! get domain
     call domains%get_domain(id, domain)
     ! id either from list or 1 if from dirs (always take domain 1 in each sub-dir)
     if (from_dirs) id = 1_i4
     ! create new domain and its exchange
-    call domain%init(meta_file, main_file, para_file, id, cwd)
+    call domain%init(meta_file, main_file, para_file, id, domain_dir)
     ! configure domain components
     log_text(*) separator
     call domain%configure(main_file, out_file)
