@@ -419,6 +419,7 @@ contains
     ! variables
     ! raw meteorology (level2)
     self%raw_pre    = var_dp(grid=l2, name="pre",       units="mm",    long_name="precipitation", standard_name="precipitation_amount")
+    self%raw_pet    = var_dp(grid=l2, name="pet",       units="mm",    long_name="potential evapotranspiration", standard_name="water_potential_evapotranspiration_amount")
     self%raw_temp   = var_dp(grid=l2, name="temp",      units="degC",  long_name="air temperature", standard_name="air_temperature")
     self%raw_ssrd   = var_dp(grid=l2, name="ssrd",      units="W m-2", long_name="solar short wave radiation downward", standard_name="surface_downwelling_shortwave_flux")
     self%raw_strd   = var_dp(grid=l2, name="strd",      units="W m-2", long_name="surface thermal radiation downward", standard_name="surface_downwelling_longwave_flux")
