@@ -63,3 +63,14 @@ properties:
     title: Domain directories
     description: |-
       Paths to be included in the simulation
+  domain_nmls:
+    type: array
+    items:
+      type: string
+      x-fortran-len: buf
+      default: mhm.nml
+    x-fortran-shape: max_domains
+    title: Domain namelists
+    description: |-
+      Paths to domain-specific namelists when "read_domains_from_dirs" is true.
+      The path will be interpreted as relative to the given domain directory.

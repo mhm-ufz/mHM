@@ -115,7 +115,7 @@ Summary:
   restart_input_path(:) = "mhm_restart_in.nc"
   write_restart(:) = .false.
   restart_output_path(:) = "mhm_restart_out.nc"
-  evap_coeff(:, 1) = 1.3, 1.2, 0.72, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5
+  evap_coeff(:,1) = 1.3, 1.2, 0.72, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5
   share_evap_coeff = .true.
 /
 ```

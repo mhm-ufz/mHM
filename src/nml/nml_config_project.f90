@@ -47,6 +47,7 @@ module nml_config_project
   character(len=buf), parameter, public :: history_default = "Model run version 1"
   integer(i4), parameter, public :: n_domains_default = 1_i4
   logical, parameter, public :: read_domains_from_dirs_default = .false.
+  character(len=buf), parameter, public :: domain_nmls_default = "mhm.nml"
 
   !> \class nml_config_project_t
   !> \brief Project configuration
@@ -63,6 +64,7 @@ module nml_config_project
     integer(i4) :: n_domains !< Number of domains
     logical :: read_domains_from_dirs !< Flag for separate domains
     character(len=buf), dimension(max_domains) :: domain_dirs !< Domain directories
+    character(len=buf), dimension(max_domains) :: domain_nmls !< Domain namelists
   contains
     procedure :: init => nml_config_project_init
     procedure :: from_file => nml_config_project_from_file
@@ -95,6 +97,7 @@ contains
     this%history = history_default
     this%n_domains = n_domains_default
     this%read_domains_from_dirs = read_domains_from_dirs_default ! bool values always need a default
+    this%domain_nmls = domain_nmls_default
   end function nml_config_project_init
 
   !> \brief Read config_project namelist from file
@@ -113,6 +116,7 @@ contains
     integer(i4) :: n_domains
     logical :: read_domains_from_dirs
     character(len=buf), dimension(max_domains) :: domain_dirs
+    character(len=buf), dimension(max_domains) :: domain_nmls
     ! locals
     type(nml_file_t) :: nml
     integer :: iostat
@@ -129,7 +133,8 @@ contains
       history, &
       n_domains, &
       read_domains_from_dirs, &
-      domain_dirs
+      domain_dirs, &
+      domain_nmls
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -143,6 +148,7 @@ contains
     n_domains = this%n_domains
     read_domains_from_dirs = this%read_domains_from_dirs
     domain_dirs = this%domain_dirs
+    domain_nmls = this%domain_nmls
 
     status = nml%open(file, errmsg=errmsg)
     if (status /= NML_OK) return
@@ -178,6 +184,7 @@ contains
     this%n_domains = n_domains
     this%read_domains_from_dirs = read_domains_from_dirs
     this%domain_dirs = domain_dirs
+    this%domain_nmls = domain_nmls
 
     ! mark as configured
     this%is_configured = .true.
@@ -196,6 +203,7 @@ contains
     n_domains, &
     read_domains_from_dirs, &
     domain_dirs, &
+    domain_nmls, &
     errmsg) result(status)
 
     class(nml_config_project_t), intent(inout) :: this
@@ -210,6 +218,7 @@ contains
     integer(i4), intent(in), optional :: n_domains
     logical, intent(in), optional :: read_domains_from_dirs
     character(len=*), dimension(:), intent(in), optional :: domain_dirs
+    character(len=*), dimension(:), intent(in), optional :: domain_nmls
     integer :: &
       lb_1, &
       ub_1
@@ -237,6 +246,16 @@ contains
       lb_1 = lbound(this%domain_dirs, 1)
       ub_1 = lb_1 + size(domain_dirs, 1) - 1
       this%domain_dirs(lb_1:ub_1) = domain_dirs
+    end if
+    if (present(domain_nmls)) then
+      if (size(domain_nmls, 1) > size(this%domain_nmls, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'domain_nmls'"
+        return
+      end if
+      lb_1 = lbound(this%domain_nmls, 1)
+      ub_1 = lb_1 + size(domain_nmls, 1) - 1
+      this%domain_nmls(lb_1:ub_1) = domain_nmls
     end if
 
     ! mark as configured
@@ -316,6 +335,13 @@ contains
         if (this%domain_dirs(idx(1)) == repeat(achar(0), len(this%domain_dirs))) status = NML_ERR_NOT_SET
       else
         if (all(this%domain_dirs == repeat(achar(0), len(this%domain_dirs)))) status = NML_ERR_NOT_SET
+      end if
+    case ("domain_nmls")
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%domain_nmls), ubound(this%domain_nmls), &
+          "domain_nmls", errmsg)
+        if (status /= NML_OK) return
+      else
       end if
     case default
       status = NML_ERR_INVALID_NAME

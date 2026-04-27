@@ -20,6 +20,8 @@
   read_domains_from_dirs = .false.
   ! Domain directories
   domain_dirs(:) = ""
+  ! Domain namelists
+  domain_nmls(:) = "mhm.nml"
 /
 
 ! Processes configuration

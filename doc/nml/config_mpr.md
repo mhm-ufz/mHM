@@ -233,7 +233,7 @@ Summary:
   soil_db_mode(:) = 0
   n_horizons(:) = 0
   tillage_depth(:) = 0
-  soil_depth(:, :) = 0
+  soil_depth(:,:) = 0
   fracSealed_cityArea(:) = 0.0
   land_cover_path(:) = ""
   land_cover_var(:) = "land_cover"
