@@ -86,6 +86,7 @@ include = [
     "forces/include",
     "forces/src/*.fypp",
     "forces/src/*.*90",
+    "forces/src/*.c",
     "forces/src/CMakeLists.txt",
     "forces/*.txt",
     "forces/*.md",
@@ -116,6 +117,14 @@ local_scheme = "no-local-version"
 fallback_version = "0.0.0.dev0"
 search_parent_directories = true
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    # numpy 2 changed PyArrayObject to an opaque struct in C headers (sizeof=16),
+    # while tp_basicsize at runtime is still 96. This mismatch is an expected
+    # false-positive for extensions built with numpy 2 headers and is benign.
+    "ignore:numpy.ndarray size changed:RuntimeWarning",
+]
+
 [tool.black]
 exclude = "_version.py"
 target-version = ["py39"]
@@ -139,22 +148,24 @@ build-verbosity = 1
 skip = ["cp38*", "*-musllinux_*", "cp31?t-*"]
 # check command
 test-extras = "test"
-test-command = "mhm -h && python -m pytest pybind/tests/"
-test-sources = ["pybind/tests/", "pyproject.toml"]
-test-skip = "cp314*"  # not all test dependencies have wheels for python 3.14 yet
-# force binary numpy dep
-environment.PIP_ONLY_BINARY = "numpy"
-environment.PIP_PREFER_BINARY = "1"
+test-command = "mhm -h && mhm-download -h && mhm test_domain && python -m pytest pybind/tests/"
+test-sources = ["pybind/tests/", "test_domain/", "pyproject.toml"]
 
 [tool.cibuildwheel.linux]
+# use netcdf-c docker images (netcdf-c, hdf5, zlib pre-installed)
+manylinux-x86_64-image = "ghcr.io/ocefpaf/manylinux_2_28_x86_64-netcdf"
+manylinux-aarch64-image = "ghcr.io/ocefpaf/manylinux_2_28_aarch64-netcdf"
 environment = { FC="gfortran", F77="gfortran", CC="gcc", CXX="g++" }
-before-all = "source CI-scripts/install-deps -c -p /usr"
 
 [tool.cibuildwheel.macos]
-environment = { FC="gfortran-14", F77="gfortran-14", CC="gcc-14", CXX="g++-14", MACOSX_DEPLOYMENT_TARGET="13.0" }
-before-all = "source CI-scripts/install-deps -s -p /opt/local" # "brew install netcdf-fortran"
+# netcdf-c from conda-forge via micromamba (set up in CI workflow)
+environment = { FC="gfortran-14", F77="gfortran-14", CC="gcc-14", CXX="g++-14", CMAKE_PREFIX_PATH="/Users/runner/micromamba/envs/build", MACOSX_DEPLOYMENT_TARGET = "15.0" }
+repair-wheel-command = "DYLD_FALLBACK_LIBRARY_PATH=/Users/runner/micromamba/envs/build/lib delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}"
 
-[[tool.cibuildwheel.overrides]]
-select = "*-macosx_arm64"
-inherit.environment = "append"
-environment.MACOSX_DEPLOYMENT_TARGET = "14.0"
+[tool.cibuildwheel.windows]
+before-build = "pip install delvewheel"
+environment = { FC = "ifx", CMAKE_PREFIX_PATH = 'C:\\Users\\runneradmin\\micromamba\\envs\\build\\Library', PATH = 'C:\\Users\\runneradmin\\micromamba\\envs\\build\\Library\\bin;${PATH}' }
+repair-wheel-command = [
+  "delvewheel show {wheel}",
+  "delvewheel repair -w {dest_dir} {wheel}",
+]

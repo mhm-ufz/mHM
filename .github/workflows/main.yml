@@ -37,7 +37,7 @@ jobs:
           name: dist-sdist
           path: dist-sdist/*.tar.gz
 
-  build_wheels:
+  build_wheels_linux:
     name: wheels for ${{ matrix.cfg.os }} / ${{ matrix.cfg.arch }}
     runs-on: ${{ matrix.cfg.os }}
     strategy:
@@ -46,8 +46,6 @@ jobs:
         cfg:
         - { os: ubuntu-24.04, arch: x86_64 }
         - { os: ubuntu-24.04-arm, arch: aarch64 }
-        - { os: macos-13, arch: x86_64 }
-        - { os: macos-14, arch: arm64 }
 
     steps:
       - uses: actions/checkout@v4
@@ -66,40 +64,78 @@ jobs:
           name: dist-wheel-${{ matrix.cfg.os }}-${{ matrix.cfg.arch }}
           path: ./dist-wheel-${{ matrix.cfg.os }}-${{ matrix.cfg.arch }}/*.whl
 
-  test_win_conda:
-    name: win_conda
-    runs-on: windows-latest
+  build_wheels_macos:
+    name: wheels for ${{ matrix.cfg.os }} / ${{ matrix.cfg.arch }}
+    runs-on: ${{ matrix.cfg.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+        - { os: macos-15, arch: arm64 }
+        - { os: macos-15-intel, arch: x86_64 }
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
 
-      - uses: mamba-org/setup-micromamba@v2
+      - name: Setup Micromamba
+        uses: mamba-org/setup-micromamba@v2
         with:
-          init-shell: cmd.exe
-          environment-name: mhm-env
+          environment-name: build
+          init-shell: bash
           create-args: >-
-            python=3.12
-            numpy
-            gfortran_win-64
-            netcdf-fortran
-            pkg-config
-            pytest-cov
-            xarray
-            netcdf4
+            libnetcdf --channel conda-forge
 
-      - name: build wheel on win
-        run: |
-          pip install -v .
-          mhm -h
-          mhm -V
-          mhm --pyversion
-          mhm .
-          pytest pybind/tests/
-        shell: cmd /C CALL {0}
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v3.1.4
+        env:
+          CIBW_ARCHS: ${{ matrix.cfg.arch }}
+        with:
+          output-dir: dist-wheel-${{ matrix.cfg.os }}-${{ matrix.cfg.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-wheel-${{ matrix.cfg.os }}-${{ matrix.cfg.arch }}
+          path: ./dist-wheel-${{ matrix.cfg.os }}-${{ matrix.cfg.arch }}/*.whl
+
+  build_wheels_windows:
+    name: wheels for windows-latest / AMD64
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+
+      - name: Setup Intel Fortran
+        uses: fortran-lang/setup-fortran@v1
+        with:
+          compiler: intel
+          version: '2025.0'
+
+      - name: Setup Micromamba
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: build
+          init-shell: bash
+          create-args: >-
+            libnetcdf pkg-config --channel conda-forge
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v3.1.4
+        env:
+          CIBW_ARCHS: AMD64
+        with:
+          output-dir: dist-wheel-windows-latest-AMD64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-wheel-windows-latest-AMD64
+          path: ./dist-wheel-windows-latest-AMD64/*.whl
 
   upload_to_pypi:
-    needs: [build_wheels, build_sdist]
+    needs: [build_wheels_linux, build_wheels_macos, build_wheels_windows, build_sdist]
     runs-on: ubuntu-24.04
 
     steps:
