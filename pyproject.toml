@@ -86,6 +86,7 @@ include = [
     "forces/include",
     "forces/src/*.fypp",
     "forces/src/*.*90",
+    "forces/src/*.c",
     "forces/src/CMakeLists.txt",
     "forces/*.txt",
     "forces/*.md",
