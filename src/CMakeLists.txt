@@ -177,7 +177,7 @@ endif()
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "LLVMFlang")
   target_compile_options(${LIB_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:Fortran>:-frealloc-lhs>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-O0;-fimplicit-none;-pedantic;-Wall;-Wextra>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-fimplicit-none;-pedantic;-Wall>"
   )
   if(MHM_ENABLE_NATIVE)
     target_compile_options(${LIB_NAME} PRIVATE
