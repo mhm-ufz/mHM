@@ -100,8 +100,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     "$<$<COMPILE_LANGUAGE:Fortran>:-ffree-line-length-none>"
   )
   target_compile_options(${LIB_NAME} PRIVATE
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-Og;-g;-Wall;-Wextra;-Wimplicit-interface;-Wsurprising;-fimplicit-none;-fbacktrace;-fcheck=all,no-array-temps;-ffpe-trap=zero,overflow,underflow;-finit-real=snan;-pedantic-errors>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-Og;-Wall;-Wextra;-Wimplicit-interface;-Wsurprising;-fimplicit-none;-fbacktrace;-fcheck=all,no-array-temps;-ffpe-trap=zero,overflow,underflow;-finit-real=snan;-pedantic-errors>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-fbacktrace>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<BOOL:${CMAKE_WITH_GPROF}>>:-pg>"
   )
@@ -130,8 +129,8 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
   target_compile_options(${LIB_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;-standard-realloc-lhs>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-g;-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;-debug;-traceback;-fp-stack-check;-O0>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;-debug;-traceback;-fp-stack-check;-O0>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-qoverride-limits>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-traceback>"
   )
   if(MHM_ENABLE_NATIVE)
@@ -145,16 +144,45 @@ endif()
 # ifx (IntelLLVM)
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
   target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
+  if(WIN32)
+    target_compile_options(${LIB_NAME} PRIVATE
+      "$<$<COMPILE_LANGUAGE:Fortran>:/nofixed;/assume:byterecl;/standard-realloc-lhs;/heap-arrays>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:/fp:source;/warn:all;/check:all;/check:noarg_temp_created;/traceback;/Od>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:/Qoverride-limits>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:/traceback>"
+    )
+    if(MHM_ENABLE_NATIVE)
+      target_compile_options(${LIB_NAME} PRIVATE
+        "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:/QxHost>"
+        "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:/QxHost>"
+      )
+    endif()
+  else()
+    target_compile_options(${LIB_NAME} PRIVATE
+      "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;-standard-realloc-lhs>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;SHELL:-check nouninit;-traceback;-O0>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-qoverride-limits>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-traceback>"
+    )
+    if(MHM_ENABLE_NATIVE)
+      target_compile_options(${LIB_NAME} PRIVATE
+        "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-xHost>"
+        "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-xHost>"
+      )
+    endif()
+  endif()
+endif()
+
+# flang (LLVMFlang)
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "LLVMFlang")
   target_compile_options(${LIB_NAME} PRIVATE
-    "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;-standard-realloc-lhs>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-g;-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;SHELL:-check nouninit;-traceback;-O0>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-traceback>"
+    "$<$<COMPILE_LANGUAGE:Fortran>:-frealloc-lhs>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-O0;-fimplicit-none;-pedantic;-Wall;-Wextra>"
   )
   if(MHM_ENABLE_NATIVE)
     target_compile_options(${LIB_NAME} PRIVATE
-      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-xHost>"
-      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-xHost>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-march=native>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-march=native>"
     )
   endif()
 endif()
@@ -166,10 +194,10 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
   target_compile_definitions(${LIB_NAME} PRIVATE "NAG")
   if(CMAKE_WITH_OpenMP)
     # NAG's -gline traceback instrumentation destabilizes explicit OpenMP calls.
-    set(NAG_DEBUG_FLAGS "-g;-nan;-O0;-C;-C=alias;-C=dangling;-strict95;-ieee=full")
+    set(NAG_DEBUG_FLAGS "-nan;-O0;-C;-C=alias;-C=dangling;-strict95;-ieee=full")
     set(NAG_RELWITHDEBINFO_FLAGS "-ieee=full")
   else()
-    set(NAG_DEBUG_FLAGS "-gline;-g;-nan;-O0;-C;-C=alias;-C=dangling;-strict95;-ieee=full")
+    set(NAG_DEBUG_FLAGS "-gline;-nan;-O0;-C;-C=alias;-C=dangling;-strict95;-ieee=full")
     set(NAG_RELWITHDEBINFO_FLAGS "-gline;-ieee=full")
   endif()
   target_compile_options(${LIB_NAME} PRIVATE
