@@ -14,21 +14,21 @@
 
 &config_input
   time_stamp_location(1) = 2
-  slope_path(1)     = "src/tests/files/input.nc"
+  slope_path(1)     = "examples/fixtures/input.nc"
   aspect_path(1)    = "test_domain/input/morph/aspect.asc"
   geo_class_path(1) = "test_domain/input/morph/geology_class.asc"
   soil_class_path(1)= "test_domain/input/morph/soil_class.asc"
   lai_class_path(1) = "test_domain/input/morph/LAI_class.asc"
-  pre_path(1)       = "src/tests/files/pre_daily_aligned.nc"
-  temp_path(1)      = "src/tests/files/tavg_daily_aligned.nc"
-  pet_path(1)       = "src/tests/files/pet_daily_aligned.nc"
+  pre_path(1)       = "examples/fixtures/pre_daily_aligned.nc"
+  temp_path(1)      = "examples/fixtures/tavg_daily_aligned.nc"
+  pet_path(1)       = "examples/fixtures/pet_daily_aligned.nc"
 /
 
 &config_meteo
   read_meteo_weights(1) = .true.
-  pre_weights_path(1)   = "src/tests/files/pre_weights.nc"
-  pet_weights_path(1)   = "src/tests/files/pet_weights.nc"
-  temp_weights_path(1)  = "src/tests/files/tavg_weights.nc"
+  pre_weights_path(1)   = "examples/fixtures/pre_weights.nc"
+  pet_weights_path(1)   = "examples/fixtures/pet_weights.nc"
+  temp_weights_path(1)  = "examples/fixtures/tavg_weights.nc"
 /
 
 &config_mpr
@@ -37,7 +37,7 @@
   tillage_depth(1)         = 200
   soil_depth(1,1)          = 200
   fracSealed_cityArea(1)   = 0.6
-  land_cover_path(1)       = "src/tests/files/lc_static.nc"
+  land_cover_path(1)       = "examples/fixtures/lc_static.nc"
   land_cover_var(1)        = "land_cover"
   lai_time_step(1)         = 0
   soil_lut_path(1)         = "test_domain/input/morph/soil_classdefinition.txt"

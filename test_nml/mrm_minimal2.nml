@@ -13,7 +13,7 @@
 /
 
 &config_input
-  runoff_path(1) = "src/tests/files/runoff.nc"
+  runoff_path(1) = "examples/fixtures/runoff.nc"
   runoff_var(1)  = "Q"
 /
 
@@ -23,5 +23,5 @@
   output_path(1) = "mrm_output_1991-1992.nc"
   read_restart(1) = .true.
   restart_input_path(1) = "mrm_restart_1991.nc"
-  scc_gauges_path(1) = "src/tests/files/scc_gauges.nc"
+  scc_gauges_path(1) = "examples/fixtures/scc_gauges.nc"
 /
