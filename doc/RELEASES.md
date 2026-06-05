@@ -10,7 +10,7 @@
 
 ### Changes
 - modernize the CMake build and extend compiler and CI support ([!215](https://git.ufz.de/mhm/mhm/-/merge_requests/215), [!219](https://git.ufz.de/mhm/mhm/-/merge_requests/219))
-- update FORCES to v0.10.0; `netcdf-fortran` is no longer required because FORCES now provides its own wrapper for `netcdf-c` ([!215](https://git.ufz.de/mhm/mhm/-/merge_requests/215), [!217](https://git.ufz.de/mhm/mhm/-/merge_requests/217), [!219](https://git.ufz.de/mhm/mhm/-/merge_requests/219))
+- update FORCES to v0.10.0; NetCDF access now uses the FORCES-owned wrapper for `netcdf-c` ([!215](https://git.ufz.de/mhm/mhm/-/merge_requests/215), [!217](https://git.ufz.de/mhm/mhm/-/merge_requests/217), [!219](https://git.ufz.de/mhm/mhm/-/merge_requests/219))
 
 ### Bugfixes
 - fix reading DEM headers and other spatial input data from NetCDF files ([!202](https://git.ufz.de/mhm/mhm/-/merge_requests/202))

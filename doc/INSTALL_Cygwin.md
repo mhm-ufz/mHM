@@ -14,7 +14,7 @@ Install cygwin by executing the cygwin setup and choose the following dependenci
 - gcc-fortran (the fortran compiler)
 - make
 - cmake (version >= 3.12)
-- libnetcdf-fortran-devel
+- libnetcdf-devel
 - libhdf5-devel
 - libgfortran
 - gfortran

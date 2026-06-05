@@ -440,25 +440,6 @@ Redistribution and use in source and binary forms, with or without modification,
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### NetCDF-Fortran license notice
-
-Source: https://github.com/Unidata/netcdf-fortran
-
-```
-! License (and other Lawyer Language)
-
-! This software is released under the Apache 2.0 Open Source License. The
-! full text of the License can be viewed at :
-!
-!   http:www.apache.org/licenses/LICENSE-2.0.html
-!
-! The author grants to the University Corporation for Atmospheric Research
-! (UCAR), Boulder, CO, USA the right to revise and extend the software
-! without restriction. However, the author retains all copyrights and
-! intellectual property rights explicitly stated in or implied by the
-! Apache license
-```
-
 ### GCC license notice
 
 Wheels may include `libgcc`, `libgfortran` and/or `libquadmath` from the GNU Compiler Collection.

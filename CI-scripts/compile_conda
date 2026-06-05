@@ -2,7 +2,7 @@ conda create -y --prefix ./mhm_env
 conda activate ./mhm_env
 conda config --add channels conda-forge
 conda config --set channel_priority strict
-conda install -y cmake make fortran-compiler netcdf-fortran fypp
+conda install -y cmake make fortran-compiler c-compiler libnetcdf fypp
 cmake -DCMAKE_BUILD_TYPE=Release -B build
 cmake --build build --parallel 4
 cmake --install build --prefix $CONDA_PREFIX
