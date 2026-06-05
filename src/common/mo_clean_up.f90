@@ -60,6 +60,7 @@ module mo_clean_up
       L1_snow, &
       L1_Throughfall, &
       L1_total_runoff, &
+      L1_spfObs, &
       neutron_integral_AFast
 
     use mo_common_variables, only : &
@@ -241,6 +242,7 @@ module mo_clean_up
     if ( allocated(L1_snow) ) deallocate(L1_snow)
     if ( allocated(L1_Throughfall) ) deallocate(L1_Throughfall)
     if ( allocated(L1_total_runoff) ) deallocate(L1_total_runoff)
+    if ( allocated(L1_spfObs) ) deallocate(L1_spfObs)
     if ( allocated(neutron_integral_AFast) ) deallocate(neutron_integral_AFast)
 
     ! mo_common_variables
