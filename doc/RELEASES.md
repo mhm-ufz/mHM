@@ -2,6 +2,20 @@
 
 [TOC]
 
+## mHM v5.13.3 (Jun 2026)
+
+### Enhancements
+- add objective functions 35 to 47 for spatial-pattern evaluation using SPAEF, pattern dissimilarity, and snow-presence classification accuracy, including combinations with discharge ([!203](https://git.ufz.de/mhm/mhm/-/merge_requests/203))
+- add Windows wheels for the Python package ([!219](https://git.ufz.de/mhm/mhm/-/merge_requests/219))
+
+### Changes
+- modernize the CMake build and extend compiler and CI support ([!215](https://git.ufz.de/mhm/mhm/-/merge_requests/215), [!219](https://git.ufz.de/mhm/mhm/-/merge_requests/219))
+- update FORCES to v0.10.0; `netcdf-fortran` is no longer required because FORCES now provides its own wrapper for `netcdf-c` ([!215](https://git.ufz.de/mhm/mhm/-/merge_requests/215), [!217](https://git.ufz.de/mhm/mhm/-/merge_requests/217), [!219](https://git.ufz.de/mhm/mhm/-/merge_requests/219))
+
+### Bugfixes
+- fix reading DEM headers and other spatial input data from NetCDF files ([!202](https://git.ufz.de/mhm/mhm/-/merge_requests/202))
+- use the current NetCDF reader for gridded LAI input ([!217](https://git.ufz.de/mhm/mhm/-/merge_requests/217))
+
 ## mHM v5.13.2 (Oct 2025)
 
 ### Enhancements
