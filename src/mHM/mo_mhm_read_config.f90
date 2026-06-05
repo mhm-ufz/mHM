@@ -98,12 +98,13 @@ CONTAINS
     use mo_common_variables, only : domainMeta, processMatrix
     use mo_file, only : file_defOutput
     use mo_global_variables, only : &
-      L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, &
+      L1_twsaObs, L1_etObs, L1_smObs, L1_neutronsObs, L1_spfObs, &
       evap_coeff, &
       nSoilHorizons_sm_input, outputFlxState, &
       timeStep_model_outputs, &
       output_deflate_level, output_double_precision, output_time_reference, &
-      BFI_calc, BFI_obs
+      BFI_calc, BFI_obs, &
+      wt_for_optional_data, swe_threshold_for_spf
     use mo_mpr_constants, only : maxNoSoilHorizons
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
     use mo_string_utils, only : num2str
@@ -126,16 +127,23 @@ CONTAINS
     ! tws input
     character(256), dimension(maxNoDomains) :: dir_TWS
 
+    ! SPF input
+    character(256), dimension(maxNoDomains) :: dir_spf
+
     integer(i4) :: timeStep_tws_input         ! time step of optional data: tws
     integer(i4) :: timeStep_et_input          ! time step of optional data: et
     integer(i4) :: timeStep_sm_input          ! time step of optional data: sm
     integer(i4) :: timeStep_neutrons_input    ! time step of optional data: neutrons
+    integer(i4) :: timeStep_spf_input         ! time step of optional data: spf
+    integer(i4) :: weight_for_optional_data   ! weight of optional data in OF 39-41, 43-45 & 47
+    integer(i4) :: snow_water_equivalent_threshold_for_spf ! threshold swe to convert to spf for OF 46 & 47
 
 
     allocate(L1_twsaObs(domainMeta%nDomains))
     allocate(L1_etObs(domainMeta%nDomains))
     allocate(L1_smObs(domainMeta%nDomains))
     allocate(L1_neutronsObs(domainMeta%nDomains))
+    allocate(L1_spfObs(domainMeta%nDomains))
     ! observed baseflow indizes
     allocate(BFI_obs(domainMeta%nDomains))
 
@@ -146,17 +154,19 @@ CONTAINS
     if (optimize) then
       ! read nml
       select case (opti_function)
-        case(10 : 13, 15, 17, 27 : 30, 33)
+        case(10 : 13, 15, 17, 27 : 30, 33, 35 : 47)
           call nml_optional_data%read(file_namelist)
           nSoilHorizons_sm_input = nml_optional_data%nSoilHorizons_sm_input
           dir_soil_moisture = nml_optional_data%dir_soil_moisture
           dir_neutrons = nml_optional_data%dir_neutrons
           dir_evapotranspiration = nml_optional_data%dir_evapotranspiration
           dir_TWS = nml_optional_data%dir_TWS
+          dir_spf = nml_optional_data%dir_spf
           timeStep_sm_input = nml_optional_data%timeStep_sm_input
           timeStep_neutrons_input = nml_optional_data%timeStep_neutrons_input
           timeStep_et_input = nml_optional_data%timeStep_et_input
           timeStep_tws_input = nml_optional_data%timeStep_tws_input
+          timeStep_spf_input = nml_optional_data%timeStep_spf_input
         case(34)
           call nml_baseflow_config%read(file_namelist)
           BFI_calc = nml_baseflow_config%BFI_calc
@@ -164,7 +174,7 @@ CONTAINS
       end select
 
       select case (opti_function)
-        case(10 : 13, 28)
+        case(10 : 13, 28, 35, 38, 43)
           ! soil moisture
           do iDomain = 1, domainMeta%nDomains
             domainID = domainMeta%indices(iDomain)
@@ -185,7 +195,7 @@ CONTAINS
             L1_neutronsObs(iDomain)%timeStepInput = -1 ! TODO: daily, hard-coded, to be flexibilized
             L1_neutronsObs(iDomain)%varname = 'neutrons'
           end do
-        case(27, 29, 30)
+        case(27, 29, 30, 36, 39, 41, 44)
           ! evapotranspiration
           do iDomain = 1, domainMeta%nDomains
             domainID = domainMeta%indices(iDomain)
@@ -216,6 +226,36 @@ CONTAINS
             L1_twsaObs(iDomain)%timeStepInput = timeStep_tws_input
             L1_twsaObs(iDomain)%varname = 'twsa'
           end do
+        case(37, 40, 42, 45)
+          ! soil moisture
+          do iDomain = 1, domainMeta%nDomains
+            domainID = domainMeta%indices(iDomain)
+            L1_smObs(iDomain)%dir = dir_Soil_moisture(domainID)
+            L1_smObs(iDomain)%timeStepInput = timeStep_sm_input
+            L1_smObs(iDomain)%varname = 'sm'
+          end do
+          if (nSoilHorizons_sm_input .GT. nSoilHorizons_mHM) then
+            call error_message('***ERROR: Number of soil horizons representative for input soil moisture exceeded', raise=.false.)
+            call error_message('          defined number of soil horizions: ', adjustl(trim(num2str(maxNoSoilHorizons))), '!')
+          end if
+          ! evapotranspiration
+          do iDomain = 1, domainMeta%nDomains
+            domainID = domainMeta%indices(iDomain)
+            L1_etObs(iDomain)%dir = dir_evapotranspiration(domainID)
+            L1_etObs(iDomain)%timeStepInput = timeStep_et_input
+            L1_etObs(iDomain)%varname = 'et'
+          end do
+          wt_for_optional_data = weight_for_optional_data
+        case(46, 47)
+          ! snow cover area
+          do iDomain = 1, domainMeta%nDomains
+            domainID = domainMeta%indices(iDomain)
+            L1_spfObs(iDomain)%dir = dir_spf(domainID)
+            L1_spfObs(iDomain)%timeStepInput = timeStep_spf_input
+            L1_spfObs(iDomain)%varname = 'spf'
+          end do
+          wt_for_optional_data = weight_for_optional_data
+          swe_threshold_for_spf = snow_water_equivalent_threshold_for_spf
 
       end select
     end if

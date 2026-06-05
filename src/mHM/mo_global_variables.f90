@@ -119,6 +119,12 @@ MODULE mo_global_variables
                                                               !< observerd data, and the
                                                               !< timestepInput of the simulated data
                                                               ! ToDo: add unit
+  ! snow presence flag
+  type(optidata), public, dimension(:), allocatable :: L1_spfObs
+
+  integer(i4) :: wt_for_optional_data ! weight of optional data in OF 39-41, 43-45 & 47
+  integer(i4) :: swe_threshold_for_spf ! threshold swe to consider as snow presence in OF 46 & 47
+
   logical, public                             :: BFI_calc     !< calculate observed BFI from gauges with Eckhardt filter
   real(dp), public, dimension(:), allocatable :: BFI_obs      !< given base-flow index per domain
   real(dp), public, dimension(:), allocatable :: BFI_qBF_sum  !< q2 weighted sum for each domain

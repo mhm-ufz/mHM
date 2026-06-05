@@ -206,6 +206,19 @@
   !>             BFI_s = mean_t(<q_2>) / mean_t(<q_total>)
   !>             BFI_o = given in separate namelist per domain
   !>             <.> is a spatial average
+  !> (35) SO: SM: 1.0 - SPAEF of spatially distributed soil moisture                                                                                                                                                                          
+  !> (36) SO: ET: 1.0 - SPAEF of spatially distributed evapotranspiration                                                                                                                                                                     
+  !> (37) SO: SM + ET: 1.0 - 0.5 * [SPAEF(SM) + SPAEF(ET)]                                                                                                                                                                                    
+  !> (38) SO: SM + Q : 1.0 - [input wt.* SPAEF(SM) + KGE(Q)]/(input wt. + 1)                                                                                                                                                                                      
+  !> (39) SO: ET + Q : 1.0 - [input wt.* SPAEF(ET) + KGE(Q)]/(input wt. + 1)                                                                                                                                                                                      
+  !> (40) SO: SM + ET + Q: 1.0 - [0.5*input wt.* SPAEF(SM) + 0.5*input wt.* SPAEF(ET) + KGE(Q)]/(input wt. + 1) 
+  !> (41) SO: ET: 1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture                                                                                                                                                        
+  !> (42) SO: SM + ET: 1.0 - 0.5 * [PD(SM) + PD(ET)]                                                                                                                                                                                    
+  !> (43) SO: SM + Q : 1.0 - [input wt.* PD(SM) + KGE(Q)]/(input wt. + 1)
+  !> (44) SO: ET + Q : 1.0 - [input wt.* PD(ET) + KGE(Q)]/(input wt. + 1)                                                                                                                                                                     
+  !> (45) SO: SM + ET + Q: 1.0 - [0.5*input wt.* PD(SM) + 0.5*input wt.* PD(ET) + KGE(Q)]/(input wt. + 1) 
+  !> (46) SO: SPF: 1.0 - CA(SPF)
+  !> (47) SO: SPF+ Q : 1.0 - [input wt.* CA(SPF) + KGE(Q)]/(input wt. + 1) 
 
   !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
   opti_function = 10
@@ -463,6 +476,29 @@
   !>     -3: yearly  TWS values
   !-----------------------------
   timeStep_tws_input = -2
+
+  !> snow presence flag (SPF). snow = 1, no snow = 0. 
+  !> file name including path with timeseries data
+  ! expected file name: spf.nc, expected variable name: spf
+  dir_spf(1)   = "test_domain/input/optional_data/"
+
+  !> time stepping of the spf input
+  !>     -1: daily   SPF values
+  !>     -2: monthly SPF values
+  !>     -3: yearly  SPF values
+  !-----------------------------
+  timeStep_spf_input = -1
+
+  !> For the objective functions 38,39,40, 43,44,45, & 47
+  !> These objective functions have a spatial variable (S) and Q
+  !> The weight S:Q will be x:1.
+  !> Input the weight "x" to be provided.
+  weight_for_optional_data = 1
+
+  !> For objective functions 46, & 47
+  !> The modelled SWE (mm) will be converted to snow presence flag, SPF (0,1)
+  !> based on the threshold below (in mm):
+  snow_water_equivalent_threshold_for_spf = 0
 /
 
 !******************************************************************************************

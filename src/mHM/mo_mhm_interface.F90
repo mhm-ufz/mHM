@@ -80,7 +80,8 @@ contains
       L1_etObs, &
       L1_neutronsObs, &
       L1_smObs, &
-      BFI_calc
+      BFI_calc, &
+      L1_spfObs
     use mo_read_optional_data, only: readOptidataObs
     use mo_write_ascii, only: write_configfile
     use mo_mhm_bfi, only: calculate_BFI
@@ -180,13 +181,13 @@ contains
       ! read optional optional data if necessary
       if (optimize) then
         select case (opti_function)
-          case(10 : 13, 28)
+          case(10 : 13, 28, 35, 38, 43)
             ! read optional spatio-temporal soil mositure data
             call readOptidataObs(iDomain, domainID, L1_smObs(iDomain))
           case(17)
             ! read optional spatio-temporal neutrons data
             call readOptidataObs(iDomain, domainID, L1_neutronsObs(iDomain))
-          case(27, 29, 30)
+          case(27, 29, 30, 36, 39, 41, 44)
             ! read optional spatio-temporal evapotranspiration data
             call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
           case(15)
@@ -203,6 +204,13 @@ contains
               domainMeta%optidata(iDomain) == 6 ) then
               call readOptidataObs(iDomain, domainID, L1_twsaObs(iDomain))
             end if
+          case(37, 40, 42, 45)
+            ! read optional spatio-temporal soil moisture and evapotranspiration data
+            call readOptidataObs(iDomain, domainID, L1_smObs(iDomain))
+            call readOptidataObs(iDomain, domainID, L1_etObs(iDomain))
+          case(46, 47)
+            ! read optional spatio-temporal SPF data
+            call readOptidataObs(iDomain, domainID, L1_spfObs(iDomain))
         end select
       end if
     end do
@@ -372,7 +380,7 @@ contains
         call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
 #endif
 
-      case(10 : 13, 15, 17, 27, 28, 29, 30, 33, 34)
+      case(10 : 13, 15, 17, 27, 28, 29, 30, 33, 34, 35 : 47)
         ! call optimization for other variables
         obj_func => objective
 #ifdef MPI
