@@ -7,6 +7,7 @@
   mHM_details             = "Helmholtz Centre for Environmental Research - UFZ"
   history                 = "v6alpha additive example layout"
   n_domains               = 2
+  n_geo_units            = 10
   read_domains_from_dirs  = .false.
 /
 
@@ -77,9 +78,10 @@
 /
 
 &config_mpr
+  n_layers(1) = 2
+  n_layers(2) = 2
   ! domain 1
   soil_db_mode(1)       = 0
-  n_horizons(1)         = 2
   tillage_depth(1)      = 200
   soil_depth(1,1)       = 200
   fracSealed_cityArea(1)= 0.6
@@ -90,7 +92,6 @@
   geo_lut_path(1)       = "domain_01/input/morph/geology_classdefinition.txt"
   lai_lut_path(1)       = "domain_01/input/morph/LAI_classdefinition.txt"
   ! domain 2
-  n_horizons(2)         = 2
   soil_db_mode(2)       = 0
   tillage_depth(2)      = 200
   soil_depth(1,2)       = 200

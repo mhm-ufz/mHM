@@ -1,0 +1,16 @@
+&config_project
+  n_domains = 2
+  n_geo_units = 10
+  max_layers = 4
+/
+
+&config_mpr
+  soil_db_mode(1) = 0
+  soil_db_mode(2) = 0
+  n_layers(1) = 2
+  n_layers(2) = 3
+  tillage_depth(1) = 200
+  tillage_depth(2) = 200
+  soil_depth(:,1) = 200, 0, 0, 0
+  soil_depth(:,2) = 200, 500, 0, 0
+/

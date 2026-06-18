@@ -1,5 +1,6 @@
 &config_project
   n_domains      = 1
+  n_geo_units      = 10
 /
 
 &config_processes

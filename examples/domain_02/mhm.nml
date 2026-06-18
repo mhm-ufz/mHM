@@ -7,6 +7,7 @@
   mHM_details             = "Helmholtz Centre for Environmental Research - UFZ"
   history                 = "v6alpha additive example layout"
   n_domains               = 1
+  n_geo_units            = 10
   read_domains_from_dirs  = .false.
 /
 
@@ -25,56 +26,56 @@
 /
 
 &config_time
-  sim_start        = "1992-07-05 00:00"
-  eval_start       = "1993-01-01 00:00"
-  sim_end          = "1994-01-01 00:00"
-  time_step        = 1
+  sim_start(1)        = "1992-07-05 00:00"
+  eval_start(1)       = "1993-01-01 00:00"
+  sim_end(1)          = "1994-01-01 00:00"
+  time_step(1)        = 1
 /
 
 &config_input
-  pre_path            = "input/meteo/pre.nc"
-  pet_path            = "input/meteo/pet.nc"
-  temp_path           = "input/meteo/tavg.nc"
-  meteo_mask_path     = "input/meteo/mask.nc"
-  dem_path            = "input/morph/input.nc"
-  slope_path          = "input/morph/input.nc"
-  aspect_path         = "input/morph/input.nc"
-  fdir_path           = "input/morph/input.nc"
-  geo_class_path      = "input/morph/input.nc"
-  soil_class_path     = "input/morph/input.nc"
-  lai_class_path      = "input/morph/input.nc"
+  pre_path(1)            = "input/meteo/pre.nc"
+  pet_path(1)            = "input/meteo/pet.nc"
+  temp_path(1)           = "input/meteo/tavg.nc"
+  meteo_mask_path(1)     = "input/meteo/mask.nc"
+  dem_path(1)            = "input/morph/input.nc"
+  slope_path(1)          = "input/morph/input.nc"
+  aspect_path(1)         = "input/morph/input.nc"
+  fdir_path(1)           = "input/morph/input.nc"
+  geo_class_path(1)      = "input/morph/input.nc"
+  soil_class_path(1)     = "input/morph/input.nc"
+  lai_class_path(1)      = "input/morph/input.nc"
 /
 
 &config_meteo
-  frac_night_pre      = 0.46, 0.50, 0.52, 0.51, 0.48, 0.50, 0.49, 0.48, 0.52, 0.56, 0.50, 0.47
-  frac_night_pet      = 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10
-  frac_night_temp     = -0.76, -1.30, -1.88, -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.60, -0.94, -0.53
-  frac_night_ssrd     = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-  frac_night_strd     = 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45
+  frac_night_pre(:,1)      = 0.46, 0.50, 0.52, 0.51, 0.48, 0.50, 0.49, 0.48, 0.52, 0.56, 0.50, 0.47
+  frac_night_pet(:,1)      = 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10
+  frac_night_temp(:,1)     = -0.76, -1.30, -1.88, -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.60, -0.94, -0.53
+  frac_night_ssrd(:,1)     = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+  frac_night_strd(:,1)     = 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45
 /
 
 &config_mpr
-  soil_db_mode        = 0
-  n_horizons          = 2
-  tillage_depth       = 200
-  soil_depth          = 200
-  fracSealed_cityArea = 0.6
-  land_cover_path     = "input/morph/lc_periods_2.nc"
-  land_cover_var      = "land_cover"
-  lai_time_step       = 0
-  soil_lut_path       = "input/morph/soil_classdefinition.txt"
-  geo_lut_path        = "input/morph/geology_classdefinition.txt"
-  lai_lut_path        = "input/morph/LAI_classdefinition.txt"
+  n_layers(1) = 2
+  soil_db_mode(1)        = 0
+  tillage_depth(1)       = 200
+  soil_depth(1,1)          = 200
+  fracSealed_cityArea(1) = 0.6
+  land_cover_path(1)     = "input/morph/lc_periods_2.nc"
+  land_cover_var(1)      = "land_cover"
+  lai_time_step(1)       = 0
+  soil_lut_path(1)       = "input/morph/soil_classdefinition.txt"
+  geo_lut_path(1)        = "input/morph/geology_classdefinition.txt"
+  lai_lut_path(1)        = "input/morph/LAI_classdefinition.txt"
 /
 
 &config_mhm
-  resolution          = 24000.0
-  output_path         = "output/mhm_output.nc"
-  evap_coeff          = 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
+  resolution(1)          = 24000.0
+  output_path(1)         = "output/mhm_output.nc"
+  evap_coeff(:,1)          = 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
 /
 
 &config_mrm
-  resolution          = 24000.0
-  max_route_step      = 3600
-  output_path         = "output/mrm_output.nc"
+  resolution(1)          = 24000.0
+  max_route_step(1)      = 3600
+  output_path(1)         = "output/mrm_output.nc"
 /
