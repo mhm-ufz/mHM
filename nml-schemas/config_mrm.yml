@@ -9,8 +9,7 @@ properties:
       type: number
       x-fortran-kind: dp
       exclusiveMinimum: 0.0
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: mRM resolution (L3)
     description: Resolution of the mRM routing grid, level 3.
     examples: [[0.1]]
@@ -19,7 +18,7 @@ properties:
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Flag for root based river network ordering.
     description: |-
       Flag to indicate if the river network is ordered in root based order.
@@ -34,7 +33,7 @@ properties:
       x-fortran-kind: i4
       default: -1
       minimum: -1
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Minimum level size for OpenMP parallelization.
     description: |-
       Minimum level size in the river network where OpenMP parallelization starts.
@@ -55,7 +54,7 @@ properties:
       x-fortran-kind: i4
       enum: [60, 120, 180, 240, 300, 360, 600, 720, 900, 1200, 1800, 3600, 7200, 10800, 14400, 21600, 28800, 43200, 86400]
       default: 86400
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Maximum routing time step in seconds.
     description: |-
       Maximum allowed time step for the routing model in seconds.
@@ -71,8 +70,7 @@ properties:
     items:
       type: string
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Path for SCC gauges NetCDF file.
     examples: [["scc_gauges.nc"]]
   output_path:
@@ -80,8 +78,7 @@ properties:
     items:
       type: string
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Path for output file.
     examples: [["mrm_output.nc"]]
   output_node_path:
@@ -89,8 +86,7 @@ properties:
     items:
       type: string
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Path for node based output file.
     examples: [["mrm_node_output.nc"]]
   read_restart:
@@ -98,22 +94,21 @@ properties:
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Read restart
   read_restart_fluxes:
     type: array
     items:
       type: boolean
       default: true
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Read restart fluxes
   restart_input_path:
     type: array
     items:
       type: string
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Restart input path
     examples: [["mrm_restart_in.nc"]]
   write_restart:
@@ -121,15 +116,14 @@ properties:
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Write restart
   restart_output_path:
     type: array
     items:
       type: string
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Restart output path
     examples: [["mrm_restart_out.nc"]]
   diagnostics_path:
@@ -137,8 +131,7 @@ properties:
     items:
       type: string
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Diagnostics output path
     description: |-
       Path for diagnostics output file containing information about the river upscaling and SCC.

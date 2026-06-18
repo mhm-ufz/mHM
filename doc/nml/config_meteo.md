@@ -40,7 +40,7 @@ The dimension for the weights are in FORTRAN-notation (rows, colums, months=12, 
 and in C-notation like in NetCDF: (hours=24, months=12, colums, rows).
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -49,8 +49,7 @@ Summary:
 Precipitation weights path `pre_weights_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 
 ### pet_weights_path
@@ -58,8 +57,7 @@ Summary:
 Potential evapotranspiration weights path `pet_weights_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 
 ### temp_weights_path
@@ -67,8 +65,7 @@ Summary:
 Surface downward shortwave radiation weights path `temp_weights_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 
 ### ssrd_weights_path
@@ -76,8 +73,7 @@ Summary:
 Surface downward shortwave radiation weights path `ssrd_weights_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 
 ### strd_weights_path
@@ -85,8 +81,7 @@ Summary:
 Surface downward longwave radiation weights path `strd_weights_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 
 ### pre_weights_var
@@ -94,7 +89,7 @@ Summary:
 Precipitation weights variable name `pre_weights_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"pre_weights"`
 
@@ -103,7 +98,7 @@ Summary:
 Potential evapotranspiration weights variable name `pet_weights_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"pet_weights"`
 
@@ -112,7 +107,7 @@ Summary:
 Average temperature weights variable name `temp_weights_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"tavg_weights"`
 
@@ -121,7 +116,7 @@ Summary:
 Surface downward shortwave radiation weights variable name `ssrd_weights_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"ssrd_weights"`
 
@@ -130,7 +125,7 @@ Summary:
 Surface downward longwave radiation weights variable name `strd_weights_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"strd_weights"`
 
@@ -143,8 +138,7 @@ Only night values (18h-5h) required because day values are the complement to 1.
 (array dimension 1: hour, dimension 2: domain)
 
 Summary:
-- Type: `real(dp), dimension(12, max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(12, n_domains)`
 - Required: no
 - Examples: `[0.46, 0.5, 0.52, 0.51, 0.48, 0.5, 0.49, 0.48, 0.52, 0.56, 0.5, 0.47]`
 
@@ -157,8 +151,7 @@ Only night values (18h-5h) required because day values are the complement to 1.
 (array dimension 1: hour, dimension 2: domain)
 
 Summary:
-- Type: `real(dp), dimension(12, max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(12, n_domains)`
 - Required: no
 - Examples: `[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]`
 
@@ -171,8 +164,7 @@ Only night values (18h-5h) required because day values are the complement to 1.
 (array dimension 1: hour, dimension 2: domain)
 
 Summary:
-- Type: `real(dp), dimension(12, max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(12, n_domains)`
 - Required: no
 - Examples: `[-0.76, -1.3, -1.88, -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.6, -0.94, -0.53]`
 
@@ -185,8 +177,7 @@ Only night values (18h-5h) required because day values are the complement to 1.
 (array dimension 1: hour, dimension 2: domain)
 
 Summary:
-- Type: `real(dp), dimension(12, max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(12, n_domains)`
 - Required: no
 - Examples: `[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]`
 
@@ -199,8 +190,7 @@ Only night values (18h-5h) required because day values are the complement to 1.
 (array dimension 1: hour, dimension 2: domain)
 
 Summary:
-- Type: `real(dp), dimension(12, max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(12, n_domains)`
 - Required: no
 - Examples: `[0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45]`
 

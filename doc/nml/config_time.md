@@ -27,8 +27,7 @@ Start date of the simulation. Only hours are supported; minutes and seconds are 
 Format: YYYY-MM-DD [hh[:mm[:ss]]]
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Examples: `"2020-06-01 00:00"`, `"2025-01-01"`
 
@@ -40,8 +39,7 @@ Start date of the evaluation period. Only hours are supported; minutes and secon
 Format: YYYY-MM-DD [hh[:mm[:ss]]]
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Examples: `"2021-01-01 00:00"`, `"2025-02-15"`
 
@@ -53,8 +51,7 @@ End date of the simulation. Only hours are supported; minutes and seconds are se
 Format: YYYY-MM-DD [hh[:mm[:ss]]]
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Examples: `"2022-01-01 00:00"`, `"2026-01-01"`
 
@@ -77,7 +74,7 @@ Time step of the simulation `time_step`
 Time step of the simulation (1 or 24, in hours).
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Default: `1`
 

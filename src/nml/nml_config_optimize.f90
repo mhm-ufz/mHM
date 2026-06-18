@@ -36,20 +36,20 @@ module nml_config_optimize
   implicit none
 
   ! default values
-  logical, parameter, public :: optimize_default = .false.
-  logical, parameter, public :: optimize_restart_default = .false.
-  integer(i4), parameter, public :: opti_method_default = 1_i4
-  integer(i4), parameter, public :: opti_function_default = 10_i4
-  integer(i4), parameter, public :: iterations_default = 7_i4
-  integer(i4), parameter, public :: seed_default = 1235876_i4
-  real(dp), parameter, public :: dds_r_default = 0.2_dp
-  real(dp), parameter, public :: sa_temp_default = -9.0_dp
-  integer(i4), parameter, public :: sce_ngs_default = 2_i4
-  integer(i4), parameter, public :: sce_npg_default = -9_i4
-  integer(i4), parameter, public :: sce_nps_default = -9_i4
-  logical, parameter, public :: mcmc_opti_default = .false.
-  real(dp), parameter, public :: mcmc_error_params_default(2) = [0.01_dp, 0.6_dp]
-  logical, parameter, public :: bfi_calc_default = .true.
+  logical, parameter, public :: optimize__default = .false.
+  logical, parameter, public :: optimize_restart__default = .false.
+  integer(i4), parameter, public :: opti_method__default = 1_i4
+  integer(i4), parameter, public :: opti_function__default = 10_i4
+  integer(i4), parameter, public :: iterations__default = 7_i4
+  integer(i4), parameter, public :: seed__default = 1235876_i4
+  real(dp), parameter, public :: dds_r__default = 0.2_dp
+  real(dp), parameter, public :: sa_temp__default = -9.0_dp
+  integer(i4), parameter, public :: sce_ngs__default = 2_i4
+  integer(i4), parameter, public :: sce_npg__default = -9_i4
+  integer(i4), parameter, public :: sce_nps__default = -9_i4
+  logical, parameter, public :: mcmc_opti__default = .false.
+  real(dp), parameter, public :: mcmc_error_params__default(2) = [0.01_dp, 0.6_dp]
+  logical, parameter, public :: bfi_calc__default = .true.
 
   !> \class nml_config_optimize_t
   !> \brief Optimization configuration
@@ -82,35 +82,36 @@ contains
 
   !> \brief Initialize defaults and sentinels for config_optimize
   integer function nml_config_optimize_init(this, errmsg) result(status)
-    class(nml_config_optimize_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_config_optimize_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
     this%is_configured = .false.
 
     ! default values
-    this%optimize = optimize_default ! bool values always need a default
-    this%optimize_restart = optimize_restart_default ! bool values always need a default
-    this%opti_method = opti_method_default
-    this%opti_function = opti_function_default
-    this%iterations = iterations_default
-    this%seed = seed_default
-    this%dds_r = dds_r_default
-    this%sa_temp = sa_temp_default
-    this%sce_ngs = sce_ngs_default
-    this%sce_npg = sce_npg_default
-    this%sce_nps = sce_nps_default
-    this%mcmc_opti = mcmc_opti_default ! bool values always need a default
-    this%mcmc_error_params = mcmc_error_params_default
-    this%bfi_calc = bfi_calc_default ! bool values always need a default
+    this%optimize = optimize__default ! bool values always need a default
+    this%optimize_restart = optimize_restart__default ! bool values always need a default
+    this%opti_method = opti_method__default
+    this%opti_function = opti_function__default
+    this%iterations = iterations__default
+    this%seed = seed__default
+    this%dds_r = dds_r__default
+    this%sa_temp = sa_temp__default
+    this%sce_ngs = sce_ngs__default
+    this%sce_npg = sce_npg__default
+    this%sce_nps = sce_nps__default
+    this%mcmc_opti = mcmc_opti__default ! bool values always need a default
+    this%mcmc_error_params = mcmc_error_params__default
+    this%bfi_calc = bfi_calc__default ! bool values always need a default
   end function nml_config_optimize_init
+
 
   !> \brief Read config_optimize namelist from file
   integer function nml_config_optimize_from_file(this, file, errmsg) result(status)
-    class(nml_config_optimize_t), intent(inout) :: this
+    class(nml_config_optimize_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     logical :: optimize
     logical :: optimize_restart
@@ -227,25 +228,25 @@ contains
     bfi_calc, &
     errmsg) result(status)
 
-    class(nml_config_optimize_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    logical, intent(in), optional :: optimize
-    logical, intent(in), optional :: optimize_restart
-    integer(i4), intent(in), optional :: opti_method
-    integer(i4), intent(in), optional :: opti_function
-    integer(i4), intent(in), optional :: iterations
-    integer(i4), intent(in), optional :: seed
-    real(dp), intent(in), optional :: dds_r
-    real(dp), intent(in), optional :: sa_temp
-    integer(i4), intent(in), optional :: sce_ngs
-    integer(i4), intent(in), optional :: sce_npg
-    integer(i4), intent(in), optional :: sce_nps
-    logical, intent(in), optional :: mcmc_opti
-    real(dp), dimension(:), intent(in), optional :: mcmc_error_params
-    logical, intent(in), optional :: bfi_calc
+    class(nml_config_optimize_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    logical, intent(in), optional :: optimize !< Enable optimization
+    logical, intent(in), optional :: optimize_restart !< Restart optimization
+    integer(i4), intent(in), optional :: opti_method !< Optimization method
+    integer(i4), intent(in), optional :: opti_function !< Objective function to be optimized
+    integer(i4), intent(in), optional :: iterations !< Number of iterations
+    integer(i4), intent(in), optional :: seed !< Seed
+    real(dp), intent(in), optional :: dds_r !< DDS perturbation rate
+    real(dp), intent(in), optional :: sa_temp !< Initial Temperature
+    integer(i4), intent(in), optional :: sce_ngs !< Number of SCE Complexes
+    integer(i4), intent(in), optional :: sce_npg !< Points per SCE Complex
+    integer(i4), intent(in), optional :: sce_nps !< Points per SCE Sub-Complex
+    logical, intent(in), optional :: mcmc_opti !< MCMC for optimisation
+    real(dp), dimension(:), intent(in), optional :: mcmc_error_params !< Parameters of MCMC error model.
+    logical, intent(in), optional :: bfi_calc !< Calculate BFI from discharge time series with the Eckhardt filter
     integer :: &
-      lb_1, &
-      ub_1
+      lb__1, &
+      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -270,9 +271,9 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'mcmc_error_params'"
         return
       end if
-      lb_1 = lbound(this%mcmc_error_params, 1)
-      ub_1 = lb_1 + size(mcmc_error_params, 1) - 1
-      this%mcmc_error_params(lb_1:ub_1) = mcmc_error_params
+      lb__1 = lbound(this%mcmc_error_params, 1)
+      ub__1 = lb__1 + size(mcmc_error_params, 1) - 1
+      this%mcmc_error_params(lb__1:ub__1) = mcmc_error_params
     end if
     if (present(bfi_calc)) this%bfi_calc = bfi_calc
 
@@ -283,13 +284,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_config_optimize_is_set(this, name, idx, errmsg) result(status)
-    class(nml_config_optimize_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_config_optimize_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("optimize")
       if (present(idx)) then
@@ -387,12 +393,17 @@ contains
 
   !> \brief Validate required values and constraints
   integer function nml_config_optimize_is_valid(this, errmsg) result(status)
-    class(nml_config_optimize_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_config_optimize_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
   end function nml_config_optimize_is_valid
 

@@ -1,3 +1,7 @@
+! Main configuration
+!
+! Domain-local runtime configuration for mHM.
+
 ! Project configuration
 &config_project
   ! Project name
@@ -16,8 +20,16 @@
   history = "Model run version 1"
   ! Number of domains
   n_domains = 1
+  ! Number of geological units
+  n_geo_units = 25
+  ! Maximum number of soil layers
+  max_layers = 10
   ! Flag for separate domains
   read_domains_from_dirs = .false.
+/
+
+! Domain configuration
+&config_domain
   ! Domain directories
   domain_dirs(:) = ""
   ! Domain namelists
@@ -382,10 +394,10 @@
 &config_mpr
   ! Soil database mode
   soil_db_mode(:) = 0
-  ! Number of soil horizons
-  n_horizons(:) = 0
   ! Tillage depth
   tillage_depth(:) = 0
+  ! Number of soil layers
+  n_layers(:) = 0
   ! Soil horizon depth
   soil_depth(:,:) = 0
   ! Sealed fraction of city area

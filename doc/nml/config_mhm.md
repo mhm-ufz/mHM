@@ -28,8 +28,7 @@ mHM model resolution (L1) `resolution`
 Resolution of the mHM model, level 1.
 
 Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(n_domains)`
 - Required: no
 
 ### output_path
@@ -37,8 +36,7 @@ Summary:
 Output path `output_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Examples: `["mhm_output.nc"]`
 
@@ -47,7 +45,7 @@ Summary:
 Read restart `read_restart`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -56,8 +54,7 @@ Summary:
 Restart input path `restart_input_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Examples: `["mhm_restart_in.nc"]`
 
@@ -66,7 +63,7 @@ Summary:
 Write restart `write_restart`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -75,8 +72,7 @@ Summary:
 Restart output path `restart_output_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Examples: `["mhm_restart_out.nc"]`
 
@@ -88,8 +84,7 @@ Monthly free pan evaporation coefficients for free-water surfaces.
 (array dimension 1: month, dimension 2: domain)
 
 Summary:
-- Type: `real(dp), dimension(12, max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(12, n_domains)`
 - Required: no
 - Examples: `[1.3, 1.2, 0.72, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5]`
 

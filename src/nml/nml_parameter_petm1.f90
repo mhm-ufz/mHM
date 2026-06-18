@@ -58,8 +58,8 @@ contains
 
   !> \brief Initialize defaults and sentinels for petm1
   integer function nml_petm1_init(this, errmsg) result(status)
-    class(nml_petm1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_petm1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -73,11 +73,12 @@ contains
     this%pet_c = ieee_value(this%pet_c, ieee_quiet_nan) ! sentinel for required real array
   end function nml_petm1_init
 
+
   !> \brief Read petm1 namelist from file
   integer function nml_petm1_from_file(this, file, errmsg) result(status)
-    class(nml_petm1_t), intent(inout) :: this
+    class(nml_petm1_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     real(dp), dimension(5) :: pet_a_forest
     real(dp), dimension(5) :: pet_a_impervious
@@ -149,23 +150,61 @@ contains
     pet_c, &
     errmsg) result(status)
 
-    class(nml_petm1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    real(dp), dimension(5), intent(in) :: pet_a_forest
-    real(dp), dimension(5), intent(in) :: pet_a_impervious
-    real(dp), dimension(5), intent(in) :: pet_a_pervious
-    real(dp), dimension(5), intent(in) :: pet_b
-    real(dp), dimension(5), intent(in) :: pet_c
+    class(nml_petm1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    real(dp), dimension(:), intent(in) :: pet_a_forest !< Potential evapotranspiration forest
+    real(dp), dimension(:), intent(in) :: pet_a_impervious !< Potential evapotranspiration impervious
+    real(dp), dimension(:), intent(in) :: pet_a_pervious !< Potential evapotranspiration pervious
+    real(dp), dimension(:), intent(in) :: pet_b !< Potential evapotranspiration b
+    real(dp), dimension(:), intent(in) :: pet_c !< Potential evapotranspiration c
+    integer :: &
+      lb__1, &
+      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
 
     ! required parameters
-    this%pet_a_forest = pet_a_forest
-    this%pet_a_impervious = pet_a_impervious
-    this%pet_a_pervious = pet_a_pervious
-    this%pet_b = pet_b
-    this%pet_c = pet_c
+    if (size(pet_a_forest, 1) > size(this%pet_a_forest, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pet_a_forest'"
+      return
+    end if
+    lb__1 = lbound(this%pet_a_forest, 1)
+    ub__1 = lb__1 + size(pet_a_forest, 1) - 1
+    this%pet_a_forest(lb__1:ub__1) = pet_a_forest
+    if (size(pet_a_impervious, 1) > size(this%pet_a_impervious, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pet_a_impervious'"
+      return
+    end if
+    lb__1 = lbound(this%pet_a_impervious, 1)
+    ub__1 = lb__1 + size(pet_a_impervious, 1) - 1
+    this%pet_a_impervious(lb__1:ub__1) = pet_a_impervious
+    if (size(pet_a_pervious, 1) > size(this%pet_a_pervious, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pet_a_pervious'"
+      return
+    end if
+    lb__1 = lbound(this%pet_a_pervious, 1)
+    ub__1 = lb__1 + size(pet_a_pervious, 1) - 1
+    this%pet_a_pervious(lb__1:ub__1) = pet_a_pervious
+    if (size(pet_b, 1) > size(this%pet_b, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pet_b'"
+      return
+    end if
+    lb__1 = lbound(this%pet_b, 1)
+    ub__1 = lb__1 + size(pet_b, 1) - 1
+    this%pet_b(lb__1:ub__1) = pet_b
+    if (size(pet_c, 1) > size(this%pet_c, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pet_c'"
+      return
+    end if
+    lb__1 = lbound(this%pet_c, 1)
+    ub__1 = lb__1 + size(pet_c, 1) - 1
+    this%pet_c(lb__1:ub__1) = pet_c
 
     ! mark as configured
     this%is_configured = .true.
@@ -174,13 +213,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_petm1_is_set(this, name, idx, errmsg) result(status)
-    class(nml_petm1_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_petm1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("pet_a_forest")
       if (present(idx)) then
@@ -238,60 +282,65 @@ contains
 
   !> \brief Validate required values and constraints
   integer function nml_petm1_is_valid(this, errmsg) result(status)
-    class(nml_petm1_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_petm1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
     ! required arrays
-    if (all(ieee_is_nan(this%pet_a_forest))) then
+    if (all(ieee_is_nan(this%pet_a_forest(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: PET_a_forest"
       return
     end if
-    if (any(ieee_is_nan(this%pet_a_forest))) then
+    if (any(ieee_is_nan(this%pet_a_forest(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: PET_a_forest"
       return
     end if
-    if (all(ieee_is_nan(this%pet_a_impervious))) then
+    if (all(ieee_is_nan(this%pet_a_impervious(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: PET_a_impervious"
       return
     end if
-    if (any(ieee_is_nan(this%pet_a_impervious))) then
+    if (any(ieee_is_nan(this%pet_a_impervious(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: PET_a_impervious"
       return
     end if
-    if (all(ieee_is_nan(this%pet_a_pervious))) then
+    if (all(ieee_is_nan(this%pet_a_pervious(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: PET_a_pervious"
       return
     end if
-    if (any(ieee_is_nan(this%pet_a_pervious))) then
+    if (any(ieee_is_nan(this%pet_a_pervious(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: PET_a_pervious"
       return
     end if
-    if (all(ieee_is_nan(this%pet_b))) then
+    if (all(ieee_is_nan(this%pet_b(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: PET_b"
       return
     end if
-    if (any(ieee_is_nan(this%pet_b))) then
+    if (any(ieee_is_nan(this%pet_b(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: PET_b"
       return
     end if
-    if (all(ieee_is_nan(this%pet_c))) then
+    if (all(ieee_is_nan(this%pet_c(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: PET_c"
       return
     end if
-    if (any(ieee_is_nan(this%pet_c))) then
+    if (any(ieee_is_nan(this%pet_c(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: PET_c"
       return

@@ -60,8 +60,8 @@ contains
 
   !> \brief Initialize defaults and sentinels for pet3
   integer function nml_pet3_init(this, errmsg) result(status)
-    class(nml_pet3_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_pet3_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -77,11 +77,12 @@ contains
     this%stomatal_resistance = ieee_value(this%stomatal_resistance, ieee_quiet_nan) ! sentinel for required real array
   end function nml_pet3_init
 
+
   !> \brief Read pet3 namelist from file
   integer function nml_pet3_from_file(this, file, errmsg) result(status)
-    class(nml_pet3_t), intent(inout) :: this
+    class(nml_pet3_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     real(dp), dimension(5) :: canopyheigth_forest
     real(dp), dimension(5) :: canopyheigth_impervious
@@ -163,27 +164,79 @@ contains
     stomatal_resistance, &
     errmsg) result(status)
 
-    class(nml_pet3_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    real(dp), dimension(5), intent(in) :: canopyheigth_forest
-    real(dp), dimension(5), intent(in) :: canopyheigth_impervious
-    real(dp), dimension(5), intent(in) :: canopyheigth_pervious
-    real(dp), dimension(5), intent(in) :: displacementheight_coeff
-    real(dp), dimension(5), intent(in) :: roughnesslength_momentum_coeff
-    real(dp), dimension(5), intent(in) :: roughnesslength_heat_coeff
-    real(dp), dimension(5), intent(in) :: stomatal_resistance
+    class(nml_pet3_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    real(dp), dimension(:), intent(in) :: canopyheigth_forest !< Canopy height forest
+    real(dp), dimension(:), intent(in) :: canopyheigth_impervious !< Canopy height impervious
+    real(dp), dimension(:), intent(in) :: canopyheigth_pervious !< Canopy height pervious
+    real(dp), dimension(:), intent(in) :: displacementheight_coeff !< Displacement height coefficient
+    real(dp), dimension(:), intent(in) :: roughnesslength_momentum_coeff !< Roughness length momentum coefficient
+    real(dp), dimension(:), intent(in) :: roughnesslength_heat_coeff !< Roughness length heat coefficient
+    real(dp), dimension(:), intent(in) :: stomatal_resistance !< Stomatal resistance
+    integer :: &
+      lb__1, &
+      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
 
     ! required parameters
-    this%canopyheigth_forest = canopyheigth_forest
-    this%canopyheigth_impervious = canopyheigth_impervious
-    this%canopyheigth_pervious = canopyheigth_pervious
-    this%displacementheight_coeff = displacementheight_coeff
-    this%roughnesslength_momentum_coeff = roughnesslength_momentum_coeff
-    this%roughnesslength_heat_coeff = roughnesslength_heat_coeff
-    this%stomatal_resistance = stomatal_resistance
+    if (size(canopyheigth_forest, 1) > size(this%canopyheigth_forest, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'canopyheigth_forest'"
+      return
+    end if
+    lb__1 = lbound(this%canopyheigth_forest, 1)
+    ub__1 = lb__1 + size(canopyheigth_forest, 1) - 1
+    this%canopyheigth_forest(lb__1:ub__1) = canopyheigth_forest
+    if (size(canopyheigth_impervious, 1) > size(this%canopyheigth_impervious, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'canopyheigth_impervious'"
+      return
+    end if
+    lb__1 = lbound(this%canopyheigth_impervious, 1)
+    ub__1 = lb__1 + size(canopyheigth_impervious, 1) - 1
+    this%canopyheigth_impervious(lb__1:ub__1) = canopyheigth_impervious
+    if (size(canopyheigth_pervious, 1) > size(this%canopyheigth_pervious, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'canopyheigth_pervious'"
+      return
+    end if
+    lb__1 = lbound(this%canopyheigth_pervious, 1)
+    ub__1 = lb__1 + size(canopyheigth_pervious, 1) - 1
+    this%canopyheigth_pervious(lb__1:ub__1) = canopyheigth_pervious
+    if (size(displacementheight_coeff, 1) > size(this%displacementheight_coeff, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'displacementheight_coeff'"
+      return
+    end if
+    lb__1 = lbound(this%displacementheight_coeff, 1)
+    ub__1 = lb__1 + size(displacementheight_coeff, 1) - 1
+    this%displacementheight_coeff(lb__1:ub__1) = displacementheight_coeff
+    if (size(roughnesslength_momentum_coeff, 1) > size(this%roughnesslength_momentum_coeff, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'roughnesslength_momentum_coeff'"
+      return
+    end if
+    lb__1 = lbound(this%roughnesslength_momentum_coeff, 1)
+    ub__1 = lb__1 + size(roughnesslength_momentum_coeff, 1) - 1
+    this%roughnesslength_momentum_coeff(lb__1:ub__1) = roughnesslength_momentum_coeff
+    if (size(roughnesslength_heat_coeff, 1) > size(this%roughnesslength_heat_coeff, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'roughnesslength_heat_coeff'"
+      return
+    end if
+    lb__1 = lbound(this%roughnesslength_heat_coeff, 1)
+    ub__1 = lb__1 + size(roughnesslength_heat_coeff, 1) - 1
+    this%roughnesslength_heat_coeff(lb__1:ub__1) = roughnesslength_heat_coeff
+    if (size(stomatal_resistance, 1) > size(this%stomatal_resistance, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'stomatal_resistance'"
+      return
+    end if
+    lb__1 = lbound(this%stomatal_resistance, 1)
+    ub__1 = lb__1 + size(stomatal_resistance, 1) - 1
+    this%stomatal_resistance(lb__1:ub__1) = stomatal_resistance
 
     ! mark as configured
     this%is_configured = .true.
@@ -192,13 +245,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_pet3_is_set(this, name, idx, errmsg) result(status)
-    class(nml_pet3_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_pet3_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("canopyheigth_forest")
       if (present(idx)) then
@@ -274,80 +332,85 @@ contains
 
   !> \brief Validate required values and constraints
   integer function nml_pet3_is_valid(this, errmsg) result(status)
-    class(nml_pet3_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_pet3_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
     ! required arrays
-    if (all(ieee_is_nan(this%canopyheigth_forest))) then
+    if (all(ieee_is_nan(this%canopyheigth_forest(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: canopyheigth_forest"
       return
     end if
-    if (any(ieee_is_nan(this%canopyheigth_forest))) then
+    if (any(ieee_is_nan(this%canopyheigth_forest(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: canopyheigth_forest"
       return
     end if
-    if (all(ieee_is_nan(this%canopyheigth_impervious))) then
+    if (all(ieee_is_nan(this%canopyheigth_impervious(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: canopyheigth_impervious"
       return
     end if
-    if (any(ieee_is_nan(this%canopyheigth_impervious))) then
+    if (any(ieee_is_nan(this%canopyheigth_impervious(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: canopyheigth_impervious"
       return
     end if
-    if (all(ieee_is_nan(this%canopyheigth_pervious))) then
+    if (all(ieee_is_nan(this%canopyheigth_pervious(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: canopyheigth_pervious"
       return
     end if
-    if (any(ieee_is_nan(this%canopyheigth_pervious))) then
+    if (any(ieee_is_nan(this%canopyheigth_pervious(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: canopyheigth_pervious"
       return
     end if
-    if (all(ieee_is_nan(this%displacementheight_coeff))) then
+    if (all(ieee_is_nan(this%displacementheight_coeff(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: displacementheight_coeff"
       return
     end if
-    if (any(ieee_is_nan(this%displacementheight_coeff))) then
+    if (any(ieee_is_nan(this%displacementheight_coeff(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: displacementheight_coeff"
       return
     end if
-    if (all(ieee_is_nan(this%roughnesslength_momentum_coeff))) then
+    if (all(ieee_is_nan(this%roughnesslength_momentum_coeff(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: roughnesslength_momentum_coeff"
       return
     end if
-    if (any(ieee_is_nan(this%roughnesslength_momentum_coeff))) then
+    if (any(ieee_is_nan(this%roughnesslength_momentum_coeff(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: roughnesslength_momentum_coeff"
       return
     end if
-    if (all(ieee_is_nan(this%roughnesslength_heat_coeff))) then
+    if (all(ieee_is_nan(this%roughnesslength_heat_coeff(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: roughnesslength_heat_coeff"
       return
     end if
-    if (any(ieee_is_nan(this%roughnesslength_heat_coeff))) then
+    if (any(ieee_is_nan(this%roughnesslength_heat_coeff(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: roughnesslength_heat_coeff"
       return
     end if
-    if (all(ieee_is_nan(this%stomatal_resistance))) then
+    if (all(ieee_is_nan(this%stomatal_resistance(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: stomatal_resistance"
       return
     end if
-    if (any(ieee_is_nan(this%stomatal_resistance))) then
+    if (any(ieee_is_nan(this%stomatal_resistance(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: stomatal_resistance"
       return

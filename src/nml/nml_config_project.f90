@@ -28,9 +28,7 @@ module nml_config_project
     NML_ERR_INVALID_INDEX, &
     idx_check, &
     to_lower, &
-    buf, &
-    max_domains, &
-    NML_ERR_PARTLY_SET
+    buf
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     i4
@@ -38,16 +36,20 @@ module nml_config_project
   implicit none
 
   ! default values
-  character(len=buf), parameter, public :: project_details_default = "mHM project"
-  character(len=buf), parameter, public :: setup_description_default = "Model run"
-  character(len=buf), parameter, public :: simulation_type_default = "Simulation"
-  character(len=buf), parameter, public :: conventions_default = "None"
-  character(len=buf), parameter, public :: contact_default = "Developer"
-  character(len=buf), parameter, public :: mhm_details_default = "Research unit"
-  character(len=buf), parameter, public :: history_default = "Model run version 1"
-  integer(i4), parameter, public :: n_domains_default = 1_i4
-  logical, parameter, public :: read_domains_from_dirs_default = .false.
-  character(len=buf), parameter, public :: domain_nmls_default = "mhm.nml"
+  character(len=buf), parameter, public :: project_details__default = "mHM project"
+  character(len=buf), parameter, public :: setup_description__default = "Model run"
+  character(len=buf), parameter, public :: simulation_type__default = "Simulation"
+  character(len=buf), parameter, public :: conventions__default = "None"
+  character(len=buf), parameter, public :: contact__default = "Developer"
+  character(len=buf), parameter, public :: mhm_details__default = "Research unit"
+  character(len=buf), parameter, public :: history__default = "Model run version 1"
+  integer(i4), parameter, public :: n_domains__default = 1_i4
+  integer(i4), parameter, public :: n_geo_units__default = 25_i4
+  integer(i4), parameter, public :: max_layers__default = 10_i4
+  logical, parameter, public :: read_domains_from_dirs__default = .false.
+
+  ! bounds values
+  integer(i4), parameter, public :: max_layers__min = 1_i4
 
   !> \class nml_config_project_t
   !> \brief Project configuration
@@ -62,49 +64,66 @@ module nml_config_project
     character(len=buf) :: mhm_details !< Developing institution
     character(len=buf) :: history !< Some details on data/model run version.
     integer(i4) :: n_domains !< Number of domains
+    integer(i4) :: n_geo_units !< Number of geological units
+    integer(i4) :: max_layers !< Maximum number of soil layers
     logical :: read_domains_from_dirs !< Flag for separate domains
-    character(len=buf), dimension(max_domains) :: domain_dirs !< Domain directories
-    character(len=buf), dimension(max_domains) :: domain_nmls !< Domain namelists
   contains
     procedure :: init => nml_config_project_init
     procedure :: from_file => nml_config_project_from_file
     procedure :: set => nml_config_project_set
     procedure :: is_set => nml_config_project_is_set
-    procedure :: filled_shape => nml_config_project_filled_shape
     procedure :: is_valid => nml_config_project_is_valid
   end type nml_config_project_t
 
 contains
 
+  !> \brief Check whether a value is within bounds
+  elemental logical function max_layers__in_bounds(val, allow_missing) result(in_bounds)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
+
+    if (present(allow_missing)) then
+      if (allow_missing) then
+        if (val == -huge(val)) then
+          in_bounds = .true.
+          return
+        end if
+      end if
+    end if
+
+    in_bounds = .true.
+    if (val < max_layers__min) in_bounds = .false.
+  end function max_layers__in_bounds
+
   !> \brief Initialize defaults and sentinels for config_project
   integer function nml_config_project_init(this, errmsg) result(status)
-    class(nml_config_project_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_config_project_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
     this%is_configured = .false.
 
-    ! sentinel values for required/optional parameters
-    this%domain_dirs = repeat(achar(0), len(this%domain_dirs)) ! sentinel for optional string array
     ! default values
-    this%project_details = project_details_default
-    this%setup_description = setup_description_default
-    this%simulation_type = simulation_type_default
-    this%conventions = conventions_default
-    this%contact = contact_default
-    this%mhm_details = mhm_details_default
-    this%history = history_default
-    this%n_domains = n_domains_default
-    this%read_domains_from_dirs = read_domains_from_dirs_default ! bool values always need a default
-    this%domain_nmls = domain_nmls_default
+    this%project_details = project_details__default
+    this%setup_description = setup_description__default
+    this%simulation_type = simulation_type__default
+    this%conventions = conventions__default
+    this%contact = contact__default
+    this%mhm_details = mhm_details__default
+    this%history = history__default
+    this%n_domains = n_domains__default
+    this%n_geo_units = n_geo_units__default
+    this%max_layers = max_layers__default
+    this%read_domains_from_dirs = read_domains_from_dirs__default ! bool values always need a default
   end function nml_config_project_init
+
 
   !> \brief Read config_project namelist from file
   integer function nml_config_project_from_file(this, file, errmsg) result(status)
-    class(nml_config_project_t), intent(inout) :: this
+    class(nml_config_project_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     character(len=buf) :: project_details
     character(len=buf) :: setup_description
@@ -114,9 +133,9 @@ contains
     character(len=buf) :: mhm_details
     character(len=buf) :: history
     integer(i4) :: n_domains
+    integer(i4) :: n_geo_units
+    integer(i4) :: max_layers
     logical :: read_domains_from_dirs
-    character(len=buf), dimension(max_domains) :: domain_dirs
-    character(len=buf), dimension(max_domains) :: domain_nmls
     ! locals
     type(nml_file_t) :: nml
     integer :: iostat
@@ -132,9 +151,9 @@ contains
       mhm_details, &
       history, &
       n_domains, &
-      read_domains_from_dirs, &
-      domain_dirs, &
-      domain_nmls
+      n_geo_units, &
+      max_layers, &
+      read_domains_from_dirs
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -146,9 +165,9 @@ contains
     mhm_details = this%mhm_details
     history = this%history
     n_domains = this%n_domains
+    n_geo_units = this%n_geo_units
+    max_layers = this%max_layers
     read_domains_from_dirs = this%read_domains_from_dirs
-    domain_dirs = this%domain_dirs
-    domain_nmls = this%domain_nmls
 
     status = nml%open(file, errmsg=errmsg)
     if (status /= NML_OK) return
@@ -182,9 +201,9 @@ contains
     this%mhm_details = mhm_details
     this%history = history
     this%n_domains = n_domains
+    this%n_geo_units = n_geo_units
+    this%max_layers = max_layers
     this%read_domains_from_dirs = read_domains_from_dirs
-    this%domain_dirs = domain_dirs
-    this%domain_nmls = domain_nmls
 
     ! mark as configured
     this%is_configured = .true.
@@ -201,27 +220,24 @@ contains
     mhm_details, &
     history, &
     n_domains, &
+    n_geo_units, &
+    max_layers, &
     read_domains_from_dirs, &
-    domain_dirs, &
-    domain_nmls, &
     errmsg) result(status)
 
-    class(nml_config_project_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    character(len=*), intent(in), optional :: project_details
-    character(len=*), intent(in), optional :: setup_description
-    character(len=*), intent(in), optional :: simulation_type
-    character(len=*), intent(in), optional :: conventions
-    character(len=*), intent(in), optional :: contact
-    character(len=*), intent(in), optional :: mhm_details
-    character(len=*), intent(in), optional :: history
-    integer(i4), intent(in), optional :: n_domains
-    logical, intent(in), optional :: read_domains_from_dirs
-    character(len=*), dimension(:), intent(in), optional :: domain_dirs
-    character(len=*), dimension(:), intent(in), optional :: domain_nmls
-    integer :: &
-      lb_1, &
-      ub_1
+    class(nml_config_project_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    character(len=*), intent(in), optional :: project_details !< Project name
+    character(len=*), intent(in), optional :: setup_description !< Description of the setup
+    character(len=*), intent(in), optional :: simulation_type !< Type of simulation
+    character(len=*), intent(in), optional :: conventions !< Convention used for dataset
+    character(len=*), intent(in), optional :: contact !< Contact details, incl. PI name, modellers
+    character(len=*), intent(in), optional :: mhm_details !< Developing institution
+    character(len=*), intent(in), optional :: history !< Some details on data/model run version.
+    integer(i4), intent(in), optional :: n_domains !< Number of domains
+    integer(i4), intent(in), optional :: n_geo_units !< Number of geological units
+    integer(i4), intent(in), optional :: max_layers !< Maximum number of soil layers
+    logical, intent(in), optional :: read_domains_from_dirs !< Flag for separate domains
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -236,27 +252,9 @@ contains
     if (present(mhm_details)) this%mhm_details = mhm_details
     if (present(history)) this%history = history
     if (present(n_domains)) this%n_domains = n_domains
+    if (present(n_geo_units)) this%n_geo_units = n_geo_units
+    if (present(max_layers)) this%max_layers = max_layers
     if (present(read_domains_from_dirs)) this%read_domains_from_dirs = read_domains_from_dirs
-    if (present(domain_dirs)) then
-      if (size(domain_dirs, 1) > size(this%domain_dirs, 1)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'domain_dirs'"
-        return
-      end if
-      lb_1 = lbound(this%domain_dirs, 1)
-      ub_1 = lb_1 + size(domain_dirs, 1) - 1
-      this%domain_dirs(lb_1:ub_1) = domain_dirs
-    end if
-    if (present(domain_nmls)) then
-      if (size(domain_nmls, 1) > size(this%domain_nmls, 1)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'domain_nmls'"
-        return
-      end if
-      lb_1 = lbound(this%domain_nmls, 1)
-      ub_1 = lb_1 + size(domain_nmls, 1) - 1
-      this%domain_nmls(lb_1:ub_1) = domain_nmls
-    end if
 
     ! mark as configured
     this%is_configured = .true.
@@ -265,13 +263,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_config_project_is_set(this, name, idx, errmsg) result(status)
-    class(nml_config_project_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_config_project_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("project_details")
       if (present(idx)) then
@@ -321,27 +324,23 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'n_domains'"
         return
       end if
+    case ("n_geo_units")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'n_geo_units'"
+        return
+      end if
+    case ("max_layers")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'max_layers'"
+        return
+      end if
     case ("read_domains_from_dirs")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'read_domains_from_dirs'"
         return
-      end if
-    case ("domain_dirs")
-      if (present(idx)) then
-        status = idx_check(idx, lbound(this%domain_dirs), ubound(this%domain_dirs), &
-          "domain_dirs", errmsg)
-        if (status /= NML_OK) return
-        if (this%domain_dirs(idx(1)) == repeat(achar(0), len(this%domain_dirs))) status = NML_ERR_NOT_SET
-      else
-        if (all(this%domain_dirs == repeat(achar(0), len(this%domain_dirs)))) status = NML_ERR_NOT_SET
-      end if
-    case ("domain_nmls")
-      if (present(idx)) then
-        status = idx_check(idx, lbound(this%domain_nmls), ubound(this%domain_nmls), &
-          "domain_nmls", errmsg)
-        if (status /= NML_OK) return
-      else
       end if
     case default
       status = NML_ERR_INVALID_NAME
@@ -352,75 +351,29 @@ contains
     end if
   end function nml_config_project_is_set
 
-  !> \brief Determine the filled shape along flexible dimensions
-  integer function nml_config_project_filled_shape(this, name, filled, errmsg) result(status)
-    class(nml_config_project_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(out) :: filled(:)
-    character(len=*), intent(out), optional :: errmsg
-    integer :: idx
-    integer :: dim
-    integer :: &
-      lb_1, &
-      ub_1
-
-    status = NML_OK
-    if (present(errmsg)) errmsg = ""
-    select case (to_lower(trim(name)))
-    case ("domain_dirs")
-      if (size(filled) /= 1) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "shape rank mismatch for 'domain_dirs'"
-        return
-      end if
-      do dim = 1, 1
-        filled(dim) = size(this%domain_dirs, dim)
-      end do
-      filled(1) = 0
-      do idx = ubound(this%domain_dirs, 1), &
-        lbound(this%domain_dirs, 1), -1
-        if (.not. (this%domain_dirs(idx) == repeat(achar(0), len(this%domain_dirs)))) then
-          filled(1) = idx - lbound(this%domain_dirs, 1) + 1
-          exit
-        end if
-      end do
-      if (minval(filled) > 0) then
-        lb_1 = lbound(this%domain_dirs, 1)
-        ub_1 = lb_1 + filled(1) - 1
-        if (any(this%domain_dirs(lb_1:ub_1) == repeat(achar(0), len(this%domain_dirs)))) then
-          status = NML_ERR_PARTLY_SET
-          if (present(errmsg)) errmsg = "array partly set: domain_dirs"
-          return
-        end if
-      end if
-    case default
-      status = NML_ERR_INVALID_NAME
-      if (present(errmsg)) errmsg = "field is not a flexible array: " // trim(name)
-    end select
-  end function nml_config_project_filled_shape
-
   !> \brief Validate required values and constraints
   integer function nml_config_project_is_valid(this, errmsg) result(status)
-    class(nml_config_project_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_config_project_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
-    integer, allocatable :: filled(:)
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
-
-    ! flexible arrays
-    if (allocated(filled)) deallocate(filled)
-    allocate(filled(1))
-    istat = this%filled_shape("domain_dirs", filled, errmsg=errmsg)
-    if (istat == NML_ERR_PARTLY_SET) then
-      status = istat
-      if (present(errmsg)) then
-        if (len_trim(errmsg) == 0) errmsg = "array partly set: domain_dirs"
-      end if
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
       return
     end if
-    if (istat /= NML_OK) then
+
+    ! bounds constraints
+    istat = this%is_set("max_layers", errmsg=errmsg)
+    if (istat == NML_OK) then
+      if (.not. max_layers__in_bounds(this%max_layers)) then
+        status = NML_ERR_BOUNDS
+        if (present(errmsg)) errmsg = "bounds constraint failed: max_layers"
+        return
+      end if
+    else if (istat /= NML_ERR_NOT_SET) then
       status = istat
       return
     end if

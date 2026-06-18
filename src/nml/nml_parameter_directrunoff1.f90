@@ -54,8 +54,8 @@ contains
 
   !> \brief Initialize defaults and sentinels for directrunoff1
   integer function nml_directrunoff1_init(this, errmsg) result(status)
-    class(nml_directrunoff1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_directrunoff1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -65,11 +65,12 @@ contains
     this%imperviousstoragecapacity = ieee_value(this%imperviousstoragecapacity, ieee_quiet_nan) ! sentinel for required real array
   end function nml_directrunoff1_init
 
+
   !> \brief Read directrunoff1 namelist from file
   integer function nml_directrunoff1_from_file(this, file, errmsg) result(status)
-    class(nml_directrunoff1_t), intent(inout) :: this
+    class(nml_directrunoff1_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     real(dp), dimension(5) :: imperviousstoragecapacity
     ! locals
@@ -121,15 +122,25 @@ contains
     imperviousstoragecapacity, &
     errmsg) result(status)
 
-    class(nml_directrunoff1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    real(dp), dimension(5), intent(in) :: imperviousstoragecapacity
+    class(nml_directrunoff1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    real(dp), dimension(:), intent(in) :: imperviousstoragecapacity !< Capacity of impervious storage [mm]
+    integer :: &
+      lb__1, &
+      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
 
     ! required parameters
-    this%imperviousstoragecapacity = imperviousstoragecapacity
+    if (size(imperviousstoragecapacity, 1) > size(this%imperviousstoragecapacity, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'imperviousstoragecapacity'"
+      return
+    end if
+    lb__1 = lbound(this%imperviousstoragecapacity, 1)
+    ub__1 = lb__1 + size(imperviousstoragecapacity, 1) - 1
+    this%imperviousstoragecapacity(lb__1:ub__1) = imperviousstoragecapacity
 
     ! mark as configured
     this%is_configured = .true.
@@ -138,13 +149,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_directrunoff1_is_set(this, name, idx, errmsg) result(status)
-    class(nml_directrunoff1_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_directrunoff1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("imperviousstoragecapacity")
       if (present(idx)) then
@@ -166,20 +182,25 @@ contains
 
   !> \brief Validate required values and constraints
   integer function nml_directrunoff1_is_valid(this, errmsg) result(status)
-    class(nml_directrunoff1_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_directrunoff1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
     ! required arrays
-    if (all(ieee_is_nan(this%imperviousstoragecapacity))) then
+    if (all(ieee_is_nan(this%imperviousstoragecapacity(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: imperviousStorageCapacity"
       return
     end if
-    if (any(ieee_is_nan(this%imperviousstoragecapacity))) then
+    if (any(ieee_is_nan(this%imperviousstoragecapacity(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: imperviousStorageCapacity"
       return

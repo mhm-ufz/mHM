@@ -60,8 +60,8 @@ contains
 
   !> \brief Initialize defaults and sentinels for neutrons1
   integer function nml_neutrons1_init(this, errmsg) result(status)
-    class(nml_neutrons1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_neutrons1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -73,11 +73,12 @@ contains
     this%desilets_lw1 = ieee_value(this%desilets_lw1, ieee_quiet_nan) ! sentinel for required real array
   end function nml_neutrons1_init
 
+
   !> \brief Read neutrons1 namelist from file
   integer function nml_neutrons1_from_file(this, file, errmsg) result(status)
-    class(nml_neutrons1_t), intent(inout) :: this
+    class(nml_neutrons1_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     real(dp), dimension(5) :: desilets_n0
     real(dp), dimension(5) :: desilets_lw0
@@ -139,19 +140,43 @@ contains
     desilets_lw1, &
     errmsg) result(status)
 
-    class(nml_neutrons1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    real(dp), dimension(5), intent(in) :: desilets_n0
-    real(dp), dimension(5), intent(in) :: desilets_lw0
-    real(dp), dimension(5), intent(in) :: desilets_lw1
+    class(nml_neutrons1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    real(dp), dimension(:), intent(in) :: desilets_n0 !< Desilets N0 dry count
+    real(dp), dimension(:), intent(in) :: desilets_lw0 !< Desilets LW0 parameter
+    real(dp), dimension(:), intent(in) :: desilets_lw1 !< Desilets LW1 parameter
+    integer :: &
+      lb__1, &
+      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
 
     ! required parameters
-    this%desilets_n0 = desilets_n0
-    this%desilets_lw0 = desilets_lw0
-    this%desilets_lw1 = desilets_lw1
+    if (size(desilets_n0, 1) > size(this%desilets_n0, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'desilets_n0'"
+      return
+    end if
+    lb__1 = lbound(this%desilets_n0, 1)
+    ub__1 = lb__1 + size(desilets_n0, 1) - 1
+    this%desilets_n0(lb__1:ub__1) = desilets_n0
+    if (size(desilets_lw0, 1) > size(this%desilets_lw0, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'desilets_lw0'"
+      return
+    end if
+    lb__1 = lbound(this%desilets_lw0, 1)
+    ub__1 = lb__1 + size(desilets_lw0, 1) - 1
+    this%desilets_lw0(lb__1:ub__1) = desilets_lw0
+    if (size(desilets_lw1, 1) > size(this%desilets_lw1, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'desilets_lw1'"
+      return
+    end if
+    lb__1 = lbound(this%desilets_lw1, 1)
+    ub__1 = lb__1 + size(desilets_lw1, 1) - 1
+    this%desilets_lw1(lb__1:ub__1) = desilets_lw1
 
     ! mark as configured
     this%is_configured = .true.
@@ -160,13 +185,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_neutrons1_is_set(this, name, idx, errmsg) result(status)
-    class(nml_neutrons1_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_neutrons1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("desilets_n0")
       if (present(idx)) then
@@ -206,40 +236,45 @@ contains
 
   !> \brief Validate required values and constraints
   integer function nml_neutrons1_is_valid(this, errmsg) result(status)
-    class(nml_neutrons1_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_neutrons1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
     ! required arrays
-    if (all(ieee_is_nan(this%desilets_n0))) then
+    if (all(ieee_is_nan(this%desilets_n0(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: Desilets_N0"
       return
     end if
-    if (any(ieee_is_nan(this%desilets_n0))) then
+    if (any(ieee_is_nan(this%desilets_n0(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: Desilets_N0"
       return
     end if
-    if (all(ieee_is_nan(this%desilets_lw0))) then
+    if (all(ieee_is_nan(this%desilets_lw0(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: Desilets_LW0"
       return
     end if
-    if (any(ieee_is_nan(this%desilets_lw0))) then
+    if (any(ieee_is_nan(this%desilets_lw0(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: Desilets_LW0"
       return
     end if
-    if (all(ieee_is_nan(this%desilets_lw1))) then
+    if (all(ieee_is_nan(this%desilets_lw1(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: Desilets_LW1"
       return
     end if
-    if (any(ieee_is_nan(this%desilets_lw1))) then
+    if (any(ieee_is_nan(this%desilets_lw1(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: Desilets_LW1"
       return

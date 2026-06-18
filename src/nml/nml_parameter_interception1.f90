@@ -54,8 +54,8 @@ contains
 
   !> \brief Initialize defaults and sentinels for interception1
   integer function nml_interception1_init(this, errmsg) result(status)
-    class(nml_interception1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_interception1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -65,11 +65,12 @@ contains
     this%canopyinterceptionfactor = ieee_value(this%canopyinterceptionfactor, ieee_quiet_nan) ! sentinel for required real array
   end function nml_interception1_init
 
+
   !> \brief Read interception1 namelist from file
   integer function nml_interception1_from_file(this, file, errmsg) result(status)
-    class(nml_interception1_t), intent(inout) :: this
+    class(nml_interception1_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     real(dp), dimension(5) :: canopyinterceptionfactor
     ! locals
@@ -121,15 +122,25 @@ contains
     canopyinterceptionfactor, &
     errmsg) result(status)
 
-    class(nml_interception1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    real(dp), dimension(5), intent(in) :: canopyinterceptionfactor
+    class(nml_interception1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    real(dp), dimension(:), intent(in) :: canopyinterceptionfactor !< Multiplier to relate LAI to interception storage
+    integer :: &
+      lb__1, &
+      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
 
     ! required parameters
-    this%canopyinterceptionfactor = canopyinterceptionfactor
+    if (size(canopyinterceptionfactor, 1) > size(this%canopyinterceptionfactor, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'canopyinterceptionfactor'"
+      return
+    end if
+    lb__1 = lbound(this%canopyinterceptionfactor, 1)
+    ub__1 = lb__1 + size(canopyinterceptionfactor, 1) - 1
+    this%canopyinterceptionfactor(lb__1:ub__1) = canopyinterceptionfactor
 
     ! mark as configured
     this%is_configured = .true.
@@ -138,13 +149,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_interception1_is_set(this, name, idx, errmsg) result(status)
-    class(nml_interception1_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_interception1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("canopyinterceptionfactor")
       if (present(idx)) then
@@ -166,20 +182,25 @@ contains
 
   !> \brief Validate required values and constraints
   integer function nml_interception1_is_valid(this, errmsg) result(status)
-    class(nml_interception1_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_interception1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
     ! required arrays
-    if (all(ieee_is_nan(this%canopyinterceptionfactor))) then
+    if (all(ieee_is_nan(this%canopyinterceptionfactor(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: canopyInterceptionFactor"
       return
     end if
-    if (any(ieee_is_nan(this%canopyinterceptionfactor))) then
+    if (any(ieee_is_nan(this%canopyinterceptionfactor(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: canopyInterceptionFactor"
       return

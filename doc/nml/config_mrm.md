@@ -33,8 +33,7 @@ mRM resolution (L3) `resolution`
 Resolution of the mRM routing grid, level 3.
 
 Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(n_domains)`
 - Required: no
 - Minimum: `> 0.0`
 - Examples: `[0.1]`
@@ -49,7 +48,7 @@ Root based ordering results in more equal distributed level sizes for paralleliz
 Leaf based ordering has huge levels of nodes at the headwaters, which can lead to load balancing issues.
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 - Examples: `[.true.]`
@@ -70,7 +69,7 @@ Special values are:
 By default: threads * 8 (indicated by -1)
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Default: `-1`
 - Minimum: `>= -1`
@@ -89,7 +88,7 @@ Valid values range from 1 minute (60s) to 1 day (86400s).
 Value needs to be a divisor of 3600 or a multiple of 3600 and a divisor of 86400.
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Default: `86400`
 - Allowed values: `60`, `120`, `180`, `240`, `300`, `360`, `600`, `720`, `900`, `1200`, `1800`, `3600`, `7200`, `10800`, `14400`, `21600`, `28800`, `43200`, `86400`
@@ -100,8 +99,7 @@ Summary:
 Path for SCC gauges NetCDF file. `scc_gauges_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Examples: `["scc_gauges.nc"]`
 
@@ -110,8 +108,7 @@ Summary:
 Path for output file. `output_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Examples: `["mrm_output.nc"]`
 
@@ -120,8 +117,7 @@ Summary:
 Path for node based output file. `output_node_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Examples: `["mrm_node_output.nc"]`
 
@@ -130,7 +126,7 @@ Summary:
 Read restart `read_restart`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -139,7 +135,7 @@ Summary:
 Read restart fluxes `read_restart_fluxes`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.true.`
 
@@ -148,8 +144,7 @@ Summary:
 Restart input path `restart_input_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Examples: `["mrm_restart_in.nc"]`
 
@@ -158,7 +153,7 @@ Summary:
 Write restart `write_restart`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -167,8 +162,7 @@ Summary:
 Restart output path `restart_output_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Examples: `["mrm_restart_out.nc"]`
 
@@ -179,8 +173,7 @@ Diagnostics output path `diagnostics_path`
 Path for diagnostics output file containing information about the river upscaling and SCC.
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Examples: `["mrm_diagnostics.nc"]`
 

@@ -71,8 +71,7 @@ Coupled flags indicate whether inputs are provided by an external model.
 Meteo grid size in x-direction `meteo_grid_nx`
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Minimum: `>= 1`
 
@@ -81,8 +80,7 @@ Summary:
 Meteo grid size in y-direction `meteo_grid_ny`
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Minimum: `>= 1`
 
@@ -91,8 +89,7 @@ Summary:
 Meteo grid x origin `meteo_grid_xll`
 
 Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(n_domains)`
 - Required: no
 
 ### meteo_grid_yll
@@ -100,8 +97,7 @@ Summary:
 Meteo grid y origin `meteo_grid_yll`
 
 Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(n_domains)`
 - Required: no
 
 ### meteo_grid_cellsize
@@ -109,8 +105,7 @@ Summary:
 Meteo grid cell size `meteo_grid_cellsize`
 
 Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(n_domains)`
 - Required: no
 - Minimum: `> 0.0`
 
@@ -123,7 +118,7 @@ Direction of the y-axis for the meteorological grid.
 - 1 : bottom-up y-axis
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Default: `0`
 - Allowed values: `0`, `1`
@@ -137,7 +132,7 @@ Coordinate system for the meteorological grid.
 - 1 : latlon
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Default: `0`
 - Allowed values: `0`, `1`
@@ -147,8 +142,7 @@ Summary:
 Hydro grid size in x-direction `hydro_grid_nx`
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Minimum: `>= 1`
 
@@ -157,8 +151,7 @@ Summary:
 Hydro grid size in y-direction `hydro_grid_ny`
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Minimum: `>= 1`
 
@@ -167,8 +160,7 @@ Summary:
 Hydro grid x origin `hydro_grid_xll`
 
 Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(n_domains)`
 - Required: no
 
 ### hydro_grid_yll
@@ -176,8 +168,7 @@ Summary:
 Hydro grid y origin `hydro_grid_yll`
 
 Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(n_domains)`
 - Required: no
 
 ### hydro_grid_cellsize
@@ -185,8 +176,7 @@ Summary:
 Hydro grid cell size `hydro_grid_cellsize`
 
 Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(n_domains)`
 - Required: no
 - Minimum: `> 0.0`
 
@@ -199,7 +189,7 @@ Direction of the y-axis for the hydrological grid.
 - 1 : bottom-up y-axis
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Default: `0`
 - Allowed values: `0`, `1`
@@ -213,7 +203,7 @@ Coordinate system for the hydrological grid.
 - 1 : latlon
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Default: `0`
 - Allowed values: `0`, `1`
@@ -223,8 +213,7 @@ Summary:
 Morph grid size in x-direction `morph_grid_nx`
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Minimum: `>= 1`
 
@@ -233,8 +222,7 @@ Summary:
 Morph grid size in y-direction `morph_grid_ny`
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Minimum: `>= 1`
 
@@ -243,8 +231,7 @@ Summary:
 Morph grid x origin `morph_grid_xll`
 
 Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(n_domains)`
 - Required: no
 
 ### morph_grid_yll
@@ -252,8 +239,7 @@ Summary:
 Morph grid y origin `morph_grid_yll`
 
 Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(n_domains)`
 - Required: no
 
 ### morph_grid_cellsize
@@ -261,8 +247,7 @@ Summary:
 Morph grid cell size `morph_grid_cellsize`
 
 Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(n_domains)`
 - Required: no
 - Minimum: `> 0.0`
 
@@ -275,7 +260,7 @@ Direction of the y-axis for the morphology grid.
 - 1 : bottom-up y-axis
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Default: `0`
 - Allowed values: `0`, `1`
@@ -289,7 +274,7 @@ Coordinate system for the morphology grid.
 - 1 : latlon
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Default: `0`
 - Allowed values: `0`, `1`
@@ -299,7 +284,7 @@ Summary:
 Precipitation coupled `pre_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -308,7 +293,7 @@ Summary:
 Potential evapotranspiration coupled `pet_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -317,7 +302,7 @@ Summary:
 Air temperature coupled `temp_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -326,7 +311,7 @@ Summary:
 Air temperature annual mean coupled `tann_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -335,7 +320,7 @@ Summary:
 Air temperature daily minimum coupled `tmin_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -344,7 +329,7 @@ Summary:
 Air temperature daily maximum coupled `tmax_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -353,7 +338,7 @@ Summary:
 Surface shortwave radiation coupled `ssrd_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -362,7 +347,7 @@ Summary:
 Surface thermal radiation coupled `strd_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -371,7 +356,7 @@ Summary:
 Net radiation coupled `netrad_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -380,7 +365,7 @@ Summary:
 Vapor pressure coupled `eabs_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -389,7 +374,7 @@ Summary:
 Wind speed coupled `wind_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -398,7 +383,7 @@ Summary:
 Runoff coupled `runoff_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -407,7 +392,7 @@ Summary:
 Sealed runoff coupled `runoff_sealed_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -416,7 +401,7 @@ Summary:
 Fast interflow coupled `interflow_fast_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -425,7 +410,7 @@ Summary:
 Slow interflow coupled `interflow_slow_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -434,7 +419,7 @@ Summary:
 Baseflow coupled `baseflow_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -443,7 +428,7 @@ Summary:
 DEM coupled `dem_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -452,7 +437,7 @@ Summary:
 Slope coupled `slope_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -461,7 +446,7 @@ Summary:
 Aspect coupled `aspect_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -470,7 +455,7 @@ Summary:
 Geology class coupled `geo_class_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -479,7 +464,7 @@ Summary:
 Soil class coupled `soil_class_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -488,7 +473,7 @@ Summary:
 LAI class coupled `lai_class_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -497,7 +482,7 @@ Summary:
 River width coupled `river_width_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -506,7 +491,7 @@ Summary:
 Meteorological mask coupled `meteo_mask_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -515,7 +500,7 @@ Summary:
 Hydrological mask coupled `hydro_mask_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -524,7 +509,7 @@ Summary:
 Morphology mask coupled `morph_mask_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -533,7 +518,7 @@ Summary:
 Hydrological latlon coupled `hydro_latlon_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -542,7 +527,7 @@ Summary:
 Morphological latlon coupled `morph_latlon_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -551,7 +536,7 @@ Summary:
 Routing latlon coupled `route_latlon_coupled`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 

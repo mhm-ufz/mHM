@@ -13,8 +13,7 @@ properties:
       type: integer
       x-fortran-kind: i4
       minimum: 1
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Meteo grid size in x-direction
   meteo_grid_ny:
     type: array
@@ -22,24 +21,21 @@ properties:
       type: integer
       x-fortran-kind: i4
       minimum: 1
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Meteo grid size in y-direction
   meteo_grid_xll:
     type: array
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Meteo grid x origin
   meteo_grid_yll:
     type: array
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Meteo grid y origin
   meteo_grid_cellsize:
     type: array
@@ -47,8 +43,7 @@ properties:
       type: number
       x-fortran-kind: dp
       exclusiveMinimum: 0.0
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Meteo grid cell size
   meteo_grid_ydir:
     type: array
@@ -57,7 +52,7 @@ properties:
       x-fortran-kind: i4
       enum: [0, 1]
       default: 0
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Meteo grid y direction
     description: |-
       Direction of the y-axis for the meteorological grid.
@@ -70,7 +65,7 @@ properties:
       x-fortran-kind: i4
       enum: [0, 1]
       default: 0
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Meteo grid coordinate system
     description: |-
       Coordinate system for the meteorological grid.
@@ -82,8 +77,7 @@ properties:
       type: integer
       x-fortran-kind: i4
       minimum: 1
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Hydro grid size in x-direction
   hydro_grid_ny:
     type: array
@@ -91,24 +85,21 @@ properties:
       type: integer
       x-fortran-kind: i4
       minimum: 1
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Hydro grid size in y-direction
   hydro_grid_xll:
     type: array
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Hydro grid x origin
   hydro_grid_yll:
     type: array
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Hydro grid y origin
   hydro_grid_cellsize:
     type: array
@@ -116,8 +107,7 @@ properties:
       type: number
       x-fortran-kind: dp
       exclusiveMinimum: 0.0
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Hydro grid cell size
   hydro_grid_ydir:
     type: array
@@ -126,7 +116,7 @@ properties:
       x-fortran-kind: i4
       enum: [0, 1]
       default: 0
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Hydro grid y direction
     description: |-
       Direction of the y-axis for the hydrological grid.
@@ -139,7 +129,7 @@ properties:
       x-fortran-kind: i4
       enum: [0, 1]
       default: 0
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Hydro grid coordinate system
     description: |-
       Coordinate system for the hydrological grid.
@@ -151,8 +141,7 @@ properties:
       type: integer
       x-fortran-kind: i4
       minimum: 1
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Morph grid size in x-direction
   morph_grid_ny:
     type: array
@@ -160,24 +149,21 @@ properties:
       type: integer
       x-fortran-kind: i4
       minimum: 1
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Morph grid size in y-direction
   morph_grid_xll:
     type: array
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Morph grid x origin
   morph_grid_yll:
     type: array
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Morph grid y origin
   morph_grid_cellsize:
     type: array
@@ -185,8 +171,7 @@ properties:
       type: number
       x-fortran-kind: dp
       exclusiveMinimum: 0.0
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Morph grid cell size
   morph_grid_ydir:
     type: array
@@ -195,7 +180,7 @@ properties:
       x-fortran-kind: i4
       enum: [0, 1]
       default: 0
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Morph grid y direction
     description: |-
       Direction of the y-axis for the morphology grid.
@@ -208,7 +193,7 @@ properties:
       x-fortran-kind: i4
       enum: [0, 1]
       default: 0
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Morph grid coordinate system
     description: |-
       Coordinate system for the morphology grid.
@@ -219,201 +204,201 @@ properties:
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Precipitation coupled
   pet_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Potential evapotranspiration coupled
   temp_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Air temperature coupled
   tann_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Air temperature annual mean coupled
   tmin_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Air temperature daily minimum coupled
   tmax_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Air temperature daily maximum coupled
   ssrd_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Surface shortwave radiation coupled
   strd_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Surface thermal radiation coupled
   netrad_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Net radiation coupled
   eabs_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Vapor pressure coupled
   wind_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Wind speed coupled
   runoff_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Runoff coupled
   runoff_sealed_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Sealed runoff coupled
   interflow_fast_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Fast interflow coupled
   interflow_slow_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Slow interflow coupled
   baseflow_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Baseflow coupled
   dem_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: DEM coupled
   slope_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Slope coupled
   aspect_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Aspect coupled
   geo_class_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Geology class coupled
   soil_class_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Soil class coupled
   lai_class_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: LAI class coupled
   river_width_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: River width coupled
   meteo_mask_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Meteorological mask coupled
   hydro_mask_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Hydrological mask coupled
   morph_mask_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Morphology mask coupled
   hydro_latlon_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Hydrological latlon coupled
   morph_latlon_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Morphological latlon coupled
   route_latlon_coupled:
     type: array
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Routing latlon coupled

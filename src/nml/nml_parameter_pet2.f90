@@ -55,8 +55,8 @@ contains
 
   !> \brief Initialize defaults and sentinels for pet2
   integer function nml_pet2_init(this, errmsg) result(status)
-    class(nml_pet2_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_pet2_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -67,11 +67,12 @@ contains
     this%priestleytaylorlaicorr = ieee_value(this%priestleytaylorlaicorr, ieee_quiet_nan) ! sentinel for required real array
   end function nml_pet2_init
 
+
   !> \brief Read pet2 namelist from file
   integer function nml_pet2_from_file(this, file, errmsg) result(status)
-    class(nml_pet2_t), intent(inout) :: this
+    class(nml_pet2_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     real(dp), dimension(5) :: priestleytaylorcoeff
     real(dp), dimension(5) :: priestleytaylorlaicorr
@@ -128,17 +129,34 @@ contains
     priestleytaylorlaicorr, &
     errmsg) result(status)
 
-    class(nml_pet2_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    real(dp), dimension(5), intent(in) :: priestleytaylorcoeff
-    real(dp), dimension(5), intent(in) :: priestleytaylorlaicorr
+    class(nml_pet2_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    real(dp), dimension(:), intent(in) :: priestleytaylorcoeff !< Priestley-Taylor coefficient
+    real(dp), dimension(:), intent(in) :: priestleytaylorlaicorr !< Priestley-Taylor LAI correction factor
+    integer :: &
+      lb__1, &
+      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
 
     ! required parameters
-    this%priestleytaylorcoeff = priestleytaylorcoeff
-    this%priestleytaylorlaicorr = priestleytaylorlaicorr
+    if (size(priestleytaylorcoeff, 1) > size(this%priestleytaylorcoeff, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'priestleytaylorcoeff'"
+      return
+    end if
+    lb__1 = lbound(this%priestleytaylorcoeff, 1)
+    ub__1 = lb__1 + size(priestleytaylorcoeff, 1) - 1
+    this%priestleytaylorcoeff(lb__1:ub__1) = priestleytaylorcoeff
+    if (size(priestleytaylorlaicorr, 1) > size(this%priestleytaylorlaicorr, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'priestleytaylorlaicorr'"
+      return
+    end if
+    lb__1 = lbound(this%priestleytaylorlaicorr, 1)
+    ub__1 = lb__1 + size(priestleytaylorlaicorr, 1) - 1
+    this%priestleytaylorlaicorr(lb__1:ub__1) = priestleytaylorlaicorr
 
     ! mark as configured
     this%is_configured = .true.
@@ -147,13 +165,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_pet2_is_set(this, name, idx, errmsg) result(status)
-    class(nml_pet2_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_pet2_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("priestleytaylorcoeff")
       if (present(idx)) then
@@ -184,30 +207,35 @@ contains
 
   !> \brief Validate required values and constraints
   integer function nml_pet2_is_valid(this, errmsg) result(status)
-    class(nml_pet2_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_pet2_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
     ! required arrays
-    if (all(ieee_is_nan(this%priestleytaylorcoeff))) then
+    if (all(ieee_is_nan(this%priestleytaylorcoeff(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: PriestleyTaylorCoeff"
       return
     end if
-    if (any(ieee_is_nan(this%priestleytaylorcoeff))) then
+    if (any(ieee_is_nan(this%priestleytaylorcoeff(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: PriestleyTaylorCoeff"
       return
     end if
-    if (all(ieee_is_nan(this%priestleytaylorlaicorr))) then
+    if (all(ieee_is_nan(this%priestleytaylorlaicorr(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: PriestleyTaylorLAIcorr"
       return
     end if
-    if (any(ieee_is_nan(this%priestleytaylorlaicorr))) then
+    if (any(ieee_is_nan(this%priestleytaylorlaicorr(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: PriestleyTaylorLAIcorr"
       return

@@ -57,8 +57,8 @@ contains
 
   !> \brief Initialize defaults and sentinels for rivertemp1
   integer function nml_rivertemp1_init(this, errmsg) result(status)
-    class(nml_rivertemp1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_rivertemp1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -71,11 +71,12 @@ contains
     this%turb_heat_ex_coeff = ieee_value(this%turb_heat_ex_coeff, ieee_quiet_nan) ! sentinel for required real array
   end function nml_rivertemp1_init
 
+
   !> \brief Read rivertemp1 namelist from file
   integer function nml_rivertemp1_from_file(this, file, errmsg) result(status)
-    class(nml_rivertemp1_t), intent(inout) :: this
+    class(nml_rivertemp1_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     real(dp), dimension(5) :: albedo_water
     real(dp), dimension(5) :: pt_a_water
@@ -142,21 +143,52 @@ contains
     turb_heat_ex_coeff, &
     errmsg) result(status)
 
-    class(nml_rivertemp1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    real(dp), dimension(5), intent(in) :: albedo_water
-    real(dp), dimension(5), intent(in) :: pt_a_water
-    real(dp), dimension(5), intent(in) :: emissivity_water
-    real(dp), dimension(5), intent(in) :: turb_heat_ex_coeff
+    class(nml_rivertemp1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    real(dp), dimension(:), intent(in) :: albedo_water !< Albedo of open water [-]
+    real(dp), dimension(:), intent(in) :: pt_a_water !< Priestley-Taylor coefficient for open water [-]
+    real(dp), dimension(:), intent(in) :: emissivity_water !< Emissivity of open water [-]
+    real(dp), dimension(:), intent(in) :: turb_heat_ex_coeff !< Turbulent heat exchange coefficient for open water [W m-2 K-1]
+    integer :: &
+      lb__1, &
+      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
 
     ! required parameters
-    this%albedo_water = albedo_water
-    this%pt_a_water = pt_a_water
-    this%emissivity_water = emissivity_water
-    this%turb_heat_ex_coeff = turb_heat_ex_coeff
+    if (size(albedo_water, 1) > size(this%albedo_water, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'albedo_water'"
+      return
+    end if
+    lb__1 = lbound(this%albedo_water, 1)
+    ub__1 = lb__1 + size(albedo_water, 1) - 1
+    this%albedo_water(lb__1:ub__1) = albedo_water
+    if (size(pt_a_water, 1) > size(this%pt_a_water, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pt_a_water'"
+      return
+    end if
+    lb__1 = lbound(this%pt_a_water, 1)
+    ub__1 = lb__1 + size(pt_a_water, 1) - 1
+    this%pt_a_water(lb__1:ub__1) = pt_a_water
+    if (size(emissivity_water, 1) > size(this%emissivity_water, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'emissivity_water'"
+      return
+    end if
+    lb__1 = lbound(this%emissivity_water, 1)
+    ub__1 = lb__1 + size(emissivity_water, 1) - 1
+    this%emissivity_water(lb__1:ub__1) = emissivity_water
+    if (size(turb_heat_ex_coeff, 1) > size(this%turb_heat_ex_coeff, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'turb_heat_ex_coeff'"
+      return
+    end if
+    lb__1 = lbound(this%turb_heat_ex_coeff, 1)
+    ub__1 = lb__1 + size(turb_heat_ex_coeff, 1) - 1
+    this%turb_heat_ex_coeff(lb__1:ub__1) = turb_heat_ex_coeff
 
     ! mark as configured
     this%is_configured = .true.
@@ -165,13 +197,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_rivertemp1_is_set(this, name, idx, errmsg) result(status)
-    class(nml_rivertemp1_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_rivertemp1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("albedo_water")
       if (present(idx)) then
@@ -220,50 +257,55 @@ contains
 
   !> \brief Validate required values and constraints
   integer function nml_rivertemp1_is_valid(this, errmsg) result(status)
-    class(nml_rivertemp1_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_rivertemp1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
     ! required arrays
-    if (all(ieee_is_nan(this%albedo_water))) then
+    if (all(ieee_is_nan(this%albedo_water(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: albedo_water"
       return
     end if
-    if (any(ieee_is_nan(this%albedo_water))) then
+    if (any(ieee_is_nan(this%albedo_water(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: albedo_water"
       return
     end if
-    if (all(ieee_is_nan(this%pt_a_water))) then
+    if (all(ieee_is_nan(this%pt_a_water(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: pt_a_water"
       return
     end if
-    if (any(ieee_is_nan(this%pt_a_water))) then
+    if (any(ieee_is_nan(this%pt_a_water(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: pt_a_water"
       return
     end if
-    if (all(ieee_is_nan(this%emissivity_water))) then
+    if (all(ieee_is_nan(this%emissivity_water(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: emissivity_water"
       return
     end if
-    if (any(ieee_is_nan(this%emissivity_water))) then
+    if (any(ieee_is_nan(this%emissivity_water(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: emissivity_water"
       return
     end if
-    if (all(ieee_is_nan(this%turb_heat_ex_coeff))) then
+    if (all(ieee_is_nan(this%turb_heat_ex_coeff(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: turb_heat_ex_coeff"
       return
     end if
-    if (any(ieee_is_nan(this%turb_heat_ex_coeff))) then
+    if (any(ieee_is_nan(this%turb_heat_ex_coeff(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: turb_heat_ex_coeff"
       return
