@@ -14,10 +14,10 @@
 /
 
 &config_input
-  runoff_path(1) = "src/tests/files/runoff.nc"
+  runoff_path(1) = "examples/fixtures/runoff.nc"
   runoff_var(1)  = "Q"
-  fdir_path(1)   = "src/tests/files/input.nc"
-  slope_path(1)  = "src/tests/files/input.nc"
+  fdir_path(1)   = "examples/fixtures/input.nc"
+  slope_path(1)  = "examples/fixtures/input.nc"
   meteo_mask_path(1) = "test_domain/input/meteo/mask.nc"
   pre_path(1)    = "test_domain/input/meteo/pre/pre.nc"
   ssrd_path(1)   = "test_domain/input/meteo/ssrd.nc"

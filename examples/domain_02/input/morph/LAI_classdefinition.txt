@@ -1,0 +1,12 @@
+NoLAIclasses           10
+ID   LAND-USE                  Jan.   Feb.    Mar.    Apr.    May    Jun.    Jul.    Aug.    Sep.    Oct.    Nov.    Dec.
+ 1    Coniferous-forest         11     11      11      11      11     11      11      11      11      11      11      11
+ 2    Deciduous-forest          0.5    0.5     1.5     4.0     7.0    11      12      12      11      8.0     1.5     0.5
+ 3    Mixed-forest              3.0    3.0     4.0     6.0     8.0    11      11.5    11.5    11      9.0     4.0     3.0
+ 4    Sparsely-populated-forest 2.0    2.0     3.0     5.5     6.5    7.5     7.5     7.5     6.5     4.0     2.5     2.0
+ 5    Sealed-Water-bodies       0.01   0.01    0.02    0.04    0.06   0.09    0.09    0.07    0.06    0.04    0.02    0.02
+ 6    Viniculture               1.0    1.0     1.0     1.5     2.0    3.5     4.0     4.0     4.0     1.5     1.0     1.0
+ 7    Intensive-orchards        2.0    2.0     2.0     2.0     3.0    3.5     4.0     4.0     4.0     2.5     2.0     2.0
+ 8    Pasture                   2.0    2.0     3.0     4.0     5.0    5.0     5.0     5.0     5.0     3.0     2.5     2.0
+ 9    Fields                    0.4    0.4     0.3     0.7     3.0    5.2     4.6     3.1     1.3     0.2     0.0     0.0
+10    Wetlands                  2.0    2.0     3.0     4.0     5.0    5.0     5.0     5.0     5.0     3.0     2.5     2.0 

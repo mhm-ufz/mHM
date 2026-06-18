@@ -672,7 +672,7 @@ contains
     status = self%config%input%is_set("morph_mask_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%morph_mask%init( &
-        path=self%config%input%morph_mask_path(id(1)), name=self%config%input%morph_mask_var(id(1)), &
+        path=self%exchange%get_path(self%config%input%morph_mask_path(id(1))), name=self%config%input%morph_mask_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
     end if
 
@@ -680,7 +680,7 @@ contains
     status = self%config%input%is_set("dem_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%dem%init( &
-        path=self%config%input%dem_path(id(1)), name=self%config%input%dem_var(id(1)), &
+        path=self%exchange%get_path(self%config%input%dem_path(id(1))), name=self%config%input%dem_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
       self%exchange%dem%provided = .true. ! mark as provided in exchange
     end if
@@ -689,7 +689,7 @@ contains
     status = self%config%input%is_set("slope_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%slope%init( &
-        path=self%config%input%slope_path(id(1)), name=self%config%input%slope_var(id(1)), &
+        path=self%exchange%get_path(self%config%input%slope_path(id(1))), name=self%config%input%slope_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
       self%exchange%slope%provided = .true. ! mark as provided in exchange
     end if
@@ -698,7 +698,7 @@ contains
     status = self%config%input%is_set("aspect_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%aspect%init( &
-        path=self%config%input%aspect_path(id(1)), name=self%config%input%aspect_var(id(1)), &
+        path=self%exchange%get_path(self%config%input%aspect_path(id(1))), name=self%config%input%aspect_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
       self%exchange%aspect%provided = .true. ! mark as provided in exchange
     end if
@@ -707,7 +707,7 @@ contains
     status = self%config%input%is_set("fdir_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%fdir%init( &
-        path=self%config%input%fdir_path(id(1)), name=self%config%input%fdir_var(id(1)), &
+        path=self%exchange%get_path(self%config%input%fdir_path(id(1))), name=self%config%input%fdir_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
       self%exchange%fdir%provided = .true. ! mark as provided in exchange
     end if
@@ -716,7 +716,7 @@ contains
     status = self%config%input%is_set("facc_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%facc%init( &
-        path=self%config%input%facc_path(id(1)), name=self%config%input%facc_var(id(1)), &
+        path=self%exchange%get_path(self%config%input%facc_path(id(1))), name=self%config%input%facc_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
       self%exchange%facc%provided = .true. ! mark as provided in exchange
     end if
@@ -725,7 +725,7 @@ contains
     status = self%config%input%is_set("geo_class_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%geo_class%init( &
-        path=self%config%input%geo_class_path(id(1)), name=self%config%input%geo_class_var(id(1)), &
+        path=self%exchange%get_path(self%config%input%geo_class_path(id(1))), name=self%config%input%geo_class_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
       self%exchange%geo_unit%provided = .true. ! mark as provided in exchange
     end if
@@ -734,7 +734,7 @@ contains
     status = self%config%input%is_set("soil_class_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%soil_class%init( &
-        path=self%config%input%soil_class_path(id(1)), name=self%config%input%soil_class_var(id(1)), &
+        path=self%exchange%get_path(self%config%input%soil_class_path(id(1))), name=self%config%input%soil_class_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
       self%exchange%soil_id%provided = .true. ! mark as provided in exchange
     end if
@@ -743,7 +743,7 @@ contains
     status = self%config%input%is_set("soil_horizon_class_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%soil_horizon_class%init( &
-        path=self%config%input%soil_horizon_class_path(id(1)), name=self%config%input%soil_class_var(id(1)), &
+        path=self%exchange%get_path(self%config%input%soil_horizon_class_path(id(1))), name=self%config%input%soil_class_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
       self%exchange%soil_id%provided = .true. ! mark as provided in exchange
     end if
@@ -756,7 +756,7 @@ contains
     status = self%config%input%is_set("lai_class_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%lai_class%init( &
-        path=self%config%input%lai_class_path(id(1)), name=self%config%input%lai_class_var(id(1)), &
+        path=self%exchange%get_path(self%config%input%lai_class_path(id(1))), name=self%config%input%lai_class_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
       self%exchange%lai_class%provided = .true. ! mark as provided in exchange
     end if
@@ -765,83 +765,83 @@ contains
     status = self%config%input%is_set("meteo_mask_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%meteo_mask%init( &
-        path=self%config%input%meteo_mask_path(id(1)), name=self%config%input%meteo_mask_var(id(1)), allow_static=.true.)
+        path=self%exchange%get_path(self%config%input%meteo_mask_path(id(1))), name=self%config%input%meteo_mask_var(id(1)), allow_static=.true.)
     end if
 
     ! raw precipitation on level2
     status = self%config%input%is_set("pre_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
-      call self%pre%init(path=self%config%input%pre_path(id(1)), name=self%config%input%pre_var(id(1)))
+      call self%pre%init(path=self%exchange%get_path(self%config%input%pre_path(id(1))), name=self%config%input%pre_var(id(1)))
       self%exchange%raw_pre%provided = .true.
     end if
 
     ! raw PET on level2
     status = self%config%input%is_set("pet_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
-      call self%pet%init(path=self%config%input%pet_path(id(1)), name=self%config%input%pet_var(id(1)))
+      call self%pet%init(path=self%exchange%get_path(self%config%input%pet_path(id(1))), name=self%config%input%pet_var(id(1)))
       self%exchange%raw_pet%provided = .true.
     end if
 
     ! raw temperature on level2
     status = self%config%input%is_set("temp_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
-      call self%temp%init(path=self%config%input%temp_path(id(1)), name=self%config%input%temp_var(id(1)))
+      call self%temp%init(path=self%exchange%get_path(self%config%input%temp_path(id(1))), name=self%config%input%temp_var(id(1)))
       self%exchange%raw_temp%provided = .true.
     end if
 
     ! raw annual mean temperature on level2
     status = self%config%input%is_set("tann_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
-      call self%tann%init(path=self%config%input%tann_path(id(1)), name=self%config%input%tann_var(id(1)), allow_static=.true.)
+      call self%tann%init(path=self%exchange%get_path(self%config%input%tann_path(id(1))), name=self%config%input%tann_var(id(1)), allow_static=.true.)
       self%exchange%raw_tann%provided = .true.
     end if
 
     ! raw minimum temperature on level2
     status = self%config%input%is_set("tmin_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
-      call self%tmin%init(path=self%config%input%tmin_path(id(1)), name=self%config%input%tmin_var(id(1)))
+      call self%tmin%init(path=self%exchange%get_path(self%config%input%tmin_path(id(1))), name=self%config%input%tmin_var(id(1)))
       self%exchange%raw_tmin%provided = .true.
     end if
 
     ! raw maximum temperature on level2
     status = self%config%input%is_set("tmax_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
-      call self%tmax%init(path=self%config%input%tmax_path(id(1)), name=self%config%input%tmax_var(id(1)))
+      call self%tmax%init(path=self%exchange%get_path(self%config%input%tmax_path(id(1))), name=self%config%input%tmax_var(id(1)))
       self%exchange%raw_tmax%provided = .true.
     end if
 
     ! raw short-wave radiation on level2
     status = self%config%input%is_set("ssrd_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
-      call self%ssrd%init(path=self%config%input%ssrd_path(id(1)), name=self%config%input%ssrd_var(id(1)))
+      call self%ssrd%init(path=self%exchange%get_path(self%config%input%ssrd_path(id(1))), name=self%config%input%ssrd_var(id(1)))
       self%exchange%raw_ssrd%provided = .true.
     end if
 
     ! raw long-wave radiation on level2
     status = self%config%input%is_set("strd_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
-      call self%strd%init(path=self%config%input%strd_path(id(1)), name=self%config%input%strd_var(id(1)))
+      call self%strd%init(path=self%exchange%get_path(self%config%input%strd_path(id(1))), name=self%config%input%strd_var(id(1)))
       self%exchange%raw_strd%provided = .true.
     end if
 
     ! raw net radiation on level2
     status = self%config%input%is_set("netrad_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
-      call self%netrad%init(path=self%config%input%netrad_path(id(1)), name=self%config%input%netrad_var(id(1)))
+      call self%netrad%init(path=self%exchange%get_path(self%config%input%netrad_path(id(1))), name=self%config%input%netrad_var(id(1)))
       self%exchange%raw_netrad%provided = .true.
     end if
 
     ! raw vapor pressure on level2
     status = self%config%input%is_set("eabs_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
-      call self%eabs%init(path=self%config%input%eabs_path(id(1)), name=self%config%input%eabs_var(id(1)))
+      call self%eabs%init(path=self%exchange%get_path(self%config%input%eabs_path(id(1))), name=self%config%input%eabs_var(id(1)))
       self%exchange%raw_eabs%provided = .true.
     end if
 
     ! raw wind speed on level2
     status = self%config%input%is_set("wind_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
-      call self%wind%init(path=self%config%input%wind_path(id(1)), name=self%config%input%wind_var(id(1)))
+      call self%wind%init(path=self%exchange%get_path(self%config%input%wind_path(id(1))), name=self%config%input%wind_var(id(1)))
       self%exchange%raw_wind%provided = .true.
     end if
 
@@ -849,14 +849,14 @@ contains
     status = self%config%input%is_set("hydro_mask_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%hydro_mask%init( &
-        path=self%config%input%hydro_mask_path(id(1)), name=self%config%input%hydro_mask_var(id(1)), static=.true.)
+        path=self%exchange%get_path(self%config%input%hydro_mask_path(id(1))), name=self%config%input%hydro_mask_var(id(1)), static=.true.)
     end if
 
     ! runoff (runoff_var by default "runoff")
     status = self%config%input%is_set("runoff_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%runoff%init( &
-        path=self%config%input%runoff_path(id(1)), name=self%config%input%runoff_var(id(1)))
+        path=self%exchange%get_path(self%config%input%runoff_path(id(1))), name=self%config%input%runoff_var(id(1)))
       self%exchange%runoff_total%provided = .true. ! mark as provided in exchange
     end if
   end subroutine input_configure

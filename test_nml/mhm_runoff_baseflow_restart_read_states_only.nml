@@ -20,7 +20,7 @@
 /
 
 &config_input
-  slope_path(1)      = "src/tests/files/input.nc"
+  slope_path(1)      = "examples/fixtures/input.nc"
   aspect_path(1)     = "test_domain/input/morph/aspect.asc"
   geo_class_path(1)  = "test_domain/input/morph/geology_class.asc"
   soil_class_path(1) = "test_domain/input/morph/soil_class.asc"
@@ -44,7 +44,7 @@
   tillage_depth(1)       = 200
   soil_depth(1,1)        = 200
   fracSealed_cityArea(1) = 0.6
-  land_cover_path(1)     = "src/tests/files/lc_static.nc"
+  land_cover_path(1)     = "examples/fixtures/lc_static.nc"
   land_cover_var(1)      = "land_cover"
   lai_time_step(1)       = 0
   soil_lut_path(1)       = "test_domain/input/morph/soil_classdefinition.txt"

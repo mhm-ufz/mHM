@@ -31,7 +31,7 @@ Summary:
 
 ```fortran
 &geoparameter
-  GeoParam(:, 1) = 1.0, 1000.0, 100.0, 1.0, 1.0
+  GeoParam(:,1) = 1.0, 1000.0, 100.0, 1.0, 1.0
 /
 ```
 

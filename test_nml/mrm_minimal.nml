@@ -13,10 +13,10 @@
 /
 
 &config_input
-  runoff_path(1) = "src/tests/files/runoff.nc"
+  runoff_path(1) = "examples/fixtures/runoff.nc"
   runoff_var(1)  = "Q"
-  fdir_path(1)   = "src/tests/files/input.nc"
-  slope_path(1)   = "src/tests/files/input.nc"
+  fdir_path(1)   = "examples/fixtures/input.nc"
+  slope_path(1)   = "examples/fixtures/input.nc"
 /
 
 &config_mrm
@@ -24,6 +24,6 @@
   max_route_step(1) = 3600 ! [s] truncate routing steps to 1 hour
   output_path(1) = "mrm_output.nc"
   ! output_node_path(1) = "mrm_output_node.nc"
-  ! scc_gauges_path(1) = "src/tests/files/scc_gauges.nc"
+  ! scc_gauges_path(1) = "examples/fixtures/scc_gauges.nc"
   diagnostics_path(1) = "mrm_diagnostics.nc"
 /

@@ -1,0 +1,127 @@
+&config_project
+  project_details         = "mHM example domains"
+  setup_description       = "Two-domain v6alpha example in a single namelist"
+  simulation_type         = "historical simulation"
+  Conventions             = "CF-1.8"
+  contact                 = "mHM developers (email:mhm-developers@ufz.de)"
+  mHM_details             = "Helmholtz Centre for Environmental Research - UFZ"
+  history                 = "v6alpha additive example layout"
+  n_domains               = 2
+  read_domains_from_dirs  = .false.
+/
+
+&config_processes
+  interception        = 1
+  snow                = 1
+  soil_moisture       = 1
+  direct_runoff       = 1
+  pet                 = -1
+  interflow           = 1
+  percolation         = 1
+  baseflow            = 1
+  neutrons            = 0
+  routing             = 3
+  temperature_routing = 0
+/
+
+&config_time
+  ! domain 1
+  sim_start(1)        = "1990-01-01 00:00"
+  eval_start(1)       = "1990-01-01 00:00"
+  sim_end(1)          = "1994-01-01 00:00"
+  ! domain 2
+  sim_start(2)        = "1992-07-05 00:00"
+  eval_start(2)       = "1993-01-01 00:00"
+  sim_end(2)          = "1994-01-01 00:00"
+  ! sharing options
+  time_step(1)        = 1
+  share_time_step     = .true.
+  share_time_period   = .false.
+/
+
+&config_input
+  ! domain 1
+  pre_path(1)         = "domain_01/input/meteo/pre.nc"
+  pet_path(1)         = "domain_01/input/meteo/pet.nc"
+  temp_path(1)        = "domain_01/input/meteo/tavg.nc"
+  meteo_mask_path(1)  = "domain_01/input/meteo/mask.nc"
+  dem_path(1)         = "domain_01/input/morph/input.nc"
+  slope_path(1)       = "domain_01/input/morph/input.nc"
+  aspect_path(1)      = "domain_01/input/morph/input.nc"
+  fdir_path(1)        = "domain_01/input/morph/input.nc"
+  geo_class_path(1)   = "domain_01/input/morph/input.nc"
+  soil_class_path(1)  = "domain_01/input/morph/input.nc"
+  lai_class_path(1)   = "domain_01/input/morph/input.nc"
+  ! domain 2
+  pre_path(2)         = "domain_02/input/meteo/pre.nc"
+  pet_path(2)         = "domain_02/input/meteo/pet.nc"
+  temp_path(2)        = "domain_02/input/meteo/tavg.nc"
+  meteo_mask_path(2)  = "domain_02/input/meteo/mask.nc"
+  dem_path(2)         = "domain_02/input/morph/input.nc"
+  slope_path(2)       = "domain_02/input/morph/input.nc"
+  aspect_path(2)      = "domain_02/input/morph/input.nc"
+  fdir_path(2)        = "domain_02/input/morph/input.nc"
+  geo_class_path(2)   = "domain_02/input/morph/input.nc"
+  soil_class_path(2)  = "domain_02/input/morph/input.nc"
+  lai_class_path(2)   = "domain_02/input/morph/input.nc"
+/
+
+&config_meteo
+  frac_night_pre(:,1)  = 0.46, 0.50, 0.52, 0.51, 0.48, 0.50, 0.49, 0.48, 0.52, 0.56, 0.50, 0.47
+  frac_night_pet(:,1)  = 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10
+  frac_night_temp(:,1) = -0.76, -1.30, -1.88, -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.60, -0.94, -0.53
+  frac_night_ssrd(:,1) = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+  frac_night_strd(:,1) = 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45
+  ! sharing options
+  share_frac           = .true.
+/
+
+&config_mpr
+  ! domain 1
+  soil_db_mode(1)       = 0
+  n_horizons(1)         = 2
+  tillage_depth(1)      = 200
+  soil_depth(1,1)       = 200
+  fracSealed_cityArea(1)= 0.6
+  land_cover_path(1)    = "domain_01/input/morph/lc_periods.nc"
+  land_cover_var(1)     = "land_cover"
+  lai_time_step(1)      = 0
+  soil_lut_path(1)      = "domain_01/input/morph/soil_classdefinition.txt"
+  geo_lut_path(1)       = "domain_01/input/morph/geology_classdefinition.txt"
+  lai_lut_path(1)       = "domain_01/input/morph/LAI_classdefinition.txt"
+  ! domain 2
+  n_horizons(2)         = 2
+  soil_db_mode(2)       = 0
+  tillage_depth(2)      = 200
+  soil_depth(1,2)       = 200
+  fracSealed_cityArea(2)= 0.6
+  land_cover_path(2)    = "domain_02/input/morph/lc_periods_2.nc"
+  land_cover_var(2)     = "land_cover"
+  lai_time_step(2)      = 0
+  soil_lut_path(2)      = "domain_02/input/morph/soil_classdefinition.txt"
+  geo_lut_path(2)       = "domain_02/input/morph/geology_classdefinition.txt"
+  lai_lut_path(2)       = "domain_02/input/morph/LAI_classdefinition.txt"
+/
+
+&config_mhm
+  ! domain 1
+  resolution(1)         = 24000.0
+  output_path(1)        = "domain_01/output/mhm_output.nc"
+  ! domain 2
+  resolution(2)         = 24000.0
+  output_path(2)        = "domain_02/output/mhm_output.nc"
+  ! sharing options
+  evap_coeff(:,1)       = 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
+  share_evap_coeff      = .true.
+/
+
+&config_mrm
+  ! domain 1
+  resolution(1)         = 24000.0
+  max_route_step(1)     = 3600
+  output_path(1)        = "domain_01/output/mrm_output.nc"
+  ! domain 2
+  resolution(2)         = 24000.0
+  max_route_step(2)     = 3600
+  output_path(2)        = "domain_02/output/mrm_output.nc"
+/

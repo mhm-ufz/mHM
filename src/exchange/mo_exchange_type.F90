@@ -32,6 +32,8 @@ module mo_exchange_type
   implicit none
   private
 
+  public :: standard_path
+
   !> \name Level Selectors
   !> \brief Constants to specify the grid for levels in mHM: L0, L1, L2 and L3.
   !!@{
@@ -323,6 +325,22 @@ module mo_exchange_type
 
 contains
 
+  !> \brief Format a path by prepending the current working directory and appending a file name if given.
+  function standard_path(cwd, path, file) result(std_path)
+    use mo_os, only: path_join, path_normpath, get_cwd
+    character(len=*), optional, intent(in) :: cwd !< current working directory (current directory by default)
+    character(len=*), optional, intent(in) :: path !< path to be formatted
+    character(len=*), optional, intent(in) :: file !< file to be appended (omitted by default)
+    character(:), allocatable :: std_path !< formatted absolute path
+    character(:), allocatable :: work
+    if (present(cwd)) then
+      work = cwd
+    else
+      call get_cwd(work)
+    end if
+    std_path = path_normpath(path_join(work, path, file))
+  end function standard_path
+
   !> \brief Initialize the exchange type
   subroutine exchange_init(self, meta_file, main_file, para_file, domain, cwd)
     use mo_os, only: path_abspath, check_path_isdir
@@ -419,6 +437,7 @@ contains
     ! variables
     ! raw meteorology (level2)
     self%raw_pre    = var_dp(grid=l2, name="pre",       units="mm",    long_name="precipitation", standard_name="precipitation_amount")
+    self%raw_pet    = var_dp(grid=l2, name="pet",       units="mm",    long_name="potential evapotranspiration", standard_name="water_potential_evapotranspiration_amount")
     self%raw_temp   = var_dp(grid=l2, name="temp",      units="degC",  long_name="air temperature", standard_name="air_temperature")
     self%raw_ssrd   = var_dp(grid=l2, name="ssrd",      units="W m-2", long_name="solar short wave radiation downward", standard_name="surface_downwelling_shortwave_flux")
     self%raw_strd   = var_dp(grid=l2, name="strd",      units="W m-2", long_name="surface thermal radiation downward", standard_name="surface_downwelling_longwave_flux")
@@ -985,12 +1004,11 @@ contains
 
   !> \brief Format a path by prepending the current working directory and appending a file name if given.
   function exchange_get_path(self, path, file) result(norm_path)
-    use mo_os, only: path_join, path_normpath
     class(exchange_t), intent(in) :: self
     character(len=*), intent(in) :: path !< path to be formatted
     character(len=*), optional, intent(in) :: file !< file to be appended
     character(:), allocatable :: norm_path !< formatted path
-    norm_path = path_normpath(path_join(self%cwd, path, file))
+    norm_path = standard_path(self%cwd, path, file)
   end function exchange_get_path
 
   !> \brief Return whether an exchange variable is already available or will be owned by the caller.

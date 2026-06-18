@@ -891,10 +891,10 @@ write_restart = .false.
 
 &mrm_dirs
 !
-scc_file = "src/tests/files/scc_gauges.nc1"
-fdir_file = "src/tests/files/fdir.asc" ! "src/tests/files/input.nc"
-dem_file = "src/tests/files/dem.asc"
-slope_file = "src/tests/files/slope.asc"
+scc_file = "examples/fixtures/scc_gauges.nc"
+fdir_file = "examples/fixtures/fdir.asc" ! "examples/fixtures/input.nc"
+dem_file = "examples/fixtures/dem.asc"
+slope_file = "examples/fixtures/slope.asc"
 out_file = "out_test.nc"
 node_out_file = "out_node_test.nc"
 /
@@ -902,6 +902,6 @@ node_out_file = "out_node_test.nc"
 &runoff_input
 ! reading chunk size: off (default - 0), monthly (1), yearly (2), once (not sure what this should be)
 chunk = 'once'
-runoff_file = "src/tests/files/runoff.nc"
+runoff_file = "examples/fixtures/runoff.nc"
 runoff_vname = "Q"
 /

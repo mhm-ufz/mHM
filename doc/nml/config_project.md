@@ -20,6 +20,7 @@ Configuration for the overall project setup in mHM.
 | [n_domains](#n_domains) | integer | no | Number of domains |
 | [read_domains_from_dirs](#read_domains_from_dirs) | logical | no | Flag for separate domains |
 | [domain_dirs](#domain_dirs) | string array | no | Domain directories |
+| [domain_nmls](#domain_nmls) | string array | no | Domain namelists |
 
 ## Field details
 
@@ -122,6 +123,18 @@ Summary:
 - Flexible tail dims: 1
 - Required: no
 
+### domain_nmls
+
+Domain namelists `domain_nmls`
+
+Paths to domain-specific namelists when "read_domains_from_dirs" is true.
+The path will be interpreted as relative to the given domain directory.
+
+Summary:
+- Type: `character(len=buf), dimension(max_domains)`
+- Required: no
+- Default: `"mhm.nml"`
+
 ## Example
 
 ```fortran
@@ -136,6 +149,7 @@ Summary:
   n_domains = 1
   read_domains_from_dirs = .false.
   domain_dirs(:) = ""
+  domain_nmls(:) = "mhm.nml"
 /
 ```
 
