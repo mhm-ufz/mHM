@@ -48,9 +48,9 @@ CONTAINS
   !>       <GeoParam(i)>  <ClassUnit_i4>  <Karstic_i4>  <Description_char>
   !>       \endverbatim
   !>       All following lines will be discarded while reading.
-  !>       GeoParam is a running index while ClassUnit is the unit of the map containing the geological formations
-  !>       such that it does not neccessarily contains subsequent numbers. The parametrization of this unit is part
-  !>       of the namelist mhm_parameter.nml under <geoparameter>.
+  !>       GeoParam(i) is the global GeoParam table index while ClassUnit is the unit of the map containing the
+  !>       geological formations. ClassUnit values do not necessarily contain subsequent numbers. The parametrization
+  !>       of this unit is part of the parameter namelist under <geoparameter>.
 
   !    INTENT(IN)
   !>       \param[in] "character(len = *) :: filename" File name of LUT
@@ -69,7 +69,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_geoformation_lut(filename, fileunit, nGeo, geo_unit, geo_karstic)
+  subroutine read_geoformation_lut(filename, fileunit, nGeo, geo_unit, geo_karstic, geo_param_index)
     implicit none
 
     ! File name of LUT
@@ -87,7 +87,11 @@ CONTAINS
     ! ID of the Karstic formation (0 == does not exist)
     integer(i4), dimension(:), allocatable, intent(out) :: geo_karstic
 
+    ! Global GeoParam index for each geological formation
+    integer(i4), dimension(:), allocatable, intent(out), optional :: geo_param_index
+
     integer(i4) :: i, ios, unit
+    integer(i4) :: param_index
 
     character(256) :: dummy
 
@@ -106,16 +110,18 @@ CONTAINS
     dummy = dummy // ''   ! only to avoid warning
 
     ! allocation of arrays
+    if (present(geo_param_index)) allocate(geo_param_index(nGeo))
     allocate(geo_unit(nGeo))
     allocate(geo_karstic(nGeo))
 
     ! read data
     do i = 1, nGeo
-      read(unit, *, iostat=ios) dummy, geo_unit(i), geo_karstic(i), dummy
+      read(unit, *, iostat=ios) param_index, geo_unit(i), geo_karstic(i), dummy
       if ( ios /= 0 ) call error_message( &
         "ERROR: nGeo_Formations (", num2str(nGeo), ") in geology_classdefinition.txt ", &
         "seems to be higher than available geology classes!" &
       )
+      if (present(geo_param_index)) geo_param_index(i) = param_index
     end do
 
     close(unit)
