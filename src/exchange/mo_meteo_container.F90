@@ -119,6 +119,11 @@ contains
     if (present(file)) then
       path = self%exchange%get_path(file)
       log_info(*) "Read meteo config: ", path
+      status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error setting meteo config dimensions: ", trim(errmsg)
+        error stop 1
+      end if
       status = self%config%from_file(file=path, errmsg=errmsg)
       if (status /= NML_OK) then
         log_fatal(*) "Error reading meteo config: ", trim(errmsg)
@@ -163,7 +168,7 @@ contains
     call self%regrid%init(self%exchange%level2, self%exchange%level1)
     n_l1 = self%exchange%level1%ncells
 
-    domain_id = self%exchange%domain
+    domain_id = self%exchange%nml_domain_id
     id(1) = domain_id
     pet_process = self%exchange%parameters%process_matrix(5, 1)
     snow_process = self%exchange%parameters%process_matrix(2, 1)
@@ -399,13 +404,13 @@ contains
   !> \brief Check whether weight-based temporal disaggregation is active for this domain.
   logical function meteo_weight_mode_active(self) result(active)
     class(meteo_t), intent(in) :: self
-    active = self%config%read_meteo_weights(self%exchange%domain)
+    active = self%config%read_meteo_weights(self%exchange%nml_domain_id)
   end function meteo_weight_mode_active
 
   !> \brief Resolve which domain supplies the day/night fractions.
   integer(i4) function meteo_fraction_domain(self) result(domain_id)
     class(meteo_t), intent(in) :: self
-    domain_id = merge(1_i4, self%exchange%domain, self%config%share_frac)
+    domain_id = merge(1_i4, self%exchange%nml_domain_id, self%config%share_frac)
   end function meteo_fraction_domain
 
   !> \brief Ensure level1 is available before remapping level2 forcings.

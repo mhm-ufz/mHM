@@ -624,14 +624,20 @@ contains
   end subroutine input_var2d_i4_reset_time
 
   !> \brief Initialize the input configuration.
-  subroutine input_config_read(self, file)
+  subroutine input_config_read(self, file, n_domains)
     use nml_helper, only: NML_OK
     ! input/output variables
     class(input_config_t), target, intent(inout) :: self
     character(*), intent(in) :: file !< file containing the namelists
+    integer(i4), intent(in) :: n_domains !< runtime domain dimension for generated namelists
     character(1024) :: errmsg
     integer :: status
     log_info(*) "Read input configuration from file: ", trim(file)
+    status = self%input%set_dims(n_domains=n_domains, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Input: Error setting input dimensions: ", trim(errmsg)
+      error stop 1
+    end if
     status = self%input%from_file(file=file, errmsg=errmsg)
     if (status /= NML_OK) then
       log_fatal(*) "Input: Error reading input configuration from file: ", trim(file), ", with error: ", trim(errmsg)
@@ -651,7 +657,7 @@ contains
     character(1024) :: errmsg
     integer(i4) :: id(1)
     log_info(*) "Configure Input"
-    if (present(file)) call self%config%read(file)
+    if (present(file)) call self%config%read(file, self%exchange%nml_n_domains)
     if (.not.self%config%input%is_configured) then
       log_fatal(*) "Input configuration not set."
       error stop 1
@@ -663,7 +669,7 @@ contains
     end if
 
     ! initialize general inputs settings
-    id(1) = self%exchange%domain ! domain ID to read correct namelist entries
+    id(1) = self%exchange%nml_domain_id ! domain ID to read correct namelist entries
     self%chunking = self%config%input%chunking(id(1))
     self%time_stamp_location = self%config%input%time_stamp_location(id(1))
     self%morph_latlon = self%config%input%morph_latlon(id(1))

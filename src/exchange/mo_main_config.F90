@@ -93,7 +93,7 @@ module mo_main_config
     character(256), dimension(:), allocatable :: names
     !> Array of current parameter set
     real(dp), dimension(:), allocatable :: values
-    integer(i4) :: nGeoUnits !< Number of geological formations
+    integer(i4) :: nGeoUnits = 25_i4 !< Number of geological formations
   contains
     procedure :: configure => parameters_configure
     procedure :: initialize => parameters_initialize
@@ -150,9 +150,10 @@ contains
   end subroutine parameter_config_read_processes
 
   !> \brief Read parameter configuration.
-  subroutine parameter_config_read_parameter(self, file)
+  subroutine parameter_config_read_parameter(self, file, n_geo_units)
     class(parameter_config_t), intent(inout) :: self
     character(*), intent(in) :: file !< file containing the parameter namelists
+    integer(i4), intent(in) :: n_geo_units !< number of geological units in the global parameter set
     character(1024) :: errmsg
     integer :: status
     log_info(*) "Read config parameter: ", file
@@ -264,6 +265,11 @@ contains
 
     select case (self%processes%baseflow)
       case (1_i4)
+        status = self%geoparameter%set_dims(n_geo_units=n_geo_units, errmsg=errmsg)
+        if (status /= NML_OK) then
+          log_fatal(*) "Error setting geoparameter dimensions: ", trim(errmsg)
+          error stop 1
+        end if
         status = self%geoparameter%from_file(file=file, errmsg=errmsg)
         if (status /= NML_OK) then
           log_fatal(*) "Error reading geoparameter from: ", file, ", with error: ", trim(errmsg)
@@ -319,13 +325,15 @@ contains
   end subroutine parameter_config_read_parameter
 
   !> \brief Configure the mRM process container.
-  subroutine parameters_configure(self, meta_file, para_file)
+  subroutine parameters_configure(self, meta_file, para_file, n_geo_units)
     class(parameters_t), intent(inout) :: self
     character(*), intent(in), optional :: meta_file !< file containing the processes namelists
     character(*), intent(in), optional :: para_file !< file containing the parameter namelists
+    integer(i4), intent(in), optional :: n_geo_units !< number of geological units in the global parameter set
     character(1024) :: errmsg
     integer :: status
     log_info(*) "Configure parameters"
+    if (present(n_geo_units)) self%nGeoUnits = n_geo_units
     if (present(meta_file)) call self%config%read_processes(file=meta_file)
     status = self%config%processes%is_valid(errmsg=errmsg)
     if (status /= NML_OK) then
@@ -333,7 +341,7 @@ contains
       error stop
     end if
 
-    if (present(para_file)) call self%config%read_parameter(file=para_file)
+    if (present(para_file)) call self%config%read_parameter(file=para_file, n_geo_units=self%nGeoUnits)
     select case (self%config%processes%interception)
       case (1_i4)
         if (.not.self%config%interception1%is_configured) then
@@ -592,15 +600,14 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nColPars
-    use mo_mpr_constants, only : maxGeoUnit
     use mo_utils, only : EQ
 
     implicit none
     class(parameters_t), intent(inout) :: self
 
     character(256) :: geo_name
-    real(dp), dimension(nColPars,maxGeoUnit) :: GeoParam
-    integer(i4) :: ii, shp(2), shp_geo(2)
+    real(dp), allocatable, dimension(:, :) :: GeoParam
+    integer(i4) :: ii, shp(2)
     character(1024) :: errmsg
     integer :: status
 
@@ -1149,12 +1156,10 @@ contains
       case(1)
         ! read in global parameters (NOT REGIONALIZED, i.e. these are <beta> and not <gamma>) for each geological formation used
         GeoParam = self%config%geoparameter%GeoParam
-        status = self%config%geoparameter%filled_shape(name="GeoParam", filled=shp_geo, errmsg=errmsg)
-        if (status /= 0_i4) then
-          log_fatal(*) 'GeoParam shape in namelist "geoparameter" is incorrect: ', trim(errmsg)
+        if (size(GeoParam, 2) /= self%nGeoUnits) then
+          log_fatal(*) 'GeoParam shape in namelist "geoparameter" does not match n_geo_units.'
           error stop 1
         end if
-        self%nGeoUnits = shp_geo(2)
 
         ! for geology parameters
         self%process_matrix(9, 2) = self%nGeoUnits

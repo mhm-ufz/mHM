@@ -96,7 +96,8 @@ contains
   end function domain_list_add
 
   !> \brief Create a new domain.
-  subroutine domain_init(self, meta_file, main_file, para_file, domain, cwd)
+  subroutine domain_init(self, meta_file, main_file, para_file, domain, cwd, run_n_domains, run_n_geo_units, run_max_layers, &
+      read_domains_from_dirs)
     ! domain is always an item of a domain_list, which stores "allocated pointers" and these implicitly have the "target" attribute
     class(domain_t), intent(inout), target :: self ! needs "target" so components can safely point to "exchange"
     character(*), intent(in), optional :: meta_file !< file containing the metadata namelists
@@ -104,8 +105,13 @@ contains
     character(*), intent(in), optional :: para_file !< file containing the parameter namelists
     integer(i4), intent(in), optional :: domain !< domain ID of the current domain in the configuration arrays (1 by default)
     character(len=*), intent(in), optional :: cwd !< current working directory to set relative paths
+    integer(i4), intent(in), optional :: run_n_domains !< total number of domains in the run
+    integer(i4), intent(in), optional :: run_n_geo_units !< total number of geological units in the global parameter set
+    integer(i4), intent(in), optional :: run_max_layers !< maximum number of soil-layer entries in the run
+    logical, intent(in), optional :: read_domains_from_dirs !< whether domains are read from separate directories
     log_info(*) "SETUP NEW DOMAIN"
-    call self%exchange%init(meta_file, main_file, para_file, domain, cwd)
+    call self%exchange%init(meta_file, main_file, para_file, domain, cwd, run_n_domains, run_n_geo_units, run_max_layers, &
+      read_domains_from_dirs)
     ! set exchange pointer in components
     self%input%exchange => self%exchange
     self%meteo%exchange => self%exchange
@@ -122,9 +128,9 @@ contains
     character(*), intent(in), optional :: out_file !< file containing the output namelists
     log_info(*) "CONFIGURE COMPONENTS"
     call self%input%configure(file)
-    if (self%exchange%parameters%meteo_active()) call self%mhm%configure(file, out_file)
     if (self%exchange%parameters%mhm_active()) call self%mpr%configure(file)
     if (self%exchange%parameters%meteo_active()) call self%meteo%configure(file)
+    if (self%exchange%parameters%mhm_active()) call self%mhm%configure(file, out_file)
     if (self%exchange%parameters%mrm_active()) call self%mrm%configure(file, out_file)
   end subroutine domain_configure
 

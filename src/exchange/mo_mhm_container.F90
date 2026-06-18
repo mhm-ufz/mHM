@@ -212,6 +212,11 @@ contains
     if (present(file)) then
       path = self%exchange%get_path(file)
       log_info(*) "Read mhm config: ", path
+      status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error setting mHM config dimensions: ", trim(errmsg)
+        error stop 1
+      end if
       status = self%config%from_file(file=path, errmsg=errmsg)
       if (status /= NML_OK) then
         log_fatal(*) "Error reading mHM config: ", trim(errmsg)
@@ -228,7 +233,7 @@ contains
       error stop 1
     end if
 
-    id(1) = self%exchange%domain
+    id(1) = self%exchange%nml_domain_id
     status = self%config%is_set("resolution", idx=id, errmsg=errmsg)
     if (status /= NML_OK) then
       log_fatal(*) "mHM: resolution not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
@@ -303,7 +308,7 @@ contains
 
     log_info(*) "Connect mhm"
 
-    id(1) = self%exchange%domain
+    id(1) = self%exchange%nml_domain_id
     self%io%read_restart = self%config%read_restart(id(1))
     self%io%write_restart = self%config%write_restart(id(1))
     if (self%io%read_restart) then
@@ -496,8 +501,8 @@ contains
       error stop 1
     end if
 
-    coeff_domain = self%exchange%domain
-    id(1) = self%exchange%domain
+    coeff_domain = self%exchange%nml_domain_id
+    id(1) = self%exchange%nml_domain_id
     if (self%config%share_evap_coeff) coeff_domain = 1_i4
     direct_runoff_case = self%exchange%parameters%process_matrix(4, 1)
     if (direct_runoff_case /= 0_i4) then
@@ -1029,7 +1034,7 @@ contains
 
     nc_var = nc%setVariable("mhm_meta", "i32", dims0(:0))
     call nc_var%setAttribute("time_stamp", self%exchange%time%str())
-    call nc_var%setAttribute("domain", self%exchange%domain)
+    call nc_var%setAttribute("domain", self%exchange%nml_domain_id)
     call nc_var%setAttribute("interception_case", self%exchange%parameters%process_matrix(1, 1))
     call nc_var%setAttribute("snow_case", self%exchange%parameters%process_matrix(2, 1))
     call nc_var%setAttribute("soil_moisture_case", self%exchange%parameters%process_matrix(3, 1))

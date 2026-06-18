@@ -171,7 +171,13 @@ module mo_exchange_type
     type(nml_config_time_t) :: time_config  !< time configuration
     type(nml_config_project_t) :: project   !< project configuration
     type(parameters_t) :: parameters        !< parameters container
-    integer(i4) :: domain                   !< Number of this domain
+    integer(i4) :: domain_id                !< stable domain ID in the run
+    integer(i4) :: n_domains = 1_i4         !< number of domains in the run
+    integer(i4) :: nml_n_domains = 1_i4     !< domain dimension used when reading namelists
+    integer(i4) :: nml_domain_id = 1_i4     !< domain index used when reading namelist arrays
+    integer(i4) :: n_geo_units = 25_i4      !< number of geological units in the global parameter set
+    integer(i4) :: max_layers = 10_i4       !< maximum number of soil-layer entries in the run
+    integer(i4) :: n_layers = 1_i4          !< number of soil layers for this domain
     character(:), allocatable :: cwd        !< current working directory to set relative paths
 
     ! grids
@@ -342,7 +348,8 @@ contains
   end function standard_path
 
   !> \brief Initialize the exchange type
-  subroutine exchange_init(self, meta_file, main_file, para_file, domain, cwd)
+  subroutine exchange_init(self, meta_file, main_file, para_file, domain, cwd, run_n_domains, run_n_geo_units, &
+      run_max_layers, read_domains_from_dirs)
     use mo_os, only: path_abspath, check_path_isdir
     class(exchange_t), intent(inout) :: self
     character(*), intent(in), optional :: meta_file !< file containing the metadata namelists (project, processes)
@@ -350,20 +357,30 @@ contains
     character(*), intent(in), optional :: para_file !< file containing the parameter namelists
     integer(i4), intent(in), optional :: domain !< domain ID of the current domain in the configuration arrays (1 by default)
     character(len=*), intent(in), optional :: cwd !< current working directory to set relative paths
-    integer(i4) :: id(1), share_id
+    integer(i4), intent(in), optional :: run_n_domains !< total number of domains in the run
+    integer(i4), intent(in), optional :: run_n_geo_units !< total number of geological units in the global parameter set
+    integer(i4), intent(in), optional :: run_max_layers !< maximum number of soil-layer entries in the run
+    logical, intent(in), optional :: read_domains_from_dirs !< whether domains are read from separate directories
+    integer(i4) :: id(1)
+    logical :: from_dirs
     character(1024) :: errmsg
-    character(:), allocatable :: path
+    character(:), allocatable :: path, project_file
     integer :: status
     log_info(*) "Configure exchange."
 
-    self%domain = optval(domain, 1_i4) ! 1 by default for single domain initialization
+    self%domain_id = optval(domain, 1_i4) ! 1 by default for single domain initialization
+    from_dirs = optval(read_domains_from_dirs, .false.)
     self%cwd = path_abspath(optval(cwd, "."))
     call check_path_isdir(self%cwd, raise=.true.)
 
-    if (present(meta_file)) then
-      ! meta configuration uses absolute path internally
-      log_info(*) "Read project attributes: ", meta_file
-      status = self%project%from_file(file=meta_file, errmsg=errmsg)
+    if (from_dirs) then
+      if (present(main_file)) project_file = self%get_path(main_file)
+    else
+      if (present(meta_file)) project_file = meta_file
+    end if
+    if (allocated(project_file)) then
+      log_info(*) "Read project attributes: ", project_file
+      status = self%project%from_file(file=project_file, errmsg=errmsg)
       if (status /= NML_OK) then
         log_fatal(*) "Error reading project config: ", trim(errmsg)
         error stop 1
@@ -378,10 +395,50 @@ contains
       log_fatal(*) "Project config not valid: ", trim(errmsg)
       error stop 1
     end if
+    if (from_dirs) then
+      if (self%project%n_domains /= 1_i4) then
+        log_fatal(*) "Domain-local project config must set n_domains = 1 when read_domains_from_dirs is enabled."
+        error stop 1
+      end if
+      if (self%project%read_domains_from_dirs) then
+        log_fatal(*) "Domain-local project config must set read_domains_from_dirs = .false."
+        error stop 1
+      end if
+      if (present(run_n_geo_units) .and. self%project%n_geo_units > run_n_geo_units) then
+        log_fatal(*) "Domain-local n_geo_units=", n2s(self%project%n_geo_units), &
+          " exceeds top-level n_geo_units=", n2s(run_n_geo_units), "."
+        error stop 1
+      end if
+      if (present(run_max_layers) .and. self%project%max_layers > run_max_layers) then
+        log_fatal(*) "Domain-local max_layers=", n2s(self%project%max_layers), &
+          " exceeds top-level max_layers=", n2s(run_max_layers), "."
+        error stop 1
+      end if
+    end if
+
+    self%n_domains = optval(run_n_domains, self%project%n_domains)
+    self%n_geo_units = optval(run_n_geo_units, self%project%n_geo_units)
+    self%max_layers = optval(run_max_layers, self%project%max_layers)
+    if (from_dirs) then
+      self%nml_n_domains = 1_i4
+      self%nml_domain_id = 1_i4
+    else
+      self%nml_n_domains = self%n_domains
+      self%nml_domain_id = self%domain_id
+    end if
+    if (self%nml_domain_id < 1_i4 .or. self%nml_domain_id > self%nml_n_domains) then
+      log_fatal(*) "Invalid namelist domain index ", n2s(self%nml_domain_id), " for n_domains=", n2s(self%nml_n_domains), "."
+      error stop 1
+    end if
 
     if (present(main_file)) then
       path = self%get_path(main_file) ! get absolute path relative to cwd
       log_info(*) "Read time config: ", path
+      status = self%time_config%set_dims(n_domains=self%nml_n_domains, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error setting time config dimensions: ", trim(errmsg)
+        error stop 1
+      end if
       status = self%time_config%from_file(file=path, errmsg=errmsg)
       if (status /= NML_OK) then
         log_fatal(*) "Error reading time config: ", trim(errmsg)
@@ -400,10 +457,10 @@ contains
 
     ! parameters are created redundantly for each exchange instance
     ! but this simplifies the code structure
-    call self%parameters%configure(meta_file=meta_file, para_file=para_file)
+    call self%parameters%configure(meta_file=meta_file, para_file=para_file, n_geo_units=self%n_geo_units)
 
     ! time settings
-    id(1) = self%domain
+    id(1) = self%nml_domain_id
     if (self%time_config%share_time_period) id(1) = 1_i4
     status = self%time_config%is_set("sim_start", idx=id, errmsg=errmsg)
     if (status /= NML_OK) then
@@ -426,7 +483,7 @@ contains
     end if
     self%eval_start_time = datetime(self%time_config%eval_start(id(1))) ! from string
 
-    id(1) = self%domain
+    id(1) = self%nml_domain_id
     if (self%time_config%share_time_step) id(1) = 1_i4
     self%step = timedelta(hours=self%time_config%time_step(id(1)))
 

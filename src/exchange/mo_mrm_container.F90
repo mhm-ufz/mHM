@@ -99,12 +99,17 @@ contains
 
     log_info(*) "Configure mRM"
     ! get domain id
-    id(1) = self%exchange%domain
+    id(1) = self%exchange%nml_domain_id
 
     ! read and check config
     if (present(file)) then
       path = self%exchange%get_path(file) ! get absolute path relative to cwd
       log_info(*) "Read mRM config: ", path
+      status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error setting mRM config dimensions: ", trim(errmsg)
+        error stop 1
+      end if
       status = self%config%from_file(file=path, errmsg=errmsg)
       if (status /= NML_OK) then
         log_fatal(*) "Error reading mRM config: ", trim(errmsg)
@@ -202,7 +207,7 @@ contains
     log_info(*) "Connect mRM"
 
     ! get domain id
-    id(1) = self%exchange%domain
+    id(1) = self%exchange%nml_domain_id
     ! check if scc_gauges_path is given
     self%scc_active = self%config%is_set("scc_gauges_path", idx=id, errmsg=errmsg) == NML_OK
     ! check routing case
@@ -305,7 +310,7 @@ contains
     log_info(*) "Initialize mRM"
 
     ! get domain id
-    id(1) = self%exchange%domain
+    id(1) = self%exchange%nml_domain_id
     ! calculate celerity
     gamma = self%exchange%parameters%get_process(8_i4)  ! routing still process 8
     const_celerity = (self%exchange%parameters%config%processes%routing == 2_i4)
