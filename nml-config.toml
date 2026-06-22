@@ -1,4 +1,4 @@
-required-versions = ">=0.3.1,<0.4"
+required-versions = ">=0.3.2,<0.4"
 
 [helper]
 path = "src/nml/nml_helper.f90"
@@ -270,6 +270,7 @@ title = "Meta configuration"
 description = "Project-level configuration for combined mHM runs."
 default_file = "mhm.nml"
 namelists = ["config_project", "config_domain", "config_processes", "config_optimize"]
+required = ["config_project", "config_processes"]
 
 [[file_profiles]]
 name = "main"
@@ -291,6 +292,7 @@ namelists = [
   "config_mrm",
   "config_observations",
 ]
+required = ["config_project", "config_resolution", "config_time"]
 
 [[file_profiles]]
 name = "output"
