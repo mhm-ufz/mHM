@@ -95,7 +95,7 @@ contains
     call self%river%to_restart(nc)
     call self%router%to_restart(nc)
     nc_var = nc%setVariable("mrm_meta", "i8", dims(:0)) ! scalar integer to indicate scc river
-    call nc_var%setAttribute("routing_case", self%exchange%parameters%processes%routing)
+    call nc_var%setAttribute("routing_case", self%exchange%parameters%config%processes%routing)
     call nc_var%setAttribute("routing_gamma", self%exchange%parameters%get_process(8_i4))
     call nc_var%setAttribute("time_stamp", self%exchange%time%str())
     call nc%close()
@@ -179,7 +179,7 @@ contains
     end if
 
     ! check routing case
-    case = self%exchange%parameters%processes%routing
+    case = self%exchange%parameters%config%processes%routing
     select case (case)
       ! case (1_i4)
       !   log_info(*) "mRM routing case 1"
@@ -221,7 +221,7 @@ contains
     ! check if scc_gauges_path is given
     self%scc_active = self%config%is_set("scc_gauges_path", idx=id, errmsg=errmsg) == NML_OK
     ! check routing case
-    const_celerity = (self%exchange%parameters%processes%routing == 2_i4)
+    const_celerity = (self%exchange%parameters%config%processes%routing == 2_i4)
     ! get restart setting
     self%read_restart = self%config%read_restart(id(1))
     self%write_restart = self%config%write_restart(id(1))
@@ -322,7 +322,7 @@ contains
     id(1) = self%exchange%nml_domain_id
     ! calculate celerity
     gamma = self%exchange%parameters%get_process(8_i4)  ! routing still process 8
-    const_celerity = (self%exchange%parameters%processes%routing == 2_i4)
+    const_celerity = (self%exchange%parameters%config%processes%routing == 2_i4)
 
     if (self%read_restart) then
       scope_info(s,*) "Read routing state from restart file: ", self%restart_input_path

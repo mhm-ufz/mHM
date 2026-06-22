@@ -46,6 +46,7 @@ module mo_main_config
   !> \class   parameter_config_t
   !> \brief   Configuration for all parameters.
   type, public :: parameter_config_t
+    type(nml_config_processes_t) :: processes !< configuration of the processes
     type(nml_interception1_t) :: interception1 !< interception1 configuration
     type(nml_snow1_t) :: snow1 !< snow1 configuration
     type(nml_soilmoisture1_t) :: soilmoisture1 !< soilmoisture1 configuration
@@ -75,7 +76,6 @@ module mo_main_config
   !> \class   parameters_t
   !> \brief   Class for parameters and processes configuration.
   type, public :: parameters_t
-    type(nml_config_processes_t) :: processes !< configuration of the processes
     type(parameter_config_t) :: config !< configuration of the parameters
     !> Info about which process runs in which option and number of parameters necessary for this option
     !! - col1: process switch
@@ -343,24 +343,24 @@ contains
     if (present(n_geo_units)) call self%set_dims(n_geo_units)
     if (present(main_file)) then
       log_info(*) "Read config processes: ", main_file
-      status = self%processes%from_file(file=main_file, errmsg=errmsg)
+      status = self%config%processes%from_file(file=main_file, errmsg=errmsg)
       if (status /= NML_OK) then
         log_fatal(*) "Error reading processes from: ", main_file, ", with error: ", trim(errmsg)
         error stop 1
       end if
     end if
-    if (.not.self%processes%is_configured) then
+    if (.not.self%config%processes%is_configured) then
       log_fatal(*) "Processes configuration not set."
       error stop 1
     end if
-    status = self%processes%is_valid(errmsg=errmsg)
+    status = self%config%processes%is_valid(errmsg=errmsg)
     if (status /= NML_OK) then
       log_fatal(*) "Processes configuration not valid: ", trim(errmsg)
       error stop
     end if
 
-    if (present(para_file)) call self%config%read_parameter(file=para_file, processes=self%processes)
-    select case (self%processes%interception)
+    if (present(para_file)) call self%config%read_parameter(file=para_file, processes=self%config%processes)
+    select case (self%config%processes%interception)
       case (1_i4)
         if (.not.self%config%interception1%is_configured) then
           log_fatal(*) "Interception parameters not set."
@@ -373,7 +373,7 @@ contains
         end if
     end select
 
-    select case (self%processes%snow)
+    select case (self%config%processes%snow)
       case (1_i4)
         if (.not.self%config%snow1%is_configured) then
           log_fatal(*) "Snow parameters not set."
@@ -386,7 +386,7 @@ contains
         end if
     end select
 
-    select case (self%processes%soil_moisture)
+    select case (self%config%processes%soil_moisture)
       case (1_i4)
         if (.not.self%config%soilmoisture1%is_configured) then
           log_fatal(*) "Soilmoisture parameters not set."
@@ -429,7 +429,7 @@ contains
         end if
     end select
 
-    select case (self%processes%direct_runoff)
+    select case (self%config%processes%direct_runoff)
       case (1_i4)
         if (.not.self%config%directrunoff1%is_configured) then
           log_fatal(*) "Direct runoff parameters not set."
@@ -442,7 +442,7 @@ contains
         end if
     end select
 
-    select case (self%processes%pet)
+    select case (self%config%processes%pet)
       case (-2_i4)
         if (.not.self%config%PETm2%is_configured) then
           log_fatal(*) "PET parameters not set."
@@ -495,7 +495,7 @@ contains
         end if
     end select
 
-    select case (self%processes%interflow)
+    select case (self%config%processes%interflow)
       case (1_i4)
         if (.not.self%config%interflow1%is_configured) then
           log_fatal(*) "Interflow parameters not set."
@@ -508,7 +508,7 @@ contains
         end if
     end select
 
-    select case (self%processes%percolation)
+    select case (self%config%processes%percolation)
       case (1_i4)
         if (.not.self%config%percolation1%is_configured) then
           log_fatal(*) "Percolation parameters not set."
@@ -521,7 +521,7 @@ contains
         end if
     end select
 
-    select case (self%processes%baseflow)
+    select case (self%config%processes%baseflow)
       case (1_i4)
         if (.not.self%config%geoparameter%is_configured) then
           log_fatal(*) "Geoparameter parameters not set."
@@ -534,7 +534,7 @@ contains
         end if
     end select
 
-    select case (self%processes%neutrons)
+    select case (self%config%processes%neutrons)
       case (1_i4)
         if (.not.self%config%neutrons1%is_configured) then
           log_fatal(*) "Neutrons parameters not set."
@@ -557,7 +557,7 @@ contains
         end if
     end select
 
-    select case (self%processes%routing)
+    select case (self%config%processes%routing)
       case (1_i4)
         if (.not.self%config%routing1%is_configured) then
           log_fatal(*) "Routing parameters not set."
@@ -590,7 +590,7 @@ contains
         end if
     end select
 
-    select case (self%processes%temperature_routing)
+    select case (self%config%processes%temperature_routing)
       case (1_i4)
         if (.not.self%config%rivertemp1%is_configured) then
           log_fatal(*) "River temperature parameters not set."
@@ -638,17 +638,17 @@ contains
 
     log_info(*) "Set processes and parameters"
     self%process_matrix = 0_i4
-    self%process_matrix(1, 1) = self%processes%interception
-    self%process_matrix(2, 1) = self%processes%snow
-    self%process_matrix(3, 1) = self%processes%soil_moisture
-    self%process_matrix(4, 1) = self%processes%direct_runoff
-    self%process_matrix(5, 1) = self%processes%pet
-    self%process_matrix(6, 1) = self%processes%interflow
-    self%process_matrix(7, 1) = self%processes%percolation
-    self%process_matrix(8, 1) = self%processes%routing
-    self%process_matrix(9, 1) = self%processes%baseflow
-    self%process_matrix(10, 1) = self%processes%neutrons
-    self%process_matrix(11, 1) = self%processes%temperature_routing
+    self%process_matrix(1, 1) = self%config%processes%interception
+    self%process_matrix(2, 1) = self%config%processes%snow
+    self%process_matrix(3, 1) = self%config%processes%soil_moisture
+    self%process_matrix(4, 1) = self%config%processes%direct_runoff
+    self%process_matrix(5, 1) = self%config%processes%pet
+    self%process_matrix(6, 1) = self%config%processes%interflow
+    self%process_matrix(7, 1) = self%config%processes%percolation
+    self%process_matrix(8, 1) = self%config%processes%routing
+    self%process_matrix(9, 1) = self%config%processes%baseflow
+    self%process_matrix(10, 1) = self%config%processes%neutrons
+    self%process_matrix(11, 1) = self%config%processes%temperature_routing
 
     ! Process 1 - interception
     select case (self%process_matrix(1, 1))
