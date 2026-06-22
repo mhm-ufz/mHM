@@ -26,7 +26,7 @@ program driver
   ! command line interface parser
   type(cli_parser) :: parser
 
-  character(:), allocatable :: cwd, main_file, para_file, out_file
+  character(:), allocatable :: cwd, nml_file, para_file, out_file
 
   parser = cli_parser(prog="mhm", description="The mesoscale hydrological model - mHM v6", &
     add_logger_options=.true., add_version_option=.true., version="6.0")
@@ -80,11 +80,11 @@ program driver
   call check_path_isdir(cwd, raise=.true.)
 
   ! global configs
-  main_file = standard_path(cwd=cwd, file=parser%option_value("nml"))
+  nml_file = standard_path(cwd=cwd, file=parser%option_value("nml"))
   para_file = standard_path(cwd=cwd, file=parser%option_value("parameter"))
   out_file  = standard_path(cwd=cwd, file=parser%option_value("output"))
-  log_info(*) "READ MAIN CONFIG: ", main_file
-  n_domains = get_n_domains(main_file)
+  log_info(*) "READ MAIN NAMELIST: ", nml_file
+  n_domains = get_n_domains(nml_file)
   allocate(domains(n_domains))
 
   log_info(*) "CREATE DOMAINS: ", n_domains
@@ -95,10 +95,10 @@ program driver
     log_text(*) separator
     log_info(*) "CONFIGURE DOMAIN: ", id
     ! create new domain and its exchange
-    call domains(i)%init(meta_file=main_file, domain=id, cwd=cwd)
+    call domains(i)%init(meta_file=nml_file, domain=id, cwd=cwd)
     ! configure domain components
     log_text(*) separator
-    call domains(i)%configure(main_file=main_file, para_file=para_file, out_file=out_file)
+    call domains(i)%configure(main_file=nml_file, para_file=para_file, out_file=out_file)
     ! check for connections and dependencies
     log_text(*) separator
     call domains(i)%connect()
