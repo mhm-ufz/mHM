@@ -64,7 +64,7 @@
   n_layers               = 2
   soil_db_mode           = 0
   tillage_depth          = 200
-  soil_depth             = 200, 0, 0, 0, 0, 0, 0, 0, 0, 0
+  soil_depth             = 200
   fracSealed_cityArea    = 0.6
   land_cover_path        = "input/morph/lc_periods.nc"
   land_cover_var         = "land_cover"
