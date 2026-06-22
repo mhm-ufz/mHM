@@ -13,13 +13,17 @@
   sim_end(1)     = "1992" ! "1992-01-01 00:00"
 /
 
+
+&config_resolution
+  route(1)  = 12000.0
+/
+
 &config_input
   runoff_path(1) = "examples/fixtures/runoff.nc"
   runoff_var(1)  = "Q"
 /
 
 &config_mrm
-  resolution(1)  = 12000.0
   max_route_step(1) = 3600 ! [s] truncate routing steps to 1 hour
   output_path(1) = "mrm_output_1991-1992.nc"
   read_restart(1) = .true.

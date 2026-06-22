@@ -13,6 +13,11 @@
   sim_end(1)    = "1991-01-03 00:00"
 /
 
+
+&config_resolution
+  hydro(1) = 4000.0
+/
+
 &config_input
   slope_path(1)     = "examples/fixtures/input.nc"
   aspect_path(1)    = "test_domain/input/morph/aspect.asc"
@@ -39,5 +44,4 @@
 /
 
 &config_mhm
-  resolution(1) = 4000.0
 /

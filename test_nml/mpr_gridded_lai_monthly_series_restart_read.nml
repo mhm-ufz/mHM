@@ -13,6 +13,11 @@
   sim_end(1)    = "1990-03-03 00:00"
 /
 
+
+&config_resolution
+  hydro(1) = 4000.0
+/
+
 &config_input
 /
 
@@ -33,5 +38,4 @@
 /
 
 &config_mhm
-  resolution(1) = 4000.0
 /

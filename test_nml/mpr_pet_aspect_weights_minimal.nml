@@ -13,6 +13,11 @@
   sim_end(1)    = "1990-01-03 00:00"
 /
 
+
+&config_resolution
+  hydro(1) = 4000.0
+/
+
 &config_input
   time_stamp_location(1) = 2
   slope_path(1)     = "examples/fixtures/input.nc"
@@ -47,5 +52,4 @@
 /
 
 &config_mhm
-  resolution(1) = 4000.0
 /
