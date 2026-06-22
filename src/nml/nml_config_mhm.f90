@@ -3,9 +3,9 @@
 
 !> \brief mHM model configuration
 !> \details Configuration for the mHM model setup.
-!> \version 0.1
+!> \version 0.2
 !> \authors Sebastian Mueller
-!> \date    Jan 2026
+!> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_namelists
@@ -48,7 +48,6 @@ module nml_config_mhm
   type, public :: nml_config_mhm_t
     logical :: is_configured = .false. !< whether the namelist has been configured
     integer :: n_domains = n_domains__default !< runtime dimension for n_domains
-    real(dp), allocatable, dimension(:) :: resolution !< mHM model resolution (L1)
     character(len=buf), allocatable, dimension(:) :: output_path !< Output path
     logical, allocatable, dimension(:) :: read_restart !< Read restart
     character(len=buf), allocatable, dimension(:) :: restart_input_path !< Restart input path
@@ -77,8 +76,6 @@ contains
     this%is_configured = .false.
 
     ! allocate runtime-sized fields
-    if (allocated(this%resolution)) deallocate(this%resolution)
-    allocate(this%resolution(this%n_domains))
     if (allocated(this%output_path)) deallocate(this%output_path)
     allocate(character(len=buf) :: this%output_path(this%n_domains))
     if (allocated(this%read_restart)) deallocate(this%read_restart)
@@ -93,7 +90,6 @@ contains
     allocate(this%evap_coeff(12, this%n_domains))
 
     ! sentinel values for required/optional parameters
-    this%resolution = ieee_value(this%resolution, ieee_quiet_nan) ! sentinel for optional real array
     this%output_path = achar(0) ! sentinel for optional string array
     this%restart_input_path = achar(0) ! sentinel for optional string array
     this%restart_output_path = achar(0) ! sentinel for optional string array
@@ -128,7 +124,6 @@ contains
     this%n_domains = candidate__n_domains
 
     ! deallocate runtime-sized fields; init/set/from_file allocate them again
-    if (allocated(this%resolution)) deallocate(this%resolution)
     if (allocated(this%output_path)) deallocate(this%output_path)
     if (allocated(this%read_restart)) deallocate(this%read_restart)
     if (allocated(this%restart_input_path)) deallocate(this%restart_input_path)
@@ -145,7 +140,6 @@ contains
     character(len=*), intent(in) :: file !< path to namelist file
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
-    real(dp), allocatable, dimension(:) :: resolution
     character(len=buf), allocatable, dimension(:) :: output_path
     logical, allocatable, dimension(:) :: read_restart
     character(len=buf), allocatable, dimension(:) :: restart_input_path
@@ -160,7 +154,6 @@ contains
     character(len=nml_line_buffer) :: iomsg
 
     namelist /config_mhm/ &
-      resolution, &
       output_path, &
       read_restart, &
       restart_input_path, &
@@ -172,8 +165,6 @@ contains
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
     ! allocate local namelist variables matching runtime-sized fields
-    if (allocated(resolution)) deallocate(resolution)
-    allocate(resolution(this%n_domains))
     if (allocated(output_path)) deallocate(output_path)
     allocate(character(len=buf) :: output_path(this%n_domains))
     if (allocated(read_restart)) deallocate(read_restart)
@@ -186,7 +177,6 @@ contains
     allocate(character(len=buf) :: restart_output_path(this%n_domains))
     if (allocated(evap_coeff)) deallocate(evap_coeff)
     allocate(evap_coeff(12, this%n_domains))
-    resolution = this%resolution
     output_path = this%output_path
     read_restart = this%read_restart
     restart_input_path = this%restart_input_path
@@ -219,7 +209,6 @@ contains
     end if
 
     ! assign values
-    this%resolution = resolution
     this%output_path = output_path
     this%read_restart = read_restart
     this%restart_input_path = restart_input_path
@@ -235,7 +224,6 @@ contains
 
   !> \brief Set config_mhm values
   integer function nml_config_mhm_set(this, &
-    resolution, &
     output_path, &
     read_restart, &
     restart_input_path, &
@@ -247,7 +235,6 @@ contains
 
     class(nml_config_mhm_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
-    real(dp), dimension(:), intent(in), optional :: resolution !< mHM model resolution (L1)
     character(len=*), dimension(:), intent(in), optional :: output_path !< Output path
     logical, dimension(:), intent(in), optional :: read_restart !< Read restart
     character(len=*), dimension(:), intent(in), optional :: restart_input_path !< Restart input path
@@ -266,16 +253,6 @@ contains
 
     ! required parameters
     ! override with provided values
-    if (present(resolution)) then
-      if (size(resolution, 1) > size(this%resolution, 1)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'resolution'"
-        return
-      end if
-      lb__1 = lbound(this%resolution, 1)
-      ub__1 = lb__1 + size(resolution, 1) - 1
-      this%resolution(lb__1:ub__1) = resolution
-    end if
     if (present(output_path)) then
       if (size(output_path, 1) > size(this%output_path, 1)) then
         status = NML_ERR_INVALID_INDEX
@@ -365,19 +342,6 @@ contains
       return
     end if
     select case (to_lower(trim(name)))
-    case ("resolution")
-      if (.not. allocated(this%resolution)) then
-        status = NML_ERR_NOT_SET
-        return
-      end if
-      if (present(idx)) then
-        status = idx_check(idx, lbound(this%resolution), ubound(this%resolution), &
-          "resolution", errmsg)
-        if (status /= NML_OK) return
-        if (ieee_is_nan(this%resolution(idx(1)))) status = NML_ERR_NOT_SET
-      else
-        if (all(ieee_is_nan(this%resolution))) status = NML_ERR_NOT_SET
-      end if
     case ("output_path")
       if (.not. allocated(this%output_path)) then
         status = NML_ERR_NOT_SET

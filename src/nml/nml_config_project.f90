@@ -3,9 +3,9 @@
 
 !> \brief Project configuration
 !> \details Configuration for the overall project setup in mHM.
-!> \version 0.1
+!> \version 0.2
 !> \authors Sebastian Mueller
-!> \date    Jan 2026
+!> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_namelists

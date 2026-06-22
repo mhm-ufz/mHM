@@ -94,6 +94,14 @@
   BFI_calc = .true.
 /
 
+! Grid resolution configuration
+&config_resolution
+  ! Hydrological grid resolution
+  hydro(:) = 0.0
+  ! Routing grid resolution
+  route(:) = 0.0
+/
+
 ! Time configuration
 &config_time
   ! Simulation start
@@ -430,8 +438,6 @@
 
 ! mHM model configuration
 &config_mhm
-  ! mHM model resolution (L1)
-  resolution(:) = 0.0
   ! Output path
   output_path(:) = "mhm_output.nc"
   ! Read restart
@@ -450,8 +456,6 @@
 
 ! mRM configuration
 &config_mrm
-  ! mRM resolution (L3)
-  resolution(:) = 0.1
   ! Flag for root based river network ordering.
   river_net_order_root_based(:) = .true.
   ! Minimum level size for OpenMP parallelization.

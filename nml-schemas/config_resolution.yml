@@ -1,0 +1,26 @@
+title: Grid resolution configuration
+description: |-
+  Domain-indexed target resolutions for internally derived grids.
+x-fortran-namelist: config_resolution
+type: object
+properties:
+  hydro:
+    type: array
+    items:
+      type: number
+      x-fortran-kind: dp
+      exclusiveMinimum: 0.0
+    x-fortran-shape: n_domains
+    title: Hydrological grid resolution
+    description: |-
+      Target resolution for deriving the hydrological grid from the morphology grid.
+  route:
+    type: array
+    items:
+      type: number
+      x-fortran-kind: dp
+      exclusiveMinimum: 0.0
+    x-fortran-shape: n_domains
+    title: Routing grid resolution
+    description: |-
+      Target resolution for deriving the routing grid from the morphology grid.

@@ -1,3 +1,5 @@
+required-versions = ">=0.3.1,<0.4"
+
 [helper]
 path = "src/nml/nml_helper.f90"
 module = "nml_helper"
@@ -11,6 +13,12 @@ header = '''
 !> \details    These modules provide functionalities to read, write, and manage namelists used in the mHM hydrological model.
 '''
 
+[kinds]
+module = "mo_kind"
+real = ["sp", "dp"]
+integer = ["i1", "i2", "i4", "i8"]
+
+[constants]
 [constants.buf]
 value = 256
 doc = "String buffer length."
@@ -28,16 +36,11 @@ doc = "Number of domains."
 default = 25
 doc = "Number of geological units."
 
-[kinds]
-module = "mo_kind"
-real = ["sp", "dp"]
-integer = ["i1", "i2", "i4", "i8"]
-
 [documentation]
 module = '''
-!> \version 0.1
+!> \version 0.2
 !> \authors Sebastian Mueller
-!> \date    Jan 2026
+!> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_namelists
@@ -92,6 +95,12 @@ name = "config_meteo"
 schema = "nml-schemas/config_meteo.yml"
 mod_path = "src/nml/nml_config_meteo.f90"
 doc_path = "doc/nml/config_meteo.md"
+
+[[namelists]]
+name = "config_resolution"
+schema = "nml-schemas/config_resolution.yml"
+mod_path = "src/nml/nml_config_resolution.f90"
+doc_path = "doc/nml/config_resolution.md"
 
 [[namelists]]
 name = "config_mpr"
@@ -255,28 +264,10 @@ schema = "nml-schemas/output_mrm.yml"
 mod_path = "src/nml/nml_output_mrm.f90"
 doc_path = "doc/nml/output_mrm.md"
 
-[[templates]]
-path = "mhm-template.nml"
-profile = "main"
-doc_mode = "documented"
-value_mode = "filled"
-
-[[templates]]
-path = "mhm-para-template.nml"
-profile = "parameter"
-doc_mode = "documented"
-value_mode = "filled"
-
-[[templates]]
-path = "mhm-output-template.nml"
-profile = "output"
-doc_mode = "documented"
-value_mode = "filled"
-
 [[file_profiles]]
 name = "meta"
 title = "Meta configuration"
-description = "Project-level configuration for single or combined mHM runs."
+description = "Project-level configuration for combined mHM runs."
 default_file = "mhm.nml"
 namelists = ["config_project", "config_domain", "config_processes", "config_optimize"]
 
@@ -290,6 +281,7 @@ namelists = [
   "config_domain",
   "config_processes",
   "config_optimize",
+  "config_resolution",
   "config_time",
   "config_input",
   "config_coupling",
@@ -299,6 +291,13 @@ namelists = [
   "config_mrm",
   "config_observations",
 ]
+
+[[file_profiles]]
+name = "output"
+title = "Output configuration"
+description = "Output namelists for mHM and mRM."
+default_file = "outputs.nml"
+namelists = ["output_mhm", "output_mrm"]
 
 [[file_profiles]]
 name = "parameter"
@@ -329,9 +328,20 @@ namelists = [
   "rivertemp1",
 ]
 
-[[file_profiles]]
-name = "output"
-title = "Output configuration"
-description = "Output namelists for mHM and mRM."
-default_file = "outputs.nml"
-namelists = ["output_mhm", "output_mrm"]
+[[templates]]
+path = "mhm-template.nml"
+profile = "main"
+doc_mode = "documented"
+value_mode = "filled"
+
+[[templates]]
+path = "mhm-para-template.nml"
+profile = "parameter"
+doc_mode = "documented"
+value_mode = "filled"
+
+[[templates]]
+path = "mhm-output-template.nml"
+profile = "output"
+doc_mode = "documented"
+value_mode = "filled"

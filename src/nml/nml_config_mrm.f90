@@ -3,9 +3,9 @@
 
 !> \brief mRM configuration
 !> \details Configuration for the multi-scale routing model (mRM) in mHM.
-!> \version 0.1
+!> \version 0.2
 !> \authors Sebastian Mueller
-!> \date    Jan 2026
+!> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_namelists
@@ -30,10 +30,8 @@ module nml_config_mrm
     to_lower, &
     n_domains__default, &
     buf
-  use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
-    dp, &
     i4
 
   implicit none
@@ -50,7 +48,6 @@ module nml_config_mrm
   integer(i4), parameter, public :: max_route_step__enum_values(19) = [60_i4, 120_i4, 180_i4, 240_i4, 300_i4, 360_i4, 600_i4, 720_i4, 900_i4, 1200_i4, 1800_i4, 3600_i4, 7200_i4, 10800_i4, 14400_i4, 21600_i4, 28800_i4, 43200_i4, 86400_i4]
 
   ! bounds values
-  real(dp), parameter, public :: resolution__min_excl = 0.0_dp
   integer(i4), parameter, public :: river_net_omp_level_min__min = -1_i4
 
   !> \class nml_config_mrm_t
@@ -59,7 +56,6 @@ module nml_config_mrm
   type, public :: nml_config_mrm_t
     logical :: is_configured = .false. !< whether the namelist has been configured
     integer :: n_domains = n_domains__default !< runtime dimension for n_domains
-    real(dp), allocatable, dimension(:) :: resolution !< mRM resolution (L3)
     logical, allocatable, dimension(:) :: river_net_order_root_based !< Flag for root based river network ordering.
     integer(i4), allocatable, dimension(:) :: river_net_omp_level_min !< Minimum level size for OpenMP parallelization.
     integer(i4), allocatable, dimension(:) :: max_route_step !< Maximum routing time step in seconds.
@@ -100,24 +96,6 @@ contains
   end function max_route_step__in_enum
 
   !> \brief Check whether a value is within bounds
-  elemental logical function resolution__in_bounds(val, allow_missing) result(in_bounds)
-    real(dp), intent(in) :: val !< value to check
-    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
-
-    if (present(allow_missing)) then
-      if (allow_missing) then
-        if (ieee_is_nan(val)) then
-          in_bounds = .true.
-          return
-        end if
-      end if
-    end if
-
-    in_bounds = .true.
-    if (val <= resolution__min_excl) in_bounds = .false.
-  end function resolution__in_bounds
-
-  !> \brief Check whether a value is within bounds
   elemental logical function river_net_omp_level_min__in_bounds(val, allow_missing) result(in_bounds)
     integer(i4), intent(in) :: val !< value to check
     logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
@@ -145,8 +123,6 @@ contains
     this%is_configured = .false.
 
     ! allocate runtime-sized fields
-    if (allocated(this%resolution)) deallocate(this%resolution)
-    allocate(this%resolution(this%n_domains))
     if (allocated(this%river_net_order_root_based)) deallocate(this%river_net_order_root_based)
     allocate(this%river_net_order_root_based(this%n_domains))
     if (allocated(this%river_net_omp_level_min)) deallocate(this%river_net_omp_level_min)
@@ -173,7 +149,6 @@ contains
     allocate(character(len=buf) :: this%diagnostics_path(this%n_domains))
 
     ! sentinel values for required/optional parameters
-    this%resolution = ieee_value(this%resolution, ieee_quiet_nan) ! sentinel for optional real array
     this%scc_gauges_path = achar(0) ! sentinel for optional string array
     this%output_path = achar(0) ! sentinel for optional string array
     this%output_node_path = achar(0) ! sentinel for optional string array
@@ -213,7 +188,6 @@ contains
     this%n_domains = candidate__n_domains
 
     ! deallocate runtime-sized fields; init/set/from_file allocate them again
-    if (allocated(this%resolution)) deallocate(this%resolution)
     if (allocated(this%river_net_order_root_based)) deallocate(this%river_net_order_root_based)
     if (allocated(this%river_net_omp_level_min)) deallocate(this%river_net_omp_level_min)
     if (allocated(this%max_route_step)) deallocate(this%max_route_step)
@@ -236,7 +210,6 @@ contains
     character(len=*), intent(in) :: file !< path to namelist file
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
-    real(dp), allocatable, dimension(:) :: resolution
     logical, allocatable, dimension(:) :: river_net_order_root_based
     integer(i4), allocatable, dimension(:) :: river_net_omp_level_min
     integer(i4), allocatable, dimension(:) :: max_route_step
@@ -256,7 +229,6 @@ contains
     character(len=nml_line_buffer) :: iomsg
 
     namelist /config_mrm/ &
-      resolution, &
       river_net_order_root_based, &
       river_net_omp_level_min, &
       max_route_step, &
@@ -273,8 +245,6 @@ contains
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
     ! allocate local namelist variables matching runtime-sized fields
-    if (allocated(resolution)) deallocate(resolution)
-    allocate(resolution(this%n_domains))
     if (allocated(river_net_order_root_based)) deallocate(river_net_order_root_based)
     allocate(river_net_order_root_based(this%n_domains))
     if (allocated(river_net_omp_level_min)) deallocate(river_net_omp_level_min)
@@ -299,7 +269,6 @@ contains
     allocate(character(len=buf) :: restart_output_path(this%n_domains))
     if (allocated(diagnostics_path)) deallocate(diagnostics_path)
     allocate(character(len=buf) :: diagnostics_path(this%n_domains))
-    resolution = this%resolution
     river_net_order_root_based = this%river_net_order_root_based
     river_net_omp_level_min = this%river_net_omp_level_min
     max_route_step = this%max_route_step
@@ -337,7 +306,6 @@ contains
     end if
 
     ! assign values
-    this%resolution = resolution
     this%river_net_order_root_based = river_net_order_root_based
     this%river_net_omp_level_min = river_net_omp_level_min
     this%max_route_step = max_route_step
@@ -358,7 +326,6 @@ contains
 
   !> \brief Set config_mrm values
   integer function nml_config_mrm_set(this, &
-    resolution, &
     river_net_order_root_based, &
     river_net_omp_level_min, &
     max_route_step, &
@@ -375,7 +342,6 @@ contains
 
     class(nml_config_mrm_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
-    real(dp), dimension(:), intent(in), optional :: resolution !< mRM resolution (L3)
     logical, dimension(:), intent(in), optional :: river_net_order_root_based !< Flag for root based river network ordering.
     integer(i4), dimension(:), intent(in), optional :: river_net_omp_level_min !< Minimum level size for OpenMP parallelization.
     integer(i4), dimension(:), intent(in), optional :: max_route_step !< Maximum routing time step in seconds.
@@ -397,16 +363,6 @@ contains
 
     ! required parameters
     ! override with provided values
-    if (present(resolution)) then
-      if (size(resolution, 1) > size(this%resolution, 1)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'resolution'"
-        return
-      end if
-      lb__1 = lbound(this%resolution, 1)
-      ub__1 = lb__1 + size(resolution, 1) - 1
-      this%resolution(lb__1:ub__1) = resolution
-    end if
     if (present(river_net_order_root_based)) then
       if (size(river_net_order_root_based, 1) > size(this%river_net_order_root_based, 1)) then
         status = NML_ERR_INVALID_INDEX
@@ -548,19 +504,6 @@ contains
       return
     end if
     select case (to_lower(trim(name)))
-    case ("resolution")
-      if (.not. allocated(this%resolution)) then
-        status = NML_ERR_NOT_SET
-        return
-      end if
-      if (present(idx)) then
-        status = idx_check(idx, lbound(this%resolution), ubound(this%resolution), &
-          "resolution", errmsg)
-        if (status /= NML_OK) return
-        if (ieee_is_nan(this%resolution(idx(1)))) status = NML_ERR_NOT_SET
-      else
-        if (all(ieee_is_nan(this%resolution))) status = NML_ERR_NOT_SET
-      end if
     case ("river_net_order_root_based")
       if (.not. allocated(this%river_net_order_root_based)) then
         status = NML_ERR_NOT_SET
@@ -737,13 +680,6 @@ contains
     end if
     end if
     ! bounds constraints
-    if (allocated(this%resolution)) then
-    if (.not. all(resolution__in_bounds(this%resolution, allow_missing=.true.))) then
-      status = NML_ERR_BOUNDS
-      if (present(errmsg)) errmsg = "bounds constraint failed: resolution"
-      return
-    end if
-    end if
     if (allocated(this%river_net_omp_level_min)) then
     if (.not. all(river_net_omp_level_min__in_bounds(this%river_net_omp_level_min, allow_missing=.true.))) then
       status = NML_ERR_BOUNDS

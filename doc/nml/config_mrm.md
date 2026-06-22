@@ -10,7 +10,6 @@ Configuration for the multi-scale routing model (mRM) in mHM.
 
 | Name | Type | Required | Info |
 | --- | --- | --- | --- |
-| [resolution](#resolution) | real array | no | mRM resolution (L3) |
 | [river_net_order_root_based](#river_net_order_root_based) | logical array | no | Flag for root based river network ordering. |
 | [river_net_omp_level_min](#river_net_omp_level_min) | integer array | no | Minimum level size for OpenMP parallelization. |
 | [max_route_step](#max_route_step) | integer array | no | Maximum routing time step in seconds. |
@@ -25,18 +24,6 @@ Configuration for the multi-scale routing model (mRM) in mHM.
 | [diagnostics_path](#diagnostics_path) | string array | no | Diagnostics output path |
 
 ## Field details
-
-### resolution
-
-mRM resolution (L3) `resolution`
-
-Resolution of the mRM routing grid, level 3.
-
-Summary:
-- Type: `real(dp), dimension(n_domains)`
-- Required: no
-- Minimum: `> 0.0`
-- Examples: `[0.1]`
 
 ### river_net_order_root_based
 
@@ -181,7 +168,6 @@ Summary:
 
 ```fortran
 &config_mrm
-  resolution(:) = 0.1
   river_net_order_root_based(:) = .true.
   river_net_omp_level_min(:) = 100
   max_route_step(:) = 3600

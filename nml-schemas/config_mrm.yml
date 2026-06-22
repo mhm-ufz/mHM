@@ -3,16 +3,6 @@ description: Configuration for the multi-scale routing model (mRM) in mHM.
 x-fortran-namelist: config_mrm
 type: object
 properties:
-  resolution:
-    type: array
-    items:
-      type: number
-      x-fortran-kind: dp
-      exclusiveMinimum: 0.0
-    x-fortran-shape: n_domains
-    title: mRM resolution (L3)
-    description: Resolution of the mRM routing grid, level 3.
-    examples: [[0.1]]
   river_net_order_root_based:
     type: array
     items:

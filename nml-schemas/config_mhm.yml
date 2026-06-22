@@ -4,15 +4,6 @@ description: |-
 x-fortran-namelist: config_mhm
 type: object
 properties:
-  resolution:
-    type: array
-    items:
-      type: number
-      x-fortran-kind: dp
-    x-fortran-shape: n_domains
-    title: mHM model resolution (L1)
-    description: |-
-      Resolution of the mHM model, level 1.
   output_path:
     type: array
     items:

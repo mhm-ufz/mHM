@@ -10,7 +10,6 @@ Configuration for the mHM model setup.
 
 | Name | Type | Required | Info |
 | --- | --- | --- | --- |
-| [resolution](#resolution) | real array | no | mHM model resolution (L1) |
 | [output_path](#output_path) | string array | no | Output path |
 | [read_restart](#read_restart) | logical array | no | Read restart |
 | [restart_input_path](#restart_input_path) | string array | no | Restart input path |
@@ -20,16 +19,6 @@ Configuration for the mHM model setup.
 | [share_evap_coeff](#share_evap_coeff) | logical | no | Share evaporation coefficients between domains |
 
 ## Field details
-
-### resolution
-
-mHM model resolution (L1) `resolution`
-
-Resolution of the mHM model, level 1.
-
-Summary:
-- Type: `real(dp), dimension(n_domains)`
-- Required: no
 
 ### output_path
 
@@ -104,7 +93,6 @@ Summary:
 
 ```fortran
 &config_mhm
-  resolution(:) = 0.0
   output_path(:) = "mhm_output.nc"
   read_restart(:) = .false.
   restart_input_path(:) = "mhm_restart_in.nc"
