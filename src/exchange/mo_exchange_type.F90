@@ -188,6 +188,7 @@ module mo_exchange_type
     integer(i4) :: n_geo_units = 25_i4      !< number of geological units in the global parameter set
     integer(i4) :: max_layers = 10_i4       !< maximum number of soil-layer entries in the run
     integer(i4) :: n_layers = 1_i4          !< number of soil layers for this domain
+    logical :: from_dirs = .false.          !< whether domain main files are derived from config_domain directories
     character(:), allocatable :: cwd        !< current working directory to set relative paths
     character(:), allocatable :: main_file  !< effective main namelist file for this domain
 
@@ -388,8 +389,8 @@ contains
     character(*), intent(in), optional :: meta_file !< file containing the run metadata namelists
     integer(i4), intent(in), optional :: domain !< domain ID of the current domain in the configuration arrays (1 by default)
     character(len=*), intent(in), optional :: cwd !< current working directory to set relative paths
-    logical :: from_dirs
     character(1024) :: errmsg
+    character(:), allocatable :: meta_path
     type(nml_config_project_t) :: local_project
     integer(i4) :: id(1)
     integer :: status
@@ -400,8 +401,9 @@ contains
     call check_path_isdir(self%cwd, raise=.true.)
 
     if (present(meta_file)) then
-      log_info(*) "Read project attributes: ", meta_file
-      status = self%config%project%from_file(file=meta_file, errmsg=errmsg)
+      meta_path = self%get_path(meta_file)
+      log_info(*) "Read project attributes: ", meta_path
+      status = self%config%project%from_file(file=meta_path, errmsg=errmsg)
       if (status /= NML_OK) then
         log_fatal(*) "Error reading project config: ", trim(errmsg)
         error stop 1
@@ -425,16 +427,16 @@ contains
       error stop 1
     end if
 
-    from_dirs = self%config%project%read_domains_from_dirs
-    if (from_dirs) then
+    self%from_dirs = self%config%project%read_domains_from_dirs
+    if (self%from_dirs) then
       if (present(meta_file)) then
         status = self%config%domain%set_dims(n_domains=self%n_domains, errmsg=errmsg)
         if (status /= NML_OK) then
           log_fatal(*) "Error setting domain config dimensions: ", trim(errmsg)
           error stop 1
         end if
-        log_info(*) "Read domain config: ", meta_file
-        status = self%config%domain%from_file(file=meta_file, errmsg=errmsg)
+        log_info(*) "Read domain config: ", meta_path
+        status = self%config%domain%from_file(file=meta_path, errmsg=errmsg)
         if (status /= NML_OK) then
           log_fatal(*) "Error reading domain config: ", trim(errmsg)
           error stop 1
@@ -491,7 +493,7 @@ contains
       end if
     end if
 
-    if (from_dirs) then
+    if (self%from_dirs) then
       self%nml_n_domains = 1_i4
       self%nml_domain_id = 1_i4
     else
@@ -501,6 +503,12 @@ contains
     if (self%nml_domain_id < 1_i4 .or. self%nml_domain_id > self%nml_n_domains) then
       log_fatal(*) "Invalid namelist domain index ", n2s(self%nml_domain_id), " for n_domains=", n2s(self%nml_n_domains), "."
       error stop 1
+    end if
+
+    if (present(meta_file)) then
+      call self%parameters%init(meta_file=meta_path)
+    else
+      call self%parameters%init()
     end if
 
     ! variables
@@ -671,11 +679,7 @@ contains
 
     ! parameters are created redundantly for each exchange instance
     ! but this simplifies the code structure
-    if (allocated(path)) then
-      call self%parameters%configure(main_file=path, para_file=para_file)
-    else
-      call self%parameters%configure(para_file=para_file)
-    end if
+    call self%parameters%configure(para_file=para_file)
 
     if (allocated(self%main_file)) then
       path = self%main_file

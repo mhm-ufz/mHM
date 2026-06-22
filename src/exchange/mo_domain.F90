@@ -82,7 +82,11 @@ contains
     character(:), allocatable :: config_file
 
     log_info(*) "CONFIGURE COMPONENTS"
-    if (allocated(self%exchange%main_file)) then
+    if (self%exchange%from_dirs) then
+      if (.not.allocated(self%exchange%main_file)) then
+        log_fatal(*) "Domain main namelist was not derived from config_domain."
+        error stop 1
+      end if
       config_file = self%exchange%main_file
     else if (present(main_file)) then
       config_file = self%exchange%get_path(main_file)
