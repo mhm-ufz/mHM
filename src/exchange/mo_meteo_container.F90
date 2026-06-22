@@ -82,6 +82,7 @@ module mo_meteo_container
     type(meteo_output_state_t) :: out !< processed meteo outputs
     type(meteo_scratch_state_t) :: scratch !< reusable remapped raw forcings
   contains
+    procedure :: set_dims => meteo_set_dims
     procedure :: configure => meteo_configure
     procedure :: connect => meteo_connect
     procedure :: initialize => meteo_initialize
@@ -107,6 +108,19 @@ module mo_meteo_container
 
 contains
 
+  !> \brief Set runtime dimensions for generated meteo namelists.
+  subroutine meteo_set_dims(self)
+    class(meteo_t), intent(inout), target :: self
+    character(1024) :: errmsg
+    integer :: status
+
+    status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Error setting meteo config dimensions: ", trim(errmsg)
+      error stop 1
+    end if
+  end subroutine meteo_set_dims
+
   !> \brief Configure the meteorology process container.
   subroutine meteo_configure(self, file)
     class(meteo_t), intent(inout), target :: self
@@ -119,11 +133,6 @@ contains
     if (present(file)) then
       path = self%exchange%get_path(file)
       log_info(*) "Read meteo config: ", path
-      status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
-      if (status /= NML_OK) then
-        log_fatal(*) "Error setting meteo config dimensions: ", trim(errmsg)
-        error stop 1
-      end if
       status = self%config%from_file(file=path, errmsg=errmsg)
       if (status /= NML_OK) then
         log_fatal(*) "Error reading meteo config: ", trim(errmsg)

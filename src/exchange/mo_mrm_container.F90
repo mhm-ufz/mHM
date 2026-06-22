@@ -13,6 +13,7 @@
 !> \ingroup f_exchange
 #include "logging.h"
 module mo_mrm_container
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
   use mo_logging
   use mo_kind, only: i2, i4, i8, dp
   use mo_nml, only: position_nml ! , close_nml
@@ -57,6 +58,7 @@ module mo_mrm_container
     character(:), allocatable  :: output_path         !< path to output file
     character(:), allocatable  :: output_node_path    !< path to node output file
   contains
+    procedure :: set_dims => mrm_set_dims
     procedure :: configure => mrm_configure
     procedure :: connect => mrm_connect
     procedure :: initialize => mrm_initialize
@@ -67,6 +69,19 @@ module mo_mrm_container
   end type mrm_t
 
 contains
+
+  !> \brief Set runtime dimensions for generated mRM namelists.
+  subroutine mrm_set_dims(self)
+    class(mrm_t), intent(inout), target :: self
+    character(1024) :: errmsg
+    integer :: status
+
+    status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Error setting mRM config dimensions: ", trim(errmsg)
+      error stop 1
+    end if
+  end subroutine mrm_set_dims
 
   !> \brief Create a restart file for the mRM process container.
   subroutine mrm_create_restart(self)
@@ -80,7 +95,7 @@ contains
     call self%river%to_restart(nc)
     call self%router%to_restart(nc)
     nc_var = nc%setVariable("mrm_meta", "i8", dims(:0)) ! scalar integer to indicate scc river
-    call nc_var%setAttribute("routing_case", self%exchange%parameters%config%processes%routing)
+    call nc_var%setAttribute("routing_case", self%exchange%parameters%processes%routing)
     call nc_var%setAttribute("routing_gamma", self%exchange%parameters%get_process(8_i4))
     call nc_var%setAttribute("time_stamp", self%exchange%time%str())
     call nc%close()
@@ -105,11 +120,6 @@ contains
     if (present(file)) then
       path = self%exchange%get_path(file) ! get absolute path relative to cwd
       log_info(*) "Read mRM config: ", path
-      status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
-      if (status /= NML_OK) then
-        log_fatal(*) "Error setting mRM config dimensions: ", trim(errmsg)
-        error stop 1
-      end if
       status = self%config%from_file(file=path, errmsg=errmsg)
       if (status /= NML_OK) then
         log_fatal(*) "Error reading mRM config: ", trim(errmsg)
@@ -169,7 +179,7 @@ contains
     end if
 
     ! check routing case
-    case = self%exchange%parameters%config%processes%routing
+    case = self%exchange%parameters%processes%routing
     select case (case)
       ! case (1_i4)
       !   log_info(*) "mRM routing case 1"
@@ -211,7 +221,7 @@ contains
     ! check if scc_gauges_path is given
     self%scc_active = self%config%is_set("scc_gauges_path", idx=id, errmsg=errmsg) == NML_OK
     ! check routing case
-    const_celerity = (self%exchange%parameters%config%processes%routing == 2_i4)
+    const_celerity = (self%exchange%parameters%processes%routing == 2_i4)
     ! get restart setting
     self%read_restart = self%config%read_restart(id(1))
     self%write_restart = self%config%write_restart(id(1))
@@ -236,13 +246,12 @@ contains
       scope_info(s,*) "Read mRM grid from restart file: ", self%restart_input_path
       call self%level3%from_restart(self%restart_input_path)
     else
-      status = self%config%is_set("resolution", idx=id, errmsg=errmsg)
-      if (status /= NML_OK) then
-        log_fatal(*) "mRM resolution not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
+      if (.not.ieee_is_finite(self%exchange%level3_resolution) .or. self%exchange%level3_resolution <= 0.0_dp) then
+        log_fatal(*) "mRM: level3 resolution not configured (expected from config_resolution/route)."
         error stop 1
       end if
-      scope_info(s,*) "Derive mRM grid from level-0 grid with resolution: ", self%config%resolution(id(1))
-      call self%exchange%level0%gen_grid(self%level3, target_resolution=self%config%resolution(id(1)))
+      scope_info(s,*) "Derive mRM grid from level-0 grid with resolution: ", self%exchange%level3_resolution
+      call self%exchange%level0%gen_grid(self%level3, target_resolution=self%exchange%level3_resolution)
     end if
     ! if (self%level3%has_aux_coords()) call self%level3%estimate_aux_vertices()
     scope_debug(s,*) "level0 ncells", n2s(self%exchange%level0%ncells)
@@ -313,7 +322,7 @@ contains
     id(1) = self%exchange%nml_domain_id
     ! calculate celerity
     gamma = self%exchange%parameters%get_process(8_i4)  ! routing still process 8
-    const_celerity = (self%exchange%parameters%config%processes%routing == 2_i4)
+    const_celerity = (self%exchange%parameters%processes%routing == 2_i4)
 
     if (self%read_restart) then
       scope_info(s,*) "Read routing state from restart file: ", self%restart_input_path

@@ -11,13 +11,8 @@
 #include "logging.h"
 module mo_domain
   use mo_logging
-  use mo_list, only: list
   use mo_kind, only: i4, dp
   use mo_exchange_type, only: exchange_t
-  use mo_string_utils, only: n2s=>num2str
-  use mo_datetime, only: datetime, timedelta
-  ! config
-  use mo_main_config, only: parameters_t
   ! containers
   use mo_input_container, only: input_t
   use mo_meteo_container, only: meteo_t
@@ -27,7 +22,7 @@ module mo_domain
 
   !> \class   domain_t
   !> \brief   Class for a single mHM domain.
-  !> \details Always add the "target" attribute to instances of domain, or use allocated pointers (have implicit target attribute).
+  !> \details Store domain instances with the "target" attribute so components can safely point to their exchange.
   type, public :: domain_t
     type(exchange_t) :: exchange !< the exchange container with all exchanged variables for this domain
     type(input_t) :: input !< the input container providing inputs from file or couplers
@@ -38,6 +33,7 @@ module mo_domain
     logical :: is_finished = .false. !< whether the time-loop on this domain is finished
   contains
     procedure :: init => domain_init
+    procedure :: set_dims => domain_set_dims
     procedure :: configure => domain_configure
     procedure :: connect => domain_connect
     procedure :: initialize => domain_initialize
@@ -45,99 +41,65 @@ module mo_domain
     procedure :: finalize => domain_finalize
   end type domain_t
 
-  !> \class   domain_list
-  !> \brief   Class to hold a list of all domains as a linked list of pointers.
-  type, extends(list) :: domain_list
-    integer(i4) :: counter = 0_i4 !< internal counter for added domains
-  contains
-    procedure :: get_domain => domain_list_get
-    procedure :: add_domain => domain_list_add
-  end type domain_list
-
-  type(domain_list), public :: domains
-  integer(i4), allocatable, public :: selected_domains(:)
-
 contains
 
-  !> \brief Get pointer to desired domain from domain list.
-  subroutine domain_list_get(self, key, domain)
-    class(domain_list), intent(in) :: self
-    integer(i4), intent(in) :: key !< domain key
-    type(domain_t), pointer, intent(out) :: domain !< pointer to desired domain
-    class(*), pointer :: p
-    call self%get(key, p)
-    if (associated(p)) then
-      select type (p)
-        type is (domain_t)
-          domain => p
-        class default
-          log_fatal(*) "Domain '", key, "' not a domain type."
-          error stop
-      end select
-    else
-      log_fatal(*) "Domain '", key, "' not present."
-      error stop
-    end if
-  end subroutine domain_list_get
-
-  !> \brief Add a new domain to the domain list.
-  function domain_list_add(self, key) result(new_key)
-    class(domain_list), intent(inout) :: self
-    integer(i4), optional, intent(in) :: key !< domain key
-    integer(i4) :: new_key !< key of the added domain
-    type(domain_t), save :: new_domain ! template for the new domain to be added (saved to avoid reallocation on each call)
-    self%counter = self%counter + 1_i4
-    if (present(key)) then
-      new_key = key
-    else
-      new_key = self%counter
-    end if
-    call self%add_clone(new_key, new_domain)
-  end function domain_list_add
-
   !> \brief Create a new domain.
-  subroutine domain_init(self, meta_file, main_file, para_file, domain, cwd, run_n_domains, run_n_geo_units, run_max_layers, &
-      read_domains_from_dirs)
-    ! domain is always an item of a domain_list, which stores "allocated pointers" and these implicitly have the "target" attribute
+  subroutine domain_init(self, meta_file, domain, cwd)
     class(domain_t), intent(inout), target :: self ! needs "target" so components can safely point to "exchange"
-    character(*), intent(in), optional :: meta_file !< file containing the metadata namelists
-    character(*), intent(in), optional :: main_file !< file containing the main namelists
-    character(*), intent(in), optional :: para_file !< file containing the parameter namelists
+    character(*), intent(in), optional :: meta_file !< file containing the run metadata namelists
     integer(i4), intent(in), optional :: domain !< domain ID of the current domain in the configuration arrays (1 by default)
     character(len=*), intent(in), optional :: cwd !< current working directory to set relative paths
-    integer(i4), intent(in), optional :: run_n_domains !< total number of domains in the run
-    integer(i4), intent(in), optional :: run_n_geo_units !< total number of geological units in the global parameter set
-    integer(i4), intent(in), optional :: run_max_layers !< maximum number of soil-layer entries in the run
-    logical, intent(in), optional :: read_domains_from_dirs !< whether domains are read from separate directories
     log_info(*) "SETUP NEW DOMAIN"
-    call self%exchange%init(meta_file, main_file, para_file, domain, cwd, run_n_domains, run_n_geo_units, run_max_layers, &
-      read_domains_from_dirs)
+    call self%exchange%init(meta_file=meta_file, domain=domain, cwd=cwd)
     ! set exchange pointer in components
     self%input%exchange => self%exchange
     self%meteo%exchange => self%exchange
     self%mpr%exchange => self%exchange
     self%mhm%exchange => self%exchange
     self%mrm%exchange => self%exchange
+    call self%set_dims()
   end subroutine domain_init
 
+  !> \brief Set runtime dimensions on all generated namelist configs owned by this domain.
+  subroutine domain_set_dims(self)
+    class(domain_t), intent(inout), target :: self
+
+    log_info(*) "SET NAMELIST DIMENSIONS"
+    call self%exchange%set_dims()
+    call self%input%set_dims()
+    call self%meteo%set_dims()
+    call self%mpr%set_dims()
+    call self%mhm%set_dims()
+    call self%mrm%set_dims()
+  end subroutine domain_set_dims
+
   !> \brief Configure the domain.
-  subroutine domain_configure(self, file, out_file)
-    ! domain is always an item of a domain_list, which stores "allocated pointers" and these implicitly have the "target" attribute
+  subroutine domain_configure(self, main_file, para_file, out_file)
     class(domain_t), intent(inout), target :: self ! needs "target" so components can safely point to "exchange"
-    character(*), intent(in), optional :: file !< file containing the namelists
+    character(*), intent(in), optional :: main_file !< file containing the main namelists
+    character(*), intent(in), optional :: para_file !< file containing the parameter namelists
     character(*), intent(in), optional :: out_file !< file containing the output namelists
+    character(:), allocatable :: config_file
+
     log_info(*) "CONFIGURE COMPONENTS"
-    call self%input%configure(file)
-    if (self%exchange%parameters%mhm_active()) call self%mpr%configure(file)
-    if (self%exchange%parameters%meteo_active()) call self%meteo%configure(file)
-    if (self%exchange%parameters%mhm_active()) call self%mhm%configure(file, out_file)
-    if (self%exchange%parameters%mrm_active()) call self%mrm%configure(file, out_file)
+    if (allocated(self%exchange%main_file)) then
+      config_file = self%exchange%main_file
+    else if (present(main_file)) then
+      config_file = self%exchange%get_path(main_file)
+      self%exchange%main_file = config_file
+    end if
+    call self%exchange%configure(para_file=para_file)
+
+    call self%input%configure(config_file)
+    if (self%exchange%parameters%mhm_active()) call self%mpr%configure(config_file)
+    if (self%exchange%parameters%meteo_active()) call self%meteo%configure(config_file)
+    if (self%exchange%parameters%mhm_active()) call self%mhm%configure(config_file, out_file)
+    if (self%exchange%parameters%mrm_active()) call self%mrm%configure(config_file, out_file)
   end subroutine domain_configure
 
   !> \brief Connect the domain components.
   !> \details Check for dependencies and connect exchanged arrays between components after configuration.
   subroutine domain_connect(self)
-    ! domain is always an item of a domain_list, which stores "allocated pointers" and these implicitly have the "target" attribute
     class(domain_t), intent(inout), target :: self ! needs "target" so components can safely point to "exchange"
     log_info(*) "CONNECT COMPONENTS"
     call self%input%connect()
@@ -149,7 +111,6 @@ contains
 
   !> \brief Initialize the domain and do the initial state calculations in the components.
   subroutine domain_initialize(self, parameters)
-    ! domain is always an item of a domain_list, which stores "allocated pointers" and these implicitly have the "target" attribute
     class(domain_t), intent(inout), target :: self
     !> a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
     real(dp), dimension(:), optional, intent(in) :: parameters
@@ -166,7 +127,6 @@ contains
 
   !> \brief Update the domain for the current time step.
   subroutine domain_update(self)
-    ! domain is always an item of a domain_list, which stores "allocated pointers" and these implicitly have the "target" attribute
     class(domain_t), intent(inout), target :: self
     call self%exchange%time%add(self%exchange%step)
     self%exchange%step_count = self%exchange%step_count + 1_i4
@@ -183,7 +143,6 @@ contains
 
   !> \brief Finalize the domain and its components after the simulation.
   subroutine domain_finalize(self)
-    ! domain is always an item of a domain_list, which stores "allocated pointers" and these implicitly have the "target" attribute
     class(domain_t), intent(inout), target :: self
     log_info(*) "FINALIZE COMPONENTS"
     call self%input%finalize()

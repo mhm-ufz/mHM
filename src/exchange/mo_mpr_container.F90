@@ -195,6 +195,7 @@ module mo_mpr_container
     type(mpr_runoff_state_t) :: runoff !< cached runoff/baseflow parameter fields
     type(mpr_preproc_state_t) :: preproc !< resolved preprocessing inputs and derived support fields
   contains
+    procedure :: set_dims   => mpr_set_dims
     procedure :: configure  => mpr_configure
     procedure :: connect    => mpr_connect
     procedure :: initialize => mpr_initialize
@@ -245,6 +246,19 @@ module mo_mpr_container
 
 contains
 
+  !> \brief Set runtime dimensions for generated MPR namelists.
+  subroutine mpr_set_dims(self)
+    class(mpr_t), intent(inout), target :: self
+    character(1024) :: errmsg
+    integer :: status
+
+    status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, max_layers=self%exchange%max_layers, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Error setting MPR config dimensions: ", trim(errmsg)
+      error stop 1
+    end if
+  end subroutine mpr_set_dims
+
   !> \brief Configure the MPR process container.
   subroutine mpr_configure(self, file)
     class(mpr_t), intent(inout), target :: self
@@ -260,11 +274,6 @@ contains
     if (present(file)) then
       path = self%exchange%get_path(file) ! get absolute path relative to cwd
       log_info(*) "Read MPR config: ", path
-      status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, max_layers=self%exchange%max_layers, errmsg=errmsg)
-      if (status /= NML_OK) then
-        log_fatal(*) "Error setting MPR config dimensions: ", trim(errmsg)
-        error stop 1
-      end if
       status = self%config%from_file(file=path, errmsg=errmsg)
       if (status /= NML_OK) then
         log_fatal(*) "Error reading MPR config: ", trim(errmsg)
@@ -1727,7 +1736,7 @@ contains
 
     l1_res = self%exchange%level1_resolution
     if (.not.ieee_is_finite(l1_res) .or. l1_res <= 0.0_dp) then
-      log_fatal(*) "MPR: level1 resolution not configured (expected from config_mhm/resolution)."
+      log_fatal(*) "MPR: level1 resolution not configured (expected from config_resolution/hydro)."
       error stop 1
     end if
 

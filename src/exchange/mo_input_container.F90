@@ -147,6 +147,7 @@ module mo_input_container
     type(input_var_dp) :: runoff !< input variable for runoff
     integer(i4), allocatable :: soil_class_one_layer(:,:) !< adapter for single-layer soil class input
   contains
+    procedure :: set_dims => input_set_dims
     procedure :: configure => input_configure
     procedure :: connect => input_connect
     procedure :: initialize => input_initialize
@@ -624,20 +625,14 @@ contains
   end subroutine input_var2d_i4_reset_time
 
   !> \brief Initialize the input configuration.
-  subroutine input_config_read(self, file, n_domains)
+  subroutine input_config_read(self, file)
     use nml_helper, only: NML_OK
     ! input/output variables
     class(input_config_t), target, intent(inout) :: self
     character(*), intent(in) :: file !< file containing the namelists
-    integer(i4), intent(in) :: n_domains !< runtime domain dimension for generated namelists
     character(1024) :: errmsg
     integer :: status
     log_info(*) "Read input configuration from file: ", trim(file)
-    status = self%input%set_dims(n_domains=n_domains, errmsg=errmsg)
-    if (status /= NML_OK) then
-      log_fatal(*) "Input: Error setting input dimensions: ", trim(errmsg)
-      error stop 1
-    end if
     status = self%input%from_file(file=file, errmsg=errmsg)
     if (status /= NML_OK) then
       log_fatal(*) "Input: Error reading input configuration from file: ", trim(file), ", with error: ", trim(errmsg)
@@ -645,6 +640,24 @@ contains
     end if
     ! TODO: read coupling configuration
   end subroutine input_config_read
+
+  !> \brief Set runtime dimensions for generated input namelists.
+  subroutine input_set_dims(self)
+    class(input_t), target, intent(inout) :: self
+    character(1024) :: errmsg
+    integer :: status
+
+    status = self%config%input%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Input: Error setting input dimensions: ", trim(errmsg)
+      error stop 1
+    end if
+    status = self%config%coupling%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Input: Error setting coupling dimensions: ", trim(errmsg)
+      error stop 1
+    end if
+  end subroutine input_set_dims
 
   !> \brief Configure the Input container.
   !> \details Read configuration from file and initialize input variables.
@@ -657,7 +670,7 @@ contains
     character(1024) :: errmsg
     integer(i4) :: id(1)
     log_info(*) "Configure Input"
-    if (present(file)) call self%config%read(file, self%exchange%nml_n_domains)
+    if (present(file)) call self%config%read(file)
     if (.not.self%config%input%is_configured) then
       log_fatal(*) "Input configuration not set."
       error stop 1
