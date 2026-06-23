@@ -16,7 +16,7 @@ To clone and compile mHM you need at least the following:
 * Fortran compiler: We support [gfortran](https://gcc.gnu.org/fortran/), [nagfor](https://www.nag.com/content/nag-fortran-compiler) and [ifort](https://www.intel.com/content/www/us/en/developer/tools/oneapi/overview.html)
 * Build system: We support [make](https://www.gnu.org/software/make/) and [ninja](https://ninja-build.org/)
 * [cmake](https://cmake.org/): Software for build automation
-* [NetCDF-Fortran](https://github.com/Unidata/netcdf-fortran): NetCDF I/O for Fortran
+* [NetCDF-C](https://github.com/Unidata/netcdf-c): NetCDF I/O
 * [git](https://git-scm.com/): version control system
 * (optional) [fypp](https://github.com/aradi/fypp): Fortran pre-processor written in Python
 
@@ -35,17 +35,22 @@ After you installed all dependencies on your system you can proceed with cloning
 
 1. Ubuntu, Mint and other apt-get based systems with matching repositories:
     ```bash
-    sudo apt-get install git gfortran netcdf-bin libnetcdf-dev libnetcdff-dev cmake
+    sudo apt-get install git gfortran netcdf-bin libnetcdf-dev cmake
     ```
 
 2. Archlinux:
     ```bash
-    sudo pacman -S git gcc-libs netcdf-fortran cmake
+    sudo pacman -S git gcc-fortran netcdf cmake
     ```
 
-3. yum based systems (CentOS, OpenSuse):
+3. dnf/yum based systems (Fedora, CentOS):
     ```bash
-    sudo yum -y install git gcc-gfortran netcdf-fortran cmake
+    sudo yum -y install git gcc-gfortran netcdf-devel cmake
+    ```
+
+4. openSUSE:
+    ```bash
+    sudo zypper install git gcc-fortran netcdf-devel cmake
     ```
 
 ### Windows
@@ -73,7 +78,7 @@ created by Mehmet Cüneyd Demirel (Istanbul Technical University) or see the sep
 ### Module systems
 
 If you are on a module system, load the modules gcc or intel depending on your
-favorite compiler. Then, load the modules netcdf-fortran and cmake.
+favorite compiler. Then, load the modules netcdf-c and cmake.
 
 These modules will have system specific names, environments, etc.
 You may use `module spider` to find the right packages and the
@@ -110,7 +115,7 @@ To create a (local) conda environment with all dependencies type the following:
 ```bash
 conda create -y --prefix ./fortran_env
 conda activate ./fortran_env
-conda install -y git cmake make fortran-compiler netcdf-fortran
+conda install -y git cmake make fortran-compiler c-compiler libnetcdf
 ```
 
 Then you can proceed with cloning and compiling.
@@ -280,15 +285,14 @@ bash CI-scripts/install-deps
 ```
 
 This will install [zlib-ng](https://github.com/zlib-ng/zlib-ng), [HDF5](https://github.com/HDFGroup/hdf5),
-[NetCDF-C](https://github.com/Unidata/netcdf-c) and [NetCDF-Fortran](https://github.com/Unidata/netcdf-fortran)
-to `"/opt/local"`.
+and [NetCDF-C](https://github.com/Unidata/netcdf-c) to `"/opt/local"`.
 
 You can provide command line arguments to control the installation:
 - `-s`/`--sudo`: use sudo to install
 - `-c`/`--config`: run `ldconfig` after installation
 - `-p <path>`/`--path <path>`: installation path (`"/opt/local"` by default)
 
-If you want a special location for your installation, you have to tell `cmake` then, where to find NetCDF-Fortran by setting `NetCDF_ROOT`.
+If you want a special location for your installation, you have to tell `cmake` then, where to find NetCDF-C by setting `NetCDF_ROOT`.
 For example:
 ```bash
 bash CI-scripts/install-deps -p ~/.mhm_deps

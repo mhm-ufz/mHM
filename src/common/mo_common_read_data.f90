@@ -54,7 +54,7 @@ CONTAINS
     implicit none
 
     ! loop variables
-    integer(i4) :: domainID, iDomain
+    integer(i4) :: domainID, iDomain, nDemCells
 
     ! file name of file to read
     character(256) :: fName
@@ -109,14 +109,19 @@ CONTAINS
               level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
               level0_iDomain%yllcorner, level0_iDomain%cellsize, data_dp_2d, level0_iDomain%mask)
 
+      level0_iDomain%nCells = count(level0_iDomain%mask)
+      if (level0_iDomain%nCells .eq. 0_i4) then
+        nDemCells = level0_iDomain%nrows * level0_iDomain%ncols
+        call error_message('***ERROR: Domain ', trim(adjustl(num2str(domainID))), &
+                ' contains no valid cells. All ', trim(adjustl(num2str(nDemCells))), ' cells in the dem are masked')
+      end if
+
       ! put global nodata value into array (probably not all grid cells have values)
       data_dp_2d = merge(data_dp_2d, nodata_dp, level0_iDomain%mask)
       ! put data in variable
       call append(L0_elev, pack(data_dp_2d, level0_iDomain%mask))
       ! deallocate arrays
       deallocate(data_dp_2d)
-
-      level0_iDomain%nCells = count(level0_iDomain%mask)
 
     end do
 

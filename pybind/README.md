@@ -28,14 +28,14 @@ In order to compile the Python bindings from scratch you need:
     export CC="gcc"
     export CXX="g++"
     ```
-3. [NetCDF-Fortran](https://github.com/Unidata/netcdf-fortran) installed in your system path
+3. [NetCDF-C](https://github.com/Unidata/netcdf-c) installed in your system path
 
 See the [Compilation](../doc/INSTALL.md) instructions for these dependencies.
 
 You can also use a conda environment (set up with [miniforge](https://mhm-ufz.org/guides/install-unix/) for example)
 to get everything:
 ```bash
-conda install -y pip netcdf-fortran fortran-compiler c-compiler cxx-compiler
+conda install -y pip libnetcdf fortran-compiler c-compiler cxx-compiler
 ```
 
 To compile everything after cloning/downloading, you can use pip:
