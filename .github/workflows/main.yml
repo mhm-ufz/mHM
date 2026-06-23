@@ -100,8 +100,10 @@ jobs:
           path: ./dist-wheel-${{ matrix.cfg.os }}-${{ matrix.cfg.arch }}/*.whl
 
   build_wheels_windows:
-    name: wheels for windows-latest / AMD64
-    runs-on: windows-latest
+    name: wheels for windows-2022 / AMD64
+    # windows-latest currently resolves to windows-2025, where setup-fortran
+    # does not reliably initialize Intel oneAPI/VS for CMake wheel builds.
+    runs-on: windows-2022
 
     steps:
       - uses: actions/checkout@v4
