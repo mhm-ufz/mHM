@@ -8,6 +8,7 @@
 - add objective functions 35 to 47 for spatial-pattern evaluation using SPAEF, pattern dissimilarity, and snow-presence classification accuracy, including combinations with discharge ([!203](https://git.ufz.de/mhm/mhm/-/merge_requests/203))
 - add Windows wheels for the Python package ([!219](https://git.ufz.de/mhm/mhm/-/merge_requests/219))
 - support running the installed Python package with `python -m mhm` ([!221](https://git.ufz.de/mhm/mhm/-/merge_requests/221))
+- clear error message for empty DEM mask ([!221](https://git.ufz.de/mhm/mhm/-/merge_requests/221))
 
 ### Changes
 - modernize the CMake build and extend compiler and CI support ([!215](https://git.ufz.de/mhm/mhm/-/merge_requests/215), [!219](https://git.ufz.de/mhm/mhm/-/merge_requests/219))
