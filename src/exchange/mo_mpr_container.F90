@@ -439,7 +439,7 @@ contains
 
     if (self%read_restart) then
       call self%read_restart_data()
-      call self%update_exchange_slices(force=.true.)
+      call self%update_exchange_slices(force=.true., time=self%exchange%start_time)
       return
     end if
 
@@ -566,7 +566,7 @@ contains
     call self%init_soil_horizon_bounds()
     ! Build all MPR caches before the first timestep so update only switches pointers.
     call self%init_temporal_cache()
-    call self%update_exchange_slices(force=.true.)
+    call self%update_exchange_slices(force=.true., time=self%exchange%start_time)
   end subroutine mpr_connect
 
   !> \brief Create an MPR restart file.
@@ -2764,16 +2764,23 @@ contains
     end if
   end subroutine mpr_init_runoff_cache
 
-  !> \brief Switch exchange pointers to active cached MPR slices for current model time.
-  subroutine mpr_update_exchange_slices(self, force)
+  !> \brief Switch exchange pointers to active cached MPR slices for a model time.
+  subroutine mpr_update_exchange_slices(self, force, time)
     class(mpr_t), intent(inout), target :: self
     logical, optional, intent(in) :: force
+    type(datetime), optional, intent(in) :: time
+    type(datetime) :: active_time
     logical :: force_
     logical :: need_lai_slice
     integer(i4) :: lai_idx
     integer(i4) :: land_cover_idx
 
     force_ = optval(force, .false.)
+    if (present(time)) then
+      active_time = time
+    else
+      active_time = self%exchange%time
+    end if
 
     if (allocated(self%soil%horizon_bounds)) then
       self%exchange%soil_horizon_bounds => self%soil%horizon_bounds
@@ -2805,11 +2812,11 @@ contains
       allocated(self%pet%pet_coeff_pt_cache) .or. allocated(self%pet%pet_fac_lai_cache) .or. &
       allocated(self%pet%resist_aero_cache) .or. allocated(self%pet%resist_surf_cache)
     if (need_lai_slice) then
-      lai_idx = self%lai_index_for_time()
+      lai_idx = self%lai_index_for_time(active_time)
     else
       lai_idx = 1_i4
     end if
-    land_cover_idx = self%land_cover_index_for_time()
+    land_cover_idx = self%land_cover_index_for_time(active_time)
     if (lai_idx < 1_i4 .or. lai_idx > self%lai%n_periods) then
       log_fatal(*) "MPR: LAI index out of bounds: ", n2s(lai_idx), " not in [1,", n2s(self%lai%n_periods), "]."
       error stop 1
@@ -2896,9 +2903,10 @@ contains
     log_trace(*) "MPR: active cache slice lai=", n2s(lai_idx), ", land_cover=", n2s(land_cover_idx)
   end subroutine mpr_update_exchange_slices
 
-  !> \brief Resolve active LAI period index from current exchange time.
-  integer(i4) function mpr_lai_index_for_time(self) result(lai_idx)
+  !> \brief Resolve active LAI period index from a model time.
+  integer(i4) function mpr_lai_index_for_time(self, time) result(lai_idx)
     class(mpr_t), intent(inout), target :: self
+    type(datetime), intent(in) :: time
     integer(i4) :: id(1)
 
     id(1) = self%exchange%nml_domain_id
@@ -2922,7 +2930,7 @@ contains
           log_fatal(*) "MPR: cyclic monthly LAI expects 12 cached periods, but nLAI=", n2s(self%lai%n_periods), "."
           error stop 1
         end if
-        lai_idx = self%exchange%time%month
+        lai_idx = time%month
       case (-3_i4:-1_i4)
         if (.not.self%lai%dated) then
           log_fatal(*) "MPR: dated LAI mode requires cached LAI period bounds."
@@ -2932,23 +2940,24 @@ contains
           log_fatal(*) "MPR: dated LAI period bounds are not cached."
           error stop 1
         end if
-        if (self%exchange%time < self%lai%period_start(1)) then
-          log_fatal(*) "MPR: current time ", self%exchange%time%str(), &
+        if (time < self%lai%period_start(1)) then
+          log_fatal(*) "MPR: current time ", time%str(), &
             " is before the first cached LAI period start ", self%lai%period_start(1)%str(), "."
           error stop 1
         end if
         lai_idx = max(1_i4, self%lai%active_idx)
         do while (lai_idx < self%lai%n_periods)
-          if (self%exchange%time < self%lai%period_end(lai_idx)) exit
+          if (time < self%lai%period_end(lai_idx)) exit
           lai_idx = lai_idx + 1_i4
         end do
     end select
     lai_idx = max(1_i4, min(lai_idx, self%lai%n_periods))
   end function mpr_lai_index_for_time
 
-  !> \brief Resolve active land-cover period index from current exchange time.
-  integer(i4) function mpr_land_cover_index_for_time(self) result(land_cover_idx)
+  !> \brief Resolve active land-cover period index from a model time.
+  integer(i4) function mpr_land_cover_index_for_time(self, time) result(land_cover_idx)
     class(mpr_t), intent(inout), target :: self
+    type(datetime), intent(in) :: time
 
     if (self%land_cover%n_periods < 1_i4) then
       log_fatal(*) "MPR: n_land_cover_periods must be >= 1."
@@ -2966,14 +2975,14 @@ contains
       log_fatal(*) "MPR: temporal land-cover end times are not cached."
       error stop 1
     end if
-    if (self%exchange%time < self%land_cover%period_start(1)) then
-      log_fatal(*) "MPR: current time ", self%exchange%time%str(), &
+    if (time < self%land_cover%period_start(1)) then
+      log_fatal(*) "MPR: current time ", time%str(), &
         " is before the first cached land-cover period start ", self%land_cover%period_start(1)%str(), "."
       error stop 1
     end if
     land_cover_idx = max(1_i4, self%land_cover%active_idx)
     do while (land_cover_idx < self%land_cover%n_periods)
-      if (self%exchange%time <= self%land_cover%period_end(land_cover_idx)) exit
+      if (time <= self%land_cover%period_end(land_cover_idx)) exit
       land_cover_idx = land_cover_idx + 1_i4
     end do
   end function mpr_land_cover_index_for_time
