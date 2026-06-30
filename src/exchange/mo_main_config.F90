@@ -96,7 +96,6 @@ module mo_main_config
     integer(i4) :: nGeoUnits = 25_i4 !< Number of geological formations
   contains
     procedure :: set_dims => parameters_set_dims
-    procedure :: init => parameters_init
     procedure :: configure => parameters_configure
     procedure :: initialize => parameters_initialize
     procedure :: set => parameters_set
@@ -332,18 +331,24 @@ contains
 
   end subroutine parameter_config_read_parameter
 
-  !> \brief Initialize process switches from the run metadata file or preconfigured objects.
-  subroutine parameters_init(self, meta_file)
+  !> \brief Configure process switches and process parameters.
+  subroutine parameters_configure(self, meta_file, para_file, root)
+    use mo_os, only: path_join, path_normpath
     class(parameters_t), intent(inout) :: self
     character(*), intent(in), optional :: meta_file !< file containing the processes namelists
+    character(*), intent(in), optional :: para_file !< file containing the parameter namelists
+    character(*), intent(in) :: root !< root directory for relative file paths
     character(1024) :: errmsg
+    character(:), allocatable :: path
     integer :: status
+    log_info(*) "Configure parameters"
 
     if (present(meta_file)) then
-      log_info(*) "Read config processes: ", meta_file
-      status = self%config%processes%from_file(file=meta_file, errmsg=errmsg)
+      path = path_normpath(path_join(root, meta_file))
+      log_info(*) "Read config processes: ", path
+      status = self%config%processes%from_file(file=path, errmsg=errmsg)
       if (status /= NML_OK) then
-        log_fatal(*) "Error reading processes from: ", meta_file, ", with error: ", trim(errmsg)
+        log_fatal(*) "Error reading processes from: ", path, ", with error: ", trim(errmsg)
         error stop 1
       end if
     end if
@@ -356,21 +361,11 @@ contains
       log_fatal(*) "Processes configuration not valid: ", trim(errmsg)
       error stop
     end if
-  end subroutine parameters_init
 
-  !> \brief Configure process parameters.
-  subroutine parameters_configure(self, para_file)
-    class(parameters_t), intent(inout) :: self
-    character(*), intent(in), optional :: para_file !< file containing the parameter namelists
-    character(1024) :: errmsg
-    integer :: status
-    log_info(*) "Configure parameters"
-    if (.not.self%config%processes%is_configured) then
-      log_fatal(*) "Processes configuration not set."
-      error stop 1
+    if (present(para_file)) then
+      path = path_normpath(path_join(root, para_file))
+      call self%config%read_parameter(file=path, processes=self%config%processes)
     end if
-
-    if (present(para_file)) call self%config%read_parameter(file=para_file, processes=self%config%processes)
     select case (self%config%processes%interception)
       case (1_i4)
         if (.not.self%config%interception1%is_configured) then

@@ -20,7 +20,7 @@ program driver
   !$ integer(i4) :: n_threads
   logical :: openmp_enabled = .false.
   integer :: unit
-  integer(i4) :: n_domains, i, id
+  integer(i4) :: n_domains, i
   character(len=*), parameter :: separator = repeat("-", 72)
   type(domain_t), allocatable, target :: domains(:)
   ! command line interface parser
@@ -83,19 +83,18 @@ program driver
   nml_file = standard_path(cwd=cwd, file=parser%option_value("nml"))
   para_file = standard_path(cwd=cwd, file=parser%option_value("parameter"))
   out_file  = standard_path(cwd=cwd, file=parser%option_value("output"))
-  log_info(*) "READ MAIN NAMELIST: ", nml_file
-  n_domains = get_n_domains(nml_file)
-  allocate(domains(n_domains))
 
-  log_info(*) "CREATE DOMAINS: ", n_domains
+  ! get number of domains
+  n_domains = get_n_domains(nml_file)
+  log_info(*) "ALLOCATE DOMAINS: ", n_domains
+  allocate(domains(n_domains))
 
   ! read configs
   do i = 1_i4, size(domains)
-    id = i
     log_text(*) separator
-    log_info(*) "CONFIGURE DOMAIN: ", id
+    log_info(*) "DOMAIN: ", i
     ! create new domain and its exchange
-    call domains(i)%init(meta_file=nml_file, domain=id, cwd=cwd)
+    call domains(i)%create(meta_file=nml_file, domain=i, cwd=cwd)
     ! configure domain components
     log_text(*) separator
     call domains(i)%configure(main_file=nml_file, para_file=para_file, out_file=out_file)
@@ -106,9 +105,8 @@ program driver
 
   ! simple run
   do i = 1_i4, size(domains)
-    id = i
     log_text(*) separator
-    log_info(*) "RUN DOMAIN: ", id
+    log_info(*) "RUN DOMAIN: ", i
     call domains(i)%initialize()
     log_text(*) separator
     log_info(*) "RUN TIME LOOP"

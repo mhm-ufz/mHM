@@ -32,7 +32,7 @@ module mo_domain
     type(mrm_t) :: mrm !< the mRM process container for routing related processes
     logical :: is_finished = .false. !< whether the time-loop on this domain is finished
   contains
-    procedure :: init => domain_init
+    procedure :: create => domain_create
     procedure :: set_dims => domain_set_dims
     procedure :: configure => domain_configure
     procedure :: connect => domain_connect
@@ -44,13 +44,13 @@ module mo_domain
 contains
 
   !> \brief Create a new domain.
-  subroutine domain_init(self, meta_file, domain, cwd)
+  subroutine domain_create(self, meta_file, domain, cwd)
     class(domain_t), intent(inout), target :: self ! needs "target" so components can safely point to "exchange"
     character(*), intent(in), optional :: meta_file !< file containing the run metadata namelists
     integer(i4), intent(in), optional :: domain !< domain ID of the current domain in the configuration arrays (1 by default)
     character(len=*), intent(in), optional :: cwd !< current working directory to set relative paths
-    log_info(*) "SETUP NEW DOMAIN"
-    call self%exchange%init(meta_file=meta_file, domain=domain, cwd=cwd)
+    log_info(*) "CREATE DOMAIN"
+    call self%exchange%create(meta_file=meta_file, domain=domain, cwd=cwd)
     ! set exchange pointer in components
     self%input%exchange => self%exchange
     self%meteo%exchange => self%exchange
@@ -58,7 +58,7 @@ contains
     self%mhm%exchange => self%exchange
     self%mrm%exchange => self%exchange
     call self%set_dims()
-  end subroutine domain_init
+  end subroutine domain_create
 
   !> \brief Set runtime dimensions on all generated namelist configs owned by this domain.
   subroutine domain_set_dims(self)
@@ -79,26 +79,24 @@ contains
     character(*), intent(in), optional :: main_file !< file containing the main namelists
     character(*), intent(in), optional :: para_file !< file containing the parameter namelists
     character(*), intent(in), optional :: out_file !< file containing the output namelists
-    character(:), allocatable :: config_file
+    character(:), allocatable :: domain_main_file
 
     log_info(*) "CONFIGURE COMPONENTS"
+    call self%exchange%configure(main_file=main_file, para_file=para_file)
     if (self%exchange%from_dirs) then
-      if (.not.allocated(self%exchange%main_file)) then
-        log_fatal(*) "Domain main namelist was not derived from config_domain."
-        error stop 1
-      end if
-      config_file = self%exchange%main_file
-    else if (present(main_file)) then
-      config_file = self%exchange%get_path(main_file)
-      self%exchange%main_file = config_file
+      domain_main_file = trim(self%exchange%config%domain%domain_nmls(self%exchange%domain_id))
+      call self%input%configure(domain_main_file)
+      if (self%exchange%parameters%mhm_active()) call self%mpr%configure(domain_main_file)
+      if (self%exchange%parameters%meteo_active()) call self%meteo%configure(domain_main_file)
+      if (self%exchange%parameters%mhm_active()) call self%mhm%configure(domain_main_file, out_file)
+      if (self%exchange%parameters%mrm_active()) call self%mrm%configure(domain_main_file, out_file)
+    else
+      call self%input%configure(main_file)
+      if (self%exchange%parameters%mhm_active()) call self%mpr%configure(main_file)
+      if (self%exchange%parameters%meteo_active()) call self%meteo%configure(main_file)
+      if (self%exchange%parameters%mhm_active()) call self%mhm%configure(main_file, out_file)
+      if (self%exchange%parameters%mrm_active()) call self%mrm%configure(main_file, out_file)
     end if
-    call self%exchange%configure(para_file=para_file)
-
-    call self%input%configure(config_file)
-    if (self%exchange%parameters%mhm_active()) call self%mpr%configure(config_file)
-    if (self%exchange%parameters%meteo_active()) call self%meteo%configure(config_file)
-    if (self%exchange%parameters%mhm_active()) call self%mhm%configure(config_file, out_file)
-    if (self%exchange%parameters%mrm_active()) call self%mrm%configure(config_file, out_file)
   end subroutine domain_configure
 
   !> \brief Connect the domain components.
