@@ -668,9 +668,13 @@ contains
     character(*), intent(in), optional :: file !< file containing the namelists
     integer :: status
     character(1024) :: errmsg
+    character(:), allocatable :: path
     integer(i4) :: id(1)
     log_info(*) "Configure Input"
-    if (present(file)) call self%config%read(file)
+    if (present(file)) then
+      path = self%exchange%get_path(file)
+      call self%config%read(path)
+    end if
     if (.not.self%config%input%is_configured) then
       log_fatal(*) "Input configuration not set."
       error stop 1
