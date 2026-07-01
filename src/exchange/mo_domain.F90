@@ -44,13 +44,13 @@ module mo_domain
 contains
 
   !> \brief Create a new domain.
-  subroutine domain_create(self, meta_file, domain, cwd)
+  subroutine domain_create(self, main_file, domain, cwd)
     class(domain_t), intent(inout), target :: self ! needs "target" so components can safely point to "exchange"
-    character(*), intent(in), optional :: meta_file !< file containing the run metadata namelists
+    character(*), intent(in), optional :: main_file !< file containing the main namelists
     integer(i4), intent(in), optional :: domain !< domain ID of the current domain in the configuration arrays (1 by default)
     character(len=*), intent(in), optional :: cwd !< current working directory to set relative paths
     log_info(*) "CREATE DOMAIN"
-    call self%exchange%create(meta_file=meta_file, domain=domain, cwd=cwd)
+    call self%exchange%create(main_file=main_file, domain=domain, cwd=cwd)
     ! set exchange pointer in components
     self%input%exchange => self%exchange
     self%meteo%exchange => self%exchange

@@ -139,8 +139,9 @@ contains
     ! output
     self%output_active = .true.
     if (present(out_file)) then
-      log_info(*) "Read mRM output config: ", out_file ! out file is already absolute path
-      status = self%output_config%from_file(file=out_file, errmsg=errmsg)
+      path = self%exchange%get_path(out_file, root=.true.)
+      log_info(*) "Read mRM output config: ", path
+      status = self%output_config%from_file(file=path, errmsg=errmsg)
       if (status /= NML_OK) then
         self%output_active = .false.
         log_warn(*) "mRM output disabled, config not found: ", trim(errmsg)

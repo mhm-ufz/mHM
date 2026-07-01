@@ -248,8 +248,9 @@ contains
 
     self%io%output_active = .true.
     if (present(out_file)) then
-      log_info(*) "Read mHM output config: ", out_file
-      status = self%output_config%from_file(file=out_file, errmsg=errmsg)
+      path = self%exchange%get_path(out_file, root=.true.)
+      log_info(*) "Read mHM output config: ", path
+      status = self%output_config%from_file(file=path, errmsg=errmsg)
       if (status /= NML_OK) then
         self%io%output_active = .false.
         log_warn(*) "mHM output disabled, config not found: ", trim(errmsg)

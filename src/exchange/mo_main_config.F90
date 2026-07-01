@@ -332,10 +332,10 @@ contains
   end subroutine parameter_config_read_parameter
 
   !> \brief Configure process switches and process parameters.
-  subroutine parameters_configure(self, meta_file, para_file, root)
+  subroutine parameters_configure(self, main_file, para_file, root)
     use mo_os, only: path_join, path_normpath
     class(parameters_t), intent(inout) :: self
-    character(*), intent(in), optional :: meta_file !< file containing the processes namelists
+    character(*), intent(in), optional :: main_file !< file containing the processes namelists
     character(*), intent(in), optional :: para_file !< file containing the parameter namelists
     character(*), intent(in) :: root !< root directory for relative file paths
     character(1024) :: errmsg
@@ -343,8 +343,8 @@ contains
     integer :: status
     log_info(*) "Configure parameters"
 
-    if (present(meta_file)) then
-      path = path_normpath(path_join(root, meta_file))
+    if (present(main_file)) then
+      path = path_normpath(path_join(root, main_file))
       log_info(*) "Read config processes: ", path
       status = self%config%processes%from_file(file=path, errmsg=errmsg)
       if (status /= NML_OK) then

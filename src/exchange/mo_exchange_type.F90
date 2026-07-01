@@ -361,15 +361,22 @@ contains
     std_path = path_normpath(path_join(work, path, file))
   end function standard_path
 
-  !> \brief Return the number of domains configured in a meta namelist file.
-  function get_n_domains(main_file) result(n_domains)
+  !> \brief Return the number of domains configured in a main namelist file.
+  function get_n_domains(main_file, cwd) result(n_domains)
     character(*), intent(in) :: main_file !< file containing the main namelist
+    character(len=*), intent(in), optional :: cwd !< root directory for relative main file paths
     integer(i4) :: n_domains !< number of configured domains
     type(nml_config_project_t) :: project
     character(1024) :: errmsg
+    character(:), allocatable :: path
     integer :: status
 
-    status = project%from_file(file=main_file, errmsg=errmsg)
+    if (present(cwd)) then
+      path = standard_path(cwd=cwd, file=main_file)
+    else
+      path = standard_path(file=main_file)
+    end if
+    status = project%from_file(file=path, errmsg=errmsg)
     if (status /= NML_OK) then
       log_fatal(*) "Error reading project config: ", trim(errmsg)
       error stop 1
@@ -383,14 +390,14 @@ contains
   end function get_n_domains
 
   !> \brief Create the exchange type and derive project-level runtime dimensions.
-  subroutine exchange_create(self, meta_file, domain, cwd)
+  subroutine exchange_create(self, main_file, domain, cwd)
     use mo_os, only: path_abspath, check_path_isdir
     class(exchange_t), intent(inout) :: self
-    character(*), intent(in), optional :: meta_file !< file containing the run metadata namelists
+    character(*), intent(in), optional :: main_file !< file containing the main namelists
     integer(i4), intent(in), optional :: domain !< domain ID of the current domain in the configuration arrays (1 by default)
     character(len=*), intent(in), optional :: cwd !< current working directory to set relative paths
     character(1024) :: errmsg
-    character(:), allocatable :: meta_path
+    character(:), allocatable :: main_path
     integer :: status
     log_info(*) "Create exchange."
 
@@ -399,10 +406,10 @@ contains
     if (allocated(self%cwd)) deallocate(self%cwd)
     call check_path_isdir(self%root, raise=.true.)
 
-    if (present(meta_file)) then
-      meta_path = self%get_path(meta_file, root=.true.)
-      log_info(*) "Read project attributes: ", meta_path
-      status = self%config%project%from_file(file=meta_path, errmsg=errmsg)
+    if (present(main_file)) then
+      main_path = self%get_path(main_file, root=.true.)
+      log_info(*) "Read project attributes: ", main_path
+      status = self%config%project%from_file(file=main_path, errmsg=errmsg)
       if (status /= NML_OK) then
         log_fatal(*) "Error reading project config: ", trim(errmsg)
         error stop 1
@@ -685,7 +692,7 @@ contains
 
     ! parameters are created redundantly for each exchange instance
     ! but this simplifies the code structure
-    call self%parameters%configure(meta_file=main_file, para_file=para_file, root=self%root)
+    call self%parameters%configure(main_file=main_file, para_file=para_file, root=self%root)
 
     if (self%from_dirs .or. present(main_file)) then
       log_info(*) "Read resolution config: ", config_file

@@ -15,7 +15,7 @@ program driver
   use mo_mhm_cli, only: set_verbosity_level
   use mo_domain, only: domain_t
   use mo_kind, only: i4
-  use mo_exchange_type, only: standard_path, get_n_domains
+  use mo_exchange_type, only: get_n_domains
   !$ use omp_lib, only: omp_get_num_threads
   !$ integer(i4) :: n_threads
   logical :: openmp_enabled = .false.
@@ -26,7 +26,7 @@ program driver
   ! command line interface parser
   type(cli_parser) :: parser
 
-  character(:), allocatable :: cwd, nml_file, para_file, out_file
+  character(:), allocatable :: cwd, main_file, para_file, out_file
 
   parser = cli_parser(prog="mhm", description="The mesoscale hydrological model - mHM v6", &
     add_logger_options=.true., add_version_option=.true., version="6.0")
@@ -79,13 +79,13 @@ program driver
   cwd = path_abspath(cwd)
   call check_path_isdir(cwd, raise=.true.)
 
-  ! global configs
-  nml_file = standard_path(cwd=cwd, file=parser%option_value("nml"))
-  para_file = standard_path(cwd=cwd, file=parser%option_value("parameter"))
-  out_file  = standard_path(cwd=cwd, file=parser%option_value("output"))
+  ! global config file names; components resolve them against the run root
+  main_file = parser%option_value("nml")
+  para_file = parser%option_value("parameter")
+  out_file  = parser%option_value("output")
 
   ! get number of domains
-  n_domains = get_n_domains(nml_file)
+  n_domains = get_n_domains(main_file=main_file, cwd=cwd)
   log_info(*) "ALLOCATE DOMAINS: ", n_domains
   allocate(domains(n_domains))
 
@@ -94,10 +94,10 @@ program driver
     log_text(*) separator
     log_info(*) "DOMAIN: ", i
     ! create new domain and its exchange
-    call domains(i)%create(meta_file=nml_file, domain=i, cwd=cwd)
+    call domains(i)%create(main_file=main_file, domain=i, cwd=cwd)
     ! configure domain components
     log_text(*) separator
-    call domains(i)%configure(main_file=nml_file, para_file=para_file, out_file=out_file)
+    call domains(i)%configure(main_file=main_file, para_file=para_file, out_file=out_file)
     ! check for connections and dependencies
     log_text(*) separator
     call domains(i)%connect()
