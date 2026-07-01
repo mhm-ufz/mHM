@@ -18,6 +18,8 @@
   mHM_details = "Research unit"
   ! Some details on data/model run version.
   history = "Model run version 1"
+  ! Enable optimization
+  optimize = .false.
   ! Number of domains
   n_domains = 1
   ! Number of geological units
@@ -64,8 +66,6 @@
 
 ! Optimization configuration
 &config_optimize
-  ! Enable optimization
-  optimize = .false.
   ! Restart optimization
   optimize_restart = .false.
   ! Optimization method

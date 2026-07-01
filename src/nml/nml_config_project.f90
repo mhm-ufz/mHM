@@ -43,6 +43,7 @@ module nml_config_project
   character(len=buf), parameter, public :: contact__default = "Developer"
   character(len=buf), parameter, public :: mhm_details__default = "Research unit"
   character(len=buf), parameter, public :: history__default = "Model run version 1"
+  logical, parameter, public :: optimize__default = .false.
   integer(i4), parameter, public :: n_domains__default = 1_i4
   integer(i4), parameter, public :: n_geo_units__default = 25_i4
   integer(i4), parameter, public :: max_layers__default = 10_i4
@@ -63,6 +64,7 @@ module nml_config_project
     character(len=buf) :: contact !< Contact details, incl. PI name, modellers
     character(len=buf) :: mhm_details !< Developing institution
     character(len=buf) :: history !< Some details on data/model run version.
+    logical :: optimize !< Enable optimization
     integer(i4) :: n_domains !< Number of domains
     integer(i4) :: n_geo_units !< Number of geological units
     integer(i4) :: max_layers !< Maximum number of soil layers
@@ -112,6 +114,7 @@ contains
     this%contact = contact__default
     this%mhm_details = mhm_details__default
     this%history = history__default
+    this%optimize = optimize__default ! bool values always need a default
     this%n_domains = n_domains__default
     this%n_geo_units = n_geo_units__default
     this%max_layers = max_layers__default
@@ -132,6 +135,7 @@ contains
     character(len=buf) :: contact
     character(len=buf) :: mhm_details
     character(len=buf) :: history
+    logical :: optimize
     integer(i4) :: n_domains
     integer(i4) :: n_geo_units
     integer(i4) :: max_layers
@@ -150,6 +154,7 @@ contains
       contact, &
       mhm_details, &
       history, &
+      optimize, &
       n_domains, &
       n_geo_units, &
       max_layers, &
@@ -164,6 +169,7 @@ contains
     contact = this%contact
     mhm_details = this%mhm_details
     history = this%history
+    optimize = this%optimize
     n_domains = this%n_domains
     n_geo_units = this%n_geo_units
     max_layers = this%max_layers
@@ -200,6 +206,7 @@ contains
     this%contact = contact
     this%mhm_details = mhm_details
     this%history = history
+    this%optimize = optimize
     this%n_domains = n_domains
     this%n_geo_units = n_geo_units
     this%max_layers = max_layers
@@ -219,6 +226,7 @@ contains
     contact, &
     mhm_details, &
     history, &
+    optimize, &
     n_domains, &
     n_geo_units, &
     max_layers, &
@@ -234,6 +242,7 @@ contains
     character(len=*), intent(in), optional :: contact !< Contact details, incl. PI name, modellers
     character(len=*), intent(in), optional :: mhm_details !< Developing institution
     character(len=*), intent(in), optional :: history !< Some details on data/model run version.
+    logical, intent(in), optional :: optimize !< Enable optimization
     integer(i4), intent(in), optional :: n_domains !< Number of domains
     integer(i4), intent(in), optional :: n_geo_units !< Number of geological units
     integer(i4), intent(in), optional :: max_layers !< Maximum number of soil layers
@@ -251,6 +260,7 @@ contains
     if (present(contact)) this%contact = contact
     if (present(mhm_details)) this%mhm_details = mhm_details
     if (present(history)) this%history = history
+    if (present(optimize)) this%optimize = optimize
     if (present(n_domains)) this%n_domains = n_domains
     if (present(n_geo_units)) this%n_geo_units = n_geo_units
     if (present(max_layers)) this%max_layers = max_layers
@@ -316,6 +326,12 @@ contains
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'history'"
+        return
+      end if
+    case ("optimize")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'optimize'"
         return
       end if
     case ("n_domains")

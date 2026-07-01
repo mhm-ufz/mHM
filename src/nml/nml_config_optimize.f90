@@ -36,7 +36,6 @@ module nml_config_optimize
   implicit none
 
   ! default values
-  logical, parameter, public :: optimize__default = .false.
   logical, parameter, public :: optimize_restart__default = .false.
   integer(i4), parameter, public :: opti_method__default = 1_i4
   integer(i4), parameter, public :: opti_function__default = 10_i4
@@ -56,7 +55,6 @@ module nml_config_optimize
   !> \details Optimization configuration
   type, public :: nml_config_optimize_t
     logical :: is_configured = .false. !< whether the namelist has been configured
-    logical :: optimize !< Enable optimization
     logical :: optimize_restart !< Restart optimization
     integer(i4) :: opti_method !< Optimization method
     integer(i4) :: opti_function !< Objective function to be optimized
@@ -90,7 +88,6 @@ contains
     this%is_configured = .false.
 
     ! default values
-    this%optimize = optimize__default ! bool values always need a default
     this%optimize_restart = optimize_restart__default ! bool values always need a default
     this%opti_method = opti_method__default
     this%opti_function = opti_function__default
@@ -113,7 +110,6 @@ contains
     character(len=*), intent(in) :: file !< path to namelist file
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
-    logical :: optimize
     logical :: optimize_restart
     integer(i4) :: opti_method
     integer(i4) :: opti_function
@@ -134,7 +130,6 @@ contains
     character(len=nml_line_buffer) :: iomsg
 
     namelist /config_optimize/ &
-      optimize, &
       optimize_restart, &
       opti_method, &
       opti_function, &
@@ -151,7 +146,6 @@ contains
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
-    optimize = this%optimize
     optimize_restart = this%optimize_restart
     opti_method = this%opti_method
     opti_function = this%opti_function
@@ -190,7 +184,6 @@ contains
     end if
 
     ! assign values
-    this%optimize = optimize
     this%optimize_restart = optimize_restart
     this%opti_method = opti_method
     this%opti_function = opti_function
@@ -212,7 +205,6 @@ contains
 
   !> \brief Set config_optimize values
   integer function nml_config_optimize_set(this, &
-    optimize, &
     optimize_restart, &
     opti_method, &
     opti_function, &
@@ -230,7 +222,6 @@ contains
 
     class(nml_config_optimize_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
-    logical, intent(in), optional :: optimize !< Enable optimization
     logical, intent(in), optional :: optimize_restart !< Restart optimization
     integer(i4), intent(in), optional :: opti_method !< Optimization method
     integer(i4), intent(in), optional :: opti_function !< Objective function to be optimized
@@ -253,7 +244,6 @@ contains
 
     ! required parameters
     ! override with provided values
-    if (present(optimize)) this%optimize = optimize
     if (present(optimize_restart)) this%optimize_restart = optimize_restart
     if (present(opti_method)) this%opti_method = opti_method
     if (present(opti_function)) this%opti_function = opti_function
@@ -297,12 +287,6 @@ contains
       return
     end if
     select case (to_lower(trim(name)))
-    case ("optimize")
-      if (present(idx)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'optimize'"
-        return
-      end if
     case ("optimize_restart")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX

@@ -40,6 +40,12 @@ properties:
     x-fortran-len: buf
     default: Model run version 1
     title: Some details on data/model run version.
+  optimize:
+    type: boolean
+    default: false
+    title: Enable optimization
+    description: |-
+      Whether to run parameter optimization.
   n_domains:
     type: integer
     x-fortran-kind: i4

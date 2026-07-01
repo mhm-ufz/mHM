@@ -17,6 +17,7 @@ Configuration for the overall project setup in mHM.
 | [contact](#contact) | string | no | Contact details, incl. PI name, modellers |
 | [mHM_details](#mhm_details) | string | no | Developing institution |
 | [history](#history) | string | no | Some details on data/model run version. |
+| [optimize](#optimize) | logical | no | Enable optimization |
 | [n_domains](#n_domains) | integer | no | Number of domains |
 | [n_geo_units](#n_geo_units) | integer | no | Number of geological units |
 | [max_layers](#max_layers) | integer | no | Maximum number of soil layers |
@@ -89,6 +90,17 @@ Summary:
 - Required: no
 - Default: `"Model run version 1"`
 
+### optimize
+
+Enable optimization `optimize`
+
+Whether to run parameter optimization.
+
+Summary:
+- Type: `logical`
+- Required: no
+- Default: `.false.`
+
 ### n_domains
 
 Number of domains `n_domains`
@@ -146,6 +158,7 @@ Summary:
   contact = "Developer"
   mHM_details = "Research unit"
   history = "Model run version 1"
+  optimize = .false.
   n_domains = 1
   n_geo_units = 25
   max_layers = 10
