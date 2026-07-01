@@ -7,9 +7,9 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Soil moisture data path
     description: |-
       Path to soil moisture input data.
@@ -18,9 +18,9 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Neutron data path
     description: |-
       Path to neutron input data.
@@ -29,9 +29,9 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Evapotranspiration data path
     description: |-
       Path to evapotranspiration input data.
@@ -40,9 +40,9 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Domain average TWS path
     description: |-
       Path to total water storage input data.
@@ -52,8 +52,7 @@ properties:
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Baseflow index per domain
     description: |-
       Baseflow index per domain. Only needed if not calculated (BFI_calc = .false.).

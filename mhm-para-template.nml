@@ -1,3 +1,7 @@
+! Parameter configuration
+!
+! Process parameter namelists for mHM.
+
 ! Interception - Case 1
 &interception1
   ! Multiplier to relate LAI to interception storage

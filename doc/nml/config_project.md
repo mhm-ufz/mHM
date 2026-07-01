@@ -17,10 +17,11 @@ Configuration for the overall project setup in mHM.
 | [contact](#contact) | string | no | Contact details, incl. PI name, modellers |
 | [mHM_details](#mhm_details) | string | no | Developing institution |
 | [history](#history) | string | no | Some details on data/model run version. |
+| [optimize](#optimize) | logical | no | Enable optimization |
 | [n_domains](#n_domains) | integer | no | Number of domains |
+| [n_geo_units](#n_geo_units) | integer | no | Number of geological units |
+| [max_layers](#max_layers) | integer | no | Maximum number of soil layers |
 | [read_domains_from_dirs](#read_domains_from_dirs) | logical | no | Flag for separate domains |
-| [domain_dirs](#domain_dirs) | string array | no | Domain directories |
-| [domain_nmls](#domain_nmls) | string array | no | Domain namelists |
 
 ## Field details
 
@@ -89,6 +90,17 @@ Summary:
 - Required: no
 - Default: `"Model run version 1"`
 
+### optimize
+
+Enable optimization `optimize`
+
+Whether to run parameter optimization.
+
+Summary:
+- Type: `logical`
+- Required: no
+- Default: `.false.`
+
 ### n_domains
 
 Number of domains `n_domains`
@@ -100,40 +112,40 @@ Summary:
 - Required: no
 - Default: `1`
 
+### n_geo_units
+
+Number of geological units `n_geo_units`
+
+Number of geological units in the global parameter set.
+
+Summary:
+- Type: `integer(i4)`
+- Required: no
+- Default: `25`
+
+### max_layers
+
+Maximum number of soil layers `max_layers`
+
+Maximum number of soil-layer entries stored per domain in this namelist file.
+
+Summary:
+- Type: `integer(i4)`
+- Required: no
+- Default: `10`
+- Minimum: `>= 1`
+
 ### read_domains_from_dirs
 
 Flag for separate domains `read_domains_from_dirs`
 
 Read domain configurations from namelists in separate directories.
-Only "config_project", "config_processes" and "config_optimize" are read from this file then.
+Only "config_project", "config_domain", "config_processes" and "config_optimize" are read from this file then.
 
 Summary:
 - Type: `logical`
 - Required: no
 - Default: `.false.`
-
-### domain_dirs
-
-Domain directories `domain_dirs`
-
-Paths to be included in the simulation
-
-Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
-- Required: no
-
-### domain_nmls
-
-Domain namelists `domain_nmls`
-
-Paths to domain-specific namelists when "read_domains_from_dirs" is true.
-The path will be interpreted as relative to the given domain directory.
-
-Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Required: no
-- Default: `"mhm.nml"`
 
 ## Example
 
@@ -146,10 +158,11 @@ Summary:
   contact = "Developer"
   mHM_details = "Research unit"
   history = "Model run version 1"
+  optimize = .false.
   n_domains = 1
+  n_geo_units = 25
+  max_layers = 10
   read_domains_from_dirs = .false.
-  domain_dirs(:) = ""
-  domain_nmls(:) = "mhm.nml"
 /
 ```
 

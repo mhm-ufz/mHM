@@ -1,5 +1,6 @@
 &config_project
   n_domains      = 1
+  n_geo_units      = 10
 /
 
 &config_processes
@@ -12,6 +13,11 @@
   sim_end(1)     = "1990-06" ! "1990-06-01 00:00"
 /
 
+
+&config_resolution
+  route(1)  = 6000.0
+/
+
 &config_input
   runoff_path(1) = "examples/fixtures/runoff.nc"
   runoff_var(1)  = "Q"
@@ -20,7 +26,6 @@
 /
 
 &config_mrm
-  resolution(1)  = 6000.0
   max_route_step(1) = 3600 ! [s] truncate routing steps to 1 hour
   output_path(1) = "mrm_output.nc"
   ! output_node_path(1) = "mrm_output_node.nc"

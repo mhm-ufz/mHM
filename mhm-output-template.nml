@@ -1,3 +1,7 @@
+! Output configuration
+!
+! Output namelists for mHM and mRM.
+
 ! mHM output configuration
 &output_mhm
   ! Output deflate level

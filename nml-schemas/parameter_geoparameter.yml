@@ -9,10 +9,9 @@ properties:
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: [5, max_geo_units]
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: [5, n_geo_units]
     description: |-
-      Geological parameters (ordering according to class-definition file)
+      Global geological parameters addressed by the first column of each domain geology class-definition file.
       These parameters are NOT REGIONALIZED yet, i.e. these are <beta> and not <gamma>
     examples: [[1.000, 1000.00, 100.0, 1, 1]]
 required:

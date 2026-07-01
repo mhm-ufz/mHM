@@ -3,9 +3,9 @@
 
 !> \brief Observations configuration
 !> \details Configuration for observation input data in mHM.
-!> \version 0.1
+!> \version 0.2
 !> \authors Sebastian Mueller
-!> \date    Jan 2026
+!> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_namelists
@@ -28,9 +28,8 @@ module nml_config_observations
     NML_ERR_INVALID_INDEX, &
     idx_check, &
     to_lower, &
-    max_domains, &
-    buf, &
-    NML_ERR_PARTLY_SET
+    n_domains__default, &
+    buf
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
@@ -44,21 +43,22 @@ module nml_config_observations
   !> \details Configuration for observation input data in mHM.
   type, public :: nml_config_observations_t
     logical :: is_configured = .false. !< whether the namelist has been configured
-    character(len=buf), dimension(max_domains) :: sm_path !< Soil moisture data path
-    character(len=buf), dimension(max_domains) :: neutrons_path !< Neutron data path
-    character(len=buf), dimension(max_domains) :: et_path !< Evapotranspiration data path
-    character(len=buf), dimension(max_domains) :: tws_path !< Domain average TWS path
-    real(dp), dimension(max_domains) :: bfi_obs !< Baseflow index per domain
+    integer :: n_domains = n_domains__default !< runtime dimension for n_domains
+    character(len=buf), allocatable, dimension(:) :: sm_path !< Soil moisture data path
+    character(len=buf), allocatable, dimension(:) :: neutrons_path !< Neutron data path
+    character(len=buf), allocatable, dimension(:) :: et_path !< Evapotranspiration data path
+    character(len=buf), allocatable, dimension(:) :: tws_path !< Domain average TWS path
+    real(dp), allocatable, dimension(:) :: bfi_obs !< Baseflow index per domain
     integer(i4) :: sm_horizons !< Number of mHM soil moisture horizons
     integer(i4) :: sm_time_step !< Time step of soil moisture
     integer(i4) :: et_time_step !< Time step of evapotranspiration
     integer(i4) :: tws_time_step !< Time step of total water storage
   contains
     procedure :: init => nml_config_observations_init
+    procedure :: set_dims => nml_config_observations_set_dims
     procedure :: from_file => nml_config_observations_from_file
     procedure :: set => nml_config_observations_set
     procedure :: is_set => nml_config_observations_is_set
-    procedure :: filled_shape => nml_config_observations_filled_shape
     procedure :: is_valid => nml_config_observations_is_valid
   end type nml_config_observations_t
 
@@ -66,18 +66,30 @@ contains
 
   !> \brief Initialize defaults and sentinels for config_observations
   integer function nml_config_observations_init(this, errmsg) result(status)
-    class(nml_config_observations_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_config_observations_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
     this%is_configured = .false.
 
+    ! allocate runtime-sized fields
+    if (allocated(this%sm_path)) deallocate(this%sm_path)
+    allocate(character(len=buf) :: this%sm_path(this%n_domains))
+    if (allocated(this%neutrons_path)) deallocate(this%neutrons_path)
+    allocate(character(len=buf) :: this%neutrons_path(this%n_domains))
+    if (allocated(this%et_path)) deallocate(this%et_path)
+    allocate(character(len=buf) :: this%et_path(this%n_domains))
+    if (allocated(this%tws_path)) deallocate(this%tws_path)
+    allocate(character(len=buf) :: this%tws_path(this%n_domains))
+    if (allocated(this%bfi_obs)) deallocate(this%bfi_obs)
+    allocate(this%bfi_obs(this%n_domains))
+
     ! sentinel values for required/optional parameters
-    this%sm_path = repeat(achar(0), len(this%sm_path)) ! sentinel for optional string array
-    this%neutrons_path = repeat(achar(0), len(this%neutrons_path)) ! sentinel for optional string array
-    this%et_path = repeat(achar(0), len(this%et_path)) ! sentinel for optional string array
-    this%tws_path = repeat(achar(0), len(this%tws_path)) ! sentinel for optional string array
+    this%sm_path = achar(0) ! sentinel for optional string array
+    this%neutrons_path = achar(0) ! sentinel for optional string array
+    this%et_path = achar(0) ! sentinel for optional string array
+    this%tws_path = achar(0) ! sentinel for optional string array
     this%bfi_obs = ieee_value(this%bfi_obs, ieee_quiet_nan) ! sentinel for optional real array
     this%sm_horizons = -huge(this%sm_horizons) ! sentinel for optional integer
     this%sm_time_step = -huge(this%sm_time_step) ! sentinel for optional integer
@@ -85,17 +97,50 @@ contains
     this%tws_time_step = -huge(this%tws_time_step) ! sentinel for optional integer
   end function nml_config_observations_init
 
+  !> \brief Reset runtime dimensions for config_observations
+  integer function nml_config_observations_set_dims(this, &
+    n_domains, &
+    errmsg) result(status)
+    class(nml_config_observations_t), intent(inout) :: this !< namelist instance
+    integer, intent(in), optional :: n_domains !< runtime dimension override for n_domains
+    integer :: candidate__n_domains
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (present(n_domains)) then
+      candidate__n_domains = n_domains
+    else
+      candidate__n_domains = n_domains__default
+    end if
+    if (candidate__n_domains <= 0) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 'n_domains' must be positive"
+      return
+    end if
+    this%n_domains = candidate__n_domains
+
+    ! deallocate runtime-sized fields; init/set/from_file allocate them again
+    if (allocated(this%sm_path)) deallocate(this%sm_path)
+    if (allocated(this%neutrons_path)) deallocate(this%neutrons_path)
+    if (allocated(this%et_path)) deallocate(this%et_path)
+    if (allocated(this%tws_path)) deallocate(this%tws_path)
+    if (allocated(this%bfi_obs)) deallocate(this%bfi_obs)
+    this%is_configured = .false.
+  end function nml_config_observations_set_dims
+
+
   !> \brief Read config_observations namelist from file
   integer function nml_config_observations_from_file(this, file, errmsg) result(status)
-    class(nml_config_observations_t), intent(inout) :: this
+    class(nml_config_observations_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
-    character(len=buf), dimension(max_domains) :: sm_path
-    character(len=buf), dimension(max_domains) :: neutrons_path
-    character(len=buf), dimension(max_domains) :: et_path
-    character(len=buf), dimension(max_domains) :: tws_path
-    real(dp), dimension(max_domains) :: bfi_obs
+    character(len=buf), allocatable, dimension(:) :: sm_path
+    character(len=buf), allocatable, dimension(:) :: neutrons_path
+    character(len=buf), allocatable, dimension(:) :: et_path
+    character(len=buf), allocatable, dimension(:) :: tws_path
+    real(dp), allocatable, dimension(:) :: bfi_obs
     integer(i4) :: sm_horizons
     integer(i4) :: sm_time_step
     integer(i4) :: et_time_step
@@ -119,6 +164,17 @@ contains
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
+    ! allocate local namelist variables matching runtime-sized fields
+    if (allocated(sm_path)) deallocate(sm_path)
+    allocate(character(len=buf) :: sm_path(this%n_domains))
+    if (allocated(neutrons_path)) deallocate(neutrons_path)
+    allocate(character(len=buf) :: neutrons_path(this%n_domains))
+    if (allocated(et_path)) deallocate(et_path)
+    allocate(character(len=buf) :: et_path(this%n_domains))
+    if (allocated(tws_path)) deallocate(tws_path)
+    allocate(character(len=buf) :: tws_path(this%n_domains))
+    if (allocated(bfi_obs)) deallocate(bfi_obs)
+    allocate(bfi_obs(this%n_domains))
     sm_path = this%sm_path
     neutrons_path = this%neutrons_path
     et_path = this%et_path
@@ -181,20 +237,20 @@ contains
     tws_time_step, &
     errmsg) result(status)
 
-    class(nml_config_observations_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    character(len=*), dimension(:), intent(in), optional :: sm_path
-    character(len=*), dimension(:), intent(in), optional :: neutrons_path
-    character(len=*), dimension(:), intent(in), optional :: et_path
-    character(len=*), dimension(:), intent(in), optional :: tws_path
-    real(dp), dimension(:), intent(in), optional :: bfi_obs
-    integer(i4), intent(in), optional :: sm_horizons
-    integer(i4), intent(in), optional :: sm_time_step
-    integer(i4), intent(in), optional :: et_time_step
-    integer(i4), intent(in), optional :: tws_time_step
+    class(nml_config_observations_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    character(len=*), dimension(:), intent(in), optional :: sm_path !< Soil moisture data path
+    character(len=*), dimension(:), intent(in), optional :: neutrons_path !< Neutron data path
+    character(len=*), dimension(:), intent(in), optional :: et_path !< Evapotranspiration data path
+    character(len=*), dimension(:), intent(in), optional :: tws_path !< Domain average TWS path
+    real(dp), dimension(:), intent(in), optional :: bfi_obs !< Baseflow index per domain
+    integer(i4), intent(in), optional :: sm_horizons !< Number of mHM soil moisture horizons
+    integer(i4), intent(in), optional :: sm_time_step !< Time step of soil moisture
+    integer(i4), intent(in), optional :: et_time_step !< Time step of evapotranspiration
+    integer(i4), intent(in), optional :: tws_time_step !< Time step of total water storage
     integer :: &
-      lb_1, &
-      ub_1
+      lb__1, &
+      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -207,9 +263,9 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'sm_path'"
         return
       end if
-      lb_1 = lbound(this%sm_path, 1)
-      ub_1 = lb_1 + size(sm_path, 1) - 1
-      this%sm_path(lb_1:ub_1) = sm_path
+      lb__1 = lbound(this%sm_path, 1)
+      ub__1 = lb__1 + size(sm_path, 1) - 1
+      this%sm_path(lb__1:ub__1) = sm_path
     end if
     if (present(neutrons_path)) then
       if (size(neutrons_path, 1) > size(this%neutrons_path, 1)) then
@@ -217,9 +273,9 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'neutrons_path'"
         return
       end if
-      lb_1 = lbound(this%neutrons_path, 1)
-      ub_1 = lb_1 + size(neutrons_path, 1) - 1
-      this%neutrons_path(lb_1:ub_1) = neutrons_path
+      lb__1 = lbound(this%neutrons_path, 1)
+      ub__1 = lb__1 + size(neutrons_path, 1) - 1
+      this%neutrons_path(lb__1:ub__1) = neutrons_path
     end if
     if (present(et_path)) then
       if (size(et_path, 1) > size(this%et_path, 1)) then
@@ -227,9 +283,9 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'et_path'"
         return
       end if
-      lb_1 = lbound(this%et_path, 1)
-      ub_1 = lb_1 + size(et_path, 1) - 1
-      this%et_path(lb_1:ub_1) = et_path
+      lb__1 = lbound(this%et_path, 1)
+      ub__1 = lb__1 + size(et_path, 1) - 1
+      this%et_path(lb__1:ub__1) = et_path
     end if
     if (present(tws_path)) then
       if (size(tws_path, 1) > size(this%tws_path, 1)) then
@@ -237,9 +293,9 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tws_path'"
         return
       end if
-      lb_1 = lbound(this%tws_path, 1)
-      ub_1 = lb_1 + size(tws_path, 1) - 1
-      this%tws_path(lb_1:ub_1) = tws_path
+      lb__1 = lbound(this%tws_path, 1)
+      ub__1 = lb__1 + size(tws_path, 1) - 1
+      this%tws_path(lb__1:ub__1) = tws_path
     end if
     if (present(bfi_obs)) then
       if (size(bfi_obs, 1) > size(this%bfi_obs, 1)) then
@@ -247,9 +303,9 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'bfi_obs'"
         return
       end if
-      lb_1 = lbound(this%bfi_obs, 1)
-      ub_1 = lb_1 + size(bfi_obs, 1) - 1
-      this%bfi_obs(lb_1:ub_1) = bfi_obs
+      lb__1 = lbound(this%bfi_obs, 1)
+      ub__1 = lb__1 + size(bfi_obs, 1) - 1
+      this%bfi_obs(lb__1:ub__1) = bfi_obs
     end if
     if (present(sm_horizons)) this%sm_horizons = sm_horizons
     if (present(sm_time_step)) this%sm_time_step = sm_time_step
@@ -263,51 +319,76 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_config_observations_is_set(this, name, idx, errmsg) result(status)
-    class(nml_config_observations_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_config_observations_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("sm_path")
+      if (.not. allocated(this%sm_path)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
       if (present(idx)) then
         status = idx_check(idx, lbound(this%sm_path), ubound(this%sm_path), &
           "sm_path", errmsg)
         if (status /= NML_OK) return
-        if (this%sm_path(idx(1)) == repeat(achar(0), len(this%sm_path))) status = NML_ERR_NOT_SET
+        if (this%sm_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
-        if (all(this%sm_path == repeat(achar(0), len(this%sm_path)))) status = NML_ERR_NOT_SET
+        if (all(this%sm_path == achar(0))) status = NML_ERR_NOT_SET
       end if
     case ("neutrons_path")
+      if (.not. allocated(this%neutrons_path)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
       if (present(idx)) then
         status = idx_check(idx, lbound(this%neutrons_path), ubound(this%neutrons_path), &
           "neutrons_path", errmsg)
         if (status /= NML_OK) return
-        if (this%neutrons_path(idx(1)) == repeat(achar(0), len(this%neutrons_path))) status = NML_ERR_NOT_SET
+        if (this%neutrons_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
-        if (all(this%neutrons_path == repeat(achar(0), len(this%neutrons_path)))) status = NML_ERR_NOT_SET
+        if (all(this%neutrons_path == achar(0))) status = NML_ERR_NOT_SET
       end if
     case ("et_path")
+      if (.not. allocated(this%et_path)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
       if (present(idx)) then
         status = idx_check(idx, lbound(this%et_path), ubound(this%et_path), &
           "et_path", errmsg)
         if (status /= NML_OK) return
-        if (this%et_path(idx(1)) == repeat(achar(0), len(this%et_path))) status = NML_ERR_NOT_SET
+        if (this%et_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
-        if (all(this%et_path == repeat(achar(0), len(this%et_path)))) status = NML_ERR_NOT_SET
+        if (all(this%et_path == achar(0))) status = NML_ERR_NOT_SET
       end if
     case ("tws_path")
+      if (.not. allocated(this%tws_path)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
       if (present(idx)) then
         status = idx_check(idx, lbound(this%tws_path), ubound(this%tws_path), &
           "tws_path", errmsg)
         if (status /= NML_OK) return
-        if (this%tws_path(idx(1)) == repeat(achar(0), len(this%tws_path))) status = NML_ERR_NOT_SET
+        if (this%tws_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
-        if (all(this%tws_path == repeat(achar(0), len(this%tws_path)))) status = NML_ERR_NOT_SET
+        if (all(this%tws_path == achar(0))) status = NML_ERR_NOT_SET
       end if
     case ("bfi_obs")
+      if (.not. allocated(this%bfi_obs)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
       if (present(idx)) then
         status = idx_check(idx, lbound(this%bfi_obs), ubound(this%bfi_obs), &
           "BFI_obs", errmsg)
@@ -353,238 +434,20 @@ contains
     end if
   end function nml_config_observations_is_set
 
-  !> \brief Determine the filled shape along flexible dimensions
-  integer function nml_config_observations_filled_shape(this, name, filled, errmsg) result(status)
-    class(nml_config_observations_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(out) :: filled(:)
-    character(len=*), intent(out), optional :: errmsg
-    integer :: idx
-    integer :: dim
-    integer :: &
-      lb_1, &
-      ub_1
-
-    status = NML_OK
-    if (present(errmsg)) errmsg = ""
-    select case (to_lower(trim(name)))
-    case ("sm_path")
-      if (size(filled) /= 1) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "shape rank mismatch for 'sm_path'"
-        return
-      end if
-      do dim = 1, 1
-        filled(dim) = size(this%sm_path, dim)
-      end do
-      filled(1) = 0
-      do idx = ubound(this%sm_path, 1), &
-        lbound(this%sm_path, 1), -1
-        if (.not. (this%sm_path(idx) == repeat(achar(0), len(this%sm_path)))) then
-          filled(1) = idx - lbound(this%sm_path, 1) + 1
-          exit
-        end if
-      end do
-      if (minval(filled) > 0) then
-        lb_1 = lbound(this%sm_path, 1)
-        ub_1 = lb_1 + filled(1) - 1
-        if (any(this%sm_path(lb_1:ub_1) == repeat(achar(0), len(this%sm_path)))) then
-          status = NML_ERR_PARTLY_SET
-          if (present(errmsg)) errmsg = "array partly set: sm_path"
-          return
-        end if
-      end if
-    case ("neutrons_path")
-      if (size(filled) /= 1) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "shape rank mismatch for 'neutrons_path'"
-        return
-      end if
-      do dim = 1, 1
-        filled(dim) = size(this%neutrons_path, dim)
-      end do
-      filled(1) = 0
-      do idx = ubound(this%neutrons_path, 1), &
-        lbound(this%neutrons_path, 1), -1
-        if (.not. (this%neutrons_path(idx) == repeat(achar(0), len(this%neutrons_path)))) then
-          filled(1) = idx - lbound(this%neutrons_path, 1) + 1
-          exit
-        end if
-      end do
-      if (minval(filled) > 0) then
-        lb_1 = lbound(this%neutrons_path, 1)
-        ub_1 = lb_1 + filled(1) - 1
-        if (any(this%neutrons_path(lb_1:ub_1) == repeat(achar(0), len(this%neutrons_path)))) then
-          status = NML_ERR_PARTLY_SET
-          if (present(errmsg)) errmsg = "array partly set: neutrons_path"
-          return
-        end if
-      end if
-    case ("et_path")
-      if (size(filled) /= 1) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "shape rank mismatch for 'et_path'"
-        return
-      end if
-      do dim = 1, 1
-        filled(dim) = size(this%et_path, dim)
-      end do
-      filled(1) = 0
-      do idx = ubound(this%et_path, 1), &
-        lbound(this%et_path, 1), -1
-        if (.not. (this%et_path(idx) == repeat(achar(0), len(this%et_path)))) then
-          filled(1) = idx - lbound(this%et_path, 1) + 1
-          exit
-        end if
-      end do
-      if (minval(filled) > 0) then
-        lb_1 = lbound(this%et_path, 1)
-        ub_1 = lb_1 + filled(1) - 1
-        if (any(this%et_path(lb_1:ub_1) == repeat(achar(0), len(this%et_path)))) then
-          status = NML_ERR_PARTLY_SET
-          if (present(errmsg)) errmsg = "array partly set: et_path"
-          return
-        end if
-      end if
-    case ("tws_path")
-      if (size(filled) /= 1) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "shape rank mismatch for 'tws_path'"
-        return
-      end if
-      do dim = 1, 1
-        filled(dim) = size(this%tws_path, dim)
-      end do
-      filled(1) = 0
-      do idx = ubound(this%tws_path, 1), &
-        lbound(this%tws_path, 1), -1
-        if (.not. (this%tws_path(idx) == repeat(achar(0), len(this%tws_path)))) then
-          filled(1) = idx - lbound(this%tws_path, 1) + 1
-          exit
-        end if
-      end do
-      if (minval(filled) > 0) then
-        lb_1 = lbound(this%tws_path, 1)
-        ub_1 = lb_1 + filled(1) - 1
-        if (any(this%tws_path(lb_1:ub_1) == repeat(achar(0), len(this%tws_path)))) then
-          status = NML_ERR_PARTLY_SET
-          if (present(errmsg)) errmsg = "array partly set: tws_path"
-          return
-        end if
-      end if
-    case ("bfi_obs")
-      if (size(filled) /= 1) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "shape rank mismatch for 'BFI_obs'"
-        return
-      end if
-      do dim = 1, 1
-        filled(dim) = size(this%bfi_obs, dim)
-      end do
-      filled(1) = 0
-      do idx = ubound(this%bfi_obs, 1), &
-        lbound(this%bfi_obs, 1), -1
-        if (.not. (ieee_is_nan(this%bfi_obs(idx)))) then
-          filled(1) = idx - lbound(this%bfi_obs, 1) + 1
-          exit
-        end if
-      end do
-      if (minval(filled) > 0) then
-        lb_1 = lbound(this%bfi_obs, 1)
-        ub_1 = lb_1 + filled(1) - 1
-        if (any(ieee_is_nan(this%bfi_obs(lb_1:ub_1)))) then
-          status = NML_ERR_PARTLY_SET
-          if (present(errmsg)) errmsg = "array partly set: BFI_obs"
-          return
-        end if
-      end if
-    case default
-      status = NML_ERR_INVALID_NAME
-      if (present(errmsg)) errmsg = "field is not a flexible array: " // trim(name)
-    end select
-  end function nml_config_observations_filled_shape
-
   !> \brief Validate required values and constraints
   integer function nml_config_observations_is_valid(this, errmsg) result(status)
-    class(nml_config_observations_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_config_observations_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
-    integer, allocatable :: filled(:)
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
-    ! flexible arrays
-    if (allocated(filled)) deallocate(filled)
-    allocate(filled(1))
-    istat = this%filled_shape("sm_path", filled, errmsg=errmsg)
-    if (istat == NML_ERR_PARTLY_SET) then
-      status = istat
-      if (present(errmsg)) then
-        if (len_trim(errmsg) == 0) errmsg = "array partly set: sm_path"
-      end if
-      return
-    end if
-    if (istat /= NML_OK) then
-      status = istat
-      return
-    end if
-    if (allocated(filled)) deallocate(filled)
-    allocate(filled(1))
-    istat = this%filled_shape("neutrons_path", filled, errmsg=errmsg)
-    if (istat == NML_ERR_PARTLY_SET) then
-      status = istat
-      if (present(errmsg)) then
-        if (len_trim(errmsg) == 0) errmsg = "array partly set: neutrons_path"
-      end if
-      return
-    end if
-    if (istat /= NML_OK) then
-      status = istat
-      return
-    end if
-    if (allocated(filled)) deallocate(filled)
-    allocate(filled(1))
-    istat = this%filled_shape("et_path", filled, errmsg=errmsg)
-    if (istat == NML_ERR_PARTLY_SET) then
-      status = istat
-      if (present(errmsg)) then
-        if (len_trim(errmsg) == 0) errmsg = "array partly set: et_path"
-      end if
-      return
-    end if
-    if (istat /= NML_OK) then
-      status = istat
-      return
-    end if
-    if (allocated(filled)) deallocate(filled)
-    allocate(filled(1))
-    istat = this%filled_shape("tws_path", filled, errmsg=errmsg)
-    if (istat == NML_ERR_PARTLY_SET) then
-      status = istat
-      if (present(errmsg)) then
-        if (len_trim(errmsg) == 0) errmsg = "array partly set: tws_path"
-      end if
-      return
-    end if
-    if (istat /= NML_OK) then
-      status = istat
-      return
-    end if
-    if (allocated(filled)) deallocate(filled)
-    allocate(filled(1))
-    istat = this%filled_shape("BFI_obs", filled, errmsg=errmsg)
-    if (istat == NML_ERR_PARTLY_SET) then
-      status = istat
-      if (present(errmsg)) then
-        if (len_trim(errmsg) == 0) errmsg = "array partly set: BFI_obs"
-      end if
-      return
-    end if
-    if (istat /= NML_OK) then
-      status = istat
-      return
-    end if
   end function nml_config_observations_is_valid
 
 end module nml_config_observations

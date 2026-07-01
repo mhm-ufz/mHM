@@ -11,7 +11,6 @@
 !> \ingroup f_exchange
 #include "logging.h"
 module mo_mhm_container
-  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
   use mo_logging
   use mo_canopy_interc, only: canopy_interc
   use mo_constants, only: nodata_dp
@@ -32,6 +31,7 @@ module mo_mhm_container
   use mo_utils, only: is_close
   use nml_config_mhm, only: nml_config_mhm_t, NML_OK
   use nml_output_mhm, only: nml_output_mhm_t
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
 
   implicit none
 
@@ -163,6 +163,7 @@ module mo_mhm_container
     type(mhm_io_state_t) :: io !< restart/output bookkeeping
     type(mhm_runtime_state_t) :: runtime !< scalar runtime bookkeeping
   contains
+    procedure :: set_dims => mhm_set_dims
     procedure :: configure => mhm_configure
     procedure :: connect => mhm_connect
     procedure :: initialize => mhm_initialize
@@ -197,13 +198,25 @@ module mo_mhm_container
 
 contains
 
+  !> \brief Set runtime dimensions for generated mHM namelists.
+  subroutine mhm_set_dims(self)
+    class(mhm_t), intent(inout), target :: self
+    character(1024) :: errmsg
+    integer :: status
+
+    status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Error setting mHM config dimensions: ", trim(errmsg)
+      error stop 1
+    end if
+  end subroutine mhm_set_dims
+
   !> \brief Configure the mHM process container.
   subroutine mhm_configure(self, file, out_file)
     class(mhm_t), intent(inout), target :: self
     character(*), intent(in), optional :: file !< file containing the namelists
     character(*), intent(in), optional :: out_file !< file containing the output namelists
     integer(i4) :: id(1)
-    real(dp) :: l1_res
     character(1024) :: errmsg
     character(:), allocatable :: path
     integer :: status
@@ -228,28 +241,16 @@ contains
       error stop 1
     end if
 
-    id(1) = self%exchange%domain
-    status = self%config%is_set("resolution", idx=id, errmsg=errmsg)
-    if (status /= NML_OK) then
-      log_fatal(*) "mHM: resolution not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
-      error stop 1
-    end if
-
-    l1_res = self%config%resolution(id(1))
-    if (.not.ieee_is_finite(l1_res) .or. l1_res <= 0.0_dp) then
-      log_fatal(*) "mHM: resolution must be finite and > 0 for domain ", n2s(id(1)), "."
-      error stop 1
-    end if
-    self%exchange%level1_resolution = l1_res
-    log_info(*) "mHM: set level1 resolution for domain ", n2s(id(1)), ": ", n2s(l1_res)
+    id(1) = self%exchange%nml_domain_id
 
     self%io%read_restart = self%config%read_restart(id(1))
     self%io%write_restart = self%config%write_restart(id(1))
 
     self%io%output_active = .true.
     if (present(out_file)) then
-      log_info(*) "Read mHM output config: ", out_file
-      status = self%output_config%from_file(file=out_file, errmsg=errmsg)
+      path = self%exchange%get_path(out_file, root=.true.)
+      log_info(*) "Read mHM output config: ", path
+      status = self%output_config%from_file(file=path, errmsg=errmsg)
       if (status /= NML_OK) then
         self%io%output_active = .false.
         log_warn(*) "mHM output disabled, config not found: ", trim(errmsg)
@@ -303,7 +304,7 @@ contains
 
     log_info(*) "Connect mhm"
 
-    id(1) = self%exchange%domain
+    id(1) = self%exchange%nml_domain_id
     self%io%read_restart = self%config%read_restart(id(1))
     self%io%write_restart = self%config%write_restart(id(1))
     if (self%io%read_restart) then
@@ -496,8 +497,8 @@ contains
       error stop 1
     end if
 
-    coeff_domain = self%exchange%domain
-    id(1) = self%exchange%domain
+    coeff_domain = self%exchange%nml_domain_id
+    id(1) = self%exchange%nml_domain_id
     if (self%config%share_evap_coeff) coeff_domain = 1_i4
     direct_runoff_case = self%exchange%parameters%process_matrix(4, 1)
     if (direct_runoff_case /= 0_i4) then
@@ -1029,7 +1030,7 @@ contains
 
     nc_var = nc%setVariable("mhm_meta", "i32", dims0(:0))
     call nc_var%setAttribute("time_stamp", self%exchange%time%str())
-    call nc_var%setAttribute("domain", self%exchange%domain)
+    call nc_var%setAttribute("domain", self%exchange%nml_domain_id)
     call nc_var%setAttribute("interception_case", self%exchange%parameters%process_matrix(1, 1))
     call nc_var%setAttribute("snow_case", self%exchange%parameters%process_matrix(2, 1))
     call nc_var%setAttribute("soil_moisture_case", self%exchange%parameters%process_matrix(3, 1))

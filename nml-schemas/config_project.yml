@@ -40,37 +40,35 @@ properties:
     x-fortran-len: buf
     default: Model run version 1
     title: Some details on data/model run version.
+  optimize:
+    type: boolean
+    default: false
+    title: Enable optimization
+    description: |-
+      Whether to run parameter optimization.
   n_domains:
     type: integer
     x-fortran-kind: i4
     default: 1
     title: Number of domains
     description: Number of domains to be simulated.
+  n_geo_units:
+    type: integer
+    x-fortran-kind: i4
+    default: 25
+    title: Number of geological units
+    description: Number of geological units in the global parameter set.
+  max_layers:
+    type: integer
+    x-fortran-kind: i4
+    default: 10
+    minimum: 1
+    title: Maximum number of soil layers
+    description: Maximum number of soil-layer entries stored per domain in this namelist file.
   read_domains_from_dirs:
     type: boolean
     default: false
     title: Flag for separate domains
     description: |-
       Read domain configurations from namelists in separate directories.
-      Only "config_project", "config_processes" and "config_optimize" are read from this file then.
-  domain_dirs:
-    type: array
-    items:
-      type: string
-      x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
-    title: Domain directories
-    description: |-
-      Paths to be included in the simulation
-  domain_nmls:
-    type: array
-    items:
-      type: string
-      x-fortran-len: buf
-      default: mhm.nml
-    x-fortran-shape: max_domains
-    title: Domain namelists
-    description: |-
-      Paths to domain-specific namelists when "read_domains_from_dirs" is true.
-      The path will be interpreted as relative to the given domain directory.
+      Only "config_project", "config_domain", "config_processes" and "config_optimize" are read from this file then.

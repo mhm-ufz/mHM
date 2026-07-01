@@ -27,12 +27,23 @@ module mo_exchange_type
   use mo_utils, only: optval
   use nml_config_time, only: nml_config_time_t
   use nml_config_project, only: nml_config_project_t
+  use nml_config_domain, only: nml_config_domain_t
+  use nml_config_resolution, only: nml_config_resolution_t
   use nml_helper, only: NML_OK
 
   implicit none
   private
 
-  public :: standard_path
+  public :: standard_path, get_n_domains
+
+  !> \class   exchange_config_t
+  !> \brief   Exchange-owned run and domain metadata namelists.
+  type, public :: exchange_config_t
+    type(nml_config_project_t) :: project     !< top-level/run project configuration
+    type(nml_config_domain_t) :: domain       !< top-level domain directory configuration
+    type(nml_config_time_t) :: time           !< domain-local time configuration
+    type(nml_config_resolution_t) :: resolution !< domain-local target grid resolutions
+  end type exchange_config_t
 
   !> \name Level Selectors
   !> \brief Constants to specify the grid for levels in mHM: L0, L1, L2 and L3.
@@ -168,11 +179,18 @@ module mo_exchange_type
     type(datetime) :: eval_start_time       !< start time of evaluation
     type(datetime) :: end_time              !< end time of simulation
     type(timedelta) :: step                 !< time step of the simulation
-    type(nml_config_time_t) :: time_config  !< time configuration
-    type(nml_config_project_t) :: project   !< project configuration
+    type(exchange_config_t) :: config        !< exchange-owned namelist configuration
     type(parameters_t) :: parameters        !< parameters container
-    integer(i4) :: domain                   !< Number of this domain
-    character(:), allocatable :: cwd        !< current working directory to set relative paths
+    integer(i4) :: domain_id                !< stable domain ID in the run
+    integer(i4) :: n_domains = 1_i4         !< number of domains in the run
+    integer(i4) :: nml_n_domains = 1_i4     !< domain dimension used when reading namelists
+    integer(i4) :: nml_domain_id = 1_i4     !< domain index used when reading namelist arrays
+    integer(i4) :: n_geo_units = 25_i4      !< number of geological units in the global parameter set
+    integer(i4) :: max_layers = 10_i4       !< maximum number of soil-layer entries in the run
+    integer(i4) :: n_layers = 1_i4          !< number of soil layers for this domain
+    logical :: from_dirs = .false.          !< whether domain main files are derived from config_domain directories
+    character(:), allocatable :: root       !< immutable run root directory
+    character(:), allocatable :: cwd        !< effective domain working directory to set relative paths
 
     ! grids
     type(grid_t), pointer :: level0 => null() !< level0 grid of the morphology
@@ -305,7 +323,9 @@ module mo_exchange_type
     type(var_dp) :: riverhead           !< simulated riverhead [m] on level l0
 
   contains
-    procedure, public  :: init => exchange_init
+    procedure, public  :: create => exchange_create
+    procedure, public  :: set_dims => exchange_set_dims
+    procedure, public  :: configure => exchange_configure
     procedure, public  :: get_grid => exchange_get_grid
     procedure, public  :: has_grid => exchange_has_grid
     procedure, public :: get_meta => exchange_get_var_meta
@@ -341,98 +361,90 @@ contains
     std_path = path_normpath(path_join(work, path, file))
   end function standard_path
 
-  !> \brief Initialize the exchange type
-  subroutine exchange_init(self, meta_file, main_file, para_file, domain, cwd)
-    use mo_os, only: path_abspath, check_path_isdir
-    class(exchange_t), intent(inout) :: self
-    character(*), intent(in), optional :: meta_file !< file containing the metadata namelists (project, processes)
-    character(*), intent(in), optional :: main_file !< file containing the main namelists (time)
-    character(*), intent(in), optional :: para_file !< file containing the parameter namelists
-    integer(i4), intent(in), optional :: domain !< domain ID of the current domain in the configuration arrays (1 by default)
-    character(len=*), intent(in), optional :: cwd !< current working directory to set relative paths
-    integer(i4) :: id(1), share_id
+  !> \brief Return the number of domains configured in a main namelist file.
+  function get_n_domains(main_file, cwd) result(n_domains)
+    character(*), intent(in) :: main_file !< file containing the main namelist
+    character(len=*), intent(in), optional :: cwd !< root directory for relative main file paths
+    integer(i4) :: n_domains !< number of configured domains
+    type(nml_config_project_t) :: project
     character(1024) :: errmsg
     character(:), allocatable :: path
     integer :: status
-    log_info(*) "Configure exchange."
 
-    self%domain = optval(domain, 1_i4) ! 1 by default for single domain initialization
-    self%cwd = path_abspath(optval(cwd, "."))
-    call check_path_isdir(self%cwd, raise=.true.)
+    if (present(cwd)) then
+      path = standard_path(cwd=cwd, file=main_file)
+    else
+      path = standard_path(file=main_file)
+    end if
+    status = project%from_file(file=path, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Error reading project config: ", trim(errmsg)
+      error stop 1
+    end if
+    status = project%is_valid(errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Project config not valid: ", trim(errmsg)
+      error stop 1
+    end if
+    n_domains = project%n_domains
+  end function get_n_domains
 
-    if (present(meta_file)) then
-      ! meta configuration uses absolute path internally
-      log_info(*) "Read project attributes: ", meta_file
-      status = self%project%from_file(file=meta_file, errmsg=errmsg)
+  !> \brief Create the exchange type and derive project-level runtime dimensions.
+  subroutine exchange_create(self, main_file, domain, cwd)
+    use mo_os, only: path_abspath, check_path_isdir
+    class(exchange_t), intent(inout) :: self
+    character(*), intent(in), optional :: main_file !< file containing the main namelists
+    integer(i4), intent(in), optional :: domain !< domain ID of the current domain in the configuration arrays (1 by default)
+    character(len=*), intent(in), optional :: cwd !< current working directory to set relative paths
+    character(1024) :: errmsg
+    character(:), allocatable :: main_path
+    integer :: status
+    log_info(*) "Create exchange."
+
+    self%domain_id = optval(domain, 1_i4) ! 1 by default for single domain initialization
+    self%root = path_abspath(optval(cwd, "."))
+    if (allocated(self%cwd)) deallocate(self%cwd)
+    call check_path_isdir(self%root, raise=.true.)
+
+    if (present(main_file)) then
+      main_path = self%get_path(main_file, root=.true.)
+      log_info(*) "Read project attributes: ", main_path
+      status = self%config%project%from_file(file=main_path, errmsg=errmsg)
       if (status /= NML_OK) then
         log_fatal(*) "Error reading project config: ", trim(errmsg)
         error stop 1
       end if
     end if
-    if (.not.self%project%is_configured) then
+    if (.not.self%config%project%is_configured) then
       log_fatal(*) "Project config not set."
       error stop 1
     end if
-    status = self%project%is_valid(errmsg=errmsg)
+    status = self%config%project%is_valid(errmsg=errmsg)
     if (status /= NML_OK) then
       log_fatal(*) "Project config not valid: ", trim(errmsg)
       error stop 1
     end if
 
-    if (present(main_file)) then
-      path = self%get_path(main_file) ! get absolute path relative to cwd
-      log_info(*) "Read time config: ", path
-      status = self%time_config%from_file(file=path, errmsg=errmsg)
-      if (status /= NML_OK) then
-        log_fatal(*) "Error reading time config: ", trim(errmsg)
-        error stop 1
-      end if
-    end if
-    if (.not.self%time_config%is_configured) then
-      log_fatal(*) "Time config not set."
-      error stop 1
-    end if
-    status = self%time_config%is_valid(errmsg=errmsg)
-    if (status /= NML_OK) then
-      log_fatal(*) "Time config not valid: ", trim(errmsg)
+    self%n_domains = self%config%project%n_domains
+    self%n_geo_units = self%config%project%n_geo_units
+    self%max_layers = self%config%project%max_layers
+    if (self%domain_id < 1_i4 .or. self%domain_id > self%n_domains) then
+      log_fatal(*) "Invalid domain id ", n2s(self%domain_id), " for run n_domains=", n2s(self%n_domains), "."
       error stop 1
     end if
 
-    ! parameters are created redundantly for each exchange instance
-    ! but this simplifies the code structure
-    call self%parameters%configure(meta_file=meta_file, para_file=para_file)
-
-    ! time settings
-    id(1) = self%domain
-    if (self%time_config%share_time_period) id(1) = 1_i4
-    status = self%time_config%is_set("sim_start", idx=id, errmsg=errmsg)
-    if (status /= NML_OK) then
-      log_fatal(*) "Simulation start time input error: ", trim(errmsg)
+    self%from_dirs = self%config%project%read_domains_from_dirs
+    if (self%from_dirs) then
+      self%nml_n_domains = 1_i4
+      self%nml_domain_id = 1_i4
+    else
+      self%nml_n_domains = self%n_domains
+      self%nml_domain_id = self%domain_id
+    end if
+    if (self%nml_domain_id < 1_i4 .or. self%nml_domain_id > self%nml_n_domains) then
+      log_fatal(*) "Invalid namelist domain index ", n2s(self%nml_domain_id), " for n_domains=", n2s(self%nml_n_domains), "."
       error stop 1
     end if
-    self%start_time = datetime(self%time_config%sim_start(id(1))) ! from string
-
-    status = self%time_config%is_set("sim_end", idx=id, errmsg=errmsg)
-    if (status /= NML_OK) then
-      log_fatal(*) "Simulation end time input error: ", trim(errmsg)
-      error stop 1
-    end if
-    self%end_time = datetime(self%time_config%sim_end(id(1))) ! from string
-
-    status = self%time_config%is_set("eval_start", idx=id, errmsg=errmsg)
-    if (status /= NML_OK) then
-      log_fatal(*) "Evaluation start time input error: ", trim(errmsg)
-      error stop 1
-    end if
-    self%eval_start_time = datetime(self%time_config%eval_start(id(1))) ! from string
-
-    id(1) = self%domain
-    if (self%time_config%share_time_step) id(1) = 1_i4
-    self%step = timedelta(hours=self%time_config%time_step(id(1)))
-
-    ! initialize time
-    self%step_count = 0_i4
-    self%time = self%start_time
 
     ! variables
     ! raw meteorology (level2)
@@ -545,7 +557,208 @@ contains
 
     ! groundwater (level0)
     self%riverhead         =   var_dp(grid=l0,  name="riverhead",        units="m",                 long_name="simulated riverhead")
-  end subroutine exchange_init
+  end subroutine exchange_create
+
+  !> \brief Set runtime dimensions for generated exchange-owned namelists.
+  subroutine exchange_set_dims(self)
+    class(exchange_t), intent(inout) :: self
+    character(1024) :: errmsg
+    integer :: status
+
+    if (.not.self%config%domain%is_configured) then
+      status = self%config%domain%set_dims(n_domains=self%n_domains, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error setting domain config dimensions: ", trim(errmsg)
+        error stop 1
+      end if
+    end if
+    if (.not.self%config%time%is_configured) then
+      status = self%config%time%set_dims(n_domains=self%nml_n_domains, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error setting time config dimensions: ", trim(errmsg)
+        error stop 1
+      end if
+    end if
+    if (.not.self%config%resolution%is_configured) then
+      status = self%config%resolution%set_dims(n_domains=self%nml_n_domains, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error setting resolution config dimensions: ", trim(errmsg)
+        error stop 1
+      end if
+    end if
+    call self%parameters%set_dims(self%n_geo_units)
+  end subroutine exchange_set_dims
+
+  !> \brief Read exchange-owned namelists after runtime dimensions have been set.
+  subroutine exchange_configure(self, main_file, para_file)
+    use mo_os, only: check_path_isdir
+    class(exchange_t), intent(inout) :: self
+    character(*), intent(in), optional :: main_file !< file containing the main namelists
+    character(*), intent(in), optional :: para_file !< file containing the parameter namelists
+    integer(i4) :: id(1)
+    character(1024) :: errmsg
+    character(:), allocatable :: config_file
+    character(:), allocatable :: top_file
+    type(nml_config_project_t) :: local_project
+    integer :: status
+
+    if (.not.allocated(self%root)) then
+      log_fatal(*) "Exchange was not created before configure."
+      error stop 1
+    end if
+    if (present(main_file)) top_file = self%get_path(main_file, root=.true.)
+
+    if (self%from_dirs) then
+      if (present(main_file)) then
+        log_info(*) "Read domain config: ", top_file
+        status = self%config%domain%from_file(file=top_file, errmsg=errmsg)
+        if (status /= NML_OK) then
+          log_fatal(*) "Error reading domain config: ", trim(errmsg)
+          error stop 1
+        end if
+      end if
+      if (.not.self%config%domain%is_configured) then
+        log_fatal(*) "Domain config not set for read_domains_from_dirs."
+        error stop 1
+      end if
+      status = self%config%domain%is_valid(errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Domain config not valid: ", trim(errmsg)
+        error stop 1
+      end if
+
+      id(1) = self%domain_id
+      status = self%config%domain%is_set("domain_dirs", idx=id, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Directory not specified for domain ", n2s(self%domain_id), ": ", trim(errmsg)
+        error stop 1
+      end if
+      self%cwd = self%get_path(trim(self%config%domain%domain_dirs(self%domain_id)), root=.true.)
+      call check_path_isdir(self%cwd, raise=.true.)
+      config_file = self%get_path(trim(self%config%domain%domain_nmls(self%domain_id)))
+
+      log_info(*) "Use domain-local main namelist: ", config_file
+      log_info(*) "Read local project attributes for validation"
+      status = local_project%from_file(file=config_file, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error reading local project config: ", trim(errmsg)
+        error stop 1
+      end if
+      status = local_project%is_valid(errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Local project config not valid: ", trim(errmsg)
+        error stop 1
+      end if
+      if (local_project%n_domains /= 1_i4) then
+        log_fatal(*) "Domain-local project config must set n_domains = 1 when read_domains_from_dirs is enabled."
+        error stop 1
+      end if
+      if (local_project%read_domains_from_dirs) then
+        log_fatal(*) "Domain-local project config must set read_domains_from_dirs = .false."
+        error stop 1
+      end if
+      if (local_project%n_geo_units > self%n_geo_units) then
+        log_fatal(*) "Domain-local n_geo_units=", n2s(local_project%n_geo_units), &
+          " exceeds top-level n_geo_units=", n2s(self%n_geo_units), "."
+        error stop 1
+      end if
+      if (local_project%max_layers > self%max_layers) then
+        log_fatal(*) "Domain-local max_layers=", n2s(local_project%max_layers), &
+          " exceeds top-level max_layers=", n2s(self%max_layers), "."
+        error stop 1
+      end if
+    else
+      self%cwd = self%root
+      if (present(main_file)) config_file = top_file
+    end if
+
+    if (self%from_dirs .or. present(main_file)) then
+      log_info(*) "Read time config: ", config_file
+      status = self%config%time%from_file(file=config_file, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error reading time config: ", trim(errmsg)
+        error stop 1
+      end if
+    end if
+    if (.not.self%config%time%is_configured) then
+      log_fatal(*) "Time config not set."
+      error stop 1
+    end if
+    status = self%config%time%is_valid(errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Time config not valid: ", trim(errmsg)
+      error stop 1
+    end if
+
+    ! parameters are created redundantly for each exchange instance
+    ! but this simplifies the code structure
+    call self%parameters%configure(main_file=main_file, para_file=para_file, root=self%root)
+
+    if (self%from_dirs .or. present(main_file)) then
+      log_info(*) "Read resolution config: ", config_file
+      status = self%config%resolution%from_file(file=config_file, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error reading resolution config: ", trim(errmsg)
+        error stop 1
+      end if
+    end if
+    if (.not.self%config%resolution%is_configured) then
+      log_fatal(*) "Resolution configuration not set."
+      error stop 1
+    end if
+    status = self%config%resolution%is_valid(errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Resolution config not valid: ", trim(errmsg)
+      error stop 1
+    end if
+
+    id(1) = self%nml_domain_id
+    status = self%config%resolution%is_set("hydro", idx=id, errmsg=errmsg)
+    if (status == NML_OK) then
+      self%level1_resolution = self%config%resolution%hydro(id(1))
+      log_info(*) "Set hydro resolution for domain ", n2s(id(1)), ": ", n2s(self%level1_resolution)
+    else if (self%parameters%meteo_active() .or. self%parameters%mhm_active()) then
+      log_fatal(*) "Hydro resolution not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
+      error stop 1
+    end if
+
+    status = self%config%resolution%is_set("route", idx=id, errmsg=errmsg)
+    if (status == NML_OK) then
+      self%level3_resolution = self%config%resolution%route(id(1))
+      log_info(*) "Set route resolution for domain ", n2s(id(1)), ": ", n2s(self%level3_resolution)
+    else if (self%parameters%mrm_active()) then
+      log_fatal(*) "Route resolution not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
+      error stop 1
+    end if
+
+    ! time settings
+    id(1) = self%nml_domain_id
+    if (self%config%time%share_time_period) id(1) = 1_i4
+    status = self%config%time%is_set("sim_start", idx=id, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Simulation start time input error: ", trim(errmsg)
+      error stop 1
+    end if
+    self%start_time = datetime(self%config%time%sim_start(id(1)))
+
+    status = self%config%time%is_set("sim_end", idx=id, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Simulation end time input error: ", trim(errmsg)
+      error stop 1
+    end if
+    self%end_time = datetime(self%config%time%sim_end(id(1)))
+
+    status = self%config%time%is_set("eval_start", idx=id, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Evaluation start time input error: ", trim(errmsg)
+      error stop 1
+    end if
+    self%eval_start_time = datetime(self%config%time%eval_start(id(1)))
+
+    id(1) = self%nml_domain_id
+    if (self%config%time%share_time_step) id(1) = 1_i4
+    self%step = timedelta(hours=self%config%time%time_step(id(1)))
+  end subroutine exchange_configure
 
   !> \brief get the grid specifications for the selected level
   subroutine exchange_get_grid(self, selector, grid)
@@ -1002,13 +1215,32 @@ contains
     end select
   end subroutine exchange_set_data_2d
 
-  !> \brief Format a path by prepending the current working directory and appending a file name if given.
-  function exchange_get_path(self, path, file) result(norm_path)
+  !> \brief Format a path by prepending the selected working directory and appending a file name if given.
+  function exchange_get_path(self, path, file, root) result(norm_path)
     class(exchange_t), intent(in) :: self
     character(len=*), intent(in) :: path !< path to be formatted
     character(len=*), optional, intent(in) :: file !< file to be appended
+    logical, optional, intent(in) :: root !< whether to resolve relative to the immutable run root
     character(:), allocatable :: norm_path !< formatted path
-    norm_path = standard_path(self%cwd, path, file)
+    character(:), allocatable :: base
+    logical :: use_root
+
+    use_root = .false.
+    if (present(root)) use_root = root
+    if (use_root) then
+      if (.not.allocated(self%root)) then
+        log_fatal(*) "exchange%get_path: root is not set."
+        error stop 1
+      end if
+      base = self%root
+    else
+      if (.not.allocated(self%cwd)) then
+        log_fatal(*) "exchange%get_path: cwd is not set."
+        error stop 1
+      end if
+      base = self%cwd
+    end if
+    norm_path = standard_path(base, path, file)
   end function exchange_get_path
 
   !> \brief Return whether an exchange variable is already available or will be owned by the caller.

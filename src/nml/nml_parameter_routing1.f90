@@ -3,9 +3,9 @@
 
 !> \brief Routing - Case 1
 !> \details Parameters for routing (case 1 - Muskingum).
-!> \version 0.1
+!> \version 0.2
 !> \authors Sebastian Mueller
-!> \date    Jan 2026
+!> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_namelists
@@ -58,8 +58,8 @@ contains
 
   !> \brief Initialize defaults and sentinels for routing1
   integer function nml_routing1_init(this, errmsg) result(status)
-    class(nml_routing1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_routing1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -73,11 +73,12 @@ contains
     this%muskingumattenuation_riverslope = ieee_value(this%muskingumattenuation_riverslope, ieee_quiet_nan) ! sentinel for required real array
   end function nml_routing1_init
 
+
   !> \brief Read routing1 namelist from file
   integer function nml_routing1_from_file(this, file, errmsg) result(status)
-    class(nml_routing1_t), intent(inout) :: this
+    class(nml_routing1_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     real(dp), dimension(5) :: muskingumtraveltime_constant
     real(dp), dimension(5) :: muskingumtraveltime_riverlength
@@ -149,23 +150,61 @@ contains
     muskingumattenuation_riverslope, &
     errmsg) result(status)
 
-    class(nml_routing1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    real(dp), dimension(5), intent(in) :: muskingumtraveltime_constant
-    real(dp), dimension(5), intent(in) :: muskingumtraveltime_riverlength
-    real(dp), dimension(5), intent(in) :: muskingumtraveltime_riverslope
-    real(dp), dimension(5), intent(in) :: muskingumtraveltime_impervious
-    real(dp), dimension(5), intent(in) :: muskingumattenuation_riverslope
+    class(nml_routing1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    real(dp), dimension(:), intent(in) :: muskingumtraveltime_constant !< Muskingum travel time constant
+    real(dp), dimension(:), intent(in) :: muskingumtraveltime_riverlength !< Muskingum travel time river length
+    real(dp), dimension(:), intent(in) :: muskingumtraveltime_riverslope !< Muskingum travel time river slope
+    real(dp), dimension(:), intent(in) :: muskingumtraveltime_impervious !< Muskingum travel time impervious
+    real(dp), dimension(:), intent(in) :: muskingumattenuation_riverslope !< Muskingum attenuation river slope
+    integer :: &
+      lb__1, &
+      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
 
     ! required parameters
-    this%muskingumtraveltime_constant = muskingumtraveltime_constant
-    this%muskingumtraveltime_riverlength = muskingumtraveltime_riverlength
-    this%muskingumtraveltime_riverslope = muskingumtraveltime_riverslope
-    this%muskingumtraveltime_impervious = muskingumtraveltime_impervious
-    this%muskingumattenuation_riverslope = muskingumattenuation_riverslope
+    if (size(muskingumtraveltime_constant, 1) > size(this%muskingumtraveltime_constant, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'muskingumtraveltime_constant'"
+      return
+    end if
+    lb__1 = lbound(this%muskingumtraveltime_constant, 1)
+    ub__1 = lb__1 + size(muskingumtraveltime_constant, 1) - 1
+    this%muskingumtraveltime_constant(lb__1:ub__1) = muskingumtraveltime_constant
+    if (size(muskingumtraveltime_riverlength, 1) > size(this%muskingumtraveltime_riverlength, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'muskingumtraveltime_riverlength'"
+      return
+    end if
+    lb__1 = lbound(this%muskingumtraveltime_riverlength, 1)
+    ub__1 = lb__1 + size(muskingumtraveltime_riverlength, 1) - 1
+    this%muskingumtraveltime_riverlength(lb__1:ub__1) = muskingumtraveltime_riverlength
+    if (size(muskingumtraveltime_riverslope, 1) > size(this%muskingumtraveltime_riverslope, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'muskingumtraveltime_riverslope'"
+      return
+    end if
+    lb__1 = lbound(this%muskingumtraveltime_riverslope, 1)
+    ub__1 = lb__1 + size(muskingumtraveltime_riverslope, 1) - 1
+    this%muskingumtraveltime_riverslope(lb__1:ub__1) = muskingumtraveltime_riverslope
+    if (size(muskingumtraveltime_impervious, 1) > size(this%muskingumtraveltime_impervious, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'muskingumtraveltime_impervious'"
+      return
+    end if
+    lb__1 = lbound(this%muskingumtraveltime_impervious, 1)
+    ub__1 = lb__1 + size(muskingumtraveltime_impervious, 1) - 1
+    this%muskingumtraveltime_impervious(lb__1:ub__1) = muskingumtraveltime_impervious
+    if (size(muskingumattenuation_riverslope, 1) > size(this%muskingumattenuation_riverslope, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'muskingumattenuation_riverslope'"
+      return
+    end if
+    lb__1 = lbound(this%muskingumattenuation_riverslope, 1)
+    ub__1 = lb__1 + size(muskingumattenuation_riverslope, 1) - 1
+    this%muskingumattenuation_riverslope(lb__1:ub__1) = muskingumattenuation_riverslope
 
     ! mark as configured
     this%is_configured = .true.
@@ -174,13 +213,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_routing1_is_set(this, name, idx, errmsg) result(status)
-    class(nml_routing1_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_routing1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("muskingumtraveltime_constant")
       if (present(idx)) then
@@ -238,60 +282,65 @@ contains
 
   !> \brief Validate required values and constraints
   integer function nml_routing1_is_valid(this, errmsg) result(status)
-    class(nml_routing1_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_routing1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
     ! required arrays
-    if (all(ieee_is_nan(this%muskingumtraveltime_constant))) then
+    if (all(ieee_is_nan(this%muskingumtraveltime_constant(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: muskingumTravelTime_constant"
       return
     end if
-    if (any(ieee_is_nan(this%muskingumtraveltime_constant))) then
+    if (any(ieee_is_nan(this%muskingumtraveltime_constant(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: muskingumTravelTime_constant"
       return
     end if
-    if (all(ieee_is_nan(this%muskingumtraveltime_riverlength))) then
+    if (all(ieee_is_nan(this%muskingumtraveltime_riverlength(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: muskingumTravelTime_riverLength"
       return
     end if
-    if (any(ieee_is_nan(this%muskingumtraveltime_riverlength))) then
+    if (any(ieee_is_nan(this%muskingumtraveltime_riverlength(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: muskingumTravelTime_riverLength"
       return
     end if
-    if (all(ieee_is_nan(this%muskingumtraveltime_riverslope))) then
+    if (all(ieee_is_nan(this%muskingumtraveltime_riverslope(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: muskingumTravelTime_riverSlope"
       return
     end if
-    if (any(ieee_is_nan(this%muskingumtraveltime_riverslope))) then
+    if (any(ieee_is_nan(this%muskingumtraveltime_riverslope(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: muskingumTravelTime_riverSlope"
       return
     end if
-    if (all(ieee_is_nan(this%muskingumtraveltime_impervious))) then
+    if (all(ieee_is_nan(this%muskingumtraveltime_impervious(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: muskingumTravelTime_impervious"
       return
     end if
-    if (any(ieee_is_nan(this%muskingumtraveltime_impervious))) then
+    if (any(ieee_is_nan(this%muskingumtraveltime_impervious(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: muskingumTravelTime_impervious"
       return
     end if
-    if (all(ieee_is_nan(this%muskingumattenuation_riverslope))) then
+    if (all(ieee_is_nan(this%muskingumattenuation_riverslope(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: muskingumAttenuation_riverSlope"
       return
     end if
-    if (any(ieee_is_nan(this%muskingumattenuation_riverslope))) then
+    if (any(ieee_is_nan(this%muskingumattenuation_riverslope(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: muskingumAttenuation_riverSlope"
       return

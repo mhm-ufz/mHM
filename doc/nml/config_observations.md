@@ -30,8 +30,8 @@ Path to soil moisture input data.
 Expected variable name: "sm".
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### neutrons_path
@@ -42,8 +42,8 @@ Path to neutron input data.
 Expected variable name: "neutrons".
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### et_path
@@ -54,8 +54,8 @@ Path to evapotranspiration input data.
 Expected variable name: "et".
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### tws_path
@@ -66,8 +66,8 @@ Path to total water storage input data.
 Expected variable name: "twsa".
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### BFI_obs
@@ -78,8 +78,7 @@ Baseflow index per domain. Only needed if not calculated (BFI_calc = .false.).
 You can overwrite single BFI values to not calculate them internally (if BFI_calc = .true.).
 
 Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(n_domains)`
 - Required: no
 
 ### sm_horizons

@@ -3,9 +3,9 @@
 
 !> \brief Routing - Case 3
 !> \details Parameters for routing (case 3 - varying celerity).
-!> \version 0.1
+!> \version 0.2
 !> \authors Sebastian Mueller
-!> \date    Jan 2026
+!> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_namelists
@@ -54,8 +54,8 @@ contains
 
   !> \brief Initialize defaults and sentinels for routing3
   integer function nml_routing3_init(this, errmsg) result(status)
-    class(nml_routing3_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_routing3_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -65,11 +65,12 @@ contains
     this%slope_factor = ieee_value(this%slope_factor, ieee_quiet_nan) ! sentinel for required real array
   end function nml_routing3_init
 
+
   !> \brief Read routing3 namelist from file
   integer function nml_routing3_from_file(this, file, errmsg) result(status)
-    class(nml_routing3_t), intent(inout) :: this
+    class(nml_routing3_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     real(dp), dimension(5) :: slope_factor
     ! locals
@@ -121,15 +122,25 @@ contains
     slope_factor, &
     errmsg) result(status)
 
-    class(nml_routing3_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    real(dp), dimension(5), intent(in) :: slope_factor
+    class(nml_routing3_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    real(dp), dimension(:), intent(in) :: slope_factor !< Slope factor
+    integer :: &
+      lb__1, &
+      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
 
     ! required parameters
-    this%slope_factor = slope_factor
+    if (size(slope_factor, 1) > size(this%slope_factor, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'slope_factor'"
+      return
+    end if
+    lb__1 = lbound(this%slope_factor, 1)
+    ub__1 = lb__1 + size(slope_factor, 1) - 1
+    this%slope_factor(lb__1:ub__1) = slope_factor
 
     ! mark as configured
     this%is_configured = .true.
@@ -138,13 +149,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_routing3_is_set(this, name, idx, errmsg) result(status)
-    class(nml_routing3_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_routing3_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("slope_factor")
       if (present(idx)) then
@@ -166,20 +182,25 @@ contains
 
   !> \brief Validate required values and constraints
   integer function nml_routing3_is_valid(this, errmsg) result(status)
-    class(nml_routing3_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_routing3_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
     ! required arrays
-    if (all(ieee_is_nan(this%slope_factor))) then
+    if (all(ieee_is_nan(this%slope_factor(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: slope_factor"
       return
     end if
-    if (any(ieee_is_nan(this%slope_factor))) then
+    if (any(ieee_is_nan(this%slope_factor(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: slope_factor"
       return

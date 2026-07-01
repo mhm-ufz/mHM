@@ -8,7 +8,6 @@
 
 | Name | Type | Required | Info |
 | --- | --- | --- | --- |
-| [optimize](#optimize) | logical | no | Enable optimization |
 | [optimize_restart](#optimize_restart) | logical | no | Restart optimization |
 | [opti_method](#opti_method) | integer | no | Optimization method |
 | [opti_function](#opti_function) | integer | no | Objective function to be optimized |
@@ -24,17 +23,6 @@
 | [BFI_calc](#bfi_calc) | logical | no | Calculate BFI from discharge time series with the Eckhardt filter |
 
 ## Field details
-
-### optimize
-
-Enable optimization `optimize`
-
-Whether to optimize parameters.
-
-Summary:
-- Type: `logical`
-- Required: no
-- Default: `.false.`
 
 ### optimize_restart
 
@@ -228,7 +216,6 @@ Summary:
 
 ```fortran
 &config_optimize
-  optimize = .false.
   optimize_restart = .false.
   opti_method = 1
   opti_function = 10

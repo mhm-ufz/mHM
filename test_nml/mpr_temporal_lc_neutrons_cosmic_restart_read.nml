@@ -1,5 +1,6 @@
 &config_project
   n_domains = 1
+  n_geo_units      = 10
 /
 
 &config_processes
@@ -15,6 +16,11 @@
   sim_end(1)    = "1991-01-03 00:00"
 /
 
+
+&config_resolution
+  hydro(1) = 4000.0
+/
+
 &config_input
   slope_path(1)     = "test_domain/input/morph/slope.asc"
   aspect_path(1)    = "test_domain/input/morph/aspect.asc"
@@ -27,8 +33,8 @@
 /
 
 &config_mpr
+  n_layers(1) = 2
   soil_db_mode(1)          = 0
-  n_horizons(1)            = 2
   tillage_depth(1)         = 200
   soil_depth(1,1)          = 200
   fracSealed_cityArea(1)   = 0.6
@@ -41,5 +47,4 @@
 /
 
 &config_mhm
-  resolution(1) = 4000.0
 /

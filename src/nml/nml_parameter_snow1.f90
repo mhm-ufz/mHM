@@ -3,9 +3,9 @@
 
 !> \brief Snow - Case 1
 !> \details Parameters for Snow module.
-!> \version 0.1
+!> \version 0.2
 !> \authors Sebastian Mueller
-!> \date    Jan 2026
+!> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_namelists
@@ -61,8 +61,8 @@ contains
 
   !> \brief Initialize defaults and sentinels for snow1
   integer function nml_snow1_init(this, errmsg) result(status)
-    class(nml_snow1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_snow1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -79,11 +79,12 @@ contains
     this%maxdegreedayfactor_pervious = ieee_value(this%maxdegreedayfactor_pervious, ieee_quiet_nan) ! sentinel for required real array
   end function nml_snow1_init
 
+
   !> \brief Read snow1 namelist from file
   integer function nml_snow1_from_file(this, file, errmsg) result(status)
-    class(nml_snow1_t), intent(inout) :: this
+    class(nml_snow1_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     real(dp), dimension(5) :: snowtreshholdtemperature
     real(dp), dimension(5) :: degreedayfactor_forest
@@ -170,29 +171,88 @@ contains
     maxdegreedayfactor_pervious, &
     errmsg) result(status)
 
-    class(nml_snow1_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    real(dp), dimension(5), intent(in) :: snowtreshholdtemperature
-    real(dp), dimension(5), intent(in) :: degreedayfactor_forest
-    real(dp), dimension(5), intent(in) :: degreedayfactor_impervious
-    real(dp), dimension(5), intent(in) :: degreedayfactor_pervious
-    real(dp), dimension(5), intent(in) :: increasedegreedayfactorbyprecip
-    real(dp), dimension(5), intent(in) :: maxdegreedayfactor_forest
-    real(dp), dimension(5), intent(in) :: maxdegreedayfactor_impervious
-    real(dp), dimension(5), intent(in) :: maxdegreedayfactor_pervious
+    class(nml_snow1_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    real(dp), dimension(:), intent(in) :: snowtreshholdtemperature !< Threshold for rain/snow partitioning [degC].
+    real(dp), dimension(:), intent(in) :: degreedayfactor_forest !< Degree day factors to determine melting flux [m degC-1].
+    real(dp), dimension(:), intent(in) :: degreedayfactor_impervious !< Degree day factors to determine melting flux [m degC-1].
+    real(dp), dimension(:), intent(in) :: degreedayfactor_pervious !< Degree day factors to determine melting flux [m degC-1].
+    real(dp), dimension(:), intent(in) :: increasedegreedayfactorbyprecip !< Increase of degree day factor if there is precipitation [degC-1].
+    real(dp), dimension(:), intent(in) :: maxdegreedayfactor_forest !< Maximum values for degree day factor [m degC-1].
+    real(dp), dimension(:), intent(in) :: maxdegreedayfactor_impervious !< Maximum values for degree day factor [m degC-1].
+    real(dp), dimension(:), intent(in) :: maxdegreedayfactor_pervious !< Maximum values for degree day factor [m degC-1].
+    integer :: &
+      lb__1, &
+      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
 
     ! required parameters
-    this%snowtreshholdtemperature = snowtreshholdtemperature
-    this%degreedayfactor_forest = degreedayfactor_forest
-    this%degreedayfactor_impervious = degreedayfactor_impervious
-    this%degreedayfactor_pervious = degreedayfactor_pervious
-    this%increasedegreedayfactorbyprecip = increasedegreedayfactorbyprecip
-    this%maxdegreedayfactor_forest = maxdegreedayfactor_forest
-    this%maxdegreedayfactor_impervious = maxdegreedayfactor_impervious
-    this%maxdegreedayfactor_pervious = maxdegreedayfactor_pervious
+    if (size(snowtreshholdtemperature, 1) > size(this%snowtreshholdtemperature, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'snowtreshholdtemperature'"
+      return
+    end if
+    lb__1 = lbound(this%snowtreshholdtemperature, 1)
+    ub__1 = lb__1 + size(snowtreshholdtemperature, 1) - 1
+    this%snowtreshholdtemperature(lb__1:ub__1) = snowtreshholdtemperature
+    if (size(degreedayfactor_forest, 1) > size(this%degreedayfactor_forest, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'degreedayfactor_forest'"
+      return
+    end if
+    lb__1 = lbound(this%degreedayfactor_forest, 1)
+    ub__1 = lb__1 + size(degreedayfactor_forest, 1) - 1
+    this%degreedayfactor_forest(lb__1:ub__1) = degreedayfactor_forest
+    if (size(degreedayfactor_impervious, 1) > size(this%degreedayfactor_impervious, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'degreedayfactor_impervious'"
+      return
+    end if
+    lb__1 = lbound(this%degreedayfactor_impervious, 1)
+    ub__1 = lb__1 + size(degreedayfactor_impervious, 1) - 1
+    this%degreedayfactor_impervious(lb__1:ub__1) = degreedayfactor_impervious
+    if (size(degreedayfactor_pervious, 1) > size(this%degreedayfactor_pervious, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'degreedayfactor_pervious'"
+      return
+    end if
+    lb__1 = lbound(this%degreedayfactor_pervious, 1)
+    ub__1 = lb__1 + size(degreedayfactor_pervious, 1) - 1
+    this%degreedayfactor_pervious(lb__1:ub__1) = degreedayfactor_pervious
+    if (size(increasedegreedayfactorbyprecip, 1) > size(this%increasedegreedayfactorbyprecip, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'increasedegreedayfactorbyprecip'"
+      return
+    end if
+    lb__1 = lbound(this%increasedegreedayfactorbyprecip, 1)
+    ub__1 = lb__1 + size(increasedegreedayfactorbyprecip, 1) - 1
+    this%increasedegreedayfactorbyprecip(lb__1:ub__1) = increasedegreedayfactorbyprecip
+    if (size(maxdegreedayfactor_forest, 1) > size(this%maxdegreedayfactor_forest, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'maxdegreedayfactor_forest'"
+      return
+    end if
+    lb__1 = lbound(this%maxdegreedayfactor_forest, 1)
+    ub__1 = lb__1 + size(maxdegreedayfactor_forest, 1) - 1
+    this%maxdegreedayfactor_forest(lb__1:ub__1) = maxdegreedayfactor_forest
+    if (size(maxdegreedayfactor_impervious, 1) > size(this%maxdegreedayfactor_impervious, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'maxdegreedayfactor_impervious'"
+      return
+    end if
+    lb__1 = lbound(this%maxdegreedayfactor_impervious, 1)
+    ub__1 = lb__1 + size(maxdegreedayfactor_impervious, 1) - 1
+    this%maxdegreedayfactor_impervious(lb__1:ub__1) = maxdegreedayfactor_impervious
+    if (size(maxdegreedayfactor_pervious, 1) > size(this%maxdegreedayfactor_pervious, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'maxdegreedayfactor_pervious'"
+      return
+    end if
+    lb__1 = lbound(this%maxdegreedayfactor_pervious, 1)
+    ub__1 = lb__1 + size(maxdegreedayfactor_pervious, 1) - 1
+    this%maxdegreedayfactor_pervious(lb__1:ub__1) = maxdegreedayfactor_pervious
 
     ! mark as configured
     this%is_configured = .true.
@@ -201,13 +261,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_snow1_is_set(this, name, idx, errmsg) result(status)
-    class(nml_snow1_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_snow1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("snowtreshholdtemperature")
       if (present(idx)) then
@@ -292,90 +357,95 @@ contains
 
   !> \brief Validate required values and constraints
   integer function nml_snow1_is_valid(this, errmsg) result(status)
-    class(nml_snow1_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_snow1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
     ! required arrays
-    if (all(ieee_is_nan(this%snowtreshholdtemperature))) then
+    if (all(ieee_is_nan(this%snowtreshholdtemperature(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: snowTreshholdTemperature"
       return
     end if
-    if (any(ieee_is_nan(this%snowtreshholdtemperature))) then
+    if (any(ieee_is_nan(this%snowtreshholdtemperature(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: snowTreshholdTemperature"
       return
     end if
-    if (all(ieee_is_nan(this%degreedayfactor_forest))) then
+    if (all(ieee_is_nan(this%degreedayfactor_forest(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: degreeDayFactor_forest"
       return
     end if
-    if (any(ieee_is_nan(this%degreedayfactor_forest))) then
+    if (any(ieee_is_nan(this%degreedayfactor_forest(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: degreeDayFactor_forest"
       return
     end if
-    if (all(ieee_is_nan(this%degreedayfactor_impervious))) then
+    if (all(ieee_is_nan(this%degreedayfactor_impervious(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: degreeDayFactor_impervious"
       return
     end if
-    if (any(ieee_is_nan(this%degreedayfactor_impervious))) then
+    if (any(ieee_is_nan(this%degreedayfactor_impervious(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: degreeDayFactor_impervious"
       return
     end if
-    if (all(ieee_is_nan(this%degreedayfactor_pervious))) then
+    if (all(ieee_is_nan(this%degreedayfactor_pervious(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: degreeDayFactor_pervious"
       return
     end if
-    if (any(ieee_is_nan(this%degreedayfactor_pervious))) then
+    if (any(ieee_is_nan(this%degreedayfactor_pervious(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: degreeDayFactor_pervious"
       return
     end if
-    if (all(ieee_is_nan(this%increasedegreedayfactorbyprecip))) then
+    if (all(ieee_is_nan(this%increasedegreedayfactorbyprecip(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: increaseDegreeDayFactorByPrecip"
       return
     end if
-    if (any(ieee_is_nan(this%increasedegreedayfactorbyprecip))) then
+    if (any(ieee_is_nan(this%increasedegreedayfactorbyprecip(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: increaseDegreeDayFactorByPrecip"
       return
     end if
-    if (all(ieee_is_nan(this%maxdegreedayfactor_forest))) then
+    if (all(ieee_is_nan(this%maxdegreedayfactor_forest(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: maxDegreeDayFactor_forest"
       return
     end if
-    if (any(ieee_is_nan(this%maxdegreedayfactor_forest))) then
+    if (any(ieee_is_nan(this%maxdegreedayfactor_forest(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: maxDegreeDayFactor_forest"
       return
     end if
-    if (all(ieee_is_nan(this%maxdegreedayfactor_impervious))) then
+    if (all(ieee_is_nan(this%maxdegreedayfactor_impervious(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: maxDegreeDayFactor_impervious"
       return
     end if
-    if (any(ieee_is_nan(this%maxdegreedayfactor_impervious))) then
+    if (any(ieee_is_nan(this%maxdegreedayfactor_impervious(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: maxDegreeDayFactor_impervious"
       return
     end if
-    if (all(ieee_is_nan(this%maxdegreedayfactor_pervious))) then
+    if (all(ieee_is_nan(this%maxdegreedayfactor_pervious(:)))) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) errmsg = "required field not set: maxDegreeDayFactor_pervious"
       return
     end if
-    if (any(ieee_is_nan(this%maxdegreedayfactor_pervious))) then
+    if (any(ieee_is_nan(this%maxdegreedayfactor_pervious(:)))) then
       status = NML_ERR_PARTLY_SET
       if (present(errmsg)) errmsg = "array partly set: maxDegreeDayFactor_pervious"
       return

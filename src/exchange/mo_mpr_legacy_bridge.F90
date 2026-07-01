@@ -193,10 +193,10 @@ contains
 
     ! Translate the new config into the legacy-global soil database controls before reading the LUT.
     iFlag_soilDB = config%soil_db_mode(domain)
-    nSoilHorizons_mHM = config%n_horizons(domain)
+    nSoilHorizons_mHM = config%n_layers(domain)
     tillageDepth = real(config%tillage_depth(domain), dp)
     if (nSoilHorizons_mHM < 1_i4) then
-      log_fatal(*) "MPR bridge: n_horizons must be >= 1 for soil database setup."
+      log_fatal(*) "MPR bridge: n_layers must be >= 1 for soil database setup."
       error stop 1
     end if
 
@@ -606,7 +606,7 @@ contains
     n_cells1 = size(sm_exponent_l1, 1)
     if (size(sm_exponent_l1, 2) /= nSoilHorizons_mHM) then
       log_fatal(*) "MPR bridge: soil cache horizon dimension ", n2s(size(sm_exponent_l1, 2)), &
-        " does not match n_horizons=", n2s(nSoilHorizons_mHM), "."
+        " does not match n_layers=", n2s(nSoilHorizons_mHM), "."
       error stop 1
     end if
 
@@ -898,10 +898,11 @@ contains
   end subroutine mpr_bridge_sealed_threshold
 
   !> \brief Bridge geological baseflow parameter generation with legacy-compatible class mapping.
-  subroutine mpr_bridge_baseflow_param(param, geo_unit_l0, geo_unit_list, upscaler, k_baseflow_l1)
+  subroutine mpr_bridge_baseflow_param(param, geo_unit_l0, geo_unit_list, geo_param_index, upscaler, k_baseflow_l1)
     real(dp), dimension(:), intent(in) :: param
     integer(i4), dimension(:), intent(in) :: geo_unit_l0
     integer(i4), dimension(:), intent(in) :: geo_unit_list
+    integer(i4), dimension(:), intent(in) :: geo_param_index
     class(scaler_t), intent(inout), target :: upscaler
     real(dp), dimension(:), intent(out) :: k_baseflow_l1
     real(dp), allocatable :: baseflow_l0(:)
@@ -909,9 +910,12 @@ contains
     integer(i4) :: j
     integer(i4) :: class_pos
 
-    if (size(param) /= size(geo_unit_list)) then
-      log_fatal(*) "MPR bridge: baseflow parameter count ", n2s(size(param, kind=i4)), &
-        " does not match geology LUT classes ", n2s(size(geo_unit_list, kind=i4)), "."
+    if (size(geo_param_index) /= size(geo_unit_list)) then
+      log_fatal(*) "MPR bridge: geo_param_index and geo_unit LUT sizes do not match."
+      error stop 1
+    end if
+    if (any(geo_param_index < 1_i4) .or. any(geo_param_index > size(param))) then
+      log_fatal(*) "MPR bridge: geology LUT GeoParam index is outside available baseflow parameters."
       error stop 1
     end if
 
@@ -928,7 +932,7 @@ contains
         log_fatal(*) "MPR bridge: geological unit ", n2s(geo_unit_l0(i)), " missing in geology LUT."
         error stop 1
       end if
-      baseflow_l0(i) = param(class_pos)
+      baseflow_l0(i) = param(geo_param_index(class_pos))
     end do
 
     call upscaler%execute(baseflow_l0, k_baseflow_l1, upscaling_operator=up_a_mean)

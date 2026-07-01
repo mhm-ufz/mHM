@@ -94,7 +94,7 @@ Chunking configuration for reading input data (array dimension 1: domain)
 - -3 : yearly
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Default: `0`
 - Minimum: `>= -3`
@@ -109,7 +109,7 @@ NetCDF time-stamp location: when no time-bounds are given in the input data.
 - 2 : end of time step
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Default: `0`
 - Allowed values: `0`, `1`, `2`
@@ -119,8 +119,8 @@ Summary:
 Latlon specification file path `latlon_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### morph_latlon
@@ -128,7 +128,7 @@ Summary:
 DEM in latlon coordinates `morph_latlon`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -137,8 +137,8 @@ Summary:
 Precipitation input `pre_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### pet_path
@@ -146,8 +146,8 @@ Summary:
 Potential evapotranspiration input `pet_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### temp_path
@@ -155,8 +155,8 @@ Summary:
 Air temperature input `temp_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### tann_path
@@ -164,8 +164,8 @@ Summary:
 Air temperature annual mean input `tann_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### tmin_path
@@ -173,8 +173,8 @@ Summary:
 Air temperature daily minimum input `tmin_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### tmax_path
@@ -182,8 +182,8 @@ Summary:
 Air temperature daily maximum input `tmax_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### ssrd_path
@@ -191,8 +191,8 @@ Summary:
 Surface shortwave radiation downwards input `ssrd_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### strd_path
@@ -200,8 +200,8 @@ Summary:
 Surface thermal radiation downwards input `strd_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### netrad_path
@@ -209,8 +209,8 @@ Summary:
 Net radiation input `netrad_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### eabs_path
@@ -218,8 +218,8 @@ Summary:
 Vapor pressure input `eabs_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### wind_path
@@ -227,8 +227,8 @@ Summary:
 Wind speed input `wind_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### meteo_mask_path
@@ -236,8 +236,8 @@ Summary:
 Meteorological mask file path `meteo_mask_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### runoff_path
@@ -245,8 +245,8 @@ Summary:
 Runoff input `runoff_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### runoff_sealed_path
@@ -254,8 +254,8 @@ Summary:
 Sealed runoff input `runoff_sealed_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### interflow_fast_path
@@ -263,8 +263,8 @@ Summary:
 Fast interflow input `interflow_fast_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### interflow_slow_path
@@ -272,8 +272,8 @@ Summary:
 Slow interflow input `interflow_slow_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### baseflow_path
@@ -281,8 +281,8 @@ Summary:
 Baseflow input `baseflow_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### hydro_mask_path
@@ -290,8 +290,8 @@ Summary:
 Hydrological mask file path `hydro_mask_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### dem_path
@@ -299,8 +299,8 @@ Summary:
 DEM input `dem_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### slope_path
@@ -308,8 +308,8 @@ Summary:
 Slope input `slope_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### aspect_path
@@ -317,8 +317,8 @@ Summary:
 Aspect input `aspect_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### fdir_path
@@ -326,8 +326,8 @@ Summary:
 Flow direction input `fdir_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### facc_path
@@ -335,8 +335,8 @@ Summary:
 Flow accumulation input `facc_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### geo_class_path
@@ -344,8 +344,8 @@ Summary:
 Geology class input `geo_class_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### soil_class_path
@@ -353,8 +353,8 @@ Summary:
 Soil class input `soil_class_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### soil_horizon_class_path
@@ -362,8 +362,8 @@ Summary:
 Soil horizon class input `soil_horizon_class_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### lai_class_path
@@ -371,8 +371,8 @@ Summary:
 LAI class input `lai_class_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### river_width_path
@@ -380,8 +380,8 @@ Summary:
 River width input `river_width_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### morph_mask_path
@@ -389,8 +389,8 @@ Summary:
 Morphology mask file path `morph_mask_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### pre_var
@@ -398,7 +398,7 @@ Summary:
 Precipitation variable name `pre_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"pre"`
 
@@ -407,7 +407,7 @@ Summary:
 Potential evapotranspiration variable name `pet_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"pet"`
 
@@ -416,7 +416,7 @@ Summary:
 Air temperature variable name `temp_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"tavg"`
 
@@ -425,7 +425,7 @@ Summary:
 Air temperature annual mean variable name `tann_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"tann"`
 
@@ -434,7 +434,7 @@ Summary:
 Air temperature daily minimum variable name `tmin_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"tmin"`
 
@@ -443,7 +443,7 @@ Summary:
 Air temperature daily maximum variable name `tmax_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"tmax"`
 
@@ -452,7 +452,7 @@ Summary:
 Surface shortwave radiation variable name `ssrd_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"ssrd"`
 
@@ -461,7 +461,7 @@ Summary:
 Surface thermal radiation variable name `strd_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"strd"`
 
@@ -470,7 +470,7 @@ Summary:
 Net radiation variable name `netrad_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"net_rad"`
 
@@ -479,7 +479,7 @@ Summary:
 Vapor pressure variable name `eabs_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"eabs"`
 
@@ -488,7 +488,7 @@ Summary:
 Wind speed variable name `wind_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"windspeed"`
 
@@ -497,7 +497,7 @@ Summary:
 Meteorological mask variable name `meteo_mask_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"mask"`
 
@@ -506,7 +506,7 @@ Summary:
 Runoff variable name `runoff_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"runoff"`
 
@@ -515,7 +515,7 @@ Summary:
 Sealed runoff variable name `runoff_sealed_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"runoff_sealed"`
 
@@ -524,7 +524,7 @@ Summary:
 Fast interflow variable name `interflow_fast_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"interflow_fast"`
 
@@ -533,7 +533,7 @@ Summary:
 Slow interflow variable name `interflow_slow_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"interflow_slow"`
 
@@ -542,7 +542,7 @@ Summary:
 Baseflow variable name `baseflow_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"baseflow"`
 
@@ -551,7 +551,7 @@ Summary:
 Hydrological mask variable name `hydro_mask_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"mask"`
 
@@ -560,7 +560,7 @@ Summary:
 DEM variable name `dem_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"dem"`
 
@@ -569,7 +569,7 @@ Summary:
 Slope variable name `slope_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"slope"`
 
@@ -578,7 +578,7 @@ Summary:
 Aspect variable name `aspect_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"aspect"`
 
@@ -587,7 +587,7 @@ Summary:
 Flow direction variable name `fdir_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"fdir"`
 
@@ -596,7 +596,7 @@ Summary:
 Flow accumulation variable name `facc_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"facc"`
 
@@ -605,7 +605,7 @@ Summary:
 Geology class variable name `geo_class_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"geology_class"`
 
@@ -614,7 +614,7 @@ Summary:
 Soil class variable name `soil_class_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"soil_class"`
 
@@ -623,7 +623,7 @@ Summary:
 LAI class variable name `lai_class_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"LAI_class"`
 
@@ -632,7 +632,7 @@ Summary:
 River width variable name `river_width_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"P_bkfl"`
 
@@ -641,7 +641,7 @@ Summary:
 Morphology mask variable name `morph_mask_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"mask"`
 
@@ -650,7 +650,7 @@ Summary:
 Hydrological latitude variable name `hydro_lat_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"lat"`
 
@@ -659,7 +659,7 @@ Summary:
 Hydrological longitude variable name `hydro_lon_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"lon"`
 
@@ -668,7 +668,7 @@ Summary:
 Morphology latitude variable name `morph_lat_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"lat_l0"`
 
@@ -677,7 +677,7 @@ Summary:
 Morphology longitude variable name `morph_lon_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"lon_l0"`
 
@@ -686,7 +686,7 @@ Summary:
 Routing latitude variable name `route_lat_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"lat_l11"`
 
@@ -695,7 +695,7 @@ Summary:
 Routing longitude variable name `route_lon_var`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"lon_l11"`
 

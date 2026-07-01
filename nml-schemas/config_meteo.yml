@@ -10,7 +10,7 @@ properties:
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Read meteorological weights
     description: |-
       Read meteorological weights from file instead of using fixed night ratios.
@@ -20,41 +20,41 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Precipitation weights path
   pet_weights_path:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Potential evapotranspiration weights path
   temp_weights_path:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Surface downward shortwave radiation weights path
   ssrd_weights_path:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Surface downward shortwave radiation weights path
   strd_weights_path:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Surface downward longwave radiation weights path
   pre_weights_var:
     type: array
@@ -62,7 +62,7 @@ properties:
       type: string
       x-fortran-len: buf
       default: pre_weights
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Precipitation weights variable name
   pet_weights_var:
     type: array
@@ -70,7 +70,7 @@ properties:
       type: string
       x-fortran-len: buf
       default: pet_weights
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Potential evapotranspiration weights variable name
   temp_weights_var:
     type: array
@@ -78,7 +78,7 @@ properties:
       type: string
       x-fortran-len: buf
       default: tavg_weights
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Average temperature weights variable name
   ssrd_weights_var:
     type: array
@@ -86,7 +86,7 @@ properties:
       type: string
       x-fortran-len: buf
       default: ssrd_weights
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Surface downward shortwave radiation weights variable name
   strd_weights_var:
     type: array
@@ -94,15 +94,14 @@ properties:
       type: string
       x-fortran-len: buf
       default: strd_weights
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Surface downward longwave radiation weights variable name
   frac_night_pre:
     type: array
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: [12, max_domains]
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: [12, n_domains]
     examples: [[0.46, 0.5, 0.52, 0.51, 0.48, 0.5, 0.49, 0.48, 0.52, 0.56, 0.5, 0.47]]
     title: Fraction of nightly precipitation
     description: |-
@@ -114,8 +113,7 @@ properties:
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: [12, max_domains]
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: [12, n_domains]
     examples: [[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]]
     title: Fraction of nightly potential evapotranspiration
     description: |-
@@ -127,8 +125,7 @@ properties:
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: [12, max_domains]
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: [12, n_domains]
     examples: [[-0.76, -1.3, -1.88, -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.6, -0.94, -0.53]]
     title: Fraction of nightly temperature
     description: |-
@@ -140,8 +137,7 @@ properties:
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: [12, max_domains]
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: [12, n_domains]
     examples: [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
     title: Fraction of nightly surface downward shortwave radiation
     description: |-
@@ -153,8 +149,7 @@ properties:
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: [12, max_domains]
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: [12, n_domains]
     examples: [[0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45]]
     title: Fraction of nightly surface downward longwave radiation
     description: |-

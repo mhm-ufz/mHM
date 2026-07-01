@@ -2,12 +2,6 @@ title: Optimization configuration
 x-fortran-namelist: config_optimize
 type: object
 properties:
-  optimize:
-    type: boolean
-    default: false
-    title: Enable optimization
-    description: |-
-      Whether to optimize parameters.
   optimize_restart:
     type: boolean
     default: false

@@ -10,7 +10,7 @@ properties:
       x-fortran-kind: i4
       enum: [0, 1]
       default: 0
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Soil database mode
     description: |-
       Flag to handle multiple soil database types; valid for all domains.
@@ -19,31 +19,31 @@ properties:
       - 1: harmonised horizon-specific soil database with soil_class_horizon_XX.asc and soil_classdefinition_iFlag_soilDB_1.txt.
         Soil depth is provided for all horizons; the last horizon depth is fixed and uniform;
         tillage depth must match a horizon depth.
-  n_horizons:
-    type: array
-    items:
-      type: integer
-      x-fortran-kind: i4
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
-    title: Number of soil horizons
-    description: Number of soil horizons to be modeled (nSoilHorizons_mHM).
   tillage_depth:
     type: array
     items:
       type: integer
       x-fortran-kind: i4
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Tillage depth
     description: Soil depth down to which organic matter is possible [mm].
+  n_layers:
+    type: array
+    items:
+      type: integer
+      x-fortran-kind: i4
+      minimum: 1
+    x-fortran-shape: n_domains
+    title: Number of soil layers
+    examples: [[1]]
+    description: Number of mHM soil layers for each configured domain.
   soil_depth:
     type: array
     items:
       type: integer
       x-fortran-kind: i4
-    x-fortran-shape: [max_layers, max_domains]
-    x-fortran-flex-tail-dims: 2
+      default: 0
+    x-fortran-shape: [max_layers, n_domains]
     title: Soil horizon depth
     description: |-
       Bottom depth of soil horizons with respect to the ground surface [mm], positive downwards.
@@ -55,17 +55,16 @@ properties:
     items:
       type: number
       x-fortran-kind: dp
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Sealed fraction of city area
     description: Fraction of area within city assumed to be fully sealed [0.0-1.0].
   land_cover_path:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Land cover path
     description: NetCDF land-cover dataset path.
   land_cover_var:
@@ -74,7 +73,7 @@ properties:
       type: string
       x-fortran-len: buf
       default: land_cover
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Land cover variable
     description: Land-cover variable name in the NetCDF dataset.
   lai_time_step:
@@ -83,8 +82,7 @@ properties:
       type: integer
       x-fortran-kind: i4
       enum: [-3, -2, -1, 0, 1]
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: LAI time step
     description: |-
       Time step for LAI input data [days]:
@@ -97,9 +95,9 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: LAI path
     description: Gridded LAI dataset path (if `lai_time_step` < 0 or = 1).
   lai_var:
@@ -108,34 +106,34 @@ properties:
       type: string
       x-fortran-len: buf
       default: lai
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: LAI variable
     description: LAI variable name in the gridded NetCDF dataset.
   soil_lut_path:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Soil LUT path
     description: Soil look-up table path.
   geo_lut_path:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Geology LUT path
     description: Geology look-up table path.
   lai_lut_path:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: LAI LUT path
     description: LAI look-up table path.
   read_restart:
@@ -143,15 +141,15 @@ properties:
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Read restart
   restart_input_path:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Restart input path
     examples: [["mpr_restart_in.nc"]]
   write_restart:
@@ -159,14 +157,14 @@ properties:
     items:
       type: boolean
       default: false
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Write restart
   restart_output_path:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     title: Restart output path
     examples: [["mpr_restart_out.nc"]]

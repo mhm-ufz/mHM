@@ -18,12 +18,11 @@ Parameters for geoparameter.
 
 Geological parameters `GeoParam`
 
-Geological parameters (ordering according to class-definition file)
+Global geological parameters addressed by the first column of each domain geology class-definition file.
 These parameters are NOT REGIONALIZED yet, i.e. these are <beta> and not <gamma>
 
 Summary:
-- Type: `real(dp), dimension(5, max_geo_units)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(5, n_geo_units)`
 - Required: yes
 - Examples: `[1.0, 1000.0, 100.0, 1.0, 1.0]`
 

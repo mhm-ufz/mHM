@@ -7,9 +7,9 @@ properties:
     type: array
     items:
       type: string
+      format: date-time
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     examples: ["2020-06-01 00:00", "2025-01-01"]
     title: Simulation start
     description: |-
@@ -19,9 +19,9 @@ properties:
     type: array
     items:
       type: string
+      format: date-time
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     examples: ["2021-01-01 00:00", "2025-02-15"]
     title: Evaluation start
     description: |-
@@ -31,9 +31,9 @@ properties:
     type: array
     items:
       type: string
+      format: date-time
       x-fortran-len: buf
-    x-fortran-shape: max_domains
-    x-fortran-flex-tail-dims: 1
+    x-fortran-shape: n_domains
     examples: ["2022-01-01 00:00", "2026-01-01"]
     title: Simulation end
     description: |-
@@ -52,7 +52,7 @@ properties:
       type: integer
       x-fortran-kind: i4
       default: 1
-    x-fortran-shape: max_domains
+    x-fortran-shape: n_domains
     title: Time step of the simulation
     description: Time step of the simulation (1 or 24, in hours).
   share_time_step:

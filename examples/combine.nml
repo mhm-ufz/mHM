@@ -1,31 +1,35 @@
-! Staged example for the intended read_domains_from_dirs workflow.
-! This file is not expected to execute on the current v6alpha driver because
-! domain_dirs are not yet resolved into per-domain mhm.nml paths.
-
 &config_project
-  project_details         = "mHM example domains"
-  setup_description       = "Staged multi-domain example with per-domain directories"
-  simulation_type         = "historical simulation"
-  Conventions             = "CF-1.8"
-  contact                 = "mHM developers (email:mhm-developers@ufz.de)"
-  mHM_details             = "Helmholtz Centre for Environmental Research - UFZ"
-  history                 = "v6alpha staged example layout"
-  n_domains               = 2
-  read_domains_from_dirs  = .true.
-  domain_dirs(1)          = "domain_01"
-  domain_dirs(2)          = "domain_02"
+  project_details        = "mHM example domains"
+  setup_description      = "Staged multi-domain example with per-domain directories"
+  simulation_type        = "historical simulation"
+  Conventions            = "CF-1.8"
+  contact                = "mHM developers (email:mhm-developers@ufz.de)"
+  mHM_details            = "Helmholtz Centre for Environmental Research - UFZ"
+  history                = "v6alpha staged example layout"
+  n_domains              = 2
+  n_geo_units            = 10
+  read_domains_from_dirs = .true.
+/
+
+&config_domain
+  ! domain 1
+  domain_dirs(1)         = "domain_01"
+  domain_nmls(1)         = "mhm.nml"
+  ! domain 2
+  domain_dirs(2)         = "domain_02"
+  domain_nmls(2)         = "mhm.nml"
 /
 
 &config_processes
-  interception       = 1
-  snow               = 1
-  soil_moisture      = 1
-  direct_runoff      = 1
-  pet                = -1
-  interflow          = 1
-  percolation        = 1
-  baseflow           = 1
-  neutrons           = 0
-  routing            = 3
-  temperature_routing = 0
+  interception           = 1
+  snow                   = 1
+  soil_moisture          = 1
+  direct_runoff          = 1
+  pet                    = -1
+  interflow              = 1
+  percolation            = 1
+  baseflow               = 1
+  neutrons               = 0
+  routing                = 3
+  temperature_routing    = 0
 /

@@ -1,3 +1,7 @@
+! Main configuration
+!
+! Domain-local runtime configuration for mHM.
+
 ! Project configuration
 &config_project
   ! Project name
@@ -14,10 +18,20 @@
   mHM_details = "Research unit"
   ! Some details on data/model run version.
   history = "Model run version 1"
+  ! Enable optimization
+  optimize = .false.
   ! Number of domains
   n_domains = 1
+  ! Number of geological units
+  n_geo_units = 25
+  ! Maximum number of soil layers
+  max_layers = 10
   ! Flag for separate domains
   read_domains_from_dirs = .false.
+/
+
+! Domain configuration
+&config_domain
   ! Domain directories
   domain_dirs(:) = ""
   ! Domain namelists
@@ -52,8 +66,6 @@
 
 ! Optimization configuration
 &config_optimize
-  ! Enable optimization
-  optimize = .false.
   ! Restart optimization
   optimize_restart = .false.
   ! Optimization method
@@ -80,6 +92,14 @@
   mcmc_error_params(:) = 0.01, 0.6
   ! Calculate BFI from discharge time series with the Eckhardt filter
   BFI_calc = .true.
+/
+
+! Grid resolution configuration
+&config_resolution
+  ! Hydrological grid resolution
+  hydro(:) = 0.1
+  ! Routing grid resolution
+  route(:) = 0.5
 /
 
 ! Time configuration
@@ -239,43 +259,43 @@
 ! Coupling configuration
 &config_coupling
   ! Meteo grid size in x-direction
-  meteo_grid_nx(:) = 0
+  meteo_grid_nx(:) = 10
   ! Meteo grid size in y-direction
-  meteo_grid_ny(:) = 0
+  meteo_grid_ny(:) = 10
   ! Meteo grid x origin
   meteo_grid_xll(:) = 0.0
   ! Meteo grid y origin
   meteo_grid_yll(:) = 0.0
   ! Meteo grid cell size
-  meteo_grid_cellsize(:) = 0.0
+  meteo_grid_cellsize(:) = 1.0
   ! Meteo grid y direction
   meteo_grid_ydir(:) = 0
   ! Meteo grid coordinate system
   meteo_grid_coordsys(:) = 0
   ! Hydro grid size in x-direction
-  hydro_grid_nx(:) = 0
+  hydro_grid_nx(:) = 10
   ! Hydro grid size in y-direction
-  hydro_grid_ny(:) = 0
+  hydro_grid_ny(:) = 10
   ! Hydro grid x origin
   hydro_grid_xll(:) = 0.0
   ! Hydro grid y origin
   hydro_grid_yll(:) = 0.0
   ! Hydro grid cell size
-  hydro_grid_cellsize(:) = 0.0
+  hydro_grid_cellsize(:) = 1.0
   ! Hydro grid y direction
   hydro_grid_ydir(:) = 0
   ! Hydro grid coordinate system
   hydro_grid_coordsys(:) = 0
   ! Morph grid size in x-direction
-  morph_grid_nx(:) = 0
+  morph_grid_nx(:) = 10
   ! Morph grid size in y-direction
-  morph_grid_ny(:) = 0
+  morph_grid_ny(:) = 10
   ! Morph grid x origin
   morph_grid_xll(:) = 0.0
   ! Morph grid y origin
   morph_grid_yll(:) = 0.0
   ! Morph grid cell size
-  morph_grid_cellsize(:) = 0.0
+  morph_grid_cellsize(:) = 1.0
   ! Morph grid y direction
   morph_grid_ydir(:) = 0
   ! Morph grid coordinate system
@@ -382,10 +402,10 @@
 &config_mpr
   ! Soil database mode
   soil_db_mode(:) = 0
-  ! Number of soil horizons
-  n_horizons(:) = 0
   ! Tillage depth
   tillage_depth(:) = 0
+  ! Number of soil layers
+  n_layers(:) = 1
   ! Soil horizon depth
   soil_depth(:,:) = 0
   ! Sealed fraction of city area
@@ -418,8 +438,6 @@
 
 ! mHM model configuration
 &config_mhm
-  ! mHM model resolution (L1)
-  resolution(:) = 0.0
   ! Output path
   output_path(:) = "mhm_output.nc"
   ! Read restart
@@ -438,8 +456,6 @@
 
 ! mRM configuration
 &config_mrm
-  ! mRM resolution (L3)
-  resolution(:) = 0.1
   ! Flag for root based river network ordering.
   river_net_order_root_based(:) = .true.
   ! Minimum level size for OpenMP parallelization.

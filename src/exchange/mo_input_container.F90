@@ -147,6 +147,7 @@ module mo_input_container
     type(input_var_dp) :: runoff !< input variable for runoff
     integer(i4), allocatable :: soil_class_one_layer(:,:) !< adapter for single-layer soil class input
   contains
+    procedure :: set_dims => input_set_dims
     procedure :: configure => input_configure
     procedure :: connect => input_connect
     procedure :: initialize => input_initialize
@@ -640,6 +641,24 @@ contains
     ! TODO: read coupling configuration
   end subroutine input_config_read
 
+  !> \brief Set runtime dimensions for generated input namelists.
+  subroutine input_set_dims(self)
+    class(input_t), target, intent(inout) :: self
+    character(1024) :: errmsg
+    integer :: status
+
+    status = self%config%input%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Input: Error setting input dimensions: ", trim(errmsg)
+      error stop 1
+    end if
+    status = self%config%coupling%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Input: Error setting coupling dimensions: ", trim(errmsg)
+      error stop 1
+    end if
+  end subroutine input_set_dims
+
   !> \brief Configure the Input container.
   !> \details Read configuration from file and initialize input variables.
   !! If file is not given, the configuration is assumed to be already set from a coupler,
@@ -649,9 +668,13 @@ contains
     character(*), intent(in), optional :: file !< file containing the namelists
     integer :: status
     character(1024) :: errmsg
+    character(:), allocatable :: path
     integer(i4) :: id(1)
     log_info(*) "Configure Input"
-    if (present(file)) call self%config%read(file)
+    if (present(file)) then
+      path = self%exchange%get_path(file)
+      call self%config%read(path)
+    end if
     if (.not.self%config%input%is_configured) then
       log_fatal(*) "Input configuration not set."
       error stop 1
@@ -663,7 +686,7 @@ contains
     end if
 
     ! initialize general inputs settings
-    id(1) = self%exchange%domain ! domain ID to read correct namelist entries
+    id(1) = self%exchange%nml_domain_id ! domain ID to read correct namelist entries
     self%chunking = self%config%input%chunking(id(1))
     self%time_stamp_location = self%config%input%time_stamp_location(id(1))
     self%morph_latlon = self%config%input%morph_latlon(id(1))

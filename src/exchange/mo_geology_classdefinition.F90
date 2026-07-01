@@ -17,6 +17,7 @@ module mo_geology_classdefinition
   !> \brief   Holds geological class lookup data.
   type :: geology_classdefinition_t
     integer(i4) :: nGeo = 0_i4                         !< number of geological classes
+    integer(i4), allocatable :: geo_param_index(:)      !< global GeoParam index per geological class
     integer(i4), allocatable :: geo_unit(:)            !< geological unit identifiers
     integer(i4), allocatable :: geo_karstic(:)         !< karstic flag per geological unit
   contains
@@ -30,6 +31,7 @@ contains
   subroutine geology_classdefinition_reset(self)
     class(geology_classdefinition_t), intent(inout) :: self
 
+    if (allocated(self%geo_param_index)) deallocate(self%geo_param_index)
     if (allocated(self%geo_unit)) deallocate(self%geo_unit)
     if (allocated(self%geo_karstic)) deallocate(self%geo_karstic)
     self%nGeo = 0_i4

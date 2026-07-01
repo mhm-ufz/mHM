@@ -1,5 +1,6 @@
 &config_project
   n_domains = 1
+  n_geo_units      = 10
 /
 
 &config_processes
@@ -11,6 +12,12 @@
   sim_start(1)  = "1990-01-01 00:00"
   eval_start(1) = "1990-01-01 00:00"
   sim_end(1)    = "1990-01-03 00:00"
+/
+
+
+&config_resolution
+  hydro(1) = 24000.0
+  route(1)     = 2000.0
 /
 
 &config_input
@@ -34,11 +41,9 @@
 /
 
 &config_mhm
-  resolution(1) = 24000.0
 /
 
 &config_mrm
-  resolution(1)     = 2000.0
   max_route_step(1) = 3600
   output_path(1)    = "mrm_rivertemp_output.nc"
   diagnostics_path(1) = "mrm_rivertemp_diagnostics.nc"

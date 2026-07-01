@@ -3,9 +3,9 @@
 
 !> \brief Processes configuration
 !> \details Configuration for process case selection in mHM.
-!> \version 0.1
+!> \version 0.2
 !> \authors Sebastian Mueller
-!> \date    Jan 2026
+!> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_namelists
@@ -35,30 +35,30 @@ module nml_config_processes
   implicit none
 
   ! default values
-  integer(i4), parameter, public :: interception_default = 0_i4
-  integer(i4), parameter, public :: snow_default = 0_i4
-  integer(i4), parameter, public :: soil_moisture_default = 0_i4
-  integer(i4), parameter, public :: direct_runoff_default = 0_i4
-  integer(i4), parameter, public :: pet_default = 0_i4
-  integer(i4), parameter, public :: interflow_default = 0_i4
-  integer(i4), parameter, public :: percolation_default = 0_i4
-  integer(i4), parameter, public :: baseflow_default = 0_i4
-  integer(i4), parameter, public :: neutrons_default = 0_i4
-  integer(i4), parameter, public :: routing_default = 0_i4
-  integer(i4), parameter, public :: temperature_routing_default = 0_i4
+  integer(i4), parameter, public :: interception__default = 0_i4
+  integer(i4), parameter, public :: snow__default = 0_i4
+  integer(i4), parameter, public :: soil_moisture__default = 0_i4
+  integer(i4), parameter, public :: direct_runoff__default = 0_i4
+  integer(i4), parameter, public :: pet__default = 0_i4
+  integer(i4), parameter, public :: interflow__default = 0_i4
+  integer(i4), parameter, public :: percolation__default = 0_i4
+  integer(i4), parameter, public :: baseflow__default = 0_i4
+  integer(i4), parameter, public :: neutrons__default = 0_i4
+  integer(i4), parameter, public :: routing__default = 0_i4
+  integer(i4), parameter, public :: temperature_routing__default = 0_i4
 
   ! enum values
-  integer(i4), parameter, public :: interception_enum_values(3) = [-1_i4, 0_i4, 1_i4]
-  integer(i4), parameter, public :: snow_enum_values(3) = [-1_i4, 0_i4, 1_i4]
-  integer(i4), parameter, public :: soil_moisture_enum_values(5) = [0_i4, 1_i4, 2_i4, 3_i4, 4_i4]
-  integer(i4), parameter, public :: direct_runoff_enum_values(2) = [0_i4, 1_i4]
-  integer(i4), parameter, public :: pet_enum_values(6) = [-2_i4, -1_i4, 0_i4, 1_i4, 2_i4, 3_i4]
-  integer(i4), parameter, public :: interflow_enum_values(2) = [0_i4, 1_i4]
-  integer(i4), parameter, public :: percolation_enum_values(2) = [0_i4, 1_i4]
-  integer(i4), parameter, public :: baseflow_enum_values(2) = [0_i4, 1_i4]
-  integer(i4), parameter, public :: neutrons_enum_values(3) = [0_i4, 1_i4, 2_i4]
-  integer(i4), parameter, public :: routing_enum_values(4) = [0_i4, 1_i4, 2_i4, 3_i4]
-  integer(i4), parameter, public :: temperature_routing_enum_values(2) = [0_i4, 1_i4]
+  integer(i4), parameter, public :: interception__enum_values(3) = [-1_i4, 0_i4, 1_i4]
+  integer(i4), parameter, public :: snow__enum_values(3) = [-1_i4, 0_i4, 1_i4]
+  integer(i4), parameter, public :: soil_moisture__enum_values(5) = [0_i4, 1_i4, 2_i4, 3_i4, 4_i4]
+  integer(i4), parameter, public :: direct_runoff__enum_values(2) = [0_i4, 1_i4]
+  integer(i4), parameter, public :: pet__enum_values(6) = [-2_i4, -1_i4, 0_i4, 1_i4, 2_i4, 3_i4]
+  integer(i4), parameter, public :: interflow__enum_values(2) = [0_i4, 1_i4]
+  integer(i4), parameter, public :: percolation__enum_values(2) = [0_i4, 1_i4]
+  integer(i4), parameter, public :: baseflow__enum_values(2) = [0_i4, 1_i4]
+  integer(i4), parameter, public :: neutrons__enum_values(3) = [0_i4, 1_i4, 2_i4]
+  integer(i4), parameter, public :: routing__enum_values(4) = [0_i4, 1_i4, 2_i4, 3_i4]
+  integer(i4), parameter, public :: temperature_routing__enum_values(2) = [0_i4, 1_i4]
 
   !> \class nml_config_processes_t
   !> \brief Processes configuration
@@ -87,9 +87,9 @@ module nml_config_processes
 contains
 
   !> \brief Check whether a value is part of an enum
-  elemental logical function interception_in_enum(val, allow_missing) result(in_enum)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function interception__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -99,13 +99,13 @@ contains
         end if
       end if
     end if
-    in_enum = any(val == interception_enum_values)
-  end function interception_in_enum
+    in_enum = any(val == interception__enum_values)
+  end function interception__in_enum
 
   !> \brief Check whether a value is part of an enum
-  elemental logical function snow_in_enum(val, allow_missing) result(in_enum)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function snow__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -115,13 +115,13 @@ contains
         end if
       end if
     end if
-    in_enum = any(val == snow_enum_values)
-  end function snow_in_enum
+    in_enum = any(val == snow__enum_values)
+  end function snow__in_enum
 
   !> \brief Check whether a value is part of an enum
-  elemental logical function soil_moisture_in_enum(val, allow_missing) result(in_enum)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function soil_moisture__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -131,13 +131,13 @@ contains
         end if
       end if
     end if
-    in_enum = any(val == soil_moisture_enum_values)
-  end function soil_moisture_in_enum
+    in_enum = any(val == soil_moisture__enum_values)
+  end function soil_moisture__in_enum
 
   !> \brief Check whether a value is part of an enum
-  elemental logical function direct_runoff_in_enum(val, allow_missing) result(in_enum)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function direct_runoff__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -147,13 +147,13 @@ contains
         end if
       end if
     end if
-    in_enum = any(val == direct_runoff_enum_values)
-  end function direct_runoff_in_enum
+    in_enum = any(val == direct_runoff__enum_values)
+  end function direct_runoff__in_enum
 
   !> \brief Check whether a value is part of an enum
-  elemental logical function pet_in_enum(val, allow_missing) result(in_enum)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function pet__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -163,13 +163,13 @@ contains
         end if
       end if
     end if
-    in_enum = any(val == pet_enum_values)
-  end function pet_in_enum
+    in_enum = any(val == pet__enum_values)
+  end function pet__in_enum
 
   !> \brief Check whether a value is part of an enum
-  elemental logical function interflow_in_enum(val, allow_missing) result(in_enum)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function interflow__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -179,13 +179,13 @@ contains
         end if
       end if
     end if
-    in_enum = any(val == interflow_enum_values)
-  end function interflow_in_enum
+    in_enum = any(val == interflow__enum_values)
+  end function interflow__in_enum
 
   !> \brief Check whether a value is part of an enum
-  elemental logical function percolation_in_enum(val, allow_missing) result(in_enum)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function percolation__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -195,13 +195,13 @@ contains
         end if
       end if
     end if
-    in_enum = any(val == percolation_enum_values)
-  end function percolation_in_enum
+    in_enum = any(val == percolation__enum_values)
+  end function percolation__in_enum
 
   !> \brief Check whether a value is part of an enum
-  elemental logical function baseflow_in_enum(val, allow_missing) result(in_enum)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function baseflow__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -211,13 +211,13 @@ contains
         end if
       end if
     end if
-    in_enum = any(val == baseflow_enum_values)
-  end function baseflow_in_enum
+    in_enum = any(val == baseflow__enum_values)
+  end function baseflow__in_enum
 
   !> \brief Check whether a value is part of an enum
-  elemental logical function neutrons_in_enum(val, allow_missing) result(in_enum)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function neutrons__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -227,13 +227,13 @@ contains
         end if
       end if
     end if
-    in_enum = any(val == neutrons_enum_values)
-  end function neutrons_in_enum
+    in_enum = any(val == neutrons__enum_values)
+  end function neutrons__in_enum
 
   !> \brief Check whether a value is part of an enum
-  elemental logical function routing_in_enum(val, allow_missing) result(in_enum)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function routing__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -243,13 +243,13 @@ contains
         end if
       end if
     end if
-    in_enum = any(val == routing_enum_values)
-  end function routing_in_enum
+    in_enum = any(val == routing__enum_values)
+  end function routing__in_enum
 
   !> \brief Check whether a value is part of an enum
-  elemental logical function temperature_routing_in_enum(val, allow_missing) result(in_enum)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function temperature_routing__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -259,37 +259,38 @@ contains
         end if
       end if
     end if
-    in_enum = any(val == temperature_routing_enum_values)
-  end function temperature_routing_in_enum
+    in_enum = any(val == temperature_routing__enum_values)
+  end function temperature_routing__in_enum
 
   !> \brief Initialize defaults and sentinels for config_processes
   integer function nml_config_processes_init(this, errmsg) result(status)
-    class(nml_config_processes_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_config_processes_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
     this%is_configured = .false.
 
     ! default values
-    this%interception = interception_default
-    this%snow = snow_default
-    this%soil_moisture = soil_moisture_default
-    this%direct_runoff = direct_runoff_default
-    this%pet = pet_default
-    this%interflow = interflow_default
-    this%percolation = percolation_default
-    this%baseflow = baseflow_default
-    this%neutrons = neutrons_default
-    this%routing = routing_default
-    this%temperature_routing = temperature_routing_default
+    this%interception = interception__default
+    this%snow = snow__default
+    this%soil_moisture = soil_moisture__default
+    this%direct_runoff = direct_runoff__default
+    this%pet = pet__default
+    this%interflow = interflow__default
+    this%percolation = percolation__default
+    this%baseflow = baseflow__default
+    this%neutrons = neutrons__default
+    this%routing = routing__default
+    this%temperature_routing = temperature_routing__default
   end function nml_config_processes_init
+
 
   !> \brief Read config_processes namelist from file
   integer function nml_config_processes_from_file(this, file, errmsg) result(status)
-    class(nml_config_processes_t), intent(inout) :: this
+    class(nml_config_processes_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     integer(i4) :: interception
     integer(i4) :: snow
@@ -391,19 +392,19 @@ contains
     temperature_routing, &
     errmsg) result(status)
 
-    class(nml_config_processes_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    integer(i4), intent(in), optional :: interception
-    integer(i4), intent(in), optional :: snow
-    integer(i4), intent(in), optional :: soil_moisture
-    integer(i4), intent(in), optional :: direct_runoff
-    integer(i4), intent(in), optional :: pet
-    integer(i4), intent(in), optional :: interflow
-    integer(i4), intent(in), optional :: percolation
-    integer(i4), intent(in), optional :: baseflow
-    integer(i4), intent(in), optional :: neutrons
-    integer(i4), intent(in), optional :: routing
-    integer(i4), intent(in), optional :: temperature_routing
+    class(nml_config_processes_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer(i4), intent(in), optional :: interception !< Interception process case
+    integer(i4), intent(in), optional :: snow !< Snow process case
+    integer(i4), intent(in), optional :: soil_moisture !< Soil moisture process case
+    integer(i4), intent(in), optional :: direct_runoff !< Direct runoff process case
+    integer(i4), intent(in), optional :: pet !< Potential evapotranspiration (PET) process case
+    integer(i4), intent(in), optional :: interflow !< Interflow process case
+    integer(i4), intent(in), optional :: percolation !< Percolation process case
+    integer(i4), intent(in), optional :: baseflow !< Baseflow process case
+    integer(i4), intent(in), optional :: neutrons !< Ground albedo of cosmic-ray neutrons process case
+    integer(i4), intent(in), optional :: routing !< Routing process case
+    integer(i4), intent(in), optional :: temperature_routing !< River temperature routing process case
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -429,13 +430,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_config_processes_is_set(this, name, idx, errmsg) result(status)
-    class(nml_config_processes_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_config_processes_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("interception")
       if (present(idx)) then
@@ -514,17 +520,22 @@ contains
 
   !> \brief Validate required values and constraints
   integer function nml_config_processes_is_valid(this, errmsg) result(status)
-    class(nml_config_processes_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_config_processes_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
     ! enum constraints
     istat = this%is_set("interception", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. interception_in_enum(this%interception)) then
+      if (.not. interception__in_enum(this%interception)) then
         status = NML_ERR_ENUM
         if (present(errmsg)) errmsg = "enum constraint failed: interception"
         return
@@ -535,7 +546,7 @@ contains
     end if
     istat = this%is_set("snow", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. snow_in_enum(this%snow)) then
+      if (.not. snow__in_enum(this%snow)) then
         status = NML_ERR_ENUM
         if (present(errmsg)) errmsg = "enum constraint failed: snow"
         return
@@ -546,7 +557,7 @@ contains
     end if
     istat = this%is_set("soil_moisture", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. soil_moisture_in_enum(this%soil_moisture)) then
+      if (.not. soil_moisture__in_enum(this%soil_moisture)) then
         status = NML_ERR_ENUM
         if (present(errmsg)) errmsg = "enum constraint failed: soil_moisture"
         return
@@ -557,7 +568,7 @@ contains
     end if
     istat = this%is_set("direct_runoff", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. direct_runoff_in_enum(this%direct_runoff)) then
+      if (.not. direct_runoff__in_enum(this%direct_runoff)) then
         status = NML_ERR_ENUM
         if (present(errmsg)) errmsg = "enum constraint failed: direct_runoff"
         return
@@ -568,7 +579,7 @@ contains
     end if
     istat = this%is_set("pet", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. pet_in_enum(this%pet)) then
+      if (.not. pet__in_enum(this%pet)) then
         status = NML_ERR_ENUM
         if (present(errmsg)) errmsg = "enum constraint failed: pet"
         return
@@ -579,7 +590,7 @@ contains
     end if
     istat = this%is_set("interflow", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. interflow_in_enum(this%interflow)) then
+      if (.not. interflow__in_enum(this%interflow)) then
         status = NML_ERR_ENUM
         if (present(errmsg)) errmsg = "enum constraint failed: interflow"
         return
@@ -590,7 +601,7 @@ contains
     end if
     istat = this%is_set("percolation", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. percolation_in_enum(this%percolation)) then
+      if (.not. percolation__in_enum(this%percolation)) then
         status = NML_ERR_ENUM
         if (present(errmsg)) errmsg = "enum constraint failed: percolation"
         return
@@ -601,7 +612,7 @@ contains
     end if
     istat = this%is_set("baseflow", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. baseflow_in_enum(this%baseflow)) then
+      if (.not. baseflow__in_enum(this%baseflow)) then
         status = NML_ERR_ENUM
         if (present(errmsg)) errmsg = "enum constraint failed: baseflow"
         return
@@ -612,7 +623,7 @@ contains
     end if
     istat = this%is_set("neutrons", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. neutrons_in_enum(this%neutrons)) then
+      if (.not. neutrons__in_enum(this%neutrons)) then
         status = NML_ERR_ENUM
         if (present(errmsg)) errmsg = "enum constraint failed: neutrons"
         return
@@ -623,7 +634,7 @@ contains
     end if
     istat = this%is_set("routing", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. routing_in_enum(this%routing)) then
+      if (.not. routing__in_enum(this%routing)) then
         status = NML_ERR_ENUM
         if (present(errmsg)) errmsg = "enum constraint failed: routing"
         return
@@ -634,7 +645,7 @@ contains
     end if
     istat = this%is_set("temperature_routing", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. temperature_routing_in_enum(this%temperature_routing)) then
+      if (.not. temperature_routing__in_enum(this%temperature_routing)) then
         status = NML_ERR_ENUM
         if (present(errmsg)) errmsg = "enum constraint failed: temperature_routing"
         return

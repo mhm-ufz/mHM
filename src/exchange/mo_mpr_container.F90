@@ -195,6 +195,7 @@ module mo_mpr_container
     type(mpr_runoff_state_t) :: runoff !< cached runoff/baseflow parameter fields
     type(mpr_preproc_state_t) :: preproc !< resolved preprocessing inputs and derived support fields
   contains
+    procedure :: set_dims   => mpr_set_dims
     procedure :: configure  => mpr_configure
     procedure :: connect    => mpr_connect
     procedure :: initialize => mpr_initialize
@@ -245,13 +246,26 @@ module mo_mpr_container
 
 contains
 
+  !> \brief Set runtime dimensions for generated MPR namelists.
+  subroutine mpr_set_dims(self)
+    class(mpr_t), intent(inout), target :: self
+    character(1024) :: errmsg
+    integer :: status
+
+    status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, max_layers=self%exchange%max_layers, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Error setting MPR config dimensions: ", trim(errmsg)
+      error stop 1
+    end if
+  end subroutine mpr_set_dims
+
   !> \brief Configure the MPR process container.
   subroutine mpr_configure(self, file)
     class(mpr_t), intent(inout), target :: self
     character(*), intent(in), optional :: file !< file containing the namelists
     integer(i4) :: id(1)
-    integer(i4) :: depth_idx(2)
     integer(i4) :: required_depths
+    integer(i4) :: previous_depth
     integer(i4) :: i
     character(1024) :: errmsg
     character(:), allocatable :: path
@@ -276,15 +290,17 @@ contains
       error stop 1
     end if
 
-    id(1) = self%exchange%domain
+    id(1) = self%exchange%nml_domain_id
 
-    status = self%config%is_set("n_horizons", idx=id, errmsg=errmsg)
+    status = self%config%is_set("n_layers", idx=id, errmsg=errmsg)
     if (status /= NML_OK) then
-      log_fatal(*) "MPR: n_horizons not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
+      log_fatal(*) "MPR: n_layers not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
       error stop 1
     end if
-    if (self%config%n_horizons(id(1)) < 1_i4) then
-      log_fatal(*) "MPR: n_horizons must be >= 1 for domain ", n2s(id(1)), "."
+    self%exchange%n_layers = self%config%n_layers(id(1))
+    if (self%exchange%n_layers > self%exchange%max_layers) then
+      log_fatal(*) "MPR: n_layers=", n2s(self%exchange%n_layers), &
+        " exceeds max_layers=", n2s(self%exchange%max_layers), " for domain ", n2s(id(1)), "."
       error stop 1
     end if
 
@@ -296,21 +312,30 @@ contains
 
     select case (self%config%soil_db_mode(id(1)))
       case (0_i4)
-        required_depths = max(0_i4, self%config%n_horizons(id(1)) - 1_i4)
+        required_depths = max(0_i4, self%exchange%n_layers - 1_i4)
       case (1_i4)
-        required_depths = self%config%n_horizons(id(1))
+        required_depths = self%exchange%n_layers
       case default
         log_fatal(*) "MPR: unsupported soil_db_mode=", n2s(self%config%soil_db_mode(id(1))), "."
         error stop 1
     end select
+    previous_depth = 0_i4
     do i = 1_i4, required_depths
-      depth_idx = [i, id(1)]
-      status = self%config%is_set("soil_depth", idx=depth_idx, errmsg=errmsg)
-      if (status /= NML_OK) then
-        log_fatal(*) "MPR: soil_depth(", n2s(i), ",", n2s(id(1)), ") not set. Error: ", trim(errmsg)
+      if (self%config%soil_depth(i, id(1)) <= 0_i4) then
+        log_fatal(*) "MPR: soil_depth(", n2s(i), ",", n2s(id(1)), ") must be positive."
         error stop 1
       end if
+      if (self%config%soil_depth(i, id(1)) <= previous_depth) then
+        log_fatal(*) "MPR: soil_depth values must be strictly increasing for domain ", n2s(id(1)), "."
+        error stop 1
+      end if
+      previous_depth = self%config%soil_depth(i, id(1))
     end do
+    if (self%config%soil_db_mode(id(1)) == 1_i4 .and. &
+        .not.any(self%config%soil_depth(1_i4:self%exchange%n_layers, id(1)) == self%config%tillage_depth(id(1)))) then
+      log_fatal(*) "MPR: tillage_depth must match one configured soil_depth for soil_db_mode=1 in domain ", n2s(id(1)), "."
+      error stop 1
+    end if
 
     status = self%config%is_set("soil_lut_path", idx=id, errmsg=errmsg)
     if (status /= NML_OK) then
@@ -379,7 +404,7 @@ contains
     character(1024) :: errmsg
     log_info(*) "Connect MPR"
 
-    id(1) = self%exchange%domain
+    id(1) = self%exchange%nml_domain_id
 
     ! restart settings
     self%read_restart = self%config%read_restart(id(1))
@@ -414,7 +439,7 @@ contains
 
     if (self%read_restart) then
       call self%read_restart_data()
-      call self%update_exchange_slices(force=.true.)
+      call self%update_exchange_slices(force=.true., time=self%exchange%start_time)
       return
     end if
 
@@ -462,13 +487,13 @@ contains
           error stop 1
         end if
       case (1_i4)
-        if (self%config%n_horizons(id(1)) < 1_i4) then
-          log_fatal(*) "MPR: n_horizons must be >= 1 for soil_db_mode=1."
+        if (self%exchange%n_layers < 1_i4) then
+          log_fatal(*) "MPR: n_layers must be >= 1 for soil_db_mode=1."
           error stop 1
         end if
-        if (soil_layers < self%config%n_horizons(id(1))) then
-          log_fatal(*) "MPR: soil horizon input provides ", soil_layers, " layers, but n_horizons=", &
-            self%config%n_horizons(id(1)), "."
+        if (soil_layers < self%exchange%n_layers) then
+          log_fatal(*) "MPR: soil horizon input provides ", soil_layers, " layers, but n_layers=", &
+            self%exchange%n_layers, "."
           error stop 1
         end if
       case default
@@ -529,7 +554,8 @@ contains
     log_info(*) "MPR: read geology LUT: ", self%preproc%geo_lut_path
     call read_geoformation_lut( &
       filename=trim(self%preproc%geo_lut_path), nGeo=self%exchange%geo_class_def%nGeo, &
-      geo_unit=self%exchange%geo_class_def%geo_unit, geo_karstic=self%exchange%geo_class_def%geo_karstic)
+      geo_unit=self%exchange%geo_class_def%geo_unit, geo_karstic=self%exchange%geo_class_def%geo_karstic, &
+      geo_param_index=self%exchange%geo_class_def%geo_param_index)
     if (self%exchange%geo_class_def%nGeo < 1_i4) then
       log_fatal(*) "MPR: geology LUT contains no classes: ", self%preproc%geo_lut_path
       error stop 1
@@ -540,7 +566,7 @@ contains
     call self%init_soil_horizon_bounds()
     ! Build all MPR caches before the first timestep so update only switches pointers.
     call self%init_temporal_cache()
-    call self%update_exchange_slices(force=.true.)
+    call self%update_exchange_slices(force=.true., time=self%exchange%start_time)
   end subroutine mpr_connect
 
   !> \brief Create an MPR restart file.
@@ -566,8 +592,8 @@ contains
 
     nc_var = nc%setVariable("mpr_meta", "i32", dims0(:0))
     call nc_var%setAttribute("time_stamp", self%exchange%time%str())
-    call nc_var%setAttribute("domain", self%exchange%domain)
-    call nc_var%setAttribute("lai_time_step", self%config%lai_time_step(self%exchange%domain))
+    call nc_var%setAttribute("domain", self%exchange%nml_domain_id)
+    call nc_var%setAttribute("lai_time_step", self%config%lai_time_step(self%exchange%nml_domain_id))
     call nc_var%setAttribute("n_lai_periods", self%lai%n_periods)
     call nc_var%setAttribute("n_land_cover_periods", self%land_cover%n_periods)
     call nc%close()
@@ -605,12 +631,12 @@ contains
       allocate(soil_bounds(size(self%soil%horizon_bounds)))
       soil_bounds = self%soil%horizon_bounds
     else
-      allocate(soil_bounds(self%config%n_horizons(self%exchange%domain) + 1_i4))
+      allocate(soil_bounds(self%exchange%n_layers + 1_i4))
       do i = 1_i4, size(soil_bounds)
         soil_bounds(i) = real(i - 1_i4, dp)
       end do
     end if
-    soil_dim = nc%setCoordinate(trim(soilHorizonsVarName), self%config%n_horizons(self%exchange%domain), &
+    soil_dim = nc%setCoordinate(trim(soilHorizonsVarName), self%exchange%n_layers, &
       bounds=soil_bounds, reference=2_i4)
     deallocate(soil_bounds)
 
@@ -817,7 +843,7 @@ contains
     integer(i4) :: lai_mode
     integer(i4) :: i
 
-    lai_mode = self%config%lai_time_step(self%exchange%domain)
+    lai_mode = self%config%lai_time_step(self%exchange%nml_domain_id)
     if (.not.allocated(self%canopy%max_interception_cache) .and. .not.allocated(self%pet%pet_fac_lai_cache) .and. &
       .not.allocated(self%pet%pet_coeff_pt_cache) .and. .not.allocated(self%pet%resist_aero_cache) .and. &
       .not.allocated(self%pet%resist_surf_cache)) return
@@ -896,7 +922,7 @@ contains
     integer(i4) :: n_lai_restart
     integer(i4) :: i
 
-    lai_mode = self%config%lai_time_step(self%exchange%domain)
+    lai_mode = self%config%lai_time_step(self%exchange%nml_domain_id)
     if (.not.nc%hasVariable("mpr_meta")) then
       log_fatal(*) "MPR restart: missing mpr_meta needed to validate LAI timing metadata."
       error stop 1
@@ -1474,9 +1500,9 @@ contains
       end if
       nc_dim = nc%getDimension(trim(soilHorizonsVarName))
       n_soil_restart = nc_dim%getLength()
-      if (n_soil_restart /= self%config%n_horizons(self%exchange%domain)) then
+      if (n_soil_restart /= self%exchange%n_layers) then
         log_fatal(*) "MPR restart: soil-horizon count ", n2s(n_soil_restart), &
-          " does not match current config ", n2s(self%config%n_horizons(self%exchange%domain)), "."
+          " does not match current config ", n2s(self%exchange%n_layers), "."
         error stop 1
       end if
       if (allocated(self%soil%horizon_bounds)) deallocate(self%soil%horizon_bounds)
@@ -1710,7 +1736,7 @@ contains
 
     l1_res = self%exchange%level1_resolution
     if (.not.ieee_is_finite(l1_res) .or. l1_res <= 0.0_dp) then
-      log_fatal(*) "MPR: level1 resolution not configured (expected from config_mhm/resolution)."
+      log_fatal(*) "MPR: level1 resolution not configured (expected from config_resolution/hydro)."
       error stop 1
     end if
 
@@ -1991,7 +2017,7 @@ contains
       error stop 1
     end if
 
-    id(1) = self%exchange%domain
+    id(1) = self%exchange%nml_domain_id
     frac_sealed_cityarea = self%config%fracsealed_cityarea(id(1))
     if (.not.ieee_is_finite(frac_sealed_cityarea)) frac_sealed_cityarea = 0.0_dp
 
@@ -2025,7 +2051,7 @@ contains
     integer(i4), allocatable :: lai_id_list(:)
     real(dp), allocatable :: lai_lut(:, :)
 
-    id(1) = self%exchange%domain
+    id(1) = self%exchange%nml_domain_id
 
     if (allocated(self%lai%l0_cache)) deallocate(self%lai%l0_cache)
     if (allocated(self%lai%period_start)) deallocate(self%lai%period_start)
@@ -2178,7 +2204,7 @@ contains
       log_fatal(*) "MPR: gridded LAI dataset is static, but a dated LAI mode was configured."
       error stop 1
     end if
-    expected_timestep = self%config%lai_time_step(self%exchange%domain)
+    expected_timestep = self%config%lai_time_step(self%exchange%nml_domain_id)
     if (lai_ds%timestep /= expected_timestep) then
       log_fatal(*) "MPR: gridded LAI timestep ", n2s(lai_ds%timestep), " does not match configured lai_time_step=", &
         n2s(expected_timestep), "."
@@ -2508,13 +2534,13 @@ contains
   subroutine mpr_init_soil_horizon_bounds(self)
     class(mpr_t), intent(inout), target :: self
     integer(i4) :: domain_id
-    integer(i4) :: n_horizons
+    integer(i4) :: n_layers
     integer(i4) :: n_soil_layers
 
-    domain_id = self%exchange%domain
-    n_horizons = self%config%n_horizons(domain_id)
-    if (n_horizons < 1_i4) then
-      log_fatal(*) "MPR: n_horizons must be >= 1 before soil horizon initialization."
+    domain_id = self%exchange%nml_domain_id
+    n_layers = self%exchange%n_layers
+    if (n_layers < 1_i4) then
+      log_fatal(*) "MPR: n_layers must be >= 1 before soil horizon initialization."
       error stop 1
     end if
     if (.not.allocated(self%soil%lut_path)) then
@@ -2527,7 +2553,7 @@ contains
     end if
 
     n_soil_layers = 1_i4
-    if (self%config%soil_db_mode(domain_id) == 1_i4) n_soil_layers = n_horizons
+    if (self%config%soil_db_mode(domain_id) == 1_i4) n_soil_layers = n_layers
     if (allocated(self%soil%horizon_bounds)) deallocate(self%soil%horizon_bounds)
     call mpr_bridge_setup_soil_database( &
       self%config, domain_id, self%soil%lut_path, self%exchange%soil_id%data(:, :n_soil_layers), &
@@ -2538,18 +2564,18 @@ contains
   subroutine mpr_init_soil_cache(self)
     class(mpr_t), intent(inout), target :: self
     integer(i4) :: domain_id
-    integer(i4) :: n_horizons
+    integer(i4) :: n_layers
     integer(i4) :: neutron_process
     integer(i4) :: n_soil_layers
     integer(i4) :: land_cover_idx
     real(dp), allocatable :: neutron_param(:)
     real(dp), allocatable :: soil_param(:)
 
-    domain_id = self%exchange%domain
-    n_horizons = self%config%n_horizons(domain_id)
+    domain_id = self%exchange%nml_domain_id
+    n_layers = self%exchange%n_layers
     neutron_process = self%exchange%parameters%process_matrix(10, 1)
-    if (n_horizons < 1_i4) then
-      log_fatal(*) "MPR: n_horizons must be >= 1 before soil cache initialization."
+    if (n_layers < 1_i4) then
+      log_fatal(*) "MPR: n_layers must be >= 1 before soil cache initialization."
       error stop 1
     end if
     if (.not.allocated(self%soil%lut_path)) then
@@ -2568,7 +2594,7 @@ contains
     ! The soil horizon metadata is shared with downstream mHM state allocation.
     call self%init_soil_horizon_bounds()
     n_soil_layers = 1_i4
-    if (self%config%soil_db_mode(domain_id) == 1_i4) n_soil_layers = n_horizons
+    if (self%config%soil_db_mode(domain_id) == 1_i4) n_soil_layers = n_layers
 
     call self%load_process_params(3_i4, soil_param)
     if (allocated(self%soil%sm_exponent_cache)) deallocate(self%soil%sm_exponent_cache)
@@ -2584,11 +2610,11 @@ contains
     if (allocated(self%neutron%bulk_density_cache)) deallocate(self%neutron%bulk_density_cache)
     if (allocated(self%neutron%lattice_water_cache)) deallocate(self%neutron%lattice_water_cache)
     if (allocated(self%neutron%cosmic_l3_cache)) deallocate(self%neutron%cosmic_l3_cache)
-    allocate(self%soil%sm_exponent_cache(self%exchange%level1%ncells, n_horizons, self%land_cover%n_periods))
-    allocate(self%soil%sm_saturation_cache(self%exchange%level1%ncells, n_horizons, self%land_cover%n_periods))
-    allocate(self%soil%sm_field_capacity_cache(self%exchange%level1%ncells, n_horizons, self%land_cover%n_periods))
-    allocate(self%soil%wilting_point_cache(self%exchange%level1%ncells, n_horizons, self%land_cover%n_periods))
-    allocate(self%soil%f_roots_cache(self%exchange%level1%ncells, n_horizons, self%land_cover%n_periods))
+    allocate(self%soil%sm_exponent_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
+    allocate(self%soil%sm_saturation_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
+    allocate(self%soil%sm_field_capacity_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
+    allocate(self%soil%wilting_point_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
+    allocate(self%soil%f_roots_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
     allocate(self%soil%thresh_jarvis_cache(self%exchange%level1%ncells))
     allocate(self%soil%sm_deficit_fc_l0(self%exchange%level0%ncells, self%land_cover%n_periods))
     allocate(self%soil%ks_var_h_l0(self%exchange%level0%ncells, self%land_cover%n_periods))
@@ -2600,11 +2626,11 @@ contains
         error stop 1
       end if
       allocate(self%neutron%desilets_n0_cache(self%exchange%level1%ncells))
-      allocate(self%neutron%bulk_density_cache(self%exchange%level1%ncells, n_horizons, self%land_cover%n_periods))
-      allocate(self%neutron%lattice_water_cache(self%exchange%level1%ncells, n_horizons, self%land_cover%n_periods))
+      allocate(self%neutron%bulk_density_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
+      allocate(self%neutron%lattice_water_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
       self%neutron%desilets_n0_cache = neutron_param(1)
       if (neutron_process == 2_i4) then
-        allocate(self%neutron%cosmic_l3_cache(self%exchange%level1%ncells, n_horizons, self%land_cover%n_periods))
+        allocate(self%neutron%cosmic_l3_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
       end if
     end if
 
@@ -2724,7 +2750,8 @@ contains
       allocate(self%runoff%k_baseflow_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
       call self%load_process_params(9_i4, baseflow_param)
       call mpr_bridge_baseflow_param( &
-        baseflow_param, self%exchange%geo_unit%data, self%exchange%geo_class_def%geo_unit, self%upscaler, &
+        baseflow_param, self%exchange%geo_unit%data, self%exchange%geo_class_def%geo_unit, &
+        self%exchange%geo_class_def%geo_param_index, self%upscaler, &
         self%runoff%k_baseflow_cache(:, 1))
       do land_cover_idx = 2_i4, self%land_cover%n_periods
         self%runoff%k_baseflow_cache(:, land_cover_idx) = self%runoff%k_baseflow_cache(:, 1)
@@ -2737,16 +2764,23 @@ contains
     end if
   end subroutine mpr_init_runoff_cache
 
-  !> \brief Switch exchange pointers to active cached MPR slices for current model time.
-  subroutine mpr_update_exchange_slices(self, force)
+  !> \brief Switch exchange pointers to active cached MPR slices for a model time.
+  subroutine mpr_update_exchange_slices(self, force, time)
     class(mpr_t), intent(inout), target :: self
     logical, optional, intent(in) :: force
+    type(datetime), optional, intent(in) :: time
+    type(datetime) :: active_time
     logical :: force_
     logical :: need_lai_slice
     integer(i4) :: lai_idx
     integer(i4) :: land_cover_idx
 
     force_ = optval(force, .false.)
+    if (present(time)) then
+      active_time = time
+    else
+      active_time = self%exchange%time
+    end if
 
     if (allocated(self%soil%horizon_bounds)) then
       self%exchange%soil_horizon_bounds => self%soil%horizon_bounds
@@ -2778,11 +2812,11 @@ contains
       allocated(self%pet%pet_coeff_pt_cache) .or. allocated(self%pet%pet_fac_lai_cache) .or. &
       allocated(self%pet%resist_aero_cache) .or. allocated(self%pet%resist_surf_cache)
     if (need_lai_slice) then
-      lai_idx = self%lai_index_for_time()
+      lai_idx = self%lai_index_for_time(active_time)
     else
       lai_idx = 1_i4
     end if
-    land_cover_idx = self%land_cover_index_for_time()
+    land_cover_idx = self%land_cover_index_for_time(active_time)
     if (lai_idx < 1_i4 .or. lai_idx > self%lai%n_periods) then
       log_fatal(*) "MPR: LAI index out of bounds: ", n2s(lai_idx), " not in [1,", n2s(self%lai%n_periods), "]."
       error stop 1
@@ -2869,12 +2903,13 @@ contains
     log_trace(*) "MPR: active cache slice lai=", n2s(lai_idx), ", land_cover=", n2s(land_cover_idx)
   end subroutine mpr_update_exchange_slices
 
-  !> \brief Resolve active LAI period index from current exchange time.
-  integer(i4) function mpr_lai_index_for_time(self) result(lai_idx)
+  !> \brief Resolve active LAI period index from a model time.
+  integer(i4) function mpr_lai_index_for_time(self, time) result(lai_idx)
     class(mpr_t), intent(inout), target :: self
+    type(datetime), intent(in) :: time
     integer(i4) :: id(1)
 
-    id(1) = self%exchange%domain
+    id(1) = self%exchange%nml_domain_id
     if (.not.allocated(self%canopy%max_interception_cache) .and. &
       .not.allocated(self%pet%pet_coeff_pt_cache) .and. &
       .not.allocated(self%pet%pet_fac_lai_cache) .and. &
@@ -2895,7 +2930,7 @@ contains
           log_fatal(*) "MPR: cyclic monthly LAI expects 12 cached periods, but nLAI=", n2s(self%lai%n_periods), "."
           error stop 1
         end if
-        lai_idx = self%exchange%time%month
+        lai_idx = time%month
       case (-3_i4:-1_i4)
         if (.not.self%lai%dated) then
           log_fatal(*) "MPR: dated LAI mode requires cached LAI period bounds."
@@ -2905,23 +2940,24 @@ contains
           log_fatal(*) "MPR: dated LAI period bounds are not cached."
           error stop 1
         end if
-        if (self%exchange%time < self%lai%period_start(1)) then
-          log_fatal(*) "MPR: current time ", self%exchange%time%str(), &
+        if (time < self%lai%period_start(1)) then
+          log_fatal(*) "MPR: current time ", time%str(), &
             " is before the first cached LAI period start ", self%lai%period_start(1)%str(), "."
           error stop 1
         end if
         lai_idx = max(1_i4, self%lai%active_idx)
         do while (lai_idx < self%lai%n_periods)
-          if (self%exchange%time < self%lai%period_end(lai_idx)) exit
+          if (time < self%lai%period_end(lai_idx)) exit
           lai_idx = lai_idx + 1_i4
         end do
     end select
     lai_idx = max(1_i4, min(lai_idx, self%lai%n_periods))
   end function mpr_lai_index_for_time
 
-  !> \brief Resolve active land-cover period index from current exchange time.
-  integer(i4) function mpr_land_cover_index_for_time(self) result(land_cover_idx)
+  !> \brief Resolve active land-cover period index from a model time.
+  integer(i4) function mpr_land_cover_index_for_time(self, time) result(land_cover_idx)
     class(mpr_t), intent(inout), target :: self
+    type(datetime), intent(in) :: time
 
     if (self%land_cover%n_periods < 1_i4) then
       log_fatal(*) "MPR: n_land_cover_periods must be >= 1."
@@ -2939,14 +2975,14 @@ contains
       log_fatal(*) "MPR: temporal land-cover end times are not cached."
       error stop 1
     end if
-    if (self%exchange%time < self%land_cover%period_start(1)) then
-      log_fatal(*) "MPR: current time ", self%exchange%time%str(), &
+    if (time < self%land_cover%period_start(1)) then
+      log_fatal(*) "MPR: current time ", time%str(), &
         " is before the first cached land-cover period start ", self%land_cover%period_start(1)%str(), "."
       error stop 1
     end if
     land_cover_idx = max(1_i4, self%land_cover%active_idx)
     do while (land_cover_idx < self%land_cover%n_periods)
-      if (self%exchange%time <= self%land_cover%period_end(land_cover_idx)) exit
+      if (time <= self%land_cover%period_end(land_cover_idx)) exit
       land_cover_idx = land_cover_idx + 1_i4
     end do
   end function mpr_land_cover_index_for_time
@@ -2967,18 +3003,24 @@ contains
     end do
   end subroutine mpr_check_geo_units_against_lut
 
-  !> \brief Ensure geoparameter size matches loaded geology LUT when baseflow is active.
+  !> \brief Ensure loaded geology LUT references available global geoparameters when baseflow is active.
   subroutine mpr_check_geoparameter_consistency(self)
     class(mpr_t), intent(in), target :: self
     integer(i4) :: n_geo_param
-    integer(i4) :: n_geo_lut
 
     if (self%exchange%parameters%process_matrix(9, 1) == 0_i4) return
 
     n_geo_param = self%exchange%parameters%nGeoUnits
-    n_geo_lut = self%exchange%geo_class_def%nGeo
-    if (n_geo_param /= n_geo_lut) then
-      log_fatal(*) "MPR: geoparameter count (", n2s(n_geo_param), ") does not match geology LUT classes (", n2s(n_geo_lut), ")."
+    if (.not.allocated(self%exchange%geo_class_def%geo_param_index)) then
+      log_fatal(*) "MPR: geology LUT does not provide GeoParam indices."
+      error stop 1
+    end if
+    if (any(self%exchange%geo_class_def%geo_param_index < 1_i4)) then
+      log_fatal(*) "MPR: geology LUT GeoParam indices must be >= 1."
+      error stop 1
+    end if
+    if (any(self%exchange%geo_class_def%geo_param_index > n_geo_param)) then
+      log_fatal(*) "MPR: geology LUT references GeoParam index above n_geo_units=", n2s(n_geo_param), "."
       error stop 1
     end if
   end subroutine mpr_check_geoparameter_consistency
@@ -2986,7 +3028,7 @@ contains
   !> \brief Initialize the MPR process container for the simulation.
   subroutine mpr_initialize(self)
     class(mpr_t), intent(inout), target :: self
-    log_info(*) "Initialize MPR for domain ", n2s(self%exchange%domain)
+    log_info(*) "Initialize MPR for domain ", n2s(self%exchange%nml_domain_id)
     call self%update_exchange_slices(force=.true.)
   end subroutine mpr_initialize
 
@@ -3116,6 +3158,6 @@ contains
     self%lai%dated = .false.
     self%lai%n_periods = 1_i4
     self%lai%active_idx = 0_i4
-    log_info(*) "Finalize MPR for domain ", n2s(self%exchange%domain)
+    log_info(*) "Finalize MPR for domain ", n2s(self%exchange%nml_domain_id)
   end subroutine mpr_finalize
 end module mo_mpr_container

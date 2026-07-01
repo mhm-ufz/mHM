@@ -11,8 +11,8 @@ Configuration for the multiscale parameter regionalization in mHM.
 | Name | Type | Required | Info |
 | --- | --- | --- | --- |
 | [soil_db_mode](#soil_db_mode) | integer array | no | Soil database mode |
-| [n_horizons](#n_horizons) | integer array | no | Number of soil horizons |
 | [tillage_depth](#tillage_depth) | integer array | no | Tillage depth |
+| [n_layers](#n_layers) | integer array | no | Number of soil layers |
 | [soil_depth](#soil_depth) | integer array | no | Soil horizon depth |
 | [fracSealed_cityArea](#fracsealed_cityarea) | real array | no | Sealed fraction of city area |
 | [land_cover_path](#land_cover_path) | string array | no | Land cover path |
@@ -42,21 +42,10 @@ Flag to handle multiple soil database types; valid for all domains.
   tillage depth must match a horizon depth.
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Default: `0`
 - Allowed values: `0`, `1`
-
-### n_horizons
-
-Number of soil horizons `n_horizons`
-
-Number of soil horizons to be modeled (nSoilHorizons_mHM).
-
-Summary:
-- Type: `integer(i4), dimension(max_domains)`
-- Flexible tail dims: 1
-- Required: no
 
 ### tillage_depth
 
@@ -65,9 +54,20 @@ Tillage depth `tillage_depth`
 Soil depth down to which organic matter is possible [mm].
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
+
+### n_layers
+
+Number of soil layers `n_layers`
+
+Number of mHM soil layers for each configured domain.
+
+Summary:
+- Type: `integer(i4), dimension(n_domains)`
+- Required: no
+- Minimum: `>= 1`
+- Examples: `[1]`
 
 ### soil_depth
 
@@ -79,9 +79,9 @@ Bottom depth of soil horizons with respect to the ground surface [mm], positive 
 Tillage depth should match one of the specified horizon depths.
 
 Summary:
-- Type: `integer(i4), dimension(max_layers, max_domains)`
-- Flexible tail dims: 2
+- Type: `integer(i4), dimension(max_layers, n_domains)`
 - Required: no
+- Default: `0`
 
 ### fracSealed_cityArea
 
@@ -90,8 +90,7 @@ Sealed fraction of city area `fracSealed_cityArea`
 Fraction of area within city assumed to be fully sealed [0.0-1.0].
 
 Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(n_domains)`
 - Required: no
 
 ### land_cover_path
@@ -101,8 +100,8 @@ Land cover path `land_cover_path`
 NetCDF land-cover dataset path.
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### land_cover_var
@@ -112,7 +111,7 @@ Land cover variable `land_cover_var`
 Land-cover variable name in the NetCDF dataset.
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"land_cover"`
 
@@ -128,8 +127,7 @@ Time step for LAI input data [days]:
 - if = -3 : yearly gridded LAI input data;
 
 Summary:
-- Type: `integer(i4), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Allowed values: `-3`, `-2`, `-1`, `0`, `1`
 
@@ -140,8 +138,8 @@ LAI path `lai_path`
 Gridded LAI dataset path (if `lai_time_step` < 0 or = 1).
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### lai_var
@@ -151,7 +149,7 @@ LAI variable `lai_var`
 LAI variable name in the gridded NetCDF dataset.
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
+- Type: `character(len=buf), dimension(n_domains)`
 - Required: no
 - Default: `"lai"`
 
@@ -162,8 +160,8 @@ Soil LUT path `soil_lut_path`
 Soil look-up table path.
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### geo_lut_path
@@ -173,8 +171,8 @@ Geology LUT path `geo_lut_path`
 Geology look-up table path.
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### lai_lut_path
@@ -184,8 +182,8 @@ LAI LUT path `lai_lut_path`
 LAI look-up table path.
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### read_restart
@@ -193,7 +191,7 @@ Summary:
 Read restart `read_restart`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -202,8 +200,8 @@ Summary:
 Restart input path `restart_input_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mpr_restart_in.nc"]`
 
@@ -212,7 +210,7 @@ Summary:
 Write restart `write_restart`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -221,8 +219,8 @@ Summary:
 Restart output path `restart_output_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mpr_restart_out.nc"]`
 
@@ -231,8 +229,8 @@ Summary:
 ```fortran
 &config_mpr
   soil_db_mode(:) = 0
-  n_horizons(:) = 0
   tillage_depth(:) = 0
+  n_layers(:) = 1
   soil_depth(:,:) = 0
   fracSealed_cityArea(:) = 0.0
   land_cover_path(:) = ""

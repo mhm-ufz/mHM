@@ -1,0 +1,27 @@
+title: Domain configuration
+description: Domain-indexed configuration for combined mHM runs with domain files.
+x-fortran-namelist: config_domain
+type: object
+properties:
+  domain_dirs:
+    type: array
+    items:
+      type: string
+      format: directory-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: Domain directories
+    description: |-
+      Paths to domain directories for combined runs with "read_domains_from_dirs" enabled.
+  domain_nmls:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+      default: mhm.nml
+    x-fortran-shape: n_domains
+    title: Domain namelists
+    description: |-
+      Paths to domain-specific namelists when "read_domains_from_dirs" is true.
+      The path will be interpreted as relative to the given domain directory.

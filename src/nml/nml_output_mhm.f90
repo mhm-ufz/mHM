@@ -3,9 +3,9 @@
 
 !> \brief mHM output configuration
 !> \details Output configuration for mHM.
-!> \version 0.1
+!> \version 0.2
 !> \authors Sebastian Mueller
-!> \date    Jan 2026
+!> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_namelists
@@ -35,39 +35,39 @@ module nml_output_mhm
   implicit none
 
   ! default values
-  integer(i4), parameter, public :: output_deflate_level_default = 6_i4
-  logical, parameter, public :: output_double_precision_default = .false.
-  integer(i4), parameter, public :: output_time_reference_default = 2_i4
-  integer(i4), parameter, public :: output_frequency_default = -2_i4
-  logical, parameter, public :: out_interception_default = .false.
-  logical, parameter, public :: out_snowpack_default = .false.
-  logical, parameter, public :: out_swc_default = .false.
-  logical, parameter, public :: out_sm_default = .false.
-  logical, parameter, public :: out_sm_all_default = .false.
-  logical, parameter, public :: out_sealedstw_default = .false.
-  logical, parameter, public :: out_unsatstw_default = .false.
-  logical, parameter, public :: out_satstw_default = .false.
-  logical, parameter, public :: out_pet_default = .false.
-  logical, parameter, public :: out_aet_all_default = .false.
-  logical, parameter, public :: out_q_default = .false.
-  logical, parameter, public :: out_qd_default = .false.
-  logical, parameter, public :: out_qif_default = .false.
-  logical, parameter, public :: out_qis_default = .false.
-  logical, parameter, public :: out_qb_default = .false.
-  logical, parameter, public :: out_recharge_default = .false.
-  logical, parameter, public :: out_soil_infil_default = .false.
-  logical, parameter, public :: out_neutrons_default = .false.
-  logical, parameter, public :: out_aet_layer_default = .false.
-  logical, parameter, public :: out_preeffect_default = .false.
-  logical, parameter, public :: out_qsm_default = .false.
+  integer(i4), parameter, public :: output_deflate_level__default = 6_i4
+  logical, parameter, public :: output_double_precision__default = .false.
+  integer(i4), parameter, public :: output_time_reference__default = 2_i4
+  integer(i4), parameter, public :: output_frequency__default = -2_i4
+  logical, parameter, public :: out_interception__default = .false.
+  logical, parameter, public :: out_snowpack__default = .false.
+  logical, parameter, public :: out_swc__default = .false.
+  logical, parameter, public :: out_sm__default = .false.
+  logical, parameter, public :: out_sm_all__default = .false.
+  logical, parameter, public :: out_sealedstw__default = .false.
+  logical, parameter, public :: out_unsatstw__default = .false.
+  logical, parameter, public :: out_satstw__default = .false.
+  logical, parameter, public :: out_pet__default = .false.
+  logical, parameter, public :: out_aet_all__default = .false.
+  logical, parameter, public :: out_q__default = .false.
+  logical, parameter, public :: out_qd__default = .false.
+  logical, parameter, public :: out_qif__default = .false.
+  logical, parameter, public :: out_qis__default = .false.
+  logical, parameter, public :: out_qb__default = .false.
+  logical, parameter, public :: out_recharge__default = .false.
+  logical, parameter, public :: out_soil_infil__default = .false.
+  logical, parameter, public :: out_neutrons__default = .false.
+  logical, parameter, public :: out_aet_layer__default = .false.
+  logical, parameter, public :: out_preeffect__default = .false.
+  logical, parameter, public :: out_qsm__default = .false.
 
   ! enum values
-  integer(i4), parameter, public :: output_time_reference_enum_values(3) = [0_i4, 1_i4, 2_i4]
+  integer(i4), parameter, public :: output_time_reference__enum_values(3) = [0_i4, 1_i4, 2_i4]
 
   ! bounds values
-  integer(i4), parameter, public :: output_deflate_level_min = 0_i4
-  integer(i4), parameter, public :: output_deflate_level_max = 9_i4
-  integer(i4), parameter, public :: output_frequency_min = -3_i4
+  integer(i4), parameter, public :: output_deflate_level__min = 0_i4
+  integer(i4), parameter, public :: output_deflate_level__max = 9_i4
+  integer(i4), parameter, public :: output_frequency__min = -3_i4
 
   !> \class nml_output_mhm_t
   !> \brief mHM output configuration
@@ -110,9 +110,9 @@ module nml_output_mhm
 contains
 
   !> \brief Check whether a value is part of an enum
-  elemental logical function output_time_reference_in_enum(val, allow_missing) result(in_enum)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function output_time_reference__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -122,13 +122,13 @@ contains
         end if
       end if
     end if
-    in_enum = any(val == output_time_reference_enum_values)
-  end function output_time_reference_in_enum
+    in_enum = any(val == output_time_reference__enum_values)
+  end function output_time_reference__in_enum
 
   !> \brief Check whether a value is within bounds
-  elemental logical function output_deflate_level_in_bounds(val, allow_missing) result(in_bounds)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function output_deflate_level__in_bounds(val, allow_missing) result(in_bounds)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -140,14 +140,14 @@ contains
     end if
 
     in_bounds = .true.
-    if (val < output_deflate_level_min) in_bounds = .false.
-    if (val > output_deflate_level_max) in_bounds = .false.
-  end function output_deflate_level_in_bounds
+    if (val < output_deflate_level__min) in_bounds = .false.
+    if (val > output_deflate_level__max) in_bounds = .false.
+  end function output_deflate_level__in_bounds
 
   !> \brief Check whether a value is within bounds
-  elemental logical function output_frequency_in_bounds(val, allow_missing) result(in_bounds)
-    integer(i4), intent(in) :: val
-    logical, intent(in), optional :: allow_missing
+  elemental logical function output_frequency__in_bounds(val, allow_missing) result(in_bounds)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
 
     if (present(allow_missing)) then
       if (allow_missing) then
@@ -159,51 +159,52 @@ contains
     end if
 
     in_bounds = .true.
-    if (val < output_frequency_min) in_bounds = .false.
-  end function output_frequency_in_bounds
+    if (val < output_frequency__min) in_bounds = .false.
+  end function output_frequency__in_bounds
 
   !> \brief Initialize defaults and sentinels for output_mhm
   integer function nml_output_mhm_init(this, errmsg) result(status)
-    class(nml_output_mhm_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_output_mhm_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
     this%is_configured = .false.
 
     ! default values
-    this%output_deflate_level = output_deflate_level_default
-    this%output_double_precision = output_double_precision_default ! bool values always need a default
-    this%output_time_reference = output_time_reference_default
-    this%output_frequency = output_frequency_default
-    this%out_interception = out_interception_default ! bool values always need a default
-    this%out_snowpack = out_snowpack_default ! bool values always need a default
-    this%out_swc = out_swc_default ! bool values always need a default
-    this%out_sm = out_sm_default ! bool values always need a default
-    this%out_sm_all = out_sm_all_default ! bool values always need a default
-    this%out_sealedstw = out_sealedstw_default ! bool values always need a default
-    this%out_unsatstw = out_unsatstw_default ! bool values always need a default
-    this%out_satstw = out_satstw_default ! bool values always need a default
-    this%out_pet = out_pet_default ! bool values always need a default
-    this%out_aet_all = out_aet_all_default ! bool values always need a default
-    this%out_q = out_q_default ! bool values always need a default
-    this%out_qd = out_qd_default ! bool values always need a default
-    this%out_qif = out_qif_default ! bool values always need a default
-    this%out_qis = out_qis_default ! bool values always need a default
-    this%out_qb = out_qb_default ! bool values always need a default
-    this%out_recharge = out_recharge_default ! bool values always need a default
-    this%out_soil_infil = out_soil_infil_default ! bool values always need a default
-    this%out_neutrons = out_neutrons_default ! bool values always need a default
-    this%out_aet_layer = out_aet_layer_default ! bool values always need a default
-    this%out_preeffect = out_preeffect_default ! bool values always need a default
-    this%out_qsm = out_qsm_default ! bool values always need a default
+    this%output_deflate_level = output_deflate_level__default
+    this%output_double_precision = output_double_precision__default ! bool values always need a default
+    this%output_time_reference = output_time_reference__default
+    this%output_frequency = output_frequency__default
+    this%out_interception = out_interception__default ! bool values always need a default
+    this%out_snowpack = out_snowpack__default ! bool values always need a default
+    this%out_swc = out_swc__default ! bool values always need a default
+    this%out_sm = out_sm__default ! bool values always need a default
+    this%out_sm_all = out_sm_all__default ! bool values always need a default
+    this%out_sealedstw = out_sealedstw__default ! bool values always need a default
+    this%out_unsatstw = out_unsatstw__default ! bool values always need a default
+    this%out_satstw = out_satstw__default ! bool values always need a default
+    this%out_pet = out_pet__default ! bool values always need a default
+    this%out_aet_all = out_aet_all__default ! bool values always need a default
+    this%out_q = out_q__default ! bool values always need a default
+    this%out_qd = out_qd__default ! bool values always need a default
+    this%out_qif = out_qif__default ! bool values always need a default
+    this%out_qis = out_qis__default ! bool values always need a default
+    this%out_qb = out_qb__default ! bool values always need a default
+    this%out_recharge = out_recharge__default ! bool values always need a default
+    this%out_soil_infil = out_soil_infil__default ! bool values always need a default
+    this%out_neutrons = out_neutrons__default ! bool values always need a default
+    this%out_aet_layer = out_aet_layer__default ! bool values always need a default
+    this%out_preeffect = out_preeffect__default ! bool values always need a default
+    this%out_qsm = out_qsm__default ! bool values always need a default
   end function nml_output_mhm_init
+
 
   !> \brief Read output_mhm namelist from file
   integer function nml_output_mhm_from_file(this, file, errmsg) result(status)
-    class(nml_output_mhm_t), intent(inout) :: this
+    class(nml_output_mhm_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(in) :: file !< path to namelist file
-    character(len=*), intent(out), optional :: errmsg
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     integer(i4) :: output_deflate_level
     logical :: output_double_precision
@@ -375,33 +376,33 @@ contains
     out_qsm, &
     errmsg) result(status)
 
-    class(nml_output_mhm_t), intent(inout) :: this
-    character(len=*), intent(out), optional :: errmsg
-    integer(i4), intent(in), optional :: output_deflate_level
-    logical, intent(in), optional :: output_double_precision
-    integer(i4), intent(in), optional :: output_time_reference
-    integer(i4), intent(in), optional :: output_frequency
-    logical, intent(in), optional :: out_interception
-    logical, intent(in), optional :: out_snowpack
-    logical, intent(in), optional :: out_swc
-    logical, intent(in), optional :: out_sm
-    logical, intent(in), optional :: out_sm_all
-    logical, intent(in), optional :: out_sealedstw
-    logical, intent(in), optional :: out_unsatstw
-    logical, intent(in), optional :: out_satstw
-    logical, intent(in), optional :: out_pet
-    logical, intent(in), optional :: out_aet_all
-    logical, intent(in), optional :: out_q
-    logical, intent(in), optional :: out_qd
-    logical, intent(in), optional :: out_qif
-    logical, intent(in), optional :: out_qis
-    logical, intent(in), optional :: out_qb
-    logical, intent(in), optional :: out_recharge
-    logical, intent(in), optional :: out_soil_infil
-    logical, intent(in), optional :: out_neutrons
-    logical, intent(in), optional :: out_aet_layer
-    logical, intent(in), optional :: out_preeffect
-    logical, intent(in), optional :: out_qsm
+    class(nml_output_mhm_t), intent(inout) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer(i4), intent(in), optional :: output_deflate_level !< Output deflate level
+    logical, intent(in), optional :: output_double_precision !< Output double precision
+    integer(i4), intent(in), optional :: output_time_reference !< Output time reference
+    integer(i4), intent(in), optional :: output_frequency !< Output time step
+    logical, intent(in), optional :: out_interception !< Interception
+    logical, intent(in), optional :: out_snowpack !< Snowpack
+    logical, intent(in), optional :: out_swc !< Layered Soil Water Content
+    logical, intent(in), optional :: out_sm !< Layered Volumetric Soil Moisture
+    logical, intent(in), optional :: out_sm_all !< Mean Volumetric Soil Moisture
+    logical, intent(in), optional :: out_sealedstw !< Reservoir of Sealed areas
+    logical, intent(in), optional :: out_unsatstw !< Reservoir of Unsaturated areas
+    logical, intent(in), optional :: out_satstw !< Reservoir of Saturated areas
+    logical, intent(in), optional :: out_pet !< Potential Evapotranspiration
+    logical, intent(in), optional :: out_aet_all !< Mean actual Evapotranspiration
+    logical, intent(in), optional :: out_q !< Total Discharge
+    logical, intent(in), optional :: out_qd !< Direct Runoff
+    logical, intent(in), optional :: out_qif !< Fast Interflow
+    logical, intent(in), optional :: out_qis !< Slow Interflow
+    logical, intent(in), optional :: out_qb !< Baseflow
+    logical, intent(in), optional :: out_recharge !< Groundwater Recharge
+    logical, intent(in), optional :: out_soil_infil !< Soil Infiltration
+    logical, intent(in), optional :: out_neutrons !< Neutrons
+    logical, intent(in), optional :: out_aet_layer !< Actual Evapotranspiration from Soil Layers
+    logical, intent(in), optional :: out_preeffect !< Effective Precipitation
+    logical, intent(in), optional :: out_qsm !< Snow Melt
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -441,13 +442,18 @@ contains
 
   !> \brief Check whether a namelist value was set
   integer function nml_output_mhm_is_set(this, name, idx, errmsg) result(status)
-    class(nml_output_mhm_t), intent(in) :: this
-    character(len=*), intent(in) :: name
-    integer, intent(in), optional :: idx(:)
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_output_mhm_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field name
+    integer, intent(in), optional :: idx(:) !< optional field index values
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
     select case (to_lower(trim(name)))
     case ("output_deflate_level")
       if (present(idx)) then
@@ -610,17 +616,22 @@ contains
 
   !> \brief Validate required values and constraints
   integer function nml_output_mhm_is_valid(this, errmsg) result(status)
-    class(nml_output_mhm_t), intent(in) :: this
-    character(len=*), intent(out), optional :: errmsg
+    class(nml_output_mhm_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     integer :: istat
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
 
     ! enum constraints
     istat = this%is_set("output_time_reference", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. output_time_reference_in_enum(this%output_time_reference)) then
+      if (.not. output_time_reference__in_enum(this%output_time_reference)) then
         status = NML_ERR_ENUM
         if (present(errmsg)) errmsg = "enum constraint failed: output_time_reference"
         return
@@ -632,7 +643,7 @@ contains
     ! bounds constraints
     istat = this%is_set("output_deflate_level", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. output_deflate_level_in_bounds(this%output_deflate_level)) then
+      if (.not. output_deflate_level__in_bounds(this%output_deflate_level)) then
         status = NML_ERR_BOUNDS
         if (present(errmsg)) errmsg = "bounds constraint failed: output_deflate_level"
         return
@@ -643,7 +654,7 @@ contains
     end if
     istat = this%is_set("output_frequency", errmsg=errmsg)
     if (istat == NML_OK) then
-      if (.not. output_frequency_in_bounds(this%output_frequency)) then
+      if (.not. output_frequency__in_bounds(this%output_frequency)) then
         status = NML_ERR_BOUNDS
         if (present(errmsg)) errmsg = "bounds constraint failed: output_frequency"
         return

@@ -69,8 +69,8 @@ module mo_main_config
     type(nml_rivertemp1_t) :: rivertemp1 !< rivertemp1 configuration
     type(nml_geoparameter_t) :: geoparameter !< geoparameter configuration
   contains
+    procedure :: set_dims => parameter_config_set_dims
     procedure :: read_parameter => parameter_config_read_parameter
-    procedure :: read_processes => parameter_config_read_processes
   end type parameter_config_t
 
   !> \class   parameters_t
@@ -93,8 +93,9 @@ module mo_main_config
     character(256), dimension(:), allocatable :: names
     !> Array of current parameter set
     real(dp), dimension(:), allocatable :: values
-    integer(i4) :: nGeoUnits !< Number of geological formations
+    integer(i4) :: nGeoUnits = 25_i4 !< Number of geological formations
   contains
+    procedure :: set_dims => parameters_set_dims
     procedure :: configure => parameters_configure
     procedure :: initialize => parameters_initialize
     procedure :: set => parameters_set
@@ -107,6 +108,31 @@ module mo_main_config
   end type parameters_t
 
 contains
+
+  !> \brief Set runtime dimensions for generated parameter namelists.
+  subroutine parameter_config_set_dims(self, n_geo_units)
+    class(parameter_config_t), intent(inout) :: self
+    integer(i4), intent(in) :: n_geo_units !< number of geological units in the global parameter set
+    character(1024) :: errmsg
+    integer :: status
+
+    if (.not.self%geoparameter%is_configured) then
+      status = self%geoparameter%set_dims(n_geo_units=n_geo_units, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error setting geoparameter dimensions: ", trim(errmsg)
+        error stop 1
+      end if
+    end if
+  end subroutine parameter_config_set_dims
+
+  !> \brief Set runtime dimensions for generated parameter namelists.
+  subroutine parameters_set_dims(self, n_geo_units)
+    class(parameters_t), intent(inout) :: self
+    integer(i4), intent(in) :: n_geo_units !< number of geological units in the global parameter set
+
+    self%nGeoUnits = n_geo_units
+    call self%config%set_dims(n_geo_units)
+  end subroutine parameters_set_dims
 
   !> \brief Check if mHM processes are active.
   logical function parameters_mhm_active(self)
@@ -135,29 +161,16 @@ contains
     parameters_mrm_active = (self%process_matrix(8, 1) /= 0_i4) .or. (self%process_matrix(11, 1) /= 0_i4)
   end function parameters_mrm_active
 
-  !> \brief Read processes configuration.
-  subroutine parameter_config_read_processes(self, file)
-    class(parameter_config_t), intent(inout) :: self
-    character(*), intent(in) :: file !< file containing the main namelists
-    character(1024) :: errmsg
-    integer :: status
-    log_info(*) "Read config processes: ", file
-    status = self%processes%from_file(file=file, errmsg=errmsg)
-    if (status /= NML_OK) then
-      log_fatal(*) "Error reading processes from: ", file, ", with error: ", trim(errmsg)
-      error stop 1
-    end if
-  end subroutine parameter_config_read_processes
-
   !> \brief Read parameter configuration.
-  subroutine parameter_config_read_parameter(self, file)
+  subroutine parameter_config_read_parameter(self, file, processes)
     class(parameter_config_t), intent(inout) :: self
     character(*), intent(in) :: file !< file containing the parameter namelists
+    type(nml_config_processes_t), intent(in) :: processes !< configured process switches
     character(1024) :: errmsg
     integer :: status
     log_info(*) "Read config parameter: ", file
 
-    select case (self%processes%interception)
+    select case (processes%interception)
       case (1_i4)
         status = self%interception1%from_file(file=file, errmsg=errmsg)
         if (status /= NML_OK) then
@@ -166,7 +179,7 @@ contains
         end if
     end select
 
-    select case (self%processes%snow)
+    select case (processes%snow)
       case (1_i4)
         status = self%snow1%from_file(file=file, errmsg=errmsg)
         if (status /= NML_OK) then
@@ -175,7 +188,7 @@ contains
         end if
     end select
 
-    select case (self%processes%soil_moisture)
+    select case (processes%soil_moisture)
       case (1_i4)
         status = self%soilmoisture1%from_file(file=file, errmsg=errmsg)
         if (status /= NML_OK) then
@@ -202,7 +215,7 @@ contains
         end if
     end select
 
-    select case (self%processes%direct_runoff)
+    select case (processes%direct_runoff)
       case (1_i4)
         status = self%directrunoff1%from_file(file=file, errmsg=errmsg)
         if (status /= NML_OK) then
@@ -211,7 +224,7 @@ contains
         end if
     end select
 
-    select case (self%processes%pet)
+    select case (processes%pet)
       case (-2_i4)
         status = self%PETm2%from_file(file=file, errmsg=errmsg)
         if (status /= NML_OK) then
@@ -244,7 +257,7 @@ contains
         end if
     end select
 
-    select case (self%processes%interflow)
+    select case (processes%interflow)
       case (1_i4)
         status = self%interflow1%from_file(file=file, errmsg=errmsg)
         if (status /= NML_OK) then
@@ -253,7 +266,7 @@ contains
         end if
     end select
 
-    select case (self%processes%percolation)
+    select case (processes%percolation)
       case (1_i4)
         status = self%percolation1%from_file(file=file, errmsg=errmsg)
         if (status /= NML_OK) then
@@ -262,7 +275,7 @@ contains
         end if
     end select
 
-    select case (self%processes%baseflow)
+    select case (processes%baseflow)
       case (1_i4)
         status = self%geoparameter%from_file(file=file, errmsg=errmsg)
         if (status /= NML_OK) then
@@ -271,7 +284,7 @@ contains
         end if
     end select
 
-    select case (self%processes%neutrons)
+    select case (processes%neutrons)
       case (1_i4)
         status = self%neutrons1%from_file(file=file, errmsg=errmsg)
         if (status /= NML_OK) then
@@ -286,7 +299,7 @@ contains
         end if
     end select
 
-    select case (self%processes%routing)
+    select case (processes%routing)
       case (1_i4)
         status = self%routing1%from_file(file=file, errmsg=errmsg)
         if (status /= NML_OK) then
@@ -307,7 +320,7 @@ contains
         end if
     end select
 
-    select case (self%processes%temperature_routing)
+    select case (processes%temperature_routing)
       case (1_i4)
         status = self%rivertemp1%from_file(file=file, errmsg=errmsg)
         if (status /= NML_OK) then
@@ -318,22 +331,41 @@ contains
 
   end subroutine parameter_config_read_parameter
 
-  !> \brief Configure the mRM process container.
-  subroutine parameters_configure(self, meta_file, para_file)
+  !> \brief Configure process switches and process parameters.
+  subroutine parameters_configure(self, main_file, para_file, root)
+    use mo_os, only: path_join, path_normpath
     class(parameters_t), intent(inout) :: self
-    character(*), intent(in), optional :: meta_file !< file containing the processes namelists
+    character(*), intent(in), optional :: main_file !< file containing the processes namelists
     character(*), intent(in), optional :: para_file !< file containing the parameter namelists
+    character(*), intent(in) :: root !< root directory for relative file paths
     character(1024) :: errmsg
+    character(:), allocatable :: path
     integer :: status
     log_info(*) "Configure parameters"
-    if (present(meta_file)) call self%config%read_processes(file=meta_file)
+
+    if (present(main_file)) then
+      path = path_normpath(path_join(root, main_file))
+      log_info(*) "Read config processes: ", path
+      status = self%config%processes%from_file(file=path, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error reading processes from: ", path, ", with error: ", trim(errmsg)
+        error stop 1
+      end if
+    end if
+    if (.not.self%config%processes%is_configured) then
+      log_fatal(*) "Processes configuration not set."
+      error stop 1
+    end if
     status = self%config%processes%is_valid(errmsg=errmsg)
     if (status /= NML_OK) then
       log_fatal(*) "Processes configuration not valid: ", trim(errmsg)
       error stop
     end if
 
-    if (present(para_file)) call self%config%read_parameter(file=para_file)
+    if (present(para_file)) then
+      path = path_normpath(path_join(root, para_file))
+      call self%config%read_parameter(file=path, processes=self%config%processes)
+    end if
     select case (self%config%processes%interception)
       case (1_i4)
         if (.not.self%config%interception1%is_configured) then
@@ -592,15 +624,14 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nColPars
-    use mo_mpr_constants, only : maxGeoUnit
     use mo_utils, only : EQ
 
     implicit none
     class(parameters_t), intent(inout) :: self
 
     character(256) :: geo_name
-    real(dp), dimension(nColPars,maxGeoUnit) :: GeoParam
-    integer(i4) :: ii, shp(2), shp_geo(2)
+    real(dp), allocatable, dimension(:, :) :: GeoParam
+    integer(i4) :: ii, shp(2)
     character(1024) :: errmsg
     integer :: status
 
@@ -1149,12 +1180,10 @@ contains
       case(1)
         ! read in global parameters (NOT REGIONALIZED, i.e. these are <beta> and not <gamma>) for each geological formation used
         GeoParam = self%config%geoparameter%GeoParam
-        status = self%config%geoparameter%filled_shape(name="GeoParam", filled=shp_geo, errmsg=errmsg)
-        if (status /= 0_i4) then
-          log_fatal(*) 'GeoParam shape in namelist "geoparameter" is incorrect: ', trim(errmsg)
+        if (size(GeoParam, 2) /= self%nGeoUnits) then
+          log_fatal(*) 'GeoParam shape in namelist "geoparameter" does not match n_geo_units.'
           error stop 1
         end if
-        self%nGeoUnits = shp_geo(2)
 
         ! for geology parameters
         self%process_matrix(9, 2) = self%nGeoUnits

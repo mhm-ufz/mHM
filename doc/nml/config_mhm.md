@@ -10,7 +10,6 @@ Configuration for the mHM model setup.
 
 | Name | Type | Required | Info |
 | --- | --- | --- | --- |
-| [resolution](#resolution) | real array | no | mHM model resolution (L1) |
 | [output_path](#output_path) | string array | no | Output path |
 | [read_restart](#read_restart) | logical array | no | Read restart |
 | [restart_input_path](#restart_input_path) | string array | no | Restart input path |
@@ -21,24 +20,13 @@ Configuration for the mHM model setup.
 
 ## Field details
 
-### resolution
-
-mHM model resolution (L1) `resolution`
-
-Resolution of the mHM model, level 1.
-
-Summary:
-- Type: `real(dp), dimension(max_domains)`
-- Flexible tail dims: 1
-- Required: no
-
 ### output_path
 
 Output path `output_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mhm_output.nc"]`
 
@@ -47,7 +35,7 @@ Summary:
 Read restart `read_restart`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -56,8 +44,8 @@ Summary:
 Restart input path `restart_input_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mhm_restart_in.nc"]`
 
@@ -66,7 +54,7 @@ Summary:
 Write restart `write_restart`
 
 Summary:
-- Type: `logical, dimension(max_domains)`
+- Type: `logical, dimension(n_domains)`
 - Required: no
 - Default: `.false.`
 
@@ -75,8 +63,8 @@ Summary:
 Restart output path `restart_output_path`
 
 Summary:
-- Type: `character(len=buf), dimension(max_domains)`
-- Flexible tail dims: 1
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mhm_restart_out.nc"]`
 
@@ -88,8 +76,7 @@ Monthly free pan evaporation coefficients for free-water surfaces.
 (array dimension 1: month, dimension 2: domain)
 
 Summary:
-- Type: `real(dp), dimension(12, max_domains)`
-- Flexible tail dims: 1
+- Type: `real(dp), dimension(12, n_domains)`
 - Required: no
 - Examples: `[1.3, 1.2, 0.72, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5]`
 
@@ -109,7 +96,6 @@ Summary:
 
 ```fortran
 &config_mhm
-  resolution(:) = 0.0
   output_path(:) = "mhm_output.nc"
   read_restart(:) = .false.
   restart_input_path(:) = "mhm_restart_in.nc"

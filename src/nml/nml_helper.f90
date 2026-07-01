@@ -9,9 +9,9 @@
 !> \copydoc nml_helper
 
 !> \brief Helper module for namelist file operations
-!> \version 0.1
+!> \version 0.2
 !> \authors Sebastian Mueller
-!> \date    Jan 2026
+!> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_namelists
@@ -47,12 +47,14 @@ module nml_helper
   integer, parameter, public :: NML_ERR_INVALID_NAME = 20
   !> \brief Status code: invalid index
   integer, parameter, public :: NML_ERR_INVALID_INDEX = 21
+  !> \brief Status code: zero opaque handle
+  integer, parameter, public :: NML_ERR_INVALID_HANDLE = 22
 
-  !> \brief Shared constants for namelist dimensions
-  integer, parameter, public :: max_layers = 10 !< Maximum number of layers.
-  integer, parameter, public :: max_domains = 100 !< Maximum number of domains.
-  integer, parameter, public :: max_geo_units = 25 !< Maximum number of geological units.
+  !> \brief Shared constants for generated namelist modules
   integer, parameter, public :: buf = 256 !< String buffer length.
+  integer, parameter, public :: max_layers__default = 10 !< Maximum number of soil-layer entries stored per domain in a namelist file.
+  integer, parameter, public :: n_domains__default = 100 !< Number of domains.
+  integer, parameter, public :: n_geo_units__default = 25 !< Number of geological units.
 
   !> \class nml_file_t
   !> \brief Type for namelist file operations
