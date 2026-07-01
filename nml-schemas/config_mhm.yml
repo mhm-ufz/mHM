@@ -8,6 +8,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Output path
@@ -23,6 +24,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Restart input path
@@ -38,6 +40,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Restart output path

@@ -50,6 +50,7 @@ Precipitation weights path `pre_weights_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### pet_weights_path
@@ -58,6 +59,7 @@ Potential evapotranspiration weights path `pet_weights_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### temp_weights_path
@@ -66,6 +68,7 @@ Surface downward shortwave radiation weights path `temp_weights_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### ssrd_weights_path
@@ -74,6 +77,7 @@ Surface downward shortwave radiation weights path `ssrd_weights_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### strd_weights_path
@@ -82,6 +86,7 @@ Surface downward longwave radiation weights path `strd_weights_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### pre_weights_var

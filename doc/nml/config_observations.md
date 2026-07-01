@@ -31,6 +31,7 @@ Expected variable name: "sm".
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### neutrons_path
@@ -42,6 +43,7 @@ Expected variable name: "neutrons".
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### et_path
@@ -53,6 +55,7 @@ Expected variable name: "et".
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### tws_path
@@ -64,6 +67,7 @@ Expected variable name: "twsa".
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### BFI_obs

@@ -28,6 +28,7 @@ Format: YYYY-MM-DD [hh[:mm[:ss]]]
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `date-time`
 - Required: no
 - Examples: `"2020-06-01 00:00"`, `"2025-01-01"`
 
@@ -40,6 +41,7 @@ Format: YYYY-MM-DD [hh[:mm[:ss]]]
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `date-time`
 - Required: no
 - Examples: `"2021-01-01 00:00"`, `"2025-02-15"`
 
@@ -52,6 +54,7 @@ Format: YYYY-MM-DD [hh[:mm[:ss]]]
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `date-time`
 - Required: no
 - Examples: `"2022-01-01 00:00"`, `"2026-01-01"`
 

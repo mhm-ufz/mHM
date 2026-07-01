@@ -87,6 +87,7 @@ Path for SCC gauges NetCDF file. `scc_gauges_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["scc_gauges.nc"]`
 
@@ -96,6 +97,7 @@ Path for output file. `output_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mrm_output.nc"]`
 
@@ -105,6 +107,7 @@ Path for node based output file. `output_node_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mrm_node_output.nc"]`
 
@@ -132,6 +135,7 @@ Restart input path `restart_input_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mrm_restart_in.nc"]`
 
@@ -150,6 +154,7 @@ Restart output path `restart_output_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mrm_restart_out.nc"]`
 
@@ -161,6 +166,7 @@ Path for diagnostics output file containing information about the river upscalin
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mrm_diagnostics.nc"]`
 

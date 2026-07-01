@@ -101,6 +101,7 @@ NetCDF land-cover dataset path.
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### land_cover_var
@@ -138,6 +139,7 @@ Gridded LAI dataset path (if `lai_time_step` < 0 or = 1).
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### lai_var
@@ -159,6 +161,7 @@ Soil look-up table path.
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### geo_lut_path
@@ -169,6 +172,7 @@ Geology look-up table path.
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### lai_lut_path
@@ -179,6 +183,7 @@ LAI look-up table path.
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 
 ### read_restart
@@ -196,6 +201,7 @@ Restart input path `restart_input_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mpr_restart_in.nc"]`
 
@@ -214,6 +220,7 @@ Restart output path `restart_output_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mpr_restart_out.nc"]`
 

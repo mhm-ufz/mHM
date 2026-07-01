@@ -7,6 +7,7 @@ properties:
     type: array
     items:
       type: string
+      format: directory-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Domain directories
@@ -16,6 +17,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
       default: mhm.nml
     x-fortran-shape: n_domains

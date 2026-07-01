@@ -23,6 +23,7 @@ Paths to domain directories for combined runs with "read_domains_from_dirs" enab
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `directory-path`
 - Required: no
 
 ### domain_nmls
@@ -34,6 +35,7 @@ The path will be interpreted as relative to the given domain directory.
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Default: `"mhm.nml"`
 

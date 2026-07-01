@@ -26,6 +26,7 @@ Output path `output_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mhm_output.nc"]`
 
@@ -44,6 +45,7 @@ Restart input path `restart_input_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mhm_restart_in.nc"]`
 
@@ -62,6 +64,7 @@ Restart output path `restart_output_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
 - Required: no
 - Examples: `["mhm_restart_out.nc"]`
 

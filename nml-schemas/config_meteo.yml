@@ -20,6 +20,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Precipitation weights path
@@ -27,6 +28,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Potential evapotranspiration weights path
@@ -34,6 +36,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Surface downward shortwave radiation weights path
@@ -41,6 +44,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Surface downward shortwave radiation weights path
@@ -48,6 +52,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Surface downward longwave radiation weights path

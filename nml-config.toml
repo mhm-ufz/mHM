@@ -1,4 +1,4 @@
-required-versions = ">=0.3.2,<0.4"
+required-versions = ">=0.3.3,<0.4"
 
 [helper]
 path = "src/nml/nml_helper.f90"

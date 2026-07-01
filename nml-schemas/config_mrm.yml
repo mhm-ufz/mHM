@@ -59,6 +59,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Path for SCC gauges NetCDF file.
@@ -67,6 +68,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Path for output file.
@@ -75,6 +77,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Path for node based output file.
@@ -97,6 +100,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Restart input path
@@ -112,6 +116,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Restart output path
@@ -120,6 +125,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Diagnostics output path

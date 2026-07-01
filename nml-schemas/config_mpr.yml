@@ -62,6 +62,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Land cover path
@@ -94,6 +95,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: LAI path
@@ -111,6 +113,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Soil LUT path
@@ -119,6 +122,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Geology LUT path
@@ -127,6 +131,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: LAI LUT path
@@ -142,6 +147,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Restart input path
@@ -157,6 +163,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Restart output path

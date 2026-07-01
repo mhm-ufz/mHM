@@ -40,6 +40,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Latlon specification file path
@@ -54,6 +55,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Precipitation input
@@ -61,6 +63,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Potential evapotranspiration input
@@ -68,6 +71,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Air temperature input
@@ -75,6 +79,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Air temperature annual mean input
@@ -82,6 +87,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Air temperature daily minimum input
@@ -89,6 +95,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Air temperature daily maximum input
@@ -96,6 +103,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Surface shortwave radiation downwards input
@@ -103,6 +111,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Surface thermal radiation downwards input
@@ -110,6 +119,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Net radiation input
@@ -117,6 +127,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Vapor pressure input
@@ -124,6 +135,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Wind speed input
@@ -131,6 +143,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Meteorological mask file path
@@ -138,6 +151,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Runoff input
@@ -145,6 +159,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Sealed runoff input
@@ -152,6 +167,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Fast interflow input
@@ -159,6 +175,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Slow interflow input
@@ -166,6 +183,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Baseflow input
@@ -173,6 +191,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Hydrological mask file path
@@ -180,6 +199,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: DEM input
@@ -187,6 +207,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Slope input
@@ -194,6 +215,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Aspect input
@@ -201,6 +223,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Flow direction input
@@ -208,6 +231,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Flow accumulation input
@@ -215,6 +239,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Geology class input
@@ -222,6 +247,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Soil class input
@@ -229,6 +255,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Soil horizon class input
@@ -236,6 +263,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: LAI class input
@@ -243,6 +271,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: River width input
@@ -250,6 +279,7 @@ properties:
     type: array
     items:
       type: string
+      format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Morphology mask file path
