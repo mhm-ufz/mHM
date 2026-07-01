@@ -67,6 +67,7 @@ Summary:
 - Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Minimum: `>= 1`
+- Examples: `[1]`
 
 ### soil_depth
 
@@ -222,7 +223,7 @@ Summary:
 &config_mpr
   soil_db_mode(:) = 0
   tillage_depth(:) = 0
-  n_layers(:) = 0
+  n_layers(:) = 1
   soil_depth(:,:) = 0
   fracSealed_cityArea(:) = 0.0
   land_cover_path(:) = ""

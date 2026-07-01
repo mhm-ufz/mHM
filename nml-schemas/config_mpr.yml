@@ -35,6 +35,7 @@ properties:
       minimum: 1
     x-fortran-shape: n_domains
     title: Number of soil layers
+    examples: [[1]]
     description: Number of mHM soil layers for each configured domain.
   soil_depth:
     type: array

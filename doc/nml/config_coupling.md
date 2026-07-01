@@ -74,6 +74,7 @@ Summary:
 - Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Minimum: `>= 1`
+- Examples: `[10]`
 
 ### meteo_grid_ny
 
@@ -83,6 +84,7 @@ Summary:
 - Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Minimum: `>= 1`
+- Examples: `[10]`
 
 ### meteo_grid_xll
 
@@ -108,6 +110,7 @@ Summary:
 - Type: `real(dp), dimension(n_domains)`
 - Required: no
 - Minimum: `> 0.0`
+- Examples: `[1.0]`
 
 ### meteo_grid_ydir
 
@@ -145,6 +148,7 @@ Summary:
 - Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Minimum: `>= 1`
+- Examples: `[10]`
 
 ### hydro_grid_ny
 
@@ -154,6 +158,7 @@ Summary:
 - Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Minimum: `>= 1`
+- Examples: `[10]`
 
 ### hydro_grid_xll
 
@@ -179,6 +184,7 @@ Summary:
 - Type: `real(dp), dimension(n_domains)`
 - Required: no
 - Minimum: `> 0.0`
+- Examples: `[1.0]`
 
 ### hydro_grid_ydir
 
@@ -216,6 +222,7 @@ Summary:
 - Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Minimum: `>= 1`
+- Examples: `[10]`
 
 ### morph_grid_ny
 
@@ -225,6 +232,7 @@ Summary:
 - Type: `integer(i4), dimension(n_domains)`
 - Required: no
 - Minimum: `>= 1`
+- Examples: `[10]`
 
 ### morph_grid_xll
 
@@ -250,6 +258,7 @@ Summary:
 - Type: `real(dp), dimension(n_domains)`
 - Required: no
 - Minimum: `> 0.0`
+- Examples: `[1.0]`
 
 ### morph_grid_ydir
 
@@ -544,25 +553,25 @@ Summary:
 
 ```fortran
 &config_coupling
-  meteo_grid_nx(:) = 0
-  meteo_grid_ny(:) = 0
+  meteo_grid_nx(:) = 10
+  meteo_grid_ny(:) = 10
   meteo_grid_xll(:) = 0.0
   meteo_grid_yll(:) = 0.0
-  meteo_grid_cellsize(:) = 0.0
+  meteo_grid_cellsize(:) = 1.0
   meteo_grid_ydir(:) = 0
   meteo_grid_coordsys(:) = 0
-  hydro_grid_nx(:) = 0
-  hydro_grid_ny(:) = 0
+  hydro_grid_nx(:) = 10
+  hydro_grid_ny(:) = 10
   hydro_grid_xll(:) = 0.0
   hydro_grid_yll(:) = 0.0
-  hydro_grid_cellsize(:) = 0.0
+  hydro_grid_cellsize(:) = 1.0
   hydro_grid_ydir(:) = 0
   hydro_grid_coordsys(:) = 0
-  morph_grid_nx(:) = 0
-  morph_grid_ny(:) = 0
+  morph_grid_nx(:) = 10
+  morph_grid_ny(:) = 10
   morph_grid_xll(:) = 0.0
   morph_grid_yll(:) = 0.0
-  morph_grid_cellsize(:) = 0.0
+  morph_grid_cellsize(:) = 1.0
   morph_grid_ydir(:) = 0
   morph_grid_coordsys(:) = 0
   pre_coupled(:) = .false.

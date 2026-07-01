@@ -15,6 +15,7 @@ properties:
       minimum: 1
     x-fortran-shape: n_domains
     title: Meteo grid size in x-direction
+    examples: [[10]]
   meteo_grid_ny:
     type: array
     items:
@@ -23,6 +24,7 @@ properties:
       minimum: 1
     x-fortran-shape: n_domains
     title: Meteo grid size in y-direction
+    examples: [[10]]
   meteo_grid_xll:
     type: array
     items:
@@ -45,6 +47,7 @@ properties:
       exclusiveMinimum: 0.0
     x-fortran-shape: n_domains
     title: Meteo grid cell size
+    examples: [[1.0]]
   meteo_grid_ydir:
     type: array
     items:
@@ -79,6 +82,7 @@ properties:
       minimum: 1
     x-fortran-shape: n_domains
     title: Hydro grid size in x-direction
+    examples: [[10]]
   hydro_grid_ny:
     type: array
     items:
@@ -87,6 +91,7 @@ properties:
       minimum: 1
     x-fortran-shape: n_domains
     title: Hydro grid size in y-direction
+    examples: [[10]]
   hydro_grid_xll:
     type: array
     items:
@@ -109,6 +114,7 @@ properties:
       exclusiveMinimum: 0.0
     x-fortran-shape: n_domains
     title: Hydro grid cell size
+    examples: [[1.0]]
   hydro_grid_ydir:
     type: array
     items:
@@ -143,6 +149,7 @@ properties:
       minimum: 1
     x-fortran-shape: n_domains
     title: Morph grid size in x-direction
+    examples: [[10]]
   morph_grid_ny:
     type: array
     items:
@@ -151,6 +158,7 @@ properties:
       minimum: 1
     x-fortran-shape: n_domains
     title: Morph grid size in y-direction
+    examples: [[10]]
   morph_grid_xll:
     type: array
     items:
@@ -173,6 +181,7 @@ properties:
       exclusiveMinimum: 0.0
     x-fortran-shape: n_domains
     title: Morph grid cell size
+    examples: [[1.0]]
   morph_grid_ydir:
     type: array
     items:

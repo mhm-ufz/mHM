@@ -12,8 +12,10 @@ properties:
       exclusiveMinimum: 0.0
     x-fortran-shape: n_domains
     title: Hydrological grid resolution
+    examples: [[0.1]]
     description: |-
-      Target resolution for deriving the hydrological grid from the morphology grid.
+      Target resolution for deriving the hydrological grid from the morphological grid.
+      Unit is degrees for geographic coordinate systems and meters otherwise, as determined from the morphological grid.
   route:
     type: array
     items:
@@ -22,5 +24,7 @@ properties:
       exclusiveMinimum: 0.0
     x-fortran-shape: n_domains
     title: Routing grid resolution
+    examples: [[0.5]]
     description: |-
-      Target resolution for deriving the routing grid from the morphology grid.
+      Target resolution for deriving the routing grid from the morphological grid.
+      Unit is degrees for geographic coordinate systems and meters otherwise, as determined from the morphological grid.
