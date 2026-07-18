@@ -305,7 +305,7 @@ namelists = ["output_mhm", "output_mrm"]
 name = "parameter"
 title = "Parameter configuration"
 description = "Process parameter namelists for mHM."
-default_file = "parameter.nml"
+default_file = "parameters.nml"
 namelists = [
   "interception_1",
   "snow_1",
