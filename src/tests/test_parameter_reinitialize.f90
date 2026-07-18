@@ -48,7 +48,7 @@ program test_parameter_reinitialize
   call routing_domain%create(main_file="test_nml/mrm_minimal.nml", cwd=".")
   call routing_domain%configure( &
     main_file="test_nml/mrm_minimal.nml", &
-    para_file="mhm_parameter.nml")
+    para_file="test_nml/mhm_parameter_v6_routing.nml")
   call routing_domain%connect()
 
   static_fdir => routing_domain%exchange%fdir%data

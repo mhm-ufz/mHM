@@ -1,5 +1,0 @@
-! Default v6 routing parameters used by app/driver.F90.
-
-&routing_2
-  streamflow_celerity = 1.5
-/

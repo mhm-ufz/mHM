@@ -1,0 +1,5 @@
+! Parameters for the v6 routing smoke configurations.
+
+&routing_2
+  streamflow_celerity = 1.5
+/

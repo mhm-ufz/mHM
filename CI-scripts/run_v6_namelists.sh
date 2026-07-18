@@ -90,8 +90,12 @@ parameter_file_for_namelist() {
     mpr_*)
       printf '%s\n' "mhm-para-template.nml"
       ;;
+    mrm_minimal*)
+      printf '%s\n' "test_nml/mhm_parameter_v6_routing.nml"
+      ;;
     *)
-      printf '%s\n' "mhm_parameter.nml"
+      echo "No v6 parameter fixture configured for ${nml_name}." >&2
+      return 1
       ;;
   esac
 }
