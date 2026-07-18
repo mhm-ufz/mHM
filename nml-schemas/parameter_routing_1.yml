@@ -1,0 +1,46 @@
+title: Routing - Case 1
+description: Parameters for Muskingum routing.
+x-fortran-namelist: routing_1
+type: object
+properties:
+  travel_time_constant:
+    $ref: parameter.yml#/$defs/parameter
+    title: Muskingum travel-time constant
+    default: {lower_bound: 0.31, upper_bound: 0.35}
+    properties:
+      value: {examples: [0.325]}
+      optimize: {examples: [true]}
+  travel_time_river_length:
+    $ref: parameter.yml#/$defs/parameter
+    title: River-length contribution to Muskingum travel time
+    default: {lower_bound: 0.07, upper_bound: 0.08}
+    properties:
+      value: {examples: [0.075]}
+      optimize: {examples: [true]}
+  travel_time_river_slope:
+    $ref: parameter.yml#/$defs/parameter
+    title: River-slope contribution to Muskingum travel time
+    default: {lower_bound: 1.95, upper_bound: 2.1}
+    properties:
+      value: {examples: [2.0]}
+      optimize: {examples: [true]}
+  travel_time_impervious:
+    $ref: parameter.yml#/$defs/parameter
+    title: Impervious-area contribution to Muskingum travel time
+    default: {lower_bound: 0.09, upper_bound: 0.11}
+    properties:
+      value: {examples: [0.1]}
+      optimize: {examples: [true]}
+  attenuation_river_slope:
+    $ref: parameter.yml#/$defs/parameter
+    title: River-slope contribution to Muskingum attenuation
+    default: {lower_bound: 0.01, upper_bound: 0.5}
+    properties:
+      value: {examples: [0.3]}
+      optimize: {examples: [true]}
+required:
+  - travel_time_constant
+  - travel_time_river_length
+  - travel_time_river_slope
+  - travel_time_impervious
+  - attenuation_river_slope

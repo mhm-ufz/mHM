@@ -8,25 +8,25 @@ Configuration for the multiscale parameter regionalization in mHM.
 
 ## Fields
 
-| Name | Type | Required | Info |
-| --- | --- | --- | --- |
-| [soil_db_mode](#soil_db_mode) | integer array | no | Soil database mode |
-| [tillage_depth](#tillage_depth) | integer array | no | Tillage depth |
-| [n_layers](#n_layers) | integer array | no | Number of soil layers |
-| [soil_depth](#soil_depth) | integer array | no | Soil horizon depth |
-| [fracSealed_cityArea](#fracsealed_cityarea) | real array | no | Sealed fraction of city area |
-| [land_cover_path](#land_cover_path) | string array | no | Land cover path |
-| [land_cover_var](#land_cover_var) | string array | no | Land cover variable |
-| [lai_time_step](#lai_time_step) | integer array | no | LAI time step |
-| [lai_path](#lai_path) | string array | no | LAI path |
-| [lai_var](#lai_var) | string array | no | LAI variable |
-| [soil_lut_path](#soil_lut_path) | string array | no | Soil LUT path |
-| [geo_lut_path](#geo_lut_path) | string array | no | Geology LUT path |
-| [lai_lut_path](#lai_lut_path) | string array | no | LAI LUT path |
-| [read_restart](#read_restart) | logical array | no | Read restart |
-| [restart_input_path](#restart_input_path) | string array | no | Restart input path |
-| [write_restart](#write_restart) | logical array | no | Write restart |
-| [restart_output_path](#restart_output_path) | string array | no | Restart output path |
+| Name | Type | Declared required | Input required | Info |
+| --- | --- | --- | --- | --- |
+| [soil_db_mode](#soil_db_mode) | integer array | no | no | Soil database mode |
+| [tillage_depth](#tillage_depth) | integer array | no | no | Tillage depth |
+| [n_layers](#n_layers) | integer array | no | no | Number of soil layers |
+| [soil_depth](#soil_depth) | integer array | no | no | Soil horizon depth |
+| [fracSealed_cityArea](#fracsealed_cityarea) | real array | no | no | Sealed fraction of city area |
+| [land_cover_path](#land_cover_path) | string array | no | no | Land cover path |
+| [land_cover_var](#land_cover_var) | string array | no | no | Land cover variable |
+| [lai_time_step](#lai_time_step) | integer array | no | no | LAI time step |
+| [lai_path](#lai_path) | string array | no | no | LAI path |
+| [lai_var](#lai_var) | string array | no | no | LAI variable |
+| [soil_lut_path](#soil_lut_path) | string array | no | no | Soil LUT path |
+| [geo_lut_path](#geo_lut_path) | string array | no | no | Geology LUT path |
+| [lai_lut_path](#lai_lut_path) | string array | no | no | LAI LUT path |
+| [read_restart](#read_restart) | logical array | no | no | Read restart |
+| [restart_input_path](#restart_input_path) | string array | no | no | Restart input path |
+| [write_restart](#write_restart) | logical array | no | no | Write restart |
+| [restart_output_path](#restart_output_path) | string array | no | no | Restart output path |
 
 ## Field details
 
@@ -43,7 +43,8 @@ Flag to handle multiple soil database types; valid for all domains.
 
 Summary:
 - Type: `integer(i4), dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0`
 - Allowed values: `0`, `1`
 
@@ -55,7 +56,8 @@ Soil depth down to which organic matter is possible [mm].
 
 Summary:
 - Type: `integer(i4), dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### n_layers
 
@@ -65,7 +67,8 @@ Number of mHM soil layers for each configured domain.
 
 Summary:
 - Type: `integer(i4), dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Minimum: `>= 1`
 - Examples: `[1]`
 
@@ -80,7 +83,8 @@ Tillage depth should match one of the specified horizon depths.
 
 Summary:
 - Type: `integer(i4), dimension(max_layers, n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0`
 
 ### fracSealed_cityArea
@@ -91,7 +95,8 @@ Fraction of area within city assumed to be fully sealed [0.0-1.0].
 
 Summary:
 - Type: `real(dp), dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### land_cover_path
 
@@ -102,7 +107,8 @@ NetCDF land-cover dataset path.
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### land_cover_var
 
@@ -112,7 +118,8 @@ Land-cover variable name in the NetCDF dataset.
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `"land_cover"`
 
 ### lai_time_step
@@ -128,7 +135,8 @@ Time step for LAI input data [days]:
 
 Summary:
 - Type: `integer(i4), dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Allowed values: `-3`, `-2`, `-1`, `0`, `1`
 
 ### lai_path
@@ -140,7 +148,8 @@ Gridded LAI dataset path (if `lai_time_step` < 0 or = 1).
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### lai_var
 
@@ -150,7 +159,8 @@ LAI variable name in the gridded NetCDF dataset.
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `"lai"`
 
 ### soil_lut_path
@@ -162,7 +172,8 @@ Soil look-up table path.
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### geo_lut_path
 
@@ -173,7 +184,8 @@ Geology look-up table path.
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### lai_lut_path
 
@@ -184,7 +196,8 @@ LAI look-up table path.
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### read_restart
 
@@ -192,7 +205,8 @@ Read restart `read_restart`
 
 Summary:
 - Type: `logical, dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### restart_input_path
@@ -202,7 +216,8 @@ Restart input path `restart_input_path`
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 - Examples: `["mpr_restart_in.nc"]`
 
 ### write_restart
@@ -211,7 +226,8 @@ Write restart `write_restart`
 
 Summary:
 - Type: `logical, dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### restart_output_path
@@ -221,7 +237,8 @@ Restart output path `restart_output_path`
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 - Examples: `["mpr_restart_out.nc"]`
 
 ## Example

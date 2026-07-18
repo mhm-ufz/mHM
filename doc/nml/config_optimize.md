@@ -6,21 +6,21 @@
 
 ## Fields
 
-| Name | Type | Required | Info |
-| --- | --- | --- | --- |
-| [optimize_restart](#optimize_restart) | logical | no | Restart optimization |
-| [opti_method](#opti_method) | integer | no | Optimization method |
-| [opti_function](#opti_function) | integer | no | Objective function to be optimized |
-| [iterations](#iterations) | integer | no | Number of iterations |
-| [seed](#seed) | integer | no | Seed |
-| [dds_r](#dds_r) | real | no | DDS perturbation rate |
-| [sa_temp](#sa_temp) | real | no | Initial Temperature |
-| [sce_ngs](#sce_ngs) | integer | no | Number of SCE Complexes |
-| [sce_npg](#sce_npg) | integer | no | Points per SCE Complex |
-| [sce_nps](#sce_nps) | integer | no | Points per SCE Sub-Complex |
-| [mcmc_opti](#mcmc_opti) | logical | no | MCMC for optimisation |
-| [mcmc_error_params](#mcmc_error_params) | real array | no | Parameters of MCMC error model. |
-| [BFI_calc](#bfi_calc) | logical | no | Calculate BFI from discharge time series with the Eckhardt filter |
+| Name | Type | Declared required | Input required | Info |
+| --- | --- | --- | --- | --- |
+| [optimize_restart](#optimize_restart) | logical | no | no | Restart optimization |
+| [opti_method](#opti_method) | integer | no | no | Optimization method |
+| [opti_function](#opti_function) | integer | no | no | Objective function to be optimized |
+| [iterations](#iterations) | integer | no | no | Number of iterations |
+| [seed](#seed) | integer | no | no | Seed |
+| [dds_r](#dds_r) | real | no | no | DDS perturbation rate |
+| [sa_temp](#sa_temp) | real | no | no | Initial Temperature |
+| [sce_ngs](#sce_ngs) | integer | no | no | Number of SCE Complexes |
+| [sce_npg](#sce_npg) | integer | no | no | Points per SCE Complex |
+| [sce_nps](#sce_nps) | integer | no | no | Points per SCE Sub-Complex |
+| [mcmc_opti](#mcmc_opti) | logical | no | no | MCMC for optimisation |
+| [mcmc_error_params](#mcmc_error_params) | real array | no | no | Parameters of MCMC error model. |
+| [BFI_calc](#bfi_calc) | logical | no | no | Calculate BFI from discharge time series with the Eckhardt filter |
 
 ## Field details
 
@@ -32,7 +32,8 @@ Optimization shall be restarted from ./mo_<opti_method>.restart file
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### opti_method
@@ -47,7 +48,8 @@ Optimization method.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `1`
 
 ### opti_function
@@ -95,7 +97,8 @@ Objective function to be optimized.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `10`
 
 ### iterations
@@ -104,7 +107,8 @@ Number of iterations `iterations`
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `7`
 
 ### seed
@@ -116,7 +120,8 @@ Default: -9: seed is obtained from system clock).
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `1235876`
 
 ### dds_r
@@ -127,7 +132,8 @@ Perturbation rate r for DDS algorithm.
 
 Summary:
 - Type: `real(dp)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0.2`
 
 ### sa_temp
@@ -139,7 +145,8 @@ Default -9: determined by algorithm of Ben-Ameur (2004).
 
 Summary:
 - Type: `real(dp)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `-9.0`
 
 ### sce_ngs
@@ -148,7 +155,8 @@ Number of SCE Complexes `sce_ngs`
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `2`
 
 ### sce_npg
@@ -160,7 +168,8 @@ Default: -9 corresponds to 2n+1, with n being the number of SCE complexes.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `-9`
 
 ### sce_nps
@@ -172,7 +181,8 @@ Default: -9 corresponds to n+1, with n being the number of SCE complexes.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `-9`
 
 ### mcmc_opti
@@ -184,7 +194,8 @@ If .false.: use MCMC for estimation of parameter uncertainty.
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### mcmc_error_params
@@ -196,7 +207,8 @@ E.g. for opti_function=8: two parameters a and b: err = a + b*Q.
 
 Summary:
 - Type: `real(dp), dimension(2)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `[0.01, 0.6]`
 
 ### BFI_calc
@@ -209,7 +221,8 @@ See: Eckhardt et al. (2008, doi: 10.1016/j.jhydrol.2008.01.005).
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.true.`
 
 ## Example

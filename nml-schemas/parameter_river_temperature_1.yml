@@ -1,0 +1,38 @@
+title: River temperature - Case 1
+description: Parameters for river-temperature routing.
+x-fortran-namelist: river_temperature_1
+type: object
+properties:
+  albedo_water:
+    $ref: parameter.yml#/$defs/parameter
+    title: Albedo of open water [-]
+    default: {lower_bound: 0.03, upper_bound: 0.2}
+    properties:
+      value: {examples: [0.15]}
+      optimize: {examples: [false]}
+  pt_a_water:
+    $ref: parameter.yml#/$defs/parameter
+    title: Priestley-Taylor coefficient for open water [-]
+    default: {lower_bound: 1.2, upper_bound: 2.0}
+    properties:
+      value: {examples: [1.26]}
+      optimize: {examples: [false]}
+  emissivity_water:
+    $ref: parameter.yml#/$defs/parameter
+    title: Emissivity of open water [-]
+    default: {lower_bound: 0.95, upper_bound: 0.99}
+    properties:
+      value: {examples: [0.96]}
+      optimize: {examples: [false]}
+  turbulent_heat_exchange_coefficient:
+    $ref: parameter.yml#/$defs/parameter
+    title: Turbulent heat-exchange coefficient [W m-2 K-1]
+    default: {lower_bound: 10.0, upper_bound: 50.0}
+    properties:
+      value: {examples: [20.0]}
+      optimize: {examples: [false]}
+required:
+  - albedo_water
+  - pt_a_water
+  - emissivity_water
+  - turbulent_heat_exchange_coefficient

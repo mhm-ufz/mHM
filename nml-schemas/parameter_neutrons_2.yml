@@ -1,0 +1,78 @@
+title: Neutrons - Case 2
+description: Parameters for the experimental COSMIC neutron formulation.
+x-fortran-namelist: neutrons_2
+type: object
+properties:
+  cosmic_n0:
+    $ref: parameter.yml#/$defs/parameter
+    title: COSMIC N0 parameter
+    default: {lower_bound: 300.0, upper_bound: 2000.0}
+    properties:
+      value: {examples: [1500.0]}
+      optimize: {examples: [false]}
+  cosmic_n1:
+    $ref: parameter.yml#/$defs/parameter
+    title: COSMIC N1 parameter
+    default: {lower_bound: 0.01, upper_bound: 10.0}
+    properties:
+      value: {examples: [1.0]}
+      optimize: {examples: [false]}
+  cosmic_n2:
+    $ref: parameter.yml#/$defs/parameter
+    title: COSMIC N2 parameter
+    default: {lower_bound: 0.01, upper_bound: 10.0}
+    properties:
+      value: {examples: [1.0]}
+      optimize: {examples: [false]}
+  cosmic_alpha0:
+    $ref: parameter.yml#/$defs/parameter
+    title: COSMIC alpha0 parameter
+    default: {lower_bound: 0.01, upper_bound: 10.0}
+    properties:
+      value: {examples: [1.0]}
+      optimize: {examples: [false]}
+  cosmic_alpha1:
+    $ref: parameter.yml#/$defs/parameter
+    title: COSMIC alpha1 parameter
+    default: {lower_bound: 0.01, upper_bound: 10.0}
+    properties:
+      value: {examples: [1.0]}
+      optimize: {examples: [false]}
+  cosmic_l30:
+    $ref: parameter.yml#/$defs/parameter
+    title: COSMIC L30 parameter
+    default: {lower_bound: 26.56, upper_bound: 424.78}
+    properties:
+      value: {examples: [106.1942]}
+      optimize: {examples: [false]}
+  cosmic_l31:
+    $ref: parameter.yml#/$defs/parameter
+    title: COSMIC L31 parameter
+    default: {lower_bound: -118.3, upper_bound: 200.28}
+    properties:
+      value: {examples: [40.9879]}
+      optimize: {examples: [false]}
+  cosmic_lw0:
+    $ref: parameter.yml#/$defs/parameter
+    title: COSMIC lattice-water parameter LW0
+    default: {lower_bound: 0.0, upper_bound: 0.2}
+    properties:
+      value: {examples: [0.1783]}
+      optimize: {examples: [false]}
+  cosmic_lw1:
+    $ref: parameter.yml#/$defs/parameter
+    title: COSMIC lattice-water parameter LW1
+    default: {lower_bound: 0.0, upper_bound: 0.05}
+    properties:
+      value: {examples: [0.0]}
+      optimize: {examples: [false]}
+required:
+  - cosmic_n0
+  - cosmic_n1
+  - cosmic_n2
+  - cosmic_alpha0
+  - cosmic_alpha1
+  - cosmic_l30
+  - cosmic_l31
+  - cosmic_lw0
+  - cosmic_lw1

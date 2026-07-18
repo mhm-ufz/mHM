@@ -8,14 +8,14 @@ Output configuration for mRM.
 
 ## Fields
 
-| Name | Type | Required | Info |
-| --- | --- | --- | --- |
-| [output_deflate_level](#output_deflate_level) | integer | no | Output deflate level |
-| [output_double_precision](#output_double_precision) | logical | no | Output double precision |
-| [output_time_reference](#output_time_reference) | integer | no | Output time reference |
-| [output_frequency](#output_frequency) | integer | no | Output time step |
-| [out_Qrouted](#out_qrouted) | logical | no | Routed Streamflow |
-| [out_RivTemp](#out_rivtemp) | logical | no | Routed Temperature |
+| Name | Type | Declared required | Input required | Info |
+| --- | --- | --- | --- | --- |
+| [output_deflate_level](#output_deflate_level) | integer | no | no | Output deflate level |
+| [output_double_precision](#output_double_precision) | logical | no | no | Output double precision |
+| [output_time_reference](#output_time_reference) | integer | no | no | Output time reference |
+| [output_frequency](#output_frequency) | integer | no | no | Output time step |
+| [out_Qrouted](#out_qrouted) | logical | no | no | Routed Streamflow |
+| [out_RivTemp](#out_rivtemp) | logical | no | no | Routed Temperature |
 
 ## Field details
 
@@ -27,7 +27,8 @@ Compression level for netCDF4 outputs (0: no compression, 9: maximum compression
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `6`
 - Minimum: `>= 0`
 - Maximum: `<= 9`
@@ -38,7 +39,8 @@ Output double precision `output_double_precision`
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### output_time_reference
@@ -52,7 +54,8 @@ Location of reference time point in outputs:
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `2`
 - Allowed values: `0`, `1`, `2`
 
@@ -69,7 +72,8 @@ switch to control write out frequency of the gridded model outputs below
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `-1`
 - Minimum: `>= -3`
 
@@ -81,7 +85,8 @@ Routed streamflow (Qrouted in output flux) (L11_qMod) [m3 s-1]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 - Examples: `.true.`
 
@@ -93,7 +98,8 @@ Routed temperature (only if River Temperature is enabled) [K]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 - Examples: `.true.`
 

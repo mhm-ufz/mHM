@@ -1,0 +1,20 @@
+title: PET - Case 2
+description: Parameters for the Priestley-Taylor PET method.
+x-fortran-namelist: pet_2
+type: object
+properties:
+  priestley_taylor_coefficient:
+    $ref: parameter.yml#/$defs/parameter
+    title: Priestley-Taylor coefficient
+    default: {lower_bound: 0.75, upper_bound: 1.75}
+    properties:
+      value: {examples: [1.19]}
+      optimize: {examples: [true]}
+  priestley_taylor_lai_correction:
+    $ref: parameter.yml#/$defs/parameter
+    title: Priestley-Taylor LAI correction factor
+    default: {lower_bound: -0.5, upper_bound: 0.2}
+    properties:
+      value: {examples: [0.058]}
+      optimize: {examples: [true]}
+required: [priestley_taylor_coefficient, priestley_taylor_lai_correction]

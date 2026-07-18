@@ -1,0 +1,70 @@
+title: Snow - Case 1
+description: Parameters for the degree-day snow module.
+x-fortran-namelist: snow_1
+type: object
+properties:
+  snow_threshold_temperature:
+    $ref: parameter.yml#/$defs/parameter
+    title: Threshold for rain and snow partitioning [degC]
+    default: {lower_bound: -2.0, upper_bound: 2.0}
+    properties:
+      value: {examples: [1.0]}
+      optimize: {examples: [true]}
+  degree_day_factor_forest:
+    $ref: parameter.yml#/$defs/parameter
+    title: Degree-day factor for forest [m degC-1]
+    default: {lower_bound: 0.0001, upper_bound: 4.0}
+    properties:
+      value: {examples: [1.5]}
+      optimize: {examples: [true]}
+  degree_day_factor_impervious:
+    $ref: parameter.yml#/$defs/parameter
+    title: Degree-day factor for impervious areas [m degC-1]
+    default: {lower_bound: 0.0, upper_bound: 1.0}
+    properties:
+      value: {examples: [0.5]}
+      optimize: {examples: [true]}
+  degree_day_factor_pervious:
+    $ref: parameter.yml#/$defs/parameter
+    title: Degree-day factor for pervious areas [m degC-1]
+    default: {lower_bound: 0.0, upper_bound: 2.0}
+    properties:
+      value: {examples: [0.5]}
+      optimize: {examples: [true]}
+  degree_day_factor_precipitation:
+    $ref: parameter.yml#/$defs/parameter
+    title: Precipitation-dependent degree-day factor increase [degC-1]
+    default: {lower_bound: 0.1, upper_bound: 0.9}
+    properties:
+      value: {examples: [0.5]}
+      optimize: {examples: [true]}
+  max_degree_day_factor_forest:
+    $ref: parameter.yml#/$defs/parameter
+    title: Maximum degree-day factor for forest [m degC-1]
+    default: {lower_bound: 0.0, upper_bound: 8.0}
+    properties:
+      value: {examples: [3.0]}
+      optimize: {examples: [true]}
+  max_degree_day_factor_impervious:
+    $ref: parameter.yml#/$defs/parameter
+    title: Maximum degree-day factor for impervious areas [m degC-1]
+    default: {lower_bound: 0.0, upper_bound: 8.0}
+    properties:
+      value: {examples: [3.5]}
+      optimize: {examples: [true]}
+  max_degree_day_factor_pervious:
+    $ref: parameter.yml#/$defs/parameter
+    title: Maximum degree-day factor for pervious areas [m degC-1]
+    default: {lower_bound: 0.0, upper_bound: 8.0}
+    properties:
+      value: {examples: [4.0]}
+      optimize: {examples: [true]}
+required:
+  - snow_threshold_temperature
+  - degree_day_factor_forest
+  - degree_day_factor_impervious
+  - degree_day_factor_pervious
+  - degree_day_factor_precipitation
+  - max_degree_day_factor_forest
+  - max_degree_day_factor_impervious
+  - max_degree_day_factor_pervious

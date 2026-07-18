@@ -1,0 +1,13 @@
+title: Routing - Case 2
+description: Parameters for constant-celerity routing.
+x-fortran-namelist: routing_2
+type: object
+properties:
+  streamflow_celerity:
+    $ref: parameter.yml#/$defs/parameter
+    title: Streamflow celerity
+    default: {lower_bound: 0.1, upper_bound: 15.0}
+    properties:
+      value: {examples: [1.5]}
+      optimize: {examples: [false]}
+required: [streamflow_celerity]

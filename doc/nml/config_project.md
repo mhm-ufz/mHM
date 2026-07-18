@@ -8,20 +8,20 @@ Configuration for the overall project setup in mHM.
 
 ## Fields
 
-| Name | Type | Required | Info |
-| --- | --- | --- | --- |
-| [project_details](#project_details) | string | no | Project name |
-| [setup_description](#setup_description) | string | no | Description of the setup |
-| [simulation_type](#simulation_type) | string | no | Type of simulation |
-| [Conventions](#conventions) | string | no | Convention used for dataset |
-| [contact](#contact) | string | no | Contact details, incl. PI name, modellers |
-| [mHM_details](#mhm_details) | string | no | Developing institution |
-| [history](#history) | string | no | Some details on data/model run version. |
-| [optimize](#optimize) | logical | no | Enable optimization |
-| [n_domains](#n_domains) | integer | no | Number of domains |
-| [n_geo_units](#n_geo_units) | integer | no | Number of geological units |
-| [max_layers](#max_layers) | integer | no | Maximum number of soil layers |
-| [read_domains_from_dirs](#read_domains_from_dirs) | logical | no | Flag for separate domains |
+| Name | Type | Declared required | Input required | Info |
+| --- | --- | --- | --- | --- |
+| [project_details](#project_details) | string | no | no | Project name |
+| [setup_description](#setup_description) | string | no | no | Description of the setup |
+| [simulation_type](#simulation_type) | string | no | no | Type of simulation |
+| [Conventions](#conventions) | string | no | no | Convention used for dataset |
+| [contact](#contact) | string | no | no | Contact details, incl. PI name, modellers |
+| [mHM_details](#mhm_details) | string | no | no | Developing institution |
+| [history](#history) | string | no | no | Some details on data/model run version. |
+| [optimize](#optimize) | logical | no | no | Enable optimization |
+| [n_domains](#n_domains) | integer | no | no | Number of domains |
+| [n_geo_units](#n_geo_units) | integer | no | no | Number of geological units |
+| [max_layers](#max_layers) | integer | no | no | Maximum number of soil layers |
+| [read_domains_from_dirs](#read_domains_from_dirs) | logical | no | no | Flag for separate domains |
 
 ## Field details
 
@@ -31,7 +31,8 @@ Project name `project_details`
 
 Summary:
 - Type: `character(len=buf)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `"mHM project"`
 
 ### setup_description
@@ -40,7 +41,8 @@ Description of the setup `setup_description`
 
 Summary:
 - Type: `character(len=buf)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `"Model run"`
 
 ### simulation_type
@@ -51,7 +53,8 @@ e.g. hindcast simulation, seasonal forecast, climate projection
 
 Summary:
 - Type: `character(len=buf)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `"Simulation"`
 
 ### Conventions
@@ -60,7 +63,8 @@ Convention used for dataset `Conventions`
 
 Summary:
 - Type: `character(len=buf)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `"None"`
 
 ### contact
@@ -69,7 +73,8 @@ Contact details, incl. PI name, modellers `contact`
 
 Summary:
 - Type: `character(len=buf)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `"Developer"`
 
 ### mHM_details
@@ -78,7 +83,8 @@ Developing institution `mHM_details`
 
 Summary:
 - Type: `character(len=buf)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `"Research unit"`
 
 ### history
@@ -87,7 +93,8 @@ Some details on data/model run version. `history`
 
 Summary:
 - Type: `character(len=buf)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `"Model run version 1"`
 
 ### optimize
@@ -98,7 +105,8 @@ Whether to run parameter optimization.
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### n_domains
@@ -109,7 +117,8 @@ Number of domains to be simulated.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `1`
 
 ### n_geo_units
@@ -120,7 +129,8 @@ Number of geological units in the global parameter set.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `25`
 
 ### max_layers
@@ -131,7 +141,8 @@ Maximum number of soil-layer entries stored per domain in this namelist file.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `10`
 - Minimum: `>= 1`
 
@@ -144,7 +155,8 @@ Only "config_project", "config_domain", "config_processes" and "config_optimize"
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ## Example

@@ -1,0 +1,27 @@
+$defs:
+  parameter:
+    title: Calibration parameter
+    description: A model parameter with optional calibration metadata.
+    type: object
+    x-fortran-type: parameter_t
+    properties:
+      value:
+        title: Parameter value
+        type: number
+        x-fortran-kind: dp
+      optimize:
+        title: Include parameter in calibration
+        type: boolean
+        default: false
+      lower_bound:
+        title: Lower calibration bound
+        type: number
+        x-fortran-kind: dp
+      upper_bound:
+        title: Upper calibration bound
+        type: number
+        x-fortran-kind: dp
+    required:
+      - value
+      - lower_bound
+      - upper_bound
