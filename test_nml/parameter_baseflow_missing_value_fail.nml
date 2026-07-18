@@ -1,0 +1,12 @@
+! Validation must fail because n_geo_units=10 requires ten explicit values.
+&baseflow_1
+  baseflow_recession(1) = 100.0
+  baseflow_recession(2) = 100.0
+  baseflow_recession(3) = 100.0
+  baseflow_recession(4) = 100.0
+  baseflow_recession(5) = 100.0
+  baseflow_recession(6) = 100.0
+  baseflow_recession(7) = 100.0
+  baseflow_recession(8) = 100.0
+  baseflow_recession(9) = 100.0
+/
