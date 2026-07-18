@@ -1,0 +1,83 @@
+module test_parameters
+  use funit
+  use mo_kind, only: dp
+  use mo_main_config, only: parameters_t
+  use nml_helper, only: parameter_t
+
+  implicit none
+  private
+
+  public :: test_parameter_registry, test_empty_parameter_registry
+
+contains
+
+  @test
+  subroutine test_parameter_registry()
+    type(parameters_t) :: parameters
+    type(parameter_t) :: snow(2)
+    type(parameter_t) :: routing(1)
+    real(dp), allocatable :: flat(:)
+    real(dp), allocatable :: local(:)
+    real(dp), allocatable :: initial(:)
+    real(dp), allocatable :: bounds(:, :)
+    logical, allocatable :: mask(:)
+    character(256), allocatable :: names(:)
+
+    snow(1) = parameter_t(value=1.0_dp, optimize=.true., lower_bound=-2.0_dp, upper_bound=2.0_dp)
+    snow(2) = parameter_t(value=1.5_dp, optimize=.false., lower_bound=0.1_dp, upper_bound=4.0_dp)
+    routing(1) = parameter_t(value=2.0_dp, optimize=.true., lower_bound=0.1_dp, upper_bound=15.0_dp)
+
+    call parameters%begin_configuration()
+    call parameters%add_process("Snow", snow, [character(32) :: "threshold", "degree_day_factor"])
+    call parameters%add_process("routing", routing, [character(32) :: "celerity"])
+    call parameters%seal()
+
+    flat = parameters%as_array()
+    @assertEqual([1.0_dp, 1.5_dp, 2.0_dp], flat, tolerance=1.0e-12_dp, message='deterministic flattening')
+
+    local = parameters%get_process("SNOW")
+    @assertEqual([1.0_dp, 1.5_dp], local, tolerance=1.0e-12_dp, message='case-insensitive process lookup')
+
+    call parameters%set([0.5_dp, 2.0_dp, 3.0_dp])
+    @assertFalse(parameters%is_default("snow"), message='set changes current values only')
+    local = parameters%get_process("routing")
+    @assertEqual([3.0_dp], local, tolerance=1.0e-12_dp, message='set distributes flattened values')
+
+    call parameters%get_optimizer_data(initial, bounds, mask, names)
+    @assertEqual([1.0_dp, 1.5_dp, 2.0_dp], initial, tolerance=1.0e-12_dp, message='optimizer initial values')
+    @assertEqual([-2.0_dp, 0.1_dp, 0.1_dp], bounds(:, 1), tolerance=1.0e-12_dp, message='lower bounds')
+    @assertEqual([2.0_dp, 4.0_dp, 15.0_dp], bounds(:, 2), tolerance=1.0e-12_dp, message='upper bounds')
+    @assertTrue(all(mask .eqv. [.true., .false., .true.]), message='optimization mask')
+    @assertEqual("snow.threshold", trim(names(1)), message='first qualified name')
+    @assertEqual("snow.degree_day_factor", trim(names(2)), message='second qualified name')
+    @assertEqual("routing.celerity", trim(names(3)), message='third qualified name')
+
+    call parameters%reset()
+    @assertTrue(parameters%is_default("snow"), message='reset restores configured values')
+    flat = parameters%as_array()
+    @assertEqual([1.0_dp, 1.5_dp, 2.0_dp], flat, tolerance=1.0e-12_dp, message='reset flattened values')
+  end subroutine test_parameter_registry
+
+  @test
+  subroutine test_empty_parameter_registry()
+    type(parameters_t) :: parameters
+    real(dp), allocatable :: flat(:)
+    real(dp), allocatable :: initial(:)
+    real(dp), allocatable :: bounds(:, :)
+    logical, allocatable :: mask(:)
+    character(256), allocatable :: names(:)
+
+    call parameters%begin_configuration()
+    call parameters%seal()
+    flat = parameters%as_array()
+    call parameters%get_optimizer_data(initial, bounds, mask, names)
+
+    @assertEqual(0, size(flat), message='empty flattened registry')
+    @assertEqual(0, size(initial), message='empty optimizer initial values')
+    @assertEqual(0, size(mask), message='empty optimizer mask')
+    @assertEqual(0, size(names), message='empty optimizer names')
+    @assertEqual(0, size(bounds, 1), message='empty optimizer bounds')
+    @assertEqual(2, size(bounds, 2), message='bounds retain two columns')
+  end subroutine test_empty_parameter_registry
+
+end module test_parameters
