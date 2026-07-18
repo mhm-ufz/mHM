@@ -186,6 +186,6 @@ reject parameter overrides that the restart would otherwise hide.
 Regenerate and check the schema outputs with:
 
 ```bash
-conda run -n chs-fortran nml-tools generate --config nml-config.toml
-conda run -n chs-fortran nml-tools check --config nml-config.toml --diff
+nml-tools generate --config nml-config.toml
+nml-tools check --config nml-config.toml --diff
 ```
