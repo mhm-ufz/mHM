@@ -86,17 +86,18 @@ contains
     if (self%exchange%from_dirs) then
       domain_main_file = trim(self%exchange%config%domain%domain_nmls(self%exchange%domain_id))
       call self%input%configure(domain_main_file)
-      if (self%exchange%parameters%mhm_active()) call self%mpr%configure(domain_main_file)
-      if (self%exchange%parameters%meteo_active()) call self%meteo%configure(domain_main_file)
-      if (self%exchange%parameters%mhm_active()) call self%mhm%configure(domain_main_file, out_file)
-      if (self%exchange%parameters%mrm_active()) call self%mrm%configure(domain_main_file, out_file)
+      call self%mpr%configure(domain_main_file)
+      call self%meteo%configure(domain_main_file)
+      call self%mhm%configure(domain_main_file, out_file)
+      call self%mrm%configure(domain_main_file, out_file)
     else
       call self%input%configure(main_file)
-      if (self%exchange%parameters%mhm_active()) call self%mpr%configure(main_file)
-      if (self%exchange%parameters%meteo_active()) call self%meteo%configure(main_file)
-      if (self%exchange%parameters%mhm_active()) call self%mhm%configure(main_file, out_file)
-      if (self%exchange%parameters%mrm_active()) call self%mrm%configure(main_file, out_file)
+      call self%mpr%configure(main_file)
+      call self%meteo%configure(main_file)
+      call self%mhm%configure(main_file, out_file)
+      call self%mrm%configure(main_file, out_file)
     end if
+    call self%exchange%parameters%seal()
   end subroutine domain_configure
 
   !> \brief Connect the domain components.
@@ -105,10 +106,10 @@ contains
     class(domain_t), intent(inout), target :: self ! needs "target" so components can safely point to "exchange"
     log_info(*) "CONNECT COMPONENTS"
     call self%input%connect()
-    if (self%exchange%parameters%mhm_active()) call self%mpr%connect()
-    if (self%exchange%parameters%meteo_active()) call self%meteo%connect()
-    if (self%exchange%parameters%mhm_active()) call self%mhm%connect()
-    if (self%exchange%parameters%mrm_active()) call self%mrm%connect()
+    if (self%mpr%active) call self%mpr%connect()
+    if (self%meteo%active) call self%meteo%connect()
+    if (self%mhm%active) call self%mhm%connect()
+    if (self%mrm%active) call self%mrm%connect()
   end subroutine domain_connect
 
   !> \brief Initialize the domain and do the initial state calculations in the components.
@@ -119,12 +120,16 @@ contains
     log_info(*) "INITIALIZE DOMAIN"
     self%exchange%step_count = 0_i4
     self%exchange%time = self%exchange%start_time
-    call self%exchange%parameters%set(parameters)
+    if (present(parameters)) then
+      call self%exchange%parameters%set(parameters)
+    else
+      call self%exchange%parameters%reset()
+    end if
     call self%input%initialize()
-    if (self%exchange%parameters%mhm_active()) call self%mpr%initialize()
-    if (self%exchange%parameters%meteo_active()) call self%meteo%initialize()
-    if (self%exchange%parameters%mhm_active()) call self%mhm%initialize()
-    if (self%exchange%parameters%mrm_active()) call self%mrm%initialize()
+    if (self%mpr%active) call self%mpr%initialize()
+    if (self%meteo%active) call self%meteo%initialize()
+    if (self%mhm%active) call self%mhm%initialize()
+    if (self%mrm%active) call self%mrm%initialize()
   end subroutine domain_initialize
 
   !> \brief Update the domain for the current time step.
@@ -133,10 +138,10 @@ contains
     call self%exchange%time%add(self%exchange%step)
     self%exchange%step_count = self%exchange%step_count + 1_i4
     call self%input%update()
-    if (self%exchange%parameters%mhm_active()) call self%mpr%update()
-    if (self%exchange%parameters%meteo_active()) call self%meteo%update()
-    if (self%exchange%parameters%mhm_active()) call self%mhm%update()
-    if (self%exchange%parameters%mrm_active()) call self%mrm%update()
+    if (self%mpr%active) call self%mpr%update()
+    if (self%meteo%active) call self%meteo%update()
+    if (self%mhm%active) call self%mhm%update()
+    if (self%mrm%active) call self%mrm%update()
     log_trace(*) "Time step: ", self%exchange%time%str()
     if (self%exchange%time%is_new_year()) then
       log_info(*) "Finished year: ", self%exchange%time%year - 1_i4
@@ -148,10 +153,10 @@ contains
     class(domain_t), intent(inout), target :: self
     log_info(*) "FINALIZE COMPONENTS"
     call self%input%finalize()
-    if (self%exchange%parameters%mhm_active()) call self%mpr%finalize()
-    if (self%exchange%parameters%meteo_active()) call self%meteo%finalize()
-    if (self%exchange%parameters%mhm_active()) call self%mhm%finalize()
-    if (self%exchange%parameters%mrm_active()) call self%mrm%finalize()
+    if (self%mpr%active) call self%mpr%finalize()
+    if (self%meteo%active) call self%meteo%finalize()
+    if (self%mhm%active) call self%mhm%finalize()
+    if (self%mrm%active) call self%mrm%finalize()
   end subroutine domain_finalize
 
 end module mo_domain

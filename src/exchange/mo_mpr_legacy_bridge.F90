@@ -45,6 +45,7 @@
 #include "logging.h"
 module mo_mpr_legacy_bridge
   use mo_logging
+  use mo_common_constants, only: nProcesses
   use mo_constants, only: nodata_dp, nodata_i4
   use mo_grid, only: grid_t, cartesian
   use mo_kind, only: i4, i8, dp
@@ -62,6 +63,8 @@ module mo_mpr_legacy_bridge
 
   implicit none
   private
+
+  real(dp), parameter :: inch_per_hour_to_centimetre_per_day = 60.96_dp
 
   public :: mpr_bridge_land_cover_fraction
   public :: mpr_bridge_snow_param
@@ -489,10 +492,11 @@ contains
   end subroutine mpr_bridge_pet_penman_monteith
 
   !> \brief Bridge soil-moisture parameter generation through the legacy soil routines.
-  subroutine mpr_bridge_soil_moisture(process_matrix, param, land_cover_l0, soil_id_l0, level0, upscaler, &
+  subroutine mpr_bridge_soil_moisture(soil_case, neutron_case, param, land_cover_l0, soil_id_l0, level0, upscaler, &
       thresh_jarvis_l1, sm_exponent_l1, sm_saturation_l1, sm_field_capacity_l1, wilting_point_l1, f_roots_l1, &
       sm_deficit_fc_l0, ks_var_h_l0, ks_var_v_l0, bulk_density_l1, lattice_water_l1, cosmic_l3_l1, neutron_param)
-    integer(i4), dimension(:, :), intent(in) :: process_matrix
+    integer(i4), intent(in) :: soil_case
+    integer(i4), intent(in) :: neutron_case
     real(dp), dimension(:), intent(in) :: param
     integer(i4), dimension(:), intent(in) :: land_cover_l0
     integer(i4), dimension(:, :), intent(in) :: soil_id_l0
@@ -513,7 +517,7 @@ contains
     real(dp), dimension(:), intent(in), optional :: neutron_param
     integer(i4), allocatable :: id0(:)
     integer(i4) :: i
-    integer(i4) :: process_case
+    integer(i4), dimension(nProcesses, 3) :: legacy_process_matrix
     integer(i4) :: msoil
     integer(i4) :: m_lc
     integer(i4) :: mtill
@@ -545,6 +549,7 @@ contains
     real(dp), allocatable :: bulk_density_tmp(:, :)
     real(dp), allocatable :: lattice_water_tmp(:, :)
     real(dp), allocatable :: cosmic_l3_tmp(:, :)
+    real(dp), allocatable :: legacy_param(:)
     integer(i4), allocatable :: upper_bound1(:)
     integer(i4), allocatable :: lower_bound1(:)
     integer(i4), allocatable :: left_bound1(:)
@@ -555,11 +560,14 @@ contains
       error stop 1
     end if
 
-    process_case = process_matrix(3, 1)
-    select case (process_case)
+    legacy_process_matrix = 0_i4
+    legacy_process_matrix(3, 1) = soil_case
+    legacy_process_matrix(10, 1) = neutron_case
+
+    select case (soil_case)
       case (1_i4)
-        if (size(param) < 17_i4) then
-          log_fatal(*) "MPR bridge: soil moisture case 1 expects 17 parameters, got ", n2s(size(param, kind=i4)), "."
+        if (size(param) < 16_i4) then
+          log_fatal(*) "MPR bridge: soil moisture case 1 expects 16 parameters, got ", n2s(size(param, kind=i4)), "."
           error stop 1
         end if
         soil_param_end = 13_i4
@@ -567,26 +575,26 @@ contains
         horizon_param_end = 17_i4
         thresh_jarvis_l1 = nodata_dp
       case (2_i4)
-        if (size(param) < 18_i4) then
-          log_fatal(*) "MPR bridge: soil moisture case 2 expects 18 parameters, got ", n2s(size(param, kind=i4)), "."
+        if (size(param) < 17_i4) then
+          log_fatal(*) "MPR bridge: soil moisture case 2 expects 17 parameters, got ", n2s(size(param, kind=i4)), "."
           error stop 1
         end if
         soil_param_end = 13_i4
         horizon_param_start = 14_i4
         horizon_param_end = 17_i4
-        thresh_jarvis_l1 = param(18)
+        thresh_jarvis_l1 = param(17)
       case (3_i4)
-        if (size(param) < 22_i4) then
-          log_fatal(*) "MPR bridge: soil moisture case 3 expects 22 parameters, got ", n2s(size(param, kind=i4)), "."
+        if (size(param) < 21_i4) then
+          log_fatal(*) "MPR bridge: soil moisture case 3 expects 21 parameters, got ", n2s(size(param, kind=i4)), "."
           error stop 1
         end if
         soil_param_end = 13_i4
         horizon_param_start = 14_i4
         horizon_param_end = 21_i4
-        thresh_jarvis_l1 = param(22)
+        thresh_jarvis_l1 = param(21)
       case (4_i4)
-        if (size(param) < 21_i4) then
-          log_fatal(*) "MPR bridge: soil moisture case 4 expects 21 parameters, got ", n2s(size(param, kind=i4)), "."
+        if (size(param) < 20_i4) then
+          log_fatal(*) "MPR bridge: soil moisture case 4 expects 20 parameters, got ", n2s(size(param, kind=i4)), "."
           error stop 1
         end if
         soil_param_end = 13_i4
@@ -594,9 +602,15 @@ contains
         horizon_param_end = 21_i4
         thresh_jarvis_l1 = nodata_dp
       case default
-        log_fatal(*) "MPR bridge: unsupported soil moisture process case ", n2s(process_case), "."
+        log_fatal(*) "MPR bridge: unsupported soil moisture process case ", n2s(soil_case), "."
         error stop 1
     end select
+
+    ! The legacy PTF API expects the unit conversion as its thirteenth parameter.
+    allocate(legacy_param(size(param) + 1_i4))
+    legacy_param(:12) = param(:12)
+    legacy_param(13) = inch_per_hour_to_centimetre_per_day
+    legacy_param(14:) = param(13:)
 
     n_cells0 = size(land_cover_l0)
     if (size(soil_id_l0, 1) /= n_cells0) then
@@ -672,7 +686,7 @@ contains
       right_bound1(i) = y_ub
     end do
 
-    call mpr_sm(param(:soil_param_end), process_matrix, &
+    call mpr_sm(legacy_param(:soil_param_end), legacy_process_matrix, &
       soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons, &
       soilDB%sand, soilDB%clay, soilDB%DbM, id0, soil_id_l0, land_cover_l0, &
       thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
@@ -699,19 +713,19 @@ contains
       ks_var_v_l0 = KsVar_V0
     end if
 
-    if (process_matrix(10, 1) > 0_i4) then
+    if (neutron_case > 0_i4) then
       if (.not.present(neutron_param)) then
         log_fatal(*) "MPR bridge: neutron parameters must be provided when the neutrons process is active."
         error stop 1
       end if
       call mpr_neutrons( &
-        process_matrix(10, 1), &
+        neutron_case, &
         neutron_param, &
         soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons, land_cover_l0, &
         soilDB%clay, soilDB%DbM, Db, COSMIC_L3_till, latWat_till, COSMIC_L3, latWat)
     end if
 
-    call mpr_SMhorizons(param(horizon_param_start:horizon_param_end), process_matrix, &
+    call mpr_SMhorizons(legacy_param(horizon_param_start:horizon_param_end), legacy_process_matrix, &
       iFlag_soilDB, nSoilHorizons_mHM, HorizonDepth_mHM, land_cover_l0, soil_id_l0, &
       soilDB%nHorizons, soilDB%nTillHorizons, thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, &
       soilDB%Wd, Db, soilDB%DbM, soilDB%RZdepth, level0%mask, id0, &
@@ -760,6 +774,7 @@ contains
     deallocate(bulk_density_tmp)
     deallocate(lattice_water_tmp)
     deallocate(cosmic_l3_tmp)
+    deallocate(legacy_param)
     deallocate(upper_bound1)
     deallocate(lower_bound1)
     deallocate(left_bound1)
@@ -851,8 +866,8 @@ contains
     real(dp), allocatable :: karst_class_fraction_l1(:)
     integer(i4) :: i
 
-    if (size(param) < 3_i4) then
-      log_fatal(*) "MPR bridge: percolation parameter set must contain 3 values, got ", n2s(size(param, kind=i4)), "."
+    if (size(param) < 2_i4) then
+      log_fatal(*) "MPR bridge: percolation parameter set must contain 2 values, got ", n2s(size(param, kind=i4)), "."
       error stop 1
     end if
     if (size(geo_unit_l0) /= size(sm_deficit_fc_l0) .or. size(geo_unit_l0) /= size(ks_var_v_l0)) then

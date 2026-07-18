@@ -68,7 +68,8 @@ module mo_mpr_container
   use mo_string_utils, only: n2s => num2str
   use mo_utils, only: eq, is_close, optval
   use mo_read_lut, only: read_geoformation_lut, read_lai_lut
-  use nml_config_mpr, only: nml_config_mpr_t, NML_OK
+  use nml_config_mpr, only: nml_config_mpr_t
+  use nml_helper, only: NML_OK
 
   character(len=*), parameter :: lc_restart_calendar = "proleptic_gregorian" !< calendar to use for land-cover timing in restart
 
@@ -179,6 +180,7 @@ module mo_mpr_container
   type, public :: mpr_t
     type(nml_config_mpr_t) :: config !< configuration of the MPR process container
     type(exchange_t), pointer :: exchange => null() !< exchange container of the domain
+    logical :: active = .false. !< whether MPR participates in the configured domain
     type(grid_t) :: tgt_level1 !< internal level1 grid derived from level0 when needed
     type(scaler_t) :: upscaler !< scaler from level0 morphology to level1 hydrology
     logical :: read_restart = .false. !< whether to read MPR restart file
@@ -225,6 +227,8 @@ module mo_mpr_container
     procedure, private :: read_monthly_lai_l0_cache       => mpr_read_monthly_lai_l0_cache
     procedure, private :: read_dated_lai_l0_cache         => mpr_read_dated_lai_l0_cache
     procedure, private :: load_process_params             => mpr_load_process_params
+    procedure, private :: configure_parameters            => mpr_configure_parameters
+    procedure, private :: initialize_parameter_cache      => mpr_initialize_parameter_cache
     procedure, private :: init_max_interception_cache     => mpr_init_max_interception_cache
     procedure, private :: init_snow_cache                 => mpr_init_snow_cache
     procedure, private :: init_pet_cache                  => mpr_init_pet_cache
@@ -271,6 +275,13 @@ contains
     character(:), allocatable :: path
     integer :: status
     log_info(*) "Configure MPR"
+    associate(processes => self%exchange%config%processes)
+      self%active = any([ &
+        processes%interception, processes%snow, processes%soil_moisture, &
+        processes%direct_runoff, processes%pet, processes%interflow, &
+        processes%percolation, processes%baseflow, processes%neutrons] /= 0_i4)
+    end associate
+    if (.not.self%active) return
     if (present(file)) then
       path = self%exchange%get_path(file) ! get absolute path relative to cwd
       log_info(*) "Read MPR config: ", path
@@ -384,13 +395,358 @@ contains
       if (status == NML_OK) then
         self%lai%path = self%exchange%get_path(self%config%lai_path(id(1)))
         self%lai%var_name = trim(self%config%lai_var(id(1)))
-      else
-        if (allocated(self%lai%path)) deallocate(self%lai%path)
+    else
+      if (allocated(self%lai%path)) deallocate(self%lai%path)
         if (allocated(self%lai%var_name)) deallocate(self%lai%var_name)
       end if
       if (allocated(self%lai%lut_path)) deallocate(self%lai%lut_path)
     end if
+    call self%configure_parameters()
   end subroutine mpr_configure
+
+  !> \brief Read selected MPR parameter namelists and register their named values.
+  subroutine mpr_configure_parameters(self)
+    class(mpr_t), intent(inout), target :: self
+    character(64), allocatable :: baseflow_names(:)
+    character(1024) :: errmsg
+    integer(i4) :: i
+    integer :: status
+
+    associate( &
+      processes => self%exchange%config%processes, &
+      parameter_config => self%exchange%config%parameters &
+    )
+
+      select case (processes%interception)
+        case (1_i4)
+          if (.not.parameter_config%interception_1%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%interception_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "interception_1", "read", errmsg)
+          end if
+          status = parameter_config%interception_1%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "interception_1", "validate", errmsg)
+          call self%exchange%parameters%add_process("interception", [ &
+            parameter_config%interception_1%canopy_interception_factor], [character(64) :: &
+            "canopy_interception_factor"])
+      end select
+
+      select case (processes%snow)
+        case (1_i4)
+          if (.not.parameter_config%snow_1%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%snow_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "snow_1", "read", errmsg)
+          end if
+          status = parameter_config%snow_1%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "snow_1", "validate", errmsg)
+          call self%exchange%parameters%add_process("snow", [ &
+            parameter_config%snow_1%snow_threshold_temperature, &
+            parameter_config%snow_1%degree_day_factor_forest, &
+            parameter_config%snow_1%degree_day_factor_impervious, &
+            parameter_config%snow_1%degree_day_factor_pervious, &
+            parameter_config%snow_1%degree_day_factor_precipitation, &
+            parameter_config%snow_1%max_degree_day_factor_forest, &
+            parameter_config%snow_1%max_degree_day_factor_impervious, &
+            parameter_config%snow_1%max_degree_day_factor_pervious], [character(64) :: &
+            "snow_threshold_temperature", "degree_day_factor_forest", &
+            "degree_day_factor_impervious", "degree_day_factor_pervious", &
+            "degree_day_factor_precipitation", "max_degree_day_factor_forest", &
+            "max_degree_day_factor_impervious", "max_degree_day_factor_pervious"])
+      end select
+
+      select case (processes%soil_moisture)
+        case (1_i4)
+          if (.not.parameter_config%soil_moisture_1%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%soil_moisture_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "soil_moisture_1", "read", errmsg)
+          end if
+          status = parameter_config%soil_moisture_1%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "soil_moisture_1", "validate", errmsg)
+          call self%exchange%parameters%add_process("soil_moisture", [ &
+            parameter_config%soil_moisture_1%organic_matter_forest, &
+            parameter_config%soil_moisture_1%organic_matter_impervious, &
+            parameter_config%soil_moisture_1%organic_matter_pervious, &
+            parameter_config%soil_moisture_1%ptf_lower_66_5_constant, &
+            parameter_config%soil_moisture_1%ptf_lower_66_5_clay, &
+            parameter_config%soil_moisture_1%ptf_lower_66_5_bulk_density, &
+            parameter_config%soil_moisture_1%ptf_upper_66_5_constant, &
+            parameter_config%soil_moisture_1%ptf_upper_66_5_clay, &
+            parameter_config%soil_moisture_1%ptf_upper_66_5_bulk_density, &
+            parameter_config%soil_moisture_1%ptf_ks_constant, &
+            parameter_config%soil_moisture_1%ptf_ks_sand, &
+            parameter_config%soil_moisture_1%ptf_ks_clay, &
+            parameter_config%soil_moisture_1%root_fraction_forest, &
+            parameter_config%soil_moisture_1%root_fraction_impervious, &
+            parameter_config%soil_moisture_1%root_fraction_pervious, &
+            parameter_config%soil_moisture_1%infiltration_shape_factor], [character(64) :: &
+            "organic_matter_forest", "organic_matter_impervious", "organic_matter_pervious", &
+            "ptf_lower_66_5_constant", "ptf_lower_66_5_clay", "ptf_lower_66_5_bulk_density", &
+            "ptf_upper_66_5_constant", "ptf_upper_66_5_clay", "ptf_upper_66_5_bulk_density", &
+            "ptf_ks_constant", "ptf_ks_sand", "ptf_ks_clay", "root_fraction_forest", &
+            "root_fraction_impervious", "root_fraction_pervious", "infiltration_shape_factor"])
+        case (2_i4)
+          if (.not.parameter_config%soil_moisture_2%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%soil_moisture_2%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "soil_moisture_2", "read", errmsg)
+          end if
+          status = parameter_config%soil_moisture_2%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "soil_moisture_2", "validate", errmsg)
+          call self%exchange%parameters%add_process("soil_moisture", [ &
+            parameter_config%soil_moisture_2%organic_matter_forest, &
+            parameter_config%soil_moisture_2%organic_matter_impervious, &
+            parameter_config%soil_moisture_2%organic_matter_pervious, &
+            parameter_config%soil_moisture_2%ptf_lower_66_5_constant, &
+            parameter_config%soil_moisture_2%ptf_lower_66_5_clay, &
+            parameter_config%soil_moisture_2%ptf_lower_66_5_bulk_density, &
+            parameter_config%soil_moisture_2%ptf_upper_66_5_constant, &
+            parameter_config%soil_moisture_2%ptf_upper_66_5_clay, &
+            parameter_config%soil_moisture_2%ptf_upper_66_5_bulk_density, &
+            parameter_config%soil_moisture_2%ptf_ks_constant, &
+            parameter_config%soil_moisture_2%ptf_ks_sand, &
+            parameter_config%soil_moisture_2%ptf_ks_clay, &
+            parameter_config%soil_moisture_2%root_fraction_forest, &
+            parameter_config%soil_moisture_2%root_fraction_impervious, &
+            parameter_config%soil_moisture_2%root_fraction_pervious, &
+            parameter_config%soil_moisture_2%infiltration_shape_factor, &
+            parameter_config%soil_moisture_2%jarvis_sm_threshold], [character(64) :: &
+            "organic_matter_forest", "organic_matter_impervious", "organic_matter_pervious", &
+            "ptf_lower_66_5_constant", "ptf_lower_66_5_clay", "ptf_lower_66_5_bulk_density", &
+            "ptf_upper_66_5_constant", "ptf_upper_66_5_clay", "ptf_upper_66_5_bulk_density", &
+            "ptf_ks_constant", "ptf_ks_sand", "ptf_ks_clay", "root_fraction_forest", &
+            "root_fraction_impervious", "root_fraction_pervious", "infiltration_shape_factor", &
+            "jarvis_sm_threshold"])
+        case (3_i4)
+          if (.not.parameter_config%soil_moisture_3%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%soil_moisture_3%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "soil_moisture_3", "read", errmsg)
+          end if
+          status = parameter_config%soil_moisture_3%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "soil_moisture_3", "validate", errmsg)
+          call self%exchange%parameters%add_process("soil_moisture", [ &
+            parameter_config%soil_moisture_3%organic_matter_forest, &
+            parameter_config%soil_moisture_3%organic_matter_impervious, &
+            parameter_config%soil_moisture_3%organic_matter_pervious, &
+            parameter_config%soil_moisture_3%ptf_lower_66_5_constant, &
+            parameter_config%soil_moisture_3%ptf_lower_66_5_clay, &
+            parameter_config%soil_moisture_3%ptf_lower_66_5_bulk_density, &
+            parameter_config%soil_moisture_3%ptf_upper_66_5_constant, &
+            parameter_config%soil_moisture_3%ptf_upper_66_5_clay, &
+            parameter_config%soil_moisture_3%ptf_upper_66_5_bulk_density, &
+            parameter_config%soil_moisture_3%ptf_ks_constant, &
+            parameter_config%soil_moisture_3%ptf_ks_sand, &
+            parameter_config%soil_moisture_3%ptf_ks_clay, &
+            parameter_config%soil_moisture_3%root_fraction_forest, &
+            parameter_config%soil_moisture_3%root_fraction_impervious, &
+            parameter_config%soil_moisture_3%root_fraction_pervious, &
+            parameter_config%soil_moisture_3%infiltration_shape_factor, &
+            parameter_config%soil_moisture_3%root_fraction_sand, &
+            parameter_config%soil_moisture_3%root_fraction_clay, &
+            parameter_config%soil_moisture_3%field_capacity_min, &
+            parameter_config%soil_moisture_3%field_capacity_delta, &
+            parameter_config%soil_moisture_3%jarvis_sm_threshold], [character(64) :: &
+            "organic_matter_forest", "organic_matter_impervious", "organic_matter_pervious", &
+            "ptf_lower_66_5_constant", "ptf_lower_66_5_clay", "ptf_lower_66_5_bulk_density", &
+            "ptf_upper_66_5_constant", "ptf_upper_66_5_clay", "ptf_upper_66_5_bulk_density", &
+            "ptf_ks_constant", "ptf_ks_sand", "ptf_ks_clay", "root_fraction_forest", &
+            "root_fraction_impervious", "root_fraction_pervious", "infiltration_shape_factor", &
+            "root_fraction_sand", "root_fraction_clay", "field_capacity_min", &
+            "field_capacity_delta", "jarvis_sm_threshold"])
+        case (4_i4)
+          if (.not.parameter_config%soil_moisture_4%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%soil_moisture_4%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "soil_moisture_4", "read", errmsg)
+          end if
+          status = parameter_config%soil_moisture_4%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "soil_moisture_4", "validate", errmsg)
+          call self%exchange%parameters%add_process("soil_moisture", [ &
+            parameter_config%soil_moisture_4%organic_matter_forest, &
+            parameter_config%soil_moisture_4%organic_matter_impervious, &
+            parameter_config%soil_moisture_4%organic_matter_pervious, &
+            parameter_config%soil_moisture_4%ptf_lower_66_5_constant, &
+            parameter_config%soil_moisture_4%ptf_lower_66_5_clay, &
+            parameter_config%soil_moisture_4%ptf_lower_66_5_bulk_density, &
+            parameter_config%soil_moisture_4%ptf_upper_66_5_constant, &
+            parameter_config%soil_moisture_4%ptf_upper_66_5_clay, &
+            parameter_config%soil_moisture_4%ptf_upper_66_5_bulk_density, &
+            parameter_config%soil_moisture_4%ptf_ks_constant, &
+            parameter_config%soil_moisture_4%ptf_ks_sand, &
+            parameter_config%soil_moisture_4%ptf_ks_clay, &
+            parameter_config%soil_moisture_4%root_fraction_forest, &
+            parameter_config%soil_moisture_4%root_fraction_impervious, &
+            parameter_config%soil_moisture_4%root_fraction_pervious, &
+            parameter_config%soil_moisture_4%infiltration_shape_factor, &
+            parameter_config%soil_moisture_4%root_fraction_sand, &
+            parameter_config%soil_moisture_4%root_fraction_clay, &
+            parameter_config%soil_moisture_4%field_capacity_min, &
+            parameter_config%soil_moisture_4%field_capacity_delta], [character(64) :: &
+            "organic_matter_forest", "organic_matter_impervious", "organic_matter_pervious", &
+            "ptf_lower_66_5_constant", "ptf_lower_66_5_clay", "ptf_lower_66_5_bulk_density", &
+            "ptf_upper_66_5_constant", "ptf_upper_66_5_clay", "ptf_upper_66_5_bulk_density", &
+            "ptf_ks_constant", "ptf_ks_sand", "ptf_ks_clay", "root_fraction_forest", &
+            "root_fraction_impervious", "root_fraction_pervious", "infiltration_shape_factor", &
+            "root_fraction_sand", "root_fraction_clay", "field_capacity_min", "field_capacity_delta"])
+      end select
+
+      select case (processes%direct_runoff)
+        case (1_i4)
+          if (.not.parameter_config%direct_runoff_1%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%direct_runoff_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "direct_runoff_1", "read", errmsg)
+          end if
+          status = parameter_config%direct_runoff_1%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "direct_runoff_1", "validate", errmsg)
+          call self%exchange%parameters%add_process("direct_runoff", [ &
+            parameter_config%direct_runoff_1%impervious_storage_capacity], [character(64) :: &
+            "impervious_storage_capacity"])
+      end select
+
+      select case (processes%pet)
+        case (-2_i4)
+          if (.not.parameter_config%pet_m2%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%pet_m2%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "pet_m2", "read", errmsg)
+          end if
+          status = parameter_config%pet_m2%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "pet_m2", "validate", errmsg)
+          call self%exchange%parameters%add_process("pet", [parameter_config%pet_m2%correction_factor_min, &
+            parameter_config%pet_m2%correction_factor_max, parameter_config%pet_m2%aspect_threshold], &
+            [character(64) :: "correction_factor_min", "correction_factor_max", "aspect_threshold"])
+        case (-1_i4)
+          if (.not.parameter_config%pet_m1%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%pet_m1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "pet_m1", "read", errmsg)
+          end if
+          status = parameter_config%pet_m1%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "pet_m1", "validate", errmsg)
+          call self%exchange%parameters%add_process("pet", [parameter_config%pet_m1%pet_a_forest, &
+            parameter_config%pet_m1%pet_a_impervious, parameter_config%pet_m1%pet_a_pervious, &
+            parameter_config%pet_m1%pet_b, parameter_config%pet_m1%pet_c], [character(64) :: &
+            "pet_a_forest", "pet_a_impervious", "pet_a_pervious", "pet_b", "pet_c"])
+        case (1_i4)
+          if (.not.parameter_config%pet_1%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%pet_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "pet_1", "read", errmsg)
+          end if
+          status = parameter_config%pet_1%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "pet_1", "validate", errmsg)
+          call self%exchange%parameters%add_process("pet", [parameter_config%pet_1%correction_factor_min, &
+            parameter_config%pet_1%correction_factor_max, parameter_config%pet_1%aspect_threshold, &
+            parameter_config%pet_1%hargreaves_samani_coefficient], [character(64) :: &
+            "correction_factor_min", "correction_factor_max", "aspect_threshold", "hargreaves_samani_coefficient"])
+        case (2_i4)
+          if (.not.parameter_config%pet_2%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%pet_2%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "pet_2", "read", errmsg)
+          end if
+          status = parameter_config%pet_2%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "pet_2", "validate", errmsg)
+          call self%exchange%parameters%add_process("pet", [parameter_config%pet_2%priestley_taylor_coefficient, &
+            parameter_config%pet_2%priestley_taylor_lai_correction], [character(64) :: &
+            "priestley_taylor_coefficient", "priestley_taylor_lai_correction"])
+        case (3_i4)
+          if (.not.parameter_config%pet_3%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%pet_3%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "pet_3", "read", errmsg)
+          end if
+          status = parameter_config%pet_3%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "pet_3", "validate", errmsg)
+          call self%exchange%parameters%add_process("pet", [parameter_config%pet_3%canopy_height_forest, &
+            parameter_config%pet_3%canopy_height_impervious, parameter_config%pet_3%canopy_height_pervious, &
+            parameter_config%pet_3%displacement_height_coefficient, &
+            parameter_config%pet_3%momentum_roughness_length_coefficient, &
+            parameter_config%pet_3%heat_roughness_length_coefficient, parameter_config%pet_3%stomatal_resistance], &
+            [character(64) :: "canopy_height_forest", "canopy_height_impervious", "canopy_height_pervious", &
+            "displacement_height_coefficient", "momentum_roughness_length_coefficient", &
+            "heat_roughness_length_coefficient", "stomatal_resistance"])
+      end select
+
+      select case (processes%interflow)
+        case (1_i4)
+          if (.not.parameter_config%interflow_1%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%interflow_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "interflow_1", "read", errmsg)
+          end if
+          status = parameter_config%interflow_1%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "interflow_1", "validate", errmsg)
+          call self%exchange%parameters%add_process("interflow", [ &
+            parameter_config%interflow_1%storage_capacity_factor, &
+            parameter_config%interflow_1%recession_slope, &
+            parameter_config%interflow_1%fast_recession_forest, &
+            parameter_config%interflow_1%slow_recession_ks, &
+            parameter_config%interflow_1%slow_recession_exponent], [character(64) :: &
+            "storage_capacity_factor", "recession_slope", "fast_recession_forest", &
+            "slow_recession_ks", "slow_recession_exponent"])
+      end select
+
+      select case (processes%percolation)
+        case (1_i4)
+          if (.not.parameter_config%percolation_1%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%percolation_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "percolation_1", "read", errmsg)
+          end if
+          status = parameter_config%percolation_1%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "percolation_1", "validate", errmsg)
+          call self%exchange%parameters%add_process("percolation", [ &
+            parameter_config%percolation_1%recharge_coefficient, &
+            parameter_config%percolation_1%karstic_recharge_factor], [character(64) :: &
+            "recharge_coefficient", "karstic_recharge_factor"])
+      end select
+
+      select case (processes%baseflow)
+        case (1_i4)
+          if (.not.parameter_config%baseflow_1%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%baseflow_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "baseflow_1", "read", errmsg)
+          end if
+          status = parameter_config%baseflow_1%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "baseflow_1", "validate", errmsg)
+          allocate(baseflow_names(size(parameter_config%baseflow_1%baseflow_recession)))
+          do i = 1_i4, size(baseflow_names, kind=i4)
+            baseflow_names(i) = "baseflow_recession(" // trim(adjustl(n2s(i))) // ")"
+          end do
+          call self%exchange%parameters%add_process("baseflow", &
+            parameter_config%baseflow_1%baseflow_recession, baseflow_names)
+      end select
+
+      select case (processes%neutrons)
+        case (1_i4)
+          if (.not.parameter_config%neutrons_1%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%neutrons_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "neutrons_1", "read", errmsg)
+          end if
+          status = parameter_config%neutrons_1%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "neutrons_1", "validate", errmsg)
+          call self%exchange%parameters%add_process("neutrons", [parameter_config%neutrons_1%desilets_n0, &
+            parameter_config%neutrons_1%desilets_lw0, parameter_config%neutrons_1%desilets_lw1], &
+            [character(64) :: "desilets_n0", "desilets_lw0", "desilets_lw1"])
+        case (2_i4)
+          if (.not.parameter_config%neutrons_2%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%neutrons_2%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "neutrons_2", "read", errmsg)
+          end if
+          status = parameter_config%neutrons_2%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "neutrons_2", "validate", errmsg)
+          call self%exchange%parameters%add_process("neutrons", [parameter_config%neutrons_2%cosmic_n0, &
+            parameter_config%neutrons_2%cosmic_n1, parameter_config%neutrons_2%cosmic_n2, &
+            parameter_config%neutrons_2%cosmic_alpha0, parameter_config%neutrons_2%cosmic_alpha1, &
+            parameter_config%neutrons_2%cosmic_l30, parameter_config%neutrons_2%cosmic_l31, &
+            parameter_config%neutrons_2%cosmic_lw0, parameter_config%neutrons_2%cosmic_lw1], [character(64) :: &
+            "cosmic_n0", "cosmic_n1", "cosmic_n2", "cosmic_alpha0", "cosmic_alpha1", &
+            "cosmic_l30", "cosmic_l31", "cosmic_lw0", "cosmic_lw1"])
+      end select
+    end associate
+  end subroutine mpr_configure_parameters
+
+  !> \brief Fail with context when a generated parameter namelist operation fails.
+  subroutine check_parameter_status(status, block, action, errmsg)
+    integer, intent(in) :: status
+    character(*), intent(in) :: block
+    character(*), intent(in) :: action
+    character(*), intent(in) :: errmsg
+
+    if (status == NML_OK) return
+    log_fatal(*) "MPR: failed to ", trim(action), " parameter block '", trim(block), "': ", trim(errmsg)
+    error stop 1
+  end subroutine check_parameter_status
 
   !> \brief Connect the MPR process container with other components.
   subroutine mpr_connect(self)
@@ -431,8 +787,8 @@ contains
     self%exchange%aspect%required = .not.self%read_restart
     self%exchange%soil_id%required = .not.self%read_restart
     self%exchange%geo_unit%required = .not.self%read_restart
-    pet_process = self%exchange%parameters%process_matrix(5, 1)
-    need_lai_cache = self%exchange%parameters%process_matrix(1, 1) > 0_i4 .or. &
+    pet_process = self%exchange%config%processes%pet
+    need_lai_cache = self%exchange%config%processes%interception > 0_i4 .or. &
       pet_process == -1_i4 .or. pet_process == 2_i4 .or. pet_process == 3_i4
     require_lai_class = self%config%lai_time_step(id(1)) == 0_i4 .and. need_lai_cache
     self%exchange%lai_class%required = require_lai_class .and. .not.self%read_restart
@@ -564,9 +920,9 @@ contains
     call self%check_geo_units_against_lut()
     call self%check_geoparameter_consistency()
     call self%init_soil_horizon_bounds()
-    ! Build all MPR caches before the first timestep so update only switches pointers.
+    self%exchange%soil_horizon_bounds => self%soil%horizon_bounds
+    ! Cache parameter-independent temporal inputs once. Parameter-derived fields are rebuilt in initialize.
     call self%init_temporal_cache()
-    call self%update_exchange_slices(force=.true., time=self%exchange%start_time)
   end subroutine mpr_connect
 
   !> \brief Create an MPR restart file.
@@ -783,7 +1139,7 @@ contains
         "COSMIC L3 parameter at level 1 for processCase(10)", self%neutron%cosmic_l3_cache)
     end if
 
-    process_case = self%exchange%parameters%process_matrix(3, 1)
+    process_case = self%exchange%config%processes%soil_moisture
     if (allocated(self%soil%thresh_jarvis_cache) .and. any(process_case == [2_i4, 3_i4])) then
       call self%write_restart_field_2d( &
         nc, dims_xy, "L1_jarvis_thresh_c1", &
@@ -1461,7 +1817,7 @@ contains
       log_fatal(*) "MPR: restart input path is not configured."
       error stop 1
     end if
-    if (self%exchange%parameters%process_matrix(10, 1) > 0_i4 .and. self%exchange%parameters%process_matrix(3, 1) == 0_i4) then
+    if (self%exchange%config%processes%neutrons > 0_i4 .and. self%exchange%config%processes%soil_moisture == 0_i4) then
       log_fatal(*) "MPR: neutron regionalization requires an active soil-moisture process."
       error stop 1
     end if
@@ -1480,10 +1836,10 @@ contains
     n_land_cover_restart = self%land_cover%n_periods
 
     ! Read restart dimensions first so grouped caches can be allocated with the current active-process layout.
-    pet_process = self%exchange%parameters%process_matrix(5, 1)
-    soil_process = self%exchange%parameters%process_matrix(3, 1)
-    neutron_process = self%exchange%parameters%process_matrix(10, 1)
-    need_lai_restart = self%exchange%parameters%process_matrix(1, 1) > 0_i4 .or. any(pet_process == [-1_i4, 2_i4, 3_i4])
+    pet_process = self%exchange%config%processes%pet
+    soil_process = self%exchange%config%processes%soil_moisture
+    neutron_process = self%exchange%config%processes%neutrons
+    need_lai_restart = self%exchange%config%processes%interception > 0_i4 .or. any(pet_process == [-1_i4, 2_i4, 3_i4])
     if (need_lai_restart) then
       call self%read_restart_lai_timing(nc)
     else
@@ -1529,7 +1885,7 @@ contains
     deallocate(field_3d)
     self%exchange%f_sealed%provided = .true.
 
-    if (self%exchange%parameters%process_matrix(1, 1) > 0_i4) then
+    if (self%exchange%config%processes%interception > 0_i4) then
       if (allocated(self%canopy%max_interception_cache)) deallocate(self%canopy%max_interception_cache)
       call self%read_restart_field_3d(nc, "L1_maxInter", field_3d)
       if (size(field_3d, 2) /= self%lai%n_periods) then
@@ -1544,7 +1900,7 @@ contains
       self%exchange%max_interception%provided = .true.
     end if
 
-    if (self%exchange%parameters%process_matrix(2, 1) > 0_i4) then
+    if (self%exchange%config%processes%snow > 0_i4) then
       if (allocated(self%snow%thresh_temp_cache)) deallocate(self%snow%thresh_temp_cache)
       if (allocated(self%snow%degday_dry_cache)) deallocate(self%snow%degday_dry_cache)
       if (allocated(self%snow%degday_inc_cache)) deallocate(self%snow%degday_inc_cache)
@@ -1644,7 +2000,7 @@ contains
       self%exchange%thresh_jarvis%provided = .true.
     end if
 
-    if (self%exchange%parameters%process_matrix(6, 1) /= 0_i4) then
+    if (self%exchange%config%processes%interflow /= 0_i4) then
       if (allocated(self%runoff%alpha_cache)) deallocate(self%runoff%alpha_cache)
       if (allocated(self%runoff%k_fastflow_cache)) deallocate(self%runoff%k_fastflow_cache)
       if (allocated(self%runoff%k_slowflow_cache)) deallocate(self%runoff%k_slowflow_cache)
@@ -1663,7 +2019,7 @@ contains
       self%exchange%k_slowflow%provided = .true.
       self%exchange%thresh_unsat%provided = .true.
     end if
-    if (self%exchange%parameters%process_matrix(7, 1) /= 0_i4) then
+    if (self%exchange%config%processes%percolation /= 0_i4) then
       if (allocated(self%runoff%k_percolation_cache)) deallocate(self%runoff%k_percolation_cache)
       if (allocated(self%runoff%f_karst_loss_cache)) deallocate(self%runoff%f_karst_loss_cache)
       call self%read_restart_field_3d(nc, "L1_kPerco", self%runoff%k_percolation_cache)
@@ -1675,12 +2031,12 @@ contains
       self%exchange%k_percolation%provided = .true.
       self%exchange%f_karst_loss%provided = .true.
     end if
-    if (self%exchange%parameters%process_matrix(4, 1) /= 0_i4) then
+    if (self%exchange%config%processes%direct_runoff /= 0_i4) then
       if (allocated(self%runoff%thresh_sealed_cache)) deallocate(self%runoff%thresh_sealed_cache)
       call self%read_restart_field_2d(nc, "L1_sealedThresh", self%runoff%thresh_sealed_cache)
       self%exchange%thresh_sealed%provided = .true.
     end if
-    if (self%exchange%parameters%process_matrix(9, 1) /= 0_i4) then
+    if (self%exchange%config%processes%baseflow /= 0_i4) then
       if (allocated(self%runoff%k_baseflow_cache)) deallocate(self%runoff%k_baseflow_cache)
       call self%read_restart_field_3d(nc, "L1_kBaseFlow", self%runoff%k_baseflow_cache)
       if (size(self%runoff%k_baseflow_cache, 2) /= self%land_cover%n_periods) then
@@ -1723,7 +2079,7 @@ contains
     call nc%close()
   end subroutine mpr_read_restart_data
 
-  !> \brief Ensure level1 grid is available and consistent with configured level1 resolution.
+  !> \brief Ensure level1 is available, deriving it from a configured resolution when needed.
   subroutine mpr_ensure_level1_grid(self)
     class(mpr_t), intent(inout), target :: self
     real(dp) :: l0_res
@@ -1735,19 +2091,11 @@ contains
     end if
 
     l1_res = self%exchange%level1_resolution
-    if (.not.ieee_is_finite(l1_res) .or. l1_res <= 0.0_dp) then
-      log_fatal(*) "MPR: level1 resolution not configured (expected from config_resolution/hydro)."
-      error stop 1
-    end if
-
     l0_res = self%exchange%level0%cellsize
-    if (l1_res < l0_res .and. .not.is_close(l1_res, l0_res)) then
-      log_fatal(*) "MPR: level1 resolution must be >= level0 cellsize."
-      error stop 1
-    end if
 
     if (associated(self%exchange%level1)) then
-      if (.not.is_close(self%exchange%level1%cellsize, l1_res)) then
+      if (ieee_is_finite(l1_res) .and. l1_res > 0.0_dp .and. &
+          .not.is_close(self%exchange%level1%cellsize, l1_res)) then
         log_fatal(*) "MPR: level1 grid cellsize (", n2s(self%exchange%level1%cellsize), &
           ") conflicts with configured level1_resolution (", n2s(l1_res), ")."
         error stop 1
@@ -1755,6 +2103,15 @@ contains
       ! Validate geometric compatibility and that level0 mask fills level1 masked cells.
       call self%exchange%level1%check_is_filled_by(self%exchange%level0, check_mask=.true.)
       return
+    end if
+
+    if (.not.ieee_is_finite(l1_res) .or. l1_res <= 0.0_dp) then
+      log_fatal(*) "MPR: level1 resolution not configured (expected from config_resolution/hydro)."
+      error stop 1
+    end if
+    if (l1_res < l0_res .and. .not.is_close(l1_res, l0_res)) then
+      log_fatal(*) "MPR: level1 resolution must be >= level0 cellsize."
+      error stop 1
     end if
 
     call self%exchange%level0%gen_grid(self%tgt_level1, target_resolution=l1_res)
@@ -1855,11 +2212,10 @@ contains
     deallocate(slope_sorted_index)
   end subroutine mpr_init_slope_emp
 
-  !> \brief Build MPR temporal caches in connect for later pointer-only switching.
+  !> \brief Cache parameter-independent temporal inputs during connect.
   subroutine mpr_init_temporal_cache(self)
     class(mpr_t), intent(inout), target :: self
     logical :: need_lai_cache
-    logical :: need_runoff_cache
     integer(i4) :: pet_process
 
     self%lai%n_periods = 1_i4
@@ -1874,37 +2230,45 @@ contains
     call self%init_land_cover_cache()
     call self%init_land_cover_fraction_cache()
 
-    pet_process = self%exchange%parameters%process_matrix(5, 1)
-    need_lai_cache = self%exchange%parameters%process_matrix(1, 1) > 0_i4 .or. &
+    pet_process = self%exchange%config%processes%pet
+    need_lai_cache = self%exchange%config%processes%interception > 0_i4 .or. &
       any(pet_process == [-1_i4, 2_i4, 3_i4])
     if (need_lai_cache) then
       call self%build_lai_l0_cache()
     end if
 
-    if (self%exchange%parameters%process_matrix(10, 1) > 0_i4 .and. self%exchange%parameters%process_matrix(3, 1) == 0_i4) then
+    if (self%exchange%config%processes%neutrons > 0_i4 .and. self%exchange%config%processes%soil_moisture == 0_i4) then
       log_fatal(*) "MPR: neutron regionalization requires an active soil-moisture process."
       error stop 1
     end if
 
-    ! Generate grouped cache families once during connect and expose only active slices afterwards.
-    if (self%exchange%parameters%process_matrix(1, 1) > 0_i4) call self%init_max_interception_cache()
-    if (self%exchange%parameters%process_matrix(2, 1) > 0_i4) call self%init_snow_cache()
+    log_info(*) "MPR: static temporal input cache initialized (nLAI=", n2s(self%lai%n_periods), &
+      ", nLC=", n2s(self%land_cover%n_periods), ")."
+  end subroutine mpr_init_temporal_cache
+
+  !> \brief Rebuild all fields derived from the current named parameter values.
+  subroutine mpr_initialize_parameter_cache(self)
+    class(mpr_t), intent(inout), target :: self
+    logical :: need_runoff_cache
+    integer(i4) :: pet_process
+
+    pet_process = self%exchange%config%processes%pet
+    if (self%exchange%config%processes%interception > 0_i4) call self%init_max_interception_cache()
+    if (self%exchange%config%processes%snow > 0_i4) call self%init_snow_cache()
     if (pet_process /= 0_i4) call self%init_pet_cache()
-    if (self%exchange%parameters%process_matrix(3, 1) /= 0_i4) call self%init_soil_cache()
-    need_runoff_cache = self%exchange%parameters%process_matrix(4, 1) /= 0_i4 .or. &
-      self%exchange%parameters%process_matrix(6, 1) /= 0_i4 .or. &
-      self%exchange%parameters%process_matrix(7, 1) /= 0_i4 .or. &
-      self%exchange%parameters%process_matrix(9, 1) /= 0_i4
+    if (self%exchange%config%processes%soil_moisture /= 0_i4) call self%init_soil_cache()
+    need_runoff_cache = self%exchange%config%processes%direct_runoff /= 0_i4 .or. &
+      self%exchange%config%processes%interflow /= 0_i4 .or. &
+      self%exchange%config%processes%percolation /= 0_i4 .or. &
+      self%exchange%config%processes%baseflow /= 0_i4
     if (need_runoff_cache) then
-      if (self%exchange%parameters%process_matrix(3, 1) == 0_i4) then
+      if (self%exchange%config%processes%soil_moisture == 0_i4) then
         log_fatal(*) "MPR: runoff/baseflow parameter generation requires the soil-moisture process to be active."
         error stop 1
       end if
       call self%init_runoff_cache()
     end if
-    log_info(*) "MPR: temporal cache initialized (nLAI=", n2s(self%lai%n_periods), &
-      ", nLC=", n2s(self%land_cover%n_periods), ")."
-  end subroutine mpr_init_temporal_cache
+  end subroutine mpr_initialize_parameter_cache
 
   !> \brief Initialize only the land-cover timing state without caching land-cover input fields.
   subroutine mpr_init_land_cover_timing(self)
@@ -2259,24 +2623,12 @@ contains
   end subroutine mpr_read_dated_lai_l0_cache
 
   !> \brief Load one configured process parameter block into an allocated local array.
-  subroutine mpr_load_process_params(self, process_id, params)
+  subroutine mpr_load_process_params(self, process, params)
     class(mpr_t), intent(in), target :: self
-    integer(i4), intent(in) :: process_id
+    character(*), intent(in) :: process
     real(dp), allocatable, intent(out) :: params(:)
-    integer(i4) :: n_param
 
-    n_param = self%exchange%parameters%process_matrix(process_id, 2)
-    if (n_param < 0_i4) then
-      log_fatal(*) "MPR: configured parameter count for process ", n2s(process_id), " must be >= 0."
-      error stop 1
-    end if
-    if (n_param == 0_i4) then
-      allocate(params(0))
-      return
-    end if
-
-    allocate(params(n_param))
-    params = self%exchange%parameters%get_process(process_id)
+    params = self%exchange%parameters%get_process(process)
   end subroutine mpr_load_process_params
 
   !> \brief Cache max interception on level1 for all LAI/land-cover slices.
@@ -2288,7 +2640,7 @@ contains
     real(dp), allocatable :: max_interception_l0(:)
     real(dp), allocatable :: max_interception_l1(:)
 
-    call self%load_process_params(1_i4, interception_param)
+    call self%load_process_params("interception", interception_param)
     if (size(interception_param) < 1_i4) then
       log_fatal(*) "MPR: interception parameter set is empty while process 1 is active."
       error stop 1
@@ -2326,7 +2678,7 @@ contains
     integer(i4) :: land_cover_idx
     real(dp), allocatable :: snow_param(:)
 
-    call self%load_process_params(2_i4, snow_param)
+    call self%load_process_params("snow", snow_param)
     if (size(snow_param) < 8_i4) then
       log_fatal(*) "MPR: snow parameter set must contain 8 values while process 2 is active."
       error stop 1
@@ -2368,7 +2720,7 @@ contains
     class(mpr_t), intent(inout), target :: self
     integer(i4) :: pet_process
 
-    pet_process = self%exchange%parameters%process_matrix(5, 1)
+    pet_process = self%exchange%config%processes%pet
     select case (pet_process)
       case (-2_i4)
         call self%init_pet_aspect_cache()
@@ -2391,7 +2743,7 @@ contains
     class(mpr_t), intent(inout), target :: self
     real(dp), allocatable :: pet_param(:)
 
-    call self%load_process_params(5_i4, pet_param)
+    call self%load_process_params("pet", pet_param)
     if (size(pet_param) < 3_i4) then
       log_fatal(*) "MPR: PET aspect parameter set must contain 3 values while PET process -2 is active."
       error stop 1
@@ -2414,7 +2766,7 @@ contains
     class(mpr_t), intent(inout), target :: self
     real(dp), allocatable :: pet_param(:)
 
-    call self%load_process_params(5_i4, pet_param)
+    call self%load_process_params("pet", pet_param)
     if (size(pet_param) < 4_i4) then
       log_fatal(*) "MPR: PET Hargreaves parameter set must contain 4 values while PET process 1 is active."
       error stop 1
@@ -2442,7 +2794,7 @@ contains
     integer(i4) :: lai_idx
     real(dp), allocatable :: pet_param(:)
 
-    call self%load_process_params(5_i4, pet_param)
+    call self%load_process_params("pet", pet_param)
     if (size(pet_param) < 5_i4) then
       log_fatal(*) "MPR: PET-LAI parameter set must contain 5 values while PET process -1 is active."
       error stop 1
@@ -2474,7 +2826,7 @@ contains
     class(mpr_t), intent(inout), target :: self
     real(dp), allocatable :: pet_param(:)
 
-    call self%load_process_params(5_i4, pet_param)
+    call self%load_process_params("pet", pet_param)
     if (size(pet_param) < 2_i4) then
       log_fatal(*) "MPR: PET Priestley-Taylor parameter set must contain 2 values while PET process 2 is active."
       error stop 1
@@ -2499,7 +2851,7 @@ contains
     real(dp), allocatable :: pet_param(:)
     real(dp), allocatable :: resist_surf_l1(:, :)
 
-    call self%load_process_params(5_i4, pet_param)
+    call self%load_process_params("pet", pet_param)
     if (size(pet_param) < 7_i4) then
       log_fatal(*) "MPR: PET Penman-Monteith parameter set must contain 7 values while PET process 3 is active."
       error stop 1
@@ -2566,6 +2918,7 @@ contains
     integer(i4) :: domain_id
     integer(i4) :: n_layers
     integer(i4) :: neutron_process
+    integer(i4) :: soil_process
     integer(i4) :: n_soil_layers
     integer(i4) :: land_cover_idx
     real(dp), allocatable :: neutron_param(:)
@@ -2573,7 +2926,8 @@ contains
 
     domain_id = self%exchange%nml_domain_id
     n_layers = self%exchange%n_layers
-    neutron_process = self%exchange%parameters%process_matrix(10, 1)
+    neutron_process = self%exchange%config%processes%neutrons
+    soil_process = self%exchange%config%processes%soil_moisture
     if (n_layers < 1_i4) then
       log_fatal(*) "MPR: n_layers must be >= 1 before soil cache initialization."
       error stop 1
@@ -2591,12 +2945,10 @@ contains
       error stop 1
     end if
 
-    ! The soil horizon metadata is shared with downstream mHM state allocation.
-    call self%init_soil_horizon_bounds()
     n_soil_layers = 1_i4
     if (self%config%soil_db_mode(domain_id) == 1_i4) n_soil_layers = n_layers
 
-    call self%load_process_params(3_i4, soil_param)
+    call self%load_process_params("soil_moisture", soil_param)
     if (allocated(self%soil%sm_exponent_cache)) deallocate(self%soil%sm_exponent_cache)
     if (allocated(self%soil%sm_saturation_cache)) deallocate(self%soil%sm_saturation_cache)
     if (allocated(self%soil%sm_field_capacity_cache)) deallocate(self%soil%sm_field_capacity_cache)
@@ -2620,7 +2972,7 @@ contains
     allocate(self%soil%ks_var_h_l0(self%exchange%level0%ncells, self%land_cover%n_periods))
     allocate(self%soil%ks_var_v_l0(self%exchange%level0%ncells, self%land_cover%n_periods))
     if (neutron_process > 0_i4) then
-      call self%load_process_params(10_i4, neutron_param)
+      call self%load_process_params("neutrons", neutron_param)
       if (size(neutron_param) < 1_i4) then
         log_fatal(*) "MPR: neutron process definition is empty."
         error stop 1
@@ -2638,7 +2990,7 @@ contains
     do land_cover_idx = 1_i4, self%land_cover%n_periods
       if (neutron_process == 2_i4) then
         call mpr_bridge_soil_moisture( &
-          self%exchange%parameters%process_matrix, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
+          soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
           self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0, self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
           self%soil%sm_saturation_cache(:, :, land_cover_idx), self%soil%sm_field_capacity_cache(:, :, land_cover_idx), &
@@ -2649,7 +3001,7 @@ contains
           neutron_param)
       else if (neutron_process == 1_i4) then
         call mpr_bridge_soil_moisture( &
-          self%exchange%parameters%process_matrix, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
+          soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
           self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0, self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
           self%soil%sm_saturation_cache(:, :, land_cover_idx), self%soil%sm_field_capacity_cache(:, :, land_cover_idx), &
@@ -2659,7 +3011,7 @@ contains
           self%neutron%lattice_water_cache(:, :, land_cover_idx), neutron_param=neutron_param)
       else
         call mpr_bridge_soil_moisture( &
-          self%exchange%parameters%process_matrix, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
+          soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
           self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0, self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
           self%soil%sm_saturation_cache(:, :, land_cover_idx), self%soil%sm_field_capacity_cache(:, :, land_cover_idx), &
@@ -2705,12 +3057,12 @@ contains
     if (allocated(self%runoff%thresh_unsat_cache)) deallocate(self%runoff%thresh_unsat_cache)
     if (allocated(self%runoff%thresh_sealed_cache)) deallocate(self%runoff%thresh_sealed_cache)
 
-    if (self%exchange%parameters%process_matrix(6, 1) /= 0_i4) then
+    if (self%exchange%config%processes%interflow /= 0_i4) then
       allocate(self%runoff%alpha_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
       allocate(self%runoff%k_fastflow_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
       allocate(self%runoff%k_slowflow_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
       allocate(self%runoff%thresh_unsat_cache(self%exchange%level1%ncells))
-      call self%load_process_params(6_i4, interflow_param)
+      call self%load_process_params("interflow", interflow_param)
       do land_cover_idx = 1_i4, self%land_cover%n_periods
         call mpr_bridge_runoff_param( &
           self%land_cover%l0_cache(:, land_cover_idx), self%preproc%slope_emp, self%soil%sm_deficit_fc_l0(:, land_cover_idx), &
@@ -2724,10 +3076,10 @@ contains
       self%exchange%thresh_unsat%provided = .true.
     end if
 
-    if (self%exchange%parameters%process_matrix(7, 1) /= 0_i4) then
+    if (self%exchange%config%processes%percolation /= 0_i4) then
       allocate(self%runoff%k_percolation_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
       allocate(self%runoff%f_karst_loss_cache(self%exchange%level1%ncells))
-      call self%load_process_params(7_i4, percolation_param)
+      call self%load_process_params("percolation", percolation_param)
       do land_cover_idx = 1_i4, self%land_cover%n_periods
         call mpr_bridge_karstic_param( &
           percolation_param, self%exchange%geo_unit%data, self%exchange%geo_class_def%geo_unit, &
@@ -2739,16 +3091,16 @@ contains
       self%exchange%f_karst_loss%provided = .true.
     end if
 
-    if (self%exchange%parameters%process_matrix(4, 1) /= 0_i4) then
+    if (self%exchange%config%processes%direct_runoff /= 0_i4) then
       allocate(self%runoff%thresh_sealed_cache(self%exchange%level1%ncells))
-      call self%load_process_params(4_i4, direct_runoff_param)
+      call self%load_process_params("direct_runoff", direct_runoff_param)
       call mpr_bridge_sealed_threshold(direct_runoff_param, self%runoff%thresh_sealed_cache)
       self%exchange%thresh_sealed%provided = .true.
     end if
 
-    if (self%exchange%parameters%process_matrix(9, 1) /= 0_i4) then
+    if (self%exchange%config%processes%baseflow /= 0_i4) then
       allocate(self%runoff%k_baseflow_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
-      call self%load_process_params(9_i4, baseflow_param)
+      call self%load_process_params("baseflow", baseflow_param)
       call mpr_bridge_baseflow_param( &
         baseflow_param, self%exchange%geo_unit%data, self%exchange%geo_class_def%geo_unit, &
         self%exchange%geo_class_def%geo_param_index, self%upscaler, &
@@ -2756,7 +3108,7 @@ contains
       do land_cover_idx = 2_i4, self%land_cover%n_periods
         self%runoff%k_baseflow_cache(:, land_cover_idx) = self%runoff%k_baseflow_cache(:, 1)
       end do
-      if (allocated(self%runoff%k_slowflow_cache) .and. self%exchange%parameters%process_matrix(7, 1) > 0_i4) then
+      if (allocated(self%runoff%k_slowflow_cache) .and. self%exchange%config%processes%percolation > 0_i4) then
         self%runoff%k_baseflow_cache = merge(self%runoff%k_slowflow_cache, self%runoff%k_baseflow_cache, &
           self%runoff%k_baseflow_cache < self%runoff%k_slowflow_cache)
       end if
@@ -3008,9 +3360,9 @@ contains
     class(mpr_t), intent(in), target :: self
     integer(i4) :: n_geo_param
 
-    if (self%exchange%parameters%process_matrix(9, 1) == 0_i4) return
+    if (self%exchange%config%processes%baseflow == 0_i4) return
 
-    n_geo_param = self%exchange%parameters%nGeoUnits
+    n_geo_param = self%exchange%n_geo_units
     if (.not.allocated(self%exchange%geo_class_def%geo_param_index)) then
       log_fatal(*) "MPR: geology LUT does not provide GeoParam indices."
       error stop 1
@@ -3029,8 +3381,50 @@ contains
   subroutine mpr_initialize(self)
     class(mpr_t), intent(inout), target :: self
     log_info(*) "Initialize MPR for domain ", n2s(self%exchange%nml_domain_id)
+    if (self%read_restart) then
+      if (.not.mpr_restart_parameters_are_default(self)) then
+        log_fatal(*) "MPR: parameters cannot be overridden when parameter-derived fields are read from restart."
+        error stop 1
+      end if
+    else
+      call self%initialize_parameter_cache()
+    end if
     call self%update_exchange_slices(force=.true.)
   end subroutine mpr_initialize
+
+  !> \brief Return whether all restart-backed process parameters still use their configured inputs.
+  logical function mpr_restart_parameters_are_default(self)
+    class(mpr_t), intent(in), target :: self
+
+    mpr_restart_parameters_are_default = .true.
+    if (self%exchange%config%processes%interception > 0_i4) &
+      mpr_restart_parameters_are_default = mpr_restart_parameters_are_default .and. &
+        self%exchange%parameters%is_default("interception")
+    if (self%exchange%config%processes%snow > 0_i4) &
+      mpr_restart_parameters_are_default = mpr_restart_parameters_are_default .and. &
+        self%exchange%parameters%is_default("snow")
+    if (self%exchange%config%processes%soil_moisture /= 0_i4) &
+      mpr_restart_parameters_are_default = mpr_restart_parameters_are_default .and. &
+        self%exchange%parameters%is_default("soil_moisture")
+    if (self%exchange%config%processes%direct_runoff /= 0_i4) &
+      mpr_restart_parameters_are_default = mpr_restart_parameters_are_default .and. &
+        self%exchange%parameters%is_default("direct_runoff")
+    if (self%exchange%config%processes%pet /= 0_i4) &
+      mpr_restart_parameters_are_default = mpr_restart_parameters_are_default .and. &
+        self%exchange%parameters%is_default("pet")
+    if (self%exchange%config%processes%interflow /= 0_i4) &
+      mpr_restart_parameters_are_default = mpr_restart_parameters_are_default .and. &
+        self%exchange%parameters%is_default("interflow")
+    if (self%exchange%config%processes%percolation /= 0_i4) &
+      mpr_restart_parameters_are_default = mpr_restart_parameters_are_default .and. &
+        self%exchange%parameters%is_default("percolation")
+    if (self%exchange%config%processes%baseflow /= 0_i4) &
+      mpr_restart_parameters_are_default = mpr_restart_parameters_are_default .and. &
+        self%exchange%parameters%is_default("baseflow")
+    if (self%exchange%config%processes%neutrons /= 0_i4) &
+      mpr_restart_parameters_are_default = mpr_restart_parameters_are_default .and. &
+        self%exchange%parameters%is_default("neutrons")
+  end function mpr_restart_parameters_are_default
 
   !> \brief Update the MPR process container for the current time step.
   subroutine mpr_update(self)

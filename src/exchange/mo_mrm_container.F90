@@ -48,13 +48,14 @@ module mo_mrm_container
     type(output_dataset)       :: ds_out              !< output dataset for gridded outputs
     type(river_output_dataset) :: ds_node_out         !< output dataset for river node based outputs
     real(dp), allocatable      :: discharge(:)        !< discharge array for all river nodes
-    logical                    :: scc_active          !< whether scc based based upscaling is active
-    logical                    :: read_restart        !< whether to read restart file
+    logical                    :: active = .false.    !< whether mRM participates in the configured domain
+    logical                    :: scc_active = .false. !< whether scc based based upscaling is active
+    logical                    :: read_restart = .false. !< whether to read restart file
     character(:), allocatable  :: restart_input_path  !< path to restart file to read
-    logical                    :: write_restart       !< whether to write restart file
+    logical                    :: write_restart = .false. !< whether to write restart file
     character(:), allocatable  :: restart_output_path !< path to restart file to write
-    logical                    :: output_active       !< whether output is enabled
-    logical                    :: output_node_active  !< whether node based output is enabled
+    logical                    :: output_active = .false. !< whether output is enabled
+    logical                    :: output_node_active = .false. !< whether node based output is enabled
     character(:), allocatable  :: output_path         !< path to output file
     character(:), allocatable  :: output_node_path    !< path to node output file
   contains
@@ -66,6 +67,7 @@ module mo_mrm_container
     procedure :: finalize => mrm_finalize
     procedure :: create_restart => mrm_create_restart
     procedure :: create_output => mrm_create_output
+    procedure, private :: configure_parameters => mrm_configure_parameters
   end type mrm_t
 
 contains
@@ -95,8 +97,8 @@ contains
     call self%river%to_restart(nc)
     call self%router%to_restart(nc)
     nc_var = nc%setVariable("mrm_meta", "i8", dims(:0)) ! scalar integer to indicate scc river
-    call nc_var%setAttribute("routing_case", self%exchange%parameters%config%processes%routing)
-    call nc_var%setAttribute("routing_gamma", self%exchange%parameters%get_process(8_i4))
+    call nc_var%setAttribute("routing_case", self%exchange%config%processes%routing)
+    call nc_var%setAttribute("routing_gamma", self%exchange%parameters%get_process("routing"))
     call nc_var%setAttribute("time_stamp", self%exchange%time%str())
     call nc%close()
   end subroutine mrm_create_restart
@@ -113,6 +115,11 @@ contains
     integer :: status
 
     log_info(*) "Configure mRM"
+    self%active = any([ &
+      self%exchange%config%processes%routing, &
+      self%exchange%config%processes%temperature_routing &
+    ] /= 0_i4)
+    if (.not.self%active) return
     ! get domain id
     id(1) = self%exchange%nml_domain_id
 
@@ -180,7 +187,9 @@ contains
     end if
 
     ! check routing case
-    case = self%exchange%parameters%config%processes%routing
+    call self%configure_parameters()
+
+    case = self%exchange%config%processes%routing
     select case (case)
       ! case (1_i4)
       !   log_info(*) "mRM routing case 1"
@@ -193,6 +202,79 @@ contains
         error stop 1
     end select
   end subroutine mrm_configure
+
+  !> \brief Read selected mRM parameter namelists and register them in execution order.
+  subroutine mrm_configure_parameters(self)
+    class(mrm_t), intent(inout), target :: self
+    character(1024) :: errmsg
+    integer :: status
+
+    associate(parameter_config => self%exchange%config%parameters)
+      select case (self%exchange%config%processes%routing)
+        case (1_i4)
+          if (.not.parameter_config%routing_1%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%routing_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "routing_1", "read", errmsg)
+          end if
+          status = parameter_config%routing_1%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "routing_1", "validate", errmsg)
+          call self%exchange%parameters%add_process("routing", [ &
+            parameter_config%routing_1%travel_time_constant, &
+            parameter_config%routing_1%travel_time_river_length, &
+            parameter_config%routing_1%travel_time_river_slope, &
+            parameter_config%routing_1%travel_time_impervious, &
+            parameter_config%routing_1%attenuation_river_slope], [character(64) :: &
+            "travel_time_constant", "travel_time_river_length", "travel_time_river_slope", &
+            "travel_time_impervious", "attenuation_river_slope"])
+        case (2_i4)
+          if (.not.parameter_config%routing_2%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%routing_2%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "routing_2", "read", errmsg)
+          end if
+          status = parameter_config%routing_2%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "routing_2", "validate", errmsg)
+          call self%exchange%parameters%add_process("routing", [parameter_config%routing_2%streamflow_celerity], &
+            [character(64) :: "streamflow_celerity"])
+        case (3_i4)
+          if (.not.parameter_config%routing_3%is_configured .and. allocated(self%exchange%parameter_file)) then
+            status = parameter_config%routing_3%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+            call check_parameter_status(status, "routing_3", "read", errmsg)
+          end if
+          status = parameter_config%routing_3%is_valid(errmsg=errmsg)
+          call check_parameter_status(status, "routing_3", "validate", errmsg)
+          call self%exchange%parameters%add_process("routing", [parameter_config%routing_3%slope_factor], &
+            [character(64) :: "slope_factor"])
+      end select
+
+      if (self%exchange%config%processes%temperature_routing == 1_i4) then
+        if (.not.parameter_config%river_temperature_1%is_configured .and. allocated(self%exchange%parameter_file)) then
+          status = parameter_config%river_temperature_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+          call check_parameter_status(status, "river_temperature_1", "read", errmsg)
+        end if
+        status = parameter_config%river_temperature_1%is_valid(errmsg=errmsg)
+        call check_parameter_status(status, "river_temperature_1", "validate", errmsg)
+        call self%exchange%parameters%add_process("temperature_routing", [ &
+          parameter_config%river_temperature_1%albedo_water, &
+          parameter_config%river_temperature_1%pt_a_water, &
+          parameter_config%river_temperature_1%emissivity_water, &
+          parameter_config%river_temperature_1%turbulent_heat_exchange_coefficient], [character(64) :: &
+          "albedo_water", "pt_a_water", "emissivity_water", "turbulent_heat_exchange_coefficient"])
+      end if
+    end associate
+  end subroutine mrm_configure_parameters
+
+  !> \brief Fail with context when a generated routing parameter operation fails.
+  subroutine check_parameter_status(status, block, action, errmsg)
+    integer, intent(in) :: status
+    character(*), intent(in) :: block
+    character(*), intent(in) :: action
+    character(*), intent(in) :: errmsg
+
+    if (status /= NML_OK) then
+      log_fatal(*) "mRM: failed to ", trim(action), " parameter block '", trim(block), "': ", trim(errmsg)
+      error stop 1
+    end if
+  end subroutine check_parameter_status
 
   ! read initial values and populate exchange
   subroutine mrm_connect(self)
@@ -222,7 +304,7 @@ contains
     ! check if scc_gauges_path is given
     self%scc_active = self%config%is_set("scc_gauges_path", idx=id, errmsg=errmsg) == NML_OK
     ! check routing case
-    const_celerity = (self%exchange%parameters%config%processes%routing == 2_i4)
+    const_celerity = (self%exchange%config%processes%routing == 2_i4)
     ! get restart setting
     self%read_restart = self%config%read_restart(id(1))
     self%write_restart = self%config%write_restart(id(1))
@@ -322,10 +404,14 @@ contains
     ! get domain id
     id(1) = self%exchange%nml_domain_id
     ! calculate celerity
-    gamma = self%exchange%parameters%get_process(8_i4)  ! routing still process 8
-    const_celerity = (self%exchange%parameters%config%processes%routing == 2_i4)
+    gamma = self%exchange%parameters%get_process("routing")
+    const_celerity = (self%exchange%config%processes%routing == 2_i4)
 
     if (self%read_restart) then
+      if (.not.self%exchange%parameters%is_default("routing")) then
+        log_fatal(*) "mRM: routing parameters cannot be overridden when routing state is read from restart."
+        error stop 1
+      end if
       scope_info(s,*) "Read routing state from restart file: ", self%restart_input_path
       ! TODO: warn about gamma mismatch between restart and config
       call self%router%from_restart_file( &
@@ -338,6 +424,8 @@ contains
         omp_level_thresh  = int(self%config%river_net_omp_level_min(id(1)), i8), &
         read_fluxes       = self%config%read_restart_fluxes(id(1)))
     else
+      if (allocated(self%river_l0%celerity)) deallocate(self%river_l0%celerity)
+      if (allocated(self%river%celerity)) deallocate(self%river%celerity)
       ! NOTE: if slope data pointer is null (i.e. slope not provided), optional slope will be seen as "not present"
       if (is_close(self%level3%cellsize, self%exchange%level0%cellsize)) then
         call self%river%calc_celerity(gamma=gamma(1), slope=self%exchange%slope%data, constant_celerity=const_celerity)

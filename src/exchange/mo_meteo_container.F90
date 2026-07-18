@@ -81,6 +81,7 @@ module mo_meteo_container
     type(meteo_weight_state_t) :: weights !< cached disaggregation weights
     type(meteo_output_state_t) :: out !< processed meteo outputs
     type(meteo_scratch_state_t) :: scratch !< reusable remapped raw forcings
+    logical :: active = .false. !< whether meteorological processing participates in the configured domain
   contains
     procedure :: set_dims => meteo_set_dims
     procedure :: configure => meteo_configure
@@ -130,6 +131,13 @@ contains
     integer :: status
 
     log_info(*) "Configure meteo"
+    self%active = any([ &
+      self%exchange%config%processes%interception, self%exchange%config%processes%snow, &
+      self%exchange%config%processes%soil_moisture, self%exchange%config%processes%direct_runoff, &
+      self%exchange%config%processes%pet, self%exchange%config%processes%interflow, &
+      self%exchange%config%processes%percolation, self%exchange%config%processes%baseflow, &
+      self%exchange%config%processes%neutrons, self%exchange%config%processes%temperature_routing] /= 0_i4)
+    if (.not.self%active) return
     if (present(file)) then
       path = self%exchange%get_path(file)
       log_info(*) "Read meteo config: ", path
@@ -159,7 +167,6 @@ contains
     integer(i4) :: riv_temp_process
     integer(i4) :: steps_day
     integer(i4) :: frac_domain_id
-    integer(i8) :: n_l1
     integer(i4) :: id(1)
     integer :: status
     character(1024) :: errmsg
@@ -175,17 +182,15 @@ contains
     end if
     call self%ensure_level1_grid()
     call self%regrid%init(self%exchange%level2, self%exchange%level1)
-    n_l1 = self%exchange%level1%ncells
-
     domain_id = self%exchange%nml_domain_id
     id(1) = domain_id
-    pet_process = self%exchange%parameters%process_matrix(5, 1)
-    snow_process = self%exchange%parameters%process_matrix(2, 1)
-    riv_temp_process = self%exchange%parameters%process_matrix(11, 1)
+    pet_process = self%exchange%config%processes%pet
+    snow_process = self%exchange%config%processes%snow
+    riv_temp_process = self%exchange%config%processes%temperature_routing
     steps_day = self%steps_per_day()
     frac_domain_id = self%fraction_domain()
 
-    need_pre = self%exchange%parameters%meteo_active()
+    need_pre = self%active
     need_temp = (snow_process == 1_i4) .or. any(pet_process == [1_i4, 2_i4, 3_i4])
 
     call self%exchange%raw_pre%require("Meteo", need_pre, check_data=.false.)
@@ -237,8 +242,6 @@ contains
       if (.not.self%weight_mode_active() .and. steps_day > 1_i4) then
         call self%require_fraction("frac_night_pet", frac_domain_id)
       end if
-      call self%exchange%pet_fac_aspect%require("Meteo", .true., [n_l1])
-      call self%exchange%pet_coeff_hs%require("Meteo", .true., [n_l1])
       call self%load_level1_latitude()
     else if (pet_process == 2_i4) then
       call self%validate_step("raw_temp", self%exchange%raw_temp%stepping, allow_daily=.true.)
@@ -246,7 +249,6 @@ contains
       if (.not.self%weight_mode_active() .and. steps_day > 1_i4) then
         call self%require_fraction("frac_night_pet", frac_domain_id)
       end if
-      call self%exchange%pet_coeff_pt%require("Meteo", .true., [n_l1])
     else if (pet_process == 3_i4) then
       call self%validate_step("raw_temp", self%exchange%raw_temp%stepping, allow_daily=.true.)
       call self%validate_step("raw_netrad", self%exchange%raw_netrad%stepping, allow_daily=.true.)
@@ -255,12 +257,6 @@ contains
       if (.not.self%weight_mode_active() .and. steps_day > 1_i4) then
         call self%require_fraction("frac_night_pet", frac_domain_id)
       end if
-      call self%exchange%resist_aero%require("Meteo", .true., [n_l1])
-      call self%exchange%resist_surf%require("Meteo", .true., [n_l1])
-    else if (pet_process == -2_i4) then
-      call self%exchange%pet_fac_aspect%require("Meteo", .true., [n_l1])
-    else if (pet_process == -1_i4) then
-      call self%exchange%pet_fac_lai%require("Meteo", .true., [n_l1])
     end if
 
     if (riv_temp_process > 0_i4) then
@@ -332,7 +328,28 @@ contains
   !> \brief Initialize the meteorology process container for the simulation.
   subroutine meteo_initialize(self)
     class(meteo_t), intent(inout), target :: self
+    integer(i4) :: pet_process
+    integer(i8) :: n_l1
+
     log_info(*) "Initialize meteo"
+
+    pet_process = self%exchange%config%processes%pet
+    n_l1 = self%exchange%level1%ncells
+    select case (pet_process)
+    case (1_i4)
+      call self%exchange%pet_fac_aspect%require("Meteo", .true., [n_l1])
+      call self%exchange%pet_coeff_hs%require("Meteo", .true., [n_l1])
+    case (2_i4)
+      call self%exchange%pet_coeff_pt%require("Meteo", .true., [n_l1])
+    case (3_i4)
+      call self%exchange%resist_aero%require("Meteo", .true., [n_l1])
+      call self%exchange%resist_surf%require("Meteo", .true., [n_l1])
+    case (-2_i4)
+      call self%exchange%pet_fac_aspect%require("Meteo", .true., [n_l1])
+    case (-1_i4)
+      call self%exchange%pet_fac_lai%require("Meteo", .true., [n_l1])
+    end select
+
     if (allocated(self%out%pre)) self%out%pre = 0.0_dp
     if (allocated(self%out%temp)) self%out%temp = 0.0_dp
     if (allocated(self%out%pet)) self%out%pet = 0.0_dp
@@ -433,19 +450,20 @@ contains
     end if
 
     l1_res = self%exchange%level1_resolution
-    if (.not.ieee_is_finite(l1_res) .or. l1_res <= 0.0_dp) then
-      log_fatal(*) "Meteo: level1 resolution not configured."
-      error stop 1
-    end if
-
     if (associated(self%exchange%level1)) then
-      if (.not.is_close(self%exchange%level1%cellsize, l1_res)) then
+      if (ieee_is_finite(l1_res) .and. l1_res > 0.0_dp .and. &
+          .not.is_close(self%exchange%level1%cellsize, l1_res)) then
         log_fatal(*) "Meteo: level1 grid cellsize (", n2s(self%exchange%level1%cellsize), &
           ") conflicts with configured level1_resolution (", n2s(l1_res), ")."
         error stop 1
       end if
       call self%exchange%level1%check_is_filled_by(self%exchange%level0, check_mask=.true.)
       return
+    end if
+
+    if (.not.ieee_is_finite(l1_res) .or. l1_res <= 0.0_dp) then
+      log_fatal(*) "Meteo: level1 resolution not configured."
+      error stop 1
     end if
 
     call self%exchange%level0%gen_grid(self%tgt_level1, target_resolution=l1_res)
@@ -678,7 +696,7 @@ contains
     integer(i4) :: pet_stepping
     logical :: isday
 
-    pet_process = self%exchange%parameters%process_matrix(5, 1)
+    pet_process = self%exchange%config%processes%pet
     domain_id = self%fraction_domain()
     month = self%exchange%time%month
     hour = self%exchange%time%hour
