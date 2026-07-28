@@ -274,38 +274,3 @@ Afterwards build you project as always by executing:
 ```bash
 cmake --build build --parallel
 ```
-
-
-## Compilation of Dependencies
-
-We also provide a script to install the dependencies to a place of your choice:
-
-```bash
-bash CI-scripts/install-deps
-```
-
-This will install [zlib-ng](https://github.com/zlib-ng/zlib-ng), [HDF5](https://github.com/HDFGroup/hdf5),
-and [NetCDF-C](https://github.com/Unidata/netcdf-c) to `"/opt/local"`.
-
-You can provide command line arguments to control the installation:
-- `-s`/`--sudo`: use sudo to install
-- `-c`/`--config`: run `ldconfig` after installation
-- `-p <path>`/`--path <path>`: installation path (`"/opt/local"` by default)
-
-If you want a special location for your installation, you have to tell `cmake` then, where to find NetCDF-C by setting `NetCDF_ROOT`.
-For example:
-```bash
-bash CI-scripts/install-deps -p ~/.mhm_deps
-source CI-scripts/compile -DNetCDF_ROOT="~/.mhm_deps"
-```
-
-You may need to prepend your `LD_LIBRARY_PATH` environment variable with your install path.
-
-You also may need to set environment variables for you compilers used before calling the `install-deps` script.
-For example in case of the GNU Compiler Collection:
-```bash
-export FC="gfortran"
-export F77="gfortran"
-export CC="gcc"
-export CXX="g++"
-```
