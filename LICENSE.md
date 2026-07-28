@@ -13,7 +13,7 @@ regionalization (MPR) technique.
 
 ## COPYRIGHT HOLDERS
 
- Copyright(c) 2005-2025, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+ Copyright(c) 2005-2026, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 
 The code is a property of:
 
