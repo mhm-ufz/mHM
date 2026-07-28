@@ -46,6 +46,18 @@ set(FORCES_WITH_OpenMP ${CMAKE_WITH_OpenMP} CACHE BOOL
   "Build FORCES with OpenMP support (mirrors CMAKE_WITH_OpenMP)." FORCE
 )
 CPMAddPackage("https://git.ufz.de/chs/forces.git#${CPM_forces_VERSION}")
+if(DEFINED SKBUILD_METADATA_DIR)
+  install(
+    FILES "${FORCES_SOURCE_DIR}/LICENSE.md"
+    DESTINATION "${SKBUILD_METADATA_DIR}/licenses"
+    RENAME "FORCES_LICENSE.md"
+  )
+  install(
+    FILES "${FORCES_SOURCE_DIR}/AUTHORS"
+    DESTINATION "${SKBUILD_METADATA_DIR}/licenses"
+    RENAME "FORCES_AUTHORS"
+  )
+endif()
 if(BUILD_MHM_LIB_SHARED OR BUILD_MHM_LIB_PIC)
   set_property(TARGET forces PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
