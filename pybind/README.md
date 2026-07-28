@@ -64,8 +64,17 @@ The following environment variables can be used to control the compilation and i
 
 Together with the Python bindings comes a command line script to download the test domains:
 ```bash
-mhm-download --verbose --branch develop --domain 1 --path mhm_domain/
+mhm-download --verbose --branch main --domain 1 --path mhm_domain/
 ```
+
+To ensure the downloader is executed from the active Python environment, it can
+also be called as a module:
+```bash
+python -m mhm.download --domain 1 --path mhm_domain/
+```
+
+By default, the downloader first uses `git.ufz` and falls back to the `github`
+mirror. Use `--source git.ufz` or `--source github` to select a single source.
 
 You can then run mHM on this test domain with:
 ```bash
@@ -76,6 +85,7 @@ You can get help on how to use this script with `mhm-download -h`:
 ```
 $ mhm-download -h
 usage: mhm-download [-h] [-V] [-v] [-b BRANCH] [-d {1,2}] [-p PATH]
+                    [-s {auto,git.ufz,github}]
 
 Download tool to retrieve the test domains for mHM.
 
@@ -90,9 +100,13 @@ optional arguments:
                         test domain '1' or '2' (default: 1)
   -p PATH, --path PATH  destination path for the downloaded folder,
                         by default the original folder name in the current directory (default: None)
+  -s {auto,git.ufz,github}, --source {auto,git.ufz,github}
+                        download source; 'auto' tries git.ufz first and then github
+                        (default: auto)
 ```
 
-Within python scripts, you can use this tool with `mhm.download_test`. See below for examples.
+Within Python scripts, use `mhm.download_test`. Its `source` argument accepts
+the same `auto`, `git.ufz`, and `github` values. See below for examples.
 
 
 ## Documentation
@@ -108,7 +122,7 @@ If you have cloned the repository, you can do the following to simply run mhm wi
 import mhm
 
 # download test domain 1
-mhm.download_test(path="example_domain")
+mhm.download_test(path="example_domain", source="auto")
 # run the downloaded example
 mhm.model.init(cwd="example_domain")
 mhm.model.run()

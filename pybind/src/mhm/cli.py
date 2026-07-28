@@ -23,6 +23,7 @@ def f_version():
 def mhm():  # pragma: no cover
     """Execute mhm as a command line program."""
     parser = argparse.ArgumentParser(
+        prog="mhm",
         description="The mesoscale hydrological model - mHM with Python bindings",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
