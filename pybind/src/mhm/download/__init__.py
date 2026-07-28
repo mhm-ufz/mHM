@@ -165,6 +165,7 @@ def cli(argv=None):  # pragma: no cover
     from .. import __version__
 
     parser = argparse.ArgumentParser(
+        prog="mhm-download",
         description="Download tool to retrieve the test domains for mHM.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
