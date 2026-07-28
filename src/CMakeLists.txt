@@ -52,6 +52,18 @@ if(NOT DEFINED FORCES_WITH_OpenMP)
   )
 endif()
 CPMAddPackage("https://git.ufz.de/chs/forces.git#${CPM_forces_VERSION}")
+if(DEFINED SKBUILD_METADATA_DIR)
+  install(
+    FILES "${FORCES_SOURCE_DIR}/LICENSE.md"
+    DESTINATION "${SKBUILD_METADATA_DIR}/licenses"
+    RENAME "FORCES_LICENSE.md"
+  )
+  install(
+    FILES "${FORCES_SOURCE_DIR}/AUTHORS"
+    DESTINATION "${SKBUILD_METADATA_DIR}/licenses"
+    RENAME "FORCES_AUTHORS"
+  )
+endif()
 if(MHM_BUILD_LIB_SHARED OR MHM_BUILD_LIB_PIC)
   set_property(TARGET forces PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
