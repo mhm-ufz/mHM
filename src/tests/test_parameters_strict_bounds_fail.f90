@@ -10,7 +10,7 @@ program test_parameters_strict_bounds_fail
 
   values(1) = parameter_t(value=1.0_dp, optimize=.true., lower_bound=1.0_dp, upper_bound=1.0_dp)
   call parameters%begin_configuration()
-  call parameters%add_process("pet", values, [character(8) :: "factor"])
+  call parameters%add_process("pet", values, [character(8) :: "factor"], group="pet_m1")
   call parameters%seal()
   error stop "optimized parameter with non-strict bounds was accepted"
 end program test_parameters_strict_bounds_fail

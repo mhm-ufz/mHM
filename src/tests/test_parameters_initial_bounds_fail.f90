@@ -10,7 +10,7 @@ program test_parameters_initial_bounds_fail
 
   values(1) = parameter_t(value=3.0_dp, optimize=.false., lower_bound=0.0_dp, upper_bound=2.0_dp)
   call parameters%begin_configuration()
-  call parameters%add_process("pet", values, [character(8) :: "factor"])
+  call parameters%add_process("pet", values, [character(8) :: "factor"], group="pet_m1")
   call parameters%seal()
   error stop "out-of-bounds initial value was accepted"
 end program test_parameters_initial_bounds_fail

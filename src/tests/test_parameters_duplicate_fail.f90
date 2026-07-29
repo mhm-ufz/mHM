@@ -10,6 +10,6 @@ program test_parameters_duplicate_fail
 
   values = parameter_t(value=1.0_dp, optimize=.false., lower_bound=0.0_dp, upper_bound=2.0_dp)
   call parameters%begin_configuration()
-  call parameters%add_process("pet", values, [character(8) :: "factor", "FACTOR"])
+  call parameters%add_process("pet", values, [character(8) :: "factor", "FACTOR"], group="pet_m1")
   error stop "duplicate parameter names were accepted"
 end program test_parameters_duplicate_fail

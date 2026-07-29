@@ -16,10 +16,13 @@ endif()
 
 foreach(testname
     parameters_duplicate_fail
+    parameters_group_duplicate_fail
     parameters_definition_bounds_fail
     parameters_initial_bounds_fail
     parameters_strict_bounds_fail
     parameters_set_bounds_fail
+    parameters_write_bounds_fail
+    parameters_write_size_fail
     parameter_input_missing_fail
 )
   add_executable(test_${testname} test_${testname}.f90)
