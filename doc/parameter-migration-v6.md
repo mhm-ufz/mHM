@@ -183,6 +183,37 @@ named lookup. Calibration still sees one flat array; processes no longer know
 their global offsets. Restart files containing precomputed MPR or routing state
 reject parameter overrides that the restart would otherwise hide.
 
+## Final Forward Parameters
+
+The named registry can write its current values, or a supplied complete
+optimizer result, as a reduced parameter namelist:
+
+```fortran
+call parameters%write_namelist("final_parameters.nml")
+call parameters%write_namelist("final_parameters.nml", optimized_values)
+```
+
+The output contains only the namelist blocks registered by the selected
+processes and writes only parameter values:
+
+```fortran
+&pet_m1
+  pet_c = -7.0000000000000000E-001
+/
+```
+
+Bounds and optimization flags are intentionally omitted. Reading the file
+restores bounds from the schemas and leaves optimization disabled, making the
+result suitable for a subsequent forward run:
+
+```bash
+mhm-driver --parameters final_parameters.nml
+```
+
+Writing an explicit result vector does not change the registry's current
+values. The reduced file is not an optimization checkpoint and does not retain
+enough metadata to reproduce or resume a calibration.
+
 Regenerate and check the schema outputs with:
 
 ```bash
