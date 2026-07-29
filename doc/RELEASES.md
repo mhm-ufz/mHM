@@ -2,6 +2,12 @@
 
 [TOC]
 
+## mHM v5.13.4 (Jul 2026)
+
+### Enhancements
+- add portable Python wheels for Linux, macOS, and Windows on x86_64 and ARM64, built from a unified, pinned native dependency stack and published through Trusted Publishing ([!225](https://git.ufz.de/mhm/mhm/-/merge_requests/225))
+- make test-domain downloads resilient with automatic fallback from the UFZ GitLab repository to the GitHub mirror, selectable download sources, and support for `python -m mhm.download` ([!226](https://git.ufz.de/mhm/mhm/-/merge_requests/226))
+
 ## mHM v5.13.3 (Jun 2026)
 
 ### Enhancements
