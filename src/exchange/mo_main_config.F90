@@ -25,9 +25,11 @@ module mo_main_config
   integer, parameter :: parameter_name_length = 256
 
   !> \class process_parameters_t
-  !> \brief Registry offsets for one named process.
+  !> \brief Registry metadata for one named process.
   type :: process_parameters_t
     character(:), allocatable :: name !< normalized process name
+    character(:), allocatable :: group !< selected parameter namelist group
+    character(parameter_name_length), allocatable :: local_names(:) !< names used inside the namelist group
     integer(i4) :: first = 0_i4 !< first entry in the flattened registry
     integer(i4) :: count = 0_i4 !< number of process parameters
   end type process_parameters_t
@@ -52,8 +54,10 @@ module mo_main_config
     procedure :: get_process => parameters_get_process
     procedure :: is_default => parameters_is_default
     procedure :: get_optimizer_data => parameters_get_optimizer_data
+    procedure :: write_namelist => parameters_write_namelist
     procedure :: print => parameters_print
     procedure, private :: require_sealed => parameters_require_sealed
+    procedure, private :: validate_values => parameters_validate_values
   end type parameters_t
 
 contains
@@ -75,15 +79,17 @@ contains
   end subroutine parameters_begin_configuration
 
   !> \brief Register an ordered parameter list for one process.
-  subroutine parameters_add_process(self, process, values, names)
+  subroutine parameters_add_process(self, process, values, names, group)
     class(parameters_t), intent(inout), target :: self
     character(*), intent(in) :: process !< process name
     type(parameter_t), intent(in) :: values(:) !< process parameter definitions
     character(*), intent(in) :: names(:) !< process-local parameter names
+    character(*), intent(in) :: group !< selected parameter namelist group
     type(process_parameters_t), allocatable :: new_processes(:)
     type(parameter_t), allocatable :: new_definitions(:)
     character(parameter_name_length), allocatable :: new_names(:)
     character(:), allocatable :: process_name
+    character(:), allocatable :: group_name
     character(:), allocatable :: local_name
     character(:), allocatable :: qualified_name
     integer(i4) :: old_process_count
@@ -101,13 +107,22 @@ contains
     end if
 
     process_name = normalize_name(process)
+    group_name = normalize_name(group)
     if (len(process_name) == 0) then
       log_fatal(*) "parameters%add_process: process name must not be empty."
+      error stop 1
+    end if
+    if (len(group_name) == 0) then
+      log_fatal(*) "parameters%add_process: namelist group must not be empty for process '", process_name, "'."
       error stop 1
     end if
     do i = 1_i4, size(self%processes, kind=i4)
       if (self%processes(i)%name == process_name) then
         log_fatal(*) "parameters%add_process: process '", process_name, "' is already registered."
+        error stop 1
+      end if
+      if (self%processes(i)%group == group_name) then
+        log_fatal(*) "parameters%add_process: namelist group '", group_name, "' is already registered."
         error stop 1
       end if
     end do
@@ -137,8 +152,13 @@ contains
     allocate(new_processes(old_process_count + 1_i4))
     if (old_process_count > 0_i4) new_processes(:old_process_count) = self%processes
     new_processes(old_process_count + 1_i4)%name = process_name
+    new_processes(old_process_count + 1_i4)%group = group_name
     new_processes(old_process_count + 1_i4)%first = old_parameter_count + 1_i4
     new_processes(old_process_count + 1_i4)%count = size(values, kind=i4)
+    allocate(new_processes(old_process_count + 1_i4)%local_names(size(names)))
+    do i = 1_i4, size(names, kind=i4)
+      new_processes(old_process_count + 1_i4)%local_names(i) = normalize_name(names(i))
+    end do
     call move_alloc(new_processes, self%processes)
 
     allocate(new_definitions(old_parameter_count + size(values, kind=i4)))
@@ -184,23 +204,8 @@ contains
   subroutine parameters_set(self, values)
     class(parameters_t), intent(inout), target :: self
     real(dp), intent(in) :: values(:) !< complete flattened parameter vector
-    integer(i4) :: i
 
-    call self%require_sealed("set")
-    if (size(values) /= size(self%values)) then
-      log_fatal(*) "parameters%set: expected ", size(self%values), " values, got ", size(values), "."
-      error stop 1
-    end if
-    do i = 1_i4, size(values, kind=i4)
-      if (.not.ieee_is_finite(values(i))) then
-        log_fatal(*) "parameters%set: value for '", trim(self%names(i)), "' is not finite."
-        error stop 1
-      end if
-      if (values(i) < self%definitions(i)%lower_bound .or. values(i) > self%definitions(i)%upper_bound) then
-        log_fatal(*) "parameters%set: value for '", trim(self%names(i)), "' is outside its bounds."
-        error stop 1
-      end if
-    end do
+    call self%validate_values(values, "set")
     self%values = values
   end subroutine parameters_set
 
@@ -282,6 +287,60 @@ contains
     names = self%names
   end subroutine parameters_get_optimizer_data
 
+  !> \brief Write registered current or supplied values as a forward-run parameter namelist.
+  subroutine parameters_write_namelist(self, file, values)
+    class(parameters_t), intent(in), target :: self
+    character(*), intent(in) :: file !< destination parameter namelist path
+    real(dp), intent(in), optional :: values(:) !< complete flattened parameter vector to write
+    real(dp), allocatable :: output_values(:)
+    character(1024) :: iomsg
+    integer(i4) :: i
+    integer(i4) :: j
+    integer(i4) :: value_index
+    integer :: unit
+    integer :: status
+
+    call self%require_sealed("write_namelist")
+    if (len_trim(file) == 0) then
+      log_fatal(*) "parameters%write_namelist: destination path must not be empty."
+      error stop 1
+    end if
+    if (present(values)) then
+      output_values = values
+    else
+      output_values = self%values
+    end if
+    call self%validate_values(output_values, "write_namelist")
+
+    open(newunit=unit, file=file, status="replace", action="write", form="formatted", iostat=status, iomsg=iomsg)
+    if (status /= 0) then
+      log_fatal(*) "parameters%write_namelist: could not open '", trim(file), "': ", trim(iomsg)
+      error stop 1
+    end if
+
+    call write_text_line(unit, "! Final v6 parameter values for forward simulation.", file)
+    do i = 1_i4, size(self%processes, kind=i4)
+      call write_text_line(unit, "", file)
+      call write_text_line(unit, "&" // self%processes(i)%group, file)
+      do j = 1_i4, self%processes(i)%count
+        value_index = self%processes(i)%first + j - 1_i4
+        write(unit, '("  ",a," = ",es24.16e3)', iostat=status, iomsg=iomsg) &
+          trim(self%processes(i)%local_names(j)), output_values(value_index)
+        if (status /= 0) then
+          log_fatal(*) "parameters%write_namelist: could not write '", trim(file), "': ", trim(iomsg)
+          error stop 1
+        end if
+      end do
+      call write_text_line(unit, "/", file)
+    end do
+
+    close(unit, iostat=status, iomsg=iomsg)
+    if (status /= 0) then
+      log_fatal(*) "parameters%write_namelist: could not close '", trim(file), "': ", trim(iomsg)
+      error stop 1
+    end if
+  end subroutine parameters_write_namelist
+
   !> \brief Print current named parameter values.
   subroutine parameters_print(self)
     class(parameters_t), intent(in), target :: self
@@ -328,6 +387,45 @@ contains
       error stop 1
     end if
   end subroutine parameters_require_sealed
+
+  !> \brief Validate a complete flattened parameter vector.
+  subroutine parameters_validate_values(self, values, method)
+    class(parameters_t), intent(in), target :: self
+    real(dp), intent(in) :: values(:)
+    character(*), intent(in) :: method
+    integer(i4) :: i
+
+    call self%require_sealed(method)
+    if (size(values) /= size(self%values)) then
+      log_fatal(*) "parameters%", trim(method), ": expected ", size(self%values), " values, got ", size(values), "."
+      error stop 1
+    end if
+    do i = 1_i4, size(values, kind=i4)
+      if (.not.ieee_is_finite(values(i))) then
+        log_fatal(*) "parameters%", trim(method), ": value for '", trim(self%names(i)), "' is not finite."
+        error stop 1
+      end if
+      if (values(i) < self%definitions(i)%lower_bound .or. values(i) > self%definitions(i)%upper_bound) then
+        log_fatal(*) "parameters%", trim(method), ": value for '", trim(self%names(i)), "' is outside its bounds."
+        error stop 1
+      end if
+    end do
+  end subroutine parameters_validate_values
+
+  !> \brief Write one text line and fail with file context on an I/O error.
+  subroutine write_text_line(unit, line, file)
+    integer, intent(in) :: unit
+    character(*), intent(in) :: line
+    character(*), intent(in) :: file
+    character(1024) :: iomsg
+    integer :: status
+
+    write(unit, '(a)', iostat=status, iomsg=iomsg) line
+    if (status /= 0) then
+      log_fatal(*) "parameters%write_namelist: could not write '", trim(file), "': ", trim(iomsg)
+      error stop 1
+    end if
+  end subroutine write_text_line
 
   !> \brief Normalize registry identifiers for case-insensitive lookup.
   pure function normalize_name(name) result(normalized)

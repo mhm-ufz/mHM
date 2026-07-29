@@ -427,7 +427,7 @@ contains
           call check_parameter_status(status, "interception_1", "validate", errmsg)
           call self%exchange%parameters%add_process("interception", [ &
             parameter_config%interception_1%canopy_interception_factor], [character(64) :: &
-            "canopy_interception_factor"])
+            "canopy_interception_factor"], group="interception_1")
       end select
 
       select case (processes%snow)
@@ -450,7 +450,7 @@ contains
             "snow_threshold_temperature", "degree_day_factor_forest", &
             "degree_day_factor_impervious", "degree_day_factor_pervious", &
             "degree_day_factor_precipitation", "max_degree_day_factor_forest", &
-            "max_degree_day_factor_impervious", "max_degree_day_factor_pervious"])
+            "max_degree_day_factor_impervious", "max_degree_day_factor_pervious"], group="snow_1")
       end select
 
       select case (processes%soil_moisture)
@@ -482,7 +482,8 @@ contains
             "ptf_lower_66_5_constant", "ptf_lower_66_5_clay", "ptf_lower_66_5_bulk_density", &
             "ptf_upper_66_5_constant", "ptf_upper_66_5_clay", "ptf_upper_66_5_bulk_density", &
             "ptf_ks_constant", "ptf_ks_sand", "ptf_ks_clay", "root_fraction_forest", &
-            "root_fraction_impervious", "root_fraction_pervious", "infiltration_shape_factor"])
+            "root_fraction_impervious", "root_fraction_pervious", "infiltration_shape_factor"], &
+            group="soil_moisture_1")
         case (2_i4)
           if (.not.parameter_config%soil_moisture_2%is_configured .and. allocated(self%exchange%parameter_file)) then
             status = parameter_config%soil_moisture_2%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
@@ -513,7 +514,7 @@ contains
             "ptf_upper_66_5_constant", "ptf_upper_66_5_clay", "ptf_upper_66_5_bulk_density", &
             "ptf_ks_constant", "ptf_ks_sand", "ptf_ks_clay", "root_fraction_forest", &
             "root_fraction_impervious", "root_fraction_pervious", "infiltration_shape_factor", &
-            "jarvis_sm_threshold"])
+            "jarvis_sm_threshold"], group="soil_moisture_2")
         case (3_i4)
           if (.not.parameter_config%soil_moisture_3%is_configured .and. allocated(self%exchange%parameter_file)) then
             status = parameter_config%soil_moisture_3%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
@@ -549,7 +550,7 @@ contains
             "ptf_ks_constant", "ptf_ks_sand", "ptf_ks_clay", "root_fraction_forest", &
             "root_fraction_impervious", "root_fraction_pervious", "infiltration_shape_factor", &
             "root_fraction_sand", "root_fraction_clay", "field_capacity_min", &
-            "field_capacity_delta", "jarvis_sm_threshold"])
+            "field_capacity_delta", "jarvis_sm_threshold"], group="soil_moisture_3")
         case (4_i4)
           if (.not.parameter_config%soil_moisture_4%is_configured .and. allocated(self%exchange%parameter_file)) then
             status = parameter_config%soil_moisture_4%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
@@ -583,7 +584,8 @@ contains
             "ptf_upper_66_5_constant", "ptf_upper_66_5_clay", "ptf_upper_66_5_bulk_density", &
             "ptf_ks_constant", "ptf_ks_sand", "ptf_ks_clay", "root_fraction_forest", &
             "root_fraction_impervious", "root_fraction_pervious", "infiltration_shape_factor", &
-            "root_fraction_sand", "root_fraction_clay", "field_capacity_min", "field_capacity_delta"])
+            "root_fraction_sand", "root_fraction_clay", "field_capacity_min", "field_capacity_delta"], &
+            group="soil_moisture_4")
       end select
 
       select case (processes%direct_runoff)
@@ -596,7 +598,7 @@ contains
           call check_parameter_status(status, "direct_runoff_1", "validate", errmsg)
           call self%exchange%parameters%add_process("direct_runoff", [ &
             parameter_config%direct_runoff_1%impervious_storage_capacity], [character(64) :: &
-            "impervious_storage_capacity"])
+            "impervious_storage_capacity"], group="direct_runoff_1")
       end select
 
       select case (processes%pet)
@@ -609,7 +611,7 @@ contains
           call check_parameter_status(status, "pet_m2", "validate", errmsg)
           call self%exchange%parameters%add_process("pet", [parameter_config%pet_m2%correction_factor_min, &
             parameter_config%pet_m2%correction_factor_max, parameter_config%pet_m2%aspect_threshold], &
-            [character(64) :: "correction_factor_min", "correction_factor_max", "aspect_threshold"])
+            [character(64) :: "correction_factor_min", "correction_factor_max", "aspect_threshold"], group="pet_m2")
         case (-1_i4)
           if (.not.parameter_config%pet_m1%is_configured .and. allocated(self%exchange%parameter_file)) then
             status = parameter_config%pet_m1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
@@ -620,7 +622,7 @@ contains
           call self%exchange%parameters%add_process("pet", [parameter_config%pet_m1%pet_a_forest, &
             parameter_config%pet_m1%pet_a_impervious, parameter_config%pet_m1%pet_a_pervious, &
             parameter_config%pet_m1%pet_b, parameter_config%pet_m1%pet_c], [character(64) :: &
-            "pet_a_forest", "pet_a_impervious", "pet_a_pervious", "pet_b", "pet_c"])
+            "pet_a_forest", "pet_a_impervious", "pet_a_pervious", "pet_b", "pet_c"], group="pet_m1")
         case (1_i4)
           if (.not.parameter_config%pet_1%is_configured .and. allocated(self%exchange%parameter_file)) then
             status = parameter_config%pet_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
@@ -631,7 +633,8 @@ contains
           call self%exchange%parameters%add_process("pet", [parameter_config%pet_1%correction_factor_min, &
             parameter_config%pet_1%correction_factor_max, parameter_config%pet_1%aspect_threshold, &
             parameter_config%pet_1%hargreaves_samani_coefficient], [character(64) :: &
-            "correction_factor_min", "correction_factor_max", "aspect_threshold", "hargreaves_samani_coefficient"])
+            "correction_factor_min", "correction_factor_max", "aspect_threshold", &
+            "hargreaves_samani_coefficient"], group="pet_1")
         case (2_i4)
           if (.not.parameter_config%pet_2%is_configured .and. allocated(self%exchange%parameter_file)) then
             status = parameter_config%pet_2%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
@@ -641,7 +644,7 @@ contains
           call check_parameter_status(status, "pet_2", "validate", errmsg)
           call self%exchange%parameters%add_process("pet", [parameter_config%pet_2%priestley_taylor_coefficient, &
             parameter_config%pet_2%priestley_taylor_lai_correction], [character(64) :: &
-            "priestley_taylor_coefficient", "priestley_taylor_lai_correction"])
+            "priestley_taylor_coefficient", "priestley_taylor_lai_correction"], group="pet_2")
         case (3_i4)
           if (.not.parameter_config%pet_3%is_configured .and. allocated(self%exchange%parameter_file)) then
             status = parameter_config%pet_3%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
@@ -656,7 +659,7 @@ contains
             parameter_config%pet_3%heat_roughness_length_coefficient, parameter_config%pet_3%stomatal_resistance], &
             [character(64) :: "canopy_height_forest", "canopy_height_impervious", "canopy_height_pervious", &
             "displacement_height_coefficient", "momentum_roughness_length_coefficient", &
-            "heat_roughness_length_coefficient", "stomatal_resistance"])
+            "heat_roughness_length_coefficient", "stomatal_resistance"], group="pet_3")
       end select
 
       select case (processes%interflow)
@@ -674,7 +677,7 @@ contains
             parameter_config%interflow_1%slow_recession_ks, &
             parameter_config%interflow_1%slow_recession_exponent], [character(64) :: &
             "storage_capacity_factor", "recession_slope", "fast_recession_forest", &
-            "slow_recession_ks", "slow_recession_exponent"])
+            "slow_recession_ks", "slow_recession_exponent"], group="interflow_1")
       end select
 
       select case (processes%percolation)
@@ -688,7 +691,7 @@ contains
           call self%exchange%parameters%add_process("percolation", [ &
             parameter_config%percolation_1%recharge_coefficient, &
             parameter_config%percolation_1%karstic_recharge_factor], [character(64) :: &
-            "recharge_coefficient", "karstic_recharge_factor"])
+            "recharge_coefficient", "karstic_recharge_factor"], group="percolation_1")
       end select
 
       select case (processes%baseflow)
@@ -704,7 +707,7 @@ contains
             baseflow_names(i) = "baseflow_recession(" // trim(adjustl(n2s(i))) // ")"
           end do
           call self%exchange%parameters%add_process("baseflow", &
-            parameter_config%baseflow_1%baseflow_recession, baseflow_names)
+            parameter_config%baseflow_1%baseflow_recession, baseflow_names, group="baseflow_1")
       end select
 
       select case (processes%neutrons)
@@ -717,7 +720,7 @@ contains
           call check_parameter_status(status, "neutrons_1", "validate", errmsg)
           call self%exchange%parameters%add_process("neutrons", [parameter_config%neutrons_1%desilets_n0, &
             parameter_config%neutrons_1%desilets_lw0, parameter_config%neutrons_1%desilets_lw1], &
-            [character(64) :: "desilets_n0", "desilets_lw0", "desilets_lw1"])
+            [character(64) :: "desilets_n0", "desilets_lw0", "desilets_lw1"], group="neutrons_1")
         case (2_i4)
           if (.not.parameter_config%neutrons_2%is_configured .and. allocated(self%exchange%parameter_file)) then
             status = parameter_config%neutrons_2%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
@@ -731,7 +734,7 @@ contains
             parameter_config%neutrons_2%cosmic_l30, parameter_config%neutrons_2%cosmic_l31, &
             parameter_config%neutrons_2%cosmic_lw0, parameter_config%neutrons_2%cosmic_lw1], [character(64) :: &
             "cosmic_n0", "cosmic_n1", "cosmic_n2", "cosmic_alpha0", "cosmic_alpha1", &
-            "cosmic_l30", "cosmic_l31", "cosmic_lw0", "cosmic_lw1"])
+            "cosmic_l30", "cosmic_l31", "cosmic_lw0", "cosmic_lw1"], group="neutrons_2")
       end select
     end associate
   end subroutine mpr_configure_parameters

@@ -225,7 +225,7 @@ contains
             parameter_config%routing_1%travel_time_impervious, &
             parameter_config%routing_1%attenuation_river_slope], [character(64) :: &
             "travel_time_constant", "travel_time_river_length", "travel_time_river_slope", &
-            "travel_time_impervious", "attenuation_river_slope"])
+            "travel_time_impervious", "attenuation_river_slope"], group="routing_1")
         case (2_i4)
           if (.not.parameter_config%routing_2%is_configured .and. allocated(self%exchange%parameter_file)) then
             status = parameter_config%routing_2%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
@@ -234,7 +234,7 @@ contains
           status = parameter_config%routing_2%is_valid(errmsg=errmsg)
           call check_parameter_status(status, "routing_2", "validate", errmsg)
           call self%exchange%parameters%add_process("routing", [parameter_config%routing_2%streamflow_celerity], &
-            [character(64) :: "streamflow_celerity"])
+            [character(64) :: "streamflow_celerity"], group="routing_2")
         case (3_i4)
           if (.not.parameter_config%routing_3%is_configured .and. allocated(self%exchange%parameter_file)) then
             status = parameter_config%routing_3%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
@@ -243,7 +243,7 @@ contains
           status = parameter_config%routing_3%is_valid(errmsg=errmsg)
           call check_parameter_status(status, "routing_3", "validate", errmsg)
           call self%exchange%parameters%add_process("routing", [parameter_config%routing_3%slope_factor], &
-            [character(64) :: "slope_factor"])
+            [character(64) :: "slope_factor"], group="routing_3")
       end select
 
       if (self%exchange%config%processes%temperature_routing == 1_i4) then
@@ -258,7 +258,8 @@ contains
           parameter_config%river_temperature_1%pt_a_water, &
           parameter_config%river_temperature_1%emissivity_water, &
           parameter_config%river_temperature_1%turbulent_heat_exchange_coefficient], [character(64) :: &
-          "albedo_water", "pt_a_water", "emissivity_water", "turbulent_heat_exchange_coefficient"])
+          "albedo_water", "pt_a_water", "emissivity_water", "turbulent_heat_exchange_coefficient"], &
+          group="river_temperature_1")
       end if
     end associate
   end subroutine mrm_configure_parameters
