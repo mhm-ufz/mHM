@@ -8,19 +8,19 @@ Configuration for process case selection in mHM.
 
 ## Fields
 
-| Name | Type | Required | Info |
-| --- | --- | --- | --- |
-| [interception](#interception) | integer | no | Interception process case |
-| [snow](#snow) | integer | no | Snow process case |
-| [soil_moisture](#soil_moisture) | integer | no | Soil moisture process case |
-| [direct_runoff](#direct_runoff) | integer | no | Direct runoff process case |
-| [pet](#pet) | integer | no | Potential evapotranspiration (PET) process case |
-| [interflow](#interflow) | integer | no | Interflow process case |
-| [percolation](#percolation) | integer | no | Percolation process case |
-| [baseflow](#baseflow) | integer | no | Baseflow process case |
-| [neutrons](#neutrons) | integer | no | Ground albedo of cosmic-ray neutrons process case |
-| [routing](#routing) | integer | no | Routing process case |
-| [temperature_routing](#temperature_routing) | integer | no | River temperature routing process case |
+| Name | Type | Declared required | Input required | Info |
+| --- | --- | --- | --- | --- |
+| [interception](#interception) | integer | no | no | Interception process case |
+| [snow](#snow) | integer | no | no | Snow process case |
+| [soil_moisture](#soil_moisture) | integer | no | no | Soil moisture process case |
+| [direct_runoff](#direct_runoff) | integer | no | no | Direct runoff process case |
+| [pet](#pet) | integer | no | no | Potential evapotranspiration (PET) process case |
+| [interflow](#interflow) | integer | no | no | Interflow process case |
+| [percolation](#percolation) | integer | no | no | Percolation process case |
+| [baseflow](#baseflow) | integer | no | no | Baseflow process case |
+| [neutrons](#neutrons) | integer | no | no | Ground albedo of cosmic-ray neutrons process case |
+| [routing](#routing) | integer | no | no | Routing process case |
+| [temperature_routing](#temperature_routing) | integer | no | no | River temperature routing process case |
 
 ## Field details
 
@@ -35,7 +35,8 @@ Process case for interception.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0`
 - Allowed values: `-1`, `0`, `1`
 - Examples: `1`
@@ -51,7 +52,8 @@ Process case for snow.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0`
 - Allowed values: `-1`, `0`, `1`
 - Examples: `1`
@@ -69,7 +71,8 @@ Process case for soil moisture.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0`
 - Allowed values: `0`, `1`, `2`, `3`, `4`
 - Examples: `1`
@@ -84,7 +87,8 @@ Process case for direct runoff.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0`
 - Allowed values: `0`, `1`
 - Examples: `1`
@@ -103,7 +107,8 @@ Process case for potential evapotranspiration (PET).
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0`
 - Allowed values: `-2`, `-1`, `0`, `1`, `2`, `3`
 - Examples: `-2`
@@ -118,7 +123,8 @@ Process case for interflow.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0`
 - Allowed values: `0`, `1`
 - Examples: `1`
@@ -133,7 +139,8 @@ Process case for percolation.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0`
 - Allowed values: `0`, `1`
 - Examples: `1`
@@ -148,7 +155,8 @@ Process case for baseflow.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0`
 - Allowed values: `0`, `1`
 - Examples: `1`
@@ -165,7 +173,8 @@ Work in progress, do not use for research.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0`
 - Allowed values: `0`, `1`, `2`
 - Examples: `0`
@@ -182,7 +191,8 @@ Process case for routing.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0`
 - Allowed values: `0`, `1`, `2`, `3`
 - Examples: `3`
@@ -197,7 +207,8 @@ River temperature routing process case (needs routing).
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `0`
 - Allowed values: `0`, `1`
 - Examples: `0`

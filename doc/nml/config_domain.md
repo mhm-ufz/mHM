@@ -8,10 +8,10 @@ Domain-indexed configuration for combined mHM runs with domain files.
 
 ## Fields
 
-| Name | Type | Required | Info |
-| --- | --- | --- | --- |
-| [domain_dirs](#domain_dirs) | string array | no | Domain directories |
-| [domain_nmls](#domain_nmls) | string array | no | Domain namelists |
+| Name | Type | Declared required | Input required | Info |
+| --- | --- | --- | --- | --- |
+| [domain_dirs](#domain_dirs) | string array | no | no | Domain directories |
+| [domain_nmls](#domain_nmls) | string array | no | no | Domain namelists |
 
 ## Field details
 
@@ -24,7 +24,8 @@ Paths to domain directories for combined runs with "read_domains_from_dirs" enab
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `directory-path`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### domain_nmls
 
@@ -36,7 +37,8 @@ The path will be interpreted as relative to the given domain directory.
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `"mhm.nml"`
 
 ## Example

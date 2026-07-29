@@ -8,33 +8,33 @@ Output configuration for mHM.
 
 ## Fields
 
-| Name | Type | Required | Info |
-| --- | --- | --- | --- |
-| [output_deflate_level](#output_deflate_level) | integer | no | Output deflate level |
-| [output_double_precision](#output_double_precision) | logical | no | Output double precision |
-| [output_time_reference](#output_time_reference) | integer | no | Output time reference |
-| [output_frequency](#output_frequency) | integer | no | Output time step |
-| [out_interception](#out_interception) | logical | no | Interception |
-| [out_snowpack](#out_snowpack) | logical | no | Snowpack |
-| [out_SWC](#out_swc) | logical | no | Layered Soil Water Content |
-| [out_SM](#out_sm) | logical | no | Layered Volumetric Soil Moisture |
-| [out_SM_all](#out_sm_all) | logical | no | Mean Volumetric Soil Moisture |
-| [out_sealedSTW](#out_sealedstw) | logical | no | Reservoir of Sealed areas |
-| [out_unsatSTW](#out_unsatstw) | logical | no | Reservoir of Unsaturated areas |
-| [out_satSTW](#out_satstw) | logical | no | Reservoir of Saturated areas |
-| [out_PET](#out_pet) | logical | no | Potential Evapotranspiration |
-| [out_aET_all](#out_aet_all) | logical | no | Mean actual Evapotranspiration |
-| [out_Q](#out_q) | logical | no | Total Discharge |
-| [out_QD](#out_qd) | logical | no | Direct Runoff |
-| [out_QIf](#out_qif) | logical | no | Fast Interflow |
-| [out_QIs](#out_qis) | logical | no | Slow Interflow |
-| [out_QB](#out_qb) | logical | no | Baseflow |
-| [out_recharge](#out_recharge) | logical | no | Groundwater Recharge |
-| [out_soil_infil](#out_soil_infil) | logical | no | Soil Infiltration |
-| [out_neutrons](#out_neutrons) | logical | no | Neutrons |
-| [out_aET_layer](#out_aet_layer) | logical | no | Actual Evapotranspiration from Soil Layers |
-| [out_preEffect](#out_preeffect) | logical | no | Effective Precipitation |
-| [out_Qsm](#out_qsm) | logical | no | Snow Melt |
+| Name | Type | Declared required | Input required | Info |
+| --- | --- | --- | --- | --- |
+| [output_deflate_level](#output_deflate_level) | integer | no | no | Output deflate level |
+| [output_double_precision](#output_double_precision) | logical | no | no | Output double precision |
+| [output_time_reference](#output_time_reference) | integer | no | no | Output time reference |
+| [output_frequency](#output_frequency) | integer | no | no | Output time step |
+| [out_interception](#out_interception) | logical | no | no | Interception |
+| [out_snowpack](#out_snowpack) | logical | no | no | Snowpack |
+| [out_SWC](#out_swc) | logical | no | no | Layered Soil Water Content |
+| [out_SM](#out_sm) | logical | no | no | Layered Volumetric Soil Moisture |
+| [out_SM_all](#out_sm_all) | logical | no | no | Mean Volumetric Soil Moisture |
+| [out_sealedSTW](#out_sealedstw) | logical | no | no | Reservoir of Sealed areas |
+| [out_unsatSTW](#out_unsatstw) | logical | no | no | Reservoir of Unsaturated areas |
+| [out_satSTW](#out_satstw) | logical | no | no | Reservoir of Saturated areas |
+| [out_PET](#out_pet) | logical | no | no | Potential Evapotranspiration |
+| [out_aET_all](#out_aet_all) | logical | no | no | Mean actual Evapotranspiration |
+| [out_Q](#out_q) | logical | no | no | Total Discharge |
+| [out_QD](#out_qd) | logical | no | no | Direct Runoff |
+| [out_QIf](#out_qif) | logical | no | no | Fast Interflow |
+| [out_QIs](#out_qis) | logical | no | no | Slow Interflow |
+| [out_QB](#out_qb) | logical | no | no | Baseflow |
+| [out_recharge](#out_recharge) | logical | no | no | Groundwater Recharge |
+| [out_soil_infil](#out_soil_infil) | logical | no | no | Soil Infiltration |
+| [out_neutrons](#out_neutrons) | logical | no | no | Neutrons |
+| [out_aET_layer](#out_aet_layer) | logical | no | no | Actual Evapotranspiration from Soil Layers |
+| [out_preEffect](#out_preeffect) | logical | no | no | Effective Precipitation |
+| [out_Qsm](#out_qsm) | logical | no | no | Snow Melt |
 
 ## Field details
 
@@ -46,7 +46,8 @@ Compression level for netCDF4 outputs (0: no compression, 9: maximum compression
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `6`
 - Minimum: `>= 0`
 - Maximum: `<= 9`
@@ -57,7 +58,8 @@ Output double precision `output_double_precision`
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### output_time_reference
@@ -71,7 +73,8 @@ Location of reference time point in outputs:
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `2`
 - Allowed values: `0`, `1`, `2`
 
@@ -88,7 +91,8 @@ switch to control write out frequency of the gridded model outputs below
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `-2`
 - Minimum: `>= -3`
 
@@ -100,7 +104,8 @@ Canopy interception storage (L1_inter) [mm]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_snowpack
@@ -111,7 +116,8 @@ Height of snowpack (L1_snowpack) [mm]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_SWC
@@ -122,7 +128,8 @@ soil water content in the single layers (L1_soilMoist)
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_SM
@@ -133,7 +140,8 @@ volumetric soil moisture in the single layers (L1_soilMoist / L1_soilMoistSat) [
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_SM_all
@@ -144,7 +152,8 @@ mean volumetric soil moisture averaged over all soil layers (L1_soilMoist / L1_s
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_sealedSTW
@@ -155,7 +164,8 @@ waterdepth in reservoir of sealed areas (L1_sealSTW) [mm]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_unsatSTW
@@ -166,7 +176,8 @@ waterdepth in reservoir of unsat. soil zone (L1_unsatSTW) [mm]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_satSTW
@@ -178,7 +189,8 @@ Water depth in reservoir of sat. soil zone (L1_satSTW) [mm]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_PET
@@ -189,7 +201,8 @@ Potential evapotranspiration PET [mm/T]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_aET_all
@@ -200,7 +213,8 @@ Actual evapotranspiration aET [mm/T]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_Q
@@ -211,7 +225,8 @@ Total discharge generated per cell (L1_total_runoff) [mm/T]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_QD
@@ -222,7 +237,8 @@ Direct runoff generated per cell (L1_runoffSeal) [mm/T]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_QIf
@@ -233,7 +249,8 @@ Fast interflow generated per cell (L1_fastRunoff) [mm/T]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_QIs
@@ -244,7 +261,8 @@ Slow interflow generated per cell (L1_slowRunoff) [mm/T]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_QB
@@ -255,7 +273,8 @@ Baseflow generated per cell (L1_baseflow) [mm/T]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_recharge
@@ -266,7 +285,8 @@ Groundwater Recharge (L1_percol) [mm/T]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_soil_infil
@@ -277,7 +297,8 @@ Infiltration (L1_infilSoil) [mm/T]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_neutrons
@@ -289,7 +310,8 @@ THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_aET_layer
@@ -300,7 +322,8 @@ Actual evapotranspiration from the soil layers [mm/T]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_preEffect
@@ -311,7 +334,8 @@ Effective Precipitation (L1_preEffect) [mm/T]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### out_Qsm
@@ -322,7 +346,8 @@ Snow melt (L1_melt) [mm/T]
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ## Example

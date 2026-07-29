@@ -37,8 +37,8 @@ program driver
   call parser%add_option(name="nml", s_name="n", has_value=.true., &
     value_name="path", default="mhm.nml", help="The mHM configuration namelist.")
 
-  call parser%add_option(name="parameter", s_name="p", has_value=.true., &
-    value_name="path", default="parameter.nml", help="The mHM parameter namelist.")
+  call parser%add_option(name="parameters", s_name="p", has_value=.true., &
+    value_name="path", default="parameters.nml", help="The mHM parameter namelist.")
 
   call parser%add_option(name="output", s_name="o", has_value=.true., &
     value_name="path", default="outputs.nml", help="The mHM output namelist.")
@@ -81,7 +81,7 @@ program driver
 
   ! global config file names; components resolve them against the run root
   main_file = parser%option_value("nml")
-  para_file = parser%option_value("parameter")
+  para_file = parser%option_value("parameters")
   out_file  = parser%option_value("output")
 
   ! get number of domains

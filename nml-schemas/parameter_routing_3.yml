@@ -1,0 +1,13 @@
+title: Routing - Case 3
+description: Parameters for varying-celerity routing.
+x-fortran-namelist: routing_3
+type: object
+properties:
+  slope_factor:
+    $ref: parameter.yml#/$defs/parameter
+    title: Slope factor
+    default: {lower_bound: 0.1, upper_bound: 100.0}
+    properties:
+      value: {examples: [30.0]}
+      optimize: {examples: [false]}
+required: [slope_factor]

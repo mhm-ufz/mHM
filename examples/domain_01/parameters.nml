@@ -1,0 +1,77 @@
+! Parameters used by this v6 example domain (n_geo_units = 10).
+
+&interception_1
+  canopy_interception_factor = 0.15, .true.
+/
+
+&snow_1
+  snow_threshold_temperature = 1.0, .true.
+  degree_day_factor_forest = 1.5, .true.
+  degree_day_factor_impervious = 0.5, .true.
+  degree_day_factor_pervious = 0.5, .true.
+  degree_day_factor_precipitation = 0.5, .true.
+  max_degree_day_factor_forest = 3.0, .true.
+  max_degree_day_factor_impervious = 3.5, .true.
+  max_degree_day_factor_pervious = 4.0, .true.
+/
+
+&soil_moisture_1
+  organic_matter_forest = 7.0, .true.
+  organic_matter_impervious = 0.5, .true.
+  organic_matter_pervious = 2.5, .true.
+  ptf_lower_66_5_constant = 0.788, .true.
+  ptf_lower_66_5_clay = 0.001, .true.
+  ptf_lower_66_5_bulk_density = -0.263, .true.
+  ptf_upper_66_5_constant = 0.8907, .true.
+  ptf_upper_66_5_clay = -0.001, .true.
+  ptf_upper_66_5_bulk_density = -0.322, .true.
+  ptf_ks_constant = -0.585, .true.
+  ptf_ks_sand = 0.0125, .true.
+  ptf_ks_clay = 0.0063, .true.
+  root_fraction_forest = 0.97, .true.
+  root_fraction_impervious = 0.93, .true.
+  root_fraction_pervious = 0.02, .true.
+  infiltration_shape_factor = 1.75, .true.
+/
+
+&direct_runoff_1
+  impervious_storage_capacity = 0.5, .true.
+/
+
+&pet_m1
+  pet_a_forest = 0.3, .true.
+  pet_a_impervious = 0.8, .true.
+  pet_a_pervious = 1.3, .true.
+  pet_b = 1.5, .true.
+  pet_c = -0.7, .true.
+/
+
+&interflow_1
+  storage_capacity_factor = 85.0, .true.
+  recession_slope = 7.0, .true.
+  fast_recession_forest = 1.5, .true.
+  slow_recession_ks = 15.0, .true.
+  slow_recession_exponent = 0.125, .true.
+/
+
+&percolation_1
+  recharge_coefficient = 35.0, .true.
+  karstic_recharge_factor = -1.0, .true.
+/
+
+&baseflow_1
+  baseflow_recession(1) = 100.0, .true.
+  baseflow_recession(2) = 100.0, .true.
+  baseflow_recession(3) = 100.0, .true.
+  baseflow_recession(4) = 100.0, .true.
+  baseflow_recession(5) = 100.0
+  baseflow_recession(6) = 100.0
+  baseflow_recession(7) = 100.0, .true.
+  baseflow_recession(8) = 100.0
+  baseflow_recession(9) = 100.0, .true.
+  baseflow_recession(10) = 100.0, .true.
+/
+
+&routing_3
+  slope_factor = 30.0
+/

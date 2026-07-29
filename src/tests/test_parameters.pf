@@ -1,0 +1,165 @@
+module test_parameters
+  use funit
+  use mo_kind, only: dp
+  use mo_main_config, only: parameters_t
+  use nml_helper, only: NML_OK, parameter_t
+  use nml_pet_m2, only: nml_pet_m2_t
+  use nml_baseflow_1, only: nml_baseflow_1_t
+
+  implicit none
+  private
+
+  public :: test_parameter_registry, test_empty_parameter_registry, test_parameter_namelist_writer
+
+contains
+
+  @test
+  subroutine test_parameter_registry()
+    type(parameters_t) :: parameters
+    type(parameter_t) :: snow(2)
+    type(parameter_t) :: routing(1)
+    real(dp), allocatable :: flat(:)
+    real(dp), allocatable :: local(:)
+    real(dp), allocatable :: initial(:)
+    real(dp), allocatable :: bounds(:, :)
+    logical, allocatable :: mask(:)
+    character(256), allocatable :: names(:)
+
+    snow(1) = parameter_t(value=1.0_dp, optimize=.true., lower_bound=-2.0_dp, upper_bound=2.0_dp)
+    snow(2) = parameter_t(value=1.5_dp, optimize=.false., lower_bound=0.1_dp, upper_bound=4.0_dp)
+    routing(1) = parameter_t(value=2.0_dp, optimize=.true., lower_bound=0.1_dp, upper_bound=15.0_dp)
+
+    call parameters%begin_configuration()
+    call parameters%add_process( &
+      "Snow", snow, [character(32) :: "threshold", "degree_day_factor"], group="snow_1")
+    call parameters%add_process("routing", routing, [character(32) :: "celerity"], group="routing_2")
+    call parameters%seal()
+
+    flat = parameters%as_array()
+    @assertEqual([1.0_dp, 1.5_dp, 2.0_dp], flat, tolerance=1.0e-12_dp, message='deterministic flattening')
+
+    local = parameters%get_process("SNOW")
+    @assertEqual([1.0_dp, 1.5_dp], local, tolerance=1.0e-12_dp, message='case-insensitive process lookup')
+
+    call parameters%set([0.5_dp, 2.0_dp, 3.0_dp])
+    @assertFalse(parameters%is_default("snow"), message='set changes current values only')
+    local = parameters%get_process("routing")
+    @assertEqual([3.0_dp], local, tolerance=1.0e-12_dp, message='set distributes flattened values')
+
+    call parameters%get_optimizer_data(initial, bounds, mask, names)
+    @assertEqual([1.0_dp, 1.5_dp, 2.0_dp], initial, tolerance=1.0e-12_dp, message='optimizer initial values')
+    @assertEqual([-2.0_dp, 0.1_dp, 0.1_dp], bounds(:, 1), tolerance=1.0e-12_dp, message='lower bounds')
+    @assertEqual([2.0_dp, 4.0_dp, 15.0_dp], bounds(:, 2), tolerance=1.0e-12_dp, message='upper bounds')
+    @assertTrue(all(mask .eqv. [.true., .false., .true.]), message='optimization mask')
+    @assertEqual("snow.threshold", trim(names(1)), message='first qualified name')
+    @assertEqual("snow.degree_day_factor", trim(names(2)), message='second qualified name')
+    @assertEqual("routing.celerity", trim(names(3)), message='third qualified name')
+
+    call parameters%reset()
+    @assertTrue(parameters%is_default("snow"), message='reset restores configured values')
+    flat = parameters%as_array()
+    @assertEqual([1.0_dp, 1.5_dp, 2.0_dp], flat, tolerance=1.0e-12_dp, message='reset flattened values')
+  end subroutine test_parameter_registry
+
+  @test
+  subroutine test_empty_parameter_registry()
+    character(*), parameter :: file = "test_empty_parameter_registry.nml"
+    type(parameters_t) :: parameters
+    real(dp), allocatable :: flat(:)
+    real(dp), allocatable :: initial(:)
+    real(dp), allocatable :: bounds(:, :)
+    logical, allocatable :: mask(:)
+    character(256), allocatable :: names(:)
+    character(256) :: line
+    integer :: status
+    integer :: unit
+
+    call parameters%begin_configuration()
+    call parameters%seal()
+    flat = parameters%as_array()
+    call parameters%get_optimizer_data(initial, bounds, mask, names)
+
+    @assertEqual(0, size(flat), message='empty flattened registry')
+    @assertEqual(0, size(initial), message='empty optimizer initial values')
+    @assertEqual(0, size(mask), message='empty optimizer mask')
+    @assertEqual(0, size(names), message='empty optimizer names')
+    @assertEqual(0, size(bounds, 1), message='empty optimizer bounds')
+    @assertEqual(2, size(bounds, 2), message='bounds retain two columns')
+
+    call parameters%write_namelist(file)
+    open(newunit=unit, file=file, status="old", action="read", iostat=status)
+    @assertEqual(0, status, message="could not open empty registry output")
+    read(unit, '(a)', iostat=status) line
+    @assertEqual(0, status, message="could not read empty registry output")
+    @assertEqual("! Final v6 parameter values for forward simulation.", trim(line))
+    read(unit, '(a)', iostat=status) line
+    @assertTrue(status /= 0, message="empty registry output contains an unexpected namelist")
+    close(unit, status="delete")
+  end subroutine test_empty_parameter_registry
+
+  @test
+  subroutine test_parameter_namelist_writer()
+    character(*), parameter :: file = "test_parameter_namelist_writer.nml"
+    type(parameters_t) :: parameters
+    type(parameter_t) :: pet(3)
+    type(parameter_t) :: baseflow(2)
+    type(nml_pet_m2_t) :: pet_config
+    type(nml_baseflow_1_t) :: baseflow_config
+    real(dp) :: current(5)
+    real(dp) :: candidate(5)
+    real(dp), allocatable :: registry_values(:)
+    character(1024) :: errmsg
+    integer :: status
+    integer :: unit
+
+    pet(1) = parameter_t(value=0.9_dp, optimize=.true., lower_bound=0.7_dp, upper_bound=1.3_dp)
+    pet(2) = parameter_t(value=0.1_dp, optimize=.true., lower_bound=0.0_dp, upper_bound=0.2_dp)
+    pet(3) = parameter_t(value=180.0_dp, optimize=.true., lower_bound=160.0_dp, upper_bound=200.0_dp)
+    baseflow(1) = parameter_t(value=100.0_dp, optimize=.true., lower_bound=1.0_dp, upper_bound=1000.0_dp)
+    baseflow(2) = parameter_t(value=200.0_dp, optimize=.true., lower_bound=1.0_dp, upper_bound=1000.0_dp)
+
+    call parameters%begin_configuration()
+    call parameters%add_process("pet", pet, &
+      [character(32) :: "correction_factor_min", "correction_factor_max", "aspect_threshold"], group="pet_m2")
+    call parameters%add_process("baseflow", baseflow, &
+      [character(32) :: "baseflow_recession(1)", "baseflow_recession(2)"], group="baseflow_1")
+    call parameters%seal()
+
+    current = [1.0_dp, 0.15_dp, 175.0_dp, 110.0_dp, 210.0_dp]
+    candidate = [1.1_dp, 0.05_dp, 190.0_dp, 150.0_dp, 250.0_dp]
+    call parameters%set(current)
+    call parameters%write_namelist(file)
+
+    status = pet_config%from_file(file=file, errmsg=errmsg)
+    @assertEqual(NML_OK, status, message="could not read current PET values: " // trim(errmsg))
+    @assertEqual(current(1), pet_config%correction_factor_min%value, tolerance=1.0e-12_dp)
+    @assertEqual(current(2), pet_config%correction_factor_max%value, tolerance=1.0e-12_dp)
+    @assertEqual(current(3), pet_config%aspect_threshold%value, tolerance=1.0e-12_dp)
+
+    call parameters%write_namelist(file, candidate)
+    registry_values = parameters%as_array()
+    @assertEqual(current, registry_values, tolerance=1.0e-12_dp, message="writer changed current registry values")
+
+    status = pet_config%from_file(file=file, errmsg=errmsg)
+    @assertEqual(NML_OK, status, message="could not read candidate PET values: " // trim(errmsg))
+    @assertEqual(candidate(1), pet_config%correction_factor_min%value, tolerance=1.0e-12_dp)
+    @assertEqual(candidate(2), pet_config%correction_factor_max%value, tolerance=1.0e-12_dp)
+    @assertEqual(candidate(3), pet_config%aspect_threshold%value, tolerance=1.0e-12_dp)
+    @assertFalse(pet_config%correction_factor_min%optimize, message="writer persisted PET optimize metadata")
+    @assertEqual(0.7_dp, pet_config%correction_factor_min%lower_bound, tolerance=1.0e-12_dp)
+    @assertEqual(1.3_dp, pet_config%correction_factor_min%upper_bound, tolerance=1.0e-12_dp)
+
+    status = baseflow_config%set_dims(n_geo_units=2, errmsg=errmsg)
+    @assertEqual(NML_OK, status, message="could not set baseflow dimensions: " // trim(errmsg))
+    status = baseflow_config%from_file(file=file, errmsg=errmsg)
+    @assertEqual(NML_OK, status, message="could not read candidate baseflow values: " // trim(errmsg))
+    @assertEqual(candidate(4:5), baseflow_config%baseflow_recession%value, tolerance=1.0e-12_dp)
+    @assertTrue(all(.not.baseflow_config%baseflow_recession%optimize), message="writer persisted baseflow optimize metadata")
+    @assertEqual([1.0_dp, 1.0_dp], baseflow_config%baseflow_recession%lower_bound, tolerance=1.0e-12_dp)
+    @assertEqual([1000.0_dp, 1000.0_dp], baseflow_config%baseflow_recession%upper_bound, tolerance=1.0e-12_dp)
+
+    open(newunit=unit, file=file, status="old", iostat=status)
+    if (status == 0) close(unit, status="delete")
+  end subroutine test_parameter_namelist_writer
+
+end module test_parameters

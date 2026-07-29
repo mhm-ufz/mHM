@@ -162,6 +162,7 @@ module mo_mhm_container
     type(mhm_contract_state_t) :: contract !< internal ownership of couplable subprocess outputs
     type(mhm_io_state_t) :: io !< restart/output bookkeeping
     type(mhm_runtime_state_t) :: runtime !< scalar runtime bookkeeping
+    logical :: active = .false. !< whether mHM participates in the configured domain
   contains
     procedure :: set_dims => mhm_set_dims
     procedure :: configure => mhm_configure
@@ -177,6 +178,7 @@ module mo_mhm_container
     procedure :: update_baseflow => mhm_update_baseflow
     procedure :: update_total_runoff => mhm_update_total_runoff
     procedure :: update_neutrons => mhm_update_neutrons
+    procedure, private :: require_parameter_inputs => mhm_require_parameter_inputs
     procedure, private :: reset_fields => mhm_reset_fields
     procedure, private :: filter_output => mhm_filter_output
     procedure, private :: publish_exchange => mhm_publish_exchange
@@ -222,6 +224,13 @@ contains
     integer :: status
 
     log_info(*) "Configure mhm"
+    self%active = any([ &
+      self%exchange%config%processes%interception, self%exchange%config%processes%snow, &
+      self%exchange%config%processes%soil_moisture, self%exchange%config%processes%direct_runoff, &
+      self%exchange%config%processes%pet, self%exchange%config%processes%interflow, &
+      self%exchange%config%processes%percolation, self%exchange%config%processes%baseflow, &
+      self%exchange%config%processes%neutrons] /= 0_i4)
+    if (.not.self%active) return
     if (present(file)) then
       path = self%exchange%get_path(file)
       log_info(*) "Read mhm config: ", path
@@ -298,7 +307,6 @@ contains
     logical :: allocate_throughfall
     logical :: allocate_pre_effect
     logical :: allocate_rain
-    logical :: need_f_sealed
     integer :: status
     character(1024) :: errmsg
 
@@ -343,15 +351,15 @@ contains
       error stop 1
     end if
 
-    interception_case = self%exchange%parameters%process_matrix(1, 1)
-    snow_case = self%exchange%parameters%process_matrix(2, 1)
-    soil_case = self%exchange%parameters%process_matrix(3, 1)
-    direct_runoff_case = self%exchange%parameters%process_matrix(4, 1)
-    interflow_case = self%exchange%parameters%process_matrix(6, 1)
-    percolation_case = self%exchange%parameters%process_matrix(7, 1)
-    routing_case = self%exchange%parameters%process_matrix(8, 1)
-    baseflow_case = self%exchange%parameters%process_matrix(9, 1)
-    neutron_case = self%exchange%parameters%process_matrix(10, 1)
+    interception_case = self%exchange%config%processes%interception
+    snow_case = self%exchange%config%processes%snow
+    soil_case = self%exchange%config%processes%soil_moisture
+    direct_runoff_case = self%exchange%config%processes%direct_runoff
+    interflow_case = self%exchange%config%processes%interflow
+    percolation_case = self%exchange%config%processes%percolation
+    routing_case = self%exchange%config%processes%routing
+    baseflow_case = self%exchange%config%processes%baseflow
+    neutron_case = self%exchange%config%processes%neutrons
 
     if ((interflow_case == 0_i4) .neqv. (percolation_case == 0_i4)) then
       log_fatal(*) "mHM: interflow and percolation must currently be activated together on the exchange path."
@@ -387,49 +395,11 @@ contains
 
     call self%filter_output()
 
-    need_f_sealed = &
-           (soil_case /= 0_i4) &
-      .or. (direct_runoff_case /= 0_i4) &
-      .or. (interflow_case /= 0_i4) &
-      .or. (baseflow_case /= 0_i4) &
-      .or. self%io%calc_f_not_sealed &
-      .or. self%output_config%out_qd &
-      .or. (self%output_config%out_aet_all .and. self%exchange%aet_sealed%available(owned=self%contract%own_aet_sealed))
-
     call self%exchange%pre%require("mHM", (interception_case /= 0_i4) .or. (snow_case == 1_i4), expected_shape_1d)
     call self%exchange%temp%require("mHM", snow_case == 1_i4, expected_shape_1d)
     call self%exchange%pet%require("mHM", &
       (interception_case == 1_i4) .or. (soil_case /= 0_i4) .or. (direct_runoff_case /= 0_i4) .or. &
       self%output_config%out_pet, expected_shape_1d)
-
-    call self%exchange%max_interception%require("mHM", interception_case == 1_i4, expected_shape_1d)
-    call self%exchange%thresh_temp%require("mHM", snow_case == 1_i4, expected_shape_1d)
-    call self%exchange%degday_dry%require("mHM", snow_case == 1_i4, expected_shape_1d)
-    call self%exchange%degday_inc%require("mHM", snow_case == 1_i4, expected_shape_1d)
-    call self%exchange%degday_max%require("mHM", snow_case == 1_i4, expected_shape_1d)
-
-    call self%exchange%f_sealed%require("mHM", need_f_sealed ,expected_shape_1d)
-    call self%exchange%f_roots%require("mHM", soil_case /= 0_i4, expected_shape_2d)
-    call self%exchange%sm_saturation%require("mHM", &
-      (soil_case /= 0_i4) .or. self%output_config%out_sm .or. self%output_config%out_sm_all, expected_shape_2d)
-    call self%exchange%sm_exponent%require("mHM", soil_case /= 0_i4, expected_shape_2d)
-    call self%exchange%sm_field_capacity%require("mHM", soil_case /= 0_i4, expected_shape_2d)
-    call self%exchange%wilting_point%require("mHM", soil_case /= 0_i4, expected_shape_2d)
-    call self%exchange%thresh_jarvis%require("mHM", (soil_case == 2_i4) .or. (soil_case == 3_i4), expected_shape_1d)
-    call self%exchange%thresh_sealed%require("mHM", direct_runoff_case /= 0_i4, expected_shape_1d)
-
-    call self%exchange%alpha%require("mHM", interflow_case /= 0_i4, expected_shape_1d)
-    call self%exchange%k_fastflow%require("mHM", interflow_case /= 0_i4, expected_shape_1d)
-    call self%exchange%k_slowflow%require("mHM", interflow_case /= 0_i4, expected_shape_1d)
-    call self%exchange%k_percolation%require("mHM", percolation_case /= 0_i4, expected_shape_1d)
-    call self%exchange%f_karst_loss%require("mHM", percolation_case /= 0_i4, expected_shape_1d)
-    call self%exchange%thresh_unsat%require("mHM", interflow_case /= 0_i4, expected_shape_1d)
-    call self%exchange%k_baseflow%require("mHM", baseflow_case /= 0_i4, expected_shape_1d)
-
-    call self%exchange%desilets_n0%require("mHM", neutron_case /= 0_i4, expected_shape_1d)
-    call self%exchange%bulk_density%require("mHM", neutron_case /= 0_i4, expected_shape_2d)
-    call self%exchange%lattice_water%require("mHM", neutron_case /= 0_i4, expected_shape_2d)
-    call self%exchange%cosmic_l3%require("mHM", neutron_case == 2_i4, expected_shape_2d)
 
     call allocate_1d(self%canopy%interception, n_cells, self%contract%own_interception)
     call allocate_1d(self%canopy%throughfall, n_cells, allocate_throughfall)
@@ -496,11 +466,12 @@ contains
       log_fatal(*) "mHM: soil horizon metadata not initialized before initialize."
       error stop 1
     end if
+    call self%require_parameter_inputs()
 
     coeff_domain = self%exchange%nml_domain_id
     id(1) = self%exchange%nml_domain_id
     if (self%config%share_evap_coeff) coeff_domain = 1_i4
-    direct_runoff_case = self%exchange%parameters%process_matrix(4, 1)
+    direct_runoff_case = self%exchange%config%processes%direct_runoff
     if (direct_runoff_case /= 0_i4) then
       self%forcing%evap_coeff = self%config%evap_coeff(:, coeff_domain)
       if (any(.not.ieee_is_finite(self%forcing%evap_coeff))) then
@@ -517,7 +488,7 @@ contains
       error stop 1
     end if
 
-    neutron_case = self%exchange%parameters%process_matrix(10, 1)
+    neutron_case = self%exchange%config%processes%neutrons
     if (allocated(self%neutrons%integral_afast)) deallocate(self%neutrons%integral_afast)
     if (neutron_case == 2_i4) then
       allocate(self%neutrons%integral_afast(10000 + 2))
@@ -532,6 +503,73 @@ contains
 
     call self%create_output()
   end subroutine mhm_initialize
+
+  !> \brief Validate MPR fields rebuilt from the current parameter registry values.
+  subroutine mhm_require_parameter_inputs(self)
+    class(mhm_t), intent(inout), target :: self
+    integer(i4) :: n_horizons
+    integer(i4) :: interception_case
+    integer(i4) :: snow_case
+    integer(i4) :: soil_case
+    integer(i4) :: direct_runoff_case
+    integer(i4) :: interflow_case
+    integer(i4) :: percolation_case
+    integer(i4) :: baseflow_case
+    integer(i4) :: neutron_case
+    integer(i8) :: expected_shape_1d(1)
+    integer(i8) :: expected_shape_2d(2)
+    logical :: need_f_sealed
+
+    n_horizons = size(self%soil%horizon_bounds) - 1_i4
+    expected_shape_1d = [self%exchange%level1%ncells]
+    expected_shape_2d = [self%exchange%level1%ncells, int(n_horizons, i8)]
+    interception_case = self%exchange%config%processes%interception
+    snow_case = self%exchange%config%processes%snow
+    soil_case = self%exchange%config%processes%soil_moisture
+    direct_runoff_case = self%exchange%config%processes%direct_runoff
+    interflow_case = self%exchange%config%processes%interflow
+    percolation_case = self%exchange%config%processes%percolation
+    baseflow_case = self%exchange%config%processes%baseflow
+    neutron_case = self%exchange%config%processes%neutrons
+
+    need_f_sealed = &
+           (soil_case /= 0_i4) &
+      .or. (direct_runoff_case /= 0_i4) &
+      .or. (interflow_case /= 0_i4) &
+      .or. (baseflow_case /= 0_i4) &
+      .or. self%io%calc_f_not_sealed &
+      .or. self%output_config%out_qd &
+      .or. (self%output_config%out_aet_all .and. self%exchange%aet_sealed%available(owned=self%contract%own_aet_sealed))
+
+    call self%exchange%max_interception%require("mHM", interception_case == 1_i4, expected_shape_1d)
+    call self%exchange%thresh_temp%require("mHM", snow_case == 1_i4, expected_shape_1d)
+    call self%exchange%degday_dry%require("mHM", snow_case == 1_i4, expected_shape_1d)
+    call self%exchange%degday_inc%require("mHM", snow_case == 1_i4, expected_shape_1d)
+    call self%exchange%degday_max%require("mHM", snow_case == 1_i4, expected_shape_1d)
+
+    call self%exchange%f_sealed%require("mHM", need_f_sealed, expected_shape_1d)
+    call self%exchange%f_roots%require("mHM", soil_case /= 0_i4, expected_shape_2d)
+    call self%exchange%sm_saturation%require("mHM", &
+      (soil_case /= 0_i4) .or. self%output_config%out_sm .or. self%output_config%out_sm_all, expected_shape_2d)
+    call self%exchange%sm_exponent%require("mHM", soil_case /= 0_i4, expected_shape_2d)
+    call self%exchange%sm_field_capacity%require("mHM", soil_case /= 0_i4, expected_shape_2d)
+    call self%exchange%wilting_point%require("mHM", soil_case /= 0_i4, expected_shape_2d)
+    call self%exchange%thresh_jarvis%require("mHM", (soil_case == 2_i4) .or. (soil_case == 3_i4), expected_shape_1d)
+    call self%exchange%thresh_sealed%require("mHM", direct_runoff_case /= 0_i4, expected_shape_1d)
+
+    call self%exchange%alpha%require("mHM", interflow_case /= 0_i4, expected_shape_1d)
+    call self%exchange%k_fastflow%require("mHM", interflow_case /= 0_i4, expected_shape_1d)
+    call self%exchange%k_slowflow%require("mHM", interflow_case /= 0_i4, expected_shape_1d)
+    call self%exchange%k_percolation%require("mHM", percolation_case /= 0_i4, expected_shape_1d)
+    call self%exchange%f_karst_loss%require("mHM", percolation_case /= 0_i4, expected_shape_1d)
+    call self%exchange%thresh_unsat%require("mHM", interflow_case /= 0_i4, expected_shape_1d)
+    call self%exchange%k_baseflow%require("mHM", baseflow_case /= 0_i4, expected_shape_1d)
+
+    call self%exchange%desilets_n0%require("mHM", neutron_case /= 0_i4, expected_shape_1d)
+    call self%exchange%bulk_density%require("mHM", neutron_case /= 0_i4, expected_shape_2d)
+    call self%exchange%lattice_water%require("mHM", neutron_case /= 0_i4, expected_shape_2d)
+    call self%exchange%cosmic_l3%require("mHM", neutron_case == 2_i4, expected_shape_2d)
+  end subroutine mhm_require_parameter_inputs
 
   !> \brief Update the mHM process container for the current time step.
   subroutine mhm_update(self)
@@ -752,7 +790,7 @@ contains
     integer(i4) :: interception_case
     integer(i4) :: k
 
-    interception_case = self%exchange%parameters%process_matrix(1, 1)
+    interception_case = self%exchange%config%processes%interception
     select case (interception_case)
     case (-1_i4)
       !$omp do schedule(static)
@@ -782,7 +820,7 @@ contains
     integer(i4) :: snow_case
     integer(i4) :: k
 
-    snow_case = self%exchange%parameters%process_matrix(2, 1)
+    snow_case = self%exchange%config%processes%snow
     select case (snow_case)
     case (-1_i4)
       !$omp do schedule(static)
@@ -818,7 +856,7 @@ contains
     integer(i4) :: month
     integer(i4) :: k
 
-    direct_runoff_case = self%exchange%parameters%process_matrix(4, 1)
+    direct_runoff_case = self%exchange%config%processes%direct_runoff
     select case (direct_runoff_case)
     case (0_i4)
       continue
@@ -852,7 +890,7 @@ contains
     real(dp), allocatable :: tmp_soil_moisture(:)
     real(dp), allocatable :: tmp_aet(:)
 
-    soil_case = self%exchange%parameters%process_matrix(3, 1)
+    soil_case = self%exchange%config%processes%soil_moisture
     if (soil_case == 0_i4) then
       return
     end if
@@ -892,8 +930,8 @@ contains
     integer(i4) :: n_horizons
     integer(i4) :: k
 
-    interflow_case = self%exchange%parameters%process_matrix(6, 1)
-    percolation_case = self%exchange%parameters%process_matrix(7, 1)
+    interflow_case = self%exchange%config%processes%interflow
+    percolation_case = self%exchange%config%processes%percolation
     if (interflow_case == 0_i4 .and. percolation_case == 0_i4) then
       return
     end if
@@ -920,7 +958,7 @@ contains
     integer(i4) :: baseflow_case
     integer(i4) :: k
 
-    baseflow_case = self%exchange%parameters%process_matrix(9, 1)
+    baseflow_case = self%exchange%config%processes%baseflow
     select case (baseflow_case)
     case (0_i4)
       continue
@@ -971,7 +1009,7 @@ contains
     integer(i4) :: n_layers
     integer(i4) :: k
 
-    neutron_case = self%exchange%parameters%process_matrix(10, 1)
+    neutron_case = self%exchange%config%processes%neutrons
     if (neutron_case == 0_i4) then
       return
     end if
@@ -1031,13 +1069,13 @@ contains
     nc_var = nc%setVariable("mhm_meta", "i32", dims0(:0))
     call nc_var%setAttribute("time_stamp", self%exchange%time%str())
     call nc_var%setAttribute("domain", self%exchange%nml_domain_id)
-    call nc_var%setAttribute("interception_case", self%exchange%parameters%process_matrix(1, 1))
-    call nc_var%setAttribute("snow_case", self%exchange%parameters%process_matrix(2, 1))
-    call nc_var%setAttribute("soil_moisture_case", self%exchange%parameters%process_matrix(3, 1))
-    call nc_var%setAttribute("direct_runoff_case", self%exchange%parameters%process_matrix(4, 1))
-    call nc_var%setAttribute("interflow_case", self%exchange%parameters%process_matrix(6, 1))
-    call nc_var%setAttribute("percolation_case", self%exchange%parameters%process_matrix(7, 1))
-    call nc_var%setAttribute("baseflow_case", self%exchange%parameters%process_matrix(9, 1))
+    call nc_var%setAttribute("interception_case", self%exchange%config%processes%interception)
+    call nc_var%setAttribute("snow_case", self%exchange%config%processes%snow)
+    call nc_var%setAttribute("soil_moisture_case", self%exchange%config%processes%soil_moisture)
+    call nc_var%setAttribute("direct_runoff_case", self%exchange%config%processes%direct_runoff)
+    call nc_var%setAttribute("interflow_case", self%exchange%config%processes%interflow)
+    call nc_var%setAttribute("percolation_case", self%exchange%config%processes%percolation)
+    call nc_var%setAttribute("baseflow_case", self%exchange%config%processes%baseflow)
     call nc%close()
   end subroutine mhm_create_restart
 
@@ -1077,12 +1115,12 @@ contains
       bounds=soil_bounds, reference=2_i4)
     deallocate(soil_bounds)
 
-    interception_case = self%exchange%parameters%process_matrix(1, 1)
-    snow_case = self%exchange%parameters%process_matrix(2, 1)
-    soil_case = self%exchange%parameters%process_matrix(3, 1)
-    direct_runoff_case = self%exchange%parameters%process_matrix(4, 1)
-    interflow_case = self%exchange%parameters%process_matrix(6, 1)
-    baseflow_case = self%exchange%parameters%process_matrix(9, 1)
+    interception_case = self%exchange%config%processes%interception
+    snow_case = self%exchange%config%processes%snow
+    soil_case = self%exchange%config%processes%soil_moisture
+    direct_runoff_case = self%exchange%config%processes%direct_runoff
+    interflow_case = self%exchange%config%processes%interflow
+    baseflow_case = self%exchange%config%processes%baseflow
 
     if (interception_case == 1_i4) then
       call self%write_restart_field_2d(nc, dims_xy, "L1_Inter", "Interception storage at level 1", &
@@ -1137,12 +1175,12 @@ contains
     call self%validate_restart_horizon_bounds(nc)
     call self%validate_restart_process_cases(nc)
 
-    interception_case = self%exchange%parameters%process_matrix(1, 1)
-    snow_case = self%exchange%parameters%process_matrix(2, 1)
-    soil_case = self%exchange%parameters%process_matrix(3, 1)
-    direct_runoff_case = self%exchange%parameters%process_matrix(4, 1)
-    interflow_case = self%exchange%parameters%process_matrix(6, 1)
-    baseflow_case = self%exchange%parameters%process_matrix(9, 1)
+    interception_case = self%exchange%config%processes%interception
+    snow_case = self%exchange%config%processes%snow
+    soil_case = self%exchange%config%processes%soil_moisture
+    direct_runoff_case = self%exchange%config%processes%direct_runoff
+    interflow_case = self%exchange%config%processes%interflow
+    baseflow_case = self%exchange%config%processes%baseflow
 
     if (interception_case == 1_i4) call self%read_restart_field_2d(nc, "L1_Inter", self%canopy%interception)
     if (snow_case == 1_i4) call self%read_restart_field_2d(nc, "L1_snowPack", self%snow%snowpack)
@@ -1284,14 +1322,14 @@ contains
 
     meta_var = nc%getVariable("mhm_meta")
     call mhm_validate_restart_case(meta_var, "interception_case", "interception", &
-      self%exchange%parameters%process_matrix(1, 1))
-    call mhm_validate_restart_case(meta_var, "snow_case", "snow", self%exchange%parameters%process_matrix(2, 1))
+      self%exchange%config%processes%interception)
+    call mhm_validate_restart_case(meta_var, "snow_case", "snow", self%exchange%config%processes%snow)
     call mhm_validate_restart_case(meta_var, "soil_moisture_case", "soil_moisture", &
-      self%exchange%parameters%process_matrix(3, 1))
+      self%exchange%config%processes%soil_moisture)
     call mhm_validate_restart_case(meta_var, "direct_runoff_case", "direct_runoff", &
-      self%exchange%parameters%process_matrix(4, 1))
-    call mhm_validate_restart_case(meta_var, "interflow_case", "interflow", self%exchange%parameters%process_matrix(6, 1))
-    call mhm_validate_restart_case(meta_var, "baseflow_case", "baseflow", self%exchange%parameters%process_matrix(9, 1))
+      self%exchange%config%processes%direct_runoff)
+    call mhm_validate_restart_case(meta_var, "interflow_case", "interflow", self%exchange%config%processes%interflow)
+    call mhm_validate_restart_case(meta_var, "baseflow_case", "baseflow", self%exchange%config%processes%baseflow)
   end subroutine mhm_validate_restart_process_cases
 
   !> \brief Validate one restart process-case metadata attribute.
@@ -1639,8 +1677,8 @@ contains
     integer(i4) :: interception_case
     integer(i4) :: snow_case
 
-    interception_case = self%exchange%parameters%process_matrix(1, 1)
-    snow_case = self%exchange%parameters%process_matrix(2, 1)
+    interception_case = self%exchange%config%processes%interception
+    snow_case = self%exchange%config%processes%snow
 
     select case (interception_case)
     case (1_i4)

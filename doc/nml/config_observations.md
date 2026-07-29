@@ -8,17 +8,17 @@ Configuration for observation input data in mHM.
 
 ## Fields
 
-| Name | Type | Required | Info |
-| --- | --- | --- | --- |
-| [sm_path](#sm_path) | string array | no | Soil moisture data path |
-| [neutrons_path](#neutrons_path) | string array | no | Neutron data path |
-| [et_path](#et_path) | string array | no | Evapotranspiration data path |
-| [tws_path](#tws_path) | string array | no | Domain average TWS path |
-| [BFI_obs](#bfi_obs) | real array | no | Baseflow index per domain |
-| [sm_horizons](#sm_horizons) | integer | no | Number of mHM soil moisture horizons |
-| [sm_time_step](#sm_time_step) | integer | no | Time step of soil moisture |
-| [et_time_step](#et_time_step) | integer | no | Time step of evapotranspiration |
-| [tws_time_step](#tws_time_step) | integer | no | Time step of total water storage |
+| Name | Type | Declared required | Input required | Info |
+| --- | --- | --- | --- | --- |
+| [sm_path](#sm_path) | string array | no | no | Soil moisture data path |
+| [neutrons_path](#neutrons_path) | string array | no | no | Neutron data path |
+| [et_path](#et_path) | string array | no | no | Evapotranspiration data path |
+| [tws_path](#tws_path) | string array | no | no | Domain average TWS path |
+| [BFI_obs](#bfi_obs) | real array | no | no | Baseflow index per domain |
+| [sm_horizons](#sm_horizons) | integer | no | no | Number of mHM soil moisture horizons |
+| [sm_time_step](#sm_time_step) | integer | no | no | Time step of soil moisture |
+| [et_time_step](#et_time_step) | integer | no | no | Time step of evapotranspiration |
+| [tws_time_step](#tws_time_step) | integer | no | no | Time step of total water storage |
 
 ## Field details
 
@@ -32,7 +32,8 @@ Expected variable name: "sm".
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### neutrons_path
 
@@ -44,7 +45,8 @@ Expected variable name: "neutrons".
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### et_path
 
@@ -56,7 +58,8 @@ Expected variable name: "et".
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### tws_path
 
@@ -68,7 +71,8 @@ Expected variable name: "twsa".
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### BFI_obs
 
@@ -79,7 +83,8 @@ You can overwrite single BFI values to not calculate them internally (if BFI_cal
 
 Summary:
 - Type: `real(dp), dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### sm_horizons
 
@@ -89,7 +94,8 @@ Number of mHM soil moisture horizons for which the soil moisture input is repres
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### sm_time_step
 
@@ -102,7 +108,8 @@ Time step of soil moisture input data.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### et_time_step
 
@@ -115,7 +122,8 @@ Time step of evapotranspiration input data.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ### tws_time_step
 
@@ -128,7 +136,8 @@ Time step of total water storage input data.
 
 Summary:
 - Type: `integer(i4)`
-- Required: no
+- Declared required: no
+- Input required: no
 
 ## Example
 

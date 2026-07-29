@@ -8,14 +8,14 @@ Configuration for simulation and evaluation time periods in mHM.
 
 ## Fields
 
-| Name | Type | Required | Info |
-| --- | --- | --- | --- |
-| [sim_start](#sim_start) | string array | no | Simulation start |
-| [eval_start](#eval_start) | string array | no | Evaluation start |
-| [sim_end](#sim_end) | string array | no | Simulation end |
-| [share_time_period](#share_time_period) | logical | no | Share time period between domains |
-| [time_step](#time_step) | integer array | no | Time step of the simulation |
-| [share_time_step](#share_time_step) | logical | no | Share time step between domains |
+| Name | Type | Declared required | Input required | Info |
+| --- | --- | --- | --- | --- |
+| [sim_start](#sim_start) | string array | no | no | Simulation start |
+| [eval_start](#eval_start) | string array | no | no | Evaluation start |
+| [sim_end](#sim_end) | string array | no | no | Simulation end |
+| [share_time_period](#share_time_period) | logical | no | no | Share time period between domains |
+| [time_step](#time_step) | integer array | no | no | Time step of the simulation |
+| [share_time_step](#share_time_step) | logical | no | no | Share time step between domains |
 
 ## Field details
 
@@ -29,7 +29,8 @@ Format: YYYY-MM-DD [hh[:mm[:ss]]]
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `date-time`
-- Required: no
+- Declared required: no
+- Input required: no
 - Examples: `"2020-06-01 00:00"`, `"2025-01-01"`
 
 ### eval_start
@@ -42,7 +43,8 @@ Format: YYYY-MM-DD [hh[:mm[:ss]]]
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `date-time`
-- Required: no
+- Declared required: no
+- Input required: no
 - Examples: `"2021-01-01 00:00"`, `"2025-02-15"`
 
 ### sim_end
@@ -55,7 +57,8 @@ Format: YYYY-MM-DD [hh[:mm[:ss]]]
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `date-time`
-- Required: no
+- Declared required: no
+- Input required: no
 - Examples: `"2022-01-01 00:00"`, `"2026-01-01"`
 
 ### share_time_period
@@ -67,7 +70,8 @@ If set to false, different time periods can be set for each domain.
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### time_step
@@ -78,7 +82,8 @@ Time step of the simulation (1 or 24, in hours).
 
 Summary:
 - Type: `integer(i4), dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `1`
 
 ### share_time_step
@@ -90,7 +95,8 @@ If set to false, different time step values can be set for each domain.
 
 Summary:
 - Type: `logical`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.true.`
 
 ## Example

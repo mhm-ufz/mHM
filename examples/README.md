@@ -4,7 +4,7 @@ Run the commands from the repository root:
 
 ```bash
 mhm_driver examples/
-mhm_driver -n examples/combine.nml -p examples/parameter.nml
+mhm_driver -n combine.nml examples/
 mhm_driver examples/domain_01
 mhm_driver examples/domain_02
 ```

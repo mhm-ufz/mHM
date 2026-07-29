@@ -36,9 +36,13 @@ module nml_config_resolution
 
   implicit none
 
+  ! default values
+  real(dp), parameter, public :: hydro__default = 0.0_dp
+  real(dp), parameter, public :: route__default = 0.0_dp
+
   ! bounds values
-  real(dp), parameter, public :: hydro__min_excl = 0.0_dp
-  real(dp), parameter, public :: route__min_excl = 0.0_dp
+  real(dp), parameter, public :: hydro__min = 0.0_dp
+  real(dp), parameter, public :: route__min = 0.0_dp
 
   !> \class nml_config_resolution_t
   !> \brief Grid resolution configuration
@@ -74,7 +78,7 @@ contains
     end if
 
     in_bounds = .true.
-    if (val <= hydro__min_excl) in_bounds = .false.
+    if (val < hydro__min) in_bounds = .false.
   end function hydro__in_bounds
 
   !> \brief Check whether a value is within bounds
@@ -92,7 +96,7 @@ contains
     end if
 
     in_bounds = .true.
-    if (val <= route__min_excl) in_bounds = .false.
+    if (val < route__min) in_bounds = .false.
   end function route__in_bounds
 
   !> \brief Initialize defaults and sentinels for config_resolution
@@ -110,9 +114,9 @@ contains
     if (allocated(this%route)) deallocate(this%route)
     allocate(this%route(this%n_domains))
 
-    ! sentinel values for required/optional parameters
-    this%hydro = ieee_value(this%hydro, ieee_quiet_nan) ! sentinel for optional real array
-    this%route = ieee_value(this%route, ieee_quiet_nan) ! sentinel for optional real array
+    ! default values
+    this%hydro = hydro__default
+    this%route = route__default
   end function nml_config_resolution_init
 
   !> \brief Reset runtime dimensions for config_resolution
@@ -274,9 +278,7 @@ contains
         status = idx_check(idx, lbound(this%hydro), ubound(this%hydro), &
           "hydro", errmsg)
         if (status /= NML_OK) return
-        if (ieee_is_nan(this%hydro(idx(1)))) status = NML_ERR_NOT_SET
       else
-        if (all(ieee_is_nan(this%hydro))) status = NML_ERR_NOT_SET
       end if
     case ("route")
       if (.not. allocated(this%route)) then
@@ -287,9 +289,7 @@ contains
         status = idx_check(idx, lbound(this%route), ubound(this%route), &
           "route", errmsg)
         if (status /= NML_OK) return
-        if (ieee_is_nan(this%route(idx(1)))) status = NML_ERR_NOT_SET
       else
-        if (all(ieee_is_nan(this%route))) status = NML_ERR_NOT_SET
       end if
     case default
       status = NML_ERR_INVALID_NAME

@@ -1,4 +1,4 @@
-required-versions = ">=0.3.3,<0.4"
+required-versions = ">=0.5,<0.6"
 
 [helper]
 path = "src/nml/nml_helper.f90"
@@ -127,130 +127,130 @@ mod_path = "src/nml/nml_config_observations.f90"
 doc_path = "doc/nml/config_observations.md"
 
 [[namelists]]
-name = "interception1"
-schema = "nml-schemas/parameter_interception1.yml"
-mod_path = "src/nml/nml_parameter_interception1.f90"
-doc_path = "doc/nml/parameter_interception1.md"
+name = "interception_1"
+schema = "nml-schemas/parameter_interception_1.yml"
+mod_path = "src/nml/nml_parameter_interception_1.f90"
+doc_path = "doc/nml/parameter_interception_1.md"
 
 [[namelists]]
-name = "snow1"
-schema = "nml-schemas/parameter_snow1.yml"
-mod_path = "src/nml/nml_parameter_snow1.f90"
-doc_path = "doc/nml/parameter_snow1.md"
+name = "snow_1"
+schema = "nml-schemas/parameter_snow_1.yml"
+mod_path = "src/nml/nml_parameter_snow_1.f90"
+doc_path = "doc/nml/parameter_snow_1.md"
 
 [[namelists]]
-name = "soilmoisture1"
-schema = "nml-schemas/parameter_soilmoisture1.yml"
-mod_path = "src/nml/nml_parameter_soilmoisture1.f90"
-doc_path = "doc/nml/parameter_soilmoisture1.md"
+name = "soil_moisture_1"
+schema = "nml-schemas/parameter_soil_moisture_1.yml"
+mod_path = "src/nml/nml_parameter_soil_moisture_1.f90"
+doc_path = "doc/nml/parameter_soil_moisture_1.md"
 
 [[namelists]]
-name = "soilmoisture2"
-schema = "nml-schemas/parameter_soilmoisture2.yml"
-mod_path = "src/nml/nml_parameter_soilmoisture2.f90"
-doc_path = "doc/nml/parameter_soilmoisture2.md"
+name = "soil_moisture_2"
+schema = "nml-schemas/parameter_soil_moisture_2.yml"
+mod_path = "src/nml/nml_parameter_soil_moisture_2.f90"
+doc_path = "doc/nml/parameter_soil_moisture_2.md"
 
 [[namelists]]
-name = "soilmoisture3"
-schema = "nml-schemas/parameter_soilmoisture3.yml"
-mod_path = "src/nml/nml_parameter_soilmoisture3.f90"
-doc_path = "doc/nml/parameter_soilmoisture3.md"
+name = "soil_moisture_3"
+schema = "nml-schemas/parameter_soil_moisture_3.yml"
+mod_path = "src/nml/nml_parameter_soil_moisture_3.f90"
+doc_path = "doc/nml/parameter_soil_moisture_3.md"
 
 [[namelists]]
-name = "soilmoisture4"
-schema = "nml-schemas/parameter_soilmoisture4.yml"
-mod_path = "src/nml/nml_parameter_soilmoisture4.f90"
-doc_path = "doc/nml/parameter_soilmoisture4.md"
+name = "soil_moisture_4"
+schema = "nml-schemas/parameter_soil_moisture_4.yml"
+mod_path = "src/nml/nml_parameter_soil_moisture_4.f90"
+doc_path = "doc/nml/parameter_soil_moisture_4.md"
 
 [[namelists]]
-name = "directrunoff1"
-schema = "nml-schemas/parameter_directrunoff1.yml"
-mod_path = "src/nml/nml_parameter_directrunoff1.f90"
-doc_path = "doc/nml/parameter_directrunoff1.md"
+name = "direct_runoff_1"
+schema = "nml-schemas/parameter_direct_runoff_1.yml"
+mod_path = "src/nml/nml_parameter_direct_runoff_1.f90"
+doc_path = "doc/nml/parameter_direct_runoff_1.md"
 
 [[namelists]]
-name = "petm2"
-schema = "nml-schemas/parameter_petm2.yml"
-mod_path = "src/nml/nml_parameter_petm2.f90"
-doc_path = "doc/nml/parameter_petm2.md"
+name = "pet_m2"
+schema = "nml-schemas/parameter_pet_m2.yml"
+mod_path = "src/nml/nml_parameter_pet_m2.f90"
+doc_path = "doc/nml/parameter_pet_m2.md"
 
 [[namelists]]
-name = "petm1"
-schema = "nml-schemas/parameter_petm1.yml"
-mod_path = "src/nml/nml_parameter_petm1.f90"
-doc_path = "doc/nml/parameter_petm1.md"
+name = "pet_m1"
+schema = "nml-schemas/parameter_pet_m1.yml"
+mod_path = "src/nml/nml_parameter_pet_m1.f90"
+doc_path = "doc/nml/parameter_pet_m1.md"
 
 [[namelists]]
-name = "pet1"
-schema = "nml-schemas/parameter_pet1.yml"
-mod_path = "src/nml/nml_parameter_pet1.f90"
-doc_path = "doc/nml/parameter_pet1.md"
+name = "pet_1"
+schema = "nml-schemas/parameter_pet_1.yml"
+mod_path = "src/nml/nml_parameter_pet_1.f90"
+doc_path = "doc/nml/parameter_pet_1.md"
 
 [[namelists]]
-name = "pet2"
-schema = "nml-schemas/parameter_pet2.yml"
-mod_path = "src/nml/nml_parameter_pet2.f90"
-doc_path = "doc/nml/parameter_pet2.md"
+name = "pet_2"
+schema = "nml-schemas/parameter_pet_2.yml"
+mod_path = "src/nml/nml_parameter_pet_2.f90"
+doc_path = "doc/nml/parameter_pet_2.md"
 
 [[namelists]]
-name = "pet3"
-schema = "nml-schemas/parameter_pet3.yml"
-mod_path = "src/nml/nml_parameter_pet3.f90"
-doc_path = "doc/nml/parameter_pet3.md"
+name = "pet_3"
+schema = "nml-schemas/parameter_pet_3.yml"
+mod_path = "src/nml/nml_parameter_pet_3.f90"
+doc_path = "doc/nml/parameter_pet_3.md"
 
 [[namelists]]
-name = "interflow1"
-schema = "nml-schemas/parameter_interflow1.yml"
-mod_path = "src/nml/nml_parameter_interflow1.f90"
-doc_path = "doc/nml/parameter_interflow1.md"
+name = "interflow_1"
+schema = "nml-schemas/parameter_interflow_1.yml"
+mod_path = "src/nml/nml_parameter_interflow_1.f90"
+doc_path = "doc/nml/parameter_interflow_1.md"
 
 [[namelists]]
-name = "percolation1"
-schema = "nml-schemas/parameter_percolation1.yml"
-mod_path = "src/nml/nml_parameter_percolation1.f90"
-doc_path = "doc/nml/parameter_percolation1.md"
+name = "percolation_1"
+schema = "nml-schemas/parameter_percolation_1.yml"
+mod_path = "src/nml/nml_parameter_percolation_1.f90"
+doc_path = "doc/nml/parameter_percolation_1.md"
 
 [[namelists]]
-name = "routing1"
-schema = "nml-schemas/parameter_routing1.yml"
-mod_path = "src/nml/nml_parameter_routing1.f90"
-doc_path = "doc/nml/parameter_routing1.md"
+name = "routing_1"
+schema = "nml-schemas/parameter_routing_1.yml"
+mod_path = "src/nml/nml_parameter_routing_1.f90"
+doc_path = "doc/nml/parameter_routing_1.md"
 
 [[namelists]]
-name = "routing2"
-schema = "nml-schemas/parameter_routing2.yml"
-mod_path = "src/nml/nml_parameter_routing2.f90"
-doc_path = "doc/nml/parameter_routing2.md"
+name = "routing_2"
+schema = "nml-schemas/parameter_routing_2.yml"
+mod_path = "src/nml/nml_parameter_routing_2.f90"
+doc_path = "doc/nml/parameter_routing_2.md"
 
 [[namelists]]
-name = "routing3"
-schema = "nml-schemas/parameter_routing3.yml"
-mod_path = "src/nml/nml_parameter_routing3.f90"
-doc_path = "doc/nml/parameter_routing3.md"
+name = "routing_3"
+schema = "nml-schemas/parameter_routing_3.yml"
+mod_path = "src/nml/nml_parameter_routing_3.f90"
+doc_path = "doc/nml/parameter_routing_3.md"
 
 [[namelists]]
-name = "neutrons1"
-schema = "nml-schemas/parameter_neutrons1.yml"
-mod_path = "src/nml/nml_parameter_neutrons1.f90"
-doc_path = "doc/nml/parameter_neutrons1.md"
+name = "neutrons_1"
+schema = "nml-schemas/parameter_neutrons_1.yml"
+mod_path = "src/nml/nml_parameter_neutrons_1.f90"
+doc_path = "doc/nml/parameter_neutrons_1.md"
 
 [[namelists]]
-name = "neutrons2"
-schema = "nml-schemas/parameter_neutrons2.yml"
-mod_path = "src/nml/nml_parameter_neutrons2.f90"
-doc_path = "doc/nml/parameter_neutrons2.md"
+name = "neutrons_2"
+schema = "nml-schemas/parameter_neutrons_2.yml"
+mod_path = "src/nml/nml_parameter_neutrons_2.f90"
+doc_path = "doc/nml/parameter_neutrons_2.md"
 
 [[namelists]]
-name = "geoparameter"
-schema = "nml-schemas/parameter_geoparameter.yml"
-mod_path = "src/nml/nml_parameter_geoparameter.f90"
-doc_path = "doc/nml/parameter_geoparameter.md"
+name = "baseflow_1"
+schema = "nml-schemas/parameter_baseflow_1.yml"
+mod_path = "src/nml/nml_parameter_baseflow_1.f90"
+doc_path = "doc/nml/parameter_baseflow_1.md"
 
 [[namelists]]
-name = "rivertemp1"
-schema = "nml-schemas/parameter_rivertemp1.yml"
-mod_path = "src/nml/nml_parameter_rivertemp1.f90"
-doc_path = "doc/nml/parameter_rivertemp1.md"
+name = "river_temperature_1"
+schema = "nml-schemas/parameter_river_temperature_1.yml"
+mod_path = "src/nml/nml_parameter_river_temperature_1.f90"
+doc_path = "doc/nml/parameter_river_temperature_1.md"
 
 [[namelists]]
 name = "output_mhm"
@@ -305,29 +305,29 @@ namelists = ["output_mhm", "output_mrm"]
 name = "parameter"
 title = "Parameter configuration"
 description = "Process parameter namelists for mHM."
-default_file = "parameter.nml"
+default_file = "parameters.nml"
 namelists = [
-  "interception1",
-  "snow1",
-  "soilmoisture1",
-  "soilmoisture2",
-  "soilmoisture3",
-  "soilmoisture4",
-  "directrunoff1",
-  "petm2",
-  "petm1",
-  "pet1",
-  "pet2",
-  "pet3",
-  "interflow1",
-  "percolation1",
-  "routing1",
-  "routing2",
-  "routing3",
-  "neutrons1",
-  "neutrons2",
-  "geoparameter",
-  "rivertemp1",
+  "interception_1",
+  "snow_1",
+  "soil_moisture_1",
+  "soil_moisture_2",
+  "soil_moisture_3",
+  "soil_moisture_4",
+  "direct_runoff_1",
+  "pet_m2",
+  "pet_m1",
+  "pet_1",
+  "pet_2",
+  "pet_3",
+  "interflow_1",
+  "percolation_1",
+  "routing_1",
+  "routing_2",
+  "routing_3",
+  "neutrons_1",
+  "neutrons_2",
+  "baseflow_1",
+  "river_temperature_1",
 ]
 
 [[templates]]
@@ -341,6 +341,7 @@ path = "mhm-para-template.nml"
 profile = "parameter"
 doc_mode = "documented"
 value_mode = "filled"
+simple_derived_mode = "buffer"
 
 [[templates]]
 path = "mhm-output-template.nml"

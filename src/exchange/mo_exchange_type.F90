@@ -22,12 +22,14 @@ module mo_exchange_type
   use mo_geology_classdefinition, only: geology_classdefinition_t
   use mo_datetime, only: datetime, timedelta
   use mo_kind, only: dp, i4, i8
+  use mo_parameter_namelists, only: parameter_namelists_t
   use mo_string_utils, only: n2s=>num2str
   use mo_main_config, only: parameters_t
   use mo_utils, only: optval
   use nml_config_time, only: nml_config_time_t
   use nml_config_project, only: nml_config_project_t
   use nml_config_domain, only: nml_config_domain_t
+  use nml_config_processes, only: nml_config_processes_t
   use nml_config_resolution, only: nml_config_resolution_t
   use nml_helper, only: NML_OK
 
@@ -41,8 +43,10 @@ module mo_exchange_type
   type, public :: exchange_config_t
     type(nml_config_project_t) :: project     !< top-level/run project configuration
     type(nml_config_domain_t) :: domain       !< top-level domain directory configuration
+    type(nml_config_processes_t) :: processes !< process selections shared by all components
     type(nml_config_time_t) :: time           !< domain-local time configuration
     type(nml_config_resolution_t) :: resolution !< domain-local target grid resolutions
+    type(parameter_namelists_t) :: parameters !< process parameter input configuration
   end type exchange_config_t
 
   !> \name Level Selectors
@@ -191,6 +195,7 @@ module mo_exchange_type
     logical :: from_dirs = .false.          !< whether domain main files are derived from config_domain directories
     character(:), allocatable :: root       !< immutable run root directory
     character(:), allocatable :: cwd        !< effective domain working directory to set relative paths
+    character(:), allocatable :: parameter_file !< resolved process-parameter namelist path
 
     ! grids
     type(grid_t), pointer :: level0 => null() !< level0 grid of the morphology
@@ -200,10 +205,10 @@ module mo_exchange_type
     real(dp), dimension(:), pointer :: soil_horizon_bounds => null() !< soil-horizon boundary depths [mm] for mHM metadata
 
     ! grid resolutions (for deriving grids after configuration)
-    real(dp) :: level0_resolution = -1.0_dp !< level0 resolution of the morphology
-    real(dp) :: level1_resolution = -1.0_dp !< level1 resolution of the hydrology
-    real(dp) :: level2_resolution = -1.0_dp !< level2 resolution of the meteorology
-    real(dp) :: level3_resolution = -1.0_dp !< level3 resolution of the river network
+    real(dp) :: level0_resolution = 0.0_dp !< level0 resolution of the morphology
+    real(dp) :: level1_resolution = 0.0_dp !< level1 resolution of the hydrology
+    real(dp) :: level2_resolution = 0.0_dp !< level2 resolution of the meteorology
+    real(dp) :: level3_resolution = 0.0_dp !< level3 resolution of the river network
 
     ! variables
     ! raw meteorology (level2)
@@ -586,7 +591,7 @@ contains
         error stop 1
       end if
     end if
-    call self%parameters%set_dims(self%n_geo_units)
+    call self%config%parameters%set_dims(n_geo_units=self%n_geo_units)
   end subroutine exchange_set_dims
 
   !> \brief Read exchange-owned namelists after runtime dimensions have been set.
@@ -690,9 +695,34 @@ contains
       error stop 1
     end if
 
-    ! parameters are created redundantly for each exchange instance
-    ! but this simplifies the code structure
-    call self%parameters%configure(main_file=main_file, para_file=para_file, root=self%root)
+    if (present(main_file)) then
+      log_info(*) "Read process config: ", top_file
+      status = self%config%processes%from_file(file=top_file, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error reading process config: ", trim(errmsg)
+        error stop 1
+      end if
+    end if
+    if (.not.self%config%processes%is_configured) then
+      log_fatal(*) "Process configuration not set."
+      error stop 1
+    end if
+    status = self%config%processes%is_valid(errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Process configuration not valid: ", trim(errmsg)
+      error stop 1
+    end if
+    if (self%config%processes%temperature_routing /= 0_i4 .and. self%config%processes%routing == 0_i4) then
+      log_fatal(*) "Temperature routing requires an active routing process."
+      error stop 1
+    end if
+
+    if (present(para_file)) then
+      self%parameter_file = self%get_path(para_file, root=.true.)
+    else if (allocated(self%parameter_file)) then
+      deallocate(self%parameter_file)
+    end if
+    call self%parameters%begin_configuration()
 
     if (self%from_dirs .or. present(main_file)) then
       log_info(*) "Read resolution config: ", config_file
@@ -713,22 +743,14 @@ contains
     end if
 
     id(1) = self%nml_domain_id
-    status = self%config%resolution%is_set("hydro", idx=id, errmsg=errmsg)
-    if (status == NML_OK) then
-      self%level1_resolution = self%config%resolution%hydro(id(1))
+    self%level1_resolution = self%config%resolution%hydro(id(1))
+    if (self%level1_resolution > 0.0_dp) then
       log_info(*) "Set hydro resolution for domain ", n2s(id(1)), ": ", n2s(self%level1_resolution)
-    else if (self%parameters%meteo_active() .or. self%parameters%mhm_active()) then
-      log_fatal(*) "Hydro resolution not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
-      error stop 1
     end if
 
-    status = self%config%resolution%is_set("route", idx=id, errmsg=errmsg)
-    if (status == NML_OK) then
-      self%level3_resolution = self%config%resolution%route(id(1))
+    self%level3_resolution = self%config%resolution%route(id(1))
+    if (self%level3_resolution > 0.0_dp) then
       log_info(*) "Set route resolution for domain ", n2s(id(1)), ": ", n2s(self%level3_resolution)
-    else if (self%parameters%mrm_active()) then
-      log_fatal(*) "Route resolution not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
-      error stop 1
     end if
 
     ! time settings

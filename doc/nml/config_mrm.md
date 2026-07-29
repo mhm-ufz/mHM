@@ -8,20 +8,20 @@ Configuration for the multi-scale routing model (mRM) in mHM.
 
 ## Fields
 
-| Name | Type | Required | Info |
-| --- | --- | --- | --- |
-| [river_net_order_root_based](#river_net_order_root_based) | logical array | no | Flag for root based river network ordering. |
-| [river_net_omp_level_min](#river_net_omp_level_min) | integer array | no | Minimum level size for OpenMP parallelization. |
-| [max_route_step](#max_route_step) | integer array | no | Maximum routing time step in seconds. |
-| [scc_gauges_path](#scc_gauges_path) | string array | no | Path for SCC gauges NetCDF file. |
-| [output_path](#output_path) | string array | no | Path for output file. |
-| [output_node_path](#output_node_path) | string array | no | Path for node based output file. |
-| [read_restart](#read_restart) | logical array | no | Read restart |
-| [read_restart_fluxes](#read_restart_fluxes) | logical array | no | Read restart fluxes |
-| [restart_input_path](#restart_input_path) | string array | no | Restart input path |
-| [write_restart](#write_restart) | logical array | no | Write restart |
-| [restart_output_path](#restart_output_path) | string array | no | Restart output path |
-| [diagnostics_path](#diagnostics_path) | string array | no | Diagnostics output path |
+| Name | Type | Declared required | Input required | Info |
+| --- | --- | --- | --- | --- |
+| [river_net_order_root_based](#river_net_order_root_based) | logical array | no | no | Flag for root based river network ordering. |
+| [river_net_omp_level_min](#river_net_omp_level_min) | integer array | no | no | Minimum level size for OpenMP parallelization. |
+| [max_route_step](#max_route_step) | integer array | no | no | Maximum routing time step in seconds. |
+| [scc_gauges_path](#scc_gauges_path) | string array | no | no | Path for SCC gauges NetCDF file. |
+| [output_path](#output_path) | string array | no | no | Path for output file. |
+| [output_node_path](#output_node_path) | string array | no | no | Path for node based output file. |
+| [read_restart](#read_restart) | logical array | no | no | Read restart |
+| [read_restart_fluxes](#read_restart_fluxes) | logical array | no | no | Read restart fluxes |
+| [restart_input_path](#restart_input_path) | string array | no | no | Restart input path |
+| [write_restart](#write_restart) | logical array | no | no | Write restart |
+| [restart_output_path](#restart_output_path) | string array | no | no | Restart output path |
+| [diagnostics_path](#diagnostics_path) | string array | no | no | Diagnostics output path |
 
 ## Field details
 
@@ -36,7 +36,8 @@ Leaf based ordering has huge levels of nodes at the headwaters, which can lead t
 
 Summary:
 - Type: `logical, dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 - Examples: `[.true.]`
 
@@ -57,7 +58,8 @@ By default: threads * 8 (indicated by -1)
 
 Summary:
 - Type: `integer(i4), dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `-1`
 - Minimum: `>= -1`
 - Examples: `[100]`
@@ -76,7 +78,8 @@ Value needs to be a divisor of 3600 or a multiple of 3600 and a divisor of 86400
 
 Summary:
 - Type: `integer(i4), dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `86400`
 - Allowed values: `60`, `120`, `180`, `240`, `300`, `360`, `600`, `720`, `900`, `1200`, `1800`, `3600`, `7200`, `10800`, `14400`, `21600`, `28800`, `43200`, `86400`
 - Examples: `[3600]`
@@ -88,7 +91,8 @@ Path for SCC gauges NetCDF file. `scc_gauges_path`
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 - Examples: `["scc_gauges.nc"]`
 
 ### output_path
@@ -98,7 +102,8 @@ Path for output file. `output_path`
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 - Examples: `["mrm_output.nc"]`
 
 ### output_node_path
@@ -108,7 +113,8 @@ Path for node based output file. `output_node_path`
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 - Examples: `["mrm_node_output.nc"]`
 
 ### read_restart
@@ -117,7 +123,8 @@ Read restart `read_restart`
 
 Summary:
 - Type: `logical, dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### read_restart_fluxes
@@ -126,7 +133,8 @@ Read restart fluxes `read_restart_fluxes`
 
 Summary:
 - Type: `logical, dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.true.`
 
 ### restart_input_path
@@ -136,7 +144,8 @@ Restart input path `restart_input_path`
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 - Examples: `["mrm_restart_in.nc"]`
 
 ### write_restart
@@ -145,7 +154,8 @@ Write restart `write_restart`
 
 Summary:
 - Type: `logical, dimension(n_domains)`
-- Required: no
+- Declared required: no
+- Input required: no
 - Default: `.false.`
 
 ### restart_output_path
@@ -155,7 +165,8 @@ Restart output path `restart_output_path`
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 - Examples: `["mrm_restart_out.nc"]`
 
 ### diagnostics_path
@@ -167,7 +178,8 @@ Path for diagnostics output file containing information about the river upscalin
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Item format: `file-path`
-- Required: no
+- Declared required: no
+- Input required: no
 - Examples: `["mrm_diagnostics.nc"]`
 
 ## Example

@@ -1,108 +1,106 @@
-! dedicated v6 hydrology parameter fixture
+! Dedicated v6 hydrology parameter fixture.
 
-&interception1
-canopyInterceptionFactor           =  0.1500,      0.4000,          0.15,     1,       1
+&interception_1
+  canopy_interception_factor = 0.15, .true.
 /
 
-&snow1
-snowTreshholdTemperature           = -2.0000,      2.0000,           1.0,     1,       1
-degreeDayFactor_forest             =  0.0001,      4.0000,           1.5,     1,       1
-degreeDayFactor_impervious         =  0.0000,      1.0000,           0.5,     1,       1
-degreeDayFactor_pervious           =  0.0000,      2.0000,           0.5,     1,       1
-increaseDegreeDayFactorByPrecip    =  0.1000,      0.9000,           0.5,     1,       1
-maxDegreeDayFactor_forest          =  0.0000,      8.0000,           3.0,     1,       1
-maxDegreeDayFactor_impervious      =  0.0000,      8.0000,           3.5,     1,       1
-maxDegreeDayFactor_pervious        =  0.0000,      8.0000,           4.0,     1,       1
+&snow_1
+  snow_threshold_temperature = 1.0, .true.
+  degree_day_factor_forest = 1.5, .true.
+  degree_day_factor_impervious = 0.5, .true.
+  degree_day_factor_pervious = 0.5, .true.
+  degree_day_factor_precipitation = 0.5, .true.
+  max_degree_day_factor_forest = 3.0, .true.
+  max_degree_day_factor_impervious = 3.5, .true.
+  max_degree_day_factor_pervious = 4.0, .true.
 /
 
-&soilmoisture3
-orgMatterContent_forest            =  0.0000,      20.000,           3.4,     1,       1
-orgMatterContent_impervious        =  0.0000,      1.0000,           0.1,     1,       1
-orgMatterContent_pervious          =  0.0000,      4.0000,           0.6,     1,       1
-PTF_lower66_5_constant             =  0.6462,      0.9506,          0.76,     1,       1
-PTF_lower66_5_clay                 =  0.0001,      0.0029,        0.0009,     1,       1
-PTF_lower66_5_Db                   = -0.3727,     -0.1871,        -0.264,     1,       1
-PTF_higher66_5_constant            =  0.5358,      1.1232,          0.89,     1,       1
-PTF_higher66_5_clay                = -0.0055,      0.0049,        -0.001,     1,       1
-PTF_higher66_5_Db                  = -0.5513,     -0.0913,        -0.324,     1,       1
-PTF_Ks_constant                    = -1.2000,     -0.2850,        -0.585,     1,       1
-PTF_Ks_sand                        =  0.0060,      0.0260,        0.0125,     1,       1
-PTF_Ks_clay                        =  0.0030,      0.0130,        0.0063,     1,       1
-PTF_Ks_curveSlope                  =  60.960,      60.960,        60.960,     0,       1
-rootFractionCoefficient_forest     =  0.9700,      0.9850,         0.9750,    1,       1
-rootFractionCoefficient_impervious =  0.9700,      0.9850,         0.9750,    1,       1
-rootFractionCoefficient_pervious   =  0.9700,      0.9850,         0.9750,    1,       1
-infiltrationShapeFactor            =  1.0000,      4.0000,          1.75,     1,       1
-rootFractionCoefficient_sand       =  0.0010,      0.0900,          0.09,     1,       1
-rootFractionCoefficient_clay       =  0.9000,      0.9990,          0.98,     1,       1
-FCmin_glob                         =  0.1000,      0.2000,          0.15,     0,       1
-FCdelta_glob                       =  0.1000,      0.4000,          0.25,     0,       1
-jarvis_sm_threshold_c1             =  0.0000,      1.0000,          0.50,     1,       1
+&soil_moisture_3
+  organic_matter_forest = 3.4, .true.
+  organic_matter_impervious = 0.1, .true.
+  organic_matter_pervious = 0.6, .true.
+  ptf_lower_66_5_constant = 0.76, .true.
+  ptf_lower_66_5_clay = 0.0009, .true.
+  ptf_lower_66_5_bulk_density = -0.264, .true.
+  ptf_upper_66_5_constant = 0.89, .true.
+  ptf_upper_66_5_clay = -0.001, .true.
+  ptf_upper_66_5_bulk_density = -0.324, .true.
+  ptf_ks_constant = -0.585, .true.
+  ptf_ks_sand = 0.0125, .true.
+  ptf_ks_clay = 0.0063, .true.
+  root_fraction_forest = 0.975, .true.
+  root_fraction_impervious = 0.975, .true.
+  root_fraction_pervious = 0.975, .true.
+  infiltration_shape_factor = 1.75, .true.
+  root_fraction_sand = 0.09, .true.
+  root_fraction_clay = 0.98, .true.
+  field_capacity_min = 0.15
+  field_capacity_delta = 0.25
+  jarvis_sm_threshold = 0.5, .true.
 /
 
-&directRunoff1
-imperviousStorageCapacity          =  0.0000,      5.0000,           0.5,     1,       1
+&direct_runoff_1
+  impervious_storage_capacity = 0.5, .true.
 /
 
-&interflow1
-interflowStorageCapacityFactor     =  75.000,      200.00,          85.0,     1,       1
-interflowRecession_slope           =  0.0000,      10.000,           7.0,     1,       1
-fastInterflowRecession_forest      =  1.0000,      3.0000,           1.5,     1,       1
-slowInterflowRecession_Ks          =  1.0000,      30.000,          15.0,     1,       1
-exponentSlowInterflow              =  0.0500,      0.3000,         0.125,     1,       1
+&pet_m2
+  correction_factor_min = 0.9, .true.
+  correction_factor_max = 0.1, .true.
+  aspect_threshold = 180.0, .true.
 /
 
-&percolation1
-rechargeCoefficient                =  0.0000,      50.000,          35.0,     1,       1
-rechargeFactor_karstic             = -5.0000,      5.0000,          -1.0,     1,       1
-gain_loss_GWreservoir_karstic      =  1.0000,      1.0000,           1.0,     0,       1
+&pet_m1
+  pet_a_forest = 0.3, .true.
+  pet_a_impervious = 0.8, .true.
+  pet_a_pervious = 1.3, .true.
+  pet_b = 1.5, .true.
+  pet_c = -0.7, .true.
 /
 
-&geoparameter
-  GeoParam(:,1) = 1.0, 1000.0, 100.0, 1.0, 1.0
-  GeoParam(:,2) = 1.0, 1000.0, 100.0, 1.0, 1.0
-  GeoParam(:,3) = 1.0, 1000.0, 100.0, 1.0, 1.0
-  GeoParam(:,4) = 1.0, 1000.0, 100.0, 1.0, 1.0
-  GeoParam(:,5) = 1.0, 1000.0, 100.0, 0.0, 1.0
-  GeoParam(:,6) = 1.0, 1000.0, 100.0, 0.0, 1.0
-  GeoParam(:,7) = 1.0, 1000.0, 100.0, 1.0, 1.0
-  GeoParam(:,8) = 1.0, 1000.0, 100.0, 0.0, 1.0
-  GeoParam(:,9) = 1.0, 1000.0, 100.0, 1.0, 1.0
-  GeoParam(:,10) = 1.0, 1000.0, 100.0, 1.0, 1.0
+&interflow_1
+  storage_capacity_factor = 85.0, .true.
+  recession_slope = 7.0, .true.
+  fast_recession_forest = 1.5, .true.
+  slow_recession_ks = 15.0, .true.
+  slow_recession_exponent = 0.125, .true.
 /
 
-&PETm1
-PET_a_forest                       =  0.3000,      1.3000,         0.3000,     1,       1
-PET_a_impervious                   =  0.3000,      1.3000,         0.8000,     1,       1
-PET_a_pervious                     =  0.3000,      1.3000,         1.3000,     1,       1
-PET_b                              =  0.0000,      1.5000,         1.5000,     1,       1
-PET_c                              =  -2.000,      0.0000,         -0.700,     1,       1
+&percolation_1
+  recharge_coefficient = 35.0, .true.
+  karstic_recharge_factor = -1.0, .true.
 /
 
-&PETm2
-minCorrectionFactorPET             =  0.7000,      1.3000,           0.9,     1,       1
-maxCorrectionFactorPET             =  0.0000,      0.2000,           0.1,     1,       1
-aspectTresholdPET                  =  160.00,      200.00,         180.0,     1,       1
+&baseflow_1
+  baseflow_recession(1) = 100.0, .true.
+  baseflow_recession(2) = 100.0, .true.
+  baseflow_recession(3) = 100.0, .true.
+  baseflow_recession(4) = 100.0, .true.
+  baseflow_recession(5) = 100.0
+  baseflow_recession(6) = 100.0
+  baseflow_recession(7) = 100.0, .true.
+  baseflow_recession(8) = 100.0
+  baseflow_recession(9) = 100.0, .true.
+  baseflow_recession(10) = 100.0, .true.
 /
 
-&neutrons1
-Desilets_N0                        =  300.0,       2000.0,        1500.0,     0,       1
-Desilets_LW0                       =    0.0,          0.2,       0.1783,     0,       1
-Desilets_LW1                       =    0.0,         0.05,          0.0,     0,       1
+&neutrons_1
+  desilets_n0 = 1500.0
+  desilets_lw0 = 0.1783
+  desilets_lw1 = 0.0
 /
 
-&neutrons2
-COSMIC_N0                          =  300.0,       2000.0,        1500.0,     0,       1
-COSMIC_N1                          =    0.01,        10.0,           1.0,     0,       1
-COSMIC_N2                          =    0.01,        10.0,           1.0,     0,       1
-COSMIC_alpha0                      =    0.01,        10.0,           1.0,     0,       1
-COSMIC_alpha1                      =    0.01,        10.0,           1.0,     0,       1
-COSMIC_L30                         =   26.56,       424.78,     106.1942,     0,       1
-COSMIC_L31                         =  -118.3,       200.28,      40.9879,     0,       1
-COSMIC_LW0                         =     0.0,          0.2,       0.1783,     0,       1
-COSMIC_LW1                         =     0.0,         0.05,          0.0,     0,       1
+&neutrons_2
+  cosmic_n0 = 1500.0
+  cosmic_n1 = 1.0
+  cosmic_n2 = 1.0
+  cosmic_alpha0 = 1.0
+  cosmic_alpha1 = 1.0
+  cosmic_l30 = 106.1942
+  cosmic_l31 = 40.9879
+  cosmic_lw0 = 0.1783
+  cosmic_lw1 = 0.0
 /
 
-&routing2
-streamflow_celerity                =     0.1,         15.,           1.5,     0,       1
+&routing_2
+  streamflow_celerity = 1.5
 /
