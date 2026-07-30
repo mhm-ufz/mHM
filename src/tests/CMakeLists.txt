@@ -22,6 +22,7 @@ foreach(testname
     parameters_strict_bounds_fail
     parameters_set_bounds_fail
     parameters_write_bounds_fail
+    parameters_write_nonfinite_fail
     parameters_write_size_fail
     parameter_input_missing_fail
 )

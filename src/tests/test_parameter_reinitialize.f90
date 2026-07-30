@@ -1,7 +1,8 @@
 program test_parameter_reinitialize
   use mo_domain, only: domain_t
   use mo_kind, only: i4, dp
-  use nml_helper, only: NML_OK, parameter_t
+  use nml_helper, only: NML_OK
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -17,11 +18,11 @@ program test_parameter_reinitialize
   call pet_domain%create(main_file="test_nml/mpr_pet_aspect_minimal.nml", cwd=".")
   status = pet_domain%exchange%config%parameters%pet_m2%set( &
     correction_factor_min=parameter_t( &
-      value=0.9_dp, optimize=.true., lower_bound=0.7_dp, upper_bound=1.3_dp), &
+      value=0.9_dp, optimize=.true., min=0.7_dp, max=1.3_dp), &
     correction_factor_max=parameter_t( &
-      value=0.1_dp, optimize=.true., lower_bound=0.0_dp, upper_bound=0.2_dp), &
+      value=0.1_dp, optimize=.true., min=0.0_dp, max=0.2_dp), &
     aspect_threshold=parameter_t( &
-      value=180.0_dp, optimize=.true., lower_bound=160.0_dp, upper_bound=200.0_dp), &
+      value=180.0_dp, optimize=.true., min=160.0_dp, max=200.0_dp), &
     errmsg=errmsg)
   call assert_true(status == NML_OK, "could not configure PET parameters through the exchange interface: " // trim(errmsg))
   call pet_domain%configure(main_file="test_nml/mpr_pet_aspect_minimal.nml")
