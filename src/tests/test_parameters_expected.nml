@@ -1,0 +1,12 @@
+! Final v6 parameter set (value, optimize, min, max).
+
+&pet_m2
+  correction_factor_min =       1.100000000000,  .true.,       0.750000000000,       1.250000000000
+  correction_factor_max =       0.050000000000, .false.,       0.010000000000,       0.190000000000
+  aspect_threshold      =     190.000000000000,  .true.,     160.000000000000,     200.000000000000
+/
+
+&baseflow_1
+  baseflow_recession(1) =     150.000000000000,  .true.,       2.000000000000,     900.000000000000
+  baseflow_recession(2) =     250.000000000000,  .true.,       2.000000000000,     900.000000000000
+/

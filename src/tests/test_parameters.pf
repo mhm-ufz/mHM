@@ -111,10 +111,6 @@ contains
     real(dp) :: current(5)
     real(dp) :: candidate(5)
     real(dp), allocatable :: registry_values(:)
-    character(512) :: aspect_line
-    character(512) :: baseflow_line
-    character(512) :: pet_max_line
-    character(512) :: pet_min_line
     character(512) :: wide_line
     character(1024) :: errmsg
     integer :: status
@@ -147,23 +143,7 @@ contains
     call parameters%write_namelist(file, candidate)
     registry_values = parameters%as_array()
     @assertEqual(current, registry_values, tolerance=1.0e-12_dp, message="writer changed current registry values")
-
-    call read_matching_line(file, "correction_factor_min", pet_min_line, status)
-    @assertEqual(0, status, message="missing correction_factor_min output")
-    call read_matching_line(file, "correction_factor_max", pet_max_line, status)
-    @assertEqual(0, status, message="missing correction_factor_max output")
-    call read_matching_line(file, "aspect_threshold", aspect_line, status)
-    @assertEqual(0, status, message="missing aspect_threshold output")
-    call read_matching_line(file, "baseflow_recession(1)", baseflow_line, status)
-    @assertEqual(0, status, message="missing indexed baseflow output")
-    @assertEqual(index(pet_min_line, "="), index(aspect_line, "="), message="PET equals signs are not aligned")
-    @assertEqual(index(pet_min_line, "="), index(baseflow_line, "="), message="namelist equals signs are not aligned")
-    @assertTrue(index(adjustl(aspect_line), "aspect_threshold") == 1, message="parameter names are not left aligned")
-    @assertTrue(index(pet_min_line, "1.100000000000") > 0, message="fixed output does not use twelve decimals")
-    @assertTrue(index(pet_min_line, " .true.,") > 0, message="optimized flag is not written")
-    @assertTrue(index(pet_max_line, ".false.,") > 0, message="fixed flag is not written")
-    @assertTrue(index(pet_min_line, "0.750000000000") > 0, message="minimum is not written")
-    @assertTrue(index(pet_min_line, "1.250000000000") > 0, message="maximum is not written")
+    @assertTrue(files_equal(file, "test_parameters_expected.nml"), message="parameter output differs from fixture")
 
     status = pet_config%from_file(file=file, errmsg=errmsg)
     @assertEqual(NML_OK, status, message="could not read candidate PET values: " // trim(errmsg))
@@ -216,5 +196,39 @@ contains
     end do
     close(unit)
   end subroutine read_matching_line
+
+  logical function files_equal(first, second)
+    character(*), intent(in) :: first
+    character(*), intent(in) :: second
+    character(512) :: first_line
+    character(512) :: second_line
+    integer :: first_status
+    integer :: first_unit
+    integer :: second_status
+    integer :: second_unit
+
+    files_equal = .false.
+    open(newunit=first_unit, file=first, status="old", action="read", iostat=first_status)
+    if (first_status /= 0) return
+    open(newunit=second_unit, file=second, status="old", action="read", iostat=second_status)
+    if (second_status /= 0) then
+      close(first_unit)
+      return
+    end if
+
+    do
+      read(first_unit, '(a)', iostat=first_status) first_line
+      read(second_unit, '(a)', iostat=second_status) second_line
+      if ((first_status == 0) .neqv. (second_status == 0)) exit
+      if (first_status /= 0) then
+        files_equal = .true.
+        exit
+      end if
+      if (first_line /= second_line) exit
+    end do
+
+    close(first_unit)
+    close(second_unit)
+  end function files_equal
 
 end module test_parameters
