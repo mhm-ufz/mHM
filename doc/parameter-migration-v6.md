@@ -15,7 +15,7 @@ lower_bound, upper_bound, value, optimization_flag, scaling
 The new derived-type buffer order is:
 
 ```fortran
-value, optimize, lower_bound, upper_bound
+value, optimize, min, max
 ```
 
 For example:
@@ -31,10 +31,14 @@ pet_c = -0.7, .true.
 pet_c = -0.7, .true., -2.0, 0.0
 ```
 
-Every parameter schema provides its established lower and upper bounds. A
+Every parameter schema provides its established minimum and maximum. A
 single `value` uses those bounds and keeps `optimize = .false.`. Adding
 `.true.` enables optimization with the schema bounds. The full four-value
 form overrides the bounds. Values remain required in every form.
+
+The application owns `parameter_t` in `mo_parameter_types`; nml-tools imports
+that type when generating parameter namelist modules. Programmatic v6 callers
+must replace `%lower_bound` with `%min` and `%upper_bound` with `%max`.
 
 The old scaling column was removed because it had no effective use in the
 current optimization calls. Numeric optimization flags migrate as `0` to
@@ -194,25 +198,27 @@ call parameters%write_namelist("final_parameters.nml", optimized_values)
 ```
 
 The output contains only the namelist blocks registered by the selected
-processes and writes only parameter values:
+processes. Each entry records the final value, whether it participated in
+optimization, and the bounds used:
 
 ```fortran
 &pet_m1
-  pet_c = -7.0000000000000000E-001
+  pet_c =      -0.700000000000,  .true.,      -2.000000000000,       0.000000000000
 /
 ```
 
-Bounds and optimization flags are intentionally omitted. Reading the file
-restores bounds from the schemas and leaves optimization disabled, making the
-result suitable for a subsequent forward run:
+Names and tuple columns are aligned, and real values use twelve decimal places
+as in the v5 final-parameter output. Values that do not fit the fixed field use
+scientific notation. The result is suitable for a subsequent forward run:
 
 ```bash
 mhm-driver --parameters final_parameters.nml
 ```
 
 Writing an explicit result vector does not change the registry's current
-values. The reduced file is not an optimization checkpoint and does not retain
-enough metadata to reproduce or resume a calibration.
+values or calibration metadata. The reduced file preserves parameter
+selection and bounds, but it is not an optimizer checkpoint and does not retain
+optimizer state, objective settings, or progress.
 
 Regenerate and check the schema outputs with:
 
