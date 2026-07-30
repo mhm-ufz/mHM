@@ -6,28 +6,28 @@ properties:
   correction_factor_min:
     $ref: parameter.yml#/$defs/parameter
     title: Minimum PET aspect-correction factor
-    default: {lower_bound: 0.7, upper_bound: 1.3}
+    default: {min: 0.7, max: 1.3}
     properties:
       value: {examples: [0.93]}
       optimize: {examples: [true]}
   correction_factor_max:
     $ref: parameter.yml#/$defs/parameter
     title: Maximum PET aspect-correction factor
-    default: {lower_bound: 0.0, upper_bound: 0.2}
+    default: {min: 0.0, max: 0.2}
     properties:
       value: {examples: [0.19]}
       optimize: {examples: [true]}
   aspect_threshold:
     $ref: parameter.yml#/$defs/parameter
     title: Aspect threshold
-    default: {lower_bound: 160.0, upper_bound: 200.0}
+    default: {min: 160.0, max: 200.0}
     properties:
       value: {examples: [171.0]}
       optimize: {examples: [true]}
   hargreaves_samani_coefficient:
     $ref: parameter.yml#/$defs/parameter
     title: Hargreaves-Samani coefficient
-    default: {lower_bound: 0.0016, upper_bound: 0.003}
+    default: {min: 0.0016, max: 0.003}
     properties:
       value: {examples: [0.0023]}
       optimize: {examples: [true]}

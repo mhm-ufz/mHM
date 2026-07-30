@@ -27,12 +27,12 @@ module nml_neutrons_2
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -114,74 +114,74 @@ contains
     if (present(cosmic_n0)) then
       cosmic_n0%value = ieee_value(cosmic_n0%value, ieee_quiet_nan) ! sentinel for derived component value
       cosmic_n0%optimize = .false.
-      cosmic_n0%lower_bound = ieee_value(cosmic_n0%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      cosmic_n0%upper_bound = ieee_value(cosmic_n0%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      cosmic_n0%lower_bound = 300.0_dp
-      cosmic_n0%upper_bound = 2000.0_dp
+      cosmic_n0%min = ieee_value(cosmic_n0%min, ieee_quiet_nan) ! sentinel for derived component min
+      cosmic_n0%max = ieee_value(cosmic_n0%max, ieee_quiet_nan) ! sentinel for derived component max
+      cosmic_n0%min = 300.0_dp
+      cosmic_n0%max = 2000.0_dp
     end if
     if (present(cosmic_n1)) then
       cosmic_n1%value = ieee_value(cosmic_n1%value, ieee_quiet_nan) ! sentinel for derived component value
       cosmic_n1%optimize = .false.
-      cosmic_n1%lower_bound = ieee_value(cosmic_n1%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      cosmic_n1%upper_bound = ieee_value(cosmic_n1%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      cosmic_n1%lower_bound = 0.01_dp
-      cosmic_n1%upper_bound = 10.0_dp
+      cosmic_n1%min = ieee_value(cosmic_n1%min, ieee_quiet_nan) ! sentinel for derived component min
+      cosmic_n1%max = ieee_value(cosmic_n1%max, ieee_quiet_nan) ! sentinel for derived component max
+      cosmic_n1%min = 0.01_dp
+      cosmic_n1%max = 10.0_dp
     end if
     if (present(cosmic_n2)) then
       cosmic_n2%value = ieee_value(cosmic_n2%value, ieee_quiet_nan) ! sentinel for derived component value
       cosmic_n2%optimize = .false.
-      cosmic_n2%lower_bound = ieee_value(cosmic_n2%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      cosmic_n2%upper_bound = ieee_value(cosmic_n2%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      cosmic_n2%lower_bound = 0.01_dp
-      cosmic_n2%upper_bound = 10.0_dp
+      cosmic_n2%min = ieee_value(cosmic_n2%min, ieee_quiet_nan) ! sentinel for derived component min
+      cosmic_n2%max = ieee_value(cosmic_n2%max, ieee_quiet_nan) ! sentinel for derived component max
+      cosmic_n2%min = 0.01_dp
+      cosmic_n2%max = 10.0_dp
     end if
     if (present(cosmic_alpha0)) then
       cosmic_alpha0%value = ieee_value(cosmic_alpha0%value, ieee_quiet_nan) ! sentinel for derived component value
       cosmic_alpha0%optimize = .false.
-      cosmic_alpha0%lower_bound = ieee_value(cosmic_alpha0%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      cosmic_alpha0%upper_bound = ieee_value(cosmic_alpha0%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      cosmic_alpha0%lower_bound = 0.01_dp
-      cosmic_alpha0%upper_bound = 10.0_dp
+      cosmic_alpha0%min = ieee_value(cosmic_alpha0%min, ieee_quiet_nan) ! sentinel for derived component min
+      cosmic_alpha0%max = ieee_value(cosmic_alpha0%max, ieee_quiet_nan) ! sentinel for derived component max
+      cosmic_alpha0%min = 0.01_dp
+      cosmic_alpha0%max = 10.0_dp
     end if
     if (present(cosmic_alpha1)) then
       cosmic_alpha1%value = ieee_value(cosmic_alpha1%value, ieee_quiet_nan) ! sentinel for derived component value
       cosmic_alpha1%optimize = .false.
-      cosmic_alpha1%lower_bound = ieee_value(cosmic_alpha1%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      cosmic_alpha1%upper_bound = ieee_value(cosmic_alpha1%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      cosmic_alpha1%lower_bound = 0.01_dp
-      cosmic_alpha1%upper_bound = 10.0_dp
+      cosmic_alpha1%min = ieee_value(cosmic_alpha1%min, ieee_quiet_nan) ! sentinel for derived component min
+      cosmic_alpha1%max = ieee_value(cosmic_alpha1%max, ieee_quiet_nan) ! sentinel for derived component max
+      cosmic_alpha1%min = 0.01_dp
+      cosmic_alpha1%max = 10.0_dp
     end if
     if (present(cosmic_l30)) then
       cosmic_l30%value = ieee_value(cosmic_l30%value, ieee_quiet_nan) ! sentinel for derived component value
       cosmic_l30%optimize = .false.
-      cosmic_l30%lower_bound = ieee_value(cosmic_l30%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      cosmic_l30%upper_bound = ieee_value(cosmic_l30%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      cosmic_l30%lower_bound = 26.56_dp
-      cosmic_l30%upper_bound = 424.78_dp
+      cosmic_l30%min = ieee_value(cosmic_l30%min, ieee_quiet_nan) ! sentinel for derived component min
+      cosmic_l30%max = ieee_value(cosmic_l30%max, ieee_quiet_nan) ! sentinel for derived component max
+      cosmic_l30%min = 26.56_dp
+      cosmic_l30%max = 424.78_dp
     end if
     if (present(cosmic_l31)) then
       cosmic_l31%value = ieee_value(cosmic_l31%value, ieee_quiet_nan) ! sentinel for derived component value
       cosmic_l31%optimize = .false.
-      cosmic_l31%lower_bound = ieee_value(cosmic_l31%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      cosmic_l31%upper_bound = ieee_value(cosmic_l31%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      cosmic_l31%lower_bound = -118.3_dp
-      cosmic_l31%upper_bound = 200.28_dp
+      cosmic_l31%min = ieee_value(cosmic_l31%min, ieee_quiet_nan) ! sentinel for derived component min
+      cosmic_l31%max = ieee_value(cosmic_l31%max, ieee_quiet_nan) ! sentinel for derived component max
+      cosmic_l31%min = -118.3_dp
+      cosmic_l31%max = 200.28_dp
     end if
     if (present(cosmic_lw0)) then
       cosmic_lw0%value = ieee_value(cosmic_lw0%value, ieee_quiet_nan) ! sentinel for derived component value
       cosmic_lw0%optimize = .false.
-      cosmic_lw0%lower_bound = ieee_value(cosmic_lw0%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      cosmic_lw0%upper_bound = ieee_value(cosmic_lw0%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      cosmic_lw0%lower_bound = 0.0_dp
-      cosmic_lw0%upper_bound = 0.2_dp
+      cosmic_lw0%min = ieee_value(cosmic_lw0%min, ieee_quiet_nan) ! sentinel for derived component min
+      cosmic_lw0%max = ieee_value(cosmic_lw0%max, ieee_quiet_nan) ! sentinel for derived component max
+      cosmic_lw0%min = 0.0_dp
+      cosmic_lw0%max = 0.2_dp
     end if
     if (present(cosmic_lw1)) then
       cosmic_lw1%value = ieee_value(cosmic_lw1%value, ieee_quiet_nan) ! sentinel for derived component value
       cosmic_lw1%optimize = .false.
-      cosmic_lw1%lower_bound = ieee_value(cosmic_lw1%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      cosmic_lw1%upper_bound = ieee_value(cosmic_lw1%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      cosmic_lw1%lower_bound = 0.0_dp
-      cosmic_lw1%upper_bound = 0.05_dp
+      cosmic_lw1%min = ieee_value(cosmic_lw1%min, ieee_quiet_nan) ! sentinel for derived component min
+      cosmic_lw1%max = ieee_value(cosmic_lw1%max, ieee_quiet_nan) ! sentinel for derived component max
+      cosmic_lw1%min = 0.0_dp
+      cosmic_lw1%max = 0.05_dp
     end if
   end function nml_neutrons_2_init_type
 
@@ -341,13 +341,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_n0'"
         return
       end if
-    case ("cosmic_n0%lower_bound")
+    case ("cosmic_n0%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_n0'"
         return
       end if
-    case ("cosmic_n0%upper_bound")
+    case ("cosmic_n0%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_n0'"
@@ -375,13 +375,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_n1'"
         return
       end if
-    case ("cosmic_n1%lower_bound")
+    case ("cosmic_n1%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_n1'"
         return
       end if
-    case ("cosmic_n1%upper_bound")
+    case ("cosmic_n1%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_n1'"
@@ -409,13 +409,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_n2'"
         return
       end if
-    case ("cosmic_n2%lower_bound")
+    case ("cosmic_n2%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_n2'"
         return
       end if
-    case ("cosmic_n2%upper_bound")
+    case ("cosmic_n2%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_n2'"
@@ -443,13 +443,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha0'"
         return
       end if
-    case ("cosmic_alpha0%lower_bound")
+    case ("cosmic_alpha0%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha0'"
         return
       end if
-    case ("cosmic_alpha0%upper_bound")
+    case ("cosmic_alpha0%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha0'"
@@ -477,13 +477,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha1'"
         return
       end if
-    case ("cosmic_alpha1%lower_bound")
+    case ("cosmic_alpha1%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha1'"
         return
       end if
-    case ("cosmic_alpha1%upper_bound")
+    case ("cosmic_alpha1%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha1'"
@@ -511,13 +511,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_l30'"
         return
       end if
-    case ("cosmic_l30%lower_bound")
+    case ("cosmic_l30%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_l30'"
         return
       end if
-    case ("cosmic_l30%upper_bound")
+    case ("cosmic_l30%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_l30'"
@@ -545,13 +545,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_l31'"
         return
       end if
-    case ("cosmic_l31%lower_bound")
+    case ("cosmic_l31%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_l31'"
         return
       end if
-    case ("cosmic_l31%upper_bound")
+    case ("cosmic_l31%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_l31'"
@@ -579,13 +579,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw0'"
         return
       end if
-    case ("cosmic_lw0%lower_bound")
+    case ("cosmic_lw0%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw0'"
         return
       end if
-    case ("cosmic_lw0%upper_bound")
+    case ("cosmic_lw0%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw0'"
@@ -613,13 +613,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw1'"
         return
       end if
-    case ("cosmic_lw1%lower_bound")
+    case ("cosmic_lw1%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw1'"
         return
       end if
-    case ("cosmic_lw1%upper_bound")
+    case ("cosmic_lw1%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw1'"

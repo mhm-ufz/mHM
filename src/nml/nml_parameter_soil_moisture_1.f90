@@ -27,12 +27,12 @@ module nml_soil_moisture_1
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -142,130 +142,130 @@ contains
     if (present(organic_matter_forest)) then
       organic_matter_forest%value = ieee_value(organic_matter_forest%value, ieee_quiet_nan) ! sentinel for derived component value
       organic_matter_forest%optimize = .false.
-      organic_matter_forest%lower_bound = ieee_value(organic_matter_forest%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      organic_matter_forest%upper_bound = ieee_value(organic_matter_forest%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      organic_matter_forest%lower_bound = 5.0_dp
-      organic_matter_forest%upper_bound = 10.0_dp
+      organic_matter_forest%min = ieee_value(organic_matter_forest%min, ieee_quiet_nan) ! sentinel for derived component min
+      organic_matter_forest%max = ieee_value(organic_matter_forest%max, ieee_quiet_nan) ! sentinel for derived component max
+      organic_matter_forest%min = 5.0_dp
+      organic_matter_forest%max = 10.0_dp
     end if
     if (present(organic_matter_impervious)) then
       organic_matter_impervious%value = ieee_value(organic_matter_impervious%value, ieee_quiet_nan) ! sentinel for derived component value
       organic_matter_impervious%optimize = .false.
-      organic_matter_impervious%lower_bound = ieee_value(organic_matter_impervious%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      organic_matter_impervious%upper_bound = ieee_value(organic_matter_impervious%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      organic_matter_impervious%lower_bound = 0.0_dp
-      organic_matter_impervious%upper_bound = 1.0_dp
+      organic_matter_impervious%min = ieee_value(organic_matter_impervious%min, ieee_quiet_nan) ! sentinel for derived component min
+      organic_matter_impervious%max = ieee_value(organic_matter_impervious%max, ieee_quiet_nan) ! sentinel for derived component max
+      organic_matter_impervious%min = 0.0_dp
+      organic_matter_impervious%max = 1.0_dp
     end if
     if (present(organic_matter_pervious)) then
       organic_matter_pervious%value = ieee_value(organic_matter_pervious%value, ieee_quiet_nan) ! sentinel for derived component value
       organic_matter_pervious%optimize = .false.
-      organic_matter_pervious%lower_bound = ieee_value(organic_matter_pervious%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      organic_matter_pervious%upper_bound = ieee_value(organic_matter_pervious%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      organic_matter_pervious%lower_bound = 1.0_dp
-      organic_matter_pervious%upper_bound = 5.0_dp
+      organic_matter_pervious%min = ieee_value(organic_matter_pervious%min, ieee_quiet_nan) ! sentinel for derived component min
+      organic_matter_pervious%max = ieee_value(organic_matter_pervious%max, ieee_quiet_nan) ! sentinel for derived component max
+      organic_matter_pervious%min = 1.0_dp
+      organic_matter_pervious%max = 5.0_dp
     end if
     if (present(ptf_lower_66_5_constant)) then
       ptf_lower_66_5_constant%value = ieee_value(ptf_lower_66_5_constant%value, ieee_quiet_nan) ! sentinel for derived component value
       ptf_lower_66_5_constant%optimize = .false.
-      ptf_lower_66_5_constant%lower_bound = ieee_value(ptf_lower_66_5_constant%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      ptf_lower_66_5_constant%upper_bound = ieee_value(ptf_lower_66_5_constant%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      ptf_lower_66_5_constant%lower_bound = 0.75_dp
-      ptf_lower_66_5_constant%upper_bound = 0.8_dp
+      ptf_lower_66_5_constant%min = ieee_value(ptf_lower_66_5_constant%min, ieee_quiet_nan) ! sentinel for derived component min
+      ptf_lower_66_5_constant%max = ieee_value(ptf_lower_66_5_constant%max, ieee_quiet_nan) ! sentinel for derived component max
+      ptf_lower_66_5_constant%min = 0.75_dp
+      ptf_lower_66_5_constant%max = 0.8_dp
     end if
     if (present(ptf_lower_66_5_clay)) then
       ptf_lower_66_5_clay%value = ieee_value(ptf_lower_66_5_clay%value, ieee_quiet_nan) ! sentinel for derived component value
       ptf_lower_66_5_clay%optimize = .false.
-      ptf_lower_66_5_clay%lower_bound = ieee_value(ptf_lower_66_5_clay%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      ptf_lower_66_5_clay%upper_bound = ieee_value(ptf_lower_66_5_clay%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      ptf_lower_66_5_clay%lower_bound = 0.0008_dp
-      ptf_lower_66_5_clay%upper_bound = 0.0012_dp
+      ptf_lower_66_5_clay%min = ieee_value(ptf_lower_66_5_clay%min, ieee_quiet_nan) ! sentinel for derived component min
+      ptf_lower_66_5_clay%max = ieee_value(ptf_lower_66_5_clay%max, ieee_quiet_nan) ! sentinel for derived component max
+      ptf_lower_66_5_clay%min = 0.0008_dp
+      ptf_lower_66_5_clay%max = 0.0012_dp
     end if
     if (present(ptf_lower_66_5_bulk_density)) then
       ptf_lower_66_5_bulk_density%value = ieee_value(ptf_lower_66_5_bulk_density%value, ieee_quiet_nan) ! sentinel for derived component value
       ptf_lower_66_5_bulk_density%optimize = .false.
-      ptf_lower_66_5_bulk_density%lower_bound = ieee_value(ptf_lower_66_5_bulk_density%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      ptf_lower_66_5_bulk_density%upper_bound = ieee_value(ptf_lower_66_5_bulk_density%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      ptf_lower_66_5_bulk_density%lower_bound = -0.27_dp
-      ptf_lower_66_5_bulk_density%upper_bound = -0.25_dp
+      ptf_lower_66_5_bulk_density%min = ieee_value(ptf_lower_66_5_bulk_density%min, ieee_quiet_nan) ! sentinel for derived component min
+      ptf_lower_66_5_bulk_density%max = ieee_value(ptf_lower_66_5_bulk_density%max, ieee_quiet_nan) ! sentinel for derived component max
+      ptf_lower_66_5_bulk_density%min = -0.27_dp
+      ptf_lower_66_5_bulk_density%max = -0.25_dp
     end if
     if (present(ptf_upper_66_5_constant)) then
       ptf_upper_66_5_constant%value = ieee_value(ptf_upper_66_5_constant%value, ieee_quiet_nan) ! sentinel for derived component value
       ptf_upper_66_5_constant%optimize = .false.
-      ptf_upper_66_5_constant%lower_bound = ieee_value(ptf_upper_66_5_constant%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      ptf_upper_66_5_constant%upper_bound = ieee_value(ptf_upper_66_5_constant%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      ptf_upper_66_5_constant%lower_bound = 0.8_dp
-      ptf_upper_66_5_constant%upper_bound = 0.9_dp
+      ptf_upper_66_5_constant%min = ieee_value(ptf_upper_66_5_constant%min, ieee_quiet_nan) ! sentinel for derived component min
+      ptf_upper_66_5_constant%max = ieee_value(ptf_upper_66_5_constant%max, ieee_quiet_nan) ! sentinel for derived component max
+      ptf_upper_66_5_constant%min = 0.8_dp
+      ptf_upper_66_5_constant%max = 0.9_dp
     end if
     if (present(ptf_upper_66_5_clay)) then
       ptf_upper_66_5_clay%value = ieee_value(ptf_upper_66_5_clay%value, ieee_quiet_nan) ! sentinel for derived component value
       ptf_upper_66_5_clay%optimize = .false.
-      ptf_upper_66_5_clay%lower_bound = ieee_value(ptf_upper_66_5_clay%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      ptf_upper_66_5_clay%upper_bound = ieee_value(ptf_upper_66_5_clay%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      ptf_upper_66_5_clay%lower_bound = -0.0012_dp
-      ptf_upper_66_5_clay%upper_bound = -0.0008_dp
+      ptf_upper_66_5_clay%min = ieee_value(ptf_upper_66_5_clay%min, ieee_quiet_nan) ! sentinel for derived component min
+      ptf_upper_66_5_clay%max = ieee_value(ptf_upper_66_5_clay%max, ieee_quiet_nan) ! sentinel for derived component max
+      ptf_upper_66_5_clay%min = -0.0012_dp
+      ptf_upper_66_5_clay%max = -0.0008_dp
     end if
     if (present(ptf_upper_66_5_bulk_density)) then
       ptf_upper_66_5_bulk_density%value = ieee_value(ptf_upper_66_5_bulk_density%value, ieee_quiet_nan) ! sentinel for derived component value
       ptf_upper_66_5_bulk_density%optimize = .false.
-      ptf_upper_66_5_bulk_density%lower_bound = ieee_value(ptf_upper_66_5_bulk_density%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      ptf_upper_66_5_bulk_density%upper_bound = ieee_value(ptf_upper_66_5_bulk_density%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      ptf_upper_66_5_bulk_density%lower_bound = -0.35_dp
-      ptf_upper_66_5_bulk_density%upper_bound = -0.3_dp
+      ptf_upper_66_5_bulk_density%min = ieee_value(ptf_upper_66_5_bulk_density%min, ieee_quiet_nan) ! sentinel for derived component min
+      ptf_upper_66_5_bulk_density%max = ieee_value(ptf_upper_66_5_bulk_density%max, ieee_quiet_nan) ! sentinel for derived component max
+      ptf_upper_66_5_bulk_density%min = -0.35_dp
+      ptf_upper_66_5_bulk_density%max = -0.3_dp
     end if
     if (present(ptf_ks_constant)) then
       ptf_ks_constant%value = ieee_value(ptf_ks_constant%value, ieee_quiet_nan) ! sentinel for derived component value
       ptf_ks_constant%optimize = .false.
-      ptf_ks_constant%lower_bound = ieee_value(ptf_ks_constant%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      ptf_ks_constant%upper_bound = ieee_value(ptf_ks_constant%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      ptf_ks_constant%lower_bound = -1.2_dp
-      ptf_ks_constant%upper_bound = -0.285_dp
+      ptf_ks_constant%min = ieee_value(ptf_ks_constant%min, ieee_quiet_nan) ! sentinel for derived component min
+      ptf_ks_constant%max = ieee_value(ptf_ks_constant%max, ieee_quiet_nan) ! sentinel for derived component max
+      ptf_ks_constant%min = -1.2_dp
+      ptf_ks_constant%max = -0.285_dp
     end if
     if (present(ptf_ks_sand)) then
       ptf_ks_sand%value = ieee_value(ptf_ks_sand%value, ieee_quiet_nan) ! sentinel for derived component value
       ptf_ks_sand%optimize = .false.
-      ptf_ks_sand%lower_bound = ieee_value(ptf_ks_sand%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      ptf_ks_sand%upper_bound = ieee_value(ptf_ks_sand%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      ptf_ks_sand%lower_bound = 0.006_dp
-      ptf_ks_sand%upper_bound = 0.026_dp
+      ptf_ks_sand%min = ieee_value(ptf_ks_sand%min, ieee_quiet_nan) ! sentinel for derived component min
+      ptf_ks_sand%max = ieee_value(ptf_ks_sand%max, ieee_quiet_nan) ! sentinel for derived component max
+      ptf_ks_sand%min = 0.006_dp
+      ptf_ks_sand%max = 0.026_dp
     end if
     if (present(ptf_ks_clay)) then
       ptf_ks_clay%value = ieee_value(ptf_ks_clay%value, ieee_quiet_nan) ! sentinel for derived component value
       ptf_ks_clay%optimize = .false.
-      ptf_ks_clay%lower_bound = ieee_value(ptf_ks_clay%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      ptf_ks_clay%upper_bound = ieee_value(ptf_ks_clay%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      ptf_ks_clay%lower_bound = 0.003_dp
-      ptf_ks_clay%upper_bound = 0.013_dp
+      ptf_ks_clay%min = ieee_value(ptf_ks_clay%min, ieee_quiet_nan) ! sentinel for derived component min
+      ptf_ks_clay%max = ieee_value(ptf_ks_clay%max, ieee_quiet_nan) ! sentinel for derived component max
+      ptf_ks_clay%min = 0.003_dp
+      ptf_ks_clay%max = 0.013_dp
     end if
     if (present(root_fraction_forest)) then
       root_fraction_forest%value = ieee_value(root_fraction_forest%value, ieee_quiet_nan) ! sentinel for derived component value
       root_fraction_forest%optimize = .false.
-      root_fraction_forest%lower_bound = ieee_value(root_fraction_forest%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      root_fraction_forest%upper_bound = ieee_value(root_fraction_forest%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      root_fraction_forest%lower_bound = 0.9_dp
-      root_fraction_forest%upper_bound = 0.999_dp
+      root_fraction_forest%min = ieee_value(root_fraction_forest%min, ieee_quiet_nan) ! sentinel for derived component min
+      root_fraction_forest%max = ieee_value(root_fraction_forest%max, ieee_quiet_nan) ! sentinel for derived component max
+      root_fraction_forest%min = 0.9_dp
+      root_fraction_forest%max = 0.999_dp
     end if
     if (present(root_fraction_impervious)) then
       root_fraction_impervious%value = ieee_value(root_fraction_impervious%value, ieee_quiet_nan) ! sentinel for derived component value
       root_fraction_impervious%optimize = .false.
-      root_fraction_impervious%lower_bound = ieee_value(root_fraction_impervious%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      root_fraction_impervious%upper_bound = ieee_value(root_fraction_impervious%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      root_fraction_impervious%lower_bound = 0.9_dp
-      root_fraction_impervious%upper_bound = 0.95_dp
+      root_fraction_impervious%min = ieee_value(root_fraction_impervious%min, ieee_quiet_nan) ! sentinel for derived component min
+      root_fraction_impervious%max = ieee_value(root_fraction_impervious%max, ieee_quiet_nan) ! sentinel for derived component max
+      root_fraction_impervious%min = 0.9_dp
+      root_fraction_impervious%max = 0.95_dp
     end if
     if (present(root_fraction_pervious)) then
       root_fraction_pervious%value = ieee_value(root_fraction_pervious%value, ieee_quiet_nan) ! sentinel for derived component value
       root_fraction_pervious%optimize = .false.
-      root_fraction_pervious%lower_bound = ieee_value(root_fraction_pervious%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      root_fraction_pervious%upper_bound = ieee_value(root_fraction_pervious%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      root_fraction_pervious%lower_bound = 0.001_dp
-      root_fraction_pervious%upper_bound = 0.09_dp
+      root_fraction_pervious%min = ieee_value(root_fraction_pervious%min, ieee_quiet_nan) ! sentinel for derived component min
+      root_fraction_pervious%max = ieee_value(root_fraction_pervious%max, ieee_quiet_nan) ! sentinel for derived component max
+      root_fraction_pervious%min = 0.001_dp
+      root_fraction_pervious%max = 0.09_dp
     end if
     if (present(infiltration_shape_factor)) then
       infiltration_shape_factor%value = ieee_value(infiltration_shape_factor%value, ieee_quiet_nan) ! sentinel for derived component value
       infiltration_shape_factor%optimize = .false.
-      infiltration_shape_factor%lower_bound = ieee_value(infiltration_shape_factor%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      infiltration_shape_factor%upper_bound = ieee_value(infiltration_shape_factor%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      infiltration_shape_factor%lower_bound = 1.0_dp
-      infiltration_shape_factor%upper_bound = 4.0_dp
+      infiltration_shape_factor%min = ieee_value(infiltration_shape_factor%min, ieee_quiet_nan) ! sentinel for derived component min
+      infiltration_shape_factor%max = ieee_value(infiltration_shape_factor%max, ieee_quiet_nan) ! sentinel for derived component max
+      infiltration_shape_factor%min = 1.0_dp
+      infiltration_shape_factor%max = 4.0_dp
     end if
   end function nml_soil_moisture_1_init_type
 
@@ -474,13 +474,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'organic_matter_forest'"
         return
       end if
-    case ("organic_matter_forest%lower_bound")
+    case ("organic_matter_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'organic_matter_forest'"
         return
       end if
-    case ("organic_matter_forest%upper_bound")
+    case ("organic_matter_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'organic_matter_forest'"
@@ -508,13 +508,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'organic_matter_impervious'"
         return
       end if
-    case ("organic_matter_impervious%lower_bound")
+    case ("organic_matter_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'organic_matter_impervious'"
         return
       end if
-    case ("organic_matter_impervious%upper_bound")
+    case ("organic_matter_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'organic_matter_impervious'"
@@ -542,13 +542,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'organic_matter_pervious'"
         return
       end if
-    case ("organic_matter_pervious%lower_bound")
+    case ("organic_matter_pervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'organic_matter_pervious'"
         return
       end if
-    case ("organic_matter_pervious%upper_bound")
+    case ("organic_matter_pervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'organic_matter_pervious'"
@@ -576,13 +576,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_constant'"
         return
       end if
-    case ("ptf_lower_66_5_constant%lower_bound")
+    case ("ptf_lower_66_5_constant%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_constant'"
         return
       end if
-    case ("ptf_lower_66_5_constant%upper_bound")
+    case ("ptf_lower_66_5_constant%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_constant'"
@@ -610,13 +610,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_clay'"
         return
       end if
-    case ("ptf_lower_66_5_clay%lower_bound")
+    case ("ptf_lower_66_5_clay%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_clay'"
         return
       end if
-    case ("ptf_lower_66_5_clay%upper_bound")
+    case ("ptf_lower_66_5_clay%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_clay'"
@@ -644,13 +644,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_bulk_density'"
         return
       end if
-    case ("ptf_lower_66_5_bulk_density%lower_bound")
+    case ("ptf_lower_66_5_bulk_density%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_bulk_density'"
         return
       end if
-    case ("ptf_lower_66_5_bulk_density%upper_bound")
+    case ("ptf_lower_66_5_bulk_density%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_bulk_density'"
@@ -678,13 +678,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_constant'"
         return
       end if
-    case ("ptf_upper_66_5_constant%lower_bound")
+    case ("ptf_upper_66_5_constant%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_constant'"
         return
       end if
-    case ("ptf_upper_66_5_constant%upper_bound")
+    case ("ptf_upper_66_5_constant%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_constant'"
@@ -712,13 +712,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_clay'"
         return
       end if
-    case ("ptf_upper_66_5_clay%lower_bound")
+    case ("ptf_upper_66_5_clay%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_clay'"
         return
       end if
-    case ("ptf_upper_66_5_clay%upper_bound")
+    case ("ptf_upper_66_5_clay%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_clay'"
@@ -746,13 +746,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_bulk_density'"
         return
       end if
-    case ("ptf_upper_66_5_bulk_density%lower_bound")
+    case ("ptf_upper_66_5_bulk_density%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_bulk_density'"
         return
       end if
-    case ("ptf_upper_66_5_bulk_density%upper_bound")
+    case ("ptf_upper_66_5_bulk_density%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_bulk_density'"
@@ -780,13 +780,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant'"
         return
       end if
-    case ("ptf_ks_constant%lower_bound")
+    case ("ptf_ks_constant%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant'"
         return
       end if
-    case ("ptf_ks_constant%upper_bound")
+    case ("ptf_ks_constant%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant'"
@@ -814,13 +814,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand'"
         return
       end if
-    case ("ptf_ks_sand%lower_bound")
+    case ("ptf_ks_sand%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand'"
         return
       end if
-    case ("ptf_ks_sand%upper_bound")
+    case ("ptf_ks_sand%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand'"
@@ -848,13 +848,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay'"
         return
       end if
-    case ("ptf_ks_clay%lower_bound")
+    case ("ptf_ks_clay%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay'"
         return
       end if
-    case ("ptf_ks_clay%upper_bound")
+    case ("ptf_ks_clay%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay'"
@@ -882,13 +882,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'root_fraction_forest'"
         return
       end if
-    case ("root_fraction_forest%lower_bound")
+    case ("root_fraction_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'root_fraction_forest'"
         return
       end if
-    case ("root_fraction_forest%upper_bound")
+    case ("root_fraction_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'root_fraction_forest'"
@@ -916,13 +916,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'root_fraction_impervious'"
         return
       end if
-    case ("root_fraction_impervious%lower_bound")
+    case ("root_fraction_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'root_fraction_impervious'"
         return
       end if
-    case ("root_fraction_impervious%upper_bound")
+    case ("root_fraction_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'root_fraction_impervious'"
@@ -950,13 +950,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'root_fraction_pervious'"
         return
       end if
-    case ("root_fraction_pervious%lower_bound")
+    case ("root_fraction_pervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'root_fraction_pervious'"
         return
       end if
-    case ("root_fraction_pervious%upper_bound")
+    case ("root_fraction_pervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'root_fraction_pervious'"
@@ -984,13 +984,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'infiltration_shape_factor'"
         return
       end if
-    case ("infiltration_shape_factor%lower_bound")
+    case ("infiltration_shape_factor%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'infiltration_shape_factor'"
         return
       end if
-    case ("infiltration_shape_factor%upper_bound")
+    case ("infiltration_shape_factor%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'infiltration_shape_factor'"

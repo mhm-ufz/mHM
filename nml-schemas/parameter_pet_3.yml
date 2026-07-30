@@ -6,49 +6,49 @@ properties:
   canopy_height_forest:
     $ref: parameter.yml#/$defs/parameter
     title: Canopy height for forest
-    default: {lower_bound: 15.0, upper_bound: 40.0}
+    default: {min: 15.0, max: 40.0}
     properties:
       value: {examples: [15.0]}
       optimize: {examples: [true]}
   canopy_height_impervious:
     $ref: parameter.yml#/$defs/parameter
     title: Canopy height for impervious areas
-    default: {lower_bound: 0.01, upper_bound: 0.5}
+    default: {min: 0.01, max: 0.5}
     properties:
       value: {examples: [0.02]}
       optimize: {examples: [true]}
   canopy_height_pervious:
     $ref: parameter.yml#/$defs/parameter
     title: Canopy height for pervious areas
-    default: {lower_bound: 0.1, upper_bound: 5.0}
+    default: {min: 0.1, max: 5.0}
     properties:
       value: {examples: [0.11]}
       optimize: {examples: [true]}
   displacement_height_coefficient:
     $ref: parameter.yml#/$defs/parameter
     title: Displacement-height coefficient
-    default: {lower_bound: 0.5, upper_bound: 0.85}
+    default: {min: 0.5, max: 0.85}
     properties:
       value: {examples: [0.64]}
       optimize: {examples: [true]}
   momentum_roughness_length_coefficient:
     $ref: parameter.yml#/$defs/parameter
     title: Momentum roughness-length coefficient
-    default: {lower_bound: 0.09, upper_bound: 0.16}
+    default: {min: 0.09, max: 0.16}
     properties:
       value: {examples: [0.095]}
       optimize: {examples: [true]}
   heat_roughness_length_coefficient:
     $ref: parameter.yml#/$defs/parameter
     title: Heat roughness-length coefficient
-    default: {lower_bound: 0.07, upper_bound: 0.13}
+    default: {min: 0.07, max: 0.13}
     properties:
       value: {examples: [0.075]}
       optimize: {examples: [true]}
   stomatal_resistance:
     $ref: parameter.yml#/$defs/parameter
     title: Stomatal resistance
-    default: {lower_bound: 10.0, upper_bound: 200.0}
+    default: {min: 10.0, max: 200.0}
     properties:
       value: {examples: [56.0]}
       optimize: {examples: [true]}

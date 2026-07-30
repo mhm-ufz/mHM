@@ -6,112 +6,112 @@ properties:
   organic_matter_forest:
     $ref: parameter.yml#/$defs/parameter
     title: Organic matter content for forest
-    default: {lower_bound: 5.0, upper_bound: 10.0}
+    default: {min: 5.0, max: 10.0}
     properties:
       value: {examples: [7.0]}
       optimize: {examples: [true]}
   organic_matter_impervious:
     $ref: parameter.yml#/$defs/parameter
     title: Organic matter content for impervious areas
-    default: {lower_bound: 0.0, upper_bound: 1.0}
+    default: {min: 0.0, max: 1.0}
     properties:
       value: {examples: [0.5]}
       optimize: {examples: [true]}
   organic_matter_pervious:
     $ref: parameter.yml#/$defs/parameter
     title: Organic matter content for pervious areas
-    default: {lower_bound: 1.0, upper_bound: 5.0}
+    default: {min: 1.0, max: 5.0}
     properties:
       value: {examples: [2.5]}
       optimize: {examples: [true]}
   ptf_lower_66_5_constant:
     $ref: parameter.yml#/$defs/parameter
     title: PTF constant below 66.5 percent sand
-    default: {lower_bound: 0.75, upper_bound: 0.8}
+    default: {min: 0.75, max: 0.8}
     properties:
       value: {examples: [0.788]}
       optimize: {examples: [true]}
   ptf_lower_66_5_clay:
     $ref: parameter.yml#/$defs/parameter
     title: PTF clay multiplier below 66.5 percent sand
-    default: {lower_bound: 0.0008, upper_bound: 0.0012}
+    default: {min: 0.0008, max: 0.0012}
     properties:
       value: {examples: [0.001]}
       optimize: {examples: [true]}
   ptf_lower_66_5_bulk_density:
     $ref: parameter.yml#/$defs/parameter
     title: PTF bulk-density multiplier below 66.5 percent sand
-    default: {lower_bound: -0.27, upper_bound: -0.25}
+    default: {min: -0.27, max: -0.25}
     properties:
       value: {examples: [-0.263]}
       optimize: {examples: [true]}
   ptf_upper_66_5_constant:
     $ref: parameter.yml#/$defs/parameter
     title: PTF constant above 66.5 percent sand
-    default: {lower_bound: 0.8, upper_bound: 0.9}
+    default: {min: 0.8, max: 0.9}
     properties:
       value: {examples: [0.8907]}
       optimize: {examples: [true]}
   ptf_upper_66_5_clay:
     $ref: parameter.yml#/$defs/parameter
     title: PTF clay multiplier above 66.5 percent sand
-    default: {lower_bound: -0.0012, upper_bound: -0.0008}
+    default: {min: -0.0012, max: -0.0008}
     properties:
       value: {examples: [-0.001]}
       optimize: {examples: [true]}
   ptf_upper_66_5_bulk_density:
     $ref: parameter.yml#/$defs/parameter
     title: PTF bulk-density multiplier above 66.5 percent sand
-    default: {lower_bound: -0.35, upper_bound: -0.3}
+    default: {min: -0.35, max: -0.3}
     properties:
       value: {examples: [-0.322]}
       optimize: {examples: [true]}
   ptf_ks_constant:
     $ref: parameter.yml#/$defs/parameter
     title: PTF constant for saturated hydraulic conductivity
-    default: {lower_bound: -1.2, upper_bound: -0.285}
+    default: {min: -1.2, max: -0.285}
     properties:
       value: {examples: [-0.585]}
       optimize: {examples: [true]}
   ptf_ks_sand:
     $ref: parameter.yml#/$defs/parameter
     title: PTF sand multiplier for saturated hydraulic conductivity
-    default: {lower_bound: 0.006, upper_bound: 0.026}
+    default: {min: 0.006, max: 0.026}
     properties:
       value: {examples: [0.0125]}
       optimize: {examples: [true]}
   ptf_ks_clay:
     $ref: parameter.yml#/$defs/parameter
     title: PTF clay multiplier for saturated hydraulic conductivity
-    default: {lower_bound: 0.003, upper_bound: 0.013}
+    default: {min: 0.003, max: 0.013}
     properties:
       value: {examples: [0.0063]}
       optimize: {examples: [true]}
   root_fraction_forest:
     $ref: parameter.yml#/$defs/parameter
     title: Root-fraction coefficient for forest
-    default: {lower_bound: 0.9, upper_bound: 0.999}
+    default: {min: 0.9, max: 0.999}
     properties:
       value: {examples: [0.97]}
       optimize: {examples: [true]}
   root_fraction_impervious:
     $ref: parameter.yml#/$defs/parameter
     title: Root-fraction coefficient for impervious areas
-    default: {lower_bound: 0.9, upper_bound: 0.95}
+    default: {min: 0.9, max: 0.95}
     properties:
       value: {examples: [0.93]}
       optimize: {examples: [true]}
   root_fraction_pervious:
     $ref: parameter.yml#/$defs/parameter
     title: Root-fraction coefficient for pervious areas
-    default: {lower_bound: 0.001, upper_bound: 0.09}
+    default: {min: 0.001, max: 0.09}
     properties:
       value: {examples: [0.02]}
       optimize: {examples: [true]}
   infiltration_shape_factor:
     $ref: parameter.yml#/$defs/parameter
     title: Shape factor partitioning effective precipitation into runoff and infiltration
-    default: {lower_bound: 1.0, upper_bound: 4.0}
+    default: {min: 1.0, max: 4.0}
     properties:
       value: {examples: [1.75]}
       optimize: {examples: [true]}

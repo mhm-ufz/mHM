@@ -16,9 +16,6 @@
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_namelists
 module nml_helper
-  ! kind specifiers used by locally generated derived types
-  use mo_kind, only: &
-    dp
 
   !> \brief Buffer length for reading lines
   integer, public :: nml_line_buffer = 1024
@@ -58,16 +55,6 @@ module nml_helper
   integer, parameter, public :: max_layers__default = 10 !< Maximum number of soil-layer entries stored per domain in a namelist file.
   integer, parameter, public :: n_domains__default = 100 !< Number of domains.
   integer, parameter, public :: n_geo_units__default = 25 !< Number of geological units.
-
-  !> \class parameter_t
-  !> \brief Calibration parameter
-  !> \details A model parameter with optional calibration metadata.
-  type, public :: parameter_t
-    real(dp) :: value !< Parameter value
-    logical :: optimize !< Include parameter in calibration
-    real(dp) :: lower_bound !< Lower calibration bound
-    real(dp) :: upper_bound !< Upper calibration bound
-  end type parameter_t
 
   !> \class nml_file_t
   !> \brief Type for namelist file operations

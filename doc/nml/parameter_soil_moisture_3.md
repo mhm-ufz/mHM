@@ -44,13 +44,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 20.0}`
+- Default: `{min: 0.0, max: 20.0}`
 
 Components:
 - `organic_matter_forest%value`: `real(dp)`; declared required yes; input required yes
 - `organic_matter_forest%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `organic_matter_forest%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `organic_matter_forest%upper_bound`: `real(dp)`; declared required yes; input required no; default `20.0` (object default)
+- `organic_matter_forest%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `organic_matter_forest%max`: `real(dp)`; declared required yes; input required no; default `20.0` (object default)
 
 ### organic_matter_impervious
 
@@ -62,13 +62,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 1.0}`
+- Default: `{min: 0.0, max: 1.0}`
 
 Components:
 - `organic_matter_impervious%value`: `real(dp)`; declared required yes; input required yes
 - `organic_matter_impervious%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `organic_matter_impervious%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `organic_matter_impervious%upper_bound`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
+- `organic_matter_impervious%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `organic_matter_impervious%max`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
 
 ### organic_matter_pervious
 
@@ -80,13 +80,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 4.0}`
+- Default: `{min: 0.0, max: 4.0}`
 
 Components:
 - `organic_matter_pervious%value`: `real(dp)`; declared required yes; input required yes
 - `organic_matter_pervious%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `organic_matter_pervious%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `organic_matter_pervious%upper_bound`: `real(dp)`; declared required yes; input required no; default `4.0` (object default)
+- `organic_matter_pervious%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `organic_matter_pervious%max`: `real(dp)`; declared required yes; input required no; default `4.0` (object default)
 
 ### ptf_lower_66_5_constant
 
@@ -98,13 +98,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.6462, upper_bound: 0.9506}`
+- Default: `{min: 0.6462, max: 0.9506}`
 
 Components:
 - `ptf_lower_66_5_constant%value`: `real(dp)`; declared required yes; input required yes
 - `ptf_lower_66_5_constant%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `ptf_lower_66_5_constant%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.6462` (object default)
-- `ptf_lower_66_5_constant%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.9506` (object default)
+- `ptf_lower_66_5_constant%min`: `real(dp)`; declared required yes; input required no; default `0.6462` (object default)
+- `ptf_lower_66_5_constant%max`: `real(dp)`; declared required yes; input required no; default `0.9506` (object default)
 
 ### ptf_lower_66_5_clay
 
@@ -116,13 +116,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0001, upper_bound: 0.0029}`
+- Default: `{min: 0.0001, max: 0.0029}`
 
 Components:
 - `ptf_lower_66_5_clay%value`: `real(dp)`; declared required yes; input required yes
 - `ptf_lower_66_5_clay%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `ptf_lower_66_5_clay%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0001` (object default)
-- `ptf_lower_66_5_clay%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.0029` (object default)
+- `ptf_lower_66_5_clay%min`: `real(dp)`; declared required yes; input required no; default `0.0001` (object default)
+- `ptf_lower_66_5_clay%max`: `real(dp)`; declared required yes; input required no; default `0.0029` (object default)
 
 ### ptf_lower_66_5_bulk_density
 
@@ -134,13 +134,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: -0.3727, upper_bound: -0.1871}`
+- Default: `{min: -0.3727, max: -0.1871}`
 
 Components:
 - `ptf_lower_66_5_bulk_density%value`: `real(dp)`; declared required yes; input required yes
 - `ptf_lower_66_5_bulk_density%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `ptf_lower_66_5_bulk_density%lower_bound`: `real(dp)`; declared required yes; input required no; default `-0.3727` (object default)
-- `ptf_lower_66_5_bulk_density%upper_bound`: `real(dp)`; declared required yes; input required no; default `-0.1871` (object default)
+- `ptf_lower_66_5_bulk_density%min`: `real(dp)`; declared required yes; input required no; default `-0.3727` (object default)
+- `ptf_lower_66_5_bulk_density%max`: `real(dp)`; declared required yes; input required no; default `-0.1871` (object default)
 
 ### ptf_upper_66_5_constant
 
@@ -152,13 +152,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.5358, upper_bound: 1.1232}`
+- Default: `{min: 0.5358, max: 1.1232}`
 
 Components:
 - `ptf_upper_66_5_constant%value`: `real(dp)`; declared required yes; input required yes
 - `ptf_upper_66_5_constant%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `ptf_upper_66_5_constant%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.5358` (object default)
-- `ptf_upper_66_5_constant%upper_bound`: `real(dp)`; declared required yes; input required no; default `1.1232` (object default)
+- `ptf_upper_66_5_constant%min`: `real(dp)`; declared required yes; input required no; default `0.5358` (object default)
+- `ptf_upper_66_5_constant%max`: `real(dp)`; declared required yes; input required no; default `1.1232` (object default)
 
 ### ptf_upper_66_5_clay
 
@@ -170,13 +170,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: -0.0055, upper_bound: 0.0049}`
+- Default: `{min: -0.0055, max: 0.0049}`
 
 Components:
 - `ptf_upper_66_5_clay%value`: `real(dp)`; declared required yes; input required yes
 - `ptf_upper_66_5_clay%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `ptf_upper_66_5_clay%lower_bound`: `real(dp)`; declared required yes; input required no; default `-0.0055` (object default)
-- `ptf_upper_66_5_clay%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.0049` (object default)
+- `ptf_upper_66_5_clay%min`: `real(dp)`; declared required yes; input required no; default `-0.0055` (object default)
+- `ptf_upper_66_5_clay%max`: `real(dp)`; declared required yes; input required no; default `0.0049` (object default)
 
 ### ptf_upper_66_5_bulk_density
 
@@ -188,13 +188,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: -0.5513, upper_bound: -0.0913}`
+- Default: `{min: -0.5513, max: -0.0913}`
 
 Components:
 - `ptf_upper_66_5_bulk_density%value`: `real(dp)`; declared required yes; input required yes
 - `ptf_upper_66_5_bulk_density%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `ptf_upper_66_5_bulk_density%lower_bound`: `real(dp)`; declared required yes; input required no; default `-0.5513` (object default)
-- `ptf_upper_66_5_bulk_density%upper_bound`: `real(dp)`; declared required yes; input required no; default `-0.0913` (object default)
+- `ptf_upper_66_5_bulk_density%min`: `real(dp)`; declared required yes; input required no; default `-0.5513` (object default)
+- `ptf_upper_66_5_bulk_density%max`: `real(dp)`; declared required yes; input required no; default `-0.0913` (object default)
 
 ### ptf_ks_constant
 
@@ -206,13 +206,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: -1.2, upper_bound: -0.285}`
+- Default: `{min: -1.2, max: -0.285}`
 
 Components:
 - `ptf_ks_constant%value`: `real(dp)`; declared required yes; input required yes
 - `ptf_ks_constant%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `ptf_ks_constant%lower_bound`: `real(dp)`; declared required yes; input required no; default `-1.2` (object default)
-- `ptf_ks_constant%upper_bound`: `real(dp)`; declared required yes; input required no; default `-0.285` (object default)
+- `ptf_ks_constant%min`: `real(dp)`; declared required yes; input required no; default `-1.2` (object default)
+- `ptf_ks_constant%max`: `real(dp)`; declared required yes; input required no; default `-0.285` (object default)
 
 ### ptf_ks_sand
 
@@ -224,13 +224,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.006, upper_bound: 0.026}`
+- Default: `{min: 0.006, max: 0.026}`
 
 Components:
 - `ptf_ks_sand%value`: `real(dp)`; declared required yes; input required yes
 - `ptf_ks_sand%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `ptf_ks_sand%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.006` (object default)
-- `ptf_ks_sand%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.026` (object default)
+- `ptf_ks_sand%min`: `real(dp)`; declared required yes; input required no; default `0.006` (object default)
+- `ptf_ks_sand%max`: `real(dp)`; declared required yes; input required no; default `0.026` (object default)
 
 ### ptf_ks_clay
 
@@ -242,13 +242,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.003, upper_bound: 0.013}`
+- Default: `{min: 0.003, max: 0.013}`
 
 Components:
 - `ptf_ks_clay%value`: `real(dp)`; declared required yes; input required yes
 - `ptf_ks_clay%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `ptf_ks_clay%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.003` (object default)
-- `ptf_ks_clay%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.013` (object default)
+- `ptf_ks_clay%min`: `real(dp)`; declared required yes; input required no; default `0.003` (object default)
+- `ptf_ks_clay%max`: `real(dp)`; declared required yes; input required no; default `0.013` (object default)
 
 ### root_fraction_forest
 
@@ -260,13 +260,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.97, upper_bound: 0.985}`
+- Default: `{min: 0.97, max: 0.985}`
 
 Components:
 - `root_fraction_forest%value`: `real(dp)`; declared required yes; input required yes
 - `root_fraction_forest%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `root_fraction_forest%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.97` (object default)
-- `root_fraction_forest%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.985` (object default)
+- `root_fraction_forest%min`: `real(dp)`; declared required yes; input required no; default `0.97` (object default)
+- `root_fraction_forest%max`: `real(dp)`; declared required yes; input required no; default `0.985` (object default)
 
 ### root_fraction_impervious
 
@@ -278,13 +278,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.97, upper_bound: 0.985}`
+- Default: `{min: 0.97, max: 0.985}`
 
 Components:
 - `root_fraction_impervious%value`: `real(dp)`; declared required yes; input required yes
 - `root_fraction_impervious%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `root_fraction_impervious%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.97` (object default)
-- `root_fraction_impervious%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.985` (object default)
+- `root_fraction_impervious%min`: `real(dp)`; declared required yes; input required no; default `0.97` (object default)
+- `root_fraction_impervious%max`: `real(dp)`; declared required yes; input required no; default `0.985` (object default)
 
 ### root_fraction_pervious
 
@@ -296,13 +296,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.97, upper_bound: 0.985}`
+- Default: `{min: 0.97, max: 0.985}`
 
 Components:
 - `root_fraction_pervious%value`: `real(dp)`; declared required yes; input required yes
 - `root_fraction_pervious%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `root_fraction_pervious%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.97` (object default)
-- `root_fraction_pervious%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.985` (object default)
+- `root_fraction_pervious%min`: `real(dp)`; declared required yes; input required no; default `0.97` (object default)
+- `root_fraction_pervious%max`: `real(dp)`; declared required yes; input required no; default `0.985` (object default)
 
 ### infiltration_shape_factor
 
@@ -314,13 +314,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 1.0, upper_bound: 4.0}`
+- Default: `{min: 1.0, max: 4.0}`
 
 Components:
 - `infiltration_shape_factor%value`: `real(dp)`; declared required yes; input required yes
 - `infiltration_shape_factor%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `infiltration_shape_factor%lower_bound`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
-- `infiltration_shape_factor%upper_bound`: `real(dp)`; declared required yes; input required no; default `4.0` (object default)
+- `infiltration_shape_factor%min`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
+- `infiltration_shape_factor%max`: `real(dp)`; declared required yes; input required no; default `4.0` (object default)
 
 ### root_fraction_sand
 
@@ -332,13 +332,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.001, upper_bound: 0.09}`
+- Default: `{min: 0.001, max: 0.09}`
 
 Components:
 - `root_fraction_sand%value`: `real(dp)`; declared required yes; input required yes
 - `root_fraction_sand%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `root_fraction_sand%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.001` (object default)
-- `root_fraction_sand%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.09` (object default)
+- `root_fraction_sand%min`: `real(dp)`; declared required yes; input required no; default `0.001` (object default)
+- `root_fraction_sand%max`: `real(dp)`; declared required yes; input required no; default `0.09` (object default)
 
 ### root_fraction_clay
 
@@ -350,13 +350,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.9, upper_bound: 0.999}`
+- Default: `{min: 0.9, max: 0.999}`
 
 Components:
 - `root_fraction_clay%value`: `real(dp)`; declared required yes; input required yes
 - `root_fraction_clay%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `root_fraction_clay%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.9` (object default)
-- `root_fraction_clay%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.999` (object default)
+- `root_fraction_clay%min`: `real(dp)`; declared required yes; input required no; default `0.9` (object default)
+- `root_fraction_clay%max`: `real(dp)`; declared required yes; input required no; default `0.999` (object default)
 
 ### field_capacity_min
 
@@ -368,13 +368,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.1, upper_bound: 0.2}`
+- Default: `{min: 0.1, max: 0.2}`
 
 Components:
 - `field_capacity_min%value`: `real(dp)`; declared required yes; input required yes
 - `field_capacity_min%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `field_capacity_min%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.1` (object default)
-- `field_capacity_min%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
+- `field_capacity_min%min`: `real(dp)`; declared required yes; input required no; default `0.1` (object default)
+- `field_capacity_min%max`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
 
 ### field_capacity_delta
 
@@ -386,13 +386,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.1, upper_bound: 0.4}`
+- Default: `{min: 0.1, max: 0.4}`
 
 Components:
 - `field_capacity_delta%value`: `real(dp)`; declared required yes; input required yes
 - `field_capacity_delta%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `field_capacity_delta%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.1` (object default)
-- `field_capacity_delta%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.4` (object default)
+- `field_capacity_delta%min`: `real(dp)`; declared required yes; input required no; default `0.1` (object default)
+- `field_capacity_delta%max`: `real(dp)`; declared required yes; input required no; default `0.4` (object default)
 
 ### jarvis_sm_threshold
 
@@ -404,13 +404,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 1.0}`
+- Default: `{min: 0.0, max: 1.0}`
 
 Components:
 - `jarvis_sm_threshold%value`: `real(dp)`; declared required yes; input required yes
 - `jarvis_sm_threshold%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `jarvis_sm_threshold%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `jarvis_sm_threshold%upper_bound`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
+- `jarvis_sm_threshold%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `jarvis_sm_threshold%max`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
 
 ## Derived types
 
@@ -420,13 +420,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -434,88 +435,88 @@ A model parameter with optional calibration metadata.
 &soil_moisture_3
   organic_matter_forest%value = 3.4
   organic_matter_forest%optimize = .true.
-  organic_matter_forest%lower_bound = 0.0
-  organic_matter_forest%upper_bound = 20.0
+  organic_matter_forest%min = 0.0
+  organic_matter_forest%max = 20.0
   organic_matter_impervious%value = 0.1
   organic_matter_impervious%optimize = .true.
-  organic_matter_impervious%lower_bound = 0.0
-  organic_matter_impervious%upper_bound = 1.0
+  organic_matter_impervious%min = 0.0
+  organic_matter_impervious%max = 1.0
   organic_matter_pervious%value = 0.6
   organic_matter_pervious%optimize = .true.
-  organic_matter_pervious%lower_bound = 0.0
-  organic_matter_pervious%upper_bound = 4.0
+  organic_matter_pervious%min = 0.0
+  organic_matter_pervious%max = 4.0
   ptf_lower_66_5_constant%value = 0.76
   ptf_lower_66_5_constant%optimize = .true.
-  ptf_lower_66_5_constant%lower_bound = 0.6462
-  ptf_lower_66_5_constant%upper_bound = 0.9506
+  ptf_lower_66_5_constant%min = 0.6462
+  ptf_lower_66_5_constant%max = 0.9506
   ptf_lower_66_5_clay%value = 0.0009
   ptf_lower_66_5_clay%optimize = .true.
-  ptf_lower_66_5_clay%lower_bound = 0.0001
-  ptf_lower_66_5_clay%upper_bound = 0.0029
+  ptf_lower_66_5_clay%min = 0.0001
+  ptf_lower_66_5_clay%max = 0.0029
   ptf_lower_66_5_bulk_density%value = -0.264
   ptf_lower_66_5_bulk_density%optimize = .true.
-  ptf_lower_66_5_bulk_density%lower_bound = -0.3727
-  ptf_lower_66_5_bulk_density%upper_bound = -0.1871
+  ptf_lower_66_5_bulk_density%min = -0.3727
+  ptf_lower_66_5_bulk_density%max = -0.1871
   ptf_upper_66_5_constant%value = 0.89
   ptf_upper_66_5_constant%optimize = .true.
-  ptf_upper_66_5_constant%lower_bound = 0.5358
-  ptf_upper_66_5_constant%upper_bound = 1.1232
+  ptf_upper_66_5_constant%min = 0.5358
+  ptf_upper_66_5_constant%max = 1.1232
   ptf_upper_66_5_clay%value = -0.001
   ptf_upper_66_5_clay%optimize = .true.
-  ptf_upper_66_5_clay%lower_bound = -0.0055
-  ptf_upper_66_5_clay%upper_bound = 0.0049
+  ptf_upper_66_5_clay%min = -0.0055
+  ptf_upper_66_5_clay%max = 0.0049
   ptf_upper_66_5_bulk_density%value = -0.324
   ptf_upper_66_5_bulk_density%optimize = .true.
-  ptf_upper_66_5_bulk_density%lower_bound = -0.5513
-  ptf_upper_66_5_bulk_density%upper_bound = -0.0913
+  ptf_upper_66_5_bulk_density%min = -0.5513
+  ptf_upper_66_5_bulk_density%max = -0.0913
   ptf_ks_constant%value = -0.585
   ptf_ks_constant%optimize = .true.
-  ptf_ks_constant%lower_bound = -1.2
-  ptf_ks_constant%upper_bound = -0.285
+  ptf_ks_constant%min = -1.2
+  ptf_ks_constant%max = -0.285
   ptf_ks_sand%value = 0.0125
   ptf_ks_sand%optimize = .true.
-  ptf_ks_sand%lower_bound = 0.006
-  ptf_ks_sand%upper_bound = 0.026
+  ptf_ks_sand%min = 0.006
+  ptf_ks_sand%max = 0.026
   ptf_ks_clay%value = 0.0063
   ptf_ks_clay%optimize = .true.
-  ptf_ks_clay%lower_bound = 0.003
-  ptf_ks_clay%upper_bound = 0.013
+  ptf_ks_clay%min = 0.003
+  ptf_ks_clay%max = 0.013
   root_fraction_forest%value = 0.975
   root_fraction_forest%optimize = .true.
-  root_fraction_forest%lower_bound = 0.97
-  root_fraction_forest%upper_bound = 0.985
+  root_fraction_forest%min = 0.97
+  root_fraction_forest%max = 0.985
   root_fraction_impervious%value = 0.975
   root_fraction_impervious%optimize = .true.
-  root_fraction_impervious%lower_bound = 0.97
-  root_fraction_impervious%upper_bound = 0.985
+  root_fraction_impervious%min = 0.97
+  root_fraction_impervious%max = 0.985
   root_fraction_pervious%value = 0.975
   root_fraction_pervious%optimize = .true.
-  root_fraction_pervious%lower_bound = 0.97
-  root_fraction_pervious%upper_bound = 0.985
+  root_fraction_pervious%min = 0.97
+  root_fraction_pervious%max = 0.985
   infiltration_shape_factor%value = 1.75
   infiltration_shape_factor%optimize = .true.
-  infiltration_shape_factor%lower_bound = 1.0
-  infiltration_shape_factor%upper_bound = 4.0
+  infiltration_shape_factor%min = 1.0
+  infiltration_shape_factor%max = 4.0
   root_fraction_sand%value = 0.09
   root_fraction_sand%optimize = .true.
-  root_fraction_sand%lower_bound = 0.001
-  root_fraction_sand%upper_bound = 0.09
+  root_fraction_sand%min = 0.001
+  root_fraction_sand%max = 0.09
   root_fraction_clay%value = 0.98
   root_fraction_clay%optimize = .true.
-  root_fraction_clay%lower_bound = 0.9
-  root_fraction_clay%upper_bound = 0.999
+  root_fraction_clay%min = 0.9
+  root_fraction_clay%max = 0.999
   field_capacity_min%value = 0.15
   field_capacity_min%optimize = .false.
-  field_capacity_min%lower_bound = 0.1
-  field_capacity_min%upper_bound = 0.2
+  field_capacity_min%min = 0.1
+  field_capacity_min%max = 0.2
   field_capacity_delta%value = 0.25
   field_capacity_delta%optimize = .false.
-  field_capacity_delta%lower_bound = 0.1
-  field_capacity_delta%upper_bound = 0.4
+  field_capacity_delta%min = 0.1
+  field_capacity_delta%max = 0.4
   jarvis_sm_threshold%value = 0.5
   jarvis_sm_threshold%optimize = .true.
-  jarvis_sm_threshold%lower_bound = 0.0
-  jarvis_sm_threshold%upper_bound = 1.0
+  jarvis_sm_threshold%min = 0.0
+  jarvis_sm_threshold%max = 1.0
 /
 ```
 

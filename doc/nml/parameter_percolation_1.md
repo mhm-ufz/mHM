@@ -25,13 +25,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 50.0}`
+- Default: `{min: 0.0, max: 50.0}`
 
 Components:
 - `recharge_coefficient%value`: `real(dp)`; declared required yes; input required yes
 - `recharge_coefficient%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `recharge_coefficient%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `recharge_coefficient%upper_bound`: `real(dp)`; declared required yes; input required no; default `50.0` (object default)
+- `recharge_coefficient%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `recharge_coefficient%max`: `real(dp)`; declared required yes; input required no; default `50.0` (object default)
 
 ### karstic_recharge_factor
 
@@ -43,13 +43,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: -5.0, upper_bound: 5.0}`
+- Default: `{min: -5.0, max: 5.0}`
 
 Components:
 - `karstic_recharge_factor%value`: `real(dp)`; declared required yes; input required yes
 - `karstic_recharge_factor%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `karstic_recharge_factor%lower_bound`: `real(dp)`; declared required yes; input required no; default `-5.0` (object default)
-- `karstic_recharge_factor%upper_bound`: `real(dp)`; declared required yes; input required no; default `5.0` (object default)
+- `karstic_recharge_factor%min`: `real(dp)`; declared required yes; input required no; default `-5.0` (object default)
+- `karstic_recharge_factor%max`: `real(dp)`; declared required yes; input required no; default `5.0` (object default)
 
 ## Derived types
 
@@ -59,13 +59,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -73,12 +74,12 @@ A model parameter with optional calibration metadata.
 &percolation_1
   recharge_coefficient%value = 35.0
   recharge_coefficient%optimize = .true.
-  recharge_coefficient%lower_bound = 0.0
-  recharge_coefficient%upper_bound = 50.0
+  recharge_coefficient%min = 0.0
+  recharge_coefficient%max = 50.0
   karstic_recharge_factor%value = -1.0
   karstic_recharge_factor%optimize = .true.
-  karstic_recharge_factor%lower_bound = -5.0
-  karstic_recharge_factor%upper_bound = 5.0
+  karstic_recharge_factor%min = -5.0
+  karstic_recharge_factor%max = 5.0
 /
 ```
 

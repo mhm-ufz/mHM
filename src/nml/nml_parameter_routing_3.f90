@@ -27,12 +27,12 @@ module nml_routing_3
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -82,10 +82,10 @@ contains
     if (present(slope_factor)) then
       slope_factor%value = ieee_value(slope_factor%value, ieee_quiet_nan) ! sentinel for derived component value
       slope_factor%optimize = .false.
-      slope_factor%lower_bound = ieee_value(slope_factor%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      slope_factor%upper_bound = ieee_value(slope_factor%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      slope_factor%lower_bound = 0.1_dp
-      slope_factor%upper_bound = 100.0_dp
+      slope_factor%min = ieee_value(slope_factor%min, ieee_quiet_nan) ! sentinel for derived component min
+      slope_factor%max = ieee_value(slope_factor%max, ieee_quiet_nan) ! sentinel for derived component max
+      slope_factor%min = 0.1_dp
+      slope_factor%max = 100.0_dp
     end if
   end function nml_routing_3_init_type
 
@@ -189,13 +189,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'slope_factor'"
         return
       end if
-    case ("slope_factor%lower_bound")
+    case ("slope_factor%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'slope_factor'"
         return
       end if
-    case ("slope_factor%upper_bound")
+    case ("slope_factor%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'slope_factor'"

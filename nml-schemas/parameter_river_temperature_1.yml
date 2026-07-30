@@ -6,28 +6,28 @@ properties:
   albedo_water:
     $ref: parameter.yml#/$defs/parameter
     title: Albedo of open water [-]
-    default: {lower_bound: 0.03, upper_bound: 0.2}
+    default: {min: 0.03, max: 0.2}
     properties:
       value: {examples: [0.15]}
       optimize: {examples: [false]}
   pt_a_water:
     $ref: parameter.yml#/$defs/parameter
     title: Priestley-Taylor coefficient for open water [-]
-    default: {lower_bound: 1.2, upper_bound: 2.0}
+    default: {min: 1.2, max: 2.0}
     properties:
       value: {examples: [1.26]}
       optimize: {examples: [false]}
   emissivity_water:
     $ref: parameter.yml#/$defs/parameter
     title: Emissivity of open water [-]
-    default: {lower_bound: 0.95, upper_bound: 0.99}
+    default: {min: 0.95, max: 0.99}
     properties:
       value: {examples: [0.96]}
       optimize: {examples: [false]}
   turbulent_heat_exchange_coefficient:
     $ref: parameter.yml#/$defs/parameter
     title: Turbulent heat-exchange coefficient [W m-2 K-1]
-    default: {lower_bound: 10.0, upper_bound: 50.0}
+    default: {min: 10.0, max: 50.0}
     properties:
       value: {examples: [20.0]}
       optimize: {examples: [false]}

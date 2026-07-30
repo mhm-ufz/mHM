@@ -24,13 +24,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 5.0}`
+- Default: `{min: 0.0, max: 5.0}`
 
 Components:
 - `impervious_storage_capacity%value`: `real(dp)`; declared required yes; input required yes
 - `impervious_storage_capacity%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `impervious_storage_capacity%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `impervious_storage_capacity%upper_bound`: `real(dp)`; declared required yes; input required no; default `5.0` (object default)
+- `impervious_storage_capacity%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `impervious_storage_capacity%max`: `real(dp)`; declared required yes; input required no; default `5.0` (object default)
 
 ## Derived types
 
@@ -40,13 +40,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -54,8 +55,8 @@ A model parameter with optional calibration metadata.
 &direct_runoff_1
   impervious_storage_capacity%value = 0.5
   impervious_storage_capacity%optimize = .true.
-  impervious_storage_capacity%lower_bound = 0.0
-  impervious_storage_capacity%upper_bound = 5.0
+  impervious_storage_capacity%min = 0.0
+  impervious_storage_capacity%max = 5.0
 /
 ```
 

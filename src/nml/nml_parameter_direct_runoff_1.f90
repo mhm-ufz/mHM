@@ -27,12 +27,12 @@ module nml_direct_runoff_1
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -82,10 +82,10 @@ contains
     if (present(impervious_storage_capacity)) then
       impervious_storage_capacity%value = ieee_value(impervious_storage_capacity%value, ieee_quiet_nan) ! sentinel for derived component value
       impervious_storage_capacity%optimize = .false.
-      impervious_storage_capacity%lower_bound = ieee_value(impervious_storage_capacity%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      impervious_storage_capacity%upper_bound = ieee_value(impervious_storage_capacity%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      impervious_storage_capacity%lower_bound = 0.0_dp
-      impervious_storage_capacity%upper_bound = 5.0_dp
+      impervious_storage_capacity%min = ieee_value(impervious_storage_capacity%min, ieee_quiet_nan) ! sentinel for derived component min
+      impervious_storage_capacity%max = ieee_value(impervious_storage_capacity%max, ieee_quiet_nan) ! sentinel for derived component max
+      impervious_storage_capacity%min = 0.0_dp
+      impervious_storage_capacity%max = 5.0_dp
     end if
   end function nml_direct_runoff_1_init_type
 
@@ -189,13 +189,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'impervious_storage_capacity'"
         return
       end if
-    case ("impervious_storage_capacity%lower_bound")
+    case ("impervious_storage_capacity%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'impervious_storage_capacity'"
         return
       end if
-    case ("impervious_storage_capacity%upper_bound")
+    case ("impervious_storage_capacity%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'impervious_storage_capacity'"

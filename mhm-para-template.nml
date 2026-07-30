@@ -5,476 +5,476 @@
 ! Interception - Case 1
 &interception_1
   ! Multiplier relating LAI to interception storage
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   canopy_interception_factor = 0.15, .true., 0.15, 0.4
 /
 
 ! Snow - Case 1
 &snow_1
   ! Threshold for rain and snow partitioning [degC]
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   snow_threshold_temperature = 1.0, .true., -2.0, 2.0
   ! Degree-day factor for forest [m degC-1]
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   degree_day_factor_forest = 1.5, .true., 0.0001, 4.0
   ! Degree-day factor for impervious areas [m degC-1]
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   degree_day_factor_impervious = 0.5, .true., 0.0, 1.0
   ! Degree-day factor for pervious areas [m degC-1]
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   degree_day_factor_pervious = 0.5, .true., 0.0, 2.0
   ! Precipitation-dependent degree-day factor increase [degC-1]
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   degree_day_factor_precipitation = 0.5, .true., 0.1, 0.9
   ! Maximum degree-day factor for forest [m degC-1]
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   max_degree_day_factor_forest = 3.0, .true., 0.0, 8.0
   ! Maximum degree-day factor for impervious areas [m degC-1]
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   max_degree_day_factor_impervious = 3.5, .true., 0.0, 8.0
   ! Maximum degree-day factor for pervious areas [m degC-1]
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   max_degree_day_factor_pervious = 4.0, .true., 0.0, 8.0
 /
 
 ! Soil moisture - Case 1
 &soil_moisture_1
   ! Organic matter content for forest
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   organic_matter_forest = 7.0, .true., 5.0, 10.0
   ! Organic matter content for impervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   organic_matter_impervious = 0.5, .true., 0.0, 1.0
   ! Organic matter content for pervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   organic_matter_pervious = 2.5, .true., 1.0, 5.0
   ! PTF constant below 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_lower_66_5_constant = 0.788, .true., 0.75, 0.8
   ! PTF clay multiplier below 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_lower_66_5_clay = 0.001, .true., 0.0008, 0.0012
   ! PTF bulk-density multiplier below 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_lower_66_5_bulk_density = -0.263, .true., -0.27, -0.25
   ! PTF constant above 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_upper_66_5_constant = 0.8907, .true., 0.8, 0.9
   ! PTF clay multiplier above 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_upper_66_5_clay = -0.001, .true., -0.0012, -0.0008
   ! PTF bulk-density multiplier above 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_upper_66_5_bulk_density = -0.322, .true., -0.35, -0.3
   ! PTF constant for saturated hydraulic conductivity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_ks_constant = -0.585, .true., -1.2, -0.285
   ! PTF sand multiplier for saturated hydraulic conductivity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_ks_sand = 0.0125, .true., 0.006, 0.026
   ! PTF clay multiplier for saturated hydraulic conductivity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_ks_clay = 0.0063, .true., 0.003, 0.013
   ! Root-fraction coefficient for forest
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_forest = 0.97, .true., 0.9, 0.999
   ! Root-fraction coefficient for impervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_impervious = 0.93, .true., 0.9, 0.95
   ! Root-fraction coefficient for pervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_pervious = 0.02, .true., 0.001, 0.09
   ! Shape factor partitioning effective precipitation into runoff and infiltration
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   infiltration_shape_factor = 1.75, .true., 1.0, 4.0
 /
 
 ! Soil moisture - Case 2
 &soil_moisture_2
   ! Organic matter content for forest
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   organic_matter_forest = 3.4, .true., 0.0, 20.0
   ! Organic matter content for impervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   organic_matter_impervious = 0.1, .true., 0.0, 1.0
   ! Organic matter content for pervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   organic_matter_pervious = 0.6, .true., 0.0, 4.0
   ! PTF constant below 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_lower_66_5_constant = 0.76, .true., 0.6462, 0.9506
   ! PTF clay multiplier below 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_lower_66_5_clay = 0.0009, .true., 0.0001, 0.0029
   ! PTF bulk-density multiplier below 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_lower_66_5_bulk_density = -0.264, .true., -0.3727, -0.1871
   ! PTF constant above 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_upper_66_5_constant = 0.89, .true., 0.5358, 1.1232
   ! PTF clay multiplier above 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_upper_66_5_clay = -0.001, .true., -0.0055, 0.0049
   ! PTF bulk-density multiplier above 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_upper_66_5_bulk_density = -0.324, .true., -0.5513, -0.0913
   ! PTF constant for saturated hydraulic conductivity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_ks_constant = -0.585, .true., -1.2, -0.285
   ! PTF sand multiplier for saturated hydraulic conductivity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_ks_sand = 0.0125, .true., 0.006, 0.026
   ! PTF clay multiplier for saturated hydraulic conductivity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_ks_clay = 0.0063, .true., 0.003, 0.013
   ! Root-fraction coefficient for forest
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_forest = 0.97, .true., 0.9, 0.999
   ! Root-fraction coefficient for impervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_impervious = 0.93, .true., 0.9, 0.95
   ! Root-fraction coefficient for pervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_pervious = 0.02, .true., 0.001, 0.09
   ! Shape factor partitioning effective precipitation into runoff and infiltration
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   infiltration_shape_factor = 1.75, .true., 1.0, 4.0
   ! Jarvis soil-moisture threshold
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   jarvis_sm_threshold = 0.5, .true., 0.0, 1.0
 /
 
 ! Soil moisture - Case 3
 &soil_moisture_3
   ! Organic matter content for forest
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   organic_matter_forest = 3.4, .true., 0.0, 20.0
   ! Organic matter content for impervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   organic_matter_impervious = 0.1, .true., 0.0, 1.0
   ! Organic matter content for pervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   organic_matter_pervious = 0.6, .true., 0.0, 4.0
   ! PTF constant below 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_lower_66_5_constant = 0.76, .true., 0.6462, 0.9506
   ! PTF clay multiplier below 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_lower_66_5_clay = 0.0009, .true., 0.0001, 0.0029
   ! PTF bulk-density multiplier below 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_lower_66_5_bulk_density = -0.264, .true., -0.3727, -0.1871
   ! PTF constant above 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_upper_66_5_constant = 0.89, .true., 0.5358, 1.1232
   ! PTF clay multiplier above 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_upper_66_5_clay = -0.001, .true., -0.0055, 0.0049
   ! PTF bulk-density multiplier above 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_upper_66_5_bulk_density = -0.324, .true., -0.5513, -0.0913
   ! PTF constant for saturated hydraulic conductivity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_ks_constant = -0.585, .true., -1.2, -0.285
   ! PTF sand multiplier for saturated hydraulic conductivity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_ks_sand = 0.0125, .true., 0.006, 0.026
   ! PTF clay multiplier for saturated hydraulic conductivity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_ks_clay = 0.0063, .true., 0.003, 0.013
   ! Root-fraction coefficient for forest
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_forest = 0.975, .true., 0.97, 0.985
   ! Root-fraction coefficient for impervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_impervious = 0.975, .true., 0.97, 0.985
   ! Root-fraction coefficient for pervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_pervious = 0.975, .true., 0.97, 0.985
   ! Shape factor partitioning effective precipitation into runoff and infiltration
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   infiltration_shape_factor = 1.75, .true., 1.0, 4.0
   ! Sand contribution to the root-fraction coefficient
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_sand = 0.09, .true., 0.001, 0.09
   ! Clay contribution to the root-fraction coefficient
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_clay = 0.98, .true., 0.9, 0.999
   ! Global minimum field capacity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   field_capacity_min = 0.15, .false., 0.1, 0.2
   ! Global field-capacity range
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   field_capacity_delta = 0.25, .false., 0.1, 0.4
   ! Jarvis soil-moisture threshold
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   jarvis_sm_threshold = 0.5, .true., 0.0, 1.0
 /
 
 ! Soil moisture - Case 4
 &soil_moisture_4
   ! Organic matter content for forest
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   organic_matter_forest = 3.4, .true., 0.0, 20.0
   ! Organic matter content for impervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   organic_matter_impervious = 0.1, .true., 0.0, 1.0
   ! Organic matter content for pervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   organic_matter_pervious = 0.6, .true., 0.0, 4.0
   ! PTF constant below 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_lower_66_5_constant = 0.76, .true., 0.6462, 0.9506
   ! PTF clay multiplier below 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_lower_66_5_clay = 0.0009, .true., 0.0001, 0.0029
   ! PTF bulk-density multiplier below 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_lower_66_5_bulk_density = -0.264, .true., -0.3727, -0.1871
   ! PTF constant above 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_upper_66_5_constant = 0.89, .true., 0.5358, 1.1232
   ! PTF clay multiplier above 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_upper_66_5_clay = -0.001, .true., -0.0055, 0.0049
   ! PTF bulk-density multiplier above 66.5 percent sand
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_upper_66_5_bulk_density = -0.324, .true., -0.5513, -0.0913
   ! PTF constant for saturated hydraulic conductivity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_ks_constant = -0.585, .true., -1.2, -0.285
   ! PTF sand multiplier for saturated hydraulic conductivity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_ks_sand = 0.0125, .true., 0.006, 0.026
   ! PTF clay multiplier for saturated hydraulic conductivity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   ptf_ks_clay = 0.0063, .true., 0.003, 0.013
   ! Root-fraction coefficient for forest
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_forest = 0.975, .true., 0.97, 0.985
   ! Root-fraction coefficient for impervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_impervious = 0.975, .true., 0.97, 0.985
   ! Root-fraction coefficient for pervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_pervious = 0.975, .true., 0.97, 0.985
   ! Shape factor partitioning effective precipitation into runoff and infiltration
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   infiltration_shape_factor = 1.75, .true., 1.0, 4.0
   ! Sand contribution to the root-fraction coefficient
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_sand = 0.09, .true., 0.001, 0.09
   ! Clay contribution to the root-fraction coefficient
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   root_fraction_clay = 0.98, .true., 0.9, 0.999
   ! Global minimum field capacity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   field_capacity_min = 0.15, .false., 0.1, 0.2
   ! Global field-capacity range
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   field_capacity_delta = 0.25, .false., 0.1, 0.4
 /
 
 ! Direct runoff - Case 1
 &direct_runoff_1
   ! Capacity of impervious storage [mm]
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   impervious_storage_capacity = 0.5, .true., 0.0, 5.0
 /
 
 ! PET - Case -2
 &pet_m2
   ! Minimum PET aspect-correction factor
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   correction_factor_min = 0.9, .true., 0.7, 1.3
   ! Maximum PET aspect-correction factor
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   correction_factor_max = 0.1, .true., 0.0, 0.2
   ! Aspect threshold
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   aspect_threshold = 180.0, .true., 160.0, 200.0
 /
 
 ! PET - Case -1
 &pet_m1
   ! PET correction coefficient a for forest
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   pet_a_forest = 0.3, .true., 0.3, 1.3
   ! PET correction coefficient a for impervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   pet_a_impervious = 0.8, .true., 0.3, 1.3
   ! PET correction coefficient a for pervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   pet_a_pervious = 1.3, .true., 0.3, 1.3
   ! PET correction coefficient b
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   pet_b = 1.5, .true., 0.0, 1.5
   ! PET correction coefficient c
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   pet_c = -0.7, .true., -2.0, 0.0
 /
 
 ! PET - Case 1
 &pet_1
   ! Minimum PET aspect-correction factor
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   correction_factor_min = 0.93, .true., 0.7, 1.3
   ! Maximum PET aspect-correction factor
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   correction_factor_max = 0.19, .true., 0.0, 0.2
   ! Aspect threshold
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   aspect_threshold = 171.0, .true., 160.0, 200.0
   ! Hargreaves-Samani coefficient
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   hargreaves_samani_coefficient = 0.0023, .true., 0.0016, 0.003
 /
 
 ! PET - Case 2
 &pet_2
   ! Priestley-Taylor coefficient
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   priestley_taylor_coefficient = 1.19, .true., 0.75, 1.75
   ! Priestley-Taylor LAI correction factor
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   priestley_taylor_lai_correction = 0.058, .true., -0.5, 0.2
 /
 
 ! PET - Case 3
 &pet_3
   ! Canopy height for forest
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   canopy_height_forest = 15.0, .true., 15.0, 40.0
   ! Canopy height for impervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   canopy_height_impervious = 0.02, .true., 0.01, 0.5
   ! Canopy height for pervious areas
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   canopy_height_pervious = 0.11, .true., 0.1, 5.0
   ! Displacement-height coefficient
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   displacement_height_coefficient = 0.64, .true., 0.5, 0.85
   ! Momentum roughness-length coefficient
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   momentum_roughness_length_coefficient = 0.095, .true., 0.09, 0.16
   ! Heat roughness-length coefficient
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   heat_roughness_length_coefficient = 0.075, .true., 0.07, 0.13
   ! Stomatal resistance
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   stomatal_resistance = 56.0, .true., 10.0, 200.0
 /
 
 ! Interflow - Case 1
 &interflow_1
   ! Interflow storage-capacity factor
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   storage_capacity_factor = 85.0, .true., 75.0, 200.0
   ! Slope multiplier for interflow recession
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   recession_slope = 7.0, .true., 0.0, 10.0
   ! Forest multiplier for fast interflow recession
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   fast_recession_forest = 1.5, .true., 1.0, 3.0
   ! Saturated-conductivity multiplier for slow interflow recession
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   slow_recession_ks = 15.0, .true., 1.0, 30.0
   ! Slow interflow exponent
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   slow_recession_exponent = 0.125, .true., 0.05, 0.3
 /
 
 ! Percolation - Case 1
 &percolation_1
   ! Recharge coefficient
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   recharge_coefficient = 35.0, .true., 0.0, 50.0
   ! Karstic recharge factor
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   karstic_recharge_factor = -1.0, .true., -5.0, 5.0
 /
 
 ! Routing - Case 1
 &routing_1
   ! Muskingum travel-time constant
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   travel_time_constant = 0.325, .true., 0.31, 0.35
   ! River-length contribution to Muskingum travel time
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   travel_time_river_length = 0.075, .true., 0.07, 0.08
   ! River-slope contribution to Muskingum travel time
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   travel_time_river_slope = 2.0, .true., 1.95, 2.1
   ! Impervious-area contribution to Muskingum travel time
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   travel_time_impervious = 0.1, .true., 0.09, 0.11
   ! River-slope contribution to Muskingum attenuation
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   attenuation_river_slope = 0.3, .true., 0.01, 0.5
 /
 
 ! Routing - Case 2
 &routing_2
   ! Streamflow celerity
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   streamflow_celerity = 1.5, .false., 0.1, 15.0
 /
 
 ! Routing - Case 3
 &routing_3
   ! Slope factor
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   slope_factor = 30.0, .false., 0.1, 100.0
 /
 
 ! Neutrons - Case 1
 &neutrons_1
   ! Desilets dry neutron count N0
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   desilets_n0 = 1500.0, .false., 300.0, 2000.0
   ! Desilets lattice-water parameter LW0
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   desilets_lw0 = 0.1783, .false., 0.0, 0.2
   ! Desilets lattice-water parameter LW1
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   desilets_lw1 = 0.0, .false., 0.0, 0.05
 /
 
 ! Neutrons - Case 2
 &neutrons_2
   ! COSMIC N0 parameter
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   cosmic_n0 = 1500.0, .false., 300.0, 2000.0
   ! COSMIC N1 parameter
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   cosmic_n1 = 1.0, .false., 0.01, 10.0
   ! COSMIC N2 parameter
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   cosmic_n2 = 1.0, .false., 0.01, 10.0
   ! COSMIC alpha0 parameter
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   cosmic_alpha0 = 1.0, .false., 0.01, 10.0
   ! COSMIC alpha1 parameter
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   cosmic_alpha1 = 1.0, .false., 0.01, 10.0
   ! COSMIC L30 parameter
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   cosmic_l30 = 106.1942, .false., 26.56, 424.78
   ! COSMIC L31 parameter
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   cosmic_l31 = 40.9879, .false., -118.3, 200.28
   ! COSMIC lattice-water parameter LW0
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   cosmic_lw0 = 0.1783, .false., 0.0, 0.2
   ! COSMIC lattice-water parameter LW1
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   cosmic_lw1 = 0.0, .false., 0.0, 0.05
 /
 
 ! Baseflow - Case 1
 &baseflow_1
   ! Baseflow recession for each geological unit
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   baseflow_recession(1) = 100.0, .true., 1.0, 1000.0
   baseflow_recession(2) = 100.0, .true., 1.0, 1000.0
   baseflow_recession(3) = 100.0, .true., 1.0, 1000.0
@@ -505,15 +505,15 @@
 ! River temperature - Case 1
 &river_temperature_1
   ! Albedo of open water [-]
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   albedo_water = 0.15, .false., 0.03, 0.2
   ! Priestley-Taylor coefficient for open water [-]
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   pt_a_water = 1.26, .false., 1.2, 2.0
   ! Emissivity of open water [-]
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   emissivity_water = 0.96, .false., 0.95, 0.99
   ! Turbulent heat-exchange coefficient [W m-2 K-1]
-  ! Component order: value, optimize, lower_bound, upper_bound
+  ! Component order: value, optimize, min, max
   turbulent_heat_exchange_coefficient = 20.0, .false., 10.0, 50.0
 /

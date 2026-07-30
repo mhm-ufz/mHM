@@ -27,12 +27,12 @@ module nml_routing_1
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -98,42 +98,42 @@ contains
     if (present(travel_time_constant)) then
       travel_time_constant%value = ieee_value(travel_time_constant%value, ieee_quiet_nan) ! sentinel for derived component value
       travel_time_constant%optimize = .false.
-      travel_time_constant%lower_bound = ieee_value(travel_time_constant%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      travel_time_constant%upper_bound = ieee_value(travel_time_constant%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      travel_time_constant%lower_bound = 0.31_dp
-      travel_time_constant%upper_bound = 0.35_dp
+      travel_time_constant%min = ieee_value(travel_time_constant%min, ieee_quiet_nan) ! sentinel for derived component min
+      travel_time_constant%max = ieee_value(travel_time_constant%max, ieee_quiet_nan) ! sentinel for derived component max
+      travel_time_constant%min = 0.31_dp
+      travel_time_constant%max = 0.35_dp
     end if
     if (present(travel_time_river_length)) then
       travel_time_river_length%value = ieee_value(travel_time_river_length%value, ieee_quiet_nan) ! sentinel for derived component value
       travel_time_river_length%optimize = .false.
-      travel_time_river_length%lower_bound = ieee_value(travel_time_river_length%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      travel_time_river_length%upper_bound = ieee_value(travel_time_river_length%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      travel_time_river_length%lower_bound = 0.07_dp
-      travel_time_river_length%upper_bound = 0.08_dp
+      travel_time_river_length%min = ieee_value(travel_time_river_length%min, ieee_quiet_nan) ! sentinel for derived component min
+      travel_time_river_length%max = ieee_value(travel_time_river_length%max, ieee_quiet_nan) ! sentinel for derived component max
+      travel_time_river_length%min = 0.07_dp
+      travel_time_river_length%max = 0.08_dp
     end if
     if (present(travel_time_river_slope)) then
       travel_time_river_slope%value = ieee_value(travel_time_river_slope%value, ieee_quiet_nan) ! sentinel for derived component value
       travel_time_river_slope%optimize = .false.
-      travel_time_river_slope%lower_bound = ieee_value(travel_time_river_slope%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      travel_time_river_slope%upper_bound = ieee_value(travel_time_river_slope%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      travel_time_river_slope%lower_bound = 1.95_dp
-      travel_time_river_slope%upper_bound = 2.1_dp
+      travel_time_river_slope%min = ieee_value(travel_time_river_slope%min, ieee_quiet_nan) ! sentinel for derived component min
+      travel_time_river_slope%max = ieee_value(travel_time_river_slope%max, ieee_quiet_nan) ! sentinel for derived component max
+      travel_time_river_slope%min = 1.95_dp
+      travel_time_river_slope%max = 2.1_dp
     end if
     if (present(travel_time_impervious)) then
       travel_time_impervious%value = ieee_value(travel_time_impervious%value, ieee_quiet_nan) ! sentinel for derived component value
       travel_time_impervious%optimize = .false.
-      travel_time_impervious%lower_bound = ieee_value(travel_time_impervious%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      travel_time_impervious%upper_bound = ieee_value(travel_time_impervious%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      travel_time_impervious%lower_bound = 0.09_dp
-      travel_time_impervious%upper_bound = 0.11_dp
+      travel_time_impervious%min = ieee_value(travel_time_impervious%min, ieee_quiet_nan) ! sentinel for derived component min
+      travel_time_impervious%max = ieee_value(travel_time_impervious%max, ieee_quiet_nan) ! sentinel for derived component max
+      travel_time_impervious%min = 0.09_dp
+      travel_time_impervious%max = 0.11_dp
     end if
     if (present(attenuation_river_slope)) then
       attenuation_river_slope%value = ieee_value(attenuation_river_slope%value, ieee_quiet_nan) ! sentinel for derived component value
       attenuation_river_slope%optimize = .false.
-      attenuation_river_slope%lower_bound = ieee_value(attenuation_river_slope%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      attenuation_river_slope%upper_bound = ieee_value(attenuation_river_slope%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      attenuation_river_slope%lower_bound = 0.01_dp
-      attenuation_river_slope%upper_bound = 0.5_dp
+      attenuation_river_slope%min = ieee_value(attenuation_river_slope%min, ieee_quiet_nan) ! sentinel for derived component min
+      attenuation_river_slope%max = ieee_value(attenuation_river_slope%max, ieee_quiet_nan) ! sentinel for derived component max
+      attenuation_river_slope%min = 0.01_dp
+      attenuation_river_slope%max = 0.5_dp
     end if
   end function nml_routing_1_init_type
 
@@ -265,13 +265,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_constant'"
         return
       end if
-    case ("travel_time_constant%lower_bound")
+    case ("travel_time_constant%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_constant'"
         return
       end if
-    case ("travel_time_constant%upper_bound")
+    case ("travel_time_constant%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_constant'"
@@ -299,13 +299,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_length'"
         return
       end if
-    case ("travel_time_river_length%lower_bound")
+    case ("travel_time_river_length%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_length'"
         return
       end if
-    case ("travel_time_river_length%upper_bound")
+    case ("travel_time_river_length%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_length'"
@@ -333,13 +333,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_slope'"
         return
       end if
-    case ("travel_time_river_slope%lower_bound")
+    case ("travel_time_river_slope%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_slope'"
         return
       end if
-    case ("travel_time_river_slope%upper_bound")
+    case ("travel_time_river_slope%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_slope'"
@@ -367,13 +367,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_impervious'"
         return
       end if
-    case ("travel_time_impervious%lower_bound")
+    case ("travel_time_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_impervious'"
         return
       end if
-    case ("travel_time_impervious%upper_bound")
+    case ("travel_time_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_impervious'"
@@ -401,13 +401,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'attenuation_river_slope'"
         return
       end if
-    case ("attenuation_river_slope%lower_bound")
+    case ("attenuation_river_slope%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'attenuation_river_slope'"
         return
       end if
-    case ("attenuation_river_slope%upper_bound")
+    case ("attenuation_river_slope%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'attenuation_river_slope'"

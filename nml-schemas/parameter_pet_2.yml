@@ -6,14 +6,14 @@ properties:
   priestley_taylor_coefficient:
     $ref: parameter.yml#/$defs/parameter
     title: Priestley-Taylor coefficient
-    default: {lower_bound: 0.75, upper_bound: 1.75}
+    default: {min: 0.75, max: 1.75}
     properties:
       value: {examples: [1.19]}
       optimize: {examples: [true]}
   priestley_taylor_lai_correction:
     $ref: parameter.yml#/$defs/parameter
     title: Priestley-Taylor LAI correction factor
-    default: {lower_bound: -0.5, upper_bound: 0.2}
+    default: {min: -0.5, max: 0.2}
     properties:
       value: {examples: [0.058]}
       optimize: {examples: [true]}

@@ -24,13 +24,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.1, upper_bound: 100.0}`
+- Default: `{min: 0.1, max: 100.0}`
 
 Components:
 - `slope_factor%value`: `real(dp)`; declared required yes; input required yes
 - `slope_factor%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `slope_factor%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.1` (object default)
-- `slope_factor%upper_bound`: `real(dp)`; declared required yes; input required no; default `100.0` (object default)
+- `slope_factor%min`: `real(dp)`; declared required yes; input required no; default `0.1` (object default)
+- `slope_factor%max`: `real(dp)`; declared required yes; input required no; default `100.0` (object default)
 
 ## Derived types
 
@@ -40,13 +40,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -54,8 +55,8 @@ A model parameter with optional calibration metadata.
 &routing_3
   slope_factor%value = 30.0
   slope_factor%optimize = .false.
-  slope_factor%lower_bound = 0.1
-  slope_factor%upper_bound = 100.0
+  slope_factor%min = 0.1
+  slope_factor%max = 100.0
 /
 ```
 

@@ -27,12 +27,12 @@ module nml_percolation_1
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -86,18 +86,18 @@ contains
     if (present(recharge_coefficient)) then
       recharge_coefficient%value = ieee_value(recharge_coefficient%value, ieee_quiet_nan) ! sentinel for derived component value
       recharge_coefficient%optimize = .false.
-      recharge_coefficient%lower_bound = ieee_value(recharge_coefficient%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      recharge_coefficient%upper_bound = ieee_value(recharge_coefficient%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      recharge_coefficient%lower_bound = 0.0_dp
-      recharge_coefficient%upper_bound = 50.0_dp
+      recharge_coefficient%min = ieee_value(recharge_coefficient%min, ieee_quiet_nan) ! sentinel for derived component min
+      recharge_coefficient%max = ieee_value(recharge_coefficient%max, ieee_quiet_nan) ! sentinel for derived component max
+      recharge_coefficient%min = 0.0_dp
+      recharge_coefficient%max = 50.0_dp
     end if
     if (present(karstic_recharge_factor)) then
       karstic_recharge_factor%value = ieee_value(karstic_recharge_factor%value, ieee_quiet_nan) ! sentinel for derived component value
       karstic_recharge_factor%optimize = .false.
-      karstic_recharge_factor%lower_bound = ieee_value(karstic_recharge_factor%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      karstic_recharge_factor%upper_bound = ieee_value(karstic_recharge_factor%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      karstic_recharge_factor%lower_bound = -5.0_dp
-      karstic_recharge_factor%upper_bound = 5.0_dp
+      karstic_recharge_factor%min = ieee_value(karstic_recharge_factor%min, ieee_quiet_nan) ! sentinel for derived component min
+      karstic_recharge_factor%max = ieee_value(karstic_recharge_factor%max, ieee_quiet_nan) ! sentinel for derived component max
+      karstic_recharge_factor%min = -5.0_dp
+      karstic_recharge_factor%max = 5.0_dp
     end if
   end function nml_percolation_1_init_type
 
@@ -208,13 +208,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'recharge_coefficient'"
         return
       end if
-    case ("recharge_coefficient%lower_bound")
+    case ("recharge_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'recharge_coefficient'"
         return
       end if
-    case ("recharge_coefficient%upper_bound")
+    case ("recharge_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'recharge_coefficient'"
@@ -242,13 +242,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'karstic_recharge_factor'"
         return
       end if
-    case ("karstic_recharge_factor%lower_bound")
+    case ("karstic_recharge_factor%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'karstic_recharge_factor'"
         return
       end if
-    case ("karstic_recharge_factor%upper_bound")
+    case ("karstic_recharge_factor%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'karstic_recharge_factor'"

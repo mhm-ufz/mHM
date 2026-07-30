@@ -25,13 +25,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.75, upper_bound: 1.75}`
+- Default: `{min: 0.75, max: 1.75}`
 
 Components:
 - `priestley_taylor_coefficient%value`: `real(dp)`; declared required yes; input required yes
 - `priestley_taylor_coefficient%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `priestley_taylor_coefficient%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.75` (object default)
-- `priestley_taylor_coefficient%upper_bound`: `real(dp)`; declared required yes; input required no; default `1.75` (object default)
+- `priestley_taylor_coefficient%min`: `real(dp)`; declared required yes; input required no; default `0.75` (object default)
+- `priestley_taylor_coefficient%max`: `real(dp)`; declared required yes; input required no; default `1.75` (object default)
 
 ### priestley_taylor_lai_correction
 
@@ -43,13 +43,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: -0.5, upper_bound: 0.2}`
+- Default: `{min: -0.5, max: 0.2}`
 
 Components:
 - `priestley_taylor_lai_correction%value`: `real(dp)`; declared required yes; input required yes
 - `priestley_taylor_lai_correction%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `priestley_taylor_lai_correction%lower_bound`: `real(dp)`; declared required yes; input required no; default `-0.5` (object default)
-- `priestley_taylor_lai_correction%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
+- `priestley_taylor_lai_correction%min`: `real(dp)`; declared required yes; input required no; default `-0.5` (object default)
+- `priestley_taylor_lai_correction%max`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
 
 ## Derived types
 
@@ -59,13 +59,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -73,12 +74,12 @@ A model parameter with optional calibration metadata.
 &pet_2
   priestley_taylor_coefficient%value = 1.19
   priestley_taylor_coefficient%optimize = .true.
-  priestley_taylor_coefficient%lower_bound = 0.75
-  priestley_taylor_coefficient%upper_bound = 1.75
+  priestley_taylor_coefficient%min = 0.75
+  priestley_taylor_coefficient%max = 1.75
   priestley_taylor_lai_correction%value = 0.058
   priestley_taylor_lai_correction%optimize = .true.
-  priestley_taylor_lai_correction%lower_bound = -0.5
-  priestley_taylor_lai_correction%upper_bound = 0.2
+  priestley_taylor_lai_correction%min = -0.5
+  priestley_taylor_lai_correction%max = 0.2
 /
 ```
 

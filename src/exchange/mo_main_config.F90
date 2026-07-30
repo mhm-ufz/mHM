@@ -17,7 +17,8 @@ module mo_main_config
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
   use mo_kind, only: i4, dp
   use mo_logging
-  use nml_helper, only: parameter_t, to_lower
+  use mo_parameter_types, only: parameter_t
+  use nml_helper, only: to_lower
 
   implicit none
   private
@@ -281,8 +282,8 @@ contains
     allocate(initial(count), bounds(count, 2), mask(count), names(count))
     if (count == 0_i4) return
     initial = self%definitions%value
-    bounds(:, 1) = self%definitions%lower_bound
-    bounds(:, 2) = self%definitions%upper_bound
+    bounds(:, 1) = self%definitions%min
+    bounds(:, 2) = self%definitions%max
     mask = self%definitions%optimize
     names = self%names
   end subroutine parameters_get_optimizer_data
@@ -293,9 +294,13 @@ contains
     character(*), intent(in) :: file !< destination parameter namelist path
     real(dp), intent(in), optional :: values(:) !< complete flattened parameter vector to write
     real(dp), allocatable :: output_values(:)
+    character(:), allocatable :: line
+    character(:), allocatable :: name_field
+    character(7) :: optimize_field
     character(1024) :: iomsg
     integer(i4) :: i
     integer(i4) :: j
+    integer(i4) :: name_width
     integer(i4) :: value_index
     integer :: unit
     integer :: status
@@ -318,18 +323,30 @@ contains
       error stop 1
     end if
 
-    call write_text_line(unit, "! Final v6 parameter values for forward simulation.", file)
+    name_width = 0_i4
+    do i = 1_i4, size(self%processes, kind=i4)
+      do j = 1_i4, self%processes(i)%count
+        name_width = max(name_width, len_trim(self%processes(i)%local_names(j)))
+      end do
+    end do
+
+    call write_text_line(unit, "! Final v6 parameter set (value, optimize, min, max).", file)
     do i = 1_i4, size(self%processes, kind=i4)
       call write_text_line(unit, "", file)
       call write_text_line(unit, "&" // self%processes(i)%group, file)
       do j = 1_i4, self%processes(i)%count
         value_index = self%processes(i)%first + j - 1_i4
-        write(unit, '("  ",a," = ",es24.16e3)', iostat=status, iomsg=iomsg) &
-          trim(self%processes(i)%local_names(j)), output_values(value_index)
-        if (status /= 0) then
-          log_fatal(*) "parameters%write_namelist: could not write '", trim(file), "': ", trim(iomsg)
-          error stop 1
+        name_field = trim(self%processes(i)%local_names(j)) // &
+          repeat(" ", name_width - len_trim(self%processes(i)%local_names(j)))
+        if (self%definitions(value_index)%optimize) then
+          optimize_field = " .true."
+        else
+          optimize_field = ".false."
         end if
+        line = "  " // name_field // " = " // format_parameter_real(output_values(value_index)) // ", " // &
+          optimize_field // ", " // format_parameter_real(self%definitions(value_index)%min) // ", " // &
+          format_parameter_real(self%definitions(value_index)%max)
+        call write_text_line(unit, line, file)
       end do
       call write_text_line(unit, "/", file)
     end do
@@ -340,6 +357,15 @@ contains
       error stop 1
     end if
   end subroutine parameters_write_namelist
+
+  !> \brief Format one parameter value using the established aligned output precision.
+  function format_parameter_real(value) result(text)
+    real(dp), intent(in) :: value
+    character(20) :: text
+
+    write(text, '(f20.12)') value
+    if (index(text, "*") > 0) write(text, '(es20.12e3)') value
+  end function format_parameter_real
 
   !> \brief Print current named parameter values.
   subroutine parameters_print(self)
@@ -358,20 +384,20 @@ contains
     character(*), intent(in) :: name
 
     if (.not.ieee_is_finite(definition%value) .or. &
-        .not.ieee_is_finite(definition%lower_bound) .or. &
-        .not.ieee_is_finite(definition%upper_bound)) then
+        .not.ieee_is_finite(definition%min) .or. &
+        .not.ieee_is_finite(definition%max)) then
       log_fatal(*) "parameters%seal: definition for '", trim(name), "' contains a non-finite value."
       error stop 1
     end if
-    if (definition%lower_bound > definition%upper_bound) then
+    if (definition%min > definition%max) then
       log_fatal(*) "parameters%seal: invalid bounds for '", trim(name), "'."
       error stop 1
     end if
-    if (definition%optimize .and. definition%lower_bound >= definition%upper_bound) then
+    if (definition%optimize .and. definition%min >= definition%max) then
       log_fatal(*) "parameters%seal: optimized parameter '", trim(name), "' requires strict bounds."
       error stop 1
     end if
-    if (definition%value < definition%lower_bound .or. definition%value > definition%upper_bound) then
+    if (definition%value < definition%min .or. definition%value > definition%max) then
       log_fatal(*) "parameters%seal: initial value for '", trim(name), "' is outside its bounds."
       error stop 1
     end if
@@ -405,7 +431,7 @@ contains
         log_fatal(*) "parameters%", trim(method), ": value for '", trim(self%names(i)), "' is not finite."
         error stop 1
       end if
-      if (values(i) < self%definitions(i)%lower_bound .or. values(i) > self%definitions(i)%upper_bound) then
+      if (values(i) < self%definitions(i)%min .or. values(i) > self%definitions(i)%max) then
         log_fatal(*) "parameters%", trim(method), ": value for '", trim(self%names(i)), "' is outside its bounds."
         error stop 1
       end if
