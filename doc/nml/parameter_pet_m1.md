@@ -28,13 +28,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.3, upper_bound: 1.3}`
+- Default: `{min: 0.3, max: 1.3}`
 
 Components:
 - `pet_a_forest%value`: `real(dp)`; declared required yes; input required yes
 - `pet_a_forest%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `pet_a_forest%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.3` (object default)
-- `pet_a_forest%upper_bound`: `real(dp)`; declared required yes; input required no; default `1.3` (object default)
+- `pet_a_forest%min`: `real(dp)`; declared required yes; input required no; default `0.3` (object default)
+- `pet_a_forest%max`: `real(dp)`; declared required yes; input required no; default `1.3` (object default)
 
 ### pet_a_impervious
 
@@ -46,13 +46,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.3, upper_bound: 1.3}`
+- Default: `{min: 0.3, max: 1.3}`
 
 Components:
 - `pet_a_impervious%value`: `real(dp)`; declared required yes; input required yes
 - `pet_a_impervious%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `pet_a_impervious%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.3` (object default)
-- `pet_a_impervious%upper_bound`: `real(dp)`; declared required yes; input required no; default `1.3` (object default)
+- `pet_a_impervious%min`: `real(dp)`; declared required yes; input required no; default `0.3` (object default)
+- `pet_a_impervious%max`: `real(dp)`; declared required yes; input required no; default `1.3` (object default)
 
 ### pet_a_pervious
 
@@ -64,13 +64,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.3, upper_bound: 1.3}`
+- Default: `{min: 0.3, max: 1.3}`
 
 Components:
 - `pet_a_pervious%value`: `real(dp)`; declared required yes; input required yes
 - `pet_a_pervious%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `pet_a_pervious%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.3` (object default)
-- `pet_a_pervious%upper_bound`: `real(dp)`; declared required yes; input required no; default `1.3` (object default)
+- `pet_a_pervious%min`: `real(dp)`; declared required yes; input required no; default `0.3` (object default)
+- `pet_a_pervious%max`: `real(dp)`; declared required yes; input required no; default `1.3` (object default)
 
 ### pet_b
 
@@ -82,13 +82,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 1.5}`
+- Default: `{min: 0.0, max: 1.5}`
 
 Components:
 - `pet_b%value`: `real(dp)`; declared required yes; input required yes
 - `pet_b%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `pet_b%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `pet_b%upper_bound`: `real(dp)`; declared required yes; input required no; default `1.5` (object default)
+- `pet_b%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `pet_b%max`: `real(dp)`; declared required yes; input required no; default `1.5` (object default)
 
 ### pet_c
 
@@ -100,13 +100,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: -2.0, upper_bound: 0.0}`
+- Default: `{min: -2.0, max: 0.0}`
 
 Components:
 - `pet_c%value`: `real(dp)`; declared required yes; input required yes
 - `pet_c%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `pet_c%lower_bound`: `real(dp)`; declared required yes; input required no; default `-2.0` (object default)
-- `pet_c%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `pet_c%min`: `real(dp)`; declared required yes; input required no; default `-2.0` (object default)
+- `pet_c%max`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
 
 ## Derived types
 
@@ -116,13 +116,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -130,24 +131,24 @@ A model parameter with optional calibration metadata.
 &pet_m1
   pet_a_forest%value = 0.3
   pet_a_forest%optimize = .true.
-  pet_a_forest%lower_bound = 0.3
-  pet_a_forest%upper_bound = 1.3
+  pet_a_forest%min = 0.3
+  pet_a_forest%max = 1.3
   pet_a_impervious%value = 0.8
   pet_a_impervious%optimize = .true.
-  pet_a_impervious%lower_bound = 0.3
-  pet_a_impervious%upper_bound = 1.3
+  pet_a_impervious%min = 0.3
+  pet_a_impervious%max = 1.3
   pet_a_pervious%value = 1.3
   pet_a_pervious%optimize = .true.
-  pet_a_pervious%lower_bound = 0.3
-  pet_a_pervious%upper_bound = 1.3
+  pet_a_pervious%min = 0.3
+  pet_a_pervious%max = 1.3
   pet_b%value = 1.5
   pet_b%optimize = .true.
-  pet_b%lower_bound = 0.0
-  pet_b%upper_bound = 1.5
+  pet_b%min = 0.0
+  pet_b%max = 1.5
   pet_c%value = -0.7
   pet_c%optimize = .true.
-  pet_c%lower_bound = -2.0
-  pet_c%upper_bound = 0.0
+  pet_c%min = -2.0
+  pet_c%max = 0.0
 /
 ```
 

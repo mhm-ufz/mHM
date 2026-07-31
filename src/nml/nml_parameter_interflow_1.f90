@@ -27,12 +27,12 @@ module nml_interflow_1
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -98,42 +98,42 @@ contains
     if (present(storage_capacity_factor)) then
       storage_capacity_factor%value = ieee_value(storage_capacity_factor%value, ieee_quiet_nan) ! sentinel for derived component value
       storage_capacity_factor%optimize = .false.
-      storage_capacity_factor%lower_bound = ieee_value(storage_capacity_factor%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      storage_capacity_factor%upper_bound = ieee_value(storage_capacity_factor%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      storage_capacity_factor%lower_bound = 75.0_dp
-      storage_capacity_factor%upper_bound = 200.0_dp
+      storage_capacity_factor%min = ieee_value(storage_capacity_factor%min, ieee_quiet_nan) ! sentinel for derived component min
+      storage_capacity_factor%max = ieee_value(storage_capacity_factor%max, ieee_quiet_nan) ! sentinel for derived component max
+      storage_capacity_factor%min = 75.0_dp
+      storage_capacity_factor%max = 200.0_dp
     end if
     if (present(recession_slope)) then
       recession_slope%value = ieee_value(recession_slope%value, ieee_quiet_nan) ! sentinel for derived component value
       recession_slope%optimize = .false.
-      recession_slope%lower_bound = ieee_value(recession_slope%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      recession_slope%upper_bound = ieee_value(recession_slope%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      recession_slope%lower_bound = 0.0_dp
-      recession_slope%upper_bound = 10.0_dp
+      recession_slope%min = ieee_value(recession_slope%min, ieee_quiet_nan) ! sentinel for derived component min
+      recession_slope%max = ieee_value(recession_slope%max, ieee_quiet_nan) ! sentinel for derived component max
+      recession_slope%min = 0.0_dp
+      recession_slope%max = 10.0_dp
     end if
     if (present(fast_recession_forest)) then
       fast_recession_forest%value = ieee_value(fast_recession_forest%value, ieee_quiet_nan) ! sentinel for derived component value
       fast_recession_forest%optimize = .false.
-      fast_recession_forest%lower_bound = ieee_value(fast_recession_forest%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      fast_recession_forest%upper_bound = ieee_value(fast_recession_forest%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      fast_recession_forest%lower_bound = 1.0_dp
-      fast_recession_forest%upper_bound = 3.0_dp
+      fast_recession_forest%min = ieee_value(fast_recession_forest%min, ieee_quiet_nan) ! sentinel for derived component min
+      fast_recession_forest%max = ieee_value(fast_recession_forest%max, ieee_quiet_nan) ! sentinel for derived component max
+      fast_recession_forest%min = 1.0_dp
+      fast_recession_forest%max = 3.0_dp
     end if
     if (present(slow_recession_ks)) then
       slow_recession_ks%value = ieee_value(slow_recession_ks%value, ieee_quiet_nan) ! sentinel for derived component value
       slow_recession_ks%optimize = .false.
-      slow_recession_ks%lower_bound = ieee_value(slow_recession_ks%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      slow_recession_ks%upper_bound = ieee_value(slow_recession_ks%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      slow_recession_ks%lower_bound = 1.0_dp
-      slow_recession_ks%upper_bound = 30.0_dp
+      slow_recession_ks%min = ieee_value(slow_recession_ks%min, ieee_quiet_nan) ! sentinel for derived component min
+      slow_recession_ks%max = ieee_value(slow_recession_ks%max, ieee_quiet_nan) ! sentinel for derived component max
+      slow_recession_ks%min = 1.0_dp
+      slow_recession_ks%max = 30.0_dp
     end if
     if (present(slow_recession_exponent)) then
       slow_recession_exponent%value = ieee_value(slow_recession_exponent%value, ieee_quiet_nan) ! sentinel for derived component value
       slow_recession_exponent%optimize = .false.
-      slow_recession_exponent%lower_bound = ieee_value(slow_recession_exponent%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      slow_recession_exponent%upper_bound = ieee_value(slow_recession_exponent%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      slow_recession_exponent%lower_bound = 0.05_dp
-      slow_recession_exponent%upper_bound = 0.3_dp
+      slow_recession_exponent%min = ieee_value(slow_recession_exponent%min, ieee_quiet_nan) ! sentinel for derived component min
+      slow_recession_exponent%max = ieee_value(slow_recession_exponent%max, ieee_quiet_nan) ! sentinel for derived component max
+      slow_recession_exponent%min = 0.05_dp
+      slow_recession_exponent%max = 0.3_dp
     end if
   end function nml_interflow_1_init_type
 
@@ -265,13 +265,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'storage_capacity_factor'"
         return
       end if
-    case ("storage_capacity_factor%lower_bound")
+    case ("storage_capacity_factor%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'storage_capacity_factor'"
         return
       end if
-    case ("storage_capacity_factor%upper_bound")
+    case ("storage_capacity_factor%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'storage_capacity_factor'"
@@ -299,13 +299,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'recession_slope'"
         return
       end if
-    case ("recession_slope%lower_bound")
+    case ("recession_slope%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'recession_slope'"
         return
       end if
-    case ("recession_slope%upper_bound")
+    case ("recession_slope%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'recession_slope'"
@@ -333,13 +333,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'fast_recession_forest'"
         return
       end if
-    case ("fast_recession_forest%lower_bound")
+    case ("fast_recession_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'fast_recession_forest'"
         return
       end if
-    case ("fast_recession_forest%upper_bound")
+    case ("fast_recession_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'fast_recession_forest'"
@@ -367,13 +367,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'slow_recession_ks'"
         return
       end if
-    case ("slow_recession_ks%lower_bound")
+    case ("slow_recession_ks%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'slow_recession_ks'"
         return
       end if
-    case ("slow_recession_ks%upper_bound")
+    case ("slow_recession_ks%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'slow_recession_ks'"
@@ -401,13 +401,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'slow_recession_exponent'"
         return
       end if
-    case ("slow_recession_exponent%lower_bound")
+    case ("slow_recession_exponent%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'slow_recession_exponent'"
         return
       end if
-    case ("slow_recession_exponent%upper_bound")
+    case ("slow_recession_exponent%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'slow_recession_exponent'"

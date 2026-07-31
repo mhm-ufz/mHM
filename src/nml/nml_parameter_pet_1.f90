@@ -27,12 +27,12 @@ module nml_pet_1
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -94,34 +94,34 @@ contains
     if (present(correction_factor_min)) then
       correction_factor_min%value = ieee_value(correction_factor_min%value, ieee_quiet_nan) ! sentinel for derived component value
       correction_factor_min%optimize = .false.
-      correction_factor_min%lower_bound = ieee_value(correction_factor_min%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      correction_factor_min%upper_bound = ieee_value(correction_factor_min%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      correction_factor_min%lower_bound = 0.7_dp
-      correction_factor_min%upper_bound = 1.3_dp
+      correction_factor_min%min = ieee_value(correction_factor_min%min, ieee_quiet_nan) ! sentinel for derived component min
+      correction_factor_min%max = ieee_value(correction_factor_min%max, ieee_quiet_nan) ! sentinel for derived component max
+      correction_factor_min%min = 0.7_dp
+      correction_factor_min%max = 1.3_dp
     end if
     if (present(correction_factor_max)) then
       correction_factor_max%value = ieee_value(correction_factor_max%value, ieee_quiet_nan) ! sentinel for derived component value
       correction_factor_max%optimize = .false.
-      correction_factor_max%lower_bound = ieee_value(correction_factor_max%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      correction_factor_max%upper_bound = ieee_value(correction_factor_max%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      correction_factor_max%lower_bound = 0.0_dp
-      correction_factor_max%upper_bound = 0.2_dp
+      correction_factor_max%min = ieee_value(correction_factor_max%min, ieee_quiet_nan) ! sentinel for derived component min
+      correction_factor_max%max = ieee_value(correction_factor_max%max, ieee_quiet_nan) ! sentinel for derived component max
+      correction_factor_max%min = 0.0_dp
+      correction_factor_max%max = 0.2_dp
     end if
     if (present(aspect_threshold)) then
       aspect_threshold%value = ieee_value(aspect_threshold%value, ieee_quiet_nan) ! sentinel for derived component value
       aspect_threshold%optimize = .false.
-      aspect_threshold%lower_bound = ieee_value(aspect_threshold%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      aspect_threshold%upper_bound = ieee_value(aspect_threshold%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      aspect_threshold%lower_bound = 160.0_dp
-      aspect_threshold%upper_bound = 200.0_dp
+      aspect_threshold%min = ieee_value(aspect_threshold%min, ieee_quiet_nan) ! sentinel for derived component min
+      aspect_threshold%max = ieee_value(aspect_threshold%max, ieee_quiet_nan) ! sentinel for derived component max
+      aspect_threshold%min = 160.0_dp
+      aspect_threshold%max = 200.0_dp
     end if
     if (present(hargreaves_samani_coefficient)) then
       hargreaves_samani_coefficient%value = ieee_value(hargreaves_samani_coefficient%value, ieee_quiet_nan) ! sentinel for derived component value
       hargreaves_samani_coefficient%optimize = .false.
-      hargreaves_samani_coefficient%lower_bound = ieee_value(hargreaves_samani_coefficient%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      hargreaves_samani_coefficient%upper_bound = ieee_value(hargreaves_samani_coefficient%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      hargreaves_samani_coefficient%lower_bound = 0.0016_dp
-      hargreaves_samani_coefficient%upper_bound = 0.003_dp
+      hargreaves_samani_coefficient%min = ieee_value(hargreaves_samani_coefficient%min, ieee_quiet_nan) ! sentinel for derived component min
+      hargreaves_samani_coefficient%max = ieee_value(hargreaves_samani_coefficient%max, ieee_quiet_nan) ! sentinel for derived component max
+      hargreaves_samani_coefficient%min = 0.0016_dp
+      hargreaves_samani_coefficient%max = 0.003_dp
     end if
   end function nml_pet_1_init_type
 
@@ -246,13 +246,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'correction_factor_min'"
         return
       end if
-    case ("correction_factor_min%lower_bound")
+    case ("correction_factor_min%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'correction_factor_min'"
         return
       end if
-    case ("correction_factor_min%upper_bound")
+    case ("correction_factor_min%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'correction_factor_min'"
@@ -280,13 +280,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'correction_factor_max'"
         return
       end if
-    case ("correction_factor_max%lower_bound")
+    case ("correction_factor_max%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'correction_factor_max'"
         return
       end if
-    case ("correction_factor_max%upper_bound")
+    case ("correction_factor_max%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'correction_factor_max'"
@@ -314,13 +314,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'aspect_threshold'"
         return
       end if
-    case ("aspect_threshold%lower_bound")
+    case ("aspect_threshold%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'aspect_threshold'"
         return
       end if
-    case ("aspect_threshold%upper_bound")
+    case ("aspect_threshold%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'aspect_threshold'"
@@ -348,13 +348,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'hargreaves_samani_coefficient'"
         return
       end if
-    case ("hargreaves_samani_coefficient%lower_bound")
+    case ("hargreaves_samani_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'hargreaves_samani_coefficient'"
         return
       end if
-    case ("hargreaves_samani_coefficient%upper_bound")
+    case ("hargreaves_samani_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'hargreaves_samani_coefficient'"

@@ -28,13 +28,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 75.0, upper_bound: 200.0}`
+- Default: `{min: 75.0, max: 200.0}`
 
 Components:
 - `storage_capacity_factor%value`: `real(dp)`; declared required yes; input required yes
 - `storage_capacity_factor%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `storage_capacity_factor%lower_bound`: `real(dp)`; declared required yes; input required no; default `75.0` (object default)
-- `storage_capacity_factor%upper_bound`: `real(dp)`; declared required yes; input required no; default `200.0` (object default)
+- `storage_capacity_factor%min`: `real(dp)`; declared required yes; input required no; default `75.0` (object default)
+- `storage_capacity_factor%max`: `real(dp)`; declared required yes; input required no; default `200.0` (object default)
 
 ### recession_slope
 
@@ -46,13 +46,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 10.0}`
+- Default: `{min: 0.0, max: 10.0}`
 
 Components:
 - `recession_slope%value`: `real(dp)`; declared required yes; input required yes
 - `recession_slope%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `recession_slope%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `recession_slope%upper_bound`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
+- `recession_slope%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `recession_slope%max`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
 
 ### fast_recession_forest
 
@@ -64,13 +64,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 1.0, upper_bound: 3.0}`
+- Default: `{min: 1.0, max: 3.0}`
 
 Components:
 - `fast_recession_forest%value`: `real(dp)`; declared required yes; input required yes
 - `fast_recession_forest%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `fast_recession_forest%lower_bound`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
-- `fast_recession_forest%upper_bound`: `real(dp)`; declared required yes; input required no; default `3.0` (object default)
+- `fast_recession_forest%min`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
+- `fast_recession_forest%max`: `real(dp)`; declared required yes; input required no; default `3.0` (object default)
 
 ### slow_recession_ks
 
@@ -82,13 +82,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 1.0, upper_bound: 30.0}`
+- Default: `{min: 1.0, max: 30.0}`
 
 Components:
 - `slow_recession_ks%value`: `real(dp)`; declared required yes; input required yes
 - `slow_recession_ks%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `slow_recession_ks%lower_bound`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
-- `slow_recession_ks%upper_bound`: `real(dp)`; declared required yes; input required no; default `30.0` (object default)
+- `slow_recession_ks%min`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
+- `slow_recession_ks%max`: `real(dp)`; declared required yes; input required no; default `30.0` (object default)
 
 ### slow_recession_exponent
 
@@ -100,13 +100,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.05, upper_bound: 0.3}`
+- Default: `{min: 0.05, max: 0.3}`
 
 Components:
 - `slow_recession_exponent%value`: `real(dp)`; declared required yes; input required yes
 - `slow_recession_exponent%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `slow_recession_exponent%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.05` (object default)
-- `slow_recession_exponent%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.3` (object default)
+- `slow_recession_exponent%min`: `real(dp)`; declared required yes; input required no; default `0.05` (object default)
+- `slow_recession_exponent%max`: `real(dp)`; declared required yes; input required no; default `0.3` (object default)
 
 ## Derived types
 
@@ -116,13 +116,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -130,24 +131,24 @@ A model parameter with optional calibration metadata.
 &interflow_1
   storage_capacity_factor%value = 85.0
   storage_capacity_factor%optimize = .true.
-  storage_capacity_factor%lower_bound = 75.0
-  storage_capacity_factor%upper_bound = 200.0
+  storage_capacity_factor%min = 75.0
+  storage_capacity_factor%max = 200.0
   recession_slope%value = 7.0
   recession_slope%optimize = .true.
-  recession_slope%lower_bound = 0.0
-  recession_slope%upper_bound = 10.0
+  recession_slope%min = 0.0
+  recession_slope%max = 10.0
   fast_recession_forest%value = 1.5
   fast_recession_forest%optimize = .true.
-  fast_recession_forest%lower_bound = 1.0
-  fast_recession_forest%upper_bound = 3.0
+  fast_recession_forest%min = 1.0
+  fast_recession_forest%max = 3.0
   slow_recession_ks%value = 15.0
   slow_recession_ks%optimize = .true.
-  slow_recession_ks%lower_bound = 1.0
-  slow_recession_ks%upper_bound = 30.0
+  slow_recession_ks%min = 1.0
+  slow_recession_ks%max = 30.0
   slow_recession_exponent%value = 0.125
   slow_recession_exponent%optimize = .true.
-  slow_recession_exponent%lower_bound = 0.05
-  slow_recession_exponent%upper_bound = 0.3
+  slow_recession_exponent%min = 0.05
+  slow_recession_exponent%max = 0.3
 /
 ```
 

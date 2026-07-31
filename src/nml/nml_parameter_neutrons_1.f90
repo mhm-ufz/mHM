@@ -27,12 +27,12 @@ module nml_neutrons_1
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -90,26 +90,26 @@ contains
     if (present(desilets_n0)) then
       desilets_n0%value = ieee_value(desilets_n0%value, ieee_quiet_nan) ! sentinel for derived component value
       desilets_n0%optimize = .false.
-      desilets_n0%lower_bound = ieee_value(desilets_n0%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      desilets_n0%upper_bound = ieee_value(desilets_n0%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      desilets_n0%lower_bound = 300.0_dp
-      desilets_n0%upper_bound = 2000.0_dp
+      desilets_n0%min = ieee_value(desilets_n0%min, ieee_quiet_nan) ! sentinel for derived component min
+      desilets_n0%max = ieee_value(desilets_n0%max, ieee_quiet_nan) ! sentinel for derived component max
+      desilets_n0%min = 300.0_dp
+      desilets_n0%max = 2000.0_dp
     end if
     if (present(desilets_lw0)) then
       desilets_lw0%value = ieee_value(desilets_lw0%value, ieee_quiet_nan) ! sentinel for derived component value
       desilets_lw0%optimize = .false.
-      desilets_lw0%lower_bound = ieee_value(desilets_lw0%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      desilets_lw0%upper_bound = ieee_value(desilets_lw0%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      desilets_lw0%lower_bound = 0.0_dp
-      desilets_lw0%upper_bound = 0.2_dp
+      desilets_lw0%min = ieee_value(desilets_lw0%min, ieee_quiet_nan) ! sentinel for derived component min
+      desilets_lw0%max = ieee_value(desilets_lw0%max, ieee_quiet_nan) ! sentinel for derived component max
+      desilets_lw0%min = 0.0_dp
+      desilets_lw0%max = 0.2_dp
     end if
     if (present(desilets_lw1)) then
       desilets_lw1%value = ieee_value(desilets_lw1%value, ieee_quiet_nan) ! sentinel for derived component value
       desilets_lw1%optimize = .false.
-      desilets_lw1%lower_bound = ieee_value(desilets_lw1%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      desilets_lw1%upper_bound = ieee_value(desilets_lw1%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      desilets_lw1%lower_bound = 0.0_dp
-      desilets_lw1%upper_bound = 0.05_dp
+      desilets_lw1%min = ieee_value(desilets_lw1%min, ieee_quiet_nan) ! sentinel for derived component min
+      desilets_lw1%max = ieee_value(desilets_lw1%max, ieee_quiet_nan) ! sentinel for derived component max
+      desilets_lw1%min = 0.0_dp
+      desilets_lw1%max = 0.05_dp
     end if
   end function nml_neutrons_1_init_type
 
@@ -227,13 +227,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'desilets_n0'"
         return
       end if
-    case ("desilets_n0%lower_bound")
+    case ("desilets_n0%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'desilets_n0'"
         return
       end if
-    case ("desilets_n0%upper_bound")
+    case ("desilets_n0%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'desilets_n0'"
@@ -261,13 +261,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'desilets_lw0'"
         return
       end if
-    case ("desilets_lw0%lower_bound")
+    case ("desilets_lw0%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'desilets_lw0'"
         return
       end if
-    case ("desilets_lw0%upper_bound")
+    case ("desilets_lw0%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'desilets_lw0'"
@@ -295,13 +295,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'desilets_lw1'"
         return
       end if
-    case ("desilets_lw1%lower_bound")
+    case ("desilets_lw1%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'desilets_lw1'"
         return
       end if
-    case ("desilets_lw1%upper_bound")
+    case ("desilets_lw1%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'desilets_lw1'"

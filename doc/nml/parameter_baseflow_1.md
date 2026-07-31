@@ -24,13 +24,13 @@ Summary:
 - Type: `type(parameter_t), dimension(n_geo_units)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 1.0, upper_bound: 1000.0}` (broadcast item default)
+- Default: `{min: 1.0, max: 1000.0}` (broadcast item default)
 
 Components:
 - `baseflow_recession%value`: `real(dp)`; declared required yes; input required yes
 - `baseflow_recession%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `baseflow_recession%lower_bound`: `real(dp)`; declared required yes; input required no; default `1.0` (item default)
-- `baseflow_recession%upper_bound`: `real(dp)`; declared required yes; input required no; default `1000.0` (item default)
+- `baseflow_recession%min`: `real(dp)`; declared required yes; input required no; default `1.0` (item default)
+- `baseflow_recession%max`: `real(dp)`; declared required yes; input required no; default `1000.0` (item default)
 
 ## Derived types
 
@@ -40,13 +40,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -54,8 +55,8 @@ A model parameter with optional calibration metadata.
 &baseflow_1
   baseflow_recession(:)%value = 100.0
   baseflow_recession(:)%optimize = .true.
-  baseflow_recession(:)%lower_bound = 1.0
-  baseflow_recession(:)%upper_bound = 1000.0
+  baseflow_recession(:)%min = 1.0
+  baseflow_recession(:)%max = 1000.0
 /
 ```
 

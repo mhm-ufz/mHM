@@ -27,12 +27,12 @@ module nml_pet_2
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -86,18 +86,18 @@ contains
     if (present(priestley_taylor_coefficient)) then
       priestley_taylor_coefficient%value = ieee_value(priestley_taylor_coefficient%value, ieee_quiet_nan) ! sentinel for derived component value
       priestley_taylor_coefficient%optimize = .false.
-      priestley_taylor_coefficient%lower_bound = ieee_value(priestley_taylor_coefficient%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      priestley_taylor_coefficient%upper_bound = ieee_value(priestley_taylor_coefficient%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      priestley_taylor_coefficient%lower_bound = 0.75_dp
-      priestley_taylor_coefficient%upper_bound = 1.75_dp
+      priestley_taylor_coefficient%min = ieee_value(priestley_taylor_coefficient%min, ieee_quiet_nan) ! sentinel for derived component min
+      priestley_taylor_coefficient%max = ieee_value(priestley_taylor_coefficient%max, ieee_quiet_nan) ! sentinel for derived component max
+      priestley_taylor_coefficient%min = 0.75_dp
+      priestley_taylor_coefficient%max = 1.75_dp
     end if
     if (present(priestley_taylor_lai_correction)) then
       priestley_taylor_lai_correction%value = ieee_value(priestley_taylor_lai_correction%value, ieee_quiet_nan) ! sentinel for derived component value
       priestley_taylor_lai_correction%optimize = .false.
-      priestley_taylor_lai_correction%lower_bound = ieee_value(priestley_taylor_lai_correction%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      priestley_taylor_lai_correction%upper_bound = ieee_value(priestley_taylor_lai_correction%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      priestley_taylor_lai_correction%lower_bound = -0.5_dp
-      priestley_taylor_lai_correction%upper_bound = 0.2_dp
+      priestley_taylor_lai_correction%min = ieee_value(priestley_taylor_lai_correction%min, ieee_quiet_nan) ! sentinel for derived component min
+      priestley_taylor_lai_correction%max = ieee_value(priestley_taylor_lai_correction%max, ieee_quiet_nan) ! sentinel for derived component max
+      priestley_taylor_lai_correction%min = -0.5_dp
+      priestley_taylor_lai_correction%max = 0.2_dp
     end if
   end function nml_pet_2_init_type
 
@@ -208,13 +208,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_coefficient'"
         return
       end if
-    case ("priestley_taylor_coefficient%lower_bound")
+    case ("priestley_taylor_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_coefficient'"
         return
       end if
-    case ("priestley_taylor_coefficient%upper_bound")
+    case ("priestley_taylor_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_coefficient'"
@@ -242,13 +242,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_lai_correction'"
         return
       end if
-    case ("priestley_taylor_lai_correction%lower_bound")
+    case ("priestley_taylor_lai_correction%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_lai_correction'"
         return
       end if
-    case ("priestley_taylor_lai_correction%upper_bound")
+    case ("priestley_taylor_lai_correction%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_lai_correction'"

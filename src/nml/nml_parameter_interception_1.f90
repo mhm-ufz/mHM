@@ -27,12 +27,12 @@ module nml_interception_1
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -82,10 +82,10 @@ contains
     if (present(canopy_interception_factor)) then
       canopy_interception_factor%value = ieee_value(canopy_interception_factor%value, ieee_quiet_nan) ! sentinel for derived component value
       canopy_interception_factor%optimize = .false.
-      canopy_interception_factor%lower_bound = ieee_value(canopy_interception_factor%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      canopy_interception_factor%upper_bound = ieee_value(canopy_interception_factor%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      canopy_interception_factor%lower_bound = 0.15_dp
-      canopy_interception_factor%upper_bound = 0.4_dp
+      canopy_interception_factor%min = ieee_value(canopy_interception_factor%min, ieee_quiet_nan) ! sentinel for derived component min
+      canopy_interception_factor%max = ieee_value(canopy_interception_factor%max, ieee_quiet_nan) ! sentinel for derived component max
+      canopy_interception_factor%min = 0.15_dp
+      canopy_interception_factor%max = 0.4_dp
     end if
   end function nml_interception_1_init_type
 
@@ -189,13 +189,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'canopy_interception_factor'"
         return
       end if
-    case ("canopy_interception_factor%lower_bound")
+    case ("canopy_interception_factor%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'canopy_interception_factor'"
         return
       end if
-    case ("canopy_interception_factor%upper_bound")
+    case ("canopy_interception_factor%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'canopy_interception_factor'"

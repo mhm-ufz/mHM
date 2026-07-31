@@ -30,13 +30,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 15.0, upper_bound: 40.0}`
+- Default: `{min: 15.0, max: 40.0}`
 
 Components:
 - `canopy_height_forest%value`: `real(dp)`; declared required yes; input required yes
 - `canopy_height_forest%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `canopy_height_forest%lower_bound`: `real(dp)`; declared required yes; input required no; default `15.0` (object default)
-- `canopy_height_forest%upper_bound`: `real(dp)`; declared required yes; input required no; default `40.0` (object default)
+- `canopy_height_forest%min`: `real(dp)`; declared required yes; input required no; default `15.0` (object default)
+- `canopy_height_forest%max`: `real(dp)`; declared required yes; input required no; default `40.0` (object default)
 
 ### canopy_height_impervious
 
@@ -48,13 +48,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.01, upper_bound: 0.5}`
+- Default: `{min: 0.01, max: 0.5}`
 
 Components:
 - `canopy_height_impervious%value`: `real(dp)`; declared required yes; input required yes
 - `canopy_height_impervious%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `canopy_height_impervious%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.01` (object default)
-- `canopy_height_impervious%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.5` (object default)
+- `canopy_height_impervious%min`: `real(dp)`; declared required yes; input required no; default `0.01` (object default)
+- `canopy_height_impervious%max`: `real(dp)`; declared required yes; input required no; default `0.5` (object default)
 
 ### canopy_height_pervious
 
@@ -66,13 +66,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.1, upper_bound: 5.0}`
+- Default: `{min: 0.1, max: 5.0}`
 
 Components:
 - `canopy_height_pervious%value`: `real(dp)`; declared required yes; input required yes
 - `canopy_height_pervious%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `canopy_height_pervious%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.1` (object default)
-- `canopy_height_pervious%upper_bound`: `real(dp)`; declared required yes; input required no; default `5.0` (object default)
+- `canopy_height_pervious%min`: `real(dp)`; declared required yes; input required no; default `0.1` (object default)
+- `canopy_height_pervious%max`: `real(dp)`; declared required yes; input required no; default `5.0` (object default)
 
 ### displacement_height_coefficient
 
@@ -84,13 +84,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.5, upper_bound: 0.85}`
+- Default: `{min: 0.5, max: 0.85}`
 
 Components:
 - `displacement_height_coefficient%value`: `real(dp)`; declared required yes; input required yes
 - `displacement_height_coefficient%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `displacement_height_coefficient%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.5` (object default)
-- `displacement_height_coefficient%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.85` (object default)
+- `displacement_height_coefficient%min`: `real(dp)`; declared required yes; input required no; default `0.5` (object default)
+- `displacement_height_coefficient%max`: `real(dp)`; declared required yes; input required no; default `0.85` (object default)
 
 ### momentum_roughness_length_coefficient
 
@@ -102,13 +102,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.09, upper_bound: 0.16}`
+- Default: `{min: 0.09, max: 0.16}`
 
 Components:
 - `momentum_roughness_length_coefficient%value`: `real(dp)`; declared required yes; input required yes
 - `momentum_roughness_length_coefficient%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `momentum_roughness_length_coefficient%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.09` (object default)
-- `momentum_roughness_length_coefficient%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.16` (object default)
+- `momentum_roughness_length_coefficient%min`: `real(dp)`; declared required yes; input required no; default `0.09` (object default)
+- `momentum_roughness_length_coefficient%max`: `real(dp)`; declared required yes; input required no; default `0.16` (object default)
 
 ### heat_roughness_length_coefficient
 
@@ -120,13 +120,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.07, upper_bound: 0.13}`
+- Default: `{min: 0.07, max: 0.13}`
 
 Components:
 - `heat_roughness_length_coefficient%value`: `real(dp)`; declared required yes; input required yes
 - `heat_roughness_length_coefficient%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `heat_roughness_length_coefficient%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.07` (object default)
-- `heat_roughness_length_coefficient%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.13` (object default)
+- `heat_roughness_length_coefficient%min`: `real(dp)`; declared required yes; input required no; default `0.07` (object default)
+- `heat_roughness_length_coefficient%max`: `real(dp)`; declared required yes; input required no; default `0.13` (object default)
 
 ### stomatal_resistance
 
@@ -138,13 +138,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 10.0, upper_bound: 200.0}`
+- Default: `{min: 10.0, max: 200.0}`
 
 Components:
 - `stomatal_resistance%value`: `real(dp)`; declared required yes; input required yes
 - `stomatal_resistance%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `stomatal_resistance%lower_bound`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
-- `stomatal_resistance%upper_bound`: `real(dp)`; declared required yes; input required no; default `200.0` (object default)
+- `stomatal_resistance%min`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
+- `stomatal_resistance%max`: `real(dp)`; declared required yes; input required no; default `200.0` (object default)
 
 ## Derived types
 
@@ -154,13 +154,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -168,32 +169,32 @@ A model parameter with optional calibration metadata.
 &pet_3
   canopy_height_forest%value = 15.0
   canopy_height_forest%optimize = .true.
-  canopy_height_forest%lower_bound = 15.0
-  canopy_height_forest%upper_bound = 40.0
+  canopy_height_forest%min = 15.0
+  canopy_height_forest%max = 40.0
   canopy_height_impervious%value = 0.02
   canopy_height_impervious%optimize = .true.
-  canopy_height_impervious%lower_bound = 0.01
-  canopy_height_impervious%upper_bound = 0.5
+  canopy_height_impervious%min = 0.01
+  canopy_height_impervious%max = 0.5
   canopy_height_pervious%value = 0.11
   canopy_height_pervious%optimize = .true.
-  canopy_height_pervious%lower_bound = 0.1
-  canopy_height_pervious%upper_bound = 5.0
+  canopy_height_pervious%min = 0.1
+  canopy_height_pervious%max = 5.0
   displacement_height_coefficient%value = 0.64
   displacement_height_coefficient%optimize = .true.
-  displacement_height_coefficient%lower_bound = 0.5
-  displacement_height_coefficient%upper_bound = 0.85
+  displacement_height_coefficient%min = 0.5
+  displacement_height_coefficient%max = 0.85
   momentum_roughness_length_coefficient%value = 0.095
   momentum_roughness_length_coefficient%optimize = .true.
-  momentum_roughness_length_coefficient%lower_bound = 0.09
-  momentum_roughness_length_coefficient%upper_bound = 0.16
+  momentum_roughness_length_coefficient%min = 0.09
+  momentum_roughness_length_coefficient%max = 0.16
   heat_roughness_length_coefficient%value = 0.075
   heat_roughness_length_coefficient%optimize = .true.
-  heat_roughness_length_coefficient%lower_bound = 0.07
-  heat_roughness_length_coefficient%upper_bound = 0.13
+  heat_roughness_length_coefficient%min = 0.07
+  heat_roughness_length_coefficient%max = 0.13
   stomatal_resistance%value = 56.0
   stomatal_resistance%optimize = .true.
-  stomatal_resistance%lower_bound = 10.0
-  stomatal_resistance%upper_bound = 200.0
+  stomatal_resistance%min = 10.0
+  stomatal_resistance%max = 200.0
 /
 ```
 

@@ -6,35 +6,35 @@ properties:
   storage_capacity_factor:
     $ref: parameter.yml#/$defs/parameter
     title: Interflow storage-capacity factor
-    default: {lower_bound: 75.0, upper_bound: 200.0}
+    default: {min: 75.0, max: 200.0}
     properties:
       value: {examples: [85.0]}
       optimize: {examples: [true]}
   recession_slope:
     $ref: parameter.yml#/$defs/parameter
     title: Slope multiplier for interflow recession
-    default: {lower_bound: 0.0, upper_bound: 10.0}
+    default: {min: 0.0, max: 10.0}
     properties:
       value: {examples: [7.0]}
       optimize: {examples: [true]}
   fast_recession_forest:
     $ref: parameter.yml#/$defs/parameter
     title: Forest multiplier for fast interflow recession
-    default: {lower_bound: 1.0, upper_bound: 3.0}
+    default: {min: 1.0, max: 3.0}
     properties:
       value: {examples: [1.5]}
       optimize: {examples: [true]}
   slow_recession_ks:
     $ref: parameter.yml#/$defs/parameter
     title: Saturated-conductivity multiplier for slow interflow recession
-    default: {lower_bound: 1.0, upper_bound: 30.0}
+    default: {min: 1.0, max: 30.0}
     properties:
       value: {examples: [15.0]}
       optimize: {examples: [true]}
   slow_recession_exponent:
     $ref: parameter.yml#/$defs/parameter
     title: Slow interflow exponent
-    default: {lower_bound: 0.05, upper_bound: 0.3}
+    default: {min: 0.05, max: 0.3}
     properties:
       value: {examples: [0.125]}
       optimize: {examples: [true]}

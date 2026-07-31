@@ -32,13 +32,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 300.0, upper_bound: 2000.0}`
+- Default: `{min: 300.0, max: 2000.0}`
 
 Components:
 - `cosmic_n0%value`: `real(dp)`; declared required yes; input required yes
 - `cosmic_n0%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `cosmic_n0%lower_bound`: `real(dp)`; declared required yes; input required no; default `300.0` (object default)
-- `cosmic_n0%upper_bound`: `real(dp)`; declared required yes; input required no; default `2000.0` (object default)
+- `cosmic_n0%min`: `real(dp)`; declared required yes; input required no; default `300.0` (object default)
+- `cosmic_n0%max`: `real(dp)`; declared required yes; input required no; default `2000.0` (object default)
 
 ### cosmic_n1
 
@@ -50,13 +50,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.01, upper_bound: 10.0}`
+- Default: `{min: 0.01, max: 10.0}`
 
 Components:
 - `cosmic_n1%value`: `real(dp)`; declared required yes; input required yes
 - `cosmic_n1%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `cosmic_n1%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.01` (object default)
-- `cosmic_n1%upper_bound`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
+- `cosmic_n1%min`: `real(dp)`; declared required yes; input required no; default `0.01` (object default)
+- `cosmic_n1%max`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
 
 ### cosmic_n2
 
@@ -68,13 +68,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.01, upper_bound: 10.0}`
+- Default: `{min: 0.01, max: 10.0}`
 
 Components:
 - `cosmic_n2%value`: `real(dp)`; declared required yes; input required yes
 - `cosmic_n2%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `cosmic_n2%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.01` (object default)
-- `cosmic_n2%upper_bound`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
+- `cosmic_n2%min`: `real(dp)`; declared required yes; input required no; default `0.01` (object default)
+- `cosmic_n2%max`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
 
 ### cosmic_alpha0
 
@@ -86,13 +86,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.01, upper_bound: 10.0}`
+- Default: `{min: 0.01, max: 10.0}`
 
 Components:
 - `cosmic_alpha0%value`: `real(dp)`; declared required yes; input required yes
 - `cosmic_alpha0%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `cosmic_alpha0%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.01` (object default)
-- `cosmic_alpha0%upper_bound`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
+- `cosmic_alpha0%min`: `real(dp)`; declared required yes; input required no; default `0.01` (object default)
+- `cosmic_alpha0%max`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
 
 ### cosmic_alpha1
 
@@ -104,13 +104,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.01, upper_bound: 10.0}`
+- Default: `{min: 0.01, max: 10.0}`
 
 Components:
 - `cosmic_alpha1%value`: `real(dp)`; declared required yes; input required yes
 - `cosmic_alpha1%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `cosmic_alpha1%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.01` (object default)
-- `cosmic_alpha1%upper_bound`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
+- `cosmic_alpha1%min`: `real(dp)`; declared required yes; input required no; default `0.01` (object default)
+- `cosmic_alpha1%max`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
 
 ### cosmic_l30
 
@@ -122,13 +122,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 26.56, upper_bound: 424.78}`
+- Default: `{min: 26.56, max: 424.78}`
 
 Components:
 - `cosmic_l30%value`: `real(dp)`; declared required yes; input required yes
 - `cosmic_l30%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `cosmic_l30%lower_bound`: `real(dp)`; declared required yes; input required no; default `26.56` (object default)
-- `cosmic_l30%upper_bound`: `real(dp)`; declared required yes; input required no; default `424.78` (object default)
+- `cosmic_l30%min`: `real(dp)`; declared required yes; input required no; default `26.56` (object default)
+- `cosmic_l30%max`: `real(dp)`; declared required yes; input required no; default `424.78` (object default)
 
 ### cosmic_l31
 
@@ -140,13 +140,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: -118.3, upper_bound: 200.28}`
+- Default: `{min: -118.3, max: 200.28}`
 
 Components:
 - `cosmic_l31%value`: `real(dp)`; declared required yes; input required yes
 - `cosmic_l31%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `cosmic_l31%lower_bound`: `real(dp)`; declared required yes; input required no; default `-118.3` (object default)
-- `cosmic_l31%upper_bound`: `real(dp)`; declared required yes; input required no; default `200.28` (object default)
+- `cosmic_l31%min`: `real(dp)`; declared required yes; input required no; default `-118.3` (object default)
+- `cosmic_l31%max`: `real(dp)`; declared required yes; input required no; default `200.28` (object default)
 
 ### cosmic_lw0
 
@@ -158,13 +158,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 0.2}`
+- Default: `{min: 0.0, max: 0.2}`
 
 Components:
 - `cosmic_lw0%value`: `real(dp)`; declared required yes; input required yes
 - `cosmic_lw0%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `cosmic_lw0%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `cosmic_lw0%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
+- `cosmic_lw0%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `cosmic_lw0%max`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
 
 ### cosmic_lw1
 
@@ -176,13 +176,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 0.05}`
+- Default: `{min: 0.0, max: 0.05}`
 
 Components:
 - `cosmic_lw1%value`: `real(dp)`; declared required yes; input required yes
 - `cosmic_lw1%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `cosmic_lw1%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `cosmic_lw1%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.05` (object default)
+- `cosmic_lw1%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `cosmic_lw1%max`: `real(dp)`; declared required yes; input required no; default `0.05` (object default)
 
 ## Derived types
 
@@ -192,13 +192,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -206,40 +207,40 @@ A model parameter with optional calibration metadata.
 &neutrons_2
   cosmic_n0%value = 1500.0
   cosmic_n0%optimize = .false.
-  cosmic_n0%lower_bound = 300.0
-  cosmic_n0%upper_bound = 2000.0
+  cosmic_n0%min = 300.0
+  cosmic_n0%max = 2000.0
   cosmic_n1%value = 1.0
   cosmic_n1%optimize = .false.
-  cosmic_n1%lower_bound = 0.01
-  cosmic_n1%upper_bound = 10.0
+  cosmic_n1%min = 0.01
+  cosmic_n1%max = 10.0
   cosmic_n2%value = 1.0
   cosmic_n2%optimize = .false.
-  cosmic_n2%lower_bound = 0.01
-  cosmic_n2%upper_bound = 10.0
+  cosmic_n2%min = 0.01
+  cosmic_n2%max = 10.0
   cosmic_alpha0%value = 1.0
   cosmic_alpha0%optimize = .false.
-  cosmic_alpha0%lower_bound = 0.01
-  cosmic_alpha0%upper_bound = 10.0
+  cosmic_alpha0%min = 0.01
+  cosmic_alpha0%max = 10.0
   cosmic_alpha1%value = 1.0
   cosmic_alpha1%optimize = .false.
-  cosmic_alpha1%lower_bound = 0.01
-  cosmic_alpha1%upper_bound = 10.0
+  cosmic_alpha1%min = 0.01
+  cosmic_alpha1%max = 10.0
   cosmic_l30%value = 106.1942
   cosmic_l30%optimize = .false.
-  cosmic_l30%lower_bound = 26.56
-  cosmic_l30%upper_bound = 424.78
+  cosmic_l30%min = 26.56
+  cosmic_l30%max = 424.78
   cosmic_l31%value = 40.9879
   cosmic_l31%optimize = .false.
-  cosmic_l31%lower_bound = -118.3
-  cosmic_l31%upper_bound = 200.28
+  cosmic_l31%min = -118.3
+  cosmic_l31%max = 200.28
   cosmic_lw0%value = 0.1783
   cosmic_lw0%optimize = .false.
-  cosmic_lw0%lower_bound = 0.0
-  cosmic_lw0%upper_bound = 0.2
+  cosmic_lw0%min = 0.0
+  cosmic_lw0%max = 0.2
   cosmic_lw1%value = 0.0
   cosmic_lw1%optimize = .false.
-  cosmic_lw1%lower_bound = 0.0
-  cosmic_lw1%upper_bound = 0.05
+  cosmic_lw1%min = 0.0
+  cosmic_lw1%max = 0.05
 /
 ```
 

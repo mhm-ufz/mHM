@@ -28,17 +28,17 @@ They are all listed below, one page per namelist:
 
 Parameter namelists use the buffer-compatible `parameter_t` derived type in this fixed order:
 
-`value, optimize, lower_bound, upper_bound`
+`value, optimize, min, max`
 
 These fields are used as follows:
 - `value`: input value and initial calibration value.
 - `optimize`: calibration switch (`.true.` = calibrate, `.false.` = keep fixed).
-- `lower_bound`: minimum admissible parameter value.
-- `upper_bound`: maximum admissible parameter value.
+- `min`: minimum admissible parameter value.
+- `max`: maximum admissible parameter value.
 
 Bounds are supplied by each parameter schema, so fixed parameters can use `parameter = value`
 and calibration with default bounds can use `parameter = value, .true.`. The complete form
-`parameter = value, optimize, lower_bound, upper_bound` overrides those defaults.
+`parameter = value, optimize, min, max` overrides those defaults.
 
 They are all listed below, one page per namelist:
 

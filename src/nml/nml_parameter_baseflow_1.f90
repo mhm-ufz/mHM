@@ -29,12 +29,12 @@ module nml_baseflow_1
     idx_check, &
     to_lower, &
     n_geo_units__default, &
-    parameter_t, &
     NML_ERR_PARTLY_SET
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -88,10 +88,10 @@ contains
       allocate(baseflow_recession(this%n_geo_units))
       baseflow_recession%value = ieee_value(baseflow_recession%value, ieee_quiet_nan) ! sentinel for derived component value
       baseflow_recession%optimize = .false.
-      baseflow_recession%lower_bound = ieee_value(baseflow_recession%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      baseflow_recession%upper_bound = ieee_value(baseflow_recession%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      baseflow_recession%lower_bound = 1.0_dp
-      baseflow_recession%upper_bound = 1000.0_dp
+      baseflow_recession%min = ieee_value(baseflow_recession%min, ieee_quiet_nan) ! sentinel for derived component min
+      baseflow_recession%max = ieee_value(baseflow_recession%max, ieee_quiet_nan) ! sentinel for derived component max
+      baseflow_recession%min = 1.0_dp
+      baseflow_recession%max = 1000.0_dp
     end if
   end function nml_baseflow_1_init_type
 
@@ -246,7 +246,7 @@ contains
           "baseflow_recession", errmsg)
         if (status /= NML_OK) return
       end if
-    case ("baseflow_recession%lower_bound")
+    case ("baseflow_recession%min")
       if (.not. allocated(this%baseflow_recession)) then
         status = NML_ERR_NOT_SET
         return
@@ -256,7 +256,7 @@ contains
           "baseflow_recession", errmsg)
         if (status /= NML_OK) return
       end if
-    case ("baseflow_recession%upper_bound")
+    case ("baseflow_recession%max")
       if (.not. allocated(this%baseflow_recession)) then
         status = NML_ERR_NOT_SET
         return

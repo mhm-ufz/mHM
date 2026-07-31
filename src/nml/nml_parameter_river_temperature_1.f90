@@ -27,12 +27,12 @@ module nml_river_temperature_1
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -94,34 +94,34 @@ contains
     if (present(albedo_water)) then
       albedo_water%value = ieee_value(albedo_water%value, ieee_quiet_nan) ! sentinel for derived component value
       albedo_water%optimize = .false.
-      albedo_water%lower_bound = ieee_value(albedo_water%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      albedo_water%upper_bound = ieee_value(albedo_water%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      albedo_water%lower_bound = 0.03_dp
-      albedo_water%upper_bound = 0.2_dp
+      albedo_water%min = ieee_value(albedo_water%min, ieee_quiet_nan) ! sentinel for derived component min
+      albedo_water%max = ieee_value(albedo_water%max, ieee_quiet_nan) ! sentinel for derived component max
+      albedo_water%min = 0.03_dp
+      albedo_water%max = 0.2_dp
     end if
     if (present(pt_a_water)) then
       pt_a_water%value = ieee_value(pt_a_water%value, ieee_quiet_nan) ! sentinel for derived component value
       pt_a_water%optimize = .false.
-      pt_a_water%lower_bound = ieee_value(pt_a_water%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      pt_a_water%upper_bound = ieee_value(pt_a_water%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      pt_a_water%lower_bound = 1.2_dp
-      pt_a_water%upper_bound = 2.0_dp
+      pt_a_water%min = ieee_value(pt_a_water%min, ieee_quiet_nan) ! sentinel for derived component min
+      pt_a_water%max = ieee_value(pt_a_water%max, ieee_quiet_nan) ! sentinel for derived component max
+      pt_a_water%min = 1.2_dp
+      pt_a_water%max = 2.0_dp
     end if
     if (present(emissivity_water)) then
       emissivity_water%value = ieee_value(emissivity_water%value, ieee_quiet_nan) ! sentinel for derived component value
       emissivity_water%optimize = .false.
-      emissivity_water%lower_bound = ieee_value(emissivity_water%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      emissivity_water%upper_bound = ieee_value(emissivity_water%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      emissivity_water%lower_bound = 0.95_dp
-      emissivity_water%upper_bound = 0.99_dp
+      emissivity_water%min = ieee_value(emissivity_water%min, ieee_quiet_nan) ! sentinel for derived component min
+      emissivity_water%max = ieee_value(emissivity_water%max, ieee_quiet_nan) ! sentinel for derived component max
+      emissivity_water%min = 0.95_dp
+      emissivity_water%max = 0.99_dp
     end if
     if (present(turbulent_heat_exchange_coefficient)) then
       turbulent_heat_exchange_coefficient%value = ieee_value(turbulent_heat_exchange_coefficient%value, ieee_quiet_nan) ! sentinel for derived component value
       turbulent_heat_exchange_coefficient%optimize = .false.
-      turbulent_heat_exchange_coefficient%lower_bound = ieee_value(turbulent_heat_exchange_coefficient%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      turbulent_heat_exchange_coefficient%upper_bound = ieee_value(turbulent_heat_exchange_coefficient%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      turbulent_heat_exchange_coefficient%lower_bound = 10.0_dp
-      turbulent_heat_exchange_coefficient%upper_bound = 50.0_dp
+      turbulent_heat_exchange_coefficient%min = ieee_value(turbulent_heat_exchange_coefficient%min, ieee_quiet_nan) ! sentinel for derived component min
+      turbulent_heat_exchange_coefficient%max = ieee_value(turbulent_heat_exchange_coefficient%max, ieee_quiet_nan) ! sentinel for derived component max
+      turbulent_heat_exchange_coefficient%min = 10.0_dp
+      turbulent_heat_exchange_coefficient%max = 50.0_dp
     end if
   end function nml_river_temperature_1_init_type
 
@@ -246,13 +246,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'albedo_water'"
         return
       end if
-    case ("albedo_water%lower_bound")
+    case ("albedo_water%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'albedo_water'"
         return
       end if
-    case ("albedo_water%upper_bound")
+    case ("albedo_water%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'albedo_water'"
@@ -280,13 +280,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'pt_a_water'"
         return
       end if
-    case ("pt_a_water%lower_bound")
+    case ("pt_a_water%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'pt_a_water'"
         return
       end if
-    case ("pt_a_water%upper_bound")
+    case ("pt_a_water%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'pt_a_water'"
@@ -314,13 +314,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'emissivity_water'"
         return
       end if
-    case ("emissivity_water%lower_bound")
+    case ("emissivity_water%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'emissivity_water'"
         return
       end if
-    case ("emissivity_water%upper_bound")
+    case ("emissivity_water%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'emissivity_water'"
@@ -348,13 +348,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'turbulent_heat_exchange_coefficient'"
         return
       end if
-    case ("turbulent_heat_exchange_coefficient%lower_bound")
+    case ("turbulent_heat_exchange_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'turbulent_heat_exchange_coefficient'"
         return
       end if
-    case ("turbulent_heat_exchange_coefficient%upper_bound")
+    case ("turbulent_heat_exchange_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'turbulent_heat_exchange_coefficient'"

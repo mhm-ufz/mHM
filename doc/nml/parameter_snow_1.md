@@ -31,13 +31,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: -2.0, upper_bound: 2.0}`
+- Default: `{min: -2.0, max: 2.0}`
 
 Components:
 - `snow_threshold_temperature%value`: `real(dp)`; declared required yes; input required yes
 - `snow_threshold_temperature%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `snow_threshold_temperature%lower_bound`: `real(dp)`; declared required yes; input required no; default `-2.0` (object default)
-- `snow_threshold_temperature%upper_bound`: `real(dp)`; declared required yes; input required no; default `2.0` (object default)
+- `snow_threshold_temperature%min`: `real(dp)`; declared required yes; input required no; default `-2.0` (object default)
+- `snow_threshold_temperature%max`: `real(dp)`; declared required yes; input required no; default `2.0` (object default)
 
 ### degree_day_factor_forest
 
@@ -49,13 +49,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0001, upper_bound: 4.0}`
+- Default: `{min: 0.0001, max: 4.0}`
 
 Components:
 - `degree_day_factor_forest%value`: `real(dp)`; declared required yes; input required yes
 - `degree_day_factor_forest%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `degree_day_factor_forest%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0001` (object default)
-- `degree_day_factor_forest%upper_bound`: `real(dp)`; declared required yes; input required no; default `4.0` (object default)
+- `degree_day_factor_forest%min`: `real(dp)`; declared required yes; input required no; default `0.0001` (object default)
+- `degree_day_factor_forest%max`: `real(dp)`; declared required yes; input required no; default `4.0` (object default)
 
 ### degree_day_factor_impervious
 
@@ -67,13 +67,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 1.0}`
+- Default: `{min: 0.0, max: 1.0}`
 
 Components:
 - `degree_day_factor_impervious%value`: `real(dp)`; declared required yes; input required yes
 - `degree_day_factor_impervious%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `degree_day_factor_impervious%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `degree_day_factor_impervious%upper_bound`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
+- `degree_day_factor_impervious%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `degree_day_factor_impervious%max`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
 
 ### degree_day_factor_pervious
 
@@ -85,13 +85,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 2.0}`
+- Default: `{min: 0.0, max: 2.0}`
 
 Components:
 - `degree_day_factor_pervious%value`: `real(dp)`; declared required yes; input required yes
 - `degree_day_factor_pervious%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `degree_day_factor_pervious%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `degree_day_factor_pervious%upper_bound`: `real(dp)`; declared required yes; input required no; default `2.0` (object default)
+- `degree_day_factor_pervious%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `degree_day_factor_pervious%max`: `real(dp)`; declared required yes; input required no; default `2.0` (object default)
 
 ### degree_day_factor_precipitation
 
@@ -103,13 +103,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.1, upper_bound: 0.9}`
+- Default: `{min: 0.1, max: 0.9}`
 
 Components:
 - `degree_day_factor_precipitation%value`: `real(dp)`; declared required yes; input required yes
 - `degree_day_factor_precipitation%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `degree_day_factor_precipitation%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.1` (object default)
-- `degree_day_factor_precipitation%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.9` (object default)
+- `degree_day_factor_precipitation%min`: `real(dp)`; declared required yes; input required no; default `0.1` (object default)
+- `degree_day_factor_precipitation%max`: `real(dp)`; declared required yes; input required no; default `0.9` (object default)
 
 ### max_degree_day_factor_forest
 
@@ -121,13 +121,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 8.0}`
+- Default: `{min: 0.0, max: 8.0}`
 
 Components:
 - `max_degree_day_factor_forest%value`: `real(dp)`; declared required yes; input required yes
 - `max_degree_day_factor_forest%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `max_degree_day_factor_forest%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `max_degree_day_factor_forest%upper_bound`: `real(dp)`; declared required yes; input required no; default `8.0` (object default)
+- `max_degree_day_factor_forest%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `max_degree_day_factor_forest%max`: `real(dp)`; declared required yes; input required no; default `8.0` (object default)
 
 ### max_degree_day_factor_impervious
 
@@ -139,13 +139,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 8.0}`
+- Default: `{min: 0.0, max: 8.0}`
 
 Components:
 - `max_degree_day_factor_impervious%value`: `real(dp)`; declared required yes; input required yes
 - `max_degree_day_factor_impervious%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `max_degree_day_factor_impervious%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `max_degree_day_factor_impervious%upper_bound`: `real(dp)`; declared required yes; input required no; default `8.0` (object default)
+- `max_degree_day_factor_impervious%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `max_degree_day_factor_impervious%max`: `real(dp)`; declared required yes; input required no; default `8.0` (object default)
 
 ### max_degree_day_factor_pervious
 
@@ -157,13 +157,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 8.0}`
+- Default: `{min: 0.0, max: 8.0}`
 
 Components:
 - `max_degree_day_factor_pervious%value`: `real(dp)`; declared required yes; input required yes
 - `max_degree_day_factor_pervious%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `max_degree_day_factor_pervious%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `max_degree_day_factor_pervious%upper_bound`: `real(dp)`; declared required yes; input required no; default `8.0` (object default)
+- `max_degree_day_factor_pervious%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `max_degree_day_factor_pervious%max`: `real(dp)`; declared required yes; input required no; default `8.0` (object default)
 
 ## Derived types
 
@@ -173,13 +173,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -187,36 +188,36 @@ A model parameter with optional calibration metadata.
 &snow_1
   snow_threshold_temperature%value = 1.0
   snow_threshold_temperature%optimize = .true.
-  snow_threshold_temperature%lower_bound = -2.0
-  snow_threshold_temperature%upper_bound = 2.0
+  snow_threshold_temperature%min = -2.0
+  snow_threshold_temperature%max = 2.0
   degree_day_factor_forest%value = 1.5
   degree_day_factor_forest%optimize = .true.
-  degree_day_factor_forest%lower_bound = 0.0001
-  degree_day_factor_forest%upper_bound = 4.0
+  degree_day_factor_forest%min = 0.0001
+  degree_day_factor_forest%max = 4.0
   degree_day_factor_impervious%value = 0.5
   degree_day_factor_impervious%optimize = .true.
-  degree_day_factor_impervious%lower_bound = 0.0
-  degree_day_factor_impervious%upper_bound = 1.0
+  degree_day_factor_impervious%min = 0.0
+  degree_day_factor_impervious%max = 1.0
   degree_day_factor_pervious%value = 0.5
   degree_day_factor_pervious%optimize = .true.
-  degree_day_factor_pervious%lower_bound = 0.0
-  degree_day_factor_pervious%upper_bound = 2.0
+  degree_day_factor_pervious%min = 0.0
+  degree_day_factor_pervious%max = 2.0
   degree_day_factor_precipitation%value = 0.5
   degree_day_factor_precipitation%optimize = .true.
-  degree_day_factor_precipitation%lower_bound = 0.1
-  degree_day_factor_precipitation%upper_bound = 0.9
+  degree_day_factor_precipitation%min = 0.1
+  degree_day_factor_precipitation%max = 0.9
   max_degree_day_factor_forest%value = 3.0
   max_degree_day_factor_forest%optimize = .true.
-  max_degree_day_factor_forest%lower_bound = 0.0
-  max_degree_day_factor_forest%upper_bound = 8.0
+  max_degree_day_factor_forest%min = 0.0
+  max_degree_day_factor_forest%max = 8.0
   max_degree_day_factor_impervious%value = 3.5
   max_degree_day_factor_impervious%optimize = .true.
-  max_degree_day_factor_impervious%lower_bound = 0.0
-  max_degree_day_factor_impervious%upper_bound = 8.0
+  max_degree_day_factor_impervious%min = 0.0
+  max_degree_day_factor_impervious%max = 8.0
   max_degree_day_factor_pervious%value = 4.0
   max_degree_day_factor_pervious%optimize = .true.
-  max_degree_day_factor_pervious%lower_bound = 0.0
-  max_degree_day_factor_pervious%upper_bound = 8.0
+  max_degree_day_factor_pervious%min = 0.0
+  max_degree_day_factor_pervious%max = 8.0
 /
 ```
 

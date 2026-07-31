@@ -27,12 +27,12 @@ module nml_routing_2
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -82,10 +82,10 @@ contains
     if (present(streamflow_celerity)) then
       streamflow_celerity%value = ieee_value(streamflow_celerity%value, ieee_quiet_nan) ! sentinel for derived component value
       streamflow_celerity%optimize = .false.
-      streamflow_celerity%lower_bound = ieee_value(streamflow_celerity%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      streamflow_celerity%upper_bound = ieee_value(streamflow_celerity%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      streamflow_celerity%lower_bound = 0.1_dp
-      streamflow_celerity%upper_bound = 15.0_dp
+      streamflow_celerity%min = ieee_value(streamflow_celerity%min, ieee_quiet_nan) ! sentinel for derived component min
+      streamflow_celerity%max = ieee_value(streamflow_celerity%max, ieee_quiet_nan) ! sentinel for derived component max
+      streamflow_celerity%min = 0.1_dp
+      streamflow_celerity%max = 15.0_dp
     end if
   end function nml_routing_2_init_type
 
@@ -189,13 +189,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'streamflow_celerity'"
         return
       end if
-    case ("streamflow_celerity%lower_bound")
+    case ("streamflow_celerity%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'streamflow_celerity'"
         return
       end if
-    case ("streamflow_celerity%upper_bound")
+    case ("streamflow_celerity%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'streamflow_celerity'"

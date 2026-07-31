@@ -27,12 +27,12 @@ module nml_snow_1
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -110,66 +110,66 @@ contains
     if (present(snow_threshold_temperature)) then
       snow_threshold_temperature%value = ieee_value(snow_threshold_temperature%value, ieee_quiet_nan) ! sentinel for derived component value
       snow_threshold_temperature%optimize = .false.
-      snow_threshold_temperature%lower_bound = ieee_value(snow_threshold_temperature%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      snow_threshold_temperature%upper_bound = ieee_value(snow_threshold_temperature%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      snow_threshold_temperature%lower_bound = -2.0_dp
-      snow_threshold_temperature%upper_bound = 2.0_dp
+      snow_threshold_temperature%min = ieee_value(snow_threshold_temperature%min, ieee_quiet_nan) ! sentinel for derived component min
+      snow_threshold_temperature%max = ieee_value(snow_threshold_temperature%max, ieee_quiet_nan) ! sentinel for derived component max
+      snow_threshold_temperature%min = -2.0_dp
+      snow_threshold_temperature%max = 2.0_dp
     end if
     if (present(degree_day_factor_forest)) then
       degree_day_factor_forest%value = ieee_value(degree_day_factor_forest%value, ieee_quiet_nan) ! sentinel for derived component value
       degree_day_factor_forest%optimize = .false.
-      degree_day_factor_forest%lower_bound = ieee_value(degree_day_factor_forest%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      degree_day_factor_forest%upper_bound = ieee_value(degree_day_factor_forest%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      degree_day_factor_forest%lower_bound = 0.0001_dp
-      degree_day_factor_forest%upper_bound = 4.0_dp
+      degree_day_factor_forest%min = ieee_value(degree_day_factor_forest%min, ieee_quiet_nan) ! sentinel for derived component min
+      degree_day_factor_forest%max = ieee_value(degree_day_factor_forest%max, ieee_quiet_nan) ! sentinel for derived component max
+      degree_day_factor_forest%min = 0.0001_dp
+      degree_day_factor_forest%max = 4.0_dp
     end if
     if (present(degree_day_factor_impervious)) then
       degree_day_factor_impervious%value = ieee_value(degree_day_factor_impervious%value, ieee_quiet_nan) ! sentinel for derived component value
       degree_day_factor_impervious%optimize = .false.
-      degree_day_factor_impervious%lower_bound = ieee_value(degree_day_factor_impervious%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      degree_day_factor_impervious%upper_bound = ieee_value(degree_day_factor_impervious%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      degree_day_factor_impervious%lower_bound = 0.0_dp
-      degree_day_factor_impervious%upper_bound = 1.0_dp
+      degree_day_factor_impervious%min = ieee_value(degree_day_factor_impervious%min, ieee_quiet_nan) ! sentinel for derived component min
+      degree_day_factor_impervious%max = ieee_value(degree_day_factor_impervious%max, ieee_quiet_nan) ! sentinel for derived component max
+      degree_day_factor_impervious%min = 0.0_dp
+      degree_day_factor_impervious%max = 1.0_dp
     end if
     if (present(degree_day_factor_pervious)) then
       degree_day_factor_pervious%value = ieee_value(degree_day_factor_pervious%value, ieee_quiet_nan) ! sentinel for derived component value
       degree_day_factor_pervious%optimize = .false.
-      degree_day_factor_pervious%lower_bound = ieee_value(degree_day_factor_pervious%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      degree_day_factor_pervious%upper_bound = ieee_value(degree_day_factor_pervious%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      degree_day_factor_pervious%lower_bound = 0.0_dp
-      degree_day_factor_pervious%upper_bound = 2.0_dp
+      degree_day_factor_pervious%min = ieee_value(degree_day_factor_pervious%min, ieee_quiet_nan) ! sentinel for derived component min
+      degree_day_factor_pervious%max = ieee_value(degree_day_factor_pervious%max, ieee_quiet_nan) ! sentinel for derived component max
+      degree_day_factor_pervious%min = 0.0_dp
+      degree_day_factor_pervious%max = 2.0_dp
     end if
     if (present(degree_day_factor_precipitation)) then
       degree_day_factor_precipitation%value = ieee_value(degree_day_factor_precipitation%value, ieee_quiet_nan) ! sentinel for derived component value
       degree_day_factor_precipitation%optimize = .false.
-      degree_day_factor_precipitation%lower_bound = ieee_value(degree_day_factor_precipitation%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      degree_day_factor_precipitation%upper_bound = ieee_value(degree_day_factor_precipitation%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      degree_day_factor_precipitation%lower_bound = 0.1_dp
-      degree_day_factor_precipitation%upper_bound = 0.9_dp
+      degree_day_factor_precipitation%min = ieee_value(degree_day_factor_precipitation%min, ieee_quiet_nan) ! sentinel for derived component min
+      degree_day_factor_precipitation%max = ieee_value(degree_day_factor_precipitation%max, ieee_quiet_nan) ! sentinel for derived component max
+      degree_day_factor_precipitation%min = 0.1_dp
+      degree_day_factor_precipitation%max = 0.9_dp
     end if
     if (present(max_degree_day_factor_forest)) then
       max_degree_day_factor_forest%value = ieee_value(max_degree_day_factor_forest%value, ieee_quiet_nan) ! sentinel for derived component value
       max_degree_day_factor_forest%optimize = .false.
-      max_degree_day_factor_forest%lower_bound = ieee_value(max_degree_day_factor_forest%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      max_degree_day_factor_forest%upper_bound = ieee_value(max_degree_day_factor_forest%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      max_degree_day_factor_forest%lower_bound = 0.0_dp
-      max_degree_day_factor_forest%upper_bound = 8.0_dp
+      max_degree_day_factor_forest%min = ieee_value(max_degree_day_factor_forest%min, ieee_quiet_nan) ! sentinel for derived component min
+      max_degree_day_factor_forest%max = ieee_value(max_degree_day_factor_forest%max, ieee_quiet_nan) ! sentinel for derived component max
+      max_degree_day_factor_forest%min = 0.0_dp
+      max_degree_day_factor_forest%max = 8.0_dp
     end if
     if (present(max_degree_day_factor_impervious)) then
       max_degree_day_factor_impervious%value = ieee_value(max_degree_day_factor_impervious%value, ieee_quiet_nan) ! sentinel for derived component value
       max_degree_day_factor_impervious%optimize = .false.
-      max_degree_day_factor_impervious%lower_bound = ieee_value(max_degree_day_factor_impervious%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      max_degree_day_factor_impervious%upper_bound = ieee_value(max_degree_day_factor_impervious%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      max_degree_day_factor_impervious%lower_bound = 0.0_dp
-      max_degree_day_factor_impervious%upper_bound = 8.0_dp
+      max_degree_day_factor_impervious%min = ieee_value(max_degree_day_factor_impervious%min, ieee_quiet_nan) ! sentinel for derived component min
+      max_degree_day_factor_impervious%max = ieee_value(max_degree_day_factor_impervious%max, ieee_quiet_nan) ! sentinel for derived component max
+      max_degree_day_factor_impervious%min = 0.0_dp
+      max_degree_day_factor_impervious%max = 8.0_dp
     end if
     if (present(max_degree_day_factor_pervious)) then
       max_degree_day_factor_pervious%value = ieee_value(max_degree_day_factor_pervious%value, ieee_quiet_nan) ! sentinel for derived component value
       max_degree_day_factor_pervious%optimize = .false.
-      max_degree_day_factor_pervious%lower_bound = ieee_value(max_degree_day_factor_pervious%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      max_degree_day_factor_pervious%upper_bound = ieee_value(max_degree_day_factor_pervious%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      max_degree_day_factor_pervious%lower_bound = 0.0_dp
-      max_degree_day_factor_pervious%upper_bound = 8.0_dp
+      max_degree_day_factor_pervious%min = ieee_value(max_degree_day_factor_pervious%min, ieee_quiet_nan) ! sentinel for derived component min
+      max_degree_day_factor_pervious%max = ieee_value(max_degree_day_factor_pervious%max, ieee_quiet_nan) ! sentinel for derived component max
+      max_degree_day_factor_pervious%min = 0.0_dp
+      max_degree_day_factor_pervious%max = 8.0_dp
     end if
   end function nml_snow_1_init_type
 
@@ -322,13 +322,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'snow_threshold_temperature'"
         return
       end if
-    case ("snow_threshold_temperature%lower_bound")
+    case ("snow_threshold_temperature%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'snow_threshold_temperature'"
         return
       end if
-    case ("snow_threshold_temperature%upper_bound")
+    case ("snow_threshold_temperature%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'snow_threshold_temperature'"
@@ -356,13 +356,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_forest'"
         return
       end if
-    case ("degree_day_factor_forest%lower_bound")
+    case ("degree_day_factor_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_forest'"
         return
       end if
-    case ("degree_day_factor_forest%upper_bound")
+    case ("degree_day_factor_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_forest'"
@@ -390,13 +390,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_impervious'"
         return
       end if
-    case ("degree_day_factor_impervious%lower_bound")
+    case ("degree_day_factor_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_impervious'"
         return
       end if
-    case ("degree_day_factor_impervious%upper_bound")
+    case ("degree_day_factor_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_impervious'"
@@ -424,13 +424,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_pervious'"
         return
       end if
-    case ("degree_day_factor_pervious%lower_bound")
+    case ("degree_day_factor_pervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_pervious'"
         return
       end if
-    case ("degree_day_factor_pervious%upper_bound")
+    case ("degree_day_factor_pervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_pervious'"
@@ -458,13 +458,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_precipitation'"
         return
       end if
-    case ("degree_day_factor_precipitation%lower_bound")
+    case ("degree_day_factor_precipitation%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_precipitation'"
         return
       end if
-    case ("degree_day_factor_precipitation%upper_bound")
+    case ("degree_day_factor_precipitation%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_precipitation'"
@@ -492,13 +492,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_forest'"
         return
       end if
-    case ("max_degree_day_factor_forest%lower_bound")
+    case ("max_degree_day_factor_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_forest'"
         return
       end if
-    case ("max_degree_day_factor_forest%upper_bound")
+    case ("max_degree_day_factor_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_forest'"
@@ -526,13 +526,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_impervious'"
         return
       end if
-    case ("max_degree_day_factor_impervious%lower_bound")
+    case ("max_degree_day_factor_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_impervious'"
         return
       end if
-    case ("max_degree_day_factor_impervious%upper_bound")
+    case ("max_degree_day_factor_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_impervious'"
@@ -560,13 +560,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_pervious'"
         return
       end if
-    case ("max_degree_day_factor_pervious%lower_bound")
+    case ("max_degree_day_factor_pervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_pervious'"
         return
       end if
-    case ("max_degree_day_factor_pervious%upper_bound")
+    case ("max_degree_day_factor_pervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_pervious'"

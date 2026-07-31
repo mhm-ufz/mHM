@@ -28,13 +28,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.31, upper_bound: 0.35}`
+- Default: `{min: 0.31, max: 0.35}`
 
 Components:
 - `travel_time_constant%value`: `real(dp)`; declared required yes; input required yes
 - `travel_time_constant%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `travel_time_constant%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.31` (object default)
-- `travel_time_constant%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.35` (object default)
+- `travel_time_constant%min`: `real(dp)`; declared required yes; input required no; default `0.31` (object default)
+- `travel_time_constant%max`: `real(dp)`; declared required yes; input required no; default `0.35` (object default)
 
 ### travel_time_river_length
 
@@ -46,13 +46,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.07, upper_bound: 0.08}`
+- Default: `{min: 0.07, max: 0.08}`
 
 Components:
 - `travel_time_river_length%value`: `real(dp)`; declared required yes; input required yes
 - `travel_time_river_length%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `travel_time_river_length%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.07` (object default)
-- `travel_time_river_length%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.08` (object default)
+- `travel_time_river_length%min`: `real(dp)`; declared required yes; input required no; default `0.07` (object default)
+- `travel_time_river_length%max`: `real(dp)`; declared required yes; input required no; default `0.08` (object default)
 
 ### travel_time_river_slope
 
@@ -64,13 +64,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 1.95, upper_bound: 2.1}`
+- Default: `{min: 1.95, max: 2.1}`
 
 Components:
 - `travel_time_river_slope%value`: `real(dp)`; declared required yes; input required yes
 - `travel_time_river_slope%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `travel_time_river_slope%lower_bound`: `real(dp)`; declared required yes; input required no; default `1.95` (object default)
-- `travel_time_river_slope%upper_bound`: `real(dp)`; declared required yes; input required no; default `2.1` (object default)
+- `travel_time_river_slope%min`: `real(dp)`; declared required yes; input required no; default `1.95` (object default)
+- `travel_time_river_slope%max`: `real(dp)`; declared required yes; input required no; default `2.1` (object default)
 
 ### travel_time_impervious
 
@@ -82,13 +82,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.09, upper_bound: 0.11}`
+- Default: `{min: 0.09, max: 0.11}`
 
 Components:
 - `travel_time_impervious%value`: `real(dp)`; declared required yes; input required yes
 - `travel_time_impervious%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `travel_time_impervious%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.09` (object default)
-- `travel_time_impervious%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.11` (object default)
+- `travel_time_impervious%min`: `real(dp)`; declared required yes; input required no; default `0.09` (object default)
+- `travel_time_impervious%max`: `real(dp)`; declared required yes; input required no; default `0.11` (object default)
 
 ### attenuation_river_slope
 
@@ -100,13 +100,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.01, upper_bound: 0.5}`
+- Default: `{min: 0.01, max: 0.5}`
 
 Components:
 - `attenuation_river_slope%value`: `real(dp)`; declared required yes; input required yes
 - `attenuation_river_slope%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `attenuation_river_slope%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.01` (object default)
-- `attenuation_river_slope%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.5` (object default)
+- `attenuation_river_slope%min`: `real(dp)`; declared required yes; input required no; default `0.01` (object default)
+- `attenuation_river_slope%max`: `real(dp)`; declared required yes; input required no; default `0.5` (object default)
 
 ## Derived types
 
@@ -116,13 +116,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -130,24 +131,24 @@ A model parameter with optional calibration metadata.
 &routing_1
   travel_time_constant%value = 0.325
   travel_time_constant%optimize = .true.
-  travel_time_constant%lower_bound = 0.31
-  travel_time_constant%upper_bound = 0.35
+  travel_time_constant%min = 0.31
+  travel_time_constant%max = 0.35
   travel_time_river_length%value = 0.075
   travel_time_river_length%optimize = .true.
-  travel_time_river_length%lower_bound = 0.07
-  travel_time_river_length%upper_bound = 0.08
+  travel_time_river_length%min = 0.07
+  travel_time_river_length%max = 0.08
   travel_time_river_slope%value = 2.0
   travel_time_river_slope%optimize = .true.
-  travel_time_river_slope%lower_bound = 1.95
-  travel_time_river_slope%upper_bound = 2.1
+  travel_time_river_slope%min = 1.95
+  travel_time_river_slope%max = 2.1
   travel_time_impervious%value = 0.1
   travel_time_impervious%optimize = .true.
-  travel_time_impervious%lower_bound = 0.09
-  travel_time_impervious%upper_bound = 0.11
+  travel_time_impervious%min = 0.09
+  travel_time_impervious%max = 0.11
   attenuation_river_slope%value = 0.3
   attenuation_river_slope%optimize = .true.
-  attenuation_river_slope%lower_bound = 0.01
-  attenuation_river_slope%upper_bound = 0.5
+  attenuation_river_slope%min = 0.01
+  attenuation_river_slope%max = 0.5
 /
 ```
 

@@ -10,7 +10,7 @@ properties:
     x-fortran-shape: n_geo_units
     items:
       $ref: parameter.yml#/$defs/parameter
-      default: {lower_bound: 1.0, upper_bound: 1000.0}
+      default: {min: 1.0, max: 1000.0}
       properties:
         value: {examples: [100.0]}
         optimize: {examples: [true]}

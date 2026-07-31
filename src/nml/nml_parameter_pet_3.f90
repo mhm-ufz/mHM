@@ -27,12 +27,12 @@ module nml_pet_3
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -106,58 +106,58 @@ contains
     if (present(canopy_height_forest)) then
       canopy_height_forest%value = ieee_value(canopy_height_forest%value, ieee_quiet_nan) ! sentinel for derived component value
       canopy_height_forest%optimize = .false.
-      canopy_height_forest%lower_bound = ieee_value(canopy_height_forest%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      canopy_height_forest%upper_bound = ieee_value(canopy_height_forest%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      canopy_height_forest%lower_bound = 15.0_dp
-      canopy_height_forest%upper_bound = 40.0_dp
+      canopy_height_forest%min = ieee_value(canopy_height_forest%min, ieee_quiet_nan) ! sentinel for derived component min
+      canopy_height_forest%max = ieee_value(canopy_height_forest%max, ieee_quiet_nan) ! sentinel for derived component max
+      canopy_height_forest%min = 15.0_dp
+      canopy_height_forest%max = 40.0_dp
     end if
     if (present(canopy_height_impervious)) then
       canopy_height_impervious%value = ieee_value(canopy_height_impervious%value, ieee_quiet_nan) ! sentinel for derived component value
       canopy_height_impervious%optimize = .false.
-      canopy_height_impervious%lower_bound = ieee_value(canopy_height_impervious%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      canopy_height_impervious%upper_bound = ieee_value(canopy_height_impervious%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      canopy_height_impervious%lower_bound = 0.01_dp
-      canopy_height_impervious%upper_bound = 0.5_dp
+      canopy_height_impervious%min = ieee_value(canopy_height_impervious%min, ieee_quiet_nan) ! sentinel for derived component min
+      canopy_height_impervious%max = ieee_value(canopy_height_impervious%max, ieee_quiet_nan) ! sentinel for derived component max
+      canopy_height_impervious%min = 0.01_dp
+      canopy_height_impervious%max = 0.5_dp
     end if
     if (present(canopy_height_pervious)) then
       canopy_height_pervious%value = ieee_value(canopy_height_pervious%value, ieee_quiet_nan) ! sentinel for derived component value
       canopy_height_pervious%optimize = .false.
-      canopy_height_pervious%lower_bound = ieee_value(canopy_height_pervious%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      canopy_height_pervious%upper_bound = ieee_value(canopy_height_pervious%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      canopy_height_pervious%lower_bound = 0.1_dp
-      canopy_height_pervious%upper_bound = 5.0_dp
+      canopy_height_pervious%min = ieee_value(canopy_height_pervious%min, ieee_quiet_nan) ! sentinel for derived component min
+      canopy_height_pervious%max = ieee_value(canopy_height_pervious%max, ieee_quiet_nan) ! sentinel for derived component max
+      canopy_height_pervious%min = 0.1_dp
+      canopy_height_pervious%max = 5.0_dp
     end if
     if (present(displacement_height_coefficient)) then
       displacement_height_coefficient%value = ieee_value(displacement_height_coefficient%value, ieee_quiet_nan) ! sentinel for derived component value
       displacement_height_coefficient%optimize = .false.
-      displacement_height_coefficient%lower_bound = ieee_value(displacement_height_coefficient%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      displacement_height_coefficient%upper_bound = ieee_value(displacement_height_coefficient%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      displacement_height_coefficient%lower_bound = 0.5_dp
-      displacement_height_coefficient%upper_bound = 0.85_dp
+      displacement_height_coefficient%min = ieee_value(displacement_height_coefficient%min, ieee_quiet_nan) ! sentinel for derived component min
+      displacement_height_coefficient%max = ieee_value(displacement_height_coefficient%max, ieee_quiet_nan) ! sentinel for derived component max
+      displacement_height_coefficient%min = 0.5_dp
+      displacement_height_coefficient%max = 0.85_dp
     end if
     if (present(momentum_roughness_length_coefficient)) then
       momentum_roughness_length_coefficient%value = ieee_value(momentum_roughness_length_coefficient%value, ieee_quiet_nan) ! sentinel for derived component value
       momentum_roughness_length_coefficient%optimize = .false.
-      momentum_roughness_length_coefficient%lower_bound = ieee_value(momentum_roughness_length_coefficient%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      momentum_roughness_length_coefficient%upper_bound = ieee_value(momentum_roughness_length_coefficient%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      momentum_roughness_length_coefficient%lower_bound = 0.09_dp
-      momentum_roughness_length_coefficient%upper_bound = 0.16_dp
+      momentum_roughness_length_coefficient%min = ieee_value(momentum_roughness_length_coefficient%min, ieee_quiet_nan) ! sentinel for derived component min
+      momentum_roughness_length_coefficient%max = ieee_value(momentum_roughness_length_coefficient%max, ieee_quiet_nan) ! sentinel for derived component max
+      momentum_roughness_length_coefficient%min = 0.09_dp
+      momentum_roughness_length_coefficient%max = 0.16_dp
     end if
     if (present(heat_roughness_length_coefficient)) then
       heat_roughness_length_coefficient%value = ieee_value(heat_roughness_length_coefficient%value, ieee_quiet_nan) ! sentinel for derived component value
       heat_roughness_length_coefficient%optimize = .false.
-      heat_roughness_length_coefficient%lower_bound = ieee_value(heat_roughness_length_coefficient%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      heat_roughness_length_coefficient%upper_bound = ieee_value(heat_roughness_length_coefficient%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      heat_roughness_length_coefficient%lower_bound = 0.07_dp
-      heat_roughness_length_coefficient%upper_bound = 0.13_dp
+      heat_roughness_length_coefficient%min = ieee_value(heat_roughness_length_coefficient%min, ieee_quiet_nan) ! sentinel for derived component min
+      heat_roughness_length_coefficient%max = ieee_value(heat_roughness_length_coefficient%max, ieee_quiet_nan) ! sentinel for derived component max
+      heat_roughness_length_coefficient%min = 0.07_dp
+      heat_roughness_length_coefficient%max = 0.13_dp
     end if
     if (present(stomatal_resistance)) then
       stomatal_resistance%value = ieee_value(stomatal_resistance%value, ieee_quiet_nan) ! sentinel for derived component value
       stomatal_resistance%optimize = .false.
-      stomatal_resistance%lower_bound = ieee_value(stomatal_resistance%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      stomatal_resistance%upper_bound = ieee_value(stomatal_resistance%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      stomatal_resistance%lower_bound = 10.0_dp
-      stomatal_resistance%upper_bound = 200.0_dp
+      stomatal_resistance%min = ieee_value(stomatal_resistance%min, ieee_quiet_nan) ! sentinel for derived component min
+      stomatal_resistance%max = ieee_value(stomatal_resistance%max, ieee_quiet_nan) ! sentinel for derived component max
+      stomatal_resistance%min = 10.0_dp
+      stomatal_resistance%max = 200.0_dp
     end if
   end function nml_pet_3_init_type
 
@@ -303,13 +303,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'canopy_height_forest'"
         return
       end if
-    case ("canopy_height_forest%lower_bound")
+    case ("canopy_height_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'canopy_height_forest'"
         return
       end if
-    case ("canopy_height_forest%upper_bound")
+    case ("canopy_height_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'canopy_height_forest'"
@@ -337,13 +337,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'canopy_height_impervious'"
         return
       end if
-    case ("canopy_height_impervious%lower_bound")
+    case ("canopy_height_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'canopy_height_impervious'"
         return
       end if
-    case ("canopy_height_impervious%upper_bound")
+    case ("canopy_height_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'canopy_height_impervious'"
@@ -371,13 +371,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'canopy_height_pervious'"
         return
       end if
-    case ("canopy_height_pervious%lower_bound")
+    case ("canopy_height_pervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'canopy_height_pervious'"
         return
       end if
-    case ("canopy_height_pervious%upper_bound")
+    case ("canopy_height_pervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'canopy_height_pervious'"
@@ -405,13 +405,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'displacement_height_coefficient'"
         return
       end if
-    case ("displacement_height_coefficient%lower_bound")
+    case ("displacement_height_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'displacement_height_coefficient'"
         return
       end if
-    case ("displacement_height_coefficient%upper_bound")
+    case ("displacement_height_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'displacement_height_coefficient'"
@@ -439,13 +439,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'momentum_roughness_length_coefficient'"
         return
       end if
-    case ("momentum_roughness_length_coefficient%lower_bound")
+    case ("momentum_roughness_length_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'momentum_roughness_length_coefficient'"
         return
       end if
-    case ("momentum_roughness_length_coefficient%upper_bound")
+    case ("momentum_roughness_length_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'momentum_roughness_length_coefficient'"
@@ -473,13 +473,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'heat_roughness_length_coefficient'"
         return
       end if
-    case ("heat_roughness_length_coefficient%lower_bound")
+    case ("heat_roughness_length_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'heat_roughness_length_coefficient'"
         return
       end if
-    case ("heat_roughness_length_coefficient%upper_bound")
+    case ("heat_roughness_length_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'heat_roughness_length_coefficient'"
@@ -507,13 +507,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'stomatal_resistance'"
         return
       end if
-    case ("stomatal_resistance%lower_bound")
+    case ("stomatal_resistance%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'stomatal_resistance'"
         return
       end if
-    case ("stomatal_resistance%upper_bound")
+    case ("stomatal_resistance%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'stomatal_resistance'"

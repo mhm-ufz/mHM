@@ -26,13 +26,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.7, upper_bound: 1.3}`
+- Default: `{min: 0.7, max: 1.3}`
 
 Components:
 - `correction_factor_min%value`: `real(dp)`; declared required yes; input required yes
 - `correction_factor_min%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `correction_factor_min%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.7` (object default)
-- `correction_factor_min%upper_bound`: `real(dp)`; declared required yes; input required no; default `1.3` (object default)
+- `correction_factor_min%min`: `real(dp)`; declared required yes; input required no; default `0.7` (object default)
+- `correction_factor_min%max`: `real(dp)`; declared required yes; input required no; default `1.3` (object default)
 
 ### correction_factor_max
 
@@ -44,13 +44,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 0.2}`
+- Default: `{min: 0.0, max: 0.2}`
 
 Components:
 - `correction_factor_max%value`: `real(dp)`; declared required yes; input required yes
 - `correction_factor_max%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `correction_factor_max%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `correction_factor_max%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
+- `correction_factor_max%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `correction_factor_max%max`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
 
 ### aspect_threshold
 
@@ -62,13 +62,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 160.0, upper_bound: 200.0}`
+- Default: `{min: 160.0, max: 200.0}`
 
 Components:
 - `aspect_threshold%value`: `real(dp)`; declared required yes; input required yes
 - `aspect_threshold%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `aspect_threshold%lower_bound`: `real(dp)`; declared required yes; input required no; default `160.0` (object default)
-- `aspect_threshold%upper_bound`: `real(dp)`; declared required yes; input required no; default `200.0` (object default)
+- `aspect_threshold%min`: `real(dp)`; declared required yes; input required no; default `160.0` (object default)
+- `aspect_threshold%max`: `real(dp)`; declared required yes; input required no; default `200.0` (object default)
 
 ## Derived types
 
@@ -78,13 +78,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -92,16 +93,16 @@ A model parameter with optional calibration metadata.
 &pet_m2
   correction_factor_min%value = 0.9
   correction_factor_min%optimize = .true.
-  correction_factor_min%lower_bound = 0.7
-  correction_factor_min%upper_bound = 1.3
+  correction_factor_min%min = 0.7
+  correction_factor_min%max = 1.3
   correction_factor_max%value = 0.1
   correction_factor_max%optimize = .true.
-  correction_factor_max%lower_bound = 0.0
-  correction_factor_max%upper_bound = 0.2
+  correction_factor_max%min = 0.0
+  correction_factor_max%max = 0.2
   aspect_threshold%value = 180.0
   aspect_threshold%optimize = .true.
-  aspect_threshold%lower_bound = 160.0
-  aspect_threshold%upper_bound = 200.0
+  aspect_threshold%min = 160.0
+  aspect_threshold%max = 200.0
 /
 ```
 

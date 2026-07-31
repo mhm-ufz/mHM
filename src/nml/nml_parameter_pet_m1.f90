@@ -27,12 +27,12 @@ module nml_pet_m1
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower, &
-    parameter_t
+    to_lower
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     dp
+  use mo_parameter_types, only: parameter_t
 
   implicit none
 
@@ -98,42 +98,42 @@ contains
     if (present(pet_a_forest)) then
       pet_a_forest%value = ieee_value(pet_a_forest%value, ieee_quiet_nan) ! sentinel for derived component value
       pet_a_forest%optimize = .false.
-      pet_a_forest%lower_bound = ieee_value(pet_a_forest%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      pet_a_forest%upper_bound = ieee_value(pet_a_forest%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      pet_a_forest%lower_bound = 0.3_dp
-      pet_a_forest%upper_bound = 1.3_dp
+      pet_a_forest%min = ieee_value(pet_a_forest%min, ieee_quiet_nan) ! sentinel for derived component min
+      pet_a_forest%max = ieee_value(pet_a_forest%max, ieee_quiet_nan) ! sentinel for derived component max
+      pet_a_forest%min = 0.3_dp
+      pet_a_forest%max = 1.3_dp
     end if
     if (present(pet_a_impervious)) then
       pet_a_impervious%value = ieee_value(pet_a_impervious%value, ieee_quiet_nan) ! sentinel for derived component value
       pet_a_impervious%optimize = .false.
-      pet_a_impervious%lower_bound = ieee_value(pet_a_impervious%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      pet_a_impervious%upper_bound = ieee_value(pet_a_impervious%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      pet_a_impervious%lower_bound = 0.3_dp
-      pet_a_impervious%upper_bound = 1.3_dp
+      pet_a_impervious%min = ieee_value(pet_a_impervious%min, ieee_quiet_nan) ! sentinel for derived component min
+      pet_a_impervious%max = ieee_value(pet_a_impervious%max, ieee_quiet_nan) ! sentinel for derived component max
+      pet_a_impervious%min = 0.3_dp
+      pet_a_impervious%max = 1.3_dp
     end if
     if (present(pet_a_pervious)) then
       pet_a_pervious%value = ieee_value(pet_a_pervious%value, ieee_quiet_nan) ! sentinel for derived component value
       pet_a_pervious%optimize = .false.
-      pet_a_pervious%lower_bound = ieee_value(pet_a_pervious%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      pet_a_pervious%upper_bound = ieee_value(pet_a_pervious%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      pet_a_pervious%lower_bound = 0.3_dp
-      pet_a_pervious%upper_bound = 1.3_dp
+      pet_a_pervious%min = ieee_value(pet_a_pervious%min, ieee_quiet_nan) ! sentinel for derived component min
+      pet_a_pervious%max = ieee_value(pet_a_pervious%max, ieee_quiet_nan) ! sentinel for derived component max
+      pet_a_pervious%min = 0.3_dp
+      pet_a_pervious%max = 1.3_dp
     end if
     if (present(pet_b)) then
       pet_b%value = ieee_value(pet_b%value, ieee_quiet_nan) ! sentinel for derived component value
       pet_b%optimize = .false.
-      pet_b%lower_bound = ieee_value(pet_b%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      pet_b%upper_bound = ieee_value(pet_b%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      pet_b%lower_bound = 0.0_dp
-      pet_b%upper_bound = 1.5_dp
+      pet_b%min = ieee_value(pet_b%min, ieee_quiet_nan) ! sentinel for derived component min
+      pet_b%max = ieee_value(pet_b%max, ieee_quiet_nan) ! sentinel for derived component max
+      pet_b%min = 0.0_dp
+      pet_b%max = 1.5_dp
     end if
     if (present(pet_c)) then
       pet_c%value = ieee_value(pet_c%value, ieee_quiet_nan) ! sentinel for derived component value
       pet_c%optimize = .false.
-      pet_c%lower_bound = ieee_value(pet_c%lower_bound, ieee_quiet_nan) ! sentinel for derived component lower_bound
-      pet_c%upper_bound = ieee_value(pet_c%upper_bound, ieee_quiet_nan) ! sentinel for derived component upper_bound
-      pet_c%lower_bound = -2.0_dp
-      pet_c%upper_bound = 0.0_dp
+      pet_c%min = ieee_value(pet_c%min, ieee_quiet_nan) ! sentinel for derived component min
+      pet_c%max = ieee_value(pet_c%max, ieee_quiet_nan) ! sentinel for derived component max
+      pet_c%min = -2.0_dp
+      pet_c%max = 0.0_dp
     end if
   end function nml_pet_m1_init_type
 
@@ -265,13 +265,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'pet_a_forest'"
         return
       end if
-    case ("pet_a_forest%lower_bound")
+    case ("pet_a_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'pet_a_forest'"
         return
       end if
-    case ("pet_a_forest%upper_bound")
+    case ("pet_a_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'pet_a_forest'"
@@ -299,13 +299,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'pet_a_impervious'"
         return
       end if
-    case ("pet_a_impervious%lower_bound")
+    case ("pet_a_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'pet_a_impervious'"
         return
       end if
-    case ("pet_a_impervious%upper_bound")
+    case ("pet_a_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'pet_a_impervious'"
@@ -333,13 +333,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'pet_a_pervious'"
         return
       end if
-    case ("pet_a_pervious%lower_bound")
+    case ("pet_a_pervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'pet_a_pervious'"
         return
       end if
-    case ("pet_a_pervious%upper_bound")
+    case ("pet_a_pervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'pet_a_pervious'"
@@ -367,13 +367,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'pet_b'"
         return
       end if
-    case ("pet_b%lower_bound")
+    case ("pet_b%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'pet_b'"
         return
       end if
-    case ("pet_b%upper_bound")
+    case ("pet_b%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'pet_b'"
@@ -401,13 +401,13 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'pet_c'"
         return
       end if
-    case ("pet_c%lower_bound")
+    case ("pet_c%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'pet_c'"
         return
       end if
-    case ("pet_c%upper_bound")
+    case ("pet_c%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'pet_c'"

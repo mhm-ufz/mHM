@@ -26,13 +26,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 300.0, upper_bound: 2000.0}`
+- Default: `{min: 300.0, max: 2000.0}`
 
 Components:
 - `desilets_n0%value`: `real(dp)`; declared required yes; input required yes
 - `desilets_n0%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `desilets_n0%lower_bound`: `real(dp)`; declared required yes; input required no; default `300.0` (object default)
-- `desilets_n0%upper_bound`: `real(dp)`; declared required yes; input required no; default `2000.0` (object default)
+- `desilets_n0%min`: `real(dp)`; declared required yes; input required no; default `300.0` (object default)
+- `desilets_n0%max`: `real(dp)`; declared required yes; input required no; default `2000.0` (object default)
 
 ### desilets_lw0
 
@@ -44,13 +44,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 0.2}`
+- Default: `{min: 0.0, max: 0.2}`
 
 Components:
 - `desilets_lw0%value`: `real(dp)`; declared required yes; input required yes
 - `desilets_lw0%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `desilets_lw0%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `desilets_lw0%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
+- `desilets_lw0%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `desilets_lw0%max`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
 
 ### desilets_lw1
 
@@ -62,13 +62,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.0, upper_bound: 0.05}`
+- Default: `{min: 0.0, max: 0.05}`
 
 Components:
 - `desilets_lw1%value`: `real(dp)`; declared required yes; input required yes
 - `desilets_lw1%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `desilets_lw1%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `desilets_lw1%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.05` (object default)
+- `desilets_lw1%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `desilets_lw1%max`: `real(dp)`; declared required yes; input required no; default `0.05` (object default)
 
 ## Derived types
 
@@ -78,13 +78,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -92,16 +93,16 @@ A model parameter with optional calibration metadata.
 &neutrons_1
   desilets_n0%value = 1500.0
   desilets_n0%optimize = .false.
-  desilets_n0%lower_bound = 300.0
-  desilets_n0%upper_bound = 2000.0
+  desilets_n0%min = 300.0
+  desilets_n0%max = 2000.0
   desilets_lw0%value = 0.1783
   desilets_lw0%optimize = .false.
-  desilets_lw0%lower_bound = 0.0
-  desilets_lw0%upper_bound = 0.2
+  desilets_lw0%min = 0.0
+  desilets_lw0%max = 0.2
   desilets_lw1%value = 0.0
   desilets_lw1%optimize = .false.
-  desilets_lw1%lower_bound = 0.0
-  desilets_lw1%upper_bound = 0.05
+  desilets_lw1%min = 0.0
+  desilets_lw1%max = 0.05
 /
 ```
 

@@ -4,6 +4,7 @@ $defs:
     description: A model parameter with optional calibration metadata.
     type: object
     x-fortran-type: parameter_t
+    x-fortran-module: mo_parameter_types
     properties:
       value:
         title: Parameter value
@@ -13,15 +14,15 @@ $defs:
         title: Include parameter in calibration
         type: boolean
         default: false
-      lower_bound:
-        title: Lower calibration bound
+      min:
+        title: Minimum calibration value
         type: number
         x-fortran-kind: dp
-      upper_bound:
-        title: Upper calibration bound
+      max:
+        title: Maximum calibration value
         type: number
         x-fortran-kind: dp
     required:
       - value
-      - lower_bound
-      - upper_bound
+      - min
+      - max

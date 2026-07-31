@@ -27,13 +27,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.03, upper_bound: 0.2}`
+- Default: `{min: 0.03, max: 0.2}`
 
 Components:
 - `albedo_water%value`: `real(dp)`; declared required yes; input required yes
 - `albedo_water%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `albedo_water%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.03` (object default)
-- `albedo_water%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
+- `albedo_water%min`: `real(dp)`; declared required yes; input required no; default `0.03` (object default)
+- `albedo_water%max`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
 
 ### pt_a_water
 
@@ -45,13 +45,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 1.2, upper_bound: 2.0}`
+- Default: `{min: 1.2, max: 2.0}`
 
 Components:
 - `pt_a_water%value`: `real(dp)`; declared required yes; input required yes
 - `pt_a_water%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `pt_a_water%lower_bound`: `real(dp)`; declared required yes; input required no; default `1.2` (object default)
-- `pt_a_water%upper_bound`: `real(dp)`; declared required yes; input required no; default `2.0` (object default)
+- `pt_a_water%min`: `real(dp)`; declared required yes; input required no; default `1.2` (object default)
+- `pt_a_water%max`: `real(dp)`; declared required yes; input required no; default `2.0` (object default)
 
 ### emissivity_water
 
@@ -63,13 +63,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 0.95, upper_bound: 0.99}`
+- Default: `{min: 0.95, max: 0.99}`
 
 Components:
 - `emissivity_water%value`: `real(dp)`; declared required yes; input required yes
 - `emissivity_water%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `emissivity_water%lower_bound`: `real(dp)`; declared required yes; input required no; default `0.95` (object default)
-- `emissivity_water%upper_bound`: `real(dp)`; declared required yes; input required no; default `0.99` (object default)
+- `emissivity_water%min`: `real(dp)`; declared required yes; input required no; default `0.95` (object default)
+- `emissivity_water%max`: `real(dp)`; declared required yes; input required no; default `0.99` (object default)
 
 ### turbulent_heat_exchange_coefficient
 
@@ -81,13 +81,13 @@ Summary:
 - Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{lower_bound: 10.0, upper_bound: 50.0}`
+- Default: `{min: 10.0, max: 50.0}`
 
 Components:
 - `turbulent_heat_exchange_coefficient%value`: `real(dp)`; declared required yes; input required yes
 - `turbulent_heat_exchange_coefficient%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `turbulent_heat_exchange_coefficient%lower_bound`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
-- `turbulent_heat_exchange_coefficient%upper_bound`: `real(dp)`; declared required yes; input required no; default `50.0` (object default)
+- `turbulent_heat_exchange_coefficient%min`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
+- `turbulent_heat_exchange_coefficient%max`: `real(dp)`; declared required yes; input required no; default `50.0` (object default)
 
 ## Derived types
 
@@ -97,13 +97,14 @@ Calibration parameter
 
 A model parameter with optional calibration metadata.
 
-- Ownership: `nml_helper`
+- Ownership: imported from `mo_parameter_types`
 - Buffer-compatible: yes
-- Component order: value, optimize, lower_bound, upper_bound
+- Component order: value, optimize, min, max
+- **Declaration-order contract:** the imported Fortran type must declare components in the resolved schema order shown above.
 - `value`: `real(dp)`; declared required yes; input required yes
 - `optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `lower_bound`: `real(dp)`; declared required yes; input required yes
-- `upper_bound`: `real(dp)`; declared required yes; input required yes
+- `min`: `real(dp)`; declared required yes; input required yes
+- `max`: `real(dp)`; declared required yes; input required yes
 
 ## Example
 
@@ -111,20 +112,20 @@ A model parameter with optional calibration metadata.
 &river_temperature_1
   albedo_water%value = 0.15
   albedo_water%optimize = .false.
-  albedo_water%lower_bound = 0.03
-  albedo_water%upper_bound = 0.2
+  albedo_water%min = 0.03
+  albedo_water%max = 0.2
   pt_a_water%value = 1.26
   pt_a_water%optimize = .false.
-  pt_a_water%lower_bound = 1.2
-  pt_a_water%upper_bound = 2.0
+  pt_a_water%min = 1.2
+  pt_a_water%max = 2.0
   emissivity_water%value = 0.96
   emissivity_water%optimize = .false.
-  emissivity_water%lower_bound = 0.95
-  emissivity_water%upper_bound = 0.99
+  emissivity_water%min = 0.95
+  emissivity_water%max = 0.99
   turbulent_heat_exchange_coefficient%value = 20.0
   turbulent_heat_exchange_coefficient%optimize = .false.
-  turbulent_heat_exchange_coefficient%lower_bound = 10.0
-  turbulent_heat_exchange_coefficient%upper_bound = 50.0
+  turbulent_heat_exchange_coefficient%min = 10.0
+  turbulent_heat_exchange_coefficient%max = 50.0
 /
 ```
 
