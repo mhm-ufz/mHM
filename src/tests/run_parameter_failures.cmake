@@ -15,7 +15,12 @@ function(expect_parameter_failure scenario diagnostic)
     message(FATAL_ERROR "Parameter failure scenario '${scenario}' unexpectedly succeeded.\n${output}")
   endif()
 
-  string(FIND "${output}" "${diagnostic}" diagnostic_position)
+  # Compiler runtimes may wrap list-directed log output at different places.
+  # Compare complete diagnostics without whitespace so those record breaks do
+  # not weaken the expected-message check.
+  string(REGEX REPLACE "[ \t\r\n]+" "" normalized_output "${output}")
+  string(REGEX REPLACE "[ \t\r\n]+" "" normalized_diagnostic "${diagnostic}")
+  string(FIND "${normalized_output}" "${normalized_diagnostic}" diagnostic_position)
   if(diagnostic_position EQUAL -1)
     message(
       FATAL_ERROR
