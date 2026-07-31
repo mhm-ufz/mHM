@@ -362,9 +362,14 @@ contains
   function format_parameter_real(value) result(text)
     real(dp), intent(in) :: value
     character(20) :: text
+    real(dp), parameter :: fixed_negative_limit = -1.0e6_dp
+    real(dp), parameter :: fixed_positive_limit = 1.0e7_dp
 
-    write(text, '(f20.12)') value
-    if (index(text, "*") > 0) write(text, '(es20.12e3)') value
+    if (value <= fixed_negative_limit .or. value >= fixed_positive_limit) then
+      write(text, '(es20.12e3)') value
+    else
+      write(text, '(f20.12)') value
+    end if
   end function format_parameter_real
 
   !> \brief Print current named parameter values.

@@ -173,6 +173,7 @@ contains
     @assertEqual(0, status, message="missing wide parameter output")
     @assertTrue(index(wide_line, "*") == 0, message="wide parameter output overflowed")
     @assertTrue(index(wide_line, "E+020") > 0, message="wide value did not use scientific fallback")
+    @assertTrue(index(wide_line, "E+030") > 0, message="wide bounds did not use scientific fallback")
     @assertTrue(index(wide_line, ".false.,") > 0, message="default optimization flag is not written")
 
     open(newunit=unit, file=file, status="old", iostat=status)
