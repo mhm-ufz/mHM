@@ -30,6 +30,8 @@
 !!         Q:        2nd objective: 1.0 - NSE of discharge of months DJF
 !! 31. SO: Q:        1.0 - wNSE - weighted NSE
 !! 32. SO: Q:        SSE of boxcox-transformed streamflow
+!! 48. SO: Q:        1.0 - KGEprime (modified/prime KGE, Kling et al. 2012)
+!! 49. SO: Q:        1.0 - KGEnp (non-parametric KGE, Pool et al. 2018)
 !> \changelog
 !! - Stephan Thober             Oct 2015
 !!   - adapted for mRM
@@ -47,6 +49,9 @@
 !!   - refactoring and reformatting
 !! - Stephan Thober             Aug 2019
 !!   - added OF 32: SSE of boxcox-transformed streamflow
+!! - Ehsan Modiri               Aug 2026
+!!   - added OF 48: KGEprime (modified/prime KGE, Kling et al. 2012)
+!!   - added OF 49: KGEnp (non-parametric KGE, Pool et al. 2018)
 !> \authors Juliane Mai
 !> \date Dec 2012
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
@@ -178,6 +183,12 @@ CONTAINS
     case (9)
       ! KGE
       single_objective_runoff = objective_kge(parameterset, eval)
+    case (48)
+      ! KGEprime
+      single_objective_runoff = objective_kgeprime(parameterset, eval)
+    case (49)
+      ! KGEnp
+      single_objective_runoff = objective_kgenp(parameterset, eval)
     case (14)
       ! combination of KGE of every gauging station based on a power-6 norm \n
       ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6)
@@ -269,7 +280,7 @@ CONTAINS
     !write(*,*) 'parameterset: ',parameterset(:)
     call distribute_parameterset(parameterset)
     select case (opti_function)
-    case(1 : 3, 5, 6, 9, 31)
+    case(1 : 3, 5, 6, 9, 31, 48, 49)
       call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
       single_objective_runoff_master = 0.0_dp
       do iproc = 1, nproc - 1
@@ -318,6 +329,12 @@ CONTAINS
     case (9)
       ! KGE
       call message('objective_kge (i.e., 1 - KGE) = ', num2str(single_objective_runoff_master))
+    case (48)
+      ! KGEprime
+      call message('objective_kgeprime (i.e., 1 - KGEprime) = ', num2str(single_objective_runoff_master))
+    case (49)
+      ! KGEnp
+      call message('objective_kgenp (i.e., 1 - KGEnp) = ', num2str(single_objective_runoff_master))
     case (14)
       ! combination of KGE of every gauging station based on a power-6 norm \n
       ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6)
@@ -452,6 +469,12 @@ CONTAINS
       case (9)
         ! KGE
         partial_single_objective_runoff = objective_kge(parameterset, eval)
+      case (48)
+        ! KGEprime
+        partial_single_objective_runoff = objective_kgeprime(parameterset, eval)
+      case (49)
+        ! KGEnp
+        partial_single_objective_runoff = objective_kgenp(parameterset, eval)
       case (14)
         ! combination of KGE of every gauging station based on a power-6 norm \n
         ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6)
@@ -468,7 +491,7 @@ CONTAINS
       end select
 
       select case (opti_function)
-      case (1 : 3, 5, 6, 9, 14, 31)
+      case (1 : 3, 5, 6, 9, 14, 31, 48, 49)
         call MPI_Send(partial_single_objective_runoff,1, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
         call error_message("Error objective_subprocess: this part should not be executed -> error in the code.")
@@ -2148,6 +2171,197 @@ CONTAINS
     deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
 
   END FUNCTION objective_kge
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_kgeprime
+
+  !    PURPOSE
+  !>       \brief Objective function of the modified (prime) KGE.
+
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+
+  !>       Therefore, the modified Kling-Gupta model efficiency coefficient \f$ KGEprime \f$
+  !>       \f[ KGEprime = 1.0 - \sqrt{( (1-r)^2 + (1-\gamma)^2 + (1-\beta)^2 )} \f]
+  !>       where
+  !>       \f$ r \f$ = Pearson product-moment correlation coefficient
+  !>       \f$ \gamma \f$ = ratio of simulated coefficient of variation to observed coefficient of variation
+  !>       \f$ \beta  \f$ = ratio of simulated mean to observed mean
+  !>       is calculated and the objective function is
+  !>       \f[ obj\_value = 1.0 - KGEprime \f]
+  !>       \f$(1-KGEprime)\f$ is the objective since we always apply minimization methods.
+  !>       The minimal value of \f$(1-KGEprime)\f$ is 0 for the optimal KGEprime of 1.0.
+
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+
+  !       LITERATURE
+  !>       Kling, H., Fuchs, M., & Paulin, M. (2012). Runoff conditions in the upper Danube
+  !>       basin under an ensemble of climate change scenarios. Journal of Hydrology, 424-425, 264-277.
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_kgeprime &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Ehsan Modiri
+
+  !>       \date August 2026
+
+  FUNCTION objective_kgeprime(parameterset, eval)
+
+    use mo_errormeasures, only : kgeprime
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+
+    real(dp) :: objective_kgeprime
+
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
+    integer(i4) :: nGaugesTotal
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+
+    !
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
+
+    objective_kgeprime = 0.0_dp
+    do gg = 1, nGaugesTotal
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      ! KGEprime
+      objective_kgeprime = objective_kgeprime + &
+              kgeprime(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+    end do
+#ifndef MPI
+    objective_kgeprime = 1.0_dp - objective_kgeprime / real(nGaugesTotal, dp)
+
+    call message('objective_kgeprime (i.e., 1 - KGEprime) = ', num2str(objective_kgeprime))
+#endif
+
+    deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
+
+  END FUNCTION objective_kgeprime
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_kgenp
+
+  !    PURPOSE
+  !>       \brief Objective function of the non-parametric KGE.
+
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+
+  !>       Therefore, the non-parametric Kling-Gupta model efficiency coefficient \f$ KGEnp \f$
+  !>       \f[ KGEnp = 1.0 - \sqrt{( (1-r_s)^2 + (1-\alpha_{np})^2 + (1-\beta)^2 )} \f]
+  !>       where
+  !>       \f$ r_s \f$ = Spearman rank-order correlation coefficient
+  !>       \f$ \alpha_{np} \f$ = non-parametric flow-duration-curve variability measure
+  !>       \f$ \beta  \f$ = ratio of simulated mean to observed mean
+  !>       is calculated and the objective function is
+  !>       \f[ obj\_value = 1.0 - KGEnp \f]
+  !>       \f$(1-KGEnp)\f$ is the objective since we always apply minimization methods.
+  !>       The minimal value of \f$(1-KGEnp)\f$ is 0 for the optimal KGEnp of 1.0.
+
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+
+  !       LITERATURE
+  !>       Pool, S., Vis, M., & Seibert, J. (2018). Evaluating model performance: towards a
+  !>       non-parametric variant of the Kling-Gupta efficiency. Hydrological Sciences Journal,
+  !>       63(13-14), 1941-1953.
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_kgenp &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Ehsan Modiri
+
+  !>       \date August 2026
+
+  FUNCTION objective_kgenp(parameterset, eval)
+
+    use mo_errormeasures, only : kgenp
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+
+    real(dp) :: objective_kgenp
+
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
+    integer(i4) :: nGaugesTotal
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+
+    !
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
+
+    objective_kgenp = 0.0_dp
+    do gg = 1, nGaugesTotal
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      ! KGEnp
+      objective_kgenp = objective_kgenp + &
+              kgenp(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+    end do
+#ifndef MPI
+    objective_kgenp = 1.0_dp - objective_kgenp / real(nGaugesTotal, dp)
+
+    call message('objective_kgenp (i.e., 1 - KGEnp) = ', num2str(objective_kgenp))
+#endif
+
+    deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
+
+  END FUNCTION objective_kgenp
 
   ! ------------------------------------------------------------------
 
