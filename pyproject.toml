@@ -86,6 +86,7 @@ include = [
     "forces/include",
     "forces/src/*.fypp",
     "forces/src/*.*90",
+    "forces/src/*.c",
     "forces/src/CMakeLists.txt",
     "forces/*.txt",
     "forces/*.md",
@@ -116,6 +117,14 @@ local_scheme = "no-local-version"
 fallback_version = "0.0.0.dev0"
 search_parent_directories = true
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    # numpy 2 changed PyArrayObject to an opaque struct in C headers (sizeof=16),
+    # while tp_basicsize at runtime is still 96. This mismatch is an expected
+    # false-positive for extensions built with numpy 2 headers and is benign.
+    "ignore:numpy.ndarray size changed:RuntimeWarning",
+]
+
 [tool.black]
 exclude = "_version.py"
 target-version = ["py39"]
@@ -135,26 +144,76 @@ show_missing = true
 [tool.cibuildwheel]
 # verbose output for debugging purpose
 build-verbosity = 1
-# skip py38, musl and free-threaded versions
-skip = ["cp38*", "*-musllinux_*", "cp31?t-*"]
-# check command
+# Six CPython versions across the established platform/architecture jobs.
+# Windows ARM64 starts at CPython 3.11, where NumPy ARM64 wheels are available.
+build = ["cp39-*", "cp310-*", "cp311-*", "cp312-*", "cp313-*", "cp314-*"]
+skip = ["*-musllinux_*", "cp39-win_arm64", "cp310-win_arm64"]
 test-extras = "test"
-test-command = "mhm -h && python -m pytest pybind/tests/"
-test-sources = ["pybind/tests/", "pyproject.toml"]
-test-skip = "cp314*"  # not all test dependencies have wheels for python 3.14 yet
-# force binary numpy dep
-environment.PIP_ONLY_BINARY = "numpy"
-environment.PIP_PREFER_BINARY = "1"
+test-command = "mhm -h && mhm-download -h && mhm test_domain && python -m pytest pybind/tests/"
+test-sources = ["pybind/tests/", "test_domain/"]
+before-all = [
+    'cmake -S "{package}/CI-scripts/dependencies" -B "$MHM_DEPS_BUILD" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$MHM_DEPS_PREFIX"',
+    'cmake --build "$MHM_DEPS_BUILD" --parallel',
+]
 
-[tool.cibuildwheel.linux]
-environment = { FC="gfortran", F77="gfortran", CC="gcc", CXX="g++" }
-before-all = "source CI-scripts/install-deps -c -p /usr"
+[tool.cibuildwheel.environment]
+MHM_BASE_PATH = "$PATH"
+MHM_DEPS_BUILD = "/tmp/mhm-dependencies-build"
+MHM_DEPS_PREFIX = "/tmp/mhm-dependencies"
+CPM_SOURCE_CACHE = "/tmp/mhm-cpm-cache"
+CC = "gcc"
+FC = "gfortran"
+CMAKE_PREFIX_PATH = "$MHM_DEPS_PREFIX"
+HDF5_ROOT = "$MHM_DEPS_PREFIX"
+NetCDF_ROOT = "$MHM_DEPS_PREFIX"
+ZLIB_ROOT = "$MHM_DEPS_PREFIX"
+PKG_CONFIG_PATH = "$MHM_DEPS_PREFIX/lib/pkgconfig"
+PATH = "$MHM_DEPS_PREFIX/bin:$MHM_BASE_PATH"
 
-[tool.cibuildwheel.macos]
-environment = { FC="gfortran-14", F77="gfortran-14", CC="gcc-14", CXX="g++-14", MACOSX_DEPLOYMENT_TARGET="13.0" }
-before-all = "source CI-scripts/install-deps -s -p /opt/local" # "brew install netcdf-fortran"
+[tool.cibuildwheel.windows]
+before-all = [
+    'cmake -S "{package}/CI-scripts/dependencies" -B "%MHM_DEPS_BUILD%" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="%MHM_DEPS_PREFIX%"',
+    'cmake --build "%MHM_DEPS_BUILD%" --parallel',
+]
 
 [[tool.cibuildwheel.overrides]]
-select = "*-macosx_arm64"
+select = "*-manylinux_*"
 inherit.environment = "append"
-environment.MACOSX_DEPLOYMENT_TARGET = "14.0"
+environment.LD_LIBRARY_PATH = "$MHM_DEPS_PREFIX/lib"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-macosx_*"
+inherit.environment = "append"
+environment.CC = "clang"
+environment.FC = "/opt/gfortran/bin/gfortran"
+environment.CMAKE_GENERATOR = "Ninja"
+environment.MACOSX_DEPLOYMENT_TARGET = "11.0"
+environment.CMAKE_OSX_DEPLOYMENT_TARGET = "11.0"
+environment.DYLD_FALLBACK_LIBRARY_PATH = "$MHM_DEPS_PREFIX/lib:/opt/gfortran/lib:/opt/gfortran/lib/gcc/current"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-win_*"
+inherit.environment = "append"
+environment.MHM_DEPS_BUILD = "C:/mhm-dependencies-build"
+environment.MHM_DEPS_PREFIX = "C:/mhm-dependencies"
+environment.CPM_SOURCE_CACHE = "C:/mhm-cpm-cache"
+environment.CMAKE_PREFIX_PATH = "$MHM_DEPS_PREFIX"
+environment.HDF5_ROOT = "$MHM_DEPS_PREFIX"
+environment.NetCDF_ROOT = "$MHM_DEPS_PREFIX"
+environment.ZLIB_ROOT = "$MHM_DEPS_PREFIX"
+environment.PKG_CONFIG_PATH = "$MHM_DEPS_PREFIX/lib/pkgconfig"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-win_amd64"
+inherit.environment = "append"
+environment.MSYSTEM = "UCRT64"
+environment.PATH = "$MHM_DEPS_PREFIX/bin;$MHM_MSYS2_ROOT/ucrt64/bin;$MHM_BASE_PATH"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-win_arm64"
+inherit.environment = "append"
+environment.CC = "clang"
+environment.FC = "flang"
+environment.FFLAGS = "-mmlir -fdynamic-heap-array -mmlir -fstack-array-size=0"
+environment.MSYSTEM = "CLANGARM64"
+environment.PATH = "$MHM_DEPS_PREFIX/bin;$MHM_MSYS2_ROOT/clangarm64/bin;$MHM_BASE_PATH"
