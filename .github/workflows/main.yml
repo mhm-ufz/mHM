@@ -8,7 +8,7 @@ on:
       - "*"
   pull_request:
     branches:
-      - "v6alpha"
+      - "main"
   workflow_dispatch:
 
 jobs:
@@ -94,7 +94,7 @@ jobs:
           if-no-files-found: error
 
   publish_testpypi:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/v6alpha'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
       - build_sdist
       - build_wheels
