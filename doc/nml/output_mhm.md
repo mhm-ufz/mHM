@@ -83,7 +83,7 @@ Summary:
 Output time step `output_frequency`
 
 switch to control write out frequency of the gridded model outputs below
-- if >0 : after each <timeStep_model_outputs> time steps
+- if >0 : fixed output interval in hours; it must be a whole multiple of the global model time step
 - if 0 : only at end of run
 - if -1 : daily
 - if -2 : monthly

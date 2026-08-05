@@ -45,13 +45,14 @@ properties:
       enum: [60, 120, 180, 240, 300, 360, 600, 720, 900, 1200, 1800, 3600, 7200, 10800, 14400, 21600, 28800, 43200, 86400]
       default: 86400
     x-fortran-shape: n_domains
-    title: Maximum routing time step in seconds.
+    title: Maximum numerical routing substep in seconds.
     description: |-
-      Maximum allowed time step for the routing model in seconds.
-      This parameter can be used to limit the time step in case of very large CFL time steps
+      Maximum allowed numerical routing substep in seconds.
+      This parameter can be used to limit the substep in case of very large CFL time steps
       due to very low flow velocities.
       This is useful in coupling scenarios to match the time step of other models.
-      If routing time step is smaller than the model time step, multiple routing steps are performed per model time step.
+      If the routing substep is smaller than the model time step, multiple routing iterations are performed per model update.
+      If it is larger, the completed routing step is enlarged to a compatible whole-hour interval.
       Valid values range from 1 minute (60s) to 1 day (86400s).
       Value needs to be a divisor of 3600 or a multiple of 3600 and a divisor of 86400.
     examples: [[3600]]

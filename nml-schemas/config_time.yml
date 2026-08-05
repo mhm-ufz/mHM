@@ -53,8 +53,10 @@ properties:
       x-fortran-kind: i4
       default: 1
     x-fortran-shape: n_domains
-    title: Time step of the simulation
-    description: Time step of the simulation (1 or 24, in hours).
+    title: Global model time step
+    description: |-
+      Global model update cadence in hours (currently 1 or 24). This controls how often
+      process containers are updated and is independent of the support interval of input data.
   share_time_step:
     type: boolean
     default: true

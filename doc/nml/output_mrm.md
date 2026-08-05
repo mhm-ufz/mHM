@@ -64,7 +64,8 @@ Summary:
 Output time step `output_frequency`
 
 switch to control write out frequency of the gridded model outputs below
-- if >0 : after every 'n' time steps
+- if >0 : fixed output interval in hours; it and the completed routing step must be whole multiples of one another
+  (completed routing means are averaged for coarser output and repeated backward over finer output intervals)
 - if 0 : only at end of run
 - if -1 : daily
 - if -2 : monthly

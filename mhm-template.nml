@@ -112,7 +112,7 @@
   sim_end(:) = "2022-01-01 00:00"
   ! Share time period between domains
   share_time_period = .false.
-  ! Time step of the simulation
+  ! Global model time step
   time_step(:) = 1
   ! Share time step between domains
   share_time_step = .true.
@@ -460,7 +460,7 @@
   river_net_order_root_based(:) = .true.
   ! Minimum level size for OpenMP parallelization.
   river_net_omp_level_min(:) = 100
-  ! Maximum routing time step in seconds.
+  ! Maximum numerical routing substep in seconds.
   max_route_step(:) = 3600
   ! Path for SCC gauges NetCDF file.
   scc_gauges_path(:) = "scc_gauges.nc"

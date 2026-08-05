@@ -51,7 +51,7 @@ module nml_config_time
     character(len=buf), allocatable, dimension(:) :: eval_start !< Evaluation start
     character(len=buf), allocatable, dimension(:) :: sim_end !< Simulation end
     logical :: share_time_period !< Share time period between domains
-    integer(i4), allocatable, dimension(:) :: time_step !< Time step of the simulation
+    integer(i4), allocatable, dimension(:) :: time_step !< Global model time step
     logical :: share_time_step !< Share time step between domains
   contains
     procedure :: init => nml_config_time_init
@@ -221,7 +221,7 @@ contains
     character(len=*), dimension(:), intent(in), optional :: eval_start !< Evaluation start
     character(len=*), dimension(:), intent(in), optional :: sim_end !< Simulation end
     logical, intent(in), optional :: share_time_period !< Share time period between domains
-    integer(i4), dimension(:), intent(in), optional :: time_step !< Time step of the simulation
+    integer(i4), dimension(:), intent(in), optional :: time_step !< Global model time step
     logical, intent(in), optional :: share_time_step !< Share time step between domains
     integer :: &
       lb__1, &
