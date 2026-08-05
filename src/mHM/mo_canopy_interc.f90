@@ -113,10 +113,10 @@ CONTAINS
 
     ! New module for evaporation from canopy surface
     ! [power (2/3) is based on the paper of Liang et al. 1994 & Deardorf, 1978]
-    if (interc_max > eps_dp) then
+    if (interc_max > eps_dp .and. interc > 0.0_dp) then
       evap_canopy = pet * (interc / interc_max)**twothird_dp
     else
-      ! in case interc_max is
+      ! Avoid a fractional power of nonpositive canopy storage.
       evap_canopy = 0.0_dp
     end if
 
