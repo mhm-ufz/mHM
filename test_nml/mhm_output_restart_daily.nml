@@ -1,0 +1,5 @@
+! Restart smoke output cadence. The restart dates in the paired mHM fixtures
+! are day boundaries, so keep their output contract explicitly daily.
+&output_mhm
+  output_frequency = -1
+/

@@ -33,6 +33,7 @@ module mo_mrm_container
   use nml_output_mrm, only: nml_output_mrm_t
 
   character(len=*), parameter :: s = "mrm" !< logging scope
+  public :: derive_mrm_output_timing
 
   !> \class   mrm_t
   !> \brief   Class for a single mRM process container.
@@ -68,9 +69,52 @@ module mo_mrm_container
     procedure :: create_restart => mrm_create_restart
     procedure :: create_output => mrm_create_output
     procedure, private :: configure_parameters => mrm_configure_parameters
+    procedure, private :: get_routing_steps => mrm_get_routing_steps
+    procedure, private :: read_public_discharge => mrm_read_public_discharge
+    procedure, private :: validate_timing => mrm_validate_timing
+    procedure, private :: at_output_boundary => mrm_at_output_boundary
+    procedure, private :: add_output => mrm_add_output
+    procedure, private :: update_output => mrm_update_output
   end type mrm_t
 
 contains
+
+  !> \brief Derive the relation between a fixed-hour mRM output cadence and completed routing results.
+  subroutine derive_mrm_output_timing(routing_step, output_frequency, routing_results, output_records, status)
+    implicit none
+    integer(i4), intent(in) :: routing_step !< [h] interval represented by one completed routing result
+    integer(i4), intent(in) :: output_frequency !< [h] fixed output interval
+    integer(i4), intent(out) :: routing_results !< completed routing results contributing to one output record
+    integer(i4), intent(out) :: output_records !< output records filled by one completed routing result
+    integer(i4), intent(out) :: status !< 0 success; positive values identify an invalid timing input
+
+    routing_results = 0_i4
+    output_records = 0_i4
+    status = 0_i4
+    if (routing_step < 1_i4) then
+      status = 1_i4
+      return
+    end if
+    if (output_frequency < 1_i4) then
+      status = 2_i4
+      return
+    end if
+    if (output_frequency >= routing_step) then
+      if (mod(output_frequency, routing_step) /= 0_i4) then
+        status = 3_i4
+        return
+      end if
+      routing_results = output_frequency / routing_step
+      output_records = 1_i4
+    else
+      if (mod(routing_step, output_frequency) /= 0_i4) then
+        status = 3_i4
+        return
+      end if
+      routing_results = 1_i4
+      output_records = routing_step / output_frequency
+    end if
+  end subroutine derive_mrm_output_timing
 
   !> \brief Set runtime dimensions for generated mRM namelists.
   subroutine mrm_set_dims(self)
@@ -87,15 +131,29 @@ contains
 
   !> \brief Create a restart file for the mRM process container.
   subroutine mrm_create_restart(self)
-    class(mrm_t), intent(inout) :: self
+    class(mrm_t), intent(inout), target :: self
     type(NcDataset) :: nc
     type(NcVariable) :: nc_var
     type(NcDimension) :: dims(0)
+
+    if (self%router%input_count /= 0_i4) then
+      log_fatal(*) "mRM restart can only be written at a completed routing boundary."
+      error stop 1
+    end if
+    if ((self%output_active .or. self%output_node_active) .and. &
+      .not.self%at_output_boundary(self%exchange%time)) then
+      log_fatal(*) "mRM restart can only be written at an active mRM output boundary."
+      error stop 1
+    end if
     log_info(*) "Write mRM restart to file: ", self%restart_output_path
     nc = NcDataset(self%restart_output_path, "w")
     call self%level3%to_restart(nc)
     call self%river%to_restart(nc)
     call self%router%to_restart(nc)
+    nc_var = nc%setVariable("mrm_discharge", "f64", [nc%getDimension("node")])
+    call nc_var%setAttribute("long_name", "most recently completed mean routing discharge")
+    call nc_var%setAttribute("units", "m3 s-1")
+    call nc_var%setData(self%discharge)
     nc_var = nc%setVariable("mrm_meta", "i8", dims(:0)) ! scalar integer to indicate scc river
     call nc_var%setAttribute("routing_case", self%exchange%config%processes%routing)
     call nc_var%setAttribute("routing_gamma", self%exchange%parameters%get_process("routing"))
@@ -294,11 +352,14 @@ contains
     real(dp), allocatable       :: scc_gauges(:,:)
     integer(i4)                 :: id(1)
     logical                     :: const_celerity
+    integer(i4)                 :: model_step
 
     integer :: status
     character(1024) :: errmsg
 
     log_info(*) "Connect mRM"
+
+    model_step = int(self%exchange%step / one_hour(), i4)
 
     ! get domain id
     id(1) = self%exchange%nml_domain_id
@@ -386,8 +447,7 @@ contains
 
     ! populate exchange type
     allocate(self%discharge(self%river%n_nodes))
-    self%exchange%discharge%provided = .true.
-    self%exchange%discharge%data => self%discharge
+    call self%exchange%discharge%publish_local("mRM", self%discharge, model_step)
     self%exchange%level3 => self%level3
   end subroutine mrm_connect
 
@@ -397,6 +457,7 @@ contains
     class(mrm_t), target, intent(inout) :: self
 
     integer(i4)           :: id(1)
+    integer(i4)           :: input_step, model_step
     logical               :: const_celerity
     real(dp), allocatable :: gamma(:)
 
@@ -407,6 +468,7 @@ contains
     ! calculate celerity
     gamma = self%exchange%parameters%get_process("routing")
     const_celerity = (self%exchange%config%processes%routing == 2_i4)
+    call self%get_routing_steps(input_step, model_step)
 
     if (self%read_restart) then
       if (.not.self%exchange%parameters%is_default("routing")) then
@@ -419,7 +481,8 @@ contains
         path              = self%restart_input_path, &
         river             = self%river, &
         input_grid        = self%exchange%level1, &
-        input_step        = int(self%exchange%step/one_hour(), i4), &
+        input_step        = input_step, &
+        model_step        = model_step, &
         max_route_step    = real(self%config%max_route_step(id(1)), dp), &
         root_levels       = self%config%river_net_order_root_based(id(1)), &
         omp_level_thresh  = int(self%config%river_net_omp_level_min(id(1)), i8), &
@@ -437,36 +500,261 @@ contains
       call self%router%init( &
         river            = self%river, &
         input_grid       = self%exchange%level1, &
-        input_step       = int(self%exchange%step/one_hour(), i4), &
+        input_step       = input_step, &
+        model_step       = model_step, &
         max_route_step   = real(self%config%max_route_step(id(1)), dp), &
         root_levels      = self%config%river_net_order_root_based(id(1)), &
         omp_level_thresh = int(self%config%river_net_omp_level_min(id(1)), i8))
     end if
 
-    scope_debug(s,*) "router%step: ", self%router%step
+    scope_debug(s,*) "router%routing_substep: ", self%router%routing_substep
+    scope_debug(s,*) "router%routing_step: ", self%router%routing_step
     scope_debug(s,*) "last level in parallel: ", self%router%last_parallel_level, "/", self%router%river%order%n_levels
-    if (self%router%step > 3600.0_dp) then
-      log_error(*) "mRM routing time step is larger than 1 hour. This is not yet supported."
-      stop 1
+    call self%exchange%discharge%set_stepping("mRM", self%router%routing_step)
+    if (self%read_restart) then
+      call self%read_public_discharge()
+    else
+      self%discharge = 0.0_dp
     end if
+
+    call self%validate_timing()
 
     call self%create_output()
 
   end subroutine mrm_initialize
 
+  !> \brief Convert runoff support and the global model cadence to fixed hours for routing.
+  subroutine mrm_get_routing_steps(self, input_step, model_step)
+    use mo_datetime, only: one_hour
+    use mo_grid_io, only: daily, monthly, yearly, no_time, varying
+    class(mrm_t), intent(in), target :: self
+    integer(i4), intent(out) :: input_step, model_step
+
+    model_step = int(self%exchange%step / one_hour(), i4)
+    if (model_step < 1_i4 .or. self%exchange%step /= model_step * one_hour()) then
+      log_fatal(*) "mRM requires the global model step to be a positive whole number of hours."
+      error stop 1
+    end if
+
+    select case (self%exchange%runoff_total%stepping)
+      case (daily)
+        input_step = 24_i4
+      case (1_i4:)
+        input_step = self%exchange%runoff_total%stepping
+      case (no_time)
+        log_fatal(*) "mRM cannot route static runoff; runoff stepping metadata must describe a fixed interval."
+        error stop 1
+      case (monthly)
+        log_fatal(*) "mRM cannot route monthly runoff; runoff support must be a fixed number of hours."
+        error stop 1
+      case (yearly)
+        log_fatal(*) "mRM cannot route yearly runoff; runoff support must be a fixed number of hours."
+        error stop 1
+      case (varying)
+        log_fatal(*) "mRM cannot route irregular runoff; runoff support must be a fixed number of hours."
+        error stop 1
+      case default
+        log_fatal(*) "mRM runoff stepping metadata is missing or unsupported: ", self%exchange%runoff_total%stepping
+        error stop 1
+    end select
+
+    if (input_step < model_step) then
+      log_fatal(*) "mRM runoff support (", input_step, "h) is finer than the model step (", model_step, &
+        "h); input aggregation is not implemented."
+      error stop 1
+    end if
+    if (mod(input_step, model_step) /= 0_i4) then
+      log_fatal(*) "mRM runoff support (", input_step, "h) must be divisible by the model step (", model_step, "h)."
+      error stop 1
+    end if
+  end subroutine mrm_get_routing_steps
+
+  !> \brief Restore the mRM-owned published discharge from a routing-boundary restart.
+  subroutine mrm_read_public_discharge(self)
+    class(mrm_t), intent(inout), target :: self
+    type(NcDataset) :: nc
+    type(NcVariable) :: nc_var
+    integer(i4) :: id(1)
+
+    id(1) = self%exchange%nml_domain_id
+    if (.not.self%config%read_restart_fluxes(id(1))) then
+      self%discharge = 0.0_dp
+      return
+    end if
+
+    nc = NcDataset(self%restart_input_path, "r")
+    if (nc%hasVariable("mrm_discharge")) then
+      nc_var = nc%getVariable("mrm_discharge")
+      call nc_var%readInto(self%discharge)
+    else
+      self%discharge = self%router%previous_discharge
+      log_warn(*) "mRM restart has no published discharge; using the final internal routing state."
+    end if
+    call nc%close()
+  end subroutine mrm_read_public_discharge
+
+  !> \brief Validate routing/output compatibility and boundary-only restart rules.
+  subroutine mrm_validate_timing(self)
+    use mo_datetime, only: one_hour
+    use mo_grid_io, only: daily, monthly, yearly, no_time
+    class(mrm_t), intent(in), target :: self
+    integer(i4) :: frequency
+    integer(i4) :: output_records
+    integer(i4) :: routing_results
+    integer(i4) :: status
+    integer(i4) :: total_hours
+    logical :: output_enabled
+    logical :: output_boundary
+
+    total_hours = nint((self%exchange%end_time - self%exchange%start_time) / one_hour(), i4)
+    if (mod(total_hours, self%router%routing_step) /= 0_i4) then
+      log_fatal(*) "mRM simulation end must be a routing boundary: duration ", total_hours, &
+        "h is not divisible by routing_step=", self%router%routing_step, "h."
+      error stop 1
+    end if
+
+    output_enabled = self%output_active .or. self%output_node_active
+    if (.not.output_enabled) return
+    frequency = self%output_config%output_frequency
+    output_boundary = self%at_output_boundary(self%exchange%end_time)
+    select case (frequency)
+      case (daily)
+        if (mod(24_i4, self%router%routing_step) /= 0_i4) then
+          log_fatal(*) "Daily mRM output requires routing_step to divide 24h."
+          error stop 1
+        end if
+        if (.not.self%exchange%start_time%is_new_day()) then
+          log_fatal(*) "Daily mRM output requires the simulation to start at a day boundary."
+          error stop 1
+        end if
+      case (monthly)
+        if (mod(24_i4, self%router%routing_step) /= 0_i4) then
+          log_fatal(*) "Monthly mRM output requires routing_step to divide 24h."
+          error stop 1
+        end if
+        if (.not.self%exchange%start_time%is_new_month()) then
+          log_fatal(*) "Monthly mRM output requires the simulation to start at a month boundary."
+          error stop 1
+        end if
+      case (yearly)
+        if (mod(24_i4, self%router%routing_step) /= 0_i4) then
+          log_fatal(*) "Yearly mRM output requires routing_step to divide 24h."
+          error stop 1
+        end if
+        if (.not.self%exchange%start_time%is_new_year()) then
+          log_fatal(*) "Yearly mRM output requires the simulation to start at a year boundary."
+          error stop 1
+        end if
+      case (no_time)
+        continue
+      case default
+        call derive_mrm_output_timing( &
+          self%router%routing_step, frequency, routing_results, output_records, status)
+        if (status /= 0_i4) then
+          log_fatal(*) "mRM output_frequency=", frequency, "h and routing_step=", &
+            self%router%routing_step, "h must be whole multiples of one another."
+          error stop 1
+        end if
+    end select
+
+    if (self%write_restart .and. .not.output_boundary) then
+      log_fatal(*) "mRM restart output time must coincide with an mRM output boundary."
+      error stop 1
+    end if
+  end subroutine mrm_validate_timing
+
+  !> \brief Report whether a timestamp is a configured mRM output boundary.
+  logical function mrm_at_output_boundary(self, time) result(boundary)
+    use mo_datetime, only: datetime, one_hour
+    use mo_grid_io, only: daily, monthly, yearly, no_time
+    class(mrm_t), intent(in), target :: self
+    type(datetime), intent(in) :: time
+    integer(i4) :: elapsed_hours
+
+    if (.not.self%output_active .and. .not.self%output_node_active) then
+      boundary = .true.
+      return
+    end if
+    select case (self%output_config%output_frequency)
+      case (daily)
+        boundary = time%is_new_day()
+      case (monthly)
+        boundary = time%is_new_month()
+      case (yearly)
+        boundary = time%is_new_year()
+      case (no_time)
+        boundary = time == self%exchange%end_time
+      case default
+        elapsed_hours = nint((time - self%exchange%start_time) / one_hour(), i4)
+        boundary = elapsed_hours >= 0_i4 .and. &
+          mod(elapsed_hours, self%output_config%output_frequency) == 0_i4
+    end select
+  end function mrm_at_output_boundary
+
   ! perform routing within time loop
   subroutine mrm_update(self)
-    use mo_grid_io, only: daily, monthly, yearly, no_time
     class(mrm_t), target, intent(inout) :: self
-    logical :: write_stamp
+    logical :: completed
     log_trace(*) "Update mRM"
 
     ! route runoff
-    call self%router%update(self%exchange%runoff_total%data, self%discharge)
+    call self%router%update(self%exchange%runoff_total%data, self%discharge, completed)
+    if (completed) call self%update_output()
+  end subroutine mrm_update
 
-    ! write time-stamp depending on config
+  !> \brief Add one newly completed routing-step mean to all active mRM outputs.
+  subroutine mrm_add_output(self)
+    class(mrm_t), intent(inout), target :: self
+
+    if (self%output_node_active) call self%ds_node_out%update("discharge", self%discharge)
+    if (self%output_active) then
+      if (self%scc_active) then
+        call self%ds_out%update("discharge", self%river%select_cell_values(self%discharge))
+      else
+        call self%ds_out%update("discharge", self%discharge)
+      end if
+    end if
+  end subroutine mrm_add_output
+
+  !> \brief Backfill or aggregate completed routing results at the configured mRM output cadence.
+  subroutine mrm_update_output(self)
+    use mo_datetime, only: datetime, timedelta, one_hour
+    use mo_grid_io, only: daily, monthly, yearly, no_time
+    class(mrm_t), intent(inout), target :: self
+    type(datetime) :: write_time
+    integer(i4) :: elapsed_hours
+    integer(i4) :: frequency
+    integer(i4) :: i
+    integer(i4) :: records
+    integer(i4) :: routing_results
+    integer(i4) :: status
+    logical :: write_stamp
+
+    if (.not.self%output_active .and. .not.self%output_node_active) return
+    frequency = self%output_config%output_frequency
+
+    ! A completed routing mean can be repeated over finer fixed-hour output records.
+    if (frequency > 0_i4 .and. frequency < self%router%routing_step) then
+      call derive_mrm_output_timing( &
+        self%router%routing_step, frequency, routing_results, records, status)
+      if (status /= 0_i4) then
+        log_fatal(*) "Invalid fixed-hour mRM output cadence after initialization."
+        error stop 1
+      end if
+      do i = 1_i4, records
+        write_time = self%exchange%time
+        call write_time%add(timedelta(hours=-(self%router%routing_step - i * frequency)))
+        call self%add_output()
+        if (self%output_node_active) call self%ds_node_out%write(write_time)
+        if (self%output_active) call self%ds_out%write(write_time)
+      end do
+      return
+    end if
+
+    ! Equal or coarser outputs receive exactly one sample per completed routing step.
+    call self%add_output()
     write_stamp = .false.
-    select case(self%output_config%output_frequency)
+    select case(frequency)
       case(daily)
         if (self%exchange%time%is_new_day()) write_stamp = .true.
       case(monthly)
@@ -475,24 +763,16 @@ contains
         if (self%exchange%time%is_new_year()) write_stamp = .true.
       case(no_time) ! once
         if (self%exchange%time == self%exchange%end_time) write_stamp = .true.
-      case default ! every n time steps
-        if (mod(self%exchange%step_count, self%output_config%output_frequency) == 0_i4) write_stamp = .true.
+      case default ! fixed hours
+        elapsed_hours = nint((self%exchange%time - self%exchange%start_time) / one_hour(), i4)
+        if (mod(elapsed_hours, frequency) == 0_i4) write_stamp = .true.
     end select
 
-    ! update output
-    if (self%output_node_active) then
-      call self%ds_node_out%update("discharge", self%discharge)
-      if (write_stamp) call self%ds_node_out%write(self%exchange%time)
+    if (write_stamp) then
+      if (self%output_node_active) call self%ds_node_out%write(self%exchange%time)
+      if (self%output_active) call self%ds_out%write(self%exchange%time)
     end if
-    if (self%output_active) then
-      if (self%scc_active) then
-        call self%ds_out%update("discharge", self%river%select_cell_values(self%discharge))
-      else
-        call self%ds_out%update("discharge", self%discharge)
-      end if
-      if (write_stamp) call self%ds_out%write(self%exchange%time)
-    end if
-  end subroutine mrm_update
+  end subroutine mrm_update_output
 
   subroutine mrm_finalize(self)
     class(mrm_t), intent(inout), target :: self

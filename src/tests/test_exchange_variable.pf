@@ -1,13 +1,16 @@
 module test_exchange_variable
   use funit
-  use mo_exchange_type, only: var_dp, var2d_dp
-  use mo_kind, only: dp, i8
+  use mo_exchange_type, only: exchange_t, var_dp, var2d_dp
+  use mo_parameter_types, only: parameter_t
+  use mo_datetime, only: datetime, timedelta
+  use mo_kind, only: dp, i4, i8
 
   implicit none
 
   private
 
   public :: test_var_dp_contract, test_var_dp_alias, test_var2d_dp_contract
+  public :: test_exchange_external_metadata, test_exchange_clock
 
 contains
 
@@ -24,8 +27,9 @@ contains
     @assertEqual(.false., variable%available(), message='var_dp starts unavailable')
     @assertEqual(.true., variable%available(owned=.true.), message='var_dp owned availability')
 
-    call variable%publish_local("test", local)
+    call variable%publish_local("test", local, 6_i4)
     @assertEqual(.true., variable%provided, message='var_dp publish_local sets provided')
+    @assertEqual(6_i4, variable%stepping, message='var_dp publish_local records stepping')
     @assertEqual(.true., variable%available(), message='var_dp publish_local makes available')
     @assertEqual(2.0_dp, variable%data(2), message='var_dp publish_local points to local data')
 
@@ -40,9 +44,11 @@ contains
     @assertEqual(.false., variable%provided, message='var_dp owned clear resets provided')
     @assertEqual(.false., variable%has_data(), message='var_dp owned clear nullifies data')
     @assertEqual(.true., variable%required, message='var_dp owned clear keeps required')
+    @assertEqual(0_i4, variable%stepping, message='var_dp owned clear resets stepping')
 
     dynamic_source = var_dp(name="dynamic_source")
     dynamic_source%provided = .true.
+    call dynamic_source%set_stepping("test", 1_i4)
     call dynamic_source%require("test", .true., check_data=.false.)
     @assertEqual(.true., dynamic_source%required, message='var_dp require can validate source only')
     @assertEqual(.false., dynamic_source%has_data(), message='var_dp source-only require does not need data')
@@ -58,11 +64,13 @@ contains
     source = var_dp(name="source")
     alias = var_dp(name="alias")
 
-    call source%publish_local("test", local)
+    call source%publish_local("test", local, 24_i4)
     call alias%publish_alias("test", source)
     local(1) = 9.0_dp
 
     @assertEqual(.true., alias%provided, message='var_dp publish_alias sets provided')
+    @assertEqual(24_i4, alias%stepping, message='var_dp publish_alias copies stepping')
+    @assertEqual(source%static, alias%static, message='var_dp publish_alias copies static flag')
     @assertEqual(9.0_dp, alias%data(1), message='var_dp publish_alias points to source data')
     call alias%expect_handoff("test", .true., [3_i8])
     @assertEqual(.true., alias%required, message='var_dp expect_handoff marks required')
@@ -77,7 +85,7 @@ contains
     local = reshape([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp, 5.0_dp, 6.0_dp], shape(local))
     variable = var2d_dp(name="test_layered")
 
-    call variable%publish_local("test", local)
+    call variable%publish_local("test", local, 1_i4)
     @assertEqual(.true., variable%available(), message='var2d_dp publish_local makes available')
     @assertEqual(5.0_dp, variable%data(1, 3), message='var2d_dp publish_local points to local data')
 
@@ -87,5 +95,52 @@ contains
     call variable%expect_handoff("test", .true., [2_i8, 3_i8])
     @assertEqual(.true., variable%required, message='var2d_dp expect_handoff marks required')
   end subroutine test_var2d_dp_contract
+
+  @test
+  subroutine test_exchange_external_metadata()
+    type(exchange_t) :: exchange
+    real(dp), target :: runoff(3)
+    integer(i4) :: stepping
+    logical :: provided
+
+    runoff = [1.0_dp, 2.0_dp, 3.0_dp]
+    call exchange%set_data("runoff_total", runoff, 24_i4)
+    call exchange%get_meta("runoff_total", stepping=stepping, provided=provided)
+
+    @assertEqual(24_i4, stepping, message='exchange set_data records stepping')
+    @assertTrue(provided, message='exchange set_data publishes the variable')
+    @assertEqual(2.0_dp, exchange%runoff_total%data(2), message='exchange set_data points to external data')
+  end subroutine test_exchange_external_metadata
+
+  @test
+  subroutine test_exchange_clock()
+    type(exchange_t) :: exchange
+    type(parameter_t) :: configured(1)
+    real(dp), allocatable :: values(:)
+
+    configured(1) = parameter_t(value=2.0_dp, optimize=.true., min=1.0_dp, max=4.0_dp)
+    call exchange%parameters%begin_configuration()
+    call exchange%parameters%add_process("clock", configured, [character(32) :: "factor"], group="clock_1")
+    call exchange%parameters%seal()
+    exchange%start_time = datetime("2020-02-28 23:00")
+    exchange%step = timedelta(hours=1_i4)
+
+    call exchange%initialize([3.0_dp])
+    values = exchange%parameters%as_array()
+    @assertEqual("2020-02-28 23:00:00", exchange%time%str(), message='initialize sets endpoint to start time')
+    @assertEqual(exchange%time%str(), exchange%time_step_start%str(), message='initial interval is empty')
+    @assertEqual(0_i4, exchange%step_count, message='initialize resets step counter')
+    @assertEqual(3.0_dp, values(1), message='initialize applies parameter override')
+
+    call exchange%update()
+    @assertEqual("2020-02-28 23:00:00", exchange%time_step_start%str(), message='update snapshots prior endpoint')
+    @assertEqual("2020-02-29 00:00:00", exchange%time%str(), message='update advances endpoint once')
+    @assertEqual(1_i4, exchange%step_count, message='update increments step counter once')
+
+    call exchange%initialize()
+    values = exchange%parameters%as_array()
+    @assertEqual(2.0_dp, values(1), message='initialize without override resets parameters')
+    @assertEqual(0_i4, exchange%step_count, message='reinitialize resets step counter')
+  end subroutine test_exchange_clock
 
 end module test_exchange_variable

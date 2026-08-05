@@ -11,7 +11,7 @@
 module mo_river_router
 
   use mo_kind, only: i4, i8, dp
-  use mo_constants, only: nodata_i4, nodata_dp
+  use mo_constants, only: nodata_dp
   use mo_utils, only: equal, optval
   use mo_string_utils, only: n2s => num2str
   use mo_river, only: river_t
@@ -38,6 +38,7 @@ module mo_river_router
   integer(i4), public, parameter :: current = 1_i4 !< selector for current time step
   integer(i4), public, parameter :: previous = 2_i4 !< selector for previous time step
   real(dp), public, parameter :: liter_to_m3 = 0.001_dp !< conversion factor from liter to m3
+  public :: derive_routing_timing
   !!@}
 
   !> \class inflow_t
@@ -59,11 +60,11 @@ module mo_river_router
     type(grid_t), pointer :: input_grid => null() !< grid the input (e.g. runoff) is defined on
     type(scaler_t) :: scaler !< input rescaler
     integer(i4) :: input_step !< [h] time step size of the input in hours
-    integer(i4) :: input_count !< [-] number of accumulated inputs for longer output step
-    integer(i4) :: output_step !< [h] time step size of the output in hours (at least 1)
-    real(dp) :: step !< [s] time step size of the routing (for meeting the CFL condition)
-    integer(i4) :: iterations !< number of routing iterations for each output step
-    integer(i4) :: accumulations !< number of input accumulations for each output step
+    integer(i4) :: input_count !< [-] number of accumulated model updates for one routing step
+    integer(i4) :: routing_step !< [h] interval represented by one completed routing result
+    real(dp) :: routing_substep !< [s] numerical routing step for meeting the CFL condition
+    integer(i4) :: iterations !< number of numerical substeps for each routing step
+    integer(i4) :: accumulations !< number of model updates for each routing step
     type(inflow_t) :: inflow_handler !< inflow handler
     !> [mm] accumulated runoff size(input_grid\%ncells)
     real(dp), allocatable :: acc_runoff(:)
@@ -91,6 +92,7 @@ module mo_river_router
     procedure, public :: deallocate => river_router_deallocate
     procedure, private :: setup_grids => river_router_setup_grids
     procedure, private :: setup_muskingum => river_router_setup_muskingum
+    procedure, private :: setup_timing => river_router_setup_timing
     procedure, private :: setup_parallelization => river_router_setup_parallelization
     procedure, private :: scale_runoff => river_router_scale_runoff
     procedure, private :: route => river_router_route
@@ -103,6 +105,65 @@ module mo_river_router
   end type river_router_t
 
 contains
+
+  !> \brief Derive the completed routing step and its update/iteration counts.
+  subroutine derive_routing_timing(input_step, model_step, routing_substep, routing_step, iterations, accumulations, status)
+    implicit none
+    integer(i4), intent(in) :: input_step !< [h] runoff support interval
+    integer(i4), intent(in) :: model_step !< [h] model update interval
+    real(dp), intent(in) :: routing_substep !< [s] numerical routing substep
+    integer(i4), intent(out) :: routing_step !< [h] completed routing interval
+    integer(i4), intent(out) :: iterations !< numerical routing iterations per routing step
+    integer(i4), intent(out) :: accumulations !< model updates per routing step
+    integer(i4), intent(out) :: status !< 0 success; positive values identify an invalid timing input
+    integer(i8) :: a, b, divisor
+    integer(i8) :: model_seconds, routing_seconds, substep_seconds
+
+    routing_step = 0_i4
+    iterations = 0_i4
+    accumulations = 0_i4
+    status = 0_i4
+    if (input_step < 1_i4) then
+      status = 1_i4
+      return
+    end if
+    if (model_step < 1_i4) then
+      status = 2_i4
+      return
+    end if
+    if (input_step < model_step) then
+      status = 3_i4
+      return
+    end if
+    if (mod(input_step, model_step) /= 0_i4) then
+      status = 4_i4
+      return
+    end if
+
+    substep_seconds = nint(routing_substep, i8)
+    if (substep_seconds < 1_i8 .or. .not.equal(routing_substep, real(substep_seconds, dp))) then
+      status = 5_i4
+      return
+    end if
+    model_seconds = int(model_step, i8) * int(HOUR_SECONDS, i8)
+    a = model_seconds
+    b = substep_seconds
+    do while (b /= 0_i8)
+      divisor = mod(a, b)
+      a = b
+      b = divisor
+    end do
+    routing_seconds = (model_seconds / a) * substep_seconds
+    if (mod(routing_seconds, int(HOUR_SECONDS, i8)) /= 0_i8 .or. &
+      routing_seconds / int(HOUR_SECONDS, i8) > int(huge(routing_step), i8)) then
+      status = 6_i4
+      return
+    end if
+
+    routing_step = int(routing_seconds / int(HOUR_SECONDS, i8), i4)
+    iterations = int(routing_seconds / substep_seconds, i4)
+    accumulations = routing_step / model_step
+  end subroutine derive_routing_timing
 
   !> \brief Set river and input grid for router and initialize scaler if not yet initialized or input grid has changed.
   subroutine river_router_setup_grids(this, river, input_grid)
@@ -158,7 +219,7 @@ contains
   end subroutine river_router_allocate
 
   !> \brief Setup river upscaler from fine river and coarse target grid.
-  subroutine river_router_init(this, river, input_grid, input_step, max_route_step, root_levels, omp_level_thresh)
+  subroutine river_router_init(this, river, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, model_step)
     implicit none
     class(river_router_t), intent(inout) :: this
     type(river_t), pointer, intent(in) :: river !< river definition
@@ -169,8 +230,12 @@ contains
     logical, intent(in), optional :: root_levels !< order levels as distance from graph roots (default: .false.)
     !> minimum size of river-levels to route in parallel (default: -1 - threads*8, specials: 0 - all serial, 1 - all in parallel)
     integer(i8), optional, intent(in) :: omp_level_thresh
+    integer(i4), intent(in), optional :: model_step !< [h] time between update calls (input_step by default)
+
+    integer(i4) :: model_step_
 
     this%input_step = optval(input_step, 1_i4)
+    model_step_ = optval(model_step, this%input_step)
     call this%setup_grids(river, input_grid)
     call this%allocate() ! allocate arrays based on river and input grid size
 
@@ -184,12 +249,12 @@ contains
     this%previous_tributary(:) = 0.0_dp
 
     ! setup muskingum parameters
-    call this%setup_muskingum(max_route_step)
+    call this%setup_muskingum(max_route_step, model_step_)
     ! setup parallelization
     call this%setup_parallelization(root_levels, omp_level_thresh)
   end subroutine river_router_init
 
-  subroutine river_router_from_restart_file(this, path, river, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, read_fluxes)
+  subroutine river_router_from_restart_file(this, path, river, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, read_fluxes, model_step)
     use mo_netcdf, only : NcDataset
     implicit none
     class(river_router_t), intent(inout) :: this
@@ -203,14 +268,17 @@ contains
     !> minimum size of river-levels to route in parallel (default: threads * 8, 0 to run all in serial, 1 to run all in parallel)
     integer(i8), optional, intent(in) :: omp_level_thresh
     logical, optional, intent(in) :: read_fluxes !< whether to read fluxes from restart file (default: .true.)
+    integer(i4), intent(in), optional :: model_step !< [h] time between update calls (input_step by default)
     type(NcDataset) :: nc
     nc = NcDataset(path, "r")
-    call this%from_restart_dataset(nc, river, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, read_fluxes)
+    call this%from_restart_dataset( &
+      nc=nc, river=river, input_grid=input_grid, input_step=input_step, max_route_step=max_route_step, &
+      root_levels=root_levels, omp_level_thresh=omp_level_thresh, read_fluxes=read_fluxes, model_step=model_step)
     call nc%close()
   end subroutine river_router_from_restart_file
 
   !> \brief Setup river router from restart file
-  subroutine river_router_from_restart_dataset(this, nc, river, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, read_fluxes)
+  subroutine river_router_from_restart_dataset(this, nc, river, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, read_fluxes, model_step)
     use mo_utils, only: locate
     !$ use omp_lib, only: omp_get_num_threads
     implicit none
@@ -225,13 +293,16 @@ contains
     !> minimum size of river-levels to route in parallel (default: threads * 8, 0 to run all in serial, 1 to run all in parallel)
     integer(i8), optional, intent(in) :: omp_level_thresh
     logical, optional, intent(in) :: read_fluxes !< whether to read fluxes from restart file (default: .true.)
+    integer(i4), intent(in), optional :: model_step !< [h] time between update calls (input_step by default)
 
     type(NcVariable) :: var
     logical :: do_read_fluxes
+    integer(i4) :: model_step_
 
     do_read_fluxes = optval(read_fluxes, .true.)
 
     this%input_step = optval(input_step, 1_i4)
+    model_step_ = optval(model_step, this%input_step)
     call this%setup_grids(river, input_grid)
     call this%allocate() ! allocate arrays based on river and input grid size
 
@@ -239,15 +310,10 @@ contains
 
     ! initial states
     this%input_count = 0_i4
+    this%acc_runoff(:) = 0.0_dp
 
-    ! get discharge
-    if (do_read_fluxes .and. nc%hasVariable("discharge")) then
-      var = nc%getVariable("discharge")
-      call var%readInto(this%discharge)
-    else
-      ! TODO: warn about this
-      this%discharge(:) = 0.0_dp
-    end if
+    ! Current arrays are scratch buffers overwritten by the next routing calculation.
+    this%discharge(:) = 0.0_dp
 
     ! get previous discharge
     if (do_read_fluxes .and. nc%hasVariable("previous_discharge")) then
@@ -258,14 +324,7 @@ contains
       this%previous_discharge(:) = 0.0_dp
     end if
 
-    ! get tributary
-    if (do_read_fluxes .and. nc%hasVariable("tributary")) then
-      var = nc%getVariable("tributary")
-      call var%readInto(this%tributary)
-    else
-      ! TODO: warn about this
-      this%tributary(:) = 0.0_dp
-    end if
+    this%tributary(:) = 0.0_dp
 
     ! get previous tributary
     if (do_read_fluxes .and. nc%hasVariable("previous_tributary")) then
@@ -297,23 +356,21 @@ contains
     ! get routing step
     if (nc%hasVariable("route_step")) then
       var = nc%getVariable("route_step")
-      call var%readInto(this%step)
+      call var%readInto(this%routing_substep)
     else
       call warn_message("route_step not found in restart file, cannot initialize river router from restart without route_step.")
       error stop 1
     end if
 
     if (present(max_route_step)) then
-      if (this%step > max_route_step) then
-        call warn_message("Routing step in restart file (", n2s(this%step), "s) is larger than specified max_route_step (", n2s(max_route_step), "s).")
+      if (this%routing_substep > max_route_step) then
+        call warn_message("Routing substep in restart file (", n2s(this%routing_substep), &
+          "s) is larger than specified max_route_step (", n2s(max_route_step), "s).")
         error stop 1
       end if
     end if
 
-    this%output_step = max(this%input_step, merge(1_i4, nint(this%step, i4) / HOUR_SECONDS, this%step < 3600.0_dp))
-    this%iterations = (this%output_step * HOUR_SECONDS) / nint(this%step, i4) ! 1 if step > 3600
-    this%accumulations = 1_i4
-    if (this%output_step > this%input_step) this%accumulations = this%output_step / this%input_step
+    call this%setup_timing(model_step_)
 
     ! setup parallelization
     call this%setup_parallelization(root_levels, omp_level_thresh)
@@ -345,6 +402,9 @@ contains
     type(NcVariable) :: nc_var
     type(NcDimension) :: node_dim, dims(0)
 
+    if (this%input_count /= 0_i4) call error_message( &
+      "Cannot write routing restart inside an unfinished routing step; choose a routing boundary.")
+
     if ( .not.nc%hasDimension("node") ) then
       if (this%river%n_nodes > int(huge(1_i4),i8)) call error_message("river_router%to_restart: river network too large to write to restart.")
       node_dim = nc%setDimension("node", int(this%river%n_nodes, i4))  ! only works if network is not to huge for i4
@@ -352,18 +412,8 @@ contains
       node_dim = nc%getDimension("node")
     end if
 
-    ! write discharge
-    if ( allocated(this%discharge) ) then
-      call message("writing discharge to restart_file")
-      nc_var = nc%setVariable("discharge", "f64", [node_dim])
-      call nc_var%setAttribute("long_name", "discharge")
-      call nc_var%setAttribute("units", "m3 s-1")
-      call nc_var%setFillValue(nodata_dp)
-      call nc_var%setAttribute("missing_value", nodata_dp)
-      call nc_var%setData(this%discharge)
-    end if
-
-    ! write previous_discharge
+    ! Write only the previous arrays: the current arrays are scratch buffers that
+    ! are overwritten before they are read by the next routing calculation.
     if ( allocated(this%previous_discharge) ) then
       call message("writing previous_discharge to restart_file")
       nc_var = nc%setVariable("previous_discharge", "f64", [node_dim])
@@ -372,17 +422,6 @@ contains
       call nc_var%setFillValue(nodata_dp)
       call nc_var%setAttribute("missing_value", nodata_dp)
       call nc_var%setData(this%previous_discharge)
-    end if
-
-    ! write tributary
-    if ( allocated(this%tributary) ) then
-      call message("writing tributary to restart_file")
-      nc_var = nc%setVariable("tributary", "f64", [node_dim])
-      call nc_var%setAttribute("long_name", "tributary")
-      call nc_var%setAttribute("units", "m3 s-1")
-      call nc_var%setFillValue(nodata_dp)
-      call nc_var%setAttribute("missing_value", nodata_dp)
-      call nc_var%setData(this%tributary)
     end if
 
     ! write previous_tributary
@@ -418,20 +457,21 @@ contains
       call nc_var%setData(this%nu2)
     end if
 
-    ! routing step (used to determine nu1 and nu2)
+    ! numerical routing substep (used to determine nu1 and nu2)
     nc_var = nc%setVariable("route_step", "f64", dims(:0)) ! scalar
-    call nc_var%setAttribute("long_name", "routing step")
+    call nc_var%setAttribute("long_name", "numerical routing substep")
     call nc_var%setAttribute("units", "s")
-    call nc_var%setData(this%step)
+    call nc_var%setData(this%routing_substep)
 
   end subroutine river_router_to_restart_dataset
 
   !> \brief calculate the muskingum parameters nu1 and nu2
-  subroutine river_router_setup_muskingum(this, max_route_step)
+  subroutine river_router_setup_muskingum(this, max_route_step, model_step)
     use mo_utils, only: locate
     implicit none
     class(river_router_t), intent(inout) :: this
     real(dp), optional, intent(in) :: max_route_step !< [s] maximum routing time step (default: 86400.0)
+    integer(i4), intent(in) :: model_step !< [h] time between router update calls
     real(dp), allocatable :: k(:)
     real(dp) :: xi
     integer(i4) :: step_id
@@ -446,20 +486,46 @@ contains
 
     ! set min wave travel time to min routing step
     step_id = max(1_i4, locate(routing_steps, minval(k, mask=.not.this%river%is_sink)))
-    this%step = routing_steps(step_id)
-    if (present(max_route_step)) this%step = min(this%step, max_route_step)
-    if (.not.any(equal(this%step, routing_steps))) call error_message("routine step is invalid: ", n2s(this%step))
+    this%routing_substep = routing_steps(step_id)
+    if (present(max_route_step)) this%routing_substep = min(this%routing_substep, max_route_step)
+    if (.not.any(equal(this%routing_substep, routing_steps))) &
+      call error_message("routing substep is invalid: ", n2s(this%routing_substep))
 
     ! muskingum parameters
-    this%nu1 = this%step / ( k * (1.0_dp - xi) + this%step / 2.0_dp )
-    this%nu2 = 1.0_dp - this%nu1 * k / this%step
+    this%nu1 = this%routing_substep / ( k * (1.0_dp - xi) + this%routing_substep / 2.0_dp )
+    this%nu2 = 1.0_dp - this%nu1 * k / this%routing_substep
 
-    ! output step size (at least input step) and number of iterations for sub-hour routing
-    this%output_step = max(this%input_step, merge(1_i4, nint(this%step, i4) / HOUR_SECONDS, this%step < 3600.0_dp))
-    this%iterations = (this%output_step * HOUR_SECONDS) / nint(this%step, i4) ! 1 if step > 3600
-    ! if output step is longer than input, we need to accumulate inputs
-    this%accumulations = this%output_step / this%input_step
+    call this%setup_timing(model_step)
   end subroutine river_router_setup_muskingum
+
+  !> \brief Derive completed routing cadence from the model and numerical routing steps.
+  subroutine river_router_setup_timing(this, model_step)
+    implicit none
+    class(river_router_t), intent(inout) :: this
+    integer(i4), intent(in) :: model_step !< [h] time between router update calls
+    integer(i4) :: status
+
+    call derive_routing_timing( &
+      this%input_step, model_step, this%routing_substep, this%routing_step, this%iterations, this%accumulations, status)
+    select case (status)
+      case (1_i4)
+        call error_message("Runoff input step must be positive.")
+      case (2_i4)
+        call error_message("Model step must be positive.")
+      case (3_i4)
+        call error_message("Runoff input step must not be finer than the model step.")
+      case (4_i4)
+        call error_message("Runoff input step must be divisible by the model step.")
+      case (5_i4)
+        call error_message("Routing substep must be a positive whole number of seconds.")
+      case (6_i4)
+        call error_message("Could not derive a whole-hour routing step.")
+    end select
+    if (mod(this%routing_step, model_step) /= 0_i4) call error_message( &
+      "Routing step must be divisible by the model step.")
+    if (mod(this%routing_step * HOUR_SECONDS, nint(this%routing_substep, i4)) /= 0_i4) call error_message( &
+      "Routing substep must divide the completed routing step.")
+  end subroutine river_router_setup_timing
 
   !> \brief Setup parallelization of river routing based on river level sizes and user settings.
   subroutine river_router_setup_parallelization(this, root_levels, omp_level_thresh)
@@ -508,13 +574,15 @@ contains
   end subroutine river_router_setup_parallelization
 
   !> \brief Update routing for one time step
-  subroutine river_router_update(this, input_runoff, discharge)
+  subroutine river_router_update(this, input_runoff, discharge, completed)
     implicit none
     class(river_router_t), intent(inout) :: this
     real(dp), dimension(this%input_grid%ncells), intent(in) :: input_runoff
-    real(dp), dimension(this%river%n_nodes), intent(out) :: discharge
+    real(dp), dimension(this%river%n_nodes), intent(inout) :: discharge
+    logical, intent(out) :: completed !< whether a new routing-step mean was produced
     integer(i4) :: i
     integer(i8) :: n, c
+    completed = .false.
     ! accumulate input runoff
     this%input_count = this%input_count + 1_i4
     if (this%input_count == 1_i4) then
@@ -525,7 +593,7 @@ contains
     if (this%input_count < this%accumulations) return ! not yet ready to route
     ! reset input counter
     this%input_count = 0_i4
-    ! average runoff flux over input time step accumulations
+    ! Average repeated runoff amounts across model updates before converting the represented input support to a rate.
     if (this%accumulations > 1_i4) this%acc_runoff = this%acc_runoff / this%accumulations
     ! distribute runoff in case of SCC
     if (this%river%scc) then
@@ -555,6 +623,7 @@ contains
     end do
     ! average discharge flux over output time step iterations
     if (this%iterations > 1_i4) discharge = discharge / this%iterations
+    completed = .true.
   end subroutine river_router_update
 
   !> \brief Setup river upscaler from fine river and coarse target grid.

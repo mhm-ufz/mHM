@@ -1,6 +1,7 @@
 module test_meteo_temporal_tools
   use funit
   use mo_meteo_temporal_tools
+  use mo_meteo_container, only: meteo_is_day_step
   use mo_kind, only: dp
 
   implicit none
@@ -10,10 +11,27 @@ module test_meteo_temporal_tools
   public :: test_temporal_disagg_meteo_weights
   public :: test_temporal_disagg_flux_daynight
   public :: test_temporal_disagg_state_daynight
+  public :: test_interval_start_daynight_window
 
   real(dp) :: t = 0.001_dp
 
 contains
+
+  @test
+  subroutine test_interval_start_daynight_window()
+    integer :: day_steps
+    integer :: hour
+
+    @assertFalse(meteo_is_day_step(5), message='the interval ending at 06:00 remains a night interval')
+    @assertTrue(meteo_is_day_step(6), message='the interval starting at 06:00 is the first day interval')
+    @assertTrue(meteo_is_day_step(17), message='the interval ending at 18:00 is the last day interval')
+    @assertFalse(meteo_is_day_step(18), message='the interval starting at 18:00 is a night interval')
+    day_steps = 0
+    do hour = 0, 23
+      if (meteo_is_day_step(hour)) day_steps = day_steps + 1
+    end do
+    @assertEqual(12, day_steps, message='the legacy day/night split must keep twelve hourly day intervals')
+  end subroutine test_interval_start_daynight_window
 
   @test
   subroutine test_temporal_disagg_meteo_weights()

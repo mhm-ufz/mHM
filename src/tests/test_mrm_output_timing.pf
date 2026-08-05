@@ -1,0 +1,39 @@
+module test_mrm_output_timing
+  use funit
+  use mo_kind, only: i4
+  use mo_mrm_container, only: derive_mrm_output_timing
+
+  implicit none
+  private
+
+  public :: test_mrm_fixed_output_timing
+
+contains
+
+  @test
+  subroutine test_mrm_fixed_output_timing()
+    integer(i4) :: output_records, routing_results, status
+
+    call derive_mrm_output_timing(8_i4, 4_i4, routing_results, output_records, status)
+    @assertEqual(0_i4, status, message='finer output is supported when it divides the routing step')
+    @assertEqual(2_i4, output_records, message='one 8h routing mean backfills two 4h records')
+    @assertEqual(1_i4, routing_results, message='a finer output record uses one completed routing mean')
+
+    call derive_mrm_output_timing(4_i4, 8_i4, routing_results, output_records, status)
+    @assertEqual(0_i4, status, message='coarser output is supported when routing divides it')
+    @assertEqual(1_i4, output_records, message='one completed routing mean contributes one sample')
+    @assertEqual(2_i4, routing_results, message='two 4h routing means form one 8h output record')
+
+    call derive_mrm_output_timing(8_i4, 8_i4, routing_results, output_records, status)
+    @assertEqual(0_i4, status, message='equal output and routing steps are supported')
+    @assertEqual(1_i4, output_records)
+    @assertEqual(1_i4, routing_results)
+
+    call derive_mrm_output_timing(8_i4, 12_i4, routing_results, output_records, status)
+    @assertEqual(3_i4, status, message='12h output cannot aggregate complete 8h routing means')
+
+    call derive_mrm_output_timing(12_i4, 8_i4, routing_results, output_records, status)
+    @assertEqual(3_i4, status, message='a 12h routing mean cannot fill whole 8h output intervals')
+  end subroutine test_mrm_fixed_output_timing
+
+end module test_mrm_output_timing

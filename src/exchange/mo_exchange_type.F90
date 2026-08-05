@@ -19,6 +19,7 @@
 module mo_exchange_type
   use mo_logging
   use mo_grid, only: grid_t
+  use mo_grid_io, only: no_time, daily, monthly, yearly, varying
   use mo_geology_classdefinition, only: geology_classdefinition_t
   use mo_datetime, only: datetime, timedelta
   use mo_kind, only: dp, i4, i8
@@ -61,7 +62,7 @@ module mo_exchange_type
 
   !> \class   variable_abc
   !> \brief   Abstract base class for a variable in the exchange type.
-  type, abstract :: variable_abc
+  type, abstract, public :: variable_abc
     character(:), allocatable :: name          !< variable name
     character(:), allocatable :: units         !< variable unit
     character(:), allocatable :: long_name     !< long name of the variable
@@ -79,6 +80,7 @@ module mo_exchange_type
     procedure, public :: require => variable_require
     procedure, public :: expect_handoff => variable_expect_handoff
     procedure, public :: clear => variable_clear
+    procedure, public :: set_stepping => variable_set_stepping
   end type variable_abc
 
   !> \class   var_dp
@@ -178,7 +180,8 @@ module mo_exchange_type
   !> \brief   Class for dynamically exchanging variables in mHM.
   type, public :: exchange_t
     integer(i4) :: step_count               !< current time step
-    type(datetime) :: time                  !< time-stamp for the current time step
+    type(datetime) :: time                  !< upper bound of the current time step
+    type(datetime) :: time_step_start       !< lower bound of the current time step
     type(datetime) :: start_time            !< start time of simulation
     type(datetime) :: eval_start_time       !< start time of evaluation
     type(datetime) :: end_time              !< end time of simulation
@@ -331,6 +334,8 @@ module mo_exchange_type
     procedure, public  :: create => exchange_create
     procedure, public  :: set_dims => exchange_set_dims
     procedure, public  :: configure => exchange_configure
+    procedure, public  :: initialize => exchange_initialize
+    procedure, public  :: update => exchange_update
     procedure, public  :: get_grid => exchange_get_grid
     procedure, public  :: has_grid => exchange_has_grid
     procedure, public :: get_meta => exchange_get_var_meta
@@ -607,6 +612,7 @@ contains
     type(nml_config_project_t) :: local_project
     integer :: status
 
+    config_file = ""
     if (.not.allocated(self%root)) then
       log_fatal(*) "Exchange was not created before configure."
       error stop 1
@@ -781,6 +787,34 @@ contains
     if (self%config%time%share_time_step) id(1) = 1_i4
     self%step = timedelta(hours=self%config%time%time_step(id(1)))
   end subroutine exchange_configure
+
+  !> \brief Initialize exchange-owned parameters and the simulation clock.
+  subroutine exchange_initialize(self, parameters)
+    class(exchange_t), intent(inout), target :: self
+    real(dp), dimension(:), optional, intent(in) :: parameters !< optional flattened runtime parameter values
+
+    self%step_count = 0_i4
+    self%time = self%start_time
+    self%time_step_start = self%start_time
+    if (present(parameters)) then
+      call self%parameters%set(parameters)
+    else
+      call self%parameters%reset()
+    end if
+  end subroutine exchange_initialize
+
+  !> \brief Start the next active interval and advance its endpoint exactly once.
+  subroutine exchange_update(self)
+    class(exchange_t), intent(inout), target :: self
+
+    self%time_step_start = self%time
+    call self%time%add(self%step)
+    self%step_count = self%step_count + 1_i4
+    log_trace(*) "Time step: ", self%time%str()
+    if (self%time%is_new_year()) then
+      log_info(*) "Finished year: ", self%time%year - 1_i4
+    end if
+  end subroutine exchange_update
 
   !> \brief get the grid specifications for the selected level
   subroutine exchange_get_grid(self, selector, grid)
@@ -1030,7 +1064,7 @@ contains
   end subroutine exchange_get_var_class
 
   !> \brief get var_dp pointer to a variable
-  subroutine exchange_get_var_meta(self, var, name, units, long_name, standard_name, grid, static, provided, required)
+  subroutine exchange_get_var_meta(self, var, name, units, long_name, standard_name, grid, static, provided, required, stepping)
     use mo_message, only: error_message
     class(exchange_t), target, intent(in) :: self ! target attribute valid here since Fortran 2003
     character(*), intent(in) :: var                                   !< name of the variable (attribute name)
@@ -1042,6 +1076,7 @@ contains
     logical, intent(out), optional :: static                          !< flag to indicated static data
     logical, intent(out), optional :: provided                        !< flag to indicate that data is provided by a component
     logical, intent(out), optional :: required                        !< flag to indicate that data is required by a component
+    integer(i4), intent(out), optional :: stepping                    !< temporal support of the variable
     class(*), pointer :: tmp
     call self%get_var_class(var, tmp)
     select type (tmp)
@@ -1051,6 +1086,7 @@ contains
         if (present(long_name)     .and. allocated(tmp%long_name))     long_name     = tmp%long_name
         if (present(standard_name) .and. allocated(tmp%standard_name)) standard_name = tmp%standard_name
         if (present(grid))     grid     = tmp%grid
+        if (present(stepping)) stepping = tmp%stepping
         if (present(static))   static   = tmp%static
         if (present(provided)) provided = tmp%provided
         if (present(required)) required = tmp%required
@@ -1160,11 +1196,12 @@ contains
   end subroutine exchange_get_data_2d_lg
 
   !> \brief set pointer to the 1D variable data
-  subroutine exchange_set_data_1d(self, var, data)
+  subroutine exchange_set_data_1d(self, var, data, stepping)
     use mo_message, only: error_message
     class(exchange_t), target, intent(inout) :: self ! target attribute valid here since Fortran 2003
     character(*), intent(in) :: var !< name of the variable (attribute name)
     class(*), target, intent(in) :: data(:) !< target data
+    integer(i4), intent(in) :: stepping !< temporal support of the published data
     class(*), pointer :: tmp
     call self%get_var_class(var, tmp)
     select type (tmp)
@@ -1172,6 +1209,8 @@ contains
         select type (data)
           type is (real(dp))
             tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type real(dp)."
             error stop 1
@@ -1180,6 +1219,8 @@ contains
         select type (data)
           type is (integer(i4))
             tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type integer(i4)."
             error stop 1
@@ -1188,6 +1229,8 @@ contains
         select type (data)
           type is (logical)
             tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type logical."
             error stop 1
@@ -1199,11 +1242,12 @@ contains
   end subroutine exchange_set_data_1d
 
   !> \brief set target for variable data 2D
-  subroutine exchange_set_data_2d(self, var, data)
+  subroutine exchange_set_data_2d(self, var, data, stepping)
     use mo_message, only: error_message
     class(exchange_t), target, intent(inout) :: self ! target attribute valid here since Fortran 2003
     character(*), intent(in) :: var !< name of the variable (attribute name)
     class(*), target, intent(in) :: data(:,:) !< target data
+    integer(i4), intent(in) :: stepping !< temporal support of the published data
     class(*), pointer :: tmp
     call self%get_var_class(var, tmp)
     select type (tmp)
@@ -1211,6 +1255,8 @@ contains
         select type (data)
           type is (real(dp))
             tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type real(dp)."
             error stop 1
@@ -1219,6 +1265,8 @@ contains
         select type (data)
           type is (integer(i4))
             tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type integer(i4)."
             error stop 1
@@ -1227,6 +1275,8 @@ contains
         select type (data)
           type is (logical)
             tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type logical."
             error stop 1
@@ -1306,7 +1356,30 @@ contains
     if (.not.optval(owned, .false.)) return
     call self%clear_data()
     self%provided = .false.
+    self%stepping = 0_i4
   end subroutine variable_clear
+
+  !> \brief Set and validate the temporal support metadata of an exchange variable.
+  subroutine variable_set_stepping(self, component, stepping)
+    class(variable_abc), intent(inout) :: self
+    character(*), intent(in) :: component !< publishing component name for diagnostics
+    integer(i4), intent(in) :: stepping !< temporal support indicator
+
+    if (self%static .and. stepping /= no_time) then
+      log_fatal(*) trim(component), ": static exchange field has non-static stepping: ", variable_name(self), "."
+      error stop 1
+    end if
+    if (.not.self%static .and. stepping == no_time) then
+      log_fatal(*) trim(component), ": dynamic exchange field has static stepping: ", variable_name(self), "."
+      error stop 1
+    end if
+    if (.not.self%static .and. stepping < 1_i4 .and. &
+      all(stepping /= [daily, monthly, yearly, varying])) then
+      log_fatal(*) trim(component), ": invalid exchange stepping ", stepping, " for ", variable_name(self), "."
+      error stop 1
+    end if
+    self%stepping = stepping
+  end subroutine variable_set_stepping
 
   !> \brief Validate the provided/data/shape contract of an exchange variable.
   subroutine variable_validate(self, component, handoff, expected_shape, check_data)
@@ -1328,6 +1401,7 @@ contains
       end if
       error stop 1
     end if
+    call variable_validate_stepping(self, component)
     if (.not.check_data) return
     if (.not.self%has_data()) then
       if (handoff) then
@@ -1354,6 +1428,26 @@ contains
     end if
   end subroutine variable_validate
 
+  !> \brief Validate temporal support metadata on an existing publication.
+  subroutine variable_validate_stepping(self, component)
+    class(variable_abc), intent(in) :: self
+    character(*), intent(in) :: component
+
+    if (self%static .and. self%stepping /= no_time) then
+      log_fatal(*) trim(component), ": static exchange field has non-static stepping: ", variable_name(self), "."
+      error stop 1
+    end if
+    if (.not.self%static .and. self%stepping == no_time) then
+      log_fatal(*) trim(component), ": dynamic exchange field has no stepping metadata: ", variable_name(self), "."
+      error stop 1
+    end if
+    if (.not.self%static .and. self%stepping < 1_i4 .and. &
+      all(self%stepping /= [daily, monthly, yearly, varying])) then
+      log_fatal(*) trim(component), ": invalid exchange stepping ", self%stepping, " for ", variable_name(self), "."
+      error stop 1
+    end if
+  end subroutine variable_validate_stepping
+
   !> \brief Validate that a publication target is not already occupied.
   subroutine variable_validate_publish_target(self, component)
     class(variable_abc), intent(in) :: self
@@ -1375,6 +1469,7 @@ contains
       log_fatal(*) trim(component), ": pass-through source not provided for ", variable_name(target), "."
       error stop 1
     end if
+    call variable_validate_stepping(source, component)
   end subroutine variable_validate_alias_source
 
   !> \brief Return the configured variable name or a fallback for diagnostics.
@@ -1428,12 +1523,14 @@ contains
   end subroutine var_dp_clear_data
 
   !> \brief Publish a local 1D real field through the exchange variable.
-  subroutine var_dp_publish_local(self, component, local)
+  subroutine var_dp_publish_local(self, component, local, stepping)
     class(var_dp), intent(inout) :: self
     character(*), intent(in) :: component    !< publishing component name for diagnostics
     real(dp), intent(inout), target :: local(:) !< local 1D real field to publish
+    integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
     self%data => local
     self%provided = .true.
   end subroutine var_dp_publish_local
@@ -1446,6 +1543,8 @@ contains
 
     call variable_validate_alias_source(source, component, self)
     call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
     self%data => source%data
     self%provided = .true.
   end subroutine var_dp_publish_alias
@@ -1477,12 +1576,14 @@ contains
   end subroutine var_i4_clear_data
 
   !> \brief Publish a local 1D integer field through the exchange variable.
-  subroutine var_i4_publish_local(self, component, local)
+  subroutine var_i4_publish_local(self, component, local, stepping)
     class(var_i4), intent(inout) :: self
     character(*), intent(in) :: component       !< publishing component name for diagnostics
     integer(i4), intent(inout), target :: local(:) !< local 1D integer field to publish
+    integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
     self%data => local
     self%provided = .true.
   end subroutine var_i4_publish_local
@@ -1495,6 +1596,8 @@ contains
 
     call variable_validate_alias_source(source, component, self)
     call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
     self%data => source%data
     self%provided = .true.
   end subroutine var_i4_publish_alias
@@ -1526,12 +1629,14 @@ contains
   end subroutine var_lg_clear_data
 
   !> \brief Publish a local 1D logical field through the exchange variable.
-  subroutine var_lg_publish_local(self, component, local)
+  subroutine var_lg_publish_local(self, component, local, stepping)
     class(var_lg), intent(inout) :: self
     character(*), intent(in) :: component !< publishing component name for diagnostics
     logical, intent(inout), target :: local(:) !< local 1D logical field to publish
+    integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
     self%data => local
     self%provided = .true.
   end subroutine var_lg_publish_local
@@ -1544,6 +1649,8 @@ contains
 
     call variable_validate_alias_source(source, component, self)
     call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
     self%data => source%data
     self%provided = .true.
   end subroutine var_lg_publish_alias
@@ -1575,12 +1682,14 @@ contains
   end subroutine var2d_dp_clear_data
 
   !> \brief Publish a local 2D real field through the exchange variable.
-  subroutine var2d_dp_publish_local(self, component, local)
+  subroutine var2d_dp_publish_local(self, component, local, stepping)
     class(var2d_dp), intent(inout) :: self
     character(*), intent(in) :: component   !< publishing component name for diagnostics
     real(dp), intent(inout), target :: local(:, :) !< local 2D real field to publish
+    integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
     self%data => local
     self%provided = .true.
   end subroutine var2d_dp_publish_local
@@ -1593,6 +1702,8 @@ contains
 
     call variable_validate_alias_source(source, component, self)
     call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
     self%data => source%data
     self%provided = .true.
   end subroutine var2d_dp_publish_alias
@@ -1624,12 +1735,14 @@ contains
   end subroutine var2d_i4_clear_data
 
   !> \brief Publish a local 2D integer field through the exchange variable.
-  subroutine var2d_i4_publish_local(self, component, local)
+  subroutine var2d_i4_publish_local(self, component, local, stepping)
     class(var2d_i4), intent(inout) :: self
     character(*), intent(in) :: component      !< publishing component name for diagnostics
     integer(i4), intent(inout), target :: local(:, :) !< local 2D integer field to publish
+    integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
     self%data => local
     self%provided = .true.
   end subroutine var2d_i4_publish_local
@@ -1642,6 +1755,8 @@ contains
 
     call variable_validate_alias_source(source, component, self)
     call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
     self%data => source%data
     self%provided = .true.
   end subroutine var2d_i4_publish_alias
@@ -1673,12 +1788,14 @@ contains
   end subroutine var2d_lg_clear_data
 
   !> \brief Publish a local 2D logical field through the exchange variable.
-  subroutine var2d_lg_publish_local(self, component, local)
+  subroutine var2d_lg_publish_local(self, component, local, stepping)
     class(var2d_lg), intent(inout) :: self
     character(*), intent(in) :: component !< publishing component name for diagnostics
     logical, intent(inout), target :: local(:, :) !< local 2D logical field to publish
+    integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
     self%data => local
     self%provided = .true.
   end subroutine var2d_lg_publish_local
@@ -1691,6 +1808,8 @@ contains
 
     call variable_validate_alias_source(source, component, self)
     call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
     self%data => source%data
     self%provided = .true.
   end subroutine var2d_lg_publish_alias

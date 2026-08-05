@@ -1,6 +1,7 @@
 program test_parameter_reinitialize
   use mo_domain, only: domain_t
   use mo_kind, only: i4, dp
+  use mo_grid_io, only: no_time
   use nml_helper, only: NML_OK
   use mo_parameter_types, only: parameter_t
 
@@ -32,6 +33,10 @@ program test_parameter_reinitialize
   values = pet_domain%exchange%parameters%as_array()
   call assert_true(size(values) == 3, "PET fixture did not register the expected parameter count")
   call pet_domain%initialize()
+  call assert_true(pet_domain%exchange%pet_fac_aspect%static, &
+    "MPR marked an invariant parameter field as temporal")
+  call assert_true(pet_domain%exchange%pet_fac_aspect%stepping == no_time, &
+    "MPR did not publish an invariant parameter field with no_time stepping")
   derived_before = pet_domain%exchange%pet_fac_aspect%data
 
   values(1) = 1.0_dp

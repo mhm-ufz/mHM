@@ -1,0 +1,55 @@
+module test_river_router
+  use funit
+  use mo_kind, only: i4, dp
+  use mo_river_router, only: derive_routing_timing
+
+  implicit none
+  private
+
+  public :: test_router_timing_supported, test_router_timing_rejected
+
+contains
+
+  @test
+  subroutine test_router_timing_supported()
+    integer(i4) :: routing_step, iterations, accumulations, status
+
+    call derive_routing_timing(24_i4, 1_i4, 3600.0_dp, routing_step, iterations, accumulations, status)
+    @assertEqual(0_i4, status, message='daily runoff with hourly model is supported')
+    @assertEqual(1_i4, routing_step, message='daily runoff does not force daily routing')
+    @assertEqual(1_i4, accumulations, message='accumulations follow output/model cadence')
+    @assertEqual(1_i4, iterations, message='hourly numerical step needs one iteration')
+
+    call derive_routing_timing(1_i4, 1_i4, 1800.0_dp, routing_step, iterations, accumulations, status)
+    @assertEqual(0_i4, status, message='hourly runoff with sub-hour routing is supported')
+    @assertEqual(1_i4, routing_step, message='hourly runoff produces hourly routing')
+    @assertEqual(2_i4, iterations, message='two half-hour routing iterations form one output')
+
+    call derive_routing_timing(24_i4, 1_i4, 7200.0_dp, routing_step, iterations, accumulations, status)
+    @assertEqual(0_i4, status, message='coarser numerical routing is supported')
+    @assertEqual(2_i4, routing_step, message='completed routing covers the two-hour numerical step')
+    @assertEqual(2_i4, accumulations, message='two model updates are averaged before routing')
+    @assertEqual(1_i4, iterations, message='one coarser routing iteration forms the output')
+
+    call derive_routing_timing(6_i4, 6_i4, 3600.0_dp, routing_step, iterations, accumulations, status)
+    @assertEqual(0_i4, status, message='model-produced runoff uses the model support')
+    @assertEqual(6_i4, routing_step, message='routing step is at least the model step')
+  end subroutine test_router_timing_supported
+
+  @test
+  subroutine test_router_timing_rejected()
+    integer(i4) :: routing_step, iterations, accumulations, status
+
+    call derive_routing_timing(0_i4, 1_i4, 3600.0_dp, routing_step, iterations, accumulations, status)
+    @assertEqual(1_i4, status, message='missing or static runoff support is rejected')
+    call derive_routing_timing(1_i4, 0_i4, 3600.0_dp, routing_step, iterations, accumulations, status)
+    @assertEqual(2_i4, status, message='non-positive model step is rejected')
+    call derive_routing_timing(1_i4, 2_i4, 3600.0_dp, routing_step, iterations, accumulations, status)
+    @assertEqual(3_i4, status, message='runoff finer than the model step is rejected')
+    call derive_routing_timing(24_i4, 5_i4, 3600.0_dp, routing_step, iterations, accumulations, status)
+    @assertEqual(4_i4, status, message='incompatible runoff/model intervals are rejected')
+    call derive_routing_timing(1_i4, 1_i4, 0.0_dp, routing_step, iterations, accumulations, status)
+    @assertEqual(5_i4, status, message='non-positive routing step is rejected')
+  end subroutine test_router_timing_rejected
+
+end module test_river_router

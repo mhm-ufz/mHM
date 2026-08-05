@@ -54,9 +54,9 @@ module mo_mpr_container
   use mo_datetime, only: datetime, YEAR_MONTHS, one_hour
   use mo_kind, only: i4, dp
   use mo_common_constants, only: soilHorizonsVarName, landCoverPeriodsVarName, LAIVarName
-  use mo_exchange_type, only: exchange_t
+  use mo_exchange_type, only: exchange_t, variable_abc
   use mo_grid, only: grid_t, cartesian, spherical
-  use mo_grid_io, only: input_dataset, start_timestamp, daily, monthly, yearly, var
+  use mo_grid_io, only: input_dataset, start_timestamp, no_time, daily, monthly, yearly, varying, var
   use mo_grid_scaler, only: scaler_t, up_a_mean
   use mo_mpr_legacy_bridge, only: mpr_bridge_land_cover_fraction, mpr_bridge_snow_param, mpr_bridge_pet_lai, &
     mpr_bridge_pet_aspect, mpr_bridge_pet_hargreaves, mpr_bridge_pet_priestley_taylor, &
@@ -3129,12 +3129,18 @@ contains
     logical :: need_lai_slice
     integer(i4) :: lai_idx
     integer(i4) :: land_cover_idx
+    logical :: lai_temporal
+    logical :: land_cover_temporal
 
     force_ = optval(force, .false.)
     if (present(time)) then
       active_time = time
     else
-      active_time = self%exchange%time
+      active_time = self%exchange%time_step_start
+    end if
+    if (force_) then
+      self%lai%active_idx = 1_i4
+      self%land_cover%active_idx = 1_i4
     end if
 
     if (allocated(self%soil%horizon_bounds)) then
@@ -3181,6 +3187,8 @@ contains
       error stop 1
     end if
     if (.not.force_ .and. lai_idx == self%lai%active_idx .and. land_cover_idx == self%land_cover%active_idx) return
+    lai_temporal = self%lai%n_periods > 1_i4
+    land_cover_temporal = self%land_cover%n_periods > 1_i4
 
     ! Reattach only the active slices; the grouped caches stay owned by mpr_t.
     if (allocated(self%land_cover%sealed_fraction_l1)) then
@@ -3253,10 +3261,52 @@ contains
     if (allocated(self%runoff%thresh_sealed_cache)) then
       self%exchange%thresh_sealed%data => self%runoff%thresh_sealed_cache
     end if
+    call set_published_temporality(self%exchange%f_sealed, land_cover_temporal)
+    call set_published_temporality(self%exchange%max_interception, lai_temporal .or. land_cover_temporal)
+    call set_published_temporality(self%exchange%thresh_temp, land_cover_temporal)
+    call set_published_temporality(self%exchange%degday_dry, land_cover_temporal)
+    call set_published_temporality(self%exchange%degday_inc, land_cover_temporal)
+    call set_published_temporality(self%exchange%degday_max, land_cover_temporal)
+    call set_published_temporality(self%exchange%pet_fac_aspect, .false.)
+    call set_published_temporality(self%exchange%pet_coeff_hs, .false.)
+    call set_published_temporality(self%exchange%pet_coeff_pt, lai_temporal)
+    call set_published_temporality(self%exchange%pet_fac_lai, lai_temporal .or. land_cover_temporal)
+    call set_published_temporality(self%exchange%resist_aero, lai_temporal .or. land_cover_temporal)
+    call set_published_temporality(self%exchange%resist_surf, lai_temporal)
+    call set_published_temporality(self%exchange%f_roots, land_cover_temporal)
+    call set_published_temporality(self%exchange%sm_saturation, land_cover_temporal)
+    call set_published_temporality(self%exchange%sm_exponent, land_cover_temporal)
+    call set_published_temporality(self%exchange%sm_field_capacity, land_cover_temporal)
+    call set_published_temporality(self%exchange%wilting_point, land_cover_temporal)
+    call set_published_temporality(self%exchange%thresh_jarvis, .false.)
+    call set_published_temporality(self%exchange%desilets_n0, .false.)
+    call set_published_temporality(self%exchange%bulk_density, land_cover_temporal)
+    call set_published_temporality(self%exchange%lattice_water, land_cover_temporal)
+    call set_published_temporality(self%exchange%cosmic_l3, land_cover_temporal)
+    call set_published_temporality(self%exchange%alpha, land_cover_temporal)
+    call set_published_temporality(self%exchange%k_fastflow, land_cover_temporal)
+    call set_published_temporality(self%exchange%k_slowflow, land_cover_temporal)
+    call set_published_temporality(self%exchange%k_baseflow, &
+      land_cover_temporal .and. allocated(self%runoff%k_slowflow_cache) .and. &
+      self%exchange%config%processes%percolation > 0_i4)
+    call set_published_temporality(self%exchange%k_percolation, land_cover_temporal)
+    call set_published_temporality(self%exchange%f_karst_loss, .false.)
+    call set_published_temporality(self%exchange%thresh_unsat, .false.)
+    call set_published_temporality(self%exchange%thresh_sealed, .false.)
     self%lai%active_idx = lai_idx
     self%land_cover%active_idx = land_cover_idx
     log_trace(*) "MPR: active cache slice lai=", n2s(lai_idx), ", land_cover=", n2s(land_cover_idx)
   end subroutine mpr_update_exchange_slices
+
+  !> \brief Mark an MPR publication static or slice-switched within the simulation.
+  subroutine set_published_temporality(variable, temporal)
+    class(variable_abc), intent(inout) :: variable
+    logical, intent(in) :: temporal
+
+    if (.not.variable%provided) return
+    variable%static = .not.temporal
+    call variable%set_stepping("MPR", merge(varying, no_time, temporal))
+  end subroutine set_published_temporality
 
   !> \brief Resolve active LAI period index from a model time.
   integer(i4) function mpr_lai_index_for_time(self, time) result(lai_idx)
@@ -3337,7 +3387,7 @@ contains
     end if
     land_cover_idx = max(1_i4, self%land_cover%active_idx)
     do while (land_cover_idx < self%land_cover%n_periods)
-      if (time <= self%land_cover%period_end(land_cover_idx)) exit
+      if (time < self%land_cover%period_end(land_cover_idx)) exit
       land_cover_idx = land_cover_idx + 1_i4
     end do
   end function mpr_land_cover_index_for_time
@@ -3440,68 +3490,37 @@ contains
   subroutine mpr_finalize(self)
     class(mpr_t), intent(inout), target :: self
     nullify(self%exchange%soil_horizon_bounds)
-    nullify(self%exchange%slope_emp%data)
-    self%exchange%slope_emp%provided = .false.
-    nullify(self%exchange%f_sealed%data)
-    self%exchange%f_sealed%provided = .false.
-    nullify(self%exchange%max_interception%data)
-    self%exchange%max_interception%provided = .false.
-    nullify(self%exchange%thresh_temp%data)
-    self%exchange%thresh_temp%provided = .false.
-    nullify(self%exchange%degday_dry%data)
-    self%exchange%degday_dry%provided = .false.
-    nullify(self%exchange%degday_inc%data)
-    self%exchange%degday_inc%provided = .false.
-    nullify(self%exchange%degday_max%data)
-    self%exchange%degday_max%provided = .false.
-    nullify(self%exchange%pet_fac_aspect%data)
-    self%exchange%pet_fac_aspect%provided = .false.
-    nullify(self%exchange%pet_coeff_hs%data)
-    self%exchange%pet_coeff_hs%provided = .false.
-    nullify(self%exchange%pet_coeff_pt%data)
-    self%exchange%pet_coeff_pt%provided = .false.
-    nullify(self%exchange%pet_fac_lai%data)
-    self%exchange%pet_fac_lai%provided = .false.
-    nullify(self%exchange%resist_aero%data)
-    self%exchange%resist_aero%provided = .false.
-    nullify(self%exchange%resist_surf%data)
-    self%exchange%resist_surf%provided = .false.
-    nullify(self%exchange%f_roots%data)
-    self%exchange%f_roots%provided = .false.
-    nullify(self%exchange%sm_saturation%data)
-    self%exchange%sm_saturation%provided = .false.
-    nullify(self%exchange%sm_exponent%data)
-    self%exchange%sm_exponent%provided = .false.
-    nullify(self%exchange%sm_field_capacity%data)
-    self%exchange%sm_field_capacity%provided = .false.
-    nullify(self%exchange%wilting_point%data)
-    self%exchange%wilting_point%provided = .false.
-    nullify(self%exchange%thresh_jarvis%data)
-    self%exchange%thresh_jarvis%provided = .false.
-    nullify(self%exchange%desilets_n0%data)
-    self%exchange%desilets_n0%provided = .false.
-    nullify(self%exchange%bulk_density%data)
-    self%exchange%bulk_density%provided = .false.
-    nullify(self%exchange%lattice_water%data)
-    self%exchange%lattice_water%provided = .false.
-    nullify(self%exchange%cosmic_l3%data)
-    self%exchange%cosmic_l3%provided = .false.
-    nullify(self%exchange%alpha%data)
-    self%exchange%alpha%provided = .false.
-    nullify(self%exchange%k_fastflow%data)
-    self%exchange%k_fastflow%provided = .false.
-    nullify(self%exchange%k_slowflow%data)
-    self%exchange%k_slowflow%provided = .false.
-    nullify(self%exchange%k_baseflow%data)
-    self%exchange%k_baseflow%provided = .false.
-    nullify(self%exchange%k_percolation%data)
-    self%exchange%k_percolation%provided = .false.
-    nullify(self%exchange%f_karst_loss%data)
-    self%exchange%f_karst_loss%provided = .false.
-    nullify(self%exchange%thresh_unsat%data)
-    self%exchange%thresh_unsat%provided = .false.
-    nullify(self%exchange%thresh_sealed%data)
-    self%exchange%thresh_sealed%provided = .false.
+    call self%exchange%slope_emp%clear(owned=.true.)
+    call self%exchange%f_sealed%clear(owned=.true.)
+    call self%exchange%max_interception%clear(owned=.true.)
+    call self%exchange%thresh_temp%clear(owned=.true.)
+    call self%exchange%degday_dry%clear(owned=.true.)
+    call self%exchange%degday_inc%clear(owned=.true.)
+    call self%exchange%degday_max%clear(owned=.true.)
+    call self%exchange%pet_fac_aspect%clear(owned=.true.)
+    call self%exchange%pet_coeff_hs%clear(owned=.true.)
+    call self%exchange%pet_coeff_pt%clear(owned=.true.)
+    call self%exchange%pet_fac_lai%clear(owned=.true.)
+    call self%exchange%resist_aero%clear(owned=.true.)
+    call self%exchange%resist_surf%clear(owned=.true.)
+    call self%exchange%f_roots%clear(owned=.true.)
+    call self%exchange%sm_saturation%clear(owned=.true.)
+    call self%exchange%sm_exponent%clear(owned=.true.)
+    call self%exchange%sm_field_capacity%clear(owned=.true.)
+    call self%exchange%wilting_point%clear(owned=.true.)
+    call self%exchange%thresh_jarvis%clear(owned=.true.)
+    call self%exchange%desilets_n0%clear(owned=.true.)
+    call self%exchange%bulk_density%clear(owned=.true.)
+    call self%exchange%lattice_water%clear(owned=.true.)
+    call self%exchange%cosmic_l3%clear(owned=.true.)
+    call self%exchange%alpha%clear(owned=.true.)
+    call self%exchange%k_fastflow%clear(owned=.true.)
+    call self%exchange%k_slowflow%clear(owned=.true.)
+    call self%exchange%k_baseflow%clear(owned=.true.)
+    call self%exchange%k_percolation%clear(owned=.true.)
+    call self%exchange%f_karst_loss%clear(owned=.true.)
+    call self%exchange%thresh_unsat%clear(owned=.true.)
+    call self%exchange%thresh_sealed%clear(owned=.true.)
     if (self%write_restart) call self%create_restart()
     if (allocated(self%land_cover%ds%vars)) call self%land_cover%ds%close()
     if (allocated(self%preproc%slope_emp)) deallocate(self%preproc%slope_emp)

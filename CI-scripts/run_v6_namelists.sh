@@ -93,6 +93,9 @@ parameter_file_for_namelist() {
     mrm_minimal*)
       printf '%s\n' "test_nml/mhm_parameter_v6_routing.nml"
       ;;
+    mrm_coarse_routing_output_minimal)
+      printf '%s\n' "test_nml/mhm_parameter_v6_routing_slow.nml"
+      ;;
     *)
       echo "No v6 parameter fixture configured for ${nml_name}." >&2
       return 1
@@ -104,8 +107,14 @@ output_file_for_namelist() {
   local nml_name="$1"
 
   case "${nml_name}" in
+    mhm_runoff_baseflow_restart_*)
+      printf '%s\n' "test_nml/mhm_output_restart_daily.nml"
+      ;;
     mhm_output_*)
       printf '%s\n' "test_nml/mhm_output_v6_smoke.nml"
+      ;;
+    mrm_coarse_routing_output_minimal)
+      printf '%s\n' "test_nml/mrm_output_hourly.nml"
       ;;
     *)
       printf '%s\n' "mhm-output-template.nml"
@@ -166,6 +175,7 @@ namelists=(
   test_nml/mhm_runoff_baseflow_restart_read.nml
   test_nml/mhm_output_minimal.nml
   test_nml/mrm_rivertemp_meteo_minimal.nml
+  test_nml/mrm_coarse_routing_output_minimal.nml
   test_nml/mrm_minimal.nml
   test_nml/mrm_minimal1.nml
   test_nml/mrm_minimal2.nml
