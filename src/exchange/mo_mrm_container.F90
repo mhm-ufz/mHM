@@ -151,8 +151,7 @@ contains
     call self%river%to_restart(nc)
     call self%router%to_restart(nc)
     nc_var = nc%setVariable("mrm_discharge", "f64", [nc%getDimension("node")])
-    call nc_var%setAttribute("long_name", "most recently completed mean routing discharge")
-    call nc_var%setAttribute("units", "m3 s-1")
+    call self%exchange%discharge%write_netcdf_metadata(nc_var)
     call nc_var%setData(self%discharge)
     nc_var = nc%setVariable("mrm_meta", "i8", dims(:0)) ! scalar integer to indicate scc river
     call nc_var%setAttribute("routing_case", self%exchange%config%processes%routing)
@@ -819,7 +818,9 @@ contains
     dtype = "f64"
     if (.not.self%output_config%output_double_precision) dtype = "f32"
     allocate(vars(0))
-    if (self%output_config%out_Qrouted) vars = [vars, var(name="discharge", units="m3 s-1", dtype=dtype, avg=.true.)]
+    if (self%output_config%out_Qrouted) then
+      vars = [vars, self%exchange%discharge%as_output_var(dtype=dtype, avg=.true.)]
+    end if
 
     ! create grid based output
     if (self%output_active) then

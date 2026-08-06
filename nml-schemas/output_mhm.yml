@@ -40,6 +40,9 @@ properties:
       - if -1 : daily
       - if -2 : monthly
       - if -3 : yearly
+      Hydrological amounts are written with units `mm`. For accumulated outputs,
+      the represented interval is described by the output time bounds rather than
+      encoded in the units.
   out_interception:
     title: Interception
     type: boolean

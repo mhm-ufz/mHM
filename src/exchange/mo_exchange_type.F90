@@ -19,7 +19,8 @@
 module mo_exchange_type
   use mo_logging
   use mo_grid, only: grid_t
-  use mo_grid_io, only: no_time, daily, monthly, yearly, varying
+  use mo_grid_io, only: output_var_meta_t => var, no_time, daily, monthly, yearly, varying
+  use mo_netcdf, only: NcVariable
   use mo_geology_classdefinition, only: geology_classdefinition_t
   use mo_datetime, only: datetime, timedelta
   use mo_kind, only: dp, i4, i8
@@ -81,6 +82,8 @@ module mo_exchange_type
     procedure, public :: expect_handoff => variable_expect_handoff
     procedure, public :: clear => variable_clear
     procedure, public :: set_stepping => variable_set_stepping
+    procedure, public :: as_output_var => variable_as_output_var
+    procedure, public :: write_netcdf_metadata => variable_write_netcdf_metadata
   end type variable_abc
 
   !> \class   var_dp
@@ -268,7 +271,7 @@ module mo_exchange_type
     type(var_dp) :: melt                !< melting snow [mm] on level l1
     type(var_dp) :: pre_eff             !< effective precipitation [mm] on level l1 (rain + melt)
     ! vertical soil water movement
-    type(var2d_dp) :: infiltration      !< infiltration intensity in soil layer [mm] on level l1
+    type(var2d_dp) :: infiltration      !< infiltration amount into soil layer [mm] on level l1
     type(var_dp) :: percolation         !< percolation [mm] on level l1
     ! type(var_dp) :: loss                !< gain/loss flux in a leaking linear reservoir [mm] on level l1
     ! lateral water movement
@@ -509,7 +512,7 @@ contains
     self%melt              =   var_dp(grid=l1, name="melt",              units="mm",  long_name="melting snow", standard_name="surface_snow_melt_amount")
     self%pre_eff           =   var_dp(grid=l1, name="pre_eff",           units="mm",  long_name="effective precipitation") ! rain + melt
     ! vertical soil water movement
-    self%infiltration      = var2d_dp(grid=l1, name="infiltration",      units="mm",  long_name="infiltration intensity in soil layer")
+    self%infiltration      = var2d_dp(grid=l1, name="infiltration",      units="mm",  long_name="infiltration into soil layer")
     self%percolation       =   var_dp(grid=l1, name="percolation",       units="mm",  long_name="percolation")
     ! lateral water movement
     self%runoff_total      =   var_dp(grid=l1, name="Q",                 units="mm",  long_name="total runoff", standard_name="runoff_amount")
@@ -1380,6 +1383,36 @@ contains
     end if
     self%stepping = stepping
   end subroutine variable_set_stepping
+
+  !> \brief Convert exchange metadata to a grid-output variable definition.
+  function variable_as_output_var(self, name, long_name, dtype, avg) result(meta)
+    class(variable_abc), intent(in), target :: self
+    character(*), intent(in), optional :: name !< optional output-name override
+    character(*), intent(in), optional :: long_name !< optional descriptive-name override
+    character(*), intent(in), optional :: dtype !< output NetCDF data type
+    logical, intent(in), optional :: avg !< average buffered values instead of summing them
+    type(output_var_meta_t) :: meta
+
+    if (allocated(self%name)) meta%name = self%name
+    if (allocated(self%long_name)) meta%long_name = self%long_name
+    if (allocated(self%standard_name)) meta%standard_name = self%standard_name
+    if (allocated(self%units)) meta%units = self%units
+    meta%static = self%static
+    if (present(name)) meta%name = name
+    if (present(long_name)) meta%long_name = long_name
+    if (present(dtype)) meta%dtype = dtype
+    if (present(avg)) meta%avg = avg
+  end function variable_as_output_var
+
+  !> \brief Write canonical exchange metadata to a NetCDF variable.
+  subroutine variable_write_netcdf_metadata(self, nc_var)
+    class(variable_abc), intent(in), target :: self
+    type(NcVariable), intent(in) :: nc_var
+
+    if (allocated(self%long_name)) call nc_var%setAttribute("long_name", self%long_name)
+    if (allocated(self%standard_name)) call nc_var%setAttribute("standard_name", self%standard_name)
+    if (allocated(self%units)) call nc_var%setAttribute("units", self%units)
+  end subroutine variable_write_netcdf_metadata
 
   !> \brief Validate the provided/data/shape contract of an exchange variable.
   subroutine variable_validate(self, component, handoff, expected_shape, check_data)

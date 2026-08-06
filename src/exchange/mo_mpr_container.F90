@@ -1002,151 +1002,138 @@ contains
     ! Persist the cached MPR state in the same grouped layout used to restore exchange slices later.
     if (allocated(self%land_cover%sealed_fraction_l1)) then
       call self%write_restart_field_3d( &
-        nc, dims_xy, land_cover_dim, "L1_fSealed", "fraction of Sealed area at level 1", &
+        nc, dims_xy, land_cover_dim, "L1_fSealed", self%exchange%f_sealed, &
         self%land_cover%sealed_fraction_l1)
     end if
 
     if (allocated(self%canopy%max_interception_cache)) then
       call self%write_restart_field_3d( &
-        nc, dims_xy, lai_dim, "L1_maxInter", "Maximum interception at level 1", &
+        nc, dims_xy, lai_dim, "L1_maxInter", self%exchange%max_interception, &
         self%canopy%max_interception_cache(:, :, 1))
     end if
 
     if (allocated(self%snow%thresh_temp_cache)) then
       call self%write_restart_field_3d( &
-        nc, dims_xy, land_cover_dim, "L1_tempThresh", "Threshold temperature for snow/rain at level 1", &
+        nc, dims_xy, land_cover_dim, "L1_tempThresh", self%exchange%thresh_temp, &
         self%snow%thresh_temp_cache)
       call self%write_restart_field_3d( &
-        nc, dims_xy, land_cover_dim, "L1_degDayNoPre", &
-        "Degree-day factor with no precipitation at level 1", self%snow%degday_dry_cache)
+        nc, dims_xy, land_cover_dim, "L1_degDayNoPre", self%exchange%degday_dry, self%snow%degday_dry_cache)
       call self%write_restart_field_3d( &
-        nc, dims_xy, land_cover_dim, "L1_degDayInc", &
-        "Increase of the degree-day factor per mm precipitation at level 1", self%snow%degday_inc_cache)
+        nc, dims_xy, land_cover_dim, "L1_degDayInc", self%exchange%degday_inc, self%snow%degday_inc_cache)
       call self%write_restart_field_3d( &
-        nc, dims_xy, land_cover_dim, "L1_degDayMax", &
-        "Maximum degree-day factor at level 1", self%snow%degday_max_cache)
+        nc, dims_xy, land_cover_dim, "L1_degDayMax", self%exchange%degday_max, self%snow%degday_max_cache)
     end if
 
     if (allocated(self%pet%pet_fac_lai_cache)) then
       call self%write_restart_field_4d( &
         nc, dims_xy, lai_dim, land_cover_dim, "L1_petLAIcorFactor", &
-        "PET correction factor based on LAI at level 1", self%pet%pet_fac_lai_cache)
+        self%exchange%pet_fac_lai, self%pet%pet_fac_lai_cache)
     end if
     if (allocated(self%pet%pet_fac_aspect_cache)) then
       call self%write_restart_field_2d( &
-        nc, dims_xy, "L1_fAsp", "PET correction factor due to terrain aspect at level 1", &
+        nc, dims_xy, "L1_fAsp", self%exchange%pet_fac_aspect, &
         self%pet%pet_fac_aspect_cache)
     end if
     if (allocated(self%pet%pet_coeff_hs_cache)) then
       call self%write_restart_field_2d( &
-        nc, dims_xy, "L1_HarSamCoeff", "Hargreaves-Samani coefficient", self%pet%pet_coeff_hs_cache)
+        nc, dims_xy, "L1_HarSamCoeff", self%exchange%pet_coeff_hs, self%pet%pet_coeff_hs_cache)
     end if
     if (allocated(self%pet%pet_coeff_pt_cache)) then
       call self%write_restart_field_3d( &
-        nc, dims_xy, lai_dim, "L1_PrieTayAlpha", "Priestley Taylor coefficient (alpha)", &
+        nc, dims_xy, lai_dim, "L1_PrieTayAlpha", self%exchange%pet_coeff_pt, &
         self%pet%pet_coeff_pt_cache)
     end if
     if (allocated(self%pet%resist_aero_cache)) then
       call self%write_restart_field_4d( &
-        nc, dims_xy, lai_dim, land_cover_dim, "L1_aeroResist", "aerodynamical resistance", &
+        nc, dims_xy, lai_dim, land_cover_dim, "L1_aeroResist", self%exchange%resist_aero, &
         self%pet%resist_aero_cache)
     end if
     if (allocated(self%pet%resist_surf_cache)) then
       call self%write_restart_field_3d( &
-        nc, dims_xy, lai_dim, "L1_surfResist", "bulk surface resistance", self%pet%resist_surf_cache)
+        nc, dims_xy, lai_dim, "L1_surfResist", self%exchange%resist_surf, self%pet%resist_surf_cache)
     end if
 
     if (allocated(self%soil%f_roots_cache)) then
       call self%write_restart_field_4d( &
-        nc, dims_xy, soil_dim, land_cover_dim, "L1_fRoots", &
-        "Fraction of roots in soil horizons at level 1", self%soil%f_roots_cache)
+        nc, dims_xy, soil_dim, land_cover_dim, "L1_fRoots", self%exchange%f_roots, self%soil%f_roots_cache)
     end if
     if (allocated(self%soil%sm_saturation_cache)) then
       call self%write_restart_field_4d( &
         nc, dims_xy, soil_dim, land_cover_dim, "L1_soilMoistSat", &
-        "Saturation soil moisture for each horizon [mm] at level 1", self%soil%sm_saturation_cache)
+        self%exchange%sm_saturation, self%soil%sm_saturation_cache)
     end if
     if (allocated(self%soil%sm_exponent_cache)) then
       call self%write_restart_field_4d( &
         nc, dims_xy, soil_dim, land_cover_dim, "L1_soilMoistExp", &
-        "Exponential parameter to how non-linear is the soil water retention at level 1", &
-        self%soil%sm_exponent_cache)
+        self%exchange%sm_exponent, self%soil%sm_exponent_cache)
     end if
     if (allocated(self%soil%sm_field_capacity_cache)) then
       call self%write_restart_field_4d( &
         nc, dims_xy, soil_dim, land_cover_dim, "L1_soilMoistFC", &
-        "SM below which actual ET is reduced linearly till PWP at level 1 for processCase(3)=1", &
-        self%soil%sm_field_capacity_cache)
+        self%exchange%sm_field_capacity, self%soil%sm_field_capacity_cache)
     end if
     if (allocated(self%soil%wilting_point_cache)) then
       call self%write_restart_field_4d( &
         nc, dims_xy, soil_dim, land_cover_dim, "L1_wiltingPoint", &
-        "Permanent wilting point at level 1", self%soil%wilting_point_cache)
+        self%exchange%wilting_point, self%soil%wilting_point_cache)
     end if
     if (allocated(self%runoff%alpha_cache)) then
       call self%write_restart_field_3d( &
-        nc, dims_xy, land_cover_dim, "L1_alpha", "Exponent for the upper reservoir at level 1", &
+        nc, dims_xy, land_cover_dim, "L1_alpha", self%exchange%alpha, &
         self%runoff%alpha_cache)
     end if
     if (allocated(self%runoff%f_karst_loss_cache)) then
       call self%write_restart_field_2d( &
-        nc, dims_xy, "L1_karstLoss", "Karstic percolation loss at level 1", self%runoff%f_karst_loss_cache)
+        nc, dims_xy, "L1_karstLoss", self%exchange%f_karst_loss, self%runoff%f_karst_loss_cache)
     end if
     if (allocated(self%runoff%k_fastflow_cache)) then
       call self%write_restart_field_3d( &
-        nc, dims_xy, land_cover_dim, "L1_kfastFlow", &
-        "Fast interflow recession coefficient at level 1", self%runoff%k_fastflow_cache)
+        nc, dims_xy, land_cover_dim, "L1_kfastFlow", self%exchange%k_fastflow, self%runoff%k_fastflow_cache)
     end if
     if (allocated(self%runoff%k_slowflow_cache)) then
       call self%write_restart_field_3d( &
-        nc, dims_xy, land_cover_dim, "L1_kSlowFlow", &
-        "Slow interflow recession coefficient at level 1", self%runoff%k_slowflow_cache)
+        nc, dims_xy, land_cover_dim, "L1_kSlowFlow", self%exchange%k_slowflow, self%runoff%k_slowflow_cache)
     end if
     if (allocated(self%runoff%k_baseflow_cache)) then
       call self%write_restart_field_3d( &
-        nc, dims_xy, land_cover_dim, "L1_kBaseFlow", &
-        "Baseflow recession coefficient at level 1", self%runoff%k_baseflow_cache)
+        nc, dims_xy, land_cover_dim, "L1_kBaseFlow", self%exchange%k_baseflow, self%runoff%k_baseflow_cache)
     end if
     if (allocated(self%runoff%k_percolation_cache)) then
       call self%write_restart_field_3d( &
-        nc, dims_xy, land_cover_dim, "L1_kPerco", &
-        "Percolation coefficient at level 1", self%runoff%k_percolation_cache)
+        nc, dims_xy, land_cover_dim, "L1_kPerco", self%exchange%k_percolation, self%runoff%k_percolation_cache)
     end if
     if (allocated(self%runoff%thresh_unsat_cache)) then
       call self%write_restart_field_2d( &
-        nc, dims_xy, "L1_unsatThresh", &
-        "Threshold water depth controlling fast interflow at level 1", self%runoff%thresh_unsat_cache)
+        nc, dims_xy, "L1_unsatThresh", self%exchange%thresh_unsat, self%runoff%thresh_unsat_cache)
     end if
     if (allocated(self%runoff%thresh_sealed_cache)) then
       call self%write_restart_field_2d( &
-        nc, dims_xy, "L1_sealedThresh", &
-        "Threshold water depth for runoff on sealed surfaces at level 1", self%runoff%thresh_sealed_cache)
+        nc, dims_xy, "L1_sealedThresh", self%exchange%thresh_sealed, self%runoff%thresh_sealed_cache)
     end if
     if (allocated(self%neutron%desilets_n0_cache)) then
       call self%write_restart_field_2d( &
-        nc, dims_xy, "L1_No_Count", "N0 count at level 1", self%neutron%desilets_n0_cache)
+        nc, dims_xy, "L1_No_Count", self%exchange%desilets_n0, self%neutron%desilets_n0_cache)
     end if
     if (allocated(self%neutron%bulk_density_cache)) then
       call self%write_restart_field_4d( &
         nc, dims_xy, soil_dim, land_cover_dim, "L1_bulkDens", &
-        "Bulk density at level 1 for processCase(10)", self%neutron%bulk_density_cache)
+        self%exchange%bulk_density, self%neutron%bulk_density_cache)
     end if
     if (allocated(self%neutron%lattice_water_cache)) then
       call self%write_restart_field_4d( &
         nc, dims_xy, soil_dim, land_cover_dim, "L1_latticeWater", &
-        "Lattice water content at level 1 for processCase(10)", self%neutron%lattice_water_cache)
+        self%exchange%lattice_water, self%neutron%lattice_water_cache)
     end if
     if (allocated(self%neutron%cosmic_l3_cache)) then
       call self%write_restart_field_4d( &
         nc, dims_xy, soil_dim, land_cover_dim, "L1_COSMICL3", &
-        "COSMIC L3 parameter at level 1 for processCase(10)", self%neutron%cosmic_l3_cache)
+        self%exchange%cosmic_l3, self%neutron%cosmic_l3_cache)
     end if
 
     process_case = self%exchange%config%processes%soil_moisture
     if (allocated(self%soil%thresh_jarvis_cache) .and. any(process_case == [2_i4, 3_i4])) then
       call self%write_restart_field_2d( &
-        nc, dims_xy, "L1_jarvis_thresh_c1", &
-        "jarvis critical value for normalized soil water content", self%soil%thresh_jarvis_cache)
+        nc, dims_xy, "L1_jarvis_thresh_c1", self%exchange%thresh_jarvis, self%soil%thresh_jarvis_cache)
     end if
 
   end subroutine mpr_write_restart_data
@@ -1715,12 +1702,12 @@ contains
   end subroutine mpr_read_restart_field_4d
 
   !> \brief Write a packed L1 scalar field as unpacked 2D restart data.
-  subroutine mpr_write_restart_field_2d(self, nc, dims_xy, var_name, long_name, data_packed)
+  subroutine mpr_write_restart_field_2d(self, nc, dims_xy, var_name, metadata, data_packed)
     class(mpr_t), intent(inout), target :: self
     type(NcDataset), intent(inout) :: nc
     type(NcDimension), intent(in) :: dims_xy(2)
     character(*), intent(in) :: var_name
-    character(*), intent(in) :: long_name
+    class(variable_abc), intent(in), target :: metadata
     real(dp), intent(in) :: data_packed(:)
     type(NcVariable) :: nc_var
     real(dp), allocatable :: data_2d(:, :)
@@ -1730,20 +1717,20 @@ contains
     nc_var = nc%setVariable(trim(var_name), "f64", dims_xy)
     call nc_var%setFillValue(nodata_dp)
     call nc_var%setAttribute("missing_value", nodata_dp)
-    call nc_var%setAttribute("long_name", trim(long_name))
+    call metadata%write_netcdf_metadata(nc_var)
     if (self%exchange%level1%has_aux_coords()) call nc_var%setAttribute("coordinates", "lon lat")
     call nc_var%setData(data_2d)
     deallocate(data_2d)
   end subroutine mpr_write_restart_field_2d
 
   !> \brief Write a packed L1 field with one auxiliary dimension as unpacked 3D restart data.
-  subroutine mpr_write_restart_field_3d(self, nc, dims_xy, dim3, var_name, long_name, data_packed)
+  subroutine mpr_write_restart_field_3d(self, nc, dims_xy, dim3, var_name, metadata, data_packed)
     class(mpr_t), intent(inout), target :: self
     type(NcDataset), intent(inout) :: nc
     type(NcDimension), intent(in) :: dims_xy(2)
     type(NcDimension), intent(in) :: dim3
     character(*), intent(in) :: var_name
-    character(*), intent(in) :: long_name
+    class(variable_abc), intent(in), target :: metadata
     real(dp), intent(in) :: data_packed(:, :)
     type(NcDimension) :: dims(3)
     type(NcVariable) :: nc_var
@@ -1759,21 +1746,21 @@ contains
     nc_var = nc%setVariable(trim(var_name), "f64", dims)
     call nc_var%setFillValue(nodata_dp)
     call nc_var%setAttribute("missing_value", nodata_dp)
-    call nc_var%setAttribute("long_name", trim(long_name))
+    call metadata%write_netcdf_metadata(nc_var)
     if (self%exchange%level1%has_aux_coords()) call nc_var%setAttribute("coordinates", "lon lat")
     call nc_var%setData(data_3d)
     deallocate(data_3d)
   end subroutine mpr_write_restart_field_3d
 
   !> \brief Write a packed L1 field with two auxiliary dimensions as unpacked 4D restart data.
-  subroutine mpr_write_restart_field_4d(self, nc, dims_xy, dim3, dim4, var_name, long_name, data_packed)
+  subroutine mpr_write_restart_field_4d(self, nc, dims_xy, dim3, dim4, var_name, metadata, data_packed)
     class(mpr_t), intent(inout), target :: self
     type(NcDataset), intent(inout) :: nc
     type(NcDimension), intent(in) :: dims_xy(2)
     type(NcDimension), intent(in) :: dim3
     type(NcDimension), intent(in) :: dim4
     character(*), intent(in) :: var_name
-    character(*), intent(in) :: long_name
+    class(variable_abc), intent(in), target :: metadata
     real(dp), intent(in) :: data_packed(:, :, :)
     type(NcDimension) :: dims(4)
     type(NcVariable) :: nc_var
@@ -1793,7 +1780,7 @@ contains
     nc_var = nc%setVariable(trim(var_name), "f64", dims)
     call nc_var%setFillValue(nodata_dp)
     call nc_var%setAttribute("missing_value", nodata_dp)
-    call nc_var%setAttribute("long_name", trim(long_name))
+    call metadata%write_netcdf_metadata(nc_var)
     if (self%exchange%level1%has_aux_coords()) call nc_var%setAttribute("coordinates", "lon lat")
     call nc_var%setData(data_4d)
     deallocate(data_4d)

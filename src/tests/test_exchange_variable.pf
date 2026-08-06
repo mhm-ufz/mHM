@@ -1,6 +1,7 @@
 module test_exchange_variable
   use funit
   use mo_exchange_type, only: exchange_t, var_dp, var2d_dp
+  use mo_grid_io, only: var
   use mo_parameter_types, only: parameter_t
   use mo_datetime, only: datetime, timedelta
   use mo_kind, only: dp, i4, i8
@@ -10,7 +11,7 @@ module test_exchange_variable
   private
 
   public :: test_var_dp_contract, test_var_dp_alias, test_var2d_dp_contract
-  public :: test_exchange_external_metadata, test_exchange_clock
+  public :: test_exchange_external_metadata, test_exchange_output_metadata, test_exchange_clock
 
 contains
 
@@ -111,6 +112,23 @@ contains
     @assertTrue(provided, message='exchange set_data publishes the variable')
     @assertEqual(2.0_dp, exchange%runoff_total%data(2), message='exchange set_data points to external data')
   end subroutine test_exchange_external_metadata
+
+  @test
+  subroutine test_exchange_output_metadata()
+    type(var_dp) :: exchange_var
+    type(var) :: output_var
+
+    exchange_var = var_dp( &
+      name="Q", units="mm", long_name="total runoff", standard_name="runoff_amount")
+    output_var = exchange_var%as_output_var(name="runoff", dtype="f32", avg=.true.)
+
+    @assertEqual("runoff", output_var%name, message='output name override is applied')
+    @assertEqual("mm", output_var%units, message='exchange units are copied to output metadata')
+    @assertEqual("total runoff", output_var%long_name, message='exchange long name is copied to output metadata')
+    @assertEqual("runoff_amount", output_var%standard_name, message='exchange CF standard name is copied')
+    @assertEqual("f32", output_var%dtype, message='output dtype is applied')
+    @assertTrue(output_var%avg, message='output aggregation mode is applied')
+  end subroutine test_exchange_output_metadata
 
   @test
   subroutine test_exchange_clock()

@@ -88,6 +88,9 @@ switch to control write out frequency of the gridded model outputs below
 - if -1 : daily
 - if -2 : monthly
 - if -3 : yearly
+Hydrological amounts are written with units `mm`. For accumulated outputs,
+the represented interval is described by the output time bounds rather than
+encoded in the units.
 
 Summary:
 - Type: `integer(i4)`
