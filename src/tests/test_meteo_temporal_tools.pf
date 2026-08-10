@@ -35,7 +35,7 @@ contains
     @assertTrue(meteo_supports_forcing_step(24, 24), message='fixed 24-hour forcing supports a daily model step')
     @assertFalse(meteo_supports_forcing_step(24, 1), message='hourly forcing requires aggregation for a daily model step')
     @assertTrue(meteo_supports_forcing_step(1, 1), message='hourly forcing supports an hourly model step')
-    @assertTrue(meteo_supports_forcing_step(1, 6), message='hourly models retain coarser fixed-support forcing lookup')
+    @assertFalse(meteo_supports_forcing_step(1, 6), message='coarser fixed forcing requires resampling for an hourly model step')
   end subroutine test_forcing_step_compatibility
 
   @test

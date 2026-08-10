@@ -164,7 +164,6 @@ namelists=(
   test_nml/mpr_pet_hargreaves_minimal.nml
   test_nml/mpr_pet_priestley_taylor_minimal.nml
   test_nml/mpr_pet_penman_minimal.nml
-  test_nml/mpr_pet_aspect_hourly6h_minimal.nml
   test_nml/mpr_pet_aspect_weights_minimal.nml
   test_nml/mpr_snow_pet_lai_minimal.nml
   test_nml/mpr_runoff_baseflow_minimal.nml

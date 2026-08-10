@@ -124,12 +124,12 @@ contains
     supported = step_hours == 1_i4 .or. step_hours == 24_i4
   end function meteo_supports_model_step
 
-  !> \brief Report whether forcing support is compatible with the global model cadence.
+  !> \brief Report whether forcing support is compatible without temporal resampling.
   pure logical function meteo_supports_forcing_step(model_step_hours, forcing_stepping) result(supported)
     integer(i4), intent(in) :: model_step_hours !< global model cadence in hours
     integer(i4), intent(in) :: forcing_stepping !< forcing support encoding
 
-    supported = model_step_hours /= 24_i4 .or. forcing_stepping <= 0_i4 .or. forcing_stepping == 24_i4
+    supported = forcing_stepping <= 0_i4 .or. forcing_stepping == model_step_hours
   end function meteo_supports_forcing_step
 
   !> \brief Set runtime dimensions for generated meteo namelists.
@@ -615,7 +615,7 @@ contains
     if (.not.meteo_supports_forcing_step(self%exchange%step_hours, stepping)) then
       log_fatal(*) "Meteo: ", trim(name), " has fixed support of ", n2s(stepping), &
         "h, but the model step is ", n2s(self%exchange%step_hours), &
-        "h; temporal forcing aggregation/disaggregation is not implemented."
+        "h; temporal forcing resampling is not implemented."
       error stop 1
     end if
   end subroutine meteo_validate_step
