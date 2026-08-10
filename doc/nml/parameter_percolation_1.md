@@ -10,14 +10,14 @@ Parameters for percolation and karst recharge.
 
 | Name | Type | Declared required | Input required | Info |
 | --- | --- | --- | --- | --- |
-| [recharge_coefficient](#recharge_coefficient) | type(parameter_t) | yes | yes | Recharge coefficient |
-| [karstic_recharge_factor](#karstic_recharge_factor) | type(parameter_t) | yes | yes | Karstic recharge factor |
+| [recharge_coefficient](#recharge_coefficient) | type(parameter_t) | yes | yes | Percolation and recharge time [d] |
+| [karstic_recharge_factor](#karstic_recharge_factor) | type(parameter_t) | yes | yes | Karstic recharge factor [1] |
 
 ## Field details
 
 ### recharge_coefficient
 
-Recharge coefficient `recharge_coefficient`
+Percolation and recharge time [d] `recharge_coefficient`
 
 A model parameter with optional calibration metadata.
 
@@ -35,7 +35,7 @@ Components:
 
 ### karstic_recharge_factor
 
-Karstic recharge factor `karstic_recharge_factor`
+Karstic recharge factor [1] `karstic_recharge_factor`
 
 A model parameter with optional calibration metadata.
 

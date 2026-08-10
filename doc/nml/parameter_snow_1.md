@@ -11,13 +11,13 @@ Parameters for the degree-day snow module.
 | Name | Type | Declared required | Input required | Info |
 | --- | --- | --- | --- | --- |
 | [snow_threshold_temperature](#snow_threshold_temperature) | type(parameter_t) | yes | yes | Threshold for rain and snow partitioning [degC] |
-| [degree_day_factor_forest](#degree_day_factor_forest) | type(parameter_t) | yes | yes | Degree-day factor for forest [m degC-1] |
-| [degree_day_factor_impervious](#degree_day_factor_impervious) | type(parameter_t) | yes | yes | Degree-day factor for impervious areas [m degC-1] |
-| [degree_day_factor_pervious](#degree_day_factor_pervious) | type(parameter_t) | yes | yes | Degree-day factor for pervious areas [m degC-1] |
+| [degree_day_factor_forest](#degree_day_factor_forest) | type(parameter_t) | yes | yes | Degree-day factor for forest [mm d-1 degC-1] |
+| [degree_day_factor_impervious](#degree_day_factor_impervious) | type(parameter_t) | yes | yes | Degree-day factor for impervious areas [mm d-1 degC-1] |
+| [degree_day_factor_pervious](#degree_day_factor_pervious) | type(parameter_t) | yes | yes | Degree-day factor for pervious areas [mm d-1 degC-1] |
 | [degree_day_factor_precipitation](#degree_day_factor_precipitation) | type(parameter_t) | yes | yes | Precipitation-dependent degree-day factor increase [degC-1] |
-| [max_degree_day_factor_forest](#max_degree_day_factor_forest) | type(parameter_t) | yes | yes | Maximum degree-day factor for forest [m degC-1] |
-| [max_degree_day_factor_impervious](#max_degree_day_factor_impervious) | type(parameter_t) | yes | yes | Maximum degree-day factor for impervious areas [m degC-1] |
-| [max_degree_day_factor_pervious](#max_degree_day_factor_pervious) | type(parameter_t) | yes | yes | Maximum degree-day factor for pervious areas [m degC-1] |
+| [max_degree_day_factor_forest](#max_degree_day_factor_forest) | type(parameter_t) | yes | yes | Maximum degree-day factor for forest [mm d-1 degC-1] |
+| [max_degree_day_factor_impervious](#max_degree_day_factor_impervious) | type(parameter_t) | yes | yes | Maximum degree-day factor for impervious areas [mm d-1 degC-1] |
+| [max_degree_day_factor_pervious](#max_degree_day_factor_pervious) | type(parameter_t) | yes | yes | Maximum degree-day factor for pervious areas [mm d-1 degC-1] |
 
 ## Field details
 
@@ -41,7 +41,7 @@ Components:
 
 ### degree_day_factor_forest
 
-Degree-day factor for forest [m degC-1] `degree_day_factor_forest`
+Degree-day factor for forest [mm d-1 degC-1] `degree_day_factor_forest`
 
 A model parameter with optional calibration metadata.
 
@@ -59,7 +59,7 @@ Components:
 
 ### degree_day_factor_impervious
 
-Degree-day factor for impervious areas [m degC-1] `degree_day_factor_impervious`
+Degree-day factor for impervious areas [mm d-1 degC-1] `degree_day_factor_impervious`
 
 A model parameter with optional calibration metadata.
 
@@ -77,7 +77,7 @@ Components:
 
 ### degree_day_factor_pervious
 
-Degree-day factor for pervious areas [m degC-1] `degree_day_factor_pervious`
+Degree-day factor for pervious areas [mm d-1 degC-1] `degree_day_factor_pervious`
 
 A model parameter with optional calibration metadata.
 
@@ -113,7 +113,7 @@ Components:
 
 ### max_degree_day_factor_forest
 
-Maximum degree-day factor for forest [m degC-1] `max_degree_day_factor_forest`
+Maximum degree-day factor for forest [mm d-1 degC-1] `max_degree_day_factor_forest`
 
 A model parameter with optional calibration metadata.
 
@@ -131,7 +131,7 @@ Components:
 
 ### max_degree_day_factor_impervious
 
-Maximum degree-day factor for impervious areas [m degC-1] `max_degree_day_factor_impervious`
+Maximum degree-day factor for impervious areas [mm d-1 degC-1] `max_degree_day_factor_impervious`
 
 A model parameter with optional calibration metadata.
 
@@ -149,7 +149,7 @@ Components:
 
 ### max_degree_day_factor_pervious
 
-Maximum degree-day factor for pervious areas [m degC-1] `max_degree_day_factor_pervious`
+Maximum degree-day factor for pervious areas [mm d-1 degC-1] `max_degree_day_factor_pervious`
 
 A model parameter with optional calibration metadata.
 

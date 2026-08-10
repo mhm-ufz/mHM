@@ -78,14 +78,17 @@ Summary:
 
 Global model time step `time_step`
 
-Global model update cadence in hours (currently 1 or 24). This controls how often
-process containers are updated and is independent of the support interval of input data.
+Global model update cadence in hours. The supported values are whole divisors of one day.
+This controls how often process containers are updated and is independent of the support
+interval of input data. Individual process components may support only a subset of these
+globally valid cadences.
 
 Summary:
 - Type: `integer(i4), dimension(n_domains)`
 - Declared required: no
 - Input required: no
 - Default: `1`
+- Allowed values: `1`, `2`, `3`, `4`, `6`, `8`, `12`, `24`
 
 ### share_time_step
 

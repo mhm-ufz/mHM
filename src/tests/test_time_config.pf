@@ -1,0 +1,36 @@
+module test_time_config
+  use funit
+  use mo_kind, only: i4
+  use nml_config_time, only: nml_config_time_t, NML_OK
+
+  implicit none
+
+  private
+
+  public :: test_time_step_enum
+
+contains
+
+  @test
+  subroutine test_time_step_enum()
+    type(nml_config_time_t) :: config
+    integer(i4), parameter :: valid_steps(8) = [1_i4, 2_i4, 3_i4, 4_i4, 6_i4, 8_i4, 12_i4, 24_i4]
+    character(1024) :: errmsg
+    integer :: i
+    integer :: status
+
+    do i = 1, size(valid_steps)
+      status = config%set(time_step=[valid_steps(i)], errmsg=errmsg)
+      @assertEqual(NML_OK, status, message='setting an enumerated model step succeeds')
+      status = config%is_valid(errmsg=errmsg)
+      @assertEqual(NML_OK, status, message='an enumerated model step is valid')
+    end do
+
+    status = config%set(time_step=[5_i4], errmsg=errmsg)
+    @assertEqual(NML_OK, status, message='setting defers enum validation')
+    status = config%is_valid(errmsg=errmsg)
+    @assertTrue(status /= NML_OK, message='a non-divisor model step is rejected')
+    @assertEqual("enum constraint failed: time_step", trim(errmsg), message='invalid model step diagnostic')
+  end subroutine test_time_step_enum
+
+end module test_time_config

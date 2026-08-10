@@ -41,8 +41,8 @@ module nml_percolation_1
   !> \details Parameters for percolation and karst recharge.
   type, public :: nml_percolation_1_t
     logical :: is_configured = .false. !< whether the namelist has been configured
-    type(parameter_t) :: recharge_coefficient !< Recharge coefficient
-    type(parameter_t) :: karstic_recharge_factor !< Karstic recharge factor
+    type(parameter_t) :: recharge_coefficient !< Percolation and recharge time [d]
+    type(parameter_t) :: karstic_recharge_factor !< Karstic recharge factor [1]
   contains
     procedure :: init => nml_percolation_1_init
     procedure :: init_type => nml_percolation_1_init_type
@@ -77,8 +77,8 @@ contains
     karstic_recharge_factor, &
     errmsg) result(status)
     class(nml_percolation_1_t), intent(in) :: this !< parent namelist instance
-    type(parameter_t), intent(inout), optional :: recharge_coefficient !< Recharge coefficient
-    type(parameter_t), intent(inout), optional :: karstic_recharge_factor !< Karstic recharge factor
+    type(parameter_t), intent(inout), optional :: recharge_coefficient !< Percolation and recharge time [d]
+    type(parameter_t), intent(inout), optional :: karstic_recharge_factor !< Karstic recharge factor [1]
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
@@ -165,8 +165,8 @@ contains
 
     class(nml_percolation_1_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
-    type(parameter_t), intent(in) :: recharge_coefficient !< Recharge coefficient
-    type(parameter_t), intent(in) :: karstic_recharge_factor !< Karstic recharge factor
+    type(parameter_t), intent(in) :: recharge_coefficient !< Percolation and recharge time [d]
+    type(parameter_t), intent(in) :: karstic_recharge_factor !< Karstic recharge factor [1]
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return

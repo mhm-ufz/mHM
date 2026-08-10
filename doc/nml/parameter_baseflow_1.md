@@ -10,13 +10,13 @@ Geological baseflow recession parameters.
 
 | Name | Type | Declared required | Input required | Info |
 | --- | --- | --- | --- | --- |
-| [baseflow_recession](#baseflow_recession) | type(parameter_t) array | yes | yes | Baseflow recession for each geological unit |
+| [baseflow_recession](#baseflow_recession) | type(parameter_t) array | yes | yes | Baseflow recession time for each geological unit [d] |
 
 ## Field details
 
 ### baseflow_recession
 
-Baseflow recession for each geological unit `baseflow_recession`
+Baseflow recession time for each geological unit [d] `baseflow_recession`
 
 Values are addressed by the first column of each geology class-definition file.
 

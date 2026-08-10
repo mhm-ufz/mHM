@@ -12,21 +12,21 @@ properties:
       optimize: {examples: [true]}
   degree_day_factor_forest:
     $ref: parameter.yml#/$defs/parameter
-    title: Degree-day factor for forest [m degC-1]
+    title: Degree-day factor for forest [mm d-1 degC-1]
     default: {min: 0.0001, max: 4.0}
     properties:
       value: {examples: [1.5]}
       optimize: {examples: [true]}
   degree_day_factor_impervious:
     $ref: parameter.yml#/$defs/parameter
-    title: Degree-day factor for impervious areas [m degC-1]
+    title: Degree-day factor for impervious areas [mm d-1 degC-1]
     default: {min: 0.0, max: 1.0}
     properties:
       value: {examples: [0.5]}
       optimize: {examples: [true]}
   degree_day_factor_pervious:
     $ref: parameter.yml#/$defs/parameter
-    title: Degree-day factor for pervious areas [m degC-1]
+    title: Degree-day factor for pervious areas [mm d-1 degC-1]
     default: {min: 0.0, max: 2.0}
     properties:
       value: {examples: [0.5]}
@@ -40,21 +40,21 @@ properties:
       optimize: {examples: [true]}
   max_degree_day_factor_forest:
     $ref: parameter.yml#/$defs/parameter
-    title: Maximum degree-day factor for forest [m degC-1]
+    title: Maximum degree-day factor for forest [mm d-1 degC-1]
     default: {min: 0.0, max: 8.0}
     properties:
       value: {examples: [3.0]}
       optimize: {examples: [true]}
   max_degree_day_factor_impervious:
     $ref: parameter.yml#/$defs/parameter
-    title: Maximum degree-day factor for impervious areas [m degC-1]
+    title: Maximum degree-day factor for impervious areas [mm d-1 degC-1]
     default: {min: 0.0, max: 8.0}
     properties:
       value: {examples: [3.5]}
       optimize: {examples: [true]}
   max_degree_day_factor_pervious:
     $ref: parameter.yml#/$defs/parameter
-    title: Maximum degree-day factor for pervious areas [m degC-1]
+    title: Maximum degree-day factor for pervious areas [mm d-1 degC-1]
     default: {min: 0.0, max: 8.0}
     properties:
       value: {examples: [4.0]}

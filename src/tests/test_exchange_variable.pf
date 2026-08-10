@@ -11,7 +11,8 @@ module test_exchange_variable
   private
 
   public :: test_var_dp_contract, test_var_dp_alias, test_var2d_dp_contract
-  public :: test_exchange_external_metadata, test_exchange_output_metadata, test_exchange_clock
+  public :: test_exchange_external_metadata, test_exchange_output_metadata, test_exchange_canonical_metadata
+  public :: test_exchange_clock
 
 contains
 
@@ -131,6 +132,27 @@ contains
   end subroutine test_exchange_output_metadata
 
   @test
+  subroutine test_exchange_canonical_metadata()
+    type(exchange_t) :: exchange
+    integer :: status
+
+    status = exchange%config%project%set()
+    @assertEqual(0, status, message='project defaults configure the exchange fixture')
+    call exchange%create(cwd=".")
+
+    @assertEqual("mm degC-1", exchange%degday%units, message='degree-day interval unit')
+    @assertEqual("degC-1", exchange%degday_inc%units, message='degree-day precipitation increment unit')
+    @assertEqual("d", exchange%k_fastflow%units, message='fast interflow recession unit')
+    @assertEqual("Fast interflow recession time", exchange%k_fastflow%long_name, message='fast interflow long name')
+    @assertEqual("d", exchange%k_slowflow%units, message='slow interflow recession unit')
+    @assertEqual("Slow interflow recession time", exchange%k_slowflow%long_name, message='slow interflow long name')
+    @assertEqual("d", exchange%k_baseflow%units, message='baseflow recession unit')
+    @assertEqual("Baseflow recession time", exchange%k_baseflow%long_name, message='baseflow long name')
+    @assertEqual("d", exchange%k_percolation%units, message='percolation time unit')
+    @assertEqual("Percolation time", exchange%k_percolation%long_name, message='percolation long name')
+  end subroutine test_exchange_canonical_metadata
+
+  @test
   subroutine test_exchange_clock()
     type(exchange_t) :: exchange
     type(parameter_t) :: configured(1)
@@ -149,6 +171,7 @@ contains
     @assertEqual(exchange%time%str(), exchange%time_step_start%str(), message='initial interval is empty')
     @assertEqual(0_i4, exchange%step_count, message='initialize resets step counter')
     @assertEqual(1_i4, exchange%step_hours, message='initialize caches the model step in whole hours')
+    @assertEqual(1.0_dp / 24.0_dp, exchange%step_days, tolerance=1.0e-12_dp)
     @assertEqual(3.0_dp, values(1), message='initialize applies parameter override')
 
     call exchange%update()
@@ -156,10 +179,13 @@ contains
     @assertEqual("2020-02-29 00:00:00", exchange%time%str(), message='update advances endpoint once')
     @assertEqual(1_i4, exchange%step_count, message='update increments step counter once')
 
+    exchange%step = timedelta(hours=24_i4)
     call exchange%initialize()
     values = exchange%parameters%as_array()
     @assertEqual(2.0_dp, values(1), message='initialize without override resets parameters')
     @assertEqual(0_i4, exchange%step_count, message='reinitialize resets step counter')
+    @assertEqual(24_i4, exchange%step_hours, message='reinitialize refreshes the cached step in hours')
+    @assertEqual(1.0_dp, exchange%step_days, tolerance=1.0e-12_dp)
   end subroutine test_exchange_clock
 
 end module test_exchange_variable

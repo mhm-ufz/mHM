@@ -44,7 +44,7 @@ module nml_baseflow_1
   type, public :: nml_baseflow_1_t
     logical :: is_configured = .false. !< whether the namelist has been configured
     integer :: n_geo_units = n_geo_units__default !< runtime dimension for n_geo_units
-    type(parameter_t), allocatable, dimension(:) :: baseflow_recession !< Baseflow recession for each geological unit
+    type(parameter_t), allocatable, dimension(:) :: baseflow_recession !< Baseflow recession time for each geological unit [d]
   contains
     procedure :: init => nml_baseflow_1_init
     procedure :: init_type => nml_baseflow_1_init_type
@@ -78,7 +78,7 @@ contains
     baseflow_recession, &
     errmsg) result(status)
     class(nml_baseflow_1_t), intent(in) :: this !< parent namelist instance
-    type(parameter_t), dimension(:), allocatable, intent(inout), optional :: baseflow_recession !< Baseflow recession for each geological unit
+    type(parameter_t), dimension(:), allocatable, intent(inout), optional :: baseflow_recession !< Baseflow recession time for each geological unit [d]
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
@@ -185,7 +185,7 @@ contains
 
     class(nml_baseflow_1_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
-    type(parameter_t), dimension(:), intent(in) :: baseflow_recession !< Baseflow recession for each geological unit
+    type(parameter_t), dimension(:), intent(in) :: baseflow_recession !< Baseflow recession time for each geological unit [d]
     integer :: &
       lb__1, &
       ub__1

@@ -42,13 +42,13 @@ module nml_snow_1
   type, public :: nml_snow_1_t
     logical :: is_configured = .false. !< whether the namelist has been configured
     type(parameter_t) :: snow_threshold_temperature !< Threshold for rain and snow partitioning [degC]
-    type(parameter_t) :: degree_day_factor_forest !< Degree-day factor for forest [m degC-1]
-    type(parameter_t) :: degree_day_factor_impervious !< Degree-day factor for impervious areas [m degC-1]
-    type(parameter_t) :: degree_day_factor_pervious !< Degree-day factor for pervious areas [m degC-1]
+    type(parameter_t) :: degree_day_factor_forest !< Degree-day factor for forest [mm d-1 degC-1]
+    type(parameter_t) :: degree_day_factor_impervious !< Degree-day factor for impervious areas [mm d-1 degC-1]
+    type(parameter_t) :: degree_day_factor_pervious !< Degree-day factor for pervious areas [mm d-1 degC-1]
     type(parameter_t) :: degree_day_factor_precipitation !< Precipitation-dependent degree-day factor increase [degC-1]
-    type(parameter_t) :: max_degree_day_factor_forest !< Maximum degree-day factor for forest [m degC-1]
-    type(parameter_t) :: max_degree_day_factor_impervious !< Maximum degree-day factor for impervious areas [m degC-1]
-    type(parameter_t) :: max_degree_day_factor_pervious !< Maximum degree-day factor for pervious areas [m degC-1]
+    type(parameter_t) :: max_degree_day_factor_forest !< Maximum degree-day factor for forest [mm d-1 degC-1]
+    type(parameter_t) :: max_degree_day_factor_impervious !< Maximum degree-day factor for impervious areas [mm d-1 degC-1]
+    type(parameter_t) :: max_degree_day_factor_pervious !< Maximum degree-day factor for pervious areas [mm d-1 degC-1]
   contains
     procedure :: init => nml_snow_1_init
     procedure :: init_type => nml_snow_1_init_type
@@ -96,13 +96,13 @@ contains
     errmsg) result(status)
     class(nml_snow_1_t), intent(in) :: this !< parent namelist instance
     type(parameter_t), intent(inout), optional :: snow_threshold_temperature !< Threshold for rain and snow partitioning [degC]
-    type(parameter_t), intent(inout), optional :: degree_day_factor_forest !< Degree-day factor for forest [m degC-1]
-    type(parameter_t), intent(inout), optional :: degree_day_factor_impervious !< Degree-day factor for impervious areas [m degC-1]
-    type(parameter_t), intent(inout), optional :: degree_day_factor_pervious !< Degree-day factor for pervious areas [m degC-1]
+    type(parameter_t), intent(inout), optional :: degree_day_factor_forest !< Degree-day factor for forest [mm d-1 degC-1]
+    type(parameter_t), intent(inout), optional :: degree_day_factor_impervious !< Degree-day factor for impervious areas [mm d-1 degC-1]
+    type(parameter_t), intent(inout), optional :: degree_day_factor_pervious !< Degree-day factor for pervious areas [mm d-1 degC-1]
     type(parameter_t), intent(inout), optional :: degree_day_factor_precipitation !< Precipitation-dependent degree-day factor increase [degC-1]
-    type(parameter_t), intent(inout), optional :: max_degree_day_factor_forest !< Maximum degree-day factor for forest [m degC-1]
-    type(parameter_t), intent(inout), optional :: max_degree_day_factor_impervious !< Maximum degree-day factor for impervious areas [m degC-1]
-    type(parameter_t), intent(inout), optional :: max_degree_day_factor_pervious !< Maximum degree-day factor for pervious areas [m degC-1]
+    type(parameter_t), intent(inout), optional :: max_degree_day_factor_forest !< Maximum degree-day factor for forest [mm d-1 degC-1]
+    type(parameter_t), intent(inout), optional :: max_degree_day_factor_impervious !< Maximum degree-day factor for impervious areas [mm d-1 degC-1]
+    type(parameter_t), intent(inout), optional :: max_degree_day_factor_pervious !< Maximum degree-day factor for pervious areas [mm d-1 degC-1]
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
@@ -268,13 +268,13 @@ contains
     class(nml_snow_1_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     type(parameter_t), intent(in) :: snow_threshold_temperature !< Threshold for rain and snow partitioning [degC]
-    type(parameter_t), intent(in) :: degree_day_factor_forest !< Degree-day factor for forest [m degC-1]
-    type(parameter_t), intent(in) :: degree_day_factor_impervious !< Degree-day factor for impervious areas [m degC-1]
-    type(parameter_t), intent(in) :: degree_day_factor_pervious !< Degree-day factor for pervious areas [m degC-1]
+    type(parameter_t), intent(in) :: degree_day_factor_forest !< Degree-day factor for forest [mm d-1 degC-1]
+    type(parameter_t), intent(in) :: degree_day_factor_impervious !< Degree-day factor for impervious areas [mm d-1 degC-1]
+    type(parameter_t), intent(in) :: degree_day_factor_pervious !< Degree-day factor for pervious areas [mm d-1 degC-1]
     type(parameter_t), intent(in) :: degree_day_factor_precipitation !< Precipitation-dependent degree-day factor increase [degC-1]
-    type(parameter_t), intent(in) :: max_degree_day_factor_forest !< Maximum degree-day factor for forest [m degC-1]
-    type(parameter_t), intent(in) :: max_degree_day_factor_impervious !< Maximum degree-day factor for impervious areas [m degC-1]
-    type(parameter_t), intent(in) :: max_degree_day_factor_pervious !< Maximum degree-day factor for pervious areas [m degC-1]
+    type(parameter_t), intent(in) :: max_degree_day_factor_forest !< Maximum degree-day factor for forest [mm d-1 degC-1]
+    type(parameter_t), intent(in) :: max_degree_day_factor_impervious !< Maximum degree-day factor for impervious areas [mm d-1 degC-1]
+    type(parameter_t), intent(in) :: max_degree_day_factor_pervious !< Maximum degree-day factor for pervious areas [mm d-1 degC-1]
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return

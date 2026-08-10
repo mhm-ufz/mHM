@@ -2,8 +2,10 @@ program test_parameter_failures
   use, intrinsic :: ieee_arithmetic, only: ieee_quiet_nan, ieee_value
   use, intrinsic :: iso_fortran_env, only: error_unit
   use mo_domain, only: domain_t
+  use mo_exchange_type, only: exchange_t
   use mo_kind, only: dp
   use mo_main_config, only: parameters_t
+  use mo_meteo_container, only: meteo_t
   use mo_parameter_types, only: parameter_t
 
   implicit none
@@ -37,6 +39,8 @@ program test_parameter_failures
     call write_size()
   case ("missing-input")
     call missing_input()
+  case ("meteo-step")
+    call unsupported_meteo_step()
   case default
     write(error_unit, '(a)') "unknown parameter failure scenario: " // trim(scenario)
     error stop 2
@@ -133,6 +137,18 @@ contains
     call domain%create(main_file="test_nml/mrm_minimal.nml", cwd=".")
     call domain%configure(main_file="test_nml/mrm_minimal.nml")
   end subroutine missing_input
+
+  subroutine unsupported_meteo_step()
+    type(exchange_t), target :: exchange
+    type(meteo_t) :: meteo
+    integer :: status
+
+    status = exchange%config%processes%set(snow=1)
+    if (status /= 0) error stop 2
+    exchange%step_hours = 4
+    meteo%exchange => exchange
+    call meteo%configure()
+  end subroutine unsupported_meteo_step
 
   subroutine configure_and_seal(parameters, definitions)
     type(parameters_t), intent(out) :: parameters

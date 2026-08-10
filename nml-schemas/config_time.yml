@@ -52,11 +52,14 @@ properties:
       type: integer
       x-fortran-kind: i4
       default: 1
+      enum: [1, 2, 3, 4, 6, 8, 12, 24]
     x-fortran-shape: n_domains
     title: Global model time step
     description: |-
-      Global model update cadence in hours (currently 1 or 24). This controls how often
-      process containers are updated and is independent of the support interval of input data.
+      Global model update cadence in hours. The supported values are whole divisors of one day.
+      This controls how often process containers are updated and is independent of the support
+      interval of input data. Individual process components may support only a subset of these
+      globally valid cadences.
   share_time_step:
     type: boolean
     default: true

@@ -32,7 +32,7 @@ module mo_meteo_container
   use nml_config_meteo, only: nml_config_meteo_t, NML_OK
 
   character(len=*), parameter :: s = "meteo" !< module scope for logging
-  public :: meteo_is_day_step
+  public :: meteo_is_day_step, meteo_supports_model_step, meteo_supports_forcing_step
 
   !> \class   meteo_weight_state_t
   !> \brief   Cached hourly disaggregation weights on level1.
@@ -117,6 +117,21 @@ contains
     is_day = (hour >= 6_i4) .and. (hour < 18_i4)
   end function meteo_is_day_step
 
+  !> \brief Report whether meteo can process the configured global model cadence without resampling.
+  pure logical function meteo_supports_model_step(step_hours) result(supported)
+    integer(i4), intent(in) :: step_hours !< global model cadence in hours
+
+    supported = step_hours == 1_i4 .or. step_hours == 24_i4
+  end function meteo_supports_model_step
+
+  !> \brief Report whether fixed forcing support matches the global model cadence.
+  pure logical function meteo_supports_forcing_step(model_step_hours, forcing_stepping) result(supported)
+    integer(i4), intent(in) :: model_step_hours !< global model cadence in hours
+    integer(i4), intent(in) :: forcing_stepping !< forcing support encoding
+
+    supported = forcing_stepping <= 0_i4 .or. forcing_stepping == model_step_hours
+  end function meteo_supports_forcing_step
+
   !> \brief Set runtime dimensions for generated meteo namelists.
   subroutine meteo_set_dims(self)
     class(meteo_t), intent(inout), target :: self
@@ -146,6 +161,10 @@ contains
       self%exchange%config%processes%percolation, self%exchange%config%processes%baseflow, &
       self%exchange%config%processes%neutrons, self%exchange%config%processes%temperature_routing] /= 0_i4)
     if (.not.self%active) return
+    if (.not.meteo_supports_model_step(self%exchange%step_hours)) then
+      log_fatal(*) "Meteo supports only 1-hour and 24-hour model steps; temporal aggregation/disaggregation for intermediate steps is not implemented."
+      error stop 1
+    end if
     if (present(file)) then
       path = self%exchange%get_path(file)
       log_info(*) "Read meteo config: ", path
@@ -591,6 +610,12 @@ contains
 
     if (.not.valid) then
       log_fatal(*) "Meteo: unsupported stepping for ", trim(name), ": ", n2s(stepping)
+      error stop 1
+    end if
+    if (.not.meteo_supports_forcing_step(self%exchange%step_hours, stepping)) then
+      log_fatal(*) "Meteo: ", trim(name), " has fixed support of ", n2s(stepping), &
+        "h, but the model step is ", n2s(self%exchange%step_hours), &
+        "h; temporal forcing aggregation/disaggregation is not implemented."
       error stop 1
     end if
   end subroutine meteo_validate_step

@@ -1,0 +1,32 @@
+&config_project
+  n_domains = 1
+  n_geo_units = 10
+/
+
+&config_processes
+  routing = 2
+/
+
+&config_time
+  sim_start(1) = "1990-01-01 00:00"
+  eval_start(1) = "1990-01-01 00:00"
+  sim_end(1) = "1990-01-03 00:00"
+  time_step(1) = 8
+/
+
+&config_resolution
+  route(1) = 6000.0
+/
+
+&config_input
+  runoff_path(1) = "examples/fixtures/runoff_daily.nc"
+  runoff_var(1) = "Q"
+  fdir_path(1) = "examples/fixtures/input.nc"
+  slope_path(1) = "examples/fixtures/input.nc"
+/
+
+&config_mrm
+  max_route_step(1) = 3600
+  output_path(1) = "mrm_8h_output.nc"
+  diagnostics_path(1) = "mrm_8h_diagnostics.nc"
+/

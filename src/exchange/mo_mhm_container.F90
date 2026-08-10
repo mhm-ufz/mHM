@@ -139,12 +139,6 @@ module mo_mhm_container
     character(:), allocatable :: output_path !< resolved output path
   end type mhm_io_state_t
 
-  !> \class   mhm_runtime_state_t
-  !> \brief   Grouped scalar runtime bookkeeping for the mHM container.
-  type :: mhm_runtime_state_t
-    real(dp) :: c2TSTu = 0.0_dp !< conversion factor from model time step to legacy day-based units
-  end type mhm_runtime_state_t
-
   !> \class   mhm_t
   !> \brief   Class for a single mHM process container.
   type, public :: mhm_t
@@ -161,7 +155,6 @@ module mo_mhm_container
     type(mhm_forcing_state_t) :: forcing !< forcing caches and monthly evap coefficients
     type(mhm_contract_state_t) :: contract !< internal ownership of couplable subprocess outputs
     type(mhm_io_state_t) :: io !< restart/output bookkeeping
-    type(mhm_runtime_state_t) :: runtime !< scalar runtime bookkeeping
     logical :: active = .false. !< whether mHM participates in the configured domain
   contains
     procedure :: set_dims => mhm_set_dims
@@ -482,12 +475,6 @@ contains
       end if
     else
       self%forcing%evap_coeff = 1.0_dp
-    end if
-
-    self%runtime%c2TSTu = real(self%exchange%step_hours, dp) / 24.0_dp
-    if (.not.ieee_is_finite(self%runtime%c2TSTu) .or. self%runtime%c2TSTu <= 0.0_dp) then
-      log_fatal(*) "mHM: invalid time-step conversion factor c2TSTu."
-      error stop 1
     end if
 
     neutron_case = self%exchange%config%processes%neutrons
@@ -895,8 +882,8 @@ contains
     case (1_i4)
       !$omp do schedule(static)
       do k = 1_i4, size(self%exchange%snowpack%data)
-        call snow_accum_melt(self%exchange%degday_inc%data(k), self%exchange%degday_max%data(k) * self%runtime%c2TSTu, &
-          self%exchange%degday_dry%data(k) * self%runtime%c2TSTu, self%exchange%pre%data(k), self%exchange%temp%data(k), &
+        call snow_accum_melt(self%exchange%degday_inc%data(k), self%exchange%degday_max%data(k) * self%exchange%step_days, &
+          self%exchange%degday_dry%data(k) * self%exchange%step_days, self%exchange%pre%data(k), self%exchange%temp%data(k), &
           self%exchange%thresh_temp%data(k), self%exchange%throughfall%data(k), self%exchange%snowpack%data(k), &
           self%exchange%degday%data(k), self%exchange%melt%data(k), self%exchange%pre_eff%data(k), self%exchange%rain%data(k), &
           self%exchange%snow%data(k))
@@ -1002,8 +989,9 @@ contains
     n_horizons = size(self%exchange%infiltration%data, 2)
     !$omp do schedule(static)
     do k = 1_i4, size(self%exchange%unsat_storage%data)
-      call runoff_unsat_zone(self%runtime%c2TSTu / self%exchange%k_slowflow%data(k), &
-        self%runtime%c2TSTu / self%exchange%k_percolation%data(k), self%runtime%c2TSTu / self%exchange%k_fastflow%data(k), &
+      call runoff_unsat_zone(self%exchange%step_days / self%exchange%k_slowflow%data(k), &
+        self%exchange%step_days / self%exchange%k_percolation%data(k), &
+        self%exchange%step_days / self%exchange%k_fastflow%data(k), &
         self%exchange%alpha%data(k), self%exchange%f_karst_loss%data(k), self%exchange%infiltration%data(k, n_horizons), &
         self%exchange%thresh_unsat%data(k), self%exchange%sat_storage%data(k), self%exchange%unsat_storage%data(k), &
         self%exchange%interflow_slow%data(k), self%exchange%interflow_fast%data(k), self%exchange%percolation%data(k))
@@ -1024,7 +1012,7 @@ contains
     case (1_i4)
       !$omp do schedule(static)
       do k = 1_i4, size(self%exchange%sat_storage%data)
-        call runoff_sat_zone(self%runtime%c2TSTu / self%exchange%k_baseflow%data(k), self%exchange%sat_storage%data(k), &
+        call runoff_sat_zone(self%exchange%step_days / self%exchange%k_baseflow%data(k), self%exchange%sat_storage%data(k), &
           self%exchange%baseflow%data(k))
       end do
       !$omp end do
@@ -1576,7 +1564,6 @@ contains
     if (allocated(self%runoff%total_runoff)) deallocate(self%runoff%total_runoff)
     if (allocated(self%neutrons%counts)) deallocate(self%neutrons%counts)
     if (allocated(self%neutrons%integral_afast)) deallocate(self%neutrons%integral_afast)
-    self%runtime%c2TSTu = 0.0_dp
     log_info(*) "Finalize mhm"
   end subroutine mhm_finalize
 

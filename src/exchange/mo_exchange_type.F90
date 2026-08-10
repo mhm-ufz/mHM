@@ -190,6 +190,7 @@ module mo_exchange_type
     type(datetime) :: end_time              !< end time of simulation
     type(timedelta) :: step                 !< time step of the simulation
     integer(i4) :: step_hours = 0_i4        !< cached time step of the simulation in whole hours
+    real(dp) :: step_days = 0.0_dp          !< cached time step of the simulation in days
     type(exchange_config_t) :: config        !< exchange-owned namelist configuration
     type(parameters_t) :: parameters        !< parameters container
     integer(i4) :: domain_id                !< stable domain ID in the run
@@ -284,7 +285,7 @@ module mo_exchange_type
     ! neutrons
     type(var_dp) :: neutrons            !< ground albedo neutrons [count h-1] on level l1
     ! degday calculated by mHM from MPR degday_X variables
-    type(var_dp) :: degday              !< Degree-day factor [mm d-1 degC-1] on level l1
+    type(var_dp) :: degday              !< Degree-day factor for the current interval [mm degC-1] on level l1
 
     ! MPR results (level1)
     ! PET
@@ -297,7 +298,7 @@ module mo_exchange_type
     ! canopy
     type(var_dp) :: max_interception    !< Maximum interception [mm] on level l1
     ! snow
-    type(var_dp) :: degday_inc          !< Increase of the degree-day factor per precipitation [d-1 degC-1] on level l1
+    type(var_dp) :: degday_inc          !< Increase of the degree-day factor per precipitation [degC-1] on level l1
     type(var_dp) :: degday_max          !< Maximum degree-day factor [mm d-1 degC-1] on level l1
     type(var_dp) :: degday_dry          !< Degree-day factor for no precipitation [mm d-1 degC-1] on level l1
     type(var_dp) :: thresh_temp         !< Threshold temperature for phase transition snow and rain [degC] on level l1
@@ -311,10 +312,10 @@ module mo_exchange_type
     type(var_dp) :: thresh_jarvis       !< Jarvis critical value (C1) for normalized soil water content [1] on level l1
     ! runoff
     type(var_dp) :: alpha               !< Exponent for the upper reservoir [1] on level l1
-    type(var_dp) :: k_fastflow          !< Fast interflow recession coefficient [d-1] on level l1
-    type(var_dp) :: k_slowflow          !< Slow interflow recession coefficient [d-1] on level l1
-    type(var_dp) :: k_baseflow          !< Baseflow recession coefficient [d-1] on level l1
-    type(var_dp) :: k_percolation       !< Percolation coefficient [d-1] on level l1
+    type(var_dp) :: k_fastflow          !< Fast interflow recession time [d] on level l1
+    type(var_dp) :: k_slowflow          !< Slow interflow recession time [d] on level l1
+    type(var_dp) :: k_baseflow          !< Baseflow recession time [d] on level l1
+    type(var_dp) :: k_percolation       !< Percolation time [d] on level l1
     type(var_dp) :: f_karst_loss        !< Fraction of karstic percolation loss [1] on level l1
     type(var_dp) :: thresh_unsat        !< Threshold water depth for fast interflow [mm] on level l1
     type(var_dp) :: thresh_sealed       !< Threshold water depth for runoff on sealed surfaces [mm] on level l1
@@ -523,6 +524,7 @@ contains
     self%baseflow          =   var_dp(grid=l1, name="QB",                units="mm",  long_name="baseflow", standard_name="baseflow_amount")
     ! neutrons
     self%neutrons          =   var_dp(grid=l1, name="neutrons",          units="cph", long_name="ground albedo neutrons")
+    self%degday            =   var_dp(grid=l1, name="degday",            units="mm degC-1",          long_name="Degree-day factor for the current interval")
 
     ! MPR results (level1)
     ! PET
@@ -535,7 +537,7 @@ contains
     ! canopy
     self%max_interception  =   var_dp(grid=l1, name="max_interception",  units="mm",                long_name="Maximum interception")
     ! snow
-    self%degday_inc        =   var_dp(grid=l1, name="degday_inc",        units="d-1 degC-1",       long_name="Increase of the degree-day factor per precipitation")
+    self%degday_inc        =   var_dp(grid=l1, name="degday_inc",        units="degC-1",            long_name="Increase of the degree-day factor per precipitation")
     self%degday_max        =   var_dp(grid=l1, name="degday_max",        units="mm d-1 degC-1",    long_name="Maximum degree-day factor")
     self%degday_dry        =   var_dp(grid=l1, name="degday_dry",        units="mm d-1 degC-1",    long_name="Degree-day factor for no precipitation")
     self%thresh_temp       =   var_dp(grid=l1, name="thresh_temp",       units="degC",              long_name="Threshold temperature for phase transition snow and rain")
@@ -549,10 +551,10 @@ contains
     self%thresh_jarvis     =   var_dp(grid=l1, name="thresh_jarvis",     units="1",  static=.true., long_name="Jarvis critical value (C1) for normalized soil water content")
     ! runoff
     self%alpha             =   var_dp(grid=l1, name="alpha",             units="1",                 long_name="Exponent for the upper reservoir")
-    self%k_fastflow        =   var_dp(grid=l1, name="k_fastflow",        units="d-1",              long_name="Fast interflow recession coefficient")
-    self%k_slowflow        =   var_dp(grid=l1, name="k_slowflow",        units="d-1",              long_name="Slow interflow recession coefficient")
-    self%k_baseflow        =   var_dp(grid=l1, name="k_baseflow",        units="d-1",              long_name="Baseflow recession coefficient")
-    self%k_percolation     =   var_dp(grid=l1, name="k_percolation",     units="d-1",              long_name="Percolation coefficient")
+    self%k_fastflow        =   var_dp(grid=l1, name="k_fastflow",        units="d",                 long_name="Fast interflow recession time")
+    self%k_slowflow        =   var_dp(grid=l1, name="k_slowflow",        units="d",                 long_name="Slow interflow recession time")
+    self%k_baseflow        =   var_dp(grid=l1, name="k_baseflow",        units="d",                 long_name="Baseflow recession time")
+    self%k_percolation     =   var_dp(grid=l1, name="k_percolation",     units="d",                 long_name="Percolation time")
     self%f_karst_loss      =   var_dp(grid=l1, name="f_karst_loss",      units="1",  static=.true., long_name="Fraction of karstic percolation loss")
     self%thresh_unsat      =   var_dp(grid=l1, name="thresh_unsat",      units="mm", static=.true., long_name="Threshold water depth for fast interflow")
     self%thresh_sealed     =   var_dp(grid=l1, name="thresh_sealed",     units="mm", static=.true., long_name="Threshold water depth for runoff on sealed surfaces")
@@ -791,6 +793,7 @@ contains
     if (self%config%time%share_time_step) id(1) = 1_i4
     self%step_hours = self%config%time%time_step(id(1))
     self%step = timedelta(hours=self%step_hours)
+    self%step_days = real(self%step_hours, dp) / 24.0_dp
   end subroutine exchange_configure
 
   !> \brief Initialize exchange-owned parameters and the simulation clock.
@@ -803,6 +806,7 @@ contains
       log_fatal(*) "The global model step must be a positive whole number of hours."
       error stop 1
     end if
+    self%step_days = real(self%step_hours, dp) / 24.0_dp
     self%step_count = 0_i4
     self%time = self%start_time
     self%time_step_start = self%start_time

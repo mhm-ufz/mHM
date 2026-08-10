@@ -10,17 +10,17 @@ Parameters for parallel interflow reservoirs.
 
 | Name | Type | Declared required | Input required | Info |
 | --- | --- | --- | --- | --- |
-| [storage_capacity_factor](#storage_capacity_factor) | type(parameter_t) | yes | yes | Interflow storage-capacity factor |
-| [recession_slope](#recession_slope) | type(parameter_t) | yes | yes | Slope multiplier for interflow recession |
-| [fast_recession_forest](#fast_recession_forest) | type(parameter_t) | yes | yes | Forest multiplier for fast interflow recession |
-| [slow_recession_ks](#slow_recession_ks) | type(parameter_t) | yes | yes | Saturated-conductivity multiplier for slow interflow recession |
-| [slow_recession_exponent](#slow_recession_exponent) | type(parameter_t) | yes | yes | Slow interflow exponent |
+| [storage_capacity_factor](#storage_capacity_factor) | type(parameter_t) | yes | yes | Interflow storage-capacity factor [1] |
+| [recession_slope](#recession_slope) | type(parameter_t) | yes | yes | Slope-derived interflow recession time [d] |
+| [fast_recession_forest](#fast_recession_forest) | type(parameter_t) | yes | yes | Forest multiplier for fast interflow recession [1] |
+| [slow_recession_ks](#slow_recession_ks) | type(parameter_t) | yes | yes | Saturated-conductivity contribution to slow interflow recession time [d] |
+| [slow_recession_exponent](#slow_recession_exponent) | type(parameter_t) | yes | yes | Slow interflow exponent [1] |
 
 ## Field details
 
 ### storage_capacity_factor
 
-Interflow storage-capacity factor `storage_capacity_factor`
+Interflow storage-capacity factor [1] `storage_capacity_factor`
 
 A model parameter with optional calibration metadata.
 
@@ -38,7 +38,7 @@ Components:
 
 ### recession_slope
 
-Slope multiplier for interflow recession `recession_slope`
+Slope-derived interflow recession time [d] `recession_slope`
 
 A model parameter with optional calibration metadata.
 
@@ -56,7 +56,7 @@ Components:
 
 ### fast_recession_forest
 
-Forest multiplier for fast interflow recession `fast_recession_forest`
+Forest multiplier for fast interflow recession [1] `fast_recession_forest`
 
 A model parameter with optional calibration metadata.
 
@@ -74,7 +74,7 @@ Components:
 
 ### slow_recession_ks
 
-Saturated-conductivity multiplier for slow interflow recession `slow_recession_ks`
+Saturated-conductivity contribution to slow interflow recession time [d] `slow_recession_ks`
 
 A model parameter with optional calibration metadata.
 
@@ -92,7 +92,7 @@ Components:
 
 ### slow_recession_exponent
 
-Slow interflow exponent `slow_recession_exponent`
+Slow interflow exponent [1] `slow_recession_exponent`
 
 A model parameter with optional calibration metadata.
 
