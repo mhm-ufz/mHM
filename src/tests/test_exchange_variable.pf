@@ -148,6 +148,7 @@ contains
     @assertEqual("2020-02-28 23:00:00", exchange%time%str(), message='initialize sets endpoint to start time')
     @assertEqual(exchange%time%str(), exchange%time_step_start%str(), message='initial interval is empty')
     @assertEqual(0_i4, exchange%step_count, message='initialize resets step counter')
+    @assertEqual(1_i4, exchange%step_hours, message='initialize caches the model step in whole hours')
     @assertEqual(3.0_dp, values(1), message='initialize applies parameter override')
 
     call exchange%update()

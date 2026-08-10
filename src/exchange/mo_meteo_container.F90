@@ -17,7 +17,7 @@ module mo_meteo_container
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
   use mo_logging
   use mo_constants, only: T0_dp
-  use mo_datetime, only: datetime, one_day, one_hour
+  use mo_datetime, only: datetime
   use mo_exchange_type, only: exchange_t, var_dp
   use mo_grid, only: grid_t, spherical
   use mo_grid_io, only: no_time, daily, monthly, yearly
@@ -197,7 +197,7 @@ contains
     snow_process = self%exchange%config%processes%snow
     riv_temp_process = self%exchange%config%processes%temperature_routing
     steps_day = self%steps_per_day()
-    step_hours = int(self%exchange%step / one_hour(), i4)
+    step_hours = self%exchange%step_hours
     frac_domain_id = self%fraction_domain()
 
     need_pre = self%active
@@ -424,7 +424,7 @@ contains
   !> \brief Return the number of model steps per day.
   integer(i4) function meteo_steps_per_day(self) result(steps_day)
     class(meteo_t), intent(in) :: self
-    steps_day = int(one_day() / self%exchange%step, i4)
+    steps_day = 24_i4 / self%exchange%step_hours
     if (steps_day < 1_i4) then
       log_fatal(*) "Meteo: invalid model step size for temporal disaggregation."
       error stop 1

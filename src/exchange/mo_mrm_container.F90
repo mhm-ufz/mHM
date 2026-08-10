@@ -336,7 +336,6 @@ contains
 
   ! read initial values and populate exchange
   subroutine mrm_connect(self)
-    use mo_datetime, only: datetime, timedelta, one_hour, one_day
     use mo_grid, only: grid_t
     use mo_river, only: river_t
     use mo_river_tools, only: read_scc_gauges
@@ -358,7 +357,7 @@ contains
 
     log_info(*) "Connect mRM"
 
-    model_step = int(self%exchange%step / one_hour(), i4)
+    model_step = self%exchange%step_hours
 
     ! get domain id
     id(1) = self%exchange%nml_domain_id
@@ -452,7 +451,6 @@ contains
 
   ! set initial values like timestep 0
   subroutine mrm_initialize(self)
-    use mo_datetime, only: datetime, timedelta, one_hour, one_day
     class(mrm_t), target, intent(inout) :: self
 
     integer(i4)           :: id(1)
@@ -522,15 +520,14 @@ contains
 
   end subroutine mrm_initialize
 
-  !> \brief Convert runoff support and the global model cadence to fixed hours for routing.
+  !> \brief Resolve runoff support and the global model cadence in fixed hours for routing.
   subroutine mrm_get_routing_steps(self, input_step, model_step)
-    use mo_datetime, only: one_hour
     use mo_grid_io, only: daily, monthly, yearly, no_time, varying
     class(mrm_t), intent(in), target :: self
     integer(i4), intent(out) :: input_step, model_step
 
-    model_step = int(self%exchange%step / one_hour(), i4)
-    if (model_step < 1_i4 .or. self%exchange%step /= model_step * one_hour()) then
+    model_step = self%exchange%step_hours
+    if (model_step < 1_i4) then
       log_fatal(*) "mRM requires the global model step to be a positive whole number of hours."
       error stop 1
     end if

@@ -22,7 +22,7 @@ module mo_exchange_type
   use mo_grid_io, only: output_var_meta_t => var, no_time, daily, monthly, yearly, varying
   use mo_netcdf, only: NcVariable
   use mo_geology_classdefinition, only: geology_classdefinition_t
-  use mo_datetime, only: datetime, timedelta
+  use mo_datetime, only: datetime, timedelta, one_hour
   use mo_kind, only: dp, i4, i8
   use mo_parameter_namelists, only: parameter_namelists_t
   use mo_string_utils, only: n2s=>num2str
@@ -189,6 +189,7 @@ module mo_exchange_type
     type(datetime) :: eval_start_time       !< start time of evaluation
     type(datetime) :: end_time              !< end time of simulation
     type(timedelta) :: step                 !< time step of the simulation
+    integer(i4) :: step_hours = 0_i4        !< cached time step of the simulation in whole hours
     type(exchange_config_t) :: config        !< exchange-owned namelist configuration
     type(parameters_t) :: parameters        !< parameters container
     integer(i4) :: domain_id                !< stable domain ID in the run
@@ -788,7 +789,8 @@ contains
 
     id(1) = self%nml_domain_id
     if (self%config%time%share_time_step) id(1) = 1_i4
-    self%step = timedelta(hours=self%config%time%time_step(id(1)))
+    self%step_hours = self%config%time%time_step(id(1))
+    self%step = timedelta(hours=self%step_hours)
   end subroutine exchange_configure
 
   !> \brief Initialize exchange-owned parameters and the simulation clock.
@@ -796,6 +798,11 @@ contains
     class(exchange_t), intent(inout), target :: self
     real(dp), dimension(:), optional, intent(in) :: parameters !< optional flattened runtime parameter values
 
+    self%step_hours = int(self%step / one_hour(), i4)
+    if (self%step_hours < 1_i4 .or. self%step /= self%step_hours * one_hour()) then
+      log_fatal(*) "The global model step must be a positive whole number of hours."
+      error stop 1
+    end if
     self%step_count = 0_i4
     self%time = self%start_time
     self%time_step_start = self%start_time

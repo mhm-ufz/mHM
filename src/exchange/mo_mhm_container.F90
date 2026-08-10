@@ -484,7 +484,7 @@ contains
       self%forcing%evap_coeff = 1.0_dp
     end if
 
-    self%runtime%c2TSTu = real(int(self%exchange%step / one_hour(), i4), dp) / 24.0_dp
+    self%runtime%c2TSTu = real(self%exchange%step_hours, dp) / 24.0_dp
     if (.not.ieee_is_finite(self%runtime%c2TSTu) .or. self%runtime%c2TSTu <= 0.0_dp) then
       log_fatal(*) "mHM: invalid time-step conversion factor c2TSTu."
       error stop 1
@@ -516,7 +516,7 @@ contains
     logical :: output_boundary
 
     if (.not.self%io%output_active .and. .not.self%io%write_restart) return
-    model_step = int(self%exchange%step / one_hour(), i4)
+    model_step = self%exchange%step_hours
     frequency = self%output_config%output_frequency
     output_boundary = self%at_output_boundary(self%exchange%end_time)
 
@@ -764,7 +764,7 @@ contains
     integer(i4) :: output_steps
 
     if (.not.self%io%output_active) return
-    model_step = int(self%exchange%step / one_hour(), i4)
+    model_step = self%exchange%step_hours
 
     if (self%io%calc_f_not_sealed) then
       allocate(f_not_sealed(size(self%exchange%f_sealed%data)))
@@ -1718,7 +1718,7 @@ contains
 
     interception_case = self%exchange%config%processes%interception
     snow_case = self%exchange%config%processes%snow
-    step_hours = int(self%exchange%step / one_hour(), i4)
+    step_hours = self%exchange%step_hours
 
     select case (interception_case)
     case (1_i4)
