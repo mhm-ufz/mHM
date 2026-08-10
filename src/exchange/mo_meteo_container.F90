@@ -124,12 +124,12 @@ contains
     supported = step_hours == 1_i4 .or. step_hours == 24_i4
   end function meteo_supports_model_step
 
-  !> \brief Report whether fixed forcing support matches the global model cadence.
+  !> \brief Report whether forcing support is compatible with the global model cadence.
   pure logical function meteo_supports_forcing_step(model_step_hours, forcing_stepping) result(supported)
     integer(i4), intent(in) :: model_step_hours !< global model cadence in hours
     integer(i4), intent(in) :: forcing_stepping !< forcing support encoding
 
-    supported = forcing_stepping <= 0_i4 .or. forcing_stepping == model_step_hours
+    supported = model_step_hours /= 24_i4 .or. forcing_stepping <= 0_i4 .or. forcing_stepping == 24_i4
   end function meteo_supports_forcing_step
 
   !> \brief Set runtime dimensions for generated meteo namelists.
