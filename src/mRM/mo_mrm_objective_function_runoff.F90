@@ -32,6 +32,7 @@
 !! 32. SO: Q:        SSE of boxcox-transformed streamflow
 !! 48. SO: Q:        1.0 - KGEprime (modified/prime KGE, Kling et al. 2012)
 !! 49. SO: Q:        1.0 - KGEnp (non-parametric KGE, Pool et al. 2018)
+!! 50. SO: Q:        1.0 - JDKGE (Joint Divergence KGE, Ficchi et al. 2026)
 !> \changelog
 !! - Stephan Thober             Oct 2015
 !!   - adapted for mRM
@@ -52,6 +53,7 @@
 !! - Ehsan Modiri               Aug 2026
 !!   - added OF 48: KGEprime (modified/prime KGE, Kling et al. 2012)
 !!   - added OF 49: KGEnp (non-parametric KGE, Pool et al. 2018)
+!!   - added OF 50: JDKGE (Joint Divergence KGE, Ficchi et al. 2026)
 !> \authors Juliane Mai
 !> \date Dec 2012
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
@@ -189,6 +191,9 @@ CONTAINS
     case (49)
       ! KGEnp
       single_objective_runoff = objective_kgenp(parameterset, eval)
+    case (50)
+      ! JDKGE
+      single_objective_runoff = objective_jdkge(parameterset, eval)
     case (14)
       ! combination of KGE of every gauging station based on a power-6 norm \n
       ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6)
@@ -280,7 +285,7 @@ CONTAINS
     !write(*,*) 'parameterset: ',parameterset(:)
     call distribute_parameterset(parameterset)
     select case (opti_function)
-    case(1 : 3, 5, 6, 9, 31, 48, 49)
+    case(1 : 3, 5, 6, 9, 31, 48, 49, 50)
       call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
       single_objective_runoff_master = 0.0_dp
       do iproc = 1, nproc - 1
@@ -335,6 +340,9 @@ CONTAINS
     case (49)
       ! KGEnp
       call message('objective_kgenp (i.e., 1 - KGEnp) = ', num2str(single_objective_runoff_master))
+    case (50)
+      ! JDKGE
+      call message('objective_jdkge (i.e., 1 - JDKGE) = ', num2str(single_objective_runoff_master))
     case (14)
       ! combination of KGE of every gauging station based on a power-6 norm \n
       ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6)
@@ -475,6 +483,9 @@ CONTAINS
       case (49)
         ! KGEnp
         partial_single_objective_runoff = objective_kgenp(parameterset, eval)
+      case (50)
+        ! JDKGE
+        partial_single_objective_runoff = objective_jdkge(parameterset, eval)
       case (14)
         ! combination of KGE of every gauging station based on a power-6 norm \n
         ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6)
@@ -491,7 +502,7 @@ CONTAINS
       end select
 
       select case (opti_function)
-      case (1 : 3, 5, 6, 9, 14, 31, 48, 49)
+      case (1 : 3, 5, 6, 9, 14, 31, 48, 49, 50)
         call MPI_Send(partial_single_objective_runoff,1, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
         call error_message("Error objective_subprocess: this part should not be executed -> error in the code.")
@@ -2362,6 +2373,117 @@ CONTAINS
     deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
 
   END FUNCTION objective_kgenp
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_jdkge
+
+  !    PURPOSE
+  !>       \brief Objective function of the Joint Divergence KGE.
+
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+
+  !>       Therefore, the Joint Divergence Kling-Gupta model efficiency coefficient \f$ JDKGE \f$
+  !>       \f[ JDKGE = 1.0 - \sqrt{( (1-r)^2 + (1-\gamma)^2 + (1-\beta)^2 + JSD^2 )} \f]
+  !>       where
+  !>       \f$ r \f$ = Pearson product-moment correlation coefficient
+  !>       \f$ \gamma \f$ = ratio of simulated coefficient of variation to observed coefficient of variation
+  !>       \f$ \beta  \f$ = ratio of simulated mean to observed mean
+  !>       \f$ JSD \f$ = Jensen-Shannon Divergence between the log-transformed observed and simulated
+  !>       flow distributions, augmenting KGEprime with sensitivity to distribution-shape mismatches
+  !>       that the other three terms alone cannot detect
+  !>       is calculated and the objective function is
+  !>       \f[ obj\_value = 1.0 - JDKGE \f]
+  !>       \f$(1-JDKGE)\f$ is the objective since we always apply minimization methods.
+  !>       The minimal value of \f$(1-JDKGE)\f$ is 0 for the optimal JDKGE of 1.0.
+
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module. The timestep passed to the
+  !>       JSD component is derived from \e nMeasPerDay, i.e. the resolution \e extract_runoff already
+  !>       aggregated the simulated series down to, not necessarily daily.
+
+  !       LITERATURE
+  !>       Kling, H., Fuchs, M., & Paulin, M. (2012). Runoff conditions in the upper Danube
+  !>       basin under an ensemble of climate change scenarios. Journal of Hydrology, 424-425, 264-277.
+  !>       Ficchi, A., Bavera, D., Grimaldi, S., Moschini, F., Pistocchi, A., Russo, C., Salamon, P.,
+  !>       & Toreti, A. (2026). Improving low and high flow simulations at once: An enhanced metric
+  !>       for hydrological model calibration. EGUsphere [preprint]. https://doi.org/10.5194/egusphere-2026-43
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    RETURN
+  !>       \return real(dp) :: objective_jdkge &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Ehsan Modiri
+
+  !>       \date August 2026
+
+  FUNCTION objective_jdkge(parameterset, eval)
+
+    use mo_errormeasures, only : jdkge
+    use mo_mrm_global_variables, only : nMeasPerDay
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+
+    real(dp) :: objective_jdkge
+
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
+    integer(i4) :: nGaugesTotal
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+    ! timestep of the extracted (observed-resolution) series, in seconds
+    real(dp) :: dt_obs
+
+
+    !
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
+
+    ! extract_runoff aggregates the simulated series down to the observed
+    ! resolution (nMeasPerDay timesteps per day), not necessarily daily
+    dt_obs = 86400.0_dp / real(nMeasPerDay, dp)
+
+    objective_jdkge = 0.0_dp
+    do gg = 1, nGaugesTotal
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      ! JDKGE
+      objective_jdkge = objective_jdkge + &
+              jdkge(runoff_obs, runoff_agg, mask = runoff_obs_mask, dt = dt_obs)
+    end do
+#ifndef MPI
+    objective_jdkge = 1.0_dp - objective_jdkge / real(nGaugesTotal, dp)
+
+    call message('objective_jdkge (i.e., 1 - JDKGE) = ', num2str(objective_jdkge))
+#endif
+
+    deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
+
+  END FUNCTION objective_jdkge
 
   ! ------------------------------------------------------------------
 

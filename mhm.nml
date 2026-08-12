@@ -221,6 +221,7 @@
   !> (47) SO: SPF+ Q : 1.0 - [input wt.* CA(SPF) + KGE(Q)]/(input wt. + 1)
   !> (48) SO: Q: 1.0 - KGEprime (modified/prime KGE, Kling et al. 2012)
   !> (49) SO: Q: 1.0 - KGEnp (non-parametric KGE, Pool et al. 2018)
+  !> (50) SO: Q: 1.0 - JDKGE (Joint Divergence KGE, Ficchi et al. 2026)
 
   !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
   opti_function = 10
