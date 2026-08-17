@@ -41,6 +41,9 @@ module nml_config_time
   integer(i4), parameter, public :: time_step__default = 1_i4
   logical, parameter, public :: share_time_step__default = .true.
 
+  ! enum values
+  integer(i4), parameter, public :: time_step__enum_values(8) = [1_i4, 2_i4, 3_i4, 4_i4, 6_i4, 8_i4, 12_i4, 24_i4]
+
   !> \class nml_config_time_t
   !> \brief Time configuration
   !> \details Configuration for simulation and evaluation time periods in mHM.
@@ -51,7 +54,7 @@ module nml_config_time
     character(len=buf), allocatable, dimension(:) :: eval_start !< Evaluation start
     character(len=buf), allocatable, dimension(:) :: sim_end !< Simulation end
     logical :: share_time_period !< Share time period between domains
-    integer(i4), allocatable, dimension(:) :: time_step !< Time step of the simulation
+    integer(i4), allocatable, dimension(:) :: time_step !< Global model time step
     logical :: share_time_step !< Share time step between domains
   contains
     procedure :: init => nml_config_time_init
@@ -63,6 +66,22 @@ module nml_config_time
   end type nml_config_time_t
 
 contains
+
+  !> \brief Check whether a value is part of an enum
+  elemental logical function time_step__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
+
+    if (present(allow_missing)) then
+      if (allow_missing) then
+        if (val == -huge(val)) then
+          in_enum = .true.
+          return
+        end if
+      end if
+    end if
+    in_enum = any(val == time_step__enum_values)
+  end function time_step__in_enum
 
   !> \brief Initialize defaults and sentinels for config_time
   integer function nml_config_time_init(this, errmsg) result(status)
@@ -221,7 +240,7 @@ contains
     character(len=*), dimension(:), intent(in), optional :: eval_start !< Evaluation start
     character(len=*), dimension(:), intent(in), optional :: sim_end !< Simulation end
     logical, intent(in), optional :: share_time_period !< Share time period between domains
-    integer(i4), dimension(:), intent(in), optional :: time_step !< Time step of the simulation
+    integer(i4), dimension(:), intent(in), optional :: time_step !< Global model time step
     logical, intent(in), optional :: share_time_step !< Share time step between domains
     integer :: &
       lb__1, &
@@ -380,6 +399,14 @@ contains
       return
     end if
 
+    ! enum constraints
+    if (allocated(this%time_step)) then
+    if (.not. all(time_step__in_enum(this%time_step, allow_missing=.true.))) then
+      status = NML_ERR_ENUM
+      if (present(errmsg)) errmsg = "enum constraint failed: time_step"
+      return
+    end if
+    end if
   end function nml_config_time_is_valid
 
 end module nml_config_time

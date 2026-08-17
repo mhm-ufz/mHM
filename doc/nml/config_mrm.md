@@ -12,7 +12,7 @@ Configuration for the multi-scale routing model (mRM) in mHM.
 | --- | --- | --- | --- | --- |
 | [river_net_order_root_based](#river_net_order_root_based) | logical array | no | no | Flag for root based river network ordering. |
 | [river_net_omp_level_min](#river_net_omp_level_min) | integer array | no | no | Minimum level size for OpenMP parallelization. |
-| [max_route_step](#max_route_step) | integer array | no | no | Maximum routing time step in seconds. |
+| [max_route_step](#max_route_step) | integer array | no | no | Maximum numerical routing substep in seconds. |
 | [scc_gauges_path](#scc_gauges_path) | string array | no | no | Path for SCC gauges NetCDF file. |
 | [output_path](#output_path) | string array | no | no | Path for output file. |
 | [output_node_path](#output_node_path) | string array | no | no | Path for node based output file. |
@@ -66,13 +66,14 @@ Summary:
 
 ### max_route_step
 
-Maximum routing time step in seconds. `max_route_step`
+Maximum numerical routing substep in seconds. `max_route_step`
 
-Maximum allowed time step for the routing model in seconds.
-This parameter can be used to limit the time step in case of very large CFL time steps
+Maximum allowed numerical routing substep in seconds.
+This parameter can be used to limit the substep in case of very large CFL time steps
 due to very low flow velocities.
 This is useful in coupling scenarios to match the time step of other models.
-If routing time step is smaller than the model time step, multiple routing steps are performed per model time step.
+If the routing substep is smaller than the model time step, multiple routing iterations are performed per model update.
+If it is larger, the completed routing step is enlarged to a compatible whole-hour interval.
 Valid values range from 1 minute (60s) to 1 day (86400s).
 Value needs to be a divisor of 3600 or a multiple of 3600 and a divisor of 86400.
 

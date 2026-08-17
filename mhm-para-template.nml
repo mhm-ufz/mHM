@@ -14,25 +14,25 @@
   ! Threshold for rain and snow partitioning [degC]
   ! Component order: value, optimize, min, max
   snow_threshold_temperature = 1.0, .true., -2.0, 2.0
-  ! Degree-day factor for forest [m degC-1]
+  ! Degree-day factor for forest [mm d-1 degC-1]
   ! Component order: value, optimize, min, max
   degree_day_factor_forest = 1.5, .true., 0.0001, 4.0
-  ! Degree-day factor for impervious areas [m degC-1]
+  ! Degree-day factor for impervious areas [mm d-1 degC-1]
   ! Component order: value, optimize, min, max
   degree_day_factor_impervious = 0.5, .true., 0.0, 1.0
-  ! Degree-day factor for pervious areas [m degC-1]
+  ! Degree-day factor for pervious areas [mm d-1 degC-1]
   ! Component order: value, optimize, min, max
   degree_day_factor_pervious = 0.5, .true., 0.0, 2.0
   ! Precipitation-dependent degree-day factor increase [degC-1]
   ! Component order: value, optimize, min, max
   degree_day_factor_precipitation = 0.5, .true., 0.1, 0.9
-  ! Maximum degree-day factor for forest [m degC-1]
+  ! Maximum degree-day factor for forest [mm d-1 degC-1]
   ! Component order: value, optimize, min, max
   max_degree_day_factor_forest = 3.0, .true., 0.0, 8.0
-  ! Maximum degree-day factor for impervious areas [m degC-1]
+  ! Maximum degree-day factor for impervious areas [mm d-1 degC-1]
   ! Component order: value, optimize, min, max
   max_degree_day_factor_impervious = 3.5, .true., 0.0, 8.0
-  ! Maximum degree-day factor for pervious areas [m degC-1]
+  ! Maximum degree-day factor for pervious areas [mm d-1 degC-1]
   ! Component order: value, optimize, min, max
   max_degree_day_factor_pervious = 4.0, .true., 0.0, 8.0
 /
@@ -367,29 +367,29 @@
 
 ! Interflow - Case 1
 &interflow_1
-  ! Interflow storage-capacity factor
+  ! Interflow storage-capacity factor [1]
   ! Component order: value, optimize, min, max
   storage_capacity_factor = 85.0, .true., 75.0, 200.0
-  ! Slope multiplier for interflow recession
+  ! Slope-derived interflow recession time [d]
   ! Component order: value, optimize, min, max
   recession_slope = 7.0, .true., 0.0, 10.0
-  ! Forest multiplier for fast interflow recession
+  ! Forest multiplier for fast interflow recession [1]
   ! Component order: value, optimize, min, max
   fast_recession_forest = 1.5, .true., 1.0, 3.0
-  ! Saturated-conductivity multiplier for slow interflow recession
+  ! Saturated-conductivity contribution to slow interflow recession time [d]
   ! Component order: value, optimize, min, max
   slow_recession_ks = 15.0, .true., 1.0, 30.0
-  ! Slow interflow exponent
+  ! Slow interflow exponent [1]
   ! Component order: value, optimize, min, max
   slow_recession_exponent = 0.125, .true., 0.05, 0.3
 /
 
 ! Percolation - Case 1
 &percolation_1
-  ! Recharge coefficient
+  ! Percolation and recharge time [d]
   ! Component order: value, optimize, min, max
   recharge_coefficient = 35.0, .true., 0.0, 50.0
-  ! Karstic recharge factor
+  ! Karstic recharge factor [1]
   ! Component order: value, optimize, min, max
   karstic_recharge_factor = -1.0, .true., -5.0, 5.0
 /
@@ -473,7 +473,7 @@
 
 ! Baseflow - Case 1
 &baseflow_1
-  ! Baseflow recession for each geological unit
+  ! Baseflow recession time for each geological unit [d]
   ! Component order: value, optimize, min, max
   baseflow_recession(1) = 100.0, .true., 1.0, 1000.0
   baseflow_recession(2) = 100.0, .true., 1.0, 1000.0

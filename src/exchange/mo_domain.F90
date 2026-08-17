@@ -118,13 +118,7 @@ contains
     !> a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
     real(dp), dimension(:), optional, intent(in) :: parameters
     log_info(*) "INITIALIZE DOMAIN"
-    self%exchange%step_count = 0_i4
-    self%exchange%time = self%exchange%start_time
-    if (present(parameters)) then
-      call self%exchange%parameters%set(parameters)
-    else
-      call self%exchange%parameters%reset()
-    end if
+    call self%exchange%initialize(parameters)
     call self%input%initialize()
     if (self%mpr%active) call self%mpr%initialize()
     if (self%meteo%active) call self%meteo%initialize()
@@ -135,17 +129,12 @@ contains
   !> \brief Update the domain for the current time step.
   subroutine domain_update(self)
     class(domain_t), intent(inout), target :: self
-    call self%exchange%time%add(self%exchange%step)
-    self%exchange%step_count = self%exchange%step_count + 1_i4
+    call self%exchange%update()
     call self%input%update()
     if (self%mpr%active) call self%mpr%update()
     if (self%meteo%active) call self%meteo%update()
     if (self%mhm%active) call self%mhm%update()
     if (self%mrm%active) call self%mrm%update()
-    log_trace(*) "Time step: ", self%exchange%time%str()
-    if (self%exchange%time%is_new_year()) then
-      log_info(*) "Finished year: ", self%exchange%time%year - 1_i4
-    end if
   end subroutine domain_update
 
   !> \brief Finalize the domain and its components after the simulation.

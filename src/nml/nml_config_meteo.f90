@@ -4,6 +4,9 @@
 !> \brief Meteorological configuration
 !> \details Configuration for meteorological input data handling in mHM.
 !! Meteorological weights can be used to disaggregate daily data to hourly values.
+!! Fixed-hour forcing support must match the global model step. Daily forcing is
+!! supported by the existing daily-to-hourly disaggregation and directly by a
+!! 24-hour model step. Other temporal resampling is not implemented.
 !> \version 0.2
 !> \authors Sebastian Mueller
 !> \date    Jun 2026
@@ -51,6 +54,9 @@ module nml_config_meteo
   !> \brief Meteorological configuration
   !> \details Configuration for meteorological input data handling in mHM.
   !! Meteorological weights can be used to disaggregate daily data to hourly values.
+  !! Fixed-hour forcing support must match the global model step. Daily forcing is
+  !! supported by the existing daily-to-hourly disaggregation and directly by a
+  !! 24-hour model step. Other temporal resampling is not implemented.
   type, public :: nml_config_meteo_t
     logical :: is_configured = .false. !< whether the namelist has been configured
     integer :: n_domains = n_domains__default !< runtime dimension for n_domains

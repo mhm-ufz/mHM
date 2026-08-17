@@ -58,7 +58,7 @@ module nml_config_mrm
     integer :: n_domains = n_domains__default !< runtime dimension for n_domains
     logical, allocatable, dimension(:) :: river_net_order_root_based !< Flag for root based river network ordering.
     integer(i4), allocatable, dimension(:) :: river_net_omp_level_min !< Minimum level size for OpenMP parallelization.
-    integer(i4), allocatable, dimension(:) :: max_route_step !< Maximum routing time step in seconds.
+    integer(i4), allocatable, dimension(:) :: max_route_step !< Maximum numerical routing substep in seconds.
     character(len=buf), allocatable, dimension(:) :: scc_gauges_path !< Path for SCC gauges NetCDF file.
     character(len=buf), allocatable, dimension(:) :: output_path !< Path for output file.
     character(len=buf), allocatable, dimension(:) :: output_node_path !< Path for node based output file.
@@ -344,7 +344,7 @@ contains
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     logical, dimension(:), intent(in), optional :: river_net_order_root_based !< Flag for root based river network ordering.
     integer(i4), dimension(:), intent(in), optional :: river_net_omp_level_min !< Minimum level size for OpenMP parallelization.
-    integer(i4), dimension(:), intent(in), optional :: max_route_step !< Maximum routing time step in seconds.
+    integer(i4), dimension(:), intent(in), optional :: max_route_step !< Maximum numerical routing substep in seconds.
     character(len=*), dimension(:), intent(in), optional :: scc_gauges_path !< Path for SCC gauges NetCDF file.
     character(len=*), dimension(:), intent(in), optional :: output_path !< Path for output file.
     character(len=*), dimension(:), intent(in), optional :: output_node_path !< Path for node based output file.

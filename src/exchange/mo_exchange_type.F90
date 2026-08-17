@@ -19,8 +19,10 @@
 module mo_exchange_type
   use mo_logging
   use mo_grid, only: grid_t
+  use mo_grid_io, only: output_var_meta_t => var, no_time, daily, monthly, yearly, varying
+  use mo_netcdf, only: NcVariable
   use mo_geology_classdefinition, only: geology_classdefinition_t
-  use mo_datetime, only: datetime, timedelta
+  use mo_datetime, only: datetime, timedelta, one_hour
   use mo_kind, only: dp, i4, i8
   use mo_parameter_namelists, only: parameter_namelists_t
   use mo_string_utils, only: n2s=>num2str
@@ -61,7 +63,7 @@ module mo_exchange_type
 
   !> \class   variable_abc
   !> \brief   Abstract base class for a variable in the exchange type.
-  type, abstract :: variable_abc
+  type, abstract, public :: variable_abc
     character(:), allocatable :: name          !< variable name
     character(:), allocatable :: units         !< variable unit
     character(:), allocatable :: long_name     !< long name of the variable
@@ -79,6 +81,9 @@ module mo_exchange_type
     procedure, public :: require => variable_require
     procedure, public :: expect_handoff => variable_expect_handoff
     procedure, public :: clear => variable_clear
+    procedure, public :: set_stepping => variable_set_stepping
+    procedure, public :: as_output_var => variable_as_output_var
+    procedure, public :: write_netcdf_metadata => variable_write_netcdf_metadata
   end type variable_abc
 
   !> \class   var_dp
@@ -178,11 +183,14 @@ module mo_exchange_type
   !> \brief   Class for dynamically exchanging variables in mHM.
   type, public :: exchange_t
     integer(i4) :: step_count               !< current time step
-    type(datetime) :: time                  !< time-stamp for the current time step
+    type(datetime) :: time                  !< upper bound of the current time step
+    type(datetime) :: time_step_start       !< lower bound of the current time step
     type(datetime) :: start_time            !< start time of simulation
     type(datetime) :: eval_start_time       !< start time of evaluation
     type(datetime) :: end_time              !< end time of simulation
     type(timedelta) :: step                 !< time step of the simulation
+    integer(i4) :: step_hours = 0_i4        !< cached time step of the simulation in whole hours
+    real(dp) :: step_days = 0.0_dp          !< cached time step of the simulation in days
     type(exchange_config_t) :: config        !< exchange-owned namelist configuration
     type(parameters_t) :: parameters        !< parameters container
     integer(i4) :: domain_id                !< stable domain ID in the run
@@ -265,7 +273,7 @@ module mo_exchange_type
     type(var_dp) :: melt                !< melting snow [mm] on level l1
     type(var_dp) :: pre_eff             !< effective precipitation [mm] on level l1 (rain + melt)
     ! vertical soil water movement
-    type(var2d_dp) :: infiltration      !< infiltration intensity in soil layer [mm] on level l1
+    type(var2d_dp) :: infiltration      !< infiltration amount into soil layer [mm] on level l1
     type(var_dp) :: percolation         !< percolation [mm] on level l1
     ! type(var_dp) :: loss                !< gain/loss flux in a leaking linear reservoir [mm] on level l1
     ! lateral water movement
@@ -277,7 +285,7 @@ module mo_exchange_type
     ! neutrons
     type(var_dp) :: neutrons            !< ground albedo neutrons [count h-1] on level l1
     ! degday calculated by mHM from MPR degday_X variables
-    type(var_dp) :: degday              !< Degree-day factor [mm d-1 degC-1] on level l1
+    type(var_dp) :: degday              !< Degree-day factor for the current interval [mm degC-1] on level l1
 
     ! MPR results (level1)
     ! PET
@@ -290,7 +298,7 @@ module mo_exchange_type
     ! canopy
     type(var_dp) :: max_interception    !< Maximum interception [mm] on level l1
     ! snow
-    type(var_dp) :: degday_inc          !< Increase of the degree-day factor per precipitation [d-1 degC-1] on level l1
+    type(var_dp) :: degday_inc          !< Increase of the degree-day factor per precipitation [degC-1] on level l1
     type(var_dp) :: degday_max          !< Maximum degree-day factor [mm d-1 degC-1] on level l1
     type(var_dp) :: degday_dry          !< Degree-day factor for no precipitation [mm d-1 degC-1] on level l1
     type(var_dp) :: thresh_temp         !< Threshold temperature for phase transition snow and rain [degC] on level l1
@@ -304,10 +312,10 @@ module mo_exchange_type
     type(var_dp) :: thresh_jarvis       !< Jarvis critical value (C1) for normalized soil water content [1] on level l1
     ! runoff
     type(var_dp) :: alpha               !< Exponent for the upper reservoir [1] on level l1
-    type(var_dp) :: k_fastflow          !< Fast interflow recession coefficient [d-1] on level l1
-    type(var_dp) :: k_slowflow          !< Slow interflow recession coefficient [d-1] on level l1
-    type(var_dp) :: k_baseflow          !< Baseflow recession coefficient [d-1] on level l1
-    type(var_dp) :: k_percolation       !< Percolation coefficient [d-1] on level l1
+    type(var_dp) :: k_fastflow          !< Fast interflow recession time [d] on level l1
+    type(var_dp) :: k_slowflow          !< Slow interflow recession time [d] on level l1
+    type(var_dp) :: k_baseflow          !< Baseflow recession time [d] on level l1
+    type(var_dp) :: k_percolation       !< Percolation time [d] on level l1
     type(var_dp) :: f_karst_loss        !< Fraction of karstic percolation loss [1] on level l1
     type(var_dp) :: thresh_unsat        !< Threshold water depth for fast interflow [mm] on level l1
     type(var_dp) :: thresh_sealed       !< Threshold water depth for runoff on sealed surfaces [mm] on level l1
@@ -331,6 +339,8 @@ module mo_exchange_type
     procedure, public  :: create => exchange_create
     procedure, public  :: set_dims => exchange_set_dims
     procedure, public  :: configure => exchange_configure
+    procedure, public  :: initialize => exchange_initialize
+    procedure, public  :: update => exchange_update
     procedure, public  :: get_grid => exchange_get_grid
     procedure, public  :: has_grid => exchange_has_grid
     procedure, public :: get_meta => exchange_get_var_meta
@@ -504,7 +514,7 @@ contains
     self%melt              =   var_dp(grid=l1, name="melt",              units="mm",  long_name="melting snow", standard_name="surface_snow_melt_amount")
     self%pre_eff           =   var_dp(grid=l1, name="pre_eff",           units="mm",  long_name="effective precipitation") ! rain + melt
     ! vertical soil water movement
-    self%infiltration      = var2d_dp(grid=l1, name="infiltration",      units="mm",  long_name="infiltration intensity in soil layer")
+    self%infiltration      = var2d_dp(grid=l1, name="infiltration",      units="mm",  long_name="infiltration into soil layer")
     self%percolation       =   var_dp(grid=l1, name="percolation",       units="mm",  long_name="percolation")
     ! lateral water movement
     self%runoff_total      =   var_dp(grid=l1, name="Q",                 units="mm",  long_name="total runoff", standard_name="runoff_amount")
@@ -514,6 +524,7 @@ contains
     self%baseflow          =   var_dp(grid=l1, name="QB",                units="mm",  long_name="baseflow", standard_name="baseflow_amount")
     ! neutrons
     self%neutrons          =   var_dp(grid=l1, name="neutrons",          units="cph", long_name="ground albedo neutrons")
+    self%degday            =   var_dp(grid=l1, name="degday",            units="mm degC-1",          long_name="Degree-day factor for the current interval")
 
     ! MPR results (level1)
     ! PET
@@ -526,7 +537,7 @@ contains
     ! canopy
     self%max_interception  =   var_dp(grid=l1, name="max_interception",  units="mm",                long_name="Maximum interception")
     ! snow
-    self%degday_inc        =   var_dp(grid=l1, name="degday_inc",        units="d-1 degC-1",       long_name="Increase of the degree-day factor per precipitation")
+    self%degday_inc        =   var_dp(grid=l1, name="degday_inc",        units="degC-1",            long_name="Increase of the degree-day factor per precipitation")
     self%degday_max        =   var_dp(grid=l1, name="degday_max",        units="mm d-1 degC-1",    long_name="Maximum degree-day factor")
     self%degday_dry        =   var_dp(grid=l1, name="degday_dry",        units="mm d-1 degC-1",    long_name="Degree-day factor for no precipitation")
     self%thresh_temp       =   var_dp(grid=l1, name="thresh_temp",       units="degC",              long_name="Threshold temperature for phase transition snow and rain")
@@ -540,10 +551,10 @@ contains
     self%thresh_jarvis     =   var_dp(grid=l1, name="thresh_jarvis",     units="1",  static=.true., long_name="Jarvis critical value (C1) for normalized soil water content")
     ! runoff
     self%alpha             =   var_dp(grid=l1, name="alpha",             units="1",                 long_name="Exponent for the upper reservoir")
-    self%k_fastflow        =   var_dp(grid=l1, name="k_fastflow",        units="d-1",              long_name="Fast interflow recession coefficient")
-    self%k_slowflow        =   var_dp(grid=l1, name="k_slowflow",        units="d-1",              long_name="Slow interflow recession coefficient")
-    self%k_baseflow        =   var_dp(grid=l1, name="k_baseflow",        units="d-1",              long_name="Baseflow recession coefficient")
-    self%k_percolation     =   var_dp(grid=l1, name="k_percolation",     units="d-1",              long_name="Percolation coefficient")
+    self%k_fastflow        =   var_dp(grid=l1, name="k_fastflow",        units="d",                 long_name="Fast interflow recession time")
+    self%k_slowflow        =   var_dp(grid=l1, name="k_slowflow",        units="d",                 long_name="Slow interflow recession time")
+    self%k_baseflow        =   var_dp(grid=l1, name="k_baseflow",        units="d",                 long_name="Baseflow recession time")
+    self%k_percolation     =   var_dp(grid=l1, name="k_percolation",     units="d",                 long_name="Percolation time")
     self%f_karst_loss      =   var_dp(grid=l1, name="f_karst_loss",      units="1",  static=.true., long_name="Fraction of karstic percolation loss")
     self%thresh_unsat      =   var_dp(grid=l1, name="thresh_unsat",      units="mm", static=.true., long_name="Threshold water depth for fast interflow")
     self%thresh_sealed     =   var_dp(grid=l1, name="thresh_sealed",     units="mm", static=.true., long_name="Threshold water depth for runoff on sealed surfaces")
@@ -607,6 +618,7 @@ contains
     type(nml_config_project_t) :: local_project
     integer :: status
 
+    config_file = ""
     if (.not.allocated(self%root)) then
       log_fatal(*) "Exchange was not created before configure."
       error stop 1
@@ -779,8 +791,44 @@ contains
 
     id(1) = self%nml_domain_id
     if (self%config%time%share_time_step) id(1) = 1_i4
-    self%step = timedelta(hours=self%config%time%time_step(id(1)))
+    self%step_hours = self%config%time%time_step(id(1))
+    self%step = timedelta(hours=self%step_hours)
+    self%step_days = real(self%step_hours, dp) / 24.0_dp
   end subroutine exchange_configure
+
+  !> \brief Initialize exchange-owned parameters and the simulation clock.
+  subroutine exchange_initialize(self, parameters)
+    class(exchange_t), intent(inout), target :: self
+    real(dp), dimension(:), optional, intent(in) :: parameters !< optional flattened runtime parameter values
+
+    self%step_hours = int(self%step / one_hour(), i4)
+    if (self%step_hours < 1_i4 .or. self%step /= self%step_hours * one_hour()) then
+      log_fatal(*) "The global model step must be a positive whole number of hours."
+      error stop 1
+    end if
+    self%step_days = real(self%step_hours, dp) / 24.0_dp
+    self%step_count = 0_i4
+    self%time = self%start_time
+    self%time_step_start = self%start_time
+    if (present(parameters)) then
+      call self%parameters%set(parameters)
+    else
+      call self%parameters%reset()
+    end if
+  end subroutine exchange_initialize
+
+  !> \brief Start the next active interval and advance its endpoint exactly once.
+  subroutine exchange_update(self)
+    class(exchange_t), intent(inout), target :: self
+
+    self%time_step_start = self%time
+    call self%time%add(self%step)
+    self%step_count = self%step_count + 1_i4
+    log_trace(*) "Time step: ", self%time%str()
+    if (self%time%is_new_year()) then
+      log_info(*) "Finished year: ", self%time%year - 1_i4
+    end if
+  end subroutine exchange_update
 
   !> \brief get the grid specifications for the selected level
   subroutine exchange_get_grid(self, selector, grid)
@@ -1030,7 +1078,7 @@ contains
   end subroutine exchange_get_var_class
 
   !> \brief get var_dp pointer to a variable
-  subroutine exchange_get_var_meta(self, var, name, units, long_name, standard_name, grid, static, provided, required)
+  subroutine exchange_get_var_meta(self, var, name, units, long_name, standard_name, grid, static, provided, required, stepping)
     use mo_message, only: error_message
     class(exchange_t), target, intent(in) :: self ! target attribute valid here since Fortran 2003
     character(*), intent(in) :: var                                   !< name of the variable (attribute name)
@@ -1042,6 +1090,7 @@ contains
     logical, intent(out), optional :: static                          !< flag to indicated static data
     logical, intent(out), optional :: provided                        !< flag to indicate that data is provided by a component
     logical, intent(out), optional :: required                        !< flag to indicate that data is required by a component
+    integer(i4), intent(out), optional :: stepping                    !< temporal support of the variable
     class(*), pointer :: tmp
     call self%get_var_class(var, tmp)
     select type (tmp)
@@ -1051,6 +1100,7 @@ contains
         if (present(long_name)     .and. allocated(tmp%long_name))     long_name     = tmp%long_name
         if (present(standard_name) .and. allocated(tmp%standard_name)) standard_name = tmp%standard_name
         if (present(grid))     grid     = tmp%grid
+        if (present(stepping)) stepping = tmp%stepping
         if (present(static))   static   = tmp%static
         if (present(provided)) provided = tmp%provided
         if (present(required)) required = tmp%required
@@ -1160,11 +1210,12 @@ contains
   end subroutine exchange_get_data_2d_lg
 
   !> \brief set pointer to the 1D variable data
-  subroutine exchange_set_data_1d(self, var, data)
+  subroutine exchange_set_data_1d(self, var, data, stepping)
     use mo_message, only: error_message
     class(exchange_t), target, intent(inout) :: self ! target attribute valid here since Fortran 2003
     character(*), intent(in) :: var !< name of the variable (attribute name)
     class(*), target, intent(in) :: data(:) !< target data
+    integer(i4), intent(in) :: stepping !< temporal support of the published data
     class(*), pointer :: tmp
     call self%get_var_class(var, tmp)
     select type (tmp)
@@ -1172,6 +1223,8 @@ contains
         select type (data)
           type is (real(dp))
             tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type real(dp)."
             error stop 1
@@ -1180,6 +1233,8 @@ contains
         select type (data)
           type is (integer(i4))
             tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type integer(i4)."
             error stop 1
@@ -1188,6 +1243,8 @@ contains
         select type (data)
           type is (logical)
             tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type logical."
             error stop 1
@@ -1199,11 +1256,12 @@ contains
   end subroutine exchange_set_data_1d
 
   !> \brief set target for variable data 2D
-  subroutine exchange_set_data_2d(self, var, data)
+  subroutine exchange_set_data_2d(self, var, data, stepping)
     use mo_message, only: error_message
     class(exchange_t), target, intent(inout) :: self ! target attribute valid here since Fortran 2003
     character(*), intent(in) :: var !< name of the variable (attribute name)
     class(*), target, intent(in) :: data(:,:) !< target data
+    integer(i4), intent(in) :: stepping !< temporal support of the published data
     class(*), pointer :: tmp
     call self%get_var_class(var, tmp)
     select type (tmp)
@@ -1211,6 +1269,8 @@ contains
         select type (data)
           type is (real(dp))
             tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type real(dp)."
             error stop 1
@@ -1219,6 +1279,8 @@ contains
         select type (data)
           type is (integer(i4))
             tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type integer(i4)."
             error stop 1
@@ -1227,6 +1289,8 @@ contains
         select type (data)
           type is (logical)
             tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type logical."
             error stop 1
@@ -1306,7 +1370,60 @@ contains
     if (.not.optval(owned, .false.)) return
     call self%clear_data()
     self%provided = .false.
+    self%stepping = 0_i4
   end subroutine variable_clear
+
+  !> \brief Set and validate the temporal support metadata of an exchange variable.
+  subroutine variable_set_stepping(self, component, stepping)
+    class(variable_abc), intent(inout) :: self
+    character(*), intent(in) :: component !< publishing component name for diagnostics
+    integer(i4), intent(in) :: stepping !< temporal support indicator
+
+    if (self%static .and. stepping /= no_time) then
+      log_fatal(*) trim(component), ": static exchange field has non-static stepping: ", variable_name(self), "."
+      error stop 1
+    end if
+    if (.not.self%static .and. stepping == no_time) then
+      log_fatal(*) trim(component), ": dynamic exchange field has static stepping: ", variable_name(self), "."
+      error stop 1
+    end if
+    if (.not.self%static .and. stepping < 1_i4 .and. &
+      all(stepping /= [daily, monthly, yearly, varying])) then
+      log_fatal(*) trim(component), ": invalid exchange stepping ", stepping, " for ", variable_name(self), "."
+      error stop 1
+    end if
+    self%stepping = stepping
+  end subroutine variable_set_stepping
+
+  !> \brief Convert exchange metadata to a grid-output variable definition.
+  function variable_as_output_var(self, name, long_name, dtype, avg) result(meta)
+    class(variable_abc), intent(in), target :: self
+    character(*), intent(in), optional :: name !< optional output-name override
+    character(*), intent(in), optional :: long_name !< optional descriptive-name override
+    character(*), intent(in), optional :: dtype !< output NetCDF data type
+    logical, intent(in), optional :: avg !< average buffered values instead of summing them
+    type(output_var_meta_t) :: meta
+
+    if (allocated(self%name)) meta%name = self%name
+    if (allocated(self%long_name)) meta%long_name = self%long_name
+    if (allocated(self%standard_name)) meta%standard_name = self%standard_name
+    if (allocated(self%units)) meta%units = self%units
+    meta%static = self%static
+    if (present(name)) meta%name = name
+    if (present(long_name)) meta%long_name = long_name
+    if (present(dtype)) meta%dtype = dtype
+    if (present(avg)) meta%avg = avg
+  end function variable_as_output_var
+
+  !> \brief Write canonical exchange metadata to a NetCDF variable.
+  subroutine variable_write_netcdf_metadata(self, nc_var)
+    class(variable_abc), intent(in), target :: self
+    type(NcVariable), intent(in) :: nc_var
+
+    if (allocated(self%long_name)) call nc_var%setAttribute("long_name", self%long_name)
+    if (allocated(self%standard_name)) call nc_var%setAttribute("standard_name", self%standard_name)
+    if (allocated(self%units)) call nc_var%setAttribute("units", self%units)
+  end subroutine variable_write_netcdf_metadata
 
   !> \brief Validate the provided/data/shape contract of an exchange variable.
   subroutine variable_validate(self, component, handoff, expected_shape, check_data)
@@ -1328,6 +1445,7 @@ contains
       end if
       error stop 1
     end if
+    call variable_validate_stepping(self, component)
     if (.not.check_data) return
     if (.not.self%has_data()) then
       if (handoff) then
@@ -1354,6 +1472,26 @@ contains
     end if
   end subroutine variable_validate
 
+  !> \brief Validate temporal support metadata on an existing publication.
+  subroutine variable_validate_stepping(self, component)
+    class(variable_abc), intent(in) :: self
+    character(*), intent(in) :: component
+
+    if (self%static .and. self%stepping /= no_time) then
+      log_fatal(*) trim(component), ": static exchange field has non-static stepping: ", variable_name(self), "."
+      error stop 1
+    end if
+    if (.not.self%static .and. self%stepping == no_time) then
+      log_fatal(*) trim(component), ": dynamic exchange field has no stepping metadata: ", variable_name(self), "."
+      error stop 1
+    end if
+    if (.not.self%static .and. self%stepping < 1_i4 .and. &
+      all(self%stepping /= [daily, monthly, yearly, varying])) then
+      log_fatal(*) trim(component), ": invalid exchange stepping ", self%stepping, " for ", variable_name(self), "."
+      error stop 1
+    end if
+  end subroutine variable_validate_stepping
+
   !> \brief Validate that a publication target is not already occupied.
   subroutine variable_validate_publish_target(self, component)
     class(variable_abc), intent(in) :: self
@@ -1375,6 +1513,7 @@ contains
       log_fatal(*) trim(component), ": pass-through source not provided for ", variable_name(target), "."
       error stop 1
     end if
+    call variable_validate_stepping(source, component)
   end subroutine variable_validate_alias_source
 
   !> \brief Return the configured variable name or a fallback for diagnostics.
@@ -1428,12 +1567,14 @@ contains
   end subroutine var_dp_clear_data
 
   !> \brief Publish a local 1D real field through the exchange variable.
-  subroutine var_dp_publish_local(self, component, local)
+  subroutine var_dp_publish_local(self, component, local, stepping)
     class(var_dp), intent(inout) :: self
     character(*), intent(in) :: component    !< publishing component name for diagnostics
     real(dp), intent(inout), target :: local(:) !< local 1D real field to publish
+    integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
     self%data => local
     self%provided = .true.
   end subroutine var_dp_publish_local
@@ -1446,6 +1587,8 @@ contains
 
     call variable_validate_alias_source(source, component, self)
     call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
     self%data => source%data
     self%provided = .true.
   end subroutine var_dp_publish_alias
@@ -1477,12 +1620,14 @@ contains
   end subroutine var_i4_clear_data
 
   !> \brief Publish a local 1D integer field through the exchange variable.
-  subroutine var_i4_publish_local(self, component, local)
+  subroutine var_i4_publish_local(self, component, local, stepping)
     class(var_i4), intent(inout) :: self
     character(*), intent(in) :: component       !< publishing component name for diagnostics
     integer(i4), intent(inout), target :: local(:) !< local 1D integer field to publish
+    integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
     self%data => local
     self%provided = .true.
   end subroutine var_i4_publish_local
@@ -1495,6 +1640,8 @@ contains
 
     call variable_validate_alias_source(source, component, self)
     call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
     self%data => source%data
     self%provided = .true.
   end subroutine var_i4_publish_alias
@@ -1526,12 +1673,14 @@ contains
   end subroutine var_lg_clear_data
 
   !> \brief Publish a local 1D logical field through the exchange variable.
-  subroutine var_lg_publish_local(self, component, local)
+  subroutine var_lg_publish_local(self, component, local, stepping)
     class(var_lg), intent(inout) :: self
     character(*), intent(in) :: component !< publishing component name for diagnostics
     logical, intent(inout), target :: local(:) !< local 1D logical field to publish
+    integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
     self%data => local
     self%provided = .true.
   end subroutine var_lg_publish_local
@@ -1544,6 +1693,8 @@ contains
 
     call variable_validate_alias_source(source, component, self)
     call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
     self%data => source%data
     self%provided = .true.
   end subroutine var_lg_publish_alias
@@ -1575,12 +1726,14 @@ contains
   end subroutine var2d_dp_clear_data
 
   !> \brief Publish a local 2D real field through the exchange variable.
-  subroutine var2d_dp_publish_local(self, component, local)
+  subroutine var2d_dp_publish_local(self, component, local, stepping)
     class(var2d_dp), intent(inout) :: self
     character(*), intent(in) :: component   !< publishing component name for diagnostics
     real(dp), intent(inout), target :: local(:, :) !< local 2D real field to publish
+    integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
     self%data => local
     self%provided = .true.
   end subroutine var2d_dp_publish_local
@@ -1593,6 +1746,8 @@ contains
 
     call variable_validate_alias_source(source, component, self)
     call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
     self%data => source%data
     self%provided = .true.
   end subroutine var2d_dp_publish_alias
@@ -1624,12 +1779,14 @@ contains
   end subroutine var2d_i4_clear_data
 
   !> \brief Publish a local 2D integer field through the exchange variable.
-  subroutine var2d_i4_publish_local(self, component, local)
+  subroutine var2d_i4_publish_local(self, component, local, stepping)
     class(var2d_i4), intent(inout) :: self
     character(*), intent(in) :: component      !< publishing component name for diagnostics
     integer(i4), intent(inout), target :: local(:, :) !< local 2D integer field to publish
+    integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
     self%data => local
     self%provided = .true.
   end subroutine var2d_i4_publish_local
@@ -1642,6 +1799,8 @@ contains
 
     call variable_validate_alias_source(source, component, self)
     call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
     self%data => source%data
     self%provided = .true.
   end subroutine var2d_i4_publish_alias
@@ -1673,12 +1832,14 @@ contains
   end subroutine var2d_lg_clear_data
 
   !> \brief Publish a local 2D logical field through the exchange variable.
-  subroutine var2d_lg_publish_local(self, component, local)
+  subroutine var2d_lg_publish_local(self, component, local, stepping)
     class(var2d_lg), intent(inout) :: self
     character(*), intent(in) :: component !< publishing component name for diagnostics
     logical, intent(inout), target :: local(:, :) !< local 2D logical field to publish
+    integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
     self%data => local
     self%provided = .true.
   end subroutine var2d_lg_publish_local
@@ -1691,6 +1852,8 @@ contains
 
     call variable_validate_alias_source(source, component, self)
     call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
     self%data => source%data
     self%provided = .true.
   end subroutine var2d_lg_publish_alias

@@ -34,3 +34,13 @@ add_executable(test_parameter_reinitialize test_parameter_reinitialize.f90)
 target_link_libraries(test_parameter_reinitialize PRIVATE ${LIB_NAME})
 add_test(NAME test_parameter_reinitialize COMMAND test_parameter_reinitialize)
 set_tests_properties(test_parameter_reinitialize PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+
+add_test(
+  NAME test_mrm_intermediate_step
+  COMMAND
+    $<TARGET_FILE:mhm-driver-exe>
+      -n test_nml/mrm_8h_minimal.nml
+      -p test_nml/mhm_parameter_v6_routing.nml
+      -o mhm-output-template.nml
+)
+set_tests_properties(test_mrm_intermediate_step PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")

@@ -1,6 +1,9 @@
 module test_meteo_temporal_tools
   use funit
+  use mo_exchange_type, only: exchange_t
   use mo_meteo_temporal_tools
+  use mo_meteo_container, only: meteo_t, meteo_is_day_step, meteo_supports_model_step, meteo_supports_forcing_step
+  use mo_grid_io, only: daily
   use mo_kind, only: dp
 
   implicit none
@@ -10,10 +13,73 @@ module test_meteo_temporal_tools
   public :: test_temporal_disagg_meteo_weights
   public :: test_temporal_disagg_flux_daynight
   public :: test_temporal_disagg_state_daynight
+  public :: test_interval_start_daynight_window
+  public :: test_supported_model_steps
+  public :: test_active_meteo_supported_steps
+  public :: test_forcing_step_compatibility
 
   real(dp) :: t = 0.001_dp
 
 contains
+
+  @test
+  subroutine test_supported_model_steps()
+    @assertTrue(meteo_supports_model_step(1), message='meteo accepts hourly model steps')
+    @assertTrue(meteo_supports_model_step(24), message='meteo accepts daily model steps')
+    @assertFalse(meteo_supports_model_step(4), message='meteo rejects intermediate model steps')
+  end subroutine test_supported_model_steps
+
+  @test
+  subroutine test_forcing_step_compatibility()
+    @assertTrue(meteo_supports_forcing_step(24, daily), message='daily forcing supports a daily model step')
+    @assertTrue(meteo_supports_forcing_step(24, 24), message='fixed 24-hour forcing supports a daily model step')
+    @assertFalse(meteo_supports_forcing_step(24, 1), message='hourly forcing requires aggregation for a daily model step')
+    @assertTrue(meteo_supports_forcing_step(1, 1), message='hourly forcing supports an hourly model step')
+    @assertFalse(meteo_supports_forcing_step(1, 6), message='coarser fixed forcing requires resampling for an hourly model step')
+  end subroutine test_forcing_step_compatibility
+
+  @test
+  subroutine test_active_meteo_supported_steps()
+    type(exchange_t), target :: hourly_exchange
+    type(exchange_t), target :: daily_exchange
+    type(meteo_t) :: hourly_meteo
+    type(meteo_t) :: daily_meteo
+    integer :: status
+
+    status = hourly_exchange%config%processes%set(snow=1)
+    @assertEqual(0, status)
+    status = hourly_meteo%config%set()
+    @assertEqual(0, status)
+    hourly_exchange%step_hours = 1
+    hourly_meteo%exchange => hourly_exchange
+    call hourly_meteo%configure()
+    @assertTrue(hourly_meteo%active, message='active meteo configures for an hourly model step')
+
+    status = daily_exchange%config%processes%set(snow=1)
+    @assertEqual(0, status)
+    status = daily_meteo%config%set()
+    @assertEqual(0, status)
+    daily_exchange%step_hours = 24
+    daily_meteo%exchange => daily_exchange
+    call daily_meteo%configure()
+    @assertTrue(daily_meteo%active, message='active meteo configures for a daily model step')
+  end subroutine test_active_meteo_supported_steps
+
+  @test
+  subroutine test_interval_start_daynight_window()
+    integer :: day_steps
+    integer :: hour
+
+    @assertFalse(meteo_is_day_step(5), message='the interval ending at 06:00 remains a night interval')
+    @assertTrue(meteo_is_day_step(6), message='the interval starting at 06:00 is the first day interval')
+    @assertTrue(meteo_is_day_step(17), message='the interval ending at 18:00 is the last day interval')
+    @assertFalse(meteo_is_day_step(18), message='the interval starting at 18:00 is a night interval')
+    day_steps = 0
+    do hour = 0, 23
+      if (meteo_is_day_step(hour)) day_steps = day_steps + 1
+    end do
+    @assertEqual(12, day_steps, message='the legacy day/night split must keep twelve hourly day intervals')
+  end subroutine test_interval_start_daynight_window
 
   @test
   subroutine test_temporal_disagg_meteo_weights()

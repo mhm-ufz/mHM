@@ -4,6 +4,9 @@
 
 Configuration for meteorological input data handling in mHM.
 Meteorological weights can be used to disaggregate daily data to hourly values.
+Fixed-hour forcing support must match the global model step. Daily forcing is
+supported by the existing daily-to-hourly disaggregation and directly by a
+24-hour model step. Other temporal resampling is not implemented.
 
 **Namelist**: `config_meteo`
 

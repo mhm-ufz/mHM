@@ -4,7 +4,7 @@ x-fortran-namelist: baseflow_1
 type: object
 properties:
   baseflow_recession:
-    title: Baseflow recession for each geological unit
+    title: Baseflow recession time for each geological unit [d]
     description: Values are addressed by the first column of each geology class-definition file.
     type: array
     x-fortran-shape: n_geo_units

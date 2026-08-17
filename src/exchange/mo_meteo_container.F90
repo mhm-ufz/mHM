@@ -17,7 +17,7 @@ module mo_meteo_container
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
   use mo_logging
   use mo_constants, only: T0_dp
-  use mo_datetime, only: datetime, one_day, one_hour
+  use mo_datetime, only: datetime
   use mo_exchange_type, only: exchange_t, var_dp
   use mo_grid, only: grid_t, spherical
   use mo_grid_io, only: no_time, daily, monthly, yearly
@@ -32,6 +32,7 @@ module mo_meteo_container
   use nml_config_meteo, only: nml_config_meteo_t, NML_OK
 
   character(len=*), parameter :: s = "meteo" !< module scope for logging
+  public :: meteo_is_day_step, meteo_supports_model_step, meteo_supports_forcing_step
 
   !> \class   meteo_weight_state_t
   !> \brief   Cached hourly disaggregation weights on level1.
@@ -109,6 +110,28 @@ module mo_meteo_container
 
 contains
 
+  !> \brief Classify an interval by the legacy 06:00--18:00 daytime window using its start hour.
+  pure logical function meteo_is_day_step(hour) result(is_day)
+    integer(i4), intent(in) :: hour !< hour at the start of the represented interval
+
+    is_day = (hour >= 6_i4) .and. (hour < 18_i4)
+  end function meteo_is_day_step
+
+  !> \brief Report whether meteo can process the configured global model cadence without resampling.
+  pure logical function meteo_supports_model_step(step_hours) result(supported)
+    integer(i4), intent(in) :: step_hours !< global model cadence in hours
+
+    supported = step_hours == 1_i4 .or. step_hours == 24_i4
+  end function meteo_supports_model_step
+
+  !> \brief Report whether forcing support is compatible without temporal resampling.
+  pure logical function meteo_supports_forcing_step(model_step_hours, forcing_stepping) result(supported)
+    integer(i4), intent(in) :: model_step_hours !< global model cadence in hours
+    integer(i4), intent(in) :: forcing_stepping !< forcing support encoding
+
+    supported = forcing_stepping <= 0_i4 .or. forcing_stepping == model_step_hours
+  end function meteo_supports_forcing_step
+
   !> \brief Set runtime dimensions for generated meteo namelists.
   subroutine meteo_set_dims(self)
     class(meteo_t), intent(inout), target :: self
@@ -138,6 +161,10 @@ contains
       self%exchange%config%processes%percolation, self%exchange%config%processes%baseflow, &
       self%exchange%config%processes%neutrons, self%exchange%config%processes%temperature_routing] /= 0_i4)
     if (.not.self%active) return
+    if (.not.meteo_supports_model_step(self%exchange%step_hours)) then
+      log_fatal(*) "Meteo supports only 1-hour and 24-hour model steps; temporal aggregation/disaggregation for intermediate steps is not implemented."
+      error stop 1
+    end if
     if (present(file)) then
       path = self%exchange%get_path(file)
       log_info(*) "Read meteo config: ", path
@@ -166,6 +193,7 @@ contains
     integer(i4) :: snow_process
     integer(i4) :: riv_temp_process
     integer(i4) :: steps_day
+    integer(i4) :: step_hours
     integer(i4) :: frac_domain_id
     integer(i4) :: id(1)
     integer :: status
@@ -188,6 +216,7 @@ contains
     snow_process = self%exchange%config%processes%snow
     riv_temp_process = self%exchange%config%processes%temperature_routing
     steps_day = self%steps_per_day()
+    step_hours = self%exchange%step_hours
     frac_domain_id = self%fraction_domain()
 
     need_pre = self%active
@@ -211,7 +240,7 @@ contains
         call self%require_fraction("frac_night_pre", frac_domain_id)
       end if
       call self%ensure_size(self%out%pre, self%exchange%level1%ncells)
-      call self%exchange%pre%publish_local("Meteo", self%out%pre)
+      call self%exchange%pre%publish_local("Meteo", self%out%pre, step_hours)
     end if
 
     if (need_temp) then
@@ -220,12 +249,12 @@ contains
         call self%require_fraction("frac_night_temp", frac_domain_id)
       end if
       call self%ensure_size(self%out%temp, self%exchange%level1%ncells)
-      call self%exchange%temp%publish_local("Meteo", self%out%temp)
+      call self%exchange%temp%publish_local("Meteo", self%out%temp, step_hours)
     end if
 
     if (pet_process /= 0_i4) then
       call self%ensure_size(self%out%pet, self%exchange%level1%ncells)
-      call self%exchange%pet%publish_local("Meteo", self%out%pet)
+      call self%exchange%pet%publish_local("Meteo", self%out%pet, step_hours)
     end if
 
     if (any(pet_process == [-2_i4, -1_i4])) then
@@ -271,9 +300,9 @@ contains
       call self%ensure_size(self%out%ssrd, self%exchange%level1%ncells)
       call self%ensure_size(self%out%strd, self%exchange%level1%ncells)
       call self%ensure_size(self%out%tann, self%exchange%level1%ncells)
-      call self%exchange%ssrd%publish_local("Meteo", self%out%ssrd)
-      call self%exchange%strd%publish_local("Meteo", self%out%strd)
-      call self%exchange%tann%publish_local("Meteo", self%out%tann)
+      call self%exchange%ssrd%publish_local("Meteo", self%out%ssrd, step_hours)
+      call self%exchange%strd%publish_local("Meteo", self%out%strd, step_hours)
+      call self%exchange%tann%publish_local("Meteo", self%out%tann, step_hours)
     end if
 
     if (self%weight_mode_active() .and. steps_day > 1_i4) then
@@ -377,18 +406,12 @@ contains
 
     log_info(*) "Finalize meteo"
 
-    nullify(self%exchange%pre%data)
-    nullify(self%exchange%temp%data)
-    nullify(self%exchange%pet%data)
-    nullify(self%exchange%ssrd%data)
-    nullify(self%exchange%strd%data)
-    nullify(self%exchange%tann%data)
-    self%exchange%pre%provided = .false.
-    self%exchange%temp%provided = .false.
-    self%exchange%pet%provided = .false.
-    self%exchange%ssrd%provided = .false.
-    self%exchange%strd%provided = .false.
-    self%exchange%tann%provided = .false.
+    call self%exchange%pre%clear(owned=.true.)
+    call self%exchange%temp%clear(owned=.true.)
+    call self%exchange%pet%clear(owned=.true.)
+    call self%exchange%ssrd%clear(owned=.true.)
+    call self%exchange%strd%clear(owned=.true.)
+    call self%exchange%tann%clear(owned=.true.)
 
     if (allocated(self%weights%pre)) deallocate(self%weights%pre)
     if (allocated(self%weights%pet)) deallocate(self%weights%pet)
@@ -420,7 +443,7 @@ contains
   !> \brief Return the number of model steps per day.
   integer(i4) function meteo_steps_per_day(self) result(steps_day)
     class(meteo_t), intent(in) :: self
-    steps_day = int(one_day() / self%exchange%step, i4)
+    steps_day = 24_i4 / self%exchange%step_hours
     if (steps_day < 1_i4) then
       log_fatal(*) "Meteo: invalid model step size for temporal disaggregation."
       error stop 1
@@ -589,6 +612,12 @@ contains
       log_fatal(*) "Meteo: unsupported stepping for ", trim(name), ": ", n2s(stepping)
       error stop 1
     end if
+    if (.not.meteo_supports_forcing_step(self%exchange%step_hours, stepping)) then
+      log_fatal(*) "Meteo: ", trim(name), " has fixed support of ", n2s(stepping), &
+        "h, but the model step is ", n2s(self%exchange%step_hours), &
+        "h; temporal forcing resampling is not implemented."
+      error stop 1
+    end if
   end subroutine meteo_validate_step
 
   !> \brief Pack latitude on level1 for PET formulations that need it.
@@ -624,10 +653,10 @@ contains
     logical :: isday
 
     domain_id = self%fraction_domain()
-    month = self%exchange%time%month
-    hour = self%exchange%time%hour
+    month = self%exchange%time_step_start%month
+    hour = self%exchange%time_step_start%hour
     steps_day = self%steps_per_day()
-    isday = (hour > 6_i4) .and. (hour <= 18_i4)
+    isday = meteo_is_day_step(hour)
     call self%remap_raw(self%exchange%raw_pre, self%scratch%pre, "raw_pre")
     select case (self%exchange%raw_pre%stepping)
       case (daily)
@@ -658,10 +687,10 @@ contains
     logical :: isday
 
     domain_id = self%fraction_domain()
-    month = self%exchange%time%month
-    hour = self%exchange%time%hour
+    month = self%exchange%time_step_start%month
+    hour = self%exchange%time_step_start%hour
     steps_day = self%steps_per_day()
-    isday = (hour > 6_i4) .and. (hour <= 18_i4)
+    isday = meteo_is_day_step(hour)
 
     call self%remap_raw(self%exchange%raw_temp, self%scratch%temp, "raw_temp")
     select case (self%exchange%raw_temp%stepping)
@@ -698,10 +727,10 @@ contains
 
     pet_process = self%exchange%config%processes%pet
     domain_id = self%fraction_domain()
-    month = self%exchange%time%month
-    hour = self%exchange%time%hour
+    month = self%exchange%time_step_start%month
+    hour = self%exchange%time_step_start%hour
     steps_day = self%steps_per_day()
-    isday = (hour > 6_i4) .and. (hour <= 18_i4)
+    isday = meteo_is_day_step(hour)
 
     select case (pet_process)
       case (-2_i4)
@@ -727,7 +756,7 @@ contains
           tmax=self%scratch%tmax, &
           tmin=self%scratch%tmin, &
           latitude=self%scratch%latitude, &
-          doy=self%exchange%time%doy())
+          doy=self%exchange%time_step_start%doy())
         pet_stepping = daily
       case (2_i4)
         call self%remap_raw(self%exchange%raw_temp, self%scratch%temp, "raw_temp")
@@ -785,10 +814,10 @@ contains
     logical :: isday
 
     domain_id = self%fraction_domain()
-    month = self%exchange%time%month
-    hour = self%exchange%time%hour
+    month = self%exchange%time_step_start%month
+    hour = self%exchange%time_step_start%hour
     steps_day = self%steps_per_day()
-    isday = (hour > 6_i4) .and. (hour <= 18_i4)
+    isday = meteo_is_day_step(hour)
 
     call self%remap_raw(self%exchange%raw_ssrd, self%scratch%ssrd, "raw_ssrd")
     select case (self%exchange%raw_ssrd%stepping)
@@ -820,10 +849,10 @@ contains
     logical :: isday
 
     domain_id = self%fraction_domain()
-    month = self%exchange%time%month
-    hour = self%exchange%time%hour
+    month = self%exchange%time_step_start%month
+    hour = self%exchange%time_step_start%hour
     steps_day = self%steps_per_day()
-    isday = (hour > 6_i4) .and. (hour <= 18_i4)
+    isday = meteo_is_day_step(hour)
 
     call self%remap_raw(self%exchange%raw_strd, self%scratch%strd, "raw_strd")
     select case (self%exchange%raw_strd%stepping)

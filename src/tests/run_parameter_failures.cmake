@@ -69,3 +69,7 @@ expect_parameter_failure(
   missing-input
   "mRM: failed to validate parameter block 'routing_2': namelist not configured"
 )
+expect_parameter_failure(
+  meteo-step
+  "Meteo supports only 1-hour and 24-hour model steps; temporal aggregation/disaggregation for intermediate steps is not implemented."
+)

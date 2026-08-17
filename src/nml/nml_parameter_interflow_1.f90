@@ -41,11 +41,11 @@ module nml_interflow_1
   !> \details Parameters for parallel interflow reservoirs.
   type, public :: nml_interflow_1_t
     logical :: is_configured = .false. !< whether the namelist has been configured
-    type(parameter_t) :: storage_capacity_factor !< Interflow storage-capacity factor
-    type(parameter_t) :: recession_slope !< Slope multiplier for interflow recession
-    type(parameter_t) :: fast_recession_forest !< Forest multiplier for fast interflow recession
-    type(parameter_t) :: slow_recession_ks !< Saturated-conductivity multiplier for slow interflow recession
-    type(parameter_t) :: slow_recession_exponent !< Slow interflow exponent
+    type(parameter_t) :: storage_capacity_factor !< Interflow storage-capacity factor [1]
+    type(parameter_t) :: recession_slope !< Slope-derived interflow recession time [d]
+    type(parameter_t) :: fast_recession_forest !< Forest multiplier for fast interflow recession [1]
+    type(parameter_t) :: slow_recession_ks !< Saturated-conductivity contribution to slow interflow recession time [d]
+    type(parameter_t) :: slow_recession_exponent !< Slow interflow exponent [1]
   contains
     procedure :: init => nml_interflow_1_init
     procedure :: init_type => nml_interflow_1_init_type
@@ -86,11 +86,11 @@ contains
     slow_recession_exponent, &
     errmsg) result(status)
     class(nml_interflow_1_t), intent(in) :: this !< parent namelist instance
-    type(parameter_t), intent(inout), optional :: storage_capacity_factor !< Interflow storage-capacity factor
-    type(parameter_t), intent(inout), optional :: recession_slope !< Slope multiplier for interflow recession
-    type(parameter_t), intent(inout), optional :: fast_recession_forest !< Forest multiplier for fast interflow recession
-    type(parameter_t), intent(inout), optional :: slow_recession_ks !< Saturated-conductivity multiplier for slow interflow recession
-    type(parameter_t), intent(inout), optional :: slow_recession_exponent !< Slow interflow exponent
+    type(parameter_t), intent(inout), optional :: storage_capacity_factor !< Interflow storage-capacity factor [1]
+    type(parameter_t), intent(inout), optional :: recession_slope !< Slope-derived interflow recession time [d]
+    type(parameter_t), intent(inout), optional :: fast_recession_forest !< Forest multiplier for fast interflow recession [1]
+    type(parameter_t), intent(inout), optional :: slow_recession_ks !< Saturated-conductivity contribution to slow interflow recession time [d]
+    type(parameter_t), intent(inout), optional :: slow_recession_exponent !< Slow interflow exponent [1]
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
@@ -216,11 +216,11 @@ contains
 
     class(nml_interflow_1_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
-    type(parameter_t), intent(in) :: storage_capacity_factor !< Interflow storage-capacity factor
-    type(parameter_t), intent(in) :: recession_slope !< Slope multiplier for interflow recession
-    type(parameter_t), intent(in) :: fast_recession_forest !< Forest multiplier for fast interflow recession
-    type(parameter_t), intent(in) :: slow_recession_ks !< Saturated-conductivity multiplier for slow interflow recession
-    type(parameter_t), intent(in) :: slow_recession_exponent !< Slow interflow exponent
+    type(parameter_t), intent(in) :: storage_capacity_factor !< Interflow storage-capacity factor [1]
+    type(parameter_t), intent(in) :: recession_slope !< Slope-derived interflow recession time [d]
+    type(parameter_t), intent(in) :: fast_recession_forest !< Forest multiplier for fast interflow recession [1]
+    type(parameter_t), intent(in) :: slow_recession_ks !< Saturated-conductivity contribution to slow interflow recession time [d]
+    type(parameter_t), intent(in) :: slow_recession_exponent !< Slow interflow exponent [1]
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return

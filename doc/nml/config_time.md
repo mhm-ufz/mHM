@@ -14,7 +14,7 @@ Configuration for simulation and evaluation time periods in mHM.
 | [eval_start](#eval_start) | string array | no | no | Evaluation start |
 | [sim_end](#sim_end) | string array | no | no | Simulation end |
 | [share_time_period](#share_time_period) | logical | no | no | Share time period between domains |
-| [time_step](#time_step) | integer array | no | no | Time step of the simulation |
+| [time_step](#time_step) | integer array | no | no | Global model time step |
 | [share_time_step](#share_time_step) | logical | no | no | Share time step between domains |
 
 ## Field details
@@ -76,15 +76,19 @@ Summary:
 
 ### time_step
 
-Time step of the simulation `time_step`
+Global model time step `time_step`
 
-Time step of the simulation (1 or 24, in hours).
+Global model update cadence in hours. The supported values are whole divisors of one day.
+This controls how often process containers are updated and is independent of the support
+interval of input data. Individual process components may support only a subset of these
+globally valid cadences.
 
 Summary:
 - Type: `integer(i4), dimension(n_domains)`
 - Declared required: no
 - Input required: no
 - Default: `1`
+- Allowed values: `1`, `2`, `3`, `4`, `6`, `8`, `12`, `24`
 
 ### share_time_step
 

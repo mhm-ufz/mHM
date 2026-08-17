@@ -1,0 +1,5 @@
+! Slow celerity yields a completed routing step coarser than one hour in the
+! minimal routing network, exercising mRM backward-filled output.
+&routing_2
+  streamflow_celerity = 0.1
+/

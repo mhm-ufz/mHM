@@ -171,7 +171,7 @@ contains
     type(var_dp), intent(inout) :: exchange_var
     exchange_var%provided = input_var%provided
     exchange_var%static = input_var%static
-    exchange_var%stepping = input_var%stepping
+    call exchange_var%set_stepping("Input", input_var%stepping)
   end subroutine sync_input_var_meta
 
   !> \brief Update the time frame for chunked reading.
@@ -1206,6 +1206,7 @@ contains
     else if (self%runoff%provided) then
       init_grid = need_grid(self%tgt_level1, self%exchange%level1) ! associate grid if not yet done
       call self%runoff%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level1, init_grid=init_grid)
+      call sync_input_var_meta(self%runoff, self%exchange%runoff_total)
     end if
 
     if (associated(self%exchange%level2)) self%exchange%level2_resolution = self%exchange%level2%cellsize
