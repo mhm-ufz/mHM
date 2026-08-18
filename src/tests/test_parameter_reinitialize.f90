@@ -20,7 +20,7 @@ program test_parameter_reinitialize
   status = pet_domain%exchange%config%parameters%pet_m2%set( &
     correction_factor_min=parameter_t( &
       value=0.9_dp, optimize=.true., min=0.7_dp, max=1.3_dp), &
-    correction_factor_max=parameter_t( &
+    correction_factor_delta=parameter_t( &
       value=0.1_dp, optimize=.true., min=0.0_dp, max=0.2_dp), &
     aspect_threshold=parameter_t( &
       value=180.0_dp, optimize=.true., min=160.0_dp, max=200.0_dp), &

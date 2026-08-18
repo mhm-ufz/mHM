@@ -2,7 +2,7 @@
 
 &pet_m2
   correction_factor_min = 0.9, .true.
-  correction_factor_max = 0.1, .true.
+  correction_factor_delta = 0.1, .true.
   aspect_threshold = 180.0, .true.
 /
 
@@ -16,7 +16,7 @@
 
 &pet_1
   correction_factor_min = 0.93, .true.
-  correction_factor_max = 0.19, .true.
+  correction_factor_delta = 0.19, .true.
   aspect_threshold = 171.0, .true.
   hargreaves_samani_coefficient = 0.0023, .true.
 /

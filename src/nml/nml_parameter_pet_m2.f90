@@ -42,7 +42,7 @@ module nml_pet_m2
   type, public :: nml_pet_m2_t
     logical :: is_configured = .false. !< whether the namelist has been configured
     type(parameter_t) :: correction_factor_min !< Minimum PET aspect-correction factor
-    type(parameter_t) :: correction_factor_max !< Maximum PET aspect-correction factor
+    type(parameter_t) :: correction_factor_delta !< Delta added to the minimum PET aspect-correction factor
     type(parameter_t) :: aspect_threshold !< Aspect threshold
   contains
     procedure :: init => nml_pet_m2_init
@@ -67,7 +67,7 @@ contains
     ! derived values
     status = this%init_type( &
       correction_factor_min=this%correction_factor_min, &
-      correction_factor_max=this%correction_factor_max, &
+      correction_factor_delta=this%correction_factor_delta, &
       aspect_threshold=this%aspect_threshold, &
       errmsg=errmsg)
     if (status /= NML_OK) return
@@ -76,12 +76,12 @@ contains
   !> \brief Initialize derived values with their field-specific defaults
   integer function nml_pet_m2_init_type(this, &
     correction_factor_min, &
-    correction_factor_max, &
+    correction_factor_delta, &
     aspect_threshold, &
     errmsg) result(status)
     class(nml_pet_m2_t), intent(in) :: this !< parent namelist instance
     type(parameter_t), intent(inout), optional :: correction_factor_min !< Minimum PET aspect-correction factor
-    type(parameter_t), intent(inout), optional :: correction_factor_max !< Maximum PET aspect-correction factor
+    type(parameter_t), intent(inout), optional :: correction_factor_delta !< Delta added to the minimum PET aspect-correction factor
     type(parameter_t), intent(inout), optional :: aspect_threshold !< Aspect threshold
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
@@ -95,13 +95,13 @@ contains
       correction_factor_min%min = 0.7_dp
       correction_factor_min%max = 1.3_dp
     end if
-    if (present(correction_factor_max)) then
-      correction_factor_max%value = ieee_value(correction_factor_max%value, ieee_quiet_nan) ! sentinel for derived component value
-      correction_factor_max%optimize = .false.
-      correction_factor_max%min = ieee_value(correction_factor_max%min, ieee_quiet_nan) ! sentinel for derived component min
-      correction_factor_max%max = ieee_value(correction_factor_max%max, ieee_quiet_nan) ! sentinel for derived component max
-      correction_factor_max%min = 0.0_dp
-      correction_factor_max%max = 0.2_dp
+    if (present(correction_factor_delta)) then
+      correction_factor_delta%value = ieee_value(correction_factor_delta%value, ieee_quiet_nan) ! sentinel for derived component value
+      correction_factor_delta%optimize = .false.
+      correction_factor_delta%min = ieee_value(correction_factor_delta%min, ieee_quiet_nan) ! sentinel for derived component min
+      correction_factor_delta%max = ieee_value(correction_factor_delta%max, ieee_quiet_nan) ! sentinel for derived component max
+      correction_factor_delta%min = 0.0_dp
+      correction_factor_delta%max = 0.2_dp
     end if
     if (present(aspect_threshold)) then
       aspect_threshold%value = ieee_value(aspect_threshold%value, ieee_quiet_nan) ! sentinel for derived component value
@@ -121,7 +121,7 @@ contains
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
     type(parameter_t) :: correction_factor_min
-    type(parameter_t) :: correction_factor_max
+    type(parameter_t) :: correction_factor_delta
     type(parameter_t) :: aspect_threshold
     ! locals
     type(nml_file_t) :: nml
@@ -131,13 +131,13 @@ contains
 
     namelist /pet_m2/ &
       correction_factor_min, &
-      correction_factor_max, &
+      correction_factor_delta, &
       aspect_threshold
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
     correction_factor_min = this%correction_factor_min
-    correction_factor_max = this%correction_factor_max
+    correction_factor_delta = this%correction_factor_delta
     aspect_threshold = this%aspect_threshold
 
     status = nml%open(file, errmsg=errmsg)
@@ -165,7 +165,7 @@ contains
 
     ! assign values
     this%correction_factor_min = correction_factor_min
-    this%correction_factor_max = correction_factor_max
+    this%correction_factor_delta = correction_factor_delta
     this%aspect_threshold = aspect_threshold
 
     ! mark as configured
@@ -176,14 +176,14 @@ contains
   !> \brief Set pet_m2 values
   integer function nml_pet_m2_set(this, &
     correction_factor_min, &
-    correction_factor_max, &
+    correction_factor_delta, &
     aspect_threshold, &
     errmsg) result(status)
 
     class(nml_pet_m2_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     type(parameter_t), intent(in) :: correction_factor_min !< Minimum PET aspect-correction factor
-    type(parameter_t), intent(in) :: correction_factor_max !< Maximum PET aspect-correction factor
+    type(parameter_t), intent(in) :: correction_factor_delta !< Delta added to the minimum PET aspect-correction factor
     type(parameter_t), intent(in) :: aspect_threshold !< Aspect threshold
 
     status = this%init(errmsg=errmsg)
@@ -191,7 +191,7 @@ contains
 
     ! required parameters
     this%correction_factor_min = correction_factor_min
-    this%correction_factor_max = correction_factor_max
+    this%correction_factor_delta = correction_factor_delta
     this%aspect_threshold = aspect_threshold
 
     ! mark as configured
@@ -248,38 +248,38 @@ contains
       if (ieee_is_nan(this%correction_factor_min%value)) then
         status = NML_ERR_NOT_SET
       end if
-    case ("correction_factor_max%value")
+    case ("correction_factor_delta%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_max'"
+        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta'"
         return
       end if
-      if (ieee_is_nan(this%correction_factor_max%value)) status = NML_ERR_NOT_SET
-    case ("correction_factor_max%optimize")
+      if (ieee_is_nan(this%correction_factor_delta%value)) status = NML_ERR_NOT_SET
+    case ("correction_factor_delta%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_max'"
+        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta'"
         return
       end if
-    case ("correction_factor_max%min")
+    case ("correction_factor_delta%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_max'"
+        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta'"
         return
       end if
-    case ("correction_factor_max%max")
+    case ("correction_factor_delta%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_max'"
+        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta'"
         return
       end if
-    case ("correction_factor_max")
+    case ("correction_factor_delta")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_max'"
+        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta'"
         return
       end if
-      if (ieee_is_nan(this%correction_factor_max%value)) then
+      if (ieee_is_nan(this%correction_factor_delta%value)) then
         status = NML_ERR_NOT_SET
       end if
     case ("aspect_threshold%value")
@@ -355,12 +355,12 @@ contains
       status = istat
       return
     end if
-    istat = this%is_set("correction_factor_max", errmsg=errmsg)
+    istat = this%is_set("correction_factor_delta", errmsg=errmsg)
     if (istat == NML_ERR_NOT_SET) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) then
         if (len_trim(errmsg) == 0) then
-          errmsg = "field not set: correction_factor_max"
+          errmsg = "field not set: correction_factor_delta"
         end if
         errmsg = "required " // trim(errmsg)
       end if

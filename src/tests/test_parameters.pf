@@ -124,7 +124,7 @@ contains
 
     call parameters%begin_configuration()
     call parameters%add_process("pet", pet, &
-      [character(32) :: "correction_factor_min", "correction_factor_max", "aspect_threshold"], group="pet_m2")
+      [character(32) :: "correction_factor_min", "correction_factor_delta", "aspect_threshold"], group="pet_m2")
     call parameters%add_process("baseflow", baseflow, &
       [character(32) :: "baseflow_recession(1)", "baseflow_recession(2)"], group="baseflow_1")
     call parameters%seal()
@@ -137,7 +137,7 @@ contains
     status = pet_config%from_file(file=file, errmsg=errmsg)
     @assertEqual(NML_OK, status, message="could not read current PET values: " // trim(errmsg))
     @assertEqual(current(1), pet_config%correction_factor_min%value, tolerance=1.0e-12_dp)
-    @assertEqual(current(2), pet_config%correction_factor_max%value, tolerance=1.0e-12_dp)
+    @assertEqual(current(2), pet_config%correction_factor_delta%value, tolerance=1.0e-12_dp)
     @assertEqual(current(3), pet_config%aspect_threshold%value, tolerance=1.0e-12_dp)
 
     call parameters%write_namelist(file, candidate)
@@ -148,10 +148,10 @@ contains
     status = pet_config%from_file(file=file, errmsg=errmsg)
     @assertEqual(NML_OK, status, message="could not read candidate PET values: " // trim(errmsg))
     @assertEqual(candidate(1), pet_config%correction_factor_min%value, tolerance=1.0e-12_dp)
-    @assertEqual(candidate(2), pet_config%correction_factor_max%value, tolerance=1.0e-12_dp)
+    @assertEqual(candidate(2), pet_config%correction_factor_delta%value, tolerance=1.0e-12_dp)
     @assertEqual(candidate(3), pet_config%aspect_threshold%value, tolerance=1.0e-12_dp)
     @assertTrue(pet_config%correction_factor_min%optimize, message="writer omitted PET optimize metadata")
-    @assertFalse(pet_config%correction_factor_max%optimize, message="writer changed fixed PET metadata")
+    @assertFalse(pet_config%correction_factor_delta%optimize, message="writer changed fixed PET metadata")
     @assertEqual(0.75_dp, pet_config%correction_factor_min%min, tolerance=1.0e-12_dp)
     @assertEqual(1.25_dp, pet_config%correction_factor_min%max, tolerance=1.0e-12_dp)
 
