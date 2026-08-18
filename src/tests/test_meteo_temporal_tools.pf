@@ -70,10 +70,10 @@ contains
     integer :: day_steps
     integer :: hour
 
-    @assertFalse(meteo_is_day_step(5), message='the interval ending at 06:00 remains a night interval')
-    @assertTrue(meteo_is_day_step(6), message='the interval starting at 06:00 is the first day interval')
-    @assertTrue(meteo_is_day_step(17), message='the interval ending at 18:00 is the last day interval')
-    @assertFalse(meteo_is_day_step(18), message='the interval starting at 18:00 is a night interval')
+    @assertFalse(meteo_is_day_step(6), message='the interval starting at 06:00 remains a night interval')
+    @assertTrue(meteo_is_day_step(7), message='the interval starting at 07:00 is the first legacy day interval')
+    @assertTrue(meteo_is_day_step(18), message='the interval starting at 18:00 is the last legacy day interval')
+    @assertFalse(meteo_is_day_step(19), message='the interval starting at 19:00 is a night interval')
     day_steps = 0
     do hour = 0, 23
       if (meteo_is_day_step(hour)) day_steps = day_steps + 1
