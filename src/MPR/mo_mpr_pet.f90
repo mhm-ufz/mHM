@@ -176,7 +176,7 @@ contains
 
   !>       Global parameters needed (see mhm_parameter.nml):
   !>       - param(1) = minCorrectionFactorPET
-  !>       - param(2) = maxCorrectionFactorPET
+  !>       - param(2) = delta added to minCorrectionFactorPET
   !>       - param(3) = aspectTresholdPET
 
   !    INTENT(IN)

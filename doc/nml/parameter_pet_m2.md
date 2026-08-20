@@ -11,7 +11,7 @@ Parameters for aspect correction of externally supplied PET.
 | Name | Type | Declared required | Input required | Info |
 | --- | --- | --- | --- | --- |
 | [correction_factor_min](#correction_factor_min) | type(parameter_t) | yes | yes | Minimum PET aspect-correction factor |
-| [correction_factor_max](#correction_factor_max) | type(parameter_t) | yes | yes | Maximum PET aspect-correction factor |
+| [correction_factor_delta](#correction_factor_delta) | type(parameter_t) | yes | yes | Delta added to the minimum PET aspect-correction factor |
 | [aspect_threshold](#aspect_threshold) | type(parameter_t) | yes | yes | Aspect threshold |
 
 ## Field details
@@ -34,9 +34,9 @@ Components:
 - `correction_factor_min%min`: `real(dp)`; declared required yes; input required no; default `0.7` (object default)
 - `correction_factor_min%max`: `real(dp)`; declared required yes; input required no; default `1.3` (object default)
 
-### correction_factor_max
+### correction_factor_delta
 
-Maximum PET aspect-correction factor `correction_factor_max`
+Delta added to the minimum PET aspect-correction factor `correction_factor_delta`
 
 A model parameter with optional calibration metadata.
 
@@ -47,10 +47,10 @@ Summary:
 - Default: `{min: 0.0, max: 0.2}`
 
 Components:
-- `correction_factor_max%value`: `real(dp)`; declared required yes; input required yes
-- `correction_factor_max%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `correction_factor_max%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
-- `correction_factor_max%max`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
+- `correction_factor_delta%value`: `real(dp)`; declared required yes; input required yes
+- `correction_factor_delta%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
+- `correction_factor_delta%min`: `real(dp)`; declared required yes; input required no; default `0.0` (object default)
+- `correction_factor_delta%max`: `real(dp)`; declared required yes; input required no; default `0.2` (object default)
 
 ### aspect_threshold
 
@@ -95,10 +95,10 @@ A model parameter with optional calibration metadata.
   correction_factor_min%optimize = .true.
   correction_factor_min%min = 0.7
   correction_factor_min%max = 1.3
-  correction_factor_max%value = 0.1
-  correction_factor_max%optimize = .true.
-  correction_factor_max%min = 0.0
-  correction_factor_max%max = 0.2
+  correction_factor_delta%value = 0.1
+  correction_factor_delta%optimize = .true.
+  correction_factor_delta%min = 0.0
+  correction_factor_delta%max = 0.2
   aspect_threshold%value = 180.0
   aspect_threshold%optimize = .true.
   aspect_threshold%min = 160.0

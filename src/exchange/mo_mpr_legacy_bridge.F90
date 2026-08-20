@@ -376,7 +376,7 @@ contains
     call mpr_bridge_get_level0_latitude(level0, latitude_l0)
     allocate(pet_fac_aspect_l0(level0%ncells))
 
-    call pet_correctbyASP(id0, latitude_l0, aspect_l0, param(1:3), nodata_dp, pet_fac_aspect_l0)
+    call pet_correctbyASP(id0, latitude_l0, max(aspect_l0, 1.0_dp), param(1:3), nodata_dp, pet_fac_aspect_l0)
     call upscaler%execute(pet_fac_aspect_l0, pet_fac_aspect_l1, upscaling_operator=up_a_mean)
 
     deallocate(id0)

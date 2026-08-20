@@ -110,11 +110,11 @@ module mo_meteo_container
 
 contains
 
-  !> \brief Classify an interval by the legacy 06:00--18:00 daytime window using its start hour.
+  !> \brief Classify an interval with the literal legacy predicate using its start hour.
   pure logical function meteo_is_day_step(hour) result(is_day)
     integer(i4), intent(in) :: hour !< hour at the start of the represented interval
 
-    is_day = (hour >= 6_i4) .and. (hour < 18_i4)
+    is_day = (hour >= 7_i4) .and. (hour < 19_i4)
   end function meteo_is_day_step
 
   !> \brief Report whether meteo can process the configured global model cadence without resampling.

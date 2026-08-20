@@ -610,8 +610,8 @@ contains
           status = parameter_config%pet_m2%is_valid(errmsg=errmsg)
           call check_parameter_status(status, "pet_m2", "validate", errmsg)
           call self%exchange%parameters%add_process("pet", [parameter_config%pet_m2%correction_factor_min, &
-            parameter_config%pet_m2%correction_factor_max, parameter_config%pet_m2%aspect_threshold], &
-            [character(64) :: "correction_factor_min", "correction_factor_max", "aspect_threshold"], group="pet_m2")
+            parameter_config%pet_m2%correction_factor_delta, parameter_config%pet_m2%aspect_threshold], &
+            [character(64) :: "correction_factor_min", "correction_factor_delta", "aspect_threshold"], group="pet_m2")
         case (-1_i4)
           if (.not.parameter_config%pet_m1%is_configured .and. allocated(self%exchange%parameter_file)) then
             status = parameter_config%pet_m1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
@@ -631,9 +631,9 @@ contains
           status = parameter_config%pet_1%is_valid(errmsg=errmsg)
           call check_parameter_status(status, "pet_1", "validate", errmsg)
           call self%exchange%parameters%add_process("pet", [parameter_config%pet_1%correction_factor_min, &
-            parameter_config%pet_1%correction_factor_max, parameter_config%pet_1%aspect_threshold, &
+            parameter_config%pet_1%correction_factor_delta, parameter_config%pet_1%aspect_threshold, &
             parameter_config%pet_1%hargreaves_samani_coefficient], [character(64) :: &
-            "correction_factor_min", "correction_factor_max", "aspect_threshold", &
+            "correction_factor_min", "correction_factor_delta", "aspect_threshold", &
             "hargreaves_samani_coefficient"], group="pet_1")
         case (2_i4)
           if (.not.parameter_config%pet_2%is_configured .and. allocated(self%exchange%parameter_file)) then
