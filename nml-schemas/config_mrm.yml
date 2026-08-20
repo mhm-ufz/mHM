@@ -56,6 +56,34 @@ properties:
       Valid values range from 1 minute (60s) to 1 day (86400s).
       Value needs to be a divisor of 3600 or a multiple of 3600 and a divisor of 86400.
     examples: [[3600]]
+  upscale_mode:
+    type: array
+    items:
+      type: integer
+      x-fortran-kind: i4
+      enum: [0, 1]
+      default: 1
+    x-fortran-shape: n_domains
+    title: River upscaling mode.
+    description: |-
+      Method used to construct the coarse river graph from the fine D8 network.
+      - 0 : legacy topology connecting to the first entered neighboring coarse cell.
+      - 1 : FLOW-like topology connecting directly to the next downstream link endpoint.
+    examples: [[1]]
+  length_percentile:
+    type: array
+    items:
+      type: number
+      x-fortran-kind: dp
+      minimum: 0.0
+      maximum: 100.0
+      default: 40.0
+    x-fortran-shape: n_domains
+    title: Percentile for the minimum upscaled link length.
+    description: |-
+      Percentile of the non-sink link-length distribution used as a lower bound
+      for routing stability, in percent.
+    examples: [[40.0]]
   scc_gauges_path:
     type: array
     items:

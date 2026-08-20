@@ -462,6 +462,10 @@
   river_net_omp_level_min(:) = 100
   ! Maximum numerical routing substep in seconds.
   max_route_step(:) = 3600
+  ! River upscaling mode.
+  upscale_mode(:) = 1
+  ! Percentile for the minimum upscaled link length.
+  length_percentile(:) = 40.0
   ! Path for SCC gauges NetCDF file.
   scc_gauges_path(:) = "scc_gauges.nc"
   ! Path for output file.
