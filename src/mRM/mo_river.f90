@@ -38,6 +38,22 @@ module mo_river
   integer(i2), public, dimension(8), parameter :: d8_all = [d8_E, d8_SE, d8_S, d8_SW, d8_W, d8_NW, d8_N, d8_NE]
   !> matching back pointing directions as array
   integer(i2), public, dimension(8), parameter :: d8_back = [d8_W, d8_NW, d8_N, d8_NE, d8_E, d8_SE, d8_S, d8_SW]
+  !> leaving directions at east border as array
+  integer(i2), public, dimension(3), parameter :: d8_leave_E = [d8_NE, d8_E, d8_SE]
+  !> leaving directions at south border as array
+  integer(i2), public, dimension(3), parameter :: d8_leave_S = [d8_SE, d8_S, d8_SW]
+  !> leaving directions at west border as array
+  integer(i2), public, dimension(3), parameter :: d8_leave_W = [d8_SW, d8_W, d8_NW]
+  !> leaving directions at north border as array
+  integer(i2), public, dimension(3), parameter :: d8_leave_N = [d8_NW, d8_N, d8_NE]
+  !> leaving directions at south-east corner as array
+  integer(i2), public, dimension(5), parameter :: d8_leave_SE = [d8_NE, d8_E, d8_SE, d8_S, d8_SW]
+  !> leaving directions at south-west corner as array
+  integer(i2), public, dimension(5), parameter :: d8_leave_SW = [d8_SE, d8_S, d8_SW, d8_W, d8_NW]
+  !> leaving directions at north-east corner as array
+  integer(i2), public, dimension(5), parameter :: d8_leave_NE = [d8_NW, d8_N, d8_NE, d8_E, d8_SE]
+  !> leaving directions at north-west corner as array
+  integer(i2), public, dimension(5), parameter :: d8_leave_NW = [d8_SW, d8_W, d8_NW, d8_N, d8_NE]
   !!@}
 
   !> \name ldd direction values
@@ -441,7 +457,7 @@ contains
     integer(i4), dimension(:), optional, intent(in) :: labels !< labels used for subcatchments
     integer(i4), optional, intent(in) :: default_label !< default label for unlabeled nodes (default: 0)
     integer(i8) :: i, j, n
-    integer(i4) :: def, m
+    integer(i4) :: def, m, k
     logical :: reverse_order
 
     if (present(labels)) then
@@ -466,17 +482,27 @@ contains
     !$omp end parallel do
 
     if (present(labels)) then
-      !$omp parallel do default(shared) schedule(static)
       do m = 1_i4, size(selected_nodes, kind=i4)
+        if (labels(m) == def) then
+          call error_message("river_label_subcatchments: given label equals default label")
+        end if
+        do k = m + 1_i4, size(selected_nodes, kind=i4)
+          if (labels(m) == labels(k)) then
+            call error_message("river_label_subcatchments: given label occurs more than once")
+          end if
+        end do
+        if (label_map(selected_nodes(m)) /= def) then
+          call error_message("river_label_subcatchments: selected node occurs more than once")
+        end if
         label_map(selected_nodes(m)) = labels(m)
       end do
-      !$omp end parallel do
     else
-      !$omp parallel do default(shared) schedule(static)
       do m = 1_i4, size(selected_nodes, kind=i4)
+        if (label_map(selected_nodes(m)) /= def) then
+          call error_message("river_label_subcatchments: selected node occurs more than once")
+        end if
         label_map(selected_nodes(m)) = m
       end do
-      !$omp end parallel do
     end if
 
     do i = 1_i8, this%order%n_levels
@@ -537,14 +563,17 @@ contains
     logical :: periodic ! periodic latlon grid
     if (this%scc) call error_message("river%calc_fdir: can not calculated fdir for a SCC river.")
     if (allocated(this%fdir)) deallocate(this%fdir)
-    allocate(this%fdir(this%n_nodes), source=0_i2)
+    allocate(this%fdir(this%n_nodes))
     periodic = this%grid%is_periodic()
     dy = -1_i4 ! top-down grid starts north
     if (this%grid%y_direction==bottom_up) dy = 1_i4
     !$omp parallel do default(shared) private(j, from, to) schedule(static)
     do i = 1_i8, this%n_nodes
       j = this%down(i)
-      if (j==0_i8) cycle ! sink
+      if (j==0_i8) then
+        this%fdir(i) = sink
+        cycle ! sink
+      end if
       from = this%grid%cell_ij(i,:)
       to = this%grid%cell_ij(j,:)
       ! the pathological case here is a periodic grid with 2 cells along lon-axis (*lol*)
@@ -642,27 +671,54 @@ contains
     logical, optional, intent(in) :: mask(:) !< mask for slope smoothing (may come from upscaled river network)
     real(dp), allocatable :: smooth_slope(:)
     logical :: smoothing
+    integer(i8) :: i
 
     ! constant celerity
     if (optval(constant_celerity, .false.)) then
-      allocate(this%celerity(this%n_nodes), source=gamma)
+      allocate(this%celerity(this%n_nodes))
+      !$omp parallel do default(shared)
+      do i = 1_i8, this%n_nodes
+        this%celerity(i) = gamma
+      end do
+      !$omp end parallel do
       return
     end if
+
     ! need slope for non constant celerity
     if (present(slope)) then
       if (.not.allocated(this%link_slope)) allocate(this%link_slope(this%n_nodes))
-      this%link_slope(:) = slope
+      !$omp parallel do default(shared)
+      do i = 1_i8, this%n_nodes
+        this%link_slope(i) = slope(i)
+      end do
+      !$omp end parallel do
     end if
+
     if (.not.allocated(this%link_slope)) call error_message("river%calc_celerity: need slope to calculate celerity.")
-    allocate(smooth_slope(this%n_nodes), source=this%link_slope)
-    ! set min val for river slope to enable h-mean
-    where ( smooth_slope < 0.1_dp ) smooth_slope = 0.1_dp
+    allocate(smooth_slope(this%n_nodes))
+    !$omp parallel do default(shared)
+    do i = 1_i8, this%n_nodes
+      if (this%link_slope(i) < 0.1_dp) then
+        ! set min val for river slope to enable h-mean
+        smooth_slope(i) = 0.1_dp
+      else
+        smooth_slope(i) = this%link_slope(i)
+      end if
+    end do
+    !$omp end parallel do
+
     ! smooth river slope if there is more than one cell
     smoothing = this%n_nodes > 1_i8
     if (present(mask)) smoothing = count(mask, kind=i8) > 1_i8
     if(smoothing) smooth_slope = mad(arr=smooth_slope, z=2.25_dp, mask=mask, tout="u", mval=0.1_dp)
     ! calculate celerity
-    allocate(this%celerity(this%n_nodes), source=(gamma * sqrt(smooth_slope / 100.0_dp)))
+    allocate(this%celerity(this%n_nodes))
+    !$omp parallel do default(shared)
+    do i = 1_i8, this%n_nodes
+      this%celerity(i) = gamma * sqrt(smooth_slope(i) / 100.0_dp)
+    end do
+    !$omp end parallel do
+
   end subroutine river_celerity
 
   !> \brief Select values from sub-nodes for each cell from an array of values on nodes.
