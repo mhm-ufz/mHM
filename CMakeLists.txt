@@ -8,8 +8,6 @@
 # -DMHM_WITH_COVERAGE=ON         - build with GNU coverage support
 # -DMHM_WITH_MPI=ON              - build with MPI support
 # -DMHM_WITH_OpenMP=ON           - build with OpenMP support
-# -DFORCES_WITH_MPI=OFF          - override propagated MPI support for FORCES
-# -DFORCES_WITH_OpenMP=OFF       - override propagated OpenMP support for FORCES
 # -DMHM_ENABLE_NATIVE=ON         - enable host-native release tuning for local/HPC builds
 # -DMHM_WITH_GPROF=ON            - build with GNU gprof instrumentation
 # -DCMAKE_VERBOSE_MAKEFILE=OFF   - see all the commands

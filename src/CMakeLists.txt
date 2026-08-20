@@ -41,16 +41,18 @@ endif()
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/../version_forces.txt" ver_forces LIMIT_COUNT 1)
 # cmake directive to specify forces version: CPM_forces_VERSION
 set(CPM_forces_VERSION "${ver_forces}" CACHE STRING "FORCES version to download with CPM.")
-if(NOT DEFINED FORCES_WITH_MPI)
-  set(FORCES_WITH_MPI ${MHM_WITH_MPI} CACHE BOOL
-    "Build FORCES with MPI support (defaults to MHM_WITH_MPI)."
-  )
-endif()
-if(NOT DEFINED FORCES_WITH_OpenMP)
-  set(FORCES_WITH_OpenMP ${MHM_WITH_OpenMP} CACHE BOOL
-    "Build FORCES with OpenMP support (defaults to MHM_WITH_OpenMP)."
-  )
-endif()
+set(FORCES_WITH_MPI ${MHM_WITH_MPI} CACHE BOOL
+  "Build FORCES with MPI support (follows MHM_WITH_MPI)." FORCE
+)
+set(FORCES_WITH_OpenMP ${MHM_WITH_OpenMP} CACHE BOOL
+  "Build FORCES with OpenMP support (follows MHM_WITH_OpenMP)." FORCE
+)
+set(FORCES_OpenMP_LINK_PUBLIC ${MHM_WITH_OpenMP} CACHE BOOL
+  "Build FORCES with public linkage to OpenMP (follows MHM_WITH_OpenMP)." FORCE
+)
+set(FORCES_ENABLE_NATIVE ${MHM_ENABLE_NATIVE} CACHE BOOL
+  "Enable host-native tuning in FORCES (follows MHM_ENABLE_NATIVE)." FORCE
+)
 CPMAddPackage("https://git.ufz.de/chs/forces.git#${CPM_forces_VERSION}")
 if(DEFINED SKBUILD_METADATA_DIR)
   install(
@@ -85,24 +87,6 @@ if(MHM_WITH_MPI)
   message(STATUS "mHM: use MPI")
   target_compile_definitions(${LIB_NAME} PRIVATE MPI)
   target_link_libraries(${LIB_NAME} PRIVATE MPI::MPI_Fortran)
-endif()
-
-if(MHM_WITH_OpenMP)
-  find_package(OpenMP REQUIRED COMPONENTS Fortran)
-  if(NOT OpenMP_Fortran_HAVE_OMPLIB_MODULE)
-    message(FATAL_ERROR "mHM: OpenMP found, but the 'omp_lib' module is not available.")
-  endif()
-  message(STATUS "mHM: use OpenMP")
-  if(NOT TARGET project_openmp)
-    add_library(project_openmp INTERFACE)
-    if(CMAKE_Fortran_COMPILER_ID STREQUAL "NAG")
-      target_compile_options(project_openmp INTERFACE "$<$<COMPILE_LANGUAGE:Fortran>:-openmp>")
-      target_link_options(project_openmp INTERFACE "$<$<LINK_LANGUAGE:Fortran>:-openmp>")
-    else()
-      target_link_libraries(project_openmp INTERFACE OpenMP::OpenMP_Fortran)
-    endif()
-  endif()
-  target_link_libraries(${LIB_NAME} PRIVATE project_openmp)
 endif()
 
 if(MHM_ENABLE_NATIVE)

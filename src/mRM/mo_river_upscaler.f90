@@ -399,12 +399,12 @@ contains
     ! determine area fraction of each coarse node
     if (this%coarse_river%scc) then
       call message("river_upscaler%upscale: determine area fraction of each coarse node")
-      !$omp parallel do default(shared) private(i, yl, yu, xl, xu)
+      !$omp parallel do default(shared)
       do k = 1_i8, n_nodes
-        i = this%coarse_river%node_cell(k)
-        call this%upscaler%coarse_bounds(i, xl, xu, yl, yu)
-        ! fraction by cell counts: coarse_weights = 1 / (masked fine cells in coarse cell)
-        this%coarse_river%area_fraction(k) = count(scc_map(xl:xu,yl:yu)==this%node_sub(k)) * this%upscaler%coarse_weights(i)
+        this%coarse_river%area_fraction(k) = this%upscaler%cell_fraction( &
+          class_map   = scc_map, &
+          coarse_cell = this%coarse_river%node_cell(k), &
+          class_id    = this%node_sub(k))
       end do
       !$omp end parallel do
     end if
