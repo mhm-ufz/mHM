@@ -427,7 +427,14 @@ contains
       end if
       ! scc_gauges/scc_latlon not present if not allocated
       scope_info(s,*) "Initialize upscaler and upscale river network to level-3"
-      call self%upscaler%init(self%river_l0, self%river, self%level3, scc_gauges, scc_latlon)
+      call self%upscaler%init( &
+        fine_river       = self%river_l0, &
+        coarse_river     = self%river, &
+        coarse_grid      = self%level3, &
+        scc_gauges       = scc_gauges, &
+        scc_latlon       = scc_latlon, &
+        upscale_mode     = self%config%upscale_mode(id(1)), &
+        length_percentile = self%config%length_percentile(id(1)))
       if (self%config%is_set("diagnostics_path", idx=id) == NML_OK) then
         file = self%exchange%get_path(self%config%diagnostics_path(id(1)))
         log_info(*) "Write mRM upscaling diagnostics to file: ", file

@@ -1,0 +1,135 @@
+module test_river_upscaler
+  use funit
+  use mo_kind, only: i2, i4, i8, dp
+  use mo_grid, only: grid_t, bottom_up
+  use mo_river, only: river_t, sink, d8_E, d8_S
+  use mo_river_upscaler, only: river_upscaler_t, upscale_legacy, upscale_flow
+  use nml_config_mrm, only: nml_config_mrm_t
+  use nml_helper, only: NML_OK
+
+  implicit none
+  private
+
+  public :: test_legacy_and_flow_targets, test_flow_scc_endpoint, test_upscaling_config
+
+contains
+
+  @test
+  subroutine test_legacy_and_flow_targets()
+    type(grid_t), target :: fine_grid, coarse_grid
+    type(river_t), target :: fine_river, legacy_river, flow_river
+    type(river_upscaler_t) :: legacy_upscaler, flow_upscaler
+    integer(i8) :: ids(6,2)
+    integer(i2) :: fdir(12)
+
+    call fine_grid%init(6_i4, 2_i4, cellsize=1.0_dp, y_direction=bottom_up)
+    call coarse_grid%init(3_i4, 1_i4, cellsize=2.0_dp, y_direction=bottom_up)
+    call fine_grid%gen_id_matrix(ids)
+
+    ! Two rivers traverse the middle coarse cell. Its selected start is on the
+    ! upper river, so the lower river reaches the sink without meeting it.
+    fdir = d8_E
+    fdir(ids(6,1)) = sink
+    fdir(ids(5,2)) = d8_S
+    fdir(ids(6,2)) = d8_S
+    call fine_river%from_fdir(fdir, fine_grid)
+    call fine_river%calc_order(root=.true.)
+    call fine_river%calc_facc()
+
+    ! Select the lower leaving cell in coarse cell 1 and the upper leaving
+    ! cell in coarse cell 2; retain the lower sink in coarse cell 3.
+    fine_river%facc(ids(2,1)) = 4_i4
+    fine_river%facc(ids(2,2)) = 2_i4
+    fine_river%facc(ids(4,1)) = 4_i4
+    fine_river%facc(ids(4,2)) = 8_i4
+    fine_river%facc(ids(6,1)) = 20_i4
+
+    call legacy_upscaler%init( &
+      fine_river=fine_river, coarse_river=legacy_river, coarse_grid=coarse_grid, &
+      upscale_mode=upscale_legacy, length_percentile=0.0_dp)
+    call flow_upscaler%init( &
+      fine_river=fine_river, coarse_river=flow_river, coarse_grid=coarse_grid, &
+      upscale_mode=upscale_flow, length_percentile=0.0_dp)
+
+    @assertEqual(2_i8, legacy_river%down(1), message='legacy connects to first entered coarse cell')
+    @assertEqual(3_i8, flow_river%down(1), message='FLOW connects to reached downstream endpoint')
+    @assertEqual(3_i8, legacy_river%down(2))
+    @assertEqual(3_i8, flow_river%down(2))
+    @assertEqual(0_i8, legacy_river%down(3))
+    @assertEqual(0_i8, flow_river%down(3))
+
+    @assertEqual(ids(2,1), legacy_upscaler%link_start(1))
+    @assertEqual(ids(6,1), legacy_upscaler%link_end(1))
+    @assertEqual(ids(6,1), flow_upscaler%link_end(1))
+    @assertEqual(4.0_dp, legacy_river%link_length(1), tolerance=1.e-12_dp, message='source edge included, endpoint edge excluded')
+    @assertEqual(4.0_dp, flow_river%link_length(1), tolerance=1.e-12_dp)
+    @assertEqual(0.0_dp, flow_river%link_length(3), tolerance=1.e-12_dp, message='sink length stays zero')
+    @assertFalse(allocated(legacy_river%fdir), message='upscaling does not create coarse fdir')
+    @assertFalse(allocated(flow_river%fdir), message='nonlocal graph is not projected to D8')
+  end subroutine test_legacy_and_flow_targets
+
+  @test
+  subroutine test_flow_scc_endpoint()
+    type(grid_t), target :: fine_grid, coarse_grid
+    type(river_t), target :: fine_river, coarse_river
+    type(river_upscaler_t) :: upscaler
+    integer(i8) :: ids(6,2)
+    integer(i2) :: fdir(12)
+    real(dp) :: gauges(1,2)
+
+    call fine_grid%init(6_i4, 2_i4, cellsize=1.0_dp, y_direction=bottom_up)
+    call coarse_grid%init(3_i4, 1_i4, cellsize=2.0_dp, y_direction=bottom_up)
+    call fine_grid%gen_id_matrix(ids)
+    fdir = d8_E
+    fdir(ids(6,1)) = sink
+    fdir(ids(5,2)) = d8_S
+    fdir(ids(6,2)) = d8_S
+    call fine_river%from_fdir(fdir, fine_grid)
+    call fine_river%calc_order(root=.true.)
+    call fine_river%calc_facc()
+    fine_river%facc(ids(2,1)) = 4_i4
+    fine_river%facc(ids(2,2)) = 2_i4
+    fine_river%facc(ids(4,1)) = 4_i4
+    fine_river%facc(ids(4,2)) = 8_i4
+    fine_river%facc(ids(6,1)) = 20_i4
+
+    ! The upper start in the middle coarse cell is also an SCC gauge.
+    gauges(1,:) = [3.5_dp, 1.5_dp]
+    call upscaler%init( &
+      fine_river=fine_river, coarse_river=coarse_river, coarse_grid=coarse_grid, &
+      scc_gauges=gauges, scc_latlon=.false., upscale_mode=upscale_flow, length_percentile=0.0_dp)
+
+    @assertTrue(coarse_river%scc)
+    @assertEqual(2_i8, upscaler%scc_coarse_gauges(1))
+    @assertEqual(2_i8, coarse_river%down(1), message='upstream SCC trace terminates at gauge start')
+    @assertEqual(5_i8, coarse_river%down(2), message='gauge trace follows fine river to downstream sink')
+    @assertEqual(ids(4,2), upscaler%link_end(1))
+    @assertEqual(ids(6,1), upscaler%link_end(2))
+  end subroutine test_flow_scc_endpoint
+
+  @test
+  subroutine test_upscaling_config()
+    type(nml_config_mrm_t) :: config
+    integer :: status
+    character(1024) :: errmsg
+
+    status = config%init(errmsg)
+    @assertEqual(NML_OK, status)
+    @assertEqual(1_i4, config%upscale_mode(1), message='FLOW-like mode is the default')
+    @assertEqual(40.0_dp, config%length_percentile(1), tolerance=1.e-12_dp)
+
+    status = config%set(upscale_mode=[2_i4], errmsg=errmsg)
+    @assertEqual(NML_OK, status)
+    status = config%is_valid(errmsg=errmsg)
+    @assertTrue(status /= NML_OK, message='unknown upscaling mode is rejected')
+    status = config%set(length_percentile=[-1.0_dp], errmsg=errmsg)
+    @assertEqual(NML_OK, status)
+    status = config%is_valid(errmsg=errmsg)
+    @assertTrue(status /= NML_OK, message='negative length percentile is rejected')
+    status = config%set(length_percentile=[101.0_dp], errmsg=errmsg)
+    @assertEqual(NML_OK, status)
+    status = config%is_valid(errmsg=errmsg)
+    @assertTrue(status /= NML_OK, message='length percentile above 100 is rejected')
+  end subroutine test_upscaling_config
+
+end module test_river_upscaler
