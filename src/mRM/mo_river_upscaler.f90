@@ -135,7 +135,6 @@ contains
       call message("river_upscaler%init_scc: no scc gauges provided, initialize without scc")
       this%nsub = 1_i4
       allocate(this%scc_gauges(0))
-      allocate(this%scc_coarse_gauges(0))
       allocate(this%scc_map(this%fine_river%n_nodes))
       allocate(this%is_scc_gauge(this%fine_river%n_nodes))
       ! set default
