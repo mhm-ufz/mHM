@@ -1,16 +1,16 @@
 module test_exchange_variable
   use funit
-  use mo_exchange_type, only: exchange_t, var_dp, var2d_dp
-  use mo_grid_io, only: var
+  use mo_exchange_type, only: exchange_t, var_dp, var_i2, var2d_dp
+  use mo_grid_io, only: var, no_time
   use mo_parameter_types, only: parameter_t
   use mo_datetime, only: datetime, timedelta
-  use mo_kind, only: dp, i4, i8
+  use mo_kind, only: dp, i2, i4, i8
 
   implicit none
 
   private
 
-  public :: test_var_dp_contract, test_var_dp_alias, test_var2d_dp_contract
+  public :: test_var_dp_contract, test_var_i2_contract, test_var_dp_alias, test_var2d_dp_contract
   public :: test_exchange_external_metadata, test_exchange_output_metadata, test_exchange_canonical_metadata
   public :: test_exchange_clock
 
@@ -55,6 +55,37 @@ contains
     @assertEqual(.true., dynamic_source%required, message='var_dp require can validate source only')
     @assertEqual(.false., dynamic_source%has_data(), message='var_dp source-only require does not need data')
   end subroutine test_var_dp_contract
+
+  @test
+  subroutine test_var_i2_contract()
+    type(var_i2) :: variable
+    type(exchange_t) :: exchange
+    integer(i2), target :: local(3)
+    integer(i2), pointer :: exchange_data(:)
+    integer(i8), allocatable :: var_shape(:)
+    integer :: status
+
+    local = [1_i2, 2_i2, 3_i2]
+    variable = var_i2(name="test_i2")
+
+    call variable%publish_local("test", local, 6_i4)
+    @assertEqual(.true., variable%provided, message='var_i2 publish_local sets provided')
+    @assertEqual(6_i4, variable%stepping, message='var_i2 publish_local records stepping')
+    @assertEqual(2_i4, int(variable%data(2), i4), message='var_i2 publish_local points to local data')
+
+    var_shape = variable%data_shape()
+    @assertEqual([3_i8], var_shape, message='var_i2 data_shape')
+    call variable%require("test", .true., [3_i8])
+    @assertEqual(.true., variable%required, message='var_i2 require marks required')
+
+    status = exchange%config%project%set()
+    @assertEqual(0, status, message='project defaults configure the i2 exchange fixture')
+    call exchange%create(cwd=".")
+    call exchange%set_data("fdir", local, no_time)
+    call exchange%get_data("fdir", exchange_data)
+    @assertEqual(.true., exchange%fdir%provided, message='exchange accepts i2 fdir data')
+    @assertEqual(3_i4, int(exchange_data(3), i4), message='exchange exposes i2 fdir data')
+  end subroutine test_var_i2_contract
 
   @test
   subroutine test_var_dp_alias()

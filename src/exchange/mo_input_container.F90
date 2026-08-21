@@ -12,7 +12,7 @@
 #include "logging.h"
 module mo_input_container
   use mo_logging
-  use mo_kind, only: i4, dp
+  use mo_kind, only: i2, i4, dp
   use mo_list, only: list
   use mo_os, only: path_ext
   use mo_exchange_type, only: exchange_t, var_dp
@@ -74,6 +74,16 @@ module mo_input_container
     ! procedure :: set => input_var_i4_set
   end type input_var_i4
 
+  !> \class   input_var_i2
+  !> \brief   Class for a single 16-bit integer input variable.
+  type, public, extends(input_var_abc) :: input_var_i2
+    integer(i2), allocatable :: cache(:,:) !< data array for this variable size(ncells, ntimes)
+  contains
+    procedure :: update => input_var_i2_update
+    procedure :: read_static => input_var_i2_read_static
+    procedure :: reset_time => input_var_i2_reset_time
+  end type input_var_i2
+
   !> \class   input_var2d_dp
   !> \brief   Class for a single 2D double precision input variable.
   type, public, extends(input_var_abc) :: input_var2d_dp
@@ -124,7 +134,7 @@ module mo_input_container
     type(input_var_dp) :: dem !< input variable for digital elevation model
     type(input_var_dp) :: slope !< input variable for slope
     type(input_var_dp) :: aspect !< input variable for aspect
-    type(input_var_i4) :: fdir !< input variable for flow direction
+    type(input_var_i2) :: fdir !< input variable for flow direction
     type(input_var_i4) :: facc !< input variable for flow accumulation
     type(input_var_i4) :: geo_class !< input variable for geology class
     type(input_var_i4) :: soil_class !< input variable for soil class
@@ -241,6 +251,11 @@ contains
     if (present(layered)) layered_ = layered
     self%grid => grid
 
+    scope_info(s,*) "Prepare input variable '", trim(self%name), "' from file: ", trim(self%path)
+    if (init_grid) then
+      scope_info(s,*) "Initialize input grid from '", trim(self%name), "'"
+    end if
+
     if (self%is_ascii()) then
       if (.not.self%static) then
         log_fatal(*) "Input: ASCII input is only supported for static variables. Variable: ", trim(self%name)
@@ -298,6 +313,7 @@ contains
     class(input_var_abc), intent(inout) :: self
     logical, intent(in) :: mask(:,:) !< mask to set for this variable
     self%mask = mask
+    scope_info(s,*) "Set grid mask from input variable '", trim(self%name), "'"
   end subroutine input_var_set_mask
 
   !> \brief Update a single double precision input variable.
@@ -397,6 +413,55 @@ contains
       exchange_var => self%cache(:, 1)
     end if
   end subroutine input_var_i4_update
+
+  !> \brief Update a single 16-bit integer input variable.
+  subroutine input_var_i2_update(self, exchange_var, time, chunking, end_time)
+    class(input_var_i2), intent(inout), target :: self
+    integer(i2), intent(inout), pointer :: exchange_var(:) !< exchange variable to update
+    type(datetime), intent(in) :: time !< current model time
+    integer(i4), intent(in) :: chunking !< chunking configuration (0 single read, -1 daily, -2 monthly, -3 yearly, >0 every n hours)
+    type(datetime), intent(in) :: end_time !< end time of the simulation (for chunking limits)
+    if (.not.self%provided) return
+    if (self%check_couple_status()) return ! coupled variables are not updated here
+    if (self%static) return ! static variables do not need to be updated
+    ! check chunking
+    if (chunking /= 1_i4) then
+      ! update chunk
+      if (time > self%chunk_time_end) then
+        call update_time_frame(self%chunk_time_start, self%chunk_time_end, chunking, end_time)
+        scope_debug(s,*) "Read new chunk for '", self%name, "': ", self%chunk_time_start%str(), " to ", self%chunk_time_end%str()
+        nullify(exchange_var)
+        if (allocated(self%cache)) deallocate(self%cache)
+        call self%ds%read_chunk(self%var_id, self%cache, self%chunk_time_start, self%chunk_time_end)
+        self%offset = self%ds%time_index(self%chunk_time_start)
+      end if
+      exchange_var => self%cache(:, self%ds%time_index(time) - self%offset)
+    else
+      if (.not.allocated(self%cache)) allocate(self%cache(self%ds%grid%ncells, 1))
+      select case (self%stepping)
+        case (1_i4)
+          call self%ds%read(self%var_id, self%cache(:, 1), time)
+        case (daily, monthly, yearly)
+          if (time > self%chunk_time_end) then
+            self%chunk_time_start = self%chunk_time_end
+            self%chunk_time_end = self%ds%times(self%ds%time_index(time))
+            call self%ds%read(self%var_id, self%cache(:, 1), time)
+          end if
+        case default
+          if (self%stepping > 1_i4) then
+            if (time > self%chunk_time_end) then
+              self%chunk_time_start = self%chunk_time_end
+              self%chunk_time_end = self%ds%times(self%ds%time_index(time))
+              call self%ds%read(self%var_id, self%cache(:, 1), time)
+            end if
+          else
+            log_fatal(*) "Input: unsupported temporal stepping for variable '", trim(self%name), "': ", n2s(self%stepping)
+            error stop 1
+          end if
+      end select
+      exchange_var => self%cache(:, 1)
+    end if
+  end subroutine input_var_i2_update
 
   !> \brief Update a single 2D double precision input variable.
   subroutine input_var2d_dp_update(self, exchange_var, time, chunking, end_time)
@@ -503,6 +568,7 @@ contains
     if (.not.self%provided) return
     if (self%coupled) return
     if (.not.self%static) return
+    scope_info(s,*) "Read static input variable '", trim(self%name), "'"
     if (self%is_ascii()) then
       if (.not.associated(self%grid)) then
         log_fatal(*) "Input: grid not connected for static ASCII variable: ", trim(self%name)
@@ -526,6 +592,7 @@ contains
     if (.not.self%provided) return
     if (self%coupled) return
     if (.not.self%static) return
+    scope_info(s,*) "Read static input variable '", trim(self%name), "'"
     if (self%is_ascii()) then
       if (.not.associated(self%grid)) then
         log_fatal(*) "Input: grid not connected for static ASCII variable: ", trim(self%name)
@@ -542,12 +609,46 @@ contains
     call self%ds%close()
   end subroutine input_var_i4_read_static
 
+  !> \brief Read a single static 16-bit integer input variable and close the dataset.
+  subroutine input_var_i2_read_static(self)
+    class(input_var_i2), intent(inout), target :: self
+    integer(i4), parameter :: i2_min = -int(huge(0_i2), i4) - 1_i4
+    integer(i4), parameter :: i2_max = int(huge(0_i2), i4)
+    integer(i4), allocatable :: data2d(:, :), data(:)
+    if (.not.self%provided) return
+    if (self%coupled) return
+    if (.not.self%static) return
+    scope_info(s,*) "Read static input variable '", trim(self%name), "'"
+    if (self%is_ascii()) then
+      if (.not.associated(self%grid)) then
+        log_fatal(*) "Input: grid not connected for static ASCII variable: ", trim(self%name)
+        error stop 1
+      end if
+      if (.not.allocated(self%cache)) allocate(self%cache(self%grid%ncells, 1))
+      call self%grid%read_data(self%path, data2d)
+      allocate(data(self%grid%ncells))
+      call self%grid%pack_into(data2d, data)
+      if (any(data < i2_min .or. data > i2_max)) then
+        log_fatal(*) "Input: ASCII data outside the i2 range for variable: ", trim(self%name)
+        error stop 1
+      end if
+      self%cache(:, 1) = int(data, i2)
+      if (allocated(data)) deallocate(data)
+      if (allocated(data2d)) deallocate(data2d)
+      return
+    end if
+    if (.not.allocated(self%cache)) allocate(self%cache(self%ds%grid%ncells, 1))
+    call self%ds%read(self%var_id, self%cache(:, 1))
+    call self%ds%close()
+  end subroutine input_var_i2_read_static
+
   !> \brief Read a single static 2D double precision input variable and close the dataset.
   subroutine input_var2d_dp_read_static(self)
     class(input_var2d_dp), intent(inout), target :: self
     if (.not.self%provided) return
     if (self%coupled) return
     if (.not.self%static) return
+    scope_info(s,*) "Read static input variable '", trim(self%name), "'"
     if (self%is_ascii()) then
       log_fatal(*) "Input: layered ASCII input is not supported for variable: ", trim(self%name)
       error stop 1
@@ -563,6 +664,7 @@ contains
     if (.not.self%provided) return
     if (self%coupled) return
     if (.not.self%static) return
+    scope_info(s,*) "Read static input variable '", trim(self%name), "'"
     if (self%is_ascii()) then
       log_fatal(*) "Input: layered ASCII input is not supported for variable: ", trim(self%name)
       error stop 1
@@ -597,6 +699,19 @@ contains
     self%chunk_time_start = start_time
     self%chunk_time_end = start_time ! trigger read on first update or require coupler set
   end subroutine input_var_i4_reset_time
+
+  !> \brief Reset the time frame for chunked reading.
+  subroutine input_var_i2_reset_time(self, chunking, start_time)
+    class(input_var_i2), intent(inout) :: self
+    integer(i4), intent(in) :: chunking !< chunking mode
+    type(datetime), intent(in) :: start_time !< start time of the simulation
+    if (.not.self%provided) return
+    if (self%static) return
+    ! if read once and cache already allocated, do nothing
+    if (.not.self%coupled .and. chunking == 0_i4 .and. allocated(self%cache)) return
+    self%chunk_time_start = start_time
+    self%chunk_time_end = start_time ! trigger read on first update or require coupler set
+  end subroutine input_var_i2_reset_time
 
   !> \brief Reset the time frame for chunked reading.
   subroutine input_var2d_dp_reset_time(self, chunking, start_time)
@@ -950,7 +1065,7 @@ contains
       stop 1
     else if (self%fdir%provided) then
       init_grid = need_grid(self%tgt_level0, self%exchange%level0) ! associate grid if not yet done
-      call self%fdir%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
+      call self%fdir%open_dataset(kind="i2", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
       call self%fdir%read_static()
       self%exchange%fdir%data => self%fdir%cache(:, 1) ! associate exchange variable to input cache
     end if
@@ -1217,6 +1332,7 @@ contains
   subroutine input_initialize(self)
     class(input_t), target, intent(inout) :: self
     log_info(*) "Initialize Input"
+    scope_info(s,*) "Initialize input time windows with chunking: ", n2s(self%chunking)
     ! warn about provided but not required variables, since this likely indicates a configuration issue
     if (self%fdir%provided .and. .not.self%exchange%fdir%required) then
       log_warn(*) "Input: flow direction provided but not required. Check your configuration."

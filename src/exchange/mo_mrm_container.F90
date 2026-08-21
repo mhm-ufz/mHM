@@ -410,13 +410,13 @@ contains
     else if (is_close(self%level3%cellsize, self%exchange%level0%cellsize)) then
       ! TODO: the upscaler should handle also the case of no upscaling (level0 == level11)
       scope_info(s,*) "level-0 and level-3 river network are equal of size:", n2s(self%exchange%level3%ncells)
-      call self%river%from_fdir(int(self%exchange%fdir%data, i2), self%level3)
+      call self%river%from_fdir(self%exchange%fdir%data, self%level3)
     else
       scope_info(s,*) "Create level-0 river network of size:", n2s(self%exchange%level0%ncells)
-      ! TODO: make fdir i2
-      call self%river_l0%from_fdir(int(self%exchange%fdir%data, i2), self%exchange%level0)
+      call self%river_l0%from_fdir(self%exchange%fdir%data, self%exchange%level0)
+      scope_info(s,*) "Order level-0 river network"
+      call self%river_l0%calc_order(root=.true.)
       scope_info(s,*) "Calculate facc on level-0"
-      call self%river_l0%calc_order()
       call self%river_l0%calc_facc()
       ! check SCC config
       if (self%scc_active) then
