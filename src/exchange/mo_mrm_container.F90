@@ -346,7 +346,7 @@ contains
 
     class(mrm_t), target, intent(inout) :: self
     logical, allocatable        :: scc_latlon ! allocatable to be able to make it "not present" if not allocated
-    character(:), allocatable   :: file
+    character(:), allocatable   :: file, diagnostics_path
     real(dp), allocatable       :: scc_gauges(:,:)
     integer(i4)                 :: id(1)
     logical                     :: const_celerity
@@ -425,29 +425,22 @@ contains
         allocate(scc_latlon)  ! if not allocated, it is not present as optional argument
         call read_scc_gauges(file, scc_gauges, scc_latlon)
       end if
+      if (self%config%is_set("diagnostics_path", idx=id) == NML_OK) then
+        diagnostics_path = self%exchange%get_path(self%config%diagnostics_path(id(1)))
+        log_info(*) "Write mRM upscaling diagnostics to file: ", diagnostics_path
+      end if
       ! scc_gauges/scc_latlon not present if not allocated
       scope_info(s,*) "Initialize upscaler and upscale river network to level-3"
       call self%upscaler%init( &
-        fine_river       = self%river_l0, &
-        coarse_river     = self%river, &
-        coarse_grid      = self%level3, &
-        scc_gauges       = scc_gauges, &
-        scc_latlon       = scc_latlon, &
-        upscale_mode     = self%config%upscale_mode(id(1)), &
-        length_percentile = self%config%length_percentile(id(1)))
-      if (self%config%is_set("diagnostics_path", idx=id) == NML_OK) then
-        file = self%exchange%get_path(self%config%diagnostics_path(id(1)))
-        log_info(*) "Write mRM upscaling diagnostics to file: ", file
-        call self%river_l0%export( &
-          path        = file, &
-          sub_map     = self%upscaler%scc_map, &
-          leaving     = self%upscaler%leaving_cells, &
-          stream_mask = self%upscaler%stream_mask, &
-          stream_sub  = self%upscaler%stream_sub, &
-          highlight   = self%upscaler%is_link_start.or.self%river_l0%is_sink, &
-          factor      = self%upscaler%upscaler%factor &
-        )
-      end if
+        fine_river        = self%river_l0, &
+        coarse_river      = self%river, &
+        coarse_grid       = self%level3, &
+        scc_gauges        = scc_gauges, &
+        scc_latlon        = scc_latlon, &
+        upscale_mode      = self%config%upscale_mode(id(1)), &
+        length_percentile = self%config%length_percentile(id(1)), &
+        diagnostics_path  = diagnostics_path, &
+        retain_stream_mask = self%exchange%config%processes%routing == 3_i4)
     end if
 
     ! populate exchange type

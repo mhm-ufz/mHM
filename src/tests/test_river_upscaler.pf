@@ -2,6 +2,7 @@ module test_river_upscaler
   use funit
   use mo_kind, only: i2, i4, i8, dp
   use mo_grid, only: grid_t, bottom_up
+  use mo_netcdf, only: NcDataset, NcVariable
   use mo_river, only: river_t, sink, d8_E, d8_S
   use mo_river_upscaler, only: river_upscaler_t, upscale_legacy, upscale_flow
   use nml_config_mrm, only: nml_config_mrm_t
@@ -21,6 +22,11 @@ contains
     type(river_upscaler_t) :: legacy_upscaler, flow_upscaler
     integer(i8) :: ids(6,2)
     integer(i2) :: fdir(12)
+    real(dp) :: slope(12)
+    logical :: exists
+    integer(i4), allocatable :: scc(:,:), leaving(:,:), stream(:,:), stream_sub(:,:)
+    type(NcDataset) :: nc
+    type(NcVariable) :: nc_var
 
     call fine_grid%init(6_i4, 2_i4, cellsize=1.0_dp, y_direction=bottom_up)
     call coarse_grid%init(3_i4, 1_i4, cellsize=2.0_dp, y_direction=bottom_up)
@@ -46,10 +52,10 @@ contains
 
     call legacy_upscaler%init( &
       fine_river=fine_river, coarse_river=legacy_river, coarse_grid=coarse_grid, &
-      upscale_mode=upscale_legacy, length_percentile=0.0_dp)
+      upscale_mode=upscale_legacy, length_percentile=0.0_dp, diagnostics_path='river_upscaler_diagnostics.nc')
     call flow_upscaler%init( &
       fine_river=fine_river, coarse_river=flow_river, coarse_grid=coarse_grid, &
-      upscale_mode=upscale_flow, length_percentile=0.0_dp)
+      upscale_mode=upscale_flow, length_percentile=0.0_dp, retain_stream_mask=.true.)
 
     @assertEqual(2_i8, legacy_river%down(1), message='legacy connects to first entered coarse cell')
     @assertEqual(3_i8, flow_river%down(1), message='FLOW connects to reached downstream endpoint')
@@ -66,6 +72,39 @@ contains
     @assertEqual(0.0_dp, flow_river%link_length(3), tolerance=1.e-12_dp, message='sink length stays zero')
     @assertFalse(allocated(legacy_river%fdir), message='upscaling does not create coarse fdir')
     @assertFalse(allocated(flow_river%fdir), message='nonlocal graph is not projected to D8')
+    @assertFalse(allocated(legacy_upscaler%stream_mask), message='stream mask is not retained by default')
+    @assertTrue(allocated(flow_upscaler%stream_mask), message='requested stream mask is retained')
+    @assertFalse(flow_upscaler%stream_mask(ids(1,1)), message='non-stream cells stay unmasked')
+    @assertTrue(flow_upscaler%stream_mask(ids(2,1)), message='traced link starts are masked')
+    @assertTrue(flow_upscaler%stream_mask(ids(5,2)), message='traced downstream links are masked')
+    inquire(file='river_upscaler_diagnostics.nc', exist=exists)
+    @assertTrue(exists, message='diagnostics are written during upscaling')
+    nc = NcDataset('river_upscaler_diagnostics.nc', 'r')
+    @assertTrue(nc%hasVariable('scc'))
+    @assertTrue(nc%hasVariable('leaving'))
+    @assertTrue(nc%hasVariable('stream'))
+    @assertTrue(nc%hasVariable('stream_sub'))
+    nc_var = nc%getVariable('scc')
+    call nc_var%getData(scc)
+    nc_var = nc%getVariable('leaving')
+    call nc_var%getData(leaving)
+    nc_var = nc%getVariable('stream')
+    call nc_var%getData(stream)
+    nc_var = nc%getVariable('stream_sub')
+    call nc_var%getData(stream_sub)
+    call nc%close()
+    @assertEqual(1_i4, scc(1,1))
+    @assertEqual(2_i4, leaving(2,1))
+    @assertEqual(-1_i4, leaving(3,1))
+    @assertEqual(2_i4, stream(2,1))
+    @assertEqual(1_i4, stream(3,1))
+    @assertEqual(1_i4, stream_sub(3,1))
+    call legacy_upscaler%calc_celerity(2.0_dp, constant_celerity=.true.)
+    @assertEqual(2.0_dp, legacy_river%celerity(1), tolerance=1.e-12_dp)
+    deallocate(fine_river%celerity)
+    slope = 1.0_dp
+    call flow_upscaler%calc_celerity(2.0_dp, slope=slope)
+    @assertTrue(allocated(flow_river%celerity), message='variable celerity uses the retained stream mask')
   end subroutine test_legacy_and_flow_targets
 
   @test
