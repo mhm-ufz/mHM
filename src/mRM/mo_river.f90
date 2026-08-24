@@ -661,8 +661,6 @@ contains
   !> \author Matthias Kelbling
   !> \author Sebastian Müller
   subroutine river_celerity(this, gamma, constant_celerity, slope, mask)
-    use mo_mad, only: mad
-    use mo_utils, only: locate
     implicit none
     class(river_t), intent(inout) :: this
     real(dp), intent(in) :: gamma !< model parameter: c_i = gamma * sqrt(s_i) or c = gamma
@@ -710,7 +708,7 @@ contains
     ! smooth river slope if there is more than one cell
     smoothing = this%n_nodes > 1_i8
     if (present(mask)) smoothing = count(mask, kind=i8) > 1_i8
-    if(smoothing) smooth_slope = mad(arr=smooth_slope, z=2.25_dp, mask=mask, tout="u", mval=0.1_dp)
+    if (smoothing) call river_smooth_slope(smooth_slope, mask)
     ! calculate celerity
     allocate(this%celerity(this%n_nodes))
     !$omp parallel do default(shared)
@@ -720,6 +718,161 @@ contains
     !$omp end parallel do
 
   end subroutine river_celerity
+
+  !> \brief Apply the hard-coded upper MAD slope filter used for river celerity.
+  !> \details This replaces the generic MAD routine because its median selection uses default-kind indices.
+  !! The implementation is equivalent to mad(arr, z=2.25_dp, mask=mask, tout="u", mval=0.1_dp).
+  subroutine river_smooth_slope(slope, mask)
+    real(dp), intent(inout) :: slope(:)
+    logical, optional, intent(in) :: mask(:)
+    integer(i8), parameter :: block_size = 1048576_i8
+    integer(i8) :: n, nblocks, block, first, last, i, j, n_selected
+    integer(i8), allocatable :: block_count(:), block_offset(:)
+    real(dp), allocatable :: values(:)
+    real(dp) :: median_slope, median_deviation, threshold
+    logical :: fallback_to_floor
+
+    n = size(slope, kind=i8)
+    if (present(mask)) then
+      if (size(mask, kind=i8) /= n) call error_message("river_smooth_slope: slope and mask have different size")
+    end if
+    nblocks = (n - 1_i8) / block_size + 1_i8
+    allocate(block_count(nblocks), block_offset(nblocks))
+
+    ! The generic MAD implementation excludes the floor value. If no values remain,
+    ! it falls back to all floor values, independently of the input mask.
+    !$omp parallel do default(shared) private(first, last, i) schedule(static)
+    do block = 1_i8, nblocks
+      first = (block - 1_i8) * block_size + 1_i8
+      last = min(block * block_size, n)
+      block_count(block) = 0_i8
+      do i = first, last
+        if (river_slope_selected(slope(i), i, mask, .false.)) block_count(block) = block_count(block) + 1_i8
+      end do
+    end do
+    !$omp end parallel do
+    fallback_to_floor = sum(block_count) == 0_i8
+
+    !$omp parallel do default(shared) private(first, last, i) schedule(static)
+    do block = 1_i8, nblocks
+      first = (block - 1_i8) * block_size + 1_i8
+      last = min(block * block_size, n)
+      block_count(block) = 0_i8
+      do i = first, last
+        if (river_slope_selected(slope(i), i, mask, fallback_to_floor)) then
+          block_count(block) = block_count(block) + 1_i8
+        end if
+      end do
+    end do
+    !$omp end parallel do
+
+    n_selected = 0_i8
+    do block = 1_i8, nblocks
+      block_offset(block) = n_selected
+      n_selected = n_selected + block_count(block)
+    end do
+    if (n_selected < 2_i8) call error_message("river_smooth_slope: need at least two slopes for MAD smoothing")
+    allocate(values(n_selected))
+
+    !$omp parallel do default(shared) private(first, last, i, j) schedule(static)
+    do block = 1_i8, nblocks
+      first = (block - 1_i8) * block_size + 1_i8
+      last = min(block * block_size, n)
+      j = block_offset(block)
+      do i = first, last
+        if (river_slope_selected(slope(i), i, mask, fallback_to_floor)) then
+          j = j + 1_i8
+          values(j) = slope(i)
+        end if
+      end do
+    end do
+    !$omp end parallel do
+
+    median_slope = river_median_i8(values)
+    !$omp parallel do default(shared)
+    do i = 1_i8, n_selected
+      values(i) = abs(values(i) - median_slope)
+    end do
+    !$omp end parallel do
+    median_deviation = river_median_i8(values)
+    threshold = median_deviation * 2.25_dp / 0.6745_dp
+    deallocate(values, block_count, block_offset)
+
+    !$omp parallel do default(shared)
+    do i = 1_i8, n
+      if (river_slope_selected(slope(i), i, mask, fallback_to_floor)) then
+        if (slope(i) > median_slope + threshold) slope(i) = median_slope + threshold
+      end if
+    end do
+    !$omp end parallel do
+  end subroutine river_smooth_slope
+
+  !> \brief Select the elements participating in the hard-coded river slope MAD filter.
+  pure logical function river_slope_selected(value, index, mask, fallback_to_floor)
+    real(dp), intent(in) :: value
+    integer(i8), intent(in) :: index
+    logical, optional, intent(in) :: mask(:)
+    logical, intent(in) :: fallback_to_floor
+
+    if (fallback_to_floor) then
+      river_slope_selected = abs(value - 0.1_dp) < tiny(1.0_dp)
+    else
+      river_slope_selected = .not.(abs(value - 0.1_dp) < tiny(1.0_dp))
+      if (present(mask)) river_slope_selected = river_slope_selected .and. mask(index)
+    end if
+  end function river_slope_selected
+
+  !> \brief Return the median using 64-bit indices, rearranging values in place.
+  function river_median_i8(values) result(median)
+    real(dp), intent(inout) :: values(:)
+    real(dp) :: median, previous
+    integer(i8) :: n, middle
+
+    n = size(values, kind=i8)
+    if (mod(n, 2_i8) == 0_i8) then
+      middle = n / 2_i8 + 1_i8
+      median = river_nth_i8(values, middle)
+      previous = maxval(values(:middle - 1_i8))
+      median = 0.5_dp * (median + previous)
+    else
+      median = river_nth_i8(values, (n + 1_i8) / 2_i8)
+    end if
+  end function river_median_i8
+
+  !> \brief Return the n-th smallest element using 64-bit indices, rearranging values in place.
+  function river_nth_i8(values, n) result(nth)
+    real(dp), intent(inout) :: values(:)
+    integer(i8), intent(in) :: n
+    real(dp) :: nth, pivot, tmp
+    integer(i8) :: left, right, i, j
+
+    left = 1_i8
+    right = size(values, kind=i8)
+    do while (left < right)
+      pivot = values(n)
+      i = left
+      j = right
+      do
+        do while (values(i) < pivot)
+          i = i + 1_i8
+        end do
+        do while (pivot < values(j))
+          j = j - 1_i8
+        end do
+        if (i <= j) then
+          tmp = values(i)
+          values(i) = values(j)
+          values(j) = tmp
+          i = i + 1_i8
+          j = j - 1_i8
+        end if
+        if (i > j) exit
+      end do
+      if (j < n) left = i
+      if (n < i) right = j
+    end do
+    nth = values(n)
+  end function river_nth_i8
 
   !> \brief Select values from sub-nodes for each cell from an array of values on nodes.
   function river_select_cell_values(this, values) result(select)

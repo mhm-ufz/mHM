@@ -103,8 +103,10 @@ contains
     @assertEqual(2.0_dp, legacy_river%celerity(1), tolerance=1.e-12_dp)
     deallocate(fine_river%celerity)
     slope = 1.0_dp
+    slope(ids(5,2)) = 100.0_dp
     call flow_upscaler%calc_celerity(2.0_dp, slope=slope)
     @assertTrue(allocated(flow_river%celerity), message='variable celerity uses the retained stream mask')
+    @assertEqual(0.2_dp, fine_river%celerity(ids(5,2)), tolerance=1.e-12_dp)
   end subroutine test_legacy_and_flow_targets
 
   @test
