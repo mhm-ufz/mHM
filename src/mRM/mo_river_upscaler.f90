@@ -12,9 +12,8 @@ module mo_river_upscaler
 
   use mo_kind, only: i4, i8, dp
   use mo_constants, only: nodata_i4
-  use mo_river, only: river_t, d8_leave_E, d8_leave_S, d8_leave_W, d8_leave_N, &
-    d8_leave_SE, d8_leave_SW, d8_leave_NE, d8_leave_NW
-  use mo_grid, only: grid_t, bottom_up, cartesian
+  use mo_river, only: river_t
+  use mo_grid, only: grid_t, cartesian
   use mo_grid_scaler, only: scaler_t, down_scaling
   use mo_message, only: error_message, message
   use mo_utils, only: optval
@@ -28,8 +27,7 @@ module mo_river_upscaler
   !> \class river_upscaler_t
   !> \brief River network upscaler
   !> \details upscale river network respecting scc.
-  !! Nodes are ordered in reverse sub-catchment order: first the nodes of the base catchment are added,
-  !! then the nodes of the sub-catchment flowing into the base catchment and so on.
+  !! Coarse nodes are ordered first by sub-catchment ID and then by increasing coarse-cell ID.
   type, public :: river_upscaler_t
     type(river_t), pointer :: fine_river => null() !< river definition at fine grid
     type(river_t), pointer :: coarse_river => null() !< river definition at coarse grid
@@ -52,7 +50,8 @@ module mo_river_upscaler
     logical, allocatable :: is_scc_coarse_gauge(:) !< flag if coarse node is a scc gauge size(coarse%\n_nodes)
     ! sub-catchment related attributes
     integer(i4) :: nsub = 1_i4 !< number of sub catchments
-    logical, allocatable :: has_sub(:,:) !< flag if coarse cell contains node of a sub-catchment size(coarse\%ncells,nsub)
+    !> Cell/sub-catchment to node map (zero when the sub-catchment is absent).
+    integer(i8), allocatable :: node_from_cell_sub(:,:) !< size(coarse\%ncells,nsub)
     integer(i4), allocatable :: n_sub_nodes(:) !< number of scc nodes per coarse grid cell size(coarse\%ncells)
     integer(i4), allocatable :: node_sub(:) !< map coarse node to sub catchment id size(coarse\%n_nodes)
     integer(i8), allocatable :: sub_size(:) !< number of coarse river nodes in each sub catchment size(nsub)
@@ -60,10 +59,9 @@ module mo_river_upscaler
   contains
     procedure, public :: init => river_upscaler_init
     procedure, private :: init_scc_gauges => river_upscaler_init_scc_gauges
-    procedure, private :: find_leaving_cells => river_upscaler_leaving
     procedure, private :: upscale => river_upscaler_upscale
     procedure, public :: calc_celerity => river_upscaler_celerity
-    procedure, public :: node_from_cell_sub => river_upscaler_cell_sub
+    procedure, public :: has_sub => river_upscaler_has_sub
     procedure, public :: destroy => river_upscaler_destroy
   end type river_upscaler_t
 
@@ -110,10 +108,6 @@ contains
     ! initialize scc related variables
     call message("river_upscaler: initialize scc")
     call this%init_scc_gauges(scc_gauges, scc_latlon)
-
-    ! find leaving fine cells in every coarse cell
-    call message("river_upscaler: find leaving cells")
-    call this%find_leaving_cells()
 
     ! upscale graph and calculate stream features in one fine-river trace
     call message("river_upscaler: upscale river graph and stream features")
@@ -195,110 +189,6 @@ contains
     this%coarse_river%scc = this%nsub > 1_i4
   end subroutine river_upscaler_init_scc_gauges
 
-  !> \brief Find all leaving cells of fine grid on a coarse cell border.
-  subroutine river_upscaler_leaving(this)
-    implicit none
-    class(river_upscaler_t), intent(inout) :: this
-    integer(i8), allocatable :: cells(:,:)
-    integer(i4), allocatable :: scc_map(:,:)
-    integer(i8) :: i
-    integer(i4) :: j, ix, iy
-    integer(i4) :: yl, yu, xl, xu ! lower and upper bounds for x and y
-    integer(i4) :: yn, ys ! north and south y-bound depending on grid y-direction
-    logical :: has_sub_init
-
-    ! find all leaving cells (fine cells at coarse cell borders pointing out the coarse cell)
-    !------------------------------------------------------------------
-    !                            xl     xu
-    !                        yn  NW--N--NE       sides:   E, S, W, N
-    !                            |       |       corners: SE,SW,NW,NE
-    !                            W  (i)  E       yu and yl with inverse sky direction if grid is top-down -> yn and ys
-    !                            |       |
-    !                        ys  SW--S--SE
-    !------------------------------------------------------------------
-
-    allocate(cells(this%fine_river%grid%nx, this%fine_river%grid%ny))
-    call this%fine_river%grid%gen_id_matrix(cells)
-
-    allocate(this%leaving_cells(this%fine_river%grid%ncells))
-    !$omp parallel do default(shared)
-    do i = 1_i8, this%fine_river%grid%ncells
-      this%leaving_cells(i) = .false.
-    end do
-    !$omp end parallel do
-
-    allocate(this%has_sub(this%coarse_river%grid%ncells, this%nsub))
-    has_sub_init = .not.this%coarse_river%scc
-    !$omp parallel do default(shared)
-    do j = 1_i4, this%nsub
-      this%has_sub(:,j) = has_sub_init
-    end do
-    !$omp end parallel do
-
-    if (this%coarse_river%scc) then
-      allocate(scc_map(this%fine_river%grid%nx, this%fine_river%grid%ny))
-      call this%fine_river%grid%unpack_into(this%scc_map, scc_map)
-    end if
-
-    !$omp parallel do default(shared) private(i, yn, ys, ix, iy, j, yl, yu, xl, xu)
-    do i = 1_i8, this%coarse_river%grid%ncells
-      call this%upscaler%coarse_bounds(i, xl, xu, yl, yu)
-      ! determine north and south bound depending on y-direction
-      if (this%fine_river%grid%y_direction == bottom_up) then
-        yn = yu ! north y-bound is upper bound
-        ys = yl ! south y-bound is lower bound
-      else ! top_down
-        yn = yl ! north y-bound is lower bound
-        ys = yu ! south y-bound is upper bound
-      end if
-
-      ! searching on side E
-      do iy = yl + 1_i4, yu - 1_i4
-        if (.not.this%fine_river%grid%mask(xu,iy)) cycle
-        if (any(this%fine_river%fdir(cells(xu,iy))==d8_leave_E)) this%leaving_cells(cells(xu,iy)) = .true.
-      end do
-      ! searching on side S
-      do ix = xl + 1_i4, xu - 1_i4
-        if (.not.this%fine_river%grid%mask(ix,ys)) cycle
-        if (any(this%fine_river%fdir(cells(ix,ys))==d8_leave_S)) this%leaving_cells(cells(ix,ys)) = .true.
-      end do
-      ! searching on side W
-      do iy = yl + 1_i4, yu - 1_i4
-        if (.not.this%fine_river%grid%mask(xl,iy)) cycle
-        if (any(this%fine_river%fdir(cells(xl,iy))==d8_leave_W)) this%leaving_cells(cells(xl,iy)) = .true.
-      end do
-      ! searching on side N
-      do ix = xl + 1_i4, xu - 1_i4
-        if (.not.this%fine_river%grid%mask(ix,yn)) cycle
-        if (any(this%fine_river%fdir(cells(ix,yn))==d8_leave_N)) this%leaving_cells(cells(ix,yn)) = .true.
-      end do
-      ! searching on corner SE
-      if (this%fine_river%grid%mask(xu,ys)) then
-        if (any(this%fine_river%fdir(cells(xu,ys))==d8_leave_SE)) this%leaving_cells(cells(xu,ys)) = .true.
-      end if
-      ! searching on corner SW
-      if (this%fine_river%grid%mask(xl,ys)) then
-        if (any(this%fine_river%fdir(cells(xl,ys))==d8_leave_SW)) this%leaving_cells(cells(xl,ys)) = .true.
-      end if
-      ! searching on corner NE
-      if (this%fine_river%grid%mask(xu,yn)) then
-        if (any(this%fine_river%fdir(cells(xu,yn))==d8_leave_NE)) this%leaving_cells(cells(xu,yn)) = .true.
-      end if
-      ! searching on corner NW
-      if (this%fine_river%grid%mask(xl,yn)) then
-        if (any(this%fine_river%fdir(cells(xl,yn))==d8_leave_NW)) this%leaving_cells(cells(xl,yn)) = .true.
-      end if
-
-      ! count number of scc nodes
-      if (this%coarse_river%scc) then
-        do j = 1_i4, this%nsub
-          if (any(scc_map(xl:xu,yl:yu)==j)) this%has_sub(i, j) = .true.
-        end do
-      end if
-    end do
-    !$omp end parallel do
-  end subroutine river_upscaler_leaving
-
   !> \brief Setup the coarse graph and stream features with optional SCC nodes.
   !> \details Both modes trace source-inclusive and endpoint-exclusive fine links.
   subroutine river_upscaler_upscale(this, upscale_mode, length_percentile)
@@ -310,16 +200,42 @@ contains
     real(dp), intent(in) :: length_percentile
     integer(i8), allocatable :: down(:), ids(:,:)
     integer(i4), allocatable :: facc(:,:), scc_map(:,:)
-    logical, allocatable :: leave_mask(:,:)
+    logical, allocatable :: leave_mask(:,:), has_sub(:,:)
     integer(i8) :: i, k, node, next, cell, facc_max_i, n_nodes, n_links
     integer(i4) :: j, sub, facc_max, ix, iy, loc(2)
     integer(i4) :: yl, yu, xl, xu
     real(dp) :: length_cutoff
+    logical :: has_sub_init
 
     if (.not.allocated(this%fine_river%facc)) call error_message("river_upscaler%upscale: facc not available")
     if (.not.allocated(this%fine_river%link_length)) call error_message("river_upscaler%upscale: link length not available")
     if (.not.allocated(this%fine_river%node_x)) call error_message("river_upscaler%upscale: node location not available")
     if (.not.allocated(this%fine_river%node_y)) call error_message("river_upscaler%upscale: node location not available")
+
+    call message("river_upscaler%upscale: initialize sub-catchment attributes")
+    allocate(has_sub(this%coarse_river%grid%ncells, this%nsub))
+    has_sub_init = .not.this%coarse_river%scc
+    !$omp parallel do default(shared)
+    do j = 1_i4, this%nsub
+      has_sub(:,j) = has_sub_init
+    end do
+    !$omp end parallel do
+
+    call message("river_upscaler%upscale: find leaving cells")
+    allocate(this%leaving_cells(this%fine_river%grid%ncells))
+    !$omp parallel do default(shared)
+    do i = 1_i8, this%fine_river%grid%ncells
+      if (this%fine_river%is_sink(i)) then
+        this%leaving_cells(i) = .false.
+      else
+        this%leaving_cells(i) = this%upscaler%id_map(i) /= this%upscaler%id_map(this%fine_river%down(i))
+      end if
+      if (this%coarse_river%scc) then
+        !$omp atomic write
+        has_sub(this%upscaler%id_map(i), this%scc_map(i)) = .true.
+      end if
+    end do
+    !$omp end parallel do
 
     call message("river_upscaler%upscale: allocate coarse river attributes")
     allocate(this%sub_size(this%nsub))
@@ -327,16 +243,33 @@ contains
     allocate(this%n_sub_nodes(this%coarse_river%grid%ncells))
     !$omp parallel do default(shared)
     do i = 1_i8, this%coarse_river%grid%ncells
-      this%n_sub_nodes(i) = count(this%has_sub(i,:), kind=i4)
+      this%n_sub_nodes(i) = count(has_sub(i,:), kind=i4)
     end do
     !$omp end parallel do
     !$omp parallel do default(shared)
     do j = 1_i4, this%nsub
-      this%sub_size(j) = count(this%has_sub(:,j), kind=i8)
+      this%sub_size(j) = count(has_sub(:,j), kind=i8)
     end do
     !$omp end parallel do
     call prefix_sum(this%sub_size, this%sub_cum_size, shift=1_i8, start=0_i8)
     n_nodes = this%sub_cum_size(this%nsub) + this%sub_size(this%nsub) ! total number of coarse nodes
+
+    call message("river_upscaler%upscale: create cell/sub to node map")
+    allocate(this%node_from_cell_sub(this%coarse_river%grid%ncells, this%nsub))
+    !$omp parallel do default(shared) private(i,k)
+    do j = 1_i4, this%nsub
+      k = this%sub_cum_size(j)
+      do i = 1_i8, this%coarse_river%grid%ncells
+        if (has_sub(i,j)) then
+          k = k + 1_i8
+          this%node_from_cell_sub(i,j) = k
+        else
+          this%node_from_cell_sub(i,j) = 0_i8
+        end if
+      end do
+    end do
+    !$omp end parallel do
+    deallocate(has_sub)
 
     ! coarse river attributes
     if (this%coarse_river%scc) then
@@ -370,10 +303,9 @@ contains
     call message("river_upscaler%upscale: determine sub-catchment for each coarse node")
     !$omp parallel do default(shared) private(k, i)
     do j = 1_i4, this%nsub
-      k = sum(this%sub_size(1_i4:j-1_i4))
       do i = 1_i8, this%coarse_river%grid%ncells
-        if (.not.this%has_sub(i, j)) cycle
-        k = k + 1_i8
+        k = this%node_from_cell_sub(i, j)
+        if (k == 0_i8) cycle
         if (this%coarse_river%scc) this%coarse_river%node_cell(k) = i
         this%node_sub(k) = j
       end do
@@ -494,9 +426,11 @@ contains
     ! mark stream mask and determine coarse link lengths and downstream nodes
     call message("river_upscaler%upscale: mark stream mask and determine coarse link lengths and downstream nodes")
     allocate(down(n_nodes))
-    !$omp parallel do default(shared) private(cell, next, sub)
+    ! Link traces vary strongly in length; dynamic assignment avoids a long static-schedule tail.
+    !$omp parallel do default(shared) private(cell, next, sub) schedule(dynamic, 1)
     do i = 1_i8, n_nodes
       if (this%coarse_river%is_sink(i)) then
+        !$omp atomic write
         this%stream_mask(this%sink_map(i)) = .true.
         down(i) = 0_i8
         cycle
@@ -508,7 +442,7 @@ contains
         down(i) = this%node_from_cell_sub(this%upscaler%id_map(next), sub)
       end if
       do
-        ! Concurrent traces may set the same fine cell to true; the result is invariant.
+        !$omp atomic write
         this%stream_mask(cell) = .true.
         this%coarse_river%link_length(i) = this%coarse_river%link_length(i) + this%fine_river%link_length(cell)
         cell = this%fine_river%down(cell)
@@ -517,6 +451,7 @@ contains
         if (this%is_scc_gauge(cell)) exit
         if (this%fine_river%is_sink(cell)) exit
       end do
+      !$omp atomic write
       this%stream_mask(cell) = .true.
       this%link_end(i) = cell
       if (upscale_mode == upscale_flow) then
@@ -632,25 +567,14 @@ contains
 
   end subroutine river_upscaler_celerity
 
-  !> \brief determine node ID from coarse cell and sub-catchment id
-  !> \details Nodes are ordered by sub-catchments:
-  !! 1. all coarse cells touching sub-catchment 1
-  !! 2. all coarse cells touching sub-catchment 2 ...
-  !!
-  !! last: all cells from the base-catchment (not touched by any specified sub-catchment)
-  pure function river_upscaler_cell_sub(this, cell, sub) result(id)
+  !> \brief Check whether a coarse cell contains a node of a sub-catchment.
+  pure logical function river_upscaler_has_sub(this, cell, sub)
     implicit none
     class(river_upscaler_t), intent(in) :: this
     integer(i8), intent(in) :: cell !< cell id on coarse river grid (1..coarse\%ncells)
     integer(i4), intent(in) :: sub !< sub-catchment id from scc (1..nsub)
-    integer(i8) :: id
-    if (.not.this%has_sub(cell, sub)) then
-      ! given cell doesn't contain the specified sub-catchment
-      id = 0_i8
-      return
-    end if
-    id = this%sub_cum_size(sub) + count(this%has_sub(1_i8:cell, sub), kind=i8)
-  end function river_upscaler_cell_sub
+    river_upscaler_has_sub = this%node_from_cell_sub(cell, sub) > 0_i8
+  end function river_upscaler_has_sub
 
   subroutine river_upscaler_destroy(this)
     implicit none
@@ -662,9 +586,10 @@ contains
     if (allocated(this%is_scc_gauge)) deallocate(this%is_scc_gauge)
     if (allocated(this%is_scc_coarse_gauge)) deallocate(this%is_scc_coarse_gauge)
     if (allocated(this%leaving_cells)) deallocate(this%leaving_cells)
-    if (allocated(this%has_sub)) deallocate(this%has_sub)
     if (allocated(this%sub_size)) deallocate(this%sub_size)
     if (allocated(this%n_sub_nodes)) deallocate(this%n_sub_nodes)
+    if (allocated(this%sub_cum_size)) deallocate(this%sub_cum_size)
+    if (allocated(this%node_from_cell_sub)) deallocate(this%node_from_cell_sub)
     if (allocated(this%node_sub)) deallocate(this%node_sub)
     if (allocated(this%sink_map)) deallocate(this%sink_map)
     if (allocated(this%link_start)) deallocate(this%link_start)
