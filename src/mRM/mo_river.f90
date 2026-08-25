@@ -668,12 +668,11 @@ contains
     real(dp), optional, intent(in) :: slope(:) !< [%] river slope, will be stored in link_slope if provided
     logical, optional, intent(in) :: mask(:) !< mask for slope smoothing (may come from upscaled river network)
     real(dp), allocatable :: smooth_slope(:)
-    logical :: smoothing
     integer(i8) :: i
 
     ! constant celerity
     if (optval(constant_celerity, .false.)) then
-      allocate(this%celerity(this%n_nodes))
+      if (.not.allocated(this%celerity)) allocate(this%celerity(this%n_nodes))
       !$omp parallel do default(shared)
       do i = 1_i8, this%n_nodes
         this%celerity(i) = gamma
@@ -705,10 +704,8 @@ contains
     end do
     !$omp end parallel do
 
-    ! smooth river slope if there is more than one cell
-    smoothing = this%n_nodes > 1_i8
-    if (present(mask)) smoothing = count(mask, kind=i8) > 1_i8
-    if (smoothing) call river_smooth_slope(smooth_slope, mask)
+    ! smooth slope using hard-coded MAD filter
+    call river_smooth_slope(smooth_slope, mask)
     ! calculate celerity
     allocate(this%celerity(this%n_nodes))
     !$omp parallel do default(shared)
@@ -725,7 +722,7 @@ contains
   subroutine river_smooth_slope(slope, mask)
     real(dp), intent(inout) :: slope(:)
     logical, optional, intent(in) :: mask(:)
-    integer(i8), parameter :: block_size = 1048576_i8
+    integer(i8), parameter :: block_size = 1048576_i8 ! 2^20
     integer(i8) :: n, nblocks, block, first, last, i, j, n_selected
     integer(i8), allocatable :: block_count(:), block_offset(:)
     real(dp), allocatable :: values(:)
@@ -737,7 +734,7 @@ contains
       if (size(mask, kind=i8) /= n) call error_message("river_smooth_slope: slope and mask have different size")
     end if
     nblocks = (n - 1_i8) / block_size + 1_i8
-    allocate(block_count(nblocks), block_offset(nblocks))
+    allocate(block_count(nblocks))
 
     ! The generic MAD implementation excludes the floor value. If no values remain,
     ! it falls back to all floor values, independently of the input mask.
@@ -751,27 +748,34 @@ contains
       end do
     end do
     !$omp end parallel do
-    fallback_to_floor = sum(block_count) == 0_i8
+    n_selected = sum(block_count)
+    fallback_to_floor = n_selected == 0_i8
 
-    !$omp parallel do default(shared) private(first, last, i) schedule(static)
-    do block = 1_i8, nblocks
-      first = (block - 1_i8) * block_size + 1_i8
-      last = min(block * block_size, n)
-      block_count(block) = 0_i8
-      do i = first, last
-        if (river_slope_selected(slope(i), i, mask, fallback_to_floor)) then
-          block_count(block) = block_count(block) + 1_i8
-        end if
+    if (fallback_to_floor) then
+      !$omp parallel do default(shared) private(first, last, i) schedule(static)
+      do block = 1_i8, nblocks
+        first = (block - 1_i8) * block_size + 1_i8
+        last = min(block * block_size, n)
+        block_count(block) = 0_i8
+        do i = first, last
+          if (river_slope_selected(slope(i), i, mask, .true.)) then
+            block_count(block) = block_count(block) + 1_i8
+          end if
+        end do
       end do
-    end do
-    !$omp end parallel do
+      !$omp end parallel do
+      n_selected = sum(block_count)
+    end if
 
+    ! Return if fewer than two values are selected
+    if (n_selected < 2_i8) return
+
+    allocate(block_offset(nblocks))
     n_selected = 0_i8
     do block = 1_i8, nblocks
       block_offset(block) = n_selected
       n_selected = n_selected + block_count(block)
     end do
-    if (n_selected < 2_i8) call error_message("river_smooth_slope: need at least two slopes for MAD smoothing")
     allocate(values(n_selected))
 
     !$omp parallel do default(shared) private(first, last, i, j) schedule(static)

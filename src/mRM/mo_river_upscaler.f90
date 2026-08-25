@@ -563,31 +563,23 @@ contains
     real(dp), optional, intent(in) :: slope(:) !< [%] river slope on fine grid: size(fine\%ncells)
     integer(i8) :: i, cell
     real(dp) :: n
-    logical :: constant
 
-    constant = optval(constant_celerity, .false.)
-    ! first calculate celerity on fine river
-    if (constant) then
-      call this%fine_river%calc_celerity(gamma, constant_celerity, slope)
-    else
-      if (.not.allocated(this%stream_mask)) then
-        call error_message("river_upscaler%calc_celerity: variable celerity requires retain_stream_mask=.true. during init")
-      end if
-      call this%fine_river%calc_celerity(gamma, constant_celerity, slope, this%stream_mask)
-    end if
-
-    allocate(this%coarse_river%celerity(this%coarse_river%n_nodes))
-    if (constant) then
+    if (optval(constant_celerity, .false.)) then
       call message("river_upscaler: constant celerity assumed, set c_i = gamma for all coarse nodes")
-      !$omp parallel do default(shared)
-      do i = 1_i8, this%coarse_river%n_nodes
-        this%coarse_river%celerity(i) = gamma
-      end do
-      !$omp end parallel do
+      ! constant celerity, no need to calculate from fine river
+      call this%coarse_river%calc_celerity(gamma, constant_celerity)
       return
     end if
 
+    if (.not.allocated(this%stream_mask)) then
+      call error_message("river_upscaler%calc_celerity: variable celerity requires retain_stream_mask=.true. during init")
+    end if
+
+    ! first calculate celerity on fine river
+    call this%fine_river%calc_celerity(gamma, constant_celerity, slope, this%stream_mask)
+
     call message("river_upscaler: calculate celerity on coarse river from fine river")
+    if (.not.allocated(this%coarse_river%celerity)) allocate(this%coarse_river%celerity(this%coarse_river%n_nodes))
     !$omp parallel do default(shared) private(i, cell, n)
     do i = 1_i8, this%coarse_river%n_nodes
       if (this%coarse_river%is_sink(i)) then
