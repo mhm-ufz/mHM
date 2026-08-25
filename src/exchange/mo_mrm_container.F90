@@ -38,27 +38,27 @@ module mo_mrm_container
   !> \class   mrm_t
   !> \brief   Class for a single mRM process container.
   type, public :: mrm_t
-    type(nml_config_mrm_t)     :: config              !< configuration of the mRM process container
-    type(nml_output_mrm_t)     :: output_config       !< output configuration of the mRM process container
-    type(exchange_t), pointer  :: exchange => null()  !< exchange container of the domain
-    type(grid_t)               :: level3              !< mrm grid
-    type(river_t)              :: river_l0            !< level-0 river network (for upscaling)
-    type(river_t)              :: river               !< upscaled river network
-    type(river_router_t)       :: router              !< river router
-    type(river_upscaler_t)     :: upscaler            !< river upscaler for upscaling from level-0 to level-3 river network
-    type(output_dataset)       :: ds_out              !< output dataset for gridded outputs
-    type(river_output_dataset) :: ds_node_out         !< output dataset for river node based outputs
-    real(dp), allocatable      :: discharge(:)        !< discharge array for all river nodes
-    logical                    :: active = .false.    !< whether mRM participates in the configured domain
-    logical                    :: scc_active = .false. !< whether scc based based upscaling is active
-    logical                    :: read_restart = .false. !< whether to read restart file
-    character(:), allocatable  :: restart_input_path  !< path to restart file to read
-    logical                    :: write_restart = .false. !< whether to write restart file
-    character(:), allocatable  :: restart_output_path !< path to restart file to write
-    logical                    :: output_active = .false. !< whether output is enabled
+    type(nml_config_mrm_t)     :: config                       !< configuration of the mRM process container
+    type(nml_output_mrm_t)     :: output_config                !< output configuration of the mRM process container
+    type(exchange_t), pointer  :: exchange => null()           !< exchange container of the domain
+    type(grid_t)               :: level3                       !< mrm grid
+    type(river_t)              :: river_l0                     !< level-0 river network (for upscaling)
+    type(river_t)              :: river                        !< upscaled river network
+    type(river_router_t)       :: router                       !< river router
+    type(river_upscaler_t)     :: upscaler                     !< river upscaler for upscaling from level-0 to level-3 river network
+    type(output_dataset)       :: ds_out                       !< output dataset for gridded outputs
+    type(river_output_dataset) :: ds_node_out                  !< output dataset for river node based outputs
+    real(dp), allocatable      :: discharge(:)                 !< discharge array for all river nodes
+    logical                    :: active = .false.             !< whether mRM participates in the configured domain
+    logical                    :: scc_active = .false.         !< whether scc based based upscaling is active
+    logical                    :: read_restart = .false.       !< whether to read restart file
+    character(:), allocatable  :: restart_input_path           !< path to restart file to read
+    logical                    :: write_restart = .false.      !< whether to write restart file
+    character(:), allocatable  :: restart_output_path          !< path to restart file to write
+    logical                    :: output_active = .false.      !< whether output is enabled
     logical                    :: output_node_active = .false. !< whether node based output is enabled
-    character(:), allocatable  :: output_path         !< path to output file
-    character(:), allocatable  :: output_node_path    !< path to node output file
+    character(:), allocatable  :: output_path                  !< path to output file
+    character(:), allocatable  :: output_node_path             !< path to node output file
   contains
     procedure :: set_dims => mrm_set_dims
     procedure :: configure => mrm_configure
