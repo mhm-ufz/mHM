@@ -14,6 +14,7 @@ module mo_river
   use mo_dag, only: branching, order_t, traversal_visit
   use mo_grid, only: grid_t, bottom_up, cartesian, dist_latlon
   use mo_grid_io, only: var, output_dataset
+  use mo_points, only: points_t
   use mo_message, only: error_message, message
   use mo_utils, only: optval
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
@@ -109,8 +110,7 @@ module mo_river
     integer(i8), allocatable :: node_cell(:) !< map node to grid cell id size(n_nodes)
     integer(i8), allocatable :: cell_node_select(:) !< select contained node to represent cell (e.g. highest facc) size(ncells)
     real(dp), allocatable :: area_fraction(:) !< area fraction for each node in cell size(n_nodes)
-    real(dp), allocatable :: node_x(:) !< x coordinate for each node size(n_nodes)
-    real(dp), allocatable :: node_y(:) !< x coordinate for each node size(n_nodes)
+    type(points_t) :: points !< coordinates of all river nodes
   contains
     procedure, public :: from_fdir => river_from_fdir
     procedure, public :: calc_order => river_order
@@ -336,7 +336,7 @@ contains
     integer(i8) :: downstream,  i
     integer(i4) :: dy ! direction of north in the grid matrix (1/-1)
     logical :: periodic, calc_length, calc_node_xy
-    real(dp), allocatable :: xax(:), yax(:)
+    real(dp), allocatable :: xax(:), yax(:), node_x(:), node_y(:)
 
     calc_length = optval(calculate_length, .true.)
     calc_node_xy = optval(calculate_node_xy, .true.)
@@ -394,16 +394,16 @@ contains
 
     ! determine node locations
     if (calc_node_xy) then
-      allocate(this%node_x(this%n_nodes))
-      allocate(this%node_y(this%n_nodes))
+      allocate(node_x(this%n_nodes), node_y(this%n_nodes))
       xax = this%grid%x_axis()
       yax = this%grid%y_axis()
       !$omp parallel do default(shared) schedule(static)
       do i = 1_i8, this%grid%ncells
-        this%node_x(i) = xax(this%grid%cell_ij(i, 1))
-        this%node_y(i) = yax(this%grid%cell_ij(i, 2))
+        node_x(i) = xax(this%grid%cell_ij(i, 1))
+        node_y(i) = yax(this%grid%cell_ij(i, 2))
       end do
       !$omp end parallel do
+      call this%points%init(node_x, node_y, coordsys=this%grid%coordsys)
     end if
   end subroutine river_from_fdir
 
@@ -1025,7 +1025,7 @@ contains
     call nc_var%setAttribute("long_name", "river network definition")
     call nc_var%setAttribute("topology_dimension", 1_i4)  ! 0 - only nodes, 1 - with links
     call nc_var%setAttribute("edge_node_connectivity", "links")
-    if ( allocated(this%node_x) .and. allocated(this%node_y) ) then
+    if (this%points%n_points == this%n_nodes) then
       call nc_var%setAttribute("node_coordinates", "river_node_x river_node_y")
     end if
 
@@ -1083,7 +1083,7 @@ contains
     ! tags
     ! don't need to write tags - will be standard either way (1..n)
 
-    if ( allocated(this%node_x) .and. allocated(this%node_y) ) then
+    if (this%points%n_points == this%n_nodes) then
       ! coordinates
       node_x_var = nc%setVariable("river_node_x", "f64", [node_dim])
       node_y_var = nc%setVariable("river_node_y", "f64", [node_dim])
@@ -1102,8 +1102,8 @@ contains
         call node_y_var%setAttribute("standard_name", "latitude")
         call node_y_var%setAttribute("units", "degrees_north")
       end if
-      call node_x_var%setData(this%node_x)
-      call node_y_var%setData(this%node_y)
+      call node_x_var%setData(this%points%x)
+      call node_y_var%setData(this%points%y)
     end if
 
     ! fdir
@@ -1257,6 +1257,7 @@ contains
     integer(i1), allocatable :: dummy_i1
     integer(i2), allocatable :: dummy2di2(:, :)
     integer(i8), allocatable :: dummy2di8(:, :)
+    real(dp), allocatable :: node_x(:), node_y(:)
 
     ! reset all attributes
     call this%clean()
@@ -1306,16 +1307,16 @@ contains
     allocate(this%off_up(this%n_nodes))
     call nc_var%readInto(this%off_up)
 
+    if (nc%hasVariable("river_node_x") .neqv. nc%hasVariable("river_node_y")) then
+      call error_message("river%from_restart: incomplete river node coordinates")
+    end if
     if (nc%hasVariable("river_node_x")) then
       nc_var = nc%getVariable("river_node_x")
-      allocate(this%node_x(this%n_nodes))
-      call nc_var%readInto(this%node_x)
-    end if
-
-    if (nc%hasVariable("river_node_y")) then
+      allocate(node_x(this%n_nodes), node_y(this%n_nodes))
+      call nc_var%readInto(node_x)
       nc_var = nc%getVariable("river_node_y")
-      allocate(this%node_y(this%n_nodes))
-      call nc_var%readInto(this%node_y)
+      call nc_var%readInto(node_y)
+      call this%points%init(node_x, node_y, coordsys=this%grid%coordsys)
     end if
 
     if (nc%hasVariable("fdir")) then
@@ -1416,8 +1417,7 @@ contains
     if (allocated(this%link_length)) deallocate(this%link_length)
     if (allocated(this%link_slope)) deallocate(this%link_slope)
     if (allocated(this%celerity)) deallocate(this%celerity)
-    if (allocated(this%node_x)) deallocate(this%node_x)
-    if (allocated(this%node_y)) deallocate(this%node_y)
+    this%points = points_t()
     if (allocated(this%node_cell)) deallocate(this%node_cell)
     if (allocated(this%cell_node_select)) deallocate(this%cell_node_select)
     if (allocated(this%area_fraction)) deallocate(this%area_fraction)

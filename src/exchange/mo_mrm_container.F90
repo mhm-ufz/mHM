@@ -22,9 +22,10 @@ module mo_mrm_container
   use mo_river, only: river_t
   use mo_river_upscaler, only: river_upscaler_t
   use mo_river_router, only: river_router_t
-  use mo_river_output, only: river_output_dataset
   use mo_grid, only: grid_t
   use mo_grid_io, only: output_dataset
+  use mo_points, only: points_t, spherical
+  use mo_points_io, only: points_input_dataset, points_output_dataset
   use mo_utils, only: is_close
   use mo_string_utils, only: n2s => num2str
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
@@ -34,6 +35,18 @@ module mo_mrm_container
 
   character(len=*), parameter :: s = "mrm" !< logging scope
   public :: derive_mrm_output_timing
+
+  !> \class mrm_poi_output_t
+  !> \brief Cohesive state for point-of-interest output.
+  type :: mrm_poi_output_t
+    type(points_output_dataset) :: dataset              !< POI output dataset
+    type(points_t) :: points                            !< selected river-node coordinates
+    integer(i8), allocatable :: locations(:)            !< selected river-node IDs
+    integer(i8), allocatable :: ids(:)                  !< station IDs from the POI input
+    logical :: active = .false.                         !< whether POI output is enabled
+    logical :: time_series = .true.                     !< whether temporal variables use (time, station)
+    character(:), allocatable :: path                   !< output path
+  end type mrm_poi_output_t
 
   !> \class   mrm_t
   !> \brief   Class for a single mRM process container.
@@ -47,7 +60,8 @@ module mo_mrm_container
     type(river_router_t)       :: router                       !< river router
     type(river_upscaler_t)     :: upscaler                     !< river upscaler for upscaling from level-0 to level-3 river network
     type(output_dataset)       :: ds_out                       !< output dataset for gridded outputs
-    type(river_output_dataset) :: ds_node_out                  !< output dataset for river node based outputs
+    type(points_output_dataset):: ds_node_out                  !< output dataset for river node based outputs
+    type(mrm_poi_output_t)     :: poi                          !< point-of-interest output state
     real(dp), allocatable      :: discharge(:)                 !< discharge array for all river nodes
     logical                    :: active = .false.             !< whether mRM participates in the configured domain
     logical                    :: scc_active = .false.         !< whether scc based based upscaling is active
@@ -57,6 +71,7 @@ module mo_mrm_container
     character(:), allocatable  :: restart_output_path          !< path to restart file to write
     logical                    :: output_active = .false.      !< whether output is enabled
     logical                    :: output_node_active = .false. !< whether node based output is enabled
+    logical                    :: node_timeseries = .false.    !< whether node output uses (time, node) layout
     character(:), allocatable  :: output_path                  !< path to output file
     character(:), allocatable  :: output_node_path             !< path to node output file
   contains
@@ -75,6 +90,12 @@ module mo_mrm_container
     procedure, private :: at_output_boundary => mrm_at_output_boundary
     procedure, private :: add_output => mrm_add_output
     procedure, private :: update_output => mrm_update_output
+    procedure, private :: add_node_topology => mrm_add_node_topology
+    procedure, private :: initialize_poi_points => mrm_initialize_poi_points
+    procedure, private :: validate_poi_metadata => mrm_validate_poi_metadata
+    procedure, private :: read_poi_restart => mrm_read_poi_restart
+    procedure, private :: read_gauge_points => mrm_read_gauge_points
+    procedure, private :: select_scc_pois => mrm_select_scc_pois
   end type mrm_t
 
 contains
@@ -134,13 +155,13 @@ contains
     class(mrm_t), intent(inout), target :: self
     type(NcDataset) :: nc
     type(NcVariable) :: nc_var
-    type(NcDimension) :: dims(0)
+    type(NcDimension) :: dims(0), poi_dim
 
     if (self%router%input_count /= 0_i4) then
       log_fatal(*) "mRM restart can only be written at a completed routing boundary."
       error stop 1
     end if
-    if ((self%output_active .or. self%output_node_active) .and. &
+    if ((self%output_active .or. self%output_node_active .or. self%poi%active) .and. &
       .not.self%at_output_boundary(self%exchange%time)) then
       log_fatal(*) "mRM restart can only be written at an active mRM output boundary."
       error stop 1
@@ -153,6 +174,23 @@ contains
     nc_var = nc%setVariable("mrm_discharge", "f64", [nc%getDimension("node")])
     call self%exchange%discharge%write_netcdf_metadata(nc_var)
     call nc_var%setData(self%discharge)
+    if (allocated(self%poi%locations) .neqv. allocated(self%poi%ids)) then
+      call error_message("mRM POI restart metadata is incomplete.")
+    end if
+    if (allocated(self%poi%locations)) then
+      call self%validate_poi_metadata()
+      if (size(self%poi%locations, kind=i8) > int(huge(1_i4), i8)) then
+        call error_message("mRM POI count too large to write to restart.")
+      end if
+      poi_dim = nc%setDimension("poi", int(size(self%poi%locations), i4))
+      nc_var = nc%setVariable("poi_locations", "i64", [poi_dim])
+      call nc_var%setAttribute("long_name", "river node IDs selected for POI output")
+      call nc_var%setAttribute("start_index", 1_i4)
+      call nc_var%setData(self%poi%locations)
+      nc_var = nc%setVariable("poi_ids", "i64", [poi_dim])
+      call nc_var%setAttribute("long_name", "POI station IDs")
+      call nc_var%setData(self%poi%ids)
+    end if
     nc_var = nc%setVariable("mrm_meta", "i8", dims(:0)) ! scalar integer to indicate scc river
     call nc_var%setAttribute("routing_case", self%exchange%config%processes%routing)
     call nc_var%setAttribute("routing_gamma", self%exchange%parameters%get_process("routing"))
@@ -222,6 +260,9 @@ contains
       log_warn(*) "mRM output disabled, config not set."
     end if
     self%output_node_active = self%output_active ! further controlled by file presence in connect subroutine
+    self%poi%active = self%output_active ! further controlled by output path and POI availability
+    self%node_timeseries = self%config%node_timeseries(id(1))
+    self%poi%time_series = self%config%poi_timeseries(id(1))
 
     ! set output paths
     if (self%output_active) then
@@ -237,9 +278,18 @@ contains
       status = self%config%is_set("output_node_path", idx=id, errmsg=errmsg)
       self%output_node_active = self%output_node_active .and. (status == NML_OK)
       if (status /= NML_OK) then
-        log_warn(*) "mRM node output disabled, path not set for domain ", n2s(id(1)), ": ", trim(errmsg)
+        scope_info(s,*) "Node output disabled, path not set for domain ", n2s(id(1)), "."
       else
         self%output_node_path = self%exchange%get_path(self%config%output_node_path(id(1))) ! resolve relative path
+      end if
+    end if
+    if (self%poi%active) then
+      status = self%config%is_set("output_poi_path", idx=id, errmsg=errmsg)
+      self%poi%active = status == NML_OK
+      if (status /= NML_OK) then
+        scope_info(s,*) "POI output disabled, path not set for domain ", n2s(id(1)), "."
+      else
+        self%poi%path = self%exchange%get_path(self%config%output_poi_path(id(1)))
       end if
     end if
 
@@ -338,8 +388,6 @@ contains
   subroutine mrm_connect(self)
     use mo_grid, only: grid_t
     use mo_river, only: river_t
-    use mo_river_tools, only: read_scc_gauges
-    use mo_os, only: path_ext, path_isfile
     use mo_string_utils, only: n2s => num2str
 
     implicit none
@@ -348,8 +396,10 @@ contains
     logical, allocatable        :: scc_latlon ! allocatable to be able to make it "not present" if not allocated
     character(:), allocatable   :: file, diagnostics_path
     real(dp), allocatable       :: scc_gauges(:,:)
+    integer(i8), allocatable    :: scc_ids(:)
+    type(points_t), target      :: scc_points
     integer(i4)                 :: id(1)
-    logical                     :: const_celerity
+    logical                     :: const_celerity, poi_gauges_set, had_restart_pois, scc_gauges_as_poi
     integer(i4)                 :: model_step
 
     integer :: status
@@ -363,6 +413,11 @@ contains
     id(1) = self%exchange%nml_domain_id
     ! check if scc_gauges_path is given
     self%scc_active = self%config%is_set("scc_gauges_path", idx=id, errmsg=errmsg) == NML_OK
+    poi_gauges_set = self%config%is_set("poi_gauges_path", idx=id, errmsg=errmsg) == NML_OK
+    scc_gauges_as_poi = self%config%scc_gauges_as_poi(id(1))
+    if (scc_gauges_as_poi .and. poi_gauges_set) then
+      call error_message("mRM POI configuration cannot combine scc_gauges_as_poi with poi_gauges_path.")
+    end if
     ! check routing case
     const_celerity = (self%exchange%config%processes%routing == 2_i4)
     ! get restart setting
@@ -422,8 +477,9 @@ contains
       if (self%scc_active) then
         file = self%exchange%get_path(self%config%scc_gauges_path(id(1)))
         scope_info(s,*) "Read SCC gauges from file: ", file
-        allocate(scc_latlon)  ! if not allocated, it is not present as optional argument
-        call read_scc_gauges(file, scc_gauges, scc_latlon)
+        call self%read_gauge_points(file, scc_points, scc_ids)
+        scc_gauges = scc_points%coords()
+        allocate(scc_latlon, source=scc_points%coordsys == spherical)
       end if
       if (self%config%is_set("diagnostics_path", idx=id) == NML_OK) then
         diagnostics_path = self%exchange%get_path(self%config%diagnostics_path(id(1)))
@@ -443,11 +499,155 @@ contains
         retain_stream_mask = self%exchange%config%processes%routing == 3_i4)
     end if
 
+    if (scc_gauges_as_poi .and. .not.self%read_restart) call self%select_scc_pois(scc_ids)
+
+    ! Restore a persisted POI selection, unless a newly configured POI file overrides it.
+    had_restart_pois = .false.
+    if (self%read_restart) then
+      call self%read_poi_restart()
+      had_restart_pois = allocated(self%poi%locations)
+    end if
+    if (scc_gauges_as_poi .and. self%read_restart .and. .not.had_restart_pois) then
+      call error_message("mRM scc_gauges_as_poi requested, but the restart contains no POI metadata.")
+    end if
+    if (poi_gauges_set) then
+      if (had_restart_pois) then
+        log_warn(*) "mRM POI gauges were configured; override POI locations stored in restart file."
+      end if
+      file = self%exchange%get_path(self%config%poi_gauges_path(id(1)))
+      call mrm_select_pois(self, file)
+    else if (had_restart_pois) then
+      call self%initialize_poi_points()
+    end if
+    if (self%poi%active .and. .not.allocated(self%poi%locations)) then
+      call error_message("mRM POI output requested, but neither poi_gauges_path nor restart POI locations are available.")
+    end if
+
     ! populate exchange type
     allocate(self%discharge(self%river%n_nodes))
     call self%exchange%discharge%publish_local("mRM", self%discharge, model_step)
     self%exchange%level3 => self%level3
   end subroutine mrm_connect
+
+  !> \brief Read POIs, preserve their station IDs, and select nearest river nodes in one batch.
+  subroutine mrm_select_pois(self, file)
+    class(mrm_t), target, intent(inout) :: self
+    character(*), intent(in) :: file
+    type(points_t), target :: requested
+
+    log_info(*) "Read mRM POI gauges from file: ", file
+    call self%read_gauge_points(file, requested, self%poi%ids)
+    if (self%river%points%n_points /= self%river%n_nodes) then
+      call error_message("mRM POI selection requires river-node coordinates.")
+    end if
+    if (requested%coordsys /= self%river%points%coordsys) then
+      call error_message("mRM POI and river coordinate systems differ: ", file)
+    end if
+    self%poi%locations = self%river%points%closest_point_id(requested%coords())
+    call self%initialize_poi_points()
+  end subroutine mrm_select_pois
+
+  !> \brief Read station coordinates and 64-bit station IDs through the common points I/O contract.
+  subroutine mrm_read_gauge_points(self, file, points, ids)
+    use mo_grid_io, only: var
+    class(mrm_t), target, intent(in) :: self
+    character(*), intent(in) :: file
+    type(points_t), target, intent(out) :: points
+    integer(i8), allocatable, intent(out) :: ids(:)
+    type(points_input_dataset) :: input
+    type(var), allocatable :: vars(:)
+
+    allocate(vars(0))
+    call input%init(file, vars=vars, points=points, points_init_var="station")
+    call input%get_ids(ids)
+    call input%close()
+    if (points%n_points < 1_i8) then
+      call error_message("mRM station input contains no stations for domain ", &
+        n2s(self%exchange%nml_domain_id), ": ", file)
+    end if
+  end subroutine mrm_read_gauge_points
+
+  !> \brief Use exact SCC coarse gauge nodes and their station IDs as POIs.
+  subroutine mrm_select_scc_pois(self, scc_ids)
+    class(mrm_t), target, intent(inout) :: self
+    integer(i8), allocatable, intent(in), optional :: scc_ids(:)
+    integer(i8) :: i
+
+    if (.not.self%river%scc) call error_message("mRM scc_gauges_as_poi requires active SCC river upscaling.")
+    if (.not.present(scc_ids)) then
+      call error_message("mRM SCC station IDs are unavailable for POI selection.")
+      return
+    end if
+    if (.not.allocated(scc_ids)) call error_message("mRM SCC station IDs are unavailable for POI selection.")
+    if (.not.allocated(self%upscaler%scc_coarse_gauges)) then
+      call error_message("mRM SCC coarse gauge nodes are unavailable for POI selection.")
+    end if
+    if (size(scc_ids, kind=i8) /= size(self%upscaler%scc_coarse_gauges, kind=i8)) then
+      call error_message("mRM SCC station ID and coarse gauge-node counts differ.")
+    end if
+    if (size(scc_ids, kind=i8) < 1_i8) call error_message("mRM SCC POI selection contains no stations.")
+    do i = 2_i8, size(scc_ids, kind=i8)
+      if (any(scc_ids(:i-1_i8) == scc_ids(i))) call error_message("mRM SCC station IDs must be unique.")
+    end do
+
+    self%poi%locations = self%upscaler%scc_coarse_gauges
+    self%poi%ids = scc_ids
+    call self%initialize_poi_points()
+  end subroutine mrm_select_scc_pois
+
+  !> \brief Restore optional POI node IDs and station IDs from a restart file.
+  subroutine mrm_read_poi_restart(self)
+    class(mrm_t), target, intent(inout) :: self
+    type(NcDataset) :: nc
+    type(NcVariable) :: nc_var
+    logical :: has_locations, has_ids
+
+    nc = NcDataset(self%restart_input_path, "r")
+    has_locations = nc%hasVariable("poi_locations")
+    has_ids = nc%hasVariable("poi_ids")
+    if (has_locations .neqv. has_ids) then
+      call nc%close()
+      call error_message("mRM restart contains incomplete POI metadata: ", self%restart_input_path)
+    end if
+    if (.not.has_locations) then
+      call nc%close()
+      return
+    end if
+    nc_var = nc%getVariable("poi_locations")
+    call nc_var%getData(self%poi%locations)
+    nc_var = nc%getVariable("poi_ids")
+    call nc_var%getData(self%poi%ids)
+    call nc%close()
+    call self%validate_poi_metadata()
+  end subroutine mrm_read_poi_restart
+
+  !> \brief Validate the persisted POI mapping against the active river.
+  subroutine mrm_validate_poi_metadata(self)
+    class(mrm_t), target, intent(in) :: self
+    if (.not.allocated(self%poi%locations) .or. .not.allocated(self%poi%ids)) then
+      call error_message("mRM POI metadata is incomplete.")
+    end if
+    if (size(self%poi%locations, kind=i8) /= size(self%poi%ids, kind=i8)) then
+      call error_message("mRM POI location and station ID counts differ.")
+    end if
+    if (size(self%poi%locations, kind=i8) < 1_i8) call error_message("mRM POI metadata contains no stations.")
+    if (any(self%poi%locations < 1_i8) .or. any(self%poi%locations > self%river%n_nodes)) then
+      call error_message("mRM POI metadata contains a river node outside the active river range.")
+    end if
+  end subroutine mrm_validate_poi_metadata
+
+  !> \brief Reconstruct POI output coordinates from selected river-node IDs.
+  subroutine mrm_initialize_poi_points(self)
+    class(mrm_t), target, intent(inout) :: self
+    call self%validate_poi_metadata()
+    if (self%river%points%n_points /= self%river%n_nodes) then
+      call error_message("mRM POI output requires river-node coordinates.")
+    end if
+    call self%poi%points%init( &
+      self%river%points%x(self%poi%locations), &
+      self%river%points%y(self%poi%locations), &
+      coordsys=self%river%points%coordsys)
+  end subroutine mrm_initialize_poi_points
 
   ! set initial values like timestep 0
   subroutine mrm_initialize(self)
@@ -609,7 +809,7 @@ contains
       error stop 1
     end if
 
-    output_enabled = self%output_active .or. self%output_node_active
+    output_enabled = self%output_active .or. self%output_node_active .or. self%poi%active
     if (.not.output_enabled) return
     frequency = self%output_config%output_frequency
     output_boundary = self%at_output_boundary(self%exchange%end_time)
@@ -667,7 +867,7 @@ contains
     type(datetime), intent(in) :: time
     integer(i4) :: elapsed_hours
 
-    if (.not.self%output_active .and. .not.self%output_node_active) then
+    if (.not.self%output_active .and. .not.self%output_node_active .and. .not.self%poi%active) then
       boundary = .true.
       return
     end if
@@ -702,8 +902,13 @@ contains
   subroutine mrm_add_output(self)
     class(mrm_t), intent(inout), target :: self
 
-    if (self%output_node_active) call self%ds_node_out%update("discharge", self%discharge)
-    if (self%output_active) then
+    if (self%output_node_active .and. self%output_config%out_Qrouted) then
+      call self%ds_node_out%update("discharge", self%discharge)
+    end if
+    if (self%poi%active .and. self%output_config%out_Qrouted) then
+      call self%poi%dataset%update("discharge", self%discharge(self%poi%locations))
+    end if
+    if (self%output_active .and. self%output_config%out_Qrouted) then
       if (self%scc_active) then
         call self%ds_out%update("discharge", self%river%select_cell_values(self%discharge))
       else
@@ -726,7 +931,7 @@ contains
     integer(i4) :: status
     logical :: write_stamp
 
-    if (.not.self%output_active .and. .not.self%output_node_active) return
+    if (.not.self%output_active .and. .not.self%output_node_active .and. .not.self%poi%active) return
     frequency = self%output_config%output_frequency
 
     ! A completed routing mean can be repeated over finer fixed-hour output records.
@@ -743,6 +948,7 @@ contains
         call self%add_output()
         if (self%output_node_active) call self%ds_node_out%write(write_time)
         if (self%output_active) call self%ds_out%write(write_time)
+        if (self%poi%active) call self%poi%dataset%write(write_time)
       end do
       return
     end if
@@ -767,6 +973,7 @@ contains
     if (write_stamp) then
       if (self%output_node_active) call self%ds_node_out%write(self%exchange%time)
       if (self%output_active) call self%ds_out%write(self%exchange%time)
+      if (self%poi%active) call self%poi%dataset%write(self%exchange%time)
     end if
   end subroutine mrm_update_output
 
@@ -786,6 +993,12 @@ contains
     else
       log_info(*) "No mRM node output file will be written"
     end if
+    if (self%poi%active) then
+      call self%poi%dataset%close()
+      log_info(*) "Close mRM POI output file: ", self%poi%path
+    else
+      log_info(*) "No mRM POI output file will be written"
+    end if
   end subroutine mrm_finalize
 
   subroutine mrm_cleanup(self)
@@ -802,10 +1015,12 @@ contains
 
     integer(i4) :: timestamp
     character(:), allocatable :: delta, dtype
-    type(var), allocatable :: vars(:)
+    type(var), allocatable :: vars(:), node_vars(:), poi_vars(:)
+    integer(i8), allocatable :: node_ids(:)
+    integer(i8) :: i
 
     ! shortcut
-    if (.not.self%output_active .and. .not.self%output_node_active) return
+    if (.not.self%output_active .and. .not.self%output_node_active .and. .not.self%poi%active) return
 
     ! general config
     timestamp = self%output_config%output_time_reference
@@ -835,16 +1050,80 @@ contains
 
     ! create node based output
     if (self%output_node_active) then
+      node_vars = [vars, var(name="node", long_name="river node ID", dtype="i64", kind="i8", static=.true.)]
+      node_ids = [(i, i=1_i8,self%river%n_nodes)]
       log_info(*) "Create mRM node based output file: ", self%output_node_path
       call self%ds_node_out%init( &
         path        = self%output_node_path, &
-        river       = self%river, &
-        vars        = vars, &
+        points      = self%river%points, &
+        vars        = node_vars, &
         start_time  = self%exchange%start_time, &
         delta       = delta, &
         timestamp   = timestamp, &
-        deflate_level = self%output_config%output_deflate_level)
+        deflate_level = self%output_config%output_deflate_level, &
+        point_dim_name = "node", &
+        time_series = self%node_timeseries)
+      call self%ds_node_out%update("node", node_ids)
+      call self%ds_node_out%write_static()
+      call self%add_node_topology()
+    end if
+
+    ! create POI output at the selected river-node coordinates
+    if (self%poi%active) then
+      poi_vars = [vars, var(name="station", long_name="POI station ID", dtype="i64", kind="i8", static=.true.)]
+      log_info(*) "Create mRM POI output file: ", self%poi%path
+      call self%poi%dataset%init( &
+        path          = self%poi%path, &
+        points        = self%poi%points, &
+        vars          = poi_vars, &
+        start_time    = self%exchange%start_time, &
+        delta         = delta, &
+        timestamp     = timestamp, &
+        deflate_level = self%output_config%output_deflate_level, &
+        point_dim_name = "station", &
+        time_series   = self%poi%time_series)
+      call self%poi%dataset%update("station", self%poi%ids)
+      call self%poi%dataset%write_static()
     end if
 
   end subroutine mrm_create_output
+
+  !> \brief Add the river UGRID topology to the node points output dataset.
+  subroutine mrm_add_node_topology(self)
+    class(mrm_t), target, intent(inout) :: self
+    type(NcDimension) :: dims(0), two_dim, link_dim
+    type(NcVariable) :: mesh_var, link_var
+    integer(i8), allocatable :: links(:, :)
+    integer(i8) :: node, k
+    integer(i4) :: nlinks
+    character(:), allocatable :: coordinate_names
+
+    if (self%river%n_nodes > int(huge(1_i4), i8)) then
+      call error_message("mRM node output river is too large for NetCDF dimensions.")
+    end if
+    nlinks = int(self%river%n_nodes - size(self%river%sinks, kind=i8), i4)
+    two_dim = self%ds_node_out%nc%setDimension("Two", 2_i4)
+    link_dim = self%ds_node_out%nc%setDimension("link", nlinks)
+    coordinate_names = merge("lon lat", "x y    ", self%river%points%coordsys == spherical)
+
+    mesh_var = self%ds_node_out%nc%setVariable("river", "i32", dims)
+    call mesh_var%setAttribute("cf_role", "mesh_topology")
+    call mesh_var%setAttribute("long_name", "river network definition")
+    call mesh_var%setAttribute("topology_dimension", 1_i4)
+    call mesh_var%setAttribute("node_coordinates", trim(coordinate_names))
+    call mesh_var%setAttribute("edge_node_connectivity", "links")
+
+    link_var = self%ds_node_out%nc%setVariable("links", "i64", [two_dim, link_dim])
+    call link_var%setAttribute("cf_role", "edge_node_connectivity")
+    call link_var%setAttribute("long_name", "river links definition")
+    call link_var%setAttribute("start_index", 1_i4)
+    allocate(links(2_i4, nlinks))
+    k = 0_i8
+    do node = 1_i8, self%river%n_nodes
+      if (self%river%is_sink(node)) cycle
+      k = k + 1_i8
+      links(:, k) = [node, self%river%down(node)]
+    end do
+    call link_var%setData(links)
+  end subroutine mrm_add_node_topology
 end module mo_mrm_container

@@ -329,8 +329,8 @@ contains
       call node_y_var%setAttribute("units", "degrees_north")
     end if
     ! this should set the node-dim size
-    call node_x_var%setData(self%river%node_x)
-    call node_y_var%setData(self%river%node_y)
+    call node_x_var%setData(self%river%points%x)
+    call node_y_var%setData(self%river%points%y)
 
     ! links
     if (net) then
