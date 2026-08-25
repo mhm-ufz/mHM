@@ -16,8 +16,13 @@ Configuration for the multi-scale routing model (mRM) in mHM.
 | [upscale_mode](#upscale_mode) | integer array | no | no | River upscaling mode. |
 | [length_percentile](#length_percentile) | real array | no | no | Percentile for the minimum upscaled link length. |
 | [scc_gauges_path](#scc_gauges_path) | string array | no | no | Path for SCC gauges NetCDF file. |
+| [scc_gauges_as_poi](#scc_gauges_as_poi) | logical array | no | no | Use SCC gauges as POIs. |
+| [poi_gauges_path](#poi_gauges_path) | string array | no | no | Path for POI gauges NetCDF file. |
 | [output_path](#output_path) | string array | no | no | Path for output file. |
 | [output_node_path](#output_node_path) | string array | no | no | Path for node based output file. |
+| [output_poi_path](#output_poi_path) | string array | no | no | Path for POI based output file. |
+| [poi_timeseries](#poi_timeseries) | logical array | no | no | Use station time-series layout for POI output. |
+| [node_timeseries](#node_timeseries) | logical array | no | no | Use point time-series layout for node output. |
 | [read_restart](#read_restart) | logical array | no | no | Read restart |
 | [read_restart_fluxes](#read_restart_fluxes) | logical array | no | no | Read restart fluxes |
 | [restart_input_path](#restart_input_path) | string array | no | no | Restart input path |
@@ -130,6 +135,31 @@ Summary:
 - Input required: no
 - Examples: `["scc_gauges.nc"]`
 
+### scc_gauges_as_poi
+
+Use SCC gauges as POIs. `scc_gauges_as_poi`
+
+Use the exact coarse river nodes retained for SCC gauges as point-of-interest output locations.
+
+Summary:
+- Type: `logical, dimension(n_domains)`
+- Declared required: no
+- Input required: no
+- Default: `.false.`
+
+### poi_gauges_path
+
+Path for POI gauges NetCDF file. `poi_gauges_path`
+
+Point locations used to select the nearest mRM river nodes.
+
+Summary:
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
+- Declared required: no
+- Input required: no
+- Examples: `["poi_gauges.nc"]`
+
 ### output_path
 
 Path for output file. `output_path`
@@ -151,6 +181,41 @@ Summary:
 - Declared required: no
 - Input required: no
 - Examples: `["mrm_node_output.nc"]`
+
+### output_poi_path
+
+Path for POI based output file. `output_poi_path`
+
+Summary:
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
+- Declared required: no
+- Input required: no
+- Examples: `["mrm_poi_output.nc"]`
+
+### poi_timeseries
+
+Use station time-series layout for POI output. `poi_timeseries`
+
+Use the mo_points_io time-series layout for temporal POI variables.
+
+Summary:
+- Type: `logical, dimension(n_domains)`
+- Declared required: no
+- Input required: no
+- Default: `.true.`
+
+### node_timeseries
+
+Use point time-series layout for node output. `node_timeseries`
+
+Use the mo_points_io time-series layout for temporal node variables.
+
+Summary:
+- Type: `logical, dimension(n_domains)`
+- Declared required: no
+- Input required: no
+- Default: `.false.`
 
 ### read_restart
 
@@ -227,8 +292,13 @@ Summary:
   upscale_mode(:) = 1
   length_percentile(:) = 40.0
   scc_gauges_path(:) = "scc_gauges.nc"
+  scc_gauges_as_poi(:) = .false.
+  poi_gauges_path(:) = "poi_gauges.nc"
   output_path(:) = "mrm_output.nc"
   output_node_path(:) = "mrm_node_output.nc"
+  output_poi_path(:) = "mrm_poi_output.nc"
+  poi_timeseries(:) = .true.
+  node_timeseries(:) = .false.
   read_restart(:) = .false.
   read_restart_fluxes(:) = .true.
   restart_input_path(:) = "mrm_restart_in.nc"

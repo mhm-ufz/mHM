@@ -44,6 +44,9 @@ module nml_config_mrm
   integer(i4), parameter, public :: max_route_step__default = 86400_i4
   integer(i4), parameter, public :: upscale_mode__default = 1_i4
   real(dp), parameter, public :: length_percentile__default = 40.0_dp
+  logical, parameter, public :: scc_gauges_as_poi__default = .false.
+  logical, parameter, public :: poi_timeseries__default = .true.
+  logical, parameter, public :: node_timeseries__default = .false.
   logical, parameter, public :: read_restart__default = .false.
   logical, parameter, public :: read_restart_fluxes__default = .true.
   logical, parameter, public :: write_restart__default = .false.
@@ -69,8 +72,13 @@ module nml_config_mrm
     integer(i4), allocatable, dimension(:) :: upscale_mode !< River upscaling mode.
     real(dp), allocatable, dimension(:) :: length_percentile !< Percentile for the minimum upscaled link length.
     character(len=buf), allocatable, dimension(:) :: scc_gauges_path !< Path for SCC gauges NetCDF file.
+    logical, allocatable, dimension(:) :: scc_gauges_as_poi !< Use SCC gauges as POIs.
+    character(len=buf), allocatable, dimension(:) :: poi_gauges_path !< Path for POI gauges NetCDF file.
     character(len=buf), allocatable, dimension(:) :: output_path !< Path for output file.
     character(len=buf), allocatable, dimension(:) :: output_node_path !< Path for node based output file.
+    character(len=buf), allocatable, dimension(:) :: output_poi_path !< Path for POI based output file.
+    logical, allocatable, dimension(:) :: poi_timeseries !< Use station time-series layout for POI output.
+    logical, allocatable, dimension(:) :: node_timeseries !< Use point time-series layout for node output.
     logical, allocatable, dimension(:) :: read_restart !< Read restart
     logical, allocatable, dimension(:) :: read_restart_fluxes !< Read restart fluxes
     character(len=buf), allocatable, dimension(:) :: restart_input_path !< Restart input path
@@ -179,10 +187,20 @@ contains
     allocate(this%length_percentile(this%n_domains))
     if (allocated(this%scc_gauges_path)) deallocate(this%scc_gauges_path)
     allocate(character(len=buf) :: this%scc_gauges_path(this%n_domains))
+    if (allocated(this%scc_gauges_as_poi)) deallocate(this%scc_gauges_as_poi)
+    allocate(this%scc_gauges_as_poi(this%n_domains))
+    if (allocated(this%poi_gauges_path)) deallocate(this%poi_gauges_path)
+    allocate(character(len=buf) :: this%poi_gauges_path(this%n_domains))
     if (allocated(this%output_path)) deallocate(this%output_path)
     allocate(character(len=buf) :: this%output_path(this%n_domains))
     if (allocated(this%output_node_path)) deallocate(this%output_node_path)
     allocate(character(len=buf) :: this%output_node_path(this%n_domains))
+    if (allocated(this%output_poi_path)) deallocate(this%output_poi_path)
+    allocate(character(len=buf) :: this%output_poi_path(this%n_domains))
+    if (allocated(this%poi_timeseries)) deallocate(this%poi_timeseries)
+    allocate(this%poi_timeseries(this%n_domains))
+    if (allocated(this%node_timeseries)) deallocate(this%node_timeseries)
+    allocate(this%node_timeseries(this%n_domains))
     if (allocated(this%read_restart)) deallocate(this%read_restart)
     allocate(this%read_restart(this%n_domains))
     if (allocated(this%read_restart_fluxes)) deallocate(this%read_restart_fluxes)
@@ -198,8 +216,10 @@ contains
 
     ! sentinel values for required/optional parameters
     this%scc_gauges_path = achar(0) ! sentinel for optional string array
+    this%poi_gauges_path = achar(0) ! sentinel for optional string array
     this%output_path = achar(0) ! sentinel for optional string array
     this%output_node_path = achar(0) ! sentinel for optional string array
+    this%output_poi_path = achar(0) ! sentinel for optional string array
     this%restart_input_path = achar(0) ! sentinel for optional string array
     this%restart_output_path = achar(0) ! sentinel for optional string array
     this%diagnostics_path = achar(0) ! sentinel for optional string array
@@ -209,6 +229,9 @@ contains
     this%max_route_step = max_route_step__default
     this%upscale_mode = upscale_mode__default
     this%length_percentile = length_percentile__default
+    this%scc_gauges_as_poi = scc_gauges_as_poi__default
+    this%poi_timeseries = poi_timeseries__default
+    this%node_timeseries = node_timeseries__default
     this%read_restart = read_restart__default
     this%read_restart_fluxes = read_restart_fluxes__default
     this%write_restart = write_restart__default
@@ -244,8 +267,13 @@ contains
     if (allocated(this%upscale_mode)) deallocate(this%upscale_mode)
     if (allocated(this%length_percentile)) deallocate(this%length_percentile)
     if (allocated(this%scc_gauges_path)) deallocate(this%scc_gauges_path)
+    if (allocated(this%scc_gauges_as_poi)) deallocate(this%scc_gauges_as_poi)
+    if (allocated(this%poi_gauges_path)) deallocate(this%poi_gauges_path)
     if (allocated(this%output_path)) deallocate(this%output_path)
     if (allocated(this%output_node_path)) deallocate(this%output_node_path)
+    if (allocated(this%output_poi_path)) deallocate(this%output_poi_path)
+    if (allocated(this%poi_timeseries)) deallocate(this%poi_timeseries)
+    if (allocated(this%node_timeseries)) deallocate(this%node_timeseries)
     if (allocated(this%read_restart)) deallocate(this%read_restart)
     if (allocated(this%read_restart_fluxes)) deallocate(this%read_restart_fluxes)
     if (allocated(this%restart_input_path)) deallocate(this%restart_input_path)
@@ -268,8 +296,13 @@ contains
     integer(i4), allocatable, dimension(:) :: upscale_mode
     real(dp), allocatable, dimension(:) :: length_percentile
     character(len=buf), allocatable, dimension(:) :: scc_gauges_path
+    logical, allocatable, dimension(:) :: scc_gauges_as_poi
+    character(len=buf), allocatable, dimension(:) :: poi_gauges_path
     character(len=buf), allocatable, dimension(:) :: output_path
     character(len=buf), allocatable, dimension(:) :: output_node_path
+    character(len=buf), allocatable, dimension(:) :: output_poi_path
+    logical, allocatable, dimension(:) :: poi_timeseries
+    logical, allocatable, dimension(:) :: node_timeseries
     logical, allocatable, dimension(:) :: read_restart
     logical, allocatable, dimension(:) :: read_restart_fluxes
     character(len=buf), allocatable, dimension(:) :: restart_input_path
@@ -289,8 +322,13 @@ contains
       upscale_mode, &
       length_percentile, &
       scc_gauges_path, &
+      scc_gauges_as_poi, &
+      poi_gauges_path, &
       output_path, &
       output_node_path, &
+      output_poi_path, &
+      poi_timeseries, &
+      node_timeseries, &
       read_restart, &
       read_restart_fluxes, &
       restart_input_path, &
@@ -313,10 +351,20 @@ contains
     allocate(length_percentile(this%n_domains))
     if (allocated(scc_gauges_path)) deallocate(scc_gauges_path)
     allocate(character(len=buf) :: scc_gauges_path(this%n_domains))
+    if (allocated(scc_gauges_as_poi)) deallocate(scc_gauges_as_poi)
+    allocate(scc_gauges_as_poi(this%n_domains))
+    if (allocated(poi_gauges_path)) deallocate(poi_gauges_path)
+    allocate(character(len=buf) :: poi_gauges_path(this%n_domains))
     if (allocated(output_path)) deallocate(output_path)
     allocate(character(len=buf) :: output_path(this%n_domains))
     if (allocated(output_node_path)) deallocate(output_node_path)
     allocate(character(len=buf) :: output_node_path(this%n_domains))
+    if (allocated(output_poi_path)) deallocate(output_poi_path)
+    allocate(character(len=buf) :: output_poi_path(this%n_domains))
+    if (allocated(poi_timeseries)) deallocate(poi_timeseries)
+    allocate(poi_timeseries(this%n_domains))
+    if (allocated(node_timeseries)) deallocate(node_timeseries)
+    allocate(node_timeseries(this%n_domains))
     if (allocated(read_restart)) deallocate(read_restart)
     allocate(read_restart(this%n_domains))
     if (allocated(read_restart_fluxes)) deallocate(read_restart_fluxes)
@@ -335,8 +383,13 @@ contains
     upscale_mode = this%upscale_mode
     length_percentile = this%length_percentile
     scc_gauges_path = this%scc_gauges_path
+    scc_gauges_as_poi = this%scc_gauges_as_poi
+    poi_gauges_path = this%poi_gauges_path
     output_path = this%output_path
     output_node_path = this%output_node_path
+    output_poi_path = this%output_poi_path
+    poi_timeseries = this%poi_timeseries
+    node_timeseries = this%node_timeseries
     read_restart = this%read_restart
     read_restart_fluxes = this%read_restart_fluxes
     restart_input_path = this%restart_input_path
@@ -374,8 +427,13 @@ contains
     this%upscale_mode = upscale_mode
     this%length_percentile = length_percentile
     this%scc_gauges_path = scc_gauges_path
+    this%scc_gauges_as_poi = scc_gauges_as_poi
+    this%poi_gauges_path = poi_gauges_path
     this%output_path = output_path
     this%output_node_path = output_node_path
+    this%output_poi_path = output_poi_path
+    this%poi_timeseries = poi_timeseries
+    this%node_timeseries = node_timeseries
     this%read_restart = read_restart
     this%read_restart_fluxes = read_restart_fluxes
     this%restart_input_path = restart_input_path
@@ -396,8 +454,13 @@ contains
     upscale_mode, &
     length_percentile, &
     scc_gauges_path, &
+    scc_gauges_as_poi, &
+    poi_gauges_path, &
     output_path, &
     output_node_path, &
+    output_poi_path, &
+    poi_timeseries, &
+    node_timeseries, &
     read_restart, &
     read_restart_fluxes, &
     restart_input_path, &
@@ -414,8 +477,13 @@ contains
     integer(i4), dimension(:), intent(in), optional :: upscale_mode !< River upscaling mode.
     real(dp), dimension(:), intent(in), optional :: length_percentile !< Percentile for the minimum upscaled link length.
     character(len=*), dimension(:), intent(in), optional :: scc_gauges_path !< Path for SCC gauges NetCDF file.
+    logical, dimension(:), intent(in), optional :: scc_gauges_as_poi !< Use SCC gauges as POIs.
+    character(len=*), dimension(:), intent(in), optional :: poi_gauges_path !< Path for POI gauges NetCDF file.
     character(len=*), dimension(:), intent(in), optional :: output_path !< Path for output file.
     character(len=*), dimension(:), intent(in), optional :: output_node_path !< Path for node based output file.
+    character(len=*), dimension(:), intent(in), optional :: output_poi_path !< Path for POI based output file.
+    logical, dimension(:), intent(in), optional :: poi_timeseries !< Use station time-series layout for POI output.
+    logical, dimension(:), intent(in), optional :: node_timeseries !< Use point time-series layout for node output.
     logical, dimension(:), intent(in), optional :: read_restart !< Read restart
     logical, dimension(:), intent(in), optional :: read_restart_fluxes !< Read restart fluxes
     character(len=*), dimension(:), intent(in), optional :: restart_input_path !< Restart input path
@@ -491,6 +559,26 @@ contains
       ub__1 = lb__1 + size(scc_gauges_path, 1) - 1
       this%scc_gauges_path(lb__1:ub__1) = scc_gauges_path
     end if
+    if (present(scc_gauges_as_poi)) then
+      if (size(scc_gauges_as_poi, 1) > size(this%scc_gauges_as_poi, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'scc_gauges_as_poi'"
+        return
+      end if
+      lb__1 = lbound(this%scc_gauges_as_poi, 1)
+      ub__1 = lb__1 + size(scc_gauges_as_poi, 1) - 1
+      this%scc_gauges_as_poi(lb__1:ub__1) = scc_gauges_as_poi
+    end if
+    if (present(poi_gauges_path)) then
+      if (size(poi_gauges_path, 1) > size(this%poi_gauges_path, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'poi_gauges_path'"
+        return
+      end if
+      lb__1 = lbound(this%poi_gauges_path, 1)
+      ub__1 = lb__1 + size(poi_gauges_path, 1) - 1
+      this%poi_gauges_path(lb__1:ub__1) = poi_gauges_path
+    end if
     if (present(output_path)) then
       if (size(output_path, 1) > size(this%output_path, 1)) then
         status = NML_ERR_INVALID_INDEX
@@ -510,6 +598,36 @@ contains
       lb__1 = lbound(this%output_node_path, 1)
       ub__1 = lb__1 + size(output_node_path, 1) - 1
       this%output_node_path(lb__1:ub__1) = output_node_path
+    end if
+    if (present(output_poi_path)) then
+      if (size(output_poi_path, 1) > size(this%output_poi_path, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'output_poi_path'"
+        return
+      end if
+      lb__1 = lbound(this%output_poi_path, 1)
+      ub__1 = lb__1 + size(output_poi_path, 1) - 1
+      this%output_poi_path(lb__1:ub__1) = output_poi_path
+    end if
+    if (present(poi_timeseries)) then
+      if (size(poi_timeseries, 1) > size(this%poi_timeseries, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'poi_timeseries'"
+        return
+      end if
+      lb__1 = lbound(this%poi_timeseries, 1)
+      ub__1 = lb__1 + size(poi_timeseries, 1) - 1
+      this%poi_timeseries(lb__1:ub__1) = poi_timeseries
+    end if
+    if (present(node_timeseries)) then
+      if (size(node_timeseries, 1) > size(this%node_timeseries, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'node_timeseries'"
+        return
+      end if
+      lb__1 = lbound(this%node_timeseries, 1)
+      ub__1 = lb__1 + size(node_timeseries, 1) - 1
+      this%node_timeseries(lb__1:ub__1) = node_timeseries
     end if
     if (present(read_restart)) then
       if (size(read_restart, 1) > size(this%read_restart, 1)) then
@@ -660,6 +778,30 @@ contains
       else
         if (all(this%scc_gauges_path == achar(0))) status = NML_ERR_NOT_SET
       end if
+    case ("scc_gauges_as_poi")
+      if (.not. allocated(this%scc_gauges_as_poi)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%scc_gauges_as_poi), ubound(this%scc_gauges_as_poi), &
+          "scc_gauges_as_poi", errmsg)
+        if (status /= NML_OK) return
+      else
+      end if
+    case ("poi_gauges_path")
+      if (.not. allocated(this%poi_gauges_path)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%poi_gauges_path), ubound(this%poi_gauges_path), &
+          "poi_gauges_path", errmsg)
+        if (status /= NML_OK) return
+        if (this%poi_gauges_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
+      else
+        if (all(this%poi_gauges_path == achar(0))) status = NML_ERR_NOT_SET
+      end if
     case ("output_path")
       if (.not. allocated(this%output_path)) then
         status = NML_ERR_NOT_SET
@@ -685,6 +827,41 @@ contains
         if (this%output_node_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
         if (all(this%output_node_path == achar(0))) status = NML_ERR_NOT_SET
+      end if
+    case ("output_poi_path")
+      if (.not. allocated(this%output_poi_path)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%output_poi_path), ubound(this%output_poi_path), &
+          "output_poi_path", errmsg)
+        if (status /= NML_OK) return
+        if (this%output_poi_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
+      else
+        if (all(this%output_poi_path == achar(0))) status = NML_ERR_NOT_SET
+      end if
+    case ("poi_timeseries")
+      if (.not. allocated(this%poi_timeseries)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%poi_timeseries), ubound(this%poi_timeseries), &
+          "poi_timeseries", errmsg)
+        if (status /= NML_OK) return
+      else
+      end if
+    case ("node_timeseries")
+      if (.not. allocated(this%node_timeseries)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%node_timeseries), ubound(this%node_timeseries), &
+          "node_timeseries", errmsg)
+        if (status /= NML_OK) return
+      else
       end if
     case ("read_restart")
       if (.not. allocated(this%read_restart)) then
