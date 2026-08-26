@@ -403,7 +403,10 @@ contains
         node_y(i) = yax(this%grid%cell_ij(i, 2))
       end do
       !$omp end parallel do
-      call this%points%init(node_x, node_y, coordsys=this%grid%coordsys)
+      this%points%coordsys = this%grid%coordsys
+      this%points%n_points = this%n_nodes
+      call move_alloc(node_x, this%points%x)
+      call move_alloc(node_y, this%points%y)
     end if
   end subroutine river_from_fdir
 
@@ -1316,7 +1319,10 @@ contains
       call nc_var%readInto(node_x)
       nc_var = nc%getVariable("river_node_y")
       call nc_var%readInto(node_y)
-      call this%points%init(node_x, node_y, coordsys=this%grid%coordsys)
+      this%points%coordsys = this%grid%coordsys
+      this%points%n_points = this%n_nodes
+      call move_alloc(node_x, this%points%x)
+      call move_alloc(node_y, this%points%y)
     end if
 
     if (nc%hasVariable("fdir")) then

@@ -425,7 +425,10 @@ contains
       end if
     end do
     !$omp end parallel do
-    call this%coarse_river%points%init(node_x, node_y, coordsys=this%fine_river%points%coordsys)
+    this%coarse_river%points%coordsys = this%fine_river%points%coordsys
+    this%coarse_river%points%n_points = n_nodes
+    call move_alloc(node_x, this%coarse_river%points%x)
+    call move_alloc(node_y, this%coarse_river%points%y)
 
     ! mark stream mask and determine coarse link lengths and downstream nodes
     call message("river_upscaler%upscale: mark stream mask and determine coarse link lengths and downstream nodes")
