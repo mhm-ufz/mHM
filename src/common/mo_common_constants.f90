@@ -37,5 +37,7 @@ MODULE mo_common_constants
   character(64), public, parameter :: landCoverPeriodsVarName = "L1_LandCoverPeriods"
   character(64), public, parameter :: LAIVarName = "L1_LAITimesteps"
 
+  ! default tolerance for header or value comparisons
+  real(dp), public, parameter:: defaultTolerance_dp = 1.0e-7_dp
 
 END MODULE mo_common_constants

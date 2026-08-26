@@ -38,6 +38,22 @@ module mo_river
   integer(i2), public, dimension(8), parameter :: d8_all = [d8_E, d8_SE, d8_S, d8_SW, d8_W, d8_NW, d8_N, d8_NE]
   !> matching back pointing directions as array
   integer(i2), public, dimension(8), parameter :: d8_back = [d8_W, d8_NW, d8_N, d8_NE, d8_E, d8_SE, d8_S, d8_SW]
+  !> leaving directions at east border as array
+  integer(i2), public, dimension(3), parameter :: d8_leave_E = [d8_NE, d8_E, d8_SE]
+  !> leaving directions at south border as array
+  integer(i2), public, dimension(3), parameter :: d8_leave_S = [d8_SE, d8_S, d8_SW]
+  !> leaving directions at west border as array
+  integer(i2), public, dimension(3), parameter :: d8_leave_W = [d8_SW, d8_W, d8_NW]
+  !> leaving directions at north border as array
+  integer(i2), public, dimension(3), parameter :: d8_leave_N = [d8_NW, d8_N, d8_NE]
+  !> leaving directions at south-east corner as array
+  integer(i2), public, dimension(5), parameter :: d8_leave_SE = [d8_NE, d8_E, d8_SE, d8_S, d8_SW]
+  !> leaving directions at south-west corner as array
+  integer(i2), public, dimension(5), parameter :: d8_leave_SW = [d8_SE, d8_S, d8_SW, d8_W, d8_NW]
+  !> leaving directions at north-east corner as array
+  integer(i2), public, dimension(5), parameter :: d8_leave_NE = [d8_NW, d8_N, d8_NE, d8_E, d8_SE]
+  !> leaving directions at north-west corner as array
+  integer(i2), public, dimension(5), parameter :: d8_leave_NW = [d8_SW, d8_W, d8_NW, d8_N, d8_NE]
   !!@}
 
   !> \name ldd direction values
@@ -441,7 +457,7 @@ contains
     integer(i4), dimension(:), optional, intent(in) :: labels !< labels used for subcatchments
     integer(i4), optional, intent(in) :: default_label !< default label for unlabeled nodes (default: 0)
     integer(i8) :: i, j, n
-    integer(i4) :: def, m
+    integer(i4) :: def, m, k
     logical :: reverse_order
 
     if (present(labels)) then
@@ -466,17 +482,27 @@ contains
     !$omp end parallel do
 
     if (present(labels)) then
-      !$omp parallel do default(shared) schedule(static)
       do m = 1_i4, size(selected_nodes, kind=i4)
+        if (labels(m) == def) then
+          call error_message("river_label_subcatchments: given label equals default label")
+        end if
+        do k = m + 1_i4, size(selected_nodes, kind=i4)
+          if (labels(m) == labels(k)) then
+            call error_message("river_label_subcatchments: given label occurs more than once")
+          end if
+        end do
+        if (label_map(selected_nodes(m)) /= def) then
+          call error_message("river_label_subcatchments: selected node occurs more than once")
+        end if
         label_map(selected_nodes(m)) = labels(m)
       end do
-      !$omp end parallel do
     else
-      !$omp parallel do default(shared) schedule(static)
       do m = 1_i4, size(selected_nodes, kind=i4)
+        if (label_map(selected_nodes(m)) /= def) then
+          call error_message("river_label_subcatchments: selected node occurs more than once")
+        end if
         label_map(selected_nodes(m)) = m
       end do
-      !$omp end parallel do
     end if
 
     do i = 1_i8, this%order%n_levels
@@ -537,14 +563,17 @@ contains
     logical :: periodic ! periodic latlon grid
     if (this%scc) call error_message("river%calc_fdir: can not calculated fdir for a SCC river.")
     if (allocated(this%fdir)) deallocate(this%fdir)
-    allocate(this%fdir(this%n_nodes), source=0_i2)
+    allocate(this%fdir(this%n_nodes))
     periodic = this%grid%is_periodic()
     dy = -1_i4 ! top-down grid starts north
     if (this%grid%y_direction==bottom_up) dy = 1_i4
     !$omp parallel do default(shared) private(j, from, to) schedule(static)
     do i = 1_i8, this%n_nodes
       j = this%down(i)
-      if (j==0_i8) cycle ! sink
+      if (j==0_i8) then
+        this%fdir(i) = sink
+        cycle ! sink
+      end if
       from = this%grid%cell_ij(i,:)
       to = this%grid%cell_ij(j,:)
       ! the pathological case here is a periodic grid with 2 cells along lon-axis (*lol*)
@@ -632,8 +661,6 @@ contains
   !> \author Matthias Kelbling
   !> \author Sebastian Müller
   subroutine river_celerity(this, gamma, constant_celerity, slope, mask)
-    use mo_mad, only: mad
-    use mo_utils, only: locate
     implicit none
     class(river_t), intent(inout) :: this
     real(dp), intent(in) :: gamma !< model parameter: c_i = gamma * sqrt(s_i) or c = gamma
@@ -641,29 +668,215 @@ contains
     real(dp), optional, intent(in) :: slope(:) !< [%] river slope, will be stored in link_slope if provided
     logical, optional, intent(in) :: mask(:) !< mask for slope smoothing (may come from upscaled river network)
     real(dp), allocatable :: smooth_slope(:)
-    logical :: smoothing
+    integer(i8) :: i
 
     ! constant celerity
     if (optval(constant_celerity, .false.)) then
-      allocate(this%celerity(this%n_nodes), source=gamma)
+      if (.not.allocated(this%celerity)) allocate(this%celerity(this%n_nodes))
+      !$omp parallel do default(shared)
+      do i = 1_i8, this%n_nodes
+        this%celerity(i) = gamma
+      end do
+      !$omp end parallel do
       return
     end if
+
     ! need slope for non constant celerity
     if (present(slope)) then
       if (.not.allocated(this%link_slope)) allocate(this%link_slope(this%n_nodes))
-      this%link_slope(:) = slope
+      !$omp parallel do default(shared)
+      do i = 1_i8, this%n_nodes
+        this%link_slope(i) = slope(i)
+      end do
+      !$omp end parallel do
     end if
+
     if (.not.allocated(this%link_slope)) call error_message("river%calc_celerity: need slope to calculate celerity.")
-    allocate(smooth_slope(this%n_nodes), source=this%link_slope)
-    ! set min val for river slope to enable h-mean
-    where ( smooth_slope < 0.1_dp ) smooth_slope = 0.1_dp
-    ! smooth river slope if there is more than one cell
-    smoothing = this%n_nodes > 1_i8
-    if (present(mask)) smoothing = count(mask, kind=i8) > 1_i8
-    if(smoothing) smooth_slope = mad(arr=smooth_slope, z=2.25_dp, mask=mask, tout="u", mval=0.1_dp)
+    allocate(smooth_slope(this%n_nodes))
+    !$omp parallel do default(shared)
+    do i = 1_i8, this%n_nodes
+      if (this%link_slope(i) < 0.1_dp) then
+        ! set min val for river slope to enable h-mean
+        smooth_slope(i) = 0.1_dp
+      else
+        smooth_slope(i) = this%link_slope(i)
+      end if
+    end do
+    !$omp end parallel do
+
+    ! smooth slope using hard-coded MAD filter
+    call river_smooth_slope(smooth_slope, mask)
     ! calculate celerity
-    allocate(this%celerity(this%n_nodes), source=(gamma * sqrt(smooth_slope / 100.0_dp)))
+    allocate(this%celerity(this%n_nodes))
+    !$omp parallel do default(shared)
+    do i = 1_i8, this%n_nodes
+      this%celerity(i) = gamma * sqrt(smooth_slope(i) / 100.0_dp)
+    end do
+    !$omp end parallel do
+
   end subroutine river_celerity
+
+  !> \brief Apply the hard-coded upper MAD slope filter used for river celerity.
+  !> \details This replaces the generic MAD routine because its median selection uses default-kind indices.
+  !! The implementation is equivalent to mad(arr, z=2.25_dp, mask=mask, tout="u", mval=0.1_dp).
+  subroutine river_smooth_slope(slope, mask)
+    real(dp), intent(inout) :: slope(:)
+    logical, optional, intent(in) :: mask(:)
+    integer(i8), parameter :: block_size = 1048576_i8 ! 2^20
+    integer(i8) :: n, nblocks, block, first, last, i, j, n_selected
+    integer(i8), allocatable :: block_count(:), block_offset(:)
+    real(dp), allocatable :: values(:)
+    real(dp) :: median_slope, median_deviation, threshold
+    logical :: fallback_to_floor
+
+    n = size(slope, kind=i8)
+    if (present(mask)) then
+      if (size(mask, kind=i8) /= n) call error_message("river_smooth_slope: slope and mask have different size")
+    end if
+    nblocks = (n - 1_i8) / block_size + 1_i8
+    allocate(block_count(nblocks))
+
+    ! The generic MAD implementation excludes the floor value. If no values remain,
+    ! it falls back to all floor values, independently of the input mask.
+    !$omp parallel do default(shared) private(first, last, i) schedule(static)
+    do block = 1_i8, nblocks
+      first = (block - 1_i8) * block_size + 1_i8
+      last = min(block * block_size, n)
+      block_count(block) = 0_i8
+      do i = first, last
+        if (river_slope_selected(slope(i), i, mask, .false.)) block_count(block) = block_count(block) + 1_i8
+      end do
+    end do
+    !$omp end parallel do
+    n_selected = sum(block_count)
+    fallback_to_floor = n_selected == 0_i8
+
+    if (fallback_to_floor) then
+      !$omp parallel do default(shared) private(first, last, i) schedule(static)
+      do block = 1_i8, nblocks
+        first = (block - 1_i8) * block_size + 1_i8
+        last = min(block * block_size, n)
+        block_count(block) = 0_i8
+        do i = first, last
+          if (river_slope_selected(slope(i), i, mask, .true.)) then
+            block_count(block) = block_count(block) + 1_i8
+          end if
+        end do
+      end do
+      !$omp end parallel do
+      n_selected = sum(block_count)
+    end if
+
+    ! Return if fewer than two values are selected
+    if (n_selected < 2_i8) return
+
+    allocate(block_offset(nblocks))
+    n_selected = 0_i8
+    do block = 1_i8, nblocks
+      block_offset(block) = n_selected
+      n_selected = n_selected + block_count(block)
+    end do
+    allocate(values(n_selected))
+
+    !$omp parallel do default(shared) private(first, last, i, j) schedule(static)
+    do block = 1_i8, nblocks
+      first = (block - 1_i8) * block_size + 1_i8
+      last = min(block * block_size, n)
+      j = block_offset(block)
+      do i = first, last
+        if (river_slope_selected(slope(i), i, mask, fallback_to_floor)) then
+          j = j + 1_i8
+          values(j) = slope(i)
+        end if
+      end do
+    end do
+    !$omp end parallel do
+
+    median_slope = river_median_i8(values)
+    !$omp parallel do default(shared)
+    do i = 1_i8, n_selected
+      values(i) = abs(values(i) - median_slope)
+    end do
+    !$omp end parallel do
+    median_deviation = river_median_i8(values)
+    threshold = median_deviation * 2.25_dp / 0.6745_dp
+    deallocate(values, block_count, block_offset)
+
+    !$omp parallel do default(shared)
+    do i = 1_i8, n
+      if (river_slope_selected(slope(i), i, mask, fallback_to_floor)) then
+        if (slope(i) > median_slope + threshold) slope(i) = median_slope + threshold
+      end if
+    end do
+    !$omp end parallel do
+  end subroutine river_smooth_slope
+
+  !> \brief Select the elements participating in the hard-coded river slope MAD filter.
+  pure logical function river_slope_selected(value, index, mask, fallback_to_floor)
+    real(dp), intent(in) :: value
+    integer(i8), intent(in) :: index
+    logical, optional, intent(in) :: mask(:)
+    logical, intent(in) :: fallback_to_floor
+
+    if (fallback_to_floor) then
+      river_slope_selected = abs(value - 0.1_dp) < tiny(1.0_dp)
+    else
+      river_slope_selected = .not.(abs(value - 0.1_dp) < tiny(1.0_dp))
+      if (present(mask)) river_slope_selected = river_slope_selected .and. mask(index)
+    end if
+  end function river_slope_selected
+
+  !> \brief Return the median using 64-bit indices, rearranging values in place.
+  function river_median_i8(values) result(median)
+    real(dp), intent(inout) :: values(:)
+    real(dp) :: median, previous
+    integer(i8) :: n, middle
+
+    n = size(values, kind=i8)
+    if (mod(n, 2_i8) == 0_i8) then
+      middle = n / 2_i8 + 1_i8
+      median = river_nth_i8(values, middle)
+      previous = maxval(values(:middle - 1_i8))
+      median = 0.5_dp * (median + previous)
+    else
+      median = river_nth_i8(values, (n + 1_i8) / 2_i8)
+    end if
+  end function river_median_i8
+
+  !> \brief Return the n-th smallest element using 64-bit indices, rearranging values in place.
+  function river_nth_i8(values, n) result(nth)
+    real(dp), intent(inout) :: values(:)
+    integer(i8), intent(in) :: n
+    real(dp) :: nth, pivot, tmp
+    integer(i8) :: left, right, i, j
+
+    left = 1_i8
+    right = size(values, kind=i8)
+    do while (left < right)
+      pivot = values(n)
+      i = left
+      j = right
+      do
+        do while (values(i) < pivot)
+          i = i + 1_i8
+        end do
+        do while (pivot < values(j))
+          j = j - 1_i8
+        end do
+        if (i <= j) then
+          tmp = values(i)
+          values(i) = values(j)
+          values(j) = tmp
+          i = i + 1_i8
+          j = j - 1_i8
+        end if
+        if (i > j) exit
+      end do
+      if (j < n) left = i
+      if (n < i) right = j
+    end do
+    nth = values(n)
+  end function river_nth_i8
 
   !> \brief Select values from sub-nodes for each cell from an array of values on nodes.
   function river_select_cell_values(this, values) result(select)

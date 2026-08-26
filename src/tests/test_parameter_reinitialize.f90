@@ -1,6 +1,6 @@
 program test_parameter_reinitialize
   use mo_domain, only: domain_t
-  use mo_kind, only: i4, dp
+  use mo_kind, only: i2, i4, dp
   use mo_grid_io, only: no_time
   use nml_helper, only: NML_OK
   use mo_parameter_types, only: parameter_t
@@ -12,7 +12,7 @@ program test_parameter_reinitialize
   real(dp), allocatable :: values(:)
   real(dp), allocatable :: derived_before(:)
   real(dp), pointer :: static_input(:)
-  integer(i4), pointer :: static_fdir(:)
+  integer(i2), pointer :: static_fdir(:)
   character(1024) :: errmsg
   integer :: status
 

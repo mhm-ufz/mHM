@@ -38,27 +38,27 @@ module mo_mrm_container
   !> \class   mrm_t
   !> \brief   Class for a single mRM process container.
   type, public :: mrm_t
-    type(nml_config_mrm_t)     :: config              !< configuration of the mRM process container
-    type(nml_output_mrm_t)     :: output_config       !< output configuration of the mRM process container
-    type(exchange_t), pointer  :: exchange => null()  !< exchange container of the domain
-    type(grid_t)               :: level3              !< mrm grid
-    type(river_t)              :: river_l0            !< level-0 river network (for upscaling)
-    type(river_t)              :: river               !< upscaled river network
-    type(river_router_t)       :: router              !< river router
-    type(river_upscaler_t)     :: upscaler            !< river upscaler for upscaling from level-0 to level-3 river network
-    type(output_dataset)       :: ds_out              !< output dataset for gridded outputs
-    type(river_output_dataset) :: ds_node_out         !< output dataset for river node based outputs
-    real(dp), allocatable      :: discharge(:)        !< discharge array for all river nodes
-    logical                    :: active = .false.    !< whether mRM participates in the configured domain
-    logical                    :: scc_active = .false. !< whether scc based based upscaling is active
-    logical                    :: read_restart = .false. !< whether to read restart file
-    character(:), allocatable  :: restart_input_path  !< path to restart file to read
-    logical                    :: write_restart = .false. !< whether to write restart file
-    character(:), allocatable  :: restart_output_path !< path to restart file to write
-    logical                    :: output_active = .false. !< whether output is enabled
+    type(nml_config_mrm_t)     :: config                       !< configuration of the mRM process container
+    type(nml_output_mrm_t)     :: output_config                !< output configuration of the mRM process container
+    type(exchange_t), pointer  :: exchange => null()           !< exchange container of the domain
+    type(grid_t)               :: level3                       !< mrm grid
+    type(river_t)              :: river_l0                     !< level-0 river network (for upscaling)
+    type(river_t)              :: river                        !< upscaled river network
+    type(river_router_t)       :: router                       !< river router
+    type(river_upscaler_t)     :: upscaler                     !< river upscaler for upscaling from level-0 to level-3 river network
+    type(output_dataset)       :: ds_out                       !< output dataset for gridded outputs
+    type(river_output_dataset) :: ds_node_out                  !< output dataset for river node based outputs
+    real(dp), allocatable      :: discharge(:)                 !< discharge array for all river nodes
+    logical                    :: active = .false.             !< whether mRM participates in the configured domain
+    logical                    :: scc_active = .false.         !< whether scc based based upscaling is active
+    logical                    :: read_restart = .false.       !< whether to read restart file
+    character(:), allocatable  :: restart_input_path           !< path to restart file to read
+    logical                    :: write_restart = .false.      !< whether to write restart file
+    character(:), allocatable  :: restart_output_path          !< path to restart file to write
+    logical                    :: output_active = .false.      !< whether output is enabled
     logical                    :: output_node_active = .false. !< whether node based output is enabled
-    character(:), allocatable  :: output_path         !< path to output file
-    character(:), allocatable  :: output_node_path    !< path to node output file
+    character(:), allocatable  :: output_path                  !< path to output file
+    character(:), allocatable  :: output_node_path             !< path to node output file
   contains
     procedure :: set_dims => mrm_set_dims
     procedure :: configure => mrm_configure
@@ -346,7 +346,7 @@ contains
 
     class(mrm_t), target, intent(inout) :: self
     logical, allocatable        :: scc_latlon ! allocatable to be able to make it "not present" if not allocated
-    character(:), allocatable   :: file
+    character(:), allocatable   :: file, diagnostics_path
     real(dp), allocatable       :: scc_gauges(:,:)
     integer(i4)                 :: id(1)
     logical                     :: const_celerity
@@ -410,13 +410,13 @@ contains
     else if (is_close(self%level3%cellsize, self%exchange%level0%cellsize)) then
       ! TODO: the upscaler should handle also the case of no upscaling (level0 == level11)
       scope_info(s,*) "level-0 and level-3 river network are equal of size:", n2s(self%exchange%level3%ncells)
-      call self%river%from_fdir(int(self%exchange%fdir%data, i2), self%level3)
+      call self%river%from_fdir(self%exchange%fdir%data, self%level3)
     else
       scope_info(s,*) "Create level-0 river network of size:", n2s(self%exchange%level0%ncells)
-      ! TODO: make fdir i2
-      call self%river_l0%from_fdir(int(self%exchange%fdir%data, i2), self%exchange%level0)
+      call self%river_l0%from_fdir(self%exchange%fdir%data, self%exchange%level0)
+      scope_info(s,*) "Order level-0 river network"
+      call self%river_l0%calc_order(root=.true.)
       scope_info(s,*) "Calculate facc on level-0"
-      call self%river_l0%calc_order()
       call self%river_l0%calc_facc()
       ! check SCC config
       if (self%scc_active) then
@@ -425,22 +425,22 @@ contains
         allocate(scc_latlon)  ! if not allocated, it is not present as optional argument
         call read_scc_gauges(file, scc_gauges, scc_latlon)
       end if
+      if (self%config%is_set("diagnostics_path", idx=id) == NML_OK) then
+        diagnostics_path = self%exchange%get_path(self%config%diagnostics_path(id(1)))
+        log_info(*) "Write mRM upscaling diagnostics to file: ", diagnostics_path
+      end if
       ! scc_gauges/scc_latlon not present if not allocated
       scope_info(s,*) "Initialize upscaler and upscale river network to level-3"
-      call self%upscaler%init(self%river_l0, self%river, self%level3, scc_gauges, scc_latlon)
-      if (self%config%is_set("diagnostics_path", idx=id) == NML_OK) then
-        file = self%exchange%get_path(self%config%diagnostics_path(id(1)))
-        log_info(*) "Write mRM upscaling diagnostics to file: ", file
-        call self%river_l0%export( &
-          path        = file, &
-          sub_map     = self%upscaler%scc_map, &
-          leaving     = self%upscaler%leaving_cells, &
-          stream_mask = self%upscaler%stream_mask, &
-          stream_sub  = self%upscaler%stream_sub, &
-          highlight   = self%upscaler%is_link_start.or.self%river_l0%is_sink, &
-          factor      = self%upscaler%upscaler%factor &
-        )
-      end if
+      call self%upscaler%init( &
+        fine_river        = self%river_l0, &
+        coarse_river      = self%river, &
+        coarse_grid       = self%level3, &
+        scc_gauges        = scc_gauges, &
+        scc_latlon        = scc_latlon, &
+        upscale_mode      = self%config%upscale_mode(id(1)), &
+        length_percentile = self%config%length_percentile(id(1)), &
+        diagnostics_path  = diagnostics_path, &
+        retain_stream_mask = self%exchange%config%processes%routing == 3_i4)
     end if
 
     ! populate exchange type

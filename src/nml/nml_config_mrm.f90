@@ -30,9 +30,11 @@ module nml_config_mrm
     to_lower, &
     n_domains__default, &
     buf
+  use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
-    i4
+    i4, &
+    dp
 
   implicit none
 
@@ -40,15 +42,20 @@ module nml_config_mrm
   logical, parameter, public :: river_net_order_root_based__default = .false.
   integer(i4), parameter, public :: river_net_omp_level_min__default = -1_i4
   integer(i4), parameter, public :: max_route_step__default = 86400_i4
+  integer(i4), parameter, public :: upscale_mode__default = 1_i4
+  real(dp), parameter, public :: length_percentile__default = 40.0_dp
   logical, parameter, public :: read_restart__default = .false.
   logical, parameter, public :: read_restart_fluxes__default = .true.
   logical, parameter, public :: write_restart__default = .false.
 
   ! enum values
   integer(i4), parameter, public :: max_route_step__enum_values(19) = [60_i4, 120_i4, 180_i4, 240_i4, 300_i4, 360_i4, 600_i4, 720_i4, 900_i4, 1200_i4, 1800_i4, 3600_i4, 7200_i4, 10800_i4, 14400_i4, 21600_i4, 28800_i4, 43200_i4, 86400_i4]
+  integer(i4), parameter, public :: upscale_mode__enum_values(2) = [0_i4, 1_i4]
 
   ! bounds values
   integer(i4), parameter, public :: river_net_omp_level_min__min = -1_i4
+  real(dp), parameter, public :: length_percentile__min = 0.0_dp
+  real(dp), parameter, public :: length_percentile__max = 100.0_dp
 
   !> \class nml_config_mrm_t
   !> \brief mRM configuration
@@ -59,6 +66,8 @@ module nml_config_mrm
     logical, allocatable, dimension(:) :: river_net_order_root_based !< Flag for root based river network ordering.
     integer(i4), allocatable, dimension(:) :: river_net_omp_level_min !< Minimum level size for OpenMP parallelization.
     integer(i4), allocatable, dimension(:) :: max_route_step !< Maximum numerical routing substep in seconds.
+    integer(i4), allocatable, dimension(:) :: upscale_mode !< River upscaling mode.
+    real(dp), allocatable, dimension(:) :: length_percentile !< Percentile for the minimum upscaled link length.
     character(len=buf), allocatable, dimension(:) :: scc_gauges_path !< Path for SCC gauges NetCDF file.
     character(len=buf), allocatable, dimension(:) :: output_path !< Path for output file.
     character(len=buf), allocatable, dimension(:) :: output_node_path !< Path for node based output file.
@@ -95,6 +104,22 @@ contains
     in_enum = any(val == max_route_step__enum_values)
   end function max_route_step__in_enum
 
+  !> \brief Check whether a value is part of an enum
+  elemental logical function upscale_mode__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
+
+    if (present(allow_missing)) then
+      if (allow_missing) then
+        if (val == -huge(val)) then
+          in_enum = .true.
+          return
+        end if
+      end if
+    end if
+    in_enum = any(val == upscale_mode__enum_values)
+  end function upscale_mode__in_enum
+
   !> \brief Check whether a value is within bounds
   elemental logical function river_net_omp_level_min__in_bounds(val, allow_missing) result(in_bounds)
     integer(i4), intent(in) :: val !< value to check
@@ -113,6 +138,25 @@ contains
     if (val < river_net_omp_level_min__min) in_bounds = .false.
   end function river_net_omp_level_min__in_bounds
 
+  !> \brief Check whether a value is within bounds
+  elemental logical function length_percentile__in_bounds(val, allow_missing) result(in_bounds)
+    real(dp), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
+
+    if (present(allow_missing)) then
+      if (allow_missing) then
+        if (ieee_is_nan(val)) then
+          in_bounds = .true.
+          return
+        end if
+      end if
+    end if
+
+    in_bounds = .true.
+    if (val < length_percentile__min) in_bounds = .false.
+    if (val > length_percentile__max) in_bounds = .false.
+  end function length_percentile__in_bounds
+
   !> \brief Initialize defaults and sentinels for config_mrm
   integer function nml_config_mrm_init(this, errmsg) result(status)
     class(nml_config_mrm_t), intent(inout) :: this !< namelist instance
@@ -129,6 +173,10 @@ contains
     allocate(this%river_net_omp_level_min(this%n_domains))
     if (allocated(this%max_route_step)) deallocate(this%max_route_step)
     allocate(this%max_route_step(this%n_domains))
+    if (allocated(this%upscale_mode)) deallocate(this%upscale_mode)
+    allocate(this%upscale_mode(this%n_domains))
+    if (allocated(this%length_percentile)) deallocate(this%length_percentile)
+    allocate(this%length_percentile(this%n_domains))
     if (allocated(this%scc_gauges_path)) deallocate(this%scc_gauges_path)
     allocate(character(len=buf) :: this%scc_gauges_path(this%n_domains))
     if (allocated(this%output_path)) deallocate(this%output_path)
@@ -159,6 +207,8 @@ contains
     this%river_net_order_root_based = river_net_order_root_based__default
     this%river_net_omp_level_min = river_net_omp_level_min__default
     this%max_route_step = max_route_step__default
+    this%upscale_mode = upscale_mode__default
+    this%length_percentile = length_percentile__default
     this%read_restart = read_restart__default
     this%read_restart_fluxes = read_restart_fluxes__default
     this%write_restart = write_restart__default
@@ -191,6 +241,8 @@ contains
     if (allocated(this%river_net_order_root_based)) deallocate(this%river_net_order_root_based)
     if (allocated(this%river_net_omp_level_min)) deallocate(this%river_net_omp_level_min)
     if (allocated(this%max_route_step)) deallocate(this%max_route_step)
+    if (allocated(this%upscale_mode)) deallocate(this%upscale_mode)
+    if (allocated(this%length_percentile)) deallocate(this%length_percentile)
     if (allocated(this%scc_gauges_path)) deallocate(this%scc_gauges_path)
     if (allocated(this%output_path)) deallocate(this%output_path)
     if (allocated(this%output_node_path)) deallocate(this%output_node_path)
@@ -213,6 +265,8 @@ contains
     logical, allocatable, dimension(:) :: river_net_order_root_based
     integer(i4), allocatable, dimension(:) :: river_net_omp_level_min
     integer(i4), allocatable, dimension(:) :: max_route_step
+    integer(i4), allocatable, dimension(:) :: upscale_mode
+    real(dp), allocatable, dimension(:) :: length_percentile
     character(len=buf), allocatable, dimension(:) :: scc_gauges_path
     character(len=buf), allocatable, dimension(:) :: output_path
     character(len=buf), allocatable, dimension(:) :: output_node_path
@@ -232,6 +286,8 @@ contains
       river_net_order_root_based, &
       river_net_omp_level_min, &
       max_route_step, &
+      upscale_mode, &
+      length_percentile, &
       scc_gauges_path, &
       output_path, &
       output_node_path, &
@@ -251,6 +307,10 @@ contains
     allocate(river_net_omp_level_min(this%n_domains))
     if (allocated(max_route_step)) deallocate(max_route_step)
     allocate(max_route_step(this%n_domains))
+    if (allocated(upscale_mode)) deallocate(upscale_mode)
+    allocate(upscale_mode(this%n_domains))
+    if (allocated(length_percentile)) deallocate(length_percentile)
+    allocate(length_percentile(this%n_domains))
     if (allocated(scc_gauges_path)) deallocate(scc_gauges_path)
     allocate(character(len=buf) :: scc_gauges_path(this%n_domains))
     if (allocated(output_path)) deallocate(output_path)
@@ -272,6 +332,8 @@ contains
     river_net_order_root_based = this%river_net_order_root_based
     river_net_omp_level_min = this%river_net_omp_level_min
     max_route_step = this%max_route_step
+    upscale_mode = this%upscale_mode
+    length_percentile = this%length_percentile
     scc_gauges_path = this%scc_gauges_path
     output_path = this%output_path
     output_node_path = this%output_node_path
@@ -309,6 +371,8 @@ contains
     this%river_net_order_root_based = river_net_order_root_based
     this%river_net_omp_level_min = river_net_omp_level_min
     this%max_route_step = max_route_step
+    this%upscale_mode = upscale_mode
+    this%length_percentile = length_percentile
     this%scc_gauges_path = scc_gauges_path
     this%output_path = output_path
     this%output_node_path = output_node_path
@@ -329,6 +393,8 @@ contains
     river_net_order_root_based, &
     river_net_omp_level_min, &
     max_route_step, &
+    upscale_mode, &
+    length_percentile, &
     scc_gauges_path, &
     output_path, &
     output_node_path, &
@@ -345,6 +411,8 @@ contains
     logical, dimension(:), intent(in), optional :: river_net_order_root_based !< Flag for root based river network ordering.
     integer(i4), dimension(:), intent(in), optional :: river_net_omp_level_min !< Minimum level size for OpenMP parallelization.
     integer(i4), dimension(:), intent(in), optional :: max_route_step !< Maximum numerical routing substep in seconds.
+    integer(i4), dimension(:), intent(in), optional :: upscale_mode !< River upscaling mode.
+    real(dp), dimension(:), intent(in), optional :: length_percentile !< Percentile for the minimum upscaled link length.
     character(len=*), dimension(:), intent(in), optional :: scc_gauges_path !< Path for SCC gauges NetCDF file.
     character(len=*), dimension(:), intent(in), optional :: output_path !< Path for output file.
     character(len=*), dimension(:), intent(in), optional :: output_node_path !< Path for node based output file.
@@ -392,6 +460,26 @@ contains
       lb__1 = lbound(this%max_route_step, 1)
       ub__1 = lb__1 + size(max_route_step, 1) - 1
       this%max_route_step(lb__1:ub__1) = max_route_step
+    end if
+    if (present(upscale_mode)) then
+      if (size(upscale_mode, 1) > size(this%upscale_mode, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'upscale_mode'"
+        return
+      end if
+      lb__1 = lbound(this%upscale_mode, 1)
+      ub__1 = lb__1 + size(upscale_mode, 1) - 1
+      this%upscale_mode(lb__1:ub__1) = upscale_mode
+    end if
+    if (present(length_percentile)) then
+      if (size(length_percentile, 1) > size(this%length_percentile, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'length_percentile'"
+        return
+      end if
+      lb__1 = lbound(this%length_percentile, 1)
+      ub__1 = lb__1 + size(length_percentile, 1) - 1
+      this%length_percentile(lb__1:ub__1) = length_percentile
     end if
     if (present(scc_gauges_path)) then
       if (size(scc_gauges_path, 1) > size(this%scc_gauges_path, 1)) then
@@ -537,6 +625,28 @@ contains
         if (status /= NML_OK) return
       else
       end if
+    case ("upscale_mode")
+      if (.not. allocated(this%upscale_mode)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%upscale_mode), ubound(this%upscale_mode), &
+          "upscale_mode", errmsg)
+        if (status /= NML_OK) return
+      else
+      end if
+    case ("length_percentile")
+      if (.not. allocated(this%length_percentile)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%length_percentile), ubound(this%length_percentile), &
+          "length_percentile", errmsg)
+        if (status /= NML_OK) return
+      else
+      end if
     case ("scc_gauges_path")
       if (.not. allocated(this%scc_gauges_path)) then
         status = NML_ERR_NOT_SET
@@ -679,11 +789,25 @@ contains
       return
     end if
     end if
+    if (allocated(this%upscale_mode)) then
+    if (.not. all(upscale_mode__in_enum(this%upscale_mode, allow_missing=.true.))) then
+      status = NML_ERR_ENUM
+      if (present(errmsg)) errmsg = "enum constraint failed: upscale_mode"
+      return
+    end if
+    end if
     ! bounds constraints
     if (allocated(this%river_net_omp_level_min)) then
     if (.not. all(river_net_omp_level_min__in_bounds(this%river_net_omp_level_min, allow_missing=.true.))) then
       status = NML_ERR_BOUNDS
       if (present(errmsg)) errmsg = "bounds constraint failed: river_net_omp_level_min"
+      return
+    end if
+    end if
+    if (allocated(this%length_percentile)) then
+    if (.not. all(length_percentile__in_bounds(this%length_percentile, allow_missing=.true.))) then
+      status = NML_ERR_BOUNDS
+      if (present(errmsg)) errmsg = "bounds constraint failed: length_percentile"
       return
     end if
     end if

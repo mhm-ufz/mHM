@@ -23,7 +23,7 @@ module mo_exchange_type
   use mo_netcdf, only: NcVariable
   use mo_geology_classdefinition, only: geology_classdefinition_t
   use mo_datetime, only: datetime, timedelta, one_hour
-  use mo_kind, only: dp, i4, i8
+  use mo_kind, only: dp, i2, i4, i8
   use mo_parameter_namelists, only: parameter_namelists_t
   use mo_string_utils, only: n2s=>num2str
   use mo_main_config, only: parameters_t
@@ -109,6 +109,18 @@ module mo_exchange_type
     procedure, public :: publish_local => var_i4_publish_local
     procedure, public :: publish_alias => var_i4_publish_alias
   end type var_i4
+
+  !> \class   var_i2
+  !> \brief   Class for a 16-bit integer variable in the exchange type.
+  type, public, extends(variable_abc) :: var_i2
+    integer(i2), dimension(:), pointer :: data => null() !< 1D integer pointer (n-cells)
+  contains
+    procedure, public :: has_data => var_i2_has_data
+    procedure, public :: data_shape => var_i2_data_shape
+    procedure, public :: clear_data => var_i2_clear_data
+    procedure, public :: publish_local => var_i2_publish_local
+    procedure, public :: publish_alias => var_i2_publish_alias
+  end type var_i2
 
   !> \class   var_lg
   !> \brief   Class for a logical variable in the exchange type.
@@ -244,7 +256,7 @@ module mo_exchange_type
     type(var_dp) :: dem                 !< elevation [m] on level l0 (static)
     type(var_dp) :: slope               !< slope [%] on level l0 (static)
     type(var_dp) :: aspect              !< aspect [degree] on level l0 (static)
-    type(var_i4) :: fdir                !< flow direction [1] on level l0 (static)
+    type(var_i2) :: fdir                !< flow direction [1] on level l0 (static)
     type(var_i4) :: facc                !< flow accumulation [1] on level l0 (static)
     type(var2d_i4) :: soil_id           !< soil class ID on level l0 (static)
     type(var_i4) :: geo_unit            !< geological unit ID on level l0 (static)
@@ -347,12 +359,13 @@ module mo_exchange_type
     procedure, public :: get_path => exchange_get_path
     procedure, private :: get_var_class => exchange_get_var_class
     procedure, private  :: get_data_1d_dp => exchange_get_data_1d_dp
+    procedure, private  :: get_data_1d_i2 => exchange_get_data_1d_i2
     procedure, private  :: get_data_1d_i4 => exchange_get_data_1d_i4
     procedure, private  :: get_data_1d_lg => exchange_get_data_1d_lg
     procedure, private  :: get_data_2d_dp => exchange_get_data_2d_dp
     procedure, private  :: get_data_2d_i4 => exchange_get_data_2d_i4
     procedure, private  :: get_data_2d_lg => exchange_get_data_2d_lg
-    generic, public :: get_data => get_data_1d_dp, get_data_1d_i4, get_data_1d_lg, get_data_2d_dp, get_data_2d_i4, get_data_2d_lg
+    generic, public :: get_data => get_data_1d_dp, get_data_1d_i2, get_data_1d_i4, get_data_1d_lg, get_data_2d_dp, get_data_2d_i4, get_data_2d_lg
     procedure, private  :: set_data_1d => exchange_set_data_1d
     procedure, private  :: set_data_2d => exchange_set_data_2d
     generic, public :: set_data => set_data_1d, set_data_2d
@@ -487,7 +500,7 @@ contains
     self%dem    = var_dp(static=.true., grid=l0, name="dem",    units="m",      long_name="elevation", standard_name="height_above_mean_sea_level")
     self%slope  = var_dp(static=.true., grid=l0, name="slope",  units="%",      long_name="slope", standard_name="ground_slope_angle")
     self%aspect = var_dp(static=.true., grid=l0, name="aspect", units="degree", long_name="aspect", standard_name="ground_slope_direction")
-    self%fdir   = var_i4(static=.true., grid=l0, name="fdir",   units="1",      long_name="flow direction")
+    self%fdir   = var_i2(static=.true., grid=l0, name="fdir",   units="1",      long_name="flow direction")
     self%facc   = var_i4(static=.true., grid=l0, name="facc",   units="1",      long_name="flow accumulation")
     self%soil_id = var2d_i4(static=.true., grid=l0, name="soil_id", units="1", long_name="soil class ID")
     self%geo_unit = var_i4(static=.true., grid=l0, name="geo_unit", units="1", long_name="geological unit ID")
@@ -1125,6 +1138,23 @@ contains
   end subroutine exchange_get_data_1d_dp
 
   !> \brief get pointer to the 1D variable data
+  subroutine exchange_get_data_1d_i2(self, var, data)
+    use mo_message, only: error_message
+    class(exchange_t), target, intent(in) :: self ! target attribute valid here since Fortran 2003
+    character(*), intent(in) :: var !< name of the variable (attribute name)
+    integer(i2), pointer, intent(out) :: data(:) !< resulting pointer to the selected variable data
+    class(*), pointer :: tmp
+    call self%get_var_class(var, tmp)
+    select type (tmp)
+      class is (var_i2)
+        data => tmp%data
+      class default
+        log_fatal(*) "exchange%get_var: variable data of '", var, "' not 1D integer(i2)."
+        error stop 1
+    end select
+  end subroutine exchange_get_data_1d_i2
+
+  !> \brief get pointer to the 1D variable data
   subroutine exchange_get_data_1d_i4(self, var, data)
     use mo_message, only: error_message
     class(exchange_t), target, intent(in) :: self ! target attribute valid here since Fortran 2003
@@ -1227,6 +1257,16 @@ contains
             tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type real(dp)."
+            error stop 1
+        end select
+      class is (var_i2)
+        select type (data)
+          type is (integer(i2))
+            tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
+          class default
+            log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type integer(i2)."
             error stop 1
         end select
       class is (var_i4)
@@ -1645,6 +1685,59 @@ contains
     self%data => source%data
     self%provided = .true.
   end subroutine var_i4_publish_alias
+
+  !> \brief Return whether a 1D 16-bit integer exchange variable has data connected.
+  logical function var_i2_has_data(self)
+    class(var_i2), intent(in) :: self
+
+    var_i2_has_data = associated(self%data)
+  end function var_i2_has_data
+
+  !> \brief Return the data shape of a 1D 16-bit integer exchange variable.
+  function var_i2_data_shape(self) result(shape)
+    class(var_i2), intent(in) :: self
+    integer(i8), allocatable :: shape(:)
+
+    if (associated(self%data)) then
+      shape = [size(self%data, 1, kind=i8)]
+    else
+      allocate(shape(0))
+    end if
+  end function var_i2_data_shape
+
+  !> \brief Clear the data pointer of a 1D 16-bit integer exchange variable.
+  subroutine var_i2_clear_data(self)
+    class(var_i2), intent(inout) :: self
+
+    nullify(self%data)
+  end subroutine var_i2_clear_data
+
+  !> \brief Publish a local 1D 16-bit integer field through the exchange variable.
+  subroutine var_i2_publish_local(self, component, local, stepping)
+    class(var_i2), intent(inout) :: self
+    character(*), intent(in) :: component       !< publishing component name for diagnostics
+    integer(i2), intent(inout), target :: local(:) !< local 1D integer field to publish
+    integer(i4), intent(in) :: stepping !< temporal support of the published field
+
+    call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
+    self%data => local
+    self%provided = .true.
+  end subroutine var_i2_publish_local
+
+  !> \brief Publish a 1D 16-bit integer alias through the exchange variable.
+  subroutine var_i2_publish_alias(self, component, source)
+    class(var_i2), intent(inout) :: self
+    character(*), intent(in) :: component !< publishing component name for diagnostics
+    type(var_i2), intent(in) :: source    !< already-published source variable to alias
+
+    call variable_validate_alias_source(source, component, self)
+    call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
+    self%data => source%data
+    self%provided = .true.
+  end subroutine var_i2_publish_alias
 
   !> \brief Return whether a 1D logical exchange variable has data connected.
   logical function var_lg_has_data(self)

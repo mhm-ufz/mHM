@@ -13,6 +13,8 @@ Configuration for the multi-scale routing model (mRM) in mHM.
 | [river_net_order_root_based](#river_net_order_root_based) | logical array | no | no | Flag for root based river network ordering. |
 | [river_net_omp_level_min](#river_net_omp_level_min) | integer array | no | no | Minimum level size for OpenMP parallelization. |
 | [max_route_step](#max_route_step) | integer array | no | no | Maximum numerical routing substep in seconds. |
+| [upscale_mode](#upscale_mode) | integer array | no | no | River upscaling mode. |
+| [length_percentile](#length_percentile) | real array | no | no | Percentile for the minimum upscaled link length. |
 | [scc_gauges_path](#scc_gauges_path) | string array | no | no | Path for SCC gauges NetCDF file. |
 | [output_path](#output_path) | string array | no | no | Path for output file. |
 | [output_node_path](#output_node_path) | string array | no | no | Path for node based output file. |
@@ -84,6 +86,38 @@ Summary:
 - Default: `86400`
 - Allowed values: `60`, `120`, `180`, `240`, `300`, `360`, `600`, `720`, `900`, `1200`, `1800`, `3600`, `7200`, `10800`, `14400`, `21600`, `28800`, `43200`, `86400`
 - Examples: `[3600]`
+
+### upscale_mode
+
+River upscaling mode. `upscale_mode`
+
+Method used to construct the coarse river graph from the fine D8 network.
+- 0 : legacy topology connecting to the first entered neighboring coarse cell.
+- 1 : FLOW-like topology connecting directly to the next downstream link endpoint.
+
+Summary:
+- Type: `integer(i4), dimension(n_domains)`
+- Declared required: no
+- Input required: no
+- Default: `1`
+- Allowed values: `0`, `1`
+- Examples: `[1]`
+
+### length_percentile
+
+Percentile for the minimum upscaled link length. `length_percentile`
+
+Percentile of the non-sink link-length distribution used as a lower bound
+for routing stability, in percent.
+
+Summary:
+- Type: `real(dp), dimension(n_domains)`
+- Declared required: no
+- Input required: no
+- Default: `40.0`
+- Minimum: `>= 0.0`
+- Maximum: `<= 100.0`
+- Examples: `[40.0]`
 
 ### scc_gauges_path
 
@@ -190,6 +224,8 @@ Summary:
   river_net_order_root_based(:) = .true.
   river_net_omp_level_min(:) = 100
   max_route_step(:) = 3600
+  upscale_mode(:) = 1
+  length_percentile(:) = 40.0
   scc_gauges_path(:) = "scc_gauges.nc"
   output_path(:) = "mrm_output.nc"
   output_node_path(:) = "mrm_node_output.nc"
