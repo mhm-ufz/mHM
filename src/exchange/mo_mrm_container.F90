@@ -64,7 +64,6 @@ module mo_mrm_container
     type(mrm_poi_output_t)     :: poi                          !< point-of-interest output state
     real(dp), allocatable      :: discharge(:)                 !< discharge array for all river nodes
     logical                    :: active = .false.             !< whether mRM participates in the configured domain
-    logical                    :: scc_active = .false.         !< whether scc based based upscaling is active
     logical                    :: read_restart = .false.       !< whether to read restart file
     character(:), allocatable  :: restart_input_path           !< path to restart file to read
     logical                    :: write_restart = .false.      !< whether to write restart file
@@ -399,7 +398,7 @@ contains
     integer(i8), allocatable    :: scc_ids(:)
     type(points_t), target      :: scc_points
     integer(i4)                 :: id(1)
-    logical                     :: const_celerity, poi_gauges_set, had_restart_pois, scc_gauges_as_poi
+    logical                     :: const_celerity, poi_gauges_set, had_restart_pois, read_scc, scc_gauges_as_poi
     integer(i4)                 :: model_step
 
     integer :: status
@@ -412,7 +411,7 @@ contains
     ! get domain id
     id(1) = self%exchange%nml_domain_id
     ! check if scc_gauges_path is given
-    self%scc_active = self%config%is_set("scc_gauges_path", idx=id, errmsg=errmsg) == NML_OK
+    read_scc = self%config%is_set("scc_gauges_path", idx=id, errmsg=errmsg) == NML_OK
     poi_gauges_set = self%config%is_set("poi_gauges_path", idx=id, errmsg=errmsg) == NML_OK
     scc_gauges_as_poi = self%config%scc_gauges_as_poi(id(1))
     if (scc_gauges_as_poi .and. poi_gauges_set) then
@@ -478,7 +477,7 @@ contains
       scope_info(s,*) "Calculate facc on level-0"
       call self%river_l0%calc_facc()
       ! check SCC config
-      if (self%scc_active) then
+      if (read_scc) then
         file = self%exchange%get_path(self%config%scc_gauges_path(id(1)))
         scope_info(s,*) "Read SCC gauges from file: ", file
         call self%read_gauge_points(file, scc_points, scc_ids)
@@ -913,7 +912,7 @@ contains
       call self%poi%dataset%update("discharge", self%discharge(self%poi%locations))
     end if
     if (self%output_active .and. self%output_config%out_Qrouted) then
-      if (self%scc_active) then
+      if (self%river%scc) then
         call self%ds_out%update("discharge", self%river%select_cell_values(self%discharge))
       else
         call self%ds_out%update("discharge", self%discharge)
