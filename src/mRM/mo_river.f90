@@ -19,79 +19,20 @@ module mo_river
   use mo_utils, only: optval
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_constants, only: nodata_i1, nodata_i2, nodata_i4, nodata_i8, nodata_dp
+  use mo_river_tools, only: sink, d8_E, d8_SE, d8_S, d8_SW, d8_W, d8_NW, d8_N, d8_NE, &
+    d8_all, d8_back, d8_leave_E, d8_leave_S, d8_leave_W, d8_leave_N, &
+    d8_leave_SE, d8_leave_SW, d8_leave_NE, d8_leave_NW, &
+    o, ldd_sink, ldd_E, ldd_SE, ldd_S, ldd_SW, ldd_W, ldd_NW, ldd_N, ldd_NE, &
+    ldd_all, ldd_back, ldd_dx, ldd_dy, map_ldd_to_d8, map_d8_to_ldd
 
   implicit none
   private
 
-  !> \name D8 direction values
-  !> \brief Constants describing the D8 routing direction of a cell.
-  !!@{
-  integer(i2), public, parameter :: sink = 0_i2 !< sink
-  integer(i2), public, parameter :: d8_E = 1_i2 !< east
-  integer(i2), public, parameter :: d8_SE = 2_i2 !< south-east
-  integer(i2), public, parameter :: d8_S = 4_i2 !< south
-  integer(i2), public, parameter :: d8_SW = 8_i2 !< south-west
-  integer(i2), public, parameter :: d8_W = 16_i2 !< west
-  integer(i2), public, parameter :: d8_NW = 32_i2 !< north-west
-  integer(i2), public, parameter :: d8_N = 64_i2 !< north
-  integer(i2), public, parameter :: d8_NE = 128_i2 !< north-east
-  !> all directions as array
-  integer(i2), public, dimension(8), parameter :: d8_all = [d8_E, d8_SE, d8_S, d8_SW, d8_W, d8_NW, d8_N, d8_NE]
-  !> matching back pointing directions as array
-  integer(i2), public, dimension(8), parameter :: d8_back = [d8_W, d8_NW, d8_N, d8_NE, d8_E, d8_SE, d8_S, d8_SW]
-  !> leaving directions at east border as array
-  integer(i2), public, dimension(3), parameter :: d8_leave_E = [d8_NE, d8_E, d8_SE]
-  !> leaving directions at south border as array
-  integer(i2), public, dimension(3), parameter :: d8_leave_S = [d8_SE, d8_S, d8_SW]
-  !> leaving directions at west border as array
-  integer(i2), public, dimension(3), parameter :: d8_leave_W = [d8_SW, d8_W, d8_NW]
-  !> leaving directions at north border as array
-  integer(i2), public, dimension(3), parameter :: d8_leave_N = [d8_NW, d8_N, d8_NE]
-  !> leaving directions at south-east corner as array
-  integer(i2), public, dimension(5), parameter :: d8_leave_SE = [d8_NE, d8_E, d8_SE, d8_S, d8_SW]
-  !> leaving directions at south-west corner as array
-  integer(i2), public, dimension(5), parameter :: d8_leave_SW = [d8_SE, d8_S, d8_SW, d8_W, d8_NW]
-  !> leaving directions at north-east corner as array
-  integer(i2), public, dimension(5), parameter :: d8_leave_NE = [d8_NW, d8_N, d8_NE, d8_E, d8_SE]
-  !> leaving directions at north-west corner as array
-  integer(i2), public, dimension(5), parameter :: d8_leave_NW = [d8_SW, d8_W, d8_NW, d8_N, d8_NE]
-  !!@}
-
-  !> \name ldd direction values
-  !> \brief Constants describing the Local drain direction (lld) routing direction of a cell.
-  !!@{
-  integer(i1), public, parameter :: o = 0_i1 !< no-data shortcut
-  integer(i1), public, parameter :: ldd_sink = 5_i1 !< sink
-  integer(i1), public, parameter :: ldd_E = 6_i1 !< east
-  integer(i1), public, parameter :: ldd_SE = 3_i1 !< south-east
-  integer(i1), public, parameter :: ldd_S = 2_i1 !< south
-  integer(i1), public, parameter :: ldd_SW = 1_i1 !< south-west
-  integer(i1), public, parameter :: ldd_W = 4_i1 !< west
-  integer(i1), public, parameter :: ldd_NW = 7_i1 !< north-west
-  integer(i1), public, parameter :: ldd_N = 8_i1 !< north
-  integer(i1), public, parameter :: ldd_NE = 9_i1 !< north-east
-  !> all directions as array
-  integer(i1), public, dimension(8), parameter :: ldd_all = [ldd_E, ldd_SE, ldd_S, ldd_SW, ldd_W, ldd_NW, ldd_N, ldd_NE]
-  !> matching back pointing directions as array
-  integer(i1), public, dimension(8), parameter :: ldd_back = [ldd_W, ldd_NW, ldd_N, ldd_NE, ldd_E, ldd_SE, ldd_S, ldd_SW]
-  !> x direction change for given ldd flow direction
-  integer(i4), public, dimension(9), parameter :: ldd_dx = [-1_i4, 0_i4, 1_i4, -1_i4, 0_i4, 1_i4, -1_i4, 0_i4, 1_i4]
-  !> y direction change for given ldd flow direction (bottom-up)
-  integer(i4), public, dimension(9), parameter :: ldd_dy = [-1_i4, -1_i4, -1_i4, 0_i4, 0_i4, 0_i4, 1_i4, 1_i4, 1_i4]
-  !> ldd to d8 conversion
-  integer(i2), public, dimension(9), parameter :: map_ldd_to_d8 = [d8_SW, d8_S, d8_SE, d8_W, sink, d8_E, d8_NW, d8_N, d8_NE]
-  !> d8 to ldd conversion (array mostly empty)
-  integer(i1), public, dimension(128), parameter :: map_d8_to_ldd = [ &
-    ldd_E, &
-    ldd_SE, o, &
-    ldd_S,  o,o,o, &
-    ldd_SW, o,o,o,o,o,o,o, &
-    ldd_W,  o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
-    ldd_NW, o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
-    ldd_N,  o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
-            o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
-    ldd_NE]
-  !!@}
+  public :: sink, d8_E, d8_SE, d8_S, d8_SW, d8_W, d8_NW, d8_N, d8_NE
+  public :: d8_all, d8_back, d8_leave_E, d8_leave_S, d8_leave_W, d8_leave_N
+  public :: d8_leave_SE, d8_leave_SW, d8_leave_NE, d8_leave_NW
+  public :: o, ldd_sink, ldd_E, ldd_SE, ldd_S, ldd_SW, ldd_W, ldd_NW, ldd_N, ldd_NE
+  public :: ldd_all, ldd_back, ldd_dx, ldd_dy, map_ldd_to_d8, map_d8_to_ldd
 
   !> \class river_t
   !> \brief River network representation
@@ -454,18 +395,22 @@ contains
   !> \brief Calculate flow accumulation
   subroutine river_label_subcatchments(this, label_map, selected_nodes, labels, default_label)
     use mo_message, only: error_message
+    use mo_river_tools, only: unique_ids
     class(river_t), intent(inout) :: this
     integer(i4), allocatable, intent(out) :: label_map(:) !< subcatchment labels
     integer(i8), dimension(:), intent(in) :: selected_nodes !< nodes to label subcatchments from
     integer(i4), dimension(:), optional, intent(in) :: labels !< labels used for subcatchments
     integer(i4), optional, intent(in) :: default_label !< default label for unlabeled nodes (default: 0)
     integer(i8) :: i, j, n
-    integer(i4) :: def, m, k
+    integer(i4) :: def, m
     logical :: reverse_order
 
     if (present(labels)) then
       if (size(labels, kind=i8) /= size(selected_nodes, kind=i8)) then
         call error_message("river_label_subcatchments: size of labels does not match size of selected_nodes")
+      end if
+      if (.not.unique_ids(labels)) then
+        call error_message("river_label_subcatchments: given label occurs more than once")
       end if
     end if
 
@@ -489,11 +434,6 @@ contains
         if (labels(m) == def) then
           call error_message("river_label_subcatchments: given label equals default label")
         end if
-        do k = m + 1_i4, size(selected_nodes, kind=i4)
-          if (labels(m) == labels(k)) then
-            call error_message("river_label_subcatchments: given label occurs more than once")
-          end if
-        end do
         if (label_map(selected_nodes(m)) /= def) then
           call error_message("river_label_subcatchments: selected node occurs more than once")
         end if

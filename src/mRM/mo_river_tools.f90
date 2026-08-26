@@ -10,16 +10,105 @@
 !! This code is released under the LGPLv3+ license \license_note
 module mo_river_tools
 
-  use mo_kind, only: dp, i2, i4, i8
+  use mo_kind, only: i1, i2, i4, i8
   use mo_message, only: error_message
-  use mo_grid, only: grid_t, check_factor, coarse_ij, id_bounds, bottom_up
-  use mo_river, only: river_t, d8_E, d8_SE, d8_S, d8_SW, d8_W, d8_NW, d8_N, d8_NE
+  use mo_grid, only: grid_t, check_factor, id_bounds, bottom_up
 
   implicit none
   private
   public :: fdir_upscaling
+  public :: unique_ids
+
+  !> \name D8 direction values
+  !> \brief Constants describing the D8 routing direction of a cell.
+  !!@{
+  integer(i2), public, parameter :: sink = 0_i2 !< sink
+  integer(i2), public, parameter :: d8_E = 1_i2 !< east
+  integer(i2), public, parameter :: d8_SE = 2_i2 !< south-east
+  integer(i2), public, parameter :: d8_S = 4_i2 !< south
+  integer(i2), public, parameter :: d8_SW = 8_i2 !< south-west
+  integer(i2), public, parameter :: d8_W = 16_i2 !< west
+  integer(i2), public, parameter :: d8_NW = 32_i2 !< north-west
+  integer(i2), public, parameter :: d8_N = 64_i2 !< north
+  integer(i2), public, parameter :: d8_NE = 128_i2 !< north-east
+  integer(i2), public, dimension(8), parameter :: d8_all = [d8_E, d8_SE, d8_S, d8_SW, d8_W, d8_NW, d8_N, d8_NE]
+  integer(i2), public, dimension(8), parameter :: d8_back = [d8_W, d8_NW, d8_N, d8_NE, d8_E, d8_SE, d8_S, d8_SW]
+  integer(i2), public, dimension(3), parameter :: d8_leave_E = [d8_NE, d8_E, d8_SE]
+  integer(i2), public, dimension(3), parameter :: d8_leave_S = [d8_SE, d8_S, d8_SW]
+  integer(i2), public, dimension(3), parameter :: d8_leave_W = [d8_SW, d8_W, d8_NW]
+  integer(i2), public, dimension(3), parameter :: d8_leave_N = [d8_NW, d8_N, d8_NE]
+  integer(i2), public, dimension(5), parameter :: d8_leave_SE = [d8_NE, d8_E, d8_SE, d8_S, d8_SW]
+  integer(i2), public, dimension(5), parameter :: d8_leave_SW = [d8_SE, d8_S, d8_SW, d8_W, d8_NW]
+  integer(i2), public, dimension(5), parameter :: d8_leave_NE = [d8_NW, d8_N, d8_NE, d8_E, d8_SE]
+  integer(i2), public, dimension(5), parameter :: d8_leave_NW = [d8_SW, d8_W, d8_NW, d8_N, d8_NE]
+  !!@}
+
+  !> \name LDD direction values
+  !> \brief Constants describing the local drain direction routing direction of a cell.
+  !!@{
+  integer(i1), public, parameter :: o = 0_i1 !< no-data shortcut
+  integer(i1), public, parameter :: ldd_sink = 5_i1 !< sink
+  integer(i1), public, parameter :: ldd_E = 6_i1 !< east
+  integer(i1), public, parameter :: ldd_SE = 3_i1 !< south-east
+  integer(i1), public, parameter :: ldd_S = 2_i1 !< south
+  integer(i1), public, parameter :: ldd_SW = 1_i1 !< south-west
+  integer(i1), public, parameter :: ldd_W = 4_i1 !< west
+  integer(i1), public, parameter :: ldd_NW = 7_i1 !< north-west
+  integer(i1), public, parameter :: ldd_N = 8_i1 !< north
+  integer(i1), public, parameter :: ldd_NE = 9_i1 !< north-east
+  integer(i1), public, dimension(8), parameter :: ldd_all = [ldd_E, ldd_SE, ldd_S, ldd_SW, ldd_W, ldd_NW, ldd_N, ldd_NE]
+  integer(i1), public, dimension(8), parameter :: ldd_back = [ldd_W, ldd_NW, ldd_N, ldd_NE, ldd_E, ldd_SE, ldd_S, ldd_SW]
+  integer(i4), public, dimension(9), parameter :: ldd_dx = [-1_i4, 0_i4, 1_i4, -1_i4, 0_i4, 1_i4, -1_i4, 0_i4, 1_i4]
+  integer(i4), public, dimension(9), parameter :: ldd_dy = [-1_i4, -1_i4, -1_i4, 0_i4, 0_i4, 0_i4, 1_i4, 1_i4, 1_i4]
+  integer(i2), public, dimension(9), parameter :: map_ldd_to_d8 = [d8_SW, d8_S, d8_SE, d8_W, sink, d8_E, d8_NW, d8_N, d8_NE]
+  integer(i1), public, dimension(128), parameter :: map_d8_to_ldd = [ &
+    ldd_E, &
+    ldd_SE, o, &
+    ldd_S,  o,o,o, &
+    ldd_SW, o,o,o,o,o,o,o, &
+    ldd_W,  o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
+    ldd_NW, o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
+    ldd_N,  o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
+            o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
+    ldd_NE]
+  !!@}
+
+  interface unique_ids
+    module procedure unique_ids_i4
+    module procedure unique_ids_i8
+  end interface unique_ids
 
 contains
+
+  !> \brief Check whether all 32-bit integer IDs are unique.
+  logical function unique_ids_i4(ids) result(unique)
+    integer(i4), intent(in) :: ids(:)
+    integer(i8) :: i, j
+
+    unique = .true.
+    !$omp parallel do default(shared) private(j) reduction(.and.:unique) schedule(guided)
+    do i = 1_i8, size(ids, kind=i8) - 1_i8
+      do j = i + 1_i8, size(ids, kind=i8)
+        unique = unique .and. ids(i) /= ids(j)
+      end do
+    end do
+    !$omp end parallel do
+  end function unique_ids_i4
+
+  !> \brief Check whether all 64-bit integer IDs are unique.
+  logical function unique_ids_i8(ids) result(unique)
+    integer(i8), intent(in) :: ids(:)
+    integer(i8) :: i, j
+
+    unique = .true.
+    !$omp parallel do default(shared) private(j) reduction(.and.:unique) schedule(guided)
+    do i = 1_i8, size(ids, kind=i8) - 1_i8
+      do j = i + 1_i8, size(ids, kind=i8)
+        unique = unique .and. ids(i) /= ids(j)
+      end do
+    end do
+    !$omp end parallel do
+  end function unique_ids_i8
 
   !> \brief Upscale flow direction from fine to coarse grid
   subroutine fdir_upscaling(fine_grid, fine_fdir, fine_facc, coarse_grid, fdir)

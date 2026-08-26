@@ -572,9 +572,9 @@ contains
 
   !> \brief Use exact SCC coarse gauge nodes and their station IDs as POIs.
   subroutine mrm_select_scc_pois(self, scc_ids)
+    use mo_river_tools, only: unique_ids
     class(mrm_t), target, intent(inout) :: self
     integer(i8), allocatable, intent(in), optional :: scc_ids(:)
-    integer(i8) :: i
 
     if (.not.self%river%scc) call error_message("mRM scc_gauges_as_poi requires active SCC river upscaling.")
     if (.not.present(scc_ids)) then
@@ -589,9 +589,7 @@ contains
       call error_message("mRM SCC station ID and coarse gauge-node counts differ.")
     end if
     if (size(scc_ids, kind=i8) < 1_i8) call error_message("mRM SCC POI selection contains no stations.")
-    do i = 2_i8, size(scc_ids, kind=i8)
-      if (any(scc_ids(:i-1_i8) == scc_ids(i))) call error_message("mRM SCC station IDs must be unique.")
-    end do
+    if (.not.unique_ids(scc_ids)) call error_message("mRM SCC station IDs must be unique.")
 
     self%poi%locations = self%upscaler%scc_coarse_gauges
     self%poi%ids = scc_ids
