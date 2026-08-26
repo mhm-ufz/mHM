@@ -53,7 +53,15 @@ set(FORCES_OpenMP_LINK_PUBLIC ${MHM_WITH_OpenMP} CACHE BOOL
 set(FORCES_ENABLE_NATIVE ${MHM_ENABLE_NATIVE} CACHE BOOL
   "Enable host-native tuning in FORCES (follows MHM_ENABLE_NATIVE)." FORCE
 )
-CPMAddPackage("https://git.ufz.de/chs/forces.git#${CPM_forces_VERSION}")
+CPMAddPackage(
+  NAME forces
+  VERSION "${CPM_forces_VERSION}"
+  URL
+    "https://github.com/mhm-ufz/FORCES/archive/${CPM_forces_VERSION}.tar.gz"
+    "https://git.ufz.de/chs/forces/-/archive/${CPM_forces_VERSION}/forces-${CPM_forces_VERSION}.tar.gz"
+  EXCLUDE_FROM_ALL YES
+  SYSTEM YES
+)
 if(DEFINED SKBUILD_METADATA_DIR)
   install(
     FILES "${FORCES_SOURCE_DIR}/LICENSE.md"
