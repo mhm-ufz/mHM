@@ -452,10 +452,14 @@ contains
       call self%exchange%level0%gen_grid(self%level3, target_resolution=self%exchange%level3_resolution)
     end if
     ! if (self%level3%has_aux_coords()) call self%level3%estimate_aux_vertices()
-    scope_debug(s,*) "level0 ncells", n2s(self%exchange%level0%ncells)
-    scope_debug(s,*) "level0 cellsize", n2s(self%exchange%level0%cellsize)
-    scope_debug(s,*) "level1 ncells", n2s(self%exchange%level1%ncells)
-    scope_debug(s,*) "level1 cellsize", n2s(self%exchange%level1%cellsize)
+    if (associated(self%exchange%level0)) then
+      scope_debug(s,*) "level0 ncells", n2s(self%exchange%level0%ncells)
+      scope_debug(s,*) "level0 cellsize", n2s(self%exchange%level0%cellsize)
+    end if
+    if (associated(self%exchange%level1)) then
+      scope_debug(s,*) "level1 ncells", n2s(self%exchange%level1%ncells)
+      scope_debug(s,*) "level1 cellsize", n2s(self%exchange%level1%cellsize)
+    end if
     scope_debug(s,*) "level3 ncells", n2s(self%level3%ncells)
     scope_debug(s,*) "level3 cellsize", n2s(self%level3%cellsize)
 
