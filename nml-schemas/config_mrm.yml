@@ -93,6 +93,24 @@ properties:
     x-fortran-shape: n_domains
     title: Path for SCC gauges NetCDF file.
     examples: [["scc_gauges.nc"]]
+  scc_gauges_as_poi:
+    type: array
+    items:
+      type: boolean
+      default: false
+    x-fortran-shape: n_domains
+    title: Use SCC gauges as POIs.
+    description: Use the exact coarse river nodes retained for SCC gauges as point-of-interest output locations.
+  poi_gauges_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: Path for POI gauges NetCDF file.
+    description: Point locations used to select the nearest mRM river nodes.
+    examples: [["poi_gauges.nc"]]
   output_path:
     type: array
     items:
@@ -111,6 +129,31 @@ properties:
     x-fortran-shape: n_domains
     title: Path for node based output file.
     examples: [["mrm_node_output.nc"]]
+  output_poi_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: Path for POI based output file.
+    examples: [["mrm_poi_output.nc"]]
+  poi_timeseries:
+    type: array
+    items:
+      type: boolean
+      default: true
+    x-fortran-shape: n_domains
+    title: Use station time-series layout for POI output.
+    description: Use the mo_points_io time-series layout for temporal POI variables.
+  node_timeseries:
+    type: array
+    items:
+      type: boolean
+      default: false
+    x-fortran-shape: n_domains
+    title: Use point time-series layout for node output.
+    description: Use the mo_points_io time-series layout for temporal node variables.
   read_restart:
     type: array
     items:

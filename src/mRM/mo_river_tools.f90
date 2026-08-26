@@ -10,95 +10,105 @@
 !! This code is released under the LGPLv3+ license \license_note
 module mo_river_tools
 
-  use mo_kind, only: dp, i2, i4, i8
-  use mo_os, only: path_ext
-  use mo_io, only: loadtxt
-  use mo_netcdf, only : NcDataset, NcVariable
+  use mo_kind, only: i1, i2, i4, i8
   use mo_message, only: error_message
-  use mo_string_utils, only : splitString
-  use mo_grid, only: is_x_axis, is_lon_coord, is_y_axis, is_lat_coord, grid_t, check_factor, coarse_ij, id_bounds, bottom_up
-  use mo_river, only: river_t, d8_E, d8_SE, d8_S, d8_SW, d8_W, d8_NW, d8_N, d8_NE
+  use mo_grid, only: grid_t, check_factor, id_bounds, bottom_up
 
   implicit none
   private
-  public :: read_scc_gauges
   public :: fdir_upscaling
+  public :: unique_ids
+
+  !> \name D8 direction values
+  !> \brief Constants describing the D8 routing direction of a cell.
+  !!@{
+  integer(i2), public, parameter :: sink = 0_i2 !< sink
+  integer(i2), public, parameter :: d8_E = 1_i2 !< east
+  integer(i2), public, parameter :: d8_SE = 2_i2 !< south-east
+  integer(i2), public, parameter :: d8_S = 4_i2 !< south
+  integer(i2), public, parameter :: d8_SW = 8_i2 !< south-west
+  integer(i2), public, parameter :: d8_W = 16_i2 !< west
+  integer(i2), public, parameter :: d8_NW = 32_i2 !< north-west
+  integer(i2), public, parameter :: d8_N = 64_i2 !< north
+  integer(i2), public, parameter :: d8_NE = 128_i2 !< north-east
+  integer(i2), public, dimension(8), parameter :: d8_all = [d8_E, d8_SE, d8_S, d8_SW, d8_W, d8_NW, d8_N, d8_NE]
+  integer(i2), public, dimension(8), parameter :: d8_back = [d8_W, d8_NW, d8_N, d8_NE, d8_E, d8_SE, d8_S, d8_SW]
+  integer(i2), public, dimension(3), parameter :: d8_leave_E = [d8_NE, d8_E, d8_SE]
+  integer(i2), public, dimension(3), parameter :: d8_leave_S = [d8_SE, d8_S, d8_SW]
+  integer(i2), public, dimension(3), parameter :: d8_leave_W = [d8_SW, d8_W, d8_NW]
+  integer(i2), public, dimension(3), parameter :: d8_leave_N = [d8_NW, d8_N, d8_NE]
+  integer(i2), public, dimension(5), parameter :: d8_leave_SE = [d8_NE, d8_E, d8_SE, d8_S, d8_SW]
+  integer(i2), public, dimension(5), parameter :: d8_leave_SW = [d8_SE, d8_S, d8_SW, d8_W, d8_NW]
+  integer(i2), public, dimension(5), parameter :: d8_leave_NE = [d8_NW, d8_N, d8_NE, d8_E, d8_SE]
+  integer(i2), public, dimension(5), parameter :: d8_leave_NW = [d8_SW, d8_W, d8_NW, d8_N, d8_NE]
+  !!@}
+
+  !> \name LDD direction values
+  !> \brief Constants describing the local drain direction routing direction of a cell.
+  !!@{
+  integer(i1), public, parameter :: o = 0_i1 !< no-data shortcut
+  integer(i1), public, parameter :: ldd_sink = 5_i1 !< sink
+  integer(i1), public, parameter :: ldd_E = 6_i1 !< east
+  integer(i1), public, parameter :: ldd_SE = 3_i1 !< south-east
+  integer(i1), public, parameter :: ldd_S = 2_i1 !< south
+  integer(i1), public, parameter :: ldd_SW = 1_i1 !< south-west
+  integer(i1), public, parameter :: ldd_W = 4_i1 !< west
+  integer(i1), public, parameter :: ldd_NW = 7_i1 !< north-west
+  integer(i1), public, parameter :: ldd_N = 8_i1 !< north
+  integer(i1), public, parameter :: ldd_NE = 9_i1 !< north-east
+  integer(i1), public, dimension(8), parameter :: ldd_all = [ldd_E, ldd_SE, ldd_S, ldd_SW, ldd_W, ldd_NW, ldd_N, ldd_NE]
+  integer(i1), public, dimension(8), parameter :: ldd_back = [ldd_W, ldd_NW, ldd_N, ldd_NE, ldd_E, ldd_SE, ldd_S, ldd_SW]
+  integer(i4), public, dimension(9), parameter :: ldd_dx = [-1_i4, 0_i4, 1_i4, -1_i4, 0_i4, 1_i4, -1_i4, 0_i4, 1_i4]
+  integer(i4), public, dimension(9), parameter :: ldd_dy = [-1_i4, -1_i4, -1_i4, 0_i4, 0_i4, 0_i4, 1_i4, 1_i4, 1_i4]
+  integer(i2), public, dimension(9), parameter :: map_ldd_to_d8 = [d8_SW, d8_S, d8_SE, d8_W, sink, d8_E, d8_NW, d8_N, d8_NE]
+  integer(i1), public, dimension(128), parameter :: map_d8_to_ldd = [ &
+    ldd_E, &
+    ldd_SE, o, &
+    ldd_S,  o,o,o, &
+    ldd_SW, o,o,o,o,o,o,o, &
+    ldd_W,  o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
+    ldd_NW, o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
+    ldd_N,  o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
+            o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
+    ldd_NE]
+  !!@}
+
+  interface unique_ids
+    module procedure unique_ids_i4
+    module procedure unique_ids_i8
+  end interface unique_ids
 
 contains
 
-  !> \brief Read scc gauges specifications
-  !> \details Read scc gauges specifications
-  subroutine read_scc_gauges(file, scc_gauges, scc_latlon, scc_id)
-    character(len=*), intent(in) :: file !< file containing the scc-gauges specification (.nc will be read as NetCDF)
-    real(dp), allocatable, intent(out) :: scc_gauges(:,:) !< SCC gauge location coordinates (dim 1: id, dim 2: (x,y))
-    logical, optional, intent(out) :: scc_latlon !< indicator for geographical coordinates of gauges
-    integer(i4), allocatable, optional, intent(out) :: scc_id(:) !< list of scc gauge IDs
-    type(NcDataset) :: nc
-    type(NcVariable) :: x_var, y_var, scc_var, c_var
-    character(len=256) :: tmp_str
-    character(len=256), allocatable, dimension(:) :: coords_str
-    logical :: is_lon, is_lat
-    real(dp), allocatable :: x(:), y(:)
-    integer(i4) :: i
+  !> \brief Check whether all 32-bit integer IDs are unique.
+  logical function unique_ids_i4(ids) result(unique)
+    integer(i4), intent(in) :: ids(:)
+    integer(i8) :: i, j
 
-    if (path_ext(file) /= ".nc") then
-      ! everything without .nc extension is read as CSV file
-      call loadtxt(file, scc_gauges)
-      if (present(scc_latlon)) scc_latlon = .true. ! assume latlon coordinates
-      if (present(scc_id)) scc_id = [(i, i=1_i4,size(scc_gauges,dim=1))] ! default numbering
-      return
-    end if
+    unique = .true.
+    !$omp parallel do default(shared) private(j) reduction(.and.:unique) schedule(guided)
+    do i = 1_i8, size(ids, kind=i8) - 1_i8
+      do j = i + 1_i8, size(ids, kind=i8)
+        unique = unique .and. ids(i) /= ids(j)
+      end do
+    end do
+    !$omp end parallel do
+  end function unique_ids_i4
 
-    nc = NcDataset(file, "r")
-    if (.not.nc%hasVariable("station")) then
-      call error_message("read_scc_gauges: NetCDF file has no variable 'station' - ", file)
-    end if
+  !> \brief Check whether all 64-bit integer IDs are unique.
+  logical function unique_ids_i8(ids) result(unique)
+    integer(i8), intent(in) :: ids(:)
+    integer(i8) :: i, j
 
-    scc_var = nc%getVariable("station")
-    if (.not.scc_var%hasAttribute("coordinates")) then
-      call error_message("read_scc_gauges: NetCDF variable 'station' has no attribute coordinates - ", file)
-    end if
-
-    call scc_var%getAttribute("coordinates", tmp_str)
-    coords_str = splitString(trim(tmp_str), " ")
-    if (size(coords_str) /= 2) then
-      call error_message("read_scc_gauges: NetCDF variable 'station' needs to have exactly two coordinates - ", file)
-    end if
-
-    ! determine coordinates order
-    c_var = nc%getVariable(trim(coords_str(1)))
-    if (is_x_axis(c_var).or.is_lon_coord(c_var)) then
-      x_var = nc%getVariable(trim(coords_str(1)))
-      y_var = nc%getVariable(trim(coords_str(2)))
-    else
-      x_var = nc%getVariable(trim(coords_str(2)))
-      y_var = nc%getVariable(trim(coords_str(1)))
-    end if
-
-    is_lon = is_lon_coord(x_var)
-    is_lat = is_lat_coord(y_var)
-    if (.not.(is_x_axis(x_var).or.is_lon)) then
-      call error_message("read_scc_gauges: NetCDF variable '", trim(x_var%getName()) ,"' is not a x-coordinate - ", file)
-    end if
-    if (.not.(is_y_axis(y_var).or.is_lat)) then
-      call error_message("read_scc_gauges: NetCDF variable '", trim(y_var%getName()) ,"' is not a y-coordinate - ", file)
-    end if
-    if (is_lon.neqv.is_lat) then
-      call error_message("read_scc_gauges: NetCDF 'station' coordinates have different projections - ", file)
-    end if
-    if (present(scc_latlon)) scc_latlon = is_lon
-
-    call x_var%getData(x)
-    call y_var%getData(y)
-    if (size(x) /= size(y)) then
-      call error_message("read_scc_gauges: NetCDF 'station' coordinates have different sizes - ", file)
-    end if
-    allocate(scc_gauges(size(x), 2))
-    scc_gauges(:, 1) = x(:)
-    scc_gauges(:, 2) = y(:)
-    if (present(scc_id)) call scc_var%getData(scc_id)
-
-  end subroutine read_scc_gauges
+    unique = .true.
+    !$omp parallel do default(shared) private(j) reduction(.and.:unique) schedule(guided)
+    do i = 1_i8, size(ids, kind=i8) - 1_i8
+      do j = i + 1_i8, size(ids, kind=i8)
+        unique = unique .and. ids(i) /= ids(j)
+      end do
+    end do
+    !$omp end parallel do
+  end function unique_ids_i8
 
   !> \brief Upscale flow direction from fine to coarse grid
   subroutine fdir_upscaling(fine_grid, fine_fdir, fine_facc, coarse_grid, fdir)

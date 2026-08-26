@@ -39,6 +39,7 @@ contains
     fdir(ids(5,2)) = d8_S
     fdir(ids(6,2)) = d8_S
     call fine_river%from_fdir(fdir, fine_grid)
+    @assertEqual(fine_river%n_nodes, fine_river%points%n_points, message='D8 river owns one point per node')
     call fine_river%calc_order(root=.true.)
     call fine_river%calc_facc()
 
@@ -63,6 +64,9 @@ contains
     @assertEqual(3_i8, flow_river%down(2))
     @assertEqual(0_i8, legacy_river%down(3))
     @assertEqual(0_i8, flow_river%down(3))
+    @assertEqual(flow_river%n_nodes, flow_river%points%n_points, message='upscaled river owns one point per node')
+    @assertEqual(fine_river%points%x(flow_upscaler%link_start(1)), flow_river%points%x(1), tolerance=1.e-12_dp)
+    @assertEqual(fine_river%points%y(flow_upscaler%link_start(1)), flow_river%points%y(1), tolerance=1.e-12_dp)
 
     @assertEqual(ids(2,1), legacy_upscaler%link_start(1))
     @assertEqual(ids(6,1), legacy_upscaler%link_end(1))
@@ -146,6 +150,8 @@ contains
     @assertEqual(5_i8, coarse_river%down(2), message='gauge trace follows fine river to downstream sink')
     @assertEqual(ids(4,2), upscaler%link_end(1))
     @assertEqual(ids(6,1), upscaler%link_end(2))
+    @assertEqual(gauges(1,1), coarse_river%points%x(upscaler%scc_coarse_gauges(1)), tolerance=1.e-12_dp)
+    @assertEqual(gauges(1,2), coarse_river%points%y(upscaler%scc_coarse_gauges(1)), tolerance=1.e-12_dp)
   end subroutine test_flow_scc_endpoint
 
   @test
@@ -158,6 +164,9 @@ contains
     @assertEqual(NML_OK, status)
     @assertEqual(1_i4, config%upscale_mode(1), message='FLOW-like mode is the default')
     @assertEqual(40.0_dp, config%length_percentile(1), tolerance=1.e-12_dp)
+    @assertFalse(config%scc_gauges_as_poi(1), message='SCC gauges are not POIs by default')
+    @assertTrue(config%poi_timeseries(1), message='POI output defaults to time-major layout')
+    @assertFalse(config%node_timeseries(1), message='node output defaults to node-major layout')
 
     status = config%set(upscale_mode=[2_i4], errmsg=errmsg)
     @assertEqual(NML_OK, status)

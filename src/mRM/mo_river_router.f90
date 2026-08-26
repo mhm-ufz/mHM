@@ -41,18 +41,6 @@ module mo_river_router
   public :: derive_routing_timing
   !!@}
 
-  !> \class inflow_t
-  !> \brief Inflow handler
-  type, public :: inflow_t
-    integer(i8) :: count = 0_i8 !< number of inflow nodes
-    integer(i8), allocatable :: nodes(:) !< list of inflow nodes [id]
-    logical, allocatable :: headwater(:) !< whether to consider headwater cells of inflow gauge
-    real(dp), allocatable :: rate(:) !< inflow rate [m3 s-1]
-  ! contains
-    ! procedure, public :: init => inflow_init
-    ! procedure, public :: add => inflow_add
-  end type inflow_t
-
   !> \class river_router_t
   !> \brief River network router
   type, public :: river_router_t
@@ -65,7 +53,6 @@ module mo_river_router
     real(dp) :: routing_substep !< [s] numerical routing step for meeting the CFL condition
     integer(i4) :: iterations !< number of numerical substeps for each routing step
     integer(i4) :: accumulations !< number of model updates for each routing step
-    type(inflow_t) :: inflow_handler !< inflow handler
     !> [mm] accumulated runoff size(input_grid\%ncells)
     real(dp), allocatable :: acc_runoff(:)
     !> [m3 s-1] runoff flux for current cell as intermediate result for SCC, size(river\%grid\%ncells)
@@ -225,7 +212,6 @@ contains
     type(river_t), pointer, intent(in) :: river !< river definition
     type(grid_t), pointer, intent(in) :: input_grid !< input grid
     integer(i4), intent(in), optional :: input_step !< [h] input time step size (1 by default)
-    ! type(inflow_t), intent(in), optional :: inflow_handler !< inflow specifications
     real(dp), optional, intent(in) :: max_route_step !< [s] maximum routing time step (default: 86400.0)
     logical, intent(in), optional :: root_levels !< order levels as distance from graph roots (default: .false.)
     !> minimum size of river-levels to route in parallel (default: -1 - threads*8, specials: 0 - all serial, 1 - all in parallel)
@@ -238,8 +224,6 @@ contains
     model_step_ = optval(model_step, this%input_step)
     call this%setup_grids(river, input_grid)
     call this%allocate() ! allocate arrays based on river and input grid size
-
-    ! TODO: if (present(inflow_handler)) this%inflow_handler = inflow_handler
 
     ! initial states
     this%input_count = 0_i4
@@ -262,7 +246,6 @@ contains
     type(river_t), pointer, intent(in) :: river !< river definition
     type(grid_t), pointer, intent(in) :: input_grid !< input grid
     integer(i4), intent(in), optional :: input_step !< [h] input time step size (1 by default)
-    ! type(inflow_t), intent(in), optional :: inflow_handler !< inflow specifications
     real(dp), optional, intent(in) :: max_route_step !< [s] maximum routing time step (default: 86400.0)
     logical, intent(in), optional :: root_levels !< order levels as distance from graph roots (default: .false.)
     !> minimum size of river-levels to route in parallel (default: threads * 8, 0 to run all in serial, 1 to run all in parallel)
@@ -287,7 +270,6 @@ contains
     type(river_t), pointer, intent(in) :: river !< river definition
     type(grid_t), pointer, intent(in) :: input_grid !< input grid
     integer(i4), intent(in), optional :: input_step !< [h] input time step size (1 by default)
-    ! type(inflow_t), intent(in), optional :: inflow_handler !< inflow specifications
     real(dp), optional, intent(in) :: max_route_step !< [s] maximum routing time step (default: 86400.0)
     logical, intent(in), optional :: root_levels !< order levels as distance from graph roots (default: .false.)
     !> minimum size of river-levels to route in parallel (default: threads * 8, 0 to run all in serial, 1 to run all in parallel)
@@ -305,8 +287,6 @@ contains
     model_step_ = optval(model_step, this%input_step)
     call this%setup_grids(river, input_grid)
     call this%allocate() ! allocate arrays based on river and input grid size
-
-    ! TODO: if (present(inflow_handler)) this%inflow_handler = inflow_handler
 
     ! initial states
     this%input_count = 0_i4
@@ -696,7 +676,6 @@ contains
       do m = 1_i4, n_edges
         inflow = inflow + tributary(edges(m))
       end do
-      ! TODO: add/replace inflow with inflow handler at inflow gauges
       ! discharge is the accumulated inflow at current node
       discharge(n) = inflow
       if (is_sink(n)) then

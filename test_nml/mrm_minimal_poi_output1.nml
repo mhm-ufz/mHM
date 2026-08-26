@@ -1,0 +1,34 @@
+&config_project
+  n_domains = 1
+  n_geo_units = 10
+/
+
+&config_processes
+  routing = 2
+/
+
+&config_time
+  sim_start(1) = "1990-01-01"
+  eval_start(1) = "1990-01-01"
+  sim_end(1) = "1990-02-01"
+/
+
+&config_resolution
+  route(1) = 6000.0
+/
+
+&config_input
+  runoff_path(1) = "examples/fixtures/runoff.nc"
+  runoff_var(1) = "Q"
+  fdir_path(1) = "examples/fixtures/input.nc"
+/
+
+&config_mrm
+  max_route_step(1) = 3600
+  scc_gauges_path(1) = "examples/fixtures/scc_gauges.nc"
+  scc_gauges_as_poi(1) = .true.
+  output_node_path(1) = "mrm_node_output_test1.nc"
+  output_poi_path(1) = "mrm_poi_output_test1.nc"
+  write_restart(1) = .true.
+  restart_output_path(1) = "mrm_poi_restart_test.nc"
+/

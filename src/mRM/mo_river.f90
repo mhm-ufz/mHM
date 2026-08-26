@@ -14,83 +14,25 @@ module mo_river
   use mo_dag, only: branching, order_t, traversal_visit
   use mo_grid, only: grid_t, bottom_up, cartesian, dist_latlon
   use mo_grid_io, only: var, output_dataset
+  use mo_points, only: points_t
   use mo_message, only: error_message, message
   use mo_utils, only: optval
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_constants, only: nodata_i1, nodata_i2, nodata_i4, nodata_i8, nodata_dp
+  use mo_river_tools, only: sink, d8_E, d8_SE, d8_S, d8_SW, d8_W, d8_NW, d8_N, d8_NE, &
+    d8_all, d8_back, d8_leave_E, d8_leave_S, d8_leave_W, d8_leave_N, &
+    d8_leave_SE, d8_leave_SW, d8_leave_NE, d8_leave_NW, &
+    o, ldd_sink, ldd_E, ldd_SE, ldd_S, ldd_SW, ldd_W, ldd_NW, ldd_N, ldd_NE, &
+    ldd_all, ldd_back, ldd_dx, ldd_dy, map_ldd_to_d8, map_d8_to_ldd
 
   implicit none
   private
 
-  !> \name D8 direction values
-  !> \brief Constants describing the D8 routing direction of a cell.
-  !!@{
-  integer(i2), public, parameter :: sink = 0_i2 !< sink
-  integer(i2), public, parameter :: d8_E = 1_i2 !< east
-  integer(i2), public, parameter :: d8_SE = 2_i2 !< south-east
-  integer(i2), public, parameter :: d8_S = 4_i2 !< south
-  integer(i2), public, parameter :: d8_SW = 8_i2 !< south-west
-  integer(i2), public, parameter :: d8_W = 16_i2 !< west
-  integer(i2), public, parameter :: d8_NW = 32_i2 !< north-west
-  integer(i2), public, parameter :: d8_N = 64_i2 !< north
-  integer(i2), public, parameter :: d8_NE = 128_i2 !< north-east
-  !> all directions as array
-  integer(i2), public, dimension(8), parameter :: d8_all = [d8_E, d8_SE, d8_S, d8_SW, d8_W, d8_NW, d8_N, d8_NE]
-  !> matching back pointing directions as array
-  integer(i2), public, dimension(8), parameter :: d8_back = [d8_W, d8_NW, d8_N, d8_NE, d8_E, d8_SE, d8_S, d8_SW]
-  !> leaving directions at east border as array
-  integer(i2), public, dimension(3), parameter :: d8_leave_E = [d8_NE, d8_E, d8_SE]
-  !> leaving directions at south border as array
-  integer(i2), public, dimension(3), parameter :: d8_leave_S = [d8_SE, d8_S, d8_SW]
-  !> leaving directions at west border as array
-  integer(i2), public, dimension(3), parameter :: d8_leave_W = [d8_SW, d8_W, d8_NW]
-  !> leaving directions at north border as array
-  integer(i2), public, dimension(3), parameter :: d8_leave_N = [d8_NW, d8_N, d8_NE]
-  !> leaving directions at south-east corner as array
-  integer(i2), public, dimension(5), parameter :: d8_leave_SE = [d8_NE, d8_E, d8_SE, d8_S, d8_SW]
-  !> leaving directions at south-west corner as array
-  integer(i2), public, dimension(5), parameter :: d8_leave_SW = [d8_SE, d8_S, d8_SW, d8_W, d8_NW]
-  !> leaving directions at north-east corner as array
-  integer(i2), public, dimension(5), parameter :: d8_leave_NE = [d8_NW, d8_N, d8_NE, d8_E, d8_SE]
-  !> leaving directions at north-west corner as array
-  integer(i2), public, dimension(5), parameter :: d8_leave_NW = [d8_SW, d8_W, d8_NW, d8_N, d8_NE]
-  !!@}
-
-  !> \name ldd direction values
-  !> \brief Constants describing the Local drain direction (lld) routing direction of a cell.
-  !!@{
-  integer(i1), public, parameter :: o = 0_i1 !< no-data shortcut
-  integer(i1), public, parameter :: ldd_sink = 5_i1 !< sink
-  integer(i1), public, parameter :: ldd_E = 6_i1 !< east
-  integer(i1), public, parameter :: ldd_SE = 3_i1 !< south-east
-  integer(i1), public, parameter :: ldd_S = 2_i1 !< south
-  integer(i1), public, parameter :: ldd_SW = 1_i1 !< south-west
-  integer(i1), public, parameter :: ldd_W = 4_i1 !< west
-  integer(i1), public, parameter :: ldd_NW = 7_i1 !< north-west
-  integer(i1), public, parameter :: ldd_N = 8_i1 !< north
-  integer(i1), public, parameter :: ldd_NE = 9_i1 !< north-east
-  !> all directions as array
-  integer(i1), public, dimension(8), parameter :: ldd_all = [ldd_E, ldd_SE, ldd_S, ldd_SW, ldd_W, ldd_NW, ldd_N, ldd_NE]
-  !> matching back pointing directions as array
-  integer(i1), public, dimension(8), parameter :: ldd_back = [ldd_W, ldd_NW, ldd_N, ldd_NE, ldd_E, ldd_SE, ldd_S, ldd_SW]
-  !> x direction change for given ldd flow direction
-  integer(i4), public, dimension(9), parameter :: ldd_dx = [-1_i4, 0_i4, 1_i4, -1_i4, 0_i4, 1_i4, -1_i4, 0_i4, 1_i4]
-  !> y direction change for given ldd flow direction (bottom-up)
-  integer(i4), public, dimension(9), parameter :: ldd_dy = [-1_i4, -1_i4, -1_i4, 0_i4, 0_i4, 0_i4, 1_i4, 1_i4, 1_i4]
-  !> ldd to d8 conversion
-  integer(i2), public, dimension(9), parameter :: map_ldd_to_d8 = [d8_SW, d8_S, d8_SE, d8_W, sink, d8_E, d8_NW, d8_N, d8_NE]
-  !> d8 to ldd conversion (array mostly empty)
-  integer(i1), public, dimension(128), parameter :: map_d8_to_ldd = [ &
-    ldd_E, &
-    ldd_SE, o, &
-    ldd_S,  o,o,o, &
-    ldd_SW, o,o,o,o,o,o,o, &
-    ldd_W,  o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
-    ldd_NW, o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
-    ldd_N,  o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
-            o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
-    ldd_NE]
-  !!@}
+  public :: sink, d8_E, d8_SE, d8_S, d8_SW, d8_W, d8_NW, d8_N, d8_NE
+  public :: d8_all, d8_back, d8_leave_E, d8_leave_S, d8_leave_W, d8_leave_N
+  public :: d8_leave_SE, d8_leave_SW, d8_leave_NE, d8_leave_NW
+  public :: o, ldd_sink, ldd_E, ldd_SE, ldd_S, ldd_SW, ldd_W, ldd_NW, ldd_N, ldd_NE
+  public :: ldd_all, ldd_back, ldd_dx, ldd_dy, map_ldd_to_d8, map_d8_to_ldd
 
   !> \class river_t
   !> \brief River network representation
@@ -109,8 +51,7 @@ module mo_river
     integer(i8), allocatable :: node_cell(:) !< map node to grid cell id size(n_nodes)
     integer(i8), allocatable :: cell_node_select(:) !< select contained node to represent cell (e.g. highest facc) size(ncells)
     real(dp), allocatable :: area_fraction(:) !< area fraction for each node in cell size(n_nodes)
-    real(dp), allocatable :: node_x(:) !< x coordinate for each node size(n_nodes)
-    real(dp), allocatable :: node_y(:) !< x coordinate for each node size(n_nodes)
+    type(points_t) :: points !< coordinates of all river nodes
   contains
     procedure, public :: from_fdir => river_from_fdir
     procedure, public :: calc_order => river_order
@@ -336,7 +277,7 @@ contains
     integer(i8) :: downstream,  i
     integer(i4) :: dy ! direction of north in the grid matrix (1/-1)
     logical :: periodic, calc_length, calc_node_xy
-    real(dp), allocatable :: xax(:), yax(:)
+    real(dp), allocatable :: xax(:), yax(:), node_x(:), node_y(:)
 
     calc_length = optval(calculate_length, .true.)
     calc_node_xy = optval(calculate_node_xy, .true.)
@@ -394,16 +335,19 @@ contains
 
     ! determine node locations
     if (calc_node_xy) then
-      allocate(this%node_x(this%n_nodes))
-      allocate(this%node_y(this%n_nodes))
+      allocate(node_x(this%n_nodes), node_y(this%n_nodes))
       xax = this%grid%x_axis()
       yax = this%grid%y_axis()
       !$omp parallel do default(shared) schedule(static)
       do i = 1_i8, this%grid%ncells
-        this%node_x(i) = xax(this%grid%cell_ij(i, 1))
-        this%node_y(i) = yax(this%grid%cell_ij(i, 2))
+        node_x(i) = xax(this%grid%cell_ij(i, 1))
+        node_y(i) = yax(this%grid%cell_ij(i, 2))
       end do
       !$omp end parallel do
+      this%points%coordsys = this%grid%coordsys
+      this%points%n_points = this%n_nodes
+      call move_alloc(node_x, this%points%x)
+      call move_alloc(node_y, this%points%y)
     end if
   end subroutine river_from_fdir
 
@@ -451,18 +395,22 @@ contains
   !> \brief Calculate flow accumulation
   subroutine river_label_subcatchments(this, label_map, selected_nodes, labels, default_label)
     use mo_message, only: error_message
+    use mo_river_tools, only: unique_ids
     class(river_t), intent(inout) :: this
     integer(i4), allocatable, intent(out) :: label_map(:) !< subcatchment labels
     integer(i8), dimension(:), intent(in) :: selected_nodes !< nodes to label subcatchments from
     integer(i4), dimension(:), optional, intent(in) :: labels !< labels used for subcatchments
     integer(i4), optional, intent(in) :: default_label !< default label for unlabeled nodes (default: 0)
     integer(i8) :: i, j, n
-    integer(i4) :: def, m, k
+    integer(i4) :: def, m
     logical :: reverse_order
 
     if (present(labels)) then
       if (size(labels, kind=i8) /= size(selected_nodes, kind=i8)) then
         call error_message("river_label_subcatchments: size of labels does not match size of selected_nodes")
+      end if
+      if (.not.unique_ids(labels)) then
+        call error_message("river_label_subcatchments: given label occurs more than once")
       end if
     end if
 
@@ -486,11 +434,6 @@ contains
         if (labels(m) == def) then
           call error_message("river_label_subcatchments: given label equals default label")
         end if
-        do k = m + 1_i4, size(selected_nodes, kind=i4)
-          if (labels(m) == labels(k)) then
-            call error_message("river_label_subcatchments: given label occurs more than once")
-          end if
-        end do
         if (label_map(selected_nodes(m)) /= def) then
           call error_message("river_label_subcatchments: selected node occurs more than once")
         end if
@@ -1025,7 +968,7 @@ contains
     call nc_var%setAttribute("long_name", "river network definition")
     call nc_var%setAttribute("topology_dimension", 1_i4)  ! 0 - only nodes, 1 - with links
     call nc_var%setAttribute("edge_node_connectivity", "links")
-    if ( allocated(this%node_x) .and. allocated(this%node_y) ) then
+    if (this%points%n_points == this%n_nodes) then
       call nc_var%setAttribute("node_coordinates", "river_node_x river_node_y")
     end if
 
@@ -1083,7 +1026,7 @@ contains
     ! tags
     ! don't need to write tags - will be standard either way (1..n)
 
-    if ( allocated(this%node_x) .and. allocated(this%node_y) ) then
+    if (this%points%n_points == this%n_nodes) then
       ! coordinates
       node_x_var = nc%setVariable("river_node_x", "f64", [node_dim])
       node_y_var = nc%setVariable("river_node_y", "f64", [node_dim])
@@ -1102,8 +1045,8 @@ contains
         call node_y_var%setAttribute("standard_name", "latitude")
         call node_y_var%setAttribute("units", "degrees_north")
       end if
-      call node_x_var%setData(this%node_x)
-      call node_y_var%setData(this%node_y)
+      call node_x_var%setData(this%points%x)
+      call node_y_var%setData(this%points%y)
     end if
 
     ! fdir
@@ -1257,6 +1200,7 @@ contains
     integer(i1), allocatable :: dummy_i1
     integer(i2), allocatable :: dummy2di2(:, :)
     integer(i8), allocatable :: dummy2di8(:, :)
+    real(dp), allocatable :: node_x(:), node_y(:)
 
     ! reset all attributes
     call this%clean()
@@ -1306,16 +1250,19 @@ contains
     allocate(this%off_up(this%n_nodes))
     call nc_var%readInto(this%off_up)
 
+    if (nc%hasVariable("river_node_x") .neqv. nc%hasVariable("river_node_y")) then
+      call error_message("river%from_restart: incomplete river node coordinates")
+    end if
     if (nc%hasVariable("river_node_x")) then
       nc_var = nc%getVariable("river_node_x")
-      allocate(this%node_x(this%n_nodes))
-      call nc_var%readInto(this%node_x)
-    end if
-
-    if (nc%hasVariable("river_node_y")) then
+      allocate(node_x(this%n_nodes), node_y(this%n_nodes))
+      call nc_var%readInto(node_x)
       nc_var = nc%getVariable("river_node_y")
-      allocate(this%node_y(this%n_nodes))
-      call nc_var%readInto(this%node_y)
+      call nc_var%readInto(node_y)
+      this%points%coordsys = this%grid%coordsys
+      this%points%n_points = this%n_nodes
+      call move_alloc(node_x, this%points%x)
+      call move_alloc(node_y, this%points%y)
     end if
 
     if (nc%hasVariable("fdir")) then
@@ -1416,8 +1363,7 @@ contains
     if (allocated(this%link_length)) deallocate(this%link_length)
     if (allocated(this%link_slope)) deallocate(this%link_slope)
     if (allocated(this%celerity)) deallocate(this%celerity)
-    if (allocated(this%node_x)) deallocate(this%node_x)
-    if (allocated(this%node_y)) deallocate(this%node_y)
+    this%points = points_t()
     if (allocated(this%node_cell)) deallocate(this%node_cell)
     if (allocated(this%cell_node_select)) deallocate(this%cell_node_select)
     if (allocated(this%area_fraction)) deallocate(this%area_fraction)

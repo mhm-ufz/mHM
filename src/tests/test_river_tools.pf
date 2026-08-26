@@ -1,0 +1,38 @@
+module test_river_tools
+  use funit
+  use mo_kind, only: i4, i8
+  use mo_river_tools, only: unique_ids
+
+  implicit none
+  private
+
+  public :: test_unique_ids_i4
+  public :: test_unique_ids_i8
+
+contains
+
+  @test
+  subroutine test_unique_ids_i4()
+    integer(i4) :: ids(5)
+
+    ids = [5_i4, -2_i4, 0_i4, 12_i4, 1_i4]
+    @assertTrue(unique_ids(ids))
+    ids(4) = -2_i4
+    @assertFalse(unique_ids(ids))
+  end subroutine test_unique_ids_i4
+
+  @test
+  subroutine test_unique_ids_i8()
+    integer(i8), allocatable :: ids(:)
+    integer(i8) :: i
+
+    allocate(ids(10000_i8))
+    do i = 1_i8, size(ids, kind=i8)
+      ids(i) = size(ids, kind=i8) - i
+    end do
+    @assertTrue(unique_ids(ids))
+    ids(size(ids, kind=i8)) = ids(1)
+    @assertFalse(unique_ids(ids))
+  end subroutine test_unique_ids_i8
+
+end module test_river_tools

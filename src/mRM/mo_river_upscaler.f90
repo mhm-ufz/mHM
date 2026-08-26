@@ -213,12 +213,14 @@ contains
     integer(i4) :: j, sub, facc_max, ix, iy, loc(2)
     integer(i4) :: yl, yu, xl, xu
     real(dp) :: length_cutoff
+    real(dp), allocatable :: node_x(:), node_y(:)
     logical :: has_sub_init, mark_stream
 
     if (.not.allocated(this%fine_river%facc)) call error_message("river_upscaler%upscale: facc not available")
     if (.not.allocated(this%fine_river%link_length)) call error_message("river_upscaler%upscale: link length not available")
-    if (.not.allocated(this%fine_river%node_x)) call error_message("river_upscaler%upscale: node location not available")
-    if (.not.allocated(this%fine_river%node_y)) call error_message("river_upscaler%upscale: node location not available")
+    if (this%fine_river%points%n_points /= this%fine_river%n_nodes) then
+      call error_message("river_upscaler%upscale: node location not available")
+    end if
 
     call message("river_upscaler%upscale: initialize sub-catchment attributes")
     allocate(has_sub(this%coarse_river%grid%ncells, scratch%nsub))
@@ -280,8 +282,7 @@ contains
     end if
     allocate(this%coarse_river%is_sink(n_nodes))
     allocate(this%coarse_river%link_length(n_nodes))
-    allocate(this%coarse_river%node_x(n_nodes))
-    allocate(this%coarse_river%node_y(n_nodes))
+    allocate(node_x(n_nodes), node_y(n_nodes))
     ! upscaler attributes
     allocate(is_scc_coarse_gauge(n_nodes))
     allocate(node_sub(n_nodes))
@@ -415,15 +416,19 @@ contains
     !$omp parallel do default(shared)
     do i = 1_i8, n_nodes
       if (this%coarse_river%is_sink(i)) then
-        this%coarse_river%node_x(i) = this%fine_river%node_x(sink_map(i))
-        this%coarse_river%node_y(i) = this%fine_river%node_y(sink_map(i))
+        node_x(i) = this%fine_river%points%x(sink_map(i))
+        node_y(i) = this%fine_river%points%y(sink_map(i))
       else
-        this%coarse_river%node_x(i) = this%fine_river%node_x(this%link_start(i))
-        this%coarse_river%node_y(i) = this%fine_river%node_y(this%link_start(i))
+        node_x(i) = this%fine_river%points%x(this%link_start(i))
+        node_y(i) = this%fine_river%points%y(this%link_start(i))
         is_link_start(this%link_start(i)) = .true.
       end if
     end do
     !$omp end parallel do
+    this%coarse_river%points%coordsys = this%fine_river%points%coordsys
+    this%coarse_river%points%n_points = n_nodes
+    call move_alloc(node_x, this%coarse_river%points%x)
+    call move_alloc(node_y, this%coarse_river%points%y)
 
     ! mark stream mask and determine coarse link lengths and downstream nodes
     call message("river_upscaler%upscale: mark stream mask and determine coarse link lengths and downstream nodes")

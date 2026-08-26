@@ -468,10 +468,20 @@
   length_percentile(:) = 40.0
   ! Path for SCC gauges NetCDF file.
   scc_gauges_path(:) = "scc_gauges.nc"
+  ! Use SCC gauges as POIs.
+  scc_gauges_as_poi(:) = .false.
+  ! Path for POI gauges NetCDF file.
+  poi_gauges_path(:) = "poi_gauges.nc"
   ! Path for output file.
   output_path(:) = "mrm_output.nc"
   ! Path for node based output file.
   output_node_path(:) = "mrm_node_output.nc"
+  ! Path for POI based output file.
+  output_poi_path(:) = "mrm_poi_output.nc"
+  ! Use station time-series layout for POI output.
+  poi_timeseries(:) = .true.
+  ! Use point time-series layout for node output.
+  node_timeseries(:) = .false.
   ! Read restart
   read_restart(:) = .false.
   ! Read restart fluxes
