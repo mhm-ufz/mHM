@@ -45,7 +45,15 @@ set(FORCES_WITH_MPI ${CMAKE_WITH_MPI} CACHE BOOL
 set(FORCES_WITH_OpenMP ${CMAKE_WITH_OpenMP} CACHE BOOL
   "Build FORCES with OpenMP support (mirrors CMAKE_WITH_OpenMP)." FORCE
 )
-CPMAddPackage("https://git.ufz.de/chs/forces.git#${CPM_forces_VERSION}")
+CPMAddPackage(
+  NAME forces
+  VERSION "${CPM_forces_VERSION}"
+  URL
+    "https://github.com/mhm-ufz/FORCES/archive/${CPM_forces_VERSION}.tar.gz"
+    "https://git.ufz.de/chs/forces/-/archive/${CPM_forces_VERSION}/forces-${CPM_forces_VERSION}.tar.gz"
+  EXCLUDE_FROM_ALL YES
+  SYSTEM YES
+)
 if(DEFINED SKBUILD_METADATA_DIR)
   install(
     FILES "${FORCES_SOURCE_DIR}/LICENSE.md"
