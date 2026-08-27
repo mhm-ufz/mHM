@@ -19,6 +19,7 @@
 module mo_exchange_type
   use mo_logging
   use mo_grid, only: grid_t
+  use mo_river, only: river_t
   use mo_grid_io, only: output_var_meta_t => var, no_time, daily, monthly, yearly, varying
   use mo_netcdf, only: NcVariable
   use mo_geology_classdefinition, only: geology_classdefinition_t
@@ -223,6 +224,9 @@ module mo_exchange_type
     type(grid_t), pointer :: level2 => null() !< level2 grid of the meteorology
     type(grid_t), pointer :: level3 => null() !< level3 grid of the river network
     real(dp), dimension(:), pointer :: soil_horizon_bounds => null() !< soil-horizon boundary depths [mm] for mHM metadata
+
+    ! static topology
+    type(river_t), pointer :: river_l0 => null() !< full level-0 river network
 
     ! grid resolutions (for deriving grids after configuration)
     real(dp) :: level0_resolution = 0.0_dp !< level0 resolution of the morphology

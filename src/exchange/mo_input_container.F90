@@ -17,7 +17,8 @@ module mo_input_container
   use mo_os, only: path_ext
   use mo_exchange_type, only: exchange_t, var_dp
   use mo_datetime, only: datetime, timedelta, HOUR_SECONDS, DAY_HOURS, one_hour, one_day
-  use mo_grid, only: grid_t, cartesian, spherical
+  use mo_grid, only: grid_t, data_t, cartesian, spherical
+  use mo_river, only: river_t
   use mo_grid_io, only: var, input_dataset, end_timestamp, start_timestamp, no_time, daily, monthly, yearly, varying
   use mo_string_utils, only: n2s => num2str
   use nml_config_input, only: nml_config_input_t
@@ -126,6 +127,8 @@ module mo_input_container
     type(grid_t) :: tgt_level1 !< grid level 1 of the domain if given from input
     type(grid_t) :: tgt_level2 !< grid level 2 of the domain if given from input
     type(grid_t) :: tgt_level3 !< grid level 3 of the domain if given from input
+    type(river_t) :: river_l0 !< full level-0 river network derived from flow direction
+    logical :: owns_river_l0 = .false. !< whether this input instance published the level-0 river
     integer(i4) :: chunking !< chunking configuration (0 single read, -1 daily, -2 monthly, -3 yearly, >0 every n hours)
     integer(i4) :: time_stamp_location !< location of time-stamp variable in input datasets (0 start, 1 center, 2 end)
     logical :: morph_latlon = .false. !< whether morphology inputs are defined in spherical (lat/lon) coordinates
@@ -163,6 +166,8 @@ module mo_input_container
     procedure :: initialize => input_initialize
     procedure :: update => input_update
     procedure :: finalize => input_finalize
+    procedure, private :: read_fdir_file => input_read_fdir_file
+    procedure, private :: build_river_l0 => input_build_river_l0
   end type input_t
 
 contains
@@ -847,7 +852,6 @@ contains
       call self%fdir%init( &
         path=self%exchange%get_path(self%config%input%fdir_path(id(1))), name=self%config%input%fdir_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%fdir%provided = .true. ! mark as provided in exchange
     end if
 
     ! flow accumulation (facc_var by default "facc")
@@ -1010,6 +1014,14 @@ contains
     log_info(*) "Connect Input"
     ts = self%time_stamp_location
 
+    ! Flow direction establishes the full level-0 grid and river before all other morphology inputs.
+    if (self%fdir%coupled) then
+      log_fatal(*) "Input: coupled flow direction and level-0 grid initialization is not implemented."
+      error stop 1
+    else if (self%fdir%provided) then
+      call self%read_fdir_file()
+    end if
+
     ! morph mask
     if (self%morph_mask%coupled) then
       ! TODO: init grid from coupling namelist if needed
@@ -1056,18 +1068,6 @@ contains
       call self%aspect%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
       call self%aspect%read_static()
       self%exchange%aspect%data => self%aspect%cache(:, 1) ! associate exchange variable to input cache
-    end if
-
-    ! flow direction
-    if (self%fdir%coupled) then
-      ! TODO: init grid from coupling namelist if needed
-      log_error(*) "Input: flow direction is coupled... not yet implemented"
-      stop 1
-    else if (self%fdir%provided) then
-      init_grid = need_grid(self%tgt_level0, self%exchange%level0) ! associate grid if not yet done
-      call self%fdir%open_dataset(kind="i2", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
-      call self%fdir%read_static()
-      self%exchange%fdir%data => self%fdir%cache(:, 1) ! associate exchange variable to input cache
     end if
 
     ! flow accumulation
@@ -1327,6 +1327,58 @@ contains
     if (associated(self%exchange%level2)) self%exchange%level2_resolution = self%exchange%level2%cellsize
   end subroutine input_connect
 
+  !> \brief Read file-based flow direction once while constructing the level-0 grid.
+  subroutine input_read_fdir_file(self)
+    class(input_t), target, intent(inout) :: self
+    type(data_t) :: data
+    integer(i2), allocatable :: fdir_packed(:)
+    logical :: level0_supplied
+
+    level0_supplied = associated(self%exchange%level0)
+    data%dtype = "i16"
+
+    scope_info(s,*) "Read flow direction and initialize level-0 grid from file: ", trim(self%fdir%path)
+    if (self%fdir%is_ascii()) then
+      call self%tgt_level0%from_ascii_file( &
+        self%fdir%path, coordsys=merge(spherical, cartesian, self%morph_latlon), data=data)
+    else
+      call self%tgt_level0%from_netcdf(self%fdir%path, self%fdir%name, tol=1.0e-5_dp, data=data)
+    end if
+    if (level0_supplied) then
+      if (.not.self%exchange%level0%is_matching(self%tgt_level0, tol=1.0e-5_dp)) then
+        log_fatal(*) "Input: fdir-derived level-0 grid does not match the supplied level-0 grid."
+        error stop 1
+      end if
+    else
+      self%exchange%level0 => self%tgt_level0
+    end if
+
+    allocate(fdir_packed(self%exchange%level0%ncells))
+    call self%exchange%level0%pack_into(data%data_i2, fdir_packed)
+    call data%deallocate()
+    call self%build_river_l0(self%exchange%level0, fdir_packed)
+    deallocate(fdir_packed)
+  end subroutine input_read_fdir_file
+
+  !> \brief Construct and publish the level-0 river from an established grid and packed flow direction.
+  !> \details File readers and future couplers should converge on this representation.
+  subroutine input_build_river_l0(self, grid, fdir)
+    class(input_t), target, intent(inout) :: self
+    type(grid_t), pointer, intent(in) :: grid
+    integer(i2), intent(in) :: fdir(:)
+
+    if (self%owns_river_l0 .or. associated(self%exchange%river_l0)) then
+      log_fatal(*) "Input: level-0 river already constructed before flow-direction handoff."
+      error stop 1
+    end if
+    call self%river_l0%from_fdir(fdir, grid)
+    call self%river_l0%calc_order(root=.true.)
+    call self%river_l0%calc_facc()
+    self%exchange%river_l0 => self%river_l0
+    call self%exchange%fdir%publish_local("Input", self%river_l0%fdir, no_time)
+    self%owns_river_l0 = .true.
+  end subroutine input_build_river_l0
+
   !> \brief Initialize the Input container for the model run.
   !> \details Prepare chunked reading if needed.
   subroutine input_initialize(self)
@@ -1334,9 +1386,6 @@ contains
     log_info(*) "Initialize Input"
     scope_info(s,*) "Initialize input time windows with chunking: ", n2s(self%chunking)
     ! warn about provided but not required variables, since this likely indicates a configuration issue
-    if (self%fdir%provided .and. .not.self%exchange%fdir%required) then
-      log_warn(*) "Input: flow direction provided but not required. Check your configuration."
-    end if
     if (self%facc%provided .and. .not.self%exchange%facc%required) then
       log_warn(*) "Input: flow accumulation provided but not required. Check your configuration."
     end if
@@ -1410,6 +1459,12 @@ contains
     if (self%wind%provided .and. .not.self%wind%static) call self%wind%ds%close()
     if (self%runoff%provided) call self%runoff%ds%close()
     if (allocated(self%soil_class_one_layer)) deallocate(self%soil_class_one_layer)
+    if (self%owns_river_l0) then
+      call self%exchange%fdir%clear(owned=.true.)
+      if (associated(self%exchange%river_l0, self%river_l0)) nullify(self%exchange%river_l0)
+      call self%river_l0%clean()
+      self%owns_river_l0 = .false.
+    end if
   end subroutine input_finalize
 
 end module mo_input_container

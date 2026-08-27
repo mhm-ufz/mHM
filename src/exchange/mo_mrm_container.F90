@@ -55,7 +55,6 @@ module mo_mrm_container
     type(nml_output_mrm_t)     :: output_config                !< output configuration of the mRM process container
     type(exchange_t), pointer  :: exchange => null()           !< exchange container of the domain
     type(grid_t)               :: level3                       !< mrm grid
-    type(river_t)              :: river_l0                     !< level-0 river network (for upscaling)
     type(river_t)              :: river                        !< upscaled river network
     type(river_router_t)       :: router                       !< river router
     type(river_upscaler_t)     :: upscaler                     !< river upscaler for upscaling from level-0 to level-3 river network
@@ -435,7 +434,12 @@ contains
 
     ! Runoff may be provided by dynamic input and connected during update.
     call self%exchange%runoff_total%require("mRM", .true., check_data=.false.)
-    call self%exchange%fdir%require("mRM", .not.self%read_restart)
+    if (.not.self%read_restart) then
+      if (.not.associated(self%exchange%river_l0)) then
+        log_fatal(*) "mRM: level-0 river not provided."
+        error stop 1
+      end if
+    end if
     call self%exchange%slope%require("mRM", .not.const_celerity .and. .not.self%read_restart)
 
     ! derive level-3 grid
@@ -468,14 +472,8 @@ contains
     else if (is_close(self%level3%cellsize, self%exchange%level0%cellsize)) then
       ! TODO: the upscaler should handle also the case of no upscaling (level0 == level11)
       scope_info(s,*) "level-0 and level-3 river network are equal of size:", n2s(self%exchange%level3%ncells)
-      call self%river%from_fdir(self%exchange%fdir%data, self%level3)
+      call self%river%from_fdir(self%exchange%river_l0%fdir, self%level3)
     else
-      scope_info(s,*) "Create level-0 river network of size:", n2s(self%exchange%level0%ncells)
-      call self%river_l0%from_fdir(self%exchange%fdir%data, self%exchange%level0)
-      scope_info(s,*) "Order level-0 river network"
-      call self%river_l0%calc_order(root=.true.)
-      scope_info(s,*) "Calculate facc on level-0"
-      call self%river_l0%calc_facc()
       ! check SCC config
       if (read_scc) then
         file = self%exchange%get_path(self%config%scc_gauges_path(id(1)))
@@ -491,7 +489,7 @@ contains
       ! scc_gauges/scc_latlon not present if not allocated
       scope_info(s,*) "Initialize upscaler and upscale river network to level-3"
       call self%upscaler%init( &
-        fine_river        = self%river_l0, &
+        fine_river        = self%exchange%river_l0, &
         coarse_river      = self%river, &
         coarse_grid       = self%level3, &
         scc_gauges        = scc_gauges, &
@@ -686,7 +684,7 @@ contains
         omp_level_thresh  = int(self%config%river_net_omp_level_min(id(1)), i8), &
         read_fluxes       = self%config%read_restart_fluxes(id(1)))
     else
-      if (allocated(self%river_l0%celerity)) deallocate(self%river_l0%celerity)
+      if (allocated(self%exchange%river_l0%celerity)) deallocate(self%exchange%river_l0%celerity)
       if (allocated(self%river%celerity)) deallocate(self%river%celerity)
       ! NOTE: if slope data pointer is null (i.e. slope not provided), optional slope will be seen as "not present"
       if (is_close(self%level3%cellsize, self%exchange%level0%cellsize)) then
@@ -1007,7 +1005,6 @@ contains
     log_info(*) "Cleanup mRM"
     ! deallocate arrays, close files, ...
     call self%upscaler%destroy()
-    call self%river_l0%clean()
   end subroutine mrm_cleanup
 
   subroutine mrm_create_output(self)
