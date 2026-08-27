@@ -560,19 +560,21 @@ contains
   end subroutine river_upscaler_write_diagnostics
 
   !> \brief calculate the celerity c_i from slope s_i (i - cell index)
-  subroutine river_upscaler_celerity(this, gamma, constant_celerity, slope)
+  subroutine river_upscaler_celerity(this, gamma, celerity, constant_celerity, slope)
     implicit none
     class(river_upscaler_t), target, intent(inout) :: this
     real(dp), intent(in) :: gamma !< model parameter: c_i = gamma * sqrt(s_i) or c = gamma
+    real(dp), allocatable, intent(out) :: celerity(:) !< celerity of the link starting at each coarse node
     logical, optional, intent(in) :: constant_celerity !< whether celerity is assumed constant: c = gamma (default: .false.)
     real(dp), optional, intent(in) :: slope(:) !< [%] river slope on fine grid: size(fine\%ncells)
     integer(i8) :: i, cell
     real(dp) :: n
+    real(dp), allocatable :: fine_celerity(:)
 
     if (optval(constant_celerity, .false.)) then
       call message("river_upscaler: constant celerity assumed, set c_i = gamma for all coarse nodes")
       ! constant celerity, no need to calculate from fine river
-      call this%coarse_river%calc_celerity(gamma, constant_celerity)
+      call this%coarse_river%calc_celerity(gamma, celerity, constant_celerity)
       return
     end if
 
@@ -581,18 +583,18 @@ contains
     end if
 
     ! first calculate celerity on fine river
-    call this%fine_river%calc_celerity(gamma, constant_celerity, slope, this%stream_mask)
+    call this%fine_river%calc_celerity(gamma, fine_celerity, constant_celerity, slope, this%stream_mask)
 
     call message("river_upscaler: calculate celerity on coarse river from fine river")
-    if (.not.allocated(this%coarse_river%celerity)) allocate(this%coarse_river%celerity(this%coarse_river%n_nodes))
+    allocate(celerity(this%coarse_river%n_nodes))
     !$omp parallel do default(shared) private(i, cell, n)
     do i = 1_i8, this%coarse_river%n_nodes
       if (this%coarse_river%is_sink(i)) then
-        this%coarse_river%celerity(i) = 1.0_dp
+        celerity(i) = 1.0_dp
         cycle
       end if
       cell = this%link_start(i)
-      this%coarse_river%celerity(i) = 0.0_dp
+      celerity(i) = 0.0_dp
       n = 0.0_dp
       ! one pass algorithm for harmonic mean:
       ! 0. M  = 0               -> 0 as initial value for the [M]ean of inverses
@@ -600,12 +602,11 @@ contains
       ! 2. H  = 1 / M           -> [H]armonic mean is then the inverse of M
       do while (cell /= this%link_end(i))
         n = n + 1.0_dp
-        this%coarse_river%celerity(i) = this%coarse_river%celerity(i) &
-          + ( 1.0_dp / this%fine_river%celerity(cell) - this%coarse_river%celerity(i) ) / n
+        celerity(i) = celerity(i) + ( 1.0_dp / fine_celerity(cell) - celerity(i) ) / n
         cell = this%fine_river%down(cell)
       end do
       ! finalize harmonic mean for celerity
-      this%coarse_river%celerity(i) = 1.0_dp / this%coarse_river%celerity(i)
+      celerity(i) = 1.0_dp / celerity(i)
     end do
     !$omp end parallel do
 

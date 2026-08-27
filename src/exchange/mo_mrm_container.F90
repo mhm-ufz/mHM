@@ -58,6 +58,7 @@ module mo_mrm_container
     type(river_t)              :: river                        !< upscaled river network
     type(river_router_t)       :: router                       !< river router
     type(river_upscaler_t)     :: upscaler                     !< river upscaler for upscaling from level-0 to level-3 river network
+    real(dp), allocatable      :: celerity(:)                  !< celerity of the link starting at each level-3 river node
     type(output_dataset)       :: ds_out                       !< output dataset for gridded outputs
     type(points_output_dataset):: ds_node_out                  !< output dataset for river node based outputs
     type(mrm_poi_output_t)     :: poi                          !< point-of-interest output state
@@ -684,17 +685,18 @@ contains
         omp_level_thresh  = int(self%config%river_net_omp_level_min(id(1)), i8), &
         read_fluxes       = self%config%read_restart_fluxes(id(1)))
     else
-      if (allocated(self%exchange%river_l0%celerity)) deallocate(self%exchange%river_l0%celerity)
-      if (allocated(self%river%celerity)) deallocate(self%river%celerity)
       ! NOTE: if slope data pointer is null (i.e. slope not provided), optional slope will be seen as "not present"
       if (is_close(self%level3%cellsize, self%exchange%level0%cellsize)) then
-        call self%river%calc_celerity(gamma=gamma(1), slope=self%exchange%slope%data, constant_celerity=const_celerity)
+        call self%river%calc_celerity( &
+          gamma=gamma(1), celerity=self%celerity, slope=self%exchange%slope%data, constant_celerity=const_celerity)
       else
-        call self%upscaler%calc_celerity(gamma=gamma(1), slope=self%exchange%slope%data, constant_celerity=const_celerity)
+        call self%upscaler%calc_celerity( &
+          gamma=gamma(1), celerity=self%celerity, slope=self%exchange%slope%data, constant_celerity=const_celerity)
       end if
       scope_info(s,*) "Initialize router"
       call self%router%init( &
         river            = self%river, &
+        celerity         = self%celerity, &
         input_grid       = self%exchange%level1, &
         input_step       = input_step, &
         model_step       = model_step, &
@@ -1005,6 +1007,7 @@ contains
     log_info(*) "Cleanup mRM"
     ! deallocate arrays, close files, ...
     call self%upscaler%destroy()
+    if (allocated(self%celerity)) deallocate(self%celerity)
   end subroutine mrm_cleanup
 
   subroutine mrm_create_output(self)

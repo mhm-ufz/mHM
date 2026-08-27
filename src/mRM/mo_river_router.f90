@@ -206,10 +206,11 @@ contains
   end subroutine river_router_allocate
 
   !> \brief Setup river upscaler from fine river and coarse target grid.
-  subroutine river_router_init(this, river, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, model_step)
+  subroutine river_router_init(this, river, celerity, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, model_step)
     implicit none
     class(river_router_t), intent(inout) :: this
     type(river_t), pointer, intent(in) :: river !< river definition
+    real(dp), intent(in) :: celerity(:) !< celerity of the link starting at each river node
     type(grid_t), pointer, intent(in) :: input_grid !< input grid
     integer(i4), intent(in), optional :: input_step !< [h] input time step size (1 by default)
     real(dp), optional, intent(in) :: max_route_step !< [s] maximum routing time step (default: 86400.0)
@@ -233,7 +234,7 @@ contains
     this%previous_tributary(:) = 0.0_dp
 
     ! setup muskingum parameters
-    call this%setup_muskingum(max_route_step, model_step_)
+    call this%setup_muskingum(celerity, max_route_step, model_step_)
     ! setup parallelization
     call this%setup_parallelization(root_levels, omp_level_thresh)
   end subroutine river_router_init
@@ -446,10 +447,11 @@ contains
   end subroutine river_router_to_restart_dataset
 
   !> \brief calculate the muskingum parameters nu1 and nu2
-  subroutine river_router_setup_muskingum(this, max_route_step, model_step)
+  subroutine river_router_setup_muskingum(this, celerity, max_route_step, model_step)
     use mo_utils, only: locate
     implicit none
     class(river_router_t), intent(inout) :: this
+    real(dp), intent(in) :: celerity(:) !< celerity of the link starting at each river node
     real(dp), optional, intent(in) :: max_route_step !< [s] maximum routing time step (default: 86400.0)
     integer(i4), intent(in) :: model_step !< [h] time between router update calls
     real(dp), allocatable :: k(:)
@@ -459,10 +461,11 @@ contains
     xi = routing_space_weight ! NOTE: fixed for now
 
     if (.not.allocated(this%river%link_length)) call error_message("river_router%setup_muskingum: link_length not available")
-    if (.not.allocated(this%river%celerity)) call error_message("river_router%setup_muskingum: celerity not available")
+    if (size(celerity, kind=i8) /= this%river%n_nodes) &
+      call error_message("river_router%setup_muskingum: celerity size does not match river nodes")
 
     ! wave travel time parameter [s]
-    allocate(k(this%river%n_nodes), source=(this%river%link_length / this%river%celerity))
+    allocate(k(this%river%n_nodes), source=(this%river%link_length / celerity))
 
     ! set min wave travel time to min routing step
     step_id = max(1_i4, locate(routing_steps, minval(k, mask=.not.this%river%is_sink)))

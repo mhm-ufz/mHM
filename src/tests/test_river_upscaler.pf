@@ -23,6 +23,7 @@ contains
     integer(i8) :: ids(6,2)
     integer(i2) :: fdir(12)
     real(dp) :: slope(12)
+    real(dp), allocatable :: celerity(:)
     logical :: exists
     integer(i4), allocatable :: scc(:,:), leaving(:,:), stream(:,:), stream_sub(:,:)
     type(NcDataset) :: nc
@@ -103,14 +104,13 @@ contains
     @assertEqual(2_i4, stream(2,1))
     @assertEqual(1_i4, stream(3,1))
     @assertEqual(1_i4, stream_sub(3,1))
-    call legacy_upscaler%calc_celerity(2.0_dp, constant_celerity=.true.)
-    @assertEqual(2.0_dp, legacy_river%celerity(1), tolerance=1.e-12_dp)
-    @assertFalse(allocated(fine_river%celerity), message='constant coarse celerity does not allocate fine celerity')
+    call legacy_upscaler%calc_celerity(2.0_dp, celerity, constant_celerity=.true.)
+    @assertEqual(2.0_dp, celerity(1), tolerance=1.e-12_dp)
     slope = 1.0_dp
     slope(ids(5,2)) = 100.0_dp
-    call flow_upscaler%calc_celerity(2.0_dp, slope=slope)
-    @assertTrue(allocated(flow_river%celerity), message='variable celerity uses the retained stream mask')
-    @assertEqual(0.2_dp, fine_river%celerity(ids(5,2)), tolerance=1.e-12_dp)
+    call flow_upscaler%calc_celerity(2.0_dp, celerity, slope=slope)
+    @assertTrue(allocated(celerity), message='variable celerity uses the retained stream mask')
+    @assertEqual(0.2_dp, celerity(2), tolerance=1.e-12_dp)
   end subroutine test_legacy_and_flow_targets
 
   @test

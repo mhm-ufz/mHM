@@ -44,7 +44,6 @@ module mo_river
     real(dp), allocatable :: upstream_area(:) !< upstream area of node size(n_nodes)
     real(dp), allocatable :: link_length(:) !< length of link starting at node (0 if node is sink) size(n_nodes)
     real(dp), allocatable :: link_slope(:) !< slope of link starting at node (in %) size(n_nodes)
-    real(dp), allocatable :: celerity(:) !< celerity of link starting at node set by upscaler size(n_nodes)
     type(order_t) :: order !< level based order of the network
     ! scc related attributes
     logical :: scc = .false. !< indicate that this river is a SCC-river (not D8)
@@ -604,10 +603,11 @@ contains
   !> \author Stephan Thober
   !> \author Matthias Kelbling
   !> \author Sebastian Müller
-  subroutine river_celerity(this, gamma, constant_celerity, slope, mask)
+  subroutine river_celerity(this, gamma, celerity, constant_celerity, slope, mask)
     implicit none
     class(river_t), intent(inout) :: this
     real(dp), intent(in) :: gamma !< model parameter: c_i = gamma * sqrt(s_i) or c = gamma
+    real(dp), allocatable, intent(out) :: celerity(:) !< celerity of the link starting at each node
     logical, optional, intent(in) :: constant_celerity !< whether celerity is assumed constant: c = gamma (default: .false.)
     real(dp), optional, intent(in) :: slope(:) !< [%] river slope, will be stored in link_slope if provided
     logical, optional, intent(in) :: mask(:) !< mask for slope smoothing (may come from upscaled river network)
@@ -616,10 +616,10 @@ contains
 
     ! constant celerity
     if (optval(constant_celerity, .false.)) then
-      if (.not.allocated(this%celerity)) allocate(this%celerity(this%n_nodes))
+      allocate(celerity(this%n_nodes))
       !$omp parallel do default(shared)
       do i = 1_i8, this%n_nodes
-        this%celerity(i) = gamma
+        celerity(i) = gamma
       end do
       !$omp end parallel do
       return
@@ -651,10 +651,10 @@ contains
     ! smooth slope using hard-coded MAD filter
     call river_smooth_slope(smooth_slope, mask)
     ! calculate celerity
-    allocate(this%celerity(this%n_nodes))
+    allocate(celerity(this%n_nodes))
     !$omp parallel do default(shared)
     do i = 1_i8, this%n_nodes
-      this%celerity(i) = gamma * sqrt(smooth_slope(i) / 100.0_dp)
+      celerity(i) = gamma * sqrt(smooth_slope(i) / 100.0_dp)
     end do
     !$omp end parallel do
 
@@ -900,7 +900,6 @@ contains
     if (allocated(this%upstream_area)) vars = [vars, var("upstream_area", "upstream area", units="m2", dtype="f64", static=.true.)]
     if (allocated(this%link_length)) vars = [vars, var("length", "link length", dtype="f64", static=.true.)]
     if (allocated(this%link_slope)) vars = [vars, var("slope", "link slope", dtype="f64", static=.true.)]
-    if (allocated(this%celerity)) vars = [vars, var("celerity", "celerity", dtype="f64", static=.true.)]
     if (present(sub_map)) vars = [vars, var("scc", "scc catchment id", dtype="i32", static=.true.)]
     if (present(leaving)) vars = [vars, var("leaving", "leaving", dtype="i32", static=.true.)]
     if (present(stream_mask)) vars = [vars, var("stream", "stream mask", dtype="i32", static=.true.)]
@@ -920,7 +919,6 @@ contains
     if (allocated(this%upstream_area)) call ds%update("upstream_area", this%upstream_area)
     if (allocated(this%link_length)) call ds%update("length", this%link_length)
     if (allocated(this%link_slope)) call ds%update("slope", this%link_slope)
-    if (allocated(this%celerity)) call ds%update("celerity", this%celerity)
     if (present(sub_map)) call ds%update("scc", sub_map)
     if (present(leaving)) then
       allocate(tmp(this%n_nodes), source=0_i4)
@@ -1132,16 +1130,6 @@ contains
       call nc_var%setData(this%link_slope)
     end if
 
-    ! celerity
-    if ( allocated(this%celerity) ) then
-      call message("writing celerity to restart file")
-      nc_var = nc%setVariable("celerity", "f64", [node_dim])
-      call nc_var%setAttribute("long_name", "streamflow celerity")
-      call nc_var%setFillValue(nodata_dp)
-      call nc_var%setAttribute("missing_value", nodata_dp)
-      call nc_var%setData(this%celerity)
-    end if
-
     ! scc state
     nc_var = nc%setVariable("scc", "i8", dims(:0)) ! scalar integer to indicate scc river
     call nc_var%setAttribute("long_name", "scc river flag")
@@ -1333,12 +1321,6 @@ contains
       call nc_var%readInto(this%link_slope)
     end if
 
-    if (nc%hasVariable("celerity")) then
-      nc_var = nc%getVariable("celerity")
-      allocate(this%celerity(this%n_nodes))
-      call nc_var%readInto(this%celerity)
-    end if
-
     if (nc%hasVariable("node_cell")) then
       nc_var = nc%getVariable("node_cell")
       allocate(this%node_cell(this%n_nodes))
@@ -1405,7 +1387,6 @@ contains
     if (allocated(this%upstream_area)) deallocate(this%upstream_area)
     if (allocated(this%link_length)) deallocate(this%link_length)
     if (allocated(this%link_slope)) deallocate(this%link_slope)
-    if (allocated(this%celerity)) deallocate(this%celerity)
     this%points = points_t()
     if (allocated(this%node_cell)) deallocate(this%node_cell)
     if (allocated(this%cell_node_select)) deallocate(this%cell_node_select)
