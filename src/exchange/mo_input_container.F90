@@ -1397,7 +1397,7 @@ contains
     type(var), allocatable :: vars(:)
     real(dp), allocatable :: coords(:,:)
     integer(i8), allocatable :: outlet_nodes(:)
-    character(:), allocatable :: path
+    character(:), allocatable :: path, name
     integer(i8) :: i, node
     integer(i4) :: ix, iy
     logical :: use_aux
@@ -1412,13 +1412,13 @@ contains
     end if
 
     path = self%exchange%get_path(self%config%input%lake_definition_path(self%exchange%nml_domain_id))
+    name = trim(self%config%input%lake_level_var(self%exchange%nml_domain_id))
     scope_info(s,*) "Read lake specification from file: ", path
-    vars = [var(name=trim(self%config%input%lake_level_var(self%exchange%nml_domain_id)), &
-      long_name="maximum lake level", units="m", static=.true.)]
-    call input%init(path, vars=vars, points=self%lake_outlets, points_init_var="id")
+    vars = [var(name=name, long_name="maximum lake level", units="m", static=.true.)]
+    call input%init(path, vars=vars, points=self%lake_outlets, points_init_var=name)
     call input%get_ids(self%lake_ids)
     allocate(self%lake_max_levels(self%lake_outlets%n_points))
-    call input%read(trim(self%config%input%lake_level_var(self%exchange%nml_domain_id)), self%lake_max_levels)
+    call input%read(name, self%lake_max_levels)
     call input%close()
 
     if (self%lake_outlets%n_points < 1_i8) then
