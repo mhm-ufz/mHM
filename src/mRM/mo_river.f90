@@ -44,6 +44,7 @@ module mo_river
     real(dp), allocatable :: upstream_area(:) !< upstream area of node size(n_nodes)
     real(dp), allocatable :: link_length(:) !< length of link starting at node (0 if node is sink) size(n_nodes)
     real(dp), allocatable :: link_slope(:) !< slope of link starting at node (in %) size(n_nodes)
+    integer(i8), allocatable :: lake_map(:) !< stable lake ID for each level-0 cell (0 if not a lake) size(n_nodes)
     type(order_t) :: order !< level based order of the network
     ! scc related attributes
     logical :: scc = .false. !< indicate that this river is a SCC-river (not D8)
@@ -57,6 +58,7 @@ module mo_river
     procedure, public :: calc_fdir => river_fdir
     procedure, public :: calc_facc => river_facc
     procedure, public :: label_subcatchments => river_label_subcatchments
+    procedure, public :: label_lakes => river_label_lakes
     procedure, public :: calc_upstream_area => river_upstream_area
     procedure, public :: calc_length => river_length
     procedure, public :: calc_slope => river_slope
@@ -463,6 +465,53 @@ contains
     if (reverse_order) call this%order%reverse()
 
   end subroutine river_label_subcatchments
+
+  !> \brief Delineate disjoint lake footprints from outlet catchments and maximum water levels.
+  subroutine river_label_lakes(this, outlet_nodes, lake_ids, max_levels, dem)
+    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+    use mo_river_tools, only: unique_ids
+    class(river_t), intent(inout) :: this
+    integer(i8), intent(in) :: outlet_nodes(:) !< river nodes at the configured lake outlets
+    integer(i8), intent(in) :: lake_ids(:) !< stable positive lake IDs aligned with outlet_nodes
+    real(dp), intent(in) :: max_levels(:) !< maximum lake levels aligned with outlet_nodes
+    real(dp), intent(in) :: dem(:) !< elevation at every river node
+    integer(i4), allocatable :: catchment_map(:)
+    integer(i8) :: i
+    integer(i4) :: lake_index
+
+    if (size(outlet_nodes, kind=i8) < 1_i8) call error_message("river%label_lakes: no lake outlets provided")
+    if (size(lake_ids, kind=i8) /= size(outlet_nodes, kind=i8)) &
+      call error_message("river%label_lakes: lake ID count does not match outlet count")
+    if (size(max_levels, kind=i8) /= size(outlet_nodes, kind=i8)) &
+      call error_message("river%label_lakes: maximum-level count does not match outlet count")
+    if (size(dem, kind=i8) /= this%n_nodes) &
+      call error_message("river%label_lakes: DEM size does not match river nodes")
+    if (any(outlet_nodes < 1_i8) .or. any(outlet_nodes > this%n_nodes)) &
+      call error_message("river%label_lakes: outlet node outside the river network")
+    if (.not.unique_ids(outlet_nodes)) call error_message("river%label_lakes: multiple lakes use the same outlet node")
+    if (any(lake_ids <= 0_i8)) call error_message("river%label_lakes: lake IDs must be positive")
+    if (.not.unique_ids(lake_ids)) call error_message("river%label_lakes: lake IDs must be unique")
+    if (.not.all(ieee_is_finite(max_levels))) call error_message("river%label_lakes: maximum lake levels must be finite")
+    if (.not.all(ieee_is_finite(dem))) call error_message("river%label_lakes: DEM values must be finite")
+    do lake_index = 1_i4, size(lake_ids, kind=i4)
+      if (dem(outlet_nodes(lake_index)) > max_levels(lake_index)) &
+        call error_message("river%label_lakes: outlet elevation exceeds maximum level for lake ID")
+    end do
+
+    ! Subcatchment labels partition nested outlet catchments so lake footprints cannot overlap.
+    call this%label_subcatchments(catchment_map, outlet_nodes)
+    if (allocated(this%lake_map)) deallocate(this%lake_map)
+    allocate(this%lake_map(this%n_nodes))
+    !$omp parallel do default(shared) private(lake_index) schedule(static)
+    do i = 1_i8, this%n_nodes
+      this%lake_map(i) = 0_i8
+      lake_index = catchment_map(i)
+      if (lake_index > 0_i4) then
+        if (dem(i) <= max_levels(lake_index)) this%lake_map(i) = lake_ids(lake_index)
+      end if
+    end do
+    !$omp end parallel do
+  end subroutine river_label_lakes
 
   !> \brief Calculate upstream area for each node (inclusive).
   subroutine river_upstream_area(this)
@@ -900,6 +949,7 @@ contains
     if (allocated(this%upstream_area)) vars = [vars, var("upstream_area", "upstream area", units="m2", dtype="f64", static=.true.)]
     if (allocated(this%link_length)) vars = [vars, var("length", "link length", dtype="f64", static=.true.)]
     if (allocated(this%link_slope)) vars = [vars, var("slope", "link slope", dtype="f64", static=.true.)]
+    if (allocated(this%lake_map)) vars = [vars, var("lake_map", "stable lake ID", dtype="i64", kind="i8", static=.true.)]
     if (present(sub_map)) vars = [vars, var("scc", "scc catchment id", dtype="i32", static=.true.)]
     if (present(leaving)) vars = [vars, var("leaving", "leaving", dtype="i32", static=.true.)]
     if (present(stream_mask)) vars = [vars, var("stream", "stream mask", dtype="i32", static=.true.)]
@@ -919,6 +969,7 @@ contains
     if (allocated(this%upstream_area)) call ds%update("upstream_area", this%upstream_area)
     if (allocated(this%link_length)) call ds%update("length", this%link_length)
     if (allocated(this%link_slope)) call ds%update("slope", this%link_slope)
+    if (allocated(this%lake_map)) call ds%update("lake_map", this%lake_map)
     if (present(sub_map)) call ds%update("scc", sub_map)
     if (present(leaving)) then
       allocate(tmp(this%n_nodes), source=0_i4)
@@ -1387,6 +1438,7 @@ contains
     if (allocated(this%upstream_area)) deallocate(this%upstream_area)
     if (allocated(this%link_length)) deallocate(this%link_length)
     if (allocated(this%link_slope)) deallocate(this%link_slope)
+    if (allocated(this%lake_map)) deallocate(this%lake_map)
     this%points = points_t()
     if (allocated(this%node_cell)) deallocate(this%node_cell)
     if (allocated(this%cell_node_select)) deallocate(this%cell_node_select)

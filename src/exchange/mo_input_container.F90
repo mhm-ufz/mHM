@@ -12,13 +12,15 @@
 #include "logging.h"
 module mo_input_container
   use mo_logging
-  use mo_kind, only: i2, i4, dp
+  use mo_kind, only: i2, i4, i8, dp
   use mo_list, only: list
   use mo_os, only: path_ext
   use mo_exchange_type, only: exchange_t, var_dp
   use mo_datetime, only: datetime, timedelta, HOUR_SECONDS, DAY_HOURS, one_hour, one_day
   use mo_grid, only: grid_t, data_t, cartesian, spherical
   use mo_river, only: river_t
+  use mo_points, only: points_t
+  use mo_points_io, only: points_input_dataset
   use mo_grid_io, only: var, input_dataset, end_timestamp, start_timestamp, no_time, daily, monthly, yearly, varying
   use mo_string_utils, only: n2s => num2str
   use nml_config_input, only: nml_config_input_t
@@ -129,6 +131,9 @@ module mo_input_container
     type(grid_t) :: tgt_level3 !< grid level 3 of the domain if given from input
     type(river_t) :: river_l0 !< full level-0 river network derived from flow direction
     logical :: owns_river_l0 = .false. !< whether this input instance published the level-0 river
+    type(points_t) :: lake_outlets !< configured lake outlet coordinates
+    integer(i8), allocatable :: lake_ids(:) !< stable lake IDs aligned with lake_outlets
+    real(dp), allocatable :: lake_max_levels(:) !< maximum lake levels aligned with lake_outlets
     integer(i4) :: chunking !< chunking configuration (0 single read, -1 daily, -2 monthly, -3 yearly, >0 every n hours)
     integer(i4) :: time_stamp_location !< location of time-stamp variable in input datasets (0 start, 1 center, 2 end)
     logical :: morph_latlon = .false. !< whether morphology inputs are defined in spherical (lat/lon) coordinates
@@ -168,6 +173,7 @@ module mo_input_container
     procedure :: finalize => input_finalize
     procedure, private :: read_fdir_file => input_read_fdir_file
     procedure, private :: build_river_l0 => input_build_river_l0
+    procedure, private :: read_lake_specification => input_read_lake_specification
   end type input_t
 
 contains
@@ -1046,6 +1052,10 @@ contains
       self%exchange%dem%data => self%dem%cache(:, 1) ! associate exchange variable to input cache
     end if
 
+    ! Lake delineation needs the fdir-derived river and the full packed DEM.
+    if (self%config%input%is_set("lake_definition_path", idx=[self%exchange%nml_domain_id]) == NML_OK) &
+      call self%read_lake_specification()
+
     ! slope
     if (self%slope%coupled) then
       ! TODO: init grid from coupling namelist if needed
@@ -1379,6 +1389,78 @@ contains
     self%owns_river_l0 = .true.
   end subroutine input_build_river_l0
 
+  !> \brief Read static lake metadata, snap outlets to L0 cells, and delineate lake footprints.
+  subroutine input_read_lake_specification(self)
+    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+    class(input_t), target, intent(inout) :: self
+    type(points_input_dataset) :: input
+    type(var), allocatable :: vars(:)
+    real(dp), allocatable :: coords(:,:)
+    integer(i8), allocatable :: outlet_nodes(:)
+    character(:), allocatable :: path
+    integer(i8) :: i, node
+    integer(i4) :: ix, iy
+    logical :: use_aux
+
+    if (.not.self%owns_river_l0 .or. .not.associated(self%exchange%river_l0)) then
+      log_fatal(*) "Input: lake definitions require a file-based level-0 river."
+      error stop 1
+    end if
+    if (.not.self%dem%provided .or. .not.allocated(self%dem%cache)) then
+      log_fatal(*) "Input: lake definitions require a static DEM on level 0."
+      error stop 1
+    end if
+
+    path = self%exchange%get_path(self%config%input%lake_definition_path(self%exchange%nml_domain_id))
+    scope_info(s,*) "Read lake specification from file: ", path
+    vars = [var(name=trim(self%config%input%lake_level_var(self%exchange%nml_domain_id)), &
+      long_name="maximum lake level", units="m", static=.true.)]
+    call input%init(path, vars=vars, points=self%lake_outlets, points_init_var="id")
+    call input%get_ids(self%lake_ids)
+    allocate(self%lake_max_levels(self%lake_outlets%n_points))
+    call input%read(trim(self%config%input%lake_level_var(self%exchange%nml_domain_id)), self%lake_max_levels)
+    call input%close()
+
+    if (self%lake_outlets%n_points < 1_i8) then
+      log_fatal(*) "Input: lake specification contains no lake outlets."
+      error stop 1
+    end if
+    if (size(self%lake_ids, kind=i8) /= self%lake_outlets%n_points .or. &
+        size(self%lake_max_levels, kind=i8) /= self%lake_outlets%n_points) then
+      log_fatal(*) "Input: lake specification arrays have inconsistent sizes."
+      error stop 1
+    end if
+    if (.not.all(ieee_is_finite(self%lake_outlets%x)) .or. .not.all(ieee_is_finite(self%lake_outlets%y))) then
+      log_fatal(*) "Input: lake outlet coordinates must be finite."
+      error stop 1
+    end if
+
+    coords = self%lake_outlets%coords()
+    use_aux = self%lake_outlets%coordsys /= self%exchange%level0%coordsys
+    if (use_aux) then
+      if (self%lake_outlets%coordsys /= spherical .or. .not.self%exchange%level0%has_aux_vertices()) then
+        log_fatal(*) "Input: lake outlet coordinates are incompatible with the level-0 grid."
+        error stop 1
+      end if
+    end if
+    outlet_nodes = self%exchange%level0%closest_cell_id(coords, use_aux=use_aux)
+    do i = 1_i8, size(outlet_nodes, kind=i8)
+      node = outlet_nodes(i)
+      if (node < 1_i8 .or. node > self%exchange%level0%ncells) then
+        log_fatal(*) "Input: lake outlet cannot be mapped to an active level-0 cell."
+        error stop 1
+      end if
+      ix = self%exchange%level0%cell_ij(node, 1)
+      iy = self%exchange%level0%cell_ij(node, 2)
+      if (.not.self%exchange%level0%in_cell(ix, iy, coords(i, 1), coords(i, 2), aux=use_aux)) then
+        log_fatal(*) "Input: lake outlet lies outside its mapped active level-0 cell."
+        error stop 1
+      end if
+    end do
+
+    call self%river_l0%label_lakes(outlet_nodes, self%lake_ids, self%lake_max_levels, self%dem%cache(:, 1))
+  end subroutine input_read_lake_specification
+
   !> \brief Initialize the Input container for the model run.
   !> \details Prepare chunked reading if needed.
   subroutine input_initialize(self)
@@ -1459,6 +1541,9 @@ contains
     if (self%wind%provided .and. .not.self%wind%static) call self%wind%ds%close()
     if (self%runoff%provided) call self%runoff%ds%close()
     if (allocated(self%soil_class_one_layer)) deallocate(self%soil_class_one_layer)
+    self%lake_outlets = points_t()
+    if (allocated(self%lake_ids)) deallocate(self%lake_ids)
+    if (allocated(self%lake_max_levels)) deallocate(self%lake_max_levels)
     if (self%owns_river_l0) then
       call self%exchange%fdir%clear(owned=.true.)
       if (associated(self%exchange%river_l0, self%river_l0)) nullify(self%exchange%river_l0)

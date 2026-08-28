@@ -172,6 +172,8 @@
   aspect_path(:) = ""
   ! Flow direction input
   fdir_path(:) = ""
+  ! Lake definition input
+  lake_definition_path(:) = ""
   ! Flow accumulation input
   facc_path(:) = ""
   ! Geology class input
@@ -230,6 +232,8 @@
   aspect_var(:) = "aspect"
   ! Flow direction variable name
   fdir_var(:) = "fdir"
+  ! Maximum lake level variable name
+  lake_level_var(:) = "max_lake_level"
   ! Flow accumulation variable name
   facc_var(:) = "facc"
   ! Geology class variable name

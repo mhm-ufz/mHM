@@ -10,7 +10,8 @@ It is separate from `examples/domain_01` and `examples/domain_02`, which are run
   `lai_monthly_cycle.nc`, `lai_monthly_series.nc`, `lai_yearly.nc`,
   `pre_6h.nc`, `pet_6h.nc`, `tavg_6h.nc`, `tmin_6h.nc`, `tmax_6h.nc`,
   `pre_daily_aligned.nc`, `pet_daily_aligned.nc`, `tavg_daily_aligned.nc`,
-  `pre_weights.nc`, `pet_weights.nc`, `tavg_weights.nc`, `scc_gauges.nc`
+  `pre_weights.nc`, `pet_weights.nc`, `tavg_weights.nc`, `scc_gauges.nc`,
+  `lake_outlets.nc`
 - Copied legacy-domain assets:
   `dem.asc`, `fdir.asc`, `slope.asc`
 - Derived/generated NetCDF fixtures:

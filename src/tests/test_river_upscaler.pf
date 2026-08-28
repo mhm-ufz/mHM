@@ -11,7 +11,7 @@ module test_river_upscaler
   implicit none
   private
 
-  public :: test_legacy_and_flow_targets, test_flow_scc_endpoint, test_upscaling_config
+  public :: test_legacy_and_flow_targets, test_flow_scc_endpoint, test_lake_labels, test_upscaling_config
 
 contains
 
@@ -22,10 +22,11 @@ contains
     type(river_upscaler_t) :: legacy_upscaler, flow_upscaler
     integer(i8) :: ids(6,2)
     integer(i2) :: fdir(12)
-    real(dp) :: slope(12)
+    real(dp) :: slope(12), lake_dem(12)
     real(dp), allocatable :: celerity(:)
     logical :: exists
     integer(i4), allocatable :: scc(:,:), leaving(:,:), stream(:,:), stream_sub(:,:)
+    integer(i8), allocatable :: lake_map(:,:)
     type(NcDataset) :: nc
     type(NcVariable) :: nc_var
 
@@ -43,6 +44,9 @@ contains
     @assertEqual(fine_river%n_nodes, fine_river%points%n_points, message='D8 river owns one point per node')
     call fine_river%calc_order(root=.true.)
     call fine_river%calc_facc()
+    lake_dem = 0.0_dp
+    lake_dem(ids(1,1)) = 2.0_dp
+    call fine_river%label_lakes([ids(6,1)], [3271_i8], [1.0_dp], lake_dem)
 
     ! Select the lower leaving cell in coarse cell 1 and the upper leaving
     ! cell in coarse cell 2; retain the lower sink in coarse cell 3.
@@ -89,6 +93,7 @@ contains
     @assertTrue(nc%hasVariable('leaving'))
     @assertTrue(nc%hasVariable('stream'))
     @assertTrue(nc%hasVariable('stream_sub'))
+    @assertTrue(nc%hasVariable('lake_map'))
     nc_var = nc%getVariable('scc')
     call nc_var%getData(scc)
     nc_var = nc%getVariable('leaving')
@@ -97,6 +102,8 @@ contains
     call nc_var%getData(stream)
     nc_var = nc%getVariable('stream_sub')
     call nc_var%getData(stream_sub)
+    nc_var = nc%getVariable('lake_map')
+    call nc_var%getData(lake_map)
     call nc%close()
     @assertEqual(1_i4, scc(1,1))
     @assertEqual(2_i4, leaving(2,1))
@@ -104,6 +111,8 @@ contains
     @assertEqual(2_i4, stream(2,1))
     @assertEqual(1_i4, stream(3,1))
     @assertEqual(1_i4, stream_sub(3,1))
+    @assertEqual(0_i8, lake_map(1,1), message='cells above the maximum level remain outside lakes')
+    @assertEqual(3271_i8, lake_map(2,1), message='diagnostics preserve the stable lake ID')
     call legacy_upscaler%calc_celerity(2.0_dp, celerity, constant_celerity=.true.)
     @assertEqual(2.0_dp, celerity(1), tolerance=1.e-12_dp)
     slope = 1.0_dp
@@ -153,6 +162,33 @@ contains
     @assertEqual(gauges(1,1), coarse_river%points%x(upscaler%scc_coarse_gauges(1)), tolerance=1.e-12_dp)
     @assertEqual(gauges(1,2), coarse_river%points%y(upscaler%scc_coarse_gauges(1)), tolerance=1.e-12_dp)
   end subroutine test_flow_scc_endpoint
+
+  @test
+  subroutine test_lake_labels()
+    type(grid_t), target :: grid
+    type(river_t) :: river
+    integer(i8) :: ids(6,1)
+    integer(i2) :: fdir(6)
+    integer(i8), parameter :: upper_id = 5000000001_i8, lower_id = 9000000002_i8
+    integer(i8) :: expected(6)
+    real(dp) :: dem(6)
+
+    call grid%init(6_i4, 1_i4, cellsize=1.0_dp, y_direction=bottom_up)
+    call grid%gen_id_matrix(ids)
+    fdir = d8_E
+    fdir(ids(6,1)) = sink
+    call river%from_fdir(fdir, grid)
+    call river%calc_order(root=.true.)
+
+    dem = [1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp, 5.0_dp, 6.0_dp]
+    call river%label_lakes( &
+      [ids(3,1), ids(6,1)], [upper_id, lower_id], [3.0_dp, 5.0_dp], dem)
+
+    expected = [upper_id, upper_id, upper_id, lower_id, lower_id, 0_i8]
+    @assertTrue(all(river%lake_map == expected), message='nested outlet catchments are disjoint and thresholded by maximum level')
+    call river%clean()
+    @assertFalse(allocated(river%lake_map), message='river cleanup releases the lake map')
+  end subroutine test_lake_labels
 
   @test
   subroutine test_upscaling_config()
