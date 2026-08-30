@@ -566,11 +566,12 @@ contains
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Mehmet Cüneyd Demirel Aug 2026 - report monthly runoff metrics for monthly calibration objectives
 
   subroutine write_daily_obs_sim_discharge(Qobs, Qsim)
 
     use mo_common_constants, only : nodata_dp
-    use mo_common_mhm_mrm_variables, only : evalPer
+    use mo_common_mhm_mrm_variables, only : evalPer, opti_function, optimize
     use mo_common_variables, only : dirOut, domainMeta
     use mo_errormeasures, only : kge, nse
     use mo_julian, only : dec2date
@@ -579,6 +580,7 @@ contains
     use mo_string_utils, only : num2str
     use mo_utils, only : ge
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
+    use mo_temporal_aggregation, only : day2mon_average
 
     implicit none
 
@@ -600,6 +602,11 @@ contains
 
     ! time axis
     integer(i4), allocatable, dimension(:) :: taxis
+
+    ! temporary series used for monthly performance diagnostics
+    real(dp), allocatable, dimension(:) :: qobs_daily_masked, qsim_daily_masked
+    real(dp), allocatable, dimension(:) :: qobs_monthly, qsim_monthly
+    logical, allocatable, dimension(:) :: monthly_mask
 
     real(dp) :: newTime
 
@@ -713,11 +720,43 @@ contains
       call message('  OUTPUT: saved daily discharge file for domain ', trim(adjustl(dummy)))
       call message('    to ', trim(fname))
       do gg = igauge_start, igauge_end
-        if (count(ge(Qobs(:, gg), 0.0_dp)) > 1)  then
+        if (count(ge(Qobs(1 : tlength, gg), 0.0_dp)) > 1)  then
           call message('    KGE of daily discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
-                  trim(adjustl(num2str(kge(Qobs(:, gg), Qsim(:, gg), mask = (ge(Qobs(:, gg), 0.0_dp)))))))
+                  trim(adjustl(num2str(kge(Qobs(1 : tlength, gg), Qsim(1 : tlength, gg), &
+                  mask = (ge(Qobs(1 : tlength, gg), 0.0_dp)))))))
           call message('    NSE of daily discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
-                  trim(adjustl(num2str(nse(Qobs(:, gg), Qsim(:, gg), mask = (ge(Qobs(:, gg), 0.0_dp)))))))
+                  trim(adjustl(num2str(nse(Qobs(1 : tlength, gg), Qsim(1 : tlength, gg), &
+                  mask = (ge(Qobs(1 : tlength, gg), 0.0_dp)))))))
+
+          ! For monthly calibration objectives, additionally report monthly KGE and NSE.
+          ! Qobs and Qsim are aggregated over exactly the same valid observed days,
+          ! consistent with objective_nse_monthly/objective_kge_monthly.
+          if (optimize .and. ((opti_function == 50_i4) .or. (opti_function == 51_i4))) then
+            allocate(qobs_daily_masked(tlength), qsim_daily_masked(tlength))
+            qobs_daily_masked = nodata_dp
+            qsim_daily_masked = nodata_dp
+
+            where (ge(Qobs(1 : tlength, gg), 0.0_dp))
+              qobs_daily_masked = Qobs(1 : tlength, gg)
+              qsim_daily_masked = Qsim(1 : tlength, gg)
+            end where
+
+            call dec2date(real(evalPer(iDomain)%julStart, dp) - 0.5_dp, yy = year, mm = month, dd = day)
+            call day2mon_average(qobs_daily_masked, year, month, day, qobs_monthly, misval = nodata_dp)
+            call day2mon_average(qsim_daily_masked, year, month, day, qsim_monthly, misval = nodata_dp)
+
+            allocate(monthly_mask(size(qobs_monthly)))
+            monthly_mask = (qobs_monthly .ne. nodata_dp) .and. (qsim_monthly .ne. nodata_dp)
+
+            if (count(monthly_mask) > 1) then
+              call message('    KGE of monthly discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
+                      trim(adjustl(num2str(kge(qobs_monthly, qsim_monthly, mask = monthly_mask)))))
+              call message('    NSE of monthly discharge (gauge #', trim(adjustl(num2str(gg))), '): ', &
+                      trim(adjustl(num2str(nse(qobs_monthly, qsim_monthly, mask = monthly_mask)))))
+            end if
+
+            deallocate(qobs_daily_masked, qsim_daily_masked, qobs_monthly, qsim_monthly, monthly_mask)
+          end if
         end if
       end do
 
