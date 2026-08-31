@@ -53,13 +53,15 @@ module mo_exchange_type
   end type exchange_config_t
 
   !> \name Level Selectors
-  !> \brief Constants to specify the grid for levels in mHM: L0, L1, L2 and L3.
+  !> \brief Constants to select the full and component-specific model grids.
   !!@{
   integer(i4), public, parameter :: nogrid = -1_i4 !< no grid (yet) defined
   integer(i4), public, parameter :: l0 = 0_i4      !< level0 - morphology
   integer(i4), public, parameter :: l1 = 1_i4      !< level1 - hydrology
   integer(i4), public, parameter :: l2 = 2_i4      !< level2 - meteorology
   integer(i4), public, parameter :: l3 = 3_i4      !< level3 - routing
+  integer(i4), public, parameter :: l0_land = 10_i4 !< land grid at level0 - hydrological morphology
+  integer(i4), public, parameter :: l0_lake = 20_i4 !< lake grid at level0 - lake footprints
   !!@}
 
   !> \class   variable_abc
@@ -219,7 +221,9 @@ module mo_exchange_type
     character(:), allocatable :: parameter_file !< resolved process-parameter namelist path
 
     ! grids
-    type(grid_t), pointer :: level0 => null() !< level0 grid of the morphology
+    type(grid_t), pointer :: level0 => null() !< full level0 grid of the morphology and routing topology
+    type(grid_t), pointer :: level0_land => null() !< level0 land grid used by MPR and hydrology
+    type(grid_t), pointer :: level0_lake => null() !< level0 lake grid (unassociated without lakes)
     type(grid_t), pointer :: level1 => null() !< level1 grid of the hydrology
     type(grid_t), pointer :: level2 => null() !< level2 grid of the meteorology
     type(grid_t), pointer :: level3 => null() !< level3 grid of the river network
@@ -501,15 +505,15 @@ contains
     self%tann = var_dp(grid=l1, name="tann", units="degC",  long_name="annual mean air temperature", standard_name="air_temperature")
 
     ! morphology (level0)
-    self%dem    = var_dp(static=.true., grid=l0, name="dem",    units="m",      long_name="elevation", standard_name="height_above_mean_sea_level")
-    self%slope  = var_dp(static=.true., grid=l0, name="slope",  units="%",      long_name="slope", standard_name="ground_slope_angle")
-    self%aspect = var_dp(static=.true., grid=l0, name="aspect", units="degree", long_name="aspect", standard_name="ground_slope_direction")
+    self%dem    = var_dp(static=.true., grid=l0_land, name="dem",    units="m",      long_name="elevation", standard_name="height_above_mean_sea_level")
+    self%slope  = var_dp(static=.true., grid=l0_land, name="slope",  units="%",      long_name="slope", standard_name="ground_slope_angle")
+    self%aspect = var_dp(static=.true., grid=l0_land, name="aspect", units="degree", long_name="aspect", standard_name="ground_slope_direction")
     self%fdir   = var_i2(static=.true., grid=l0, name="fdir",   units="1",      long_name="flow direction")
     self%facc   = var_i4(static=.true., grid=l0, name="facc",   units="1",      long_name="flow accumulation")
-    self%soil_id = var2d_i4(static=.true., grid=l0, name="soil_id", units="1", long_name="soil class ID")
-    self%geo_unit = var_i4(static=.true., grid=l0, name="geo_unit", units="1", long_name="geological unit ID")
-    self%lai_class = var_i4(static=.true., grid=l0, name="lai_class", units="1", long_name="LAI class ID")
-    self%slope_emp = var_dp(static=.true., grid=l0, name="slope_emp", units="1", long_name="empirical slope distribution")
+    self%soil_id = var2d_i4(static=.true., grid=l0_land, name="soil_id", units="1", long_name="soil class ID")
+    self%geo_unit = var_i4(static=.true., grid=l0_land, name="geo_unit", units="1", long_name="geological unit ID")
+    self%lai_class = var_i4(static=.true., grid=l0_land, name="lai_class", units="1", long_name="LAI class ID")
+    self%slope_emp = var_dp(static=.true., grid=l0_land, name="slope_emp", units="1", long_name="empirical slope distribution")
 
     ! hydrology (level1)
     ! canopy
@@ -589,7 +593,7 @@ contains
     self%river_temp        =   var_dp(grid=l3, name="river_temp",       units="degC",              long_name="simulated river temperature")
 
     ! groundwater (level0)
-    self%riverhead         =   var_dp(grid=l0,  name="riverhead",        units="m",                 long_name="simulated riverhead")
+    self%riverhead         =   var_dp(grid=l0_land, name="riverhead",        units="m",                 long_name="simulated riverhead")
   end subroutine exchange_create
 
   !> \brief Set runtime dimensions for generated exchange-owned namelists.
@@ -851,13 +855,17 @@ contains
   subroutine exchange_get_grid(self, selector, grid)
     use mo_message, only: error_message
     class(exchange_t), intent(in) :: self
-    integer(i4), intent(in) :: selector !< level selector (0: L0, 1: L1, 2: L2, 3: L3, -1: nogrid)
+    integer(i4), intent(in) :: selector !< grid selector
     type(grid_t), pointer, intent(out) :: grid !< resulting pointer to the selected grid
     select case(selector)
       case(nogrid)
         grid => null() ! exchangable
       case(l0)
         grid => self%level0
+      case(l0_land)
+        grid => self%level0_land
+      case(l0_lake)
+        grid => self%level0_lake
       case(l1)
         grid => self%level1
       case(l2)
@@ -874,10 +882,14 @@ contains
   logical function exchange_has_grid(self, selector)
     use mo_message, only: error_message
     class(exchange_t), intent(in) :: self
-    integer(i4), intent(in) :: selector !< level selector (0: l0, 1: l1, 2: l2, 3: L3, -1: nogrid)
+    integer(i4), intent(in) :: selector !< grid selector
     select case(selector)
       case(l0)
         exchange_has_grid = associated(self%level0)
+      case(l0_land)
+        exchange_has_grid = associated(self%level0_land)
+      case(l0_lake)
+        exchange_has_grid = associated(self%level0_lake)
       case(l1)
         exchange_has_grid = associated(self%level1)
       case(l2)

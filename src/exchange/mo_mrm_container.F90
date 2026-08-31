@@ -433,6 +433,11 @@ contains
       self%restart_output_path = self%exchange%get_path(self%config%restart_output_path(id(1)))
     end if
 
+    if (associated(self%exchange%level0_lake)) then
+      log_fatal(*) "mRM: lake masks are active, but typed lake nodes and land-to-routing coupling are not implemented."
+      error stop 1
+    end if
+
     ! Runoff may be provided by dynamic input and connected during update.
     call self%exchange%runoff_total%require("mRM", .true., check_data=.false.)
     if (.not.self%read_restart) then
@@ -441,7 +446,12 @@ contains
         error stop 1
       end if
     end if
-    call self%exchange%slope%require("mRM", .not.const_celerity .and. .not.self%read_restart)
+    if (.not.const_celerity .and. .not.self%read_restart) then
+      if (.not.allocated(self%exchange%river_l0%link_slope)) then
+        log_fatal(*) "mRM: variable celerity requires full level-0 river slope."
+        error stop 1
+      end if
+    end if
 
     ! derive level-3 grid
     if (self%read_restart) then
@@ -474,6 +484,8 @@ contains
       ! TODO: the upscaler should handle also the case of no upscaling (level0 == level11)
       scope_info(s,*) "level-0 and level-3 river network are equal of size:", n2s(self%exchange%level3%ncells)
       call self%river%from_fdir(self%exchange%river_l0%fdir, self%level3)
+      if (allocated(self%exchange%river_l0%link_slope)) &
+        call self%river%set_link_slope(self%exchange%river_l0%link_slope)
     else
       ! check SCC config
       if (read_scc) then
@@ -685,13 +697,13 @@ contains
         omp_level_thresh  = int(self%config%river_net_omp_level_min(id(1)), i8), &
         read_fluxes       = self%config%read_restart_fluxes(id(1)))
     else
-      ! NOTE: if slope data pointer is null (i.e. slope not provided), optional slope will be seen as "not present"
+      ! Full routing slope is owned by the level-0 river and propagated during river construction/upscaling.
       if (is_close(self%level3%cellsize, self%exchange%level0%cellsize)) then
         call self%river%calc_celerity( &
-          gamma=gamma(1), celerity=self%celerity, slope=self%exchange%slope%data, constant_celerity=const_celerity)
+          gamma=gamma(1), celerity=self%celerity, constant_celerity=const_celerity)
       else
         call self%upscaler%calc_celerity( &
-          gamma=gamma(1), celerity=self%celerity, slope=self%exchange%slope%data, constant_celerity=const_celerity)
+          gamma=gamma(1), celerity=self%celerity, constant_celerity=const_celerity)
       end if
       scope_info(s,*) "Initialize router"
       call self%router%init( &

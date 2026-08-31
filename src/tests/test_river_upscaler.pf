@@ -46,7 +46,8 @@ contains
     call fine_river%calc_facc()
     lake_dem = 0.0_dp
     lake_dem(ids(1,1)) = 2.0_dp
-    call fine_river%label_lakes([ids(6,1)], [3271_i8], [1.0_dp], lake_dem)
+    call fine_river%set_elevation(lake_dem)
+    call fine_river%label_lakes([ids(6,1)], [3271_i8], [1.0_dp])
 
     ! Select the lower leaving cell in coarse cell 1 and the upper leaving
     ! cell in coarse cell 2; retain the lower sink in coarse cell 3.
@@ -94,6 +95,7 @@ contains
     @assertTrue(nc%hasVariable('stream'))
     @assertTrue(nc%hasVariable('stream_sub'))
     @assertTrue(nc%hasVariable('lake_map'))
+    @assertTrue(nc%hasVariable('dem'))
     nc_var = nc%getVariable('scc')
     call nc_var%getData(scc)
     nc_var = nc%getVariable('leaving')
@@ -166,12 +168,15 @@ contains
   @test
   subroutine test_lake_labels()
     type(grid_t), target :: grid
+    type(grid_t) :: land_grid, lake_grid
     type(river_t) :: river
     integer(i8) :: ids(6,1)
     integer(i2) :: fdir(6)
     integer(i8), parameter :: upper_id = 5000000001_i8, lower_id = 9000000002_i8
     integer(i8) :: expected(6)
     real(dp) :: dem(6)
+    logical, allocatable :: land_packed(:), lake_packed(:)
+    logical :: land_mask(6,1), lake_mask(6,1)
 
     call grid%init(6_i4, 1_i4, cellsize=1.0_dp, y_direction=bottom_up)
     call grid%gen_id_matrix(ids)
@@ -180,14 +185,33 @@ contains
     call river%from_fdir(fdir, grid)
     call river%calc_order(root=.true.)
 
-    dem = [1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp, 5.0_dp, 6.0_dp]
+    dem = [1.0_dp, 2.0_dp, 3.0_dp, 6.0_dp, 5.0_dp, 4.0_dp]
+    call river%set_elevation(dem)
     call river%label_lakes( &
-      [ids(3,1), ids(6,1)], [upper_id, lower_id], [3.0_dp, 5.0_dp], dem)
+      [ids(3,1), ids(6,1)], [upper_id, lower_id], [3.0_dp, 5.0_dp])
 
-    expected = [upper_id, upper_id, upper_id, lower_id, lower_id, 0_i8]
+    expected = [upper_id, upper_id, upper_id, 0_i8, lower_id, lower_id]
     @assertTrue(all(river%lake_map == expected), message='nested outlet catchments are disjoint and thresholded by maximum level')
+    call river%lake_masks(land_packed, lake_packed)
+    @assertTrue(all(land_packed .neqv. lake_packed), message='packed land and lake masks are complementary')
+    @assertEqual(1, count(land_packed), message='only the cell above both lake levels remains land')
+    @assertEqual(5, count(lake_packed), message='five cells belong to a lake')
+    call grid%unpack_into(land_packed, land_mask)
+    call grid%unpack_into(lake_packed, lake_mask)
+    call grid%copy_to(land_grid, mask=land_mask, keep_sub_cell_area=.true.)
+    call grid%copy_to(lake_grid, mask=lake_mask, keep_sub_cell_area=.true.)
+    @assertEqual(1_i8, land_grid%ncells)
+    @assertEqual(5_i8, lake_grid%ncells)
+    @assertEqual(grid%nx, land_grid%nx)
+    @assertEqual(grid%ny, lake_grid%ny)
+    @assertTrue(all((land_grid%mask .or. lake_grid%mask) .eqv. grid%mask))
+    @assertFalse(any(land_grid%mask .and. lake_grid%mask))
+    call river%calc_length()
+    call river%calc_slope()
+    @assertEqual(100.0_dp, river%link_slope(4), tolerance=1.e-12_dp, message='link slope uses stored node elevation')
     call river%clean()
     @assertFalse(allocated(river%lake_map), message='river cleanup releases the lake map')
+    @assertFalse(allocated(river%node_elevation), message='river cleanup releases node elevation')
   end subroutine test_lake_labels
 
   @test

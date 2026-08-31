@@ -1,6 +1,6 @@
 module test_exchange_variable
   use funit
-  use mo_exchange_type, only: exchange_t, var_dp, var_i2, var2d_dp
+  use mo_exchange_type, only: exchange_t, var_dp, var_i2, var2d_dp, l0, l0_land
   use mo_grid_io, only: var, no_time
   use mo_parameter_types, only: parameter_t
   use mo_datetime, only: datetime, timedelta
@@ -171,6 +171,9 @@ contains
     @assertEqual(0, status, message='project defaults configure the exchange fixture')
     call exchange%create(cwd=".")
 
+    @assertEqual(l0, exchange%fdir%grid, message='flow direction stays on the full level0 grid')
+    @assertEqual(l0_land, exchange%dem%grid, message='land morphology uses the level0 land grid')
+    @assertEqual(l0_land, exchange%slope%grid, message='MPR slope uses the level0 land grid')
     @assertEqual("mm degC-1", exchange%degday%units, message='degree-day interval unit')
     @assertEqual("degC-1", exchange%degday_inc%units, message='degree-day precipitation increment unit')
     @assertEqual("d", exchange%k_fastflow%units, message='fast interflow recession unit')
