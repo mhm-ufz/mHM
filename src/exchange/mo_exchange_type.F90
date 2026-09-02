@@ -20,6 +20,7 @@ module mo_exchange_type
   use mo_logging
   use mo_grid, only: grid_t
   use mo_river, only: river_t
+  use mo_points, only: points_t
   use mo_grid_io, only: output_var_meta_t => var, no_time, daily, monthly, yearly, varying
   use mo_netcdf, only: NcVariable
   use mo_geology_classdefinition, only: geology_classdefinition_t
@@ -64,6 +65,13 @@ module mo_exchange_type
   integer(i4), public, parameter :: l0_lake = 20_i4 !< lake grid at level0 - lake footprints
   !!@}
 
+  !> \name Point-set Selectors
+  !> \brief Constants selecting referenced point sets for exchanged point variables.
+  !!@{
+  integer(i4), public, parameter :: nopoints = -1_i4 !< no point set
+  integer(i4), public, parameter :: points_lake = 1_i4 !< lake outlet point set
+  !!@}
+
   !> \class   variable_abc
   !> \brief   Abstract base class for a variable in the exchange type.
   type, abstract, public :: variable_abc
@@ -72,6 +80,7 @@ module mo_exchange_type
     character(:), allocatable :: long_name     !< long name of the variable
     character(:), allocatable :: standard_name !< standard name of the variable
     integer(i4) :: grid = nogrid               !< ID of the grid the data is defined on
+    integer(i4) :: points = nopoints           !< ID of the referenced point set
     integer(i4) :: stepping = 0_i4             !< time-step size of this variable in hours (0 - static)
     logical :: static = .false.                !< flag to indicated static data (.false. by default)
     logical :: provided = .false.              !< flag to indicate that data is provided by a component (.false. by default)
@@ -112,6 +121,18 @@ module mo_exchange_type
     procedure, public :: publish_local => var_i4_publish_local
     procedure, public :: publish_alias => var_i4_publish_alias
   end type var_i4
+
+  !> \class   var_i8
+  !> \brief   Class for a 64bit integer variable in the exchange type.
+  type, public, extends(variable_abc) :: var_i8
+    integer(i8), dimension(:), pointer :: data => null() !< 1D integer pointer
+  contains
+    procedure, public :: has_data => var_i8_has_data
+    procedure, public :: data_shape => var_i8_data_shape
+    procedure, public :: clear_data => var_i8_clear_data
+    procedure, public :: publish_local => var_i8_publish_local
+    procedure, public :: publish_alias => var_i8_publish_alias
+  end type var_i8
 
   !> \class   var_i2
   !> \brief   Class for a 16-bit integer variable in the exchange type.
@@ -227,6 +248,7 @@ module mo_exchange_type
     type(grid_t), pointer :: level1 => null() !< level1 grid of the hydrology
     type(grid_t), pointer :: level2 => null() !< level2 grid of the meteorology
     type(grid_t), pointer :: level3 => null() !< level3 grid of the river network
+    type(points_t), pointer :: lake_points => null() !< lake outlet point set
     real(dp), dimension(:), pointer :: soil_horizon_bounds => null() !< soil-horizon boundary depths [mm] for mHM metadata
 
     ! static topology
@@ -239,6 +261,10 @@ module mo_exchange_type
     real(dp) :: level3_resolution = 0.0_dp !< level3 resolution of the river network
 
     ! variables
+    ! lake-point metadata
+    type(var_i8) :: lake_ids             !< stable lake IDs on lake points
+    type(var_dp) :: lake_max_levels      !< maximum lake levels [m] on lake points
+
     ! raw meteorology (level2)
     type(var_dp) :: raw_pre             !< raw precipitation [mm] on level l2
     type(var_dp) :: raw_temp            !< raw air temperature [degC] on level l2
@@ -363,17 +389,20 @@ module mo_exchange_type
     procedure, public  :: update => exchange_update
     procedure, public  :: get_grid => exchange_get_grid
     procedure, public  :: has_grid => exchange_has_grid
+    procedure, public  :: get_points => exchange_get_points
+    procedure, public  :: has_points => exchange_has_points
     procedure, public :: get_meta => exchange_get_var_meta
     procedure, public :: get_path => exchange_get_path
     procedure, private :: get_var_class => exchange_get_var_class
     procedure, private  :: get_data_1d_dp => exchange_get_data_1d_dp
     procedure, private  :: get_data_1d_i2 => exchange_get_data_1d_i2
     procedure, private  :: get_data_1d_i4 => exchange_get_data_1d_i4
+    procedure, private  :: get_data_1d_i8 => exchange_get_data_1d_i8
     procedure, private  :: get_data_1d_lg => exchange_get_data_1d_lg
     procedure, private  :: get_data_2d_dp => exchange_get_data_2d_dp
     procedure, private  :: get_data_2d_i4 => exchange_get_data_2d_i4
     procedure, private  :: get_data_2d_lg => exchange_get_data_2d_lg
-    generic, public :: get_data => get_data_1d_dp, get_data_1d_i2, get_data_1d_i4, get_data_1d_lg, get_data_2d_dp, get_data_2d_i4, get_data_2d_lg
+    generic, public :: get_data => get_data_1d_dp, get_data_1d_i2, get_data_1d_i4, get_data_1d_i8, get_data_1d_lg, get_data_2d_dp, get_data_2d_i4, get_data_2d_lg
     procedure, private  :: set_data_1d => exchange_set_data_1d
     procedure, private  :: set_data_2d => exchange_set_data_2d
     generic, public :: set_data => set_data_1d, set_data_2d
@@ -483,6 +512,10 @@ contains
     end if
 
     ! variables
+    ! lake-point metadata
+    self%lake_ids        = var_i8(static=.true., points=points_lake, name="lake_ids",        units="1", long_name="stable lake ID")
+    self%lake_max_levels = var_dp(static=.true., points=points_lake, name="lake_max_levels", units="m", long_name="maximum lake level")
+
     ! raw meteorology (level2)
     self%raw_pre    = var_dp(grid=l2, name="pre",       units="mm",    long_name="precipitation", standard_name="precipitation_amount")
     self%raw_pet    = var_dp(grid=l2, name="pet",       units="mm",    long_name="potential evapotranspiration", standard_name="water_potential_evapotranspiration_amount")
@@ -901,6 +934,34 @@ contains
     end select
   end function exchange_has_grid
 
+  !> \brief Return the referenced point set for a selector.
+  subroutine exchange_get_points(self, selector, points)
+    class(exchange_t), intent(in) :: self
+    integer(i4), intent(in) :: selector
+    type(points_t), pointer, intent(out) :: points
+    select case(selector)
+      case(nopoints)
+        points => null()
+      case(points_lake)
+        points => self%lake_points
+      case default
+        log_fatal(*) "exchange%get_points: unknown point-set selector '", n2s(selector), "'."
+        error stop 1
+    end select
+  end subroutine exchange_get_points
+
+  !> \brief Return whether a referenced point set is associated.
+  logical function exchange_has_points(self, selector)
+    class(exchange_t), intent(in) :: self
+    integer(i4), intent(in) :: selector
+    select case(selector)
+      case(points_lake)
+        exchange_has_points = associated(self%lake_points)
+      case default
+        exchange_has_points = .false.
+    end select
+  end function exchange_has_points
+
   !> \brief get class pointer to a variable
   subroutine exchange_get_var_class(self, var, var_pnt)
     use mo_message, only: error_message
@@ -908,6 +969,11 @@ contains
     character(*), intent(in) :: var !< name of the variable (attribute name)
     class(*), pointer, intent(out) :: var_pnt !< resulting pointer to the selected variable
     select case(var)
+      ! lake-point metadata
+      case("lake_ids")
+        var_pnt => self%lake_ids
+      case("lake_max_levels")
+        var_pnt => self%lake_max_levels
       case("raw_pre")
         var_pnt => self%raw_pre
       case("raw_temp")
@@ -1187,6 +1253,24 @@ contains
     end select
   end subroutine exchange_get_data_1d_i4
 
+  !> \brief Get a pointer to 1D 64-bit integer variable data.
+  subroutine exchange_get_data_1d_i8(self, var, data)
+    use mo_message, only: error_message
+    class(exchange_t), target, intent(in) :: self
+    character(*), intent(in) :: var
+    integer(i8), pointer, intent(out) :: data(:)
+    class(*), pointer :: tmp
+
+    call self%get_var_class(var, tmp)
+    select type (tmp)
+      class is (var_i8)
+        data => tmp%data
+      class default
+        log_fatal(*) "exchange%get_var: variable data of '", var, "' not 1D integer(i8)."
+        error stop 1
+    end select
+  end subroutine exchange_get_data_1d_i8
+
   !> \brief get pointer to the 1D variable data
   subroutine exchange_get_data_1d_lg(self, var, data)
     use mo_message, only: error_message
@@ -1293,6 +1377,16 @@ contains
             tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type integer(i4)."
+            error stop 1
+        end select
+      class is (var_i8)
+        select type (data)
+          type is (integer(i8))
+            tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
+          class default
+            log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type integer(i8)."
             error stop 1
         end select
       class is (var_lg)
@@ -1701,6 +1795,59 @@ contains
     self%data => source%data
     self%provided = .true.
   end subroutine var_i4_publish_alias
+
+  !> \brief Return whether a 1D 64-bit integer exchange variable has data connected.
+  logical function var_i8_has_data(self)
+    class(var_i8), intent(in) :: self
+
+    var_i8_has_data = associated(self%data)
+  end function var_i8_has_data
+
+  !> \brief Return the data shape of a 1D 64-bit integer exchange variable.
+  function var_i8_data_shape(self) result(shape)
+    class(var_i8), intent(in) :: self
+    integer(i8), allocatable :: shape(:)
+
+    if (associated(self%data)) then
+      shape = [size(self%data, 1, kind=i8)]
+    else
+      allocate(shape(0))
+    end if
+  end function var_i8_data_shape
+
+  !> \brief Clear the data pointer of a 1D 64-bit integer exchange variable.
+  subroutine var_i8_clear_data(self)
+    class(var_i8), intent(inout) :: self
+
+    nullify(self%data)
+  end subroutine var_i8_clear_data
+
+  !> \brief Publish a local 1D 64-bit integer field through the exchange variable.
+  subroutine var_i8_publish_local(self, component, local, stepping)
+    class(var_i8), intent(inout) :: self
+    character(*), intent(in) :: component
+    integer(i8), intent(inout), target :: local(:)
+    integer(i4), intent(in) :: stepping
+
+    call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
+    self%data => local
+    self%provided = .true.
+  end subroutine var_i8_publish_local
+
+  !> \brief Publish a 1D 64-bit integer alias through the exchange variable.
+  subroutine var_i8_publish_alias(self, component, source)
+    class(var_i8), intent(inout) :: self
+    character(*), intent(in) :: component
+    type(var_i8), intent(in) :: source
+
+    call variable_validate_alias_source(source, component, self)
+    call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
+    self%data => source%data
+    self%provided = .true.
+  end subroutine var_i8_publish_alias
 
   !> \brief Return whether a 1D 16-bit integer exchange variable has data connected.
   logical function var_i2_has_data(self)

@@ -1527,6 +1527,9 @@ contains
     call self%build_lake_grids()
     call repack_l0_dp_cache(self%exchange%level0, self%exchange%level0_land, self%dem%cache, "DEM")
     self%dem%grid => self%exchange%level0_land
+    self%exchange%lake_points => self%lake_outlets
+    call self%exchange%lake_ids%publish_local("Input", self%lake_ids, no_time)
+    call self%exchange%lake_max_levels%publish_local("Input", self%lake_max_levels, no_time)
   end subroutine input_read_lake_specification
 
   !> \brief Construct complementary land and lake grids on the full level-0 geometry.
@@ -1642,6 +1645,9 @@ contains
     if (self%wind%provided .and. .not.self%wind%static) call self%wind%ds%close()
     if (self%runoff%provided) call self%runoff%ds%close()
     if (allocated(self%soil_class_one_layer)) deallocate(self%soil_class_one_layer)
+    call self%exchange%lake_ids%clear(owned=.true.)
+    call self%exchange%lake_max_levels%clear(owned=.true.)
+    nullify(self%exchange%lake_points)
     self%lake_outlets = points_t()
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
     if (allocated(self%lake_max_levels)) deallocate(self%lake_max_levels)

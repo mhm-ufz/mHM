@@ -1,6 +1,7 @@
 module test_exchange_variable
   use funit
-  use mo_exchange_type, only: exchange_t, var_dp, var_i2, var2d_dp, l0, l0_land
+  use mo_exchange_type, only: exchange_t, var_dp, var_i2, var2d_dp, l0, l0_land, nopoints, points_lake
+  use mo_points, only: points_t
   use mo_grid_io, only: var, no_time
   use mo_parameter_types, only: parameter_t
   use mo_datetime, only: datetime, timedelta
@@ -13,6 +14,7 @@ module test_exchange_variable
   public :: test_var_dp_contract, test_var_i2_contract, test_var_dp_alias, test_var2d_dp_contract
   public :: test_exchange_external_metadata, test_exchange_output_metadata, test_exchange_canonical_metadata
   public :: test_exchange_clock
+  public :: test_exchange_lake_points
 
 contains
 
@@ -221,5 +223,44 @@ contains
     @assertEqual(24_i4, exchange%step_hours, message='reinitialize refreshes the cached step in hours')
     @assertEqual(1.0_dp, exchange%step_days, tolerance=1.0e-12_dp)
   end subroutine test_exchange_clock
+
+  @test
+  subroutine test_exchange_lake_points()
+    type(exchange_t) :: exchange
+    type(points_t), target :: lake_points
+    type(points_t), pointer :: selected
+    integer(i8), target :: ids(2)
+    real(dp), target :: levels(2)
+    integer :: status
+
+    status = exchange%config%project%set()
+    @assertEqual(0, status, message='project defaults configure the lake-point exchange fixture')
+    call exchange%create(cwd='.')
+    call lake_points%init([1.0_dp, 2.0_dp], [3.0_dp, 4.0_dp])
+    ids = [101_i8, 205_i8]
+    levels = [12.0_dp, 23.0_dp]
+    exchange%lake_points => lake_points
+    call exchange%lake_ids%publish_local('test', ids, no_time)
+    call exchange%lake_max_levels%publish_local('test', levels, no_time)
+
+    @assertTrue(exchange%has_points(points_lake), message='lake point selector is available')
+    @assertFalse(exchange%has_points(nopoints), message='no-point selector is never available')
+    call exchange%get_points(points_lake, selected)
+    @assertTrue(associated(selected, lake_points), message='lake selector returns the referenced point set')
+    call exchange%lake_ids%require('test', .true., [lake_points%n_points])
+    call exchange%lake_max_levels%require('test', .true., [lake_points%n_points])
+    @assertTrue(all(exchange%lake_ids%data == ids), message='stable lake IDs are published without copying')
+    @assertTrue(all(exchange%lake_max_levels%data == levels), message='lake levels are published without copying')
+    @assertEqual(points_lake, exchange%lake_ids%points, message='lake IDs reference the lake point set')
+    @assertEqual(points_lake, exchange%lake_max_levels%points, message='lake levels reference the lake point set')
+
+    call exchange%lake_ids%clear(owned=.true.)
+    call exchange%lake_max_levels%clear(owned=.true.)
+    nullify(exchange%lake_points)
+    @assertFalse(exchange%lake_ids%provided, message='lake ID publication is cleared')
+    @assertFalse(associated(exchange%lake_ids%data), message='lake ID alias is cleared')
+    @assertFalse(exchange%lake_max_levels%provided, message='lake-level publication is cleared')
+    @assertFalse(exchange%has_points(points_lake), message='lake point reference is cleared')
+  end subroutine test_exchange_lake_points
 
 end module test_exchange_variable
