@@ -4,7 +4,7 @@
 
 !> \brief   Module for an input container.
 !> \version 0.1
-!> \authors Sebastian Mueller
+!> \authors Sebastian Mueller, Pallav Shrestha
 !> \date    Aug 2025
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
@@ -122,6 +122,7 @@ module mo_input_container
 
   !> \class   input_t
   !> \brief   Class for a single Input container.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   type, public :: input_t
     type(input_config_t) :: config !< configuration of the Input container
     type(exchange_t), pointer :: exchange => null() !< exchange container of the domain
@@ -1455,6 +1456,7 @@ contains
   end subroutine input_build_river_l0
 
   !> \brief Read static lake metadata, snap outlets to L0 cells, and delineate lake footprints.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine input_read_lake_specification(self)
     use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
     class(input_t), target, intent(inout) :: self
@@ -1533,6 +1535,7 @@ contains
   end subroutine input_read_lake_specification
 
   !> \brief Construct complementary land and lake grids on the full level-0 geometry.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine input_build_lake_grids(self)
     class(input_t), target, intent(inout) :: self
     logical, allocatable :: land_packed(:), lake_packed(:)

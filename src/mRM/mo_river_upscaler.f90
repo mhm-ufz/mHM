@@ -4,7 +4,14 @@
 !> \brief   River upscaler.
 !> \details This module contains an upscaler for river networks.
 !> \version 0.1
-!> \authors Sebastian Mueller
+!> \changelog
+!! - Luis Samaniego (2005/2012): original routing-network upscaling.
+!! - Rohini Kumar (2014): grid-geometry support for upscaling.
+!! - Stephan Thober (2015-2020): mRM port, multi-outlet support, and link-length cutoff.
+!! - Robert Schweppe (2018): prior routing-network refactoring.
+!! - Pallav Shrestha (2018-2023): lake-aware SCC topology and scalability extensions.
+!! - Sebastian Mueller (2025-2026): v6 sparse DAG-based upscaler rewrite.
+!> \authors Luis Samaniego, Rohini Kumar, Stephan Thober, Robert Schweppe, Sebastian Mueller, Pallav Shrestha
 !> \date    May 2025
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! This code is released under the LGPLv3+ license \license_note
@@ -37,6 +44,7 @@ module mo_river_upscaler
   end type river_upscaler_scratch_t
 
   !> Sparse mapping from an existing (coarse cell, SCC label) pair to its coarse river node.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   type :: sparse_cell_sub_t
     integer(i8), allocatable :: offset(:) !< one-based CSR offsets size(ncells+1)
     integer(i4), allocatable :: sub(:) !< sorted SCC labels for all existing pairs
@@ -47,6 +55,7 @@ module mo_river_upscaler
 
   !> \class river_upscaler_t
   !> \brief River network upscaler
+  !> \authors Sebastian Mueller, Pallav Shrestha
   !> \details upscale river network respecting scc.
   !! Coarse nodes are ordered first by sub-catchment ID and then by increasing coarse-cell ID.
   type, public :: river_upscaler_t
@@ -68,6 +77,7 @@ module mo_river_upscaler
 contains
 
   !> \brief Setup river upscaler from fine river and coarse target grid.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_upscaler_init(this, &
     fine_river, coarse_river, coarse_grid, scc_nodes, lake_outlet_nodes, lake_ids, upscale_mode, length_percentile, tol, &
     diagnostics_path, retain_stream_mask)
@@ -129,6 +139,7 @@ contains
   end subroutine river_upscaler_init
 
   !> \brief Initialize SCC related variables
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_upscaler_init_scc_gauges(this, scc_nodes, lake_outlet_nodes, lake_ids, scratch)
     class(river_upscaler_t), target, intent(inout) :: this !< Upscaler holding the fine and coarse rivers.
     integer(i8), intent(in), optional :: scc_nodes(:) !< Snapped ordinary L0 SCC outlet nodes.
@@ -225,6 +236,7 @@ contains
   end subroutine river_upscaler_init_scc_gauges
 
   !> \brief Return the coarse node for an existing sparse (cell, SCC label) pair, or zero.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   pure integer(i8) function sparse_cell_sub_find(this, cell, sub) result(node)
     class(sparse_cell_sub_t), intent(in) :: this !< Sparse cell/subcatchment mapping to query.
     integer(i8), intent(in) :: cell !< Coarse-grid cell ID.
@@ -249,6 +261,7 @@ contains
   end function sparse_cell_sub_find
 
   !> \brief Build sparse existing (coarse cell, SCC label) pairs without dense cell-by-catchment storage.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine build_sparse_cell_sub(scaler, pair_map, nsub, pairs)
     !$ use omp_lib, only: omp_get_max_threads, omp_get_thread_num
     use mo_orderpack, only: sort
@@ -351,6 +364,7 @@ contains
   end subroutine build_sparse_cell_sub
 
   !> \brief Setup the coarse graph and stream features with optional SCC nodes.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   !> \details Both modes trace source-inclusive and endpoint-exclusive fine links.
   subroutine river_upscaler_upscale(this, upscale_mode, length_percentile, scratch, diagnostics_path, retain_stream_mask)
     use mo_percentile, only: percentile
@@ -791,6 +805,7 @@ contains
   end subroutine river_upscaler_upscale
 
   !> \brief Write river-upscaling diagnostics while construction data is available.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_upscaler_write_diagnostics( &
     this, path, scaler, sub_map, leaving_cells, stream_mask, is_link_start, lake_outlet_cells, lake_ids)
     implicit none

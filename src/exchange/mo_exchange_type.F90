@@ -10,7 +10,7 @@
 
 !> \brief   Module to provide the exchange type.
 !> \version 0.1
-!> \authors Sebastian Mueller
+!> \authors Sebastian Mueller, Pallav Shrestha
 !> \date    Mar 2025
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
@@ -67,6 +67,7 @@ module mo_exchange_type
 
   !> \name Point-set Selectors
   !> \brief Constants selecting referenced point sets for exchanged point variables.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   !!@{
   integer(i4), public, parameter :: nopoints = -1_i4 !< no point set
   integer(i4), public, parameter :: points_lake = 1_i4 !< lake outlet point set
@@ -124,6 +125,7 @@ module mo_exchange_type
 
   !> \class   var_i8
   !> \brief   Class for a 64bit integer variable in the exchange type.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   type, public, extends(variable_abc) :: var_i8
     integer(i8), dimension(:), pointer :: data => null() !< 1D integer pointer
   contains
@@ -217,6 +219,7 @@ module mo_exchange_type
 
   !> \class   exchange_t
   !> \brief   Class for dynamically exchanging variables in mHM.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   type, public :: exchange_t
     integer(i4) :: step_count               !< current time step
     type(datetime) :: time                  !< upper bound of the current time step
@@ -935,6 +938,7 @@ contains
   end function exchange_has_grid
 
   !> \brief Return the referenced point set for a selector.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine exchange_get_points(self, selector, points)
     class(exchange_t), intent(in) :: self
     integer(i4), intent(in) :: selector
@@ -951,6 +955,7 @@ contains
   end subroutine exchange_get_points
 
   !> \brief Return whether a referenced point set is associated.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   logical function exchange_has_points(self, selector)
     class(exchange_t), intent(in) :: self
     integer(i4), intent(in) :: selector

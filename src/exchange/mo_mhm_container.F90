@@ -4,8 +4,27 @@
 
 !> \brief   Module for a mHM process container.
 !> \version 0.1
+!> \changelog
+!! - Luis Samaniego, Rohini Kumar (2012-2013): modular mHM process orchestration.
+!! - Matthias Zink (2014): PET process formulations and inflow handling.
+!! - Matthias Cuntz, Juliane Mai (2014): dynamic LAI input support.
+!! - Stephan Thober (2014-2022): MPR/routing separation, forcing weights, and hourly forcing support.
+!! - Mehmet Cuneyd Demirel, Simon Stisen (2017): Jarvis/Feddes and FC/root process variants.
+!! - Robert Schweppe (2017-2018): legacy mHM process orchestration refactoring.
+!! - Rohini Kumar (2021): neutron-count process integration.
+!! - Sebastian Mueller (2022): coupling-ready temperature and precipitation fields.
+!! - Sebastian Mueller (2025-2026): v6 mHM process-container rewrite.
+!> \authors Luis Samaniego
+!> \authors Rohini Kumar
+!> \authors Matthias Zink
+!> \authors Matthias Cuntz
+!> \authors Juliane Mai
+!> \authors Stephan Thober
+!> \authors Mehmet Cuneyd Demirel
+!> \authors Simon Stisen
+!> \authors Robert Schweppe
 !> \authors Sebastian Mueller
-!> \date    Aug 2025
+!> \date    2012 - 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_exchange
@@ -141,6 +160,7 @@ module mo_mhm_container
 
   !> \class   mhm_t
   !> \brief   Class for a single mHM process container.
+  !> \authors Sebastian Mueller
   type, public :: mhm_t
     type(nml_config_mhm_t) :: config !< configuration of the mHM process container
     type(nml_output_mhm_t) :: output_config !< output configuration of the mHM process container

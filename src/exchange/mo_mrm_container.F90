@@ -4,9 +4,13 @@
 !> \brief   Module for a mHM process container.
 !> \version 0.1
 !> \changelog
-!! - Stephan Thober Sep 2026
-!!   - initial version using river dag
-!> \authors Sebastian Mueller, Stephan Thober
+!! - Luis Samaniego (2005/2012): original mHM/mRM routing workflow.
+!! - Rohini Kumar (2014): routing-grid geometry support.
+!! - Stephan Thober (2015-2020): mRM port and routing extensions.
+!! - Robert Schweppe (2018): prior mRM routing refactoring.
+!! - Pallav Shrestha (2018-2023): lake-aware SCC routing extensions.
+!! - Sebastian Mueller and Stephan Thober (2025-2026): v6 domain-container and river-DAG rewrite.
+!> \authors Luis Samaniego, Rohini Kumar, Stephan Thober, Robert Schweppe, Sebastian Mueller, Pallav Shrestha
 !> \date    Aug 2025
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
@@ -50,6 +54,7 @@ module mo_mrm_container
 
   !> \class   mrm_t
   !> \brief   Class for a single mRM process container.
+  !> \authors Sebastian Mueller, Stephan Thober, Pallav Shrestha
   type, public :: mrm_t
     type(nml_config_mrm_t)     :: config                       !< configuration of the mRM process container
     type(nml_output_mrm_t)     :: output_config                !< output configuration of the mRM process container
@@ -385,7 +390,8 @@ contains
     end if
   end subroutine check_parameter_status
 
-  ! read initial values and populate exchange
+  !> \brief Connect mRM to its input, SCC, and lake topology dependencies.
+  !> \authors Sebastian Mueller, Stephan Thober, Pallav Shrestha
   subroutine mrm_connect(self)
     use mo_grid, only: grid_t
     use mo_river, only: river_t
@@ -622,6 +628,7 @@ contains
   end subroutine mrm_read_gauge_points
 
   !> \brief Snap an already validated point set to active level-0 river cells.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   function mrm_snap_points_l0(self, points, file) result(nodes)
     class(mrm_t), target, intent(in) :: self
     type(points_t), intent(in) :: points
@@ -655,6 +662,7 @@ contains
   end function mrm_snap_points_l0
 
   !> \brief Use exact SCC coarse gauge nodes and their station IDs as POIs.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine mrm_select_scc_pois(self, scc_ids, n_lakes)
     use mo_river_tools, only: unique_ids
     class(mrm_t), target, intent(inout) :: self
@@ -682,6 +690,7 @@ contains
   end subroutine mrm_select_scc_pois
 
   !> \brief Validate the exact stable-ID set represented by level-3 lake nodes.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine mrm_validate_lake_topology(self, lake_ids)
     use mo_river_tools, only: unique_ids
     class(mrm_t), target, intent(in) :: self

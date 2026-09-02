@@ -4,7 +4,14 @@
 !> \brief   River representation.
 !> \details This module contains a river network representation based on DAG and the grid class.
 !> \version 0.1
-!> \authors Sebastian Mueller
+!> \changelog
+!! - Luis Samaniego (2005/2012): original routing-network topology and upscaling concepts.
+!! - Rohini Kumar (2014): grid-geometry support for routing-network construction.
+!! - Stephan Thober (2015-2020): mRM port and routing-network extensions.
+!! - Robert Schweppe (2018): prior routing-network refactoring.
+!! - Pallav Shrestha (2018-2023): lake-aware topology and SCC scalability concepts.
+!! - Sebastian Mueller (2025-2026): v6 DAG-based river representation and integration.
+!> \authors Luis Samaniego, Rohini Kumar, Stephan Thober, Robert Schweppe, Sebastian Mueller, Pallav Shrestha
 !> \date    May 2025
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! This code is released under the LGPLv3+ license \license_note
@@ -36,6 +43,7 @@ module mo_river
 
   !> \class river_t
   !> \brief River network representation
+  !> \authors Sebastian Mueller, Pallav Shrestha
   !> \details A `river_t` represents either the full, D8 morphological L0 river
   !! or an L3 routing river derived from it. Both variants use the inherited
   !! branching DAG, `grid`, `is_sink`, link attributes, order, and node points.
@@ -521,6 +529,7 @@ contains
   end subroutine river_set_link_slope
 
   !> \brief Delineate disjoint lake footprints from outlet catchments and maximum water levels.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_label_lakes(this, outlet_nodes, lake_ids, max_levels)
     use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
     use mo_river_tools, only: unique_ids
@@ -569,6 +578,7 @@ contains
   end subroutine river_label_lakes
 
   !> \brief Derive complementary packed land and lake masks from the stable lake map.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_lake_masks(this, land_mask, lake_mask)
     class(river_t), intent(in), target :: this
     logical, allocatable, intent(out) :: land_mask(:) !< active non-lake river cells
@@ -588,6 +598,7 @@ contains
   end subroutine river_lake_masks
 
   !> \brief Mark exactly one routing node for every stable lake ID.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_set_lake_nodes(this, lake_nodes, lake_ids)
     use mo_river_tools, only: unique_ids
     class(river_t), intent(inout), target :: this !< River whose L3 lake-node IDs are set.
@@ -1026,6 +1037,7 @@ contains
   end function river_select_cell_values_i4
 
   !> \brief Export river arrays to netcdf
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_export(this, path, sub_map, leaving, stream_mask, stream_sub, lake_outlet, highlight, factor)
     class(river_t), intent(in) :: this
     character(*), intent(in) :: path !< path to the file
@@ -1121,6 +1133,7 @@ contains
   end subroutine river_export
 
   !> \brief Write river network to restart file
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_to_restart_file(this, path, append)
     class(river_t), intent(in) :: this
     character(*), intent(in) :: path !< NetCDF file path
@@ -1135,6 +1148,7 @@ contains
   end subroutine river_to_restart_file
 
   !> \brief Write river network to restart dataset
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_to_restart_dataset(this, nc)
     class(river_t), intent(in) :: this
     type(NcDimension) :: two_dim, node_dim, link_dim, dims(2), order_dim, sink_dim, xdim, ydim
@@ -1381,6 +1395,7 @@ contains
   end subroutine river_to_restart_dataset
 
   !> \brief Read river network from restart file
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_from_restart_file(this, path, grid)
     class(river_t), intent(inout) :: this
     character(*), intent(in) :: path !< NetCDF file path
@@ -1392,6 +1407,7 @@ contains
   end subroutine river_from_restart_file
 
   !> \brief Read river network from restart dataset
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_from_restart_dataset(this, nc, grid)
     class(river_t), intent(inout) :: this
     type(NcDataset), intent(in) :: nc !< netcdf dataset to read from
@@ -1565,6 +1581,8 @@ contains
 
   end subroutine river_from_restart_dataset
 
+  !> \brief Release all river topology, morphology, and lake state.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_destroy(this)
     class(river_t), intent(inout) :: this
     if (allocated(this%fdir)) deallocate(this%fdir)

@@ -7,8 +7,20 @@
 !! disaggregation, and computes PET corrections or PET estimates for the active
 !! PET process case.
 !> \version 0.1
+!> \changelog
+!! - Matthias Cuntz (2012): temporal disaggregation of daily meteorological forcings.
+!! - Rohini Kumar (2013): meteorological forcing preparation and spatial remapping.
+!! - Matthias Zink, Christoph Schneider, Matthias Cuntz (2014): PET process formulations.
+!! - Stephan Thober (2014-2022): chunked forcing input, prescribed weights, and hourly forcing support.
+!! - Sebastian Mueller (2023): object-oriented meteorological handler.
+!! - Sebastian Mueller (2026): exchange-side meteorology container rewrite.
+!> \authors Matthias Cuntz
+!> \authors Rohini Kumar
+!> \authors Matthias Zink
+!> \authors Christoph Schneider
+!> \authors Stephan Thober
 !> \authors Sebastian Mueller
-!> \date    Mar 2026
+!> \date    2012 - 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_exchange
@@ -74,6 +86,7 @@ module mo_meteo_container
 
   !> \class   meteo_t
   !> \brief   Class for a single meteorology process container.
+  !> \authors Sebastian Mueller
   type, public :: meteo_t
     type(nml_config_meteo_t) :: config !< configuration of the meteorology process container
     type(exchange_t), pointer :: exchange => null() !< exchange container of the domain
