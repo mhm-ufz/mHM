@@ -60,6 +60,7 @@ module mo_mrm_container
     type(nml_output_mrm_t)     :: output_config                !< output configuration of the mRM process container
     type(exchange_t), pointer  :: exchange => null()           !< exchange container of the domain
     type(grid_t)               :: level3                       !< mrm grid
+    type(grid_t)               :: level3_land                  !< private land-only L3 runoff-support grid
     type(river_t)              :: river                        !< upscaled river network
     type(river_router_t)       :: router                       !< river router
     type(river_upscaler_t)     :: upscaler                     !< river upscaler for upscaling from level-0 to level-3 river network
@@ -68,6 +69,9 @@ module mo_mrm_container
     type(points_output_dataset):: ds_node_out                  !< output dataset for river node based outputs
     type(mrm_poi_output_t)     :: poi                          !< point-of-interest output state
     real(dp), allocatable      :: discharge(:)                 !< discharge array for all river nodes
+    real(dp), allocatable      :: lake_inflow(:)               !< completed hourly lake inflow [m3 s-1]
+    integer(i8), allocatable   :: lake_ids(:)                  !< stable lake IDs in point-set order
+    integer(i8), allocatable   :: lake_nodes(:)                !< canonical L3 lake nodes in point-set order
     logical                    :: active = .false.             !< whether mRM participates in the configured domain
     logical                    :: read_restart = .false.       !< whether to read restart file
     character(:), allocatable  :: restart_input_path           !< path to restart file to read
@@ -102,6 +106,8 @@ module mo_mrm_container
     procedure, private :: snap_points_l0 => mrm_snap_points_l0
     procedure, private :: select_scc_pois => mrm_select_scc_pois
     procedure, private :: validate_lake_topology => mrm_validate_lake_topology
+    procedure, private :: build_level3_land => mrm_build_level3_land
+    procedure, private :: read_lake_inflow_restart => mrm_read_lake_inflow_restart
   end type mrm_t
 
 contains
@@ -161,7 +167,7 @@ contains
     class(mrm_t), intent(inout), target :: self
     type(NcDataset) :: nc
     type(NcVariable) :: nc_var
-    type(NcDimension) :: dims(0), poi_dim
+    type(NcDimension) :: dims(0), poi_dim, lake_dim
 
     if (self%router%input_count /= 0_i4) then
       log_fatal(*) "mRM restart can only be written at a completed routing boundary."
@@ -177,6 +183,14 @@ contains
     call self%level3%to_restart(nc)
     call self%river%to_restart(nc)
     call self%router%to_restart(nc)
+    if (allocated(self%lake_inflow)) then
+      lake_dim = nc%setDimension("lake", int(size(self%lake_ids), i4))
+      nc_var = nc%setVariable("lake_coupling_id", "i64", [lake_dim])
+      call nc_var%setData(self%lake_ids)
+      nc_var = nc%setVariable("lake_inflow", "f64", [lake_dim])
+      call nc_var%setAttribute("units", "m3 s-1")
+      call nc_var%setData(self%lake_inflow)
+    end if
     nc_var = nc%setVariable("mrm_discharge", "f64", [nc%getDimension("node")])
     call self%exchange%discharge%write_netcdf_metadata(nc_var)
     call nc_var%setData(self%discharge)
@@ -403,7 +417,7 @@ contains
     character(:), allocatable   :: file, diagnostics_path
     integer(i8), allocatable    :: scc_ids(:), scc_nodes(:), lake_nodes(:), lake_ids(:)
     type(points_t), target      :: scc_points
-    integer(i4)                 :: id(1)
+    integer(i4)                 :: id(1), i
     integer(i4)                 :: n_lakes
     logical                     :: const_celerity, poi_gauges_set, had_restart_pois, read_scc, scc_gauges_as_poi, has_lakes
     integer(i4)                 :: model_step
@@ -474,6 +488,11 @@ contains
       end if
       if (any(self%exchange%river_l0%lake_map(lake_nodes) /= lake_ids)) then
         log_fatal(*) "mRM: stable lake IDs do not match the level-0 lake outlets."
+        error stop 1
+      end if
+      call self%exchange%lake_outflow%require("mRM", .true., [int(n_lakes, i8)])
+      if (self%exchange%lake_outflow%stepping /= 1_i4) then
+        log_fatal(*) "mRM: lake outflow must have one-hour support."
         error stop 1
       end if
     end if
@@ -558,6 +577,17 @@ contains
     end if
 
     call self%validate_lake_topology(lake_ids)
+    if (has_lakes) then
+      self%lake_ids = lake_ids
+      allocate(self%lake_nodes(n_lakes))
+      do i = 1_i4, n_lakes
+        self%lake_nodes(i) = findloc(self%river%lake_id, self%lake_ids(i), dim=1, kind=i8)
+      end do
+      allocate(self%lake_inflow(n_lakes), source=0.0_dp)
+      call self%exchange%lake_inflow%publish_local("mRM", self%lake_inflow, 1_i4)
+      if (self%read_restart) call self%read_lake_inflow_restart()
+      call self%build_level3_land()
+    end if
 
     if (scc_gauges_as_poi .and. .not.self%read_restart) call self%select_scc_pois(scc_ids, n_lakes)
 
@@ -720,6 +750,70 @@ contains
     end if
   end subroutine mrm_validate_lake_topology
 
+  !> \brief Construct the private L3 land-support grid used only for runoff remapping.
+  subroutine mrm_build_level3_land(self)
+    class(mrm_t), target, intent(inout) :: self
+    logical, allocatable :: mask(:,:)
+    real(dp), allocatable :: fraction(:,:), full_area(:,:), land_area(:,:)
+
+    if (.not.allocated(self%river%cell_land_fraction)) then
+      call error_message("mRM: lake-aware river has no level-3 land fractions.")
+    end if
+    if (size(self%river%cell_land_fraction, kind=i8) /= self%level3%ncells) then
+      call error_message("mRM: level-3 land fraction size does not match routing grid.")
+    end if
+    if (any(.not.ieee_is_finite(self%river%cell_land_fraction)) .or. &
+        any(self%river%cell_land_fraction < 0.0_dp) .or. any(self%river%cell_land_fraction > 1.0_dp)) then
+      call error_message("mRM: level-3 land fractions must be finite values in [0,1].")
+    end if
+    allocate(fraction(self%level3%nx, self%level3%ny), full_area(self%level3%nx, self%level3%ny), &
+      land_area(self%level3%nx, self%level3%ny))
+    call self%level3%unpack_into(self%river%cell_land_fraction, fraction)
+    call self%level3%unpack_into(self%level3%cell_area, full_area)
+    mask = self%level3%mask .and. fraction > 0.0_dp
+    land_area = full_area * fraction
+    call self%level3%copy_to(self%level3_land, mask=mask, cell_area=land_area)
+  end subroutine mrm_build_level3_land
+
+  !> \brief Restore pending mRM lake inflow by stable ID before mLM initialization.
+  subroutine mrm_read_lake_inflow_restart(self)
+    class(mrm_t), target, intent(inout) :: self
+    type(NcDataset) :: nc
+    type(NcVariable) :: var
+    integer(i8), allocatable :: ids(:)
+    real(dp), allocatable :: inflow(:)
+    integer(i8) :: i, j
+
+    nc = NcDataset(self%restart_input_path, "r")
+    if (.not.nc%hasVariable("lake_coupling_id") .or. .not.nc%hasVariable("lake_inflow")) then
+      log_fatal(*) "mRM restart is missing lake coupling state: ", self%restart_input_path
+      error stop 1
+    end if
+    var = nc%getVariable("lake_coupling_id"); call var%getData(ids)
+    var = nc%getVariable("lake_inflow"); call var%getData(inflow)
+    call nc%close()
+    if (size(ids, kind=i8) /= size(self%lake_ids, kind=i8) .or. size(inflow, kind=i8) /= size(ids, kind=i8)) then
+      log_fatal(*) "mRM restart lake count does not match configured lakes."
+      error stop 1
+    end if
+    do i = 1_i8, size(ids, kind=i8) - 1_i8
+      if (any(ids(i + 1_i8:) == ids(i))) then
+        log_fatal(*) "mRM restart contains duplicate stable lake IDs."
+        error stop 1
+      end if
+    end do
+    do i = 1_i8, size(self%lake_ids, kind=i8)
+      do j = 1_i8, size(ids, kind=i8)
+        if (ids(j) == self%lake_ids(i)) exit
+      end do
+      if (j > size(ids, kind=i8)) then
+        log_fatal(*) "mRM restart is missing stable lake ID."
+        error stop 1
+      end if
+      self%lake_inflow(i) = inflow(j)
+    end do
+  end subroutine mrm_read_lake_inflow_restart
+
   !> \brief Restore optional POI node IDs and station IDs from a restart file.
   subroutine mrm_read_poi_restart(self)
     class(mrm_t), target, intent(inout) :: self
@@ -785,12 +879,6 @@ contains
 
     log_info(*) "Initialize mRM"
 
-    if (self%exchange%lake_ids%provided) then
-      log_fatal(*) &
-        "mRM: lake-aware level-3 topology is available, but mLM flux exchange and lake routing are not implemented."
-      error stop 1
-    end if
-
     ! get domain id
     id(1) = self%exchange%nml_domain_id
     ! calculate celerity
@@ -805,16 +893,31 @@ contains
       end if
       scope_info(s,*) "Read routing state from restart file: ", self%restart_input_path
       ! TODO: warn about gamma mismatch between restart and config
-      call self%router%from_restart_file( &
-        path              = self%restart_input_path, &
-        river             = self%river, &
-        input_grid        = self%exchange%level1, &
-        input_step        = input_step, &
-        model_step        = model_step, &
-        max_route_step    = real(self%config%max_route_step(id(1)), dp), &
-        root_levels       = self%config%river_net_order_root_based(id(1)), &
-        omp_level_thresh  = int(self%config%river_net_omp_level_min(id(1)), i8), &
-        read_fluxes       = self%config%read_restart_fluxes(id(1)))
+      if (allocated(self%lake_inflow)) then
+        call self%router%from_restart_file( &
+          path              = self%restart_input_path, &
+          river             = self%river, &
+          input_grid        = self%exchange%level1, &
+          input_step        = input_step, &
+          model_step        = model_step, &
+          max_route_step    = real(self%config%max_route_step(id(1)), dp), &
+          root_levels       = self%config%river_net_order_root_based(id(1)), &
+          omp_level_thresh  = int(self%config%river_net_omp_level_min(id(1)), i8), &
+          read_fluxes       = self%config%read_restart_fluxes(id(1)), &
+          runoff_grid       = self%level3_land, &
+          lake_nodes        = self%lake_nodes)
+      else
+        call self%router%from_restart_file( &
+          path              = self%restart_input_path, &
+          river             = self%river, &
+          input_grid        = self%exchange%level1, &
+          input_step        = input_step, &
+          model_step        = model_step, &
+          max_route_step    = real(self%config%max_route_step(id(1)), dp), &
+          root_levels       = self%config%river_net_order_root_based(id(1)), &
+          omp_level_thresh  = int(self%config%river_net_omp_level_min(id(1)), i8), &
+          read_fluxes       = self%config%read_restart_fluxes(id(1)))
+      end if
     else
       ! Full routing slope is owned by the level-0 river and propagated during river construction/upscaling.
       if (.not.associated(self%upscaler%fine_river)) then
@@ -825,7 +928,8 @@ contains
           gamma=gamma(1), celerity=self%celerity, constant_celerity=const_celerity)
       end if
       scope_info(s,*) "Initialize router"
-      call self%router%init( &
+      if (allocated(self%lake_inflow)) then
+        call self%router%init( &
         river            = self%river, &
         celerity         = self%celerity, &
         input_grid       = self%exchange%level1, &
@@ -833,7 +937,20 @@ contains
         model_step       = model_step, &
         max_route_step   = real(self%config%max_route_step(id(1)), dp), &
         root_levels      = self%config%river_net_order_root_based(id(1)), &
-        omp_level_thresh = int(self%config%river_net_omp_level_min(id(1)), i8))
+        omp_level_thresh = int(self%config%river_net_omp_level_min(id(1)), i8), &
+        runoff_grid      = self%level3_land, &
+        lake_nodes       = self%lake_nodes)
+      else
+        call self%router%init( &
+          river            = self%river, &
+          celerity         = self%celerity, &
+          input_grid       = self%exchange%level1, &
+          input_step       = input_step, &
+          model_step       = model_step, &
+          max_route_step   = real(self%config%max_route_step(id(1)), dp), &
+          root_levels      = self%config%river_net_order_root_based(id(1)), &
+          omp_level_thresh = int(self%config%river_net_omp_level_min(id(1)), i8))
+      end if
     end if
 
     scope_debug(s,*) "router%routing_substep: ", self%router%routing_substep
@@ -847,6 +964,12 @@ contains
     end if
 
     call self%validate_timing()
+    if (allocated(self%lake_inflow)) then
+      if (model_step /= 1_i4 .or. self%router%routing_step /= 1_i4 .or. self%config%max_route_step(id(1)) > 3600_i4) then
+        log_fatal(*) "mRM lake routing requires a one-hour model/routing interval and max_route_step <= 3600 s."
+        error stop 1
+      end if
+    end if
 
     call self%create_output()
 
@@ -1026,7 +1149,12 @@ contains
     log_trace(*) "Update mRM"
 
     ! route runoff
-    call self%router%update(self%exchange%runoff_total%data, self%discharge, completed)
+    if (allocated(self%lake_inflow)) then
+      call self%router%update(self%exchange%runoff_total%data, self%discharge, completed, &
+        self%exchange%lake_outflow%data, self%lake_inflow)
+    else
+      call self%router%update(self%exchange%runoff_total%data, self%discharge, completed)
+    end if
     if (completed) call self%update_output()
   end subroutine mrm_update
 
@@ -1139,6 +1267,10 @@ contains
     ! deallocate arrays, close files, ...
     call self%upscaler%destroy()
     if (allocated(self%celerity)) deallocate(self%celerity)
+    if (allocated(self%lake_inflow)) deallocate(self%lake_inflow)
+    if (allocated(self%lake_ids)) deallocate(self%lake_ids)
+    if (allocated(self%lake_nodes)) deallocate(self%lake_nodes)
+    call self%exchange%lake_inflow%clear(owned=.true.)
   end subroutine mrm_cleanup
 
   subroutine mrm_create_output(self)

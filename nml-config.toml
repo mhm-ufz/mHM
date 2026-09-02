@@ -121,6 +121,12 @@ mod_path = "src/nml/nml_config_mrm.f90"
 doc_path = "doc/nml/config_mrm.md"
 
 [[namelists]]
+name = "config_lake"
+schema = "nml-schemas/config_lake.yml"
+mod_path = "src/nml/nml_config_lake.f90"
+doc_path = "doc/nml/config_lake.md"
+
+[[namelists]]
 name = "config_observations"
 schema = "nml-schemas/config_observations.yml"
 mod_path = "src/nml/nml_config_observations.f90"
@@ -290,6 +296,7 @@ namelists = [
   "config_mpr",
   "config_mhm",
   "config_mrm",
+  "config_lake",
   "config_observations",
 ]
 required = ["config_project", "config_resolution", "config_time"]

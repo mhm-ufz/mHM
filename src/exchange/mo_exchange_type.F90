@@ -267,6 +267,8 @@ module mo_exchange_type
     ! lake-point metadata
     type(var_i8) :: lake_ids             !< stable lake IDs on lake points
     type(var_dp) :: lake_max_levels      !< maximum lake levels [m] on lake points
+    type(var_dp) :: lake_inflow          !< completed hourly lake inflow [m3 s-1] on lake points
+    type(var_dp) :: lake_outflow         !< current hourly lake outflow [m3 s-1] on lake points
 
     ! raw meteorology (level2)
     type(var_dp) :: raw_pre             !< raw precipitation [mm] on level l2
@@ -518,6 +520,8 @@ contains
     ! lake-point metadata
     self%lake_ids        = var_i8(static=.true., points=points_lake, name="lake_ids",        units="1", long_name="stable lake ID")
     self%lake_max_levels = var_dp(static=.true., points=points_lake, name="lake_max_levels", units="m", long_name="maximum lake level")
+    self%lake_inflow     = var_dp(points=points_lake, name="lake_inflow",  units="m3 s-1", long_name="completed hourly lake inflow")
+    self%lake_outflow    = var_dp(points=points_lake, name="lake_outflow", units="m3 s-1", long_name="current hourly lake outflow")
 
     ! raw meteorology (level2)
     self%raw_pre    = var_dp(grid=l2, name="pre",       units="mm",    long_name="precipitation", standard_name="precipitation_amount")
@@ -979,6 +983,10 @@ contains
         var_pnt => self%lake_ids
       case("lake_max_levels")
         var_pnt => self%lake_max_levels
+      case("lake_inflow")
+        var_pnt => self%lake_inflow
+      case("lake_outflow")
+        var_pnt => self%lake_outflow
       case("raw_pre")
         var_pnt => self%raw_pre
       case("raw_temp")

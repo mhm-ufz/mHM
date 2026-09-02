@@ -62,6 +62,8 @@
   routing = 3
   ! River temperature routing process case
   temperature_routing = 0
+  ! Lake process case
+  lake = -1
 /
 
 ! Optimization configuration
@@ -498,6 +500,18 @@
   restart_output_path(:) = "mrm_restart_out.nc"
   ! Diagnostics output path
   diagnostics_path(:) = "mrm_diagnostics.nc"
+/
+
+! mLM configuration
+&config_lake
+  ! Read mLM restart
+  read_restart(:) = .false.
+  ! mLM restart input path
+  restart_input_path(:) = ""
+  ! Write mLM restart
+  write_restart(:) = .false.
+  ! mLM restart output path
+  restart_output_path(:) = ""
 /
 
 ! Observations configuration

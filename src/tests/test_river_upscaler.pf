@@ -260,7 +260,7 @@ contains
     @assertEqual(3_i8, coarse_river%down(2), message='cascaded lake nodes preserve the DAG')
     @assertEqual(4_i8, coarse_river%down(3), message='lake outlet routes normally to the downstream node')
     @assertEqual(0_i8, coarse_river%down(4), message='terminal land node remains the sink')
-    @assertEqual(0.5_dp, coarse_river%area_fraction(2), tolerance=1.e-12_dp, message='mixed outlet cell land fraction belongs to its canonical lake node')
+    @assertEqual(1.0_dp, coarse_river%area_fraction(2), tolerance=1.e-12_dp, message='mixed outlet cell fraction is normalized over its land-only runoff support')
     @assertEqual(2_i8, coarse_river%cell_node_select(2), message='mixed outlet cell selects its lake node')
     @assertEqual(3_i8, coarse_river%cell_node_select(3), message='pure lake cell may select a canonical node in another coarse cell')
     nc = NcDataset('river_lake_diagnostics.nc', 'r')

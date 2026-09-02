@@ -71,7 +71,8 @@ module mo_river
     logical :: scc = .false. !< Whether this L3 river uses SCC topology rather than D8 links.
     integer(i8), allocatable :: node_cell(:) !< L3 grid cell owning each SCC routing node.
     integer(i8), allocatable :: cell_node_select(:) !< Representative routing node for each L3 cell; may be outside it.
-    real(dp), allocatable :: area_fraction(:) !< Land runoff fraction assigned to each SCC routing node.
+    real(dp), allocatable :: cell_land_fraction(:) !< Land area / full area for each L3 cell.
+    real(dp), allocatable :: area_fraction(:) !< Land-runoff share assigned to each SCC routing node.
   contains
     procedure, public :: from_fdir => river_from_fdir
     procedure, public :: calc_order => river_order
@@ -645,6 +646,9 @@ contains
         ! area fraction not allocated for d8 river
         if (this%scc) then
           this%upstream_area(n) = this%grid%cell_area(this%node_cell(n)) * this%area_fraction(n)
+          if (allocated(this%cell_land_fraction)) then
+            this%upstream_area(n) = this%upstream_area(n) * this%cell_land_fraction(this%node_cell(n))
+          end if
         else
           this%upstream_area(n) = this%grid%cell_area(n)
         end if
@@ -1157,6 +1161,7 @@ contains
     integer(i8) :: i
     integer(i8), allocatable :: dummy2d(:, :)
     integer(i2), allocatable :: dummy2d_i2(:, :)
+    real(dp), allocatable :: dummy2d_dp(:, :)
 
     if ( this%grid%coordsys == cartesian ) then
       xdim = nc%getDimension("x")
@@ -1363,6 +1368,15 @@ contains
       call nc_var%setData(this%area_fraction)
     end if
 
+    if (allocated(this%cell_land_fraction)) then
+      nc_var = nc%setVariable("cell_land_fraction", "f64", [xdim, ydim], shuffle=.true.)
+      call nc_var%setAttribute("long_name", "land area fraction of routing cell")
+      allocate(dummy2d_dp(this%grid%nx, this%grid%ny))
+      call this%grid%unpack_into(this%cell_land_fraction, dummy2d_dp)
+      call nc_var%setData(dummy2d_dp)
+      deallocate(dummy2d_dp)
+    end if
+
     ! order
     if ( allocated(this%order%id) ) then
       order_dim = nc%setDimension("order_dim", int(this%order%n_levels, i4))
@@ -1419,6 +1433,7 @@ contains
     integer(i1), allocatable :: dummy_i1
     integer(i2), allocatable :: dummy2di2(:, :)
     integer(i8), allocatable :: dummy2di8(:, :)
+    real(dp), allocatable :: dummy2d(:, :)
     real(dp), allocatable :: node_x(:), node_y(:)
 
     ! reset all attributes
@@ -1543,6 +1558,28 @@ contains
       call nc_var%readInto(this%area_fraction)
     end if
 
+    if (nc%hasVariable("cell_land_fraction")) then
+      nc_var = nc%getVariable("cell_land_fraction")
+      call nc_var%getData(dummy2d)
+      allocate(this%cell_land_fraction(this%grid%ncells))
+      call this%grid%pack_into(dummy2d, this%cell_land_fraction)
+      deallocate(dummy2d)
+    else if (allocated(this%lake_id) .and. any(this%lake_id > 0_i8)) then
+      ! Lake restarts written before cell_land_fraction used raw node fractions.
+      if (.not.allocated(this%node_cell) .or. .not.allocated(this%area_fraction)) then
+        call error_message("lake restart cannot derive land fractions without node_cell and area_fraction")
+      end if
+      allocate(this%cell_land_fraction(this%grid%ncells), source=0.0_dp)
+      do i = 1_i8, this%n_nodes
+        this%cell_land_fraction(this%node_cell(i)) = this%cell_land_fraction(this%node_cell(i)) + this%area_fraction(i)
+      end do
+      do i = 1_i8, this%n_nodes
+        if (this%cell_land_fraction(this%node_cell(i)) > 0.0_dp) then
+          this%area_fraction(i) = this%area_fraction(i) / this%cell_land_fraction(this%node_cell(i))
+        end if
+      end do
+    end if
+
     if (nc%hasDimension("order_dim")) then
       ! Older restart files did not persist the order direction. Orders created
       ! by river%calc_order run from headwaters to roots by default.
@@ -1599,6 +1636,7 @@ contains
     if (allocated(this%node_cell)) deallocate(this%node_cell)
     if (allocated(this%cell_node_select)) deallocate(this%cell_node_select)
     if (allocated(this%area_fraction)) deallocate(this%area_fraction)
+    if (allocated(this%cell_land_fraction)) deallocate(this%cell_land_fraction)
     call this%destroy()
   end subroutine river_destroy
 

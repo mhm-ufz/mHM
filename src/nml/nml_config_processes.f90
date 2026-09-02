@@ -46,6 +46,7 @@ module nml_config_processes
   integer(i4), parameter, public :: neutrons__default = 0_i4
   integer(i4), parameter, public :: routing__default = 0_i4
   integer(i4), parameter, public :: temperature_routing__default = 0_i4
+  integer(i4), parameter, public :: lake__default = 0_i4
 
   ! enum values
   integer(i4), parameter, public :: interception__enum_values(3) = [-1_i4, 0_i4, 1_i4]
@@ -59,6 +60,7 @@ module nml_config_processes
   integer(i4), parameter, public :: neutrons__enum_values(3) = [0_i4, 1_i4, 2_i4]
   integer(i4), parameter, public :: routing__enum_values(4) = [0_i4, 1_i4, 2_i4, 3_i4]
   integer(i4), parameter, public :: temperature_routing__enum_values(2) = [0_i4, 1_i4]
+  integer(i4), parameter, public :: lake__enum_values(2) = [-1_i4, 0_i4]
 
   !> \class nml_config_processes_t
   !> \brief Processes configuration
@@ -76,6 +78,7 @@ module nml_config_processes
     integer(i4) :: neutrons !< Ground albedo of cosmic-ray neutrons process case
     integer(i4) :: routing !< Routing process case
     integer(i4) :: temperature_routing !< River temperature routing process case
+    integer(i4) :: lake !< Lake process case
   contains
     procedure :: init => nml_config_processes_init
     procedure :: from_file => nml_config_processes_from_file
@@ -262,6 +265,22 @@ contains
     in_enum = any(val == temperature_routing__enum_values)
   end function temperature_routing__in_enum
 
+  !> \brief Check whether a value is part of an enum
+  elemental logical function lake__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
+
+    if (present(allow_missing)) then
+      if (allow_missing) then
+        if (val == -huge(val)) then
+          in_enum = .true.
+          return
+        end if
+      end if
+    end if
+    in_enum = any(val == lake__enum_values)
+  end function lake__in_enum
+
   !> \brief Initialize defaults and sentinels for config_processes
   integer function nml_config_processes_init(this, errmsg) result(status)
     class(nml_config_processes_t), intent(inout) :: this !< namelist instance
@@ -283,6 +302,7 @@ contains
     this%neutrons = neutrons__default
     this%routing = routing__default
     this%temperature_routing = temperature_routing__default
+    this%lake = lake__default
   end function nml_config_processes_init
 
 
@@ -303,6 +323,7 @@ contains
     integer(i4) :: neutrons
     integer(i4) :: routing
     integer(i4) :: temperature_routing
+    integer(i4) :: lake
     ! locals
     type(nml_file_t) :: nml
     integer :: iostat
@@ -320,7 +341,8 @@ contains
       baseflow, &
       neutrons, &
       routing, &
-      temperature_routing
+      temperature_routing, &
+      lake
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -335,6 +357,7 @@ contains
     neutrons = this%neutrons
     routing = this%routing
     temperature_routing = this%temperature_routing
+    lake = this%lake
 
     status = nml%open(file, errmsg=errmsg)
     if (status /= NML_OK) return
@@ -371,6 +394,7 @@ contains
     this%neutrons = neutrons
     this%routing = routing
     this%temperature_routing = temperature_routing
+    this%lake = lake
 
     ! mark as configured
     this%is_configured = .true.
@@ -390,6 +414,7 @@ contains
     neutrons, &
     routing, &
     temperature_routing, &
+    lake, &
     errmsg) result(status)
 
     class(nml_config_processes_t), intent(inout) :: this !< namelist instance
@@ -405,6 +430,7 @@ contains
     integer(i4), intent(in), optional :: neutrons !< Ground albedo of cosmic-ray neutrons process case
     integer(i4), intent(in), optional :: routing !< Routing process case
     integer(i4), intent(in), optional :: temperature_routing !< River temperature routing process case
+    integer(i4), intent(in), optional :: lake !< Lake process case
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -422,6 +448,7 @@ contains
     if (present(neutrons)) this%neutrons = neutrons
     if (present(routing)) this%routing = routing
     if (present(temperature_routing)) this%temperature_routing = temperature_routing
+    if (present(lake)) this%lake = lake
 
     ! mark as configured
     this%is_configured = .true.
@@ -507,6 +534,12 @@ contains
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'temperature_routing'"
+        return
+      end if
+    case ("lake")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'lake'"
         return
       end if
     case default
@@ -648,6 +681,17 @@ contains
       if (.not. temperature_routing__in_enum(this%temperature_routing)) then
         status = NML_ERR_ENUM
         if (present(errmsg)) errmsg = "enum constraint failed: temperature_routing"
+        return
+      end if
+    else if (istat /= NML_ERR_NOT_SET) then
+      status = istat
+      return
+    end if
+    istat = this%is_set("lake", errmsg=errmsg)
+    if (istat == NML_OK) then
+      if (.not. lake__in_enum(this%lake)) then
+        status = NML_ERR_ENUM
+        if (present(errmsg)) errmsg = "enum constraint failed: lake"
         return
       end if
     else if (istat /= NML_ERR_NOT_SET) then

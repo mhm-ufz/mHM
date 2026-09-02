@@ -12,8 +12,8 @@ execute_process(
 
 set(output "${stdout}${stderr}")
 if(result EQUAL 0)
-  message(FATAL_ERROR "Lake-enabled mRM unexpectedly succeeded")
+  message(FATAL_ERROR "Lake-enabled mRM unexpectedly succeeded without a lake-outflow provider")
 endif()
-if(NOT output MATCHES "lake-aware level-3 topology is available, but mLM flux exchange and lake routing are not implemented")
-  message(FATAL_ERROR "Lake-enabled mRM failed without the expected diagnostic:\n${output}")
+if(NOT output MATCHES "mRM: lake_outflow not provided")
+  message(FATAL_ERROR "Lake-enabled mRM failed without the expected missing-provider diagnostic:\n${output}")
 endif()

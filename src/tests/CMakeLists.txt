@@ -56,7 +56,7 @@ add_test(
 set_tests_properties(test_mpr_lake_mask PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
 add_test(
-  NAME test_mrm_lake_mask_deferred
+  NAME test_mrm_lake_missing_outflow_provider
   COMMAND
     ${CMAKE_COMMAND}
       -DTEST_EXECUTABLE=$<TARGET_FILE:mhm-driver-exe>

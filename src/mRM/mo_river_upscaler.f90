@@ -552,6 +552,26 @@ contains
         end do
         !$omp end parallel do
       end if
+      if (scratch%n_lakes > 0_i4) then
+        allocate(this%coarse_river%cell_land_fraction(this%coarse_river%grid%ncells))
+        !$omp parallel do default(shared) private(p, node) schedule(static)
+        do cell = 1_i8, this%coarse_river%grid%ncells
+          this%coarse_river%cell_land_fraction(cell) = 0.0_dp
+          do p = sub_list%offset(cell), sub_list%offset(cell + 1_i8) - 1_i8
+            node = sub_list%node(p)
+            this%coarse_river%cell_land_fraction(cell) = this%coarse_river%cell_land_fraction(cell) + &
+              this%coarse_river%area_fraction(node)
+          end do
+          if (this%coarse_river%cell_land_fraction(cell) > 0.0_dp) then
+            do p = sub_list%offset(cell), sub_list%offset(cell + 1_i8) - 1_i8
+              node = sub_list%node(p)
+              this%coarse_river%area_fraction(node) = this%coarse_river%area_fraction(node) / &
+                this%coarse_river%cell_land_fraction(cell)
+            end do
+          end if
+        end do
+        !$omp end parallel do
+      end if
     end if
 
     ! unpack facc for fine river
