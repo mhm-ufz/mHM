@@ -190,19 +190,27 @@ contains
     integer(i4) :: ij(2)
 
     if (present(lake_nodes)) then
-      allocate(this%lake_index(this%river%n_nodes), source=0_i4)
-      do n = 1_i8, size(lake_nodes, kind=i8)
-        if (lake_nodes(n) < 1_i8 .or. lake_nodes(n) > this%river%n_nodes) &
-          call error_message("river_router: lake node is outside the river network")
-        if (this%lake_index(lake_nodes(n)) /= 0_i4) call error_message("river_router: duplicate canonical lake node")
-        this%lake_index(lake_nodes(n)) = int(n, i4)
-      end do
-      this%lake_routing = .true.
+      if (size(lake_nodes, kind=i8) > 0_i8) then
+        allocate(this%lake_index(this%river%n_nodes))
+        !$omp parallel do default(shared) schedule(static)
+        do n = 1_i8, this%river%n_nodes
+          this%lake_index(n) = 0_i4
+        end do
+        !$omp end parallel do
+        do n = 1_i8, size(lake_nodes, kind=i8)
+          if (lake_nodes(n) < 1_i8 .or. lake_nodes(n) > this%river%n_nodes) &
+            call error_message("river_router: lake node is outside the river network")
+          if (this%lake_index(lake_nodes(n)) /= 0_i4) call error_message("river_router: duplicate canonical lake node")
+          this%lake_index(lake_nodes(n)) = int(n, i4)
+        end do
+        this%lake_routing = .true.
+      end if
     end if
     if (.not.associated(this%runoff_grid,this%river%grid)) then
-      allocate(this%node_runoff_cell(this%river%n_nodes), source=0_i8)
+      allocate(this%node_runoff_cell(this%river%n_nodes))
       !$omp parallel do default(none) shared(this) private(n, ij) schedule(static)
       do n = 1_i8, this%river%n_nodes
+        this%node_runoff_cell(n) = 0_i8
         ij = this%river%grid%cell_ij(this%river%node_cell(n), :)
         if (this%runoff_grid%mask(ij(1),ij(2))) this%node_runoff_cell(n) = this%runoff_grid%cell_id(ij)
       end do

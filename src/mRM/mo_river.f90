@@ -58,6 +58,7 @@ module mo_river
     real(dp), allocatable :: upstream_area(:) !< Upstream area [m2] for every river node.
     type(order_t) :: order !< Level-based order of the river DAG.
     type(points_t) :: points !< Coordinates of all river nodes.
+    integer(i4) :: n_lakes = 0_i4 !< Number of delineated L0 lakes or canonical L3 lake nodes.
 
     ! Full morphological L0 D8 river only.
     integer(i2), allocatable :: fdir(:) !< L0 D8 flow direction for every active L0 cell.
@@ -564,6 +565,7 @@ contains
 
     ! Subcatchment labels partition nested outlet catchments so lake footprints cannot overlap.
     call this%label_subcatchments(catchment_map, outlet_nodes)
+    this%n_lakes = size(lake_ids, kind=i4)
     if (allocated(this%lake_map)) deallocate(this%lake_map)
     allocate(this%lake_map(this%n_nodes))
     !$omp parallel do default(shared) private(lake_index) schedule(static)
@@ -616,6 +618,7 @@ contains
     if (any(lake_ids <= 0_i8)) call error_message("river%set_lake_nodes: lake IDs must be positive")
     if (.not.unique_ids(lake_nodes)) call error_message("river%set_lake_nodes: lake nodes must be unique")
     if (.not.unique_ids(lake_ids)) call error_message("river%set_lake_nodes: lake IDs must be unique")
+    this%n_lakes = size(lake_ids, kind=i4)
     if (allocated(this%lake_id)) deallocate(this%lake_id)
     allocate(this%lake_id(this%n_nodes))
     !$omp parallel do default(shared) schedule(static)
@@ -1328,6 +1331,11 @@ contains
       call nc_var%setFillValue(nodata_i8)
       call nc_var%setAttribute("missing_value", nodata_i8)
       call nc_var%setData(this%lake_id)
+      if (this%n_lakes > 0_i4) then
+        nc_var = nc%setVariable("n_lakes", "i32", dims(:0))
+        call nc_var%setAttribute("long_name", "number of canonical lake nodes")
+        call nc_var%setData(this%n_lakes)
+      end if
     end if
 
     ! scc state
@@ -1431,11 +1439,12 @@ contains
     type(NcVariable) :: nc_var
     type(NcDimension) :: nc_dim
 
-    integer(i8) :: i, n_sinks, n_links
+    integer(i8) :: i, c, n_sinks, n_links, n_lakes_i8
     integer(i1), allocatable :: dummy_i1
+    integer(i4), allocatable :: dummy_i4
     integer(i2), allocatable :: dummy2di2(:, :)
     integer(i8), allocatable :: dummy2di8(:, :)
-    real(dp), allocatable :: dummy2d(:, :)
+    real(dp), allocatable :: dummy2d(:, :), dummy_land_fraction(:)
     real(dp), allocatable :: node_x(:), node_y(:)
 
     ! reset all attributes
@@ -1538,6 +1547,25 @@ contains
       allocate(this%lake_id(this%n_nodes))
       call nc_var%readInto(this%lake_id)
       if (any(this%lake_id < 0_i8)) call error_message("river restart contains a negative lake ID")
+      if (nc%hasVariable("n_lakes")) then
+        nc_var = nc%getVariable("n_lakes")
+        call nc_var%getData(dummy_i4)
+        this%n_lakes = dummy_i4
+        deallocate(dummy_i4)
+        if (this%n_lakes < 1_i4) call error_message("river restart contains lake IDs but no lakes")
+      else
+        ! Legacy lake restarts have no persisted count; derive it once in parallel.
+        n_lakes_i8 = 0_i8
+        !$omp parallel do default(shared) reduction(+:n_lakes_i8) schedule(static)
+        do i = 1_i8, this%n_nodes
+          if (this%lake_id(i) > 0_i8) n_lakes_i8 = n_lakes_i8 + 1_i8
+        end do
+        !$omp end parallel do
+        if (n_lakes_i8 > int(huge(this%n_lakes), i8)) call error_message("river restart contains too many lakes")
+        this%n_lakes = int(n_lakes_i8, i4)
+      end if
+    else if (nc%hasVariable("n_lakes")) then
+      call error_message("river restart contains a lake count but no lake IDs")
     end if
 
     if (nc%hasVariable("node_cell")) then
@@ -1566,20 +1594,32 @@ contains
       allocate(this%cell_land_fraction(this%grid%ncells))
       call this%grid%pack_into(dummy2d, this%cell_land_fraction)
       deallocate(dummy2d)
-    else if (allocated(this%lake_id) .and. any(this%lake_id > 0_i8)) then
+    else if (this%n_lakes > 0_i4) then
       ! Lake restarts written before cell_land_fraction used raw node fractions.
       if (.not.allocated(this%node_cell) .or. .not.allocated(this%area_fraction)) then
         call error_message("lake restart cannot derive land fractions without node_cell and area_fraction")
       end if
-      allocate(this%cell_land_fraction(this%grid%ncells), source=0.0_dp)
-      do i = 1_i8, this%n_nodes
-        this%cell_land_fraction(this%node_cell(i)) = this%cell_land_fraction(this%node_cell(i)) + this%area_fraction(i)
+      allocate(dummy_land_fraction(this%grid%ncells))
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, this%grid%ncells
+        dummy_land_fraction(i) = 0.0_dp
       end do
+      !$omp end parallel do
+      !$omp parallel do default(shared) private(c) schedule(static)
       do i = 1_i8, this%n_nodes
-        if (this%cell_land_fraction(this%node_cell(i)) > 0.0_dp) then
-          this%area_fraction(i) = this%area_fraction(i) / this%cell_land_fraction(this%node_cell(i))
+        c = this%node_cell(i)
+        !$omp atomic update
+        dummy_land_fraction(c) = dummy_land_fraction(c) + this%area_fraction(i)
+      end do
+      !$omp end parallel do
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, this%n_nodes
+        if (dummy_land_fraction(this%node_cell(i)) > 0.0_dp) then
+          this%area_fraction(i) = this%area_fraction(i) / dummy_land_fraction(this%node_cell(i))
         end if
       end do
+      !$omp end parallel do
+      call move_alloc(dummy_land_fraction, this%cell_land_fraction)
     end if
 
     if (nc%hasDimension("order_dim")) then
@@ -1639,6 +1679,7 @@ contains
     if (allocated(this%cell_node_select)) deallocate(this%cell_node_select)
     if (allocated(this%area_fraction)) deallocate(this%area_fraction)
     if (allocated(this%cell_land_fraction)) deallocate(this%cell_land_fraction)
+    this%n_lakes = 0_i4
     call this%destroy()
   end subroutine river_destroy
 
