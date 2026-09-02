@@ -677,7 +677,12 @@ contains
         call error_message("mRM SCC coordinates are incompatible with the level-0 grid: ", file)
       end if
     end if
-    nodes = self%exchange%level0%closest_cell_id(coords, use_aux=use_aux)
+    if (use_aux) then
+      nodes = self%exchange%level0%closest_cell_id(coords, use_aux=.true.)
+    else
+      ! Preserve the established SCC convention: select the active regular-grid cell containing each gauge.
+      nodes = self%exchange%level0%closest_cell_id_by_axes(coords)
+    end if
     do i = 1_i8, size(nodes, kind=i8)
       node = nodes(i)
       if (node < 1_i8 .or. node > self%exchange%level0%ncells) then

@@ -576,6 +576,8 @@ contains
     integer(i8), pointer :: level_size(:)
 
     if (.not.allocated(this%river%order%id)) call this%river%calc_order(root_levels)
+    ! Canonicalize independent nodes within each L3 routing level for reproducible restart serialization.
+    call this%river%order%sort()
 
     this%last_parallel_level = 0_i8 ! default is to run all levels in serial
     omp_lvl_thr = optval(omp_level_thresh, -1_i8) ! -1 means default
