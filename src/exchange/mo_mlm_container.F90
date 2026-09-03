@@ -9,10 +9,14 @@
 !> \ingroup f_exchange
 #include "logging.h"
 module mo_mlm_container
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
   use mo_logging
   use mo_kind, only: i4, i8, dp
   use mo_exchange_type, only: exchange_t
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
+  use mo_grid_io, only: no_time
+  use mo_points, only: points_t, cartesian, spherical
+  use mo_utils, only: is_close
   use mo_string_utils, only: n2s => num2str
   use nml_config_lake, only: nml_config_lake_t
   use nml_helper, only: NML_OK
@@ -28,10 +32,18 @@ module mo_mlm_container
     type(nml_config_lake_t) :: config !< lake configuration
     type(exchange_t), pointer :: exchange => null() !< owning domain exchange
     integer(i8), allocatable :: lake_ids(:) !< stable IDs in point-set order
+    type(points_t) :: static_lake_points !< static point metadata retained for restart output
+    real(dp), allocatable :: static_lake_max_levels(:) !< maximum levels retained for restart output
+    type(points_t) :: restart_lake_points !< point set restored from restart metadata
+    integer(i8), allocatable :: restart_lake_ids(:) !< stable IDs in restart-file order
+    real(dp), allocatable :: restart_lake_max_levels(:) !< maximum levels restored from restart metadata
     real(dp), allocatable :: outflow(:) !< current lake outflow [m3 s-1]
     logical :: active = .false. !< whether process -1 is selected
     logical :: read_restart = .false. !< read mLM restart
     logical :: write_restart = .false. !< write mLM restart
+    logical :: restart_has_static_metadata = .false. !< whether the restart carries point geometry and levels
+    logical :: owns_restart_lake_points = .false. !< whether mLM published the restart point set
+    logical :: owns_restart_lake_metadata = .false. !< whether mLM published restart IDs and maximum levels
     character(:), allocatable :: restart_input_path !< resolved input restart path
     character(:), allocatable :: restart_output_path !< resolved output restart path
   contains
@@ -42,7 +54,9 @@ module mo_mlm_container
     procedure :: update => mlm_update
     procedure :: finalize => mlm_finalize
     procedure, private :: create_restart => mlm_create_restart
+    procedure, private :: read_restart_metadata => mlm_read_restart_metadata
     procedure, private :: read_restart_state => mlm_read_restart_state
+    procedure, private :: validate_restart_metadata => mlm_validate_restart_metadata
   end type mlm_t
 
 contains
@@ -115,17 +129,51 @@ contains
     end if
   end subroutine mlm_configure
 
-  !> \brief Validate static lake metadata and publish hourly outflow.
+  !> \brief Resolve static lake metadata and publish hourly outflow.
   subroutine mlm_connect(self)
     class(mlm_t), target, intent(inout) :: self
     integer(i8) :: n_lakes
-    if (.not.associated(self%exchange%lake_points)) then
-      log_fatal(*) "mLM: lake process requires lake points."
+    logical :: has_points, has_ids, has_levels, has_metadata
+
+    has_points = associated(self%exchange%lake_points)
+    has_ids = self%exchange%lake_ids%provided
+    has_levels = self%exchange%lake_max_levels%provided
+    has_metadata = has_points .and. has_ids .and. has_levels
+    if ((has_points .neqv. has_ids) .or. (has_points .neqv. has_levels)) then
+      log_fatal(*) "mLM: lake points, stable IDs, and maximum levels must be published together."
       error stop 1
     end if
-    n_lakes = self%exchange%lake_points%n_points
-    call self%exchange%lake_ids%require("mLM", .true., [n_lakes])
-    call self%exchange%lake_max_levels%require("mLM", .true., [n_lakes])
+
+    if (self%read_restart) call self%read_restart_metadata()
+    if (has_metadata) then
+      n_lakes = self%exchange%lake_points%n_points
+      call self%exchange%lake_ids%require("mLM", .true., [n_lakes])
+      call self%exchange%lake_max_levels%require("mLM", .true., [n_lakes])
+      if (self%read_restart .and. self%restart_has_static_metadata) call self%validate_restart_metadata()
+      self%lake_ids = self%exchange%lake_ids%data
+      call self%static_lake_points%init( &
+        self%exchange%lake_points%x, self%exchange%lake_points%y, coordsys=self%exchange%lake_points%coordsys)
+      self%static_lake_max_levels = self%exchange%lake_max_levels%data
+    else
+      if (.not.self%read_restart) then
+        log_fatal(*) "mLM: lake process requires lake points."
+        error stop 1
+      end if
+      if (.not.self%restart_has_static_metadata) then
+        log_fatal(*) "mLM restart has only IDs and outflow; provide Input lake metadata or regenerate the restart with lake geometry."
+        error stop 1
+      end if
+      n_lakes = self%restart_lake_points%n_points
+      self%lake_ids = self%restart_lake_ids
+      call self%static_lake_points%init( &
+        self%restart_lake_points%x, self%restart_lake_points%y, coordsys=self%restart_lake_points%coordsys)
+      self%static_lake_max_levels = self%restart_lake_max_levels
+      self%exchange%lake_points => self%static_lake_points
+      call self%exchange%lake_ids%publish_local("mLM", self%lake_ids, no_time)
+      call self%exchange%lake_max_levels%publish_local("mLM", self%static_lake_max_levels, no_time)
+      self%owns_restart_lake_points = .true.
+      self%owns_restart_lake_metadata = .true.
+    end if
     if (n_lakes < 1_i8) then
       log_fatal(*) "mLM: lake process requires at least one lake."
       error stop 1
@@ -161,25 +209,182 @@ contains
     class(mlm_t), target, intent(inout) :: self
     if (self%write_restart) call self%create_restart()
     call self%exchange%lake_outflow%clear(owned=.true.)
+    if (self%owns_restart_lake_metadata) then
+      call self%exchange%lake_ids%clear(owned=.true.)
+      call self%exchange%lake_max_levels%clear(owned=.true.)
+      self%owns_restart_lake_metadata = .false.
+    end if
+    if (self%owns_restart_lake_points) then
+      if (associated(self%exchange%lake_points, self%static_lake_points)) nullify(self%exchange%lake_points)
+      self%owns_restart_lake_points = .false.
+    end if
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
+    self%static_lake_points = points_t()
+    if (allocated(self%static_lake_max_levels)) deallocate(self%static_lake_max_levels)
+    self%restart_lake_points = points_t()
+    if (allocated(self%restart_lake_ids)) deallocate(self%restart_lake_ids)
+    if (allocated(self%restart_lake_max_levels)) deallocate(self%restart_lake_max_levels)
     if (allocated(self%outflow)) deallocate(self%outflow)
   end subroutine mlm_finalize
 
-  !> \brief Persist current outflow with stable IDs.
+  !> \brief Persist static lake metadata and current outflow with stable IDs.
   subroutine mlm_create_restart(self)
     class(mlm_t), target, intent(inout) :: self
     type(NcDataset) :: nc
-    type(NcDimension) :: lake_dim
+    type(NcDimension) :: dims(0), lake_dim
     type(NcVariable) :: var
+
+    if (self%static_lake_points%n_points /= size(self%lake_ids, kind=i8) .or. &
+        .not.allocated(self%static_lake_max_levels)) then
+      log_fatal(*) "mLM: cannot write restart without static lake metadata."
+      error stop 1
+    end if
     nc = NcDataset(self%restart_output_path, "w")
     lake_dim = nc%setDimension("lake", int(size(self%lake_ids), i4))
     var = nc%setVariable("lake_id", "i64", [lake_dim])
     call var%setData(self%lake_ids)
+    var = nc%setVariable("lake_outlet_x", "f64", [lake_dim])
+    call var%setData(self%static_lake_points%x)
+    var = nc%setVariable("lake_outlet_y", "f64", [lake_dim])
+    call var%setData(self%static_lake_points%y)
+    var = nc%setVariable("lake_max_level", "f64", [lake_dim])
+    call var%setAttribute("units", "m")
+    call var%setData(self%static_lake_max_levels)
+    var = nc%setVariable("lake_coordsys", "i32", dims(:0))
+    call var%setData(self%static_lake_points%coordsys)
     var = nc%setVariable("lake_outflow", "f64", [lake_dim])
     call var%setAttribute("units", "m3 s-1")
     call var%setData(self%outflow)
+    var = nc%setVariable("mlm_meta", "i32", dims(:0))
+    call var%setData(0_i4)
+    call var%setAttribute("time_stamp", self%exchange%time%str())
     call nc%close()
   end subroutine mlm_create_restart
+
+  !> \brief Read and validate static lake metadata before resolving the exchange provider.
+  subroutine mlm_read_restart_metadata(self)
+    class(mlm_t), target, intent(inout) :: self
+    type(NcDataset) :: nc
+    type(NcVariable) :: var, meta_var
+    real(dp), allocatable :: outlet_x(:), outlet_y(:)
+    integer(i4), allocatable :: coordsys_data
+    integer(i8) :: i
+    logical :: has_x, has_y, has_levels, has_coordsys
+    character(64) :: restart_time
+    character(:), allocatable :: expected_time
+
+    self%restart_has_static_metadata = .false.
+    nc = NcDataset(self%restart_input_path, "r")
+    if (.not.nc%hasVariable("lake_id") .or. .not.nc%hasVariable("lake_outflow")) then
+      log_fatal(*) "mLM restart is missing lake IDs or lake outflow: ", self%restart_input_path
+      error stop 1
+    end if
+    var = nc%getVariable("lake_id")
+    call var%getData(self%restart_lake_ids)
+    if (size(self%restart_lake_ids, kind=i8) < 1_i8) then
+      log_fatal(*) "mLM restart contains no lakes: ", self%restart_input_path
+      error stop 1
+    end if
+    if (any(self%restart_lake_ids <= 0_i8)) then
+      log_fatal(*) "mLM restart contains a non-positive stable lake ID."
+      error stop 1
+    end if
+    do i = 1_i8, size(self%restart_lake_ids, kind=i8) - 1_i8
+      if (any(self%restart_lake_ids(i + 1_i8:) == self%restart_lake_ids(i))) then
+        log_fatal(*) "mLM restart contains duplicate stable lake IDs."
+        error stop 1
+      end if
+    end do
+
+    has_x = nc%hasVariable("lake_outlet_x")
+    has_y = nc%hasVariable("lake_outlet_y")
+    has_levels = nc%hasVariable("lake_max_level")
+    has_coordsys = nc%hasVariable("lake_coordsys")
+    if ((has_x .neqv. has_y) .or. (has_x .neqv. has_levels) .or. (has_x .neqv. has_coordsys)) then
+      log_fatal(*) "mLM restart has incomplete static lake metadata: ", self%restart_input_path
+      error stop 1
+    end if
+    if (has_x) then
+      var = nc%getVariable("lake_outlet_x"); call var%getData(outlet_x)
+      var = nc%getVariable("lake_outlet_y"); call var%getData(outlet_y)
+      var = nc%getVariable("lake_max_level"); call var%getData(self%restart_lake_max_levels)
+      var = nc%getVariable("lake_coordsys"); call var%getData(coordsys_data)
+      if (size(outlet_x, kind=i8) /= size(self%restart_lake_ids, kind=i8) .or. &
+          size(outlet_y, kind=i8) /= size(self%restart_lake_ids, kind=i8) .or. &
+          size(self%restart_lake_max_levels, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
+        log_fatal(*) "mLM restart static lake metadata does not align with stable lake IDs."
+        error stop 1
+      end if
+      if (coordsys_data /= cartesian .and. coordsys_data /= spherical) then
+        log_fatal(*) "mLM restart contains an unsupported lake coordinate system."
+        error stop 1
+      end if
+      if (.not.all(ieee_is_finite(outlet_x)) .or. .not.all(ieee_is_finite(outlet_y)) .or. &
+          .not.all(ieee_is_finite(self%restart_lake_max_levels))) then
+        log_fatal(*) "mLM restart static lake metadata must be finite."
+        error stop 1
+      end if
+      call self%restart_lake_points%init(outlet_x, outlet_y, coordsys=coordsys_data)
+      self%restart_has_static_metadata = .true.
+    end if
+
+    if (nc%hasVariable("mlm_meta")) then
+      meta_var = nc%getVariable("mlm_meta")
+      if (.not.meta_var%hasAttribute("time_stamp")) then
+        log_fatal(*) "mLM restart metadata has no time_stamp: ", self%restart_input_path
+        error stop 1
+      end if
+      call meta_var%getAttribute("time_stamp", restart_time)
+      expected_time = self%exchange%start_time%str()
+      if (trim(restart_time) /= trim(expected_time)) then
+        log_fatal(*) "mLM restart timestamp ", trim(restart_time), " does not match domain restart time ", trim(expected_time), "."
+        error stop 1
+      end if
+    else if (self%restart_has_static_metadata) then
+      log_fatal(*) "mLM restart with static lake metadata has no mlm_meta timestamp: ", self%restart_input_path
+      error stop 1
+    else
+      log_warn(*) "mLM legacy restart has no timestamp; restart coincidence cannot be verified."
+    end if
+    call nc%close()
+  end subroutine mlm_read_restart_metadata
+
+  !> \brief Verify restart metadata against Input metadata without imposing restart-file ordering.
+  subroutine mlm_validate_restart_metadata(self)
+    class(mlm_t), target, intent(inout) :: self
+    integer(i8) :: i, j, n_lakes
+
+    n_lakes = self%exchange%lake_points%n_points
+    if (size(self%restart_lake_ids, kind=i8) /= n_lakes) then
+      log_fatal(*) "mLM restart lake IDs do not match Input lake metadata."
+      error stop 1
+    end if
+    if (self%restart_lake_points%coordsys /= self%exchange%lake_points%coordsys) then
+      log_fatal(*) "mLM restart and Input lake coordinate systems differ."
+      error stop 1
+    end if
+    do i = 1_i8, n_lakes - 1_i8
+      if (any(self%exchange%lake_ids%data(i + 1_i8:) == self%exchange%lake_ids%data(i))) then
+        log_fatal(*) "Input lake metadata contains duplicate stable lake IDs."
+        error stop 1
+      end if
+    end do
+    do i = 1_i8, n_lakes
+      do j = 1_i8, size(self%restart_lake_ids, kind=i8)
+        if (self%restart_lake_ids(j) == self%exchange%lake_ids%data(i)) exit
+      end do
+      if (j > size(self%restart_lake_ids, kind=i8)) then
+        log_fatal(*) "mLM restart and Input lake metadata have different stable lake IDs."
+        error stop 1
+      end if
+      if (.not.is_close(self%restart_lake_points%x(j), self%exchange%lake_points%x(i)) .or. &
+          .not.is_close(self%restart_lake_points%y(j), self%exchange%lake_points%y(i)) .or. &
+          .not.is_close(self%restart_lake_max_levels(j), self%exchange%lake_max_levels%data(i))) then
+        log_fatal(*) "mLM restart and Input lake metadata differ for stable lake ID."
+        error stop 1
+      end if
+    end do
+  end subroutine mlm_validate_restart_metadata
 
   !> \brief Restore outflow by stable ID rather than restart-file order.
   subroutine mlm_read_restart_state(self)

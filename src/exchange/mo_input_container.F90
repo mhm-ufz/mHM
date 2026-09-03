@@ -1649,9 +1649,11 @@ contains
     if (self%wind%provided .and. .not.self%wind%static) call self%wind%ds%close()
     if (self%runoff%provided) call self%runoff%ds%close()
     if (allocated(self%soil_class_one_layer)) deallocate(self%soil_class_one_layer)
-    call self%exchange%lake_ids%clear(owned=.true.)
-    call self%exchange%lake_max_levels%clear(owned=.true.)
-    nullify(self%exchange%lake_points)
+    if (associated(self%exchange%lake_points, self%lake_outlets)) then
+      call self%exchange%lake_ids%clear(owned=.true.)
+      call self%exchange%lake_max_levels%clear(owned=.true.)
+      nullify(self%exchange%lake_points)
+    end if
     self%lake_outlets = points_t()
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
     if (allocated(self%lake_max_levels)) deallocate(self%lake_max_levels)
