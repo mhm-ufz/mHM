@@ -38,6 +38,7 @@ module mo_mrm_container
   use nml_output_mrm, only: nml_output_mrm_t
 
   character(len=*), parameter :: s = "mrm" !< logging scope
+  real(dp), parameter :: land_fraction_tolerance = 1.0e-12_dp !< tolerance for round-off in accumulated land fractions
   public :: derive_mrm_output_timing
 
   !> \class mrm_poi_output_t
@@ -108,6 +109,7 @@ module mo_mrm_container
     procedure, private :: validate_lake_topology => mrm_validate_lake_topology
     procedure, private :: build_level3_land => mrm_build_level3_land
     procedure, private :: read_lake_inflow_restart => mrm_read_lake_inflow_restart
+    procedure, private :: validate_restart_timestamp => mrm_validate_restart_timestamp
   end type mrm_t
 
 contains
@@ -419,7 +421,7 @@ contains
     type(points_t), target      :: scc_points
     integer(i4)                 :: id(1), i
     integer(i4)                 :: n_lakes
-    logical                     :: const_celerity, poi_gauges_set, had_restart_pois, read_scc, scc_gauges_as_poi, has_lakes
+    logical                     :: const_celerity, poi_gauges_set, had_restart_pois, read_scc, scc_gauges_as_poi, has_lakes, lake_routing
     integer(i4)                 :: model_step
 
     integer :: status
@@ -455,45 +457,47 @@ contains
     end if
 
     has_lakes = self%exchange%lake_ids%provided
-    if (associated(self%exchange%level0_lake) .neqv. has_lakes) then
-      log_fatal(*) "mRM: lake definitions and the level-0 lake grid must be provided together."
-      error stop 1
-    end if
     n_lakes = 0_i4
     allocate(scc_nodes(0), lake_nodes(0), lake_ids(0))
-    if (has_lakes) then
-      if (.not.associated(self%exchange%river_l0)) then
-        log_fatal(*) "mRM: lake definitions require the level-0 river."
+    if (.not.self%read_restart) then
+      if (associated(self%exchange%level0_lake) .neqv. has_lakes) then
+        log_fatal(*) "mRM: lake definitions and the level-0 lake grid must be provided together."
         error stop 1
       end if
-      if (.not.associated(self%exchange%lake_points)) then
-        log_fatal(*) "mRM: lake point set not provided."
-        error stop 1
-      end if
-      call self%exchange%lake_ids%require("mRM", .true., [self%exchange%lake_points%n_points])
-      if (.not.allocated(self%exchange%river_l0%lake_outlet_nodes)) then
-        log_fatal(*) "mRM: lake definitions require L0 river outlet nodes."
-        error stop 1
-      end if
-      lake_nodes = self%exchange%river_l0%lake_outlet_nodes
-      lake_ids = self%exchange%lake_ids%data
-      n_lakes = size(lake_ids, kind=i4)
-      if (size(lake_nodes, kind=i8) /= int(n_lakes, i8)) then
-        log_fatal(*) "mRM: L0 river lake outlet nodes do not match lake points."
-        error stop 1
-      end if
-      if (.not.allocated(self%exchange%river_l0%lake_map)) then
-        log_fatal(*) "mRM: lake definitions require a level-0 river lake map."
-        error stop 1
-      end if
-      if (any(self%exchange%river_l0%lake_map(lake_nodes) /= lake_ids)) then
-        log_fatal(*) "mRM: stable lake IDs do not match the level-0 lake outlets."
-        error stop 1
-      end if
-      call self%exchange%lake_outflow%require("mRM", .true., [int(n_lakes, i8)])
-      if (self%exchange%lake_outflow%stepping /= 1_i4) then
-        log_fatal(*) "mRM: lake outflow must have one-hour support."
-        error stop 1
+      if (has_lakes) then
+        if (.not.associated(self%exchange%river_l0)) then
+          log_fatal(*) "mRM: lake definitions require the level-0 river."
+          error stop 1
+        end if
+        if (.not.associated(self%exchange%lake_points)) then
+          log_fatal(*) "mRM: lake point set not provided."
+          error stop 1
+        end if
+        call self%exchange%lake_ids%require("mRM", .true., [self%exchange%lake_points%n_points])
+        if (.not.allocated(self%exchange%river_l0%lake_outlet_nodes)) then
+          log_fatal(*) "mRM: lake definitions require L0 river outlet nodes."
+          error stop 1
+        end if
+        lake_nodes = self%exchange%river_l0%lake_outlet_nodes
+        lake_ids = self%exchange%lake_ids%data
+        n_lakes = size(lake_ids, kind=i4)
+        if (size(lake_nodes, kind=i8) /= int(n_lakes, i8)) then
+          log_fatal(*) "mRM: L0 river lake outlet nodes do not match lake points."
+          error stop 1
+        end if
+        if (.not.allocated(self%exchange%river_l0%lake_map)) then
+          log_fatal(*) "mRM: lake definitions require a level-0 river lake map."
+          error stop 1
+        end if
+        if (any(self%exchange%river_l0%lake_map(lake_nodes) /= lake_ids)) then
+          log_fatal(*) "mRM: stable lake IDs do not match the level-0 lake outlets."
+          error stop 1
+        end if
+        call self%exchange%lake_outflow%require("mRM", .true., [int(n_lakes, i8)])
+        if (self%exchange%lake_outflow%stepping /= 1_i4) then
+          log_fatal(*) "mRM: lake outflow must have one-hour support."
+          error stop 1
+        end if
       end if
     end if
 
@@ -576,12 +580,43 @@ contains
         retain_stream_mask = self%exchange%config%processes%routing == 3_i4)
     end if
 
+    lake_routing = has_lakes
+    if (self%read_restart) then
+      call self%validate_restart_timestamp()
+      lake_routing = self%river%n_lakes > 0_i4
+      if (lake_routing) then
+        if (.not.associated(self%exchange%lake_points) .or. .not.self%exchange%lake_ids%provided) then
+          log_fatal(*) "mRM: lake-aware restart requires published lake points and stable lake IDs."
+          error stop 1
+        end if
+        call self%exchange%lake_ids%require("mRM", .true., [self%exchange%lake_points%n_points])
+        lake_ids = self%exchange%lake_ids%data
+        n_lakes = size(lake_ids, kind=i4)
+        call self%exchange%lake_outflow%require("mRM", .true., [int(n_lakes, i8)])
+        if (self%exchange%lake_outflow%stepping /= 1_i4) then
+          log_fatal(*) "mRM: lake outflow must have one-hour support."
+          error stop 1
+        end if
+      else if (has_lakes) then
+        if (.not.associated(self%exchange%lake_points)) then
+          log_fatal(*) "mRM: published lake IDs require a lake point set."
+          error stop 1
+        end if
+        call self%exchange%lake_ids%require("mRM", .true., [self%exchange%lake_points%n_points])
+        lake_ids = self%exchange%lake_ids%data
+      end if
+    end if
+
     call self%validate_lake_topology(lake_ids)
-    if (has_lakes) then
+    if (lake_routing) then
       self%lake_ids = lake_ids
       allocate(self%lake_nodes(n_lakes))
       do i = 1_i4, n_lakes
         self%lake_nodes(i) = findloc(self%river%lake_id, self%lake_ids(i), dim=1, kind=i8)
+        if (self%lake_nodes(i) == 0_i8) then
+          log_fatal(*) "mRM: stable lake ID ", n2s(self%lake_ids(i)), " has no canonical level-3 river node."
+          error stop 1
+        end if
       end do
       allocate(self%lake_inflow(n_lakes), source=0.0_dp)
       call self%exchange%lake_inflow%publish_local("mRM", self%lake_inflow, 1_i4)
@@ -742,8 +777,12 @@ contains
       call error_message("mRM level-3 river must contain exactly one node for each configured lake.")
     end if
     if (.not.unique_ids(represented)) call error_message("mRM level-3 river contains duplicate stable lake IDs.")
+    if (.not.unique_ids(lake_ids)) call error_message("mRM exchange lake metadata contains duplicate stable lake IDs.")
     do i = 1_i8, size(represented, kind=i8)
       if (.not.any(lake_ids == represented(i))) call error_message("mRM level-3 river contains an unknown stable lake ID.")
+    end do
+    do i = 1_i8, size(lake_ids, kind=i8)
+      if (.not.any(represented == lake_ids(i))) call error_message("mRM exchange lake metadata contains an unknown stable lake ID.")
     end do
     if (size(lake_ids, kind=i8) > 0_i8) then
       if (.not.allocated(self%river%cell_node_select)) then
@@ -768,7 +807,8 @@ contains
       call error_message("mRM: level-3 land fraction size does not match routing grid.")
     end if
     if (any(.not.ieee_is_finite(self%river%cell_land_fraction)) .or. &
-        any(self%river%cell_land_fraction < 0.0_dp) .or. any(self%river%cell_land_fraction > 1.0_dp)) then
+        any(self%river%cell_land_fraction < -land_fraction_tolerance) .or. &
+        any(self%river%cell_land_fraction > 1.0_dp + land_fraction_tolerance)) then
       call error_message("mRM: level-3 land fractions must be finite values in [0,1].")
     end if
     allocate(fraction(self%level3%nx, self%level3%ny), full_area(self%level3%nx, self%level3%ny), &
@@ -819,6 +859,33 @@ contains
       self%lake_inflow(i) = inflow(j)
     end do
   end subroutine mrm_read_lake_inflow_restart
+
+  !> \brief Require mRM restart metadata to identify the configured domain restart time.
+  subroutine mrm_validate_restart_timestamp(self)
+    class(mrm_t), target, intent(inout) :: self
+    type(NcDataset) :: nc
+    type(NcVariable) :: meta_var
+    character(64) :: restart_time
+    character(:), allocatable :: expected_time
+
+    nc = NcDataset(self%restart_input_path, "r")
+    if (.not.nc%hasVariable("mrm_meta")) then
+      log_fatal(*) "mRM restart metadata variable mrm_meta is missing: ", self%restart_input_path
+      error stop 1
+    end if
+    meta_var = nc%getVariable("mrm_meta")
+    if (.not.meta_var%hasAttribute("time_stamp")) then
+      log_fatal(*) "mRM restart metadata has no time_stamp: ", self%restart_input_path
+      error stop 1
+    end if
+    call meta_var%getAttribute("time_stamp", restart_time)
+    expected_time = self%exchange%start_time%str()
+    if (trim(restart_time) /= trim(expected_time)) then
+      log_fatal(*) "mRM restart timestamp ", trim(restart_time), " does not match domain restart time ", trim(expected_time), "."
+      error stop 1
+    end if
+    call nc%close()
+  end subroutine mrm_validate_restart_timestamp
 
   !> \brief Restore optional POI node IDs and station IDs from a restart file.
   subroutine mrm_read_poi_restart(self)
