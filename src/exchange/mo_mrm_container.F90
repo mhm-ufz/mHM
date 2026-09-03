@@ -38,7 +38,6 @@ module mo_mrm_container
   use nml_output_mrm, only: nml_output_mrm_t
 
   character(len=*), parameter :: s = "mrm" !< logging scope
-  real(dp), parameter :: land_fraction_tolerance = 1.0e-12_dp !< tolerance for round-off in accumulated land fractions
   public :: derive_mrm_output_timing
 
   !> \class mrm_poi_output_t
@@ -767,6 +766,7 @@ contains
     integer(i8), intent(in) :: lake_ids(:)
     integer(i8), allocatable :: represented(:)
     integer(i8) :: i
+    logical :: invalid_node_select
 
     if (.not.allocated(self%river%lake_id)) then
       if (size(lake_ids, kind=i8) > 0_i8) call error_message("mRM level-3 river has no lake-node identity.")
@@ -788,7 +788,15 @@ contains
       if (.not.allocated(self%river%cell_node_select)) then
         call error_message("mRM lake-aware level-3 river has no representative-node map.")
       end if
-      if (any(self%river%cell_node_select < 1_i8) .or. any(self%river%cell_node_select > self%river%n_nodes)) then
+      invalid_node_select = .false.
+      !$omp parallel do default(shared) reduction(.or.:invalid_node_select) schedule(static)
+      do i = 1_i8, size(self%river%cell_node_select, kind=i8)
+        if (self%river%cell_node_select(i) < 1_i8 .or. self%river%cell_node_select(i) > self%river%n_nodes) then
+          invalid_node_select = .true.
+        end if
+      end do
+      !$omp end parallel do
+      if (invalid_node_select) then
         call error_message("mRM lake-aware representative-node map contains an invalid node.")
       end if
     end if
@@ -799,6 +807,7 @@ contains
     class(mrm_t), target, intent(inout) :: self
     logical, allocatable :: mask(:,:)
     real(dp), allocatable :: fraction(:,:), full_area(:,:), land_area(:,:)
+    integer(i4) :: i, j
 
     if (.not.allocated(self%river%cell_land_fraction)) then
       call error_message("mRM: lake-aware river has no level-3 land fractions.")
@@ -806,17 +815,23 @@ contains
     if (size(self%river%cell_land_fraction, kind=i8) /= self%level3%ncells) then
       call error_message("mRM: level-3 land fraction size does not match routing grid.")
     end if
-    if (any(.not.ieee_is_finite(self%river%cell_land_fraction)) .or. &
-        any(self%river%cell_land_fraction < -land_fraction_tolerance) .or. &
-        any(self%river%cell_land_fraction > 1.0_dp + land_fraction_tolerance)) then
-      call error_message("mRM: level-3 land fractions must be finite values in [0,1].")
-    end if
-    allocate(fraction(self%level3%nx, self%level3%ny), full_area(self%level3%nx, self%level3%ny), &
-      land_area(self%level3%nx, self%level3%ny))
+    allocate(mask(self%level3%nx, self%level3%ny), fraction(self%level3%nx, self%level3%ny), &
+      full_area(self%level3%nx, self%level3%ny), land_area(self%level3%nx, self%level3%ny))
     call self%level3%unpack_into(self%river%cell_land_fraction, fraction)
     call self%level3%unpack_into(self%level3%cell_area, full_area)
-    mask = self%level3%mask .and. fraction > 0.0_dp
-    land_area = full_area * fraction
+    !$omp parallel do default(shared) collapse(2) schedule(static)
+    do j = 1_i4, self%level3%ny
+      do i = 1_i4, self%level3%nx
+        if (.not.self%level3%mask(i, j)) then
+          mask(i, j) = .false.
+          land_area(i, j) = 0.0_dp
+        else
+          mask(i, j) = fraction(i, j) > 0.0_dp
+          land_area(i, j) = full_area(i, j) * fraction(i, j)
+        end if
+      end do
+    end do
+    !$omp end parallel do
     call self%level3%copy_to(self%level3_land, mask=mask, cell_area=land_area)
     self%exchange%level3_land => self%level3_land
   end subroutine mrm_build_level3_land

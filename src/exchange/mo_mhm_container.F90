@@ -1267,47 +1267,15 @@ contains
     call nc%close()
   end subroutine mhm_read_restart_data
 
-  !> \brief Validate that the restart level1 grid matches the active level1 grid exactly.
+  !> \brief Validate that the restart level1 grid matches the active level1 grid.
   subroutine mhm_validate_restart_grid(self, restart_grid)
     class(mhm_t), intent(inout), target :: self
     type(grid_t), intent(in), target :: restart_grid
 
-    if (restart_grid%coordsys /= self%exchange%level1_land%coordsys) then
-      log_fatal(*) "mHM restart: restart grid coordinate system does not match current level1 grid."
+    if (.not.restart_grid%is_matching(self%exchange%level1_land, tol=1.0e-5_dp, &
+        aux=self%exchange%level1_land%has_aux_coords())) then
+      log_fatal(*) "mHM restart: restart grid does not match the current level1 grid."
       error stop 1
-    end if
-    if (restart_grid%nx /= self%exchange%level1_land%nx .or. restart_grid%ny /= self%exchange%level1_land%ny) then
-      log_fatal(*) "mHM restart: restart grid dimensions do not match current level1 grid."
-      error stop 1
-    end if
-    if (.not.is_close(restart_grid%cellsize, self%exchange%level1_land%cellsize) .or. &
-      .not.is_close(restart_grid%xllcorner, self%exchange%level1_land%xllcorner) .or. &
-      .not.is_close(restart_grid%yllcorner, self%exchange%level1_land%yllcorner)) then
-      log_fatal(*) "mHM restart: restart grid geometry does not match current level1 grid."
-      error stop 1
-    end if
-    if (restart_grid%y_direction /= self%exchange%level1_land%y_direction) then
-      log_fatal(*) "mHM restart: restart grid y-direction does not match current level1 grid."
-      error stop 1
-    end if
-    if (.not.allocated(restart_grid%mask) .or. .not.allocated(self%exchange%level1_land%mask)) then
-      log_fatal(*) "mHM restart: mask information missing during restart-grid validation."
-      error stop 1
-    end if
-    if (any(restart_grid%mask .neqv. self%exchange%level1_land%mask)) then
-      log_fatal(*) "mHM restart: restart grid mask does not match current level1 grid."
-      error stop 1
-    end if
-    if (self%exchange%level1_land%has_aux_coords()) then
-      if (.not.restart_grid%has_aux_coords()) then
-        log_fatal(*) "mHM restart: current level1 grid has auxiliary coordinates, but restart grid does not."
-        error stop 1
-      end if
-      if (any(.not.is_close(restart_grid%lon, self%exchange%level1_land%lon)) .or. &
-        any(.not.is_close(restart_grid%lat, self%exchange%level1_land%lat))) then
-        log_fatal(*) "mHM restart: restart grid auxiliary coordinates do not match current level1 grid."
-        error stop 1
-      end if
     end if
   end subroutine mhm_validate_restart_grid
 
