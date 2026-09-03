@@ -529,9 +529,9 @@ contains
       scope_debug(s,*) "level0 ncells", n2s(self%exchange%level0%ncells)
       scope_debug(s,*) "level0 cellsize", n2s(self%exchange%level0%cellsize)
     end if
-    if (associated(self%exchange%level1)) then
-      scope_debug(s,*) "level1 ncells", n2s(self%exchange%level1%ncells)
-      scope_debug(s,*) "level1 cellsize", n2s(self%exchange%level1%cellsize)
+    if (associated(self%exchange%level1_land)) then
+      scope_debug(s,*) "level1 ncells", n2s(self%exchange%level1_land%ncells)
+      scope_debug(s,*) "level1 cellsize", n2s(self%exchange%level1_land%cellsize)
     end if
     scope_debug(s,*) "level3 ncells", n2s(self%level3%ncells)
     scope_debug(s,*) "level3 cellsize", n2s(self%level3%cellsize)
@@ -778,6 +778,7 @@ contains
     mask = self%level3%mask .and. fraction > 0.0_dp
     land_area = full_area * fraction
     call self%level3%copy_to(self%level3_land, mask=mask, cell_area=land_area)
+    self%exchange%level3_land => self%level3_land
   end subroutine mrm_build_level3_land
 
   !> \brief Restore pending mRM lake inflow by stable ID before mLM initialization.
@@ -902,7 +903,7 @@ contains
         call self%router%from_restart_file( &
           path              = self%restart_input_path, &
           river             = self%river, &
-          input_grid        = self%exchange%level1, &
+          input_grid        = self%exchange%level1_land, &
           input_step        = input_step, &
           model_step        = model_step, &
           max_route_step    = real(self%config%max_route_step(id(1)), dp), &
@@ -915,7 +916,7 @@ contains
         call self%router%from_restart_file( &
           path              = self%restart_input_path, &
           river             = self%river, &
-          input_grid        = self%exchange%level1, &
+          input_grid        = self%exchange%level1_land, &
           input_step        = input_step, &
           model_step        = model_step, &
           max_route_step    = real(self%config%max_route_step(id(1)), dp), &
@@ -937,7 +938,7 @@ contains
         call self%router%init( &
         river            = self%river, &
         celerity         = self%celerity, &
-        input_grid       = self%exchange%level1, &
+        input_grid       = self%exchange%level1_land, &
         input_step       = input_step, &
         model_step       = model_step, &
         max_route_step   = real(self%config%max_route_step(id(1)), dp), &
@@ -949,7 +950,7 @@ contains
         call self%router%init( &
           river            = self%river, &
           celerity         = self%celerity, &
-          input_grid       = self%exchange%level1, &
+          input_grid       = self%exchange%level1_land, &
           input_step       = input_step, &
           model_step       = model_step, &
           max_route_step   = real(self%config%max_route_step(id(1)), dp), &
@@ -1275,6 +1276,7 @@ contains
     if (allocated(self%lake_inflow)) deallocate(self%lake_inflow)
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
     if (allocated(self%lake_nodes)) deallocate(self%lake_nodes)
+    if (associated(self%exchange%level3_land, self%level3_land)) nullify(self%exchange%level3_land)
     call self%exchange%lake_inflow%clear(owned=.true.)
   end subroutine mrm_cleanup
 

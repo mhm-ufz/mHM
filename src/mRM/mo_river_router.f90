@@ -186,8 +186,8 @@ contains
     implicit none
     class(river_router_t), intent(inout) :: this
     integer(i8), optional, intent(in) :: lake_nodes(:) !< canonical lake nodes in point-set order
+    integer(i8), allocatable :: full_to_land(:)
     integer(i8) :: n
-    integer(i4) :: ij(2)
 
     if (present(lake_nodes)) then
       if (size(lake_nodes, kind=i8) > 0_i8) then
@@ -207,14 +207,16 @@ contains
       end if
     end if
     if (.not.associated(this%runoff_grid,this%river%grid)) then
+      allocate(full_to_land(this%river%grid%ncells))
+      call this%river%grid%gen_id_map(this%runoff_grid, full_to_land)
+
       allocate(this%node_runoff_cell(this%river%n_nodes))
-      !$omp parallel do default(none) shared(this) private(n, ij) schedule(static)
+      !$omp parallel do default(none) shared(this, full_to_land) private(n) schedule(static)
       do n = 1_i8, this%river%n_nodes
-        this%node_runoff_cell(n) = 0_i8
-        ij = this%river%grid%cell_ij(this%river%node_cell(n), :)
-        if (this%runoff_grid%mask(ij(1),ij(2))) this%node_runoff_cell(n) = this%runoff_grid%cell_id(ij)
+        this%node_runoff_cell(n) = full_to_land(this%river%node_cell(n))
       end do
       !$omp end parallel do
+      deallocate(full_to_land)
     end if
   end subroutine river_router_setup_lake_maps
 
@@ -656,7 +658,7 @@ contains
       !$omp parallel default(none) shared(this) private(c, n)
       !$omp do simd schedule(static)
       do n = 1_i8, this%river%n_nodes
-        if (allocated(this%node_runoff_cell)) then
+        if (this%lake_routing) then
           c = this%node_runoff_cell(n)
         else
           c = this%river%node_cell(n)

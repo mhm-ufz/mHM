@@ -1,6 +1,7 @@
 module test_exchange_variable
   use funit
-  use mo_exchange_type, only: exchange_t, var_dp, var_i2, var2d_dp, l0, l0_land, nopoints, points_lake
+  use mo_exchange_type, only: exchange_t, var_dp, var_i2, var2d_dp, l0, l1, l0_land, l1_land, l0_lake, l3_land, nopoints, points_lake
+  use mo_grid, only: grid_t
   use mo_points, only: points_t
   use mo_grid_io, only: var, no_time
   use mo_parameter_types, only: parameter_t
@@ -15,6 +16,7 @@ module test_exchange_variable
   public :: test_exchange_external_metadata, test_exchange_output_metadata, test_exchange_canonical_metadata
   public :: test_exchange_clock
   public :: test_exchange_lake_points
+  public :: test_exchange_grid_contract
 
 contains
 
@@ -176,6 +178,8 @@ contains
     @assertEqual(l0, exchange%fdir%grid, message='flow direction stays on the full level0 grid')
     @assertEqual(l0_land, exchange%dem%grid, message='land morphology uses the level0 land grid')
     @assertEqual(l0_land, exchange%slope%grid, message='MPR slope uses the level0 land grid')
+    @assertEqual(l1_land, exchange%runoff_total%grid, message='runoff uses the level1 land grid')
+    @assertEqual(l1_land, exchange%pre%grid, message='meteorological forcing uses the level1 land grid')
     @assertEqual("mm degC-1", exchange%degday%units, message='degree-day interval unit')
     @assertEqual("degC-1", exchange%degday_inc%units, message='degree-day precipitation increment unit')
     @assertEqual("d", exchange%k_fastflow%units, message='fast interflow recession unit')
@@ -187,6 +191,40 @@ contains
     @assertEqual("d", exchange%k_percolation%units, message='percolation time unit')
     @assertEqual("Percolation time", exchange%k_percolation%long_name, message='percolation long name')
   end subroutine test_exchange_canonical_metadata
+
+  @test
+  subroutine test_exchange_grid_contract()
+    type(exchange_t), target :: exchange
+    type(exchange_t), target :: lake_exchange
+    type(grid_t), target :: land_grid, lake_grid
+    type(grid_t), pointer :: grid
+
+    @assertEqual(0_i4, l0, message='full grids start at selector zero')
+    @assertEqual(1_i4, l1, message='full level1 uses selector one')
+    @assertEqual(100_i4, l0_land, message='land grid selectors start at one hundred')
+    @assertEqual(101_i4, l1_land, message='land level1 uses selector one hundred one')
+    @assertEqual(103_i4, l3_land, message='land level3 uses selector one hundred three')
+    @assertEqual(200_i4, l0_lake, message='lake grid selectors start at two hundred')
+    @assertFalse(exchange%has_grid(l1_land), message='level1 land is initially absent')
+
+    exchange%level1_land => land_grid
+    call exchange%alias_full_grid_no_lakes(l1)
+    @assertTrue(exchange%has_grid(l1_land), message='level1 land is available after publication')
+    @assertTrue(exchange%has_grid(l1), message='no-lake level1 aliases level1 land')
+    call exchange%get_grid(l1_land, grid)
+    @assertTrue(associated(grid, land_grid), message='land selector returns the published land grid')
+    call exchange%get_grid(l1, grid)
+    @assertTrue(associated(grid, land_grid), message='full selector returns the no-lake alias')
+    exchange%level3_land => land_grid
+    @assertTrue(exchange%has_grid(l3_land), message='published level3 land support is available')
+    call exchange%get_grid(l3_land, grid)
+    @assertTrue(associated(grid, land_grid), message='level3 land selector returns the published support grid')
+
+    lake_exchange%level0_lake => lake_grid
+    lake_exchange%level1_land => land_grid
+    call lake_exchange%alias_full_grid_no_lakes(l1)
+    @assertFalse(lake_exchange%has_grid(l1), message='lake domains do not alias full level1 to level1 land')
+  end subroutine test_exchange_grid_contract
 
   @test
   subroutine test_exchange_clock()

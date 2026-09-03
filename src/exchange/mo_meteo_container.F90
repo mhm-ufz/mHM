@@ -30,7 +30,7 @@ module mo_meteo_container
   use mo_logging
   use mo_constants, only: T0_dp
   use mo_datetime, only: datetime
-  use mo_exchange_type, only: exchange_t, var_dp
+  use mo_exchange_type, only: exchange_t, var_dp, l1
   use mo_grid, only: grid_t, spherical
   use mo_grid_io, only: no_time, daily, monthly, yearly
   use mo_grid_scaler, only: scaler_t
@@ -90,7 +90,7 @@ module mo_meteo_container
   type, public :: meteo_t
     type(nml_config_meteo_t) :: config !< configuration of the meteorology process container
     type(exchange_t), pointer :: exchange => null() !< exchange container of the domain
-    type(grid_t) :: tgt_level1 !< internal level1 grid derived from level0 when needed
+    type(grid_t) :: tgt_level1_land !< internal level1 grid derived from level0 when needed
     type(scaler_t) :: regrid !< level2-to-level1 remapper for packed fields
     type(meteo_weight_state_t) :: weights !< cached disaggregation weights
     type(meteo_output_state_t) :: out !< processed meteo outputs
@@ -222,7 +222,7 @@ contains
       error stop 1
     end if
     call self%ensure_level1_grid()
-    call self%regrid%init(self%exchange%level2, self%exchange%level1)
+    call self%regrid%init(self%exchange%level2, self%exchange%level1_land)
     domain_id = self%exchange%nml_domain_id
     id(1) = domain_id
     pet_process = self%exchange%config%processes%pet
@@ -252,7 +252,7 @@ contains
       if (.not.self%weight_mode_active() .and. steps_day > 1_i4 .and. self%exchange%raw_pre%stepping == daily) then
         call self%require_fraction("frac_night_pre", frac_domain_id)
       end if
-      call self%ensure_size(self%out%pre, self%exchange%level1%ncells)
+      call self%ensure_size(self%out%pre, self%exchange%level1_land%ncells)
       call self%exchange%pre%publish_local("Meteo", self%out%pre, step_hours)
     end if
 
@@ -261,12 +261,12 @@ contains
       if (.not.self%weight_mode_active() .and. steps_day > 1_i4 .and. self%exchange%raw_temp%stepping == daily) then
         call self%require_fraction("frac_night_temp", frac_domain_id)
       end if
-      call self%ensure_size(self%out%temp, self%exchange%level1%ncells)
+      call self%ensure_size(self%out%temp, self%exchange%level1_land%ncells)
       call self%exchange%temp%publish_local("Meteo", self%out%temp, step_hours)
     end if
 
     if (pet_process /= 0_i4) then
-      call self%ensure_size(self%out%pet, self%exchange%level1%ncells)
+      call self%ensure_size(self%out%pet, self%exchange%level1_land%ncells)
       call self%exchange%pet%publish_local("Meteo", self%out%pet, step_hours)
     end if
 
@@ -310,9 +310,9 @@ contains
         if (self%exchange%raw_ssrd%stepping == daily) call self%require_fraction("frac_night_ssrd", frac_domain_id)
         if (self%exchange%raw_strd%stepping == daily) call self%require_fraction("frac_night_strd", frac_domain_id)
       end if
-      call self%ensure_size(self%out%ssrd, self%exchange%level1%ncells)
-      call self%ensure_size(self%out%strd, self%exchange%level1%ncells)
-      call self%ensure_size(self%out%tann, self%exchange%level1%ncells)
+      call self%ensure_size(self%out%ssrd, self%exchange%level1_land%ncells)
+      call self%ensure_size(self%out%strd, self%exchange%level1_land%ncells)
+      call self%ensure_size(self%out%tann, self%exchange%level1_land%ncells)
       call self%exchange%ssrd%publish_local("Meteo", self%out%ssrd, step_hours)
       call self%exchange%strd%publish_local("Meteo", self%out%strd, step_hours)
       call self%exchange%tann%publish_local("Meteo", self%out%tann, step_hours)
@@ -376,7 +376,7 @@ contains
     log_info(*) "Initialize meteo"
 
     pet_process = self%exchange%config%processes%pet
-    n_l1 = self%exchange%level1%ncells
+    n_l1 = self%exchange%level1_land%ncells
     select case (pet_process)
     case (1_i4)
       call self%exchange%pet_fac_aspect%require("Meteo", .true., [n_l1])
@@ -480,20 +480,21 @@ contains
     class(meteo_t), intent(inout), target :: self
     real(dp) :: l1_res
 
-    if (.not.associated(self%exchange%level0)) then
-      log_fatal(*) "Meteo: level0 grid not connected."
+    if (.not.associated(self%exchange%level0_land)) then
+      log_fatal(*) "Meteo: level0 land grid not connected."
       error stop 1
     end if
 
     l1_res = self%exchange%level1_resolution
-    if (associated(self%exchange%level1)) then
+    if (associated(self%exchange%level1_land)) then
       if (ieee_is_finite(l1_res) .and. l1_res > 0.0_dp .and. &
-          .not.is_close(self%exchange%level1%cellsize, l1_res)) then
-        log_fatal(*) "Meteo: level1 grid cellsize (", n2s(self%exchange%level1%cellsize), &
+          .not.is_close(self%exchange%level1_land%cellsize, l1_res)) then
+        log_fatal(*) "Meteo: level1 grid cellsize (", n2s(self%exchange%level1_land%cellsize), &
           ") conflicts with configured level1_resolution (", n2s(l1_res), ")."
         error stop 1
       end if
-      call self%exchange%level1%check_is_filled_by(self%exchange%level0, check_mask=.true.)
+      call self%exchange%level1_land%check_is_filled_by(self%exchange%level0_land, check_mask=.true.)
+      call self%exchange%alias_full_grid_no_lakes(l1)
       return
     end if
 
@@ -502,8 +503,9 @@ contains
       error stop 1
     end if
 
-    call self%exchange%level0%gen_grid(self%tgt_level1, target_resolution=l1_res)
-    self%exchange%level1 => self%tgt_level1
+    call self%exchange%level0_land%gen_grid(self%tgt_level1_land, target_resolution=l1_res)
+    self%exchange%level1_land => self%tgt_level1_land
+    call self%exchange%alias_full_grid_no_lakes(l1)
     log_info(*) "Meteo: derive level1 grid from level0 with resolution ", n2s(l1_res)
   end subroutine meteo_ensure_level1_grid
 
@@ -532,7 +534,7 @@ contains
       log_fatal(*) "Meteo: raw field not connected for ", trim(name), "."
       error stop 1
     end if
-    call self%ensure_size(l1_data, self%exchange%level1%ncells)
+    call self%ensure_size(l1_data, self%exchange%level1_land%ncells)
     call self%regrid%execute(raw_var%data, l1_data)
   end subroutine meteo_remap_raw
 
@@ -564,9 +566,9 @@ contains
     end if
 
     if (allocated(cache)) deallocate(cache)
-    allocate(cache(self%exchange%level1%ncells, n_months, n_hours))
+    allocate(cache(self%exchange%level1_land%ncells, n_months, n_hours))
     allocate(packed_l2(self%exchange%level2%ncells))
-    allocate(packed_l1(self%exchange%level1%ncells))
+    allocate(packed_l1(self%exchange%level1_land%ncells))
 
     do month = 1_i4, n_months
       do hour = 1_i4, n_hours
@@ -640,16 +642,16 @@ contains
     integer(i8) :: k
     integer(i4) :: j
 
-    call self%ensure_size(self%scratch%latitude, self%exchange%level1%ncells)
-    if (self%exchange%level1%coordsys == spherical) then
-      y_axis = self%exchange%level1%y_axis()
-      do k = 1_i8, self%exchange%level1%ncells
-        j = self%exchange%level1%cell_ij(k, 2)
+    call self%ensure_size(self%scratch%latitude, self%exchange%level1_land%ncells)
+    if (self%exchange%level1_land%coordsys == spherical) then
+      y_axis = self%exchange%level1_land%y_axis()
+      do k = 1_i8, self%exchange%level1_land%ncells
+        j = self%exchange%level1_land%cell_ij(k, 2)
         self%scratch%latitude(k) = y_axis(j)
       end do
       deallocate(y_axis)
-    else if (self%exchange%level1%has_aux_coords()) then
-      call self%exchange%level1%pack_into(self%exchange%level1%lat, self%scratch%latitude)
+    else if (self%exchange%level1_land%has_aux_coords()) then
+      call self%exchange%level1_land%pack_into(self%exchange%level1_land%lat, self%scratch%latitude)
     else
       log_fatal(*) "Meteo: PET Hargreaves requires latitude on level1."
       error stop 1
@@ -761,7 +763,7 @@ contains
         if (any(self%scratch%tmax < self%scratch%tmin)) then
           log_warn(*) "Meteo: tmax smaller than tmin for at least one cell at ", self%exchange%time%str()
         end if
-        call self%ensure_size(self%scratch%pet, self%exchange%level1%ncells)
+        call self%ensure_size(self%scratch%pet, self%exchange%level1_land%ncells)
         self%scratch%pet = self%exchange%pet_fac_aspect%data * pet_hargreaves( &
           HarSamCoeff=self%exchange%pet_coeff_hs%data, &
           HarSamConst=HarSamConst, &
@@ -774,7 +776,7 @@ contains
       case (2_i4)
         call self%remap_raw(self%exchange%raw_temp, self%scratch%temp, "raw_temp")
         call self%remap_raw(self%exchange%raw_netrad, self%scratch%netrad, "raw_netrad")
-        call self%ensure_size(self%scratch%pet, self%exchange%level1%ncells)
+        call self%ensure_size(self%scratch%pet, self%exchange%level1_land%ncells)
         self%scratch%pet = pet_priestly(PrieTayParam=self%exchange%pet_coeff_pt%data, &
           Rn=max(self%scratch%netrad, 0.0_dp), tavg=self%scratch%temp)
         pet_stepping = daily
@@ -783,7 +785,7 @@ contains
         call self%remap_raw(self%exchange%raw_netrad, self%scratch%netrad, "raw_netrad")
         call self%remap_raw(self%exchange%raw_eabs, self%scratch%eabs, "raw_eabs")
         call self%remap_raw(self%exchange%raw_wind, self%scratch%wind, "raw_wind")
-        call self%ensure_size(self%scratch%pet, self%exchange%level1%ncells)
+        call self%ensure_size(self%scratch%pet, self%exchange%level1_land%ncells)
         self%scratch%pet = pet_penman( &
           net_rad=max(self%scratch%netrad, 0.0_dp), &
           tavg=self%scratch%temp, &

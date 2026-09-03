@@ -347,7 +347,7 @@ contains
       self%io%restart_output_path = self%exchange%get_path(self%config%restart_output_path(id(1)))
     end if
 
-    if (.not.associated(self%exchange%level1)) then
+    if (.not.associated(self%exchange%level1_land)) then
       log_fatal(*) "mHM: level1 grid not available (check MPR/meteo setup)."
       error stop 1
     end if
@@ -357,10 +357,10 @@ contains
     end if
 
     call self%copy_horizon_bounds(self%exchange%soil_horizon_bounds)
-    n_cells = int(self%exchange%level1%ncells, i4)
+    n_cells = int(self%exchange%level1_land%ncells, i4)
     n_horizons = size(self%soil%horizon_bounds) - 1_i4
-    expected_shape_1d = [self%exchange%level1%ncells]
-    expected_shape_2d = [self%exchange%level1%ncells, int(n_horizons, i8)]
+    expected_shape_1d = [self%exchange%level1_land%ncells]
+    expected_shape_2d = [self%exchange%level1_land%ncells, int(n_horizons, i8)]
     if (n_horizons < 1_i4) then
       log_fatal(*) "mHM: soil_horizon_bounds must contain at least two entries."
       error stop 1
@@ -582,8 +582,8 @@ contains
     logical :: need_f_sealed
 
     n_horizons = size(self%soil%horizon_bounds) - 1_i4
-    expected_shape_1d = [self%exchange%level1%ncells]
-    expected_shape_2d = [self%exchange%level1%ncells, int(n_horizons, i8)]
+    expected_shape_1d = [self%exchange%level1_land%ncells]
+    expected_shape_2d = [self%exchange%level1_land%ncells, int(n_horizons, i8)]
     interception_case = self%exchange%config%processes%interception
     snow_case = self%exchange%config%processes%snow
     soil_case = self%exchange%config%processes%soil_moisture
@@ -752,7 +752,7 @@ contains
     log_info(*) "Create mHM output file: ", self%io%output_path
     call self%ds_out%init( &
       path          = self%io%output_path, &
-      grid          = self%exchange%level1, &
+      grid          = self%exchange%level1_land, &
       vars          = vars, &
       start_time    = self%exchange%start_time, &
       delta         = delta, &
@@ -803,7 +803,7 @@ contains
     if (self%output_config%out_neutrons) call self%ds_out%update("neutrons", self%exchange%neutrons%data)
     if (self%output_config%out_pet) call self%ds_out%update("PET", self%exchange%pet%data)
     if (self%output_config%out_aet_all) then
-      allocate(tmp(int(self%exchange%level1%ncells, i4)))
+      allocate(tmp(int(self%exchange%level1_land%ncells, i4)))
       tmp = 0.0_dp
       if (self%exchange%aet_soil%provided) tmp = tmp + sum(self%exchange%aet_soil%data, dim=2) * f_not_sealed
       if (self%exchange%aet_canopy%provided) tmp = tmp + self%exchange%aet_canopy%data
@@ -1128,14 +1128,14 @@ contains
       log_fatal(*) "mHM: restart output path is not configured."
       error stop 1
     end if
-    if (.not.associated(self%exchange%level1)) then
+    if (.not.associated(self%exchange%level1_land)) then
       log_fatal(*) "mHM: cannot write restart without a connected level1 grid."
       error stop 1
     end if
 
     log_info(*) "Write mHM restart to file: ", self%io%restart_output_path
     nc = NcDataset(self%io%restart_output_path, "w")
-    call self%exchange%level1%to_restart(nc)
+    call self%exchange%level1_land%to_restart(nc)
     call self%write_restart_data(nc)
 
     nc_var = nc%setVariable("mhm_meta", "i32", dims0(:0))
@@ -1165,7 +1165,7 @@ contains
     integer(i4) :: interflow_case
     integer(i4) :: baseflow_case
 
-    if (.not.associated(self%exchange%level1)) then
+    if (.not.associated(self%exchange%level1_land)) then
       log_fatal(*) "mHM: level1 grid not connected while writing restart."
       error stop 1
     end if
@@ -1174,7 +1174,7 @@ contains
       error stop 1
     end if
 
-    if (self%exchange%level1%coordsys == cartesian) then
+    if (self%exchange%level1_land%coordsys == cartesian) then
       dims_xy(1) = nc%getDimension("x")
       dims_xy(2) = nc%getDimension("y")
     else
@@ -1236,7 +1236,7 @@ contains
       log_fatal(*) "mHM: restart input path is not configured."
       error stop 1
     end if
-    if (.not.associated(self%exchange%level1)) then
+    if (.not.associated(self%exchange%level1_land)) then
       log_fatal(*) "mHM: level1 grid not connected before restart read."
       error stop 1
     end if
@@ -1272,39 +1272,39 @@ contains
     class(mhm_t), intent(inout), target :: self
     type(grid_t), intent(in), target :: restart_grid
 
-    if (restart_grid%coordsys /= self%exchange%level1%coordsys) then
+    if (restart_grid%coordsys /= self%exchange%level1_land%coordsys) then
       log_fatal(*) "mHM restart: restart grid coordinate system does not match current level1 grid."
       error stop 1
     end if
-    if (restart_grid%nx /= self%exchange%level1%nx .or. restart_grid%ny /= self%exchange%level1%ny) then
+    if (restart_grid%nx /= self%exchange%level1_land%nx .or. restart_grid%ny /= self%exchange%level1_land%ny) then
       log_fatal(*) "mHM restart: restart grid dimensions do not match current level1 grid."
       error stop 1
     end if
-    if (.not.is_close(restart_grid%cellsize, self%exchange%level1%cellsize) .or. &
-      .not.is_close(restart_grid%xllcorner, self%exchange%level1%xllcorner) .or. &
-      .not.is_close(restart_grid%yllcorner, self%exchange%level1%yllcorner)) then
+    if (.not.is_close(restart_grid%cellsize, self%exchange%level1_land%cellsize) .or. &
+      .not.is_close(restart_grid%xllcorner, self%exchange%level1_land%xllcorner) .or. &
+      .not.is_close(restart_grid%yllcorner, self%exchange%level1_land%yllcorner)) then
       log_fatal(*) "mHM restart: restart grid geometry does not match current level1 grid."
       error stop 1
     end if
-    if (restart_grid%y_direction /= self%exchange%level1%y_direction) then
+    if (restart_grid%y_direction /= self%exchange%level1_land%y_direction) then
       log_fatal(*) "mHM restart: restart grid y-direction does not match current level1 grid."
       error stop 1
     end if
-    if (.not.allocated(restart_grid%mask) .or. .not.allocated(self%exchange%level1%mask)) then
+    if (.not.allocated(restart_grid%mask) .or. .not.allocated(self%exchange%level1_land%mask)) then
       log_fatal(*) "mHM restart: mask information missing during restart-grid validation."
       error stop 1
     end if
-    if (any(restart_grid%mask .neqv. self%exchange%level1%mask)) then
+    if (any(restart_grid%mask .neqv. self%exchange%level1_land%mask)) then
       log_fatal(*) "mHM restart: restart grid mask does not match current level1 grid."
       error stop 1
     end if
-    if (self%exchange%level1%has_aux_coords()) then
+    if (self%exchange%level1_land%has_aux_coords()) then
       if (.not.restart_grid%has_aux_coords()) then
         log_fatal(*) "mHM restart: current level1 grid has auxiliary coordinates, but restart grid does not."
         error stop 1
       end if
-      if (any(.not.is_close(restart_grid%lon, self%exchange%level1%lon)) .or. &
-        any(.not.is_close(restart_grid%lat, self%exchange%level1%lat))) then
+      if (any(.not.is_close(restart_grid%lon, self%exchange%level1_land%lon)) .or. &
+        any(.not.is_close(restart_grid%lat, self%exchange%level1_land%lat))) then
         log_fatal(*) "mHM restart: restart grid auxiliary coordinates do not match current level1 grid."
         error stop 1
       end if
@@ -1437,13 +1437,13 @@ contains
     type(NcVariable) :: nc_var
     real(dp), allocatable :: data_2d(:, :)
 
-    allocate(data_2d(self%exchange%level1%nx, self%exchange%level1%ny))
-    call self%exchange%level1%unpack_into(data_packed, data_2d)
+    allocate(data_2d(self%exchange%level1_land%nx, self%exchange%level1_land%ny))
+    call self%exchange%level1_land%unpack_into(data_packed, data_2d)
     nc_var = nc%setVariable(trim(var_name), "f64", dims_xy)
     call nc_var%setFillValue(nodata_dp)
     call nc_var%setAttribute("missing_value", nodata_dp)
     call metadata%write_netcdf_metadata(nc_var)
-    if (self%exchange%level1%has_aux_coords()) call nc_var%setAttribute("coordinates", "lon lat")
+    if (self%exchange%level1_land%has_aux_coords()) call nc_var%setAttribute("coordinates", "lon lat")
     call nc_var%setData(data_2d)
     deallocate(data_2d)
   end subroutine mhm_write_restart_field_2d
@@ -1464,15 +1464,15 @@ contains
 
     dims(1:2) = dims_xy
     dims(3) = dim3
-    allocate(data_3d(self%exchange%level1%nx, self%exchange%level1%ny, size(data_packed, 2)))
+    allocate(data_3d(self%exchange%level1_land%nx, self%exchange%level1_land%ny, size(data_packed, 2)))
     do idx = 1_i4, size(data_packed, 2)
-      call self%exchange%level1%unpack_into(data_packed(:, idx), data_3d(:, :, idx))
+      call self%exchange%level1_land%unpack_into(data_packed(:, idx), data_3d(:, :, idx))
     end do
     nc_var = nc%setVariable(trim(var_name), "f64", dims)
     call nc_var%setFillValue(nodata_dp)
     call nc_var%setAttribute("missing_value", nodata_dp)
     call metadata%write_netcdf_metadata(nc_var)
-    if (self%exchange%level1%has_aux_coords()) call nc_var%setAttribute("coordinates", "lon lat")
+    if (self%exchange%level1_land%has_aux_coords()) call nc_var%setAttribute("coordinates", "lon lat")
     call nc_var%setData(data_3d)
     deallocate(data_3d)
   end subroutine mhm_write_restart_field_3d
@@ -1497,16 +1497,16 @@ contains
       log_fatal(*) "mHM restart: variable ", trim(var_name), " has rank ", n2s(size(var_shape)), ", expected 2."
       error stop 1
     end if
-    if (any(var_shape /= [self%exchange%level1%nx, self%exchange%level1%ny])) then
+    if (any(var_shape /= [self%exchange%level1_land%nx, self%exchange%level1_land%ny])) then
       log_fatal(*) "mHM restart: variable ", trim(var_name), " has incompatible x/y shape."
       error stop 1
     end if
-    if (size(data_packed) /= self%exchange%level1%ncells) then
+    if (size(data_packed) /= self%exchange%level1_land%ncells) then
       log_fatal(*) "mHM restart: target array for ", trim(var_name), " has unexpected packed level1 size."
       error stop 1
     end if
     call nc_var%getData(data_2d)
-    call self%exchange%level1%pack_into(data_2d, data_packed)
+    call self%exchange%level1_land%pack_into(data_2d, data_packed)
   end subroutine mhm_read_restart_field_2d
 
   !> \brief Read a packed L1 horizon-dependent field from unpacked 3D restart data.
@@ -1530,7 +1530,7 @@ contains
       log_fatal(*) "mHM restart: variable ", trim(var_name), " has rank ", n2s(size(var_shape)), ", expected 3."
       error stop 1
     end if
-    if (any(var_shape(1:2) /= [self%exchange%level1%nx, self%exchange%level1%ny])) then
+    if (any(var_shape(1:2) /= [self%exchange%level1_land%nx, self%exchange%level1_land%ny])) then
       log_fatal(*) "mHM restart: variable ", trim(var_name), " has incompatible x/y shape."
       error stop 1
     end if
@@ -1538,13 +1538,13 @@ contains
       log_fatal(*) "mHM restart: variable ", trim(var_name), " has incompatible soil-horizon shape."
       error stop 1
     end if
-    if (size(data_packed, 1) /= self%exchange%level1%ncells) then
+    if (size(data_packed, 1) /= self%exchange%level1_land%ncells) then
       log_fatal(*) "mHM restart: target array for ", trim(var_name), " has unexpected packed level1 size."
       error stop 1
     end if
     call nc_var%getData(data_3d)
     do idx = 1_i4, var_shape(3)
-      call self%exchange%level1%pack_into(data_3d(:, :, idx), data_packed(:, idx))
+      call self%exchange%level1_land%pack_into(data_3d(:, :, idx), data_packed(:, idx))
     end do
   end subroutine mhm_read_restart_field_3d
 

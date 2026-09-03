@@ -15,7 +15,7 @@ module mo_input_container
   use mo_kind, only: i2, i4, i8, dp
   use mo_list, only: list
   use mo_os, only: path_ext
-  use mo_exchange_type, only: exchange_t, var_dp
+  use mo_exchange_type, only: exchange_t, var_dp, l1
   use mo_datetime, only: datetime, timedelta, HOUR_SECONDS, DAY_HOURS, one_hour, one_day
   use mo_grid, only: grid_t, data_t, cartesian, spherical
   use mo_river, only: river_t
@@ -129,7 +129,7 @@ module mo_input_container
     type(grid_t) :: tgt_level0 !< grid level 0 of the domain if given from input
     type(grid_t) :: tgt_level0_land !< level-0 land grid derived by excluding lake cells
     type(grid_t) :: tgt_level0_lake !< level-0 lake grid derived from lake footprints
-    type(grid_t) :: tgt_level1 !< grid level 1 of the domain if given from input
+    type(grid_t) :: tgt_level1_land !< grid level 1 of the domain if given from input
     type(grid_t) :: tgt_level2 !< grid level 2 of the domain if given from input
     type(grid_t) :: tgt_level3 !< grid level 3 of the domain if given from input
     type(river_t) :: river_l0 !< full level-0 river network derived from flow direction
@@ -1380,10 +1380,10 @@ contains
       log_error(*) "Input: hydro mask is coupled... not yet implemented"
       stop 1
     else if (self%hydro_mask%provided) then
-      init_grid = need_grid(self%tgt_level1, self%exchange%level1) ! associate grid if not yet done
-      call self%hydro_mask%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level1, init_grid=init_grid)
+      init_grid = need_grid(self%tgt_level1_land, self%exchange%level1_land) ! associate grid if not yet done
+      call self%hydro_mask%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level1_land, init_grid=init_grid)
       if (.not.self%hydro_mask%is_ascii()) call self%hydro_mask%ds%close() ! hydro mask not read, since we only need the grid information
-      call self%hydro_mask%set_mask(self%exchange%level1%mask) ! only done for masks
+      call self%hydro_mask%set_mask(self%exchange%level1_land%mask) ! only done for masks
     end if
 
     ! runoff
@@ -1392,13 +1392,14 @@ contains
       log_error(*) "Input: runoff is coupled... not yet implemented"
       stop 1
     else if (self%runoff%provided) then
-      init_grid = need_grid(self%tgt_level1, self%exchange%level1) ! associate grid if not yet done
-      call self%runoff%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level1, init_grid=init_grid)
+      init_grid = need_grid(self%tgt_level1_land, self%exchange%level1_land) ! associate grid if not yet done
+      call self%runoff%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level1_land, init_grid=init_grid)
       call sync_input_var_meta(self%runoff, self%exchange%runoff_total)
     end if
 
     if (.not.associated(self%exchange%level0_land) .and. associated(self%exchange%level0)) &
       self%exchange%level0_land => self%exchange%level0
+    if (associated(self%exchange%level1_land)) call self%exchange%alias_full_grid_no_lakes(l1)
 
     if (associated(self%exchange%level2)) self%exchange%level2_resolution = self%exchange%level2%cellsize
   end subroutine input_connect
