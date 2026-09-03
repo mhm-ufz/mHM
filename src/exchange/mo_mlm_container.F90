@@ -41,7 +41,6 @@ module mo_mlm_container
     logical :: active = .false. !< whether process -1 is selected
     logical :: read_restart = .false. !< read mLM restart
     logical :: write_restart = .false. !< write mLM restart
-    logical :: restart_has_static_metadata = .false. !< whether the restart carries point geometry and levels
     logical :: owns_restart_lake_points = .false. !< whether mLM published the restart point set
     logical :: owns_restart_lake_metadata = .false. !< whether mLM published restart IDs and maximum levels
     character(:), allocatable :: restart_input_path !< resolved input restart path
@@ -149,7 +148,7 @@ contains
       n_lakes = self%exchange%lake_points%n_points
       call self%exchange%lake_ids%require("mLM", .true., [n_lakes])
       call self%exchange%lake_max_levels%require("mLM", .true., [n_lakes])
-      if (self%read_restart .and. self%restart_has_static_metadata) call self%validate_restart_metadata()
+      if (self%read_restart) call self%validate_restart_metadata()
       self%lake_ids = self%exchange%lake_ids%data
       call self%static_lake_points%init( &
         self%exchange%lake_points%x, self%exchange%lake_points%y, coordsys=self%exchange%lake_points%coordsys)
@@ -157,10 +156,6 @@ contains
     else
       if (.not.self%read_restart) then
         log_fatal(*) "mLM: lake process requires lake points."
-        error stop 1
-      end if
-      if (.not.self%restart_has_static_metadata) then
-        log_fatal(*) "mLM restart has only IDs and outflow; provide Input lake metadata or regenerate the restart with lake geometry."
         error stop 1
       end if
       n_lakes = self%restart_lake_points%n_points
@@ -269,11 +264,9 @@ contains
     real(dp), allocatable :: outlet_x(:), outlet_y(:)
     integer(i4), allocatable :: coordsys_data
     integer(i8) :: i
-    logical :: has_x, has_y, has_levels, has_coordsys
     character(64) :: restart_time
     character(:), allocatable :: expected_time
 
-    self%restart_has_static_metadata = .false.
     nc = NcDataset(self%restart_input_path, "r")
     if (.not.nc%hasVariable("lake_id") .or. .not.nc%hasVariable("lake_outflow")) then
       log_fatal(*) "mLM restart is missing lake IDs or lake outflow: ", self%restart_input_path
@@ -296,55 +289,46 @@ contains
       end if
     end do
 
-    has_x = nc%hasVariable("lake_outlet_x")
-    has_y = nc%hasVariable("lake_outlet_y")
-    has_levels = nc%hasVariable("lake_max_level")
-    has_coordsys = nc%hasVariable("lake_coordsys")
-    if ((has_x .neqv. has_y) .or. (has_x .neqv. has_levels) .or. (has_x .neqv. has_coordsys)) then
-      log_fatal(*) "mLM restart has incomplete static lake metadata: ", self%restart_input_path
+    if (.not.nc%hasVariable("lake_outlet_x") .or. .not.nc%hasVariable("lake_outlet_y") .or. &
+        .not.nc%hasVariable("lake_max_level") .or. .not.nc%hasVariable("lake_coordsys")) then
+      log_fatal(*) "mLM restart is missing required static lake metadata: ", self%restart_input_path
       error stop 1
     end if
-    if (has_x) then
-      var = nc%getVariable("lake_outlet_x"); call var%getData(outlet_x)
-      var = nc%getVariable("lake_outlet_y"); call var%getData(outlet_y)
-      var = nc%getVariable("lake_max_level"); call var%getData(self%restart_lake_max_levels)
-      var = nc%getVariable("lake_coordsys"); call var%getData(coordsys_data)
-      if (size(outlet_x, kind=i8) /= size(self%restart_lake_ids, kind=i8) .or. &
-          size(outlet_y, kind=i8) /= size(self%restart_lake_ids, kind=i8) .or. &
-          size(self%restart_lake_max_levels, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
-        log_fatal(*) "mLM restart static lake metadata does not align with stable lake IDs."
-        error stop 1
-      end if
-      if (coordsys_data /= cartesian .and. coordsys_data /= spherical) then
-        log_fatal(*) "mLM restart contains an unsupported lake coordinate system."
-        error stop 1
-      end if
-      if (.not.all(ieee_is_finite(outlet_x)) .or. .not.all(ieee_is_finite(outlet_y)) .or. &
-          .not.all(ieee_is_finite(self%restart_lake_max_levels))) then
-        log_fatal(*) "mLM restart static lake metadata must be finite."
-        error stop 1
-      end if
-      call self%restart_lake_points%init(outlet_x, outlet_y, coordsys=coordsys_data)
-      self%restart_has_static_metadata = .true.
+    var = nc%getVariable("lake_outlet_x"); call var%getData(outlet_x)
+    var = nc%getVariable("lake_outlet_y"); call var%getData(outlet_y)
+    var = nc%getVariable("lake_max_level"); call var%getData(self%restart_lake_max_levels)
+    var = nc%getVariable("lake_coordsys"); call var%getData(coordsys_data)
+    if (size(outlet_x, kind=i8) /= size(self%restart_lake_ids, kind=i8) .or. &
+        size(outlet_y, kind=i8) /= size(self%restart_lake_ids, kind=i8) .or. &
+        size(self%restart_lake_max_levels, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
+      log_fatal(*) "mLM restart static lake metadata does not align with stable lake IDs."
+      error stop 1
     end if
+    if (coordsys_data /= cartesian .and. coordsys_data /= spherical) then
+      log_fatal(*) "mLM restart contains an unsupported lake coordinate system."
+      error stop 1
+    end if
+    if (.not.all(ieee_is_finite(outlet_x)) .or. .not.all(ieee_is_finite(outlet_y)) .or. &
+        .not.all(ieee_is_finite(self%restart_lake_max_levels))) then
+      log_fatal(*) "mLM restart static lake metadata must be finite."
+      error stop 1
+    end if
+    call self%restart_lake_points%init(outlet_x, outlet_y, coordsys=coordsys_data)
 
-    if (nc%hasVariable("mlm_meta")) then
-      meta_var = nc%getVariable("mlm_meta")
-      if (.not.meta_var%hasAttribute("time_stamp")) then
-        log_fatal(*) "mLM restart metadata has no time_stamp: ", self%restart_input_path
-        error stop 1
-      end if
-      call meta_var%getAttribute("time_stamp", restart_time)
-      expected_time = self%exchange%start_time%str()
-      if (trim(restart_time) /= trim(expected_time)) then
-        log_fatal(*) "mLM restart timestamp ", trim(restart_time), " does not match domain restart time ", trim(expected_time), "."
-        error stop 1
-      end if
-    else if (self%restart_has_static_metadata) then
-      log_fatal(*) "mLM restart with static lake metadata has no mlm_meta timestamp: ", self%restart_input_path
+    if (.not.nc%hasVariable("mlm_meta")) then
+      log_fatal(*) "mLM restart metadata variable mlm_meta is missing: ", self%restart_input_path
       error stop 1
-    else
-      log_warn(*) "mLM legacy restart has no timestamp; restart coincidence cannot be verified."
+    end if
+    meta_var = nc%getVariable("mlm_meta")
+    if (.not.meta_var%hasAttribute("time_stamp")) then
+      log_fatal(*) "mLM restart metadata has no time_stamp: ", self%restart_input_path
+      error stop 1
+    end if
+    call meta_var%getAttribute("time_stamp", restart_time)
+    expected_time = self%exchange%start_time%str()
+    if (trim(restart_time) /= trim(expected_time)) then
+      log_fatal(*) "mLM restart timestamp ", trim(restart_time), " does not match domain restart time ", trim(expected_time), "."
+      error stop 1
     end if
     call nc%close()
   end subroutine mlm_read_restart_metadata

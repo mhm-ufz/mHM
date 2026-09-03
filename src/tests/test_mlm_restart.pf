@@ -13,7 +13,6 @@ module test_mlm_restart
 
   public :: test_mlm_restart_writes_static_metadata
   public :: test_mlm_restart_uses_input_order
-  public :: test_mlm_legacy_restart_uses_input_metadata
   public :: test_mlm_restart_publishes_and_clears_metadata
 
 contains
@@ -98,7 +97,7 @@ contains
     call exchange%lake_inflow%publish_local("mRM", inflow, 1_i4)
     call write_restart( &
       "mlm_restart_reordered_metadata.nc", [101_i8, 205_i8], [200.0_dp, 100.0_dp], [400.0_dp, 300.0_dp], &
-      [10.0_dp, 25.0_dp], [1.01_dp, 2.05_dp], static_metadata=.true., timestamp="2001-01-02 00:00:00")
+      [10.0_dp, 25.0_dp], [1.01_dp, 2.05_dp], timestamp="2001-01-02 00:00:00")
 
     mlm%exchange => exchange
     mlm%read_restart = .true.
@@ -118,42 +117,6 @@ contains
   end subroutine test_mlm_restart_uses_input_order
 
   @test
-  subroutine test_mlm_legacy_restart_uses_input_metadata()
-    type(exchange_t), target :: exchange
-    type(points_t), target :: input_points
-    type(mlm_t), target :: mlm
-    integer(i8), target :: input_ids(2)
-    real(dp), target :: input_levels(2), inflow(2)
-
-    call setup_exchange(exchange, "2001-01-02 00:00:00")
-    call input_points%init([100.0_dp, 200.0_dp], [300.0_dp, 400.0_dp], coordsys=cartesian)
-    input_ids = [205_i8, 101_i8]
-    input_levels = [25.0_dp, 10.0_dp]
-    inflow = 0.0_dp
-    exchange%lake_points => input_points
-    call exchange%lake_ids%publish_local("Input", input_ids, no_time)
-    call exchange%lake_max_levels%publish_local("Input", input_levels, no_time)
-    call exchange%lake_inflow%publish_local("mRM", inflow, 1_i4)
-    call write_restart( &
-      "mlm_restart_legacy.nc", [101_i8, 205_i8], [0.0_dp, 0.0_dp], [0.0_dp, 0.0_dp], [0.0_dp, 0.0_dp], &
-      [1.01_dp, 2.05_dp], static_metadata=.false.)
-
-    mlm%exchange => exchange
-    mlm%read_restart = .true.
-    mlm%restart_input_path = "mlm_restart_legacy.nc"
-    call mlm%connect()
-    @assertFalse(mlm%restart_has_static_metadata, message="legacy restart remains recognizable")
-    @assertEqual(input_ids, mlm%lake_ids, message="legacy restart uses Input stable-ID ordering")
-    call mlm%initialize()
-    @assertEqual([2.05_dp, 1.01_dp], mlm%outflow, tolerance=1.0e-12_dp)
-    call mlm%finalize()
-
-    @assertTrue(exchange%lake_ids%provided, message="legacy restart does not claim Input metadata")
-    call clear_input_metadata(exchange)
-    call exchange%lake_inflow%clear(owned=.true.)
-  end subroutine test_mlm_legacy_restart_uses_input_metadata
-
-  @test
   subroutine test_mlm_restart_publishes_and_clears_metadata()
     type(exchange_t), target :: exchange
     type(mlm_t), target :: mlm
@@ -161,7 +124,7 @@ contains
     call setup_exchange(exchange, "2001-01-02 00:00:00")
     call write_restart( &
       "mlm_restart_owned_metadata.nc", [101_i8, 205_i8], [200.0_dp, 100.0_dp], [400.0_dp, 300.0_dp], &
-      [10.0_dp, 25.0_dp], [1.01_dp, 2.05_dp], static_metadata=.true., timestamp="2001-01-02 00:00:00")
+      [10.0_dp, 25.0_dp], [1.01_dp, 2.05_dp], timestamp="2001-01-02 00:00:00")
 
     mlm%exchange => exchange
     mlm%read_restart = .true.
@@ -199,12 +162,11 @@ contains
     nullify(exchange%lake_points)
   end subroutine clear_input_metadata
 
-  subroutine write_restart(path, ids, outlet_x, outlet_y, levels, outflow, static_metadata, timestamp)
+  subroutine write_restart(path, ids, outlet_x, outlet_y, levels, outflow, timestamp)
     character(*), intent(in) :: path
     integer(i8), intent(in) :: ids(:)
     real(dp), intent(in) :: outlet_x(:), outlet_y(:), levels(:), outflow(:)
-    logical, intent(in) :: static_metadata
-    character(*), optional, intent(in) :: timestamp
+    character(*), intent(in) :: timestamp
     type(NcDataset) :: nc
     type(NcDimension) :: dims(0), lake_dim
     type(NcVariable) :: var
@@ -213,23 +175,19 @@ contains
     lake_dim = nc%setDimension("lake", int(size(ids), i4))
     var = nc%setVariable("lake_id", "i64", [lake_dim])
     call var%setData(ids)
-    if (static_metadata) then
-      var = nc%setVariable("lake_outlet_x", "f64", [lake_dim])
-      call var%setData(outlet_x)
-      var = nc%setVariable("lake_outlet_y", "f64", [lake_dim])
-      call var%setData(outlet_y)
-      var = nc%setVariable("lake_max_level", "f64", [lake_dim])
-      call var%setData(levels)
-      var = nc%setVariable("lake_coordsys", "i32", dims(:0))
-      call var%setData(cartesian)
-    end if
+    var = nc%setVariable("lake_outlet_x", "f64", [lake_dim])
+    call var%setData(outlet_x)
+    var = nc%setVariable("lake_outlet_y", "f64", [lake_dim])
+    call var%setData(outlet_y)
+    var = nc%setVariable("lake_max_level", "f64", [lake_dim])
+    call var%setData(levels)
+    var = nc%setVariable("lake_coordsys", "i32", dims(:0))
+    call var%setData(cartesian)
     var = nc%setVariable("lake_outflow", "f64", [lake_dim])
     call var%setData(outflow)
-    if (present(timestamp)) then
-      var = nc%setVariable("mlm_meta", "i32", dims(:0))
-      call var%setData(0_i4)
-      call var%setAttribute("time_stamp", timestamp)
-    end if
+    var = nc%setVariable("mlm_meta", "i32", dims(:0))
+    call var%setData(0_i4)
+    call var%setAttribute("time_stamp", timestamp)
     call nc%close()
   end subroutine write_restart
 
