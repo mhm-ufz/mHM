@@ -90,7 +90,10 @@ parameter_file_for_namelist() {
     mpr_*)
       printf '%s\n' "mhm-para-template.nml"
       ;;
-    mrm_minimal*)
+    mrm_minimal*|mrm_lake_restart_*)
+      printf '%s\n' "test_nml/mhm_parameter_v6_routing.nml"
+      ;;
+    mrm_lake_map_minimal)
       printf '%s\n' "test_nml/mhm_parameter_v6_routing.nml"
       ;;
     mrm_coarse_routing_output_minimal)
@@ -99,6 +102,29 @@ parameter_file_for_namelist() {
     *)
       echo "No v6 parameter fixture configured for ${nml_name}." >&2
       return 1
+      ;;
+  esac
+}
+
+post_run_check() {
+  local nml_name="$1"
+
+  case "${nml_name}" in
+    mrm_lake_restart_only)
+      if ! cmp -s mrm_lake_restart_reference.nc mrm_lake_restart_only.nc; then
+        echo "Lake restart-only continuation differs from the Input-backed continuation" >&2
+        exit 1
+      fi
+      ;;
+  esac
+}
+
+expected_failure_diagnostic() {
+  local nml_name="$1"
+
+  case "${nml_name}" in
+    mrm_lake_map_minimal)
+      printf '%s\n' "mRM: lake_outflow not provided"
       ;;
   esac
 }
@@ -125,7 +151,7 @@ output_file_for_namelist() {
 run_namelist() {
   local exe="$1"
   local nml="$2"
-  local exe_name nml_name log_path param_file out_file
+  local exe_name nml_name log_path param_file out_file expected_failure status normalized_output normalized_expected
   local -a cmd=()
 
   exe_name=$(basename "${exe}")
@@ -135,6 +161,7 @@ run_namelist() {
   out_file=$(output_file_for_namelist "${nml_name}")
 
   cmd+=("${exe}" -n "${nml}" -p "${param_file}" -o "${out_file}")
+  expected_failure=$(expected_failure_diagnostic "${nml_name}")
 
   if ((mpi_ranks > 0)); then
     cmd=(mpirun -n "${mpi_ranks}" "${cmd[@]}")
@@ -142,20 +169,40 @@ run_namelist() {
 
   echo "Running ${exe_name} with ${nml}"
   if ((threads > 0)); then
-    if ! env OMP_NUM_THREADS="${threads}" "${cmd[@]}" >"${log_path}" 2>&1; then
-      echo "Run failed: ${exe_name} ${nml}" >&2
-      tail -n 50 "${log_path}" >&2 || true
-      exit 1
+    if env OMP_NUM_THREADS="${threads}" "${cmd[@]}" >"${log_path}" 2>&1; then
+      status=0
+    else
+      status=$?
     fi
   else
-    if ! "${cmd[@]}" >"${log_path}" 2>&1; then
-      echo "Run failed: ${exe_name} ${nml}" >&2
-      tail -n 50 "${log_path}" >&2 || true
-      exit 1
+    if "${cmd[@]}" >"${log_path}" 2>&1; then
+      status=0
+    else
+      status=$?
     fi
   fi
 
+  if [[ -n "${expected_failure}" ]]; then
+    if ((status == 0)); then
+      echo "Expected failure succeeded: ${exe_name} ${nml}" >&2
+      exit 1
+    fi
+    normalized_output=$(tr -d '[:space:]' <"${log_path}")
+    normalized_expected=$(printf '%s' "${expected_failure}" | tr -d '[:space:]')
+    if [[ "${normalized_output}" != *"${normalized_expected}"* ]]; then
+      echo "Expected failure diagnostic missing: ${exe_name} ${nml}" >&2
+      tail -n 50 "${log_path}" >&2 || true
+      exit 1
+    fi
+    echo "Expected failure confirmed for ${exe_name} with ${nml}"
+  elif ((status != 0)); then
+      echo "Run failed: ${exe_name} ${nml}" >&2
+      tail -n 50 "${log_path}" >&2 || true
+      exit 1
+  fi
+
   echo "Completed ${exe_name} with ${nml}"
+  post_run_check "${nml_name}"
 }
 
 namelists=(
@@ -178,6 +225,10 @@ namelists=(
   test_nml/mrm_minimal.nml
   test_nml/mrm_minimal1.nml
   test_nml/mrm_minimal2.nml
+  test_nml/mrm_lake_map_minimal.nml
+  test_nml/mrm_lake_restart_write.nml
+  test_nml/mrm_lake_restart_reference.nml
+  test_nml/mrm_lake_restart_only.nml
 )
 
 for exe in "${executables[@]}"; do
