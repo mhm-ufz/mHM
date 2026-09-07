@@ -1185,6 +1185,12 @@ contains
     ! order
     if ( allocated(this%order%id) ) then
       order_dim = nc%setDimension("order_dim", int(this%order%n_levels, i4))
+      ! order%to_root
+      nc_var = nc%setVariable("order_to_root", "i8", dims(:0))
+      call nc_var%setAttribute("long_name", "order runs from headwaters to roots")
+      call nc_var%setData(merge(1_i1, 0_i1, this%order%to_root))
+      call nc_var%setAttribute("flag_values", [0_i1, 1_i1])
+      call nc_var%setAttribute("flag_meanings", "from_roots to_roots")
       ! order%id
       nc_var = nc%setVariable("order_id", "i64", [node_dim])
       call nc_var%setAttribute("long_name", "id in order")
@@ -1354,7 +1360,14 @@ contains
     end if
 
     if (nc%hasDimension("order_dim")) then
-      this%order%to_root = .false.
+      ! Older restart files did not persist the order direction. Orders created
+      ! by river%calc_order run from headwaters to roots by default.
+      this%order%to_root = .true.
+      if (nc%hasVariable("order_to_root")) then
+        nc_var = nc%getVariable("order_to_root")
+        call nc_var%getData(dummy_i1)
+        this%order%to_root = dummy_i1 == 1_i1
+      end if
       nc_dim = nc%getDimension("order_dim")
       this%order%n_levels = int(nc_dim%getLength(), i8)
 
