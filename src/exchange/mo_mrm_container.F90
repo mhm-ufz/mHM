@@ -1065,6 +1065,7 @@ contains
     ! create node based output
     if (self%output_node_active) then
       node_vars = [vars, var(name="node", long_name="river node ID", dtype="i64", kind="i8", static=.true.)]
+      allocate(node_ids(self%river%n_nodes))
       !$omp parallel do default(shared)
       do i = 1_i8, self%river%n_nodes
         node_ids(i) = i
