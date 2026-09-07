@@ -207,7 +207,9 @@ contains
     type(grid_t), intent(in) :: land_grid
     real(dp), allocatable, intent(inout) :: cache(:,:)
     character(*), intent(in) :: name
-    real(dp), allocatable :: data_2d(:,:), land_cache(:,:)
+    real(dp), allocatable :: land_cache(:,:)
+    integer(i8), allocatable :: land_to_full(:)
+    integer(i8) :: land_id
     integer(i4) :: layer
 
     if (.not.allocated(cache)) then
@@ -218,12 +220,18 @@ contains
       log_fatal(*) "Input: full-grid data size does not match level-0 cells before land repacking: ", name
       error stop 1
     end if
-    allocate(data_2d(full_grid%nx, full_grid%ny))
+    allocate(land_to_full(land_grid%ncells))
+    call land_grid%gen_id_map(full_grid, land_to_full, check_fill=.true.)
     allocate(land_cache(land_grid%ncells, size(cache, 2)))
+    !$omp parallel default(shared) private(layer)
     do layer = 1_i4, size(cache, 2)
-      call full_grid%unpack_into(cache(:, layer), data_2d)
-      call land_grid%pack_into(data_2d, land_cache(:, layer))
+      !$omp do schedule(static)
+      do land_id = 1_i8, land_grid%ncells
+        land_cache(land_id, layer) = cache(land_to_full(land_id), layer)
+      end do
+      !$omp end do
     end do
+    !$omp end parallel
     call move_alloc(land_cache, cache)
   end subroutine repack_l0_dp_cache
 

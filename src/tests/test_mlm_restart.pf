@@ -183,7 +183,9 @@ contains
     @assertTrue(mlm%output_active, message="configured mLM output is active")
 
     call mlm%connect()
+    mlm%outflow = [9.0_dp, 9.0_dp]
     call mlm%initialize()
+    @assertEqual([0.0_dp, 0.0_dp], mlm%outflow, tolerance=1.0e-12_dp, message="mLM initializes outflow without restart")
     output_meta = mlm%ds_out%meta("lake_outflow")
     @assertEqual("f32", output_meta%dtype, message="mLM output honors configured precision")
     @assertTrue(output_meta%avg, message="mLM lake outflow is averaged")

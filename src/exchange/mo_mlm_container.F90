@@ -233,6 +233,7 @@ contains
       log_fatal(*) "mLM: lake inflow must have one-hour support."
       error stop 1
     end if
+    self%outflow = 0.0_dp
     if (self%read_restart) call self%read_restart_state()
     call self%validate_output_timing()
     call self%create_output()
