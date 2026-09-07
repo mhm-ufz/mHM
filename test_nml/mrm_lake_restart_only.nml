@@ -23,7 +23,8 @@
   runoff_var(1) = "Q"
 /
 
-&config_lake
+&config_mlm
+  output_path(1) = "mrm_lake_restart_only_mlm.nc"
   read_restart(1) = .true.
   restart_input_path(1) = "mrm_lake_restart_mlm.nc"
 /

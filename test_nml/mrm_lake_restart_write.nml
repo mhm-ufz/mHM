@@ -26,7 +26,8 @@
   lake_definition_path(1) = "examples/fixtures/lake_outlets.nc"
 /
 
-&config_lake
+&config_mlm
+  output_path(1) = "mrm_lake_restart_write_mlm.nc"
   write_restart(1) = .true.
   restart_output_path(1) = "mrm_lake_restart_mlm.nc"
 /

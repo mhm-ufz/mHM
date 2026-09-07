@@ -12,13 +12,16 @@ module mo_mlm_container
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
   use mo_logging
   use mo_kind, only: i4, i8, dp
+  use mo_datetime, only: datetime, one_hour
   use mo_exchange_type, only: exchange_t
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
-  use mo_grid_io, only: no_time
+  use mo_grid_io, only: var, daily, monthly, yearly, no_time, time_units_delta
   use mo_points, only: points_t, cartesian, spherical
+  use mo_points_io, only: points_output_dataset
   use mo_utils, only: is_close
   use mo_string_utils, only: n2s => num2str
-  use nml_config_lake, only: nml_config_lake_t
+  use nml_config_mlm, only: nml_config_mlm_t
+  use nml_output_mlm, only: nml_output_mlm_t
   use nml_helper, only: NML_OK
   implicit none
 
@@ -29,7 +32,8 @@ module mo_mlm_container
   !> \authors Pallav Shrestha
   !> \authors Sebastian Mueller
   type, public :: mlm_t
-    type(nml_config_lake_t) :: config !< lake configuration
+    type(nml_config_mlm_t) :: config !< mLM configuration
+    type(nml_output_mlm_t) :: output_config !< lake-point output configuration
     type(exchange_t), pointer :: exchange => null() !< owning domain exchange
     integer(i8), allocatable :: lake_ids(:) !< stable IDs in point-set order
     type(points_t) :: static_lake_points !< static point metadata retained for restart output
@@ -41,10 +45,13 @@ module mo_mlm_container
     logical :: active = .false. !< whether process -1 is selected
     logical :: read_restart = .false. !< read mLM restart
     logical :: write_restart = .false. !< write mLM restart
+    logical :: output_active = .false. !< whether lake-point output is enabled
     logical :: owns_restart_lake_points = .false. !< whether mLM published the restart point set
     logical :: owns_restart_lake_metadata = .false. !< whether mLM published restart IDs and maximum levels
     character(:), allocatable :: restart_input_path !< resolved input restart path
     character(:), allocatable :: restart_output_path !< resolved output restart path
+    character(:), allocatable :: output_path !< resolved lake-point output path
+    type(points_output_dataset) :: ds_out !< lake-point output dataset
   contains
     procedure :: set_dims => mlm_set_dims
     procedure :: configure => mlm_configure
@@ -56,6 +63,10 @@ module mo_mlm_container
     procedure, private :: read_restart_metadata => mlm_read_restart_metadata
     procedure, private :: read_restart_state => mlm_read_restart_state
     procedure, private :: validate_restart_metadata => mlm_validate_restart_metadata
+    procedure, private :: create_output => mlm_create_output
+    procedure, private :: validate_output_timing => mlm_validate_output_timing
+    procedure, private :: at_output_boundary => mlm_at_output_boundary
+    procedure, private :: update_output => mlm_update_output
   end type mlm_t
 
 contains
@@ -67,15 +78,16 @@ contains
     integer :: status
     status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
     if (status /= NML_OK) then
-      log_fatal(*) "mLM: error setting config_lake dimensions: ", trim(errmsg)
+      log_fatal(*) "mLM: error setting config_mlm dimensions: ", trim(errmsg)
       error stop 1
     end if
   end subroutine mlm_set_dims
 
-  !> \brief Configure process -1 and optional restart paths.
-  subroutine mlm_configure(self, file)
+  !> \brief Configure process -1, restart paths, and optional lake-point output.
+  subroutine mlm_configure(self, file, out_file)
     class(mlm_t), target, intent(inout) :: self
     character(*), optional, intent(in) :: file
+    character(*), optional, intent(in) :: out_file
     character(1024) :: errmsg
     character(:), allocatable :: path
     integer(i4) :: id(1), lake_case
@@ -97,7 +109,7 @@ contains
       path = self%exchange%get_path(file)
       status = self%config%from_file(path, errmsg=errmsg)
       if (status /= NML_OK) then
-        log_fatal(*) "mLM: error reading config_lake: ", trim(errmsg)
+        log_fatal(*) "mLM: error reading config_mlm: ", trim(errmsg)
         error stop 1
       end if
     end if
@@ -110,6 +122,37 @@ contains
       log_fatal(*) "mLM config not valid: ", trim(errmsg)
       error stop 1
     end if
+
+    self%output_active = .true.
+    if (present(out_file)) then
+      path = self%exchange%get_path(out_file, root=.true.)
+      log_info(*) "Read mLM output config: ", path
+      status = self%output_config%from_file(file=path, errmsg=errmsg)
+      if (status /= NML_OK) then
+        self%output_active = .false.
+        log_warn(*) "mLM output disabled, config not found: ", trim(errmsg)
+      end if
+    end if
+    if (self%output_config%is_configured) then
+      status = self%output_config%is_valid(errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "mLM output config invalid: ", trim(errmsg)
+        error stop 1
+      end if
+    else
+      self%output_active = .false.
+      log_warn(*) "mLM output disabled, config not set."
+    end if
+    if (self%output_active) then
+      status = self%config%is_set("output_path", idx=id, errmsg=errmsg)
+      self%output_active = status == NML_OK
+      if (status /= NML_OK) then
+        log_warn(*) "mLM output disabled, path not set for domain ", n2s(id(1)), ": ", trim(errmsg)
+      else
+        self%output_path = self%exchange%get_path(self%config%output_path(id(1)))
+      end if
+    end if
+
     self%read_restart = self%config%read_restart(id(1))
     self%write_restart = self%config%write_restart(id(1))
     if (self%read_restart) then
@@ -191,18 +234,27 @@ contains
       error stop 1
     end if
     if (self%read_restart) call self%read_restart_state()
+    call self%validate_output_timing()
+    call self%create_output()
   end subroutine mlm_initialize
 
   !> \brief Publish the preceding completed hourly inflow as current outflow.
   subroutine mlm_update(self)
     class(mlm_t), target, intent(inout) :: self
     self%outflow = self%exchange%lake_inflow%data
+    call self%update_output()
   end subroutine mlm_update
 
   !> \brief Write optional restart and clear mLM-owned publication.
   subroutine mlm_finalize(self)
     class(mlm_t), target, intent(inout) :: self
     if (self%write_restart) call self%create_restart()
+    if (self%output_active) then
+      call self%ds_out%close()
+      log_info(*) "Close mLM output file: ", self%output_path
+    else
+      log_info(*) "No mLM output file will be written"
+    end if
     call self%exchange%lake_outflow%clear(owned=.true.)
     if (self%owns_restart_lake_metadata) then
       call self%exchange%lake_ids%clear(owned=.true.)
@@ -221,6 +273,97 @@ contains
     if (allocated(self%restart_lake_max_levels)) deallocate(self%restart_lake_max_levels)
     if (allocated(self%outflow)) deallocate(self%outflow)
   end subroutine mlm_finalize
+
+  !> \brief Create the lake-point output dataset in stable exchange order.
+  subroutine mlm_create_output(self)
+    class(mlm_t), target, intent(inout) :: self
+    type(var), allocatable :: vars(:)
+    character(:), allocatable :: delta, dtype
+    integer(i4) :: timestamp
+
+    if (.not.self%output_active) return
+
+    timestamp = self%output_config%output_time_reference
+    delta = time_units_delta(self%output_config%output_frequency, timestamp)
+    dtype = "f64"
+    if (.not.self%output_config%output_double_precision) dtype = "f32"
+
+    vars = [var(name="lake_id", long_name="stable lake ID", dtype="i64", kind="i8", static=.true.)]
+    if (self%output_config%out_lake_outflow) then
+      vars = [vars, self%exchange%lake_outflow%as_output_var(dtype=dtype, avg=.true.)]
+    end if
+
+    log_info(*) "Create mLM lake-point output file: ", self%output_path
+    call self%ds_out%init( &
+      path          = self%output_path, &
+      points        = self%exchange%lake_points, &
+      vars          = vars, &
+      start_time    = self%exchange%start_time, &
+      delta         = delta, &
+      timestamp     = timestamp, &
+      deflate_level = self%output_config%output_deflate_level, &
+      point_dim_name = "lake", &
+      time_series   = .true.)
+    call self%ds_out%update("lake_id", self%lake_ids)
+    call self%ds_out%write_static()
+  end subroutine mlm_create_output
+
+  !> \brief Validate mLM output cadence and restart/output boundary alignment.
+  subroutine mlm_validate_output_timing(self)
+    class(mlm_t), target, intent(in) :: self
+    integer(i4) :: frequency
+
+    if (.not.self%output_active) return
+    frequency = self%output_config%output_frequency
+    select case (frequency)
+      case (daily, monthly, yearly, no_time)
+        continue
+      case default
+        if (frequency < 1_i4 .or. mod(frequency, self%exchange%step_hours) /= 0_i4) then
+          log_fatal(*) "mLM output_frequency=", frequency, &
+            "h must be a positive whole multiple of model_step=", self%exchange%step_hours, "h."
+          error stop 1
+        end if
+    end select
+
+    if (self%write_restart .and. .not.self%at_output_boundary(self%exchange%end_time)) then
+      log_fatal(*) "mLM restart output time must coincide with an mLM output boundary."
+      error stop 1
+    end if
+  end subroutine mlm_validate_output_timing
+
+  !> \brief Report whether a timestamp is a configured mLM output boundary.
+  logical function mlm_at_output_boundary(self, time) result(boundary)
+    class(mlm_t), target, intent(in) :: self
+    type(datetime), intent(in) :: time
+    integer(i4) :: elapsed_hours
+
+    select case (self%output_config%output_frequency)
+      case (daily)
+        boundary = time%is_new_day()
+      case (monthly)
+        boundary = time%is_new_month()
+      case (yearly)
+        boundary = time%is_new_year()
+      case (no_time)
+        boundary = time == self%exchange%end_time
+      case default
+        elapsed_hours = nint((time - self%exchange%start_time) / one_hour(), i4)
+        boundary = elapsed_hours >= 0_i4 .and. &
+          mod(elapsed_hours, self%output_config%output_frequency) == 0_i4
+    end select
+  end function mlm_at_output_boundary
+
+  !> \brief Buffer the current lake release and write completed output intervals.
+  subroutine mlm_update_output(self)
+    class(mlm_t), target, intent(inout) :: self
+
+    if (.not.self%output_active) return
+    if (self%output_config%out_lake_outflow) then
+      call self%ds_out%update("lake_outflow", self%outflow)
+    end if
+    if (self%at_output_boundary(self%exchange%time)) call self%ds_out%write(self%exchange%time)
+  end subroutine mlm_update_output
 
   !> \brief Persist static lake metadata and current outflow with stable IDs.
   subroutine mlm_create_restart(self)

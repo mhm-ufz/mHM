@@ -93,14 +93,14 @@ contains
       call self%mpr%configure(domain_main_file)
       call self%meteo%configure(domain_main_file)
       call self%mhm%configure(domain_main_file, out_file)
-      call self%mlm%configure(domain_main_file)
+      call self%mlm%configure(domain_main_file, out_file)
       call self%mrm%configure(domain_main_file, out_file)
     else
       call self%input%configure(main_file)
       call self%mpr%configure(main_file)
       call self%meteo%configure(main_file)
       call self%mhm%configure(main_file, out_file)
-      call self%mlm%configure(main_file)
+      call self%mlm%configure(main_file, out_file)
       call self%mrm%configure(main_file, out_file)
     end if
     call self%exchange%parameters%seal()

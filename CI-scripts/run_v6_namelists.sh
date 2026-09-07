@@ -115,6 +115,10 @@ post_run_check() {
         echo "Lake restart-only continuation differs from the Input-backed continuation" >&2
         exit 1
       fi
+      if ! cmp -s mrm_lake_restart_reference_mlm.nc mrm_lake_restart_only_mlm.nc; then
+        echo "mLM restart-only output differs from the Input-backed continuation" >&2
+        exit 1
+      fi
       ;;
   esac
 }
@@ -141,6 +145,9 @@ output_file_for_namelist() {
       ;;
     mrm_coarse_routing_output_minimal)
       printf '%s\n' "test_nml/mrm_output_hourly.nml"
+      ;;
+    mrm_lake_restart_*)
+      printf '%s\n' "test_nml/mlm_output_daily.nml"
       ;;
     *)
       printf '%s\n' "mhm-output-template.nml"

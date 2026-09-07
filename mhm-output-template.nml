@@ -1,6 +1,6 @@
 ! Output configuration
 !
-! Output namelists for mHM and mRM.
+! Output namelists for mHM, mLM, and mRM.
 
 ! mHM output configuration
 &output_mhm
@@ -54,6 +54,20 @@
   out_preEffect = .false.
   ! Snow Melt
   out_Qsm = .false.
+/
+
+! mLM output configuration
+&output_mlm
+  ! Output deflate level
+  output_deflate_level = 6
+  ! Output double precision
+  output_double_precision = .false.
+  ! Output time reference
+  output_time_reference = 2
+  ! Output time step
+  output_frequency = -1
+  ! Lake outflow
+  out_lake_outflow = .false.
 /
 
 ! mRM output configuration

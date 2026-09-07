@@ -503,7 +503,9 @@
 /
 
 ! mLM configuration
-&config_lake
+&config_mlm
+  ! mLM lake-point output path
+  output_path(:) = ""
   ! Read mLM restart
   read_restart(:) = .false.
   ! mLM restart input path

@@ -2,8 +2,8 @@ module test_mlm_restart
   use funit
   use mo_datetime, only: datetime, timedelta
   use mo_exchange_type, only: exchange_t
-  use mo_grid_io, only: no_time
-  use mo_kind, only: dp, i4, i8
+  use mo_grid_io, only: no_time, var
+  use mo_kind, only: sp, dp, i4, i8
   use mo_mlm_container, only: mlm_t
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_points, only: cartesian, points_t
@@ -14,6 +14,7 @@ module test_mlm_restart
   public :: test_mlm_restart_writes_static_metadata
   public :: test_mlm_restart_uses_input_order
   public :: test_mlm_restart_publishes_and_clears_metadata
+  public :: test_mlm_output_averages_in_exchange_order
 
 contains
 
@@ -140,6 +141,84 @@ contains
     @assertFalse(associated(exchange%lake_points), message="mLM clears its point publication")
   end subroutine test_mlm_restart_publishes_and_clears_metadata
 
+  @test
+  subroutine test_mlm_output_averages_in_exchange_order()
+    type(exchange_t), target :: exchange
+    type(points_t), target :: input_points
+    type(mlm_t), target :: mlm
+    type(NcDataset) :: nc
+    type(NcDimension), allocatable :: dims(:)
+    type(NcVariable) :: nc_var
+    type(var) :: output_meta
+    integer(i8), target :: ids(2)
+    real(dp), target :: levels(2), inflow(2)
+    integer(i8), allocatable :: restored_ids(:)
+    integer(i4), allocatable :: time_values(:), time_bounds(:, :)
+    real(sp), allocatable :: restored_outflow(:, :)
+    integer :: status
+
+    call setup_exchange(exchange, "2001-01-02 00:00:00")
+    exchange%end_time = datetime("2001-01-02 02:00:00")
+    status = exchange%config%processes%set(routing=2_i4, lake=-1_i4)
+    @assertEqual(0, status, message="lake and routing processes configure output test")
+
+    call input_points%init([100.0_dp, 200.0_dp], [300.0_dp, 400.0_dp], coordsys=cartesian)
+    ids = [205_i8, 101_i8]
+    levels = [25.0_dp, 10.0_dp]
+    inflow = 0.0_dp
+    exchange%lake_points => input_points
+    call exchange%lake_ids%publish_local("Input", ids, no_time)
+    call exchange%lake_max_levels%publish_local("Input", levels, no_time)
+    call exchange%lake_inflow%publish_local("mRM", inflow, 1_i4)
+
+    mlm%exchange => exchange
+    call mlm%set_dims()
+    status = mlm%config%set(output_path=[character(64) :: "mlm_output_average.nc"])
+    @assertEqual(0, status, message="mLM output path config is valid")
+    status = mlm%output_config%set( &
+      output_double_precision=.false., output_time_reference=2_i4, output_frequency=2_i4, out_lake_outflow=.true.)
+    @assertEqual(0, status, message="mLM output config is valid")
+    call mlm%configure()
+    @assertTrue(mlm%active, message="selected mLM process is active")
+    @assertTrue(mlm%output_active, message="configured mLM output is active")
+
+    call mlm%connect()
+    call mlm%initialize()
+    output_meta = mlm%ds_out%meta("lake_outflow")
+    @assertEqual("f32", output_meta%dtype, message="mLM output honors configured precision")
+    @assertTrue(output_meta%avg, message="mLM lake outflow is averaged")
+
+    inflow = [1.0_dp, 3.0_dp]
+    exchange%time = datetime("2001-01-02 01:00:00")
+    call mlm%update()
+    @assertEqual(inflow, mlm%outflow, tolerance=1.0e-12_dp, message="mLM publishes the current interval release")
+    inflow = [3.0_dp, 7.0_dp]
+    exchange%time = exchange%end_time
+    call mlm%update()
+    call mlm%finalize()
+
+    @assertFalse(exchange%lake_outflow%provided, message="mLM cleanup clears its outflow publication")
+    @assertFalse(allocated(mlm%ds_out%vars), message="mLM cleanup closes the point output dataset")
+
+    nc = NcDataset("mlm_output_average.nc", "r")
+    nc_var = nc%getVariable("lake_id"); call nc_var%getData(restored_ids)
+    @assertEqual(ids, restored_ids, message="mLM output retains stable exchange ID order")
+    nc_var = nc%getVariable("lake_outflow")
+    dims = nc_var%getDimensions()
+    @assertEqual("time", trim(dims(1)%getName()), message="mLM output uses time-series dimension order")
+    @assertEqual("lake", trim(dims(2)%getName()), message="mLM output uses lake point dimension")
+    call nc_var%getData(restored_outflow)
+    @assertEqual([2.0_sp, 5.0_sp], restored_outflow(1, :), tolerance=1.0e-6_sp, message="two-hour output is the arithmetic mean of hourly releases")
+    nc_var = nc%getVariable("time"); call nc_var%getData(time_values)
+    nc_var = nc%getVariable("time_bnds"); call nc_var%getData(time_bounds)
+    @assertEqual([2_i4], time_values, message="end-referenced timestamp uses the interval end")
+    @assertEqual([0_i4, 2_i4], time_bounds(:, 1), message="time bounds cover both hourly releases")
+    call nc%close()
+
+    call clear_input_metadata(exchange)
+    call exchange%lake_inflow%clear(owned=.true.)
+  end subroutine test_mlm_output_averages_in_exchange_order
+
   subroutine setup_exchange(exchange, start_time)
     type(exchange_t), target, intent(inout) :: exchange
     character(*), intent(in) :: start_time
@@ -148,6 +227,7 @@ contains
     status = exchange%config%project%set()
     @assertEqual(0, status, message="project defaults configure mLM restart exchange")
     call exchange%create(cwd=".")
+    exchange%cwd = exchange%root
     exchange%start_time = datetime(start_time)
     exchange%time = exchange%start_time
     exchange%step = timedelta(hours=1_i4)
