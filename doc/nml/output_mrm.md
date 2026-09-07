@@ -14,6 +14,8 @@ Output configuration for mRM.
 | [output_double_precision](#output_double_precision) | logical | no | no | Output double precision |
 | [output_time_reference](#output_time_reference) | integer | no | no | Output time reference |
 | [output_frequency](#output_frequency) | integer | no | no | Output time step |
+| [out_facc](#out_facc) | logical | no | no | Flow accumulation |
+| [out_upstream_area](#out_upstream_area) | logical | no | no | Upstream area |
 | [out_Qrouted](#out_qrouted) | logical | no | no | Routed Streamflow |
 | [out_RivTemp](#out_rivtemp) | logical | no | no | Routed Temperature |
 
@@ -78,6 +80,32 @@ Summary:
 - Default: `-1`
 - Minimum: `>= -3`
 
+### out_facc
+
+Flow accumulation `out_facc`
+
+Flow accumulation on the upscaled river network (static) [-]
+
+Summary:
+- Type: `logical`
+- Declared required: no
+- Input required: no
+- Default: `.false.`
+- Examples: `.true.`
+
+### out_upstream_area
+
+Upstream area `out_upstream_area`
+
+Upstream area on the upscaled river network (static) [m2]
+
+Summary:
+- Type: `logical`
+- Declared required: no
+- Input required: no
+- Default: `.false.`
+- Examples: `.true.`
+
 ### out_Qrouted
 
 Routed Streamflow `out_Qrouted`
@@ -112,6 +140,8 @@ Summary:
   output_double_precision = .false.
   output_time_reference = 2
   output_frequency = -1
+  out_facc = .true.
+  out_upstream_area = .true.
   out_Qrouted = .true.
   out_RivTemp = .true.
 /

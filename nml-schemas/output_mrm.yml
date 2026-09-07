@@ -41,6 +41,18 @@ properties:
       - if -1 : daily
       - if -2 : monthly
       - if -3 : yearly
+  out_facc:
+    title: Flow accumulation
+    type: boolean
+    default: false
+    description: Flow accumulation on the upscaled river network (static) [-]
+    examples: [true]
+  out_upstream_area:
+    title: Upstream area
+    type: boolean
+    default: false
+    description: Upstream area on the upscaled river network (static) [m2]
+    examples: [true]
   out_Qrouted:
     title: Routed Streamflow
     type: boolean

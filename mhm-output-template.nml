@@ -66,6 +66,10 @@
   output_time_reference = 2
   ! Output time step
   output_frequency = -1
+  ! Flow accumulation
+  out_facc = .true.
+  ! Upstream area
+  out_upstream_area = .true.
   ! Routed Streamflow
   out_Qrouted = .true.
   ! Routed Temperature
