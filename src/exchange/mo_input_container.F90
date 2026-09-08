@@ -1577,13 +1577,10 @@ contains
     self%exchange%level0_land => self%tgt_level0_land
     self%exchange%level0_lake => self%tgt_level0_lake
     allocate(full_lake_map(self%exchange%level0%nx, self%exchange%level0%ny))
+    allocate(self%lake_map(self%exchange%level0_lake%ncells))
     call self%exchange%level0%unpack_into(self%river_l0%lake_map, full_lake_map)
     call self%exchange%level0_lake%pack_into(full_lake_map, self%lake_map)
     deallocate(full_lake_map)
-    if (any(self%lake_map <= 0_i8)) then
-      log_fatal(*) "Input: packed level-0 lake grid contains an invalid lake ID."
-      error stop 1
-    end if
     call self%exchange%lake_map%publish_local("Input", self%lake_map, no_time)
     self%owns_lake_map = .true.
   end subroutine input_build_lake_grids
