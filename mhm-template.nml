@@ -63,7 +63,7 @@
   ! River temperature routing process case
   temperature_routing = 0
   ! Lake process case
-  lake = -2
+  lake = 0
 /
 
 ! Optimization configuration

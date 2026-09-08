@@ -229,7 +229,7 @@ Summary:
 - Input required: no
 - Default: `0`
 - Allowed values: `-2`, `-1`, `0`
-- Examples: `-2`, `-1`
+- Examples: `0`
 
 ## Example
 
@@ -246,7 +246,7 @@ Summary:
   neutrons = 0
   routing = 3
   temperature_routing = 0
-  lake = -2
+  lake = 0
 /
 ```
 
