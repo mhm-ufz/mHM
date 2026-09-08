@@ -129,7 +129,7 @@ CONTAINS
     use mo_common_variables, only : L0_LCover, L0_elev, level0, nLCoverScene
     use mo_message, only : error_message
     use mo_mpr_global_variables, only : L0_asp, L0_geoUnit, L0_gridded_LAI, &
-                                        L0_slope, L0_soilId, iFlag_soilDB, nSoilHorizons_mHM, timeStep_LAI_input
+                                        L0_slope, L0_soilId, iFlag_soilDB, nSoilHorizons_data, timeStep_LAI_input
     use mo_string_utils, only : num2str
     use mo_utils, only : eq
 
@@ -168,7 +168,7 @@ CONTAINS
 
       ! soil-Id [-]
       nH = 1 !> by default; when iFlag_soilDB = 0
-      if (iFlag_soilDB .eq. 1) nH = nSoilHorizons_mHM
+      if (iFlag_soilDB .eq. 1) nH = nSoilHorizons_data
       ! another option to handle multiple soil horizons properties
       do n = 1, nH
         if (L0_soilId(k, n) .eq. nodata_i4) then
@@ -239,7 +239,7 @@ CONTAINS
     use mo_append, only : append
     use mo_common_variables, only : level0
     use mo_common_grid, only : L0_grid_setup
-    use mo_mpr_global_variables, only : L0_slope, L0_slope_emp, L0_soilId, iFlag_soilDB, nSoilHorizons_mHM, &
+    use mo_mpr_global_variables, only : L0_slope, L0_slope_emp, L0_soilId, iFlag_soilDB, nSoilHorizons_data, &
             nSoilTypes, soilDB
     use mo_orderpack, only : sort_index
     use mo_utils, only : eq
@@ -322,7 +322,7 @@ CONTAINS
     call append(L0_slope_emp, slope_emp)
 
     nH = 1_i4 !> by default; when iFlag_soilDB = 0
-    if (iFlag_soilDB .eq. 1) nH = nSoilHorizons_mHM
+    if (iFlag_soilDB .eq. 1) nH = nSoilHorizons_data
     do i = 1, nH
       do k = level0(iDomain)%iStart, level0(iDomain)%iEnd
         j = L0_soilId(k, i)

@@ -36,6 +36,13 @@ module mo_mpr_global_variables
   integer(i4), public :: nSoilHorizons_mHM  !       Number of horizons to model
   real(dp), dimension(:), allocatable, public :: HorizonDepth_mHM   ! [mm]  Horizon depth from surface,
   !                                                                               positive downwards
+  integer(i4), public :: nSoilHorizons_data !       Number of horizons provided by the gridded soil
+  !                                                                               input data (iFlag_soilDB = 1);
+  !                                                                               equals nSoilHorizons_mHM if the
+  !                                                                               input data are not re-layered
+  real(dp), dimension(:), allocatable, public :: HorizonDepth_data  ! [mm]  Lower depth of the input data
+  !                                                                               horizons from surface,
+  !                                                                               positive downwards
 
   type soilType
     ! dim1 =  nSoilType (e.g. i=1..72 for BUEK)

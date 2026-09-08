@@ -87,9 +87,9 @@ contains
     use mo_message, only : message, error_message
     use mo_mpr_constants, only : maxGeoUnit, &
                                  maxNoSoilHorizons
-    use mo_mpr_global_variables, only : HorizonDepth_mHM, dirgridded_LAI, fracSealed_cityArea, iFlag_soilDB, &
-                                        inputFormat_gridded_LAI, nGeoUnits, nSoilHorizons_mHM, tillageDepth, &
-                                        timeStep_LAI_input
+    use mo_mpr_global_variables, only : HorizonDepth_data, HorizonDepth_mHM, dirgridded_LAI, fracSealed_cityArea, &
+                                        iFlag_soilDB, inputFormat_gridded_LAI, nGeoUnits, nSoilHorizons_data, &
+                                        nSoilHorizons_mHM, tillageDepth, timeStep_LAI_input
     use mo_string_utils, only : num2str
     use mo_utils, only : EQ
 
@@ -103,6 +103,9 @@ contains
 
     ! depth of the single horizons
     real(dp), dimension(maxNoSoilHorizons) :: soil_Depth
+
+    ! lower depth of the horizons provided by the gridded soil input data
+    real(dp), dimension(maxNoSoilHorizons) :: soil_data_depth
 
     ! directory of gridded LAI data
     ! used when timeStep_LAI_input<0
@@ -224,6 +227,8 @@ contains
     tillageDepth = nml_soildata%tillageDepth
     nSoilHorizons_mHM = nml_soildata%nSoilHorizons_mHM
     soil_Depth = nml_soildata%soil_Depth
+    nSoilHorizons_data = nml_soildata%nSoilHorizons_data
+    soil_data_depth = nml_soildata%soil_data_depth
 
     allocate(HorizonDepth_mHM(nSoilHorizons_mHM))
     HorizonDepth_mHM(:) = 0.0_dp
@@ -248,6 +253,64 @@ contains
     if(iFlag_soilDB .eq. 1) then
       if(count(abs(HorizonDepth_mHM(:) - tillageDepth) .lt. eps_dp)  .eq. 0) &
         call error_message('***ERROR: Soil tillage depth must conform with one of the specified horizon (lower) depth.')
+    end if
+
+    !---------------------------------------------------------------------------
+    ! layering of the gridded soil input data (only relevant for iFlag_soilDB = 1)
+    ! nSoilHorizons_data = 0 (default) means: the gridded soil input is provided
+    ! on exactly the modelled horizons, i.e. no vertical re-layering is done
+    !---------------------------------------------------------------------------
+    if (iFlag_soilDB .ne. 1) then
+      ! the classical soil database carries its own (soil type specific) layering
+      nSoilHorizons_data = nSoilHorizons_mHM
+      allocate(HorizonDepth_data(nSoilHorizons_data))
+      HorizonDepth_data(:) = HorizonDepth_mHM(:)
+    else
+      if (nSoilHorizons_data .le. 0_i4) then
+        nSoilHorizons_data = nSoilHorizons_mHM
+        allocate(HorizonDepth_data(nSoilHorizons_data))
+        HorizonDepth_data(:) = HorizonDepth_mHM(:)
+      else
+        if (nSoilHorizons_data .GT. maxNoSoilHorizons) &
+          call error_message('***ERROR: Number of soil data horizons is resticted to ', &
+                  trim(num2str(maxNoSoilHorizons)), '!')
+        allocate(HorizonDepth_data(nSoilHorizons_data))
+        HorizonDepth_data(:) = soil_data_depth(1 : nSoilHorizons_data)
+        ! depths must be positive and strictly increasing downwards
+        do ii = 1, nSoilHorizons_data
+          if (HorizonDepth_data(ii) .le. 0.0_dp) &
+            call error_message('***ERROR: soil_data_depth(', trim(num2str(ii)), ') must be greater than zero.')
+          if (ii .gt. 1_i4) then
+            if (HorizonDepth_data(ii) .le. HorizonDepth_data(ii - 1)) &
+              call error_message('***ERROR: soil_data_depth must increase monotonically with the horizon number.')
+          end if
+        end do
+        ! the input data must cover the whole modelled soil column
+        if (HorizonDepth_data(nSoilHorizons_data) .lt. HorizonDepth_mHM(nSoilHorizons_mHM) - eps_dp) &
+          call error_message('***ERROR: The soil input data (', &
+                  trim(num2str(HorizonDepth_data(nSoilHorizons_data), '(F9.2)')), &
+                  ' mm) do not cover the modelled soil column (', &
+                  trim(num2str(HorizonDepth_mHM(nSoilHorizons_mHM), '(F9.2)')), ' mm).')
+        ! The modelled horizons must be built by merging whole horizons of the input
+        ! data, i.e. every modelled horizon (lower) depth has to coincide with one of
+        ! the input data depths. A modelled horizon must never cut an input horizon in
+        ! two, because the soil properties of an input horizon are only known as a bulk
+        ! value and their vertical distribution within that horizon is unknown.
+        do ii = 1, nSoilHorizons_mHM
+          if (count(abs(HorizonDepth_data(:) - HorizonDepth_mHM(ii)) .lt. eps_dp) .eq. 0) then
+            call error_message('***ERROR: The modelled soil horizon depth soil_Depth(', trim(num2str(ii)), ') = ', &
+                    trim(num2str(HorizonDepth_mHM(ii), '(F9.2)')), ' mm does not coincide', raise=.false.)
+            call error_message('          with any depth given in soil_data_depth. Modelled horizons must be', &
+                    raise=.false.)
+            call error_message('          built by merging whole horizons of the soil input data, e.g.', raise=.false.)
+            call error_message('          soil_data_depth = 50, 150, 300 allows soil_Depth = 150, 300', raise=.false.)
+            call error_message('          but neither soil_Depth = 75, 200, 300 nor soil_Depth = 100, 300.')
+          end if
+        end do
+        call message()
+        call message('Soil input data: ', trim(num2str(nSoilHorizons_data)), ' horizon(s) are read and')
+        call message('                 aggregated onto ', trim(num2str(nSoilHorizons_mHM)), ' modelled horizon(s).')
+      end if
     end if
 
     !===============================================================

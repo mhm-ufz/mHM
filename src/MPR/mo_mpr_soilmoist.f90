@@ -56,6 +56,8 @@ contains
   !>       \param[in] "real(dp), dimension(:, :) :: sand"          sand content
   !>       \param[in] "real(dp), dimension(:, :) :: clay"          clay content
   !>       \param[in] "real(dp), dimension(:, :) :: DbM"           mineral Bulk density
+  !>       \param[in] "real(dp), dimension(:, :, :) :: Wd"        weights of mHM horizons according to
+  !>       horizons provided in soil database
   !>       \param[in] "integer(i4), dimension(:) :: ID0"           cell ids at level 0
   !>       \param[in] "integer(i4), dimension(:, :) :: soilId0"    soil ids at level 0
   !>       \param[in] "integer(i4), dimension(:) :: LCOVER0"       land cover ids at level 0
@@ -97,7 +99,8 @@ contains
   ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
   ! Rohini Kumar                    Oct 2021 - Neutron count module to mHM integrate into develop branch (5.11.2)
 
-  subroutine mpr_sm(param, processMatrix, is_present, nHorizons, nTillHorizons, sand, clay, DbM, ID0, soilId0, LCover0, &
+  subroutine mpr_sm(param, processMatrix, is_present, nHorizons, nTillHorizons, sand, clay, DbM, Wd, ID0, soilId0, &
+                   LCover0, &
                    thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
@@ -131,6 +134,10 @@ contains
 
     ! mineral Bulk density
     real(dp), dimension(:, :), intent(in) :: DbM
+
+    ! weights of the mHM horizons according to the
+    ! horizons provided in the soil database
+    real(dp), dimension(:, :, :), intent(in) :: Wd
 
     ! cell ids at level 0
     integer(i4), dimension(:), intent(in) :: ID0
@@ -180,6 +187,12 @@ contains
 
     ! loop index
     integer(i4) :: j
+
+    ! loop index over the horizons of the gridded soil input data
+    integer(i4) :: jj
+
+    ! weight of an input data horizon within a modelling horizon
+    real(dp) :: w
 
     ! loop index
     integer(i4) :: l
@@ -416,21 +429,28 @@ contains
 
       ! calculate other soil properties at each location [L0] for regionalising model parameters
       do i = 1, size(soilId0, 1)     !! over all cells
-        do j = 1, size(soilId0, 2)  !! over horizons
-          s = soilId0(i, j)
-          if (j .le. nTillHorizons(1)) then
-            ! soil properties over the whole soil coloum depth
-            KsVar_H0(i) = KsVar_H0(i) + thetaS_till (s, 1, LCover0(i)) * Ks(s, 1, LCover0(i))
-            KsVar_V0(i) = KsVar_V0(i) + thetaS_till (s, 1, LCover0(i)) / Ks(s, 1, LCover0(i))
-            SMs_FC0(i) = SMs_FC0 (i) + thetaFC_till(s, 1, LCover0(i))
-            SMs_tot0(i) = SMs_tot0(i) + thetaS_till (s, 1, LCover0(i))
-          else
-            ! soil_properties over the whole soil column
-            KsVar_H0(i) = KsVar_H0(i) + thetaS (s, 1) * Ks_non_till(s, 1)
-            KsVar_V0(i) = KsVar_V0(i) + thetaS (s, 1) / Ks_non_till(s, 1)
-            SMs_FC0(i) = SMs_FC0 (i) + thetaFC(s, 1)
-            SMs_tot0(i) = SMs_tot0(i) + thetaS (s, 1)
-          end if
+        do j = 1, size(Wd, 2)       !! over the modelled horizons
+          ! the properties of a modelling horizon are the depth weighted average
+          ! of the horizons of the gridded input data overlapping with it
+          ! (Wd is the identity matrix if both layerings coincide)
+          do jj = 1, size(soilId0, 2)  !! over the horizons of the input data
+            w = Wd(1, j, jj)
+            if (w .le. 0.0_dp) cycle
+            s = soilId0(i, jj)
+            if (j .le. nTillHorizons(1)) then
+              ! soil properties over the whole soil coloum depth
+              KsVar_H0(i) = KsVar_H0(i) + w * thetaS_till (s, 1, LCover0(i)) * Ks(s, 1, LCover0(i))
+              KsVar_V0(i) = KsVar_V0(i) + w * thetaS_till (s, 1, LCover0(i)) / Ks(s, 1, LCover0(i))
+              SMs_FC0(i) = SMs_FC0 (i) + w * thetaFC_till(s, 1, LCover0(i))
+              SMs_tot0(i) = SMs_tot0(i) + w * thetaS_till (s, 1, LCover0(i))
+            else
+              ! soil_properties over the whole soil column
+              KsVar_H0(i) = KsVar_H0(i) + w * thetaS (s, 1) * Ks_non_till(s, 1)
+              KsVar_V0(i) = KsVar_V0(i) + w * thetaS (s, 1) / Ks_non_till(s, 1)
+              SMs_FC0(i) = SMs_FC0 (i) + w * thetaFC(s, 1)
+              SMs_tot0(i) = SMs_tot0(i) + w * thetaS (s, 1)
+            end if
+          end do
         end do
         ! ------------------------------------------------------------------
         ! DETERMINE RELATIVE VARIABILITIES OF

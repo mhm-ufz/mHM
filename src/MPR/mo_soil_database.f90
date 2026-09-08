@@ -387,7 +387,8 @@ CONTAINS
   subroutine generate_soil_database
 
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_mpr_global_variables, only : HorizonDepth_mHM, iFlag_soilDB, nSoilHorizons_mHM, nSoilTypes, soilDB
+    use mo_mpr_global_variables, only : HorizonDepth_data, HorizonDepth_mHM, iFlag_soilDB, nSoilHorizons_data, &
+                                        nSoilHorizons_mHM, nSoilTypes, soilDB
 
     implicit none
 
@@ -396,6 +397,12 @@ CONTAINS
     real(dp) :: dmin
 
     real(dp) :: dpth_f, dpth_t
+
+    ! upper and lower depth of a horizon of the gridded soil input data
+    real(dp) :: up, down
+
+    ! thickness of the overlap of a modelling and an input data horizon
+    real(dp) :: overlap
 
     integer(i4) :: layer_f, layer_t
 
@@ -507,9 +514,67 @@ CONTAINS
       end do
       ! soil database for the horizon specific case
     CASE(1)
-      ! right now nothing is done here
-      ! *** reserved for future changes
-      allocate(soilDB%Wd(1,1,1))
+      !-----------------------------------------------------------------------
+      ! Vertical aggregation of the horizons provided by the gridded soil
+      ! input data onto the modelled soil horizons.
+      ! In contrast to iFlag_soilDB = 0 the layering of the input data is
+      ! uniform across all soil types and all cells, hence the first dimension
+      ! of Wd is a dummy of size 1 (kept for a common interface with option 0).
+      ! If the input data are given on the modelled horizons themselves
+      ! (nSoilHorizons_data == nSoilHorizons_mHM and identical depths), Wd
+      ! becomes the identity matrix and nothing is mixed.
+      !-----------------------------------------------------------------------
+      allocate(soilDB%Wd(1, nSoilHorizons_mHM, nSoilHorizons_data))
+      soilDB%Wd(:, :, :) = 0.0_dp
+
+      do jj = 1, nSoilHorizons_mHM
+        ! modelling depth of this horizon ( **from --> to ** )
+        dpth_f = 0.0_dp
+        if (jj .ne. 1_i4) dpth_f = HorizonDepth_mHM(jj - 1)
+        dpth_t = HorizonDepth_mHM(jj)
+
+        if (dpth_t .le. dpth_f) then
+          call error_message('generate_soil_database: ERROR occurred: ', raise=.false.)
+          call error_message('     Modelling soil horizon ', num2str(jj, '(I3)'), &
+                  ' has a non-positive thickness.', raise=.false.)
+          call error_message('     Please check your soil_Depth specification!')
+        end if
+
+        do kk = 1, nSoilHorizons_data
+          ! depth range covered by this horizon of the input data
+          up = 0.0_dp
+          if (kk .ne. 1_i4) up = HorizonDepth_data(kk - 1)
+          down = HorizonDepth_data(kk)
+
+          ! thickness of the overlap of both layers
+          overlap = max(0.0_dp, min(dpth_t, down) - max(dpth_f, up))
+
+          ! A horizon of the input data either lies completely inside this
+          ! modelling horizon or not at all - a modelling horizon may merge whole
+          ! input horizons, but must never cut one in two (checked in
+          ! mpr_read_config, re-checked here since the weights rely on it).
+          if (overlap .gt. 0.0_dp .and. abs(overlap - (down - up)) .gt. small) then
+            call error_message('generate_soil_database: ERROR occurred: ', raise=.false.)
+            call error_message('     Horizon ', num2str(kk, '(I3)'), ' of the soil input data is only partly', &
+                    raise=.false.)
+            call error_message('     covered by modelling soil horizon ', num2str(jj, '(I3)'), '.', raise=.false.)
+            call error_message('     soil_Depth and soil_data_depth must share their horizon boundaries!')
+          end if
+
+          ! weight of this input horizon, normalised by the thickness of the
+          ! modelling horizon
+          soilDB%Wd(1, jj, kk) = overlap / (dpth_t - dpth_f)
+        end do
+
+        ! Check (small margin for numerical errors)
+        if (abs(sum(soilDB%Wd(1, jj, :)) - 1.0_dp) .gt. small) then
+          call error_message('generate_soil_database: ERROR occurred: ', raise=.false.)
+          call error_message('     Weights assigned to the input data horizons of modelling horizon ', &
+                  num2str(jj, '(I3)'), ' do not sum up to one.', raise=.false.)
+          call error_message('     They sum up to ', num2str(sum(soilDB%Wd(1, jj, :)), '(F9.6)'), '.', raise=.false.)
+          call error_message('     Please check soil_data_depth against soil_Depth!')
+        end if
+      end do
 
     CASE DEFAULT
       call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
