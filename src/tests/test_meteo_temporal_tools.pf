@@ -95,7 +95,7 @@ contains
     type(grid_t), target :: level0_lake, level2
     type(meteo_t) :: meteo
     integer(i8), target :: lake_ids(2), lake_map(4)
-    real(dp), target :: lake_area(2), raw_pre(2), raw_pet(2)
+    real(dp), target :: lake_area(2), raw_pre(2), raw_pet(2), raw_temp(2), raw_ssrd(2), raw_strd(2), raw_tann(2)
     integer :: status
 
     status = exchange%config%project%set()
@@ -114,26 +114,48 @@ contains
     lake_area = [2.0_dp, 2.0_dp]
     raw_pre = [4.0_dp, 8.0_dp]
     raw_pet = [1.0_dp, 3.0_dp]
+    raw_temp = [10.0_dp, 14.0_dp]
+    raw_ssrd = [100.0_dp, 200.0_dp]
+    raw_strd = [300.0_dp, 400.0_dp]
+    raw_tann = [7.0_dp, 9.0_dp]
     call exchange%lake_ids%publish_local('test', lake_ids, no_time)
     call exchange%lake_map%publish_local('test', lake_map, no_time)
     call exchange%lake_area%publish_local('test', lake_area, no_time)
     call exchange%raw_pre%publish_local('test', raw_pre, 1_i4)
     call exchange%raw_pet%publish_local('test', raw_pet, 1_i4)
+    call exchange%raw_temp%publish_local('test', raw_temp, 1_i4)
+    call exchange%raw_ssrd%publish_local('test', raw_ssrd, 1_i4)
+    call exchange%raw_strd%publish_local('test', raw_strd, 1_i4)
+    call exchange%raw_tann%publish_local('test', raw_tann, 1_i4)
+    exchange%lake_temp%required = .true.
+    exchange%lake_ssrd%required = .true.
+    exchange%lake_strd%required = .true.
+    exchange%lake_tann%required = .true.
     status = meteo%config%set()
     @assertEqual(0, status)
     meteo%exchange => exchange
     call meteo%configure()
+    exchange%lake_pre%required = .true.
+    exchange%lake_pet%required = .true.
     call meteo%connect()
     call meteo%initialize()
     call meteo%update()
     @assertEqual([6.0_dp, 6.0_dp], exchange%lake_pre%data, tolerance=t, message='lake precipitation averages its two touched level2 cells')
     @assertEqual([2.0_dp, 2.0_dp], exchange%lake_pet%data, tolerance=t, message='lake PET averages its two touched level2 cells')
+    @assertEqual([12.0_dp, 12.0_dp], exchange%lake_temp%data, tolerance=t, message='lake temperature is aggregated')
+    @assertEqual([150.0_dp, 150.0_dp], exchange%lake_ssrd%data, tolerance=t, message='lake short-wave radiation is aggregated')
+    @assertEqual([350.0_dp, 350.0_dp], exchange%lake_strd%data, tolerance=t, message='lake long-wave radiation is aggregated')
+    @assertEqual([8.0_dp, 8.0_dp], exchange%lake_tann%data, tolerance=t, message='lake annual temperature is aggregated')
     call meteo%finalize()
     call exchange%lake_ids%clear(owned=.true.)
     call exchange%lake_map%clear(owned=.true.)
     call exchange%lake_area%clear(owned=.true.)
     call exchange%raw_pre%clear(owned=.true.)
     call exchange%raw_pet%clear(owned=.true.)
+    call exchange%raw_temp%clear(owned=.true.)
+    call exchange%raw_ssrd%clear(owned=.true.)
+    call exchange%raw_strd%clear(owned=.true.)
+    call exchange%raw_tann%clear(owned=.true.)
   end subroutine test_lake_forcing_aggregates_l2_support
 
   @test
@@ -172,6 +194,8 @@ contains
     @assertEqual(0, status)
     meteo%exchange => exchange
     call meteo%configure()
+    exchange%lake_pre%required = .true.
+    exchange%lake_pet%required = .true.
     call meteo%connect()
     call meteo%initialize()
     call meteo%update()

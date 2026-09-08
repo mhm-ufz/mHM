@@ -33,11 +33,11 @@ module mo_meteo_container
   use mo_exchange_type, only: exchange_t, var_dp, l1
   use mo_grid, only: grid_t, spherical
   use mo_grid_io, only: no_time, daily, monthly, yearly
-  use mo_grid_scaler, only: scaler_t, down_nearest
+  use mo_grid_scaler, only: scaler_t
+  use mo_lake_forcing, only: lake_support_t, lake_support_build
   use mo_kind, only: i4, i8, dp
   use mo_meteo_temporal_tools, only: temporal_disagg_meteo_weights, temporal_disagg_flux_daynight, temporal_disagg_state_daynight
   use mo_mhm_constants, only: HarSamConst
-  use mo_orderpack, only: sort
   use mo_pet, only: pet_hargreaves, pet_penman, pet_priestly
   use mo_read_nc, only: read_weights_nc
   use mo_string_utils, only: n2s => num2str
@@ -85,12 +85,6 @@ module mo_meteo_container
     real(dp), allocatable :: latitude(:) !< packed level1 latitude for Hargreaves PET
   end type meteo_scratch_state_t
 
-  !> \brief Sparse level2 support and normalized area weights for one lake.
-  type :: meteo_lake_forcing_t
-    integer(i8), allocatable :: l2_ids(:)
-    real(dp), allocatable :: weights(:)
-  end type meteo_lake_forcing_t
-
   !> \class   meteo_t
   !> \brief   Class for a single meteorology process container.
   !> \authors Sebastian Mueller
@@ -102,11 +96,18 @@ module mo_meteo_container
     type(meteo_weight_state_t) :: weights !< cached disaggregation weights
     type(meteo_output_state_t) :: out !< processed meteo outputs
     type(meteo_scratch_state_t) :: scratch !< reusable remapped raw forcings
-    type(meteo_lake_forcing_t), allocatable :: lake_forcing(:) !< sparse level2 support per lake
+    type(lake_support_t), allocatable :: lake_forcing(:) !< sparse level2 support per lake
     real(dp), allocatable :: lake_pre(:) !< current precipitation on lakes
+    real(dp), allocatable :: lake_temp(:) !< current temperature on lakes
     real(dp), allocatable :: lake_pet(:) !< current PET on lakes
+    real(dp), allocatable :: lake_ssrd(:) !< current short-wave radiation on lakes
+    real(dp), allocatable :: lake_strd(:) !< current long-wave radiation on lakes
+    real(dp), allocatable :: lake_tann(:) !< current annual mean temperature on lakes
     real(dp), allocatable :: lake_pre_weights(:, :, :) !< lake precipitation weights (lake,12,24)
+    real(dp), allocatable :: lake_temp_weights(:, :, :) !< lake temperature weights (lake,12,24)
     real(dp), allocatable :: lake_pet_weights(:, :, :) !< lake PET weights (lake,12,24)
+    real(dp), allocatable :: lake_ssrd_weights(:, :, :) !< lake short-wave radiation weights (lake,12,24)
+    real(dp), allocatable :: lake_strd_weights(:, :, :) !< lake long-wave radiation weights (lake,12,24)
     logical :: active = .false. !< whether meteorological processing participates in the configured domain
   contains
     procedure :: set_dims => meteo_set_dims
@@ -234,6 +235,58 @@ contains
     logical :: land_active, lake_active
 
     log_info(*) "Connect meteo"
+
+    ! Lake remapping is a topology capability and is initialized independently
+    ! of whether the current lake process requires a particular forcing.
+    if (associated(self%exchange%level0_lake) .and. associated(self%exchange%level2) .and. &
+        self%exchange%lake_ids%provided .and. self%exchange%lake_map%provided) then
+      call self%setup_lake_forcing()
+    end if
+    call self%exchange%raw_pre%require("Meteo", self%exchange%lake_pre%required, check_data=.false.)
+    call self%exchange%raw_temp%require("Meteo", self%exchange%lake_temp%required, check_data=.false.)
+    call self%exchange%raw_pet%require("Meteo", self%exchange%lake_pet%required, check_data=.false.)
+    call self%exchange%raw_ssrd%require("Meteo", self%exchange%lake_ssrd%required, check_data=.false.)
+    call self%exchange%raw_strd%require("Meteo", self%exchange%lake_strd%required, check_data=.false.)
+    call self%exchange%raw_tann%require("Meteo", self%exchange%lake_tann%required, check_data=.false.)
+    if (self%exchange%lake_pre%required) then
+      call self%validate_step("raw_pre", self%exchange%raw_pre%stepping, allow_daily=.true., allow_hourly=.true.)
+      if (.not.self%weight_mode_active() .and. self%steps_per_day() > 1_i4 .and. &
+          self%exchange%raw_pre%stepping == daily) then
+        call self%require_fraction("frac_night_pre", self%fraction_domain())
+      end if
+    end if
+    if (self%exchange%lake_pet%required) then
+      call self%validate_step("raw_pet", self%exchange%raw_pet%stepping, allow_daily=.true., allow_hourly=.true.)
+      if (.not.self%weight_mode_active() .and. self%steps_per_day() > 1_i4 .and. &
+          self%exchange%raw_pet%stepping == daily) then
+        call self%require_fraction("frac_night_pet", self%fraction_domain())
+      end if
+    end if
+    if (self%exchange%lake_temp%required) then
+      call self%validate_step("raw_temp", self%exchange%raw_temp%stepping, allow_daily=.true., allow_hourly=.true.)
+      if (.not.self%weight_mode_active() .and. self%steps_per_day() > 1_i4 .and. &
+          self%exchange%raw_temp%stepping == daily) then
+        call self%require_fraction("frac_night_temp", self%fraction_domain())
+      end if
+    end if
+    if (self%exchange%lake_ssrd%required) then
+      call self%validate_step("raw_ssrd", self%exchange%raw_ssrd%stepping, allow_daily=.true., allow_hourly=.true.)
+      if (.not.self%weight_mode_active() .and. self%steps_per_day() > 1_i4 .and. &
+          self%exchange%raw_ssrd%stepping == daily) then
+        call self%require_fraction("frac_night_ssrd", self%fraction_domain())
+      end if
+    end if
+    if (self%exchange%lake_strd%required) then
+      call self%validate_step("raw_strd", self%exchange%raw_strd%stepping, allow_daily=.true., allow_hourly=.true.)
+      if (.not.self%weight_mode_active() .and. self%steps_per_day() > 1_i4 .and. &
+          self%exchange%raw_strd%stepping == daily) then
+        call self%require_fraction("frac_night_strd", self%fraction_domain())
+      end if
+    end if
+    if (self%exchange%lake_tann%required) then
+      call self%validate_step("raw_tann", self%exchange%raw_tann%stepping, allow_static=.true., allow_daily=.true., &
+        allow_monthly=.true., allow_yearly=.true., allow_hourly=.true.)
+    end if
 
     lake_active = self%exchange%config%processes%lake == -2_i4
     land_active = any([self%exchange%config%processes%interception, self%exchange%config%processes%snow, &
@@ -411,8 +464,6 @@ contains
 
     log_info(*) "Initialize meteo"
 
-    if (self%exchange%config%processes%lake == -2_i4) call self%setup_lake_forcing()
-
     ! A pass-through lake-only configuration activates meteo for lifecycle consistency,
     ! but owns no meteorological fields and does not establish a level1 grid.
     if (.not.associated(self%exchange%level1_land)) return
@@ -469,7 +520,11 @@ contains
     call self%exchange%strd%clear(owned=allocated(self%out%strd))
     call self%exchange%tann%clear(owned=allocated(self%out%tann))
     call self%exchange%lake_pre%clear(owned=allocated(self%lake_pre))
+    call self%exchange%lake_temp%clear(owned=allocated(self%lake_temp))
     call self%exchange%lake_pet%clear(owned=allocated(self%lake_pet))
+    call self%exchange%lake_ssrd%clear(owned=allocated(self%lake_ssrd))
+    call self%exchange%lake_strd%clear(owned=allocated(self%lake_strd))
+    call self%exchange%lake_tann%clear(owned=allocated(self%lake_tann))
 
     if (allocated(self%weights%pre)) deallocate(self%weights%pre)
     if (allocated(self%weights%pet)) deallocate(self%weights%pet)
@@ -497,9 +552,16 @@ contains
     if (allocated(self%scratch%wind)) deallocate(self%scratch%wind)
     if (allocated(self%scratch%latitude)) deallocate(self%scratch%latitude)
     if (allocated(self%lake_pre)) deallocate(self%lake_pre)
+    if (allocated(self%lake_temp)) deallocate(self%lake_temp)
     if (allocated(self%lake_pet)) deallocate(self%lake_pet)
+    if (allocated(self%lake_ssrd)) deallocate(self%lake_ssrd)
+    if (allocated(self%lake_strd)) deallocate(self%lake_strd)
+    if (allocated(self%lake_tann)) deallocate(self%lake_tann)
     if (allocated(self%lake_pre_weights)) deallocate(self%lake_pre_weights)
+    if (allocated(self%lake_temp_weights)) deallocate(self%lake_temp_weights)
     if (allocated(self%lake_pet_weights)) deallocate(self%lake_pet_weights)
+    if (allocated(self%lake_ssrd_weights)) deallocate(self%lake_ssrd_weights)
+    if (allocated(self%lake_strd_weights)) deallocate(self%lake_strd_weights)
     if (allocated(self%lake_forcing)) deallocate(self%lake_forcing)
   end subroutine meteo_finalize
 
@@ -588,14 +650,11 @@ contains
     call self%regrid%execute(raw_var%data, l1_data)
   end subroutine meteo_remap_raw
 
-  !> \brief Build the static lake-to-level2 support after mLM has published topology.
+  !> \brief Build the static lake-to-level2 support from connected lake topology.
   subroutine meteo_setup_lake_forcing(self)
     class(meteo_t), target, intent(inout) :: self
-    integer(i4), allocatable :: l2_on_lake(:)
-    integer(i8), allocatable :: lake_cell_counts(:)
-    integer(i8) :: lake, n_lakes, n_l0
+    integer(i8) :: n_lakes, n_l0
     integer(i4) :: domain_id
-    type(scaler_t) :: lake_regrid
     character(:), allocatable :: path
     character(1024) :: errmsg
     integer :: status
@@ -607,39 +666,23 @@ contains
     n_lakes = size(self%exchange%lake_ids%data, kind=i8)
     n_l0 = self%exchange%level0_lake%ncells
     call self%exchange%lake_map%require("Meteo", .true., [n_l0])
-    call self%exchange%lake_area%require("Meteo", .true., [n_lakes])
-    allocate(self%lake_forcing(n_lakes), self%lake_pre(n_lakes), self%lake_pet(n_lakes))
+    call lake_support_build(self%exchange%level2, self%exchange%level0_lake, self%exchange%lake_map%data, &
+      self%exchange%lake_ids%data, self%lake_forcing)
+    allocate(self%lake_pre(n_lakes), self%lake_temp(n_lakes), self%lake_pet(n_lakes), self%lake_ssrd(n_lakes), &
+      self%lake_strd(n_lakes), self%lake_tann(n_lakes))
     self%lake_pre = 0.0_dp
+    self%lake_temp = 0.0_dp
     self%lake_pet = 0.0_dp
-    call self%exchange%lake_pre%publish_local("Meteo", self%lake_pre, self%exchange%step_hours)
-    call self%exchange%lake_pet%publish_local("Meteo", self%lake_pet, self%exchange%step_hours)
-    call lake_regrid%init(self%exchange%level2, self%exchange%level0_lake, downscaling_operator=down_nearest)
-    if (any(lake_regrid%id_map < 1_i8)) then
-      log_fatal(*) "Meteo: a level-0 lake cell is outside the level-2 forcing grid."
-      error stop 1
-    end if
-    if (any(lake_regrid%id_map > int(huge(0_i4), i8))) then
-      log_fatal(*) "Meteo: level-2 cell IDs exceed the sparse-link sorting range."
-      error stop 1
-    end if
-    l2_on_lake = int(lake_regrid%id_map, i4)
-    allocate(lake_cell_counts(n_lakes))
-    !$omp parallel do default(shared) private(lake) schedule(dynamic)
-    do lake = 1_i8, n_lakes
-      call meteo_build_lake_forcing(l2_on_lake, self%exchange%lake_map%data, &
-        self%exchange%lake_ids%data(lake), self%lake_forcing(lake), lake_cell_counts(lake))
-    end do
-    !$omp end parallel do
-    if (any(lake_cell_counts < 1_i8)) then
-      log_fatal(*) "Meteo: a configured lake has no level-0 lake cells."
-      error stop 1
-    end if
-    if (sum(lake_cell_counts) /= n_l0) then
-      log_fatal(*) "Meteo: level-0 lake map contains an unknown or duplicate lake ID."
-      error stop 1
-    end if
-    deallocate(l2_on_lake, lake_cell_counts)
-    if (self%weight_mode_active() .and. self%exchange%raw_pre%stepping == daily) then
+    self%lake_ssrd = 0.0_dp
+    self%lake_strd = 0.0_dp
+    self%lake_tann = 0.0_dp
+    if (self%exchange%raw_pre%provided) call self%exchange%lake_pre%publish_local("Meteo", self%lake_pre, self%exchange%step_hours)
+    if (self%exchange%raw_temp%provided) call self%exchange%lake_temp%publish_local("Meteo", self%lake_temp, self%exchange%step_hours)
+    if (self%exchange%raw_pet%provided) call self%exchange%lake_pet%publish_local("Meteo", self%lake_pet, self%exchange%step_hours)
+    if (self%exchange%raw_ssrd%provided) call self%exchange%lake_ssrd%publish_local("Meteo", self%lake_ssrd, self%exchange%step_hours)
+    if (self%exchange%raw_strd%provided) call self%exchange%lake_strd%publish_local("Meteo", self%lake_strd, self%exchange%step_hours)
+    if (self%exchange%raw_tann%provided) call self%exchange%lake_tann%publish_local("Meteo", self%lake_tann, self%exchange%step_hours)
+    if (self%exchange%lake_pre%required .and. self%weight_mode_active() .and. self%exchange%raw_pre%stepping == daily) then
       domain_id = self%exchange%nml_domain_id
       status = self%config%is_set("pre_weights_path", idx=[domain_id], errmsg=errmsg)
       if (status /= NML_OK) then
@@ -649,7 +692,7 @@ contains
       path = self%exchange%get_path(self%config%pre_weights_path(domain_id))
       call self%load_lake_weight_cache(path, trim(self%config%pre_weights_var(domain_id)), self%lake_pre_weights)
     end if
-    if (self%weight_mode_active() .and. self%exchange%raw_pet%stepping == daily) then
+    if (self%exchange%lake_pet%required .and. self%weight_mode_active() .and. self%exchange%raw_pet%stepping == daily) then
       domain_id = self%exchange%nml_domain_id
       status = self%config%is_set("pet_weights_path", idx=[domain_id], errmsg=errmsg)
       if (status /= NML_OK) then
@@ -659,68 +702,46 @@ contains
       path = self%exchange%get_path(self%config%pet_weights_path(domain_id))
       call self%load_lake_weight_cache(path, trim(self%config%pet_weights_var(domain_id)), self%lake_pet_weights)
     end if
-  end subroutine meteo_setup_lake_forcing
-
-  !> \brief Select one lake and reduce its packed level2 IDs to count weights.
-  subroutine meteo_build_lake_forcing(l2_ids, lake_map, lake_id, forcing, n_cells)
-    integer(i4), intent(in) :: l2_ids(:)
-    integer(i8), intent(in) :: lake_map(:), lake_id
-    type(meteo_lake_forcing_t), intent(inout) :: forcing
-    integer(i8), intent(out) :: n_cells
-    integer(i8), allocatable :: counts(:)
-
-    call meteo_unique_counts(l2_ids, forcing%l2_ids, counts, mask=lake_map == lake_id)
-    n_cells = sum(counts)
-    allocate(forcing%weights(size(counts)))
-    if (n_cells > 0_i8) forcing%weights = real(counts, dp) / real(n_cells, dp)
-  end subroutine meteo_build_lake_forcing
-
-  !> \brief Return sorted unique integer values and occurrence counts under an optional mask.
-  subroutine meteo_unique_counts(values, unique, counts, mask)
-    integer(i4), intent(in) :: values(:)
-    integer(i8), allocatable, intent(out) :: unique(:), counts(:)
-    logical, optional, intent(in) :: mask(:)
-    integer(i4), allocatable :: selected(:)
-    integer(i8) :: i, n_unique
-
-    if (present(mask)) then
-      if (size(mask, kind=i8) /= size(values, kind=i8)) then
-        log_fatal(*) "Meteo: unique-value mask has an incompatible size."
+    if (self%exchange%lake_temp%required .and. self%weight_mode_active() .and. self%exchange%raw_temp%stepping == daily) then
+      domain_id = self%exchange%nml_domain_id
+      status = self%config%is_set("temp_weights_path", idx=[domain_id], errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Meteo: temp_weights_path is required for lake forcing weights."
         error stop 1
       end if
-      selected = pack(values, mask)
-    else
-      selected = values
+      path = self%exchange%get_path(self%config%temp_weights_path(domain_id))
+      call self%load_lake_weight_cache(path, trim(self%config%temp_weights_var(domain_id)), self%lake_temp_weights)
     end if
-    if (size(selected, kind=i8) == 0_i8) then
-      allocate(unique(0), counts(0))
-      return
-    end if
-    call sort(selected)
-    n_unique = 1_i8 + count(selected(2:) /= selected(:size(selected) - 1), kind=i8)
-    allocate(unique(n_unique), counts(n_unique))
-    n_unique = 1_i8
-    unique(1) = int(selected(1), i8)
-    counts(1) = 1_i8
-    do i = 2_i8, size(selected, kind=i8)
-      if (selected(i) == selected(i - 1_i8)) then
-        counts(n_unique) = counts(n_unique) + 1_i8
-      else
-        n_unique = n_unique + 1_i8
-        unique(n_unique) = int(selected(i), i8)
-        counts(n_unique) = 1_i8
+    if (self%exchange%lake_ssrd%required .and. self%weight_mode_active() .and. self%exchange%raw_ssrd%stepping == daily) then
+      domain_id = self%exchange%nml_domain_id
+      status = self%config%is_set("ssrd_weights_path", idx=[domain_id], errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Meteo: ssrd_weights_path is required for lake forcing weights."
+        error stop 1
       end if
-    end do
-  end subroutine meteo_unique_counts
+      path = self%exchange%get_path(self%config%ssrd_weights_path(domain_id))
+      call self%load_lake_weight_cache(path, trim(self%config%ssrd_weights_var(domain_id)), self%lake_ssrd_weights)
+    end if
+    if (self%exchange%lake_strd%required .and. self%weight_mode_active() .and. self%exchange%raw_strd%stepping == daily) then
+      domain_id = self%exchange%nml_domain_id
+      status = self%config%is_set("strd_weights_path", idx=[domain_id], errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Meteo: strd_weights_path is required for lake forcing weights."
+        error stop 1
+      end if
+      path = self%exchange%get_path(self%config%strd_weights_path(domain_id))
+      call self%load_lake_weight_cache(path, trim(self%config%strd_weights_var(domain_id)), self%lake_strd_weights)
+    end if
+  end subroutine meteo_setup_lake_forcing
 
   !> \brief Area-average a level2 field on every lake support.
   subroutine meteo_aggregate_lake(self, field, result)
     class(meteo_t), intent(in) :: self
     real(dp), intent(in) :: field(:)
     real(dp), intent(out) :: result(:)
-    integer(i8) :: i
-    do i = 1_i8, size(self%lake_forcing, kind=i8)
-      result(i) = sum(field(self%lake_forcing(i)%l2_ids) * self%lake_forcing(i)%weights)
+    integer(i8) :: lake
+    do lake = 1_i8, size(self%lake_forcing, kind=i8)
+      result(lake) = self%lake_forcing(lake)%aggregate(field)
     end do
   end subroutine meteo_aggregate_lake
 
@@ -737,30 +758,83 @@ contains
     steps_day = self%steps_per_day()
     domain_id = self%fraction_domain()
     isday = meteo_is_day_step(hour)
-    call self%aggregate_lake(self%exchange%raw_pre%data, self%lake_pre)
-    if (self%exchange%raw_pre%stepping == daily .and. steps_day > 1_i4) then
-      daily_values = self%lake_pre
-      if (self%weight_mode_active()) then
-        do i = 1_i8, size(self%lake_pre, kind=i8)
-          call temporal_disagg_meteo_weights([daily_values(i)], self%lake_pre_weights(i, month, hour + 1_i4), self%lake_pre(i:i))
-        end do
-      else
-        call temporal_disagg_flux_daynight(isday, real(steps_day, dp), daily_values, &
-          1.0_dp-self%config%frac_night_pre(month, domain_id), self%config%frac_night_pre(month, domain_id), self%lake_pre)
+    if (self%exchange%lake_pre%required) then
+      call self%aggregate_lake(self%exchange%raw_pre%data, self%lake_pre)
+      if (self%exchange%raw_pre%stepping == daily .and. steps_day > 1_i4) then
+        daily_values = self%lake_pre
+        if (self%weight_mode_active()) then
+          do i = 1_i8, size(self%lake_pre, kind=i8)
+            call temporal_disagg_meteo_weights([daily_values(i)], self%lake_pre_weights(i, month, hour + 1_i4), self%lake_pre(i:i))
+          end do
+        else
+          call temporal_disagg_flux_daynight(isday, real(steps_day, dp), daily_values, &
+            1.0_dp-self%config%frac_night_pre(month, domain_id), self%config%frac_night_pre(month, domain_id), self%lake_pre)
+        end if
       end if
     end if
-    call self%aggregate_lake(self%exchange%raw_pet%data, self%lake_pet)
-    if (self%exchange%raw_pet%stepping == daily .and. steps_day > 1_i4) then
-      daily_values = self%lake_pet
-      if (self%weight_mode_active()) then
-        do i = 1_i8, size(self%lake_pet, kind=i8)
-          call temporal_disagg_meteo_weights([daily_values(i)], self%lake_pet_weights(i, month, hour + 1_i4), self%lake_pet(i:i))
-        end do
-      else
-        call temporal_disagg_flux_daynight(isday, real(steps_day, dp), daily_values, &
-          1.0_dp-self%config%frac_night_pet(month, domain_id), self%config%frac_night_pet(month, domain_id), self%lake_pet)
+    if (self%exchange%lake_pet%required) then
+      call self%aggregate_lake(self%exchange%raw_pet%data, self%lake_pet)
+      if (self%exchange%raw_pet%stepping == daily .and. steps_day > 1_i4) then
+        daily_values = self%lake_pet
+        if (self%weight_mode_active()) then
+          do i = 1_i8, size(self%lake_pet, kind=i8)
+            call temporal_disagg_meteo_weights([daily_values(i)], self%lake_pet_weights(i, month, hour + 1_i4), self%lake_pet(i:i))
+          end do
+        else
+          call temporal_disagg_flux_daynight(isday, real(steps_day, dp), daily_values, &
+            1.0_dp-self%config%frac_night_pet(month, domain_id), self%config%frac_night_pet(month, domain_id), self%lake_pet)
+        end if
       end if
     end if
+    if (self%exchange%lake_temp%required) then
+      call self%aggregate_lake(self%exchange%raw_temp%data, self%lake_temp)
+      if (self%exchange%raw_temp%stepping == daily .and. steps_day > 1_i4) then
+        daily_values = self%lake_temp
+        if (self%weight_mode_active()) then
+          do i = 1_i8, size(self%lake_temp, kind=i8)
+            call temporal_disagg_meteo_weights([daily_values(i)], self%lake_temp_weights(i, month, hour + 1_i4), &
+              self%lake_temp(i:i), weights_correction=T0_dp)
+          end do
+        else
+          call temporal_disagg_state_daynight(isday, real(steps_day, dp), daily_values, &
+            -self%config%frac_night_temp(month, domain_id), self%config%frac_night_temp(month, domain_id), &
+            self%lake_temp, add_correction=.true.)
+        end if
+      end if
+    end if
+    if (self%exchange%lake_ssrd%required) then
+      call self%aggregate_lake(self%exchange%raw_ssrd%data, self%lake_ssrd)
+      if (self%exchange%raw_ssrd%stepping == daily .and. steps_day > 1_i4) then
+        daily_values = self%lake_ssrd
+        if (self%weight_mode_active()) then
+          do i = 1_i8, size(self%lake_ssrd, kind=i8)
+            call temporal_disagg_meteo_weights([daily_values(i)], self%lake_ssrd_weights(i, month, hour + 1_i4), &
+              self%lake_ssrd(i:i))
+          end do
+        else
+          call temporal_disagg_state_daynight(isday, real(steps_day, dp), daily_values, &
+            1.0_dp - self%config%frac_night_ssrd(month, domain_id), self%config%frac_night_ssrd(month, domain_id), &
+            self%lake_ssrd)
+        end if
+      end if
+    end if
+    if (self%exchange%lake_strd%required) then
+      call self%aggregate_lake(self%exchange%raw_strd%data, self%lake_strd)
+      if (self%exchange%raw_strd%stepping == daily .and. steps_day > 1_i4) then
+        daily_values = self%lake_strd
+        if (self%weight_mode_active()) then
+          do i = 1_i8, size(self%lake_strd, kind=i8)
+            call temporal_disagg_meteo_weights([daily_values(i)], self%lake_strd_weights(i, month, hour + 1_i4), &
+              self%lake_strd(i:i))
+          end do
+        else
+          call temporal_disagg_state_daynight(isday, real(steps_day, dp), daily_values, &
+            1.0_dp - self%config%frac_night_strd(month, domain_id), self%config%frac_night_strd(month, domain_id), &
+            self%lake_strd)
+        end if
+      end if
+    end if
+    if (self%exchange%lake_tann%required) call self%aggregate_lake(self%exchange%raw_tann%data, self%lake_tann)
   end subroutine meteo_update_lake_forcing
 
   !> \brief Read a level2 temporal weight cube and aggregate it onto lake supports.

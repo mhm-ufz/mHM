@@ -258,7 +258,7 @@ contains
     type(points_t), target :: lake_points
     type(mlm_t) :: writer, reader
     integer(i8), target :: lake_ids(1), lake_map(2)
-    real(dp), target :: lake_levels(1)
+    real(dp), target :: lake_levels(1), writer_pre(1), writer_pet(1), reader_pre(1), reader_pet(1)
     integer :: status
 
     call setup_exchange(writer_exchange, "2001-01-02 00:00:00")
@@ -269,11 +269,15 @@ contains
     lake_ids = [10_i8]
     lake_map = [10_i8, 10_i8]
     lake_levels = [1.0_dp]
+    writer_pre = 0.0_dp
+    writer_pet = 0.0_dp
     writer_exchange%level0_lake => lake_grid
     writer_exchange%lake_points => lake_points
     call writer_exchange%lake_ids%publish_local("test", lake_ids, no_time)
     call writer_exchange%lake_map%publish_local("test", lake_map, no_time)
     call writer_exchange%lake_max_levels%publish_local("test", lake_levels, no_time)
+    call writer_exchange%lake_pre%publish_local("test", writer_pre, 1_i4)
+    call writer_exchange%lake_pet%publish_local("test", writer_pet, 1_i4)
     writer%exchange => writer_exchange
     call writer%connect()
     writer%outflow = [3.0_dp]
@@ -287,6 +291,10 @@ contains
     reader%exchange => reader_exchange
     reader%read_restart = .true.
     reader%restart_input_path = "mlm_restart_lake_topology.nc"
+    reader_pre = 0.0_dp
+    reader_pet = 0.0_dp
+    call reader_exchange%lake_pre%publish_local("test", reader_pre, 1_i4)
+    call reader_exchange%lake_pet%publish_local("test", reader_pet, 1_i4)
     call reader%connect()
     @assertEqual([10_i8, 10_i8], reader_exchange%lake_map%data, message="restart-only mLM restores the packed lake map")
     @assertEqual([2.0_dp], reader_exchange%lake_area%data, tolerance=1.0e-12_dp, message="restart-only mLM restores lake area from its footprint")
@@ -296,6 +304,10 @@ contains
     call writer_exchange%lake_ids%clear(owned=.true.)
     call writer_exchange%lake_map%clear(owned=.true.)
     call writer_exchange%lake_max_levels%clear(owned=.true.)
+    call writer_exchange%lake_pre%clear(owned=.true.)
+    call writer_exchange%lake_pet%clear(owned=.true.)
+    call reader_exchange%lake_pre%clear(owned=.true.)
+    call reader_exchange%lake_pet%clear(owned=.true.)
     nullify(writer_exchange%lake_points)
     nullify(writer_exchange%level0_lake)
   end subroutine test_mlm_restart_restores_lake_topology

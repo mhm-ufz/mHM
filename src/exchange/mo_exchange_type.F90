@@ -276,7 +276,11 @@ module mo_exchange_type
     type(var_dp) :: lake_inflow          !< completed hourly lake inflow [m3 s-1] on lake points
     type(var_dp) :: lake_outflow         !< current hourly lake outflow [m3 s-1] on lake points
     type(var_dp) :: lake_pre             !< current precipitation [mm] on lake points
+    type(var_dp) :: lake_temp            !< current air temperature [degC] on lake points
     type(var_dp) :: lake_pet             !< current PET [mm] on lake points
+    type(var_dp) :: lake_ssrd            !< current short-wave radiation [W m-2] on lake points
+    type(var_dp) :: lake_strd            !< current long-wave radiation [W m-2] on lake points
+    type(var_dp) :: lake_tann            !< current annual mean temperature [degC] on lake points
 
     ! raw meteorology (level2)
     type(var_dp) :: raw_pre             !< raw precipitation [mm] on level l2
@@ -534,7 +538,11 @@ contains
     self%lake_inflow     = var_dp(points=points_lake, name="lake_inflow",  units="m3 s-1", long_name="completed hourly lake inflow")
     self%lake_outflow    = var_dp(points=points_lake, name="lake_outflow", units="m3 s-1", long_name="current hourly lake outflow")
     self%lake_pre        = var_dp(points=points_lake, name="lake_pre", units="mm", long_name="lake precipitation")
+    self%lake_temp       = var_dp(points=points_lake, name="lake_temp", units="degC", long_name="lake air temperature")
     self%lake_pet        = var_dp(points=points_lake, name="lake_pet", units="mm", long_name="lake potential evapotranspiration")
+    self%lake_ssrd       = var_dp(points=points_lake, name="lake_ssrd", units="W m-2", long_name="lake solar short wave radiation downward")
+    self%lake_strd       = var_dp(points=points_lake, name="lake_strd", units="W m-2", long_name="lake surface thermal radiation downward")
+    self%lake_tann       = var_dp(points=points_lake, name="lake_tann", units="degC", long_name="lake annual mean air temperature")
 
     ! raw meteorology (level2)
     self%raw_pre    = var_dp(grid=l2, name="pre",       units="mm",    long_name="precipitation", standard_name="precipitation_amount")
@@ -1051,8 +1059,16 @@ contains
         var_pnt => self%lake_outflow
       case("lake_pre")
         var_pnt => self%lake_pre
+      case("lake_temp")
+        var_pnt => self%lake_temp
       case("lake_pet")
         var_pnt => self%lake_pet
+      case("lake_ssrd")
+        var_pnt => self%lake_ssrd
+      case("lake_strd")
+        var_pnt => self%lake_strd
+      case("lake_tann")
+        var_pnt => self%lake_tann
       case("raw_pre")
         var_pnt => self%raw_pre
       case("raw_temp")
