@@ -1,10 +1,12 @@
 module test_meteo_temporal_tools
   use funit
+  use mo_datetime, only: datetime
   use mo_exchange_type, only: exchange_t
+  use mo_grid, only: grid_t, bottom_up
   use mo_meteo_temporal_tools
   use mo_meteo_container, only: meteo_t, meteo_is_day_step, meteo_supports_model_step, meteo_supports_forcing_step
-  use mo_grid_io, only: daily
-  use mo_kind, only: dp
+  use mo_grid_io, only: daily, no_time
+  use mo_kind, only: dp, i4, i8
 
   implicit none
 
@@ -16,6 +18,9 @@ module test_meteo_temporal_tools
   public :: test_interval_start_daynight_window
   public :: test_supported_model_steps
   public :: test_active_meteo_supported_steps
+  public :: test_lake_passthrough_meteo_noop
+  public :: test_lake_forcing_aggregates_l2_support
+  public :: test_lake_forcing_disaggregates_daily
   public :: test_forcing_step_compatibility
 
   real(dp) :: t = 0.001_dp
@@ -64,6 +69,121 @@ contains
     call daily_meteo%configure()
     @assertTrue(daily_meteo%active, message='active meteo configures for a daily model step')
   end subroutine test_active_meteo_supported_steps
+
+  @test
+  subroutine test_lake_passthrough_meteo_noop()
+    type(exchange_t), target :: exchange
+    type(meteo_t) :: meteo
+    integer :: status
+
+    status = exchange%config%processes%set(lake=-1)
+    @assertEqual(0, status)
+    status = meteo%config%set()
+    @assertEqual(0, status)
+    exchange%step_hours = 1
+    meteo%exchange => exchange
+    call meteo%configure()
+    @assertTrue(meteo%active, message='a pass-through lake activates meteo lifecycle participation')
+    call meteo%connect()
+    call meteo%initialize()
+    call meteo%finalize()
+  end subroutine test_lake_passthrough_meteo_noop
+
+  @test
+  subroutine test_lake_forcing_aggregates_l2_support()
+    type(exchange_t), target :: exchange
+    type(grid_t), target :: level0_lake, level2
+    type(meteo_t) :: meteo
+    integer(i8), target :: lake_ids(2), lake_map(4)
+    real(dp), target :: lake_area(2), raw_pre(2), raw_pet(2)
+    integer :: status
+
+    status = exchange%config%project%set()
+    @assertEqual(0, status)
+    call exchange%create(cwd='.')
+    exchange%step_hours = 1_i4
+    exchange%time_step_start = datetime('2001-01-02 00:00:00')
+    status = exchange%config%processes%set(lake=-2_i4)
+    @assertEqual(0, status)
+    call level0_lake%init(4_i4, 1_i4, cellsize=1.0_dp, y_direction=bottom_up)
+    call level2%init(2_i4, 1_i4, cellsize=2.0_dp, y_direction=bottom_up)
+    exchange%level0_lake => level0_lake
+    exchange%level2 => level2
+    lake_ids = [10_i8, 20_i8]
+    lake_map = [10_i8, 20_i8, 10_i8, 20_i8]
+    lake_area = [2.0_dp, 2.0_dp]
+    raw_pre = [4.0_dp, 8.0_dp]
+    raw_pet = [1.0_dp, 3.0_dp]
+    call exchange%lake_ids%publish_local('test', lake_ids, no_time)
+    call exchange%lake_map%publish_local('test', lake_map, no_time)
+    call exchange%lake_area%publish_local('test', lake_area, no_time)
+    call exchange%raw_pre%publish_local('test', raw_pre, 1_i4)
+    call exchange%raw_pet%publish_local('test', raw_pet, 1_i4)
+    status = meteo%config%set()
+    @assertEqual(0, status)
+    meteo%exchange => exchange
+    call meteo%configure()
+    call meteo%connect()
+    call meteo%initialize()
+    call meteo%update()
+    @assertEqual([6.0_dp, 6.0_dp], exchange%lake_pre%data, tolerance=t, message='lake precipitation averages its two touched level2 cells')
+    @assertEqual([2.0_dp, 2.0_dp], exchange%lake_pet%data, tolerance=t, message='lake PET averages its two touched level2 cells')
+    call meteo%finalize()
+    call exchange%lake_ids%clear(owned=.true.)
+    call exchange%lake_map%clear(owned=.true.)
+    call exchange%lake_area%clear(owned=.true.)
+    call exchange%raw_pre%clear(owned=.true.)
+    call exchange%raw_pet%clear(owned=.true.)
+  end subroutine test_lake_forcing_aggregates_l2_support
+
+  @test
+  subroutine test_lake_forcing_disaggregates_daily()
+    type(exchange_t), target :: exchange
+    type(grid_t), target :: level0_lake, level2
+    type(meteo_t) :: meteo
+    integer(i8), target :: lake_ids(1), lake_map(2)
+    real(dp), target :: lake_area(1), raw_pre(1), raw_pet(1)
+    real(dp) :: night_fraction(12, 1)
+    integer :: status
+
+    status = exchange%config%project%set()
+    @assertEqual(0, status)
+    call exchange%create(cwd='.')
+    exchange%step_hours = 1_i4
+    exchange%time_step_start = datetime('2001-01-02 00:00:00')
+    status = exchange%config%processes%set(lake=-2_i4)
+    @assertEqual(0, status)
+    call level0_lake%init(2_i4, 1_i4, cellsize=1.0_dp, y_direction=bottom_up)
+    call level2%init(1_i4, 1_i4, cellsize=2.0_dp, y_direction=bottom_up)
+    exchange%level0_lake => level0_lake
+    exchange%level2 => level2
+    lake_ids = [10_i8]
+    lake_map = [10_i8, 10_i8]
+    lake_area = [2.0_dp]
+    raw_pre = [6.0_dp]
+    raw_pet = [2.0_dp]
+    night_fraction = 0.5_dp
+    call exchange%lake_ids%publish_local('test', lake_ids, no_time)
+    call exchange%lake_map%publish_local('test', lake_map, no_time)
+    call exchange%lake_area%publish_local('test', lake_area, no_time)
+    call exchange%raw_pre%publish_local('test', raw_pre, daily)
+    call exchange%raw_pet%publish_local('test', raw_pet, daily)
+    status = meteo%config%set(frac_night_pre=night_fraction, frac_night_pet=night_fraction)
+    @assertEqual(0, status)
+    meteo%exchange => exchange
+    call meteo%configure()
+    call meteo%connect()
+    call meteo%initialize()
+    call meteo%update()
+    @assertEqual([0.25_dp], exchange%lake_pre%data, tolerance=t, message='daily lake precipitation is distributed across nightly hours')
+    @assertEqual([1.0_dp / 12.0_dp], exchange%lake_pet%data, tolerance=t, message='daily lake PET is distributed across nightly hours')
+    call meteo%finalize()
+    call exchange%lake_ids%clear(owned=.true.)
+    call exchange%lake_map%clear(owned=.true.)
+    call exchange%lake_area%clear(owned=.true.)
+    call exchange%raw_pre%clear(owned=.true.)
+    call exchange%raw_pet%clear(owned=.true.)
+  end subroutine test_lake_forcing_disaggregates_daily
 
   @test
   subroutine test_interval_start_daynight_window()

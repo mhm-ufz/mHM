@@ -2,6 +2,7 @@ module test_mlm_restart
   use funit
   use mo_datetime, only: datetime, timedelta
   use mo_exchange_type, only: exchange_t
+  use mo_grid, only: grid_t, bottom_up
   use mo_grid_io, only: no_time, var
   use mo_kind, only: sp, dp, i4, i8
   use mo_mlm_container, only: mlm_t
@@ -15,6 +16,8 @@ module test_mlm_restart
   public :: test_mlm_restart_uses_input_order
   public :: test_mlm_restart_publishes_and_clears_metadata
   public :: test_mlm_output_averages_in_exchange_order
+  public :: test_mlm_lake_balance_clamps_outflow
+  public :: test_mlm_restart_restores_lake_topology
 
 contains
 
@@ -220,6 +223,82 @@ contains
     call clear_input_metadata(exchange)
     call exchange%lake_inflow%clear(owned=.true.)
   end subroutine test_mlm_output_averages_in_exchange_order
+
+  @test
+  subroutine test_mlm_lake_balance_clamps_outflow()
+    type(exchange_t), target :: exchange
+    type(mlm_t) :: mlm
+    real(dp), target :: inflow(2), pre(2), pet(2)
+    integer :: status
+
+    call setup_exchange(exchange, "2001-01-02 00:00:00")
+    status = exchange%config%processes%set(routing=2_i4, lake=-2_i4)
+    @assertEqual(0, status)
+    inflow = [1.0_dp, 0.01_dp]
+    pre = [10.0_dp, 0.0_dp]
+    pet = [0.0_dp, 10.0_dp]
+    call exchange%lake_inflow%publish_local("test", inflow, 1_i4)
+    call exchange%lake_pre%publish_local("test", pre, 1_i4)
+    call exchange%lake_pet%publish_local("test", pet, 1_i4)
+    mlm%exchange => exchange
+    allocate(mlm%outflow(2), mlm%lake_area(2))
+    mlm%lake_area = [360000.0_dp, 360000.0_dp]
+    call mlm%update()
+    @assertEqual([2.0_dp, 0.0_dp], mlm%outflow, tolerance=1.0e-12_dp, message="lake balance converts millimetres to discharge and clamps negative outflow")
+    call exchange%lake_inflow%clear(owned=.true.)
+    call exchange%lake_pre%clear(owned=.true.)
+    call exchange%lake_pet%clear(owned=.true.)
+    deallocate(mlm%outflow, mlm%lake_area)
+  end subroutine test_mlm_lake_balance_clamps_outflow
+
+  @test
+  subroutine test_mlm_restart_restores_lake_topology()
+    type(exchange_t), target :: writer_exchange, reader_exchange
+    type(grid_t), target :: lake_grid
+    type(points_t), target :: lake_points
+    type(mlm_t) :: writer, reader
+    integer(i8), target :: lake_ids(1), lake_map(2)
+    real(dp), target :: lake_levels(1)
+    integer :: status
+
+    call setup_exchange(writer_exchange, "2001-01-02 00:00:00")
+    status = writer_exchange%config%processes%set(routing=2_i4, lake=-2_i4)
+    @assertEqual(0, status)
+    call lake_grid%init(2_i4, 1_i4, cellsize=1.0_dp, y_direction=bottom_up)
+    call lake_points%init([10.0_dp], [20.0_dp], coordsys=cartesian)
+    lake_ids = [10_i8]
+    lake_map = [10_i8, 10_i8]
+    lake_levels = [1.0_dp]
+    writer_exchange%level0_lake => lake_grid
+    writer_exchange%lake_points => lake_points
+    call writer_exchange%lake_ids%publish_local("test", lake_ids, no_time)
+    call writer_exchange%lake_map%publish_local("test", lake_map, no_time)
+    call writer_exchange%lake_max_levels%publish_local("test", lake_levels, no_time)
+    writer%exchange => writer_exchange
+    call writer%connect()
+    writer%outflow = [3.0_dp]
+    writer%write_restart = .true.
+    writer%restart_output_path = "mlm_restart_lake_topology.nc"
+    call writer%finalize()
+
+    call setup_exchange(reader_exchange, "2001-01-02 00:00:00")
+    status = reader_exchange%config%processes%set(routing=2_i4, lake=-2_i4)
+    @assertEqual(0, status)
+    reader%exchange => reader_exchange
+    reader%read_restart = .true.
+    reader%restart_input_path = "mlm_restart_lake_topology.nc"
+    call reader%connect()
+    @assertEqual([10_i8, 10_i8], reader_exchange%lake_map%data, message="restart-only mLM restores the packed lake map")
+    @assertEqual([2.0_dp], reader_exchange%lake_area%data, tolerance=1.0e-12_dp, message="restart-only mLM restores lake area from its footprint")
+    @assertEqual(2_i8, reader_exchange%level0_lake%ncells, message="restart-only mLM restores the lake grid")
+    call reader%finalize()
+
+    call writer_exchange%lake_ids%clear(owned=.true.)
+    call writer_exchange%lake_map%clear(owned=.true.)
+    call writer_exchange%lake_max_levels%clear(owned=.true.)
+    nullify(writer_exchange%lake_points)
+    nullify(writer_exchange%level0_lake)
+  end subroutine test_mlm_restart_restores_lake_topology
 
   subroutine setup_exchange(exchange, start_time)
     type(exchange_t), target, intent(inout) :: exchange

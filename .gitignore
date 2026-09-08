@@ -38,6 +38,7 @@ test_domain*/restart/*.nc
 *prog_for_check
 *terminal
 mrm_*.nc
+mlm_*.nc
 mpr_*.nc
 mhm_*.nc
 

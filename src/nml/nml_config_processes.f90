@@ -60,7 +60,7 @@ module nml_config_processes
   integer(i4), parameter, public :: neutrons__enum_values(3) = [0_i4, 1_i4, 2_i4]
   integer(i4), parameter, public :: routing__enum_values(4) = [0_i4, 1_i4, 2_i4, 3_i4]
   integer(i4), parameter, public :: temperature_routing__enum_values(2) = [0_i4, 1_i4]
-  integer(i4), parameter, public :: lake__enum_values(2) = [-1_i4, 0_i4]
+  integer(i4), parameter, public :: lake__enum_values(3) = [-2_i4, -1_i4, 0_i4]
 
   !> \class nml_config_processes_t
   !> \brief Processes configuration

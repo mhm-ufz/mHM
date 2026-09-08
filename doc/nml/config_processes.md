@@ -221,14 +221,15 @@ Lake process case `lake`
 Lake-component process case.
 - 0: internal mLM component disabled; a coupler may provide lake outflow.
 - -1: one-step delayed pass-through of mRM lake inflow.
+- -2: delayed lake inflow adjusted by precipitation and PET over the lake footprint.
 
 Summary:
 - Type: `integer(i4)`
 - Declared required: no
 - Input required: no
 - Default: `0`
-- Allowed values: `-1`, `0`
-- Examples: `-1`
+- Allowed values: `-2`, `-1`, `0`
+- Examples: `-2`, `-1`
 
 ## Example
 
@@ -245,7 +246,7 @@ Summary:
   neutrons = 0
   routing = 3
   temperature_routing = 0
-  lake = -1
+  lake = -2
 /
 ```
 

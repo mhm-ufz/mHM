@@ -14,6 +14,7 @@ module mo_mlm_container
   use mo_kind, only: i4, i8, dp
   use mo_datetime, only: datetime, one_hour
   use mo_exchange_type, only: exchange_t
+  use mo_grid, only: grid_t
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_grid_io, only: var, daily, monthly, yearly, no_time, time_units_delta
   use mo_points, only: points_t, cartesian, spherical
@@ -36,6 +37,9 @@ module mo_mlm_container
     type(nml_output_mlm_t) :: output_config !< lake-point output configuration
     type(exchange_t), pointer :: exchange => null() !< owning domain exchange
     integer(i8), allocatable :: lake_ids(:) !< stable IDs in point-set order
+    integer(i8), allocatable :: lake_map(:) !< stable IDs on packed level-0 lake cells
+    real(dp), allocatable :: lake_area(:) !< lake surface areas [m2]
+    type(grid_t) :: static_lake_grid !< lake footprint geometry retained for restart
     type(points_t) :: static_lake_points !< static point metadata retained for restart output
     real(dp), allocatable :: static_lake_max_levels(:) !< maximum levels retained for restart output
     type(points_t) :: restart_lake_points !< point set restored from restart metadata
@@ -48,6 +52,7 @@ module mo_mlm_container
     logical :: output_active = .false. !< whether lake-point output is enabled
     logical :: owns_restart_lake_points = .false. !< whether mLM published the restart point set
     logical :: owns_restart_lake_metadata = .false. !< whether mLM published restart IDs and maximum levels
+    logical :: owns_restart_lake_grid = .false. !< whether mLM restored and published lake topology
     character(:), allocatable :: restart_input_path !< resolved input restart path
     character(:), allocatable :: restart_output_path !< resolved output restart path
     character(:), allocatable :: output_path !< resolved lake-point output path
@@ -61,6 +66,8 @@ module mo_mlm_container
     procedure :: finalize => mlm_finalize
     procedure, private :: create_restart => mlm_create_restart
     procedure, private :: read_restart_metadata => mlm_read_restart_metadata
+    procedure, private :: read_restart_topology => mlm_read_restart_topology
+    procedure, private :: derive_lake_area => mlm_derive_lake_area
     procedure, private :: read_restart_state => mlm_read_restart_state
     procedure, private :: validate_restart_metadata => mlm_validate_restart_metadata
     procedure, private :: create_output => mlm_create_output
@@ -95,13 +102,13 @@ contains
 
     lake_case = self%exchange%config%processes%lake
     self%active = lake_case /= 0_i4
-    if (lake_case /= 0_i4 .and. lake_case /= -1_i4) then
+    if (lake_case /= 0_i4 .and. lake_case /= -1_i4 .and. lake_case /= -2_i4) then
       log_fatal(*) "mLM: unsupported lake process case: ", n2s(lake_case)
       error stop 1
     end if
     if (.not.self%active) return
     if (self%exchange%config%processes%routing == 0_i4) then
-      log_fatal(*) "mLM process -1 requires active mRM routing."
+      log_fatal(*) "mLM lake processes require active mRM routing."
       error stop 1
     end if
     id(1) = self%exchange%nml_domain_id
@@ -175,8 +182,10 @@ contains
   subroutine mlm_connect(self)
     class(mlm_t), target, intent(inout) :: self
     integer(i8) :: n_lakes
+    integer(i4) :: lake_case
     logical :: has_points, has_ids, has_levels, has_metadata
 
+    lake_case = self%exchange%config%processes%lake
     has_points = associated(self%exchange%lake_points)
     has_ids = self%exchange%lake_ids%provided
     has_levels = self%exchange%lake_max_levels%provided
@@ -217,6 +226,23 @@ contains
       error stop 1
     end if
     self%lake_ids = self%exchange%lake_ids%data
+    if (lake_case == -2_i4) then
+      if (associated(self%exchange%level0_lake) .and. self%exchange%lake_map%provided) then
+        call self%exchange%lake_map%require("mLM", .true., [self%exchange%level0_lake%ncells])
+        self%static_lake_grid = self%exchange%level0_lake
+        self%lake_map = self%exchange%lake_map%data
+      else if (self%read_restart) then
+        call self%read_restart_topology()
+        self%exchange%level0_lake => self%static_lake_grid
+        call self%exchange%lake_map%publish_local("mLM", self%lake_map, no_time)
+        self%owns_restart_lake_grid = .true.
+      else
+        log_fatal(*) "mLM process -2 requires a level-0 lake grid and lake map."
+        error stop 1
+      end if
+      call self%derive_lake_area()
+      call self%exchange%lake_area%publish_local("mLM", self%lake_area, no_time)
+    end if
     allocate(self%outflow(n_lakes), source=0.0_dp)
     call self%exchange%lake_outflow%publish_local("mLM", self%outflow, 1_i4)
   end subroutine mlm_connect
@@ -225,13 +251,18 @@ contains
   subroutine mlm_initialize(self)
     class(mlm_t), target, intent(inout) :: self
     if (self%exchange%step_hours /= 1_i4) then
-      log_fatal(*) "mLM process -1 requires a one-hour model step."
+      log_fatal(*) "mLM lake processes require a one-hour model step."
       error stop 1
     end if
     call self%exchange%lake_inflow%require("mLM", .true., [size(self%lake_ids, kind=i8)])
     if (self%exchange%lake_inflow%stepping /= 1_i4) then
       log_fatal(*) "mLM: lake inflow must have one-hour support."
       error stop 1
+    end if
+    if (self%exchange%config%processes%lake == -2_i4) then
+      call self%exchange%lake_area%require("mLM", .true., [size(self%lake_ids, kind=i8)])
+      call self%exchange%lake_pre%require("mLM", .true., [size(self%lake_ids, kind=i8)])
+      call self%exchange%lake_pet%require("mLM", .true., [size(self%lake_ids, kind=i8)])
     end if
     self%outflow = 0.0_dp
     if (self%read_restart) call self%read_restart_state()
@@ -243,6 +274,10 @@ contains
   subroutine mlm_update(self)
     class(mlm_t), target, intent(inout) :: self
     self%outflow = self%exchange%lake_inflow%data
+    if (self%exchange%config%processes%lake == -2_i4) then
+      self%outflow = max(0.0_dp, self%outflow + self%lake_area * &
+        (self%exchange%lake_pre%data - self%exchange%lake_pet%data) * 1.0e-3_dp / 3600.0_dp)
+    end if
     call self%update_output()
   end subroutine mlm_update
 
@@ -257,6 +292,7 @@ contains
       log_info(*) "No mLM output file will be written"
     end if
     call self%exchange%lake_outflow%clear(owned=.true.)
+    call self%exchange%lake_area%clear(owned=allocated(self%lake_area))
     if (self%owns_restart_lake_metadata) then
       call self%exchange%lake_ids%clear(owned=.true.)
       call self%exchange%lake_max_levels%clear(owned=.true.)
@@ -266,7 +302,14 @@ contains
       if (associated(self%exchange%lake_points, self%static_lake_points)) nullify(self%exchange%lake_points)
       self%owns_restart_lake_points = .false.
     end if
+    if (self%owns_restart_lake_grid) then
+      call self%exchange%lake_map%clear(owned=.true.)
+      if (associated(self%exchange%level0_lake, self%static_lake_grid)) nullify(self%exchange%level0_lake)
+      self%owns_restart_lake_grid = .false.
+    end if
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
+    if (allocated(self%lake_map)) deallocate(self%lake_map)
+    if (allocated(self%lake_area)) deallocate(self%lake_area)
     self%static_lake_points = points_t()
     if (allocated(self%static_lake_max_levels)) deallocate(self%static_lake_max_levels)
     self%restart_lake_points = points_t()
@@ -370,7 +413,7 @@ contains
   subroutine mlm_create_restart(self)
     class(mlm_t), target, intent(inout) :: self
     type(NcDataset) :: nc
-    type(NcDimension) :: dims(0), lake_dim
+    type(NcDimension) :: dims(0), lake_dim, lake_cell_dim
     type(NcVariable) :: var
 
     if (self%static_lake_points%n_points /= size(self%lake_ids, kind=i8) .or. &
@@ -394,6 +437,12 @@ contains
     var = nc%setVariable("lake_outflow", "f64", [lake_dim])
     call var%setAttribute("units", "m3 s-1")
     call var%setData(self%outflow)
+    if (self%exchange%config%processes%lake == -2_i4) then
+      call self%static_lake_grid%to_restart(nc)
+      lake_cell_dim = nc%setDimension("lake_cell", int(size(self%lake_map), i4))
+      var = nc%setVariable("lake_map", "i64", [lake_cell_dim])
+      call var%setData(self%lake_map)
+    end if
     var = nc%setVariable("mlm_meta", "i32", dims(:0))
     call var%setData(0_i4)
     call var%setAttribute("time_stamp", self%exchange%time%str())
@@ -476,6 +525,51 @@ contains
     end if
     call nc%close()
   end subroutine mlm_read_restart_metadata
+
+  !> \brief Restore the static level-0 lake footprint required by lake case -2.
+  subroutine mlm_read_restart_topology(self)
+    class(mlm_t), target, intent(inout) :: self
+    type(NcDataset) :: nc
+    type(NcVariable) :: var
+
+    nc = NcDataset(self%restart_input_path, "r")
+    if (.not.nc%hasVariable("lake_map")) then
+      log_fatal(*) "mLM process -2 restart is missing the level-0 lake topology: ", self%restart_input_path
+      error stop 1
+    end if
+    call self%static_lake_grid%from_restart(nc)
+    var = nc%getVariable("lake_map")
+    call var%getData(self%lake_map)
+    call nc%close()
+    if (size(self%lake_map, kind=i8) /= self%static_lake_grid%ncells .or. any(self%lake_map <= 0_i8)) then
+      log_fatal(*) "mLM process -2 restart contains an invalid packed level-0 lake map."
+      error stop 1
+    end if
+  end subroutine mlm_read_restart_topology
+
+  !> \brief Derive lake surface area from its packed level-0 footprint.
+  subroutine mlm_derive_lake_area(self)
+    class(mlm_t), target, intent(inout) :: self
+    integer(i8) :: i, j
+
+    if (size(self%lake_map, kind=i8) /= self%static_lake_grid%ncells) then
+      log_fatal(*) "mLM: lake map does not match the level-0 lake grid."
+      error stop 1
+    end if
+    allocate(self%lake_area(size(self%lake_ids)), source=0.0_dp)
+    do i = 1_i8, size(self%lake_map, kind=i8)
+      j = findloc(self%lake_ids, self%lake_map(i), dim=1, kind=i8)
+      if (j < 1_i8) then
+        log_fatal(*) "mLM: lake map contains an unknown stable lake ID."
+        error stop 1
+      end if
+      self%lake_area(j) = self%lake_area(j) + self%static_lake_grid%cell_area(i)
+    end do
+    if (any(self%lake_area <= 0.0_dp)) then
+      log_fatal(*) "mLM: every lake must have positive level-0 area."
+      error stop 1
+    end if
+  end subroutine mlm_derive_lake_area
 
   !> \brief Verify restart metadata against Input metadata without imposing restart-file ordering.
   subroutine mlm_validate_restart_metadata(self)

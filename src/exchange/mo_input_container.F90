@@ -134,8 +134,10 @@ module mo_input_container
     type(grid_t) :: tgt_level3 !< grid level 3 of the domain if given from input
     type(river_t) :: river_l0 !< full level-0 river network derived from flow direction
     logical :: owns_river_l0 = .false. !< whether this input instance published the level-0 river
+    logical :: owns_lake_map = .false. !< whether this input instance published the packed lake map
     type(points_t) :: lake_outlets !< configured lake outlet coordinates
     integer(i8), allocatable :: lake_ids(:) !< stable lake IDs aligned with lake_outlets
+    integer(i8), allocatable :: lake_map(:) !< stable IDs aligned with packed level-0 lake cells
     real(dp), allocatable :: lake_max_levels(:) !< maximum lake levels aligned with lake_outlets
     integer(i4) :: chunking !< chunking configuration (0 single read, -1 daily, -2 monthly, -3 yearly, >0 every n hours)
     integer(i4) :: time_stamp_location !< location of time-stamp variable in input datasets (0 start, 1 center, 2 end)
@@ -1549,6 +1551,7 @@ contains
     class(input_t), target, intent(inout) :: self
     logical, allocatable :: land_packed(:), lake_packed(:)
     logical, allocatable :: new_mask(:,:)
+    integer(i8), allocatable :: full_lake_map(:,:)
 
     if (.not.associated(self%exchange%level0)) then
       log_fatal(*) "Input: cannot derive land and lake grids without the full level-0 grid."
@@ -1573,6 +1576,16 @@ contains
     end if
     self%exchange%level0_land => self%tgt_level0_land
     self%exchange%level0_lake => self%tgt_level0_lake
+    allocate(full_lake_map(self%exchange%level0%nx, self%exchange%level0%ny))
+    call self%exchange%level0%unpack_into(self%river_l0%lake_map, full_lake_map)
+    call self%exchange%level0_lake%pack_into(full_lake_map, self%lake_map)
+    deallocate(full_lake_map)
+    if (any(self%lake_map <= 0_i8)) then
+      log_fatal(*) "Input: packed level-0 lake grid contains an invalid lake ID."
+      error stop 1
+    end if
+    call self%exchange%lake_map%publish_local("Input", self%lake_map, no_time)
+    self%owns_lake_map = .true.
   end subroutine input_build_lake_grids
 
   !> \brief Initialize the Input container for the model run.
@@ -1664,6 +1677,11 @@ contains
     end if
     self%lake_outlets = points_t()
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
+    if (self%owns_lake_map) then
+      call self%exchange%lake_map%clear(owned=.true.)
+      self%owns_lake_map = .false.
+    end if
+    if (allocated(self%lake_map)) deallocate(self%lake_map)
     if (allocated(self%lake_max_levels)) deallocate(self%lake_max_levels)
     nullify(self%exchange%level0_lake)
     nullify(self%exchange%level0_land)
