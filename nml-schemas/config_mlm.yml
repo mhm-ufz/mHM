@@ -3,6 +3,15 @@ description: Configuration for the v6 lake component (mLM).
 x-fortran-namelist: config_mlm
 type: object
 properties:
+  input_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: mLM lake input path
+    description: Directory where the lake input data for each domain is located.
   output_path:
     type: array
     items:
