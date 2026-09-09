@@ -1034,6 +1034,14 @@ contains
     if (self%output_config%out_Qrouted) then
       vars = [vars, self%exchange%discharge%as_output_var(dtype=dtype, avg=.true.)]
     end if
+    if (self%output_config%out_facc) then
+      vars = [vars, var(name="facc", long_name="flow accumulation", dtype="i32", kind="i4", static=.true.)]
+      if (.not.allocated(self%river%facc)) call self%river%calc_facc()
+    end if
+    if (self%output_config%out_upstream_area) then
+      vars = [vars, var(name="upstream_area", long_name="upstream area", dtype=dtype, kind="dp", static=.true.)]
+      if (.not.allocated(self%river%upstream_area)) call self%river%calc_upstream_area()
+    end if
 
     ! create grid based output
     if (self%output_active) then
@@ -1047,12 +1055,22 @@ contains
         delta       = delta, &
         timestamp   = timestamp, &
         deflate_level = self%output_config%output_deflate_level)
+      if (self%output_config%out_facc) &
+        call self%ds_out%update("facc", self%river%select_cell_values(self%river%facc))
+      if (self%output_config%out_upstream_area) &
+        call self%ds_out%update("upstream_area", self%river%select_cell_values(self%river%upstream_area))
+      call self%ds_out%write_static()
     end if
 
     ! create node based output
     if (self%output_node_active) then
       node_vars = [vars, var(name="node", long_name="river node ID", dtype="i64", kind="i8", static=.true.)]
-      node_ids = [(i, i=1_i8,self%river%n_nodes)]
+      allocate(node_ids(self%river%n_nodes))
+      !$omp parallel do default(shared)
+      do i = 1_i8, self%river%n_nodes
+        node_ids(i) = i
+      end do
+      !$omp end parallel do
       log_info(*) "Create mRM node based output file: ", self%output_node_path
       call self%ds_node_out%init( &
         path        = self%output_node_path, &
@@ -1065,6 +1083,8 @@ contains
         point_dim_name = "node", &
         time_series = self%node_timeseries)
       call self%ds_node_out%update("node", node_ids)
+      if (self%output_config%out_facc) call self%ds_node_out%update("facc", self%river%facc)
+      if (self%output_config%out_upstream_area) call self%ds_node_out%update("upstream_area", self%river%upstream_area)
       call self%ds_node_out%write_static()
       call self%add_node_topology()
     end if
@@ -1084,6 +1104,8 @@ contains
         point_dim_name = "station", &
         time_series   = self%poi%time_series)
       call self%poi%dataset%update("station", self%poi%ids)
+      if (self%output_config%out_facc) call self%poi%dataset%update("facc", self%river%facc(self%poi%locations))
+      if (self%output_config%out_upstream_area) call self%poi%dataset%update("upstream_area", self%river%upstream_area(self%poi%locations))
       call self%poi%dataset%write_static()
     end if
 

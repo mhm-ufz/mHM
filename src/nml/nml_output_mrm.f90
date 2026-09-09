@@ -39,6 +39,8 @@ module nml_output_mrm
   logical, parameter, public :: output_double_precision__default = .false.
   integer(i4), parameter, public :: output_time_reference__default = 2_i4
   integer(i4), parameter, public :: output_frequency__default = -1_i4
+  logical, parameter, public :: out_facc__default = .false.
+  logical, parameter, public :: out_upstream_area__default = .false.
   logical, parameter, public :: out_qrouted__default = .false.
   logical, parameter, public :: out_rivtemp__default = .false.
 
@@ -59,6 +61,8 @@ module nml_output_mrm
     logical :: output_double_precision !< Output double precision
     integer(i4) :: output_time_reference !< Output time reference
     integer(i4) :: output_frequency !< Output time step
+    logical :: out_facc !< Flow accumulation
+    logical :: out_upstream_area !< Upstream area
     logical :: out_qrouted !< Routed Streamflow
     logical :: out_rivtemp !< Routed Temperature
   contains
@@ -138,6 +142,8 @@ contains
     this%output_double_precision = output_double_precision__default ! bool values always need a default
     this%output_time_reference = output_time_reference__default
     this%output_frequency = output_frequency__default
+    this%out_facc = out_facc__default ! bool values always need a default
+    this%out_upstream_area = out_upstream_area__default ! bool values always need a default
     this%out_qrouted = out_qrouted__default ! bool values always need a default
     this%out_rivtemp = out_rivtemp__default ! bool values always need a default
   end function nml_output_mrm_init
@@ -153,6 +159,8 @@ contains
     logical :: output_double_precision
     integer(i4) :: output_time_reference
     integer(i4) :: output_frequency
+    logical :: out_facc
+    logical :: out_upstream_area
     logical :: out_qrouted
     logical :: out_rivtemp
     ! locals
@@ -166,6 +174,8 @@ contains
       output_double_precision, &
       output_time_reference, &
       output_frequency, &
+      out_facc, &
+      out_upstream_area, &
       out_qrouted, &
       out_rivtemp
 
@@ -175,6 +185,8 @@ contains
     output_double_precision = this%output_double_precision
     output_time_reference = this%output_time_reference
     output_frequency = this%output_frequency
+    out_facc = this%out_facc
+    out_upstream_area = this%out_upstream_area
     out_qrouted = this%out_qrouted
     out_rivtemp = this%out_rivtemp
 
@@ -206,6 +218,8 @@ contains
     this%output_double_precision = output_double_precision
     this%output_time_reference = output_time_reference
     this%output_frequency = output_frequency
+    this%out_facc = out_facc
+    this%out_upstream_area = out_upstream_area
     this%out_qrouted = out_qrouted
     this%out_rivtemp = out_rivtemp
 
@@ -220,6 +234,8 @@ contains
     output_double_precision, &
     output_time_reference, &
     output_frequency, &
+    out_facc, &
+    out_upstream_area, &
     out_qrouted, &
     out_rivtemp, &
     errmsg) result(status)
@@ -230,6 +246,8 @@ contains
     logical, intent(in), optional :: output_double_precision !< Output double precision
     integer(i4), intent(in), optional :: output_time_reference !< Output time reference
     integer(i4), intent(in), optional :: output_frequency !< Output time step
+    logical, intent(in), optional :: out_facc !< Flow accumulation
+    logical, intent(in), optional :: out_upstream_area !< Upstream area
     logical, intent(in), optional :: out_qrouted !< Routed Streamflow
     logical, intent(in), optional :: out_rivtemp !< Routed Temperature
 
@@ -242,6 +260,8 @@ contains
     if (present(output_double_precision)) this%output_double_precision = output_double_precision
     if (present(output_time_reference)) this%output_time_reference = output_time_reference
     if (present(output_frequency)) this%output_frequency = output_frequency
+    if (present(out_facc)) this%out_facc = out_facc
+    if (present(out_upstream_area)) this%out_upstream_area = out_upstream_area
     if (present(out_qrouted)) this%out_qrouted = out_qrouted
     if (present(out_rivtemp)) this%out_rivtemp = out_rivtemp
 
@@ -287,6 +307,18 @@ contains
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'output_frequency'"
+        return
+      end if
+    case ("out_facc")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_facc'"
+        return
+      end if
+    case ("out_upstream_area")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_upstream_area'"
         return
       end if
     case ("out_qrouted")
