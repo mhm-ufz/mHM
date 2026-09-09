@@ -29,6 +29,10 @@ doc = "Number of domains."
 default = 25
 doc = "Number of geological units."
 
+[dimensions.n_lakes_total]
+default = 100
+doc = "Total number of lakes (sum of all lakes across all domains)."
+
 [documentation]
 module = '''
 !> \version 0.2

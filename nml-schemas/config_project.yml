@@ -58,6 +58,15 @@ properties:
     default: 25
     title: Number of geological units
     description: Number of geological units in the global parameter set.
+  n_lakes_total:
+    type: integer
+    x-fortran-kind: i4
+    default: 1
+    minimum: 1
+    title: Total number of lakes
+    description: |-
+      Total number of lakes to be modeled (sum of all lakes across all domains).
+      Each lake ID should correspond to one given in the "lake_outlets.nc" file.
   max_layers:
     type: integer
     x-fortran-kind: i4

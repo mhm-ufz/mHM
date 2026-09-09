@@ -41,3 +41,88 @@ properties:
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: mLM restart output path
+  force_initialize_lake_at_restart:
+    type: boolean
+    default: false
+    title: Force lake level initialization at restart
+    description: |-
+      Flag for lake water level initialization for a simulation started from a restart file.
+      Only used if the mLM restart is read (read_restart = true).
+      - if true : forces lake_init_level as the initial lake level (use during warm-up based restart).
+      - if false : initializes the lake level from the restart file (use for chronology runs,
+        forecasting, or restart tests during development).
+  force_initialize_lake_at_a_date:
+    type: boolean
+    default: false
+    title: Force lake level initialization at a date
+    description: |-
+      Flag for lake water level initialization at the start of lake_init_date.
+      A valid lake_init_date must be provided when this is enabled.
+      - if true : forces initial_lake_level as the initial lake level at the start of lake_init_date.
+      - if false : no forced initialization.
+  input_windspeed_height:
+    type: number
+    x-fortran-kind: dp
+    default: 2.0
+    minimum: 0.0
+    title: Input windspeed height [m]
+    description: |-
+      mLM requires windspeed data at 2 m height. If the input windspeed data is provided at a
+      height other than 2 m, mLM applies the Hellmann exponential law to derive the 2 m windspeed.
+      Enter the height for which the input windspeed data is provided, in metres.
+    examples: [10.0]
+  variable_albedo:
+    type: boolean
+    default: true
+    title: Variable water albedo
+    description: Use a variable water albedo in the evaporation calculation.
+  variable_lambda:
+    type: boolean
+    default: true
+    title: Variable latent heat of vaporisation
+    description: Use a variable latent heat of vaporisation of water in the evaporation calculation.
+  variable_psychro:
+    type: boolean
+    default: true
+    title: Variable psychrometric constant
+    description: Use a variable psychrometric constant in the evaporation calculation.
+  albedo_method:
+    type: integer
+    x-fortran-kind: i4
+    enum: [1, 2]
+    default: 2
+    title: Water albedo calculation method
+    description: |-
+      Method of water albedo calculation. Only used if variable_albedo is true.
+      - 1 : Fresnel equation.
+      - 2 : Grishchenko (1959).
+  hanasaki_2006:
+    type: boolean
+    default: true
+    title: Hanasaki et al. (2006) release target
+    description: |-
+      Use the temperature release target after Hanasaki et al. (2006).
+      If enabled, the per-lake reservoir capacity and mean annual inflow must be provided.
+  point_demand:
+    type: boolean
+    default: false
+    title: Point demand input
+    description: |-
+      Flag deciding whether demand data is provided as point time series or as a space-time
+      field (netCDF).
+      - if true : lake_filename_Demand_<demandtype> must be provided for each activated use flag.
+      - if false : demand field netCDF files must be present in the demand input folder.
+  print_lake_maps:
+    type: boolean
+    default: true
+    title: Print lake maps
+    description: |-
+      Print maps of the lake, lake catchment, lake demand catchment, and lake circular catchment.
+      Optional output used for model verification.
+  print_links_table:
+    type: boolean
+    default: true
+    title: Print links table
+    description: |-
+      Print the table of link (river-lake, river-node) network variables.
+      Optional output used for model verification.
