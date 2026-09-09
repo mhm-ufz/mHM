@@ -42,7 +42,7 @@ module mo_meteo_container
   use mo_read_nc, only: read_weights_nc
   use mo_string_utils, only: n2s => num2str
   use mo_utils, only: is_close
-  use nml_config_meteo, only: nml_config_meteo_t, NML_OK
+  use nml_config_meteo, only: nml_config_meteo_t, NML_OK, NML_ERR_NML_NOT_FOUND
 
   character(len=*), parameter :: s = "meteo" !< module scope for logging
   public :: meteo_is_day_step, meteo_supports_model_step, meteo_supports_forcing_step
@@ -200,7 +200,13 @@ contains
       path = self%exchange%get_path(file)
       log_info(*) "Read meteo config: ", path
       status = self%config%from_file(file=path, errmsg=errmsg)
-      if (status /= NML_OK) then
+      if (status == NML_ERR_NML_NOT_FOUND) then
+        status = self%config%set(errmsg=errmsg)
+        if (status /= NML_OK) then
+          log_fatal(*) "Error setting default meteo config: ", trim(errmsg)
+          error stop 1
+        end if
+      else if (status /= NML_OK) then
         log_fatal(*) "Error reading meteo config: ", trim(errmsg)
         error stop 1
       end if
