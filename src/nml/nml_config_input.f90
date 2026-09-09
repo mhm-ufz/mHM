@@ -64,6 +64,7 @@ module nml_config_input
   character(len=buf), parameter, public :: slope_var__default = "slope"
   character(len=buf), parameter, public :: aspect_var__default = "aspect"
   character(len=buf), parameter, public :: fdir_var__default = "fdir"
+  character(len=buf), parameter, public :: lake_level_var__default = "max_lake_level"
   character(len=buf), parameter, public :: facc_var__default = "facc"
   character(len=buf), parameter, public :: geo_class_var__default = "geology_class"
   character(len=buf), parameter, public :: soil_class_var__default = "soil_class"
@@ -117,6 +118,7 @@ module nml_config_input
     character(len=buf), allocatable, dimension(:) :: slope_path !< Slope input
     character(len=buf), allocatable, dimension(:) :: aspect_path !< Aspect input
     character(len=buf), allocatable, dimension(:) :: fdir_path !< Flow direction input
+    character(len=buf), allocatable, dimension(:) :: lake_definition_path !< Lake definition input
     character(len=buf), allocatable, dimension(:) :: facc_path !< Flow accumulation input
     character(len=buf), allocatable, dimension(:) :: geo_class_path !< Geology class input
     character(len=buf), allocatable, dimension(:) :: soil_class_path !< Soil class input
@@ -146,6 +148,7 @@ module nml_config_input
     character(len=buf), allocatable, dimension(:) :: slope_var !< Slope variable name
     character(len=buf), allocatable, dimension(:) :: aspect_var !< Aspect variable name
     character(len=buf), allocatable, dimension(:) :: fdir_var !< Flow direction variable name
+    character(len=buf), allocatable, dimension(:) :: lake_level_var !< Maximum lake level variable name
     character(len=buf), allocatable, dimension(:) :: facc_var !< Flow accumulation variable name
     character(len=buf), allocatable, dimension(:) :: geo_class_var !< Geology class variable name
     character(len=buf), allocatable, dimension(:) :: soil_class_var !< Soil class variable name
@@ -265,6 +268,8 @@ contains
     allocate(character(len=buf) :: this%aspect_path(this%n_domains))
     if (allocated(this%fdir_path)) deallocate(this%fdir_path)
     allocate(character(len=buf) :: this%fdir_path(this%n_domains))
+    if (allocated(this%lake_definition_path)) deallocate(this%lake_definition_path)
+    allocate(character(len=buf) :: this%lake_definition_path(this%n_domains))
     if (allocated(this%facc_path)) deallocate(this%facc_path)
     allocate(character(len=buf) :: this%facc_path(this%n_domains))
     if (allocated(this%geo_class_path)) deallocate(this%geo_class_path)
@@ -323,6 +328,8 @@ contains
     allocate(character(len=buf) :: this%aspect_var(this%n_domains))
     if (allocated(this%fdir_var)) deallocate(this%fdir_var)
     allocate(character(len=buf) :: this%fdir_var(this%n_domains))
+    if (allocated(this%lake_level_var)) deallocate(this%lake_level_var)
+    allocate(character(len=buf) :: this%lake_level_var(this%n_domains))
     if (allocated(this%facc_var)) deallocate(this%facc_var)
     allocate(character(len=buf) :: this%facc_var(this%n_domains))
     if (allocated(this%geo_class_var)) deallocate(this%geo_class_var)
@@ -372,6 +379,7 @@ contains
     this%slope_path = achar(0) ! sentinel for optional string array
     this%aspect_path = achar(0) ! sentinel for optional string array
     this%fdir_path = achar(0) ! sentinel for optional string array
+    this%lake_definition_path = achar(0) ! sentinel for optional string array
     this%facc_path = achar(0) ! sentinel for optional string array
     this%geo_class_path = achar(0) ! sentinel for optional string array
     this%soil_class_path = achar(0) ! sentinel for optional string array
@@ -405,6 +413,7 @@ contains
     this%slope_var = slope_var__default
     this%aspect_var = aspect_var__default
     this%fdir_var = fdir_var__default
+    this%lake_level_var = lake_level_var__default
     this%facc_var = facc_var__default
     this%geo_class_var = geo_class_var__default
     this%soil_class_var = soil_class_var__default
@@ -469,6 +478,7 @@ contains
     if (allocated(this%slope_path)) deallocate(this%slope_path)
     if (allocated(this%aspect_path)) deallocate(this%aspect_path)
     if (allocated(this%fdir_path)) deallocate(this%fdir_path)
+    if (allocated(this%lake_definition_path)) deallocate(this%lake_definition_path)
     if (allocated(this%facc_path)) deallocate(this%facc_path)
     if (allocated(this%geo_class_path)) deallocate(this%geo_class_path)
     if (allocated(this%soil_class_path)) deallocate(this%soil_class_path)
@@ -498,6 +508,7 @@ contains
     if (allocated(this%slope_var)) deallocate(this%slope_var)
     if (allocated(this%aspect_var)) deallocate(this%aspect_var)
     if (allocated(this%fdir_var)) deallocate(this%fdir_var)
+    if (allocated(this%lake_level_var)) deallocate(this%lake_level_var)
     if (allocated(this%facc_var)) deallocate(this%facc_var)
     if (allocated(this%geo_class_var)) deallocate(this%geo_class_var)
     if (allocated(this%soil_class_var)) deallocate(this%soil_class_var)
@@ -546,6 +557,7 @@ contains
     character(len=buf), allocatable, dimension(:) :: slope_path
     character(len=buf), allocatable, dimension(:) :: aspect_path
     character(len=buf), allocatable, dimension(:) :: fdir_path
+    character(len=buf), allocatable, dimension(:) :: lake_definition_path
     character(len=buf), allocatable, dimension(:) :: facc_path
     character(len=buf), allocatable, dimension(:) :: geo_class_path
     character(len=buf), allocatable, dimension(:) :: soil_class_path
@@ -575,6 +587,7 @@ contains
     character(len=buf), allocatable, dimension(:) :: slope_var
     character(len=buf), allocatable, dimension(:) :: aspect_var
     character(len=buf), allocatable, dimension(:) :: fdir_var
+    character(len=buf), allocatable, dimension(:) :: lake_level_var
     character(len=buf), allocatable, dimension(:) :: facc_var
     character(len=buf), allocatable, dimension(:) :: geo_class_var
     character(len=buf), allocatable, dimension(:) :: soil_class_var
@@ -620,6 +633,7 @@ contains
       slope_path, &
       aspect_path, &
       fdir_path, &
+      lake_definition_path, &
       facc_path, &
       geo_class_path, &
       soil_class_path, &
@@ -649,6 +663,7 @@ contains
       slope_var, &
       aspect_var, &
       fdir_var, &
+      lake_level_var, &
       facc_var, &
       geo_class_var, &
       soil_class_var, &
@@ -717,6 +732,8 @@ contains
     allocate(character(len=buf) :: aspect_path(this%n_domains))
     if (allocated(fdir_path)) deallocate(fdir_path)
     allocate(character(len=buf) :: fdir_path(this%n_domains))
+    if (allocated(lake_definition_path)) deallocate(lake_definition_path)
+    allocate(character(len=buf) :: lake_definition_path(this%n_domains))
     if (allocated(facc_path)) deallocate(facc_path)
     allocate(character(len=buf) :: facc_path(this%n_domains))
     if (allocated(geo_class_path)) deallocate(geo_class_path)
@@ -775,6 +792,8 @@ contains
     allocate(character(len=buf) :: aspect_var(this%n_domains))
     if (allocated(fdir_var)) deallocate(fdir_var)
     allocate(character(len=buf) :: fdir_var(this%n_domains))
+    if (allocated(lake_level_var)) deallocate(lake_level_var)
+    allocate(character(len=buf) :: lake_level_var(this%n_domains))
     if (allocated(facc_var)) deallocate(facc_var)
     allocate(character(len=buf) :: facc_var(this%n_domains))
     if (allocated(geo_class_var)) deallocate(geo_class_var)
@@ -825,6 +844,7 @@ contains
     slope_path = this%slope_path
     aspect_path = this%aspect_path
     fdir_path = this%fdir_path
+    lake_definition_path = this%lake_definition_path
     facc_path = this%facc_path
     geo_class_path = this%geo_class_path
     soil_class_path = this%soil_class_path
@@ -854,6 +874,7 @@ contains
     slope_var = this%slope_var
     aspect_var = this%aspect_var
     fdir_var = this%fdir_var
+    lake_level_var = this%lake_level_var
     facc_var = this%facc_var
     geo_class_var = this%geo_class_var
     soil_class_var = this%soil_class_var
@@ -917,6 +938,7 @@ contains
     this%slope_path = slope_path
     this%aspect_path = aspect_path
     this%fdir_path = fdir_path
+    this%lake_definition_path = lake_definition_path
     this%facc_path = facc_path
     this%geo_class_path = geo_class_path
     this%soil_class_path = soil_class_path
@@ -946,6 +968,7 @@ contains
     this%slope_var = slope_var
     this%aspect_var = aspect_var
     this%fdir_var = fdir_var
+    this%lake_level_var = lake_level_var
     this%facc_var = facc_var
     this%geo_class_var = geo_class_var
     this%soil_class_var = soil_class_var
@@ -992,6 +1015,7 @@ contains
     slope_path, &
     aspect_path, &
     fdir_path, &
+    lake_definition_path, &
     facc_path, &
     geo_class_path, &
     soil_class_path, &
@@ -1021,6 +1045,7 @@ contains
     slope_var, &
     aspect_var, &
     fdir_var, &
+    lake_level_var, &
     facc_var, &
     geo_class_var, &
     soil_class_var, &
@@ -1063,6 +1088,7 @@ contains
     character(len=*), dimension(:), intent(in), optional :: slope_path !< Slope input
     character(len=*), dimension(:), intent(in), optional :: aspect_path !< Aspect input
     character(len=*), dimension(:), intent(in), optional :: fdir_path !< Flow direction input
+    character(len=*), dimension(:), intent(in), optional :: lake_definition_path !< Lake definition input
     character(len=*), dimension(:), intent(in), optional :: facc_path !< Flow accumulation input
     character(len=*), dimension(:), intent(in), optional :: geo_class_path !< Geology class input
     character(len=*), dimension(:), intent(in), optional :: soil_class_path !< Soil class input
@@ -1092,6 +1118,7 @@ contains
     character(len=*), dimension(:), intent(in), optional :: slope_var !< Slope variable name
     character(len=*), dimension(:), intent(in), optional :: aspect_var !< Aspect variable name
     character(len=*), dimension(:), intent(in), optional :: fdir_var !< Flow direction variable name
+    character(len=*), dimension(:), intent(in), optional :: lake_level_var !< Maximum lake level variable name
     character(len=*), dimension(:), intent(in), optional :: facc_var !< Flow accumulation variable name
     character(len=*), dimension(:), intent(in), optional :: geo_class_var !< Geology class variable name
     character(len=*), dimension(:), intent(in), optional :: soil_class_var !< Soil class variable name
@@ -1372,6 +1399,16 @@ contains
       lb__1 = lbound(this%fdir_path, 1)
       ub__1 = lb__1 + size(fdir_path, 1) - 1
       this%fdir_path(lb__1:ub__1) = fdir_path
+    end if
+    if (present(lake_definition_path)) then
+      if (size(lake_definition_path, 1) > size(this%lake_definition_path, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lake_definition_path'"
+        return
+      end if
+      lb__1 = lbound(this%lake_definition_path, 1)
+      ub__1 = lb__1 + size(lake_definition_path, 1) - 1
+      this%lake_definition_path(lb__1:ub__1) = lake_definition_path
     end if
     if (present(facc_path)) then
       if (size(facc_path, 1) > size(this%facc_path, 1)) then
@@ -1662,6 +1699,16 @@ contains
       lb__1 = lbound(this%fdir_var, 1)
       ub__1 = lb__1 + size(fdir_var, 1) - 1
       this%fdir_var(lb__1:ub__1) = fdir_var
+    end if
+    if (present(lake_level_var)) then
+      if (size(lake_level_var, 1) > size(this%lake_level_var, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lake_level_var'"
+        return
+      end if
+      lb__1 = lbound(this%lake_level_var, 1)
+      ub__1 = lb__1 + size(lake_level_var, 1) - 1
+      this%lake_level_var(lb__1:ub__1) = lake_level_var
     end if
     if (present(facc_var)) then
       if (size(facc_var, 1) > size(this%facc_var, 1)) then
@@ -2136,6 +2183,19 @@ contains
       else
         if (all(this%fdir_path == achar(0))) status = NML_ERR_NOT_SET
       end if
+    case ("lake_definition_path")
+      if (.not. allocated(this%lake_definition_path)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%lake_definition_path), ubound(this%lake_definition_path), &
+          "lake_definition_path", errmsg)
+        if (status /= NML_OK) return
+        if (this%lake_definition_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
+      else
+        if (all(this%lake_definition_path == achar(0))) status = NML_ERR_NOT_SET
+      end if
     case ("facc_path")
       if (.not. allocated(this%facc_path)) then
         status = NML_ERR_NOT_SET
@@ -2466,6 +2526,17 @@ contains
       if (present(idx)) then
         status = idx_check(idx, lbound(this%fdir_var), ubound(this%fdir_var), &
           "fdir_var", errmsg)
+        if (status /= NML_OK) return
+      else
+      end if
+    case ("lake_level_var")
+      if (.not. allocated(this%lake_level_var)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%lake_level_var), ubound(this%lake_level_var), &
+          "lake_level_var", errmsg)
         if (status /= NML_OK) return
       else
       end if

@@ -227,6 +227,15 @@ properties:
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Flow direction input
+  lake_definition_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: Lake definition input
+    description: Point dataset containing lake outlet coordinates, stable IDs, and maximum lake levels.
   facc_path:
     type: array
     items:
@@ -459,6 +468,14 @@ properties:
       default: fdir
     x-fortran-shape: n_domains
     title: Flow direction variable name
+  lake_level_var:
+    type: array
+    items:
+      type: string
+      x-fortran-len: buf
+      default: max_lake_level
+    x-fortran-shape: n_domains
+    title: Maximum lake level variable name
   facc_var:
     type: array
     items:

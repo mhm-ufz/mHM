@@ -44,3 +44,13 @@ add_test(
       -o mhm-output-template.nml
 )
 set_tests_properties(test_mrm_intermediate_step PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+
+add_test(
+  NAME test_mpr_lake_mask
+  COMMAND
+    $<TARGET_FILE:mhm-driver-exe>
+      -n test_nml/mpr_lake_mask_minimal.nml
+      -p test_nml/mhm_parameter_v6_hydrology.nml
+      -o mhm-output-template.nml
+)
+set_tests_properties(test_mpr_lake_mask PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")

@@ -61,12 +61,12 @@ program test_parameter_reinitialize
   values = routing_domain%exchange%parameters%as_array()
   call assert_true(size(values) == 1, "routing fixture did not register the expected parameter count")
   call routing_domain%initialize()
-  derived_before = routing_domain%mrm%river%celerity
+  derived_before = routing_domain%mrm%celerity
 
   values(1) = 2.0_dp
   call routing_domain%initialize(values)
   call assert_true( &
-    maxval(abs(routing_domain%mrm%river%celerity - derived_before)) > 1.0e-12_dp, &
+    maxval(abs(routing_domain%mrm%celerity - derived_before)) > 1.0e-12_dp, &
     "mRM did not rebuild celerity after a parameter change")
   call assert_true(associated(static_fdir, routing_domain%exchange%fdir%data), &
     "mRM repeated initialization replaced a static input")

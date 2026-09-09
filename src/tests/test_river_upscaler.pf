@@ -11,7 +11,8 @@ module test_river_upscaler
   implicit none
   private
 
-  public :: test_legacy_and_flow_targets, test_flow_scc_endpoint, test_upscaling_config
+  public :: test_legacy_and_flow_targets, test_flow_scc_endpoint, test_lake_labels, test_lake_topology
+  public :: test_lake_selector_tie, test_sparse_scc_overlap, test_upscaling_config
 
 contains
 
@@ -22,9 +23,11 @@ contains
     type(river_upscaler_t) :: legacy_upscaler, flow_upscaler
     integer(i8) :: ids(6,2)
     integer(i2) :: fdir(12)
-    real(dp) :: slope(12)
+    real(dp) :: slope(12), lake_dem(12)
+    real(dp), allocatable :: celerity(:)
     logical :: exists
     integer(i4), allocatable :: scc(:,:), leaving(:,:), stream(:,:), stream_sub(:,:)
+    integer(i8), allocatable :: lake_map(:,:)
     type(NcDataset) :: nc
     type(NcVariable) :: nc_var
 
@@ -42,6 +45,10 @@ contains
     @assertEqual(fine_river%n_nodes, fine_river%points%n_points, message='D8 river owns one point per node')
     call fine_river%calc_order(root=.true.)
     call fine_river%calc_facc()
+    lake_dem = 0.0_dp
+    lake_dem(ids(1,1)) = 2.0_dp
+    call fine_river%set_elevation(lake_dem)
+    call fine_river%label_lakes([ids(6,1)], [3271_i8], [1.0_dp])
 
     ! Select the lower leaving cell in coarse cell 1 and the upper leaving
     ! cell in coarse cell 2; retain the lower sink in coarse cell 3.
@@ -88,6 +95,9 @@ contains
     @assertTrue(nc%hasVariable('leaving'))
     @assertTrue(nc%hasVariable('stream'))
     @assertTrue(nc%hasVariable('stream_sub'))
+    @assertTrue(nc%hasVariable('lake_map'))
+    @assertTrue(nc%hasVariable('lake_outlet'))
+    @assertTrue(nc%hasVariable('dem'))
     nc_var = nc%getVariable('scc')
     call nc_var%getData(scc)
     nc_var = nc%getVariable('leaving')
@@ -96,6 +106,8 @@ contains
     call nc_var%getData(stream)
     nc_var = nc%getVariable('stream_sub')
     call nc_var%getData(stream_sub)
+    nc_var = nc%getVariable('lake_map')
+    call nc_var%getData(lake_map)
     call nc%close()
     @assertEqual(1_i4, scc(1,1))
     @assertEqual(2_i4, leaving(2,1))
@@ -103,14 +115,15 @@ contains
     @assertEqual(2_i4, stream(2,1))
     @assertEqual(1_i4, stream(3,1))
     @assertEqual(1_i4, stream_sub(3,1))
-    call legacy_upscaler%calc_celerity(2.0_dp, constant_celerity=.true.)
-    @assertEqual(2.0_dp, legacy_river%celerity(1), tolerance=1.e-12_dp)
-    @assertFalse(allocated(fine_river%celerity), message='constant coarse celerity does not allocate fine celerity')
+    @assertEqual(0_i8, lake_map(1,1), message='cells above the maximum level remain outside lakes')
+    @assertEqual(3271_i8, lake_map(2,1), message='diagnostics preserve the stable lake ID')
+    call legacy_upscaler%calc_celerity(2.0_dp, celerity, constant_celerity=.true.)
+    @assertEqual(2.0_dp, celerity(1), tolerance=1.e-12_dp)
     slope = 1.0_dp
     slope(ids(5,2)) = 100.0_dp
-    call flow_upscaler%calc_celerity(2.0_dp, slope=slope)
-    @assertTrue(allocated(flow_river%celerity), message='variable celerity uses the retained stream mask')
-    @assertEqual(0.2_dp, fine_river%celerity(ids(5,2)), tolerance=1.e-12_dp)
+    call flow_upscaler%calc_celerity(2.0_dp, celerity, slope=slope)
+    @assertTrue(allocated(celerity), message='variable celerity uses the retained stream mask')
+    @assertEqual(0.2_dp, celerity(2), tolerance=1.e-12_dp)
   end subroutine test_legacy_and_flow_targets
 
   @test
@@ -142,7 +155,7 @@ contains
     gauges(1,:) = [3.5_dp, 1.5_dp]
     call upscaler%init( &
       fine_river=fine_river, coarse_river=coarse_river, coarse_grid=coarse_grid, &
-      scc_gauges=gauges, scc_latlon=.false., upscale_mode=upscale_flow, length_percentile=0.0_dp)
+      scc_nodes=[ids(4,2)], upscale_mode=upscale_flow, length_percentile=0.0_dp)
 
     @assertTrue(coarse_river%scc)
     @assertEqual(2_i8, upscaler%scc_coarse_gauges(1))
@@ -153,6 +166,193 @@ contains
     @assertEqual(gauges(1,1), coarse_river%points%x(upscaler%scc_coarse_gauges(1)), tolerance=1.e-12_dp)
     @assertEqual(gauges(1,2), coarse_river%points%y(upscaler%scc_coarse_gauges(1)), tolerance=1.e-12_dp)
   end subroutine test_flow_scc_endpoint
+
+  @test
+  subroutine test_lake_labels()
+    type(grid_t), target :: grid
+    type(grid_t) :: land_grid, lake_grid
+    type(river_t) :: river
+    integer(i8) :: ids(6,1)
+    integer(i2) :: fdir(6)
+    integer(i8), parameter :: upper_id = 5000000001_i8, lower_id = 9000000002_i8
+    integer(i8) :: expected(6)
+    real(dp) :: dem(6)
+    logical, allocatable :: land_packed(:), lake_packed(:)
+    logical :: land_mask(6,1), lake_mask(6,1)
+
+    call grid%init(6_i4, 1_i4, cellsize=1.0_dp, y_direction=bottom_up)
+    call grid%gen_id_matrix(ids)
+    fdir = d8_E
+    fdir(ids(6,1)) = sink
+    call river%from_fdir(fdir, grid)
+    call river%calc_order(root=.true.)
+
+    dem = [1.0_dp, 2.0_dp, 3.0_dp, 6.0_dp, 5.0_dp, 4.0_dp]
+    call river%set_elevation(dem)
+    call river%label_lakes( &
+      [ids(3,1), ids(6,1)], [upper_id, lower_id], [3.0_dp, 5.0_dp])
+
+    expected = [upper_id, upper_id, upper_id, 0_i8, lower_id, lower_id]
+    @assertTrue(all(river%lake_map == expected), message='nested outlet catchments are disjoint and thresholded by maximum level')
+    @assertEqual([ids(3,1), ids(6,1)], river%lake_outlet_nodes, message='L0 river retains snapped lake outlets in point order')
+    call river%lake_masks(land_packed, lake_packed)
+    @assertTrue(all(land_packed .neqv. lake_packed), message='packed land and lake masks are complementary')
+    @assertEqual(1, count(land_packed), message='only the cell above both lake levels remains land')
+    @assertEqual(5, count(lake_packed), message='five cells belong to a lake')
+    call grid%unpack_into(land_packed, land_mask)
+    call grid%unpack_into(lake_packed, lake_mask)
+    call grid%copy_to(land_grid, mask=land_mask, keep_sub_cell_area=.true.)
+    call grid%copy_to(lake_grid, mask=lake_mask, keep_sub_cell_area=.true.)
+    @assertEqual(1_i8, land_grid%ncells)
+    @assertEqual(5_i8, lake_grid%ncells)
+    @assertEqual(grid%nx, land_grid%nx)
+    @assertEqual(grid%ny, lake_grid%ny)
+    @assertTrue(all((land_grid%mask .or. lake_grid%mask) .eqv. grid%mask))
+    @assertFalse(any(land_grid%mask .and. lake_grid%mask))
+    call river%calc_length()
+    call river%calc_slope()
+    @assertEqual(100.0_dp, river%link_slope(4), tolerance=1.e-12_dp, message='link slope uses stored node elevation')
+    call river%clean()
+    @assertFalse(allocated(river%lake_map), message='river cleanup releases the lake map')
+    @assertFalse(allocated(river%lake_outlet_nodes), message='river cleanup releases lake outlet nodes')
+    @assertFalse(allocated(river%node_elevation), message='river cleanup releases node elevation')
+  end subroutine test_lake_labels
+
+  @test
+  subroutine test_lake_topology()
+    type(grid_t), target :: fine_grid, coarse_grid, same_grid
+    type(river_t), target :: fine_river, coarse_river, same_river
+    type(river_t) :: restored_river
+    type(river_upscaler_t) :: upscaler, same_upscaler
+    integer(i8) :: ids(8,1)
+    integer(i8), allocatable :: lake_outlet(:,:)
+    integer(i2) :: fdir(8)
+    real(dp) :: dem(8)
+    integer(i8), parameter :: upper_id = 101_i8, lower_id = 205_i8
+    type(NcDataset) :: nc
+    type(NcVariable) :: nc_var
+
+    call fine_grid%init(8_i4, 1_i4, cellsize=1.0_dp, y_direction=bottom_up)
+    call coarse_grid%init(4_i4, 1_i4, cellsize=2.0_dp, y_direction=bottom_up)
+    call fine_grid%gen_id_matrix(ids)
+    fdir = d8_E
+    fdir(ids(8,1)) = sink
+    call fine_river%from_fdir(fdir, fine_grid)
+    call fine_river%calc_order(root=.true.)
+    call fine_river%calc_facc()
+    dem = [2.0_dp, 2.0_dp, 2.0_dp, 1.0_dp, 1.0_dp, 1.0_dp, 1.0_dp, 2.0_dp]
+    call fine_river%set_elevation(dem)
+    call fine_river%label_lakes([ids(4,1), ids(7,1)], [upper_id, lower_id], [1.0_dp, 1.0_dp])
+
+    call upscaler%init( &
+      fine_river=fine_river, coarse_river=coarse_river, coarse_grid=coarse_grid, &
+      lake_outlet_nodes=[ids(4,1), ids(7,1)], lake_ids=[upper_id, lower_id], &
+      upscale_mode=upscale_flow, length_percentile=0.0_dp, diagnostics_path='river_lake_diagnostics.nc')
+
+    @assertTrue(coarse_river%scc, message='lakes activate the SCC upscaling path')
+    @assertEqual(4_i8, coarse_river%n_nodes, message='pure lake cells do not create normal routing nodes')
+    @assertEqual([2_i8, 3_i8], upscaler%scc_coarse_gauges, message='lake outlets lead the SCC mapping')
+    @assertEqual(1, count(coarse_river%lake_id == upper_id), message='upper lake has one canonical node')
+    @assertEqual(1, count(coarse_river%lake_id == lower_id), message='lower lake has one canonical node')
+    @assertEqual(upper_id, coarse_river%lake_id(2))
+    @assertEqual(lower_id, coarse_river%lake_id(3))
+    @assertEqual(2_i8, coarse_river%down(1), message='normal upstream routing enters the canonical lake node')
+    @assertEqual(3_i8, coarse_river%down(2), message='cascaded lake nodes preserve the DAG')
+    @assertEqual(4_i8, coarse_river%down(3), message='lake outlet routes normally to the downstream node')
+    @assertEqual(0_i8, coarse_river%down(4), message='terminal land node remains the sink')
+    @assertEqual(1.0_dp, coarse_river%area_fraction(2), tolerance=1.e-12_dp, message='mixed outlet cell fraction is normalized over its land-only runoff support')
+    @assertEqual(2_i8, coarse_river%cell_node_select(2), message='mixed outlet cell selects its lake node')
+    @assertEqual(3_i8, coarse_river%cell_node_select(3), message='pure lake cell may select a canonical node in another coarse cell')
+    nc = NcDataset('river_lake_diagnostics.nc', 'r')
+    nc_var = nc%getVariable('lake_outlet')
+    call nc_var%getData(lake_outlet)
+    call nc%close()
+    @assertEqual(upper_id, lake_outlet(4,1), message='diagnostics mark the upper canonical outlet by stable ID')
+    @assertEqual(lower_id, lake_outlet(7,1), message='diagnostics mark the lower canonical outlet by stable ID')
+    call coarse_grid%to_restart('river_lake_restart.nc')
+    call coarse_river%to_restart('river_lake_restart.nc', append=.true.)
+    call restored_river%from_restart('river_lake_restart.nc', coarse_grid)
+    @assertTrue(all(restored_river%lake_id == coarse_river%lake_id), message='restart preserves stable lake-node IDs')
+    @assertTrue(all(restored_river%cell_node_select == coarse_river%cell_node_select), message='restart preserves cross-cell representative-node selection')
+
+    call same_grid%init(8_i4, 1_i4, cellsize=1.0_dp, y_direction=bottom_up)
+    call same_upscaler%init( &
+      fine_river=fine_river, coarse_river=same_river, coarse_grid=same_grid, &
+      lake_outlet_nodes=[ids(4,1), ids(7,1)], lake_ids=[upper_id, lower_id], &
+      upscale_mode=upscale_flow, length_percentile=0.0_dp)
+    @assertEqual(1, count(same_river%lake_id == upper_id), message='same-resolution path keeps one upper lake node')
+    @assertEqual(1, count(same_river%lake_id == lower_id), message='same-resolution path keeps one lower lake node')
+    @assertEqual(5_i8, same_river%cell_node_select(5), message='same-resolution pure lake cell selects its downstream canonical node')
+  end subroutine test_lake_topology
+
+  @test
+  subroutine test_lake_selector_tie()
+    type(grid_t), target :: fine_grid, coarse_grid
+    type(river_t), target :: fine_river, coarse_river, tied_river
+    type(river_upscaler_t) :: upscaler, tied_upscaler
+    integer(i8) :: ids(4,2)
+    integer(i2) :: fdir(8)
+    real(dp) :: dem(8)
+    integer(i8), parameter :: first_id = 300_i8, second_id = 200_i8
+
+    call fine_grid%init(4_i4, 2_i4, cellsize=1.0_dp, y_direction=bottom_up)
+    call coarse_grid%init(2_i4, 1_i4, cellsize=2.0_dp, y_direction=bottom_up)
+    call fine_grid%gen_id_matrix(ids)
+    fdir = d8_E
+    fdir(ids(4,1)) = sink
+    fdir(ids(4,2)) = sink
+    call fine_river%from_fdir(fdir, fine_grid)
+    call fine_river%calc_order(root=.true.)
+    call fine_river%calc_facc()
+    dem = 2.0_dp
+    dem(ids(3:4,1)) = 1.0_dp
+    dem(ids(3:4,2)) = 1.0_dp
+    call fine_river%set_elevation(dem)
+    call fine_river%label_lakes([ids(4,1), ids(4,2)], [first_id, second_id], [1.0_dp, 1.0_dp])
+
+    fine_river%facc(ids(4,1)) = 5_i4
+    call upscaler%init( &
+      fine_river=fine_river, coarse_river=coarse_river, coarse_grid=coarse_grid, &
+      lake_outlet_nodes=[ids(4,1), ids(4,2)], lake_ids=[first_id, second_id], &
+      upscale_mode=upscale_flow, length_percentile=0.0_dp)
+    @assertEqual(first_id, coarse_river%lake_id(coarse_river%cell_node_select(2)), message='pure multi-lake cell selects the outlet with greatest flow accumulation')
+
+    fine_river%facc(ids(4,1)) = fine_river%facc(ids(4,2))
+    call tied_upscaler%init( &
+      fine_river=fine_river, coarse_river=tied_river, coarse_grid=coarse_grid, &
+      lake_outlet_nodes=[ids(4,1), ids(4,2)], lake_ids=[first_id, second_id], &
+      upscale_mode=upscale_flow, length_percentile=0.0_dp)
+    @assertEqual(second_id, tied_river%lake_id(tied_river%cell_node_select(2)), message='equal outlet accumulation uses the smallest stable lake ID')
+  end subroutine test_lake_selector_tie
+
+  @test
+  subroutine test_sparse_scc_overlap()
+    type(grid_t), target :: fine_grid, coarse_grid
+    type(river_t), target :: fine_river, coarse_river
+    type(river_upscaler_t) :: upscaler
+    integer(i8) :: ids(4,40)
+    integer(i2) :: fdir(160)
+    integer(i4) :: row
+
+    call fine_grid%init(4_i4, 40_i4, cellsize=1.0_dp, y_direction=bottom_up)
+    call coarse_grid%init(2_i4, 20_i4, cellsize=2.0_dp, y_direction=bottom_up)
+    call fine_grid%gen_id_matrix(ids)
+    fdir = d8_E
+    do row = 1_i4, 40_i4
+      fdir(ids(4,row)) = sink
+    end do
+    call fine_river%from_fdir(fdir, fine_grid)
+    call fine_river%calc_order(root=.true.)
+    call fine_river%calc_facc()
+    call upscaler%init( &
+      fine_river=fine_river, coarse_river=coarse_river, coarse_grid=coarse_grid, &
+      scc_nodes=ids(2,:), upscale_mode=upscale_flow, length_percentile=0.0_dp)
+
+    @assertEqual(60_i8, coarse_river%n_nodes, message='many SCC labels with sparse cell overlap create only existing pairs')
+    do row = 1_i4, 40_i4
+      @assertEqual(int(row, i8), upscaler%scc_coarse_gauges(row), message='sparse construction preserves subcatchment-first numbering')
+    end do
+  end subroutine test_sparse_scc_overlap
 
   @test
   subroutine test_upscaling_config()

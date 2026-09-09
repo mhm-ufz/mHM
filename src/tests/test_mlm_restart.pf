@@ -1,0 +1,367 @@
+module test_mlm_restart
+  use funit
+  use mo_datetime, only: datetime, timedelta
+  use mo_exchange_type, only: exchange_t
+  use mo_grid, only: grid_t, bottom_up
+  use mo_grid_io, only: no_time, var
+  use mo_kind, only: sp, dp, i4, i8
+  use mo_mlm_container, only: mlm_t
+  use mo_netcdf, only: NcDataset, NcDimension, NcVariable
+  use mo_points, only: cartesian, points_t
+
+  implicit none
+  private
+
+  public :: test_mlm_restart_writes_static_metadata
+  public :: test_mlm_restart_uses_input_order
+  public :: test_mlm_restart_publishes_and_clears_metadata
+  public :: test_mlm_output_averages_in_exchange_order
+  public :: test_mlm_lake_balance_clamps_outflow
+  public :: test_mlm_restart_restores_lake_topology
+
+contains
+
+  @test
+  subroutine test_mlm_restart_writes_static_metadata()
+    type(exchange_t), target :: exchange
+    type(points_t), target :: input_points
+    type(mlm_t), target :: mlm
+    type(NcDataset) :: nc
+    type(NcVariable) :: var
+    integer(i8), target :: ids(2)
+    real(dp), target :: levels(2)
+    integer(i8), allocatable :: restored_ids(:)
+    real(dp), allocatable :: outlet_x(:), outlet_y(:), restored_levels(:), restored_outflow(:)
+    integer(i4), allocatable :: coordsys
+    character(64) :: timestamp
+    integer :: status
+
+    call setup_exchange(exchange, "2001-01-02 00:00:00")
+    call input_points%init([100.0_dp, 200.0_dp], [300.0_dp, 400.0_dp], coordsys=cartesian)
+    ids = [205_i8, 101_i8]
+    levels = [25.0_dp, 10.0_dp]
+    exchange%lake_points => input_points
+    call exchange%lake_ids%publish_local("test", ids, no_time)
+    call exchange%lake_max_levels%publish_local("test", levels, no_time)
+
+    mlm%exchange => exchange
+    call mlm%connect()
+    mlm%outflow = [2.05_dp, 1.01_dp]
+    mlm%write_restart = .true.
+    mlm%restart_output_path = "mlm_restart_static_metadata.nc"
+    exchange%time = datetime("2001-01-03 00:00:00")
+    call mlm%finalize()
+
+    nc = NcDataset("mlm_restart_static_metadata.nc", "r")
+    @assertTrue(nc%hasVariable("lake_id"), message="mLM restart persists stable IDs")
+    @assertTrue(nc%hasVariable("lake_outlet_x"), message="mLM restart persists outlet x coordinates")
+    @assertTrue(nc%hasVariable("lake_outlet_y"), message="mLM restart persists outlet y coordinates")
+    @assertTrue(nc%hasVariable("lake_max_level"), message="mLM restart persists maximum levels")
+    @assertTrue(nc%hasVariable("lake_coordsys"), message="mLM restart persists coordinate system")
+    @assertTrue(nc%hasVariable("lake_outflow"), message="mLM restart persists outflow")
+    @assertTrue(nc%hasVariable("mlm_meta"), message="mLM restart persists timestamp metadata")
+    var = nc%getVariable("lake_id"); call var%getData(restored_ids)
+    var = nc%getVariable("lake_outlet_x"); call var%getData(outlet_x)
+    var = nc%getVariable("lake_outlet_y"); call var%getData(outlet_y)
+    var = nc%getVariable("lake_max_level"); call var%getData(restored_levels)
+    var = nc%getVariable("lake_coordsys"); call var%getData(coordsys)
+    var = nc%getVariable("lake_outflow"); call var%getData(restored_outflow)
+    var = nc%getVariable("mlm_meta"); call var%getAttribute("time_stamp", timestamp)
+    call nc%close()
+
+    @assertEqual(ids, restored_ids, message="mLM restart keeps stable ID order")
+    @assertEqual(input_points%x, outlet_x, tolerance=1.0e-12_dp)
+    @assertEqual(input_points%y, outlet_y, tolerance=1.0e-12_dp)
+    @assertEqual(levels, restored_levels, tolerance=1.0e-12_dp)
+    @assertEqual(cartesian, coordsys, message="mLM restart keeps coordinate system")
+    @assertEqual([2.05_dp, 1.01_dp], restored_outflow, tolerance=1.0e-12_dp)
+    @assertEqual("2001-01-03 00:00:00", trim(timestamp), message="mLM restart timestamp is current domain time")
+
+    call exchange%lake_ids%clear(owned=.true.)
+    call exchange%lake_max_levels%clear(owned=.true.)
+    nullify(exchange%lake_points)
+  end subroutine test_mlm_restart_writes_static_metadata
+
+  @test
+  subroutine test_mlm_restart_uses_input_order()
+    type(exchange_t), target :: exchange
+    type(points_t), target :: input_points
+    type(mlm_t), target :: mlm
+    integer(i8), target :: input_ids(2)
+    real(dp), target :: input_levels(2), inflow(2)
+
+    call setup_exchange(exchange, "2001-01-02 00:00:00")
+    call input_points%init([100.0_dp, 200.0_dp], [300.0_dp, 400.0_dp], coordsys=cartesian)
+    input_ids = [205_i8, 101_i8]
+    input_levels = [25.0_dp, 10.0_dp]
+    inflow = 0.0_dp
+    exchange%lake_points => input_points
+    call exchange%lake_ids%publish_local("Input", input_ids, no_time)
+    call exchange%lake_max_levels%publish_local("Input", input_levels, no_time)
+    call exchange%lake_inflow%publish_local("mRM", inflow, 1_i4)
+    call write_restart( &
+      "mlm_restart_reordered_metadata.nc", [101_i8, 205_i8], [200.0_dp, 100.0_dp], [400.0_dp, 300.0_dp], &
+      [10.0_dp, 25.0_dp], [1.01_dp, 2.05_dp], timestamp="2001-01-02 00:00:00")
+
+    mlm%exchange => exchange
+    mlm%read_restart = .true.
+    mlm%restart_input_path = "mlm_restart_reordered_metadata.nc"
+    call mlm%connect()
+    @assertEqual(input_ids, mlm%lake_ids, message="Input stable-ID ordering remains authoritative")
+    @assertTrue(associated(exchange%lake_points, input_points), message="Input retains lake-point ownership")
+    call mlm%initialize()
+    @assertEqual([2.05_dp, 1.01_dp], mlm%outflow, tolerance=1.0e-12_dp, message="mLM restores outflow by stable ID rather than file order")
+    call mlm%finalize()
+
+    @assertTrue(exchange%lake_ids%provided, message="mLM finalization preserves Input-owned IDs")
+    @assertTrue(exchange%lake_max_levels%provided, message="mLM finalization preserves Input-owned levels")
+    @assertTrue(associated(exchange%lake_points, input_points), message="mLM finalization preserves Input-owned points")
+    call clear_input_metadata(exchange)
+    call exchange%lake_inflow%clear(owned=.true.)
+  end subroutine test_mlm_restart_uses_input_order
+
+  @test
+  subroutine test_mlm_restart_publishes_and_clears_metadata()
+    type(exchange_t), target :: exchange
+    type(mlm_t), target :: mlm
+
+    call setup_exchange(exchange, "2001-01-02 00:00:00")
+    call write_restart( &
+      "mlm_restart_owned_metadata.nc", [101_i8, 205_i8], [200.0_dp, 100.0_dp], [400.0_dp, 300.0_dp], &
+      [10.0_dp, 25.0_dp], [1.01_dp, 2.05_dp], timestamp="2001-01-02 00:00:00")
+
+    mlm%exchange => exchange
+    mlm%read_restart = .true.
+    mlm%restart_input_path = "mlm_restart_owned_metadata.nc"
+    call mlm%connect()
+    @assertTrue(associated(exchange%lake_points, mlm%static_lake_points), message="mLM publishes restart lake points")
+    @assertEqual([101_i8, 205_i8], exchange%lake_ids%data, message="mLM publishes restart stable IDs")
+    @assertEqual([10.0_dp, 25.0_dp], exchange%lake_max_levels%data, tolerance=1.0e-12_dp)
+    call mlm%finalize()
+
+    @assertFalse(exchange%lake_ids%provided, message="mLM clears its stable-ID publication")
+    @assertFalse(exchange%lake_max_levels%provided, message="mLM clears its maximum-level publication")
+    @assertFalse(associated(exchange%lake_points), message="mLM clears its point publication")
+  end subroutine test_mlm_restart_publishes_and_clears_metadata
+
+  @test
+  subroutine test_mlm_output_averages_in_exchange_order()
+    type(exchange_t), target :: exchange
+    type(points_t), target :: input_points
+    type(mlm_t), target :: mlm
+    type(NcDataset) :: nc
+    type(NcDimension), allocatable :: dims(:)
+    type(NcVariable) :: nc_var
+    type(var) :: output_meta
+    integer(i8), target :: ids(2)
+    real(dp), target :: levels(2), inflow(2)
+    integer(i8), allocatable :: restored_ids(:)
+    integer(i4), allocatable :: time_values(:), time_bounds(:, :)
+    real(sp), allocatable :: restored_outflow(:, :)
+    integer :: status
+
+    call setup_exchange(exchange, "2001-01-02 00:00:00")
+    exchange%end_time = datetime("2001-01-02 02:00:00")
+    status = exchange%config%processes%set(routing=2_i4, lake=-1_i4)
+    @assertEqual(0, status, message="lake and routing processes configure output test")
+
+    call input_points%init([100.0_dp, 200.0_dp], [300.0_dp, 400.0_dp], coordsys=cartesian)
+    ids = [205_i8, 101_i8]
+    levels = [25.0_dp, 10.0_dp]
+    inflow = 0.0_dp
+    exchange%lake_points => input_points
+    call exchange%lake_ids%publish_local("Input", ids, no_time)
+    call exchange%lake_max_levels%publish_local("Input", levels, no_time)
+    call exchange%lake_inflow%publish_local("mRM", inflow, 1_i4)
+
+    mlm%exchange => exchange
+    call mlm%set_dims()
+    status = mlm%config%set(output_path=[character(64) :: "mlm_output_average.nc"])
+    @assertEqual(0, status, message="mLM output path config is valid")
+    status = mlm%output_config%set( &
+      output_double_precision=.false., output_time_reference=2_i4, output_frequency=2_i4, out_lake_outflow=.true.)
+    @assertEqual(0, status, message="mLM output config is valid")
+    call mlm%configure()
+    @assertTrue(mlm%active, message="selected mLM process is active")
+    @assertTrue(mlm%output_active, message="configured mLM output is active")
+
+    call mlm%connect()
+    mlm%outflow = [9.0_dp, 9.0_dp]
+    call mlm%initialize()
+    @assertEqual([0.0_dp, 0.0_dp], mlm%outflow, tolerance=1.0e-12_dp, message="mLM initializes outflow without restart")
+    output_meta = mlm%ds_out%meta("lake_outflow")
+    @assertEqual("f32", output_meta%dtype, message="mLM output honors configured precision")
+    @assertTrue(output_meta%avg, message="mLM lake outflow is averaged")
+
+    inflow = [1.0_dp, 3.0_dp]
+    exchange%time = datetime("2001-01-02 01:00:00")
+    call mlm%update()
+    @assertEqual(inflow, mlm%outflow, tolerance=1.0e-12_dp, message="mLM publishes the current interval release")
+    inflow = [3.0_dp, 7.0_dp]
+    exchange%time = exchange%end_time
+    call mlm%update()
+    call mlm%finalize()
+
+    @assertFalse(exchange%lake_outflow%provided, message="mLM cleanup clears its outflow publication")
+    @assertFalse(allocated(mlm%ds_out%vars), message="mLM cleanup closes the point output dataset")
+
+    nc = NcDataset("mlm_output_average.nc", "r")
+    nc_var = nc%getVariable("lake_id"); call nc_var%getData(restored_ids)
+    @assertEqual(ids, restored_ids, message="mLM output retains stable exchange ID order")
+    nc_var = nc%getVariable("lake_outflow")
+    dims = nc_var%getDimensions()
+    @assertEqual("time", trim(dims(1)%getName()), message="mLM output uses time-series dimension order")
+    @assertEqual("lake", trim(dims(2)%getName()), message="mLM output uses lake point dimension")
+    call nc_var%getData(restored_outflow)
+    @assertEqual([2.0_sp, 5.0_sp], restored_outflow(1, :), tolerance=1.0e-6_sp, message="two-hour output is the arithmetic mean of hourly releases")
+    nc_var = nc%getVariable("time"); call nc_var%getData(time_values)
+    nc_var = nc%getVariable("time_bnds"); call nc_var%getData(time_bounds)
+    @assertEqual([2_i4], time_values, message="end-referenced timestamp uses the interval end")
+    @assertEqual([0_i4, 2_i4], time_bounds(:, 1), message="time bounds cover both hourly releases")
+    call nc%close()
+
+    call clear_input_metadata(exchange)
+    call exchange%lake_inflow%clear(owned=.true.)
+  end subroutine test_mlm_output_averages_in_exchange_order
+
+  @test
+  subroutine test_mlm_lake_balance_clamps_outflow()
+    type(exchange_t), target :: exchange
+    type(mlm_t) :: mlm
+    real(dp), target :: inflow(2), pre(2), pet(2)
+    integer :: status
+
+    call setup_exchange(exchange, "2001-01-02 00:00:00")
+    status = exchange%config%processes%set(routing=2_i4, lake=-2_i4)
+    @assertEqual(0, status)
+    inflow = [1.0_dp, 0.01_dp]
+    pre = [10.0_dp, 0.0_dp]
+    pet = [0.0_dp, 10.0_dp]
+    call exchange%lake_inflow%publish_local("test", inflow, 1_i4)
+    call exchange%lake_pre%publish_local("test", pre, 1_i4)
+    call exchange%lake_pet%publish_local("test", pet, 1_i4)
+    mlm%exchange => exchange
+    allocate(mlm%outflow(2), mlm%lake_area(2))
+    mlm%lake_area = [360000.0_dp, 360000.0_dp]
+    call mlm%update()
+    @assertEqual([2.0_dp, 0.0_dp], mlm%outflow, tolerance=1.0e-12_dp, message="lake balance converts millimetres to discharge and clamps negative outflow")
+    call exchange%lake_inflow%clear(owned=.true.)
+    call exchange%lake_pre%clear(owned=.true.)
+    call exchange%lake_pet%clear(owned=.true.)
+    deallocate(mlm%outflow, mlm%lake_area)
+  end subroutine test_mlm_lake_balance_clamps_outflow
+
+  @test
+  subroutine test_mlm_restart_restores_lake_topology()
+    type(exchange_t), target :: writer_exchange, reader_exchange
+    type(grid_t), target :: lake_grid
+    type(points_t), target :: lake_points
+    type(mlm_t) :: writer, reader
+    integer(i8), target :: lake_ids(1), lake_map(2)
+    real(dp), target :: lake_levels(1), writer_pre(1), writer_pet(1), reader_pre(1), reader_pet(1)
+    integer :: status
+
+    call setup_exchange(writer_exchange, "2001-01-02 00:00:00")
+    status = writer_exchange%config%processes%set(routing=2_i4, lake=-2_i4)
+    @assertEqual(0, status)
+    call lake_grid%init(2_i4, 1_i4, cellsize=1.0_dp, y_direction=bottom_up)
+    call lake_points%init([10.0_dp], [20.0_dp], coordsys=cartesian)
+    lake_ids = [10_i8]
+    lake_map = [10_i8, 10_i8]
+    lake_levels = [1.0_dp]
+    writer_pre = 0.0_dp
+    writer_pet = 0.0_dp
+    writer_exchange%level0_lake => lake_grid
+    writer_exchange%lake_points => lake_points
+    call writer_exchange%lake_ids%publish_local("test", lake_ids, no_time)
+    call writer_exchange%lake_map%publish_local("test", lake_map, no_time)
+    call writer_exchange%lake_max_levels%publish_local("test", lake_levels, no_time)
+    call writer_exchange%lake_pre%publish_local("test", writer_pre, 1_i4)
+    call writer_exchange%lake_pet%publish_local("test", writer_pet, 1_i4)
+    writer%exchange => writer_exchange
+    call writer%connect()
+    writer%outflow = [3.0_dp]
+    writer%write_restart = .true.
+    writer%restart_output_path = "mlm_restart_lake_topology.nc"
+    call writer%finalize()
+
+    call setup_exchange(reader_exchange, "2001-01-02 00:00:00")
+    status = reader_exchange%config%processes%set(routing=2_i4, lake=-2_i4)
+    @assertEqual(0, status)
+    reader%exchange => reader_exchange
+    reader%read_restart = .true.
+    reader%restart_input_path = "mlm_restart_lake_topology.nc"
+    reader_pre = 0.0_dp
+    reader_pet = 0.0_dp
+    call reader_exchange%lake_pre%publish_local("test", reader_pre, 1_i4)
+    call reader_exchange%lake_pet%publish_local("test", reader_pet, 1_i4)
+    call reader%connect()
+    @assertEqual([10_i8, 10_i8], reader_exchange%lake_map%data, message="restart-only mLM restores the packed lake map")
+    @assertEqual([2.0_dp], reader_exchange%lake_area%data, tolerance=1.0e-12_dp, message="restart-only mLM restores lake area from its footprint")
+    @assertEqual(2_i8, reader_exchange%level0_lake%ncells, message="restart-only mLM restores the lake grid")
+    call reader%finalize()
+
+    call writer_exchange%lake_ids%clear(owned=.true.)
+    call writer_exchange%lake_map%clear(owned=.true.)
+    call writer_exchange%lake_max_levels%clear(owned=.true.)
+    call writer_exchange%lake_pre%clear(owned=.true.)
+    call writer_exchange%lake_pet%clear(owned=.true.)
+    call reader_exchange%lake_pre%clear(owned=.true.)
+    call reader_exchange%lake_pet%clear(owned=.true.)
+    nullify(writer_exchange%lake_points)
+    nullify(writer_exchange%level0_lake)
+  end subroutine test_mlm_restart_restores_lake_topology
+
+  subroutine setup_exchange(exchange, start_time)
+    type(exchange_t), target, intent(inout) :: exchange
+    character(*), intent(in) :: start_time
+    integer :: status
+
+    status = exchange%config%project%set()
+    @assertEqual(0, status, message="project defaults configure mLM restart exchange")
+    call exchange%create(cwd=".")
+    exchange%cwd = exchange%root
+    exchange%start_time = datetime(start_time)
+    exchange%time = exchange%start_time
+    exchange%step = timedelta(hours=1_i4)
+    exchange%step_hours = 1_i4
+  end subroutine setup_exchange
+
+  subroutine clear_input_metadata(exchange)
+    type(exchange_t), target, intent(inout) :: exchange
+
+    call exchange%lake_ids%clear(owned=.true.)
+    call exchange%lake_max_levels%clear(owned=.true.)
+    nullify(exchange%lake_points)
+  end subroutine clear_input_metadata
+
+  subroutine write_restart(path, ids, outlet_x, outlet_y, levels, outflow, timestamp)
+    character(*), intent(in) :: path
+    integer(i8), intent(in) :: ids(:)
+    real(dp), intent(in) :: outlet_x(:), outlet_y(:), levels(:), outflow(:)
+    character(*), intent(in) :: timestamp
+    type(NcDataset) :: nc
+    type(NcDimension) :: dims(0), lake_dim
+    type(NcVariable) :: var
+
+    nc = NcDataset(path, "w")
+    lake_dim = nc%setDimension("lake", int(size(ids), i4))
+    var = nc%setVariable("lake_id", "i64", [lake_dim])
+    call var%setData(ids)
+    var = nc%setVariable("lake_outlet_x", "f64", [lake_dim])
+    call var%setData(outlet_x)
+    var = nc%setVariable("lake_outlet_y", "f64", [lake_dim])
+    call var%setData(outlet_y)
+    var = nc%setVariable("lake_max_level", "f64", [lake_dim])
+    call var%setData(levels)
+    var = nc%setVariable("lake_coordsys", "i32", dims(:0))
+    call var%setData(cartesian)
+    var = nc%setVariable("lake_outflow", "f64", [lake_dim])
+    call var%setData(outflow)
+    var = nc%setVariable("mlm_meta", "i32", dims(:0))
+    call var%setData(0_i4)
+    call var%setAttribute("time_stamp", timestamp)
+    call nc%close()
+  end subroutine write_restart
+
+end module test_mlm_restart

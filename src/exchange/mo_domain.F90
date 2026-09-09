@@ -18,6 +18,7 @@ module mo_domain
   use mo_meteo_container, only: meteo_t
   use mo_mpr_container, only: mpr_t
   use mo_mhm_container, only: mhm_t
+  use mo_mlm_container, only: mlm_t
   use mo_mrm_container, only: mrm_t
 
   !> \class   domain_t
@@ -29,6 +30,7 @@ module mo_domain
     type(meteo_t) :: meteo !< the meteorology container providing processed meteorological data
     type(mpr_t) :: mpr !< the MPR container providing parameter fields for the process containers
     type(mhm_t) :: mhm !< the mHM process container calculating vertical hydrological processes
+    type(mlm_t) :: mlm !< the mLM process container calculating lake processes
     type(mrm_t) :: mrm !< the mRM process container for routing related processes
     logical :: is_finished = .false. !< whether the time-loop on this domain is finished
   contains
@@ -56,6 +58,7 @@ contains
     self%meteo%exchange => self%exchange
     self%mpr%exchange => self%exchange
     self%mhm%exchange => self%exchange
+    self%mlm%exchange => self%exchange
     self%mrm%exchange => self%exchange
     call self%set_dims()
   end subroutine domain_create
@@ -70,6 +73,7 @@ contains
     call self%meteo%set_dims()
     call self%mpr%set_dims()
     call self%mhm%set_dims()
+    call self%mlm%set_dims()
     call self%mrm%set_dims()
   end subroutine domain_set_dims
 
@@ -89,12 +93,14 @@ contains
       call self%mpr%configure(domain_main_file)
       call self%meteo%configure(domain_main_file)
       call self%mhm%configure(domain_main_file, out_file)
+      call self%mlm%configure(domain_main_file, out_file)
       call self%mrm%configure(domain_main_file, out_file)
     else
       call self%input%configure(main_file)
       call self%mpr%configure(main_file)
       call self%meteo%configure(main_file)
       call self%mhm%configure(main_file, out_file)
+      call self%mlm%configure(main_file, out_file)
       call self%mrm%configure(main_file, out_file)
     end if
     call self%exchange%parameters%seal()
@@ -109,6 +115,7 @@ contains
     if (self%mpr%active) call self%mpr%connect()
     if (self%meteo%active) call self%meteo%connect()
     if (self%mhm%active) call self%mhm%connect()
+    if (self%mlm%active) call self%mlm%connect()
     if (self%mrm%active) call self%mrm%connect()
   end subroutine domain_connect
 
@@ -123,6 +130,7 @@ contains
     if (self%mpr%active) call self%mpr%initialize()
     if (self%meteo%active) call self%meteo%initialize()
     if (self%mhm%active) call self%mhm%initialize()
+    if (self%mlm%active) call self%mlm%initialize()
     if (self%mrm%active) call self%mrm%initialize()
   end subroutine domain_initialize
 
@@ -134,6 +142,7 @@ contains
     if (self%mpr%active) call self%mpr%update()
     if (self%meteo%active) call self%meteo%update()
     if (self%mhm%active) call self%mhm%update()
+    if (self%mlm%active) call self%mlm%update()
     if (self%mrm%active) call self%mrm%update()
   end subroutine domain_update
 
@@ -145,6 +154,7 @@ contains
     if (self%mpr%active) call self%mpr%finalize()
     if (self%meteo%active) call self%meteo%finalize()
     if (self%mhm%active) call self%mhm%finalize()
+    if (self%mlm%active) call self%mlm%finalize()
     if (self%mrm%active) call self%mrm%finalize()
   end subroutine domain_finalize
 

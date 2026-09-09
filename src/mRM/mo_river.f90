@@ -4,7 +4,14 @@
 !> \brief   River representation.
 !> \details This module contains a river network representation based on DAG and the grid class.
 !> \version 0.1
-!> \authors Sebastian Mueller
+!> \changelog
+!! - Luis Samaniego (2005/2012): original routing-network topology and upscaling concepts.
+!! - Rohini Kumar (2014): grid-geometry support for routing-network construction.
+!! - Stephan Thober (2015-2020): mRM port and routing-network extensions.
+!! - Robert Schweppe (2018): prior routing-network refactoring.
+!! - Pallav Shrestha (2018-2023): lake-aware topology and SCC scalability concepts.
+!! - Sebastian Mueller (2025-2026): v6 DAG-based river representation and integration.
+!> \authors Luis Samaniego, Rohini Kumar, Stephan Thober, Robert Schweppe, Sebastian Mueller, Pallav Shrestha
 !> \date    May 2025
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! This code is released under the LGPLv3+ license \license_note
@@ -36,28 +43,48 @@ module mo_river
 
   !> \class river_t
   !> \brief River network representation
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  !> \details A `river_t` represents either the full, D8 morphological L0 river
+  !! or an L3 routing river derived from it. Both variants use the inherited
+  !! branching DAG, `grid`, `is_sink`, link attributes, order, and node points.
+  !! L0-only fields retain morphology and lake delineation information; L3-only
+  !! fields describe SCC/upscaled routing topology and canonical lake nodes.
   type, extends(branching), public :: river_t
-    type(grid_t), pointer :: grid => null() !< grid the river network is defined on
-    logical, allocatable :: is_sink(:) !< flag to indicate sinks size(n_nodes)
-    integer(i2), allocatable :: fdir(:) !< D8 flow direction (only for a D8-river) size(ncells)
-    integer(i4), allocatable :: facc(:) !< flow accumulation size(n_nodes)
-    real(dp), allocatable :: upstream_area(:) !< upstream area of node size(n_nodes)
-    real(dp), allocatable :: link_length(:) !< length of link starting at node (0 if node is sink) size(n_nodes)
-    real(dp), allocatable :: link_slope(:) !< slope of link starting at node (in %) size(n_nodes)
-    real(dp), allocatable :: celerity(:) !< celerity of link starting at node set by upscaler size(n_nodes)
-    type(order_t) :: order !< level based order of the network
-    ! scc related attributes
-    logical :: scc = .false. !< indicate that this river is a SCC-river (not D8)
-    integer(i8), allocatable :: node_cell(:) !< map node to grid cell id size(n_nodes)
-    integer(i8), allocatable :: cell_node_select(:) !< select contained node to represent cell (e.g. highest facc) size(ncells)
-    real(dp), allocatable :: area_fraction(:) !< area fraction for each node in cell size(n_nodes)
-    type(points_t) :: points !< coordinates of all river nodes
+    ! Shared D8/L3 topology and routing attributes.
+    type(grid_t), pointer :: grid => null() !< Grid on which this river is defined.
+    logical, allocatable :: is_sink(:) !< Sink flag for every river node.
+    real(dp), allocatable :: link_length(:) !< Length of each outgoing link [m], zero at sinks.
+    real(dp), allocatable :: link_slope(:) !< Slope of each outgoing link [%].
+    real(dp), allocatable :: upstream_area(:) !< Upstream area [m2] for every river node.
+    type(order_t) :: order !< Level-based order of the river DAG.
+    type(points_t) :: points !< Coordinates of all river nodes.
+    integer(i4) :: n_lakes = 0_i4 !< Number of delineated L0 lakes or canonical L3 lake nodes.
+
+    ! Full morphological L0 D8 river only.
+    integer(i2), allocatable :: fdir(:) !< L0 D8 flow direction for every active L0 cell.
+    integer(i4), allocatable :: facc(:) !< L0 flow accumulation for every L0 river node.
+    real(dp), allocatable :: node_elevation(:) !< L0 DEM elevation [m] for every river node.
+    integer(i8), allocatable :: lake_map(:) !< Stable lake ID for each L0 cell, zero outside lake footprints.
+    integer(i8), allocatable :: lake_outlet_nodes(:) !< Snapped L0 outlet nodes aligned with lake points.
+
+    ! Upscaled L3 SCC-routing river only.
+    integer(i8), allocatable :: lake_id(:) !< Stable lake ID at canonical L3 lake nodes, zero at ordinary nodes.
+    logical :: scc = .false. !< Whether this L3 river uses SCC topology rather than D8 links.
+    integer(i8), allocatable :: node_cell(:) !< L3 grid cell owning each SCC routing node.
+    integer(i8), allocatable :: cell_node_select(:) !< Representative routing node for each L3 cell; may be outside it.
+    real(dp), allocatable :: cell_land_fraction(:) !< Land area / full area for each L3 cell.
+    real(dp), allocatable :: area_fraction(:) !< Land-runoff share assigned to each SCC routing node.
   contains
     procedure, public :: from_fdir => river_from_fdir
     procedure, public :: calc_order => river_order
     procedure, public :: calc_fdir => river_fdir
     procedure, public :: calc_facc => river_facc
+    procedure, public :: set_elevation => river_set_elevation
+    procedure, public :: set_link_slope => river_set_link_slope
     procedure, public :: label_subcatchments => river_label_subcatchments
+    procedure, public :: label_lakes => river_label_lakes
+    procedure, public :: lake_masks => river_lake_masks
+    procedure, public :: set_lake_nodes => river_set_lake_nodes
     procedure, public :: calc_upstream_area => river_upstream_area
     procedure, public :: calc_length => river_length
     procedure, public :: calc_slope => river_slope
@@ -353,15 +380,17 @@ contains
   end subroutine river_from_fdir
 
   !> \brief Get river node order by levels
-  subroutine river_order(this, root)
+  subroutine river_order(this, root, sort)
     class(river_t), intent(inout) :: this
     logical, optional, intent(in) :: root !< level as distance from root (.true.) or max. distance from headwater (.false., default)
+    logical, optional, intent(in) :: sort !< sort node IDs within every level after calculating the order (default .false.)
     integer(i8) :: istat
     if (allocated(this%order%id)) deallocate(this%order%id)
     if (allocated(this%order%level_start)) deallocate(this%order%level_start)
     if (allocated(this%order%level_end)) deallocate(this%order%level_end)
     call this%levelsort(this%order, istat, root)
     if (istat /= 0_i8) call error_message("river%order: found cycle")
+    if (optval(sort, .false.)) call this%order%sort()
   end subroutine river_order
 
   !> \brief Calculate flow accumulation
@@ -465,6 +494,145 @@ contains
 
   end subroutine river_label_subcatchments
 
+  !> \brief Store elevation at every river node.
+  subroutine river_set_elevation(this, elevation)
+    class(river_t), intent(inout), target :: this
+    real(dp), intent(in) :: elevation(:) !< node elevation [m]
+    integer(i8) :: i
+
+    if (size(elevation, kind=i8) /= this%n_nodes) &
+      call error_message("river%set_elevation: elevation size does not match river nodes")
+    if (allocated(this%node_elevation)) then
+      if (size(this%node_elevation, kind=i8) /= this%n_nodes) deallocate(this%node_elevation)
+    end if
+    if (.not.allocated(this%node_elevation)) allocate(this%node_elevation(this%n_nodes))
+    !$omp parallel do default(shared) schedule(static)
+    do i = 1_i8, this%n_nodes
+      this%node_elevation(i) = elevation(i)
+    end do
+    !$omp end parallel do
+  end subroutine river_set_elevation
+
+  !> \brief Store slope for every link starting at a river node.
+  subroutine river_set_link_slope(this, slope)
+    class(river_t), intent(inout), target :: this
+    real(dp), intent(in) :: slope(:) !< link slope [%]
+    integer(i8) :: i
+
+    if (size(slope, kind=i8) /= this%n_nodes) &
+      call error_message("river%set_link_slope: slope size does not match river nodes")
+    if (allocated(this%link_slope)) then
+      if (size(this%link_slope, kind=i8) /= this%n_nodes) deallocate(this%link_slope)
+    end if
+    if (.not.allocated(this%link_slope)) allocate(this%link_slope(this%n_nodes))
+    !$omp parallel do default(shared) schedule(static)
+    do i = 1_i8, this%n_nodes
+      this%link_slope(i) = slope(i)
+    end do
+    !$omp end parallel do
+  end subroutine river_set_link_slope
+
+  !> \brief Delineate disjoint lake footprints from outlet catchments and maximum water levels.
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  subroutine river_label_lakes(this, outlet_nodes, lake_ids, max_levels)
+    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+    use mo_river_tools, only: unique_ids
+    class(river_t), intent(inout), target :: this
+    integer(i8), intent(in) :: outlet_nodes(:) !< river nodes at the configured lake outlets
+    integer(i8), intent(in) :: lake_ids(:) !< stable positive lake IDs aligned with outlet_nodes
+    real(dp), intent(in) :: max_levels(:) !< maximum lake levels aligned with outlet_nodes
+    integer(i4), allocatable :: catchment_map(:)
+    integer(i8) :: i
+    integer(i4) :: lake_index
+
+    if (size(outlet_nodes, kind=i8) < 1_i8) call error_message("river%label_lakes: no lake outlets provided")
+    if (size(lake_ids, kind=i8) /= size(outlet_nodes, kind=i8)) &
+      call error_message("river%label_lakes: lake ID count does not match outlet count")
+    if (size(max_levels, kind=i8) /= size(outlet_nodes, kind=i8)) &
+      call error_message("river%label_lakes: maximum-level count does not match outlet count")
+    if (.not.allocated(this%node_elevation)) &
+      call error_message("river%label_lakes: node elevation not initialized")
+    if (any(outlet_nodes < 1_i8) .or. any(outlet_nodes > this%n_nodes)) &
+      call error_message("river%label_lakes: outlet node outside the river network")
+    if (.not.unique_ids(outlet_nodes)) call error_message("river%label_lakes: multiple lakes use the same outlet node")
+    if (any(lake_ids <= 0_i8)) call error_message("river%label_lakes: lake IDs must be positive")
+    if (.not.unique_ids(lake_ids)) call error_message("river%label_lakes: lake IDs must be unique")
+    if (.not.all(ieee_is_finite(max_levels))) call error_message("river%label_lakes: maximum lake levels must be finite")
+    do lake_index = 1_i4, size(lake_ids, kind=i4)
+      if (this%node_elevation(outlet_nodes(lake_index)) > max_levels(lake_index)) &
+        call error_message("river%label_lakes: outlet elevation exceeds maximum level for lake ID")
+    end do
+
+    ! Subcatchment labels partition nested outlet catchments so lake footprints cannot overlap.
+    call this%label_subcatchments(catchment_map, outlet_nodes)
+    this%n_lakes = size(lake_ids, kind=i4)
+    if (allocated(this%lake_map)) deallocate(this%lake_map)
+    allocate(this%lake_map(this%n_nodes))
+    !$omp parallel do default(shared) private(lake_index) schedule(static)
+    do i = 1_i8, this%n_nodes
+      this%lake_map(i) = 0_i8
+      lake_index = catchment_map(i)
+      if (lake_index > 0_i4) then
+        if (this%node_elevation(i) <= max_levels(lake_index)) this%lake_map(i) = lake_ids(lake_index)
+      end if
+    end do
+    !$omp end parallel do
+    if (allocated(this%lake_outlet_nodes)) deallocate(this%lake_outlet_nodes)
+    allocate(this%lake_outlet_nodes(size(outlet_nodes)))
+    this%lake_outlet_nodes = outlet_nodes
+  end subroutine river_label_lakes
+
+  !> \brief Derive complementary packed land and lake masks from the stable lake map.
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  subroutine river_lake_masks(this, land_mask, lake_mask)
+    class(river_t), intent(in), target :: this
+    logical, allocatable, intent(out) :: land_mask(:) !< active non-lake river cells
+    logical, allocatable, intent(out) :: lake_mask(:) !< active lake river cells
+    integer(i8) :: i
+
+    if (.not.allocated(this%lake_map)) call error_message("river%lake_masks: lake map not initialized")
+    if (size(this%lake_map, kind=i8) /= this%n_nodes) &
+      call error_message("river%lake_masks: lake map size does not match river nodes")
+    allocate(land_mask(this%n_nodes), lake_mask(this%n_nodes))
+    !$omp parallel do default(shared) schedule(static)
+    do i = 1_i8, this%n_nodes
+      lake_mask(i) = this%lake_map(i) > 0_i8
+      land_mask(i) = .not.lake_mask(i)
+    end do
+    !$omp end parallel do
+  end subroutine river_lake_masks
+
+  !> \brief Mark exactly one routing node for every stable lake ID.
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  subroutine river_set_lake_nodes(this, lake_nodes, lake_ids)
+    use mo_river_tools, only: unique_ids
+    class(river_t), intent(inout), target :: this !< River whose L3 lake-node IDs are set.
+    integer(i8), intent(in) :: lake_nodes(:) !< Canonical L3 routing nodes, one per lake.
+    integer(i8), intent(in) :: lake_ids(:) !< Positive stable IDs aligned with lake_nodes.
+    integer(i8) :: i
+
+    if (size(lake_nodes, kind=i8) /= size(lake_ids, kind=i8)) &
+      call error_message("river%set_lake_nodes: node and ID counts differ")
+    if (any(lake_nodes < 1_i8) .or. any(lake_nodes > this%n_nodes)) &
+      call error_message("river%set_lake_nodes: lake node outside river network")
+    if (any(lake_ids <= 0_i8)) call error_message("river%set_lake_nodes: lake IDs must be positive")
+    if (.not.unique_ids(lake_nodes)) call error_message("river%set_lake_nodes: lake nodes must be unique")
+    if (.not.unique_ids(lake_ids)) call error_message("river%set_lake_nodes: lake IDs must be unique")
+    this%n_lakes = size(lake_ids, kind=i4)
+    if (allocated(this%lake_id)) deallocate(this%lake_id)
+    allocate(this%lake_id(this%n_nodes))
+    !$omp parallel do default(shared) schedule(static)
+    do i = 1_i8, this%n_nodes
+      this%lake_id(i) = 0_i8
+    end do
+    !$omp end parallel do
+    !$omp parallel do default(shared) schedule(static)
+    do i = 1_i8, size(lake_nodes, kind=i8)
+      this%lake_id(lake_nodes(i)) = lake_ids(i)
+    end do
+    !$omp end parallel do
+  end subroutine river_set_lake_nodes
+
   !> \brief Calculate upstream area for each node (inclusive).
   subroutine river_upstream_area(this)
     use mo_message, only: error_message
@@ -483,6 +651,9 @@ contains
         ! area fraction not allocated for d8 river
         if (this%scc) then
           this%upstream_area(n) = this%grid%cell_area(this%node_cell(n)) * this%area_fraction(n)
+          if (allocated(this%cell_land_fraction)) then
+            this%upstream_area(n) = this%upstream_area(n) * this%cell_land_fraction(this%node_cell(n))
+          end if
         else
           this%upstream_area(n) = this%grid%cell_area(n)
         end if
@@ -578,24 +749,33 @@ contains
   end subroutine river_length
 
   !> \brief Calculate link slopes
-  subroutine river_slope(this, dem)
-    class(river_t), intent(inout) :: this
-    real(dp), dimension(this%grid%ncells), intent(in) :: dem !< elevation [m]
-    integer(i8) :: i, j, k
+  subroutine river_slope(this, elevation)
+    class(river_t), intent(inout), target :: this
+    real(dp), target, intent(in), optional :: elevation(:) !< optional elevation [m], stored node elevation otherwise
+    real(dp), pointer :: elevation_(:)
+    integer(i8) :: i, j
+
     if (this%scc) call error_message("river%calc_slope: can't calculate slope from DEM for a SCC river.")
     if (.not.allocated(this%link_length)) call error_message("river%calc_slope: can't calculate slope without link length.")
+    if (present(elevation)) then
+      if (size(elevation, kind=i8) /= this%n_nodes) &
+        call error_message("river%calc_slope: elevation size does not match river nodes")
+      elevation_ => elevation
+    else if (.not.allocated(this%node_elevation)) then
+      call error_message("river%calc_slope: node elevation not initialized")
+    else
+      elevation_ => this%node_elevation
+    end if
     if (allocated(this%link_slope)) deallocate(this%link_slope)
-    allocate(this%link_slope(this%grid%ncells), source=0.0_dp)
-    k = 0_i8
+    allocate(this%link_slope(this%grid%ncells))
     !$omp parallel do default(shared) private(i,j)
     do i = 1_i8, this%grid%ncells
       j = this%down(i)
-      if (j == 0_i8) cycle ! sinks ain't links
-      if (dem(i) < dem(j)) then
-        k = k + 1_i8
-        ! *, "link is going upwards: ", i, j, dem(i), dem(j)
+      if (j == 0_i8) then
+        this%link_slope(i) = 0.0_dp ! sinks ain't links
+        cycle
       end if
-      this%link_slope(i) = max(( dem(i) - dem(j) ) / this%link_length(i), 0.0_dp) * 100.0_dp ! in %
+      this%link_slope(i) = max((elevation_(i) - elevation_(j)) / this%link_length(i), 0.0_dp) * 100.0_dp
     end do
     !$omp end parallel do
   end subroutine river_slope
@@ -604,10 +784,11 @@ contains
   !> \author Stephan Thober
   !> \author Matthias Kelbling
   !> \author Sebastian Müller
-  subroutine river_celerity(this, gamma, constant_celerity, slope, mask)
+  subroutine river_celerity(this, gamma, celerity, constant_celerity, slope, mask)
     implicit none
     class(river_t), intent(inout) :: this
     real(dp), intent(in) :: gamma !< model parameter: c_i = gamma * sqrt(s_i) or c = gamma
+    real(dp), allocatable, intent(out) :: celerity(:) !< celerity of the link starting at each node
     logical, optional, intent(in) :: constant_celerity !< whether celerity is assumed constant: c = gamma (default: .false.)
     real(dp), optional, intent(in) :: slope(:) !< [%] river slope, will be stored in link_slope if provided
     logical, optional, intent(in) :: mask(:) !< mask for slope smoothing (may come from upscaled river network)
@@ -616,10 +797,10 @@ contains
 
     ! constant celerity
     if (optval(constant_celerity, .false.)) then
-      if (.not.allocated(this%celerity)) allocate(this%celerity(this%n_nodes))
+      allocate(celerity(this%n_nodes))
       !$omp parallel do default(shared)
       do i = 1_i8, this%n_nodes
-        this%celerity(i) = gamma
+        celerity(i) = gamma
       end do
       !$omp end parallel do
       return
@@ -651,10 +832,10 @@ contains
     ! smooth slope using hard-coded MAD filter
     call river_smooth_slope(smooth_slope, mask)
     ! calculate celerity
-    allocate(this%celerity(this%n_nodes))
+    allocate(celerity(this%n_nodes))
     !$omp parallel do default(shared)
     do i = 1_i8, this%n_nodes
-      this%celerity(i) = gamma * sqrt(smooth_slope(i) / 100.0_dp)
+      celerity(i) = gamma * sqrt(smooth_slope(i) / 100.0_dp)
     end do
     !$omp end parallel do
 
@@ -865,13 +1046,15 @@ contains
   end function river_select_cell_values_i4
 
   !> \brief Export river arrays to netcdf
-  subroutine river_export(this, path, sub_map, leaving, stream_mask, stream_sub, highlight, factor)
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  subroutine river_export(this, path, sub_map, leaving, stream_mask, stream_sub, lake_outlet, highlight, factor)
     class(river_t), intent(in) :: this
     character(*), intent(in) :: path !< path to the file
     integer(i4), intent(in), optional :: sub_map(this%n_nodes) !< map of sub-catchment IDs
     logical, intent(in), optional :: leaving(this%n_nodes) !< mask of leaving cells
     logical, intent(in), optional :: stream_mask(this%n_nodes) !< stream mask
     integer(i4), intent(in), optional :: stream_sub(this%n_nodes) !< steam sub catchment ID
+    integer(i8), intent(in), optional :: lake_outlet(this%n_nodes) !< stable lake ID at canonical outlet, 0 elsewhere
     logical, intent(in), optional :: highlight(:) !< highlight cells in leaving/stream_mask/stream_sub
     integer(i4), intent(in), optional :: factor !< upscaling factor for checkerboard pattern -1/0
     integer(i4), allocatable :: tmp(:)
@@ -898,13 +1081,16 @@ contains
     if (allocated(this%facc)) vars = [vars, var("facc", "flow accumulation", dtype="i32", static=.true.)]
     if (allocated(this%order%id)) vars = [vars, var("level", "order level", dtype="i32", static=.true.)]
     if (allocated(this%upstream_area)) vars = [vars, var("upstream_area", "upstream area", units="m2", dtype="f64", static=.true.)]
+    if (allocated(this%node_elevation)) vars = [vars, var("dem", "node elevation", units="m", dtype="f64", static=.true.)]
     if (allocated(this%link_length)) vars = [vars, var("length", "link length", dtype="f64", static=.true.)]
     if (allocated(this%link_slope)) vars = [vars, var("slope", "link slope", dtype="f64", static=.true.)]
-    if (allocated(this%celerity)) vars = [vars, var("celerity", "celerity", dtype="f64", static=.true.)]
+    if (allocated(this%lake_map)) vars = [vars, var("lake_map", "stable lake ID", dtype="i64", kind="i8", static=.true.)]
     if (present(sub_map)) vars = [vars, var("scc", "scc catchment id", dtype="i32", static=.true.)]
     if (present(leaving)) vars = [vars, var("leaving", "leaving", dtype="i32", static=.true.)]
     if (present(stream_mask)) vars = [vars, var("stream", "stream mask", dtype="i32", static=.true.)]
     if (present(stream_sub)) vars = [vars, var("stream_sub", "stream sub catchment ID", dtype="i32", static=.true.)]
+    if (present(lake_outlet)) &
+      vars = [vars, var("lake_outlet", "stable lake ID at canonical outlet", dtype="i64", kind="i8", static=.true.)]
     call ds%init(path, this%grid, vars)
     call ds%update("fdir", this%fdir)
     if (allocated(this%facc)) call ds%update("facc", this%facc)
@@ -918,9 +1104,10 @@ contains
       call ds%update("level", level)
     end if
     if (allocated(this%upstream_area)) call ds%update("upstream_area", this%upstream_area)
+    if (allocated(this%node_elevation)) call ds%update("dem", this%node_elevation)
     if (allocated(this%link_length)) call ds%update("length", this%link_length)
     if (allocated(this%link_slope)) call ds%update("slope", this%link_slope)
-    if (allocated(this%celerity)) call ds%update("celerity", this%celerity)
+    if (allocated(this%lake_map)) call ds%update("lake_map", this%lake_map)
     if (present(sub_map)) call ds%update("scc", sub_map)
     if (present(leaving)) then
       allocate(tmp(this%n_nodes), source=0_i4)
@@ -948,12 +1135,14 @@ contains
         call ds%update("stream_sub", stream_sub)
       end if
     end if
+    if (present(lake_outlet)) call ds%update("lake_outlet", lake_outlet)
     call ds%write()
     call ds%close()
     deallocate(vars)
   end subroutine river_export
 
   !> \brief Write river network to restart file
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_to_restart_file(this, path, append)
     class(river_t), intent(in) :: this
     character(*), intent(in) :: path !< NetCDF file path
@@ -968,6 +1157,7 @@ contains
   end subroutine river_to_restart_file
 
   !> \brief Write river network to restart dataset
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_to_restart_dataset(this, nc)
     class(river_t), intent(in) :: this
     type(NcDimension) :: two_dim, node_dim, link_dim, dims(2), order_dim, sink_dim, xdim, ydim
@@ -976,6 +1166,7 @@ contains
     integer(i8) :: i
     integer(i8), allocatable :: dummy2d(:, :)
     integer(i2), allocatable :: dummy2d_i2(:, :)
+    real(dp), allocatable :: dummy2d_dp(:, :)
 
     if ( this%grid%coordsys == cartesian ) then
       xdim = nc%getDimension("x")
@@ -1132,14 +1323,19 @@ contains
       call nc_var%setData(this%link_slope)
     end if
 
-    ! celerity
-    if ( allocated(this%celerity) ) then
-      call message("writing celerity to restart file")
-      nc_var = nc%setVariable("celerity", "f64", [node_dim])
-      call nc_var%setAttribute("long_name", "streamflow celerity")
-      call nc_var%setFillValue(nodata_dp)
-      call nc_var%setAttribute("missing_value", nodata_dp)
-      call nc_var%setData(this%celerity)
+    ! stable lake ID on routing nodes
+    if (allocated(this%lake_id)) then
+      call message("writing lake_id to restart file")
+      nc_var = nc%setVariable("lake_id", "i64", [node_dim])
+      call nc_var%setAttribute("long_name", "stable lake ID on routing node")
+      call nc_var%setFillValue(nodata_i8)
+      call nc_var%setAttribute("missing_value", nodata_i8)
+      call nc_var%setData(this%lake_id)
+      if (this%n_lakes > 0_i4) then
+        nc_var = nc%setVariable("n_lakes", "i32", dims(:0))
+        call nc_var%setAttribute("long_name", "number of canonical lake nodes")
+        call nc_var%setData(this%n_lakes)
+      end if
     end if
 
     ! scc state
@@ -1182,6 +1378,15 @@ contains
       call nc_var%setData(this%area_fraction)
     end if
 
+    if (allocated(this%cell_land_fraction)) then
+      nc_var = nc%setVariable("cell_land_fraction", "f64", [xdim, ydim], shuffle=.true.)
+      call nc_var%setAttribute("long_name", "land area fraction of routing cell")
+      allocate(dummy2d_dp(this%grid%nx, this%grid%ny))
+      call this%grid%unpack_into(this%cell_land_fraction, dummy2d_dp)
+      call nc_var%setData(dummy2d_dp)
+      deallocate(dummy2d_dp)
+    end if
+
     ! order
     if ( allocated(this%order%id) ) then
       order_dim = nc%setDimension("order_dim", int(this%order%n_levels, i4))
@@ -1214,6 +1419,7 @@ contains
   end subroutine river_to_restart_dataset
 
   !> \brief Read river network from restart file
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_from_restart_file(this, path, grid)
     class(river_t), intent(inout) :: this
     character(*), intent(in) :: path !< NetCDF file path
@@ -1225,6 +1431,7 @@ contains
   end subroutine river_from_restart_file
 
   !> \brief Read river network from restart dataset
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_from_restart_dataset(this, nc, grid)
     class(river_t), intent(inout) :: this
     type(NcDataset), intent(in) :: nc !< netcdf dataset to read from
@@ -1232,10 +1439,12 @@ contains
     type(NcVariable) :: nc_var
     type(NcDimension) :: nc_dim
 
-    integer(i8) :: i, n_sinks, n_links
+    integer(i8) :: i, c, n_sinks, n_links, n_lakes_i8
     integer(i1), allocatable :: dummy_i1
+    integer(i4), allocatable :: dummy_i4
     integer(i2), allocatable :: dummy2di2(:, :)
     integer(i8), allocatable :: dummy2di8(:, :)
+    real(dp), allocatable :: dummy2d(:, :), dummy_land_fraction(:)
     real(dp), allocatable :: node_x(:), node_y(:)
 
     ! reset all attributes
@@ -1333,10 +1542,30 @@ contains
       call nc_var%readInto(this%link_slope)
     end if
 
-    if (nc%hasVariable("celerity")) then
-      nc_var = nc%getVariable("celerity")
-      allocate(this%celerity(this%n_nodes))
-      call nc_var%readInto(this%celerity)
+    if (nc%hasVariable("lake_id")) then
+      nc_var = nc%getVariable("lake_id")
+      allocate(this%lake_id(this%n_nodes))
+      call nc_var%readInto(this%lake_id)
+      if (any(this%lake_id < 0_i8)) call error_message("river restart contains a negative lake ID")
+      if (nc%hasVariable("n_lakes")) then
+        nc_var = nc%getVariable("n_lakes")
+        call nc_var%getData(dummy_i4)
+        this%n_lakes = dummy_i4
+        deallocate(dummy_i4)
+        if (this%n_lakes < 1_i4) call error_message("river restart contains lake IDs but no lakes")
+      else
+        ! Legacy lake restarts have no persisted count; derive it once in parallel.
+        n_lakes_i8 = 0_i8
+        !$omp parallel do default(shared) reduction(+:n_lakes_i8) schedule(static)
+        do i = 1_i8, this%n_nodes
+          if (this%lake_id(i) > 0_i8) n_lakes_i8 = n_lakes_i8 + 1_i8
+        end do
+        !$omp end parallel do
+        if (n_lakes_i8 > int(huge(this%n_lakes), i8)) call error_message("river restart contains too many lakes")
+        this%n_lakes = int(n_lakes_i8, i4)
+      end if
+    else if (nc%hasVariable("n_lakes")) then
+      call error_message("river restart contains a lake count but no lake IDs")
     end if
 
     if (nc%hasVariable("node_cell")) then
@@ -1357,6 +1586,40 @@ contains
       nc_var = nc%getVariable("area_fraction")
       allocate(this%area_fraction(this%n_nodes))
       call nc_var%readInto(this%area_fraction)
+    end if
+
+    if (nc%hasVariable("cell_land_fraction")) then
+      nc_var = nc%getVariable("cell_land_fraction")
+      call nc_var%getData(dummy2d)
+      allocate(this%cell_land_fraction(this%grid%ncells))
+      call this%grid%pack_into(dummy2d, this%cell_land_fraction)
+      deallocate(dummy2d)
+    else if (this%n_lakes > 0_i4) then
+      ! Lake restarts written before cell_land_fraction used raw node fractions.
+      if (.not.allocated(this%node_cell) .or. .not.allocated(this%area_fraction)) then
+        call error_message("lake restart cannot derive land fractions without node_cell and area_fraction")
+      end if
+      allocate(dummy_land_fraction(this%grid%ncells))
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, this%grid%ncells
+        dummy_land_fraction(i) = 0.0_dp
+      end do
+      !$omp end parallel do
+      !$omp parallel do default(shared) private(c) schedule(static)
+      do i = 1_i8, this%n_nodes
+        c = this%node_cell(i)
+        !$omp atomic update
+        dummy_land_fraction(c) = dummy_land_fraction(c) + this%area_fraction(i)
+      end do
+      !$omp end parallel do
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, this%n_nodes
+        if (dummy_land_fraction(this%node_cell(i)) > 0.0_dp) then
+          this%area_fraction(i) = this%area_fraction(i) / dummy_land_fraction(this%node_cell(i))
+        end if
+      end do
+      !$omp end parallel do
+      call move_alloc(dummy_land_fraction, this%cell_land_fraction)
     end if
 
     if (nc%hasDimension("order_dim")) then
@@ -1397,19 +1660,26 @@ contains
 
   end subroutine river_from_restart_dataset
 
+  !> \brief Release all river topology, morphology, and lake state.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_destroy(this)
     class(river_t), intent(inout) :: this
     if (allocated(this%fdir)) deallocate(this%fdir)
     if (allocated(this%facc)) deallocate(this%facc)
     if (allocated(this%is_sink)) deallocate(this%is_sink)
     if (allocated(this%upstream_area)) deallocate(this%upstream_area)
+    if (allocated(this%node_elevation)) deallocate(this%node_elevation)
     if (allocated(this%link_length)) deallocate(this%link_length)
     if (allocated(this%link_slope)) deallocate(this%link_slope)
-    if (allocated(this%celerity)) deallocate(this%celerity)
+    if (allocated(this%lake_map)) deallocate(this%lake_map)
+    if (allocated(this%lake_outlet_nodes)) deallocate(this%lake_outlet_nodes)
+    if (allocated(this%lake_id)) deallocate(this%lake_id)
     this%points = points_t()
     if (allocated(this%node_cell)) deallocate(this%node_cell)
     if (allocated(this%cell_node_select)) deallocate(this%cell_node_select)
     if (allocated(this%area_fraction)) deallocate(this%area_fraction)
+    if (allocated(this%cell_land_fraction)) deallocate(this%cell_land_fraction)
+    this%n_lakes = 0_i4
     call this%destroy()
   end subroutine river_destroy
 

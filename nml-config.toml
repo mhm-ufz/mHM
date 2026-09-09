@@ -121,6 +121,12 @@ mod_path = "src/nml/nml_config_mrm.f90"
 doc_path = "doc/nml/config_mrm.md"
 
 [[namelists]]
+name = "config_mlm"
+schema = "nml-schemas/config_mlm.yml"
+mod_path = "src/nml/nml_config_mlm.f90"
+doc_path = "doc/nml/config_mlm.md"
+
+[[namelists]]
 name = "config_observations"
 schema = "nml-schemas/config_observations.yml"
 mod_path = "src/nml/nml_config_observations.f90"
@@ -259,6 +265,12 @@ mod_path = "src/nml/nml_output_mhm.f90"
 doc_path = "doc/nml/output_mhm.md"
 
 [[namelists]]
+name = "output_mlm"
+schema = "nml-schemas/output_mlm.yml"
+mod_path = "src/nml/nml_output_mlm.f90"
+doc_path = "doc/nml/output_mlm.md"
+
+[[namelists]]
 name = "output_mrm"
 schema = "nml-schemas/output_mrm.yml"
 mod_path = "src/nml/nml_output_mrm.f90"
@@ -290,6 +302,7 @@ namelists = [
   "config_mpr",
   "config_mhm",
   "config_mrm",
+  "config_mlm",
   "config_observations",
 ]
 required = ["config_project", "config_resolution", "config_time"]
@@ -297,9 +310,9 @@ required = ["config_project", "config_resolution", "config_time"]
 [[file_profiles]]
 name = "output"
 title = "Output configuration"
-description = "Output namelists for mHM and mRM."
+description = "Output namelists for mHM, mLM, and mRM."
 default_file = "outputs.nml"
-namelists = ["output_mhm", "output_mrm"]
+namelists = ["output_mhm", "output_mlm", "output_mrm"]
 
 [[file_profiles]]
 name = "parameter"

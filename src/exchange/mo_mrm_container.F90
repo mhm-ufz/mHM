@@ -4,9 +4,13 @@
 !> \brief   Module for a mHM process container.
 !> \version 0.1
 !> \changelog
-!! - Stephan Thober Sep 2026
-!!   - initial version using river dag
-!> \authors Sebastian Mueller, Stephan Thober
+!! - Luis Samaniego (2005/2012): original mHM/mRM routing workflow.
+!! - Rohini Kumar (2014): routing-grid geometry support.
+!! - Stephan Thober (2015-2020): mRM port and routing extensions.
+!! - Robert Schweppe (2018): prior mRM routing refactoring.
+!! - Pallav Shrestha (2018-2023): lake-aware SCC routing extensions.
+!! - Sebastian Mueller and Stephan Thober (2025-2026): v6 domain-container and river-DAG rewrite.
+!> \authors Luis Samaniego, Rohini Kumar, Stephan Thober, Robert Schweppe, Sebastian Mueller, Pallav Shrestha
 !> \date    Aug 2025
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
@@ -50,19 +54,24 @@ module mo_mrm_container
 
   !> \class   mrm_t
   !> \brief   Class for a single mRM process container.
+  !> \authors Sebastian Mueller, Stephan Thober, Pallav Shrestha
   type, public :: mrm_t
     type(nml_config_mrm_t)     :: config                       !< configuration of the mRM process container
     type(nml_output_mrm_t)     :: output_config                !< output configuration of the mRM process container
     type(exchange_t), pointer  :: exchange => null()           !< exchange container of the domain
     type(grid_t)               :: level3                       !< mrm grid
-    type(river_t)              :: river_l0                     !< level-0 river network (for upscaling)
+    type(grid_t)               :: level3_land                  !< private land-only L3 runoff-support grid
     type(river_t)              :: river                        !< upscaled river network
     type(river_router_t)       :: router                       !< river router
     type(river_upscaler_t)     :: upscaler                     !< river upscaler for upscaling from level-0 to level-3 river network
+    real(dp), allocatable      :: celerity(:)                  !< celerity of the link starting at each level-3 river node
     type(output_dataset)       :: ds_out                       !< output dataset for gridded outputs
     type(points_output_dataset):: ds_node_out                  !< output dataset for river node based outputs
     type(mrm_poi_output_t)     :: poi                          !< point-of-interest output state
     real(dp), allocatable      :: discharge(:)                 !< discharge array for all river nodes
+    real(dp), allocatable      :: lake_inflow(:)               !< completed hourly lake inflow [m3 s-1]
+    integer(i8), allocatable   :: lake_ids(:)                  !< stable lake IDs in point-set order
+    integer(i8), allocatable   :: lake_nodes(:)                !< canonical L3 lake nodes in point-set order
     logical                    :: active = .false.             !< whether mRM participates in the configured domain
     logical                    :: read_restart = .false.       !< whether to read restart file
     character(:), allocatable  :: restart_input_path           !< path to restart file to read
@@ -94,7 +103,12 @@ module mo_mrm_container
     procedure, private :: validate_poi_metadata => mrm_validate_poi_metadata
     procedure, private :: read_poi_restart => mrm_read_poi_restart
     procedure, private :: read_gauge_points => mrm_read_gauge_points
+    procedure, private :: snap_points_l0 => mrm_snap_points_l0
     procedure, private :: select_scc_pois => mrm_select_scc_pois
+    procedure, private :: validate_lake_topology => mrm_validate_lake_topology
+    procedure, private :: build_level3_land => mrm_build_level3_land
+    procedure, private :: read_lake_inflow_restart => mrm_read_lake_inflow_restart
+    procedure, private :: validate_restart_timestamp => mrm_validate_restart_timestamp
   end type mrm_t
 
 contains
@@ -154,7 +168,7 @@ contains
     class(mrm_t), intent(inout), target :: self
     type(NcDataset) :: nc
     type(NcVariable) :: nc_var
-    type(NcDimension) :: dims(0), poi_dim
+    type(NcDimension) :: dims(0), poi_dim, lake_dim
 
     if (self%router%input_count /= 0_i4) then
       log_fatal(*) "mRM restart can only be written at a completed routing boundary."
@@ -170,6 +184,14 @@ contains
     call self%level3%to_restart(nc)
     call self%river%to_restart(nc)
     call self%router%to_restart(nc)
+    if (allocated(self%lake_inflow)) then
+      lake_dim = nc%setDimension("lake", int(size(self%lake_ids), i4))
+      nc_var = nc%setVariable("lake_coupling_id", "i64", [lake_dim])
+      call nc_var%setData(self%lake_ids)
+      nc_var = nc%setVariable("lake_inflow", "f64", [lake_dim])
+      call nc_var%setAttribute("units", "m3 s-1")
+      call nc_var%setData(self%lake_inflow)
+    end if
     nc_var = nc%setVariable("mrm_discharge", "f64", [nc%getDimension("node")])
     call self%exchange%discharge%write_netcdf_metadata(nc_var)
     call nc_var%setData(self%discharge)
@@ -383,7 +405,8 @@ contains
     end if
   end subroutine check_parameter_status
 
-  ! read initial values and populate exchange
+  !> \brief Connect mRM to its input, SCC, and lake topology dependencies.
+  !> \authors Sebastian Mueller, Stephan Thober, Pallav Shrestha
   subroutine mrm_connect(self)
     use mo_grid, only: grid_t
     use mo_river, only: river_t
@@ -392,13 +415,12 @@ contains
     implicit none
 
     class(mrm_t), target, intent(inout) :: self
-    logical, allocatable        :: scc_latlon ! allocatable to be able to make it "not present" if not allocated
     character(:), allocatable   :: file, diagnostics_path
-    real(dp), allocatable       :: scc_gauges(:,:)
-    integer(i8), allocatable    :: scc_ids(:)
+    integer(i8), allocatable    :: scc_ids(:), scc_nodes(:), lake_nodes(:), lake_ids(:)
     type(points_t), target      :: scc_points
-    integer(i4)                 :: id(1)
-    logical                     :: const_celerity, poi_gauges_set, had_restart_pois, read_scc, scc_gauges_as_poi
+    integer(i4)                 :: id(1), i
+    integer(i4)                 :: n_lakes
+    logical                     :: const_celerity, poi_gauges_set, had_restart_pois, read_scc, scc_gauges_as_poi, has_lakes, lake_routing
     integer(i4)                 :: model_step
 
     integer :: status
@@ -433,10 +455,65 @@ contains
       self%restart_output_path = self%exchange%get_path(self%config%restart_output_path(id(1)))
     end if
 
+    has_lakes = self%exchange%lake_ids%provided
+    n_lakes = 0_i4
+    allocate(scc_nodes(0), lake_nodes(0), lake_ids(0))
+    if (.not.self%read_restart) then
+      if (associated(self%exchange%level0_lake) .neqv. has_lakes) then
+        log_fatal(*) "mRM: lake definitions and the level-0 lake grid must be provided together."
+        error stop 1
+      end if
+      if (has_lakes) then
+        if (.not.associated(self%exchange%river_l0)) then
+          log_fatal(*) "mRM: lake definitions require the level-0 river."
+          error stop 1
+        end if
+        if (.not.associated(self%exchange%lake_points)) then
+          log_fatal(*) "mRM: lake point set not provided."
+          error stop 1
+        end if
+        call self%exchange%lake_ids%require("mRM", .true., [self%exchange%lake_points%n_points])
+        if (.not.allocated(self%exchange%river_l0%lake_outlet_nodes)) then
+          log_fatal(*) "mRM: lake definitions require L0 river outlet nodes."
+          error stop 1
+        end if
+        lake_nodes = self%exchange%river_l0%lake_outlet_nodes
+        lake_ids = self%exchange%lake_ids%data
+        n_lakes = size(lake_ids, kind=i4)
+        if (size(lake_nodes, kind=i8) /= int(n_lakes, i8)) then
+          log_fatal(*) "mRM: L0 river lake outlet nodes do not match lake points."
+          error stop 1
+        end if
+        if (.not.allocated(self%exchange%river_l0%lake_map)) then
+          log_fatal(*) "mRM: lake definitions require a level-0 river lake map."
+          error stop 1
+        end if
+        if (any(self%exchange%river_l0%lake_map(lake_nodes) /= lake_ids)) then
+          log_fatal(*) "mRM: stable lake IDs do not match the level-0 lake outlets."
+          error stop 1
+        end if
+        call self%exchange%lake_outflow%require("mRM", .true., [int(n_lakes, i8)])
+        if (self%exchange%lake_outflow%stepping /= 1_i4) then
+          log_fatal(*) "mRM: lake outflow must have one-hour support."
+          error stop 1
+        end if
+      end if
+    end if
+
     ! Runoff may be provided by dynamic input and connected during update.
     call self%exchange%runoff_total%require("mRM", .true., check_data=.false.)
-    call self%exchange%fdir%require("mRM", .not.self%read_restart)
-    call self%exchange%slope%require("mRM", .not.const_celerity .and. .not.self%read_restart)
+    if (.not.self%read_restart) then
+      if (.not.associated(self%exchange%river_l0)) then
+        log_fatal(*) "mRM: level-0 river not provided."
+        error stop 1
+      end if
+    end if
+    if (.not.const_celerity .and. .not.self%read_restart) then
+      if (.not.allocated(self%exchange%river_l0%link_slope)) then
+        log_fatal(*) "mRM: variable celerity requires full level-0 river slope."
+        error stop 1
+      end if
+    end if
 
     ! derive level-3 grid
     if (self%read_restart) then
@@ -455,9 +532,9 @@ contains
       scope_debug(s,*) "level0 ncells", n2s(self%exchange%level0%ncells)
       scope_debug(s,*) "level0 cellsize", n2s(self%exchange%level0%cellsize)
     end if
-    if (associated(self%exchange%level1)) then
-      scope_debug(s,*) "level1 ncells", n2s(self%exchange%level1%ncells)
-      scope_debug(s,*) "level1 cellsize", n2s(self%exchange%level1%cellsize)
+    if (associated(self%exchange%level1_land)) then
+      scope_debug(s,*) "level1 ncells", n2s(self%exchange%level1_land%ncells)
+      scope_debug(s,*) "level1 cellsize", n2s(self%exchange%level1_land%cellsize)
     end if
     scope_debug(s,*) "level3 ncells", n2s(self%level3%ncells)
     scope_debug(s,*) "level3 cellsize", n2s(self%level3%cellsize)
@@ -465,44 +542,88 @@ contains
     ! create rivers
     if (self%read_restart) then
       call self%river%from_restart_file(self%restart_input_path, self%level3)
-    else if (is_close(self%level3%cellsize, self%exchange%level0%cellsize)) then
+    else if (is_close(self%level3%cellsize, self%exchange%level0%cellsize) .and. .not.read_scc .and. .not.has_lakes) then
       ! TODO: the upscaler should handle also the case of no upscaling (level0 == level11)
       scope_info(s,*) "level-0 and level-3 river network are equal of size:", n2s(self%exchange%level3%ncells)
-      call self%river%from_fdir(self%exchange%fdir%data, self%level3)
+      call self%river%from_fdir(self%exchange%river_l0%fdir, self%level3)
+      if (allocated(self%exchange%river_l0%link_slope)) &
+        call self%river%set_link_slope(self%exchange%river_l0%link_slope)
     else
-      scope_info(s,*) "Create level-0 river network of size:", n2s(self%exchange%level0%ncells)
-      call self%river_l0%from_fdir(self%exchange%fdir%data, self%exchange%level0)
-      scope_info(s,*) "Order level-0 river network"
-      call self%river_l0%calc_order(root=.true.)
-      scope_info(s,*) "Calculate facc on level-0"
-      call self%river_l0%calc_facc()
-      ! check SCC config
+      ! Snap ordinary SCC gauges once. Lake outlets are already snapped and published by input.
       if (read_scc) then
         file = self%exchange%get_path(self%config%scc_gauges_path(id(1)))
         scope_info(s,*) "Read SCC gauges from file: ", file
         call self%read_gauge_points(file, scc_points, scc_ids)
-        scc_gauges = scc_points%coords()
-        allocate(scc_latlon, source=scc_points%coordsys == spherical)
+        scc_nodes = self%snap_points_l0(scc_points, file)
+        if (has_lakes) then
+          if (any(self%exchange%river_l0%lake_map(scc_nodes) > 0_i8)) then
+            call error_message("mRM SCC gauge lies inside a configured lake: ", file)
+          end if
+        end if
       end if
       if (self%config%is_set("diagnostics_path", idx=id) == NML_OK) then
         diagnostics_path = self%exchange%get_path(self%config%diagnostics_path(id(1)))
         log_info(*) "Write mRM upscaling diagnostics to file: ", diagnostics_path
       end if
-      ! scc_gauges/scc_latlon not present if not allocated
       scope_info(s,*) "Initialize upscaler and upscale river network to level-3"
       call self%upscaler%init( &
-        fine_river        = self%river_l0, &
-        coarse_river      = self%river, &
-        coarse_grid       = self%level3, &
-        scc_gauges        = scc_gauges, &
-        scc_latlon        = scc_latlon, &
-        upscale_mode      = self%config%upscale_mode(id(1)), &
-        length_percentile = self%config%length_percentile(id(1)), &
-        diagnostics_path  = diagnostics_path, &
+        fine_river         = self%exchange%river_l0, &
+        coarse_river       = self%river, &
+        coarse_grid        = self%level3, &
+        scc_nodes          = scc_nodes, &
+        lake_outlet_nodes  = lake_nodes, &
+        lake_ids           = lake_ids, &
+        upscale_mode       = self%config%upscale_mode(id(1)), &
+        length_percentile  = self%config%length_percentile(id(1)), &
+        diagnostics_path   = diagnostics_path, &  ! if un-allocated, this is interpreted as not present, so no diagnostics are written
         retain_stream_mask = self%exchange%config%processes%routing == 3_i4)
     end if
 
-    if (scc_gauges_as_poi .and. .not.self%read_restart) call self%select_scc_pois(scc_ids)
+    lake_routing = has_lakes
+    if (self%read_restart) then
+      call self%validate_restart_timestamp()
+      lake_routing = self%river%n_lakes > 0_i4
+      if (lake_routing) then
+        if (.not.associated(self%exchange%lake_points) .or. .not.self%exchange%lake_ids%provided) then
+          log_fatal(*) "mRM: lake-aware restart requires published lake points and stable lake IDs."
+          error stop 1
+        end if
+        call self%exchange%lake_ids%require("mRM", .true., [self%exchange%lake_points%n_points])
+        lake_ids = self%exchange%lake_ids%data
+        n_lakes = size(lake_ids, kind=i4)
+        call self%exchange%lake_outflow%require("mRM", .true., [int(n_lakes, i8)])
+        if (self%exchange%lake_outflow%stepping /= 1_i4) then
+          log_fatal(*) "mRM: lake outflow must have one-hour support."
+          error stop 1
+        end if
+      else if (has_lakes) then
+        if (.not.associated(self%exchange%lake_points)) then
+          log_fatal(*) "mRM: published lake IDs require a lake point set."
+          error stop 1
+        end if
+        call self%exchange%lake_ids%require("mRM", .true., [self%exchange%lake_points%n_points])
+        lake_ids = self%exchange%lake_ids%data
+      end if
+    end if
+
+    call self%validate_lake_topology(lake_ids)
+    if (lake_routing) then
+      self%lake_ids = lake_ids
+      allocate(self%lake_nodes(n_lakes))
+      do i = 1_i4, n_lakes
+        self%lake_nodes(i) = findloc(self%river%lake_id, self%lake_ids(i), dim=1, kind=i8)
+        if (self%lake_nodes(i) == 0_i8) then
+          log_fatal(*) "mRM: stable lake ID ", n2s(self%lake_ids(i)), " has no canonical level-3 river node."
+          error stop 1
+        end if
+      end do
+      allocate(self%lake_inflow(n_lakes), source=0.0_dp)
+      call self%exchange%lake_inflow%publish_local("mRM", self%lake_inflow, 1_i4)
+      if (self%read_restart) call self%read_lake_inflow_restart()
+      call self%build_level3_land()
+    end if
+
+    if (scc_gauges_as_poi .and. .not.self%read_restart) call self%select_scc_pois(scc_ids, n_lakes)
 
     ! Restore a persisted POI selection, unless a newly configured POI file overrides it.
     had_restart_pois = .false.
@@ -570,11 +691,52 @@ contains
     end if
   end subroutine mrm_read_gauge_points
 
+  !> \brief Snap an already validated point set to active level-0 river cells.
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  function mrm_snap_points_l0(self, points, file) result(nodes)
+    class(mrm_t), target, intent(in) :: self
+    type(points_t), intent(in) :: points
+    character(*), intent(in) :: file
+    integer(i8), allocatable :: nodes(:)
+    real(dp), allocatable :: coords(:,:)
+    integer(i8) :: i, node
+    integer(i4) :: ix, iy
+    logical :: use_aux
+
+    allocate(coords(points%n_points, 2_i4))
+    coords = points%coords()
+    use_aux = points%coordsys /= self%exchange%level0%coordsys
+    if (use_aux) then
+      if (points%coordsys /= spherical .or. .not.self%exchange%level0%has_aux_vertices()) then
+        call error_message("mRM SCC coordinates are incompatible with the level-0 grid: ", file)
+      end if
+    end if
+    if (use_aux) then
+      nodes = self%exchange%level0%closest_cell_id(coords, use_aux=.true.)
+    else
+      ! Preserve the established SCC convention: select the active regular-grid cell containing each gauge.
+      nodes = self%exchange%level0%closest_cell_id_by_axes(coords)
+    end if
+    do i = 1_i8, size(nodes, kind=i8)
+      node = nodes(i)
+      if (node < 1_i8 .or. node > self%exchange%level0%ncells) then
+        call error_message("mRM SCC gauge cannot be mapped to an active level-0 cell: ", file)
+      end if
+      ix = self%exchange%level0%cell_ij(node, 1)
+      iy = self%exchange%level0%cell_ij(node, 2)
+      if (.not.self%exchange%level0%in_cell(ix, iy, coords(i, 1), coords(i, 2), aux=use_aux)) then
+        call error_message("mRM SCC gauge lies outside its mapped active level-0 cell: ", file)
+      end if
+    end do
+  end function mrm_snap_points_l0
+
   !> \brief Use exact SCC coarse gauge nodes and their station IDs as POIs.
-  subroutine mrm_select_scc_pois(self, scc_ids)
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  subroutine mrm_select_scc_pois(self, scc_ids, n_lakes)
     use mo_river_tools, only: unique_ids
     class(mrm_t), target, intent(inout) :: self
     integer(i8), allocatable, intent(in), optional :: scc_ids(:)
+    integer(i4), intent(in) :: n_lakes
 
     if (.not.self%river%scc) call error_message("mRM scc_gauges_as_poi requires active SCC river upscaling.")
     if (.not.present(scc_ids)) then
@@ -585,16 +747,160 @@ contains
     if (.not.allocated(self%upscaler%scc_coarse_gauges)) then
       call error_message("mRM SCC coarse gauge nodes are unavailable for POI selection.")
     end if
-    if (size(scc_ids, kind=i8) /= size(self%upscaler%scc_coarse_gauges, kind=i8)) then
+    if (size(scc_ids, kind=i8) /= size(self%upscaler%scc_coarse_gauges, kind=i8) - int(n_lakes, i8)) then
       call error_message("mRM SCC station ID and coarse gauge-node counts differ.")
     end if
     if (size(scc_ids, kind=i8) < 1_i8) call error_message("mRM SCC POI selection contains no stations.")
     if (.not.unique_ids(scc_ids)) call error_message("mRM SCC station IDs must be unique.")
 
-    self%poi%locations = self%upscaler%scc_coarse_gauges
+    self%poi%locations = self%upscaler%scc_coarse_gauges(n_lakes + 1_i4:)
     self%poi%ids = scc_ids
     call self%initialize_poi_points()
   end subroutine mrm_select_scc_pois
+
+  !> \brief Validate the exact stable-ID set represented by level-3 lake nodes.
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  subroutine mrm_validate_lake_topology(self, lake_ids)
+    use mo_river_tools, only: unique_ids
+    class(mrm_t), target, intent(in) :: self
+    integer(i8), intent(in) :: lake_ids(:)
+    integer(i8), allocatable :: represented(:)
+    integer(i8) :: i
+    logical :: invalid_node_select
+
+    if (.not.allocated(self%river%lake_id)) then
+      if (size(lake_ids, kind=i8) > 0_i8) call error_message("mRM level-3 river has no lake-node identity.")
+      return
+    end if
+    represented = pack(self%river%lake_id, self%river%lake_id > 0_i8)
+    if (size(represented, kind=i8) /= size(lake_ids, kind=i8)) then
+      call error_message("mRM level-3 river must contain exactly one node for each configured lake.")
+    end if
+    if (.not.unique_ids(represented)) call error_message("mRM level-3 river contains duplicate stable lake IDs.")
+    if (.not.unique_ids(lake_ids)) call error_message("mRM exchange lake metadata contains duplicate stable lake IDs.")
+    do i = 1_i8, size(represented, kind=i8)
+      if (.not.any(lake_ids == represented(i))) call error_message("mRM level-3 river contains an unknown stable lake ID.")
+    end do
+    do i = 1_i8, size(lake_ids, kind=i8)
+      if (.not.any(represented == lake_ids(i))) call error_message("mRM exchange lake metadata contains an unknown stable lake ID.")
+    end do
+    if (size(lake_ids, kind=i8) > 0_i8) then
+      if (.not.allocated(self%river%cell_node_select)) then
+        call error_message("mRM lake-aware level-3 river has no representative-node map.")
+      end if
+      invalid_node_select = .false.
+      !$omp parallel do default(shared) reduction(.or.:invalid_node_select) schedule(static)
+      do i = 1_i8, size(self%river%cell_node_select, kind=i8)
+        if (self%river%cell_node_select(i) < 1_i8 .or. self%river%cell_node_select(i) > self%river%n_nodes) then
+          invalid_node_select = .true.
+        end if
+      end do
+      !$omp end parallel do
+      if (invalid_node_select) then
+        call error_message("mRM lake-aware representative-node map contains an invalid node.")
+      end if
+    end if
+  end subroutine mrm_validate_lake_topology
+
+  !> \brief Construct the private L3 land-support grid used only for runoff remapping.
+  subroutine mrm_build_level3_land(self)
+    class(mrm_t), target, intent(inout) :: self
+    logical, allocatable :: mask(:,:)
+    real(dp), allocatable :: fraction(:,:), full_area(:,:), land_area(:,:)
+    integer(i4) :: i, j
+
+    if (.not.allocated(self%river%cell_land_fraction)) then
+      call error_message("mRM: lake-aware river has no level-3 land fractions.")
+    end if
+    if (size(self%river%cell_land_fraction, kind=i8) /= self%level3%ncells) then
+      call error_message("mRM: level-3 land fraction size does not match routing grid.")
+    end if
+    allocate(mask(self%level3%nx, self%level3%ny), fraction(self%level3%nx, self%level3%ny), &
+      full_area(self%level3%nx, self%level3%ny), land_area(self%level3%nx, self%level3%ny))
+    call self%level3%unpack_into(self%river%cell_land_fraction, fraction)
+    call self%level3%unpack_into(self%level3%cell_area, full_area)
+    !$omp parallel do default(shared) collapse(2) schedule(static)
+    do j = 1_i4, self%level3%ny
+      do i = 1_i4, self%level3%nx
+        if (.not.self%level3%mask(i, j)) then
+          mask(i, j) = .false.
+          land_area(i, j) = 0.0_dp
+        else
+          mask(i, j) = fraction(i, j) > 0.0_dp
+          land_area(i, j) = full_area(i, j) * fraction(i, j)
+        end if
+      end do
+    end do
+    !$omp end parallel do
+    call self%level3%copy_to(self%level3_land, mask=mask, cell_area=land_area)
+    self%exchange%level3_land => self%level3_land
+  end subroutine mrm_build_level3_land
+
+  !> \brief Restore pending mRM lake inflow by stable ID before mLM initialization.
+  subroutine mrm_read_lake_inflow_restart(self)
+    class(mrm_t), target, intent(inout) :: self
+    type(NcDataset) :: nc
+    type(NcVariable) :: var
+    integer(i8), allocatable :: ids(:)
+    real(dp), allocatable :: inflow(:)
+    integer(i8) :: i, j
+
+    nc = NcDataset(self%restart_input_path, "r")
+    if (.not.nc%hasVariable("lake_coupling_id") .or. .not.nc%hasVariable("lake_inflow")) then
+      log_fatal(*) "mRM restart is missing lake coupling state: ", self%restart_input_path
+      error stop 1
+    end if
+    var = nc%getVariable("lake_coupling_id"); call var%getData(ids)
+    var = nc%getVariable("lake_inflow"); call var%getData(inflow)
+    call nc%close()
+    if (size(ids, kind=i8) /= size(self%lake_ids, kind=i8) .or. size(inflow, kind=i8) /= size(ids, kind=i8)) then
+      log_fatal(*) "mRM restart lake count does not match configured lakes."
+      error stop 1
+    end if
+    do i = 1_i8, size(ids, kind=i8) - 1_i8
+      if (any(ids(i + 1_i8:) == ids(i))) then
+        log_fatal(*) "mRM restart contains duplicate stable lake IDs."
+        error stop 1
+      end if
+    end do
+    do i = 1_i8, size(self%lake_ids, kind=i8)
+      do j = 1_i8, size(ids, kind=i8)
+        if (ids(j) == self%lake_ids(i)) exit
+      end do
+      if (j > size(ids, kind=i8)) then
+        log_fatal(*) "mRM restart is missing stable lake ID."
+        error stop 1
+      end if
+      self%lake_inflow(i) = inflow(j)
+    end do
+  end subroutine mrm_read_lake_inflow_restart
+
+  !> \brief Require mRM restart metadata to identify the configured domain restart time.
+  subroutine mrm_validate_restart_timestamp(self)
+    class(mrm_t), target, intent(inout) :: self
+    type(NcDataset) :: nc
+    type(NcVariable) :: meta_var
+    character(64) :: restart_time
+    character(:), allocatable :: expected_time
+
+    nc = NcDataset(self%restart_input_path, "r")
+    if (.not.nc%hasVariable("mrm_meta")) then
+      log_fatal(*) "mRM restart metadata variable mrm_meta is missing: ", self%restart_input_path
+      error stop 1
+    end if
+    meta_var = nc%getVariable("mrm_meta")
+    if (.not.meta_var%hasAttribute("time_stamp")) then
+      log_fatal(*) "mRM restart metadata has no time_stamp: ", self%restart_input_path
+      error stop 1
+    end if
+    call meta_var%getAttribute("time_stamp", restart_time)
+    expected_time = self%exchange%start_time%str()
+    if (trim(restart_time) /= trim(expected_time)) then
+      log_fatal(*) "mRM restart timestamp ", trim(restart_time), " does not match domain restart time ", trim(expected_time), "."
+      error stop 1
+    end if
+    call nc%close()
+  end subroutine mrm_validate_restart_timestamp
 
   !> \brief Restore optional POI node IDs and station IDs from a restart file.
   subroutine mrm_read_poi_restart(self)
@@ -675,34 +981,64 @@ contains
       end if
       scope_info(s,*) "Read routing state from restart file: ", self%restart_input_path
       ! TODO: warn about gamma mismatch between restart and config
-      call self%router%from_restart_file( &
-        path              = self%restart_input_path, &
-        river             = self%river, &
-        input_grid        = self%exchange%level1, &
-        input_step        = input_step, &
-        model_step        = model_step, &
-        max_route_step    = real(self%config%max_route_step(id(1)), dp), &
-        root_levels       = self%config%river_net_order_root_based(id(1)), &
-        omp_level_thresh  = int(self%config%river_net_omp_level_min(id(1)), i8), &
-        read_fluxes       = self%config%read_restart_fluxes(id(1)))
-    else
-      if (allocated(self%river_l0%celerity)) deallocate(self%river_l0%celerity)
-      if (allocated(self%river%celerity)) deallocate(self%river%celerity)
-      ! NOTE: if slope data pointer is null (i.e. slope not provided), optional slope will be seen as "not present"
-      if (is_close(self%level3%cellsize, self%exchange%level0%cellsize)) then
-        call self%river%calc_celerity(gamma=gamma(1), slope=self%exchange%slope%data, constant_celerity=const_celerity)
+      if (allocated(self%lake_inflow)) then
+        call self%router%from_restart_file( &
+          path              = self%restart_input_path, &
+          river             = self%river, &
+          input_grid        = self%exchange%level1_land, &
+          input_step        = input_step, &
+          model_step        = model_step, &
+          max_route_step    = real(self%config%max_route_step(id(1)), dp), &
+          root_levels       = self%config%river_net_order_root_based(id(1)), &
+          omp_level_thresh  = int(self%config%river_net_omp_level_min(id(1)), i8), &
+          read_fluxes       = self%config%read_restart_fluxes(id(1)), &
+          runoff_grid       = self%level3_land, &
+          lake_nodes        = self%lake_nodes)
       else
-        call self%upscaler%calc_celerity(gamma=gamma(1), slope=self%exchange%slope%data, constant_celerity=const_celerity)
+        call self%router%from_restart_file( &
+          path              = self%restart_input_path, &
+          river             = self%river, &
+          input_grid        = self%exchange%level1_land, &
+          input_step        = input_step, &
+          model_step        = model_step, &
+          max_route_step    = real(self%config%max_route_step(id(1)), dp), &
+          root_levels       = self%config%river_net_order_root_based(id(1)), &
+          omp_level_thresh  = int(self%config%river_net_omp_level_min(id(1)), i8), &
+          read_fluxes       = self%config%read_restart_fluxes(id(1)))
+      end if
+    else
+      ! Full routing slope is owned by the level-0 river and propagated during river construction/upscaling.
+      if (.not.associated(self%upscaler%fine_river)) then
+        call self%river%calc_celerity( &
+          gamma=gamma(1), celerity=self%celerity, constant_celerity=const_celerity)
+      else
+        call self%upscaler%calc_celerity( &
+          gamma=gamma(1), celerity=self%celerity, constant_celerity=const_celerity)
       end if
       scope_info(s,*) "Initialize router"
-      call self%router%init( &
+      if (allocated(self%lake_inflow)) then
+        call self%router%init( &
         river            = self%river, &
-        input_grid       = self%exchange%level1, &
+        celerity         = self%celerity, &
+        input_grid       = self%exchange%level1_land, &
         input_step       = input_step, &
         model_step       = model_step, &
         max_route_step   = real(self%config%max_route_step(id(1)), dp), &
         root_levels      = self%config%river_net_order_root_based(id(1)), &
-        omp_level_thresh = int(self%config%river_net_omp_level_min(id(1)), i8))
+        omp_level_thresh = int(self%config%river_net_omp_level_min(id(1)), i8), &
+        runoff_grid      = self%level3_land, &
+        lake_nodes       = self%lake_nodes)
+      else
+        call self%router%init( &
+          river            = self%river, &
+          celerity         = self%celerity, &
+          input_grid       = self%exchange%level1_land, &
+          input_step       = input_step, &
+          model_step       = model_step, &
+          max_route_step   = real(self%config%max_route_step(id(1)), dp), &
+          root_levels      = self%config%river_net_order_root_based(id(1)), &
+          omp_level_thresh = int(self%config%river_net_omp_level_min(id(1)), i8))
+      end if
     end if
 
     scope_debug(s,*) "router%routing_substep: ", self%router%routing_substep
@@ -716,6 +1052,12 @@ contains
     end if
 
     call self%validate_timing()
+    if (allocated(self%lake_inflow)) then
+      if (model_step /= 1_i4 .or. self%router%routing_step /= 1_i4 .or. self%config%max_route_step(id(1)) > 3600_i4) then
+        log_fatal(*) "mRM lake routing requires a one-hour model/routing interval and max_route_step <= 3600 s."
+        error stop 1
+      end if
+    end if
 
     call self%create_output()
 
@@ -895,7 +1237,12 @@ contains
     log_trace(*) "Update mRM"
 
     ! route runoff
-    call self%router%update(self%exchange%runoff_total%data, self%discharge, completed)
+    if (allocated(self%lake_inflow)) then
+      call self%router%update(self%exchange%runoff_total%data, self%discharge, completed, &
+        self%exchange%lake_outflow%data, self%lake_inflow)
+    else
+      call self%router%update(self%exchange%runoff_total%data, self%discharge, completed)
+    end if
     if (completed) call self%update_output()
   end subroutine mrm_update
 
@@ -1007,7 +1354,12 @@ contains
     log_info(*) "Cleanup mRM"
     ! deallocate arrays, close files, ...
     call self%upscaler%destroy()
-    call self%river_l0%clean()
+    if (allocated(self%celerity)) deallocate(self%celerity)
+    if (allocated(self%lake_inflow)) deallocate(self%lake_inflow)
+    if (allocated(self%lake_ids)) deallocate(self%lake_ids)
+    if (allocated(self%lake_nodes)) deallocate(self%lake_nodes)
+    if (associated(self%exchange%level3_land, self%level3_land)) nullify(self%exchange%level3_land)
+    call self%exchange%lake_inflow%clear(owned=.true.)
   end subroutine mrm_cleanup
 
   subroutine mrm_create_output(self)

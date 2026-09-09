@@ -137,3 +137,15 @@ properties:
       River temperature routing process case (needs routing).
       - 0: deactivated
       - 1: following: Beek et al., 2012
+  lake:
+    type: integer
+    x-fortran-kind: i4
+    default: 0
+    examples: [0]
+    enum: [-2, -1, 0]
+    title: Lake process case
+    description: |-
+      Lake-component process case.
+      - 0: internal mLM component disabled; a coupler may provide lake outflow.
+      - -1: one-step delayed pass-through of mRM lake inflow.
+      - -2: delayed lake inflow adjusted by precipitation and PET over the lake footprint.

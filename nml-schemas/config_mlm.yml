@@ -1,0 +1,43 @@
+title: mLM configuration
+description: Configuration for the v6 lake component (mLM).
+x-fortran-namelist: config_mlm
+type: object
+properties:
+  output_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: mLM lake-point output path
+  read_restart:
+    type: array
+    items:
+      type: boolean
+      default: false
+    x-fortran-shape: n_domains
+    title: Read mLM restart
+  restart_input_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: mLM restart input path
+  write_restart:
+    type: array
+    items:
+      type: boolean
+      default: false
+    x-fortran-shape: n_domains
+    title: Write mLM restart
+  restart_output_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: mLM restart output path

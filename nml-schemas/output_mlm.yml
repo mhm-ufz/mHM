@@ -1,0 +1,47 @@
+title: mLM output configuration
+description: Output configuration for mLM lake points.
+x-fortran-namelist: output_mlm
+type: object
+properties:
+  output_deflate_level:
+    title: Output deflate level
+    type: integer
+    x-fortran-kind: i4
+    default: 6
+    minimum: 0
+    maximum: 9
+    description: |-
+      Compression level for netCDF4 outputs (0: no compression, 9: maximum compression).
+  output_double_precision:
+    title: Output double precision
+    type: boolean
+    default: false
+  output_time_reference:
+    title: Output time reference
+    type: integer
+    x-fortran-kind: i4
+    enum: [0, 1, 2]
+    default: 2
+    description: |-
+      Location of reference time point in outputs:
+      - if 0 : start of the time interval
+      - if 1 : center of the time interval
+      - if 2 : end of the time interval
+  output_frequency:
+    title: Output time step
+    type: integer
+    x-fortran-kind: i4
+    minimum: -3
+    default: -1
+    description: |-
+      Switch controlling the lake-point output frequency:
+      - if >0 : fixed output interval in hours; it must be a whole multiple of the one-hour mLM step
+      - if 0 : only at end of run
+      - if -1 : daily
+      - if -2 : monthly
+      - if -3 : yearly
+  out_lake_outflow:
+    title: Lake outflow
+    type: boolean
+    default: false
+    description: Hourly mLM release supplied to mRM [m3 s-1].

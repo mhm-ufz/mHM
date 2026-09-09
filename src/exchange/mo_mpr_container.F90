@@ -54,7 +54,7 @@ module mo_mpr_container
   use mo_datetime, only: datetime, YEAR_MONTHS, one_hour
   use mo_kind, only: i4, dp
   use mo_common_constants, only: soilHorizonsVarName, landCoverPeriodsVarName, LAIVarName
-  use mo_exchange_type, only: exchange_t, variable_abc
+  use mo_exchange_type, only: exchange_t, variable_abc, l1
   use mo_grid, only: grid_t, cartesian, spherical
   use mo_grid_io, only: input_dataset, start_timestamp, no_time, daily, monthly, yearly, varying, var
   use mo_grid_scaler, only: scaler_t, up_a_mean
@@ -181,8 +181,8 @@ module mo_mpr_container
     type(nml_config_mpr_t) :: config !< configuration of the MPR process container
     type(exchange_t), pointer :: exchange => null() !< exchange container of the domain
     logical :: active = .false. !< whether MPR participates in the configured domain
-    type(grid_t) :: tgt_level1 !< internal level1 grid derived from level0 when needed
-    type(scaler_t) :: upscaler !< scaler from level0 morphology to level1 hydrology
+    type(grid_t) :: tgt_level1_land !< internal level1 grid derived from level0 land when needed
+    type(scaler_t) :: upscaler !< scaler from level0 land morphology to level1 hydrology
     logical :: read_restart = .false. !< whether to read MPR restart file
     logical :: write_restart = .false. !< whether to write MPR restart file
     character(:), allocatable :: restart_input_path !< path to restart file to read
@@ -896,14 +896,14 @@ contains
       log_fatal(*) "MPR: internal error, geology LUT path not resolved in configure."
       error stop 1
     end if
-    if (.not.associated(self%exchange%level0)) then
-      log_fatal(*) "MPR: level0 grid not connected."
+    if (.not.associated(self%exchange%level0_land)) then
+      log_fatal(*) "MPR: level0 land grid not connected."
       error stop 1
     end if
     call self%ensure_level1_grid()
-    if (size(self%exchange%slope%data) /= self%exchange%level0%nCells) then
+    if (size(self%exchange%slope%data) /= self%exchange%level0_land%nCells) then
       log_fatal(*) "MPR: slope size (", size(self%exchange%slope%data), &
-        ") does not match level0 nCells (", int(self%exchange%level0%nCells, i4), ")."
+        ") does not match level0 land nCells (", int(self%exchange%level0_land%nCells, i4), ")."
       error stop 1
     end if
     call self%init_slope_emp()
@@ -939,14 +939,14 @@ contains
       log_fatal(*) "MPR: restart output path is not configured."
       error stop 1
     end if
-    if (.not.associated(self%exchange%level1)) then
+    if (.not.associated(self%exchange%level1_land)) then
       log_fatal(*) "MPR: cannot write restart without a connected level1 grid."
       error stop 1
     end if
 
     log_info(*) "Write MPR restart to file: ", self%restart_output_path
     nc = NcDataset(self%restart_output_path, "w")
-    call self%exchange%level1%to_restart(nc)
+    call self%exchange%level1_land%to_restart(nc)
     call self%write_restart_data(nc)
 
     nc_var = nc%setVariable("mpr_meta", "i32", dims0(:0))
@@ -970,12 +970,12 @@ contains
     integer(i4) :: process_case
     integer(i4) :: i
 
-    if (.not.associated(self%exchange%level1)) then
+    if (.not.associated(self%exchange%level1_land)) then
       log_fatal(*) "MPR: level1 grid not connected while writing restart."
       error stop 1
     end if
 
-    if ( self%exchange%level1%coordsys == cartesian ) then
+    if ( self%exchange%level1_land%coordsys == cartesian ) then
       dims_xy(1) = nc%getDimension("x")
       dims_xy(2) = nc%getDimension("y")
     else
@@ -1625,13 +1625,13 @@ contains
       log_fatal(*) "MPR restart: variable ", trim(var_name), " has rank ", n2s(size(var_shape)), ", expected 2."
       error stop 1
     end if
-    if (any(var_shape /= [self%exchange%level1%nx, self%exchange%level1%ny])) then
+    if (any(var_shape /= [self%exchange%level1_land%nx, self%exchange%level1_land%ny])) then
       log_fatal(*) "MPR restart: variable ", trim(var_name), " has incompatible x/y shape."
       error stop 1
     end if
     call nc_var%getData(data_2d)
-    allocate(data_packed(self%exchange%level1%ncells))
-    call self%exchange%level1%pack_into(data_2d, data_packed)
+    allocate(data_packed(self%exchange%level1_land%ncells))
+    call self%exchange%level1_land%pack_into(data_2d, data_packed)
   end subroutine mpr_read_restart_field_2d
 
   !> \brief Read a packed L1 field with one auxiliary dimension from unpacked 3D restart data.
@@ -1655,14 +1655,14 @@ contains
       log_fatal(*) "MPR restart: variable ", trim(var_name), " has rank ", n2s(size(var_shape)), ", expected 3."
       error stop 1
     end if
-    if (any(var_shape(1:2) /= [self%exchange%level1%nx, self%exchange%level1%ny])) then
+    if (any(var_shape(1:2) /= [self%exchange%level1_land%nx, self%exchange%level1_land%ny])) then
       log_fatal(*) "MPR restart: variable ", trim(var_name), " has incompatible x/y shape."
       error stop 1
     end if
     call nc_var%getData(data_3d)
-    allocate(data_packed(self%exchange%level1%ncells, var_shape(3)))
+    allocate(data_packed(self%exchange%level1_land%ncells, var_shape(3)))
     do idx = 1_i4, var_shape(3)
-      call self%exchange%level1%pack_into(data_3d(:, :, idx), data_packed(:, idx))
+      call self%exchange%level1_land%pack_into(data_3d(:, :, idx), data_packed(:, idx))
     end do
   end subroutine mpr_read_restart_field_3d
 
@@ -1688,15 +1688,15 @@ contains
       log_fatal(*) "MPR restart: variable ", trim(var_name), " has rank ", n2s(size(var_shape)), ", expected 4."
       error stop 1
     end if
-    if (any(var_shape(1:2) /= [self%exchange%level1%nx, self%exchange%level1%ny])) then
+    if (any(var_shape(1:2) /= [self%exchange%level1_land%nx, self%exchange%level1_land%ny])) then
       log_fatal(*) "MPR restart: variable ", trim(var_name), " has incompatible x/y shape."
       error stop 1
     end if
     call nc_var%getData(data_4d)
-    allocate(data_packed(self%exchange%level1%ncells, var_shape(3), var_shape(4)))
+    allocate(data_packed(self%exchange%level1_land%ncells, var_shape(3), var_shape(4)))
     do idx4 = 1_i4, var_shape(4)
       do idx3 = 1_i4, var_shape(3)
-        call self%exchange%level1%pack_into(data_4d(:, :, idx3, idx4), data_packed(:, idx3, idx4))
+        call self%exchange%level1_land%pack_into(data_4d(:, :, idx3, idx4), data_packed(:, idx3, idx4))
       end do
     end do
   end subroutine mpr_read_restart_field_4d
@@ -1712,13 +1712,13 @@ contains
     type(NcVariable) :: nc_var
     real(dp), allocatable :: data_2d(:, :)
 
-    allocate(data_2d(self%exchange%level1%nx, self%exchange%level1%ny))
-    call self%exchange%level1%unpack_into(data_packed, data_2d)
+    allocate(data_2d(self%exchange%level1_land%nx, self%exchange%level1_land%ny))
+    call self%exchange%level1_land%unpack_into(data_packed, data_2d)
     nc_var = nc%setVariable(trim(var_name), "f64", dims_xy)
     call nc_var%setFillValue(nodata_dp)
     call nc_var%setAttribute("missing_value", nodata_dp)
     call metadata%write_netcdf_metadata(nc_var)
-    if (self%exchange%level1%has_aux_coords()) call nc_var%setAttribute("coordinates", "lon lat")
+    if (self%exchange%level1_land%has_aux_coords()) call nc_var%setAttribute("coordinates", "lon lat")
     call nc_var%setData(data_2d)
     deallocate(data_2d)
   end subroutine mpr_write_restart_field_2d
@@ -1739,15 +1739,15 @@ contains
 
     dims(1:2) = dims_xy
     dims(3) = dim3
-    allocate(data_3d(self%exchange%level1%nx, self%exchange%level1%ny, size(data_packed, 2)))
+    allocate(data_3d(self%exchange%level1_land%nx, self%exchange%level1_land%ny, size(data_packed, 2)))
     do idx = 1_i4, size(data_packed, 2)
-      call self%exchange%level1%unpack_into(data_packed(:, idx), data_3d(:, :, idx))
+      call self%exchange%level1_land%unpack_into(data_packed(:, idx), data_3d(:, :, idx))
     end do
     nc_var = nc%setVariable(trim(var_name), "f64", dims)
     call nc_var%setFillValue(nodata_dp)
     call nc_var%setAttribute("missing_value", nodata_dp)
     call metadata%write_netcdf_metadata(nc_var)
-    if (self%exchange%level1%has_aux_coords()) call nc_var%setAttribute("coordinates", "lon lat")
+    if (self%exchange%level1_land%has_aux_coords()) call nc_var%setAttribute("coordinates", "lon lat")
     call nc_var%setData(data_3d)
     deallocate(data_3d)
   end subroutine mpr_write_restart_field_3d
@@ -1771,17 +1771,17 @@ contains
     dims(1:2) = dims_xy
     dims(3) = dim3
     dims(4) = dim4
-    allocate(data_4d(self%exchange%level1%nx, self%exchange%level1%ny, size(data_packed, 2), size(data_packed, 3)))
+    allocate(data_4d(self%exchange%level1_land%nx, self%exchange%level1_land%ny, size(data_packed, 2), size(data_packed, 3)))
     do idx4 = 1_i4, size(data_packed, 3)
       do idx3 = 1_i4, size(data_packed, 2)
-        call self%exchange%level1%unpack_into(data_packed(:, idx3, idx4), data_4d(:, :, idx3, idx4))
+        call self%exchange%level1_land%unpack_into(data_packed(:, idx3, idx4), data_4d(:, :, idx3, idx4))
       end do
     end do
     nc_var = nc%setVariable(trim(var_name), "f64", dims)
     call nc_var%setFillValue(nodata_dp)
     call nc_var%setAttribute("missing_value", nodata_dp)
     call metadata%write_netcdf_metadata(nc_var)
-    if (self%exchange%level1%has_aux_coords()) call nc_var%setAttribute("coordinates", "lon lat")
+    if (self%exchange%level1_land%has_aux_coords()) call nc_var%setAttribute("coordinates", "lon lat")
     call nc_var%setData(data_4d)
     deallocate(data_4d)
   end subroutine mpr_write_restart_field_4d
@@ -1815,13 +1815,18 @@ contains
     nc = NcDataset(self%restart_input_path, "r")
     call restart_grid%from_restart(nc)
     ! Restart mode either validates the existing level1 grid or bootstraps it from the restart payload.
-    if (associated(self%exchange%level1)) then
+    if (associated(self%exchange%level1_land)) then
       call self%validate_restart_grid(restart_grid)
     else
-      self%tgt_level1 = restart_grid
-      self%exchange%level1 => self%tgt_level1
+      self%tgt_level1_land = restart_grid
+      self%exchange%level1_land => self%tgt_level1_land
       log_info(*) "MPR restart: bootstrap level1 grid from restart file."
     end if
+    if (associated(self%exchange%level0_land)) then
+      call self%exchange%level1_land%check_is_filled_by(self%exchange%level0_land, check_mask=.true.)
+      call self%exchange%level0_land%check_is_covered_by(self%exchange%level1_land, check_mask=.true.)
+    end if
+    call self%exchange%alias_full_grid_no_lakes(l1)
     call self%read_restart_land_cover_timing(nc)
     n_land_cover_restart = self%land_cover%n_periods
 
@@ -1870,7 +1875,7 @@ contains
       log_fatal(*) "MPR restart: L1_fSealed land-cover dimension does not match current timing configuration."
       error stop 1
     end if
-    allocate(self%land_cover%sealed_fraction_l1(self%exchange%level1%ncells, self%land_cover%n_periods))
+    allocate(self%land_cover%sealed_fraction_l1(self%exchange%level1_land%ncells, self%land_cover%n_periods))
     self%land_cover%sealed_fraction_l1 = field_3d
     deallocate(field_3d)
     self%exchange%f_sealed%provided = .true.
@@ -1882,7 +1887,7 @@ contains
         log_fatal(*) "MPR restart: L1_maxInter LAI dimension does not match restart LAI periods."
         error stop 1
       end if
-      allocate(self%canopy%max_interception_cache(self%exchange%level1%ncells, self%lai%n_periods, self%land_cover%n_periods))
+      allocate(self%canopy%max_interception_cache(self%exchange%level1_land%ncells, self%lai%n_periods, self%land_cover%n_periods))
       do land_cover_idx = 1_i4, self%land_cover%n_periods
         self%canopy%max_interception_cache(:, :, land_cover_idx) = field_3d
       end do
@@ -1976,7 +1981,7 @@ contains
         log_fatal(*) "MPR restart: soil-moisture restart dimensions do not match current soil/land-cover configuration."
         error stop 1
       end if
-      allocate(self%soil%thresh_jarvis_cache(self%exchange%level1%ncells))
+      allocate(self%soil%thresh_jarvis_cache(self%exchange%level1_land%ncells))
       if (any(soil_process == [2_i4, 3_i4])) then
         call self%read_restart_field_2d(nc, "L1_jarvis_thresh_c1", self%soil%thresh_jarvis_cache)
       else
@@ -2075,23 +2080,25 @@ contains
     real(dp) :: l0_res
     real(dp) :: l1_res
 
-    if (.not.associated(self%exchange%level0)) then
-      log_fatal(*) "MPR: level0 grid not connected."
+    if (.not.associated(self%exchange%level0_land)) then
+      log_fatal(*) "MPR: level0 land grid not connected."
       error stop 1
     end if
 
     l1_res = self%exchange%level1_resolution
-    l0_res = self%exchange%level0%cellsize
+    l0_res = self%exchange%level0_land%cellsize
 
-    if (associated(self%exchange%level1)) then
+    if (associated(self%exchange%level1_land)) then
       if (ieee_is_finite(l1_res) .and. l1_res > 0.0_dp .and. &
-          .not.is_close(self%exchange%level1%cellsize, l1_res)) then
-        log_fatal(*) "MPR: level1 grid cellsize (", n2s(self%exchange%level1%cellsize), &
+          .not.is_close(self%exchange%level1_land%cellsize, l1_res)) then
+        log_fatal(*) "MPR: level1 grid cellsize (", n2s(self%exchange%level1_land%cellsize), &
           ") conflicts with configured level1_resolution (", n2s(l1_res), ")."
         error stop 1
       end if
-      ! Validate geometric compatibility and that level0 mask fills level1 masked cells.
-      call self%exchange%level1%check_is_filled_by(self%exchange%level0, check_mask=.true.)
+      ! Validate that level1 contains exactly the coarse cells reached by level0 land.
+      call self%exchange%level1_land%check_is_filled_by(self%exchange%level0_land, check_mask=.true.)
+      call self%exchange%level0_land%check_is_covered_by(self%exchange%level1_land, check_mask=.true.)
+      call self%exchange%alias_full_grid_no_lakes(l1)
       return
     end if
 
@@ -2104,9 +2111,10 @@ contains
       error stop 1
     end if
 
-    call self%exchange%level0%gen_grid(self%tgt_level1, target_resolution=l1_res)
-    self%exchange%level1 => self%tgt_level1
-    log_info(*) "MPR: derive level1 grid from level0 with resolution ", n2s(l1_res)
+    call self%exchange%level0_land%gen_grid(self%tgt_level1_land, target_resolution=l1_res)
+    self%exchange%level1_land => self%tgt_level1_land
+    call self%exchange%alias_full_grid_no_lakes(l1)
+    log_info(*) "MPR: derive level1 grid from level0 land with resolution ", n2s(l1_res)
   end subroutine mpr_ensure_level1_grid
 
   !> \brief Validate that the restart grid matches the currently configured level1 grid.
@@ -2114,46 +2122,14 @@ contains
     class(mpr_t), intent(inout), target :: self
     type(grid_t), intent(in), target :: restart_grid
 
-    if (.not.associated(self%exchange%level1)) then
+    if (.not.associated(self%exchange%level1_land)) then
       log_fatal(*) "MPR restart: level1 grid not connected before restart-grid validation."
       error stop 1
     end if
-    if (restart_grid%coordsys /= self%exchange%level1%coordsys) then
-      log_fatal(*) "MPR restart: restart grid coordinate system does not match current level1 grid."
+    if (.not.restart_grid%is_matching(self%exchange%level1_land, tol=1.0e-5_dp, &
+        aux=self%exchange%level1_land%has_aux_coords())) then
+      log_fatal(*) "MPR restart: restart grid does not match the current level1 grid."
       error stop 1
-    end if
-    if (restart_grid%nx /= self%exchange%level1%nx .or. restart_grid%ny /= self%exchange%level1%ny) then
-      log_fatal(*) "MPR restart: restart grid dimensions do not match current level1 grid."
-      error stop 1
-    end if
-    if (.not.is_close(restart_grid%cellsize, self%exchange%level1%cellsize) .or. &
-      .not.is_close(restart_grid%xllcorner, self%exchange%level1%xllcorner) .or. &
-      .not.is_close(restart_grid%yllcorner, self%exchange%level1%yllcorner)) then
-      log_fatal(*) "MPR restart: restart grid geometry does not match current level1 grid."
-      error stop 1
-    end if
-    if (restart_grid%y_direction /= self%exchange%level1%y_direction) then
-      log_fatal(*) "MPR restart: restart grid y-direction does not match current level1 grid."
-      error stop 1
-    end if
-    if (.not.allocated(restart_grid%mask) .or. .not.allocated(self%exchange%level1%mask)) then
-      log_fatal(*) "MPR restart: mask information missing during restart-grid validation."
-      error stop 1
-    end if
-    if (any(restart_grid%mask .neqv. self%exchange%level1%mask)) then
-      log_fatal(*) "MPR restart: restart grid mask does not match current level1 grid."
-      error stop 1
-    end if
-    if (self%exchange%level1%has_aux_coords()) then
-      if (.not.restart_grid%has_aux_coords()) then
-        log_fatal(*) "MPR restart: current level1 grid has auxiliary coordinates, but restart grid does not."
-        error stop 1
-      end if
-      if (any(.not.is_close(restart_grid%lon, self%exchange%level1%lon)) .or. &
-        any(.not.is_close(restart_grid%lat, self%exchange%level1%lat))) then
-        log_fatal(*) "MPR restart: restart grid auxiliary coordinates do not match current level1 grid."
-        error stop 1
-      end if
     end if
   end subroutine mpr_validate_restart_grid
 
@@ -2161,9 +2137,9 @@ contains
   subroutine mpr_init_upscaler(self)
     class(mpr_t), intent(inout), target :: self
 
-    if (.not.associated(self%upscaler%source_grid, self%exchange%level0) .or. &
-      .not.associated(self%upscaler%target_grid, self%exchange%level1)) then
-      call self%upscaler%init(source_grid=self%exchange%level0, target_grid=self%exchange%level1)
+    if (.not.associated(self%upscaler%source_grid, self%exchange%level0_land) .or. &
+      .not.associated(self%upscaler%target_grid, self%exchange%level1_land)) then
+      call self%upscaler%init(source_grid=self%exchange%level0_land, target_grid=self%exchange%level1_land)
     end if
   end subroutine mpr_init_upscaler
 
@@ -2275,8 +2251,8 @@ contains
       log_fatal(*) "MPR: internal error, land_cover_var not resolved in configure."
       error stop 1
     end if
-    if (.not.associated(self%exchange%level0)) then
-      log_fatal(*) "MPR: level0 grid not connected before land-cover timing initialization."
+    if (.not.associated(self%exchange%level0_land)) then
+      log_fatal(*) "MPR: level0 land grid not connected before land-cover timing initialization."
       error stop 1
     end if
 
@@ -2290,7 +2266,7 @@ contains
     call self%land_cover%ds%init( &
       path=self%land_cover%path, &
       vars=[var(name=trim(self%land_cover%var_name), kind="i4", static=.false., allow_static=.true.)], &
-      grid=self%exchange%level0, &
+      grid=self%exchange%level0_land, &
       timestamp=start_timestamp)
 
     land_cover_meta = self%land_cover%ds%meta(trim(self%land_cover%var_name))
@@ -2341,10 +2317,10 @@ contains
     call self%land_cover%ds%init( &
       path=self%land_cover%path, &
       vars=[var(name=trim(self%land_cover%var_name), kind="i4", static=.false., allow_static=.true.)], &
-      grid=self%exchange%level0, &
+      grid=self%exchange%level0_land, &
       timestamp=start_timestamp)
     if (.not.self%land_cover%temporal) then
-      allocate(self%land_cover%l0_cache(self%exchange%level0%nCells, 1))
+      allocate(self%land_cover%l0_cache(self%exchange%level0_land%nCells, 1))
       call self%land_cover%ds%read(trim(self%land_cover%var_name), self%land_cover%l0_cache(:, 1))
       call self%land_cover%ds%close()
       log_info(*) "MPR: static land-cover dataset initialized (nLC=1)."
@@ -2378,9 +2354,9 @@ contains
     if (allocated(self%land_cover%forest_fraction_l1)) deallocate(self%land_cover%forest_fraction_l1)
     if (allocated(self%land_cover%sealed_fraction_l1)) deallocate(self%land_cover%sealed_fraction_l1)
     if (allocated(self%land_cover%pervious_fraction_l1)) deallocate(self%land_cover%pervious_fraction_l1)
-    allocate(self%land_cover%forest_fraction_l1(self%exchange%level1%ncells, self%land_cover%n_periods))
-    allocate(self%land_cover%sealed_fraction_l1(self%exchange%level1%ncells, self%land_cover%n_periods))
-    allocate(self%land_cover%pervious_fraction_l1(self%exchange%level1%ncells, self%land_cover%n_periods))
+    allocate(self%land_cover%forest_fraction_l1(self%exchange%level1_land%ncells, self%land_cover%n_periods))
+    allocate(self%land_cover%sealed_fraction_l1(self%exchange%level1_land%ncells, self%land_cover%n_periods))
+    allocate(self%land_cover%pervious_fraction_l1(self%exchange%level1_land%ncells, self%land_cover%n_periods))
 
     do land_cover_idx = 1_i4, self%land_cover%n_periods
       call mpr_bridge_land_cover_fraction( &
@@ -2478,12 +2454,12 @@ contains
       log_fatal(*) "MPR: internal error, gridded LAI variable name not resolved in configure."
       error stop 1
     end if
-    if (.not.associated(self%exchange%level0)) then
-      log_fatal(*) "MPR: level0 grid not connected before gridded LAI cache initialization."
+    if (.not.associated(self%exchange%level0_land)) then
+      log_fatal(*) "MPR: level0 land grid not connected before gridded LAI cache initialization."
       error stop 1
     end if
 
-    mask => self%exchange%level0%mask
+    mask => self%exchange%level0_land%mask
     nc = NcDataset(self%lai%path, "r")
     lai_var = nc%getVariable(trim(self%lai%var_name))
     var_shape = lai_var%getShape()
@@ -2493,7 +2469,7 @@ contains
     end if
     if (any(var_shape(1:2) /= shape(mask))) then
       log_fatal(*) "MPR: gridded LAI variable ", trim(self%lai%var_name), &
-        " does not match the level0 mask shape."
+        " does not match the level0 land mask shape."
       error stop 1
     end if
     if (var_shape(3) /= YEAR_MONTHS) then
@@ -2514,10 +2490,10 @@ contains
     call nc%close()
 
     self%lai%n_periods = YEAR_MONTHS
-    allocate(self%lai%l0_cache(self%exchange%level0%nCells, self%lai%n_periods))
+    allocate(self%lai%l0_cache(self%exchange%level0_land%nCells, self%lai%n_periods))
     do lai_idx = 1_i4, self%lai%n_periods
       if (any(is_close(lai_3d(:, :, lai_idx), nodata_value) .and. mask)) then
-        log_fatal(*) "MPR: gridded LAI climatology contains missing values inside the level0 domain at slice ", &
+        log_fatal(*) "MPR: gridded LAI climatology contains missing values inside the level0 land domain at slice ", &
           n2s(lai_idx), "."
         error stop 1
       end if
@@ -2543,16 +2519,16 @@ contains
       log_fatal(*) "MPR: internal error, gridded LAI variable name not resolved in configure."
       error stop 1
     end if
-    if (.not.associated(self%exchange%level0)) then
-      log_fatal(*) "MPR: level0 grid not connected before dated LAI cache initialization."
+    if (.not.associated(self%exchange%level0_land)) then
+      log_fatal(*) "MPR: level0 land grid not connected before dated LAI cache initialization."
       error stop 1
     end if
 
-    mask => self%exchange%level0%mask
+    mask => self%exchange%level0_land%mask
     call lai_ds%init( &
       path=self%lai%path, &
       vars=[var(name=trim(self%lai%var_name), kind="dp", static=.false.)], &
-      grid=self%exchange%level0, &
+      grid=self%exchange%level0_land, &
       timestamp=start_timestamp)
     if (lai_ds%static) then
       log_fatal(*) "MPR: gridded LAI dataset is static, but a dated LAI mode was configured."
@@ -2601,10 +2577,10 @@ contains
     call lai_ds%read_chunk(trim(self%lai%var_name), lai_3d, self%lai%period_start(1), self%lai%period_end(self%lai%n_periods))
     call lai_ds%close()
 
-    allocate(self%lai%l0_cache(self%exchange%level0%nCells, self%lai%n_periods))
+    allocate(self%lai%l0_cache(self%exchange%level0_land%nCells, self%lai%n_periods))
     do lai_idx = 1_i4, self%lai%n_periods
       if (any(is_close(lai_3d(:, :, lai_idx), nodata_value) .and. mask)) then
-        log_fatal(*) "MPR: dated gridded LAI contains missing values inside the level0 domain at slice ", &
+        log_fatal(*) "MPR: dated gridded LAI contains missing values inside the level0 land domain at slice ", &
           n2s(lai_idx), "."
         error stop 1
       end if
@@ -2649,9 +2625,9 @@ contains
     end if
 
     if (allocated(self%canopy%max_interception_cache)) deallocate(self%canopy%max_interception_cache)
-    allocate(self%canopy%max_interception_cache(self%exchange%level1%ncells, self%lai%n_periods, self%land_cover%n_periods))
-    allocate(max_interception_l0(self%exchange%level0%ncells))
-    allocate(max_interception_l1(self%exchange%level1%ncells))
+    allocate(self%canopy%max_interception_cache(self%exchange%level1_land%ncells, self%lai%n_periods, self%land_cover%n_periods))
+    allocate(max_interception_l0(self%exchange%level0_land%ncells))
+    allocate(max_interception_l1(self%exchange%level1_land%ncells))
     do lai_idx = 1_i4, self%lai%n_periods
       max_interception_l0 = interception_param(1) * self%lai%l0_cache(:, lai_idx)
       call self%upscaler%execute(max_interception_l0, max_interception_l1, upscaling_operator=up_a_mean)
@@ -2682,10 +2658,10 @@ contains
     if (allocated(self%snow%degday_dry_cache)) deallocate(self%snow%degday_dry_cache)
     if (allocated(self%snow%degday_inc_cache)) deallocate(self%snow%degday_inc_cache)
     if (allocated(self%snow%degday_max_cache)) deallocate(self%snow%degday_max_cache)
-    allocate(self%snow%thresh_temp_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
-    allocate(self%snow%degday_dry_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
-    allocate(self%snow%degday_inc_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
-    allocate(self%snow%degday_max_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
+    allocate(self%snow%thresh_temp_cache(self%exchange%level1_land%ncells, self%land_cover%n_periods))
+    allocate(self%snow%degday_dry_cache(self%exchange%level1_land%ncells, self%land_cover%n_periods))
+    allocate(self%snow%degday_inc_cache(self%exchange%level1_land%ncells, self%land_cover%n_periods))
+    allocate(self%snow%degday_max_cache(self%exchange%level1_land%ncells, self%land_cover%n_periods))
 
     do land_cover_idx = 1_i4, self%land_cover%n_periods
       call mpr_bridge_snow_param( &
@@ -2744,8 +2720,8 @@ contains
     end if
 
     if (allocated(self%pet%pet_fac_aspect_cache)) deallocate(self%pet%pet_fac_aspect_cache)
-    allocate(self%pet%pet_fac_aspect_cache(self%exchange%level1%ncells))
-    call mpr_bridge_pet_aspect(self%exchange%level0, self%exchange%aspect%data, pet_param, self%upscaler, &
+    allocate(self%pet%pet_fac_aspect_cache(self%exchange%level1_land%ncells))
+    call mpr_bridge_pet_aspect(self%exchange%level0_land, self%exchange%aspect%data, pet_param, self%upscaler, &
       self%pet%pet_fac_aspect_cache)
 
     self%exchange%pet_fac_aspect%provided = .true.
@@ -2768,9 +2744,9 @@ contains
 
     if (allocated(self%pet%pet_fac_aspect_cache)) deallocate(self%pet%pet_fac_aspect_cache)
     if (allocated(self%pet%pet_coeff_hs_cache)) deallocate(self%pet%pet_coeff_hs_cache)
-    allocate(self%pet%pet_fac_aspect_cache(self%exchange%level1%ncells))
-    allocate(self%pet%pet_coeff_hs_cache(self%exchange%level1%ncells))
-    call mpr_bridge_pet_hargreaves(self%exchange%level0, self%exchange%aspect%data, pet_param, self%upscaler, &
+    allocate(self%pet%pet_fac_aspect_cache(self%exchange%level1_land%ncells))
+    allocate(self%pet%pet_coeff_hs_cache(self%exchange%level1_land%ncells))
+    call mpr_bridge_pet_hargreaves(self%exchange%level0_land, self%exchange%aspect%data, pet_param, self%upscaler, &
       self%pet%pet_fac_aspect_cache, self%pet%pet_coeff_hs_cache)
 
     self%exchange%pet_fac_aspect%provided = .true.
@@ -2799,7 +2775,7 @@ contains
     end if
 
     if (allocated(self%pet%pet_fac_lai_cache)) deallocate(self%pet%pet_fac_lai_cache)
-    allocate(self%pet%pet_fac_lai_cache(self%exchange%level1%ncells, self%lai%n_periods, self%land_cover%n_periods))
+    allocate(self%pet%pet_fac_lai_cache(self%exchange%level1_land%ncells, self%lai%n_periods, self%land_cover%n_periods))
     do land_cover_idx = 1_i4, self%land_cover%n_periods
       do lai_idx = 1_i4, self%lai%n_periods
         call mpr_bridge_pet_lai( &
@@ -2827,8 +2803,8 @@ contains
     end if
 
     if (allocated(self%pet%pet_coeff_pt_cache)) deallocate(self%pet%pet_coeff_pt_cache)
-    allocate(self%pet%pet_coeff_pt_cache(self%exchange%level1%ncells, self%lai%n_periods))
-    call mpr_bridge_pet_priestley_taylor(self%exchange%level0, self%lai%l0_cache, pet_param, self%upscaler, &
+    allocate(self%pet%pet_coeff_pt_cache(self%exchange%level1_land%ncells, self%lai%n_periods))
+    call mpr_bridge_pet_priestley_taylor(self%exchange%level0_land, self%lai%l0_cache, pet_param, self%upscaler, &
       self%pet%pet_coeff_pt_cache)
 
     self%exchange%pet_coeff_pt%provided = .true.
@@ -2857,12 +2833,12 @@ contains
 
     if (allocated(self%pet%resist_aero_cache)) deallocate(self%pet%resist_aero_cache)
     if (allocated(self%pet%resist_surf_cache)) deallocate(self%pet%resist_surf_cache)
-    allocate(self%pet%resist_aero_cache(self%exchange%level1%ncells, self%lai%n_periods, self%land_cover%n_periods))
-    allocate(self%pet%resist_surf_cache(self%exchange%level1%ncells, self%lai%n_periods))
-    allocate(resist_surf_l1(self%exchange%level1%ncells, self%lai%n_periods))
+    allocate(self%pet%resist_aero_cache(self%exchange%level1_land%ncells, self%lai%n_periods, self%land_cover%n_periods))
+    allocate(self%pet%resist_surf_cache(self%exchange%level1_land%ncells, self%lai%n_periods))
+    allocate(resist_surf_l1(self%exchange%level1_land%ncells, self%lai%n_periods))
 
     do land_cover_idx = 1_i4, self%land_cover%n_periods
-      call mpr_bridge_pet_penman_monteith(self%exchange%level0, self%land_cover%l0_cache(:, land_cover_idx), &
+      call mpr_bridge_pet_penman_monteith(self%exchange%level0_land, self%land_cover%l0_cache(:, land_cover_idx), &
         self%lai%l0_cache, pet_param, self%upscaler, self%pet%resist_aero_cache(:, :, land_cover_idx), resist_surf_l1)
       if (land_cover_idx == 1_i4) self%pet%resist_surf_cache = resist_surf_l1
     end do
@@ -2952,27 +2928,27 @@ contains
     if (allocated(self%neutron%bulk_density_cache)) deallocate(self%neutron%bulk_density_cache)
     if (allocated(self%neutron%lattice_water_cache)) deallocate(self%neutron%lattice_water_cache)
     if (allocated(self%neutron%cosmic_l3_cache)) deallocate(self%neutron%cosmic_l3_cache)
-    allocate(self%soil%sm_exponent_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
-    allocate(self%soil%sm_saturation_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
-    allocate(self%soil%sm_field_capacity_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
-    allocate(self%soil%wilting_point_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
-    allocate(self%soil%f_roots_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
-    allocate(self%soil%thresh_jarvis_cache(self%exchange%level1%ncells))
-    allocate(self%soil%sm_deficit_fc_l0(self%exchange%level0%ncells, self%land_cover%n_periods))
-    allocate(self%soil%ks_var_h_l0(self%exchange%level0%ncells, self%land_cover%n_periods))
-    allocate(self%soil%ks_var_v_l0(self%exchange%level0%ncells, self%land_cover%n_periods))
+    allocate(self%soil%sm_exponent_cache(self%exchange%level1_land%ncells, n_layers, self%land_cover%n_periods))
+    allocate(self%soil%sm_saturation_cache(self%exchange%level1_land%ncells, n_layers, self%land_cover%n_periods))
+    allocate(self%soil%sm_field_capacity_cache(self%exchange%level1_land%ncells, n_layers, self%land_cover%n_periods))
+    allocate(self%soil%wilting_point_cache(self%exchange%level1_land%ncells, n_layers, self%land_cover%n_periods))
+    allocate(self%soil%f_roots_cache(self%exchange%level1_land%ncells, n_layers, self%land_cover%n_periods))
+    allocate(self%soil%thresh_jarvis_cache(self%exchange%level1_land%ncells))
+    allocate(self%soil%sm_deficit_fc_l0(self%exchange%level0_land%ncells, self%land_cover%n_periods))
+    allocate(self%soil%ks_var_h_l0(self%exchange%level0_land%ncells, self%land_cover%n_periods))
+    allocate(self%soil%ks_var_v_l0(self%exchange%level0_land%ncells, self%land_cover%n_periods))
     if (neutron_process > 0_i4) then
       call self%load_process_params("neutrons", neutron_param)
       if (size(neutron_param) < 1_i4) then
         log_fatal(*) "MPR: neutron process definition is empty."
         error stop 1
       end if
-      allocate(self%neutron%desilets_n0_cache(self%exchange%level1%ncells))
-      allocate(self%neutron%bulk_density_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
-      allocate(self%neutron%lattice_water_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
+      allocate(self%neutron%desilets_n0_cache(self%exchange%level1_land%ncells))
+      allocate(self%neutron%bulk_density_cache(self%exchange%level1_land%ncells, n_layers, self%land_cover%n_periods))
+      allocate(self%neutron%lattice_water_cache(self%exchange%level1_land%ncells, n_layers, self%land_cover%n_periods))
       self%neutron%desilets_n0_cache = neutron_param(1)
       if (neutron_process == 2_i4) then
-        allocate(self%neutron%cosmic_l3_cache(self%exchange%level1%ncells, n_layers, self%land_cover%n_periods))
+        allocate(self%neutron%cosmic_l3_cache(self%exchange%level1_land%ncells, n_layers, self%land_cover%n_periods))
       end if
     end if
 
@@ -2981,7 +2957,7 @@ contains
       if (neutron_process == 2_i4) then
         call mpr_bridge_soil_moisture( &
           soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
-          self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0, self%upscaler, &
+          self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0_land, self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
           self%soil%sm_saturation_cache(:, :, land_cover_idx), self%soil%sm_field_capacity_cache(:, :, land_cover_idx), &
           self%soil%wilting_point_cache(:, :, land_cover_idx), self%soil%f_roots_cache(:, :, land_cover_idx), &
@@ -2992,7 +2968,7 @@ contains
       else if (neutron_process == 1_i4) then
         call mpr_bridge_soil_moisture( &
           soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
-          self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0, self%upscaler, &
+          self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0_land, self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
           self%soil%sm_saturation_cache(:, :, land_cover_idx), self%soil%sm_field_capacity_cache(:, :, land_cover_idx), &
           self%soil%wilting_point_cache(:, :, land_cover_idx), self%soil%f_roots_cache(:, :, land_cover_idx), &
@@ -3002,7 +2978,7 @@ contains
       else
         call mpr_bridge_soil_moisture( &
           soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
-          self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0, self%upscaler, &
+          self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0_land, self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
           self%soil%sm_saturation_cache(:, :, land_cover_idx), self%soil%sm_field_capacity_cache(:, :, land_cover_idx), &
           self%soil%wilting_point_cache(:, :, land_cover_idx), self%soil%f_roots_cache(:, :, land_cover_idx), &
@@ -3048,15 +3024,15 @@ contains
     if (allocated(self%runoff%thresh_sealed_cache)) deallocate(self%runoff%thresh_sealed_cache)
 
     if (self%exchange%config%processes%interflow /= 0_i4) then
-      allocate(self%runoff%alpha_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
-      allocate(self%runoff%k_fastflow_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
-      allocate(self%runoff%k_slowflow_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
-      allocate(self%runoff%thresh_unsat_cache(self%exchange%level1%ncells))
+      allocate(self%runoff%alpha_cache(self%exchange%level1_land%ncells, self%land_cover%n_periods))
+      allocate(self%runoff%k_fastflow_cache(self%exchange%level1_land%ncells, self%land_cover%n_periods))
+      allocate(self%runoff%k_slowflow_cache(self%exchange%level1_land%ncells, self%land_cover%n_periods))
+      allocate(self%runoff%thresh_unsat_cache(self%exchange%level1_land%ncells))
       call self%load_process_params("interflow", interflow_param)
       do land_cover_idx = 1_i4, self%land_cover%n_periods
         call mpr_bridge_runoff_param( &
           self%land_cover%l0_cache(:, land_cover_idx), self%preproc%slope_emp, self%soil%sm_deficit_fc_l0(:, land_cover_idx), &
-          self%soil%ks_var_h_l0(:, land_cover_idx), self%exchange%level0, self%upscaler, interflow_param, &
+          self%soil%ks_var_h_l0(:, land_cover_idx), self%exchange%level0_land, self%upscaler, interflow_param, &
           self%runoff%thresh_unsat_cache, self%runoff%k_fastflow_cache(:, land_cover_idx), &
           self%runoff%k_slowflow_cache(:, land_cover_idx), self%runoff%alpha_cache(:, land_cover_idx))
       end do
@@ -3067,8 +3043,8 @@ contains
     end if
 
     if (self%exchange%config%processes%percolation /= 0_i4) then
-      allocate(self%runoff%k_percolation_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
-      allocate(self%runoff%f_karst_loss_cache(self%exchange%level1%ncells))
+      allocate(self%runoff%k_percolation_cache(self%exchange%level1_land%ncells, self%land_cover%n_periods))
+      allocate(self%runoff%f_karst_loss_cache(self%exchange%level1_land%ncells))
       call self%load_process_params("percolation", percolation_param)
       do land_cover_idx = 1_i4, self%land_cover%n_periods
         call mpr_bridge_karstic_param( &
@@ -3082,14 +3058,14 @@ contains
     end if
 
     if (self%exchange%config%processes%direct_runoff /= 0_i4) then
-      allocate(self%runoff%thresh_sealed_cache(self%exchange%level1%ncells))
+      allocate(self%runoff%thresh_sealed_cache(self%exchange%level1_land%ncells))
       call self%load_process_params("direct_runoff", direct_runoff_param)
       call mpr_bridge_sealed_threshold(direct_runoff_param, self%runoff%thresh_sealed_cache)
       self%exchange%thresh_sealed%provided = .true.
     end if
 
     if (self%exchange%config%processes%baseflow /= 0_i4) then
-      allocate(self%runoff%k_baseflow_cache(self%exchange%level1%ncells, self%land_cover%n_periods))
+      allocate(self%runoff%k_baseflow_cache(self%exchange%level1_land%ncells, self%land_cover%n_periods))
       call self%load_process_params("baseflow", baseflow_param)
       call mpr_bridge_baseflow_param( &
         baseflow_param, self%exchange%geo_unit%data, self%exchange%geo_class_def%geo_unit, &

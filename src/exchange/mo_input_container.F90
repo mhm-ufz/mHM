@@ -4,7 +4,7 @@
 
 !> \brief   Module for an input container.
 !> \version 0.1
-!> \authors Sebastian Mueller
+!> \authors Sebastian Mueller, Pallav Shrestha
 !> \date    Aug 2025
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
@@ -12,12 +12,15 @@
 #include "logging.h"
 module mo_input_container
   use mo_logging
-  use mo_kind, only: i2, i4, dp
+  use mo_kind, only: i2, i4, i8, dp
   use mo_list, only: list
   use mo_os, only: path_ext
-  use mo_exchange_type, only: exchange_t, var_dp
+  use mo_exchange_type, only: exchange_t, var_dp, l1
   use mo_datetime, only: datetime, timedelta, HOUR_SECONDS, DAY_HOURS, one_hour, one_day
-  use mo_grid, only: grid_t, cartesian, spherical
+  use mo_grid, only: grid_t, data_t, cartesian, spherical
+  use mo_river, only: river_t
+  use mo_points, only: points_t
+  use mo_points_io, only: points_input_dataset
   use mo_grid_io, only: var, input_dataset, end_timestamp, start_timestamp, no_time, daily, monthly, yearly, varying
   use mo_string_utils, only: n2s => num2str
   use nml_config_input, only: nml_config_input_t
@@ -119,13 +122,23 @@ module mo_input_container
 
   !> \class   input_t
   !> \brief   Class for a single Input container.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   type, public :: input_t
     type(input_config_t) :: config !< configuration of the Input container
     type(exchange_t), pointer :: exchange => null() !< exchange container of the domain
     type(grid_t) :: tgt_level0 !< grid level 0 of the domain if given from input
-    type(grid_t) :: tgt_level1 !< grid level 1 of the domain if given from input
+    type(grid_t) :: tgt_level0_land !< level-0 land grid derived by excluding lake cells
+    type(grid_t) :: tgt_level0_lake !< level-0 lake grid derived from lake footprints
+    type(grid_t) :: tgt_level1_land !< grid level 1 of the domain if given from input
     type(grid_t) :: tgt_level2 !< grid level 2 of the domain if given from input
     type(grid_t) :: tgt_level3 !< grid level 3 of the domain if given from input
+    type(river_t) :: river_l0 !< full level-0 river network derived from flow direction
+    logical :: owns_river_l0 = .false. !< whether this input instance published the level-0 river
+    logical :: owns_lake_map = .false. !< whether this input instance published the packed lake map
+    type(points_t) :: lake_outlets !< configured lake outlet coordinates
+    integer(i8), allocatable :: lake_ids(:) !< stable lake IDs aligned with lake_outlets
+    integer(i8), allocatable :: lake_map(:) !< stable IDs aligned with packed level-0 lake cells
+    real(dp), allocatable :: lake_max_levels(:) !< maximum lake levels aligned with lake_outlets
     integer(i4) :: chunking !< chunking configuration (0 single read, -1 daily, -2 monthly, -3 yearly, >0 every n hours)
     integer(i4) :: time_stamp_location !< location of time-stamp variable in input datasets (0 start, 1 center, 2 end)
     logical :: morph_latlon = .false. !< whether morphology inputs are defined in spherical (lat/lon) coordinates
@@ -163,6 +176,10 @@ module mo_input_container
     procedure :: initialize => input_initialize
     procedure :: update => input_update
     procedure :: finalize => input_finalize
+    procedure, private :: read_fdir_file => input_read_fdir_file
+    procedure, private :: build_river_l0 => input_build_river_l0
+    procedure, private :: read_lake_specification => input_read_lake_specification
+    procedure, private :: build_lake_grids => input_build_lake_grids
   end type input_t
 
 contains
@@ -174,6 +191,51 @@ contains
     need_grid = .not.associated(exchange_grid)
     if (need_grid) exchange_grid => tgt_grid
   end function need_grid
+
+  !> \brief Connect the land grid, aliasing the full grid when no derived lake mask exists.
+  logical function need_level0_land_grid(tgt_grid, full_grid, land_grid)
+    type(grid_t), intent(in), target :: tgt_grid
+    type(grid_t), intent(inout), pointer :: full_grid
+    type(grid_t), intent(inout), pointer :: land_grid
+    need_level0_land_grid = .false.
+    if (associated(land_grid)) return
+    need_level0_land_grid = need_grid(tgt_grid, full_grid)
+    land_grid => full_grid
+  end function need_level0_land_grid
+
+  !> \brief Repack a full level-0 real cache onto the land grid without rereading its source.
+  subroutine repack_l0_dp_cache(full_grid, land_grid, cache, name)
+    type(grid_t), intent(in) :: full_grid
+    type(grid_t), intent(in) :: land_grid
+    real(dp), allocatable, intent(inout) :: cache(:,:)
+    character(*), intent(in) :: name
+    real(dp), allocatable :: land_cache(:,:)
+    integer(i8), allocatable :: land_to_full(:)
+    integer(i8) :: land_id
+    integer(i4) :: layer
+
+    if (.not.allocated(cache)) then
+      log_fatal(*) "Input: cannot repack uninitialized level-0 data: ", name
+      error stop 1
+    end if
+    if (size(cache, 1, kind=i8) /= full_grid%ncells) then
+      log_fatal(*) "Input: full-grid data size does not match level-0 cells before land repacking: ", name
+      error stop 1
+    end if
+    allocate(land_to_full(land_grid%ncells))
+    call land_grid%gen_id_map(full_grid, land_to_full, check_fill=.true.)
+    allocate(land_cache(land_grid%ncells, size(cache, 2)))
+    !$omp parallel default(shared) private(layer)
+    do layer = 1_i4, size(cache, 2)
+      !$omp do schedule(static)
+      do land_id = 1_i8, land_grid%ncells
+        land_cache(land_id, layer) = cache(land_to_full(land_id), layer)
+      end do
+      !$omp end do
+    end do
+    !$omp end parallel
+    call move_alloc(land_cache, cache)
+  end subroutine repack_l0_dp_cache
 
   !> \brief Copy stepping/static/provided metadata from an input variable to the exchange variable.
   subroutine sync_input_var_meta(input_var, exchange_var)
@@ -847,7 +909,6 @@ contains
       call self%fdir%init( &
         path=self%exchange%get_path(self%config%input%fdir_path(id(1))), name=self%config%input%fdir_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%fdir%provided = .true. ! mark as provided in exchange
     end if
 
     ! flow accumulation (facc_var by default "facc")
@@ -1010,6 +1071,14 @@ contains
     log_info(*) "Connect Input"
     ts = self%time_stamp_location
 
+    ! Flow direction establishes the full level-0 grid and river before all other morphology inputs.
+    if (self%fdir%coupled) then
+      log_fatal(*) "Input: coupled flow direction and level-0 grid initialization is not implemented."
+      error stop 1
+    else if (self%fdir%provided) then
+      call self%read_fdir_file()
+    end if
+
     ! morph mask
     if (self%morph_mask%coupled) then
       ! TODO: init grid from coupling namelist if needed
@@ -1031,7 +1100,22 @@ contains
       init_grid = need_grid(self%tgt_level0, self%exchange%level0) ! associate grid if not yet done
       call self%dem%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
       call self%dem%read_static()
-      self%exchange%dem%data => self%dem%cache(:, 1) ! associate exchange variable to input cache
+      if (self%owns_river_l0) call self%river_l0%set_elevation(self%dem%cache(:, 1))
+    end if
+
+    ! Lake delineation needs the fdir-derived river and the full packed DEM.
+    if (self%config%input%is_set("lake_definition_path", idx=[self%exchange%nml_domain_id]) == NML_OK) &
+      call self%read_lake_specification()
+    if (.not.associated(self%exchange%level0_land) .and. associated(self%exchange%level0)) &
+      self%exchange%level0_land => self%exchange%level0
+    if (self%dem%provided) then
+      if (self%owns_river_l0 .and. .not.associated(self%exchange%level0_lake)) then
+        ! The full DEM belongs to the fdir-derived river; no land-packed view is needed without lakes.
+        self%exchange%dem%data => self%river_l0%node_elevation
+        deallocate(self%dem%cache)
+      else
+        self%exchange%dem%data => self%dem%cache(:, 1)
+      end if
     end if
 
     ! slope
@@ -1040,9 +1124,20 @@ contains
       log_error(*) "Input: slope is coupled... not yet implemented"
       stop 1
     else if (self%slope%provided) then
-      init_grid = need_grid(self%tgt_level0, self%exchange%level0) ! associate grid if not yet done
-      call self%slope%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
+      if (self%owns_river_l0) then
+        init_grid = need_grid(self%tgt_level0, self%exchange%level0)
+        call self%slope%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
+      else
+        init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
+        call self%slope%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid)
+      end if
       call self%slope%read_static()
+      if (self%owns_river_l0) then
+        call self%river_l0%set_link_slope(self%slope%cache(:, 1))
+        if (associated(self%exchange%level0_lake)) &
+          call repack_l0_dp_cache(self%exchange%level0, self%exchange%level0_land, self%slope%cache, "slope")
+        self%slope%grid => self%exchange%level0_land
+      end if
       self%exchange%slope%data => self%slope%cache(:, 1) ! associate exchange variable to input cache
     end if
 
@@ -1052,22 +1147,10 @@ contains
       log_error(*) "Input: aspect is coupled... not yet implemented"
       stop 1
     else if (self%aspect%provided) then
-      init_grid = need_grid(self%tgt_level0, self%exchange%level0) ! associate grid if not yet done
-      call self%aspect%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
+      init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
+      call self%aspect%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid)
       call self%aspect%read_static()
       self%exchange%aspect%data => self%aspect%cache(:, 1) ! associate exchange variable to input cache
-    end if
-
-    ! flow direction
-    if (self%fdir%coupled) then
-      ! TODO: init grid from coupling namelist if needed
-      log_error(*) "Input: flow direction is coupled... not yet implemented"
-      stop 1
-    else if (self%fdir%provided) then
-      init_grid = need_grid(self%tgt_level0, self%exchange%level0) ! associate grid if not yet done
-      call self%fdir%open_dataset(kind="i2", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
-      call self%fdir%read_static()
-      self%exchange%fdir%data => self%fdir%cache(:, 1) ! associate exchange variable to input cache
     end if
 
     ! flow accumulation
@@ -1088,8 +1171,8 @@ contains
       log_error(*) "Input: geology class is coupled... not yet implemented"
       stop 1
     else if (self%geo_class%provided) then
-      init_grid = need_grid(self%tgt_level0, self%exchange%level0) ! associate grid if not yet done
-      call self%geo_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
+      init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
+      call self%geo_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid)
       call self%geo_class%read_static()
       self%exchange%geo_unit%data => self%geo_class%cache(:, 1) ! associate exchange variable to input cache
     end if
@@ -1100,8 +1183,8 @@ contains
       log_error(*) "Input: soil class is coupled... not yet implemented"
       stop 1
     else if (self%soil_class%provided) then
-      init_grid = need_grid(self%tgt_level0, self%exchange%level0) ! associate grid if not yet done
-      call self%soil_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
+      init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
+      call self%soil_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid)
       call self%soil_class%read_static()
       if (.not.self%soil_horizon_class%provided) then
         if (allocated(self%soil_class_one_layer)) deallocate(self%soil_class_one_layer)
@@ -1117,9 +1200,9 @@ contains
       log_error(*) "Input: soil horizon class is coupled... not yet implemented"
       stop 1
     else if (self%soil_horizon_class%provided) then
-      init_grid = need_grid(self%tgt_level0, self%exchange%level0) ! associate grid if not yet done
+      init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
       call self%soil_horizon_class%open_dataset( &
-        kind="i4", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid, layered=.true.)
+        kind="i4", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid, layered=.true.)
       call self%soil_horizon_class%read_static()
       self%exchange%soil_id%data => self%soil_horizon_class%cache(:, :, 1) ! associate exchange variable to input cache
     end if
@@ -1130,8 +1213,8 @@ contains
       log_error(*) "Input: LAI class is coupled... not yet implemented"
       stop 1
     else if (self%lai_class%provided) then
-      init_grid = need_grid(self%tgt_level0, self%exchange%level0) ! associate grid if not yet done
-      call self%lai_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
+      init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
+      call self%lai_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid)
       call self%lai_class%read_static()
       self%exchange%lai_class%data => self%lai_class%cache(:, 1) ! associate exchange variable to input cache
     end if
@@ -1307,10 +1390,10 @@ contains
       log_error(*) "Input: hydro mask is coupled... not yet implemented"
       stop 1
     else if (self%hydro_mask%provided) then
-      init_grid = need_grid(self%tgt_level1, self%exchange%level1) ! associate grid if not yet done
-      call self%hydro_mask%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level1, init_grid=init_grid)
+      init_grid = need_grid(self%tgt_level1_land, self%exchange%level1_land) ! associate grid if not yet done
+      call self%hydro_mask%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level1_land, init_grid=init_grid)
       if (.not.self%hydro_mask%is_ascii()) call self%hydro_mask%ds%close() ! hydro mask not read, since we only need the grid information
-      call self%hydro_mask%set_mask(self%exchange%level1%mask) ! only done for masks
+      call self%hydro_mask%set_mask(self%exchange%level1_land%mask) ! only done for masks
     end if
 
     ! runoff
@@ -1319,13 +1402,188 @@ contains
       log_error(*) "Input: runoff is coupled... not yet implemented"
       stop 1
     else if (self%runoff%provided) then
-      init_grid = need_grid(self%tgt_level1, self%exchange%level1) ! associate grid if not yet done
-      call self%runoff%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level1, init_grid=init_grid)
+      init_grid = need_grid(self%tgt_level1_land, self%exchange%level1_land) ! associate grid if not yet done
+      call self%runoff%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level1_land, init_grid=init_grid)
       call sync_input_var_meta(self%runoff, self%exchange%runoff_total)
     end if
 
+    if (.not.associated(self%exchange%level0_land) .and. associated(self%exchange%level0)) &
+      self%exchange%level0_land => self%exchange%level0
+    if (associated(self%exchange%level1_land)) call self%exchange%alias_full_grid_no_lakes(l1)
+
     if (associated(self%exchange%level2)) self%exchange%level2_resolution = self%exchange%level2%cellsize
   end subroutine input_connect
+
+  !> \brief Read file-based flow direction once while constructing the level-0 grid.
+  subroutine input_read_fdir_file(self)
+    class(input_t), target, intent(inout) :: self
+    type(data_t) :: data
+    integer(i2), allocatable :: fdir_packed(:)
+    logical :: level0_supplied
+
+    level0_supplied = associated(self%exchange%level0)
+    data%dtype = "i16"
+
+    scope_info(s,*) "Read flow direction and initialize level-0 grid from file: ", trim(self%fdir%path)
+    if (self%fdir%is_ascii()) then
+      call self%tgt_level0%from_ascii_file( &
+        self%fdir%path, coordsys=merge(spherical, cartesian, self%morph_latlon), data=data)
+    else
+      call self%tgt_level0%from_netcdf(self%fdir%path, self%fdir%name, tol=1.0e-5_dp, data=data)
+    end if
+    if (level0_supplied) then
+      if (.not.self%exchange%level0%is_matching(self%tgt_level0, tol=1.0e-5_dp)) then
+        log_fatal(*) "Input: fdir-derived level-0 grid does not match the supplied level-0 grid."
+        error stop 1
+      end if
+    else
+      self%exchange%level0 => self%tgt_level0
+    end if
+
+    allocate(fdir_packed(self%exchange%level0%ncells))
+    call self%exchange%level0%pack_into(data%data_i2, fdir_packed)
+    call data%deallocate()
+    call self%build_river_l0(self%exchange%level0, fdir_packed)
+    deallocate(fdir_packed)
+  end subroutine input_read_fdir_file
+
+  !> \brief Construct and publish the level-0 river from an established grid and packed flow direction.
+  !> \details File readers and future couplers should converge on this representation.
+  subroutine input_build_river_l0(self, grid, fdir)
+    class(input_t), target, intent(inout) :: self
+    type(grid_t), pointer, intent(in) :: grid
+    integer(i2), intent(in) :: fdir(:)
+
+    if (self%owns_river_l0 .or. associated(self%exchange%river_l0)) then
+      log_fatal(*) "Input: level-0 river already constructed before flow-direction handoff."
+      error stop 1
+    end if
+    call self%river_l0%from_fdir(fdir, grid)
+    call self%river_l0%calc_order(root=.true.)
+    call self%river_l0%calc_facc()
+    self%exchange%river_l0 => self%river_l0
+    call self%exchange%fdir%publish_local("Input", self%river_l0%fdir, no_time)
+    self%owns_river_l0 = .true.
+  end subroutine input_build_river_l0
+
+  !> \brief Read static lake metadata, snap outlets to L0 cells, and delineate lake footprints.
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  subroutine input_read_lake_specification(self)
+    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+    class(input_t), target, intent(inout) :: self
+    type(points_input_dataset) :: input
+    type(var), allocatable :: vars(:)
+    real(dp), allocatable :: coords(:,:)
+    integer(i8), allocatable :: outlet_nodes(:)
+    character(:), allocatable :: path, name
+    integer(i8) :: i, node
+    integer(i4) :: ix, iy
+    logical :: use_aux
+
+    if (.not.self%owns_river_l0 .or. .not.associated(self%exchange%river_l0)) then
+      log_fatal(*) "Input: lake definitions require a file-based level-0 river."
+      error stop 1
+    end if
+    if (.not.self%dem%provided .or. .not.allocated(self%dem%cache)) then
+      log_fatal(*) "Input: lake definitions require a static DEM on level 0."
+      error stop 1
+    end if
+
+    path = self%exchange%get_path(self%config%input%lake_definition_path(self%exchange%nml_domain_id))
+    name = trim(self%config%input%lake_level_var(self%exchange%nml_domain_id))
+    scope_info(s,*) "Read lake specification from file: ", path
+    vars = [var(name=name, long_name="maximum lake level", units="m", static=.true.)]
+    call input%init(path, vars=vars, points=self%lake_outlets, points_init_var=name)
+    call input%get_ids(self%lake_ids)
+    allocate(self%lake_max_levels(self%lake_outlets%n_points))
+    call input%read(name, self%lake_max_levels)
+    call input%close()
+
+    if (self%lake_outlets%n_points < 1_i8) then
+      log_fatal(*) "Input: lake specification contains no lake outlets."
+      error stop 1
+    end if
+    if (size(self%lake_ids, kind=i8) /= self%lake_outlets%n_points .or. &
+        size(self%lake_max_levels, kind=i8) /= self%lake_outlets%n_points) then
+      log_fatal(*) "Input: lake specification arrays have inconsistent sizes."
+      error stop 1
+    end if
+    if (.not.all(ieee_is_finite(self%lake_outlets%x)) .or. .not.all(ieee_is_finite(self%lake_outlets%y))) then
+      log_fatal(*) "Input: lake outlet coordinates must be finite."
+      error stop 1
+    end if
+
+    coords = self%lake_outlets%coords()
+    use_aux = self%lake_outlets%coordsys /= self%exchange%level0%coordsys
+    if (use_aux) then
+      if (self%lake_outlets%coordsys /= spherical .or. .not.self%exchange%level0%has_aux_vertices()) then
+        log_fatal(*) "Input: lake outlet coordinates are incompatible with the level-0 grid."
+        error stop 1
+      end if
+    end if
+    outlet_nodes = self%exchange%level0%closest_cell_id(coords, use_aux=use_aux)
+    do i = 1_i8, size(outlet_nodes, kind=i8)
+      node = outlet_nodes(i)
+      if (node < 1_i8 .or. node > self%exchange%level0%ncells) then
+        log_fatal(*) "Input: lake outlet cannot be mapped to an active level-0 cell."
+        error stop 1
+      end if
+      ix = self%exchange%level0%cell_ij(node, 1)
+      iy = self%exchange%level0%cell_ij(node, 2)
+      if (.not.self%exchange%level0%in_cell(ix, iy, coords(i, 1), coords(i, 2), aux=use_aux)) then
+        log_fatal(*) "Input: lake outlet lies outside its mapped active level-0 cell."
+        error stop 1
+      end if
+    end do
+
+    call self%river_l0%label_lakes(outlet_nodes, self%lake_ids, self%lake_max_levels)
+    call self%build_lake_grids()
+    call repack_l0_dp_cache(self%exchange%level0, self%exchange%level0_land, self%dem%cache, "DEM")
+    self%dem%grid => self%exchange%level0_land
+    self%exchange%lake_points => self%lake_outlets
+    call self%exchange%lake_ids%publish_local("Input", self%lake_ids, no_time)
+    call self%exchange%lake_max_levels%publish_local("Input", self%lake_max_levels, no_time)
+  end subroutine input_read_lake_specification
+
+  !> \brief Construct complementary land and lake grids on the full level-0 geometry.
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  subroutine input_build_lake_grids(self)
+    class(input_t), target, intent(inout) :: self
+    logical, allocatable :: land_packed(:), lake_packed(:)
+    logical, allocatable :: new_mask(:,:)
+    integer(i8), allocatable :: full_lake_map(:,:)
+
+    if (.not.associated(self%exchange%level0)) then
+      log_fatal(*) "Input: cannot derive land and lake grids without the full level-0 grid."
+      error stop 1
+    end if
+    call self%river_l0%lake_masks(land_packed, lake_packed)
+    allocate(new_mask(self%exchange%level0%nx, self%exchange%level0%ny))
+    ! land grid
+    call self%exchange%level0%unpack_into(land_packed, new_mask)
+    call self%exchange%level0%copy_to(self%tgt_level0_land, mask=new_mask, keep_sub_cell_area=.true.)
+    ! lake grid
+    call self%exchange%level0%unpack_into(lake_packed, new_mask)
+    call self%exchange%level0%copy_to(self%tgt_level0_lake, mask=new_mask, keep_sub_cell_area=.true.)
+    deallocate(new_mask)
+    if (self%tgt_level0_land%ncells < 1_i8) then
+      log_fatal(*) "Input: lake delineation leaves no active land cells."
+      error stop 1
+    end if
+    if (self%tgt_level0_lake%ncells < 1_i8) then
+      log_fatal(*) "Input: lake delineation produced no active lake cells."
+      error stop 1
+    end if
+    self%exchange%level0_land => self%tgt_level0_land
+    self%exchange%level0_lake => self%tgt_level0_lake
+    allocate(full_lake_map(self%exchange%level0%nx, self%exchange%level0%ny))
+    allocate(self%lake_map(self%exchange%level0_lake%ncells))
+    call self%exchange%level0%unpack_into(self%river_l0%lake_map, full_lake_map)
+    call self%exchange%level0_lake%pack_into(full_lake_map, self%lake_map)
+    deallocate(full_lake_map)
+    call self%exchange%lake_map%publish_local("Input", self%lake_map, no_time)
+    self%owns_lake_map = .true.
+  end subroutine input_build_lake_grids
 
   !> \brief Initialize the Input container for the model run.
   !> \details Prepare chunked reading if needed.
@@ -1334,16 +1592,15 @@ contains
     log_info(*) "Initialize Input"
     scope_info(s,*) "Initialize input time windows with chunking: ", n2s(self%chunking)
     ! warn about provided but not required variables, since this likely indicates a configuration issue
-    if (self%fdir%provided .and. .not.self%exchange%fdir%required) then
-      log_warn(*) "Input: flow direction provided but not required. Check your configuration."
-    end if
     if (self%facc%provided .and. .not.self%exchange%facc%required) then
       log_warn(*) "Input: flow accumulation provided but not required. Check your configuration."
     end if
-    if (self%dem%provided .and. .not.self%exchange%dem%required) then
+    if (self%dem%provided .and. .not.self%exchange%dem%required .and. &
+        .not.associated(self%exchange%level0_lake)) then
       log_warn(*) "Input: DEM provided but not required. Check your configuration."
     end if
-    if (self%slope%provided .and. .not.self%exchange%slope%required) then
+    if (self%slope%provided .and. .not.self%exchange%slope%required .and. &
+        .not.(self%owns_river_l0 .and. allocated(self%river_l0%link_slope))) then
       log_warn(*) "Input: slope provided but not required. Check your configuration."
     end if
     if (self%aspect%provided .and. .not.self%exchange%aspect%required) then
@@ -1410,6 +1667,27 @@ contains
     if (self%wind%provided .and. .not.self%wind%static) call self%wind%ds%close()
     if (self%runoff%provided) call self%runoff%ds%close()
     if (allocated(self%soil_class_one_layer)) deallocate(self%soil_class_one_layer)
+    if (associated(self%exchange%lake_points, self%lake_outlets)) then
+      call self%exchange%lake_ids%clear(owned=.true.)
+      call self%exchange%lake_max_levels%clear(owned=.true.)
+      nullify(self%exchange%lake_points)
+    end if
+    self%lake_outlets = points_t()
+    if (allocated(self%lake_ids)) deallocate(self%lake_ids)
+    if (self%owns_lake_map) then
+      call self%exchange%lake_map%clear(owned=.true.)
+      self%owns_lake_map = .false.
+    end if
+    if (allocated(self%lake_map)) deallocate(self%lake_map)
+    if (allocated(self%lake_max_levels)) deallocate(self%lake_max_levels)
+    nullify(self%exchange%level0_lake)
+    nullify(self%exchange%level0_land)
+    if (self%owns_river_l0) then
+      call self%exchange%fdir%clear(owned=.true.)
+      if (associated(self%exchange%river_l0, self%river_l0)) nullify(self%exchange%river_l0)
+      call self%river_l0%clean()
+      self%owns_river_l0 = .false.
+    end if
   end subroutine input_finalize
 
 end module mo_input_container

@@ -10,7 +10,7 @@
 
 !> \brief   Module to provide the exchange type.
 !> \version 0.1
-!> \authors Sebastian Mueller
+!> \authors Sebastian Mueller, Pallav Shrestha
 !> \date    Mar 2025
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
@@ -19,6 +19,8 @@
 module mo_exchange_type
   use mo_logging
   use mo_grid, only: grid_t
+  use mo_river, only: river_t
+  use mo_points, only: points_t
   use mo_grid_io, only: output_var_meta_t => var, no_time, daily, monthly, yearly, varying
   use mo_netcdf, only: NcVariable
   use mo_geology_classdefinition, only: geology_classdefinition_t
@@ -52,13 +54,25 @@ module mo_exchange_type
   end type exchange_config_t
 
   !> \name Level Selectors
-  !> \brief Constants to specify the grid for levels in mHM: L0, L1, L2 and L3.
+  !> \brief Constants selecting model grids by support: full (0--99), land (100--199), and lake (200--299).
   !!@{
   integer(i4), public, parameter :: nogrid = -1_i4 !< no grid (yet) defined
-  integer(i4), public, parameter :: l0 = 0_i4      !< level0 - morphology
-  integer(i4), public, parameter :: l1 = 1_i4      !< level1 - hydrology
-  integer(i4), public, parameter :: l2 = 2_i4      !< level2 - meteorology
-  integer(i4), public, parameter :: l3 = 3_i4      !< level3 - routing
+  integer(i4), public, parameter :: l0 = 0_i4       !< full level0 morphology grid
+  integer(i4), public, parameter :: l1 = 1_i4       !< full level1 grid (optional)
+  integer(i4), public, parameter :: l2 = 2_i4       !< full level2 meteorology grid
+  integer(i4), public, parameter :: l3 = 3_i4       !< full level3 routing grid
+  integer(i4), public, parameter :: l0_land = 100_i4 !< land level0 hydrological-morphology grid
+  integer(i4), public, parameter :: l1_land = 101_i4 !< land level1 hydrological grid
+  integer(i4), public, parameter :: l3_land = 103_i4 !< land level3 lake-routing support grid
+  integer(i4), public, parameter :: l0_lake = 200_i4 !< lake level0 footprint grid
+  !!@}
+
+  !> \name Point-set Selectors
+  !> \brief Constants selecting referenced point sets for exchanged point variables.
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  !!@{
+  integer(i4), public, parameter :: nopoints = -1_i4 !< no point set
+  integer(i4), public, parameter :: points_lake = 1_i4 !< lake outlet point set
   !!@}
 
   !> \class   variable_abc
@@ -69,6 +83,7 @@ module mo_exchange_type
     character(:), allocatable :: long_name     !< long name of the variable
     character(:), allocatable :: standard_name !< standard name of the variable
     integer(i4) :: grid = nogrid               !< ID of the grid the data is defined on
+    integer(i4) :: points = nopoints           !< ID of the referenced point set
     integer(i4) :: stepping = 0_i4             !< time-step size of this variable in hours (0 - static)
     logical :: static = .false.                !< flag to indicated static data (.false. by default)
     logical :: provided = .false.              !< flag to indicate that data is provided by a component (.false. by default)
@@ -109,6 +124,19 @@ module mo_exchange_type
     procedure, public :: publish_local => var_i4_publish_local
     procedure, public :: publish_alias => var_i4_publish_alias
   end type var_i4
+
+  !> \class   var_i8
+  !> \brief   Class for a 64bit integer variable in the exchange type.
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  type, public, extends(variable_abc) :: var_i8
+    integer(i8), dimension(:), pointer :: data => null() !< 1D integer pointer
+  contains
+    procedure, public :: has_data => var_i8_has_data
+    procedure, public :: data_shape => var_i8_data_shape
+    procedure, public :: clear_data => var_i8_clear_data
+    procedure, public :: publish_local => var_i8_publish_local
+    procedure, public :: publish_alias => var_i8_publish_alias
+  end type var_i8
 
   !> \class   var_i2
   !> \brief   Class for a 16-bit integer variable in the exchange type.
@@ -193,6 +221,7 @@ module mo_exchange_type
 
   !> \class   exchange_t
   !> \brief   Class for dynamically exchanging variables in mHM.
+  !> \authors Sebastian Mueller, Pallav Shrestha
   type, public :: exchange_t
     integer(i4) :: step_count               !< current time step
     type(datetime) :: time                  !< upper bound of the current time step
@@ -218,11 +247,19 @@ module mo_exchange_type
     character(:), allocatable :: parameter_file !< resolved process-parameter namelist path
 
     ! grids
-    type(grid_t), pointer :: level0 => null() !< level0 grid of the morphology
-    type(grid_t), pointer :: level1 => null() !< level1 grid of the hydrology
+    type(grid_t), pointer :: level0 => null() !< full level0 grid of the morphology and routing topology
+    type(grid_t), pointer :: level0_land => null() !< level0 land grid used by MPR and hydrology
+    type(grid_t), pointer :: level0_lake => null() !< level0 lake grid (unassociated without lakes)
+    type(grid_t), pointer :: level1 => null() !< optional full level1 grid
+    type(grid_t), pointer :: level1_land => null() !< level1 land grid used by hydrology and runoff
     type(grid_t), pointer :: level2 => null() !< level2 grid of the meteorology
     type(grid_t), pointer :: level3 => null() !< level3 grid of the river network
+    type(grid_t), pointer :: level3_land => null() !< level3 land grid derived by mRM for lake-aware runoff remapping
+    type(points_t), pointer :: lake_points => null() !< lake outlet point set
     real(dp), dimension(:), pointer :: soil_horizon_bounds => null() !< soil-horizon boundary depths [mm] for mHM metadata
+
+    ! static topology
+    type(river_t), pointer :: river_l0 => null() !< full level-0 river network
 
     ! grid resolutions (for deriving grids after configuration)
     real(dp) :: level0_resolution = 0.0_dp !< level0 resolution of the morphology
@@ -231,6 +268,20 @@ module mo_exchange_type
     real(dp) :: level3_resolution = 0.0_dp !< level3 resolution of the river network
 
     ! variables
+    ! lake-point metadata
+    type(var_i8) :: lake_ids             !< stable lake IDs on lake points
+    type(var_dp) :: lake_max_levels      !< maximum lake levels [m] on lake points
+    type(var_i8) :: lake_map             !< stable lake ID on packed level-0 lake cells
+    type(var_dp) :: lake_area            !< lake surface area [m2] on lake points
+    type(var_dp) :: lake_inflow          !< completed hourly lake inflow [m3 s-1] on lake points
+    type(var_dp) :: lake_outflow         !< current hourly lake outflow [m3 s-1] on lake points
+    type(var_dp) :: lake_pre             !< current precipitation [mm] on lake points
+    type(var_dp) :: lake_temp            !< current air temperature [degC] on lake points
+    type(var_dp) :: lake_pet             !< current PET [mm] on lake points
+    type(var_dp) :: lake_ssrd            !< current short-wave radiation [W m-2] on lake points
+    type(var_dp) :: lake_strd            !< current long-wave radiation [W m-2] on lake points
+    type(var_dp) :: lake_tann            !< current annual mean temperature [degC] on lake points
+
     ! raw meteorology (level2)
     type(var_dp) :: raw_pre             !< raw precipitation [mm] on level l2
     type(var_dp) :: raw_temp            !< raw air temperature [degC] on level l2
@@ -355,17 +406,21 @@ module mo_exchange_type
     procedure, public  :: update => exchange_update
     procedure, public  :: get_grid => exchange_get_grid
     procedure, public  :: has_grid => exchange_has_grid
+    procedure, public  :: alias_full_grid_no_lakes => exchange_alias_full_grid_no_lakes
+    procedure, public  :: get_points => exchange_get_points
+    procedure, public  :: has_points => exchange_has_points
     procedure, public :: get_meta => exchange_get_var_meta
     procedure, public :: get_path => exchange_get_path
     procedure, private :: get_var_class => exchange_get_var_class
     procedure, private  :: get_data_1d_dp => exchange_get_data_1d_dp
     procedure, private  :: get_data_1d_i2 => exchange_get_data_1d_i2
     procedure, private  :: get_data_1d_i4 => exchange_get_data_1d_i4
+    procedure, private  :: get_data_1d_i8 => exchange_get_data_1d_i8
     procedure, private  :: get_data_1d_lg => exchange_get_data_1d_lg
     procedure, private  :: get_data_2d_dp => exchange_get_data_2d_dp
     procedure, private  :: get_data_2d_i4 => exchange_get_data_2d_i4
     procedure, private  :: get_data_2d_lg => exchange_get_data_2d_lg
-    generic, public :: get_data => get_data_1d_dp, get_data_1d_i2, get_data_1d_i4, get_data_1d_lg, get_data_2d_dp, get_data_2d_i4, get_data_2d_lg
+    generic, public :: get_data => get_data_1d_dp, get_data_1d_i2, get_data_1d_i4, get_data_1d_i8, get_data_1d_lg, get_data_2d_dp, get_data_2d_i4, get_data_2d_lg
     procedure, private  :: set_data_1d => exchange_set_data_1d
     procedure, private  :: set_data_2d => exchange_set_data_2d
     generic, public :: set_data => set_data_1d, set_data_2d
@@ -475,6 +530,20 @@ contains
     end if
 
     ! variables
+    ! lake-point metadata
+    self%lake_ids        = var_i8(static=.true., points=points_lake, name="lake_ids",        units="1", long_name="stable lake ID")
+    self%lake_max_levels = var_dp(static=.true., points=points_lake, name="lake_max_levels", units="m", long_name="maximum lake level")
+    self%lake_map        = var_i8(static=.true., grid=l0_lake, name="lake_map", units="1", long_name="stable lake ID")
+    self%lake_area       = var_dp(static=.true., points=points_lake, name="lake_area", units="m2", long_name="lake surface area")
+    self%lake_inflow     = var_dp(points=points_lake, name="lake_inflow",  units="m3 s-1", long_name="completed hourly lake inflow")
+    self%lake_outflow    = var_dp(points=points_lake, name="lake_outflow", units="m3 s-1", long_name="current hourly lake outflow")
+    self%lake_pre        = var_dp(points=points_lake, name="lake_pre", units="mm", long_name="lake precipitation")
+    self%lake_temp       = var_dp(points=points_lake, name="lake_temp", units="degC", long_name="lake air temperature")
+    self%lake_pet        = var_dp(points=points_lake, name="lake_pet", units="mm", long_name="lake potential evapotranspiration")
+    self%lake_ssrd       = var_dp(points=points_lake, name="lake_ssrd", units="W m-2", long_name="lake solar short wave radiation downward")
+    self%lake_strd       = var_dp(points=points_lake, name="lake_strd", units="W m-2", long_name="lake surface thermal radiation downward")
+    self%lake_tann       = var_dp(points=points_lake, name="lake_tann", units="degC", long_name="lake annual mean air temperature")
+
     ! raw meteorology (level2)
     self%raw_pre    = var_dp(grid=l2, name="pre",       units="mm",    long_name="precipitation", standard_name="precipitation_amount")
     self%raw_pet    = var_dp(grid=l2, name="pet",       units="mm",    long_name="potential evapotranspiration", standard_name="water_potential_evapotranspiration_amount")
@@ -489,93 +558,93 @@ contains
     self%raw_wind   = var_dp(grid=l2, name="windspeed", units="m s-1", long_name="wind speed", standard_name="wind_speed")
 
     ! processed meteorology (level1)
-    self%pre  = var_dp(grid=l1, name="pre",  units="mm",    long_name="precipitation", standard_name="precipitation_amount")
-    self%temp = var_dp(grid=l1, name="temp", units="degC",  long_name="air temperature", standard_name="air_temperature")
-    self%pet  = var_dp(grid=l1, name="pet",  units="mm",    long_name="potential evapotranspiration", standard_name="water_potential_evapotranspiration_amount")
-    self%ssrd = var_dp(grid=l1, name="ssrd", units="W m-2", long_name="solar short wave radiation downward", standard_name="surface_downwelling_shortwave_flux")
-    self%strd = var_dp(grid=l1, name="strd", units="W m-2", long_name="surface thermal radiation downward", standard_name="surface_downwelling_longwave_flux")
-    self%tann = var_dp(grid=l1, name="tann", units="degC",  long_name="annual mean air temperature", standard_name="air_temperature")
+    self%pre  = var_dp(grid=l1_land, name="pre",  units="mm",    long_name="precipitation", standard_name="precipitation_amount")
+    self%temp = var_dp(grid=l1_land, name="temp", units="degC",  long_name="air temperature", standard_name="air_temperature")
+    self%pet  = var_dp(grid=l1_land, name="pet",  units="mm",    long_name="potential evapotranspiration", standard_name="water_potential_evapotranspiration_amount")
+    self%ssrd = var_dp(grid=l1_land, name="ssrd", units="W m-2", long_name="solar short wave radiation downward", standard_name="surface_downwelling_shortwave_flux")
+    self%strd = var_dp(grid=l1_land, name="strd", units="W m-2", long_name="surface thermal radiation downward", standard_name="surface_downwelling_longwave_flux")
+    self%tann = var_dp(grid=l1_land, name="tann", units="degC",  long_name="annual mean air temperature", standard_name="air_temperature")
 
     ! morphology (level0)
-    self%dem    = var_dp(static=.true., grid=l0, name="dem",    units="m",      long_name="elevation", standard_name="height_above_mean_sea_level")
-    self%slope  = var_dp(static=.true., grid=l0, name="slope",  units="%",      long_name="slope", standard_name="ground_slope_angle")
-    self%aspect = var_dp(static=.true., grid=l0, name="aspect", units="degree", long_name="aspect", standard_name="ground_slope_direction")
+    self%dem    = var_dp(static=.true., grid=l0_land, name="dem",    units="m",      long_name="elevation", standard_name="height_above_mean_sea_level")
+    self%slope  = var_dp(static=.true., grid=l0_land, name="slope",  units="%",      long_name="slope", standard_name="ground_slope_angle")
+    self%aspect = var_dp(static=.true., grid=l0_land, name="aspect", units="degree", long_name="aspect", standard_name="ground_slope_direction")
     self%fdir   = var_i2(static=.true., grid=l0, name="fdir",   units="1",      long_name="flow direction")
     self%facc   = var_i4(static=.true., grid=l0, name="facc",   units="1",      long_name="flow accumulation")
-    self%soil_id = var2d_i4(static=.true., grid=l0, name="soil_id", units="1", long_name="soil class ID")
-    self%geo_unit = var_i4(static=.true., grid=l0, name="geo_unit", units="1", long_name="geological unit ID")
-    self%lai_class = var_i4(static=.true., grid=l0, name="lai_class", units="1", long_name="LAI class ID")
-    self%slope_emp = var_dp(static=.true., grid=l0, name="slope_emp", units="1", long_name="empirical slope distribution")
+    self%soil_id = var2d_i4(static=.true., grid=l0_land, name="soil_id", units="1", long_name="soil class ID")
+    self%geo_unit = var_i4(static=.true., grid=l0_land, name="geo_unit", units="1", long_name="geological unit ID")
+    self%lai_class = var_i4(static=.true., grid=l0_land, name="lai_class", units="1", long_name="LAI class ID")
+    self%slope_emp = var_dp(static=.true., grid=l0_land, name="slope_emp", units="1", long_name="empirical slope distribution")
 
     ! hydrology (level1)
     ! canopy
-    self%interception      =   var_dp(grid=l1, name="interception",      units="mm",  long_name="canopy interception storage")
-    self%throughfall       =   var_dp(grid=l1, name="throughfall",       units="mm",  long_name="throughfall amount")
+    self%interception      =   var_dp(grid=l1_land, name="interception",      units="mm",  long_name="canopy interception storage")
+    self%throughfall       =   var_dp(grid=l1_land, name="throughfall",       units="mm",  long_name="throughfall amount")
     ! storage and SM
-    self%soil_moisture     = var2d_dp(grid=l1, name="soil_moisture",     units="mm",  long_name="soil water content of soil layer")
-    self%sealed_storage    =   var_dp(grid=l1, name="sealedSTW",         units="mm",  long_name="reservoir of sealed areas")
-    self%unsat_storage     =   var_dp(grid=l1, name="unsatSTW",          units="mm",  long_name="reservoir of unsaturated zone")
-    self%sat_storage       =   var_dp(grid=l1, name="satSTW",            units="mm",  long_name="water level in groundwater reservoir")
+    self%soil_moisture     = var2d_dp(grid=l1_land, name="soil_moisture",     units="mm",  long_name="soil water content of soil layer")
+    self%sealed_storage    =   var_dp(grid=l1_land, name="sealedSTW",         units="mm",  long_name="reservoir of sealed areas")
+    self%unsat_storage     =   var_dp(grid=l1_land, name="unsatSTW",          units="mm",  long_name="reservoir of unsaturated zone")
+    self%sat_storage       =   var_dp(grid=l1_land, name="satSTW",            units="mm",  long_name="water level in groundwater reservoir")
     ! AET
-    self%aet_canopy        =   var_dp(grid=l1, name="aet_canopy",        units="mm",  long_name="actual evapotranspiration from canopy")
-    self%aet_sealed        =   var_dp(grid=l1, name="aet_sealed",        units="mm",  long_name="actual evapotranspiration from free water surfaces")
-    self%aet_soil          = var2d_dp(grid=l1, name="aet_soil",          units="mm",  long_name="actual evapotranspiration from soil layer")
+    self%aet_canopy        =   var_dp(grid=l1_land, name="aet_canopy",        units="mm",  long_name="actual evapotranspiration from canopy")
+    self%aet_sealed        =   var_dp(grid=l1_land, name="aet_sealed",        units="mm",  long_name="actual evapotranspiration from free water surfaces")
+    self%aet_soil          = var2d_dp(grid=l1_land, name="aet_soil",          units="mm",  long_name="actual evapotranspiration from soil layer")
     ! rain/snow
-    self%snowpack          =   var_dp(grid=l1, name="snowpack",          units="mm",  long_name="depth of snowpack", standard_name="surface_snow_amount")
-    self%rain              =   var_dp(grid=l1, name="rain",              units="mm",  long_name="rain precipitation", standard_name="rainfall_amount")
-    self%snow              =   var_dp(grid=l1, name="snow",              units="mm",  long_name="snow precipitation", standard_name="snowfall_amount")
-    self%melt              =   var_dp(grid=l1, name="melt",              units="mm",  long_name="melting snow", standard_name="surface_snow_melt_amount")
-    self%pre_eff           =   var_dp(grid=l1, name="pre_eff",           units="mm",  long_name="effective precipitation") ! rain + melt
+    self%snowpack          =   var_dp(grid=l1_land, name="snowpack",          units="mm",  long_name="depth of snowpack", standard_name="surface_snow_amount")
+    self%rain              =   var_dp(grid=l1_land, name="rain",              units="mm",  long_name="rain precipitation", standard_name="rainfall_amount")
+    self%snow              =   var_dp(grid=l1_land, name="snow",              units="mm",  long_name="snow precipitation", standard_name="snowfall_amount")
+    self%melt              =   var_dp(grid=l1_land, name="melt",              units="mm",  long_name="melting snow", standard_name="surface_snow_melt_amount")
+    self%pre_eff           =   var_dp(grid=l1_land, name="pre_eff",           units="mm",  long_name="effective precipitation") ! rain + melt
     ! vertical soil water movement
-    self%infiltration      = var2d_dp(grid=l1, name="infiltration",      units="mm",  long_name="infiltration into soil layer")
-    self%percolation       =   var_dp(grid=l1, name="percolation",       units="mm",  long_name="percolation")
+    self%infiltration      = var2d_dp(grid=l1_land, name="infiltration",      units="mm",  long_name="infiltration into soil layer")
+    self%percolation       =   var_dp(grid=l1_land, name="percolation",       units="mm",  long_name="percolation")
     ! lateral water movement
-    self%runoff_total      =   var_dp(grid=l1, name="Q",                 units="mm",  long_name="total runoff", standard_name="runoff_amount")
-    self%runoff_sealed     =   var_dp(grid=l1, name="QD",                units="mm",  long_name="direct runoff from impervious areas", standard_name="surface_runoff_amount")
-    self%interflow_fast    =   var_dp(grid=l1, name="QIf",               units="mm",  long_name="fast runoff component", standard_name="subsurface_runoff_amount")
-    self%interflow_slow    =   var_dp(grid=l1, name="QIs",               units="mm",  long_name="slow runoff component", standard_name="subsurface_runoff_amount")
-    self%baseflow          =   var_dp(grid=l1, name="QB",                units="mm",  long_name="baseflow", standard_name="baseflow_amount")
+    self%runoff_total      =   var_dp(grid=l1_land, name="Q",                 units="mm",  long_name="total runoff", standard_name="runoff_amount")
+    self%runoff_sealed     =   var_dp(grid=l1_land, name="QD",                units="mm",  long_name="direct runoff from impervious areas", standard_name="surface_runoff_amount")
+    self%interflow_fast    =   var_dp(grid=l1_land, name="QIf",               units="mm",  long_name="fast runoff component", standard_name="subsurface_runoff_amount")
+    self%interflow_slow    =   var_dp(grid=l1_land, name="QIs",               units="mm",  long_name="slow runoff component", standard_name="subsurface_runoff_amount")
+    self%baseflow          =   var_dp(grid=l1_land, name="QB",                units="mm",  long_name="baseflow", standard_name="baseflow_amount")
     ! neutrons
-    self%neutrons          =   var_dp(grid=l1, name="neutrons",          units="cph", long_name="ground albedo neutrons")
-    self%degday            =   var_dp(grid=l1, name="degday",            units="mm degC-1",          long_name="Degree-day factor for the current interval")
+    self%neutrons          =   var_dp(grid=l1_land, name="neutrons",          units="cph", long_name="ground albedo neutrons")
+    self%degday            =   var_dp(grid=l1_land, name="degday",            units="mm degC-1",          long_name="Degree-day factor for the current interval")
 
     ! MPR results (level1)
     ! PET
-    self%pet_coeff_pt      =   var_dp(grid=l1, name="pet_coeff_pt",      units="1",                 long_name="PET calculation coefficient for Priestley Taylor (alpha)")
-    self%pet_coeff_hs      =   var_dp(grid=l1, name="pet_coeff_hs",      units="1", static=.true.,  long_name="PET calculation coefficient for Hargreaves Samani")
-    self%pet_fac_aspect    =   var_dp(grid=l1, name="pet_fac_aspect",    units="1", static=.true.,  long_name="PET correction factor based on aspect")
-    self%pet_fac_lai       =   var_dp(grid=l1, name="pet_fac_lai",       units="1",                 long_name="PET correction factor based on LAI")
-    self%resist_aero       =   var_dp(grid=l1, name="resist_aero",       units="s m-1",             long_name="aerodynamical resistance")
-    self%resist_surf       =   var_dp(grid=l1, name="resist_surf",       units="s m-1",             long_name="bulk surface resistance")
+    self%pet_coeff_pt      =   var_dp(grid=l1_land, name="pet_coeff_pt",      units="1",                 long_name="PET calculation coefficient for Priestley Taylor (alpha)")
+    self%pet_coeff_hs      =   var_dp(grid=l1_land, name="pet_coeff_hs",      units="1", static=.true.,  long_name="PET calculation coefficient for Hargreaves Samani")
+    self%pet_fac_aspect    =   var_dp(grid=l1_land, name="pet_fac_aspect",    units="1", static=.true.,  long_name="PET correction factor based on aspect")
+    self%pet_fac_lai       =   var_dp(grid=l1_land, name="pet_fac_lai",       units="1",                 long_name="PET correction factor based on LAI")
+    self%resist_aero       =   var_dp(grid=l1_land, name="resist_aero",       units="s m-1",             long_name="aerodynamical resistance")
+    self%resist_surf       =   var_dp(grid=l1_land, name="resist_surf",       units="s m-1",             long_name="bulk surface resistance")
     ! canopy
-    self%max_interception  =   var_dp(grid=l1, name="max_interception",  units="mm",                long_name="Maximum interception")
+    self%max_interception  =   var_dp(grid=l1_land, name="max_interception",  units="mm",                long_name="Maximum interception")
     ! snow
-    self%degday_inc        =   var_dp(grid=l1, name="degday_inc",        units="degC-1",            long_name="Increase of the degree-day factor per precipitation")
-    self%degday_max        =   var_dp(grid=l1, name="degday_max",        units="mm d-1 degC-1",    long_name="Maximum degree-day factor")
-    self%degday_dry        =   var_dp(grid=l1, name="degday_dry",        units="mm d-1 degC-1",    long_name="Degree-day factor for no precipitation")
-    self%thresh_temp       =   var_dp(grid=l1, name="thresh_temp",       units="degC",              long_name="Threshold temperature for phase transition snow and rain")
+    self%degday_inc        =   var_dp(grid=l1_land, name="degday_inc",        units="degC-1",            long_name="Increase of the degree-day factor per precipitation")
+    self%degday_max        =   var_dp(grid=l1_land, name="degday_max",        units="mm d-1 degC-1",    long_name="Maximum degree-day factor")
+    self%degday_dry        =   var_dp(grid=l1_land, name="degday_dry",        units="mm d-1 degC-1",    long_name="Degree-day factor for no precipitation")
+    self%thresh_temp       =   var_dp(grid=l1_land, name="thresh_temp",       units="degC",              long_name="Threshold temperature for phase transition snow and rain")
     ! soil moisture
-    self%f_sealed          =   var_dp(grid=l1, name="f_sealed",          units="1",                 long_name="Fraction of sealed area")
-    self%f_roots           = var2d_dp(grid=l1, name="f_roots",           units="1",                 long_name="Fraction of roots in soil horizons")
-    self%sm_saturation     = var2d_dp(grid=l1, name="sm_saturation",     units="mm",                long_name="Saturation soil moisture")
-    self%sm_exponent       = var2d_dp(grid=l1, name="sm_exponent",       units="1",                 long_name="Exponential parameter controlling non-linearity of soil water retention")
-    self%sm_field_capacity = var2d_dp(grid=l1, name="sm_field_capacity", units="mm",                long_name="Field capacity - soil moisture below which actual ET is reduced")
-    self%wilting_point     = var2d_dp(grid=l1, name="wilting_point",     units="mm",                long_name="permanent wilting point")
-    self%thresh_jarvis     =   var_dp(grid=l1, name="thresh_jarvis",     units="1",  static=.true., long_name="Jarvis critical value (C1) for normalized soil water content")
+    self%f_sealed          =   var_dp(grid=l1_land, name="f_sealed",          units="1",                 long_name="Fraction of sealed area")
+    self%f_roots           = var2d_dp(grid=l1_land, name="f_roots",           units="1",                 long_name="Fraction of roots in soil horizons")
+    self%sm_saturation     = var2d_dp(grid=l1_land, name="sm_saturation",     units="mm",                long_name="Saturation soil moisture")
+    self%sm_exponent       = var2d_dp(grid=l1_land, name="sm_exponent",       units="1",                 long_name="Exponential parameter controlling non-linearity of soil water retention")
+    self%sm_field_capacity = var2d_dp(grid=l1_land, name="sm_field_capacity", units="mm",                long_name="Field capacity - soil moisture below which actual ET is reduced")
+    self%wilting_point     = var2d_dp(grid=l1_land, name="wilting_point",     units="mm",                long_name="permanent wilting point")
+    self%thresh_jarvis     =   var_dp(grid=l1_land, name="thresh_jarvis",     units="1",  static=.true., long_name="Jarvis critical value (C1) for normalized soil water content")
     ! runoff
-    self%alpha             =   var_dp(grid=l1, name="alpha",             units="1",                 long_name="Exponent for the upper reservoir")
-    self%k_fastflow        =   var_dp(grid=l1, name="k_fastflow",        units="d",                 long_name="Fast interflow recession time")
-    self%k_slowflow        =   var_dp(grid=l1, name="k_slowflow",        units="d",                 long_name="Slow interflow recession time")
-    self%k_baseflow        =   var_dp(grid=l1, name="k_baseflow",        units="d",                 long_name="Baseflow recession time")
-    self%k_percolation     =   var_dp(grid=l1, name="k_percolation",     units="d",                 long_name="Percolation time")
-    self%f_karst_loss      =   var_dp(grid=l1, name="f_karst_loss",      units="1",  static=.true., long_name="Fraction of karstic percolation loss")
-    self%thresh_unsat      =   var_dp(grid=l1, name="thresh_unsat",      units="mm", static=.true., long_name="Threshold water depth for fast interflow")
-    self%thresh_sealed     =   var_dp(grid=l1, name="thresh_sealed",     units="mm", static=.true., long_name="Threshold water depth for runoff on sealed surfaces")
+    self%alpha             =   var_dp(grid=l1_land, name="alpha",             units="1",                 long_name="Exponent for the upper reservoir")
+    self%k_fastflow        =   var_dp(grid=l1_land, name="k_fastflow",        units="d",                 long_name="Fast interflow recession time")
+    self%k_slowflow        =   var_dp(grid=l1_land, name="k_slowflow",        units="d",                 long_name="Slow interflow recession time")
+    self%k_baseflow        =   var_dp(grid=l1_land, name="k_baseflow",        units="d",                 long_name="Baseflow recession time")
+    self%k_percolation     =   var_dp(grid=l1_land, name="k_percolation",     units="d",                 long_name="Percolation time")
+    self%f_karst_loss      =   var_dp(grid=l1_land, name="f_karst_loss",      units="1",  static=.true., long_name="Fraction of karstic percolation loss")
+    self%thresh_unsat      =   var_dp(grid=l1_land, name="thresh_unsat",      units="mm", static=.true., long_name="Threshold water depth for fast interflow")
+    self%thresh_sealed     =   var_dp(grid=l1_land, name="thresh_sealed",     units="mm", static=.true., long_name="Threshold water depth for runoff on sealed surfaces")
     ! neutrons
-    self%desilets_n0       =   var_dp(grid=l1, name="desilets_n0",       units="count h-1", static=.true., long_name="neutron count rate under dry reference conditions (N_0 in Desilets eq.)")
-    self%bulk_density      = var2d_dp(grid=l1, name="bulk_density",      units="g cm-3",            long_name="bulk density")
-    self%lattice_water     = var2d_dp(grid=l1, name="lattice_water",     units="g g-1",             long_name="Ratio of structurally bound water")
-    self%cosmic_l3         = var2d_dp(grid=l1, name="cosmic_l3",         units="g cm-2",            long_name="cosmic L3 parameter")
+    self%desilets_n0       =   var_dp(grid=l1_land, name="desilets_n0",       units="count h-1", static=.true., long_name="neutron count rate under dry reference conditions (N_0 in Desilets eq.)")
+    self%bulk_density      = var2d_dp(grid=l1_land, name="bulk_density",      units="g cm-3",            long_name="bulk density")
+    self%lattice_water     = var2d_dp(grid=l1_land, name="lattice_water",     units="g g-1",             long_name="Ratio of structurally bound water")
+    self%cosmic_l3         = var2d_dp(grid=l1_land, name="cosmic_l3",         units="g cm-2",            long_name="cosmic L3 parameter")
 
     ! routing (level3)
     ! self%q_out             =   var_dp(grid=l3, name="q_out",            units="m3 s-1",            long_name="accumulated runoff")
@@ -585,7 +654,7 @@ contains
     self%river_temp        =   var_dp(grid=l3, name="river_temp",       units="degC",              long_name="simulated river temperature")
 
     ! groundwater (level0)
-    self%riverhead         =   var_dp(grid=l0,  name="riverhead",        units="m",                 long_name="simulated riverhead")
+    self%riverhead         =   var_dp(grid=l0_land, name="riverhead",        units="m",                 long_name="simulated riverhead")
   end subroutine exchange_create
 
   !> \brief Set runtime dimensions for generated exchange-owned namelists.
@@ -847,19 +916,27 @@ contains
   subroutine exchange_get_grid(self, selector, grid)
     use mo_message, only: error_message
     class(exchange_t), intent(in) :: self
-    integer(i4), intent(in) :: selector !< level selector (0: L0, 1: L1, 2: L2, 3: L3, -1: nogrid)
+    integer(i4), intent(in) :: selector !< grid selector
     type(grid_t), pointer, intent(out) :: grid !< resulting pointer to the selected grid
     select case(selector)
       case(nogrid)
         grid => null() ! exchangable
       case(l0)
         grid => self%level0
+      case(l0_land)
+        grid => self%level0_land
+      case(l0_lake)
+        grid => self%level0_lake
       case(l1)
         grid => self%level1
+      case(l1_land)
+        grid => self%level1_land
       case(l2)
         grid => self%level2
       case(l3)
         grid => self%level3
+      case(l3_land)
+        grid => self%level3_land
       case default
         log_fatal(*) "exchange%get_grid: unknown grid selector '", n2s(selector), "'."
         error stop 1
@@ -870,20 +947,95 @@ contains
   logical function exchange_has_grid(self, selector)
     use mo_message, only: error_message
     class(exchange_t), intent(in) :: self
-    integer(i4), intent(in) :: selector !< level selector (0: l0, 1: l1, 2: l2, 3: L3, -1: nogrid)
+    integer(i4), intent(in) :: selector !< grid selector
     select case(selector)
       case(l0)
         exchange_has_grid = associated(self%level0)
+      case(l0_land)
+        exchange_has_grid = associated(self%level0_land)
+      case(l0_lake)
+        exchange_has_grid = associated(self%level0_lake)
       case(l1)
         exchange_has_grid = associated(self%level1)
+      case(l1_land)
+        exchange_has_grid = associated(self%level1_land)
       case(l2)
         exchange_has_grid = associated(self%level2)
       case(l3)
         exchange_has_grid = associated(self%level3)
+      case(l3_land)
+        exchange_has_grid = associated(self%level3_land)
       case default
         exchange_has_grid = .false.
     end select
   end function exchange_has_grid
+
+  !> \brief Alias a full grid to its land grid when the domain has no lake grid.
+  subroutine exchange_alias_full_grid_no_lakes(self, level)
+    use mo_message, only: error_message
+    class(exchange_t), intent(inout), target :: self
+    integer(i4), intent(in) :: level !< Full-grid selector in the range 0--99.
+    type(grid_t), pointer :: full_grid, land_grid
+
+    if (level < l0 .or. level >= l0_land) then
+      call error_message("exchange%alias_full_grid_no_lakes: full-grid selector must be in [0,99]")
+    end if
+    if (self%has_grid(l0_lake)) return
+    call self%get_grid(l0_land + level, land_grid)
+    if (.not.associated(land_grid)) then
+      call error_message("exchange%alias_full_grid_no_lakes: land grid is not available")
+    end if
+    call self%get_grid(level, full_grid)
+    if (associated(full_grid)) then
+      if (.not.associated(full_grid, land_grid)) then
+        call error_message("exchange%alias_full_grid_no_lakes: full and land grids differ without lakes")
+      end if
+      return
+    end if
+
+    select case (level)
+    case (l0)
+      self%level0 => land_grid
+    case (l1)
+      self%level1 => land_grid
+    case (l2)
+      self%level2 => land_grid
+    case (l3)
+      self%level3 => land_grid
+    case default
+      call error_message("exchange%alias_full_grid_no_lakes: unknown full-grid selector")
+    end select
+  end subroutine exchange_alias_full_grid_no_lakes
+
+  !> \brief Return the referenced point set for a selector.
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  subroutine exchange_get_points(self, selector, points)
+    class(exchange_t), intent(in) :: self
+    integer(i4), intent(in) :: selector
+    type(points_t), pointer, intent(out) :: points
+    select case(selector)
+      case(nopoints)
+        points => null()
+      case(points_lake)
+        points => self%lake_points
+      case default
+        log_fatal(*) "exchange%get_points: unknown point-set selector '", n2s(selector), "'."
+        error stop 1
+    end select
+  end subroutine exchange_get_points
+
+  !> \brief Return whether a referenced point set is associated.
+  !> \authors Sebastian Mueller, Pallav Shrestha
+  logical function exchange_has_points(self, selector)
+    class(exchange_t), intent(in) :: self
+    integer(i4), intent(in) :: selector
+    select case(selector)
+      case(points_lake)
+        exchange_has_points = associated(self%lake_points)
+      case default
+        exchange_has_points = .false.
+    end select
+  end function exchange_has_points
 
   !> \brief get class pointer to a variable
   subroutine exchange_get_var_class(self, var, var_pnt)
@@ -892,6 +1044,31 @@ contains
     character(*), intent(in) :: var !< name of the variable (attribute name)
     class(*), pointer, intent(out) :: var_pnt !< resulting pointer to the selected variable
     select case(var)
+      ! lake-point metadata
+      case("lake_ids")
+        var_pnt => self%lake_ids
+      case("lake_max_levels")
+        var_pnt => self%lake_max_levels
+      case("lake_map")
+        var_pnt => self%lake_map
+      case("lake_area")
+        var_pnt => self%lake_area
+      case("lake_inflow")
+        var_pnt => self%lake_inflow
+      case("lake_outflow")
+        var_pnt => self%lake_outflow
+      case("lake_pre")
+        var_pnt => self%lake_pre
+      case("lake_temp")
+        var_pnt => self%lake_temp
+      case("lake_pet")
+        var_pnt => self%lake_pet
+      case("lake_ssrd")
+        var_pnt => self%lake_ssrd
+      case("lake_strd")
+        var_pnt => self%lake_strd
+      case("lake_tann")
+        var_pnt => self%lake_tann
       case("raw_pre")
         var_pnt => self%raw_pre
       case("raw_temp")
@@ -1171,6 +1348,24 @@ contains
     end select
   end subroutine exchange_get_data_1d_i4
 
+  !> \brief Get a pointer to 1D 64-bit integer variable data.
+  subroutine exchange_get_data_1d_i8(self, var, data)
+    use mo_message, only: error_message
+    class(exchange_t), target, intent(in) :: self
+    character(*), intent(in) :: var
+    integer(i8), pointer, intent(out) :: data(:)
+    class(*), pointer :: tmp
+
+    call self%get_var_class(var, tmp)
+    select type (tmp)
+      class is (var_i8)
+        data => tmp%data
+      class default
+        log_fatal(*) "exchange%get_var: variable data of '", var, "' not 1D integer(i8)."
+        error stop 1
+    end select
+  end subroutine exchange_get_data_1d_i8
+
   !> \brief get pointer to the 1D variable data
   subroutine exchange_get_data_1d_lg(self, var, data)
     use mo_message, only: error_message
@@ -1277,6 +1472,16 @@ contains
             tmp%provided = .true.
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type integer(i4)."
+            error stop 1
+        end select
+      class is (var_i8)
+        select type (data)
+          type is (integer(i8))
+            tmp%data => data
+            call tmp%set_stepping("external", stepping)
+            tmp%provided = .true.
+          class default
+            log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type integer(i8)."
             error stop 1
         end select
       class is (var_lg)
@@ -1685,6 +1890,59 @@ contains
     self%data => source%data
     self%provided = .true.
   end subroutine var_i4_publish_alias
+
+  !> \brief Return whether a 1D 64-bit integer exchange variable has data connected.
+  logical function var_i8_has_data(self)
+    class(var_i8), intent(in) :: self
+
+    var_i8_has_data = associated(self%data)
+  end function var_i8_has_data
+
+  !> \brief Return the data shape of a 1D 64-bit integer exchange variable.
+  function var_i8_data_shape(self) result(shape)
+    class(var_i8), intent(in) :: self
+    integer(i8), allocatable :: shape(:)
+
+    if (associated(self%data)) then
+      shape = [size(self%data, 1, kind=i8)]
+    else
+      allocate(shape(0))
+    end if
+  end function var_i8_data_shape
+
+  !> \brief Clear the data pointer of a 1D 64-bit integer exchange variable.
+  subroutine var_i8_clear_data(self)
+    class(var_i8), intent(inout) :: self
+
+    nullify(self%data)
+  end subroutine var_i8_clear_data
+
+  !> \brief Publish a local 1D 64-bit integer field through the exchange variable.
+  subroutine var_i8_publish_local(self, component, local, stepping)
+    class(var_i8), intent(inout) :: self
+    character(*), intent(in) :: component
+    integer(i8), intent(inout), target :: local(:)
+    integer(i4), intent(in) :: stepping
+
+    call variable_validate_publish_target(self, component)
+    call self%set_stepping(component, stepping)
+    self%data => local
+    self%provided = .true.
+  end subroutine var_i8_publish_local
+
+  !> \brief Publish a 1D 64-bit integer alias through the exchange variable.
+  subroutine var_i8_publish_alias(self, component, source)
+    class(var_i8), intent(inout) :: self
+    character(*), intent(in) :: component
+    type(var_i8), intent(in) :: source
+
+    call variable_validate_alias_source(source, component, self)
+    call variable_validate_publish_target(self, component)
+    self%static = source%static
+    self%stepping = source%stepping
+    self%data => source%data
+    self%provided = .true.
+  end subroutine var_i8_publish_alias
 
   !> \brief Return whether a 1D 16-bit integer exchange variable has data connected.
   logical function var_i2_has_data(self)

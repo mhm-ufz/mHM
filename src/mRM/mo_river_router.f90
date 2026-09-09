@@ -46,6 +46,7 @@ module mo_river_router
   type, public :: river_router_t
     type(river_t), pointer :: river => null() !< river definition to route on
     type(grid_t), pointer :: input_grid => null() !< grid the input (e.g. runoff) is defined on
+    type(grid_t), pointer :: runoff_grid => null() !< L3 support grid receiving remapped runoff
     type(scaler_t) :: scaler !< input rescaler
     integer(i4) :: input_step !< [h] time step size of the input in hours
     integer(i4) :: input_count !< [-] number of accumulated model updates for one routing step
@@ -57,6 +58,9 @@ module mo_river_router
     real(dp), allocatable :: acc_runoff(:)
     !> [m3 s-1] runoff flux for current cell as intermediate result for SCC, size(river\%grid\%ncells)
     real(dp), allocatable :: scaled_runoff(:)
+    integer(i8), allocatable :: node_runoff_cell(:) !< runoff-grid cell for each node, zero outside land support
+    integer(i4), allocatable :: lake_index(:) !< lake-point index for each node, zero for ordinary nodes
+    logical :: lake_routing = .false. !< whether this router has canonical lake nodes and lake flux exchange
     !> [m3 s-1] runoff flux to route for current river node, size(river\%n_nodes)
     real(dp), allocatable :: runoff(:)
     !> [m3 s-1] inflow flux to link starting at current node from current time step, size(river\%n_nodes)
@@ -78,6 +82,7 @@ module mo_river_router
     procedure, public :: allocate => river_router_allocate
     procedure, public :: deallocate => river_router_deallocate
     procedure, private :: setup_grids => river_router_setup_grids
+    procedure, private :: setup_lake_maps => river_router_setup_lake_maps
     procedure, private :: setup_muskingum => river_router_setup_muskingum
     procedure, private :: setup_timing => river_router_setup_timing
     procedure, private :: setup_parallelization => river_router_setup_parallelization
@@ -153,30 +158,76 @@ contains
   end subroutine derive_routing_timing
 
   !> \brief Set river and input grid for router and initialize scaler if not yet initialized or input grid has changed.
-  subroutine river_router_setup_grids(this, river, input_grid)
+  subroutine river_router_setup_grids(this, river, input_grid, runoff_grid)
     implicit none
     class(river_router_t), intent(inout) :: this
     type(river_t), pointer, intent(in) :: river !< river definition
     type(grid_t), pointer, intent(in) :: input_grid !< input grid
+    type(grid_t), pointer, optional, intent(in) :: runoff_grid !< optional land-only L3 runoff grid
     this%river => river
     this%input_grid => input_grid
-    if (.not.associated(this%scaler%source_grid,this%input_grid)) then
+    this%runoff_grid => this%river%grid
+    if (present(runoff_grid)) this%runoff_grid => runoff_grid
+    if (.not.associated(this%scaler%source_grid,this%input_grid) .or. &
+        .not.associated(this%scaler%target_grid,this%runoff_grid)) then
       ! if scaler is not yet initialized or input grid has changed, initialize scaler to only do it once
       ! TODO: this is dangerous, since calling init twice is not possible
       ! TODO: scaler should also safely re-allocate attributes when being initialized
       call this%scaler%init( &
         source_grid=this%input_grid, &
-        target_grid=this%river%grid, &
+        target_grid=this%runoff_grid, &
         upscaling_operator=up_sum, &       ! if L3 coarser than L1: sum runoff
         downscaling_operator=down_nearest) ! if L3 finer than L1: distribute same value on fine cells
     end if
   end subroutine river_router_setup_grids
+
+  !> \brief Build persistent node maps after router work arrays have been allocated.
+  subroutine river_router_setup_lake_maps(this, lake_nodes)
+    implicit none
+    class(river_router_t), intent(inout) :: this
+    integer(i8), optional, intent(in) :: lake_nodes(:) !< canonical lake nodes in point-set order
+    integer(i8), allocatable :: full_to_land(:)
+    integer(i8) :: n
+
+    if (present(lake_nodes)) then
+      if (size(lake_nodes, kind=i8) > 0_i8) then
+        allocate(this%lake_index(this%river%n_nodes))
+        !$omp parallel do default(shared) schedule(static)
+        do n = 1_i8, this%river%n_nodes
+          this%lake_index(n) = 0_i4
+        end do
+        !$omp end parallel do
+        do n = 1_i8, size(lake_nodes, kind=i8)
+          if (lake_nodes(n) < 1_i8 .or. lake_nodes(n) > this%river%n_nodes) &
+            call error_message("river_router: lake node is outside the river network")
+          if (this%lake_index(lake_nodes(n)) /= 0_i4) call error_message("river_router: duplicate canonical lake node")
+          this%lake_index(lake_nodes(n)) = int(n, i4)
+        end do
+        this%lake_routing = .true.
+      end if
+    end if
+    if (.not.associated(this%runoff_grid,this%river%grid)) then
+      allocate(full_to_land(this%river%grid%ncells))
+      call this%river%grid%gen_id_map(this%runoff_grid, full_to_land)
+
+      allocate(this%node_runoff_cell(this%river%n_nodes))
+      !$omp parallel do default(none) shared(this, full_to_land) private(n) schedule(static)
+      do n = 1_i8, this%river%n_nodes
+        this%node_runoff_cell(n) = full_to_land(this%river%node_cell(n))
+      end do
+      !$omp end parallel do
+      deallocate(full_to_land)
+    end if
+  end subroutine river_router_setup_lake_maps
 
   !> \brief Deallocate all arrays in river router.
   subroutine river_router_deallocate(this)
     implicit none
     class(river_router_t), intent(inout) :: this
     if (allocated(this%scaled_runoff)) deallocate(this%scaled_runoff)
+    if (allocated(this%node_runoff_cell)) deallocate(this%node_runoff_cell)
+    if (allocated(this%lake_index)) deallocate(this%lake_index)
+    this%lake_routing = .false.
     if (allocated(this%runoff)) deallocate(this%runoff)
     if (allocated(this%acc_runoff)) deallocate(this%acc_runoff)
     if (allocated(this%discharge)) deallocate(this%discharge)
@@ -194,7 +245,7 @@ contains
     class(river_router_t), intent(inout) :: this
     ! only need scaled runoff as intermediate result in case of SCC
     call this%deallocate() ! deallocate first to avoid memory leaks if allocate is called multiple times
-    if (this%river%scc) allocate(this%scaled_runoff(this%river%grid%ncells))
+    if (this%river%scc) allocate(this%scaled_runoff(this%runoff_grid%ncells))
     allocate(this%runoff(this%river%n_nodes))
     allocate(this%acc_runoff(this%input_grid%ncells))
     allocate(this%discharge(this%river%n_nodes))
@@ -206,10 +257,12 @@ contains
   end subroutine river_router_allocate
 
   !> \brief Setup river upscaler from fine river and coarse target grid.
-  subroutine river_router_init(this, river, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, model_step)
+  subroutine river_router_init(this, river, celerity, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, model_step, &
+    runoff_grid, lake_nodes)
     implicit none
     class(river_router_t), intent(inout) :: this
     type(river_t), pointer, intent(in) :: river !< river definition
+    real(dp), intent(in) :: celerity(:) !< celerity of the link starting at each river node
     type(grid_t), pointer, intent(in) :: input_grid !< input grid
     integer(i4), intent(in), optional :: input_step !< [h] input time step size (1 by default)
     real(dp), optional, intent(in) :: max_route_step !< [s] maximum routing time step (default: 86400.0)
@@ -217,13 +270,16 @@ contains
     !> minimum size of river-levels to route in parallel (default: -1 - threads*8, specials: 0 - all serial, 1 - all in parallel)
     integer(i8), optional, intent(in) :: omp_level_thresh
     integer(i4), intent(in), optional :: model_step !< [h] time between update calls (input_step by default)
+    type(grid_t), pointer, optional, intent(in) :: runoff_grid !< optional land-only L3 runoff grid
+    integer(i8), optional, intent(in) :: lake_nodes(:) !< canonical lake nodes in point-set order
 
     integer(i4) :: model_step_
 
     this%input_step = optval(input_step, 1_i4)
     model_step_ = optval(model_step, this%input_step)
-    call this%setup_grids(river, input_grid)
+    call this%setup_grids(river, input_grid, runoff_grid)
     call this%allocate() ! allocate arrays based on river and input grid size
+    call this%setup_lake_maps(lake_nodes)
 
     ! initial states
     this%input_count = 0_i4
@@ -233,12 +289,13 @@ contains
     this%previous_tributary(:) = 0.0_dp
 
     ! setup muskingum parameters
-    call this%setup_muskingum(max_route_step, model_step_)
+    call this%setup_muskingum(celerity, max_route_step, model_step_)
     ! setup parallelization
     call this%setup_parallelization(root_levels, omp_level_thresh)
   end subroutine river_router_init
 
-  subroutine river_router_from_restart_file(this, path, river, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, read_fluxes, model_step)
+  subroutine river_router_from_restart_file(this, path, river, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, read_fluxes, &
+    model_step, runoff_grid, lake_nodes)
     use mo_netcdf, only : NcDataset
     implicit none
     class(river_router_t), intent(inout) :: this
@@ -252,16 +309,20 @@ contains
     integer(i8), optional, intent(in) :: omp_level_thresh
     logical, optional, intent(in) :: read_fluxes !< whether to read fluxes from restart file (default: .true.)
     integer(i4), intent(in), optional :: model_step !< [h] time between update calls (input_step by default)
+    type(grid_t), pointer, optional, intent(in) :: runoff_grid !< optional land-only L3 runoff grid
+    integer(i8), optional, intent(in) :: lake_nodes(:) !< canonical lake nodes in point-set order
     type(NcDataset) :: nc
     nc = NcDataset(path, "r")
     call this%from_restart_dataset( &
       nc=nc, river=river, input_grid=input_grid, input_step=input_step, max_route_step=max_route_step, &
-      root_levels=root_levels, omp_level_thresh=omp_level_thresh, read_fluxes=read_fluxes, model_step=model_step)
+      root_levels=root_levels, omp_level_thresh=omp_level_thresh, read_fluxes=read_fluxes, model_step=model_step, &
+      runoff_grid=runoff_grid, lake_nodes=lake_nodes)
     call nc%close()
   end subroutine river_router_from_restart_file
 
   !> \brief Setup river router from restart file
-  subroutine river_router_from_restart_dataset(this, nc, river, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, read_fluxes, model_step)
+  subroutine river_router_from_restart_dataset(this, nc, river, input_grid, input_step, max_route_step, root_levels, omp_level_thresh, read_fluxes, &
+    model_step, runoff_grid, lake_nodes)
     use mo_utils, only: locate
     !$ use omp_lib, only: omp_get_num_threads
     implicit none
@@ -276,6 +337,8 @@ contains
     integer(i8), optional, intent(in) :: omp_level_thresh
     logical, optional, intent(in) :: read_fluxes !< whether to read fluxes from restart file (default: .true.)
     integer(i4), intent(in), optional :: model_step !< [h] time between update calls (input_step by default)
+    type(grid_t), pointer, optional, intent(in) :: runoff_grid !< optional land-only L3 runoff grid
+    integer(i8), optional, intent(in) :: lake_nodes(:) !< canonical lake nodes in point-set order
 
     type(NcVariable) :: var
     logical :: do_read_fluxes
@@ -285,8 +348,9 @@ contains
 
     this%input_step = optval(input_step, 1_i4)
     model_step_ = optval(model_step, this%input_step)
-    call this%setup_grids(river, input_grid)
+    call this%setup_grids(river, input_grid, runoff_grid)
     call this%allocate() ! allocate arrays based on river and input grid size
+    call this%setup_lake_maps(lake_nodes)
 
     ! initial states
     this%input_count = 0_i4
@@ -446,10 +510,11 @@ contains
   end subroutine river_router_to_restart_dataset
 
   !> \brief calculate the muskingum parameters nu1 and nu2
-  subroutine river_router_setup_muskingum(this, max_route_step, model_step)
+  subroutine river_router_setup_muskingum(this, celerity, max_route_step, model_step)
     use mo_utils, only: locate
     implicit none
     class(river_router_t), intent(inout) :: this
+    real(dp), intent(in) :: celerity(:) !< celerity of the link starting at each river node
     real(dp), optional, intent(in) :: max_route_step !< [s] maximum routing time step (default: 86400.0)
     integer(i4), intent(in) :: model_step !< [h] time between router update calls
     real(dp), allocatable :: k(:)
@@ -459,10 +524,11 @@ contains
     xi = routing_space_weight ! NOTE: fixed for now
 
     if (.not.allocated(this%river%link_length)) call error_message("river_router%setup_muskingum: link_length not available")
-    if (.not.allocated(this%river%celerity)) call error_message("river_router%setup_muskingum: celerity not available")
+    if (size(celerity, kind=i8) /= this%river%n_nodes) &
+      call error_message("river_router%setup_muskingum: celerity size does not match river nodes")
 
     ! wave travel time parameter [s]
-    allocate(k(this%river%n_nodes), source=(this%river%link_length / this%river%celerity))
+    allocate(k(this%river%n_nodes), source=(this%river%link_length / celerity))
 
     ! set min wave travel time to min routing step
     step_id = max(1_i4, locate(routing_steps, minval(k, mask=.not.this%river%is_sink)))
@@ -519,7 +585,7 @@ contains
     integer(i8) :: i
     integer(i8), pointer :: level_size(:)
 
-    if (.not.allocated(this%river%order%id)) call this%river%calc_order(root_levels)
+    if (.not.allocated(this%river%order%id)) call this%river%calc_order(root=root_levels, sort=.true.)
 
     this%last_parallel_level = 0_i8 ! default is to run all levels in serial
     omp_lvl_thr = optval(omp_level_thresh, -1_i8) ! -1 means default
@@ -554,15 +620,25 @@ contains
   end subroutine river_router_setup_parallelization
 
   !> \brief Update routing for one time step
-  subroutine river_router_update(this, input_runoff, discharge, completed)
+  subroutine river_router_update(this, input_runoff, discharge, completed, lake_outflow, lake_inflow)
     implicit none
     class(river_router_t), intent(inout) :: this
     real(dp), dimension(this%input_grid%ncells), intent(in) :: input_runoff
     real(dp), dimension(this%river%n_nodes), intent(inout) :: discharge
     logical, intent(out) :: completed !< whether a new routing-step mean was produced
+    real(dp), optional, intent(in) :: lake_outflow(:) !< prescribed lake outflow in point-set order [m3 s-1]
+    real(dp), optional, intent(out) :: lake_inflow(:) !< completed lake inflow in point-set order [m3 s-1]
     integer(i4) :: i
     integer(i8) :: n, c
     completed = .false.
+    if (this%lake_routing) then
+      if (.not.present(lake_outflow) .or. .not.present(lake_inflow)) then
+        call error_message("river_router: lake topology requires lake inflow and outflow arrays")
+      end if
+      if (size(lake_outflow) /= maxval(this%lake_index) .or. size(lake_inflow) /= maxval(this%lake_index)) then
+        call error_message("river_router: lake flux array size does not match lake topology")
+      end if
+    end if
     ! accumulate input runoff
     this%input_count = this%input_count + 1_i4
     if (this%input_count == 1_i4) then
@@ -582,8 +658,16 @@ contains
       !$omp parallel default(none) shared(this) private(c, n)
       !$omp do simd schedule(static)
       do n = 1_i8, this%river%n_nodes
-        c = this%river%node_cell(n)
-        this%runoff(n) = this%scaled_runoff(c) * this%river%area_fraction(n)
+        if (this%lake_routing) then
+          c = this%node_runoff_cell(n)
+        else
+          c = this%river%node_cell(n)
+        end if
+        if (c > 0_i8) then
+          this%runoff(n) = this%scaled_runoff(c) * this%river%area_fraction(n)
+        else
+          this%runoff(n) = 0.0_dp
+        end if
       end do
       !$omp end do simd
       !$omp end parallel
@@ -591,8 +675,9 @@ contains
       this%runoff = this%scale_runoff(this%acc_runoff)
     end if
     ! route
+    if (this%lake_routing) lake_inflow = 0.0_dp
     do i = 1_i4, this%iterations
-      call this%route(this%discharge, this%tributary)
+      call this%route(this%discharge, this%tributary, lake_outflow, lake_inflow)
       if (i == 1_i4) then
         discharge = this%discharge
       else
@@ -603,6 +688,7 @@ contains
     end do
     ! average discharge flux over output time step iterations
     if (this%iterations > 1_i4) discharge = discharge / this%iterations
+    if (this%lake_routing .and. this%iterations > 1_i4) lake_inflow = lake_inflow / this%iterations
     completed = .true.
   end subroutine river_router_update
 
@@ -611,11 +697,11 @@ contains
     implicit none
     class(river_router_t), intent(inout) :: this
     real(dp), dimension(this%input_grid%ncells), intent(in) :: input_runoff
-    real(dp), dimension(this%river%grid%ncells) :: scaled_runoff_flux
+    real(dp), dimension(this%runoff_grid%ncells) :: scaled_runoff_flux
     ! rescaled result in [liter] = [mm m2]
     if (this%scaler%scaling_mode == down_scaling) then
       call this%scaler%downscale_nearest(input_runoff, scaled_runoff_flux)
-      scaled_runoff_flux = scaled_runoff_flux * this%river%grid%cell_area
+      scaled_runoff_flux = scaled_runoff_flux * this%runoff_grid%cell_area
     else
       call this%scaler%execute(input_runoff * this%input_grid%cell_area, scaled_runoff_flux)
     end if
@@ -624,11 +710,13 @@ contains
   end function river_router_scale_runoff
 
   !> \brief Execute routing for a single routing time step.
-  subroutine river_router_route(this, discharge, tributary)
+  subroutine river_router_route(this, discharge, tributary, lake_outflow, lake_inflow)
     use mo_dag, only: node
     implicit none
     class(river_router_t), intent(in) :: this
     real(dp), dimension(this%river%n_nodes), intent(out) :: discharge, tributary
+    real(dp), optional, intent(in) :: lake_outflow(:)
+    real(dp), optional, intent(inout) :: lake_inflow(:)
     integer(i8) :: i, j, n_levels
     logical, pointer, contiguous :: is_sink(:)
     integer(i8), pointer, contiguous :: id(:), level_start(:), level_end(:)
@@ -666,6 +754,7 @@ contains
       integer(i4) :: n_edges, m
       integer(i8), pointer, contiguous :: edges(:)
       real(dp) :: inflow, prev_inflow, prev_routed
+      integer(i4) :: lake
       n = id(ni)
       ! add runoff to inflow
       inflow = this%runoff(n)
@@ -676,12 +765,30 @@ contains
       do m = 1_i4, n_edges
         inflow = inflow + tributary(edges(m))
       end do
+      lake = 0_i4
+      if (this%lake_routing) lake = this%lake_index(n)
+      if (lake > 0_i4) then
+        ! A lake receives current local land runoff and the direct discharge of all upstream nodes.
+        ! Preserve the current collection for mLM; it becomes available as outflow only in the next model update.
+        lake_inflow(lake) = lake_inflow(lake) + inflow
+        ! The lake node's discharge is the externally supplied release, not the newly collected inflow.
+        inflow = lake_outflow(lake)
+      end if
+      ! Publish ordinary-node discharge or the prescribed lake release at this node.
       ! discharge is the accumulated inflow at current node
       discharge(n) = inflow
       if (is_sink(n)) then
         ! no routing at sinks
         tributary(n) = 0.0_dp
       else
+        if (this%lake_routing) then
+          if (lake == 0_i4 .and. this%lake_index(this%river%down(n)) > 0_i4) then
+            ! Links entering a lake bypass Muskingum so the lake receives the direct current upstream discharge.
+            tributary(n) = inflow
+            return
+          end if
+        end if
+        ! Ordinary links, including links leaving a lake, retain the normal Muskingum routing.
         ! muskingum schema for routed flux
         prev_routed = this%previous_tributary(n)
         prev_inflow = this%previous_discharge(n)

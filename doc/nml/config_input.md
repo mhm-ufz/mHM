@@ -38,6 +38,7 @@ Variable name entries define the NetCDF variable names to read.
 | [slope_path](#slope_path) | string array | no | no | Slope input |
 | [aspect_path](#aspect_path) | string array | no | no | Aspect input |
 | [fdir_path](#fdir_path) | string array | no | no | Flow direction input |
+| [lake_definition_path](#lake_definition_path) | string array | no | no | Lake definition input |
 | [facc_path](#facc_path) | string array | no | no | Flow accumulation input |
 | [geo_class_path](#geo_class_path) | string array | no | no | Geology class input |
 | [soil_class_path](#soil_class_path) | string array | no | no | Soil class input |
@@ -67,6 +68,7 @@ Variable name entries define the NetCDF variable names to read.
 | [slope_var](#slope_var) | string array | no | no | Slope variable name |
 | [aspect_var](#aspect_var) | string array | no | no | Aspect variable name |
 | [fdir_var](#fdir_var) | string array | no | no | Flow direction variable name |
+| [lake_level_var](#lake_level_var) | string array | no | no | Maximum lake level variable name |
 | [facc_var](#facc_var) | string array | no | no | Flow accumulation variable name |
 | [geo_class_var](#geo_class_var) | string array | no | no | Geology class variable name |
 | [soil_class_var](#soil_class_var) | string array | no | no | Soil class variable name |
@@ -349,6 +351,18 @@ Summary:
 ### fdir_path
 
 Flow direction input `fdir_path`
+
+Summary:
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
+- Declared required: no
+- Input required: no
+
+### lake_definition_path
+
+Lake definition input `lake_definition_path`
+
+Point dataset containing lake outlet coordinates, stable IDs, and maximum lake levels.
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
@@ -646,6 +660,16 @@ Summary:
 - Input required: no
 - Default: `"fdir"`
 
+### lake_level_var
+
+Maximum lake level variable name `lake_level_var`
+
+Summary:
+- Type: `character(len=buf), dimension(n_domains)`
+- Declared required: no
+- Input required: no
+- Default: `"max_lake_level"`
+
 ### facc_var
 
 Flow accumulation variable name `facc_var`
@@ -796,6 +820,7 @@ Summary:
   slope_path(:) = ""
   aspect_path(:) = ""
   fdir_path(:) = ""
+  lake_definition_path(:) = ""
   facc_path(:) = ""
   geo_class_path(:) = ""
   soil_class_path(:) = ""
@@ -825,6 +850,7 @@ Summary:
   slope_var(:) = "slope"
   aspect_var(:) = "aspect"
   fdir_var(:) = "fdir"
+  lake_level_var(:) = "max_lake_level"
   facc_var(:) = "facc"
   geo_class_var(:) = "geology_class"
   soil_class_var(:) = "soil_class"
