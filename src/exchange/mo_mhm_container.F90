@@ -158,11 +158,6 @@ module mo_mhm_container
     character(:), allocatable :: output_path !< resolved output path
   end type mhm_io_state_t
 
-  !> \brief Restart-owned model infrastructure used when no earlier component supplied it.
-  type :: mhm_restart_definition_t
-    type(grid_t) :: level1_grid !< level1 grid restored from an mHM restart
-  end type mhm_restart_definition_t
-
   !> \class   mhm_t
   !> \brief   Class for a single mHM process container.
   !> \authors Sebastian Mueller
@@ -170,6 +165,7 @@ module mo_mhm_container
     type(nml_config_mhm_t) :: config !< configuration of the mHM process container
     type(nml_output_mhm_t) :: output_config !< output configuration of the mHM process container
     type(exchange_t), pointer :: exchange => null() !< exchange container of the domain
+    type(grid_t) :: tgt_level1_land !< restart-owned level1 grid when mHM bootstraps model support
     type(output_dataset) :: ds_out !< output dataset for gridded mHM output
     type(mhm_canopy_state_t) :: canopy !< canopy process fields
     type(mhm_snow_state_t) :: snow !< snow process fields
@@ -180,7 +176,6 @@ module mo_mhm_container
     type(mhm_forcing_state_t) :: forcing !< forcing caches and monthly evap coefficients
     type(mhm_contract_state_t) :: contract !< internal ownership of couplable subprocess outputs
     type(mhm_io_state_t) :: io !< restart/output bookkeeping
-    type(mhm_restart_definition_t) :: restart_definition !< restart-bootstrap model infrastructure
     logical :: active = .false. !< whether mHM participates in the configured domain
   contains
     procedure :: set_dims => mhm_set_dims
@@ -227,6 +222,7 @@ contains
   subroutine mhm_prepare_restart(self)
     class(mhm_t), intent(inout), target :: self
     type(NcDataset) :: nc
+    type(grid_t) :: restart_grid
     integer(i4) :: id(1)
     integer :: status
     character(1024) :: errmsg
@@ -240,11 +236,12 @@ contains
     end if
     self%io%restart_input_path = self%exchange%get_path(self%config%restart_input_path(id(1)))
     nc = NcDataset(self%io%restart_input_path, "r")
-    call self%restart_definition%level1_grid%from_restart(nc)
     if (associated(self%exchange%level1_land)) then
-      call self%validate_restart_grid(self%restart_definition%level1_grid)
+      call restart_grid%from_restart(nc)
+      call self%validate_restart_grid(restart_grid)
     else
-      self%exchange%level1_land => self%restart_definition%level1_grid
+      call self%tgt_level1_land%from_restart(nc)
+      self%exchange%level1_land => self%tgt_level1_land
       log_info(*) "mHM restart: bootstrap level1 grid from restart file."
     end if
     call self%validate_restart_horizon_bounds(nc)
@@ -1309,7 +1306,6 @@ contains
       error stop 1
     end if
     nc = NcDataset(self%io%restart_input_path, "r")
-    call self%validate_restart_grid(self%restart_definition%level1_grid)
     call self%validate_restart_horizon_bounds(nc)
     call self%validate_restart_process_cases(nc)
     call nc%close()
