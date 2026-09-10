@@ -291,22 +291,6 @@ contains
                   trim(num2str(HorizonDepth_data(nSoilHorizons_data), '(F9.2)')), &
                   ' mm) do not cover the modelled soil column (', &
                   trim(num2str(HorizonDepth_mHM(nSoilHorizons_mHM), '(F9.2)')), ' mm).')
-        ! The modelled horizons must be built by merging whole horizons of the input
-        ! data, i.e. every modelled horizon (lower) depth has to coincide with one of
-        ! the input data depths. A modelled horizon must never cut an input horizon in
-        ! two, because the soil properties of an input horizon are only known as a bulk
-        ! value and their vertical distribution within that horizon is unknown.
-        do ii = 1, nSoilHorizons_mHM
-          if (count(abs(HorizonDepth_data(:) - HorizonDepth_mHM(ii)) .lt. eps_dp) .eq. 0) then
-            call error_message('***ERROR: The modelled soil horizon depth soil_Depth(', trim(num2str(ii)), ') = ', &
-                    trim(num2str(HorizonDepth_mHM(ii), '(F9.2)')), ' mm does not coincide', raise=.false.)
-            call error_message('          with any depth given in soil_data_depth. Modelled horizons must be', &
-                    raise=.false.)
-            call error_message('          built by merging whole horizons of the soil input data, e.g.', raise=.false.)
-            call error_message('          soil_data_depth = 50, 150, 300 allows soil_Depth = 150, 300', raise=.false.)
-            call error_message('          but neither soil_Depth = 75, 200, 300 nor soil_Depth = 100, 300.')
-          end if
-        end do
         call message()
         call message('Soil input data: ', trim(num2str(nSoilHorizons_data)), ' horizon(s) are read and')
         call message('                 aggregated onto ', trim(num2str(nSoilHorizons_mHM)), ' modelled horizon(s).')

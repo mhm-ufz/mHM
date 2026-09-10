@@ -520,6 +520,8 @@ CONTAINS
       ! In contrast to iFlag_soilDB = 0 the layering of the input data is
       ! uniform across all soil types and all cells, hence the first dimension
       ! of Wd is a dummy of size 1 (kept for a common interface with option 0).
+      ! Every input horizon is weighted by the thickness of its overlap with the
+      ! modelling horizon, so the two layerings need not share their boundaries.
       ! If the input data are given on the modelled horizons themselves
       ! (nSoilHorizons_data == nSoilHorizons_mHM and identical depths), Wd
       ! becomes the identity matrix and nothing is mixed.
@@ -549,20 +551,11 @@ CONTAINS
           ! thickness of the overlap of both layers
           overlap = max(0.0_dp, min(dpth_t, down) - max(dpth_f, up))
 
-          ! A horizon of the input data either lies completely inside this
-          ! modelling horizon or not at all - a modelling horizon may merge whole
-          ! input horizons, but must never cut one in two (checked in
-          ! mpr_read_config, re-checked here since the weights rely on it).
-          if (overlap .gt. 0.0_dp .and. abs(overlap - (down - up)) .gt. small) then
-            call error_message('generate_soil_database: ERROR occurred: ', raise=.false.)
-            call error_message('     Horizon ', num2str(kk, '(I3)'), ' of the soil input data is only partly', &
-                    raise=.false.)
-            call error_message('     covered by modelling soil horizon ', num2str(jj, '(I3)'), '.', raise=.false.)
-            call error_message('     soil_Depth and soil_data_depth must share their horizon boundaries!')
-          end if
-
-          ! weight of this input horizon, normalised by the thickness of the
-          ! modelling horizon
+          ! Weight of this input horizon, normalised by the thickness of the
+          ! modelling horizon. An input horizon cut by a modelling horizon
+          ! boundary contributes to both of them with the respective share of its
+          ! thickness, i.e. its bulk value is taken to be representative for the
+          ! whole horizon (its vertical distribution within it is unknown).
           soilDB%Wd(1, jj, kk) = overlap / (dpth_t - dpth_f)
         end do
 
