@@ -40,7 +40,7 @@ module mo_exchange_type
   implicit none
   private
 
-  public :: standard_path, get_n_domains
+  public :: get_n_domains
 
   !> \class   exchange_config_t
   !> \brief   Exchange-owned run and domain metadata namelists.
@@ -57,6 +57,7 @@ module mo_exchange_type
   !> \brief Constants selecting model grids by support: full (0--99), land (100--199), and lake (200--299).
   !!@{
   integer(i4), public, parameter :: nogrid = -1_i4 !< no grid (yet) defined
+  integer(i4), public, parameter :: noriver = -1_i4 !< no river support
   integer(i4), public, parameter :: l0 = 0_i4       !< full level0 morphology grid
   integer(i4), public, parameter :: l1 = 1_i4       !< full level1 grid (optional)
   integer(i4), public, parameter :: l2 = 2_i4       !< full level2 meteorology grid
@@ -75,6 +76,15 @@ module mo_exchange_type
   integer(i4), public, parameter :: points_lake = 1_i4 !< lake outlet point set
   !!@}
 
+  !> \name Layer Support Selectors
+  !!@{
+  integer(i4), public, parameter :: nolayers = -1_i4
+  integer(i4), public, parameter :: layers_tba = 0_i4
+  integer(i4), public, parameter :: single_layer = 1_i4
+  integer(i4), public, parameter :: input_horizons = 2_i4
+  integer(i4), public, parameter :: model_horizons = 3_i4
+  !!@}
+
   !> \class   variable_abc
   !> \brief   Abstract base class for a variable in the exchange type.
   type, abstract, public :: variable_abc
@@ -84,21 +94,26 @@ module mo_exchange_type
     character(:), allocatable :: standard_name !< standard name of the variable
     integer(i4) :: grid = nogrid               !< ID of the grid the data is defined on
     integer(i4) :: points = nopoints           !< ID of the referenced point set
+    integer(i4) :: river = noriver             !< ID of the river support
+    integer(i4) :: layers = nolayers           !< optional second-axis support
     integer(i4) :: stepping = 0_i4             !< time-step size of this variable in hours (0 - static)
     logical :: static = .false.                !< flag to indicated static data (.false. by default)
     logical :: provided = .false.              !< flag to indicate that data is provided by a component (.false. by default)
-    logical :: required = .false.              !< flag to indicate that data is required by a component (.false. by default)
+    character(:), allocatable :: provider      !< immutable configured provider identity
   contains
     procedure(variable_has_data_i), public, deferred :: has_data
-    procedure(variable_data_shape_i), public, deferred :: data_shape
-    procedure(variable_clear_data_i), public, deferred :: clear_data
-    procedure, public :: available => variable_available
-    procedure, public :: require => variable_require
-    procedure, public :: expect_handoff => variable_expect_handoff
-    procedure, public :: clear => variable_clear
+    procedure(variable_data_shape_i), private, deferred :: data_shape
+    procedure(variable_clear_data_i), private, deferred :: clear_data
+    procedure, public :: provide => variable_provide
+    procedure, public :: check_provided => variable_check_provided
     procedure, public :: set_stepping => variable_set_stepping
     procedure, public :: as_output_var => variable_as_output_var
     procedure, public :: write_netcdf_metadata => variable_write_netcdf_metadata
+    procedure, private :: clear => variable_clear
+    procedure, private :: display_name => variable_display_name
+    procedure, private :: check_publish => variable_check_publish
+    procedure, private :: check_alias_source => variable_check_alias_source
+    procedure, private :: check_stepping => variable_check_stepping
   end type variable_abc
 
   !> \class   var_dp
@@ -107,8 +122,8 @@ module mo_exchange_type
     real(dp), dimension(:), pointer :: data => null() !< 1D real pointer (n-cells)
   contains
     procedure, public :: has_data => var_dp_has_data
-    procedure, public :: data_shape => var_dp_data_shape
-    procedure, public :: clear_data => var_dp_clear_data
+    procedure, private :: data_shape => var_dp_data_shape
+    procedure, private :: clear_data => var_dp_clear_data
     procedure, public :: publish_local => var_dp_publish_local
     procedure, public :: publish_alias => var_dp_publish_alias
   end type var_dp
@@ -119,8 +134,8 @@ module mo_exchange_type
     integer(i4), dimension(:), pointer :: data => null() !< 1D integer pointer (n-cells)
   contains
     procedure, public :: has_data => var_i4_has_data
-    procedure, public :: data_shape => var_i4_data_shape
-    procedure, public :: clear_data => var_i4_clear_data
+    procedure, private :: data_shape => var_i4_data_shape
+    procedure, private :: clear_data => var_i4_clear_data
     procedure, public :: publish_local => var_i4_publish_local
     procedure, public :: publish_alias => var_i4_publish_alias
   end type var_i4
@@ -132,8 +147,8 @@ module mo_exchange_type
     integer(i8), dimension(:), pointer :: data => null() !< 1D integer pointer
   contains
     procedure, public :: has_data => var_i8_has_data
-    procedure, public :: data_shape => var_i8_data_shape
-    procedure, public :: clear_data => var_i8_clear_data
+    procedure, private :: data_shape => var_i8_data_shape
+    procedure, private :: clear_data => var_i8_clear_data
     procedure, public :: publish_local => var_i8_publish_local
     procedure, public :: publish_alias => var_i8_publish_alias
   end type var_i8
@@ -144,8 +159,8 @@ module mo_exchange_type
     integer(i2), dimension(:), pointer :: data => null() !< 1D integer pointer (n-cells)
   contains
     procedure, public :: has_data => var_i2_has_data
-    procedure, public :: data_shape => var_i2_data_shape
-    procedure, public :: clear_data => var_i2_clear_data
+    procedure, private :: data_shape => var_i2_data_shape
+    procedure, private :: clear_data => var_i2_clear_data
     procedure, public :: publish_local => var_i2_publish_local
     procedure, public :: publish_alias => var_i2_publish_alias
   end type var_i2
@@ -156,8 +171,8 @@ module mo_exchange_type
     logical, dimension(:), pointer :: data => null() !< 1D logical pointer (n-cells)
   contains
     procedure, public :: has_data => var_lg_has_data
-    procedure, public :: data_shape => var_lg_data_shape
-    procedure, public :: clear_data => var_lg_clear_data
+    procedure, private :: data_shape => var_lg_data_shape
+    procedure, private :: clear_data => var_lg_clear_data
     procedure, public :: publish_local => var_lg_publish_local
     procedure, public :: publish_alias => var_lg_publish_alias
   end type var_lg
@@ -168,8 +183,8 @@ module mo_exchange_type
     real(dp), dimension(:,:), pointer :: data => null() !< 2D real pointer (n-cells, horizons)
   contains
     procedure, public :: has_data => var2d_dp_has_data
-    procedure, public :: data_shape => var2d_dp_data_shape
-    procedure, public :: clear_data => var2d_dp_clear_data
+    procedure, private :: data_shape => var2d_dp_data_shape
+    procedure, private :: clear_data => var2d_dp_clear_data
     procedure, public :: publish_local => var2d_dp_publish_local
     procedure, public :: publish_alias => var2d_dp_publish_alias
   end type var2d_dp
@@ -180,8 +195,8 @@ module mo_exchange_type
     integer(i4), dimension(:,:), pointer :: data => null() !< 2D integer pointer (n-cells, horizons)
   contains
     procedure, public :: has_data => var2d_i4_has_data
-    procedure, public :: data_shape => var2d_i4_data_shape
-    procedure, public :: clear_data => var2d_i4_clear_data
+    procedure, private :: data_shape => var2d_i4_data_shape
+    procedure, private :: clear_data => var2d_i4_clear_data
     procedure, public :: publish_local => var2d_i4_publish_local
     procedure, public :: publish_alias => var2d_i4_publish_alias
   end type var2d_i4
@@ -192,8 +207,8 @@ module mo_exchange_type
     logical, dimension(:,:), pointer :: data => null() !< 2D logical pointer (n-cells, horizons)
   contains
     procedure, public :: has_data => var2d_lg_has_data
-    procedure, public :: data_shape => var2d_lg_data_shape
-    procedure, public :: clear_data => var2d_lg_clear_data
+    procedure, private :: data_shape => var2d_lg_data_shape
+    procedure, private :: clear_data => var2d_lg_clear_data
     procedure, public :: publish_local => var2d_lg_publish_local
     procedure, public :: publish_alias => var2d_lg_publish_alias
   end type var2d_lg
@@ -256,10 +271,12 @@ module mo_exchange_type
     type(grid_t), pointer :: level3 => null() !< level3 grid of the river network
     type(grid_t), pointer :: level3_land => null() !< level3 land grid derived by mRM for lake-aware runoff remapping
     type(points_t), pointer :: lake_points => null() !< lake outlet point set
-    real(dp), dimension(:), pointer :: soil_horizon_bounds => null() !< soil-horizon boundary depths [mm] for mHM metadata
+    real(dp), dimension(:), pointer :: input_horizon_bounds => null() !< input soil-horizon boundary depths [mm]
+    real(dp), dimension(:), pointer :: model_horizon_bounds => null() !< model soil-horizon boundary depths [mm]
 
     ! static topology
     type(river_t), pointer :: river_l0 => null() !< full level-0 river network
+    type(river_t), pointer :: river_l3 => null() !< level-3 routing river network
 
     ! grid resolutions (for deriving grids after configuration)
     real(dp) :: level0_resolution = 0.0_dp !< level0 resolution of the morphology
@@ -404,11 +421,15 @@ module mo_exchange_type
     procedure, public  :: configure => exchange_configure
     procedure, public  :: initialize => exchange_initialize
     procedure, public  :: update => exchange_update
+    procedure, public  :: finalize => exchange_finalize
     procedure, public  :: get_grid => exchange_get_grid
     procedure, public  :: has_grid => exchange_has_grid
     procedure, public  :: alias_full_grid_no_lakes => exchange_alias_full_grid_no_lakes
     procedure, public  :: get_points => exchange_get_points
     procedure, public  :: has_points => exchange_has_points
+    procedure, public  :: get_river => exchange_get_river
+    procedure, public  :: has_river => exchange_has_river
+    procedure, public  :: check_data => exchange_check_data
     procedure, public :: get_meta => exchange_get_var_meta
     procedure, public :: get_path => exchange_get_path
     procedure, private :: get_var_class => exchange_get_var_class
@@ -571,7 +592,7 @@ contains
     self%aspect = var_dp(static=.true., grid=l0_land, name="aspect", units="degree", long_name="aspect", standard_name="ground_slope_direction")
     self%fdir   = var_i2(static=.true., grid=l0, name="fdir",   units="1",      long_name="flow direction")
     self%facc   = var_i4(static=.true., grid=l0, name="facc",   units="1",      long_name="flow accumulation")
-    self%soil_id = var2d_i4(static=.true., grid=l0_land, name="soil_id", units="1", long_name="soil class ID")
+    self%soil_id = var2d_i4(static=.true., grid=l0_land, layers=layers_tba, name="soil_id", units="1", long_name="soil class ID")
     self%geo_unit = var_i4(static=.true., grid=l0_land, name="geo_unit", units="1", long_name="geological unit ID")
     self%lai_class = var_i4(static=.true., grid=l0_land, name="lai_class", units="1", long_name="LAI class ID")
     self%slope_emp = var_dp(static=.true., grid=l0_land, name="slope_emp", units="1", long_name="empirical slope distribution")
@@ -581,14 +602,14 @@ contains
     self%interception      =   var_dp(grid=l1_land, name="interception",      units="mm",  long_name="canopy interception storage")
     self%throughfall       =   var_dp(grid=l1_land, name="throughfall",       units="mm",  long_name="throughfall amount")
     ! storage and SM
-    self%soil_moisture     = var2d_dp(grid=l1_land, name="soil_moisture",     units="mm",  long_name="soil water content of soil layer")
+    self%soil_moisture     = var2d_dp(grid=l1_land, layers=model_horizons, name="soil_moisture",     units="mm",  long_name="soil water content of soil layer")
     self%sealed_storage    =   var_dp(grid=l1_land, name="sealedSTW",         units="mm",  long_name="reservoir of sealed areas")
     self%unsat_storage     =   var_dp(grid=l1_land, name="unsatSTW",          units="mm",  long_name="reservoir of unsaturated zone")
     self%sat_storage       =   var_dp(grid=l1_land, name="satSTW",            units="mm",  long_name="water level in groundwater reservoir")
     ! AET
     self%aet_canopy        =   var_dp(grid=l1_land, name="aet_canopy",        units="mm",  long_name="actual evapotranspiration from canopy")
     self%aet_sealed        =   var_dp(grid=l1_land, name="aet_sealed",        units="mm",  long_name="actual evapotranspiration from free water surfaces")
-    self%aet_soil          = var2d_dp(grid=l1_land, name="aet_soil",          units="mm",  long_name="actual evapotranspiration from soil layer")
+    self%aet_soil          = var2d_dp(grid=l1_land, layers=model_horizons, name="aet_soil",          units="mm",  long_name="actual evapotranspiration from soil layer")
     ! rain/snow
     self%snowpack          =   var_dp(grid=l1_land, name="snowpack",          units="mm",  long_name="depth of snowpack", standard_name="surface_snow_amount")
     self%rain              =   var_dp(grid=l1_land, name="rain",              units="mm",  long_name="rain precipitation", standard_name="rainfall_amount")
@@ -596,7 +617,7 @@ contains
     self%melt              =   var_dp(grid=l1_land, name="melt",              units="mm",  long_name="melting snow", standard_name="surface_snow_melt_amount")
     self%pre_eff           =   var_dp(grid=l1_land, name="pre_eff",           units="mm",  long_name="effective precipitation") ! rain + melt
     ! vertical soil water movement
-    self%infiltration      = var2d_dp(grid=l1_land, name="infiltration",      units="mm",  long_name="infiltration into soil layer")
+    self%infiltration      = var2d_dp(grid=l1_land, layers=model_horizons, name="infiltration",      units="mm",  long_name="infiltration into soil layer")
     self%percolation       =   var_dp(grid=l1_land, name="percolation",       units="mm",  long_name="percolation")
     ! lateral water movement
     self%runoff_total      =   var_dp(grid=l1_land, name="Q",                 units="mm",  long_name="total runoff", standard_name="runoff_amount")
@@ -625,11 +646,11 @@ contains
     self%thresh_temp       =   var_dp(grid=l1_land, name="thresh_temp",       units="degC",              long_name="Threshold temperature for phase transition snow and rain")
     ! soil moisture
     self%f_sealed          =   var_dp(grid=l1_land, name="f_sealed",          units="1",                 long_name="Fraction of sealed area")
-    self%f_roots           = var2d_dp(grid=l1_land, name="f_roots",           units="1",                 long_name="Fraction of roots in soil horizons")
-    self%sm_saturation     = var2d_dp(grid=l1_land, name="sm_saturation",     units="mm",                long_name="Saturation soil moisture")
-    self%sm_exponent       = var2d_dp(grid=l1_land, name="sm_exponent",       units="1",                 long_name="Exponential parameter controlling non-linearity of soil water retention")
-    self%sm_field_capacity = var2d_dp(grid=l1_land, name="sm_field_capacity", units="mm",                long_name="Field capacity - soil moisture below which actual ET is reduced")
-    self%wilting_point     = var2d_dp(grid=l1_land, name="wilting_point",     units="mm",                long_name="permanent wilting point")
+    self%f_roots           = var2d_dp(grid=l1_land, layers=model_horizons, name="f_roots",           units="1",                 long_name="Fraction of roots in soil horizons")
+    self%sm_saturation     = var2d_dp(grid=l1_land, layers=model_horizons, name="sm_saturation",     units="mm",                long_name="Saturation soil moisture")
+    self%sm_exponent       = var2d_dp(grid=l1_land, layers=model_horizons, name="sm_exponent",       units="1",                 long_name="Exponential parameter controlling non-linearity of soil water retention")
+    self%sm_field_capacity = var2d_dp(grid=l1_land, layers=model_horizons, name="sm_field_capacity", units="mm",                long_name="Field capacity - soil moisture below which actual ET is reduced")
+    self%wilting_point     = var2d_dp(grid=l1_land, layers=model_horizons, name="wilting_point",     units="mm",                long_name="permanent wilting point")
     self%thresh_jarvis     =   var_dp(grid=l1_land, name="thresh_jarvis",     units="1",  static=.true., long_name="Jarvis critical value (C1) for normalized soil water content")
     ! runoff
     self%alpha             =   var_dp(grid=l1_land, name="alpha",             units="1",                 long_name="Exponent for the upper reservoir")
@@ -642,16 +663,16 @@ contains
     self%thresh_sealed     =   var_dp(grid=l1_land, name="thresh_sealed",     units="mm", static=.true., long_name="Threshold water depth for runoff on sealed surfaces")
     ! neutrons
     self%desilets_n0       =   var_dp(grid=l1_land, name="desilets_n0",       units="count h-1", static=.true., long_name="neutron count rate under dry reference conditions (N_0 in Desilets eq.)")
-    self%bulk_density      = var2d_dp(grid=l1_land, name="bulk_density",      units="g cm-3",            long_name="bulk density")
-    self%lattice_water     = var2d_dp(grid=l1_land, name="lattice_water",     units="g g-1",             long_name="Ratio of structurally bound water")
-    self%cosmic_l3         = var2d_dp(grid=l1_land, name="cosmic_l3",         units="g cm-2",            long_name="cosmic L3 parameter")
+    self%bulk_density      = var2d_dp(grid=l1_land, layers=model_horizons, name="bulk_density",      units="g cm-3",            long_name="bulk density")
+    self%lattice_water     = var2d_dp(grid=l1_land, layers=model_horizons, name="lattice_water",     units="g g-1",             long_name="Ratio of structurally bound water")
+    self%cosmic_l3         = var2d_dp(grid=l1_land, layers=model_horizons, name="cosmic_l3",         units="g cm-2",            long_name="cosmic L3 parameter")
 
     ! routing (level3)
     ! self%q_out             =   var_dp(grid=l3, name="q_out",            units="m3 s-1",            long_name="accumulated runoff")
     ! self%e_out             =   var_dp(grid=l3, name="e_out",            units="W",                 long_name="accumulated source energy")
-    self%discharge         =   var_dp(grid=l3, name="discharge",        units="m3 s-1",            long_name="modelled discharge", standard_name="outgoing_water_volume_transport_along_river_channel")
-    self%energy_flux       =   var_dp(grid=l3, name="e_mod",            units="W",                 long_name="modelled routed energy")
-    self%river_temp        =   var_dp(grid=l3, name="river_temp",       units="degC",              long_name="simulated river temperature")
+    self%discharge         =   var_dp(river=l3, name="discharge",        units="m3 s-1",            long_name="modelled discharge", standard_name="outgoing_water_volume_transport_along_river_channel")
+    self%energy_flux       =   var_dp(river=l3, name="e_mod",            units="W",                 long_name="modelled routed energy")
+    self%river_temp        =   var_dp(river=l3, name="river_temp",       units="degC",              long_name="simulated river temperature")
 
     ! groundwater (level0)
     self%riverhead         =   var_dp(grid=l0_land, name="riverhead",        units="m",                 long_name="simulated riverhead")
@@ -912,6 +933,116 @@ contains
     end if
   end subroutine exchange_update
 
+  !> \brief Clear all runtime exchange publications at terminal domain teardown.
+  subroutine exchange_finalize(self)
+    class(exchange_t), intent(inout), target :: self
+
+    call self%lake_ids%clear()
+    call self%lake_max_levels%clear()
+    call self%lake_map%clear()
+    call self%lake_area%clear()
+    call self%lake_inflow%clear()
+    call self%lake_outflow%clear()
+    call self%lake_pre%clear()
+    call self%lake_temp%clear()
+    call self%lake_pet%clear()
+    call self%lake_ssrd%clear()
+    call self%lake_strd%clear()
+    call self%lake_tann%clear()
+
+    call self%raw_pre%clear()
+    call self%raw_temp%clear()
+    call self%raw_ssrd%clear()
+    call self%raw_strd%clear()
+    call self%raw_tann%clear()
+    call self%raw_tmin%clear()
+    call self%raw_tmax%clear()
+    call self%raw_netrad%clear()
+    call self%raw_eabs%clear()
+    call self%raw_wind%clear()
+    call self%raw_pet%clear()
+    call self%pre%clear()
+    call self%temp%clear()
+    call self%pet%clear()
+    call self%ssrd%clear()
+    call self%strd%clear()
+    call self%tann%clear()
+
+    call self%dem%clear()
+    call self%slope%clear()
+    call self%aspect%clear()
+    call self%fdir%clear()
+    call self%facc%clear()
+    call self%soil_id%clear()
+    call self%geo_unit%clear()
+    call self%lai_class%clear()
+    call self%slope_emp%clear()
+
+    call self%interception%clear()
+    call self%throughfall%clear()
+    call self%soil_moisture%clear()
+    call self%sealed_storage%clear()
+    call self%unsat_storage%clear()
+    call self%sat_storage%clear()
+    call self%aet_canopy%clear()
+    call self%aet_sealed%clear()
+    call self%aet_soil%clear()
+    call self%snowpack%clear()
+    call self%rain%clear()
+    call self%snow%clear()
+    call self%melt%clear()
+    call self%pre_eff%clear()
+    call self%infiltration%clear()
+    call self%percolation%clear()
+    call self%runoff_total%clear()
+    call self%runoff_sealed%clear()
+    call self%interflow_fast%clear()
+    call self%interflow_slow%clear()
+    call self%baseflow%clear()
+    call self%neutrons%clear()
+    call self%degday%clear()
+
+    call self%pet_coeff_pt%clear()
+    call self%pet_coeff_hs%clear()
+    call self%pet_fac_aspect%clear()
+    call self%pet_fac_lai%clear()
+    call self%resist_aero%clear()
+    call self%resist_surf%clear()
+    call self%max_interception%clear()
+    call self%degday_inc%clear()
+    call self%degday_max%clear()
+    call self%degday_dry%clear()
+    call self%thresh_temp%clear()
+    call self%f_sealed%clear()
+    call self%f_roots%clear()
+    call self%sm_saturation%clear()
+    call self%sm_exponent%clear()
+    call self%sm_field_capacity%clear()
+    call self%wilting_point%clear()
+    call self%thresh_jarvis%clear()
+    call self%alpha%clear()
+    call self%k_fastflow%clear()
+    call self%k_slowflow%clear()
+    call self%k_baseflow%clear()
+    call self%k_percolation%clear()
+    call self%f_karst_loss%clear()
+    call self%thresh_unsat%clear()
+    call self%thresh_sealed%clear()
+    call self%desilets_n0%clear()
+    call self%bulk_density%clear()
+    call self%lattice_water%clear()
+    call self%cosmic_l3%clear()
+    call self%discharge%clear()
+    call self%energy_flux%clear()
+    call self%river_temp%clear()
+    call self%riverhead%clear()
+
+    nullify(self%level0, self%level0_land, self%level0_lake, self%level1, self%level1_land)
+    nullify(self%level2, self%level3, self%level3_land, self%lake_points)
+    nullify(self%river_l0, self%river_l3, self%input_horizon_bounds, self%model_horizon_bounds)
+    nullify(self%geo_class_def)
+  end subroutine exchange_finalize
+
   !> \brief get the grid specifications for the selected level
   subroutine exchange_get_grid(self, selector, grid)
     use mo_message, only: error_message
@@ -1036,6 +1167,38 @@ contains
         exchange_has_points = .false.
     end select
   end function exchange_has_points
+
+  !> \brief Return a river support selected by its model level.
+  subroutine exchange_get_river(self, selector, river)
+    class(exchange_t), intent(in) :: self
+    integer(i4), intent(in) :: selector
+    type(river_t), pointer, intent(out) :: river
+
+    select case(selector)
+    case(l0)
+      river => self%river_l0
+    case(l3)
+      river => self%river_l3
+    case default
+      log_fatal(*) "exchange%get_river: unknown river selector '", n2s(selector), "'."
+      error stop 1
+    end select
+  end subroutine exchange_get_river
+
+  !> \brief Return whether a selected river support is available.
+  logical function exchange_has_river(self, selector)
+    class(exchange_t), intent(in) :: self
+    integer(i4), intent(in) :: selector
+
+    select case(selector)
+    case(l0)
+      exchange_has_river = associated(self%river_l0)
+    case(l3)
+      exchange_has_river = associated(self%river_l3)
+    case default
+      exchange_has_river = .false.
+    end select
+  end function exchange_has_river
 
   !> \brief get class pointer to a variable
   subroutine exchange_get_var_class(self, var, var_pnt)
@@ -1268,7 +1431,7 @@ contains
   end subroutine exchange_get_var_class
 
   !> \brief get var_dp pointer to a variable
-  subroutine exchange_get_var_meta(self, var, name, units, long_name, standard_name, grid, static, provided, required, stepping)
+  subroutine exchange_get_var_meta(self, var, name, units, long_name, standard_name, grid, points, static, provided, provider, river, layers, stepping)
     use mo_message, only: error_message
     class(exchange_t), target, intent(in) :: self ! target attribute valid here since Fortran 2003
     character(*), intent(in) :: var                                   !< name of the variable (attribute name)
@@ -1277,9 +1440,12 @@ contains
     character(:), allocatable, intent(out), optional :: long_name     !< long name of the variable
     character(:), allocatable, intent(out), optional :: standard_name !< standard name of the variable
     integer(i4), intent(out), optional :: grid                        !< ID of the grid the data is defined on
+    integer(i4), intent(out), optional :: points                      !< ID of the point support
     logical, intent(out), optional :: static                          !< flag to indicated static data
     logical, intent(out), optional :: provided                        !< flag to indicate that data is provided by a component
-    logical, intent(out), optional :: required                        !< flag to indicate that data is required by a component
+    character(:), allocatable, intent(out), optional :: provider      !< configured provider identity
+    integer(i4), intent(out), optional :: river                       !< selected river support
+    integer(i4), intent(out), optional :: layers                      !< selected layer support
     integer(i4), intent(out), optional :: stepping                    !< temporal support of the variable
     class(*), pointer :: tmp
     call self%get_var_class(var, tmp)
@@ -1290,10 +1456,13 @@ contains
         if (present(long_name)     .and. allocated(tmp%long_name))     long_name     = tmp%long_name
         if (present(standard_name) .and. allocated(tmp%standard_name)) standard_name = tmp%standard_name
         if (present(grid))     grid     = tmp%grid
+        if (present(points))   points   = tmp%points
         if (present(stepping)) stepping = tmp%stepping
         if (present(static))   static   = tmp%static
         if (present(provided)) provided = tmp%provided
-        if (present(required)) required = tmp%required
+        if (present(provider) .and. allocated(tmp%provider)) provider = tmp%provider
+        if (present(river)) river = tmp%river
+        if (present(layers)) layers = tmp%layers
     end select
   end subroutine exchange_get_var_meta
 
@@ -1444,12 +1613,14 @@ contains
     class(*), pointer :: tmp
     call self%get_var_class(var, tmp)
     select type (tmp)
+    class is (variable_abc)
+      call tmp%provide("external")
+    end select
+    select type (tmp)
       class is (var_dp)
         select type (data)
           type is (real(dp))
-            tmp%data => data
-            call tmp%set_stepping("external", stepping)
-            tmp%provided = .true.
+            call tmp%publish_local("external", data, stepping)
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type real(dp)."
             error stop 1
@@ -1457,9 +1628,7 @@ contains
       class is (var_i2)
         select type (data)
           type is (integer(i2))
-            tmp%data => data
-            call tmp%set_stepping("external", stepping)
-            tmp%provided = .true.
+            call tmp%publish_local("external", data, stepping)
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type integer(i2)."
             error stop 1
@@ -1467,9 +1636,7 @@ contains
       class is (var_i4)
         select type (data)
           type is (integer(i4))
-            tmp%data => data
-            call tmp%set_stepping("external", stepping)
-            tmp%provided = .true.
+            call tmp%publish_local("external", data, stepping)
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type integer(i4)."
             error stop 1
@@ -1477,9 +1644,7 @@ contains
       class is (var_i8)
         select type (data)
           type is (integer(i8))
-            tmp%data => data
-            call tmp%set_stepping("external", stepping)
-            tmp%provided = .true.
+            call tmp%publish_local("external", data, stepping)
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type integer(i8)."
             error stop 1
@@ -1487,9 +1652,7 @@ contains
       class is (var_lg)
         select type (data)
           type is (logical)
-            tmp%data => data
-            call tmp%set_stepping("external", stepping)
-            tmp%provided = .true.
+            call tmp%publish_local("external", data, stepping)
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type logical."
             error stop 1
@@ -1510,12 +1673,14 @@ contains
     class(*), pointer :: tmp
     call self%get_var_class(var, tmp)
     select type (tmp)
+    class is (variable_abc)
+      call tmp%provide("external")
+    end select
+    select type (tmp)
       class is (var2d_dp)
         select type (data)
           type is (real(dp))
-            tmp%data => data
-            call tmp%set_stepping("external", stepping)
-            tmp%provided = .true.
+            call tmp%publish_local("external", data, stepping)
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type real(dp)."
             error stop 1
@@ -1523,9 +1688,7 @@ contains
       class is (var2d_i4)
         select type (data)
           type is (integer(i4))
-            tmp%data => data
-            call tmp%set_stepping("external", stepping)
-            tmp%provided = .true.
+            call tmp%publish_local("external", data, stepping)
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type integer(i4)."
             error stop 1
@@ -1533,9 +1696,7 @@ contains
       class is (var2d_lg)
         select type (data)
           type is (logical)
-            tmp%data => data
-            call tmp%set_stepping("external", stepping)
-            tmp%provided = .true.
+            call tmp%publish_local("external", data, stepping)
           class default
             log_fatal(*) "exchange%get_var: variable data of '", var, "' is of type logical."
             error stop 1
@@ -1574,48 +1735,47 @@ contains
     norm_path = standard_path(base, path, file)
   end function exchange_get_path
 
-  !> \brief Return whether an exchange variable is already available or will be owned by the caller.
-  logical function variable_available(self, owned)
+  !> \brief Declare the sole configure-time provider of this exchange field.
+  subroutine variable_provide(self, component)
+    class(variable_abc), intent(inout) :: self
+    character(*), intent(in) :: component
+
+    if (len_trim(component) == 0) then
+      log_fatal(*) "exchange: empty provider name for ", self%display_name(), "."
+      error stop 1
+    end if
+    if (self%provided .or. allocated(self%provider)) then
+      if (allocated(self%provider)) then
+        log_fatal(*) trim(component), ": duplicate provider declaration for ", self%display_name(), &
+          "; existing provider is ", self%provider, "."
+      else
+        log_fatal(*) trim(component), ": duplicate provider declaration for ", self%display_name(), "."
+      end if
+      error stop 1
+    end if
+    self%provided = .true.
+    self%provider = trim(component)
+  end subroutine variable_provide
+
+  !> \brief Check that a local consumer has a declared provider.
+  subroutine variable_check_provided(self, component)
     class(variable_abc), intent(in) :: self
-    logical, intent(in), optional :: owned !< caller owns the field and may bypass provided/data availability checks
+    character(*), intent(in) :: component
 
-    variable_available = optval(owned, .false.) .or. (self%provided .and. self%has_data())
-  end function variable_available
+    if (.not.self%provided .or. .not.allocated(self%provider)) then
+      log_fatal(*) trim(component), ": ", self%display_name(), " has no provider."
+      error stop 1
+    end if
+  end subroutine variable_check_provided
 
-  !> \brief Mark an exchange variable as required and validate source/data availability when needed.
-  subroutine variable_require(self, component, required, expected_shape, check_data)
+  !> \brief Clear all runtime contract state of a variable.
+  subroutine variable_clear(self)
     class(variable_abc), intent(inout) :: self
-    character(*), intent(in) :: component           !< calling component name for diagnostics
-    logical, intent(in) :: required                 !< whether this variable is required by the caller
-    integer(i8), intent(in), optional :: expected_shape(:) !< expected data shape for contract validation
-    logical, intent(in), optional :: check_data     !< enforce data-pointer association check when .true.
 
-    self%required = self%required .or. required
-    if (.not.required) return
-    call variable_validate(self, component, .false., expected_shape, optval(check_data, .true.))
-  end subroutine variable_require
-
-  !> \brief Mark an exchange variable as a required handoff and validate data availability when needed.
-  subroutine variable_expect_handoff(self, component, required, expected_shape)
-    class(variable_abc), intent(inout) :: self
-    character(*), intent(in) :: component           !< calling component name for diagnostics
-    logical, intent(in) :: required                 !< whether a handoff is required by the caller
-    integer(i8), intent(in), optional :: expected_shape(:) !< expected data shape for handoff validation
-
-    self%required = self%required .or. required
-    if (.not.required) return
-    call variable_validate(self, component, .true., expected_shape, .true.)
-  end subroutine variable_expect_handoff
-
-  !> \brief Clear a variable publication when the caller owns the exchange field.
-  subroutine variable_clear(self, owned)
-    class(variable_abc), intent(inout) :: self
-    logical, intent(in), optional :: owned !< caller ownership flag; only owned publications are cleared
-
-    if (.not.optval(owned, .false.)) return
     call self%clear_data()
-    self%provided = .false.
     self%stepping = 0_i4
+    self%provided = .false.
+    if (allocated(self%provider)) deallocate(self%provider)
   end subroutine variable_clear
 
   !> \brief Set and validate the temporal support metadata of an exchange variable.
@@ -1624,19 +1784,7 @@ contains
     character(*), intent(in) :: component !< publishing component name for diagnostics
     integer(i4), intent(in) :: stepping !< temporal support indicator
 
-    if (self%static .and. stepping /= no_time) then
-      log_fatal(*) trim(component), ": static exchange field has non-static stepping: ", variable_name(self), "."
-      error stop 1
-    end if
-    if (.not.self%static .and. stepping == no_time) then
-      log_fatal(*) trim(component), ": dynamic exchange field has static stepping: ", variable_name(self), "."
-      error stop 1
-    end if
-    if (.not.self%static .and. stepping < 1_i4 .and. &
-      all(stepping /= [daily, monthly, yearly, varying])) then
-      log_fatal(*) trim(component), ": invalid exchange stepping ", stepping, " for ", variable_name(self), "."
-      error stop 1
-    end if
+    call self%check_stepping(component, stepping)
     self%stepping = stepping
   end subroutine variable_set_stepping
 
@@ -1670,120 +1818,155 @@ contains
     if (allocated(self%units)) call nc_var%setAttribute("units", self%units)
   end subroutine variable_write_netcdf_metadata
 
-  !> \brief Validate the provided/data/shape contract of an exchange variable.
-  subroutine variable_validate(self, component, handoff, expected_shape, check_data)
-    class(variable_abc), intent(in) :: self
+  !> \brief Validate an associated field against its self-describing support metadata.
+  subroutine exchange_check_data(self, var, component)
+    class(exchange_t), intent(in), target :: self
+    class(variable_abc), intent(in) :: var
     character(*), intent(in) :: component
-    logical, intent(in) :: handoff
-    integer(i8), intent(in), optional :: expected_shape(:)
-    logical, intent(in) :: check_data
-    integer(i8), allocatable :: actual_shape(:)
-    character(:), allocatable :: var_name
-    logical :: shape_ok
+    type(grid_t), pointer :: grid
+    type(points_t), pointer :: points
+    type(river_t), pointer :: river
+    integer(i8), allocatable :: actual(:)
+    integer(i8) :: n_primary, n_layers_expected
+    integer(i4) :: n_supports
 
-    var_name = variable_name(self)
-    if (.not.self%provided) then
-      if (handoff) then
-        log_fatal(*) trim(component), ": required handoff not provided: ", var_name, "."
-      else
-        log_fatal(*) trim(component), ": ", var_name, " not provided."
-      end if
+    call var%check_provided(component)
+    if (.not.var%has_data()) then
+      log_fatal(*) trim(component), ": ", var%display_name(), " data not connected."
       error stop 1
     end if
-    call variable_validate_stepping(self, component)
-    if (.not.check_data) return
-    if (.not.self%has_data()) then
-      if (handoff) then
-        log_fatal(*) trim(component), ": required handoff data not connected: ", var_name, "."
-      else
-        log_fatal(*) trim(component), ": ", var_name, " data not connected."
-      end if
+    call var%check_stepping(component)
+
+    n_supports = merge(1_i4, 0_i4, var%grid /= nogrid) + &
+      merge(1_i4, 0_i4, var%points /= nopoints) + merge(1_i4, 0_i4, var%river /= noriver)
+    if (n_supports /= 1_i4) then
+      log_fatal(*) trim(component), ": ", var%display_name(), " must select exactly one of grid, points, or river."
       error stop 1
     end if
-    if (present(expected_shape)) then
-      actual_shape = self%data_shape()
-      shape_ok = size(actual_shape) == size(expected_shape)
-      if (shape_ok) shape_ok = all(actual_shape == expected_shape)
-      if (.not.shape_ok) then
-        if (handoff) then
-          log_fatal(*) trim(component), ": handoff ", var_name, " has unexpected shape. Expected ", &
-            variable_shape_string(expected_shape), ", got ", variable_shape_string(actual_shape), "."
-        else
-          log_fatal(*) trim(component), ": ", var_name, " has unexpected shape. Expected ", &
-            variable_shape_string(expected_shape), ", got ", variable_shape_string(actual_shape), "."
-        end if
+    if (var%grid /= nogrid) then
+      call self%get_grid(var%grid, grid)
+      if (.not.associated(grid)) then
+        log_fatal(*) trim(component), ": grid support unavailable for ", var%display_name(), "."
         error stop 1
       end if
+      n_primary = grid%ncells
+    else if (var%points /= nopoints) then
+      call self%get_points(var%points, points)
+      if (.not.associated(points)) then
+        log_fatal(*) trim(component), ": point support unavailable for ", var%display_name(), "."
+        error stop 1
+      end if
+      n_primary = points%n_points
+    else
+      call self%get_river(var%river, river)
+      if (.not.associated(river)) then
+        log_fatal(*) trim(component), ": river support unavailable for ", var%display_name(), "."
+        error stop 1
+      end if
+      n_primary = river%n_nodes
     end if
-  end subroutine variable_validate
 
-  !> \brief Validate temporal support metadata on an existing publication.
-  subroutine variable_validate_stepping(self, component)
+    actual = var%data_shape()
+    select case(var%layers)
+    case(nolayers)
+      if (size(actual) /= 1 .or. actual(1) /= n_primary) then
+        log_fatal(*) trim(component), ": ", var%display_name(), " has unexpected shape."
+        error stop 1
+      end if
+    case(single_layer)
+      n_layers_expected = 1_i8
+      if (size(actual) /= 2 .or. actual(1) /= n_primary .or. actual(2) /= n_layers_expected) then
+        log_fatal(*) trim(component), ": ", var%display_name(), " has unexpected layered shape."
+        error stop 1
+      end if
+    case(input_horizons)
+      if (.not.associated(self%input_horizon_bounds)) then
+        log_fatal(*) trim(component), ": input horizon support unavailable for ", var%display_name(), "."
+        error stop 1
+      end if
+      n_layers_expected = size(self%input_horizon_bounds, kind=i8) - 1_i8
+      if (n_layers_expected < 1_i8 .or. size(actual) /= 2 .or. actual(1) /= n_primary .or. actual(2) /= n_layers_expected) then
+        log_fatal(*) trim(component), ": ", var%display_name(), " has unexpected layered shape."
+        error stop 1
+      end if
+    case(model_horizons)
+      if (.not.associated(self%model_horizon_bounds)) then
+        log_fatal(*) trim(component), ": model horizon support unavailable for ", var%display_name(), "."
+        error stop 1
+      end if
+      n_layers_expected = size(self%model_horizon_bounds, kind=i8) - 1_i8
+      if (n_layers_expected < 1_i8 .or. size(actual) /= 2 .or. actual(1) /= n_primary .or. actual(2) /= n_layers_expected) then
+        log_fatal(*) trim(component), ": ", var%display_name(), " has unexpected layered shape."
+        error stop 1
+      end if
+    case default
+      log_fatal(*) trim(component), ": invalid layer support for ", var%display_name(), "."
+      error stop 1
+    end select
+  end subroutine exchange_check_data
+
+  !> \brief Validate temporal support metadata on a publication or candidate value.
+  subroutine variable_check_stepping(self, component, candidate)
+    class(variable_abc), intent(in) :: self
+    character(*), intent(in) :: component
+    integer(i4), intent(in), optional :: candidate
+    integer(i4) :: stepping
+
+    stepping = self%stepping
+    if (present(candidate)) stepping = candidate
+    if (self%static .and. stepping /= no_time) then
+      log_fatal(*) trim(component), ": static exchange field has non-static stepping: ", self%display_name(), "."
+      error stop 1
+    end if
+    if (.not.self%static .and. stepping == no_time) then
+      log_fatal(*) trim(component), ": dynamic exchange field has static stepping: ", self%display_name(), "."
+      error stop 1
+    end if
+    if (.not.self%static .and. stepping < 1_i4 .and. &
+      all(stepping /= [daily, monthly, yearly, varying])) then
+      log_fatal(*) trim(component), ": invalid exchange stepping ", stepping, " for ", self%display_name(), "."
+      error stop 1
+    end if
+  end subroutine variable_check_stepping
+
+  !> \brief Validate the declaration, identity, and binding state before publication.
+  subroutine variable_check_publish(self, component)
     class(variable_abc), intent(in) :: self
     character(*), intent(in) :: component
 
-    if (self%static .and. self%stepping /= no_time) then
-      log_fatal(*) trim(component), ": static exchange field has non-static stepping: ", variable_name(self), "."
+    call self%check_provided(component)
+    if (trim(component) /= self%provider) then
+      log_fatal(*) trim(component), ": publication of ", self%display_name(), " belongs to ", self%provider, "."
       error stop 1
     end if
-    if (.not.self%static .and. self%stepping == no_time) then
-      log_fatal(*) trim(component), ": dynamic exchange field has no stepping metadata: ", variable_name(self), "."
+    if (self%has_data()) then
+      log_fatal(*) trim(component), ": exchange field already has a data binding: ", self%display_name(), "."
       error stop 1
     end if
-    if (.not.self%static .and. self%stepping < 1_i4 .and. &
-      all(self%stepping /= [daily, monthly, yearly, varying])) then
-      log_fatal(*) trim(component), ": invalid exchange stepping ", self%stepping, " for ", variable_name(self), "."
-      error stop 1
-    end if
-  end subroutine variable_validate_stepping
-
-  !> \brief Validate that a publication target is not already occupied.
-  subroutine variable_validate_publish_target(self, component)
-    class(variable_abc), intent(in) :: self
-    character(*), intent(in) :: component
-
-    if (self%provided .or. self%has_data()) then
-      log_fatal(*) trim(component), ": exchange field already provided before publication: ", variable_name(self), "."
-      error stop 1
-    end if
-  end subroutine variable_validate_publish_target
+  end subroutine variable_check_publish
 
   !> \brief Validate that an alias source is already connected.
-  subroutine variable_validate_alias_source(source, component, target)
-    class(variable_abc), intent(in) :: source
+  subroutine variable_check_alias_source(self, component, target)
+    class(variable_abc), intent(in) :: self
     character(*), intent(in) :: component
     class(variable_abc), intent(in) :: target
 
-    if (.not.source%provided .or. .not.source%has_data()) then
-      log_fatal(*) trim(component), ": pass-through source not provided for ", variable_name(target), "."
+    if (.not.self%has_data()) then
+      log_fatal(*) trim(component), ": pass-through source is not connected for ", target%display_name(), "."
       error stop 1
     end if
-    call variable_validate_stepping(source, component)
-  end subroutine variable_validate_alias_source
+    call self%check_stepping(component)
+  end subroutine variable_check_alias_source
 
   !> \brief Return the configured variable name or a fallback for diagnostics.
-  function variable_name(self) result(name)
+  function variable_display_name(self) result(name)
     class(variable_abc), intent(in) :: self
     character(:), allocatable :: name
     name = "<unnamed>"
     if (allocated(self%name)) then
       if (len_trim(self%name) > 0) name = trim(self%name)
     end if
-  end function variable_name
-
-  !> \brief Format a shape vector for diagnostics.
-  function variable_shape_string(shape) result(text)
-    integer(i8), intent(in) :: shape(:)
-    character(:), allocatable :: text
-    integer :: i
-
-    text = "["
-    do i = 1, size(shape)
-      if (i > 1) text = text // ", "
-      text = text // trim(n2s(shape(i)))
-    end do
-    text = text // "]"
-  end function variable_shape_string
+  end function variable_display_name
 
   !> \brief Return whether a 1D real exchange variable has data connected.
   logical function var_dp_has_data(self)
@@ -1818,10 +2001,9 @@ contains
     real(dp), intent(inout), target :: local(:) !< local 1D real field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
-    call variable_validate_publish_target(self, component)
+    call self%check_publish(component)
     call self%set_stepping(component, stepping)
     self%data => local
-    self%provided = .true.
   end subroutine var_dp_publish_local
 
   !> \brief Publish a 1D real alias through the exchange variable.
@@ -1830,12 +2012,10 @@ contains
     character(*), intent(in) :: component !< publishing component name for diagnostics
     type(var_dp), intent(in) :: source    !< already-published source variable to alias
 
-    call variable_validate_alias_source(source, component, self)
-    call variable_validate_publish_target(self, component)
-    self%static = source%static
-    self%stepping = source%stepping
+    call source%check_alias_source(component, self)
+    call self%check_publish(component)
+    call self%set_stepping(component, source%stepping)
     self%data => source%data
-    self%provided = .true.
   end subroutine var_dp_publish_alias
 
   !> \brief Return whether a 1D integer exchange variable has data connected.
@@ -1871,10 +2051,9 @@ contains
     integer(i4), intent(inout), target :: local(:) !< local 1D integer field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
-    call variable_validate_publish_target(self, component)
+    call self%check_publish(component)
     call self%set_stepping(component, stepping)
     self%data => local
-    self%provided = .true.
   end subroutine var_i4_publish_local
 
   !> \brief Publish a 1D integer alias through the exchange variable.
@@ -1883,12 +2062,10 @@ contains
     character(*), intent(in) :: component !< publishing component name for diagnostics
     type(var_i4), intent(in) :: source    !< already-published source variable to alias
 
-    call variable_validate_alias_source(source, component, self)
-    call variable_validate_publish_target(self, component)
-    self%static = source%static
-    self%stepping = source%stepping
+    call source%check_alias_source(component, self)
+    call self%check_publish(component)
+    call self%set_stepping(component, source%stepping)
     self%data => source%data
-    self%provided = .true.
   end subroutine var_i4_publish_alias
 
   !> \brief Return whether a 1D 64-bit integer exchange variable has data connected.
@@ -1924,10 +2101,9 @@ contains
     integer(i8), intent(inout), target :: local(:)
     integer(i4), intent(in) :: stepping
 
-    call variable_validate_publish_target(self, component)
+    call self%check_publish(component)
     call self%set_stepping(component, stepping)
     self%data => local
-    self%provided = .true.
   end subroutine var_i8_publish_local
 
   !> \brief Publish a 1D 64-bit integer alias through the exchange variable.
@@ -1936,12 +2112,10 @@ contains
     character(*), intent(in) :: component
     type(var_i8), intent(in) :: source
 
-    call variable_validate_alias_source(source, component, self)
-    call variable_validate_publish_target(self, component)
-    self%static = source%static
-    self%stepping = source%stepping
+    call source%check_alias_source(component, self)
+    call self%check_publish(component)
+    call self%set_stepping(component, source%stepping)
     self%data => source%data
-    self%provided = .true.
   end subroutine var_i8_publish_alias
 
   !> \brief Return whether a 1D 16-bit integer exchange variable has data connected.
@@ -1977,10 +2151,9 @@ contains
     integer(i2), intent(inout), target :: local(:) !< local 1D integer field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
-    call variable_validate_publish_target(self, component)
+    call self%check_publish(component)
     call self%set_stepping(component, stepping)
     self%data => local
-    self%provided = .true.
   end subroutine var_i2_publish_local
 
   !> \brief Publish a 1D 16-bit integer alias through the exchange variable.
@@ -1989,12 +2162,10 @@ contains
     character(*), intent(in) :: component !< publishing component name for diagnostics
     type(var_i2), intent(in) :: source    !< already-published source variable to alias
 
-    call variable_validate_alias_source(source, component, self)
-    call variable_validate_publish_target(self, component)
-    self%static = source%static
-    self%stepping = source%stepping
+    call source%check_alias_source(component, self)
+    call self%check_publish(component)
+    call self%set_stepping(component, source%stepping)
     self%data => source%data
-    self%provided = .true.
   end subroutine var_i2_publish_alias
 
   !> \brief Return whether a 1D logical exchange variable has data connected.
@@ -2030,10 +2201,9 @@ contains
     logical, intent(inout), target :: local(:) !< local 1D logical field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
-    call variable_validate_publish_target(self, component)
+    call self%check_publish(component)
     call self%set_stepping(component, stepping)
     self%data => local
-    self%provided = .true.
   end subroutine var_lg_publish_local
 
   !> \brief Publish a 1D logical alias through the exchange variable.
@@ -2042,12 +2212,10 @@ contains
     character(*), intent(in) :: component !< publishing component name for diagnostics
     type(var_lg), intent(in) :: source    !< already-published source variable to alias
 
-    call variable_validate_alias_source(source, component, self)
-    call variable_validate_publish_target(self, component)
-    self%static = source%static
-    self%stepping = source%stepping
+    call source%check_alias_source(component, self)
+    call self%check_publish(component)
+    call self%set_stepping(component, source%stepping)
     self%data => source%data
-    self%provided = .true.
   end subroutine var_lg_publish_alias
 
   !> \brief Return whether a 2D real exchange variable has data connected.
@@ -2083,10 +2251,9 @@ contains
     real(dp), intent(inout), target :: local(:, :) !< local 2D real field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
-    call variable_validate_publish_target(self, component)
+    call self%check_publish(component)
     call self%set_stepping(component, stepping)
     self%data => local
-    self%provided = .true.
   end subroutine var2d_dp_publish_local
 
   !> \brief Publish a 2D real alias through the exchange variable.
@@ -2095,12 +2262,10 @@ contains
     character(*), intent(in) :: component !< publishing component name for diagnostics
     type(var2d_dp), intent(in) :: source  !< already-published source variable to alias
 
-    call variable_validate_alias_source(source, component, self)
-    call variable_validate_publish_target(self, component)
-    self%static = source%static
-    self%stepping = source%stepping
+    call source%check_alias_source(component, self)
+    call self%check_publish(component)
+    call self%set_stepping(component, source%stepping)
     self%data => source%data
-    self%provided = .true.
   end subroutine var2d_dp_publish_alias
 
   !> \brief Return whether a 2D integer exchange variable has data connected.
@@ -2136,10 +2301,9 @@ contains
     integer(i4), intent(inout), target :: local(:, :) !< local 2D integer field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
-    call variable_validate_publish_target(self, component)
+    call self%check_publish(component)
     call self%set_stepping(component, stepping)
     self%data => local
-    self%provided = .true.
   end subroutine var2d_i4_publish_local
 
   !> \brief Publish a 2D integer alias through the exchange variable.
@@ -2148,12 +2312,10 @@ contains
     character(*), intent(in) :: component !< publishing component name for diagnostics
     type(var2d_i4), intent(in) :: source  !< already-published source variable to alias
 
-    call variable_validate_alias_source(source, component, self)
-    call variable_validate_publish_target(self, component)
-    self%static = source%static
-    self%stepping = source%stepping
+    call source%check_alias_source(component, self)
+    call self%check_publish(component)
+    call self%set_stepping(component, source%stepping)
     self%data => source%data
-    self%provided = .true.
   end subroutine var2d_i4_publish_alias
 
   !> \brief Return whether a 2D logical exchange variable has data connected.
@@ -2189,10 +2351,9 @@ contains
     logical, intent(inout), target :: local(:, :) !< local 2D logical field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
-    call variable_validate_publish_target(self, component)
+    call self%check_publish(component)
     call self%set_stepping(component, stepping)
     self%data => local
-    self%provided = .true.
   end subroutine var2d_lg_publish_local
 
   !> \brief Publish a 2D logical alias through the exchange variable.
@@ -2201,12 +2362,10 @@ contains
     character(*), intent(in) :: component !< publishing component name for diagnostics
     type(var2d_lg), intent(in) :: source  !< already-published source variable to alias
 
-    call variable_validate_alias_source(source, component, self)
-    call variable_validate_publish_target(self, component)
-    self%static = source%static
-    self%stepping = source%stepping
+    call source%check_alias_source(component, self)
+    call self%check_publish(component)
+    call self%set_stepping(component, source%stepping)
     self%data => source%data
-    self%provided = .true.
   end subroutine var2d_lg_publish_alias
 
 end module mo_exchange_type
