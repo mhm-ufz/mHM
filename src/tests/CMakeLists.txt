@@ -30,6 +30,17 @@ add_test(
       -P ${CMAKE_CURRENT_SOURCE_DIR}/run_parameter_failures.cmake
 )
 
+add_executable(test_exchange_failures test_exchange_failures.f90)
+target_link_libraries(test_exchange_failures PRIVATE ${LIB_NAME})
+add_test(
+  NAME test_exchange_failures
+  COMMAND
+    ${CMAKE_COMMAND}
+      -DTEST_EXECUTABLE=$<TARGET_FILE:test_exchange_failures>
+      -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/run_exchange_failures.cmake
+)
+
 add_executable(test_parameter_reinitialize test_parameter_reinitialize.f90)
 target_link_libraries(test_parameter_reinitialize PRIVATE ${LIB_NAME})
 add_test(NAME test_parameter_reinitialize COMMAND test_parameter_reinitialize)

@@ -128,7 +128,7 @@ expected_failure_diagnostic() {
 
   case "${nml_name}" in
     mrm_lake_map_minimal)
-      printf '%s\n' "mRM: lake_outflow not provided"
+      printf '%s\n' "mRM: lake_outflow has no provider"
       ;;
   esac
 }

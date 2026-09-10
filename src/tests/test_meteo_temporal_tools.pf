@@ -118,25 +118,28 @@ contains
     raw_ssrd = [100.0_dp, 200.0_dp]
     raw_strd = [300.0_dp, 400.0_dp]
     raw_tann = [7.0_dp, 9.0_dp]
+    call exchange%lake_ids%provide('test')
     call exchange%lake_ids%publish_local('test', lake_ids, no_time)
+    call exchange%lake_map%provide('test')
     call exchange%lake_map%publish_local('test', lake_map, no_time)
+    call exchange%lake_area%provide('test')
     call exchange%lake_area%publish_local('test', lake_area, no_time)
+    call exchange%raw_pre%provide('test')
     call exchange%raw_pre%publish_local('test', raw_pre, 1_i4)
+    call exchange%raw_pet%provide('test')
     call exchange%raw_pet%publish_local('test', raw_pet, 1_i4)
+    call exchange%raw_temp%provide('test')
     call exchange%raw_temp%publish_local('test', raw_temp, 1_i4)
+    call exchange%raw_ssrd%provide('test')
     call exchange%raw_ssrd%publish_local('test', raw_ssrd, 1_i4)
+    call exchange%raw_strd%provide('test')
     call exchange%raw_strd%publish_local('test', raw_strd, 1_i4)
+    call exchange%raw_tann%provide('test')
     call exchange%raw_tann%publish_local('test', raw_tann, 1_i4)
-    exchange%lake_temp%required = .true.
-    exchange%lake_ssrd%required = .true.
-    exchange%lake_strd%required = .true.
-    exchange%lake_tann%required = .true.
     status = meteo%config%set()
     @assertEqual(0, status)
     meteo%exchange => exchange
     call meteo%configure()
-    exchange%lake_pre%required = .true.
-    exchange%lake_pet%required = .true.
     call meteo%connect()
     call meteo%initialize()
     call meteo%update()
@@ -147,15 +150,7 @@ contains
     @assertEqual([350.0_dp, 350.0_dp], exchange%lake_strd%data, tolerance=t, message='lake long-wave radiation is aggregated')
     @assertEqual([8.0_dp, 8.0_dp], exchange%lake_tann%data, tolerance=t, message='lake annual temperature is aggregated')
     call meteo%finalize()
-    call exchange%lake_ids%clear(owned=.true.)
-    call exchange%lake_map%clear(owned=.true.)
-    call exchange%lake_area%clear(owned=.true.)
-    call exchange%raw_pre%clear(owned=.true.)
-    call exchange%raw_pet%clear(owned=.true.)
-    call exchange%raw_temp%clear(owned=.true.)
-    call exchange%raw_ssrd%clear(owned=.true.)
-    call exchange%raw_strd%clear(owned=.true.)
-    call exchange%raw_tann%clear(owned=.true.)
+    call exchange%finalize()
   end subroutine test_lake_forcing_aggregates_l2_support
 
   @test
@@ -185,28 +180,27 @@ contains
     raw_pre = [6.0_dp]
     raw_pet = [2.0_dp]
     night_fraction = 0.5_dp
+    call exchange%lake_ids%provide('test')
     call exchange%lake_ids%publish_local('test', lake_ids, no_time)
+    call exchange%lake_map%provide('test')
     call exchange%lake_map%publish_local('test', lake_map, no_time)
+    call exchange%lake_area%provide('test')
     call exchange%lake_area%publish_local('test', lake_area, no_time)
+    call exchange%raw_pre%provide('test')
     call exchange%raw_pre%publish_local('test', raw_pre, daily)
+    call exchange%raw_pet%provide('test')
     call exchange%raw_pet%publish_local('test', raw_pet, daily)
     status = meteo%config%set(frac_night_pre=night_fraction, frac_night_pet=night_fraction)
     @assertEqual(0, status)
     meteo%exchange => exchange
     call meteo%configure()
-    exchange%lake_pre%required = .true.
-    exchange%lake_pet%required = .true.
     call meteo%connect()
     call meteo%initialize()
     call meteo%update()
     @assertEqual([0.25_dp], exchange%lake_pre%data, tolerance=t, message='daily lake precipitation is distributed across nightly hours')
     @assertEqual([1.0_dp / 12.0_dp], exchange%lake_pet%data, tolerance=t, message='daily lake PET is distributed across nightly hours')
     call meteo%finalize()
-    call exchange%lake_ids%clear(owned=.true.)
-    call exchange%lake_map%clear(owned=.true.)
-    call exchange%lake_area%clear(owned=.true.)
-    call exchange%raw_pre%clear(owned=.true.)
-    call exchange%raw_pet%clear(owned=.true.)
+    call exchange%finalize()
   end subroutine test_lake_forcing_disaggregates_daily
 
   @test
