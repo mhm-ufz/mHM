@@ -109,9 +109,11 @@ module mo_meteo_container
     real(dp), allocatable :: lake_ssrd_weights(:, :, :) !< lake short-wave radiation weights (lake,12,24)
     real(dp), allocatable :: lake_strd_weights(:, :, :) !< lake long-wave radiation weights (lake,12,24)
     logical :: active = .false. !< whether meteorological processing participates in the configured domain
+    logical :: lake_active = .false. !< whether lake forcing is part of the selected process case
   contains
     procedure :: set_dims => meteo_set_dims
     procedure :: configure => meteo_configure
+    procedure :: prepare_restart => meteo_prepare_restart
     procedure :: connect => meteo_connect
     procedure :: initialize => meteo_initialize
     procedure :: update => meteo_update
@@ -139,6 +141,11 @@ module mo_meteo_container
   end type meteo_t
 
 contains
+
+  !> \brief Meteorology owns no restart definition; retained for the uniform lifecycle.
+  subroutine meteo_prepare_restart(self)
+    class(meteo_t), intent(inout), target :: self
+  end subroutine meteo_prepare_restart
 
   !> \brief Classify an interval with the literal legacy predicate using its start hour.
   pure logical function meteo_is_day_step(hour) result(is_day)
@@ -220,6 +227,21 @@ contains
       log_fatal(*) "Meteo config not valid: ", trim(errmsg)
       error stop 1
     end if
+    self%lake_active = self%exchange%config%processes%lake == -2_i4
+    if (self%active) call self%exchange%pre%provide("Meteo")
+    if (self%exchange%config%processes%snow == 1_i4 .or. any(self%exchange%config%processes%pet == [1_i4, 2_i4, 3_i4])) call self%exchange%temp%provide("Meteo")
+    if (self%exchange%config%processes%pet /= 0_i4) call self%exchange%pet%provide("Meteo")
+    if (self%exchange%config%processes%temperature_routing > 0_i4) then
+      call self%exchange%ssrd%provide("Meteo")
+      call self%exchange%strd%provide("Meteo")
+      call self%exchange%tann%provide("Meteo")
+    end if
+    if (self%exchange%raw_pre%provided) call self%exchange%lake_pre%provide("Meteo")
+    if (self%exchange%raw_temp%provided) call self%exchange%lake_temp%provide("Meteo")
+    if (self%exchange%raw_pet%provided) call self%exchange%lake_pet%provide("Meteo")
+    if (self%exchange%raw_ssrd%provided) call self%exchange%lake_ssrd%provide("Meteo")
+    if (self%exchange%raw_strd%provided) call self%exchange%lake_strd%provide("Meteo")
+    if (self%exchange%raw_tann%provided) call self%exchange%lake_tann%provide("Meteo")
   end subroutine meteo_configure
 
   !> \brief Connect the meteorology process container with other components.
@@ -248,53 +270,53 @@ contains
         self%exchange%lake_ids%provided .and. self%exchange%lake_map%provided) then
       call self%setup_lake_forcing()
     end if
-    call self%exchange%raw_pre%require("Meteo", self%exchange%lake_pre%required, check_data=.false.)
-    call self%exchange%raw_temp%require("Meteo", self%exchange%lake_temp%required, check_data=.false.)
-    call self%exchange%raw_pet%require("Meteo", self%exchange%lake_pet%required, check_data=.false.)
-    call self%exchange%raw_ssrd%require("Meteo", self%exchange%lake_ssrd%required, check_data=.false.)
-    call self%exchange%raw_strd%require("Meteo", self%exchange%lake_strd%required, check_data=.false.)
-    call self%exchange%raw_tann%require("Meteo", self%exchange%lake_tann%required, check_data=.false.)
-    if (self%exchange%lake_pre%required) then
+    if (self%lake_active .and. self%exchange%raw_pre%provided) call self%exchange%raw_pre%check_provided("Meteo")
+    if (self%lake_active .and. self%exchange%raw_temp%provided) call self%exchange%raw_temp%check_provided("Meteo")
+    if (self%lake_active .and. self%exchange%raw_pet%provided) call self%exchange%raw_pet%check_provided("Meteo")
+    if (self%lake_active .and. self%exchange%raw_ssrd%provided) call self%exchange%raw_ssrd%check_provided("Meteo")
+    if (self%lake_active .and. self%exchange%raw_strd%provided) call self%exchange%raw_strd%check_provided("Meteo")
+    if (self%lake_active .and. self%exchange%raw_tann%provided) call self%exchange%raw_tann%check_provided("Meteo")
+    if (self%lake_active .and. self%exchange%raw_pre%provided) then
       call self%validate_step("raw_pre", self%exchange%raw_pre%stepping, allow_daily=.true., allow_hourly=.true.)
       if (.not.self%weight_mode_active() .and. self%steps_per_day() > 1_i4 .and. &
           self%exchange%raw_pre%stepping == daily) then
         call self%require_fraction("frac_night_pre", self%fraction_domain())
       end if
     end if
-    if (self%exchange%lake_pet%required) then
+    if (self%lake_active .and. self%exchange%raw_pet%provided) then
       call self%validate_step("raw_pet", self%exchange%raw_pet%stepping, allow_daily=.true., allow_hourly=.true.)
       if (.not.self%weight_mode_active() .and. self%steps_per_day() > 1_i4 .and. &
           self%exchange%raw_pet%stepping == daily) then
         call self%require_fraction("frac_night_pet", self%fraction_domain())
       end if
     end if
-    if (self%exchange%lake_temp%required) then
+    if (self%lake_active .and. self%exchange%raw_temp%provided) then
       call self%validate_step("raw_temp", self%exchange%raw_temp%stepping, allow_daily=.true., allow_hourly=.true.)
       if (.not.self%weight_mode_active() .and. self%steps_per_day() > 1_i4 .and. &
           self%exchange%raw_temp%stepping == daily) then
         call self%require_fraction("frac_night_temp", self%fraction_domain())
       end if
     end if
-    if (self%exchange%lake_ssrd%required) then
+    if (self%lake_active .and. self%exchange%raw_ssrd%provided) then
       call self%validate_step("raw_ssrd", self%exchange%raw_ssrd%stepping, allow_daily=.true., allow_hourly=.true.)
       if (.not.self%weight_mode_active() .and. self%steps_per_day() > 1_i4 .and. &
           self%exchange%raw_ssrd%stepping == daily) then
         call self%require_fraction("frac_night_ssrd", self%fraction_domain())
       end if
     end if
-    if (self%exchange%lake_strd%required) then
+    if (self%lake_active .and. self%exchange%raw_strd%provided) then
       call self%validate_step("raw_strd", self%exchange%raw_strd%stepping, allow_daily=.true., allow_hourly=.true.)
       if (.not.self%weight_mode_active() .and. self%steps_per_day() > 1_i4 .and. &
           self%exchange%raw_strd%stepping == daily) then
         call self%require_fraction("frac_night_strd", self%fraction_domain())
       end if
     end if
-    if (self%exchange%lake_tann%required) then
+    if (self%lake_active .and. self%exchange%raw_tann%provided) then
       call self%validate_step("raw_tann", self%exchange%raw_tann%stepping, allow_static=.true., allow_daily=.true., &
         allow_monthly=.true., allow_yearly=.true., allow_hourly=.true.)
     end if
 
-    lake_active = self%exchange%config%processes%lake == -2_i4
+    lake_active = self%lake_active
     land_active = any([self%exchange%config%processes%interception, self%exchange%config%processes%snow, &
       self%exchange%config%processes%soil_moisture, self%exchange%config%processes%direct_runoff, &
       self%exchange%config%processes%pet, self%exchange%config%processes%interflow, &
@@ -306,8 +328,8 @@ contains
       error stop 1
     end if
     if (.not.land_active) then
-      call self%exchange%raw_pre%require("Meteo", lake_active, check_data=.false.)
-      call self%exchange%raw_pet%require("Meteo", lake_active, check_data=.false.)
+      if (lake_active) call self%exchange%raw_pre%check_provided("Meteo")
+      if (lake_active) call self%exchange%raw_pet%check_provided("Meteo")
       call self%validate_step("raw_pre", self%exchange%raw_pre%stepping, allow_daily=.true., allow_hourly=.true.)
       call self%validate_step("raw_pet", self%exchange%raw_pet%stepping, allow_daily=.true., allow_hourly=.true.)
       if (.not.self%weight_mode_active() .and. self%steps_per_day() > 1_i4) then
@@ -330,17 +352,23 @@ contains
     need_pre = self%active
     need_temp = (snow_process == 1_i4) .or. any(pet_process == [1_i4, 2_i4, 3_i4])
 
-    call self%exchange%raw_pre%require("Meteo", need_pre, check_data=.false.)
-    call self%exchange%raw_temp%require("Meteo", need_temp, check_data=.false.)
-    call self%exchange%raw_pet%require("Meteo", lake_active .or. any(pet_process == [-2_i4, -1_i4]), check_data=.false.)
-    call self%exchange%raw_tann%require("Meteo", riv_temp_process > 0_i4, check_data=.false.)
-    call self%exchange%raw_tmin%require("Meteo", pet_process == 1_i4, check_data=.false.)
-    call self%exchange%raw_tmax%require("Meteo", pet_process == 1_i4, check_data=.false.)
-    call self%exchange%raw_ssrd%require("Meteo", riv_temp_process > 0_i4, check_data=.false.)
-    call self%exchange%raw_strd%require("Meteo", riv_temp_process > 0_i4, check_data=.false.)
-    call self%exchange%raw_netrad%require("Meteo", any(pet_process == [2_i4, 3_i4]), check_data=.false.)
-    call self%exchange%raw_eabs%require("Meteo", pet_process == 3_i4, check_data=.false.)
-    call self%exchange%raw_wind%require("Meteo", pet_process == 3_i4, check_data=.false.)
+    if (need_pre) call self%exchange%raw_pre%check_provided("Meteo")
+    if (need_temp) call self%exchange%raw_temp%check_provided("Meteo")
+    if (lake_active .or. any(pet_process == [-2_i4, -1_i4])) call self%exchange%raw_pet%check_provided("Meteo")
+    if (riv_temp_process > 0_i4) then
+      call self%exchange%raw_tann%check_provided("Meteo")
+      call self%exchange%raw_ssrd%check_provided("Meteo")
+      call self%exchange%raw_strd%check_provided("Meteo")
+    end if
+    if (pet_process == 1_i4) then
+      call self%exchange%raw_tmin%check_provided("Meteo")
+      call self%exchange%raw_tmax%check_provided("Meteo")
+    end if
+    if (any(pet_process == [2_i4, 3_i4])) call self%exchange%raw_netrad%check_provided("Meteo")
+    if (pet_process == 3_i4) then
+      call self%exchange%raw_eabs%check_provided("Meteo")
+      call self%exchange%raw_wind%check_provided("Meteo")
+    end if
 
     if (need_pre) then
       call self%validate_step("raw_pre", self%exchange%raw_pre%stepping, allow_daily=.true., allow_hourly=.true.)
@@ -466,7 +494,6 @@ contains
   subroutine meteo_initialize(self)
     class(meteo_t), intent(inout), target :: self
     integer(i4) :: pet_process
-    integer(i8) :: n_l1
 
     log_info(*) "Initialize meteo"
 
@@ -475,20 +502,19 @@ contains
     if (.not.associated(self%exchange%level1_land)) return
 
     pet_process = self%exchange%config%processes%pet
-    n_l1 = self%exchange%level1_land%ncells
     select case (pet_process)
     case (1_i4)
-      call self%exchange%pet_fac_aspect%require("Meteo", .true., [n_l1])
-      call self%exchange%pet_coeff_hs%require("Meteo", .true., [n_l1])
+      call self%exchange%check_data(self%exchange%pet_fac_aspect, "Meteo")
+      call self%exchange%check_data(self%exchange%pet_coeff_hs, "Meteo")
     case (2_i4)
-      call self%exchange%pet_coeff_pt%require("Meteo", .true., [n_l1])
+      call self%exchange%check_data(self%exchange%pet_coeff_pt, "Meteo")
     case (3_i4)
-      call self%exchange%resist_aero%require("Meteo", .true., [n_l1])
-      call self%exchange%resist_surf%require("Meteo", .true., [n_l1])
+      call self%exchange%check_data(self%exchange%resist_aero, "Meteo")
+      call self%exchange%check_data(self%exchange%resist_surf, "Meteo")
     case (-2_i4)
-      call self%exchange%pet_fac_aspect%require("Meteo", .true., [n_l1])
+      call self%exchange%check_data(self%exchange%pet_fac_aspect, "Meteo")
     case (-1_i4)
-      call self%exchange%pet_fac_lai%require("Meteo", .true., [n_l1])
+      call self%exchange%check_data(self%exchange%pet_fac_lai, "Meteo")
     end select
 
     if (allocated(self%out%pre)) self%out%pre = 0.0_dp
@@ -518,19 +544,6 @@ contains
     class(meteo_t), intent(inout), target :: self
 
     log_info(*) "Finalize meteo"
-
-    call self%exchange%pre%clear(owned=allocated(self%out%pre))
-    call self%exchange%temp%clear(owned=allocated(self%out%temp))
-    call self%exchange%pet%clear(owned=allocated(self%out%pet))
-    call self%exchange%ssrd%clear(owned=allocated(self%out%ssrd))
-    call self%exchange%strd%clear(owned=allocated(self%out%strd))
-    call self%exchange%tann%clear(owned=allocated(self%out%tann))
-    call self%exchange%lake_pre%clear(owned=allocated(self%lake_pre))
-    call self%exchange%lake_temp%clear(owned=allocated(self%lake_temp))
-    call self%exchange%lake_pet%clear(owned=allocated(self%lake_pet))
-    call self%exchange%lake_ssrd%clear(owned=allocated(self%lake_ssrd))
-    call self%exchange%lake_strd%clear(owned=allocated(self%lake_strd))
-    call self%exchange%lake_tann%clear(owned=allocated(self%lake_tann))
 
     if (allocated(self%weights%pre)) deallocate(self%weights%pre)
     if (allocated(self%weights%pet)) deallocate(self%weights%pet)
@@ -671,7 +684,7 @@ contains
     end if
     n_lakes = size(self%exchange%lake_ids%data, kind=i8)
     n_l0 = self%exchange%level0_lake%ncells
-    call self%exchange%lake_map%require("Meteo", .true., [n_l0])
+    call self%exchange%check_data(self%exchange%lake_map, "Meteo")
     call lake_support_build(self%exchange%level2, self%exchange%level0_lake, self%exchange%lake_map%data, &
       self%exchange%lake_ids%data, self%lake_forcing)
     allocate(self%lake_pre(n_lakes), self%lake_temp(n_lakes), self%lake_pet(n_lakes), self%lake_ssrd(n_lakes), &
@@ -688,7 +701,8 @@ contains
     if (self%exchange%raw_ssrd%provided) call self%exchange%lake_ssrd%publish_local("Meteo", self%lake_ssrd, self%exchange%step_hours)
     if (self%exchange%raw_strd%provided) call self%exchange%lake_strd%publish_local("Meteo", self%lake_strd, self%exchange%step_hours)
     if (self%exchange%raw_tann%provided) call self%exchange%lake_tann%publish_local("Meteo", self%lake_tann, self%exchange%step_hours)
-    if (self%exchange%lake_pre%required .and. self%weight_mode_active() .and. self%exchange%raw_pre%stepping == daily) then
+    if (self%lake_active .and. self%exchange%raw_pre%provided .and. self%weight_mode_active() .and. &
+      self%exchange%raw_pre%stepping == daily) then
       domain_id = self%exchange%nml_domain_id
       status = self%config%is_set("pre_weights_path", idx=[domain_id], errmsg=errmsg)
       if (status /= NML_OK) then
@@ -698,7 +712,8 @@ contains
       path = self%exchange%get_path(self%config%pre_weights_path(domain_id))
       call self%load_lake_weight_cache(path, trim(self%config%pre_weights_var(domain_id)), self%lake_pre_weights)
     end if
-    if (self%exchange%lake_pet%required .and. self%weight_mode_active() .and. self%exchange%raw_pet%stepping == daily) then
+    if (self%lake_active .and. self%exchange%raw_pet%provided .and. self%weight_mode_active() .and. &
+      self%exchange%raw_pet%stepping == daily) then
       domain_id = self%exchange%nml_domain_id
       status = self%config%is_set("pet_weights_path", idx=[domain_id], errmsg=errmsg)
       if (status /= NML_OK) then
@@ -708,7 +723,8 @@ contains
       path = self%exchange%get_path(self%config%pet_weights_path(domain_id))
       call self%load_lake_weight_cache(path, trim(self%config%pet_weights_var(domain_id)), self%lake_pet_weights)
     end if
-    if (self%exchange%lake_temp%required .and. self%weight_mode_active() .and. self%exchange%raw_temp%stepping == daily) then
+    if (self%lake_active .and. self%exchange%raw_temp%provided .and. self%weight_mode_active() .and. &
+      self%exchange%raw_temp%stepping == daily) then
       domain_id = self%exchange%nml_domain_id
       status = self%config%is_set("temp_weights_path", idx=[domain_id], errmsg=errmsg)
       if (status /= NML_OK) then
@@ -718,7 +734,8 @@ contains
       path = self%exchange%get_path(self%config%temp_weights_path(domain_id))
       call self%load_lake_weight_cache(path, trim(self%config%temp_weights_var(domain_id)), self%lake_temp_weights)
     end if
-    if (self%exchange%lake_ssrd%required .and. self%weight_mode_active() .and. self%exchange%raw_ssrd%stepping == daily) then
+    if (self%lake_active .and. self%exchange%raw_ssrd%provided .and. self%weight_mode_active() .and. &
+      self%exchange%raw_ssrd%stepping == daily) then
       domain_id = self%exchange%nml_domain_id
       status = self%config%is_set("ssrd_weights_path", idx=[domain_id], errmsg=errmsg)
       if (status /= NML_OK) then
@@ -728,7 +745,8 @@ contains
       path = self%exchange%get_path(self%config%ssrd_weights_path(domain_id))
       call self%load_lake_weight_cache(path, trim(self%config%ssrd_weights_var(domain_id)), self%lake_ssrd_weights)
     end if
-    if (self%exchange%lake_strd%required .and. self%weight_mode_active() .and. self%exchange%raw_strd%stepping == daily) then
+    if (self%lake_active .and. self%exchange%raw_strd%provided .and. self%weight_mode_active() .and. &
+      self%exchange%raw_strd%stepping == daily) then
       domain_id = self%exchange%nml_domain_id
       status = self%config%is_set("strd_weights_path", idx=[domain_id], errmsg=errmsg)
       if (status /= NML_OK) then
@@ -764,7 +782,7 @@ contains
     steps_day = self%steps_per_day()
     domain_id = self%fraction_domain()
     isday = meteo_is_day_step(hour)
-    if (self%exchange%lake_pre%required) then
+    if (self%lake_active .and. self%exchange%lake_pre%provided) then
       call self%aggregate_lake(self%exchange%raw_pre%data, self%lake_pre)
       if (self%exchange%raw_pre%stepping == daily .and. steps_day > 1_i4) then
         daily_values = self%lake_pre
@@ -778,7 +796,7 @@ contains
         end if
       end if
     end if
-    if (self%exchange%lake_pet%required) then
+    if (self%lake_active .and. self%exchange%lake_pet%provided) then
       call self%aggregate_lake(self%exchange%raw_pet%data, self%lake_pet)
       if (self%exchange%raw_pet%stepping == daily .and. steps_day > 1_i4) then
         daily_values = self%lake_pet
@@ -792,7 +810,7 @@ contains
         end if
       end if
     end if
-    if (self%exchange%lake_temp%required) then
+    if (self%lake_active .and. self%exchange%lake_temp%provided) then
       call self%aggregate_lake(self%exchange%raw_temp%data, self%lake_temp)
       if (self%exchange%raw_temp%stepping == daily .and. steps_day > 1_i4) then
         daily_values = self%lake_temp
@@ -808,7 +826,7 @@ contains
         end if
       end if
     end if
-    if (self%exchange%lake_ssrd%required) then
+    if (self%lake_active .and. self%exchange%lake_ssrd%provided) then
       call self%aggregate_lake(self%exchange%raw_ssrd%data, self%lake_ssrd)
       if (self%exchange%raw_ssrd%stepping == daily .and. steps_day > 1_i4) then
         daily_values = self%lake_ssrd
@@ -824,7 +842,7 @@ contains
         end if
       end if
     end if
-    if (self%exchange%lake_strd%required) then
+    if (self%lake_active .and. self%exchange%lake_strd%provided) then
       call self%aggregate_lake(self%exchange%raw_strd%data, self%lake_strd)
       if (self%exchange%raw_strd%stepping == daily .and. steps_day > 1_i4) then
         daily_values = self%lake_strd
@@ -840,7 +858,9 @@ contains
         end if
       end if
     end if
-    if (self%exchange%lake_tann%required) call self%aggregate_lake(self%exchange%raw_tann%data, self%lake_tann)
+    if (self%lake_active .and. self%exchange%lake_tann%provided) then
+      call self%aggregate_lake(self%exchange%raw_tann%data, self%lake_tann)
+    end if
   end subroutine meteo_update_lake_forcing
 
   !> \brief Read a level2 temporal weight cube and aggregate it onto lake supports.

@@ -37,6 +37,7 @@ module mo_domain
     procedure :: create => domain_create
     procedure :: set_dims => domain_set_dims
     procedure :: configure => domain_configure
+    procedure :: prepare_restart => domain_prepare_restart
     procedure :: connect => domain_connect
     procedure :: initialize => domain_initialize
     procedure :: update => domain_update
@@ -106,6 +107,19 @@ contains
     call self%exchange%parameters%seal()
   end subroutine domain_configure
 
+  !> \brief Restore restart-owned model definition before fields are connected.
+  subroutine domain_prepare_restart(self)
+    class(domain_t), intent(inout), target :: self
+
+    log_info(*) "PREPARE RESTART"
+    call self%input%prepare_restart()
+    if (self%mpr%active) call self%mpr%prepare_restart()
+    if (self%meteo%active) call self%meteo%prepare_restart()
+    if (self%mhm%active) call self%mhm%prepare_restart()
+    if (self%mlm%active) call self%mlm%prepare_restart()
+    if (self%mrm%active) call self%mrm%prepare_restart()
+  end subroutine domain_prepare_restart
+
   !> \brief Connect the domain components.
   !> \details Check for dependencies and connect exchanged arrays between components after configuration.
   subroutine domain_connect(self)
@@ -156,6 +170,7 @@ contains
     if (self%mhm%active) call self%mhm%finalize()
     if (self%mlm%active) call self%mlm%finalize()
     if (self%mrm%active) call self%mrm%finalize()
+    call self%exchange%finalize()
   end subroutine domain_finalize
 
 end module mo_domain

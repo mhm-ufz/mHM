@@ -172,6 +172,7 @@ module mo_input_container
   contains
     procedure :: set_dims => input_set_dims
     procedure :: configure => input_configure
+    procedure :: prepare_restart => input_prepare_restart
     procedure :: connect => input_connect
     procedure :: initialize => input_initialize
     procedure :: update => input_update
@@ -183,6 +184,11 @@ module mo_input_container
   end type input_t
 
 contains
+
+  !> \brief Input owns no restart definition; retained for the uniform lifecycle.
+  subroutine input_prepare_restart(self)
+    class(input_t), target, intent(inout) :: self
+  end subroutine input_prepare_restart
 
   !> \brief Check whether the grid needs to be initialized in the exchange variable.
   logical function need_grid(tgt_grid, exchange_grid)
@@ -241,7 +247,6 @@ contains
   subroutine sync_input_var_meta(input_var, exchange_var)
     class(input_var_abc), intent(in) :: input_var
     type(var_dp), intent(inout) :: exchange_var
-    exchange_var%provided = input_var%provided
     exchange_var%static = input_var%static
     call exchange_var%set_stepping("Input", input_var%stepping)
   end subroutine sync_input_var_meta
@@ -882,7 +887,7 @@ contains
       call self%dem%init( &
         path=self%exchange%get_path(self%config%input%dem_path(id(1))), name=self%config%input%dem_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%dem%provided = .true. ! mark as provided in exchange
+      call self%exchange%dem%provide("Input")
     end if
 
     ! slope (slope_var by default "slope")
@@ -891,7 +896,7 @@ contains
       call self%slope%init( &
         path=self%exchange%get_path(self%config%input%slope_path(id(1))), name=self%config%input%slope_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%slope%provided = .true. ! mark as provided in exchange
+      call self%exchange%slope%provide("Input")
     end if
 
     ! aspect (aspect_var by default "aspect")
@@ -900,7 +905,7 @@ contains
       call self%aspect%init( &
         path=self%exchange%get_path(self%config%input%aspect_path(id(1))), name=self%config%input%aspect_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%aspect%provided = .true. ! mark as provided in exchange
+      call self%exchange%aspect%provide("Input")
     end if
 
     ! flow direction (fdir_var by default "fdir")
@@ -909,6 +914,7 @@ contains
       call self%fdir%init( &
         path=self%exchange%get_path(self%config%input%fdir_path(id(1))), name=self%config%input%fdir_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
+      call self%exchange%fdir%provide("Input")
     end if
 
     ! flow accumulation (facc_var by default "facc")
@@ -917,7 +923,7 @@ contains
       call self%facc%init( &
         path=self%exchange%get_path(self%config%input%facc_path(id(1))), name=self%config%input%facc_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%facc%provided = .true. ! mark as provided in exchange
+      call self%exchange%facc%provide("Input")
     end if
 
     ! geology class (geo_class_var by default "geology_class")
@@ -926,7 +932,7 @@ contains
       call self%geo_class%init( &
         path=self%exchange%get_path(self%config%input%geo_class_path(id(1))), name=self%config%input%geo_class_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%geo_unit%provided = .true. ! mark as provided in exchange
+      call self%exchange%geo_unit%provide("Input")
     end if
 
     ! soil class (soil_class_var by default "soil_class")
@@ -935,7 +941,7 @@ contains
       call self%soil_class%init( &
         path=self%exchange%get_path(self%config%input%soil_class_path(id(1))), name=self%config%input%soil_class_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%soil_id%provided = .true. ! mark as provided in exchange
+      call self%exchange%soil_id%provide("Input")
     end if
 
     ! soil horizon class (uses soil_class_var by default)
@@ -944,7 +950,7 @@ contains
       call self%soil_horizon_class%init( &
         path=self%exchange%get_path(self%config%input%soil_horizon_class_path(id(1))), name=self%config%input%soil_class_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%soil_id%provided = .true. ! mark as provided in exchange
+      call self%exchange%soil_id%provide("Input")
     end if
 
     if (self%soil_class%provided .and. self%soil_horizon_class%provided) then
@@ -957,7 +963,7 @@ contains
       call self%lai_class%init( &
         path=self%exchange%get_path(self%config%input%lai_class_path(id(1))), name=self%config%input%lai_class_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%lai_class%provided = .true. ! mark as provided in exchange
+      call self%exchange%lai_class%provide("Input")
     end if
 
     ! meteorological mask (meteo_mask_var by default "mask")
@@ -971,77 +977,77 @@ contains
     status = self%config%input%is_set("pre_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%pre%init(path=self%exchange%get_path(self%config%input%pre_path(id(1))), name=self%config%input%pre_var(id(1)))
-      self%exchange%raw_pre%provided = .true.
+      call self%exchange%raw_pre%provide("Input")
     end if
 
     ! raw PET on level2
     status = self%config%input%is_set("pet_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%pet%init(path=self%exchange%get_path(self%config%input%pet_path(id(1))), name=self%config%input%pet_var(id(1)))
-      self%exchange%raw_pet%provided = .true.
+      call self%exchange%raw_pet%provide("Input")
     end if
 
     ! raw temperature on level2
     status = self%config%input%is_set("temp_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%temp%init(path=self%exchange%get_path(self%config%input%temp_path(id(1))), name=self%config%input%temp_var(id(1)))
-      self%exchange%raw_temp%provided = .true.
+      call self%exchange%raw_temp%provide("Input")
     end if
 
     ! raw annual mean temperature on level2
     status = self%config%input%is_set("tann_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%tann%init(path=self%exchange%get_path(self%config%input%tann_path(id(1))), name=self%config%input%tann_var(id(1)), allow_static=.true.)
-      self%exchange%raw_tann%provided = .true.
+      call self%exchange%raw_tann%provide("Input")
     end if
 
     ! raw minimum temperature on level2
     status = self%config%input%is_set("tmin_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%tmin%init(path=self%exchange%get_path(self%config%input%tmin_path(id(1))), name=self%config%input%tmin_var(id(1)))
-      self%exchange%raw_tmin%provided = .true.
+      call self%exchange%raw_tmin%provide("Input")
     end if
 
     ! raw maximum temperature on level2
     status = self%config%input%is_set("tmax_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%tmax%init(path=self%exchange%get_path(self%config%input%tmax_path(id(1))), name=self%config%input%tmax_var(id(1)))
-      self%exchange%raw_tmax%provided = .true.
+      call self%exchange%raw_tmax%provide("Input")
     end if
 
     ! raw short-wave radiation on level2
     status = self%config%input%is_set("ssrd_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%ssrd%init(path=self%exchange%get_path(self%config%input%ssrd_path(id(1))), name=self%config%input%ssrd_var(id(1)))
-      self%exchange%raw_ssrd%provided = .true.
+      call self%exchange%raw_ssrd%provide("Input")
     end if
 
     ! raw long-wave radiation on level2
     status = self%config%input%is_set("strd_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%strd%init(path=self%exchange%get_path(self%config%input%strd_path(id(1))), name=self%config%input%strd_var(id(1)))
-      self%exchange%raw_strd%provided = .true.
+      call self%exchange%raw_strd%provide("Input")
     end if
 
     ! raw net radiation on level2
     status = self%config%input%is_set("netrad_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%netrad%init(path=self%exchange%get_path(self%config%input%netrad_path(id(1))), name=self%config%input%netrad_var(id(1)))
-      self%exchange%raw_netrad%provided = .true.
+      call self%exchange%raw_netrad%provide("Input")
     end if
 
     ! raw vapor pressure on level2
     status = self%config%input%is_set("eabs_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%eabs%init(path=self%exchange%get_path(self%config%input%eabs_path(id(1))), name=self%config%input%eabs_var(id(1)))
-      self%exchange%raw_eabs%provided = .true.
+      call self%exchange%raw_eabs%provide("Input")
     end if
 
     ! raw wind speed on level2
     status = self%config%input%is_set("wind_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%wind%init(path=self%exchange%get_path(self%config%input%wind_path(id(1))), name=self%config%input%wind_var(id(1)))
-      self%exchange%raw_wind%provided = .true.
+      call self%exchange%raw_wind%provide("Input")
     end if
 
     ! hydro mask (hydro_mask_var by default "mask")
@@ -1056,7 +1062,12 @@ contains
     if (status == NML_OK) then
       call self%runoff%init( &
         path=self%exchange%get_path(self%config%input%runoff_path(id(1))), name=self%config%input%runoff_var(id(1)))
-      self%exchange%runoff_total%provided = .true. ! mark as provided in exchange
+      call self%exchange%runoff_total%provide("Input")
+    end if
+    if (self%config%input%is_set("lake_definition_path", idx=id) == NML_OK) then
+      call self%exchange%lake_ids%provide("Input")
+      call self%exchange%lake_max_levels%provide("Input")
+      call self%exchange%lake_map%provide("Input")
     end if
   end subroutine input_configure
 
@@ -1111,10 +1122,10 @@ contains
     if (self%dem%provided) then
       if (self%owns_river_l0 .and. .not.associated(self%exchange%level0_lake)) then
         ! The full DEM belongs to the fdir-derived river; no land-packed view is needed without lakes.
-        self%exchange%dem%data => self%river_l0%node_elevation
+        call self%exchange%dem%publish_local("Input", self%river_l0%node_elevation, no_time)
         deallocate(self%dem%cache)
       else
-        self%exchange%dem%data => self%dem%cache(:, 1)
+        call self%exchange%dem%publish_local("Input", self%dem%cache(:, 1), no_time)
       end if
     end if
 
@@ -1138,7 +1149,7 @@ contains
           call repack_l0_dp_cache(self%exchange%level0, self%exchange%level0_land, self%slope%cache, "slope")
         self%slope%grid => self%exchange%level0_land
       end if
-      self%exchange%slope%data => self%slope%cache(:, 1) ! associate exchange variable to input cache
+      call self%exchange%slope%publish_local("Input", self%slope%cache(:, 1), no_time)
     end if
 
     ! aspect
@@ -1150,7 +1161,7 @@ contains
       init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
       call self%aspect%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid)
       call self%aspect%read_static()
-      self%exchange%aspect%data => self%aspect%cache(:, 1) ! associate exchange variable to input cache
+      call self%exchange%aspect%publish_local("Input", self%aspect%cache(:, 1), no_time)
     end if
 
     ! flow accumulation
@@ -1162,7 +1173,7 @@ contains
       init_grid = need_grid(self%tgt_level0, self%exchange%level0) ! associate grid if not yet done
       call self%facc%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
       call self%facc%read_static()
-      self%exchange%facc%data => self%facc%cache(:, 1) ! associate exchange variable to input cache
+      call self%exchange%facc%publish_local("Input", self%facc%cache(:, 1), no_time)
     end if
 
     ! geology class
@@ -1174,7 +1185,7 @@ contains
       init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
       call self%geo_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid)
       call self%geo_class%read_static()
-      self%exchange%geo_unit%data => self%geo_class%cache(:, 1) ! associate exchange variable to input cache
+      call self%exchange%geo_unit%publish_local("Input", self%geo_class%cache(:, 1), no_time)
     end if
 
     ! soil class
@@ -1190,7 +1201,7 @@ contains
         if (allocated(self%soil_class_one_layer)) deallocate(self%soil_class_one_layer)
         allocate(self%soil_class_one_layer(size(self%soil_class%cache, 1), 1))
         self%soil_class_one_layer(:, 1) = self%soil_class%cache(:, 1)
-        self%exchange%soil_id%data => self%soil_class_one_layer ! map single-layer soil class to 2D exchange shape
+        call self%exchange%soil_id%publish_local("Input", self%soil_class_one_layer, no_time)
       end if
     end if
 
@@ -1204,7 +1215,7 @@ contains
       call self%soil_horizon_class%open_dataset( &
         kind="i4", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid, layered=.true.)
       call self%soil_horizon_class%read_static()
-      self%exchange%soil_id%data => self%soil_horizon_class%cache(:, :, 1) ! associate exchange variable to input cache
+      call self%exchange%soil_id%publish_local("Input", self%soil_horizon_class%cache(:, :, 1), no_time)
     end if
 
     ! LAI class
@@ -1216,7 +1227,7 @@ contains
       init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
       call self%lai_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid)
       call self%lai_class%read_static()
-      self%exchange%lai_class%data => self%lai_class%cache(:, 1) ! associate exchange variable to input cache
+      call self%exchange%lai_class%publish_local("Input", self%lai_class%cache(:, 1), no_time)
     end if
 
     ! meteorological mask
@@ -1240,7 +1251,7 @@ contains
       call sync_input_var_meta(self%pre, self%exchange%raw_pre)
       if (self%pre%static) then
         call self%pre%read_static()
-        self%exchange%raw_pre%data => self%pre%cache(:, 1)
+        call self%exchange%raw_pre%publish_local("Input", self%pre%cache(:, 1), self%pre%stepping)
       end if
     end if
 
@@ -1254,7 +1265,7 @@ contains
       call sync_input_var_meta(self%pet, self%exchange%raw_pet)
       if (self%pet%static) then
         call self%pet%read_static()
-        self%exchange%raw_pet%data => self%pet%cache(:, 1)
+        call self%exchange%raw_pet%publish_local("Input", self%pet%cache(:, 1), self%pet%stepping)
       end if
     end if
 
@@ -1268,7 +1279,7 @@ contains
       call sync_input_var_meta(self%temp, self%exchange%raw_temp)
       if (self%temp%static) then
         call self%temp%read_static()
-        self%exchange%raw_temp%data => self%temp%cache(:, 1)
+        call self%exchange%raw_temp%publish_local("Input", self%temp%cache(:, 1), self%temp%stepping)
       end if
     end if
 
@@ -1282,7 +1293,7 @@ contains
       call sync_input_var_meta(self%tann, self%exchange%raw_tann)
       if (self%tann%static) then
         call self%tann%read_static()
-        self%exchange%raw_tann%data => self%tann%cache(:, 1)
+        call self%exchange%raw_tann%publish_local("Input", self%tann%cache(:, 1), self%tann%stepping)
       end if
     end if
 
@@ -1296,7 +1307,7 @@ contains
       call sync_input_var_meta(self%tmin, self%exchange%raw_tmin)
       if (self%tmin%static) then
         call self%tmin%read_static()
-        self%exchange%raw_tmin%data => self%tmin%cache(:, 1)
+        call self%exchange%raw_tmin%publish_local("Input", self%tmin%cache(:, 1), self%tmin%stepping)
       end if
     end if
 
@@ -1310,7 +1321,7 @@ contains
       call sync_input_var_meta(self%tmax, self%exchange%raw_tmax)
       if (self%tmax%static) then
         call self%tmax%read_static()
-        self%exchange%raw_tmax%data => self%tmax%cache(:, 1)
+        call self%exchange%raw_tmax%publish_local("Input", self%tmax%cache(:, 1), self%tmax%stepping)
       end if
     end if
 
@@ -1324,7 +1335,7 @@ contains
       call sync_input_var_meta(self%ssrd, self%exchange%raw_ssrd)
       if (self%ssrd%static) then
         call self%ssrd%read_static()
-        self%exchange%raw_ssrd%data => self%ssrd%cache(:, 1)
+        call self%exchange%raw_ssrd%publish_local("Input", self%ssrd%cache(:, 1), self%ssrd%stepping)
       end if
     end if
 
@@ -1338,7 +1349,7 @@ contains
       call sync_input_var_meta(self%strd, self%exchange%raw_strd)
       if (self%strd%static) then
         call self%strd%read_static()
-        self%exchange%raw_strd%data => self%strd%cache(:, 1)
+        call self%exchange%raw_strd%publish_local("Input", self%strd%cache(:, 1), self%strd%stepping)
       end if
     end if
 
@@ -1352,7 +1363,7 @@ contains
       call sync_input_var_meta(self%netrad, self%exchange%raw_netrad)
       if (self%netrad%static) then
         call self%netrad%read_static()
-        self%exchange%raw_netrad%data => self%netrad%cache(:, 1)
+        call self%exchange%raw_netrad%publish_local("Input", self%netrad%cache(:, 1), self%netrad%stepping)
       end if
     end if
 
@@ -1366,7 +1377,7 @@ contains
       call sync_input_var_meta(self%eabs, self%exchange%raw_eabs)
       if (self%eabs%static) then
         call self%eabs%read_static()
-        self%exchange%raw_eabs%data => self%eabs%cache(:, 1)
+        call self%exchange%raw_eabs%publish_local("Input", self%eabs%cache(:, 1), self%eabs%stepping)
       end if
     end if
 
@@ -1380,7 +1391,7 @@ contains
       call sync_input_var_meta(self%wind, self%exchange%raw_wind)
       if (self%wind%static) then
         call self%wind%read_static()
-        self%exchange%raw_wind%data => self%wind%cache(:, 1)
+        call self%exchange%raw_wind%publish_local("Input", self%wind%cache(:, 1), self%wind%stepping)
       end if
     end if
 
@@ -1591,34 +1602,6 @@ contains
     class(input_t), target, intent(inout) :: self
     log_info(*) "Initialize Input"
     scope_info(s,*) "Initialize input time windows with chunking: ", n2s(self%chunking)
-    ! warn about provided but not required variables, since this likely indicates a configuration issue
-    if (self%facc%provided .and. .not.self%exchange%facc%required) then
-      log_warn(*) "Input: flow accumulation provided but not required. Check your configuration."
-    end if
-    if (self%dem%provided .and. .not.self%exchange%dem%required .and. &
-        .not.associated(self%exchange%level0_lake)) then
-      log_warn(*) "Input: DEM provided but not required. Check your configuration."
-    end if
-    if (self%slope%provided .and. .not.self%exchange%slope%required .and. &
-        .not.(self%owns_river_l0 .and. allocated(self%river_l0%link_slope))) then
-      log_warn(*) "Input: slope provided but not required. Check your configuration."
-    end if
-    if (self%aspect%provided .and. .not.self%exchange%aspect%required) then
-      log_warn(*) "Input: aspect provided but not required. Check your configuration."
-    end if
-    if (self%geo_class%provided .and. .not.self%exchange%geo_unit%required) then
-      log_warn(*) "Input: geology class provided but not required. Check your configuration."
-    end if
-    if ((self%soil_class%provided .or. self%soil_horizon_class%provided) .and. .not.self%exchange%soil_id%required) then
-      log_warn(*) "Input: soil class provided but not required. Check your configuration."
-    end if
-    if (self%lai_class%provided .and. .not.self%exchange%lai_class%required) then
-      log_warn(*) "Input: LAI class provided but not required. Check your configuration."
-    end if
-    if (self%runoff%provided .and. .not.self%exchange%runoff_total%required) then
-      log_warn(*) "Input: runoff provided but not required. Check your configuration."
-    end if
-    if (.not. self%exchange%runoff_total%required) self%runoff%provided = .false.
     call self%pre%reset_time(self%chunking, self%exchange%start_time)
     call self%pet%reset_time(self%chunking, self%exchange%start_time)
     call self%temp%reset_time(self%chunking, self%exchange%start_time)
@@ -1667,24 +1650,14 @@ contains
     if (self%wind%provided .and. .not.self%wind%static) call self%wind%ds%close()
     if (self%runoff%provided) call self%runoff%ds%close()
     if (allocated(self%soil_class_one_layer)) deallocate(self%soil_class_one_layer)
-    if (associated(self%exchange%lake_points, self%lake_outlets)) then
-      call self%exchange%lake_ids%clear(owned=.true.)
-      call self%exchange%lake_max_levels%clear(owned=.true.)
-      nullify(self%exchange%lake_points)
-    end if
     self%lake_outlets = points_t()
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
     if (self%owns_lake_map) then
-      call self%exchange%lake_map%clear(owned=.true.)
       self%owns_lake_map = .false.
     end if
     if (allocated(self%lake_map)) deallocate(self%lake_map)
     if (allocated(self%lake_max_levels)) deallocate(self%lake_max_levels)
-    nullify(self%exchange%level0_lake)
-    nullify(self%exchange%level0_land)
     if (self%owns_river_l0) then
-      call self%exchange%fdir%clear(owned=.true.)
-      if (associated(self%exchange%river_l0, self%river_l0)) nullify(self%exchange%river_l0)
       call self%river_l0%clean()
       self%owns_river_l0 = .false.
     end if

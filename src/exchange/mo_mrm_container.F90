@@ -85,6 +85,7 @@ module mo_mrm_container
   contains
     procedure :: set_dims => mrm_set_dims
     procedure :: configure => mrm_configure
+    procedure :: prepare_restart => mrm_prepare_restart
     procedure :: connect => mrm_connect
     procedure :: initialize => mrm_initialize
     procedure :: update => mrm_update
@@ -112,6 +113,16 @@ module mo_mrm_container
   end type mrm_t
 
 contains
+
+  !> \brief Prepare restart-owned routing definition before field connection.
+  subroutine mrm_prepare_restart(self)
+    class(mrm_t), intent(inout), target :: self
+    if (.not.self%read_restart) return
+    call self%level3%from_restart(self%restart_input_path)
+    call self%river%from_restart_file(self%restart_input_path, self%level3)
+    self%exchange%level3 => self%level3
+    self%exchange%river_l3 => self%river
+  end subroutine mrm_prepare_restart
 
   !> \brief Derive the relation between a fixed-hour mRM output cadence and completed routing results.
   subroutine derive_mrm_output_timing(routing_step, output_frequency, routing_results, output_records, status)
@@ -258,6 +269,24 @@ contains
       log_fatal(*) "mRM config not valid: ", trim(errmsg)
       error stop 1
     end if
+    self%read_restart = self%config%read_restart(id(1))
+    self%write_restart = self%config%write_restart(id(1))
+    if (self%read_restart) then
+      status = self%config%is_set("restart_input_path", idx=id, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "mRM restart input path not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
+        error stop 1
+      end if
+      self%restart_input_path = self%exchange%get_path(self%config%restart_input_path(id(1)))
+    end if
+    if (self%write_restart) then
+      status = self%config%is_set("restart_output_path", idx=id, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "mRM restart output path not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
+        error stop 1
+      end if
+      self%restart_output_path = self%exchange%get_path(self%config%restart_output_path(id(1)))
+    end if
 
     ! output
     self%output_active = .true.
@@ -329,6 +358,8 @@ contains
         log_fatal(*) "mRM routing case ", n2s(case), " not implemented."
         error stop 1
     end select
+    call self%exchange%discharge%provide("mRM")
+    if (self%exchange%config%processes%lake /= 0_i4) call self%exchange%lake_inflow%provide("mRM")
   end subroutine mrm_configure
 
   !> \brief Read selected mRM parameter namelists and register them in execution order.
@@ -423,7 +454,6 @@ contains
     logical                     :: const_celerity, poi_gauges_set, had_restart_pois, read_scc, scc_gauges_as_poi, has_lakes, lake_routing
     integer(i4)                 :: model_step
 
-    integer :: status
     character(1024) :: errmsg
 
     log_info(*) "Connect mRM"
@@ -441,20 +471,6 @@ contains
     end if
     ! check routing case
     const_celerity = (self%exchange%config%processes%routing == 2_i4)
-    ! get restart setting
-    self%read_restart = self%config%read_restart(id(1))
-    self%write_restart = self%config%write_restart(id(1))
-    if (self%read_restart) then
-      status = self%config%is_set("restart_input_path", idx=id, errmsg=errmsg)
-      if (status /= NML_OK) call error_message("mRM restart input path not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg))
-      self%restart_input_path = self%exchange%get_path(self%config%restart_input_path(id(1)))
-    end if
-    if (self%write_restart) then
-      status = self%config%is_set("restart_output_path", idx=id, errmsg=errmsg)
-      if (status /= NML_OK) call error_message("mRM restart output path not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg))
-      self%restart_output_path = self%exchange%get_path(self%config%restart_output_path(id(1)))
-    end if
-
     has_lakes = self%exchange%lake_ids%provided
     n_lakes = 0_i4
     allocate(scc_nodes(0), lake_nodes(0), lake_ids(0))
@@ -472,7 +488,7 @@ contains
           log_fatal(*) "mRM: lake point set not provided."
           error stop 1
         end if
-        call self%exchange%lake_ids%require("mRM", .true., [self%exchange%lake_points%n_points])
+        call self%exchange%check_data(self%exchange%lake_ids, "mRM")
         if (.not.allocated(self%exchange%river_l0%lake_outlet_nodes)) then
           log_fatal(*) "mRM: lake definitions require L0 river outlet nodes."
           error stop 1
@@ -492,7 +508,7 @@ contains
           log_fatal(*) "mRM: stable lake IDs do not match the level-0 lake outlets."
           error stop 1
         end if
-        call self%exchange%lake_outflow%require("mRM", .true., [int(n_lakes, i8)])
+        call self%exchange%check_data(self%exchange%lake_outflow, "mRM")
         if (self%exchange%lake_outflow%stepping /= 1_i4) then
           log_fatal(*) "mRM: lake outflow must have one-hour support."
           error stop 1
@@ -501,7 +517,7 @@ contains
     end if
 
     ! Runoff may be provided by dynamic input and connected during update.
-    call self%exchange%runoff_total%require("mRM", .true., check_data=.false.)
+    call self%exchange%runoff_total%check_provided("mRM")
     if (.not.self%read_restart) then
       if (.not.associated(self%exchange%river_l0)) then
         log_fatal(*) "mRM: level-0 river not provided."
@@ -516,16 +532,14 @@ contains
     end if
 
     ! derive level-3 grid
-    if (self%read_restart) then
-      scope_info(s,*) "Read mRM grid from restart file: ", self%restart_input_path
-      call self%level3%from_restart(self%restart_input_path)
-    else
+    if (.not.self%read_restart) then
       if (.not.ieee_is_finite(self%exchange%level3_resolution) .or. self%exchange%level3_resolution <= 0.0_dp) then
         log_fatal(*) "mRM: level3 resolution not configured (expected from config_resolution/route)."
         error stop 1
       end if
       scope_info(s,*) "Derive mRM grid from level-0 grid with resolution: ", self%exchange%level3_resolution
       call self%exchange%level0%gen_grid(self%level3, target_resolution=self%exchange%level3_resolution)
+      self%exchange%level3 => self%level3
     end if
     ! if (self%level3%has_aux_coords()) call self%level3%estimate_aux_vertices()
     if (associated(self%exchange%level0)) then
@@ -540,15 +554,14 @@ contains
     scope_debug(s,*) "level3 cellsize", n2s(self%level3%cellsize)
 
     ! create rivers
-    if (self%read_restart) then
-      call self%river%from_restart_file(self%restart_input_path, self%level3)
-    else if (is_close(self%level3%cellsize, self%exchange%level0%cellsize) .and. .not.read_scc .and. .not.has_lakes) then
+    if (.not.self%read_restart) then
+      if (is_close(self%level3%cellsize, self%exchange%level0%cellsize) .and. .not.read_scc .and. .not.has_lakes) then
       ! TODO: the upscaler should handle also the case of no upscaling (level0 == level11)
       scope_info(s,*) "level-0 and level-3 river network are equal of size:", n2s(self%exchange%level3%ncells)
       call self%river%from_fdir(self%exchange%river_l0%fdir, self%level3)
       if (allocated(self%exchange%river_l0%link_slope)) &
         call self%river%set_link_slope(self%exchange%river_l0%link_slope)
-    else
+      else
       ! Snap ordinary SCC gauges once. Lake outlets are already snapped and published by input.
       if (read_scc) then
         file = self%exchange%get_path(self%config%scc_gauges_path(id(1)))
@@ -577,6 +590,8 @@ contains
         length_percentile  = self%config%length_percentile(id(1)), &
         diagnostics_path   = diagnostics_path, &  ! if un-allocated, this is interpreted as not present, so no diagnostics are written
         retain_stream_mask = self%exchange%config%processes%routing == 3_i4)
+      end if
+      self%exchange%river_l3 => self%river
     end if
 
     lake_routing = has_lakes
@@ -588,10 +603,10 @@ contains
           log_fatal(*) "mRM: lake-aware restart requires published lake points and stable lake IDs."
           error stop 1
         end if
-        call self%exchange%lake_ids%require("mRM", .true., [self%exchange%lake_points%n_points])
+        call self%exchange%check_data(self%exchange%lake_ids, "mRM")
         lake_ids = self%exchange%lake_ids%data
         n_lakes = size(lake_ids, kind=i4)
-        call self%exchange%lake_outflow%require("mRM", .true., [int(n_lakes, i8)])
+        call self%exchange%check_data(self%exchange%lake_outflow, "mRM")
         if (self%exchange%lake_outflow%stepping /= 1_i4) then
           log_fatal(*) "mRM: lake outflow must have one-hour support."
           error stop 1
@@ -601,7 +616,7 @@ contains
           log_fatal(*) "mRM: published lake IDs require a lake point set."
           error stop 1
         end if
-        call self%exchange%lake_ids%require("mRM", .true., [self%exchange%lake_points%n_points])
+        call self%exchange%check_data(self%exchange%lake_ids, "mRM")
         lake_ids = self%exchange%lake_ids%data
       end if
     end if
@@ -650,7 +665,6 @@ contains
     ! populate exchange type
     allocate(self%discharge(self%river%n_nodes))
     call self%exchange%discharge%publish_local("mRM", self%discharge, model_step)
-    self%exchange%level3 => self%level3
   end subroutine mrm_connect
 
   !> \brief Read POIs, preserve their station IDs, and select nearest river nodes in one batch.
@@ -1348,19 +1362,6 @@ contains
       log_info(*) "No mRM POI output file will be written"
     end if
   end subroutine mrm_finalize
-
-  subroutine mrm_cleanup(self)
-    class(mrm_t), intent(inout), target :: self
-    log_info(*) "Cleanup mRM"
-    ! deallocate arrays, close files, ...
-    call self%upscaler%destroy()
-    if (allocated(self%celerity)) deallocate(self%celerity)
-    if (allocated(self%lake_inflow)) deallocate(self%lake_inflow)
-    if (allocated(self%lake_ids)) deallocate(self%lake_ids)
-    if (allocated(self%lake_nodes)) deallocate(self%lake_nodes)
-    if (associated(self%exchange%level3_land, self%level3_land)) nullify(self%exchange%level3_land)
-    call self%exchange%lake_inflow%clear(owned=.true.)
-  end subroutine mrm_cleanup
 
   subroutine mrm_create_output(self)
     use mo_grid_io, only: var, time_units_delta
