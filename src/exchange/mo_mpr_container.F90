@@ -1861,12 +1861,12 @@ contains
     end if
 
     nc = NcDataset(self%restart_input_path, "r")
-    call restart_grid%from_restart(nc)
     ! Restart mode either validates the existing level1 grid or bootstraps it from the restart payload.
     if (associated(self%exchange%level1_land)) then
+      call restart_grid%from_restart(nc)
       call self%validate_restart_grid(restart_grid)
     else
-      self%tgt_level1_land = restart_grid
+      call self%tgt_level1_land%from_restart(nc)
       self%exchange%level1_land => self%tgt_level1_land
       log_info(*) "MPR restart: bootstrap level1 grid from restart file."
     end if
