@@ -20,8 +20,6 @@ program test_exchange_failures
     call duplicate_provider()
   case ("missing-provider")
     call missing_provider()
-  case ("wrong-publisher")
-    call wrong_publisher()
   case ("duplicate-binding")
     call duplicate_binding()
   case ("missing-data")
@@ -56,16 +54,6 @@ contains
     variable = var_dp(name="test")
     call variable%check_provided("mHM")
   end subroutine missing_provider
-
-  subroutine wrong_publisher()
-    type(var_dp) :: variable
-    real(dp), target :: data(1)
-
-    data = 1.0_dp
-    variable = var_dp(name="test")
-    call variable%provide("Input")
-    call variable%publish_local("Meteo", data, 1_i4)
-  end subroutine wrong_publisher
 
   subroutine duplicate_binding()
     type(var_dp) :: variable

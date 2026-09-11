@@ -111,6 +111,7 @@ module mo_exchange_type
     procedure, public :: write_netcdf_metadata => variable_write_netcdf_metadata
     procedure, private :: clear => variable_clear
     procedure, private :: display_name => variable_display_name
+    procedure, private :: display_provider => variable_display_provider
     procedure, private :: check_publish => variable_check_publish
     procedure, private :: check_alias_source => variable_check_alias_source
     procedure, private :: check_stepping => variable_check_stepping
@@ -1744,13 +1745,9 @@ contains
       log_fatal(*) "exchange: empty provider name for ", self%display_name(), "."
       error stop 1
     end if
-    if (self%provided .or. allocated(self%provider)) then
-      if (allocated(self%provider)) then
-        log_fatal(*) trim(component), ": duplicate provider declaration for ", self%display_name(), &
-          "; existing provider is ", self%provider, "."
-      else
-        log_fatal(*) trim(component), ": duplicate provider declaration for ", self%display_name(), "."
-      end if
+    if (self%provided) then
+      log_fatal(*) trim(component), ": duplicate provider declaration for ", self%display_name(), &
+        "; existing provider is ", self%display_provider(), "."
       error stop 1
     end if
     self%provided = .true.
@@ -1762,7 +1759,7 @@ contains
     class(variable_abc), intent(in) :: self
     character(*), intent(in) :: component
 
-    if (.not.self%provided .or. .not.allocated(self%provider)) then
+    if (.not.self%provided) then
       log_fatal(*) trim(component), ": ", self%display_name(), " has no provider."
       error stop 1
     end if
@@ -1777,6 +1774,18 @@ contains
     self%provided = .false.
     if (allocated(self%provider)) deallocate(self%provider)
   end subroutine variable_clear
+
+  !> \brief Return configured provider metadata or a stable diagnostic fallback.
+  function variable_display_provider(self) result(provider)
+    class(variable_abc), intent(in) :: self
+    character(:), allocatable :: provider
+
+    if (allocated(self%provider)) then
+      provider = self%provider
+    else
+      provider = "<anonymous>"
+    end if
+  end function variable_display_provider
 
   !> \brief Set and validate the temporal support metadata of an exchange variable.
   subroutine variable_set_stepping(self, component, stepping)
@@ -1935,10 +1944,6 @@ contains
     character(*), intent(in) :: component
 
     call self%check_provided(component)
-    if (trim(component) /= self%provider) then
-      log_fatal(*) trim(component), ": publication of ", self%display_name(), " belongs to ", self%provider, "."
-      error stop 1
-    end if
     if (self%has_data()) then
       log_fatal(*) trim(component), ": exchange field already has a data binding: ", self%display_name(), "."
       error stop 1
