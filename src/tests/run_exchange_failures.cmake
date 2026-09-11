@@ -20,7 +20,6 @@ function(expect_exchange_failure scenario diagnostic)
   endif()
 endfunction()
 
-expect_exchange_failure(empty-provider "exchange: empty provider name for test.")
 expect_exchange_failure(duplicate-provider "Meteo: duplicate provider declaration for test; existing provider is Input.")
 expect_exchange_failure(missing-provider "mHM: test has no provider.")
 expect_exchange_failure(duplicate-binding "Input: exchange field already has a data binding: test.")

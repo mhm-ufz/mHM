@@ -111,7 +111,6 @@ module mo_exchange_type
     procedure, public :: write_netcdf_metadata => variable_write_netcdf_metadata
     procedure, private :: clear => variable_clear
     procedure, private :: display_name => variable_display_name
-    procedure, private :: display_provider => variable_display_provider
     procedure, private :: check_publish => variable_check_publish
     procedure, private :: check_alias_source => variable_check_alias_source
     procedure, private :: check_stepping => variable_check_stepping
@@ -1739,19 +1738,27 @@ contains
   !> \brief Declare the sole configure-time provider of this exchange field.
   subroutine variable_provide(self, component)
     class(variable_abc), intent(inout) :: self
-    character(*), intent(in) :: component
+    character(*), optional, intent(in) :: component
+    logical :: has_label
 
-    if (len_trim(component) == 0) then
-      log_fatal(*) "exchange: empty provider name for ", self%display_name(), "."
-      error stop 1
-    end if
+    has_label = .false.
+    if (present(component)) has_label = len_trim(component) > 0
     if (self%provided) then
-      log_fatal(*) trim(component), ": duplicate provider declaration for ", self%display_name(), &
-        "; existing provider is ", self%display_provider(), "."
+      if (has_label .and. allocated(self%provider)) then
+        log_fatal(*) trim(component), ": duplicate provider declaration for ", self%display_name(), &
+          "; existing provider is ", self%provider, "."
+      else if (has_label) then
+        log_fatal(*) trim(component), ": duplicate provider declaration for ", self%display_name(), "."
+      else if (allocated(self%provider)) then
+        log_fatal(*) "duplicate provider declaration for ", self%display_name(), &
+          "; existing provider is ", self%provider, "."
+      else
+        log_fatal(*) "duplicate provider declaration for ", self%display_name(), "."
+      end if
       error stop 1
     end if
     self%provided = .true.
-    self%provider = trim(component)
+    if (has_label) self%provider = trim(component)
   end subroutine variable_provide
 
   !> \brief Check that a local consumer has a declared provider.
@@ -1774,18 +1781,6 @@ contains
     self%provided = .false.
     if (allocated(self%provider)) deallocate(self%provider)
   end subroutine variable_clear
-
-  !> \brief Return configured provider metadata or a stable diagnostic fallback.
-  function variable_display_provider(self) result(provider)
-    class(variable_abc), intent(in) :: self
-    character(:), allocatable :: provider
-
-    if (allocated(self%provider)) then
-      provider = self%provider
-    else
-      provider = "<anonymous>"
-    end if
-  end function variable_display_provider
 
   !> \brief Set and validate the temporal support metadata of an exchange variable.
   subroutine variable_set_stepping(self, component, stepping)

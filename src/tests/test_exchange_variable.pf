@@ -27,6 +27,7 @@ contains
   subroutine test_var_dp_contract()
     type(var_dp) :: variable
     type(var_dp) :: dynamic_source
+    type(var_dp) :: unlabelled_source
     real(dp), target :: local(3)
 
     local = [1.0_dp, 2.0_dp, 3.0_dp]
@@ -48,6 +49,11 @@ contains
     call dynamic_source%set_stepping("test", 1_i4)
     call dynamic_source%check_provided("test")
     @assertEqual(.false., dynamic_source%has_data(), message='var_dp source-only require does not need data')
+
+    unlabelled_source = var_dp(name="unlabelled_source")
+    call unlabelled_source%provide()
+    @assertTrue(unlabelled_source%provided, message='var_dp accepts an unlabelled provider declaration')
+    @assertFalse(allocated(unlabelled_source%provider), message='unlabelled declaration stores no provider metadata')
   end subroutine test_var_dp_contract
 
   @test

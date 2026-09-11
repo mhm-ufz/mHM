@@ -14,8 +14,6 @@ program test_exchange_failures
   call get_command_argument(1, scenario)
 
   select case (trim(scenario))
-  case ("empty-provider")
-    call empty_provider()
   case ("duplicate-provider")
     call duplicate_provider()
   case ("missing-provider")
@@ -32,13 +30,6 @@ program test_exchange_failures
   write(error_unit, '(a)') "exchange failure scenario unexpectedly succeeded: " // trim(scenario)
 
 contains
-
-  subroutine empty_provider()
-    type(var_dp) :: variable
-
-    variable = var_dp(name="test")
-    call variable%provide("")
-  end subroutine empty_provider
 
   subroutine duplicate_provider()
     type(var_dp) :: variable
