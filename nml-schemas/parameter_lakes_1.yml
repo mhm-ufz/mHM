@@ -9,9 +9,9 @@ properties:
     x-fortran-shape: [n_domains, n_lakes]
     items:
       $ref: parameter.yml#/$defs/parameter
-      default: {min: 2.64, max: 3.95}
+      default: {min: 1.4, max: 3.00}
       properties:
-        value: {examples: [3.0]}
+        value: {examples: [2.0]}
         optimize: {examples: [true]}
   spill_exponent:
     title: Spill exponent
