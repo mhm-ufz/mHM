@@ -32,7 +32,7 @@
 !! 32. SO: Q:        SSE of boxcox-transformed streamflow
 !! 48. SO: Q:        1.0 - KGEprime (modified/prime KGE, Kling et al. 2012)
 !! 49. SO: Q:        1.0 - KGEnp (non-parametric KGE, Pool et al. 2018)
-!! 50. SO: Q:        1.0 - JDKGE (Joint Divergence KGE, Ficchi et al. 2026)
+!! 52. SO: Q:        1.0 - JDKGE (Joint Divergence KGE, Ficchi et al. 2026)
 !> \changelog
 !! - Stephan Thober             Oct 2015
 !!   - adapted for mRM
@@ -53,7 +53,7 @@
 !! - Ehsan Modiri               Aug 2026
 !!   - added OF 48: KGEprime (modified/prime KGE, Kling et al. 2012)
 !!   - added OF 49: KGEnp (non-parametric KGE, Pool et al. 2018)
-!!   - added OF 50: JDKGE (Joint Divergence KGE, Ficchi et al. 2026)
+!!   - added OF 52: JDKGE (Joint Divergence KGE, Ficchi et al. 2026)
 !> \authors Juliane Mai
 !> \date Dec 2012
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
@@ -191,7 +191,7 @@ CONTAINS
     case (49)
       ! KGEnp
       single_objective_runoff = objective_kgenp(parameterset, eval)
-    case (50)
+    case (52)
       ! JDKGE
       single_objective_runoff = objective_jdkge(parameterset, eval)
     case (14)
@@ -285,7 +285,7 @@ CONTAINS
     !write(*,*) 'parameterset: ',parameterset(:)
     call distribute_parameterset(parameterset)
     select case (opti_function)
-    case(1 : 3, 5, 6, 9, 31, 48, 49, 50)
+    case(1 : 3, 5, 6, 9, 31, 48, 49, 52)
       call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
       single_objective_runoff_master = 0.0_dp
       do iproc = 1, nproc - 1
@@ -340,7 +340,7 @@ CONTAINS
     case (49)
       ! KGEnp
       call message('objective_kgenp (i.e., 1 - KGEnp) = ', num2str(single_objective_runoff_master))
-    case (50)
+    case (52)
       ! JDKGE
       call message('objective_jdkge (i.e., 1 - JDKGE) = ', num2str(single_objective_runoff_master))
     case (14)
@@ -483,7 +483,7 @@ CONTAINS
       case (49)
         ! KGEnp
         partial_single_objective_runoff = objective_kgenp(parameterset, eval)
-      case (50)
+      case (52)
         ! JDKGE
         partial_single_objective_runoff = objective_jdkge(parameterset, eval)
       case (14)
@@ -502,7 +502,7 @@ CONTAINS
       end select
 
       select case (opti_function)
-      case (1 : 3, 5, 6, 9, 14, 31, 48, 49, 50)
+      case (1 : 3, 5, 6, 9, 14, 31, 48, 49, 52)
         call MPI_Send(partial_single_objective_runoff,1, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
         call error_message("Error objective_subprocess: this part should not be executed -> error in the code.")
