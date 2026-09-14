@@ -121,6 +121,132 @@ properties:
       field (netCDF).
       - if true : lake_filename_Demand_<demandtype> must be provided for each activated use flag.
       - if false : demand field netCDF files must be present in the demand input folder.
+  bathymetry_type:
+    type: array
+    items:
+      type: integer
+      x-fortran-kind: i4
+      enum: [0, 1, 2]
+      default: 0
+    x-fortran-shape: [n_domains, n_lakes]
+    title: Lake hAV curve type
+    description: |-
+      Type of height-area-volume (hAV) relation used per lake.
+      - 0 : input bathymetry curves (bathymetry_filename must be provided).
+      - 1 : linear h~V relation with constant area.
+      - 2 : Liebe (2005), one half of a pyramid with square base cut diagonally at the base.
+  natural:
+    type: array
+    items:
+      type: boolean
+      default: true
+    x-fortran-shape: [n_domains, n_lakes]
+    title: Natural lake flag
+    description: |-
+      Whether the lake is a naturally existing lake (true) or an artificial reservoir (false).
+      A natural lake cannot have a commission date and its water elevation may rise above the
+      dam crest level to produce spill; a reservoir's elevation is capped at the dam crest level.
+  use_watersupply:
+    type: array
+    items:
+      type: boolean
+      default: false
+    x-fortran-shape: [n_domains, n_lakes]
+    title: Water-supply use flag
+    description: Enable consumptive water-supply use for the lake.
+  use_irrigation:
+    type: array
+    items:
+      type: boolean
+      default: false
+    x-fortran-shape: [n_domains, n_lakes]
+    title: Irrigation use flag
+    description: Enable consumptive irrigation use for the lake.
+  service_distance:
+    type: array
+    items:
+      type: number
+      x-fortran-kind: dp
+      default: 600.0
+    x-fortran-shape: [n_domains, n_lakes]
+    title: Downstream service distance [km]
+    description: |-
+      Downstream distance over which the reservoir provides irrigation and water-supply service.
+      If not defined or set to -9999, a default value of 600 km is used.
+  bathymetry_filename:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: [n_domains, n_lakes]
+    title: Lake bathymetry file
+    description: |-
+      Name of the file with the lake bathymetry table. Required when bathymetry_type is 0.
+      The table must have non-repeating values in ascending order (lower to higher elevations).
+  release_target_filename:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: [n_domains, n_lakes]
+    title: Release target file
+    description: Name of the file with the downstream lake release-target discharge time series.
+  watersupply_demand_filename:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: [n_domains, n_lakes]
+    title: Water-supply demand file
+    description: Name of the file with the water-supply demand discharge time series.
+  irrigation_demand_filename:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: [n_domains, n_lakes]
+    title: Irrigation demand file
+    description: Name of the file with the irrigation demand discharge time series.
+  ibt_filename:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: [n_domains, n_lakes]
+    title: Inter-basin transfer file
+    description: Name of the file with the optional inter-basin transfer inflow time series.
+  level_filename:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: [n_domains, n_lakes]
+    title: Observed water-level file
+    description: Name of the file with the observed lake water-level time series.
+  area_filename:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: [n_domains, n_lakes]
+    title: Observed surface-area file
+    description: Name of the file with the observed lake surface-area time series.
+  spill_filename:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: [n_domains, n_lakes]
+    title: Observed spill file
+    description: Name of the file with the observed lake spill time series.
   print_lake_maps:
     type: boolean
     default: true
