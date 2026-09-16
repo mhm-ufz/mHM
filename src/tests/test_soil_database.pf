@@ -1,0 +1,265 @@
+module test_soil_database
+  use funit
+  use mo_soil_database, only: calc_horizon_weights
+  use mo_kind, only: dp, i4
+
+  implicit none
+
+  private
+
+  public :: test_weights_identity, test_weights_merge, test_weights_split, &
+            test_weights_coarse_input, test_weights_data_below_column, &
+            test_weights_data_straddles_bottom, test_weights_thin_horizons, &
+            test_weights_soilgrids, test_weights_single_horizon
+
+  real(dp) :: t = 0.001_dp
+
+contains
+
+  ! Largest deviation of a modelling horizon's weights from one. Every modelling
+  ! horizon has to take its whole thickness from the input data - the sum-to-one
+  ! check in generate_soil_database relies on it.
+  function sum_deviation(Wd) result(dev)
+
+    real(dp), dimension(:, :), intent(in) :: Wd
+    real(dp) :: dev
+
+    integer(i4) :: jj
+
+    dev = 0.0_dp
+    do jj = 1, size(Wd, 1)
+      dev = max(dev, abs(sum(Wd(jj, :)) - 1.0_dp))
+    end do
+
+  end function sum_deviation
+
+  ! Most negative weight, or zero if there is none. An overlap is clamped at
+  ! zero, so a weight can never become negative.
+  function min_weight(Wd) result(w)
+
+    real(dp), dimension(:, :), intent(in) :: Wd
+    real(dp) :: w
+
+    w = min(0.0_dp, minval(Wd))
+
+  end function min_weight
+
+  @test
+  subroutine test_weights_identity()
+
+    ! input data are given on the modelled horizons themselves, no mixing
+    ! soil_data_depth = 200, 1000 ; soil_Depth = 200, 1000
+    real(dp), dimension(:, :), allocatable :: res_Wd
+
+    call calc_horizon_weights([200.0_dp, 1000.0_dp], [200.0_dp, 1000.0_dp], res_Wd)
+
+    @assertEqual(2, size(res_Wd, 1), message='identity: number of modelled horizons')
+    @assertEqual(2, size(res_Wd, 2), message='identity: number of input horizons')
+    @assertEqual([1.0_dp, 0.0_dp], res_Wd(1, :), tolerance=t, message='identity: horizon 1')
+    @assertEqual([0.0_dp, 1.0_dp], res_Wd(2, :), tolerance=t, message='identity: horizon 2')
+    @assertEqual(0.0_dp, sum_deviation(res_Wd), tolerance=t, message='identity: weights sum up to one')
+    @assertEqual(0.0_dp, min_weight(res_Wd), tolerance=t, message='identity: no negative weight')
+
+    deallocate (res_Wd)
+
+  end subroutine test_weights_identity
+
+  @test
+  subroutine test_weights_merge()
+
+    ! modelled horizons are merges of whole input horizons - the only layering
+    ! that was accepted before the coinciding-depths restriction was dropped
+    ! soil_data_depth = 50, 150, 300 ; soil_Depth = 150, 300
+    real(dp), dimension(:, :), allocatable :: res_Wd
+
+    call calc_horizon_weights([150.0_dp, 300.0_dp], [50.0_dp, 150.0_dp, 300.0_dp], res_Wd)
+
+    ! horizon 1 (0-150 mm) merges input horizons 1 (50 mm) and 2 (100 mm)
+    @assertEqual([1.0_dp/3.0_dp, 2.0_dp/3.0_dp, 0.0_dp], res_Wd(1, :), tolerance=t, message='merge: horizon 1')
+    ! horizon 2 (150-300 mm) is input horizon 3 alone
+    @assertEqual([0.0_dp, 0.0_dp, 1.0_dp], res_Wd(2, :), tolerance=t, message='merge: horizon 2')
+    @assertEqual(0.0_dp, sum_deviation(res_Wd), tolerance=t, message='merge: weights sum up to one')
+    @assertEqual(0.0_dp, min_weight(res_Wd), tolerance=t, message='merge: no negative weight')
+
+    ! the consumers of Wd skip an input horizon with w <= 0, so a non overlapping
+    ! horizon must yield exactly zero and not a tiny positive rounding residual
+    @assertTrue(res_Wd(1, 3) .le. 0.0_dp, message='merge: non overlapping weight is exactly zero')
+    @assertTrue(res_Wd(2, 1) .le. 0.0_dp, message='merge: non overlapping weight is exactly zero')
+    @assertTrue(res_Wd(2, 2) .le. 0.0_dp, message='merge: non overlapping weight is exactly zero')
+
+    deallocate (res_Wd)
+
+  end subroutine test_weights_merge
+
+  @test
+  subroutine test_weights_split()
+
+    ! a modelled horizon boundary cuts an input horizon in two - this is what
+    ! the removal of the coinciding-depths restriction enables
+    ! soil_data_depth = 50, 150, 300 ; soil_Depth = 100, 300
+    real(dp), dimension(:, :), allocatable :: res_Wd
+
+    call calc_horizon_weights([100.0_dp, 300.0_dp], [50.0_dp, 150.0_dp, 300.0_dp], res_Wd)
+
+    ! horizon 1 (0-100 mm): input horizon 1 (50 mm) and the upper half of input horizon 2 (50 mm)
+    @assertEqual([0.5_dp, 0.5_dp, 0.0_dp], res_Wd(1, :), tolerance=t, message='split: horizon 1')
+    ! horizon 2 (100-300 mm): the lower half of input horizon 2 (50 mm) and input horizon 3 (150 mm)
+    @assertEqual([0.0_dp, 0.25_dp, 0.75_dp], res_Wd(2, :), tolerance=t, message='split: horizon 2')
+    @assertEqual(0.0_dp, sum_deviation(res_Wd), tolerance=t, message='split: weights sum up to one')
+    @assertEqual(0.0_dp, min_weight(res_Wd), tolerance=t, message='split: no negative weight')
+
+    deallocate (res_Wd)
+
+  end subroutine test_weights_split
+
+  @test
+  subroutine test_weights_coarse_input()
+
+    ! the input data are coarser than the modelled horizons, every modelled
+    ! horizon lies completely inside the single input horizon
+    ! soil_data_depth = 2000 ; soil_Depth = 300, 1000, 2000
+    real(dp), dimension(:, :), allocatable :: res_Wd
+
+    call calc_horizon_weights([300.0_dp, 1000.0_dp, 2000.0_dp], [2000.0_dp], res_Wd)
+
+    @assertEqual(3, size(res_Wd, 1), message='coarse input: number of modelled horizons')
+    @assertEqual(1, size(res_Wd, 2), message='coarse input: number of input horizons')
+    @assertEqual([1.0_dp], res_Wd(1, :), tolerance=t, message='coarse input: horizon 1')
+    @assertEqual([1.0_dp], res_Wd(2, :), tolerance=t, message='coarse input: horizon 2')
+    @assertEqual([1.0_dp], res_Wd(3, :), tolerance=t, message='coarse input: horizon 3')
+    @assertEqual(0.0_dp, sum_deviation(res_Wd), tolerance=t, message='coarse input: weights sum up to one')
+    @assertEqual(0.0_dp, min_weight(res_Wd), tolerance=t, message='coarse input: no negative weight')
+
+    deallocate (res_Wd)
+
+  end subroutine test_weights_coarse_input
+
+  @test
+  subroutine test_weights_data_below_column()
+
+    ! the deepest input horizon lies entirely below the modelled soil column
+    ! soil_data_depth = 50, 150, 300, 600 ; soil_Depth = 100, 300
+    real(dp), dimension(:, :), allocatable :: res_Wd
+
+    call calc_horizon_weights([100.0_dp, 300.0_dp], [50.0_dp, 150.0_dp, 300.0_dp, 600.0_dp], res_Wd)
+
+    @assertEqual([0.5_dp, 0.5_dp, 0.0_dp, 0.0_dp], res_Wd(1, :), tolerance=t, message='data below column: horizon 1')
+    @assertEqual([0.0_dp, 0.25_dp, 0.75_dp, 0.0_dp], res_Wd(2, :), tolerance=t, message='data below column: horizon 2')
+    @assertEqual(0.0_dp, sum_deviation(res_Wd), tolerance=t, message='data below column: weights sum up to one')
+    @assertEqual(0.0_dp, min_weight(res_Wd), tolerance=t, message='data below column: no negative weight')
+
+    ! input horizon 4 (300-600 mm) is never used
+    @assertTrue(res_Wd(1, 4) .le. 0.0_dp, message='data below column: unused input horizon is exactly zero')
+    @assertTrue(res_Wd(2, 4) .le. 0.0_dp, message='data below column: unused input horizon is exactly zero')
+
+    deallocate (res_Wd)
+
+  end subroutine test_weights_data_below_column
+
+  @test
+  subroutine test_weights_data_straddles_bottom()
+
+    ! the deepest input horizon overlaps the last modelled horizon but reaches
+    ! past it - only the overlapping part counts, and the weights still sum up
+    ! to one because they are normalised by the modelled (not the input) thickness
+    real(dp), dimension(:, :), allocatable :: res_Wd
+
+    ! 1st value set: input horizon 3 (150-600 mm) is cut at the bottom of the
+    ! modelled column, only 150 mm of its 450 mm are used
+    ! soil_data_depth = 50, 150, 600 ; soil_Depth = 100, 300
+    call calc_horizon_weights([100.0_dp, 300.0_dp], [50.0_dp, 150.0_dp, 600.0_dp], res_Wd)
+
+    @assertEqual([0.5_dp, 0.5_dp, 0.0_dp], res_Wd(1, :), tolerance=t, message='straddle: horizon 1, 1st value set')
+    @assertEqual([0.0_dp, 0.25_dp, 0.75_dp], res_Wd(2, :), tolerance=t, message='straddle: horizon 2, 1st value set')
+    @assertEqual(0.0_dp, sum_deviation(res_Wd), tolerance=t, message='straddle: weights sum up to one, 1st value set')
+    @assertEqual(0.0_dp, min_weight(res_Wd), tolerance=t, message='straddle: no negative weight, 1st value set')
+
+    deallocate (res_Wd)
+
+    ! 2nd value set: a single input horizon far deeper than the whole modelled
+    ! column, every modelled horizon takes it completely
+    ! soil_data_depth = 5000 ; soil_Depth = 300, 1000, 2000
+    call calc_horizon_weights([300.0_dp, 1000.0_dp, 2000.0_dp], [5000.0_dp], res_Wd)
+
+    @assertEqual([1.0_dp], res_Wd(1, :), tolerance=t, message='straddle: horizon 1, 2nd value set')
+    @assertEqual([1.0_dp], res_Wd(2, :), tolerance=t, message='straddle: horizon 2, 2nd value set')
+    @assertEqual([1.0_dp], res_Wd(3, :), tolerance=t, message='straddle: horizon 3, 2nd value set')
+    @assertEqual(0.0_dp, sum_deviation(res_Wd), tolerance=t, message='straddle: weights sum up to one, 2nd value set')
+    @assertEqual(0.0_dp, min_weight(res_Wd), tolerance=t, message='straddle: no negative weight, 2nd value set')
+
+    deallocate (res_Wd)
+
+  end subroutine test_weights_data_straddles_bottom
+
+  @test
+  subroutine test_weights_thin_horizons()
+
+    ! a modelled horizon lying completely inside one input horizon, together
+    ! with two horizons that are split differently
+    ! soil_data_depth = 50, 150, 300 ; soil_Depth = 60, 80, 300
+    real(dp), dimension(:, :), allocatable :: res_Wd
+
+    call calc_horizon_weights([60.0_dp, 80.0_dp, 300.0_dp], [50.0_dp, 150.0_dp, 300.0_dp], res_Wd)
+
+    ! horizon 1 (0-60 mm): input horizon 1 (50 mm) and 10 mm of input horizon 2
+    @assertEqual([50.0_dp/60.0_dp, 10.0_dp/60.0_dp, 0.0_dp], res_Wd(1, :), tolerance=t, &
+                 message='thin horizons: horizon 1')
+    ! horizon 2 (60-80 mm) lies completely inside input horizon 2
+    @assertEqual([0.0_dp, 1.0_dp, 0.0_dp], res_Wd(2, :), tolerance=t, message='thin horizons: horizon 2')
+    ! horizon 3 (80-300 mm): 70 mm of input horizon 2 and input horizon 3 (150 mm)
+    @assertEqual([0.0_dp, 70.0_dp/220.0_dp, 150.0_dp/220.0_dp], res_Wd(3, :), tolerance=t, &
+                 message='thin horizons: horizon 3')
+    @assertEqual(0.0_dp, sum_deviation(res_Wd), tolerance=t, message='thin horizons: weights sum up to one')
+    @assertEqual(0.0_dp, min_weight(res_Wd), tolerance=t, message='thin horizons: no negative weight')
+
+    deallocate (res_Wd)
+
+  end subroutine test_weights_thin_horizons
+
+  @test
+  subroutine test_weights_soilgrids()
+
+    ! the example documented in mhm.nml: six SoilGrids layers aggregated onto
+    ! three modelling horizons
+    ! soil_data_depth = 50, 150, 300, 600, 1000, 2000 ; soil_Depth = 300, 1000, 2000
+    real(dp), dimension(:, :), allocatable :: res_Wd
+
+    call calc_horizon_weights([300.0_dp, 1000.0_dp, 2000.0_dp], &
+                              [50.0_dp, 150.0_dp, 300.0_dp, 600.0_dp, 1000.0_dp, 2000.0_dp], res_Wd)
+
+    ! horizon 1 (0-300 mm) merges input horizons 1 (50 mm), 2 (100 mm) and 3 (150 mm)
+    @assertEqual([1.0_dp/6.0_dp, 1.0_dp/3.0_dp, 0.5_dp, 0.0_dp, 0.0_dp, 0.0_dp], res_Wd(1, :), tolerance=t, &
+                 message='soilgrids: horizon 1')
+    ! horizon 2 (300-1000 mm) merges input horizons 4 (300 mm) and 5 (400 mm)
+    @assertEqual([0.0_dp, 0.0_dp, 0.0_dp, 3.0_dp/7.0_dp, 4.0_dp/7.0_dp, 0.0_dp], res_Wd(2, :), tolerance=t, &
+                 message='soilgrids: horizon 2')
+    ! horizon 3 (1000-2000 mm) is input horizon 6 alone
+    @assertEqual([0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, 1.0_dp], res_Wd(3, :), tolerance=t, &
+                 message='soilgrids: horizon 3')
+    @assertEqual(0.0_dp, sum_deviation(res_Wd), tolerance=t, message='soilgrids: weights sum up to one')
+    @assertEqual(0.0_dp, min_weight(res_Wd), tolerance=t, message='soilgrids: no negative weight')
+
+    deallocate (res_Wd)
+
+  end subroutine test_weights_soilgrids
+
+  @test
+  subroutine test_weights_single_horizon()
+
+    ! degenerate case: one modelled and one input horizon
+    ! soil_data_depth = 200 ; soil_Depth = 200
+    real(dp), dimension(:, :), allocatable :: res_Wd
+
+    call calc_horizon_weights([200.0_dp], [200.0_dp], res_Wd)
+
+    @assertEqual(1, size(res_Wd, 1), message='single horizon: number of modelled horizons')
+    @assertEqual(1, size(res_Wd, 2), message='single horizon: number of input horizons')
+    @assertEqual([1.0_dp], res_Wd(1, :), tolerance=t, message='single horizon: horizon 1')
+    @assertEqual(0.0_dp, sum_deviation(res_Wd), tolerance=t, message='single horizon: weights sum up to one')
+    @assertEqual(0.0_dp, min_weight(res_Wd), tolerance=t, message='single horizon: no negative weight')
+
+    deallocate (res_Wd)
+
+  end subroutine test_weights_single_horizon
+
+end module test_soil_database

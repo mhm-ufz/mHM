@@ -1,0 +1,313 @@
+module test_mpr_smhorizons
+  use funit
+  use mo_mpr_smhorizons, only: mpr_SMhorizons
+  use mo_kind, only: dp, i4
+
+  implicit none
+
+  private
+
+  public :: test_smhorizons_aggregation, test_smhorizons_aggregation_till
+
+  real(dp) :: t = 0.001_dp
+
+  ! number of soil types in the fixture
+  integer(i4), parameter :: nSoilTypes = 2
+
+  ! land cover class used throughout: 3 = pervious
+  integer(i4), parameter :: LC = 3
+
+contains
+
+  ! Builds a single cell level-0 domain that maps one to one onto a single
+  ! level-1 cell. upscale_harmonic_mean then reduces to the identity
+  ! (1 / (1/x) = x), so the level-1 output is exactly the aggregated level-0
+  ! value and the expected values can be computed by hand.
+  subroutine single_cell_domain(mask0, cell_id0, upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1)
+
+    logical, dimension(:, :), allocatable, intent(out) :: mask0
+    integer(i4), dimension(:), allocatable, intent(out) :: cell_id0
+    integer(i4), dimension(:), allocatable, intent(out) :: upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1
+
+    allocate (mask0(1, 1))
+    mask0(:, :) = .true.
+    allocate (cell_id0(1))
+    cell_id0 = [1_i4]
+    allocate (upp_row_L1(1), low_row_L1(1), lef_col_L1(1), rig_col_L1(1), nL0_in_L1(1))
+    upp_row_L1 = [1_i4]
+    low_row_L1 = [1_i4]
+    lef_col_L1 = [1_i4]
+    rig_col_L1 = [1_i4]
+    nL0_in_L1 = [1_i4]
+
+  end subroutine single_cell_domain
+
+  @test
+  subroutine test_smhorizons_aggregation()
+
+    ! The soil properties of a modelling horizon must be the depth weighted
+    ! average of the input data horizons overlapping with it. The gridded input
+    ! provides two horizons whose soil types differ, so a fractional weight has
+    ! to show up in the result.
+
+    real(dp), dimension(8) :: param
+    integer(i4), dimension(10, 5) :: processMatrix
+    real(dp), dimension(:), allocatable :: HorizonDepth
+    integer(i4), dimension(:), allocatable :: LCOVER0
+    integer(i4), dimension(:, :), allocatable :: soilID0
+    integer(i4), dimension(:), allocatable :: nHorizons, nTillHorizons
+    real(dp), dimension(:, :, :), allocatable :: thetaS_till, thetaFC_till, thetaPW_till, Db, Wd
+    real(dp), dimension(:, :, :), allocatable :: latWat_till, COSMIC_L3_till
+    real(dp), dimension(:, :), allocatable :: thetaS, thetaFC, thetaPW, DbM, latWat, COSMIC_L3
+    real(dp), dimension(:), allocatable :: RZdepth
+    logical, dimension(:, :), allocatable :: mask0
+    integer(i4), dimension(:), allocatable :: cell_id0, upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1
+    real(dp), dimension(:, :), allocatable :: res_L1_beta, res_L1_SMs, res_L1_FC, res_L1_PW, res_L1_fRoots
+    real(dp), dimension(:, :), allocatable :: res_L1_bulkDens, res_L1_latticeWater, res_L1_COSMICL3
+
+    call single_cell_domain(mask0, cell_id0, upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1)
+
+    ! rootFractionCoefficient_forest / _impervious / _pervious and infiltrationShapeFactor
+    param = [0.9_dp, 0.9_dp, 0.1_dp, 1.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp]
+    ! root fraction depends on land cover only, no field capacity dependency
+    processMatrix(:, :) = 0_i4
+    processMatrix(3, 1) = 1_i4
+
+    allocate (LCOVER0(1))
+    LCOVER0 = [LC]
+    ! the two horizons of the gridded input data carry different soil types
+    allocate (soilID0(1, 2))
+    soilID0(1, 1) = 1_i4
+    soilID0(1, 2) = 2_i4
+
+    allocate (nHorizons(1), nTillHorizons(1))
+    nHorizons = [1_i4]
+    ! no tillage horizon, so the modelling horizons take the non tillage branch
+    nTillHorizons = [0_i4]
+
+    allocate (thetaS(nSoilTypes, 1), thetaFC(nSoilTypes, 1), thetaPW(nSoilTypes, 1))
+    allocate (DbM(nSoilTypes, 1), latWat(nSoilTypes, 1), COSMIC_L3(nSoilTypes, 1))
+    thetaS(:, 1) = [0.5_dp, 0.3_dp]
+    thetaFC(:, 1) = [0.3_dp, 0.2_dp]
+    thetaPW(:, 1) = [0.1_dp, 0.05_dp]
+    DbM(:, 1) = [1.4_dp, 1.6_dp]
+    latWat(:, 1) = [0.05_dp, 0.02_dp]
+    COSMIC_L3(:, 1) = [0.0_dp, 0.0_dp]
+
+    ! not used with nTillHorizons = 0, but they have to be present
+    allocate (thetaS_till(nSoilTypes, 1, 3), thetaFC_till(nSoilTypes, 1, 3), thetaPW_till(nSoilTypes, 1, 3))
+    allocate (Db(nSoilTypes, 1, 3), latWat_till(nSoilTypes, 1, 3), COSMIC_L3_till(nSoilTypes, 1, 3))
+    thetaS_till(:, :, :) = 0.0_dp
+    thetaFC_till(:, :, :) = 0.0_dp
+    thetaPW_till(:, :, :) = 0.0_dp
+    Db(:, :, :) = 0.0_dp
+    latWat_till(:, :, :) = 0.0_dp
+    COSMIC_L3_till(:, :, :) = 0.0_dp
+
+    allocate (RZdepth(nSoilTypes))
+    RZdepth(:) = 2000.0_dp
+
+    ! ------------------------------------------------------------------
+    ! 1st value set: one 100 mm modelling horizon built from a quarter of
+    ! input horizon 1 and three quarters of input horizon 2
+    ! ------------------------------------------------------------------
+    allocate (HorizonDepth(1))
+    HorizonDepth = [100.0_dp]
+    allocate (Wd(1, 1, 2))
+    Wd(1, 1, :) = [0.25_dp, 0.75_dp]
+    allocate (res_L1_beta(1, 1), res_L1_SMs(1, 1), res_L1_FC(1, 1), res_L1_PW(1, 1), res_L1_fRoots(1, 1))
+    allocate (res_L1_bulkDens(1, 1), res_L1_latticeWater(1, 1), res_L1_COSMICL3(1, 1))
+
+    call mpr_SMhorizons(param, processMatrix, 1_i4, 1_i4, HorizonDepth, LCOVER0, soilID0, nHorizons, &
+                        nTillHorizons, thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Wd, Db, &
+                        DbM, RZdepth, mask0, cell_id0, upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1, &
+                        res_L1_beta, res_L1_SMs, res_L1_FC, res_L1_PW, res_L1_fRoots, &
+                        latWat_till, COSMIC_L3_till, latWat, COSMIC_L3, &
+                        res_L1_bulkDens, res_L1_latticeWater, res_L1_COSMICL3)
+
+    ! (0.25 * 0.5 + 0.75 * 0.3) * 100 mm
+    @assertEqual(35.0_dp, res_L1_SMs(1, 1), tolerance=t, message='smhorizons: SMs, 1st value set')
+    ! (0.25 * 0.3 + 0.75 * 0.2) * 100 mm
+    @assertEqual(22.5_dp, res_L1_FC(1, 1), tolerance=t, message='smhorizons: FC, 1st value set')
+    ! (0.25 * 0.1 + 0.75 * 0.05) * 100 mm
+    @assertEqual(6.25_dp, res_L1_PW(1, 1), tolerance=t, message='smhorizons: PW, 1st value set')
+    ! 0.25 * 1.4 + 0.75 * 1.6
+    @assertEqual(1.55_dp, res_L1_bulkDens(1, 1), tolerance=t, message='smhorizons: bulkDens, 1st value set')
+    ! (0.25 * 0.05 + 0.75 * 0.02) * 100 mm
+    @assertEqual(2.75_dp, res_L1_latticeWater(1, 1), tolerance=t, message='smhorizons: latticeWater, 1st value set')
+    ! bulk density times infiltrationShapeFactor
+    @assertEqual(1.55_dp, res_L1_beta(1, 1), tolerance=t, message='smhorizons: beta, 1st value set')
+    ! root fractions are normalised over all horizons
+    @assertEqual(1.0_dp, res_L1_fRoots(1, 1), tolerance=t, message='smhorizons: fRoots, 1st value set')
+
+    ! ------------------------------------------------------------------
+    ! 2nd value set: a zero weight must drop that input horizon completely,
+    ! the result is soil type 1 alone
+    ! ------------------------------------------------------------------
+    Wd(1, 1, :) = [1.0_dp, 0.0_dp]
+    res_L1_beta = 0.0_dp
+    res_L1_SMs = 0.0_dp
+    res_L1_FC = 0.0_dp
+    res_L1_PW = 0.0_dp
+    res_L1_fRoots = 0.0_dp
+    res_L1_bulkDens = 0.0_dp
+    res_L1_latticeWater = 0.0_dp
+    res_L1_COSMICL3 = 0.0_dp
+
+    call mpr_SMhorizons(param, processMatrix, 1_i4, 1_i4, HorizonDepth, LCOVER0, soilID0, nHorizons, &
+                        nTillHorizons, thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Wd, Db, &
+                        DbM, RZdepth, mask0, cell_id0, upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1, &
+                        res_L1_beta, res_L1_SMs, res_L1_FC, res_L1_PW, res_L1_fRoots, &
+                        latWat_till, COSMIC_L3_till, latWat, COSMIC_L3, &
+                        res_L1_bulkDens, res_L1_latticeWater, res_L1_COSMICL3)
+
+    @assertEqual(50.0_dp, res_L1_SMs(1, 1), tolerance=t, message='smhorizons: SMs, 2nd value set')
+    @assertEqual(30.0_dp, res_L1_FC(1, 1), tolerance=t, message='smhorizons: FC, 2nd value set')
+    @assertEqual(10.0_dp, res_L1_PW(1, 1), tolerance=t, message='smhorizons: PW, 2nd value set')
+    @assertEqual(1.4_dp, res_L1_bulkDens(1, 1), tolerance=t, message='smhorizons: bulkDens, 2nd value set')
+
+    deallocate (HorizonDepth, Wd)
+    deallocate (res_L1_beta, res_L1_SMs, res_L1_FC, res_L1_PW, res_L1_fRoots)
+    deallocate (res_L1_bulkDens, res_L1_latticeWater, res_L1_COSMICL3)
+
+    ! ------------------------------------------------------------------
+    ! 3rd value set: two modelling horizons, each with its own weights and
+    ! its own thickness. Horizon 1 (0-100 mm) mixes both input horizons in
+    ! equal shares, horizon 2 (100-300 mm) is input horizon 2 alone.
+    ! ------------------------------------------------------------------
+    allocate (HorizonDepth(2))
+    HorizonDepth = [100.0_dp, 300.0_dp]
+    allocate (Wd(1, 2, 2))
+    Wd(1, 1, :) = [0.5_dp, 0.5_dp]
+    Wd(1, 2, :) = [0.0_dp, 1.0_dp]
+    allocate (res_L1_beta(1, 2), res_L1_SMs(1, 2), res_L1_FC(1, 2), res_L1_PW(1, 2), res_L1_fRoots(1, 2))
+    allocate (res_L1_bulkDens(1, 2), res_L1_latticeWater(1, 2), res_L1_COSMICL3(1, 2))
+    res_L1_beta = 0.0_dp
+    res_L1_SMs = 0.0_dp
+    res_L1_FC = 0.0_dp
+    res_L1_PW = 0.0_dp
+    res_L1_fRoots = 0.0_dp
+    res_L1_bulkDens = 0.0_dp
+    res_L1_latticeWater = 0.0_dp
+    res_L1_COSMICL3 = 0.0_dp
+
+    call mpr_SMhorizons(param, processMatrix, 1_i4, 2_i4, HorizonDepth, LCOVER0, soilID0, nHorizons, &
+                        nTillHorizons, thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Wd, Db, &
+                        DbM, RZdepth, mask0, cell_id0, upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1, &
+                        res_L1_beta, res_L1_SMs, res_L1_FC, res_L1_PW, res_L1_fRoots, &
+                        latWat_till, COSMIC_L3_till, latWat, COSMIC_L3, &
+                        res_L1_bulkDens, res_L1_latticeWater, res_L1_COSMICL3)
+
+    ! horizon 1: (0.5 * 0.5 + 0.5 * 0.3) * 100 mm
+    @assertEqual(40.0_dp, res_L1_SMs(1, 1), tolerance=t, message='smhorizons: SMs horizon 1, 3rd value set')
+    ! horizon 2: 0.3 * 200 mm - uses its own weights and its own thickness
+    @assertEqual(60.0_dp, res_L1_SMs(1, 2), tolerance=t, message='smhorizons: SMs horizon 2, 3rd value set')
+    ! horizon 1: (0.5 * 0.3 + 0.5 * 0.2) * 100 mm ; horizon 2: 0.2 * 200 mm
+    @assertEqual(25.0_dp, res_L1_FC(1, 1), tolerance=t, message='smhorizons: FC horizon 1, 3rd value set')
+    @assertEqual(40.0_dp, res_L1_FC(1, 2), tolerance=t, message='smhorizons: FC horizon 2, 3rd value set')
+    ! horizon 1: 0.5 * 1.4 + 0.5 * 1.6 ; horizon 2: 1.6
+    @assertEqual(1.5_dp, res_L1_bulkDens(1, 1), tolerance=t, message='smhorizons: bulkDens horizon 1, 3rd value set')
+    @assertEqual(1.6_dp, res_L1_bulkDens(1, 2), tolerance=t, message='smhorizons: bulkDens horizon 2, 3rd value set')
+    ! root fractions are normalised over all horizons
+    @assertEqual(1.0_dp, sum(res_L1_fRoots(1, :)), tolerance=t, message='smhorizons: fRoots sum, 3rd value set')
+
+    deallocate (HorizonDepth, Wd)
+    deallocate (res_L1_beta, res_L1_SMs, res_L1_FC, res_L1_PW, res_L1_fRoots)
+    deallocate (res_L1_bulkDens, res_L1_latticeWater, res_L1_COSMICL3)
+
+  end subroutine test_smhorizons_aggregation
+
+  @test
+  subroutine test_smhorizons_aggregation_till()
+
+    ! Same aggregation, but the modelling horizon is a tillage horizon, so the
+    ! land cover dependent properties are used instead of the mineral ones.
+
+    real(dp), dimension(8) :: param
+    integer(i4), dimension(10, 5) :: processMatrix
+    real(dp), dimension(:), allocatable :: HorizonDepth
+    integer(i4), dimension(:), allocatable :: LCOVER0
+    integer(i4), dimension(:, :), allocatable :: soilID0
+    integer(i4), dimension(:), allocatable :: nHorizons, nTillHorizons
+    real(dp), dimension(:, :, :), allocatable :: thetaS_till, thetaFC_till, thetaPW_till, Db, Wd
+    real(dp), dimension(:, :, :), allocatable :: latWat_till, COSMIC_L3_till
+    real(dp), dimension(:, :), allocatable :: thetaS, thetaFC, thetaPW, DbM, latWat, COSMIC_L3
+    real(dp), dimension(:), allocatable :: RZdepth
+    logical, dimension(:, :), allocatable :: mask0
+    integer(i4), dimension(:), allocatable :: cell_id0, upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1
+    real(dp), dimension(:, :), allocatable :: res_L1_beta, res_L1_SMs, res_L1_FC, res_L1_PW, res_L1_fRoots
+    real(dp), dimension(:, :), allocatable :: res_L1_bulkDens, res_L1_latticeWater, res_L1_COSMICL3
+
+    call single_cell_domain(mask0, cell_id0, upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1)
+
+    param = [0.9_dp, 0.9_dp, 0.1_dp, 1.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp]
+    processMatrix(:, :) = 0_i4
+    processMatrix(3, 1) = 1_i4
+
+    allocate (LCOVER0(1))
+    LCOVER0 = [LC]
+    allocate (soilID0(1, 2))
+    soilID0(1, 1) = 1_i4
+    soilID0(1, 2) = 2_i4
+
+    allocate (nHorizons(1), nTillHorizons(1))
+    nHorizons = [1_i4]
+    ! the first modelling horizon is a tillage horizon
+    nTillHorizons = [1_i4]
+
+    ! the tillage properties carry the values at the land cover class in use,
+    ! the mineral ones are left at zero to make sure they are not picked up
+    allocate (thetaS_till(nSoilTypes, 1, 3), thetaFC_till(nSoilTypes, 1, 3), thetaPW_till(nSoilTypes, 1, 3))
+    allocate (Db(nSoilTypes, 1, 3), latWat_till(nSoilTypes, 1, 3), COSMIC_L3_till(nSoilTypes, 1, 3))
+    thetaS_till(:, :, :) = 0.0_dp
+    thetaFC_till(:, :, :) = 0.0_dp
+    thetaPW_till(:, :, :) = 0.0_dp
+    Db(:, :, :) = 0.0_dp
+    latWat_till(:, :, :) = 0.0_dp
+    COSMIC_L3_till(:, :, :) = 0.0_dp
+    thetaS_till(:, 1, LC) = [0.5_dp, 0.3_dp]
+    thetaFC_till(:, 1, LC) = [0.3_dp, 0.2_dp]
+    thetaPW_till(:, 1, LC) = [0.1_dp, 0.05_dp]
+    Db(:, 1, LC) = [1.4_dp, 1.6_dp]
+    latWat_till(:, 1, LC) = [0.05_dp, 0.02_dp]
+
+    allocate (thetaS(nSoilTypes, 1), thetaFC(nSoilTypes, 1), thetaPW(nSoilTypes, 1))
+    allocate (DbM(nSoilTypes, 1), latWat(nSoilTypes, 1), COSMIC_L3(nSoilTypes, 1))
+    thetaS(:, :) = 0.0_dp
+    thetaFC(:, :) = 0.0_dp
+    thetaPW(:, :) = 0.0_dp
+    DbM(:, :) = 0.0_dp
+    latWat(:, :) = 0.0_dp
+    COSMIC_L3(:, :) = 0.0_dp
+
+    allocate (RZdepth(nSoilTypes))
+    RZdepth(:) = 2000.0_dp
+
+    allocate (HorizonDepth(1))
+    HorizonDepth = [100.0_dp]
+    allocate (Wd(1, 1, 2))
+    Wd(1, 1, :) = [0.25_dp, 0.75_dp]
+    allocate (res_L1_beta(1, 1), res_L1_SMs(1, 1), res_L1_FC(1, 1), res_L1_PW(1, 1), res_L1_fRoots(1, 1))
+    allocate (res_L1_bulkDens(1, 1), res_L1_latticeWater(1, 1), res_L1_COSMICL3(1, 1))
+
+    call mpr_SMhorizons(param, processMatrix, 1_i4, 1_i4, HorizonDepth, LCOVER0, soilID0, nHorizons, &
+                        nTillHorizons, thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Wd, Db, &
+                        DbM, RZdepth, mask0, cell_id0, upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1, &
+                        res_L1_beta, res_L1_SMs, res_L1_FC, res_L1_PW, res_L1_fRoots, &
+                        latWat_till, COSMIC_L3_till, latWat, COSMIC_L3, &
+                        res_L1_bulkDens, res_L1_latticeWater, res_L1_COSMICL3)
+
+    ! same expected values as the non tillage branch
+    @assertEqual(35.0_dp, res_L1_SMs(1, 1), tolerance=t, message='smhorizons till: SMs')
+    @assertEqual(22.5_dp, res_L1_FC(1, 1), tolerance=t, message='smhorizons till: FC')
+    @assertEqual(6.25_dp, res_L1_PW(1, 1), tolerance=t, message='smhorizons till: PW')
+    @assertEqual(1.55_dp, res_L1_bulkDens(1, 1), tolerance=t, message='smhorizons till: bulkDens')
+    @assertEqual(2.75_dp, res_L1_latticeWater(1, 1), tolerance=t, message='smhorizons till: latticeWater')
+
+    deallocate (HorizonDepth, Wd)
+    deallocate (res_L1_beta, res_L1_SMs, res_L1_FC, res_L1_PW, res_L1_fRoots)
+    deallocate (res_L1_bulkDens, res_L1_latticeWater, res_L1_COSMICL3)
+
+  end subroutine test_smhorizons_aggregation_till
+
+end module test_mpr_smhorizons
