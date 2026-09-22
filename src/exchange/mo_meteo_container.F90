@@ -618,7 +618,12 @@ contains
     if (allocated(self%scratch%eabs)) deallocate(self%scratch%eabs)
     if (allocated(self%scratch%wind)) deallocate(self%scratch%wind)
     if (allocated(self%scratch%latitude)) deallocate(self%scratch%latitude)
-    self%lake = meteo_lake_state_t()
+    if (allocated(self%lake%forcing)) deallocate(self%lake%forcing)
+    if (allocated(self%lake%pre)) deallocate(self%lake%pre)
+    if (allocated(self%lake%pet)) deallocate(self%lake%pet)
+    if (allocated(self%lake%pre_weights)) deallocate(self%lake%pre_weights)
+    if (allocated(self%lake%pet_weights)) deallocate(self%lake%pet_weights)
+    self%lake%active = .false.
   end subroutine meteo_finalize
 
   !> \brief Return the number of model steps per day.
