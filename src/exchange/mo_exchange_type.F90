@@ -1998,7 +1998,7 @@ contains
   subroutine var_dp_publish_local(self, component, local, stepping)
     class(var_dp), intent(inout) :: self
     character(*), intent(in) :: component    !< publishing component name for diagnostics
-    real(dp), intent(inout), target :: local(:) !< local 1D real field to publish
+    real(dp), pointer, intent(in) :: local(:) !< local 1D real field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call self%check_publish(component)
@@ -2048,7 +2048,7 @@ contains
   subroutine var_i4_publish_local(self, component, local, stepping)
     class(var_i4), intent(inout) :: self
     character(*), intent(in) :: component       !< publishing component name for diagnostics
-    integer(i4), intent(inout), target :: local(:) !< local 1D integer field to publish
+    integer(i4), pointer, intent(in) :: local(:) !< local 1D integer field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call self%check_publish(component)
@@ -2098,7 +2098,7 @@ contains
   subroutine var_i8_publish_local(self, component, local, stepping)
     class(var_i8), intent(inout) :: self
     character(*), intent(in) :: component
-    integer(i8), intent(inout), target :: local(:)
+    integer(i8), pointer, intent(in) :: local(:)
     integer(i4), intent(in) :: stepping
 
     call self%check_publish(component)
@@ -2148,7 +2148,7 @@ contains
   subroutine var_i2_publish_local(self, component, local, stepping)
     class(var_i2), intent(inout) :: self
     character(*), intent(in) :: component       !< publishing component name for diagnostics
-    integer(i2), intent(inout), target :: local(:) !< local 1D integer field to publish
+    integer(i2), pointer, intent(in) :: local(:) !< local 1D integer field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call self%check_publish(component)
@@ -2198,7 +2198,7 @@ contains
   subroutine var_lg_publish_local(self, component, local, stepping)
     class(var_lg), intent(inout) :: self
     character(*), intent(in) :: component !< publishing component name for diagnostics
-    logical, intent(inout), target :: local(:) !< local 1D logical field to publish
+    logical, pointer, intent(in) :: local(:) !< local 1D logical field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call self%check_publish(component)
@@ -2248,7 +2248,7 @@ contains
   subroutine var2d_dp_publish_local(self, component, local, stepping)
     class(var2d_dp), intent(inout) :: self
     character(*), intent(in) :: component   !< publishing component name for diagnostics
-    real(dp), intent(inout), target :: local(:, :) !< local 2D real field to publish
+    real(dp), pointer, intent(in) :: local(:, :) !< local 2D real field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call self%check_publish(component)
@@ -2298,7 +2298,7 @@ contains
   subroutine var2d_i4_publish_local(self, component, local, stepping)
     class(var2d_i4), intent(inout) :: self
     character(*), intent(in) :: component      !< publishing component name for diagnostics
-    integer(i4), intent(inout), target :: local(:, :) !< local 2D integer field to publish
+    integer(i4), pointer, intent(in) :: local(:, :) !< local 2D integer field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call self%check_publish(component)
@@ -2348,7 +2348,7 @@ contains
   subroutine var2d_lg_publish_local(self, component, local, stepping)
     class(var2d_lg), intent(inout) :: self
     character(*), intent(in) :: component !< publishing component name for diagnostics
-    logical, intent(inout), target :: local(:, :) !< local 2D logical field to publish
+    logical, pointer, intent(in) :: local(:, :) !< local 2D logical field to publish
     integer(i4), intent(in) :: stepping !< temporal support of the published field
 
     call self%check_publish(component)
