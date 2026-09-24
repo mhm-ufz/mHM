@@ -42,9 +42,11 @@ contains
     levels = [25.0_dp, 10.0_dp]
     exchange%lake_points => input_points
     call exchange%lake_ids%provide("test")
-    call exchange%lake_ids%publish_local("test", ids, no_time)
+    call exchange%lake_ids%prepare_data("test", no_time)
+    exchange%lake_ids%data => ids
     call exchange%lake_max_levels%provide("test")
-    call exchange%lake_max_levels%publish_local("test", levels, no_time)
+    call exchange%lake_max_levels%prepare_data("test", no_time)
+    exchange%lake_max_levels%data => levels
 
     mlm%exchange => exchange
     call exchange%lake_outflow%provide("mLM")
@@ -106,11 +108,14 @@ contains
     inflow = 0.0_dp
     exchange%lake_points => input_points
     call exchange%lake_ids%provide("Input")
-    call exchange%lake_ids%publish_local("Input", input_ids, no_time)
+    call exchange%lake_ids%prepare_data("Input", no_time)
+    exchange%lake_ids%data => input_ids
     call exchange%lake_max_levels%provide("Input")
-    call exchange%lake_max_levels%publish_local("Input", input_levels, no_time)
+    call exchange%lake_max_levels%prepare_data("Input", no_time)
+    exchange%lake_max_levels%data => input_levels
     call exchange%lake_inflow%provide("mRM")
-    call exchange%lake_inflow%publish_local("mRM", inflow, 1_i4)
+    call exchange%lake_inflow%prepare_data("mRM", 1_i4)
+    exchange%lake_inflow%data => inflow
     call write_restart( &
       "mlm_restart_reordered_metadata.nc", [101_i8, 205_i8], [200.0_dp, 100.0_dp], [400.0_dp, 300.0_dp], &
       [10.0_dp, 25.0_dp], [1.01_dp, 2.05_dp], timestamp="2001-01-02 00:00:00")
@@ -191,11 +196,14 @@ contains
     inflow = 0.0_dp
     exchange%lake_points => input_points
     call exchange%lake_ids%provide("Input")
-    call exchange%lake_ids%publish_local("Input", ids, no_time)
+    call exchange%lake_ids%prepare_data("Input", no_time)
+    exchange%lake_ids%data => ids
     call exchange%lake_max_levels%provide("Input")
-    call exchange%lake_max_levels%publish_local("Input", levels, no_time)
+    call exchange%lake_max_levels%prepare_data("Input", no_time)
+    exchange%lake_max_levels%data => levels
     call exchange%lake_inflow%provide("mRM")
-    call exchange%lake_inflow%publish_local("mRM", inflow, 1_i4)
+    call exchange%lake_inflow%prepare_data("mRM", 1_i4)
+    exchange%lake_inflow%data => inflow
 
     mlm%exchange => exchange
     call mlm%set_dims()
@@ -265,11 +273,14 @@ contains
     pre = [10.0_dp, 0.0_dp]
     pet = [0.0_dp, 10.0_dp]
     call exchange%lake_inflow%provide("test")
-    call exchange%lake_inflow%publish_local("test", inflow, 1_i4)
+    call exchange%lake_inflow%prepare_data("test", 1_i4)
+    exchange%lake_inflow%data => inflow
     call exchange%lake_pre%provide("test")
-    call exchange%lake_pre%publish_local("test", pre, 1_i4)
+    call exchange%lake_pre%prepare_data("test", 1_i4)
+    exchange%lake_pre%data => pre
     call exchange%lake_pet%provide("test")
-    call exchange%lake_pet%publish_local("test", pet, 1_i4)
+    call exchange%lake_pet%prepare_data("test", 1_i4)
+    exchange%lake_pet%data => pet
     mlm%exchange => exchange
     allocate(mlm%outflow(2), mlm%lake_area(2))
     mlm%lake_area = [360000.0_dp, 360000.0_dp]
@@ -302,15 +313,20 @@ contains
     writer_exchange%level0_lake => lake_grid
     writer_exchange%lake_points => lake_points
     call writer_exchange%lake_ids%provide("test")
-    call writer_exchange%lake_ids%publish_local("test", lake_ids, no_time)
+    call writer_exchange%lake_ids%prepare_data("test", no_time)
+    writer_exchange%lake_ids%data => lake_ids
     call writer_exchange%lake_map%provide("test")
-    call writer_exchange%lake_map%publish_local("test", lake_map, no_time)
+    call writer_exchange%lake_map%prepare_data("test", no_time)
+    writer_exchange%lake_map%data => lake_map
     call writer_exchange%lake_max_levels%provide("test")
-    call writer_exchange%lake_max_levels%publish_local("test", lake_levels, no_time)
+    call writer_exchange%lake_max_levels%prepare_data("test", no_time)
+    writer_exchange%lake_max_levels%data => lake_levels
     call writer_exchange%lake_pre%provide("test")
-    call writer_exchange%lake_pre%publish_local("test", writer_pre, 1_i4)
+    call writer_exchange%lake_pre%prepare_data("test", 1_i4)
+    writer_exchange%lake_pre%data => writer_pre
     call writer_exchange%lake_pet%provide("test")
-    call writer_exchange%lake_pet%publish_local("test", writer_pet, 1_i4)
+    call writer_exchange%lake_pet%prepare_data("test", 1_i4)
+    writer_exchange%lake_pet%data => writer_pet
     call writer_exchange%lake_area%provide("mLM")
     call writer_exchange%lake_outflow%provide("mLM")
     writer%exchange => writer_exchange
@@ -329,9 +345,11 @@ contains
     reader_pre = 0.0_dp
     reader_pet = 0.0_dp
     call reader_exchange%lake_pre%provide("test")
-    call reader_exchange%lake_pre%publish_local("test", reader_pre, 1_i4)
+    call reader_exchange%lake_pre%prepare_data("test", 1_i4)
+    reader_exchange%lake_pre%data => reader_pre
     call reader_exchange%lake_pet%provide("test")
-    call reader_exchange%lake_pet%publish_local("test", reader_pet, 1_i4)
+    call reader_exchange%lake_pet%prepare_data("test", 1_i4)
+    reader_exchange%lake_pet%data => reader_pet
     call reader_exchange%lake_ids%provide("mLM")
     call reader_exchange%lake_map%provide("mLM")
     call reader_exchange%lake_max_levels%provide("mLM")

@@ -2190,7 +2190,8 @@ contains
       end if
     end do
 
-    call self%exchange%slope_emp%publish_local("MPR", self%preproc%slope_emp, no_time)
+    call self%exchange%slope_emp%prepare_data("MPR", no_time)
+    self%exchange%slope_emp%data => self%preproc%slope_emp
     deallocate(slope_sorted_index)
   end subroutine mpr_init_slope_emp
 
@@ -2233,6 +2234,37 @@ contains
     class(mpr_t), intent(inout), target :: self
     logical :: need_runoff_cache
     integer(i4) :: pet_process
+
+    ! Disconnect old slices before rebuilding caches during parameter reinitialization.
+    if (allocated(self%canopy%max_interception_cache)) nullify(self%exchange%max_interception%data)
+    if (allocated(self%snow%thresh_temp_cache)) nullify(self%exchange%thresh_temp%data)
+    if (allocated(self%snow%thresh_temp_cache)) nullify(self%exchange%degday_dry%data)
+    if (allocated(self%snow%thresh_temp_cache)) nullify(self%exchange%degday_inc%data)
+    if (allocated(self%snow%thresh_temp_cache)) nullify(self%exchange%degday_max%data)
+    if (allocated(self%pet%pet_fac_aspect_cache)) nullify(self%exchange%pet_fac_aspect%data)
+    if (allocated(self%pet%pet_coeff_hs_cache)) nullify(self%exchange%pet_coeff_hs%data)
+    if (allocated(self%pet%pet_coeff_pt_cache)) nullify(self%exchange%pet_coeff_pt%data)
+    if (allocated(self%pet%pet_fac_lai_cache)) nullify(self%exchange%pet_fac_lai%data)
+    if (allocated(self%pet%resist_aero_cache)) nullify(self%exchange%resist_aero%data)
+    if (allocated(self%pet%resist_surf_cache)) nullify(self%exchange%resist_surf%data)
+    if (allocated(self%soil%sm_exponent_cache)) nullify(self%exchange%f_roots%data)
+    if (allocated(self%soil%sm_exponent_cache)) nullify(self%exchange%sm_saturation%data)
+    if (allocated(self%soil%sm_exponent_cache)) nullify(self%exchange%sm_exponent%data)
+    if (allocated(self%soil%sm_exponent_cache)) nullify(self%exchange%sm_field_capacity%data)
+    if (allocated(self%soil%sm_exponent_cache)) nullify(self%exchange%wilting_point%data)
+    if (allocated(self%soil%thresh_jarvis_cache)) nullify(self%exchange%thresh_jarvis%data)
+    if (allocated(self%neutron%desilets_n0_cache)) nullify(self%exchange%desilets_n0%data)
+    if (allocated(self%neutron%bulk_density_cache)) nullify(self%exchange%bulk_density%data)
+    if (allocated(self%neutron%lattice_water_cache)) nullify(self%exchange%lattice_water%data)
+    if (allocated(self%neutron%cosmic_l3_cache)) nullify(self%exchange%cosmic_l3%data)
+    if (allocated(self%runoff%alpha_cache)) nullify(self%exchange%alpha%data)
+    if (allocated(self%runoff%alpha_cache)) nullify(self%exchange%k_fastflow%data)
+    if (allocated(self%runoff%alpha_cache)) nullify(self%exchange%k_slowflow%data)
+    if (allocated(self%runoff%alpha_cache)) nullify(self%exchange%thresh_unsat%data)
+    if (allocated(self%runoff%k_baseflow_cache)) nullify(self%exchange%k_baseflow%data)
+    if (allocated(self%runoff%k_percolation_cache)) nullify(self%exchange%k_percolation%data)
+    if (allocated(self%runoff%f_karst_loss_cache)) nullify(self%exchange%f_karst_loss%data)
+    if (allocated(self%runoff%thresh_sealed_cache)) nullify(self%exchange%thresh_sealed%data)
 
     pet_process = self%exchange%config%processes%pet
     if (self%exchange%config%processes%interception > 0_i4) call self%init_max_interception_cache()
@@ -3253,7 +3285,7 @@ contains
 
     if (.not.variable%provided) return
     variable%static = .not.temporal
-    call variable%set_stepping("MPR", merge(varying, no_time, temporal))
+    call variable%prepare_data("MPR", merge(varying, no_time, temporal))
   end subroutine set_published_temporality
 
   !> \brief Resolve active LAI period index from a model time.

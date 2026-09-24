@@ -231,8 +231,10 @@ contains
         self%restart_lake_points%x, self%restart_lake_points%y, coordsys=self%restart_lake_points%coordsys)
       self%static_lake_max_levels = self%restart_lake_max_levels
       self%exchange%lake_points => self%static_lake_points
-      call self%exchange%lake_ids%publish_local("mLM", self%lake_ids, no_time)
-      call self%exchange%lake_max_levels%publish_local("mLM", self%static_lake_max_levels, no_time)
+      call self%exchange%lake_ids%prepare_data("mLM", no_time)
+      self%exchange%lake_ids%data => self%lake_ids
+      call self%exchange%lake_max_levels%prepare_data("mLM", no_time)
+      self%exchange%lake_max_levels%data => self%static_lake_max_levels
       self%owns_restart_lake_points = .true.
       self%owns_restart_lake_metadata = .true.
     end if
@@ -240,7 +242,6 @@ contains
       log_fatal(*) "mLM: lake process requires at least one lake."
       error stop 1
     end if
-    self%lake_ids = self%exchange%lake_ids%data
     if (lake_case == -2_i4) then
       if (associated(self%exchange%level0_lake) .and. self%exchange%lake_map%provided) then
         call self%exchange%check_data(self%exchange%lake_map, "mLM")
@@ -249,19 +250,22 @@ contains
       else if (self%read_restart) then
         call self%read_restart_topology()
         self%exchange%level0_lake => self%static_lake_grid
-        call self%exchange%lake_map%publish_local("mLM", self%lake_map, no_time)
+        call self%exchange%lake_map%prepare_data("mLM", no_time)
+        self%exchange%lake_map%data => self%lake_map
         self%owns_restart_lake_grid = .true.
       else
         log_fatal(*) "mLM process -2 requires a level-0 lake grid and lake map."
         error stop 1
       end if
       call lake_derive_area(self%static_lake_grid, self%lake_map, self%lake_ids, self%lake_area)
-      call self%exchange%lake_area%publish_local("mLM", self%lake_area, no_time)
+      call self%exchange%lake_area%prepare_data("mLM", no_time)
+      self%exchange%lake_area%data => self%lake_area
       call self%exchange%lake_pre%check_provided("mLM")
       call self%exchange%lake_pet%check_provided("mLM")
     end if
     allocate(self%outflow(n_lakes), source=0.0_dp)
-    call self%exchange%lake_outflow%publish_local("mLM", self%outflow, 1_i4)
+    call self%exchange%lake_outflow%prepare_data("mLM", 1_i4)
+    self%exchange%lake_outflow%data => self%outflow
   end subroutine mlm_connect
 
   !> \brief Restore or initialize pass-through outflow after mRM has published inflow.
@@ -279,7 +283,7 @@ contains
     if (self%exchange%config%processes%lake == -2_i4) then
       call self%exchange%check_data(self%exchange%lake_area, "mLM")
     end if
-    self%outflow = 0.0_dp
+    self%outflow(:) = 0.0_dp
     if (self%read_restart) call self%read_restart_state()
     call self%validate_output_timing()
     call self%create_output()
@@ -288,9 +292,9 @@ contains
   !> \brief Publish the preceding completed hourly inflow as current outflow.
   subroutine mlm_update(self)
     class(mlm_t), target, intent(inout) :: self
-    self%outflow = self%exchange%lake_inflow%data
+    self%outflow(:) = self%exchange%lake_inflow%data
     if (self%exchange%config%processes%lake == -2_i4) then
-      self%outflow = lake_balance_outflow(self%outflow, self%lake_area, self%exchange%lake_pre%data, &
+      self%outflow(:) = lake_balance_outflow(self%outflow, self%lake_area, self%exchange%lake_pre%data, &
         self%exchange%lake_pet%data, 3600.0_dp)
     end if
     call self%update_output()

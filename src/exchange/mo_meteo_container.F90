@@ -439,17 +439,20 @@ contains
 
     if (need_raw_pre_land) then
       call self%ensure_size(self%out%pre, self%exchange%level1_land%ncells)
-      call self%exchange%pre%publish_local("Meteo", self%out%pre, step_hours)
+      call self%exchange%pre%prepare_data("Meteo", step_hours)
+      self%exchange%pre%data => self%out%pre
     end if
 
     if (need_raw_temp_land) then
       call self%ensure_size(self%out%temp, self%exchange%level1_land%ncells)
-      call self%exchange%temp%publish_local("Meteo", self%out%temp, step_hours)
+      call self%exchange%temp%prepare_data("Meteo", step_hours)
+      self%exchange%temp%data => self%out%temp
     end if
 
     if (pet_process /= 0_i4) then
       call self%ensure_size(self%out%pet, self%exchange%level1_land%ncells)
-      call self%exchange%pet%publish_local("Meteo", self%out%pet, step_hours)
+      call self%exchange%pet%prepare_data("Meteo", step_hours)
+      self%exchange%pet%data => self%out%pet
     end if
 
     if (pet_process == 1_i4) then
@@ -478,15 +481,18 @@ contains
 
     if (need_raw_ssrd_land) then
       call self%ensure_size(self%out%ssrd, self%exchange%level1_land%ncells)
-      call self%exchange%ssrd%publish_local("Meteo", self%out%ssrd, step_hours)
+      call self%exchange%ssrd%prepare_data("Meteo", step_hours)
+      self%exchange%ssrd%data => self%out%ssrd
     end if
     if (need_raw_strd_land) then
       call self%ensure_size(self%out%strd, self%exchange%level1_land%ncells)
-      call self%exchange%strd%publish_local("Meteo", self%out%strd, step_hours)
+      call self%exchange%strd%prepare_data("Meteo", step_hours)
+      self%exchange%strd%data => self%out%strd
     end if
     if (need_raw_tann_land) then
       call self%ensure_size(self%out%tann, self%exchange%level1_land%ncells)
-      call self%exchange%tann%publish_local("Meteo", self%out%tann, step_hours)
+      call self%exchange%tann%prepare_data("Meteo", step_hours)
+      self%exchange%tann%data => self%out%tann
     end if
 
     if (self%weight_mode_active() .and. steps_day > 1_i4) then
@@ -565,12 +571,12 @@ contains
       call self%exchange%check_data(self%exchange%pet_fac_lai, "Meteo")
     end select
 
-    if (allocated(self%out%pre)) self%out%pre = 0.0_dp
-    if (allocated(self%out%temp)) self%out%temp = 0.0_dp
-    if (allocated(self%out%pet)) self%out%pet = 0.0_dp
-    if (allocated(self%out%ssrd)) self%out%ssrd = 0.0_dp
-    if (allocated(self%out%strd)) self%out%strd = 0.0_dp
-    if (allocated(self%out%tann)) self%out%tann = 0.0_dp
+    if (allocated(self%out%pre)) self%out%pre(:) = 0.0_dp
+    if (allocated(self%out%temp)) self%out%temp(:) = 0.0_dp
+    if (allocated(self%out%pet)) self%out%pet(:) = 0.0_dp
+    if (allocated(self%out%ssrd)) self%out%ssrd(:) = 0.0_dp
+    if (allocated(self%out%strd)) self%out%strd(:) = 0.0_dp
+    if (allocated(self%out%tann)) self%out%tann(:) = 0.0_dp
   end subroutine meteo_initialize
 
   !> \brief Update the meteorology process container for the current time step.
@@ -691,8 +697,8 @@ contains
     if (.not.allocated(arr)) then
       allocate(arr(n_cells))
     else if (size(arr, kind=i8) /= n_cells) then
-      deallocate(arr)
-      allocate(arr(n_cells))
+      log_fatal(*) "Meteo: work array size changed after allocation."
+      error stop 1
     end if
   end subroutine meteo_ensure_size
 
@@ -729,7 +735,8 @@ contains
 
     if (self%exchange%lake_pre%provided) then
       allocate(self%lake%pre(n_lakes), source=0.0_dp)
-      call self%exchange%lake_pre%publish_local("Meteo", self%lake%pre, self%exchange%step_hours)
+      call self%exchange%lake_pre%prepare_data("Meteo", self%exchange%step_hours)
+      self%exchange%lake_pre%data => self%lake%pre
       if (self%weight_mode_active() .and. self%exchange%raw_pre%stepping == daily) then
         domain_id = self%exchange%nml_domain_id
         path = self%exchange%get_path(self%config%pre_weights_path(domain_id))
@@ -739,7 +746,8 @@ contains
 
     if (self%exchange%lake_pet%provided) then
       allocate(self%lake%pet(n_lakes), source=0.0_dp)
-      call self%exchange%lake_pet%publish_local("Meteo", self%lake%pet, self%exchange%step_hours)
+      call self%exchange%lake_pet%prepare_data("Meteo", self%exchange%step_hours)
+      self%exchange%lake_pet%data => self%lake%pet
       if (self%weight_mode_active() .and. self%exchange%raw_pet%stepping == daily) then
         domain_id = self%exchange%nml_domain_id
         path = self%exchange%get_path(self%config%pet_weights_path(domain_id))
@@ -983,7 +991,7 @@ contains
     select case (self%exchange%raw_pre%stepping)
       case (daily)
         if (steps_day == 1_i4) then
-          self%out%pre = self%scratch%pre
+          self%out%pre(:) = self%scratch%pre
         else if (self%weight_mode_active()) then
           if (.not.allocated(self%weights%pre)) then
             log_fatal(*) "Meteo: precipitation weights not loaded."
@@ -995,7 +1003,7 @@ contains
             1.0_dp - self%config%frac_night_pre(month, domain_id), self%config%frac_night_pre(month, domain_id), self%out%pre)
         end if
       case default
-        self%out%pre = self%scratch%pre
+        self%out%pre(:) = self%scratch%pre
     end select
   end subroutine meteo_update_pre
 
@@ -1018,7 +1026,7 @@ contains
     select case (self%exchange%raw_temp%stepping)
       case (daily)
         if (steps_day == 1_i4) then
-          self%out%temp = self%scratch%temp
+          self%out%temp(:) = self%scratch%temp
         else if (self%weight_mode_active()) then
           if (.not.allocated(self%weights%temp)) then
             log_fatal(*) "Meteo: temperature weights not loaded."
@@ -1032,7 +1040,7 @@ contains
             self%out%temp, add_correction=.true.)
         end if
       case default
-        self%out%temp = self%scratch%temp
+        self%out%temp(:) = self%scratch%temp
     end select
   end subroutine meteo_update_temp
 
@@ -1110,7 +1118,7 @@ contains
     select case (pet_stepping)
       case (daily)
         if (steps_day == 1_i4) then
-          self%out%pet = self%scratch%pet
+          self%out%pet(:) = self%scratch%pet
         else if (self%weight_mode_active()) then
           if (.not.allocated(self%weights%pet)) then
             log_fatal(*) "Meteo: PET weights not loaded."
@@ -1122,7 +1130,7 @@ contains
             1.0_dp - self%config%frac_night_pet(month, domain_id), self%config%frac_night_pet(month, domain_id), self%out%pet)
         end if
       case default
-        self%out%pet = self%scratch%pet
+        self%out%pet(:) = self%scratch%pet
     end select
   end subroutine meteo_update_pet
 
@@ -1145,7 +1153,7 @@ contains
     select case (self%exchange%raw_ssrd%stepping)
       case (daily)
         if (steps_day == 1_i4) then
-          self%out%ssrd = self%scratch%ssrd
+          self%out%ssrd(:) = self%scratch%ssrd
         else if (self%weight_mode_active()) then
           if (.not.allocated(self%weights%ssrd)) then
             log_fatal(*) "Meteo: short-wave radiation weights not loaded."
@@ -1157,7 +1165,7 @@ contains
             1.0_dp - self%config%frac_night_ssrd(month, domain_id), self%config%frac_night_ssrd(month, domain_id), self%out%ssrd)
         end if
       case default
-        self%out%ssrd = self%scratch%ssrd
+        self%out%ssrd(:) = self%scratch%ssrd
     end select
   end subroutine meteo_update_ssrd
 
@@ -1180,7 +1188,7 @@ contains
     select case (self%exchange%raw_strd%stepping)
       case (daily)
         if (steps_day == 1_i4) then
-          self%out%strd = self%scratch%strd
+          self%out%strd(:) = self%scratch%strd
         else if (self%weight_mode_active()) then
           if (.not.allocated(self%weights%strd)) then
             log_fatal(*) "Meteo: long-wave radiation weights not loaded."
@@ -1192,7 +1200,7 @@ contains
             1.0_dp - self%config%frac_night_strd(month, domain_id), self%config%frac_night_strd(month, domain_id), self%out%strd)
         end if
       case default
-        self%out%strd = self%scratch%strd
+        self%out%strd(:) = self%scratch%strd
     end select
   end subroutine meteo_update_strd
 
@@ -1200,7 +1208,7 @@ contains
   subroutine meteo_update_tann(self)
     class(meteo_t), intent(inout), target :: self
     call self%remap_raw(self%exchange%raw_tann, self%scratch%tann, "raw_tann")
-    self%out%tann = self%scratch%tann
+    self%out%tann(:) = self%scratch%tann
   end subroutine meteo_update_tann
 
 end module mo_meteo_container

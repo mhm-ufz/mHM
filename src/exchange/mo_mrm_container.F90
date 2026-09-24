@@ -633,7 +633,8 @@ contains
         end if
       end do
       allocate(self%lake_inflow(n_lakes), source=0.0_dp)
-      call self%exchange%lake_inflow%publish_local("mRM", self%lake_inflow, 1_i4)
+      call self%exchange%lake_inflow%prepare_data("mRM", 1_i4)
+      self%exchange%lake_inflow%data => self%lake_inflow
       if (self%read_restart) call self%read_lake_inflow_restart()
       call self%build_level3_land()
     end if
@@ -664,7 +665,8 @@ contains
 
     ! populate exchange type
     allocate(self%discharge(self%river%n_nodes))
-    call self%exchange%discharge%publish_local("mRM", self%discharge, model_step)
+    call self%exchange%discharge%prepare_data("mRM", model_step)
+    self%exchange%discharge%data => self%discharge
   end subroutine mrm_connect
 
   !> \brief Read POIs, preserve their station IDs, and select nearest river nodes in one batch.
@@ -1058,11 +1060,11 @@ contains
     scope_debug(s,*) "router%routing_substep: ", self%router%routing_substep
     scope_debug(s,*) "router%routing_step: ", self%router%routing_step
     scope_debug(s,*) "last level in parallel: ", self%router%last_parallel_level, "/", self%router%river%order%n_levels
-    call self%exchange%discharge%set_stepping("mRM", self%router%routing_step)
+    call self%exchange%discharge%prepare_data("mRM", self%router%routing_step)
     if (self%read_restart) then
       call self%read_public_discharge()
     else
-      self%discharge = 0.0_dp
+      self%discharge(:) = 0.0_dp
     end if
 
     call self%validate_timing()
@@ -1131,7 +1133,7 @@ contains
 
     id(1) = self%exchange%nml_domain_id
     if (.not.self%config%read_restart_fluxes(id(1))) then
-      self%discharge = 0.0_dp
+      self%discharge(:) = 0.0_dp
       return
     end if
 
@@ -1140,7 +1142,7 @@ contains
       nc_var = nc%getVariable("mrm_discharge")
       call nc_var%readInto(self%discharge)
     else
-      self%discharge = self%router%previous_discharge
+      self%discharge(:) = self%router%previous_discharge
       log_warn(*) "mRM restart has no published discharge; using the final internal routing state."
     end if
     call nc%close()

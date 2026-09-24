@@ -119,23 +119,32 @@ contains
     raw_strd = [300.0_dp, 400.0_dp]
     raw_tann = [7.0_dp, 9.0_dp]
     call exchange%lake_ids%provide('test')
-    call exchange%lake_ids%publish_local('test', lake_ids, no_time)
+    call exchange%lake_ids%prepare_data('test', no_time)
+    exchange%lake_ids%data => lake_ids
     call exchange%lake_map%provide('test')
-    call exchange%lake_map%publish_local('test', lake_map, no_time)
+    call exchange%lake_map%prepare_data('test', no_time)
+    exchange%lake_map%data => lake_map
     call exchange%lake_area%provide('test')
-    call exchange%lake_area%publish_local('test', lake_area, no_time)
+    call exchange%lake_area%prepare_data('test', no_time)
+    exchange%lake_area%data => lake_area
     call exchange%raw_pre%provide('test')
-    call exchange%raw_pre%publish_local('test', raw_pre, 1_i4)
+    call exchange%raw_pre%prepare_data('test', 1_i4)
+    exchange%raw_pre%data => raw_pre
     call exchange%raw_pet%provide('test')
-    call exchange%raw_pet%publish_local('test', raw_pet, 1_i4)
+    call exchange%raw_pet%prepare_data('test', 1_i4)
+    exchange%raw_pet%data => raw_pet
     call exchange%raw_temp%provide('test')
-    call exchange%raw_temp%publish_local('test', raw_temp, 1_i4)
+    call exchange%raw_temp%prepare_data('test', 1_i4)
+    exchange%raw_temp%data => raw_temp
     call exchange%raw_ssrd%provide('test')
-    call exchange%raw_ssrd%publish_local('test', raw_ssrd, 1_i4)
+    call exchange%raw_ssrd%prepare_data('test', 1_i4)
+    exchange%raw_ssrd%data => raw_ssrd
     call exchange%raw_strd%provide('test')
-    call exchange%raw_strd%publish_local('test', raw_strd, 1_i4)
+    call exchange%raw_strd%prepare_data('test', 1_i4)
+    exchange%raw_strd%data => raw_strd
     call exchange%raw_tann%provide('test')
-    call exchange%raw_tann%publish_local('test', raw_tann, 1_i4)
+    call exchange%raw_tann%prepare_data('test', 1_i4)
+    exchange%raw_tann%data => raw_tann
     status = meteo%config%set()
     @assertEqual(0, status)
     meteo%exchange => exchange
@@ -181,15 +190,20 @@ contains
     raw_pet = [2.0_dp]
     night_fraction = 0.5_dp
     call exchange%lake_ids%provide('test')
-    call exchange%lake_ids%publish_local('test', lake_ids, no_time)
+    call exchange%lake_ids%prepare_data('test', no_time)
+    exchange%lake_ids%data => lake_ids
     call exchange%lake_map%provide('test')
-    call exchange%lake_map%publish_local('test', lake_map, no_time)
+    call exchange%lake_map%prepare_data('test', no_time)
+    exchange%lake_map%data => lake_map
     call exchange%lake_area%provide('test')
-    call exchange%lake_area%publish_local('test', lake_area, no_time)
+    call exchange%lake_area%prepare_data('test', no_time)
+    exchange%lake_area%data => lake_area
     call exchange%raw_pre%provide('test')
-    call exchange%raw_pre%publish_local('test', raw_pre, daily)
+    call exchange%raw_pre%prepare_data('test', daily)
+    exchange%raw_pre%data => raw_pre
     call exchange%raw_pet%provide('test')
-    call exchange%raw_pet%publish_local('test', raw_pet, daily)
+    call exchange%raw_pet%prepare_data('test', daily)
+    exchange%raw_pet%data => raw_pet
     status = meteo%config%set(frac_night_pre=night_fraction, frac_night_pet=night_fraction)
     @assertEqual(0, status)
     meteo%exchange => exchange

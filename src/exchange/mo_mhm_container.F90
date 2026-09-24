@@ -1786,51 +1786,108 @@ contains
 
     select case (interception_case)
     case (1_i4)
-      call self%exchange%interception%publish_local("mHM", self%canopy%interception, step_hours)
-      call self%exchange%throughfall%publish_local("mHM", self%canopy%throughfall, step_hours)
-      call self%exchange%aet_canopy%publish_local("mHM", self%canopy%aet, step_hours)
+      call self%exchange%interception%prepare_data("mHM", step_hours)
+      self%exchange%interception%data => self%canopy%interception
+      call self%exchange%throughfall%prepare_data("mHM", step_hours)
+      self%exchange%throughfall%data => self%canopy%throughfall
+      call self%exchange%aet_canopy%prepare_data("mHM", step_hours)
+      self%exchange%aet_canopy%data => self%canopy%aet
     case (-1_i4)
-      call self%exchange%interception%publish_local("mHM", self%canopy%interception, step_hours)
-      call self%exchange%throughfall%publish_alias("mHM", self%exchange%pre)
-      call self%exchange%aet_canopy%publish_local("mHM", self%canopy%aet, step_hours)
+      call self%exchange%interception%prepare_data("mHM", step_hours)
+      self%exchange%interception%data => self%canopy%interception
+      call self%exchange%throughfall%associate_alias("mHM", self%exchange%pre)
+      call self%exchange%aet_canopy%prepare_data("mHM", step_hours)
+      self%exchange%aet_canopy%data => self%canopy%aet
     case (0_i4)
     end select
 
     select case (snow_case)
     case (1_i4)
-      call self%exchange%snowpack%publish_local("mHM", self%snow%snowpack, step_hours)
-      call self%exchange%melt%publish_local("mHM", self%snow%melt, step_hours)
-      call self%exchange%pre_eff%publish_local("mHM", self%snow%pre_effect, step_hours)
-      call self%exchange%rain%publish_local("mHM", self%snow%rain, step_hours)
-      call self%exchange%snow%publish_local("mHM", self%snow%snow, step_hours)
-      call self%exchange%degday%publish_local("mHM", self%snow%degday, step_hours)
+      call self%exchange%snowpack%prepare_data("mHM", step_hours)
+      self%exchange%snowpack%data => self%snow%snowpack
+      call self%exchange%melt%prepare_data("mHM", step_hours)
+      self%exchange%melt%data => self%snow%melt
+      call self%exchange%pre_eff%prepare_data("mHM", step_hours)
+      self%exchange%pre_eff%data => self%snow%pre_effect
+      call self%exchange%rain%prepare_data("mHM", step_hours)
+      self%exchange%rain%data => self%snow%rain
+      call self%exchange%snow%prepare_data("mHM", step_hours)
+      self%exchange%snow%data => self%snow%snow
+      call self%exchange%degday%prepare_data("mHM", step_hours)
+      self%exchange%degday%data => self%snow%degday
     case (-1_i4)
-      call self%exchange%snowpack%publish_local("mHM", self%snow%snowpack, step_hours)
-      call self%exchange%melt%publish_local("mHM", self%snow%melt, step_hours)
-      call self%exchange%pre_eff%publish_alias("mHM", self%exchange%throughfall)
-      call self%exchange%rain%publish_alias("mHM", self%exchange%throughfall)
-      call self%exchange%snow%publish_local("mHM", self%snow%snow, step_hours)
-      call self%exchange%degday%publish_local("mHM", self%snow%degday, step_hours)
+      call self%exchange%snowpack%prepare_data("mHM", step_hours)
+      self%exchange%snowpack%data => self%snow%snowpack
+      call self%exchange%melt%prepare_data("mHM", step_hours)
+      self%exchange%melt%data => self%snow%melt
+      call self%exchange%pre_eff%associate_alias("mHM", self%exchange%throughfall)
+      call self%exchange%rain%associate_alias("mHM", self%exchange%throughfall)
+      call self%exchange%snow%prepare_data("mHM", step_hours)
+      self%exchange%snow%data => self%snow%snow
+      call self%exchange%degday%prepare_data("mHM", step_hours)
+      self%exchange%degday%data => self%snow%degday
     case (0_i4)
     end select
 
-    if (self%contract%own_sealed_storage) call self%exchange%sealed_storage%publish_local("mHM", self%direct_runoff%storage, step_hours)
-    if (self%contract%own_aet_sealed) call self%exchange%aet_sealed%publish_local("mHM", self%direct_runoff%aet, step_hours)
-    if (self%contract%own_runoff_sealed) call self%exchange%runoff_sealed%publish_local("mHM", self%direct_runoff%runoff, step_hours)
+    if (self%contract%own_sealed_storage) then
+      call self%exchange%sealed_storage%prepare_data("mHM", step_hours)
+      self%exchange%sealed_storage%data => self%direct_runoff%storage
+    end if
+    if (self%contract%own_aet_sealed) then
+      call self%exchange%aet_sealed%prepare_data("mHM", step_hours)
+      self%exchange%aet_sealed%data => self%direct_runoff%aet
+    end if
+    if (self%contract%own_runoff_sealed) then
+      call self%exchange%runoff_sealed%prepare_data("mHM", step_hours)
+      self%exchange%runoff_sealed%data => self%direct_runoff%runoff
+    end if
 
-    if (self%contract%own_soil_moisture) call self%exchange%soil_moisture%publish_local("mHM", self%soil%moisture, step_hours)
-    if (self%contract%own_infiltration) call self%exchange%infiltration%publish_local("mHM", self%soil%infiltration, step_hours)
-    if (self%contract%own_aet_soil) call self%exchange%aet_soil%publish_local("mHM", self%soil%aet, step_hours)
+    if (self%contract%own_soil_moisture) then
+      call self%exchange%soil_moisture%prepare_data("mHM", step_hours)
+      self%exchange%soil_moisture%data => self%soil%moisture
+    end if
+    if (self%contract%own_infiltration) then
+      call self%exchange%infiltration%prepare_data("mHM", step_hours)
+      self%exchange%infiltration%data => self%soil%infiltration
+    end if
+    if (self%contract%own_aet_soil) then
+      call self%exchange%aet_soil%prepare_data("mHM", step_hours)
+      self%exchange%aet_soil%data => self%soil%aet
+    end if
 
-    if (self%contract%own_unsat_storage) call self%exchange%unsat_storage%publish_local("mHM", self%runoff%unsat_storage, step_hours)
-    if (self%contract%own_sat_storage) call self%exchange%sat_storage%publish_local("mHM", self%runoff%sat_storage, step_hours)
-    if (self%contract%own_percolation) call self%exchange%percolation%publish_local("mHM", self%runoff%percolation, step_hours)
-    if (self%contract%own_interflow_fast) call self%exchange%interflow_fast%publish_local("mHM", self%runoff%fast_interflow, step_hours)
-    if (self%contract%own_interflow_slow) call self%exchange%interflow_slow%publish_local("mHM", self%runoff%slow_interflow, step_hours)
-    if (self%contract%own_baseflow) call self%exchange%baseflow%publish_local("mHM", self%runoff%baseflow, step_hours)
-    if (self%contract%own_total_runoff) call self%exchange%runoff_total%publish_local("mHM", self%runoff%total_runoff, step_hours)
+    if (self%contract%own_unsat_storage) then
+      call self%exchange%unsat_storage%prepare_data("mHM", step_hours)
+      self%exchange%unsat_storage%data => self%runoff%unsat_storage
+    end if
+    if (self%contract%own_sat_storage) then
+      call self%exchange%sat_storage%prepare_data("mHM", step_hours)
+      self%exchange%sat_storage%data => self%runoff%sat_storage
+    end if
+    if (self%contract%own_percolation) then
+      call self%exchange%percolation%prepare_data("mHM", step_hours)
+      self%exchange%percolation%data => self%runoff%percolation
+    end if
+    if (self%contract%own_interflow_fast) then
+      call self%exchange%interflow_fast%prepare_data("mHM", step_hours)
+      self%exchange%interflow_fast%data => self%runoff%fast_interflow
+    end if
+    if (self%contract%own_interflow_slow) then
+      call self%exchange%interflow_slow%prepare_data("mHM", step_hours)
+      self%exchange%interflow_slow%data => self%runoff%slow_interflow
+    end if
+    if (self%contract%own_baseflow) then
+      call self%exchange%baseflow%prepare_data("mHM", step_hours)
+      self%exchange%baseflow%data => self%runoff%baseflow
+    end if
+    if (self%contract%own_total_runoff) then
+      call self%exchange%runoff_total%prepare_data("mHM", step_hours)
+      self%exchange%runoff_total%data => self%runoff%total_runoff
+    end if
 
-    if (self%contract%own_neutrons) call self%exchange%neutrons%publish_local("mHM", self%neutrons%counts, step_hours)
+    if (self%contract%own_neutrons) then
+      call self%exchange%neutrons%prepare_data("mHM", step_hours)
+      self%exchange%neutrons%data => self%neutrons%counts
+    end if
   end subroutine mhm_publish_exchange
 
   !> \brief Reset all mHM fields to default values.
@@ -1848,7 +1905,7 @@ contains
         log_fatal(*) "mHM: sm_field_capacity data not connected for soil-moisture field initialization."
         error stop 1
       end if
-      self%soil%moisture = 0.5_dp * self%exchange%sm_field_capacity%data
+      self%soil%moisture(:, :) = 0.5_dp * self%exchange%sm_field_capacity%data
     end if
 
     if (allocated(self%runoff%unsat_storage)) self%runoff%unsat_storage = P3_InitStateFluxes
