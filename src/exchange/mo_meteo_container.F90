@@ -117,6 +117,7 @@ module mo_meteo_container
     procedure :: initialize => meteo_initialize
     procedure :: update => meteo_update
     procedure :: finalize => meteo_finalize
+    procedure :: destroy => meteo_destroy
     procedure, private :: steps_per_day => meteo_steps_per_day
     procedure, private :: weight_mode_active => meteo_weight_mode_active
     procedure, private :: fraction_domain => meteo_fraction_domain
@@ -598,6 +599,11 @@ contains
     class(meteo_t), intent(inout), target :: self
 
     log_info(*) "Finalize meteo"
+  end subroutine meteo_finalize
+
+  !> \brief Release meteorological output and remapping caches.
+  subroutine meteo_destroy(self)
+    class(meteo_t), intent(inout), target :: self
 
     if (allocated(self%weights%pre)) deallocate(self%weights%pre)
     if (allocated(self%weights%pet)) deallocate(self%weights%pet)
@@ -630,7 +636,9 @@ contains
     if (allocated(self%lake%pre_weights)) deallocate(self%lake%pre_weights)
     if (allocated(self%lake%pet_weights)) deallocate(self%lake%pet_weights)
     self%lake%active = .false.
-  end subroutine meteo_finalize
+    call self%regrid%destroy()
+    call self%tgt_level1_land%destroy()
+  end subroutine meteo_destroy
 
   !> \brief Return the number of model steps per day.
   integer(i4) function meteo_steps_per_day(self) result(steps_day)

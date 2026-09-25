@@ -75,6 +75,7 @@ module mo_river
     real(dp), allocatable :: cell_land_fraction(:) !< Land area / full area for each L3 cell.
     real(dp), allocatable :: area_fraction(:) !< Land-runoff share assigned to each SCC routing node.
   contains
+    procedure, public :: init => river_init
     procedure, public :: from_fdir => river_from_fdir
     procedure, public :: calc_order => river_order
     procedure, public :: calc_fdir => river_fdir
@@ -92,7 +93,7 @@ module mo_river
     generic, public :: select_cell_values => river_select_cell_values_dp, river_select_cell_values_i4
     procedure, private :: river_select_cell_values_dp, river_select_cell_values_i4
     procedure, public :: export => river_export
-    procedure, public :: clean => river_destroy
+    procedure, public :: destroy => river_destroy
     procedure, public :: to_restart_dataset => river_to_restart_dataset, to_restart_file => river_to_restart_file
     generic, public :: to_restart => to_restart_dataset, to_restart_file
     procedure, public :: from_restart_dataset => river_from_restart_dataset, from_restart_file => river_from_restart_file
@@ -100,6 +101,16 @@ module mo_river
   end type river_t
 
 contains
+
+  !> \brief Initialize inherited branching links without destroying river-specific state.
+  !> \details branching%init calls destroy virtually; invoke it on the parent subobject.
+  subroutine river_init(this, down, tags)
+    class(river_t), intent(inout) :: this !< River whose branching links are rebuilt.
+    integer(i8), intent(in) :: down(:) !< Downstream node for each river node; zero at sinks.
+    integer(i8), intent(in), optional :: tags(:) !< Optional stable node tags.
+
+    call this%branching%init(down, tags)
+  end subroutine river_init
 
   !> \brief Convert D8 flow direction to LDD flow direction
   subroutine d8_to_ldd(fdir_d8, fdir_ldd)
@@ -1448,7 +1459,7 @@ contains
     real(dp), allocatable :: node_x(:), node_y(:)
 
     ! reset all attributes
-    call this%clean()
+    call this%destroy()
 
     ! grid should be read separately and passed as argument to avoid circular dependency between river and grid
     this%grid => grid
@@ -1674,13 +1685,21 @@ contains
     if (allocated(this%lake_map)) deallocate(this%lake_map)
     if (allocated(this%lake_outlet_nodes)) deallocate(this%lake_outlet_nodes)
     if (allocated(this%lake_id)) deallocate(this%lake_id)
-    this%points = points_t()
+    call this%points%destroy()
     if (allocated(this%node_cell)) deallocate(this%node_cell)
     if (allocated(this%cell_node_select)) deallocate(this%cell_node_select)
     if (allocated(this%area_fraction)) deallocate(this%area_fraction)
     if (allocated(this%cell_land_fraction)) deallocate(this%cell_land_fraction)
+    if (allocated(this%order%id)) deallocate(this%order%id)
+    if (allocated(this%order%level_start)) deallocate(this%order%level_start)
+    if (allocated(this%order%level_end)) deallocate(this%order%level_end)
+    if (allocated(this%order%level_size)) deallocate(this%order%level_size)
+    this%order%n_levels = 0_i8
+    this%order%to_root = .false.
+    nullify(this%grid)
+    this%scc = .false.
     this%n_lakes = 0_i4
-    call this%destroy()
+    call this%branching%destroy()
   end subroutine river_destroy
 
 end module mo_river

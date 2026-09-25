@@ -89,8 +89,8 @@ contains
     @assertEqual([2.05_dp, 1.01_dp], restored_outflow, tolerance=1.0e-12_dp)
     @assertEqual("2001-01-03 00:00:00", trim(timestamp), message="mLM restart timestamp is current domain time")
 
-    call exchange%finalize()
-    nullify(exchange%lake_points)
+    call exchange%destroy()
+    call mlm%destroy()
   end subroutine test_mlm_restart_writes_static_metadata
 
   @test
@@ -135,8 +135,8 @@ contains
     @assertTrue(exchange%lake_ids%provided, message="mLM finalization preserves Input-owned IDs")
     @assertTrue(exchange%lake_max_levels%provided, message="mLM finalization preserves Input-owned levels")
     @assertTrue(associated(exchange%lake_points, input_points), message="mLM finalization preserves Input-owned points")
-    call clear_input_metadata(exchange)
-    call exchange%finalize()
+    call exchange%destroy()
+    call mlm%destroy()
   end subroutine test_mlm_restart_uses_input_order
 
   @test
@@ -164,9 +164,13 @@ contains
 
     @assertTrue(exchange%lake_ids%provided, message="mLM preserves its stable-ID declaration")
     @assertTrue(exchange%lake_max_levels%provided, message="mLM preserves its maximum-level declaration")
-    @assertTrue(associated(exchange%lake_points), message="mLM leaves terminal cleanup to the exchange")
-    call exchange%finalize()
-    @assertFalse(associated(exchange%lake_points), message="exchange terminal cleanup clears lake points")
+    @assertTrue(associated(exchange%lake_points), message="mLM leaves terminal destruction to the exchange")
+    call exchange%destroy()
+    @assertFalse(associated(exchange%lake_points), message="exchange terminal destruction clears lake points")
+    call mlm%destroy()
+    @assertFalse(allocated(mlm%outflow), message="mLM destroy releases outflow")
+    call exchange%destroy()
+    call mlm%destroy()
   end subroutine test_mlm_restart_publishes_and_clears_metadata
 
   @test
@@ -234,8 +238,8 @@ contains
     call mlm%update()
     call mlm%finalize()
 
-    @assertTrue(exchange%lake_outflow%provided, message="mLM cleanup preserves its outflow declaration")
-    @assertFalse(allocated(mlm%ds_out%vars), message="mLM cleanup closes the point output dataset")
+    @assertTrue(exchange%lake_outflow%provided, message="mLM destroy preserves its outflow declaration")
+    @assertFalse(allocated(mlm%ds_out%vars), message="mLM destroy closes the point output dataset")
 
     nc = NcDataset("mlm_output_average.nc", "r")
     nc_var = nc%getVariable("lake_id")
@@ -255,8 +259,8 @@ contains
     @assertEqual([0_i4, 2_i4], time_bounds(:, 1), message="time bounds cover both hourly releases")
     call nc%close()
 
-    call clear_input_metadata(exchange)
-    call exchange%finalize()
+    call exchange%destroy()
+    call mlm%destroy()
   end subroutine test_mlm_output_averages_in_exchange_order
 
   @test
@@ -286,8 +290,8 @@ contains
     mlm%lake_area = [360000.0_dp, 360000.0_dp]
     call mlm%update()
     @assertEqual([2.0_dp, 0.0_dp], mlm%outflow, tolerance=1.0e-12_dp, message="lake balance converts millimetres to discharge and clamps negative outflow")
-    call exchange%finalize()
-    deallocate(mlm%outflow, mlm%lake_area)
+    call exchange%destroy()
+    call mlm%destroy()
   end subroutine test_mlm_lake_balance_clamps_outflow
 
   @test
@@ -362,10 +366,10 @@ contains
     @assertEqual(2_i8, reader_exchange%level0_lake%ncells, message="restart-only mLM restores the lake grid")
     call reader%finalize()
 
-    call writer_exchange%finalize()
-    call reader_exchange%finalize()
-    nullify(writer_exchange%lake_points)
-    nullify(writer_exchange%level0_lake)
+    call writer_exchange%destroy()
+    call reader_exchange%destroy()
+    call reader%destroy()
+    call writer%destroy()
   end subroutine test_mlm_restart_restores_lake_topology
 
   subroutine setup_exchange(exchange, start_time)
@@ -382,13 +386,6 @@ contains
     exchange%step = timedelta(hours=1_i4)
     exchange%step_hours = 1_i4
   end subroutine setup_exchange
-
-  subroutine clear_input_metadata(exchange)
-    type(exchange_t), target, intent(inout) :: exchange
-
-    call exchange%finalize()
-    nullify(exchange%lake_points)
-  end subroutine clear_input_metadata
 
   subroutine write_restart(path, ids, outlet_x, outlet_y, levels, outflow, timestamp)
     character(*), intent(in) :: path

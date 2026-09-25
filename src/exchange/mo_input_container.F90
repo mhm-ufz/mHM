@@ -53,6 +53,7 @@ module mo_input_container
     procedure :: open_dataset => input_var_open_dataset
     procedure :: check_couple_status => input_var_check_couple_status
     procedure :: set_mask => input_var_set_mask
+    procedure :: destroy => input_var_destroy
   end type input_var_abc
 
   !> \class   input_var_dp
@@ -176,6 +177,7 @@ module mo_input_container
     procedure :: initialize => input_initialize
     procedure :: update => input_update
     procedure :: finalize => input_finalize
+    procedure :: destroy => input_destroy
     procedure, private :: read_fdir_file => input_read_fdir_file
     procedure, private :: build_river_l0 => input_build_river_l0
     procedure, private :: read_lake_specification => input_read_lake_specification
@@ -183,6 +185,39 @@ module mo_input_container
   end type input_t
 
 contains
+
+  !> \brief Release an input source's owned caches and detach its grid reference.
+  subroutine input_var_destroy(self)
+    class(input_var_abc), intent(inout), target :: self !< Source to reset after its dataset is closed.
+    select type (self)
+    type is (input_var_dp)
+      if (allocated(self%cache)) deallocate(self%cache)
+    type is (input_var_i4)
+      if (allocated(self%cache)) deallocate(self%cache)
+    type is (input_var_i2)
+      if (allocated(self%cache)) deallocate(self%cache)
+    type is (input_var2d_dp)
+      if (allocated(self%cache)) deallocate(self%cache)
+    type is (input_var2d_i4)
+      if (allocated(self%cache)) deallocate(self%cache)
+    end select
+    if (allocated(self%mask)) deallocate(self%mask)
+    if (allocated(self%path)) deallocate(self%path)
+    if (allocated(self%name)) deallocate(self%name)
+    if (allocated(self%ds%path)) deallocate(self%ds%path)
+    nullify(self%grid)
+    nullify(self%ds%grid)
+    self%provided = .false.
+    self%coupled = .false.
+    self%static = .false.
+    self%allow_static = .false.
+    self%morph_latlon = .false.
+    self%var_id = 0_i4
+    self%stepping = 0_i4
+    self%offset = 0_i4
+    self%chunk_time_start = datetime()
+    self%chunk_time_end = datetime()
+  end subroutine input_var_destroy
 
   !> \brief Input owns no restart definition; retained for the uniform lifecycle.
   subroutine input_prepare_restart(self)
@@ -1655,7 +1690,12 @@ contains
     if (self%eabs%provided .and. .not.self%eabs%static) call self%eabs%ds%close()
     if (self%wind%provided .and. .not.self%wind%static) call self%wind%ds%close()
     if (self%runoff%provided) call self%runoff%ds%close()
-    self%lake_outlets = points_t()
+  end subroutine input_finalize
+
+  !> \brief Release Input-owned source caches and structural data after exchange teardown.
+  subroutine input_destroy(self)
+    class(input_t), target, intent(inout) :: self
+    call self%lake_outlets%destroy()
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
     if (self%owns_lake_map) then
       self%owns_lake_map = .false.
@@ -1663,9 +1703,39 @@ contains
     if (allocated(self%lake_map)) deallocate(self%lake_map)
     if (allocated(self%lake_max_levels)) deallocate(self%lake_max_levels)
     if (self%owns_river_l0) then
-      call self%river_l0%clean()
+      call self%river_l0%destroy()
       self%owns_river_l0 = .false.
     end if
-  end subroutine input_finalize
+    call self%morph_mask%destroy()
+    call self%dem%destroy()
+    call self%slope%destroy()
+    call self%aspect%destroy()
+    call self%fdir%destroy()
+    call self%facc%destroy()
+    call self%geo_class%destroy()
+    call self%soil_class%destroy()
+    call self%soil_horizon_class%destroy()
+    call self%lai_class%destroy()
+    call self%meteo_mask%destroy()
+    call self%pre%destroy()
+    call self%pet%destroy()
+    call self%temp%destroy()
+    call self%tann%destroy()
+    call self%tmin%destroy()
+    call self%tmax%destroy()
+    call self%ssrd%destroy()
+    call self%strd%destroy()
+    call self%netrad%destroy()
+    call self%eabs%destroy()
+    call self%wind%destroy()
+    call self%hydro_mask%destroy()
+    call self%runoff%destroy()
+    call self%tgt_level0%destroy()
+    call self%tgt_level0_land%destroy()
+    call self%tgt_level0_lake%destroy()
+    call self%tgt_level1_land%destroy()
+    call self%tgt_level2%destroy()
+    call self%tgt_level3%destroy()
+  end subroutine input_destroy
 
 end module mo_input_container

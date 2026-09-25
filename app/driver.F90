@@ -117,6 +117,7 @@ program driver
     end do
     log_text(*) separator
     call domains(i)%finalize()
+    call domains(i)%destroy()
   end do
 
 contains

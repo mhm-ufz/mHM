@@ -90,6 +90,7 @@ module mo_mrm_container
     procedure :: initialize => mrm_initialize
     procedure :: update => mrm_update
     procedure :: finalize => mrm_finalize
+    procedure :: destroy => mrm_destroy
     procedure :: create_restart => mrm_create_restart
     procedure :: create_output => mrm_create_output
     procedure, private :: configure_parameters => mrm_configure_parameters
@@ -1364,6 +1365,24 @@ contains
       log_info(*) "No mRM POI output file will be written"
     end if
   end subroutine mrm_finalize
+
+  !> \brief Release mRM-owned routing state after all exchange publications are detached.
+  subroutine mrm_destroy(self)
+    class(mrm_t), intent(inout), target :: self
+    call self%router%destroy()
+    call self%upscaler%destroy()
+    if (allocated(self%celerity)) deallocate(self%celerity)
+    if (allocated(self%discharge)) deallocate(self%discharge)
+    if (allocated(self%lake_inflow)) deallocate(self%lake_inflow)
+    if (allocated(self%lake_ids)) deallocate(self%lake_ids)
+    if (allocated(self%lake_nodes)) deallocate(self%lake_nodes)
+    if (allocated(self%poi%locations)) deallocate(self%poi%locations)
+    if (allocated(self%poi%ids)) deallocate(self%poi%ids)
+    call self%poi%points%destroy()
+    call self%river%destroy()
+    call self%level3_land%destroy()
+    call self%level3%destroy()
+  end subroutine mrm_destroy
 
   subroutine mrm_create_output(self)
     use mo_grid_io, only: var, time_units_delta

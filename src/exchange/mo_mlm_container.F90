@@ -67,6 +67,7 @@ module mo_mlm_container
     procedure :: initialize => mlm_initialize
     procedure :: update => mlm_update
     procedure :: finalize => mlm_finalize
+    procedure :: destroy => mlm_destroy
     procedure, private :: create_restart => mlm_create_restart
     procedure, private :: read_restart_metadata => mlm_read_restart_metadata
     procedure, private :: read_restart_topology => mlm_read_restart_topology
@@ -300,7 +301,7 @@ contains
     call self%update_output()
   end subroutine mlm_update
 
-  !> \brief Write optional restart and clear mLM-owned publication.
+  !> \brief Write optional restart and close the lake output before destroy.
   subroutine mlm_finalize(self)
     class(mlm_t), target, intent(inout) :: self
     if (self%write_restart) call self%create_restart()
@@ -310,6 +311,11 @@ contains
     else
       log_info(*) "No mLM output file will be written"
     end if
+  end subroutine mlm_finalize
+
+  !> \brief Release lake model definition and state after exchange publications are detached.
+  subroutine mlm_destroy(self)
+    class(mlm_t), target, intent(inout) :: self
     if (self%owns_restart_lake_metadata) then
       self%owns_restart_lake_metadata = .false.
     end if
@@ -322,13 +328,14 @@ contains
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
     if (allocated(self%lake_map)) deallocate(self%lake_map)
     if (allocated(self%lake_area)) deallocate(self%lake_area)
-    self%static_lake_points = points_t()
+    call self%static_lake_points%destroy()
     if (allocated(self%static_lake_max_levels)) deallocate(self%static_lake_max_levels)
-    self%restart_lake_points = points_t()
+    call self%restart_lake_points%destroy()
     if (allocated(self%restart_lake_ids)) deallocate(self%restart_lake_ids)
     if (allocated(self%restart_lake_max_levels)) deallocate(self%restart_lake_max_levels)
     if (allocated(self%outflow)) deallocate(self%outflow)
-  end subroutine mlm_finalize
+    call self%static_lake_grid%destroy()
+  end subroutine mlm_destroy
 
   !> \brief Create the lake-point output dataset in stable exchange order.
   subroutine mlm_create_output(self)

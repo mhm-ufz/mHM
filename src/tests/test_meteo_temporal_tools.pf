@@ -87,6 +87,8 @@ contains
     call meteo%connect()
     call meteo%initialize()
     call meteo%finalize()
+    call exchange%destroy()
+    call meteo%destroy()
   end subroutine test_lake_passthrough_meteo_noop
 
   @test
@@ -159,7 +161,8 @@ contains
     @assertFalse(exchange%lake_strd%provided, message='lake long-wave radiation is not forwarded without a lake consumer')
     @assertFalse(exchange%lake_tann%provided, message='lake annual temperature is not forwarded without a lake consumer')
     call meteo%finalize()
-    call exchange%finalize()
+    call exchange%destroy()
+    call meteo%destroy()
   end subroutine test_lake_forcing_aggregates_l2_support
 
   @test
@@ -214,7 +217,8 @@ contains
     @assertEqual([0.25_dp], exchange%lake_pre%data, tolerance=t, message='daily lake precipitation is distributed across nightly hours')
     @assertEqual([1.0_dp / 12.0_dp], exchange%lake_pet%data, tolerance=t, message='daily lake PET is distributed across nightly hours')
     call meteo%finalize()
-    call exchange%finalize()
+    call exchange%destroy()
+    call meteo%destroy()
   end subroutine test_lake_forcing_disaggregates_daily
 
   @test

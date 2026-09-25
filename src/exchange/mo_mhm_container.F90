@@ -185,6 +185,7 @@ module mo_mhm_container
     procedure :: initialize => mhm_initialize
     procedure :: update => mhm_update
     procedure :: finalize => mhm_finalize
+    procedure :: destroy => mhm_destroy
     procedure :: update_interception => mhm_update_interception
     procedure :: update_snow => mhm_update_snow
     procedure :: update_direct_runoff => mhm_update_direct_runoff
@@ -1617,6 +1618,12 @@ contains
     else
       log_info(*) "No mHM output file will be written"
     end if
+    log_info(*) "Finalize mhm"
+  end subroutine mhm_finalize
+
+  !> \brief Release mHM-owned process fields after exchange publications are detached.
+  subroutine mhm_destroy(self)
+    class(mhm_t), intent(inout), target :: self
     if (allocated(self%canopy%interception)) deallocate(self%canopy%interception)
     if (allocated(self%canopy%throughfall)) deallocate(self%canopy%throughfall)
     if (allocated(self%canopy%aet)) deallocate(self%canopy%aet)
@@ -1642,8 +1649,8 @@ contains
     if (allocated(self%runoff%total_runoff)) deallocate(self%runoff%total_runoff)
     if (allocated(self%neutrons%counts)) deallocate(self%neutrons%counts)
     if (allocated(self%neutrons%integral_afast)) deallocate(self%neutrons%integral_afast)
-    log_info(*) "Finalize mhm"
-  end subroutine mhm_finalize
+    call self%tgt_level1_land%destroy()
+  end subroutine mhm_destroy
 
   !> \brief Disable an unavailable output flag while keeping the run configuration valid.
   subroutine disable_unavailable(flag, name, available)

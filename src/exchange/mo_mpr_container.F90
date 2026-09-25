@@ -205,6 +205,7 @@ module mo_mpr_container
     procedure :: initialize => mpr_initialize
     procedure :: update     => mpr_update
     procedure :: finalize   => mpr_finalize
+    procedure :: destroy    => mpr_destroy
     procedure, private :: create_restart                  => mpr_create_restart
     procedure, private :: write_restart_data              => mpr_write_restart_data
     procedure, private :: write_restart_lai_timing        => mpr_write_restart_lai_timing
@@ -3471,6 +3472,12 @@ contains
     class(mpr_t), intent(inout), target :: self
     if (self%write_restart) call self%create_restart()
     if (allocated(self%land_cover%ds%vars)) call self%land_cover%ds%close()
+    log_info(*) "Finalize MPR for domain ", n2s(self%exchange%nml_domain_id)
+  end subroutine mpr_finalize
+
+  !> \brief Release MPR-owned caches and model support after exchange publications are detached.
+  subroutine mpr_destroy(self)
+    class(mpr_t), intent(inout), target :: self
     if (allocated(self%preproc%slope_emp)) deallocate(self%preproc%slope_emp)
     if (allocated(self%preproc%geo_lut_path)) deallocate(self%preproc%geo_lut_path)
     if (allocated(self%land_cover%l0_cache)) deallocate(self%land_cover%l0_cache)
@@ -3523,6 +3530,7 @@ contains
     self%lai%dated = .false.
     self%lai%n_periods = 1_i4
     self%lai%active_idx = 0_i4
-    log_info(*) "Finalize MPR for domain ", n2s(self%exchange%nml_domain_id)
-  end subroutine mpr_finalize
+    call self%upscaler%destroy()
+    call self%tgt_level1_land%destroy()
+  end subroutine mpr_destroy
 end module mo_mpr_container

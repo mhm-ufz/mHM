@@ -42,6 +42,7 @@ module mo_domain
     procedure :: initialize => domain_initialize
     procedure :: update => domain_update
     procedure :: finalize => domain_finalize
+    procedure :: destroy => domain_destroy
   end type domain_t
 
 contains
@@ -67,7 +68,6 @@ contains
   !> \brief Set runtime dimensions on all generated namelist configs owned by this domain.
   subroutine domain_set_dims(self)
     class(domain_t), intent(inout), target :: self
-
     log_info(*) "SET NAMELIST DIMENSIONS"
     call self%exchange%set_dims()
     call self%input%set_dims()
@@ -85,32 +85,27 @@ contains
     character(*), intent(in), optional :: para_file !< file containing the parameter namelists
     character(*), intent(in), optional :: out_file !< file containing the output namelists
     character(:), allocatable :: domain_main_file
-
     log_info(*) "CONFIGURE COMPONENTS"
     call self%exchange%configure(main_file=main_file, para_file=para_file)
+    ! handle domain reading for separate directories
     if (self%exchange%from_dirs) then
       domain_main_file = trim(self%exchange%config%domain%domain_nmls(self%exchange%domain_id))
-      call self%input%configure(domain_main_file)
-      call self%mpr%configure(domain_main_file)
-      call self%meteo%configure(domain_main_file)
-      call self%mhm%configure(domain_main_file, out_file)
-      call self%mlm%configure(domain_main_file, out_file)
-      call self%mrm%configure(domain_main_file, out_file)
-    else
-      call self%input%configure(main_file)
-      call self%mpr%configure(main_file)
-      call self%meteo%configure(main_file)
-      call self%mhm%configure(main_file, out_file)
-      call self%mlm%configure(main_file, out_file)
-      call self%mrm%configure(main_file, out_file)
+    else if (present(main_file)) then
+      domain_main_file = main_file
     end if
+    ! else domain_main_file is un-allocated and seen as "not present" by optional dummy arguments
+    call self%input%configure(domain_main_file)
+    call self%mpr%configure(domain_main_file)
+    call self%meteo%configure(domain_main_file)
+    call self%mhm%configure(domain_main_file, out_file)
+    call self%mlm%configure(domain_main_file, out_file)
+    call self%mrm%configure(domain_main_file, out_file)
     call self%exchange%parameters%seal()
   end subroutine domain_configure
 
   !> \brief Restore restart-owned model definition before fields are connected.
   subroutine domain_prepare_restart(self)
     class(domain_t), intent(inout), target :: self
-
     log_info(*) "PREPARE RESTART"
     call self%input%prepare_restart()
     if (self%mpr%active) call self%mpr%prepare_restart()
@@ -170,7 +165,20 @@ contains
     if (self%mhm%active) call self%mhm%finalize()
     if (self%mlm%active) call self%mlm%finalize()
     if (self%mrm%active) call self%mrm%finalize()
-    call self%exchange%finalize()
   end subroutine domain_finalize
+
+  !> \brief Release publications and component-owned runtime data after all finalizers have completed.
+  subroutine domain_destroy(self)
+    class(domain_t), intent(inout), target :: self
+    log_info(*) "DESTROY COMPONENTS"
+    call self%exchange%destroy()
+    ! destroy in reverse order
+    if (self%mrm%active) call self%mrm%destroy()
+    if (self%mlm%active) call self%mlm%destroy()
+    if (self%mhm%active) call self%mhm%destroy()
+    if (self%meteo%active) call self%meteo%destroy()
+    if (self%mpr%active) call self%mpr%destroy()
+    call self%input%destroy()
+  end subroutine domain_destroy
 
 end module mo_domain

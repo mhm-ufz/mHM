@@ -109,7 +109,7 @@ module mo_exchange_type
     procedure, public :: prepare_data => variable_prepare_data
     procedure, public :: as_output_var => variable_as_output_var
     procedure, public :: write_netcdf_metadata => variable_write_netcdf_metadata
-    procedure, private :: clear => variable_clear
+    procedure, private :: destroy => variable_destroy
     procedure, private :: display_name => variable_display_name
     procedure, private :: check_alias_source => variable_check_alias_source
     procedure, private :: check_stepping => variable_check_stepping
@@ -436,7 +436,7 @@ module mo_exchange_type
     procedure, public  :: configure => exchange_configure
     procedure, public  :: initialize => exchange_initialize
     procedure, public  :: update => exchange_update
-    procedure, public  :: finalize => exchange_finalize
+    procedure, public  :: destroy => exchange_destroy
     procedure, public  :: get_grid => exchange_get_grid
     procedure, public  :: has_grid => exchange_has_grid
     procedure, public  :: alias_full_grid_no_lakes => exchange_alias_full_grid_no_lakes
@@ -934,115 +934,115 @@ contains
     end if
   end subroutine exchange_update
 
-  !> \brief Clear all runtime exchange publications at terminal domain teardown.
-  subroutine exchange_finalize(self)
+  !> \brief Destroy all runtime exchange publications at terminal domain teardown.
+  subroutine exchange_destroy(self)
     class(exchange_t), intent(inout), target :: self
 
-    call self%lake_ids%clear()
-    call self%lake_max_levels%clear()
-    call self%lake_map%clear()
-    call self%lake_area%clear()
-    call self%lake_inflow%clear()
-    call self%lake_outflow%clear()
-    call self%lake_pre%clear()
-    call self%lake_temp%clear()
-    call self%lake_pet%clear()
-    call self%lake_ssrd%clear()
-    call self%lake_strd%clear()
-    call self%lake_tann%clear()
+    call self%lake_ids%destroy()
+    call self%lake_max_levels%destroy()
+    call self%lake_map%destroy()
+    call self%lake_area%destroy()
+    call self%lake_inflow%destroy()
+    call self%lake_outflow%destroy()
+    call self%lake_pre%destroy()
+    call self%lake_temp%destroy()
+    call self%lake_pet%destroy()
+    call self%lake_ssrd%destroy()
+    call self%lake_strd%destroy()
+    call self%lake_tann%destroy()
 
-    call self%raw_pre%clear()
-    call self%raw_temp%clear()
-    call self%raw_ssrd%clear()
-    call self%raw_strd%clear()
-    call self%raw_tann%clear()
-    call self%raw_tmin%clear()
-    call self%raw_tmax%clear()
-    call self%raw_netrad%clear()
-    call self%raw_eabs%clear()
-    call self%raw_wind%clear()
-    call self%raw_pet%clear()
-    call self%pre%clear()
-    call self%temp%clear()
-    call self%pet%clear()
-    call self%ssrd%clear()
-    call self%strd%clear()
-    call self%tann%clear()
+    call self%raw_pre%destroy()
+    call self%raw_temp%destroy()
+    call self%raw_ssrd%destroy()
+    call self%raw_strd%destroy()
+    call self%raw_tann%destroy()
+    call self%raw_tmin%destroy()
+    call self%raw_tmax%destroy()
+    call self%raw_netrad%destroy()
+    call self%raw_eabs%destroy()
+    call self%raw_wind%destroy()
+    call self%raw_pet%destroy()
+    call self%pre%destroy()
+    call self%temp%destroy()
+    call self%pet%destroy()
+    call self%ssrd%destroy()
+    call self%strd%destroy()
+    call self%tann%destroy()
 
-    call self%dem%clear()
-    call self%slope%clear()
-    call self%aspect%clear()
-    call self%fdir%clear()
-    call self%facc%clear()
-    call self%soil_id%clear()
-    call self%geo_unit%clear()
-    call self%lai_class%clear()
-    call self%slope_emp%clear()
+    call self%dem%destroy()
+    call self%slope%destroy()
+    call self%aspect%destroy()
+    call self%fdir%destroy()
+    call self%facc%destroy()
+    call self%soil_id%destroy()
+    call self%geo_unit%destroy()
+    call self%lai_class%destroy()
+    call self%slope_emp%destroy()
 
-    call self%interception%clear()
-    call self%throughfall%clear()
-    call self%soil_moisture%clear()
-    call self%sealed_storage%clear()
-    call self%unsat_storage%clear()
-    call self%sat_storage%clear()
-    call self%aet_canopy%clear()
-    call self%aet_sealed%clear()
-    call self%aet_soil%clear()
-    call self%snowpack%clear()
-    call self%rain%clear()
-    call self%snow%clear()
-    call self%melt%clear()
-    call self%pre_eff%clear()
-    call self%infiltration%clear()
-    call self%percolation%clear()
-    call self%runoff_total%clear()
-    call self%runoff_sealed%clear()
-    call self%interflow_fast%clear()
-    call self%interflow_slow%clear()
-    call self%baseflow%clear()
-    call self%neutrons%clear()
-    call self%degday%clear()
+    call self%interception%destroy()
+    call self%throughfall%destroy()
+    call self%soil_moisture%destroy()
+    call self%sealed_storage%destroy()
+    call self%unsat_storage%destroy()
+    call self%sat_storage%destroy()
+    call self%aet_canopy%destroy()
+    call self%aet_sealed%destroy()
+    call self%aet_soil%destroy()
+    call self%snowpack%destroy()
+    call self%rain%destroy()
+    call self%snow%destroy()
+    call self%melt%destroy()
+    call self%pre_eff%destroy()
+    call self%infiltration%destroy()
+    call self%percolation%destroy()
+    call self%runoff_total%destroy()
+    call self%runoff_sealed%destroy()
+    call self%interflow_fast%destroy()
+    call self%interflow_slow%destroy()
+    call self%baseflow%destroy()
+    call self%neutrons%destroy()
+    call self%degday%destroy()
 
-    call self%pet_coeff_pt%clear()
-    call self%pet_coeff_hs%clear()
-    call self%pet_fac_aspect%clear()
-    call self%pet_fac_lai%clear()
-    call self%resist_aero%clear()
-    call self%resist_surf%clear()
-    call self%max_interception%clear()
-    call self%degday_inc%clear()
-    call self%degday_max%clear()
-    call self%degday_dry%clear()
-    call self%thresh_temp%clear()
-    call self%f_sealed%clear()
-    call self%f_roots%clear()
-    call self%sm_saturation%clear()
-    call self%sm_exponent%clear()
-    call self%sm_field_capacity%clear()
-    call self%wilting_point%clear()
-    call self%thresh_jarvis%clear()
-    call self%alpha%clear()
-    call self%k_fastflow%clear()
-    call self%k_slowflow%clear()
-    call self%k_baseflow%clear()
-    call self%k_percolation%clear()
-    call self%f_karst_loss%clear()
-    call self%thresh_unsat%clear()
-    call self%thresh_sealed%clear()
-    call self%desilets_n0%clear()
-    call self%bulk_density%clear()
-    call self%lattice_water%clear()
-    call self%cosmic_l3%clear()
-    call self%discharge%clear()
-    call self%energy_flux%clear()
-    call self%river_temp%clear()
-    call self%riverhead%clear()
+    call self%pet_coeff_pt%destroy()
+    call self%pet_coeff_hs%destroy()
+    call self%pet_fac_aspect%destroy()
+    call self%pet_fac_lai%destroy()
+    call self%resist_aero%destroy()
+    call self%resist_surf%destroy()
+    call self%max_interception%destroy()
+    call self%degday_inc%destroy()
+    call self%degday_max%destroy()
+    call self%degday_dry%destroy()
+    call self%thresh_temp%destroy()
+    call self%f_sealed%destroy()
+    call self%f_roots%destroy()
+    call self%sm_saturation%destroy()
+    call self%sm_exponent%destroy()
+    call self%sm_field_capacity%destroy()
+    call self%wilting_point%destroy()
+    call self%thresh_jarvis%destroy()
+    call self%alpha%destroy()
+    call self%k_fastflow%destroy()
+    call self%k_slowflow%destroy()
+    call self%k_baseflow%destroy()
+    call self%k_percolation%destroy()
+    call self%f_karst_loss%destroy()
+    call self%thresh_unsat%destroy()
+    call self%thresh_sealed%destroy()
+    call self%desilets_n0%destroy()
+    call self%bulk_density%destroy()
+    call self%lattice_water%destroy()
+    call self%cosmic_l3%destroy()
+    call self%discharge%destroy()
+    call self%energy_flux%destroy()
+    call self%river_temp%destroy()
+    call self%riverhead%destroy()
 
     nullify(self%level0, self%level0_land, self%level0_lake, self%level1, self%level1_land)
     nullify(self%level2, self%level3, self%level3_land, self%lake_points)
     nullify(self%river_l0, self%river_l3, self%input_horizon_bounds, self%model_horizon_bounds)
     nullify(self%geo_class_def)
-  end subroutine exchange_finalize
+  end subroutine exchange_destroy
 
   !> \brief get the grid specifications for the selected level
   subroutine exchange_get_grid(self, selector, grid)
@@ -1266,15 +1266,15 @@ contains
     end if
   end subroutine variable_check_provided
 
-  !> \brief Clear all runtime contract state of a variable.
-  subroutine variable_clear(self)
-    class(variable_abc), intent(inout) :: self
+  !> \brief Destroy the runtime binding and provider declaration of a variable.
+  subroutine variable_destroy(self)
+    class(variable_abc), intent(inout), target :: self
 
     call self%clear_data()
     self%stepping = 0_i4
     self%provided = .false.
     if (allocated(self%provider)) deallocate(self%provider)
-  end subroutine variable_clear
+  end subroutine variable_destroy
 
   !> \brief Set and validate the temporal support metadata of an exchange variable.
   subroutine variable_prepare_data(self, component, stepping)
