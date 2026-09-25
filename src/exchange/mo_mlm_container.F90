@@ -62,10 +62,12 @@ module mo_mlm_container
   contains
     procedure :: set_dims => mlm_set_dims
     procedure :: configure => mlm_configure
+    procedure :: prepare_restart => mlm_prepare_restart
     procedure :: connect => mlm_connect
     procedure :: initialize => mlm_initialize
     procedure :: update => mlm_update
     procedure :: finalize => mlm_finalize
+    procedure :: destroy => mlm_destroy
     procedure, private :: create_restart => mlm_create_restart
     procedure, private :: read_restart_metadata => mlm_read_restart_metadata
     procedure, private :: read_restart_topology => mlm_read_restart_topology
@@ -78,6 +80,13 @@ module mo_mlm_container
   end type mlm_t
 
 contains
+
+  !> \brief Load restart-owned lake definition before field connection.
+  subroutine mlm_prepare_restart(self)
+    class(mlm_t), target, intent(inout) :: self
+
+    if (self%read_restart) call self%read_restart_metadata()
+  end subroutine mlm_prepare_restart
 
   !> \brief Set generated lake-configuration dimensions.
   subroutine mlm_set_dims(self)
@@ -103,8 +112,6 @@ contains
 
     lake_case = self%exchange%config%processes%lake
     self%active = lake_case /= 0_i4
-    self%exchange%lake_pre%required = self%exchange%lake_pre%required .or. lake_case == -2_i4
-    self%exchange%lake_pet%required = self%exchange%lake_pet%required .or. lake_case == -2_i4
     if (lake_case /= 0_i4 .and. lake_case /= -1_i4 .and. lake_case /= -2_i4) then
       log_fatal(*) "mLM: unsupported lake process case: ", n2s(lake_case)
       error stop 1
@@ -179,6 +186,13 @@ contains
       end if
       self%restart_output_path = self%exchange%get_path(self%config%restart_output_path(id(1)))
     end if
+    if (self%read_restart .and. .not.self%exchange%lake_ids%provided) then
+      call self%exchange%lake_ids%provide("mLM")
+      call self%exchange%lake_max_levels%provide("mLM")
+      if (lake_case == -2_i4) call self%exchange%lake_map%provide("mLM")
+    end if
+    if (lake_case == -2_i4) call self%exchange%lake_area%provide("mLM")
+    call self%exchange%lake_outflow%provide("mLM")
   end subroutine mlm_configure
 
   !> \brief Resolve static lake metadata and publish hourly outflow.
@@ -190,19 +204,18 @@ contains
 
     lake_case = self%exchange%config%processes%lake
     has_points = associated(self%exchange%lake_points)
-    has_ids = self%exchange%lake_ids%provided
-    has_levels = self%exchange%lake_max_levels%provided
+    has_ids = self%exchange%lake_ids%provided .and. self%exchange%lake_ids%has_data()
+    has_levels = self%exchange%lake_max_levels%provided .and. self%exchange%lake_max_levels%has_data()
     has_metadata = has_points .and. has_ids .and. has_levels
     if ((has_points .neqv. has_ids) .or. (has_points .neqv. has_levels)) then
       log_fatal(*) "mLM: lake points, stable IDs, and maximum levels must be published together."
       error stop 1
     end if
 
-    if (self%read_restart) call self%read_restart_metadata()
     if (has_metadata) then
       n_lakes = self%exchange%lake_points%n_points
-      call self%exchange%lake_ids%require("mLM", .true., [n_lakes])
-      call self%exchange%lake_max_levels%require("mLM", .true., [n_lakes])
+      call self%exchange%check_data(self%exchange%lake_ids, "mLM")
+      call self%exchange%check_data(self%exchange%lake_max_levels, "mLM")
       if (self%read_restart) call self%validate_restart_metadata()
       self%lake_ids = self%exchange%lake_ids%data
       call self%static_lake_points%init( &
@@ -219,8 +232,10 @@ contains
         self%restart_lake_points%x, self%restart_lake_points%y, coordsys=self%restart_lake_points%coordsys)
       self%static_lake_max_levels = self%restart_lake_max_levels
       self%exchange%lake_points => self%static_lake_points
-      call self%exchange%lake_ids%publish_local("mLM", self%lake_ids, no_time)
-      call self%exchange%lake_max_levels%publish_local("mLM", self%static_lake_max_levels, no_time)
+      call self%exchange%lake_ids%prepare_data("mLM", no_time)
+      self%exchange%lake_ids%data => self%lake_ids
+      call self%exchange%lake_max_levels%prepare_data("mLM", no_time)
+      self%exchange%lake_max_levels%data => self%static_lake_max_levels
       self%owns_restart_lake_points = .true.
       self%owns_restart_lake_metadata = .true.
     end if
@@ -228,28 +243,30 @@ contains
       log_fatal(*) "mLM: lake process requires at least one lake."
       error stop 1
     end if
-    self%lake_ids = self%exchange%lake_ids%data
     if (lake_case == -2_i4) then
       if (associated(self%exchange%level0_lake) .and. self%exchange%lake_map%provided) then
-        call self%exchange%lake_map%require("mLM", .true., [self%exchange%level0_lake%ncells])
+        call self%exchange%check_data(self%exchange%lake_map, "mLM")
         self%static_lake_grid = self%exchange%level0_lake
         self%lake_map = self%exchange%lake_map%data
       else if (self%read_restart) then
         call self%read_restart_topology()
         self%exchange%level0_lake => self%static_lake_grid
-        call self%exchange%lake_map%publish_local("mLM", self%lake_map, no_time)
+        call self%exchange%lake_map%prepare_data("mLM", no_time)
+        self%exchange%lake_map%data => self%lake_map
         self%owns_restart_lake_grid = .true.
       else
         log_fatal(*) "mLM process -2 requires a level-0 lake grid and lake map."
         error stop 1
       end if
       call lake_derive_area(self%static_lake_grid, self%lake_map, self%lake_ids, self%lake_area)
-      call self%exchange%lake_area%publish_local("mLM", self%lake_area, no_time)
-      call self%exchange%lake_pre%require("mLM", .true., [n_lakes])
-      call self%exchange%lake_pet%require("mLM", .true., [n_lakes])
+      call self%exchange%lake_area%prepare_data("mLM", no_time)
+      self%exchange%lake_area%data => self%lake_area
+      call self%exchange%lake_pre%check_provided("mLM")
+      call self%exchange%lake_pet%check_provided("mLM")
     end if
     allocate(self%outflow(n_lakes), source=0.0_dp)
-    call self%exchange%lake_outflow%publish_local("mLM", self%outflow, 1_i4)
+    call self%exchange%lake_outflow%prepare_data("mLM", 1_i4)
+    self%exchange%lake_outflow%data => self%outflow
   end subroutine mlm_connect
 
   !> \brief Restore or initialize pass-through outflow after mRM has published inflow.
@@ -259,15 +276,15 @@ contains
       log_fatal(*) "mLM lake processes require a one-hour model step."
       error stop 1
     end if
-    call self%exchange%lake_inflow%require("mLM", .true., [size(self%lake_ids, kind=i8)])
+    call self%exchange%check_data(self%exchange%lake_inflow, "mLM")
     if (self%exchange%lake_inflow%stepping /= 1_i4) then
       log_fatal(*) "mLM: lake inflow must have one-hour support."
       error stop 1
     end if
     if (self%exchange%config%processes%lake == -2_i4) then
-      call self%exchange%lake_area%require("mLM", .true., [size(self%lake_ids, kind=i8)])
+      call self%exchange%check_data(self%exchange%lake_area, "mLM")
     end if
-    self%outflow = 0.0_dp
+    self%outflow(:) = 0.0_dp
     if (self%read_restart) call self%read_restart_state()
     call self%validate_output_timing()
     call self%create_output()
@@ -276,15 +293,15 @@ contains
   !> \brief Publish the preceding completed hourly inflow as current outflow.
   subroutine mlm_update(self)
     class(mlm_t), target, intent(inout) :: self
-    self%outflow = self%exchange%lake_inflow%data
+    self%outflow(:) = self%exchange%lake_inflow%data
     if (self%exchange%config%processes%lake == -2_i4) then
-      self%outflow = lake_balance_outflow(self%outflow, self%lake_area, self%exchange%lake_pre%data, &
+      self%outflow(:) = lake_balance_outflow(self%outflow, self%lake_area, self%exchange%lake_pre%data, &
         self%exchange%lake_pet%data, 3600.0_dp)
     end if
     call self%update_output()
   end subroutine mlm_update
 
-  !> \brief Write optional restart and clear mLM-owned publication.
+  !> \brief Write optional restart and close the lake output before destroy.
   subroutine mlm_finalize(self)
     class(mlm_t), target, intent(inout) :: self
     if (self%write_restart) call self%create_restart()
@@ -294,32 +311,31 @@ contains
     else
       log_info(*) "No mLM output file will be written"
     end if
-    call self%exchange%lake_outflow%clear(owned=.true.)
-    call self%exchange%lake_area%clear(owned=allocated(self%lake_area))
+  end subroutine mlm_finalize
+
+  !> \brief Release lake model definition and state after exchange publications are detached.
+  subroutine mlm_destroy(self)
+    class(mlm_t), target, intent(inout) :: self
     if (self%owns_restart_lake_metadata) then
-      call self%exchange%lake_ids%clear(owned=.true.)
-      call self%exchange%lake_max_levels%clear(owned=.true.)
       self%owns_restart_lake_metadata = .false.
     end if
     if (self%owns_restart_lake_points) then
-      if (associated(self%exchange%lake_points, self%static_lake_points)) nullify(self%exchange%lake_points)
       self%owns_restart_lake_points = .false.
     end if
     if (self%owns_restart_lake_grid) then
-      call self%exchange%lake_map%clear(owned=.true.)
-      if (associated(self%exchange%level0_lake, self%static_lake_grid)) nullify(self%exchange%level0_lake)
       self%owns_restart_lake_grid = .false.
     end if
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
     if (allocated(self%lake_map)) deallocate(self%lake_map)
     if (allocated(self%lake_area)) deallocate(self%lake_area)
-    self%static_lake_points = points_t()
+    call self%static_lake_points%destroy()
     if (allocated(self%static_lake_max_levels)) deallocate(self%static_lake_max_levels)
-    self%restart_lake_points = points_t()
+    call self%restart_lake_points%destroy()
     if (allocated(self%restart_lake_ids)) deallocate(self%restart_lake_ids)
     if (allocated(self%restart_lake_max_levels)) deallocate(self%restart_lake_max_levels)
     if (allocated(self%outflow)) deallocate(self%outflow)
-  end subroutine mlm_finalize
+    call self%static_lake_grid%destroy()
+  end subroutine mlm_destroy
 
   !> \brief Create the lake-point output dataset in stable exchange order.
   subroutine mlm_create_output(self)

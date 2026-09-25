@@ -1,8 +1,10 @@
 module test_exchange_variable
   use funit
-  use mo_exchange_type, only: exchange_t, var_dp, var_i2, var2d_dp, l0, l1, l0_land, l1_land, l0_lake, l3_land, nopoints, points_lake
+  use mo_exchange_type, only: exchange_t, var_dp, var_i2, var_i4, var2d_dp, var2d_i4, l0, l1, l3, l0_land, l1_land, l0_lake, l3_land, &
+    model_horizons, nopoints, points_lake
   use mo_grid, only: grid_t
   use mo_points, only: points_t
+  use mo_river, only: river_t, sink, d8_E
   use mo_grid_io, only: var, no_time
   use mo_parameter_types, only: parameter_t
   use mo_datetime, only: datetime, timedelta
@@ -13,10 +15,13 @@ module test_exchange_variable
   private
 
   public :: test_var_dp_contract, test_var_i2_contract, test_var_dp_alias, test_var2d_dp_contract
+  public :: test_exchange_owned_storage, test_layered_owned_storage, test_explicit_alias_rebinding
+  public :: test_publish_allocatable_section
   public :: test_exchange_external_metadata, test_exchange_output_metadata, test_exchange_canonical_metadata
   public :: test_exchange_clock
   public :: test_exchange_lake_points
   public :: test_exchange_grid_contract
+  public :: test_exchange_river_contract, test_exchange_layer_contract
 
 contains
 
@@ -24,71 +29,85 @@ contains
   subroutine test_var_dp_contract()
     type(var_dp) :: variable
     type(var_dp) :: dynamic_source
+    type(var_dp) :: unlabelled_source
     real(dp), target :: local(3)
-    integer(i8), allocatable :: var_shape(:)
 
     local = [1.0_dp, 2.0_dp, 3.0_dp]
     variable = var_dp(name="test_scalar")
 
-    @assertEqual(.false., variable%available(), message='var_dp starts unavailable')
-    @assertEqual(.true., variable%available(owned=.true.), message='var_dp owned availability')
+    @assertEqual(.false., variable%provided, message='var_dp starts without a provider')
 
-    call variable%publish_local("test", local, 6_i4)
-    @assertEqual(.true., variable%provided, message='var_dp publish_local sets provided')
-    @assertEqual(6_i4, variable%stepping, message='var_dp publish_local records stepping')
-    @assertEqual(.true., variable%available(), message='var_dp publish_local makes available')
+    call variable%provide("test")
+    call variable%prepare_data("test", 6_i4)
+    variable%data => local
+    @assertEqual(.true., variable%provided, message='var_dp declaration sets provided')
+    @assertEqual(6_i4, variable%stepping, message='var_dp direct association records stepping')
+    @assertEqual("test", variable%provider, message='var_dp stores its provider')
     @assertEqual(2.0_dp, variable%data(2), message='var_dp publish_local points to local data')
 
-    var_shape = variable%data_shape()
-    @assertEqual([3_i8], var_shape, message='var_dp data_shape')
-    call variable%require("test", .true., [3_i8])
-    @assertEqual(.true., variable%required, message='var_dp require marks required')
-
-    call variable%clear(.false.)
-    @assertEqual(.true., variable%provided, message='var_dp clear without ownership keeps provided')
-    call variable%clear(.true.)
-    @assertEqual(.false., variable%provided, message='var_dp owned clear resets provided')
-    @assertEqual(.false., variable%has_data(), message='var_dp owned clear nullifies data')
-    @assertEqual(.true., variable%required, message='var_dp owned clear keeps required')
-    @assertEqual(0_i4, variable%stepping, message='var_dp owned clear resets stepping')
+    call variable%check_provided("test")
 
     dynamic_source = var_dp(name="dynamic_source")
-    dynamic_source%provided = .true.
-    call dynamic_source%set_stepping("test", 1_i4)
-    call dynamic_source%require("test", .true., check_data=.false.)
-    @assertEqual(.true., dynamic_source%required, message='var_dp require can validate source only')
+    call dynamic_source%provide("test")
+    call dynamic_source%prepare_data("test", 1_i4)
+    call dynamic_source%check_provided("test")
     @assertEqual(.false., dynamic_source%has_data(), message='var_dp source-only require does not need data')
+
+    unlabelled_source = var_dp(name="unlabelled_source")
+    call unlabelled_source%provide()
+    @assertTrue(unlabelled_source%provided, message='var_dp accepts an unlabelled provider declaration')
+    @assertFalse(allocated(unlabelled_source%provider), message='unlabelled declaration stores no provider metadata')
   end subroutine test_var_dp_contract
+
+  @test
+  subroutine test_publish_allocatable_section()
+    type cache_holder_t
+      integer(i4), allocatable :: cache(:, :)
+    end type cache_holder_t
+    integer(i4), pointer :: cache_slice(:)
+    type(cache_holder_t), target :: holder
+    type(var_i4) :: variable
+
+    allocate(holder%cache(3, 1))
+    holder%cache(:, 1) = [1_i4, 2_i4, 3_i4]
+    variable = var_i4(name='geo_unit', static=.true.)
+    call variable%provide('Input')
+    cache_slice => holder%cache(:, 1)
+    call variable%prepare_data('Input', no_time)
+    variable%data => cache_slice
+
+    @assertTrue(associated(variable%data, holder%cache(:, 1)), message='borrowed input aliases its allocatable cache')
+    holder%cache(2, 1) = 7_i4
+    @assertEqual(7_i4, variable%data(2), message='borrowed input retains its live cache binding')
+  end subroutine test_publish_allocatable_section
 
   @test
   subroutine test_var_i2_contract()
     type(var_i2) :: variable
     type(exchange_t) :: exchange
     integer(i2), target :: local(3)
-    integer(i2), pointer :: exchange_data(:)
-    integer(i8), allocatable :: var_shape(:)
     integer :: status
 
     local = [1_i2, 2_i2, 3_i2]
     variable = var_i2(name="test_i2")
 
-    call variable%publish_local("test", local, 6_i4)
-    @assertEqual(.true., variable%provided, message='var_i2 publish_local sets provided')
-    @assertEqual(6_i4, variable%stepping, message='var_i2 publish_local records stepping')
+    call variable%provide("test")
+    call variable%prepare_data("test", 6_i4)
+    variable%data => local
+    @assertEqual(.true., variable%provided, message='var_i2 declaration sets provided')
+    @assertEqual(6_i4, variable%stepping, message='var_i2 direct association records stepping')
     @assertEqual(2_i4, int(variable%data(2), i4), message='var_i2 publish_local points to local data')
 
-    var_shape = variable%data_shape()
-    @assertEqual([3_i8], var_shape, message='var_i2 data_shape')
-    call variable%require("test", .true., [3_i8])
-    @assertEqual(.true., variable%required, message='var_i2 require marks required')
+    call variable%check_provided("test")
 
     status = exchange%config%project%set()
     @assertEqual(0, status, message='project defaults configure the i2 exchange fixture')
     call exchange%create(cwd=".")
-    call exchange%set_data("fdir", local, no_time)
-    call exchange%get_data("fdir", exchange_data)
+    call exchange%fdir%provide("external")
+    call exchange%fdir%prepare_data("external", no_time)
+    exchange%fdir%data => local
     @assertEqual(.true., exchange%fdir%provided, message='exchange accepts i2 fdir data')
-    @assertEqual(3_i4, int(exchange_data(3), i4), message='exchange exposes i2 fdir data')
+    @assertEqual(3_i4, int(exchange%fdir%data(3), i4), message='typed exchange field exposes i2 fdir data')
   end subroutine test_var_i2_contract
 
   @test
@@ -101,36 +120,35 @@ contains
     source = var_dp(name="source")
     alias = var_dp(name="alias")
 
-    call source%publish_local("test", local, 24_i4)
-    call alias%publish_alias("test", source)
+    call source%provide("test")
+    call source%prepare_data("test", 24_i4)
+    source%data => local
+    call alias%provide("test")
+    call alias%associate_alias("test", source)
     local(1) = 9.0_dp
 
-    @assertEqual(.true., alias%provided, message='var_dp publish_alias sets provided')
-    @assertEqual(24_i4, alias%stepping, message='var_dp publish_alias copies stepping')
-    @assertEqual(source%static, alias%static, message='var_dp publish_alias copies static flag')
+    @assertEqual(.true., alias%provided, message='var_dp alias declaration sets provided')
+    @assertEqual(24_i4, alias%stepping, message='var_dp associate_alias copies stepping')
+    @assertFalse(alias%static, message='var_dp alias retains target static metadata')
     @assertEqual(9.0_dp, alias%data(1), message='var_dp publish_alias points to source data')
-    call alias%expect_handoff("test", .true., [3_i8])
-    @assertEqual(.true., alias%required, message='var_dp expect_handoff marks required')
+    call alias%check_provided("test")
   end subroutine test_var_dp_alias
 
   @test
   subroutine test_var2d_dp_contract()
     type(var2d_dp) :: variable
     real(dp), target :: local(2, 3)
-    integer(i8), allocatable :: var_shape(:)
 
     local = reshape([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp, 5.0_dp, 6.0_dp], shape(local))
     variable = var2d_dp(name="test_layered")
 
-    call variable%publish_local("test", local, 1_i4)
-    @assertEqual(.true., variable%available(), message='var2d_dp publish_local makes available')
-    @assertEqual(5.0_dp, variable%data(1, 3), message='var2d_dp publish_local points to local data')
+    call variable%provide("test")
+    call variable%prepare_data("test", 1_i4)
+    variable%data => local
+    @assertEqual(.true., variable%provided, message='var2d_dp declaration is retained')
+    @assertEqual(5.0_dp, variable%data(1, 3), message='var2d_dp direct association points to local data')
 
-    var_shape = variable%data_shape()
-    @assertEqual([2_i8, 3_i8], var_shape, message='var2d_dp data_shape')
-    call variable%require("test", .true., [2_i8, 3_i8])
-    call variable%expect_handoff("test", .true., [2_i8, 3_i8])
-    @assertEqual(.true., variable%required, message='var2d_dp expect_handoff marks required')
+    call variable%check_provided("test")
   end subroutine test_var2d_dp_contract
 
   @test
@@ -139,14 +157,24 @@ contains
     real(dp), target :: runoff(3)
     integer(i4) :: stepping
     logical :: provided
+    character(:), allocatable :: provider
 
     runoff = [1.0_dp, 2.0_dp, 3.0_dp]
-    call exchange%set_data("runoff_total", runoff, 24_i4)
-    call exchange%get_meta("runoff_total", stepping=stepping, provided=provided)
+    call exchange%runoff_total%provide("external")
+    call exchange%runoff_total%prepare_data("external", 24_i4)
+    exchange%runoff_total%data => runoff
+    stepping = exchange%runoff_total%stepping
+    provided = exchange%runoff_total%provided
+    provider = exchange%runoff_total%provider
 
-    @assertEqual(24_i4, stepping, message='exchange set_data records stepping')
-    @assertTrue(provided, message='exchange set_data publishes the variable')
-    @assertEqual(2.0_dp, exchange%runoff_total%data(2), message='exchange set_data points to external data')
+    @assertEqual(24_i4, stepping, message='typed external publication records stepping')
+    @assertTrue(provided, message='typed external publication declares the variable')
+    @assertEqual("external", provider, message='exchange records the external provider')
+    @assertEqual(2.0_dp, exchange%runoff_total%data(2), message='typed external association points to external data')
+    call exchange%destroy()
+    @assertFalse(exchange%runoff_total%provided, message='exchange clear resets provider declaration')
+    @assertFalse(exchange%runoff_total%has_data(), message='exchange clear removes external binding')
+    @assertEqual(0_i4, exchange%runoff_total%stepping, message='exchange clear resets stepping')
   end subroutine test_exchange_external_metadata
 
   @test
@@ -227,6 +255,50 @@ contains
   end subroutine test_exchange_grid_contract
 
   @test
+  subroutine test_exchange_river_contract()
+    type(exchange_t), target :: exchange
+    type(grid_t), target :: river_grid
+    type(river_t), target :: river
+    type(var_dp) :: discharge
+    integer(i2) :: fdir(2)
+    real(dp), target :: data(2)
+
+    call river_grid%init(2_i4, 1_i4, cellsize=1.0_dp)
+    fdir = [d8_E, sink]
+    call river%from_fdir(fdir, river_grid)
+    exchange%river_l3 => river
+    discharge = var_dp(river=l3, name="discharge")
+    data = [1.0_dp, 2.0_dp]
+    call discharge%provide("mRM")
+    call discharge%prepare_data("mRM", 1_i4)
+    discharge%data => data
+    call exchange%check_data(discharge, "test")
+
+    @assertEqual(river%n_nodes, size(discharge%data, kind=i8), message='river support uses river node count')
+    @assertFalse(exchange%has_grid(l3), message='river support does not require a separate level3 grid')
+  end subroutine test_exchange_river_contract
+
+  @test
+  subroutine test_exchange_layer_contract()
+    type(exchange_t), target :: exchange
+    type(grid_t), target :: grid
+    type(var2d_dp) :: layered
+    real(dp), target :: bounds(3), data(2, 2)
+
+    call grid%init(2_i4, 1_i4, cellsize=1.0_dp)
+    exchange%level0 => grid
+    exchange%model_horizon_bounds => bounds
+    layered = var2d_dp(grid=l0, layers=model_horizons, name="layered")
+    data = 1.0_dp
+    call layered%provide("MPR")
+    call layered%prepare_data("MPR", 1_i4)
+    layered%data => data
+    call exchange%check_data(layered, "test")
+
+    @assertEqual(2_i4, size(layered%data, dim=2), message='model layers derive their count from bounds')
+  end subroutine test_exchange_layer_contract
+
+  @test
   subroutine test_exchange_clock()
     type(exchange_t) :: exchange
     type(parameter_t) :: configured(1)
@@ -278,27 +350,89 @@ contains
     ids = [101_i8, 205_i8]
     levels = [12.0_dp, 23.0_dp]
     exchange%lake_points => lake_points
-    call exchange%lake_ids%publish_local('test', ids, no_time)
-    call exchange%lake_max_levels%publish_local('test', levels, no_time)
+    call exchange%lake_ids%provide('test')
+    call exchange%lake_ids%prepare_data('test', no_time)
+    exchange%lake_ids%data => ids
+    call exchange%lake_max_levels%provide('test')
+    call exchange%lake_max_levels%prepare_data('test', no_time)
+    exchange%lake_max_levels%data => levels
 
     @assertTrue(exchange%has_points(points_lake), message='lake point selector is available')
     @assertFalse(exchange%has_points(nopoints), message='no-point selector is never available')
     call exchange%get_points(points_lake, selected)
     @assertTrue(associated(selected, lake_points), message='lake selector returns the referenced point set')
-    call exchange%lake_ids%require('test', .true., [lake_points%n_points])
-    call exchange%lake_max_levels%require('test', .true., [lake_points%n_points])
+    call exchange%check_data(exchange%lake_ids, 'test')
+    call exchange%check_data(exchange%lake_max_levels, 'test')
     @assertTrue(all(exchange%lake_ids%data == ids), message='stable lake IDs are published without copying')
     @assertTrue(all(exchange%lake_max_levels%data == levels), message='lake levels are published without copying')
     @assertEqual(points_lake, exchange%lake_ids%points, message='lake IDs reference the lake point set')
     @assertEqual(points_lake, exchange%lake_max_levels%points, message='lake levels reference the lake point set')
 
-    call exchange%lake_ids%clear(owned=.true.)
-    call exchange%lake_max_levels%clear(owned=.true.)
-    nullify(exchange%lake_points)
-    @assertFalse(exchange%lake_ids%provided, message='lake ID publication is cleared')
-    @assertFalse(associated(exchange%lake_ids%data), message='lake ID alias is cleared')
-    @assertFalse(exchange%lake_max_levels%provided, message='lake-level publication is cleared')
+    call exchange%destroy()
+    @assertFalse(exchange%lake_ids%provided, message='lake ID provider is reset')
+    @assertFalse(associated(exchange%lake_ids%data), message='lake ID binding is cleared')
+    @assertFalse(exchange%lake_max_levels%provided, message='lake-level provider is reset')
     @assertFalse(exchange%has_points(points_lake), message='lake point reference is cleared')
   end subroutine test_exchange_lake_points
+
+  @test
+  subroutine test_exchange_owned_storage()
+    type(exchange_t) :: exchange
+    real(dp), pointer :: original(:)
+    integer :: status
+
+    status = exchange%config%project%set()
+    @assertEqual(0, status)
+    call exchange%create(cwd=".")
+    call exchange%dem%provide("Input")
+    call exchange%dem%prepare_storage("Input", no_time, [3_i8])
+    original => exchange%dem%data
+    call exchange%dem%set_storage([1.0_dp, 2.0_dp, 3.0_dp])
+    call exchange%dem%prepare_storage("Input", no_time, [3_i8])
+    @assertTrue(associated(original, exchange%dem%data), message="repeated preparation keeps the allocation")
+    call exchange%dem%set_storage([4.0_dp, 5.0_dp, 6.0_dp])
+    @assertEqual(5.0_dp, original(2), message="set_storage updates the existing allocation")
+
+    call exchange%destroy()
+    @assertFalse(associated(exchange%dem%data), message="terminal destruction disconnects owned data")
+    @assertFalse(exchange%dem%provided, message="terminal destruction resets provider")
+    @assertEqual(0_i4, exchange%dem%stepping, message="terminal destruction resets stepping")
+    @assertFalse(allocated(exchange%dem%provider), message="terminal destruction removes provider metadata")
+  end subroutine test_exchange_owned_storage
+
+  @test
+  subroutine test_layered_owned_storage()
+    type(var2d_i4) :: variable
+    integer(i4) :: values(2, 3)
+
+    variable = var2d_i4(name="soil_id", static=.true.)
+    call variable%provide("Input")
+    call variable%prepare_storage("Input", no_time, shape(values, kind=i8))
+    values = reshape([1_i4, 2_i4, 3_i4, 4_i4, 5_i4, 6_i4], shape(values))
+    call variable%set_storage(values)
+    @assertEqual(6_i4, variable%data(2, 3), message="layered storage copies values without changing shape")
+    @assertEqual(3_i4, size(variable%data, 2), message="layered storage retains its horizon count")
+  end subroutine test_layered_owned_storage
+
+  @test
+  subroutine test_explicit_alias_rebinding()
+    type(var_dp) :: source, alias
+    real(dp), target :: first(2), second(2)
+
+    first = [1.0_dp, 2.0_dp]
+    second = [3.0_dp, 4.0_dp]
+    source = var_dp(name="source")
+    alias = var_dp(name="alias")
+    call source%provide("test")
+    call source%prepare_data("test", 1_i4)
+    source%data => first
+    call alias%provide("test")
+    call alias%associate_alias("test", source)
+    source%data => second
+    @assertEqual(1.0_dp, alias%data(1), message="source rebinding does not update an alias automatically")
+    call alias%associate_alias("test", source)
+    @assertEqual(3.0_dp, alias%data(1), message="explicit alias rebinding selects the new source target")
+  end subroutine test_explicit_alias_rebinding
+
 
 end module test_exchange_variable

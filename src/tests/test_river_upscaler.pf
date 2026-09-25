@@ -212,10 +212,13 @@ contains
     call river%calc_length()
     call river%calc_slope()
     @assertEqual(100.0_dp, river%link_slope(4), tolerance=1.e-12_dp, message='link slope uses stored node elevation')
-    call river%clean()
-    @assertFalse(allocated(river%lake_map), message='river cleanup releases the lake map')
-    @assertFalse(allocated(river%lake_outlet_nodes), message='river cleanup releases lake outlet nodes')
-    @assertFalse(allocated(river%node_elevation), message='river cleanup releases node elevation')
+    call river%destroy()
+    @assertFalse(allocated(river%lake_map), message='river destruction releases the lake map')
+    @assertFalse(allocated(river%lake_outlet_nodes), message='river destruction releases lake outlet nodes')
+    @assertFalse(allocated(river%node_elevation), message='river destruction releases node elevation')
+    @assertFalse(allocated(river%order%id), message='river destruction releases level ordering')
+    @assertFalse(associated(river%grid), message='river destruction detaches its grid')
+    call river%destroy()
   end subroutine test_lake_labels
 
   @test

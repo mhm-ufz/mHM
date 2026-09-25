@@ -112,6 +112,7 @@ contains
     if (allocated(this%link_end)) deallocate(this%link_end)
     if (allocated(this%stream_mask)) deallocate(this%stream_mask)
     if (allocated(this%scc_coarse_gauges)) deallocate(this%scc_coarse_gauges)
+    nullify(this%fine_river, this%coarse_river)
     this%fine_river => fine_river
     this%coarse_river => coarse_river
     this%coarse_river%grid => coarse_grid
@@ -935,6 +936,7 @@ contains
     if (allocated(this%stream_mask)) deallocate(this%stream_mask)
     if (allocated(this%link_end)) deallocate(this%link_end)
     if (allocated(this%scc_coarse_gauges)) deallocate(this%scc_coarse_gauges)
+    nullify(this%fine_river, this%coarse_river)
 
   end subroutine river_upscaler_destroy
 

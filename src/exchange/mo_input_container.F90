@@ -53,6 +53,7 @@ module mo_input_container
     procedure :: open_dataset => input_var_open_dataset
     procedure :: check_couple_status => input_var_check_couple_status
     procedure :: set_mask => input_var_set_mask
+    procedure :: destroy => input_var_destroy
   end type input_var_abc
 
   !> \class   input_var_dp
@@ -168,14 +169,15 @@ module mo_input_container
     ! level 1 inputs
     type(input_var_i4) :: hydro_mask !< input variable for hydro mask
     type(input_var_dp) :: runoff !< input variable for runoff
-    integer(i4), allocatable :: soil_class_one_layer(:,:) !< adapter for single-layer soil class input
   contains
     procedure :: set_dims => input_set_dims
     procedure :: configure => input_configure
+    procedure :: prepare_restart => input_prepare_restart
     procedure :: connect => input_connect
     procedure :: initialize => input_initialize
     procedure :: update => input_update
     procedure :: finalize => input_finalize
+    procedure :: destroy => input_destroy
     procedure, private :: read_fdir_file => input_read_fdir_file
     procedure, private :: build_river_l0 => input_build_river_l0
     procedure, private :: read_lake_specification => input_read_lake_specification
@@ -183,6 +185,44 @@ module mo_input_container
   end type input_t
 
 contains
+
+  !> \brief Release an input source's owned caches and detach its grid reference.
+  subroutine input_var_destroy(self)
+    class(input_var_abc), intent(inout), target :: self !< Source to reset after its dataset is closed.
+    select type (self)
+    type is (input_var_dp)
+      if (allocated(self%cache)) deallocate(self%cache)
+    type is (input_var_i4)
+      if (allocated(self%cache)) deallocate(self%cache)
+    type is (input_var_i2)
+      if (allocated(self%cache)) deallocate(self%cache)
+    type is (input_var2d_dp)
+      if (allocated(self%cache)) deallocate(self%cache)
+    type is (input_var2d_i4)
+      if (allocated(self%cache)) deallocate(self%cache)
+    end select
+    if (allocated(self%mask)) deallocate(self%mask)
+    if (allocated(self%path)) deallocate(self%path)
+    if (allocated(self%name)) deallocate(self%name)
+    if (allocated(self%ds%path)) deallocate(self%ds%path)
+    nullify(self%grid)
+    nullify(self%ds%grid)
+    self%provided = .false.
+    self%coupled = .false.
+    self%static = .false.
+    self%allow_static = .false.
+    self%morph_latlon = .false.
+    self%var_id = 0_i4
+    self%stepping = 0_i4
+    self%offset = 0_i4
+    self%chunk_time_start = datetime()
+    self%chunk_time_end = datetime()
+  end subroutine input_var_destroy
+
+  !> \brief Input owns no restart definition; retained for the uniform lifecycle.
+  subroutine input_prepare_restart(self)
+    class(input_t), target, intent(inout) :: self
+  end subroutine input_prepare_restart
 
   !> \brief Check whether the grid needs to be initialized in the exchange variable.
   logical function need_grid(tgt_grid, exchange_grid)
@@ -241,9 +281,8 @@ contains
   subroutine sync_input_var_meta(input_var, exchange_var)
     class(input_var_abc), intent(in) :: input_var
     type(var_dp), intent(inout) :: exchange_var
-    exchange_var%provided = input_var%provided
     exchange_var%static = input_var%static
-    call exchange_var%set_stepping("Input", input_var%stepping)
+    call exchange_var%prepare_data("Input", input_var%stepping)
   end subroutine sync_input_var_meta
 
   !> \brief Update the time frame for chunked reading.
@@ -624,8 +663,9 @@ contains
   end subroutine input_var2d_i4_update
 
   !> \brief Read a single static double precision input variable and close the dataset.
-  subroutine input_var_dp_read_static(self)
+  subroutine input_var_dp_read_static(self, storage)
     class(input_var_dp), intent(inout), target :: self
+    real(dp), intent(out) :: storage(:)
     real(dp), allocatable :: data2d(:, :)
     if (.not.self%provided) return
     if (self%coupled) return
@@ -636,20 +676,19 @@ contains
         log_fatal(*) "Input: grid not connected for static ASCII variable: ", trim(self%name)
         error stop 1
       end if
-      if (.not.allocated(self%cache)) allocate(self%cache(self%grid%ncells, 1))
       call self%grid%read_data(self%path, data2d)
-      call self%grid%pack_into(data2d, self%cache(:, 1))
+      call self%grid%pack_into(data2d, storage)
       if (allocated(data2d)) deallocate(data2d)
       return
     end if
-    if (.not.allocated(self%cache)) allocate(self%cache(self%ds%grid%ncells, 1))
-    call self%ds%read(self%var_id, self%cache(:, 1))
+    call self%ds%read(self%var_id, storage)
     call self%ds%close()
   end subroutine input_var_dp_read_static
 
   !> \brief Read a single static integer input variable and close the dataset.
-  subroutine input_var_i4_read_static(self)
+  subroutine input_var_i4_read_static(self, storage)
     class(input_var_i4), intent(inout), target :: self
+    integer(i4), intent(out) :: storage(:)
     integer(i4), allocatable :: data2d(:, :)
     if (.not.self%provided) return
     if (self%coupled) return
@@ -660,20 +699,19 @@ contains
         log_fatal(*) "Input: grid not connected for static ASCII variable: ", trim(self%name)
         error stop 1
       end if
-      if (.not.allocated(self%cache)) allocate(self%cache(self%grid%ncells, 1))
       call self%grid%read_data(self%path, data2d)
-      call self%grid%pack_into(data2d, self%cache(:, 1))
+      call self%grid%pack_into(data2d, storage)
       if (allocated(data2d)) deallocate(data2d)
       return
     end if
-    if (.not.allocated(self%cache)) allocate(self%cache(self%ds%grid%ncells, 1))
-    call self%ds%read(self%var_id, self%cache(:, 1))
+    call self%ds%read(self%var_id, storage)
     call self%ds%close()
   end subroutine input_var_i4_read_static
 
   !> \brief Read a single static 16-bit integer input variable and close the dataset.
-  subroutine input_var_i2_read_static(self)
+  subroutine input_var_i2_read_static(self, storage)
     class(input_var_i2), intent(inout), target :: self
+    integer(i2), intent(out) :: storage(:)
     integer(i4), parameter :: i2_min = -int(huge(0_i2), i4) - 1_i4
     integer(i4), parameter :: i2_max = int(huge(0_i2), i4)
     integer(i4), allocatable :: data2d(:, :), data(:)
@@ -686,7 +724,6 @@ contains
         log_fatal(*) "Input: grid not connected for static ASCII variable: ", trim(self%name)
         error stop 1
       end if
-      if (.not.allocated(self%cache)) allocate(self%cache(self%grid%ncells, 1))
       call self%grid%read_data(self%path, data2d)
       allocate(data(self%grid%ncells))
       call self%grid%pack_into(data2d, data)
@@ -694,19 +731,19 @@ contains
         log_fatal(*) "Input: ASCII data outside the i2 range for variable: ", trim(self%name)
         error stop 1
       end if
-      self%cache(:, 1) = int(data, i2)
+      storage = int(data, i2)
       if (allocated(data)) deallocate(data)
       if (allocated(data2d)) deallocate(data2d)
       return
     end if
-    if (.not.allocated(self%cache)) allocate(self%cache(self%ds%grid%ncells, 1))
-    call self%ds%read(self%var_id, self%cache(:, 1))
+    call self%ds%read(self%var_id, storage)
     call self%ds%close()
   end subroutine input_var_i2_read_static
 
   !> \brief Read a single static 2D double precision input variable and close the dataset.
-  subroutine input_var2d_dp_read_static(self)
+  subroutine input_var2d_dp_read_static(self, storage)
     class(input_var2d_dp), intent(inout), target :: self
+    real(dp), intent(out) :: storage(:, :)
     if (.not.self%provided) return
     if (self%coupled) return
     if (.not.self%static) return
@@ -715,14 +752,14 @@ contains
       log_fatal(*) "Input: layered ASCII input is not supported for variable: ", trim(self%name)
       error stop 1
     end if
-    if (.not.allocated(self%cache)) allocate(self%cache(self%ds%grid%ncells, self%ds%nlayers, 1))
-    call self%ds%read_layered(self%var_id, self%cache(:, :, 1))
+    call self%ds%read_layered(self%var_id, storage)
     call self%ds%close()
   end subroutine input_var2d_dp_read_static
 
   !> \brief Read a single static 2D integer input variable and close the dataset.
-  subroutine input_var2d_i4_read_static(self)
+  subroutine input_var2d_i4_read_static(self, storage)
     class(input_var2d_i4), intent(inout), target :: self
+    integer(i4), intent(out) :: storage(:, :)
     if (.not.self%provided) return
     if (self%coupled) return
     if (.not.self%static) return
@@ -731,8 +768,7 @@ contains
       log_fatal(*) "Input: layered ASCII input is not supported for variable: ", trim(self%name)
       error stop 1
     end if
-    if (.not.allocated(self%cache)) allocate(self%cache(self%ds%grid%ncells, self%ds%nlayers, 1))
-    call self%ds%read_layered(self%var_id, self%cache(:, :, 1))
+    call self%ds%read_layered(self%var_id, storage)
     call self%ds%close()
   end subroutine input_var2d_i4_read_static
 
@@ -882,7 +918,7 @@ contains
       call self%dem%init( &
         path=self%exchange%get_path(self%config%input%dem_path(id(1))), name=self%config%input%dem_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%dem%provided = .true. ! mark as provided in exchange
+      call self%exchange%dem%provide("Input")
     end if
 
     ! slope (slope_var by default "slope")
@@ -891,7 +927,7 @@ contains
       call self%slope%init( &
         path=self%exchange%get_path(self%config%input%slope_path(id(1))), name=self%config%input%slope_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%slope%provided = .true. ! mark as provided in exchange
+      call self%exchange%slope%provide("Input")
     end if
 
     ! aspect (aspect_var by default "aspect")
@@ -900,7 +936,7 @@ contains
       call self%aspect%init( &
         path=self%exchange%get_path(self%config%input%aspect_path(id(1))), name=self%config%input%aspect_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%aspect%provided = .true. ! mark as provided in exchange
+      call self%exchange%aspect%provide("Input")
     end if
 
     ! flow direction (fdir_var by default "fdir")
@@ -909,6 +945,7 @@ contains
       call self%fdir%init( &
         path=self%exchange%get_path(self%config%input%fdir_path(id(1))), name=self%config%input%fdir_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
+      call self%exchange%fdir%provide("Input")
     end if
 
     ! flow accumulation (facc_var by default "facc")
@@ -917,7 +954,7 @@ contains
       call self%facc%init( &
         path=self%exchange%get_path(self%config%input%facc_path(id(1))), name=self%config%input%facc_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%facc%provided = .true. ! mark as provided in exchange
+      call self%exchange%facc%provide("Input")
     end if
 
     ! geology class (geo_class_var by default "geology_class")
@@ -926,7 +963,7 @@ contains
       call self%geo_class%init( &
         path=self%exchange%get_path(self%config%input%geo_class_path(id(1))), name=self%config%input%geo_class_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%geo_unit%provided = .true. ! mark as provided in exchange
+      call self%exchange%geo_unit%provide("Input")
     end if
 
     ! soil class (soil_class_var by default "soil_class")
@@ -935,7 +972,7 @@ contains
       call self%soil_class%init( &
         path=self%exchange%get_path(self%config%input%soil_class_path(id(1))), name=self%config%input%soil_class_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%soil_id%provided = .true. ! mark as provided in exchange
+      call self%exchange%soil_id%provide("Input")
     end if
 
     ! soil horizon class (uses soil_class_var by default)
@@ -944,7 +981,7 @@ contains
       call self%soil_horizon_class%init( &
         path=self%exchange%get_path(self%config%input%soil_horizon_class_path(id(1))), name=self%config%input%soil_class_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%soil_id%provided = .true. ! mark as provided in exchange
+      call self%exchange%soil_id%provide("Input")
     end if
 
     if (self%soil_class%provided .and. self%soil_horizon_class%provided) then
@@ -957,7 +994,7 @@ contains
       call self%lai_class%init( &
         path=self%exchange%get_path(self%config%input%lai_class_path(id(1))), name=self%config%input%lai_class_var(id(1)), &
         static=.true., morph_latlon=self%morph_latlon)
-      self%exchange%lai_class%provided = .true. ! mark as provided in exchange
+      call self%exchange%lai_class%provide("Input")
     end if
 
     ! meteorological mask (meteo_mask_var by default "mask")
@@ -971,77 +1008,77 @@ contains
     status = self%config%input%is_set("pre_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%pre%init(path=self%exchange%get_path(self%config%input%pre_path(id(1))), name=self%config%input%pre_var(id(1)))
-      self%exchange%raw_pre%provided = .true.
+      call self%exchange%raw_pre%provide("Input")
     end if
 
     ! raw PET on level2
     status = self%config%input%is_set("pet_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%pet%init(path=self%exchange%get_path(self%config%input%pet_path(id(1))), name=self%config%input%pet_var(id(1)))
-      self%exchange%raw_pet%provided = .true.
+      call self%exchange%raw_pet%provide("Input")
     end if
 
     ! raw temperature on level2
     status = self%config%input%is_set("temp_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%temp%init(path=self%exchange%get_path(self%config%input%temp_path(id(1))), name=self%config%input%temp_var(id(1)))
-      self%exchange%raw_temp%provided = .true.
+      call self%exchange%raw_temp%provide("Input")
     end if
 
     ! raw annual mean temperature on level2
     status = self%config%input%is_set("tann_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%tann%init(path=self%exchange%get_path(self%config%input%tann_path(id(1))), name=self%config%input%tann_var(id(1)), allow_static=.true.)
-      self%exchange%raw_tann%provided = .true.
+      call self%exchange%raw_tann%provide("Input")
     end if
 
     ! raw minimum temperature on level2
     status = self%config%input%is_set("tmin_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%tmin%init(path=self%exchange%get_path(self%config%input%tmin_path(id(1))), name=self%config%input%tmin_var(id(1)))
-      self%exchange%raw_tmin%provided = .true.
+      call self%exchange%raw_tmin%provide("Input")
     end if
 
     ! raw maximum temperature on level2
     status = self%config%input%is_set("tmax_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%tmax%init(path=self%exchange%get_path(self%config%input%tmax_path(id(1))), name=self%config%input%tmax_var(id(1)))
-      self%exchange%raw_tmax%provided = .true.
+      call self%exchange%raw_tmax%provide("Input")
     end if
 
     ! raw short-wave radiation on level2
     status = self%config%input%is_set("ssrd_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%ssrd%init(path=self%exchange%get_path(self%config%input%ssrd_path(id(1))), name=self%config%input%ssrd_var(id(1)))
-      self%exchange%raw_ssrd%provided = .true.
+      call self%exchange%raw_ssrd%provide("Input")
     end if
 
     ! raw long-wave radiation on level2
     status = self%config%input%is_set("strd_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%strd%init(path=self%exchange%get_path(self%config%input%strd_path(id(1))), name=self%config%input%strd_var(id(1)))
-      self%exchange%raw_strd%provided = .true.
+      call self%exchange%raw_strd%provide("Input")
     end if
 
     ! raw net radiation on level2
     status = self%config%input%is_set("netrad_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%netrad%init(path=self%exchange%get_path(self%config%input%netrad_path(id(1))), name=self%config%input%netrad_var(id(1)))
-      self%exchange%raw_netrad%provided = .true.
+      call self%exchange%raw_netrad%provide("Input")
     end if
 
     ! raw vapor pressure on level2
     status = self%config%input%is_set("eabs_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%eabs%init(path=self%exchange%get_path(self%config%input%eabs_path(id(1))), name=self%config%input%eabs_var(id(1)))
-      self%exchange%raw_eabs%provided = .true.
+      call self%exchange%raw_eabs%provide("Input")
     end if
 
     ! raw wind speed on level2
     status = self%config%input%is_set("wind_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
       call self%wind%init(path=self%exchange%get_path(self%config%input%wind_path(id(1))), name=self%config%input%wind_var(id(1)))
-      self%exchange%raw_wind%provided = .true.
+      call self%exchange%raw_wind%provide("Input")
     end if
 
     ! hydro mask (hydro_mask_var by default "mask")
@@ -1056,7 +1093,12 @@ contains
     if (status == NML_OK) then
       call self%runoff%init( &
         path=self%exchange%get_path(self%config%input%runoff_path(id(1))), name=self%config%input%runoff_var(id(1)))
-      self%exchange%runoff_total%provided = .true. ! mark as provided in exchange
+      call self%exchange%runoff_total%provide("Input")
+    end if
+    if (self%config%input%is_set("lake_definition_path", idx=id) == NML_OK) then
+      call self%exchange%lake_ids%provide("Input")
+      call self%exchange%lake_max_levels%provide("Input")
+      call self%exchange%lake_map%provide("Input")
     end if
   end subroutine input_configure
 
@@ -1068,6 +1110,9 @@ contains
     class(input_t), target, intent(inout) :: self
     logical :: init_grid
     integer(i4) :: ts
+    ! DEM and slope need transient full-grid work arrays while lake support is built.
+    real(dp), allocatable :: real_work(:, :)
+    integer(i4), allocatable :: integer_work(:)
     log_info(*) "Connect Input"
     ts = self%time_stamp_location
 
@@ -1099,23 +1144,20 @@ contains
     else if (self%dem%provided) then
       init_grid = need_grid(self%tgt_level0, self%exchange%level0) ! associate grid if not yet done
       call self%dem%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
-      call self%dem%read_static()
-      if (self%owns_river_l0) call self%river_l0%set_elevation(self%dem%cache(:, 1))
+      allocate(real_work(self%dem%grid%ncells, 1))
+      call self%dem%read_static(real_work(:, 1))
+      if (self%owns_river_l0) call self%river_l0%set_elevation(real_work(:, 1))
     end if
 
     ! Lake delineation needs the fdir-derived river and the full packed DEM.
     if (self%config%input%is_set("lake_definition_path", idx=[self%exchange%nml_domain_id]) == NML_OK) &
-      call self%read_lake_specification()
+      call self%read_lake_specification(real_work)
     if (.not.associated(self%exchange%level0_land) .and. associated(self%exchange%level0)) &
       self%exchange%level0_land => self%exchange%level0
     if (self%dem%provided) then
-      if (self%owns_river_l0 .and. .not.associated(self%exchange%level0_lake)) then
-        ! The full DEM belongs to the fdir-derived river; no land-packed view is needed without lakes.
-        self%exchange%dem%data => self%river_l0%node_elevation
-        deallocate(self%dem%cache)
-      else
-        self%exchange%dem%data => self%dem%cache(:, 1)
-      end if
+      call self%exchange%dem%prepare_storage("Input", no_time, shape(real_work(:, 1), kind=i8))
+      call self%exchange%dem%set_storage(real_work(:, 1))
+      deallocate(real_work)
     end if
 
     ! slope
@@ -1131,14 +1173,17 @@ contains
         init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
         call self%slope%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid)
       end if
-      call self%slope%read_static()
+      allocate(real_work(self%slope%grid%ncells, 1))
+      call self%slope%read_static(real_work(:, 1))
       if (self%owns_river_l0) then
-        call self%river_l0%set_link_slope(self%slope%cache(:, 1))
+        call self%river_l0%set_link_slope(real_work(:, 1))
         if (associated(self%exchange%level0_lake)) &
-          call repack_l0_dp_cache(self%exchange%level0, self%exchange%level0_land, self%slope%cache, "slope")
+          call repack_l0_dp_cache(self%exchange%level0, self%exchange%level0_land, real_work, "slope")
         self%slope%grid => self%exchange%level0_land
       end if
-      self%exchange%slope%data => self%slope%cache(:, 1) ! associate exchange variable to input cache
+      call self%exchange%slope%prepare_storage("Input", no_time, shape(real_work(:, 1), kind=i8))
+      call self%exchange%slope%set_storage(real_work(:, 1))
+      deallocate(real_work)
     end if
 
     ! aspect
@@ -1149,8 +1194,8 @@ contains
     else if (self%aspect%provided) then
       init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
       call self%aspect%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid)
-      call self%aspect%read_static()
-      self%exchange%aspect%data => self%aspect%cache(:, 1) ! associate exchange variable to input cache
+      call self%exchange%aspect%prepare_storage("Input", no_time, [self%aspect%grid%ncells])
+      call self%aspect%read_static(self%exchange%aspect%data)
     end if
 
     ! flow accumulation
@@ -1161,8 +1206,8 @@ contains
     else if (self%facc%provided) then
       init_grid = need_grid(self%tgt_level0, self%exchange%level0) ! associate grid if not yet done
       call self%facc%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
-      call self%facc%read_static()
-      self%exchange%facc%data => self%facc%cache(:, 1) ! associate exchange variable to input cache
+      call self%exchange%facc%prepare_storage("Input", no_time, [self%facc%grid%ncells])
+      call self%facc%read_static(self%exchange%facc%data)
     end if
 
     ! geology class
@@ -1173,8 +1218,8 @@ contains
     else if (self%geo_class%provided) then
       init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
       call self%geo_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid)
-      call self%geo_class%read_static()
-      self%exchange%geo_unit%data => self%geo_class%cache(:, 1) ! associate exchange variable to input cache
+      call self%exchange%geo_unit%prepare_storage("Input", no_time, [self%geo_class%grid%ncells])
+      call self%geo_class%read_static(self%exchange%geo_unit%data)
     end if
 
     ! soil class
@@ -1185,12 +1230,13 @@ contains
     else if (self%soil_class%provided) then
       init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
       call self%soil_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid)
-      call self%soil_class%read_static()
       if (.not.self%soil_horizon_class%provided) then
-        if (allocated(self%soil_class_one_layer)) deallocate(self%soil_class_one_layer)
-        allocate(self%soil_class_one_layer(size(self%soil_class%cache, 1), 1))
-        self%soil_class_one_layer(:, 1) = self%soil_class%cache(:, 1)
-        self%exchange%soil_id%data => self%soil_class_one_layer ! map single-layer soil class to 2D exchange shape
+        call self%exchange%soil_id%prepare_storage("Input", no_time, [self%soil_class%grid%ncells, 1_i8])
+        call self%soil_class%read_static(self%exchange%soil_id%data(:, 1))
+      else
+        allocate(integer_work(self%soil_class%grid%ncells))
+        call self%soil_class%read_static(integer_work)
+        deallocate(integer_work)
       end if
     end if
 
@@ -1203,8 +1249,9 @@ contains
       init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
       call self%soil_horizon_class%open_dataset( &
         kind="i4", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid, layered=.true.)
-      call self%soil_horizon_class%read_static()
-      self%exchange%soil_id%data => self%soil_horizon_class%cache(:, :, 1) ! associate exchange variable to input cache
+      call self%exchange%soil_id%prepare_storage( &
+        "Input", no_time, [self%soil_horizon_class%grid%ncells, int(self%soil_horizon_class%ds%nlayers, i8)])
+      call self%soil_horizon_class%read_static(self%exchange%soil_id%data)
     end if
 
     ! LAI class
@@ -1215,8 +1262,8 @@ contains
     else if (self%lai_class%provided) then
       init_grid = need_level0_land_grid(self%tgt_level0, self%exchange%level0, self%exchange%level0_land)
       call self%lai_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0_land, init_grid=init_grid)
-      call self%lai_class%read_static()
-      self%exchange%lai_class%data => self%lai_class%cache(:, 1) ! associate exchange variable to input cache
+      call self%exchange%lai_class%prepare_storage("Input", no_time, [self%lai_class%grid%ncells])
+      call self%lai_class%read_static(self%exchange%lai_class%data)
     end if
 
     ! meteorological mask
@@ -1239,8 +1286,8 @@ contains
       call self%pre%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level2, init_grid=init_grid)
       call sync_input_var_meta(self%pre, self%exchange%raw_pre)
       if (self%pre%static) then
-        call self%pre%read_static()
-        self%exchange%raw_pre%data => self%pre%cache(:, 1)
+        call self%exchange%raw_pre%prepare_storage("Input", self%pre%stepping, [self%pre%grid%ncells])
+        call self%pre%read_static(self%exchange%raw_pre%data)
       end if
     end if
 
@@ -1253,8 +1300,8 @@ contains
       call self%pet%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level2, init_grid=init_grid)
       call sync_input_var_meta(self%pet, self%exchange%raw_pet)
       if (self%pet%static) then
-        call self%pet%read_static()
-        self%exchange%raw_pet%data => self%pet%cache(:, 1)
+        call self%exchange%raw_pet%prepare_storage("Input", self%pet%stepping, [self%pet%grid%ncells])
+        call self%pet%read_static(self%exchange%raw_pet%data)
       end if
     end if
 
@@ -1267,8 +1314,8 @@ contains
       call self%temp%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level2, init_grid=init_grid)
       call sync_input_var_meta(self%temp, self%exchange%raw_temp)
       if (self%temp%static) then
-        call self%temp%read_static()
-        self%exchange%raw_temp%data => self%temp%cache(:, 1)
+        call self%exchange%raw_temp%prepare_storage("Input", self%temp%stepping, [self%temp%grid%ncells])
+        call self%temp%read_static(self%exchange%raw_temp%data)
       end if
     end if
 
@@ -1281,8 +1328,8 @@ contains
       call self%tann%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level2, init_grid=init_grid)
       call sync_input_var_meta(self%tann, self%exchange%raw_tann)
       if (self%tann%static) then
-        call self%tann%read_static()
-        self%exchange%raw_tann%data => self%tann%cache(:, 1)
+        call self%exchange%raw_tann%prepare_storage("Input", self%tann%stepping, [self%tann%grid%ncells])
+        call self%tann%read_static(self%exchange%raw_tann%data)
       end if
     end if
 
@@ -1295,8 +1342,8 @@ contains
       call self%tmin%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level2, init_grid=init_grid)
       call sync_input_var_meta(self%tmin, self%exchange%raw_tmin)
       if (self%tmin%static) then
-        call self%tmin%read_static()
-        self%exchange%raw_tmin%data => self%tmin%cache(:, 1)
+        call self%exchange%raw_tmin%prepare_storage("Input", self%tmin%stepping, [self%tmin%grid%ncells])
+        call self%tmin%read_static(self%exchange%raw_tmin%data)
       end if
     end if
 
@@ -1309,8 +1356,8 @@ contains
       call self%tmax%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level2, init_grid=init_grid)
       call sync_input_var_meta(self%tmax, self%exchange%raw_tmax)
       if (self%tmax%static) then
-        call self%tmax%read_static()
-        self%exchange%raw_tmax%data => self%tmax%cache(:, 1)
+        call self%exchange%raw_tmax%prepare_storage("Input", self%tmax%stepping, [self%tmax%grid%ncells])
+        call self%tmax%read_static(self%exchange%raw_tmax%data)
       end if
     end if
 
@@ -1323,8 +1370,8 @@ contains
       call self%ssrd%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level2, init_grid=init_grid)
       call sync_input_var_meta(self%ssrd, self%exchange%raw_ssrd)
       if (self%ssrd%static) then
-        call self%ssrd%read_static()
-        self%exchange%raw_ssrd%data => self%ssrd%cache(:, 1)
+        call self%exchange%raw_ssrd%prepare_storage("Input", self%ssrd%stepping, [self%ssrd%grid%ncells])
+        call self%ssrd%read_static(self%exchange%raw_ssrd%data)
       end if
     end if
 
@@ -1337,8 +1384,8 @@ contains
       call self%strd%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level2, init_grid=init_grid)
       call sync_input_var_meta(self%strd, self%exchange%raw_strd)
       if (self%strd%static) then
-        call self%strd%read_static()
-        self%exchange%raw_strd%data => self%strd%cache(:, 1)
+        call self%exchange%raw_strd%prepare_storage("Input", self%strd%stepping, [self%strd%grid%ncells])
+        call self%strd%read_static(self%exchange%raw_strd%data)
       end if
     end if
 
@@ -1351,8 +1398,8 @@ contains
       call self%netrad%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level2, init_grid=init_grid)
       call sync_input_var_meta(self%netrad, self%exchange%raw_netrad)
       if (self%netrad%static) then
-        call self%netrad%read_static()
-        self%exchange%raw_netrad%data => self%netrad%cache(:, 1)
+        call self%exchange%raw_netrad%prepare_storage("Input", self%netrad%stepping, [self%netrad%grid%ncells])
+        call self%netrad%read_static(self%exchange%raw_netrad%data)
       end if
     end if
 
@@ -1365,8 +1412,8 @@ contains
       call self%eabs%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level2, init_grid=init_grid)
       call sync_input_var_meta(self%eabs, self%exchange%raw_eabs)
       if (self%eabs%static) then
-        call self%eabs%read_static()
-        self%exchange%raw_eabs%data => self%eabs%cache(:, 1)
+        call self%exchange%raw_eabs%prepare_storage("Input", self%eabs%stepping, [self%eabs%grid%ncells])
+        call self%eabs%read_static(self%exchange%raw_eabs%data)
       end if
     end if
 
@@ -1379,8 +1426,8 @@ contains
       call self%wind%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level2, init_grid=init_grid)
       call sync_input_var_meta(self%wind, self%exchange%raw_wind)
       if (self%wind%static) then
-        call self%wind%read_static()
-        self%exchange%raw_wind%data => self%wind%cache(:, 1)
+        call self%exchange%raw_wind%prepare_storage("Input", self%wind%stepping, [self%wind%grid%ncells])
+        call self%wind%read_static(self%exchange%raw_wind%data)
       end if
     end if
 
@@ -1462,15 +1509,17 @@ contains
     call self%river_l0%calc_order(root=.true.)
     call self%river_l0%calc_facc()
     self%exchange%river_l0 => self%river_l0
-    call self%exchange%fdir%publish_local("Input", self%river_l0%fdir, no_time)
+    call self%exchange%fdir%prepare_data("Input", no_time)
+    self%exchange%fdir%data => self%river_l0%fdir
     self%owns_river_l0 = .true.
   end subroutine input_build_river_l0
 
   !> \brief Read static lake metadata, snap outlets to L0 cells, and delineate lake footprints.
   !> \authors Sebastian Mueller, Pallav Shrestha
-  subroutine input_read_lake_specification(self)
+  subroutine input_read_lake_specification(self, dem_cache)
     use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
     class(input_t), target, intent(inout) :: self
+    real(dp), allocatable, intent(inout) :: dem_cache(:, :)
     type(points_input_dataset) :: input
     type(var), allocatable :: vars(:)
     real(dp), allocatable :: coords(:,:)
@@ -1484,7 +1533,7 @@ contains
       log_fatal(*) "Input: lake definitions require a file-based level-0 river."
       error stop 1
     end if
-    if (.not.self%dem%provided .or. .not.allocated(self%dem%cache)) then
+    if (.not.self%dem%provided .or. .not.allocated(dem_cache)) then
       log_fatal(*) "Input: lake definitions require a static DEM on level 0."
       error stop 1
     end if
@@ -1538,11 +1587,13 @@ contains
 
     call self%river_l0%label_lakes(outlet_nodes, self%lake_ids, self%lake_max_levels)
     call self%build_lake_grids()
-    call repack_l0_dp_cache(self%exchange%level0, self%exchange%level0_land, self%dem%cache, "DEM")
+    call repack_l0_dp_cache(self%exchange%level0, self%exchange%level0_land, dem_cache, "DEM")
     self%dem%grid => self%exchange%level0_land
     self%exchange%lake_points => self%lake_outlets
-    call self%exchange%lake_ids%publish_local("Input", self%lake_ids, no_time)
-    call self%exchange%lake_max_levels%publish_local("Input", self%lake_max_levels, no_time)
+    call self%exchange%lake_ids%prepare_data("Input", no_time)
+    self%exchange%lake_ids%data => self%lake_ids
+    call self%exchange%lake_max_levels%prepare_data("Input", no_time)
+    self%exchange%lake_max_levels%data => self%lake_max_levels
   end subroutine input_read_lake_specification
 
   !> \brief Construct complementary land and lake grids on the full level-0 geometry.
@@ -1581,7 +1632,8 @@ contains
     call self%exchange%level0%unpack_into(self%river_l0%lake_map, full_lake_map)
     call self%exchange%level0_lake%pack_into(full_lake_map, self%lake_map)
     deallocate(full_lake_map)
-    call self%exchange%lake_map%publish_local("Input", self%lake_map, no_time)
+    call self%exchange%lake_map%prepare_data("Input", no_time)
+    self%exchange%lake_map%data => self%lake_map
     self%owns_lake_map = .true.
   end subroutine input_build_lake_grids
 
@@ -1591,34 +1643,6 @@ contains
     class(input_t), target, intent(inout) :: self
     log_info(*) "Initialize Input"
     scope_info(s,*) "Initialize input time windows with chunking: ", n2s(self%chunking)
-    ! warn about provided but not required variables, since this likely indicates a configuration issue
-    if (self%facc%provided .and. .not.self%exchange%facc%required) then
-      log_warn(*) "Input: flow accumulation provided but not required. Check your configuration."
-    end if
-    if (self%dem%provided .and. .not.self%exchange%dem%required .and. &
-        .not.associated(self%exchange%level0_lake)) then
-      log_warn(*) "Input: DEM provided but not required. Check your configuration."
-    end if
-    if (self%slope%provided .and. .not.self%exchange%slope%required .and. &
-        .not.(self%owns_river_l0 .and. allocated(self%river_l0%link_slope))) then
-      log_warn(*) "Input: slope provided but not required. Check your configuration."
-    end if
-    if (self%aspect%provided .and. .not.self%exchange%aspect%required) then
-      log_warn(*) "Input: aspect provided but not required. Check your configuration."
-    end if
-    if (self%geo_class%provided .and. .not.self%exchange%geo_unit%required) then
-      log_warn(*) "Input: geology class provided but not required. Check your configuration."
-    end if
-    if ((self%soil_class%provided .or. self%soil_horizon_class%provided) .and. .not.self%exchange%soil_id%required) then
-      log_warn(*) "Input: soil class provided but not required. Check your configuration."
-    end if
-    if (self%lai_class%provided .and. .not.self%exchange%lai_class%required) then
-      log_warn(*) "Input: LAI class provided but not required. Check your configuration."
-    end if
-    if (self%runoff%provided .and. .not.self%exchange%runoff_total%required) then
-      log_warn(*) "Input: runoff provided but not required. Check your configuration."
-    end if
-    if (.not. self%exchange%runoff_total%required) self%runoff%provided = .false.
     call self%pre%reset_time(self%chunking, self%exchange%start_time)
     call self%pet%reset_time(self%chunking, self%exchange%start_time)
     call self%temp%reset_time(self%chunking, self%exchange%start_time)
@@ -1666,28 +1690,52 @@ contains
     if (self%eabs%provided .and. .not.self%eabs%static) call self%eabs%ds%close()
     if (self%wind%provided .and. .not.self%wind%static) call self%wind%ds%close()
     if (self%runoff%provided) call self%runoff%ds%close()
-    if (allocated(self%soil_class_one_layer)) deallocate(self%soil_class_one_layer)
-    if (associated(self%exchange%lake_points, self%lake_outlets)) then
-      call self%exchange%lake_ids%clear(owned=.true.)
-      call self%exchange%lake_max_levels%clear(owned=.true.)
-      nullify(self%exchange%lake_points)
-    end if
-    self%lake_outlets = points_t()
+  end subroutine input_finalize
+
+  !> \brief Release Input-owned source caches and structural data after exchange teardown.
+  subroutine input_destroy(self)
+    class(input_t), target, intent(inout) :: self
+    call self%lake_outlets%destroy()
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
     if (self%owns_lake_map) then
-      call self%exchange%lake_map%clear(owned=.true.)
       self%owns_lake_map = .false.
     end if
     if (allocated(self%lake_map)) deallocate(self%lake_map)
     if (allocated(self%lake_max_levels)) deallocate(self%lake_max_levels)
-    nullify(self%exchange%level0_lake)
-    nullify(self%exchange%level0_land)
     if (self%owns_river_l0) then
-      call self%exchange%fdir%clear(owned=.true.)
-      if (associated(self%exchange%river_l0, self%river_l0)) nullify(self%exchange%river_l0)
-      call self%river_l0%clean()
+      call self%river_l0%destroy()
       self%owns_river_l0 = .false.
     end if
-  end subroutine input_finalize
+    call self%morph_mask%destroy()
+    call self%dem%destroy()
+    call self%slope%destroy()
+    call self%aspect%destroy()
+    call self%fdir%destroy()
+    call self%facc%destroy()
+    call self%geo_class%destroy()
+    call self%soil_class%destroy()
+    call self%soil_horizon_class%destroy()
+    call self%lai_class%destroy()
+    call self%meteo_mask%destroy()
+    call self%pre%destroy()
+    call self%pet%destroy()
+    call self%temp%destroy()
+    call self%tann%destroy()
+    call self%tmin%destroy()
+    call self%tmax%destroy()
+    call self%ssrd%destroy()
+    call self%strd%destroy()
+    call self%netrad%destroy()
+    call self%eabs%destroy()
+    call self%wind%destroy()
+    call self%hydro_mask%destroy()
+    call self%runoff%destroy()
+    call self%tgt_level0%destroy()
+    call self%tgt_level0_land%destroy()
+    call self%tgt_level0_lake%destroy()
+    call self%tgt_level1_land%destroy()
+    call self%tgt_level2%destroy()
+    call self%tgt_level3%destroy()
+  end subroutine input_destroy
 
 end module mo_input_container

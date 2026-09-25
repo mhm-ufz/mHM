@@ -54,7 +54,7 @@ module mo_mpr_container
   use mo_datetime, only: datetime, YEAR_MONTHS, one_hour
   use mo_kind, only: i4, dp
   use mo_common_constants, only: soilHorizonsVarName, landCoverPeriodsVarName, LAIVarName
-  use mo_exchange_type, only: exchange_t, variable_abc, l1
+  use mo_exchange_type, only: exchange_t, variable_abc, l1, single_layer, input_horizons
   use mo_grid, only: grid_t, cartesian, spherical
   use mo_grid_io, only: input_dataset, start_timestamp, no_time, daily, monthly, yearly, varying, var
   use mo_grid_scaler, only: scaler_t, up_a_mean
@@ -141,6 +141,7 @@ module mo_mpr_container
     real(dp), allocatable :: f_roots_cache(:, :, :) !< cached root fractions (nCells1, nHorizons, nLC)
     real(dp), allocatable :: thresh_jarvis_cache(:) !< cached Jarvis threshold field (nCells1)
     real(dp), allocatable :: horizon_bounds(:) !< cached soil-horizon boundaries for restart metadata (nHorizons+1)
+    real(dp), allocatable :: input_horizon_bounds(:) !< configured input horizon boundaries (nInputHorizons+1)
     real(dp), allocatable :: sm_deficit_fc_l0(:, :) !< cached saturation deficit from field capacity on L0 (nCells0, nLC)
     real(dp), allocatable :: ks_var_h_l0(:, :) !< cached horizontal Ks variability on L0 (nCells0, nLC)
     real(dp), allocatable :: ks_var_v_l0(:, :) !< cached vertical Ks variability on L0 (nCells0, nLC)
@@ -199,10 +200,12 @@ module mo_mpr_container
   contains
     procedure :: set_dims   => mpr_set_dims
     procedure :: configure  => mpr_configure
+    procedure :: prepare_restart => mpr_prepare_restart
     procedure :: connect    => mpr_connect
     procedure :: initialize => mpr_initialize
     procedure :: update     => mpr_update
     procedure :: finalize   => mpr_finalize
+    procedure :: destroy    => mpr_destroy
     procedure, private :: create_restart                  => mpr_create_restart
     procedure, private :: write_restart_data              => mpr_write_restart_data
     procedure, private :: write_restart_lai_timing        => mpr_write_restart_lai_timing
@@ -228,6 +231,7 @@ module mo_mpr_container
     procedure, private :: read_dated_lai_l0_cache         => mpr_read_dated_lai_l0_cache
     procedure, private :: load_process_params             => mpr_load_process_params
     procedure, private :: configure_parameters            => mpr_configure_parameters
+    procedure, private :: declare_contract                => mpr_declare_contract
     procedure, private :: initialize_parameter_cache      => mpr_initialize_parameter_cache
     procedure, private :: init_max_interception_cache     => mpr_init_max_interception_cache
     procedure, private :: init_snow_cache                 => mpr_init_snow_cache
@@ -249,6 +253,15 @@ module mo_mpr_container
   end type mpr_t
 
 contains
+
+  !> \brief Prepare restart-owned MPR definition before exchange binding.
+  subroutine mpr_prepare_restart(self)
+    class(mpr_t), intent(inout), target :: self
+
+    if (.not.self%read_restart) return
+    call self%read_restart_data()
+    if (allocated(self%soil%horizon_bounds)) self%exchange%model_horizon_bounds => self%soil%horizon_bounds
+  end subroutine mpr_prepare_restart
 
   !> \brief Set runtime dimensions for generated MPR namelists.
   subroutine mpr_set_dims(self)
@@ -330,6 +343,16 @@ contains
         log_fatal(*) "MPR: unsupported soil_db_mode=", n2s(self%config%soil_db_mode(id(1))), "."
         error stop 1
     end select
+    self%exchange%soil_id%layers = merge(input_horizons, single_layer, self%config%soil_db_mode(id(1)) == 1_i4)
+    if (allocated(self%soil%input_horizon_bounds)) deallocate(self%soil%input_horizon_bounds)
+    if (self%config%soil_db_mode(id(1)) == 1_i4) then
+      allocate(self%soil%input_horizon_bounds(self%exchange%n_layers + 1_i4))
+      self%soil%input_horizon_bounds(1) = 0.0_dp
+      self%soil%input_horizon_bounds(2:) = real(self%config%soil_depth(1:self%exchange%n_layers, id(1)), dp)
+      self%exchange%input_horizon_bounds => self%soil%input_horizon_bounds
+    else
+      nullify(self%exchange%input_horizon_bounds)
+    end if
     previous_depth = 0_i4
     do i = 1_i4, required_depths
       if (self%config%soil_depth(i, id(1)) <= 0_i4) then
@@ -402,7 +425,77 @@ contains
       if (allocated(self%lai%lut_path)) deallocate(self%lai%lut_path)
     end if
     call self%configure_parameters()
+    call self%declare_contract()
+    self%read_restart = self%config%read_restart(id(1))
+    self%write_restart = self%config%write_restart(id(1))
+    if (self%read_restart) then
+      status = self%config%is_set("restart_input_path", idx=id, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "MPR restart input path not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
+        error stop 1
+      end if
+      self%restart_input_path = self%exchange%get_path(self%config%restart_input_path(id(1)))
+    end if
+    if (self%write_restart) then
+      status = self%config%is_set("restart_output_path", idx=id, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "MPR restart output path not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
+        error stop 1
+      end if
+      self%restart_output_path = self%exchange%get_path(self%config%restart_output_path(id(1)))
+    end if
   end subroutine mpr_configure
+
+  !> \brief Declare parameter fields produced by the selected MPR process cases.
+  subroutine mpr_declare_contract(self)
+    class(mpr_t), intent(inout), target :: self
+    integer(i4) :: pet_case
+
+    pet_case = self%exchange%config%processes%pet
+    call self%exchange%slope_emp%provide("MPR")
+    call self%exchange%f_sealed%provide("MPR")
+    if (self%exchange%config%processes%interception > 0_i4) call self%exchange%max_interception%provide("MPR")
+    if (self%exchange%config%processes%snow > 0_i4) then
+      call self%exchange%thresh_temp%provide("MPR")
+      call self%exchange%degday_dry%provide("MPR")
+      call self%exchange%degday_inc%provide("MPR")
+      call self%exchange%degday_max%provide("MPR")
+    end if
+    if (any(pet_case == [-2_i4, 1_i4])) call self%exchange%pet_fac_aspect%provide("MPR")
+    if (pet_case == -1_i4) call self%exchange%pet_fac_lai%provide("MPR")
+    if (pet_case == 1_i4) call self%exchange%pet_coeff_hs%provide("MPR")
+    if (pet_case == 2_i4) call self%exchange%pet_coeff_pt%provide("MPR")
+    if (pet_case == 3_i4) then
+      call self%exchange%resist_aero%provide("MPR")
+      call self%exchange%resist_surf%provide("MPR")
+    end if
+    if (self%exchange%config%processes%soil_moisture /= 0_i4) then
+      call self%exchange%f_roots%provide("MPR")
+      call self%exchange%sm_saturation%provide("MPR")
+      call self%exchange%sm_exponent%provide("MPR")
+      call self%exchange%sm_field_capacity%provide("MPR")
+      call self%exchange%wilting_point%provide("MPR")
+      call self%exchange%thresh_jarvis%provide("MPR")
+    end if
+    if (self%exchange%config%processes%interflow /= 0_i4) then
+      call self%exchange%alpha%provide("MPR")
+      call self%exchange%k_fastflow%provide("MPR")
+      call self%exchange%k_slowflow%provide("MPR")
+      call self%exchange%thresh_unsat%provide("MPR")
+    end if
+    if (self%exchange%config%processes%percolation /= 0_i4) then
+      call self%exchange%k_percolation%provide("MPR")
+      call self%exchange%f_karst_loss%provide("MPR")
+    end if
+    if (self%exchange%config%processes%direct_runoff /= 0_i4) call self%exchange%thresh_sealed%provide("MPR")
+    if (self%exchange%config%processes%baseflow /= 0_i4) call self%exchange%k_baseflow%provide("MPR")
+    if (self%exchange%config%processes%neutrons /= 0_i4) then
+      call self%exchange%desilets_n0%provide("MPR")
+      call self%exchange%bulk_density%provide("MPR")
+      call self%exchange%lattice_water%provide("MPR")
+    end if
+    if (self%exchange%config%processes%neutrons == 2_i4) call self%exchange%cosmic_l3%provide("MPR")
+  end subroutine mpr_declare_contract
 
   !> \brief Read selected MPR parameter namelists and register their named values.
   subroutine mpr_configure_parameters(self)
@@ -786,57 +879,23 @@ contains
     end if
 
     ! declare MPR prerequisites in the exchange contract
-    self%exchange%slope%required = .not.self%read_restart
-    self%exchange%aspect%required = .not.self%read_restart
-    self%exchange%soil_id%required = .not.self%read_restart
-    self%exchange%geo_unit%required = .not.self%read_restart
     pet_process = self%exchange%config%processes%pet
     need_lai_cache = self%exchange%config%processes%interception > 0_i4 .or. &
       pet_process == -1_i4 .or. pet_process == 2_i4 .or. pet_process == 3_i4
     require_lai_class = self%config%lai_time_step(id(1)) == 0_i4 .and. need_lai_cache
-    self%exchange%lai_class%required = require_lai_class .and. .not.self%read_restart
 
     if (self%read_restart) then
-      call self%read_restart_data()
-      call self%update_exchange_slices(force=.true., time=self%exchange%start_time)
+      call self%ensure_level1_grid()
+      if (allocated(self%soil%horizon_bounds)) self%exchange%model_horizon_bounds => self%soil%horizon_bounds
       return
     end if
+    if (require_lai_class) call self%exchange%check_data(self%exchange%lai_class, "MPR")
 
-    if (.not.self%exchange%slope%provided) then
-      log_fatal(*) "MPR: slope not provided (check input settings)."
-      error stop 1
-    end if
-    if (.not.associated(self%exchange%slope%data)) then
-      log_fatal(*) "MPR: slope marked as provided but data is not connected."
-      error stop 1
-    end if
+    call self%exchange%check_data(self%exchange%slope, "MPR")
+    call self%exchange%check_data(self%exchange%aspect, "MPR")
+    call self%exchange%check_data(self%exchange%geo_unit, "MPR")
 
-    if (.not.self%exchange%aspect%provided) then
-      log_fatal(*) "MPR: aspect not provided (check input settings)."
-      error stop 1
-    end if
-    if (.not.associated(self%exchange%aspect%data)) then
-      log_fatal(*) "MPR: aspect marked as provided but data is not connected."
-      error stop 1
-    end if
-
-    if (.not.self%exchange%geo_unit%provided) then
-      log_fatal(*) "MPR: geo_unit not provided (check geo_class input settings)."
-      error stop 1
-    end if
-    if (.not.associated(self%exchange%geo_unit%data)) then
-      log_fatal(*) "MPR: geo_unit marked as provided but data is not connected."
-      error stop 1
-    end if
-
-    if (.not.self%exchange%soil_id%provided) then
-      log_fatal(*) "MPR: soil_id not provided (check soil_class/soil_horizon_class input settings)."
-      error stop 1
-    end if
-    if (.not.associated(self%exchange%soil_id%data)) then
-      log_fatal(*) "MPR: soil_id marked as provided but data is not connected."
-      error stop 1
-    end if
+    call self%exchange%check_data(self%exchange%soil_id, "MPR")
 
     soil_layers = size(self%exchange%soil_id%data, 2)
     select case (self%config%soil_db_mode(id(1)))
@@ -861,16 +920,6 @@ contains
         error stop 1
     end select
 
-    if (require_lai_class) then
-      if (.not.self%exchange%lai_class%provided) then
-        log_fatal(*) "MPR: lai_class not provided, but required for lai_time_step=0."
-        error stop 1
-      end if
-      if (.not.associated(self%exchange%lai_class%data)) then
-        log_fatal(*) "MPR: lai_class marked as provided but data is not connected."
-        error stop 1
-      end if
-    end if
 
     if (self%config%lai_time_step(id(1)) == 0_i4) then
       if (.not.allocated(self%lai%lut_path)) then
@@ -923,7 +972,7 @@ contains
     call self%check_geo_units_against_lut()
     call self%check_geoparameter_consistency()
     call self%init_soil_horizon_bounds()
-    self%exchange%soil_horizon_bounds => self%soil%horizon_bounds
+    self%exchange%model_horizon_bounds => self%soil%horizon_bounds
     ! Cache parameter-independent temporal inputs once. Parameter-derived fields are rebuilt in initialize.
     call self%init_temporal_cache()
   end subroutine mpr_connect
@@ -1813,12 +1862,12 @@ contains
     end if
 
     nc = NcDataset(self%restart_input_path, "r")
-    call restart_grid%from_restart(nc)
     ! Restart mode either validates the existing level1 grid or bootstraps it from the restart payload.
     if (associated(self%exchange%level1_land)) then
+      call restart_grid%from_restart(nc)
       call self%validate_restart_grid(restart_grid)
     else
-      self%tgt_level1_land = restart_grid
+      call self%tgt_level1_land%from_restart(nc)
       self%exchange%level1_land => self%tgt_level1_land
       log_info(*) "MPR restart: bootstrap level1 grid from restart file."
     end if
@@ -1878,7 +1927,6 @@ contains
     allocate(self%land_cover%sealed_fraction_l1(self%exchange%level1_land%ncells, self%land_cover%n_periods))
     self%land_cover%sealed_fraction_l1 = field_3d
     deallocate(field_3d)
-    self%exchange%f_sealed%provided = .true.
 
     if (self%exchange%config%processes%interception > 0_i4) then
       if (allocated(self%canopy%max_interception_cache)) deallocate(self%canopy%max_interception_cache)
@@ -1892,7 +1940,6 @@ contains
         self%canopy%max_interception_cache(:, :, land_cover_idx) = field_3d
       end do
       deallocate(field_3d)
-      self%exchange%max_interception%provided = .true.
     end if
 
     if (self%exchange%config%processes%snow > 0_i4) then
@@ -1909,17 +1956,12 @@ contains
         log_fatal(*) "MPR restart: snow restart land-cover dimensions do not match current timing configuration."
         error stop 1
       end if
-      self%exchange%thresh_temp%provided = .true.
-      self%exchange%degday_dry%provided = .true.
-      self%exchange%degday_inc%provided = .true.
-      self%exchange%degday_max%provided = .true.
     end if
 
     select case (pet_process)
       case (-2_i4)
         if (allocated(self%pet%pet_fac_aspect_cache)) deallocate(self%pet%pet_fac_aspect_cache)
         call self%read_restart_field_2d(nc, "L1_fAsp", self%pet%pet_fac_aspect_cache)
-        self%exchange%pet_fac_aspect%provided = .true.
       case (-1_i4)
         if (allocated(self%pet%pet_fac_lai_cache)) deallocate(self%pet%pet_fac_lai_cache)
         call self%read_restart_field_4d(nc, "L1_petLAIcorFactor", self%pet%pet_fac_lai_cache)
@@ -1928,14 +1970,11 @@ contains
           log_fatal(*) "MPR restart: PET-LAI restart dimensions do not match current LAI/land-cover configuration."
           error stop 1
         end if
-        self%exchange%pet_fac_lai%provided = .true.
       case (1_i4)
         if (allocated(self%pet%pet_fac_aspect_cache)) deallocate(self%pet%pet_fac_aspect_cache)
         if (allocated(self%pet%pet_coeff_hs_cache)) deallocate(self%pet%pet_coeff_hs_cache)
         call self%read_restart_field_2d(nc, "L1_fAsp", self%pet%pet_fac_aspect_cache)
         call self%read_restart_field_2d(nc, "L1_HarSamCoeff", self%pet%pet_coeff_hs_cache)
-        self%exchange%pet_fac_aspect%provided = .true.
-        self%exchange%pet_coeff_hs%provided = .true.
       case (2_i4)
         if (allocated(self%pet%pet_coeff_pt_cache)) deallocate(self%pet%pet_coeff_pt_cache)
         call self%read_restart_field_3d(nc, "L1_PrieTayAlpha", self%pet%pet_coeff_pt_cache)
@@ -1943,7 +1982,6 @@ contains
           log_fatal(*) "MPR restart: Priestley-Taylor restart LAI dimension does not match restart LAI periods."
           error stop 1
         end if
-        self%exchange%pet_coeff_pt%provided = .true.
       case (3_i4)
         if (allocated(self%pet%resist_aero_cache)) deallocate(self%pet%resist_aero_cache)
         if (allocated(self%pet%resist_surf_cache)) deallocate(self%pet%resist_surf_cache)
@@ -1958,8 +1996,6 @@ contains
           log_fatal(*) "MPR restart: surface resistance LAI dimension does not match restart LAI periods."
           error stop 1
         end if
-        self%exchange%resist_aero%provided = .true.
-        self%exchange%resist_surf%provided = .true.
     end select
 
     if (soil_process /= 0_i4) then
@@ -1987,12 +2023,6 @@ contains
       else
         self%soil%thresh_jarvis_cache = nodata_dp
       end if
-      self%exchange%f_roots%provided = .true.
-      self%exchange%sm_saturation%provided = .true.
-      self%exchange%sm_exponent%provided = .true.
-      self%exchange%sm_field_capacity%provided = .true.
-      self%exchange%wilting_point%provided = .true.
-      self%exchange%thresh_jarvis%provided = .true.
     end if
 
     if (self%exchange%config%processes%interflow /= 0_i4) then
@@ -2009,10 +2039,6 @@ contains
         log_fatal(*) "MPR restart: runoff restart land-cover dimensions do not match current timing configuration."
         error stop 1
       end if
-      self%exchange%alpha%provided = .true.
-      self%exchange%k_fastflow%provided = .true.
-      self%exchange%k_slowflow%provided = .true.
-      self%exchange%thresh_unsat%provided = .true.
     end if
     if (self%exchange%config%processes%percolation /= 0_i4) then
       if (allocated(self%runoff%k_percolation_cache)) deallocate(self%runoff%k_percolation_cache)
@@ -2023,13 +2049,10 @@ contains
         log_fatal(*) "MPR restart: percolation restart land-cover dimension does not match current timing configuration."
         error stop 1
       end if
-      self%exchange%k_percolation%provided = .true.
-      self%exchange%f_karst_loss%provided = .true.
     end if
     if (self%exchange%config%processes%direct_runoff /= 0_i4) then
       if (allocated(self%runoff%thresh_sealed_cache)) deallocate(self%runoff%thresh_sealed_cache)
       call self%read_restart_field_2d(nc, "L1_sealedThresh", self%runoff%thresh_sealed_cache)
-      self%exchange%thresh_sealed%provided = .true.
     end if
     if (self%exchange%config%processes%baseflow /= 0_i4) then
       if (allocated(self%runoff%k_baseflow_cache)) deallocate(self%runoff%k_baseflow_cache)
@@ -2038,7 +2061,6 @@ contains
         log_fatal(*) "MPR restart: baseflow restart land-cover dimension does not match current timing configuration."
         error stop 1
       end if
-      self%exchange%k_baseflow%provided = .true.
     end if
 
     if (neutron_process > 0_i4) then
@@ -2062,10 +2084,6 @@ contains
           error stop 1
         end if
       end if
-      self%exchange%desilets_n0%provided = .true.
-      self%exchange%bulk_density%provided = .true.
-      self%exchange%lattice_water%provided = .true.
-      if (allocated(self%neutron%cosmic_l3_cache)) self%exchange%cosmic_l3%provided = .true.
     end if
 
     ! Force the first initialize/update cycle to reattach active exchange pointers from the restored caches.
@@ -2173,7 +2191,7 @@ contains
       end if
     end do
 
-    self%exchange%slope_emp%provided = .true.
+    call self%exchange%slope_emp%prepare_data("MPR", no_time)
     self%exchange%slope_emp%data => self%preproc%slope_emp
     deallocate(slope_sorted_index)
   end subroutine mpr_init_slope_emp
@@ -2217,6 +2235,37 @@ contains
     class(mpr_t), intent(inout), target :: self
     logical :: need_runoff_cache
     integer(i4) :: pet_process
+
+    ! Disconnect old slices before rebuilding caches during parameter reinitialization.
+    if (allocated(self%canopy%max_interception_cache)) nullify(self%exchange%max_interception%data)
+    if (allocated(self%snow%thresh_temp_cache)) nullify(self%exchange%thresh_temp%data)
+    if (allocated(self%snow%thresh_temp_cache)) nullify(self%exchange%degday_dry%data)
+    if (allocated(self%snow%thresh_temp_cache)) nullify(self%exchange%degday_inc%data)
+    if (allocated(self%snow%thresh_temp_cache)) nullify(self%exchange%degday_max%data)
+    if (allocated(self%pet%pet_fac_aspect_cache)) nullify(self%exchange%pet_fac_aspect%data)
+    if (allocated(self%pet%pet_coeff_hs_cache)) nullify(self%exchange%pet_coeff_hs%data)
+    if (allocated(self%pet%pet_coeff_pt_cache)) nullify(self%exchange%pet_coeff_pt%data)
+    if (allocated(self%pet%pet_fac_lai_cache)) nullify(self%exchange%pet_fac_lai%data)
+    if (allocated(self%pet%resist_aero_cache)) nullify(self%exchange%resist_aero%data)
+    if (allocated(self%pet%resist_surf_cache)) nullify(self%exchange%resist_surf%data)
+    if (allocated(self%soil%sm_exponent_cache)) nullify(self%exchange%f_roots%data)
+    if (allocated(self%soil%sm_exponent_cache)) nullify(self%exchange%sm_saturation%data)
+    if (allocated(self%soil%sm_exponent_cache)) nullify(self%exchange%sm_exponent%data)
+    if (allocated(self%soil%sm_exponent_cache)) nullify(self%exchange%sm_field_capacity%data)
+    if (allocated(self%soil%sm_exponent_cache)) nullify(self%exchange%wilting_point%data)
+    if (allocated(self%soil%thresh_jarvis_cache)) nullify(self%exchange%thresh_jarvis%data)
+    if (allocated(self%neutron%desilets_n0_cache)) nullify(self%exchange%desilets_n0%data)
+    if (allocated(self%neutron%bulk_density_cache)) nullify(self%exchange%bulk_density%data)
+    if (allocated(self%neutron%lattice_water_cache)) nullify(self%exchange%lattice_water%data)
+    if (allocated(self%neutron%cosmic_l3_cache)) nullify(self%exchange%cosmic_l3%data)
+    if (allocated(self%runoff%alpha_cache)) nullify(self%exchange%alpha%data)
+    if (allocated(self%runoff%alpha_cache)) nullify(self%exchange%k_fastflow%data)
+    if (allocated(self%runoff%alpha_cache)) nullify(self%exchange%k_slowflow%data)
+    if (allocated(self%runoff%alpha_cache)) nullify(self%exchange%thresh_unsat%data)
+    if (allocated(self%runoff%k_baseflow_cache)) nullify(self%exchange%k_baseflow%data)
+    if (allocated(self%runoff%k_percolation_cache)) nullify(self%exchange%k_percolation%data)
+    if (allocated(self%runoff%f_karst_loss_cache)) nullify(self%exchange%f_karst_loss%data)
+    if (allocated(self%runoff%thresh_sealed_cache)) nullify(self%exchange%thresh_sealed%data)
 
     pet_process = self%exchange%config%processes%pet
     if (self%exchange%config%processes%interception > 0_i4) call self%init_max_interception_cache()
@@ -2366,7 +2415,6 @@ contains
         self%land_cover%pervious_fraction_l1(:, land_cover_idx))
     end do
 
-    self%exchange%f_sealed%provided = .true.
   end subroutine mpr_init_land_cover_fraction_cache
 
   !> \brief Build cached LAI fields on level0 for all currently supported LAI periods.
@@ -2635,7 +2683,6 @@ contains
         self%canopy%max_interception_cache(:, lai_idx, land_cover_idx) = max_interception_l1
       end do
     end do
-    self%exchange%max_interception%provided = .true.
   end subroutine mpr_init_max_interception_cache
 
   !> \brief Cache snow parameter fields on level1 for all land-cover slices.
@@ -2675,10 +2722,6 @@ contains
         self%snow%degday_max_cache(:, land_cover_idx))
     end do
 
-    self%exchange%thresh_temp%provided = .true.
-    self%exchange%degday_dry%provided = .true.
-    self%exchange%degday_inc%provided = .true.
-    self%exchange%degday_max%provided = .true.
   end subroutine mpr_init_snow_cache
 
   !> \brief Cache PET parameter fields on level1 for the active PET process.
@@ -2724,7 +2767,6 @@ contains
     call mpr_bridge_pet_aspect(self%exchange%level0_land, self%exchange%aspect%data, pet_param, self%upscaler, &
       self%pet%pet_fac_aspect_cache)
 
-    self%exchange%pet_fac_aspect%provided = .true.
   end subroutine mpr_init_pet_aspect_cache
 
   !> \brief Cache Hargreaves-Samani PET coefficients on level1.
@@ -2749,8 +2791,6 @@ contains
     call mpr_bridge_pet_hargreaves(self%exchange%level0_land, self%exchange%aspect%data, pet_param, self%upscaler, &
       self%pet%pet_fac_aspect_cache, self%pet%pet_coeff_hs_cache)
 
-    self%exchange%pet_fac_aspect%provided = .true.
-    self%exchange%pet_coeff_hs%provided = .true.
   end subroutine mpr_init_pet_hargreaves_cache
 
   !> \brief Cache PET LAI correction on level1 for all LAI/land-cover slices.
@@ -2784,7 +2824,6 @@ contains
       end do
     end do
 
-    self%exchange%pet_fac_lai%provided = .true.
   end subroutine mpr_init_pet_lai_cache
 
   !> \brief Cache Priestley-Taylor PET coefficients on level1 for all LAI slices.
@@ -2807,7 +2846,6 @@ contains
     call mpr_bridge_pet_priestley_taylor(self%exchange%level0_land, self%lai%l0_cache, pet_param, self%upscaler, &
       self%pet%pet_coeff_pt_cache)
 
-    self%exchange%pet_coeff_pt%provided = .true.
   end subroutine mpr_init_pet_priestley_taylor_cache
 
   !> \brief Cache Penman-Monteith PET resistance fields on level1 for all LAI/land-cover slices.
@@ -2844,8 +2882,6 @@ contains
     end do
     deallocate(resist_surf_l1)
 
-    self%exchange%resist_aero%provided = .true.
-    self%exchange%resist_surf%provided = .true.
   end subroutine mpr_init_pet_penman_cache
 
   !> \brief Initialize the soil-horizon boundary metadata needed by downstream mHM consumers.
@@ -2987,16 +3023,6 @@ contains
       end if
     end do
 
-    self%exchange%f_roots%provided = .true.
-    self%exchange%sm_saturation%provided = .true.
-    self%exchange%sm_exponent%provided = .true.
-    self%exchange%sm_field_capacity%provided = .true.
-    self%exchange%wilting_point%provided = .true.
-    self%exchange%thresh_jarvis%provided = .true.
-    if (allocated(self%neutron%desilets_n0_cache)) self%exchange%desilets_n0%provided = .true.
-    if (allocated(self%neutron%bulk_density_cache)) self%exchange%bulk_density%provided = .true.
-    if (allocated(self%neutron%lattice_water_cache)) self%exchange%lattice_water%provided = .true.
-    if (allocated(self%neutron%cosmic_l3_cache)) self%exchange%cosmic_l3%provided = .true.
   end subroutine mpr_init_soil_cache
 
   !> \brief Cache runoff and baseflow parameter fields on level1.
@@ -3036,10 +3062,6 @@ contains
           self%runoff%thresh_unsat_cache, self%runoff%k_fastflow_cache(:, land_cover_idx), &
           self%runoff%k_slowflow_cache(:, land_cover_idx), self%runoff%alpha_cache(:, land_cover_idx))
       end do
-      self%exchange%alpha%provided = .true.
-      self%exchange%k_fastflow%provided = .true.
-      self%exchange%k_slowflow%provided = .true.
-      self%exchange%thresh_unsat%provided = .true.
     end if
 
     if (self%exchange%config%processes%percolation /= 0_i4) then
@@ -3053,15 +3075,12 @@ contains
           self%soil%ks_var_v_l0(:, land_cover_idx), self%upscaler, self%runoff%f_karst_loss_cache, &
           self%runoff%k_percolation_cache(:, land_cover_idx))
       end do
-      self%exchange%k_percolation%provided = .true.
-      self%exchange%f_karst_loss%provided = .true.
     end if
 
     if (self%exchange%config%processes%direct_runoff /= 0_i4) then
       allocate(self%runoff%thresh_sealed_cache(self%exchange%level1_land%ncells))
       call self%load_process_params("direct_runoff", direct_runoff_param)
       call mpr_bridge_sealed_threshold(direct_runoff_param, self%runoff%thresh_sealed_cache)
-      self%exchange%thresh_sealed%provided = .true.
     end if
 
     if (self%exchange%config%processes%baseflow /= 0_i4) then
@@ -3078,7 +3097,6 @@ contains
         self%runoff%k_baseflow_cache = merge(self%runoff%k_slowflow_cache, self%runoff%k_baseflow_cache, &
           self%runoff%k_baseflow_cache < self%runoff%k_slowflow_cache)
       end if
-      self%exchange%k_baseflow%provided = .true.
     end if
   end subroutine mpr_init_runoff_cache
 
@@ -3107,9 +3125,9 @@ contains
     end if
 
     if (allocated(self%soil%horizon_bounds)) then
-      self%exchange%soil_horizon_bounds => self%soil%horizon_bounds
+      self%exchange%model_horizon_bounds => self%soil%horizon_bounds
     else
-      nullify(self%exchange%soil_horizon_bounds)
+      nullify(self%exchange%model_horizon_bounds)
     end if
 
     if (.not.allocated(self%land_cover%sealed_fraction_l1) .and. &
@@ -3268,7 +3286,7 @@ contains
 
     if (.not.variable%provided) return
     variable%static = .not.temporal
-    call variable%set_stepping("MPR", merge(varying, no_time, temporal))
+    call variable%prepare_data("MPR", merge(varying, no_time, temporal))
   end subroutine set_published_temporality
 
   !> \brief Resolve active LAI period index from a model time.
@@ -3452,40 +3470,14 @@ contains
   !> \brief Finalize the MPR process container after the simulation.
   subroutine mpr_finalize(self)
     class(mpr_t), intent(inout), target :: self
-    nullify(self%exchange%soil_horizon_bounds)
-    call self%exchange%slope_emp%clear(owned=.true.)
-    call self%exchange%f_sealed%clear(owned=.true.)
-    call self%exchange%max_interception%clear(owned=.true.)
-    call self%exchange%thresh_temp%clear(owned=.true.)
-    call self%exchange%degday_dry%clear(owned=.true.)
-    call self%exchange%degday_inc%clear(owned=.true.)
-    call self%exchange%degday_max%clear(owned=.true.)
-    call self%exchange%pet_fac_aspect%clear(owned=.true.)
-    call self%exchange%pet_coeff_hs%clear(owned=.true.)
-    call self%exchange%pet_coeff_pt%clear(owned=.true.)
-    call self%exchange%pet_fac_lai%clear(owned=.true.)
-    call self%exchange%resist_aero%clear(owned=.true.)
-    call self%exchange%resist_surf%clear(owned=.true.)
-    call self%exchange%f_roots%clear(owned=.true.)
-    call self%exchange%sm_saturation%clear(owned=.true.)
-    call self%exchange%sm_exponent%clear(owned=.true.)
-    call self%exchange%sm_field_capacity%clear(owned=.true.)
-    call self%exchange%wilting_point%clear(owned=.true.)
-    call self%exchange%thresh_jarvis%clear(owned=.true.)
-    call self%exchange%desilets_n0%clear(owned=.true.)
-    call self%exchange%bulk_density%clear(owned=.true.)
-    call self%exchange%lattice_water%clear(owned=.true.)
-    call self%exchange%cosmic_l3%clear(owned=.true.)
-    call self%exchange%alpha%clear(owned=.true.)
-    call self%exchange%k_fastflow%clear(owned=.true.)
-    call self%exchange%k_slowflow%clear(owned=.true.)
-    call self%exchange%k_baseflow%clear(owned=.true.)
-    call self%exchange%k_percolation%clear(owned=.true.)
-    call self%exchange%f_karst_loss%clear(owned=.true.)
-    call self%exchange%thresh_unsat%clear(owned=.true.)
-    call self%exchange%thresh_sealed%clear(owned=.true.)
     if (self%write_restart) call self%create_restart()
     if (allocated(self%land_cover%ds%vars)) call self%land_cover%ds%close()
+    log_info(*) "Finalize MPR for domain ", n2s(self%exchange%nml_domain_id)
+  end subroutine mpr_finalize
+
+  !> \brief Release MPR-owned caches and model support after exchange publications are detached.
+  subroutine mpr_destroy(self)
+    class(mpr_t), intent(inout), target :: self
     if (allocated(self%preproc%slope_emp)) deallocate(self%preproc%slope_emp)
     if (allocated(self%preproc%geo_lut_path)) deallocate(self%preproc%geo_lut_path)
     if (allocated(self%land_cover%l0_cache)) deallocate(self%land_cover%l0_cache)
@@ -3515,6 +3507,7 @@ contains
     if (allocated(self%soil%f_roots_cache)) deallocate(self%soil%f_roots_cache)
     if (allocated(self%soil%thresh_jarvis_cache)) deallocate(self%soil%thresh_jarvis_cache)
     if (allocated(self%soil%horizon_bounds)) deallocate(self%soil%horizon_bounds)
+    if (allocated(self%soil%input_horizon_bounds)) deallocate(self%soil%input_horizon_bounds)
     if (allocated(self%soil%sm_deficit_fc_l0)) deallocate(self%soil%sm_deficit_fc_l0)
     if (allocated(self%soil%ks_var_h_l0)) deallocate(self%soil%ks_var_h_l0)
     if (allocated(self%soil%ks_var_v_l0)) deallocate(self%soil%ks_var_v_l0)
@@ -3537,6 +3530,7 @@ contains
     self%lai%dated = .false.
     self%lai%n_periods = 1_i4
     self%lai%active_idx = 0_i4
-    log_info(*) "Finalize MPR for domain ", n2s(self%exchange%nml_domain_id)
-  end subroutine mpr_finalize
+    call self%upscaler%destroy()
+    call self%tgt_level1_land%destroy()
+  end subroutine mpr_destroy
 end module mo_mpr_container

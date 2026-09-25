@@ -81,6 +81,7 @@ module mo_river_router
     procedure, public :: update => river_router_update
     procedure, public :: allocate => river_router_allocate
     procedure, public :: deallocate => river_router_deallocate
+    procedure, public :: destroy => river_router_destroy
     procedure, private :: setup_grids => river_router_setup_grids
     procedure, private :: setup_lake_maps => river_router_setup_lake_maps
     procedure, private :: setup_muskingum => river_router_setup_muskingum
@@ -237,6 +238,23 @@ contains
     if (allocated(this%nu1)) deallocate(this%nu1)
     if (allocated(this%nu2)) deallocate(this%nu2)
   end subroutine river_router_deallocate
+
+  !> \brief Release routing arrays, scaler caches, and borrowed topology references.
+  subroutine river_router_destroy(this)
+    class(river_router_t), intent(inout), target :: this
+
+    call this%deallocate()
+    call this%scaler%destroy()
+    nullify(this%river, this%input_grid, this%runoff_grid)
+    this%input_step = 0_i4
+    this%input_count = 0_i4
+    this%routing_step = 0_i4
+    this%routing_substep = 0.0_dp
+    this%iterations = 0_i4
+    this%accumulations = 0_i4
+    this%omp_level_thresh = 0_i8
+    this%last_parallel_level = 0_i8
+  end subroutine river_router_destroy
 
   !> \brief Allocate arrays in river router based on river and input grid size.
   !> \details Deallocate first to avoid memory leaks if allocate is called multiple times.

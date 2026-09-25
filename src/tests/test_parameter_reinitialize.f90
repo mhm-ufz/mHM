@@ -1,5 +1,7 @@
 program test_parameter_reinitialize
   use mo_domain, only: domain_t
+  use mo_input_container, only: input_var_dp
+  use mo_grid, only: grid_t
   use mo_kind, only: i2, i4, dp
   use mo_grid_io, only: no_time
   use nml_helper, only: NML_OK
@@ -9,6 +11,8 @@ program test_parameter_reinitialize
 
   type(domain_t), target :: pet_domain
   type(domain_t), target :: routing_domain
+  type(input_var_dp) :: source
+  type(grid_t), target :: source_grid
   real(dp), allocatable :: values(:)
   real(dp), allocatable :: derived_before(:)
   real(dp), pointer :: static_input(:)
@@ -50,6 +54,13 @@ program test_parameter_reinitialize
   pet_domain%mpr%write_restart = .false.
   nullify(static_input)
   call pet_domain%finalize()
+  call assert_true(associated(pet_domain%exchange%pet_fac_aspect%data), "finalize removed MPR data before destroy")
+  call assert_true(allocated(pet_domain%mpr%pet%pet_fac_aspect_cache), "finalize removed MPR cache before destroy")
+  call pet_domain%destroy()
+  call assert_true(.not.associated(pet_domain%exchange%pet_fac_aspect%data), "destroy kept MPR publication")
+  call assert_true(.not.allocated(pet_domain%mpr%pet%pet_fac_aspect_cache), "destroy kept MPR cache")
+  call assert_true(.not.allocated(pet_domain%input%tgt_level0%mask), "destroy kept Input grid")
+  call pet_domain%destroy()
 
   call routing_domain%create(main_file="test_nml/mrm_minimal.nml", cwd=".")
   call routing_domain%configure( &
@@ -73,6 +84,27 @@ program test_parameter_reinitialize
 
   nullify(static_fdir)
   call routing_domain%finalize()
+  call assert_true(associated(routing_domain%exchange%discharge%data), "finalize removed mRM discharge before destroy")
+  call assert_true(allocated(routing_domain%mrm%celerity), "finalize removed mRM state before destroy")
+  call routing_domain%destroy()
+  call assert_true(.not.associated(routing_domain%exchange%discharge%data), "destroy kept mRM publication")
+  call assert_true(.not.allocated(routing_domain%mrm%celerity), "destroy kept mRM state")
+  call assert_true(.not.allocated(routing_domain%mrm%router%discharge), "destroy kept router state")
+  call assert_true(.not.allocated(routing_domain%mrm%level3%mask), "destroy kept mRM grid")
+  call assert_true(.not.allocated(routing_domain%mrm%river%order%id), "destroy kept river order")
+  call assert_true(.not.associated(routing_domain%mrm%router%river), "destroy kept router river reference")
+  call assert_true(.not.associated(routing_domain%mrm%upscaler%fine_river), "destroy kept upscaler river reference")
+  call assert_true(.not.allocated(routing_domain%mrm%router%scaler%id_map), "destroy kept scaler cache")
+  call assert_true(.not.associated(routing_domain%mrm%router%scaler%source_grid), "destroy kept scaler grid")
+  call routing_domain%destroy()
+
+  allocate(source%cache(2, 2), source%mask(1, 1))
+  source%grid => source_grid
+  call source%destroy()
+  call assert_true(.not.allocated(source%cache), "Input destroy kept dynamic cache")
+  call assert_true(.not.allocated(source%mask), "Input destroy kept input mask")
+  call assert_true(.not.associated(source%grid), "Input destroy kept grid reference")
+  call source%destroy()
 
 contains
 

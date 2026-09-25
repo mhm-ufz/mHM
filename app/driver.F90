@@ -98,6 +98,8 @@ program driver
     ! configure domain components
     log_text(*) separator
     call domains(i)%configure(main_file=main_file, para_file=para_file, out_file=out_file)
+    log_text(*) separator
+    call domains(i)%prepare_restart()
     ! check for connections and dependencies
     log_text(*) separator
     call domains(i)%connect()
@@ -115,6 +117,7 @@ program driver
     end do
     log_text(*) separator
     call domains(i)%finalize()
+    call domains(i)%destroy()
   end do
 
 contains
