@@ -139,7 +139,7 @@ module mo_input_container
     type(points_t) :: lake_outlets !< configured lake outlet coordinates
     integer(i8), allocatable :: lake_ids(:) !< stable lake IDs aligned with lake_outlets
     integer(i8), allocatable :: lake_map(:) !< stable IDs aligned with packed level-0 lake cells
-    real(dp), allocatable :: lake_max_levels(:) !< maximum lake levels aligned with lake_outlets
+    real(dp), allocatable :: lake_max_level(:) !< maximum lake levels aligned with lake_outlets
     integer(i4) :: chunking !< chunking configuration (0 single read, -1 daily, -2 monthly, -3 yearly, >0 every n hours)
     integer(i4) :: time_stamp_location !< location of time-stamp variable in input datasets (0 start, 1 center, 2 end)
     logical :: morph_latlon = .false. !< whether morphology inputs are defined in spherical (lat/lon) coordinates
@@ -1097,7 +1097,7 @@ contains
     end if
     if (self%config%input%is_set("lake_definition_path", idx=id) == NML_OK) then
       call self%exchange%lake_ids%provide("Input")
-      call self%exchange%lake_max_levels%provide("Input")
+      call self%exchange%lake_max_level%provide("Input")
       call self%exchange%lake_map%provide("Input")
     end if
   end subroutine input_configure
@@ -1544,8 +1544,8 @@ contains
     vars = [var(name=name, long_name="maximum lake level", units="m", static=.true.)]
     call input%init(path, vars=vars, points=self%lake_outlets, points_init_var=name)
     call input%get_ids(self%lake_ids)
-    allocate(self%lake_max_levels(self%lake_outlets%n_points))
-    call input%read(name, self%lake_max_levels)
+    allocate(self%lake_max_level(self%lake_outlets%n_points))
+    call input%read(name, self%lake_max_level)
     call input%close()
 
     if (self%lake_outlets%n_points < 1_i8) then
@@ -1553,7 +1553,7 @@ contains
       error stop 1
     end if
     if (size(self%lake_ids, kind=i8) /= self%lake_outlets%n_points .or. &
-        size(self%lake_max_levels, kind=i8) /= self%lake_outlets%n_points) then
+        size(self%lake_max_level, kind=i8) /= self%lake_outlets%n_points) then
       log_fatal(*) "Input: lake specification arrays have inconsistent sizes."
       error stop 1
     end if
@@ -1585,15 +1585,15 @@ contains
       end if
     end do
 
-    call self%river_l0%label_lakes(outlet_nodes, self%lake_ids, self%lake_max_levels)
+    call self%river_l0%label_lakes(outlet_nodes, self%lake_ids, self%lake_max_level)
     call self%build_lake_grids()
     call repack_l0_dp_cache(self%exchange%level0, self%exchange%level0_land, dem_cache, "DEM")
     self%dem%grid => self%exchange%level0_land
     self%exchange%lake_points => self%lake_outlets
     call self%exchange%lake_ids%prepare_data("Input", no_time)
     self%exchange%lake_ids%data => self%lake_ids
-    call self%exchange%lake_max_levels%prepare_data("Input", no_time)
-    self%exchange%lake_max_levels%data => self%lake_max_levels
+    call self%exchange%lake_max_level%prepare_data("Input", no_time)
+    self%exchange%lake_max_level%data => self%lake_max_level
   end subroutine input_read_lake_specification
 
   !> \brief Construct complementary land and lake grids on the full level-0 geometry.
@@ -1701,7 +1701,7 @@ contains
       self%owns_lake_map = .false.
     end if
     if (allocated(self%lake_map)) deallocate(self%lake_map)
-    if (allocated(self%lake_max_levels)) deallocate(self%lake_max_levels)
+    if (allocated(self%lake_max_level)) deallocate(self%lake_max_level)
     if (self%owns_river_l0) then
       call self%river_l0%destroy()
       self%owns_river_l0 = .false.

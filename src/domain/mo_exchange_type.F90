@@ -296,7 +296,7 @@ module mo_exchange_type
     ! variables
     ! lake-point metadata
     type(var_i8) :: lake_ids             !< stable lake IDs on lake points
-    type(var_dp) :: lake_max_levels      !< maximum lake levels [m] on lake points
+    type(var_dp) :: lake_max_level      !< maximum lake level [m] on lake points
     type(var_i8) :: lake_map             !< stable lake ID on packed level-0 lake cells
     type(var_dp) :: lake_area            !< lake surface area [m2] on lake points
     type(var_dp) :: lake_inflow          !< completed hourly lake inflow [m3 s-1] on lake points
@@ -546,7 +546,7 @@ contains
     ! variables
     ! lake-point metadata
     self%lake_ids        = var_i8(static=.true., points=points_lake, name="lake_ids",        units="1", long_name="stable lake ID")
-    self%lake_max_levels = var_dp(static=.true., points=points_lake, name="lake_max_levels", units="m", long_name="maximum lake level")
+    self%lake_max_level = var_dp(static=.true., points=points_lake, name="lake_max_level", units="m", long_name="maximum lake level")
     self%lake_map        = var_i8(static=.true., grid=l0_lake, name="lake_map", units="1", long_name="stable lake ID")
     self%lake_area       = var_dp(static=.true., points=points_lake, name="lake_area", units="m2", long_name="lake surface area")
     self%lake_inflow     = var_dp(points=points_lake, name="lake_inflow",  units="m3 s-1", long_name="completed hourly lake inflow")
@@ -929,7 +929,7 @@ contains
     class(exchange_t), intent(inout), target :: self
 
     call self%lake_ids%destroy()
-    call self%lake_max_levels%destroy()
+    call self%lake_max_level%destroy()
     call self%lake_map%destroy()
     call self%lake_area%destroy()
     call self%lake_inflow%destroy()
