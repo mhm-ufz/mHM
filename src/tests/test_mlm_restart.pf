@@ -286,8 +286,8 @@ contains
     call exchange%lake_pet%prepare_data("test", 1_i4)
     exchange%lake_pet%data => pet
     mlm%exchange => exchange
-    allocate(mlm%outflow(2), mlm%lake_area(2))
-    mlm%lake_area = [360000.0_dp, 360000.0_dp]
+    allocate(mlm%outflow(2), mlm%lake_max_surface_area_dem_derived(2))
+    mlm%lake_max_surface_area_dem_derived = [360000.0_dp, 360000.0_dp]
     call mlm%update()
     @assertEqual([2.0_dp, 0.0_dp], mlm%outflow, tolerance=1.0e-12_dp, message="lake balance converts millimetres to discharge and clamps negative outflow")
     call exchange%destroy()
@@ -331,7 +331,7 @@ contains
     call writer_exchange%lake_pet%provide("test")
     call writer_exchange%lake_pet%prepare_data("test", 1_i4)
     writer_exchange%lake_pet%data => writer_pet
-    call writer_exchange%lake_area%provide("mLM")
+    call writer_exchange%lake_max_surface_area_dem_derived%provide("mLM")
     call writer_exchange%lake_outflow%provide("mLM")
     writer%exchange => writer_exchange
     call writer%connect()
@@ -357,12 +357,12 @@ contains
     call reader_exchange%lake_ids%provide("mLM")
     call reader_exchange%lake_map%provide("mLM")
     call reader_exchange%lake_max_level%provide("mLM")
-    call reader_exchange%lake_area%provide("mLM")
+    call reader_exchange%lake_max_surface_area_dem_derived%provide("mLM")
     call reader_exchange%lake_outflow%provide("mLM")
     call reader%prepare_restart()
     call reader%connect()
     @assertEqual([10_i8, 10_i8], reader_exchange%lake_map%data, message="restart-only mLM restores the packed lake map")
-    @assertEqual([2.0_dp], reader_exchange%lake_area%data, tolerance=1.0e-12_dp, message="restart-only mLM restores lake area from its footprint")
+    @assertEqual([2.0_dp], reader_exchange%lake_max_surface_area_dem_derived%data, tolerance=1.0e-12_dp, message="restart-only mLM restores lake area from its footprint")
     @assertEqual(2_i8, reader_exchange%level0_lake%ncells, message="restart-only mLM restores the lake grid")
     call reader%finalize()
 

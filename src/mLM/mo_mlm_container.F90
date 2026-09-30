@@ -23,7 +23,7 @@ module mo_mlm_container
   use mo_grid, only: grid_t
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_lake_balance, only: lake_balance_outflow
-  use mo_lake_topology, only: lake_derive_area, lake_read_topology, lake_write_topology
+  use mo_lake_topology, only: lake_derive_max_surface_area_dem, lake_read_topology, lake_write_topology
   use mo_grid_io, only: var, daily, monthly, yearly, no_time, time_units_delta
   use mo_netcdf_utils, only: add_var
   use mo_points, only: points_t, cartesian, spherical
@@ -47,7 +47,7 @@ module mo_mlm_container
     type(exchange_t), pointer :: exchange => null() !< owning domain exchange
     integer(i8), allocatable :: lake_ids(:) !< stable IDs in point-set order
     integer(i8), allocatable :: lake_map(:) !< stable IDs on packed level-0 lake cells
-    real(dp), allocatable :: lake_area(:) !< lake surface areas [m2]
+    real(dp), allocatable :: lake_max_surface_area_dem_derived(:) !< maximum lake surface area from DEM footprint [m2]
     type(grid_t) :: static_lake_grid !< lake footprint geometry retained for restart
     type(points_t) :: static_lake_points !< static point metadata retained for restart output
     real(dp), allocatable :: static_lake_max_level(:) !< maximum levels retained for restart output
@@ -198,7 +198,7 @@ contains
       call self%exchange%lake_max_level%provide("mLM")
       if (lake_case == -2_i4) call self%exchange%lake_map%provide("mLM")
     end if
-    if (lake_case == -2_i4) call self%exchange%lake_area%provide("mLM")
+    if (lake_case == -2_i4) call self%exchange%lake_max_surface_area_dem_derived%provide("mLM")
     call self%exchange%lake_outflow%provide("mLM")
   end subroutine mlm_configure
 
@@ -265,9 +265,9 @@ contains
         log_fatal(*) "mLM process -2 requires a level-0 lake grid and lake map."
         error stop 1
       end if
-      call lake_derive_area(self%static_lake_grid, self%lake_map, self%lake_ids, self%lake_area)
-      call self%exchange%lake_area%prepare_data("mLM", no_time)
-      self%exchange%lake_area%data => self%lake_area
+      call lake_derive_max_surface_area_dem(self%static_lake_grid, self%lake_map, self%lake_ids, self%lake_max_surface_area_dem_derived)
+      call self%exchange%lake_max_surface_area_dem_derived%prepare_data("mLM", no_time)
+      self%exchange%lake_max_surface_area_dem_derived%data => self%lake_max_surface_area_dem_derived
       call self%exchange%lake_pre%check_provided("mLM")
       call self%exchange%lake_pet%check_provided("mLM")
     end if
@@ -289,7 +289,7 @@ contains
       error stop 1
     end if
     if (self%exchange%config%processes%lake == -2_i4) then
-      call self%exchange%check_data(self%exchange%lake_area, "mLM")
+      call self%exchange%check_data(self%exchange%lake_max_surface_area_dem_derived, "mLM")
     end if
     self%outflow(:) = 0.0_dp
     if (self%read_restart) call self%read_restart_state()
@@ -305,7 +305,7 @@ contains
         self%outflow = self%exchange%lake_inflow%data
       case(-2_i4)
       ! if (self%exchange%config%processes%lake == -2_i4) then
-        self%outflow = lake_balance_outflow(self%outflow, self%lake_area, self%exchange%lake_pre%data, &
+        self%outflow = lake_balance_outflow(self%outflow, self%lake_max_surface_area_dem_derived, self%exchange%lake_pre%data, &
           self%exchange%lake_pet%data, 3600.0_dp)
       case(1_i4)
         ! minimal lake with water balance
@@ -339,7 +339,7 @@ contains
     end if
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
     if (allocated(self%lake_map)) deallocate(self%lake_map)
-    if (allocated(self%lake_area)) deallocate(self%lake_area)
+    if (allocated(self%lake_max_surface_area_dem_derived)) deallocate(self%lake_max_surface_area_dem_derived)
     call self%static_lake_points%destroy()
     if (allocated(self%static_lake_max_level)) deallocate(self%static_lake_max_level)
     call self%restart_lake_points%destroy()
