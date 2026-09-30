@@ -303,6 +303,10 @@ module mo_exchange_type
     type(var_dp) :: lake_max_surface_area_dem_derived  !< maximum lake surface area from DEM footprint (L0 inundation) [m2] on lake points
     type(var_dp) :: lake_inflow          !< completed hourly lake inflow [m3 s-1] on lake points
     type(var_dp) :: lake_outflow         !< current hourly lake outflow [m3 s-1] on lake points
+    type(var_dp) :: lake_level           !< current lake surface level [m] on lake points
+    type(var_dp) :: lake_surface_area    !< current lake surface area [m2] on lake points
+    type(var_dp) :: lake_volume          !< current lake storage volume [m3] on lake points
+    type(var_dp) :: lake_gw_storage      !< current lake groundwater storage [m3] on lake points
     type(var_dp) :: lake_pre             !< current precipitation [mm] on lake points
     type(var_dp) :: lake_temp            !< current air temperature [degC] on lake points
     type(var_dp) :: lake_pet             !< current PET [mm] on lake points
@@ -555,6 +559,10 @@ contains
     self%lake_max_surface_area_dem_derived       = var_dp(static=.true., points=points_lake, name="lake_max_surface_area_dem_derived", units="m2", long_name="maximum lake surface area from DEM footprint")
     self%lake_inflow     = var_dp(points=points_lake, name="lake_inflow",  units="m3 s-1", long_name="completed hourly lake inflow")
     self%lake_outflow    = var_dp(points=points_lake, name="lake_outflow", units="m3 s-1", long_name="current hourly lake outflow")
+    self%lake_level      = var_dp(points=points_lake, name="lake_level", units="m", long_name="current lake surface level")
+    self%lake_surface_area = var_dp(points=points_lake, name="lake_surface_area", units="m2", long_name="current lake surface area")
+    self%lake_volume     = var_dp(points=points_lake, name="lake_volume", units="m3", long_name="current lake storage volume")
+    self%lake_gw_storage = var_dp(points=points_lake, name="lake_gw_storage", units="m3", long_name="current lake groundwater storage")
     self%lake_pre        = var_dp(points=points_lake, name="lake_pre", units="mm", long_name="lake precipitation")
     self%lake_temp       = var_dp(points=points_lake, name="lake_temp", units="degC", long_name="lake air temperature")
     self%lake_pet        = var_dp(points=points_lake, name="lake_pet", units="mm", long_name="lake potential evapotranspiration")
@@ -940,6 +948,10 @@ contains
     call self%lake_max_surface_area_dem_derived%destroy()
     call self%lake_inflow%destroy()
     call self%lake_outflow%destroy()
+    call self%lake_level%destroy()
+    call self%lake_surface_area%destroy()
+    call self%lake_volume%destroy()
+    call self%lake_gw_storage%destroy()
     call self%lake_pre%destroy()
     call self%lake_temp%destroy()
     call self%lake_pet%destroy()
