@@ -300,11 +300,16 @@ contains
   !> \brief Publish the preceding completed hourly inflow as current outflow.
   subroutine mlm_update(self)
     class(mlm_t), target, intent(inout) :: self
-    self%outflow(:) = self%exchange%lake_inflow%data
-    if (self%exchange%config%processes%lake == -2_i4) then
-      self%outflow(:) = lake_balance_outflow(self%outflow, self%lake_area, self%exchange%lake_pre%data, &
-        self%exchange%lake_pet%data, 3600.0_dp)
-    end if
+    select case (self%exchange%config%processes%lake)
+      case(-1_i4)
+        self%outflow = self%exchange%lake_inflow%data
+      case(-2_i4)
+      ! if (self%exchange%config%processes%lake == -2_i4) then
+        self%outflow = lake_balance_outflow(self%outflow, self%lake_area, self%exchange%lake_pre%data, &
+          self%exchange%lake_pet%data, 3600.0_dp)
+      case(1_i4)
+        ! minimal lake with water balance
+    end select
     call self%update_output()
   end subroutine mlm_update
 
