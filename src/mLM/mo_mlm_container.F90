@@ -50,10 +50,10 @@ module mo_mlm_container
     real(dp), allocatable :: lake_max_surface_area_dem_derived(:) !< maximum lake surface area from DEM footprint [m2]
     type(grid_t) :: static_lake_grid !< lake footprint geometry retained for restart
     type(points_t) :: static_lake_points !< static point metadata retained for restart output
-    real(dp), allocatable :: static_lake_max_level(:) !< maximum levels retained for restart output
+    real(dp), allocatable :: static_lake_max_level_reported(:) !< maximum levels retained for restart output
     type(points_t) :: restart_lake_points !< point set restored from restart metadata
     integer(i8), allocatable :: restart_lake_ids(:) !< stable IDs in restart-file order
-    real(dp), allocatable :: restart_lake_max_level(:) !< maximum levels restored from restart metadata
+    real(dp), allocatable :: restart_lake_max_level_reported(:) !< maximum levels restored from restart metadata
     real(dp), allocatable :: outflow(:) !< current lake outflow [m3 s-1]
     logical :: active = .false. !< whether process -1 is selected
     logical :: read_restart = .false. !< read mLM restart
@@ -195,7 +195,7 @@ contains
     end if
     if (self%read_restart .and. .not.self%exchange%lake_ids%provided) then
       call self%exchange%lake_ids%provide("mLM")
-      call self%exchange%lake_max_level%provide("mLM")
+      call self%exchange%lake_max_level_reported%provide("mLM")
       if (lake_case == -2_i4) call self%exchange%lake_map%provide("mLM")
     end if
     if (lake_case == -2_i4) call self%exchange%lake_max_surface_area_dem_derived%provide("mLM")
@@ -212,7 +212,7 @@ contains
     lake_case = self%exchange%config%processes%lake
     has_points = associated(self%exchange%lake_points)
     has_ids = self%exchange%lake_ids%provided .and. self%exchange%lake_ids%has_data()
-    has_levels = self%exchange%lake_max_level%provided .and. self%exchange%lake_max_level%has_data()
+    has_levels = self%exchange%lake_max_level_reported%provided .and. self%exchange%lake_max_level_reported%has_data()
     has_metadata = has_points .and. has_ids .and. has_levels
     if ((has_points .neqv. has_ids) .or. (has_points .neqv. has_levels)) then
       log_fatal(*) "mLM: lake points, stable IDs, and maximum levels must be published together."
@@ -222,12 +222,12 @@ contains
     if (has_metadata) then
       n_lakes = self%exchange%lake_points%n_points
       call self%exchange%check_data(self%exchange%lake_ids, "mLM")
-      call self%exchange%check_data(self%exchange%lake_max_level, "mLM")
+      call self%exchange%check_data(self%exchange%lake_max_level_reported, "mLM")
       if (self%read_restart) call self%validate_restart_metadata()
       self%lake_ids = self%exchange%lake_ids%data
       call self%static_lake_points%init( &
         self%exchange%lake_points%x, self%exchange%lake_points%y, coordsys=self%exchange%lake_points%coordsys)
-      self%static_lake_max_level = self%exchange%lake_max_level%data
+      self%static_lake_max_level_reported = self%exchange%lake_max_level_reported%data
     else
       if (.not.self%read_restart) then
         log_fatal(*) "mLM: lake process requires lake points."
@@ -237,12 +237,12 @@ contains
       self%lake_ids = self%restart_lake_ids
       call self%static_lake_points%init( &
         self%restart_lake_points%x, self%restart_lake_points%y, coordsys=self%restart_lake_points%coordsys)
-      self%static_lake_max_level = self%restart_lake_max_level
+      self%static_lake_max_level_reported = self%restart_lake_max_level_reported
       self%exchange%lake_points => self%static_lake_points
       call self%exchange%lake_ids%prepare_data("mLM", no_time)
       self%exchange%lake_ids%data => self%lake_ids
-      call self%exchange%lake_max_level%prepare_data("mLM", no_time)
-      self%exchange%lake_max_level%data => self%static_lake_max_level
+      call self%exchange%lake_max_level_reported%prepare_data("mLM", no_time)
+      self%exchange%lake_max_level_reported%data => self%static_lake_max_level_reported
       self%owns_restart_lake_points = .true.
       self%owns_restart_lake_metadata = .true.
     end if
@@ -341,10 +341,10 @@ contains
     if (allocated(self%lake_map)) deallocate(self%lake_map)
     if (allocated(self%lake_max_surface_area_dem_derived)) deallocate(self%lake_max_surface_area_dem_derived)
     call self%static_lake_points%destroy()
-    if (allocated(self%static_lake_max_level)) deallocate(self%static_lake_max_level)
+    if (allocated(self%static_lake_max_level_reported)) deallocate(self%static_lake_max_level_reported)
     call self%restart_lake_points%destroy()
     if (allocated(self%restart_lake_ids)) deallocate(self%restart_lake_ids)
-    if (allocated(self%restart_lake_max_level)) deallocate(self%restart_lake_max_level)
+    if (allocated(self%restart_lake_max_level_reported)) deallocate(self%restart_lake_max_level_reported)
     if (allocated(self%outflow)) deallocate(self%outflow)
     call self%static_lake_grid%destroy()
   end subroutine mlm_destroy
@@ -448,7 +448,7 @@ contains
     type(NcVariable) :: var
 
     if (self%static_lake_points%n_points /= size(self%lake_ids, kind=i8) .or. &
-        .not.allocated(self%static_lake_max_level)) then
+        .not.allocated(self%static_lake_max_level_reported)) then
       log_fatal(*) "mLM: cannot write restart without static lake metadata."
       error stop 1
     end if
@@ -460,9 +460,9 @@ contains
     call var%setData(self%static_lake_points%x)
     var = nc%setVariable("lake_outlet_y", "f64", [lake_dim])
     call var%setData(self%static_lake_points%y)
-    var = nc%setVariable("lake_max_level", "f64", [lake_dim])
+    var = nc%setVariable("lake_max_level_reported", "f64", [lake_dim])
     call var%setAttribute("units", "m")
-    call var%setData(self%static_lake_max_level)
+    call var%setData(self%static_lake_max_level_reported)
     var = nc%setVariable("lake_coordsys", "i32", dims(:0))
     call var%setData(self%static_lake_points%coordsys)
     var = nc%setVariable("lake_outflow", "f64", [lake_dim])
@@ -511,7 +511,7 @@ contains
     end do
 
     if (.not.nc%hasVariable("lake_outlet_x") .or. .not.nc%hasVariable("lake_outlet_y") .or. &
-        .not.nc%hasVariable("lake_max_level") .or. .not.nc%hasVariable("lake_coordsys")) then
+        .not.nc%hasVariable("lake_max_level_reported") .or. .not.nc%hasVariable("lake_coordsys")) then
       log_fatal(*) "mLM restart is missing required static lake metadata: ", self%restart_input_path
       error stop 1
     end if
@@ -519,13 +519,13 @@ contains
     call var%getData(outlet_x)
     var = nc%getVariable("lake_outlet_y")
     call var%getData(outlet_y)
-    var = nc%getVariable("lake_max_level")
-    call var%getData(self%restart_lake_max_level)
+    var = nc%getVariable("lake_max_level_reported")
+    call var%getData(self%restart_lake_max_level_reported)
     var = nc%getVariable("lake_coordsys")
     call var%getData(coordsys_data)
     if (size(outlet_x, kind=i8) /= size(self%restart_lake_ids, kind=i8) .or. &
         size(outlet_y, kind=i8) /= size(self%restart_lake_ids, kind=i8) .or. &
-        size(self%restart_lake_max_level, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
+        size(self%restart_lake_max_level_reported, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
       log_fatal(*) "mLM restart static lake metadata does not align with stable lake IDs."
       error stop 1
     end if
@@ -534,7 +534,7 @@ contains
       error stop 1
     end if
     if (.not.all(ieee_is_finite(outlet_x)) .or. .not.all(ieee_is_finite(outlet_y)) .or. &
-        .not.all(ieee_is_finite(self%restart_lake_max_level))) then
+        .not.all(ieee_is_finite(self%restart_lake_max_level_reported))) then
       log_fatal(*) "mLM restart static lake metadata must be finite."
       error stop 1
     end if
@@ -597,7 +597,7 @@ contains
       end if
       if (.not.is_close(self%restart_lake_points%x(j), self%exchange%lake_points%x(i)) .or. &
           .not.is_close(self%restart_lake_points%y(j), self%exchange%lake_points%y(i)) .or. &
-          .not.is_close(self%restart_lake_max_level(j), self%exchange%lake_max_level%data(i))) then
+          .not.is_close(self%restart_lake_max_level_reported(j), self%exchange%lake_max_level_reported%data(i))) then
         log_fatal(*) "mLM restart and Input lake metadata differ for stable lake ID."
         error stop 1
       end if
