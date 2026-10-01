@@ -222,13 +222,14 @@ Lake-component process case.
 - 0: internal mLM component disabled; a coupler may provide lake outflow.
 - -1: one-step delayed pass-through of mRM lake inflow.
 - -2: delayed lake inflow adjusted by precipitation and PET over the lake footprint.
+- 1: minimal natural lake with iterative water balance and crest spill.
 
 Summary:
 - Type: `integer(i4)`
 - Declared required: no
 - Input required: no
 - Default: `0`
-- Allowed values: `-2`, `-1`, `0`
+- Allowed values: `-2`, `-1`, `0`, `1`
 - Examples: `0`
 
 ## Example
