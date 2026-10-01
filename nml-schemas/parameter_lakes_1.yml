@@ -1,10 +1,21 @@
 title: Lakes - Case 1
-description: Parameters for the mHM lake module (mLM) spill, storage, and regulation.
+description: |-
+  Parameters for the mHM lake module (mLM) controlling spill over the dam crest and the
+  seepage and baseflow from the lake groundwater store. Each parameter is given per lake
+  per domain as the four components value, optimize-flag, min, max (min/max are the
+  calibration bounds). Reservoir release-regulation parameters are not included at this
+  stage (minimal natural-lake scope).
 x-fortran-namelist: lakes_1
 type: object
 properties:
   spill_coefficient_of_discharge:
     title: Spill coefficient of discharge
+    description: |-
+      Coefficient of discharge C_d of the spillway in the generalized spill equation
+      Q_spill = C_d * L_s * deltaH^spill_exponent, where deltaH is the head of the lake
+      level above the dam crest level (DCL) and L_s is the effective spillway length.
+      Spill is produced only when the lake level rises above the crest. Based on the ogee
+      free-overflow weir form (USBR, 1998). Dimensionless.
     type: array
     x-fortran-shape: [n_domains, n_lakes]
     items:
@@ -15,6 +26,10 @@ properties:
         optimize: {examples: [true]}
   spill_exponent:
     title: Spill exponent
+    description: |-
+      Exponent on the head term deltaH in the generalized spill equation
+      Q_spill = C_d * L_s * deltaH^spill_exponent. The textbook ogee free-overflow value
+      is 3/2; it is exposed as a calibration parameter here. Dimensionless.
     type: array
     x-fortran-shape: [n_domains, n_lakes]
     items:
@@ -25,6 +40,10 @@ properties:
         optimize: {examples: [true]}
   longterm_baseflow:
     title: Long-term baseflow
+    description: |-
+      Long-term baseflow feed [m3 s-1] representing the sustained groundwater contribution
+      to lake outflow. Used as the baseline baseflow term alongside the recession-driven
+      baseflow from the lake groundwater storage.
     type: array
     x-fortran-shape: [n_domains, n_lakes]
     items:
@@ -35,6 +54,12 @@ properties:
         optimize: {examples: [true]}
   exponent_for_percolation:
     title: Exponent for percolation
+    description: |-
+      Exponential constant chi controlling the fraction kfrac of the head above the lake
+      bed that is available for percolation (seepage): kfrac = (h - bed_level) / exp(chi).
+      Percolation from each lake-bed slice is p = sum(kp * kfrac * H * As/A). A larger head
+      makes more water available to percolate; a larger chi reduces that fraction.
+      Dimensionless.
     type: array
     x-fortran-shape: [n_domains, n_lakes]
     items:
@@ -43,63 +68,8 @@ properties:
       properties:
         value: {examples: [11.0]}
         optimize: {examples: [true]}
-  regulation_hanasaki_alpha:
-    title: Hanasaki regulation alpha
-    type: array
-    x-fortran-shape: [n_domains, n_lakes]
-    items:
-      $ref: parameter.yml#/$defs/parameter
-      default: {min: 0.6, max: 0.95}
-      properties:
-        value: {examples: [0.85]}
-        optimize: {examples: [true]}
-  regulation_rho_beta:
-    title: Regulation rho (beta)
-    type: array
-    x-fortran-shape: [n_domains, n_lakes]
-    items:
-      $ref: parameter.yml#/$defs/parameter
-      default: {min: 0.5, max: 5.0}
-      properties:
-        value: {examples: [2.0]}
-        optimize: {examples: [true]}
-  regulation_cstar:
-    title: Regulation c-star
-    type: array
-    x-fortran-shape: [n_domains, n_lakes]
-    items:
-      $ref: parameter.yml#/$defs/parameter
-      default: {min: 0.001, max: 20.0}
-      properties:
-        value: {examples: [0.5]}
-        optimize: {examples: [true]}
-  regulation_hedging_omega:
-    title: Regulation hedging omega
-    type: array
-    x-fortran-shape: [n_domains, n_lakes]
-    items:
-      $ref: parameter.yml#/$defs/parameter
-      default: {min: 0.0, max: 1.0}
-      properties:
-        value: {examples: [0.5]}
-        optimize: {examples: [true]}
-  regulation_kappa_lambda:
-    title: Regulation kappa (lambda)
-    type: array
-    x-fortran-shape: [n_domains, n_lakes]
-    items:
-      $ref: parameter.yml#/$defs/parameter
-      default: {min: 0.1, max: 1.0}
-      properties:
-        value: {examples: [0.5]}
-        optimize: {examples: [true]}
 required:
   - spill_coefficient_of_discharge
   - spill_exponent
   - longterm_baseflow
   - exponent_for_percolation
-  - regulation_hanasaki_alpha
-  - regulation_rho_beta
-  - regulation_cstar
-  - regulation_hedging_omega
-  - regulation_kappa_lambda
