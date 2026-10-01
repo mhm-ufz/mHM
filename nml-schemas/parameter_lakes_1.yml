@@ -68,8 +68,46 @@ properties:
       properties:
         value: {examples: [11.0]}
         optimize: {examples: [true]}
+  percolation_coefficient:
+    title: Percolation coefficient
+    description: |-
+      Percolation (seepage) time constant kp for the lake bed [d]. Each hydrological time
+      step the per-step percolation coefficient is formed as (tsHydroSecs / 86400) / kp
+      (the SI form of the v5 c2TSTu / kPerco conversion), so a larger value gives slower
+      seepage. In mLM v5 this coefficient was regionalised from the catchment percolation
+      field by MPR over the lake footprint; in the minimal v6 lake it is exposed as a lake
+      parameter (MPR regionalisation of the lake groundwater coefficients is deferred).
+    type: array
+    x-fortran-shape: [n_domains, n_lakes]
+    items:
+      $ref: parameter.yml#/$defs/parameter
+      default: {min: 1.0, max: 100.0}
+      properties:
+        value: {examples: [35.0]}
+        optimize: {examples: [true]}
+  baseflow_recession_coefficient:
+    title: Baseflow recession coefficient
+    description: |-
+      Lake groundwater-storage recession time constant kbf [d]. Each hydrological time step
+      the per-step recession coefficient is formed as (tsHydroSecs / 86400) / kbf (the SI
+      form of the v5 c2TSTu / kBaseFlow conversion); the baseflow is that coefficient times
+      the lake groundwater storage, so a larger value gives a slower, more sustained
+      baseflow. In mLM v5 this coefficient was regionalised from the catchment baseflow
+      recession field by MPR over the lake footprint; in the minimal v6 lake it is exposed
+      as a lake parameter (MPR regionalisation of the lake groundwater coefficients is
+      deferred).
+    type: array
+    x-fortran-shape: [n_domains, n_lakes]
+    items:
+      $ref: parameter.yml#/$defs/parameter
+      default: {min: 1.0, max: 1000.0}
+      properties:
+        value: {examples: [100.0]}
+        optimize: {examples: [true]}
 required:
   - spill_coefficient_of_discharge
   - spill_exponent
   - longterm_baseflow
   - exponent_for_percolation
+  - percolation_coefficient
+  - baseflow_recession_coefficient

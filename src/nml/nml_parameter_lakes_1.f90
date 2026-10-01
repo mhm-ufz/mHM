@@ -58,6 +58,8 @@ module nml_lakes_1
     type(parameter_t), allocatable, dimension(:, :) :: spill_exponent !< Spill exponent
     type(parameter_t), allocatable, dimension(:, :) :: longterm_baseflow !< Long-term baseflow
     type(parameter_t), allocatable, dimension(:, :) :: exponent_for_percolation !< Exponent for percolation
+    type(parameter_t), allocatable, dimension(:, :) :: percolation_coefficient !< Percolation coefficient
+    type(parameter_t), allocatable, dimension(:, :) :: baseflow_recession_coefficient !< Baseflow recession coefficient
   contains
     procedure :: init => nml_lakes_1_init
     procedure :: init_type => nml_lakes_1_init_type
@@ -85,6 +87,8 @@ contains
       spill_exponent=this%spill_exponent, &
       longterm_baseflow=this%longterm_baseflow, &
       exponent_for_percolation=this%exponent_for_percolation, &
+      percolation_coefficient=this%percolation_coefficient, &
+      baseflow_recession_coefficient=this%baseflow_recession_coefficient, &
       errmsg=errmsg)
     if (status /= NML_OK) return
   end function nml_lakes_1_init
@@ -95,12 +99,16 @@ contains
     spill_exponent, &
     longterm_baseflow, &
     exponent_for_percolation, &
+    percolation_coefficient, &
+    baseflow_recession_coefficient, &
     errmsg) result(status)
     class(nml_lakes_1_t), intent(in) :: this !< parent namelist instance
     type(parameter_t), dimension(:, :), allocatable, intent(inout), optional :: spill_coefficient_of_discharge !< Spill coefficient of discharge
     type(parameter_t), dimension(:, :), allocatable, intent(inout), optional :: spill_exponent !< Spill exponent
     type(parameter_t), dimension(:, :), allocatable, intent(inout), optional :: longterm_baseflow !< Long-term baseflow
     type(parameter_t), dimension(:, :), allocatable, intent(inout), optional :: exponent_for_percolation !< Exponent for percolation
+    type(parameter_t), dimension(:, :), allocatable, intent(inout), optional :: percolation_coefficient !< Percolation coefficient
+    type(parameter_t), dimension(:, :), allocatable, intent(inout), optional :: baseflow_recession_coefficient !< Baseflow recession coefficient
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
@@ -144,6 +152,26 @@ contains
       exponent_for_percolation%max = ieee_value(exponent_for_percolation%max, ieee_quiet_nan) ! sentinel for derived component max
       exponent_for_percolation%min = 8.0_dp
       exponent_for_percolation%max = 15.0_dp
+    end if
+    if (present(percolation_coefficient)) then
+      if (allocated(percolation_coefficient)) deallocate(percolation_coefficient)
+      allocate(percolation_coefficient(this%n_domains, this%n_lakes))
+      percolation_coefficient%value = ieee_value(percolation_coefficient%value, ieee_quiet_nan) ! sentinel for derived component value
+      percolation_coefficient%optimize = .false.
+      percolation_coefficient%min = ieee_value(percolation_coefficient%min, ieee_quiet_nan) ! sentinel for derived component min
+      percolation_coefficient%max = ieee_value(percolation_coefficient%max, ieee_quiet_nan) ! sentinel for derived component max
+      percolation_coefficient%min = 1.0_dp
+      percolation_coefficient%max = 100.0_dp
+    end if
+    if (present(baseflow_recession_coefficient)) then
+      if (allocated(baseflow_recession_coefficient)) deallocate(baseflow_recession_coefficient)
+      allocate(baseflow_recession_coefficient(this%n_domains, this%n_lakes))
+      baseflow_recession_coefficient%value = ieee_value(baseflow_recession_coefficient%value, ieee_quiet_nan) ! sentinel for derived component value
+      baseflow_recession_coefficient%optimize = .false.
+      baseflow_recession_coefficient%min = ieee_value(baseflow_recession_coefficient%min, ieee_quiet_nan) ! sentinel for derived component min
+      baseflow_recession_coefficient%max = ieee_value(baseflow_recession_coefficient%max, ieee_quiet_nan) ! sentinel for derived component max
+      baseflow_recession_coefficient%min = 1.0_dp
+      baseflow_recession_coefficient%max = 1000.0_dp
     end if
   end function nml_lakes_1_init_type
 
@@ -189,6 +217,8 @@ contains
     if (allocated(this%spill_exponent)) deallocate(this%spill_exponent)
     if (allocated(this%longterm_baseflow)) deallocate(this%longterm_baseflow)
     if (allocated(this%exponent_for_percolation)) deallocate(this%exponent_for_percolation)
+    if (allocated(this%percolation_coefficient)) deallocate(this%percolation_coefficient)
+    if (allocated(this%baseflow_recession_coefficient)) deallocate(this%baseflow_recession_coefficient)
     this%is_configured = .false.
   end function nml_lakes_1_set_dims
 
@@ -203,6 +233,8 @@ contains
     type(parameter_t), allocatable, dimension(:, :) :: spill_exponent
     type(parameter_t), allocatable, dimension(:, :) :: longterm_baseflow
     type(parameter_t), allocatable, dimension(:, :) :: exponent_for_percolation
+    type(parameter_t), allocatable, dimension(:, :) :: percolation_coefficient
+    type(parameter_t), allocatable, dimension(:, :) :: baseflow_recession_coefficient
     ! locals
     type(nml_file_t) :: nml
     integer :: iostat
@@ -213,7 +245,9 @@ contains
       spill_coefficient_of_discharge, &
       spill_exponent, &
       longterm_baseflow, &
-      exponent_for_percolation
+      exponent_for_percolation, &
+      percolation_coefficient, &
+      baseflow_recession_coefficient
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -226,10 +260,16 @@ contains
     allocate(longterm_baseflow(this%n_domains, this%n_lakes))
     if (allocated(exponent_for_percolation)) deallocate(exponent_for_percolation)
     allocate(exponent_for_percolation(this%n_domains, this%n_lakes))
+    if (allocated(percolation_coefficient)) deallocate(percolation_coefficient)
+    allocate(percolation_coefficient(this%n_domains, this%n_lakes))
+    if (allocated(baseflow_recession_coefficient)) deallocate(baseflow_recession_coefficient)
+    allocate(baseflow_recession_coefficient(this%n_domains, this%n_lakes))
     spill_coefficient_of_discharge = this%spill_coefficient_of_discharge
     spill_exponent = this%spill_exponent
     longterm_baseflow = this%longterm_baseflow
     exponent_for_percolation = this%exponent_for_percolation
+    percolation_coefficient = this%percolation_coefficient
+    baseflow_recession_coefficient = this%baseflow_recession_coefficient
 
     status = nml%open(file, errmsg=errmsg)
     if (status /= NML_OK) return
@@ -259,6 +299,8 @@ contains
     this%spill_exponent = spill_exponent
     this%longterm_baseflow = longterm_baseflow
     this%exponent_for_percolation = exponent_for_percolation
+    this%percolation_coefficient = percolation_coefficient
+    this%baseflow_recession_coefficient = baseflow_recession_coefficient
 
     ! mark as configured
     this%is_configured = .true.
@@ -271,6 +313,8 @@ contains
     spill_exponent, &
     longterm_baseflow, &
     exponent_for_percolation, &
+    percolation_coefficient, &
+    baseflow_recession_coefficient, &
     errmsg) result(status)
 
     class(nml_lakes_1_t), intent(inout) :: this !< namelist instance
@@ -279,6 +323,8 @@ contains
     type(parameter_t), dimension(:, :), intent(in) :: spill_exponent !< Spill exponent
     type(parameter_t), dimension(:, :), intent(in) :: longterm_baseflow !< Long-term baseflow
     type(parameter_t), dimension(:, :), intent(in) :: exponent_for_percolation !< Exponent for percolation
+    type(parameter_t), dimension(:, :), intent(in) :: percolation_coefficient !< Percolation coefficient
+    type(parameter_t), dimension(:, :), intent(in) :: baseflow_recession_coefficient !< Baseflow recession coefficient
     integer :: &
       lb__1, &
       lb__2, &
@@ -349,6 +395,36 @@ contains
     lb__2 = lbound(this%exponent_for_percolation, 2)
     ub__2 = lb__2 + size(exponent_for_percolation, 2) - 1
     this%exponent_for_percolation(lb__1:ub__1, lb__2:ub__2) = exponent_for_percolation
+    if (size(percolation_coefficient, 1) > size(this%percolation_coefficient, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'percolation_coefficient'"
+      return
+    end if
+    lb__1 = lbound(this%percolation_coefficient, 1)
+    ub__1 = lb__1 + size(percolation_coefficient, 1) - 1
+    if (size(percolation_coefficient, 2) > size(this%percolation_coefficient, 2)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 2 exceeds bounds for 'percolation_coefficient'"
+      return
+    end if
+    lb__2 = lbound(this%percolation_coefficient, 2)
+    ub__2 = lb__2 + size(percolation_coefficient, 2) - 1
+    this%percolation_coefficient(lb__1:ub__1, lb__2:ub__2) = percolation_coefficient
+    if (size(baseflow_recession_coefficient, 1) > size(this%baseflow_recession_coefficient, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'baseflow_recession_coefficient'"
+      return
+    end if
+    lb__1 = lbound(this%baseflow_recession_coefficient, 1)
+    ub__1 = lb__1 + size(baseflow_recession_coefficient, 1) - 1
+    if (size(baseflow_recession_coefficient, 2) > size(this%baseflow_recession_coefficient, 2)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 2 exceeds bounds for 'baseflow_recession_coefficient'"
+      return
+    end if
+    lb__2 = lbound(this%baseflow_recession_coefficient, 2)
+    ub__2 = lb__2 + size(baseflow_recession_coefficient, 2) - 1
+    this%baseflow_recession_coefficient(lb__1:ub__1, lb__2:ub__2) = baseflow_recession_coefficient
 
     ! mark as configured
     this%is_configured = .true.
@@ -618,6 +694,130 @@ contains
           status = NML_ERR_PARTLY_SET
         end if
       end if
+    case ("percolation_coefficient%value")
+      if (.not. allocated(this%percolation_coefficient)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%percolation_coefficient), ubound(this%percolation_coefficient), &
+          "percolation_coefficient", errmsg)
+        if (status /= NML_OK) return
+        if (ieee_is_nan(this%percolation_coefficient(idx(1), idx(2))%value)) status = NML_ERR_NOT_SET
+      else
+        if (all(ieee_is_nan(this%percolation_coefficient%value))) status = NML_ERR_NOT_SET
+      end if
+    case ("percolation_coefficient%optimize")
+      if (.not. allocated(this%percolation_coefficient)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%percolation_coefficient), ubound(this%percolation_coefficient), &
+          "percolation_coefficient", errmsg)
+        if (status /= NML_OK) return
+      end if
+    case ("percolation_coefficient%min")
+      if (.not. allocated(this%percolation_coefficient)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%percolation_coefficient), ubound(this%percolation_coefficient), &
+          "percolation_coefficient", errmsg)
+        if (status /= NML_OK) return
+      end if
+    case ("percolation_coefficient%max")
+      if (.not. allocated(this%percolation_coefficient)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%percolation_coefficient), ubound(this%percolation_coefficient), &
+          "percolation_coefficient", errmsg)
+        if (status /= NML_OK) return
+      end if
+    case ("percolation_coefficient")
+      if (.not. allocated(this%percolation_coefficient)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%percolation_coefficient), ubound(this%percolation_coefficient), &
+          "percolation_coefficient", errmsg)
+        if (status /= NML_OK) return
+        if (ieee_is_nan(this%percolation_coefficient(idx(1), idx(2))%value)) then
+          status = NML_ERR_NOT_SET
+        end if
+      else
+        if (all(ieee_is_nan(this%percolation_coefficient%value))) then
+          status = NML_ERR_NOT_SET
+        else if (any(ieee_is_nan(this%percolation_coefficient%value))) then
+          status = NML_ERR_PARTLY_SET
+        end if
+      end if
+    case ("baseflow_recession_coefficient%value")
+      if (.not. allocated(this%baseflow_recession_coefficient)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%baseflow_recession_coefficient), ubound(this%baseflow_recession_coefficient), &
+          "baseflow_recession_coefficient", errmsg)
+        if (status /= NML_OK) return
+        if (ieee_is_nan(this%baseflow_recession_coefficient(idx(1), idx(2))%value)) status = NML_ERR_NOT_SET
+      else
+        if (all(ieee_is_nan(this%baseflow_recession_coefficient%value))) status = NML_ERR_NOT_SET
+      end if
+    case ("baseflow_recession_coefficient%optimize")
+      if (.not. allocated(this%baseflow_recession_coefficient)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%baseflow_recession_coefficient), ubound(this%baseflow_recession_coefficient), &
+          "baseflow_recession_coefficient", errmsg)
+        if (status /= NML_OK) return
+      end if
+    case ("baseflow_recession_coefficient%min")
+      if (.not. allocated(this%baseflow_recession_coefficient)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%baseflow_recession_coefficient), ubound(this%baseflow_recession_coefficient), &
+          "baseflow_recession_coefficient", errmsg)
+        if (status /= NML_OK) return
+      end if
+    case ("baseflow_recession_coefficient%max")
+      if (.not. allocated(this%baseflow_recession_coefficient)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%baseflow_recession_coefficient), ubound(this%baseflow_recession_coefficient), &
+          "baseflow_recession_coefficient", errmsg)
+        if (status /= NML_OK) return
+      end if
+    case ("baseflow_recession_coefficient")
+      if (.not. allocated(this%baseflow_recession_coefficient)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%baseflow_recession_coefficient), ubound(this%baseflow_recession_coefficient), &
+          "baseflow_recession_coefficient", errmsg)
+        if (status /= NML_OK) return
+        if (ieee_is_nan(this%baseflow_recession_coefficient(idx(1), idx(2))%value)) then
+          status = NML_ERR_NOT_SET
+        end if
+      else
+        if (all(ieee_is_nan(this%baseflow_recession_coefficient%value))) then
+          status = NML_ERR_NOT_SET
+        else if (any(ieee_is_nan(this%baseflow_recession_coefficient%value))) then
+          status = NML_ERR_PARTLY_SET
+        end if
+      end if
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)
@@ -693,6 +893,36 @@ contains
       if (present(errmsg)) then
         if (len_trim(errmsg) == 0) then
           errmsg = "field not set: exponent_for_percolation"
+        end if
+        errmsg = "required " // trim(errmsg)
+      end if
+      return
+    end if
+    if (istat /= NML_OK) then
+      status = istat
+      return
+    end if
+    istat = this%is_set("percolation_coefficient", errmsg=errmsg)
+    if (istat == NML_ERR_NOT_SET) then
+      status = NML_ERR_REQUIRED
+      if (present(errmsg)) then
+        if (len_trim(errmsg) == 0) then
+          errmsg = "field not set: percolation_coefficient"
+        end if
+        errmsg = "required " // trim(errmsg)
+      end if
+      return
+    end if
+    if (istat /= NML_OK) then
+      status = istat
+      return
+    end if
+    istat = this%is_set("baseflow_recession_coefficient", errmsg=errmsg)
+    if (istat == NML_ERR_NOT_SET) then
+      status = NML_ERR_REQUIRED
+      if (present(errmsg)) then
+        if (len_trim(errmsg) == 0) then
+          errmsg = "field not set: baseflow_recession_coefficient"
         end if
         errmsg = "required " // trim(errmsg)
       end if

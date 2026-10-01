@@ -18,6 +18,8 @@ stage (minimal natural-lake scope).
 | [spill_exponent](#spill_exponent) | type(parameter_t) array | yes | yes | Spill exponent |
 | [longterm_baseflow](#longterm_baseflow) | type(parameter_t) array | yes | yes | Long-term baseflow |
 | [exponent_for_percolation](#exponent_for_percolation) | type(parameter_t) array | yes | yes | Exponent for percolation |
+| [percolation_coefficient](#percolation_coefficient) | type(parameter_t) array | yes | yes | Percolation coefficient |
+| [baseflow_recession_coefficient](#baseflow_recession_coefficient) | type(parameter_t) array | yes | yes | Baseflow recession coefficient |
 
 ## Field details
 
@@ -105,6 +107,54 @@ Components:
 - `exponent_for_percolation%min`: `real(dp)`; declared required yes; input required no; default `8.0` (item default)
 - `exponent_for_percolation%max`: `real(dp)`; declared required yes; input required no; default `15.0` (item default)
 
+### percolation_coefficient
+
+Percolation coefficient `percolation_coefficient`
+
+Percolation (seepage) time constant kp for the lake bed [d]. Each hydrological time
+step the per-step percolation coefficient is formed as (tsHydroSecs / 86400) / kp
+(the SI form of the v5 c2TSTu / kPerco conversion), so a larger value gives slower
+seepage. In mLM v5 this coefficient was regionalised from the catchment percolation
+field by MPR over the lake footprint; in the minimal v6 lake it is exposed as a lake
+parameter (MPR regionalisation of the lake groundwater coefficients is deferred).
+
+Summary:
+- Type: `type(parameter_t), dimension(n_domains, n_lakes)`
+- Declared required: yes
+- Input required: yes
+- Default: `{min: 1.0, max: 100.0}` (broadcast item default)
+
+Components:
+- `percolation_coefficient%value`: `real(dp)`; declared required yes; input required yes
+- `percolation_coefficient%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
+- `percolation_coefficient%min`: `real(dp)`; declared required yes; input required no; default `1.0` (item default)
+- `percolation_coefficient%max`: `real(dp)`; declared required yes; input required no; default `100.0` (item default)
+
+### baseflow_recession_coefficient
+
+Baseflow recession coefficient `baseflow_recession_coefficient`
+
+Lake groundwater-storage recession time constant kbf [d]. Each hydrological time step
+the per-step recession coefficient is formed as (tsHydroSecs / 86400) / kbf (the SI
+form of the v5 c2TSTu / kBaseFlow conversion); the baseflow is that coefficient times
+the lake groundwater storage, so a larger value gives a slower, more sustained
+baseflow. In mLM v5 this coefficient was regionalised from the catchment baseflow
+recession field by MPR over the lake footprint; in the minimal v6 lake it is exposed
+as a lake parameter (MPR regionalisation of the lake groundwater coefficients is
+deferred).
+
+Summary:
+- Type: `type(parameter_t), dimension(n_domains, n_lakes)`
+- Declared required: yes
+- Input required: yes
+- Default: `{min: 1.0, max: 1000.0}` (broadcast item default)
+
+Components:
+- `baseflow_recession_coefficient%value`: `real(dp)`; declared required yes; input required yes
+- `baseflow_recession_coefficient%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
+- `baseflow_recession_coefficient%min`: `real(dp)`; declared required yes; input required no; default `1.0` (item default)
+- `baseflow_recession_coefficient%max`: `real(dp)`; declared required yes; input required no; default `1000.0` (item default)
+
 ## Derived types
 
 ### `parameter_t`
@@ -142,6 +192,14 @@ A model parameter with optional calibration metadata.
   exponent_for_percolation(:,:)%optimize = .true.
   exponent_for_percolation(:,:)%min = 8.0
   exponent_for_percolation(:,:)%max = 15.0
+  percolation_coefficient(:,:)%value = 35.0
+  percolation_coefficient(:,:)%optimize = .true.
+  percolation_coefficient(:,:)%min = 1.0
+  percolation_coefficient(:,:)%max = 100.0
+  baseflow_recession_coefficient(:,:)%value = 100.0
+  baseflow_recession_coefficient(:,:)%optimize = .true.
+  baseflow_recession_coefficient(:,:)%min = 1.0
+  baseflow_recession_coefficient(:,:)%max = 1000.0
 /
 ```
 
