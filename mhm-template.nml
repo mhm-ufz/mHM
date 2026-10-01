@@ -235,7 +235,11 @@
   ! Flow direction variable name
   fdir_var(:) = "fdir"
   ! Maximum lake level variable name
-  lake_level_var(:) = "max_lake_level"
+  lake_level_var(:) = "lake_max_level_reported"
+  ! Maximum lake surface area variable name
+  lake_surface_area_var(:) = "lake_max_surface_area_reported"
+  ! Maximum lake volume variable name
+  lake_volume_var(:) = "lake_max_volume_reported"
   ! Flow accumulation variable name
   facc_var(:) = "facc"
   ! Geology class variable name
@@ -504,6 +508,8 @@
 
 ! mLM configuration
 &config_mlm
+  ! mLM lake input path
+  input_path(:) = ""
   ! mLM lake-point output path
   output_path(:) = ""
   ! Read mLM restart
@@ -514,6 +520,54 @@
   write_restart(:) = .false.
   ! mLM restart output path
   restart_output_path(:) = ""
+  ! Force lake level initialization at restart
+  force_initialize_lake_at_restart = .false.
+  ! Force lake level initialization at a date
+  force_initialize_lake_at_a_date = .false.
+  ! Input windspeed height [m]
+  input_windspeed_height = 10.0
+  ! Variable water albedo
+  varying_albedo = .true.
+  ! Variable latent heat of vaporisation
+  varying_lambda = .true.
+  ! Variable psychrometric constant
+  varying_psychro = .true.
+  ! Water albedo calculation method
+  albedo_method = 2
+  ! Hanasaki et al. (2006) release target
+  hanasaki_2006 = .true.
+  ! Point demand input
+  point_demand = .false.
+  ! Lake hAV curve type
+  bathymetry_type(:,:) = 0
+  ! Natural lake flag
+  natural(:,:) = .true.
+  ! Water-supply use flag
+  use_watersupply(:,:) = .false.
+  ! Irrigation use flag
+  use_irrigation(:,:) = .false.
+  ! Downstream service distance [km]
+  service_distance(:,:) = 600.0
+  ! Lake bathymetry file
+  bathymetry_filename(:,:) = ""
+  ! Release target file
+  release_target_filename(:,:) = ""
+  ! Water-supply demand file
+  watersupply_demand_filename(:,:) = ""
+  ! Irrigation demand file
+  irrigation_demand_filename(:,:) = ""
+  ! Inter-basin transfer file
+  ibt_filename(:,:) = ""
+  ! Observed water-level file
+  level_filename(:,:) = ""
+  ! Observed surface-area file
+  area_filename(:,:) = ""
+  ! Observed spill file
+  spill_filename(:,:) = ""
+  ! Print lake maps
+  print_lake_maps = .true.
+  ! Print links table
+  print_links_table = .true.
 /
 
 ! Observations configuration

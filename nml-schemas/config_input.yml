@@ -235,7 +235,7 @@ properties:
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Lake definition input
-    description: Point dataset containing lake outlet coordinates, stable IDs, and maximum lake levels.
+    description: Point dataset containing lake outlet coordinates, stable IDs, and reported maximum lake level, surface area and volume.
   facc_path:
     type: array
     items:
@@ -473,9 +473,27 @@ properties:
     items:
       type: string
       x-fortran-len: buf
-      default: max_lake_level
+      default: lake_max_level_reported
     x-fortran-shape: n_domains
     title: Maximum lake level variable name
+  lake_surface_area_var:
+    type: array
+    items:
+      type: string
+      x-fortran-len: buf
+      default: lake_max_surface_area_reported
+    x-fortran-shape: n_domains
+    title: Maximum lake surface area variable name
+    description: Variable name of the reported maximum lake surface area in the lake definition file (read in km2, converted to m2 on read).
+  lake_volume_var:
+    type: array
+    items:
+      type: string
+      x-fortran-len: buf
+      default: lake_max_volume_reported
+    x-fortran-shape: n_domains
+    title: Maximum lake volume variable name
+    description: Variable name of the reported maximum lake volume in the lake definition file (read in 1e6 m3 / mcm, converted to m3 on read).
   facc_var:
     type: array
     items:

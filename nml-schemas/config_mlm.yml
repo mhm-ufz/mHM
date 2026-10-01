@@ -80,17 +80,17 @@ properties:
       height other than 2 m, mLM applies the Hellmann exponential law to derive the 2 m windspeed.
       Enter the height for which the input windspeed data is provided, in metres.
     examples: [10.0]
-  variable_albedo:
+  varying_albedo:
     type: boolean
     default: true
     title: Variable water albedo
     description: Use a variable water albedo in the evaporation calculation.
-  variable_lambda:
+  varying_lambda:
     type: boolean
     default: true
     title: Variable latent heat of vaporisation
     description: Use a variable latent heat of vaporisation of water in the evaporation calculation.
-  variable_psychro:
+  varying_psychro:
     type: boolean
     default: true
     title: Variable psychrometric constant
@@ -102,7 +102,7 @@ properties:
     default: 2
     title: Water albedo calculation method
     description: |-
-      Method of water albedo calculation. Only used if variable_albedo is true.
+      Method of water albedo calculation. Only used if varying_albedo is true.
       - 1 : Fresnel equation.
       - 2 : Grishchenko (1959).
   hanasaki_2006:

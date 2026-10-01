@@ -69,6 +69,8 @@ Variable name entries define the NetCDF variable names to read.
 | [aspect_var](#aspect_var) | string array | no | no | Aspect variable name |
 | [fdir_var](#fdir_var) | string array | no | no | Flow direction variable name |
 | [lake_level_var](#lake_level_var) | string array | no | no | Maximum lake level variable name |
+| [lake_surface_area_var](#lake_surface_area_var) | string array | no | no | Maximum lake surface area variable name |
+| [lake_volume_var](#lake_volume_var) | string array | no | no | Maximum lake volume variable name |
 | [facc_var](#facc_var) | string array | no | no | Flow accumulation variable name |
 | [geo_class_var](#geo_class_var) | string array | no | no | Geology class variable name |
 | [soil_class_var](#soil_class_var) | string array | no | no | Soil class variable name |
@@ -362,7 +364,7 @@ Summary:
 
 Lake definition input `lake_definition_path`
 
-Point dataset containing lake outlet coordinates, stable IDs, and maximum lake levels.
+Point dataset containing lake outlet coordinates, stable IDs, and reported maximum lake level, surface area and volume.
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
@@ -668,7 +670,31 @@ Summary:
 - Type: `character(len=buf), dimension(n_domains)`
 - Declared required: no
 - Input required: no
-- Default: `"max_lake_level"`
+- Default: `"lake_max_level_reported"`
+
+### lake_surface_area_var
+
+Maximum lake surface area variable name `lake_surface_area_var`
+
+Variable name of the reported maximum lake surface area in the lake definition file (read in km2, converted to m2 on read).
+
+Summary:
+- Type: `character(len=buf), dimension(n_domains)`
+- Declared required: no
+- Input required: no
+- Default: `"lake_max_surface_area_reported"`
+
+### lake_volume_var
+
+Maximum lake volume variable name `lake_volume_var`
+
+Variable name of the reported maximum lake volume in the lake definition file (read in 1e6 m3 / mcm, converted to m3 on read).
+
+Summary:
+- Type: `character(len=buf), dimension(n_domains)`
+- Declared required: no
+- Input required: no
+- Default: `"lake_max_volume_reported"`
 
 ### facc_var
 
@@ -850,7 +876,9 @@ Summary:
   slope_var(:) = "slope"
   aspect_var(:) = "aspect"
   fdir_var(:) = "fdir"
-  lake_level_var(:) = "max_lake_level"
+  lake_level_var(:) = "lake_max_level_reported"
+  lake_surface_area_var(:) = "lake_max_surface_area_reported"
+  lake_volume_var(:) = "lake_max_volume_reported"
   facc_var(:) = "facc"
   geo_class_var(:) = "geology_class"
   soil_class_var(:) = "soil_class"
