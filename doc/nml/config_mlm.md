@@ -194,7 +194,8 @@ Water albedo calculation method `albedo_method`
 
 Method of water albedo calculation. Only used if varying_albedo is true.
 - 1 : Fresnel equation.
-- 2 : Grishchenko (1959).
+- 2 : Grishchenko (1959). See Appendix C, Figure C1 in Shrestha et al. (2024),
+  Water Resources Research, for the varying albedo calculation.
 
 Summary:
 - Type: `integer(i4)`
@@ -209,6 +210,9 @@ Hanasaki et al. (2006) release target `hanasaki_2006`
 
 Use the temperature release target after Hanasaki et al. (2006).
 If enabled, the per-lake reservoir capacity and mean annual inflow must be provided.
+Reference: Hanasaki, N., Kanae, S., & Oki, T. (2006). A reservoir operation scheme
+for global river routing models. Journal of Hydrology, 327(1-2), 22-41.
+doi:10.1016/j.jhydrol.2005.11.011
 
 Summary:
 - Type: `logical`
@@ -239,6 +243,9 @@ Type of height-area-volume (hAV) relation used per lake.
 - 0 : input bathymetry curves (bathymetry_filename must be provided).
 - 1 : linear h~V relation with constant area.
 - 2 : Liebe (2005), one half of a pyramid with square base cut diagonally at the base.
+  Reference: Liebe, J. (2005). Estimation of water storage capacity and evaporation
+  losses of small reservoirs in the Upper East Region of Ghana. MSc thesis, Rheinische
+  Friedrich-Wilhelms-Universitaet Bonn.
 
 Summary:
 - Type: `integer(i4), dimension(n_domains, n_lakes)`
