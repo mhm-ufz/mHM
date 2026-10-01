@@ -36,6 +36,7 @@ module mo_parameter_namelists
   use nml_routing_2, only: nml_routing_2_t
   use nml_routing_3, only: nml_routing_3_t
   use nml_river_temperature_1, only: nml_river_temperature_1_t
+  use nml_lakes_1, only: nml_lakes_1_t
 
   implicit none
   private
@@ -64,6 +65,7 @@ module mo_parameter_namelists
     type(nml_routing_2_t) :: routing_2
     type(nml_routing_3_t) :: routing_3
     type(nml_river_temperature_1_t) :: river_temperature_1
+    type(nml_lakes_1_t) :: lakes_1
   contains
     procedure :: set_dims => parameter_namelists_set_dims
   end type parameter_namelists_t
