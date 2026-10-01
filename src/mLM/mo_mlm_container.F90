@@ -24,6 +24,7 @@ module mo_mlm_container
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_lake_balance, only: lake_balance_outflow
   use mo_lake_topology, only: lake_derive_max_surface_area_dem, lake_read_topology, lake_write_topology
+  use mo_lake_bathymetry, only: generate_lake_bathymetry, lake_hav_t
   use mo_grid_io, only: var, daily, monthly, yearly, no_time, time_units_delta
   use mo_netcdf_utils, only: add_var
   use mo_points, only: points_t, cartesian, spherical
@@ -51,6 +52,13 @@ module mo_mlm_container
     type(grid_t) :: static_lake_grid !< lake footprint geometry retained for restart
     type(points_t) :: static_lake_points !< static point metadata retained for restart output
     real(dp), allocatable :: static_lake_max_level_reported(:) !< maximum levels retained for restart output
+    real(dp), allocatable :: static_lake_max_surface_area_reported(:) !< reported maximum surface areas [m2] retained for the lake points
+    real(dp), allocatable :: static_lake_max_volume_reported(:) !< reported maximum volumes [m3] retained for the lake points
+    type(lake_hav_t), allocatable :: hav(:) !< per-lake height-area-volume curves built at initialize
+    real(dp), allocatable :: lake_level(:) !< current lake surface level [masl]
+    real(dp), allocatable :: lake_surface_area(:) !< current lake surface area [m2]
+    real(dp), allocatable :: lake_volume(:) !< current lake storage volume [m3]
+    real(dp), allocatable :: lake_gw_storage(:) !< current lake groundwater storage [m3]
     type(points_t) :: restart_lake_points !< point set restored from restart metadata
     integer(i8), allocatable :: restart_lake_ids(:) !< stable IDs in restart-file order
     real(dp), allocatable :: restart_lake_max_level_reported(:) !< maximum levels restored from restart metadata
@@ -119,7 +127,7 @@ contains
 
     lake_case = self%exchange%config%processes%lake
     self%active = lake_case /= 0_i4
-    if (lake_case /= 0_i4 .and. lake_case /= -1_i4 .and. lake_case /= -2_i4) then
+    if (lake_case /= 0_i4 .and. lake_case /= -1_i4 .and. lake_case /= -2_i4 .and. lake_case /= 1_i4) then
       log_fatal(*) "mLM: unsupported lake process case: ", n2s(lake_case)
       error stop 1
     end if
@@ -199,6 +207,12 @@ contains
       if (lake_case == -2_i4) call self%exchange%lake_map%provide("mLM")
     end if
     if (lake_case == -2_i4) call self%exchange%lake_max_surface_area_dem_derived%provide("mLM")
+    if (lake_case == 1_i4) then
+      call self%exchange%lake_level%provide("mLM")
+      call self%exchange%lake_surface_area%provide("mLM")
+      call self%exchange%lake_volume%provide("mLM")
+      call self%exchange%lake_gw_storage%provide("mLM")
+    end if
     call self%exchange%lake_outflow%provide("mLM")
   end subroutine mlm_configure
 
@@ -207,12 +221,14 @@ contains
     class(mlm_t), target, intent(inout) :: self
     integer(i8) :: n_lakes
     integer(i4) :: lake_case
-    logical :: has_points, has_ids, has_levels, has_metadata
+    logical :: has_points, has_ids, has_levels, has_area, has_volume, has_metadata
 
     lake_case = self%exchange%config%processes%lake
     has_points = associated(self%exchange%lake_points)
     has_ids = self%exchange%lake_ids%provided .and. self%exchange%lake_ids%has_data()
     has_levels = self%exchange%lake_max_level_reported%provided .and. self%exchange%lake_max_level_reported%has_data()
+    has_area = self%exchange%lake_max_surface_area_reported%provided .and. self%exchange%lake_max_surface_area_reported%has_data()
+    has_volume = self%exchange%lake_max_volume_reported%provided .and. self%exchange%lake_max_volume_reported%has_data()
     has_metadata = has_points .and. has_ids .and. has_levels
     if ((has_points .neqv. has_ids) .or. (has_points .neqv. has_levels)) then
       log_fatal(*) "mLM: lake points, stable IDs, and maximum levels must be published together."
@@ -228,6 +244,8 @@ contains
       call self%static_lake_points%init( &
         self%exchange%lake_points%x, self%exchange%lake_points%y, coordsys=self%exchange%lake_points%coordsys)
       self%static_lake_max_level_reported = self%exchange%lake_max_level_reported%data
+      if (has_area) self%static_lake_max_surface_area_reported = self%exchange%lake_max_surface_area_reported%data
+      if (has_volume) self%static_lake_max_volume_reported = self%exchange%lake_max_volume_reported%data
     else
       if (.not.self%read_restart) then
         log_fatal(*) "mLM: lake process requires lake points."
@@ -271,6 +289,28 @@ contains
       call self%exchange%lake_pre%check_provided("mLM")
       call self%exchange%lake_pet%check_provided("mLM")
     end if
+    if (lake_case == 1_i4) then
+      ! The minimal natural lake needs the reported crest surface area and volume to build
+      ! its height-area-volume (hAV) curves at initialize.
+      if (.not.allocated(self%static_lake_max_surface_area_reported) .or. &
+          .not.allocated(self%static_lake_max_volume_reported)) then
+        log_fatal(*) "mLM process 1 requires reported maximum lake surface area and volume."
+        error stop 1
+      end if
+      ! Allocate the lake states carried by the component (built at initialize, restart-persisted in c4).
+      allocate(self%lake_level(n_lakes), source=0.0_dp)
+      allocate(self%lake_surface_area(n_lakes), source=0.0_dp)
+      allocate(self%lake_volume(n_lakes), source=0.0_dp)
+      allocate(self%lake_gw_storage(n_lakes), source=0.0_dp)
+      call self%exchange%lake_level%prepare_data("mLM", 1_i4)
+      self%exchange%lake_level%data => self%lake_level
+      call self%exchange%lake_surface_area%prepare_data("mLM", 1_i4)
+      self%exchange%lake_surface_area%data => self%lake_surface_area
+      call self%exchange%lake_volume%prepare_data("mLM", 1_i4)
+      self%exchange%lake_volume%data => self%lake_volume
+      call self%exchange%lake_gw_storage%prepare_data("mLM", 1_i4)
+      self%exchange%lake_gw_storage%data => self%lake_gw_storage
+    end if
     allocate(self%outflow(n_lakes), source=0.0_dp)
     call self%exchange%lake_outflow%prepare_data("mLM", 1_i4)
     self%exchange%lake_outflow%data => self%outflow
@@ -279,6 +319,8 @@ contains
   !> \brief Restore or initialize pass-through outflow after mRM has published inflow.
   subroutine mlm_initialize(self)
     class(mlm_t), target, intent(inout) :: self
+    integer(i8) :: k, n_lakes
+    integer(i4) :: bathymetry_type
     if (self%exchange%step_hours /= 1_i4) then
       log_fatal(*) "mLM lake processes require a one-hour model step."
       error stop 1
@@ -290,6 +332,23 @@ contains
     end if
     if (self%exchange%config%processes%lake == -2_i4) then
       call self%exchange%check_data(self%exchange%lake_max_surface_area_dem_derived, "mLM")
+    end if
+    if (self%exchange%config%processes%lake == 1_i4) then
+      ! Build the per-lake height-area-volume (hAV) curves from a built-in analytical shape.
+      n_lakes = size(self%lake_ids, kind=i8)
+      allocate(self%hav(n_lakes))
+      do k = 1_i8, n_lakes
+        bathymetry_type = self%config%bathymetry_type(self%exchange%nml_domain_id, k)
+        if (bathymetry_type /= 1_i4 .and. bathymetry_type /= 2_i4) then
+          log_fatal(*) "mLM process 1: bathymetry_type ", n2s(bathymetry_type), &
+            " for lake ", n2s(k), " is not supported (0 = external bathymetry file is not yet implemented)."
+          error stop 1
+        end if
+        call generate_lake_bathymetry(bathymetry_type, &
+          self%static_lake_max_level_reported(k), self%static_lake_max_surface_area_reported(k), &
+          self%static_lake_max_volume_reported(k), &
+          self%hav(k)%level, self%hav(k)%surface_area, self%hav(k)%volume)
+      end do
     end if
     self%outflow(:) = 0.0_dp
     if (self%read_restart) call self%read_restart_state()
@@ -342,6 +401,13 @@ contains
     if (allocated(self%lake_max_surface_area_dem_derived)) deallocate(self%lake_max_surface_area_dem_derived)
     call self%static_lake_points%destroy()
     if (allocated(self%static_lake_max_level_reported)) deallocate(self%static_lake_max_level_reported)
+    if (allocated(self%static_lake_max_surface_area_reported)) deallocate(self%static_lake_max_surface_area_reported)
+    if (allocated(self%static_lake_max_volume_reported)) deallocate(self%static_lake_max_volume_reported)
+    if (allocated(self%lake_level)) deallocate(self%lake_level)
+    if (allocated(self%lake_surface_area)) deallocate(self%lake_surface_area)
+    if (allocated(self%lake_volume)) deallocate(self%lake_volume)
+    if (allocated(self%lake_gw_storage)) deallocate(self%lake_gw_storage)
+    if (allocated(self%hav)) deallocate(self%hav)
     call self%restart_lake_points%destroy()
     if (allocated(self%restart_lake_ids)) deallocate(self%restart_lake_ids)
     if (allocated(self%restart_lake_max_level_reported)) deallocate(self%restart_lake_max_level_reported)

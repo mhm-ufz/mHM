@@ -16,6 +16,18 @@ MODULE mo_lake_bathymetry
   IMPLICIT NONE
 
     PUBLIC :: generate_lake_bathymetry
+    PUBLIC :: lake_hav_t
+
+  ! ------------------------------------------------------------------
+
+  !> \brief Per-lake height-area-volume (hAV) curve, tabulated at a 1 cm depth interval.
+  !> \details One instance per lake; the three columns share a common length (the number
+  !>          of depth intervals from bottom to crest, which differs between lakes). All in SI.
+  type :: lake_hav_t
+    real(dp), allocatable :: level(:)         !< hAV level column [masl]
+    real(dp), allocatable :: surface_area(:)  !< hAV surface area column [m2]
+    real(dp), allocatable :: volume(:)        !< hAV volume column [m3]
+  end type lake_hav_t
 
   ! ------------------------------------------------------------------
 
