@@ -46,10 +46,14 @@ module nml_config_project
   logical, parameter, public :: optimize__default = .false.
   integer(i4), parameter, public :: n_domains__default = 1_i4
   integer(i4), parameter, public :: n_geo_units__default = 25_i4
+  integer(i4), parameter, public :: n_lakes_total__default = 1_i4
+  integer(i4), parameter, public :: n_lakes__default = 1_i4
   integer(i4), parameter, public :: max_layers__default = 10_i4
   logical, parameter, public :: read_domains_from_dirs__default = .false.
 
   ! bounds values
+  integer(i4), parameter, public :: n_lakes_total__min = 1_i4
+  integer(i4), parameter, public :: n_lakes__min = 1_i4
   integer(i4), parameter, public :: max_layers__min = 1_i4
 
   !> \class nml_config_project_t
@@ -67,6 +71,8 @@ module nml_config_project
     logical :: optimize !< Enable optimization
     integer(i4) :: n_domains !< Number of domains
     integer(i4) :: n_geo_units !< Number of geological units
+    integer(i4) :: n_lakes_total !< Total number of lakes
+    integer(i4) :: n_lakes !< Maximum number of lakes per domain
     integer(i4) :: max_layers !< Maximum number of soil layers
     logical :: read_domains_from_dirs !< Flag for separate domains
   contains
@@ -78,6 +84,42 @@ module nml_config_project
   end type nml_config_project_t
 
 contains
+
+  !> \brief Check whether a value is within bounds
+  elemental logical function n_lakes_total__in_bounds(val, allow_missing) result(in_bounds)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
+
+    if (present(allow_missing)) then
+      if (allow_missing) then
+        if (val == -huge(val)) then
+          in_bounds = .true.
+          return
+        end if
+      end if
+    end if
+
+    in_bounds = .true.
+    if (val < n_lakes_total__min) in_bounds = .false.
+  end function n_lakes_total__in_bounds
+
+  !> \brief Check whether a value is within bounds
+  elemental logical function n_lakes__in_bounds(val, allow_missing) result(in_bounds)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
+
+    if (present(allow_missing)) then
+      if (allow_missing) then
+        if (val == -huge(val)) then
+          in_bounds = .true.
+          return
+        end if
+      end if
+    end if
+
+    in_bounds = .true.
+    if (val < n_lakes__min) in_bounds = .false.
+  end function n_lakes__in_bounds
 
   !> \brief Check whether a value is within bounds
   elemental logical function max_layers__in_bounds(val, allow_missing) result(in_bounds)
@@ -117,6 +159,8 @@ contains
     this%optimize = optimize__default ! bool values always need a default
     this%n_domains = n_domains__default
     this%n_geo_units = n_geo_units__default
+    this%n_lakes_total = n_lakes_total__default
+    this%n_lakes = n_lakes__default
     this%max_layers = max_layers__default
     this%read_domains_from_dirs = read_domains_from_dirs__default ! bool values always need a default
   end function nml_config_project_init
@@ -138,6 +182,8 @@ contains
     logical :: optimize
     integer(i4) :: n_domains
     integer(i4) :: n_geo_units
+    integer(i4) :: n_lakes_total
+    integer(i4) :: n_lakes
     integer(i4) :: max_layers
     logical :: read_domains_from_dirs
     ! locals
@@ -157,6 +203,8 @@ contains
       optimize, &
       n_domains, &
       n_geo_units, &
+      n_lakes_total, &
+      n_lakes, &
       max_layers, &
       read_domains_from_dirs
 
@@ -172,6 +220,8 @@ contains
     optimize = this%optimize
     n_domains = this%n_domains
     n_geo_units = this%n_geo_units
+    n_lakes_total = this%n_lakes_total
+    n_lakes = this%n_lakes
     max_layers = this%max_layers
     read_domains_from_dirs = this%read_domains_from_dirs
 
@@ -209,6 +259,8 @@ contains
     this%optimize = optimize
     this%n_domains = n_domains
     this%n_geo_units = n_geo_units
+    this%n_lakes_total = n_lakes_total
+    this%n_lakes = n_lakes
     this%max_layers = max_layers
     this%read_domains_from_dirs = read_domains_from_dirs
 
@@ -229,6 +281,8 @@ contains
     optimize, &
     n_domains, &
     n_geo_units, &
+    n_lakes_total, &
+    n_lakes, &
     max_layers, &
     read_domains_from_dirs, &
     errmsg) result(status)
@@ -245,6 +299,8 @@ contains
     logical, intent(in), optional :: optimize !< Enable optimization
     integer(i4), intent(in), optional :: n_domains !< Number of domains
     integer(i4), intent(in), optional :: n_geo_units !< Number of geological units
+    integer(i4), intent(in), optional :: n_lakes_total !< Total number of lakes
+    integer(i4), intent(in), optional :: n_lakes !< Maximum number of lakes per domain
     integer(i4), intent(in), optional :: max_layers !< Maximum number of soil layers
     logical, intent(in), optional :: read_domains_from_dirs !< Flag for separate domains
 
@@ -263,6 +319,8 @@ contains
     if (present(optimize)) this%optimize = optimize
     if (present(n_domains)) this%n_domains = n_domains
     if (present(n_geo_units)) this%n_geo_units = n_geo_units
+    if (present(n_lakes_total)) this%n_lakes_total = n_lakes_total
+    if (present(n_lakes)) this%n_lakes = n_lakes
     if (present(max_layers)) this%max_layers = max_layers
     if (present(read_domains_from_dirs)) this%read_domains_from_dirs = read_domains_from_dirs
 
@@ -346,6 +404,18 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'n_geo_units'"
         return
       end if
+    case ("n_lakes_total")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'n_lakes_total'"
+        return
+      end if
+    case ("n_lakes")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'n_lakes'"
+        return
+      end if
     case ("max_layers")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
@@ -382,6 +452,28 @@ contains
     end if
 
     ! bounds constraints
+    istat = this%is_set("n_lakes_total", errmsg=errmsg)
+    if (istat == NML_OK) then
+      if (.not. n_lakes_total__in_bounds(this%n_lakes_total)) then
+        status = NML_ERR_BOUNDS
+        if (present(errmsg)) errmsg = "bounds constraint failed: n_lakes_total"
+        return
+      end if
+    else if (istat /= NML_ERR_NOT_SET) then
+      status = istat
+      return
+    end if
+    istat = this%is_set("n_lakes", errmsg=errmsg)
+    if (istat == NML_OK) then
+      if (.not. n_lakes__in_bounds(this%n_lakes)) then
+        status = NML_ERR_BOUNDS
+        if (present(errmsg)) errmsg = "bounds constraint failed: n_lakes"
+        return
+      end if
+    else if (istat /= NML_ERR_NOT_SET) then
+      status = istat
+      return
+    end if
     istat = this%is_set("max_layers", errmsg=errmsg)
     if (istat == NML_OK) then
       if (.not. max_layers__in_bounds(this%max_layers)) then

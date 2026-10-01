@@ -24,6 +24,10 @@
   n_domains = 1
   ! Number of geological units
   n_geo_units = 25
+  ! Total number of lakes
+  n_lakes_total = 1
+  ! Maximum number of lakes per domain
+  n_lakes = 1
   ! Maximum number of soil layers
   max_layers = 10
   ! Flag for separate domains
