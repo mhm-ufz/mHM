@@ -1,0 +1,13 @@
+! Parameters for the v6 minimal natural-lake (case 1) smoke configuration.
+
+&routing_2
+  streamflow_celerity = 1.5
+/
+
+&lakes_1
+  ! Component order: value, optimize, min, max
+  spill_coefficient_of_discharge(1,1) = 2.0, .false., 1.4, 3.0
+  spill_exponent(1,1)                 = 1.5, .false., 0.5, 2.5
+  longterm_baseflow(1,1)              = 0.0001, .false., 0.0001, 5.0
+  exponent_for_percolation(1,1)       = 11.0, .false., 8.0, 15.0
+/
