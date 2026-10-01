@@ -62,6 +62,8 @@ module mo_mlm_container
     type(points_t) :: restart_lake_points !< point set restored from restart metadata
     integer(i8), allocatable :: restart_lake_ids(:) !< stable IDs in restart-file order
     real(dp), allocatable :: restart_lake_max_level_reported(:) !< maximum levels restored from restart metadata
+    real(dp), allocatable :: restart_lake_max_surface_area_reported(:) !< reported maximum surface areas [m2] restored from restart metadata
+    real(dp), allocatable :: restart_lake_max_volume_reported(:) !< reported maximum volumes [m3] restored from restart metadata
     real(dp), allocatable :: outflow(:) !< current lake outflow [m3 s-1]
     logical :: active = .false. !< whether process -1 is selected
     logical :: read_restart = .false. !< read mLM restart
@@ -256,6 +258,10 @@ contains
       call self%static_lake_points%init( &
         self%restart_lake_points%x, self%restart_lake_points%y, coordsys=self%restart_lake_points%coordsys)
       self%static_lake_max_level_reported = self%restart_lake_max_level_reported
+      if (allocated(self%restart_lake_max_surface_area_reported)) &
+        self%static_lake_max_surface_area_reported = self%restart_lake_max_surface_area_reported
+      if (allocated(self%restart_lake_max_volume_reported)) &
+        self%static_lake_max_volume_reported = self%restart_lake_max_volume_reported
       self%exchange%lake_points => self%static_lake_points
       call self%exchange%lake_ids%prepare_data("mLM", no_time)
       self%exchange%lake_ids%data => self%lake_ids
@@ -411,6 +417,8 @@ contains
     call self%restart_lake_points%destroy()
     if (allocated(self%restart_lake_ids)) deallocate(self%restart_lake_ids)
     if (allocated(self%restart_lake_max_level_reported)) deallocate(self%restart_lake_max_level_reported)
+    if (allocated(self%restart_lake_max_surface_area_reported)) deallocate(self%restart_lake_max_surface_area_reported)
+    if (allocated(self%restart_lake_max_volume_reported)) deallocate(self%restart_lake_max_volume_reported)
     if (allocated(self%outflow)) deallocate(self%outflow)
     call self%static_lake_grid%destroy()
   end subroutine mlm_destroy
@@ -518,6 +526,12 @@ contains
       log_fatal(*) "mLM: cannot write restart without static lake metadata."
       error stop 1
     end if
+    if (self%exchange%config%processes%lake == 1_i4 .and. &
+        (.not.allocated(self%static_lake_max_surface_area_reported) .or. &
+         .not.allocated(self%static_lake_max_volume_reported))) then
+      log_fatal(*) "mLM: cannot write process 1 restart without reported maximum surface area and volume."
+      error stop 1
+    end if
     nc = NcDataset(self%restart_output_path, "w")
     lake_dim = nc%setDimension("lake", int(size(self%lake_ids), i4))
     var = nc%setVariable("lake_id", "i64", [lake_dim])
@@ -529,11 +543,35 @@ contains
     var = nc%setVariable("lake_max_level_reported", "f64", [lake_dim])
     call var%setAttribute("units", "m")
     call var%setData(self%static_lake_max_level_reported)
+    if (allocated(self%static_lake_max_surface_area_reported)) then
+      var = nc%setVariable("lake_max_surface_area_reported", "f64", [lake_dim])
+      call var%setAttribute("units", "m2")
+      call var%setData(self%static_lake_max_surface_area_reported)
+    end if
+    if (allocated(self%static_lake_max_volume_reported)) then
+      var = nc%setVariable("lake_max_volume_reported", "f64", [lake_dim])
+      call var%setAttribute("units", "m3")
+      call var%setData(self%static_lake_max_volume_reported)
+    end if
     var = nc%setVariable("lake_coordsys", "i32", dims(:0))
     call var%setData(self%static_lake_points%coordsys)
     var = nc%setVariable("lake_outflow", "f64", [lake_dim])
     call var%setAttribute("units", "m3 s-1")
     call var%setData(self%outflow)
+    if (self%exchange%config%processes%lake == 1_i4) then
+      var = nc%setVariable("lake_level", "f64", [lake_dim])
+      call var%setAttribute("units", "m")
+      call var%setData(self%lake_level)
+      var = nc%setVariable("lake_surface_area", "f64", [lake_dim])
+      call var%setAttribute("units", "m2")
+      call var%setData(self%lake_surface_area)
+      var = nc%setVariable("lake_volume", "f64", [lake_dim])
+      call var%setAttribute("units", "m3")
+      call var%setData(self%lake_volume)
+      var = nc%setVariable("lake_gw_storage", "f64", [lake_dim])
+      call var%setAttribute("units", "m3")
+      call var%setData(self%lake_gw_storage)
+    end if
     if (self%exchange%config%processes%lake == -2_i4) then
       call lake_write_topology(nc, self%static_lake_grid, self%lake_map)
     end if
@@ -587,6 +625,21 @@ contains
     call var%getData(outlet_y)
     var = nc%getVariable("lake_max_level_reported")
     call var%getData(self%restart_lake_max_level_reported)
+    if (self%exchange%config%processes%lake == 1_i4) then
+      if (.not.nc%hasVariable("lake_max_surface_area_reported") .or. &
+          .not.nc%hasVariable("lake_max_volume_reported")) then
+        log_fatal(*) "mLM process 1 restart is missing reported maximum surface area or volume: ", self%restart_input_path
+        error stop 1
+      end if
+    end if
+    if (nc%hasVariable("lake_max_surface_area_reported")) then
+      var = nc%getVariable("lake_max_surface_area_reported")
+      call var%getData(self%restart_lake_max_surface_area_reported)
+    end if
+    if (nc%hasVariable("lake_max_volume_reported")) then
+      var = nc%getVariable("lake_max_volume_reported")
+      call var%getData(self%restart_lake_max_volume_reported)
+    end if
     var = nc%getVariable("lake_coordsys")
     call var%getData(coordsys_data)
     if (size(outlet_x, kind=i8) /= size(self%restart_lake_ids, kind=i8) .or. &
@@ -594,6 +647,18 @@ contains
         size(self%restart_lake_max_level_reported, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
       log_fatal(*) "mLM restart static lake metadata does not align with stable lake IDs."
       error stop 1
+    end if
+    if (allocated(self%restart_lake_max_surface_area_reported)) then
+      if (size(self%restart_lake_max_surface_area_reported, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
+        log_fatal(*) "mLM restart reported maximum surface area does not align with stable lake IDs."
+        error stop 1
+      end if
+    end if
+    if (allocated(self%restart_lake_max_volume_reported)) then
+      if (size(self%restart_lake_max_volume_reported, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
+        log_fatal(*) "mLM restart reported maximum volume does not align with stable lake IDs."
+        error stop 1
+      end if
     end if
     if (coordsys_data /= cartesian .and. coordsys_data /= spherical) then
       log_fatal(*) "mLM restart contains an unsupported lake coordinate system."
@@ -667,6 +732,22 @@ contains
         log_fatal(*) "mLM restart and Input lake metadata differ for stable lake ID."
         error stop 1
       end if
+      if (allocated(self%restart_lake_max_surface_area_reported) .and. &
+          self%exchange%lake_max_surface_area_reported%has_data()) then
+        if (.not.is_close(self%restart_lake_max_surface_area_reported(j), &
+                          self%exchange%lake_max_surface_area_reported%data(i))) then
+          log_fatal(*) "mLM restart and Input reported maximum surface area differ for stable lake ID."
+          error stop 1
+        end if
+      end if
+      if (allocated(self%restart_lake_max_volume_reported) .and. &
+          self%exchange%lake_max_volume_reported%has_data()) then
+        if (.not.is_close(self%restart_lake_max_volume_reported(j), &
+                          self%exchange%lake_max_volume_reported%data(i))) then
+          log_fatal(*) "mLM restart and Input reported maximum volume differ for stable lake ID."
+          error stop 1
+        end if
+      end if
     end do
   end subroutine mlm_validate_restart_metadata
 
@@ -676,8 +757,10 @@ contains
     type(NcDataset) :: nc
     type(NcVariable) :: var
     integer(i8), allocatable :: ids(:)
-    real(dp), allocatable :: values(:)
+    real(dp), allocatable :: values(:), level(:), area(:), volume(:), gw_storage(:)
     integer(i8) :: i, j
+    logical :: is_case1
+    is_case1 = self%exchange%config%processes%lake == 1_i4
     nc = NcDataset(self%restart_input_path, "r")
     if (.not.nc%hasVariable("lake_id") .or. .not.nc%hasVariable("lake_outflow")) then
       log_fatal(*) "mLM restart is missing lake IDs or lake outflow: ", self%restart_input_path
@@ -687,10 +770,32 @@ contains
     call var%getData(ids)
     var = nc%getVariable("lake_outflow")
     call var%getData(values)
+    if (is_case1) then
+      if (.not.nc%hasVariable("lake_level") .or. .not.nc%hasVariable("lake_surface_area") .or. &
+          .not.nc%hasVariable("lake_volume") .or. .not.nc%hasVariable("lake_gw_storage")) then
+        log_fatal(*) "mLM process 1 restart is missing one or more lake states: ", self%restart_input_path
+        error stop 1
+      end if
+      var = nc%getVariable("lake_level")
+      call var%getData(level)
+      var = nc%getVariable("lake_surface_area")
+      call var%getData(area)
+      var = nc%getVariable("lake_volume")
+      call var%getData(volume)
+      var = nc%getVariable("lake_gw_storage")
+      call var%getData(gw_storage)
+    end if
     call nc%close()
     if (size(ids, kind=i8) /= size(self%lake_ids, kind=i8) .or. size(values, kind=i8) /= size(ids, kind=i8)) then
       log_fatal(*) "mLM restart lake count does not match configured lakes."
       error stop 1
+    end if
+    if (is_case1) then
+      if (size(level, kind=i8) /= size(ids, kind=i8) .or. size(area, kind=i8) /= size(ids, kind=i8) .or. &
+          size(volume, kind=i8) /= size(ids, kind=i8) .or. size(gw_storage, kind=i8) /= size(ids, kind=i8)) then
+        log_fatal(*) "mLM restart lake states do not align with stable lake IDs."
+        error stop 1
+      end if
     end if
     do i = 1_i8, size(ids, kind=i8) - 1_i8
       if (any(ids(i + 1_i8:) == ids(i))) then
@@ -707,6 +812,12 @@ contains
         error stop 1
       end if
       self%outflow(i) = values(j)
+      if (is_case1) then
+        self%lake_level(i) = level(j)
+        self%lake_surface_area(i) = area(j)
+        self%lake_volume(i) = volume(j)
+        self%lake_gw_storage(i) = gw_storage(j)
+      end if
     end do
   end subroutine mlm_read_restart_state
 
