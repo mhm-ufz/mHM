@@ -41,6 +41,10 @@ add_test(
       -P ${CMAKE_CURRENT_SOURCE_DIR}/run_exchange_failures.cmake
 )
 
+add_executable(test_river_temperature test_river_temperature.f90)
+target_link_libraries(test_river_temperature PRIVATE ${LIB_NAME})
+add_test(NAME test_river_temperature COMMAND test_river_temperature)
+
 add_executable(test_parameter_reinitialize test_parameter_reinitialize.f90)
 target_link_libraries(test_parameter_reinitialize PRIVATE ${LIB_NAME})
 add_test(NAME test_parameter_reinitialize COMMAND test_parameter_reinitialize)
