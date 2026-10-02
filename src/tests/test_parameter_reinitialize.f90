@@ -89,7 +89,7 @@ program test_parameter_reinitialize
   call routing_domain%destroy()
   call assert_true(.not.associated(routing_domain%exchange%discharge%data), "destroy kept mRM publication")
   call assert_true(.not.allocated(routing_domain%mrm%celerity), "destroy kept mRM state")
-  call assert_true(.not.allocated(routing_domain%mrm%router%discharge), "destroy kept router state")
+  call assert_true(.not.allocated(routing_domain%mrm%flow_state%discharge), "destroy kept router state")
   call assert_true(.not.allocated(routing_domain%mrm%level3%mask), "destroy kept mRM grid")
   call assert_true(.not.allocated(routing_domain%mrm%river%order%id), "destroy kept river order")
   call assert_true(.not.associated(routing_domain%mrm%router%river), "destroy kept router river reference")
