@@ -17,6 +17,8 @@
 !! This code is released under the LGPLv3+ license \license_note
 module mo_river
 
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+  use mo_netcdf_wrapper, only: ncw_redef, ncw_enddef, NCW_NOERR, ncw_strerror
   use mo_kind,   only: i1, i2, i4, i8, sp, dp
   use mo_dag, only: branching, order_t, traversal_visit
   use mo_grid, only: grid_t, bottom_up, cartesian, dist_latlon
@@ -90,6 +92,9 @@ module mo_river
     procedure, public :: calc_length => river_length
     procedure, public :: calc_slope => river_slope
     procedure, public :: calc_celerity => river_celerity
+    procedure, public :: estimate_width => river_estimate_width
+    procedure, public :: calc_surface_area => river_surface_area
+    procedure, public :: write_estimated_width_diagnostic => river_write_estimated_width_diagnostic
     generic, public :: select_cell_values => river_select_cell_values_dp, river_select_cell_values_i4
     procedure, private :: river_select_cell_values_dp, river_select_cell_values_i4
     procedure, public :: export => river_export
@@ -1058,6 +1063,65 @@ contains
       !$omp end parallel do
     end if
   end function river_select_cell_values_i4
+
+  !> \brief Estimate L0 width from physical upstream area without retaining a parameter-dependent field.
+  subroutine river_estimate_width(this, width_ref, width)
+    class(river_t), intent(inout), target :: this !< L0 river with physical upstream areas.
+    real(dp), intent(in) :: width_ref !< Width at 100 km2 upstream area [m].
+    real(dp), allocatable, intent(out) :: width(:) !< Estimated L0 width [m].
+    if (.not.allocated(this%upstream_area)) call this%calc_upstream_area()
+    if (width_ref <= 0.0_dp .or. .not.ieee_is_finite(width_ref)) &
+      call error_message("river width requires a positive finite width_ref")
+    if (size(this%upstream_area, kind=i8) /= this%n_nodes) &
+      call error_message("river width requires one upstream area per L0 node")
+    if (any(this%upstream_area <= 0.0_dp) .or. .not.all(ieee_is_finite(this%upstream_area))) &
+      call error_message("river width requires positive finite L0 upstream areas")
+    width = width_ref * sqrt(this%upstream_area / 1.0e8_dp)
+  end subroutine river_estimate_width
+
+  !> \brief Physical area for the equal-grid routing case, with zero area at sinks.
+  subroutine river_surface_area(this, width_ref, area)
+    class(river_t), intent(inout), target :: this !< L0 river in the equal-grid routing case.
+    real(dp), intent(in) :: width_ref !< Width at 100 km2 upstream area [m].
+    real(dp), allocatable, intent(out) :: area(:) !< Physical area of each outgoing link [m2].
+    real(dp), allocatable :: width(:)
+    if (.not.allocated(this%link_length)) call error_message("river surface area requires physical L0 link lengths")
+    call this%estimate_width(width_ref, width)
+    area = this%link_length * width
+    where (this%is_sink) area = 0.0_dp
+  end subroutine river_surface_area
+
+  !> \brief Add or update estimated L0 width in an existing river diagnostics file.
+  subroutine river_write_estimated_width_diagnostic(this, path, width)
+    class(river_t), intent(in), target :: this !< L0 river providing diagnostic grid support.
+    character(*), intent(in) :: path !< Existing river diagnostics file.
+    real(dp), intent(in) :: width(:) !< Estimated width per L0 river cell [m].
+    type(NcDataset) :: nc
+    type(NcVariable) :: width_var
+    real(dp), allocatable :: width_grid(:,:)
+    integer(i4) :: status
+    if (this%scc .or. size(width, kind=i8) /= this%grid%ncells) &
+      call error_message("river width diagnostics require one width per L0 cell")
+    allocate(width_grid(this%grid%nx, this%grid%ny))
+    call this%grid%unpack_into(width, width_grid)
+    nc = NcDataset(path, "a")
+    if (nc%hasVariable("estimated_width")) then
+      width_var = nc%getVariable("estimated_width")
+    else
+      status = ncw_redef(nc%id)
+      if (status /= NCW_NOERR) call error_message("river width diagnostics: " // ncw_strerror(status))
+      width_var = nc%setVariable("estimated_width", "f64", &
+        [nc%getDimension("x"), nc%getDimension("y")])
+      call width_var%setAttribute("long_name", "estimated L0 river width")
+      call width_var%setAttribute("units", "m")
+      call width_var%setFillValue(nodata_dp)
+      call width_var%setAttribute("missing_value", nodata_dp)
+      status = ncw_enddef(nc%id)
+      if (status /= NCW_NOERR) call error_message("river width diagnostics: " // ncw_strerror(status))
+    end if
+    call width_var%setData(width_grid)
+    call nc%close()
+  end subroutine river_write_estimated_width_diagnostic
 
   !> \brief Export river arrays to netcdf
   !> \authors Sebastian Mueller, Pallav Shrestha
