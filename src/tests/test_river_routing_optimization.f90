@@ -8,6 +8,7 @@ program test_river_routing_optimization
   use mo_grid_scaler, only: scaler_t, up_a_mean, up_sum, down_nearest, down_scaling
   use mo_river, only: river_t, sink, d8_E
   use mo_river_router, only: river_router_t
+  use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_river_flow, only: river_flow_state_t, river_flow_t
   use mo_river_tools, only: river_muskingum_state_t
   use mo_river_temperature, only: river_thermal_t, river_thermal_state_t, water_heat_capacity_volume
@@ -24,6 +25,7 @@ program test_river_routing_optimization
   call check_level_worksharing()
   call check_accumulation_cadence()
   call check_flow_completion()
+  call check_restart_flux_policy()
   call check_shared_node_map()
   call check_sealed_fraction()
 contains
@@ -373,7 +375,7 @@ contains
     call river%calc_order(root=.false.,sort=.true.)
     n_levels = river%order%n_levels
     call state%allocate(river%n_nodes,1_i4)
-    call processor%init(river,3_i8,3_i8,.false.,.false.,lake_nodes=[2_i8])
+    call processor%init(state,river,3_i8,3_i8,.false.,.false.,lake_nodes=[2_i8])
     call muskingum%allocate(river%n_nodes)
     muskingum%nu1 = 1.0_dp
     muskingum%nu2 = 1.0_dp
@@ -407,6 +409,94 @@ contains
     call muskingum%destroy()
     call river%destroy()
   end subroutine check_flow_completion
+
+  !> \brief Restore or discard both quantities' histories, preserving thermal definition and published targets.
+  subroutine check_restart_flux_policy()
+    type(grid_t), target :: grid
+    type(grid_t), pointer :: grid_ptr
+    type(river_t), target :: river
+    type(river_t), pointer :: river_ptr
+    type(river_router_t) :: router
+    type(river_flow_state_t), target :: flow
+    type(river_flow_state_t) :: saved_flow
+    type(river_thermal_state_t), target :: thermal
+    type(river_thermal_state_t) :: saved_thermal
+    type(NcDataset) :: nc
+    type(NcVariable) :: var
+    type(NcDimension) :: node_dim, parameter_dim, dims(0)
+    real(dp), pointer :: energy_target(:), temperature_target(:)
+    real(dp) :: input(2), depth(2), air(2), sw(2), lw(2)
+    logical :: completed
+    integer :: file_unit
+    character(*), parameter :: file = 'test_river_restart_policy.nc'
+
+    call grid%init(2_i4,1_i4,cellsize=2000.0_dp)
+    grid_ptr => grid
+    call river%from_fdir([d8_E,sink],grid_ptr)
+    river_ptr => river
+    call flow%allocate(river%n_nodes)
+    call thermal%allocate(river%n_nodes)
+    thermal%active = .true.
+    thermal%parameters = [10.0_dp,0.08_dp,1.26_dp,0.98_dp,20.0_dp]
+    thermal%area = [50.0_dp,0.0_dp]
+    call router%init(river_ptr,flow,thermal,[1.0_dp,1.0_dp],grid_ptr,omp_level_thresh=0_i8)
+    input = [0.1_dp,0.2_dp]
+    depth = input*285.0_dp
+    air = 10.0_dp
+    sw = 150.0_dp
+    lw = 300.0_dp
+    call router%update(input,flow,thermal,completed,temperature_depth=depth, &
+      air_temperature=air,shortwave=sw,longwave=lw)
+    saved_flow = flow
+    saved_thermal = thermal
+    energy_target => thermal%energy_flux
+    temperature_target => thermal%temperature
+    call router%to_restart_file(file,flow,thermal)
+
+    ! The default policy restores both quantities using the established restart variable names.
+    call router%from_restart_file(file,river_ptr,flow,thermal,grid_ptr,omp_level_thresh=0_i8)
+    call assert_true(all(flow%previous_input==saved_flow%previous_input) .and. all(flow%previous_routed==saved_flow%previous_routed),'default restart restores flow histories')
+    call assert_true(all(thermal%previous_input==saved_thermal%previous_input) .and. all(thermal%previous_routed==saved_thermal%previous_routed),'default restart restores energy histories')
+    call assert_true(all(thermal%energy_flux==saved_thermal%energy_flux) .and. all(thermal%temperature==saved_thermal%temperature),'default restart restores thermal publications')
+    thermal%current_input = 123.0_dp
+    thermal%current_routed = 123.0_dp
+    call router%from_restart_file(file,river_ptr,flow,thermal,grid_ptr,read_fluxes=.false.,omp_level_thresh=0_i8)
+    call assert_true(all(flow%previous_input==0.0_dp) .and. all(flow%previous_routed==0.0_dp),'disabled restart fluxes reset flow histories')
+    call assert_true(all(thermal%previous_input==0.0_dp) .and. all(thermal%previous_routed==0.0_dp),'disabled restart fluxes reset energy histories')
+    call assert_true(all(thermal%current_input==0.0_dp) .and. all(thermal%current_routed==0.0_dp),'disabled restart fluxes reset current thermal buffers')
+    call assert_true(all(thermal%energy_flux==0.0_dp) .and. all(thermal%temperature==nodata_dp),'disabled restart fluxes reset thermal publications')
+    call assert_true(thermal%active .and. all(thermal%area==saved_thermal%area) .and. all(thermal%parameters==saved_thermal%parameters),'disabled restart fluxes preserve thermal definition')
+    call assert_true(associated(energy_target,thermal%energy_flux) .and. associated(temperature_target,thermal%temperature),'restart initialization preserves thermal publication targets')
+    call router%update(input,flow,thermal,completed,temperature_depth=depth, &
+      air_temperature=air,shortwave=sw,longwave=lw)
+    call assert_true(all(flow%discharge==saved_flow%discharge),'disabled restart fluxes reproduce cold-start discharge')
+    call assert_true(all(abs(thermal%energy_flux-saved_thermal%energy_flux)<1.e-3_dp) .and. all(abs(thermal%temperature-saved_thermal%temperature)<1.e-6_dp),'disabled restart fluxes reproduce cold-start thermal solution')
+
+    ! A definition-only restart need not contain discarded flux histories or publications.
+    nc = NcDataset(file,'w')
+    node_dim = nc%setDimension('node',2_i4)
+    parameter_dim = nc%setDimension('thermal_parameter',5_i4)
+    var = nc%setVariable('nu1','f64',[node_dim]); call var%setData(router%muskingum%nu1)
+    var = nc%setVariable('nu2','f64',[node_dim]); call var%setData(router%muskingum%nu2)
+    var = nc%setVariable('route_step','f64',dims); call var%setData(router%muskingum%routing_substep)
+    var = nc%setVariable('thermal_parameters','f64',[parameter_dim]); call var%setData(thermal%parameters)
+    var = nc%setVariable('thermal_surface_area','f64',[node_dim]); call var%setData(thermal%area)
+    call nc%close()
+    call router%from_restart_file(file,river_ptr,flow,thermal,grid_ptr,read_fluxes=.false.,omp_level_thresh=0_i8)
+    call assert_true(all(thermal%energy_flux==0.0_dp) .and. all(thermal%temperature==nodata_dp),'definition-only restart accepts disabled flux loading')
+    thermal%active = .false.
+    call router%from_restart_file(file,river_ptr,flow,thermal,grid_ptr,omp_level_thresh=0_i8)
+    call assert_true(all(flow%previous_input==0.0_dp) .and. all(flow%previous_routed==0.0_dp),'older restart with missing flow histories still initializes cold')
+    nullify(energy_target,temperature_target)
+    call router%destroy()
+    call flow%destroy()
+    call saved_flow%destroy()
+    call thermal%destroy()
+    call saved_thermal%destroy()
+    call river%destroy()
+    open(newunit=file_unit,file=file,status='old')
+    close(file_unit,status='delete')
+  end subroutine check_restart_flux_policy
 
   !> \brief Check router-owned land-cell mapping, flow use, and rebuilding with different runoff support.
   subroutine check_shared_node_map()

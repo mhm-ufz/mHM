@@ -14,11 +14,13 @@
 !! This code is released under the LGPLv3+ license \license_note
 module mo_river_flow
   use mo_kind, only: i4, i8, dp
+  use mo_constants, only: nodata_dp
+  use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_river, only: river_t
   use mo_river_tools, only: river_muskingum_state_t, river_depth_to_flux
   use mo_grid, only: grid_t
   use mo_grid_scaler, only: scaler_t
-  use mo_message, only: error_message
+  use mo_message, only: error_message, message
   use mo_utils, only: optval
   implicit none
   private
@@ -55,6 +57,7 @@ module mo_river_flow
     integer(i4), allocatable :: lake_index(:) !< Canonical lake index for each node.
   contains
     procedure :: init => river_flow_init
+    procedure :: to_restart_dataset => river_flow_to_restart_dataset
     procedure :: destroy => river_flow_destroy
     procedure :: accumulate => river_flow_accumulate
     procedure :: prepare => river_flow_prepare
@@ -99,9 +102,10 @@ contains
     if (allocated(self%lake_inflow)) deallocate(self%lake_inflow)
   end subroutine river_flow_state_destroy
 
-  !> \brief Allocate runoff scratch and build the optional canonical lake map.
-  subroutine river_flow_init(self, river, input_cells, runoff_cells, scc, needs_scale_work, lake_nodes, input_grid)
+  !> \brief Initialize flow histories and scratch, optionally restoring previous fluxes from restart.
+  subroutine river_flow_init(self, state, river, input_cells, runoff_cells, scc, needs_scale_work, lake_nodes, input_grid, nc, read_fluxes)
     class(river_flow_t), intent(inout), target :: self !< Flow processor to initialize.
+    type(river_flow_state_t), intent(inout), target :: state !< mRM-owned flow state.
     type(river_t), intent(in), target :: river !< Routing network.
     integer(i8), intent(in) :: input_cells !< L1 active cells.
     integer(i8), intent(in) :: runoff_cells !< L3 runoff support cells.
@@ -109,10 +113,34 @@ contains
     logical, intent(in) :: needs_scale_work !< Whether upscaling requires an L1 volume buffer.
     integer(i8), optional, intent(in) :: lake_nodes(:) !< Canonical lake nodes in point-set order.
     type(grid_t), optional, intent(in) :: input_grid !< L1 support for the unpacked scaling workspace.
+    type(NcDataset), intent(in), optional :: nc !< Open restart dataset replacing fresh flow histories.
+    logical, intent(in), optional :: read_fluxes !< Restore previous fluxes; false resets them (default true).
+    type(NcVariable) :: var
     integer(i8) :: n
 
     call self%destroy()
     self%river => river
+    if (.not.allocated(state%current_input)) call error_message("river_flow: mRM-owned flow state is not allocated")
+    if (size(state%current_input, kind=i8) /= river%n_nodes) &
+      call error_message("river_flow: flow state does not match the river network")
+    ! Current buffers are overwritten on the next substep; histories start cold unless explicitly restored.
+    state%current_input = 0.0_dp
+    state%current_routed = 0.0_dp
+    state%previous_input = 0.0_dp
+    state%previous_routed = 0.0_dp
+    if (present(nc)) then
+      if (optval(read_fluxes, .true.)) then
+        ! Preserve compatibility with older restarts that omitted either history.
+        if (nc%hasVariable("previous_discharge")) then
+          var = nc%getVariable("previous_discharge")
+          call var%readInto(state%previous_input)
+        end if
+        if (nc%hasVariable("previous_tributary")) then
+          var = nc%getVariable("previous_tributary")
+          call var%readInto(state%previous_routed)
+        end if
+      end if
+    end if
     allocate(self%acc_runoff(input_cells), self%runoff(river%n_nodes), self%sum_discharge(river%n_nodes))
     if (scc) allocate(self%scaled_flux(runoff_cells))
     if (needs_scale_work) then
@@ -137,6 +165,39 @@ contains
       end if
     end if
   end subroutine river_flow_init
+
+  !> \brief Persist flow histories using the existing restart variable names and metadata.
+  subroutine river_flow_to_restart_dataset(self, state, nc, node_dim)
+    class(river_flow_t), intent(in), target :: self !< Flow processor.
+    type(river_flow_state_t), intent(in), target :: state !< mRM-owned flow histories.
+    type(NcDataset), intent(inout) :: nc !< Open restart dataset.
+    type(NcDimension), intent(in) :: node_dim !< River node dimension.
+    type(NcVariable) :: nc_var
+
+    ! Write only the previous arrays: the current arrays are scratch buffers that
+    ! are overwritten before they are read by the next routing calculation.
+    if ( allocated(state%previous_input) ) then
+      call message("writing previous_discharge to restart_file")
+      nc_var = nc%setVariable("previous_discharge", "f64", [node_dim])
+      call nc_var%setAttribute("long_name", "previous_discharge")
+      call nc_var%setAttribute("units", "m3 s-1")
+      call nc_var%setFillValue(nodata_dp)
+      call nc_var%setAttribute("missing_value", nodata_dp)
+      call nc_var%setData(state%previous_input)
+    end if
+
+    ! write previous_tributary
+    if ( allocated(state%previous_routed) ) then
+      call message("writing previous_tributary to restart_file")
+      nc_var = nc%setVariable("previous_tributary", "f64", [node_dim])
+      call nc_var%setAttribute("long_name", "previous_tributary")
+      call nc_var%setAttribute("units", "m3 s-1")
+      call nc_var%setFillValue(nodata_dp)
+      call nc_var%setAttribute("missing_value", nodata_dp)
+      call nc_var%setData(state%previous_routed)
+    end if
+
+  end subroutine river_flow_to_restart_dataset
 
   !> \brief Release all router-owned flow scratch.
   subroutine river_flow_destroy(self)

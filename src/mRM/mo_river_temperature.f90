@@ -219,14 +219,15 @@ contains
   end subroutine river_thermal_state_destroy
 
   !> \brief Initialize scratch from prepared state parameters and area, optionally restoring restart histories.
-  subroutine river_thermal_init(self, state, river, input_grid, runoff_cells, needs_scale_work, nc)
+  subroutine river_thermal_init(self, state, river, input_grid, runoff_cells, needs_scale_work, nc, read_fluxes)
     class(river_thermal_t), intent(inout), target :: self !< Thermal processor.
     type(river_thermal_state_t), intent(inout), target :: state !< mRM-owned thermal state.
     type(river_t), intent(in), target :: river !< Routing network.
     type(grid_t), pointer, intent(in) :: input_grid !< L1 forcing grid.
     integer(i8), intent(in) :: runoff_cells !< Cells on L3 runoff support.
     logical, intent(in) :: needs_scale_work !< Whether runoff upscaling needs an L1 buffer.
-    type(NcDataset), intent(in), optional :: nc !< Open restart dataset replacing fresh state histories.
+    type(NcDataset), intent(in), optional :: nc !< Open restart dataset providing geometry and optional flux histories.
+    logical, intent(in), optional :: read_fluxes !< Restore energy histories and publications; false resets them (default true).
     type(NcVariable) :: var
     real(dp) :: saved_parameters(5)
     integer(i8) :: n
@@ -257,20 +258,31 @@ contains
     state%pt = state%parameters(3)
     state%emissivity = state%parameters(4)
     state%kh = state%parameters(5)
+    ! Reset fluxes in place even when geometry/parameters are restored; keep exchange targets stable.
+    state%current_input = 0.0_dp
+    state%current_routed = 0.0_dp
+    state%previous_input = 0.0_dp
+    state%previous_routed = 0.0_dp
+    state%energy_flux = 0.0_dp
+    state%temperature = nodata_dp
     if (present(nc)) then
-      if (.not.nc%hasVariable("thermal_parameters") .or. .not.nc%hasVariable("thermal_surface_area") .or. &
-          .not.nc%hasVariable("thermal_previous_input") .or. &
-          .not.nc%hasVariable("thermal_previous_routed") .or. .not.nc%hasVariable("thermal_energy_flux") .or. &
-          .not.nc%hasVariable("thermal_temperature")) &
-        call error_message("river_router: temperature restart state is incomplete")
+      ! Static thermal definition is required independently of the restart-flux policy.
+      if (.not.nc%hasVariable("thermal_parameters") .or. .not.nc%hasVariable("thermal_surface_area")) &
+        call error_message("river_router: temperature restart definition is incomplete")
       var = nc%getVariable("thermal_parameters"); call var%readInto(saved_parameters)
       if (any(abs(saved_parameters - state%parameters) > 1.0e-12_dp)) &
         call error_message("river_router: temperature parameters differ from restart")
       var = nc%getVariable("thermal_surface_area"); call var%readInto(state%area)
-      var = nc%getVariable("thermal_previous_input"); call var%readInto(state%previous_input)
-      var = nc%getVariable("thermal_previous_routed"); call var%readInto(state%previous_routed)
-      var = nc%getVariable("thermal_energy_flux"); call var%readInto(state%energy_flux)
-      var = nc%getVariable("thermal_temperature"); call var%readInto(state%temperature)
+      if (optval(read_fluxes, .true.)) then
+        if (.not.nc%hasVariable("thermal_previous_input") .or. &
+            .not.nc%hasVariable("thermal_previous_routed") .or. .not.nc%hasVariable("thermal_energy_flux") .or. &
+            .not.nc%hasVariable("thermal_temperature")) &
+          call error_message("river_router: temperature restart state is incomplete")
+        var = nc%getVariable("thermal_previous_input"); call var%readInto(state%previous_input)
+        var = nc%getVariable("thermal_previous_routed"); call var%readInto(state%previous_routed)
+        var = nc%getVariable("thermal_energy_flux"); call var%readInto(state%energy_flux)
+        var = nc%getVariable("thermal_temperature"); call var%readInto(state%temperature)
+      end if
     end if
     if (any(state%area < 0.0_dp)) call error_message("river_router: negative river surface area")
     call self%forcing%init(river, state%albedo, state%pt, state%emissivity)

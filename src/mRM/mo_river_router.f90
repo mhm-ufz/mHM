@@ -137,15 +137,9 @@ contains
     input_step_ = optval(input_step, 1_i4)
     model_step_ = optval(model_step, input_step_)
     call this%setup_grids(river, input_grid, input_step_, runoff_grid)
-    call this%flow%init(this%river, this%input_grid%ncells, &
+    call this%flow%init(flow_state, this%river, this%input_grid%ncells, &
       this%runoff_grid%ncells, this%river%scc, this%scaler%scaling_mode /= down_scaling, &
       lake_nodes, input_grid=this%input_grid)
-
-    ! initial states
-    flow_state%current_input(:) = 0.0_dp
-    flow_state%previous_input(:) = 0.0_dp
-    flow_state%current_routed(:) = 0.0_dp
-    flow_state%previous_routed(:) = 0.0_dp
 
     ! setup muskingum parameters
     if (.not.allocated(this%river%link_length)) call error_message("river_router: link_length not available")
@@ -213,43 +207,15 @@ contains
     integer(i8), optional, intent(in) :: lake_nodes(:) !< canonical lake nodes in point-set order
 
     type(NcVariable) :: var
-    logical :: do_read_fluxes
     integer(i4) :: model_step_, input_step_
-
-    do_read_fluxes = optval(read_fluxes, .true.)
 
     input_step_ = optval(input_step, 1_i4)
     model_step_ = optval(model_step, input_step_)
     call this%setup_grids(river, input_grid, input_step_, runoff_grid)
-    call this%flow%init(this%river, this%input_grid%ncells, &
+    call this%flow%init(flow_state, this%river, this%input_grid%ncells, &
       this%runoff_grid%ncells, this%river%scc, this%scaler%scaling_mode /= down_scaling, &
-      lake_nodes, input_grid=this%input_grid)
+      lake_nodes, input_grid=this%input_grid, nc=nc, read_fluxes=read_fluxes)
     call this%muskingum%allocate(this%river%n_nodes)
-
-    ! initial states
-
-    ! Current arrays are scratch buffers overwritten by the next routing calculation.
-    flow_state%current_input(:) = 0.0_dp
-
-    ! get previous discharge
-    if (do_read_fluxes .and. nc%hasVariable("previous_discharge")) then
-      var = nc%getVariable("previous_discharge")
-      call var%readInto(flow_state%previous_input)
-    else
-      ! TODO: warn about this
-      flow_state%previous_input(:) = 0.0_dp
-    end if
-
-    flow_state%current_routed(:) = 0.0_dp
-
-    ! get previous tributary
-    if (do_read_fluxes .and. nc%hasVariable("previous_tributary")) then
-      var = nc%getVariable("previous_tributary")
-      call var%readInto(flow_state%previous_routed)
-    else
-      ! TODO: warn about this
-      flow_state%previous_routed(:) = 0.0_dp
-    end if
 
     ! get muskingum parameter nu1
     if (nc%hasVariable("nu1")) then
@@ -295,7 +261,7 @@ contains
     if (thermal_state%active) then
       if (this%flow%lake_routing) call error_message("river_router: temperature routing needs a lake outflow water temperature")
       call this%thermal%init(thermal_state, this%river, this%input_grid, this%runoff_grid%ncells, &
-        this%scaler%scaling_mode /= down_scaling, nc)
+        this%scaler%scaling_mode /= down_scaling, nc, read_fluxes)
     else
       call this%thermal%destroy()
     end if
@@ -340,28 +306,7 @@ contains
       node_dim = nc%getDimension("node")
     end if
 
-    ! Write only the previous arrays: the current arrays are scratch buffers that
-    ! are overwritten before they are read by the next routing calculation.
-    if ( allocated(flow_state%previous_input) ) then
-      call message("writing previous_discharge to restart_file")
-      nc_var = nc%setVariable("previous_discharge", "f64", [node_dim])
-      call nc_var%setAttribute("long_name", "previous_discharge")
-      call nc_var%setAttribute("units", "m3 s-1")
-      call nc_var%setFillValue(nodata_dp)
-      call nc_var%setAttribute("missing_value", nodata_dp)
-      call nc_var%setData(flow_state%previous_input)
-    end if
-
-    ! write previous_tributary
-    if ( allocated(flow_state%previous_routed) ) then
-      call message("writing previous_tributary to restart_file")
-      nc_var = nc%setVariable("previous_tributary", "f64", [node_dim])
-      call nc_var%setAttribute("long_name", "previous_tributary")
-      call nc_var%setAttribute("units", "m3 s-1")
-      call nc_var%setFillValue(nodata_dp)
-      call nc_var%setAttribute("missing_value", nodata_dp)
-      call nc_var%setData(flow_state%previous_routed)
-    end if
+    call this%flow%to_restart_dataset(flow_state, nc, node_dim)
 
     ! write muskingum parameter nu1
     if ( allocated(this%muskingum%nu1) ) then
@@ -504,17 +449,13 @@ contains
 
         if (parallel) then
           ! Each processor completes the level before the next dependent processor starts.
-          call this%flow%route_nodes(i, last, flow_state, &
-            this%muskingum, lake_outflow, parallel=.true.)
-          if (thermal_state%active) call this%thermal%route_nodes(i, last, &
-            flow_state, thermal_state, this%muskingum, parallel=.true.)
+          call this%flow%route_nodes(i, last, flow_state, this%muskingum, lake_outflow, parallel=.true.)
+          if (thermal_state%active) call this%thermal%route_nodes(i, last, flow_state, thermal_state, this%muskingum, parallel=.true.)
         else
           ! One thread processes the complete serial group in topological order.
           !$omp single
-          call this%flow%route_nodes(i, last, flow_state, &
-            this%muskingum, lake_outflow)
-          if (thermal_state%active) call this%thermal%route_nodes(i, last, &
-            flow_state, thermal_state, this%muskingum)
+          call this%flow%route_nodes(i, last, flow_state, this%muskingum, lake_outflow)
+          if (thermal_state%active) call this%thermal%route_nodes(i, last, flow_state, thermal_state, this%muskingum)
           !$omp end single
         end if
         i = last + 1_i8
@@ -528,10 +469,8 @@ contains
       do while (this%serial_level_end(i) < n_levels)
         i = this%serial_level_end(i) + 1_i8
       end do
-      call this%flow%route_nodes(i, n_levels, flow_state, &
-        this%muskingum, lake_outflow)
-      if (thermal_state%active) call this%thermal%route_nodes(i, n_levels, &
-        flow_state, thermal_state, this%muskingum)
+      call this%flow%route_nodes(i, n_levels, flow_state, this%muskingum, lake_outflow)
+      if (thermal_state%active) call this%thermal%route_nodes(i, n_levels, flow_state, thermal_state, this%muskingum)
     end if
   end subroutine river_router_route
 
