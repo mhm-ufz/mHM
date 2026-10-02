@@ -20,7 +20,7 @@ module mo_river_router
   use mo_grid_scaler, only: scaler_t, up_sum, down_nearest, down_scaling
   use mo_message, only: error_message, warn_message, message
   use mo_river_temperature, only: river_thermal_t, river_thermal_state_t
-  use mo_river_flow, only: river_flow_t, river_discharge_state_t
+  use mo_river_flow, only: river_flow_t, river_flow_state_t
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
 
   implicit none
@@ -119,7 +119,7 @@ contains
     implicit none
     class(river_router_t), intent(inout), target :: this !< Router coordinating routing work.
     type(river_t), pointer, intent(in) :: river !< river definition
-    type(river_discharge_state_t), intent(inout), target :: flow_state !< mRM-owned discharge histories.
+    type(river_flow_state_t), intent(inout), target :: flow_state !< mRM-owned discharge histories.
     type(river_thermal_state_t), intent(inout), target :: thermal_state !< mRM-owned thermal state and activation policy.
     real(dp), intent(in) :: celerity(:) !< celerity of the link starting at each river node
     type(grid_t), pointer, intent(in) :: input_grid !< input grid
@@ -142,10 +142,10 @@ contains
       lake_nodes, input_grid=this%input_grid)
 
     ! initial states
-    flow_state%discharge(:) = 0.0_dp
-    flow_state%previous_discharge(:) = 0.0_dp
-    flow_state%tributary(:) = 0.0_dp
-    flow_state%previous_tributary(:) = 0.0_dp
+    flow_state%current_input(:) = 0.0_dp
+    flow_state%previous_input(:) = 0.0_dp
+    flow_state%current_routed(:) = 0.0_dp
+    flow_state%previous_routed(:) = 0.0_dp
 
     ! setup muskingum parameters
     if (.not.allocated(this%river%link_length)) call error_message("river_router: link_length not available")
@@ -171,7 +171,7 @@ contains
     class(river_router_t), intent(inout), target :: this !< Router coordinating routing work.
     character(*), intent(in) :: path !< NetCDF file path
     type(river_t), pointer, intent(in) :: river !< river definition
-    type(river_discharge_state_t), intent(inout), target :: flow_state !< mRM-owned discharge histories.
+    type(river_flow_state_t), intent(inout), target :: flow_state !< mRM-owned discharge histories.
     type(river_thermal_state_t), intent(inout), target :: thermal_state !< mRM-owned thermal state and activation policy.
     type(grid_t), pointer, intent(in) :: input_grid !< input grid
     integer(i4), intent(in), optional :: input_step !< [h] input time step size (1 by default)
@@ -199,7 +199,7 @@ contains
     class(river_router_t), intent(inout), target :: this !< Router coordinating routing work.
     type(NcDataset), intent(in) :: nc !< restart dataset
     type(river_t), pointer, intent(in) :: river !< river definition
-    type(river_discharge_state_t), intent(inout), target :: flow_state !< mRM-owned discharge histories.
+    type(river_flow_state_t), intent(inout), target :: flow_state !< mRM-owned discharge histories.
     type(river_thermal_state_t), intent(inout), target :: thermal_state !< mRM-owned thermal state and activation policy.
     type(grid_t), pointer, intent(in) :: input_grid !< input grid
     integer(i4), intent(in), optional :: input_step !< [h] input time step size (1 by default)
@@ -229,26 +229,26 @@ contains
     ! initial states
 
     ! Current arrays are scratch buffers overwritten by the next routing calculation.
-    flow_state%discharge(:) = 0.0_dp
+    flow_state%current_input(:) = 0.0_dp
 
     ! get previous discharge
     if (do_read_fluxes .and. nc%hasVariable("previous_discharge")) then
       var = nc%getVariable("previous_discharge")
-      call var%readInto(flow_state%previous_discharge)
+      call var%readInto(flow_state%previous_input)
     else
       ! TODO: warn about this
-      flow_state%previous_discharge(:) = 0.0_dp
+      flow_state%previous_input(:) = 0.0_dp
     end if
 
-    flow_state%tributary(:) = 0.0_dp
+    flow_state%current_routed(:) = 0.0_dp
 
     ! get previous tributary
     if (do_read_fluxes .and. nc%hasVariable("previous_tributary")) then
       var = nc%getVariable("previous_tributary")
-      call var%readInto(flow_state%previous_tributary)
+      call var%readInto(flow_state%previous_routed)
     else
       ! TODO: warn about this
-      flow_state%previous_tributary(:) = 0.0_dp
+      flow_state%previous_routed(:) = 0.0_dp
     end if
 
     ! get muskingum parameter nu1
@@ -307,7 +307,7 @@ contains
     implicit none
     class(river_router_t), intent(in), target :: this !< Initialized router.
     character(*), intent(in) :: path !< NetCDF file path
-    type(river_discharge_state_t), intent(in), target :: flow_state !< mRM-owned discharge histories.
+    type(river_flow_state_t), intent(in), target :: flow_state !< mRM-owned discharge histories.
     type(river_thermal_state_t), intent(in), target :: thermal_state !< mRM-owned thermal histories.
     logical, optional, intent(in) :: append !< whether NetCDF file should be opened in append mode (default .false.)
     type(NcDataset) :: nc
@@ -325,7 +325,7 @@ contains
     implicit none
     class(river_router_t), intent(in), target :: this !< Initialized router.
     type(NcDataset), intent(inout) :: nc !< restart dataset
-    type(river_discharge_state_t), intent(in), target :: flow_state !< mRM-owned discharge histories.
+    type(river_flow_state_t), intent(in), target :: flow_state !< mRM-owned discharge histories.
     type(river_thermal_state_t), intent(in), target :: thermal_state !< mRM-owned thermal histories.
     type(NcVariable) :: nc_var
     type(NcDimension) :: node_dim, dims(0)
@@ -342,25 +342,25 @@ contains
 
     ! Write only the previous arrays: the current arrays are scratch buffers that
     ! are overwritten before they are read by the next routing calculation.
-    if ( allocated(flow_state%previous_discharge) ) then
+    if ( allocated(flow_state%previous_input) ) then
       call message("writing previous_discharge to restart_file")
       nc_var = nc%setVariable("previous_discharge", "f64", [node_dim])
       call nc_var%setAttribute("long_name", "previous_discharge")
       call nc_var%setAttribute("units", "m3 s-1")
       call nc_var%setFillValue(nodata_dp)
       call nc_var%setAttribute("missing_value", nodata_dp)
-      call nc_var%setData(flow_state%previous_discharge)
+      call nc_var%setData(flow_state%previous_input)
     end if
 
     ! write previous_tributary
-    if ( allocated(flow_state%previous_tributary) ) then
+    if ( allocated(flow_state%previous_routed) ) then
       call message("writing previous_tributary to restart_file")
       nc_var = nc%setVariable("previous_tributary", "f64", [node_dim])
       call nc_var%setAttribute("long_name", "previous_tributary")
       call nc_var%setAttribute("units", "m3 s-1")
       call nc_var%setFillValue(nodata_dp)
       call nc_var%setAttribute("missing_value", nodata_dp)
-      call nc_var%setData(flow_state%previous_tributary)
+      call nc_var%setData(flow_state%previous_routed)
     end if
 
     ! write muskingum parameter nu1
@@ -441,17 +441,15 @@ contains
   end subroutine river_router_setup_parallelization
 
   !> \brief Update routing for one time step
-  subroutine river_router_update(this, input_runoff, flow_state, thermal_state, discharge, completed, lake_outflow, lake_inflow, &
+  subroutine river_router_update(this, input_runoff, flow_state, thermal_state, completed, lake_outflow, &
     temperature_depth, air_temperature, shortwave, longwave)
     implicit none
     class(river_router_t), intent(inout), target :: this !< Router coordinating routing work.
     real(dp), dimension(this%input_grid%ncells), intent(in) :: input_runoff !< L1 runoff depth [mm].
-    type(river_discharge_state_t), intent(inout), target :: flow_state !< mRM-owned discharge histories.
+    type(river_flow_state_t), intent(inout), target :: flow_state !< mRM-owned discharge histories.
     type(river_thermal_state_t), intent(inout), target :: thermal_state !< mRM-owned thermal histories.
-    real(dp), dimension(this%river%n_nodes), intent(inout) :: discharge !< Completed mean discharge [m3 s-1].
     logical, intent(out) :: completed !< whether a new routing-step mean was produced
     real(dp), optional, intent(in) :: lake_outflow(:) !< prescribed lake outflow in point-set order [m3 s-1]
-    real(dp), optional, intent(out) :: lake_inflow(:) !< completed lake inflow in point-set order [m3 s-1]
     real(dp), optional, intent(in) :: temperature_depth(:) !< temperature-weighted runoff [K mm]
     real(dp), optional, intent(in) :: air_temperature(:) !< L1 air temperature [degC].
     real(dp), optional, intent(in) :: shortwave(:) !< L1 shortwave radiation [W m-2].
@@ -460,10 +458,10 @@ contains
     completed = .false.
     if (thermal_state%active) call this%thermal%accumulate(temperature_depth, air_temperature, shortwave, longwave)
     if (this%flow%lake_routing) then
-      if (.not.present(lake_outflow) .or. .not.present(lake_inflow)) then
+      if (.not.present(lake_outflow) .or. .not.allocated(flow_state%lake_inflow)) then
         call error_message("river_router: lake topology requires lake inflow and outflow arrays")
       end if
-      if (size(lake_outflow) /= this%flow%n_lakes .or. size(lake_inflow) /= this%flow%n_lakes) then
+      if (size(lake_outflow) /= this%flow%n_lakes .or. size(flow_state%lake_inflow) /= this%flow%n_lakes) then
         call error_message("river_router: lake flux array size does not match lake topology")
       end if
     end if
@@ -473,32 +471,23 @@ contains
     this%input_count = 0_i4
     call this%flow%prepare(this%scaler, this%muskingum, this%input_step, this%node_runoff_cell)
     if (thermal_state%active) call this%thermal%prepare(this%scaler, this%muskingum, this%input_step, this%node_runoff_cell)
-    ! route
-    if (this%flow%lake_routing) lake_inflow = 0.0_dp
+    ! Route every substep before publishing either completed mean.
     do i = 1_i4, this%muskingum%iterations
-      call this%route(flow_state, thermal_state, lake_outflow, lake_inflow)
-      if (i == 1_i4) then
-        discharge = flow_state%discharge
-      else
-        discharge = discharge + flow_state%discharge
-      end if
+      call this%route(flow_state, thermal_state, lake_outflow)
       call this%flow%advance(flow_state)
       if (thermal_state%active) call this%thermal%advance(thermal_state)
     end do
-    if (thermal_state%active) call this%thermal%complete(thermal_state, this%muskingum%iterations)
-    ! average discharge flux over output time step iterations
-    if (this%muskingum%iterations > 1_i4) discharge = discharge / this%muskingum%iterations
-    if (this%flow%lake_routing .and. this%muskingum%iterations > 1_i4) lake_inflow = lake_inflow / this%muskingum%iterations
+    call this%flow%complete(flow_state, this%muskingum)
+    if (thermal_state%active) call this%thermal%complete(thermal_state, this%muskingum)
     completed = .true.
   end subroutine river_router_update
 
   !> \brief Coordinate processor-owned static loops and synchronize completed DAG levels.
-  subroutine river_router_route(this, flow_state, thermal_state, lake_outflow, lake_inflow)
+  subroutine river_router_route(this, flow_state, thermal_state, lake_outflow)
     class(river_router_t), intent(inout), target :: this !< Router scheduling each DAG level.
-    type(river_discharge_state_t), intent(inout), target :: flow_state !< mRM-owned discharge histories.
+    type(river_flow_state_t), intent(inout), target :: flow_state !< mRM-owned discharge histories.
     type(river_thermal_state_t), intent(inout), target :: thermal_state !< mRM-owned thermal histories.
     real(dp), optional, intent(in) :: lake_outflow(:) !< Prescribed lake release [m3 s-1].
-    real(dp), optional, intent(inout) :: lake_inflow(:) !< Collected lake inflow [m3 s-1].
     integer(i8) :: i, last, n_levels
     logical :: parallel
 
@@ -516,14 +505,14 @@ contains
         if (parallel) then
           ! Each processor completes the level before the next dependent processor starts.
           call this%flow%route_nodes(i, last, flow_state, &
-            this%muskingum, lake_outflow, lake_inflow, parallel=.true.)
+            this%muskingum, lake_outflow, parallel=.true.)
           if (thermal_state%active) call this%thermal%route_nodes(i, last, &
             flow_state, thermal_state, this%muskingum, parallel=.true.)
         else
           ! One thread processes the complete serial group in topological order.
           !$omp single
           call this%flow%route_nodes(i, last, flow_state, &
-            this%muskingum, lake_outflow, lake_inflow)
+            this%muskingum, lake_outflow)
           if (thermal_state%active) call this%thermal%route_nodes(i, last, &
             flow_state, thermal_state, this%muskingum)
           !$omp end single
@@ -540,7 +529,7 @@ contains
         i = this%serial_level_end(i) + 1_i8
       end do
       call this%flow%route_nodes(i, n_levels, flow_state, &
-        this%muskingum, lake_outflow, lake_inflow)
+        this%muskingum, lake_outflow)
       if (thermal_state%active) call this%thermal%route_nodes(i, n_levels, &
         flow_state, thermal_state, this%muskingum)
     end if

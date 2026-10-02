@@ -45,6 +45,11 @@ add_executable(test_river_temperature test_river_temperature.f90)
 target_link_libraries(test_river_temperature PRIVATE ${LIB_NAME})
 add_test(NAME test_river_temperature COMMAND test_river_temperature)
 
+add_executable(test_river_routing_optimization test_river_routing_optimization.f90)
+target_link_libraries(test_river_routing_optimization PRIVATE ${LIB_NAME})
+add_test(NAME test_river_routing_optimization COMMAND test_river_routing_optimization)
+set_tests_properties(test_river_routing_optimization PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+
 add_test(
   NAME test_mrm_river_temperature
   COMMAND

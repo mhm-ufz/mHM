@@ -20,7 +20,7 @@ module mo_river_temperature
   use mo_pet, only: slope_satpressure
   use mo_river, only: river_t
   use mo_river_tools, only: river_muskingum_state_t, river_depth_to_flux
-  use mo_river_flow, only: river_discharge_state_t
+  use mo_river_flow, only: river_flow_state_t
   use mo_grid, only: grid_t
   use mo_grid_scaler, only: scaler_t, up_a_mean, down_nearest, down_scaling
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
@@ -53,6 +53,7 @@ module mo_river_temperature
     real(dp), allocatable :: temperature(:) !< Completed river temperature [degC].
   contains
     procedure :: allocate => river_thermal_state_allocate
+    procedure :: reset => river_thermal_state_reset
     procedure :: destroy => river_thermal_state_destroy
   end type river_thermal_state_t
 
@@ -188,14 +189,21 @@ contains
     allocate(self%area(n_nodes), self%previous_input(n_nodes), self%previous_routed(n_nodes), &
       self%current_input(n_nodes), self%current_routed(n_nodes), self%energy_flux(n_nodes), &
       self%temperature(n_nodes))
-    self%area = 0.0_dp
-    self%previous_input = 0.0_dp
-    self%previous_routed = 0.0_dp
-    self%current_input = 0.0_dp
-    self%current_routed = 0.0_dp
-    self%energy_flux = 0.0_dp
-    self%temperature = nodata_dp
+    call self%reset()
   end subroutine river_thermal_state_allocate
+
+  !> \brief Reset histories and completed outputs without replacing exchange targets.
+  subroutine river_thermal_state_reset(self)
+    class(river_thermal_state_t), intent(inout), target :: self !< Thermal state to reset in place.
+    self%active = .false.
+    if (allocated(self%area)) self%area = 0.0_dp
+    if (allocated(self%previous_input)) self%previous_input = 0.0_dp
+    if (allocated(self%previous_routed)) self%previous_routed = 0.0_dp
+    if (allocated(self%current_input)) self%current_input = 0.0_dp
+    if (allocated(self%current_routed)) self%current_routed = 0.0_dp
+    if (allocated(self%energy_flux)) self%energy_flux = 0.0_dp
+    if (allocated(self%temperature)) self%temperature = nodata_dp
+  end subroutine river_thermal_state_reset
 
   !> \brief Release mRM-owned thermal histories and published arrays.
   subroutine river_thermal_state_destroy(self)
@@ -410,14 +418,14 @@ contains
   end subroutine river_thermal_advance
 
   !> \brief Publish mean thermal power and its discharge-weighted temperature.
-  subroutine river_thermal_complete(self, state, iterations)
+  subroutine river_thermal_complete(self, state, muskingum)
     class(river_thermal_t), intent(in), target :: self !< Thermal processor.
     type(river_thermal_state_t), intent(inout), target :: state !< Thermal output state.
-    integer(i4), intent(in) :: iterations !< Numerical substeps in the completed interval.
+    type(river_muskingum_state_t), intent(in) :: muskingum !< Number of substeps in the completed interval.
     integer(i8) :: n
     !$omp simd
     do n = 1_i8, size(self%sum_energy, kind=i8)
-      state%energy_flux(n) = self%sum_energy(n) / iterations
+      state%energy_flux(n) = self%sum_energy(n) / muskingum%iterations
       if (self%sum_discharge(n) > 0.0_dp) then
         state%temperature(n) = self%sum_energy(n) / (water_heat_capacity_volume*self%sum_discharge(n)) - T0_dp
       else
@@ -432,7 +440,7 @@ contains
     class(river_thermal_t), intent(inout), target :: self !< Thermal processor with mapped forcing.
     integer(i8), intent(in) :: first !< First topological level to route.
     integer(i8), intent(in) :: last !< Last topological level to route.
-    type(river_discharge_state_t), intent(in), target :: flow !< Discharge already updated for this range.
+    type(river_flow_state_t), intent(in), target :: flow !< Discharge already updated for this range.
     type(river_thermal_state_t), intent(inout), target :: state !< Thermal histories to update.
     type(river_muskingum_state_t), intent(in) :: muskingum !< Read-only routing coefficients and cadence.
     logical, optional, intent(in) :: parallel !< Collective static worksharing; default is a serial topological traversal.
@@ -465,10 +473,10 @@ contains
       integer(i4) :: status
 
       n = self%river%order%id(position)
-      qin = flow%discharge(n)
-      qout = flow%tributary(n)
-      previous_qin = flow%previous_discharge(n)
-      previous_qout = flow%previous_tributary(n)
+      qin = flow%current_input(n)
+      qout = flow%current_routed(n)
+      previous_qin = flow%previous_input(n)
+      previous_qout = flow%previous_routed(n)
       adv = self%local_energy(n)
       call self%river%src_view(n, edges)
       do m = 1_i8, size(edges, kind=i8)

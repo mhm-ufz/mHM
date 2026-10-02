@@ -22,19 +22,22 @@ module mo_river_flow
   use mo_utils, only: optval
   implicit none
   private
-  public :: river_discharge_state_t, river_flow_t
+  public :: river_flow_state_t, river_flow_t
 
-  !> \class river_discharge_state_t
-  !> \brief mRM-owned current and previous discharge fluxes [m3 s-1].
-  type :: river_discharge_state_t
-    real(dp), allocatable :: discharge(:) !< Current node inflow.
-    real(dp), allocatable :: tributary(:) !< Current routed link outflow.
-    real(dp), allocatable :: previous_discharge(:) !< Previous node inflow.
-    real(dp), allocatable :: previous_tributary(:) !< Previous routed link outflow.
+  !> \class river_flow_state_t
+  !> \brief mRM-owned flow histories and stable published means [m3 s-1].
+  type :: river_flow_state_t
+    real(dp), allocatable :: previous_input(:) !< Previous node inflow.
+    real(dp), allocatable :: previous_routed(:) !< Previous routed link outflow.
+    real(dp), allocatable :: current_input(:) !< Current node inflow.
+    real(dp), allocatable :: current_routed(:) !< Current routed link outflow.
+    real(dp), allocatable :: discharge(:) !< Completed mean node discharge.
+    real(dp), allocatable :: lake_inflow(:) !< Completed mean inflow in canonical lake order.
   contains
-    procedure :: allocate => river_discharge_state_allocate
-    procedure :: destroy => river_discharge_state_destroy
-  end type river_discharge_state_t
+    procedure :: allocate => river_flow_state_allocate
+    procedure :: reset => river_flow_state_reset
+    procedure :: destroy => river_flow_state_destroy
+  end type river_flow_state_t
 
   !> \class river_flow_t
   !> \brief Router-owned runoff and lake scratch used to route mRM-owned discharge state.
@@ -47,6 +50,8 @@ module mo_river_flow
     real(dp), allocatable :: scaled_flux(:) !< L3 mapped runoff rate [m3 s-1].
     real(dp), allocatable :: scale_work(:) !< L1 volume work buffer.
     real(dp), allocatable :: runoff(:) !< Local node runoff [m3 s-1].
+    real(dp), allocatable :: sum_discharge(:) !< Sum of node discharge over numerical substeps [m3 s-1].
+    real(dp), allocatable :: sum_lake_inflow(:) !< Sum of canonical lake inflow over numerical substeps [m3 s-1].
     integer(i4), allocatable :: lake_index(:) !< Canonical lake index for each node.
   contains
     procedure :: init => river_flow_init
@@ -55,29 +60,44 @@ module mo_river_flow
     procedure :: prepare => river_flow_prepare
     procedure :: route_nodes => river_flow_route_nodes
     procedure :: advance => river_flow_advance
+    procedure :: complete => river_flow_complete
   end type river_flow_t
 contains
-  !> \brief Allocate and reset mRM-owned discharge histories.
-  subroutine river_discharge_state_allocate(self, n_nodes)
-    class(river_discharge_state_t), intent(inout), target :: self !< Discharge state to initialize.
+  !> \brief Allocate mRM-owned histories and published flow arrays before exchange binding.
+  subroutine river_flow_state_allocate(self, n_nodes, n_lakes)
+    class(river_flow_state_t), intent(inout), target :: self !< Flow state to initialize.
     integer(i8), intent(in) :: n_nodes !< Number of routing nodes.
+    integer(i4), optional, intent(in) :: n_lakes !< Number of canonical lakes; zero or absent disables lake publication.
     call self%destroy()
-    allocate(self%discharge(n_nodes), self%tributary(n_nodes), &
-      self%previous_discharge(n_nodes), self%previous_tributary(n_nodes))
-    self%discharge = 0.0_dp
-    self%tributary = 0.0_dp
-    self%previous_discharge = 0.0_dp
-    self%previous_tributary = 0.0_dp
-  end subroutine river_discharge_state_allocate
+    allocate(self%previous_input(n_nodes), self%previous_routed(n_nodes), &
+      self%current_input(n_nodes), self%current_routed(n_nodes), self%discharge(n_nodes))
+    if (present(n_lakes)) then
+      if (n_lakes > 0_i4) allocate(self%lake_inflow(n_lakes))
+    end if
+    call self%reset()
+  end subroutine river_flow_state_allocate
 
-  !> \brief Release mRM-owned discharge histories.
-  subroutine river_discharge_state_destroy(self)
-    class(river_discharge_state_t), intent(inout), target :: self !< Discharge state to release.
+  !> \brief Reset histories and completed means without replacing exchange targets.
+  subroutine river_flow_state_reset(self)
+    class(river_flow_state_t), intent(inout), target :: self !< Flow state to reset in place.
+    if (allocated(self%current_input)) self%current_input = 0.0_dp
+    if (allocated(self%current_routed)) self%current_routed = 0.0_dp
+    if (allocated(self%previous_input)) self%previous_input = 0.0_dp
+    if (allocated(self%previous_routed)) self%previous_routed = 0.0_dp
+    if (allocated(self%discharge)) self%discharge = 0.0_dp
+    if (allocated(self%lake_inflow)) self%lake_inflow = 0.0_dp
+  end subroutine river_flow_state_reset
+
+  !> \brief Release mRM-owned histories and published flow arrays after exchange detachment.
+  subroutine river_flow_state_destroy(self)
+    class(river_flow_state_t), intent(inout), target :: self !< Flow state to release.
+    if (allocated(self%current_input)) deallocate(self%current_input)
+    if (allocated(self%current_routed)) deallocate(self%current_routed)
+    if (allocated(self%previous_input)) deallocate(self%previous_input)
+    if (allocated(self%previous_routed)) deallocate(self%previous_routed)
     if (allocated(self%discharge)) deallocate(self%discharge)
-    if (allocated(self%tributary)) deallocate(self%tributary)
-    if (allocated(self%previous_discharge)) deallocate(self%previous_discharge)
-    if (allocated(self%previous_tributary)) deallocate(self%previous_tributary)
-  end subroutine river_discharge_state_destroy
+    if (allocated(self%lake_inflow)) deallocate(self%lake_inflow)
+  end subroutine river_flow_state_destroy
 
   !> \brief Allocate runoff scratch and build the optional canonical lake map.
   subroutine river_flow_init(self, river, input_cells, runoff_cells, scc, needs_scale_work, lake_nodes, input_grid)
@@ -93,7 +113,7 @@ contains
 
     call self%destroy()
     self%river => river
-    allocate(self%acc_runoff(input_cells), self%runoff(river%n_nodes))
+    allocate(self%acc_runoff(input_cells), self%runoff(river%n_nodes), self%sum_discharge(river%n_nodes))
     if (scc) allocate(self%scaled_flux(runoff_cells))
     if (needs_scale_work) then
       allocate(self%scale_work(input_cells))
@@ -101,6 +121,7 @@ contains
     end if
     self%acc_runoff = 0.0_dp
     self%runoff = 0.0_dp
+    self%sum_discharge = 0.0_dp
     if (present(lake_nodes)) then
       if (size(lake_nodes, kind=i8) > 0_i8) then
         allocate(self%lake_index(river%n_nodes), source=0_i4)
@@ -112,6 +133,7 @@ contains
         end do
         self%n_lakes = int(size(lake_nodes), i4)
         self%lake_routing = .true.
+        allocate(self%sum_lake_inflow(self%n_lakes), source=0.0_dp)
       end if
     end if
   end subroutine river_flow_init
@@ -125,6 +147,8 @@ contains
     if (allocated(self%runoff)) deallocate(self%runoff)
     if (allocated(self%lake_index)) deallocate(self%lake_index)
     if (allocated(self%scale_grid)) deallocate(self%scale_grid)
+    if (allocated(self%sum_discharge)) deallocate(self%sum_discharge)
+    if (allocated(self%sum_lake_inflow)) deallocate(self%sum_lake_inflow)
     self%n_lakes = 0_i4
     self%lake_routing = .false.
     nullify(self%river)
@@ -173,18 +197,19 @@ contains
       call river_depth_to_flux(scaler, self%acc_runoff, self%runoff, input_step, self%scale_work, self%scale_grid)
     end if
     self%acc_runoff = 0.0_dp
+    self%sum_discharge = 0.0_dp
+    if (allocated(self%sum_lake_inflow)) self%sum_lake_inflow = 0.0_dp
   end subroutine river_flow_prepare
 
   !> \brief Route a complete level or consecutive serial levels in topological order.
   !> \details Parallel callers share a team and bounds; the loop barrier completes the range before returning.
-  recursive subroutine river_flow_route_nodes(self, first, last, state, muskingum, lake_outflow, lake_inflow, parallel)
-    class(river_flow_t), intent(in), target :: self !< Prepared local runoff and lake map.
+  recursive subroutine river_flow_route_nodes(self, first, last, state, muskingum, lake_outflow, parallel)
+    class(river_flow_t), intent(inout), target :: self !< Prepared local runoff and lake map.
     integer(i8), intent(in) :: first !< First topological level to route.
     integer(i8), intent(in) :: last !< Last topological level to route.
-    type(river_discharge_state_t), intent(inout), target :: state !< Discharge fluxes to update.
+    type(river_flow_state_t), intent(inout), target :: state !< Discharge fluxes to update.
     type(river_muskingum_state_t), intent(in) :: muskingum !< Read-only routing coefficients and cadence.
     real(dp), optional, intent(in) :: lake_outflow(:) !< Prescribed lake release [m3 s-1].
-    real(dp), optional, intent(inout) :: lake_inflow(:) !< Collected lake inflow [m3 s-1].
     logical, optional, intent(in) :: parallel !< Collective static worksharing; default is a serial topological traversal.
     integer(i8) :: j, first_node, last_node
 
@@ -217,45 +242,54 @@ contains
       call self%river%src_view(n, edges)
       !$omp simd reduction(+:inflow)
       do m = 1_i4, size(edges)
-        inflow = inflow + state%tributary(edges(m))
+        inflow = inflow + state%current_routed(edges(m))
       end do
       lake = 0_i4
       if (allocated(self%lake_index)) lake = self%lake_index(n)
       if (lake > 0_i4) then
-        if (.not.present(lake_outflow) .or. .not.present(lake_inflow)) &
-          call error_message("river_flow: lake routing requires inflow and outflow arrays")
-        lake_inflow(lake) = lake_inflow(lake) + inflow
+        if (.not.present(lake_outflow)) call error_message("river_flow: lake routing requires prescribed outflow")
+        self%sum_lake_inflow(lake) = self%sum_lake_inflow(lake) + inflow
         inflow = lake_outflow(lake)
       end if
-      state%discharge(n) = inflow
+      state%current_input(n) = inflow
+      self%sum_discharge(n) = self%sum_discharge(n) + inflow
       if (self%river%is_sink(n)) then
-        state%tributary(n) = 0.0_dp
+        state%current_routed(n) = 0.0_dp
         return
       end if
       if (allocated(self%lake_index)) then
         if (lake == 0_i4 .and. self%lake_index(self%river%down(n)) > 0_i4) then
-          state%tributary(n) = inflow
+          state%current_routed(n) = inflow
           return
         end if
       end if
       nu1 = muskingum%nu1(n)
       nu2 = muskingum%nu2(n)
-      prev_routed = state%previous_tributary(n)
-      prev_inflow = state%previous_discharge(n)
-      state%tributary(n) = prev_routed + nu1 * (prev_inflow - prev_routed) + nu2 * (inflow - prev_inflow)
+      prev_routed = state%previous_routed(n)
+      prev_inflow = state%previous_input(n)
+      state%current_routed(n) = prev_routed + nu1 * (prev_inflow - prev_routed) + nu2 * (inflow - prev_inflow)
     end subroutine river_flow_process_node
   end subroutine river_flow_route_nodes
 
   !> \brief Swap discharge history buffers without copying them.
   subroutine river_flow_advance(self, state)
     class(river_flow_t), intent(in), target :: self !< Flow processor.
-    type(river_discharge_state_t), intent(inout), target :: state !< Discharge fluxes to advance.
+    type(river_flow_state_t), intent(inout), target :: state !< Discharge fluxes to advance.
     real(dp), allocatable :: tmp(:)
-    call move_alloc(state%previous_discharge, tmp)
-    call move_alloc(state%discharge, state%previous_discharge)
-    call move_alloc(tmp, state%discharge)
-    call move_alloc(state%previous_tributary, tmp)
-    call move_alloc(state%tributary, state%previous_tributary)
-    call move_alloc(tmp, state%tributary)
+    call move_alloc(state%previous_input, tmp)
+    call move_alloc(state%current_input, state%previous_input)
+    call move_alloc(tmp, state%current_input)
+    call move_alloc(state%previous_routed, tmp)
+    call move_alloc(state%current_routed, state%previous_routed)
+    call move_alloc(tmp, state%current_routed)
   end subroutine river_flow_advance
+
+  !> \brief Publish completed discharge and canonical lake-inflow means without moving their targets.
+  subroutine river_flow_complete(self, state, muskingum)
+    class(river_flow_t), intent(in), target :: self !< Flow processor holding completed substep sums.
+    type(river_flow_state_t), intent(inout), target :: state !< Flow output state.
+    type(river_muskingum_state_t), intent(in) :: muskingum !< Number of substeps in the completed interval.
+    state%discharge = self%sum_discharge / muskingum%iterations
+    if (self%lake_routing) state%lake_inflow = self%sum_lake_inflow / muskingum%iterations
+  end subroutine river_flow_complete
 end module mo_river_flow
