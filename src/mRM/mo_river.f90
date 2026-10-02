@@ -860,7 +860,7 @@ contains
     logical, optional, intent(in) :: mask(:)
     integer(i8), parameter :: block_size = 1048576_i8 ! 2^20
     integer(i8) :: n, nblocks, block, first, last, i, j, n_selected
-    integer(i8), allocatable :: block_count(:), block_offset(:)
+    integer(i8), allocatable :: counts_per_block(:), offsets_per_block(:)
     real(dp), allocatable :: values(:)
     real(dp) :: median_slope, median_deviation, threshold
     logical :: fallback_to_floor
@@ -870,7 +870,7 @@ contains
       if (size(mask, kind=i8) /= n) call error_message("river_smooth_slope: slope and mask have different size")
     end if
     nblocks = (n - 1_i8) / block_size + 1_i8
-    allocate(block_count(nblocks))
+    allocate(counts_per_block(nblocks))
 
     ! The generic MAD implementation excludes the floor value. If no values remain,
     ! it falls back to all floor values, independently of the input mask.
@@ -878,13 +878,13 @@ contains
     do block = 1_i8, nblocks
       first = (block - 1_i8) * block_size + 1_i8
       last = min(block * block_size, n)
-      block_count(block) = 0_i8
+      counts_per_block(block) = 0_i8
       do i = first, last
-        if (river_slope_selected(slope(i), i, mask, .false.)) block_count(block) = block_count(block) + 1_i8
+        if (river_slope_selected(slope(i), i, mask, .false.)) counts_per_block(block) = counts_per_block(block) + 1_i8
       end do
     end do
     !$omp end parallel do
-    n_selected = sum(block_count)
+    n_selected = sum(counts_per_block)
     fallback_to_floor = n_selected == 0_i8
 
     if (fallback_to_floor) then
@@ -892,25 +892,25 @@ contains
       do block = 1_i8, nblocks
         first = (block - 1_i8) * block_size + 1_i8
         last = min(block * block_size, n)
-        block_count(block) = 0_i8
+        counts_per_block(block) = 0_i8
         do i = first, last
           if (river_slope_selected(slope(i), i, mask, .true.)) then
-            block_count(block) = block_count(block) + 1_i8
+            counts_per_block(block) = counts_per_block(block) + 1_i8
           end if
         end do
       end do
       !$omp end parallel do
-      n_selected = sum(block_count)
+      n_selected = sum(counts_per_block)
     end if
 
     ! Return if fewer than two values are selected
     if (n_selected < 2_i8) return
 
-    allocate(block_offset(nblocks))
+    allocate(offsets_per_block(nblocks))
     n_selected = 0_i8
     do block = 1_i8, nblocks
-      block_offset(block) = n_selected
-      n_selected = n_selected + block_count(block)
+      offsets_per_block(block) = n_selected
+      n_selected = n_selected + counts_per_block(block)
     end do
     allocate(values(n_selected))
 
@@ -918,7 +918,7 @@ contains
     do block = 1_i8, nblocks
       first = (block - 1_i8) * block_size + 1_i8
       last = min(block * block_size, n)
-      j = block_offset(block)
+      j = offsets_per_block(block)
       do i = first, last
         if (river_slope_selected(slope(i), i, mask, fallback_to_floor)) then
           j = j + 1_i8
@@ -929,14 +929,16 @@ contains
     !$omp end parallel do
 
     median_slope = river_median_i8(values)
+
     !$omp parallel do default(shared)
     do i = 1_i8, n_selected
       values(i) = abs(values(i) - median_slope)
     end do
     !$omp end parallel do
+
     median_deviation = river_median_i8(values)
     threshold = median_deviation * 2.25_dp / 0.6745_dp
-    deallocate(values, block_count, block_offset)
+    deallocate(values, counts_per_block, offsets_per_block)
 
     !$omp parallel do default(shared)
     do i = 1_i8, n
@@ -945,6 +947,7 @@ contains
       end if
     end do
     !$omp end parallel do
+
   end subroutine river_smooth_slope
 
   !> \brief Select the elements participating in the hard-coded river slope MAD filter.
