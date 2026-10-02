@@ -53,6 +53,12 @@ properties:
     default: false
     description: Upstream area on the upscaled river network (static) [m2]
     examples: [true]
+  out_reach_surface_area:
+    title: Reach water surface area
+    type: boolean
+    default: false
+    description: Physical open-water surface area represented by each river link (static) [m2]; requires river temperature routing
+    examples: [true]
   out_Qrouted:
     title: Routed Streamflow
     type: boolean
@@ -63,5 +69,11 @@ properties:
     title: Routed Temperature
     type: boolean
     default: false
-    description: Routed temperature (only if River Temperature is enabled) [K]
+    description: Node-mixed river temperature [degC]
+    examples: [true]
+  out_Erouted:
+    title: Routed thermal power
+    type: boolean
+    default: false
+    description: Node-mixed thermal energy flux aligned with discharge [W]
     examples: [true]

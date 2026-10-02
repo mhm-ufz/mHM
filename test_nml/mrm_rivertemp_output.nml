@@ -1,0 +1,7 @@
+&output_mrm
+  output_frequency = 1
+  out_Qrouted = .true.
+  out_RivTemp = .true.
+  out_Erouted = .true.
+  out_reach_surface_area = .true.
+/

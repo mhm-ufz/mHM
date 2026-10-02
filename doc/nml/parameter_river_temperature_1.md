@@ -10,12 +10,31 @@ Parameters for river-temperature routing.
 
 | Name | Type | Declared required | Input required | Info |
 | --- | --- | --- | --- | --- |
+| [width_ref](#width_ref) | type(parameter_t) | yes | yes | Channel width at 100 square kilometres of upstream area [m] |
 | [albedo_water](#albedo_water) | type(parameter_t) | yes | yes | Albedo of open water [-] |
 | [pt_a_water](#pt_a_water) | type(parameter_t) | yes | yes | Priestley-Taylor coefficient for open water [-] |
 | [emissivity_water](#emissivity_water) | type(parameter_t) | yes | yes | Emissivity of open water [-] |
 | [turbulent_heat_exchange_coefficient](#turbulent_heat_exchange_coefficient) | type(parameter_t) | yes | yes | Turbulent heat-exchange coefficient [W m-2 K-1] |
 
 ## Field details
+
+### width_ref
+
+Channel width at 100 square kilometres of upstream area [m] `width_ref`
+
+A model parameter with optional calibration metadata.
+
+Summary:
+- Type: `type(parameter_t)`
+- Declared required: yes
+- Input required: yes
+- Default: `{min: 2.0, max: 30.0}`
+
+Components:
+- `width_ref%value`: `real(dp)`; declared required yes; input required yes
+- `width_ref%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
+- `width_ref%min`: `real(dp)`; declared required yes; input required no; default `2.0` (object default)
+- `width_ref%max`: `real(dp)`; declared required yes; input required no; default `30.0` (object default)
 
 ### albedo_water
 
@@ -110,6 +129,10 @@ A model parameter with optional calibration metadata.
 
 ```fortran
 &river_temperature_1
+  width_ref%value = 10.0
+  width_ref%optimize = .false.
+  width_ref%min = 2.0
+  width_ref%max = 30.0
   albedo_water%value = 0.15
   albedo_water%optimize = .false.
   albedo_water%min = 0.03

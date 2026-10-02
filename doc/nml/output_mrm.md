@@ -16,8 +16,10 @@ Output configuration for mRM.
 | [output_frequency](#output_frequency) | integer | no | no | Output time step |
 | [out_facc](#out_facc) | logical | no | no | Flow accumulation |
 | [out_upstream_area](#out_upstream_area) | logical | no | no | Upstream area |
+| [out_reach_surface_area](#out_reach_surface_area) | logical | no | no | Reach water surface area |
 | [out_Qrouted](#out_qrouted) | logical | no | no | Routed Streamflow |
 | [out_RivTemp](#out_rivtemp) | logical | no | no | Routed Temperature |
+| [out_Erouted](#out_erouted) | logical | no | no | Routed thermal power |
 
 ## Field details
 
@@ -106,6 +108,19 @@ Summary:
 - Default: `.false.`
 - Examples: `.true.`
 
+### out_reach_surface_area
+
+Reach water surface area `out_reach_surface_area`
+
+Physical open-water surface area represented by each river link (static) [m2]; requires river temperature routing
+
+Summary:
+- Type: `logical`
+- Declared required: no
+- Input required: no
+- Default: `.false.`
+- Examples: `.true.`
+
 ### out_Qrouted
 
 Routed Streamflow `out_Qrouted`
@@ -123,7 +138,20 @@ Summary:
 
 Routed Temperature `out_RivTemp`
 
-Routed temperature (only if River Temperature is enabled) [K]
+Node-mixed river temperature [degC]
+
+Summary:
+- Type: `logical`
+- Declared required: no
+- Input required: no
+- Default: `.false.`
+- Examples: `.true.`
+
+### out_Erouted
+
+Routed thermal power `out_Erouted`
+
+Node-mixed thermal energy flux aligned with discharge [W]
 
 Summary:
 - Type: `logical`
@@ -142,8 +170,10 @@ Summary:
   output_frequency = -1
   out_facc = .true.
   out_upstream_area = .true.
+  out_reach_surface_area = .true.
   out_Qrouted = .true.
   out_RivTemp = .true.
+  out_Erouted = .true.
 /
 ```
 

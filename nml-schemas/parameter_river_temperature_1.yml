@@ -3,6 +3,13 @@ description: Parameters for river-temperature routing.
 x-fortran-namelist: river_temperature_1
 type: object
 properties:
+  width_ref:
+    $ref: parameter.yml#/$defs/parameter
+    title: Channel width at 100 square kilometres of upstream area [m]
+    default: {min: 2.0, max: 30.0}
+    properties:
+      value: {examples: [10.0]}
+      optimize: {examples: [false]}
   albedo_water:
     $ref: parameter.yml#/$defs/parameter
     title: Albedo of open water [-]
@@ -32,6 +39,7 @@ properties:
       value: {examples: [20.0]}
       optimize: {examples: [false]}
 required:
+  - width_ref
   - albedo_water
   - pt_a_water
   - emissivity_water

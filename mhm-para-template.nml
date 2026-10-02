@@ -504,6 +504,9 @@
 
 ! River temperature - Case 1
 &river_temperature_1
+  ! Channel width at 100 square kilometres of upstream area [m]
+  ! Component order: value, optimize, min, max
+  width_ref = 10.0, .false., 2.0, 30.0
   ! Albedo of open water [-]
   ! Component order: value, optimize, min, max
   albedo_water = 0.15, .false., 0.03, 0.2

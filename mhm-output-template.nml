@@ -84,8 +84,12 @@
   out_facc = .true.
   ! Upstream area
   out_upstream_area = .true.
+  ! Reach water surface area
+  out_reach_surface_area = .true.
   ! Routed Streamflow
   out_Qrouted = .true.
   ! Routed Temperature
   out_RivTemp = .true.
+  ! Routed thermal power
+  out_Erouted = .true.
 /

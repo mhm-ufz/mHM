@@ -421,10 +421,8 @@ module mo_exchange_type
     type(var2d_dp) :: cosmic_l3         !< cosmic L3 parameter [g cm-2] on level l1
 
     ! routing (level3)
-    ! type(var_dp) :: q_out               !< accumulated runoff [m3 s-1] on level L3
-    ! type(var_dp) :: e_out               !< accumulated source energy [W] on level L3
     type(var_dp) :: discharge           !< modelled discharge [m3 s-1] on level L3
-    type(var_dp) :: energy_flux         !< modelled routed energy [W] on level L3
+    type(var_dp) :: energy_flux         !< incoming advective thermal energy flux [W] on level L3
     type(var_dp) :: river_temp          !< simulated river temperature [degC] on level L3
 
     ! groundwater (level0)
@@ -669,11 +667,9 @@ contains
     self%cosmic_l3         = var2d_dp(grid=l1_land, layers=model_horizons, name="cosmic_l3",         units="g cm-2",            long_name="cosmic L3 parameter")
 
     ! routing (level3)
-    ! self%q_out             =   var_dp(grid=l3, name="q_out",            units="m3 s-1",            long_name="accumulated runoff")
-    ! self%e_out             =   var_dp(grid=l3, name="e_out",            units="W",                 long_name="accumulated source energy")
-    self%discharge         =   var_dp(river=l3, name="discharge",        units="m3 s-1",            long_name="modelled discharge", standard_name="outgoing_water_volume_transport_along_river_channel")
-    self%energy_flux       =   var_dp(river=l3, name="e_mod",            units="W",                 long_name="modelled routed energy")
-    self%river_temp        =   var_dp(river=l3, name="river_temp",       units="degC",              long_name="simulated river temperature")
+    self%discharge         =   var_dp(river=l3, name="discharge",         units="m3 s-1",            long_name="modelled discharge", standard_name="outgoing_water_volume_transport_along_river_channel")
+    self%energy_flux       =   var_dp(river=l3, name="river_energy_flux", units="W",                 long_name="Advective thermal energy flux in river water")
+    self%river_temp        =   var_dp(river=l3, name="river_temperature", units="degC",              long_name="River water temperature")
 
     ! groundwater (level0)
     self%riverhead         =   var_dp(grid=l0_land, name="riverhead",        units="m",                 long_name="simulated riverhead")
