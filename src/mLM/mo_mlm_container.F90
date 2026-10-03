@@ -27,6 +27,7 @@ module mo_mlm_container
   use mo_lake_bathymetry, only: generate_lake_bathymetry, lake_hav_t
   use mo_lake_spill, only: lake_spill
   use mo_lake_water_balance, only: lake_balance, interpolate_lake_states
+  use mo_lake_groundwaterstorage, only: lake_seepage, lake_gws_baseflow
   use mo_grid_io, only: var, daily, monthly, yearly, no_time, time_units_delta
   use mo_netcdf_utils, only: add_var
   use mo_points, only: points_t, cartesian, spherical
@@ -66,6 +67,7 @@ module mo_mlm_container
     real(dp), allocatable :: lake_level_previous(:) !< previous-step lake surface level [masl]
     real(dp), allocatable :: lake_surface_area_previous(:) !< previous-step lake surface area [m2]
     real(dp), allocatable :: lake_volume_previous(:) !< previous-step lake storage volume [m3]
+    real(dp), allocatable :: lake_gw_storage_previous(:) !< previous-step lake groundwater storage [m3]
     type(points_t) :: restart_lake_points !< point set restored from restart metadata
     integer(i8), allocatable :: restart_lake_ids(:) !< stable IDs in restart-file order
     real(dp), allocatable :: restart_lake_max_level_reported(:) !< maximum levels restored from restart metadata
@@ -346,6 +348,7 @@ contains
       allocate(self%lake_level_previous(n_lakes), source=0.0_dp)
       allocate(self%lake_surface_area_previous(n_lakes), source=0.0_dp)
       allocate(self%lake_volume_previous(n_lakes), source=0.0_dp)
+      allocate(self%lake_gw_storage_previous(n_lakes), source=0.0_dp)
       ! Read the lake process parameters (lakes_1). The number of lakes is known only here,
       ! so the parameter block is sized to the runtime [n_domains, n_lakes] before reading;
       ! its validation rejects any unset (NaN) entry, so the block must be fully provided.
@@ -380,7 +383,9 @@ contains
     class(mlm_t), target, intent(inout) :: self
     integer(i8) :: k, n_lakes
     integer(i4) :: bathymetry_type
+    integer(i4) :: domain
     real(dp) :: level_query
+    real(dp) :: tsHydroSecs
     if (self%exchange%step_hours /= 1_i4) then
       log_fatal(*) "mLM lake processes require a one-hour model step."
       error stop 1
@@ -396,6 +401,8 @@ contains
     if (self%exchange%config%processes%lake == 1_i4) then
       ! Build the per-lake height-area-volume (hAV) curves from a built-in analytical shape.
       n_lakes = size(self%lake_ids, kind=i8)
+      domain = self%exchange%nml_domain_id
+      tsHydroSecs = real(self%exchange%step_hours, dp) * 3600.0_dp
       allocate(self%hav(n_lakes))
       do k = 1_i8, n_lakes
         bathymetry_type = self%config%bathymetry_type(self%exchange%nml_domain_id, k)
@@ -422,6 +429,12 @@ contains
           call interpolate_lake_states(.false., self%hav(k)%level, self%hav(k)%volume, &
             self%static_lake_max_level_reported(k), self%hav(k)%volume(size(self%hav(k)%volume)), &
             level_query, self%lake_volume(k))
+          ! Cold-start the lake groundwater storage so the initial baseflow equals the
+          ! long-term baseflow: gw0 = longterm_baseflow * tsHydroSecs / kbf, where the
+          ! per-step recession kbf = (tsHydroSecs/86400) / baseflow_recession_coefficient.
+          self%lake_gw_storage(k) = self%exchange%config%parameters%lakes_1%longterm_baseflow(domain, int(k, i4))%value &
+            * tsHydroSecs / ((tsHydroSecs / 86400.0_dp) &
+            / self%exchange%config%parameters%lakes_1%baseflow_recession_coefficient(domain, int(k, i4))%value)
         end do
       end if
     end if
@@ -432,6 +445,7 @@ contains
       self%lake_level_previous = self%lake_level
       self%lake_surface_area_previous = self%lake_surface_area
       self%lake_volume_previous = self%lake_volume
+      self%lake_gw_storage_previous = self%lake_gw_storage
     end if
     call self%validate_output_timing()
     call self%create_output()
@@ -442,7 +456,7 @@ contains
     class(mlm_t), target, intent(inout) :: self
     integer(i8) :: k, n_lakes
     integer(i4) :: domain
-    real(dp) :: spill, volume_adjustment, tsHydroSecs
+    real(dp) :: spill, volume_adjustment, tsHydroSecs, perc, baseflow, kp, kbf
     select case (self%exchange%config%processes%lake)
       case(-1_i4)
         self%outflow = self%exchange%lake_inflow%data
@@ -451,22 +465,35 @@ contains
         self%outflow = lake_balance_outflow(self%outflow, self%lake_max_surface_area_dem_derived, self%exchange%lake_pre%data, &
           self%exchange%lake_pet%data, 3600.0_dp)
       case(1_i4)
-        ! Minimal natural lake: crest spill followed by the iterative water balance.
-        ! Phase 2 scope -> evaporation, seepage, water use and inter-basin transfer are zero;
-        ! the lake fills and empties through inflow and the crest spill only.
+        ! Minimal natural lake: seepage and crest spill, the iterative water balance, then
+        ! the groundwater-storage baseflow. Phase 3 scope -> evaporation, water use and
+        ! inter-basin transfer are still zero; outflow is the crest spill plus the baseflow.
         n_lakes = size(self%lake_ids, kind=i8)
         domain = self%exchange%nml_domain_id
         tsHydroSecs = real(self%exchange%step_hours, dp) * 3600.0_dp
-        !$omp parallel do default(shared) private(k, spill, volume_adjustment) schedule(dynamic)
+        !$omp parallel do default(shared) private(k, spill, volume_adjustment, perc, baseflow, kp, kbf) schedule(dynamic)
         do k = 1_i8, n_lakes
+          ! Per-step recession coefficients from the per-day lakes_1 parameters
+          ! (SI form of the v5 c2TSTu / k conversion).
+          kp  = (tsHydroSecs / 86400.0_dp) / &
+            self%exchange%config%parameters%lakes_1%percolation_coefficient(domain, int(k, i4))%value
+          kbf = (tsHydroSecs / 86400.0_dp) / &
+            self%exchange%config%parameters%lakes_1%baseflow_recession_coefficient(domain, int(k, i4))%value
+          ! Lake seepage from the previous-step level -> percolation to the groundwater store.
+          call lake_seepage(.true., self%hav(k)%level, self%hav(k)%surface_area, &
+            self%static_lake_max_level_reported(k), &
+            self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
+            self%lake_level_previous(k), kp, &
+            self%exchange%config%parameters%lakes_1%exponent_for_percolation(domain, int(k, i4))%value, &
+            perc)
           ! Crest-controlled spill from the previous-step level.
           call lake_spill(self%lake_level_previous(k), self%static_lake_max_level_reported(k), &
             self%exchange%config%parameters%lakes_1%spill_coefficient_of_discharge(domain, int(k, i4))%value, &
             self%static_lake_spillway_length(k), &
             self%exchange%config%parameters%lakes_1%spill_exponent(domain, int(k, i4))%value, &
             spill)
-          ! Iterative water balance -> updates level, surface area and volume.
-          call lake_balance(.true., 0.0_dp, 0.0_dp, self%exchange%lake_inflow%data(k), 0.0_dp, 0.0_dp, spill, 0.0_dp, &
+          ! Iterative water balance -> updates level, surface area and volume (consumes perc and spill).
+          call lake_balance(.true., 0.0_dp, 0.0_dp, self%exchange%lake_inflow%data(k), perc, 0.0_dp, spill, 0.0_dp, &
             self%hav(k)%level, self%hav(k)%surface_area, self%hav(k)%volume, &
             self%static_lake_max_level_reported(k), &
             self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
@@ -474,14 +501,19 @@ contains
             self%lake_level_previous(k), self%lake_surface_area_previous(k), self%lake_volume_previous(k), &
             self%lake_level(k), self%lake_surface_area(k), self%lake_volume(k), &
             volume_adjustment, tsHydroSecs)
-          ! Natural-lake outflow is the crest spill (baseflow is added in phase 3).
-          self%outflow(k) = spill
+          ! Lake groundwater storage update -> baseflow (uses the previous-step surface area and GW storage).
+          call lake_gws_baseflow(perc, self%lake_surface_area_previous(k), &
+            self%lake_gw_storage_previous(k), self%lake_gw_storage(k), &
+            kbf, tsHydroSecs, baseflow)
+          ! Natural-lake outflow is the crest spill plus the groundwater baseflow.
+          self%outflow(k) = spill + baseflow
         end do
         !$omp end parallel do
         ! Roll the current states into the previous-step slots for the next update.
         self%lake_level_previous = self%lake_level
         self%lake_surface_area_previous = self%lake_surface_area
         self%lake_volume_previous = self%lake_volume
+        self%lake_gw_storage_previous = self%lake_gw_storage
     end select
     call self%update_output()
   end subroutine mlm_update
@@ -526,6 +558,7 @@ contains
     if (allocated(self%lake_level_previous)) deallocate(self%lake_level_previous)
     if (allocated(self%lake_surface_area_previous)) deallocate(self%lake_surface_area_previous)
     if (allocated(self%lake_volume_previous)) deallocate(self%lake_volume_previous)
+    if (allocated(self%lake_gw_storage_previous)) deallocate(self%lake_gw_storage_previous)
     if (allocated(self%hav)) deallocate(self%hav)
     call self%restart_lake_points%destroy()
     if (allocated(self%restart_lake_ids)) deallocate(self%restart_lake_ids)
