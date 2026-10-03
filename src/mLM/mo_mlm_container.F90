@@ -28,6 +28,8 @@ module mo_mlm_container
   use mo_lake_spill, only: lake_spill
   use mo_lake_water_balance, only: lake_balance, interpolate_lake_states
   use mo_lake_groundwaterstorage, only: lake_seepage, lake_gws_baseflow
+  use mo_lake_evaporation, only: lake_evaporation
+  use mo_meteo_temporal_tools, only: temporal_disagg_flux_daynight
   use mo_grid_io, only: var, daily, monthly, yearly, no_time, time_units_delta
   use mo_netcdf_utils, only: add_var
   use mo_points, only: points_t, cartesian, spherical
@@ -78,6 +80,7 @@ module mo_mlm_container
     logical :: read_restart = .false. !< read mLM restart
     logical :: write_restart = .false. !< write mLM restart
     logical :: output_active = .false. !< whether lake-point output is enabled
+    logical :: evaporation_active = .false. !< whether the Penman lake-evaporation forcings are provided
     logical :: owns_restart_lake_points = .false. !< whether mLM published the restart point set
     logical :: owns_restart_lake_metadata = .false. !< whether mLM published restart IDs and maximum levels
     logical :: owns_restart_lake_grid = .false. !< whether mLM restored and published lake topology
@@ -344,6 +347,21 @@ contains
         log_fatal(*) "mLM process 1 supports natural lakes only; reservoir regulation is not yet implemented."
         error stop 1
       end if
+      ! Penman lake evaporation is active when its forcings are provided (kept daily by Meteo).
+      ! The five forcings must be provided together.
+      self%evaporation_active = self%exchange%lake_temp%provided
+      if (self%evaporation_active) then
+        if (.not.(self%exchange%lake_ssrd%provided .and. self%exchange%lake_strd%provided .and. &
+                  self%exchange%lake_wind%provided .and. self%exchange%lake_tdew%provided)) then
+          log_fatal(*) "mLM process 1 lake evaporation requires lake temp, ssrd, strd, wind and tdew together."
+          error stop 1
+        end if
+        ! A varying water albedo needs geographic coordinates (solar geometry); require spherical lake points.
+        if (self%config%varying_albedo .and. self%static_lake_points%coordsys /= spherical) then
+          log_fatal(*) "mLM process 1 varying_albedo requires spherical (lon/lat) lake points."
+          error stop 1
+        end if
+      end if
       ! Previous-step state storage for the water-balance integration.
       allocate(self%lake_level_previous(n_lakes), source=0.0_dp)
       allocate(self%lake_surface_area_previous(n_lakes), source=0.0_dp)
@@ -456,7 +474,14 @@ contains
     class(mlm_t), target, intent(inout) :: self
     integer(i8) :: k, n_lakes
     integer(i4) :: domain
+    integer(i4) :: hour, doy
     real(dp) :: spill, volume_adjustment, tsHydroSecs, perc, baseflow, kp, kbf
+    real(dp) :: ntimesteps_day, evap_daily, evap_step, pr_step, qin_d, qout_d, pre_d, lat, lon
+    real(dp) :: evap_components(3)
+    logical :: isday
+    real(dp) :: input_windspeed_height
+    integer(i4) :: albedo_method
+    logical :: varying_albedo, varying_lambda, varying_psychro
     select case (self%exchange%config%processes%lake)
       case(-1_i4)
         self%outflow = self%exchange%lake_inflow%data
@@ -471,7 +496,21 @@ contains
         n_lakes = size(self%lake_ids, kind=i8)
         domain = self%exchange%nml_domain_id
         tsHydroSecs = real(self%exchange%step_hours, dp) * 3600.0_dp
-        !$omp parallel do default(shared) private(k, spill, volume_adjustment, perc, baseflow, kp, kbf) schedule(dynamic)
+        ! Scalars for the daily -> step evaporation disaggregation (0.5/0.5 day-night split; the
+        ! diurnal signal is carried by the hourly-varying albedo inside the Penman call).
+        hour = self%exchange%time_step_start%hour
+        doy = self%exchange%time_step_start%doy()
+        ntimesteps_day = 24.0_dp / real(self%exchange%step_hours, dp)
+        isday = (hour >= 7_i4) .and. (hour < 19_i4)
+        input_windspeed_height = self%config%input_windspeed_height
+        albedo_method = self%config%albedo_method
+        varying_albedo = self%config%varying_albedo
+        varying_lambda = self%config%varying_lambda
+        varying_psychro = self%config%varying_psychro
+        !$omp parallel do default(shared) &
+        !$omp   private(k, spill, volume_adjustment, perc, baseflow, kp, kbf, &
+        !$omp           evap_daily, evap_step, pr_step, qin_d, qout_d, pre_d, lat, lon, evap_components) &
+        !$omp   schedule(dynamic)
         do k = 1_i8, n_lakes
           ! Per-step recession coefficients from the per-day lakes_1 parameters
           ! (SI form of the v5 c2TSTu / k conversion).
@@ -492,8 +531,52 @@ contains
             self%static_lake_spillway_length(k), &
             self%exchange%config%parameters%lakes_1%spill_exponent(domain, int(k, i4))%value, &
             spill)
-          ! Iterative water balance -> updates level, surface area and volume (consumes perc and spill).
-          call lake_balance(.true., 0.0_dp, 0.0_dp, self%exchange%lake_inflow%data(k), perc, 0.0_dp, spill, 0.0_dp, &
+          ! Lake precipitation onto the surface (already disaggregated to the step by Meteo).
+          pr_step = 0.0_dp
+          if (self%exchange%lake_pre%provided) pr_step = self%exchange%lake_pre%data(k)
+          ! Lake evaporation (Penman, daily) -> disaggregated to the step. Zero when its forcings
+          ! are not provided (keeps earlier-phase runs unchanged).
+          !
+          ! Design note - why the Penman CALL lives here in mLM and not in mo_meteo_container
+          ! (which computes and disaggregates the LAND PET, incl. Penman-Monteith, and publishes it):
+          ! land PET is a pure function of meteorological inputs and static parameters, so it belongs
+          ! with the meteo handler. Open-water lake evaporation is not: it depends on the lake's own
+          ! evolving state - the surface level feeds the atmospheric-pressure / psychrometric-constant
+          ! term (varying_psychro), and the advected-heat term uses the inflow/outflow rates over the
+          ! lake surface area and the previous-step outflow. Those states (lake_level,
+          ! lake_surface_area_previous, previous outflow) are owned by mLM. Computing evaporation here
+          ! uses them directly and in the correct water-balance sequence; doing it in meteo would need
+          ! meteo to read lagged lake states back from the exchange (a meteo<->mLM mutual dependency)
+          ! or to drop the advected-heat term. So the forcing AGGREGATION stays in meteo (the lake
+          ! temp/ssrd/strd/wind/tdew fields), but the Penman evaluation + daily->step disaggregation
+          ! stay with the lake component that owns the state. (Revisit if/when the advection term is
+          ! dropped or river-temperature coupling moves that state elsewhere.)
+          evap_step = 0.0_dp
+          if (self%evaporation_active) then
+            ! Advection rates [mm d-1] over the lake surface (previous-step area and outflow);
+            ! Tin/Tout/Tpre are set to the lake air temperature until river-temperature coupling.
+            if (self%lake_surface_area_previous(k) > 0.0_dp) then
+              qin_d  = self%exchange%lake_inflow%data(k) / self%lake_surface_area_previous(k) * 1000.0_dp * 86400.0_dp
+              qout_d = self%outflow(k) / self%lake_surface_area_previous(k) * 1000.0_dp * 86400.0_dp
+            else
+              qin_d  = 0.0_dp
+              qout_d = 0.0_dp
+            end if
+            pre_d = pr_step * ntimesteps_day
+            lat = self%static_lake_points%y(k)
+            lon = self%static_lake_points%x(k)
+            call lake_evaporation(hour, doy, &
+              self%exchange%lake_temp%data(k), self%exchange%lake_tdew%data(k), &
+              self%exchange%lake_wind%data(k), self%exchange%lake_ssrd%data(k), &
+              self%exchange%lake_strd%data(k), &
+              self%exchange%lake_temp%data(k), self%exchange%lake_temp%data(k), self%exchange%lake_temp%data(k), &
+              self%lake_level_previous(k), qin_d, qout_d, pre_d, lat, lon, &
+              input_windspeed_height, varying_albedo, albedo_method, varying_lambda, varying_psychro, &
+              evap_daily, evap_components)
+            call temporal_disagg_flux_daynight(isday, ntimesteps_day, evap_daily, 0.5_dp, 0.5_dp, evap_step)
+          end if
+          ! Iterative water balance -> updates level, surface area and volume (consumes perc, evap, spill).
+          call lake_balance(.true., pr_step, evap_step, self%exchange%lake_inflow%data(k), perc, 0.0_dp, spill, 0.0_dp, &
             self%hav(k)%level, self%hav(k)%surface_area, self%hav(k)%volume, &
             self%static_lake_max_level_reported(k), &
             self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
