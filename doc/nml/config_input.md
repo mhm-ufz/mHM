@@ -27,6 +27,7 @@ Variable name entries define the NetCDF variable names to read.
 | [netrad_path](#netrad_path) | string array | no | no | Net radiation input |
 | [eabs_path](#eabs_path) | string array | no | no | Vapor pressure input |
 | [wind_path](#wind_path) | string array | no | no | Wind speed input |
+| [tdew_path](#tdew_path) | string array | no | no | Dew point temperature input |
 | [meteo_mask_path](#meteo_mask_path) | string array | no | no | Meteorological mask file path |
 | [runoff_path](#runoff_path) | string array | no | no | Runoff input |
 | [runoff_sealed_path](#runoff_sealed_path) | string array | no | no | Sealed runoff input |
@@ -57,6 +58,7 @@ Variable name entries define the NetCDF variable names to read.
 | [netrad_var](#netrad_var) | string array | no | no | Net radiation variable name |
 | [eabs_var](#eabs_var) | string array | no | no | Vapor pressure variable name |
 | [wind_var](#wind_var) | string array | no | no | Wind speed variable name |
+| [tdew_var](#tdew_var) | string array | no | no | Dew point temperature variable name |
 | [meteo_mask_var](#meteo_mask_var) | string array | no | no | Meteorological mask variable name |
 | [runoff_var](#runoff_var) | string array | no | no | Runoff variable name |
 | [runoff_sealed_var](#runoff_sealed_var) | string array | no | no | Sealed runoff variable name |
@@ -245,6 +247,16 @@ Summary:
 ### wind_path
 
 Wind speed input `wind_path`
+
+Summary:
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
+- Declared required: no
+- Input required: no
+
+### tdew_path
+
+Dew point temperature input `tdew_path`
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
@@ -554,6 +566,16 @@ Summary:
 - Input required: no
 - Default: `"windspeed"`
 
+### tdew_var
+
+Dew point temperature variable name `tdew_var`
+
+Summary:
+- Type: `character(len=buf), dimension(n_domains)`
+- Declared required: no
+- Input required: no
+- Default: `"tdew"`
+
 ### meteo_mask_var
 
 Meteorological mask variable name `meteo_mask_var`
@@ -861,6 +883,7 @@ Summary:
   netrad_path(:) = ""
   eabs_path(:) = ""
   wind_path(:) = ""
+  tdew_path(:) = ""
   meteo_mask_path(:) = ""
   runoff_path(:) = ""
   runoff_sealed_path(:) = ""
@@ -891,6 +914,7 @@ Summary:
   netrad_var(:) = "net_rad"
   eabs_var(:) = "eabs"
   wind_var(:) = "windspeed"
+  tdew_var(:) = "tdew"
   meteo_mask_var(:) = "mask"
   runoff_var(:) = "runoff"
   runoff_sealed_var(:) = "runoff_sealed"

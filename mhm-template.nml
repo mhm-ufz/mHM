@@ -156,6 +156,8 @@
   eabs_path(:) = ""
   ! Wind speed input
   wind_path(:) = ""
+  ! Dew point temperature input
+  tdew_path(:) = ""
   ! Meteorological mask file path
   meteo_mask_path(:) = ""
   ! Runoff input
@@ -216,6 +218,8 @@
   eabs_var(:) = "eabs"
   ! Wind speed variable name
   wind_var(:) = "windspeed"
+  ! Dew point temperature variable name
+  tdew_var(:) = "tdew"
   ! Meteorological mask variable name
   meteo_mask_var(:) = "mask"
   ! Runoff variable name

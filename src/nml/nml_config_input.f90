@@ -53,6 +53,7 @@ module nml_config_input
   character(len=buf), parameter, public :: netrad_var__default = "net_rad"
   character(len=buf), parameter, public :: eabs_var__default = "eabs"
   character(len=buf), parameter, public :: wind_var__default = "windspeed"
+  character(len=buf), parameter, public :: tdew_var__default = "tdew"
   character(len=buf), parameter, public :: meteo_mask_var__default = "mask"
   character(len=buf), parameter, public :: runoff_var__default = "runoff"
   character(len=buf), parameter, public :: runoff_sealed_var__default = "runoff_sealed"
@@ -111,6 +112,7 @@ module nml_config_input
     character(len=buf), allocatable, dimension(:) :: netrad_path !< Net radiation input
     character(len=buf), allocatable, dimension(:) :: eabs_path !< Vapor pressure input
     character(len=buf), allocatable, dimension(:) :: wind_path !< Wind speed input
+    character(len=buf), allocatable, dimension(:) :: tdew_path !< Dew point temperature input
     character(len=buf), allocatable, dimension(:) :: meteo_mask_path !< Meteorological mask file path
     character(len=buf), allocatable, dimension(:) :: runoff_path !< Runoff input
     character(len=buf), allocatable, dimension(:) :: runoff_sealed_path !< Sealed runoff input
@@ -141,6 +143,7 @@ module nml_config_input
     character(len=buf), allocatable, dimension(:) :: netrad_var !< Net radiation variable name
     character(len=buf), allocatable, dimension(:) :: eabs_var !< Vapor pressure variable name
     character(len=buf), allocatable, dimension(:) :: wind_var !< Wind speed variable name
+    character(len=buf), allocatable, dimension(:) :: tdew_var !< Dew point temperature variable name
     character(len=buf), allocatable, dimension(:) :: meteo_mask_var !< Meteorological mask variable name
     character(len=buf), allocatable, dimension(:) :: runoff_var !< Runoff variable name
     character(len=buf), allocatable, dimension(:) :: runoff_sealed_var !< Sealed runoff variable name
@@ -254,6 +257,8 @@ contains
     allocate(character(len=buf) :: this%eabs_path(this%n_domains))
     if (allocated(this%wind_path)) deallocate(this%wind_path)
     allocate(character(len=buf) :: this%wind_path(this%n_domains))
+    if (allocated(this%tdew_path)) deallocate(this%tdew_path)
+    allocate(character(len=buf) :: this%tdew_path(this%n_domains))
     if (allocated(this%meteo_mask_path)) deallocate(this%meteo_mask_path)
     allocate(character(len=buf) :: this%meteo_mask_path(this%n_domains))
     if (allocated(this%runoff_path)) deallocate(this%runoff_path)
@@ -314,6 +319,8 @@ contains
     allocate(character(len=buf) :: this%eabs_var(this%n_domains))
     if (allocated(this%wind_var)) deallocate(this%wind_var)
     allocate(character(len=buf) :: this%wind_var(this%n_domains))
+    if (allocated(this%tdew_var)) deallocate(this%tdew_var)
+    allocate(character(len=buf) :: this%tdew_var(this%n_domains))
     if (allocated(this%meteo_mask_var)) deallocate(this%meteo_mask_var)
     allocate(character(len=buf) :: this%meteo_mask_var(this%n_domains))
     if (allocated(this%runoff_var)) deallocate(this%runoff_var)
@@ -384,6 +391,7 @@ contains
     this%netrad_path = achar(0) ! sentinel for optional string array
     this%eabs_path = achar(0) ! sentinel for optional string array
     this%wind_path = achar(0) ! sentinel for optional string array
+    this%tdew_path = achar(0) ! sentinel for optional string array
     this%meteo_mask_path = achar(0) ! sentinel for optional string array
     this%runoff_path = achar(0) ! sentinel for optional string array
     this%runoff_sealed_path = achar(0) ! sentinel for optional string array
@@ -418,6 +426,7 @@ contains
     this%netrad_var = netrad_var__default
     this%eabs_var = eabs_var__default
     this%wind_var = wind_var__default
+    this%tdew_var = tdew_var__default
     this%meteo_mask_var = meteo_mask_var__default
     this%runoff_var = runoff_var__default
     this%runoff_sealed_var = runoff_sealed_var__default
@@ -487,6 +496,7 @@ contains
     if (allocated(this%netrad_path)) deallocate(this%netrad_path)
     if (allocated(this%eabs_path)) deallocate(this%eabs_path)
     if (allocated(this%wind_path)) deallocate(this%wind_path)
+    if (allocated(this%tdew_path)) deallocate(this%tdew_path)
     if (allocated(this%meteo_mask_path)) deallocate(this%meteo_mask_path)
     if (allocated(this%runoff_path)) deallocate(this%runoff_path)
     if (allocated(this%runoff_sealed_path)) deallocate(this%runoff_sealed_path)
@@ -517,6 +527,7 @@ contains
     if (allocated(this%netrad_var)) deallocate(this%netrad_var)
     if (allocated(this%eabs_var)) deallocate(this%eabs_var)
     if (allocated(this%wind_var)) deallocate(this%wind_var)
+    if (allocated(this%tdew_var)) deallocate(this%tdew_var)
     if (allocated(this%meteo_mask_var)) deallocate(this%meteo_mask_var)
     if (allocated(this%runoff_var)) deallocate(this%runoff_var)
     if (allocated(this%runoff_sealed_var)) deallocate(this%runoff_sealed_var)
@@ -570,6 +581,7 @@ contains
     character(len=buf), allocatable, dimension(:) :: netrad_path
     character(len=buf), allocatable, dimension(:) :: eabs_path
     character(len=buf), allocatable, dimension(:) :: wind_path
+    character(len=buf), allocatable, dimension(:) :: tdew_path
     character(len=buf), allocatable, dimension(:) :: meteo_mask_path
     character(len=buf), allocatable, dimension(:) :: runoff_path
     character(len=buf), allocatable, dimension(:) :: runoff_sealed_path
@@ -600,6 +612,7 @@ contains
     character(len=buf), allocatable, dimension(:) :: netrad_var
     character(len=buf), allocatable, dimension(:) :: eabs_var
     character(len=buf), allocatable, dimension(:) :: wind_var
+    character(len=buf), allocatable, dimension(:) :: tdew_var
     character(len=buf), allocatable, dimension(:) :: meteo_mask_var
     character(len=buf), allocatable, dimension(:) :: runoff_var
     character(len=buf), allocatable, dimension(:) :: runoff_sealed_var
@@ -650,6 +663,7 @@ contains
       netrad_path, &
       eabs_path, &
       wind_path, &
+      tdew_path, &
       meteo_mask_path, &
       runoff_path, &
       runoff_sealed_path, &
@@ -680,6 +694,7 @@ contains
       netrad_var, &
       eabs_var, &
       wind_var, &
+      tdew_var, &
       meteo_mask_var, &
       runoff_var, &
       runoff_sealed_var, &
@@ -742,6 +757,8 @@ contains
     allocate(character(len=buf) :: eabs_path(this%n_domains))
     if (allocated(wind_path)) deallocate(wind_path)
     allocate(character(len=buf) :: wind_path(this%n_domains))
+    if (allocated(tdew_path)) deallocate(tdew_path)
+    allocate(character(len=buf) :: tdew_path(this%n_domains))
     if (allocated(meteo_mask_path)) deallocate(meteo_mask_path)
     allocate(character(len=buf) :: meteo_mask_path(this%n_domains))
     if (allocated(runoff_path)) deallocate(runoff_path)
@@ -802,6 +819,8 @@ contains
     allocate(character(len=buf) :: eabs_var(this%n_domains))
     if (allocated(wind_var)) deallocate(wind_var)
     allocate(character(len=buf) :: wind_var(this%n_domains))
+    if (allocated(tdew_var)) deallocate(tdew_var)
+    allocate(character(len=buf) :: tdew_var(this%n_domains))
     if (allocated(meteo_mask_var)) deallocate(meteo_mask_var)
     allocate(character(len=buf) :: meteo_mask_var(this%n_domains))
     if (allocated(runoff_var)) deallocate(runoff_var)
@@ -873,6 +892,7 @@ contains
     netrad_path = this%netrad_path
     eabs_path = this%eabs_path
     wind_path = this%wind_path
+    tdew_path = this%tdew_path
     meteo_mask_path = this%meteo_mask_path
     runoff_path = this%runoff_path
     runoff_sealed_path = this%runoff_sealed_path
@@ -903,6 +923,7 @@ contains
     netrad_var = this%netrad_var
     eabs_var = this%eabs_var
     wind_var = this%wind_var
+    tdew_var = this%tdew_var
     meteo_mask_var = this%meteo_mask_var
     runoff_var = this%runoff_var
     runoff_sealed_var = this%runoff_sealed_var
@@ -971,6 +992,7 @@ contains
     this%netrad_path = netrad_path
     this%eabs_path = eabs_path
     this%wind_path = wind_path
+    this%tdew_path = tdew_path
     this%meteo_mask_path = meteo_mask_path
     this%runoff_path = runoff_path
     this%runoff_sealed_path = runoff_sealed_path
@@ -1001,6 +1023,7 @@ contains
     this%netrad_var = netrad_var
     this%eabs_var = eabs_var
     this%wind_var = wind_var
+    this%tdew_var = tdew_var
     this%meteo_mask_var = meteo_mask_var
     this%runoff_var = runoff_var
     this%runoff_sealed_var = runoff_sealed_var
@@ -1052,6 +1075,7 @@ contains
     netrad_path, &
     eabs_path, &
     wind_path, &
+    tdew_path, &
     meteo_mask_path, &
     runoff_path, &
     runoff_sealed_path, &
@@ -1082,6 +1106,7 @@ contains
     netrad_var, &
     eabs_var, &
     wind_var, &
+    tdew_var, &
     meteo_mask_var, &
     runoff_var, &
     runoff_sealed_var, &
@@ -1129,6 +1154,7 @@ contains
     character(len=*), dimension(:), intent(in), optional :: netrad_path !< Net radiation input
     character(len=*), dimension(:), intent(in), optional :: eabs_path !< Vapor pressure input
     character(len=*), dimension(:), intent(in), optional :: wind_path !< Wind speed input
+    character(len=*), dimension(:), intent(in), optional :: tdew_path !< Dew point temperature input
     character(len=*), dimension(:), intent(in), optional :: meteo_mask_path !< Meteorological mask file path
     character(len=*), dimension(:), intent(in), optional :: runoff_path !< Runoff input
     character(len=*), dimension(:), intent(in), optional :: runoff_sealed_path !< Sealed runoff input
@@ -1159,6 +1185,7 @@ contains
     character(len=*), dimension(:), intent(in), optional :: netrad_var !< Net radiation variable name
     character(len=*), dimension(:), intent(in), optional :: eabs_var !< Vapor pressure variable name
     character(len=*), dimension(:), intent(in), optional :: wind_var !< Wind speed variable name
+    character(len=*), dimension(:), intent(in), optional :: tdew_var !< Dew point temperature variable name
     character(len=*), dimension(:), intent(in), optional :: meteo_mask_var !< Meteorological mask variable name
     character(len=*), dimension(:), intent(in), optional :: runoff_var !< Runoff variable name
     character(len=*), dimension(:), intent(in), optional :: runoff_sealed_var !< Sealed runoff variable name
@@ -1345,6 +1372,16 @@ contains
       lb__1 = lbound(this%wind_path, 1)
       ub__1 = lb__1 + size(wind_path, 1) - 1
       this%wind_path(lb__1:ub__1) = wind_path
+    end if
+    if (present(tdew_path)) then
+      if (size(tdew_path, 1) > size(this%tdew_path, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tdew_path'"
+        return
+      end if
+      lb__1 = lbound(this%tdew_path, 1)
+      ub__1 = lb__1 + size(tdew_path, 1) - 1
+      this%tdew_path(lb__1:ub__1) = tdew_path
     end if
     if (present(meteo_mask_path)) then
       if (size(meteo_mask_path, 1) > size(this%meteo_mask_path, 1)) then
@@ -1645,6 +1682,16 @@ contains
       lb__1 = lbound(this%wind_var, 1)
       ub__1 = lb__1 + size(wind_var, 1) - 1
       this%wind_var(lb__1:ub__1) = wind_var
+    end if
+    if (present(tdew_var)) then
+      if (size(tdew_var, 1) > size(this%tdew_var, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tdew_var'"
+        return
+      end if
+      lb__1 = lbound(this%tdew_var, 1)
+      ub__1 = lb__1 + size(tdew_var, 1) - 1
+      this%tdew_var(lb__1:ub__1) = tdew_var
     end if
     if (present(meteo_mask_var)) then
       if (size(meteo_mask_var, 1) > size(this%meteo_mask_var, 1)) then
@@ -2136,6 +2183,19 @@ contains
       else
         if (all(this%wind_path == achar(0))) status = NML_ERR_NOT_SET
       end if
+    case ("tdew_path")
+      if (.not. allocated(this%tdew_path)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%tdew_path), ubound(this%tdew_path), &
+          "tdew_path", errmsg)
+        if (status /= NML_OK) return
+        if (this%tdew_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
+      else
+        if (all(this%tdew_path == achar(0))) status = NML_ERR_NOT_SET
+      end if
     case ("meteo_mask_path")
       if (.not. allocated(this%meteo_mask_path)) then
         status = NML_ERR_NOT_SET
@@ -2501,6 +2561,17 @@ contains
       if (present(idx)) then
         status = idx_check(idx, lbound(this%wind_var), ubound(this%wind_var), &
           "wind_var", errmsg)
+        if (status /= NML_OK) return
+      else
+      end if
+    case ("tdew_var")
+      if (.not. allocated(this%tdew_var)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%tdew_var), ubound(this%tdew_var), &
+          "tdew_var", errmsg)
         if (status /= NML_OK) return
       else
       end if
