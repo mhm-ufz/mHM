@@ -94,6 +94,11 @@ module mo_meteo_container
     type(lake_support_t), allocatable :: forcing(:) !< sparse level2 support per lake
     real(dp), allocatable :: pre(:) !< current precipitation on lakes
     real(dp), allocatable :: pet(:) !< current PET on lakes
+    real(dp), allocatable :: temp(:) !< current air temperature on lakes (daily, for Penman)
+    real(dp), allocatable :: ssrd(:) !< current short-wave radiation on lakes (daily, for Penman)
+    real(dp), allocatable :: strd(:) !< current long-wave radiation on lakes (daily, for Penman)
+    real(dp), allocatable :: wind(:) !< current wind speed on lakes (daily, for Penman)
+    real(dp), allocatable :: tdew(:) !< current dew point temperature on lakes (daily, for Penman)
     real(dp), allocatable :: pre_weights(:, :, :) !< precipitation weights (lake,12,24)
     real(dp), allocatable :: pet_weights(:, :, :) !< PET weights (lake,12,24)
     logical :: active = .false. !< whether lake forcing is part of the selected process case
@@ -231,7 +236,7 @@ contains
       log_fatal(*) "Meteo config not valid: ", trim(errmsg)
       error stop 1
     end if
-    self%lake%active = self%exchange%config%processes%lake == -2_i4
+    self%lake%active = self%exchange%config%processes%lake == -2_i4 .or. self%exchange%config%processes%lake == 1_i4
     if (any([self%exchange%config%processes%interception, self%exchange%config%processes%snow, &
         self%exchange%config%processes%soil_moisture, self%exchange%config%processes%direct_runoff, &
         self%exchange%config%processes%pet, self%exchange%config%processes%interflow, &
@@ -248,7 +253,15 @@ contains
       call self%exchange%tann%provide("Meteo")
     end if
     if (self%lake%active .and. self%exchange%raw_pre%provided) call self%exchange%lake_pre%provide("Meteo")
-    if (self%lake%active .and. self%exchange%raw_pet%provided) call self%exchange%lake_pet%provide("Meteo")
+    if (self%exchange%config%processes%lake == -2_i4 .and. self%exchange%raw_pet%provided) call self%exchange%lake_pet%provide("Meteo")
+    if (self%exchange%config%processes%lake == 1_i4) then
+      ! Penman lake evaporation forcings (kept daily; mLM does the daily Penman + disaggregation)
+      if (self%exchange%raw_temp%provided) call self%exchange%lake_temp%provide("Meteo")
+      if (self%exchange%raw_ssrd%provided) call self%exchange%lake_ssrd%provide("Meteo")
+      if (self%exchange%raw_strd%provided) call self%exchange%lake_strd%provide("Meteo")
+      if (self%exchange%raw_wind%provided) call self%exchange%lake_wind%provide("Meteo")
+      if (self%exchange%raw_tdew%provided) call self%exchange%lake_tdew%provide("Meteo")
+    end if
   end subroutine meteo_configure
 
   !> \brief Connect the meteorology process container with other components.
@@ -274,6 +287,7 @@ contains
     logical :: need_raw_netrad
     logical :: need_raw_eabs
     logical :: need_raw_wind
+    logical :: need_raw_tdew
     logical :: need_raw_ssrd
     logical :: need_raw_strd
     logical :: need_raw_tann
@@ -285,6 +299,7 @@ contains
     logical :: need_raw_netrad_land
     logical :: need_raw_eabs_land
     logical :: need_raw_wind_land
+    logical :: need_raw_tdew_land
     logical :: need_raw_ssrd_land
     logical :: need_raw_strd_land
     logical :: need_raw_tann_land
@@ -296,6 +311,7 @@ contains
     logical :: need_raw_netrad_lake
     logical :: need_raw_eabs_lake
     logical :: need_raw_wind_lake
+    logical :: need_raw_tdew_lake
     logical :: need_raw_ssrd_lake
     logical :: need_raw_strd_lake
     logical :: need_raw_tann_lake
@@ -336,17 +352,19 @@ contains
     need_raw_ssrd_land = riv_temp_process > 0_i4
     need_raw_strd_land = riv_temp_process > 0_i4
     need_raw_tann_land = riv_temp_process > 0_i4
-    need_raw_pre_lake = lake_process == -2_i4
-    need_raw_temp_lake = .false.
+    need_raw_pre_lake = lake_process == -2_i4 .or. lake_process == 1_i4
+    need_raw_temp_lake = lake_process == 1_i4
     need_raw_pet_lake = lake_process == -2_i4
     need_raw_tmin_lake = .false.
     need_raw_tmax_lake = .false.
     need_raw_netrad_lake = .false.
     need_raw_eabs_lake = .false.
-    need_raw_wind_lake = .false.
-    need_raw_ssrd_lake = .false.
-    need_raw_strd_lake = .false.
+    need_raw_wind_lake = lake_process == 1_i4
+    need_raw_tdew_lake = lake_process == 1_i4
+    need_raw_ssrd_lake = lake_process == 1_i4
+    need_raw_strd_lake = lake_process == 1_i4
     need_raw_tann_lake = .false.
+    need_raw_tdew_land = .false.
     need_raw_pre = need_raw_pre_land .or. need_raw_pre_lake
     need_raw_temp = need_raw_temp_land .or. need_raw_temp_lake
     need_raw_pet = need_raw_pet_land .or. need_raw_pet_lake
@@ -355,6 +373,7 @@ contains
     need_raw_netrad = need_raw_netrad_land .or. need_raw_netrad_lake
     need_raw_eabs = need_raw_eabs_land .or. need_raw_eabs_lake
     need_raw_wind = need_raw_wind_land .or. need_raw_wind_lake
+    need_raw_tdew = need_raw_tdew_land .or. need_raw_tdew_lake
     need_raw_ssrd = need_raw_ssrd_land .or. need_raw_ssrd_lake
     need_raw_strd = need_raw_strd_land .or. need_raw_strd_lake
     need_raw_tann = need_raw_tann_land .or. need_raw_tann_lake
@@ -367,6 +386,7 @@ contains
     call self%warn_unused_raw("raw_netrad", self%exchange%raw_netrad%provided, need_raw_netrad)
     call self%warn_unused_raw("raw_eabs", self%exchange%raw_eabs%provided, need_raw_eabs)
     call self%warn_unused_raw("raw_wind", self%exchange%raw_wind%provided, need_raw_wind)
+    call self%warn_unused_raw("raw_tdew", self%exchange%raw_tdew%provided, need_raw_tdew)
     call self%warn_unused_raw("raw_ssrd", self%exchange%raw_ssrd%provided, need_raw_ssrd)
     call self%warn_unused_raw("raw_strd", self%exchange%raw_strd%provided, need_raw_strd)
     call self%warn_unused_raw("raw_tann", self%exchange%raw_tann%provided, need_raw_tann)
@@ -398,21 +418,21 @@ contains
     if (need_raw_temp) then
       call self%exchange%raw_temp%check_provided("Meteo")
       call self%validate_step("raw_temp", self%exchange%raw_temp%stepping, allow_daily=.true., allow_hourly=.true.)
-      if (.not.self%weight_mode_active() .and. steps_day > 1_i4 .and. self%exchange%raw_temp%stepping == daily) then
+      if (need_raw_temp_land .and. .not.self%weight_mode_active() .and. steps_day > 1_i4 .and. self%exchange%raw_temp%stepping == daily) then
         call self%require_fraction("frac_night_temp", frac_domain_id)
       end if
     end if
     if (need_raw_ssrd) then
       call self%exchange%raw_ssrd%check_provided("Meteo")
       call self%validate_step("raw_ssrd", self%exchange%raw_ssrd%stepping, allow_daily=.true., allow_hourly=.true.)
-      if (.not.self%weight_mode_active() .and. steps_day > 1_i4 .and. self%exchange%raw_ssrd%stepping == daily) then
+      if (need_raw_ssrd_land .and. .not.self%weight_mode_active() .and. steps_day > 1_i4 .and. self%exchange%raw_ssrd%stepping == daily) then
         call self%require_fraction("frac_night_ssrd", frac_domain_id)
       end if
     end if
     if (need_raw_strd) then
       call self%exchange%raw_strd%check_provided("Meteo")
       call self%validate_step("raw_strd", self%exchange%raw_strd%stepping, allow_daily=.true., allow_hourly=.true.)
-      if (.not.self%weight_mode_active() .and. steps_day > 1_i4 .and. self%exchange%raw_strd%stepping == daily) then
+      if (need_raw_strd_land .and. .not.self%weight_mode_active() .and. steps_day > 1_i4 .and. self%exchange%raw_strd%stepping == daily) then
         call self%require_fraction("frac_night_strd", frac_domain_id)
       end if
     end if
@@ -428,8 +448,11 @@ contains
     if (need_raw_netrad) call self%exchange%raw_netrad%check_provided("Meteo")
     if (need_raw_eabs) call self%exchange%raw_eabs%check_provided("Meteo")
     if (need_raw_wind) call self%exchange%raw_wind%check_provided("Meteo")
+    if (need_raw_tdew) call self%exchange%raw_tdew%check_provided("Meteo")
+    if (need_raw_wind_lake) call self%validate_step("raw_wind", self%exchange%raw_wind%stepping, allow_daily=.true., allow_hourly=.true.)
+    if (need_raw_tdew_lake) call self%validate_step("raw_tdew", self%exchange%raw_tdew%stepping, allow_daily=.true., allow_hourly=.true.)
 
-    if (need_raw_pre_lake .or. need_raw_pet_lake) then
+    if (lake_active) then
       call self%exchange%lake_ids%check_provided("Meteo")
       call self%exchange%lake_map%check_provided("Meteo")
       call self%setup_lake_forcing()
@@ -785,6 +808,34 @@ contains
       end if
     end if
 
+    ! Penman lake-evaporation forcings (kept daily; aggregated only, not temporally disaggregated -
+    ! the daily Penman and its disaggregation to the model step are done in mLM).
+    if (self%exchange%lake_temp%provided) then
+      allocate(self%lake%temp(n_lakes), source=0.0_dp)
+      call self%exchange%lake_temp%prepare_data("Meteo", self%exchange%step_hours)
+      self%exchange%lake_temp%data => self%lake%temp
+    end if
+    if (self%exchange%lake_ssrd%provided) then
+      allocate(self%lake%ssrd(n_lakes), source=0.0_dp)
+      call self%exchange%lake_ssrd%prepare_data("Meteo", self%exchange%step_hours)
+      self%exchange%lake_ssrd%data => self%lake%ssrd
+    end if
+    if (self%exchange%lake_strd%provided) then
+      allocate(self%lake%strd(n_lakes), source=0.0_dp)
+      call self%exchange%lake_strd%prepare_data("Meteo", self%exchange%step_hours)
+      self%exchange%lake_strd%data => self%lake%strd
+    end if
+    if (self%exchange%lake_wind%provided) then
+      allocate(self%lake%wind(n_lakes), source=0.0_dp)
+      call self%exchange%lake_wind%prepare_data("Meteo", self%exchange%step_hours)
+      self%exchange%lake_wind%data => self%lake%wind
+    end if
+    if (self%exchange%lake_tdew%provided) then
+      allocate(self%lake%tdew(n_lakes), source=0.0_dp)
+      call self%exchange%lake_tdew%prepare_data("Meteo", self%exchange%step_hours)
+      self%exchange%lake_tdew%data => self%lake%tdew
+    end if
+
   end subroutine meteo_setup_lake_forcing
 
   !> \brief Area-average a level2 field on every lake support.
@@ -841,6 +892,15 @@ contains
         end if
       end if
     end if
+
+    ! Penman lake-evaporation forcings: aggregate the raw level-2 field onto the lake supports and
+    ! keep the daily value (no temporal disaggregation here; mLM evaluates the daily Penman and
+    ! disaggregates the resulting evaporation to the model step).
+    if (self%exchange%lake_temp%provided) call self%aggregate_lake(self%exchange%raw_temp%data, self%lake%temp)
+    if (self%exchange%lake_ssrd%provided) call self%aggregate_lake(self%exchange%raw_ssrd%data, self%lake%ssrd)
+    if (self%exchange%lake_strd%provided) call self%aggregate_lake(self%exchange%raw_strd%data, self%lake%strd)
+    if (self%exchange%lake_wind%provided) call self%aggregate_lake(self%exchange%raw_wind%data, self%lake%wind)
+    if (self%exchange%lake_tdew%provided) call self%aggregate_lake(self%exchange%raw_tdew%data, self%lake%tdew)
 
   end subroutine meteo_update_lake_forcing
 
