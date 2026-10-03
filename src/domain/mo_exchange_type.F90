@@ -315,6 +315,8 @@ module mo_exchange_type
     type(var_dp) :: lake_ssrd            !< current short-wave radiation [W m-2] on lake points
     type(var_dp) :: lake_strd            !< current long-wave radiation [W m-2] on lake points
     type(var_dp) :: lake_tann            !< current annual mean temperature [degC] on lake points
+    type(var_dp) :: lake_wind            !< current wind speed [m s-1] on lake points
+    type(var_dp) :: lake_tdew            !< current dew point temperature [degC] on lake points
 
     ! raw meteorology (level2)
     type(var_dp) :: raw_pre             !< raw precipitation [mm] on level l2
@@ -327,6 +329,7 @@ module mo_exchange_type
     type(var_dp) :: raw_netrad          !< raw net radiation [W m-2] on level l2
     type(var_dp) :: raw_eabs            !< raw vapor pressure [Pa] on level l2
     type(var_dp) :: raw_wind            !< raw wind speed [m s-1] on level l2
+    type(var_dp) :: raw_tdew            !< raw dew point temperature [degC] on level l2
     type(var_dp) :: raw_pet             !< input potential evapotranspiration [mm] on level l2
 
     ! processed meteorology (level1)
@@ -573,6 +576,8 @@ contains
     self%lake_ssrd       = var_dp(points=points_lake, name="lake_ssrd", units="W m-2", long_name="lake solar short wave radiation downward")
     self%lake_strd       = var_dp(points=points_lake, name="lake_strd", units="W m-2", long_name="lake surface thermal radiation downward")
     self%lake_tann       = var_dp(points=points_lake, name="lake_tann", units="degC", long_name="lake annual mean air temperature")
+    self%lake_wind       = var_dp(points=points_lake, name="lake_wind", units="m s-1", long_name="lake wind speed")
+    self%lake_tdew       = var_dp(points=points_lake, name="lake_tdew", units="degC", long_name="lake dew point temperature")
 
     ! raw meteorology (level2)
     self%raw_pre    = var_dp(grid=l2, name="pre",       units="mm",    long_name="precipitation", standard_name="precipitation_amount")
@@ -586,6 +591,7 @@ contains
     self%raw_netrad = var_dp(grid=l2, name="netrad",    units="W m-2", long_name="net radiation", standard_name="surface_net_downward_radiative_flux")
     self%raw_eabs   = var_dp(grid=l2, name="eabs",      units="Pa",    long_name="vapor pressure", standard_name="water_vapor_pressure")
     self%raw_wind   = var_dp(grid=l2, name="windspeed", units="m s-1", long_name="wind speed", standard_name="wind_speed")
+    self%raw_tdew   = var_dp(grid=l2, name="tdew",      units="degC",  long_name="dew point temperature", standard_name="dew_point_temperature")
 
     ! processed meteorology (level1)
     self%pre  = var_dp(grid=l1_land, name="pre",  units="mm",    long_name="precipitation", standard_name="precipitation_amount")
@@ -964,6 +970,8 @@ contains
     call self%lake_ssrd%destroy()
     call self%lake_strd%destroy()
     call self%lake_tann%destroy()
+    call self%lake_wind%destroy()
+    call self%lake_tdew%destroy()
 
     call self%raw_pre%destroy()
     call self%raw_temp%destroy()
@@ -975,6 +983,7 @@ contains
     call self%raw_netrad%destroy()
     call self%raw_eabs%destroy()
     call self%raw_wind%destroy()
+    call self%raw_tdew%destroy()
     call self%raw_pet%destroy()
     call self%pre%destroy()
     call self%temp%destroy()
