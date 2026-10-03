@@ -170,6 +170,7 @@ module mo_input_container
     type(input_var_dp) :: netrad !< raw net radiation input variable on level2
     type(input_var_dp) :: eabs !< raw vapor pressure input variable on level2
     type(input_var_dp) :: wind !< raw wind input variable on level2
+    type(input_var_dp) :: tdew !< raw dew point temperature input variable on level2
     ! level 1 inputs
     type(input_var_i4) :: hydro_mask !< input variable for hydro mask
     type(input_var_dp) :: runoff !< input variable for runoff
@@ -1085,6 +1086,13 @@ contains
       call self%exchange%raw_wind%provide("Input")
     end if
 
+    ! raw dew point temperature on level2
+    status = self%config%input%is_set("tdew_path", idx=id, errmsg=errmsg)
+    if (status == NML_OK) then
+      call self%tdew%init(path=self%exchange%get_path(self%config%input%tdew_path(id(1))), name=self%config%input%tdew_var(id(1)))
+      call self%exchange%raw_tdew%provide("Input")
+    end if
+
     ! hydro mask (hydro_mask_var by default "mask")
     status = self%config%input%is_set("hydro_mask_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
@@ -1439,6 +1447,20 @@ contains
       end if
     end if
 
+    ! raw dew point temperature
+    if (self%tdew%coupled) then
+      log_error(*) "Input: dew point temperature is coupled... not yet implemented"
+      stop 1
+    else if (self%tdew%provided) then
+      init_grid = need_grid(self%tgt_level2, self%exchange%level2)
+      call self%tdew%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level2, init_grid=init_grid)
+      call sync_input_var_meta(self%tdew, self%exchange%raw_tdew)
+      if (self%tdew%static) then
+        call self%exchange%raw_tdew%prepare_storage("Input", self%tdew%stepping, [self%tdew%grid%ncells])
+        call self%tdew%read_static(self%exchange%raw_tdew%data)
+      end if
+    end if
+
     ! hydro mask
     if (self%hydro_mask%coupled) then
       ! TODO: init grid from coupling namelist if needed
@@ -1695,6 +1717,7 @@ contains
     call self%netrad%reset_time(self%chunking, self%exchange%start_time)
     call self%eabs%reset_time(self%chunking, self%exchange%start_time)
     call self%wind%reset_time(self%chunking, self%exchange%start_time)
+    call self%tdew%reset_time(self%chunking, self%exchange%start_time)
     call self%runoff%reset_time(self%chunking, self%exchange%start_time)
   end subroutine input_initialize
 
@@ -1712,6 +1735,7 @@ contains
     call self%netrad%update(self%exchange%raw_netrad%data, self%exchange%time, self%chunking, self%exchange%end_time)
     call self%eabs%update(self%exchange%raw_eabs%data, self%exchange%time, self%chunking, self%exchange%end_time)
     call self%wind%update(self%exchange%raw_wind%data, self%exchange%time, self%chunking, self%exchange%end_time)
+    call self%tdew%update(self%exchange%raw_tdew%data, self%exchange%time, self%chunking, self%exchange%end_time)
     call self%runoff%update(self%exchange%runoff_total%data, self%exchange%time, self%chunking, self%exchange%end_time)
   end subroutine input_update
 
@@ -1730,6 +1754,7 @@ contains
     if (self%netrad%provided .and. .not.self%netrad%static) call self%netrad%ds%close()
     if (self%eabs%provided .and. .not.self%eabs%static) call self%eabs%ds%close()
     if (self%wind%provided .and. .not.self%wind%static) call self%wind%ds%close()
+    if (self%tdew%provided .and. .not.self%tdew%static) call self%tdew%ds%close()
     if (self%runoff%provided) call self%runoff%ds%close()
   end subroutine input_finalize
 
@@ -1771,6 +1796,7 @@ contains
     call self%netrad%destroy()
     call self%eabs%destroy()
     call self%wind%destroy()
+    call self%tdew%destroy()
     call self%hydro_mask%destroy()
     call self%runoff%destroy()
     call self%tgt_level0%destroy()
