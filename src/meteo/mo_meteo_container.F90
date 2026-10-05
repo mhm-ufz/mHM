@@ -359,8 +359,12 @@ contains
     need_raw_tmax_lake = .false.
     need_raw_netrad_lake = .false.
     need_raw_eabs_lake = .false.
-    need_raw_wind_lake = lake_process == 1_i4
-    need_raw_tdew_lake = lake_process == 1_i4
+    ! Windspeed and dew-point are needed on lakes only by Penman (method 1); Priestley-Taylor
+    ! (method 2) does not use them, so require them only when actually supplied. The lake
+    ! evaporation method itself is checked in mLM. Temperature and the two radiation forcings
+    ! are required for both methods (above/below).
+    need_raw_wind_lake = lake_process == 1_i4 .and. self%exchange%raw_wind%provided
+    need_raw_tdew_lake = lake_process == 1_i4 .and. self%exchange%raw_tdew%provided
     need_raw_ssrd_lake = lake_process == 1_i4
     need_raw_strd_lake = lake_process == 1_i4
     need_raw_tann_lake = .false.
