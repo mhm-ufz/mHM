@@ -939,6 +939,7 @@ contains
     character(*), optional, intent(in) :: diagnostics_path !< Existing L0 diagnostics file.
     real(dp), allocatable :: width(:)
     integer(i8) :: n, cell, finish, traversed
+    logical :: invalid_path
 
     if (.not.associated(this%fine_river) .or. .not.associated(this%coarse_river)) &
       call error_message("river_upscaler: surface area requires fine and coarse rivers")
@@ -947,20 +948,28 @@ contains
     call this%fine_river%estimate_width(width_ref, width)
     if (.not.allocated(this%fine_river%link_length)) &
       call error_message("river_upscaler: surface area requires physical L0 link lengths")
-    allocate(area(this%coarse_river%n_nodes), source=0.0_dp)
+    allocate(area(this%coarse_river%n_nodes))
+    invalid_path = .false.
+    ! Each reach owns its output; retain the downstream summation order within a reach.
+    !$omp parallel do default(shared) private(cell,finish,traversed) reduction(.or.:invalid_path) schedule(static)
     do n = 1_i8, this%coarse_river%n_nodes
+      area(n) = 0.0_dp
       if (this%coarse_river%is_sink(n)) cycle
       cell = this%link_start(n)
       finish = this%link_end(n)
       traversed = 0_i8
       do while (cell /= finish)
-        if (cell < 1_i8 .or. cell > this%fine_river%n_nodes .or. traversed > this%fine_river%n_nodes) &
-          call error_message("river_upscaler: invalid fine river path for surface area")
+        if (cell < 1_i8 .or. cell > this%fine_river%n_nodes .or. traversed > this%fine_river%n_nodes) then
+          invalid_path = .true.
+          exit
+        end if
         area(n) = area(n) + this%fine_river%link_length(cell) * width(cell)
         cell = this%fine_river%down(cell)
         traversed = traversed + 1_i8
       end do
     end do
+    !$omp end parallel do
+    if (invalid_path) call error_message("river_upscaler: invalid fine river path for surface area")
     if (present(diagnostics_path)) call this%fine_river%write_estimated_width_diagnostic(diagnostics_path, width)
   end subroutine river_upscaler_surface_area
 

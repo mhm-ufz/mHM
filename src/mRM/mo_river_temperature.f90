@@ -121,6 +121,7 @@ contains
     self%albedo = albedo
     self%pt = pt
     self%emissivity = emissivity
+    !$omp parallel do default(shared) private(downstream) schedule(static)
     do n = 1_i8, river%n_nodes
       downstream = n
       if (.not.river%is_sink(n)) downstream = river%down(n)
@@ -131,6 +132,7 @@ contains
         self%cell_out(n) = river%node_cell(downstream)
       end if
     end do
+    !$omp end parallel do
   end subroutine river_thermal_forcing_init
 
   !> \brief Prepare reach meteorology once, before all numerical routing substeps.
@@ -230,7 +232,7 @@ contains
     logical, intent(in), optional :: read_fluxes !< Restore energy histories and publications; false resets them (default true).
     type(NcVariable) :: var
     real(dp) :: saved_parameters(5)
-    integer(i8) :: n
+    integer(i8) :: n, c
 
     call self%destroy()
     self%river => river
@@ -247,24 +249,32 @@ contains
     call self%meteo_scaler%init(input_grid, river%grid, &
       upscaling_operator=up_a_mean, downscaling_operator=down_nearest)
     if (self%meteo_scaler%scaling_mode /= down_scaling) allocate(self%meteo_work(input_grid%nx,input_grid%ny))
-    self%acc_depth = 0.0_dp
-    self%acc_air = 0.0_dp
-    self%acc_ssrd = 0.0_dp
-    self%acc_strd = 0.0_dp
-    self%local_energy = 0.0_dp
-    self%sum_energy = 0.0_dp
-    self%sum_discharge = 0.0_dp
+    !$omp parallel do default(shared) schedule(static)
+    do c = 1_i8, input_grid%ncells
+      self%acc_depth(c) = 0.0_dp
+      self%acc_air(c) = 0.0_dp
+      self%acc_ssrd(c) = 0.0_dp
+      self%acc_strd(c) = 0.0_dp
+    end do
+    !$omp end parallel do
     state%albedo = state%parameters(2)
     state%pt = state%parameters(3)
     state%emissivity = state%parameters(4)
     state%kh = state%parameters(5)
     ! Reset fluxes in place even when geometry/parameters are restored; keep exchange targets stable.
-    state%current_input = 0.0_dp
-    state%current_routed = 0.0_dp
-    state%previous_input = 0.0_dp
-    state%previous_routed = 0.0_dp
-    state%energy_flux = 0.0_dp
-    state%temperature = nodata_dp
+    !$omp parallel do default(shared) schedule(static)
+    do c = 1_i8, n
+      self%local_energy(c) = 0.0_dp
+      self%sum_energy(c) = 0.0_dp
+      self%sum_discharge(c) = 0.0_dp
+      state%current_input(c) = 0.0_dp
+      state%current_routed(c) = 0.0_dp
+      state%previous_input(c) = 0.0_dp
+      state%previous_routed(c) = 0.0_dp
+      state%energy_flux(c) = 0.0_dp
+      state%temperature(c) = nodata_dp
+    end do
+    !$omp end parallel do
     if (present(nc)) then
       ! Static thermal definition is required independently of the restart-flux policy.
       if (.not.nc%hasVariable("thermal_parameters") .or. .not.nc%hasVariable("thermal_surface_area")) &

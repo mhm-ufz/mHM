@@ -123,11 +123,40 @@ contains
     if (.not.allocated(state%current_input)) call error_message("river_flow: mRM-owned flow state is not allocated")
     if (size(state%current_input, kind=i8) /= river%n_nodes) &
       call error_message("river_flow: flow state does not match the river network")
+
+    allocate(self%acc_runoff(input_cells), self%runoff(river%n_nodes), self%sum_discharge(river%n_nodes))
+    if (scc) allocate(self%scaled_flux(runoff_cells))
+    if (needs_scale_work) then
+      allocate(self%scale_work(input_cells))
+      if (present(input_grid)) allocate(self%scale_grid(input_grid%nx,input_grid%ny))
+    end if
+    if (present(lake_nodes)) then
+      if (size(lake_nodes, kind=i8) > 0_i8) then
+        self%n_lakes = int(size(lake_nodes), i4)
+        self%lake_routing = .true.
+        allocate(self%lake_index(river%n_nodes), self%sum_lake_inflow(self%n_lakes))
+        self%sum_lake_inflow = 0.0_dp
+      end if
+    end if
+
     ! Current buffers are overwritten on the next substep; histories start cold unless explicitly restored.
-    state%current_input = 0.0_dp
-    state%current_routed = 0.0_dp
-    state%previous_input = 0.0_dp
-    state%previous_routed = 0.0_dp
+    !$omp parallel do default(shared) schedule(static)
+    do n = 1_i8, river%n_nodes
+      state%current_input(n) = 0.0_dp
+      state%current_routed(n) = 0.0_dp
+      state%previous_input(n) = 0.0_dp
+      state%previous_routed(n) = 0.0_dp
+      self%runoff(n) = 0.0_dp
+      self%sum_discharge(n) = 0.0_dp
+      if (self%lake_routing) self%lake_index(n) = 0_i4
+    end do
+    !$omp end parallel do
+    !$omp parallel do default(shared) schedule(static)
+    do n = 1_i8, input_cells
+      self%acc_runoff(n) = 0.0_dp
+    end do
+    !$omp end parallel do
+
     if (present(nc)) then
       if (optval(read_fluxes, .true.)) then
         ! Preserve compatibility with older restarts that omitted either history.
@@ -141,27 +170,14 @@ contains
         end if
       end if
     end if
-    allocate(self%acc_runoff(input_cells), self%runoff(river%n_nodes), self%sum_discharge(river%n_nodes))
-    if (scc) allocate(self%scaled_flux(runoff_cells))
-    if (needs_scale_work) then
-      allocate(self%scale_work(input_cells))
-      if (present(input_grid)) allocate(self%scale_grid(input_grid%nx,input_grid%ny))
-    end if
-    self%acc_runoff = 0.0_dp
-    self%runoff = 0.0_dp
-    self%sum_discharge = 0.0_dp
     if (present(lake_nodes)) then
-      if (size(lake_nodes, kind=i8) > 0_i8) then
-        allocate(self%lake_index(river%n_nodes), source=0_i4)
+      if (self%lake_routing) then
         do n = 1_i8, size(lake_nodes, kind=i8)
           if (lake_nodes(n) < 1_i8 .or. lake_nodes(n) > river%n_nodes) &
             call error_message("river_flow: lake node is outside the river network")
           if (self%lake_index(lake_nodes(n)) /= 0_i4) call error_message("river_flow: duplicate canonical lake node")
           self%lake_index(lake_nodes(n)) = int(n, i4)
         end do
-        self%n_lakes = int(size(lake_nodes), i4)
-        self%lake_routing = .true.
-        allocate(self%sum_lake_inflow(self%n_lakes), source=0.0_dp)
       end if
     end if
   end subroutine river_flow_init

@@ -121,7 +121,7 @@ contains
     real(dp), allocatable :: k(:)
     real(dp) :: xi
     integer(i4) :: step_id
-    integer(i8) :: n_nodes
+    integer(i8) :: n_nodes, n
 
     xi = routing_space_weight ! NOTE: fixed for now
 
@@ -131,7 +131,12 @@ contains
     call self%allocate(n_nodes)
 
     ! wave travel time parameter [s]
-    allocate(k(n_nodes), source=(link_length / celerity))
+    allocate(k(n_nodes))
+    !$omp parallel do default(shared) schedule(static)
+    do n = 1_i8, n_nodes
+      k(n) = link_length(n) / celerity(n)
+    end do
+    !$omp end parallel do
 
     ! set min wave travel time to min routing step
     step_id = max(1_i4, locate(routing_steps, minval(k, mask=.not.is_sink)))
@@ -141,8 +146,12 @@ contains
       call error_message("routing substep is invalid: ", n2s(self%routing_substep))
 
     ! muskingum parameters
-    self%nu1 = self%routing_substep / ( k * (1.0_dp - xi) + self%routing_substep / 2.0_dp )
-    self%nu2 = 1.0_dp - self%nu1 * k / self%routing_substep
+    !$omp parallel do default(shared) schedule(static)
+    do n = 1_i8, n_nodes
+      self%nu1(n) = self%routing_substep / (k(n) * (1.0_dp - xi) + self%routing_substep / 2.0_dp)
+      self%nu2(n) = 1.0_dp - self%nu1(n) * k(n) / self%routing_substep
+    end do
+    !$omp end parallel do
 
     call self%setup_timing(input_step, model_step)
   end subroutine river_muskingum_state_init

@@ -1069,14 +1069,25 @@ contains
     class(river_t), intent(inout), target :: this !< L0 river with physical upstream areas.
     real(dp), intent(in) :: width_ref !< Width at 100 km2 upstream area [m].
     real(dp), allocatable, intent(out) :: width(:) !< Estimated L0 width [m].
+    integer(i8) :: n
+    logical :: invalid_area
     if (.not.allocated(this%upstream_area)) call this%calc_upstream_area()
     if (width_ref <= 0.0_dp .or. .not.ieee_is_finite(width_ref)) &
       call error_message("river width requires a positive finite width_ref")
     if (size(this%upstream_area, kind=i8) /= this%n_nodes) &
       call error_message("river width requires one upstream area per L0 node")
-    if (any(this%upstream_area <= 0.0_dp) .or. .not.all(ieee_is_finite(this%upstream_area))) &
-      call error_message("river width requires positive finite L0 upstream areas")
-    width = width_ref * sqrt(this%upstream_area / 1.0e8_dp)
+    allocate(width(this%n_nodes))
+    invalid_area = .false.
+    !$omp parallel do default(shared) reduction(.or.:invalid_area) schedule(static)
+    do n = 1_i8, this%n_nodes
+      if (this%upstream_area(n) <= 0.0_dp .or. .not.ieee_is_finite(this%upstream_area(n))) then
+        invalid_area = .true.
+        cycle
+      end if
+      width(n) = width_ref * sqrt(this%upstream_area(n) / 1.0e8_dp)
+    end do
+    !$omp end parallel do
+    if (invalid_area) call error_message("river width requires positive finite L0 upstream areas")
   end subroutine river_estimate_width
 
   !> \brief Physical area for the equal-grid routing case, with zero area at sinks.
@@ -1085,10 +1096,16 @@ contains
     real(dp), intent(in) :: width_ref !< Width at 100 km2 upstream area [m].
     real(dp), allocatable, intent(out) :: area(:) !< Physical area of each outgoing link [m2].
     real(dp), allocatable :: width(:)
+    integer(i8) :: n
     if (.not.allocated(this%link_length)) call error_message("river surface area requires physical L0 link lengths")
     call this%estimate_width(width_ref, width)
-    area = this%link_length * width
-    where (this%is_sink) area = 0.0_dp
+    allocate(area(this%n_nodes))
+    !$omp parallel do default(shared) schedule(static)
+    do n = 1_i8, this%n_nodes
+      area(n) = 0.0_dp
+      if (.not.this%is_sink(n)) area(n) = this%link_length(n) * width(n)
+    end do
+    !$omp end parallel do
   end subroutine river_surface_area
 
   !> \brief Add or update estimated L0 width in an existing river diagnostics file.
