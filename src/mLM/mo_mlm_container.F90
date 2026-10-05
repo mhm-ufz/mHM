@@ -359,13 +359,18 @@ contains
         log_fatal(*) "mLM process 1 supports natural lakes only; reservoir regulation is not yet implemented."
         error stop 1
       end if
-      ! Penman lake evaporation is active when its forcings are provided (kept daily by Meteo).
-      ! The five forcings must be provided together.
+      ! Lake evaporation is active when its forcings are provided (kept daily by Meteo). Both
+      ! methods need temperature and downward short- and long-wave radiation; Penman (method 1)
+      ! additionally needs windspeed and dew-point temperature, Priestley-Taylor (method 2) does not.
       self%evaporation_active = self%exchange%lake_temp%provided
       if (self%evaporation_active) then
-        if (.not.(self%exchange%lake_ssrd%provided .and. self%exchange%lake_strd%provided .and. &
-                  self%exchange%lake_wind%provided .and. self%exchange%lake_tdew%provided)) then
-          log_fatal(*) "mLM process 1 lake evaporation requires lake temp, ssrd, strd, wind and tdew together."
+        if (.not.(self%exchange%lake_ssrd%provided .and. self%exchange%lake_strd%provided)) then
+          log_fatal(*) "mLM process 1 lake evaporation requires lake temperature, ssrd and strd together."
+          error stop 1
+        end if
+        if (self%config%evaporation_method == 1_i4 .and. &
+            .not.(self%exchange%lake_wind%provided .and. self%exchange%lake_tdew%provided)) then
+          log_fatal(*) "mLM process 1 Penman evaporation (method 1) also requires lake wind and dew-point temperature."
           error stop 1
         end if
         ! A varying water albedo needs geographic coordinates (solar geometry); require spherical lake points.
@@ -494,6 +499,7 @@ contains
     integer(i4) :: hour, doy
     real(dp) :: spill, volume_adjustment, tsHydroSecs, perc, baseflow, kp, kbf
     real(dp) :: ntimesteps_day, evap_daily, evap_step, pr_step, qin_d, qout_d, pre_d, lat, lon
+    real(dp) :: wind_k, tdew_k
     real(dp) :: evap_components(3)
     logical :: isday
     real(dp) :: input_windspeed_height
@@ -526,7 +532,7 @@ contains
         varying_psychro = self%config%varying_psychro
         !$omp parallel do default(shared) &
         !$omp   private(k, spill, volume_adjustment, perc, baseflow, kp, kbf, &
-        !$omp           evap_daily, evap_step, pr_step, qin_d, qout_d, pre_d, lat, lon, evap_components) &
+        !$omp           evap_daily, evap_step, pr_step, qin_d, qout_d, pre_d, lat, lon, wind_k, tdew_k, evap_components) &
         !$omp   schedule(dynamic)
         do k = 1_i8, n_lakes
           ! Per-step recession coefficients from the per-day lakes_1 parameters
@@ -582,9 +588,14 @@ contains
             pre_d = pr_step * ntimesteps_day
             lat = self%static_lake_points%y(k)
             lon = self%static_lake_points%x(k)
-            call lake_evaporation(hour, doy, &
-              self%exchange%lake_temp%data(k), self%exchange%lake_tdew%data(k), &
-              self%exchange%lake_wind%data(k), self%exchange%lake_ssrd%data(k), &
+            ! Windspeed and dew-point temperature are used by Penman only; they may be absent for
+            ! Priestley-Taylor, so read them only when provided (zero otherwise, where they are unused).
+            wind_k = 0.0_dp
+            tdew_k = 0.0_dp
+            if (self%exchange%lake_wind%provided) wind_k = self%exchange%lake_wind%data(k)
+            if (self%exchange%lake_tdew%provided) tdew_k = self%exchange%lake_tdew%data(k)
+            call lake_evaporation(self%config%evaporation_method, hour, doy, &
+              self%exchange%lake_temp%data(k), tdew_k, wind_k, self%exchange%lake_ssrd%data(k), &
               self%exchange%lake_strd%data(k), &
               self%exchange%lake_temp%data(k), self%exchange%lake_temp%data(k), self%exchange%lake_temp%data(k), &
               self%lake_level_previous(k), qin_d, qout_d, pre_d, lat, lon, &

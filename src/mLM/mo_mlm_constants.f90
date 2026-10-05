@@ -54,6 +54,9 @@ module mo_mlm_constants
   real(dp), public, parameter :: penman1948_1  = 6.43_dp
   real(dp), public, parameter :: penman1948_2  = 0.536_dp
 
+  !> Priestley-Taylor (1972) coefficient
+  real(dp), public, parameter :: ptcoeff       = 1.26_dp
+
   ! Meteorology
   !> Constant water albedo (Cogley)
   real(dp), public, parameter :: albedo_w_const = 0.08_dp

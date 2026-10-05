@@ -11,10 +11,13 @@
 !> \date March 2019
 
 ! Modifications:
-! Pallav Shrestha, Oct 2026 - v6 migration (minimal natural lake, Penman only):
-!     * ported from v5.13 mo_mlm_evaporation (Penman path only - lake_evap_penman1948
-!       plus its helpers; the Harbeck, Linacre, de Bruin and Priestley-Taylor methods
-!       and the evaporation-predictor update are out of minimal scope and not ported).
+! Pallav Shrestha, Oct 2026 - v6 migration (minimal natural lake, Penman + Priestley-Taylor):
+!     * ported from v5.13 mo_mlm_evaporation - lake_evap_penman1948 and
+!       lake_evap_priestleytaylor1972 plus their shared helpers; the method is selected by
+!       the evaporation_method argument (1 = Penman, 2 = Priestley-Taylor). The Harbeck,
+!       Linacre and de Bruin methods and the evaporation-predictor update are out of minimal
+!       scope and not ported. (Priestley-Taylor needs only temperature and downward radiation,
+!       so it runs on the test-domain meteo without windspeed/dew-point fixtures.)
 !     * SI units kept throughout (the Penman kernel was already pure SI in v5).
 !     * daily rate, disaggregated by the caller: the Penman combination equation
 !       (Shuttleworth 1993, Handbook of Hydrology Eq. 4.2.30) is a DAILY formulation -
@@ -36,8 +39,9 @@ MODULE mo_lake_evaporation
   IMPLICIT NONE
 
 
-  PUBLIC  :: lake_evaporation         ! wrapper for lake evaporation process (Penman, minimal scope)
+  PUBLIC  :: lake_evaporation         ! wrapper for lake evaporation process (Penman or Priestley-Taylor)
   PRIVATE :: lake_evap_penman1948     ! Penman, using temperatures, downward radiations and windspeed
+  PRIVATE :: lake_evap_priestleytaylor1972  ! Priestley-Taylor, using temperatures and downward radiations
   PRIVATE :: windspeed_correction     ! corrects windspeed for height of recording
   PUBLIC  :: albedo_water             ! estimate of albedo for water for given latitude and doy, at noon
   PRIVATE :: hourangle                ! estimate of solar hour angle in degrees
@@ -90,14 +94,17 @@ CONTAINS
 
 
 
-  SUBROUTINE lake_evaporation( hour, doy, temp, tdew, windspeed, ssrd, strd, tin, tout, tpre, &
-                                lake_level, qin, qout, pre, latitude, longitude, &
+  SUBROUTINE lake_evaporation( evaporation_method, hour, doy, temp, tdew, windspeed, ssrd, strd, &
+                                tin, tout, tpre, lake_level, qin, qout, pre, latitude, longitude, &
                                 input_windspeed_height, varying_albedo, albedo_method, &
                                 varying_lambda, varying_psychro, evap, evap_components)
 
     use mo_mlm_constants, only : albedo_w_const
 
     IMPLICIT NONE
+
+    ! lake evaporation method (1 - Penman 1948, 2 - Priestley-Taylor 1972)
+    integer(i4), intent(in) :: evaporation_method
 
     ! hour of the day
     integer(i4), intent(in) :: hour
@@ -108,10 +115,10 @@ CONTAINS
     ! [degC] average temperature
     real(dp), intent(in) :: temp
 
-    ! [degC] dew point temperature
+    ! [degC] dew point temperature (used by Penman only)
     real(dp), intent(in) :: tdew
 
-    ! [m s-1] average windspeed
+    ! [m s-1] average windspeed (used by Penman only)
     real(dp), intent(in) :: windspeed
 
     ! [W m-2] downward short-wave radiation
@@ -174,17 +181,36 @@ CONTAINS
     real(dp) :: sha   ! solar hour angle
 
 
-    ! Penman (1948) - temperatures, downward radiations and windspeed
+    ! Water albedo (shared by both methods): constant, or estimated for the current hour/doy.
     if (varying_albedo) then
       sha   = hourangle(longitude, doy, hour)
       alb_w = albedo_water(latitude, doy, sha, albedo_method)
     else
       alb_w = albedo_w_const
     end if
-    evap_components(1:3) = lake_evap_penman1948(lake_level, alb_w, ssrd, strd, temp, tdew, windspeed, &
-                                                tin, tout, tpre, qin, qout, pre, &
-                                                input_windspeed_height, varying_lambda, varying_psychro)
-    evap = sum(evap_components(1:3))
+
+    select case (evaporation_method)
+
+    case (1) ! Penman (1948) - temperatures, downward radiations and windspeed
+
+      evap_components(1:3) = lake_evap_penman1948(lake_level, alb_w, ssrd, strd, temp, tdew, windspeed, &
+                                                  tin, tout, tpre, qin, qout, pre, &
+                                                  input_windspeed_height, varying_lambda, varying_psychro)
+      evap = sum(evap_components(1:3))
+
+    case (2) ! Priestley-Taylor (1972) - temperatures and downward radiations (no windspeed/VPD)
+
+      evap = lake_evap_priestleytaylor1972(lake_level, alb_w, ssrd, strd, temp, &
+                                           tin, tout, tpre, qin, qout, pre, &
+                                           varying_lambda, varying_psychro)
+      evap_components(1:3) = 0.0_dp ! the 3-term breakdown is a Penman concept; unused for Priestley-Taylor
+
+    case default
+
+      evap = 0.0_dp
+      evap_components(1:3) = 0.0_dp
+
+    end select
 
 
   END SUBROUTINE lake_evaporation
@@ -417,6 +443,172 @@ CONTAINS
 
 
   END FUNCTION lake_evap_penman1948
+
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         lake_evap_priestleytaylor1972
+
+  !     PURPOSE
+  !>        \brief calculates the evaporative loss from the surface of the lake
+  !>                 using Priestley and Taylor (1972)
+
+  !>        \details calculates the evaporative loss from the surface of the lake
+  !>                 using Priestley and Taylor (1972), given temperatures and
+  !>                 downward radiations (no windspeed / vapour-pressure-deficit term)
+
+  !    CALLING SEQUENCE
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: lake_level"            [m asl]   lake surface elevation
+  !>       \param[in] "real(dp) :: alb"                   [-]       water albedo
+  !>       \param[in] "real(dp) :: ssrd"                  [W m-2]   downward short-wave radiation
+  !>       \param[in] "real(dp) :: strd"                  [W m-2]   downward long-wave radiation
+  !>       \param[in] "real(dp) :: Temp"                  [degC]    average temperature
+  !>       \param[in] "real(dp) :: Tin"                   [degC]    temperature of lake inflow
+  !>       \param[in] "real(dp) :: Tout"                  [degC]    temperature of lake outflow
+  !>       \param[in] "real(dp) :: Tpre"                  [degC]    temperature of lake precipitation
+  !>       \param[in] "real(dp) :: qin"                   [mm d-1]  rate of lake inflow
+  !>       \param[in] "real(dp) :: qout"                  [mm d-1]  rate of lake outflow
+  !>       \param[in] "real(dp) :: pre"                   [mm d-1]  rate of lake precipitation
+  !>       \param[in] "logical  :: varying_lambda"        constant / varying latent heat of vaporisation
+  !>       \param[in] "logical  :: varying_psychro"       constant / varying psychrometric constant
+
+  !     INTENT(IN), OPTIONAL
+
+  !     RETURN
+  !         \return real(dp) :: lake_evap_priestleytaylor1972 &mdash; lake evaporation from
+  !                 Priestley and Taylor (1972) [mm d-1]
+
+  !     RESTRICTIONS
+
+  !     EXAMPLE
+
+  !     LITERATURE
+  !
+  !           Priestley, C. H. B. and Taylor, R. J. (1972) On the assessment of surface heat flux
+  !           and evaporation using large-scale parameters. Monthly Weather Review, 100, 81-92.
+
+  !     HISTORY
+  !>        \author Pallav Shrestha, Rohini Kumar
+  !>        \date March 2022
+  !
+  ! Modifications:
+  ! Pallav Shrestha, Oct 2026 - v6 migration: kept the daily DaySecs integration (returns mm d-1,
+  !     the caller disaggregates to the model step); varying_lambda and varying_psychro passed as
+  !     arguments (no globals).
+
+
+  FUNCTION lake_evap_priestleytaylor1972(lake_level, alb, ssrd, strd, Temp, Tin, Tout, Tpre, &
+                                         qin, qout, pre, varying_lambda, varying_psychro)
+
+    use mo_constants,     only : Psychro_dp, SpecHeatET_dp, cp_w_dp, DaySecs, sigma_dp, T0_dp
+    use mo_mlm_constants, only : ptcoeff, boltzmann_e, Emissivity_w
+    use mo_pet,           only : slope_satpressure
+
+
+    IMPLICIT NONE
+
+    real(dp), intent(IN) ::   lake_level, &  ! [m asl]   lake surface elevation
+                              alb, &         ! [-]       water albedo
+                              ssrd, &        ! [W m-2]   downward short-wave radiation
+                              strd, &        ! [W m-2]   downward long-wave radiation
+                              Temp, &        ! [degC]    average temperature
+                              Tin, &         ! [degC]    temperature of lake inflow
+                              Tout, &        ! [degC]    temperature of lake outflow
+                              Tpre, &        ! [degC]    temperature of lake precipitation
+                              qin, &         ! [mm d-1]  rate of lake inflow
+                              qout, &        ! [mm d-1]  rate of lake outflow
+                              pre            ! [mm d-1]  rate of lake precipitation
+
+    ! constant / varying latent heat of vaporisation and psychrometric constant
+    logical, intent(IN) ::    varying_lambda, varying_psychro
+
+
+    !! local vars
+    real(dp) :: Ah, ssr, str, stro, netrad, SpecHeat_w, Psychro
+
+    ! lake evaporation in [mm per day]
+    real(dp) :: lake_evap_priestleytaylor1972
+
+
+
+    !----------------------------------------------------------------------------
+    ! Lake evaporation by Priestley and Taylor 1972
+    !
+    !          d
+    ! E = a -------- (Rn + Ah)
+    !        d + r
+    !
+    ! where, E is lake evaporation in mm d-1
+    !        a is the Priestley-Taylor coefficient
+    !        d is slope of saturation vapor pressure vs temperature curve, in kPa degC-1
+    !        r is Psychrometric constant, in kPa degC-1
+    !        Rn is the net radiation, in mm d-1
+    !        Ah is the advection rate, in mm d-1
+    !
+    !        Rn = Sn + Ln  (net short-wave + net long-wave radiation), with the outgoing
+    !        long-wave Lo = e * sigma * T^4 (Boltzmann), as in the Penman routine.
+    !        Ah = rho_w * cp_w * ( qin * Tin - qout * Tout + pre * Tpre ).
+    !
+    ! Note (v6 migration): the equation is daily (returns mm d-1); the caller disaggregates it
+    ! to the model step, matching how mo_meteo_container treats the land PET methods.
+    !----------------------------------------------------------------------------
+
+    ! Calculate net shortwave radiation (W m-2)
+    ssr = ssrd * (1 - alb)
+
+    ! Calculate outgoing longwave radiation from Boltzmann equation (W m-2)
+    stro = Emissivity_w * sigma_dp * (Temp + T0_dp) ** boltzmann_e
+      ! PS - using air temperature as water surface temperature until
+      !      lake temperature procedure is added and connected with river
+      !      temperature routing
+
+    ! Calculate net longwave radiation (W m-2)
+    str = strd - stro
+
+    ! Calculate net radiation (W m-2)
+    netrad = ssr + str
+
+    ! Calculate advection rate (J m-2 d-1)
+    Ah = cp_w_dp * 1000._dp * ( qin * Tin - qout * Tout + pre * Tpre )
+
+
+    ! Specific heat of vaporisation of water
+    if (varying_lambda) then
+      SpecHeat_w = spc_heat_vap_water(Temp) ! considering water surface temperature to be equal to air temperature
+    else
+      SpecHeat_w = SpecHeatET_dp
+    end if
+
+    ! Estimate Psychrometric constant
+    if (varying_psychro) then
+      Psychro = psychro_constant(lake_level, Temp) ! considering water surface temperature to be equal to air temperature
+    else
+      Psychro = Psychro_dp
+    end if
+
+
+    ! "Evaporation but no condensation"
+    ! We only apply Priestley-Taylor for non-negative values of netrad
+    if ( netrad >= 0._dp ) then
+
+      if ( netrad * DaySecs + Ah  >= 0._dp ) then ! In case Ah is lower than netrad, evap should be cutoff at 0.
+
+        ! Calculate E by Priestley-Taylor (1972) in mm d-1
+        lake_evap_priestleytaylor1972 = ptcoeff * slope_satpressure(Temp) / ( slope_satpressure(Temp) + Psychro ) &
+                                * ( netrad * DaySecs + Ah ) / SpecHeat_w
+      else
+        lake_evap_priestleytaylor1972 = 0._dp
+      end if
+
+    else
+      lake_evap_priestleytaylor1972 = 0._dp
+    end if
+
+
+  END FUNCTION lake_evap_priestleytaylor1972
 
 
   ! ------------------------------------------------------------------
