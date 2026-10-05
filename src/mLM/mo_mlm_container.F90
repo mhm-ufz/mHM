@@ -2,11 +2,35 @@
 !> \brief \copybrief mo_mlm_container
 !> \details \copydetails mo_mlm_container
 
-!> \brief Minimal v6 lake component.
-!> \details Provides the process--1 delayed pass-through contract between mRM updates.
+!> \brief Minimal v6 lake component (mHM Lake Module, mLM).
+!> \details
+!!   Provides the process--1 delayed pass-through contract between mRM updates.
+!!
+!!   This module is the hub of the mLM v5.13 -> v6 migration: the v5 `mo_mlm_*` process routines
+!!   were hand-ported into standalone v6 leaf modules (`src/mLM/mo_lake_*`), and this container
+!!   drives them, grown by analogy to `mo_mhm_container`.
+!!
+!!   Porting principles (kept throughout the migration):
+!!   - The leaf routines keep the v5 LOOK (syntax, comment style, NAME/PURPOSE/INTENT/HISTORY
+!!     blocks) and their original authorship/history; each ported file carries a new MODIFICATIONS
+!!     entry for the migration. The physics/equations are preserved (no logic restructuring).
+!!   - Three deltas only: consistent variable/argument nomenclature, SI units internally, and no
+!!     global-variable connections (everything passed by argument).
+!!   - Units: SI everywhere internally. Input NetCDF keeps conventional reported units (lake area
+!!     km2, volume mcm = 1e6 m3); the Input container converts to SI (m2, m3) at the read boundary.
+!!   - Scope so far: the minimal natural lake only (no reservoir regulation, demand or SCC).
+!!
 !> \changelog
-!! - Pallav Shrestha (2018-2023): v5 lake and SCC coupling concepts.
-!! - Sebastian Mueller (2026): v6 domain-owned mLM pass-through component.
+!! - Pallav Shrestha (2018-2023): v5.13 mLM and SCC lake/reservoir concepts (origin of the ported physics).
+!! - Sebastian Mueller (2026): v6 architecture and the domain-owned mLM pass-through container with its plugin points.
+!! - Pallav Shrestha (2026-09/10): v5.13 -> v6 migration of the minimal natural lake.
+!!     * Phase 1: topology, footprint delineation and the hAV bathymetry generator.
+!!     * Phase 2: natural spill and the iterative lake water balance; case-1 loop and cold-start.
+!!     * Phase 3: lake seepage, lake groundwater storage and baseflow; outflow = spill + baseflow.
+!!     * Phase 4: Penman (1948) open-water evaporation (daily, disaggregated to the model step).
+!!     * Phase 5: lake-point state/flux output and restart persistence (states + static metadata).
+!!     * Priestley-Taylor (1972) evaporation as a second method (evaporation_method selector).
+!!     * Varying water albedo on projected grids via geographic lake coordinates (level-0 latlon aux).
 !> \authors Pallav Shrestha
 !> \authors Sebastian Mueller
 !> \date 2026
@@ -62,6 +86,8 @@ module mo_mlm_container
     real(dp), allocatable :: static_lake_max_volume_reported(:) !< reported maximum volumes [m3] retained for the lake points
     real(dp), allocatable :: static_lake_spillway_length(:) !< effective spillway crest length [m] retained for the lake points
     real(dp), allocatable :: static_lake_initial_level(:) !< initial lake level [m] retained for the lake points
+    real(dp), allocatable :: static_lake_latitude(:) !< geographic latitude [degree] retained for the lake points
+    real(dp), allocatable :: static_lake_longitude(:) !< geographic longitude [degree] retained for the lake points
     type(lake_hav_t), allocatable :: hav(:) !< per-lake height-area-volume curves built at initialize
     real(dp), allocatable :: lake_level(:) !< current lake surface level [masl]
     real(dp), allocatable :: lake_surface_area(:) !< current lake surface area [m2]
@@ -78,6 +104,8 @@ module mo_mlm_container
     real(dp), allocatable :: restart_lake_max_volume_reported(:) !< reported maximum volumes [m3] restored from restart metadata
     real(dp), allocatable :: restart_lake_spillway_length(:) !< effective spillway crest length [m] restored from restart metadata
     real(dp), allocatable :: restart_lake_initial_level(:) !< initial lake level [m] restored from restart metadata
+    real(dp), allocatable :: restart_lake_latitude(:) !< geographic latitude [degree] restored from restart metadata
+    real(dp), allocatable :: restart_lake_longitude(:) !< geographic longitude [degree] restored from restart metadata
     real(dp), allocatable :: outflow(:) !< current lake outflow [m3 s-1]
     real(dp), allocatable :: lake_evaporation(:) !< current lake evaporation [mm per step] (diagnostic, for output)
     real(dp), allocatable :: lake_seepage(:) !< current lake seepage/percolation [mm per step] (diagnostic, for output)
@@ -287,6 +315,10 @@ contains
         self%static_lake_spillway_length = self%restart_lake_spillway_length
       if (allocated(self%restart_lake_initial_level)) &
         self%static_lake_initial_level = self%restart_lake_initial_level
+      if (allocated(self%restart_lake_latitude)) &
+        self%static_lake_latitude = self%restart_lake_latitude
+      if (allocated(self%restart_lake_longitude)) &
+        self%static_lake_longitude = self%restart_lake_longitude
       self%exchange%lake_points => self%static_lake_points
       call self%exchange%lake_ids%prepare_data("mLM", no_time)
       self%exchange%lake_ids%data => self%lake_ids
@@ -377,6 +409,20 @@ contains
       else if (.not.allocated(self%static_lake_initial_level)) then
         allocate(self%static_lake_initial_level(n_lakes), source=nodata_dp)
       end if
+      ! Geographic latitude/longitude of the lake points, used by the varying-albedo solar geometry.
+      ! The Input container derives them (from the point coordinates when spherical, or the level-0
+      ! latlon auxiliary coordinates when projected); on a restart-only run they come from the restart
+      ! metadata. Left as nodata when unavailable; varying_albedo then errors in the guard below.
+      if (self%exchange%lake_latitude%provided .and. self%exchange%lake_latitude%has_data()) then
+        self%static_lake_latitude = self%exchange%lake_latitude%data
+      else if (.not.allocated(self%static_lake_latitude)) then
+        allocate(self%static_lake_latitude(n_lakes), source=nodata_dp)
+      end if
+      if (self%exchange%lake_longitude%provided .and. self%exchange%lake_longitude%has_data()) then
+        self%static_lake_longitude = self%exchange%lake_longitude%data
+      else if (.not.allocated(self%static_lake_longitude)) then
+        allocate(self%static_lake_longitude(n_lakes), source=nodata_dp)
+      end if
       ! Minimal scope supports natural lakes only; reservoir regulation is not yet ported.
       if (any(.not. self%config%natural(self%exchange%nml_domain_id, 1:int(n_lakes, i4)))) then
         log_fatal(*) "mLM process 1 supports natural lakes only; reservoir regulation is not yet implemented."
@@ -396,10 +442,21 @@ contains
           log_fatal(*) "mLM process 1 Penman evaporation (method 1) also requires lake wind and dew-point temperature."
           error stop 1
         end if
-        ! A varying water albedo needs geographic coordinates (solar geometry); require spherical lake points.
-        if (self%config%varying_albedo .and. self%static_lake_points%coordsys /= spherical) then
-          log_fatal(*) "mLM process 1 varying_albedo requires spherical (lon/lat) lake points."
-          error stop 1
+        ! A varying water albedo needs the geographic latitude/longitude of each lake (solar geometry).
+        ! Spherical lake points carry them directly; projected (cartesian) points get them from the
+        ! level-0 latlon auxiliary coordinates (latlon_path). Either way the Input/restart-restored
+        ! static coordinates must be present and finite, otherwise the albedo would be computed from a
+        ! missing-value coordinate. Require them when varying_albedo is on.
+        if (self%config%varying_albedo) then
+          if (.not.allocated(self%static_lake_latitude) .or. .not.allocated(self%static_lake_longitude)) then
+            log_fatal(*) "mLM process 1 varying_albedo requires lake geographic coordinates (set latlon_path for a projected grid)."
+            error stop 1
+          end if
+          if (any(self%static_lake_latitude < -90.0_dp) .or. any(self%static_lake_latitude > 90.0_dp) .or. &
+              any(self%static_lake_longitude < -360.0_dp) .or. any(self%static_lake_longitude > 360.0_dp)) then
+            log_fatal(*) "mLM process 1 varying_albedo: lake geographic coordinates are missing or out of range (set latlon_path for a projected grid)."
+            error stop 1
+          end if
         end if
       end if
       ! Previous-step state storage for the water-balance integration.
@@ -624,8 +681,11 @@ contains
               qout_d = 0.0_dp
             end if
             pre_d = pr_step * ntimesteps_day
-            lat = self%static_lake_points%y(k)
-            lon = self%static_lake_points%x(k)
+            ! Geographic coordinates for the solar geometry (used only when varying_albedo); these are
+            ! true lat/lon even on a projected grid (from the level-0 latlon auxiliary coordinates),
+            ! unlike static_lake_points%x/y which hold projected eastings/northings on a cartesian grid.
+            lat = self%static_lake_latitude(k)
+            lon = self%static_lake_longitude(k)
             ! Windspeed and dew-point temperature are used by Penman only; they may be absent for
             ! Priestley-Taylor, so read them only when provided (zero otherwise, where they are unused).
             wind_k = 0.0_dp
@@ -705,6 +765,8 @@ contains
     if (allocated(self%static_lake_max_volume_reported)) deallocate(self%static_lake_max_volume_reported)
     if (allocated(self%static_lake_spillway_length)) deallocate(self%static_lake_spillway_length)
     if (allocated(self%static_lake_initial_level)) deallocate(self%static_lake_initial_level)
+    if (allocated(self%static_lake_latitude)) deallocate(self%static_lake_latitude)
+    if (allocated(self%static_lake_longitude)) deallocate(self%static_lake_longitude)
     if (allocated(self%lake_level)) deallocate(self%lake_level)
     if (allocated(self%lake_surface_area)) deallocate(self%lake_surface_area)
     if (allocated(self%lake_volume)) deallocate(self%lake_volume)
@@ -725,6 +787,8 @@ contains
     if (allocated(self%restart_lake_max_volume_reported)) deallocate(self%restart_lake_max_volume_reported)
     if (allocated(self%restart_lake_spillway_length)) deallocate(self%restart_lake_spillway_length)
     if (allocated(self%restart_lake_initial_level)) deallocate(self%restart_lake_initial_level)
+    if (allocated(self%restart_lake_latitude)) deallocate(self%restart_lake_latitude)
+    if (allocated(self%restart_lake_longitude)) deallocate(self%restart_lake_longitude)
     if (allocated(self%outflow)) deallocate(self%outflow)
     call self%static_lake_grid%destroy()
   end subroutine mlm_destroy
@@ -923,6 +987,19 @@ contains
       call var%setAttribute("units", "m")
       call var%setData(self%static_lake_initial_level)
     end if
+    ! Geographic coordinates are written only when they were derived (i.e. a latlon file was present
+    ! for a projected grid, or the points were spherical); they are required at read time only when
+    ! varying_albedo is configured (checked in the connect guard).
+    if (allocated(self%static_lake_latitude)) then
+      var = nc%setVariable("lake_latitude", "f64", [lake_dim])
+      call var%setAttribute("units", "degree")
+      call var%setData(self%static_lake_latitude)
+    end if
+    if (allocated(self%static_lake_longitude)) then
+      var = nc%setVariable("lake_longitude", "f64", [lake_dim])
+      call var%setAttribute("units", "degree")
+      call var%setData(self%static_lake_longitude)
+    end if
     var = nc%setVariable("lake_coordsys", "i32", dims(:0))
     call var%setData(self%static_lake_points%coordsys)
     var = nc%setVariable("lake_outflow", "f64", [lake_dim])
@@ -1023,6 +1100,16 @@ contains
       var = nc%getVariable("lake_initial_level")
       call var%getData(self%restart_lake_initial_level)
     end if
+    ! Geographic coordinates are optional in the restart (back-compat and non-albedo runs); when a
+    ! varying_albedo run restarts without them, the connect guard reports the missing coordinates.
+    if (nc%hasVariable("lake_latitude")) then
+      var = nc%getVariable("lake_latitude")
+      call var%getData(self%restart_lake_latitude)
+    end if
+    if (nc%hasVariable("lake_longitude")) then
+      var = nc%getVariable("lake_longitude")
+      call var%getData(self%restart_lake_longitude)
+    end if
     var = nc%getVariable("lake_coordsys")
     call var%getData(coordsys_data)
     if (size(outlet_x, kind=i8) /= size(self%restart_lake_ids, kind=i8) .or. &
@@ -1046,6 +1133,18 @@ contains
     if (allocated(self%restart_lake_initial_level)) then
       if (size(self%restart_lake_initial_level, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
         log_fatal(*) "mLM restart initial level does not align with stable lake IDs."
+        error stop 1
+      end if
+    end if
+    if (allocated(self%restart_lake_latitude)) then
+      if (size(self%restart_lake_latitude, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
+        log_fatal(*) "mLM restart latitude does not align with stable lake IDs."
+        error stop 1
+      end if
+    end if
+    if (allocated(self%restart_lake_longitude)) then
+      if (size(self%restart_lake_longitude, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
+        log_fatal(*) "mLM restart longitude does not align with stable lake IDs."
         error stop 1
       end if
     end if
@@ -1156,6 +1255,22 @@ contains
         if (.not.is_close(self%restart_lake_initial_level(j), &
                           self%exchange%lake_initial_level%data(i))) then
           log_fatal(*) "mLM restart and Input initial level differ for stable lake ID."
+          error stop 1
+        end if
+      end if
+      if (allocated(self%restart_lake_latitude) .and. &
+          self%exchange%lake_latitude%has_data()) then
+        if (.not.is_close(self%restart_lake_latitude(j), &
+                          self%exchange%lake_latitude%data(i))) then
+          log_fatal(*) "mLM restart and Input latitude differ for stable lake ID."
+          error stop 1
+        end if
+      end if
+      if (allocated(self%restart_lake_longitude) .and. &
+          self%exchange%lake_longitude%has_data()) then
+        if (.not.is_close(self%restart_lake_longitude(j), &
+                          self%exchange%lake_longitude%data(i))) then
+          log_fatal(*) "mLM restart and Input longitude differ for stable lake ID."
           error stop 1
         end if
       end if
