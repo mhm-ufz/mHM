@@ -39,6 +39,16 @@ module nml_output_mlm
   logical, parameter, public :: output_double_precision__default = .false.
   integer(i4), parameter, public :: output_time_reference__default = 2_i4
   integer(i4), parameter, public :: output_frequency__default = -1_i4
+  logical, parameter, public :: out_lake_level__default = .false.
+  logical, parameter, public :: out_lake_surface_area__default = .false.
+  logical, parameter, public :: out_lake_volume__default = .false.
+  logical, parameter, public :: out_lake_gw_storage__default = .false.
+  logical, parameter, public :: out_lake_inflow__default = .false.
+  logical, parameter, public :: out_lake_precipitation__default = .false.
+  logical, parameter, public :: out_lake_evaporation__default = .false.
+  logical, parameter, public :: out_lake_seepage__default = .false.
+  logical, parameter, public :: out_lake_baseflow__default = .false.
+  logical, parameter, public :: out_lake_spill__default = .false.
   logical, parameter, public :: out_lake_outflow__default = .false.
 
   ! enum values
@@ -58,6 +68,16 @@ module nml_output_mlm
     logical :: output_double_precision !< Output double precision
     integer(i4) :: output_time_reference !< Output time reference
     integer(i4) :: output_frequency !< Output time step
+    logical :: out_lake_level !< Lake level
+    logical :: out_lake_surface_area !< Lake surface area
+    logical :: out_lake_volume !< Lake volume
+    logical :: out_lake_gw_storage !< Lake groundwater storage
+    logical :: out_lake_inflow !< Lake inflow
+    logical :: out_lake_precipitation !< Lake precipitation
+    logical :: out_lake_evaporation !< Lake evaporation
+    logical :: out_lake_seepage !< Lake seepage
+    logical :: out_lake_baseflow !< Lake baseflow
+    logical :: out_lake_spill !< Lake spill
     logical :: out_lake_outflow !< Lake outflow
   contains
     procedure :: init => nml_output_mlm_init
@@ -136,6 +156,16 @@ contains
     this%output_double_precision = output_double_precision__default ! bool values always need a default
     this%output_time_reference = output_time_reference__default
     this%output_frequency = output_frequency__default
+    this%out_lake_level = out_lake_level__default ! bool values always need a default
+    this%out_lake_surface_area = out_lake_surface_area__default ! bool values always need a default
+    this%out_lake_volume = out_lake_volume__default ! bool values always need a default
+    this%out_lake_gw_storage = out_lake_gw_storage__default ! bool values always need a default
+    this%out_lake_inflow = out_lake_inflow__default ! bool values always need a default
+    this%out_lake_precipitation = out_lake_precipitation__default ! bool values always need a default
+    this%out_lake_evaporation = out_lake_evaporation__default ! bool values always need a default
+    this%out_lake_seepage = out_lake_seepage__default ! bool values always need a default
+    this%out_lake_baseflow = out_lake_baseflow__default ! bool values always need a default
+    this%out_lake_spill = out_lake_spill__default ! bool values always need a default
     this%out_lake_outflow = out_lake_outflow__default ! bool values always need a default
   end function nml_output_mlm_init
 
@@ -150,6 +180,16 @@ contains
     logical :: output_double_precision
     integer(i4) :: output_time_reference
     integer(i4) :: output_frequency
+    logical :: out_lake_level
+    logical :: out_lake_surface_area
+    logical :: out_lake_volume
+    logical :: out_lake_gw_storage
+    logical :: out_lake_inflow
+    logical :: out_lake_precipitation
+    logical :: out_lake_evaporation
+    logical :: out_lake_seepage
+    logical :: out_lake_baseflow
+    logical :: out_lake_spill
     logical :: out_lake_outflow
     ! locals
     type(nml_file_t) :: nml
@@ -162,6 +202,16 @@ contains
       output_double_precision, &
       output_time_reference, &
       output_frequency, &
+      out_lake_level, &
+      out_lake_surface_area, &
+      out_lake_volume, &
+      out_lake_gw_storage, &
+      out_lake_inflow, &
+      out_lake_precipitation, &
+      out_lake_evaporation, &
+      out_lake_seepage, &
+      out_lake_baseflow, &
+      out_lake_spill, &
       out_lake_outflow
 
     status = this%init(errmsg=errmsg)
@@ -170,6 +220,16 @@ contains
     output_double_precision = this%output_double_precision
     output_time_reference = this%output_time_reference
     output_frequency = this%output_frequency
+    out_lake_level = this%out_lake_level
+    out_lake_surface_area = this%out_lake_surface_area
+    out_lake_volume = this%out_lake_volume
+    out_lake_gw_storage = this%out_lake_gw_storage
+    out_lake_inflow = this%out_lake_inflow
+    out_lake_precipitation = this%out_lake_precipitation
+    out_lake_evaporation = this%out_lake_evaporation
+    out_lake_seepage = this%out_lake_seepage
+    out_lake_baseflow = this%out_lake_baseflow
+    out_lake_spill = this%out_lake_spill
     out_lake_outflow = this%out_lake_outflow
 
     status = nml%open(file, errmsg=errmsg)
@@ -200,6 +260,16 @@ contains
     this%output_double_precision = output_double_precision
     this%output_time_reference = output_time_reference
     this%output_frequency = output_frequency
+    this%out_lake_level = out_lake_level
+    this%out_lake_surface_area = out_lake_surface_area
+    this%out_lake_volume = out_lake_volume
+    this%out_lake_gw_storage = out_lake_gw_storage
+    this%out_lake_inflow = out_lake_inflow
+    this%out_lake_precipitation = out_lake_precipitation
+    this%out_lake_evaporation = out_lake_evaporation
+    this%out_lake_seepage = out_lake_seepage
+    this%out_lake_baseflow = out_lake_baseflow
+    this%out_lake_spill = out_lake_spill
     this%out_lake_outflow = out_lake_outflow
 
     ! mark as configured
@@ -213,6 +283,16 @@ contains
     output_double_precision, &
     output_time_reference, &
     output_frequency, &
+    out_lake_level, &
+    out_lake_surface_area, &
+    out_lake_volume, &
+    out_lake_gw_storage, &
+    out_lake_inflow, &
+    out_lake_precipitation, &
+    out_lake_evaporation, &
+    out_lake_seepage, &
+    out_lake_baseflow, &
+    out_lake_spill, &
     out_lake_outflow, &
     errmsg) result(status)
 
@@ -222,6 +302,16 @@ contains
     logical, intent(in), optional :: output_double_precision !< Output double precision
     integer(i4), intent(in), optional :: output_time_reference !< Output time reference
     integer(i4), intent(in), optional :: output_frequency !< Output time step
+    logical, intent(in), optional :: out_lake_level !< Lake level
+    logical, intent(in), optional :: out_lake_surface_area !< Lake surface area
+    logical, intent(in), optional :: out_lake_volume !< Lake volume
+    logical, intent(in), optional :: out_lake_gw_storage !< Lake groundwater storage
+    logical, intent(in), optional :: out_lake_inflow !< Lake inflow
+    logical, intent(in), optional :: out_lake_precipitation !< Lake precipitation
+    logical, intent(in), optional :: out_lake_evaporation !< Lake evaporation
+    logical, intent(in), optional :: out_lake_seepage !< Lake seepage
+    logical, intent(in), optional :: out_lake_baseflow !< Lake baseflow
+    logical, intent(in), optional :: out_lake_spill !< Lake spill
     logical, intent(in), optional :: out_lake_outflow !< Lake outflow
 
     status = this%init(errmsg=errmsg)
@@ -233,6 +323,16 @@ contains
     if (present(output_double_precision)) this%output_double_precision = output_double_precision
     if (present(output_time_reference)) this%output_time_reference = output_time_reference
     if (present(output_frequency)) this%output_frequency = output_frequency
+    if (present(out_lake_level)) this%out_lake_level = out_lake_level
+    if (present(out_lake_surface_area)) this%out_lake_surface_area = out_lake_surface_area
+    if (present(out_lake_volume)) this%out_lake_volume = out_lake_volume
+    if (present(out_lake_gw_storage)) this%out_lake_gw_storage = out_lake_gw_storage
+    if (present(out_lake_inflow)) this%out_lake_inflow = out_lake_inflow
+    if (present(out_lake_precipitation)) this%out_lake_precipitation = out_lake_precipitation
+    if (present(out_lake_evaporation)) this%out_lake_evaporation = out_lake_evaporation
+    if (present(out_lake_seepage)) this%out_lake_seepage = out_lake_seepage
+    if (present(out_lake_baseflow)) this%out_lake_baseflow = out_lake_baseflow
+    if (present(out_lake_spill)) this%out_lake_spill = out_lake_spill
     if (present(out_lake_outflow)) this%out_lake_outflow = out_lake_outflow
 
     ! mark as configured
@@ -277,6 +377,66 @@ contains
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'output_frequency'"
+        return
+      end if
+    case ("out_lake_level")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_lake_level'"
+        return
+      end if
+    case ("out_lake_surface_area")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_lake_surface_area'"
+        return
+      end if
+    case ("out_lake_volume")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_lake_volume'"
+        return
+      end if
+    case ("out_lake_gw_storage")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_lake_gw_storage'"
+        return
+      end if
+    case ("out_lake_inflow")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_lake_inflow'"
+        return
+      end if
+    case ("out_lake_precipitation")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_lake_precipitation'"
+        return
+      end if
+    case ("out_lake_evaporation")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_lake_evaporation'"
+        return
+      end if
+    case ("out_lake_seepage")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_lake_seepage'"
+        return
+      end if
+    case ("out_lake_baseflow")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_lake_baseflow'"
+        return
+      end if
+    case ("out_lake_spill")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_lake_spill'"
         return
       end if
     case ("out_lake_outflow")
