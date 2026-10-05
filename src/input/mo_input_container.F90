@@ -1118,6 +1118,8 @@ contains
       call self%exchange%lake_max_volume_reported%provide("Input")
       call self%exchange%lake_spillway_length%provide("Input")
       call self%exchange%lake_initial_level%provide("Input")
+      call self%exchange%lake_latitude%provide("Input")
+      call self%exchange%lake_longitude%provide("Input")
       call self%exchange%lake_map%provide("Input")
     end if
   end subroutine input_configure
