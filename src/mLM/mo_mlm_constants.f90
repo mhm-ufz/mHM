@@ -14,12 +14,21 @@
 !     subset actually used by the ported lake routines (the Penman-1948 evaporation path).
 !     Values are unchanged from v5; generic physical constants continue to come from
 !     mo_constants (forces). Entries are added here as further leaf routines are ported.
+! Pallav Shrestha, Oct 2026 - v6 migration (Phase 5): moved the lake water-balance solver
+!     constants (error_lake_vol, nIterations_lake) here from mo_lake_water_balance.
 
 module mo_mlm_constants
 
   use mo_kind, only : i4, dp
 
   implicit none
+
+  ! Lake water-balance solver
+  !> Allowed lake volume closure error [m3]. In v5 this was 1e-6 mcm (= 1 m3), carried in
+  !> mcm; with the v6 SI volume (m3) the same physical tolerance is 1 m3.
+  real(dp), public, parameter :: error_lake_vol = 1.0_dp
+  !> Maximum number of secant iterations in the lake water-balance solver [-]
+  integer(i4), public, parameter :: nIterations_lake = 20_i4
 
   ! Physical
   !> Refractive index of water [-]

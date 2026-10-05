@@ -13,21 +13,12 @@
 MODULE mo_lake_water_balance
 
   USE mo_kind,   only : i4, i8, dp
+  USE mo_mlm_constants, only : error_lake_vol, nIterations_lake
   IMPLICIT NONE
 
 
   PUBLIC :: lake_balance     ! calculates lake water balance to give lake states (V, A, h)
   PUBLIC :: interpolate_lake_states
-
-  ! ------------------------------------------------------------------
-  ! Lake water-balance solver constants (SI).
-  ! In v5 these lived in mo_mlm_constants; error_lake_vol was 1e-6 mcm (= 1 m3) because
-  ! the v5 volume was carried in mcm. With the v6 SI volume (m3) the same physical
-  ! tolerance is 1 m3, so the constant is given here directly in m3.
-  real(dp),    parameter :: error_lake_vol   = 1.0_dp   ! [m3] allowed volume closure error
-  integer(i4), parameter :: nIterations_lake = 20_i4    ! [-]  maximum secant iterations
-
-  ! ------------------------------------------------------------------
 
 CONTAINS
 
@@ -118,6 +109,10 @@ CONTAINS
   !                                   DaySecs / nTStepDay); the unused mo_utils / mo_constants /
   !                                   mo_common_mHM_mRM_variables imports and the unused tt
   !                                   argument were dropped. Physics/equations are unchanged.
+  !        Pallav Shrestha Oct 2026 - mLM v6 migration (Phase 5): the solver constants
+  !                                   error_lake_vol and nIterations_lake were moved to
+  !                                   mo_mlm_constants (now that it exists) and are used from
+  !                                   there; values unchanged.
 
 
 
