@@ -13,6 +13,7 @@
 module mo_input_container
   use mo_logging
   use mo_kind, only: i2, i4, i8, dp
+  use mo_constants, only: nodata_dp
   use mo_list, only: list
   use mo_os, only: path_ext
   use mo_exchange_type, only: exchange_t, var_dp, l1
@@ -144,6 +145,8 @@ module mo_input_container
     real(dp), allocatable :: lake_max_volume_reported(:) !< reported maximum lake volumes [m3] aligned with lake_outlets
     real(dp), allocatable :: lake_spillway_length(:) !< effective spillway crest length [m] aligned with lake_outlets
     real(dp), allocatable :: lake_initial_level(:) !< initial lake level [m] aligned with lake_outlets
+    real(dp), allocatable :: lake_latitude(:) !< geographic latitude [degree] aligned with lake_outlets
+    real(dp), allocatable :: lake_longitude(:) !< geographic longitude [degree] aligned with lake_outlets
     integer(i4) :: chunking !< chunking configuration (0 single read, -1 daily, -2 monthly, -3 yearly, >0 every n hours)
     integer(i4) :: time_stamp_location !< location of time-stamp variable in input datasets (0 start, 1 center, 2 end)
     logical :: morph_latlon = .false. !< whether morphology inputs are defined in spherical (lat/lon) coordinates
@@ -185,6 +188,7 @@ module mo_input_container
     procedure :: destroy => input_destroy
     procedure, private :: read_fdir_file => input_read_fdir_file
     procedure, private :: build_river_l0 => input_build_river_l0
+    procedure, private :: read_latlon_aux => input_read_latlon_aux
     procedure, private :: read_lake_specification => input_read_lake_specification
     procedure, private :: build_lake_grids => input_build_lake_grids
   end type input_t
@@ -1165,6 +1169,13 @@ contains
       if (self%owns_river_l0) call self%river_l0%set_elevation(real_work(:, 1))
     end if
 
+    ! Auxiliary geographic coordinates for a projected level-0 grid. A cartesian (X/Y)
+    ! morphology grid carries no geographic latitude/longitude; when a latlon file is
+    ! configured, attach its 2D lat_l0/lon_l0 fields to the level-0 grid so features that
+    ! need true geographic coordinates (e.g. the mLM varying-albedo solar geometry) can use
+    ! them. A no-op for a spherical (lon/lat) morphology grid, which already carries them.
+    call self%read_latlon_aux()
+
     ! Lake delineation needs the fdir-derived river and the full packed DEM.
     if (self%config%input%is_set("lake_definition_path", idx=[self%exchange%nml_domain_id]) == NML_OK) &
       call self%read_lake_specification(real_work)
@@ -1544,6 +1555,38 @@ contains
     self%owns_river_l0 = .true.
   end subroutine input_build_river_l0
 
+  !> \brief Attach auxiliary geographic lat/lon coordinates to the level-0 grid from the latlon file.
+  !> \details A projected (cartesian) level-0 morphology grid carries no geographic latitude or
+  !>          longitude. When `latlon_path` is configured, this reads the 2D `morph_lat_var`/
+  !>          `morph_lon_var` fields (default `lat_l0`/`lon_l0`, at level-0 resolution) and attaches
+  !>          them to the level-0 grid as auxiliary coordinates, so features needing true geographic
+  !>          coordinates (the mLM varying-albedo solar geometry) can look them up per cell. It is a
+  !>          no-op when no latlon file is given, when the level-0 grid is already spherical (its x/y
+  !>          are lon/lat), or when the grid already carries auxiliary coordinates.
+  !> \authors Pallav Shrestha
+  subroutine input_read_latlon_aux(self)
+    class(input_t), target, intent(inout) :: self
+    integer(i4) :: id(1)
+    character(:), allocatable :: path, lat_name, lon_name
+
+    id = [self%exchange%nml_domain_id]
+    if (self%config%input%is_set("latlon_path", idx=id) /= NML_OK) return
+    if (.not.associated(self%exchange%level0)) then
+      log_fatal(*) "Input: a latlon file requires the level-0 grid to be initialized first."
+      error stop 1
+    end if
+    ! A spherical morphology grid already carries geographic coordinates as its x/y axes.
+    if (self%exchange%level0%coordsys == spherical) return
+    ! Nothing to do if auxiliary coordinates were already attached (e.g. from a NetCDF morphology).
+    if (self%exchange%level0%has_aux_coords()) return
+
+    path = self%exchange%get_path(self%config%input%latlon_path(id(1)))
+    lat_name = trim(self%config%input%morph_lat_var(id(1)))
+    lon_name = trim(self%config%input%morph_lon_var(id(1)))
+    scope_info(s,*) "Read level-0 geographic coordinates from latlon file: ", path
+    call self%exchange%level0%aux_from_netcdf(path, lat=lat_name, lon=lon_name)
+  end subroutine input_read_latlon_aux
+
   !> \brief Read static lake metadata, snap outlets to L0 cells, and delineate lake footprints.
   !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine input_read_lake_specification(self, dem_cache)
@@ -1591,6 +1634,8 @@ contains
     call input%read(volume_name, volume_reported_in)
     allocate(self%lake_spillway_length(self%lake_outlets%n_points))
     allocate(self%lake_initial_level(self%lake_outlets%n_points))
+    allocate(self%lake_latitude(self%lake_outlets%n_points), source=nodata_dp)
+    allocate(self%lake_longitude(self%lake_outlets%n_points), source=nodata_dp)
     call input%read(spillway_length_name, self%lake_spillway_length)
     call input%read(initial_level_name, self%lake_initial_level)
     call input%close()
@@ -1638,6 +1683,17 @@ contains
         log_fatal(*) "Input: lake outlet lies outside its mapped active level-0 cell."
         error stop 1
       end if
+      ! Geographic coordinates of the outlet, for features needing solar geometry (mLM varying albedo).
+      ! A spherical point set already stores lon/lat as x/y; a projected one looks them up from the
+      ! level-0 auxiliary lat/lon coordinates (from the latlon file). Left as nodata if unavailable;
+      ! the consumer (mLM) decides whether that is fatal for its configuration.
+      if (self%lake_outlets%coordsys == spherical) then
+        self%lake_longitude(i) = coords(i, 1)
+        self%lake_latitude(i)  = coords(i, 2)
+      else if (self%exchange%level0%has_aux_coords()) then
+        self%lake_longitude(i) = self%exchange%level0%lon(ix, iy)
+        self%lake_latitude(i)  = self%exchange%level0%lat(ix, iy)
+      end if
     end do
 
     call self%river_l0%label_lakes(outlet_nodes, self%lake_ids, self%lake_max_level_reported)
@@ -1657,6 +1713,10 @@ contains
     self%exchange%lake_spillway_length%data => self%lake_spillway_length
     call self%exchange%lake_initial_level%prepare_data("Input", no_time)
     self%exchange%lake_initial_level%data => self%lake_initial_level
+    call self%exchange%lake_latitude%prepare_data("Input", no_time)
+    self%exchange%lake_latitude%data => self%lake_latitude
+    call self%exchange%lake_longitude%prepare_data("Input", no_time)
+    self%exchange%lake_longitude%data => self%lake_longitude
   end subroutine input_read_lake_specification
 
   !> \brief Construct complementary land and lake grids on the full level-0 geometry.
