@@ -174,7 +174,13 @@ Summary:
 
 Variable water albedo `varying_albedo`
 
-Use a variable water albedo in the evaporation calculation.
+Use a variable water albedo in the evaporation calculation. The varying albedo depends on
+the solar geometry and therefore needs the geographic latitude/longitude of each lake. On a
+spherical (lon/lat) grid these come from the lake point coordinates directly; on a projected
+(cartesian X/Y) grid they are taken from the level-0 geographic auxiliary coordinates, which
+must be supplied through the latlon file (config_input: latlon_path, with morph_lat_var /
+morph_lon_var, default lat_l0 / lon_l0). The run stops if varying_albedo is enabled but the
+lake geographic coordinates are unavailable.
 
 Summary:
 - Type: `logical`
