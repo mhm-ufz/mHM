@@ -1,9 +1,9 @@
-! Case-1 (minimal natural lake) restart round-trip, part 1 of 3: WRITE.
-! Runs one day with the full lake Input, then writes the mLM and mRM restarts.
-! The mLM restart carries the lake states (level/area/volume/gw_storage) plus the
-! static metadata spillway_length + initial_lake_level (commit 8cc516f9), which a
-! restart-only continuation needs because case 1 otherwise requires them from Input.
-! No evaporation (evaporation_method left at default; no meteo forcing provided).
+! Case-1 (minimal natural lake) restart round-trip, part 1 of 2: WRITE.
+! Runs one day with the full lake Input + Priestley-Taylor meteo forcing
+! (evaporation_method = 2; case 1 always requires meteo), then writes the mLM and
+! mRM restarts. The mLM restart carries the lake states (level/area/volume/
+! gw_storage) plus the static metadata spillway_length + initial_lake_level
+! (commit 8cc516f9). Paired with mlm_lake_case1_restart_read.
 
 &config_project
   n_domains = 1
@@ -22,6 +22,7 @@
 /
 
 &config_resolution
+  hydro(1) = 24000.0
   route(1) = 6000.0
 /
 
@@ -31,12 +32,27 @@
   fdir_path(1)            = "examples/fixtures/input.nc"
   dem_path(1)             = "examples/fixtures/input.nc"
   lake_definition_path(1) = "examples/fixtures/lake_outlets.nc"
+  meteo_mask_path(1)      = "test_domain/input/meteo/mask.nc"
+  temp_path(1)            = "test_domain/input/meteo/tavg/tavg.nc"
+  ssrd_path(1)            = "test_domain/input/meteo/ssrd.nc"
+  strd_path(1)            = "test_domain/input/meteo/strd.nc"
+  pre_path(1)             = "test_domain/input/meteo/pre/pre.nc"
+/
+
+&config_meteo
+  frac_night_pre(:,1)  = 0.46, 0.50, 0.52, 0.51, 0.48, 0.50, 0.49, 0.48, 0.52, 0.56, 0.50, 0.47
+  frac_night_pet(:,1)  = 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10
+  frac_night_temp(:,1) = -0.76, -1.30, -1.88, -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.60, -0.94, -0.53
+  frac_night_ssrd(:,1) = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+  frac_night_strd(:,1) = 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45
 /
 
 &config_mlm
   output_path(1)         = "mlm_lake_case1_restart_write_mlm.nc"
   bathymetry_type(1,1)   = 2
   natural(1,1)           = .true.
+  evaporation_method     = 2
+  varying_albedo         = .false.
   write_restart(1)       = .true.
   restart_output_path(1) = "mlm_lake_case1_restart_mlm.nc"
 /
