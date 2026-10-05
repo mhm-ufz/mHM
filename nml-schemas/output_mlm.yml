@@ -40,6 +40,14 @@ properties:
       - if -1 : daily
       - if -2 : monthly
       - if -3 : yearly
+  output_timeseries:
+    title: Use station time-series layout for lake-point output
+    type: boolean
+    default: false
+    description: |-
+      Use the mo_points_io time-series layout for temporal lake-point variables.
+      - if .false. : (time, lake) dimension order (classic layout; read directly by CDO).
+      - if .true.  : (lake, time) CF timeSeries featureType layout.
   out_lake_level:
     title: Lake level
     type: boolean

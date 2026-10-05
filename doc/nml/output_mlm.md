@@ -14,6 +14,7 @@ Output configuration for mLM lake points.
 | [output_double_precision](#output_double_precision) | logical | no | no | Output double precision |
 | [output_time_reference](#output_time_reference) | integer | no | no | Output time reference |
 | [output_frequency](#output_frequency) | integer | no | no | Output time step |
+| [output_timeseries](#output_timeseries) | logical | no | no | Use station time-series layout for lake-point output |
 | [out_lake_level](#out_lake_level) | logical | no | no | Lake level |
 | [out_lake_surface_area](#out_lake_surface_area) | logical | no | no | Lake surface area |
 | [out_lake_volume](#out_lake_volume) | logical | no | no | Lake volume |
@@ -85,6 +86,20 @@ Summary:
 - Input required: no
 - Default: `-1`
 - Minimum: `>= -3`
+
+### output_timeseries
+
+Use station time-series layout for lake-point output `output_timeseries`
+
+Use the mo_points_io time-series layout for temporal lake-point variables.
+- if .false. : (time, lake) dimension order (classic layout; read directly by CDO).
+- if .true.  : (lake, time) CF timeSeries featureType layout.
+
+Summary:
+- Type: `logical`
+- Declared required: no
+- Input required: no
+- Default: `.false.`
 
 ### out_lake_level
 
@@ -226,6 +241,7 @@ Summary:
   output_double_precision = .false.
   output_time_reference = 2
   output_frequency = -1
+  output_timeseries = .false.
   out_lake_level = .false.
   out_lake_surface_area = .false.
   out_lake_volume = .false.

@@ -748,7 +748,7 @@ contains
       timestamp     = timestamp, &
       deflate_level = self%output_config%output_deflate_level, &
       point_dim_name = "lake", &
-      time_series   = .true.)
+      time_series   = self%output_config%output_timeseries)
     call self%ds_out%update("lake_id", self%lake_ids)
     call self%ds_out%write_static()
   end subroutine mlm_create_output

@@ -39,6 +39,7 @@ module nml_output_mlm
   logical, parameter, public :: output_double_precision__default = .false.
   integer(i4), parameter, public :: output_time_reference__default = 2_i4
   integer(i4), parameter, public :: output_frequency__default = -1_i4
+  logical, parameter, public :: output_timeseries__default = .false.
   logical, parameter, public :: out_lake_level__default = .false.
   logical, parameter, public :: out_lake_surface_area__default = .false.
   logical, parameter, public :: out_lake_volume__default = .false.
@@ -68,6 +69,7 @@ module nml_output_mlm
     logical :: output_double_precision !< Output double precision
     integer(i4) :: output_time_reference !< Output time reference
     integer(i4) :: output_frequency !< Output time step
+    logical :: output_timeseries !< Use station time-series layout for lake-point output
     logical :: out_lake_level !< Lake level
     logical :: out_lake_surface_area !< Lake surface area
     logical :: out_lake_volume !< Lake volume
@@ -156,6 +158,7 @@ contains
     this%output_double_precision = output_double_precision__default ! bool values always need a default
     this%output_time_reference = output_time_reference__default
     this%output_frequency = output_frequency__default
+    this%output_timeseries = output_timeseries__default ! bool values always need a default
     this%out_lake_level = out_lake_level__default ! bool values always need a default
     this%out_lake_surface_area = out_lake_surface_area__default ! bool values always need a default
     this%out_lake_volume = out_lake_volume__default ! bool values always need a default
@@ -180,6 +183,7 @@ contains
     logical :: output_double_precision
     integer(i4) :: output_time_reference
     integer(i4) :: output_frequency
+    logical :: output_timeseries
     logical :: out_lake_level
     logical :: out_lake_surface_area
     logical :: out_lake_volume
@@ -202,6 +206,7 @@ contains
       output_double_precision, &
       output_time_reference, &
       output_frequency, &
+      output_timeseries, &
       out_lake_level, &
       out_lake_surface_area, &
       out_lake_volume, &
@@ -220,6 +225,7 @@ contains
     output_double_precision = this%output_double_precision
     output_time_reference = this%output_time_reference
     output_frequency = this%output_frequency
+    output_timeseries = this%output_timeseries
     out_lake_level = this%out_lake_level
     out_lake_surface_area = this%out_lake_surface_area
     out_lake_volume = this%out_lake_volume
@@ -260,6 +266,7 @@ contains
     this%output_double_precision = output_double_precision
     this%output_time_reference = output_time_reference
     this%output_frequency = output_frequency
+    this%output_timeseries = output_timeseries
     this%out_lake_level = out_lake_level
     this%out_lake_surface_area = out_lake_surface_area
     this%out_lake_volume = out_lake_volume
@@ -283,6 +290,7 @@ contains
     output_double_precision, &
     output_time_reference, &
     output_frequency, &
+    output_timeseries, &
     out_lake_level, &
     out_lake_surface_area, &
     out_lake_volume, &
@@ -302,6 +310,7 @@ contains
     logical, intent(in), optional :: output_double_precision !< Output double precision
     integer(i4), intent(in), optional :: output_time_reference !< Output time reference
     integer(i4), intent(in), optional :: output_frequency !< Output time step
+    logical, intent(in), optional :: output_timeseries !< Use station time-series layout for lake-point output
     logical, intent(in), optional :: out_lake_level !< Lake level
     logical, intent(in), optional :: out_lake_surface_area !< Lake surface area
     logical, intent(in), optional :: out_lake_volume !< Lake volume
@@ -323,6 +332,7 @@ contains
     if (present(output_double_precision)) this%output_double_precision = output_double_precision
     if (present(output_time_reference)) this%output_time_reference = output_time_reference
     if (present(output_frequency)) this%output_frequency = output_frequency
+    if (present(output_timeseries)) this%output_timeseries = output_timeseries
     if (present(out_lake_level)) this%out_lake_level = out_lake_level
     if (present(out_lake_surface_area)) this%out_lake_surface_area = out_lake_surface_area
     if (present(out_lake_volume)) this%out_lake_volume = out_lake_volume
@@ -377,6 +387,12 @@ contains
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'output_frequency'"
+        return
+      end if
+    case ("output_timeseries")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'output_timeseries'"
         return
       end if
     case ("out_lake_level")
