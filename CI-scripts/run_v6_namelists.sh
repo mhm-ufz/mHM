@@ -102,6 +102,16 @@ post_run_check() {
   local nml_name="$1"
 
   case "${nml_name}" in
+    mlm_lake_case1_restart_only)
+      if ! cmp -s mlm_lake_case1_restart_reference.nc mlm_lake_case1_restart_only.nc; then
+        echo "Case-1 lake restart-only continuation differs from the Input-backed continuation" >&2
+        exit 1
+      fi
+      if ! cmp -s mlm_lake_case1_restart_reference_mlm.nc mlm_lake_case1_restart_only_mlm.nc; then
+        echo "Case-1 mLM restart-only output differs from the Input-backed continuation" >&2
+        exit 1
+      fi
+      ;;
     mrm_lake_restart_only)
       if ! cmp -s mrm_lake_restart_reference.nc mrm_lake_restart_only.nc; then
         echo "Lake restart-only continuation differs from the Input-backed continuation" >&2
@@ -229,6 +239,9 @@ namelists=(
   test_nml/mrm_lake_restart_only.nml
   test_nml/mrm_lake_case1_minimal.nml
   test_nml/mlm_lake_case1_pt.nml
+  test_nml/mlm_lake_case1_restart_write.nml
+  test_nml/mlm_lake_case1_restart_reference.nml
+  test_nml/mlm_lake_case1_restart_only.nml
 )
 
 for exe in "${executables[@]}"; do

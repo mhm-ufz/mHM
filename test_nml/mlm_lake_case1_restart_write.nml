@@ -1,0 +1,49 @@
+! Case-1 (minimal natural lake) restart round-trip, part 1 of 3: WRITE.
+! Runs one day with the full lake Input, then writes the mLM and mRM restarts.
+! The mLM restart carries the lake states (level/area/volume/gw_storage) plus the
+! static metadata spillway_length + initial_lake_level (commit 8cc516f9), which a
+! restart-only continuation needs because case 1 otherwise requires them from Input.
+! No evaporation (evaporation_method left at default; no meteo forcing provided).
+
+&config_project
+  n_domains = 1
+  n_geo_units = 10
+/
+
+&config_processes
+  routing = 2
+  lake = 1
+/
+
+&config_time
+  sim_start(1)  = "1990-01-01"
+  eval_start(1) = "1990-01-01"
+  sim_end(1)    = "1990-01-02"
+/
+
+&config_resolution
+  route(1) = 6000.0
+/
+
+&config_input
+  runoff_path(1)          = "examples/fixtures/runoff.nc"
+  runoff_var(1)           = "Q"
+  fdir_path(1)            = "examples/fixtures/input.nc"
+  dem_path(1)             = "examples/fixtures/input.nc"
+  lake_definition_path(1) = "examples/fixtures/lake_outlets.nc"
+/
+
+&config_mlm
+  output_path(1)         = "mlm_lake_case1_restart_write_mlm.nc"
+  bathymetry_type(1,1)   = 2
+  natural(1,1)           = .true.
+  write_restart(1)       = .true.
+  restart_output_path(1) = "mlm_lake_case1_restart_mlm.nc"
+/
+
+&config_mrm
+  max_route_step(1)      = 3600
+  output_path(1)         = "mlm_lake_case1_restart_write.nc"
+  write_restart(1)       = .true.
+  restart_output_path(1) = "mlm_lake_case1_restart_mrm.nc"
+/
