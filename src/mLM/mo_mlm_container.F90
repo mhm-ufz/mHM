@@ -743,35 +743,41 @@ contains
     dtype = "f64"
     if (.not.self%output_config%output_double_precision) dtype = "f32"
 
-    vars = [var(name="lake_id", long_name="stable lake ID", dtype="i64", kind="i8", static=.true.)]
+    call add_var(vars, var(name="lake_id", long_name="stable lake ID", dtype="i64", kind="i8", static=.true.))
     ! Lake states and the component flux diagnostics exist only for the minimal natural lake
     ! (process 1); the states are published exchange fields (metadata via as_output_var) while
     ! evaporation/seepage/baseflow are component members output as their own vars.
     if (self%exchange%config%processes%lake == 1_i4) then
       if (self%output_config%out_lake_level) &
-        vars = [vars, self%exchange%lake_level%as_output_var(dtype=dtype, avg=.true.)]
+        call add_var(vars, self%exchange%lake_level%as_output_var(dtype=dtype, avg=.true.))
+      ! Area and the two volumes are converted from SI to conventional units at the output
+      ! boundary (km2, mcm = 1e6 m3) for readability and to mirror the lake-definition input
+      ! units; the internal states stay SI (m2, m3). Level stays in m a.s.l.
       if (self%output_config%out_lake_surface_area) &
-        vars = [vars, self%exchange%lake_surface_area%as_output_var(dtype=dtype, avg=.true.)]
+        call add_var(vars, var(name="lake_surface_area", long_name="current lake surface area", &
+          units="km2", dtype=dtype, avg=.true.))
       if (self%output_config%out_lake_volume) &
-        vars = [vars, self%exchange%lake_volume%as_output_var(dtype=dtype, avg=.true.)]
+        call add_var(vars, var(name="lake_volume", long_name="current lake volume", &
+          units="1e6 m3", dtype=dtype, avg=.true.))
       if (self%output_config%out_lake_gw_storage) &
-        vars = [vars, self%exchange%lake_gw_storage%as_output_var(dtype=dtype, avg=.true.)]
+        call add_var(vars, var(name="lake_gw_storage", long_name="current lake groundwater storage", &
+          units="1e6 m3", dtype=dtype, avg=.true.))
       if (self%output_config%out_lake_evaporation) &
-        vars = [vars, var(name="lake_evaporation", long_name="lake evaporation", units="mm", dtype=dtype)]
+        call add_var(vars, var(name="lake_evaporation", long_name="lake evaporation", units="mm", dtype=dtype))
       if (self%output_config%out_lake_seepage) &
-        vars = [vars, var(name="lake_seepage", long_name="lake seepage to groundwater storage", units="mm", dtype=dtype)]
+        call add_var(vars, var(name="lake_seepage", long_name="lake seepage to groundwater storage", units="mm", dtype=dtype))
       if (self%output_config%out_lake_baseflow) &
-        vars = [vars, var(name="lake_baseflow", long_name="lake baseflow from groundwater storage", units="m3 s-1", dtype=dtype, avg=.true.)]
+        call add_var(vars, var(name="lake_baseflow", long_name="lake baseflow from groundwater storage", units="m3 s-1", dtype=dtype, avg=.true.))
       if (self%output_config%out_lake_spill) &
-        vars = [vars, var(name="lake_spill", long_name="lake crest spill", units="m3 s-1", dtype=dtype, avg=.true.)]
+        call add_var(vars, var(name="lake_spill", long_name="lake crest spill", units="m3 s-1", dtype=dtype, avg=.true.))
     end if
     ! Lake inflow (exchange field) and precipitation (the lake_pre field, when provided) are
     ! available beyond the minimal natural lake.
     if (self%output_config%out_lake_inflow) &
-      vars = [vars, self%exchange%lake_inflow%as_output_var(name="lake_inflow", long_name="lake inflow", dtype=dtype, avg=.true.)]
+      call add_var(vars, self%exchange%lake_inflow%as_output_var(name="lake_inflow", long_name="lake inflow", dtype=dtype, avg=.true.))
     if (self%output_config%out_lake_precipitation .and. self%exchange%lake_pre%provided) &
-      vars = [vars, self%exchange%lake_pre%as_output_var(name="lake_precipitation", &
-        long_name="lake precipitation", dtype=dtype)]
+      call add_var(vars, self%exchange%lake_pre%as_output_var(name="lake_precipitation", &
+        long_name="lake precipitation", dtype=dtype))
     if (self%output_config%out_lake_outflow) then
       call add_var(vars, self%exchange%lake_outflow%as_output_var(dtype=dtype, avg=.true.))
     end if
@@ -844,9 +850,12 @@ contains
     if (.not.self%output_active) return
     if (self%exchange%config%processes%lake == 1_i4) then
       if (self%output_config%out_lake_level) call self%ds_out%update("lake_level", self%lake_level)
-      if (self%output_config%out_lake_surface_area) call self%ds_out%update("lake_surface_area", self%lake_surface_area)
-      if (self%output_config%out_lake_volume) call self%ds_out%update("lake_volume", self%lake_volume)
-      if (self%output_config%out_lake_gw_storage) call self%ds_out%update("lake_gw_storage", self%lake_gw_storage)
+      if (self%output_config%out_lake_surface_area) &
+        call self%ds_out%update("lake_surface_area", self%lake_surface_area * 1.0e-6_dp)
+      if (self%output_config%out_lake_volume) &
+        call self%ds_out%update("lake_volume", self%lake_volume * 1.0e-6_dp)
+      if (self%output_config%out_lake_gw_storage) &
+        call self%ds_out%update("lake_gw_storage", self%lake_gw_storage * 1.0e-6_dp)
       if (self%output_config%out_lake_evaporation) call self%ds_out%update("lake_evaporation", self%lake_evaporation)
       if (self%output_config%out_lake_seepage) call self%ds_out%update("lake_seepage", self%lake_seepage)
       if (self%output_config%out_lake_baseflow) call self%ds_out%update("lake_baseflow", self%lake_baseflow)
