@@ -79,6 +79,9 @@ parameter_file_for_namelist() {
     mrm_minimal*|mrm_lake_restart_*)
       printf '%s\n' "test_nml/mhm_parameter_v6_routing.nml"
       ;;
+    mlm_lake_case1_*)
+      printf '%s\n' "test_nml/mhm_parameter_v6_lake.nml"
+      ;;
     mrm_lake_case1_*)
       printf '%s\n' "test_nml/mhm_parameter_v6_lake.nml"
       ;;
@@ -134,6 +137,9 @@ output_file_for_namelist() {
       ;;
     mrm_coarse_routing_output_minimal)
       printf '%s\n' "test_nml/mrm_output_hourly.nml"
+      ;;
+    mlm_lake_case1_*)
+      printf '%s\n' "test_nml/mlm_output_lake_full.nml"
       ;;
     mrm_lake_restart_*|mrm_lake_case1_*)
       printf '%s\n' "test_nml/mlm_output_daily.nml"
@@ -222,6 +228,7 @@ namelists=(
   test_nml/mrm_lake_restart_reference.nml
   test_nml/mrm_lake_restart_only.nml
   test_nml/mrm_lake_case1_minimal.nml
+  test_nml/mlm_lake_case1_pt.nml
 )
 
 for exe in "${executables[@]}"; do
