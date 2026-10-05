@@ -18,6 +18,7 @@ Configuration for the v6 lake component (mLM).
 | [restart_output_path](#restart_output_path) | string array | no | no | mLM restart output path |
 | [force_initialize_lake_at_restart](#force_initialize_lake_at_restart) | logical | no | no | Force lake level initialization at restart |
 | [force_initialize_lake_at_a_date](#force_initialize_lake_at_a_date) | logical | no | no | Force lake level initialization at a date |
+| [evaporation_method](#evaporation_method) | integer | no | no | Lake evaporation method |
 | [input_windspeed_height](#input_windspeed_height) | real | no | no | Input windspeed height [m] |
 | [varying_albedo](#varying_albedo) | logical | no | no | Variable water albedo |
 | [varying_lambda](#varying_lambda) | logical | no | no | Variable latent heat of vaporisation |
@@ -135,6 +136,23 @@ Summary:
 - Declared required: no
 - Input required: no
 - Default: `.false.`
+
+### evaporation_method
+
+Lake evaporation method `evaporation_method`
+
+Method used to estimate open-water evaporation from the lake surface.
+- 1 : Penman (1948). Needs temperature, downward short- and long-wave radiation,
+  windspeed and dew-point temperature.
+- 2 : Priestley-Taylor (1972). Needs temperature and downward short- and long-wave
+  radiation only (no windspeed or dew-point temperature).
+
+Summary:
+- Type: `integer(i4)`
+- Declared required: no
+- Input required: no
+- Default: `1`
+- Allowed values: `1`, `2`
 
 ### input_windspeed_height
 
@@ -440,6 +458,7 @@ Summary:
   restart_output_path(:) = ""
   force_initialize_lake_at_restart = .false.
   force_initialize_lake_at_a_date = .false.
+  evaporation_method = 1
   input_windspeed_height = 10.0
   varying_albedo = .true.
   varying_lambda = .true.

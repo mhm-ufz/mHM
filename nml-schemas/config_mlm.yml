@@ -69,6 +69,18 @@ properties:
       A valid lake_init_date must be provided when this is enabled.
       - if true : forces initial_lake_level as the initial lake level at the start of lake_init_date.
       - if false : no forced initialization.
+  evaporation_method:
+    type: integer
+    x-fortran-kind: i4
+    enum: [1, 2]
+    default: 1
+    title: Lake evaporation method
+    description: |-
+      Method used to estimate open-water evaporation from the lake surface.
+      - 1 : Penman (1948). Needs temperature, downward short- and long-wave radiation,
+        windspeed and dew-point temperature.
+      - 2 : Priestley-Taylor (1972). Needs temperature and downward short- and long-wave
+        radiation only (no windspeed or dew-point temperature).
   input_windspeed_height:
     type: number
     x-fortran-kind: dp

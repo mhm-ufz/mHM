@@ -34,8 +34,8 @@ module nml_config_mlm
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
-    dp, &
-    i4
+    i4, &
+    dp
 
   implicit none
 
@@ -44,6 +44,7 @@ module nml_config_mlm
   logical, parameter, public :: write_restart__default = .false.
   logical, parameter, public :: force_initialize_lake_at_restart__default = .false.
   logical, parameter, public :: force_initialize_lake_at_a_date__default = .false.
+  integer(i4), parameter, public :: evaporation_method__default = 1_i4
   real(dp), parameter, public :: input_windspeed_height__default = 2.0_dp
   logical, parameter, public :: varying_albedo__default = .true.
   logical, parameter, public :: varying_lambda__default = .true.
@@ -60,6 +61,7 @@ module nml_config_mlm
   logical, parameter, public :: print_links_table__default = .true.
 
   ! enum values
+  integer(i4), parameter, public :: evaporation_method__enum_values(2) = [1_i4, 2_i4]
   integer(i4), parameter, public :: albedo_method__enum_values(2) = [1_i4, 2_i4]
   integer(i4), parameter, public :: bathymetry_type__enum_values(3) = [0_i4, 1_i4, 2_i4]
 
@@ -81,6 +83,7 @@ module nml_config_mlm
     character(len=buf), allocatable, dimension(:) :: restart_output_path !< mLM restart output path
     logical :: force_initialize_lake_at_restart !< Force lake level initialization at restart
     logical :: force_initialize_lake_at_a_date !< Force lake level initialization at a date
+    integer(i4) :: evaporation_method !< Lake evaporation method
     real(dp) :: input_windspeed_height !< Input windspeed height [m]
     logical :: varying_albedo !< Variable water albedo
     logical :: varying_lambda !< Variable latent heat of vaporisation
@@ -113,6 +116,22 @@ module nml_config_mlm
   end type nml_config_mlm_t
 
 contains
+
+  !> \brief Check whether a value is part of an enum
+  elemental logical function evaporation_method__in_enum(val, allow_missing) result(in_enum)
+    integer(i4), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
+
+    if (present(allow_missing)) then
+      if (allow_missing) then
+        if (val == -huge(val)) then
+          in_enum = .true.
+          return
+        end if
+      end if
+    end if
+    in_enum = any(val == evaporation_method__enum_values)
+  end function evaporation_method__in_enum
 
   !> \brief Check whether a value is part of an enum
   elemental logical function albedo_method__in_enum(val, allow_missing) result(in_enum)
@@ -231,6 +250,7 @@ contains
     this%write_restart = write_restart__default
     this%force_initialize_lake_at_restart = force_initialize_lake_at_restart__default ! bool values always need a default
     this%force_initialize_lake_at_a_date = force_initialize_lake_at_a_date__default ! bool values always need a default
+    this%evaporation_method = evaporation_method__default
     this%input_windspeed_height = input_windspeed_height__default
     this%varying_albedo = varying_albedo__default ! bool values always need a default
     this%varying_lambda = varying_lambda__default ! bool values always need a default
@@ -322,6 +342,7 @@ contains
     character(len=buf), allocatable, dimension(:) :: restart_output_path
     logical :: force_initialize_lake_at_restart
     logical :: force_initialize_lake_at_a_date
+    integer(i4) :: evaporation_method
     real(dp) :: input_windspeed_height
     logical :: varying_albedo
     logical :: varying_lambda
@@ -359,6 +380,7 @@ contains
       restart_output_path, &
       force_initialize_lake_at_restart, &
       force_initialize_lake_at_a_date, &
+      evaporation_method, &
       input_windspeed_height, &
       varying_albedo, &
       varying_lambda, &
@@ -431,6 +453,7 @@ contains
     restart_output_path = this%restart_output_path
     force_initialize_lake_at_restart = this%force_initialize_lake_at_restart
     force_initialize_lake_at_a_date = this%force_initialize_lake_at_a_date
+    evaporation_method = this%evaporation_method
     input_windspeed_height = this%input_windspeed_height
     varying_albedo = this%varying_albedo
     varying_lambda = this%varying_lambda
@@ -486,6 +509,7 @@ contains
     this%restart_output_path = restart_output_path
     this%force_initialize_lake_at_restart = force_initialize_lake_at_restart
     this%force_initialize_lake_at_a_date = force_initialize_lake_at_a_date
+    this%evaporation_method = evaporation_method
     this%input_windspeed_height = input_windspeed_height
     this%varying_albedo = varying_albedo
     this%varying_lambda = varying_lambda
@@ -524,6 +548,7 @@ contains
     restart_output_path, &
     force_initialize_lake_at_restart, &
     force_initialize_lake_at_a_date, &
+    evaporation_method, &
     input_windspeed_height, &
     varying_albedo, &
     varying_lambda, &
@@ -558,6 +583,7 @@ contains
     character(len=*), dimension(:), intent(in), optional :: restart_output_path !< mLM restart output path
     logical, intent(in), optional :: force_initialize_lake_at_restart !< Force lake level initialization at restart
     logical, intent(in), optional :: force_initialize_lake_at_a_date !< Force lake level initialization at a date
+    integer(i4), intent(in), optional :: evaporation_method !< Lake evaporation method
     real(dp), intent(in), optional :: input_windspeed_height !< Input windspeed height [m]
     logical, intent(in), optional :: varying_albedo !< Variable water albedo
     logical, intent(in), optional :: varying_lambda !< Variable latent heat of vaporisation
@@ -653,6 +679,7 @@ contains
     end if
     if (present(force_initialize_lake_at_restart)) this%force_initialize_lake_at_restart = force_initialize_lake_at_restart
     if (present(force_initialize_lake_at_a_date)) this%force_initialize_lake_at_a_date = force_initialize_lake_at_a_date
+    if (present(evaporation_method)) this%evaporation_method = evaporation_method
     if (present(input_windspeed_height)) this%input_windspeed_height = input_windspeed_height
     if (present(varying_albedo)) this%varying_albedo = varying_albedo
     if (present(varying_lambda)) this%varying_lambda = varying_lambda
@@ -990,6 +1017,12 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'force_initialize_lake_at_a_date'"
         return
       end if
+    case ("evaporation_method")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'evaporation_method'"
+        return
+      end if
     case ("input_windspeed_height")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
@@ -1227,6 +1260,17 @@ contains
     end if
 
     ! enum constraints
+    istat = this%is_set("evaporation_method", errmsg=errmsg)
+    if (istat == NML_OK) then
+      if (.not. evaporation_method__in_enum(this%evaporation_method)) then
+        status = NML_ERR_ENUM
+        if (present(errmsg)) errmsg = "enum constraint failed: evaporation_method"
+        return
+      end if
+    else if (istat /= NML_ERR_NOT_SET) then
+      status = istat
+      return
+    end if
     istat = this%is_set("albedo_method", errmsg=errmsg)
     if (istat == NML_OK) then
       if (.not. albedo_method__in_enum(this%albedo_method)) then

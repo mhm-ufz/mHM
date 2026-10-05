@@ -536,6 +536,8 @@
   force_initialize_lake_at_restart = .false.
   ! Force lake level initialization at a date
   force_initialize_lake_at_a_date = .false.
+  ! Lake evaporation method
+  evaporation_method = 1
   ! Input windspeed height [m]
   input_windspeed_height = 10.0
   ! Variable water albedo
