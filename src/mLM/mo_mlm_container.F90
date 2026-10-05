@@ -18,6 +18,7 @@ module mo_mlm_container
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
   use mo_logging
   use mo_kind, only: i4, i8, dp
+  use mo_constants, only: nodata_dp
   use mo_datetime, only: datetime, one_hour
   use mo_exchange_type, only: exchange_t
   use mo_grid, only: grid_t
@@ -327,6 +328,23 @@ contains
         log_fatal(*) "mLM process 1 requires reported maximum lake surface area and volume."
         error stop 1
       end if
+      ! (diagnostic) log the DEM-footprint area against the reported area per lake. The DEM
+      ! footprint area is not used by the case-1 physics (the hAV curve is reported-anchored),
+      ! but this records how far the level-0 lake delineation lies from the reported value.
+      if (associated(self%exchange%level0_lake) .and. self%exchange%lake_map%provided) then
+        block
+          real(dp), allocatable :: dem_area(:)
+          integer(i8) :: kk
+          call lake_derive_max_surface_area_dem(self%exchange%level0_lake, self%exchange%lake_map%data, &
+            self%lake_ids, dem_area)
+          do kk = 1_i8, size(self%lake_ids, kind=i8)
+            log_info(*) "mLM lake ", n2s(self%lake_ids(kk)), ": reported area [m2] = ", &
+              n2s(self%static_lake_max_surface_area_reported(kk)), " , DEM-footprint area [m2] = ", &
+              n2s(dem_area(kk)), " ( ratio DEM/reported = ", &
+              n2s(dem_area(kk) / self%static_lake_max_surface_area_reported(kk)), " )"
+          end do
+        end block
+      end if
       ! Allocate the lake states carried by the component (built at initialize, restart-persisted in c4).
       allocate(self%lake_level(n_lakes), source=0.0_dp)
       allocate(self%lake_surface_area(n_lakes), source=0.0_dp)
@@ -344,15 +362,20 @@ contains
       ! initial level (cold-start). Normally the Input container reads them from the lake
       ! definition file; on a restart-only run (no Input) they are restored from the restart
       ! metadata instead (see read_restart_metadata / the restart branch above).
-      if (self%exchange%lake_spillway_length%provided .and. self%exchange%lake_spillway_length%has_data() .and. &
-          self%exchange%lake_initial_level%provided .and. self%exchange%lake_initial_level%has_data()) then
+      ! Spillway length is required (from Input or restart metadata).
+      if (self%exchange%lake_spillway_length%provided .and. self%exchange%lake_spillway_length%has_data()) then
         call self%exchange%check_data(self%exchange%lake_spillway_length, "mLM")
-        call self%exchange%check_data(self%exchange%lake_initial_level, "mLM")
         self%static_lake_spillway_length = self%exchange%lake_spillway_length%data
-        self%static_lake_initial_level = self%exchange%lake_initial_level%data
-      else if (.not.(allocated(self%static_lake_spillway_length) .and. allocated(self%static_lake_initial_level))) then
-        log_fatal(*) "mLM process 1 requires lake spillway length and initial level from inputs or restart metadata."
+      else if (.not.allocated(self%static_lake_spillway_length)) then
+        log_fatal(*) "mLM process 1 requires lake spillway length from inputs or restart metadata."
         error stop 1
+      end if
+      ! The initial level is optional: if it is absent (or carries the missing-value sentinel
+      ! nodata_dp = -9999), the lake is cold-started at 50% of its reported maximum volume (see initialize).
+      if (self%exchange%lake_initial_level%provided .and. self%exchange%lake_initial_level%has_data()) then
+        self%static_lake_initial_level = self%exchange%lake_initial_level%data
+      else if (.not.allocated(self%static_lake_initial_level)) then
+        allocate(self%static_lake_initial_level(n_lakes), source=nodata_dp)
       end if
       ! Minimal scope supports natural lakes only; reservoir regulation is not yet ported.
       if (any(.not. self%config%natural(self%exchange%nml_domain_id, 1:int(n_lakes, i4)))) then
@@ -460,6 +483,21 @@ contains
       ! area and volume are read off the per-lake hAV curve. A restart overrides these below.
       if (.not. self%read_restart) then
         do k = 1_i8, n_lakes
+          ! When the initial level was not provided (missing-value sentinel), cold-start the
+          ! lake at the level holding 50% of its reported maximum volume (v5.13 behaviour):
+          ! invert the hAV curve (volume -> level) at half the reported maximum volume.
+          if (self%static_lake_initial_level(k) < -9000.0_dp) then
+            block
+              real(dp) :: target_volume
+              target_volume = 0.5_dp * self%static_lake_max_volume_reported(k)
+              call interpolate_lake_states(.false., self%hav(k)%volume, self%hav(k)%level, &
+                self%static_lake_max_volume_reported(k), self%static_lake_max_level_reported(k), &
+                target_volume, self%static_lake_initial_level(k))
+            end block
+            log_info(*) "mLM lake ", n2s(self%lake_ids(k)), &
+              ": initial level not provided; cold-starting at 50% of reported max volume -> level ", &
+              n2s(self%static_lake_initial_level(k)), " masl"
+          end if
           self%lake_level(k) = self%static_lake_initial_level(k)
           level_query = self%static_lake_initial_level(k)
           call interpolate_lake_states(.false., self%hav(k)%level, self%hav(k)%surface_area, &
