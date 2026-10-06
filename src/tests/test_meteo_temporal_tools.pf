@@ -5,7 +5,7 @@ module test_meteo_temporal_tools
   use mo_grid, only: grid_t, bottom_up
   use mo_meteo_temporal_tools
   use mo_meteo_container, only: meteo_t, meteo_is_day_step, meteo_supports_model_step, meteo_supports_forcing_step
-  use mo_grid_io, only: daily, no_time
+  use mo_grid_io, only: daily, monthly, yearly, no_time
   use mo_kind, only: dp, i4, i8
 
   implicit none
@@ -22,6 +22,7 @@ module test_meteo_temporal_tools
   public :: test_lake_forcing_aggregates_l2_support
   public :: test_lake_forcing_disaggregates_daily
   public :: test_forcing_step_compatibility
+  public :: test_tann_supported_steps
 
   real(dp) :: t = 0.001_dp
 
@@ -42,6 +43,85 @@ contains
     @assertTrue(meteo_supports_forcing_step(1, 1), message='hourly forcing supports an hourly model step')
     @assertFalse(meteo_supports_forcing_step(1, 6), message='coarser fixed forcing requires resampling for an hourly model step')
   end subroutine test_forcing_step_compatibility
+
+  @test
+  !> \brief Accept all supported annual-temperature cadences on hourly and daily models.
+  subroutine test_tann_supported_steps()
+    integer(i4), parameter :: model_steps(2) = [1_i4, 24_i4]
+    integer(i4) :: model_step, model_index, cadence
+    integer(i4) :: steps(5)
+
+    do model_index = 1_i4, size(model_steps)
+      model_step = model_steps(model_index)
+      steps = [no_time, daily, monthly, yearly, model_step]
+      do cadence = 1_i4, size(steps)
+        call check_tann_cadence(model_step, steps(cadence))
+      end do
+    end do
+  end subroutine test_tann_supported_steps
+
+  !> \brief Exercise the real meteo connection and forward supplied annual means without disaggregation.
+  subroutine check_tann_cadence(model_step, forcing_step)
+    integer(i4), intent(in) :: model_step !< Hourly or daily model cadence.
+    integer(i4), intent(in) :: forcing_step !< Native annual-temperature input cadence.
+    type(exchange_t), target :: exchange
+    type(grid_t), target :: grid
+    type(meteo_t) :: meteo
+    real(dp), target :: forcing(2), tann(2)
+    real(dp), pointer :: publication(:)
+    integer :: status
+
+    status = exchange%config%project%set()
+    @assertEqual(0, status)
+    call exchange%create(cwd='.')
+    exchange%step_hours = model_step
+    exchange%time_step_start = datetime('2001-12-31 00:00:00')
+    status = exchange%config%processes%set(temperature_routing=1_i4)
+    @assertEqual(0, status)
+    call grid%init(2_i4, 1_i4, cellsize=1.0_dp)
+    exchange%level0 => grid
+    exchange%level0_land => grid
+    exchange%level1_land => grid
+    exchange%level2 => grid
+    forcing = [10.0_dp, 20.0_dp]
+    tann = [7.0_dp, 9.0_dp]
+    call exchange%raw_pre%provide('test')
+    call exchange%raw_pre%prepare_data('test', model_step)
+    exchange%raw_pre%data => forcing
+    call exchange%raw_temp%provide('test')
+    call exchange%raw_temp%prepare_data('test', model_step)
+    exchange%raw_temp%data => forcing
+    call exchange%raw_ssrd%provide('test')
+    call exchange%raw_ssrd%prepare_data('test', model_step)
+    exchange%raw_ssrd%data => forcing
+    call exchange%raw_strd%provide('test')
+    call exchange%raw_strd%prepare_data('test', model_step)
+    exchange%raw_strd%data => forcing
+    call exchange%raw_tann%provide('test')
+    exchange%raw_tann%static = forcing_step == no_time
+    call exchange%raw_tann%prepare_data('test', forcing_step)
+    exchange%raw_tann%data => tann
+    status = meteo%config%set()
+    @assertEqual(0, status)
+    meteo%exchange => exchange
+    call meteo%configure()
+    call meteo%connect()
+    call meteo%initialize()
+    publication => exchange%tann%data
+    call meteo%update()
+    @assertEqual(tann, exchange%tann%data, tolerance=1.e-12_dp, message='annual mean is forwarded without temporal scaling')
+    @assertEqual(model_step, exchange%tann%stepping, message='published annual mean represents the model step')
+    if (forcing_step /= no_time) then
+      exchange%time_step_start = datetime('2002-01-01 00:00:00')
+      tann = [8.0_dp, 10.0_dp]
+      call meteo%update()
+      @assertEqual(tann, exchange%tann%data, tolerance=1.e-12_dp, message='updated annual mean is forwarded across the year boundary')
+      @assertTrue(associated(publication, exchange%tann%data), message='annual-temperature publication stays at a stable target')
+    end if
+    call exchange%destroy()
+    call meteo%destroy()
+    call grid%destroy()
+  end subroutine check_tann_cadence
 
   @test
   subroutine test_active_meteo_supported_steps()

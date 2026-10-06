@@ -415,7 +415,9 @@ contains
     end if
     if (need_raw_tann) then
       call self%exchange%raw_tann%check_provided("Meteo")
-      call self%validate_step("raw_tann", self%exchange%raw_tann%stepping, allow_daily=.true.)
+      ! Annual averaging is prepared externally; validate its update cadence like other raw inputs.
+      call self%validate_step("raw_tann", self%exchange%raw_tann%stepping, allow_static=.true., allow_daily=.true., &
+        allow_monthly=.true., allow_yearly=.true., allow_hourly=.true.)
     end if
 
     if (need_raw_tmin) call self%exchange%raw_tmin%check_provided("Meteo")
