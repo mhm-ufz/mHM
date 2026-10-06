@@ -57,6 +57,20 @@ module mo_mlm_constants
   !> Priestley-Taylor (1972) coefficient
   real(dp), public, parameter :: ptcoeff       = 1.26_dp
 
+  !> Calibration-free Priestley-Taylor, after Su and Singh (2023) adapted to the
+  !> open-water Penman formulation: the constant ptcoeff is replaced by an analytical coefficient
+  !> alpha = 1 + (gamma/Delta) * penman1948_1 (1 + penman1948_2 u2) (es - e) / (Rn + Ah), evaluated
+  !> with a climatological (not instantaneous) windspeed so that noisy per-step wind does not swing
+  !> the evaporation, and applied to the live equilibrium term. alpha is bounded to [1, cfpt_coeff_max]:
+  !> the lower bound of 1 matches the no-condensation design of the leaf routines (the es - e < 0
+  !> condensation regime is already zeroed there), and the upper cap guards the A = Rn + Ah -> 0 limit,
+  !> where the coefficient would otherwise diverge.
+  !> Available-energy floor [J m-2 d-1] (about 1.2 W m-2 daily mean; small but strictly positive).
+  real(dp), public, parameter :: cfpt_avail_floor = 1.0e5_dp
+  !> Upper cap on the calibration-free Priestley-Taylor coefficient [-] (open-water alpha is physically
+  !> well below this; the cap only guards the A -> 0 limit).
+  real(dp), public, parameter :: cfpt_coeff_max   = 5.0_dp
+
   ! Meteorology
   !> Constant water albedo (Cogley)
   real(dp), public, parameter :: albedo_w_const = 0.08_dp
