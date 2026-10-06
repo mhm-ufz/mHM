@@ -247,12 +247,14 @@ contains
     real(dp), intent(out) :: scaled_flux(:) !< L3 rate on runoff support [m3 s-1 or K m3 s-1].
     real(dp), optional, intent(inout) :: scale_work(:) !< L1 volume work buffer when upscaling.
     real(dp), optional, intent(inout) :: scale_grid(:, :) !< Reusable unpacked L1 volume workspace.
+    real(dp), parameter :: mm_to_m = 0.001_dp !< Millimetres to metres [m mm-1].
     integer(i8) :: c
     real(dp) :: rate_factor
     if (size(input_depth) /= scaler%source_grid%ncells .or. &
         size(scaled_flux) /= scaler%target_grid%ncells) &
       call error_message("river_router: depth-to-flux support size mismatch")
-    rate_factor = 0.001_dp / (input_step * HOUR_SECONDS)
+    ! Convert depth [mm] over input_step [h] to a rate [m s-1]; multiplying by cell area [m2] gives [m3 s-1].
+    rate_factor = mm_to_m / (input_step * HOUR_SECONDS)
     if (scaler%scaling_mode == down_scaling) then
       call scaler%downscale_nearest(input_depth, scaled_flux)
       !$omp parallel do default(shared) schedule(static)
