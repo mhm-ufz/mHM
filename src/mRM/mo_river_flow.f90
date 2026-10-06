@@ -83,11 +83,18 @@ contains
   !> \brief Reset histories and completed means without replacing exchange targets.
   subroutine river_flow_state_reset(self)
     class(river_flow_state_t), intent(inout), target :: self !< Flow state to reset in place.
-    if (allocated(self%current_input)) self%current_input = 0.0_dp
-    if (allocated(self%current_routed)) self%current_routed = 0.0_dp
-    if (allocated(self%previous_input)) self%previous_input = 0.0_dp
-    if (allocated(self%previous_routed)) self%previous_routed = 0.0_dp
-    if (allocated(self%discharge)) self%discharge = 0.0_dp
+    integer(i8) :: n
+    if (allocated(self%current_input)) then
+      !$omp parallel do default(shared) schedule(static)
+      do n = 1_i8, size(self%current_input, kind=i8)
+        self%current_input(n) = 0.0_dp
+        self%current_routed(n) = 0.0_dp
+        self%previous_input(n) = 0.0_dp
+        self%previous_routed(n) = 0.0_dp
+        self%discharge(n) = 0.0_dp
+      end do
+      !$omp end parallel do
+    end if
     if (allocated(self%lake_inflow)) self%lake_inflow = 0.0_dp
   end subroutine river_flow_state_reset
 
@@ -248,7 +255,13 @@ contains
     integer(i8) :: n, c
 
     ! Average repeated runoff amounts across model updates before converting the represented input support to a rate.
-    if (muskingum%accumulations > 1_i4) self%acc_runoff = self%acc_runoff / muskingum%accumulations
+    if (muskingum%accumulations > 1_i4) then
+      !$omp parallel do default(shared) schedule(static)
+      do c = 1_i8, size(self%acc_runoff, kind=i8)
+        self%acc_runoff(c) = self%acc_runoff(c) / muskingum%accumulations
+      end do
+      !$omp end parallel do
+    end if
     ! distribute runoff in case of SCC
     if (self%river%scc) then
       call river_depth_to_flux(scaler, self%acc_runoff, self%scaled_flux, input_step, &
@@ -273,8 +286,16 @@ contains
     else
       call river_depth_to_flux(scaler, self%acc_runoff, self%runoff, input_step, self%scale_work, self%scale_grid)
     end if
-    self%acc_runoff = 0.0_dp
-    self%sum_discharge = 0.0_dp
+    !$omp parallel do default(shared) schedule(static)
+    do c = 1_i8, size(self%acc_runoff, kind=i8)
+      self%acc_runoff(c) = 0.0_dp
+    end do
+    !$omp end parallel do
+    !$omp parallel do default(shared) schedule(static)
+    do n = 1_i8, self%river%n_nodes
+      self%sum_discharge(n) = 0.0_dp
+    end do
+    !$omp end parallel do
     if (allocated(self%sum_lake_inflow)) self%sum_lake_inflow = 0.0_dp
   end subroutine river_flow_prepare
 
@@ -366,7 +387,12 @@ contains
     class(river_flow_t), intent(in), target :: self !< Flow processor holding completed substep sums.
     type(river_flow_state_t), intent(inout), target :: state !< Flow output state.
     type(river_muskingum_state_t), intent(in) :: muskingum !< Number of substeps in the completed interval.
-    state%discharge = self%sum_discharge / muskingum%iterations
+    integer(i8) :: n
+    !$omp parallel do default(shared) schedule(static)
+    do n = 1_i8, size(self%sum_discharge, kind=i8)
+      state%discharge(n) = self%sum_discharge(n) / muskingum%iterations
+    end do
+    !$omp end parallel do
     if (self%lake_routing) state%lake_inflow = self%sum_lake_inflow / muskingum%iterations
   end subroutine river_flow_complete
 end module mo_river_flow

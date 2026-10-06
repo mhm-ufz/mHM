@@ -197,14 +197,21 @@ contains
   !> \brief Reset histories and completed outputs without replacing exchange targets.
   subroutine river_thermal_state_reset(self)
     class(river_thermal_state_t), intent(inout), target :: self !< Thermal state to reset in place.
+    integer(i8) :: n
     self%active = .false.
-    if (allocated(self%area)) self%area = 0.0_dp
-    if (allocated(self%previous_input)) self%previous_input = 0.0_dp
-    if (allocated(self%previous_routed)) self%previous_routed = 0.0_dp
-    if (allocated(self%current_input)) self%current_input = 0.0_dp
-    if (allocated(self%current_routed)) self%current_routed = 0.0_dp
-    if (allocated(self%energy_flux)) self%energy_flux = 0.0_dp
-    if (allocated(self%temperature)) self%temperature = nodata_dp
+    if (allocated(self%area)) then
+      !$omp parallel do default(shared) schedule(static)
+      do n = 1_i8, size(self%area, kind=i8)
+        self%area(n) = 0.0_dp
+        self%previous_input(n) = 0.0_dp
+        self%previous_routed(n) = 0.0_dp
+        self%current_input(n) = 0.0_dp
+        self%current_routed(n) = 0.0_dp
+        self%energy_flux(n) = 0.0_dp
+        self%temperature(n) = nodata_dp
+      end do
+      !$omp end parallel do
+    end if
   end subroutine river_thermal_state_reset
 
   !> \brief Release mRM-owned thermal histories and published arrays.
@@ -382,8 +389,17 @@ contains
     integer(i8), intent(in), optional :: node_runoff_cell(:) !< Router-owned mapping from nodes to land runoff cells.
     integer(i8) :: n, c
 
-    if (muskingum%accumulations > 1_i4) &
-      self%acc_depth = self%acc_depth / muskingum%accumulations
+    ! Average all L1 forcing together before mapping runoff energy and meteorology.
+    if (muskingum%accumulations > 1_i4) then
+      !$omp parallel do default(shared) schedule(static)
+      do c = 1_i8, size(self%acc_depth, kind=i8)
+        self%acc_depth(c) = self%acc_depth(c) / muskingum%accumulations
+        self%acc_air(c) = self%acc_air(c) / muskingum%accumulations
+        self%acc_ssrd(c) = self%acc_ssrd(c) / muskingum%accumulations
+        self%acc_strd(c) = self%acc_strd(c) / muskingum%accumulations
+      end do
+      !$omp end parallel do
+    end if
     if (self%river%scc) then
       ! Q and Q*T use the same map with processor-owned output buffers.
       call river_depth_to_flux(scaler, self%acc_depth, self%scaled_flux, input_step, self%scale_work, self%scale_grid)
@@ -398,32 +414,30 @@ contains
       !$omp end parallel do
     else
       call river_depth_to_flux(scaler, self%acc_depth, self%local_energy, input_step, self%scale_work, self%scale_grid)
-      self%local_energy = water_heat_capacity_volume * self%local_energy
-    end if
-    if (muskingum%accumulations > 1_i4) then
-      !$omp simd
-      do c = 1_i8, size(self%acc_air, kind=i8)
-        self%acc_air(c) = self%acc_air(c) / muskingum%accumulations
-        self%acc_ssrd(c) = self%acc_ssrd(c) / muskingum%accumulations
-        self%acc_strd(c) = self%acc_strd(c) / muskingum%accumulations
+      !$omp parallel do default(shared) schedule(static)
+      do n = 1_i8, size(self%local_energy, kind=i8)
+        self%local_energy(n) = water_heat_capacity_volume * self%local_energy(n)
       end do
+      !$omp end parallel do
     end if
     call self%map_meteo(self%acc_air, self%air)
     call self%map_meteo(self%acc_ssrd, self%ssrd)
     call self%map_meteo(self%acc_strd, self%strd)
     call self%forcing%update(self%air, self%ssrd, self%strd)
-    !$omp simd
+    !$omp parallel do default(shared) schedule(static)
     do c = 1_i8, size(self%acc_air, kind=i8)
       self%acc_depth(c) = 0.0_dp
       self%acc_air(c) = 0.0_dp
       self%acc_ssrd(c) = 0.0_dp
       self%acc_strd(c) = 0.0_dp
     end do
-    !$omp simd
+    !$omp end parallel do
+    !$omp parallel do default(shared) schedule(static)
     do c = 1_i8, size(self%sum_energy, kind=i8)
       self%sum_energy(c) = 0.0_dp
       self%sum_discharge(c) = 0.0_dp
     end do
+    !$omp end parallel do
   end subroutine river_thermal_prepare
 
   !> \brief Swap thermal history buffers after a routing substep without copying them.
@@ -445,7 +459,7 @@ contains
     type(river_thermal_state_t), intent(inout), target :: state !< Thermal output state.
     type(river_muskingum_state_t), intent(in) :: muskingum !< Number of substeps in the completed interval.
     integer(i8) :: n
-    !$omp simd
+    !$omp parallel do default(shared) schedule(static)
     do n = 1_i8, size(self%sum_energy, kind=i8)
       state%energy_flux(n) = self%sum_energy(n) / muskingum%iterations
       if (self%sum_discharge(n) > 0.0_dp) then
@@ -454,6 +468,7 @@ contains
         state%temperature(n) = nodata_dp
       end if
     end do
+    !$omp end parallel do
   end subroutine river_thermal_complete
 
   !> \brief Route a complete level or consecutive serial levels in topological order.

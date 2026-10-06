@@ -1156,12 +1156,14 @@ contains
     type(output_dataset) :: ds
     type(var), allocatable :: vars(:)
     integer(i8) :: i
-    integer(i4) :: j, px, py
+    integer(i4) :: j, px, py, highlight_label
     integer(i4), allocatable :: level(:), pattern(:)
     if (this%scc) call error_message("river%export: can not export SCC river to gridded netcdf")
     if (present(factor)) then
-      allocate(pattern(this%grid%ncells), source=0_i4)
+      allocate(pattern(this%grid%ncells))
+      !$omp parallel do default(shared) private(px,py) schedule(static)
       do i=1_i8, this%grid%ncells
+        pattern(i) = 0_i4
         px = mod((this%grid%cell_ij(i, 1) - 1_i4) / factor, 2_i4)
         if (this%grid%y_direction==bottom_up) then
           py = mod((this%grid%cell_ij(i, 2) - 1_i4) / factor, 2_i4)
@@ -1170,6 +1172,7 @@ contains
         end if
         if (px+py==1_i4) pattern(i) = -1_i4
       end do
+      !$omp end parallel do
     end if
     allocate(vars(0))
     vars = [vars, var("fdir", "flow direction", dtype="i16", kind="i2", static=.true.)]
@@ -1205,26 +1208,49 @@ contains
     if (allocated(this%lake_map)) call ds%update("lake_map", this%lake_map)
     if (present(sub_map)) call ds%update("scc", sub_map)
     if (present(leaving)) then
-      allocate(tmp(this%n_nodes), source=0_i4)
-      if (present(factor)) tmp = pattern
-      where(leaving) tmp = 1_i4
-      if (present(highlight)) where(highlight) tmp = 2_i4
+      allocate(tmp(this%n_nodes))
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, this%n_nodes
+        tmp(i) = 0_i4
+        if (present(factor)) tmp(i) = pattern(i)
+        if (leaving(i)) tmp(i) = 1_i4
+        if (present(highlight)) then
+          if (highlight(i)) tmp(i) = 2_i4
+        end if
+      end do
+      !$omp end parallel do
       call ds%update("leaving", tmp)
       deallocate(tmp)
     end if
     if (present(stream_mask)) then
-      allocate(tmp(this%n_nodes), source=0_i4)
-      if (present(factor)) tmp = pattern
-      where(stream_mask) tmp = 1_i4
-      if (present(highlight)) where(highlight) tmp = 2_i4
+      allocate(tmp(this%n_nodes))
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, this%n_nodes
+        tmp(i) = 0_i4
+        if (present(factor)) tmp(i) = pattern(i)
+        if (stream_mask(i)) tmp(i) = 1_i4
+        if (present(highlight)) then
+          if (highlight(i)) tmp(i) = 2_i4
+        end if
+      end do
+      !$omp end parallel do
       call ds%update("stream", tmp)
       deallocate(tmp)
     end if
     if (present(stream_sub)) then
       if (present(factor)) then
-        tmp = pattern
-        where(stream_sub>0) tmp = stream_sub
-        if (present(highlight)) where(highlight) tmp = maxval(stream_sub) + 1_i4
+        allocate(tmp(this%n_nodes))
+        highlight_label = 0_i4
+        if (present(highlight)) highlight_label = maxval(stream_sub) + 1_i4
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i8, this%n_nodes
+          tmp(i) = pattern(i)
+          if (stream_sub(i) > 0_i4) tmp(i) = stream_sub(i)
+          if (present(highlight)) then
+            if (highlight(i)) tmp(i) = highlight_label
+          end if
+        end do
+        !$omp end parallel do
         call ds%update("stream_sub", tmp)
       else
         call ds%update("stream_sub", stream_sub)

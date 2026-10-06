@@ -247,30 +247,50 @@ contains
     real(dp), intent(out) :: scaled_flux(:) !< L3 rate on runoff support [m3 s-1 or K m3 s-1].
     real(dp), optional, intent(inout) :: scale_work(:) !< L1 volume work buffer when upscaling.
     real(dp), optional, intent(inout) :: scale_grid(:, :) !< Reusable unpacked L1 volume workspace.
+    integer(i8) :: c
+    real(dp) :: rate_factor
     if (size(input_depth) /= scaler%source_grid%ncells .or. &
         size(scaled_flux) /= scaler%target_grid%ncells) &
       call error_message("river_router: depth-to-flux support size mismatch")
+    rate_factor = 0.001_dp / (input_step * HOUR_SECONDS)
     if (scaler%scaling_mode == down_scaling) then
       call scaler%downscale_nearest(input_depth, scaled_flux)
-      scaled_flux = scaled_flux * scaler%target_grid%cell_area
+      !$omp parallel do default(shared) schedule(static)
+      do c = 1_i8, size(scaled_flux, kind=i8)
+        scaled_flux(c) = (scaled_flux(c) * scaler%target_grid%cell_area(c)) * rate_factor
+      end do
+      !$omp end parallel do
     else
       if (.not.present(scale_work) .or. .not.present(scale_grid)) &
         call error_message("river_router: missing depth-to-flux work buffer")
-      scale_work = input_depth * scaler%source_grid%cell_area
+      !$omp parallel do default(shared) schedule(static)
+      do c = 1_i8, size(input_depth, kind=i8)
+        scale_work(c) = input_depth(c) * scaler%source_grid%cell_area(c)
+      end do
+      !$omp end parallel do
       call scaler%source_grid%unpack_into(scale_work, scale_grid)
       call scaler%execute(scale_grid, scaled_flux)
+      !$omp parallel do default(shared) schedule(static)
+      do c = 1_i8, size(scaled_flux, kind=i8)
+        scaled_flux(c) = scaled_flux(c) * rate_factor
+      end do
+      !$omp end parallel do
     end if
-    scaled_flux = scaled_flux * (0.001_dp / (input_step * HOUR_SECONDS))
   end subroutine river_depth_to_flux
 
   !> \brief Allocate router-owned Muskingum coefficients.
   subroutine river_muskingum_state_allocate(self, n_nodes)
     class(river_muskingum_state_t), intent(inout), target :: self !< Coefficients to initialize.
     integer(i8), intent(in) :: n_nodes !< Number of routing nodes.
+    integer(i8) :: n
     call self%destroy()
     allocate(self%nu1(n_nodes), self%nu2(n_nodes))
-    self%nu1 = 0.0_dp
-    self%nu2 = 0.0_dp
+    !$omp parallel do default(shared) schedule(static)
+    do n = 1_i8, n_nodes
+      self%nu1(n) = 0.0_dp
+      self%nu2(n) = 0.0_dp
+    end do
+    !$omp end parallel do
   end subroutine river_muskingum_state_allocate
 
   !> \brief Release router-owned coefficients and cadence.
