@@ -540,6 +540,8 @@
   evaporation_method = 1
   ! Input windspeed height [m]
   input_windspeed_height = 10.0
+  ! Climatological 2 m windspeed [m s-1]
+  climatological_windspeed = 1.5
   ! Variable water albedo
   varying_albedo = .true.
   ! Variable latent heat of vaporisation

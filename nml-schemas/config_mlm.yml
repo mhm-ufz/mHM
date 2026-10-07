@@ -72,7 +72,7 @@ properties:
   evaporation_method:
     type: integer
     x-fortran-kind: i4
-    enum: [1, 2]
+    enum: [1, 2, 3]
     default: 1
     title: Lake evaporation method
     description: |-
@@ -81,6 +81,13 @@ properties:
         windspeed and dew-point temperature.
       - 2 : Priestley-Taylor (1972). Needs temperature and downward short- and long-wave
         radiation only (no windspeed or dew-point temperature).
+      - 3 : Calibration-free Priestley-Taylor, after Su and Singh (2023), adapted
+        to the open-water Penman formulation. The constant Priestley-Taylor coefficient is
+        replaced by an analytical coefficient that varies with available energy, vapour-pressure
+        deficit and temperature, evaluated with the climatological windspeed (climatological_windspeed)
+        rather than the instantaneous wind so that noisy per-step wind does not swing the evaporation.
+        Needs the same forcing as Penman: temperature, downward short- and long-wave radiation,
+        windspeed and dew-point temperature.
   input_windspeed_height:
     type: number
     x-fortran-kind: dp
@@ -92,6 +99,18 @@ properties:
       height other than 2 m, mLM applies the Hellmann exponential law to derive the 2 m windspeed.
       Enter the height for which the input windspeed data is provided, in metres.
     examples: [10.0]
+  climatological_windspeed:
+    type: number
+    x-fortran-kind: dp
+    default: 2.0
+    minimum: 0.0
+    title: Climatological 2 m windspeed [m s-1]
+    description: |-
+      Long-term mean (climatological) windspeed at 2 m, used only by the calibration-free Priestley-Taylor
+      method (evaporation_method = 3) inside its coefficient, in place of the instantaneous wind.
+      Decoupling the coefficient from the per-step wind keeps the evaporation robust to noisy
+      instantaneous windspeed. Ignored by the Penman (1) and Priestley-Taylor (2) methods.
+    examples: [1.5, 3.0]
   varying_albedo:
     type: boolean
     default: true

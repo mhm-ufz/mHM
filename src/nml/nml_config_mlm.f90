@@ -46,6 +46,7 @@ module nml_config_mlm
   logical, parameter, public :: force_initialize_lake_at_a_date__default = .false.
   integer(i4), parameter, public :: evaporation_method__default = 1_i4
   real(dp), parameter, public :: input_windspeed_height__default = 2.0_dp
+  real(dp), parameter, public :: climatological_windspeed__default = 2.0_dp
   logical, parameter, public :: varying_albedo__default = .true.
   logical, parameter, public :: varying_lambda__default = .true.
   logical, parameter, public :: varying_psychro__default = .true.
@@ -61,12 +62,13 @@ module nml_config_mlm
   logical, parameter, public :: print_links_table__default = .true.
 
   ! enum values
-  integer(i4), parameter, public :: evaporation_method__enum_values(2) = [1_i4, 2_i4]
+  integer(i4), parameter, public :: evaporation_method__enum_values(3) = [1_i4, 2_i4, 3_i4]
   integer(i4), parameter, public :: albedo_method__enum_values(2) = [1_i4, 2_i4]
   integer(i4), parameter, public :: bathymetry_type__enum_values(3) = [0_i4, 1_i4, 2_i4]
 
   ! bounds values
   real(dp), parameter, public :: input_windspeed_height__min = 0.0_dp
+  real(dp), parameter, public :: climatological_windspeed__min = 0.0_dp
 
   !> \class nml_config_mlm_t
   !> \brief mLM configuration
@@ -85,6 +87,7 @@ module nml_config_mlm
     logical :: force_initialize_lake_at_a_date !< Force lake level initialization at a date
     integer(i4) :: evaporation_method !< Lake evaporation method
     real(dp) :: input_windspeed_height !< Input windspeed height [m]
+    real(dp) :: climatological_windspeed !< Climatological 2 m windspeed [m s-1]
     logical :: varying_albedo !< Variable water albedo
     logical :: varying_lambda !< Variable latent heat of vaporisation
     logical :: varying_psychro !< Variable psychrometric constant
@@ -183,6 +186,24 @@ contains
     if (val < input_windspeed_height__min) in_bounds = .false.
   end function input_windspeed_height__in_bounds
 
+  !> \brief Check whether a value is within bounds
+  elemental logical function climatological_windspeed__in_bounds(val, allow_missing) result(in_bounds)
+    real(dp), intent(in) :: val !< value to check
+    logical, intent(in), optional :: allow_missing !< allow sentinel values as valid
+
+    if (present(allow_missing)) then
+      if (allow_missing) then
+        if (ieee_is_nan(val)) then
+          in_bounds = .true.
+          return
+        end if
+      end if
+    end if
+
+    in_bounds = .true.
+    if (val < climatological_windspeed__min) in_bounds = .false.
+  end function climatological_windspeed__in_bounds
+
   !> \brief Initialize defaults and sentinels for config_mlm
   integer function nml_config_mlm_init(this, errmsg) result(status)
     class(nml_config_mlm_t), intent(inout) :: this !< namelist instance
@@ -252,6 +273,7 @@ contains
     this%force_initialize_lake_at_a_date = force_initialize_lake_at_a_date__default ! bool values always need a default
     this%evaporation_method = evaporation_method__default
     this%input_windspeed_height = input_windspeed_height__default
+    this%climatological_windspeed = climatological_windspeed__default
     this%varying_albedo = varying_albedo__default ! bool values always need a default
     this%varying_lambda = varying_lambda__default ! bool values always need a default
     this%varying_psychro = varying_psychro__default ! bool values always need a default
@@ -344,6 +366,7 @@ contains
     logical :: force_initialize_lake_at_a_date
     integer(i4) :: evaporation_method
     real(dp) :: input_windspeed_height
+    real(dp) :: climatological_windspeed
     logical :: varying_albedo
     logical :: varying_lambda
     logical :: varying_psychro
@@ -382,6 +405,7 @@ contains
       force_initialize_lake_at_a_date, &
       evaporation_method, &
       input_windspeed_height, &
+      climatological_windspeed, &
       varying_albedo, &
       varying_lambda, &
       varying_psychro, &
@@ -455,6 +479,7 @@ contains
     force_initialize_lake_at_a_date = this%force_initialize_lake_at_a_date
     evaporation_method = this%evaporation_method
     input_windspeed_height = this%input_windspeed_height
+    climatological_windspeed = this%climatological_windspeed
     varying_albedo = this%varying_albedo
     varying_lambda = this%varying_lambda
     varying_psychro = this%varying_psychro
@@ -511,6 +536,7 @@ contains
     this%force_initialize_lake_at_a_date = force_initialize_lake_at_a_date
     this%evaporation_method = evaporation_method
     this%input_windspeed_height = input_windspeed_height
+    this%climatological_windspeed = climatological_windspeed
     this%varying_albedo = varying_albedo
     this%varying_lambda = varying_lambda
     this%varying_psychro = varying_psychro
@@ -550,6 +576,7 @@ contains
     force_initialize_lake_at_a_date, &
     evaporation_method, &
     input_windspeed_height, &
+    climatological_windspeed, &
     varying_albedo, &
     varying_lambda, &
     varying_psychro, &
@@ -585,6 +612,7 @@ contains
     logical, intent(in), optional :: force_initialize_lake_at_a_date !< Force lake level initialization at a date
     integer(i4), intent(in), optional :: evaporation_method !< Lake evaporation method
     real(dp), intent(in), optional :: input_windspeed_height !< Input windspeed height [m]
+    real(dp), intent(in), optional :: climatological_windspeed !< Climatological 2 m windspeed [m s-1]
     logical, intent(in), optional :: varying_albedo !< Variable water albedo
     logical, intent(in), optional :: varying_lambda !< Variable latent heat of vaporisation
     logical, intent(in), optional :: varying_psychro !< Variable psychrometric constant
@@ -681,6 +709,7 @@ contains
     if (present(force_initialize_lake_at_a_date)) this%force_initialize_lake_at_a_date = force_initialize_lake_at_a_date
     if (present(evaporation_method)) this%evaporation_method = evaporation_method
     if (present(input_windspeed_height)) this%input_windspeed_height = input_windspeed_height
+    if (present(climatological_windspeed)) this%climatological_windspeed = climatological_windspeed
     if (present(varying_albedo)) this%varying_albedo = varying_albedo
     if (present(varying_lambda)) this%varying_lambda = varying_lambda
     if (present(varying_psychro)) this%varying_psychro = varying_psychro
@@ -1029,6 +1058,12 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'input_windspeed_height'"
         return
       end if
+    case ("climatological_windspeed")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'climatological_windspeed'"
+        return
+      end if
     case ("varying_albedo")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
@@ -1295,6 +1330,17 @@ contains
       if (.not. input_windspeed_height__in_bounds(this%input_windspeed_height)) then
         status = NML_ERR_BOUNDS
         if (present(errmsg)) errmsg = "bounds constraint failed: input_windspeed_height"
+        return
+      end if
+    else if (istat /= NML_ERR_NOT_SET) then
+      status = istat
+      return
+    end if
+    istat = this%is_set("climatological_windspeed", errmsg=errmsg)
+    if (istat == NML_OK) then
+      if (.not. climatological_windspeed__in_bounds(this%climatological_windspeed)) then
+        status = NML_ERR_BOUNDS
+        if (present(errmsg)) errmsg = "bounds constraint failed: climatological_windspeed"
         return
       end if
     else if (istat /= NML_ERR_NOT_SET) then

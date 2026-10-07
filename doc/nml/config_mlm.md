@@ -20,6 +20,7 @@ Configuration for the v6 lake component (mLM).
 | [force_initialize_lake_at_a_date](#force_initialize_lake_at_a_date) | logical | no | no | Force lake level initialization at a date |
 | [evaporation_method](#evaporation_method) | integer | no | no | Lake evaporation method |
 | [input_windspeed_height](#input_windspeed_height) | real | no | no | Input windspeed height [m] |
+| [climatological_windspeed](#climatological_windspeed) | real | no | no | Climatological 2 m windspeed [m s-1] |
 | [varying_albedo](#varying_albedo) | logical | no | no | Variable water albedo |
 | [varying_lambda](#varying_lambda) | logical | no | no | Variable latent heat of vaporisation |
 | [varying_psychro](#varying_psychro) | logical | no | no | Variable psychrometric constant |
@@ -146,13 +147,20 @@ Method used to estimate open-water evaporation from the lake surface.
   windspeed and dew-point temperature.
 - 2 : Priestley-Taylor (1972). Needs temperature and downward short- and long-wave
   radiation only (no windspeed or dew-point temperature).
+- 3 : Calibration-free Priestley-Taylor, after Su and Singh (2023), adapted
+  to the open-water Penman formulation. The constant Priestley-Taylor coefficient is
+  replaced by an analytical coefficient that varies with available energy, vapour-pressure
+  deficit and temperature, evaluated with the climatological windspeed (climatological_windspeed)
+  rather than the instantaneous wind so that noisy per-step wind does not swing the evaporation.
+  Needs the same forcing as Penman: temperature, downward short- and long-wave radiation,
+  windspeed and dew-point temperature.
 
 Summary:
 - Type: `integer(i4)`
 - Declared required: no
 - Input required: no
 - Default: `1`
-- Allowed values: `1`, `2`
+- Allowed values: `1`, `2`, `3`
 
 ### input_windspeed_height
 
@@ -169,6 +177,23 @@ Summary:
 - Default: `2.0`
 - Minimum: `>= 0.0`
 - Examples: `10.0`
+
+### climatological_windspeed
+
+Climatological 2 m windspeed [m s-1] `climatological_windspeed`
+
+Long-term mean (climatological) windspeed at 2 m, used only by the calibration-free Priestley-Taylor
+method (evaporation_method = 3) inside its coefficient, in place of the instantaneous wind.
+Decoupling the coefficient from the per-step wind keeps the evaporation robust to noisy
+instantaneous windspeed. Ignored by the Penman (1) and Priestley-Taylor (2) methods.
+
+Summary:
+- Type: `real(dp)`
+- Declared required: no
+- Input required: no
+- Default: `2.0`
+- Minimum: `>= 0.0`
+- Examples: `1.5`, `3.0`
 
 ### varying_albedo
 
@@ -466,6 +491,7 @@ Summary:
   force_initialize_lake_at_a_date = .false.
   evaporation_method = 1
   input_windspeed_height = 10.0
+  climatological_windspeed = 1.5
   varying_albedo = .true.
   varying_lambda = .true.
   varying_psychro = .true.
