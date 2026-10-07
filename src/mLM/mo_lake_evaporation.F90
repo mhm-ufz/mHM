@@ -210,7 +210,7 @@ CONTAINS
       evap_components(1:3) = lake_evap_penman1948(lake_level, alb_w, ssrd, strd, temp, tdew, windspeed, &
                                                   tin, tout, tpre, qin, qout, pre, &
                                                   input_windspeed_height, varying_lambda, varying_psychro)
-      evap = sum(evap_components(1:3))
+      evap = max( sum(evap_components(1:3)), 0._dp ) ! no condensation: Penman daily evaporation floored at zero
 
     case (2) ! Priestley-Taylor (1972) - temperatures and downward radiations (no windspeed/VPD)
 
@@ -454,6 +454,10 @@ CONTAINS
         lake_evap_penman1948(3) = ( Psychro / ( slope_satpressure(Temp) + Psychro) ) &
                                 * penman1948_1 * ( 1._dp + penman1948_2 * windspeed_2m ) / (SpecHeat_w / 1000000._dp) &
                                 * ( satVapPress - ambVapPress )
+        ! No condensation: when the air is wetter than the water surface (es - e < 0) the
+        ! vapour-transfer term turns negative; clamp it to zero so the aerodynamic path never
+        ! adds water to the lake (consistent with the evaporation-only design of the leaves).
+        lake_evap_penman1948(3) = max( lake_evap_penman1948(3), 0._dp )
       else
         lake_evap_penman1948(1:3) = 0._dp
       end if
