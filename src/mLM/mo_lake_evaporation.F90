@@ -32,6 +32,15 @@
 !       empirical Penman/albedo/windspeed constants continue to come from mo_mlm_constants
 !       (recreated in the v6 tree), as in v5; generic physical constants come from
 !       mo_constants (forces).
+! Pallav Shrestha, Oct 2026 - added a calibration-free Priestley-Taylor method
+!     (evaporation_method = 3) following Su and Singh (2023, WRR), adapted to the open-water
+!     Penman formulation. The constant Priestley-Taylor coefficient (method 2) is replaced by an
+!     analytical coefficient alpha = 1 + (gamma/Delta) 6.43(1 + 0.536 u2)(es - e)/(Rn + Ah),
+!     evaluated with a CLIMATOLOGICAL windspeed u2 (not the instantaneous wind) and applied to the
+!     live equilibrium term. Decoupling alpha from the per-step wind keeps evaporation robust to
+!     noisy instantaneous wind, while alpha still varies with radiation, temperature and humidity
+!     (so it spans a range about ~1.26 instead of being fixed). Like Penman (method 1) it needs
+!     temperature, downward short- and long-wave radiation, windspeed and dew-point temperature.
 
 MODULE mo_lake_evaporation
 
@@ -42,6 +51,7 @@ MODULE mo_lake_evaporation
   PUBLIC  :: lake_evaporation         ! wrapper for lake evaporation process (Penman or Priestley-Taylor)
   PRIVATE :: lake_evap_penman1948     ! Penman, using temperatures, downward radiations and windspeed
   PRIVATE :: lake_evap_priestleytaylor1972  ! Priestley-Taylor, using temperatures and downward radiations
+  PRIVATE :: lake_evap_cfpriestleytaylor2023 ! calibration-free Priestley-Taylor, Su and Singh (2023) open-water adaptation
   PRIVATE :: windspeed_correction     ! corrects windspeed for height of recording
   PUBLIC  :: albedo_water             ! estimate of albedo for water for given latitude and doy, at noon
   PRIVATE :: hourangle                ! estimate of solar hour angle in degrees
@@ -96,7 +106,7 @@ CONTAINS
 
   SUBROUTINE lake_evaporation( evaporation_method, hour, doy, temp, tdew, windspeed, ssrd, strd, &
                                 tin, tout, tpre, lake_level, qin, qout, pre, latitude, longitude, &
-                                input_windspeed_height, varying_albedo, albedo_method, &
+                                input_windspeed_height, climatological_windspeed, varying_albedo, albedo_method, &
                                 varying_lambda, varying_psychro, evap, evap_components)
 
     use mo_mlm_constants, only : albedo_w_const
@@ -157,6 +167,10 @@ CONTAINS
     ! [m] height for which the input windspeed data is provided
     real(dp), intent(in) :: input_windspeed_height
 
+    ! [m s-1] climatological (long-term mean) 2 m windspeed, used by the calibration-free Priestley-Taylor
+    ! method (3) in its coefficient instead of the instantaneous wind
+    real(dp), intent(in) :: climatological_windspeed
+
     ! use a varying (vs constant) water albedo
     logical, intent(in) :: varying_albedo
 
@@ -203,6 +217,13 @@ CONTAINS
       evap = lake_evap_priestleytaylor1972(lake_level, alb_w, ssrd, strd, temp, &
                                            tin, tout, tpre, qin, qout, pre, &
                                            varying_lambda, varying_psychro)
+      evap_components(1:3) = 0.0_dp ! the 3-term breakdown is a Penman concept; unused for Priestley-Taylor
+
+    case (3) ! calibration-free Priestley-Taylor - analytical coefficient, climatological wind
+
+      evap = lake_evap_cfpriestleytaylor2023(lake_level, alb_w, ssrd, strd, temp, tdew, &
+                                              climatological_windspeed, tin, tout, tpre, qin, qout, pre, &
+                                              varying_lambda, varying_psychro)
       evap_components(1:3) = 0.0_dp ! the 3-term breakdown is a Penman concept; unused for Priestley-Taylor
 
     case default
@@ -609,6 +630,210 @@ CONTAINS
 
 
   END FUNCTION lake_evap_priestleytaylor1972
+
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         lake_evap_cfpriestleytaylor2023
+
+  !     PURPOSE
+  !>        \brief calibration-free Priestley-Taylor lake evaporation
+
+  !>        \details Estimates open-water (lake) evaporation with the Priestley-Taylor functional
+  !>                 form but an analytically derived, calibration-free coefficient, following
+  !>                 Su and Singh (2023) adapted to the open-water Penman formulation. The constant
+  !>                 Priestley-Taylor coefficient is replaced by
+  !>
+  !>                     alpha = 1 + (gamma / Delta) * f(u2bar) * (es - e) / (Rn + Ah),
+  !>
+  !>                 where f(u2bar) = 6.43 (1 + 0.536 u2bar) is the daily open-water wind function
+  !>                 evaluated with a CLIMATOLOGICAL 2 m windspeed u2bar rather than the instantaneous
+  !>                 wind. Decoupling the coefficient from the per-step wind keeps the evaporation
+  !>                 estimate robust to noisy instantaneous wind, while alpha still varies with the
+  !>                 available energy (Rn + Ah), the vapour-pressure deficit (es - e), the curve
+  !>                 slope Delta and the psychrometric constant gamma. The coefficient is then applied
+  !>                 to the equilibrium (radiation + advection) term:
+  !>
+  !>                     E = alpha * Delta/(Delta + gamma) * (Rn + Ah) / lambda.
+  !>
+  !>                 alpha is bounded to [1, cfpt_coeff_max]: the lower bound of 1 matches the
+  !>                 no-condensation design (the es - e < 0 condensation regime is zeroed as in the
+  !>                 Penman and Priestley-Taylor routines), and the upper cap guards the limit
+  !>                 (Rn + Ah) -> 0, where the coefficient would otherwise diverge; the available
+  !>                 energy used in the alpha denominator is floored at cfpt_avail_floor.
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: lake_level"      [m asl]   lake surface elevation
+  !>       \param[in] "real(dp) :: alb"             [-]       water albedo
+  !>       \param[in] "real(dp) :: ssrd"            [W m-2]   downward short-wave radiation
+  !>       \param[in] "real(dp) :: strd"            [W m-2]   downward long-wave radiation
+  !>       \param[in] "real(dp) :: Temp"            [degC]    average temperature
+  !>       \param[in] "real(dp) :: Tdew"            [degC]    dew point temperature
+  !>       \param[in] "real(dp) :: windspeed_clim"  [m s-1]   climatological 2 m windspeed
+  !>       \param[in] "real(dp) :: Tin"             [degC]    temperature of lake inflow
+  !>       \param[in] "real(dp) :: Tout"            [degC]    temperature of lake outflow
+  !>       \param[in] "real(dp) :: Tpre"            [degC]    temperature of lake precipitation
+  !>       \param[in] "real(dp) :: qin"             [mm d-1]  rate of lake inflow
+  !>       \param[in] "real(dp) :: qout"            [mm d-1]  rate of lake outflow
+  !>       \param[in] "real(dp) :: pre"             [mm d-1]  rate of lake precipitation
+  !>       \param[in] "logical  :: varying_lambda"            constant / varying latent heat of vaporisation
+  !>       \param[in] "logical  :: varying_psychro"           constant / varying psychrometric constant
+
+  !     RETURN
+  !>        \return real(dp) :: lake_evap_cfpriestleytaylor2023 &mdash; lake evaporation [mm d-1]
+
+  !     LITERATURE
+  !>        Su, Q. and Singh, V. P. (2023) Calibration-free Priestley-Taylor method for reference
+  !>        evapotranspiration estimation. Water Resources Research, 59, e2022WR033198.
+  !>        Priestley, C. H. B. and Taylor, R. J. (1972) On the assessment of surface heat flux
+  !>        and evaporation using large-scale parameters. Mon. Weather Rev., 100, 81-92.
+
+  !     HISTORY
+  !>        \author Pallav Shrestha
+  !>        \date Oct 2026
+
+  FUNCTION lake_evap_cfpriestleytaylor2023(lake_level, alb, ssrd, strd, Temp, Tdew, windspeed_clim, &
+                                            Tin, Tout, Tpre, qin, qout, pre, varying_lambda, varying_psychro)
+
+    use mo_constants,     only : Psychro_dp, SpecHeatET_dp, cp_w_dp, DaySecs, sigma_dp, T0_dp
+    use mo_mlm_constants, only : penman1948_1, penman1948_2, boltzmann_e, Emissivity_w, &
+                                 cfpt_avail_floor, cfpt_coeff_max
+    use mo_pet,           only : sat_vap_pressure, slope_satpressure
+
+
+    IMPLICIT NONE
+
+    real(dp), intent(IN) ::   lake_level, &     ! [m asl]   lake surface elevation
+                              alb, &            ! [-]       water albedo
+                              ssrd, &           ! [W m-2]   downward short-wave radiation
+                              strd, &           ! [W m-2]   downward long-wave radiation
+                              Temp, &           ! [degC]    average temperature
+                              Tdew, &           ! [degC]    dew point temperature
+                              windspeed_clim, & ! [m s-1]   climatological 2 m windspeed
+                              Tin, &            ! [degC]    temperature of lake inflow
+                              Tout, &           ! [degC]    temperature of lake outflow
+                              Tpre, &           ! [degC]    temperature of lake precipitation
+                              qin, &            ! [mm d-1]  rate of lake inflow
+                              qout, &           ! [mm d-1]  rate of lake outflow
+                              pre               ! [mm d-1]  rate of lake precipitation
+
+    ! constant / varying latent heat of vaporisation and psychrometric constant
+    logical, intent(IN) ::    varying_lambda, varying_psychro
+
+
+    !! local vars
+    real(dp) :: satVapPress, ambVapPress, Ah, ssr, str, stro, netrad, SpecHeat_w, Psychro
+    real(dp) :: avail_energy, aero_group, alpha, slope
+
+    ! lake evaporation in [mm per day]
+    real(dp) :: lake_evap_cfpriestleytaylor2023
+
+
+
+    !----------------------------------------------------------------------------
+    ! Calibration-free Priestley-Taylor, Su and Singh (2023), open-water adaptation
+    !
+    !              d
+    ! E = alpha -------- (Rn + Ah)
+    !            d + r
+    !
+    !                  r   6.43 ( 1 + 0.536 u2bar ) ( es - e )
+    ! alpha = 1  +  --- . --------------------------------------  , clamped to [1, cfpt_coeff_max]
+    !                d                  Rn + Ah
+    !
+    ! where, E is lake evaporation in mm d-1
+    !        alpha is the calibration-free Priestley-Taylor coefficient
+    !        d is slope of saturation vapour pressure vs temperature curve, in kPa degC-1
+    !        r is psychrometric constant, in kPa degC-1
+    !        u2bar is the CLIMATOLOGICAL 2 m windspeed (not the instantaneous wind)
+    !        es - e is the vapour-pressure deficit, in kPa
+    !        Rn is the net radiation and Ah the advection, as in the Penman and Priestley-Taylor
+    !        routines (Rn = Sn + Ln, outgoing Lo = e sigma T^4; Ah = rho_w cp_w (qin Tin - qout Tout + pre Tpre)).
+    !
+    ! The coefficient is formed from the SAME quantities as the Penman routine, so that it reproduces
+    ! the Penman combination equation exactly if evaluated with the instantaneous wind; using the
+    ! climatological wind in alpha is the deliberate decoupling that makes the method distinct from,
+    ! and more robust than, Penman.
+    !
+    ! Note (v6 migration): the equation is daily (returns mm d-1); the caller disaggregates it to the
+    ! model step, matching how mo_meteo_container treats the land PET methods.
+    !----------------------------------------------------------------------------
+
+    ! Calculate net shortwave radiation (W m-2)
+    ssr = ssrd * (1 - alb)
+
+    ! Calculate outgoing longwave radiation from Boltzmann equation (W m-2)
+    stro = Emissivity_w * sigma_dp * (Temp + T0_dp) ** boltzmann_e
+      ! PS - using air temperature as water surface temperature until
+      !      lake temperature procedure is added and connected with river
+      !      temperature routing
+
+    ! Calculate net longwave radiation (W m-2)
+    str = strd - stro
+
+    ! Calculate net radiation (W m-2)
+    netrad = ssr + str
+
+    ! Calculate advection rate (J m-2 d-1)
+    Ah = cp_w_dp * 1000._dp * ( qin * Tin - qout * Tout + pre * Tpre )
+
+
+    ! Specific heat of vaporisation of water
+    if (varying_lambda) then
+      SpecHeat_w = spc_heat_vap_water(Temp) ! considering water surface temperature to be equal to air temperature
+    else
+      SpecHeat_w = SpecHeatET_dp
+    end if
+
+    ! Estimate psychrometric constant
+    if (varying_psychro) then
+      Psychro = psychro_constant(lake_level, Temp) ! considering water surface temperature to be equal to air temperature
+    else
+      Psychro = Psychro_dp
+    end if
+
+    ! Calculate es and e (kPa)
+    satVapPress = sat_vap_pressure(Temp) ! svp at water surface temperature (assumed to be tavg)
+    ambVapPress = sat_vap_pressure(Tdew) ! avp obtained using svp formula with tdew
+
+    slope = slope_satpressure(Temp)
+
+
+    ! "Evaporation but no condensation"
+    ! We only apply the method for non-negative net radiation and non-negative available energy
+    if ( netrad >= 0._dp ) then
+
+      if ( netrad * DaySecs + Ah  >= 0._dp ) then ! In case Ah is lower than netrad, evap should be cutoff at 0.
+
+        ! Available energy A = Rn + Ah (J m-2 d-1), floored to keep the coefficient finite as A -> 0
+        avail_energy = netrad * DaySecs + Ah
+        avail_energy = max( avail_energy, cfpt_avail_floor )
+
+        ! Aerodynamic group of the coefficient, using the CLIMATOLOGICAL wind. The 6.43(1+0.536 u)
+        ! wind function carries the kPa -> MJ m-2 mm-1 scaling (1e6) that the Penman VPD term uses,
+        ! so that, with the instantaneous wind, alpha would reproduce the full Penman evaporation.
+        aero_group = ( Psychro / slope ) &
+                   * penman1948_1 * ( 1._dp + penman1948_2 * windspeed_clim ) * 1000000._dp &
+                   * ( satVapPress - ambVapPress ) / avail_energy
+
+        ! Calibration-free coefficient, clamped to [1, cfpt_coeff_max]
+        alpha = 1._dp + aero_group
+        alpha = min( max( alpha, 1._dp ), cfpt_coeff_max )
+
+        ! Apply alpha to the equilibrium (radiation + advection) term, in mm d-1
+        lake_evap_cfpriestleytaylor2023 = alpha * slope / ( slope + Psychro ) &
+                                * ( netrad * DaySecs + Ah ) / SpecHeat_w
+      else
+        lake_evap_cfpriestleytaylor2023 = 0._dp
+      end if
+
+    else
+      lake_evap_cfpriestleytaylor2023 = 0._dp
+    end if
+
+
+  END FUNCTION lake_evap_cfpriestleytaylor2023
 
 
   ! ------------------------------------------------------------------
