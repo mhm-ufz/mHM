@@ -428,18 +428,19 @@ contains
         log_fatal(*) "mLM process 1 supports natural lakes only; reservoir regulation is not yet implemented."
         error stop 1
       end if
-      ! Lake evaporation is active when its forcings are provided (kept daily by Meteo). Both
+      ! Lake evaporation is active when its forcings are provided (kept daily by Meteo). All
       ! methods need temperature and downward short- and long-wave radiation; Penman (method 1)
-      ! additionally needs windspeed and dew-point temperature, Priestley-Taylor (method 2) does not.
+      ! and the calibration-free Priestley-Taylor (method 3) additionally need windspeed and dew-point
+      ! temperature, the classic Priestley-Taylor (method 2) does not.
       self%evaporation_active = self%exchange%lake_temp%provided
       if (self%evaporation_active) then
         if (.not.(self%exchange%lake_ssrd%provided .and. self%exchange%lake_strd%provided)) then
           log_fatal(*) "mLM process 1 lake evaporation requires lake temperature, ssrd and strd together."
           error stop 1
         end if
-        if (self%config%evaporation_method == 1_i4 .and. &
+        if ((self%config%evaporation_method == 1_i4 .or. self%config%evaporation_method == 3_i4) .and. &
             .not.(self%exchange%lake_wind%provided .and. self%exchange%lake_tdew%provided)) then
-          log_fatal(*) "mLM process 1 Penman evaporation (method 1) also requires lake wind and dew-point temperature."
+          log_fatal(*) "mLM process 1 Penman (method 1) and calibration-free Priestley-Taylor (method 3) evaporation also require lake wind and dew-point temperature."
           error stop 1
         end if
         ! A varying water albedo needs the geographic latitude/longitude of each lake (solar geometry).
@@ -597,7 +598,7 @@ contains
     real(dp) :: wind_k, tdew_k
     real(dp) :: evap_components(3)
     logical :: isday
-    real(dp) :: input_windspeed_height
+    real(dp) :: input_windspeed_height, climatological_windspeed
     integer(i4) :: albedo_method
     logical :: varying_albedo, varying_lambda, varying_psychro
     select case (self%exchange%config%processes%lake)
@@ -621,6 +622,7 @@ contains
         ntimesteps_day = 24.0_dp / real(self%exchange%step_hours, dp)
         isday = (hour >= 7_i4) .and. (hour < 19_i4)
         input_windspeed_height = self%config%input_windspeed_height
+        climatological_windspeed = self%config%climatological_windspeed
         albedo_method = self%config%albedo_method
         varying_albedo = self%config%varying_albedo
         varying_lambda = self%config%varying_lambda
@@ -697,7 +699,7 @@ contains
               self%exchange%lake_strd%data(k), &
               self%exchange%lake_temp%data(k), self%exchange%lake_temp%data(k), self%exchange%lake_temp%data(k), &
               self%lake_level_previous(k), qin_d, qout_d, pre_d, lat, lon, &
-              input_windspeed_height, varying_albedo, albedo_method, varying_lambda, varying_psychro, &
+              input_windspeed_height, climatological_windspeed, varying_albedo, albedo_method, varying_lambda, varying_psychro, &
               evap_daily, evap_components)
             call temporal_disagg_flux_daynight(isday, ntimesteps_day, evap_daily, 0.5_dp, 0.5_dp, evap_step)
           end if
