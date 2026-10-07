@@ -226,6 +226,7 @@ namelists=(
   test_nml/mrm_lake_restart_only.nml
   test_nml/mlm_lake_case1_pt.nml
   test_nml/mlm_lake_case1_cfpt.nml
+  test_nml/mlm_lake_case1_penman.nml
   test_nml/mlm_lake_case1_albedo.nml
   test_nml/mlm_lake_case1_restart_write.nml
   test_nml/mlm_lake_case1_restart_read.nml
