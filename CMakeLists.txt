@@ -78,7 +78,7 @@ endif()
 add_subdirectory(src)
 
 if(MHM_BUILD_DRIVER)
-  if(EXISTS app)
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/app")
     message(STATUS "${PROJECT_NAME}: found app")
     add_subdirectory(app)
   endif()
@@ -98,7 +98,7 @@ target_compile_definitions(mhm_lib PRIVATE
 )
 
 # setup coverage with GNU
-if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND MHM_WITH_COVERAGE AND EXISTS "CI-scripts")
+if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND MHM_WITH_COVERAGE AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/CI-scripts")
   message(STATUS "mHM: add coverage")
   include(cmake/CodeCoverage.cmake)
   append_coverage_compiler_flags_to_target(mhm_lib)
@@ -115,7 +115,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND MHM_WITH_COVERAGE AND EXISTS "CI-
   )
 endif()
 
-if(MHM_BUILD_TESTING AND BUILD_TESTING AND EXISTS "src/tests")
+if(MHM_BUILD_TESTING AND BUILD_TESTING AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/tests")
   add_subdirectory(src/tests)
 endif()
 
