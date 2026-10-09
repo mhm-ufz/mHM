@@ -606,7 +606,7 @@ contains
         self%outflow = self%exchange%lake_inflow%data
       case(-2_i4)
       ! if (self%exchange%config%processes%lake == -2_i4) then
-        self%outflow = lake_balance_outflow(self%outflow, self%lake_max_surface_area_dem_derived, self%exchange%lake_pre%data, &
+        self%outflow = lake_balance_outflow(self%exchange%lake_inflow%data, self%lake_max_surface_area_dem_derived, self%exchange%lake_pre%data, &
           self%exchange%lake_pet%data, 3600.0_dp)
       case(1_i4)
         ! Minimal natural lake: seepage and crest spill, the iterative water balance, then

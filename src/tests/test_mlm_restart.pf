@@ -214,7 +214,7 @@ contains
     status = mlm%config%set(output_path=[character(64) :: "mlm_output_average.nc"])
     @assertEqual(0, status, message="mLM output path config is valid")
     status = mlm%output_config%set( &
-      output_double_precision=.false., output_time_reference=2_i4, output_frequency=2_i4, out_lake_outflow=.true.)
+      output_double_precision=.false., output_time_reference=2_i4, output_frequency=2_i4, out_lake_outflow=.true., output_timeseries=.true.)
     @assertEqual(0, status, message="mLM output config is valid")
     call mlm%configure()
     @assertTrue(mlm%active, message="selected mLM process is active")
