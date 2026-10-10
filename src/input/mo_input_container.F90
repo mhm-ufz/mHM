@@ -24,6 +24,7 @@ module mo_input_container
   use mo_points_io, only: points_input_dataset
   use mo_grid_io, only: var, input_dataset, end_timestamp, start_timestamp, no_time, daily, monthly, yearly, varying
   use mo_string_utils, only: n2s => num2str
+  use mo_mlm_mpr, only: lake_read_soil_texture_lut
   use nml_config_input, only: nml_config_input_t
   use nml_config_coupling, only: nml_config_coupling_t
   use nml_helper, only: NML_OK
@@ -1135,6 +1136,12 @@ contains
     ! DEM and slope need transient full-grid work arrays while lake support is built.
     real(dp), allocatable :: real_work(:, :)
     integer(i4), allocatable :: integer_work(:)
+    ! The lake footprint soil class is packed from a full level-0 read (lake MPR).
+    integer(i4), allocatable :: lake_soil_full(:)
+    integer(i4), allocatable :: lake_soil_full_2d(:, :)
+    integer(i4), allocatable :: lake_soil_packed(:)
+    real(dp), allocatable :: lake_sand_by_class(:), lake_clay_by_class(:)
+    real(dp), allocatable :: lake_sand_packed(:), lake_clay_packed(:)
     log_info(*) "Connect Input"
     ts = self%time_stamp_location
 
@@ -1281,6 +1288,86 @@ contains
       call self%exchange%soil_id%prepare_storage( &
         "Input", no_time, [self%soil_horizon_class%grid%ncells, int(self%soil_horizon_class%ds%nlayers, i8)])
       call self%soil_horizon_class%read_static(self%exchange%soil_id%data)
+    end if
+
+    ! soil texture on the lake footprint (detached lake MPR)
+    ! The land-surface soil class above is read directly onto the level-0 land grid, which
+    ! holes out the lake cells, so the soil under the lakes is discarded there. The detached
+    ! lake MPR needs the soil texture on the lake footprint to regionalize the lakebed Ks.
+    ! Re-read the configured soil class on the FULL level-0 grid, pack the lake-footprint subset
+    ! onto the level-0 lake grid (the same unpack/pack path that builds the lake map), resolve each
+    ! footprint cell's top-horizon (horizon 1) sand/clay from the soil LUT, and surface them to the
+    ! mLM container. Only the uppermost horizon is used, since the lakebed interfaces the surface
+    ! soil. No-op when there is no lake footprint.
+    if (associated(self%exchange%level0_lake) .and. self%owns_river_l0 .and. &
+        (self%soil_class%provided .or. self%soil_horizon_class%provided)) then
+      allocate(lake_soil_full(self%exchange%level0%ncells))
+      if (self%soil_class%provided) then
+        init_grid = need_grid(self%tgt_level0, self%exchange%level0)
+        call self%soil_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
+        call self%soil_class%read_static(lake_soil_full)
+      else
+        ! layered horizon class: read the top horizon (layer 1) on the full level-0 grid
+        init_grid = need_grid(self%tgt_level0, self%exchange%level0)
+        call self%soil_horizon_class%open_dataset( &
+          kind="i4", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid, layered=.true.)
+        block
+          integer(i4), allocatable :: horizon_work(:, :)
+          allocate(horizon_work(self%exchange%level0%ncells, int(self%soil_horizon_class%ds%nlayers, i4)))
+          call self%soil_horizon_class%read_static(horizon_work)
+          lake_soil_full = horizon_work(:, 1)
+          deallocate(horizon_work)
+        end block
+      end if
+      allocate(lake_soil_full_2d(self%exchange%level0%nx, self%exchange%level0%ny))
+      call self%exchange%level0%unpack_into(lake_soil_full, lake_soil_full_2d)
+      allocate(lake_soil_packed(self%exchange%level0_lake%ncells))
+      call self%exchange%level0_lake%pack_into(lake_soil_full_2d, lake_soil_packed)
+      ! Resolve the lake footprint soil classes to their top-horizon sand and clay content from the
+      ! soil look-up table (config_input soil_lut_path). The Input container owns all file reading, so
+      ! the texture is surfaced to the mLM container as ready sand/clay fields; mLM then regionalizes the
+      ! lakebed Ks from them with its own pedotransfer parameters, independent of the land-surface soil
+      ! database / MPR.
+      block
+        integer(i4) :: id_lut(1), n_soil_classes, cc, scls
+        integer :: status_lut
+        character(1024) :: errmsg_lut
+        status_lut = self%config%input%is_set("soil_lut_path", idx=id_lut, errmsg=errmsg_lut)
+        if (status_lut /= NML_OK) then
+          log_fatal(*) "Input: a lake footprint is present but soil_lut_path is not set; it is required &
+            &to resolve the lakebed soil texture for the lake conductivity. Error: ", trim(errmsg_lut)
+          error stop 1
+        end if
+        call lake_read_soil_texture_lut( &
+          self%exchange%get_path(self%config%input%soil_lut_path(id_lut(1))), &
+          n_soil_classes, lake_sand_by_class, lake_clay_by_class)
+        allocate(lake_sand_packed(self%exchange%level0_lake%ncells))
+        allocate(lake_clay_packed(self%exchange%level0_lake%ncells))
+        do cc = 1_i4, int(self%exchange%level0_lake%ncells, i4)
+          scls = lake_soil_packed(cc)
+          if (scls < 1_i4 .or. scls > n_soil_classes) then
+            log_fatal(*) "Input: lake footprint soil class ", n2s(scls), &
+              " is outside the soil LUT range 1..", n2s(n_soil_classes), "."
+            error stop 1
+          end if
+          if (lake_sand_by_class(scls) <= nodata_dp + 1.0_dp .or. &
+              lake_clay_by_class(scls) <= nodata_dp + 1.0_dp) then
+            log_fatal(*) "Input: lake footprint soil class ", n2s(scls), &
+              " has no top-horizon sand/clay in the soil LUT."
+            error stop 1
+          end if
+          lake_sand_packed(cc) = lake_sand_by_class(scls)
+          lake_clay_packed(cc) = lake_clay_by_class(scls)
+        end do
+        call self%exchange%lake_sand%prepare_storage("Input", no_time, [self%exchange%level0_lake%ncells])
+        call self%exchange%lake_sand%set_storage(lake_sand_packed)
+        call self%exchange%lake_sand%provide("Input")
+        call self%exchange%lake_clay%prepare_storage("Input", no_time, [self%exchange%level0_lake%ncells])
+        call self%exchange%lake_clay%set_storage(lake_clay_packed)
+        call self%exchange%lake_clay%provide("Input")
+        deallocate(lake_sand_by_class, lake_clay_by_class, lake_sand_packed, lake_clay_packed)
+      end block
+      deallocate(lake_soil_full, lake_soil_full_2d, lake_soil_packed)
     end if
 
     ! LAI class
