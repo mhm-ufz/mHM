@@ -1,10 +1,10 @@
 title: Lakes - Case 1
 description: |-
   Parameters for the mHM lake module (mLM) controlling spill over the dam crest and the
-  seepage and baseflow from the lake groundwater store. Each parameter is given per lake
-  per domain as the four components value, optimize-flag, min, max (min/max are the
-  calibration bounds). Reservoir release-regulation parameters are not included at this
-  stage (minimal natural-lake scope).
+  seepage and baseflow from the lake groundwater store. The spill parameters are given per
+  lake per domain as the four components value, optimize-flag, min, max (min/max are the
+  calibration bounds). The seepage leakance and the baseflow recession are global (pan-domain,
+  shared across all lakes, like the routing parameters), so they are scalars. 
 x-fortran-namelist: lakes_1
 type: object
 properties:
@@ -38,76 +38,49 @@ properties:
       properties:
         value: {examples: [1.5]}
         optimize: {examples: [true]}
-  longterm_baseflow:
-    title: Long-term baseflow
+  b:
+    $ref: parameter.yml#/$defs/parameter
+    title: Effective lakebed thickness
     description: |-
-      Long-term baseflow feed [m3 s-1] representing the sustained groundwater contribution
-      to lake outflow. Used as the baseline baseflow term alongside the recession-driven
-      baseflow from the lake groundwater storage.
-    type: array
-    x-fortran-shape: [n_domains, n_lakes]
-    items:
-      $ref: parameter.yml#/$defs/parameter
-      default: {min: 0.0001, max: 5.0}
-      properties:
-        value: {examples: [4.5]}
-        optimize: {examples: [true]}
-  exponent_for_percolation:
-    title: Exponent for percolation
+      Effective lakebed (colmation / clogging-layer) thickness b [m] in the Darcy lakebed
+      leakance Ks/b that drives lake seepage: the slice percolation is
+      L_i = (Ks/b) * (lake_level - bed_level) * (slice_area / lake_area), linear in head.
+      b is a single global (pan-domain) calibrated constant - there is no global lakebed-thickness
+      dataset, so only the leakance ratio Ks/b is identifiable; Ks carries the spatial variability.
+      Lower bound strictly positive.
+    default: {min: 0.1, max: 10.0}
+    properties:
+      value: {examples: [1.0]}
+      optimize: {examples: [true]}
+  ks_lakebed:
+    $ref: parameter.yml#/$defs/parameter
+    title: Lakebed saturated hydraulic conductivity
     description: |-
-      Exponential constant chi controlling the fraction kfrac of the head above the lake
-      bed that is available for percolation (seepage): kfrac = (h - bed_level) / exp(chi).
-      Percolation from each lake-bed slice is p = sum(kp * kfrac * H * As/A). A larger head
-      makes more water available to percolate; a larger chi reduces that fraction.
-      Dimensionless.
-    type: array
-    x-fortran-shape: [n_domains, n_lakes]
-    items:
-      $ref: parameter.yml#/$defs/parameter
-      default: {min: 8.0, max: 15.0}
-      properties:
-        value: {examples: [11.0]}
-        optimize: {examples: [true]}
-  percolation_coefficient:
-    title: Percolation coefficient
-    description: |-
-      Percolation (seepage) time constant kp for the lake bed [d]. Each hydrological time
-      step the per-step percolation coefficient is formed as (tsHydroSecs / 86400) / kp
-      (the SI form of the v5 c2TSTu / kPerco conversion), so a larger value gives slower
-      seepage. In mLM v5 this coefficient was regionalised from the catchment percolation
-      field by MPR over the lake footprint; in the minimal v6 lake it is exposed as a lake
-      parameter (MPR regionalisation of the lake groundwater coefficients is deferred).
-    type: array
-    x-fortran-shape: [n_domains, n_lakes]
-    items:
-      $ref: parameter.yml#/$defs/parameter
-      default: {min: 1.0, max: 100.0}
-      properties:
-        value: {examples: [35.0]}
-        optimize: {examples: [true]}
+      Saturated hydraulic conductivity Ks of the lakebed [cm d-1] in the Darcy lakebed leakance
+      Ks/b. Global (pan-domain) stand-in value used until the detached lake-MPR path regionalises
+      Ks per lake from the Cosby pedotransfer function over the lake footprint; at that point this
+      scalar is replaced by the per-lake field. Converted to model units (m per time step) and
+      divided by b to form the per-step leakance.
+    default: {min: 1.1, max: 1000.0}
+    properties:
+      value: {examples: [50.0]}
+      optimize: {examples: [true]}
   baseflow_recession_coefficient:
+    $ref: parameter.yml#/$defs/parameter
     title: Baseflow recession coefficient
     description: |-
       Lake groundwater-storage recession time constant kbf [d]. Each hydrological time step
       the per-step recession coefficient is formed as (tsHydroSecs / 86400) / kbf (the SI
       form of the v5 c2TSTu / kBaseFlow conversion); the baseflow is that coefficient times
-      the lake groundwater storage, so a larger value gives a slower, more sustained
-      baseflow. In mLM v5 this coefficient was regionalised from the catchment baseflow
-      recession field by MPR over the lake footprint; in the minimal v6 lake it is exposed
-      as a lake parameter (MPR regionalisation of the lake groundwater coefficients is
-      deferred).
-    type: array
-    x-fortran-shape: [n_domains, n_lakes]
-    items:
-      $ref: parameter.yml#/$defs/parameter
-      default: {min: 1.0, max: 1000.0}
-      properties:
-        value: {examples: [100.0]}
-        optimize: {examples: [true]}
+      the lake groundwater storage, so a larger value gives a slower, more sustained baseflow.
+      Global (pan-domain), shared across all lakes.
+    default: {min: 1.0, max: 1000.0}
+    properties:
+      value: {examples: [100.0]}
+      optimize: {examples: [true]}
 required:
   - spill_coefficient_of_discharge
   - spill_exponent
-  - longterm_baseflow
-  - exponent_for_percolation
-  - percolation_coefficient
+  - b
+  - ks_lakebed
   - baseflow_recession_coefficient
