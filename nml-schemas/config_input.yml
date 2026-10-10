@@ -276,6 +276,19 @@ properties:
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Soil horizon class input
+  soil_lut_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: Soil look-up table path
+    description: |-
+      Soil look-up table (class -> texture) path. Read by the Input container to resolve the
+      top-horizon sand and clay content of the lake footprint soil classes for the detached lake
+      multiscale parameter regionalization of the lakebed conductivity. This is the shared soil LUT;
+      the land-surface MPR configures its own copy under config_mpr.
   lai_class_path:
     type: array
     items:
