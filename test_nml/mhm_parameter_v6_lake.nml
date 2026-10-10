@@ -6,10 +6,11 @@
 
 &lakes_1
   ! Component order: value, optimize, min, max
+  ! Per-lake spill parameters (indexed by domain, lake):
   spill_coefficient_of_discharge(1,1) = 2.0, .false., 1.4, 3.0
   spill_exponent(1,1)                 = 1.5, .false., 0.5, 2.5
-  longterm_baseflow(1,1)              = 0.0001, .false., 0.0001, 5.0
-  exponent_for_percolation(1,1)       = 11.0, .false., 8.0, 15.0
-  percolation_coefficient(1,1)        = 35.0, .false., 1.0, 100.0
-  baseflow_recession_coefficient(1,1) = 100.0, .false., 1.0, 1000.0
+  ! Global (pan-domain) seepage leakance Ks/b and baseflow recession (scalars):
+  b                              = 1.0, .false., 0.1, 10.0
+  ks_lakebed                     = 50.0, .false., 1.1, 1000.0
+  baseflow_recession_coefficient = 100.0, .false., 1.0, 1000.0
 /
