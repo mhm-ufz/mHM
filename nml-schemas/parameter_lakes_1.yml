@@ -46,19 +46,40 @@ properties:
     properties:
       value: {examples: [1.0]}
       optimize: {examples: [true]}
-  ks_lakebed:
+  ptf_ks_constant:
     $ref: parameter.yml#/$defs/parameter
-    title: Lakebed saturated hydraulic conductivity
+    title: Lakebed PTF constant for saturated hydraulic conductivity
     description: |-
-      Saturated hydraulic conductivity Ks of the lakebed [cm d-1] in the Darcy lakebed leakance
-      Ks/b. Global (pan-domain) stand-in value used until the detached lake-MPR path regionalises
-      Ks per lake from the Cosby pedotransfer function over the lake footprint; at that point this
-      scalar is replaced by the per-lake field. Converted to model units (m per time step) and
-      divided by b to form the per-step leakance.
-    default: {min: 1.1, max: 1000.0}
+      Constant term of the Cosby et al. (1984) pedotransfer function used to regionalize the lakebed
+      saturated hydraulic conductivity Ks [cm d-1] from the lake-footprint soil texture:
+      Ks = 60.96 * exp( (ptf_ks_constant + ptf_ks_sand*sand - ptf_ks_clay*clay) * ln(10) ), with a
+      1.1 cm/d floor. Owned by the lake module (the lakebed conductivity regionalization is
+      self-contained and does not borrow the land-surface soil-moisture parameters). Global
+      (pan-domain), shared across all lakes. Dimensionless.
+    default: {min: -1.2, max: -0.285}
     properties:
-      value: {examples: [50.0]}
-      optimize: {examples: [true]}
+      value: {examples: [-0.585]}
+      optimize: {examples: [false]}
+  ptf_ks_sand:
+    $ref: parameter.yml#/$defs/parameter
+    title: Lakebed PTF sand multiplier for saturated hydraulic conductivity
+    description: |-
+      Sand multiplier of the Cosby et al. (1984) lakebed-Ks pedotransfer function (see ptf_ks_constant).
+      Global (pan-domain), shared across all lakes. Dimensionless.
+    default: {min: 0.006, max: 0.026}
+    properties:
+      value: {examples: [0.0125]}
+      optimize: {examples: [false]}
+  ptf_ks_clay:
+    $ref: parameter.yml#/$defs/parameter
+    title: Lakebed PTF clay multiplier for saturated hydraulic conductivity
+    description: |-
+      Clay multiplier of the Cosby et al. (1984) lakebed-Ks pedotransfer function (see ptf_ks_constant).
+      Global (pan-domain), shared across all lakes. Dimensionless.
+    default: {min: 0.003, max: 0.013}
+    properties:
+      value: {examples: [0.0063]}
+      optimize: {examples: [false]}
   baseflow_recession_coefficient:
     $ref: parameter.yml#/$defs/parameter
     title: Baseflow recession coefficient
@@ -76,5 +97,7 @@ required:
   - spill_coefficient_of_discharge
   - spill_exponent
   - b
-  - ks_lakebed
+  - ptf_ks_constant
+  - ptf_ks_sand
+  - ptf_ks_clay
   - baseflow_recession_coefficient
