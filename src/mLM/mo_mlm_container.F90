@@ -53,6 +53,7 @@ module mo_mlm_container
   use mo_lake_spill, only: lake_spill
   use mo_lake_water_balance, only: lake_balance, interpolate_lake_states
   use mo_lake_groundwaterstorage, only: lake_seepage, lake_gws_baseflow
+  use mo_mlm_mpr, only: lake_derive_ks
   use mo_lake_evaporation, only: lake_evaporation
   use mo_meteo_temporal_tools, only: temporal_disagg_flux_daynight
   use mo_grid_io, only: var, daily, monthly, yearly, no_time, time_units_delta
@@ -78,6 +79,8 @@ module mo_mlm_container
     type(exchange_t), pointer :: exchange => null() !< owning domain exchange
     integer(i8), allocatable :: lake_ids(:) !< stable IDs in point-set order
     integer(i8), allocatable :: lake_map(:) !< stable IDs on packed level-0 lake cells
+    real(dp), allocatable :: lake_sand(:) !< top-horizon sand content [%] on packed level-0 lake cells (lake MPR)
+    real(dp), allocatable :: lake_clay(:) !< top-horizon clay content [%] on packed level-0 lake cells (lake MPR)
     real(dp), allocatable :: lake_max_surface_area_dem_derived(:) !< maximum lake surface area from DEM footprint [m2]
     type(grid_t) :: static_lake_grid !< lake footprint geometry retained for restart
     type(points_t) :: static_lake_points !< static point metadata retained for restart output
@@ -86,6 +89,7 @@ module mo_mlm_container
     real(dp), allocatable :: static_lake_max_volume_reported(:) !< reported maximum volumes [m3] retained for the lake points
     real(dp), allocatable :: static_lake_spillway_length(:) !< effective spillway crest length [m] retained for the lake points
     real(dp), allocatable :: static_lake_initial_level(:) !< initial lake level [m] retained for the lake points
+    real(dp), allocatable :: static_lake_ks(:) !< per-lake regionalized lakebed Ks [cm d-1] (lake MPR; restart-persisted)
     real(dp), allocatable :: static_lake_latitude(:) !< geographic latitude [degree] retained for the lake points
     real(dp), allocatable :: static_lake_longitude(:) !< geographic longitude [degree] retained for the lake points
     type(lake_hav_t), allocatable :: hav(:) !< per-lake height-area-volume curves built at initialize
@@ -104,6 +108,7 @@ module mo_mlm_container
     real(dp), allocatable :: restart_lake_max_volume_reported(:) !< reported maximum volumes [m3] restored from restart metadata
     real(dp), allocatable :: restart_lake_spillway_length(:) !< effective spillway crest length [m] restored from restart metadata
     real(dp), allocatable :: restart_lake_initial_level(:) !< initial lake level [m] restored from restart metadata
+    real(dp), allocatable :: restart_lake_ks(:) !< per-lake lakebed Ks [cm d-1] restored from restart metadata
     real(dp), allocatable :: restart_lake_latitude(:) !< geographic latitude [degree] restored from restart metadata
     real(dp), allocatable :: restart_lake_longitude(:) !< geographic longitude [degree] restored from restart metadata
     real(dp), allocatable :: outflow(:) !< current lake outflow [m3 s-1]
@@ -134,6 +139,7 @@ module mo_mlm_container
     procedure :: destroy => mlm_destroy
     procedure, private :: create_restart => mlm_create_restart
     procedure, private :: read_restart_metadata => mlm_read_restart_metadata
+    procedure, private :: derive_lake_ks => mlm_derive_lake_ks
     procedure, private :: read_restart_topology => mlm_read_restart_topology
     procedure, private :: read_restart_state => mlm_read_restart_state
     procedure, private :: validate_restart_metadata => mlm_validate_restart_metadata
@@ -283,10 +289,13 @@ contains
           parameter_config%lakes_1%spill_coefficient_of_discharge, &
           parameter_config%lakes_1%spill_exponent, &
           parameter_config%lakes_1%b, &
-          parameter_config%lakes_1%ks_lakebed, &
+          parameter_config%lakes_1%ptf_ks_constant, &
+          parameter_config%lakes_1%ptf_ks_sand, &
+          parameter_config%lakes_1%ptf_ks_clay, &
           parameter_config%lakes_1%baseflow_recession_coefficient], [character(64) :: &
           "spill_coefficient_of_discharge", "spill_exponent", "b", &
-          "ks_lakebed", "baseflow_recession_coefficient"], group="lakes_1")
+          "ptf_ks_constant", "ptf_ks_sand", "ptf_ks_clay", &
+          "baseflow_recession_coefficient"], group="lakes_1")
       end associate
     end if
     call self%exchange%lake_outflow%provide("mLM")
@@ -340,6 +349,8 @@ contains
         self%static_lake_spillway_length = self%restart_lake_spillway_length
       if (allocated(self%restart_lake_initial_level)) &
         self%static_lake_initial_level = self%restart_lake_initial_level
+      if (allocated(self%restart_lake_ks)) &
+        self%static_lake_ks = self%restart_lake_ks
       if (allocated(self%restart_lake_latitude)) &
         self%static_lake_latitude = self%restart_lake_latitude
       if (allocated(self%restart_lake_longitude)) &
@@ -385,14 +396,29 @@ contains
         log_fatal(*) "mLM process 1 requires reported maximum lake surface area and volume."
         error stop 1
       end if
-      ! (diagnostic) log the DEM-footprint area against the reported area per lake. The DEM
-      ! footprint area is not used by the case-1 physics (the hAV curve is reported-anchored),
-      ! but this records how far the level-0 lake delineation lies from the reported value.
+      ! Capture the level-0 lake footprint, its stable lake map and its top-horizon soil class.
+      ! The footprint grid + map drive the detached lake-MPR regionalization of the lakebed Ks at
+      ! initialize (soil texture over the footprint -> Cosby Ks -> area-weighted mean per lake),
+      ! and are retained for restart. On a restart-only run Input provides none of these; the
+      ! lakebed Ks is then restored from the restart metadata instead (see the restart branch above).
       if (associated(self%exchange%level0_lake) .and. self%exchange%lake_map%provided) then
+        call self%exchange%check_data(self%exchange%lake_map, "mLM")
+        self%static_lake_grid = self%exchange%level0_lake
+        self%lake_map = self%exchange%lake_map%data
+        if (self%exchange%lake_sand%provided .and. self%exchange%lake_sand%has_data() .and. &
+            self%exchange%lake_clay%provided .and. self%exchange%lake_clay%has_data()) then
+          call self%exchange%check_data(self%exchange%lake_sand, "mLM")
+          call self%exchange%check_data(self%exchange%lake_clay, "mLM")
+          self%lake_sand = self%exchange%lake_sand%data
+          self%lake_clay = self%exchange%lake_clay%data
+        end if
+        ! (diagnostic) log the DEM-footprint area against the reported area per lake. The DEM
+        ! footprint area is not used by the case-1 physics (the hAV curve is reported-anchored),
+        ! but this records how far the level-0 lake delineation lies from the reported value.
         block
           real(dp), allocatable :: dem_area(:)
           integer(i8) :: kk
-          call lake_derive_max_surface_area_dem(self%exchange%level0_lake, self%exchange%lake_map%data, &
+          call lake_derive_max_surface_area_dem(self%static_lake_grid, self%lake_map, &
             self%lake_ids, dem_area)
           do kk = 1_i8, size(self%lake_ids, kind=i8)
             log_info(*) "mLM lake ", n2s(self%lake_ids(kk)), ": reported area [m2] = ", &
@@ -540,6 +566,12 @@ contains
           self%static_lake_max_volume_reported(k), &
           self%hav(k)%level, self%hav(k)%surface_area, self%hav(k)%volume)
       end do
+      ! Regionalize the per-lake lakebed saturated hydraulic conductivity (detached lake MPR):
+      ! the Cosby pedotransfer function over the lake footprint soil texture, aggregated to one
+      ! value per lake, from the lake's own pedotransfer parameters (lakes_1) and the lake-footprint
+      ! soil texture surfaced by Input. On a restart-only run static_lake_ks was restored from the
+      ! restart metadata at connect, so only derive it on a fresh run.
+      if (.not. self%read_restart) call self%derive_lake_ks()
       ! Cold-start the lake states from the reported initial level; the matching surface
       ! area and volume are read off the per-lake hAV curve. A restart overrides these below.
       if (.not. self%read_restart) then
@@ -573,8 +605,9 @@ contains
           ! own equilibrium and there is no spin-up drift. Evaluate the Darcy seepage at the initial
           ! level -> perc0 [mm/TS]; the per-step recession kbf0 = (tsHydroSecs/86400) /
           ! baseflow_recession_coefficient; then gw0 = (perc0/1000 * A0) / kbf0 gives
-          ! baseflow0 = kbf0 * gw0 = perc0 volume. leakance = Ks/b (global stand-in until lake MPR).
-          leakance = (self%exchange%config%parameters%lakes_1%ks_lakebed%value * 0.01_dp &
+          ! baseflow0 = kbf0 * gw0 = perc0 volume. leakance = Ks/b, with Ks the per-lake
+          ! regionalized lakebed conductivity (lake MPR) and b the global lakebed thickness.
+          leakance = (self%static_lake_ks(k) * 0.01_dp &
             * tsHydroSecs / 86400.0_dp) / self%exchange%config%parameters%lakes_1%b%value
           call lake_seepage(.true., self%hav(k)%level, self%hav(k)%surface_area, &
             self%static_lake_max_level_reported(k), &
@@ -598,6 +631,51 @@ contains
     call self%validate_output_timing()
     call self%create_output()
   end subroutine mlm_initialize
+
+  !> \brief Regionalize the per-lake lakebed saturated hydraulic conductivity (detached lake MPR).
+  !> \details Runs the Cosby (1984) pedotransfer function over the lake footprint soil texture and
+  !!          aggregates it to one lakebed Ks per lake by an area-weighted arithmetic mean, mirroring
+  !!          the detached mRM regionalization (own parameters applied to a level-0 geo-field at
+  !!          initialize). Self-contained: the Cosby pedotransfer parameters are lake parameters
+  !!          (lakes_1) owned by the lake module, and the lake footprint sand/clay content is surfaced
+  !!          by the Input container from the soil LUT. It does not depend on the land-surface
+  !!          soil-moisture process or the MPR soil database. The derived field is used in the Darcy
+  !!          leakance Ks/b of the lake seepage.
+  subroutine mlm_derive_lake_ks(self)
+    class(mlm_t), target, intent(inout) :: self
+    real(dp) :: ptf_ks(4)  ! Cosby Ks pedotransfer parameters (constant, sand, clay, unit conversion)
+    real(dp), parameter :: inch_per_hour_to_centimetre_per_day = 60.96_dp ! Cosby unit conversion
+
+    ! The lakebed Ks regionalization is self-contained: the Cosby pedotransfer parameters are lake
+    ! parameters (lakes_1) owned by the lake module, and the lake footprint soil texture (sand/clay)
+    ! is surfaced by the Input container from the soil LUT. It does NOT depend on the land-surface
+    ! soil-moisture process or the MPR soil database. The lake runs independently of mHM, exactly as
+    ! mRM does.
+    if (.not.allocated(self%lake_sand) .or. .not.allocated(self%lake_clay)) then
+      log_fatal(*) "mLM process 1 lakebed conductivity requires the lake footprint soil texture &
+        &(set soil_class_path / soil_horizon_class_path and soil_lut_path so Input can read it)."
+      error stop 1
+    end if
+
+    ! Cosby et al. (1984) pedotransfer parameters from the lake parameter set, plus the fixed
+    ! inch/h -> cm/d unit conversion as the fourth element.
+    ptf_ks(1) = self%exchange%config%parameters%lakes_1%ptf_ks_constant%value
+    ptf_ks(2) = self%exchange%config%parameters%lakes_1%ptf_ks_sand%value
+    ptf_ks(3) = self%exchange%config%parameters%lakes_1%ptf_ks_clay%value
+    ptf_ks(4) = inch_per_hour_to_centimetre_per_day
+
+    call lake_derive_ks(self%static_lake_grid, self%lake_map, self%lake_ids, &
+      self%lake_sand, self%lake_clay, ptf_ks, self%static_lake_ks)
+
+    block
+      integer(i8) :: kk
+      do kk = 1_i8, size(self%lake_ids, kind=i8)
+        log_info(*) "mLM lake ", n2s(self%lake_ids(kk)), ": regionalized lakebed Ks [cm d-1] = ", &
+          n2s(self%static_lake_ks(kk))
+      end do
+    end block
+
+  end subroutine mlm_derive_lake_ks
 
   !> \brief Publish the preceding completed hourly inflow as current outflow.
   subroutine mlm_update(self)
@@ -646,9 +724,9 @@ contains
         do k = 1_i8, n_lakes
           ! Darcy lakebed leakance Ks/b [TS-1 per unit head] and per-step baseflow recession.
           ! leakance replaces the former kp (recession rate) + exponent_for_percolation
-          ! (depth-normaliser). Ks and b are global pan-domain parameters (Ks a stand-in until the
-          ! lake-MPR path regionalises it per lake); Ks is cm/d, converted to m/TS then divided by b [m].
-          leakance = (self%exchange%config%parameters%lakes_1%ks_lakebed%value * 0.01_dp &
+          ! (depth-normaliser). Ks is the per-lake regionalized lakebed conductivity (lake MPR) and b
+          ! is the global pan-domain lakebed thickness; Ks is cm/d, converted to m/TS then divided by b [m].
+          leakance = (self%static_lake_ks(k) * 0.01_dp &
             * tsHydroSecs / 86400.0_dp) / self%exchange%config%parameters%lakes_1%b%value
           kbf = (tsHydroSecs / 86400.0_dp) / &
             self%exchange%config%parameters%lakes_1%baseflow_recession_coefficient%value
@@ -773,6 +851,8 @@ contains
     end if
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
     if (allocated(self%lake_map)) deallocate(self%lake_map)
+    if (allocated(self%lake_sand)) deallocate(self%lake_sand)
+    if (allocated(self%lake_clay)) deallocate(self%lake_clay)
     if (allocated(self%lake_max_surface_area_dem_derived)) deallocate(self%lake_max_surface_area_dem_derived)
     call self%static_lake_points%destroy()
     if (allocated(self%static_lake_max_level_reported)) deallocate(self%static_lake_max_level_reported)
@@ -780,6 +860,7 @@ contains
     if (allocated(self%static_lake_max_volume_reported)) deallocate(self%static_lake_max_volume_reported)
     if (allocated(self%static_lake_spillway_length)) deallocate(self%static_lake_spillway_length)
     if (allocated(self%static_lake_initial_level)) deallocate(self%static_lake_initial_level)
+    if (allocated(self%static_lake_ks)) deallocate(self%static_lake_ks)
     if (allocated(self%static_lake_latitude)) deallocate(self%static_lake_latitude)
     if (allocated(self%static_lake_longitude)) deallocate(self%static_lake_longitude)
     if (allocated(self%lake_level)) deallocate(self%lake_level)
@@ -802,6 +883,7 @@ contains
     if (allocated(self%restart_lake_max_volume_reported)) deallocate(self%restart_lake_max_volume_reported)
     if (allocated(self%restart_lake_spillway_length)) deallocate(self%restart_lake_spillway_length)
     if (allocated(self%restart_lake_initial_level)) deallocate(self%restart_lake_initial_level)
+    if (allocated(self%restart_lake_ks)) deallocate(self%restart_lake_ks)
     if (allocated(self%restart_lake_latitude)) deallocate(self%restart_lake_latitude)
     if (allocated(self%restart_lake_longitude)) deallocate(self%restart_lake_longitude)
     if (allocated(self%outflow)) deallocate(self%outflow)
@@ -1002,6 +1084,13 @@ contains
       call var%setAttribute("units", "m")
       call var%setData(self%static_lake_initial_level)
     end if
+    ! The regionalized lakebed Ks is written so a restart-only run (no Input, no soil database)
+    ! can restore it instead of re-deriving it from soil.
+    if (allocated(self%static_lake_ks)) then
+      var = nc%setVariable("lake_ks", "f64", [lake_dim])
+      call var%setAttribute("units", "cm d-1")
+      call var%setData(self%static_lake_ks)
+    end if
     ! Geographic coordinates are written only when they were derived (i.e. a latlon file was present
     ! for a projected grid, or the points were spherical); they are required at read time only when
     ! varying_albedo is configured (checked in the connect guard).
@@ -1115,6 +1204,10 @@ contains
       var = nc%getVariable("lake_initial_level")
       call var%getData(self%restart_lake_initial_level)
     end if
+    if (nc%hasVariable("lake_ks")) then
+      var = nc%getVariable("lake_ks")
+      call var%getData(self%restart_lake_ks)
+    end if
     ! Geographic coordinates are optional in the restart (back-compat and non-albedo runs); when a
     ! varying_albedo run restarts without them, the connect guard reports the missing coordinates.
     if (nc%hasVariable("lake_latitude")) then
@@ -1148,6 +1241,12 @@ contains
     if (allocated(self%restart_lake_initial_level)) then
       if (size(self%restart_lake_initial_level, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
         log_fatal(*) "mLM restart initial level does not align with stable lake IDs."
+        error stop 1
+      end if
+    end if
+    if (allocated(self%restart_lake_ks)) then
+      if (size(self%restart_lake_ks, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
+        log_fatal(*) "mLM restart lakebed Ks does not align with stable lake IDs."
         error stop 1
       end if
     end if
