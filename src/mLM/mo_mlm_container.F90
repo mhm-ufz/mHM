@@ -285,17 +285,32 @@ contains
           log_fatal(*) "mLM: lakes_1 parameters not valid: ", trim(errmsg)
           error stop 1
         end if
-        call self%exchange%parameters%add_process("lake", [ &
-          parameter_config%lakes_1%spill_coefficient_of_discharge, &
-          parameter_config%lakes_1%spill_exponent, &
-          parameter_config%lakes_1%b, &
-          parameter_config%lakes_1%ptf_ks_constant, &
-          parameter_config%lakes_1%ptf_ks_sand, &
-          parameter_config%lakes_1%ptf_ks_clay, &
-          parameter_config%lakes_1%baseflow_recession_coefficient], [character(64) :: &
-          "spill_coefficient_of_discharge", "spill_exponent", "b", &
-          "ptf_ks_constant", "ptf_ks_sand", "ptf_ks_clay", &
-          "baseflow_recession_coefficient"], group="lakes_1")
+        ! Register the lake parameters with the optimizer. The Cosby pedotransfer parameters
+        ! (ptf_ks_*) are registered ONLY when the land-surface soil-moisture process is inactive: the
+        ! lakebed Ks then needs its own pedotransfer parameters. When soil_moisture is active the lake
+        ! borrows the land pedotransfer parameters (see mlm_derive_lake_ks), so registering a lake copy
+        ! would duplicate them in the calibration space - they are left out here.
+        if (self%exchange%config%processes%soil_moisture == 0_i4) then
+          call self%exchange%parameters%add_process("lake", [ &
+            parameter_config%lakes_1%spill_coefficient_of_discharge, &
+            parameter_config%lakes_1%spill_exponent, &
+            parameter_config%lakes_1%b, &
+            parameter_config%lakes_1%ptf_ks_constant, &
+            parameter_config%lakes_1%ptf_ks_sand, &
+            parameter_config%lakes_1%ptf_ks_clay, &
+            parameter_config%lakes_1%baseflow_recession_coefficient], [character(64) :: &
+            "spill_coefficient_of_discharge", "spill_exponent", "b", &
+            "ptf_ks_constant", "ptf_ks_sand", "ptf_ks_clay", &
+            "baseflow_recession_coefficient"], group="lakes_1")
+        else
+          call self%exchange%parameters%add_process("lake", [ &
+            parameter_config%lakes_1%spill_coefficient_of_discharge, &
+            parameter_config%lakes_1%spill_exponent, &
+            parameter_config%lakes_1%b, &
+            parameter_config%lakes_1%baseflow_recession_coefficient], [character(64) :: &
+            "spill_coefficient_of_discharge", "spill_exponent", "b", &
+            "baseflow_recession_coefficient"], group="lakes_1")
+        end if
       end associate
     end if
     call self%exchange%lake_outflow%provide("mLM")
@@ -646,22 +661,42 @@ contains
     real(dp) :: ptf_ks(4)  ! Cosby Ks pedotransfer parameters (constant, sand, clay, unit conversion)
     real(dp), parameter :: inch_per_hour_to_centimetre_per_day = 60.96_dp ! Cosby unit conversion
 
-    ! The lakebed Ks regionalization is self-contained: the Cosby pedotransfer parameters are lake
-    ! parameters (lakes_1) owned by the lake module, and the lake footprint soil texture (sand/clay)
-    ! is surfaced by the Input container from the soil LUT. It does NOT depend on the land-surface
-    ! soil-moisture process or the MPR soil database. The lake runs independently of mHM, exactly as
-    ! mRM does.
+    ! The lake footprint soil texture (sand/clay) is always surfaced by the Input container from the
+    ! soil LUT, so the lake reads soil independently of the MPR soil database. The Cosby pedotransfer
+    ! parameters come from one of two sources: when the land-surface soil-moisture process is active
+    ! the lake BORROWS the land pedotransfer parameters (so the lakebed and surrounding soil share the
+    ! same Ks definition and the calibration space is not duplicated); when it is inactive the lake
+    ! uses its own lakes_1 pedotransfer parameters, so the lake still runs independently of mHM.
     if (.not.allocated(self%lake_sand) .or. .not.allocated(self%lake_clay)) then
       log_fatal(*) "mLM process 1 lakebed conductivity requires the lake footprint soil texture &
         &(set soil_class_path / soil_horizon_class_path and soil_lut_path so Input can read it)."
       error stop 1
     end if
 
-    ! Cosby et al. (1984) pedotransfer parameters from the lake parameter set, plus the fixed
-    ! inch/h -> cm/d unit conversion as the fourth element.
-    ptf_ks(1) = self%exchange%config%parameters%lakes_1%ptf_ks_constant%value
-    ptf_ks(2) = self%exchange%config%parameters%lakes_1%ptf_ks_sand%value
-    ptf_ks(3) = self%exchange%config%parameters%lakes_1%ptf_ks_clay%value
+    ! Cosby et al. (1984) pedotransfer parameters (constant, sand, clay), plus the fixed inch/h -> cm/d
+    ! unit conversion as the fourth element. When soil_moisture is active, borrow the land pedotransfer
+    ! parameters from the registered soil_moisture process (positions 10, 11, 12 are ptf_ks_constant,
+    ! ptf_ks_sand, ptf_ks_clay - the same order mo_mpr_soilmoist:hydro_cond consumes as param(10:12)),
+    ! so the lake does not duplicate them in the calibration space; otherwise use the lake's own.
+    if (self%exchange%config%processes%soil_moisture /= 0_i4) then
+      block
+        real(dp), allocatable :: soil_param(:)
+        soil_param = self%exchange%parameters%get_process("soil_moisture")
+        if (size(soil_param) < 12_i4) then
+          log_fatal(*) "mLM process 1 lakebed conductivity: unexpected soil_moisture parameter count ", &
+            n2s(size(soil_param)), " (need the Cosby Ks parameters at positions 10-12)."
+          error stop 1
+        end if
+        ptf_ks(1) = soil_param(10)
+        ptf_ks(2) = soil_param(11)
+        ptf_ks(3) = soil_param(12)
+        if (allocated(soil_param)) deallocate(soil_param)
+      end block
+    else
+      ptf_ks(1) = self%exchange%config%parameters%lakes_1%ptf_ks_constant%value
+      ptf_ks(2) = self%exchange%config%parameters%lakes_1%ptf_ks_sand%value
+      ptf_ks(3) = self%exchange%config%parameters%lakes_1%ptf_ks_clay%value
+    end if
     ptf_ks(4) = inch_per_hour_to_centimetre_per_day
 
     call lake_derive_ks(self%static_lake_grid, self%lake_map, self%lake_ids, &
