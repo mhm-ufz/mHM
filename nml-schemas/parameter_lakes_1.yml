@@ -1,43 +1,37 @@
 title: Lakes - Case 1
 description: |-
   Parameters for the mHM lake module (mLM) controlling spill over the dam crest and the
-  seepage and baseflow from the lake groundwater store. The spill parameters are given per
-  lake per domain as the four components value, optimize-flag, min, max (min/max are the
-  calibration bounds). The seepage leakance and the baseflow recession are global (pan-domain,
-  shared across all lakes, like the routing parameters), so they are scalars. 
+  seepage and baseflow from the lake groundwater store. All parameters are global (pan-domain, shared across all lakes, like the routing
+  parameters), so each is a single scalar given as the four components value, optimize-flag,
+  min, max (min/max are the calibration bounds). 
 x-fortran-namelist: lakes_1
 type: object
 properties:
   spill_coefficient_of_discharge:
+    $ref: parameter.yml#/$defs/parameter
     title: Spill coefficient of discharge
     description: |-
       Coefficient of discharge C_d of the spillway in the generalized spill equation
       Q_spill = C_d * L_s * deltaH^spill_exponent, where deltaH is the head of the lake
       level above the dam crest level (DCL) and L_s is the effective spillway length.
       Spill is produced only when the lake level rises above the crest. Based on the ogee
-      free-overflow weir form (USBR, 1998). Dimensionless.
-    type: array
-    x-fortran-shape: [n_domains, n_lakes]
-    items:
-      $ref: parameter.yml#/$defs/parameter
-      default: {min: 1.4, max: 3.00}
-      properties:
-        value: {examples: [2.0]}
-        optimize: {examples: [true]}
+      free-overflow weir form (USBR, 1998). Dimensionless. Global (pan-domain), shared across all lakes.
+    default: {min: 1.4, max: 3.00}
+    properties:
+      value: {examples: [2.0]}
+      optimize: {examples: [true]}
   spill_exponent:
+    $ref: parameter.yml#/$defs/parameter
     title: Spill exponent
     description: |-
       Exponent on the head term deltaH in the generalized spill equation
       Q_spill = C_d * L_s * deltaH^spill_exponent. The textbook ogee free-overflow value
-      is 3/2; it is exposed as a calibration parameter here. Dimensionless.
-    type: array
-    x-fortran-shape: [n_domains, n_lakes]
-    items:
-      $ref: parameter.yml#/$defs/parameter
-      default: {min: 0.5, max: 2.5}
-      properties:
-        value: {examples: [1.5]}
-        optimize: {examples: [true]}
+      is 3/2; it is exposed as a calibration parameter here. Dimensionless. Global
+      (pan-domain), shared across all lakes.
+    default: {min: 0.5, max: 2.5}
+    properties:
+      value: {examples: [1.5]}
+      optimize: {examples: [true]}
   b:
     $ref: parameter.yml#/$defs/parameter
     title: Effective lakebed thickness

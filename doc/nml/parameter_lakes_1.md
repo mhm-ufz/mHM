@@ -3,10 +3,10 @@
 [TOC]
 
 Parameters for the mHM lake module (mLM) controlling spill over the dam crest and the
-seepage and baseflow from the lake groundwater store. Each parameter is given per lake
-per domain as the four components value, optimize-flag, min, max (min/max are the
-calibration bounds). Reservoir release-regulation parameters are not included at this
-stage (minimal natural-lake scope).
+seepage and baseflow from the lake groundwater store. The spill parameters are given per
+lake per domain as the four components value, optimize-flag, min, max (min/max are the
+calibration bounds). The seepage leakance and the baseflow recession are global (pan-domain,
+shared across all lakes, like the routing parameters), so they are scalars. 
 
 **Namelist**: `lakes_1`
 
@@ -16,10 +16,9 @@ stage (minimal natural-lake scope).
 | --- | --- | --- | --- | --- |
 | [spill_coefficient_of_discharge](#spill_coefficient_of_discharge) | type(parameter_t) array | yes | yes | Spill coefficient of discharge |
 | [spill_exponent](#spill_exponent) | type(parameter_t) array | yes | yes | Spill exponent |
-| [longterm_baseflow](#longterm_baseflow) | type(parameter_t) array | yes | yes | Long-term baseflow |
-| [exponent_for_percolation](#exponent_for_percolation) | type(parameter_t) array | yes | yes | Exponent for percolation |
-| [percolation_coefficient](#percolation_coefficient) | type(parameter_t) array | yes | yes | Percolation coefficient |
-| [baseflow_recession_coefficient](#baseflow_recession_coefficient) | type(parameter_t) array | yes | yes | Baseflow recession coefficient |
+| [b](#b) | type(parameter_t) | yes | yes | Effective lakebed thickness |
+| [ks_lakebed](#ks_lakebed) | type(parameter_t) | yes | yes | Lakebed saturated hydraulic conductivity |
+| [baseflow_recession_coefficient](#baseflow_recession_coefficient) | type(parameter_t) | yes | yes | Baseflow recession coefficient |
 
 ## Field details
 
@@ -65,70 +64,50 @@ Components:
 - `spill_exponent%min`: `real(dp)`; declared required yes; input required no; default `0.5` (item default)
 - `spill_exponent%max`: `real(dp)`; declared required yes; input required no; default `2.5` (item default)
 
-### longterm_baseflow
+### b
 
-Long-term baseflow `longterm_baseflow`
+Effective lakebed thickness `b`
 
-Long-term baseflow feed [m3 s-1] representing the sustained groundwater contribution
-to lake outflow. Used as the baseline baseflow term alongside the recession-driven
-baseflow from the lake groundwater storage.
-
-Summary:
-- Type: `type(parameter_t), dimension(n_domains, n_lakes)`
-- Declared required: yes
-- Input required: yes
-- Default: `{min: 0.0001, max: 5.0}` (broadcast item default)
-
-Components:
-- `longterm_baseflow%value`: `real(dp)`; declared required yes; input required yes
-- `longterm_baseflow%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `longterm_baseflow%min`: `real(dp)`; declared required yes; input required no; default `0.0001` (item default)
-- `longterm_baseflow%max`: `real(dp)`; declared required yes; input required no; default `5.0` (item default)
-
-### exponent_for_percolation
-
-Exponent for percolation `exponent_for_percolation`
-
-Exponential constant chi controlling the fraction kfrac of the head above the lake
-bed that is available for percolation (seepage): kfrac = (h - bed_level) / exp(chi).
-Percolation from each lake-bed slice is p = sum(kp * kfrac * H * As/A). A larger head
-makes more water available to percolate; a larger chi reduces that fraction.
-Dimensionless.
+Effective lakebed (colmation / clogging-layer) thickness b [m] in the Darcy lakebed
+leakance Ks/b that drives lake seepage: the slice percolation is
+L_i = (Ks/b) * (lake_level - bed_level) * (slice_area / lake_area), linear in head.
+b is a single global (pan-domain) calibrated constant - there is no global lakebed-thickness
+dataset, so only the leakance ratio Ks/b is identifiable; Ks carries the spatial variability.
+Lower bound strictly positive.
 
 Summary:
-- Type: `type(parameter_t), dimension(n_domains, n_lakes)`
+- Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{min: 8.0, max: 15.0}` (broadcast item default)
+- Default: `{min: 0.1, max: 10.0}`
 
 Components:
-- `exponent_for_percolation%value`: `real(dp)`; declared required yes; input required yes
-- `exponent_for_percolation%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `exponent_for_percolation%min`: `real(dp)`; declared required yes; input required no; default `8.0` (item default)
-- `exponent_for_percolation%max`: `real(dp)`; declared required yes; input required no; default `15.0` (item default)
+- `b%value`: `real(dp)`; declared required yes; input required yes
+- `b%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
+- `b%min`: `real(dp)`; declared required yes; input required no; default `0.1` (object default)
+- `b%max`: `real(dp)`; declared required yes; input required no; default `10.0` (object default)
 
-### percolation_coefficient
+### ks_lakebed
 
-Percolation coefficient `percolation_coefficient`
+Lakebed saturated hydraulic conductivity `ks_lakebed`
 
-Percolation (seepage) time constant kp for the lake bed [d]. Each hydrological time
-step the per-step percolation coefficient is formed as (tsHydroSecs / 86400) / kp
-(the SI form of the v5 c2TSTu / kPerco conversion), so a larger value gives slower
-seepage. In mLM v5 this coefficient was regionalised from the catchment percolation
-field by MPR over the lake footprint; in the minimal v6 lake it is exposed as a lake
-parameter (MPR regionalisation of the lake groundwater coefficients is deferred).
+Saturated hydraulic conductivity Ks of the lakebed [cm d-1] in the Darcy lakebed leakance
+Ks/b. Global (pan-domain) stand-in value used until the detached lake-MPR path regionalises
+Ks per lake from the Cosby pedotransfer function over the lake footprint; at that point this
+scalar is replaced by the per-lake field. Converted to model units (m per time step) and
+divided by b to form the per-step leakance.
 
 Summary:
-- Type: `type(parameter_t), dimension(n_domains, n_lakes)`
+- Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{min: 1.0, max: 100.0}` (broadcast item default)
+- Default: `{min: 1.1, max: 1000.0}`
 
 Components:
-- `percolation_coefficient%value`: `real(dp)`; declared required yes; input required yes
-- `percolation_coefficient%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `percolation_coefficient%min`: `real(dp)`; declared required yes; input required no; default `1.0` (item default)
-- `percolation_coefficient%max`: `real(dp)`; declared required yes; input required no; default `100.0` (item default)
+- `ks_lakebed%value`: `real(dp)`; declared required yes; input required yes
+- `ks_lakebed%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
+- `ks_lakebed%min`: `real(dp)`; declared required yes; input required no; default `1.1` (object default)
+- `ks_lakebed%max`: `real(dp)`; declared required yes; input required no; default `1000.0` (object default)
 
 ### baseflow_recession_coefficient
 
@@ -137,23 +116,20 @@ Baseflow recession coefficient `baseflow_recession_coefficient`
 Lake groundwater-storage recession time constant kbf [d]. Each hydrological time step
 the per-step recession coefficient is formed as (tsHydroSecs / 86400) / kbf (the SI
 form of the v5 c2TSTu / kBaseFlow conversion); the baseflow is that coefficient times
-the lake groundwater storage, so a larger value gives a slower, more sustained
-baseflow. In mLM v5 this coefficient was regionalised from the catchment baseflow
-recession field by MPR over the lake footprint; in the minimal v6 lake it is exposed
-as a lake parameter (MPR regionalisation of the lake groundwater coefficients is
-deferred).
+the lake groundwater storage, so a larger value gives a slower, more sustained baseflow.
+Global (pan-domain), shared across all lakes.
 
 Summary:
-- Type: `type(parameter_t), dimension(n_domains, n_lakes)`
+- Type: `type(parameter_t)`
 - Declared required: yes
 - Input required: yes
-- Default: `{min: 1.0, max: 1000.0}` (broadcast item default)
+- Default: `{min: 1.0, max: 1000.0}`
 
 Components:
 - `baseflow_recession_coefficient%value`: `real(dp)`; declared required yes; input required yes
 - `baseflow_recession_coefficient%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `baseflow_recession_coefficient%min`: `real(dp)`; declared required yes; input required no; default `1.0` (item default)
-- `baseflow_recession_coefficient%max`: `real(dp)`; declared required yes; input required no; default `1000.0` (item default)
+- `baseflow_recession_coefficient%min`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
+- `baseflow_recession_coefficient%max`: `real(dp)`; declared required yes; input required no; default `1000.0` (object default)
 
 ## Derived types
 
@@ -184,22 +160,18 @@ A model parameter with optional calibration metadata.
   spill_exponent(:,:)%optimize = .true.
   spill_exponent(:,:)%min = 0.5
   spill_exponent(:,:)%max = 2.5
-  longterm_baseflow(:,:)%value = 4.5
-  longterm_baseflow(:,:)%optimize = .true.
-  longterm_baseflow(:,:)%min = 0.0001
-  longterm_baseflow(:,:)%max = 5.0
-  exponent_for_percolation(:,:)%value = 11.0
-  exponent_for_percolation(:,:)%optimize = .true.
-  exponent_for_percolation(:,:)%min = 8.0
-  exponent_for_percolation(:,:)%max = 15.0
-  percolation_coefficient(:,:)%value = 35.0
-  percolation_coefficient(:,:)%optimize = .true.
-  percolation_coefficient(:,:)%min = 1.0
-  percolation_coefficient(:,:)%max = 100.0
-  baseflow_recession_coefficient(:,:)%value = 100.0
-  baseflow_recession_coefficient(:,:)%optimize = .true.
-  baseflow_recession_coefficient(:,:)%min = 1.0
-  baseflow_recession_coefficient(:,:)%max = 1000.0
+  b%value = 1.0
+  b%optimize = .true.
+  b%min = 0.1
+  b%max = 10.0
+  ks_lakebed%value = 50.0
+  ks_lakebed%optimize = .true.
+  ks_lakebed%min = 1.1
+  ks_lakebed%max = 1000.0
+  baseflow_recession_coefficient%value = 100.0
+  baseflow_recession_coefficient%optimize = .true.
+  baseflow_recession_coefficient%min = 1.0
+  baseflow_recession_coefficient%max = 1000.0
 /
 ```
 
