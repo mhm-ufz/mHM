@@ -507,6 +507,7 @@ contains
     integer(i4) :: domain
     real(dp) :: level_query
     real(dp) :: tsHydroSecs
+    real(dp) :: leakance, perc0, kbf0
     if (self%exchange%step_hours /= 1_i4) then
       log_fatal(*) "mLM lake processes require a one-hour model step."
       error stop 1
@@ -565,12 +566,21 @@ contains
           call interpolate_lake_states(.false., self%hav(k)%level, self%hav(k)%volume, &
             self%static_lake_max_level_reported(k), self%hav(k)%volume(size(self%hav(k)%volume)), &
             level_query, self%lake_volume(k))
-          ! Cold-start the lake groundwater storage so the initial baseflow equals the
-          ! long-term baseflow: gw0 = longterm_baseflow * tsHydroSecs / kbf, where the
-          ! per-step recession kbf = (tsHydroSecs/86400) / baseflow_recession_coefficient.
-          self%lake_gw_storage(k) = self%exchange%config%parameters%lakes_1%longterm_baseflow(domain, int(k, i4))%value &
-            * tsHydroSecs / ((tsHydroSecs / 86400.0_dp) &
-            / self%exchange%config%parameters%lakes_1%baseflow_recession_coefficient(domain, int(k, i4))%value)
+          ! Cold-start the lake groundwater storage self-consistently: the initial baseflow is
+          ! set equal to the initial percolation, so the groundwater store starts at its
+          ! own equilibrium and there is no spin-up drift. Evaluate the Darcy seepage at the initial
+          ! level -> perc0 [mm/TS]; the per-step recession kbf0 = (tsHydroSecs/86400) /
+          ! baseflow_recession_coefficient; then gw0 = (perc0/1000 * A0) / kbf0 gives
+          ! baseflow0 = kbf0 * gw0 = perc0 volume. leakance = Ks/b (global stand-in until lake MPR).
+          leakance = (self%exchange%config%parameters%lakes_1%ks_lakebed%value * 0.01_dp &
+            * tsHydroSecs / 86400.0_dp) / self%exchange%config%parameters%lakes_1%b%value
+          call lake_seepage(.true., self%hav(k)%level, self%hav(k)%surface_area, &
+            self%static_lake_max_level_reported(k), &
+            self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
+            self%static_lake_initial_level(k), leakance, perc0)
+          kbf0 = (tsHydroSecs / 86400.0_dp) &
+            / self%exchange%config%parameters%lakes_1%baseflow_recession_coefficient%value
+          self%lake_gw_storage(k) = (perc0 / 1000.0_dp * self%lake_surface_area(k)) / kbf0
         end do
       end if
     end if
@@ -593,7 +603,7 @@ contains
     integer(i8) :: k, n_lakes
     integer(i4) :: domain
     integer(i4) :: hour, doy
-    real(dp) :: spill, volume_adjustment, tsHydroSecs, perc, baseflow, kp, kbf
+    real(dp) :: spill, volume_adjustment, tsHydroSecs, perc, baseflow, leakance, kbf
     real(dp) :: ntimesteps_day, evap_daily, evap_step, pr_step, qin_d, qout_d, pre_d, lat, lon
     real(dp) :: wind_k, tdew_k
     real(dp) :: evap_components(3)
@@ -628,22 +638,23 @@ contains
         varying_lambda = self%config%varying_lambda
         varying_psychro = self%config%varying_psychro
         !$omp parallel do default(shared) &
-        !$omp   private(k, spill, volume_adjustment, perc, baseflow, kp, kbf, &
+        !$omp   private(k, spill, volume_adjustment, perc, baseflow, leakance, kbf, &
         !$omp           evap_daily, evap_step, pr_step, qin_d, qout_d, pre_d, lat, lon, wind_k, tdew_k, evap_components) &
         !$omp   schedule(dynamic)
         do k = 1_i8, n_lakes
-          ! Per-step recession coefficients from the per-day lakes_1 parameters
-          ! (SI form of the v5 c2TSTu / k conversion).
-          kp  = (tsHydroSecs / 86400.0_dp) / &
-            self%exchange%config%parameters%lakes_1%percolation_coefficient(domain, int(k, i4))%value
+          ! Darcy lakebed leakance Ks/b [TS-1 per unit head] and per-step baseflow recession.
+          ! leakance replaces the former kp (recession rate) + exponent_for_percolation
+          ! (depth-normaliser). Ks and b are global pan-domain parameters (Ks a stand-in until the
+          ! lake-MPR path regionalises it per lake); Ks is cm/d, converted to m/TS then divided by b [m].
+          leakance = (self%exchange%config%parameters%lakes_1%ks_lakebed%value * 0.01_dp &
+            * tsHydroSecs / 86400.0_dp) / self%exchange%config%parameters%lakes_1%b%value
           kbf = (tsHydroSecs / 86400.0_dp) / &
-            self%exchange%config%parameters%lakes_1%baseflow_recession_coefficient(domain, int(k, i4))%value
+            self%exchange%config%parameters%lakes_1%baseflow_recession_coefficient%value
           ! Lake seepage from the previous-step level -> percolation to the groundwater store.
           call lake_seepage(.true., self%hav(k)%level, self%hav(k)%surface_area, &
             self%static_lake_max_level_reported(k), &
             self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
-            self%lake_level_previous(k), kp, &
-            self%exchange%config%parameters%lakes_1%exponent_for_percolation(domain, int(k, i4))%value, &
+            self%lake_level_previous(k), leakance, &
             perc)
           ! Crest-controlled spill from the previous-step level.
           call lake_spill(self%lake_level_previous(k), self%static_lake_max_level_reported(k), &
