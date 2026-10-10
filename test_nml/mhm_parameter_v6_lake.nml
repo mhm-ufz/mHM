@@ -7,9 +7,9 @@
 &lakes_1
   ! Component order: value, optimize, min, max
   ! All lake parameters are global (pan-domain) scalars.
-  spill_coefficient_of_discharge = 2.0, .false., 1.4, 3.0
-  spill_exponent                 = 1.5, .false., 0.5, 2.5
-  b                              = 1.0, .false., 0.1, 10.0
-  ks_lakebed                     = 50.0, .false., 1.1, 1000.0
+  spill_coefficient_of_discharge = 1.8, .false., 1.4, 2.2
+  spill_exponent                 = 2.0, .false., 1.5, 2.5
+  b                              = 10.0, .false., 0.1, 10.0
+  ks_lakebed                     = 0.1, .false., 1.1, 1000.0
   baseflow_recession_coefficient = 100.0, .false., 1.0, 1000.0
 /
