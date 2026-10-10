@@ -261,6 +261,33 @@ contains
       call self%exchange%lake_surface_area%provide("mLM")
       call self%exchange%lake_volume%provide("mLM")
       call self%exchange%lake_gw_storage%provide("mLM")
+      ! Read the lake process parameters (lakes_1) and register them in the process parameter
+      ! registry (like routing and the MPR land processes). Registration happens here in the
+      ! configure phase, before mo_domain seals the registry, so the sealed-time bounds check
+      ! applies to the lake parameters and they become visible to the optimizer. All lakes_1
+      ! parameters are global (pan-domain) scalars, so no runtime dimensioning is needed.
+      associate(parameter_config => self%exchange%config%parameters)
+        if (allocated(self%exchange%parameter_file)) then
+          status = parameter_config%lakes_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
+          if (status /= NML_OK) then
+            log_fatal(*) "mLM: error reading lakes_1 parameters: ", trim(errmsg)
+            error stop 1
+          end if
+        end if
+        status = parameter_config%lakes_1%is_valid(errmsg=errmsg)
+        if (status /= NML_OK) then
+          log_fatal(*) "mLM: lakes_1 parameters not valid: ", trim(errmsg)
+          error stop 1
+        end if
+        call self%exchange%parameters%add_process("lake", [ &
+          parameter_config%lakes_1%spill_coefficient_of_discharge, &
+          parameter_config%lakes_1%spill_exponent, &
+          parameter_config%lakes_1%b, &
+          parameter_config%lakes_1%ks_lakebed, &
+          parameter_config%lakes_1%baseflow_recession_coefficient], [character(64) :: &
+          "spill_coefficient_of_discharge", "spill_exponent", "b", &
+          "ks_lakebed", "baseflow_recession_coefficient"], group="lakes_1")
+      end associate
     end if
     call self%exchange%lake_outflow%provide("mLM")
   end subroutine mlm_configure
@@ -270,8 +297,6 @@ contains
     class(mlm_t), target, intent(inout) :: self
     integer(i8) :: n_lakes
     integer(i4) :: lake_case
-    integer :: status
-    character(1024) :: errmsg
     logical :: has_points, has_ids, has_levels, has_area, has_volume, has_metadata
 
     lake_case = self%exchange%config%processes%lake
@@ -470,29 +495,6 @@ contains
       allocate(self%lake_seepage(n_lakes), source=0.0_dp)
       allocate(self%lake_baseflow(n_lakes), source=0.0_dp)
       allocate(self%lake_spill(n_lakes), source=0.0_dp)
-      ! Read the lake process parameters (lakes_1). The number of lakes is known only here,
-      ! so the parameter block is sized to the runtime [n_domains, n_lakes] before reading;
-      ! its validation rejects any unset (NaN) entry, so the block must be fully provided.
-      associate(parameter_config => self%exchange%config%parameters)
-        status = parameter_config%lakes_1%set_dims(n_domains=self%exchange%nml_n_domains, &
-          n_lakes=int(n_lakes, i4), errmsg=errmsg)
-        if (status /= NML_OK) then
-          log_fatal(*) "mLM: error setting lakes_1 dimensions: ", trim(errmsg)
-          error stop 1
-        end if
-        if (allocated(self%exchange%parameter_file)) then
-          status = parameter_config%lakes_1%from_file(file=self%exchange%parameter_file, errmsg=errmsg)
-          if (status /= NML_OK) then
-            log_fatal(*) "mLM: error reading lakes_1 parameters: ", trim(errmsg)
-            error stop 1
-          end if
-        end if
-        status = parameter_config%lakes_1%is_valid(errmsg=errmsg)
-        if (status /= NML_OK) then
-          log_fatal(*) "mLM: lakes_1 parameters not valid: ", trim(errmsg)
-          error stop 1
-        end if
-      end associate
     end if
     allocate(self%outflow(n_lakes), source=0.0_dp)
     call self%exchange%lake_outflow%prepare_data("mLM", 1_i4)
@@ -658,9 +660,9 @@ contains
             perc)
           ! Crest-controlled spill from the previous-step level.
           call lake_spill(self%lake_level_previous(k), self%static_lake_max_level_reported(k), &
-            self%exchange%config%parameters%lakes_1%spill_coefficient_of_discharge(domain, int(k, i4))%value, &
+            self%exchange%config%parameters%lakes_1%spill_coefficient_of_discharge%value, &
             self%static_lake_spillway_length(k), &
-            self%exchange%config%parameters%lakes_1%spill_exponent(domain, int(k, i4))%value, &
+            self%exchange%config%parameters%lakes_1%spill_exponent%value, &
             spill)
           ! Lake precipitation onto the surface (already disaggregated to the step by Meteo).
           pr_step = 0.0_dp
