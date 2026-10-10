@@ -57,10 +57,8 @@ CONTAINS
   !>       \param[in] "real(dp) :: lake_max_level_reported"                    [masl] dam crest level (DCL)
   !>       \param[in] "real(dp) :: lake_max_surface_area_bathymetry_derived"   [m2]   area at the crest (DCL_A)
   !>       \param[in] "real(dp) :: lake_level"                            [masl]  lake level
-  !>       \param[in] "real(dp) :: percolation_coefficient"               [TS-1] percolation coefficient for lake (per hydrological time step)
-  !>       \param[in] "real(dp) :: exponent_for_percolation"              [-]    exponential constant that controls the
-  !                                                                              fraction kfrac apart for estimating the
-  !                                                                              available water for percolation
+  !>       \param[in] "real(dp) :: leakance"                              [TS-1] Darcy lakebed leakance Ks/b (per hydrological time step,
+  !                                                                              per unit head): depth per step per unit driving head
 
   !     INTENT(INOUT)
   !         None
@@ -113,12 +111,22 @@ CONTAINS
   !                               value; the container forms it from the per-day lakes_1 parameter
   !                               as (tsHydroSecs/86400) / percolation_coefficient, reproducing the
   !                               v5 c2TSTu/kPerco form.
+  !        Pallav Shrestha Oct 2026 - physically-based Darcy lakebed leakance. The
+  !                               lumped recession coefficient kp and the per-lake depth-normaliser
+  !                               exponent_for_percolation (chi) are replaced by a single leakance
+  !                               Ks/b [TS-1 per unit head]: the slice percolation becomes
+  !                               L_i = leakance * (lake_level - avgBedlevel) * (wettedArea/upperArea),
+  !                               linear in head (the former kfrac*H construction was quadratic in head).
+  !                               Ks is the saturated hydraulic conductivity under the lake (regionalised
+  !                               per lake via the Cosby PTF; supplied globally as a stand-in until the
+  !                               lake-MPR path lands) and b the effective lakebed thickness (one global
+  !                               calibrated constant). Output stays mm per hydrological time step.
 
 
 
   SUBROUTINE lake_seepage(naturalFlag, hav_lake_level, hav_lake_surface_area, &
                           lake_max_level_reported, lake_max_surface_area_bathymetry_derived, &
-                          lake_level, percolation_coefficient, exponent_for_percolation, perc)
+                          lake_level, leakance, perc)
 
     USE mo_lake_water_balance,        ONLY: interpolate_lake_states
 
@@ -138,9 +146,8 @@ CONTAINS
                           ::  lake_level     ! [masl]  lake level
 
     real(dp),                   intent(IN) &
-                          ::  percolation_coefficient, & ! [TS-1]  percolation coefficient for lake (per hydrological time step)
-                              exponent_for_percolation   ! [-]     exponential constant that controls the fraction kfrac apart for estimating
-                                             !         available water for percolation
+                          ::  leakance        ! [TS-1]  Darcy lakebed leakance Ks/b, per hydrological time step and per unit
+                                             !         driving head (depth per step per unit head)
 
     real(dp),                   intent(OUT) &
                           :: perc            ! [mm TS-1]  lake percolation
@@ -153,26 +160,23 @@ CONTAINS
                              wettedArea, &   ! [m2]     wetted surface area of lake slice
                                              !          assumed to be ~ lake surface area
                                              !          of lake slice
-                             upperArea, &    ! [m2]     The current lake surface area
-                             kfrac           ! [-]      fractional multiplier to get available
-                                             !          water for lake percolation
+                             upperArea       ! [m2]     The current lake surface area
 
     !----------------------------------------------------------------------------
     !
     ! ================== LAKE/ RESERVOIR SEEPAGE ================================
     !
-    !     Percolation:
+    !     Percolation (Darcy lakebed leakance):
     !
-    !         p = ∑(kp x kfrac x H x As/A)
+    !         p = ∑(leakance x H x As/A)
     !
     !
     !         where, p : percol, percolation from the lake bed slice [mm TS-1]
-    !                kp: percolation coefficient [TS-1]
-    !             kfrac: fractional multiplier to get available water for lake percolation [-]
+    !          leakance: Darcy lakebed leakance Ks/b [TS-1 per unit head]
+    !                     (Ks saturated hydraulic conductivity under the lake,
+    !                      b effective lakebed thickness)
     !
-    !                     kfrac = h / e^(a)
-    !
-    !                H : pressure head at the lake bed slice [mm]
+    !                H : driving head at the lake bed slice [m] (lake level above the slice bed)
     !                As: area of the lake bed slice [m2]
     !                A : total area of the lake bed (assumed to be the lake surface area) [m2]
     !
@@ -221,33 +225,11 @@ CONTAINS
         avgBedlevel = hav_lake_level(1)
         wettedArea = hav_lake_surface_area(1)
 
-        ! All the head will not percolate. We need a fraction that is a function of head
-        kfrac = (lake_level - avgBedlevel) / exp(exponent_for_percolation)
-
-                      ! kfrac = fraction for getting water available for percolation.
-
-                      ! Larger the head, larger should be the water available for percolation. The above
-                      ! expression is a linear relationship to get the influence of head on the
-                      ! water available for percolation.
-
-                      ! exp(exponent_for_percolation) must have minimum value of the head itself [max head = dam crest]
-                      ! and can be many folds larger to other end of the range.
-
-                      ! Since exponent_for_percolation controls the fraction kfrac apart from the head, it is a parameter
-                      ! related to the permeability of soil at lake bed which could be regionalized based on
-                      ! soil later - PKS
-
-                      ! exponent_for_percolation [-] is an exponential constant and a model parameter [external for now - PKS].
-                      ! kfrac [-] a function of the head and assumed to be dimensionless.
-
-        ! percolation from bottom most slice (mm TS-1)
-        perc = percolation_coefficient * kfrac * (lake_level - avgBedlevel) * 1000.0_dp * (wettedArea / upperArea)
-                      ! kfrac is a dimentionless fraction which when multiplied to the head gives
-                      ! the available water for lake percolation. This available water is then multiplied
-                      ! by the recession coefficient to get percolation.
-
-                      ! The weighted wetted area helps in getting better representative percolation water
-                      ! (mm) based on depth and wetted area at each reservoir slice.
+        ! percolation from bottom most slice (mm TS-1): Darcy leakance x driving head x wetted-area weight
+        perc = leakance * (lake_level - avgBedlevel) * 1000.0_dp * (wettedArea / upperArea)
+                      ! leakance = Ks/b [TS-1 per unit head]; (lake_level - avgBedlevel) [m] is the driving
+                      ! head on the slice; x 1000 converts the m-depth seepage to mm; the wetted-area weight
+                      ! gives a representative per-slice percolation (mm) by depth and wetted area.
 
         nlines = size(hav_lake_level)
 
@@ -274,11 +256,8 @@ CONTAINS
 
         end if
 
-        ! All the head will not percolate. We need a fraction that is a function of head
-        kfrac = (lake_level - avgBedlevel) / exp(exponent_for_percolation)
-
-        ! percolation from this slice
-        perc = perc + percolation_coefficient * kfrac * (lake_level - avgBedlevel) &
+        ! percolation from this slice (Darcy leakance x driving head x wetted-area weight)
+        perc = perc + leakance * (lake_level - avgBedlevel) &
                 * 1000.0_dp * (wettedArea / upperArea)          ![mm "hydrological" TS-1]
 
       end do EntriesLoop
