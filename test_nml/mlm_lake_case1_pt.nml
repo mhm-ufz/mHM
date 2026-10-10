@@ -42,6 +42,10 @@
   ssrd_path(1)            = "test_domain/input/meteo/ssrd.nc"
   strd_path(1)            = "test_domain/input/meteo/strd.nc"
   pre_path(1)             = "test_domain/input/meteo/pre/pre.nc"
+  ! Soil class raster (level-0, fixtures grid == test_domain grid) + soil LUT: the detached
+  ! lake MPR resolves the lakebed sand/clay and regionalizes the lakebed conductivity from them.
+  soil_class_path(1)      = "test_domain/input/morph/soil_class.asc"
+  soil_lut_path(1)        = "test_domain/input/morph/soil_classdefinition.txt"
 /
 
 &config_meteo

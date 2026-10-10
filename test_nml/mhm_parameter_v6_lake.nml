@@ -9,7 +9,7 @@
   ! All lake parameters are global (pan-domain) scalars.
   spill_coefficient_of_discharge = 1.8, .false., 1.4, 2.2
   spill_exponent                 = 2.0, .false., 1.5, 2.5
-  b                              = 10.0, .false., 0.1, 10.0
+  b                              = 500.0, .false., 0.1, 1000.0
   ptf_ks_constant                = -0.585, .false., -1.2, -0.285
   ptf_ks_sand                    = 0.0125, .false., 0.006, 0.026
   ptf_ks_clay                    = 0.0063, .false., 0.003, 0.013
