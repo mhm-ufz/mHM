@@ -1329,17 +1329,14 @@ contains
       ! lakebed Ks from them with its own pedotransfer parameters, independent of the land-surface soil
       ! database / MPR.
       block
-        integer(i4) :: id_lut(1), n_soil_classes, cc, scls
-        integer :: status_lut
-        character(1024) :: errmsg_lut
-        status_lut = self%config%input%is_set("soil_lut_path", idx=id_lut, errmsg=errmsg_lut)
-        if (status_lut /= NML_OK) then
+        integer(i4) :: n_soil_classes, cc, scls
+        if (self%config%input%is_set("soil_lut_path", idx=[self%exchange%nml_domain_id]) /= NML_OK) then
           log_fatal(*) "Input: a lake footprint is present but soil_lut_path is not set; it is required &
-            &to resolve the lakebed soil texture for the lake conductivity. Error: ", trim(errmsg_lut)
+            &to resolve the lakebed soil texture for the lake conductivity."
           error stop 1
         end if
         call lake_read_soil_texture_lut( &
-          self%exchange%get_path(self%config%input%soil_lut_path(id_lut(1))), &
+          self%exchange%get_path(self%config%input%soil_lut_path(self%exchange%nml_domain_id)), &
           n_soil_classes, lake_sand_by_class, lake_clay_by_class)
         allocate(lake_sand_packed(self%exchange%level0_lake%ncells))
         allocate(lake_clay_packed(self%exchange%level0_lake%ncells))
@@ -1359,12 +1356,13 @@ contains
           lake_sand_packed(cc) = lake_sand_by_class(scls)
           lake_clay_packed(cc) = lake_clay_by_class(scls)
         end do
+        ! provide BEFORE prepare_storage: prepare_storage -> prepare_data asserts the variable is provided.
+        call self%exchange%lake_sand%provide("Input")
         call self%exchange%lake_sand%prepare_storage("Input", no_time, [self%exchange%level0_lake%ncells])
         call self%exchange%lake_sand%set_storage(lake_sand_packed)
-        call self%exchange%lake_sand%provide("Input")
+        call self%exchange%lake_clay%provide("Input")
         call self%exchange%lake_clay%prepare_storage("Input", no_time, [self%exchange%level0_lake%ncells])
         call self%exchange%lake_clay%set_storage(lake_clay_packed)
-        call self%exchange%lake_clay%provide("Input")
         deallocate(lake_sand_by_class, lake_clay_by_class, lake_sand_packed, lake_clay_packed)
       end block
       deallocate(lake_soil_full, lake_soil_full_2d, lake_soil_packed)
