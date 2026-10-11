@@ -784,15 +784,15 @@ contains
       error stop 1
     end if
 
-    ! Read the lake's own geology LUT (config_input geo_lut_path) to get the geological unit IDs and
+    ! Read the lake's own geology LUT (exchange config_lut geo_lut_path) to get the geological unit IDs and
     ! their global baseflow-parameter slots, so the lake baseflow regionalization stays independent of
     ! the land-surface geology class definition read by the MPR container.
-    if (self%exchange%config%input%is_set("geo_lut_path", idx=[self%exchange%nml_domain_id]) /= NML_OK) then
+    if (self%exchange%config%lut%is_set("geo_lut_path", idx=[self%exchange%nml_domain_id]) /= NML_OK) then
       log_fatal(*) "mLM process 1 lake baseflow recession requires geo_lut_path (the geology LUT) to be set."
       error stop 1
     end if
     idx = [self%exchange%nml_domain_id]
-    geo_lut_file = self%exchange%get_path(self%exchange%config%input%geo_lut_path(idx(1)))
+    geo_lut_file = self%exchange%get_path(self%exchange%config%lut%geo_lut_path(idx(1)))
     call lake_read_geology_lut(geo_lut_file, n_geo_classes, geo_unit_list, geo_param_index)
 
     ! Validate that every geological unit on the lake footprint exists in the geology LUT. The

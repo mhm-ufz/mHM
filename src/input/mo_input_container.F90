@@ -1328,19 +1328,19 @@ contains
       allocate(lake_soil_packed(self%exchange%level0_lake%ncells))
       call self%exchange%level0_lake%pack_into(lake_soil_full_2d, lake_soil_packed)
       ! Resolve the lake footprint soil classes to their top-horizon sand and clay content from the
-      ! soil look-up table (config_input soil_lut_path). The Input container owns all file reading, so
+      ! soil look-up table (exchange config_lut soil_lut_path). The Input container owns all file reading, so
       ! the texture is surfaced to the mLM container as ready sand/clay fields; mLM then regionalizes the
       ! lakebed Ks from them with its own pedotransfer parameters, independent of the land-surface soil
       ! database / MPR.
       block
         integer(i4) :: n_soil_classes, cc, scls
-        if (self%config%input%is_set("soil_lut_path", idx=[self%exchange%nml_domain_id]) /= NML_OK) then
+        if (self%exchange%config%lut%is_set("soil_lut_path", idx=[self%exchange%nml_domain_id]) /= NML_OK) then
           log_fatal(*) "Input: a lake footprint is present but soil_lut_path is not set; it is required &
             &to resolve the lakebed soil texture for the lake conductivity."
           error stop 1
         end if
         call lake_read_soil_texture_lut( &
-          self%exchange%get_path(self%config%input%soil_lut_path(self%exchange%nml_domain_id)), &
+          self%exchange%get_path(self%exchange%config%lut%soil_lut_path(self%exchange%nml_domain_id)), &
           n_soil_classes, lake_sand_by_class, lake_clay_by_class)
         allocate(lake_sand_packed(self%exchange%level0_lake%ncells))
         allocate(lake_clay_packed(self%exchange%level0_lake%ncells))
