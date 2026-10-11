@@ -289,6 +289,19 @@ properties:
       top-horizon sand and clay content of the lake footprint soil classes for the detached lake
       multiscale parameter regionalization of the lakebed conductivity. This is the shared soil LUT;
       the land-surface MPR configures its own copy under config_mpr.
+  geo_lut_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: Geology look-up table path
+    description: |-
+      Geology look-up table (class -> GeoParam index + geological unit) path. Read by the mLM container
+      to resolve the per-geological-unit baseflow recession values over the lake footprint for the
+      detached lake multiscale parameter regionalization of the lake baseflow recession coefficient.
+      This is the shared geology LUT; the land-surface MPR configures its own copy under config_mpr.
   lai_class_path:
     type: array
     items:
