@@ -84,6 +84,12 @@ contains
       log_fatal(*) "Error setting baseflow parameter dimensions: ", trim(errmsg)
       error stop 1
     end if
+
+    status = self%lakes_1%set_dims(n_geo_units=n_geo_units, errmsg=errmsg)
+    if (status /= NML_OK) then
+      log_fatal(*) "Error setting lakes parameter dimensions: ", trim(errmsg)
+      error stop 1
+    end if
   end subroutine parameter_namelists_set_dims
 
 end module mo_parameter_namelists
