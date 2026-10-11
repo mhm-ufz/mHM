@@ -377,6 +377,14 @@ contains
       self%static_lake_max_level_reported = self%exchange%lake_max_level_reported%data
       if (has_area) self%static_lake_max_surface_area_reported = self%exchange%lake_max_surface_area_reported%data
       if (has_volume) self%static_lake_max_volume_reported = self%exchange%lake_max_volume_reported%data
+      ! On a restart continued with Input present, the lake-MPR fields (regionalized lakebed Ks and
+      ! baseflow recession coefficient) are taken from the restart metadata when the restart file
+      ! carries them, so the soil/geology rasters need not be re-read. Initialize derives whichever
+      ! field was not restored (so a restart without these in the file still regionalizes from Input).
+      if (self%read_restart) then
+        if (allocated(self%restart_lake_ks)) self%static_lake_ks = self%restart_lake_ks
+        if (allocated(self%restart_lake_kbf)) self%static_lake_kbf = self%restart_lake_kbf
+      end if
     else
       if (.not.self%read_restart) then
         log_fatal(*) "mLM: lake process requires lake points."
@@ -622,13 +630,15 @@ contains
       ! Regionalize the per-lake lakebed saturated hydraulic conductivity (detached lake MPR):
       ! the Cosby pedotransfer function over the lake footprint soil texture, aggregated to one
       ! value per lake, from the lake's own pedotransfer parameters (lakes_1) and the lake-footprint
-      ! soil texture surfaced by Input. On a restart-only run static_lake_ks was restored from the
-      ! restart metadata at connect, so only derive it on a fresh run.
-      if (.not. self%read_restart) call self%derive_lake_ks()
+      ! soil texture surfaced by Input. On a restart-only run (no Input) static_lake_ks was restored
+      ! from the restart metadata at connect; derive it whenever it was not restored (a fresh run, or
+      ! a restart continued with Input present, where the lake footprint is available).
+      if (.not. allocated(self%static_lake_ks)) call self%derive_lake_ks()
       ! Regionalize the per-lake baseflow recession coefficient from the geological units over the
       ! lake footprint (the geological baseflow-parameter lookup), aggregated to one value per lake.
-      ! On a restart-only run static_lake_kbf was restored from the restart metadata at connect.
-      if (.not. self%read_restart) call self%derive_lake_kbf()
+      ! On a restart-only run (no Input) static_lake_kbf was restored from the restart metadata at
+      ! connect; derive it whenever it was not restored (a fresh run, or a restart continued with Input).
+      if (.not. allocated(self%static_lake_kbf)) call self%derive_lake_kbf()
       ! Cold-start the lake states from the reported initial level; the matching surface
       ! area and volume are read off the per-lake hAV curve. A restart overrides these below.
       if (.not. self%read_restart) then
