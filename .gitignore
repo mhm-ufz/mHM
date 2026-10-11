@@ -644,3 +644,11 @@ info/
 # Isolated validation outputs
 logs_v6/
 coverage-runs/
+
+# locally-copied mHM driver binaries (CI / v6 namelist smoke runs)
+mhm_driver
+mhm_driver_debug
+mhm_driver_openmp
+mhm_driver_openmp_debug
+mhm_driver_mpi
+mhm_driver_mpi_debug
