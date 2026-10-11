@@ -318,8 +318,10 @@ contains
           lake_params = [ &
             parameter_config%lakes_1%spill_coefficient_of_discharge, &
             parameter_config%lakes_1%spill_exponent, &
+            parameter_config%lakes_1%spillway_length_multiplier, &
             parameter_config%lakes_1%b]
-          lake_names = [character(64) :: "spill_coefficient_of_discharge", "spill_exponent", "b"]
+          lake_names = [character(64) :: "spill_coefficient_of_discharge", "spill_exponent", &
+            "spillway_length_multiplier", "b"]
           ! lakebed Ks pedotransfer parameters - only when soil_moisture is inactive
           if (self%exchange%config%processes%soil_moisture == 0_i4) then
             lake_params = [lake_params, &
