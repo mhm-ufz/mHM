@@ -64,7 +64,7 @@ module mo_mlm_container
   use mo_lake_spill, only: lake_spill
   use mo_lake_water_balance, only: lake_balance, interpolate_lake_states
   use mo_lake_groundwaterstorage, only: lake_seepage, lake_gws_baseflow
-  use mo_mlm_mpr, only: lake_derive_ks, lake_derive_kbf, lake_read_geology_lut, lake_check_geo_units
+  use mo_mlm_mpr, only: lake_derive_ks, lake_derive_kbf, lake_derive_spillway_length, lake_read_geology_lut, lake_check_geo_units
   use mo_lake_evaporation, only: lake_evaporation
   use mo_meteo_temporal_tools, only: temporal_disagg_flux_daynight
   use mo_grid_io, only: var, daily, monthly, yearly, no_time, time_units_delta
@@ -156,6 +156,7 @@ module mo_mlm_container
     procedure, private :: read_restart_metadata => mlm_read_restart_metadata
     procedure, private :: derive_lake_ks => mlm_derive_lake_ks
     procedure, private :: derive_lake_kbf => mlm_derive_lake_kbf
+    procedure, private :: derive_lake_spillway_length => mlm_derive_lake_spillway_length
     procedure, private :: read_restart_topology => mlm_read_restart_topology
     procedure, private :: read_restart_state => mlm_read_restart_state
     procedure, private :: validate_restart_metadata => mlm_validate_restart_metadata
@@ -505,17 +506,11 @@ contains
       call self%exchange%lake_gw_storage%prepare_data("mLM", 1_i4)
       self%exchange%lake_gw_storage%data => self%lake_gw_storage
       ! The minimal natural lake also needs the spillway length (crest spill) and an
-      ! initial level (cold-start). Normally the Input container reads them from the lake
-      ! definition file; on a restart-only run (no Input) they are restored from the restart
-      ! metadata instead (see read_restart_metadata / the restart branch above).
-      ! Spillway length is required (from Input or restart metadata).
-      if (self%exchange%lake_spillway_length%provided .and. self%exchange%lake_spillway_length%has_data()) then
-        call self%exchange%check_data(self%exchange%lake_spillway_length, "mLM")
-        self%static_lake_spillway_length = self%exchange%lake_spillway_length%data
-      else if (.not.allocated(self%static_lake_spillway_length)) then
-        log_fatal(*) "mLM process 1 requires lake spillway length from inputs or restart metadata."
-        error stop 1
-      end if
+      ! initial level (cold-start). The spillway length is regionalized per lake from the lake
+      ! catchment (drainage) area (see derive_lake_spillway_length, called below alongside the Ks and
+      ! baseflow-recession regionalizations); on a restart-only run (no Input) it was restored from the
+      ! restart metadata at connect (the restart branch above). Nothing is read here: if it was not
+      ! restart-restored it is derived below, so leave it unallocated for the derivation to fill.
       ! The initial level is optional: if it is absent (or carries the missing-value sentinel
       ! nodata_dp = -9999), the lake is cold-started at 50% of its reported maximum volume (see initialize).
       if (self%exchange%lake_initial_level%provided .and. self%exchange%lake_initial_level%has_data()) then
@@ -641,6 +636,12 @@ contains
       ! On a restart-only run (no Input) static_lake_kbf was restored from the restart metadata at
       ! connect; derive it whenever it was not restored (a fresh run, or a restart continued with Input).
       if (.not. allocated(self%static_lake_kbf)) call self%derive_lake_kbf()
+      ! Regionalize the per-lake effective spillway crest length from the lake catchment (drainage)
+      ! area by the downstream-hydraulic-geometry power law Ls = m * 2.7 * CA^0.35 (CA at the lake
+      ! outlet node, from the routing upstream area). On a restart-only run (no Input / no river)
+      ! static_lake_spillway_length was restored from the restart metadata at connect; derive it
+      ! whenever it was not restored (a fresh run, or a restart continued with Input present).
+      if (.not. allocated(self%static_lake_spillway_length)) call self%derive_lake_spillway_length()
       ! Cold-start the lake states from the reported initial level; the matching surface
       ! area and volume are read off the per-lake hAV curve. A restart overrides these below.
       if (.not. self%read_restart) then
@@ -845,6 +846,68 @@ contains
     if (allocated(baseflow_recession)) deallocate(baseflow_recession)
 
   end subroutine mlm_derive_lake_kbf
+
+  !> \brief Regionalize the per-lake effective spillway crest length (detached lake MPR).
+  !> \details Derives the spillway crest length Ls [m] per lake from the lake catchment (drainage)
+  !!          area CA by the downstream-hydraulic-geometry power law Ls = m * 2.7 * CA^0.35. CA is the
+  !!          routing upstream / contributing area at the lake outlet node (river%upstream_area at
+  !!          river%lake_outlet_nodes, [m2], converted to km2 inside lake_derive_spillway_length), and
+  !!          m is the global (pan-domain) spillway_length_multiplier (lakes_1). The outlet nodes are in
+  !!          lake-point order (set together with lake_ids by river%label_lakes), so no footprint
+  !!          packing is needed - this is one upstream-area value read per lake. The upstream area is
+  !!          computed on demand if the routing output did not already request it.
+  subroutine mlm_derive_lake_spillway_length(self)
+    use mo_river, only: river_t
+    class(mlm_t), target, intent(inout) :: self
+    real(dp), allocatable :: catchment_area(:)
+    integer(i8) :: k, n_lakes
+    type(river_t), pointer :: river
+
+    ! The spillway-length regionalization needs the level-0 river (its upstream area + lake outlet
+    ! nodes). It is always present for an active lake (the lake processes require active mRM routing);
+    ! on a restart-only run this routine is not reached (the value is restored from restart metadata).
+    if (.not.associated(self%exchange%river_l0)) then
+      log_fatal(*) "mLM process 1 spillway length requires the level-0 river (active routing)."
+      error stop 1
+    end if
+    river => self%exchange%river_l0
+    if (.not.allocated(river%lake_outlet_nodes)) then
+      log_fatal(*) "mLM process 1 spillway length requires the level-0 river lake outlet nodes."
+      error stop 1
+    end if
+
+    ! Contributing (upstream) area per river node [m2]; computed on demand when the routing output did
+    ! not already request it.
+    if (.not.allocated(river%upstream_area)) call river%calc_upstream_area()
+
+    ! Gather the catchment area at each lake outlet, in lake-point order (lake_outlet_nodes aligns with
+    ! lake_ids), then regionalize the spillway crest length with the global multiplier.
+    n_lakes = size(self%lake_ids, kind=i8)
+    if (size(river%lake_outlet_nodes, kind=i8) /= n_lakes) then
+      log_fatal(*) "mLM process 1 spillway length: lake outlet node count does not match the lakes."
+      error stop 1
+    end if
+    allocate(catchment_area(n_lakes))
+    do k = 1_i8, n_lakes
+      catchment_area(k) = river%upstream_area(river%lake_outlet_nodes(k))
+    end do
+
+    call lake_derive_spillway_length(catchment_area, &
+      self%exchange%config%parameters%lakes_1%spillway_length_multiplier%value, &
+      self%static_lake_spillway_length)
+
+    block
+      integer(i8) :: kk
+      do kk = 1_i8, n_lakes
+        log_info(*) "mLM lake ", n2s(self%lake_ids(kk)), ": catchment area [km2] = ", &
+          n2s(catchment_area(kk) * 1.0e-6_dp), ", regionalized spillway length [m] = ", &
+          n2s(self%static_lake_spillway_length(kk))
+      end do
+    end block
+
+    deallocate(catchment_area)
+
+  end subroutine mlm_derive_lake_spillway_length
 
   !> \brief Publish the preceding completed hourly inflow as current outflow.
   subroutine mlm_update(self)
