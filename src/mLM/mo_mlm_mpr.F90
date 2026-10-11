@@ -38,10 +38,14 @@ MODULE mo_mlm_mpr
   USE mo_logging
   USE mo_kind,   only : i4, i8, dp
   USE mo_grid,   only : grid_t
+  USE mo_string_utils, only : n2s => num2str
   IMPLICIT NONE
 
   PUBLIC :: lake_derive_ks            ! regionalizes the per-lake lakebed Ks from soil texture over the lake footprint
+  PUBLIC :: lake_derive_kbf           ! regionalizes the per-lake baseflow recession coefficient from geology over the lake footprint
   PUBLIC :: lake_read_soil_texture_lut ! reads top-horizon sand/clay per soil class from the soil LUT
+  PUBLIC :: lake_read_geology_lut     ! reads the geological unit IDs and their global baseflow-parameter index from the geology LUT
+  PUBLIC :: lake_check_geo_units      ! checks that every geological unit on the lake footprint is present in the geology LUT
   PUBLIC :: upscale_arithmetic_mean_lake ! per-lake arithmetic (cell-count) mean of a level-0 lake-footprint field
 
   ! ------------------------------------------------------------------
@@ -144,6 +148,254 @@ CONTAINS
     deallocate(ks_cell)
 
   end subroutine lake_derive_ks
+
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         lake_derive_kbf
+
+  !     PURPOSE
+  !>        \brief Derives the per-lake baseflow recession coefficient.
+
+  !>        \details Regionalizes the lake groundwater-store baseflow recession coefficient k_bf for
+  !>                 every lake from the geological units over the lake footprint, then aggregates it to
+  !>                 one value per lake by an arithmetic (cell-count) mean over the footprint cells (the
+  !>                 same operator the lakebed Ks uses, upscale_arithmetic_mean_lake / the land-surface
+  !>                 upscale_arithmetic_mean). The regionalization is the geological baseflow-parameter
+  !>                 lookup: each footprint cell carries a geological unit ID (geo_unit); the unit is
+  !>                 located in the geology look-up table (geo_unit_list) and its global baseflow-parameter
+  !>                 slot (geo_param_index) selects the per-geological-unit baseflow recession value from
+  !>                 baseflow_recession. This is the v5 mpr_lake baseflow path (baseflow_param over the
+  !>                 lake footprint + upscale_arithmetic_mean_lake) rebuilt in the detached lake-MPR,
+  !>                 and matches the land-surface mpr_bridge_baseflow_param cell lookup exactly. The
+  !>                 baseflow_recession values are supplied by the caller (the lake module's own lakes_1
+  !>                 parameters, or the land baseflow process borrowed when it is active), so this routine
+  !>                 owns no global connections and is self-contained.
+
+  !     CALLING SEQUENCE
+  !         call lake_derive_kbf(lake_map, lake_ids, geo_unit, geo_unit_list, geo_param_index, baseflow_recession, kbf_lake)
+
+  !     INTENT(IN)
+  !>       \param[in] "integer(i8), dimension(:) :: lake_map"           [1] stable lake ID on each packed footprint cell
+  !>       \param[in] "integer(i8), dimension(:) :: lake_ids"           [1] stable lake ID in lake-point order
+  !>       \param[in] "integer(i4), dimension(:) :: geo_unit"           [1] geological unit ID on each footprint cell
+  !>       \param[in] "integer(i4), dimension(:) :: geo_unit_list"      [1] geological unit IDs in the geology LUT
+  !>       \param[in] "integer(i4), dimension(:) :: geo_param_index"    [1] global baseflow-parameter slot per geology LUT class
+  !>       \param[in] "real(dp),    dimension(:) :: baseflow_recession" [d] per-geological-unit baseflow recession values
+
+  !     INTENT(OUT)
+  !>       \param[out] "real(dp), allocatable, dimension(:) :: kbf_lake"  [d] arithmetic-mean baseflow recession coefficient per lake
+
+  !     HISTORY
+  !>       \authors Pallav Kumar Shrestha (lake baseflow-parameter regionalization, from v5 mo_multi_param_reg:mpr_lake / baseflow_param)
+  !>       \date    October 2018
+  !        Modifications:
+  !        Pallav K Shrestha, October 2026 - rebuilt the v5 lake baseflow-parameter path in the detached
+  !            lake-MPR: the per-footprint-cell geological-unit lookup (geo_unit -> geo_unit_list ->
+  !            geo_param_index -> baseflow_recession) mirrors the land-surface mo_mpr_legacy_bridge:
+  !            mpr_bridge_baseflow_param, upscaled per lake with upscale_arithmetic_mean_lake, for the
+  !            mLM v6 migration.
+
+  subroutine lake_derive_kbf(lake_map, lake_ids, geo_unit, geo_unit_list, geo_param_index, &
+      baseflow_recession, kbf_lake)
+
+    implicit none
+
+    integer(i8), dimension(:), intent(in)  :: lake_map           ! stable lake ID on each footprint cell
+    integer(i8), dimension(:), intent(in)  :: lake_ids           ! stable lake ID in lake-point order
+    integer(i4), dimension(:), intent(in)  :: geo_unit           ! geological unit ID on each footprint cell
+    integer(i4), dimension(:), intent(in)  :: geo_unit_list      ! geological unit IDs in the geology LUT
+    integer(i4), dimension(:), intent(in)  :: geo_param_index    ! global baseflow-parameter slot per LUT class
+    real(dp),    dimension(:), intent(in)  :: baseflow_recession ! [d] per-geological-unit baseflow recession
+    real(dp), allocatable, dimension(:), intent(out) :: kbf_lake ! [d] per-lake mean baseflow recession coefficient
+
+    ! local variables
+    real(dp), allocatable :: kbf_cell(:)   ! [d] baseflow recession on each footprint cell
+    integer(i4) :: class_pos               ! position of a cell's geo unit in geo_unit_list
+    integer(i8) :: i
+    integer(i4) :: j
+
+    if (size(geo_param_index) /= size(geo_unit_list)) then
+      log_fatal(*) "Lake MPR: geo_param_index and geology LUT unit list sizes do not match."
+      error stop 1
+    end if
+    if (any(geo_param_index < 1_i4) .or. any(geo_param_index > size(baseflow_recession))) then
+      log_fatal(*) "Lake MPR: geology LUT baseflow-parameter index is outside the baseflow parameters."
+      error stop 1
+    end if
+    if (size(geo_unit, kind=i8) /= size(lake_map, kind=i8)) then
+      log_fatal(*) "Lake MPR: geological unit field size does not match the lake footprint grid."
+      error stop 1
+    end if
+
+    ! Per-footprint-cell baseflow recession coefficient, the geological baseflow-parameter lookup
+    ! identical to the land-surface implementation (mo_mpr_legacy_bridge:mpr_bridge_baseflow_param):
+    ! locate the cell's geological unit in the LUT unit list, then pick its global baseflow-parameter slot.
+    allocate(kbf_cell(size(lake_map, kind=i8)))
+    do i = 1_i8, size(lake_map, kind=i8)
+      class_pos = 0_i4
+      do j = 1_i4, size(geo_unit_list)
+        if (geo_unit_list(j) == geo_unit(i)) then
+          class_pos = j
+          exit
+        end if
+      end do
+      if (class_pos < 1_i4) then
+        log_fatal(*) "Lake MPR: lake footprint geological unit ", n2s(geo_unit(i)), &
+          " is not present in the geology LUT."
+        error stop 1
+      end if
+      kbf_cell(i) = baseflow_recession(geo_param_index(class_pos))
+    end do
+
+    ! Upscale the level-0 baseflow recession to one value per lake by the arithmetic (cell-count) mean
+    ! over the lake footprint, the same operator the lakebed Ks regionalization uses.
+    call upscale_arithmetic_mean_lake(lake_map, lake_ids, kbf_cell, kbf_lake)
+
+    deallocate(kbf_cell)
+
+  end subroutine lake_derive_kbf
+
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         lake_read_geology_lut
+
+  !     PURPOSE
+  !>        \brief Reads the geological unit IDs and their global baseflow-parameter index from the geology LUT.
+
+  !>        \details Parses the classical mHM geology class-definition look-up table and returns, for every
+  !>                 geological class, its unit ID (the value stored in the geology raster) and its global
+  !>                 baseflow-parameter index (the slot into the baseflow recession parameter set). The file
+  !>                 format is: a first line "nGeo_Formations <n>", a header line, then one row per class
+  !>                 "<GeoParam_index> <ClassUnit> <Karstic> <Description>". This is a self-contained reader
+  !>                 (the parse logic of mo_read_lut:read_geoformation_lut) so the detached lake MPR does not
+  !>                 depend on the land-surface geology class definition read by the MPR container; the lake
+  !>                 module reads its own geology LUT and stays independent of the land-surface MPR.
+
+  !     CALLING SEQUENCE
+  !         call lake_read_geology_lut(path, n_classes, geo_unit_list, geo_param_index)
+
+  !     INTENT(IN)
+  !>       \param[in] "character(*) :: path"          geology LUT file path
+
+  !     INTENT(OUT)
+  !>       \param[out] "integer(i4) :: n_classes"                      number of geological classes in the LUT
+  !>       \param[out] "integer(i4), allocatable :: geo_unit_list(:)"  geological unit IDs per class
+  !>       \param[out] "integer(i4), allocatable :: geo_param_index(:)" global baseflow-parameter slot per class
+
+  !     HISTORY
+  !>       \authors Matthias Zink, Rohini Kumar (geology look-up table parsing, from mo_read_lut:read_geoformation_lut)
+  !>       \date    January 2013
+  !        Modifications:
+  !        Pallav K Shrestha, October 2026 - reused the geology-LUT parse logic as a self-contained reader
+  !            returning the unit IDs and the global baseflow-parameter index per class, for the detached lake MPR.
+
+  subroutine lake_read_geology_lut(path, n_classes, geo_unit_list, geo_param_index)
+
+    implicit none
+
+    character(*),              intent(in)  :: path              ! geology LUT path
+    integer(i4),               intent(out) :: n_classes         ! number of geological classes
+    integer(i4), allocatable,  intent(out) :: geo_unit_list(:)  ! geological unit IDs per class
+    integer(i4), allocatable,  intent(out) :: geo_param_index(:) ! global baseflow-parameter slot per class
+
+    integer :: unit               ! default-kind unit for newunit=
+    integer(i4) :: ios
+    integer(i4) :: i, param_index, unit_id, karstic
+    character(256) :: dummy
+    logical :: exists
+
+    inquire(file=path, exist=exists)
+    if (.not.exists) then
+      log_fatal(*) "Lake MPR: geology LUT not found: ", trim(path)
+      error stop 1
+    end if
+
+    open(newunit=unit, file=path, status="old", action="read", iostat=ios)
+    if (ios /= 0_i4) then
+      log_fatal(*) "Lake MPR: cannot open geology LUT: ", trim(path)
+      error stop 1
+    end if
+
+    ! header line: "nGeo_Formations <n>"
+    read(unit, *, iostat=ios) dummy, n_classes
+    if (ios /= 0_i4 .or. n_classes < 1_i4) then
+      log_fatal(*) "Lake MPR: malformed geology LUT header (expected 'nGeo_Formations <n>'): ", trim(path)
+      error stop 1
+    end if
+    ! column header line
+    read(unit, *, iostat=ios) dummy
+
+    allocate(geo_unit_list(n_classes))
+    allocate(geo_param_index(n_classes))
+
+    ! data rows: <GeoParam_index> <ClassUnit> <Karstic> <Description>
+    do i = 1_i4, n_classes
+      read(unit, *, iostat=ios) param_index, unit_id, karstic, dummy
+      if (ios /= 0_i4) then
+        log_fatal(*) "Lake MPR: nGeo_Formations in the geology LUT exceeds the available rows: ", trim(path)
+        error stop 1
+      end if
+      geo_param_index(i) = param_index
+      geo_unit_list(i)   = unit_id
+    end do
+
+    close(unit)
+
+  end subroutine lake_read_geology_lut
+
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         lake_check_geo_units
+
+  !     PURPOSE
+  !>        \brief Checks that every geological unit on the lake footprint is present in the geology LUT.
+
+  !>        \details Mirrors the land-surface check (mo_mpr_container:mpr_check_geo_units_against_lut),
+  !>                 but over the LAKE footprint rather than the land grid. The land-surface check only
+  !>                 validates the geological units present on the level-0 land grid, which holes out the
+  !>                 lake cells; a geological unit that occurs only under a lake is therefore never
+  !>                 validated by the land side. This routine closes that gap: a lake-only geological unit
+  !>                 that is missing from the geology LUT is reported here instead of failing deeper in the
+  !>                 per-cell baseflow lookup.
+
+  !     CALLING SEQUENCE
+  !         call lake_check_geo_units(geo_unit, geo_unit_list)
+
+  !     INTENT(IN)
+  !>       \param[in] "integer(i4), dimension(:) :: geo_unit"       [1] geological unit ID on each footprint cell
+  !>       \param[in] "integer(i4), dimension(:) :: geo_unit_list"  [1] geological unit IDs in the geology LUT
+
+  !     HISTORY
+  !>       \authors Matthias Zink, Rohini Kumar (land-surface geology-unit LUT check, from mo_mpr_container:mpr_check_geo_units_against_lut)
+  !>       \date    January 2013
+  !        Modifications:
+  !        Pallav K Shrestha, October 2026 - applied the geology-unit presence check over the lake footprint
+  !            (lake-only geological units are not validated by the land-surface check), for the detached lake MPR.
+
+  subroutine lake_check_geo_units(geo_unit, geo_unit_list)
+
+    implicit none
+
+    integer(i4), dimension(:), intent(in) :: geo_unit       ! geological unit ID on each footprint cell
+    integer(i4), dimension(:), intent(in) :: geo_unit_list  ! geological unit IDs in the geology LUT
+
+    integer(i8) :: i
+
+    do i = 1_i8, size(geo_unit, kind=i8)
+      if (.not.any(geo_unit_list == geo_unit(i))) then
+        log_fatal(*) "Lake MPR: lake footprint geological unit ", n2s(geo_unit(i)), &
+          " is not present in the geology LUT."
+        error stop 1
+      end if
+    end do
+
+  end subroutine lake_check_geo_units
 
 
   ! ------------------------------------------------------------------
