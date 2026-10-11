@@ -512,7 +512,8 @@ contains
       ! restart metadata at connect (the restart branch above). Nothing is read here: if it was not
       ! restart-restored it is derived below, so leave it unallocated for the derivation to fill.
       ! The initial level is optional: if it is absent (or carries the missing-value sentinel
-      ! nodata_dp = -9999), the lake is cold-started at 50% of its spill-reference volume (see initialize).
+      ! nodata_dp = -9999), the lake is cold-started by type (natural: just above the spill reference level;
+      ! reservoir: 50% of its spill-reference volume) - see mlm_initialize.
       if (self%exchange%lake_initial_level%provided .and. self%exchange%lake_initial_level%has_data()) then
         self%static_lake_initial_level = self%exchange%lake_initial_level%data
       else if (.not.allocated(self%static_lake_initial_level)) then
@@ -594,6 +595,10 @@ contains
     real(dp) :: level_query
     real(dp) :: tsHydroSecs
     real(dp) :: leakance, perc0, kbf0
+    ! Cold-start head above the spill reference level for a NATURAL lake when no initial level is
+    ! provided: a small positive head so the lake discharges over its outlet sill from the first step
+    ! (natural lakes sit at/above the sill and spill continuously) rather than filling up to it first.
+    real(dp), parameter :: natural_coldstart_head = 0.1_dp  ! [m]
     if (self%exchange%step_hours /= 1_i4) then
       log_fatal(*) "mLM lake processes require a one-hour model step."
       error stop 1
@@ -646,20 +651,32 @@ contains
       ! area and volume are read off the per-lake hAV curve. A restart overrides these below.
       if (.not. self%read_restart) then
         do k = 1_i8, n_lakes
-          ! When the initial level was not provided (missing-value sentinel), cold-start the
-          ! lake at the level holding 50% of its reported maximum volume (v5.13 behaviour):
-          ! invert the hAV curve (volume -> level) at half the reported maximum volume.
+          ! When the initial level was not provided (missing-value sentinel), cold-start by lake type:
+          !  - a NATURAL lake sits at its outlet sill essentially all the time and discharges
+          !    continuously, so cold-start it just above the spill reference level (a small head
+          !    natural_coldstart_head above the sill) so it spills from the first step rather than
+          !    filling up to the sill first;
+          !  - a RESERVOIR is normally held below its full-supply level by controlled releases, so
+          !    cold-start it at the level holding 50% of its spill-reference (full-supply) volume
+          !    (mid-pool, the v5.13 behaviour): invert the hAV curve (volume -> level) at half that volume.
           if (self%static_lake_initial_level(k) < -9000.0_dp) then
-            block
-              real(dp) :: target_volume
-              target_volume = 0.5_dp * self%static_lake_spill_reference_volume(k)
-              call interpolate_lake_states(.false., self%hav(k)%volume, self%hav(k)%level, &
-                self%static_lake_spill_reference_volume(k), self%static_lake_spill_reference_level(k), &
-                target_volume, self%static_lake_initial_level(k))
-            end block
-            log_info(*) "mLM lake ", n2s(self%lake_ids(k)), &
-              ": initial level not provided; cold-starting at 50% of reported max volume -> level ", &
-              n2s(self%static_lake_initial_level(k)), " masl"
+            if (self%config%natural(self%exchange%nml_domain_id, int(k, i4))) then
+              self%static_lake_initial_level(k) = self%static_lake_spill_reference_level(k) + natural_coldstart_head
+              log_info(*) "mLM lake ", n2s(self%lake_ids(k)), &
+                ": initial level not provided; natural lake cold-started at spill reference level + ", &
+                n2s(natural_coldstart_head), " m -> level ", n2s(self%static_lake_initial_level(k)), " masl"
+            else
+              block
+                real(dp) :: target_volume
+                target_volume = 0.5_dp * self%static_lake_spill_reference_volume(k)
+                call interpolate_lake_states(.false., self%hav(k)%volume, self%hav(k)%level, &
+                  self%static_lake_spill_reference_volume(k), self%static_lake_spill_reference_level(k), &
+                  target_volume, self%static_lake_initial_level(k))
+              end block
+              log_info(*) "mLM lake ", n2s(self%lake_ids(k)), &
+                ": initial level not provided; reservoir cold-started at 50% of spill-reference volume -> level ", &
+                n2s(self%static_lake_initial_level(k)), " masl"
+            end if
           end if
           self%lake_level(k) = self%static_lake_initial_level(k)
           level_query = self%static_lake_initial_level(k)
