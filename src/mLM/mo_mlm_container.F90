@@ -71,6 +71,7 @@ module mo_mlm_container
   use mo_lake_groundwaterstorage, only: lake_seepage, lake_gws_baseflow
   use mo_mlm_mpr, only: lake_derive_ks, lake_derive_kbf, lake_derive_spillway_length, lake_read_geology_lut, lake_check_geo_units
   use mo_lake_evaporation, only: lake_evaporation
+  use mo_mlm_constants, only: bank_soil_evap_ratio
   use mo_meteo_temporal_tools, only: temporal_disagg_flux_daynight
   use mo_grid_io, only: var, daily, monthly, yearly, no_time, time_units_delta
   use mo_netcdf_utils, only: add_var
@@ -953,7 +954,6 @@ contains
     real(dp) :: ntimesteps_day, evap_daily, evap_step, pr_step, qin_d, qout_d, pre_d, lat, lon
     real(dp) :: wind_k, tdew_k
     real(dp) :: a_bank, es_step, q_bank
-    real(dp), parameter :: bank_soil_evap_ratio = 0.8_dp !< moist bank soil evaporation as a fraction of open-water evaporation (Es = c_soil * E); hard-coded this phase
     real(dp) :: evap_components(3)
     logical :: isday
     real(dp) :: input_windspeed_height, climatological_windspeed
