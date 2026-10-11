@@ -3,15 +3,16 @@ description: Configuration for the v6 lake component (mLM).
 x-fortran-namelist: config_mlm
 type: object
 properties:
-  input_path:
+  n_lakes:
     type: array
     items:
-      type: string
-      format: file-path
-      x-fortran-len: buf
+      type: integer
+      x-fortran-kind: i4
+      minimum: 1
     x-fortran-shape: n_domains
-    title: mLM lake input path
-    description: Directory where the lake input data for each domain is located.
+    title: Number of lakes
+    examples: [[1]]
+    description: Number of lakes for each configured domain.
   output_path:
     type: array
     items:
@@ -19,7 +20,8 @@ properties:
       format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
-    title: mLM lake-point output path
+    title: mLM lake-point output file
+    description: Lake-point output file for each domain, given with its full path.
   read_restart:
     type: array
     items:
@@ -34,7 +36,8 @@ properties:
       format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
-    title: mLM restart input path
+    title: mLM restart input file
+    description: mLM restart input file for each domain, given with its full path.
   write_restart:
     type: array
     items:
@@ -49,7 +52,8 @@ properties:
       format: file-path
       x-fortran-len: buf
     x-fortran-shape: n_domains
-    title: mLM restart output path
+    title: mLM restart output file
+    description: mLM restart output file for each domain, given with its full path.
   force_initialize_lake_at_restart:
     type: boolean
     default: false
@@ -144,25 +148,6 @@ properties:
       - 1 : Fresnel equation.
       - 2 : Grishchenko (1959). See Appendix C, Figure C1 in Shrestha et al. (2024),
         Water Resources Research, for the varying albedo calculation.
-  hanasaki_2006:
-    type: boolean
-    default: true
-    title: Hanasaki et al. (2006) release target
-    description: |-
-      Use the temperature release target after Hanasaki et al. (2006).
-      If enabled, the per-lake reservoir capacity and mean annual inflow must be provided.
-      Reference: Hanasaki, N., Kanae, S., & Oki, T. (2006). A reservoir operation scheme
-      for global river routing models. Journal of Hydrology, 327(1-2), 22-41.
-      doi:10.1016/j.jhydrol.2005.11.011
-  point_demand:
-    type: boolean
-    default: false
-    title: Point demand input
-    description: |-
-      Flag deciding whether demand data is provided as point time series or as a space-time
-      field (netCDF).
-      - if true : lake_filename_Demand_<demandtype> must be provided for each activated use flag.
-      - if false : demand field netCDF files must be present in the demand input folder.
   bathymetry_type:
     type: array
     items:
@@ -170,11 +155,11 @@ properties:
       x-fortran-kind: i4
       enum: [0, 1, 2]
       default: 0
-    x-fortran-shape: [n_domains, n_lakes]
+    x-fortran-shape: [n_domains, max_lakes]
     title: Lake hAV curve type
     description: |-
       Type of height-area-volume (hAV) relation used per lake.
-      - 0 : input bathymetry curves (bathymetry_filename must be provided).
+      - 0 : input bathymetry curves.
       - 1 : linear h~V relation with constant area.
       - 2 : Liebe (2005), one half of a pyramid with square base cut diagonally at the base.
         Reference: Liebe, J. (2005). Estimation of water storage capacity and evaporation
@@ -185,124 +170,9 @@ properties:
     items:
       type: boolean
       default: true
-    x-fortran-shape: [n_domains, n_lakes]
+    x-fortran-shape: [n_domains, max_lakes]
     title: Natural lake flag
     description: |-
       Whether the lake is a naturally existing lake (true) or an artificial reservoir (false).
       A natural lake cannot have a commission date and its water elevation may rise above the
       dam crest level to produce spill; a reservoir's elevation is capped at the dam crest level.
-  use_watersupply:
-    type: array
-    items:
-      type: boolean
-      default: false
-    x-fortran-shape: [n_domains, n_lakes]
-    title: Water-supply use flag
-    description: Enable consumptive water-supply use for the lake.
-  use_irrigation:
-    type: array
-    items:
-      type: boolean
-      default: false
-    x-fortran-shape: [n_domains, n_lakes]
-    title: Irrigation use flag
-    description: Enable consumptive irrigation use for the lake.
-  service_distance:
-    type: array
-    items:
-      type: number
-      x-fortran-kind: dp
-      default: 600.0
-    x-fortran-shape: [n_domains, n_lakes]
-    title: Downstream service distance [km]
-    description: |-
-      Downstream distance over which the reservoir provides irrigation and water-supply service.
-      If not defined or set to -9999, a default value of 600 km is used.
-  bathymetry_filename:
-    type: array
-    items:
-      type: string
-      format: file-path
-      x-fortran-len: buf
-    x-fortran-shape: [n_domains, n_lakes]
-    title: Lake bathymetry file
-    description: |-
-      Name of the file with the lake bathymetry table. Required when bathymetry_type is 0.
-      The table must have non-repeating values in ascending order (lower to higher elevations).
-  release_target_filename:
-    type: array
-    items:
-      type: string
-      format: file-path
-      x-fortran-len: buf
-    x-fortran-shape: [n_domains, n_lakes]
-    title: Release target file
-    description: Name of the file with the downstream lake release-target discharge time series.
-  watersupply_demand_filename:
-    type: array
-    items:
-      type: string
-      format: file-path
-      x-fortran-len: buf
-    x-fortran-shape: [n_domains, n_lakes]
-    title: Water-supply demand file
-    description: Name of the file with the water-supply demand discharge time series.
-  irrigation_demand_filename:
-    type: array
-    items:
-      type: string
-      format: file-path
-      x-fortran-len: buf
-    x-fortran-shape: [n_domains, n_lakes]
-    title: Irrigation demand file
-    description: Name of the file with the irrigation demand discharge time series.
-  ibt_filename:
-    type: array
-    items:
-      type: string
-      format: file-path
-      x-fortran-len: buf
-    x-fortran-shape: [n_domains, n_lakes]
-    title: Inter-basin transfer file
-    description: Name of the file with the optional inter-basin transfer inflow time series.
-  level_filename:
-    type: array
-    items:
-      type: string
-      format: file-path
-      x-fortran-len: buf
-    x-fortran-shape: [n_domains, n_lakes]
-    title: Observed water-level file
-    description: Name of the file with the observed lake water-level time series.
-  area_filename:
-    type: array
-    items:
-      type: string
-      format: file-path
-      x-fortran-len: buf
-    x-fortran-shape: [n_domains, n_lakes]
-    title: Observed surface-area file
-    description: Name of the file with the observed lake surface-area time series.
-  spill_filename:
-    type: array
-    items:
-      type: string
-      format: file-path
-      x-fortran-len: buf
-    x-fortran-shape: [n_domains, n_lakes]
-    title: Observed spill file
-    description: Name of the file with the observed lake spill time series.
-  print_lake_maps:
-    type: boolean
-    default: true
-    title: Print lake maps
-    description: |-
-      Print maps of the lake, lake catchment, lake demand catchment, and lake circular catchment.
-      Optional output used for model verification.
-  print_links_table:
-    type: boolean
-    default: true
-    title: Print links table
-    description: |-
-      Print the table of link (river-lake, river-node) network variables.
-      Optional output used for model verification.
