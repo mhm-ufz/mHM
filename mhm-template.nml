@@ -24,10 +24,8 @@
   n_domains = 1
   ! Number of geological units
   n_geo_units = 25
-  ! Total number of lakes
-  n_lakes_total = 1
   ! Maximum number of lakes per domain
-  n_lakes = 1
+  max_lakes = 1
   ! Maximum number of soil layers
   max_layers = 10
   ! Flag for separate domains
@@ -524,17 +522,17 @@
 
 ! mLM configuration
 &config_mlm
-  ! mLM lake input path
-  input_path(:) = ""
-  ! mLM lake-point output path
+  ! Number of lakes
+  n_lakes(:) = 1
+  ! mLM lake-point output file
   output_path(:) = ""
   ! Read mLM restart
   read_restart(:) = .false.
-  ! mLM restart input path
+  ! mLM restart input file
   restart_input_path(:) = ""
   ! Write mLM restart
   write_restart(:) = .false.
-  ! mLM restart output path
+  ! mLM restart output file
   restart_output_path(:) = ""
   ! Force lake level initialization at restart
   force_initialize_lake_at_restart = .false.
@@ -554,40 +552,10 @@
   varying_psychro = .true.
   ! Water albedo calculation method
   albedo_method = 2
-  ! Hanasaki et al. (2006) release target
-  hanasaki_2006 = .true.
-  ! Point demand input
-  point_demand = .false.
   ! Lake hAV curve type
   bathymetry_type(:,:) = 0
   ! Natural lake flag
   natural(:,:) = .true.
-  ! Water-supply use flag
-  use_watersupply(:,:) = .false.
-  ! Irrigation use flag
-  use_irrigation(:,:) = .false.
-  ! Downstream service distance [km]
-  service_distance(:,:) = 600.0
-  ! Lake bathymetry file
-  bathymetry_filename(:,:) = ""
-  ! Release target file
-  release_target_filename(:,:) = ""
-  ! Water-supply demand file
-  watersupply_demand_filename(:,:) = ""
-  ! Irrigation demand file
-  irrigation_demand_filename(:,:) = ""
-  ! Inter-basin transfer file
-  ibt_filename(:,:) = ""
-  ! Observed water-level file
-  level_filename(:,:) = ""
-  ! Observed surface-area file
-  area_filename(:,:) = ""
-  ! Observed spill file
-  spill_filename(:,:) = ""
-  ! Print lake maps
-  print_lake_maps = .true.
-  ! Print links table
-  print_links_table = .true.
 /
 
 ! Observations configuration

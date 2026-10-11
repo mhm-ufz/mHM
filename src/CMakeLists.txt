@@ -32,9 +32,16 @@ set(sources
   mHM/mo_snow_accum_melt.f90
   mHM/mo_soil_moisture.f90
   mLM/mo_lake_balance.F90
+  mLM/mo_lake_bathymetry.F90
+  mLM/mo_lake_evaporation.F90
   mLM/mo_lake_forcing.F90
+  mLM/mo_lake_groundwaterstorage.F90
+  mLM/mo_lake_spill.F90
   mLM/mo_lake_topology.F90
+  mLM/mo_lake_water_balance.F90
+  mLM/mo_mlm_constants.f90
   mLM/mo_mlm_container.F90
+  mLM/mo_mlm_mpr.F90
   mRM/mo_mrm_container.F90
   mRM/mo_river.f90
   mRM/mo_river_flow.f90
@@ -50,6 +57,7 @@ set(sources
   nml/nml_config_coupling.f90
   nml/nml_config_domain.f90
   nml/nml_config_input.f90
+  nml/nml_config_lut.f90
   nml/nml_config_meteo.f90
   nml/nml_config_mhm.f90
   nml/nml_config_mlm.f90
@@ -69,6 +77,7 @@ set(sources
   nml/nml_parameter_direct_runoff_1.f90
   nml/nml_parameter_interception_1.f90
   nml/nml_parameter_interflow_1.f90
+  nml/nml_parameter_lakes_1.f90
   nml/nml_parameter_neutrons_1.f90
   nml/nml_parameter_neutrons_2.f90
   nml/nml_parameter_percolation_1.f90
