@@ -1142,6 +1142,10 @@ contains
     integer(i4), allocatable :: lake_soil_packed(:)
     real(dp), allocatable :: lake_sand_by_class(:), lake_clay_by_class(:)
     real(dp), allocatable :: lake_sand_packed(:), lake_clay_packed(:)
+    ! The lake footprint geological unit is packed from a full level-0 read (lake MPR).
+    integer(i4), allocatable :: lake_geo_full(:)
+    integer(i4), allocatable :: lake_geo_full_2d(:, :)
+    integer(i4), allocatable :: lake_geo_packed(:)
     log_info(*) "Connect Input"
     ts = self%time_stamp_location
 
@@ -1366,6 +1370,32 @@ contains
         deallocate(lake_sand_by_class, lake_clay_by_class, lake_sand_packed, lake_clay_packed)
       end block
       deallocate(lake_soil_full, lake_soil_full_2d, lake_soil_packed)
+    end if
+
+    ! geological unit on the lake footprint (detached lake MPR)
+    ! The land-surface geology class above is read directly onto the level-0 land grid, which holes
+    ! out the lake cells, so the geology under the lakes is discarded there. The detached lake MPR
+    ! needs the geological unit on the lake footprint to regionalize the lake baseflow recession
+    ! coefficient (the geological baseflow-parameter lookup, like the land baseflow process). Re-read
+    ! the configured geology class on the FULL level-0 grid, pack the lake-footprint subset onto the
+    ! level-0 lake grid (the same unpack/pack path as the lake soil above), and surface it to the mLM
+    ! container. The mLM container resolves the geology unit to a baseflow recession value with its own
+    ! geology LUT, independent of the land-surface geology class definition / MPR. No-op when there is
+    ! no lake footprint or no geology class is configured.
+    if (associated(self%exchange%level0_lake) .and. self%owns_river_l0 .and. self%geo_class%provided) then
+      allocate(lake_geo_full(self%exchange%level0%ncells))
+      init_grid = need_grid(self%tgt_level0, self%exchange%level0)
+      call self%geo_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
+      call self%geo_class%read_static(lake_geo_full)
+      allocate(lake_geo_full_2d(self%exchange%level0%nx, self%exchange%level0%ny))
+      call self%exchange%level0%unpack_into(lake_geo_full, lake_geo_full_2d)
+      allocate(lake_geo_packed(self%exchange%level0_lake%ncells))
+      call self%exchange%level0_lake%pack_into(lake_geo_full_2d, lake_geo_packed)
+      ! provide BEFORE prepare_storage: prepare_storage -> prepare_data asserts the variable is provided.
+      call self%exchange%lake_geo%provide("Input")
+      call self%exchange%lake_geo%prepare_storage("Input", no_time, [self%exchange%level0_lake%ncells])
+      call self%exchange%lake_geo%set_storage(lake_geo_packed)
+      deallocate(lake_geo_full, lake_geo_full_2d, lake_geo_packed)
     end if
 
     ! LAI class

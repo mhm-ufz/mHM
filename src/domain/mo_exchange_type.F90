@@ -306,6 +306,7 @@ module mo_exchange_type
     type(var_i8) :: lake_map             !< stable lake ID on packed level-0 lake cells
     type(var_dp) :: lake_sand           !< top-horizon sand content [%] on packed level-0 lake cells (static, lake MPR)
     type(var_dp) :: lake_clay           !< top-horizon clay content [%] on packed level-0 lake cells (static, lake MPR)
+    type(var_i4) :: lake_geo            !< geological unit ID on packed level-0 lake cells (static, lake MPR)
     type(var_dp) :: lake_max_surface_area_dem_derived  !< maximum lake surface area from DEM footprint (L0 inundation) [m2] on lake points
     type(var_dp) :: lake_inflow          !< completed hourly lake inflow [m3 s-1] on lake points
     type(var_dp) :: lake_outflow         !< current hourly lake outflow [m3 s-1] on lake points
@@ -571,6 +572,7 @@ contains
     self%lake_map        = var_i8(static=.true., grid=l0_lake, name="lake_map", units="1", long_name="stable lake ID")
     self%lake_sand       = var_dp(static=.true., grid=l0_lake, name="lake_sand", units="%", long_name="top-horizon sand content on lake footprint")
     self%lake_clay       = var_dp(static=.true., grid=l0_lake, name="lake_clay", units="%", long_name="top-horizon clay content on lake footprint")
+    self%lake_geo        = var_i4(static=.true., grid=l0_lake, name="lake_geo", units="1", long_name="geological unit ID on lake footprint")
     self%lake_max_surface_area_dem_derived       = var_dp(static=.true., points=points_lake, name="lake_max_surface_area_dem_derived", units="m2", long_name="maximum lake surface area from DEM footprint")
     self%lake_inflow     = var_dp(points=points_lake, name="lake_inflow",  units="m3 s-1", long_name="completed hourly lake inflow")
     self%lake_outflow    = var_dp(points=points_lake, name="lake_outflow", units="m3 s-1", long_name="current hourly lake outflow")
@@ -969,6 +971,7 @@ contains
     call self%lake_map%destroy()
     call self%lake_sand%destroy()
     call self%lake_clay%destroy()
+    call self%lake_geo%destroy()
     call self%lake_max_surface_area_dem_derived%destroy()
     call self%lake_inflow%destroy()
     call self%lake_outflow%destroy()
