@@ -42,6 +42,11 @@
 !!     * Baseflow: Detached lake MPR (baseflow recession coefficient): per-lake k_bf regionalized from the
 !!       lake-footprint geology (per-geological-unit lookup + footprint mean, mo_mlm_mpr); borrows the
 !!       land baseflow parameters when that process is active, else uses lakes_1's own per-unit array.
+!!     * Lake banks: reconcile the fixed DEM-footprint collection area against the dynamic water-balance
+!!       area each step; the net atmospheric flux over the ring (A_footprint - A_water) enters as a
+!!       signed same-step inflow correction (exposed bank uses soil evaporation Es = c_soil * E, the
+!!       over-flooded ring uses open-water E), closing the budget over the true footprint. The
+!!       DEM-footprint area is retained and restart-persisted (lake_footprint_area).
 !> \authors Pallav Shrestha
 !> \authors Sebastian Mueller
 !> \date 2026
@@ -947,6 +952,8 @@ contains
     real(dp) :: spill, volume_adjustment, tsHydroSecs, perc, baseflow, leakance, kbf
     real(dp) :: ntimesteps_day, evap_daily, evap_step, pr_step, qin_d, qout_d, pre_d, lat, lon
     real(dp) :: wind_k, tdew_k
+    real(dp) :: a_bank, es_step, q_bank
+    real(dp), parameter :: bank_soil_evap_ratio = 0.8_dp !< moist bank soil evaporation as a fraction of open-water evaporation (Es = c_soil * E); hard-coded this phase
     real(dp) :: evap_components(3)
     logical :: isday
     real(dp) :: input_windspeed_height, climatological_windspeed
@@ -980,7 +987,8 @@ contains
         varying_psychro = self%config%varying_psychro
         !$omp parallel do default(shared) &
         !$omp   private(k, spill, volume_adjustment, perc, baseflow, leakance, kbf, &
-        !$omp           evap_daily, evap_step, pr_step, qin_d, qout_d, pre_d, lat, lon, wind_k, tdew_k, evap_components) &
+        !$omp           evap_daily, evap_step, pr_step, qin_d, qout_d, pre_d, lat, lon, wind_k, tdew_k, evap_components, &
+        !$omp           a_bank, es_step, q_bank) &
         !$omp   schedule(dynamic)
         do k = 1_i8, n_lakes
           ! Darcy lakebed leakance Ks/b [TS-1 per unit head] and per-step baseflow recession.
@@ -1055,8 +1063,28 @@ contains
               evap_daily, evap_components)
             call temporal_disagg_flux_daynight(isday, ntimesteps_day, evap_daily, 0.5_dp, 0.5_dp, evap_step)
           end if
+          ! Lake banks (Shrestha & Mueller, 2026): reconcile the fixed DEM-footprint collection area
+          ! against the dynamic water-balance area. The atmospheric term of the water balance applies
+          ! P and E over the dynamic water area A_water, while mRM collects inflow over the fixed
+          ! DEM footprint A_footprint. The ring between them (A_footprint - A_water) is therefore
+          ! unaccounted. Account its net atmospheric flux as a same-step inflow correction so the lake
+          ! budget closes over the true footprint. The correction is symmetric:
+          !   A_bank > 0 (water inside the footprint): the exposed-bank ring receives P and loses soil
+          !     evaporation Es = c_soil * E (moist bank); its net (P - Es) is routed to the lake, on the
+          !     basis that bank runoff and subsurface seepage both ultimately report to the lake.
+          !   A_bank < 0 (water beyond the footprint): the over-flooded ring's (P - E) was already
+          !     accounted on the mHM land side, so it is removed from the lake to avoid double counting.
+          ! Both are a single signed term with the exposed side using soil E and the flooded side using
+          ! open-water E. A_water is the previous-step surface area (non-circular, as for perc/baseflow).
+          a_bank = self%static_lake_footprint_area(k) - self%lake_surface_area_previous(k)
+          if (a_bank >= 0.0_dp) then
+            es_step = bank_soil_evap_ratio * evap_step           ! exposed moist bank: soil evaporation
+          else
+            es_step = evap_step                                  ! over-flooded: open-water evaporation
+          end if
+          q_bank = (pr_step - es_step) / 1000.0_dp * a_bank / tsHydroSecs  ! [m3 s-1], signed
           ! Iterative water balance -> updates level, surface area and volume (consumes perc, evap, spill).
-          call lake_balance(.true., pr_step, evap_step, self%exchange%lake_inflow%data(k), perc, 0.0_dp, spill, 0.0_dp, &
+          call lake_balance(.true., pr_step, evap_step, self%exchange%lake_inflow%data(k) + q_bank, perc, 0.0_dp, spill, 0.0_dp, &
             self%hav(k)%level, self%hav(k)%surface_area, self%hav(k)%volume, &
             self%static_lake_spill_reference_level(k), &
             self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
