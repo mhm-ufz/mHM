@@ -302,7 +302,6 @@ module mo_exchange_type
     type(var_dp) :: lake_max_level_reported      !< maximum lake level [m] on lake points
     type(var_dp) :: lake_max_surface_area_reported !< reported maximum lake surface area [m2] on lake points
     type(var_dp) :: lake_max_volume_reported       !< reported maximum lake volume / capacity [m3] on lake points
-    type(var_dp) :: lake_spillway_length !< effective spillway crest length [m] on lake points
     type(var_dp) :: lake_initial_level   !< initial lake level [m] on lake points
     type(var_dp) :: lake_latitude        !< geographic latitude [degree] on lake points
     type(var_dp) :: lake_longitude       !< geographic longitude [degree] on lake points
@@ -569,7 +568,6 @@ contains
     self%lake_max_level_reported = var_dp(static=.true., points=points_lake, name="lake_max_level_reported", units="m", long_name="maximum lake level")
     self%lake_max_surface_area_reported = var_dp(static=.true., points=points_lake, name="lake_max_surface_area_reported", units="m2", long_name="reported maximum lake surface area")
     self%lake_max_volume_reported = var_dp(static=.true., points=points_lake, name="lake_max_volume_reported", units="m3", long_name="reported maximum lake volume")
-    self%lake_spillway_length = var_dp(static=.true., points=points_lake, name="lake_spillway_length", units="m", long_name="effective spillway crest length")
     self%lake_initial_level = var_dp(static=.true., points=points_lake, name="lake_initial_level", units="m", long_name="initial lake level")
     self%lake_latitude = var_dp(static=.true., points=points_lake, name="lake_latitude", units="degree", long_name="geographic latitude")
     self%lake_longitude = var_dp(static=.true., points=points_lake, name="lake_longitude", units="degree", long_name="geographic longitude")
@@ -999,7 +997,6 @@ contains
     call self%lake_max_level_reported%destroy()
     call self%lake_max_surface_area_reported%destroy()
     call self%lake_max_volume_reported%destroy()
-    call self%lake_spillway_length%destroy()
     call self%lake_initial_level%destroy()
     call self%lake_latitude%destroy()
     call self%lake_longitude%destroy()

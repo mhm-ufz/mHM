@@ -1606,14 +1606,6 @@ contains
           error stop 1
         end if
       end if
-      if (allocated(self%restart_lake_spillway_length) .and. &
-          self%exchange%lake_spillway_length%has_data()) then
-        if (.not.is_close(self%restart_lake_spillway_length(j), &
-                          self%exchange%lake_spillway_length%data(i))) then
-          log_fatal(*) "mLM restart and Input spillway length differ for stable lake ID."
-          error stop 1
-        end if
-      end if
       if (allocated(self%restart_lake_initial_level) .and. &
           self%exchange%lake_initial_level%has_data()) then
         if (.not.is_close(self%restart_lake_initial_level(j), &

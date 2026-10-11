@@ -73,7 +73,6 @@ Variable name entries define the NetCDF variable names to read.
 | [lake_level_var](#lake_level_var) | string array | no | no | Maximum lake level variable name |
 | [lake_surface_area_var](#lake_surface_area_var) | string array | no | no | Maximum lake surface area variable name |
 | [lake_volume_var](#lake_volume_var) | string array | no | no | Maximum lake volume variable name |
-| [lake_spillway_length_var](#lake_spillway_length_var) | string array | no | no | Lake spillway length variable name |
 | [lake_initial_level_var](#lake_initial_level_var) | string array | no | no | Initial lake level variable name |
 | [facc_var](#facc_var) | string array | no | no | Flow accumulation variable name |
 | [geo_class_var](#geo_class_var) | string array | no | no | Geology class variable name |
@@ -720,18 +719,6 @@ Summary:
 - Input required: no
 - Default: `"lake_max_volume_reported"`
 
-### lake_spillway_length_var
-
-Lake spillway length variable name `lake_spillway_length_var`
-
-Variable name of the effective spillway crest length in the lake definition file (read in m, SI, no conversion).
-
-Summary:
-- Type: `character(len=buf), dimension(n_domains)`
-- Declared required: no
-- Input required: no
-- Default: `"spillway_length"`
-
 ### lake_initial_level_var
 
 Initial lake level variable name `lake_initial_level_var`
@@ -929,7 +916,6 @@ Summary:
   lake_level_var(:) = "lake_max_level_reported"
   lake_surface_area_var(:) = "lake_max_surface_area_reported"
   lake_volume_var(:) = "lake_max_volume_reported"
-  lake_spillway_length_var(:) = "spillway_length"
   lake_initial_level_var(:) = "initial_lake_level"
   facc_var(:) = "facc"
   geo_class_var(:) = "geology_class"

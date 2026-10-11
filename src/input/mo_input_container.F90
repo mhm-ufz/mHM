@@ -144,7 +144,6 @@ module mo_input_container
     real(dp), allocatable :: lake_max_level_reported(:) !< maximum lake levels aligned with lake_outlets
     real(dp), allocatable :: lake_max_surface_area_reported(:) !< reported maximum lake surface areas [m2] aligned with lake_outlets
     real(dp), allocatable :: lake_max_volume_reported(:) !< reported maximum lake volumes [m3] aligned with lake_outlets
-    real(dp), allocatable :: lake_spillway_length(:) !< effective spillway crest length [m] aligned with lake_outlets
     real(dp), allocatable :: lake_initial_level(:) !< initial lake level [m] aligned with lake_outlets
     real(dp), allocatable :: lake_latitude(:) !< geographic latitude [degree] aligned with lake_outlets
     real(dp), allocatable :: lake_longitude(:) !< geographic longitude [degree] aligned with lake_outlets
@@ -1117,7 +1116,6 @@ contains
       call self%exchange%lake_max_level_reported%provide("Input")
       call self%exchange%lake_max_surface_area_reported%provide("Input")
       call self%exchange%lake_max_volume_reported%provide("Input")
-      call self%exchange%lake_spillway_length%provide("Input")
       call self%exchange%lake_initial_level%provide("Input")
       call self%exchange%lake_latitude%provide("Input")
       call self%exchange%lake_longitude%provide("Input")
@@ -1714,7 +1712,7 @@ contains
     type(var), allocatable :: vars(:)
     real(dp), allocatable :: coords(:,:)
     integer(i8), allocatable :: outlet_nodes(:)
-    character(:), allocatable :: path, name, area_name, volume_name, spillway_length_name, initial_level_name
+    character(:), allocatable :: path, name, area_name, volume_name, initial_level_name
     real(dp), allocatable :: area_reported_in(:), volume_reported_in(:)
     integer(i8) :: i, node
     integer(i4) :: ix, iy
@@ -1733,13 +1731,11 @@ contains
     name = trim(self%config%input%lake_level_var(self%exchange%nml_domain_id))
     area_name = trim(self%config%input%lake_surface_area_var(self%exchange%nml_domain_id))
     volume_name = trim(self%config%input%lake_volume_var(self%exchange%nml_domain_id))
-    spillway_length_name = trim(self%config%input%lake_spillway_length_var(self%exchange%nml_domain_id))
     initial_level_name = trim(self%config%input%lake_initial_level_var(self%exchange%nml_domain_id))
     scope_info(s,*) "Read lake specification from file: ", path
     vars = [var(name=name, long_name="maximum lake level", units="m", static=.true.), &
             var(name=area_name, long_name="reported maximum lake surface area", units="km2", static=.true.), &
             var(name=volume_name, long_name="reported maximum lake volume", units="1e6 m3", static=.true.), &
-            var(name=spillway_length_name, long_name="effective spillway crest length", units="m", static=.true.), &
             var(name=initial_level_name, long_name="initial lake level", units="m", static=.true.)]
     call input%init(path, vars=vars, points=self%lake_outlets, points_init_var=name)
     call input%get_ids(self%lake_ids)
@@ -1749,11 +1745,9 @@ contains
     call input%read(name, self%lake_max_level_reported)
     call input%read(area_name, area_reported_in)
     call input%read(volume_name, volume_reported_in)
-    allocate(self%lake_spillway_length(self%lake_outlets%n_points))
     allocate(self%lake_initial_level(self%lake_outlets%n_points))
     allocate(self%lake_latitude(self%lake_outlets%n_points), source=nodata_dp)
     allocate(self%lake_longitude(self%lake_outlets%n_points), source=nodata_dp)
-    call input%read(spillway_length_name, self%lake_spillway_length)
     call input%read(initial_level_name, self%lake_initial_level)
     call input%close()
 
@@ -1826,8 +1820,6 @@ contains
     self%exchange%lake_max_surface_area_reported%data => self%lake_max_surface_area_reported
     call self%exchange%lake_max_volume_reported%prepare_data("Input", no_time)
     self%exchange%lake_max_volume_reported%data => self%lake_max_volume_reported
-    call self%exchange%lake_spillway_length%prepare_data("Input", no_time)
-    self%exchange%lake_spillway_length%data => self%lake_spillway_length
     call self%exchange%lake_initial_level%prepare_data("Input", no_time)
     self%exchange%lake_initial_level%data => self%lake_initial_level
     call self%exchange%lake_latitude%prepare_data("Input", no_time)

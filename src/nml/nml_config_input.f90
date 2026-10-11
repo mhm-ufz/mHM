@@ -68,7 +68,6 @@ module nml_config_input
   character(len=buf), parameter, public :: lake_level_var__default = "lake_max_level_reported"
   character(len=buf), parameter, public :: lake_surface_area_var__default = "lake_max_surface_area_reported"
   character(len=buf), parameter, public :: lake_volume_var__default = "lake_max_volume_reported"
-  character(len=buf), parameter, public :: lake_spillway_length_var__default = "spillway_length"
   character(len=buf), parameter, public :: lake_initial_level_var__default = "initial_lake_level"
   character(len=buf), parameter, public :: facc_var__default = "facc"
   character(len=buf), parameter, public :: geo_class_var__default = "geology_class"
@@ -158,7 +157,6 @@ module nml_config_input
     character(len=buf), allocatable, dimension(:) :: lake_level_var !< Maximum lake level variable name
     character(len=buf), allocatable, dimension(:) :: lake_surface_area_var !< Maximum lake surface area variable name
     character(len=buf), allocatable, dimension(:) :: lake_volume_var !< Maximum lake volume variable name
-    character(len=buf), allocatable, dimension(:) :: lake_spillway_length_var !< Lake spillway length variable name
     character(len=buf), allocatable, dimension(:) :: lake_initial_level_var !< Initial lake level variable name
     character(len=buf), allocatable, dimension(:) :: facc_var !< Flow accumulation variable name
     character(len=buf), allocatable, dimension(:) :: geo_class_var !< Geology class variable name
@@ -349,8 +347,6 @@ contains
     allocate(character(len=buf) :: this%lake_surface_area_var(this%n_domains))
     if (allocated(this%lake_volume_var)) deallocate(this%lake_volume_var)
     allocate(character(len=buf) :: this%lake_volume_var(this%n_domains))
-    if (allocated(this%lake_spillway_length_var)) deallocate(this%lake_spillway_length_var)
-    allocate(character(len=buf) :: this%lake_spillway_length_var(this%n_domains))
     if (allocated(this%lake_initial_level_var)) deallocate(this%lake_initial_level_var)
     allocate(character(len=buf) :: this%lake_initial_level_var(this%n_domains))
     if (allocated(this%facc_var)) deallocate(this%facc_var)
@@ -441,7 +437,6 @@ contains
     this%lake_level_var = lake_level_var__default
     this%lake_surface_area_var = lake_surface_area_var__default
     this%lake_volume_var = lake_volume_var__default
-    this%lake_spillway_length_var = lake_spillway_length_var__default
     this%lake_initial_level_var = lake_initial_level_var__default
     this%facc_var = facc_var__default
     this%geo_class_var = geo_class_var__default
@@ -542,7 +537,6 @@ contains
     if (allocated(this%lake_level_var)) deallocate(this%lake_level_var)
     if (allocated(this%lake_surface_area_var)) deallocate(this%lake_surface_area_var)
     if (allocated(this%lake_volume_var)) deallocate(this%lake_volume_var)
-    if (allocated(this%lake_spillway_length_var)) deallocate(this%lake_spillway_length_var)
     if (allocated(this%lake_initial_level_var)) deallocate(this%lake_initial_level_var)
     if (allocated(this%facc_var)) deallocate(this%facc_var)
     if (allocated(this%geo_class_var)) deallocate(this%geo_class_var)
@@ -627,7 +621,6 @@ contains
     character(len=buf), allocatable, dimension(:) :: lake_level_var
     character(len=buf), allocatable, dimension(:) :: lake_surface_area_var
     character(len=buf), allocatable, dimension(:) :: lake_volume_var
-    character(len=buf), allocatable, dimension(:) :: lake_spillway_length_var
     character(len=buf), allocatable, dimension(:) :: lake_initial_level_var
     character(len=buf), allocatable, dimension(:) :: facc_var
     character(len=buf), allocatable, dimension(:) :: geo_class_var
@@ -709,7 +702,6 @@ contains
       lake_level_var, &
       lake_surface_area_var, &
       lake_volume_var, &
-      lake_spillway_length_var, &
       lake_initial_level_var, &
       facc_var, &
       geo_class_var, &
@@ -849,8 +841,6 @@ contains
     allocate(character(len=buf) :: lake_surface_area_var(this%n_domains))
     if (allocated(lake_volume_var)) deallocate(lake_volume_var)
     allocate(character(len=buf) :: lake_volume_var(this%n_domains))
-    if (allocated(lake_spillway_length_var)) deallocate(lake_spillway_length_var)
-    allocate(character(len=buf) :: lake_spillway_length_var(this%n_domains))
     if (allocated(lake_initial_level_var)) deallocate(lake_initial_level_var)
     allocate(character(len=buf) :: lake_initial_level_var(this%n_domains))
     if (allocated(facc_var)) deallocate(facc_var)
@@ -938,7 +928,6 @@ contains
     lake_level_var = this%lake_level_var
     lake_surface_area_var = this%lake_surface_area_var
     lake_volume_var = this%lake_volume_var
-    lake_spillway_length_var = this%lake_spillway_length_var
     lake_initial_level_var = this%lake_initial_level_var
     facc_var = this%facc_var
     geo_class_var = this%geo_class_var
@@ -1038,7 +1027,6 @@ contains
     this%lake_level_var = lake_level_var
     this%lake_surface_area_var = lake_surface_area_var
     this%lake_volume_var = lake_volume_var
-    this%lake_spillway_length_var = lake_spillway_length_var
     this%lake_initial_level_var = lake_initial_level_var
     this%facc_var = facc_var
     this%geo_class_var = geo_class_var
@@ -1121,7 +1109,6 @@ contains
     lake_level_var, &
     lake_surface_area_var, &
     lake_volume_var, &
-    lake_spillway_length_var, &
     lake_initial_level_var, &
     facc_var, &
     geo_class_var, &
@@ -1200,7 +1187,6 @@ contains
     character(len=*), dimension(:), intent(in), optional :: lake_level_var !< Maximum lake level variable name
     character(len=*), dimension(:), intent(in), optional :: lake_surface_area_var !< Maximum lake surface area variable name
     character(len=*), dimension(:), intent(in), optional :: lake_volume_var !< Maximum lake volume variable name
-    character(len=*), dimension(:), intent(in), optional :: lake_spillway_length_var !< Lake spillway length variable name
     character(len=*), dimension(:), intent(in), optional :: lake_initial_level_var !< Initial lake level variable name
     character(len=*), dimension(:), intent(in), optional :: facc_var !< Flow accumulation variable name
     character(len=*), dimension(:), intent(in), optional :: geo_class_var !< Geology class variable name
@@ -1832,16 +1818,6 @@ contains
       lb__1 = lbound(this%lake_volume_var, 1)
       ub__1 = lb__1 + size(lake_volume_var, 1) - 1
       this%lake_volume_var(lb__1:ub__1) = lake_volume_var
-    end if
-    if (present(lake_spillway_length_var)) then
-      if (size(lake_spillway_length_var, 1) > size(this%lake_spillway_length_var, 1)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lake_spillway_length_var'"
-        return
-      end if
-      lb__1 = lbound(this%lake_spillway_length_var, 1)
-      ub__1 = lb__1 + size(lake_spillway_length_var, 1) - 1
-      this%lake_spillway_length_var(lb__1:ub__1) = lake_spillway_length_var
     end if
     if (present(lake_initial_level_var)) then
       if (size(lake_initial_level_var, 1) > size(this%lake_initial_level_var, 1)) then
@@ -2726,17 +2702,6 @@ contains
       if (present(idx)) then
         status = idx_check(idx, lbound(this%lake_volume_var), ubound(this%lake_volume_var), &
           "lake_volume_var", errmsg)
-        if (status /= NML_OK) return
-      else
-      end if
-    case ("lake_spillway_length_var")
-      if (.not. allocated(this%lake_spillway_length_var)) then
-        status = NML_ERR_NOT_SET
-        return
-      end if
-      if (present(idx)) then
-        status = idx_check(idx, lbound(this%lake_spillway_length_var), ubound(this%lake_spillway_length_var), &
-          "lake_spillway_length_var", errmsg)
         if (status /= NML_OK) return
       else
       end if

@@ -254,8 +254,6 @@
   lake_surface_area_var(:) = "lake_max_surface_area_reported"
   ! Maximum lake volume variable name
   lake_volume_var(:) = "lake_max_volume_reported"
-  ! Lake spillway length variable name
-  lake_spillway_length_var(:) = "spillway_length"
   ! Initial lake level variable name
   lake_initial_level_var(:) = "initial_lake_level"
   ! Flow accumulation variable name

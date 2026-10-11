@@ -510,15 +510,6 @@ properties:
     x-fortran-shape: n_domains
     title: Maximum lake volume variable name
     description: Variable name of the reported maximum lake volume in the lake definition file (read in 1e6 m3 / mcm, converted to m3 on read).
-  lake_spillway_length_var:
-    type: array
-    items:
-      type: string
-      x-fortran-len: buf
-      default: spillway_length
-    x-fortran-shape: n_domains
-    title: Lake spillway length variable name
-    description: Variable name of the effective spillway crest length in the lake definition file (read in m, SI, no conversion).
   lake_initial_level_var:
     type: array
     items:
