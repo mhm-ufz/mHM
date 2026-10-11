@@ -1,0 +1,62 @@
+module test_lake_spillway_length
+  use funit
+  use mo_kind, only: i4, dp
+  use mo_mlm_mpr, only: lake_derive_spillway_length
+
+  implicit none
+  private
+
+  public :: test_power_law_value
+  public :: test_multiplier_scaling
+  public :: test_monotonic_in_area
+
+  real(dp), parameter :: coefficient = 2.7_dp
+  real(dp), parameter :: expo        = 0.35_dp
+
+contains
+
+  !> Ls = m * 2.7 * CA^0.35, CA given in m2 and converted to km2 internally.
+  @test
+  subroutine test_power_law_value()
+    real(dp), allocatable :: ls(:)
+    real(dp) :: ca_m2(2), expected(2)
+
+    ! 100 km2 and 10000 km2 expressed in m2
+    ca_m2 = [100.0_dp * 1.0e6_dp, 10000.0_dp * 1.0e6_dp]
+    expected = 1.0_dp * coefficient * [100.0_dp, 10000.0_dp] ** expo
+
+    call lake_derive_spillway_length(ca_m2, 1.0_dp, ls)
+
+    @assertEqual(2, size(ls, kind=i4))
+    @assertEqual(expected(1), ls(1), tolerance=1.0e-9_dp)
+    @assertEqual(expected(2), ls(2), tolerance=1.0e-9_dp)
+    ! sanity magnitudes: ~13.5 m and ~67.8 m
+    @assertEqual(13.5_dp, ls(1), tolerance=0.1_dp)
+    @assertEqual(67.8_dp, ls(2), tolerance=0.2_dp)
+  end subroutine test_power_law_value
+
+  !> The multiplier m scales Ls linearly.
+  @test
+  subroutine test_multiplier_scaling()
+    real(dp), allocatable :: ls1(:), ls2(:)
+    real(dp) :: ca_m2(1)
+
+    ca_m2 = [250.0_dp * 1.0e6_dp]
+    call lake_derive_spillway_length(ca_m2, 1.0_dp, ls1)
+    call lake_derive_spillway_length(ca_m2, 2.0_dp, ls2)
+    @assertEqual(2.0_dp * ls1(1), ls2(1), tolerance=1.0e-9_dp)
+  end subroutine test_multiplier_scaling
+
+  !> Ls increases with catchment area.
+  @test
+  subroutine test_monotonic_in_area()
+    real(dp), allocatable :: ls(:)
+    real(dp) :: ca_m2(3)
+
+    ca_m2 = [1.0_dp, 100.0_dp, 10000.0_dp] * 1.0e6_dp
+    call lake_derive_spillway_length(ca_m2, 1.3_dp, ls)
+    @assertTrue(ls(2) > ls(1))
+    @assertTrue(ls(3) > ls(2))
+  end subroutine test_monotonic_in_area
+
+end module test_lake_spillway_length

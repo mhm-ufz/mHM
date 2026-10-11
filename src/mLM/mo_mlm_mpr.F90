@@ -47,6 +47,7 @@ MODULE mo_mlm_mpr
   PUBLIC :: lake_read_geology_lut     ! reads the geological unit IDs and their global baseflow-parameter index from the geology LUT
   PUBLIC :: lake_check_geo_units      ! checks that every geological unit on the lake footprint is present in the geology LUT
   PUBLIC :: upscale_arithmetic_mean_lake ! per-lake arithmetic (cell-count) mean of a level-0 lake-footprint field
+  PUBLIC :: lake_derive_spillway_length ! regionalizes the per-lake spillway length from the lake catchment (drainage) area
 
   ! ------------------------------------------------------------------
 
@@ -571,5 +572,81 @@ CONTAINS
     deallocate(cell_count)
 
   end subroutine upscale_arithmetic_mean_lake
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         lake_derive_spillway_length
+
+  !     PURPOSE
+  !>        \brief Regionalizes the per-lake effective spillway crest length from the catchment area.
+
+  !>        \details Derives the effective spillway crest length Ls [m] for every lake from the lake
+  !>                 drainage (catchment) area CA [km2] by the downstream-hydraulic-geometry power law
+  !>                 \f[ L_s = m \cdot 2.7 \cdot CA^{0.35} \f]
+  !>                 with CA taken at the lake outlet node (the routing upstream / contributing area,
+  !>                 river%upstream_area at river%lake_outlet_nodes) and converted from m2 to km2. The
+  !>                 base coefficient (2.7) and exponent (0.35) are fixed; the single global
+  !>                 (pan-domain) multiplier m = spillway_length_multiplier (lakes_1) scales all lakes
+  !>                 and is the only calibrated quantity. The spillway crest length is taken proportional
+  !>                 to the channel / bankfull width at the lake outlet, following the bankfull-width
+  !>                 versus drainage-area regressions of downstream hydraulic geometry (width = a*DA^b,
+  !>                 with b ~ 0.3-0.4 and a ~ 2.7). This routine owns no global connections: it takes the
+  !>                 per-lake catchment area and the scalar multiplier and returns Ls per lake, so it is
+  !>                 self-contained and directly unit-testable, mirroring lake_derive_ks / lake_derive_kbf.
+
+  !     CALLING SEQUENCE
+  !         call lake_derive_spillway_length(catchment_area, spillway_length_multiplier, spillway_length)
+
+  !     INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: catchment_area"             [m2] lake catchment (drainage)
+  !>                                                                           area at the outlet, in lake-point order
+  !>       \param[in] "real(dp)               :: spillway_length_multiplier" [-]  global multiplier m
+
+  !     INTENT(OUT)
+  !>       \param[out] "real(dp), allocatable, dimension(:) :: spillway_length" [m] effective spillway crest length per lake
+
+  !     RESTRICTIONS
+  !>       \note Every lake must have a strictly positive catchment area (a lake outlet always has at
+  !>             least its own cell draining to it), otherwise the derivation is fatal.
+
+  !     LITERATURE
+  !>       Bieger, K., Rathjens, H., Allen, P. M., & Arnold, J. G. (2015). Development and evaluation of
+  !>         bankfull hydraulic geometry relationships for the physiographic regions of the United States.
+  !>         JAWRA, 51(4), 842-858.
+  !>       Leopold, L. B., & Maddock, T. (1953). The hydraulic geometry of stream channels and some
+  !>         physiographic implications. USGS Professional Paper 252.
+  !>       Wilkerson, G. V., Kandel, D. R., Perg, L. A., Dietrich, W. E., Wilcock, P. R., & Whiles, M. R.
+  !>         (2014). Continental-scale relationship between bankfull width and drainage area for single-thread
+  !>         alluvial channels. JAWRA, 50(4), 962-976.
+  !>       LISFLOOD: channel bankfull width derived as a power law of the upstream drainage area.
+
+  !     HISTORY
+  !>       \authors Pallav K Shrestha
+  !>       \date    October 2026
+
+  subroutine lake_derive_spillway_length(catchment_area, spillway_length_multiplier, spillway_length)
+
+    real(dp), dimension(:),              intent(in)  :: catchment_area             ! [m2] catchment area per lake (outlet upstream area)
+    real(dp),                            intent(in)  :: spillway_length_multiplier ! [-]  global multiplier m
+    real(dp), allocatable, dimension(:), intent(out) :: spillway_length           ! [m]  spillway crest length per lake
+
+    real(dp), parameter :: coefficient = 2.7_dp  ! base coefficient of the width-vs-drainage-area power law
+    real(dp), parameter :: area_exponent = 0.35_dp ! exponent of the width-vs-drainage-area power law
+    real(dp), parameter :: square_metre_to_square_kilometre = 1.0e-6_dp
+
+    real(dp), allocatable :: catchment_area_km2(:)
+
+    if (any(catchment_area <= 0.0_dp)) then
+      log_fatal(*) "lake_derive_spillway_length: every lake must have a strictly positive catchment area."
+      error stop 1
+    end if
+
+    catchment_area_km2 = catchment_area * square_metre_to_square_kilometre
+    spillway_length = spillway_length_multiplier * coefficient * catchment_area_km2 ** area_exponent
+
+    deallocate(catchment_area_km2)
+
+  end subroutine lake_derive_spillway_length
 
 END MODULE mo_mlm_mpr
