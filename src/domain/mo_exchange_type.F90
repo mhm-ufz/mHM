@@ -28,7 +28,8 @@ module mo_exchange_type
   use nml_config_domain, only: nml_config_domain_t
   use nml_config_processes, only: nml_config_processes_t
   use nml_config_resolution, only: nml_config_resolution_t
-  use nml_helper, only: NML_OK
+  use nml_config_lut, only: nml_config_lut_t
+  use nml_helper, only: NML_OK, NML_ERR_NML_NOT_FOUND
 
   implicit none
   private
@@ -43,6 +44,7 @@ module mo_exchange_type
     type(nml_config_processes_t) :: processes !< process selections shared by all components
     type(nml_config_time_t) :: time           !< domain-local time configuration
     type(nml_config_resolution_t) :: resolution !< domain-local target grid resolutions
+    type(nml_config_lut_t) :: lut             !< domain-local look-up table paths (metadata)
     type(parameter_namelists_t) :: parameters !< process parameter input configuration
   end type exchange_config_t
 
@@ -728,6 +730,13 @@ contains
         error stop 1
       end if
     end if
+    if (.not.self%config%lut%is_configured) then
+      status = self%config%lut%set_dims(n_domains=self%nml_n_domains, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error setting lut config dimensions: ", trim(errmsg)
+        error stop 1
+      end if
+    end if
     call self%config%parameters%set_dims(n_geo_units=self%n_geo_units)
   end subroutine exchange_set_dims
 
@@ -878,6 +887,25 @@ contains
     if (status /= NML_OK) then
       log_fatal(*) "Resolution config not valid: ", trim(errmsg)
       error stop 1
+    end if
+
+    ! Look-up table paths are optional metadata: an absent config_lut namelist leaves the
+    ! paths unconfigured, which the containers detect at point of use. Only a malformed
+    ! config_lut namelist is fatal here.
+    if (self%from_dirs .or. present(main_file)) then
+      status = self%config%lut%from_file(file=config_file, errmsg=errmsg)
+      if (status /= NML_OK .and. status /= NML_ERR_NML_NOT_FOUND) then
+        log_fatal(*) "Error reading lut config: ", trim(errmsg)
+        error stop 1
+      end if
+      if (status == NML_OK) then
+        log_info(*) "Read lut config: ", config_file
+        status = self%config%lut%is_valid(errmsg=errmsg)
+        if (status /= NML_OK) then
+          log_fatal(*) "Lut config not valid: ", trim(errmsg)
+          error stop 1
+        end if
+      end if
     end if
 
     id(1) = self%nml_domain_id
