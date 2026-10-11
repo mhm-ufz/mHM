@@ -17,6 +17,8 @@
 !! This code is released under the LGPLv3+ license \license_note
 module mo_river
 
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+  use mo_netcdf_wrapper, only: ncw_redef, ncw_enddef, NCW_NOERR, ncw_strerror
   use mo_kind,   only: i1, i2, i4, i8, sp, dp
   use mo_dag, only: branching, order_t, traversal_visit
   use mo_grid, only: grid_t, bottom_up, cartesian, dist_latlon
@@ -90,6 +92,9 @@ module mo_river
     procedure, public :: calc_length => river_length
     procedure, public :: calc_slope => river_slope
     procedure, public :: calc_celerity => river_celerity
+    procedure, public :: estimate_width => river_estimate_width
+    procedure, public :: calc_surface_area => river_surface_area
+    procedure, public :: write_estimated_width_diagnostic => river_write_estimated_width_diagnostic
     generic, public :: select_cell_values => river_select_cell_values_dp, river_select_cell_values_i4
     procedure, private :: river_select_cell_values_dp, river_select_cell_values_i4
     procedure, public :: export => river_export
@@ -860,7 +865,7 @@ contains
     logical, optional, intent(in) :: mask(:)
     integer(i8), parameter :: block_size = 1048576_i8 ! 2^20
     integer(i8) :: n, nblocks, block, first, last, i, j, n_selected
-    integer(i8), allocatable :: block_count(:), block_offset(:)
+    integer(i8), allocatable :: counts_per_block(:), offsets_per_block(:)
     real(dp), allocatable :: values(:)
     real(dp) :: median_slope, median_deviation, threshold
     logical :: fallback_to_floor
@@ -870,7 +875,7 @@ contains
       if (size(mask, kind=i8) /= n) call error_message("river_smooth_slope: slope and mask have different size")
     end if
     nblocks = (n - 1_i8) / block_size + 1_i8
-    allocate(block_count(nblocks))
+    allocate(counts_per_block(nblocks))
 
     ! The generic MAD implementation excludes the floor value. If no values remain,
     ! it falls back to all floor values, independently of the input mask.
@@ -878,13 +883,13 @@ contains
     do block = 1_i8, nblocks
       first = (block - 1_i8) * block_size + 1_i8
       last = min(block * block_size, n)
-      block_count(block) = 0_i8
+      counts_per_block(block) = 0_i8
       do i = first, last
-        if (river_slope_selected(slope(i), i, mask, .false.)) block_count(block) = block_count(block) + 1_i8
+        if (river_slope_selected(slope(i), i, mask, .false.)) counts_per_block(block) = counts_per_block(block) + 1_i8
       end do
     end do
     !$omp end parallel do
-    n_selected = sum(block_count)
+    n_selected = sum(counts_per_block)
     fallback_to_floor = n_selected == 0_i8
 
     if (fallback_to_floor) then
@@ -892,25 +897,25 @@ contains
       do block = 1_i8, nblocks
         first = (block - 1_i8) * block_size + 1_i8
         last = min(block * block_size, n)
-        block_count(block) = 0_i8
+        counts_per_block(block) = 0_i8
         do i = first, last
           if (river_slope_selected(slope(i), i, mask, .true.)) then
-            block_count(block) = block_count(block) + 1_i8
+            counts_per_block(block) = counts_per_block(block) + 1_i8
           end if
         end do
       end do
       !$omp end parallel do
-      n_selected = sum(block_count)
+      n_selected = sum(counts_per_block)
     end if
 
     ! Return if fewer than two values are selected
     if (n_selected < 2_i8) return
 
-    allocate(block_offset(nblocks))
+    allocate(offsets_per_block(nblocks))
     n_selected = 0_i8
     do block = 1_i8, nblocks
-      block_offset(block) = n_selected
-      n_selected = n_selected + block_count(block)
+      offsets_per_block(block) = n_selected
+      n_selected = n_selected + counts_per_block(block)
     end do
     allocate(values(n_selected))
 
@@ -918,7 +923,7 @@ contains
     do block = 1_i8, nblocks
       first = (block - 1_i8) * block_size + 1_i8
       last = min(block * block_size, n)
-      j = block_offset(block)
+      j = offsets_per_block(block)
       do i = first, last
         if (river_slope_selected(slope(i), i, mask, fallback_to_floor)) then
           j = j + 1_i8
@@ -929,14 +934,16 @@ contains
     !$omp end parallel do
 
     median_slope = river_median_i8(values)
+
     !$omp parallel do default(shared)
     do i = 1_i8, n_selected
       values(i) = abs(values(i) - median_slope)
     end do
     !$omp end parallel do
+
     median_deviation = river_median_i8(values)
     threshold = median_deviation * 2.25_dp / 0.6745_dp
-    deallocate(values, block_count, block_offset)
+    deallocate(values, counts_per_block, offsets_per_block)
 
     !$omp parallel do default(shared)
     do i = 1_i8, n
@@ -945,6 +952,7 @@ contains
       end if
     end do
     !$omp end parallel do
+
   end subroutine river_smooth_slope
 
   !> \brief Select the elements participating in the hard-coded river slope MAD filter.
@@ -1056,6 +1064,82 @@ contains
     end if
   end function river_select_cell_values_i4
 
+  !> \brief Estimate L0 width from physical upstream area without retaining a parameter-dependent field.
+  subroutine river_estimate_width(this, width_ref, width)
+    class(river_t), intent(inout), target :: this !< L0 river with physical upstream areas.
+    real(dp), intent(in) :: width_ref !< Width at 100 km2 upstream area [m].
+    real(dp), allocatable, intent(out) :: width(:) !< Estimated L0 width [m].
+    integer(i8) :: n
+    logical :: invalid_area
+    if (.not.allocated(this%upstream_area)) call this%calc_upstream_area()
+    if (width_ref <= 0.0_dp .or. .not.ieee_is_finite(width_ref)) &
+      call error_message("river width requires a positive finite width_ref")
+    if (size(this%upstream_area, kind=i8) /= this%n_nodes) &
+      call error_message("river width requires one upstream area per L0 node")
+    allocate(width(this%n_nodes))
+    invalid_area = .false.
+    !$omp parallel do default(shared) reduction(.or.:invalid_area) schedule(static)
+    do n = 1_i8, this%n_nodes
+      if (this%upstream_area(n) <= 0.0_dp .or. .not.ieee_is_finite(this%upstream_area(n))) then
+        invalid_area = .true.
+        cycle
+      end if
+      width(n) = width_ref * sqrt(this%upstream_area(n) / 1.0e8_dp)
+    end do
+    !$omp end parallel do
+    if (invalid_area) call error_message("river width requires positive finite L0 upstream areas")
+  end subroutine river_estimate_width
+
+  !> \brief Physical area for the equal-grid routing case, with zero area at sinks.
+  subroutine river_surface_area(this, width_ref, area)
+    class(river_t), intent(inout), target :: this !< L0 river in the equal-grid routing case.
+    real(dp), intent(in) :: width_ref !< Width at 100 km2 upstream area [m].
+    real(dp), allocatable, intent(out) :: area(:) !< Physical area of each outgoing link [m2].
+    real(dp), allocatable :: width(:)
+    integer(i8) :: n
+    if (.not.allocated(this%link_length)) call error_message("river surface area requires physical L0 link lengths")
+    call this%estimate_width(width_ref, width)
+    allocate(area(this%n_nodes))
+    !$omp parallel do default(shared) schedule(static)
+    do n = 1_i8, this%n_nodes
+      area(n) = 0.0_dp
+      if (.not.this%is_sink(n)) area(n) = this%link_length(n) * width(n)
+    end do
+    !$omp end parallel do
+  end subroutine river_surface_area
+
+  !> \brief Add or update estimated L0 width in an existing river diagnostics file.
+  subroutine river_write_estimated_width_diagnostic(this, path, width)
+    class(river_t), intent(in), target :: this !< L0 river providing diagnostic grid support.
+    character(*), intent(in) :: path !< Existing river diagnostics file.
+    real(dp), intent(in) :: width(:) !< Estimated width per L0 river cell [m].
+    type(NcDataset) :: nc
+    type(NcVariable) :: width_var
+    real(dp), allocatable :: width_grid(:,:)
+    integer(i4) :: status
+    if (this%scc .or. size(width, kind=i8) /= this%grid%ncells) &
+      call error_message("river width diagnostics require one width per L0 cell")
+    allocate(width_grid(this%grid%nx, this%grid%ny))
+    call this%grid%unpack_into(width, width_grid)
+    nc = NcDataset(path, "a")
+    if (nc%hasVariable("estimated_width")) then
+      width_var = nc%getVariable("estimated_width")
+    else
+      status = ncw_redef(nc%id)
+      if (status /= NCW_NOERR) call error_message("river width diagnostics: " // ncw_strerror(status))
+      width_var = nc%setVariable("estimated_width", "f64", &
+        [nc%getDimension("x"), nc%getDimension("y")])
+      call width_var%setAttribute("long_name", "estimated L0 river width")
+      call width_var%setAttribute("units", "m")
+      call width_var%setFillValue(nodata_dp)
+      call width_var%setAttribute("missing_value", nodata_dp)
+      status = ncw_enddef(nc%id)
+      if (status /= NCW_NOERR) call error_message("river width diagnostics: " // ncw_strerror(status))
+    end if
+    call width_var%setData(width_grid)
+    call nc%close()
+  end subroutine river_write_estimated_width_diagnostic
+
   !> \brief Export river arrays to netcdf
   !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine river_export(this, path, sub_map, leaving, stream_mask, stream_sub, lake_outlet, highlight, factor)
@@ -1072,12 +1156,14 @@ contains
     type(output_dataset) :: ds
     type(var), allocatable :: vars(:)
     integer(i8) :: i
-    integer(i4) :: j, px, py
+    integer(i4) :: j, px, py, highlight_label
     integer(i4), allocatable :: level(:), pattern(:)
     if (this%scc) call error_message("river%export: can not export SCC river to gridded netcdf")
     if (present(factor)) then
-      allocate(pattern(this%grid%ncells), source=0_i4)
+      allocate(pattern(this%grid%ncells))
+      !$omp parallel do default(shared) private(px,py) schedule(static)
       do i=1_i8, this%grid%ncells
+        pattern(i) = 0_i4
         px = mod((this%grid%cell_ij(i, 1) - 1_i4) / factor, 2_i4)
         if (this%grid%y_direction==bottom_up) then
           py = mod((this%grid%cell_ij(i, 2) - 1_i4) / factor, 2_i4)
@@ -1086,6 +1172,7 @@ contains
         end if
         if (px+py==1_i4) pattern(i) = -1_i4
       end do
+      !$omp end parallel do
     end if
     allocate(vars(0))
     vars = [vars, var("fdir", "flow direction", dtype="i16", kind="i2", static=.true.)]
@@ -1121,26 +1208,49 @@ contains
     if (allocated(this%lake_map)) call ds%update("lake_map", this%lake_map)
     if (present(sub_map)) call ds%update("scc", sub_map)
     if (present(leaving)) then
-      allocate(tmp(this%n_nodes), source=0_i4)
-      if (present(factor)) tmp = pattern
-      where(leaving) tmp = 1_i4
-      if (present(highlight)) where(highlight) tmp = 2_i4
+      allocate(tmp(this%n_nodes))
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, this%n_nodes
+        tmp(i) = 0_i4
+        if (present(factor)) tmp(i) = pattern(i)
+        if (leaving(i)) tmp(i) = 1_i4
+        if (present(highlight)) then
+          if (highlight(i)) tmp(i) = 2_i4
+        end if
+      end do
+      !$omp end parallel do
       call ds%update("leaving", tmp)
       deallocate(tmp)
     end if
     if (present(stream_mask)) then
-      allocate(tmp(this%n_nodes), source=0_i4)
-      if (present(factor)) tmp = pattern
-      where(stream_mask) tmp = 1_i4
-      if (present(highlight)) where(highlight) tmp = 2_i4
+      allocate(tmp(this%n_nodes))
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, this%n_nodes
+        tmp(i) = 0_i4
+        if (present(factor)) tmp(i) = pattern(i)
+        if (stream_mask(i)) tmp(i) = 1_i4
+        if (present(highlight)) then
+          if (highlight(i)) tmp(i) = 2_i4
+        end if
+      end do
+      !$omp end parallel do
       call ds%update("stream", tmp)
       deallocate(tmp)
     end if
     if (present(stream_sub)) then
       if (present(factor)) then
-        tmp = pattern
-        where(stream_sub>0) tmp = stream_sub
-        if (present(highlight)) where(highlight) tmp = maxval(stream_sub) + 1_i4
+        allocate(tmp(this%n_nodes))
+        highlight_label = 0_i4
+        if (present(highlight)) highlight_label = maxval(stream_sub) + 1_i4
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i8, this%n_nodes
+          tmp(i) = pattern(i)
+          if (stream_sub(i) > 0_i4) tmp(i) = stream_sub(i)
+          if (present(highlight)) then
+            if (highlight(i)) tmp(i) = highlight_label
+          end if
+        end do
+        !$omp end parallel do
         call ds%update("stream_sub", tmp)
       else
         call ds%update("stream_sub", stream_sub)

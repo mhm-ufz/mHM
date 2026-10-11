@@ -41,6 +41,7 @@ module nml_river_temperature_1
   !> \details Parameters for river-temperature routing.
   type, public :: nml_river_temperature_1_t
     logical :: is_configured = .false. !< whether the namelist has been configured
+    type(parameter_t) :: width_ref !< Channel width at 100 square kilometres of upstream area [m]
     type(parameter_t) :: albedo_water !< Albedo of open water [-]
     type(parameter_t) :: pt_a_water !< Priestley-Taylor coefficient for open water [-]
     type(parameter_t) :: emissivity_water !< Emissivity of open water [-]
@@ -67,6 +68,7 @@ contains
 
     ! derived values
     status = this%init_type( &
+      width_ref=this%width_ref, &
       albedo_water=this%albedo_water, &
       pt_a_water=this%pt_a_water, &
       emissivity_water=this%emissivity_water, &
@@ -77,12 +79,14 @@ contains
 
   !> \brief Initialize derived values with their field-specific defaults
   integer function nml_river_temperature_1_init_type(this, &
+    width_ref, &
     albedo_water, &
     pt_a_water, &
     emissivity_water, &
     turbulent_heat_exchange_coefficient, &
     errmsg) result(status)
     class(nml_river_temperature_1_t), intent(in) :: this !< parent namelist instance
+    type(parameter_t), intent(inout), optional :: width_ref !< Channel width at 100 square kilometres of upstream area [m]
     type(parameter_t), intent(inout), optional :: albedo_water !< Albedo of open water [-]
     type(parameter_t), intent(inout), optional :: pt_a_water !< Priestley-Taylor coefficient for open water [-]
     type(parameter_t), intent(inout), optional :: emissivity_water !< Emissivity of open water [-]
@@ -91,6 +95,14 @@ contains
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
+    if (present(width_ref)) then
+      width_ref%value = ieee_value(width_ref%value, ieee_quiet_nan) ! sentinel for derived component value
+      width_ref%optimize = .false.
+      width_ref%min = ieee_value(width_ref%min, ieee_quiet_nan) ! sentinel for derived component min
+      width_ref%max = ieee_value(width_ref%max, ieee_quiet_nan) ! sentinel for derived component max
+      width_ref%min = 2.0_dp
+      width_ref%max = 30.0_dp
+    end if
     if (present(albedo_water)) then
       albedo_water%value = ieee_value(albedo_water%value, ieee_quiet_nan) ! sentinel for derived component value
       albedo_water%optimize = .false.
@@ -132,6 +144,7 @@ contains
     character(len=*), intent(in) :: file !< path to namelist file
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
+    type(parameter_t) :: width_ref
     type(parameter_t) :: albedo_water
     type(parameter_t) :: pt_a_water
     type(parameter_t) :: emissivity_water
@@ -143,6 +156,7 @@ contains
     character(len=nml_line_buffer) :: iomsg
 
     namelist /river_temperature_1/ &
+      width_ref, &
       albedo_water, &
       pt_a_water, &
       emissivity_water, &
@@ -150,6 +164,7 @@ contains
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
+    width_ref = this%width_ref
     albedo_water = this%albedo_water
     pt_a_water = this%pt_a_water
     emissivity_water = this%emissivity_water
@@ -179,6 +194,7 @@ contains
     end if
 
     ! assign values
+    this%width_ref = width_ref
     this%albedo_water = albedo_water
     this%pt_a_water = pt_a_water
     this%emissivity_water = emissivity_water
@@ -191,6 +207,7 @@ contains
 
   !> \brief Set river_temperature_1 values
   integer function nml_river_temperature_1_set(this, &
+    width_ref, &
     albedo_water, &
     pt_a_water, &
     emissivity_water, &
@@ -199,6 +216,7 @@ contains
 
     class(nml_river_temperature_1_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    type(parameter_t), intent(in) :: width_ref !< Channel width at 100 square kilometres of upstream area [m]
     type(parameter_t), intent(in) :: albedo_water !< Albedo of open water [-]
     type(parameter_t), intent(in) :: pt_a_water !< Priestley-Taylor coefficient for open water [-]
     type(parameter_t), intent(in) :: emissivity_water !< Emissivity of open water [-]
@@ -208,6 +226,7 @@ contains
     if (status /= NML_OK) return
 
     ! required parameters
+    this%width_ref = width_ref
     this%albedo_water = albedo_water
     this%pt_a_water = pt_a_water
     this%emissivity_water = emissivity_water
@@ -233,6 +252,40 @@ contains
       return
     end if
     select case (to_lower(trim(name)))
+    case ("width_ref%value")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'width_ref'"
+        return
+      end if
+      if (ieee_is_nan(this%width_ref%value)) status = NML_ERR_NOT_SET
+    case ("width_ref%optimize")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'width_ref'"
+        return
+      end if
+    case ("width_ref%min")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'width_ref'"
+        return
+      end if
+    case ("width_ref%max")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'width_ref'"
+        return
+      end if
+    case ("width_ref")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'width_ref'"
+        return
+      end if
+      if (ieee_is_nan(this%width_ref%value)) then
+        status = NML_ERR_NOT_SET
+      end if
     case ("albedo_water%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
@@ -393,6 +446,21 @@ contains
     end if
 
     ! required parameters
+    istat = this%is_set("width_ref", errmsg=errmsg)
+    if (istat == NML_ERR_NOT_SET) then
+      status = NML_ERR_REQUIRED
+      if (present(errmsg)) then
+        if (len_trim(errmsg) == 0) then
+          errmsg = "field not set: width_ref"
+        end if
+        errmsg = "required " // trim(errmsg)
+      end if
+      return
+    end if
+    if (istat /= NML_OK) then
+      status = istat
+      return
+    end if
     istat = this%is_set("albedo_water", errmsg=errmsg)
     if (istat == NML_ERR_NOT_SET) then
       status = NML_ERR_REQUIRED

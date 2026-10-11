@@ -26,6 +26,9 @@ module mo_mrm_container
   use mo_river, only: river_t
   use mo_river_upscaler, only: river_upscaler_t
   use mo_river_router, only: river_router_t
+  use mo_river_flow, only: river_flow_state_t
+  use mo_river_temperature, only: river_thermal_state_t
+  use mo_constants, only: T0_dp
   use mo_grid, only: grid_t
   use mo_grid_io, only: output_dataset
   use mo_points, only: points_t, spherical
@@ -52,36 +55,47 @@ module mo_mrm_container
     character(:), allocatable :: path                   !< output path
   end type mrm_poi_output_t
 
+  !> \class mrm_temperature_input_t
+  !> \brief mRM-owned L1 scratch for temperature-weighted runoff.
+  type, private :: mrm_temperature_input_t
+    real(dp), allocatable :: depth(:) !< Temperature-weighted runoff [K mm].
+    logical :: checked = .false. !< Whether exchange bindings were checked.
+  contains
+    procedure :: allocate => mrm_temperature_input_allocate
+    procedure :: destroy => mrm_temperature_input_destroy
+  end type mrm_temperature_input_t
+
   !> \class   mrm_t
   !> \brief   Class for a single mRM process container.
   !> \authors Sebastian Mueller, Stephan Thober, Pallav Shrestha
   type, public :: mrm_t
-    type(nml_config_mrm_t)     :: config                       !< configuration of the mRM process container
-    type(nml_output_mrm_t)     :: output_config                !< output configuration of the mRM process container
-    type(exchange_t), pointer  :: exchange => null()           !< exchange container of the domain
-    type(grid_t)               :: level3                       !< mrm grid
-    type(grid_t)               :: level3_land                  !< private land-only L3 runoff-support grid
-    type(river_t)              :: river                        !< upscaled river network
-    type(river_router_t)       :: router                       !< river router
-    type(river_upscaler_t)     :: upscaler                     !< river upscaler for upscaling from level-0 to level-3 river network
-    real(dp), allocatable      :: celerity(:)                  !< celerity of the link starting at each level-3 river node
-    type(output_dataset)       :: ds_out                       !< output dataset for gridded outputs
-    type(points_output_dataset):: ds_node_out                  !< output dataset for river node based outputs
-    type(mrm_poi_output_t)     :: poi                          !< point-of-interest output state
-    real(dp), allocatable      :: discharge(:)                 !< discharge array for all river nodes
-    real(dp), allocatable      :: lake_inflow(:)               !< completed hourly lake inflow [m3 s-1]
-    integer(i8), allocatable   :: lake_ids(:)                  !< stable lake IDs in point-set order
-    integer(i8), allocatable   :: lake_nodes(:)                !< canonical L3 lake nodes in point-set order
-    logical                    :: active = .false.             !< whether mRM participates in the configured domain
-    logical                    :: read_restart = .false.       !< whether to read restart file
-    character(:), allocatable  :: restart_input_path           !< path to restart file to read
-    logical                    :: write_restart = .false.      !< whether to write restart file
-    character(:), allocatable  :: restart_output_path          !< path to restart file to write
-    logical                    :: output_active = .false.      !< whether output is enabled
-    logical                    :: output_node_active = .false. !< whether node based output is enabled
-    logical                    :: node_timeseries = .false.    !< whether node output uses (time, node) layout
-    character(:), allocatable  :: output_path                  !< path to output file
-    character(:), allocatable  :: output_node_path             !< path to node output file
+    type(nml_config_mrm_t)        :: config                       !< configuration of the mRM process container
+    type(nml_output_mrm_t)        :: output_config                !< output configuration of the mRM process container
+    type(exchange_t), pointer     :: exchange => null()           !< exchange container of the domain
+    type(grid_t)                  :: level3                       !< mrm grid
+    type(grid_t)                  :: level3_land                  !< private land-only L3 runoff-support grid
+    type(river_t)                 :: river                        !< upscaled river network
+    type(river_router_t)          :: router                       !< river router
+    type(river_flow_state_t)      :: flow_state                   !< mRM-owned flow histories and published results
+    type(river_thermal_state_t)   :: thermal_state                !< mRM-owned energy histories and published results
+    type(river_upscaler_t)        :: upscaler                     !< river upscaler for upscaling from level-0 to level-3 river network
+    real(dp), allocatable         :: celerity(:)                  !< celerity of the link starting at each level-3 river node
+    type(output_dataset)          :: ds_out                       !< output dataset for gridded outputs
+    type(points_output_dataset)   :: ds_node_out                  !< output dataset for river node based outputs
+    type(mrm_poi_output_t)        :: poi                          !< point-of-interest output state
+    type(mrm_temperature_input_t) :: temperature_input            !< L1 thermal forcing scratch
+    integer(i8), allocatable      :: lake_ids(:)                  !< stable lake IDs in point-set order
+    integer(i8), allocatable      :: lake_nodes(:)                !< canonical L3 lake nodes in point-set order
+    logical                       :: active = .false.             !< whether mRM participates in the configured domain
+    logical                       :: read_restart = .false.       !< whether to read restart file
+    character(:), allocatable     :: restart_input_path           !< path to restart file to read
+    logical                       :: write_restart = .false.      !< whether to write restart file
+    character(:), allocatable     :: restart_output_path          !< path to restart file to write
+    logical                       :: output_active = .false.      !< whether output is enabled
+    logical                       :: output_node_active = .false. !< whether node based output is enabled
+    logical                       :: node_timeseries = .false.    !< whether node output uses (time, node) layout
+    character(:), allocatable     :: output_path                  !< path to output file
+    character(:), allocatable     :: output_node_path             !< path to node output file
   contains
     procedure :: set_dims => mrm_set_dims
     procedure :: configure => mrm_configure
@@ -93,6 +107,7 @@ module mo_mrm_container
     procedure :: destroy => mrm_destroy
     procedure :: create_restart => mrm_create_restart
     procedure :: create_output => mrm_create_output
+    procedure, private :: prepare_temperature_inputs => mrm_prepare_temperature_inputs
     procedure, private :: configure_parameters => mrm_configure_parameters
     procedure, private :: get_routing_steps => mrm_get_routing_steps
     procedure, private :: read_public_discharge => mrm_read_public_discharge
@@ -114,6 +129,21 @@ module mo_mrm_container
   end type mrm_t
 
 contains
+  !> \brief Allocate L1 temperature-weighted runoff scratch.
+  subroutine mrm_temperature_input_allocate(self, n_cells)
+    class(mrm_temperature_input_t), intent(inout), target :: self !< L1 thermal forcing scratch.
+    integer(i8), intent(in) :: n_cells !< Number of active L1 cells.
+    call self%destroy()
+    allocate(self%depth(n_cells))
+    self%checked = .false.
+  end subroutine mrm_temperature_input_allocate
+
+  !> \brief Release L1 temperature-weighted runoff scratch.
+  subroutine mrm_temperature_input_destroy(self)
+    class(mrm_temperature_input_t), intent(inout), target :: self !< L1 thermal forcing scratch.
+    if (allocated(self%depth)) deallocate(self%depth)
+    self%checked = .false.
+  end subroutine mrm_temperature_input_destroy
 
   !> \brief Prepare restart-owned routing definition before field connection.
   subroutine mrm_prepare_restart(self)
@@ -195,18 +225,18 @@ contains
     nc = NcDataset(self%restart_output_path, "w")
     call self%level3%to_restart(nc)
     call self%river%to_restart(nc)
-    call self%router%to_restart(nc)
-    if (allocated(self%lake_inflow)) then
+    call self%router%to_restart(nc, self%flow_state, self%thermal_state)
+    if (allocated(self%flow_state%lake_inflow)) then
       lake_dim = nc%setDimension("lake", int(size(self%lake_ids), i4))
       nc_var = nc%setVariable("lake_coupling_id", "i64", [lake_dim])
       call nc_var%setData(self%lake_ids)
       nc_var = nc%setVariable("lake_inflow", "f64", [lake_dim])
       call nc_var%setAttribute("units", "m3 s-1")
-      call nc_var%setData(self%lake_inflow)
+      call nc_var%setData(self%flow_state%lake_inflow)
     end if
     nc_var = nc%setVariable("mrm_discharge", "f64", [nc%getDimension("node")])
     call self%exchange%discharge%write_netcdf_metadata(nc_var)
-    call nc_var%setData(self%discharge)
+    call nc_var%setData(self%flow_state%discharge)
     if (allocated(self%poi%locations) .neqv. allocated(self%poi%ids)) then
       call error_message("mRM POI restart metadata is incomplete.")
     end if
@@ -360,6 +390,14 @@ contains
         error stop 1
     end select
     call self%exchange%discharge%provide("mRM")
+    if (self%exchange%config%processes%temperature_routing == 1_i4) then
+      if (self%exchange%config%processes%lake /= 0_i4) then
+        log_fatal(*) "mRM: temperature routing with lakes requires an outflow water-temperature boundary."
+        error stop 1
+      end if
+      call self%exchange%energy_flux%provide("mRM")
+      call self%exchange%river_temp%provide("mRM")
+    end if
     if (self%exchange%config%processes%lake /= 0_i4) call self%exchange%lake_inflow%provide("mRM")
   end subroutine mrm_configure
 
@@ -414,11 +452,12 @@ contains
         status = parameter_config%river_temperature_1%is_valid(errmsg=errmsg)
         call check_parameter_status(status, "river_temperature_1", "validate", errmsg)
         call self%exchange%parameters%add_process("temperature_routing", [ &
+          parameter_config%river_temperature_1%width_ref, &
           parameter_config%river_temperature_1%albedo_water, &
           parameter_config%river_temperature_1%pt_a_water, &
           parameter_config%river_temperature_1%emissivity_water, &
           parameter_config%river_temperature_1%turbulent_heat_exchange_coefficient], [character(64) :: &
-          "albedo_water", "pt_a_water", "emissivity_water", "turbulent_heat_exchange_coefficient"], &
+          "width_ref", "albedo_water", "pt_a_water", "emissivity_water", "turbulent_heat_exchange_coefficient"], &
           group="river_temperature_1")
       end if
     end associate
@@ -519,6 +558,12 @@ contains
 
     ! Runoff may be provided by dynamic input and connected during update.
     call self%exchange%runoff_total%check_provided("mRM")
+    if (self%exchange%config%processes%temperature_routing == 1_i4) then
+      call self%exchange%temp%check_provided("mRM")
+      call self%exchange%tann%check_provided("mRM")
+      call self%exchange%ssrd%check_provided("mRM")
+      call self%exchange%strd%check_provided("mRM")
+    end if
     if (.not.self%read_restart) then
       if (.not.associated(self%exchange%river_l0)) then
         log_fatal(*) "mRM: level-0 river not provided."
@@ -623,6 +668,7 @@ contains
     end if
 
     call self%validate_lake_topology(lake_ids)
+    call self%flow_state%allocate(self%river%n_nodes, merge(n_lakes, 0_i4, lake_routing))
     if (lake_routing) then
       self%lake_ids = lake_ids
       allocate(self%lake_nodes(n_lakes))
@@ -633,9 +679,8 @@ contains
           error stop 1
         end if
       end do
-      allocate(self%lake_inflow(n_lakes), source=0.0_dp)
       call self%exchange%lake_inflow%prepare_data("mRM", 1_i4)
-      self%exchange%lake_inflow%data => self%lake_inflow
+      self%exchange%lake_inflow%data => self%flow_state%lake_inflow
       if (self%read_restart) call self%read_lake_inflow_restart()
       call self%build_level3_land()
     end if
@@ -665,9 +710,15 @@ contains
     end if
 
     ! populate exchange type
-    allocate(self%discharge(self%river%n_nodes))
     call self%exchange%discharge%prepare_data("mRM", model_step)
-    self%exchange%discharge%data => self%discharge
+    self%exchange%discharge%data => self%flow_state%discharge
+    if (self%exchange%config%processes%temperature_routing == 1_i4) then
+      call self%thermal_state%allocate(self%river%n_nodes)
+      call self%exchange%energy_flux%prepare_data("mRM", model_step)
+      call self%exchange%river_temp%prepare_data("mRM", model_step)
+      self%exchange%energy_flux%data => self%thermal_state%energy_flux
+      self%exchange%river_temp%data => self%thermal_state%temperature
+    end if
   end subroutine mrm_connect
 
   !> \brief Read POIs, preserve their station IDs, and select nearest river nodes in one batch.
@@ -888,7 +939,7 @@ contains
         log_fatal(*) "mRM restart is missing stable lake ID."
         error stop 1
       end if
-      self%lake_inflow(i) = inflow(j)
+      self%flow_state%lake_inflow(i) = inflow(j)
     end do
   end subroutine mrm_read_lake_inflow_restart
 
@@ -973,14 +1024,16 @@ contains
       coordsys=self%river%points%coordsys)
   end subroutine mrm_initialize_poi_points
 
-  ! set initial values like timestep 0
+  !> \brief Reset domain-owned state, initialize routing processors, and set their publication cadence.
   subroutine mrm_initialize(self)
-    class(mrm_t), target, intent(inout) :: self
+    class(mrm_t), target, intent(inout) :: self !< Container owning routing states and exchange publications.
 
     integer(i4)           :: id(1)
     integer(i4)           :: input_step, model_step
     logical               :: const_celerity
-    real(dp), allocatable :: gamma(:)
+    real(dp), allocatable :: gamma(:), thermal_params(:), surface_area(:)
+    character(:), allocatable :: diagnostics_path
+    type(grid_t), pointer :: runoff_grid
 
     log_info(*) "Initialize mRM"
 
@@ -991,6 +1044,29 @@ contains
     const_celerity = (self%exchange%config%processes%routing == 2_i4)
     call self%get_routing_steps(input_step, model_step)
 
+    call self%router%destroy()
+    ! Reset in place: histories may move during routing, but published exchange targets stay allocated.
+    call self%flow_state%reset()
+    call self%thermal_state%reset()
+    if (self%exchange%config%processes%temperature_routing == 1_i4) then
+      thermal_params = self%exchange%parameters%get_process("temperature_routing")
+      self%thermal_state%active = .true.
+      self%thermal_state%parameters = thermal_params
+      if (.not.self%read_restart) then
+        if (associated(self%upscaler%fine_river)) then
+          if (self%config%is_set("diagnostics_path", idx=id) == NML_OK) &
+            diagnostics_path = self%exchange%get_path(self%config%diagnostics_path(id(1)))
+          call self%upscaler%calc_surface_area(thermal_params(1), surface_area, diagnostics_path)
+        else
+          if (.not.associated(self%exchange%river_l0)) call error_message("mRM temperature requires the L0 river")
+          call self%exchange%river_l0%calc_surface_area(thermal_params(1), surface_area)
+        end if
+        self%thermal_state%area = surface_area
+      end if
+    end if
+
+    runoff_grid => self%river%grid
+    if (allocated(self%flow_state%lake_inflow)) runoff_grid => self%level3_land
     if (self%read_restart) then
       if (.not.self%exchange%parameters%is_default("routing")) then
         log_fatal(*) "mRM: routing parameters cannot be overridden when routing state is read from restart."
@@ -998,31 +1074,20 @@ contains
       end if
       scope_info(s,*) "Read routing state from restart file: ", self%restart_input_path
       ! TODO: warn about gamma mismatch between restart and config
-      if (allocated(self%lake_inflow)) then
-        call self%router%from_restart_file( &
-          path              = self%restart_input_path, &
-          river             = self%river, &
-          input_grid        = self%exchange%level1_land, &
-          input_step        = input_step, &
-          model_step        = model_step, &
-          max_route_step    = real(self%config%max_route_step(id(1)), dp), &
-          root_levels       = self%config%river_net_order_root_based(id(1)), &
-          omp_level_thresh  = int(self%config%river_net_omp_level_min(id(1)), i8), &
-          read_fluxes       = self%config%read_restart_fluxes(id(1)), &
-          runoff_grid       = self%level3_land, &
-          lake_nodes        = self%lake_nodes)
-      else
-        call self%router%from_restart_file( &
-          path              = self%restart_input_path, &
-          river             = self%river, &
-          input_grid        = self%exchange%level1_land, &
-          input_step        = input_step, &
-          model_step        = model_step, &
-          max_route_step    = real(self%config%max_route_step(id(1)), dp), &
-          root_levels       = self%config%river_net_order_root_based(id(1)), &
-          omp_level_thresh  = int(self%config%river_net_omp_level_min(id(1)), i8), &
-          read_fluxes       = self%config%read_restart_fluxes(id(1)))
-      end if
+      call self%router%from_restart_file( &
+        path             = self%restart_input_path, &
+        river            = self%river, &
+        flow_state       = self%flow_state, &
+        thermal_state    = self%thermal_state, &
+        input_grid       = self%exchange%level1_land, &
+        input_step       = input_step, &
+        model_step       = model_step, &
+        max_route_step   = real(self%config%max_route_step(id(1)), dp), &
+        root_levels      = self%config%river_net_order_root_based(id(1)), &
+        omp_level_thresh = int(self%config%river_net_omp_level_min(id(1)), i8), &
+        read_fluxes      = self%config%read_restart_fluxes(id(1)), &
+        runoff_grid      = runoff_grid, &
+        lake_nodes       = self%lake_nodes)
     else
       ! Full routing slope is owned by the level-0 river and propagated during river construction/upscaling.
       if (.not.associated(self%upscaler%fine_river)) then
@@ -1033,9 +1098,10 @@ contains
           gamma=gamma(1), celerity=self%celerity, constant_celerity=const_celerity)
       end if
       scope_info(s,*) "Initialize router"
-      if (allocated(self%lake_inflow)) then
-        call self%router%init( &
+      call self%router%init( &
         river            = self%river, &
+        flow_state       = self%flow_state, &
+        thermal_state    = self%thermal_state, &
         celerity         = self%celerity, &
         input_grid       = self%exchange%level1_land, &
         input_step       = input_step, &
@@ -1043,34 +1109,29 @@ contains
         max_route_step   = real(self%config%max_route_step(id(1)), dp), &
         root_levels      = self%config%river_net_order_root_based(id(1)), &
         omp_level_thresh = int(self%config%river_net_omp_level_min(id(1)), i8), &
-        runoff_grid      = self%level3_land, &
+        runoff_grid      = runoff_grid, &
         lake_nodes       = self%lake_nodes)
-      else
-        call self%router%init( &
-          river            = self%river, &
-          celerity         = self%celerity, &
-          input_grid       = self%exchange%level1_land, &
-          input_step       = input_step, &
-          model_step       = model_step, &
-          max_route_step   = real(self%config%max_route_step(id(1)), dp), &
-          root_levels      = self%config%river_net_order_root_based(id(1)), &
-          omp_level_thresh = int(self%config%river_net_omp_level_min(id(1)), i8))
-      end if
     end if
 
-    scope_debug(s,*) "router%routing_substep: ", self%router%routing_substep
-    scope_debug(s,*) "router%routing_step: ", self%router%routing_step
-    scope_debug(s,*) "last level in parallel: ", self%router%last_parallel_level, "/", self%router%river%order%n_levels
-    call self%exchange%discharge%prepare_data("mRM", self%router%routing_step)
+    scope_debug(s,*) "router%routing_substep: ", self%router%muskingum%routing_substep
+    scope_debug(s,*) "router%routing_step: ", self%router%muskingum%routing_step
+    scope_debug(s,*) "parallel levels: ", count(self%router%parallel_level), "/", self%router%river%order%n_levels
+    call self%exchange%discharge%prepare_data("mRM", self%router%muskingum%routing_step)
+    if (self%thermal_state%active) then
+      call self%temperature_input%allocate(self%exchange%level1_land%ncells)
+      call self%exchange%energy_flux%prepare_data("mRM", self%router%muskingum%routing_step)
+      call self%exchange%river_temp%prepare_data("mRM", self%router%muskingum%routing_step)
+    end if
     if (self%read_restart) then
       call self%read_public_discharge()
+      if (allocated(self%flow_state%lake_inflow)) call self%read_lake_inflow_restart()
     else
-      self%discharge(:) = 0.0_dp
+      self%flow_state%discharge(:) = 0.0_dp
     end if
 
     call self%validate_timing()
-    if (allocated(self%lake_inflow)) then
-      if (model_step /= 1_i4 .or. self%router%routing_step /= 1_i4 .or. self%config%max_route_step(id(1)) > 3600_i4) then
+    if (allocated(self%flow_state%lake_inflow)) then
+      if (model_step /= 1_i4 .or. self%router%muskingum%routing_step /= 1_i4 .or. self%config%max_route_step(id(1)) > 3600_i4) then
         log_fatal(*) "mRM lake routing requires a one-hour model/routing interval and max_route_step <= 3600 s."
         error stop 1
       end if
@@ -1134,16 +1195,16 @@ contains
 
     id(1) = self%exchange%nml_domain_id
     if (.not.self%config%read_restart_fluxes(id(1))) then
-      self%discharge(:) = 0.0_dp
+      self%flow_state%discharge(:) = 0.0_dp
       return
     end if
 
     nc = NcDataset(self%restart_input_path, "r")
     if (nc%hasVariable("mrm_discharge")) then
       nc_var = nc%getVariable("mrm_discharge")
-      call nc_var%readInto(self%discharge)
+      call nc_var%readInto(self%flow_state%discharge)
     else
-      self%discharge(:) = self%router%previous_discharge
+      self%flow_state%discharge(:) = self%flow_state%previous_input
       log_warn(*) "mRM restart has no published discharge; using the final internal routing state."
     end if
     call nc%close()
@@ -1163,9 +1224,9 @@ contains
     logical :: output_boundary
 
     total_hours = nint((self%exchange%end_time - self%exchange%start_time) / one_hour(), i4)
-    if (mod(total_hours, self%router%routing_step) /= 0_i4) then
+    if (mod(total_hours, self%router%muskingum%routing_step) /= 0_i4) then
       log_fatal(*) "mRM simulation end must be a routing boundary: duration ", total_hours, &
-        "h is not divisible by routing_step=", self%router%routing_step, "h."
+        "h is not divisible by routing_step=", self%router%muskingum%routing_step, "h."
       error stop 1
     end if
 
@@ -1175,7 +1236,7 @@ contains
     output_boundary = self%at_output_boundary(self%exchange%end_time)
     select case (frequency)
       case (daily)
-        if (mod(24_i4, self%router%routing_step) /= 0_i4) then
+        if (mod(24_i4, self%router%muskingum%routing_step) /= 0_i4) then
           log_fatal(*) "Daily mRM output requires routing_step to divide 24h."
           error stop 1
         end if
@@ -1184,7 +1245,7 @@ contains
           error stop 1
         end if
       case (monthly)
-        if (mod(24_i4, self%router%routing_step) /= 0_i4) then
+        if (mod(24_i4, self%router%muskingum%routing_step) /= 0_i4) then
           log_fatal(*) "Monthly mRM output requires routing_step to divide 24h."
           error stop 1
         end if
@@ -1193,7 +1254,7 @@ contains
           error stop 1
         end if
       case (yearly)
-        if (mod(24_i4, self%router%routing_step) /= 0_i4) then
+        if (mod(24_i4, self%router%muskingum%routing_step) /= 0_i4) then
           log_fatal(*) "Yearly mRM output requires routing_step to divide 24h."
           error stop 1
         end if
@@ -1205,10 +1266,10 @@ contains
         continue
       case default
         call derive_mrm_output_timing( &
-          self%router%routing_step, frequency, routing_results, output_records, status)
+          self%router%muskingum%routing_step, frequency, routing_results, output_records, status)
         if (status /= 0_i4) then
           log_fatal(*) "mRM output_frequency=", frequency, "h and routing_step=", &
-            self%router%routing_step, "h must be whole multiples of one another."
+            self%router%muskingum%routing_step, "h must be whole multiples of one another."
           error stop 1
         end if
     end select
@@ -1247,19 +1308,58 @@ contains
     end select
   end function mrm_at_output_boundary
 
-  ! perform routing within time loop
+  !> \brief Build temperature-weighted runoff from total runoff and the components with distinct temperatures.
+  subroutine mrm_prepare_temperature_inputs(self)
+    class(mrm_t), intent(inout), target :: self !< mRM process container.
+
+    integer(i8) :: c
+    real(dp) :: air, sealed, depth
+
+    ! Providers bind stable arrays during connect; validate after their first update.
+    if (.not.self%temperature_input%checked) then
+      call self%exchange%check_data(self%exchange%temp, "mRM")
+      call self%exchange%check_data(self%exchange%tann, "mRM")
+      call self%exchange%check_data(self%exchange%ssrd, "mRM")
+      call self%exchange%check_data(self%exchange%strd, "mRM")
+      if (self%exchange%f_sealed%provided) call self%exchange%check_data(self%exchange%f_sealed, "mRM")
+      if (self%exchange%baseflow%provided) call self%exchange%check_data(self%exchange%baseflow, "mRM")
+      if (self%exchange%runoff_sealed%provided) call self%exchange%check_data(self%exchange%runoff_sealed, "mRM")
+      self%temperature_input%checked = .true.
+    end if
+
+    ! Sealed fraction can change with land-cover periods; use the current exchange slice.
+    !$omp simd private(air,sealed,depth)
+    do c = 1_i8, size(self%temperature_input%depth, kind=i8)
+      sealed = 0.0_dp
+      if (self%exchange%f_sealed%provided) sealed = self%exchange%f_sealed%data(c)
+      air = max(T0_dp, self%exchange%temp%data(c)+T0_dp)
+      depth = self%exchange%runoff_total%data(c)*air
+      if (self%exchange%baseflow%provided) depth = depth + self%exchange%baseflow%data(c)*(1.0_dp-sealed) * &
+        (max(T0_dp+5.0_dp,self%exchange%tann%data(c)+T0_dp)-air)
+      if (self%exchange%runoff_sealed%provided) depth = depth + self%exchange%runoff_sealed%data(c)*sealed * &
+        (max(T0_dp,self%exchange%temp%data(c)+T0_dp-1.5_dp)-air)
+      self%temperature_input%depth(c) = depth
+    end do
+  end subroutine mrm_prepare_temperature_inputs
+
+  !> \brief Route discharge and optional thermal energy in one router call.
   subroutine mrm_update(self)
     class(mrm_t), target, intent(inout) :: self
     logical :: completed
     log_trace(*) "Update mRM"
 
-    ! route runoff
-    if (allocated(self%lake_inflow)) then
-      call self%router%update(self%exchange%runoff_total%data, self%discharge, completed, &
-        self%exchange%lake_outflow%data, self%lake_inflow)
-    else
-      call self%router%update(self%exchange%runoff_total%data, self%discharge, completed)
-    end if
+    if (self%thermal_state%active) call self%prepare_temperature_inputs()
+    ! Unallocated allocatables and unassociated pointers are absent optional arguments.
+    call self%router%update( &
+      flow_state        = self%flow_state, &
+      thermal_state     = self%thermal_state, &
+      input_runoff      = self%exchange%runoff_total%data, &
+      lake_outflow      = self%exchange%lake_outflow%data, &
+      temperature_depth = self%temperature_input%depth, &
+      air_temperature   = self%exchange%temp%data, &
+      shortwave         = self%exchange%ssrd%data, &
+      longwave          = self%exchange%strd%data, &
+      completed         = completed)
     if (completed) call self%update_output()
   end subroutine mrm_update
 
@@ -1268,16 +1368,37 @@ contains
     class(mrm_t), intent(inout), target :: self
 
     if (self%output_node_active .and. self%output_config%out_Qrouted) then
-      call self%ds_node_out%update("discharge", self%discharge)
+      call self%ds_node_out%update("discharge", self%flow_state%discharge)
     end if
     if (self%poi%active .and. self%output_config%out_Qrouted) then
-      call self%poi%dataset%update("discharge", self%discharge(self%poi%locations))
+      call self%poi%dataset%update("discharge", self%flow_state%discharge(self%poi%locations))
     end if
     if (self%output_active .and. self%output_config%out_Qrouted) then
       if (self%river%scc) then
-        call self%ds_out%update("discharge", self%river%select_cell_values(self%discharge))
+        call self%ds_out%update("discharge", self%river%select_cell_values(self%flow_state%discharge))
       else
-        call self%ds_out%update("discharge", self%discharge)
+        call self%ds_out%update("discharge", self%flow_state%discharge)
+      end if
+    end if
+    if (self%thermal_state%active) then
+      if (self%output_node_active .and. self%output_config%out_RivTemp) &
+        call self%ds_node_out%update(self%exchange%river_temp%name, self%thermal_state%temperature)
+      if (self%output_node_active .and. self%output_config%out_Erouted) &
+        call self%ds_node_out%update(self%exchange%energy_flux%name, self%thermal_state%energy_flux)
+      if (self%poi%active .and. self%output_config%out_RivTemp) &
+        call self%poi%dataset%update(self%exchange%river_temp%name, self%thermal_state%temperature(self%poi%locations))
+      if (self%poi%active .and. self%output_config%out_Erouted) &
+        call self%poi%dataset%update(self%exchange%energy_flux%name, self%thermal_state%energy_flux(self%poi%locations))
+      if (self%output_active) then
+        if (self%river%scc) then
+          if (self%output_config%out_RivTemp) call self%ds_out%update(self%exchange%river_temp%name, &
+            self%river%select_cell_values(self%thermal_state%temperature))
+          if (self%output_config%out_Erouted) call self%ds_out%update(self%exchange%energy_flux%name, &
+            self%river%select_cell_values(self%thermal_state%energy_flux))
+        else
+          if (self%output_config%out_RivTemp) call self%ds_out%update(self%exchange%river_temp%name, self%thermal_state%temperature)
+          if (self%output_config%out_Erouted) call self%ds_out%update(self%exchange%energy_flux%name, self%thermal_state%energy_flux)
+        end if
       end if
     end if
   end subroutine mrm_add_output
@@ -1300,16 +1421,16 @@ contains
     frequency = self%output_config%output_frequency
 
     ! A completed routing mean can be repeated over finer fixed-hour output records.
-    if (frequency > 0_i4 .and. frequency < self%router%routing_step) then
+    if (frequency > 0_i4 .and. frequency < self%router%muskingum%routing_step) then
       call derive_mrm_output_timing( &
-        self%router%routing_step, frequency, routing_results, records, status)
+        self%router%muskingum%routing_step, frequency, routing_results, records, status)
       if (status /= 0_i4) then
         log_fatal(*) "Invalid fixed-hour mRM output cadence after initialization."
         error stop 1
       end if
       do i = 1_i4, records
         write_time = self%exchange%time
-        call write_time%add(timedelta(hours=-(self%router%routing_step - i * frequency)))
+        call write_time%add(timedelta(hours=-(self%router%muskingum%routing_step - i * frequency)))
         call self%add_output()
         if (self%output_node_active) call self%ds_node_out%write(write_time)
         if (self%output_active) call self%ds_out%write(write_time)
@@ -1370,10 +1491,11 @@ contains
   subroutine mrm_destroy(self)
     class(mrm_t), intent(inout), target :: self
     call self%router%destroy()
+    call self%flow_state%destroy()
+    call self%thermal_state%destroy()
     call self%upscaler%destroy()
     if (allocated(self%celerity)) deallocate(self%celerity)
-    if (allocated(self%discharge)) deallocate(self%discharge)
-    if (allocated(self%lake_inflow)) deallocate(self%lake_inflow)
+    call self%temperature_input%destroy()
     if (allocated(self%lake_ids)) deallocate(self%lake_ids)
     if (allocated(self%lake_nodes)) deallocate(self%lake_nodes)
     if (allocated(self%poi%locations)) deallocate(self%poi%locations)
@@ -1408,6 +1530,10 @@ contains
     if (self%output_config%out_Qrouted) then
       vars = [vars, self%exchange%discharge%as_output_var(dtype=dtype, avg=.true.)]
     end if
+    if (self%thermal_state%active) then
+      if (self%output_config%out_RivTemp) vars = [vars, self%exchange%river_temp%as_output_var(dtype=dtype, avg=.true.)]
+      if (self%output_config%out_Erouted) vars = [vars, self%exchange%energy_flux%as_output_var(dtype=dtype, avg=.true.)]
+    end if
     if (self%output_config%out_facc) then
       vars = [vars, var(name="facc", long_name="flow accumulation", dtype="i32", kind="i4", static=.true.)]
       if (.not.allocated(self%river%facc)) call self%river%calc_facc()
@@ -1415,6 +1541,10 @@ contains
     if (self%output_config%out_upstream_area) then
       vars = [vars, var(name="upstream_area", long_name="upstream area", dtype=dtype, kind="dp", static=.true.)]
       if (.not.allocated(self%river%upstream_area)) call self%river%calc_upstream_area()
+    end if
+    if (self%output_config%out_reach_surface_area .and. self%thermal_state%active) then
+      vars = [vars, var(name="reach_surface_area", long_name="physical reach water surface area", &
+        units="m2", dtype=dtype, kind="dp", static=.true.)]
     end if
 
     ! create grid based output
@@ -1433,6 +1563,8 @@ contains
         call self%ds_out%update("facc", self%river%select_cell_values(self%river%facc))
       if (self%output_config%out_upstream_area) &
         call self%ds_out%update("upstream_area", self%river%select_cell_values(self%river%upstream_area))
+      if (self%output_config%out_reach_surface_area .and. self%thermal_state%active) &
+        call self%ds_out%update("reach_surface_area", self%river%select_cell_values(self%thermal_state%area))
       call self%ds_out%write_static()
     end if
 
@@ -1459,6 +1591,8 @@ contains
       call self%ds_node_out%update("node", node_ids)
       if (self%output_config%out_facc) call self%ds_node_out%update("facc", self%river%facc)
       if (self%output_config%out_upstream_area) call self%ds_node_out%update("upstream_area", self%river%upstream_area)
+      if (self%output_config%out_reach_surface_area .and. self%thermal_state%active) &
+        call self%ds_node_out%update("reach_surface_area", self%thermal_state%area)
       call self%ds_node_out%write_static()
       call self%add_node_topology()
     end if
@@ -1480,6 +1614,8 @@ contains
       call self%poi%dataset%update("station", self%poi%ids)
       if (self%output_config%out_facc) call self%poi%dataset%update("facc", self%river%facc(self%poi%locations))
       if (self%output_config%out_upstream_area) call self%poi%dataset%update("upstream_area", self%river%upstream_area(self%poi%locations))
+      if (self%output_config%out_reach_surface_area .and. self%thermal_state%active) &
+        call self%poi%dataset%update("reach_surface_area", self%thermal_state%area(self%poi%locations))
       call self%poi%dataset%write_static()
     end if
 

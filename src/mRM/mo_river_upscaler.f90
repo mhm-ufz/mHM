@@ -31,7 +31,8 @@ module mo_river_upscaler
   integer(i4), public, parameter :: upscale_legacy = 0_i4 !< connect to the first entered coarse cell
   integer(i4), public, parameter :: upscale_flow = 1_i4 !< connect to the next downstream link endpoint
 
-  !> Temporary construction data, released when river_upscaler_t%init returns.
+  !> \class river_upscaler_scratch_t
+  !> \brief Temporary construction data, released when river_upscaler_t%init returns.
   type :: river_upscaler_scratch_t
     type(scaler_t) :: scaler
     integer(i4) :: nsub
@@ -43,7 +44,8 @@ module mo_river_upscaler
     logical, allocatable :: is_lake_outlet(:)
   end type river_upscaler_scratch_t
 
-  !> Sparse mapping from an existing (coarse cell, SCC label) pair to its coarse river node.
+  !> \class sparse_cell_sub_t
+  !> \brief Sparse mapping from an existing (coarse cell, SCC label) pair to its coarse river node.
   !> \authors Sebastian Mueller, Pallav Shrestha
   type :: sparse_cell_sub_t
     integer(i8), allocatable :: offset(:) !< one-based CSR offsets size(ncells+1)
@@ -71,6 +73,7 @@ module mo_river_upscaler
     procedure, private :: upscale => river_upscaler_upscale
     procedure, private :: write_diagnostics => river_upscaler_write_diagnostics
     procedure, public :: calc_celerity => river_upscaler_celerity
+    procedure, public :: calc_surface_area => river_upscaler_surface_area
     procedure, public :: destroy => river_upscaler_destroy
   end type river_upscaler_t
 
@@ -927,6 +930,48 @@ contains
     !$omp end parallel do
 
   end subroutine river_upscaler_celerity
+
+  !> \brief Sum physical L0 link length times estimated width for each represented reach.
+  subroutine river_upscaler_surface_area(this, width_ref, area, diagnostics_path)
+    class(river_upscaler_t), intent(inout), target :: this !< Upscaler with represented L0 paths.
+    real(dp), intent(in) :: width_ref !< Width at 100 km2 upstream area [m].
+    real(dp), allocatable, intent(out) :: area(:) !< Physical area per L3 reach [m2].
+    character(*), optional, intent(in) :: diagnostics_path !< Existing L0 diagnostics file.
+    real(dp), allocatable :: width(:)
+    integer(i8) :: n, cell, finish, traversed
+    logical :: invalid_path
+
+    if (.not.associated(this%fine_river) .or. .not.associated(this%coarse_river)) &
+      call error_message("river_upscaler: surface area requires fine and coarse rivers")
+    if (.not.allocated(this%link_start) .or. .not.allocated(this%link_end)) &
+      call error_message("river_upscaler: surface area requires represented L0 paths")
+    call this%fine_river%estimate_width(width_ref, width)
+    if (.not.allocated(this%fine_river%link_length)) &
+      call error_message("river_upscaler: surface area requires physical L0 link lengths")
+    allocate(area(this%coarse_river%n_nodes))
+    invalid_path = .false.
+    ! Each reach owns its output; retain the downstream summation order within a reach.
+    !$omp parallel do default(shared) private(cell,finish,traversed) reduction(.or.:invalid_path) schedule(static)
+    do n = 1_i8, this%coarse_river%n_nodes
+      area(n) = 0.0_dp
+      if (this%coarse_river%is_sink(n)) cycle
+      cell = this%link_start(n)
+      finish = this%link_end(n)
+      traversed = 0_i8
+      do while (cell /= finish)
+        if (cell < 1_i8 .or. cell > this%fine_river%n_nodes .or. traversed > this%fine_river%n_nodes) then
+          invalid_path = .true.
+          exit
+        end if
+        area(n) = area(n) + this%fine_river%link_length(cell) * width(cell)
+        cell = this%fine_river%down(cell)
+        traversed = traversed + 1_i8
+      end do
+    end do
+    !$omp end parallel do
+    if (invalid_path) call error_message("river_upscaler: invalid fine river path for surface area")
+    if (present(diagnostics_path)) call this%fine_river%write_estimated_width_diagnostic(diagnostics_path, width)
+  end subroutine river_upscaler_surface_area
 
   subroutine river_upscaler_destroy(this)
     implicit none

@@ -41,8 +41,10 @@ module nml_output_mrm
   integer(i4), parameter, public :: output_frequency__default = -1_i4
   logical, parameter, public :: out_facc__default = .false.
   logical, parameter, public :: out_upstream_area__default = .false.
+  logical, parameter, public :: out_reach_surface_area__default = .false.
   logical, parameter, public :: out_qrouted__default = .false.
   logical, parameter, public :: out_rivtemp__default = .false.
+  logical, parameter, public :: out_erouted__default = .false.
 
   ! enum values
   integer(i4), parameter, public :: output_time_reference__enum_values(3) = [0_i4, 1_i4, 2_i4]
@@ -63,8 +65,10 @@ module nml_output_mrm
     integer(i4) :: output_frequency !< Output time step
     logical :: out_facc !< Flow accumulation
     logical :: out_upstream_area !< Upstream area
+    logical :: out_reach_surface_area !< Reach water surface area
     logical :: out_qrouted !< Routed Streamflow
     logical :: out_rivtemp !< Routed Temperature
+    logical :: out_erouted !< Routed thermal power
   contains
     procedure :: init => nml_output_mrm_init
     procedure :: from_file => nml_output_mrm_from_file
@@ -144,8 +148,10 @@ contains
     this%output_frequency = output_frequency__default
     this%out_facc = out_facc__default ! bool values always need a default
     this%out_upstream_area = out_upstream_area__default ! bool values always need a default
+    this%out_reach_surface_area = out_reach_surface_area__default ! bool values always need a default
     this%out_qrouted = out_qrouted__default ! bool values always need a default
     this%out_rivtemp = out_rivtemp__default ! bool values always need a default
+    this%out_erouted = out_erouted__default ! bool values always need a default
   end function nml_output_mrm_init
 
 
@@ -161,8 +167,10 @@ contains
     integer(i4) :: output_frequency
     logical :: out_facc
     logical :: out_upstream_area
+    logical :: out_reach_surface_area
     logical :: out_qrouted
     logical :: out_rivtemp
+    logical :: out_erouted
     ! locals
     type(nml_file_t) :: nml
     integer :: iostat
@@ -176,8 +184,10 @@ contains
       output_frequency, &
       out_facc, &
       out_upstream_area, &
+      out_reach_surface_area, &
       out_qrouted, &
-      out_rivtemp
+      out_rivtemp, &
+      out_erouted
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -187,8 +197,10 @@ contains
     output_frequency = this%output_frequency
     out_facc = this%out_facc
     out_upstream_area = this%out_upstream_area
+    out_reach_surface_area = this%out_reach_surface_area
     out_qrouted = this%out_qrouted
     out_rivtemp = this%out_rivtemp
+    out_erouted = this%out_erouted
 
     status = nml%open(file, errmsg=errmsg)
     if (status /= NML_OK) return
@@ -220,8 +232,10 @@ contains
     this%output_frequency = output_frequency
     this%out_facc = out_facc
     this%out_upstream_area = out_upstream_area
+    this%out_reach_surface_area = out_reach_surface_area
     this%out_qrouted = out_qrouted
     this%out_rivtemp = out_rivtemp
+    this%out_erouted = out_erouted
 
     ! mark as configured
     this%is_configured = .true.
@@ -236,8 +250,10 @@ contains
     output_frequency, &
     out_facc, &
     out_upstream_area, &
+    out_reach_surface_area, &
     out_qrouted, &
     out_rivtemp, &
+    out_erouted, &
     errmsg) result(status)
 
     class(nml_output_mrm_t), intent(inout) :: this !< namelist instance
@@ -248,8 +264,10 @@ contains
     integer(i4), intent(in), optional :: output_frequency !< Output time step
     logical, intent(in), optional :: out_facc !< Flow accumulation
     logical, intent(in), optional :: out_upstream_area !< Upstream area
+    logical, intent(in), optional :: out_reach_surface_area !< Reach water surface area
     logical, intent(in), optional :: out_qrouted !< Routed Streamflow
     logical, intent(in), optional :: out_rivtemp !< Routed Temperature
+    logical, intent(in), optional :: out_erouted !< Routed thermal power
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -262,8 +280,10 @@ contains
     if (present(output_frequency)) this%output_frequency = output_frequency
     if (present(out_facc)) this%out_facc = out_facc
     if (present(out_upstream_area)) this%out_upstream_area = out_upstream_area
+    if (present(out_reach_surface_area)) this%out_reach_surface_area = out_reach_surface_area
     if (present(out_qrouted)) this%out_qrouted = out_qrouted
     if (present(out_rivtemp)) this%out_rivtemp = out_rivtemp
+    if (present(out_erouted)) this%out_erouted = out_erouted
 
     ! mark as configured
     this%is_configured = .true.
@@ -321,6 +341,12 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'out_upstream_area'"
         return
       end if
+    case ("out_reach_surface_area")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_reach_surface_area'"
+        return
+      end if
     case ("out_qrouted")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
@@ -331,6 +357,12 @@ contains
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "index not supported for 'out_RivTemp'"
+        return
+      end if
+    case ("out_erouted")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'out_Erouted'"
         return
       end if
     case default

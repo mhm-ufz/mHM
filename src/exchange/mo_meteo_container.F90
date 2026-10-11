@@ -236,7 +236,8 @@ contains
         self%exchange%config%processes%neutrons, self%exchange%config%processes%temperature_routing] /= 0_i4)) then
       call self%exchange%pre%provide("Meteo")
     end if
-    if (self%exchange%config%processes%snow == 1_i4 .or. any(self%exchange%config%processes%pet == [1_i4, 2_i4, 3_i4])) call self%exchange%temp%provide("Meteo")
+    if (self%exchange%config%processes%snow == 1_i4 .or. any(self%exchange%config%processes%pet == [1_i4, 2_i4, 3_i4]) .or. &
+        self%exchange%config%processes%temperature_routing == 1_i4) call self%exchange%temp%provide("Meteo")
     if (self%exchange%config%processes%pet /= 0_i4) call self%exchange%pet%provide("Meteo")
     if (self%exchange%config%processes%temperature_routing > 0_i4) then
       call self%exchange%ssrd%provide("Meteo")
@@ -322,7 +323,7 @@ contains
     ! its own temperature and radiation inputs. The lake process case -2
     ! currently consumes precipitation and PET only.
     need_raw_pre_land = land_active
-    need_raw_temp_land = snow_process == 1_i4 .or. any(pet_process == [1_i4, 2_i4, 3_i4])
+    need_raw_temp_land = snow_process == 1_i4 .or. any(pet_process == [1_i4, 2_i4, 3_i4]) .or. riv_temp_process == 1_i4
     need_raw_pet_land = any(pet_process == [-2_i4, -1_i4])
     need_raw_tmin_land = pet_process == 1_i4
     need_raw_tmax_land = pet_process == 1_i4
@@ -414,6 +415,7 @@ contains
     end if
     if (need_raw_tann) then
       call self%exchange%raw_tann%check_provided("Meteo")
+      ! Annual averaging is prepared externally; validate its update cadence like other raw inputs.
       call self%validate_step("raw_tann", self%exchange%raw_tann%stepping, allow_static=.true., allow_daily=.true., &
         allow_monthly=.true., allow_yearly=.true., allow_hourly=.true.)
     end if

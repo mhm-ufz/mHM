@@ -41,6 +41,7 @@
 /
 
 &river_temperature_1
+  width_ref = 10.0, .false.
   albedo_water = 0.08, .true., 0.02, 0.2
   pt_a_water = 1.26, .true.
   emissivity_water = 0.98, .true.
