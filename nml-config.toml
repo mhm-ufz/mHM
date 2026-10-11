@@ -104,6 +104,12 @@ mod_path = "src/nml/nml_config_resolution.f90"
 doc_path = "doc/nml/config_resolution.md"
 
 [[namelists]]
+name = "config_lut"
+schema = "nml-schemas/config_lut.yml"
+mod_path = "src/nml/nml_config_lut.f90"
+doc_path = "doc/nml/config_lut.md"
+
+[[namelists]]
 name = "config_mpr"
 schema = "nml-schemas/config_mpr.yml"
 mod_path = "src/nml/nml_config_mpr.f90"

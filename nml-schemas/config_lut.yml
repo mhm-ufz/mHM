@@ -1,0 +1,35 @@
+title: Look-up table configuration
+description: |-
+  Domain-indexed look-up table (LUT) paths provided as metadata independent of the
+  process containers. Attached to the exchange of each domain so that any container
+  (land-surface MPR, Input, mLM) can resolve the shared class-to-property tables
+  without duplicating the path in its own process configuration.
+x-fortran-namelist: config_lut
+type: object
+properties:
+  soil_lut_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: Soil look-up table path
+    description: |-
+      Soil look-up table (class -> texture) path. Resolved on the exchange and read by the
+      land-surface MPR (soil texture per soil class) and by the Input container (top-horizon
+      sand and clay of the lake footprint soil classes for the detached lake multiscale
+      parameter regionalization of the lakebed conductivity).
+  geo_lut_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: Geology look-up table path
+    description: |-
+      Geology look-up table (class -> GeoParam index + geological unit) path. Resolved on the
+      exchange and read by the land-surface MPR and by the mLM container (per-geological-unit
+      baseflow recession values over the lake footprint for the detached lake multiscale
+      parameter regionalization of the lake baseflow recession coefficient).
