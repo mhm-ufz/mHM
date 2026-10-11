@@ -32,6 +32,21 @@ properties:
     properties:
       value: {examples: [1.5]}
       optimize: {examples: [true]}
+  spillway_length_multiplier:
+    $ref: parameter.yml#/$defs/parameter
+    title: Spillway length multiplier
+    description: |-
+      Global multiplier m on the regionalized effective spillway crest length Ls [m], derived from the
+      lake drainage (catchment) area CA [km2] by the downstream-hydraulic-geometry power law
+      Ls = m * 2.7 * CA^0.35 (CA at the lake outlet node, taken from the routing upstream area). The
+      base coefficient 2.7 and exponent 0.35 follow bankfull-width-vs-drainage-area regressions
+      (Bieger et al. 2015; Leopold and Maddock 1953; Wilkerson et al. 2014; LISFLOOD channel width),
+      with the spillway crest length taken proportional to the channel/bankfull width at the outlet.
+      Dimensionless. Global (pan-domain), shared across all lakes.
+    default: {min: 0.5, max: 2.0}
+    properties:
+      value: {examples: [1.0]}
+      optimize: {examples: [true]}
   b:
     $ref: parameter.yml#/$defs/parameter
     title: Effective lakebed thickness
@@ -105,6 +120,7 @@ properties:
 required:
   - spill_coefficient_of_discharge
   - spill_exponent
+  - spillway_length_multiplier
   - b
   - ptf_ks_constant
   - ptf_ks_sand

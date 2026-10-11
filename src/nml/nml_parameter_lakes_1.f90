@@ -52,6 +52,7 @@ module nml_lakes_1
     integer :: n_geo_units = n_geo_units__default !< runtime dimension for n_geo_units
     type(parameter_t) :: spill_coefficient_of_discharge !< Spill coefficient of discharge
     type(parameter_t) :: spill_exponent !< Spill exponent
+    type(parameter_t) :: spillway_length_multiplier !< Spillway length multiplier
     type(parameter_t) :: b !< Effective lakebed thickness
     type(parameter_t) :: ptf_ks_constant !< Lakebed PTF constant for saturated hydraulic conductivity
     type(parameter_t) :: ptf_ks_sand !< Lakebed PTF sand multiplier for saturated hydraulic conductivity
@@ -82,6 +83,7 @@ contains
     status = this%init_type( &
       spill_coefficient_of_discharge=this%spill_coefficient_of_discharge, &
       spill_exponent=this%spill_exponent, &
+      spillway_length_multiplier=this%spillway_length_multiplier, &
       b=this%b, &
       ptf_ks_constant=this%ptf_ks_constant, &
       ptf_ks_sand=this%ptf_ks_sand, &
@@ -95,6 +97,7 @@ contains
   integer function nml_lakes_1_init_type(this, &
     spill_coefficient_of_discharge, &
     spill_exponent, &
+    spillway_length_multiplier, &
     b, &
     ptf_ks_constant, &
     ptf_ks_sand, &
@@ -104,6 +107,7 @@ contains
     class(nml_lakes_1_t), intent(in) :: this !< parent namelist instance
     type(parameter_t), intent(inout), optional :: spill_coefficient_of_discharge !< Spill coefficient of discharge
     type(parameter_t), intent(inout), optional :: spill_exponent !< Spill exponent
+    type(parameter_t), intent(inout), optional :: spillway_length_multiplier !< Spillway length multiplier
     type(parameter_t), intent(inout), optional :: b !< Effective lakebed thickness
     type(parameter_t), intent(inout), optional :: ptf_ks_constant !< Lakebed PTF constant for saturated hydraulic conductivity
     type(parameter_t), intent(inout), optional :: ptf_ks_sand !< Lakebed PTF sand multiplier for saturated hydraulic conductivity
@@ -128,6 +132,14 @@ contains
       spill_exponent%max = ieee_value(spill_exponent%max, ieee_quiet_nan) ! sentinel for derived component max
       spill_exponent%min = 0.5_dp
       spill_exponent%max = 2.5_dp
+    end if
+    if (present(spillway_length_multiplier)) then
+      spillway_length_multiplier%value = ieee_value(spillway_length_multiplier%value, ieee_quiet_nan) ! sentinel for derived component value
+      spillway_length_multiplier%optimize = .false.
+      spillway_length_multiplier%min = ieee_value(spillway_length_multiplier%min, ieee_quiet_nan) ! sentinel for derived component min
+      spillway_length_multiplier%max = ieee_value(spillway_length_multiplier%max, ieee_quiet_nan) ! sentinel for derived component max
+      spillway_length_multiplier%min = 0.5_dp
+      spillway_length_multiplier%max = 2.0_dp
     end if
     if (present(b)) then
       b%value = ieee_value(b%value, ieee_quiet_nan) ! sentinel for derived component value
@@ -210,6 +222,7 @@ contains
     ! namelist variables
     type(parameter_t) :: spill_coefficient_of_discharge
     type(parameter_t) :: spill_exponent
+    type(parameter_t) :: spillway_length_multiplier
     type(parameter_t) :: b
     type(parameter_t) :: ptf_ks_constant
     type(parameter_t) :: ptf_ks_sand
@@ -224,6 +237,7 @@ contains
     namelist /lakes_1/ &
       spill_coefficient_of_discharge, &
       spill_exponent, &
+      spillway_length_multiplier, &
       b, &
       ptf_ks_constant, &
       ptf_ks_sand, &
@@ -237,6 +251,7 @@ contains
     allocate(baseflow_recession(this%n_geo_units))
     spill_coefficient_of_discharge = this%spill_coefficient_of_discharge
     spill_exponent = this%spill_exponent
+    spillway_length_multiplier = this%spillway_length_multiplier
     b = this%b
     ptf_ks_constant = this%ptf_ks_constant
     ptf_ks_sand = this%ptf_ks_sand
@@ -269,6 +284,7 @@ contains
     ! assign values
     this%spill_coefficient_of_discharge = spill_coefficient_of_discharge
     this%spill_exponent = spill_exponent
+    this%spillway_length_multiplier = spillway_length_multiplier
     this%b = b
     this%ptf_ks_constant = ptf_ks_constant
     this%ptf_ks_sand = ptf_ks_sand
@@ -284,6 +300,7 @@ contains
   integer function nml_lakes_1_set(this, &
     spill_coefficient_of_discharge, &
     spill_exponent, &
+    spillway_length_multiplier, &
     b, &
     ptf_ks_constant, &
     ptf_ks_sand, &
@@ -295,6 +312,7 @@ contains
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     type(parameter_t), intent(in) :: spill_coefficient_of_discharge !< Spill coefficient of discharge
     type(parameter_t), intent(in) :: spill_exponent !< Spill exponent
+    type(parameter_t), intent(in) :: spillway_length_multiplier !< Spillway length multiplier
     type(parameter_t), intent(in) :: b !< Effective lakebed thickness
     type(parameter_t), intent(in) :: ptf_ks_constant !< Lakebed PTF constant for saturated hydraulic conductivity
     type(parameter_t), intent(in) :: ptf_ks_sand !< Lakebed PTF sand multiplier for saturated hydraulic conductivity
@@ -310,6 +328,7 @@ contains
     ! required parameters
     this%spill_coefficient_of_discharge = spill_coefficient_of_discharge
     this%spill_exponent = spill_exponent
+    this%spillway_length_multiplier = spillway_length_multiplier
     this%b = b
     this%ptf_ks_constant = ptf_ks_constant
     this%ptf_ks_sand = ptf_ks_sand
@@ -409,6 +428,40 @@ contains
         return
       end if
       if (ieee_is_nan(this%spill_exponent%value)) then
+        status = NML_ERR_NOT_SET
+      end if
+    case ("spillway_length_multiplier%value")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier'"
+        return
+      end if
+      if (ieee_is_nan(this%spillway_length_multiplier%value)) status = NML_ERR_NOT_SET
+    case ("spillway_length_multiplier%optimize")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier'"
+        return
+      end if
+    case ("spillway_length_multiplier%min")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier'"
+        return
+      end if
+    case ("spillway_length_multiplier%max")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier'"
+        return
+      end if
+    case ("spillway_length_multiplier")
+      if (present(idx)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier'"
+        return
+      end if
+      if (ieee_is_nan(this%spillway_length_multiplier%value)) then
         status = NML_ERR_NOT_SET
       end if
     case ("b%value")
@@ -654,6 +707,21 @@ contains
       if (present(errmsg)) then
         if (len_trim(errmsg) == 0) then
           errmsg = "field not set: spill_exponent"
+        end if
+        errmsg = "required " // trim(errmsg)
+      end if
+      return
+    end if
+    if (istat /= NML_OK) then
+      status = istat
+      return
+    end if
+    istat = this%is_set("spillway_length_multiplier", errmsg=errmsg)
+    if (istat == NML_ERR_NOT_SET) then
+      status = NML_ERR_REQUIRED
+      if (present(errmsg)) then
+        if (len_trim(errmsg) == 0) then
+          errmsg = "field not set: spillway_length_multiplier"
         end if
         errmsg = "required " // trim(errmsg)
       end if

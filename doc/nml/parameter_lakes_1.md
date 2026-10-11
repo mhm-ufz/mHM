@@ -15,6 +15,7 @@ min, max (min/max are the calibration bounds).
 | --- | --- | --- | --- | --- |
 | [spill_coefficient_of_discharge](#spill_coefficient_of_discharge) | type(parameter_t) | yes | yes | Spill coefficient of discharge |
 | [spill_exponent](#spill_exponent) | type(parameter_t) | yes | yes | Spill exponent |
+| [spillway_length_multiplier](#spillway_length_multiplier) | type(parameter_t) | yes | yes | Spillway length multiplier |
 | [b](#b) | type(parameter_t) | yes | yes | Effective lakebed thickness |
 | [ptf_ks_constant](#ptf_ks_constant) | type(parameter_t) | yes | yes | Lakebed PTF constant for saturated hydraulic conductivity |
 | [ptf_ks_sand](#ptf_ks_sand) | type(parameter_t) | yes | yes | Lakebed PTF sand multiplier for saturated hydraulic conductivity |
@@ -65,6 +66,30 @@ Components:
 - `spill_exponent%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
 - `spill_exponent%min`: `real(dp)`; declared required yes; input required no; default `0.5` (object default)
 - `spill_exponent%max`: `real(dp)`; declared required yes; input required no; default `2.5` (object default)
+
+### spillway_length_multiplier
+
+Spillway length multiplier `spillway_length_multiplier`
+
+Global multiplier m on the regionalized effective spillway crest length Ls [m], derived from the
+lake drainage (catchment) area CA [km2] by the downstream-hydraulic-geometry power law
+Ls = m * 2.7 * CA^0.35 (CA at the lake outlet node, taken from the routing upstream area). The
+base coefficient 2.7 and exponent 0.35 follow bankfull-width-vs-drainage-area regressions
+(Bieger et al. 2015; Leopold and Maddock 1953; Wilkerson et al. 2014; LISFLOOD channel width),
+with the spillway crest length taken proportional to the channel/bankfull width at the outlet.
+Dimensionless. Global (pan-domain), shared across all lakes.
+
+Summary:
+- Type: `type(parameter_t)`
+- Declared required: yes
+- Input required: yes
+- Default: `{min: 0.5, max: 2.0}`
+
+Components:
+- `spillway_length_multiplier%value`: `real(dp)`; declared required yes; input required yes
+- `spillway_length_multiplier%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
+- `spillway_length_multiplier%min`: `real(dp)`; declared required yes; input required no; default `0.5` (object default)
+- `spillway_length_multiplier%max`: `real(dp)`; declared required yes; input required no; default `2.0` (object default)
 
 ### b
 
@@ -207,6 +232,10 @@ A model parameter with optional calibration metadata.
   spill_exponent%optimize = .true.
   spill_exponent%min = 0.5
   spill_exponent%max = 2.5
+  spillway_length_multiplier%value = 1.0
+  spillway_length_multiplier%optimize = .true.
+  spillway_length_multiplier%min = 0.5
+  spillway_length_multiplier%max = 2.0
   b%value = 1.0
   b%optimize = .true.
   b%min = 0.1
