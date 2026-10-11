@@ -386,19 +386,19 @@ contains
       error stop 1
     end if
 
-    status = self%config%is_set("soil_lut_path", idx=id, errmsg=errmsg)
+    status = self%exchange%config%lut%is_set("soil_lut_path", idx=id, errmsg=errmsg)
     if (status /= NML_OK) then
       log_fatal(*) "MPR: soil_lut_path not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
       error stop 1
     end if
-    self%soil%lut_path = self%exchange%get_path(self%config%soil_lut_path(id(1)))
+    self%soil%lut_path = self%exchange%get_path(self%exchange%config%lut%soil_lut_path(id(1)))
 
-    status = self%config%is_set("geo_lut_path", idx=id, errmsg=errmsg)
+    status = self%exchange%config%lut%is_set("geo_lut_path", idx=id, errmsg=errmsg)
     if (status /= NML_OK) then
       log_fatal(*) "MPR: geo_lut_path not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
       error stop 1
     end if
-    self%preproc%geo_lut_path = self%exchange%get_path(self%config%geo_lut_path(id(1)))
+    self%preproc%geo_lut_path = self%exchange%get_path(self%exchange%config%lut%geo_lut_path(id(1)))
 
     self%land_cover%var_name = trim(self%config%land_cover_var(id(1)))
     if (len_trim(self%land_cover%var_name) < 1) then

@@ -71,8 +71,6 @@ module nml_config_mpr
     integer(i4), allocatable, dimension(:) :: lai_time_step !< LAI time step
     character(len=buf), allocatable, dimension(:) :: lai_path !< LAI path
     character(len=buf), allocatable, dimension(:) :: lai_var !< LAI variable
-    character(len=buf), allocatable, dimension(:) :: soil_lut_path !< Soil LUT path
-    character(len=buf), allocatable, dimension(:) :: geo_lut_path !< Geology LUT path
     character(len=buf), allocatable, dimension(:) :: lai_lut_path !< LAI LUT path
     logical, allocatable, dimension(:) :: read_restart !< Read restart
     character(len=buf), allocatable, dimension(:) :: restart_input_path !< Restart input path
@@ -169,10 +167,6 @@ contains
     allocate(character(len=buf) :: this%lai_path(this%n_domains))
     if (allocated(this%lai_var)) deallocate(this%lai_var)
     allocate(character(len=buf) :: this%lai_var(this%n_domains))
-    if (allocated(this%soil_lut_path)) deallocate(this%soil_lut_path)
-    allocate(character(len=buf) :: this%soil_lut_path(this%n_domains))
-    if (allocated(this%geo_lut_path)) deallocate(this%geo_lut_path)
-    allocate(character(len=buf) :: this%geo_lut_path(this%n_domains))
     if (allocated(this%lai_lut_path)) deallocate(this%lai_lut_path)
     allocate(character(len=buf) :: this%lai_lut_path(this%n_domains))
     if (allocated(this%read_restart)) deallocate(this%read_restart)
@@ -191,8 +185,6 @@ contains
     this%land_cover_path = achar(0) ! sentinel for optional string array
     this%lai_time_step = -huge(this%lai_time_step) ! sentinel for optional integer array
     this%lai_path = achar(0) ! sentinel for optional string array
-    this%soil_lut_path = achar(0) ! sentinel for optional string array
-    this%geo_lut_path = achar(0) ! sentinel for optional string array
     this%lai_lut_path = achar(0) ! sentinel for optional string array
     this%restart_input_path = achar(0) ! sentinel for optional string array
     this%restart_output_path = achar(0) ! sentinel for optional string array
@@ -253,8 +245,6 @@ contains
     if (allocated(this%lai_time_step)) deallocate(this%lai_time_step)
     if (allocated(this%lai_path)) deallocate(this%lai_path)
     if (allocated(this%lai_var)) deallocate(this%lai_var)
-    if (allocated(this%soil_lut_path)) deallocate(this%soil_lut_path)
-    if (allocated(this%geo_lut_path)) deallocate(this%geo_lut_path)
     if (allocated(this%lai_lut_path)) deallocate(this%lai_lut_path)
     if (allocated(this%read_restart)) deallocate(this%read_restart)
     if (allocated(this%restart_input_path)) deallocate(this%restart_input_path)
@@ -280,8 +270,6 @@ contains
     integer(i4), allocatable, dimension(:) :: lai_time_step
     character(len=buf), allocatable, dimension(:) :: lai_path
     character(len=buf), allocatable, dimension(:) :: lai_var
-    character(len=buf), allocatable, dimension(:) :: soil_lut_path
-    character(len=buf), allocatable, dimension(:) :: geo_lut_path
     character(len=buf), allocatable, dimension(:) :: lai_lut_path
     logical, allocatable, dimension(:) :: read_restart
     character(len=buf), allocatable, dimension(:) :: restart_input_path
@@ -304,8 +292,6 @@ contains
       lai_time_step, &
       lai_path, &
       lai_var, &
-      soil_lut_path, &
-      geo_lut_path, &
       lai_lut_path, &
       read_restart, &
       restart_input_path, &
@@ -335,10 +321,6 @@ contains
     allocate(character(len=buf) :: lai_path(this%n_domains))
     if (allocated(lai_var)) deallocate(lai_var)
     allocate(character(len=buf) :: lai_var(this%n_domains))
-    if (allocated(soil_lut_path)) deallocate(soil_lut_path)
-    allocate(character(len=buf) :: soil_lut_path(this%n_domains))
-    if (allocated(geo_lut_path)) deallocate(geo_lut_path)
-    allocate(character(len=buf) :: geo_lut_path(this%n_domains))
     if (allocated(lai_lut_path)) deallocate(lai_lut_path)
     allocate(character(len=buf) :: lai_lut_path(this%n_domains))
     if (allocated(read_restart)) deallocate(read_restart)
@@ -359,8 +341,6 @@ contains
     lai_time_step = this%lai_time_step
     lai_path = this%lai_path
     lai_var = this%lai_var
-    soil_lut_path = this%soil_lut_path
-    geo_lut_path = this%geo_lut_path
     lai_lut_path = this%lai_lut_path
     read_restart = this%read_restart
     restart_input_path = this%restart_input_path
@@ -401,8 +381,6 @@ contains
     this%lai_time_step = lai_time_step
     this%lai_path = lai_path
     this%lai_var = lai_var
-    this%soil_lut_path = soil_lut_path
-    this%geo_lut_path = geo_lut_path
     this%lai_lut_path = lai_lut_path
     this%read_restart = read_restart
     this%restart_input_path = restart_input_path
@@ -426,8 +404,6 @@ contains
     lai_time_step, &
     lai_path, &
     lai_var, &
-    soil_lut_path, &
-    geo_lut_path, &
     lai_lut_path, &
     read_restart, &
     restart_input_path, &
@@ -447,8 +423,6 @@ contains
     integer(i4), dimension(:), intent(in), optional :: lai_time_step !< LAI time step
     character(len=*), dimension(:), intent(in), optional :: lai_path !< LAI path
     character(len=*), dimension(:), intent(in), optional :: lai_var !< LAI variable
-    character(len=*), dimension(:), intent(in), optional :: soil_lut_path !< Soil LUT path
-    character(len=*), dimension(:), intent(in), optional :: geo_lut_path !< Geology LUT path
     character(len=*), dimension(:), intent(in), optional :: lai_lut_path !< LAI LUT path
     logical, dimension(:), intent(in), optional :: read_restart !< Read restart
     character(len=*), dimension(:), intent(in), optional :: restart_input_path !< Restart input path
@@ -571,26 +545,6 @@ contains
       lb__1 = lbound(this%lai_var, 1)
       ub__1 = lb__1 + size(lai_var, 1) - 1
       this%lai_var(lb__1:ub__1) = lai_var
-    end if
-    if (present(soil_lut_path)) then
-      if (size(soil_lut_path, 1) > size(this%soil_lut_path, 1)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'soil_lut_path'"
-        return
-      end if
-      lb__1 = lbound(this%soil_lut_path, 1)
-      ub__1 = lb__1 + size(soil_lut_path, 1) - 1
-      this%soil_lut_path(lb__1:ub__1) = soil_lut_path
-    end if
-    if (present(geo_lut_path)) then
-      if (size(geo_lut_path, 1) > size(this%geo_lut_path, 1)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'geo_lut_path'"
-        return
-      end if
-      lb__1 = lbound(this%geo_lut_path, 1)
-      ub__1 = lb__1 + size(geo_lut_path, 1) - 1
-      this%geo_lut_path(lb__1:ub__1) = geo_lut_path
     end if
     if (present(lai_lut_path)) then
       if (size(lai_lut_path, 1) > size(this%lai_lut_path, 1)) then
@@ -784,32 +738,6 @@ contains
           "lai_var", errmsg)
         if (status /= NML_OK) return
       else
-      end if
-    case ("soil_lut_path")
-      if (.not. allocated(this%soil_lut_path)) then
-        status = NML_ERR_NOT_SET
-        return
-      end if
-      if (present(idx)) then
-        status = idx_check(idx, lbound(this%soil_lut_path), ubound(this%soil_lut_path), &
-          "soil_lut_path", errmsg)
-        if (status /= NML_OK) return
-        if (this%soil_lut_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
-      else
-        if (all(this%soil_lut_path == achar(0))) status = NML_ERR_NOT_SET
-      end if
-    case ("geo_lut_path")
-      if (.not. allocated(this%geo_lut_path)) then
-        status = NML_ERR_NOT_SET
-        return
-      end if
-      if (present(idx)) then
-        status = idx_check(idx, lbound(this%geo_lut_path), ubound(this%geo_lut_path), &
-          "geo_lut_path", errmsg)
-        if (status /= NML_OK) return
-        if (this%geo_lut_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
-      else
-        if (all(this%geo_lut_path == achar(0))) status = NML_ERR_NOT_SET
       end if
     case ("lai_lut_path")
       if (.not. allocated(this%lai_lut_path)) then
