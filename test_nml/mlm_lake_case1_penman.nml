@@ -71,6 +71,7 @@
 /
 
 &config_mlm
+  n_lakes(1)            = 1
   output_path(1)          = "mlm_lake_case1_penman_mlm.nc"
   bathymetry_type(1,1)    = 2
   natural(1,1)            = .true.
