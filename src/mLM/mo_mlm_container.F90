@@ -29,8 +29,19 @@
 !!     * Phase 3: lake seepage, lake groundwater storage and baseflow; outflow = spill + baseflow.
 !!     * Phase 4: Penman (1948) open-water evaporation (daily, disaggregated to the model step).
 !!     * Phase 5: lake-point state/flux output and restart persistence (states + static metadata).
-!!     * Priestley-Taylor (1972) evaporation as a second method (evaporation_method selector).
-!!     * Varying water albedo on projected grids via geographic lake coordinates (level-0 latlon aux).
+!!     * Evaporation: Priestley-Taylor (1972) evaporation as a second method (evaporation_method selector).
+!!     * Evaporation: Varying water albedo on projected grids via geographic lake coordinates (level-0 latlon aux).
+!!     * Evaporation: Calibration-free Priestley-Taylor (Su & Singh, 2023) evaporation as a third method.
+!!     * Percolatoin: Physical lakebed percolation: Darcy leakance Ks/b, linear in head (replaced the lumped
+!!       percolation recession rate + depth-normaliser and the H^2 nonlinearity); self-consistent
+!!       groundwater cold-start (initial baseflow = initial percolation; retired longterm_baseflow).
+!!     * Parameter bounds: lakes_1 parameters registered in the process parameter registry (bounds-checked + optimizer-visible).
+!!     * Percolation: Detached lake MPR (lakebed Ks): per-lake saturated hydraulic conductivity regionalized from the
+!!       lake-footprint soil texture via the Cosby (1984) pedotransfer function (mo_mlm_mpr); borrows the
+!!       land soil-moisture pedotransfer parameters when that process is active, else uses lakes_1's own.
+!!     * Baseflow: Detached lake MPR (baseflow recession coefficient): per-lake k_bf regionalized from the
+!!       lake-footprint geology (per-geological-unit lookup + footprint mean, mo_mlm_mpr); borrows the
+!!       land baseflow parameters when that process is active, else uses lakes_1's own per-unit array.
 !> \authors Pallav Shrestha
 !> \authors Sebastian Mueller
 !> \date 2026
