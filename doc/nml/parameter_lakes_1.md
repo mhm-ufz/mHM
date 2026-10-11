@@ -19,7 +19,7 @@ min, max (min/max are the calibration bounds).
 | [ptf_ks_constant](#ptf_ks_constant) | type(parameter_t) | yes | yes | Lakebed PTF constant for saturated hydraulic conductivity |
 | [ptf_ks_sand](#ptf_ks_sand) | type(parameter_t) | yes | yes | Lakebed PTF sand multiplier for saturated hydraulic conductivity |
 | [ptf_ks_clay](#ptf_ks_clay) | type(parameter_t) | yes | yes | Lakebed PTF clay multiplier for saturated hydraulic conductivity |
-| [baseflow_recession_coefficient](#baseflow_recession_coefficient) | type(parameter_t) | yes | yes | Baseflow recession coefficient |
+| [baseflow_recession](#baseflow_recession) | type(parameter_t) array | yes | yes | Lake baseflow recession time for each geological unit [d] |
 
 ## Field details
 
@@ -150,27 +150,33 @@ Components:
 - `ptf_ks_clay%min`: `real(dp)`; declared required yes; input required no; default `0.003` (object default)
 - `ptf_ks_clay%max`: `real(dp)`; declared required yes; input required no; default `0.013` (object default)
 
-### baseflow_recession_coefficient
+### baseflow_recession
 
-Baseflow recession coefficient `baseflow_recession_coefficient`
+Lake baseflow recession time for each geological unit [d] `baseflow_recession`
 
-Lake groundwater-storage recession time constant kbf [d]. Each hydrological time step
-the per-step recession coefficient is formed as (tsHydroSecs / 86400) / kbf (the SI
-form of the v5 c2TSTu / kBaseFlow conversion); the baseflow is that coefficient times
-the lake groundwater storage, so a larger value gives a slower, more sustained baseflow.
-Global (pan-domain), shared across all lakes.
+Lake groundwater-storage recession time constant kbf [d], regionalized per lake from the
+geological units over the lake footprint (the geological baseflow-parameter lookup, exactly as the
+land-surface baseflow process): one value per geological unit, addressed by the first column
+(GeoParam index) of the geology class-definition file. For each lake footprint cell the geological
+unit selects its baseflow recession value; the per-lake value is the arithmetic (cell-count) mean
+over the footprint. Each hydrological time step the per-step recession coefficient is formed as
+(tsHydroSecs / 86400) / kbf (the SI form of the v5 c2TSTu / kBaseFlow conversion); the baseflow is
+that coefficient times the lake groundwater storage, so a larger value gives a slower, more
+sustained baseflow. When the land-surface baseflow (geoparameter) process is active the lake
+borrows its baseflow_recession parameters instead; these lake-owned values are used (and registered
+with the optimizer) only when the land baseflow process is inactive.
 
 Summary:
-- Type: `type(parameter_t)`
+- Type: `type(parameter_t), dimension(n_geo_units)`
 - Declared required: yes
 - Input required: yes
-- Default: `{min: 1.0, max: 1000.0}`
+- Default: `{min: 1.0, max: 1000.0}` (broadcast item default)
 
 Components:
-- `baseflow_recession_coefficient%value`: `real(dp)`; declared required yes; input required yes
-- `baseflow_recession_coefficient%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
-- `baseflow_recession_coefficient%min`: `real(dp)`; declared required yes; input required no; default `1.0` (object default)
-- `baseflow_recession_coefficient%max`: `real(dp)`; declared required yes; input required no; default `1000.0` (object default)
+- `baseflow_recession%value`: `real(dp)`; declared required yes; input required yes
+- `baseflow_recession%optimize`: `logical`; declared required no; input required no; default `.false.` (component default)
+- `baseflow_recession%min`: `real(dp)`; declared required yes; input required no; default `1.0` (item default)
+- `baseflow_recession%max`: `real(dp)`; declared required yes; input required no; default `1000.0` (item default)
 
 ## Derived types
 
@@ -217,10 +223,10 @@ A model parameter with optional calibration metadata.
   ptf_ks_clay%optimize = .false.
   ptf_ks_clay%min = 0.003
   ptf_ks_clay%max = 0.013
-  baseflow_recession_coefficient%value = 100.0
-  baseflow_recession_coefficient%optimize = .true.
-  baseflow_recession_coefficient%min = 1.0
-  baseflow_recession_coefficient%max = 1000.0
+  baseflow_recession(:)%value = 100.0
+  baseflow_recession(:)%optimize = .true.
+  baseflow_recession(:)%min = 1.0
+  baseflow_recession(:)%max = 1000.0
 /
 ```
 

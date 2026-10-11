@@ -192,6 +192,8 @@
   soil_horizon_class_path(:) = ""
   ! Soil look-up table path
   soil_lut_path(:) = ""
+  ! Geology look-up table path
+  geo_lut_path(:) = ""
   ! LAI class input
   lai_class_path(:) = ""
   ! River width input

@@ -45,6 +45,7 @@ Variable name entries define the NetCDF variable names to read.
 | [soil_class_path](#soil_class_path) | string array | no | no | Soil class input |
 | [soil_horizon_class_path](#soil_horizon_class_path) | string array | no | no | Soil horizon class input |
 | [soil_lut_path](#soil_lut_path) | string array | no | no | Soil look-up table path |
+| [geo_lut_path](#geo_lut_path) | string array | no | no | Geology look-up table path |
 | [lai_class_path](#lai_class_path) | string array | no | no | LAI class input |
 | [river_width_path](#river_width_path) | string array | no | no | River width input |
 | [morph_mask_path](#morph_mask_path) | string array | no | no | Morphology mask file path |
@@ -435,6 +436,21 @@ Soil look-up table (class -> texture) path. Read by the Input container to resol
 top-horizon sand and clay content of the lake footprint soil classes for the detached lake
 multiscale parameter regionalization of the lakebed conductivity. This is the shared soil LUT;
 the land-surface MPR configures its own copy under config_mpr.
+
+Summary:
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
+- Declared required: no
+- Input required: no
+
+### geo_lut_path
+
+Geology look-up table path `geo_lut_path`
+
+Geology look-up table (class -> GeoParam index + geological unit) path. Read by the mLM container
+to resolve the per-geological-unit baseflow recession values over the lake footprint for the
+detached lake multiscale parameter regionalization of the lake baseflow recession coefficient.
+This is the shared geology LUT; the land-surface MPR configures its own copy under config_mpr.
 
 Summary:
 - Type: `character(len=buf), dimension(n_domains)`
@@ -917,6 +933,7 @@ Summary:
   soil_class_path(:) = ""
   soil_horizon_class_path(:) = ""
   soil_lut_path(:) = ""
+  geo_lut_path(:) = ""
   lai_class_path(:) = ""
   river_width_path(:) = ""
   morph_mask_path(:) = ""

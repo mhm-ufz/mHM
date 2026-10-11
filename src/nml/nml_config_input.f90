@@ -130,6 +130,7 @@ module nml_config_input
     character(len=buf), allocatable, dimension(:) :: soil_class_path !< Soil class input
     character(len=buf), allocatable, dimension(:) :: soil_horizon_class_path !< Soil horizon class input
     character(len=buf), allocatable, dimension(:) :: soil_lut_path !< Soil look-up table path
+    character(len=buf), allocatable, dimension(:) :: geo_lut_path !< Geology look-up table path
     character(len=buf), allocatable, dimension(:) :: lai_class_path !< LAI class input
     character(len=buf), allocatable, dimension(:) :: river_width_path !< River width input
     character(len=buf), allocatable, dimension(:) :: morph_mask_path !< Morphology mask file path
@@ -294,6 +295,8 @@ contains
     allocate(character(len=buf) :: this%soil_horizon_class_path(this%n_domains))
     if (allocated(this%soil_lut_path)) deallocate(this%soil_lut_path)
     allocate(character(len=buf) :: this%soil_lut_path(this%n_domains))
+    if (allocated(this%geo_lut_path)) deallocate(this%geo_lut_path)
+    allocate(character(len=buf) :: this%geo_lut_path(this%n_domains))
     if (allocated(this%lai_class_path)) deallocate(this%lai_class_path)
     allocate(character(len=buf) :: this%lai_class_path(this%n_domains))
     if (allocated(this%river_width_path)) deallocate(this%river_width_path)
@@ -412,6 +415,7 @@ contains
     this%soil_class_path = achar(0) ! sentinel for optional string array
     this%soil_horizon_class_path = achar(0) ! sentinel for optional string array
     this%soil_lut_path = achar(0) ! sentinel for optional string array
+    this%geo_lut_path = achar(0) ! sentinel for optional string array
     this%lai_class_path = achar(0) ! sentinel for optional string array
     this%river_width_path = achar(0) ! sentinel for optional string array
     this%morph_mask_path = achar(0) ! sentinel for optional string array
@@ -518,6 +522,7 @@ contains
     if (allocated(this%soil_class_path)) deallocate(this%soil_class_path)
     if (allocated(this%soil_horizon_class_path)) deallocate(this%soil_horizon_class_path)
     if (allocated(this%soil_lut_path)) deallocate(this%soil_lut_path)
+    if (allocated(this%geo_lut_path)) deallocate(this%geo_lut_path)
     if (allocated(this%lai_class_path)) deallocate(this%lai_class_path)
     if (allocated(this%river_width_path)) deallocate(this%river_width_path)
     if (allocated(this%morph_mask_path)) deallocate(this%morph_mask_path)
@@ -604,6 +609,7 @@ contains
     character(len=buf), allocatable, dimension(:) :: soil_class_path
     character(len=buf), allocatable, dimension(:) :: soil_horizon_class_path
     character(len=buf), allocatable, dimension(:) :: soil_lut_path
+    character(len=buf), allocatable, dimension(:) :: geo_lut_path
     character(len=buf), allocatable, dimension(:) :: lai_class_path
     character(len=buf), allocatable, dimension(:) :: river_width_path
     character(len=buf), allocatable, dimension(:) :: morph_mask_path
@@ -687,6 +693,7 @@ contains
       soil_class_path, &
       soil_horizon_class_path, &
       soil_lut_path, &
+      geo_lut_path, &
       lai_class_path, &
       river_width_path, &
       morph_mask_path, &
@@ -800,6 +807,8 @@ contains
     allocate(character(len=buf) :: soil_horizon_class_path(this%n_domains))
     if (allocated(soil_lut_path)) deallocate(soil_lut_path)
     allocate(character(len=buf) :: soil_lut_path(this%n_domains))
+    if (allocated(geo_lut_path)) deallocate(geo_lut_path)
+    allocate(character(len=buf) :: geo_lut_path(this%n_domains))
     if (allocated(lai_class_path)) deallocate(lai_class_path)
     allocate(character(len=buf) :: lai_class_path(this%n_domains))
     if (allocated(river_width_path)) deallocate(river_width_path)
@@ -919,6 +928,7 @@ contains
     soil_class_path = this%soil_class_path
     soil_horizon_class_path = this%soil_horizon_class_path
     soil_lut_path = this%soil_lut_path
+    geo_lut_path = this%geo_lut_path
     lai_class_path = this%lai_class_path
     river_width_path = this%river_width_path
     morph_mask_path = this%morph_mask_path
@@ -1020,6 +1030,7 @@ contains
     this%soil_class_path = soil_class_path
     this%soil_horizon_class_path = soil_horizon_class_path
     this%soil_lut_path = soil_lut_path
+    this%geo_lut_path = geo_lut_path
     this%lai_class_path = lai_class_path
     this%river_width_path = river_width_path
     this%morph_mask_path = morph_mask_path
@@ -1104,6 +1115,7 @@ contains
     soil_class_path, &
     soil_horizon_class_path, &
     soil_lut_path, &
+    geo_lut_path, &
     lai_class_path, &
     river_width_path, &
     morph_mask_path, &
@@ -1184,6 +1196,7 @@ contains
     character(len=*), dimension(:), intent(in), optional :: soil_class_path !< Soil class input
     character(len=*), dimension(:), intent(in), optional :: soil_horizon_class_path !< Soil horizon class input
     character(len=*), dimension(:), intent(in), optional :: soil_lut_path !< Soil look-up table path
+    character(len=*), dimension(:), intent(in), optional :: geo_lut_path !< Geology look-up table path
     character(len=*), dimension(:), intent(in), optional :: lai_class_path !< LAI class input
     character(len=*), dimension(:), intent(in), optional :: river_width_path !< River width input
     character(len=*), dimension(:), intent(in), optional :: morph_mask_path !< Morphology mask file path
@@ -1565,6 +1578,16 @@ contains
       lb__1 = lbound(this%soil_lut_path, 1)
       ub__1 = lb__1 + size(soil_lut_path, 1) - 1
       this%soil_lut_path(lb__1:ub__1) = soil_lut_path
+    end if
+    if (present(geo_lut_path)) then
+      if (size(geo_lut_path, 1) > size(this%geo_lut_path, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'geo_lut_path'"
+        return
+      end if
+      lb__1 = lbound(this%geo_lut_path, 1)
+      ub__1 = lb__1 + size(geo_lut_path, 1) - 1
+      this%geo_lut_path(lb__1:ub__1) = geo_lut_path
     end if
     if (present(lai_class_path)) then
       if (size(lai_class_path, 1) > size(this%lai_class_path, 1)) then
@@ -2439,6 +2462,19 @@ contains
         if (this%soil_lut_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
         if (all(this%soil_lut_path == achar(0))) status = NML_ERR_NOT_SET
+      end if
+    case ("geo_lut_path")
+      if (.not. allocated(this%geo_lut_path)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%geo_lut_path), ubound(this%geo_lut_path), &
+          "geo_lut_path", errmsg)
+        if (status /= NML_OK) return
+        if (this%geo_lut_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
+      else
+        if (all(this%geo_lut_path == achar(0))) status = NML_ERR_NOT_SET
       end if
     case ("lai_class_path")
       if (.not. allocated(this%lai_class_path)) then

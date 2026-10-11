@@ -30,7 +30,9 @@ module nml_lakes_1
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower
+    to_lower, &
+    n_geo_units__default, &
+    NML_ERR_PARTLY_SET
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
@@ -47,16 +49,18 @@ module nml_lakes_1
   !! min, max (min/max are the calibration bounds).
   type, public :: nml_lakes_1_t
     logical :: is_configured = .false. !< whether the namelist has been configured
+    integer :: n_geo_units = n_geo_units__default !< runtime dimension for n_geo_units
     type(parameter_t) :: spill_coefficient_of_discharge !< Spill coefficient of discharge
     type(parameter_t) :: spill_exponent !< Spill exponent
     type(parameter_t) :: b !< Effective lakebed thickness
     type(parameter_t) :: ptf_ks_constant !< Lakebed PTF constant for saturated hydraulic conductivity
     type(parameter_t) :: ptf_ks_sand !< Lakebed PTF sand multiplier for saturated hydraulic conductivity
     type(parameter_t) :: ptf_ks_clay !< Lakebed PTF clay multiplier for saturated hydraulic conductivity
-    type(parameter_t) :: baseflow_recession_coefficient !< Baseflow recession coefficient
+    type(parameter_t), allocatable, dimension(:) :: baseflow_recession !< Lake baseflow recession time for each geological unit [d]
   contains
     procedure :: init => nml_lakes_1_init
     procedure :: init_type => nml_lakes_1_init_type
+    procedure :: set_dims => nml_lakes_1_set_dims
     procedure :: from_file => nml_lakes_1_from_file
     procedure :: set => nml_lakes_1_set
     procedure :: is_set => nml_lakes_1_is_set
@@ -82,7 +86,7 @@ contains
       ptf_ks_constant=this%ptf_ks_constant, &
       ptf_ks_sand=this%ptf_ks_sand, &
       ptf_ks_clay=this%ptf_ks_clay, &
-      baseflow_recession_coefficient=this%baseflow_recession_coefficient, &
+      baseflow_recession=this%baseflow_recession, &
       errmsg=errmsg)
     if (status /= NML_OK) return
   end function nml_lakes_1_init
@@ -95,7 +99,7 @@ contains
     ptf_ks_constant, &
     ptf_ks_sand, &
     ptf_ks_clay, &
-    baseflow_recession_coefficient, &
+    baseflow_recession, &
     errmsg) result(status)
     class(nml_lakes_1_t), intent(in) :: this !< parent namelist instance
     type(parameter_t), intent(inout), optional :: spill_coefficient_of_discharge !< Spill coefficient of discharge
@@ -104,7 +108,7 @@ contains
     type(parameter_t), intent(inout), optional :: ptf_ks_constant !< Lakebed PTF constant for saturated hydraulic conductivity
     type(parameter_t), intent(inout), optional :: ptf_ks_sand !< Lakebed PTF sand multiplier for saturated hydraulic conductivity
     type(parameter_t), intent(inout), optional :: ptf_ks_clay !< Lakebed PTF clay multiplier for saturated hydraulic conductivity
-    type(parameter_t), intent(inout), optional :: baseflow_recession_coefficient !< Baseflow recession coefficient
+    type(parameter_t), dimension(:), allocatable, intent(inout), optional :: baseflow_recession !< Lake baseflow recession time for each geological unit [d]
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
 
     status = NML_OK
@@ -157,15 +161,45 @@ contains
       ptf_ks_clay%min = 0.003_dp
       ptf_ks_clay%max = 0.013_dp
     end if
-    if (present(baseflow_recession_coefficient)) then
-      baseflow_recession_coefficient%value = ieee_value(baseflow_recession_coefficient%value, ieee_quiet_nan) ! sentinel for derived component value
-      baseflow_recession_coefficient%optimize = .false.
-      baseflow_recession_coefficient%min = ieee_value(baseflow_recession_coefficient%min, ieee_quiet_nan) ! sentinel for derived component min
-      baseflow_recession_coefficient%max = ieee_value(baseflow_recession_coefficient%max, ieee_quiet_nan) ! sentinel for derived component max
-      baseflow_recession_coefficient%min = 1.0_dp
-      baseflow_recession_coefficient%max = 1000.0_dp
+    if (present(baseflow_recession)) then
+      if (allocated(baseflow_recession)) deallocate(baseflow_recession)
+      allocate(baseflow_recession(this%n_geo_units))
+      baseflow_recession%value = ieee_value(baseflow_recession%value, ieee_quiet_nan) ! sentinel for derived component value
+      baseflow_recession%optimize = .false.
+      baseflow_recession%min = ieee_value(baseflow_recession%min, ieee_quiet_nan) ! sentinel for derived component min
+      baseflow_recession%max = ieee_value(baseflow_recession%max, ieee_quiet_nan) ! sentinel for derived component max
+      baseflow_recession%min = 1.0_dp
+      baseflow_recession%max = 1000.0_dp
     end if
   end function nml_lakes_1_init_type
+
+  !> \brief Reset runtime dimensions for lakes_1
+  integer function nml_lakes_1_set_dims(this, &
+    n_geo_units, &
+    errmsg) result(status)
+    class(nml_lakes_1_t), intent(inout) :: this !< namelist instance
+    integer, intent(in), optional :: n_geo_units !< runtime dimension override for n_geo_units
+    integer :: candidate__n_geo_units
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (present(n_geo_units)) then
+      candidate__n_geo_units = n_geo_units
+    else
+      candidate__n_geo_units = n_geo_units__default
+    end if
+    if (candidate__n_geo_units <= 0) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 'n_geo_units' must be positive"
+      return
+    end if
+    this%n_geo_units = candidate__n_geo_units
+
+    ! deallocate runtime-sized fields; init/set/from_file allocate them again
+    if (allocated(this%baseflow_recession)) deallocate(this%baseflow_recession)
+    this%is_configured = .false.
+  end function nml_lakes_1_set_dims
 
 
   !> \brief Read lakes_1 namelist from file
@@ -180,7 +214,7 @@ contains
     type(parameter_t) :: ptf_ks_constant
     type(parameter_t) :: ptf_ks_sand
     type(parameter_t) :: ptf_ks_clay
-    type(parameter_t) :: baseflow_recession_coefficient
+    type(parameter_t), allocatable, dimension(:) :: baseflow_recession
     ! locals
     type(nml_file_t) :: nml
     integer :: iostat
@@ -194,17 +228,20 @@ contains
       ptf_ks_constant, &
       ptf_ks_sand, &
       ptf_ks_clay, &
-      baseflow_recession_coefficient
+      baseflow_recession
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
+    ! allocate local namelist variables matching runtime-sized fields
+    if (allocated(baseflow_recession)) deallocate(baseflow_recession)
+    allocate(baseflow_recession(this%n_geo_units))
     spill_coefficient_of_discharge = this%spill_coefficient_of_discharge
     spill_exponent = this%spill_exponent
     b = this%b
     ptf_ks_constant = this%ptf_ks_constant
     ptf_ks_sand = this%ptf_ks_sand
     ptf_ks_clay = this%ptf_ks_clay
-    baseflow_recession_coefficient = this%baseflow_recession_coefficient
+    baseflow_recession = this%baseflow_recession
 
     status = nml%open(file, errmsg=errmsg)
     if (status /= NML_OK) return
@@ -236,7 +273,7 @@ contains
     this%ptf_ks_constant = ptf_ks_constant
     this%ptf_ks_sand = ptf_ks_sand
     this%ptf_ks_clay = ptf_ks_clay
-    this%baseflow_recession_coefficient = baseflow_recession_coefficient
+    this%baseflow_recession = baseflow_recession
 
     ! mark as configured
     this%is_configured = .true.
@@ -251,7 +288,7 @@ contains
     ptf_ks_constant, &
     ptf_ks_sand, &
     ptf_ks_clay, &
-    baseflow_recession_coefficient, &
+    baseflow_recession, &
     errmsg) result(status)
 
     class(nml_lakes_1_t), intent(inout) :: this !< namelist instance
@@ -262,7 +299,10 @@ contains
     type(parameter_t), intent(in) :: ptf_ks_constant !< Lakebed PTF constant for saturated hydraulic conductivity
     type(parameter_t), intent(in) :: ptf_ks_sand !< Lakebed PTF sand multiplier for saturated hydraulic conductivity
     type(parameter_t), intent(in) :: ptf_ks_clay !< Lakebed PTF clay multiplier for saturated hydraulic conductivity
-    type(parameter_t), intent(in) :: baseflow_recession_coefficient !< Baseflow recession coefficient
+    type(parameter_t), dimension(:), intent(in) :: baseflow_recession !< Lake baseflow recession time for each geological unit [d]
+    integer :: &
+      lb__1, &
+      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -274,7 +314,14 @@ contains
     this%ptf_ks_constant = ptf_ks_constant
     this%ptf_ks_sand = ptf_ks_sand
     this%ptf_ks_clay = ptf_ks_clay
-    this%baseflow_recession_coefficient = baseflow_recession_coefficient
+    if (size(baseflow_recession, 1) > size(this%baseflow_recession, 1)) then
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'baseflow_recession'"
+      return
+    end if
+    lb__1 = lbound(this%baseflow_recession, 1)
+    ub__1 = lb__1 + size(baseflow_recession, 1) - 1
+    this%baseflow_recession(lb__1:ub__1) = baseflow_recession
 
     ! mark as configured
     this%is_configured = .true.
@@ -500,39 +547,67 @@ contains
       if (ieee_is_nan(this%ptf_ks_clay%value)) then
         status = NML_ERR_NOT_SET
       end if
-    case ("baseflow_recession_coefficient%value")
-      if (present(idx)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'baseflow_recession_coefficient'"
-        return
-      end if
-      if (ieee_is_nan(this%baseflow_recession_coefficient%value)) status = NML_ERR_NOT_SET
-    case ("baseflow_recession_coefficient%optimize")
-      if (present(idx)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'baseflow_recession_coefficient'"
-        return
-      end if
-    case ("baseflow_recession_coefficient%min")
-      if (present(idx)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'baseflow_recession_coefficient'"
-        return
-      end if
-    case ("baseflow_recession_coefficient%max")
-      if (present(idx)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'baseflow_recession_coefficient'"
-        return
-      end if
-    case ("baseflow_recession_coefficient")
-      if (present(idx)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'baseflow_recession_coefficient'"
-        return
-      end if
-      if (ieee_is_nan(this%baseflow_recession_coefficient%value)) then
+    case ("baseflow_recession%value")
+      if (.not. allocated(this%baseflow_recession)) then
         status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
+          "baseflow_recession", errmsg)
+        if (status /= NML_OK) return
+        if (ieee_is_nan(this%baseflow_recession(idx(1))%value)) status = NML_ERR_NOT_SET
+      else
+        if (all(ieee_is_nan(this%baseflow_recession%value))) status = NML_ERR_NOT_SET
+      end if
+    case ("baseflow_recession%optimize")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
+          "baseflow_recession", errmsg)
+        if (status /= NML_OK) return
+      end if
+    case ("baseflow_recession%min")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
+          "baseflow_recession", errmsg)
+        if (status /= NML_OK) return
+      end if
+    case ("baseflow_recession%max")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
+          "baseflow_recession", errmsg)
+        if (status /= NML_OK) return
+      end if
+    case ("baseflow_recession")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
+          "baseflow_recession", errmsg)
+        if (status /= NML_OK) return
+        if (ieee_is_nan(this%baseflow_recession(idx(1))%value)) then
+          status = NML_ERR_NOT_SET
+        end if
+      else
+        if (all(ieee_is_nan(this%baseflow_recession%value))) then
+          status = NML_ERR_NOT_SET
+        else if (any(ieee_is_nan(this%baseflow_recession%value))) then
+          status = NML_ERR_PARTLY_SET
+        end if
       end if
     case default
       status = NML_ERR_INVALID_NAME
@@ -648,12 +723,12 @@ contains
       status = istat
       return
     end if
-    istat = this%is_set("baseflow_recession_coefficient", errmsg=errmsg)
+    istat = this%is_set("baseflow_recession", errmsg=errmsg)
     if (istat == NML_ERR_NOT_SET) then
       status = NML_ERR_REQUIRED
       if (present(errmsg)) then
         if (len_trim(errmsg) == 0) then
-          errmsg = "field not set: baseflow_recession_coefficient"
+          errmsg = "field not set: baseflow_recession"
         end if
         errmsg = "required " // trim(errmsg)
       end if

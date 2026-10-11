@@ -541,7 +541,31 @@
   ! Lakebed PTF clay multiplier for saturated hydraulic conductivity
   ! Component order: value, optimize, min, max
   ptf_ks_clay = 0.0063, .false., 0.003, 0.013
-  ! Baseflow recession coefficient
+  ! Lake baseflow recession time for each geological unit [d]
   ! Component order: value, optimize, min, max
-  baseflow_recession_coefficient = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(1) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(2) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(3) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(4) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(5) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(6) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(7) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(8) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(9) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(10) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(11) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(12) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(13) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(14) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(15) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(16) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(17) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(18) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(19) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(20) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(21) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(22) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(23) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(24) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(25) = 100.0, .true., 1.0, 1000.0
 /
