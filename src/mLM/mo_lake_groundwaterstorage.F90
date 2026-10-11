@@ -54,8 +54,8 @@ CONTAINS
   !>       \param[in] "logical     :: naturalFlag"                           regulation flag
   !>       \param[in] "real(dp), dimension(:) :: hav_lake_level"          [masl]  hAV curve level column
   !>       \param[in] "real(dp), dimension(:) :: hav_lake_surface_area"   [m2]    hAV curve surface area column
-  !>       \param[in] "real(dp) :: lake_max_level_reported"                    [masl] dam crest level (DCL)
-  !>       \param[in] "real(dp) :: lake_max_surface_area_bathymetry_derived"   [m2]   area at the crest (DCL_A)
+  !>       \param[in] "real(dp) :: lake_spill_reference_level"                    [masl] dam crest level (DCL)
+  !>       \param[in] "real(dp) :: lake_spill_reference_surface_area_bathymetry_derived"   [m2]   area at the crest (DCL_A)
   !>       \param[in] "real(dp) :: lake_level"                            [masl]  lake level
   !>       \param[in] "real(dp) :: leakance"                              [TS-1] Darcy lakebed leakance Ks/b (per hydrological time step,
   !                                                                              per unit head): depth per step per unit driving head
@@ -99,7 +99,7 @@ CONTAINS
   !                               (2) Nomenclature: h -> lake_level; the hAV curve is passed as the
   !                                   two explicit columns hav_lake_level / hav_lake_surface_area
   !                                   (were lake_bathy(:,1:2)); DCL/DCL_A ->
-  !                                   lake_max_level_reported / lake_max_surface_area_bathymetry_derived;
+  !                                   lake_spill_reference_level / lake_spill_reference_surface_area_bathymetry_derived;
   !                                   kp -> percolation_coefficient; exp_chi -> exponent_for_percolation.
   !                               (3) No globals: interpolate_lake_states is used from
   !                                   mo_lake_water_balance; the source-series length is size()
@@ -125,7 +125,7 @@ CONTAINS
 
 
   SUBROUTINE lake_seepage(naturalFlag, hav_lake_level, hav_lake_surface_area, &
-                          lake_max_level_reported, lake_max_surface_area_bathymetry_derived, &
+                          lake_spill_reference_level, lake_spill_reference_surface_area_bathymetry_derived, &
                           lake_level, leakance, perc)
 
     USE mo_lake_water_balance,        ONLY: interpolate_lake_states
@@ -139,8 +139,8 @@ CONTAINS
                           ::  hav_lake_level, &        ! [masl]  hAV curve level column
                               hav_lake_surface_area    ! [m2]    hAV curve surface area column
 
-    real(dp), intent(IN)  :: lake_max_level_reported                   ! [masl]  dam crest level/ outflow elevation for natural lakes
-    real(dp), intent(IN)  :: lake_max_surface_area_bathymetry_derived  ! [m2]    area corresponding to the crest
+    real(dp), intent(IN)  :: lake_spill_reference_level                   ! [masl]  dam crest level/ outflow elevation for natural lakes
+    real(dp), intent(IN)  :: lake_spill_reference_surface_area_bathymetry_derived  ! [m2]    area corresponding to the crest
 
     real(dp),    intent(IN) &
                           ::  lake_level     ! [masl]  lake level
@@ -210,7 +210,7 @@ CONTAINS
     ! (a local working copy of the lake level is passed; interpolate_lake_states takes it inout)
     upper_level = lake_level
     call interpolate_lake_states(.not. naturalFlag, hav_lake_level, hav_lake_surface_area, &
-      lake_max_level_reported, lake_max_surface_area_bathymetry_derived, upper_level, upperArea)
+      lake_spill_reference_level, lake_spill_reference_surface_area_bathymetry_derived, upper_level, upperArea)
 
     if (upperArea == 0._dp) then
       ! the reservoir is empty, ie zero seepage

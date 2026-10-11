@@ -40,7 +40,7 @@ CONTAINS
 
   !    INTENT(IN)
   !>       \param[in] "real(dp) :: lake_level"                     [masl]   current lake level
-  !>       \param[in] "real(dp) :: lake_max_level_reported"        [masl]   dam crest level (DCL)
+  !>       \param[in] "real(dp) :: lake_spill_reference_level"        [masl]   dam crest level (DCL)
   !>       \param[in] "real(dp) :: spill_coefficient_of_discharge" [-]      spill coefficient model parameter
   !>       \param[in] "real(dp) :: spillway_length"                [m]      effective spillway length
   !>       \param[in] "real(dp) :: spill_exponent"                 [-]      spill exponent model parameter
@@ -77,12 +77,12 @@ CONTAINS
   !        Pallav Shrestha, Oct 2026 - mLM v6 migration: ported from mo_mlm_spill into the
   !                                    v6 tree. The equation was already in SI units and is
   !                                    unchanged (level [m], length [m], spill [m3 s-1]).
-  !                                    Consistent nomenclature (DCL -> lake_max_level_reported,
+  !                                    Consistent nomenclature (DCL -> lake_spill_reference_level,
   !                                    h -> lake_level, C_d -> spill_coefficient_of_discharge,
   !                                    L_s -> spillway_length). Dropped the unused
   !                                    mo_mlm_constants / mo_constants imports (no globals).
 
-  SUBROUTINE lake_spill(lake_level, lake_max_level_reported, spill_coefficient_of_discharge, &
+  SUBROUTINE lake_spill(lake_level, lake_spill_reference_level, spill_coefficient_of_discharge, &
                         spillway_length, spill_exponent, spill)
 
     IMPLICIT NONE
@@ -92,7 +92,7 @@ CONTAINS
 
     real(dp), intent(IN)  ::  &
                               ! [masl] dam crest level (top of the conservation pool)
-                              lake_max_level_reported, &
+                              lake_spill_reference_level, &
                               ! [-]    coefficient of discharge of the spillway
                               spill_coefficient_of_discharge, &
                               ! [m]    effective spillway length
@@ -112,11 +112,11 @@ CONTAINS
 
     ! SPILL or NO SPILL?
     ! -----------------------------
-    spillChk: if ( lake_level > lake_max_level_reported ) then
+    spillChk: if ( lake_level > lake_spill_reference_level ) then
 
       ! Lake spills if the water level is above the dam crest level
       call lake_spill_generalized_equation(lake_level, & ! Intent IN
-        lake_max_level_reported, spill_coefficient_of_discharge, spillway_length, spill_exponent, & ! Intent IN
+        lake_spill_reference_level, spill_coefficient_of_discharge, spillway_length, spill_exponent, & ! Intent IN
         spill) ! Intent OUT
 
     end if spillChk

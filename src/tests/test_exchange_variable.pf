@@ -353,25 +353,25 @@ contains
     call exchange%lake_ids%provide('test')
     call exchange%lake_ids%prepare_data('test', no_time)
     exchange%lake_ids%data => ids
-    call exchange%lake_max_level_reported%provide('test')
-    call exchange%lake_max_level_reported%prepare_data('test', no_time)
-    exchange%lake_max_level_reported%data => levels
+    call exchange%lake_spill_reference_level%provide('test')
+    call exchange%lake_spill_reference_level%prepare_data('test', no_time)
+    exchange%lake_spill_reference_level%data => levels
 
     @assertTrue(exchange%has_points(points_lake), message='lake point selector is available')
     @assertFalse(exchange%has_points(nopoints), message='no-point selector is never available')
     call exchange%get_points(points_lake, selected)
     @assertTrue(associated(selected, lake_points), message='lake selector returns the referenced point set')
     call exchange%check_data(exchange%lake_ids, 'test')
-    call exchange%check_data(exchange%lake_max_level_reported, 'test')
+    call exchange%check_data(exchange%lake_spill_reference_level, 'test')
     @assertTrue(all(exchange%lake_ids%data == ids), message='stable lake IDs are published without copying')
-    @assertTrue(all(exchange%lake_max_level_reported%data == levels), message='lake levels are published without copying')
+    @assertTrue(all(exchange%lake_spill_reference_level%data == levels), message='lake levels are published without copying')
     @assertEqual(points_lake, exchange%lake_ids%points, message='lake IDs reference the lake point set')
-    @assertEqual(points_lake, exchange%lake_max_level_reported%points, message='lake levels reference the lake point set')
+    @assertEqual(points_lake, exchange%lake_spill_reference_level%points, message='lake levels reference the lake point set')
 
     call exchange%destroy()
     @assertFalse(exchange%lake_ids%provided, message='lake ID provider is reset')
     @assertFalse(associated(exchange%lake_ids%data), message='lake ID binding is cleared')
-    @assertFalse(exchange%lake_max_level_reported%provided, message='lake-level provider is reset')
+    @assertFalse(exchange%lake_spill_reference_level%provided, message='lake-level provider is reset')
     @assertFalse(exchange%has_points(points_lake), message='lake point reference is cleared')
   end subroutine test_exchange_lake_points
 

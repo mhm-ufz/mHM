@@ -22,7 +22,7 @@
 ! Modifications:
 ! Pallav K Shrestha, October 2026 - detached lake-MPR module (mo_mlm_mpr): the per-lake lakebed
 !     conductivity regionalizer lake_derive_ks reuses the per-lake footprint aggregation of
-!     mo_lake_topology:lake_derive_max_surface_area_dem (Pallav Shrestha, Sebastian Mueller) and the
+!     mo_lake_topology:lake_derive_spill_reference_surface_area_dem (Pallav Shrestha, Sebastian Mueller) and the
 !     Cosby (1984) saturated-conductivity pedotransfer function of mo_mpr_soilmoist:hydro_cond
 !     (Stephan Thober, Rohini Kumar); the soil look-up table reader lake_read_soil_texture_lut reuses
 !     the parse logic of mo_soil_database:read_soil_LUT (Juliane Mai); the per-lake upscaling
@@ -70,7 +70,7 @@ CONTAINS
   !>                 footprint cells are labelled by their stable lake ID in lake_map
   !>                 (aligned with the packed level-0 lake grid) and matched to the
   !>                 lake points through lake_ids, exactly as in the DEM-footprint
-  !>                 area aggregation (lake_derive_max_surface_area_dem). The per-cell
+  !>                 area aggregation (lake_derive_spill_reference_surface_area_dem). The per-cell
   !>                 sand and clay fractions are supplied by the caller (resolved from the
   !>                 soil look-up table over the lake footprint by the Input container), so this
   !>                 routine owns no global connections and is self-contained.

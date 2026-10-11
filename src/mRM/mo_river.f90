@@ -552,13 +552,13 @@ contains
 
   !> \brief Delineate disjoint lake footprints from outlet catchments and maximum water levels.
   !> \authors Sebastian Mueller, Pallav Shrestha
-  subroutine river_label_lakes(this, outlet_nodes, lake_ids, max_levels)
+  subroutine river_label_lakes(this, outlet_nodes, lake_ids, spill_reference_levels)
     use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
     use mo_river_tools, only: unique_ids
     class(river_t), intent(inout), target :: this
     integer(i8), intent(in) :: outlet_nodes(:) !< river nodes at the configured lake outlets
     integer(i8), intent(in) :: lake_ids(:) !< stable positive lake IDs aligned with outlet_nodes
-    real(dp), intent(in) :: max_levels(:) !< maximum lake levels aligned with outlet_nodes
+    real(dp), intent(in) :: spill_reference_levels(:) !< lake spill reference levels aligned with outlet_nodes
     integer(i4), allocatable :: catchment_map(:)
     integer(i8) :: i
     integer(i4) :: lake_index
@@ -566,7 +566,7 @@ contains
     if (size(outlet_nodes, kind=i8) < 1_i8) call error_message("river%label_lakes: no lake outlets provided")
     if (size(lake_ids, kind=i8) /= size(outlet_nodes, kind=i8)) &
       call error_message("river%label_lakes: lake ID count does not match outlet count")
-    if (size(max_levels, kind=i8) /= size(outlet_nodes, kind=i8)) &
+    if (size(spill_reference_levels, kind=i8) /= size(outlet_nodes, kind=i8)) &
       call error_message("river%label_lakes: maximum-level count does not match outlet count")
     if (.not.allocated(this%node_elevation)) &
       call error_message("river%label_lakes: node elevation not initialized")
@@ -575,9 +575,9 @@ contains
     if (.not.unique_ids(outlet_nodes)) call error_message("river%label_lakes: multiple lakes use the same outlet node")
     if (any(lake_ids <= 0_i8)) call error_message("river%label_lakes: lake IDs must be positive")
     if (.not.unique_ids(lake_ids)) call error_message("river%label_lakes: lake IDs must be unique")
-    if (.not.all(ieee_is_finite(max_levels))) call error_message("river%label_lakes: maximum lake levels must be finite")
+    if (.not.all(ieee_is_finite(spill_reference_levels))) call error_message("river%label_lakes: lake spill reference levels must be finite")
     do lake_index = 1_i4, size(lake_ids, kind=i4)
-      if (this%node_elevation(outlet_nodes(lake_index)) > max_levels(lake_index)) &
+      if (this%node_elevation(outlet_nodes(lake_index)) > spill_reference_levels(lake_index)) &
         call error_message("river%label_lakes: outlet elevation exceeds maximum level for lake ID")
     end do
 
@@ -591,7 +591,7 @@ contains
       this%lake_map(i) = 0_i8
       lake_index = catchment_map(i)
       if (lake_index > 0_i4) then
-        if (this%node_elevation(i) <= max_levels(lake_index)) this%lake_map(i) = lake_ids(lake_index)
+        if (this%node_elevation(i) <= spill_reference_levels(lake_index)) this%lake_map(i) = lake_ids(lake_index)
       end if
     end do
     !$omp end parallel do

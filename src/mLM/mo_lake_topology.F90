@@ -20,32 +20,32 @@ module mo_lake_topology
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   implicit none
   private
-  public :: lake_derive_max_surface_area_dem, lake_read_topology, lake_write_topology
+  public :: lake_derive_spill_reference_surface_area_dem, lake_read_topology, lake_write_topology
 contains
   !> \brief Derive lake areas from the labeled packed level-0 footprint.
-  subroutine lake_derive_max_surface_area_dem(grid, lake_map, lake_ids, lake_max_surface_area_dem_derived)
+  subroutine lake_derive_spill_reference_surface_area_dem(grid, lake_map, lake_ids, lake_spill_reference_surface_area_dem_derived)
     type(grid_t), intent(in) :: grid
     integer(i8), intent(in) :: lake_map(:), lake_ids(:)
-    real(dp), allocatable, intent(out) :: lake_max_surface_area_dem_derived(:)
+    real(dp), allocatable, intent(out) :: lake_spill_reference_surface_area_dem_derived(:)
     integer(i8) :: i, j
     if (size(lake_map, kind=i8) /= grid%ncells) then
       log_fatal(*) "Lake topology: map does not match grid."
       error stop 1
     end if
-    allocate(lake_max_surface_area_dem_derived(size(lake_ids)), source=0.0_dp)
+    allocate(lake_spill_reference_surface_area_dem_derived(size(lake_ids)), source=0.0_dp)
     do i = 1_i8, size(lake_map, kind=i8)
       j = findloc(lake_ids, lake_map(i), dim=1, kind=i8)
       if (j < 1_i8) then
         log_fatal(*) "Lake topology: map contains an unknown stable lake ID."
         error stop 1
       end if
-      lake_max_surface_area_dem_derived(j) = lake_max_surface_area_dem_derived(j) + grid%cell_area(i)
+      lake_spill_reference_surface_area_dem_derived(j) = lake_spill_reference_surface_area_dem_derived(j) + grid%cell_area(i)
     end do
-    if (any(lake_max_surface_area_dem_derived <= 0.0_dp)) then
+    if (any(lake_spill_reference_surface_area_dem_derived <= 0.0_dp)) then
       log_fatal(*) "Lake topology: every lake must have positive area."
       error stop 1
     end if
-  end subroutine lake_derive_max_surface_area_dem
+  end subroutine lake_derive_spill_reference_surface_area_dem
 
   !> \brief Write the packed lake grid and stable lake IDs to a restart dataset.
   subroutine lake_write_topology(nc, grid, lake_map)

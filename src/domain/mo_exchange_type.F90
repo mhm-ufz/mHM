@@ -299,9 +299,9 @@ module mo_exchange_type
     ! variables
     ! lake-point metadata
     type(var_i8) :: lake_ids             !< stable lake IDs on lake points
-    type(var_dp) :: lake_max_level_reported      !< maximum lake level [m] on lake points
-    type(var_dp) :: lake_max_surface_area_reported !< reported maximum lake surface area [m2] on lake points
-    type(var_dp) :: lake_max_volume_reported       !< reported maximum lake volume / capacity [m3] on lake points
+    type(var_dp) :: lake_spill_reference_level      !< lake spill reference level [m] on lake points
+    type(var_dp) :: lake_spill_reference_surface_area !< lake surface area at spill reference level [m2] on lake points
+    type(var_dp) :: lake_spill_reference_volume       !< lake volume at spill reference level [m3] on lake points
     type(var_dp) :: lake_initial_level   !< initial lake level [m] on lake points
     type(var_dp) :: lake_latitude        !< geographic latitude [degree] on lake points
     type(var_dp) :: lake_longitude       !< geographic longitude [degree] on lake points
@@ -309,7 +309,7 @@ module mo_exchange_type
     type(var_dp) :: lake_sand           !< top-horizon sand content [%] on packed level-0 lake cells (static, lake MPR)
     type(var_dp) :: lake_clay           !< top-horizon clay content [%] on packed level-0 lake cells (static, lake MPR)
     type(var_i4) :: lake_geo            !< geological unit ID on packed level-0 lake cells (static, lake MPR)
-    type(var_dp) :: lake_max_surface_area_dem_derived  !< maximum lake surface area from DEM footprint (L0 inundation) [m2] on lake points
+    type(var_dp) :: lake_spill_reference_surface_area_dem_derived  !< lake surface area at spill reference level from DEM footprint (L0 inundation) [m2] on lake points
     type(var_dp) :: lake_inflow          !< completed hourly lake inflow [m3 s-1] on lake points
     type(var_dp) :: lake_outflow         !< current hourly lake outflow [m3 s-1] on lake points
     type(var_dp) :: lake_level           !< current lake surface level [m] on lake points
@@ -565,9 +565,9 @@ contains
     ! variables
     ! lake-point metadata
     self%lake_ids        = var_i8(static=.true., points=points_lake, name="lake_ids",        units="1", long_name="stable lake ID")
-    self%lake_max_level_reported = var_dp(static=.true., points=points_lake, name="lake_max_level_reported", units="m", long_name="maximum lake level")
-    self%lake_max_surface_area_reported = var_dp(static=.true., points=points_lake, name="lake_max_surface_area_reported", units="m2", long_name="reported maximum lake surface area")
-    self%lake_max_volume_reported = var_dp(static=.true., points=points_lake, name="lake_max_volume_reported", units="m3", long_name="reported maximum lake volume")
+    self%lake_spill_reference_level = var_dp(static=.true., points=points_lake, name="lake_spill_reference_level", units="m", long_name="lake spill reference level")
+    self%lake_spill_reference_surface_area = var_dp(static=.true., points=points_lake, name="lake_spill_reference_surface_area", units="m2", long_name="lake surface area at spill reference level")
+    self%lake_spill_reference_volume = var_dp(static=.true., points=points_lake, name="lake_spill_reference_volume", units="m3", long_name="lake volume at spill reference level")
     self%lake_initial_level = var_dp(static=.true., points=points_lake, name="lake_initial_level", units="m", long_name="initial lake level")
     self%lake_latitude = var_dp(static=.true., points=points_lake, name="lake_latitude", units="degree", long_name="geographic latitude")
     self%lake_longitude = var_dp(static=.true., points=points_lake, name="lake_longitude", units="degree", long_name="geographic longitude")
@@ -575,7 +575,7 @@ contains
     self%lake_sand       = var_dp(static=.true., grid=l0_lake, name="lake_sand", units="%", long_name="top-horizon sand content on lake footprint")
     self%lake_clay       = var_dp(static=.true., grid=l0_lake, name="lake_clay", units="%", long_name="top-horizon clay content on lake footprint")
     self%lake_geo        = var_i4(static=.true., grid=l0_lake, name="lake_geo", units="1", long_name="geological unit ID on lake footprint")
-    self%lake_max_surface_area_dem_derived       = var_dp(static=.true., points=points_lake, name="lake_max_surface_area_dem_derived", units="m2", long_name="maximum lake surface area from DEM footprint")
+    self%lake_spill_reference_surface_area_dem_derived       = var_dp(static=.true., points=points_lake, name="lake_spill_reference_surface_area_dem_derived", units="m2", long_name="lake surface area at spill reference level from DEM footprint")
     self%lake_inflow     = var_dp(points=points_lake, name="lake_inflow",  units="m3 s-1", long_name="completed hourly lake inflow")
     self%lake_outflow    = var_dp(points=points_lake, name="lake_outflow", units="m3 s-1", long_name="current hourly lake outflow")
     self%lake_level      = var_dp(points=points_lake, name="lake_level", units="m", long_name="current lake surface level")
@@ -994,9 +994,9 @@ contains
     class(exchange_t), intent(inout), target :: self
 
     call self%lake_ids%destroy()
-    call self%lake_max_level_reported%destroy()
-    call self%lake_max_surface_area_reported%destroy()
-    call self%lake_max_volume_reported%destroy()
+    call self%lake_spill_reference_level%destroy()
+    call self%lake_spill_reference_surface_area%destroy()
+    call self%lake_spill_reference_volume%destroy()
     call self%lake_initial_level%destroy()
     call self%lake_latitude%destroy()
     call self%lake_longitude%destroy()
@@ -1004,7 +1004,7 @@ contains
     call self%lake_sand%destroy()
     call self%lake_clay%destroy()
     call self%lake_geo%destroy()
-    call self%lake_max_surface_area_dem_derived%destroy()
+    call self%lake_spill_reference_surface_area_dem_derived%destroy()
     call self%lake_inflow%destroy()
     call self%lake_outflow%destroy()
     call self%lake_level%destroy()

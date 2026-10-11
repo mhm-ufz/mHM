@@ -248,12 +248,12 @@
   aspect_var(:) = "aspect"
   ! Flow direction variable name
   fdir_var(:) = "fdir"
-  ! Maximum lake level variable name
-  lake_level_var(:) = "lake_max_level_reported"
-  ! Maximum lake surface area variable name
-  lake_surface_area_var(:) = "lake_max_surface_area_reported"
-  ! Maximum lake volume variable name
-  lake_volume_var(:) = "lake_max_volume_reported"
+  ! Lake spill reference level variable name
+  lake_spill_reference_level_var(:) = "lake_spill_reference_level"
+  ! Lake spill reference surface area variable name
+  lake_spill_reference_surface_area_var(:) = "lake_spill_reference_surface_area"
+  ! Lake spill reference volume variable name
+  lake_spill_reference_volume_var(:) = "lake_spill_reference_volume"
   ! Initial lake level variable name
   lake_initial_level_var(:) = "initial_lake_level"
   ! Flow accumulation variable name

@@ -3,7 +3,7 @@
 !> \brief lake bathymetry generation module
 
 !> \details  Generates the height-area-volume (hAV) curve of a lake from a built-in
-!>           analytical bathymetry shape, using the reported maximum level, surface area
+!>           analytical bathymetry shape, using the spill reference level, surface area
 !>           and volume. Ported from mo_mlm_prepare :: prepare_lake_bathymetry (mLM v5.13).
 
 !> \authors Pallav Kumar Shrestha
@@ -42,7 +42,7 @@ CONTAINS
   !>       \brief generate the hAV (height-area-volume) curve of a lake
 
   !>       \details Builds the lake bathymetry (hAV curve) from a built-in analytical
-  !>                shape using the reported maximum level, surface area and volume.
+  !>                shape using the spill reference level, surface area and volume.
   !>                The curve is tabulated at a 1 cm depth interval from the lake bottom
   !>                up to the crest. All quantities are in SI units (m, m2, m3).
   !>                Shape types:
@@ -51,9 +51,9 @@ CONTAINS
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: bathymetry_type"      [-]      built-in shape selector
-  !>       \param[in] "real(dp)    :: lake_max_level_reported"       [masl]   reported maximum (crest) level
-  !>       \param[in] "real(dp)    :: lake_max_surface_area_reported"[m2]     reported maximum surface area
-  !>       \param[in] "real(dp)    :: lake_max_volume_reported"      [m3]     reported maximum volume
+  !>       \param[in] "real(dp)    :: lake_spill_reference_level"       [masl]   spill reference level
+  !>       \param[in] "real(dp)    :: lake_spill_reference_surface_area"[m2]     surface area at spill reference level
+  !>       \param[in] "real(dp)    :: lake_spill_reference_volume"      [m3]     volume at spill reference level
 
   !     INTENT(INOUT)
   !         None
@@ -96,8 +96,8 @@ CONTAINS
   !                                    global structure. Corrected the final partial row so
   !                                    the crest row equals the reported maxima exactly.
 
-  SUBROUTINE generate_lake_bathymetry (bathymetry_type, lake_max_level_reported, lake_max_surface_area_reported, &
-                                       lake_max_volume_reported, hav_lake_level, hav_lake_surface_area, &
+  SUBROUTINE generate_lake_bathymetry (bathymetry_type, lake_spill_reference_level, lake_spill_reference_surface_area, &
+                                       lake_spill_reference_volume, hav_lake_level, hav_lake_surface_area, &
                                        hav_lake_volume)
 
     USE mo_constants,             ONLY : ONETHIRD_dp
@@ -107,9 +107,9 @@ CONTAINS
     IMPLICIT NONE
 
     integer(i4),         intent(in)  :: bathymetry_type         ! built-in shape selector
-    real(dp),            intent(in)  :: lake_max_level_reported          ! reported maximum (crest) level [masl]
-    real(dp),            intent(in)  :: lake_max_surface_area_reported   ! reported maximum surface area [m2]
-    real(dp),            intent(in)  :: lake_max_volume_reported         ! reported maximum volume [m3]
+    real(dp),            intent(in)  :: lake_spill_reference_level          ! spill reference level [masl]
+    real(dp),            intent(in)  :: lake_spill_reference_surface_area   ! surface area at spill reference level [m2]
+    real(dp),            intent(in)  :: lake_spill_reference_volume         ! volume at spill reference level [m3]
     real(dp), allocatable, intent(out) :: hav_lake_level(:)         ! hAV level column [masl]
     real(dp), allocatable, intent(out) :: hav_lake_surface_area(:)  ! hAV surface area column [m2]
     real(dp), allocatable, intent(out) :: hav_lake_volume(:)        ! hAV volume column [m3]
@@ -121,8 +121,8 @@ CONTAINS
     logical           :: has_partial_row
 
     ! Check reported inputs
-    if (lake_max_surface_area_reported <= 0._dp .or. lake_max_volume_reported <= 0._dp) then
-      call message('***ERROR: reported maximum surface area and volume must be positive.')
+    if (lake_spill_reference_surface_area <= 0._dp .or. lake_spill_reference_volume <= 0._dp) then
+      call message('***ERROR: surface area at spill reference level and volume must be positive.')
       call message('          Error occured in mo_lake_bathymetry')
       stop 1
     end if
@@ -130,9 +130,9 @@ CONTAINS
     ! Calculate the max depth (m) from the reported volume and surface area
     select case (bathymetry_type)
     case(1) ! linear h~V relation, with constant A as Amax
-      depth_max = lake_max_volume_reported / lake_max_surface_area_reported
+      depth_max = lake_spill_reference_volume / lake_spill_reference_surface_area
     case(2) ! Liebe (2005) pyramid with a square base diagonally cut into halves
-      depth_max = 3._dp * lake_max_volume_reported / lake_max_surface_area_reported
+      depth_max = 3._dp * lake_spill_reference_volume / lake_spill_reference_surface_area
     case default
       call message('***ERROR: unsupported bathymetry_type ', trim(adjustl(num2str(bathymetry_type))), '.')
       call message('          Error occured in mo_lake_bathymetry')
@@ -154,18 +154,18 @@ CONTAINS
 
       ! First entry
       hav_lake_level(1)        = 0._dp
-      hav_lake_surface_area(:) = lake_max_surface_area_reported
+      hav_lake_surface_area(:) = lake_spill_reference_surface_area
       hav_lake_volume(1)       = 0._dp
 
       do i = 2, nIntervals + 1
         hav_lake_level(i)  = hav_lake_level(i - 1) + 0.01_dp
-        hav_lake_volume(i) = lake_max_surface_area_reported * hav_lake_level(i)
+        hav_lake_volume(i) = lake_spill_reference_surface_area * hav_lake_level(i)
       end do
 
       ! add the last entry at the crest
       if (has_partial_row) then
         hav_lake_level(nRows)  = depth_max
-        hav_lake_volume(nRows) = lake_max_surface_area_reported * depth_max
+        hav_lake_volume(nRows) = lake_spill_reference_surface_area * depth_max
       end if
 
     case(2) ! Liebe (2005) pyramid with a square base diagonally cut into halves
@@ -173,8 +173,8 @@ CONTAINS
       ! f - the ratio of characteristic length to depth
       ! Liebe (2005) proposes f = 20, which is not suitable for large reservoirs
       ! as the depth can reach 1 km! So get the value of f rather based on
-      ! lake_max_volume_reported, lake_max_surface_area_reported, depth_max (SI: no km2 scaling)
-      f = SQRT((lake_max_surface_area_reported / depth_max ** 2._dp) ** 2._dp + 1._dp)
+      ! lake_spill_reference_volume, lake_spill_reference_surface_area, depth_max (SI: no km2 scaling)
+      f = SQRT((lake_spill_reference_surface_area / depth_max ** 2._dp) ** 2._dp + 1._dp)
 
       ! First entry
       hav_lake_level(1)        = 0._dp
@@ -196,8 +196,8 @@ CONTAINS
 
     end select
 
-    ! convert depth to elevation, placing the crest at the reported maximum level
-    hav_lake_level(:) = hav_lake_level(:) + lake_max_level_reported - depth_max
+    ! convert depth to elevation, placing the crest at the spill reference level
+    hav_lake_level(:) = hav_lake_level(:) + lake_spill_reference_level - depth_max
 
   END SUBROUTINE generate_lake_bathymetry
 

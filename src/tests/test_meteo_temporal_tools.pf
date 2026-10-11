@@ -248,7 +248,7 @@ contains
     type(grid_t), target :: level0_lake, level2
     type(meteo_t) :: meteo
     integer(i8), target :: lake_ids(2), lake_map(4)
-    real(dp), target :: lake_max_surface_area_dem_derived(2), raw_pre(2), raw_pet(2), raw_temp(2), raw_ssrd(2), raw_strd(2), raw_tann(2)
+    real(dp), target :: lake_spill_reference_surface_area_dem_derived(2), raw_pre(2), raw_pet(2), raw_temp(2), raw_ssrd(2), raw_strd(2), raw_tann(2)
     integer :: status
 
     status = exchange%config%project%set()
@@ -264,7 +264,7 @@ contains
     exchange%level2 => level2
     lake_ids = [10_i8, 20_i8]
     lake_map = [10_i8, 20_i8, 10_i8, 20_i8]
-    lake_max_surface_area_dem_derived = [2.0_dp, 2.0_dp]
+    lake_spill_reference_surface_area_dem_derived = [2.0_dp, 2.0_dp]
     raw_pre = [4.0_dp, 8.0_dp]
     raw_pet = [1.0_dp, 3.0_dp]
     raw_temp = [10.0_dp, 14.0_dp]
@@ -277,9 +277,9 @@ contains
     call exchange%lake_map%provide('test')
     call exchange%lake_map%prepare_data('test', no_time)
     exchange%lake_map%data => lake_map
-    call exchange%lake_max_surface_area_dem_derived%provide('test')
-    call exchange%lake_max_surface_area_dem_derived%prepare_data('test', no_time)
-    exchange%lake_max_surface_area_dem_derived%data => lake_max_surface_area_dem_derived
+    call exchange%lake_spill_reference_surface_area_dem_derived%provide('test')
+    call exchange%lake_spill_reference_surface_area_dem_derived%prepare_data('test', no_time)
+    exchange%lake_spill_reference_surface_area_dem_derived%data => lake_spill_reference_surface_area_dem_derived
     call exchange%raw_pre%provide('test')
     call exchange%raw_pre%prepare_data('test', 1_i4)
     exchange%raw_pre%data => raw_pre
@@ -322,7 +322,7 @@ contains
     type(grid_t), target :: level0_lake, level2
     type(meteo_t) :: meteo
     integer(i8), target :: lake_ids(1), lake_map(2)
-    real(dp), target :: lake_max_surface_area_dem_derived(1), raw_pre(1), raw_pet(1)
+    real(dp), target :: lake_spill_reference_surface_area_dem_derived(1), raw_pre(1), raw_pet(1)
     real(dp) :: night_fraction(12, 1)
     integer :: status
 
@@ -339,7 +339,7 @@ contains
     exchange%level2 => level2
     lake_ids = [10_i8]
     lake_map = [10_i8, 10_i8]
-    lake_max_surface_area_dem_derived = [2.0_dp]
+    lake_spill_reference_surface_area_dem_derived = [2.0_dp]
     raw_pre = [6.0_dp]
     raw_pet = [2.0_dp]
     night_fraction = 0.5_dp
@@ -349,9 +349,9 @@ contains
     call exchange%lake_map%provide('test')
     call exchange%lake_map%prepare_data('test', no_time)
     exchange%lake_map%data => lake_map
-    call exchange%lake_max_surface_area_dem_derived%provide('test')
-    call exchange%lake_max_surface_area_dem_derived%prepare_data('test', no_time)
-    exchange%lake_max_surface_area_dem_derived%data => lake_max_surface_area_dem_derived
+    call exchange%lake_spill_reference_surface_area_dem_derived%provide('test')
+    call exchange%lake_spill_reference_surface_area_dem_derived%prepare_data('test', no_time)
+    exchange%lake_spill_reference_surface_area_dem_derived%data => lake_spill_reference_surface_area_dem_derived
     call exchange%raw_pre%provide('test')
     call exchange%raw_pre%prepare_data('test', daily)
     exchange%raw_pre%data => raw_pre

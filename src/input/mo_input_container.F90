@@ -141,9 +141,9 @@ module mo_input_container
     type(points_t) :: lake_outlets !< configured lake outlet coordinates
     integer(i8), allocatable :: lake_ids(:) !< stable lake IDs aligned with lake_outlets
     integer(i8), allocatable :: lake_map(:) !< stable IDs aligned with packed level-0 lake cells
-    real(dp), allocatable :: lake_max_level_reported(:) !< maximum lake levels aligned with lake_outlets
-    real(dp), allocatable :: lake_max_surface_area_reported(:) !< reported maximum lake surface areas [m2] aligned with lake_outlets
-    real(dp), allocatable :: lake_max_volume_reported(:) !< reported maximum lake volumes [m3] aligned with lake_outlets
+    real(dp), allocatable :: lake_spill_reference_level(:) !< lake spill reference level aligned with lake_outlets
+    real(dp), allocatable :: lake_spill_reference_surface_area(:) !< lake surface area at spill reference level [m2] aligned with lake_outlets
+    real(dp), allocatable :: lake_spill_reference_volume(:) !< lake volume at spill reference level [m3] aligned with lake_outlets
     real(dp), allocatable :: lake_initial_level(:) !< initial lake level [m] aligned with lake_outlets
     real(dp), allocatable :: lake_latitude(:) !< geographic latitude [degree] aligned with lake_outlets
     real(dp), allocatable :: lake_longitude(:) !< geographic longitude [degree] aligned with lake_outlets
@@ -1113,9 +1113,9 @@ contains
     end if
     if (self%config%input%is_set("lake_definition_path", idx=id) == NML_OK) then
       call self%exchange%lake_ids%provide("Input")
-      call self%exchange%lake_max_level_reported%provide("Input")
-      call self%exchange%lake_max_surface_area_reported%provide("Input")
-      call self%exchange%lake_max_volume_reported%provide("Input")
+      call self%exchange%lake_spill_reference_level%provide("Input")
+      call self%exchange%lake_spill_reference_surface_area%provide("Input")
+      call self%exchange%lake_spill_reference_volume%provide("Input")
       call self%exchange%lake_initial_level%provide("Input")
       call self%exchange%lake_latitude%provide("Input")
       call self%exchange%lake_longitude%provide("Input")
@@ -1728,21 +1728,21 @@ contains
     end if
 
     path = self%exchange%get_path(self%config%input%lake_definition_path(self%exchange%nml_domain_id))
-    name = trim(self%config%input%lake_level_var(self%exchange%nml_domain_id))
-    area_name = trim(self%config%input%lake_surface_area_var(self%exchange%nml_domain_id))
-    volume_name = trim(self%config%input%lake_volume_var(self%exchange%nml_domain_id))
+    name = trim(self%config%input%lake_spill_reference_level_var(self%exchange%nml_domain_id))
+    area_name = trim(self%config%input%lake_spill_reference_surface_area_var(self%exchange%nml_domain_id))
+    volume_name = trim(self%config%input%lake_spill_reference_volume_var(self%exchange%nml_domain_id))
     initial_level_name = trim(self%config%input%lake_initial_level_var(self%exchange%nml_domain_id))
     scope_info(s,*) "Read lake specification from file: ", path
-    vars = [var(name=name, long_name="maximum lake level", units="m", static=.true.), &
-            var(name=area_name, long_name="reported maximum lake surface area", units="km2", static=.true.), &
-            var(name=volume_name, long_name="reported maximum lake volume", units="1e6 m3", static=.true.), &
+    vars = [var(name=name, long_name="lake spill reference level", units="m", static=.true.), &
+            var(name=area_name, long_name="lake surface area at spill reference level", units="km2", static=.true.), &
+            var(name=volume_name, long_name="lake volume at spill reference level", units="1e6 m3", static=.true.), &
             var(name=initial_level_name, long_name="initial lake level", units="m", static=.true.)]
     call input%init(path, vars=vars, points=self%lake_outlets, points_init_var=name)
     call input%get_ids(self%lake_ids)
-    allocate(self%lake_max_level_reported(self%lake_outlets%n_points))
+    allocate(self%lake_spill_reference_level(self%lake_outlets%n_points))
     allocate(area_reported_in(self%lake_outlets%n_points))
     allocate(volume_reported_in(self%lake_outlets%n_points))
-    call input%read(name, self%lake_max_level_reported)
+    call input%read(name, self%lake_spill_reference_level)
     call input%read(area_name, area_reported_in)
     call input%read(volume_name, volume_reported_in)
     allocate(self%lake_initial_level(self%lake_outlets%n_points))
@@ -1752,19 +1752,19 @@ contains
     call input%close()
 
     ! Convert reported inputs to SI at the read boundary: surface area km2 -> m2, volume 1e6 m3 (mcm) -> m3.
-    allocate(self%lake_max_surface_area_reported(self%lake_outlets%n_points))
-    allocate(self%lake_max_volume_reported(self%lake_outlets%n_points))
-    self%lake_max_surface_area_reported = area_reported_in * 1.0e6_dp
-    self%lake_max_volume_reported = volume_reported_in * 1.0e6_dp
+    allocate(self%lake_spill_reference_surface_area(self%lake_outlets%n_points))
+    allocate(self%lake_spill_reference_volume(self%lake_outlets%n_points))
+    self%lake_spill_reference_surface_area = area_reported_in * 1.0e6_dp
+    self%lake_spill_reference_volume = volume_reported_in * 1.0e6_dp
 
     if (self%lake_outlets%n_points < 1_i8) then
       log_fatal(*) "Input: lake specification contains no lake outlets."
       error stop 1
     end if
     if (size(self%lake_ids, kind=i8) /= self%lake_outlets%n_points .or. &
-        size(self%lake_max_level_reported, kind=i8) /= self%lake_outlets%n_points .or. &
-        size(self%lake_max_surface_area_reported, kind=i8) /= self%lake_outlets%n_points .or. &
-        size(self%lake_max_volume_reported, kind=i8) /= self%lake_outlets%n_points) then
+        size(self%lake_spill_reference_level, kind=i8) /= self%lake_outlets%n_points .or. &
+        size(self%lake_spill_reference_surface_area, kind=i8) /= self%lake_outlets%n_points .or. &
+        size(self%lake_spill_reference_volume, kind=i8) /= self%lake_outlets%n_points) then
       log_fatal(*) "Input: lake specification arrays have inconsistent sizes."
       error stop 1
     end if
@@ -1807,19 +1807,19 @@ contains
       end if
     end do
 
-    call self%river_l0%label_lakes(outlet_nodes, self%lake_ids, self%lake_max_level_reported)
+    call self%river_l0%label_lakes(outlet_nodes, self%lake_ids, self%lake_spill_reference_level)
     call self%build_lake_grids()
     call repack_l0_dp_cache(self%exchange%level0, self%exchange%level0_land, dem_cache, "DEM")
     self%dem%grid => self%exchange%level0_land
     self%exchange%lake_points => self%lake_outlets
     call self%exchange%lake_ids%prepare_data("Input", no_time)
     self%exchange%lake_ids%data => self%lake_ids
-    call self%exchange%lake_max_level_reported%prepare_data("Input", no_time)
-    self%exchange%lake_max_level_reported%data => self%lake_max_level_reported
-    call self%exchange%lake_max_surface_area_reported%prepare_data("Input", no_time)
-    self%exchange%lake_max_surface_area_reported%data => self%lake_max_surface_area_reported
-    call self%exchange%lake_max_volume_reported%prepare_data("Input", no_time)
-    self%exchange%lake_max_volume_reported%data => self%lake_max_volume_reported
+    call self%exchange%lake_spill_reference_level%prepare_data("Input", no_time)
+    self%exchange%lake_spill_reference_level%data => self%lake_spill_reference_level
+    call self%exchange%lake_spill_reference_surface_area%prepare_data("Input", no_time)
+    self%exchange%lake_spill_reference_surface_area%data => self%lake_spill_reference_surface_area
+    call self%exchange%lake_spill_reference_volume%prepare_data("Input", no_time)
+    self%exchange%lake_spill_reference_volume%data => self%lake_spill_reference_volume
     call self%exchange%lake_initial_level%prepare_data("Input", no_time)
     self%exchange%lake_initial_level%data => self%lake_initial_level
     call self%exchange%lake_latitude%prepare_data("Input", no_time)
@@ -1936,9 +1936,9 @@ contains
       self%owns_lake_map = .false.
     end if
     if (allocated(self%lake_map)) deallocate(self%lake_map)
-    if (allocated(self%lake_max_level_reported)) deallocate(self%lake_max_level_reported)
-    if (allocated(self%lake_max_surface_area_reported)) deallocate(self%lake_max_surface_area_reported)
-    if (allocated(self%lake_max_volume_reported)) deallocate(self%lake_max_volume_reported)
+    if (allocated(self%lake_spill_reference_level)) deallocate(self%lake_spill_reference_level)
+    if (allocated(self%lake_spill_reference_surface_area)) deallocate(self%lake_spill_reference_surface_area)
+    if (allocated(self%lake_spill_reference_volume)) deallocate(self%lake_spill_reference_volume)
     if (self%owns_river_l0) then
       call self%river_l0%destroy()
       self%owns_river_l0 = .false.

@@ -46,9 +46,9 @@ CONTAINS
   !>       \param[in] "real(dp), dimension(:) :: hav_lake_level"         [masl]  hAV curve level column
   !>       \param[in] "real(dp), dimension(:) :: hav_lake_surface_area"  [m2]    hAV curve area column
   !>       \param[in] "real(dp), dimension(:) :: hav_lake_volume"        [m3]    hAV curve volume column
-  !>       \param[in] "real(dp) :: lake_max_level_reported"                    [masl] dam crest level (DCL)
-  !>       \param[in] "real(dp) :: lake_max_surface_area_bathymetry_derived"   [m2]   area at the crest (DCL_A)
-  !>       \param[in] "real(dp) :: lake_max_volume_bathymetry_derived"         [m3]   volume at the crest (DCL_V)
+  !>       \param[in] "real(dp) :: lake_spill_reference_level"                    [masl] dam crest level (DCL)
+  !>       \param[in] "real(dp) :: lake_spill_reference_surface_area_bathymetry_derived"   [m2]   area at the crest (DCL_A)
+  !>       \param[in] "real(dp) :: lake_spill_reference_volume_bathymetry_derived"         [m3]   volume at the crest (DCL_V)
   !>       \param[in] "real(dp) :: lake_level_previous"           [masl]     previous-step lake level
   !>       \param[in] "real(dp) :: lake_surface_area_previous"    [m2]       previous-step lake surface area
   !>       \param[in] "real(dp) :: lake_volume_previous"          [m3]       previous-step lake volume
@@ -100,8 +100,8 @@ CONTAINS
   !                                   lake_volume; the hAV curve is passed as three explicit
   !                                   columns (hav_lake_level/_surface_area/_volume) instead of
   !                                   lake_bathy(:,1:3); DCL/DCL_A/DCL_V ->
-  !                                   lake_max_level_reported / lake_max_surface_area_bathymetry_derived
-  !                                   / lake_max_volume_bathymetry_derived.
+  !                                   lake_spill_reference_level / lake_spill_reference_surface_area_bathymetry_derived
+  !                                   / lake_spill_reference_volume_bathymetry_derived.
   !                               (3) State time levels: the v5 2-element (prev,cur) arrays are
   !                                   replaced by explicit *_previous (in) and current (out)
   !                                   scalar arguments, following the v6 mRM convention.
@@ -118,8 +118,8 @@ CONTAINS
 
   SUBROUTINE lake_balance(naturalFlag, pr, evap, inflow, perc, wateruse, spill, ibt, &
                           hav_lake_level, hav_lake_surface_area, hav_lake_volume, &
-                          lake_max_level_reported, lake_max_surface_area_bathymetry_derived, &
-                          lake_max_volume_bathymetry_derived, &
+                          lake_spill_reference_level, lake_spill_reference_surface_area_bathymetry_derived, &
+                          lake_spill_reference_volume_bathymetry_derived, &
                           lake_level_previous, lake_surface_area_previous, lake_volume_previous, &
                           lake_level, lake_surface_area, lake_volume, volume_adjustment, tsHydroSecs)
 
@@ -139,9 +139,9 @@ CONTAINS
                           ::  hav_lake_level, &         ! [masl]  hAV curve level column
                               hav_lake_surface_area, &  ! [m2]    hAV curve surface area column
                               hav_lake_volume           ! [m3]    hAV curve volume column
-    real(dp), intent(IN)  :: lake_max_level_reported                    ! [masl] dam crest level/ outflow elevation for natural lakes
-    real(dp), intent(IN)  :: lake_max_surface_area_bathymetry_derived   ! [m2]   area corresponding to the crest
-    real(dp), intent(IN)  :: lake_max_volume_bathymetry_derived         ! [m3]   volume corresponding to the crest
+    real(dp), intent(IN)  :: lake_spill_reference_level                    ! [masl] dam crest level/ outflow elevation for natural lakes
+    real(dp), intent(IN)  :: lake_spill_reference_surface_area_bathymetry_derived   ! [m2]   area corresponding to the crest
+    real(dp), intent(IN)  :: lake_spill_reference_volume_bathymetry_derived         ! [m3]   volume corresponding to the crest
 
     real(dp), intent(IN)  ::  lake_level_previous, &         ! [masl]  previous-step lake level
                               lake_surface_area_previous, &  ! [m2]    previous-step lake surface area
@@ -231,17 +231,17 @@ CONTAINS
       h_n_2 = lake_level_previous + 0.01_dp
 
       call interpolate_lake_states(.not. naturalFlag, hav_lake_level, hav_lake_volume, &
-        lake_max_level_reported, lake_max_volume_bathymetry_derived, h_n_1, V_n_1)
+        lake_spill_reference_level, lake_spill_reference_volume_bathymetry_derived, h_n_1, V_n_1)
       call interpolate_lake_states(.not. naturalFlag, hav_lake_level, hav_lake_volume, &
-        lake_max_level_reported, lake_max_volume_bathymetry_derived, h_n_2, V_n_2)
+        lake_spill_reference_level, lake_spill_reference_volume_bathymetry_derived, h_n_2, V_n_2)
 
       delta_V_trial_n_2 = V_n_2 - lake_volume_previous
       delta_V_trial_n_1 = lake_volume_previous - V_n_1
 
       call interpolate_lake_states(.not. naturalFlag, hav_lake_level, hav_lake_surface_area, &
-        lake_max_level_reported, lake_max_surface_area_bathymetry_derived, h_n_2, A_n_2)
+        lake_spill_reference_level, lake_spill_reference_surface_area_bathymetry_derived, h_n_2, A_n_2)
       call interpolate_lake_states(.not. naturalFlag, hav_lake_level, hav_lake_surface_area, &
-        lake_max_level_reported, lake_max_surface_area_bathymetry_derived, h_n_1, A_n_1)
+        lake_spill_reference_level, lake_spill_reference_surface_area_bathymetry_derived, h_n_1, A_n_1)
 
 
       delta_V_n_2 = ( pr - evap - perc ) / 1000.0_dp * 0.5_dp * ( lake_surface_area_previous + A_n_2 ) &
@@ -292,11 +292,11 @@ CONTAINS
         else
 
           call interpolate_lake_states(.not. naturalFlag, hav_lake_volume, hav_lake_level, &
-            lake_max_volume_bathymetry_derived, lake_max_level_reported, lake_volume, lake_level, volume_adjustment)
+            lake_spill_reference_volume_bathymetry_derived, lake_spill_reference_level, lake_volume, lake_level, volume_adjustment)
                                                        ! volume_adjustment gives the volume
                                                        ! adjusted to prevent reservoir volume instabilities
           call interpolate_lake_states(.not. naturalFlag, hav_lake_level, hav_lake_surface_area, &
-            lake_max_level_reported, lake_max_surface_area_bathymetry_derived, lake_level, lake_surface_area)
+            lake_spill_reference_level, lake_spill_reference_surface_area_bathymetry_derived, lake_level, lake_surface_area)
 
           delta_V_n = ( pr - evap - perc ) / 1000.0_dp * 0.5_dp * (lake_surface_area_previous + lake_surface_area ) &
             + ( inflow - wateruse - spill + ibt ) * tsHydroSecs

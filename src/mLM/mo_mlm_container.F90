@@ -59,7 +59,7 @@ module mo_mlm_container
   use mo_grid, only: grid_t
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_lake_balance, only: lake_balance_outflow
-  use mo_lake_topology, only: lake_derive_max_surface_area_dem, lake_read_topology, lake_write_topology
+  use mo_lake_topology, only: lake_derive_spill_reference_surface_area_dem, lake_read_topology, lake_write_topology
   use mo_lake_bathymetry, only: generate_lake_bathymetry, lake_hav_t
   use mo_lake_spill, only: lake_spill
   use mo_lake_water_balance, only: lake_balance, interpolate_lake_states
@@ -94,12 +94,12 @@ module mo_mlm_container
     real(dp), allocatable :: lake_sand(:) !< top-horizon sand content [%] on packed level-0 lake cells (lake MPR)
     real(dp), allocatable :: lake_clay(:) !< top-horizon clay content [%] on packed level-0 lake cells (lake MPR)
     integer(i4), allocatable :: lake_geo(:) !< geological unit ID on packed level-0 lake cells (lake MPR)
-    real(dp), allocatable :: lake_max_surface_area_dem_derived(:) !< maximum lake surface area from DEM footprint [m2]
+    real(dp), allocatable :: lake_spill_reference_surface_area_dem_derived(:) !< maximum lake surface area from DEM footprint [m2]
     type(grid_t) :: static_lake_grid !< lake footprint geometry retained for restart
     type(points_t) :: static_lake_points !< static point metadata retained for restart output
-    real(dp), allocatable :: static_lake_max_level_reported(:) !< maximum levels retained for restart output
-    real(dp), allocatable :: static_lake_max_surface_area_reported(:) !< reported maximum surface areas [m2] retained for the lake points
-    real(dp), allocatable :: static_lake_max_volume_reported(:) !< reported maximum volumes [m3] retained for the lake points
+    real(dp), allocatable :: static_lake_spill_reference_level(:) !< maximum levels retained for restart output
+    real(dp), allocatable :: static_lake_spill_reference_surface_area(:) !< reported maximum surface areas [m2] retained for the lake points
+    real(dp), allocatable :: static_lake_spill_reference_volume(:) !< reported maximum volumes [m3] retained for the lake points
     real(dp), allocatable :: static_lake_spillway_length(:) !< effective spillway crest length [m] retained for the lake points
     real(dp), allocatable :: static_lake_initial_level(:) !< initial lake level [m] retained for the lake points
     real(dp), allocatable :: static_lake_ks(:) !< per-lake regionalized lakebed Ks [cm d-1] (lake MPR; restart-persisted)
@@ -117,9 +117,9 @@ module mo_mlm_container
     real(dp), allocatable :: lake_gw_storage_previous(:) !< previous-step lake groundwater storage [m3]
     type(points_t) :: restart_lake_points !< point set restored from restart metadata
     integer(i8), allocatable :: restart_lake_ids(:) !< stable IDs in restart-file order
-    real(dp), allocatable :: restart_lake_max_level_reported(:) !< maximum levels restored from restart metadata
-    real(dp), allocatable :: restart_lake_max_surface_area_reported(:) !< reported maximum surface areas [m2] restored from restart metadata
-    real(dp), allocatable :: restart_lake_max_volume_reported(:) !< reported maximum volumes [m3] restored from restart metadata
+    real(dp), allocatable :: restart_lake_spill_reference_level(:) !< maximum levels restored from restart metadata
+    real(dp), allocatable :: restart_lake_spill_reference_surface_area(:) !< reported maximum surface areas [m2] restored from restart metadata
+    real(dp), allocatable :: restart_lake_spill_reference_volume(:) !< reported maximum volumes [m3] restored from restart metadata
     real(dp), allocatable :: restart_lake_spillway_length(:) !< effective spillway crest length [m] restored from restart metadata
     real(dp), allocatable :: restart_lake_initial_level(:) !< initial lake level [m] restored from restart metadata
     real(dp), allocatable :: restart_lake_ks(:) !< per-lake lakebed Ks [cm d-1] restored from restart metadata
@@ -275,10 +275,10 @@ contains
     end if
     if (self%read_restart .and. .not.self%exchange%lake_ids%provided) then
       call self%exchange%lake_ids%provide("mLM")
-      call self%exchange%lake_max_level_reported%provide("mLM")
+      call self%exchange%lake_spill_reference_level%provide("mLM")
       if (lake_case == -2_i4) call self%exchange%lake_map%provide("mLM")
     end if
-    if (lake_case == -2_i4) call self%exchange%lake_max_surface_area_dem_derived%provide("mLM")
+    if (lake_case == -2_i4) call self%exchange%lake_spill_reference_surface_area_dem_derived%provide("mLM")
     if (lake_case == 1_i4) then
       call self%exchange%lake_level%provide("mLM")
       call self%exchange%lake_surface_area%provide("mLM")
@@ -360,9 +360,9 @@ contains
     lake_case = self%exchange%config%processes%lake
     has_points = associated(self%exchange%lake_points)
     has_ids = self%exchange%lake_ids%provided .and. self%exchange%lake_ids%has_data()
-    has_levels = self%exchange%lake_max_level_reported%provided .and. self%exchange%lake_max_level_reported%has_data()
-    has_area = self%exchange%lake_max_surface_area_reported%provided .and. self%exchange%lake_max_surface_area_reported%has_data()
-    has_volume = self%exchange%lake_max_volume_reported%provided .and. self%exchange%lake_max_volume_reported%has_data()
+    has_levels = self%exchange%lake_spill_reference_level%provided .and. self%exchange%lake_spill_reference_level%has_data()
+    has_area = self%exchange%lake_spill_reference_surface_area%provided .and. self%exchange%lake_spill_reference_surface_area%has_data()
+    has_volume = self%exchange%lake_spill_reference_volume%provided .and. self%exchange%lake_spill_reference_volume%has_data()
     has_metadata = has_points .and. has_ids .and. has_levels
     if ((has_points .neqv. has_ids) .or. (has_points .neqv. has_levels)) then
       log_fatal(*) "mLM: lake points, stable IDs, and maximum levels must be published together."
@@ -372,14 +372,14 @@ contains
     if (has_metadata) then
       n_lakes = self%exchange%lake_points%n_points
       call self%exchange%check_data(self%exchange%lake_ids, "mLM")
-      call self%exchange%check_data(self%exchange%lake_max_level_reported, "mLM")
+      call self%exchange%check_data(self%exchange%lake_spill_reference_level, "mLM")
       if (self%read_restart) call self%validate_restart_metadata()
       self%lake_ids = self%exchange%lake_ids%data
       call self%static_lake_points%init( &
         self%exchange%lake_points%x, self%exchange%lake_points%y, coordsys=self%exchange%lake_points%coordsys)
-      self%static_lake_max_level_reported = self%exchange%lake_max_level_reported%data
-      if (has_area) self%static_lake_max_surface_area_reported = self%exchange%lake_max_surface_area_reported%data
-      if (has_volume) self%static_lake_max_volume_reported = self%exchange%lake_max_volume_reported%data
+      self%static_lake_spill_reference_level = self%exchange%lake_spill_reference_level%data
+      if (has_area) self%static_lake_spill_reference_surface_area = self%exchange%lake_spill_reference_surface_area%data
+      if (has_volume) self%static_lake_spill_reference_volume = self%exchange%lake_spill_reference_volume%data
       ! On a restart continued with Input present, the lake-MPR fields (regionalized lakebed Ks and
       ! baseflow recession coefficient) are taken from the restart metadata when the restart file
       ! carries them, so the soil/geology rasters need not be re-read. Initialize derives whichever
@@ -397,11 +397,11 @@ contains
       self%lake_ids = self%restart_lake_ids
       call self%static_lake_points%init( &
         self%restart_lake_points%x, self%restart_lake_points%y, coordsys=self%restart_lake_points%coordsys)
-      self%static_lake_max_level_reported = self%restart_lake_max_level_reported
-      if (allocated(self%restart_lake_max_surface_area_reported)) &
-        self%static_lake_max_surface_area_reported = self%restart_lake_max_surface_area_reported
-      if (allocated(self%restart_lake_max_volume_reported)) &
-        self%static_lake_max_volume_reported = self%restart_lake_max_volume_reported
+      self%static_lake_spill_reference_level = self%restart_lake_spill_reference_level
+      if (allocated(self%restart_lake_spill_reference_surface_area)) &
+        self%static_lake_spill_reference_surface_area = self%restart_lake_spill_reference_surface_area
+      if (allocated(self%restart_lake_spill_reference_volume)) &
+        self%static_lake_spill_reference_volume = self%restart_lake_spill_reference_volume
       if (allocated(self%restart_lake_spillway_length)) &
         self%static_lake_spillway_length = self%restart_lake_spillway_length
       if (allocated(self%restart_lake_initial_level)) &
@@ -417,8 +417,8 @@ contains
       self%exchange%lake_points => self%static_lake_points
       call self%exchange%lake_ids%prepare_data("mLM", no_time)
       self%exchange%lake_ids%data => self%lake_ids
-      call self%exchange%lake_max_level_reported%prepare_data("mLM", no_time)
-      self%exchange%lake_max_level_reported%data => self%static_lake_max_level_reported
+      call self%exchange%lake_spill_reference_level%prepare_data("mLM", no_time)
+      self%exchange%lake_spill_reference_level%data => self%static_lake_spill_reference_level
       self%owns_restart_lake_points = .true.
       self%owns_restart_lake_metadata = .true.
     end if
@@ -441,17 +441,17 @@ contains
         log_fatal(*) "mLM process -2 requires a level-0 lake grid and lake map."
         error stop 1
       end if
-      call lake_derive_max_surface_area_dem(self%static_lake_grid, self%lake_map, self%lake_ids, self%lake_max_surface_area_dem_derived)
-      call self%exchange%lake_max_surface_area_dem_derived%prepare_data("mLM", no_time)
-      self%exchange%lake_max_surface_area_dem_derived%data => self%lake_max_surface_area_dem_derived
+      call lake_derive_spill_reference_surface_area_dem(self%static_lake_grid, self%lake_map, self%lake_ids, self%lake_spill_reference_surface_area_dem_derived)
+      call self%exchange%lake_spill_reference_surface_area_dem_derived%prepare_data("mLM", no_time)
+      self%exchange%lake_spill_reference_surface_area_dem_derived%data => self%lake_spill_reference_surface_area_dem_derived
       call self%exchange%lake_pre%check_provided("mLM")
       call self%exchange%lake_pet%check_provided("mLM")
     end if
     if (lake_case == 1_i4) then
       ! The minimal natural lake needs the reported crest surface area and volume to build
       ! its height-area-volume (hAV) curves at initialize.
-      if (.not.allocated(self%static_lake_max_surface_area_reported) .or. &
-          .not.allocated(self%static_lake_max_volume_reported)) then
+      if (.not.allocated(self%static_lake_spill_reference_surface_area) .or. &
+          .not.allocated(self%static_lake_spill_reference_volume)) then
         log_fatal(*) "mLM process 1 requires reported maximum lake surface area and volume."
         error stop 1
       end if
@@ -482,13 +482,13 @@ contains
         block
           real(dp), allocatable :: dem_area(:)
           integer(i8) :: kk
-          call lake_derive_max_surface_area_dem(self%static_lake_grid, self%lake_map, &
+          call lake_derive_spill_reference_surface_area_dem(self%static_lake_grid, self%lake_map, &
             self%lake_ids, dem_area)
           do kk = 1_i8, size(self%lake_ids, kind=i8)
             log_info(*) "mLM lake ", n2s(self%lake_ids(kk)), ": reported area [m2] = ", &
-              n2s(self%static_lake_max_surface_area_reported(kk)), " , DEM-footprint area [m2] = ", &
+              n2s(self%static_lake_spill_reference_surface_area(kk)), " , DEM-footprint area [m2] = ", &
               n2s(dem_area(kk)), " ( ratio DEM/reported = ", &
-              n2s(dem_area(kk) / self%static_lake_max_surface_area_reported(kk)), " )"
+              n2s(dem_area(kk) / self%static_lake_spill_reference_surface_area(kk)), " )"
           end do
         end block
       end if
@@ -512,7 +512,7 @@ contains
       ! restart metadata at connect (the restart branch above). Nothing is read here: if it was not
       ! restart-restored it is derived below, so leave it unallocated for the derivation to fill.
       ! The initial level is optional: if it is absent (or carries the missing-value sentinel
-      ! nodata_dp = -9999), the lake is cold-started at 50% of its reported maximum volume (see initialize).
+      ! nodata_dp = -9999), the lake is cold-started at 50% of its spill-reference volume (see initialize).
       if (self%exchange%lake_initial_level%provided .and. self%exchange%lake_initial_level%has_data()) then
         self%static_lake_initial_level = self%exchange%lake_initial_level%data
       else if (.not.allocated(self%static_lake_initial_level)) then
@@ -604,7 +604,7 @@ contains
       error stop 1
     end if
     if (self%exchange%config%processes%lake == -2_i4) then
-      call self%exchange%check_data(self%exchange%lake_max_surface_area_dem_derived, "mLM")
+      call self%exchange%check_data(self%exchange%lake_spill_reference_surface_area_dem_derived, "mLM")
     end if
     if (self%exchange%config%processes%lake == 1_i4) then
       ! Build the per-lake height-area-volume (hAV) curves from a built-in analytical shape.
@@ -620,8 +620,8 @@ contains
           error stop 1
         end if
         call generate_lake_bathymetry(bathymetry_type, &
-          self%static_lake_max_level_reported(k), self%static_lake_max_surface_area_reported(k), &
-          self%static_lake_max_volume_reported(k), &
+          self%static_lake_spill_reference_level(k), self%static_lake_spill_reference_surface_area(k), &
+          self%static_lake_spill_reference_volume(k), &
           self%hav(k)%level, self%hav(k)%surface_area, self%hav(k)%volume)
       end do
       ! Regionalize the per-lake lakebed saturated hydraulic conductivity (detached lake MPR):
@@ -652,9 +652,9 @@ contains
           if (self%static_lake_initial_level(k) < -9000.0_dp) then
             block
               real(dp) :: target_volume
-              target_volume = 0.5_dp * self%static_lake_max_volume_reported(k)
+              target_volume = 0.5_dp * self%static_lake_spill_reference_volume(k)
               call interpolate_lake_states(.false., self%hav(k)%volume, self%hav(k)%level, &
-                self%static_lake_max_volume_reported(k), self%static_lake_max_level_reported(k), &
+                self%static_lake_spill_reference_volume(k), self%static_lake_spill_reference_level(k), &
                 target_volume, self%static_lake_initial_level(k))
             end block
             log_info(*) "mLM lake ", n2s(self%lake_ids(k)), &
@@ -664,11 +664,11 @@ contains
           self%lake_level(k) = self%static_lake_initial_level(k)
           level_query = self%static_lake_initial_level(k)
           call interpolate_lake_states(.false., self%hav(k)%level, self%hav(k)%surface_area, &
-            self%static_lake_max_level_reported(k), self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
+            self%static_lake_spill_reference_level(k), self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
             level_query, self%lake_surface_area(k))
           level_query = self%static_lake_initial_level(k)
           call interpolate_lake_states(.false., self%hav(k)%level, self%hav(k)%volume, &
-            self%static_lake_max_level_reported(k), self%hav(k)%volume(size(self%hav(k)%volume)), &
+            self%static_lake_spill_reference_level(k), self%hav(k)%volume(size(self%hav(k)%volume)), &
             level_query, self%lake_volume(k))
           ! Cold-start the lake groundwater storage self-consistently: the initial baseflow is
           ! set equal to the initial percolation, so the groundwater store starts at its
@@ -680,7 +680,7 @@ contains
           leakance = (self%static_lake_ks(k) * 0.01_dp &
             * tsHydroSecs / 86400.0_dp) / self%exchange%config%parameters%lakes_1%b%value
           call lake_seepage(.true., self%hav(k)%level, self%hav(k)%surface_area, &
-            self%static_lake_max_level_reported(k), &
+            self%static_lake_spill_reference_level(k), &
             self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
             self%static_lake_initial_level(k), leakance, perc0)
           kbf0 = (tsHydroSecs / 86400.0_dp) / self%static_lake_kbf(k)
@@ -928,7 +928,7 @@ contains
         self%outflow = self%exchange%lake_inflow%data
       case(-2_i4)
       ! if (self%exchange%config%processes%lake == -2_i4) then
-        self%outflow = lake_balance_outflow(self%exchange%lake_inflow%data, self%lake_max_surface_area_dem_derived, self%exchange%lake_pre%data, &
+        self%outflow = lake_balance_outflow(self%exchange%lake_inflow%data, self%lake_spill_reference_surface_area_dem_derived, self%exchange%lake_pre%data, &
           self%exchange%lake_pet%data, 3600.0_dp)
       case(1_i4)
         ! Minimal natural lake: seepage and crest spill, the iterative water balance, then
@@ -964,12 +964,12 @@ contains
           kbf = (tsHydroSecs / 86400.0_dp) / self%static_lake_kbf(k)
           ! Lake seepage from the previous-step level -> percolation to the groundwater store.
           call lake_seepage(.true., self%hav(k)%level, self%hav(k)%surface_area, &
-            self%static_lake_max_level_reported(k), &
+            self%static_lake_spill_reference_level(k), &
             self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
             self%lake_level_previous(k), leakance, &
             perc)
           ! Crest-controlled spill from the previous-step level.
-          call lake_spill(self%lake_level_previous(k), self%static_lake_max_level_reported(k), &
+          call lake_spill(self%lake_level_previous(k), self%static_lake_spill_reference_level(k), &
             self%exchange%config%parameters%lakes_1%spill_coefficient_of_discharge%value, &
             self%static_lake_spillway_length(k), &
             self%exchange%config%parameters%lakes_1%spill_exponent%value, &
@@ -1029,7 +1029,7 @@ contains
           ! Iterative water balance -> updates level, surface area and volume (consumes perc, evap, spill).
           call lake_balance(.true., pr_step, evap_step, self%exchange%lake_inflow%data(k), perc, 0.0_dp, spill, 0.0_dp, &
             self%hav(k)%level, self%hav(k)%surface_area, self%hav(k)%volume, &
-            self%static_lake_max_level_reported(k), &
+            self%static_lake_spill_reference_level(k), &
             self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
             self%hav(k)%volume(size(self%hav(k)%volume)), &
             self%lake_level_previous(k), self%lake_surface_area_previous(k), self%lake_volume_previous(k), &
@@ -1086,11 +1086,11 @@ contains
     if (allocated(self%lake_sand)) deallocate(self%lake_sand)
     if (allocated(self%lake_clay)) deallocate(self%lake_clay)
     if (allocated(self%lake_geo)) deallocate(self%lake_geo)
-    if (allocated(self%lake_max_surface_area_dem_derived)) deallocate(self%lake_max_surface_area_dem_derived)
+    if (allocated(self%lake_spill_reference_surface_area_dem_derived)) deallocate(self%lake_spill_reference_surface_area_dem_derived)
     call self%static_lake_points%destroy()
-    if (allocated(self%static_lake_max_level_reported)) deallocate(self%static_lake_max_level_reported)
-    if (allocated(self%static_lake_max_surface_area_reported)) deallocate(self%static_lake_max_surface_area_reported)
-    if (allocated(self%static_lake_max_volume_reported)) deallocate(self%static_lake_max_volume_reported)
+    if (allocated(self%static_lake_spill_reference_level)) deallocate(self%static_lake_spill_reference_level)
+    if (allocated(self%static_lake_spill_reference_surface_area)) deallocate(self%static_lake_spill_reference_surface_area)
+    if (allocated(self%static_lake_spill_reference_volume)) deallocate(self%static_lake_spill_reference_volume)
     if (allocated(self%static_lake_spillway_length)) deallocate(self%static_lake_spillway_length)
     if (allocated(self%static_lake_initial_level)) deallocate(self%static_lake_initial_level)
     if (allocated(self%static_lake_ks)) deallocate(self%static_lake_ks)
@@ -1112,9 +1112,9 @@ contains
     if (allocated(self%hav)) deallocate(self%hav)
     call self%restart_lake_points%destroy()
     if (allocated(self%restart_lake_ids)) deallocate(self%restart_lake_ids)
-    if (allocated(self%restart_lake_max_level_reported)) deallocate(self%restart_lake_max_level_reported)
-    if (allocated(self%restart_lake_max_surface_area_reported)) deallocate(self%restart_lake_max_surface_area_reported)
-    if (allocated(self%restart_lake_max_volume_reported)) deallocate(self%restart_lake_max_volume_reported)
+    if (allocated(self%restart_lake_spill_reference_level)) deallocate(self%restart_lake_spill_reference_level)
+    if (allocated(self%restart_lake_spill_reference_surface_area)) deallocate(self%restart_lake_spill_reference_surface_area)
+    if (allocated(self%restart_lake_spill_reference_volume)) deallocate(self%restart_lake_spill_reference_volume)
     if (allocated(self%restart_lake_spillway_length)) deallocate(self%restart_lake_spillway_length)
     if (allocated(self%restart_lake_initial_level)) deallocate(self%restart_lake_initial_level)
     if (allocated(self%restart_lake_ks)) deallocate(self%restart_lake_ks)
@@ -1272,13 +1272,13 @@ contains
     type(NcVariable) :: var
 
     if (self%static_lake_points%n_points /= size(self%lake_ids, kind=i8) .or. &
-        .not.allocated(self%static_lake_max_level_reported)) then
+        .not.allocated(self%static_lake_spill_reference_level)) then
       log_fatal(*) "mLM: cannot write restart without static lake metadata."
       error stop 1
     end if
     if (self%exchange%config%processes%lake == 1_i4 .and. &
-        (.not.allocated(self%static_lake_max_surface_area_reported) .or. &
-         .not.allocated(self%static_lake_max_volume_reported))) then
+        (.not.allocated(self%static_lake_spill_reference_surface_area) .or. &
+         .not.allocated(self%static_lake_spill_reference_volume))) then
       log_fatal(*) "mLM: cannot write process 1 restart without reported maximum surface area and volume."
       error stop 1
     end if
@@ -1296,18 +1296,18 @@ contains
     call var%setData(self%static_lake_points%x)
     var = nc%setVariable("lake_outlet_y", "f64", [lake_dim])
     call var%setData(self%static_lake_points%y)
-    var = nc%setVariable("lake_max_level_reported", "f64", [lake_dim])
+    var = nc%setVariable("lake_spill_reference_level", "f64", [lake_dim])
     call var%setAttribute("units", "m")
-    call var%setData(self%static_lake_max_level_reported)
-    if (allocated(self%static_lake_max_surface_area_reported)) then
-      var = nc%setVariable("lake_max_surface_area_reported", "f64", [lake_dim])
+    call var%setData(self%static_lake_spill_reference_level)
+    if (allocated(self%static_lake_spill_reference_surface_area)) then
+      var = nc%setVariable("lake_spill_reference_surface_area", "f64", [lake_dim])
       call var%setAttribute("units", "m2")
-      call var%setData(self%static_lake_max_surface_area_reported)
+      call var%setData(self%static_lake_spill_reference_surface_area)
     end if
-    if (allocated(self%static_lake_max_volume_reported)) then
-      var = nc%setVariable("lake_max_volume_reported", "f64", [lake_dim])
+    if (allocated(self%static_lake_spill_reference_volume)) then
+      var = nc%setVariable("lake_spill_reference_volume", "f64", [lake_dim])
       call var%setAttribute("units", "m3")
-      call var%setData(self%static_lake_max_volume_reported)
+      call var%setData(self%static_lake_spill_reference_volume)
     end if
     if (allocated(self%static_lake_spillway_length)) then
       var = nc%setVariable("lake_spillway_length", "f64", [lake_dim])
@@ -1406,7 +1406,7 @@ contains
     end do
 
     if (.not.nc%hasVariable("lake_outlet_x") .or. .not.nc%hasVariable("lake_outlet_y") .or. &
-        .not.nc%hasVariable("lake_max_level_reported") .or. .not.nc%hasVariable("lake_coordsys")) then
+        .not.nc%hasVariable("lake_spill_reference_level") .or. .not.nc%hasVariable("lake_coordsys")) then
       log_fatal(*) "mLM restart is missing required static lake metadata: ", self%restart_input_path
       error stop 1
     end if
@@ -1414,11 +1414,11 @@ contains
     call var%getData(outlet_x)
     var = nc%getVariable("lake_outlet_y")
     call var%getData(outlet_y)
-    var = nc%getVariable("lake_max_level_reported")
-    call var%getData(self%restart_lake_max_level_reported)
+    var = nc%getVariable("lake_spill_reference_level")
+    call var%getData(self%restart_lake_spill_reference_level)
     if (self%exchange%config%processes%lake == 1_i4) then
-      if (.not.nc%hasVariable("lake_max_surface_area_reported") .or. &
-          .not.nc%hasVariable("lake_max_volume_reported")) then
+      if (.not.nc%hasVariable("lake_spill_reference_surface_area") .or. &
+          .not.nc%hasVariable("lake_spill_reference_volume")) then
         log_fatal(*) "mLM process 1 restart is missing reported maximum surface area or volume: ", self%restart_input_path
         error stop 1
       end if
@@ -1428,13 +1428,13 @@ contains
         error stop 1
       end if
     end if
-    if (nc%hasVariable("lake_max_surface_area_reported")) then
-      var = nc%getVariable("lake_max_surface_area_reported")
-      call var%getData(self%restart_lake_max_surface_area_reported)
+    if (nc%hasVariable("lake_spill_reference_surface_area")) then
+      var = nc%getVariable("lake_spill_reference_surface_area")
+      call var%getData(self%restart_lake_spill_reference_surface_area)
     end if
-    if (nc%hasVariable("lake_max_volume_reported")) then
-      var = nc%getVariable("lake_max_volume_reported")
-      call var%getData(self%restart_lake_max_volume_reported)
+    if (nc%hasVariable("lake_spill_reference_volume")) then
+      var = nc%getVariable("lake_spill_reference_volume")
+      call var%getData(self%restart_lake_spill_reference_volume)
     end if
     if (nc%hasVariable("lake_spillway_length")) then
       var = nc%getVariable("lake_spillway_length")
@@ -1466,12 +1466,12 @@ contains
     call var%getData(coordsys_data)
     if (size(outlet_x, kind=i8) /= size(self%restart_lake_ids, kind=i8) .or. &
         size(outlet_y, kind=i8) /= size(self%restart_lake_ids, kind=i8) .or. &
-        size(self%restart_lake_max_level_reported, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
+        size(self%restart_lake_spill_reference_level, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
       log_fatal(*) "mLM restart static lake metadata does not align with stable lake IDs."
       error stop 1
     end if
-    if (allocated(self%restart_lake_max_surface_area_reported)) then
-      if (size(self%restart_lake_max_surface_area_reported, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
+    if (allocated(self%restart_lake_spill_reference_surface_area)) then
+      if (size(self%restart_lake_spill_reference_surface_area, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
         log_fatal(*) "mLM restart reported maximum surface area does not align with stable lake IDs."
         error stop 1
       end if
@@ -1512,8 +1512,8 @@ contains
         error stop 1
       end if
     end if
-    if (allocated(self%restart_lake_max_volume_reported)) then
-      if (size(self%restart_lake_max_volume_reported, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
+    if (allocated(self%restart_lake_spill_reference_volume)) then
+      if (size(self%restart_lake_spill_reference_volume, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
         log_fatal(*) "mLM restart reported maximum volume does not align with stable lake IDs."
         error stop 1
       end if
@@ -1523,7 +1523,7 @@ contains
       error stop 1
     end if
     if (.not.all(ieee_is_finite(outlet_x)) .or. .not.all(ieee_is_finite(outlet_y)) .or. &
-        .not.all(ieee_is_finite(self%restart_lake_max_level_reported))) then
+        .not.all(ieee_is_finite(self%restart_lake_spill_reference_level))) then
       log_fatal(*) "mLM restart static lake metadata must be finite."
       error stop 1
     end if
@@ -1586,22 +1586,22 @@ contains
       end if
       if (.not.is_close(self%restart_lake_points%x(j), self%exchange%lake_points%x(i)) .or. &
           .not.is_close(self%restart_lake_points%y(j), self%exchange%lake_points%y(i)) .or. &
-          .not.is_close(self%restart_lake_max_level_reported(j), self%exchange%lake_max_level_reported%data(i))) then
+          .not.is_close(self%restart_lake_spill_reference_level(j), self%exchange%lake_spill_reference_level%data(i))) then
         log_fatal(*) "mLM restart and Input lake metadata differ for stable lake ID."
         error stop 1
       end if
-      if (allocated(self%restart_lake_max_surface_area_reported) .and. &
-          self%exchange%lake_max_surface_area_reported%has_data()) then
-        if (.not.is_close(self%restart_lake_max_surface_area_reported(j), &
-                          self%exchange%lake_max_surface_area_reported%data(i))) then
+      if (allocated(self%restart_lake_spill_reference_surface_area) .and. &
+          self%exchange%lake_spill_reference_surface_area%has_data()) then
+        if (.not.is_close(self%restart_lake_spill_reference_surface_area(j), &
+                          self%exchange%lake_spill_reference_surface_area%data(i))) then
           log_fatal(*) "mLM restart and Input reported maximum surface area differ for stable lake ID."
           error stop 1
         end if
       end if
-      if (allocated(self%restart_lake_max_volume_reported) .and. &
-          self%exchange%lake_max_volume_reported%has_data()) then
-        if (.not.is_close(self%restart_lake_max_volume_reported(j), &
-                          self%exchange%lake_max_volume_reported%data(i))) then
+      if (allocated(self%restart_lake_spill_reference_volume) .and. &
+          self%exchange%lake_spill_reference_volume%has_data()) then
+        if (.not.is_close(self%restart_lake_spill_reference_volume(j), &
+                          self%exchange%lake_spill_reference_volume%data(i))) then
           log_fatal(*) "mLM restart and Input reported maximum volume differ for stable lake ID."
           error stop 1
         end if
