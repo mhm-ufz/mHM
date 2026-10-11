@@ -44,8 +44,10 @@
 !!       land baseflow parameters when that process is active, else uses lakes_1's own per-unit array.
 !!     * Lake banks: reconcile the fixed DEM-footprint collection area against the dynamic water-balance
 !!       area each step; the net atmospheric flux over the ring (A_footprint - A_water) enters as a
-!!       signed same-step inflow correction (exposed bank uses soil evaporation Es = c_soil * E, the
-!!       over-flooded ring uses open-water E), closing the budget over the true footprint. The
+!!       same-step inflow correction. Exposed bank (A_bank > 0): adds (P - Es) with soil evaporation
+!!       Es = min(c_soil * E, P) - the bank has no soil-moisture store, so Es consumes only same-step
+!!       P and (P - Es) >= 0. Over-flooded ring (A_bank < 0): removes (P - E) with open-water E, the
+!!       flux already counted on the mHM land side. Closes the budget over the true footprint; the
 !!       DEM-footprint area is retained and restart-persisted (lake_footprint_area).
 !> \authors Pallav Shrestha
 !> \authors Sebastian Mueller
@@ -1071,18 +1073,21 @@ contains
           ! budget closes over the true footprint. The correction is symmetric:
           !   A_bank > 0 (water inside the footprint): the exposed-bank ring receives P and loses soil
           !     evaporation Es = c_soil * E (moist bank); its net (P - Es) is routed to the lake, on the
-          !     basis that bank runoff and subsurface seepage both ultimately report to the lake.
+          !     basis that bank runoff and subsurface seepage both ultimately report to the lake. The
+          !     bank has NO soil-moisture store, so Es can only consume water that fell this step:
+          !     Es = min(c_soil * E, P). Hence (P - Es) >= 0 and the exposed bank never acts as a net
+          !     sink (no dry-bank water removal without a store).
           !   A_bank < 0 (water beyond the footprint): the over-flooded ring's (P - E) was already
           !     accounted on the mHM land side, so it is removed from the lake to avoid double counting.
-          ! Both are a single signed term with the exposed side using soil E and the flooded side using
-          ! open-water E. A_water is the previous-step surface area (non-circular, as for perc/baseflow).
+          !     This side uses open-water E and stays signed (a genuine correction of counted flux).
+          ! A_water is the previous-step surface area (non-circular, as for perc/baseflow).
           a_bank = self%static_lake_footprint_area(k) - self%lake_surface_area_previous(k)
           if (a_bank >= 0.0_dp) then
-            es_step = bank_soil_evap_ratio * evap_step           ! exposed moist bank: soil evaporation
+            es_step = min(bank_soil_evap_ratio * evap_step, pr_step)  ! exposed bank: soil E capped by same-step P (no store)
           else
             es_step = evap_step                                  ! over-flooded: open-water evaporation
           end if
-          q_bank = (pr_step - es_step) / 1000.0_dp * a_bank / tsHydroSecs  ! [m3 s-1], signed
+          q_bank = (pr_step - es_step) / 1000.0_dp * a_bank / tsHydroSecs  ! [m3 s-1]; exposed side >=0, flooded side signed
           ! Iterative water balance -> updates level, surface area and volume (consumes perc, evap, spill).
           call lake_balance(.true., pr_step, evap_step, self%exchange%lake_inflow%data(k) + q_bank, perc, 0.0_dp, spill, 0.0_dp, &
             self%hav(k)%level, self%hav(k)%surface_area, self%hav(k)%volume, &
