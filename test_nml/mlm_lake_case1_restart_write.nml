@@ -34,17 +34,15 @@
   lake_definition_path(1) = "examples/fixtures/lake_outlets.nc"
   ! Soil class raster (level-0) + soil LUT: the detached lake MPR resolves the lakebed sand/clay
   ! and regionalizes the lakebed conductivity from them.
-  soil_class_path(1)      = "test_domain/input/morph/soil_class.asc"
-  soil_lut_path(1)        = "test_domain/input/morph/soil_classdefinition.txt"
+  soil_class_path(1)      = "examples/fixtures/soil_class.asc"
   ! Geology class raster (level-0) + geology LUT: the detached lake MPR resolves the lake-footprint
   ! geological unit and regionalizes the lake baseflow recession coefficient from it.
-  geo_class_path(1)       = "test_domain/input/morph/geology_class.asc"
-  geo_lut_path(1)         = "test_domain/input/morph/geology_classdefinition.txt"
-  meteo_mask_path(1)      = "test_domain/input/meteo/mask.nc"
-  temp_path(1)            = "test_domain/input/meteo/tavg/tavg.nc"
-  ssrd_path(1)            = "test_domain/input/meteo/ssrd.nc"
-  strd_path(1)            = "test_domain/input/meteo/strd.nc"
-  pre_path(1)             = "test_domain/input/meteo/pre/pre.nc"
+  geo_class_path(1)       = "examples/fixtures/geology_class.asc"
+  meteo_mask_path(1)      = "examples/domain_01/input/meteo/mask.nc"
+  temp_path(1)            = "examples/domain_01/input/meteo/tavg.nc"
+  ssrd_path(1)            = "examples/domain_01/input/meteo/ssrd.nc"
+  strd_path(1)            = "examples/domain_01/input/meteo/strd.nc"
+  pre_path(1)             = "examples/domain_01/input/meteo/pre.nc"
 /
 
 &config_meteo
@@ -70,4 +68,9 @@
   output_path(1)         = "mlm_lake_case1_restart_write.nc"
   write_restart(1)       = .true.
   restart_output_path(1) = "mlm_lake_case1_restart_mrm.nc"
+/
+
+&config_lut
+  soil_lut_path(1)        = "examples/domain_01/input/morph/soil_classdefinition.txt"
+  geo_lut_path(1)         = "examples/domain_01/input/morph/geology_classdefinition.txt"
 /

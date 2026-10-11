@@ -1,13 +1,13 @@
 ! Minimal natural-lake (case 1) smoke + validation run with Priestley-Taylor
 ! lake evaporation (evaporation_method = 2).
 !
-! Grid: the lake sits on the examples/fixtures grid (same level-0 fdir/dem as
-! test_domain - byte-identical), reusing the committed lake_outlets.nc whose
+! Grid: the lake sits on the examples/fixtures level-0 fdir/dem grid,
+! reusing the committed lake_outlets.nc whose
 ! outlet (x=4011126, y=2876592) maps onto a valid river cell (fdir=1, facc=271).
 ! PT needs only temperature + downward short-/long-wave radiation, so the daily
-! tavg/ssrd/strd (and pre for lake precipitation) are taken from test_domain's
-! meteo - no windspeed or dew point required. This mirrors
-! mrm_rivertemp_meteo_minimal.nml, which already feeds test_domain meteo into a
+! tavg/ssrd/strd (and pre for lake precipitation) come from domain_01 meteo;
+! no windspeed or dew point is required. This mirrors
+! mrm_rivertemp_meteo_minimal.nml, which already feeds domain_01 meteo into a
 ! routing=2 run on the fixtures grid.
 
 &config_project
@@ -37,19 +37,17 @@
   fdir_path(1)            = "examples/fixtures/input.nc"
   dem_path(1)             = "examples/fixtures/input.nc"
   lake_definition_path(1) = "examples/fixtures/lake_outlets.nc"
-  meteo_mask_path(1)      = "test_domain/input/meteo/mask.nc"
-  temp_path(1)            = "test_domain/input/meteo/tavg/tavg.nc"
-  ssrd_path(1)            = "test_domain/input/meteo/ssrd.nc"
-  strd_path(1)            = "test_domain/input/meteo/strd.nc"
-  pre_path(1)             = "test_domain/input/meteo/pre/pre.nc"
-  ! Soil class raster (level-0, fixtures grid == test_domain grid) + soil LUT: the detached
+  meteo_mask_path(1)      = "examples/domain_01/input/meteo/mask.nc"
+  temp_path(1)            = "examples/domain_01/input/meteo/tavg.nc"
+  ssrd_path(1)            = "examples/domain_01/input/meteo/ssrd.nc"
+  strd_path(1)            = "examples/domain_01/input/meteo/strd.nc"
+  pre_path(1)             = "examples/domain_01/input/meteo/pre.nc"
+  ! Soil class raster (level-0, fixtures grid) + soil LUT: the detached
   ! lake MPR resolves the lakebed sand/clay and regionalizes the lakebed conductivity from them.
-  soil_class_path(1)      = "test_domain/input/morph/soil_class.asc"
-  soil_lut_path(1)        = "test_domain/input/morph/soil_classdefinition.txt"
+  soil_class_path(1)      = "examples/fixtures/soil_class.asc"
   ! Geology class raster (level-0) + geology LUT: the detached lake MPR resolves the lake-footprint
   ! geological unit and regionalizes the lake baseflow recession coefficient from it.
-  geo_class_path(1)       = "test_domain/input/morph/geology_class.asc"
-  geo_lut_path(1)         = "test_domain/input/morph/geology_classdefinition.txt"
+  geo_class_path(1)       = "examples/fixtures/geology_class.asc"
 /
 
 &config_meteo
@@ -75,4 +73,9 @@
 &config_mrm
   max_route_step(1) = 3600
   output_path(1)    = "mlm_lake_case1_pt.nc"
+/
+
+&config_lut
+  soil_lut_path(1)        = "examples/domain_01/input/morph/soil_classdefinition.txt"
+  geo_lut_path(1)         = "examples/domain_01/input/morph/geology_classdefinition.txt"
 /
