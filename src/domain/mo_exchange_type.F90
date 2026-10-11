@@ -265,6 +265,7 @@ module mo_exchange_type
     integer(i4) :: nml_domain_id = 1_i4     !< domain index used when reading namelist arrays
     integer(i4) :: n_geo_units = 25_i4      !< number of geological units in the global parameter set
     integer(i4) :: max_layers = 10_i4       !< maximum number of soil-layer entries in the run
+    integer(i4) :: max_lakes = 1_i4         !< maximum number of lakes per domain in the run
     integer(i4) :: n_layers = 1_i4          !< number of soil layers for this domain
     logical :: from_dirs = .false.          !< whether domain main files are derived from config_domain directories
     character(:), allocatable :: root       !< immutable run root directory
@@ -543,6 +544,7 @@ contains
     self%n_domains = self%config%project%n_domains
     self%n_geo_units = self%config%project%n_geo_units
     self%max_layers = self%config%project%max_layers
+    self%max_lakes = self%config%project%max_lakes
     if (self%domain_id < 1_i4 .or. self%domain_id > self%n_domains) then
       log_fatal(*) "Invalid domain id ", n2s(self%domain_id), " for run n_domains=", n2s(self%n_domains), "."
       error stop 1
@@ -817,6 +819,11 @@ contains
       if (local_project%max_layers > self%max_layers) then
         log_fatal(*) "Domain-local max_layers=", n2s(local_project%max_layers), &
           " exceeds top-level max_layers=", n2s(self%max_layers), "."
+        error stop 1
+      end if
+      if (local_project%max_lakes > self%max_lakes) then
+        log_fatal(*) "Domain-local max_lakes=", n2s(local_project%max_lakes), &
+          " exceeds top-level max_lakes=", n2s(self%max_lakes), "."
         error stop 1
       end if
     else

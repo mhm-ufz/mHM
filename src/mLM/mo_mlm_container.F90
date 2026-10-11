@@ -179,7 +179,7 @@ contains
     class(mlm_t), target, intent(inout) :: self
     character(1024) :: errmsg
     integer :: status
-    status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, errmsg=errmsg)
+    status = self%config%set_dims(n_domains=self%exchange%nml_n_domains, max_lakes=self%exchange%max_lakes, errmsg=errmsg)
     if (status /= NML_OK) then
       log_fatal(*) "mLM: error setting config_mlm dimensions: ", trim(errmsg)
       error stop 1
