@@ -104,6 +104,7 @@ module mo_mlm_container
     real(dp), allocatable :: static_lake_initial_level(:) !< initial lake level [m] retained for the lake points
     real(dp), allocatable :: static_lake_ks(:) !< per-lake regionalized lakebed Ks [cm d-1] (lake MPR; restart-persisted)
     real(dp), allocatable :: static_lake_kbf(:) !< per-lake regionalized baseflow recession coefficient [d] (lake MPR; restart-persisted)
+    real(dp), allocatable :: static_lake_footprint_area(:) !< per-lake DEM-footprint surface area [m2] (lake banks; restart-persisted)
     real(dp), allocatable :: static_lake_latitude(:) !< geographic latitude [degree] retained for the lake points
     real(dp), allocatable :: static_lake_longitude(:) !< geographic longitude [degree] retained for the lake points
     type(lake_hav_t), allocatable :: hav(:) !< per-lake height-area-volume curves built at initialize
@@ -124,6 +125,7 @@ module mo_mlm_container
     real(dp), allocatable :: restart_lake_initial_level(:) !< initial lake level [m] restored from restart metadata
     real(dp), allocatable :: restart_lake_ks(:) !< per-lake lakebed Ks [cm d-1] restored from restart metadata
     real(dp), allocatable :: restart_lake_kbf(:) !< per-lake baseflow recession coefficient [d] restored from restart metadata
+    real(dp), allocatable :: restart_lake_footprint_area(:) !< per-lake DEM-footprint surface area [m2] restored from restart metadata
     real(dp), allocatable :: restart_lake_latitude(:) !< geographic latitude [degree] restored from restart metadata
     real(dp), allocatable :: restart_lake_longitude(:) !< geographic longitude [degree] restored from restart metadata
     real(dp), allocatable :: outflow(:) !< current lake outflow [m3 s-1]
@@ -387,6 +389,7 @@ contains
       if (self%read_restart) then
         if (allocated(self%restart_lake_ks)) self%static_lake_ks = self%restart_lake_ks
         if (allocated(self%restart_lake_kbf)) self%static_lake_kbf = self%restart_lake_kbf
+        if (allocated(self%restart_lake_footprint_area)) self%static_lake_footprint_area = self%restart_lake_footprint_area
       end if
     else
       if (.not.self%read_restart) then
@@ -410,6 +413,8 @@ contains
         self%static_lake_ks = self%restart_lake_ks
       if (allocated(self%restart_lake_kbf)) &
         self%static_lake_kbf = self%restart_lake_kbf
+      if (allocated(self%restart_lake_footprint_area)) &
+        self%static_lake_footprint_area = self%restart_lake_footprint_area
       if (allocated(self%restart_lake_latitude)) &
         self%static_lake_latitude = self%restart_lake_latitude
       if (allocated(self%restart_lake_longitude)) &
@@ -476,19 +481,20 @@ contains
           call self%exchange%check_data(self%exchange%lake_geo, "mLM")
           self%lake_geo = self%exchange%lake_geo%data
         end if
-        ! (diagnostic) log the DEM-footprint area against the reported area per lake. The DEM
-        ! footprint area is not used by the case-1 physics (the hAV curve is reported-anchored),
-        ! but this records how far the level-0 lake delineation lies from the reported value.
+        ! The DEM-footprint surface area per lake (level-0 lake-cell area summed over the footprint)
+        ! is the fixed area over which mRM collects the lake's inflow. It is retained here (and
+        ! restart-persisted) so the per-step lake banks term can reconcile it against the dynamic
+        ! water-balance area A_water (see mlm_update). Also logged against the reported area to record
+        ! how far the level-0 delineation lies from the reported crest area.
+        call lake_derive_spill_reference_surface_area_dem(self%static_lake_grid, self%lake_map, &
+          self%lake_ids, self%static_lake_footprint_area)
         block
-          real(dp), allocatable :: dem_area(:)
           integer(i8) :: kk
-          call lake_derive_spill_reference_surface_area_dem(self%static_lake_grid, self%lake_map, &
-            self%lake_ids, dem_area)
           do kk = 1_i8, size(self%lake_ids, kind=i8)
             log_info(*) "mLM lake ", n2s(self%lake_ids(kk)), ": reported area [m2] = ", &
               n2s(self%static_lake_spill_reference_surface_area(kk)), " , DEM-footprint area [m2] = ", &
-              n2s(dem_area(kk)), " ( ratio DEM/reported = ", &
-              n2s(dem_area(kk) / self%static_lake_spill_reference_surface_area(kk)), " )"
+              n2s(self%static_lake_footprint_area(kk)), " ( ratio DEM/reported = ", &
+              n2s(self%static_lake_footprint_area(kk) / self%static_lake_spill_reference_surface_area(kk)), " )"
           end do
         end block
       end if
@@ -641,6 +647,12 @@ contains
       ! On a restart-only run (no Input) static_lake_kbf was restored from the restart metadata at
       ! connect; derive it whenever it was not restored (a fresh run, or a restart continued with Input).
       if (.not. allocated(self%static_lake_kbf)) call self%derive_lake_kbf()
+      ! Lake banks: the per-lake DEM-footprint area is captured at connect when Input is present,
+      ! and restored from restart metadata on a restart-only run. Derive it here whenever it was
+      ! neither captured nor restored but the lake footprint is available (a fresh run).
+      if (.not. allocated(self%static_lake_footprint_area) .and. allocated(self%lake_map)) &
+        call lake_derive_spill_reference_surface_area_dem(self%static_lake_grid, self%lake_map, &
+          self%lake_ids, self%static_lake_footprint_area)
       ! Regionalize the per-lake effective spillway crest length from the lake catchment (drainage)
       ! area by the downstream-hydraulic-geometry power law Ls = m * 2.7 * CA^0.35 (CA at the lake
       ! outlet node, from the routing upstream area). On a restart-only run (no Input / no river)
@@ -1112,6 +1124,7 @@ contains
     if (allocated(self%static_lake_initial_level)) deallocate(self%static_lake_initial_level)
     if (allocated(self%static_lake_ks)) deallocate(self%static_lake_ks)
     if (allocated(self%static_lake_kbf)) deallocate(self%static_lake_kbf)
+    if (allocated(self%static_lake_footprint_area)) deallocate(self%static_lake_footprint_area)
     if (allocated(self%static_lake_latitude)) deallocate(self%static_lake_latitude)
     if (allocated(self%static_lake_longitude)) deallocate(self%static_lake_longitude)
     if (allocated(self%lake_level)) deallocate(self%lake_level)
@@ -1136,6 +1149,7 @@ contains
     if (allocated(self%restart_lake_initial_level)) deallocate(self%restart_lake_initial_level)
     if (allocated(self%restart_lake_ks)) deallocate(self%restart_lake_ks)
     if (allocated(self%restart_lake_kbf)) deallocate(self%restart_lake_kbf)
+    if (allocated(self%restart_lake_footprint_area)) deallocate(self%restart_lake_footprint_area)
     if (allocated(self%restart_lake_latitude)) deallocate(self%restart_lake_latitude)
     if (allocated(self%restart_lake_longitude)) deallocate(self%restart_lake_longitude)
     if (allocated(self%outflow)) deallocate(self%outflow)
@@ -1348,6 +1362,13 @@ contains
       call var%setAttribute("units", "d")
       call var%setData(self%static_lake_kbf)
     end if
+    ! The DEM-footprint area is written so a restart-only run (no Input) can restore it for the
+    ! lake banks reconciliation instead of re-deriving it from the lake footprint.
+    if (allocated(self%static_lake_footprint_area)) then
+      var = nc%setVariable("lake_footprint_area", "f64", [lake_dim])
+      call var%setAttribute("units", "m2")
+      call var%setData(self%static_lake_footprint_area)
+    end if
     ! Geographic coordinates are written only when they were derived (i.e. a latlon file was present
     ! for a projected grid, or the points were spherical); they are required at read time only when
     ! varying_albedo is configured (checked in the connect guard).
@@ -1469,6 +1490,10 @@ contains
       var = nc%getVariable("lake_kbf")
       call var%getData(self%restart_lake_kbf)
     end if
+    if (nc%hasVariable("lake_footprint_area")) then
+      var = nc%getVariable("lake_footprint_area")
+      call var%getData(self%restart_lake_footprint_area)
+    end if
     ! Geographic coordinates are optional in the restart (back-compat and non-albedo runs); when a
     ! varying_albedo run restarts without them, the connect guard reports the missing coordinates.
     if (nc%hasVariable("lake_latitude")) then
@@ -1514,6 +1539,12 @@ contains
     if (allocated(self%restart_lake_kbf)) then
       if (size(self%restart_lake_kbf, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
         log_fatal(*) "mLM restart baseflow recession coefficient does not align with stable lake IDs."
+        error stop 1
+      end if
+    end if
+    if (allocated(self%restart_lake_footprint_area)) then
+      if (size(self%restart_lake_footprint_area, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
+        log_fatal(*) "mLM restart lake footprint area does not align with stable lake IDs."
         error stop 1
       end if
     end if
