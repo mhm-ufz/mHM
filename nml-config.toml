@@ -308,6 +308,7 @@ namelists = [
   "config_processes",
   "config_optimize",
   "config_resolution",
+  "config_lut",
   "config_time",
   "config_input",
   "config_coupling",
