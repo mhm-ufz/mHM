@@ -29,13 +29,9 @@ doc = "Number of domains."
 default = 25
 doc = "Number of geological units."
 
-[dimensions.n_lakes_total]
-default = 100
-doc = "Total number of lakes (sum of all lakes across all domains)."
-
-[dimensions.n_lakes]
+[dimensions.max_lakes]
 default = 50
-doc = "Maximum number of lakes per domain (sizing dimension for per-lake arrays)."
+doc = "Maximum number of lakes per domain stored in a namelist file (sizing dimension for per-lake arrays)."
 
 [documentation]
 module = '''
