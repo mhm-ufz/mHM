@@ -108,6 +108,14 @@
   route(:) = 0.5
 /
 
+! Look-up table configuration
+&config_lut
+  ! Soil look-up table path
+  soil_lut_path(:) = ""
+  ! Geology look-up table path
+  geo_lut_path(:) = ""
+/
+
 ! Time configuration
 &config_time
   ! Simulation start
@@ -190,10 +198,6 @@
   soil_class_path(:) = ""
   ! Soil horizon class input
   soil_horizon_class_path(:) = ""
-  ! Soil look-up table path
-  soil_lut_path(:) = ""
-  ! Geology look-up table path
-  geo_lut_path(:) = ""
   ! LAI class input
   lai_class_path(:) = ""
   ! River width input
@@ -446,10 +450,6 @@
   lai_path(:) = ""
   ! LAI variable
   lai_var(:) = "lai"
-  ! Soil LUT path
-  soil_lut_path(:) = ""
-  ! Geology LUT path
-  geo_lut_path(:) = ""
   ! LAI LUT path
   lai_lut_path(:) = ""
   ! Read restart
