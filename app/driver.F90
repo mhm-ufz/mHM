@@ -12,7 +12,8 @@ program driver
   use mo_cli, only: cli_parser
   use mo_os, only: path_abspath, check_path_isdir
   use mo_message, only: use_log
-  use mo_mhm_cli, only: set_verbosity_level
+  use mo_cli_support, only: set_verbosity_level
+  use mo_version, only: version, version_date
   use mo_domain, only: domain_t
   use mo_kind, only: i4
   use mo_exchange_type, only: get_n_domains
@@ -29,7 +30,7 @@ program driver
   character(:), allocatable :: cwd, main_file, para_file, out_file
 
   parser = cli_parser(prog="mhm", description="The mesoscale hydrological model - mHM v6", &
-    add_logger_options=.true., add_version_option=.true., version="6.0")
+    add_logger_options=.true., add_version_option=.true., version=version)
 
   call parser%add_option(name='log-file', has_value=.true., required=.false., &
     value_name="path", help='Write to log file.')
@@ -122,7 +123,6 @@ program driver
 
 contains
   subroutine startup_message()
-    use mo_file, only: version, version_date
     log_text(*) ".----------------------------------------------------------------------."
     log_text(*) "|                                                                      |"
     log_text(*) "|                  /MM   /MM /MM      /MM                   /MMMMMM    |"
