@@ -39,7 +39,7 @@ created by Mehmet Cüneyd Demirel (Istanbul Technical University).
 
 Step-by-step mHM compilation in CYGWIN platform
 
-1) Change directory to mHM folder. Use single quote e.g. 'D:/mhm-v5.11.1/' if there is space in the path.
+1) Change directory to mHM folder. Use single quote e.g. 'D:/mhm/' if there is space in the path.
         cd mhm
 
 2) Make a sub-directory inside mHM folder e.g. build
@@ -57,8 +57,6 @@ To avoid memory issues, allocate stack memory during cmake
 
     cmake -DCMAKE_Fortran_FLAGS="-Wl,--stack,12485760" ..
 
-If you will run mHM in parallel using OpenMP then you will need Microsoft MPI installed in your PC. Search for "Download Microsoft MPI" on internet.
-
 Then use cmake option below. Note that memory dump is a common issue for cygwin users when compiling with OpenMP. For memory allocation please also use this line below.
 
     cmake -DCMAKE_Fortran_FLAGS="${CMAKE_Fortran_FLAGS} -Wl,--stack,12485760" -DMHM_WITH_OpenMP=ON -DCMAKE_BUILD_TYPE=Release ..
@@ -66,12 +64,12 @@ Then use cmake option below. Note that memory dump is a common issue for cygwin 
 4) Execute `make`
         make
 
-5) If all went well then mhm.exe must be created inside build folder. If you are in build folder then copy mhm.exe to upper folder.
-        cp ./mhm.exe ..
+5) If all went well then mhm.exe must be created inside the build/app folder. If you are in build folder then copy mhm.exe to upper folder.
+        cp ./app/mhm.exe ..
 
 6) Change directory to upper level and then call mhm
         cd ..
-        ./mhm
+        ./mhm examples/domain_01
 
 
 ## Troubleshooting

@@ -237,9 +237,9 @@ In general, \f$\gamma\f$ can be estimated, for example, by
 \f]
 
 where \f$\|\cdot\|\f$ denotes a robust estimator. Many procedures to
-estimate global parameters are provided in mHM (e.g. simulated
-annealing \cite AK90, dynamically dimensioned search \cite TS2007 .
-Other techniques can be found in the CHS Fortran Library.
+estimate global parameters include simulated annealing \cite AK90 and
+dynamically dimensioned search \cite TS2007. Optimization routines are
+provided by FORCES; the v6 optimization container is not implemented yet.
 
 
 \section cal Model Calibration
@@ -278,19 +278,30 @@ The NSE for a given time interval \f$t'\f$ is given by
 
 where \f$\overline{y}_k(t')\f$ is the mean value of the observations time series over the calibration period. The index
 \f$k\f$ denotes here the daily, monthly, yearly, and the transformed \f$\ln y(t)\f$ streamflow discharges. \f$y\f$ and
-\f$\hat{y}\f$ denote the observed and simulated streamflows at a given time scale. Fruther details about mHM's
-calibration options can be found in the section \ref paramopt "Calibration Options".
+\f$\hat{y}\f$ denote the observed and simulated streamflows at a given time scale.
+This describes the scientific calibration approach; the legacy calibration
+driver is not part of the v6 implementation.
 
-\section links Helpful links
+\section running Build and run v6
 
-Data Preparation for mHM (see \ref data) \n
+The v6 driver executes independent domains through Input, MPR, meteo, mHM,
+mLM, and mRM containers. See [v6 build and run guidance](v6-getting-started.md)
+and [Compilation](INSTALL.md) for build instructions.
 
-\section basininfo Test basin
+From the repository root, a minimal routing run is:
 
-mHM comes with a test basin. For details see \ref testbasin. \n
+\code{.sh}
+cmake -S . -B debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build debug --parallel 4
+./debug/app/mhm -n test_nml/mrm_minimal.nml \
+  -p test_nml/mhm_parameter_v6_routing.nml -o mhm-output-template.nml
+\endcode
 
-\section protocols Protocols
-
-To set up a new input data for mHM see \ref check_protocols. \n
+Runnable examples are in `examples/domain_01` and `examples/domain_02`.
+Use `./debug/app/mhm --help` for configuration and run-root options.
+The schema-generated [domain configuration](nml/config_domain.md) and
+[process configuration](nml/config_processes.md) describe the v6 interfaces.
+Also see [parameter migration](parameter-migration-v6.md),
+[release history](RELEASES.md), and [mHM publications](mhm_papers.md).
 
 */

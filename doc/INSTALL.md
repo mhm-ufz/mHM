@@ -84,13 +84,9 @@ right dependencies, potentially use corresponding wiki pages.
 
 A set of load-scripts is provided in `hpc-module-loads` (see the [repository](https://git.ufz.de/chs/HPC-Fortran-module-loads) for more details), to load all needed modules for specific compilers:
 
-- Example: GNU 7.3 compiler (`foss/2018b` Toolchain):
+- Example: GNU 13.3 compiler:
   ```bash
-  source hpc-module-loads/eve.gcc73
-  ```
-  or (MPI support)
-  ```bash
-  source hpc-module-loads/eve.gcc73MPI
+  source hpc-module-loads/eve.gfortran133
   ```
 
 
@@ -130,7 +126,7 @@ cd mhm/
 
 If you then want to compile a specific version (different from the latest development version), you can check that out with e.g.:
 ```bash
-git checkout v5.12.0
+git checkout v6alpha
 ```
 
 Afterwards you can continue with the compilation.
@@ -153,14 +149,6 @@ We prepared a set of scripts to automatize the build and compilation process to 
   ```bash
   source CI-scripts/compile_debug
   ```
-- Release version with MPI support `mhm_mpi`:
-  ```bash
-  source CI-scripts/compile_MPI
-  ```
-- Debug version with MPI support `mhm_mpi_debug`:
-  ```bash
-  source CI-scripts/compile_MPI_debug
-  ```
 - Release version with OpenMP support `mhm_openmp`:
   ```bash
   source CI-scripts/compile_OpenMP
@@ -170,23 +158,24 @@ We prepared a set of scripts to automatize the build and compilation process to 
   source CI-scripts/compile_OpenMP_debug
   ```
 
-Then you can find an executable `mhm` (or `mhm[_mpi|_openmp][_debug]`) in the current folder.
+Then you can find an executable `mhm` (or `mhm[_openmp][_debug]`) in the current folder.
 You can execute it with:
 ```bash
-./mhm
+./mhm examples/domain_01
 ```
 
 The project-specific CMake options are namespaced with `MHM_`. Common examples are:
 
 - `-DMHM_WITH_OpenMP=ON`
-- `-DMHM_WITH_MPI=ON`
 - `-DMHM_BUILD_TESTING=ON`
 - `-DMHM_ENABLE_NATIVE=ON`
+- `-DMHM_BUILD_DRIVER=OFF` (library-only build)
 
-`MHM_WITH_OpenMP` and `MHM_WITH_MPI` are forwarded to the embedded FORCES build by default.
-If you need to disable the corresponding FORCES feature explicitly, override it with `-DFORCES_WITH_OpenMP=OFF`
-or `-DFORCES_WITH_MPI=OFF`.
+`MHM_WITH_OpenMP` is forwarded to FORCES. Override it with
+`-DFORCES_WITH_OpenMP=OFF` when needed. MPI execution is unavailable in v6.
 
+Direct CMake builds produce `release/app/mhm` (or `debug/app/mhm`). The
+compile scripts additionally copy the executable to the repository root.
 
 ## Installation
 
@@ -243,17 +232,15 @@ For example for debug configuration, you can do the following:
 cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
-To enable OpenMP, MPI, or pfUnit testing explicitly, use:
+To enable OpenMP or pFUnit testing explicitly, use:
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DMHM_WITH_OpenMP=ON
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DMHM_WITH_MPI=ON
 cmake -B build -DCMAKE_BUILD_TYPE=Debug -DMHM_BUILD_TESTING=ON
 ```
 
 To keep mHM parallel while forcing FORCES to stay serial, override the propagated FORCES options explicitly:
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DMHM_WITH_OpenMP=ON -DFORCES_WITH_OpenMP=OFF
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DMHM_WITH_MPI=ON -DFORCES_WITH_MPI=OFF
 ```
 
 To configure the build interactively, you can also use [ccmake](https://cmake.org/cmake/help/latest/manual/ccmake.1.html) (command line tool) or the [CMake GUI](https://cmake.org/cmake/help/latest/manual/cmake-gui.1.html) (graphical user interface).

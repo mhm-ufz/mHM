@@ -36,7 +36,7 @@ Soil database mode `soil_db_mode`
 
 Flag to handle multiple soil database types; valid for all domains.
 - 0: classical mHM soil database with soil_class.asc and soil_classdefinition.txt.
-  Soil horizons follow nSoilHorizons_mHM and soil_Depth for n-1 layers; last layer depth comes from the LUT.
+  Soil horizons follow n_layers and soil_depth for n-1 layers; last layer depth comes from the LUT.
 - 1: harmonised horizon-specific soil database with soil_class_horizon_XX.asc and soil_classdefinition_iFlag_soilDB_1.txt.
   Soil depth is provided for all horizons; the last horizon depth is fixed and uniform;
   tillage depth must match a horizon depth.
