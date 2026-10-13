@@ -1,4 +1,3 @@
-cmake -B openmp_release -DCMAKE_BUILD_TYPE=Release -DMHM_WITH_OpenMP=ON "$@"
+cmake -S . -B openmp_release -DCMAKE_BUILD_TYPE=Release -DMHM_WITH_OpenMP=ON "$@"
 cmake --build openmp_release --parallel 4
-cp openmp_release/mhm ./mhm_openmp
-cp openmp_release/app/mhm-driver ./mhm_driver_openmp
+cp openmp_release/app/mhm ./mhm_openmp

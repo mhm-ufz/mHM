@@ -12,7 +12,6 @@ stages:
   - info
   - build
   - check-v6-nmls
-  - check-cases
   - code-analysis
   - doc
   - deploy
@@ -59,6 +58,7 @@ show-env-vars:
       - mhm_doc_*.pdf
       - doxygen_*.txt
 
+# Compiler and v6 validation templates
 .cmake_template: &cmake_template
   when: always
   stage: build
@@ -74,70 +74,17 @@ show-env-vars:
     - mhm_debug
     - mhm_openmp
     - mhm_openmp_debug
-    - mhm_driver
-    - mhm_driver_debug
-    - mhm_driver_openmp
-    - mhm_driver_openmp_debug
-
-.cmake_mpi_template: &cmake_mpi_template
-  when: always
-  stage: build
-  script:
-    - source hpc-module-loads/eve.$COMPILER
-    - source CI-scripts/compile_MPI
-    - source CI-scripts/compile_MPI_debug
-  artifacts:
-    paths:
-    - mhm_mpi
-    - mhm_mpi_debug
-    - mhm_driver_mpi
-    - mhm_driver_mpi_debug
 
 .check_v6_template: &check_v6_template
   when: always
   stage: check-v6-nmls
   script:
     - source hpc-module-loads/eve.$COMPILER
-    - bash CI-scripts/run_v6_namelists.sh --log-dir logs_v6 --threads 4 ./mhm_driver_debug ./mhm_driver ./mhm_driver_openmp_debug ./mhm_driver_openmp
+    - bash CI-scripts/run_v6_namelists.sh --log-dir logs_v6 --threads 4 ./mhm_debug ./mhm ./mhm_openmp_debug ./mhm_openmp
   artifacts:
     when: always
     paths:
     - logs_v6/
-
-.check_v6_mpi_template: &check_v6_mpi_template
-  when: always
-  stage: check-v6-nmls
-  script:
-    - source hpc-module-loads/eve.$COMPILER
-    - bash CI-scripts/run_v6_namelists.sh --log-dir logs_v6 --mpi 4 ./mhm_driver_mpi_debug ./mhm_driver_mpi
-  artifacts:
-    when: always
-    paths:
-    - logs_v6/
-
-.check_template: &check_template
-  when: always
-  stage: check-cases
-  script:
-    - source hpc-module-loads/eve.$COMPILER
-    - source CI-scripts/pre_check
-    - python -u run_mhm_checks.py -l logs -e ../mhm_debug ../mhm ../mhm_openmp_debug ../mhm_openmp -t 4
-  artifacts:
-    when: always
-    paths:
-    - check/logs/
-
-.check_mpi_template: &check_mpi_template
-  when: always
-  stage: check-cases
-  script:
-    - source hpc-module-loads/eve.$COMPILER
-    - source CI-scripts/pre_check
-    - python -u run_mhm_checks.py -l logs -e ../mhm_mpi_debug ../mhm_mpi -m 4
-  artifacts:
-    when: always
-    paths:
-    - check/logs/
 
 .unittest_template: &unittest_template
   when: always
@@ -157,10 +104,11 @@ show-env-vars:
     - source hpc-module-loads/eve.$COMPILER
     - module load Mamba
     - source activate /global/apps/mhm_checks/mhm_env
+    - cmake -DSOURCE_DIR="$PWD" -DRUN_DIR="$PWD/build/valgrind-run" -P CI-scripts/stage_run.cmake
     - valgrind --version
-    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug
+    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug -n test_nml/mrm_minimal.nml -p test_nml/mhm_parameter_v6_routing.nml -o mhm-output-template.nml build/valgrind-run
     # execute mem-use check
-    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug
+    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug -n test_nml/mrm_minimal.nml -p test_nml/mhm_parameter_v6_routing.nml -o mhm-output-template.nml build/valgrind-run
     - ms_print massif.out.0
   artifacts:
     paths:
@@ -177,7 +125,7 @@ pybindings:
     CMAKE_BUILD_PARALLEL_LEVEL: 4  # at most 4 cores
   script:
     - module load Mamba
-    - mamba create -p ./mhm_env -y python=3.11 pip netcdf-fortran fortran-compiler c-compiler cxx-compiler fypp python-build black isort pytest-cov xarray netCDF4
+    - mamba create -p ./mhm_env -y python=3.11 pip netcdf-fortran fortran-compiler c-compiler cxx-compiler fypp python-build black isort pytest-cov
     - source activate ./mhm_env
     # check source code
     - black --check --diff pybind
@@ -188,9 +136,7 @@ pybindings:
     # check installation
     - python -c "import mhm; print(mhm.__version__)"
     - python -c "import mhm; print(mhm.f_version)"
-    - which mhm
-    - mhm --version
-    # will always download from main repo (no testing to prevent errors in forks)
+    # Downloader tests use local mocked archives.
     - which mhm-download
     - mhm-download -V
     - mhm-download -h
@@ -218,50 +164,25 @@ cmake-gfortran102:
     COMPILER: gfortran102
   <<: *cmake_template
 
-cmake-gfortran102MPI:
-  variables:
-    COMPILER: gfortran102MPI
-  <<: *cmake_mpi_template
-
 cmake-gfortran122:
   variables:
     COMPILER: gfortran122
   <<: *cmake_template
-
-cmake-gfortran122MPI:
-  variables:
-    COMPILER: gfortran122MPI
-  <<: *cmake_mpi_template
 
 cmake-gfortran133:
   variables:
     COMPILER: gfortran133
   <<: *cmake_template
 
-cmake-gfortran133MPI:
-  variables:
-    COMPILER: gfortran133MPI
-  <<: *cmake_mpi_template
-
 cmake-intel2020b:
   variables:
     COMPILER: intel2020b
   <<: *cmake_template
 
-cmake-intel2020bMPI:
-  variables:
-    COMPILER: intel2020bMPI
-  <<: *cmake_mpi_template
-
 cmake-intel2023b-classic:
   variables:
     COMPILER: intel2023b-classic
   <<: *cmake_template
-
-cmake-intel2023bMPI-classic:
-  variables:
-    COMPILER: intel2023bMPI-classic
-  <<: *cmake_mpi_template
 
 cmake-nagfor72:
   variables:
@@ -280,13 +201,6 @@ check-v6-gfortran102:
       artifacts: true
   <<: *check_v6_template
 
-# check-v6-gfortran102MPI:
-#   variables:
-#     COMPILER: gfortran102MPI
-#   needs:
-#     - job: cmake-gfortran102MPI
-#       artifacts: true
-#   <<: *check_v6_mpi_template
 
 check-v6-gfortran122:
   variables:
@@ -304,13 +218,6 @@ check-v6-gfortran133:
       artifacts: true
   <<: *check_v6_template
 
-# check-v6-gfortran122MPI:
-#   variables:
-#     COMPILER: gfortran122MPI
-#   needs:
-#     - job: cmake-gfortran122MPI
-#       artifacts: true
-#   <<: *check_v6_mpi_template
 
 check-v6-intel2020b:
   variables:
@@ -320,13 +227,6 @@ check-v6-intel2020b:
       artifacts: true
   <<: *check_v6_template
 
-# check-v6-intel2020bMPI:
-#   variables:
-#     COMPILER: intel2020bMPI
-#   needs:
-#     - job: cmake-intel2020bMPI
-#       artifacts: true
-#   <<: *check_v6_mpi_template
 
 check-v6-intel2023b-classic:
   variables:
@@ -344,104 +244,6 @@ check-v6-nagfor72:
       artifacts: true
   <<: *check_v6_template
 
-# check-v6-intel2023bMPI-classic:
-#   variables:
-#     COMPILER: intel2023bMPI-classic
-#   needs:
-#     - job: cmake-intel2023bMPI-classic
-#       artifacts: true
-#   <<: *check_v6_mpi_template
-
-check-gfortran102:
-  variables:
-    COMPILER: gfortran102
-  needs:
-    - job: cmake-gfortran102
-      artifacts: true
-  <<: *check_template
-
-check-gfortran102MPI:
-  variables:
-    COMPILER: gfortran102MPI
-  needs:
-    - job: cmake-gfortran102MPI
-  <<: *check_mpi_template
-
-check-gfortran122:
-  variables:
-    COMPILER: gfortran122
-  needs:
-    - job: cmake-gfortran122
-      artifacts: true
-  <<: *check_template
-
-check-gfortran122MPI:
-  variables:
-    COMPILER: gfortran122MPI
-  needs:
-    - job: cmake-gfortran122MPI
-      artifacts: true
-  <<: *check_mpi_template
-
-check-gfortran133:
-  variables:
-    COMPILER: gfortran133
-  needs:
-    - job: cmake-gfortran133
-      artifacts: true
-  <<: *check_template
-
-check-gfortran133MPI:
-  variables:
-    COMPILER: gfortran133MPI
-  needs:
-    - job: cmake-gfortran133MPI
-      artifacts: true
-  <<: *check_mpi_template
-
-check-intel2020b:
-  variables:
-    COMPILER: intel2020b
-  needs:
-    - job: cmake-intel2020b
-      artifacts: true
-  <<: *check_template
-
-check-intel2020bMPI:
-  variables:
-    COMPILER: intel2020bMPI
-  needs:
-    - job: cmake-intel2020bMPI
-      artifacts: true
-  <<: *check_mpi_template
-
-check-intel2023b-classic:
-  variables:
-    COMPILER: intel2023b-classic
-  needs:
-    - job: cmake-intel2023b-classic
-      artifacts: true
-  <<: *check_template
-
-check-intel2023bMPI-classic:
-  variables:
-    COMPILER: intel2023bMPI-classic
-  needs:
-    - job: cmake-intel2023bMPI-classic
-      artifacts: true
-  <<: *check_mpi_template
-
-check-nagfor72:
-  variables:
-    COMPILER: nagfor72
-  needs:
-    - job: cmake-nagfor72
-      artifacts: true
-  <<: *check_template
-
-######################
-### UNIT TEST JOBS ###
-######################
 
 unittest-gfortran133:
   variables:
@@ -481,7 +283,7 @@ valgrind-intel2023b-classic:
   <<: *valgrind_template
 
 ################
-### DOC JOBS ###
+### COVERAGE ###
 ################
 
 coverage:

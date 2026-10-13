@@ -7,18 +7,16 @@ usage() {
 Run curated v6 smoke namelists with one or more mHM v6 driver executables.
 
 Usage:
-  run_v6_namelists.sh [--log-dir DIR] [--threads N] [--mpi N] EXE [EXE ...]
+  run_v6_namelists.sh [--log-dir DIR] [--threads N] EXE [EXE ...]
 
 Options:
   --log-dir DIR  Directory for per-run logs. Default: logs_v6
-  --threads N    Set OMP_NUM_THREADS=N for each non-MPI run
-  --mpi N        Run each executable via "mpirun -n N"
+  --threads N    Set OMP_NUM_THREADS=N for each run
 EOF
 }
 
 log_dir="logs_v6"
 threads=0
-mpi_ranks=0
 executables=()
 
 while (($# > 0)); do
@@ -29,10 +27,6 @@ while (($# > 0)); do
       ;;
     --threads)
       threads="$2"
-      shift 2
-      ;;
-    --mpi)
-      mpi_ranks="$2"
       shift 2
       ;;
     -h|--help)
@@ -62,20 +56,12 @@ if ((${#executables[@]} == 0)); then
   exit 2
 fi
 
-if ((mpi_ranks > 0 && threads > 0)); then
-  echo "Use either --mpi or --threads, not both." >&2
-  exit 2
-fi
-
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd "${script_dir}/.." && pwd)
 cd "${repo_root}"
 
 mkdir -p "${log_dir}"
-
-cleanup_generated_outputs() {
-  rm -f ./mpr*.nc ./mrm*.nc ./mhm*.nc
-}
+log_dir=$(cd "${log_dir}" && pwd)
 
 parameter_file_for_namelist() {
   local nml_name="$1"
@@ -163,16 +149,12 @@ run_namelist() {
 
   exe_name=$(basename "${exe}")
   nml_name=$(basename "${nml}" .nml)
-  log_path="${log_dir}/${exe_name}__${nml_name}.log"
+  log_path="${run_dir}/${nml_name}.log"
   param_file=$(parameter_file_for_namelist "${nml_name}")
   out_file=$(output_file_for_namelist "${nml_name}")
 
   cmd+=("${exe}" -n "${nml}" -p "${param_file}" -o "${out_file}")
   expected_failure=$(expected_failure_diagnostic "${nml_name}")
-
-  if ((mpi_ranks > 0)); then
-    cmd=(mpirun -n "${mpi_ranks}" "${cmd[@]}")
-  fi
 
   echo "Running ${exe_name} with ${nml}"
   if ((threads > 0)); then
@@ -239,12 +221,17 @@ namelists=(
 )
 
 for exe in "${executables[@]}"; do
+  cd "${repo_root}"
   if [[ ! -x "${exe}" ]]; then
     echo "Executable not found or not executable: ${exe}" >&2
     exit 1
   fi
 
-  cleanup_generated_outputs
+  exe=$(cd "$(dirname "${exe}")" && pwd)/$(basename "${exe}")
+  run_dir=$(mktemp -d "${log_dir}/$(basename "${exe}").XXXXXX")
+  cmake -DSOURCE_DIR="${repo_root}" -DRUN_DIR="${run_dir}" -P "${script_dir}/stage_run.cmake"
+  echo "Logs and outputs: ${run_dir}"
+  cd "${run_dir}"
   for nml in "${namelists[@]}"; do
     if [[ ! -f "${nml}" ]]; then
       echo "Smoke namelist not found: ${nml}" >&2
