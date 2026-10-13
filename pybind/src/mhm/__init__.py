@@ -1,4 +1,7 @@
-"""mHM version metadata and example downloads; model bindings will be added later."""
+r"""mHM version metadata and example downloads; model bindings will be added later.
+
+\ingroup py_mhm
+"""
 
 from .download import download_examples
 from .wrapper import metadata as _metadata

@@ -124,8 +124,14 @@
 
 /**
 \dir pybind/src/mhm
-\brief mHM Python package.
-\details Python and Fortran version metadata and example-domain downloads.
+\brief \copybrief py_mhm
+\details \copydetails py_mhm
+*/
+
+/**
+\defgroup   py_mhm mHM - Python package
+\brief      mHM Python package and version bindings.
+\details    Python and compiled Fortran version metadata, example-domain downloads, and the `mhm-download` command line interface.
 */
 
 /**

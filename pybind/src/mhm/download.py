@@ -1,4 +1,7 @@
-"""Download runnable v6 example domains from the mHM repository."""
+r"""Download runnable v6 example domains from the mHM repository.
+
+\ingroup py_mhm
+"""
 
 import argparse
 import shutil
