@@ -10,7 +10,7 @@ build-backend = "scikit_build_core.build"
 [project]
 requires-python = ">=3.9"
 name = "mhm"
-description = "Python distribution of mHM with bindings."
+description = "mHM version metadata and example downloads."
 authors = [{name = "mHM Developers", email = "mhm-admin@ufz.de"}]
 readme = "pybind/README.md"
 license = {text = "LGPL-3.0"}
@@ -54,12 +54,9 @@ Tracker = "https://www.mhm-ufz.org"
 [project.optional-dependencies]
 test = [
     "pytest-cov>=3",
-    "xarray",
-    "netCDF4",
 ]
 
 [project.scripts]
-mhm = "mhm.cli:mhm"
 mhm-download = "mhm.download:cli"
 
 [tool.scikit-build]
@@ -94,12 +91,10 @@ include = [
     "forces/COPYING*",
 ]
 exclude = [
-    "check",
     "CI-scripts",
     "doc",
     "hpc-module-loads",
     "*-proc",
-    "test_domain**",
     ".git*",
     ".zenodo.json",
     "*.nml",
@@ -149,8 +144,8 @@ build-verbosity = 1
 build = ["cp39-*", "cp310-*", "cp311-*", "cp312-*", "cp313-*", "cp314-*"]
 skip = ["*-musllinux_*", "cp39-win_arm64", "cp310-win_arm64"]
 test-extras = "test"
-test-command = "mhm -h && mhm-download -h && mhm test_domain && python -m pytest pybind/tests/"
-test-sources = ["pybind/tests/", "test_domain/"]
+test-command = "mhm-download -h && python -m pytest pybind/tests/"
+test-sources = ["pybind/tests/"]
 before-all = [
     'cmake -S "{package}/CI-scripts/dependencies" -B "$MHM_DEPS_BUILD" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$MHM_DEPS_PREFIX"',
     'cmake --build "$MHM_DEPS_BUILD" --parallel',

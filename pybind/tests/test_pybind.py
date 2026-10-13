@@ -1,105 +1,82 @@
-import os
-import shutil
-import unittest
-from datetime import datetime as dt
-from datetime import timedelta as td
-from pathlib import Path
+"""Tests for the temporary version-only package and example downloader."""
 
-import numpy as np
-import xarray as xr
-from numpy.testing import assert_allclose
+import io
+import tarfile
+from urllib.parse import parse_qs, unquote, urlparse
+
+import pytest
 
 import mhm
+from mhm import download
 
 
-class TestPybind(unittest.TestCase):
-    @classmethod
-    def setUpClass(self):
-        self.here = Path(__file__).parent
-        os.chdir(self.here)
-        self.test_domain = self.here / "test_domain"
-        mhm.download_test(path=self.test_domain)
-
-    def tearDown(self):
-        # move out of test-domain directory after each test
-        os.chdir(self.here)
-
-    @classmethod
-    def tearDownClass(self):
-        shutil.rmtree(self.test_domain, ignore_errors=True)
-
-    def test_coupling(self):
-        ref_runoff = np.loadtxt(self.here / "test_files" / "ref_runoff.txt")
-        pre = xr.open_dataset(self.test_domain / "input" / "meteo" / "pre" / "pre.nc")
-        temp = xr.open_dataset(
-            self.test_domain / "input" / "meteo" / "tavg" / "tavg.nc"
-        )
-        pet = xr.open_dataset(self.test_domain / "input" / "meteo" / "pet" / "pet.nc")
-
-        # determine meteo timestep from first two time stamps (in pre)
-        times = [
-            dt.combine(d, t)
-            for d, t in zip(pre.time.dt.date.data, pre.time.dt.time.data)
-        ]
-        meteo_ts = (times[1] - times[0]) // td(hours=1)  # 1 or 24
-
-        # configure coupling and init model
-        mhm.model.config_coupling(
-            couple_case=1,
-            meteo_expect_pre=True,
-            meteo_expect_temp=True,
-            meteo_expect_pet=True,
-            meteo_timestep=meteo_ts,
-        )
-        mhm.model.set_verbosity(level=1)
-        mhm.model.init(cwd=self.test_domain)
-        mhm.model.disable_output()
-        # coupled run only supports one domain
-        mhm.run.prepare()
-        mhm.run.prepare_domain()  # domain=1 by default
-        # run model
-        while not mhm.run.finished():
-            time = dt(*mhm.run.current_time())
-            if time.hour % meteo_ts == 0:
-                mhm.set_meteo(time=time, pre=pre["pre"].sel(time=time).data)
-                mhm.set_meteo(time=time, temp=temp["tavg"].sel(time=time).data)
-                mhm.set_meteo(time=time, pet=pet["pet"].sel(time=time).data)
-            mhm.run.do_time_step()
-            mhm.run.write_output()
-        mhm.run.finalize_domain()
-        mhm.run.finalize()
-        # get runoff before deallocation
-        runoff_sim_obs = mhm.get_runoff_eval(gauge_id=1)
-        # this will deallocate all internal variables
-        mhm.model.finalize()
-        pre.close()
-        temp.close()
-        pet.close()
-        assert_allclose(runoff_sim_obs, ref_runoff)
-
-    def test_get_variable(self):
-        ref_stream = np.loadtxt(self.here / "test_files" / "ref_stream_mean.txt")
-        stream = 0.0
-        n = 0
-        mhm.model.set_verbosity(level=1)
-        mhm.model.init(cwd=self.test_domain)
-        mhm.model.disable_output()
-        mhm.run.prepare()
-        mhm.run.prepare_domain()
-        while not mhm.run.finished():
-            mhm.run.do_time_step()
-            stream = (stream * n + mhm.get_variable("L11_QMOD")) / (n + 1)
-            n += 1  # increase counter
-        mhm.run.finalize_domain()
-        mhm.run.finalize()
-        mhm.model.finalize()
-        assert_allclose(stream.filled(fill_value=np.nan), ref_stream, equal_nan=True)
-
-    # def test_version(self):
-    #     fv = mhm.f_version
-    #     pv = mhm.__version__
-    #     self.assertTrue(fv.split(".")[:2] == pv.split(".")[:2])
+def test_versions():
+    assert isinstance(mhm.__version__, str)
+    assert isinstance(mhm.f_version, str)
+    assert mhm.f_version.strip() == mhm.f_version
+    assert mhm.f_version
+    for removed in ["model", "run", "get", "set", "set_meteo", "get_variable"]:
+        with pytest.raises(AttributeError):
+            getattr(mhm, removed)
 
 
-if __name__ == "__main__":
-    unittest.main()
+@pytest.mark.parametrize("domain", [1, 2])
+@pytest.mark.parametrize(
+    "version,branch", [("6.0.0.dev1", "v6alpha"), ("6.0.0", "v6.0.0")]
+)
+def test_download(tmp_path, monkeypatch, domain, version, branch):
+    monkeypatch.setattr(mhm, "__version__", version)
+    name = f"domain_{domain:02d}"
+
+    def retrieve(url, archive):
+        assert unquote(urlparse(url).path).endswith(f"/{branch}/mhm-{branch}.tar.gz")
+        assert parse_qs(urlparse(url).query)["path"] == [f"examples/{name}"]
+        with tarfile.open(archive, "w:gz") as tar:
+            for leaf in [
+                "mhm.nml",
+                "parameters.nml",
+                "outputs.nml",
+                "input/meteo/pre.nc",
+            ]:
+                entry = tarfile.TarInfo(f"mhm-{branch}/examples/{name}/{leaf}")
+                entry.size = 7
+                tar.addfile(entry, io.BytesIO(b"fixture"))
+
+    monkeypatch.setattr(download, "urlretrieve", retrieve)
+    monkeypatch.chdir(tmp_path)
+    mhm.download_examples(domain=domain)
+    assert (tmp_path / name / "input/meteo/pre.nc").read_bytes() == b"fixture"
+    assert (tmp_path / name / "parameters.nml").is_file()
+
+
+def test_explicit_branch_path_and_cli(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(download, "download_examples", lambda *args: calls.append(args))
+    download.cli(
+        ["--branch", "my/ref", "--domain", "2", "--path", str(tmp_path / "custom")]
+    )
+    assert calls == [("my/ref", 2, str(tmp_path / "custom"), False)]
+
+
+def test_invalid_domain_does_not_download(monkeypatch):
+    monkeypatch.setattr(
+        download, "urlretrieve", lambda *args: pytest.fail("unexpected download")
+    )
+    with pytest.raises(ValueError, match="needs to be 1 or 2"):
+        mhm.download_examples(domain=3)
+
+
+@pytest.mark.parametrize(
+    "entry", ["mhm-ref/examples/domain_01/../escape", "mhm-ref/unrelated.txt"]
+)
+def test_invalid_archive(tmp_path, monkeypatch, entry):
+    def retrieve(url, archive):
+        with tarfile.open(archive, "w:gz") as tar:
+            item = tarfile.TarInfo(entry)
+            item.size = 1
+            tar.addfile(item, io.BytesIO(b"x"))
+
+    monkeypatch.setattr(download, "urlretrieve", retrieve)
+    with pytest.raises(ValueError):
+        mhm.download_examples(path=tmp_path / "target")
+    assert not (tmp_path / "target").exists()

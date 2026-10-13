@@ -1,6 +1,6 @@
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 
-if(${SKBUILD_STATE} MATCHES "editable")
+if(DEFINED SKBUILD_STATE AND SKBUILD_STATE MATCHES "editable")
   set(mhm_install_dir "${CMAKE_CURRENT_SOURCE_DIR}/mhm")
 else()
   set(mhm_install_dir "mhm")
