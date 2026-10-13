@@ -6,7 +6,6 @@
 # -DMHM_BUILD_LIB_PIC=OFF        - build mhm_lib with position independent code
 # -DMHM_BUILD_TESTING=ON         - build mHM pfUnit tests
 # -DMHM_WITH_COVERAGE=ON         - build with GNU coverage support
-# -DMHM_WITH_MPI=ON              - build with MPI support
 # -DMHM_WITH_OpenMP=ON           - build with OpenMP support
 # -DMHM_ENABLE_NATIVE=ON         - enable host-native release tuning for local/HPC builds
 # -DMHM_WITH_GPROF=ON            - build with GNU gprof instrumentation
@@ -37,6 +36,7 @@ endif()
 message(STATUS "mHM: build type - ${CMAKE_BUILD_TYPE}")
 
 include(CMakeDependentOption)
+include(GNUInstallDirs)
 
 set(MHM_WITH_OpenMP_DEFAULT OFF)
 if(DEFINED ENV{MHM_BUILD_PARALLEL})
@@ -50,7 +50,6 @@ option(MHM_BUILD_LIB_PIC "Build mhm_lib with position independent code." OFF)
 option(MHM_BUILD_TESTING "Build mHM pfUnit tests." OFF)
 cmake_dependent_option(MHM_WITH_COVERAGE "Build with GNU coverage support." OFF
   "MHM_BUILD_TESTING" OFF)
-option(MHM_WITH_MPI "Build the module with MPI support." OFF)
 option(MHM_WITH_OpenMP "Build the module with OpenMP support." ${MHM_WITH_OpenMP_DEFAULT})
 option(MHM_ENABLE_NATIVE "Enable host-native tuning for Release builds." OFF)
 option(MHM_WITH_GPROF "Build with GNU gprof instrumentation." OFF)
@@ -82,9 +81,7 @@ if(MHM_BUILD_DRIVER)
     message(STATUS "${PROJECT_NAME}: found app")
     add_subdirectory(app)
   endif()
-  add_executable(mhm src/mHM/mhm_driver.f90)
-  target_link_libraries(mhm PRIVATE mhm_lib)
-  install(TARGETS mhm DESTINATION bin)
+
 endif()
 
 if(MHM_BUILD_PYBIND)
@@ -109,9 +106,10 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND MHM_WITH_COVERAGE AND EXISTS "${C
   endif()
   SETUP_TARGET_FOR_COVERAGE_LCOV(
     NAME mhm_coverage_CI
-    EXECUTABLE ../CI-scripts/run_cmake_coverage.sh
+    EXECUTABLE ${CMAKE_CURRENT_SOURCE_DIR}/CI-scripts/run_cmake_coverage.sh
+    EXECUTABLE_ARGS ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
     DEPENDENCIES ${mhm_coverage_dependencies}
-    GENHTML_ARGS -t "mHM coverage" --html-prolog ../doc/html_files/cov_header.prolog
+    GENHTML_ARGS -t "mHM coverage" --html-prolog ${CMAKE_CURRENT_SOURCE_DIR}/doc/html_files/cov_header.prolog
   )
 endif()
 
