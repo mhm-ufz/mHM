@@ -20,10 +20,10 @@
 
 &config_input
   slope_path(1)     = "examples/fixtures/input.nc"
-  aspect_path(1)    = "test_domain/input/morph/aspect.asc"
-  geo_class_path(1) = "test_domain/input/morph/geology_class.asc"
-  soil_class_path(1)= "test_domain/input/morph/soil_class.asc"
-  lai_class_path(1) = "test_domain/input/morph/LAI_class.asc"
+  aspect_path(1)    = "examples/fixtures/aspect.asc"
+  geo_class_path(1) = "examples/fixtures/geology_class.asc"
+  soil_class_path(1)= "examples/fixtures/soil_class.asc"
+  lai_class_path(1) = "examples/fixtures/LAI_class.asc"
 /
 
 &config_meteo
@@ -36,9 +36,9 @@
   soil_depth(1,1)          = 200
   fracSealed_cityArea(1)   = 0.6
   lai_time_step(1)         = 0
-  soil_lut_path(1)         = "test_domain/input/morph/soil_classdefinition.txt"
-  geo_lut_path(1)          = "test_domain/input/morph/geology_classdefinition.txt"
-  lai_lut_path(1)          = "test_domain/input/morph/LAI_classdefinition.txt"
+  soil_lut_path(1)         = "examples/domain_01/input/morph/soil_classdefinition.txt"
+  geo_lut_path(1)          = "examples/domain_01/input/morph/geology_classdefinition.txt"
+  lai_lut_path(1)          = "examples/domain_01/input/morph/LAI_classdefinition.txt"
   read_restart(1)          = .true.
   restart_input_path(1)    = "mpr_pet_priestley_taylor_restart.nc"
 /

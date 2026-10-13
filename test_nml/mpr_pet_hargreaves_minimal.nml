@@ -20,15 +20,15 @@
 
 &config_input
   slope_path(1)     = "examples/fixtures/input.nc"
-  aspect_path(1)    = "test_domain/input/morph/aspect.asc"
-  geo_class_path(1) = "test_domain/input/morph/geology_class.asc"
-  soil_class_path(1)= "test_domain/input/morph/soil_class.asc"
-  lai_class_path(1) = "test_domain/input/morph/LAI_class.asc"
-  meteo_mask_path(1)= "test_domain/input/meteo/mask.nc"
-  pre_path(1)       = "test_domain/input/meteo/pre/pre.nc"
-  temp_path(1)      = "test_domain/input/meteo/tavg/tavg.nc"
-  tmin_path(1)      = "test_domain/input/meteo/tmin.nc"
-  tmax_path(1)      = "test_domain/input/meteo/tmax.nc"
+  aspect_path(1)    = "examples/fixtures/aspect.asc"
+  geo_class_path(1) = "examples/fixtures/geology_class.asc"
+  soil_class_path(1)= "examples/fixtures/soil_class.asc"
+  lai_class_path(1) = "examples/fixtures/LAI_class.asc"
+  meteo_mask_path(1)= "examples/domain_01/input/meteo/mask.nc"
+  pre_path(1)       = "examples/domain_01/input/meteo/pre.nc"
+  temp_path(1)      = "examples/domain_01/input/meteo/tavg.nc"
+  tmin_path(1)      = "examples/domain_01/input/meteo/tmin.nc"
+  tmax_path(1)      = "examples/domain_01/input/meteo/tmax.nc"
 /
 
 &config_meteo
@@ -48,9 +48,9 @@
   land_cover_path(1)       = "examples/fixtures/lc_static.nc"
   land_cover_var(1)        = "land_cover"
   lai_time_step(1)         = 0
-  soil_lut_path(1)         = "test_domain/input/morph/soil_classdefinition.txt"
-  geo_lut_path(1)          = "test_domain/input/morph/geology_classdefinition.txt"
-  lai_lut_path(1)          = "test_domain/input/morph/LAI_classdefinition.txt"
+  soil_lut_path(1)         = "examples/domain_01/input/morph/soil_classdefinition.txt"
+  geo_lut_path(1)          = "examples/domain_01/input/morph/geology_classdefinition.txt"
+  lai_lut_path(1)          = "examples/domain_01/input/morph/LAI_classdefinition.txt"
   write_restart(1)         = .true.
   restart_output_path(1)   = "mpr_pet_hargreaves_restart.nc"
 /
