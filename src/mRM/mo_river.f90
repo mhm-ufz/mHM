@@ -1,4 +1,4 @@
-!> \dir mRM
+!> \dir src/mRM
 !> \brief \copybrief f_mrm
 !> \details \copydetails f_mrm
 

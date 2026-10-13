@@ -1,0 +1,17 @@
+/**
+\dir
+\brief Source code of mHM.
+\details Domain orchestration, process containers, namelist interfaces, and retained scientific kernels.
+*/
+
+/**
+\dir pybind/src
+\brief Fortran wrapper and Python package sources.
+\details Version bindings and the Python distribution of mHM.
+*/
+
+/**
+\dir pybind/src/mhm
+\brief mHM Python package.
+\details Python and Fortran version metadata and example-domain downloads.
+*/

@@ -1,4 +1,4 @@
-!> \dir mLM
+!> \dir src/mLM
 !> \copydoc f_mLM
 
 !> \defgroup   f_mLM mLM - Fortran modules

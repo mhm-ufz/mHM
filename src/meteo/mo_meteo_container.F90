@@ -1,4 +1,4 @@
-!> \dir meteo
+!> \dir src/meteo
 !> \brief \copybrief f_meteo
 !> \details \copydetails f_meteo
 

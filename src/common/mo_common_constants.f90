@@ -1,4 +1,4 @@
-!> \dir common
+!> \dir src/common
 !> \brief \copybrief f_common
 !> \details \copydetails f_common
 

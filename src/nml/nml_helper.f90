@@ -1,4 +1,4 @@
-!> \dir nml
+!> \dir src/nml
 !> \copydoc f_namelists
 
 !> \defgroup   f_namelists Namelists - Fortran modules

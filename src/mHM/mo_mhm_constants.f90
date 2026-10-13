@@ -1,4 +1,4 @@
-!> \dir mHM
+!> \dir src/mHM
 !> \brief \copybrief f_mhm
 !> \details \copydetails f_mhm
 

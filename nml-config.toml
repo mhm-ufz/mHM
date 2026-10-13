@@ -5,7 +5,7 @@ path = "src/nml/nml_helper.f90"
 module = "nml_helper"
 buffer = 1024
 header = '''
-!> \dir nml
+!> \dir src/nml
 !> \copydoc f_namelists
 
 !> \defgroup   f_namelists Namelists - Fortran modules

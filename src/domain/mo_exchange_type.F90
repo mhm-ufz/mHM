@@ -1,8 +1,4 @@
-!> \dir src
-!> \brief Source code of mHM.
-!> \details Domain orchestration, process containers, namelist interfaces, and retained scientific kernels.
-
-!> \dir domain
+!> \dir src/domain
 !> \brief \copybrief f_domain
 !> \details \copydetails f_domain
 

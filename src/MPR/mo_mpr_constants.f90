@@ -1,4 +1,4 @@
-!> \dir MPR
+!> \dir src/MPR
 !> \brief \copybrief f_mpr
 !> \details \copydetails f_mpr
 

@@ -1,4 +1,4 @@
-!> \dir input
+!> \dir src/input
 !> \brief \copybrief f_input
 !> \details \copydetails f_input
 
