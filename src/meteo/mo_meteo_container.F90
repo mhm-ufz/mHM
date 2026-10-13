@@ -39,7 +39,7 @@ module mo_meteo_container
   use mo_meteo_temporal_tools, only: temporal_disagg_meteo_weights, temporal_disagg_flux_daynight, temporal_disagg_state_daynight
   use mo_mhm_constants, only: HarSamConst
   use mo_pet, only: pet_hargreaves, pet_penman, pet_priestly
-  use mo_read_nc, only: read_weights_nc
+  use mo_meteo_weights, only: read_weights_nc
   use mo_string_utils, only: n2s => num2str
   use mo_utils, only: is_close
   use nml_config_meteo, only: nml_config_meteo_t, NML_OK, NML_ERR_NML_NOT_FOUND
