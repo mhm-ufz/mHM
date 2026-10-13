@@ -5,6 +5,8 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
 
 ## Architecture and lifecycle
 
+- Before substantial changes, map affected ownership, lifecycle, dependencies, and compatibility
+  requirements; state which behavior changes intentionally.
 - Use [app/driver.F90](app/driver.F90) as the execution entrypoint. Domain orchestration
   belongs in `src/domain/`; process implementations belong in their component folders.
 - Each `domain_t` owns its `exchange_t` and component state; each component references that exchange.
@@ -18,6 +20,8 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
 - Finalizers perform I/O only. Domain destruction calls `exchange%destroy()` first to clear publications,
   release exchange-owned storage, and reset declarations; then destroys mRM, mLM, mHM, meteo, MPR, Input.
 - Preserve scientific units, equations, and calculation order during structural refactors.
+- When intentionally changing a documented architectural contract, update this guide and its
+  regression coverage in the same change.
 
 ## Exchange, grids, and ownership
 
@@ -142,6 +146,9 @@ runner with `--threads 1` and `--threads 4` against `./openmp_debug/app/mhm`.
 - Every pFUnit `@assert...` stays on one physical source line without continuations; compute long expressions in locals first.
 - Add meaningful regressions for changed behavior; do not add tests merely mirroring implementation.
   Missing active inputs must fail with `log_fatal` + `error stop`; failure tests check exit status and the expected diagnostic.
+- For scientific refactors, compare affected values against pre-change behavior or an independent
+  reference, covering relevant boundary and configuration variants. Successful smoke execution alone
+  does not establish numerical equivalence.
 - Ownership changes cover domain isolation, repeated initialization, stable bindings, and destruction.
   Report unavailable pFUnit coverage explicitly; standalone tests do not replace skipped `.pf` tests.
 - Keep compiler/Release matrices, coverage, and memory tooling in CI; do not repeat the entire CI matrix for every local edit.
