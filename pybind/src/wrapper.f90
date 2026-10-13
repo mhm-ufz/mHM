@@ -1,6 +1,13 @@
+!> \file wrapper.f90
+!> \brief \copybrief metadata
+!> \details \copydetails metadata
+
 !> \brief Version-only wrapper retained for future Python bindings.
+!> \details Exposes the shared compiled Fortran version through f2py.
 !> \authors Sebastian Mueller
-!> \copyright Copyright 2005-today, the mHM Developers. LGPLv3+.
+!> \date Nov 2022
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 module metadata
   use mo_version, only: compiled_version => version
   implicit none

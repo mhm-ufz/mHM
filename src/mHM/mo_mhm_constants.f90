@@ -1,3 +1,11 @@
+!> \dir mHM
+!> \brief \copybrief f_mhm
+!> \details \copydetails f_mhm
+
+!> \defgroup   f_mhm mHM - Fortran modules
+!> \brief      Core modules of mHM.
+!> \details    The hydrology container, hydrological process kernels, and associated constants.
+
 !> \file mo_mhm_constants.f90
 !> \brief   \copybrief mo_mhm_constants
 !> \details \copydetails mo_mhm_constants

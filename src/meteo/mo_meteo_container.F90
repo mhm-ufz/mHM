@@ -1,3 +1,11 @@
+!> \dir meteo
+!> \brief \copybrief f_meteo
+!> \details \copydetails f_meteo
+
+!> \defgroup   f_meteo Meteo - Fortran modules
+!> \brief      Core modules for meteorological forcings.
+!> \details    The meteo container, spatial and temporal remapping algorithms, and disaggregation weights reader.
+
 !> \file    mo_meteo_container.f90
 !> \copydoc mo_meteo_container
 
@@ -23,7 +31,7 @@
 !> \date    2012 - 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
-!> \ingroup f_exchange
+!> \ingroup f_meteo
 #include "logging.h"
 module mo_meteo_container
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite

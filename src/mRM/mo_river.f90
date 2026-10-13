@@ -1,3 +1,11 @@
+!> \dir mRM
+!> \brief \copybrief f_mrm
+!> \details \copydetails f_mrm
+
+!> \defgroup   f_mrm mRM - Fortran modules
+!> \brief      Core modules of mRM.
+!> \details    The routing container, river network topology, routing and temperature kernels, and upscaling tools.
+
 !> \file    mo_river.f90
 !> \copydoc mo_river
 
@@ -15,6 +23,7 @@
 !> \date    May 2025
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! This code is released under the LGPLv3+ license \license_note
+!> \ingroup f_mrm
 module mo_river
 
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite

@@ -1,4 +1,7 @@
-!> \file mo_mlm_container.f90
+!> \file mo_mlm_container.F90
+!> \brief \copybrief mo_mlm_container
+!> \details \copydetails mo_mlm_container
+
 !> \brief Minimal v6 lake component.
 !> \details Provides the process--1 delayed pass-through contract between mRM updates.
 !> \changelog
@@ -6,7 +9,10 @@
 !! - Sebastian Mueller (2026): v6 domain-owned mLM pass-through component.
 !> \authors Pallav Shrestha
 !> \authors Sebastian Mueller
-!> \ingroup f_exchange
+!> \date 2026
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
+!> \ingroup f_mLM
 #include "logging.h"
 module mo_mlm_container
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite

@@ -14,7 +14,7 @@
 !> \date    Aug 2025
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
-!> \ingroup f_exchange
+!> \ingroup f_mrm
 #include "logging.h"
 module mo_mrm_container
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite

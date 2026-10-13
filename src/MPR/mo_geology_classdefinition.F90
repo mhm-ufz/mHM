@@ -1,9 +1,17 @@
-!> \file    mo_geology_classdefinition.f90
+!> \file    mo_geology_classdefinition.F90
+!> \brief   \copybrief mo_geology_classdefinition
+!> \details \copydetails mo_geology_classdefinition
+
 !> \brief   Definition for geology class lookup container.
 !> \details Provides a light-weight container that stores information read from
 !!          `geology_classdefinition.txt`. The container offers a `reset`
 !!          procedure to clear allocated memory when the data needs to be
 !!          re-used.
+!> \authors Sebastian Mueller
+!> \date Mar 2026
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
+!> \ingroup f_mpr
 module mo_geology_classdefinition
 
   use mo_kind, only : i4

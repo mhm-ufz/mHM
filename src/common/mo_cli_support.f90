@@ -1,5 +1,15 @@
+!> \file mo_cli_support.f90
+!> \brief \copybrief mo_cli_support
+!> \details \copydetails mo_cli_support
+
 !> \brief Verbosity support for retained scientific message routines.
+!> \details Extracted from mo_mhm_cli for the standalone v6 driver. Sets the
+!! message, warning, and error visibility used by scientific message routines.
 !> \authors Sebastian Mueller
+!> \date Oct 2021
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
+!> \ingroup f_common
 module mo_cli_support
   use mo_kind, only: i4
   implicit none

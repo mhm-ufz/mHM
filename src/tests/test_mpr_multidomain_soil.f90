@@ -1,3 +1,4 @@
+!> \file test_mpr_multidomain_soil.f90
 !> \brief Regression test: every domain keeps its own MPR soil database.
 !> \details The driver connects all domains before it initializes any of them. The legacy soil
 !! database is module-global, so the last domain's connect used to overwrite the soil classes
@@ -5,7 +6,12 @@
 !! This test builds the soil parameter fields of each domain alone and again in the driver
 !! order (connect 1, connect 2, initialize 1, initialize 2) and requires identical results.
 !> \authors Felix Pohl
-!> \details Adapted from e53f4fa8; extended for direct database ownership and lifecycle isolation.
+!> \date Oct 2026
+!> \changelog
+!! - Felix Pohl Oct 2026: introduced the multidomain soil-database regression in e53f4fa8.
+!! - Oct 2026: adapted for direct database ownership and extended lifecycle isolation coverage.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
 program test_mpr_multidomain_soil
   use mo_domain, only: domain_t
   use mo_kind, only: i4, dp

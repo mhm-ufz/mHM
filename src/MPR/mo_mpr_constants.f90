@@ -1,3 +1,11 @@
+!> \dir MPR
+!> \brief \copybrief f_mpr
+!> \details \copydetails f_mpr
+
+!> \defgroup   f_mpr MPR - Fortran modules
+!> \brief      Core modules of Multiscale Parameter Regionalization.
+!> \details    The MPR container, regionalization kernels, lookup tables, and domain-owned soil database.
+
 !> \file mo_mpr_constants.f90
 !> \brief \copybrief mo_mpr_constants
 !> \details \copydetails mo_mpr_constants

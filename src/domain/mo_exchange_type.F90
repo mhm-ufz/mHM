@@ -1,9 +1,14 @@
-!> \dir exchange
-!> \copydoc f_exchange
+!> \dir src
+!> \brief Source code of mHM.
+!> \details Domain orchestration, process containers, namelist interfaces, and retained scientific kernels.
 
-!> \defgroup   f_exchange exchange - Fortran modules
-!> \brief      Modules to deal with data exchange between mHM components.
-!> \details    This module provides different types to enable the data exchange between components.
+!> \dir domain
+!> \brief \copybrief f_domain
+!> \details \copydetails f_domain
+
+!> \defgroup   f_domain domain - Fortran modules
+!> \brief      Domain orchestration, exchange contracts, and parameter configuration.
+!> \details    Domain lifecycle management, exchanged fields, parameter namelists, and the sealed runtime parameter registry.
 
 !> \file    mo_exchange_type.f90
 !> \copydoc mo_exchange_type
@@ -14,7 +19,7 @@
 !> \date    Mar 2025
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
-!> \ingroup f_exchange
+!> \ingroup f_domain
 #include "logging.h"
 module mo_exchange_type
   use mo_logging

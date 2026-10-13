@@ -27,7 +27,7 @@
 !> \date    2012 - 2026
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
-!> \ingroup f_exchange
+!> \ingroup f_mhm
 #include "logging.h"
 module mo_mhm_container
   use mo_logging
