@@ -1,6 +1,6 @@
-!> \file    mo_main_config.F90
-!> \brief   \copybrief mo_main_config
-!> \details \copydetails mo_main_config
+!> \file    mo_parameter_registry.F90
+!> \brief   \copybrief mo_parameter_registry
+!> \details \copydetails mo_parameter_registry
 
 !> \brief   Named process-parameter registry for the exchange runtime.
 !> \details Components register their own parameter definitions during
@@ -13,7 +13,7 @@
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_exchange
 #include "logging.h"
-module mo_main_config
+module mo_parameter_registry
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
   use mo_kind, only: i4, dp
   use mo_logging
@@ -466,4 +466,4 @@ contains
     normalized = trim(adjustl(to_lower(name)))
   end function normalize_name
 
-end module mo_main_config
+end module mo_parameter_registry

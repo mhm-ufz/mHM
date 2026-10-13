@@ -28,7 +28,7 @@ module mo_exchange_type
   use mo_kind, only: dp, i2, i4, i8
   use mo_parameter_namelists, only: parameter_namelists_t
   use mo_string_utils, only: n2s=>num2str
-  use mo_main_config, only: parameters_t
+  use mo_parameter_registry, only: parameters_t
   use mo_utils, only: optval
   use nml_config_time, only: nml_config_time_t
   use nml_config_project, only: nml_config_project_t

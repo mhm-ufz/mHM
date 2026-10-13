@@ -1,7 +1,7 @@
 module test_parameters
   use funit
   use mo_kind, only: dp
-  use mo_main_config, only: parameters_t
+  use mo_parameter_registry, only: parameters_t
   use mo_parameter_types, only: parameter_t
   use nml_helper, only: NML_OK
   use nml_pet_m2, only: nml_pet_m2_t
