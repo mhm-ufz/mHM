@@ -21,10 +21,13 @@ They are all listed below, one page per namelist:
 - \subpage config_meteo : Configuration for meteorological component `&config_meteo`.
 - \subpage config_mpr : Configuration for the multiscale parameter regionalization (MPR) `&config_mpr`.
 - \subpage config_mhm : Configuration for the hydrological component `&config_mhm`.
+- \subpage config_mlm : Configuration for the lake component (mLM) `&config_mlm`.
 - \subpage config_mrm : Configuration for the routing component (mRM) `&config_mrm`.
 - \subpage config_observations : Configuration for reference observations `&config_observations`.
 
 \section nml_parameters Parameter Namelists
+
+See \subpage parameter_migration_v6 for converting legacy parameter namelists to the v6 format.
 
 Parameter namelists use the buffer-compatible `parameter_t` derived type in this fixed order:
 
@@ -70,6 +73,7 @@ The output namelists define which model outputs are generated during simulation.
 They are all listed below, one page per namelist:
 
 - \subpage output_mhm : Output configuration for mHM `&output_mhm`.
+- \subpage output_mlm : Output configuration for mLM `&output_mlm`.
 - \subpage output_mrm : Output configuration for mRM `&output_mrm`.
 
 */
