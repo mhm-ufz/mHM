@@ -1,5 +1,5 @@
 /**
-\dir
+\model_sources
 \brief Source code of mHM.
 \details Domain orchestration, process containers, namelist interfaces, and retained scientific kernels.
 */
