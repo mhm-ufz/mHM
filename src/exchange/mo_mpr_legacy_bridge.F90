@@ -1,12 +1,12 @@
 !> \file    mo_mpr_legacy_bridge.f90
 !> \copydoc mo_mpr_legacy_bridge
 
-!> \brief   Bridge helpers between the exchange MPR container and legacy MPR routines.
+!> \brief   Regionalization helpers for the MPR container.
 !> \details This module isolates the compatibility boundary between the new
 !! exchange-side MPR container and the legacy MPR science routines. It reshapes
 !! grids and packed fields into the conventions expected by the older code,
 !! reuses the legacy PET/soil/runoff/neutron implementations, and keeps the
-!! remaining legacy-global interaction scoped to this bridge layer.
+!! soil data explicitly owned by the calling domain.
 !> \changelog
 !! - Juliane Mai          Dec 2012
 !!   - implemented the soil-database and LUT readers that now sit behind the bridge setup helpers
@@ -50,14 +50,14 @@ module mo_mpr_legacy_bridge
   use mo_grid, only: grid_t, cartesian
   use mo_kind, only: i4, i8, dp
   use mo_grid_scaler, only: scaler_t, up_fraction, up_h_mean, up_a_mean
-  use mo_mpr_global_variables, only: soilDB, HorizonDepth_mHM, iFlag_soilDB, nSoilHorizons_mHM, nSoilTypes, tillageDepth
+
   use mo_mpr_neutrons, only: mpr_neutrons
   use mo_mpr_pet, only: pet_correctbyASP, priestley_taylor_alpha, bulksurface_resistance
   use mo_mpr_runoff, only: mpr_runoff
   use mo_mpr_smhorizons, only: mpr_SMhorizons
   use mo_mpr_soilmoist, only: mpr_sm
-  use mo_multi_param_reg, only: aerodynamical_resistance
-  use mo_soil_database, only: read_soil_LUT, generate_soil_database
+  use mo_mpr_aerodynamics, only: aerodynamical_resistance
+  use mo_soil_database, only: read_soil_LUT, generate_soil_database, soil_database_t
   use mo_string_utils, only: n2s => num2str
   use nml_config_mpr, only: nml_config_mpr_t
 
@@ -128,7 +128,7 @@ contains
     allocate(latitude_l0(level0%ncells))
     if (level0%coordsys == cartesian) then
       if (.not.level0%has_aux_coords()) then
-        log_fatal(*) "MPR bridge: PET aspect correction on a cartesian grid requires auxiliary latitude coordinates."
+        log_fatal(*) "MPR: PET aspect correction on a cartesian grid requires auxiliary latitude coordinates."
         error stop 1
       end if
       ! PET aspect correction needs physical latitude even on projected input grids.
@@ -145,41 +145,13 @@ contains
     end if
   end subroutine mpr_bridge_get_level0_latitude
 
-  !> \brief Clear the legacy-global soil database state before rebuilding it from exchange inputs.
-  subroutine mpr_bridge_reset_soil_database()
-    if (allocated(HorizonDepth_mHM)) deallocate(HorizonDepth_mHM)
-    if (allocated(soilDB%id)) deallocate(soilDB%id)
-    if (allocated(soilDB%nHorizons)) deallocate(soilDB%nHorizons)
-    if (allocated(soilDB%is_present)) deallocate(soilDB%is_present)
-    if (allocated(soilDB%UD)) deallocate(soilDB%UD)
-    if (allocated(soilDB%LD)) deallocate(soilDB%LD)
-    if (allocated(soilDB%clay)) deallocate(soilDB%clay)
-    if (allocated(soilDB%sand)) deallocate(soilDB%sand)
-    if (allocated(soilDB%DbM)) deallocate(soilDB%DbM)
-    if (allocated(soilDB%depth)) deallocate(soilDB%depth)
-    if (allocated(soilDB%RZdepth)) deallocate(soilDB%RZdepth)
-    if (allocated(soilDB%Wd)) deallocate(soilDB%Wd)
-    if (allocated(soilDB%nTillHorizons)) deallocate(soilDB%nTillHorizons)
-    if (allocated(soilDB%thetaS_till)) deallocate(soilDB%thetaS_till)
-    if (allocated(soilDB%thetaS)) deallocate(soilDB%thetaS)
-    if (allocated(soilDB%Db)) deallocate(soilDB%Db)
-    if (allocated(soilDB%thetaFC_till)) deallocate(soilDB%thetaFC_till)
-    if (allocated(soilDB%thetaFC)) deallocate(soilDB%thetaFC)
-    if (allocated(soilDB%thetaPW_till)) deallocate(soilDB%thetaPW_till)
-    if (allocated(soilDB%thetaPW)) deallocate(soilDB%thetaPW)
-    if (allocated(soilDB%Ks)) deallocate(soilDB%Ks)
-    nSoilTypes = 0_i4
-    iFlag_soilDB = 0_i4
-    nSoilHorizons_mHM = 0_i4
-    tillageDepth = 0.0_dp
-  end subroutine mpr_bridge_reset_soil_database
-
   !> \brief Initialize the legacy soil database from the new MPR configuration and packed L0 soil ids.
-  subroutine mpr_bridge_setup_soil_database(config, domain, soil_lut_path, soil_id_l0, horizon_bounds)
+  subroutine mpr_bridge_setup_soil_database(config, domain, soil_lut_path, soil_id_l0, db, horizon_bounds)
     type(nml_config_mpr_t), intent(in) :: config
     integer(i4), intent(in) :: domain
     character(*), intent(in) :: soil_lut_path
     integer(i4), dimension(:, :), intent(in) :: soil_id_l0
+    type(soil_database_t), intent(inout) :: db !< Owning domain soil database.
     real(dp), allocatable, intent(out), optional :: horizon_bounds(:)
     integer(i4) :: soil_layers
     integer(i4) :: required_depths
@@ -188,48 +160,48 @@ contains
     integer(i4) :: k
 
     if (domain < 1_i4) then
-      log_fatal(*) "MPR bridge: invalid domain for soil database setup: ", n2s(domain), "."
+      log_fatal(*) "MPR: invalid domain for soil database setup: ", n2s(domain), "."
       error stop 1
     end if
 
-    call mpr_bridge_reset_soil_database()
+    call db%destroy()
 
     ! Translate the new config into the legacy-global soil database controls before reading the LUT.
-    iFlag_soilDB = config%soil_db_mode(domain)
-    nSoilHorizons_mHM = config%n_layers(domain)
-    tillageDepth = real(config%tillage_depth(domain), dp)
-    if (nSoilHorizons_mHM < 1_i4) then
-      log_fatal(*) "MPR bridge: n_layers must be >= 1 for soil database setup."
+    db%mode = config%soil_db_mode(domain)
+    db%n_layers = config%n_layers(domain)
+    db%tillage_depth = real(config%tillage_depth(domain), dp)
+    if (db%n_layers < 1_i4) then
+      log_fatal(*) "MPR: n_layers must be >= 1 for soil database setup."
       error stop 1
     end if
 
-    allocate(HorizonDepth_mHM(nSoilHorizons_mHM))
-    HorizonDepth_mHM = 0.0_dp
-    select case (iFlag_soilDB)
+    allocate(db%horizon_depth(db%n_layers))
+    db%horizon_depth = 0.0_dp
+    select case (db%mode)
       case (0_i4)
-        required_depths = max(0_i4, nSoilHorizons_mHM - 1_i4)
+        required_depths = max(0_i4, db%n_layers - 1_i4)
       case (1_i4)
-        required_depths = nSoilHorizons_mHM
+        required_depths = db%n_layers
       case default
-        log_fatal(*) "MPR bridge: unsupported soil_db_mode=", n2s(iFlag_soilDB), "."
+        log_fatal(*) "MPR: unsupported soil_db_mode=", n2s(db%mode), "."
         error stop 1
     end select
     do i = 1_i4, required_depths
-      HorizonDepth_mHM(i) = real(config%soil_depth(i, domain), dp)
+      db%horizon_depth(i) = real(config%soil_depth(i, domain), dp)
     end do
 
-    call read_soil_LUT(trim(soil_lut_path))
-    call generate_soil_database()
+    call read_soil_LUT(trim(soil_lut_path), db)
+    call generate_soil_database(db)
 
     ! Mark only the soil classes that are actually present in the packed L0 input.
-    if (allocated(soilDB%is_present)) deallocate(soilDB%is_present)
-    allocate(soilDB%is_present(nSoilTypes))
-    soilDB%is_present = 0_i4
+    if (allocated(db%is_present)) deallocate(db%is_present)
+    allocate(db%is_present(db%n_types))
+    db%is_present = 0_i4
 
     soil_layers = 1_i4
-    if (iFlag_soilDB == 1_i4) soil_layers = nSoilHorizons_mHM
+    if (db%mode == 1_i4) soil_layers = db%n_layers
     if (size(soil_id_l0, 2) < soil_layers) then
-      log_fatal(*) "MPR bridge: soil_id input provides ", n2s(size(soil_id_l0, 2)), &
+      log_fatal(*) "MPR: soil_id input provides ", n2s(size(soil_id_l0, 2)), &
         " layers, expected at least ", n2s(soil_layers), "."
       error stop 1
     end if
@@ -238,19 +210,19 @@ contains
       do k = 1_i4, size(soil_id_l0, 1)
         j = soil_id_l0(k, i)
         if (j == nodata_i4) cycle
-        if (j < 1_i4 .or. j > nSoilTypes) then
-          log_fatal(*) "MPR bridge: soil ID ", n2s(j), " at packed L0 cell ", n2s(k), &
-            " and layer ", n2s(i), " is outside the soil LUT range 1..", n2s(nSoilTypes), "."
+        if (j < 1_i4 .or. j > db%n_types) then
+          log_fatal(*) "MPR: soil ID ", n2s(j), " at packed L0 cell ", n2s(k), &
+            " and layer ", n2s(i), " is outside the soil LUT range 1..", n2s(db%n_types), "."
           error stop 1
         end if
-        soilDB%is_present(j) = 1_i4
+        db%is_present(j) = 1_i4
       end do
     end do
 
     if (present(horizon_bounds)) then
-      allocate(horizon_bounds(nSoilHorizons_mHM + 1_i4))
+      allocate(horizon_bounds(db%n_layers + 1_i4))
       horizon_bounds(1) = 0.0_dp
-      horizon_bounds(2:) = HorizonDepth_mHM(:)
+      horizon_bounds(2:) = db%horizon_depth(:)
     end if
   end subroutine mpr_bridge_setup_soil_database
 
@@ -288,7 +260,7 @@ contains
     real(dp) :: degday_max_pervious
 
     if (size(param) < 8_i4) then
-      log_fatal(*) "MPR bridge: snow parameter set must contain 8 values, got ", n2s(size(param, kind=i4)), "."
+      log_fatal(*) "MPR: snow parameter set must contain 8 values, got ", n2s(size(param, kind=i4)), "."
       error stop 1
     end if
 
@@ -317,11 +289,11 @@ contains
     integer(i4) :: land_cover_id
 
     if (size(param) < 5_i4) then
-      log_fatal(*) "MPR bridge: PET-LAI parameter set must contain 5 values, got ", n2s(size(param, kind=i4)), "."
+      log_fatal(*) "MPR: PET-LAI parameter set must contain 5 values, got ", n2s(size(param, kind=i4)), "."
       error stop 1
     end if
     if (size(land_cover_l0) /= size(lai_l0)) then
-      log_fatal(*) "MPR bridge: PET-LAI inputs must have matching packed L0 sizes."
+      log_fatal(*) "MPR: PET-LAI inputs must have matching packed L0 sizes."
       error stop 1
     end if
 
@@ -336,7 +308,7 @@ contains
         case (3_i4)
           pet_fac_lai_l0(i) = param(3) + (param(4) * (1.0_dp - exp(param(5) * lai_l0(i))))
         case default
-          log_fatal(*) "MPR bridge: unsupported land-cover ID ", n2s(land_cover_id), &
+          log_fatal(*) "MPR: unsupported land-cover ID ", n2s(land_cover_id), &
             " for PET-LAI correction at packed L0 cell ", n2s(i), "."
           error stop 1
       end select
@@ -359,15 +331,15 @@ contains
     integer(i4) :: i
 
     if (size(param) < 3_i4) then
-      log_fatal(*) "MPR bridge: PET aspect parameter set must contain 3 values, got ", n2s(size(param, kind=i4)), "."
+      log_fatal(*) "MPR: PET aspect parameter set must contain 3 values, got ", n2s(size(param, kind=i4)), "."
       error stop 1
     end if
     if (size(aspect_l0) /= level0%ncells) then
-      log_fatal(*) "MPR bridge: PET aspect input size does not match packed level0 cells."
+      log_fatal(*) "MPR: PET aspect input size does not match packed level0 cells."
       error stop 1
     end if
     if (size(pet_fac_aspect_l1) /= upscaler%target_grid%ncells) then
-      log_fatal(*) "MPR bridge: PET aspect output size does not match packed level1 cells."
+      log_fatal(*) "MPR: PET aspect output size does not match packed level1 cells."
       error stop 1
     end if
 
@@ -394,11 +366,11 @@ contains
     real(dp), dimension(:), intent(out) :: pet_coeff_hs_l1
 
     if (size(param) < 4_i4) then
-      log_fatal(*) "MPR bridge: PET Hargreaves parameter set must contain 4 values, got ", n2s(size(param, kind=i4)), "."
+      log_fatal(*) "MPR: PET Hargreaves parameter set must contain 4 values, got ", n2s(size(param, kind=i4)), "."
       error stop 1
     end if
     if (size(pet_coeff_hs_l1) /= size(pet_fac_aspect_l1)) then
-      log_fatal(*) "MPR bridge: PET Hargreaves outputs must have matching packed L1 sizes."
+      log_fatal(*) "MPR: PET Hargreaves outputs must have matching packed L1 sizes."
       error stop 1
     end if
 
@@ -420,19 +392,19 @@ contains
     integer(i4), allocatable :: right_bound1(:)
 
     if (size(param) < 2_i4) then
-      log_fatal(*) "MPR bridge: PET Priestley-Taylor parameter set must contain 2 values, got ", n2s(size(param, kind=i4)), "."
+      log_fatal(*) "MPR: PET Priestley-Taylor parameter set must contain 2 values, got ", n2s(size(param, kind=i4)), "."
       error stop 1
     end if
     if (size(lai_l0, 1) /= level0%ncells) then
-      log_fatal(*) "MPR bridge: PET Priestley-Taylor LAI input size does not match packed level0 cells."
+      log_fatal(*) "MPR: PET Priestley-Taylor LAI input size does not match packed level0 cells."
       error stop 1
     end if
     if (size(pet_coeff_pt_l1, 1) /= upscaler%target_grid%ncells) then
-      log_fatal(*) "MPR bridge: PET Priestley-Taylor output size does not match packed level1 cells."
+      log_fatal(*) "MPR: PET Priestley-Taylor output size does not match packed level1 cells."
       error stop 1
     end if
     if (size(pet_coeff_pt_l1, 2) /= size(lai_l0, 2)) then
-      log_fatal(*) "MPR bridge: PET Priestley-Taylor output LAI dimension does not match LAI cache."
+      log_fatal(*) "MPR: PET Priestley-Taylor output LAI dimension does not match LAI cache."
       error stop 1
     end if
 
@@ -462,19 +434,19 @@ contains
     integer(i4), allocatable :: left_bound1(:)
     integer(i4), allocatable :: right_bound1(:)
     if (size(param) < 7_i4) then
-      log_fatal(*) "MPR bridge: PET Penman-Monteith parameter set must contain 7 values, got ", n2s(size(param, kind=i4)), "."
+      log_fatal(*) "MPR: PET Penman-Monteith parameter set must contain 7 values, got ", n2s(size(param, kind=i4)), "."
       error stop 1
     end if
     if (size(land_cover_l0) /= level0%ncells .or. size(lai_l0, 1) /= level0%ncells) then
-      log_fatal(*) "MPR bridge: PET Penman-Monteith L0 inputs must match packed level0 cells."
+      log_fatal(*) "MPR: PET Penman-Monteith L0 inputs must match packed level0 cells."
       error stop 1
     end if
     if (size(resist_aero_l1, 1) /= upscaler%target_grid%ncells .or. size(resist_surf_l1, 1) /= upscaler%target_grid%ncells) then
-      log_fatal(*) "MPR bridge: PET Penman-Monteith outputs must match packed level1 cells."
+      log_fatal(*) "MPR: PET Penman-Monteith outputs must match packed level1 cells."
       error stop 1
     end if
     if (size(resist_aero_l1, 2) /= size(lai_l0, 2) .or. size(resist_surf_l1, 2) /= size(lai_l0, 2)) then
-      log_fatal(*) "MPR bridge: PET Penman-Monteith output LAI dimensions must match the LAI cache."
+      log_fatal(*) "MPR: PET Penman-Monteith output LAI dimensions must match the LAI cache."
       error stop 1
     end if
 
@@ -492,9 +464,10 @@ contains
   end subroutine mpr_bridge_pet_penman_monteith
 
   !> \brief Bridge soil-moisture parameter generation through the legacy soil routines.
-  subroutine mpr_bridge_soil_moisture(soil_case, neutron_case, param, land_cover_l0, soil_id_l0, level0, upscaler, &
+  subroutine mpr_bridge_soil_moisture(db, soil_case, neutron_case, param, land_cover_l0, soil_id_l0, level0, upscaler, &
       thresh_jarvis_l1, sm_exponent_l1, sm_saturation_l1, sm_field_capacity_l1, wilting_point_l1, f_roots_l1, &
       sm_deficit_fc_l0, ks_var_h_l0, ks_var_v_l0, bulk_density_l1, lattice_water_l1, cosmic_l3_l1, neutron_param)
+    type(soil_database_t), intent(in) :: db !< Owning domain soil database.
     integer(i4), intent(in) :: soil_case
     integer(i4), intent(in) :: neutron_case
     real(dp), dimension(:), intent(in) :: param
@@ -538,7 +511,7 @@ contains
     real(dp), allocatable :: thetaFC(:, :)
     real(dp), allocatable :: thetaPW(:, :)
     real(dp), allocatable :: Ks(:, :, :)
-    real(dp), allocatable :: Db(:, :, :)
+    real(dp), allocatable :: bulk_density_soil(:, :, :)
     real(dp), allocatable :: KsVar_H0(:)
     real(dp), allocatable :: KsVar_V0(:)
     real(dp), allocatable :: SMs_FC0(:)
@@ -555,8 +528,8 @@ contains
     integer(i4), allocatable :: left_bound1(:)
     integer(i4), allocatable :: right_bound1(:)
 
-    if (.not.allocated(soilDB%is_present)) then
-      log_fatal(*) "MPR bridge: soil database not initialized before soil-moisture generation."
+    if (.not.allocated(db%is_present)) then
+      log_fatal(*) "MPR: soil database not initialized before soil-moisture generation."
       error stop 1
     end if
 
@@ -567,7 +540,7 @@ contains
     select case (soil_case)
       case (1_i4)
         if (size(param) < 16_i4) then
-          log_fatal(*) "MPR bridge: soil moisture case 1 expects 16 parameters, got ", n2s(size(param, kind=i4)), "."
+          log_fatal(*) "MPR: soil moisture case 1 expects 16 parameters, got ", n2s(size(param, kind=i4)), "."
           error stop 1
         end if
         soil_param_end = 13_i4
@@ -576,7 +549,7 @@ contains
         thresh_jarvis_l1 = nodata_dp
       case (2_i4)
         if (size(param) < 17_i4) then
-          log_fatal(*) "MPR bridge: soil moisture case 2 expects 17 parameters, got ", n2s(size(param, kind=i4)), "."
+          log_fatal(*) "MPR: soil moisture case 2 expects 17 parameters, got ", n2s(size(param, kind=i4)), "."
           error stop 1
         end if
         soil_param_end = 13_i4
@@ -585,7 +558,7 @@ contains
         thresh_jarvis_l1 = param(17)
       case (3_i4)
         if (size(param) < 21_i4) then
-          log_fatal(*) "MPR bridge: soil moisture case 3 expects 21 parameters, got ", n2s(size(param, kind=i4)), "."
+          log_fatal(*) "MPR: soil moisture case 3 expects 21 parameters, got ", n2s(size(param, kind=i4)), "."
           error stop 1
         end if
         soil_param_end = 13_i4
@@ -594,7 +567,7 @@ contains
         thresh_jarvis_l1 = param(21)
       case (4_i4)
         if (size(param) < 20_i4) then
-          log_fatal(*) "MPR bridge: soil moisture case 4 expects 20 parameters, got ", n2s(size(param, kind=i4)), "."
+          log_fatal(*) "MPR: soil moisture case 4 expects 20 parameters, got ", n2s(size(param, kind=i4)), "."
           error stop 1
         end if
         soil_param_end = 13_i4
@@ -602,7 +575,7 @@ contains
         horizon_param_end = 21_i4
         thresh_jarvis_l1 = nodata_dp
       case default
-        log_fatal(*) "MPR bridge: unsupported soil moisture process case ", n2s(soil_case), "."
+        log_fatal(*) "MPR: unsupported soil moisture process case ", n2s(soil_case), "."
         error stop 1
     end select
 
@@ -614,30 +587,30 @@ contains
 
     n_cells0 = size(land_cover_l0)
     if (size(soil_id_l0, 1) /= n_cells0) then
-      log_fatal(*) "MPR bridge: soil_id and land_cover inputs must have matching packed L0 sizes."
+      log_fatal(*) "MPR: soil_id and land_cover inputs must have matching packed L0 sizes."
       error stop 1
     end if
     n_cells1 = size(sm_exponent_l1, 1)
-    if (size(sm_exponent_l1, 2) /= nSoilHorizons_mHM) then
-      log_fatal(*) "MPR bridge: soil cache horizon dimension ", n2s(size(sm_exponent_l1, 2)), &
-        " does not match n_layers=", n2s(nSoilHorizons_mHM), "."
+    if (size(sm_exponent_l1, 2) /= db%n_layers) then
+      log_fatal(*) "MPR: soil cache horizon dimension ", n2s(size(sm_exponent_l1, 2)), &
+        " does not match n_layers=", n2s(db%n_layers), "."
       error stop 1
     end if
 
-    msoil = size(soilDB%is_present)
+    msoil = size(db%is_present)
     m_lc = maxval(land_cover_l0, land_cover_l0 /= nodata_i4)
     if (m_lc < 1_i4) then
-      log_fatal(*) "MPR bridge: land-cover map contains no valid IDs for soil-moisture generation."
+      log_fatal(*) "MPR: land-cover map contains no valid IDs for soil-moisture generation."
       error stop 1
     end if
-    if (iFlag_soilDB == 0_i4) then
-      mtill = maxval(soilDB%nTillHorizons, soilDB%nTillHorizons /= nodata_i4)
-      m_hor = maxval(soilDB%nHorizons, soilDB%nHorizons /= nodata_i4)
-    else if (iFlag_soilDB == 1_i4) then
+    if (db%mode == 0_i4) then
+      mtill = maxval(db%nTillHorizons, db%nTillHorizons /= nodata_i4)
+      m_hor = maxval(db%nHorizons, db%nHorizons /= nodata_i4)
+    else if (db%mode == 1_i4) then
       mtill = 1_i4
       m_hor = 1_i4
     else
-      log_fatal(*) "MPR bridge: unsupported legacy soil_db_mode=", n2s(iFlag_soilDB), "."
+      log_fatal(*) "MPR: unsupported legacy soil_db_mode=", n2s(db%mode), "."
       error stop 1
     end if
 
@@ -653,7 +626,7 @@ contains
     allocate(thetaFC(msoil, m_hor))
     allocate(thetaPW(msoil, m_hor))
     allocate(Ks(msoil, m_hor, m_lc))
-    allocate(Db(msoil, m_hor, m_lc))
+    allocate(bulk_density_soil(msoil, m_hor, m_lc))
     allocate(KsVar_H0(n_cells0))
     allocate(KsVar_V0(n_cells0))
     allocate(SMs_FC0(n_cells0))
@@ -686,28 +659,28 @@ contains
       right_bound1(i) = y_ub
     end do
 
-    call mpr_sm(legacy_param(:soil_param_end), legacy_process_matrix, &
-      soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons, &
-      soilDB%sand, soilDB%clay, soilDB%DbM, id0, soil_id_l0, land_cover_l0, &
-      thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
+    call mpr_sm(db%mode, legacy_param(:soil_param_end), legacy_process_matrix, &
+      db%is_present, db%nHorizons, db%nTillHorizons, &
+      db%sand, db%clay, db%DbM, id0, soil_id_l0, land_cover_l0, &
+      thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, bulk_density_soil, KsVar_H0, KsVar_V0, SMs_FC0)
 
     if (present(sm_deficit_fc_l0)) then
       if (size(sm_deficit_fc_l0) /= size(SMs_FC0)) then
-        log_fatal(*) "MPR bridge: sm_deficit_fc_l0 output has wrong size."
+        log_fatal(*) "MPR: sm_deficit_fc_l0 output has wrong size."
         error stop 1
       end if
       sm_deficit_fc_l0 = SMs_FC0
     end if
     if (present(ks_var_h_l0)) then
       if (size(ks_var_h_l0) /= size(KsVar_H0)) then
-        log_fatal(*) "MPR bridge: ks_var_h_l0 output has wrong size."
+        log_fatal(*) "MPR: ks_var_h_l0 output has wrong size."
         error stop 1
       end if
       ks_var_h_l0 = KsVar_H0
     end if
     if (present(ks_var_v_l0)) then
       if (size(ks_var_v_l0) /= size(KsVar_V0)) then
-        log_fatal(*) "MPR bridge: ks_var_v_l0 output has wrong size."
+        log_fatal(*) "MPR: ks_var_v_l0 output has wrong size."
         error stop 1
       end if
       ks_var_v_l0 = KsVar_V0
@@ -715,41 +688,41 @@ contains
 
     if (neutron_case > 0_i4) then
       if (.not.present(neutron_param)) then
-        log_fatal(*) "MPR bridge: neutron parameters must be provided when the neutrons process is active."
+        log_fatal(*) "MPR: neutron parameters must be provided when the neutrons process is active."
         error stop 1
       end if
-      call mpr_neutrons( &
+      call mpr_neutrons(db%mode, &
         neutron_case, &
         neutron_param, &
-        soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons, land_cover_l0, &
-        soilDB%clay, soilDB%DbM, Db, COSMIC_L3_till, latWat_till, COSMIC_L3, latWat)
+        db%is_present, db%nHorizons, db%nTillHorizons, land_cover_l0, &
+        db%clay, db%DbM, bulk_density_soil, COSMIC_L3_till, latWat_till, COSMIC_L3, latWat)
     end if
 
     call mpr_SMhorizons(legacy_param(horizon_param_start:horizon_param_end), legacy_process_matrix, &
-      iFlag_soilDB, nSoilHorizons_mHM, HorizonDepth_mHM, land_cover_l0, soil_id_l0, &
-      soilDB%nHorizons, soilDB%nTillHorizons, thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, &
-      soilDB%Wd, Db, soilDB%DbM, soilDB%RZdepth, level0%mask, id0, &
+      db%mode, db%n_layers, db%horizon_depth, land_cover_l0, soil_id_l0, &
+      db%nHorizons, db%nTillHorizons, thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, &
+      db%Wd, bulk_density_soil, db%DbM, db%RZdepth, level0%mask, id0, &
       upper_bound1, lower_bound1, left_bound1, right_bound1, upscaler%n_subcells, &
       sm_exponent_l1, sm_saturation_l1, sm_field_capacity_l1, wilting_point_l1, f_roots_l1, &
       latWat_till, COSMIC_L3_till, latWat, COSMIC_L3, bulk_density_tmp, lattice_water_tmp, cosmic_l3_tmp)
 
     if (present(bulk_density_l1)) then
       if (any(shape(bulk_density_l1) /= shape(bulk_density_tmp))) then
-        log_fatal(*) "MPR bridge: bulk_density_l1 output has wrong shape."
+        log_fatal(*) "MPR: bulk_density_l1 output has wrong shape."
         error stop 1
       end if
       bulk_density_l1 = bulk_density_tmp
     end if
     if (present(lattice_water_l1)) then
       if (any(shape(lattice_water_l1) /= shape(lattice_water_tmp))) then
-        log_fatal(*) "MPR bridge: lattice_water_l1 output has wrong shape."
+        log_fatal(*) "MPR: lattice_water_l1 output has wrong shape."
         error stop 1
       end if
       lattice_water_l1 = lattice_water_tmp
     end if
     if (present(cosmic_l3_l1)) then
       if (any(shape(cosmic_l3_l1) /= shape(cosmic_l3_tmp))) then
-        log_fatal(*) "MPR bridge: cosmic_l3_l1 output has wrong shape."
+        log_fatal(*) "MPR: cosmic_l3_l1 output has wrong shape."
         error stop 1
       end if
       cosmic_l3_l1 = cosmic_l3_tmp
@@ -763,7 +736,7 @@ contains
     deallocate(thetaFC)
     deallocate(thetaPW)
     deallocate(Ks)
-    deallocate(Db)
+    deallocate(bulk_density_soil)
     deallocate(KsVar_H0)
     deallocate(KsVar_V0)
     deallocate(SMs_FC0)
@@ -809,18 +782,18 @@ contains
     integer(i4) :: n_cells1
 
     if (size(param) < 5_i4) then
-      log_fatal(*) "MPR bridge: interflow parameter set must contain 5 values, got ", n2s(size(param, kind=i4)), "."
+      log_fatal(*) "MPR: interflow parameter set must contain 5 values, got ", n2s(size(param, kind=i4)), "."
       error stop 1
     end if
 
     n_cells0 = size(land_cover_l0)
     if (size(slope_emp_l0) /= n_cells0 .or. size(sm_deficit_fc_l0) /= n_cells0 .or. size(ks_var_h_l0) /= n_cells0) then
-      log_fatal(*) "MPR bridge: runoff L0 inputs must have matching packed sizes."
+      log_fatal(*) "MPR: runoff L0 inputs must have matching packed sizes."
       error stop 1
     end if
     n_cells1 = size(alpha_l1)
     if (size(thresh_unsat_l1) /= n_cells1 .or. size(k_fastflow_l1) /= n_cells1 .or. size(k_slowflow_l1) /= n_cells1) then
-      log_fatal(*) "MPR bridge: runoff L1 outputs must have matching sizes."
+      log_fatal(*) "MPR: runoff L1 outputs must have matching sizes."
       error stop 1
     end if
 
@@ -867,15 +840,15 @@ contains
     integer(i4) :: i
 
     if (size(param) < 2_i4) then
-      log_fatal(*) "MPR bridge: percolation parameter set must contain 2 values, got ", n2s(size(param, kind=i4)), "."
+      log_fatal(*) "MPR: percolation parameter set must contain 2 values, got ", n2s(size(param, kind=i4)), "."
       error stop 1
     end if
     if (size(geo_unit_l0) /= size(sm_deficit_fc_l0) .or. size(geo_unit_l0) /= size(ks_var_v_l0)) then
-      log_fatal(*) "MPR bridge: karst/percolation L0 inputs must have matching packed sizes."
+      log_fatal(*) "MPR: karst/percolation L0 inputs must have matching packed sizes."
       error stop 1
     end if
     if (size(geo_unit_list) /= size(geo_karstic)) then
-      log_fatal(*) "MPR bridge: geo_unit and geo_karstic LUT sizes do not match."
+      log_fatal(*) "MPR: geo_unit and geo_karstic LUT sizes do not match."
       error stop 1
     end if
 
@@ -906,7 +879,7 @@ contains
     real(dp), dimension(:), intent(out) :: thresh_sealed_l1
 
     if (size(param) < 1_i4) then
-      log_fatal(*) "MPR bridge: direct-runoff parameter set must contain at least 1 value."
+      log_fatal(*) "MPR: direct-runoff parameter set must contain at least 1 value."
       error stop 1
     end if
     thresh_sealed_l1 = param(1)
@@ -926,11 +899,11 @@ contains
     integer(i4) :: class_pos
 
     if (size(geo_param_index) /= size(geo_unit_list)) then
-      log_fatal(*) "MPR bridge: geo_param_index and geo_unit LUT sizes do not match."
+      log_fatal(*) "MPR: geo_param_index and geo_unit LUT sizes do not match."
       error stop 1
     end if
     if (any(geo_param_index < 1_i4) .or. any(geo_param_index > size(param))) then
-      log_fatal(*) "MPR bridge: geology LUT GeoParam index is outside available baseflow parameters."
+      log_fatal(*) "MPR: geology LUT GeoParam index is outside available baseflow parameters."
       error stop 1
     end if
 
@@ -944,7 +917,7 @@ contains
         end if
       end do
       if (class_pos < 1_i4) then
-        log_fatal(*) "MPR bridge: geological unit ", n2s(geo_unit_l0(i)), " missing in geology LUT."
+        log_fatal(*) "MPR: geological unit ", n2s(geo_unit_l0(i)), " missing in geology LUT."
         error stop 1
       end if
       baseflow_l0(i) = param(geo_param_index(class_pos))

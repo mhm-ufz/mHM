@@ -97,15 +97,17 @@ contains
   ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
   ! Rohini Kumar                    Oct 2021 - Neutron count module to mHM integrate into develop branch (5.11.2)
 
-  subroutine mpr_sm(param, processMatrix, is_present, nHorizons, nTillHorizons, sand, clay, DbM, ID0, soilId0, LCover0, &
+  subroutine mpr_sm(soil_db_mode, param, processMatrix, is_present, nHorizons, nTillHorizons, sand, clay, DbM, ID0, soilId0, LCover0, &
                    thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
 
     use mo_constants, only : nodata_dp, nodata_i4
     use mo_mpr_constants, only : BulkDens_OrgMatter
-    use mo_mpr_global_variables, only : iFlag_soilDB
+
     !$ use omp_lib
 
     implicit none
+
+    integer(i4), intent(in) :: soil_db_mode !< Domain soil database layout selector.
 
     ! global parameters
     real(dp), dimension(13), intent(in) :: param
@@ -239,7 +241,7 @@ contains
     allocate(SMs_tot0(size(ID0, 1)))
 
     ! some additional variables for iFlag_soil = 1
-    if(iFlag_soilDB .eq. 1) then
+    if(soil_db_mode .eq. 1) then
       s = size(is_present, 1)
       ! note: although second dimension is not required
       ! we assign value 1 to be comparable to other assigned variables
@@ -264,7 +266,7 @@ contains
     if(allocated(Ks_non_till)) Ks_non_till = 0.0_dp
     max_LCover = maxval(LCOVER0)
     ! select case according to a given soil database flag
-    SELECT CASE(iFlag_soilDB)
+    SELECT CASE(soil_db_mode)
       ! classical mHM soil database format
     CASE(0)
       !$OMP PARALLEL default(shared)
@@ -445,7 +447,7 @@ contains
       end do
 
     CASE DEFAULT
-      call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
+      call error_message('***ERROR: soil_db_mode option given does not exist. Only 0 and 1 is taken at the moment.')
     END SELECT
 
     ! free space **

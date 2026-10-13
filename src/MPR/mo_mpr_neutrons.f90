@@ -85,7 +85,7 @@ contains
   !>        \date Dec 2017
 
 
-  subroutine mpr_neutrons( process_case, & ! IN: process case
+  subroutine mpr_neutrons(soil_db_mode,  process_case, & ! IN: process case
        param               , & ! IN:  global parameter set
        is_present          , & ! IN:  flag indicating presence of soil
        nHorizons           , & ! IN:  Number of Horizons of Soiltype
@@ -102,10 +102,12 @@ contains
 
     ! lots of lines copy-pasted from mo_mpr_soilmoist.f90
     use mo_message, only: error_message
-    use mo_mpr_global_variables, only: iFlag_soilDB
+
     !$  use omp_lib
 
     implicit none
+
+    integer(i4), intent(in) :: soil_db_mode !< Domain soil database layout selector.
 
     ! Input --------------------------------------------------------------------
     integer(i4),                   intent(in)  :: process_case ! process case
@@ -143,7 +145,7 @@ contains
     latWat         = 0.000001_dp
 
     ! select case according to a given soil database flag
-    SELECT CASE(iFlag_soilDB)
+    SELECT CASE(soil_db_mode)
 
        ! classical mHM soil database format
        CASE(0)
@@ -201,7 +203,7 @@ contains
           end do   ! >> SOIL TYPE
 
        CASE DEFAULT
-          call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
+          call error_message('***ERROR: soil_db_mode option given does not exist. Only 0 and 1 is taken at the moment.')
        END SELECT
        !
 

@@ -435,7 +435,12 @@ contains
              ! Horizon depths: last soil horizon is varying, and thus the depth
              ! of the horizon too...
              if(H .eq. nHorizons_mHM) then
-                dpth_f = HorizonDepth(nHorizons_mHM - 1)
+                if (nHorizons_mHM > 1) then
+                   dpth_f = HorizonDepth(nHorizons_mHM - 1)
+                else
+                   ! A single model horizon starts at the surface.
+                   dpth_f = 0.0_dp
+                end if
                 dpth_t = RZdepth(S)
              end if
              ! other soil properties [SMs, FC, PWP in mm]

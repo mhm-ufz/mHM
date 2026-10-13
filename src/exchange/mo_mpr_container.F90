@@ -63,6 +63,7 @@ module mo_mpr_container
     mpr_bridge_pet_penman_monteith, &
     mpr_bridge_setup_soil_database, mpr_bridge_soil_moisture, mpr_bridge_runoff_param, mpr_bridge_karstic_param, &
     mpr_bridge_baseflow_param, mpr_bridge_sealed_threshold
+  use mo_soil_database, only: soil_database_t
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_orderpack, only: sort_index
   use mo_string_utils, only: n2s => num2str
@@ -133,6 +134,7 @@ module mo_mpr_container
   !> \class   mpr_soil_state_t
   !> \brief   Grouped soil LUT configuration plus cached soil-moisture fields and soil-horizon intermediates for MPR.
   type :: mpr_soil_state_t
+    type(soil_database_t) :: db !< Domain-owned soil database.
     character(:), allocatable :: lut_path !< resolved soil LUT path
     real(dp), allocatable :: sm_exponent_cache(:, :, :) !< cached soil moisture exponent (nCells1, nHorizons, nLC)
     real(dp), allocatable :: sm_saturation_cache(:, :, :) !< cached saturated soil moisture (nCells1, nHorizons, nLC)
@@ -2911,7 +2913,7 @@ contains
     if (allocated(self%soil%horizon_bounds)) deallocate(self%soil%horizon_bounds)
     call mpr_bridge_setup_soil_database( &
       self%config, domain_id, self%soil%lut_path, self%exchange%soil_id%data(:, :n_soil_layers), &
-      self%soil%horizon_bounds)
+      self%soil%db, self%soil%horizon_bounds)
   end subroutine mpr_init_soil_horizon_bounds
 
   !> \brief Cache soil-moisture parameter fields on level1 for all land-cover slices.
@@ -2992,7 +2994,7 @@ contains
     do land_cover_idx = 1_i4, self%land_cover%n_periods
       if (neutron_process == 2_i4) then
         call mpr_bridge_soil_moisture( &
-          soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
+          self%soil%db, soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
           self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0_land, self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
           self%soil%sm_saturation_cache(:, :, land_cover_idx), self%soil%sm_field_capacity_cache(:, :, land_cover_idx), &
@@ -3003,7 +3005,7 @@ contains
           neutron_param)
       else if (neutron_process == 1_i4) then
         call mpr_bridge_soil_moisture( &
-          soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
+          self%soil%db, soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
           self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0_land, self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
           self%soil%sm_saturation_cache(:, :, land_cover_idx), self%soil%sm_field_capacity_cache(:, :, land_cover_idx), &
@@ -3013,7 +3015,7 @@ contains
           self%neutron%lattice_water_cache(:, :, land_cover_idx), neutron_param=neutron_param)
       else
         call mpr_bridge_soil_moisture( &
-          soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
+          self%soil%db, soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
           self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0_land, self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
           self%soil%sm_saturation_cache(:, :, land_cover_idx), self%soil%sm_field_capacity_cache(:, :, land_cover_idx), &
@@ -3512,6 +3514,7 @@ contains
     if (allocated(self%soil%ks_var_h_l0)) deallocate(self%soil%ks_var_h_l0)
     if (allocated(self%soil%ks_var_v_l0)) deallocate(self%soil%ks_var_v_l0)
     if (allocated(self%soil%lut_path)) deallocate(self%soil%lut_path)
+    call self%soil%db%destroy()
     if (allocated(self%neutron%desilets_n0_cache)) deallocate(self%neutron%desilets_n0_cache)
     if (allocated(self%neutron%bulk_density_cache)) deallocate(self%neutron%bulk_density_cache)
     if (allocated(self%neutron%lattice_water_cache)) deallocate(self%neutron%lattice_water_cache)
