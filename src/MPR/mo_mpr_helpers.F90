@@ -1,5 +1,5 @@
-!> \file    mo_mpr_legacy_bridge.f90
-!> \copydoc mo_mpr_legacy_bridge
+!> \file    mo_mpr_helpers.f90
+!> \copydoc mo_mpr_helpers
 
 !> \brief   Regionalization helpers for the MPR container.
 !> \details This module isolates the compatibility boundary between the new
@@ -43,7 +43,7 @@
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_exchange
 #include "logging.h"
-module mo_mpr_legacy_bridge
+module mo_mpr_helpers
   use mo_logging
   use mo_common_constants, only: nProcesses
   use mo_constants, only: nodata_dp, nodata_i4
@@ -66,24 +66,24 @@ module mo_mpr_legacy_bridge
 
   real(dp), parameter :: inch_per_hour_to_centimetre_per_day = 60.96_dp
 
-  public :: mpr_bridge_land_cover_fraction
-  public :: mpr_bridge_snow_param
-  public :: mpr_bridge_pet_lai
-  public :: mpr_bridge_pet_aspect
-  public :: mpr_bridge_pet_hargreaves
-  public :: mpr_bridge_pet_priestley_taylor
-  public :: mpr_bridge_pet_penman_monteith
-  public :: mpr_bridge_setup_soil_database
-  public :: mpr_bridge_soil_moisture
-  public :: mpr_bridge_runoff_param
-  public :: mpr_bridge_karstic_param
-  public :: mpr_bridge_baseflow_param
-  public :: mpr_bridge_sealed_threshold
+  public :: mpr_helper_land_cover_fraction
+  public :: mpr_helper_snow_param
+  public :: mpr_helper_pet_lai
+  public :: mpr_helper_pet_aspect
+  public :: mpr_helper_pet_hargreaves
+  public :: mpr_helper_pet_priestley_taylor
+  public :: mpr_helper_pet_penman_monteith
+  public :: mpr_helper_setup_soil_database
+  public :: mpr_helper_soil_moisture
+  public :: mpr_helper_runoff_param
+  public :: mpr_helper_karstic_param
+  public :: mpr_helper_baseflow_param
+  public :: mpr_helper_sealed_threshold
 
 contains
 
   !> \brief Build packed L0 ids and packed L1 coarse bounds in the legacy x/y index convention.
-  subroutine mpr_bridge_build_l0_to_l1_indices(level0, upscaler, id0, upper_bound1, lower_bound1, left_bound1, right_bound1)
+  subroutine mpr_helper_build_l0_to_l1_indices(level0, upscaler, id0, upper_bound1, lower_bound1, left_bound1, right_bound1)
     type(grid_t), intent(in), target :: level0
     class(scaler_t), intent(inout), target :: upscaler
     integer(i4), allocatable, intent(out) :: id0(:)
@@ -114,10 +114,10 @@ contains
       left_bound1(i) = y_lb
       right_bound1(i) = y_ub
     end do
-  end subroutine mpr_bridge_build_l0_to_l1_indices
+  end subroutine mpr_helper_build_l0_to_l1_indices
 
   !> \brief Resolve packed level0 latitude values for legacy PET helpers.
-  subroutine mpr_bridge_get_level0_latitude(level0, latitude_l0)
+  subroutine mpr_helper_get_level0_latitude(level0, latitude_l0)
     type(grid_t), intent(in), target :: level0
     real(dp), allocatable, intent(out) :: latitude_l0(:)
     real(dp), allocatable :: y_axis(:)
@@ -143,10 +143,10 @@ contains
         latitude_l0(i) = y_axis(level0%cell_ij(i, 2))
       end do
     end if
-  end subroutine mpr_bridge_get_level0_latitude
+  end subroutine mpr_helper_get_level0_latitude
 
   !> \brief Initialize the legacy soil database from the new MPR configuration and packed L0 soil ids.
-  subroutine mpr_bridge_setup_soil_database(config, domain, soil_lut_path, soil_id_l0, db, horizon_bounds)
+  subroutine mpr_helper_setup_soil_database(config, domain, soil_lut_path, soil_id_l0, db, horizon_bounds)
     type(nml_config_mpr_t), intent(in) :: config
     integer(i4), intent(in) :: domain
     character(*), intent(in) :: soil_lut_path
@@ -224,10 +224,10 @@ contains
       horizon_bounds(1) = 0.0_dp
       horizon_bounds(2:) = db%horizon_depth(:)
     end if
-  end subroutine mpr_bridge_setup_soil_database
+  end subroutine mpr_helper_setup_soil_database
 
   !> \brief Upscale land-cover fractions from packed L0 ids to packed L1 fractions.
-  subroutine mpr_bridge_land_cover_fraction(upscaler, land_cover_l0, frac_sealed_cityarea, forest_l1, sealed_l1, pervious_l1)
+  subroutine mpr_helper_land_cover_fraction(upscaler, land_cover_l0, frac_sealed_cityarea, forest_l1, sealed_l1, pervious_l1)
     class(scaler_t), intent(inout), target :: upscaler
     integer(i4), dimension(:), intent(in) :: land_cover_l0
     real(dp), intent(in) :: frac_sealed_cityarea
@@ -240,10 +240,10 @@ contains
 
     sealed_l1 = frac_sealed_cityarea * sealed_l1
     pervious_l1 = 1.0_dp - forest_l1 - sealed_l1
-  end subroutine mpr_bridge_land_cover_fraction
+  end subroutine mpr_helper_land_cover_fraction
 
   !> \brief Bridge snow parameter generation through the legacy degree-day routine.
-  subroutine mpr_bridge_snow_param(param, forest_l1, sealed_l1, pervious_l1, thresh_temp_l1, degday_dry_l1, degday_inc_l1, degday_max_l1)
+  subroutine mpr_helper_snow_param(param, forest_l1, sealed_l1, pervious_l1, thresh_temp_l1, degday_dry_l1, degday_inc_l1, degday_max_l1)
     real(dp), dimension(:), intent(in) :: param
     real(dp), dimension(:), intent(in) :: forest_l1
     real(dp), dimension(:), intent(in) :: sealed_l1
@@ -275,10 +275,10 @@ contains
     degday_inc_l1 = param(5)
     degday_dry_l1 = degday_dry_forest * forest_l1 + degday_dry_sealed * sealed_l1 + degday_dry_pervious * pervious_l1
     degday_max_l1 = degday_max_forest * forest_l1 + degday_max_sealed * sealed_l1 + degday_max_pervious * pervious_l1
-  end subroutine mpr_bridge_snow_param
+  end subroutine mpr_helper_snow_param
 
   !> \brief Bridge PET-LAI correction with legacy-compatible formulas on top of the new scaler.
-  subroutine mpr_bridge_pet_lai(param, land_cover_l0, lai_l0, upscaler, pet_fac_lai_l1)
+  subroutine mpr_helper_pet_lai(param, land_cover_l0, lai_l0, upscaler, pet_fac_lai_l1)
     real(dp), dimension(:), intent(in) :: param
     integer(i4), dimension(:), intent(in) :: land_cover_l0
     real(dp), dimension(:), intent(in) :: lai_l0
@@ -316,10 +316,10 @@ contains
 
     call upscaler%execute(pet_fac_lai_l0, pet_fac_lai_l1, upscaling_operator=up_h_mean)
     deallocate(pet_fac_lai_l0)
-  end subroutine mpr_bridge_pet_lai
+  end subroutine mpr_helper_pet_lai
 
   !> \brief Bridge PET aspect correction through the legacy aspect routine.
-  subroutine mpr_bridge_pet_aspect(level0, aspect_l0, param, upscaler, pet_fac_aspect_l1)
+  subroutine mpr_helper_pet_aspect(level0, aspect_l0, param, upscaler, pet_fac_aspect_l1)
     type(grid_t), intent(in), target :: level0
     real(dp), dimension(:), intent(in) :: aspect_l0
     real(dp), dimension(:), intent(in) :: param
@@ -345,7 +345,7 @@ contains
 
     allocate(id0(level0%ncells))
     id0 = [(i, i = 1_i4, level0%ncells)]
-    call mpr_bridge_get_level0_latitude(level0, latitude_l0)
+    call mpr_helper_get_level0_latitude(level0, latitude_l0)
     allocate(pet_fac_aspect_l0(level0%ncells))
 
     call pet_correctbyASP(id0, latitude_l0, max(aspect_l0, 1.0_dp), param(1:3), nodata_dp, pet_fac_aspect_l0)
@@ -354,10 +354,10 @@ contains
     deallocate(id0)
     deallocate(latitude_l0)
     deallocate(pet_fac_aspect_l0)
-  end subroutine mpr_bridge_pet_aspect
+  end subroutine mpr_helper_pet_aspect
 
   !> \brief Bridge Hargreaves-Samani PET coefficients.
-  subroutine mpr_bridge_pet_hargreaves(level0, aspect_l0, param, upscaler, pet_fac_aspect_l1, pet_coeff_hs_l1)
+  subroutine mpr_helper_pet_hargreaves(level0, aspect_l0, param, upscaler, pet_fac_aspect_l1, pet_coeff_hs_l1)
     type(grid_t), intent(in), target :: level0
     real(dp), dimension(:), intent(in) :: aspect_l0
     real(dp), dimension(:), intent(in) :: param
@@ -374,12 +374,12 @@ contains
       error stop 1
     end if
 
-    call mpr_bridge_pet_aspect(level0, aspect_l0, param(1:3), upscaler, pet_fac_aspect_l1)
+    call mpr_helper_pet_aspect(level0, aspect_l0, param(1:3), upscaler, pet_fac_aspect_l1)
     pet_coeff_hs_l1 = param(4)
-  end subroutine mpr_bridge_pet_hargreaves
+  end subroutine mpr_helper_pet_hargreaves
 
   !> \brief Bridge Priestley-Taylor PET coefficients.
-  subroutine mpr_bridge_pet_priestley_taylor(level0, lai_l0, param, upscaler, pet_coeff_pt_l1)
+  subroutine mpr_helper_pet_priestley_taylor(level0, lai_l0, param, upscaler, pet_coeff_pt_l1)
     type(grid_t), intent(in), target :: level0
     real(dp), dimension(:, :), intent(in) :: lai_l0
     real(dp), dimension(:), intent(in) :: param
@@ -408,7 +408,7 @@ contains
       error stop 1
     end if
 
-    call mpr_bridge_build_l0_to_l1_indices(level0, upscaler, id0, upper_bound1, lower_bound1, left_bound1, right_bound1)
+    call mpr_helper_build_l0_to_l1_indices(level0, upscaler, id0, upper_bound1, lower_bound1, left_bound1, right_bound1)
     call priestley_taylor_alpha(lai_l0, param(1:2), level0%mask, nodata_dp, id0, upscaler%n_subcells, &
       upper_bound1, lower_bound1, left_bound1, right_bound1, pet_coeff_pt_l1)
 
@@ -417,10 +417,10 @@ contains
     deallocate(lower_bound1)
     deallocate(left_bound1)
     deallocate(right_bound1)
-  end subroutine mpr_bridge_pet_priestley_taylor
+  end subroutine mpr_helper_pet_priestley_taylor
 
   !> \brief Bridge Penman-Monteith PET resistances.
-  subroutine mpr_bridge_pet_penman_monteith(level0, land_cover_l0, lai_l0, param, upscaler, resist_aero_l1, resist_surf_l1)
+  subroutine mpr_helper_pet_penman_monteith(level0, land_cover_l0, lai_l0, param, upscaler, resist_aero_l1, resist_surf_l1)
     type(grid_t), intent(in), target :: level0
     integer(i4), dimension(:), intent(in) :: land_cover_l0
     real(dp), dimension(:, :), intent(in) :: lai_l0
@@ -450,7 +450,7 @@ contains
       error stop 1
     end if
 
-    call mpr_bridge_build_l0_to_l1_indices(level0, upscaler, id0, upper_bound1, lower_bound1, left_bound1, right_bound1)
+    call mpr_helper_build_l0_to_l1_indices(level0, upscaler, id0, upper_bound1, lower_bound1, left_bound1, right_bound1)
     call aerodynamical_resistance(lai_l0, land_cover_l0, param(1:6), level0%mask, id0, upscaler%n_subcells, &
       upper_bound1, lower_bound1, left_bound1, right_bound1, resist_aero_l1)
     call bulksurface_resistance(lai_l0, param(7), level0%mask, nodata_dp, id0, upscaler%n_subcells, &
@@ -461,10 +461,10 @@ contains
     deallocate(lower_bound1)
     deallocate(left_bound1)
     deallocate(right_bound1)
-  end subroutine mpr_bridge_pet_penman_monteith
+  end subroutine mpr_helper_pet_penman_monteith
 
   !> \brief Bridge soil-moisture parameter generation through the legacy soil routines.
-  subroutine mpr_bridge_soil_moisture(db, soil_case, neutron_case, param, land_cover_l0, soil_id_l0, level0, upscaler, &
+  subroutine mpr_helper_soil_moisture(db, soil_case, neutron_case, param, land_cover_l0, soil_id_l0, level0, upscaler, &
       thresh_jarvis_l1, sm_exponent_l1, sm_saturation_l1, sm_field_capacity_l1, wilting_point_l1, f_roots_l1, &
       sm_deficit_fc_l0, ks_var_h_l0, ks_var_v_l0, bulk_density_l1, lattice_water_l1, cosmic_l3_l1, neutron_param)
     type(soil_database_t), intent(in) :: db !< Owning domain soil database.
@@ -752,10 +752,10 @@ contains
     deallocate(lower_bound1)
     deallocate(left_bound1)
     deallocate(right_bound1)
-  end subroutine mpr_bridge_soil_moisture
+  end subroutine mpr_helper_soil_moisture
 
   !> \brief Bridge runoff/interflow parameter generation with legacy mpr_runoff.
-  subroutine mpr_bridge_runoff_param(land_cover_l0, slope_emp_l0, sm_deficit_fc_l0, ks_var_h_l0, level0, upscaler, &
+  subroutine mpr_helper_runoff_param(land_cover_l0, slope_emp_l0, sm_deficit_fc_l0, ks_var_h_l0, level0, upscaler, &
       param, thresh_unsat_l1, k_fastflow_l1, k_slowflow_l1, alpha_l1)
     integer(i4), dimension(:), intent(in) :: land_cover_l0
     real(dp), dimension(:), intent(in) :: slope_emp_l0
@@ -820,10 +820,10 @@ contains
     deallocate(lower_bound1)
     deallocate(left_bound1)
     deallocate(right_bound1)
-  end subroutine mpr_bridge_runoff_param
+  end subroutine mpr_helper_runoff_param
 
   !> \brief Bridge percolation and karst-loss parameter generation with legacy-compatible formulas.
-  subroutine mpr_bridge_karstic_param(param, geo_unit_l0, geo_unit_list, geo_karstic, sm_deficit_fc_l0, ks_var_v_l0, &
+  subroutine mpr_helper_karstic_param(param, geo_unit_l0, geo_unit_list, geo_karstic, sm_deficit_fc_l0, ks_var_v_l0, &
       upscaler, f_karst_loss_l1, k_percolation_l1)
     real(dp), dimension(:), intent(in) :: param
     integer(i4), dimension(:), intent(in) :: geo_unit_l0
@@ -871,10 +871,10 @@ contains
     deallocate(percolation_l0)
     deallocate(karst_fraction_l1)
     deallocate(karst_class_fraction_l1)
-  end subroutine mpr_bridge_karstic_param
+  end subroutine mpr_helper_karstic_param
 
   !> \brief Bridge the sealed-surface runoff threshold parameter.
-  subroutine mpr_bridge_sealed_threshold(param, thresh_sealed_l1)
+  subroutine mpr_helper_sealed_threshold(param, thresh_sealed_l1)
     real(dp), dimension(:), intent(in) :: param
     real(dp), dimension(:), intent(out) :: thresh_sealed_l1
 
@@ -883,10 +883,10 @@ contains
       error stop 1
     end if
     thresh_sealed_l1 = param(1)
-  end subroutine mpr_bridge_sealed_threshold
+  end subroutine mpr_helper_sealed_threshold
 
   !> \brief Bridge geological baseflow parameter generation with legacy-compatible class mapping.
-  subroutine mpr_bridge_baseflow_param(param, geo_unit_l0, geo_unit_list, geo_param_index, upscaler, k_baseflow_l1)
+  subroutine mpr_helper_baseflow_param(param, geo_unit_l0, geo_unit_list, geo_param_index, upscaler, k_baseflow_l1)
     real(dp), dimension(:), intent(in) :: param
     integer(i4), dimension(:), intent(in) :: geo_unit_l0
     integer(i4), dimension(:), intent(in) :: geo_unit_list
@@ -925,6 +925,6 @@ contains
 
     call upscaler%execute(baseflow_l0, k_baseflow_l1, upscaling_operator=up_a_mean)
     deallocate(baseflow_l0)
-  end subroutine mpr_bridge_baseflow_param
+  end subroutine mpr_helper_baseflow_param
 
-end module mo_mpr_legacy_bridge
+end module mo_mpr_helpers

@@ -58,11 +58,11 @@ module mo_mpr_container
   use mo_grid, only: grid_t, cartesian, spherical
   use mo_grid_io, only: input_dataset, start_timestamp, no_time, daily, monthly, yearly, varying, var
   use mo_grid_scaler, only: scaler_t, up_a_mean
-  use mo_mpr_legacy_bridge, only: mpr_bridge_land_cover_fraction, mpr_bridge_snow_param, mpr_bridge_pet_lai, &
-    mpr_bridge_pet_aspect, mpr_bridge_pet_hargreaves, mpr_bridge_pet_priestley_taylor, &
-    mpr_bridge_pet_penman_monteith, &
-    mpr_bridge_setup_soil_database, mpr_bridge_soil_moisture, mpr_bridge_runoff_param, mpr_bridge_karstic_param, &
-    mpr_bridge_baseflow_param, mpr_bridge_sealed_threshold
+  use mo_mpr_helpers, only: mpr_helper_land_cover_fraction, mpr_helper_snow_param, mpr_helper_pet_lai, &
+    mpr_helper_pet_aspect, mpr_helper_pet_hargreaves, mpr_helper_pet_priestley_taylor, &
+    mpr_helper_pet_penman_monteith, &
+    mpr_helper_setup_soil_database, mpr_helper_soil_moisture, mpr_helper_runoff_param, mpr_helper_karstic_param, &
+    mpr_helper_baseflow_param, mpr_helper_sealed_threshold
   use mo_soil_database, only: soil_database_t
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_orderpack, only: sort_index
@@ -2410,7 +2410,7 @@ contains
     allocate(self%land_cover%pervious_fraction_l1(self%exchange%level1_land%ncells, self%land_cover%n_periods))
 
     do land_cover_idx = 1_i4, self%land_cover%n_periods
-      call mpr_bridge_land_cover_fraction( &
+      call mpr_helper_land_cover_fraction( &
         self%upscaler, self%land_cover%l0_cache(:, land_cover_idx), frac_sealed_cityarea, &
         self%land_cover%forest_fraction_l1(:, land_cover_idx), &
         self%land_cover%sealed_fraction_l1(:, land_cover_idx), &
@@ -2713,7 +2713,7 @@ contains
     allocate(self%snow%degday_max_cache(self%exchange%level1_land%ncells, self%land_cover%n_periods))
 
     do land_cover_idx = 1_i4, self%land_cover%n_periods
-      call mpr_bridge_snow_param( &
+      call mpr_helper_snow_param( &
         snow_param, &
         self%land_cover%forest_fraction_l1(:, land_cover_idx), &
         self%land_cover%sealed_fraction_l1(:, land_cover_idx), &
@@ -2766,7 +2766,7 @@ contains
 
     if (allocated(self%pet%pet_fac_aspect_cache)) deallocate(self%pet%pet_fac_aspect_cache)
     allocate(self%pet%pet_fac_aspect_cache(self%exchange%level1_land%ncells))
-    call mpr_bridge_pet_aspect(self%exchange%level0_land, self%exchange%aspect%data, pet_param, self%upscaler, &
+    call mpr_helper_pet_aspect(self%exchange%level0_land, self%exchange%aspect%data, pet_param, self%upscaler, &
       self%pet%pet_fac_aspect_cache)
 
   end subroutine mpr_init_pet_aspect_cache
@@ -2790,7 +2790,7 @@ contains
     if (allocated(self%pet%pet_coeff_hs_cache)) deallocate(self%pet%pet_coeff_hs_cache)
     allocate(self%pet%pet_fac_aspect_cache(self%exchange%level1_land%ncells))
     allocate(self%pet%pet_coeff_hs_cache(self%exchange%level1_land%ncells))
-    call mpr_bridge_pet_hargreaves(self%exchange%level0_land, self%exchange%aspect%data, pet_param, self%upscaler, &
+    call mpr_helper_pet_hargreaves(self%exchange%level0_land, self%exchange%aspect%data, pet_param, self%upscaler, &
       self%pet%pet_fac_aspect_cache, self%pet%pet_coeff_hs_cache)
 
   end subroutine mpr_init_pet_hargreaves_cache
@@ -2820,7 +2820,7 @@ contains
     allocate(self%pet%pet_fac_lai_cache(self%exchange%level1_land%ncells, self%lai%n_periods, self%land_cover%n_periods))
     do land_cover_idx = 1_i4, self%land_cover%n_periods
       do lai_idx = 1_i4, self%lai%n_periods
-        call mpr_bridge_pet_lai( &
+        call mpr_helper_pet_lai( &
           pet_param, self%land_cover%l0_cache(:, land_cover_idx), self%lai%l0_cache(:, lai_idx), &
           self%upscaler, self%pet%pet_fac_lai_cache(:, lai_idx, land_cover_idx))
       end do
@@ -2845,7 +2845,7 @@ contains
 
     if (allocated(self%pet%pet_coeff_pt_cache)) deallocate(self%pet%pet_coeff_pt_cache)
     allocate(self%pet%pet_coeff_pt_cache(self%exchange%level1_land%ncells, self%lai%n_periods))
-    call mpr_bridge_pet_priestley_taylor(self%exchange%level0_land, self%lai%l0_cache, pet_param, self%upscaler, &
+    call mpr_helper_pet_priestley_taylor(self%exchange%level0_land, self%lai%l0_cache, pet_param, self%upscaler, &
       self%pet%pet_coeff_pt_cache)
 
   end subroutine mpr_init_pet_priestley_taylor_cache
@@ -2878,7 +2878,7 @@ contains
     allocate(resist_surf_l1(self%exchange%level1_land%ncells, self%lai%n_periods))
 
     do land_cover_idx = 1_i4, self%land_cover%n_periods
-      call mpr_bridge_pet_penman_monteith(self%exchange%level0_land, self%land_cover%l0_cache(:, land_cover_idx), &
+      call mpr_helper_pet_penman_monteith(self%exchange%level0_land, self%land_cover%l0_cache(:, land_cover_idx), &
         self%lai%l0_cache, pet_param, self%upscaler, self%pet%resist_aero_cache(:, :, land_cover_idx), resist_surf_l1)
       if (land_cover_idx == 1_i4) self%pet%resist_surf_cache = resist_surf_l1
     end do
@@ -2911,7 +2911,7 @@ contains
     n_soil_layers = 1_i4
     if (self%config%soil_db_mode(domain_id) == 1_i4) n_soil_layers = n_layers
     if (allocated(self%soil%horizon_bounds)) deallocate(self%soil%horizon_bounds)
-    call mpr_bridge_setup_soil_database( &
+    call mpr_helper_setup_soil_database( &
       self%config, domain_id, self%soil%lut_path, self%exchange%soil_id%data(:, :n_soil_layers), &
       self%soil%db, self%soil%horizon_bounds)
   end subroutine mpr_init_soil_horizon_bounds
@@ -2993,7 +2993,7 @@ contains
     ! Cache one soil/neutron slice per land-cover period so runtime updates only switch the active slice.
     do land_cover_idx = 1_i4, self%land_cover%n_periods
       if (neutron_process == 2_i4) then
-        call mpr_bridge_soil_moisture( &
+        call mpr_helper_soil_moisture( &
           self%soil%db, soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
           self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0_land, self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
@@ -3004,7 +3004,7 @@ contains
           self%neutron%lattice_water_cache(:, :, land_cover_idx), self%neutron%cosmic_l3_cache(:, :, land_cover_idx), &
           neutron_param)
       else if (neutron_process == 1_i4) then
-        call mpr_bridge_soil_moisture( &
+        call mpr_helper_soil_moisture( &
           self%soil%db, soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
           self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0_land, self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
@@ -3014,7 +3014,7 @@ contains
           self%soil%ks_var_v_l0(:, land_cover_idx), self%neutron%bulk_density_cache(:, :, land_cover_idx), &
           self%neutron%lattice_water_cache(:, :, land_cover_idx), neutron_param=neutron_param)
       else
-        call mpr_bridge_soil_moisture( &
+        call mpr_helper_soil_moisture( &
           self%soil%db, soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
           self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0_land, self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
@@ -3058,7 +3058,7 @@ contains
       allocate(self%runoff%thresh_unsat_cache(self%exchange%level1_land%ncells))
       call self%load_process_params("interflow", interflow_param)
       do land_cover_idx = 1_i4, self%land_cover%n_periods
-        call mpr_bridge_runoff_param( &
+        call mpr_helper_runoff_param( &
           self%land_cover%l0_cache(:, land_cover_idx), self%preproc%slope_emp, self%soil%sm_deficit_fc_l0(:, land_cover_idx), &
           self%soil%ks_var_h_l0(:, land_cover_idx), self%exchange%level0_land, self%upscaler, interflow_param, &
           self%runoff%thresh_unsat_cache, self%runoff%k_fastflow_cache(:, land_cover_idx), &
@@ -3071,7 +3071,7 @@ contains
       allocate(self%runoff%f_karst_loss_cache(self%exchange%level1_land%ncells))
       call self%load_process_params("percolation", percolation_param)
       do land_cover_idx = 1_i4, self%land_cover%n_periods
-        call mpr_bridge_karstic_param( &
+        call mpr_helper_karstic_param( &
           percolation_param, self%exchange%geo_unit%data, self%exchange%geo_class_def%geo_unit, &
           self%exchange%geo_class_def%geo_karstic, self%soil%sm_deficit_fc_l0(:, land_cover_idx), &
           self%soil%ks_var_v_l0(:, land_cover_idx), self%upscaler, self%runoff%f_karst_loss_cache, &
@@ -3082,13 +3082,13 @@ contains
     if (self%exchange%config%processes%direct_runoff /= 0_i4) then
       allocate(self%runoff%thresh_sealed_cache(self%exchange%level1_land%ncells))
       call self%load_process_params("direct_runoff", direct_runoff_param)
-      call mpr_bridge_sealed_threshold(direct_runoff_param, self%runoff%thresh_sealed_cache)
+      call mpr_helper_sealed_threshold(direct_runoff_param, self%runoff%thresh_sealed_cache)
     end if
 
     if (self%exchange%config%processes%baseflow /= 0_i4) then
       allocate(self%runoff%k_baseflow_cache(self%exchange%level1_land%ncells, self%land_cover%n_periods))
       call self%load_process_params("baseflow", baseflow_param)
-      call mpr_bridge_baseflow_param( &
+      call mpr_helper_baseflow_param( &
         baseflow_param, self%exchange%geo_unit%data, self%exchange%geo_class_def%geo_unit, &
         self%exchange%geo_class_def%geo_param_index, self%upscaler, &
         self%runoff%k_baseflow_cache(:, 1))
