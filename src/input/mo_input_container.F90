@@ -1,11 +1,3 @@
-!> \dir src/input
-!> \brief \copybrief f_input
-!> \details \copydetails f_input
-
-!> \defgroup   f_input input - Fortran modules
-!> \brief      Input configuration and publication.
-!> \details    The input container reads domain data and publishes fields and spatial support through the exchange.
-
 !> \file    mo_input_container.f90
 !> \brief   \copybrief mo_input_container
 !> \details \copydetails mo_input_container

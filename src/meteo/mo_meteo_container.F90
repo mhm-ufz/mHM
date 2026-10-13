@@ -1,11 +1,3 @@
-!> \dir src/meteo
-!> \brief \copybrief f_meteo
-!> \details \copydetails f_meteo
-
-!> \defgroup   f_meteo Meteo - Fortran modules
-!> \brief      Core modules for meteorological forcings.
-!> \details    The meteo container, spatial and temporal remapping algorithms, and disaggregation weights reader.
-
 !> \file    mo_meteo_container.f90
 !> \copydoc mo_meteo_container
 

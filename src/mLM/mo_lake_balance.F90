@@ -1,10 +1,3 @@
-!> \dir src/mLM
-!> \copydoc f_mLM
-
-!> \defgroup   f_mLM mLM - Fortran modules
-!> \brief      Modules for lake-process topology, forcing, and balance calculations.
-!> \details    Reusable lake logic shared by the mLM and meteorology exchange containers.
-
 !> \file    mo_lake_balance.f90
 !> \copydoc mo_lake_balance
 

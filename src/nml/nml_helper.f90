@@ -1,10 +1,3 @@
-!> \dir src/nml
-!> \copydoc f_namelists
-
-!> \defgroup   f_namelists Namelists - Fortran modules
-!> \brief      Modules for namelist handling in mHM.
-!> \details    These modules provide functionalities to read, write, and manage namelists used in the mHM hydrological model.
-
 !> \file nml_helper.f90
 !> \copydoc nml_helper
 

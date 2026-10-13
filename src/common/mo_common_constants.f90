@@ -1,11 +1,3 @@
-!> \dir src/common
-!> \brief \copybrief f_common
-!> \details \copydetails f_common
-
-!> \defgroup   f_common common - Fortran modules
-!> \brief      Common modules used by the mHM components.
-!> \details    Shared constants, message verbosity support, and compiled version metadata.
-
 !> \file mo_common_constants.f90
 !> \brief \copybrief mo_common_constants
 !> \details \copydetails mo_common_constants

@@ -1,11 +1,3 @@
-!> \dir src/domain
-!> \brief \copybrief f_domain
-!> \details \copydetails f_domain
-
-!> \defgroup   f_domain domain - Fortran modules
-!> \brief      Domain orchestration, exchange contracts, and parameter configuration.
-!> \details    Domain lifecycle management, exchanged fields, parameter namelists, and the sealed runtime parameter registry.
-
 !> \file    mo_exchange_type.f90
 !> \copydoc mo_exchange_type
 

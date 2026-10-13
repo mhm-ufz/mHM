@@ -5,6 +5,118 @@
 */
 
 /**
+\dir src/domain
+\brief \copybrief f_domain
+\details \copydetails f_domain
+*/
+
+/**
+\defgroup   f_domain domain - Fortran modules
+\brief      Domain orchestration, exchange contracts, and parameter configuration.
+\details    Domain lifecycle management, exchanged fields, parameter namelists, and the sealed runtime parameter registry.
+*/
+
+/**
+\dir src/input
+\brief \copybrief f_input
+\details \copydetails f_input
+*/
+
+/**
+\defgroup   f_input input - Fortran modules
+\brief      Input configuration and publication.
+\details    The input container reads domain data and publishes fields and spatial support through the exchange.
+*/
+
+/**
+\dir src/MPR
+\brief \copybrief f_mpr
+\details \copydetails f_mpr
+*/
+
+/**
+\defgroup   f_mpr MPR - Fortran modules
+\brief      Core modules of Multiscale Parameter Regionalization.
+\details    The MPR container, regionalization kernels, lookup tables, and domain-owned soil database.
+*/
+
+/**
+\dir src/meteo
+\brief \copybrief f_meteo
+\details \copydetails f_meteo
+*/
+
+/**
+\defgroup   f_meteo Meteo - Fortran modules
+\brief      Core modules for meteorological forcings.
+\details    The meteo container, spatial and temporal remapping algorithms, and disaggregation weights reader.
+*/
+
+/**
+\dir src/mHM
+\brief \copybrief f_mhm
+\details \copydetails f_mhm
+*/
+
+/**
+\defgroup   f_mhm mHM - Fortran modules
+\brief      Core modules of mHM.
+\details    The hydrology container, hydrological process kernels, and associated constants.
+*/
+
+/**
+\dir src/mLM
+\copydoc f_mLM
+*/
+
+/**
+\defgroup   f_mLM mLM - Fortran modules
+\brief      Modules for lake-process topology, forcing, and balance calculations.
+\details    Reusable lake logic shared by the mLM and meteorology exchange containers.
+*/
+
+/**
+\dir src/mRM
+\brief \copybrief f_mrm
+\details \copydetails f_mrm
+*/
+
+/**
+\defgroup   f_mrm mRM - Fortran modules
+\brief      Core modules of mRM.
+\details    The routing container, river network topology, routing and temperature kernels, and upscaling tools.
+*/
+
+/**
+\dir src/common
+\brief \copybrief f_common
+\details \copydetails f_common
+*/
+
+/**
+\defgroup   f_common common - Fortran modules
+\brief      Common modules used by the mHM components.
+\details    Shared constants, message verbosity support, and compiled version metadata.
+*/
+
+/**
+\dir src/nml
+\copydoc f_namelists
+*/
+
+/**
+\defgroup   f_namelists Namelists - Fortran modules
+\brief      Modules for namelist handling in mHM.
+\details    These modules provide functionalities to read, write, and manage namelists used in the mHM hydrological model.
+*/
+
+/**
+\dir pybind
+\brief mHM Python packaging and bindings.
+\details Build and distribution infrastructure, Python version metadata, and example-domain downloads.
+*/
+
+/**
 \dir pybind/src
 \brief Fortran wrapper and Python package sources.
 \details Version bindings and the Python distribution of mHM.
@@ -14,4 +126,16 @@
 \dir pybind/src/mhm
 \brief mHM Python package.
 \details Python and Fortran version metadata and example-domain downloads.
+*/
+
+/**
+\dir doc
+\brief mHM documentation.
+\details Scientific overview, build and run guidance, publications, release history, and namelist references.
+*/
+
+/**
+\dir doc/nml
+\brief Namelist reference documentation.
+\details Schema-generated configuration, parameter, and output namelist references.
 */
