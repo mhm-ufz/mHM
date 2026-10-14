@@ -1,6 +1,5 @@
 !> \file mo_mpr_soilmoist.f90
-!> \brief \copybrief mo_mpr_soilmoist
-!> \details \copydetails mo_mpr_soilmoist
+!> \copydoc mo_mpr_soilmoist
 
 !> \brief Multiscale parameter regionalization (MPR) for soil moisture
 !> \details This module contains all routines required for parametrizing soil moisture processes.
@@ -46,33 +45,6 @@ contains
   !>       - param(10) = PTF_Ks_constant
   !>       - param(11) = PTF_Ks_sand
   !>       - param(12) = PTF_Ks_clay
-  !>       - param(13) = PTF_Ks_curveSlope
-
-  !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(13) :: param"           global parameters
-  !>       \param[in] "integer(i4), dimension(:) :: is_present"    indicates whether soiltype is present
-  !>       \param[in] "integer(i4), dimension(:) :: nHorizons"     Number of Horizons per soiltype
-  !>       \param[in] "integer(i4), dimension(:) :: nTillHorizons" Number of Tillage Horizons
-  !>       \param[in] "real(dp), dimension(:, :) :: sand"          sand content
-  !>       \param[in] "real(dp), dimension(:, :) :: clay"          clay content
-  !>       \param[in] "real(dp), dimension(:, :) :: DbM"           mineral Bulk density
-  !>       \param[in] "integer(i4), dimension(:) :: ID0"           cell ids at level 0
-  !>       \param[in] "integer(i4), dimension(:, :) :: soilId0"    soil ids at level 0
-  !>       \param[in] "integer(i4), dimension(:) :: LCOVER0"       land cover ids at level 0
-
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp), dimension(:, :, :) :: thetaS_till"  saturated soil moisture tillage layer
-  !>       \param[out] "real(dp), dimension(:, :, :) :: thetaFC_till" field capacity tillage layer
-  !>       \param[out] "real(dp), dimension(:, :, :) :: thetaPW_till" permanent wilting point tillage layer
-  !>       \param[out] "real(dp), dimension(:, :) :: thetaS"          saturated soil moisture
-  !>       \param[out] "real(dp), dimension(:, :) :: thetaFC"         field capacity
-  !>       \param[out] "real(dp), dimension(:, :) :: thetaPW"         permanent wilting point
-  !>       \param[out] "real(dp), dimension(:, :, :) :: Ks"           saturated hydraulic conductivity
-  !>       \param[out] "real(dp), dimension(:, :, :) :: Db"           Bulk density
-  !>       \param[out] "real(dp), dimension(:) :: KsVar_H0"           rel. var. of Ks for horizontal flow
-  !>       \param[out] "real(dp), dimension(:) :: KsVar_V0"           rel. var. of Ks for vertical flow
-  !>       \param[out] "real(dp), dimension(:) :: SMs_FC0"            soil mositure deficit from
-  !>       field cap. w.r.t to saturation
 
   !    HISTORY
   !>       \authors Stephan Thober, Rohini Kumar
@@ -97,85 +69,33 @@ contains
   ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
   ! Rohini Kumar                    Oct 2021 - Neutron count module to mHM integrate into develop branch (5.11.2)
 
-  subroutine mpr_sm(soil_db_mode, param, processMatrix, is_present, nHorizons, nTillHorizons, sand, clay, DbM, ID0, soilId0, LCover0, &
+  subroutine mpr_sm(soil_db_mode, param, soil_case, is_present, nHorizons, nTillHorizons, sand, clay, DbM, soilId0, LCover0, &
                    thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
-
-    use mo_constants, only : nodata_dp, nodata_i4
-    use mo_mpr_constants, only : BulkDens_OrgMatter
-
-    !$ use omp_lib
-
+    use mo_constants, only: nodata_dp
+    use mo_mpr_constants, only: BulkDens_OrgMatter, inch_per_hour_to_centimetre_per_day
     implicit none
-
-    integer(i4), intent(in) :: soil_db_mode !< Domain soil database layout selector.
-
-    ! global parameters
-    real(dp), dimension(13), intent(in) :: param
-
-    ! - matrix specifying user defined processes
-    integer(i4), dimension(:, :), intent(in) :: processMatrix
-
-
-    ! indicates whether soiltype is present
-    integer(i4), dimension(:), intent(in) :: is_present
-
-    ! Number of Horizons per soiltype
-    integer(i4), dimension(:), intent(in) :: nHorizons
-
-    ! Number of Tillage Horizons
-    integer(i4), dimension(:), intent(in) :: nTillHorizons
-
-    ! sand content
-    real(dp), dimension(:, :), intent(in) :: sand
-
-    ! clay content
-    real(dp), dimension(:, :), intent(in) :: clay
-
-    ! mineral Bulk density
-    real(dp), dimension(:, :), intent(in) :: DbM
-
-    ! cell ids at level 0
-    integer(i4), dimension(:), intent(in) :: ID0
-
-    ! soil ids at level 0
-    integer(i4), dimension(:, :), intent(in) :: soilId0
-
-    ! land cover ids at level 0
-    integer(i4), dimension(:), intent(in) :: LCOVER0
-
-    ! saturated soil moisture tillage layer
-    real(dp), dimension(:, :, :), intent(out) :: thetaS_till
-
-    ! field capacity tillage layer
-    real(dp), dimension(:, :, :), intent(out) :: thetaFC_till
-
-    ! permanent wilting point tillage layer
-    real(dp), dimension(:, :, :), intent(out) :: thetaPW_till
-
-    ! saturated soil moisture
-    real(dp), dimension(:, :), intent(out) :: thetaS
-
-    ! field capacity
-    real(dp), dimension(:, :), intent(out) :: thetaFC
-
-    ! permanent wilting point
-    real(dp), dimension(:, :), intent(out) :: thetaPW
-
-    ! saturated hydraulic conductivity
-    real(dp), dimension(:, :, :), intent(out) :: Ks
-
-    ! Bulk density
-    real(dp), dimension(:, :, :), intent(out) :: Db
-
-    ! rel. var. of Ks for horizontal flow
-    real(dp), dimension(:), intent(out) :: KsVar_H0
-
-    ! rel. var. of Ks for vertical flow
-    real(dp), dimension(:), intent(out) :: KsVar_V0
-
-    ! soil mositure deficit from
-    ! field cap. w.r.t to saturation
-    real(dp), dimension(:), intent(out) :: SMs_FC0
+    integer(i4), intent(in) :: soil_db_mode !< Soil database layout selector.
+    real(dp), intent(in) :: param(12) !< Organic matter and pedotransfer parameters in registry order.
+    integer(i4), intent(in) :: soil_case !< Soil-moisture process case, 1 through 4.
+    integer(i4), intent(in) :: is_present(:) !< Soil classes present in this domain.
+    integer(i4), intent(in) :: nHorizons(:) !< Horizons per soil class.
+    integer(i4), intent(in) :: nTillHorizons(:) !< Tillage horizons per soil class.
+    real(dp), intent(in) :: sand(:, :) !< Sand content [%].
+    real(dp), intent(in) :: clay(:, :) !< Clay content [%].
+    real(dp), intent(in) :: DbM(:, :) !< Mineral bulk density [g/cm3].
+    integer(i4), intent(in) :: soilId0(:, :) !< Packed soil classes by input horizon.
+    integer(i4), intent(in) :: LCover0(:) !< Packed land-cover classes.
+    real(dp), intent(out) :: thetaS_till(:, :, :) !< Tillage saturation by soil, horizon, and land cover.
+    real(dp), intent(out) :: thetaFC_till(:, :, :) !< Tillage field capacity.
+    real(dp), intent(out) :: thetaPW_till(:, :, :) !< Tillage permanent wilting point.
+    real(dp), intent(out) :: thetaS(:, :) !< Non-tillage saturation.
+    real(dp), intent(out) :: thetaFC(:, :) !< Non-tillage field capacity.
+    real(dp), intent(out) :: thetaPW(:, :) !< Non-tillage permanent wilting point.
+    real(dp), intent(out) :: Ks(:, :, :) !< Hydraulic conductivity [cm/day].
+    real(dp), intent(out) :: Db(:, :, :) !< Land-cover-dependent bulk density [g/cm3].
+    real(dp), intent(out) :: KsVar_H0(:) !< Packed horizontal conductivity variability.
+    real(dp), intent(out) :: KsVar_V0(:) !< Packed vertical conductivity variability.
+    real(dp), intent(out) :: SMs_FC0(:) !< Packed saturation deficit relative to field capacity.
 
     ! loop index
     integer(i4) :: i
@@ -221,7 +141,7 @@ contains
 
     ! Case 1 and 4 is based on Jarvis https://doi.org/10.1016/0022-1694(89)90050-4
     ! Case 2 and 3 is based on Feddes https://doi.org/10.1016/0022-1694(76)90017-2
-    select case (processMatrix(3, 1))
+    select case (soil_case)
     case(1,2)
        tmp_orgMatterContent_forest = param(3) + param(1)
     case(3,4)
@@ -238,7 +158,7 @@ contains
 
     ! allocatable local variables
     ! total saturated soil moisture content
-    allocate(SMs_tot0(size(ID0, 1)))
+    allocate(SMs_tot0(size(LCover0)))
 
     ! some additional variables for iFlag_soil = 1
     if(soil_db_mode .eq. 1) then
@@ -249,10 +169,10 @@ contains
     end if
 
     ! initializing soil hydraulic properties related params
-    KsVar_H0 = merge(0.0_dp, nodata_dp, ID0 .ne. nodata_i4)
-    KsVar_V0 = merge(0.0_dp, nodata_dp, ID0 .ne. nodata_i4)
-    SMs_tot0 = merge(0.0_dp, nodata_dp, ID0 .ne. nodata_i4)
-    SMs_FC0 = merge(0.0_dp, nodata_dp, ID0 .ne. nodata_i4)
+    KsVar_H0 = 0.0_dp
+    KsVar_V0 = 0.0_dp
+    SMs_tot0 = 0.0_dp
+    SMs_FC0 = 0.0_dp
 
     ! initialization
     thetaS_till = 0.0_dp
@@ -277,7 +197,7 @@ contains
         if (is_present(i) .lt. 1) cycle
         horizon : do j = 1, nHorizons(i)
           ! calculating vertical hydraulic conductivity
-          call hydro_cond(Ks_tmp, param(10 : 13), sand(i, j), clay(i, j))
+          call hydro_cond(Ks_tmp, param(10 : 12), sand(i, j), clay(i, j))
           Ks(i, j, :) = Ks_tmp
           ! calculating other soil hydraulic properties
           ! tillage horizons
@@ -354,8 +274,8 @@ contains
         SMs_FC0(i) = (SMs_tot0(i) - SMs_FC0(i)) / SMs_tot0(i)
         ! Ks variability over the whole soil coloum depth for
         ! both horizontal and vertical flows including relative variabilities
-        KsVar_H0(i) = KsVar_H0(i) / SMs_tot0(i) / param(13)
-        KsVar_V0(i) = SMs_tot0(i) / KsVar_V0(i) / param(13)
+        KsVar_H0(i) = KsVar_H0(i) / SMs_tot0(i) / inch_per_hour_to_centimetre_per_day
+        KsVar_V0(i) = SMs_tot0(i) / KsVar_V0(i) / inch_per_hour_to_centimetre_per_day
       end do cellloop
       !$OMP END DO
       !$OMP END PARALLEL
@@ -369,7 +289,7 @@ contains
         ! but we assign of j = 1 to use variables as defined in the classical option (iFlag_soil = 0)
         do j = 1, 1
           ! calculating vertical hydraulic conductivity
-          call hydro_cond(Ks_tmp, param(10 : 13), sand(i, j), clay(i, j))
+          call hydro_cond(Ks_tmp, param(10 : 12), sand(i, j), clay(i, j))
           Ks_non_till(i, j) = Ks_tmp  ! >> non-till
           Ks(i, j, :) = Ks_tmp  ! >> till layers
           ! calculating other soil hydraulic properties
@@ -417,6 +337,7 @@ contains
       end do   ! >> SOIL TYPE
 
       ! calculate other soil properties at each location [L0] for regionalising model parameters
+      !$omp parallel do default(shared) private(s,j) schedule(static)
       do i = 1, size(soilId0, 1)     !! over all cells
         do j = 1, size(soilId0, 2)  !! over horizons
           s = soilId0(i, j)
@@ -442,9 +363,10 @@ contains
         SMs_FC0(i) = (SMs_tot0(i) - SMs_FC0(i)) / SMs_tot0(i)
         ! Ks variability over the whole soil coloum depth for
         ! both horizontal and vertical flows including relative variabilities
-        KsVar_H0(i) = KsVar_H0(i) / SMs_tot0(i) / param(13)
-        KsVar_V0(i) = SMs_tot0(i) / KsVar_V0(i) / param(13)
+        KsVar_H0(i) = KsVar_H0(i) / SMs_tot0(i) / inch_per_hour_to_centimetre_per_day
+        KsVar_V0(i) = SMs_tot0(i) / KsVar_V0(i) / inch_per_hour_to_centimetre_per_day
       end do
+      !$omp end parallel do
 
     CASE DEFAULT
       call error_message('***ERROR: soil_db_mode option given does not exist. Only 0 and 1 is taken at the moment.')
@@ -679,21 +601,29 @@ contains
 
     ! hard coded limits, according to (Zacharias et al, 2007, soil Phy.)
     if (thetaS < 0.01_dp) then
+      !$omp critical (mpr_diagnostics)
       call message('thetaS below threshold limit 1e-2, reset.')
+      !$omp end critical (mpr_diagnostics)
       ! Put constrains on theta_S
       thetaS = 0.01_dp
     end if
     if (thetaS > 1.0_dp) then
+      !$omp critical (mpr_diagnostics)
       call message('thetaS above 1, reset.')
+      !$omp end critical (mpr_diagnostics)
       ! Put constrains on theta_S
       thetaS = 1.0_dp
     end if
     if (Genu_Mual_n < 1.01000_dp) then
+      !$omp critical (mpr_diagnostics)
       call message('Genu_Mual_n below threshold limit 1.01, reset.')
+      !$omp end critical (mpr_diagnostics)
       Genu_Mual_n = 1.01000_dp
     end if
     if (Genu_Mual_alpha < 0.00001_dp) then
+      !$omp critical (mpr_diagnostics)
       call message('Genu_Mual_alpha below threshold limit 1e-5, reset.')
+      !$omp end critical (mpr_diagnostics)
       Genu_Mual_alpha = 0.00001_dp
     end if
 
@@ -713,17 +643,12 @@ contains
   !>       - param(1) = PTF_Ks_constant
   !>       - param(2) = PTF_Ks_sand
   !>       - param(3) = PTF_Ks_clay
-  !>       - param(4) = PTF_Ks_curveSlope
   !>       ADDITIONAL INFORMATION
   !>       Written,  Stephan Thober, Dec 2012
 
   !    INTENT(OUT)
-  !>       \param[out] "real(dp) :: KS"
 
   !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(4) :: param"
-  !>       \param[in] "real(dp) :: sand"                - [%] sand content
-  !>       \param[in] "real(dp) :: clay"                - [%] clay content
 
   !    HISTORY
   !>       \authors Stephan Thober, Rohini Kumar
@@ -737,19 +662,19 @@ contains
 
   subroutine hydro_cond(KS, param, sand, clay)
 
-    use mo_mpr_constants, only : Ks_c
+    use mo_mpr_constants, only : Ks_c, inch_per_hour_to_centimetre_per_day
 
     implicit none
 
-    real(dp), dimension(4), intent(in) :: param
+    real(dp), intent(in) :: param(3) !< Conductivity PTF constant, sand, and clay coefficients.
 
     ! - [%] sand content
-    real(dp), intent(in) :: sand
+    real(dp), intent(in) :: sand !< Sand content [%].
 
     ! - [%] clay content
-    real(dp), intent(in) :: clay
+    real(dp), intent(in) :: clay !< Clay content [%].
 
-    real(dp), intent(out) :: KS
+    real(dp), intent(out) :: KS !< Hydraulic conductivity [cm/day].
 
     ! temporal variable
     real(dp) :: x
@@ -757,15 +682,14 @@ contains
 
     ! saturated vertical hydraulic conductivity, Ks (cm/d)
     !   from Cosby et. al. (WRR 1984) Table 4
-    ! param(4) is the unit conversion from inch/h to cm/d and should be a constant.
-    ! Fix it in the namelist, i.e. in
-    ! mhm_parameter.nml set the 4th value (=FLAG) to 0 and the third value to 60.96
-    !   PTF_Ks_curveSlope = 60.96, 60.96, 60.96, 0, 1
+    ! The unit conversion is a physical constant, outside the parameter registry.
     x = param(1) + param(2) * sand - param(3) * clay
-    Ks = param(4) * exp(X * log(Ks_c))
+    Ks = inch_per_hour_to_centimetre_per_day * exp(X * log(Ks_c))
 
     if (Ks < 1.10_dp) then
+      !$omp critical (mpr_diagnostics)
       call message('JMJMJM-Ks-BAD')
+      !$omp end critical (mpr_diagnostics)
     end if
 
     ! minimum value of Ks = 1.1cm/d

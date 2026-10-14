@@ -1,6 +1,5 @@
 !> \file mo_mpr_neutrons.f90
-!> \brief \copybrief mo_mpr_neutrons
-!> \details \copydetails mo_mpr_neutrons
+!> \copydoc mo_mpr_neutrons
 
 !> \brief   Multiscale parameter regionalization (MPR) for neutrons
 !> \details This module contains all routines required for parametrizing neutrons processes.
@@ -28,57 +27,10 @@ contains
   !>        \brief multiscale parameter regionalization for neutrons
 
   !>        \details calculates neutron variables on L0
-  !>                 Global parameters needed (see mhm_parameter.nml):\n
-  !>                    - param( 1) = Desilets_N0   \n
-  !>                    - param( 2) = COSMIC_N0     \n
-  !>                    - param( 3) = COSMIC_N1     \n
-  !>                    - param( 4) = COSMIC_N2     \n
-  !>                    - param( 5) = COSMIC_alpha0 \n
-  !>                    - param( 6) = COSMIC_alpha1 \n
-  !>                    - param( 7) = COSMIC_L30    \n
-  !>                    - param( 8) = COSMIC_L31    \n
-  !>                    - param( 9) = COSMIC_LW0    \n
-  !>                    - param(10) = COSMIC_LW1    \n
-
-  !      INTENT(IN)
-  !>        \param[in] "real(dp)    :: param(10)"        - global parameters
-  !>        \param[in] "integer(i4) :: is_present(:)"    - indicates whether soiltype is present
-  !>        \param[in] "integer(i4) :: nHorizons(:)"     - Number of Horizons per soiltype2
-  !>        \param[in] "integer(i4) :: nTillHorizons(:)" - Number of Tillage Horizons
-  !>        \param[in] "integer(i4) :: LCover0(:)"       - land cover ids at level 0
-  !>        \param[in] "real(dp)    :: clay(:,:)"        - clay content
-  !>        \param[in] "real(dp)    :: DbM(:,:)"         - mineral Bulk density
-  !>        \param[in] "real(dp)    :: Db(:,:)"          - Bulk density
-
-  !     INTENT(INOUT)
-  !         None
-
-  !>      INTENT(OUT)
-  !>        \param[out] "real(dp)   :: COSMIC_L3_till(:,:,:)" - COSMIC paramter L3 tillage layer
-  !>        \param[out] "real(dp)   :: latWat_till(:,:,:)"    - lattice water content tillage layer
-  !>        \param[out] "real(dp)   :: COSMIC_L3(:,:)"        - COSMIC paramter L3 tillage layer
-  !>        \param[out] "real(dp)   :: latWat(:,:)"           - lattice water contente
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
+  !>                 Process-specific parameters follow registry order:
+  !>                 - Desilets: N0, LW0, LW1.
+  !>                 - COSMIC: N0, N1, N2, alpha0, alpha1, L30, L31, LW0, LW1.
+  !>                 COSMIC L3 outputs are optional for Desilets and required for COSMIC.
 
   !     HISTORY
   !>        \author Maren Kaluza
@@ -110,21 +62,21 @@ contains
     integer(i4), intent(in) :: soil_db_mode !< Domain soil database layout selector.
 
     ! Input --------------------------------------------------------------------
-    integer(i4),                   intent(in)  :: process_case ! process case
-    real(dp),    dimension(:),     intent(in)  :: param        ! global parameters   !! dim = 3 for case 1 and 9 for case 2
-    integer(i4), dimension(:),     intent(in)  :: is_present   ! indicates whether soiltype is present
-    integer(i4), dimension(:),     intent(in)  :: nHorizons    ! Number of Horizons per soiltype
-    integer(i4), dimension(:),     intent(in)  :: nTillHorizons! Number of Tillage Horizons
-    real(dp),    dimension(:,:),   intent(in)  :: DbM          ! mineral Bulk density
-    real(dp),    dimension(:,:,:), intent(in)  :: Db           ! Bulk density
-    integer(i4), dimension(:),     intent(in)  :: LCOVER0      ! land cover ids at level 0
-    real(dp),    dimension(:,:),   intent(in)  :: clay         ! clay content
+    integer(i4),                   intent(in)  :: process_case !< process case
+    real(dp),    dimension(:),     intent(in)  :: param        !< global parameters   !! dim = 3 for case 1 and 9 for case 2
+    integer(i4), dimension(:),     intent(in)  :: is_present   !< indicates whether soiltype is present
+    integer(i4), dimension(:),     intent(in)  :: nHorizons    !< Number of Horizons per soiltype
+    integer(i4), dimension(:),     intent(in)  :: nTillHorizons!< Number of Tillage Horizons
+    real(dp),    dimension(:,:),   intent(in)  :: DbM          !< mineral Bulk density
+    real(dp),    dimension(:,:,:), intent(in)  :: Db           !< Bulk density
+    integer(i4), dimension(:),     intent(in)  :: LCOVER0      !< land cover ids at level 0
+    real(dp),    dimension(:,:),   intent(in)  :: clay         !< clay content
 
     ! Output -------------------------------------------------------------------
-    real(dp),    dimension(:,:,:), intent(out) :: COSMIC_L3_till ! COSMIC parameter L3 tillage layer
-    real(dp),    dimension(:,:,:), intent(out) :: latWat_till    ! lattice water content tillage layer
-    real(dp),    dimension(:,:),   intent(out) :: COSMIC_L3      ! COSMIC parameter L3
-    real(dp),    dimension(:,:),   intent(out) :: latWat         ! lattice water content
+    real(dp),    dimension(:,:,:), intent(out), optional :: COSMIC_L3_till !< COSMIC parameter L3 tillage layer
+    real(dp),    dimension(:,:,:), intent(out) :: latWat_till    !< lattice water content tillage layer
+    real(dp),    dimension(:,:),   intent(out), optional :: COSMIC_L3      !< COSMIC parameter L3
+    real(dp),    dimension(:,:),   intent(out) :: latWat         !< lattice water content
 
     ! Local variables
     integer(i4)                               :: i               ! loop index
@@ -133,14 +85,27 @@ contains
     integer(i4)                               :: tmp_minSoilHorizon
 
 
+    select case (process_case)
+    case (1_i4)
+      if (size(param) < 3_i4) call error_message('MPR: Desilets requires three parameters.')
+    case (2_i4)
+      if (size(param) < 9_i4) call error_message('MPR: COSMIC requires nine parameters.')
+    case default
+      call error_message('MPR: unsupported neutron process case.')
+    end select
+
     !min soil horizon
     tmp_minSoilHorizon = minval(nTillHorizons(:))
 
     ! with zero there will be problem with
     ! upscaling with harmonic mean for the COMSIC_L3
     ! in case of process_case .EQ. 1
-    COSMIC_L3_till = 0.000001_dp
-    COSMIC_L3      = 0.000001_dp
+    if (process_case == 2_i4) then
+      if (.not.present(COSMIC_L3_till) .or. .not.present(COSMIC_L3)) &
+        call error_message('MPR: COSMIC requires L3 table outputs.')
+    end if
+    if (present(COSMIC_L3_till)) COSMIC_L3_till = 0.000001_dp
+    if (present(COSMIC_L3)) COSMIC_L3 = 0.000001_dp
     latWat_till    = 0.000001_dp
     latWat         = 0.000001_dp
 

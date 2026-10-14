@@ -1,11 +1,11 @@
-!> \file    mo_mpr_container.f90
+!> \file    mo_mpr_container.F90
 !> \copydoc mo_mpr_container
 
 !> \brief   Container-side multiscale parameter regionalization (MPR) for the exchange runtime.
 !> \details This module owns the MPR implementation on the refactored
 !! exchange/domain path. It resolves MPR configuration, prepares grouped
-!! effective-parameter caches during `connect`, switches active parameter slices
-!! during `initialize` and `update`, and serializes/deserializes the cached MPR
+!! parameter-independent inputs during `connect`, rebuilds effective-parameter caches
+!! during `initialize`, switches active slices during `update`, and serializes/deserializes the cached MPR
 !! state through the new restart path.
 !> \changelog
 !! - Stephan Thober (Dec 2012)
@@ -57,12 +57,14 @@ module mo_mpr_container
   use mo_exchange_type, only: exchange_t, variable_abc, l1, single_layer, input_horizons
   use mo_grid, only: grid_t, cartesian, spherical
   use mo_grid_io, only: input_dataset, start_timestamp, no_time, daily, monthly, yearly, varying, var
-  use mo_grid_scaler, only: scaler_t, up_a_mean
+  use mo_grid_scaler, only: scaler_t, up_a_mean, weight_count
   use mo_mpr_helpers, only: mpr_helper_land_cover_fraction, mpr_helper_snow_param, mpr_helper_pet_lai, &
-    mpr_helper_pet_aspect, mpr_helper_pet_hargreaves, mpr_helper_pet_priestley_taylor, &
-    mpr_helper_pet_penman_monteith, &
-    mpr_helper_setup_soil_database, mpr_helper_soil_moisture, mpr_helper_runoff_param, mpr_helper_karstic_param, &
+    mpr_helper_pet_aspect, mpr_helper_pet_hargreaves, &
+    mpr_helper_setup_soil_database, mpr_helper_soil_moisture, mpr_helper_karstic_param, &
     mpr_helper_baseflow_param, mpr_helper_sealed_threshold
+  use mo_mpr_pet, only: priestley_taylor_alpha, bulksurface_resistance
+  use mo_mpr_aerodynamics, only: aerodynamical_resistance
+  use mo_mpr_runoff, only: mpr_runoff
   use mo_soil_database, only: soil_database_t
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_orderpack, only: sort_index
@@ -2159,7 +2161,8 @@ contains
 
     if (.not.associated(self%upscaler%source_grid, self%exchange%level0_land) .or. &
       .not.associated(self%upscaler%target_grid, self%exchange%level1_land)) then
-      call self%upscaler%init(source_grid=self%exchange%level0_land, target_grid=self%exchange%level1_land)
+      call self%upscaler%init(source_grid=self%exchange%level0_land, target_grid=self%exchange%level1_land, &
+        weight_mode=weight_count, cache_bounds=.true.)
     end if
   end subroutine mpr_init_upscaler
 
@@ -2845,7 +2848,7 @@ contains
 
     if (allocated(self%pet%pet_coeff_pt_cache)) deallocate(self%pet%pet_coeff_pt_cache)
     allocate(self%pet%pet_coeff_pt_cache(self%exchange%level1_land%ncells, self%lai%n_periods))
-    call mpr_helper_pet_priestley_taylor(self%exchange%level0_land, self%lai%l0_cache, pet_param, self%upscaler, &
+    call priestley_taylor_alpha(self%lai%l0_cache, pet_param(:2), self%upscaler, &
       self%pet%pet_coeff_pt_cache)
 
   end subroutine mpr_init_pet_priestley_taylor_cache
@@ -2855,7 +2858,6 @@ contains
     class(mpr_t), intent(inout), target :: self
     integer(i4) :: land_cover_idx
     real(dp), allocatable :: pet_param(:)
-    real(dp), allocatable :: resist_surf_l1(:, :)
 
     call self%load_process_params("pet", pet_param)
     if (size(pet_param) < 7_i4) then
@@ -2875,14 +2877,12 @@ contains
     if (allocated(self%pet%resist_surf_cache)) deallocate(self%pet%resist_surf_cache)
     allocate(self%pet%resist_aero_cache(self%exchange%level1_land%ncells, self%lai%n_periods, self%land_cover%n_periods))
     allocate(self%pet%resist_surf_cache(self%exchange%level1_land%ncells, self%lai%n_periods))
-    allocate(resist_surf_l1(self%exchange%level1_land%ncells, self%lai%n_periods))
+    call bulksurface_resistance(self%lai%l0_cache, pet_param(7), self%upscaler, self%pet%resist_surf_cache)
 
     do land_cover_idx = 1_i4, self%land_cover%n_periods
-      call mpr_helper_pet_penman_monteith(self%exchange%level0_land, self%land_cover%l0_cache(:, land_cover_idx), &
-        self%lai%l0_cache, pet_param, self%upscaler, self%pet%resist_aero_cache(:, :, land_cover_idx), resist_surf_l1)
-      if (land_cover_idx == 1_i4) self%pet%resist_surf_cache = resist_surf_l1
+      call aerodynamical_resistance(self%lai%l0_cache, self%land_cover%l0_cache(:, land_cover_idx), &
+        pet_param(:6), self%upscaler, self%pet%resist_aero_cache(:, :, land_cover_idx))
     end do
-    deallocate(resist_surf_l1)
 
   end subroutine mpr_init_pet_penman_cache
 
@@ -2995,7 +2995,7 @@ contains
       if (neutron_process == 2_i4) then
         call mpr_helper_soil_moisture( &
           self%soil%db, soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
-          self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0_land, self%upscaler, &
+          self%exchange%soil_id%data(:, :n_soil_layers), self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
           self%soil%sm_saturation_cache(:, :, land_cover_idx), self%soil%sm_field_capacity_cache(:, :, land_cover_idx), &
           self%soil%wilting_point_cache(:, :, land_cover_idx), self%soil%f_roots_cache(:, :, land_cover_idx), &
@@ -3006,7 +3006,7 @@ contains
       else if (neutron_process == 1_i4) then
         call mpr_helper_soil_moisture( &
           self%soil%db, soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
-          self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0_land, self%upscaler, &
+          self%exchange%soil_id%data(:, :n_soil_layers), self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
           self%soil%sm_saturation_cache(:, :, land_cover_idx), self%soil%sm_field_capacity_cache(:, :, land_cover_idx), &
           self%soil%wilting_point_cache(:, :, land_cover_idx), self%soil%f_roots_cache(:, :, land_cover_idx), &
@@ -3016,7 +3016,7 @@ contains
       else
         call mpr_helper_soil_moisture( &
           self%soil%db, soil_process, neutron_process, soil_param, self%land_cover%l0_cache(:, land_cover_idx), &
-          self%exchange%soil_id%data(:, :n_soil_layers), self%exchange%level0_land, self%upscaler, &
+          self%exchange%soil_id%data(:, :n_soil_layers), self%upscaler, &
           self%soil%thresh_jarvis_cache, self%soil%sm_exponent_cache(:, :, land_cover_idx), &
           self%soil%sm_saturation_cache(:, :, land_cover_idx), self%soil%sm_field_capacity_cache(:, :, land_cover_idx), &
           self%soil%wilting_point_cache(:, :, land_cover_idx), self%soil%f_roots_cache(:, :, land_cover_idx), &
@@ -3058,9 +3058,9 @@ contains
       allocate(self%runoff%thresh_unsat_cache(self%exchange%level1_land%ncells))
       call self%load_process_params("interflow", interflow_param)
       do land_cover_idx = 1_i4, self%land_cover%n_periods
-        call mpr_helper_runoff_param( &
-          self%land_cover%l0_cache(:, land_cover_idx), self%preproc%slope_emp, self%soil%sm_deficit_fc_l0(:, land_cover_idx), &
-          self%soil%ks_var_h_l0(:, land_cover_idx), self%exchange%level0_land, self%upscaler, interflow_param, &
+        call mpr_runoff( &
+          self%land_cover%l0_cache(:, land_cover_idx), self%soil%sm_deficit_fc_l0(:, land_cover_idx), self%preproc%slope_emp, &
+          self%soil%ks_var_h_l0(:, land_cover_idx), interflow_param(:5), self%upscaler, &
           self%runoff%thresh_unsat_cache, self%runoff%k_fastflow_cache(:, land_cover_idx), &
           self%runoff%k_slowflow_cache(:, land_cover_idx), self%runoff%alpha_cache(:, land_cover_idx))
       end do

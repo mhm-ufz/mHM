@@ -19,6 +19,8 @@ MODULE mo_mpr_constants
   ! hydrologic modeling
   integer(i4), public, parameter :: nLCover_class = 3_i4      ! [-]     Number of land cover class
 
+  real(dp), public, parameter :: inch_per_hour_to_centimetre_per_day = 60.96_dp !< Conductivity conversion from inch/h to cm/day.
+
   ! soil paramterization (mo_mpr_soilmoist)
   ! organic matter constant for calculation of mineral bulk density following RAWL
   real(dp), public, parameter :: BulkDens_OrgMatter = 0.224_dp     ! [g/cm3] from W.R. RAWLS

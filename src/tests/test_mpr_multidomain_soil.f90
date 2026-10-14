@@ -15,6 +15,7 @@
 program test_mpr_multidomain_soil
   use mo_domain, only: domain_t
   use mo_kind, only: i4, dp
+  use mo_grid_scaler, only: weight_count
 
   implicit none
 
@@ -116,6 +117,7 @@ contains
     domain%mpr%write_restart = .false.
     call domain%prepare_restart()
     call domain%connect()
+    call assert_true(domain%mpr%upscaler%weight_mode == weight_count, "MPR scaler must use count weights")
   end subroutine prepare
 
   !> \brief Derive small scenario namelists from the two-domain regression fixture.

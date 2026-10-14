@@ -1,0 +1,324 @@
+!> \file test_mpr_regionalization.pf
+!> \brief Independent numerical references for MPR parameters, geometry, and horizon depths.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
+module test_mpr_regionalization
+  use funit
+  use mo_kind, only: i4, dp
+  use mo_constants, only: nodata_dp
+  use mo_grid, only: grid_t, bottom_up, top_down
+  use mo_grid_scaler, only: scaler_t, weight_count
+  use mo_mpr_pet, only: priestley_taylor_alpha, bulksurface_resistance, pet_correctbyASP
+  use mo_mpr_aerodynamics, only: aerodynamical_resistance
+  use mo_mpr_runoff, only: mpr_runoff
+  use mo_mpr_helpers, only: mpr_helper_pet_lai, mpr_helper_soil_moisture
+  use mo_mpr_soilmoist, only: mpr_sm
+  use mo_mpr_smhorizons, only: mpr_SMhorizons
+  use mo_soil_database, only: soil_database_t
+  use mo_mpr_constants, only: LAI_factor_surfResi, LAI_offset_surfResi, max_surfResist, WindMeasHeight, karman
+  implicit none
+  private
+  public :: test_pet_and_runoff_geometry, test_soil_parameter_blocks, test_cell_specific_horizon_depths, test_aspect_hemispheres
+contains
+  @test
+  subroutine test_aspect_hemispheres()
+    real(dp) :: actual(3)
+    call pet_correctbyASP([45.0_dp,-30.0_dp,0.0_dp], [90.0_dp,90.0_dp,270.0_dp], [0.8_dp,0.4_dp,180.0_dp], actual)
+    @assertTrue(close(actual, [1.0_dp,1.4_dp,1.4_dp]))
+  end subroutine test_aspect_hemispheres
+
+  @test
+  subroutine test_pet_and_runoff_geometry()
+    type(grid_t), target :: fine, coarse
+    type(scaler_t) :: scaler
+    logical :: mask(4,4)
+    integer(i4) :: mode, i, tt, n, m
+    integer(i4), allocatable :: cover(:)
+    real(dp), allocatable :: lai(:,:), actual(:,:), scratch(:), expected(:), a(:), b(:), c(:), d(:)
+    real(dp), allocatable :: deficit(:), slope(:), conductivity(:)
+    real(dp) :: pet(7), interflow(5), lai_param(5), canopy, measurement, displacement, roughness
+
+    mask = .true.
+    mask(2,2) = .false.
+    pet = [2.0_dp,0.5_dp,1.5_dp,0.67_dp,0.123_dp,0.1_dp,70.0_dp]
+    interflow = [85.0_dp,7.0_dp,1.5_dp,15.0_dp,0.125_dp]
+    lai_param = [0.3_dp,0.8_dp,1.3_dp,1.5_dp,-0.7_dp]
+    do mode = 1_i4, 2_i4
+      call fine%init(4_i4,4_i4,cellsize=1.0_dp,mask=mask,y_direction=bottom_up)
+      if (mode == 1_i4) then
+        call coarse%init(4_i4,4_i4,cellsize=1.0_dp,mask=mask(:,4:1:-1),y_direction=top_down)
+      else
+        call coarse%init(2_i4,2_i4,cellsize=2.0_dp,y_direction=top_down)
+      end if
+      n = int(fine%ncells,i4)
+      m = int(coarse%ncells,i4)
+      allocate(lai(n,2),scratch(n),cover(n),actual(m,2),a(m),b(m),c(m),d(m),deficit(n),slope(n),conductivity(n))
+      do i = 1_i4, n
+        ! Unequal physical areas must not enter MPR count-weighted means.
+        fine%cell_area(i) = real(i*i+1,dp)
+        cover(i) = modulo(i,3_i4) + 1_i4
+        lai(i,:) = [0.1_dp + real(i,dp)/10.0_dp, 1.0_dp + real(i,dp)/5.0_dp]
+        deficit(i) = 0.2_dp + real(i,dp)/100.0_dp
+        slope(i) = real(i,dp)/real(n+1,dp)
+        conductivity(i) = 0.5_dp + real(i,dp)/10.0_dp
+      end do
+      call scaler%init(fine,coarse,weight_mode=weight_count,cache_bounds=.true.)
+      call priestley_taylor_alpha(lai,[0.8_dp,0.15_dp],scaler,actual)
+      do tt = 1_i4, 2_i4
+        expected = mean_reference(0.8_dp+0.15_dp*lai(:,tt),fine,coarse,.false.)
+        @assertTrue(close(actual(:,tt),expected))
+      end do
+      call bulksurface_resistance(lai,pet(7),scaler,actual)
+      do tt = 1_i4, 2_i4
+        scratch = min(max_surfResist,pet(7)*(LAI_factor_surfResi+LAI_offset_surfResi/lai(:,tt)))
+        expected = mean_reference(scratch,fine,coarse,.false.)
+        @assertTrue(close(actual(:,tt),expected))
+      end do
+      call aerodynamical_resistance(lai,cover,pet(:6),scaler,actual)
+      do tt = 1_i4, 2_i4
+        do i = 1_i4, n
+          canopy = pet(cover(i))
+          if (cover(i) == 3_i4) canopy = canopy*lai(i,tt)/maxval(lai(i,:))
+          measurement = WindMeasHeight
+          if (measurement < canopy) measurement = measurement + canopy
+          displacement = pet(4)*canopy
+          roughness = pet(5)*canopy
+          scratch(i) = log((measurement-displacement)/roughness)*log((measurement-displacement)/(pet(6)*roughness))/karman**2
+        end do
+        expected = mean_reference(scratch,fine,coarse,.false.)
+        @assertTrue(close(actual(:,tt),expected))
+      end do
+      call mpr_helper_pet_lai(lai_param,cover,lai(:,1),scaler,a)
+      do i = 1_i4, n
+        scratch(i) = lai_param(cover(i))+lai_param(4)*(1.0_dp-exp(lai_param(5)*lai(i,1)))
+      end do
+      expected = mean_reference(scratch,fine,coarse,.true.)
+      @assertTrue(close(a,expected))
+
+      call mpr_runoff(cover,deficit,slope,conductivity,interflow,scaler,a,b,c,d)
+      expected = mean_reference(interflow(1)*deficit,fine,coarse,.false.)
+      @assertTrue(close(a,expected))
+      scratch = interflow(2)*(2.0_dp-slope)
+      where (cover == 1_i4) scratch = scratch*interflow(3)
+      expected = max(1.0_dp,mean_reference(scratch,fine,coarse,.false.))
+      expected = min(c,expected)
+      @assertTrue(close(b,expected))
+      scratch = interflow(2)*(2.0_dp-slope)+interflow(4)*(1.0_dp+conductivity)
+      expected = max(2.0_dp,mean_reference(scratch,fine,coarse,.false.))
+      @assertTrue(close(c,expected))
+      expected = mean_reference(interflow(5)/conductivity/(1.0_dp+deficit),fine,coarse,.false.)
+      @assertTrue(close(d,expected))
+      deallocate(lai,scratch,cover,actual,a,b,c,d,deficit,slope,conductivity)
+      call scaler%destroy()
+      call fine%destroy()
+      call coarse%destroy()
+    end do
+  end subroutine test_pet_and_runoff_geometry
+
+  @test
+  subroutine test_soil_parameter_blocks()
+    type(grid_t), target :: fine
+    type(scaler_t) :: scaler
+    type(soil_database_t) :: db
+    integer(i4) :: soil_case, mode, neutron
+    real(dp) :: param(21), organic, density, hydraulic, lattice, l3, threshold
+    real(dp) :: saturation_till(1,1,1), capacity_till(1,1,1), wilting_till(1,1,1)
+    real(dp) :: saturation(1,1), capacity(1,1), wilting(1,1), ks(1,1,1), bulk(1,1,1)
+    real(dp) :: horizontal(4), vertical(4), deficit(4), jarvis(4)
+    real(dp) :: beta(4,1), sm(4,1), fc(4,1), pw(4,1), roots(4,1)
+    real(dp), allocatable :: bd(:,:), lw(:,:), cosmic(:,:), neutron_param(:)
+    integer(i4) :: soil_ids(4,1), cover(4)
+
+    param = [1.0_dp,0.1_dp,2.0_dp,0.788_dp,0.001_dp,-0.263_dp,0.8907_dp,-0.001_dp,-0.322_dp, &
+      -0.585_dp,0.0125_dp,0.0063_dp,0.95_dp,0.93_dp,0.02_dp,1.75_dp,0.09_dp,0.98_dp,0.15_dp,0.25_dp,0.5_dp]
+    cover = 1_i4
+    soil_ids = 1_i4
+    call fine%init(4_i4,1_i4,cellsize=1.0_dp)
+    call scaler%init(fine,fine,weight_mode=weight_count)
+    db%n_layers = 1_i4
+    allocate(db%is_present(1),db%nHorizons(1),db%nTillHorizons(1),db%horizon_depth(1),db%RZdepth(1))
+    allocate(db%sand(1,1),db%clay(1,1),db%DbM(1,1),db%Wd(1,1,1))
+    db%is_present = 1_i4
+    db%nHorizons = 1_i4
+    db%nTillHorizons = 1_i4
+    db%horizon_depth = 300.0_dp
+    db%RZdepth = 300.0_dp
+    db%sand = 70.0_dp
+    db%clay = 20.0_dp
+    db%DbM = 1.4_dp
+    db%Wd = 1.0_dp
+    do mode = 0_i4, 1_i4
+      db%mode = mode
+      do soil_case = 1_i4, 4_i4
+        organic = param(1)
+        if (soil_case <= 2_i4) organic = organic+param(3)
+        density = 100.0_dp/(organic/0.224_dp+(100.0_dp-organic)/1.4_dp)
+        hydraulic = max(1.1_dp,60.96_dp*10.0_dp**(param(10)+param(11)*70.0_dp-param(12)*20.0_dp))*1.4_dp/density
+        call mpr_sm(mode,param(:12),soil_case,db%is_present,db%nHorizons,db%nTillHorizons,db%sand,db%clay,db%DbM, &
+          soil_ids,cover,saturation_till,capacity_till,wilting_till,saturation,capacity,wilting,ks,bulk,horizontal,vertical,deficit)
+        @assertTrue(close([ks(1,1,1)],[hydraulic]))
+        @assertTrue(close([bulk(1,1,1)],[density]))
+        @assertTrue(close(horizontal,spread(hydraulic/60.96_dp,1,4)))
+        @assertTrue(close(vertical,spread(hydraulic/60.96_dp,1,4)))
+        do neutron = 0_i4, 2_i4
+          if (neutron > 0_i4) then
+            allocate(bd(4,1),lw(4,1))
+            if (neutron == 1_i4) neutron_param = [1500.0_dp,0.1783_dp,0.01_dp]
+            if (neutron == 2_i4) then
+              allocate(cosmic(4,1))
+              neutron_param = [1500.0_dp,1.0_dp,1.0_dp,1.0_dp,1.0_dp,106.1942_dp,40.9879_dp,0.1783_dp,0.01_dp]
+            end if
+          end if
+          call mpr_helper_soil_moisture(db,soil_case,neutron,param,cover,soil_ids,scaler,jarvis,beta,sm,fc,pw,roots, &
+            deficit,horizontal,vertical,bd,lw,cosmic,neutron_param)
+          @assertTrue(close(beta(:,1),spread(density*param(16),1,4)))
+          threshold = nodata_dp
+          if (soil_case == 2_i4) threshold = param(17)
+          if (soil_case == 3_i4) threshold = param(21)
+          @assertTrue(close(jarvis,spread(threshold,1,4)))
+          if (neutron > 0_i4) then
+            lattice = (0.1783_dp*20.0_dp/100.0_dp+0.01_dp)*300.0_dp
+            @assertTrue(close(bd(:,1),spread(density,1,4)))
+            @assertTrue(close(lw(:,1),spread(lattice,1,4)))
+            if (neutron == 2_i4) then
+              l3 = density*106.1942_dp-40.9879_dp
+              ! Preserve the documented, deferred mode-1 COSMIC mapping gap.
+              if (mode == 1_i4) l3 = nodata_dp
+              @assertTrue(close(cosmic(:,1),spread(l3,1,4)))
+            end if
+          end if
+          if (allocated(bd)) deallocate(bd,lw,neutron_param)
+          if (allocated(cosmic)) deallocate(cosmic)
+        end do
+      end do
+    end do
+    call db%destroy()
+    call scaler%destroy()
+    call fine%destroy()
+  end subroutine test_soil_parameter_blocks
+
+  @test
+  subroutine test_cell_specific_horizon_depths()
+    type(grid_t), target :: fine, coarse
+    type(scaler_t) :: scaler
+    integer(i4) :: mode, nh, h, k, s, soil_case, nparam
+    integer(i4), allocatable :: soil_ids(:,:)
+    integer(i4) :: cover(8)
+    real(dp) :: till(2,1,3), non_till(2,1), density(2,1,3), depths(2), rz(2), param(8), lower, upper, coefficient
+    real(dp), allocatable :: weights(:,:,:), beta(:,:), sm(:,:), fc(:,:), pw(:,:), roots(:,:), expected(:,:), scratch(:)
+
+    call fine%init(4_i4,2_i4,cellsize=1.0_dp,y_direction=bottom_up)
+    call coarse%init(2_i4,1_i4,cellsize=2.0_dp,y_direction=top_down)
+    call scaler%init(fine,coarse,weight_mode=weight_count)
+    cover = modulo([(k,k=1_i4,8_i4)],3_i4)+1_i4
+    till = 0.4_dp
+    non_till = 0.4_dp
+    density = 1.2_dp
+    depths = [100.0_dp,300.0_dp]
+    rz = [300.0_dp,600.0_dp]
+    param = [0.95_dp,0.93_dp,0.02_dp,1.75_dp,0.09_dp,0.98_dp,0.15_dp,0.25_dp]
+    do mode = 0_i4, 1_i4
+      do nh = 1_i4, 2_i4
+        allocate(weights(2,nh,1),soil_ids(8,nh),beta(2,nh),sm(2,nh),fc(2,nh),pw(2,nh),roots(2,nh),expected(2,nh),scratch(8))
+        weights = 1.0_dp
+        do k = 1_i4, 8_i4
+          soil_ids(k,:) = modulo(k,2_i4)+1_i4
+        end do
+        do soil_case = 1_i4, 4_i4
+          nparam = 4_i4
+          if (soil_case > 2_i4) nparam = 8_i4
+          call mpr_SMhorizons(param(:nparam),soil_case,scaler,mode,nh,depths(:nh),cover,soil_ids,[1_i4,1_i4],[1_i4,1_i4], &
+            till,0.625_dp*till,0.25_dp*till,non_till,0.625_dp*non_till,0.25_dp*non_till,weights,density, &
+            reshape([1.2_dp,1.2_dp],[2,1]),rz,beta,sm,fc,pw,roots)
+          do h = 1_i4, nh
+            do k = 1_i4, 8_i4
+              s = soil_ids(k,h)
+              lower = 0.0_dp
+              if (h > 1_i4) lower = depths(h-1_i4)
+              upper = depths(h)
+              if (mode == 0_i4 .and. h == nh) upper = rz(s)
+              scratch(k) = 0.4_dp*(upper-lower)
+            end do
+            expected(:,h) = mean_reference(scratch,fine,coarse,.true.)
+          end do
+          @assertTrue(close(reshape(sm,[2*nh]),reshape(expected,[2*nh])))
+          do h = 1_i4, nh
+            do k = 1_i4, 8_i4
+              s = soil_ids(k,h)
+              lower = 0.0_dp
+              if (h > 1_i4) lower = depths(h-1_i4)
+              upper = depths(h)
+              if (mode == 0_i4 .and. h == nh) upper = rz(s)
+              select case (cover(k))
+              case (1_i4)
+                coefficient = param(1)
+              case (2_i4)
+                coefficient = param(2)
+              case (3_i4)
+                coefficient = param(1)-param(3)
+                if (soil_case > 2_i4) then
+                  coefficient = ((0.25_dp-param(7))/param(8))*param(6) &
+                    +(1.0_dp-(0.25_dp-param(7))/param(8))*(param(6)-param(5))
+                end if
+              end select
+              scratch(k) = coefficient**(lower*0.1_dp)-coefficient**(upper*0.1_dp)
+            end do
+            expected(:,h) = mean_reference(scratch,fine,coarse,.true.)
+          end do
+          do k = 1_i4, 2_i4
+            expected(k,:) = expected(k,:)/sum(expected(k,:))
+          end do
+          @assertTrue(close(reshape(roots,[2*nh]),reshape(expected,[2*nh])))
+        end do
+        deallocate(weights,soil_ids,beta,sm,fc,pw,roots,expected,scratch)
+      end do
+    end do
+    call scaler%destroy()
+    call fine%destroy()
+    call coarse%destroy()
+  end subroutine test_cell_specific_horizon_depths
+
+  !> \brief Compute count-weighted means from physical coordinates, independently of scaler index maps.
+  function mean_reference(values,fine,coarse,harmonic) result(means)
+    real(dp), intent(in) :: values(:) !< Packed fine-cell values.
+    type(grid_t), intent(in) :: fine !< Source grid with its mask and orientation.
+    type(grid_t), intent(in) :: coarse !< Target grid.
+    logical, intent(in) :: harmonic !< Select harmonic instead of arithmetic mean.
+    real(dp), allocatable :: means(:), xf(:), yf(:), xc(:), yc(:)
+    real(dp) :: total, half
+    integer(i4) :: c, k, n
+    xf = fine%x_axis()
+    yf = fine%y_axis()
+    xc = coarse%x_axis()
+    yc = coarse%y_axis()
+    half = coarse%cellsize/2.0_dp
+    allocate(means(coarse%ncells))
+    do c = 1_i4, int(coarse%ncells,i4)
+      total = 0.0_dp
+      n = 0_i4
+      do k = 1_i4, int(fine%ncells,i4)
+        if (abs(xf(fine%cell_ij(k,1))-xc(coarse%cell_ij(c,1))) >= half) cycle
+        if (abs(yf(fine%cell_ij(k,2))-yc(coarse%cell_ij(c,2))) >= half) cycle
+        n = n+1_i4
+        if (harmonic) then
+          total = total+1.0_dp/values(k)
+        else
+          total = total+values(k)
+        end if
+      end do
+      if (n == 0_i4) error stop 'MPR reference contains an empty target cell'
+      if (harmonic) then
+        means(c) = real(n,dp)/total
+      else
+        means(c) = total/real(n,dp)
+      end if
+    end do
+  end function mean_reference
+
+  !> \brief Compare fields with absolute and relative tolerances of 1e-12.
+  logical function close(actual,expected)
+    real(dp), intent(in) :: actual(:) !< Computed values.
+    real(dp), intent(in) :: expected(:) !< Independent reference values.
+    close = all(abs(actual-expected) <= 1.0e-12_dp+1.0e-12_dp*abs(expected))
+  end function close
+end module test_mpr_regionalization

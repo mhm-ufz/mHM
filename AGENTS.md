@@ -67,6 +67,8 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
   every `initialize` fetches current runtime parameters and rebuilds derived fields without rereading static inputs.
 - MPR `update` switches active slices only. Keep caches in `mpr_t`, publish active 1D/2D slices, and
   use interval start and half-open periods `[start, end)`; validate timing, dimensions, and bounds before switching pointers.
+- MPR initializes its scaler with count weights and cached bounds. Pass that scaler, selected cases,
+  and process-specific parameter arrays directly to kernels; do not reconstruct process matrices, padded parameters, or grid-bound copies.
 
 ## Fortran conventions and pitfalls
 

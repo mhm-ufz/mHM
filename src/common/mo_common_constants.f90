@@ -14,7 +14,7 @@
 !> \ingroup f_common
 module mo_common_constants
 
-  use mo_kind, only: i4, dp
+  use mo_kind, only: dp
 
   implicit none
 
@@ -24,8 +24,6 @@ module mo_common_constants
   character(*), parameter, public :: default_para_file = "parameters.nml" !< Default parameter namelist path.
   character(*), parameter, public :: default_out_file = "outputs.nml" !< Default output namelist path.
   character(*), parameter, public :: default_cwd = "." !< Default run root: the process working directory.
-
-  integer(i4), parameter, public :: nProcesses = 11 !< Number of possible processes to consider
 
   real(dp), parameter, public :: P1_InitStateFluxes = 0.00_dp !< Default reset value for mHM states and fluxes.
 

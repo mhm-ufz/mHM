@@ -14,6 +14,7 @@ if(PFUNIT_FOUND)
     test_meteo_temporal_tools.pf
     test_mlm_restart.pf
     test_mrm_output_timing.pf
+    test_mpr_regionalization.pf
     test_parameters.pf
     test_pet.pf
     test_river_router.pf

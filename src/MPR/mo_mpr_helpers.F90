@@ -1,12 +1,10 @@
-!> \file    mo_mpr_helpers.f90
+!> \file    mo_mpr_helpers.F90
 !> \copydoc mo_mpr_helpers
 
 !> \brief   Regionalization helpers for the MPR container.
-!> \details This module isolates the compatibility boundary between the new
-!! exchange-side MPR container and the legacy MPR science routines. It reshapes
-!! grids and packed fields into the conventions expected by the older code,
-!! reuses the legacy PET/soil/runoff/neutron implementations, and keeps the
-!! soil data explicitly owned by the calling domain.
+!> \details Process-specific orchestration uses explicit domain-owned soil state,
+!! packed fields, and the connected grid scaler. Scientific kernels receive their
+!! selected cases and parameter blocks directly.
 !> \changelog
 !! - Juliane Mai          Dec 2012
 !!   - implemented the soil-database and LUT readers that now sit behind the bridge setup helpers
@@ -45,18 +43,16 @@
 #include "logging.h"
 module mo_mpr_helpers
   use mo_logging
-  use mo_common_constants, only: nProcesses
+  use mo_mpr_constants, only: nLCover_class
   use mo_constants, only: nodata_dp, nodata_i4
   use mo_grid, only: grid_t, cartesian
-  use mo_kind, only: i4, i8, dp
+  use mo_kind, only: i4, dp
   use mo_grid_scaler, only: scaler_t, up_fraction, up_h_mean, up_a_mean
 
   use mo_mpr_neutrons, only: mpr_neutrons
-  use mo_mpr_pet, only: pet_correctbyASP, priestley_taylor_alpha, bulksurface_resistance
-  use mo_mpr_runoff, only: mpr_runoff
+  use mo_mpr_pet, only: pet_correctbyASP
   use mo_mpr_smhorizons, only: mpr_SMhorizons
   use mo_mpr_soilmoist, only: mpr_sm
-  use mo_mpr_aerodynamics, only: aerodynamical_resistance
   use mo_soil_database, only: read_soil_LUT, generate_soil_database, soil_database_t
   use mo_string_utils, only: n2s => num2str
   use nml_config_mpr, only: nml_config_mpr_t
@@ -64,57 +60,18 @@ module mo_mpr_helpers
   implicit none
   private
 
-  real(dp), parameter :: inch_per_hour_to_centimetre_per_day = 60.96_dp
-
   public :: mpr_helper_land_cover_fraction
   public :: mpr_helper_snow_param
   public :: mpr_helper_pet_lai
   public :: mpr_helper_pet_aspect
   public :: mpr_helper_pet_hargreaves
-  public :: mpr_helper_pet_priestley_taylor
-  public :: mpr_helper_pet_penman_monteith
   public :: mpr_helper_setup_soil_database
   public :: mpr_helper_soil_moisture
-  public :: mpr_helper_runoff_param
   public :: mpr_helper_karstic_param
   public :: mpr_helper_baseflow_param
   public :: mpr_helper_sealed_threshold
 
 contains
-
-  !> \brief Build packed L0 ids and packed L1 coarse bounds in the legacy x/y index convention.
-  subroutine mpr_helper_build_l0_to_l1_indices(level0, upscaler, id0, upper_bound1, lower_bound1, left_bound1, right_bound1)
-    type(grid_t), intent(in), target :: level0
-    class(scaler_t), intent(inout), target :: upscaler
-    integer(i4), allocatable, intent(out) :: id0(:)
-    integer(i4), allocatable, intent(out) :: upper_bound1(:)
-    integer(i4), allocatable, intent(out) :: lower_bound1(:)
-    integer(i4), allocatable, intent(out) :: left_bound1(:)
-    integer(i4), allocatable, intent(out) :: right_bound1(:)
-    integer(i4) :: i
-    integer(i4) :: x_lb
-    integer(i4) :: x_ub
-    integer(i4) :: y_lb
-    integer(i4) :: y_ub
-
-    allocate(id0(level0%ncells))
-    do i = 1_i4, level0%ncells
-      id0(i) = i
-    end do
-
-    allocate(upper_bound1(upscaler%target_grid%ncells))
-    allocate(lower_bound1(upscaler%target_grid%ncells))
-    allocate(left_bound1(upscaler%target_grid%ncells))
-    allocate(right_bound1(upscaler%target_grid%ncells))
-    do i = 1_i4, upscaler%target_grid%ncells
-      call upscaler%coarse_bounds(int(i, i8), x_lb, x_ub, y_lb, y_ub)
-      ! Reorder the new coarse bounds into the legacy PET routine convention.
-      upper_bound1(i) = x_lb
-      lower_bound1(i) = x_ub
-      left_bound1(i) = y_lb
-      right_bound1(i) = y_ub
-    end do
-  end subroutine mpr_helper_build_l0_to_l1_indices
 
   !> \brief Resolve packed level0 latitude values for legacy PET helpers.
   subroutine mpr_helper_get_level0_latitude(level0, latitude_l0)
@@ -145,14 +102,14 @@ contains
     end if
   end subroutine mpr_helper_get_level0_latitude
 
-  !> \brief Initialize the legacy soil database from the new MPR configuration and packed L0 soil ids.
+  !> \brief Initialize the domain-owned soil database from configuration and packed L0 soil IDs.
   subroutine mpr_helper_setup_soil_database(config, domain, soil_lut_path, soil_id_l0, db, horizon_bounds)
-    type(nml_config_mpr_t), intent(in) :: config
-    integer(i4), intent(in) :: domain
-    character(*), intent(in) :: soil_lut_path
-    integer(i4), dimension(:, :), intent(in) :: soil_id_l0
+    type(nml_config_mpr_t), intent(in) :: config !< MPR configuration.
+    integer(i4), intent(in) :: domain !< Namelist domain index.
+    character(*), intent(in) :: soil_lut_path !< Resolved soil LUT path.
+    integer(i4), dimension(:, :), intent(in) :: soil_id_l0 !< Packed soil IDs by input horizon.
     type(soil_database_t), intent(inout) :: db !< Owning domain soil database.
-    real(dp), allocatable, intent(out), optional :: horizon_bounds(:)
+    real(dp), allocatable, intent(out), optional :: horizon_bounds(:) !< Model horizon boundaries for exchange publication [mm].
     integer(i4) :: soil_layers
     integer(i4) :: required_depths
     integer(i4) :: i
@@ -166,7 +123,7 @@ contains
 
     call db%destroy()
 
-    ! Translate the new config into the legacy-global soil database controls before reading the LUT.
+    ! Configure the domain-owned soil database before reading its LUT.
     db%mode = config%soil_db_mode(domain)
     db%n_layers = config%n_layers(domain)
     db%tillage_depth = real(config%tillage_depth(domain), dp)
@@ -277,13 +234,15 @@ contains
     degday_max_l1 = degday_max_forest * forest_l1 + degday_max_sealed * sealed_l1 + degday_max_pervious * pervious_l1
   end subroutine mpr_helper_snow_param
 
-  !> \brief Bridge PET-LAI correction with legacy-compatible formulas on top of the new scaler.
+  !> \brief Regionalize the PET-LAI correction using the harmonic mean.
+  !> \details The crop-coefficient formula follows Allen et al. (1998), FAO Irrigation and Drainage Paper 56,
+  !! chapter 9, equation 97. PET-LAI regionalization was introduced by M. Cuneyd Demirel and Simon Stisen (2017).
   subroutine mpr_helper_pet_lai(param, land_cover_l0, lai_l0, upscaler, pet_fac_lai_l1)
-    real(dp), dimension(:), intent(in) :: param
-    integer(i4), dimension(:), intent(in) :: land_cover_l0
-    real(dp), dimension(:), intent(in) :: lai_l0
-    class(scaler_t), intent(inout), target :: upscaler
-    real(dp), dimension(:), intent(out) :: pet_fac_lai_l1
+    real(dp), dimension(:), intent(in) :: param !< Five PET-LAI coefficients in registry order.
+    integer(i4), dimension(:), intent(in) :: land_cover_l0 !< Packed fine-cell land-cover classes.
+    real(dp), dimension(:), intent(in) :: lai_l0 !< Packed fine-cell LAI for the current slice.
+    class(scaler_t), intent(inout), target :: upscaler !< Count-weighted fine-to-coarse scaler.
+    real(dp), dimension(:), intent(out) :: pet_fac_lai_l1 !< Coarse-cell PET correction factors.
     real(dp), allocatable :: pet_fac_lai_l0(:)
     integer(i4) :: i
     integer(i4) :: land_cover_id
@@ -296,8 +255,13 @@ contains
       log_fatal(*) "MPR: PET-LAI inputs must have matching packed L0 sizes."
       error stop 1
     end if
+    if (any(land_cover_l0 < 1_i4) .or. any(land_cover_l0 > nLCover_class)) then
+      log_fatal(*) "MPR: unsupported land-cover ID for PET-LAI correction (expected 1--3)."
+      error stop 1
+    end if
 
     allocate(pet_fac_lai_l0(size(land_cover_l0)))
+    !$omp parallel do default(shared) private(land_cover_id) schedule(static)
     do i = 1_i4, size(land_cover_l0)
       land_cover_id = land_cover_l0(i)
       select case (land_cover_id)
@@ -307,28 +271,23 @@ contains
           pet_fac_lai_l0(i) = param(2) + (param(4) * (1.0_dp - exp(param(5) * lai_l0(i))))
         case (3_i4)
           pet_fac_lai_l0(i) = param(3) + (param(4) * (1.0_dp - exp(param(5) * lai_l0(i))))
-        case default
-          log_fatal(*) "MPR: unsupported land-cover ID ", n2s(land_cover_id), &
-            " for PET-LAI correction at packed L0 cell ", n2s(i), "."
-          error stop 1
       end select
     end do
+    !$omp end parallel do
 
     call upscaler%execute(pet_fac_lai_l0, pet_fac_lai_l1, upscaling_operator=up_h_mean)
     deallocate(pet_fac_lai_l0)
   end subroutine mpr_helper_pet_lai
 
-  !> \brief Bridge PET aspect correction through the legacy aspect routine.
+  !> \brief Regionalize PET aspect correction using physical fine-cell latitudes.
   subroutine mpr_helper_pet_aspect(level0, aspect_l0, param, upscaler, pet_fac_aspect_l1)
-    type(grid_t), intent(in), target :: level0
-    real(dp), dimension(:), intent(in) :: aspect_l0
-    real(dp), dimension(:), intent(in) :: param
-    class(scaler_t), intent(inout), target :: upscaler
-    real(dp), dimension(:), intent(out) :: pet_fac_aspect_l1
-    integer(i4), allocatable :: id0(:)
+    type(grid_t), intent(in), target :: level0 !< Source grid providing cell latitudes.
+    real(dp), dimension(:), intent(in) :: aspect_l0 !< Packed fine-cell aspects in degrees.
+    real(dp), dimension(:), intent(in) :: param !< Three aspect-correction coefficients.
+    class(scaler_t), intent(inout), target :: upscaler !< Count-weighted fine-to-coarse scaler.
+    real(dp), dimension(:), intent(out) :: pet_fac_aspect_l1 !< Coarse-cell PET correction factors.
     real(dp), allocatable :: latitude_l0(:)
     real(dp), allocatable :: pet_fac_aspect_l0(:)
-    integer(i4) :: i
 
     if (size(param) < 3_i4) then
       log_fatal(*) "MPR: PET aspect parameter set must contain 3 values, got ", n2s(size(param, kind=i4)), "."
@@ -343,15 +302,12 @@ contains
       error stop 1
     end if
 
-    allocate(id0(level0%ncells))
-    id0 = [(i, i = 1_i4, level0%ncells)]
     call mpr_helper_get_level0_latitude(level0, latitude_l0)
     allocate(pet_fac_aspect_l0(level0%ncells))
 
-    call pet_correctbyASP(id0, latitude_l0, max(aspect_l0, 1.0_dp), param(1:3), nodata_dp, pet_fac_aspect_l0)
+    call pet_correctbyASP(latitude_l0, max(aspect_l0, 1.0_dp), param(1:3), pet_fac_aspect_l0)
     call upscaler%execute(pet_fac_aspect_l0, pet_fac_aspect_l1, upscaling_operator=up_a_mean)
 
-    deallocate(id0)
     deallocate(latitude_l0)
     deallocate(pet_fac_aspect_l0)
   end subroutine mpr_helper_pet_aspect
@@ -378,132 +334,36 @@ contains
     pet_coeff_hs_l1 = param(4)
   end subroutine mpr_helper_pet_hargreaves
 
-  !> \brief Bridge Priestley-Taylor PET coefficients.
-  subroutine mpr_helper_pet_priestley_taylor(level0, lai_l0, param, upscaler, pet_coeff_pt_l1)
-    type(grid_t), intent(in), target :: level0
-    real(dp), dimension(:, :), intent(in) :: lai_l0
-    real(dp), dimension(:), intent(in) :: param
-    class(scaler_t), intent(inout), target :: upscaler
-    real(dp), dimension(:, :), intent(out) :: pet_coeff_pt_l1
-    integer(i4), allocatable :: id0(:)
-    integer(i4), allocatable :: upper_bound1(:)
-    integer(i4), allocatable :: lower_bound1(:)
-    integer(i4), allocatable :: left_bound1(:)
-    integer(i4), allocatable :: right_bound1(:)
-
-    if (size(param) < 2_i4) then
-      log_fatal(*) "MPR: PET Priestley-Taylor parameter set must contain 2 values, got ", n2s(size(param, kind=i4)), "."
-      error stop 1
-    end if
-    if (size(lai_l0, 1) /= level0%ncells) then
-      log_fatal(*) "MPR: PET Priestley-Taylor LAI input size does not match packed level0 cells."
-      error stop 1
-    end if
-    if (size(pet_coeff_pt_l1, 1) /= upscaler%target_grid%ncells) then
-      log_fatal(*) "MPR: PET Priestley-Taylor output size does not match packed level1 cells."
-      error stop 1
-    end if
-    if (size(pet_coeff_pt_l1, 2) /= size(lai_l0, 2)) then
-      log_fatal(*) "MPR: PET Priestley-Taylor output LAI dimension does not match LAI cache."
-      error stop 1
-    end if
-
-    call mpr_helper_build_l0_to_l1_indices(level0, upscaler, id0, upper_bound1, lower_bound1, left_bound1, right_bound1)
-    call priestley_taylor_alpha(lai_l0, param(1:2), level0%mask, nodata_dp, id0, upscaler%n_subcells, &
-      upper_bound1, lower_bound1, left_bound1, right_bound1, pet_coeff_pt_l1)
-
-    deallocate(id0)
-    deallocate(upper_bound1)
-    deallocate(lower_bound1)
-    deallocate(left_bound1)
-    deallocate(right_bound1)
-  end subroutine mpr_helper_pet_priestley_taylor
-
-  !> \brief Bridge Penman-Monteith PET resistances.
-  subroutine mpr_helper_pet_penman_monteith(level0, land_cover_l0, lai_l0, param, upscaler, resist_aero_l1, resist_surf_l1)
-    type(grid_t), intent(in), target :: level0
-    integer(i4), dimension(:), intent(in) :: land_cover_l0
-    real(dp), dimension(:, :), intent(in) :: lai_l0
-    real(dp), dimension(:), intent(in) :: param
-    class(scaler_t), intent(inout), target :: upscaler
-    real(dp), dimension(:, :), intent(out) :: resist_aero_l1
-    real(dp), dimension(:, :), intent(out) :: resist_surf_l1
-    integer(i4), allocatable :: id0(:)
-    integer(i4), allocatable :: upper_bound1(:)
-    integer(i4), allocatable :: lower_bound1(:)
-    integer(i4), allocatable :: left_bound1(:)
-    integer(i4), allocatable :: right_bound1(:)
-    if (size(param) < 7_i4) then
-      log_fatal(*) "MPR: PET Penman-Monteith parameter set must contain 7 values, got ", n2s(size(param, kind=i4)), "."
-      error stop 1
-    end if
-    if (size(land_cover_l0) /= level0%ncells .or. size(lai_l0, 1) /= level0%ncells) then
-      log_fatal(*) "MPR: PET Penman-Monteith L0 inputs must match packed level0 cells."
-      error stop 1
-    end if
-    if (size(resist_aero_l1, 1) /= upscaler%target_grid%ncells .or. size(resist_surf_l1, 1) /= upscaler%target_grid%ncells) then
-      log_fatal(*) "MPR: PET Penman-Monteith outputs must match packed level1 cells."
-      error stop 1
-    end if
-    if (size(resist_aero_l1, 2) /= size(lai_l0, 2) .or. size(resist_surf_l1, 2) /= size(lai_l0, 2)) then
-      log_fatal(*) "MPR: PET Penman-Monteith output LAI dimensions must match the LAI cache."
-      error stop 1
-    end if
-
-    call mpr_helper_build_l0_to_l1_indices(level0, upscaler, id0, upper_bound1, lower_bound1, left_bound1, right_bound1)
-    call aerodynamical_resistance(lai_l0, land_cover_l0, param(1:6), level0%mask, id0, upscaler%n_subcells, &
-      upper_bound1, lower_bound1, left_bound1, right_bound1, resist_aero_l1)
-    call bulksurface_resistance(lai_l0, param(7), level0%mask, nodata_dp, id0, upscaler%n_subcells, &
-      upper_bound1, lower_bound1, left_bound1, right_bound1, resist_surf_l1)
-
-    deallocate(id0)
-    deallocate(upper_bound1)
-    deallocate(lower_bound1)
-    deallocate(left_bound1)
-    deallocate(right_bound1)
-  end subroutine mpr_helper_pet_penman_monteith
-
-  !> \brief Bridge soil-moisture parameter generation through the legacy soil routines.
-  subroutine mpr_helper_soil_moisture(db, soil_case, neutron_case, param, land_cover_l0, soil_id_l0, level0, upscaler, &
+  !> \brief Regionalize soil and optional neutron fields from process-specific parameter blocks.
+  subroutine mpr_helper_soil_moisture(db, soil_case, neutron_case, param, land_cover_l0, soil_id_l0, upscaler, &
       thresh_jarvis_l1, sm_exponent_l1, sm_saturation_l1, sm_field_capacity_l1, wilting_point_l1, f_roots_l1, &
       sm_deficit_fc_l0, ks_var_h_l0, ks_var_v_l0, bulk_density_l1, lattice_water_l1, cosmic_l3_l1, neutron_param)
     type(soil_database_t), intent(in) :: db !< Owning domain soil database.
-    integer(i4), intent(in) :: soil_case
-    integer(i4), intent(in) :: neutron_case
-    real(dp), dimension(:), intent(in) :: param
-    integer(i4), dimension(:), intent(in) :: land_cover_l0
-    integer(i4), dimension(:, :), intent(in) :: soil_id_l0
-    type(grid_t), intent(in), target :: level0
-    class(scaler_t), intent(inout), target :: upscaler
-    real(dp), dimension(:), intent(out) :: thresh_jarvis_l1
-    real(dp), dimension(:, :), intent(out) :: sm_exponent_l1
-    real(dp), dimension(:, :), intent(out) :: sm_saturation_l1
-    real(dp), dimension(:, :), intent(out) :: sm_field_capacity_l1
-    real(dp), dimension(:, :), intent(out) :: wilting_point_l1
-    real(dp), dimension(:, :), intent(out) :: f_roots_l1
-    real(dp), dimension(:), intent(out), optional :: sm_deficit_fc_l0
-    real(dp), dimension(:), intent(out), optional :: ks_var_h_l0
-    real(dp), dimension(:), intent(out), optional :: ks_var_v_l0
-    real(dp), dimension(:, :), intent(out), optional :: bulk_density_l1
-    real(dp), dimension(:, :), intent(out), optional :: lattice_water_l1
-    real(dp), dimension(:, :), intent(out), optional :: cosmic_l3_l1
-    real(dp), dimension(:), intent(in), optional :: neutron_param
-    integer(i4), allocatable :: id0(:)
-    integer(i4) :: i
-    integer(i4), dimension(nProcesses, 3) :: legacy_process_matrix
+    integer(i4), intent(in) :: soil_case !< Selected soil-moisture process case.
+    integer(i4), intent(in) :: neutron_case !< Disabled, Desilets, or COSMIC selection.
+    real(dp), dimension(:), intent(in) :: param !< Soil-moisture parameters in registry order.
+    integer(i4), dimension(:), intent(in) :: land_cover_l0 !< Packed fine-cell land-cover classes.
+    integer(i4), dimension(:, :), intent(in) :: soil_id_l0 !< Packed soil classes by input horizon.
+    class(scaler_t), intent(inout), target :: upscaler !< Connected fine-to-coarse grid mapping.
+    real(dp), dimension(:), intent(out) :: thresh_jarvis_l1 !< Jarvis threshold, or nodata for Feddes cases.
+    real(dp), dimension(:, :), intent(out) :: sm_exponent_l1 !< Coarse-cell sm exponent field.
+    real(dp), dimension(:, :), intent(out) :: sm_saturation_l1 !< Coarse-cell sm saturation field.
+    real(dp), dimension(:, :), intent(out) :: sm_field_capacity_l1 !< Coarse-cell sm field capacity field.
+    real(dp), dimension(:, :), intent(out) :: wilting_point_l1 !< Coarse-cell wilting point field.
+    real(dp), dimension(:, :), intent(out) :: f_roots_l1 !< Coarse-cell f roots field.
+    real(dp), dimension(:), intent(out) :: sm_deficit_fc_l0 !< Packed fine-cell sm deficit fc field.
+    real(dp), dimension(:), intent(out) :: ks_var_h_l0 !< Packed fine-cell ks var h field.
+    real(dp), dimension(:), intent(out) :: ks_var_v_l0 !< Packed fine-cell ks var v field.
+    real(dp), dimension(:, :), intent(out), optional :: bulk_density_l1 !< Coarse-cell bulk density field.
+    real(dp), dimension(:, :), intent(out), optional :: lattice_water_l1 !< Coarse-cell lattice water field.
+    real(dp), dimension(:, :), intent(out), optional :: cosmic_l3_l1 !< Coarse-cell cosmic l3 field.
+    real(dp), dimension(:), intent(in), optional :: neutron_param !< Selected neutron parameter block, when active.
+    integer(i4) :: n_root_params
     integer(i4) :: msoil
     integer(i4) :: m_lc
     integer(i4) :: mtill
     integer(i4) :: m_hor
     integer(i4) :: n_cells0
-    integer(i4) :: n_cells1
-    integer(i4) :: soil_param_end
-    integer(i4) :: horizon_param_start
-    integer(i4) :: horizon_param_end
-    integer(i4) :: x_lb
-    integer(i4) :: x_ub
-    integer(i4) :: y_lb
-    integer(i4) :: y_ub
     real(dp), allocatable :: thetaS_till(:, :, :)
     real(dp), allocatable :: thetaFC_till(:, :, :)
     real(dp), allocatable :: thetaPW_till(:, :, :)
@@ -512,30 +372,15 @@ contains
     real(dp), allocatable :: thetaPW(:, :)
     real(dp), allocatable :: Ks(:, :, :)
     real(dp), allocatable :: bulk_density_soil(:, :, :)
-    real(dp), allocatable :: KsVar_H0(:)
-    real(dp), allocatable :: KsVar_V0(:)
-    real(dp), allocatable :: SMs_FC0(:)
     real(dp), allocatable :: latWat_till(:, :, :)
     real(dp), allocatable :: COSMIC_L3_till(:, :, :)
     real(dp), allocatable :: latWat(:, :)
     real(dp), allocatable :: COSMIC_L3(:, :)
-    real(dp), allocatable :: bulk_density_tmp(:, :)
-    real(dp), allocatable :: lattice_water_tmp(:, :)
-    real(dp), allocatable :: cosmic_l3_tmp(:, :)
-    real(dp), allocatable :: legacy_param(:)
-    integer(i4), allocatable :: upper_bound1(:)
-    integer(i4), allocatable :: lower_bound1(:)
-    integer(i4), allocatable :: left_bound1(:)
-    integer(i4), allocatable :: right_bound1(:)
 
     if (.not.allocated(db%is_present)) then
       log_fatal(*) "MPR: soil database not initialized before soil-moisture generation."
       error stop 1
     end if
-
-    legacy_process_matrix = 0_i4
-    legacy_process_matrix(3, 1) = soil_case
-    legacy_process_matrix(10, 1) = neutron_case
 
     select case (soil_case)
       case (1_i4)
@@ -543,57 +388,70 @@ contains
           log_fatal(*) "MPR: soil moisture case 1 expects 16 parameters, got ", n2s(size(param, kind=i4)), "."
           error stop 1
         end if
-        soil_param_end = 13_i4
-        horizon_param_start = 14_i4
-        horizon_param_end = 17_i4
+        n_root_params = 4_i4
         thresh_jarvis_l1 = nodata_dp
       case (2_i4)
         if (size(param) < 17_i4) then
           log_fatal(*) "MPR: soil moisture case 2 expects 17 parameters, got ", n2s(size(param, kind=i4)), "."
           error stop 1
         end if
-        soil_param_end = 13_i4
-        horizon_param_start = 14_i4
-        horizon_param_end = 17_i4
+        n_root_params = 4_i4
         thresh_jarvis_l1 = param(17)
       case (3_i4)
         if (size(param) < 21_i4) then
           log_fatal(*) "MPR: soil moisture case 3 expects 21 parameters, got ", n2s(size(param, kind=i4)), "."
           error stop 1
         end if
-        soil_param_end = 13_i4
-        horizon_param_start = 14_i4
-        horizon_param_end = 21_i4
+        n_root_params = 8_i4
         thresh_jarvis_l1 = param(21)
       case (4_i4)
         if (size(param) < 20_i4) then
           log_fatal(*) "MPR: soil moisture case 4 expects 20 parameters, got ", n2s(size(param, kind=i4)), "."
           error stop 1
         end if
-        soil_param_end = 13_i4
-        horizon_param_start = 14_i4
-        horizon_param_end = 21_i4
+        n_root_params = 8_i4
         thresh_jarvis_l1 = nodata_dp
       case default
         log_fatal(*) "MPR: unsupported soil moisture process case ", n2s(soil_case), "."
         error stop 1
     end select
 
-    ! The legacy PTF API expects the unit conversion as its thirteenth parameter.
-    allocate(legacy_param(size(param) + 1_i4))
-    legacy_param(:12) = param(:12)
-    legacy_param(13) = inch_per_hour_to_centimetre_per_day
-    legacy_param(14:) = param(13:)
-
     n_cells0 = size(land_cover_l0)
     if (size(soil_id_l0, 1) /= n_cells0) then
       log_fatal(*) "MPR: soil_id and land_cover inputs must have matching packed L0 sizes."
       error stop 1
     end if
-    n_cells1 = size(sm_exponent_l1, 1)
     if (size(sm_exponent_l1, 2) /= db%n_layers) then
       log_fatal(*) "MPR: soil cache horizon dimension ", n2s(size(sm_exponent_l1, 2)), &
         " does not match n_layers=", n2s(db%n_layers), "."
+      error stop 1
+    end if
+
+    if (size(sm_deficit_fc_l0) /= n_cells0 .or. size(ks_var_h_l0) /= n_cells0 .or. size(ks_var_v_l0) /= n_cells0) then
+      log_fatal(*) "MPR: soil L0 outputs must match the packed input size."
+      error stop 1
+    end if
+    if (present(bulk_density_l1)) then
+      if (any(shape(bulk_density_l1) /= shape(sm_exponent_l1))) then
+        log_fatal(*) "MPR: bulk_density_l1 output has wrong shape."
+        error stop 1
+      end if
+    end if
+    if (present(lattice_water_l1)) then
+      if (any(shape(lattice_water_l1) /= shape(sm_exponent_l1))) then
+        log_fatal(*) "MPR: lattice_water_l1 output has wrong shape."
+        error stop 1
+      end if
+    end if
+    if (present(cosmic_l3_l1)) then
+      if (any(shape(cosmic_l3_l1) /= shape(sm_exponent_l1))) then
+        log_fatal(*) "MPR: cosmic_l3_l1 output has wrong shape."
+        error stop 1
+      end if
+    end if
+
+    if (any(land_cover_l0 < 1_i4) .or. any(land_cover_l0 > nLCover_class)) then
+      log_fatal(*) "MPR: soil regionalization requires land-cover classes 1 through 3."
       error stop 1
     end if
 
@@ -610,14 +468,9 @@ contains
       mtill = 1_i4
       m_hor = 1_i4
     else
-      log_fatal(*) "MPR: unsupported legacy soil_db_mode=", n2s(db%mode), "."
+      log_fatal(*) "MPR: unsupported soil_db_mode=", n2s(db%mode), "."
       error stop 1
     end if
-
-    allocate(id0(n_cells0))
-    do i = 1_i4, n_cells0
-      id0(i) = i
-    end do
 
     allocate(thetaS_till(msoil, mtill, m_lc))
     allocate(thetaFC_till(msoil, mtill, m_lc))
@@ -627,64 +480,18 @@ contains
     allocate(thetaPW(msoil, m_hor))
     allocate(Ks(msoil, m_hor, m_lc))
     allocate(bulk_density_soil(msoil, m_hor, m_lc))
-    allocate(KsVar_H0(n_cells0))
-    allocate(KsVar_V0(n_cells0))
-    allocate(SMs_FC0(n_cells0))
-    allocate(latWat_till(msoil, mtill, m_lc))
-    allocate(COSMIC_L3_till(msoil, mtill, m_lc))
-    allocate(latWat(msoil, m_hor))
-    allocate(COSMIC_L3(msoil, m_hor))
-    allocate(bulk_density_tmp(n_cells1, size(sm_exponent_l1, 2)))
-    allocate(lattice_water_tmp(n_cells1, size(sm_exponent_l1, 2)))
-    allocate(cosmic_l3_tmp(n_cells1, size(sm_exponent_l1, 2)))
-    allocate(upper_bound1(n_cells1))
-    allocate(lower_bound1(n_cells1))
-    allocate(left_bound1(n_cells1))
-    allocate(right_bound1(n_cells1))
 
-    latWat_till = 1.0e-6_dp
-    COSMIC_L3_till = 1.0e-6_dp
-    latWat = 1.0e-6_dp
-    COSMIC_L3 = 1.0e-6_dp
-    bulk_density_tmp = nodata_dp
-    lattice_water_tmp = nodata_dp
-    cosmic_l3_tmp = nodata_dp
-    do i = 1_i4, n_cells1
-      call upscaler%coarse_bounds(int(i, i8), x_lb, x_ub, y_lb, y_ub)
-      ! Legacy MPR upscaling routines slice arrays as (dim1, dim2). The new forces grid stores data as (x, y),
-      ! so feed x bounds into the first legacy index pair and y bounds into the second one.
-      upper_bound1(i) = x_lb
-      lower_bound1(i) = x_ub
-      left_bound1(i) = y_lb
-      right_bound1(i) = y_ub
-    end do
+    if (neutron_case > 0_i4) then
+      allocate(latWat_till(msoil, mtill, m_lc), latWat(msoil, m_hor))
+    end if
+    if (neutron_case == 2_i4) then
+      allocate(COSMIC_L3_till(msoil, mtill, m_lc), COSMIC_L3(msoil, m_hor))
+    end if
 
-    call mpr_sm(db%mode, legacy_param(:soil_param_end), legacy_process_matrix, &
+    call mpr_sm(db%mode, param(:12), soil_case, &
       db%is_present, db%nHorizons, db%nTillHorizons, &
-      db%sand, db%clay, db%DbM, id0, soil_id_l0, land_cover_l0, &
-      thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, bulk_density_soil, KsVar_H0, KsVar_V0, SMs_FC0)
-
-    if (present(sm_deficit_fc_l0)) then
-      if (size(sm_deficit_fc_l0) /= size(SMs_FC0)) then
-        log_fatal(*) "MPR: sm_deficit_fc_l0 output has wrong size."
-        error stop 1
-      end if
-      sm_deficit_fc_l0 = SMs_FC0
-    end if
-    if (present(ks_var_h_l0)) then
-      if (size(ks_var_h_l0) /= size(KsVar_H0)) then
-        log_fatal(*) "MPR: ks_var_h_l0 output has wrong size."
-        error stop 1
-      end if
-      ks_var_h_l0 = KsVar_H0
-    end if
-    if (present(ks_var_v_l0)) then
-      if (size(ks_var_v_l0) /= size(KsVar_V0)) then
-        log_fatal(*) "MPR: ks_var_v_l0 output has wrong size."
-        error stop 1
-      end if
-      ks_var_v_l0 = KsVar_V0
-    end if
+      db%sand, db%clay, db%DbM, soil_id_l0, land_cover_l0, &
+      thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, bulk_density_soil, ks_var_h_l0, ks_var_v_l0, sm_deficit_fc_l0)
 
     if (neutron_case > 0_i4) then
       if (.not.present(neutron_param)) then
@@ -698,129 +505,14 @@ contains
         db%clay, db%DbM, bulk_density_soil, COSMIC_L3_till, latWat_till, COSMIC_L3, latWat)
     end if
 
-    call mpr_SMhorizons(legacy_param(horizon_param_start:horizon_param_end), legacy_process_matrix, &
+    call mpr_SMhorizons(param(13:12+n_root_params), soil_case, upscaler, &
       db%mode, db%n_layers, db%horizon_depth, land_cover_l0, soil_id_l0, &
       db%nHorizons, db%nTillHorizons, thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, &
-      db%Wd, bulk_density_soil, db%DbM, db%RZdepth, level0%mask, id0, &
-      upper_bound1, lower_bound1, left_bound1, right_bound1, upscaler%n_subcells, &
+      db%Wd, bulk_density_soil, db%DbM, db%RZdepth, &
       sm_exponent_l1, sm_saturation_l1, sm_field_capacity_l1, wilting_point_l1, f_roots_l1, &
-      latWat_till, COSMIC_L3_till, latWat, COSMIC_L3, bulk_density_tmp, lattice_water_tmp, cosmic_l3_tmp)
+      latWat_till, COSMIC_L3_till, latWat, COSMIC_L3, bulk_density_l1, lattice_water_l1, cosmic_l3_l1)
 
-    if (present(bulk_density_l1)) then
-      if (any(shape(bulk_density_l1) /= shape(bulk_density_tmp))) then
-        log_fatal(*) "MPR: bulk_density_l1 output has wrong shape."
-        error stop 1
-      end if
-      bulk_density_l1 = bulk_density_tmp
-    end if
-    if (present(lattice_water_l1)) then
-      if (any(shape(lattice_water_l1) /= shape(lattice_water_tmp))) then
-        log_fatal(*) "MPR: lattice_water_l1 output has wrong shape."
-        error stop 1
-      end if
-      lattice_water_l1 = lattice_water_tmp
-    end if
-    if (present(cosmic_l3_l1)) then
-      if (any(shape(cosmic_l3_l1) /= shape(cosmic_l3_tmp))) then
-        log_fatal(*) "MPR: cosmic_l3_l1 output has wrong shape."
-        error stop 1
-      end if
-      cosmic_l3_l1 = cosmic_l3_tmp
-    end if
-
-    deallocate(id0)
-    deallocate(thetaS_till)
-    deallocate(thetaFC_till)
-    deallocate(thetaPW_till)
-    deallocate(thetaS)
-    deallocate(thetaFC)
-    deallocate(thetaPW)
-    deallocate(Ks)
-    deallocate(bulk_density_soil)
-    deallocate(KsVar_H0)
-    deallocate(KsVar_V0)
-    deallocate(SMs_FC0)
-    deallocate(latWat_till)
-    deallocate(COSMIC_L3_till)
-    deallocate(latWat)
-    deallocate(COSMIC_L3)
-    deallocate(bulk_density_tmp)
-    deallocate(lattice_water_tmp)
-    deallocate(cosmic_l3_tmp)
-    deallocate(legacy_param)
-    deallocate(upper_bound1)
-    deallocate(lower_bound1)
-    deallocate(left_bound1)
-    deallocate(right_bound1)
   end subroutine mpr_helper_soil_moisture
-
-  !> \brief Bridge runoff/interflow parameter generation with legacy mpr_runoff.
-  subroutine mpr_helper_runoff_param(land_cover_l0, slope_emp_l0, sm_deficit_fc_l0, ks_var_h_l0, level0, upscaler, &
-      param, thresh_unsat_l1, k_fastflow_l1, k_slowflow_l1, alpha_l1)
-    integer(i4), dimension(:), intent(in) :: land_cover_l0
-    real(dp), dimension(:), intent(in) :: slope_emp_l0
-    real(dp), dimension(:), intent(in) :: sm_deficit_fc_l0
-    real(dp), dimension(:), intent(in) :: ks_var_h_l0
-    type(grid_t), intent(in), target :: level0
-    class(scaler_t), intent(inout), target :: upscaler
-    real(dp), dimension(:), intent(in) :: param
-    real(dp), dimension(:), intent(out) :: thresh_unsat_l1
-    real(dp), dimension(:), intent(out) :: k_fastflow_l1
-    real(dp), dimension(:), intent(out) :: k_slowflow_l1
-    real(dp), dimension(:), intent(out) :: alpha_l1
-    integer(i4), allocatable :: id0(:)
-    integer(i4), allocatable :: upper_bound1(:)
-    integer(i4), allocatable :: lower_bound1(:)
-    integer(i4), allocatable :: left_bound1(:)
-    integer(i4), allocatable :: right_bound1(:)
-    integer(i4) :: i
-    integer(i4) :: x_lb
-    integer(i4) :: x_ub
-    integer(i4) :: y_lb
-    integer(i4) :: y_ub
-    integer(i4) :: n_cells0
-    integer(i4) :: n_cells1
-
-    if (size(param) < 5_i4) then
-      log_fatal(*) "MPR: interflow parameter set must contain 5 values, got ", n2s(size(param, kind=i4)), "."
-      error stop 1
-    end if
-
-    n_cells0 = size(land_cover_l0)
-    if (size(slope_emp_l0) /= n_cells0 .or. size(sm_deficit_fc_l0) /= n_cells0 .or. size(ks_var_h_l0) /= n_cells0) then
-      log_fatal(*) "MPR: runoff L0 inputs must have matching packed sizes."
-      error stop 1
-    end if
-    n_cells1 = size(alpha_l1)
-    if (size(thresh_unsat_l1) /= n_cells1 .or. size(k_fastflow_l1) /= n_cells1 .or. size(k_slowflow_l1) /= n_cells1) then
-      log_fatal(*) "MPR: runoff L1 outputs must have matching sizes."
-      error stop 1
-    end if
-
-    allocate(id0(n_cells0))
-    do i = 1_i4, n_cells0
-      id0(i) = i
-    end do
-    allocate(upper_bound1(n_cells1), lower_bound1(n_cells1), left_bound1(n_cells1), right_bound1(n_cells1))
-    do i = 1_i4, n_cells1
-      call upscaler%coarse_bounds(int(i, i8), x_lb, x_ub, y_lb, y_ub)
-      upper_bound1(i) = x_lb
-      lower_bound1(i) = x_ub
-      left_bound1(i) = y_lb
-      right_bound1(i) = y_ub
-    end do
-
-    call mpr_runoff( &
-      land_cover_l0, level0%mask, sm_deficit_fc_l0, slope_emp_l0, ks_var_h_l0, param(:5), id0, &
-      upper_bound1, lower_bound1, left_bound1, right_bound1, upscaler%n_subcells, &
-      thresh_unsat_l1, k_fastflow_l1, k_slowflow_l1, alpha_l1)
-
-    deallocate(id0)
-    deallocate(upper_bound1)
-    deallocate(lower_bound1)
-    deallocate(left_bound1)
-    deallocate(right_bound1)
-  end subroutine mpr_helper_runoff_param
 
   !> \brief Bridge percolation and karst-loss parameter generation with legacy-compatible formulas.
   subroutine mpr_helper_karstic_param(param, geo_unit_l0, geo_unit_list, geo_karstic, sm_deficit_fc_l0, ks_var_v_l0, &

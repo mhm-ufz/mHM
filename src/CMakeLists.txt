@@ -13,7 +13,6 @@ set(sources
   MPR/mo_mpr_soilmoist.f90
   MPR/mo_read_lut.f90
   MPR/mo_soil_database.f90
-  MPR/mo_upscaling_operators.f90
   common/mo_cli_support.f90
   common/mo_common_constants.f90
   common/mo_version.F90
