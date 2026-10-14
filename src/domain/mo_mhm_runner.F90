@@ -16,6 +16,7 @@
 module mo_mhm_runner
   use mo_logging
   use mo_kind, only: i4
+  use mo_common_constants, only: default_main_file, default_para_file, default_out_file, default_cwd
   use mo_domain, only: domain_t
   use mo_exchange_type, only: get_n_domains
   use mo_os, only: path_abspath, check_path_isdir
@@ -25,9 +26,6 @@ module mo_mhm_runner
   private
 
   public :: run_forward, startup_message
-  character(*), parameter, public :: default_main_file = "mhm.nml" !< Default main namelist shared with the CLI.
-  character(*), parameter, public :: default_para_file = "parameters.nml" !< Default parameter namelist shared with the CLI.
-  character(*), parameter, public :: default_out_file = "outputs.nml" !< Default output namelist shared with the CLI.
 
 contains
 
@@ -48,7 +46,7 @@ contains
     main_path = optval(main_file, default_main_file)
     para_path = optval(para_file, default_para_file)
     out_path = optval(out_file, default_out_file)
-    run_root = path_abspath(optval(cwd, "."))
+    run_root = path_abspath(optval(cwd, default_cwd))
     call check_path_isdir(run_root, raise=.true.)
 
     n_domains = get_n_domains(main_file=main_path, cwd=run_root)

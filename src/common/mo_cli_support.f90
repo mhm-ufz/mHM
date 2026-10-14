@@ -1,6 +1,5 @@
 !> \file mo_cli_support.f90
-!> \brief \copybrief mo_cli_support
-!> \details \copydetails mo_cli_support
+!> \copydoc mo_cli_support
 
 !> \brief Verbosity support for retained scientific message routines.
 !> \details Extracted from mo_mhm_cli for the standalone v6 driver. Sets the

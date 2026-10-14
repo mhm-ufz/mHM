@@ -1,6 +1,5 @@
 !> \file mo_version.F90
-!> \brief \copybrief mo_version
-!> \details \copydetails mo_version
+!> \copydoc mo_version
 
 #ifndef MHMVERSION
 #define MHMVERSION "0.0.0-dev0"

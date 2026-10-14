@@ -16,11 +16,11 @@ program driver
   use mo_cli_support, only: set_verbosity_level
   use mo_version, only: version
   use mo_kind, only: i4
-  use mo_mhm_runner, only: run_forward, default_main_file, default_para_file, default_out_file
+  use mo_common_constants, only: default_main_file, default_para_file, default_out_file, default_cwd
+  use mo_mhm_runner, only: run_forward
   implicit none
 
   type(cli_parser) :: parser
-  character(:), allocatable :: cwd
   integer :: unit
 
   parser = cli_parser(prog="mhm", description="The mesoscale hydrological model - mHM v6", &
@@ -38,7 +38,7 @@ program driver
   call parser%add_option(name="output", s_name="o", has_value=.true., &
     value_name="path", default=default_out_file, help="The mHM output namelist.")
 
-  call parser%add_option(name="cwd", blank=.true., help="The desired working directory (optional).")
+  call parser%add_option(name="cwd", blank=.true., default=default_cwd, help="The desired working directory (optional).")
   call parser%parse()
 
   use_log = .true. ! Enable message logging after parsing so help/version output stays clean.
@@ -49,8 +49,6 @@ program driver
   end if
   call set_verbosity_level(3_i4 - parser%option_read_count("quiet"))
 
-  ! An unallocated cwd is forwarded as absent, selecting the executor's default run root.
-  if (parser%option_was_read("cwd")) cwd = parser%option_value("cwd")
   call run_forward(main_file=parser%option_value("nml"), para_file=parser%option_value("parameters"), &
-    out_file=parser%option_value("output"), cwd=cwd)
+    out_file=parser%option_value("output"), cwd=parser%option_value("cwd"))
 end program driver
