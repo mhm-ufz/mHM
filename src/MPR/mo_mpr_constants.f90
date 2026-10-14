@@ -1,9 +1,8 @@
 !> \file mo_mpr_constants.f90
-!> \brief \copybrief mo_mpr_constants
-!> \details \copydetails mo_mpr_constants
+!> \copydoc mo_mpr_constants
 
 !> \brief Provides MPR specific constants
-!> \details Provides MPR specific constants such as flood plain elevation.
+!> \details Physical constants used by soil and PET regionalization.
 !> \authors Matthias Cuntz
 !> \date Nov 2011
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
@@ -19,15 +18,6 @@ MODULE mo_mpr_constants
 
   ! hydrologic modeling
   integer(i4), public, parameter :: nLCover_class = 3_i4      ! [-]     Number of land cover class
-  integer(i4), public, parameter :: maxGeoUnit = 25_i4     ! maximum number of allowed geological classes
-  integer(i4), public, parameter :: maxNoSoilHorizons = 10_i4     ! maximum number of allowed soil layers
-
-  ! default inital values for states and fluxes as well as parameter fields
-  real(dp), public, parameter :: P2_InitStateFluxes = 15.00_dp
-  real(dp), public, parameter :: P3_InitStateFluxes = 10.00_dp
-  real(dp), public, parameter :: P4_InitStateFluxes = 75.00_dp
-  real(dp), public, parameter :: P5_InitStateFluxes = 1500.00_dp
-  real(dp), public, parameter :: C1_InitStateSM = 0.25_dp
 
   ! soil paramterization (mo_mpr_soilmoist)
   ! organic matter constant for calculation of mineral bulk density following RAWL

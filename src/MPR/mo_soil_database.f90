@@ -1,6 +1,5 @@
 !> \file mo_soil_database.f90
-!> \brief \copybrief mo_soil_database
-!> \details \copydetails mo_soil_database
+!> \copydoc mo_soil_database
 
 !> \brief Generating soil database from input file.
 !> \details This module provides the routines for generating the soil database for mHM from an ASCII input file.
@@ -60,20 +59,6 @@ MODULE mo_soil_database
     !                                                                !            horizons provided in soil database
     integer(i4), dimension(:), allocatable :: nTillHorizons      ! [1]        Number of tillage horizons
 
-    ! derived soil hydraulic properties
-    real(dp), dimension(:, :, :), allocatable :: thetaS_Till        ! [1]        Saturated water content of soil horizons
-    !                                                                !            tillage depth - f(OM, management)
-    real(dp), dimension(:, :), allocatable :: thetaS             ! [1]        Saturated water content of soil horizons
-    !                                                                !            after tillage depth
-    real(dp), dimension(:, :, :), allocatable :: Db                 ! [g/cm2]    Bulk density, LUC dependent
-    !                                                                !            = f( OM, management)
-    real(dp), dimension(:, :, :), allocatable :: thetaFC_Till       ! [1]        Field capacity of tillage layers;
-    !                                                                !            LUC dependent - f(OM, management)
-    real(dp), dimension(:, :), allocatable :: thetaFC            ! [1]        Field capacity of deeper layers
-    real(dp), dimension(:, :, :), allocatable :: thetaPW_Till       ! [1]        Permament wilting point of tillage layers;
-    !                                                                !            LUC dependent - f(OM, management)
-    real(dp), dimension(:, :), allocatable :: thetaPW            ! [1]        Permanent wilting point of deeper layers
-    real(dp), dimension(:, :, :), allocatable :: Ks                 ! [cm/d]     Saturated hydaulic conductivity
   contains
     procedure :: destroy => soil_database_destroy
   end type soil_database_t
@@ -106,7 +91,6 @@ CONTAINS
   subroutine read_soil_LUT(filename, db)
 
     use mo_constants, only : eps_dp, nodata_dp, nodata_i4
-    use mo_mpr_constants, only : nLCover_class
 
 
     implicit none
@@ -132,7 +116,6 @@ CONTAINS
 
     integer(i4) :: maxNumberHorizons
 
-    integer(i4) :: minNumberTillHorizons, maxNumberTillHorizons
 
 
     SELECT CASE (db%mode)
@@ -243,36 +226,6 @@ CONTAINS
       db%sand(:, :) = nodata_dp
       db%dbM(:, :) = nodata_dp
 
-      ! allocate space for other derived soil hydraulic properties ...
-      minNumberTillHorizons = minval(db%nTillHorizons(:))
-      maxNumberTillHorizons = maxval(db%nTillHorizons(:))
-
-      allocate(db%thetaS_till(db%n_types, 1 : maxNumberTillHorizons, nLCover_class))
-      allocate(db%thetaS(db%n_types, minNumberTillHorizons + 1 : maxNumberHorizons))
-
-      allocate(db%thetaFC_till(db%n_types, 1 : maxNumberTillHorizons, nLCover_class))
-      allocate(db%thetaFC(db%n_types, minNumberTillHorizons + 1 : maxNumberHorizons))
-
-      allocate(db%thetaPW_till(db%n_types, 1 : maxNumberTillHorizons, nLCover_class))
-      allocate(db%thetaPW(db%n_types, minNumberTillHorizons + 1 : maxNumberHorizons))
-
-      allocate(db%Db(db%n_types, 1 : maxNumberTillHorizons, nLCover_class))
-
-      allocate(db%Ks(db%n_types, 1 : maxNumberHorizons, nLCover_class))
-
-      ! Initialize with default nodata_dp
-      db%thetaS_till(:, :, :) = nodata_dp
-      db%thetaS(:, :) = nodata_dp
-
-      db%thetaFC_till(:, :, :) = nodata_dp
-      db%thetaFC(:, :) = nodata_dp
-
-      db%thetaPW_till(:, :, :) = nodata_dp
-      db%thetaPW(:, :) = nodata_dp
-
-      db%Db(:, :, :) = nodata_dp
-      db%Ks(:, :, :) = nodata_dp
-
       ! Read again soil properties  from the data base
       rewind(soil_unit)
       read(soil_unit, *) dummy
@@ -338,14 +291,6 @@ CONTAINS
       allocate(db%UD(1, 1))
       allocate(db%LD(1, 1))
       allocate(db%depth(1, 1))
-      allocate(db%thetaS_till(1, 1, 1))
-      allocate(db%thetaS(1, 1))
-      allocate(db%thetaFC_till(1, 1, 1))
-      allocate(db%thetaFC(1, 1))
-      allocate(db%thetaPW_till(1, 1, 1))
-      allocate(db%thetaPW(1, 1))
-      allocate(db%Db(1, 1, 1))
-      allocate(db%Ks(1, 1, 1))
 
 
 
