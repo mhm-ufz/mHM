@@ -81,6 +81,10 @@ add_executable(test_parameter_reinitialize test_parameter_reinitialize.f90)
 target_link_libraries(test_parameter_reinitialize PRIVATE ${LIB_NAME})
 add_test(NAME test_parameter_reinitialize COMMAND test_parameter_reinitialize)
 
+add_executable(test_forward_run test_forward_run.f90)
+target_link_libraries(test_forward_run PRIVATE ${LIB_NAME})
+add_test(NAME test_forward_run COMMAND test_forward_run)
+
 if(TARGET mhm)
   add_test(
     NAME test_mrm_intermediate_step
@@ -112,6 +116,14 @@ get_property(mhm_tests DIRECTORY PROPERTY TESTS)
 foreach(test_name IN LISTS mhm_tests)
   set(run_dir "${CMAKE_CURRENT_BINARY_DIR}/runs/${test_name}")
   mhm_stage_run("${PROJECT_SOURCE_DIR}" "${run_dir}")
+  if(test_name STREQUAL "test_forward_run")
+    mhm_stage_run("${PROJECT_SOURCE_DIR}" "${run_dir}/alternate")
+    foreach(api_run_dir "${run_dir}" "${run_dir}/alternate")
+      configure_file("${api_run_dir}/test_nml/mrm_minimal.nml" "${api_run_dir}/mhm.nml" COPYONLY)
+      configure_file("${api_run_dir}/test_nml/mhm_parameter_v6_routing.nml" "${api_run_dir}/parameters.nml" COPYONLY)
+      configure_file("${api_run_dir}/mhm-output-template.nml" "${api_run_dir}/outputs.nml" COPYONLY)
+    endforeach()
+  endif()
   set_tests_properties(${test_name} PROPERTIES WORKING_DIRECTORY "${run_dir}")
 endforeach()
 

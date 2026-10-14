@@ -4,6 +4,12 @@ The v6 implementation runs independent domains through Input, MPR, meteo, mHM,
 mLM, and mRM containers. Each domain owns its exchange and component state.
 The execution entrypoint is `app/driver.F90`.
 
+The CLI delegates to `run_forward` in `mo_mhm_runner`. Fortran callers can import it
+with `use mo_mhm_runner, only: run_forward`. Its `main_file`, `para_file`, `out_file`,
+and `cwd` arguments are optional, defaulting to `mhm.nml`, `parameters.nml`,
+`outputs.nml`, and `.`. Callers configure logging; `cwd` resolves relative paths
+without changing the process working directory.
+
 Run the commands below from the repository root.
 
 ## Build

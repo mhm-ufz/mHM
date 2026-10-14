@@ -78,6 +78,8 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
   dummy that is neither allocatable nor a pointer. Check `present()` before use; this does not apply to allocatable/pointer dummies.
 - Do not guard invalid access with `.and.`, `.or.`, or `merge()`; evaluation need not short-circuit.
   Use separate presence/allocation/association guards before dereferencing or querying array size/bounds.
+- Guard `log_*` macros with block `if ... then ... end if`, never a one-line `if`.
+  They expand to their own conditional `write`; nesting one-line logical `if` statements is invalid Fortran.
 - A dummy's `target` alone does not ensure a persistent caller-owned target. Keep domain instances
   and persistent publication targets valid; detach aliases before freeing storage. Dangling pointers are not disassociated pointers.
 - Mutable local declaration initialization implies `SAVE`; initialize scratch in executable statements.
