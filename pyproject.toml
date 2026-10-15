@@ -10,7 +10,7 @@ build-backend = "scikit_build_core.build"
 [project]
 requires-python = ">=3.9"
 name = "mhm"
-description = "mHM version metadata and example downloads."
+description = "mHM forward execution and example-domain downloads."
 authors = [{name = "mHM Developers", email = "mhm-admin@ufz.de"}]
 readme = "pybind/README.md"
 license = {text = "LGPL-3.0"}
@@ -54,9 +54,11 @@ Tracker = "https://www.mhm-ufz.org"
 [project.optional-dependencies]
 test = [
     "pytest-cov>=3",
+    "netCDF4",
 ]
 
 [project.scripts]
+mhm = "mhm.cli:mhm"
 mhm-download = "mhm.download:cli"
 
 [tool.scikit-build]
@@ -78,17 +80,20 @@ MHM_BUILD_PYBIND = "ON"
 
 [tool.scikit-build.sdist]
 include = [
-    "pybind/src/mhm/_version.py",
-    "forces/cmake/*.cmake",
-    "forces/include",
-    "forces/src/*.fypp",
-    "forces/src/*.*90",
-    "forces/src/*.c",
-    "forces/src/CMakeLists.txt",
-    "forces/*.txt",
-    "forces/*.md",
-    "forces/AUTHORS",
-    "forces/COPYING*",
+    "/pybind/src/mhm/_version.py",
+    "/test_nml/mrm_minimal.nml",
+    "/test_nml/mhm_parameter_v6_routing.nml",
+    "/mhm-output-template.nml",
+    "/forces/cmake/*.cmake",
+    "/forces/include",
+    "/forces/src/*.fypp",
+    "/forces/src/*.*90",
+    "/forces/src/*.c",
+    "/forces/src/CMakeLists.txt",
+    "/forces/*.txt",
+    "/forces/*.md",
+    "/forces/AUTHORS",
+    "/forces/COPYING*",
 ]
 exclude = [
     "CI-scripts",
@@ -144,8 +149,15 @@ build-verbosity = 1
 build = ["cp39-*", "cp310-*", "cp311-*", "cp312-*", "cp313-*", "cp314-*"]
 skip = ["*-musllinux_*", "cp39-win_arm64", "cp310-win_arm64"]
 test-extras = "test"
-test-command = "mhm-download -h && python -m pytest pybind/tests/"
-test-sources = ["pybind/tests/"]
+test-command = "mhm --help && python -m mhm --help && mhm-download --help && python -m mhm.download --help && python -m pytest pybind/tests/"
+test-sources = [
+    "pybind/tests/",
+    "test_nml/mrm_minimal.nml",
+    "test_nml/mhm_parameter_v6_routing.nml",
+    "mhm-output-template.nml",
+    "examples/fixtures/input.nc",
+    "examples/fixtures/runoff.nc",
+]
 before-all = [
     'cmake -S "{package}/CI-scripts/dependencies" -B "$MHM_DEPS_BUILD" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$MHM_DEPS_PREFIX"',
     'cmake --build "$MHM_DEPS_BUILD" --parallel',

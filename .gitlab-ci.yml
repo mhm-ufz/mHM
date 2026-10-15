@@ -132,14 +132,19 @@ pybindings:
     - isort --check --diff pybind
     # create sdist and install it
     - python -m build --sdist --outdir dist .
-    - pip install -v .
+    - pip install -v '.[test]'
     # check installation
     - python -c "import mhm; print(mhm.__version__)"
     - python -c "import mhm; print(mhm.f_version)"
+    - which mhm
+    - mhm -V
+    - mhm -h
+    - python -m mhm -h
     # Downloader tests use local mocked archives.
     - which mhm-download
     - mhm-download -V
     - mhm-download -h
+    - python -m mhm.download -h
     - python -m pytest --cov mhm --cov-report term-missing --cov-report html --cov-report xml -v pybind/tests/
     # check editable installation last to not mess with pytest
     - pip install -v -e .

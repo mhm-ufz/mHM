@@ -24,19 +24,22 @@ set(f2py_module_name "wrapper")
 set(f2py_module_name_c "${f2py_module_name}module.c")
 set(f2py_module_name_f "${f2py_module_name}-f2pywrappers2.f90")
 set(f2py_fortranobject "${F2PY_INCLUDE_DIR}/fortranobject.c")
-set(fortran_src_file "${CMAKE_CURRENT_SOURCE_DIR}/${f2py_module_name}.f90")
-add_custom_target(genpyf ALL DEPENDS ${fortran_src_file})
+set(fortran_src_files
+  "${CMAKE_CURRENT_SOURCE_DIR}/metadata.f90"
+  "${CMAKE_CURRENT_SOURCE_DIR}/runner.f90"
+)
+add_custom_target(genpyf ALL DEPENDS ${fortran_src_files})
 
 # only use f2py to create c-wrapper for fortran module
 add_custom_command(
   OUTPUT ${f2py_module_name_c} ${f2py_module_name_f}
   COMMAND ${Python_EXECUTABLE} -m "numpy.f2py"
     -m ${f2py_module_name}
-    ${fortran_src_file}
+    ${fortran_src_files}
     --lower
     --f2cmap ${CMAKE_CURRENT_SOURCE_DIR}/.f2py_f2cmap
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  DEPENDS ${fortran_src_file}
+  DEPENDS ${fortran_src_files}
 )
 
 # add python module for wrapper
@@ -45,7 +48,7 @@ python_add_library(${f2py_module_name}
   ${f2py_module_name_c}
   ${f2py_fortranobject}
   ${f2py_module_name_f}
-  ${fortran_src_file}
+  ${fortran_src_files}
 )
 
 # link mhm to wrapper
@@ -65,7 +68,7 @@ if(WIN32)
     # Match f2py's C-side name mangling to Intel Fortran's native Windows ABI:
     # uppercase external names with no trailing underscore. This keeps the
     # generated f2py init entry points aligned without changing module naming
-    # for wrapper.f90 or the libraries it uses.
+    # for the binding modules or the libraries they use.
     target_compile_definitions(${f2py_module_name} PRIVATE
       "$<$<COMPILE_LANGUAGE:C>:NO_APPEND_FORTRAN>"
       "$<$<COMPILE_LANGUAGE:C>:UPPERCASE_FORTRAN>"

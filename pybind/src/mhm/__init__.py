@@ -1,8 +1,9 @@
-r"""mHM version metadata and example downloads; model bindings will be added later.
+r"""mHM forward execution, version metadata, and example-domain downloads.
 
 \ingroup py_mhm
 """
 
+from ._run import run_forward
 from .download import download_examples
 from .wrapper import metadata as _metadata
 
@@ -19,4 +20,4 @@ def __getattr__(name):
     raise AttributeError(f"module {__name__} has no attribute {name}")
 
 
-__all__ = ["__version__", "f_version", "download_examples"]
+__all__ = ["__version__", "f_version", "run_forward", "download_examples"]

@@ -119,7 +119,7 @@
 /**
 \dir pybind/src
 \brief Fortran wrapper and Python package sources.
-\details Version bindings and the Python distribution of mHM.
+\details Forward-run bindings and the Python distribution of mHM.
 */
 
 /**
@@ -130,8 +130,14 @@
 
 /**
 \defgroup   py_mhm mHM - Python package
-\brief      mHM Python package and version bindings.
-\details    Python and compiled Fortran version metadata, example-domain downloads, and the `mhm-download` command line interface.
+\brief      mHM Python package and forward-run bindings.
+\details    Forward execution, Python and compiled Fortran version metadata, example-domain downloads, and the `mhm` and `mhm-download` command line interfaces.
+*/
+
+/**
+\dir pybind/src/mhm/download
+\brief Example-domain downloader.
+\details GitHub-first example downloads with UFZ fallback and the `python -m mhm.download` entrypoint.
 */
 
 /**

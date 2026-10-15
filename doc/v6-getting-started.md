@@ -80,9 +80,12 @@ Open `html/index.html` to browse it. The PDF build uses
 `cd latex && tectonic -r 10 refman.tex`; documentation CI publishes HTML and PDF.
 The theme, headers, references, and figures remain in `doc/`.
 
-The temporary Python package provides `mhm.__version__`, `mhm.f_version`,
-`mhm.download_examples`, and `mhm-download`. Model-control bindings and
-calibration interfaces will be implemented against the v6 architecture later.
+The Python package provides `mhm.run_forward`, `mhm.__version__`, `mhm.f_version`,
+and `mhm.download_examples`. Its `mhm` console script and `python -m mhm` use the
+same forward runner and default paths as the native driver. Use `mhm-download`
+or `python -m mhm.download` to retrieve example domains; automatic downloads try
+GitHub first and then UFZ GitLab. Stepwise model-control bindings and calibration
+interfaces will be implemented against the v6 architecture later.
 See [Python package guidance](../pybind/README.md).
 
 mHM is distributed under LGPLv3+; see `LICENSE.md`, `COPYING`,
