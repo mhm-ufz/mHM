@@ -344,12 +344,19 @@ contains
           ! baseflow recession per geological unit - only when the land baseflow process is inactive
           if (self%exchange%config%processes%baseflow == 0_i4) then
             block
-              integer(i4) :: ig
+              integer(i4) :: ig, n_old, n_new
+              character(64), allocatable :: tmp_names(:)
               lake_params = [lake_params, parameter_config%lakes_1%baseflow_recession]
-              do ig = 1_i4, size(parameter_config%lakes_1%baseflow_recession, kind=i4)
-                lake_names = [lake_names, &
-                  [character(64) :: "baseflow_recession(" // trim(adjustl(n2s(ig))) // ")"]]
+              ! grow lake_names via explicit temporary to avoid gfortran issues with
+              ! length-mismatched array constructors and self-referential reallocation
+              n_old = size(lake_names, kind=i4)
+              n_new = size(parameter_config%lakes_1%baseflow_recession, kind=i4)
+              allocate(tmp_names(n_old + n_new))
+              tmp_names(1:n_old) = lake_names
+              do ig = 1_i4, n_new
+                tmp_names(n_old + ig) = "baseflow_recession(" // trim(adjustl(n2s(ig))) // ")"
               end do
+              call move_alloc(tmp_names, lake_names)
             end block
           end if
           call self%exchange%parameters%add_process("lake", lake_params, lake_names, group="lakes_1")
