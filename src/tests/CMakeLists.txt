@@ -111,6 +111,12 @@ add_executable(test_mpr_multidomain_soil test_mpr_multidomain_soil.f90)
 target_link_libraries(test_mpr_multidomain_soil PRIVATE ${LIB_NAME})
 add_test(NAME test_mpr_multidomain_soil COMMAND test_mpr_multidomain_soil)
 
+set_source_files_properties(test_neutron_parallel.f90 PROPERTIES Fortran_PREPROCESS ON)
+add_executable(test_neutron_parallel test_neutron_parallel.f90)
+target_link_libraries(test_neutron_parallel PRIVATE ${LIB_NAME})
+add_test(NAME test_neutron_parallel COMMAND test_neutron_parallel)
+set_tests_properties(test_neutron_parallel PROPERTIES ENVIRONMENT "OMP_DYNAMIC=FALSE")
+
 # No integration or unit test writes into the source checkout.
 get_property(mhm_tests DIRECTORY PROPERTY TESTS)
 foreach(test_name IN LISTS mhm_tests)

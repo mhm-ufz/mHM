@@ -43,7 +43,7 @@ module mo_mhm_container
   use mo_datetime, only: datetime, one_hour
   use mo_grid, only: grid_t, cartesian
   use mo_mhm_constants, only: P2_InitStateFluxes, P3_InitStateFluxes, P4_InitStateFluxes
-  use mo_neutrons, only: COSMIC, DesiletsN0, TabularIntegralAFast
+  use mo_neutrons, only: COSMIC, DesiletsN0, TabularIntegralAFast, neutron_geometry_t
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_string_utils, only: n2s => num2str
   use mo_utils, only: is_close
@@ -105,6 +105,7 @@ module mo_mhm_container
   !> \class   mhm_neutron_state_t
   !> \brief   Grouped neutron process fields and static support data.
   type :: mhm_neutron_state_t
+    type(neutron_geometry_t) :: geometry !< Shared read-only horizon geometry.
     real(dp), allocatable :: counts(:) !< simulated ground albedo neutrons
     real(dp), allocatable :: integral_afast(:) !< pre-calculated integrand for neutron flux approximation
   end type mhm_neutron_state_t
@@ -548,6 +549,7 @@ contains
     integer(i4) :: coeff_domain
     integer(i4) :: direct_runoff_case
     integer(i4) :: neutron_case
+    integer(i4) :: n_layers
 
     log_info(*) "Initialize mhm"
 
@@ -580,6 +582,10 @@ contains
       allocate(self%neutrons%integral_afast(1))
       self%neutrons%integral_afast = 0.0_dp
     end if
+
+    call self%neutrons%geometry%destroy()
+    n_layers = self%exchange%n_layers
+    if (neutron_case > 0 .and. n_layers > 1) call self%neutrons%geometry%prepare(self%soil%horizon_bounds(2:n_layers))
 
     call self%reset_fields()
     if (self%io%read_restart) call self%read_restart_data()
@@ -1029,9 +1035,6 @@ contains
     integer(i4) :: soil_case
     integer(i4) :: k
     real(dp) :: jarvis_thresh
-    real(dp), allocatable :: tmp_infiltration(:)
-    real(dp), allocatable :: tmp_soil_moisture(:)
-    real(dp), allocatable :: tmp_aet(:)
 
     soil_case = self%exchange%config%processes%soil_moisture
     if (soil_case == 0_i4) then
@@ -1042,13 +1045,8 @@ contains
       error stop 1
     end if
 
-    allocate(tmp_infiltration(size(self%exchange%infiltration%data, 2)))
-    allocate(tmp_soil_moisture(size(self%exchange%soil_moisture%data, 2)))
-    allocate(tmp_aet(size(self%exchange%aet_soil%data, 2)))
     !$omp do schedule(static)
     do k = 1_i4, size(self%exchange%soil_moisture%data, 1)
-      tmp_infiltration = self%exchange%infiltration%data(k, :)
-      tmp_soil_moisture = self%exchange%soil_moisture%data(k, :)
       jarvis_thresh = 0.0_dp
       if (soil_case == 2_i4 .or. soil_case == 3_i4) jarvis_thresh = self%exchange%thresh_jarvis%data(k)
 
@@ -1056,14 +1054,9 @@ contains
       call soil_moisture_pervious(soil_case, self%exchange%pet%data(k), self%exchange%sm_saturation%data(k, :), &
         self%exchange%f_roots%data(k, :), self%exchange%sm_field_capacity%data(k, :), self%exchange%wilting_point%data(k, :), &
         self%exchange%sm_exponent%data(k, :), jarvis_thresh, self%exchange%aet_canopy%data(k), self%exchange%pre_eff%data(k), &
-        tmp_infiltration, tmp_soil_moisture, tmp_aet)
-
-      self%exchange%infiltration%data(k, :) = tmp_infiltration
-      self%exchange%soil_moisture%data(k, :) = tmp_soil_moisture
-      self%exchange%aet_soil%data(k, :) = tmp_aet
+        self%exchange%infiltration%data(k, :), self%exchange%soil_moisture%data(k, :), self%exchange%aet_soil%data(k, :))
     end do
     !$omp end do
-    deallocate(tmp_infiltration, tmp_soil_moisture, tmp_aet)
   end subroutine mhm_update_soil_moisture
 
   !> \brief Update the unsaturated-zone runoff, interflow, and percolation state.
@@ -1171,7 +1164,7 @@ contains
       do k = 1_i4, size(self%exchange%neutrons%data)
         call DesiletsN0(self%exchange%soil_moisture%data(k, 1:n_layers), self%soil%horizon_bounds(2:n_layers + 1_i4), &
           self%exchange%bulk_density%data(k, 1:n_layers), self%exchange%lattice_water%data(k, 1:n_layers), &
-          self%exchange%desilets_n0%data(k), self%exchange%neutrons%data(k))
+          self%exchange%desilets_n0%data(k), self%exchange%neutrons%data(k), self%neutrons%geometry)
       end do
       !$omp end do
     case (2_i4)
@@ -1181,7 +1174,7 @@ contains
           self%neutrons%integral_afast, self%exchange%interception%data(k), self%exchange%snowpack%data(k), &
           self%exchange%desilets_n0%data(k), &
           self%exchange%bulk_density%data(k, 1:n_layers), self%exchange%lattice_water%data(k, 1:n_layers), &
-          self%exchange%cosmic_l3%data(k, 1:n_layers), self%exchange%neutrons%data(k))
+          self%exchange%cosmic_l3%data(k, 1:n_layers), self%exchange%neutrons%data(k), self%neutrons%geometry)
       end do
       !$omp end do
     case default
@@ -1637,6 +1630,7 @@ contains
     if (allocated(self%direct_runoff%storage)) deallocate(self%direct_runoff%storage)
     if (allocated(self%direct_runoff%aet)) deallocate(self%direct_runoff%aet)
     if (allocated(self%direct_runoff%runoff)) deallocate(self%direct_runoff%runoff)
+    call self%neutrons%geometry%destroy()
     if (allocated(self%soil%horizon_bounds)) deallocate(self%soil%horizon_bounds)
     if (allocated(self%soil%moisture)) deallocate(self%soil%moisture)
     if (allocated(self%soil%infiltration)) deallocate(self%soil%infiltration)

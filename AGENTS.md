@@ -77,6 +77,11 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
   Keep lake support integration and the forcing/PET/disaggregation order intact.
 - PET kernels and coefficients belong in meteo; hydrology/neutron constants in mHM, regionalization
   coefficients in MPR, neutral run defaults/file-format identifiers in common, and exchange contracts in domain.
+- Prepare numerical scratch during initialization. Pass strided soil-horizon slices directly to
+  assumed-shape kernel arguments; do not require contiguity or copy them into per-thread vectors.
+  Neutron kernels share one container-owned, read-only geometry cache and use local scalar accumulators;
+  keep timestep calls allocation-free and independent of team size. Rebuild parameter-dependent caches
+  on each initialize.
 - Both neutron formulations exclude the final soil layer. COSMIC L3 must be finite and positive;
   mode-1 class properties map by horizon before harmonic upscaling.
 

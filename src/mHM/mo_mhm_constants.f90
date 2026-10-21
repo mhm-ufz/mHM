@@ -15,7 +15,7 @@
 !> \ingroup f_mhm
 MODULE mo_mhm_constants
 
-  USE mo_kind, ONLY : i4, dp
+  USE mo_kind, ONLY : dp
 
   IMPLICIT NONE
 
@@ -28,11 +28,6 @@ MODULE mo_mhm_constants
   real(dp), public, parameter :: P2_InitStateFluxes = 15.00_dp
   real(dp), public, parameter :: P3_InitStateFluxes = 10.00_dp
   real(dp), public, parameter :: P4_InitStateFluxes = 75.00_dp
-  real(dp), public, parameter :: P5_InitStateFluxes = 1500.00_dp
-  real(dp), public, parameter :: C1_InitStateSM = 0.25_dp
-
-  ! maximum number of outputs (fluxes states) for mHM
-  integer(i4), public, parameter :: nOutFlxState = 21_i4     ! max. number of outputs to write into a netcdf file
 
   !> Neutrons and moisture: N0 formula, Desilets et al. 2010
   real(dp), public, parameter :: Desilets_a0 = 0.0808_dp
@@ -40,11 +35,9 @@ MODULE mo_mhm_constants
   real(dp), public, parameter :: Desilets_a2 = 0.115_dp
 
   !> Neutrons and moisture: COSMIC, Shuttleworth et al. 2013
-  real(dp), public, parameter :: COSMIC_N = 348.33_dp           ! High energy neutron flux (cph), original was 510.51737902_dp
   real(dp), public, parameter :: COSMIC_alpha = 0.2392421548_dp ! Ratio of Fast Neutron Creation Factor (Soil to Water)
   real(dp), public, parameter :: COSMIC_L1 = 161.98621864_dp    ! High Energy Soil Attenuation Length (g/cm2)
   real(dp), public, parameter :: COSMIC_L2 = 129.14558985_dp    ! High Energy Water Attenuation Length (g/cm2)
-  real(dp), public, parameter :: COSMIC_L3 = 107.82204562_dp    ! Fast Neutron Soil Attenuation Length (g/cm2)
   real(dp), public, parameter :: COSMIC_L4 = 3.1627190566_dp    ! Fast Neutron Water Attenuation Length (g/cm2)
 
 END MODULE mo_mhm_constants
