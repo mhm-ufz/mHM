@@ -871,11 +871,11 @@ contains
 
     if (.not.self%io%output_active) return
     model_step = self%exchange%step_hours
-    associate(work => self%output_work)
+    ! Access owning buffers directly: NAG 7.2 cannot lower an ASSOCIATE alias across OpenMP regions.
     if (self%io%calc_f_not_sealed) then
       !$omp parallel do default(shared) private(k) schedule(static)
-      do k = 1, size(work%pervious)
-        work%pervious(k) = 1.0_dp - self%exchange%f_sealed%data(k)
+      do k = 1, size(self%output_work%pervious)
+        self%output_work%pervious(k) = 1.0_dp - self%exchange%f_sealed%data(k)
       end do
       !$omp end parallel do
     end if
@@ -885,21 +885,23 @@ contains
     if (self%output_config%out_swc) call mhm_update_layered_output(self, "SWC", self%exchange%soil_moisture%data)
     if (self%output_config%out_sm) then
       !$omp parallel do default(shared) private(k,h) schedule(static)
-      do k = 1, size(work%scalar)
-        do h = 1, size(work%layers, 2)
-          work%layers(k,h) = self%exchange%soil_moisture%data(k,h) / self%exchange%sm_saturation%data(k,h)
+      do k = 1, size(self%output_work%scalar)
+        do h = 1, size(self%output_work%layers, 2)
+          self%output_work%layers(k,h) = &
+            self%exchange%soil_moisture%data(k,h) / self%exchange%sm_saturation%data(k,h)
         end do
       end do
       !$omp end parallel do
-      call mhm_update_layered_output(self, "SM", work%layers)
+      call mhm_update_layered_output(self, "SM", self%output_work%layers)
     end if
     if (self%output_config%out_sm_all) then
       !$omp parallel do default(shared) private(k) schedule(static)
-      do k = 1, size(work%scalar)
-        work%scalar(k) = sum(self%exchange%soil_moisture%data(k,:)) / sum(self%exchange%sm_saturation%data(k,:))
+      do k = 1, size(self%output_work%scalar)
+        self%output_work%scalar(k) = &
+          sum(self%exchange%soil_moisture%data(k,:)) / sum(self%exchange%sm_saturation%data(k,:))
       end do
       !$omp end parallel do
-      call self%ds_out%update("SM_Lall", work%scalar)
+      call self%ds_out%update("SM_Lall", self%output_work%scalar)
     end if
     if (self%output_config%out_sealedstw) call self%ds_out%update("sealedSTW", self%exchange%sealed_storage%data)
     if (self%output_config%out_unsatstw) call self%ds_out%update("unsatSTW", self%exchange%unsat_storage%data)
@@ -908,81 +910,83 @@ contains
     if (self%output_config%out_pet) call self%ds_out%update("PET", self%exchange%pet%data)
     if (self%output_config%out_aet_all) then
       !$omp parallel do default(shared) private(k) schedule(static)
-      do k = 1, size(work%scalar)
-        work%scalar(k) = 0.0_dp
+      do k = 1, size(self%output_work%scalar)
+        self%output_work%scalar(k) = 0.0_dp
         if (self%exchange%aet_soil%provided) &
-          work%scalar(k) = work%scalar(k) + sum(self%exchange%aet_soil%data(k,:)) * work%pervious(k)
-        if (self%exchange%aet_canopy%provided) work%scalar(k) = work%scalar(k) + self%exchange%aet_canopy%data(k)
+          self%output_work%scalar(k) = &
+            self%output_work%scalar(k) + sum(self%exchange%aet_soil%data(k,:)) * self%output_work%pervious(k)
+        if (self%exchange%aet_canopy%provided) &
+          self%output_work%scalar(k) = self%output_work%scalar(k) + self%exchange%aet_canopy%data(k)
         if (self%exchange%aet_sealed%provided) &
-          work%scalar(k) = work%scalar(k) + self%exchange%aet_sealed%data(k) * self%exchange%f_sealed%data(k)
+          self%output_work%scalar(k) = &
+            self%output_work%scalar(k) + self%exchange%aet_sealed%data(k) * self%exchange%f_sealed%data(k)
       end do
       !$omp end parallel do
-      call self%ds_out%update("aET", work%scalar)
+      call self%ds_out%update("aET", self%output_work%scalar)
     end if
     if (self%output_config%out_q) call self%ds_out%update("Q", self%exchange%runoff_total%data)
     if (self%output_config%out_qd) then
       !$omp parallel do default(shared) private(k) schedule(static)
-      do k = 1, size(work%scalar)
-        work%scalar(k) = self%exchange%runoff_sealed%data(k) * self%exchange%f_sealed%data(k)
+      do k = 1, size(self%output_work%scalar)
+        self%output_work%scalar(k) = self%exchange%runoff_sealed%data(k) * self%exchange%f_sealed%data(k)
       end do
       !$omp end parallel do
-      call self%ds_out%update("QD", work%scalar)
+      call self%ds_out%update("QD", self%output_work%scalar)
     end if
     if (self%output_config%out_qif) then
       !$omp parallel do default(shared) private(k) schedule(static)
-      do k = 1, size(work%scalar)
-        work%scalar(k) = self%exchange%interflow_fast%data(k) * work%pervious(k)
+      do k = 1, size(self%output_work%scalar)
+        self%output_work%scalar(k) = self%exchange%interflow_fast%data(k) * self%output_work%pervious(k)
       end do
       !$omp end parallel do
-      call self%ds_out%update("QIf", work%scalar)
+      call self%ds_out%update("QIf", self%output_work%scalar)
     end if
     if (self%output_config%out_qis) then
       !$omp parallel do default(shared) private(k) schedule(static)
-      do k = 1, size(work%scalar)
-        work%scalar(k) = self%exchange%interflow_slow%data(k) * work%pervious(k)
+      do k = 1, size(self%output_work%scalar)
+        self%output_work%scalar(k) = self%exchange%interflow_slow%data(k) * self%output_work%pervious(k)
       end do
       !$omp end parallel do
-      call self%ds_out%update("QIs", work%scalar)
+      call self%ds_out%update("QIs", self%output_work%scalar)
     end if
     if (self%output_config%out_qb) then
       !$omp parallel do default(shared) private(k) schedule(static)
-      do k = 1, size(work%scalar)
-        work%scalar(k) = self%exchange%baseflow%data(k) * work%pervious(k)
+      do k = 1, size(self%output_work%scalar)
+        self%output_work%scalar(k) = self%exchange%baseflow%data(k) * self%output_work%pervious(k)
       end do
       !$omp end parallel do
-      call self%ds_out%update("QB", work%scalar)
+      call self%ds_out%update("QB", self%output_work%scalar)
     end if
     if (self%output_config%out_recharge) then
       !$omp parallel do default(shared) private(k) schedule(static)
-      do k = 1, size(work%scalar)
-        work%scalar(k) = self%exchange%percolation%data(k) * work%pervious(k)
+      do k = 1, size(self%output_work%scalar)
+        self%output_work%scalar(k) = self%exchange%percolation%data(k) * self%output_work%pervious(k)
       end do
       !$omp end parallel do
-      call self%ds_out%update("recharge", work%scalar)
+      call self%ds_out%update("recharge", self%output_work%scalar)
     end if
     if (self%output_config%out_soil_infil) then
       !$omp parallel do default(shared) private(k,h) schedule(static)
-      do k = 1, size(work%scalar)
-        do h = 1, size(work%layers, 2)
-          work%layers(k,h) = self%exchange%infiltration%data(k,h) * work%pervious(k)
+      do k = 1, size(self%output_work%scalar)
+        do h = 1, size(self%output_work%layers, 2)
+          self%output_work%layers(k,h) = self%exchange%infiltration%data(k,h) * self%output_work%pervious(k)
         end do
       end do
       !$omp end parallel do
-      call mhm_update_layered_output(self, "soil_infil", work%layers)
+      call mhm_update_layered_output(self, "soil_infil", self%output_work%layers)
     end if
     if (self%output_config%out_aet_layer) then
       !$omp parallel do default(shared) private(k,h) schedule(static)
-      do k = 1, size(work%scalar)
-        do h = 1, size(work%layers, 2)
-          work%layers(k,h) = self%exchange%aet_soil%data(k,h) * work%pervious(k)
+      do k = 1, size(self%output_work%scalar)
+        do h = 1, size(self%output_work%layers, 2)
+          self%output_work%layers(k,h) = self%exchange%aet_soil%data(k,h) * self%output_work%pervious(k)
         end do
       end do
       !$omp end parallel do
-      call mhm_update_layered_output(self, "aET_soil", work%layers)
+      call mhm_update_layered_output(self, "aET_soil", self%output_work%layers)
     end if
     if (self%output_config%out_preeffect) call self%ds_out%update("preEffect", self%exchange%pre_eff%data)
     if (self%output_config%out_qsm) call self%ds_out%update("Qsm", self%exchange%melt%data)
-    end associate
 
     write_stamp = .false.
     select case (self%output_config%output_frequency)
