@@ -41,9 +41,9 @@ set(sources
   mRM/mo_river_temperature.f90
   mRM/mo_river_tools.f90
   mRM/mo_river_upscaler.f90
+  meteo/mo_meteo_constants.f90
   meteo/mo_pet.f90
   meteo/mo_meteo_container.F90
-  meteo/mo_meteo_spatial_tools.f90
   meteo/mo_meteo_temporal_tools.f90
   meteo/mo_meteo_weights.f90
   nml/nml_config_coupling.f90

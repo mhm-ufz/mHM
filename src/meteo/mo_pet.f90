@@ -250,7 +250,7 @@ CONTAINS
   elemental pure FUNCTION extraterr_rad_approx(doy, latitude)
 
     use mo_constants, only : DaySecs, YearDays, PI_D, SolarConst_dp, SpecHeatET_dp, TWOPI_D
-    use mo_mhm_constants, only : DuffieDelta1, DuffieDelta2, DuffieDr
+    use mo_meteo_constants, only : DuffieDelta1, DuffieDelta2, DuffieDr
 
     implicit none
     integer(i4), intent(in) :: doy !< day of year [-]
@@ -310,7 +310,7 @@ CONTAINS
 
   elemental pure FUNCTION slope_satpressure(tavg)
 
-    use mo_mhm_constants, only : satpressureslope1, tetens_c3
+    use mo_meteo_constants, only : satpressureslope1, tetens_c3
 
     implicit none
     real(dp), intent(in) :: tavg !< Mean air temperature [degrees C].
@@ -346,7 +346,7 @@ CONTAINS
 
   elemental pure FUNCTION sat_vap_pressure(tavg)
 
-    use mo_mhm_constants, only : tetens_c1, tetens_c2, tetens_c3
+    use mo_meteo_constants, only : tetens_c1, tetens_c2, tetens_c3
 
     implicit none
     real(dp), intent(in) :: tavg !< Mean air temperature [degrees C].

@@ -33,11 +33,11 @@ module mo_meteo_container
   use mo_exchange_type, only: exchange_t, var_dp, l1
   use mo_grid, only: grid_t, spherical
   use mo_grid_io, only: no_time, daily, monthly, yearly
-  use mo_grid_scaler, only: scaler_t
+  use mo_grid_scaler, only: scaler_t, weight_count
   use mo_lake_forcing, only: lake_support_t, lake_support_build
   use mo_kind, only: i4, i8, dp
   use mo_meteo_temporal_tools, only: temporal_disagg_meteo_weights, temporal_disagg_flux_daynight, temporal_disagg_state_daynight
-  use mo_mhm_constants, only: HarSamConst
+  use mo_meteo_constants, only: HarSamConst
   use mo_pet, only: pet_hargreaves, pet_penman, pet_priestly
   use mo_meteo_weights, only: read_weights_nc
   use mo_string_utils, only: n2s => num2str
@@ -438,7 +438,8 @@ contains
     if (.not.land_active) return
 
     call self%ensure_level1_grid()
-    call self%regrid%init(self%exchange%level2, self%exchange%level1_land)
+    call self%regrid%init(self%exchange%level2, self%exchange%level1_land, &
+      weight_mode=weight_count, cache_bounds=.true.)
     domain_id = self%exchange%nml_domain_id
     id(1) = domain_id
     step_hours = self%exchange%step_hours
@@ -561,6 +562,20 @@ contains
     ! but owns no meteorological fields and does not establish a level1 grid.
     if (.not.associated(self%exchange%level1_land)) return
 
+    if (self%exchange%raw_pre%provided) call self%ensure_size(self%scratch%pre, self%exchange%level1_land%ncells)
+    if (self%exchange%raw_temp%provided) call self%ensure_size(self%scratch%temp, self%exchange%level1_land%ncells)
+    if (self%exchange%raw_pet%provided) call self%ensure_size(self%scratch%pet, self%exchange%level1_land%ncells)
+    if (self%exchange%raw_tann%provided) call self%ensure_size(self%scratch%tann, self%exchange%level1_land%ncells)
+    if (self%exchange%raw_tmin%provided) call self%ensure_size(self%scratch%tmin, self%exchange%level1_land%ncells)
+    if (self%exchange%raw_tmax%provided) call self%ensure_size(self%scratch%tmax, self%exchange%level1_land%ncells)
+    if (self%exchange%raw_ssrd%provided) call self%ensure_size(self%scratch%ssrd, self%exchange%level1_land%ncells)
+    if (self%exchange%raw_strd%provided) call self%ensure_size(self%scratch%strd, self%exchange%level1_land%ncells)
+    if (self%exchange%raw_netrad%provided) call self%ensure_size(self%scratch%netrad, self%exchange%level1_land%ncells)
+    if (self%exchange%raw_eabs%provided) call self%ensure_size(self%scratch%eabs, self%exchange%level1_land%ncells)
+    if (self%exchange%raw_wind%provided) call self%ensure_size(self%scratch%wind, self%exchange%level1_land%ncells)
+    if (self%exchange%config%processes%pet /= 0_i4) &
+      call self%ensure_size(self%scratch%pet, self%exchange%level1_land%ncells)
+
     pet_process = self%exchange%config%processes%pet
     select case (pet_process)
     case (1_i4)
@@ -672,11 +687,6 @@ contains
     class(meteo_t), intent(inout), target :: self
     real(dp) :: l1_res
 
-    if (.not.associated(self%exchange%level0_land)) then
-      log_fatal(*) "Meteo: level0 land grid not connected."
-      error stop 1
-    end if
-
     l1_res = self%exchange%level1_resolution
     if (associated(self%exchange%level1_land)) then
       if (ieee_is_finite(l1_res) .and. l1_res > 0.0_dp .and. &
@@ -685,9 +695,16 @@ contains
           ") conflicts with configured level1_resolution (", n2s(l1_res), ")."
         error stop 1
       end if
-      call self%exchange%level1_land%check_is_filled_by(self%exchange%level0_land, check_mask=.true.)
+      if (associated(self%exchange%level0_land)) then
+        call self%exchange%level1_land%check_is_filled_by(self%exchange%level0_land, check_mask=.true.)
+      end if
       call self%exchange%alias_full_grid_no_lakes(l1)
       return
+    end if
+
+    if (.not.associated(self%exchange%level0_land)) then
+      log_fatal(*) "Meteo: level0 land grid not connected."
+      error stop 1
     end if
 
     if (.not.ieee_is_finite(l1_res) .or. l1_res <= 0.0_dp) then
@@ -830,8 +847,9 @@ contains
   !> \brief Read a level2 temporal weight cube and aggregate it onto lake supports.
   subroutine meteo_load_lake_weight_cache(self, path, var_name, cache)
     class(meteo_t), target, intent(inout) :: self
-    character(*), intent(in) :: path, var_name
-    real(dp), allocatable, intent(inout) :: cache(:, :, :)
+    character(*), intent(in) :: path !< Input NetCDF file path.
+    character(*), intent(in) :: var_name !< NetCDF weight variable name.
+    real(dp), allocatable, intent(inout) :: cache(:, :, :) !< Packed spatial weights by month and hour.
     real(dp), allocatable :: l2_data(:, :, :, :), packed(:), tmp(:)
     character(len=256) :: path_fixed
     integer(i4) :: month, hour
@@ -857,10 +875,10 @@ contains
   !> \brief Read and regrid one weight cube to cached packed level1 weights.
   subroutine meteo_load_weight_cache(self, path, var_name, cache)
     class(meteo_t), intent(inout), target :: self
-    character(*), intent(in) :: path
-    character(*), intent(in) :: var_name
+    character(*), intent(in) :: path !< Input NetCDF file path.
+    character(*), intent(in) :: var_name !< NetCDF field name.
+    real(dp), allocatable, intent(inout) :: cache(:, :, :) !< Packed spatial weights by month and hour.
     character(len=256) :: path_fixed
-    real(dp), allocatable, intent(inout) :: cache(:, :, :)
     real(dp), allocatable :: l2_data(:, :, :, :)
     real(dp), allocatable :: packed_l2(:)
     real(dp), allocatable :: packed_l1(:)
@@ -1061,6 +1079,7 @@ contains
   subroutine meteo_update_pet(self)
     class(meteo_t), intent(inout), target :: self
     integer(i4) :: pet_process
+    integer(i4) :: k, doy
     integer(i4) :: domain_id
     integer(i4) :: month
     integer(i4) :: hour
@@ -1074,15 +1093,24 @@ contains
     hour = self%exchange%time_step_start%hour
     steps_day = self%steps_per_day()
     isday = meteo_is_day_step(hour)
+    doy = self%exchange%time_step_start%doy()
 
     select case (pet_process)
       case (-2_i4)
         call self%remap_raw(self%exchange%raw_pet, self%scratch%pet, "raw_pet")
-        self%scratch%pet = self%exchange%pet_fac_aspect%data * self%scratch%pet
+        !$omp parallel do default(shared) private(k) schedule(static)
+        do k = 1, size(self%scratch%pet)
+            self%scratch%pet(k) = self%exchange%pet_fac_aspect%data(k) * self%scratch%pet(k)
+        end do
+        !$omp end parallel do
         pet_stepping = self%exchange%raw_pet%stepping
       case (-1_i4)
         call self%remap_raw(self%exchange%raw_pet, self%scratch%pet, "raw_pet")
-        self%scratch%pet = self%exchange%pet_fac_lai%data * self%scratch%pet
+        !$omp parallel do default(shared) private(k) schedule(static)
+        do k = 1, size(self%scratch%pet)
+            self%scratch%pet(k) = self%exchange%pet_fac_lai%data(k) * self%scratch%pet(k)
+        end do
+        !$omp end parallel do
         pet_stepping = self%exchange%raw_pet%stepping
       case (1_i4)
         call self%remap_raw(self%exchange%raw_temp, self%scratch%temp, "raw_temp")
@@ -1092,21 +1120,29 @@ contains
           log_warn(*) "Meteo: tmax smaller than tmin for at least one cell at ", self%exchange%time%str()
         end if
         call self%ensure_size(self%scratch%pet, self%exchange%level1_land%ncells)
-        self%scratch%pet = self%exchange%pet_fac_aspect%data * pet_hargreaves( &
-          HarSamCoeff=self%exchange%pet_coeff_hs%data, &
-          HarSamConst=HarSamConst, &
-          tavg=self%scratch%temp, &
-          tmax=self%scratch%tmax, &
-          tmin=self%scratch%tmin, &
-          latitude=self%scratch%latitude, &
-          doy=self%exchange%time_step_start%doy())
+        !$omp parallel do default(shared) private(k) schedule(static)
+        do k = 1, size(self%scratch%pet)
+          self%scratch%pet(k) = self%exchange%pet_fac_aspect%data(k) * pet_hargreaves( &
+            HarSamCoeff=self%exchange%pet_coeff_hs%data(k), &
+            HarSamConst=HarSamConst, &
+            tavg=self%scratch%temp(k), &
+            tmax=self%scratch%tmax(k), &
+            tmin=self%scratch%tmin(k), &
+            latitude=self%scratch%latitude(k), &
+            doy=doy)
+        end do
+        !$omp end parallel do
         pet_stepping = daily
       case (2_i4)
         call self%remap_raw(self%exchange%raw_temp, self%scratch%temp, "raw_temp")
         call self%remap_raw(self%exchange%raw_netrad, self%scratch%netrad, "raw_netrad")
         call self%ensure_size(self%scratch%pet, self%exchange%level1_land%ncells)
-        self%scratch%pet = pet_priestly(PrieTayParam=self%exchange%pet_coeff_pt%data, &
-          Rn=max(self%scratch%netrad, 0.0_dp), tavg=self%scratch%temp)
+        !$omp parallel do default(shared) private(k) schedule(static)
+        do k = 1, size(self%scratch%pet)
+          self%scratch%pet(k) = pet_priestly(PrieTayParam=self%exchange%pet_coeff_pt%data(k), &
+            Rn=max(self%scratch%netrad(k), 0.0_dp), tavg=self%scratch%temp(k))
+        end do
+        !$omp end parallel do
         pet_stepping = daily
       case (3_i4)
         call self%remap_raw(self%exchange%raw_temp, self%scratch%temp, "raw_temp")
@@ -1114,14 +1150,18 @@ contains
         call self%remap_raw(self%exchange%raw_eabs, self%scratch%eabs, "raw_eabs")
         call self%remap_raw(self%exchange%raw_wind, self%scratch%wind, "raw_wind")
         call self%ensure_size(self%scratch%pet, self%exchange%level1_land%ncells)
-        self%scratch%pet = pet_penman( &
-          net_rad=max(self%scratch%netrad, 0.0_dp), &
-          tavg=self%scratch%temp, &
-          act_vap_pressure=self%scratch%eabs / 1000.0_dp, &
-          aerodyn_resistance=self%exchange%resist_aero%data / self%scratch%wind, &
-          bulksurface_resistance=self%exchange%resist_surf%data, &
-          a_s=1.0_dp, &
-          a_sh=1.0_dp)
+        !$omp parallel do default(shared) private(k) schedule(static)
+        do k = 1, size(self%scratch%pet)
+          self%scratch%pet(k) = pet_penman( &
+            net_rad=max(self%scratch%netrad(k), 0.0_dp), &
+            tavg=self%scratch%temp(k), &
+            act_vap_pressure=self%scratch%eabs(k) / 1000.0_dp, &
+            aerodyn_resistance=self%exchange%resist_aero%data(k) / self%scratch%wind(k), &
+            bulksurface_resistance=self%exchange%resist_surf%data(k), &
+            a_s=1.0_dp, &
+            a_sh=1.0_dp)
+        end do
+        !$omp end parallel do
         pet_stepping = daily
       case default
         log_fatal(*) "Meteo: unsupported PET process case ", n2s(pet_process), "."

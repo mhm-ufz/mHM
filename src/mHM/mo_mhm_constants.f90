@@ -34,21 +34,6 @@ MODULE mo_mhm_constants
   ! maximum number of outputs (fluxes states) for mHM
   integer(i4), public, parameter :: nOutFlxState = 21_i4     ! max. number of outputs to write into a netcdf file
 
-  !> Hargreaves-Samani ref. ET formula [deg C]
-  real(dp), public, parameter :: HarSamConst = 17.800_dp
-
-  ! Duffie formula for computing extraterrestrial radiation
-  real(dp), public, parameter :: DuffieDr = 0.0330_dp
-  real(dp), public, parameter :: DuffieDelta1 = 0.4090_dp
-  real(dp), public, parameter :: DuffieDelta2 = 1.3900_dp
-
-  !> Tetens's formula to calculate saturated vapour pressure
-  real(dp), public, parameter :: tetens_c1 = 0.6108_dp
-  real(dp), public, parameter :: tetens_c2 = 17.270_dp
-  real(dp), public, parameter :: tetens_c3 = 237.30_dp
-  !> calculation of the slope of the saturation vapour pressure curve following Tetens
-  real(dp), public, parameter :: satpressureslope1 = 4098.0_dp
-
   !> Neutrons and moisture: N0 formula, Desilets et al. 2010
   real(dp), public, parameter :: Desilets_a0 = 0.0808_dp
   real(dp), public, parameter :: Desilets_a1 = 0.372_dp

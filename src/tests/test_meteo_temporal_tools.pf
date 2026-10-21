@@ -1,8 +1,9 @@
 module test_meteo_temporal_tools
   use funit
   use mo_datetime, only: datetime
+  use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_exchange_type, only: exchange_t
-  use mo_grid, only: grid_t, bottom_up
+  use mo_grid, only: grid_t, bottom_up, spherical
   use mo_meteo_temporal_tools
   use mo_meteo_container, only: meteo_t, meteo_is_day_step, meteo_supports_model_step, meteo_supports_forcing_step
   use mo_grid_io, only: daily, monthly, yearly, no_time
@@ -23,10 +24,80 @@ module test_meteo_temporal_tools
   public :: test_lake_forcing_disaggregates_daily
   public :: test_forcing_step_compatibility
   public :: test_tann_supported_steps
+  public :: test_count_weighted_container
 
   real(dp) :: t = 0.001_dp
 
 contains
+
+  @test
+  !> \brief Real container remapping must count cells even when spherical cell areas differ.
+  subroutine test_count_weighted_container()
+    type(exchange_t), target :: exchange
+    type(grid_t), target :: fine, coarse
+    type(meteo_t) :: meteo
+    type(NcDataset) :: nc
+    type(NcVariable) :: variable
+    type(NcDimension) :: dims(4)
+    real(dp) :: weights(2,2,12,24)
+    real(dp), target :: forcing(4)
+    real(dp) :: expected, area_mean
+    integer :: step, status, i
+    do i = 1, 3
+      step = 1
+      if (i == 2) step = 24
+      status = exchange%config%project%set()
+      @assertEqual(0, status)
+      call exchange%create(cwd='.')
+      exchange%cwd = exchange%root
+      status = exchange%config%processes%set(direct_runoff=1_i4)
+      @assertEqual(0, status)
+      exchange%step_hours = step
+      exchange%time_step_start = datetime('2001-01-02 00:00:00')
+      call fine%init(2_i4, 2_i4, yllcorner=40.0_dp, cellsize=10.0_dp, coordsys=spherical)
+      call coarse%init(1_i4, 1_i4, yllcorner=40.0_dp, cellsize=20.0_dp, coordsys=spherical)
+      exchange%level0_land => fine
+      exchange%level0 => fine
+      exchange%level1_land => coarse
+      exchange%level2 => fine
+      forcing = [0.0_dp, 0.0_dp, 12.0_dp, 12.0_dp]
+      area_mean = sum(forcing * fine%cell_area) / sum(fine%cell_area)
+      @assertTrue(abs(area_mean - 6.0_dp) > 0.1_dp)
+      call exchange%raw_pre%provide('test')
+      call exchange%raw_pre%prepare_data('test', daily)
+      exchange%raw_pre%data => forcing
+      status = meteo%config%set(frac_night_pre=reshape(spread(0.5_dp,1,12), [12,1]))
+      @assertEqual(0, status)
+      if (i == 3) then
+        weights = 0.0_dp
+        weights(:,1,:,1) = 1.0_dp
+        weights(:,2,:,2) = 1.0_dp
+        nc = NcDataset('count_weights.nc','w')
+        dims(1) = nc%setDimension('x',2)
+        dims(2) = nc%setDimension('y',2)
+        dims(3) = nc%setDimension('month',12)
+        dims(4) = nc%setDimension('hour',24)
+        variable = nc%setVariable('pre_weights','f64',dims)
+        call variable%setAttribute('missing_value',-9999.0_dp)
+        call variable%setData(weights)
+        call nc%close()
+        status = meteo%config%set(read_meteo_weights=[.true.],pre_weights_path=[character(256) :: 'count_weights.nc'])
+        @assertEqual(0,status)
+      end if
+      meteo%exchange => exchange
+      call meteo%configure()
+      call meteo%connect()
+      call meteo%initialize()
+      call meteo%update()
+      expected = 6.0_dp * real(step,dp) / 24.0_dp
+      if (i == 3) expected = 3.0_dp
+      @assertEqual(expected, exchange%pre%data(1), tolerance=1.e-12_dp)
+      call exchange%destroy()
+      call meteo%destroy()
+      call fine%destroy()
+      call coarse%destroy()
+    end do
+  end subroutine test_count_weighted_container
 
   @test
   subroutine test_supported_model_steps()

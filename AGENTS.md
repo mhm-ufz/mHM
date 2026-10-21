@@ -70,6 +70,14 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
 - MPR initializes its scaler with count weights and cached bounds. Pass that scaler, selected cases,
   and process-specific parameter arrays directly to kernels; do not reconstruct process matrices, padded parameters, or grid-bound copies.
 
+## Component scaling, workspaces, and soil horizons
+
+- Meteo accepts 1-hour and 24-hour model steps; routing-only intermediate cadences remain supported.
+  Use FORCES scalers directly with explicit count weights and cached bounds for land forcing and weight maps.
+  Keep lake support integration and the forcing/PET/disaggregation order intact.
+- PET kernels and coefficients belong in meteo; hydrology/neutron constants in mHM, regionalization
+  coefficients in MPR, neutral run defaults/file-format identifiers in common, and exchange contracts in domain.
+
 ## Fortran conventions and pitfalls
 
 - Follow surrounding formatting; use explicit interfaces, `implicit none`, `intent`, `mo_kind` kinds,
@@ -107,7 +115,8 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
   Reuse outer parallel regions with worksharing loops; avoid nested teams and per-cell team creation.
 - All team threads must encounter worksharing/barriers consistently. Preserve required synchronization
   and summation order where practical; do not add `nowait` across dependent work.
-- Reuse routing eligibility thresholds; justify new thresholds with workload evidence. Keep serial
+- Follow the existing kernel OpenMP policy for meteo PET and output preparation; do not add cell-count
+  cutoffs without workload evidence. Preserve existing routing eligibility guards. Keep serial
   builds functional, including conditional `omp_lib` imports/calls. Validate one and multiple threads,
   exercise the parallel path, and provide representative timings for claimed performance improvements.
 
