@@ -27,7 +27,6 @@ set(sources
   mHM/mo_mhm_constants.f90
   mHM/mo_mhm_container.F90
   mHM/mo_neutrons.f90
-  mHM/mo_pet.f90
   mHM/mo_runoff.f90
   mHM/mo_snow_accum_melt.f90
   mHM/mo_soil_moisture.f90
@@ -42,6 +41,7 @@ set(sources
   mRM/mo_river_temperature.f90
   mRM/mo_river_tools.f90
   mRM/mo_river_upscaler.f90
+  meteo/mo_pet.f90
   meteo/mo_meteo_container.F90
   meteo/mo_meteo_spatial_tools.f90
   meteo/mo_meteo_temporal_tools.f90
