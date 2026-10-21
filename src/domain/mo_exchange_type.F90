@@ -280,6 +280,7 @@ module mo_exchange_type
     type(grid_t), pointer :: level3_land => null() !< level3 land grid derived by mRM for lake-aware runoff remapping
     type(points_t), pointer :: lake_points => null() !< lake outlet point set
     real(dp), dimension(:), pointer :: input_horizon_bounds => null() !< input soil-horizon boundary depths [mm]
+    logical :: model_horizon_bottom_variable = .true. !< Final bound repeats its top when soil depth varies.
     real(dp), dimension(:), pointer :: model_horizon_bounds => null() !< model soil-horizon boundary depths [mm]
 
     ! static topology
@@ -1029,6 +1030,7 @@ contains
 
     nullify(self%level0, self%level0_land, self%level0_lake, self%level1, self%level1_land)
     nullify(self%level2, self%level3, self%level3_land, self%lake_points)
+    self%model_horizon_bottom_variable = .true.
     nullify(self%river_l0, self%river_l3, self%input_horizon_bounds, self%model_horizon_bounds)
     nullify(self%geo_class_def)
   end subroutine exchange_destroy

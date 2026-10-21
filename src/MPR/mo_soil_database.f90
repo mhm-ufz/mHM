@@ -372,10 +372,9 @@ CONTAINS
 
     use mo_constants, only : nodata_dp, nodata_i4
 
-
     implicit none
-
     type(soil_database_t), intent(inout) :: db !< Owning domain soil database.
+
     integer(i4) :: ii, jj, kk
 
     real(dp) :: dmin
@@ -419,7 +418,7 @@ CONTAINS
 
         ! initalise last horizon depth to model w.r.t to surface
         ! NOTE:: it is different for each soil
-        db%horizon_depth(db%n_layers) = db%RZdepth(ii)
+        ! The final interval follows this soil class, never a shared endpoint.
 
         ! Estimate soil properties for each modeling layers
         do jj = 1, db%n_layers
@@ -429,6 +428,7 @@ CONTAINS
           dpth_f = 0.0_dp
           if(jj .ne. 1_i4) dpth_f = db%horizon_depth(jj - 1)
           dpth_t = db%horizon_depth(jj) - soil_dAccuracy
+          if (jj == db%n_layers) dpth_t = db%RZdepth(ii) - soil_dAccuracy
 
           ! identify to which layer of batabase this mHM  horizon lies
           layer_f = nodata_i4
@@ -472,13 +472,8 @@ CONTAINS
             end if
 
             ! Estimate depth weightage
-            if(jj .ne. 1_i4) then
-              db%Wd(ii, jj, 1 : db%nHorizons(ii)) = db%Wd(ii, jj, 1 : db%nHorizons(ii)) / &
-                      (db%horizon_depth(jj) - db%horizon_depth(jj - 1_i4))
-            else
-              db%Wd(ii, jj, 1 : db%nHorizons(ii)) = db%Wd(ii, jj, 1 : db%nHorizons(ii)) / &
-                      db%horizon_depth(jj)
-            end if
+            db%Wd(ii, jj, 1 : db%nHorizons(ii)) = db%Wd(ii, jj, 1 : db%nHorizons(ii)) / &
+                    ((dpth_t + soil_dAccuracy) - dpth_f)
 
             ! Check (small margin for numerical errors)
             if(sum(db%Wd(ii, jj, :), db%Wd(ii, jj, :) .gt. 0.0_dp) .le. 1.0_dp - small .or. &

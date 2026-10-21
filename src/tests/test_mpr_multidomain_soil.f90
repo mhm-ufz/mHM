@@ -118,6 +118,13 @@ contains
     call domain%prepare_restart()
     call domain%connect()
     call assert_true(domain%mpr%upscaler%weight_mode == weight_count, "MPR scaler must use count weights")
+    if (domain%mpr%soil%db%mode == 0) then
+      call assert_true(domain%exchange%model_horizon_bottom_variable, 'missing variable-bottom flag')
+      call assert_true(domain%mpr%soil%horizon_bounds(domain%exchange%n_layers+1) == &
+        domain%mpr%soil%horizon_bounds(domain%exchange%n_layers), 'variable bottom does not repeat its top')
+    else
+      call assert_true(.not.domain%exchange%model_horizon_bottom_variable, 'missing fixed-bottom flag')
+    end if
   end subroutine prepare
 
   !> \brief Derive small scenario namelists from the two-domain regression fixture.

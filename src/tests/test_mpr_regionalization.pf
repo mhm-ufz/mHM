@@ -11,15 +11,55 @@ module test_mpr_regionalization
   use mo_mpr_pet, only: priestley_taylor_alpha, bulksurface_resistance, pet_correctbyASP
   use mo_mpr_aerodynamics, only: aerodynamical_resistance
   use mo_mpr_runoff, only: mpr_runoff
-  use mo_mpr_helpers, only: mpr_helper_pet_lai, mpr_helper_soil_moisture
+  use mo_mpr_helpers, only: mpr_helper_pet_lai, mpr_helper_soil_moisture, mpr_helper_setup_soil_database
   use mo_mpr_soilmoist, only: mpr_sm
   use mo_mpr_smhorizons, only: mpr_SMhorizons
   use mo_soil_database, only: soil_database_t
+  use nml_config_mpr, only: nml_config_mpr_t
   use mo_mpr_constants, only: LAI_factor_surfResi, LAI_offset_surfResi, max_surfResist, WindMeasHeight, karman
   implicit none
   private
+  public :: test_variable_soil_bottom
   public :: test_pet_and_runoff_geometry, test_soil_parameter_blocks, test_cell_specific_horizon_depths, test_aspect_hemispheres
 contains
+  @test
+  !> \brief Variable-bottom markers and overlap weights must be independent of LUT row order.
+  subroutine test_variable_soil_bottom()
+    type(nml_config_mpr_t) :: config
+    type(soil_database_t) :: db
+    real(dp), allocatable :: bounds(:), reference(:,:,:)
+    integer(i4), parameter :: total_depth(3) = [300_i4,500_i4,900_i4]
+    integer(i4) :: ids(2,1), depths(2,1), n, order, j, soil
+    integer :: unit, status
+    ids(:,1) = [1_i4,2_i4]
+    depths(:,1) = [100_i4,0_i4]
+    status = config%set_dims(n_domains=1_i4,max_layers=2_i4)
+    @assertEqual(0,status)
+    do n = 1, 2
+      status = config%set(n_layers=[n],soil_db_mode=[0_i4],soil_depth=depths,tillage_depth=[100_i4])
+      @assertEqual(0,status)
+      do order = 1, 2
+        open(newunit=unit,file='envelope_lut.txt',status='replace')
+        write(unit,'(a)') 'nSoil_Types 3', 'ID HORIZON UD LD CLAY SAND BD'
+        do j = 1, 3
+          soil = j
+          if (order == 2) soil = 4-j
+          write(unit,*) soil,1,0,total_depth(soil),20.0_dp,50.0_dp,1.3_dp
+        end do
+        close(unit)
+        call mpr_helper_setup_soil_database(config,1_i4,'envelope_lut.txt',ids,db,bounds)
+        @assertEqual(bounds(n),bounds(n+1),tolerance=1.e-12_dp)
+        @assertEqual(0.0_dp,bounds(1),tolerance=1.e-12_dp)
+        if (n == 2) then
+          @assertEqual(100.0_dp,bounds(2),tolerance=1.e-12_dp)
+        end if
+        if (order == 1) reference = db%Wd
+        @assertTrue(close(reshape(db%Wd,[size(db%Wd)]),reshape(reference,[size(reference)])))
+      end do
+    end do
+    call db%destroy()
+  end subroutine test_variable_soil_bottom
+
   @test
   subroutine test_aspect_hemispheres()
     real(dp) :: actual(3)

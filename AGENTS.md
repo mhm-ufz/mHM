@@ -82,6 +82,18 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
   Neutron kernels share one container-owned, read-only geometry cache and use local scalar accumulators;
   keep timestep calls allocation-free and independent of team size. Rebuild parameter-dependent caches
   on each initialize.
+- MPR owns model horizon bounds; exchange publications are non-owning. Derive layer tops from the boundary
+  array. Mode 0 retains soil-specific local depths for regionalization and repeats the final layer top as
+  its terminal bound, without an L1 depth field. This mHM-specific zero-thickness marker means the bottom
+  depth is unspecified, not that the physical layer has zero thickness; never use it to calculate physical
+  bottom-layer thickness or volume. Mode 1 uses configured fixed interfaces.
+- Derive the fixed/variable bottom flag from `soil_db_mode`; do not maintain terminal-boundary provenance.
+  Restore bounds before connecting consumers; validate counts and strictly increasing internal interfaces,
+  comparing the terminal boundary only for fixed-depth mode. Restore older v6 axes through bounds and
+  normalize variable nominal endpoints to the repeated final top. Explain the mHM convention on output axes.
+- Reuse general axis metadata supplied by NetCDF writers. Restart coordinates use
+  `write_horizon_metadata` for units, layer-top descriptions, and the variable-bottom explanation.
+  Use the coordinate variable's `comment` attribute for the explanation.
 - Both neutron formulations exclude the final soil layer. COSMIC L3 must be finite and positive;
   mode-1 class properties map by horizon before harmonic upscaling.
 

@@ -17,6 +17,7 @@ set(sources
   common/mo_common_constants.f90
   common/mo_version.F90
   domain/mo_domain.F90
+  domain/mo_soil_horizons.F90
   domain/mo_exchange_type.F90
   domain/mo_mhm_runner.F90
   domain/mo_parameter_registry.F90

@@ -30,6 +30,7 @@
 #include "logging.h"
 module mo_mhm_container
   use mo_logging
+  use mo_soil_horizons, only: write_horizon_metadata, read_horizon_bounds, compare_horizon_bounds, validate_horizon_bounds
   use mo_canopy_interc, only: canopy_interc
   use mo_constants, only: nodata_dp
   use mo_grid_io, only: output_dataset, var, daily, monthly, yearly, no_time, time_units_delta
@@ -84,6 +85,7 @@ module mo_mhm_container
   !> \class   mhm_soil_state_t
   !> \brief   Grouped soil-moisture process fields.
   type :: mhm_soil_state_t
+    logical :: variable_bottom = .true. !< Final layer has a soil-specific bottom depth.
     real(dp), allocatable :: horizon_bounds(:) !< soil-horizon boundary depths copied from MPR metadata
     real(dp), allocatable :: moisture(:, :) !< soil moisture by horizon
     real(dp), allocatable :: infiltration(:, :) !< infiltration intensity by horizon
@@ -109,6 +111,7 @@ module mo_mhm_container
     real(dp), allocatable :: counts(:) !< simulated ground albedo neutrons
     real(dp), allocatable :: integral_afast(:) !< pre-calculated integrand for neutron flux approximation
   end type mhm_neutron_state_t
+
 
   !> \class   mhm_forcing_state_t
   !> \brief   Grouped current-step forcing caches and monthly evaporation coefficients.
@@ -454,6 +457,7 @@ contains
     if (self%io%read_restart) call self%validate_restart_definition()
 
     call self%copy_horizon_bounds(self%exchange%model_horizon_bounds)
+    self%soil%variable_bottom = self%exchange%model_horizon_bottom_variable
     n_cells = int(self%exchange%level1_land%ncells, i4)
     n_horizons = size(self%soil%horizon_bounds) - 1_i4
     if (n_horizons < 1_i4) then
@@ -933,6 +937,7 @@ contains
     if (allocated(f_not_sealed)) deallocate(f_not_sealed)
   end subroutine mhm_update_output
 
+
   !> \brief Update canopy interception and throughfall for the current step.
   recursive subroutine mhm_update_interception(self)
     class(mhm_t), intent(inout), target :: self
@@ -1255,8 +1260,9 @@ contains
     allocate(soil_bounds(size(self%soil%horizon_bounds)))
     soil_bounds = self%soil%horizon_bounds
     soil_dim = nc%setCoordinate(trim(soilHorizonsVarName), size(self%soil%horizon_bounds) - 1_i4, &
-      bounds=soil_bounds, reference=2_i4)
+      bounds=soil_bounds, reference=0_i4)
     deallocate(soil_bounds)
+    call write_horizon_metadata(nc, trim(soilHorizonsVarName), self%soil%variable_bottom)
 
     interception_case = self%exchange%config%processes%interception
     snow_case = self%exchange%config%processes%snow
@@ -1363,77 +1369,26 @@ contains
   !> \brief Validate the restart soil-horizon coordinate against the active MPR-provided soil axis.
   subroutine mhm_validate_restart_horizon_bounds(self, nc)
     class(mhm_t), intent(inout), target :: self
-    type(NcDataset), intent(inout) :: nc
-    type(NcDimension) :: soil_dim
-    type(NcVariable) :: soil_var
-    type(NcVariable) :: bounds_var
-    integer(i4), allocatable :: var_shape(:)
-    real(dp), allocatable :: bounds_in(:, :)
-    real(dp), allocatable :: bounds_2d(:, :)
+    type(NcDataset), intent(inout) :: nc !< Open NetCDF dataset.
     real(dp), allocatable :: restart_bounds(:)
-    character(256) :: bounds_name
-    integer(i4) :: n_horizons
 
-    if (.not.nc%hasDimension(trim(soilHorizonsVarName))) then
-      log_fatal(*) "mHM restart: required soil-horizon dimension missing: ", trim(soilHorizonsVarName)
-      error stop 1
-    end if
-    soil_dim = nc%getDimension(trim(soilHorizonsVarName))
-    n_horizons = soil_dim%getLength()
-    if (.not.nc%hasVariable(trim(soilHorizonsVarName))) then
-      log_fatal(*) "mHM restart: required soil-horizon coordinate missing: ", trim(soilHorizonsVarName)
-      error stop 1
-    end if
-    soil_var = nc%getVariable(trim(soilHorizonsVarName))
-    if (.not.soil_var%hasAttribute("bounds")) then
-      log_fatal(*) "mHM restart: soil-horizon coordinate is missing bounds metadata."
-      error stop 1
-    end if
-    call soil_var%getAttribute("bounds", bounds_name)
-    bounds_name = trim(bounds_name)
-    if (len_trim(bounds_name) < 1 .or. .not.nc%hasVariable(bounds_name)) then
-      log_fatal(*) "mHM restart: required soil-horizon bounds variable missing: ", trim(bounds_name)
-      error stop 1
-    end if
-
-    bounds_var = nc%getVariable(bounds_name)
-    var_shape = bounds_var%getShape()
-    if (size(var_shape) /= 2_i4) then
-      log_fatal(*) "mHM restart: soil-horizon bounds variable has rank ", n2s(size(var_shape)), ", expected 2."
-      error stop 1
-    end if
-    call bounds_var%getData(bounds_in)
-    if (size(bounds_in, 1) == 2_i4 .and. size(bounds_in, 2) == n_horizons) then
-      allocate(bounds_2d(2, n_horizons))
-      bounds_2d = bounds_in
-    else if (size(bounds_in, 2) == 2_i4 .and. size(bounds_in, 1) == n_horizons) then
-      allocate(bounds_2d(2, n_horizons))
-      bounds_2d = transpose(bounds_in)
-    else
-      log_fatal(*) "mHM restart: soil-horizon bounds variable has incompatible shape."
-      error stop 1
-    end if
-    allocate(restart_bounds(n_horizons + 1_i4))
-    restart_bounds(1) = bounds_2d(1, 1)
-    restart_bounds(2:) = bounds_2d(2, :)
+    call read_horizon_bounds(nc, trim(soilHorizonsVarName), self%exchange%n_layers, &
+      self%exchange%model_horizon_bottom_variable, restart_bounds)
     if (.not.allocated(self%soil%horizon_bounds)) then
       if (associated(self%exchange%model_horizon_bounds)) then
         call self%copy_horizon_bounds(self%exchange%model_horizon_bounds)
+        self%soil%variable_bottom = self%exchange%model_horizon_bottom_variable
       else
         call self%copy_horizon_bounds(restart_bounds)
+        self%soil%variable_bottom = self%exchange%model_horizon_bottom_variable
         self%exchange%model_horizon_bounds => self%soil%horizon_bounds
-        log_info(*) "mHM restart: bootstrap soil-horizon axis from restart file."
       end if
     end if
-    if (n_horizons /= size(self%soil%horizon_bounds) - 1_i4) then
-      log_fatal(*) "mHM restart: soil-horizon count ", n2s(n_horizons), &
-        " does not match current mHM horizon count ", n2s(size(self%soil%horizon_bounds) - 1_i4), "."
+    if (self%exchange%model_horizon_bottom_variable .neqv. self%soil%variable_bottom) then
+      log_fatal(*) 'mHM restart: incompatible fixed/variable bottom-boundary conventions.'
       error stop 1
     end if
-    if (any(.not.is_close(restart_bounds, self%soil%horizon_bounds))) then
-      log_fatal(*) "mHM restart: soil-horizon bounds do not match the current MPR-provided soil axis."
-      error stop 1
-    end if
+    call compare_horizon_bounds(restart_bounds, self%soil%horizon_bounds, self%soil%variable_bottom)
   end subroutine mhm_validate_restart_horizon_bounds
 
   !> \brief Validate that restart process cases are compatible with the current mHM configuration.
@@ -1632,6 +1587,7 @@ contains
     if (allocated(self%direct_runoff%runoff)) deallocate(self%direct_runoff%runoff)
     call self%neutrons%geometry%destroy()
     if (allocated(self%soil%horizon_bounds)) deallocate(self%soil%horizon_bounds)
+    self%soil%variable_bottom = .true.
     if (allocated(self%soil%moisture)) deallocate(self%soil%moisture)
     if (allocated(self%soil%infiltration)) deallocate(self%soil%infiltration)
     if (allocated(self%soil%aet)) deallocate(self%soil%aet)
@@ -1754,25 +1710,14 @@ contains
   !> \brief Copy soil-horizon metadata from the exchange contract into container-owned state.
   subroutine mhm_copy_horizon_bounds(self, bounds)
     class(mhm_t), intent(inout), target :: self
-    real(dp), intent(in) :: bounds(:)
-    integer(i4) :: i
+    real(dp), intent(in) :: bounds(:) !< Complete soil-horizon boundaries [mm], positive downwards.
 
-    if (size(bounds) < 2_i4) then
-      log_fatal(*) "mHM: soil_horizon_bounds must contain at least two entries."
-      error stop 1
-    end if
+    call validate_horizon_bounds(bounds, self%exchange%model_horizon_bottom_variable)
     if (allocated(self%soil%horizon_bounds)) then
       if (size(self%soil%horizon_bounds) /= size(bounds)) deallocate(self%soil%horizon_bounds)
     end if
     if (.not.allocated(self%soil%horizon_bounds)) allocate(self%soil%horizon_bounds(size(bounds)))
     self%soil%horizon_bounds = bounds
-    do i = 2_i4, size(self%soil%horizon_bounds)
-      if (.not.ieee_is_finite(self%soil%horizon_bounds(i)) .or. &
-        self%soil%horizon_bounds(i) <= self%soil%horizon_bounds(i - 1_i4)) then
-        log_fatal(*) "mHM: soil_horizon_bounds must be finite and strictly increasing."
-        error stop 1
-      end if
-    end do
   end subroutine mhm_copy_horizon_bounds
 
   !> \brief Publish mHM-owned fields through the exchange contract.

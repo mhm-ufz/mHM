@@ -43,6 +43,7 @@ program test_neutron_parallel
     call grid%init(256_i4,256_i4,cellsize=1000.0_dp,coordsys=cartesian)
     exchange%level1_land => grid
     exchange%model_horizon_bounds => bounds
+    exchange%model_horizon_bottom_variable = .false.
     call exchange%soil_moisture%provide('test')
     call exchange%soil_moisture%prepare_data('test',24_i4)
     exchange%soil_moisture%data => moisture

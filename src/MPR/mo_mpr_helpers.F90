@@ -178,6 +178,16 @@ contains
       end do
     end do
 
+    if (db%mode == 0_i4) then
+      if (.not.any(db%is_present /= 0_i4)) then
+        log_fatal(*) "MPR: no soil classes present in the packed domain."
+        error stop 1
+      end if
+      ! mHM convention: a repeated interface marks an unspecified variable bottom.
+      db%horizon_depth(db%n_layers) = 0.0_dp
+      if (db%n_layers > 1_i4) db%horizon_depth(db%n_layers) = db%horizon_depth(db%n_layers - 1_i4)
+    end if
+
     if (present(horizon_bounds)) then
       allocate(horizon_bounds(db%n_layers + 1_i4))
       horizon_bounds(1) = 0.0_dp

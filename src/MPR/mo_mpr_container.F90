@@ -52,6 +52,7 @@
 module mo_mpr_container
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
   use mo_logging
+  use mo_soil_horizons, only: write_horizon_metadata, read_horizon_bounds, compare_horizon_bounds
   use mo_constants, only: nodata_dp
   use mo_datetime, only: datetime, YEAR_MONTHS, one_hour
   use mo_kind, only: i4, dp
@@ -149,6 +150,7 @@ module mo_mpr_container
     real(dp), allocatable :: wilting_point_cache(:, :, :) !< cached wilting point (nCells1, nHorizons, nLC)
     real(dp), allocatable :: f_roots_cache(:, :, :) !< cached root fractions (nCells1, nHorizons, nLC)
     real(dp), allocatable :: thresh_jarvis_cache(:) !< cached Jarvis threshold field (nCells1)
+    logical :: variable_bottom = .true. !< Final layer has a soil-specific bottom depth.
     real(dp), allocatable :: horizon_bounds(:) !< cached soil-horizon boundaries for restart metadata (nHorizons+1)
     real(dp), allocatable :: input_horizon_bounds(:) !< configured input horizon boundaries (nInputHorizons+1)
     real(dp), allocatable :: sm_deficit_fc_l0(:, :) !< cached saturation deficit from field capacity on L0 (nCells0, nLC)
@@ -269,7 +271,10 @@ contains
 
     if (.not.self%read_restart) return
     call self%read_restart_data()
-    if (allocated(self%soil%horizon_bounds)) self%exchange%model_horizon_bounds => self%soil%horizon_bounds
+    if (allocated(self%soil%horizon_bounds)) then
+      self%exchange%model_horizon_bounds => self%soil%horizon_bounds
+      self%exchange%model_horizon_bottom_variable = self%soil%variable_bottom
+    end if
   end subroutine mpr_prepare_restart
 
   !> \brief Set runtime dimensions for generated MPR namelists.
@@ -331,6 +336,7 @@ contains
       error stop 1
     end if
     self%exchange%n_layers = self%config%n_layers(id(1))
+    self%exchange%model_horizon_bottom_variable = self%config%soil_db_mode(id(1)) == 0_i4
     if (self%exchange%n_layers > self%exchange%max_layers) then
       log_fatal(*) "MPR: n_layers=", n2s(self%exchange%n_layers), &
         " exceeds max_layers=", n2s(self%exchange%max_layers), " for domain ", n2s(id(1)), "."
@@ -895,7 +901,10 @@ contains
 
     if (self%read_restart) then
       call self%ensure_level1_grid()
-      if (allocated(self%soil%horizon_bounds)) self%exchange%model_horizon_bounds => self%soil%horizon_bounds
+      if (allocated(self%soil%horizon_bounds)) then
+        self%exchange%model_horizon_bounds => self%soil%horizon_bounds
+        self%exchange%model_horizon_bottom_variable = self%soil%variable_bottom
+      end if
       return
     end if
     if (require_lai_class) call self%exchange%check_data(self%exchange%lai_class, "MPR")
@@ -981,6 +990,7 @@ contains
     call self%check_geoparameter_consistency()
     call self%init_soil_horizon_bounds()
     self%exchange%model_horizon_bounds => self%soil%horizon_bounds
+    self%exchange%model_horizon_bottom_variable = self%soil%variable_bottom
     ! Cache parameter-independent temporal inputs once. Parameter-derived fields are rebuilt in initialize.
     call self%init_temporal_cache()
   end subroutine mpr_connect
@@ -1023,9 +1033,7 @@ contains
     type(NcDimension) :: lai_dim
     type(NcDimension) :: land_cover_dim
     type(NcDimension) :: soil_dim
-    real(dp), allocatable :: soil_bounds(:)
     integer(i4) :: process_case
-    integer(i4) :: i
 
     if (.not.associated(self%exchange%level1_land)) then
       log_fatal(*) "MPR: level1 grid not connected while writing restart."
@@ -1044,17 +1052,10 @@ contains
     land_cover_dim = nc%setDimension(trim(landCoverPeriodsVarName), self%land_cover%n_periods)
     call self%write_restart_land_cover_timing(nc, land_cover_dim)
     if (allocated(self%soil%horizon_bounds)) then
-      allocate(soil_bounds(size(self%soil%horizon_bounds)))
-      soil_bounds = self%soil%horizon_bounds
-    else
-      allocate(soil_bounds(self%exchange%n_layers + 1_i4))
-      do i = 1_i4, size(soil_bounds)
-        soil_bounds(i) = real(i - 1_i4, dp)
-      end do
+      soil_dim = nc%setCoordinate(trim(soilHorizonsVarName), self%exchange%n_layers, &
+        bounds=self%soil%horizon_bounds, reference=0_i4)
+      call write_horizon_metadata(nc, trim(soilHorizonsVarName), self%soil%variable_bottom)
     end if
-    soil_dim = nc%setCoordinate(trim(soilHorizonsVarName), self%exchange%n_layers, &
-      bounds=soil_bounds, reference=2_i4)
-    deallocate(soil_bounds)
 
     ! Persist the cached MPR state in the same grouped layout used to restore exchange slices later.
     if (allocated(self%land_cover%sealed_fraction_l1)) then
@@ -1848,7 +1849,6 @@ contains
     class(mpr_t), intent(inout), target :: self
     type(NcDataset) :: nc
     type(NcDimension) :: nc_dim
-    type(NcVariable) :: nc_var
     type(grid_t) :: restart_grid
     integer(i4) :: pet_process
     integer(i4) :: soil_process
@@ -1858,7 +1858,6 @@ contains
     integer(i4) :: land_cover_idx
     logical :: need_lai_restart
     real(dp), allocatable :: field_3d(:, :)
-    real(dp), allocatable :: bounds_2d(:, :)
 
     if (.not.allocated(self%restart_input_path)) then
       log_fatal(*) "MPR: restart input path is not configured."
@@ -1901,7 +1900,7 @@ contains
       self%lai%dated = .false.
     end if
 
-    if (soil_process /= 0_i4 .or. neutron_process > 0_i4) then
+    if (soil_process /= 0_i4 .or. neutron_process > 0_i4 .or. nc%hasVariable(trim(soilHorizonsVarName))) then
       if (.not.nc%hasDimension(trim(soilHorizonsVarName))) then
         log_fatal(*) "MPR restart: required soil-horizon dimension missing: ", trim(soilHorizonsVarName)
         error stop 1
@@ -1913,15 +1912,15 @@ contains
           " does not match current config ", n2s(self%exchange%n_layers), "."
         error stop 1
       end if
-      if (allocated(self%soil%horizon_bounds)) deallocate(self%soil%horizon_bounds)
-      if (nc%hasVariable(trim(soilHorizonsVarName)//"_bnds")) then
-        nc_var = nc%getVariable(trim(soilHorizonsVarName)//"_bnds")
-        call nc_var%getData(bounds_2d)
-        if (size(bounds_2d, 1) == 2_i4 .and. size(bounds_2d, 2) == n_soil_restart) then
-          allocate(self%soil%horizon_bounds(n_soil_restart + 1_i4))
-          self%soil%horizon_bounds(1) = bounds_2d(1, 1)
-          self%soil%horizon_bounds(2:) = bounds_2d(2, :)
-        end if
+      self%soil%variable_bottom = self%config%soil_db_mode(self%exchange%nml_domain_id) == 0_i4
+      call read_horizon_bounds(nc, trim(soilHorizonsVarName), n_soil_restart, &
+        self%soil%variable_bottom, self%soil%horizon_bounds)
+      if (.not.self%soil%variable_bottom) then
+        call compare_horizon_bounds(self%soil%horizon_bounds(2:), &
+          real(self%config%soil_depth(:n_soil_restart, self%exchange%nml_domain_id), dp), .false.)
+      else if (n_soil_restart > 1_i4) then
+        call compare_horizon_bounds(self%soil%horizon_bounds(2:), &
+          real(self%config%soil_depth(:n_soil_restart, self%exchange%nml_domain_id), dp), .true.)
       end if
     end if
 
@@ -2107,13 +2106,7 @@ contains
     real(dp) :: l0_res
     real(dp) :: l1_res
 
-    if (.not.associated(self%exchange%level0_land)) then
-      log_fatal(*) "MPR: level0 land grid not connected."
-      error stop 1
-    end if
-
     l1_res = self%exchange%level1_resolution
-    l0_res = self%exchange%level0_land%cellsize
 
     if (associated(self%exchange%level1_land)) then
       if (ieee_is_finite(l1_res) .and. l1_res > 0.0_dp .and. &
@@ -2123,12 +2116,20 @@ contains
         error stop 1
       end if
       ! Validate that level1 contains exactly the coarse cells reached by level0 land.
-      call self%exchange%level1_land%check_is_filled_by(self%exchange%level0_land, check_mask=.true.)
-      call self%exchange%level0_land%check_is_covered_by(self%exchange%level1_land, check_mask=.true.)
+      if (associated(self%exchange%level0_land)) then
+        call self%exchange%level1_land%check_is_filled_by(self%exchange%level0_land, check_mask=.true.)
+        call self%exchange%level0_land%check_is_covered_by(self%exchange%level1_land, check_mask=.true.)
+      end if
       call self%exchange%alias_full_grid_no_lakes(l1)
       return
     end if
 
+    if (.not.associated(self%exchange%level0_land)) then
+      log_fatal(*) "MPR: level0 land grid not connected."
+      error stop 1
+    end if
+
+    l0_res = self%exchange%level0_land%cellsize
     if (.not.ieee_is_finite(l1_res) .or. l1_res <= 0.0_dp) then
       log_fatal(*) "MPR: level1 resolution not configured (expected from config_resolution/hydro)."
       error stop 1
@@ -2916,6 +2917,7 @@ contains
     n_soil_layers = 1_i4
     if (self%config%soil_db_mode(domain_id) == 1_i4) n_soil_layers = n_layers
     if (allocated(self%soil%horizon_bounds)) deallocate(self%soil%horizon_bounds)
+    self%soil%variable_bottom = self%config%soil_db_mode(domain_id) == 0_i4
     call mpr_helper_setup_soil_database( &
       self%config, domain_id, self%soil%lut_path, self%exchange%soil_id%data(:, :n_soil_layers), &
       self%soil%db, self%soil%horizon_bounds)
@@ -3133,6 +3135,7 @@ contains
 
     if (allocated(self%soil%horizon_bounds)) then
       self%exchange%model_horizon_bounds => self%soil%horizon_bounds
+      self%exchange%model_horizon_bottom_variable = self%soil%variable_bottom
     else
       nullify(self%exchange%model_horizon_bounds)
     end if
@@ -3515,6 +3518,7 @@ contains
     if (allocated(self%soil%f_roots_cache)) deallocate(self%soil%f_roots_cache)
     if (allocated(self%soil%thresh_jarvis_cache)) deallocate(self%soil%thresh_jarvis_cache)
     if (allocated(self%soil%horizon_bounds)) deallocate(self%soil%horizon_bounds)
+    self%soil%variable_bottom = .true.
     if (allocated(self%soil%input_horizon_bounds)) deallocate(self%soil%input_horizon_bounds)
     if (allocated(self%soil%sm_deficit_fc_l0)) deallocate(self%soil%sm_deficit_fc_l0)
     if (allocated(self%soil%ks_var_h_l0)) deallocate(self%soil%ks_var_h_l0)
