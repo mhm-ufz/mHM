@@ -57,19 +57,20 @@ properties:
     title: Layered Soil Water Content
     type: boolean
     default: false
-    description: soil water content in the single layers (L1_soilMoist)
+    description: Soil water storage SWC(time,z,y,x) [mm]; replaces SWC_L01, SWC_L02, etc.
   out_SM:
-    title: Layered Volumetric Soil Moisture
+    title: Layered Relative Soil Saturation
     type: boolean
     default: false
     description: |-
-      volumetric soil moisture in the single layers (L1_soilMoist / L1_soilMoistSat) [mm/mm]
+      Relative saturation SM(time,z,y,x) = soil water storage / saturation capacity [1].
+      Replaces SM_L01, SM_L02, etc.; this is relative saturation, not volumetric water content.
   out_SM_all:
-    title: Mean Volumetric Soil Moisture
+    title: Mean Relative Soil Saturation
     type: boolean
     default: false
     description: |-
-      mean volumetric soil moisture averaged over all soil layers (L1_soilMoist / L1_soilMoistSat) [mm/mm]
+      relative saturation over all soil layers (L1_soilMoist / L1_soilMoistSat) [mm/mm]
   out_sealedSTW:
     title: Reservoir of Sealed areas
     type: boolean
@@ -131,7 +132,7 @@ properties:
     title: Soil Infiltration
     type: boolean
     default: false
-    description: Infiltration (L1_infilSoil) [mm/T]
+    description: Accumulated soil_infil(time,z,y,x) [mm], with pervious-area factor; replaces soil_infil_L01, etc.
   out_neutrons:
     title: Neutrons
     type: boolean
@@ -143,7 +144,12 @@ properties:
     title: Actual Evapotranspiration from Soil Layers
     type: boolean
     default: false
-    description: Actual evapotranspiration from the soil layers [mm/T]
+    description: |-
+      Accumulated aET_soil(time,z,y,x) [mm], with pervious-area factor; replaces aET_L01, etc.
+      Layer tops and bounds are in mm, positive downwards. In soil_db_mode=0 the final
+      bounds coincide: this mHM-specific marker means unspecified variable bottom depth,
+      not zero physical thickness. In soil_db_mode=1 all bounds have fixed physical depths.
+      A singleton z dimension is retained for one soil layer; total aET remains without z.
   out_preEffect:
     title: Effective Precipitation
     type: boolean

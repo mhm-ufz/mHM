@@ -34,6 +34,7 @@ module mo_mhm_container
   use mo_canopy_interc, only: canopy_interc
   use mo_constants, only: nodata_dp
   use mo_grid_io, only: output_dataset, var, daily, monthly, yearly, no_time, time_units_delta
+  use mo_netcdf_utils, only: add_var
   use mo_runoff, only: L1_total_runoff, runoff_sat_zone, runoff_unsat_zone
   use mo_snow_accum_melt, only: snow_accum_melt
   use mo_soil_moisture, only: soil_moisture_direct_runoff, soil_moisture_pervious
@@ -112,6 +113,13 @@ module mo_mhm_container
     real(dp), allocatable :: integral_afast(:) !< pre-calculated integrand for neutron flux approximation
   end type mhm_neutron_state_t
 
+  !> \class mhm_output_workspace_t
+  !> \brief Reusable output preparation buffers; refreshed for each model interval.
+  type :: mhm_output_workspace_t
+    real(dp), allocatable :: pervious(:) !< Current pervious area fraction.
+    real(dp), allocatable :: scalar(:) !< Packed ordinary output scratch.
+    real(dp), allocatable :: layers(:, :) !< Packed layered output scratch.
+  end type mhm_output_workspace_t
 
   !> \class   mhm_forcing_state_t
   !> \brief   Grouped current-step forcing caches and monthly evaporation coefficients.
@@ -174,6 +182,7 @@ module mo_mhm_container
     type(mhm_canopy_state_t) :: canopy !< canopy process fields
     type(mhm_snow_state_t) :: snow !< snow process fields
     type(mhm_direct_runoff_state_t) :: direct_runoff !< direct-runoff/sealed-area process fields
+    type(mhm_output_workspace_t) :: output_work !< Reused numerical output buffers.
     type(mhm_soil_state_t) :: soil !< soil-moisture process fields
     type(mhm_runoff_state_t) :: runoff !< runoff/baseflow process fields
     type(mhm_neutron_state_t) :: neutrons !< neutron process fields and static support data
@@ -587,6 +596,17 @@ contains
       self%neutrons%integral_afast = 0.0_dp
     end if
 
+    if (allocated(self%output_work%scalar)) deallocate(self%output_work%scalar)
+    if (allocated(self%output_work%pervious)) deallocate(self%output_work%pervious)
+    if (allocated(self%output_work%layers)) deallocate(self%output_work%layers)
+    if (self%io%output_active) then
+      allocate(self%output_work%scalar(self%exchange%level1_land%ncells))
+      allocate(self%output_work%pervious(self%exchange%level1_land%ncells))
+      if (self%output_config%out_sm .or. self%output_config%out_soil_infil .or. self%output_config%out_aet_layer) then
+        allocate(self%output_work%layers(self%exchange%level1_land%ncells, self%exchange%n_layers))
+      end if
+    end if
+
     call self%neutrons%geometry%destroy()
     n_layers = self%exchange%n_layers
     if (neutron_case > 0 .and. n_layers > 1) call self%neutrons%geometry%prepare(self%soil%horizon_bounds(2:n_layers))
@@ -743,7 +763,8 @@ contains
     character(:), allocatable :: dtype
     character(:), allocatable :: delta
     integer(i4) :: timestamp
-    integer(i4) :: horizon
+    logical :: layered
+    real(dp), allocatable :: layer(:), vertices(:)
 
     if (.not.self%io%output_active) return
 
@@ -754,135 +775,131 @@ contains
     allocate(vars(0))
 
     if (self%output_config%out_interception) then
-      vars = [vars, self%exchange%interception%as_output_var(dtype=dtype, avg=.true.)]
+      call add_var(vars, self%exchange%interception%as_output_var(dtype=dtype, avg=.true.))
     end if
     if (self%output_config%out_snowpack) then
-      vars = [vars, self%exchange%snowpack%as_output_var(dtype=dtype, avg=.true.)]
+      call add_var(vars, self%exchange%snowpack%as_output_var(dtype=dtype, avg=.true.))
     end if
     if (self%output_config%out_swc) then
-      do horizon = 1_i4, size(self%exchange%soil_moisture%data, 2)
-        vars = [vars, self%exchange%soil_moisture%as_output_var( &
-          name="SWC_L" // trim(n2s(horizon, '(i2.2)')), &
-          long_name=trim(self%exchange%soil_moisture%long_name) // " " // trim(n2s(horizon)), &
-          dtype=dtype, avg=.true.)]
-      end do
+      call add_var(vars, self%exchange%soil_moisture%as_output_var(name="SWC", dtype=dtype, avg=.true., layered=.true.))
     end if
     if (self%output_config%out_sm) then
-      do horizon = 1_i4, size(self%exchange%soil_moisture%data, 2)
-        vars = [vars, var(name="SM_L" // trim(n2s(horizon, '(i2.2)')), &
-          long_name="relative soil moisture of soil layer " // trim(n2s(horizon)), units="1", dtype=dtype, avg=.true.)]
-      end do
+      call add_var(vars, var(name="SM", long_name="relative soil saturation", units="1", dtype=dtype, avg=.true., layered=.true.))
     end if
     if (self%output_config%out_sm_all) then
-      vars = [vars, var(name="SM_Lall", long_name="relative soil moisture over all layers", units="1", &
-        dtype=dtype, avg=.true.)]
+      call add_var(vars, var(name="SM_Lall", long_name="relative soil moisture over all layers", units="1", &
+        dtype=dtype, avg=.true.))
     end if
     if (self%output_config%out_sealedstw) then
-      vars = [vars, self%exchange%sealed_storage%as_output_var(dtype=dtype, avg=.true.)]
+      call add_var(vars, self%exchange%sealed_storage%as_output_var(dtype=dtype, avg=.true.))
     end if
     if (self%output_config%out_unsatstw) then
-      vars = [vars, self%exchange%unsat_storage%as_output_var(dtype=dtype, avg=.true.)]
+      call add_var(vars, self%exchange%unsat_storage%as_output_var(dtype=dtype, avg=.true.))
     end if
     if (self%output_config%out_satstw) then
-      vars = [vars, self%exchange%sat_storage%as_output_var(dtype=dtype, avg=.true.)]
+      call add_var(vars, self%exchange%sat_storage%as_output_var(dtype=dtype, avg=.true.))
     end if
     if (self%output_config%out_neutrons) then
-      vars = [vars, self%exchange%neutrons%as_output_var(dtype=dtype, avg=.true.)]
+      call add_var(vars, self%exchange%neutrons%as_output_var(dtype=dtype, avg=.true.))
     end if
     if (self%output_config%out_pet) then
-      vars = [vars, self%exchange%pet%as_output_var(name="PET", dtype=dtype)]
+      call add_var(vars, self%exchange%pet%as_output_var(name="PET", dtype=dtype))
     end if
     if (self%output_config%out_aet_all) then
-      vars = [vars, self%exchange%aet_soil%as_output_var( &
-        name="aET", long_name="actual evapotranspiration", dtype=dtype)]
+      call add_var(vars, self%exchange%aet_soil%as_output_var( &
+        name="aET", long_name="actual evapotranspiration", dtype=dtype))
     end if
     if (self%output_config%out_q) then
-      vars = [vars, self%exchange%runoff_total%as_output_var(dtype=dtype)]
+      call add_var(vars, self%exchange%runoff_total%as_output_var(dtype=dtype))
     end if
     if (self%output_config%out_qd) then
-      vars = [vars, self%exchange%runoff_sealed%as_output_var(dtype=dtype)]
+      call add_var(vars, self%exchange%runoff_sealed%as_output_var(dtype=dtype))
     end if
     if (self%output_config%out_qif) then
-      vars = [vars, self%exchange%interflow_fast%as_output_var(dtype=dtype)]
+      call add_var(vars, self%exchange%interflow_fast%as_output_var(dtype=dtype))
     end if
     if (self%output_config%out_qis) then
-      vars = [vars, self%exchange%interflow_slow%as_output_var(dtype=dtype)]
+      call add_var(vars, self%exchange%interflow_slow%as_output_var(dtype=dtype))
     end if
     if (self%output_config%out_qb) then
-      vars = [vars, self%exchange%baseflow%as_output_var(dtype=dtype)]
+      call add_var(vars, self%exchange%baseflow%as_output_var(dtype=dtype))
     end if
     if (self%output_config%out_recharge) then
-      vars = [vars, self%exchange%percolation%as_output_var( &
-        name="recharge", long_name="groundwater recharge", dtype=dtype)]
+      call add_var(vars, self%exchange%percolation%as_output_var( &
+        name="recharge", long_name="groundwater recharge", dtype=dtype))
     end if
     if (self%output_config%out_soil_infil) then
-      do horizon = 1_i4, size(self%exchange%infiltration%data, 2)
-        vars = [vars, self%exchange%infiltration%as_output_var( &
-          name="soil_infil_L" // trim(n2s(horizon, '(i2.2)')), &
-          long_name=trim(self%exchange%infiltration%long_name) // " " // trim(n2s(horizon)), dtype=dtype)]
-      end do
+      call add_var(vars, self%exchange%infiltration%as_output_var(name="soil_infil", dtype=dtype, layered=.true.))
     end if
     if (self%output_config%out_aet_layer) then
-      do horizon = 1_i4, size(self%exchange%aet_soil%data, 2)
-        vars = [vars, self%exchange%aet_soil%as_output_var( &
-          name="aET_L" // trim(n2s(horizon, '(i2.2)')), &
-          long_name=trim(self%exchange%aet_soil%long_name) // " " // trim(n2s(horizon)), dtype=dtype)]
-      end do
+      call add_var(vars, self%exchange%aet_soil%as_output_var(name="aET_soil", dtype=dtype, layered=.true.))
     end if
     if (self%output_config%out_preeffect) then
-      vars = [vars, self%exchange%pre_eff%as_output_var(name="preEffect", dtype=dtype)]
+      call add_var(vars, self%exchange%pre_eff%as_output_var(name="preEffect", dtype=dtype))
     end if
     if (self%output_config%out_qsm) then
-      vars = [vars, self%exchange%melt%as_output_var(name="Qsm", dtype=dtype)]
+      call add_var(vars, self%exchange%melt%as_output_var(name="Qsm", dtype=dtype))
     end if
 
+    layered = self%output_config%out_swc .or. self%output_config%out_sm .or. &
+      self%output_config%out_soil_infil .or. self%output_config%out_aet_layer
+    if (layered) then
+      layer = self%soil%horizon_bounds(:size(self%soil%horizon_bounds)-1)
+      vertices = self%soil%horizon_bounds
+    end if
     log_info(*) "Create mHM output file: ", self%io%output_path
     call self%ds_out%init( &
       path          = self%io%output_path, &
       grid          = self%exchange%level1_land, &
       vars          = vars, &
+      layer         = layer, &
+      layer_vertices = vertices, &
       start_time    = self%exchange%start_time, &
       delta         = delta, &
       timestamp     = timestamp, &
       deflate_level = self%output_config%output_deflate_level)
+    if (layered) call write_horizon_metadata(self%ds_out%nc, "z", self%soil%variable_bottom, general=.false.)
   end subroutine mhm_create_output
 
   !> \brief Update buffered mHM outputs and write them when the configured stamp is reached.
   subroutine mhm_update_output(self)
     class(mhm_t), intent(inout), target :: self
-    real(dp), allocatable :: f_not_sealed(:)
-    real(dp), allocatable :: tmp(:)
     logical :: write_stamp
-    integer(i4) :: horizon
+    integer(i4) :: k, h
     integer(i4) :: model_step
     integer(i4) :: output_steps
 
     if (.not.self%io%output_active) return
     model_step = self%exchange%step_hours
-
+    associate(work => self%output_work)
     if (self%io%calc_f_not_sealed) then
-      allocate(f_not_sealed(size(self%exchange%f_sealed%data)))
-      f_not_sealed = 1.0_dp - self%exchange%f_sealed%data
+      !$omp parallel do default(shared) private(k) schedule(static)
+      do k = 1, size(work%pervious)
+        work%pervious(k) = 1.0_dp - self%exchange%f_sealed%data(k)
+      end do
+      !$omp end parallel do
     end if
 
     if (self%output_config%out_interception) call self%ds_out%update("interception", self%exchange%interception%data)
     if (self%output_config%out_snowpack) call self%ds_out%update("snowpack", self%exchange%snowpack%data)
-    if (self%output_config%out_swc) then
-      do horizon = 1_i4, size(self%exchange%soil_moisture%data, 2)
-        call self%ds_out%update("SWC_L" // trim(n2s(horizon, '(i2.2)')), self%exchange%soil_moisture%data(:, horizon))
-      end do
-    end if
+    if (self%output_config%out_swc) call mhm_update_layered_output(self, "SWC", self%exchange%soil_moisture%data)
     if (self%output_config%out_sm) then
-      do horizon = 1_i4, size(self%exchange%soil_moisture%data, 2)
-        call self%ds_out%update("SM_L" // trim(n2s(horizon, '(i2.2)')), &
-          self%exchange%soil_moisture%data(:, horizon) / self%exchange%sm_saturation%data(:, horizon))
+      !$omp parallel do default(shared) private(k,h) schedule(static)
+      do k = 1, size(work%scalar)
+        do h = 1, size(work%layers, 2)
+          work%layers(k,h) = self%exchange%soil_moisture%data(k,h) / self%exchange%sm_saturation%data(k,h)
+        end do
       end do
+      !$omp end parallel do
+      call mhm_update_layered_output(self, "SM", work%layers)
     end if
     if (self%output_config%out_sm_all) then
-      allocate(tmp(size(self%exchange%soil_moisture%data, 1)))
-      tmp = sum(self%exchange%soil_moisture%data, dim=2) / sum(self%exchange%sm_saturation%data, dim=2)
-      call self%ds_out%update("SM_Lall", tmp)
-      deallocate(tmp)
+      !$omp parallel do default(shared) private(k) schedule(static)
+      do k = 1, size(work%scalar)
+        work%scalar(k) = sum(self%exchange%soil_moisture%data(k,:)) / sum(self%exchange%sm_saturation%data(k,:))
+      end do
+      !$omp end parallel do
+      call self%ds_out%update("SM_Lall", work%scalar)
     end if
     if (self%output_config%out_sealedstw) call self%ds_out%update("sealedSTW", self%exchange%sealed_storage%data)
     if (self%output_config%out_unsatstw) call self%ds_out%update("unsatSTW", self%exchange%unsat_storage%data)
@@ -890,33 +907,82 @@ contains
     if (self%output_config%out_neutrons) call self%ds_out%update("neutrons", self%exchange%neutrons%data)
     if (self%output_config%out_pet) call self%ds_out%update("PET", self%exchange%pet%data)
     if (self%output_config%out_aet_all) then
-      allocate(tmp(int(self%exchange%level1_land%ncells, i4)))
-      tmp = 0.0_dp
-      if (self%exchange%aet_soil%provided) tmp = tmp + sum(self%exchange%aet_soil%data, dim=2) * f_not_sealed
-      if (self%exchange%aet_canopy%provided) tmp = tmp + self%exchange%aet_canopy%data
-      if (self%exchange%aet_sealed%provided) tmp = tmp + self%exchange%aet_sealed%data * self%exchange%f_sealed%data
-      call self%ds_out%update("aET", tmp)
-      deallocate(tmp)
+      !$omp parallel do default(shared) private(k) schedule(static)
+      do k = 1, size(work%scalar)
+        work%scalar(k) = 0.0_dp
+        if (self%exchange%aet_soil%provided) &
+          work%scalar(k) = work%scalar(k) + sum(self%exchange%aet_soil%data(k,:)) * work%pervious(k)
+        if (self%exchange%aet_canopy%provided) work%scalar(k) = work%scalar(k) + self%exchange%aet_canopy%data(k)
+        if (self%exchange%aet_sealed%provided) &
+          work%scalar(k) = work%scalar(k) + self%exchange%aet_sealed%data(k) * self%exchange%f_sealed%data(k)
+      end do
+      !$omp end parallel do
+      call self%ds_out%update("aET", work%scalar)
     end if
     if (self%output_config%out_q) call self%ds_out%update("Q", self%exchange%runoff_total%data)
-    if (self%output_config%out_qd) call self%ds_out%update("QD", self%exchange%runoff_sealed%data * self%exchange%f_sealed%data)
-    if (self%output_config%out_qif) call self%ds_out%update("QIf", self%exchange%interflow_fast%data * f_not_sealed)
-    if (self%output_config%out_qis) call self%ds_out%update("QIs", self%exchange%interflow_slow%data * f_not_sealed)
-    if (self%output_config%out_qb) call self%ds_out%update("QB", self%exchange%baseflow%data * f_not_sealed)
-    if (self%output_config%out_recharge) call self%ds_out%update("recharge", self%exchange%percolation%data * f_not_sealed)
-    if (self%output_config%out_soil_infil) then
-      do horizon = 1_i4, size(self%exchange%infiltration%data, 2)
-        call self%ds_out%update("soil_infil_L" // trim(n2s(horizon, '(i2.2)')), &
-          self%exchange%infiltration%data(:, horizon) * f_not_sealed)
+    if (self%output_config%out_qd) then
+      !$omp parallel do default(shared) private(k) schedule(static)
+      do k = 1, size(work%scalar)
+        work%scalar(k) = self%exchange%runoff_sealed%data(k) * self%exchange%f_sealed%data(k)
       end do
+      !$omp end parallel do
+      call self%ds_out%update("QD", work%scalar)
+    end if
+    if (self%output_config%out_qif) then
+      !$omp parallel do default(shared) private(k) schedule(static)
+      do k = 1, size(work%scalar)
+        work%scalar(k) = self%exchange%interflow_fast%data(k) * work%pervious(k)
+      end do
+      !$omp end parallel do
+      call self%ds_out%update("QIf", work%scalar)
+    end if
+    if (self%output_config%out_qis) then
+      !$omp parallel do default(shared) private(k) schedule(static)
+      do k = 1, size(work%scalar)
+        work%scalar(k) = self%exchange%interflow_slow%data(k) * work%pervious(k)
+      end do
+      !$omp end parallel do
+      call self%ds_out%update("QIs", work%scalar)
+    end if
+    if (self%output_config%out_qb) then
+      !$omp parallel do default(shared) private(k) schedule(static)
+      do k = 1, size(work%scalar)
+        work%scalar(k) = self%exchange%baseflow%data(k) * work%pervious(k)
+      end do
+      !$omp end parallel do
+      call self%ds_out%update("QB", work%scalar)
+    end if
+    if (self%output_config%out_recharge) then
+      !$omp parallel do default(shared) private(k) schedule(static)
+      do k = 1, size(work%scalar)
+        work%scalar(k) = self%exchange%percolation%data(k) * work%pervious(k)
+      end do
+      !$omp end parallel do
+      call self%ds_out%update("recharge", work%scalar)
+    end if
+    if (self%output_config%out_soil_infil) then
+      !$omp parallel do default(shared) private(k,h) schedule(static)
+      do k = 1, size(work%scalar)
+        do h = 1, size(work%layers, 2)
+          work%layers(k,h) = self%exchange%infiltration%data(k,h) * work%pervious(k)
+        end do
+      end do
+      !$omp end parallel do
+      call mhm_update_layered_output(self, "soil_infil", work%layers)
     end if
     if (self%output_config%out_aet_layer) then
-      do horizon = 1_i4, size(self%exchange%aet_soil%data, 2)
-        call self%ds_out%update("aET_L" // trim(n2s(horizon, '(i2.2)')), self%exchange%aet_soil%data(:, horizon) * f_not_sealed)
+      !$omp parallel do default(shared) private(k,h) schedule(static)
+      do k = 1, size(work%scalar)
+        do h = 1, size(work%layers, 2)
+          work%layers(k,h) = self%exchange%aet_soil%data(k,h) * work%pervious(k)
+        end do
       end do
+      !$omp end parallel do
+      call mhm_update_layered_output(self, "aET_soil", work%layers)
     end if
     if (self%output_config%out_preeffect) call self%ds_out%update("preEffect", self%exchange%pre_eff%data)
     if (self%output_config%out_qsm) call self%ds_out%update("Qsm", self%exchange%melt%data)
+    end associate
 
     write_stamp = .false.
     select case (self%output_config%output_frequency)
@@ -934,9 +1000,19 @@ contains
     end select
     if (write_stamp) call self%ds_out%write(self%exchange%time)
 
-    if (allocated(f_not_sealed)) deallocate(f_not_sealed)
   end subroutine mhm_update_output
 
+  !> \brief Keep singleton z axes while using the writer's one-dimensional buffer path.
+  subroutine mhm_update_layered_output(self, name, data)
+    class(mhm_t), intent(inout), target :: self
+    character(*), intent(in) :: name !< Layered variable name.
+    real(dp), intent(in) :: data(:, :) !< Packed cells and horizons.
+    if (size(data, 2) == 1) then
+      call self%ds_out%update(name, data(:,1))
+    else
+      call self%ds_out%update_layered(name, data)
+    end if
+  end subroutine mhm_update_layered_output
 
   !> \brief Update canopy interception and throughfall for the current step.
   recursive subroutine mhm_update_interception(self)
@@ -1586,6 +1662,9 @@ contains
     if (allocated(self%direct_runoff%aet)) deallocate(self%direct_runoff%aet)
     if (allocated(self%direct_runoff%runoff)) deallocate(self%direct_runoff%runoff)
     call self%neutrons%geometry%destroy()
+    if (allocated(self%output_work%scalar)) deallocate(self%output_work%scalar)
+    if (allocated(self%output_work%pervious)) deallocate(self%output_work%pervious)
+    if (allocated(self%output_work%layers)) deallocate(self%output_work%layers)
     if (allocated(self%soil%horizon_bounds)) deallocate(self%soil%horizon_bounds)
     self%soil%variable_bottom = .true.
     if (allocated(self%soil%moisture)) deallocate(self%soil%moisture)
@@ -1626,9 +1705,9 @@ contains
       self%exchange%interception%provided)
     call disable_unavailable(self%output_config%out_snowpack, "snowpack", &
       self%exchange%snowpack%provided)
-    call disable_unavailable(self%output_config%out_swc, "SWC_L", &
+    call disable_unavailable(self%output_config%out_swc, "SWC", &
       self%exchange%soil_moisture%provided)
-    call disable_unavailable(self%output_config%out_sm, "SM_L", &
+    call disable_unavailable(self%output_config%out_sm, "SM", &
       self%exchange%soil_moisture%provided)
     call disable_unavailable(self%output_config%out_sm_all, "SM_Lall", &
       self%exchange%soil_moisture%provided)
@@ -1659,9 +1738,9 @@ contains
       self%exchange%baseflow%provided)
     call disable_unavailable(self%output_config%out_recharge, "recharge", &
       self%exchange%percolation%provided)
-    call disable_unavailable(self%output_config%out_soil_infil, "soil_infil_L", &
+    call disable_unavailable(self%output_config%out_soil_infil, "soil_infil", &
       self%exchange%infiltration%provided)
-    call disable_unavailable(self%output_config%out_aet_layer, "aET_L", &
+    call disable_unavailable(self%output_config%out_aet_layer, "aET_soil", &
       self%exchange%aet_soil%provided)
     call disable_unavailable(self%output_config%out_preeffect, "preEffect", &
       self%exchange%pre_eff%provided)

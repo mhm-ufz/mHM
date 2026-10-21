@@ -81,7 +81,7 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
   assumed-shape kernel arguments; do not require contiguity or copy them into per-thread vectors.
   Neutron kernels share one container-owned, read-only geometry cache and use local scalar accumulators;
   keep timestep calls allocation-free and independent of team size. Rebuild parameter-dependent caches
-  on each initialize.
+  on each initialize. Reuse output buffers and refresh changing pervious fractions each interval.
 - MPR owns model horizon bounds; exchange publications are non-owning. Derive layer tops from the boundary
   array. Mode 0 retains soil-specific local depths for regionalization and repeats the final layer top as
   its terminal bound, without an L1 depth field. This mHM-specific zero-thickness marker means the bottom
@@ -91,9 +91,12 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
   Restore bounds before connecting consumers; validate counts and strictly increasing internal interfaces,
   comparing the terminal boundary only for fixed-depth mode. Restore older v6 axes through bounds and
   normalize variable nominal endpoints to the repeated final top. Explain the mHM convention on output axes.
-- Reuse general axis metadata supplied by NetCDF writers. Restart coordinates use
-  `write_horizon_metadata` for units, layer-top descriptions, and the variable-bottom explanation.
-  Use the coordinate variable's `comment` attribute for the explanation.
+- Layered SWC, SM, soil_infil, and aET_soil output opts into z explicitly, even for one layer. Ordinary
+  fields stay flat. Preserve relative saturation, temporal aggregation, and pervious-area factors.
+- Reuse general axis metadata supplied by NetCDF writers. Layered output calls `write_horizon_metadata`
+  with `general=.false.`; restart coordinates retain the default. Add horizon units, the layer-top
+  description, and the variable-bottom explanation on the coordinate variable (`z` or `L1_SoilHorizons`).
+  Use its `comment` attribute for the explanation.
 - Both neutron formulations exclude the final soil layer. COSMIC L3 must be finite and positive;
   mode-1 class properties map by horizon before harmonic upscaling.
 

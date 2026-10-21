@@ -111,9 +111,17 @@ add_executable(test_mpr_multidomain_soil test_mpr_multidomain_soil.f90)
 target_link_libraries(test_mpr_multidomain_soil PRIVATE ${LIB_NAME})
 add_test(NAME test_mpr_multidomain_soil COMMAND test_mpr_multidomain_soil)
 
+add_executable(test_bulk_components test_bulk_components.f90)
+target_link_libraries(test_bulk_components PRIVATE ${LIB_NAME})
+add_test(NAME test_bulk_components COMMAND test_bulk_components)
+
 add_executable(test_horizon_restart test_horizon_restart.f90)
 target_link_libraries(test_horizon_restart PRIVATE ${LIB_NAME})
 add_test(NAME test_horizon_restart COMMAND test_horizon_restart)
+
+add_executable(test_layered_mhm_output test_layered_mhm_output.f90)
+target_link_libraries(test_layered_mhm_output PRIVATE ${LIB_NAME})
+add_test(NAME test_layered_mhm_output COMMAND test_layered_mhm_output)
 
 add_executable(test_soil_horizons test_soil_horizons.f90)
 target_link_libraries(test_soil_horizons PRIVATE ${LIB_NAME})

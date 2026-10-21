@@ -1279,12 +1279,13 @@ contains
   end subroutine variable_prepare_data
 
   !> \brief Convert exchange metadata to a grid-output variable definition.
-  function variable_as_output_var(self, name, long_name, dtype, avg) result(meta)
+  function variable_as_output_var(self, name, long_name, dtype, avg, layered) result(meta)
     class(variable_abc), intent(in), target :: self
     character(*), intent(in), optional :: name !< optional output-name override
     character(*), intent(in), optional :: long_name !< optional descriptive-name override
     character(*), intent(in), optional :: dtype !< output NetCDF data type
     logical, intent(in), optional :: avg !< average buffered values instead of summing them
+    logical, intent(in), optional :: layered !< Keep a horizon dimension, including a singleton.
     type(output_var_meta_t) :: meta
 
     if (allocated(self%name)) meta%name = self%name
@@ -1292,6 +1293,7 @@ contains
     if (allocated(self%standard_name)) meta%standard_name = self%standard_name
     if (allocated(self%units)) meta%units = self%units
     meta%static = self%static
+    if (present(layered)) meta%layered = layered
     if (present(name)) meta%name = name
     if (present(long_name)) meta%long_name = long_name
     if (present(dtype)) meta%dtype = dtype

@@ -81,8 +81,8 @@ module nml_output_mhm
     logical :: out_interception !< Interception
     logical :: out_snowpack !< Snowpack
     logical :: out_swc !< Layered Soil Water Content
-    logical :: out_sm !< Layered Volumetric Soil Moisture
-    logical :: out_sm_all !< Mean Volumetric Soil Moisture
+    logical :: out_sm !< Layered Relative Soil Saturation
+    logical :: out_sm_all !< Mean Relative Soil Saturation
     logical :: out_sealedstw !< Reservoir of Sealed areas
     logical :: out_unsatstw !< Reservoir of Unsaturated areas
     logical :: out_satstw !< Reservoir of Saturated areas
@@ -385,8 +385,8 @@ contains
     logical, intent(in), optional :: out_interception !< Interception
     logical, intent(in), optional :: out_snowpack !< Snowpack
     logical, intent(in), optional :: out_swc !< Layered Soil Water Content
-    logical, intent(in), optional :: out_sm !< Layered Volumetric Soil Moisture
-    logical, intent(in), optional :: out_sm_all !< Mean Volumetric Soil Moisture
+    logical, intent(in), optional :: out_sm !< Layered Relative Soil Saturation
+    logical, intent(in), optional :: out_sm_all !< Mean Relative Soil Saturation
     logical, intent(in), optional :: out_sealedstw !< Reservoir of Sealed areas
     logical, intent(in), optional :: out_unsatstw !< Reservoir of Unsaturated areas
     logical, intent(in), optional :: out_satstw !< Reservoir of Saturated areas
