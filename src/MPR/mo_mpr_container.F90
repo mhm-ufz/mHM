@@ -2086,6 +2086,7 @@ contains
       end if
       if (neutron_process == 2_i4) then
         call self%read_restart_field_4d(nc, "L1_COSMICL3", self%neutron%cosmic_l3_cache)
+        call mpr_validate_cosmic_l3(self%neutron%cosmic_l3_cache)
         if (size(self%neutron%cosmic_l3_cache, 2) /= n_soil_restart .or. &
           size(self%neutron%cosmic_l3_cache, 3) /= self%land_cover%n_periods) then
           log_fatal(*) "MPR restart: COSMIC L3 restart dimensions do not match current soil/land-cover configuration."
@@ -3228,6 +3229,7 @@ contains
       self%exchange%lattice_water%data => self%neutron%lattice_water_cache(:, :, land_cover_idx)
     end if
     if (allocated(self%neutron%cosmic_l3_cache)) then
+      if (force_) call mpr_validate_cosmic_l3(self%neutron%cosmic_l3_cache)
       self%exchange%cosmic_l3%data => self%neutron%cosmic_l3_cache(:, :, land_cover_idx)
     end if
     if (allocated(self%runoff%alpha_cache)) then
@@ -3540,4 +3542,14 @@ contains
     call self%upscaler%destroy()
     call self%tgt_level1_land%destroy()
   end subroutine mpr_destroy
+
+  !> \brief Reject unusable COSMIC parameters, including old mode-1 restart payloads.
+  subroutine mpr_validate_cosmic_l3(values)
+    real(dp), intent(in) :: values(:, :, :) !< Active cell/horizon/land-cover parameters.
+    if (any(.not.ieee_is_finite(values)) .or. any(values <= 0.0_dp)) then
+      log_fatal(*) 'MPR: invalid COSMIC L3; regenerate MPR parameters and restart files.'
+      error stop 1
+    end if
+  end subroutine mpr_validate_cosmic_l3
+
 end module mo_mpr_container

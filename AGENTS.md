@@ -77,6 +77,8 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
   Keep lake support integration and the forcing/PET/disaggregation order intact.
 - PET kernels and coefficients belong in meteo; hydrology/neutron constants in mHM, regionalization
   coefficients in MPR, neutral run defaults/file-format identifiers in common, and exchange contracts in domain.
+- Both neutron formulations exclude the final soil layer. COSMIC L3 must be finite and positive;
+  mode-1 class properties map by horizon before harmonic upscaling.
 
 ## Fortran conventions and pitfalls
 

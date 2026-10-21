@@ -15,6 +15,7 @@ module mo_mpr_SMhorizons
 
   use mo_kind, only : i4, dp
   use mo_constants, only : nodata_dp
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
 
   implicit none
 
@@ -311,10 +312,6 @@ contains
              end if
           end do cellloop0
           !$OMP END DO
-          !$OMP END PARALLEL
-
-
-          !$OMP PARALLEL
           !$OMP DO PRIVATE( l, s, dpth_f, dpth_t, tmp_rootFractionCoefficient_perviousFC, FCnorm ) SCHEDULE( STATIC )
           celllloop0 : do k = 1, size(LCOVER0, 1)
              l = LCOVER0(k)
@@ -432,6 +429,7 @@ contains
             call upscaler%execute(LW0, L1_latticeWater(:, h), upscaling_operator=up_h_mean)
           end if
           if (present(L1_COSMICL3)) then
+            call validate_cosmic_l3(L30)
             call upscaler%execute(L30, L1_COSMICL3(:, h), upscaling_operator=up_h_mean)
           end if
 
@@ -473,6 +471,7 @@ contains
           s = soilID0(k, h)
           if (h .le. nTillHorizons(1)) then
             Bd0(k) = Db(s, 1, L)
+            if (allocated(L30)) L30(k) = COSMIC_L3_till(s, 1, L)
             SMs0(k)= thetaS_till (s, 1, L) * (dpth_t - dpth_f)  ! in mm
             FC0(k) = thetaFC_till(s, 1, L) * (dpth_t - dpth_f)  ! in mm
             PW0(k) = thetaPW_till(s, 1, L) * (dpth_t - dpth_f)  ! in mm
@@ -481,6 +480,7 @@ contains
             end if
           else
             Bd0(k) = DbM(s, 1)
+            if (allocated(L30)) L30(k) = COSMIC_L3(s, 1)
             SMs0(k)= thetaS (s, 1) * (dpth_t - dpth_f)  ! in mm
             FC0(k) = thetaFC(s, 1) * (dpth_t - dpth_f)  ! in mm
             PW0(k) = thetaPW(s, 1) * (dpth_t - dpth_f)  ! in mm
@@ -490,10 +490,6 @@ contains
           end if
         end do cellloop1
         !$OMP END DO
-        !$OMP END PARALLEL
-
-
-        !$OMP PARALLEL
         !$OMP DO PRIVATE( l, tmp_rootFractionCoefficient_perviousFC, FCnorm ) SCHEDULE( STATIC )
 
         celllloop1 : do k = 1, size(LCOVER0, 1)
@@ -576,6 +572,7 @@ contains
           call upscaler%execute(LW0, L1_latticeWater(:, h), upscaling_operator=up_h_mean)
         end if
         if (present(L1_COSMICL3)) then
+          call validate_cosmic_l3(L30)
           call upscaler%execute(L30, L1_COSMICL3(:, h), upscaling_operator=up_h_mean)
         end if
 
@@ -605,4 +602,12 @@ contains
     !$omp end parallel do
   end subroutine mpr_SMhorizons
 
+  !> \brief Validate fine-cell L3 before the harmonic mean can divide by it.
+  subroutine validate_cosmic_l3(values)
+    use mo_message, only: error_message
+    real(dp), intent(in) :: values(:) !< Active fine-cell attenuation lengths [g cm-2].
+    if (any(.not.ieee_is_finite(values)) .or. any(values <= 0.0_dp)) then
+      call error_message('MPR: COSMIC L3 must be finite and positive before harmonic upscaling.')
+    end if
+  end subroutine validate_cosmic_l3
 end module mo_mpr_SMhorizons

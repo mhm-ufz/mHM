@@ -182,8 +182,6 @@ contains
             @assertTrue(close(lw(:,1),spread(lattice,1,4)))
             if (neutron == 2_i4) then
               l3 = density*106.1942_dp-40.9879_dp
-              ! Preserve the documented, deferred mode-1 COSMIC mapping gap.
-              if (mode == 1_i4) l3 = nodata_dp
               @assertTrue(close(cosmic(:,1),spread(l3,1,4)))
             end if
           end if
@@ -204,6 +202,8 @@ contains
     integer(i4) :: mode, nh, h, k, s, soil_case, nparam
     integer(i4), allocatable :: soil_ids(:,:)
     integer(i4) :: cover(8)
+    real(dp) :: l3_till(2,1,3), l3_non(2,1)
+    real(dp), allocatable :: cosmic(:,:)
     real(dp) :: till(2,1,3), non_till(2,1), density(2,1,3), depths(2), rz(2), param(8), lower, upper, coefficient
     real(dp), allocatable :: weights(:,:,:), beta(:,:), sm(:,:), fc(:,:), pw(:,:), roots(:,:), expected(:,:), scratch(:)
 
@@ -211,6 +211,10 @@ contains
     call coarse%init(2_i4,1_i4,cellsize=2.0_dp,y_direction=top_down)
     call scaler%init(fine,coarse,weight_mode=weight_count)
     cover = modulo([(k,k=1_i4,8_i4)],3_i4)+1_i4
+    do k = 1, 3
+      l3_till(:,1,k) = [50.0_dp + real(k,dp), 80.0_dp + real(k,dp)]
+    end do
+    l3_non(:,1) = [90.0_dp,120.0_dp]
     till = 0.4_dp
     non_till = 0.4_dp
     density = 1.2_dp
@@ -219,6 +223,7 @@ contains
     param = [0.95_dp,0.93_dp,0.02_dp,1.75_dp,0.09_dp,0.98_dp,0.15_dp,0.25_dp]
     do mode = 0_i4, 1_i4
       do nh = 1_i4, 2_i4
+        allocate(cosmic(2,nh))
         allocate(weights(2,nh,1),soil_ids(8,nh),beta(2,nh),sm(2,nh),fc(2,nh),pw(2,nh),roots(2,nh),expected(2,nh),scratch(8))
         weights = 1.0_dp
         do k = 1_i4, 8_i4
@@ -229,7 +234,16 @@ contains
           if (soil_case > 2_i4) nparam = 8_i4
           call mpr_SMhorizons(param(:nparam),soil_case,scaler,mode,nh,depths(:nh),cover,soil_ids,[1_i4,1_i4],[1_i4,1_i4], &
             till,0.625_dp*till,0.25_dp*till,non_till,0.625_dp*non_till,0.25_dp*non_till,weights,density, &
-            reshape([1.2_dp,1.2_dp],[2,1]),rz,beta,sm,fc,pw,roots)
+            reshape([1.2_dp,1.2_dp],[2,1]),rz,beta,sm,fc,pw,roots, &
+            COSMIC_L3_till=l3_till,COSMIC_L3=l3_non,L1_COSMICL3=cosmic)
+          do h = 1, nh
+            do k = 1, 8
+              scratch(k) = l3_till(soil_ids(k,h),1,cover(k))
+              if (mode == 1 .and. h > 1) scratch(k) = l3_non(soil_ids(k,h),1)
+            end do
+            expected(:,h) = mean_reference(scratch,fine,coarse,.true.)
+          end do
+          @assertTrue(close(reshape(cosmic,[2*nh]),reshape(expected,[2*nh])))
           do h = 1_i4, nh
             do k = 1_i4, 8_i4
               s = soil_ids(k,h)
@@ -270,6 +284,7 @@ contains
           end do
           @assertTrue(close(reshape(roots,[2*nh]),reshape(expected,[2*nh])))
         end do
+        deallocate(cosmic)
         deallocate(weights,soil_ids,beta,sm,fc,pw,roots,expected,scratch)
       end do
     end do
