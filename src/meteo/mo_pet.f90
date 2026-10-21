@@ -1,6 +1,5 @@
 !> \file mo_pet.f90
-!> \brief   \copybrief mo_pet
-!> \details \copydetails mo_pet
+!> \copydoc mo_pet
 
 !> \brief Module for calculating reference/potential evapotranspiration  [mm d-1]
 !> \details This module calculates PET [mm/d] based on one of the methods
@@ -9,9 +8,12 @@
 !!       - Penman-Monteith FAO (1998)
 !> \authors Matthias Zink, Christoph Schneider, Matthias Cuntz
 !> \date Apr 2014
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
-!> \ingroup f_mhm
+!> \ingroup f_meteo
 MODULE mo_pet
 
   ! This module is for the UFZ CHS mesoscale hydrologic model mHM.
@@ -19,6 +21,7 @@ MODULE mo_pet
   USE mo_kind, ONLY : i4, dp
 
   IMPLICIT NONE
+  PRIVATE
 
   PUBLIC :: pet_hargreaves ! Hargreaves-Samani
   PUBLIC :: pet_priestly   ! Priestley-Taylor
@@ -26,7 +29,6 @@ MODULE mo_pet
   PUBLIC :: slope_satpressure
   PUBLIC :: extraterr_rad_approx
   PUBLIC :: sat_vap_pressure
-
 
   ! ------------------------------------------------------------------
 
@@ -50,15 +52,6 @@ CONTAINS
   !>       \note Hargreaves, G.H., and Samani, Z.A. (1982). "Estimating potential evapotranspiration."
   !>       Tech. Note, J. Irrig. and drain. Engrg., ASCE, 108(3):225-230.
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: HarSamCoeff" coefficient of Hargreaves-Samani equation [-]
-  !>       \param[in] "real(dp) :: HarSamConst" constant    of Hargreaves-Samani equation [-]
-  !>       \param[in] "real(dp) :: tavg"        daily men temperature \f$[^{\circ}C]\f$
-  !>       \param[in] "real(dp) :: tmax"        daily maximum of temp \f$[^{\circ}C]\f$
-  !>       \param[in] "real(dp) :: tmin"        daily minimum of temp \f$[^{\circ}C]\f$
-  !>       \param[in] "real(dp) :: latitude"    latitude of the cell for Ra estimation \f$[radians]\f$
-  !>       \param[in] "integer(i4) :: doy"      day of year for Ra estimation
-
   !    RETURN
   !>       \return real(dp) :: pet_hargreaves &mdash; Hargreaves-Samani pot. evapotranspiration [mm d-1]
 
@@ -76,27 +69,13 @@ CONTAINS
     use mo_utils, only : LE
 
     implicit none
-
-    ! coefficient of Hargreaves-Samani equation [-]
-    real(dp), intent(in) :: HarSamCoeff
-
-    ! constant    of Hargreaves-Samani equation [-]
-    real(dp), intent(in) :: HarSamConst
-
-    ! daily men temperature \f$[^{\circ}C]\f$
-    real(dp), intent(in) :: tavg
-
-    ! daily maximum of temp \f$[^{\circ}C]\f$
-    real(dp), intent(in) :: tmax
-
-    ! daily minimum of temp \f$[^{\circ}C]\f$
-    real(dp), intent(in) :: tmin
-
-    ! latitude of the cell for Ra estimation \f$[radians]\f$
-    real(dp), intent(in) :: latitude
-
-    ! day of year for Ra estimation
-    integer(i4), intent(in) :: doy
+    real(dp), intent(in) :: HarSamCoeff !< coefficient of Hargreaves-Samani equation [-]
+    real(dp), intent(in) :: HarSamConst !< constant    of Hargreaves-Samani equation [-]
+    real(dp), intent(in) :: tavg !< Mean air temperature [degrees C].
+    real(dp), intent(in) :: tmax !< daily maximum of temp \f$[^{\circ}C]\f$
+    real(dp), intent(in) :: tmin !< daily minimum of temp \f$[^{\circ}C]\f$
+    real(dp), intent(in) :: latitude !< Cell latitude for extraterrestrial radiation [degrees].
+    integer(i4), intent(in) :: doy !< day of year for Ra estimation
 
     ! reference evapotranspiration in [mm d-1]
     real(dp) :: pet_hargreaves
@@ -104,7 +83,6 @@ CONTAINS
     ! tmax-Tmin
     ! correction for shity input data (tmax<tmin) and to avoid numerical errors ! MZMZMZMZ
     real(dp) :: delta_temp
-
 
     delta_temp = tmax - tmin
     if(LE(delta_temp, 0.0_dp) .or. LE(tavg, -HarSamConst)) then
@@ -114,7 +92,6 @@ CONTAINS
     end if
 
   END FUNCTION pet_hargreaves
-
 
   ! ------------------------------------------------------------------
 
@@ -129,11 +106,6 @@ CONTAINS
   !>       \f[ PET = \alpha * \frac{\Delta}{(\gamma + \Delta)} * R_n \f]
   !>       where \f$R_n\;[W\;m^{-2}]\f$ is the net solar radiation \f$\Delta =  f(T_{avg})\f$ is the slope
   !>       of the saturation-vapour pressure curve and \f$\alpha\f$ is a emperical coefficient.
-
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: PrieTayParam" Priestley-Taylor coefficient \f$ \alpha [-] \f$
-  !>       \param[in] "real(dp) :: Rn"           net solar radiation \f$ [W\;m^{-2}] \f$
-  !>       \param[in] "real(dp) :: Tavg"
 
   !    RETURN
   !>       \return real(dp) :: pet_priestly &mdash; Priestley-Taylor pot. evapotranspiration [mm d-1]
@@ -151,14 +123,9 @@ CONTAINS
     use mo_constants, only : DaySecs, Psychro_dp, SpecHeatET_dp
 
     implicit none
-
-    ! Priestley-Taylor coefficient \f$ \alpha [-] \f$
-    real(dp), intent(in) :: PrieTayParam
-
-    ! net solar radiation \f$ [W\;m^{-2}] \f$
-    real(dp), intent(in) :: Rn
-
-    real(dp), intent(in) :: Tavg
+    real(dp), intent(in) :: PrieTayParam !< Priestley-Taylor coefficient \f$ \alpha [-] \f$
+    real(dp), intent(in) :: Rn !< net solar radiation \f$ [W\;m^{-2}] \f$
+    real(dp), intent(in) :: Tavg !< Mean air temperature [degrees C].
 
     ! reference evapotranspiration in [mm d-1]
     real(dp) :: pet_priestly
@@ -166,13 +133,11 @@ CONTAINS
     ! save slope of saturation vapor pressure curve
     real(dp) :: delta
 
-
     delta = slope_satpressure(Tavg) ! slope of saturation vapor pressure curve
     ! in [mm d-1]
     pet_priestly = PrieTayParam * delta / (Psychro_dp + delta) * (Rn * DaySecs / SpecHeatET_dp)
 
   END FUNCTION pet_priestly
-
 
   ! ------------------------------------------------------------------
 
@@ -210,16 +175,6 @@ CONTAINS
   !>       (\f$ R_l \f$) on soil or leaf temperature (\f$ T_l \f$). We assume that net radiation
   !>       equals the absorbed short-wave radiation, i.e. \f$ R_N = R_s \f$ (p.79 in Monteith and Unsworth, 2013).
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: net_rad"                net radiation \f$[W m^{-2}]\f$
-  !>       \param[in] "real(dp) :: tavg"                   average daily temperature \f$[^{\circ}C]\f$
-  !>       \param[in] "real(dp) :: act_vap_pressure"       actual vapur pressure \f$[kPa]\f$
-  !>       \param[in] "real(dp) :: aerodyn_resistance"     aerodynmaical resistance \f$s\;m^{-1}\f$
-  !>       \param[in] "real(dp) :: bulksurface_resistance" bulk surface resistance  \f$s\;m^{-1}\f$
-  !>       \param[in] "real(dp) :: a_s"                    fraction of one-sided leaf area covered by stomata \f$1\f$
-  !>       \param[in] "real(dp) :: a_sh"                   fraction of projected area exchanging sensible heat with the
-  !>       air \f$1\f$
-
   !    RETURN
   !>       \return real(dp) :: pet_penman &mdash; Reference Evapotranspiration [mm d-1]
 
@@ -238,31 +193,16 @@ CONTAINS
     use mo_constants, only : DaySecs, Psychro_dp, SpecHeatET_dp, cp0_dp, rho0_dp
 
     implicit none
-
-    ! net radiation \f$[W m^{-2}]\f$
-    real(dp), intent(in) :: net_rad
-
-    ! average daily temperature \f$[^{\circ}C]\f$
-    real(dp), intent(in) :: tavg
-
-    ! actual vapur pressure \f$[kPa]\f$
-    real(dp), intent(in) :: act_vap_pressure
-
-    ! aerodynmaical resistance \f$s\;m^{-1}\f$
-    real(dp), intent(in) :: aerodyn_resistance
-
-    ! bulk surface resistance  \f$s\;m^{-1}\f$
-    real(dp), intent(in) :: bulksurface_resistance
-
-    ! fraction of one-sided leaf area covered by stomata \f$1\f$
-    real(dp), intent(in) :: a_s
-
-    ! fraction of projected area exchanging sensible heat with the air \f$1\f$
-    real(dp), intent(in) :: a_sh
+    real(dp), intent(in) :: net_rad !< net radiation \f$[W m^{-2}]\f$
+    real(dp), intent(in) :: tavg !< Mean air temperature [degrees C].
+    real(dp), intent(in) :: act_vap_pressure !< actual vapur pressure \f$[kPa]\f$
+    real(dp), intent(in) :: aerodyn_resistance !< aerodynmaical resistance \f$s\;m^{-1}\f$
+    real(dp), intent(in) :: bulksurface_resistance !< bulk surface resistance  \f$s\;m^{-1}\f$
+    real(dp), intent(in) :: a_s !< fraction of one-sided leaf area covered by stomata \f$1\f$
+    real(dp), intent(in) :: a_sh !< fraction of projected area exchanging sensible heat with the air \f$1\f$
 
     ! reference evapotranspiration in [mm d-1]
     real(dp) :: pet_penman
-
 
     pet_penman = DaySecs / SpecHeatET_dp * & ! conversion factor [W m-2] to [mm d-1]
             (slope_satpressure(tavg) * net_rad + &
@@ -296,10 +236,6 @@ CONTAINS
   !>       \f[ \omega  = \arccos( - \tan(latitude) * \tan(\delta) )  \f]
   !>       <                 \f$ \lambda = 2.45 \cdot 10^6\;J\;m^{-2}\;mm^{-1} \f$ is the latent heat of vaporization.
 
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: doy"   day of year [-]
-  !>       \param[in] "real(dp) :: latitude" latitude [rad]
-
   !    RETURN
   !>       \return real(dp) :: extraterr_rad_approx &mdash; extraterrestrial radiation approximation \f$[W\;m^{-2}]\f$
 
@@ -317,12 +253,8 @@ CONTAINS
     use mo_mhm_constants, only : DuffieDelta1, DuffieDelta2, DuffieDr
 
     implicit none
-
-    ! day of year [-]
-    integer(i4), intent(in) :: doy
-
-    ! latitude [rad]
-    real(dp), intent(in) :: latitude
+    integer(i4), intent(in) :: doy !< day of year [-]
+    real(dp), intent(in) :: latitude !< latitude [rad]
 
     ! extraterrestrial radiation
     real(dp) :: extraterr_rad_approx
@@ -332,7 +264,6 @@ CONTAINS
     real(dp) :: omega
 
     real(dp) :: arg
-
 
     ! inverse relative distance Earth-Sun - correction for eccentricity of Earths orbit around the sun
     dr = 1.0_dp + DuffieDr * cos(TWOPI_D * doy / YearDays)
@@ -354,7 +285,6 @@ CONTAINS
 
   end FUNCTION extraterr_rad_approx
 
-
   ! ------------------------------------------------------------------
 
   !    NAME
@@ -365,9 +295,6 @@ CONTAINS
 
   !>       \details slope of saturation vapour pressure curve after Tetens
   !>       \f[ \Delta = \frac{0.6108 * e_s(T_a)}{e^(2 \cdot \log(T_a + 237.3))} \f]
-
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: tavg" average daily temperature \f$[^{\circ}C]\f$
 
   !    RETURN
   !>       \return real(dp) :: slope_satpressure &mdash;  slope of saturation vapour pressure curve
@@ -386,13 +313,10 @@ CONTAINS
     use mo_mhm_constants, only : satpressureslope1, tetens_c3
 
     implicit none
-
-    ! average daily temperature \f$[^{\circ}C]\f$
-    real(dp), intent(in) :: tavg
+    real(dp), intent(in) :: tavg !< Mean air temperature [degrees C].
 
     ! slope of saturation vapour pressure curve
     real(dp) :: slope_satpressure
-
 
     slope_satpressure = satpressureslope1 * sat_vap_pressure(tavg) / exp(2.0_dp * log(Tavg + tetens_c3))
 
@@ -408,9 +332,6 @@ CONTAINS
 
   !>       \details Calculation of the saturation vapour pressure
   !>       \f[ e_s(T_a) = 0.6108 \cdot \exp \left( \frac{17.27 \cdot T_a}{T_a + 237.3} \right)  \f]
-
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: tavg" temperature [degC]
 
   !    RETURN
   !>       \return real(dp) :: sat_vap_pressure &mdash; saturation vapour pressure [kPa]
@@ -428,13 +349,10 @@ CONTAINS
     use mo_mhm_constants, only : tetens_c1, tetens_c2, tetens_c3
 
     implicit none
-
-    ! temperature [degC]
-    real(dp), intent(in) :: tavg
+    real(dp), intent(in) :: tavg !< Mean air temperature [degrees C].
 
     ! saturation vapour pressure [kPa]
     real(dp) :: sat_vap_pressure
-
 
     sat_vap_pressure = tetens_c1 * exp(tetens_c2 * tavg / (tavg + tetens_c3))
 

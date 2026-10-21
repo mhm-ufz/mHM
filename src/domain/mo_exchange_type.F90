@@ -1132,8 +1132,8 @@ contains
   !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine exchange_get_points(self, selector, points)
     class(exchange_t), intent(in) :: self
-    integer(i4), intent(in) :: selector
-    type(points_t), pointer, intent(out) :: points
+    integer(i4), intent(in) :: selector !< Named exchange spatial-support selector.
+    type(points_t), pointer, intent(out) :: points !< Borrowed point support selected from the exchange.
     select case(selector)
       case(nopoints)
         points => null()
@@ -1149,7 +1149,7 @@ contains
   !> \authors Sebastian Mueller, Pallav Shrestha
   logical function exchange_has_points(self, selector)
     class(exchange_t), intent(in) :: self
-    integer(i4), intent(in) :: selector
+    integer(i4), intent(in) :: selector !< Named exchange spatial-support selector.
     select case(selector)
       case(points_lake)
         exchange_has_points = associated(self%lake_points)
@@ -1161,8 +1161,8 @@ contains
   !> \brief Return a river support selected by its model level.
   subroutine exchange_get_river(self, selector, river)
     class(exchange_t), intent(in) :: self
-    integer(i4), intent(in) :: selector
-    type(river_t), pointer, intent(out) :: river
+    integer(i4), intent(in) :: selector !< Named exchange spatial-support selector.
+    type(river_t), pointer, intent(out) :: river !< Borrowed river support selected from the exchange.
 
     select case(selector)
     case(l0)
@@ -1178,7 +1178,7 @@ contains
   !> \brief Return whether a selected river support is available.
   logical function exchange_has_river(self, selector)
     class(exchange_t), intent(in) :: self
-    integer(i4), intent(in) :: selector
+    integer(i4), intent(in) :: selector !< Named exchange spatial-support selector.
 
     select case(selector)
     case(l0)
@@ -1221,7 +1221,7 @@ contains
   !> \brief Declare the sole configure-time provider of this exchange field.
   subroutine variable_provide(self, component)
     class(variable_abc), intent(inout) :: self
-    character(*), optional, intent(in) :: component
+    character(*), optional, intent(in) :: component !< Component name used for ownership and diagnostics.
     logical :: has_label
 
     has_label = .false.
@@ -1247,7 +1247,7 @@ contains
   !> \brief Check that a local consumer has a declared provider.
   subroutine variable_check_provided(self, component)
     class(variable_abc), intent(in) :: self
-    character(*), intent(in) :: component
+    character(*), intent(in) :: component !< Component name used for ownership and diagnostics.
 
     if (.not.self%provided) then
       log_fatal(*) trim(component), ": ", self%display_name(), " has no provider."
@@ -1267,7 +1267,7 @@ contains
 
   !> \brief Set and validate the temporal support metadata of an exchange variable.
   subroutine variable_prepare_data(self, component, stepping)
-    class(variable_abc), intent(inout) :: self !< exchange variable to prepare
+    class(variable_abc), intent(inout) :: self
     character(*), intent(in) :: component !< publishing component name for diagnostics
     integer(i4), intent(in) :: stepping !< temporal support indicator
 
@@ -1299,7 +1299,7 @@ contains
   !> \brief Write canonical exchange metadata to a NetCDF variable.
   subroutine variable_write_netcdf_metadata(self, nc_var)
     class(variable_abc), intent(in), target :: self
-    type(NcVariable), intent(in) :: nc_var
+    type(NcVariable), intent(in) :: nc_var !< NetCDF variable receiving exchange metadata.
 
     if (allocated(self%long_name)) call nc_var%setAttribute("long_name", self%long_name)
     if (allocated(self%standard_name)) call nc_var%setAttribute("standard_name", self%standard_name)
@@ -1308,7 +1308,7 @@ contains
 
   !> \brief Validate an associated field against its self-describing support metadata.
   subroutine exchange_check_data(self, var, component)
-    class(exchange_t), intent(in), target :: self !< exchange providing structural support
+    class(exchange_t), intent(in), target :: self
     class(variable_abc), intent(in) :: var !< field to validate
     character(*), intent(in) :: component !< consuming component for diagnostics
     type(grid_t), pointer :: grid
@@ -1403,8 +1403,8 @@ contains
   !> \brief Validate temporal support metadata on a publication or candidate value.
   subroutine variable_check_stepping(self, component, candidate)
     class(variable_abc), intent(in) :: self
-    character(*), intent(in) :: component
-    integer(i4), intent(in), optional :: candidate
+    character(*), intent(in) :: component !< Component name used for ownership and diagnostics.
+    integer(i4), intent(in), optional :: candidate !< Candidate stepping to validate; defaults to the current field stepping.
     integer(i4) :: stepping
 
     stepping = self%stepping
@@ -1426,7 +1426,7 @@ contains
 
   !> \brief Validate that an alias source is already connected.
   subroutine variable_check_alias_source(self, component, target)
-    class(variable_abc), intent(in) :: self !< already-associated source variable
+    class(variable_abc), intent(in) :: self
     character(*), intent(in) :: component !< aliasing component for diagnostics
     class(variable_abc), intent(in) :: target !< destination variable
 
@@ -1462,7 +1462,7 @@ contains
 
   !> \brief Return the data shape of a 1D real exchange variable.
   function var_dp_data_shape(self) result(shp)
-    class(var_dp), intent(in) :: self !< exchange variable whose data shape is queried
+    class(var_dp), intent(in) :: self
     integer(i8), allocatable :: shp(:) !< data extents, empty if unassociated
 
     if (associated(self%data)) then
@@ -1482,7 +1482,7 @@ contains
 
   !> \brief Allocate stable exchange-owned storage, or reuse an identical allocation.
   subroutine var_dp_prepare_storage(self, component, stepping, shp)
-    class(var_dp), intent(inout), target :: self !< exchange variable owning the storage
+    class(var_dp), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     integer(i4), intent(in) :: stepping !< temporal support of the stored field
     integer(i8), intent(in) :: shp(:) !< storage extents in canonical axis order
@@ -1517,7 +1517,7 @@ contains
 
   !> \brief Copy new values into stable exchange-owned storage without reallocating it.
   subroutine var_dp_set_storage(self, values)
-    class(var_dp), intent(inout), target :: self !< exchange variable owning the storage
+    class(var_dp), intent(inout), target :: self
     real(dp), intent(in) :: values(:) !< replacement values with unchanged extents
 
     if (.not.allocated(self%storage)) then
@@ -1537,7 +1537,7 @@ contains
 
   !> \brief Associate with an already connected variable without replacing canonical metadata.
   subroutine var_dp_associate_alias(self, component, source)
-    class(var_dp), intent(inout), target :: self !< target exchange variable
+    class(var_dp), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     type(var_dp), intent(in) :: source !< associated source exchange variable
 
@@ -1559,7 +1559,7 @@ contains
 
   !> \brief Return the data shape of a 1D integer exchange variable.
   function var_i4_data_shape(self) result(shp)
-    class(var_i4), intent(in) :: self !< exchange variable whose data shape is queried
+    class(var_i4), intent(in) :: self
     integer(i8), allocatable :: shp(:) !< data extents, empty if unassociated
 
     if (associated(self%data)) then
@@ -1579,7 +1579,7 @@ contains
 
   !> \brief Allocate stable exchange-owned storage, or reuse an identical allocation.
   subroutine var_i4_prepare_storage(self, component, stepping, shp)
-    class(var_i4), intent(inout), target :: self !< exchange variable owning the storage
+    class(var_i4), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     integer(i4), intent(in) :: stepping !< temporal support of the stored field
     integer(i8), intent(in) :: shp(:) !< storage extents in canonical axis order
@@ -1614,7 +1614,7 @@ contains
 
   !> \brief Copy new values into stable exchange-owned storage without reallocating it.
   subroutine var_i4_set_storage(self, values)
-    class(var_i4), intent(inout), target :: self !< exchange variable owning the storage
+    class(var_i4), intent(inout), target :: self
     integer(i4), intent(in) :: values(:) !< replacement values with unchanged extents
 
     if (.not.allocated(self%storage)) then
@@ -1634,7 +1634,7 @@ contains
 
   !> \brief Associate with an already connected variable without replacing canonical metadata.
   subroutine var_i4_associate_alias(self, component, source)
-    class(var_i4), intent(inout), target :: self !< target exchange variable
+    class(var_i4), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     type(var_i4), intent(in) :: source !< associated source exchange variable
 
@@ -1656,7 +1656,7 @@ contains
 
   !> \brief Return the data shape of a 1D 64-bit integer exchange variable.
   function var_i8_data_shape(self) result(shp)
-    class(var_i8), intent(in) :: self !< exchange variable whose data shape is queried
+    class(var_i8), intent(in) :: self
     integer(i8), allocatable :: shp(:) !< data extents, empty if unassociated
 
     if (associated(self%data)) then
@@ -1676,7 +1676,7 @@ contains
 
   !> \brief Allocate stable exchange-owned storage, or reuse an identical allocation.
   subroutine var_i8_prepare_storage(self, component, stepping, shp)
-    class(var_i8), intent(inout), target :: self !< exchange variable owning the storage
+    class(var_i8), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     integer(i4), intent(in) :: stepping !< temporal support of the stored field
     integer(i8), intent(in) :: shp(:) !< storage extents in canonical axis order
@@ -1711,7 +1711,7 @@ contains
 
   !> \brief Copy new values into stable exchange-owned storage without reallocating it.
   subroutine var_i8_set_storage(self, values)
-    class(var_i8), intent(inout), target :: self !< exchange variable owning the storage
+    class(var_i8), intent(inout), target :: self
     integer(i8), intent(in) :: values(:) !< replacement values with unchanged extents
 
     if (.not.allocated(self%storage)) then
@@ -1731,7 +1731,7 @@ contains
 
   !> \brief Associate with an already connected variable without replacing canonical metadata.
   subroutine var_i8_associate_alias(self, component, source)
-    class(var_i8), intent(inout), target :: self !< target exchange variable
+    class(var_i8), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     type(var_i8), intent(in) :: source !< associated source exchange variable
 
@@ -1753,7 +1753,7 @@ contains
 
   !> \brief Return the data shape of a 1D 16-bit integer exchange variable.
   function var_i2_data_shape(self) result(shp)
-    class(var_i2), intent(in) :: self !< exchange variable whose data shape is queried
+    class(var_i2), intent(in) :: self
     integer(i8), allocatable :: shp(:) !< data extents, empty if unassociated
 
     if (associated(self%data)) then
@@ -1773,7 +1773,7 @@ contains
 
   !> \brief Allocate stable exchange-owned storage, or reuse an identical allocation.
   subroutine var_i2_prepare_storage(self, component, stepping, shp)
-    class(var_i2), intent(inout), target :: self !< exchange variable owning the storage
+    class(var_i2), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     integer(i4), intent(in) :: stepping !< temporal support of the stored field
     integer(i8), intent(in) :: shp(:) !< storage extents in canonical axis order
@@ -1808,7 +1808,7 @@ contains
 
   !> \brief Copy new values into stable exchange-owned storage without reallocating it.
   subroutine var_i2_set_storage(self, values)
-    class(var_i2), intent(inout), target :: self !< exchange variable owning the storage
+    class(var_i2), intent(inout), target :: self
     integer(i2), intent(in) :: values(:) !< replacement values with unchanged extents
 
     if (.not.allocated(self%storage)) then
@@ -1828,7 +1828,7 @@ contains
 
   !> \brief Associate with an already connected variable without replacing canonical metadata.
   subroutine var_i2_associate_alias(self, component, source)
-    class(var_i2), intent(inout), target :: self !< target exchange variable
+    class(var_i2), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     type(var_i2), intent(in) :: source !< associated source exchange variable
 
@@ -1850,7 +1850,7 @@ contains
 
   !> \brief Return the data shape of a 1D logical exchange variable.
   function var_lg_data_shape(self) result(shp)
-    class(var_lg), intent(in) :: self !< exchange variable whose data shape is queried
+    class(var_lg), intent(in) :: self
     integer(i8), allocatable :: shp(:) !< data extents, empty if unassociated
 
     if (associated(self%data)) then
@@ -1870,7 +1870,7 @@ contains
 
   !> \brief Allocate stable exchange-owned storage, or reuse an identical allocation.
   subroutine var_lg_prepare_storage(self, component, stepping, shp)
-    class(var_lg), intent(inout), target :: self !< exchange variable owning the storage
+    class(var_lg), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     integer(i4), intent(in) :: stepping !< temporal support of the stored field
     integer(i8), intent(in) :: shp(:) !< storage extents in canonical axis order
@@ -1905,7 +1905,7 @@ contains
 
   !> \brief Copy new values into stable exchange-owned storage without reallocating it.
   subroutine var_lg_set_storage(self, values)
-    class(var_lg), intent(inout), target :: self !< exchange variable owning the storage
+    class(var_lg), intent(inout), target :: self
     logical, intent(in) :: values(:) !< replacement values with unchanged extents
 
     if (.not.allocated(self%storage)) then
@@ -1925,7 +1925,7 @@ contains
 
   !> \brief Associate with an already connected variable without replacing canonical metadata.
   subroutine var_lg_associate_alias(self, component, source)
-    class(var_lg), intent(inout), target :: self !< target exchange variable
+    class(var_lg), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     type(var_lg), intent(in) :: source !< associated source exchange variable
 
@@ -1947,7 +1947,7 @@ contains
 
   !> \brief Return the data shape of a 2D real exchange variable.
   function var2d_dp_data_shape(self) result(shp)
-    class(var2d_dp), intent(in) :: self !< exchange variable whose data shape is queried
+    class(var2d_dp), intent(in) :: self
     integer(i8), allocatable :: shp(:) !< data extents, empty if unassociated
 
     if (associated(self%data)) then
@@ -1967,7 +1967,7 @@ contains
 
   !> \brief Allocate stable exchange-owned storage, or reuse an identical allocation.
   subroutine var2d_dp_prepare_storage(self, component, stepping, shp)
-    class(var2d_dp), intent(inout), target :: self !< exchange variable owning the storage
+    class(var2d_dp), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     integer(i4), intent(in) :: stepping !< temporal support of the stored field
     integer(i8), intent(in) :: shp(:) !< storage extents in canonical axis order
@@ -2002,7 +2002,7 @@ contains
 
   !> \brief Copy new values into stable exchange-owned storage without reallocating it.
   subroutine var2d_dp_set_storage(self, values)
-    class(var2d_dp), intent(inout), target :: self !< exchange variable owning the storage
+    class(var2d_dp), intent(inout), target :: self
     real(dp), intent(in) :: values(:, :) !< replacement values with unchanged extents
 
     if (.not.allocated(self%storage)) then
@@ -2022,7 +2022,7 @@ contains
 
   !> \brief Associate with an already connected variable without replacing canonical metadata.
   subroutine var2d_dp_associate_alias(self, component, source)
-    class(var2d_dp), intent(inout), target :: self !< target exchange variable
+    class(var2d_dp), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     type(var2d_dp), intent(in) :: source !< associated source exchange variable
 
@@ -2044,7 +2044,7 @@ contains
 
   !> \brief Return the data shape of a 2D integer exchange variable.
   function var2d_i4_data_shape(self) result(shp)
-    class(var2d_i4), intent(in) :: self !< exchange variable whose data shape is queried
+    class(var2d_i4), intent(in) :: self
     integer(i8), allocatable :: shp(:) !< data extents, empty if unassociated
 
     if (associated(self%data)) then
@@ -2064,7 +2064,7 @@ contains
 
   !> \brief Allocate stable exchange-owned storage, or reuse an identical allocation.
   subroutine var2d_i4_prepare_storage(self, component, stepping, shp)
-    class(var2d_i4), intent(inout), target :: self !< exchange variable owning the storage
+    class(var2d_i4), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     integer(i4), intent(in) :: stepping !< temporal support of the stored field
     integer(i8), intent(in) :: shp(:) !< storage extents in canonical axis order
@@ -2099,7 +2099,7 @@ contains
 
   !> \brief Copy new values into stable exchange-owned storage without reallocating it.
   subroutine var2d_i4_set_storage(self, values)
-    class(var2d_i4), intent(inout), target :: self !< exchange variable owning the storage
+    class(var2d_i4), intent(inout), target :: self
     integer(i4), intent(in) :: values(:, :) !< replacement values with unchanged extents
 
     if (.not.allocated(self%storage)) then
@@ -2119,7 +2119,7 @@ contains
 
   !> \brief Associate with an already connected variable without replacing canonical metadata.
   subroutine var2d_i4_associate_alias(self, component, source)
-    class(var2d_i4), intent(inout), target :: self !< target exchange variable
+    class(var2d_i4), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     type(var2d_i4), intent(in) :: source !< associated source exchange variable
 
@@ -2141,7 +2141,7 @@ contains
 
   !> \brief Return the data shape of a 2D logical exchange variable.
   function var2d_lg_data_shape(self) result(shp)
-    class(var2d_lg), intent(in) :: self !< exchange variable whose data shape is queried
+    class(var2d_lg), intent(in) :: self
     integer(i8), allocatable :: shp(:) !< data extents, empty if unassociated
 
     if (associated(self%data)) then
@@ -2161,7 +2161,7 @@ contains
 
   !> \brief Allocate stable exchange-owned storage, or reuse an identical allocation.
   subroutine var2d_lg_prepare_storage(self, component, stepping, shp)
-    class(var2d_lg), intent(inout), target :: self !< exchange variable owning the storage
+    class(var2d_lg), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     integer(i4), intent(in) :: stepping !< temporal support of the stored field
     integer(i8), intent(in) :: shp(:) !< storage extents in canonical axis order
@@ -2196,7 +2196,7 @@ contains
 
   !> \brief Copy new values into stable exchange-owned storage without reallocating it.
   subroutine var2d_lg_set_storage(self, values)
-    class(var2d_lg), intent(inout), target :: self !< exchange variable owning the storage
+    class(var2d_lg), intent(inout), target :: self
     logical, intent(in) :: values(:, :) !< replacement values with unchanged extents
 
     if (.not.allocated(self%storage)) then
@@ -2216,7 +2216,7 @@ contains
 
   !> \brief Associate with an already connected variable without replacing canonical metadata.
   subroutine var2d_lg_associate_alias(self, component, source)
-    class(var2d_lg), intent(inout), target :: self !< target exchange variable
+    class(var2d_lg), intent(inout), target :: self
     character(*), intent(in) :: component !< configured provider label for diagnostics
     type(var2d_lg), intent(in) :: source !< associated source exchange variable
 

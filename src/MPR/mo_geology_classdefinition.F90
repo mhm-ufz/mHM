@@ -1,6 +1,5 @@
-!> \file    mo_geology_classdefinition.F90
-!> \brief   \copybrief mo_geology_classdefinition
-!> \details \copydetails mo_geology_classdefinition
+!> \file mo_geology_classdefinition.F90
+!> \copydoc mo_geology_classdefinition
 
 !> \brief   Definition for geology class lookup container.
 !> \details Provides a light-weight container that stores information read from
@@ -9,6 +8,9 @@
 !!          re-used.
 !> \authors Sebastian Mueller
 !> \date Mar 2026
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
@@ -37,7 +39,7 @@ contains
   !> \brief Reset the geology class definition container.
   !> \details Deallocates all allocatable members and resets counters.
   subroutine geology_classdefinition_reset(self)
-    class(geology_classdefinition_t), intent(inout) :: self
+    class(geology_classdefinition_t), intent(inout), target :: self
 
     if (allocated(self%geo_param_index)) deallocate(self%geo_param_index)
     if (allocated(self%geo_unit)) deallocate(self%geo_unit)

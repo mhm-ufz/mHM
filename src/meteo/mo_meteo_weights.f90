@@ -1,6 +1,5 @@
 !> \file mo_meteo_weights.f90
-!> \brief \copybrief mo_meteo_weights
-!> \details \copydetails mo_meteo_weights
+!> \copydoc mo_meteo_weights
 
 !> \brief Read NetCDF weights for meteorological disaggregation.
 !> \changelog
@@ -17,6 +16,9 @@
 !!   - added bound_error to control if an error is raised if boundaries are violated
 !> \authors Juliane Mai
 !> \date Dec 2012
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_meteo
@@ -50,7 +52,6 @@ contains
     use mo_utils, only : eq, ne
 
     implicit none
-
     character(len = *), intent(in) :: folder !< Name of the folder where data are stored
     integer(i4), intent(in) :: nRows !< Number of datapoints in longitudinal direction
     integer(i4), intent(in) :: nCols !< Number of datapoints in latitudinal  direction

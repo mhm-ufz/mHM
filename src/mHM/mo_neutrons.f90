@@ -1,6 +1,5 @@
 !> \file mo_neutrons.f90
-!> \brief   \copybrief mo_neutrons
-!> \details \copydetails mo_neutrons
+!> \copydoc mo_neutrons
 
 !> \brief Models to predict neutron intensities above soils
 !> \details The number of neutrons above the ground is directly related to
@@ -9,13 +8,16 @@
 !> \authors Martin Schroen
 !> \date Mar 2015
 !> \warning THIS MODULE IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH.
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
+!! - 2026: read-only geometry and scalar accumulators replace per-thread neutron work arrays.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 MODULE mo_neutrons
 
-  ! TODO make it faster with pre-calculated horizons and variables
-  ! TODO use global parameters as linear model
+  ! One immutable geometry cache is shared by the cell calculations of each container.
 
   USE mo_kind, ONLY: i4, dp
   IMPLICIT NONE
@@ -51,28 +53,6 @@ CONTAINS
   !     CALLING SEQUENCE
   !         call DesiletsN0( Moisture(cells,layers), Depths(layers), &
   !                          N0-parameter, output(cells) )
-  !
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:)   :: SoilMoisture" Soil Moisture
-  !>        \param[in] "real(dp), dimension(:)   :: Horizon_depth" Horizon depths
-  !>        \param[in] "real(dp), dimension(:)   :: Bd"       Bulk density
-  !>        \param[in] "real(dp), dimension(:)   :: LatWater" Lattice water
-  !>        \param[in] "real(dp)                 :: N0"       dry neutron counts
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp), dimension(size(SoilMoisture,1)) :: neutrons" Neutron counts
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
   !
   !     RETURN
   !         None
@@ -204,33 +184,7 @@ CONTAINS
   !         call COSMIC( Moisture(cells,layers), Depths(layers), &
   !                          COSMIC-parameterset, neutron_integral_AFast, output(cells) )
   !
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:)   :: SoilMoisture" Soil Moisture
-  !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
-  !>        \param[in] "real(dp), dimension(:)   :: neutron_integral_AFast" Tabular for Int Approx
-  !>        \param[in] "real(dp)                 :: interc" interception
-  !>        \param[in] "real(dp)                 :: snowpack" snowpack
-  !>        \param[in] "real(dp)                 :: L1_No_count" L1_No_count
-  !>        \param[in] "real(dp), dimension(:)   :: L1_bulkDens" Bulk Density
-  !>        \param[in] "real(dp), dimension(:)   :: L1_latticeWater" Lattice Water
-  !>        \param[in] "real(dp), dimension(:)   :: L1_COSMICL3" L3 from the COSMIC module
 
-  !
-  !     INTENT(INOUT)
-  !>        \param[inout] "real(dp)              :: neutrons" Neutron counts
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
   !     RETURN
   !         None
   !
@@ -462,15 +416,15 @@ CONTAINS
   !For the specific given integral it is very precise with steps=1024
   subroutine approx_mon_int(res,f,c,xmin,xmax,eps,steps,fxmin,fxmax)
      implicit none
-     real(dp)                                     :: res
-     real(dp), external                           :: f
-     real(dp),                        intent(in)  :: c
-     real(dp),                        intent(in)  :: xmax
-     real(dp),                        intent(in)  :: xmin
-     real(dp),                        optional    :: eps
-     integer(i4),                     optional    :: steps
-     real(dp),                        optional    :: fxmin
-     real(dp),                        optional    :: fxmax
+     real(dp)                                     :: res !< Computed integral or accumulated quadrature result.
+     real(dp), external                           :: f !< Integrand evaluated as f(c, x).
+     real(dp),                        intent(in)  :: c !< Dimensionless neutron attenuation parameter.
+     real(dp),                        intent(in)  :: xmax !< Upper integration limit.
+     real(dp),                        intent(in)  :: xmin !< Lower integration limit.
+     real(dp),                        optional    :: eps !< Requested quadrature error tolerance.
+     integer(i4),                     optional    :: steps !< Maximum number of quadrature subdivisions.
+     real(dp),                        optional    :: fxmin !< Integrand value at the lower limit; computed when absent.
+     real(dp),                        optional    :: fxmax !< Integrand value at the upper limit; computed when absent.
 
      !locale variables
      real(dp)  :: epstemp
@@ -515,15 +469,15 @@ CONTAINS
 
   recursive subroutine approx_mon_int_steps(res,f,c,xmin,xmax,eps,steps,fxmin,fxmax)
      implicit none
-     real(dp)                                     :: res
-     real(dp), external                           :: f
-     real(dp),                        intent(in)  :: c
-     real(dp),                        intent(in)  :: xmax
-     real(dp),                        intent(in)  :: xmin
-     real(dp),                        intent(in)  :: eps
-     integer(i4),                     intent(in)  :: steps
-     real(dp),                        intent(in)  :: fxmin
-     real(dp),                        intent(in)  :: fxmax
+     real(dp)                                     :: res !< Computed integral or accumulated quadrature result.
+     real(dp), external                           :: f !< Integrand evaluated as f(c, x).
+     real(dp),                        intent(in)  :: c !< Dimensionless neutron attenuation parameter.
+     real(dp),                        intent(in)  :: xmax !< Upper integration limit.
+     real(dp),                        intent(in)  :: xmin !< Lower integration limit.
+     real(dp),                        intent(in)  :: eps !< Requested quadrature error tolerance.
+     integer(i4),                     intent(in)  :: steps !< Maximum number of quadrature subdivisions.
+     real(dp),                        intent(in)  :: fxmin !< Integrand value at the lower integration limit.
+     real(dp),                        intent(in)  :: fxmax !< Integrand value at the upper integration limit.
 
      !locale variables
      real(dp)  :: xm
@@ -550,14 +504,14 @@ CONTAINS
 
   recursive subroutine approx_mon_int_eps(res,f,c,xmin,xmax,eps,fxmin,fxmax)
      implicit none
-     real(dp)                                     :: res
-     real(dp), external                           :: f
-     real(dp),                        intent(in)  :: c
-     real(dp),                        intent(in)  :: xmax
-     real(dp),                        intent(in)  :: xmin
-     real(dp),                        intent(in)  :: eps
-     real(dp),                        intent(in)  :: fxmin
-     real(dp),                        intent(in)  :: fxmax
+     real(dp)                                     :: res !< Computed integral or accumulated quadrature result.
+     real(dp), external                           :: f !< Integrand evaluated as f(c, x).
+     real(dp),                        intent(in)  :: c !< Dimensionless neutron attenuation parameter.
+     real(dp),                        intent(in)  :: xmax !< Upper integration limit.
+     real(dp),                        intent(in)  :: xmin !< Lower integration limit.
+     real(dp),                        intent(in)  :: eps !< Requested quadrature error tolerance.
+     real(dp),                        intent(in)  :: fxmin !< Integrand value at the lower integration limit.
+     real(dp),                        intent(in)  :: fxmax !< Integrand value at the upper integration limit.
 
      !locale variables
      real(dp)  :: xm
@@ -581,7 +535,6 @@ CONTAINS
         res=res+(xm-xmin)*(fxm+fxmin)/2.0_dp
      endif
   end subroutine
-
 
   ! -----------------------------------------------------------------------------------
   !     NAME
@@ -608,28 +561,6 @@ CONTAINS
   !     CALLING SEQUENCE
   !         call TabularIntegralAFast(neutron_integral_AFast,intsize,maxC)
   !
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:,:) :: SoilMoisture" Soil Moisture
-  !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
-  !>        \param[in] "real(dp), dimension(:)   :: params" ! N0, N1, N2, alpha0, alpha1, L30, L31
-  !>        \param[in] "integer(i4)              :: intsize" ! number of values for the approximation
-  !>        \param[in] "real(dp)                 :: maxC" ! maximum value for A_fast
-  !
-  !     INTENT(INOUT)
-  !>        \param[out] "real(dp), dimension(intsize) :: neutron_integral_AFast" approximation values
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
   !     RETURN
   !         None
   !
@@ -649,8 +580,8 @@ CONTAINS
   subroutine TabularIntegralAFast(integral,maxC)
      use mo_constants, only: PI_dp
      implicit none
-     real(dp), dimension(:)              :: integral
-     real(dp), intent(in)                :: maxC
+     real(dp), dimension(:)              :: integral !< Tabulated angular integral and its lookup metadata.
+     real(dp), intent(in)                :: maxC !< Maximum tabulated attenuation parameter.
 
      !local variables
      integer(i4)                         :: i
@@ -672,9 +603,9 @@ CONTAINS
   subroutine TabularIntegralHermAFast(integral,intsize,maxC)
      use mo_constants, only: PI_dp
      implicit none
-     real(dp), dimension(:)              :: integral
-     integer(i4), intent(in)             :: intsize
-     real(dp), intent(in)                :: maxC
+     real(dp), dimension(:)              :: integral !< Tabulated angular integrals and scaled derivatives.
+     integer(i4), intent(in)             :: intsize !< Number of tabulated interpolation intervals.
+     real(dp), intent(in)                :: maxC !< Maximum tabulated attenuation parameter.
 
      !local variables
      integer(i4)                         :: i
@@ -695,9 +626,9 @@ CONTAINS
   subroutine lookUpIntegral(res,integral,c)
      use mo_constants, only: PI_dp
      implicit none
-     real(dp),              intent(out):: res
-     real(dp), dimension(:),intent(in) :: integral
-     real(dp),              intent(in) :: c
+     real(dp),              intent(out):: res !< Computed integral or accumulated quadrature result.
+     real(dp), dimension(:),intent(in) :: integral !< Tabulated angular integral and its lookup metadata.
+     real(dp),              intent(in) :: c !< Dimensionless neutron attenuation parameter.
 
      !local variables
      integer(i4) :: place
@@ -723,11 +654,11 @@ CONTAINS
   subroutine lookUpHermiteIntegral(res,integral,intsize,c,maxC)
      use mo_constants, only: PI_dp
      implicit none
-     real(dp)                         :: res
-     real(dp), dimension(:),intent(in):: integral
-     integer(i4), intent(in)          :: intsize
-     real(dp), intent(in)             :: c
-     real(dp), intent(in)             :: maxC
+     real(dp)                         :: res !< Computed integral or accumulated quadrature result.
+     real(dp), dimension(:),intent(in):: integral !< Tabulated angular integral and its lookup metadata.
+     integer(i4), intent(in)          :: intsize !< Number of tabulated interpolation intervals.
+     real(dp), intent(in)             :: c !< Dimensionless neutron attenuation parameter.
+     real(dp), intent(in)             :: maxC !< Maximum tabulated attenuation parameter.
 
      !local variables
      integer(i4) :: place
@@ -754,8 +685,8 @@ CONTAINS
   !cases this approximation has sometimes an error of about 1/3 in case 4.
   subroutine COSMICeffIntegration(res,x)
      implicit none
-     real(dp)                                     :: res
-     real(dp),                        intent(in)  :: x
+     real(dp)                                     :: res !< Computed integral or accumulated quadrature result.
+     real(dp),                        intent(in)  :: x !< Dimensionless evaluation point.
      !local variables
      real(dp)  :: a,b,c,d
 
@@ -809,8 +740,8 @@ CONTAINS
   subroutine oldIntegration(res,c)
      use mo_constants, only: PI_dp
      implicit none
-     real(dp)                                     :: res
-     real(dp),                        intent(in)  :: c
+     real(dp)                                     :: res !< Computed integral or accumulated quadrature result.
+     real(dp),                        intent(in)  :: c !< Dimensionless neutron attenuation parameter.
 
      ! local variables
      real(dp) :: zdeg
@@ -841,8 +772,8 @@ CONTAINS
   function intgrandFast(c,phi)
      implicit none
      real(dp) :: intgrandFast
-     real(dp), intent(in) :: c
-     real(dp), intent(in) :: phi
+     real(dp), intent(in) :: c !< Dimensionless neutron attenuation parameter.
+     real(dp), intent(in) :: phi !< Zenith angle [radians].
      intgrandFast=exp(-c/cos(phi))
      return
   end function
@@ -850,8 +781,8 @@ CONTAINS
   function intgrandDerivFast(c,phi)
      implicit none
      real(dp) :: intgrandDerivFast
-     real(dp), intent(in) :: c
-     real(dp), intent(in) :: phi
+     real(dp), intent(in) :: c !< Dimensionless neutron attenuation parameter.
+     real(dp), intent(in) :: phi !< Zenith angle [radians].
      intgrandDerivFast=(-1.0_dp/cos(phi))*exp(-c/cos(phi))
      return
   end function
@@ -870,7 +801,7 @@ CONTAINS
   function h00(t)
      implicit none
      real(dp)             :: h00
-     real(dp), intent(in) :: t
+     real(dp), intent(in) :: t !< Normalized Hermite interpolation coordinate.
      h00=2.0_dp*t**3-3.0_dp*t**2+1.0_dp
      return
   end function
@@ -878,7 +809,7 @@ CONTAINS
   function h01(t)
      implicit none
      real(dp)             :: h01
-     real(dp), intent(in) :: t
+     real(dp), intent(in) :: t !< Normalized Hermite interpolation coordinate.
      h01=-2.0_dp*t**3+3.0_dp*t**2
      return
   end function
@@ -886,7 +817,7 @@ CONTAINS
   function h10(t)
      implicit none
      real(dp)             :: h10
-     real(dp), intent(in) :: t
+     real(dp), intent(in) :: t !< Normalized Hermite interpolation coordinate.
      h10=t**3-2.0_dp*t**2+t
      return
   end function
@@ -894,7 +825,7 @@ CONTAINS
   function h11(t)
      implicit none
      real(dp)             :: h11
-     real(dp), intent(in) :: t
+     real(dp), intent(in) :: t !< Normalized Hermite interpolation coordinate.
      h11=t**3-t**2
      return
   end function

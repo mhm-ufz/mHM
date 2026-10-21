@@ -17,7 +17,7 @@ contains
       log_date, log_time, log_line, log_scope, log_file)
     use mo_kind, only: i4
     use mo_mhm_runner, only: execute_forward => run_forward
-    use mo_logging, only: log_level, LOG_INFO, log_unit, log_unit_error, log_set_config
+    use mo_logging
     use mo_message, only: use_log
     use mo_cli_support, only: set_verbosity_level
     character(*), intent(in) :: main_file !< Main namelist path relative to cwd, or absolute.

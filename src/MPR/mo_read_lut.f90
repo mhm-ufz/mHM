@@ -1,6 +1,5 @@
 !> \file mo_read_lut.f90
-!> \brief \copybrief mo_read_lut
-!> \details \copydetails mo_read_lut
+!> \copydoc mo_read_lut
 
 !> \brief Routines reading lookup tables (lut).
 !> \details This module contains routines reading various lookup tables (lut).
@@ -9,6 +8,9 @@
 !! 3. LUT containing LAI class information.
 !> \authors Juliane Mai, Matthias Zink
 !> \date Jan 2013
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
@@ -23,6 +25,7 @@ MODULE mo_read_lut
   use mo_message, ONLY: error_message
 
   IMPLICIT NONE
+  PRIVATE
 
   PUBLIC :: read_geoformation_lut  ! Reads LUT containing geological formation information
   PUBLIC :: read_lai_lut           ! Reads LUT containing LAI class information
@@ -52,15 +55,6 @@ CONTAINS
   !>       geological formations. ClassUnit values do not necessarily contain subsequent numbers. The parametrization
   !>       of this unit is part of the parameter namelist under <geoparameter>.
 
-  !    INTENT(IN)
-  !>       \param[in] "character(len = *) :: filename" File name of LUT
-  !>       \param[in] "integer(i4), optional :: fileunit" Optional unit to open file
-
-  !    INTENT(OUT)
-  !>       \param[out] "integer(i4) :: nGeo"                      Number of geological formations
-  !>       \param[out] "integer(i4), dimension(:) :: geo_unit"    List of id numbers of each geological formations
-  !>       \param[out] "integer(i4), dimension(:) :: geo_karstic" ID of the Karstic formation (0 == does not exist)
-
   !    HISTORY
   !>       \authors Juliane Mai
 
@@ -71,24 +65,12 @@ CONTAINS
 
   subroutine read_geoformation_lut(filename, fileunit, nGeo, geo_unit, geo_karstic, geo_param_index)
     implicit none
-
-    ! File name of LUT
-    character(len = *), intent(in) :: filename
-
-    ! Optional unit to open file
-    integer(i4), intent(in), optional :: fileunit
-
-    ! Number of geological formations
-    integer(i4), intent(out) :: nGeo
-
-    ! List of id numbers of each geological formations
-    integer(i4), dimension(:), allocatable, intent(out) :: geo_unit
-
-    ! ID of the Karstic formation (0 == does not exist)
-    integer(i4), dimension(:), allocatable, intent(out) :: geo_karstic
-
-    ! Global GeoParam index for each geological formation
-    integer(i4), dimension(:), allocatable, intent(out), optional :: geo_param_index
+    character(len = *), intent(in) :: filename !< Input lookup-table path.
+    integer(i4), intent(in), optional :: fileunit !< Optional unit to open file
+    integer(i4), intent(out) :: nGeo !< Number of geological formations
+    integer(i4), dimension(:), allocatable, intent(out) :: geo_unit !< List of id numbers of each geological formations
+    integer(i4), dimension(:), allocatable, intent(out) :: geo_karstic !< ID of the Karstic formation (0 == does not exist)
+    integer(i4), dimension(:), allocatable, intent(out), optional :: geo_param_index !< Global GeoParam index for each geological formation
 
     integer(i4) :: i, ios, unit
     integer(i4) :: param_index
@@ -147,15 +129,6 @@ CONTAINS
   !>       \endverbatim
   !>       All following lines will be discarded while reading.
 
-  !    INTENT(IN)
-  !>       \param[in] "character(len = *) :: filename" File name of LUT
-  !>       \param[in] "integer(i4), optional :: fileunit" Optional unit to open file
-
-  !    INTENT(OUT)
-  !>       \param[out] "integer(i4) :: nLAI"                    Number of LAI classes
-  !>       \param[out] "integer(i4), dimension(:) :: LAIIDlist" List of ids of LAI classes
-  !>       \param[out] "real(dp), dimension(:, :) :: LAI"       LAI per class (row) and month (col)
-
   !    HISTORY
   !>       \authors Juliane Mai
 
@@ -169,21 +142,11 @@ CONTAINS
     use mo_constants, only : YearMonths
 
     implicit none
-
-    ! File name of LUT
-    character(len = *), intent(in) :: filename
-
-    ! Optional unit to open file
-    integer(i4), intent(in), optional :: fileunit
-
-    ! Number of LAI classes
-    integer(i4), intent(out) :: nLAI
-
-    ! List of ids of LAI classes
-    integer(i4), dimension(:), allocatable, intent(out) :: LAIIDlist
-
-    ! LAI per class (row) and month (col)
-    real(dp), dimension(:, :), allocatable, intent(out) :: LAI
+    character(len = *), intent(in) :: filename !< Input lookup-table path.
+    integer(i4), intent(in), optional :: fileunit !< Optional unit to open file
+    integer(i4), intent(out) :: nLAI !< Number of LAI classes
+    integer(i4), dimension(:), allocatable, intent(out) :: LAIIDlist !< List of ids of LAI classes
+    real(dp), dimension(:, :), allocatable, intent(out) :: LAI !< LAI per class (row) and month (col)
 
     integer(i4) :: i, j, ios, unit
 

@@ -1,11 +1,13 @@
 !> \file mo_runoff.f90
-!> \brief \copybrief mo_runoff
-!> \details \copydetails mo_runoff
+!> \copydoc mo_runoff
 
 !> \brief Runoff generation.
 !> \details This module generates the runoff for the unsaturated and saturated zones and provides runoff accumulation.
 !> \authors Vladyslav Prykhodko
 !> \date Dec 2012
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
@@ -38,24 +40,6 @@ CONTAINS
   !>       Calculates percolation, interflow and baseflow.
   !>       Updates upper soil and groundwater storages.
 
-  !    INTENT(IN)
-  !>       \param[in] "REAL(dp) :: k1"           Recession coefficient of the upper reservoir,lower outlet [TS-1]
-  !>       \param[in] "REAL(dp) :: kp"           Percolation coefficient [TS-1]
-  !>       \param[in] "REAL(dp) :: k0"           Recession coefficient of the upperreservoir, upper outlet [TS-1]
-  !>       \param[in] "REAL(dp) :: alpha"        Exponent for the upper reservoir [-]
-  !>       \param[in] "REAL(dp) :: karst_loss"   Karstic percolation loss [-]
-  !>       \param[in] "REAL(dp) :: pefec_soil"   Input to the soil layer [mm]
-  !>       \param[in] "REAL(dp) :: unsat_thresh" Threshold water depth in upper reservoir(for Runoff contribution) [mm]
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "REAL(dp) :: sat_storage"   Groundwater storage [mm]
-  !>       \param[inout] "REAL(dp) :: unsat_storage" Upper soil storage [mm]
-
-  !    INTENT(OUT)
-  !>       \param[out] "REAL(dp) :: slow_interflow" Slow runoff component [mm TS-1]
-  !>       \param[out] "REAL(dp) :: fast_interflow" Fast runoff component [mm TS-1]
-  !>       \param[out] "REAL(dp) :: perc"           Percolation [mm TS-1]
-
   !    HISTORY
   !>       \authors Vladyslav Prykhodko
 
@@ -70,47 +54,21 @@ CONTAINS
   ! JM Aug 2013 - ordering of arguments changed
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-
   SUBROUTINE runoff_unsat_zone(k1, kp, k0, alpha, karst_loss, pefec_soil, unsat_thresh, sat_storage, unsat_storage, &
                               slow_interflow, fast_interflow, perc)
     implicit none
-
-    ! Recession coefficient of the upper reservoir,lower outlet [TS-1]
-    REAL(dp), INTENT(IN) :: k1
-
-    ! Percolation coefficient [TS-1]
-    REAL(dp), INTENT(IN) :: kp
-
-    ! Recession coefficient of the upperreservoir, upper outlet [TS-1]
-    REAL(dp), INTENT(IN) :: k0
-
-    ! Exponent for the upper reservoir [-]
-    REAL(dp), INTENT(IN) :: alpha
-
-    ! Karstic percolation loss [-]
-    REAL(dp), INTENT(IN) :: karst_loss
-
-    ! Input to the soil layer [mm]
-    REAL(dp), INTENT(IN) :: pefec_soil
-
-    ! Threshold water depth in upper reservoir(for Runoff contribution) [mm]
-    REAL(dp), INTENT(IN) :: unsat_thresh
-
-    ! Groundwater storage [mm]
-    REAL(dp), INTENT(INOUT) :: sat_storage
-
-    ! Upper soil storage [mm]
-    REAL(dp), INTENT(INOUT) :: unsat_storage
-
-    ! Slow runoff component [mm TS-1]
-    REAL(dp), INTENT(OUT) :: slow_interflow
-
-    ! Fast runoff component [mm TS-1]
-    REAL(dp), INTENT(OUT) :: fast_interflow
-
-    ! Percolation [mm TS-1]
-    REAL(dp), INTENT(OUT) :: perc
-
+    REAL(dp), INTENT(IN) :: k1 !< Recession coefficient of the upper reservoir,lower outlet [TS-1]
+    REAL(dp), INTENT(IN) :: kp !< Percolation coefficient [TS-1]
+    REAL(dp), INTENT(IN) :: k0 !< Recession coefficient of the upperreservoir, upper outlet [TS-1]
+    REAL(dp), INTENT(IN) :: alpha !< Exponent for the upper reservoir [-]
+    REAL(dp), INTENT(IN) :: karst_loss !< Karstic percolation loss [-]
+    REAL(dp), INTENT(IN) :: pefec_soil !< Input to the soil layer [mm]
+    REAL(dp), INTENT(IN) :: unsat_thresh !< Threshold water depth in upper reservoir(for Runoff contribution) [mm]
+    REAL(dp), INTENT(INOUT) :: sat_storage !< Groundwater storage [mm]
+    REAL(dp), INTENT(INOUT) :: unsat_storage !< Upper soil storage [mm]
+    REAL(dp), INTENT(OUT) :: slow_interflow !< Slow runoff component [mm TS-1]
+    REAL(dp), INTENT(OUT) :: fast_interflow !< Fast runoff component [mm TS-1]
+    REAL(dp), INTENT(OUT) :: perc !< Percolation [mm TS-1]
 
     !---------------------------------------------------------------
     ! SOIL LAYER BETWEEN UNSATURATED AND SATURATED ZONE
@@ -169,15 +127,6 @@ CONTAINS
   !>       of the ground water reservoir, which
   !>       will be then reduced by the value of baseflow.
 
-  !    INTENT(IN)
-  !>       \param[in] "REAL(dp) :: k2" Baseflow recession coefficient [TS-1]
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "REAL(dp) :: sat_storage" Groundwater storage [mm]
-
-  !    INTENT(OUT)
-  !>       \param[out] "REAL(dp) :: baseflow" Baseflow [mm TS-1]
-
   !    HISTORY
   !>       \authors Vladyslav Prykhodko
 
@@ -187,19 +136,11 @@ CONTAINS
   ! JM Aug 2013 - ordering of arguments changed
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-
   SUBROUTINE runoff_sat_zone(k2, sat_storage, baseflow)
     implicit none
-
-    ! Baseflow recession coefficient [TS-1]
-    REAL(dp), INTENT(IN) :: k2
-
-    ! Groundwater storage [mm]
-    REAL(dp), INTENT(INOUT) :: sat_storage
-
-    ! Baseflow [mm TS-1]
-    REAL(dp), INTENT(OUT) :: baseflow
-
+    REAL(dp), INTENT(IN) :: k2 !< Baseflow recession coefficient [TS-1]
+    REAL(dp), INTENT(INOUT) :: sat_storage !< Groundwater storage [mm]
+    REAL(dp), INTENT(OUT) :: baseflow !< Baseflow [mm TS-1]
 
     if (sat_storage > 0.0_dp) then
       baseflow = k2 * sat_storage
@@ -210,7 +151,6 @@ CONTAINS
     end if
 
   END SUBROUTINE runoff_sat_zone
-
 
   ! ------------------------------------------------------------------
 
@@ -224,16 +164,6 @@ CONTAINS
   !>       \f[ q_{T} = ( q_0 + q_1 + q_2 ) * (1-fSealed) + q_{D} * fSealed \f],
   !>       where fSealed is the fraction of sealed area.
 
-  !    INTENT(IN)
-  !>       \param[in] "REAL(dp) :: fSealed_area_fraction" sealed area fraction [1]
-  !>       \param[in] "REAL(dp) :: fast_interflow"        \f$ q_0 \f$ Fast runoff component [mm TS-1]
-  !>       \param[in] "REAL(dp) :: slow_interflow"        \f$ q_1 \f$ Slow runoff component [mm TS-1]
-  !>       \param[in] "REAL(dp) :: baseflow"              \f$ q_2 \f$ Baseflow [mm TS-1]
-  !>       \param[in] "REAL(dp) :: direct_runoff"         \f$ q_D \f$ Direct runoff from impervious areas  [mm TS-1]
-
-  !    INTENT(OUT)
-  !>       \param[out] "REAL(dp) :: total_runoff" \f$ q_T \f$ Generated runoff [mm TS-1]
-
   !    HISTORY
   !>       \authors Vladyslav Prykhodko
 
@@ -244,29 +174,15 @@ CONTAINS
   ! ST May 2015 - updated equation in the documentation
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-
   SUBROUTINE L1_total_runoff(fSealed_area_fraction, fast_interflow, slow_interflow, baseflow, direct_runoff, &
                             total_runoff)
     implicit none
-
-    ! sealed area fraction [1]
-    REAL(dp), INTENT(IN) :: fSealed_area_fraction
-
-    ! \f$ q_0 \f$ Fast runoff component [mm TS-1]
-    REAL(dp), INTENT(IN) :: fast_interflow
-
-    ! \f$ q_1 \f$ Slow runoff component [mm TS-1]
-    REAL(dp), INTENT(IN) :: slow_interflow
-
-    ! \f$ q_2 \f$ Baseflow [mm TS-1]
-    REAL(dp), INTENT(IN) :: baseflow
-
-    ! \f$ q_D \f$ Direct runoff from impervious areas  [mm TS-1]
-    REAL(dp), INTENT(IN) :: direct_runoff
-
-    ! \f$ q_T \f$ Generated runoff [mm TS-1]
-    REAL(dp), INTENT(OUT) :: total_runoff
-
+    REAL(dp), INTENT(IN) :: fSealed_area_fraction !< sealed area fraction [1]
+    REAL(dp), INTENT(IN) :: fast_interflow !< \f$ q_0 \f$ Fast runoff component [mm TS-1]
+    REAL(dp), INTENT(IN) :: slow_interflow !< \f$ q_1 \f$ Slow runoff component [mm TS-1]
+    REAL(dp), INTENT(IN) :: baseflow !< \f$ q_2 \f$ Baseflow [mm TS-1]
+    REAL(dp), INTENT(IN) :: direct_runoff !< \f$ q_D \f$ Direct runoff from impervious areas  [mm TS-1]
+    REAL(dp), INTENT(OUT) :: total_runoff !< \f$ q_T \f$ Generated runoff [mm TS-1]
 
     total_runoff = ((baseflow + slow_interflow + fast_interflow) * (1.0_dp - fSealed_area_fraction)) + &
             (direct_runoff * fSealed_area_fraction)

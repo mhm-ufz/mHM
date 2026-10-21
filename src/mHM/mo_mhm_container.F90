@@ -1,6 +1,5 @@
-!> \file    mo_mhm_container.f90
-!> \brief   \copybrief mo_mhm_container
-!> \details \copydetails mo_mhm_container
+!> \file mo_mhm_container.F90
+!> \copydoc mo_mhm_container
 
 !> \brief   Module for a mHM process container.
 !> \version 0.1
@@ -53,6 +52,7 @@ module mo_mhm_container
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
 
   implicit none
+  private
 
   !> \class   mhm_canopy_state_t
   !> \brief   Grouped canopy process fields.
@@ -620,7 +620,7 @@ contains
   !> \brief Report whether a timestamp is a configured mHM output boundary.
   logical function mhm_at_output_boundary(self, time) result(boundary)
     class(mhm_t), intent(in), target :: self
-    type(datetime), intent(in) :: time
+    type(datetime), intent(in) :: time !< Endpoint time checked against the output cadence.
     integer(i4) :: elapsed_hours
 
     select case (self%output_config%output_frequency)
@@ -1052,6 +1052,7 @@ contains
       jarvis_thresh = 0.0_dp
       if (soil_case == 2_i4 .or. soil_case == 3_i4) jarvis_thresh = self%exchange%thresh_jarvis%data(k)
 
+      ! Assumed-shape dummies retain the horizon stride; each thread updates only its assigned cells.
       call soil_moisture_pervious(soil_case, self%exchange%pet%data(k), self%exchange%sm_saturation%data(k, :), &
         self%exchange%f_roots%data(k, :), self%exchange%sm_field_capacity%data(k, :), self%exchange%wilting_point%data(k, :), &
         self%exchange%sm_exponent%data(k, :), jarvis_thresh, self%exchange%aet_canopy%data(k), self%exchange%pre_eff%data(k), &
@@ -1231,7 +1232,7 @@ contains
   !> \brief Write all mHM restart physical state fields in unpacked level1 form.
   subroutine mhm_write_restart_data(self, nc)
     class(mhm_t), intent(inout), target :: self
-    type(NcDataset), intent(inout) :: nc
+    type(NcDataset), intent(inout) :: nc !< Open NetCDF dataset.
     type(NcDimension) :: dims_xy(2)
     type(NcDimension) :: soil_dim
     real(dp), allocatable :: soil_bounds(:)
@@ -1357,7 +1358,7 @@ contains
   !> \brief Validate that the restart level1 grid matches the active level1 grid.
   subroutine mhm_validate_restart_grid(self, restart_grid)
     class(mhm_t), intent(inout), target :: self
-    type(grid_t), intent(in), target :: restart_grid
+    type(grid_t), intent(in), target :: restart_grid !< Spatial support restored from the restart.
 
     if (.not.restart_grid%is_matching(self%exchange%level1_land, tol=1.0e-5_dp, &
         aux=self%exchange%level1_land%has_aux_coords())) then
@@ -1445,7 +1446,7 @@ contains
   !> \brief Validate that restart process cases are compatible with the current mHM configuration.
   subroutine mhm_validate_restart_process_cases(self, nc)
     class(mhm_t), intent(inout), target :: self
-    type(NcDataset), intent(inout) :: nc
+    type(NcDataset), intent(inout) :: nc !< Open NetCDF dataset.
     type(NcVariable) :: meta_var
 
     if (.not.nc%hasVariable("mhm_meta")) then
@@ -1467,10 +1468,10 @@ contains
 
   !> \brief Validate one restart process-case metadata attribute.
   subroutine mhm_validate_restart_case(meta_var, attr_name, process_name, current_case)
-    type(NcVariable), intent(in) :: meta_var
-    character(*), intent(in) :: attr_name
-    character(*), intent(in) :: process_name
-    integer(i4), intent(in) :: current_case
+    type(NcVariable), intent(in) :: meta_var !< Restart metadata variable containing process-case attributes.
+    character(*), intent(in) :: attr_name !< Restart attribute naming the stored process case.
+    character(*), intent(in) :: process_name !< Process name for diagnostics.
+    integer(i4), intent(in) :: current_case !< Currently configured process selection.
     integer(i4) :: restart_case
 
     if (.not.meta_var%hasAttribute(trim(attr_name))) then
@@ -1489,11 +1490,11 @@ contains
   !> \brief Write a packed L1 scalar field as unpacked 2D restart data.
   subroutine mhm_write_restart_field_2d(self, nc, dims_xy, var_name, metadata, data_packed)
     class(mhm_t), intent(inout), target :: self
-    type(NcDataset), intent(inout) :: nc
-    type(NcDimension), intent(in) :: dims_xy(2)
-    character(*), intent(in) :: var_name
-    class(variable_abc), intent(in), target :: metadata
-    real(dp), intent(in) :: data_packed(:)
+    type(NcDataset), intent(inout) :: nc !< Open NetCDF dataset.
+    type(NcDimension), intent(in) :: dims_xy(2) !< Horizontal NetCDF dimensions.
+    character(*), intent(in) :: var_name !< NetCDF field name.
+    class(variable_abc), intent(in), target :: metadata !< Canonical exchange-field metadata.
+    real(dp), intent(in) :: data_packed(:) !< Packed field values on the connected land grid.
     type(NcVariable) :: nc_var
     real(dp), allocatable :: data_2d(:, :)
 
@@ -1511,12 +1512,12 @@ contains
   !> \brief Write a packed L1 horizon-dependent field as unpacked 3D restart data.
   subroutine mhm_write_restart_field_3d(self, nc, dims_xy, dim3, var_name, metadata, data_packed)
     class(mhm_t), intent(inout), target :: self
-    type(NcDataset), intent(inout) :: nc
-    type(NcDimension), intent(in) :: dims_xy(2)
-    type(NcDimension), intent(in) :: dim3
-    character(*), intent(in) :: var_name
-    class(variable_abc), intent(in), target :: metadata
-    real(dp), intent(in) :: data_packed(:, :)
+    type(NcDataset), intent(inout) :: nc !< Open NetCDF dataset.
+    type(NcDimension), intent(in) :: dims_xy(2) !< Horizontal NetCDF dimensions.
+    type(NcDimension), intent(in) :: dim3 !< Vertical or temporal NetCDF dimension.
+    character(*), intent(in) :: var_name !< NetCDF field name.
+    class(variable_abc), intent(in), target :: metadata !< Canonical exchange-field metadata.
+    real(dp), intent(in) :: data_packed(:, :) !< Packed field values on the connected land grid.
     type(NcDimension) :: dims(3)
     type(NcVariable) :: nc_var
     real(dp), allocatable :: data_3d(:, :, :)
@@ -1540,9 +1541,9 @@ contains
   !> \brief Read a packed L1 scalar field from unpacked 2D restart data.
   subroutine mhm_read_restart_field_2d(self, nc, var_name, data_packed)
     class(mhm_t), intent(inout), target :: self
-    type(NcDataset), intent(in) :: nc
-    character(*), intent(in) :: var_name
-    real(dp), intent(out) :: data_packed(:)
+    type(NcDataset), intent(in) :: nc !< Open NetCDF dataset.
+    character(*), intent(in) :: var_name !< NetCDF field name.
+    real(dp), intent(out) :: data_packed(:) !< Packed field values on the connected land grid.
     type(NcVariable) :: nc_var
     integer(i4), allocatable :: var_shape(:)
     real(dp), allocatable :: data_2d(:, :)
@@ -1572,9 +1573,9 @@ contains
   !> \brief Read a packed L1 horizon-dependent field from unpacked 3D restart data.
   subroutine mhm_read_restart_field_3d(self, nc, var_name, data_packed)
     class(mhm_t), intent(inout), target :: self
-    type(NcDataset), intent(in) :: nc
-    character(*), intent(in) :: var_name
-    real(dp), intent(out) :: data_packed(:, :)
+    type(NcDataset), intent(in) :: nc !< Open NetCDF dataset.
+    character(*), intent(in) :: var_name !< NetCDF field name.
+    real(dp), intent(out) :: data_packed(:, :) !< Packed field values on the connected land grid.
     type(NcVariable) :: nc_var
     integer(i4), allocatable :: var_shape(:)
     real(dp), allocatable :: data_3d(:, :, :)
@@ -1654,9 +1655,9 @@ contains
 
   !> \brief Disable an unavailable output flag while keeping the run configuration valid.
   subroutine disable_unavailable(flag, name, available)
-    logical, intent(inout) :: flag
-    character(*), intent(in) :: name
-    logical, intent(in) :: available
+    logical, intent(inout) :: flag !< Output switch disabled when its field is unavailable.
+    character(*), intent(in) :: name !< Field name used for lookup and diagnostics.
+    logical, intent(in) :: available !< Whether a selected provider supplies the output field.
 
     if (flag .and. .not.available) then
       log_warn(*) "mHM output ", trim(name), " requested but the required exchange field is not provided; output disabled."
@@ -1725,9 +1726,9 @@ contains
 
   !> \brief Allocate, resize, or release a 1D field array.
   subroutine allocate_1d(data, n_cells, required)
-    real(dp), allocatable, intent(inout) :: data(:)
-    integer(i4), intent(in) :: n_cells
-    logical, intent(in) :: required
+    real(dp), allocatable, intent(inout) :: data(:) !< Container-owned field storage to allocate, resize, or release.
+    integer(i4), intent(in) :: n_cells !< Number of packed cells.
+    logical, intent(in) :: required !< Whether this process requires the field storage.
 
     if (.not.required) then
       if (allocated(data)) deallocate(data)
@@ -1741,10 +1742,10 @@ contains
 
   !> \brief Allocate, resize, or release a 2D field array.
   subroutine allocate_2d(data, n_cells, n_horizons, required)
-    real(dp), allocatable, intent(inout) :: data(:, :)
-    integer(i4), intent(in) :: n_cells
-    integer(i4), intent(in) :: n_horizons
-    logical, intent(in) :: required
+    real(dp), allocatable, intent(inout) :: data(:, :) !< Container-owned field storage to allocate, resize, or release.
+    integer(i4), intent(in) :: n_cells !< Number of packed cells.
+    integer(i4), intent(in) :: n_horizons !< Number of soil horizons.
+    logical, intent(in) :: required !< Whether this process requires the field storage.
 
     if (.not.required) then
       if (allocated(data)) deallocate(data)

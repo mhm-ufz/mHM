@@ -75,7 +75,14 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
 - Follow surrounding formatting; use explicit interfaces, `implicit none`, `intent`, `mo_kind` kinds,
   and typed literals. Prefer `use ..., only:` and private-by-default modules with explicit public exports.
 - Prefix type-bound implementations by their owning type (`mpr_*` for `mpr_t`). Declare `self` with
-  `target`; declare each dummy on its own line with inline `!<` documentation, separate from local declarations.
+  `target`; keep dummy declarations together before local declarations. Prefer compact declaration
+  sections, especially in short routines and interface specifications; do not add blank lines solely
+  to separate imports, arguments, or locals. Keep useful block separation in longer routines.
+  Declare each dummy on its own line; document each except `self`/`this` on its declaration with `!<`.
+  Remove superseded prepended comments and parameter descriptions instead of duplicating them.
+- Import `mo_logging` without `only`; its logging macros depend on module names not visible at the call site.
+- Extend NetCDF variable metadata arrays with `mo_netcdf_utils:add_var`; avoid in-place array constructors
+  involving derived types with allocatable components.
 - An unallocated allocatable or disassociated pointer actual is absent for a compatible `optional`
   dummy that is neither allocatable nor a pointer. Check `present()` before use; this does not apply to allocatable/pointer dummies.
 - Do not guard invalid access with `.and.`, `.or.`, or `merge()`; evaluation need not short-circuit.
@@ -159,6 +166,8 @@ runner with `--threads 1` and `--threads 4` against `./openmp_debug/app/mhm`.
 
 ## Hygiene
 
+- Create commits only when explicitly requested by the user. Preserve rename recognition by keeping
+  pure moves/renames separate from content edits, and group commits by component or topic.
 - Register new/renamed sources and tests explicitly in `src/CMakeLists.txt` and `src/tests/CMakeLists.txt`.
 - Keep diffs focused and fixtures immutable. Commit schema-generated outputs with their source changes;
   exclude runtime outputs/restarts (`.nc`), logs, build products, and generated HTML/PDF artifacts.

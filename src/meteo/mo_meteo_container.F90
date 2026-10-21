@@ -1,4 +1,4 @@
-!> \file    mo_meteo_container.f90
+!> \file mo_meteo_container.F90
 !> \copydoc mo_meteo_container
 
 !> \brief   Container-side meteorological processing for the exchange runtime.
@@ -43,6 +43,9 @@ module mo_meteo_container
   use mo_string_utils, only: n2s => num2str
   use mo_utils, only: is_close
   use nml_config_meteo, only: nml_config_meteo_t, NML_OK, NML_ERR_NML_NOT_FOUND
+
+  implicit none
+  private
 
   character(len=*), parameter :: s = "meteo" !< module scope for logging
   public :: meteo_is_day_step, meteo_supports_model_step, meteo_supports_forcing_step
@@ -644,7 +647,7 @@ contains
 
   !> \brief Return the number of model steps per day.
   integer(i4) function meteo_steps_per_day(self) result(steps_day)
-    class(meteo_t), intent(in) :: self
+    class(meteo_t), intent(in), target :: self
     steps_day = 24_i4 / self%exchange%step_hours
     if (steps_day < 1_i4) then
       log_fatal(*) "Meteo: invalid model step size for temporal disaggregation."
@@ -654,13 +657,13 @@ contains
 
   !> \brief Check whether weight-based temporal disaggregation is active for this domain.
   logical function meteo_weight_mode_active(self) result(active)
-    class(meteo_t), intent(in) :: self
+    class(meteo_t), intent(in), target :: self
     active = self%config%read_meteo_weights(self%exchange%nml_domain_id)
   end function meteo_weight_mode_active
 
   !> \brief Resolve which domain supplies the day/night fractions.
   integer(i4) function meteo_fraction_domain(self) result(domain_id)
-    class(meteo_t), intent(in) :: self
+    class(meteo_t), intent(in), target :: self
     domain_id = merge(1_i4, self%exchange%nml_domain_id, self%config%share_frac)
   end function meteo_fraction_domain
 
@@ -700,9 +703,9 @@ contains
 
   !> \brief Ensure a packed level1 work array has the expected size.
   subroutine meteo_ensure_size(self, arr, n_cells)
-    class(meteo_t), intent(inout) :: self
-    real(dp), allocatable, intent(inout) :: arr(:)
-    integer(i8), intent(in) :: n_cells
+    class(meteo_t), intent(inout), target :: self
+    real(dp), allocatable, intent(inout) :: arr(:) !< Reusable packed numerical scratch.
+    integer(i8), intent(in) :: n_cells !< Number of packed cells.
 
     if (.not.allocated(arr)) then
       allocate(arr(n_cells))
@@ -715,9 +718,9 @@ contains
   !> \brief Remap the current raw packed level2 field to packed level1.
   subroutine meteo_remap_raw(self, raw_var, l1_data, name)
     class(meteo_t), intent(inout), target :: self
-    type(var_dp), intent(in), target :: raw_var
-    real(dp), allocatable, intent(inout) :: l1_data(:)
-    character(*), intent(in) :: name
+    type(var_dp), intent(in), target :: raw_var !< Current native-resolution forcing field.
+    real(dp), allocatable, intent(inout) :: l1_data(:) !< Packed remapped field on the hydrological grid.
+    character(*), intent(in) :: name !< Field name used for lookup and diagnostics.
 
     if (.not.associated(raw_var%data)) then
       log_fatal(*) "Meteo: raw field not connected for ", trim(name), "."
@@ -769,9 +772,9 @@ contains
 
   !> \brief Area-average a level2 field on every lake support.
   subroutine meteo_aggregate_lake(self, field, result)
-    class(meteo_t), intent(in) :: self
-    real(dp), intent(in) :: field(:)
-    real(dp), intent(out) :: result(:)
+    class(meteo_t), intent(in), target :: self
+    real(dp), intent(in) :: field(:) !< Packed level2 forcing values.
+    real(dp), intent(out) :: result(:) !< Forcing values aggregated onto lake supports.
     integer(i8) :: lake
     do lake = 1_i8, size(self%lake%forcing, kind=i8)
       result(lake) = self%lake%forcing(lake)%aggregate(field)
@@ -899,9 +902,9 @@ contains
   !> \brief Warn when a supplied raw forcing is not used by the selected Meteo processes.
   subroutine meteo_warn_unused_raw(self, name, provided, needed)
     class(meteo_t), intent(in), target :: self
-    character(*), intent(in) :: name
-    logical, intent(in) :: provided
-    logical, intent(in) :: needed
+    character(*), intent(in) :: name !< Field name used for lookup and diagnostics.
+    logical, intent(in) :: provided !< Whether the raw forcing is provided.
+    logical, intent(in) :: needed !< Whether the selected PET case consumes this forcing.
 
     if (provided .and. .not.needed) then
       log_warn(*) "Meteo: ", trim(name), " is provided but not used by the selected meteorological processes."
@@ -911,8 +914,8 @@ contains
   !> \brief Require that monthly day/night fractions are explicitly configured for one domain.
   subroutine meteo_require_fraction(self, name, domain_id)
     class(meteo_t), intent(inout), target :: self
-    character(*), intent(in) :: name
-    integer(i4), intent(in) :: domain_id
+    character(*), intent(in) :: name !< Field name used for lookup and diagnostics.
+    integer(i4), intent(in) :: domain_id !< Configured domain index.
     integer(i4) :: month
     integer(i4) :: idx(2)
     integer :: status
@@ -931,14 +934,14 @@ contains
 
   !> \brief Validate the allowed stepping contract for one raw forcing.
   subroutine meteo_validate_step(self, name, stepping, allow_static, allow_daily, allow_monthly, allow_yearly, allow_hourly)
-    class(meteo_t), intent(in) :: self
-    character(*), intent(in) :: name
-    integer(i4), intent(in) :: stepping
-    logical, intent(in), optional :: allow_static
-    logical, intent(in), optional :: allow_daily
-    logical, intent(in), optional :: allow_monthly
-    logical, intent(in), optional :: allow_yearly
-    logical, intent(in), optional :: allow_hourly
+    class(meteo_t), intent(in), target :: self
+    character(*), intent(in) :: name !< Field name used for lookup and diagnostics.
+    integer(i4), intent(in) :: stepping !< Native input stepping to validate.
+    logical, intent(in), optional :: allow_static !< Permit static input.
+    logical, intent(in), optional :: allow_daily !< Permit daily input.
+    logical, intent(in), optional :: allow_monthly !< Permit monthly input.
+    logical, intent(in), optional :: allow_yearly !< Permit yearly input.
+    logical, intent(in), optional :: allow_hourly !< Permit hourly input.
     logical :: valid
 
     valid = .false.

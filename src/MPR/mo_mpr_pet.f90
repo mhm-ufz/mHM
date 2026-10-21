@@ -5,6 +5,9 @@
 !> \details This module sets up pet correction factor at level-1 based on LAI
 !> \authors Mehmet Cuneyd Demirel, Simon Stisen
 !> \date May 2017
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
@@ -31,7 +34,6 @@ contains
   !>       \brief correction of PET
 
   !>       \details Correction of PET based on L0 aspect data.
-
 
   !>       Global parameters needed (see mhm_parameter.nml):
   !>       - param(1) = minCorrectionFactorPET

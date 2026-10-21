@@ -1,11 +1,13 @@
-!> \file    mo_mpr_helpers.F90
+!> \file mo_mpr_helpers.F90
 !> \copydoc mo_mpr_helpers
 
 !> \brief   Regionalization helpers for the MPR container.
 !> \details Process-specific orchestration uses explicit domain-owned soil state,
 !! packed fields, and the connected grid scaler. Scientific kernels receive their
 !! selected cases and parameter blocks directly.
+!> \version 0.1
 !> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !! - Juliane Mai          Dec 2012
 !!   - implemented the soil-database and LUT readers that now sit behind the bridge setup helpers
 !! - Stephan Thober, Rohini Kumar
@@ -75,8 +77,8 @@ contains
 
   !> \brief Resolve packed level0 latitude values for legacy PET helpers.
   subroutine mpr_helper_get_level0_latitude(level0, latitude_l0)
-    type(grid_t), intent(in), target :: level0
-    real(dp), allocatable, intent(out) :: latitude_l0(:)
+    type(grid_t), intent(in), target :: level0 !< Connected fine morphology grid.
+    real(dp), allocatable, intent(out) :: latitude_l0(:) !< Packed fine-cell latitude [degrees north].
     real(dp), allocatable :: y_axis(:)
     integer(i4) :: i
     integer(i4) :: ix
@@ -185,12 +187,12 @@ contains
 
   !> \brief Upscale land-cover fractions from packed L0 ids to packed L1 fractions.
   subroutine mpr_helper_land_cover_fraction(upscaler, land_cover_l0, frac_sealed_cityarea, forest_l1, sealed_l1, pervious_l1)
-    class(scaler_t), intent(inout), target :: upscaler
-    integer(i4), dimension(:), intent(in) :: land_cover_l0
-    real(dp), intent(in) :: frac_sealed_cityarea
-    real(dp), dimension(:), intent(out) :: forest_l1
-    real(dp), dimension(:), intent(out) :: sealed_l1
-    real(dp), dimension(:), intent(out) :: pervious_l1
+    class(scaler_t), intent(inout), target :: upscaler !< Configured L0-to-L1 count-weighted scaler with cached bounds.
+    integer(i4), dimension(:), intent(in) :: land_cover_l0 !< Packed fine-cell land-cover classes.
+    real(dp), intent(in) :: frac_sealed_cityarea !< Sealed fraction within the urban land-cover class.
+    real(dp), dimension(:), intent(out) :: forest_l1 !< Regionalized forest fraction.
+    real(dp), dimension(:), intent(out) :: sealed_l1 !< Regionalized sealed fraction.
+    real(dp), dimension(:), intent(out) :: pervious_l1 !< Regionalized pervious fraction.
 
     call upscaler%execute(land_cover_l0, forest_l1, upscaling_operator=up_fraction, class_id=1_i4)
     call upscaler%execute(land_cover_l0, sealed_l1, upscaling_operator=up_fraction, class_id=2_i4)
@@ -201,14 +203,14 @@ contains
 
   !> \brief Bridge snow parameter generation through the legacy degree-day routine.
   subroutine mpr_helper_snow_param(param, forest_l1, sealed_l1, pervious_l1, thresh_temp_l1, degday_dry_l1, degday_inc_l1, degday_max_l1)
-    real(dp), dimension(:), intent(in) :: param
-    real(dp), dimension(:), intent(in) :: forest_l1
-    real(dp), dimension(:), intent(in) :: sealed_l1
-    real(dp), dimension(:), intent(in) :: pervious_l1
-    real(dp), dimension(:), intent(out) :: thresh_temp_l1
-    real(dp), dimension(:), intent(out) :: degday_dry_l1
-    real(dp), dimension(:), intent(out) :: degday_inc_l1
-    real(dp), dimension(:), intent(out) :: degday_max_l1
+    real(dp), dimension(:), intent(in) :: param !< Process-specific regionalization parameters in registration order.
+    real(dp), dimension(:), intent(in) :: forest_l1 !< Regionalized forest fraction.
+    real(dp), dimension(:), intent(in) :: sealed_l1 !< Regionalized sealed fraction.
+    real(dp), dimension(:), intent(in) :: pervious_l1 !< Regionalized pervious fraction.
+    real(dp), dimension(:), intent(out) :: thresh_temp_l1 !< Regionalized snow/rain temperature threshold [degrees C].
+    real(dp), dimension(:), intent(out) :: degday_dry_l1 !< Regionalized dry-weather degree-day factor.
+    real(dp), dimension(:), intent(out) :: degday_inc_l1 !< Regionalized precipitation-dependent degree-day increment.
+    real(dp), dimension(:), intent(out) :: degday_max_l1 !< Regionalized maximum degree-day factor.
     real(dp) :: degday_dry_forest
     real(dp) :: degday_dry_sealed
     real(dp) :: degday_dry_pervious
@@ -314,12 +316,12 @@ contains
 
   !> \brief Bridge Hargreaves-Samani PET coefficients.
   subroutine mpr_helper_pet_hargreaves(level0, aspect_l0, param, upscaler, pet_fac_aspect_l1, pet_coeff_hs_l1)
-    type(grid_t), intent(in), target :: level0
-    real(dp), dimension(:), intent(in) :: aspect_l0
-    real(dp), dimension(:), intent(in) :: param
-    class(scaler_t), intent(inout), target :: upscaler
-    real(dp), dimension(:), intent(out) :: pet_fac_aspect_l1
-    real(dp), dimension(:), intent(out) :: pet_coeff_hs_l1
+    type(grid_t), intent(in), target :: level0 !< Connected fine morphology grid.
+    real(dp), dimension(:), intent(in) :: aspect_l0 !< Packed fine-cell terrain aspect [degrees].
+    real(dp), dimension(:), intent(in) :: param !< Process-specific regionalization parameters in registration order.
+    class(scaler_t), intent(inout), target :: upscaler !< Configured L0-to-L1 count-weighted scaler with cached bounds.
+    real(dp), dimension(:), intent(out) :: pet_fac_aspect_l1 !< Regionalized aspect correction for PET.
+    real(dp), dimension(:), intent(out) :: pet_coeff_hs_l1 !< Regionalized Hargreaves-Samani coefficient.
 
     if (size(param) < 4_i4) then
       log_fatal(*) "MPR: PET Hargreaves parameter set must contain 4 values, got ", n2s(size(param, kind=i4)), "."
@@ -517,15 +519,15 @@ contains
   !> \brief Bridge percolation and karst-loss parameter generation with legacy-compatible formulas.
   subroutine mpr_helper_karstic_param(param, geo_unit_l0, geo_unit_list, geo_karstic, sm_deficit_fc_l0, ks_var_v_l0, &
       upscaler, f_karst_loss_l1, k_percolation_l1)
-    real(dp), dimension(:), intent(in) :: param
-    integer(i4), dimension(:), intent(in) :: geo_unit_l0
-    integer(i4), dimension(:), intent(in) :: geo_unit_list
-    integer(i4), dimension(:), intent(in) :: geo_karstic
-    real(dp), dimension(:), intent(in) :: sm_deficit_fc_l0
-    real(dp), dimension(:), intent(in) :: ks_var_v_l0
-    class(scaler_t), intent(inout), target :: upscaler
-    real(dp), dimension(:), intent(out) :: f_karst_loss_l1
-    real(dp), dimension(:), intent(out) :: k_percolation_l1
+    real(dp), dimension(:), intent(in) :: param !< Process-specific regionalization parameters in registration order.
+    integer(i4), dimension(:), intent(in) :: geo_unit_l0 !< Packed fine-cell geological-unit IDs.
+    integer(i4), dimension(:), intent(in) :: geo_unit_list !< Geological-unit IDs in LUT order.
+    integer(i4), dimension(:), intent(in) :: geo_karstic !< Karst flags corresponding to geological-unit LUT entries.
+    real(dp), dimension(:), intent(in) :: sm_deficit_fc_l0 !< Fine-cell soil saturation deficit relative to field capacity [mm].
+    real(dp), dimension(:), intent(in) :: ks_var_v_l0 !< Fine-cell vertical saturated-conductivity variability.
+    class(scaler_t), intent(inout), target :: upscaler !< Configured L0-to-L1 count-weighted scaler with cached bounds.
+    real(dp), dimension(:), intent(out) :: f_karst_loss_l1 !< Regionalized fraction of percolation lost to karst.
+    real(dp), dimension(:), intent(out) :: k_percolation_l1 !< Regionalized percolation recession time.
     real(dp), allocatable :: percolation_l0(:)
     real(dp), allocatable :: karst_fraction_l1(:)
     real(dp), allocatable :: karst_class_fraction_l1(:)
@@ -567,8 +569,8 @@ contains
 
   !> \brief Bridge the sealed-surface runoff threshold parameter.
   subroutine mpr_helper_sealed_threshold(param, thresh_sealed_l1)
-    real(dp), dimension(:), intent(in) :: param
-    real(dp), dimension(:), intent(out) :: thresh_sealed_l1
+    real(dp), dimension(:), intent(in) :: param !< Impervious-area retention-capacity parameter [mm].
+    real(dp), dimension(:), intent(out) :: thresh_sealed_l1 !< Regionalized impervious-area retention capacity [mm].
 
     if (size(param) < 1_i4) then
       log_fatal(*) "MPR: direct-runoff parameter set must contain at least 1 value."
@@ -579,12 +581,12 @@ contains
 
   !> \brief Bridge geological baseflow parameter generation with legacy-compatible class mapping.
   subroutine mpr_helper_baseflow_param(param, geo_unit_l0, geo_unit_list, geo_param_index, upscaler, k_baseflow_l1)
-    real(dp), dimension(:), intent(in) :: param
-    integer(i4), dimension(:), intent(in) :: geo_unit_l0
-    integer(i4), dimension(:), intent(in) :: geo_unit_list
-    integer(i4), dimension(:), intent(in) :: geo_param_index
-    class(scaler_t), intent(inout), target :: upscaler
-    real(dp), dimension(:), intent(out) :: k_baseflow_l1
+    real(dp), dimension(:), intent(in) :: param !< Process-specific regionalization parameters in registration order.
+    integer(i4), dimension(:), intent(in) :: geo_unit_l0 !< Packed fine-cell geological-unit IDs.
+    integer(i4), dimension(:), intent(in) :: geo_unit_list !< Geological-unit IDs in LUT order.
+    integer(i4), dimension(:), intent(in) :: geo_param_index !< Baseflow-parameter index for each geological-unit LUT entry.
+    class(scaler_t), intent(inout), target :: upscaler !< Configured L0-to-L1 count-weighted scaler with cached bounds.
+    real(dp), dimension(:), intent(out) :: k_baseflow_l1 !< Regionalized baseflow recession time.
     real(dp), allocatable :: baseflow_l0(:)
     integer(i4) :: i
     integer(i4) :: j

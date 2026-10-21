@@ -1,13 +1,15 @@
 !> \file mo_mhm_constants.f90
-!> \brief   \copybrief mo_mhm_constants
-!> \details \copydetails mo_mhm_constants
+!> \copydoc mo_mhm_constants
 
 !> \brief Provides mHM specific constants
-!> \details Provides mHM specific constants such as flood plain elevation.
+!> \details Provides mHM specific constants for hydrological states and neutron formulations.
 ! Modifications:
 ! Robert Schweppe Jun 2018 - refactoring and reformatting
 !> \authors Matthias Cuntz
 !> \date Nov 2011
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm

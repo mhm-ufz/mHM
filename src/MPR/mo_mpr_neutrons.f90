@@ -5,6 +5,9 @@
 !> \details This module contains all routines required for parametrizing neutrons processes.
 !> \author Maren Kaluza
 !> \date Dec 2017
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
@@ -36,7 +39,6 @@ contains
   !>        \author Maren Kaluza
   !>        \date Dec 2017
 
-
   subroutine mpr_neutrons(soil_db_mode,  process_case, & ! IN: process case
        param               , & ! IN:  global parameter set
        is_present          , & ! IN:  flag indicating presence of soil
@@ -58,32 +60,26 @@ contains
     !$  use omp_lib
 
     implicit none
-
     integer(i4), intent(in) :: soil_db_mode !< Domain soil database layout selector.
-
-    ! Input --------------------------------------------------------------------
     integer(i4),                   intent(in)  :: process_case !< process case
-    real(dp),    dimension(:),     intent(in)  :: param        !< global parameters   !! dim = 3 for case 1 and 9 for case 2
-    integer(i4), dimension(:),     intent(in)  :: is_present   !< indicates whether soiltype is present
-    integer(i4), dimension(:),     intent(in)  :: nHorizons    !< Number of Horizons per soiltype
-    integer(i4), dimension(:),     intent(in)  :: nTillHorizons!< Number of Tillage Horizons
-    real(dp),    dimension(:,:),   intent(in)  :: DbM          !< mineral Bulk density
-    real(dp),    dimension(:,:,:), intent(in)  :: Db           !< Bulk density
-    integer(i4), dimension(:),     intent(in)  :: LCOVER0      !< land cover ids at level 0
-    real(dp),    dimension(:,:),   intent(in)  :: clay         !< clay content
-
-    ! Output -------------------------------------------------------------------
+    real(dp),    dimension(:),     intent(in)  :: param !< global parameters   !! dim = 3 for case 1 and 9 for case 2
+    integer(i4), dimension(:),     intent(in)  :: is_present !< indicates whether soiltype is present
+    integer(i4), dimension(:),     intent(in)  :: nHorizons !< Number of Horizons per soiltype
+    integer(i4), dimension(:),     intent(in)  :: nTillHorizons !< Number of Tillage Horizons
+    real(dp),    dimension(:,:),   intent(in)  :: DbM !< mineral Bulk density
+    real(dp),    dimension(:,:,:), intent(in)  :: Db !< Bulk density
+    integer(i4), dimension(:),     intent(in)  :: LCOVER0 !< land cover ids at level 0
+    real(dp),    dimension(:,:),   intent(in)  :: clay !< clay content
     real(dp),    dimension(:,:,:), intent(out), optional :: COSMIC_L3_till !< COSMIC parameter L3 tillage layer
-    real(dp),    dimension(:,:,:), intent(out) :: latWat_till    !< lattice water content tillage layer
-    real(dp),    dimension(:,:),   intent(out), optional :: COSMIC_L3      !< COSMIC parameter L3
-    real(dp),    dimension(:,:),   intent(out) :: latWat         !< lattice water content
+    real(dp),    dimension(:,:,:), intent(out) :: latWat_till !< lattice water content tillage layer
+    real(dp),    dimension(:,:),   intent(out), optional :: COSMIC_L3 !< COSMIC parameter L3
+    real(dp),    dimension(:,:),   intent(out) :: latWat !< lattice water content
 
     ! Local variables
     integer(i4)                               :: i               ! loop index
     integer(i4)                               :: j               ! loop index
     integer(i4)                               :: l               ! loop index
     integer(i4)                               :: tmp_minSoilHorizon
-
 
     select case (process_case)
     case (1_i4)
@@ -174,15 +170,12 @@ contains
 
    end subroutine
 
-
   !! >> L3 parameter
   subroutine calcL3(param, bulkDensity, L3)
-    ! param(1) = COSMIC_L30
-    ! param(2) = COSMIC_L31
     implicit none
-    real(dp), dimension(2),  intent(in)       :: param
-    real(dp),                intent(in)       :: bulkDensity
-    real(dp),                intent(inout)    :: L3
+    real(dp), dimension(2),  intent(in)       :: param !< COSMIC_L30 density coefficient and COSMIC_L31 offset.
+    real(dp),                intent(in)       :: bulkDensity !< Bulk soil density [g cm-3].
+    real(dp),                intent(inout)    :: L3 !< COSMIC attenuation length [g cm-2].
 
     L3 = bulkDensity*param(1) - param(2)
     if( bulkDensity .LT. 0.4_dp ) then ! bulkDensity<0.39 yields negative L3, bulkDensity=0.39 yields L3=0
@@ -191,17 +184,12 @@ contains
 
   end subroutine calcL3
 
-
   !! >>>> lattice water
   subroutine latticeWater( param, clay, latWat )
-    ! param(1) = COSMIC_LW0 or deslet_LW0
-    ! param(2) = COSMIC_LW1 or deslet_LW0
     implicit none
-    ! Input
-    real(dp), dimension(2), intent(in)  :: param
-    real(dp),               intent(in)  :: clay
-    ! Output
-    real(dp),               intent(out) :: latWat
+    real(dp), dimension(2), intent(in)  :: param !< Lattice-water clay coefficient and offset.
+    real(dp),               intent(in)  :: clay !< Soil clay content [%].
+    real(dp),               intent(out) :: latWat !< Lattice-water mass fraction [g g-1].
 
     !Martin Schroen's dissertation
     latWat = ( param(1)*clay/100.0_dp + param(2) )

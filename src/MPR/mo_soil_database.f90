@@ -8,6 +8,9 @@
 !! The second routine \e generate_soil_database calculates based on the initial one the proper soil database.
 !> \authors Juliane Mai
 !> \date Dec 2012
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
@@ -75,9 +78,6 @@ CONTAINS
 
   !>       \details Reads the soil LookUpTable file and checks for consistency.
 
-  !    INTENT(IN)
-  !>       \param[in] "character(len = *) :: filename" filename of the soil LUT
-
   !    HISTORY
   !>       \authors Juliane Mai
 
@@ -92,10 +92,7 @@ CONTAINS
 
     use mo_constants, only : eps_dp, nodata_dp, nodata_i4
 
-
     implicit none
-
-    ! filename of the soil LUT
     character(len = *), intent(in) :: filename !< Soil lookup table path.
     type(soil_database_t), intent(inout) :: db !< Owning domain soil database.
     integer :: soil_unit
@@ -115,8 +112,6 @@ CONTAINS
     real(dp) :: dmin
 
     integer(i4) :: maxNumberHorizons
-
-
 
     SELECT CASE (db%mode)
       ! classical mHM soil database
@@ -292,8 +287,6 @@ CONTAINS
       allocate(db%LD(1, 1))
       allocate(db%depth(1, 1))
 
-
-
       !checking whether the file exists
       call check_path_isfile(path = filename, raise=.true.)
       open(newunit=soil_unit, file = filename, status = 'old', action = 'read')
@@ -395,7 +388,6 @@ CONTAINS
 
     ! [mm]       soil depth accuracy
     real(dp), parameter :: soil_dAccuracy = 0.5_dp
-
 
     SELECT CASE (db%mode)
       ! classical mHM soil database
@@ -514,7 +506,7 @@ CONTAINS
 
   !> \brief Release all domain-owned soil data and reset its controls.
   subroutine soil_database_destroy(self)
-    class(soil_database_t), intent(inout), target :: self !< Soil database to reset.
+    class(soil_database_t), intent(inout), target :: self
     type(soil_database_t) :: empty
     select type (self)
     type is (soil_database_t)

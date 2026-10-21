@@ -5,6 +5,9 @@
 !> \details This contains the routine for multiscale parameter regionalization of the runoff parametrization.
 !> \authors Stephan Thober, Rohini Kumar
 !> \date Dec 2012
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr

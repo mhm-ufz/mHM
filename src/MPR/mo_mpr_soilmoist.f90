@@ -5,6 +5,9 @@
 !> \details This module contains all routines required for parametrizing soil moisture processes.
 !> \authors Stephan Thober, Rohini Kumar
 !> \date Dec 2012
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
@@ -393,14 +396,6 @@ contains
   !>       ADDITIONAL INFORMATION
   !>       Zacharias et al. 2007, Soil Phy.
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: Genu_Mual_n"     - Genuchten shape parameter
-  !>       \param[in] "real(dp) :: Genu_Mual_alpha" - Genuchten shape parameter
-  !>       \param[in] "real(dp) :: thetaS"          - saturated water content
-
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp) :: thetaPWP" - Permanent Wilting point
-
   !    HISTORY
   !>       \authors Stephan Thober, Rohini Kumar
 
@@ -415,24 +410,15 @@ contains
     use mo_mpr_constants, only : PWP_c, PWP_matPot_ThetaR
 
     implicit none
-
-    ! - Genuchten shape parameter
-    real(dp), intent(in) :: Genu_Mual_n
-
-    ! - Genuchten shape parameter
-    real(dp), intent(in) :: Genu_Mual_alpha
-
-    ! - saturated water content
-    real(dp), intent(in) :: thetaS
-
-    ! - Permanent Wilting point
-    real(dp), intent(out) :: thetaPWP
+    real(dp), intent(in) :: Genu_Mual_n !< - Genuchten shape parameter
+    real(dp), intent(in) :: Genu_Mual_alpha !< - Genuchten shape parameter
+    real(dp), intent(in) :: thetaS !< - saturated water content
+    real(dp), intent(out) :: thetaPWP !< - Permanent Wilting point
 
     real(dp) :: x
 
     ! Genuchten shape parameter
     real(dp) :: Genu_Mual_m
-
 
     Genu_Mual_m = PWP_c - (PWP_c / Genu_Mual_n)
     x = PWP_c + exp(Genu_Mual_n * log(Genu_Mual_alpha * PWP_matPot_ThetaR))
@@ -464,14 +450,6 @@ contains
   !>       ADDITIONAL INFORMATION
   !>       Twarakavi, et. al. 2009, WRR
 
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp) :: thetaFC" - Field capacity
-
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: Ks"          - saturated hydraulic conductivity
-  !>       \param[in] "real(dp) :: thetaS"      - saturated water content
-  !>       \param[in] "real(dp) :: Genu_Mual_n" - Genuchten shape parameter
-
   !    HISTORY
   !>       \authors Stephan Thober, Rohini Kumar
 
@@ -486,21 +464,12 @@ contains
     use mo_mpr_constants, only : field_cap_c1, field_cap_c2
 
     implicit none
-
-    ! - saturated hydraulic conductivity
-    real(dp), intent(in) :: Ks
-
-    ! - saturated water content
-    real(dp), intent(in) :: thetaS
-
-    ! - Genuchten shape parameter
-    real(dp), intent(in) :: Genu_Mual_n
-
-    ! - Field capacity
-    real(dp), intent(out) :: thetaFC
+    real(dp), intent(in) :: Ks !< - saturated hydraulic conductivity
+    real(dp), intent(in) :: thetaS !< - saturated water content
+    real(dp), intent(in) :: Genu_Mual_n !< - Genuchten shape parameter
+    real(dp), intent(out) :: thetaFC !< - Field capacity
 
     real(dp) :: x
-
 
     x = (field_cap_c1) * (field_cap_c2 + log10(Ks))
     thetaFC = thetaS * exp(x * log(Genu_Mual_n))
@@ -527,17 +496,6 @@ contains
   !>       ADDITIONAL INFORMATION
   !>       Zacharias et al, 2007, soil Phy.
 
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp) :: thetaS"          - saturated water content
-  !>       \param[out] "real(dp) :: Genu_Mual_n"     - van Genuchten shape parameter
-  !>       \param[out] "real(dp) :: Genu_Mual_alpha" - van Genuchten shape parameter
-
-  !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(6) :: param" parameters
-  !>       \param[in] "real(dp) :: sand"                - [%] sand content
-  !>       \param[in] "real(dp) :: clay"                - [%] clay content
-  !>       \param[in] "real(dp) :: Db"                  - [10^3 kg/m3] bulk density
-
   !    HISTORY
   !>       \authors Stephan Thober, Rohini Kumar
 
@@ -555,31 +513,16 @@ contains
                                  vGenuchtenN_c7, vGenuchtenN_c8, vGenuchtenN_c9, vGenuchten_sandtresh
 
     implicit none
-
-    ! parameters
-    real(dp), dimension(6), intent(in) :: param
-
-    ! - [%] sand content
-    real(dp), intent(in) :: sand
-
-    ! - [%] clay content
-    real(dp), intent(in) :: clay
-
-    ! - [10^3 kg/m3] bulk density
-    real(dp), intent(in) :: Db
-
-    ! - saturated water content
-    real(dp), intent(out) :: thetaS
-
-    ! - van Genuchten shape parameter
-    real(dp), intent(out) :: Genu_Mual_n
-
-    ! - van Genuchten shape parameter
-    real(dp), intent(out) :: Genu_Mual_alpha
+    real(dp), dimension(6), intent(in) :: param !< parameters
+    real(dp), intent(in) :: sand !< - [%] sand content
+    real(dp), intent(in) :: clay !< - [%] clay content
+    real(dp), intent(in) :: Db !< - [10^3 kg/m3] bulk density
+    real(dp), intent(out) :: thetaS !< - saturated water content
+    real(dp), intent(out) :: Genu_Mual_n !< - van Genuchten shape parameter
+    real(dp), intent(out) :: Genu_Mual_alpha !< - van Genuchten shape parameter
 
     ! temporal variable
     real(dp) :: x
-
 
     ! estimate SMs_till & van Genuchten's parameters (alpha and n)
     if (sand < vGenuchten_sandtresh) then
@@ -646,10 +589,6 @@ contains
   !>       ADDITIONAL INFORMATION
   !>       Written,  Stephan Thober, Dec 2012
 
-  !    INTENT(OUT)
-
-  !    INTENT(IN)
-
   !    HISTORY
   !>       \authors Stephan Thober, Rohini Kumar
 
@@ -665,20 +604,13 @@ contains
     use mo_mpr_constants, only : Ks_c, inch_per_hour_to_centimetre_per_day
 
     implicit none
-
     real(dp), intent(in) :: param(3) !< Conductivity PTF constant, sand, and clay coefficients.
-
-    ! - [%] sand content
     real(dp), intent(in) :: sand !< Sand content [%].
-
-    ! - [%] clay content
     real(dp), intent(in) :: clay !< Clay content [%].
-
     real(dp), intent(out) :: KS !< Hydraulic conductivity [cm/day].
 
     ! temporal variable
     real(dp) :: x
-
 
     ! saturated vertical hydraulic conductivity, Ks (cm/d)
     !   from Cosby et. al. (WRR 1984) Table 4

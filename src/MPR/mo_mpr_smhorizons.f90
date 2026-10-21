@@ -5,6 +5,9 @@
 !> \details This module sets up the soil moisture horizons
 !> \authors Stephan Thober, Rohini Kumar
 !> \date Dec 2012
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
@@ -150,7 +153,6 @@ contains
     real(dp), allocatable :: LW0(:) ! lattice water; absent when not requested
     real(dp), allocatable :: L30(:) ! COSMIC L3; absent when not requested
 
-
     ! fraction of roots in soil horizons
     real(dp), dimension(size(LCOVER0, 1)) :: fRoots0
 
@@ -181,7 +183,6 @@ contains
     real(dp) :: FCnorm
     ! the minimum number of till horizons
     integer(i4) :: min_nTH
-
 
     if (present(L1_latticeWater)) then
       if (.not.present(latWat_till) .or. .not.present(latWat)) &
@@ -223,7 +224,6 @@ contains
        !write(*,*) 'FCmin_glob = ', FCmin_glob
        !write(*,*) 'FCmax_glob = ', FCmax_glob
     end select
-
 
     ! select case according to a given soil database flag
     SELECT CASE(iFlag_soil)
@@ -301,7 +301,6 @@ contains
                     * Wd(S, H, nTillHorizons(S) + 1 : nHorizons(S)), &
                     Wd(S, H, nTillHorizons(S) + 1 : nHorizons(S)) > 0.0_dp )
              end if
-
 
              ! other soil properties [SMs, FC, PWP in mm]
              SMs0(k) = SMs0(k) * (dpth_t - dpth_f)
@@ -449,7 +448,7 @@ contains
         fRoots0 = nodata_dp
         tmp_rootFractionCoefficient_perviousFC = nodata_dp
 
-        ! Mode-1 COSMIC L3 remains unpopulated; see the deferred layered-soil COSMIC issue.
+        ! Map class-specific neutron properties before harmonic spatial upscaling.
         if (allocated(LW0)) then
           LW0     = nodata_dp
         end if
@@ -540,7 +539,6 @@ contains
               tmp_rootFractionCoefficient_perviousFC = (FCnorm * tmp_rootFractionCoefficient_clay) &
                       + ((1 - FCnorm) * tmp_rootFractionCoefficient_sand)
 
-
               fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t * 0.1_dp)) &
                       - (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_f * 0.1_dp))
 
@@ -586,7 +584,6 @@ contains
     CASE DEFAULT
       call error_message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
     END SELECT
-
 
     ! Preserve the physical bounds and per-cell root summation order; each thread owns one coarse cell.
     !$omp parallel do default(shared) private(h,fTotRoots) schedule(static)

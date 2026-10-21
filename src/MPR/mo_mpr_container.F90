@@ -1,4 +1,4 @@
-!> \file    mo_mpr_container.F90
+!> \file mo_mpr_container.F90
 !> \copydoc mo_mpr_container
 
 !> \brief   Container-side multiscale parameter regionalization (MPR) for the exchange runtime.
@@ -7,7 +7,9 @@
 !! parameter-independent inputs during `connect`, rebuilds effective-parameter caches
 !! during `initialize`, switches active slices during `update`, and serializes/deserializes the cached MPR
 !! state through the new restart path.
+!> \version 0.1
 !> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !! - Stephan Thober (Dec 2012)
 !!   - laid out the original MPR orchestration and process-regionalization workflow
 !! - Juliane Mai (Oct 2013)
@@ -73,6 +75,9 @@ module mo_mpr_container
   use mo_read_lut, only: read_geoformation_lut, read_lai_lut
   use nml_config_mpr, only: nml_config_mpr_t
   use nml_helper, only: NML_OK
+
+  implicit none
+  private
 
   character(len=*), parameter :: lc_restart_calendar = "proleptic_gregorian" !< calendar to use for land-cover timing in restart
 
@@ -838,10 +843,10 @@ contains
 
   !> \brief Fail with context when a generated parameter namelist operation fails.
   subroutine check_parameter_status(status, block, action, errmsg)
-    integer, intent(in) :: status
-    character(*), intent(in) :: block
-    character(*), intent(in) :: action
-    character(*), intent(in) :: errmsg
+    integer, intent(in) :: status !< Namelist operation status code.
+    character(*), intent(in) :: block !< Parameter-block name for diagnostics.
+    character(*), intent(in) :: action !< Parameter operation being checked.
+    character(*), intent(in) :: errmsg !< Detailed namelist validation error.
 
     if (status == NML_OK) return
     log_fatal(*) "MPR: failed to ", trim(action), " parameter block '", trim(block), "': ", trim(errmsg)
@@ -923,7 +928,6 @@ contains
 
         error stop 1
     end select
-
 
     if (self%config%lai_time_step(id(1)) == 0_i4) then
       if (.not.allocated(self%lai%lut_path)) then
@@ -1014,7 +1018,7 @@ contains
   !> \brief Write currently cached MPR effective parameters as unpacked L1 restart data.
   subroutine mpr_write_restart_data(self, nc)
     class(mpr_t), intent(inout), target :: self
-    type(NcDataset), intent(inout) :: nc
+    type(NcDataset), intent(inout) :: nc !< Open NetCDF dataset.
     type(NcDimension) :: dims_xy(2)
     type(NcDimension) :: lai_dim
     type(NcDimension) :: land_cover_dim
@@ -1193,7 +1197,7 @@ contains
 
   !> \brief Build the CF units string for temporal land-cover restart metadata.
   function mpr_land_cover_restart_units(start_time) result(units)
-    type(datetime), intent(in) :: start_time
+    type(datetime), intent(in) :: start_time !< Reference time for restart time coordinates.
     character(:), allocatable :: units
 
     units = "hours since " // start_time%str()
@@ -1201,8 +1205,8 @@ contains
 
   !> \brief Convert a datetime to an integer hour stamp in CF units.
   integer(i4) function mpr_restart_hour_stamp(ref_time, current_time) result(stamp)
-    type(datetime), intent(in) :: ref_time
-    type(datetime), intent(in) :: current_time
+    type(datetime), intent(in) :: ref_time !< Origin of the restart time coordinate.
+    type(datetime), intent(in) :: current_time !< Time to encode as a whole-hour offset.
     real(dp) :: hours_dp
     real(dp) :: rounded_dp
 
@@ -1222,8 +1226,8 @@ contains
 
   !> \brief Convert an integer restart time value in CF units to datetime.
   type(datetime) function mpr_datetime_from_restart_time(units, value) result(dt)
-    character(*), intent(in) :: units
-    integer(i4), intent(in) :: value
+    character(*), intent(in) :: units !< CF time units including the reference date.
+    integer(i4), intent(in) :: value !< Whole-hour offset in the supplied CF units.
 
     dt = datetime(trim(units), value)
   end function mpr_datetime_from_restart_time
@@ -1231,8 +1235,8 @@ contains
   !> \brief Write LAI timing metadata as cyclic monthly bounds or dated CF time bounds, depending on lai_time_step.
   subroutine mpr_write_restart_lai_timing(self, nc, lai_dim)
     class(mpr_t), intent(inout), target :: self
-    type(NcDataset), intent(inout) :: nc
-    type(NcDimension), intent(in) :: lai_dim
+    type(NcDataset), intent(inout) :: nc !< Open NetCDF dataset.
+    type(NcDimension), intent(in) :: lai_dim !< LAI-period dimension.
     type(NcDimension) :: bounds_dim
     type(NcVariable) :: coord_var
     type(NcVariable) :: bounds_var
@@ -1306,7 +1310,7 @@ contains
   !> \brief Read LAI timing metadata from restart and restore cyclic or dated LAI switching state.
   subroutine mpr_read_restart_lai_timing(self, nc)
     class(mpr_t), intent(inout), target :: self
-    type(NcDataset), intent(inout) :: nc
+    type(NcDataset), intent(inout) :: nc !< Open NetCDF dataset.
     type(NcDimension) :: nc_dim
     type(NcVariable) :: nc_var
     integer(i4), allocatable :: var_shape(:)
@@ -1468,8 +1472,8 @@ contains
   !> \brief Write temporal land-cover restart timing metadata as an integer CF time axis with bounds.
   subroutine mpr_write_restart_land_cover_timing(self, nc, land_cover_dim)
     class(mpr_t), intent(inout), target :: self
-    type(NcDataset), intent(inout) :: nc
-    type(NcDimension), intent(in) :: land_cover_dim
+    type(NcDataset), intent(inout) :: nc !< Open NetCDF dataset.
+    type(NcDimension), intent(in) :: land_cover_dim !< Land-cover-period dimension.
     type(NcDimension) :: bounds_dim
     type(NcVariable) :: coord_var
     type(NcVariable) :: bounds_var
@@ -1521,7 +1525,7 @@ contains
   !> \brief Read land-cover time bounds from the restart file and rebuild cached timing state.
   subroutine mpr_read_restart_land_cover_timing(self, nc)
     class(mpr_t), intent(inout), target :: self
-    type(NcDataset), intent(inout) :: nc
+    type(NcDataset), intent(inout) :: nc !< Open NetCDF dataset.
     type(NcDimension) :: nc_dim
     type(NcVariable) :: nc_var
     integer(i4), allocatable :: var_shape(:)
@@ -1661,9 +1665,9 @@ contains
   !> \brief Read a packed L1 scalar field from unpacked 2D restart data.
   subroutine mpr_read_restart_field_2d(self, nc, var_name, data_packed)
     class(mpr_t), intent(inout), target :: self
-    type(NcDataset), intent(in) :: nc
-    character(*), intent(in) :: var_name
-    real(dp), allocatable, intent(out) :: data_packed(:)
+    type(NcDataset), intent(in) :: nc !< Open NetCDF dataset.
+    character(*), intent(in) :: var_name !< NetCDF field name.
+    real(dp), allocatable, intent(out) :: data_packed(:) !< Packed field values on the connected land grid.
     type(NcVariable) :: nc_var
     integer(i4), allocatable :: var_shape(:)
     real(dp), allocatable :: data_2d(:, :)
@@ -1690,9 +1694,9 @@ contains
   !> \brief Read a packed L1 field with one auxiliary dimension from unpacked 3D restart data.
   subroutine mpr_read_restart_field_3d(self, nc, var_name, data_packed)
     class(mpr_t), intent(inout), target :: self
-    type(NcDataset), intent(in) :: nc
-    character(*), intent(in) :: var_name
-    real(dp), allocatable, intent(out) :: data_packed(:, :)
+    type(NcDataset), intent(in) :: nc !< Open NetCDF dataset.
+    character(*), intent(in) :: var_name !< NetCDF field name.
+    real(dp), allocatable, intent(out) :: data_packed(:, :) !< Packed field values on the connected land grid.
     type(NcVariable) :: nc_var
     integer(i4), allocatable :: var_shape(:)
     real(dp), allocatable :: data_3d(:, :, :)
@@ -1722,9 +1726,9 @@ contains
   !> \brief Read a packed L1 field with two auxiliary dimensions from unpacked 4D restart data.
   subroutine mpr_read_restart_field_4d(self, nc, var_name, data_packed)
     class(mpr_t), intent(inout), target :: self
-    type(NcDataset), intent(in) :: nc
-    character(*), intent(in) :: var_name
-    real(dp), allocatable, intent(out) :: data_packed(:, :, :)
+    type(NcDataset), intent(in) :: nc !< Open NetCDF dataset.
+    character(*), intent(in) :: var_name !< NetCDF field name.
+    real(dp), allocatable, intent(out) :: data_packed(:, :, :) !< Packed field values on the connected land grid.
     type(NcVariable) :: nc_var
     integer(i4), allocatable :: var_shape(:)
     real(dp), allocatable :: data_4d(:, :, :, :)
@@ -1757,11 +1761,11 @@ contains
   !> \brief Write a packed L1 scalar field as unpacked 2D restart data.
   subroutine mpr_write_restart_field_2d(self, nc, dims_xy, var_name, metadata, data_packed)
     class(mpr_t), intent(inout), target :: self
-    type(NcDataset), intent(inout) :: nc
-    type(NcDimension), intent(in) :: dims_xy(2)
-    character(*), intent(in) :: var_name
-    class(variable_abc), intent(in), target :: metadata
-    real(dp), intent(in) :: data_packed(:)
+    type(NcDataset), intent(inout) :: nc !< Open NetCDF dataset.
+    type(NcDimension), intent(in) :: dims_xy(2) !< Horizontal NetCDF dimensions.
+    character(*), intent(in) :: var_name !< NetCDF field name.
+    class(variable_abc), intent(in), target :: metadata !< Canonical exchange-field metadata.
+    real(dp), intent(in) :: data_packed(:) !< Packed field values on the connected land grid.
     type(NcVariable) :: nc_var
     real(dp), allocatable :: data_2d(:, :)
 
@@ -1779,12 +1783,12 @@ contains
   !> \brief Write a packed L1 field with one auxiliary dimension as unpacked 3D restart data.
   subroutine mpr_write_restart_field_3d(self, nc, dims_xy, dim3, var_name, metadata, data_packed)
     class(mpr_t), intent(inout), target :: self
-    type(NcDataset), intent(inout) :: nc
-    type(NcDimension), intent(in) :: dims_xy(2)
-    type(NcDimension), intent(in) :: dim3
-    character(*), intent(in) :: var_name
-    class(variable_abc), intent(in), target :: metadata
-    real(dp), intent(in) :: data_packed(:, :)
+    type(NcDataset), intent(inout) :: nc !< Open NetCDF dataset.
+    type(NcDimension), intent(in) :: dims_xy(2) !< Horizontal NetCDF dimensions.
+    type(NcDimension), intent(in) :: dim3 !< Vertical or temporal NetCDF dimension.
+    character(*), intent(in) :: var_name !< NetCDF field name.
+    class(variable_abc), intent(in), target :: metadata !< Canonical exchange-field metadata.
+    real(dp), intent(in) :: data_packed(:, :) !< Packed field values on the connected land grid.
     type(NcDimension) :: dims(3)
     type(NcVariable) :: nc_var
     real(dp), allocatable :: data_3d(:, :, :)
@@ -1808,13 +1812,13 @@ contains
   !> \brief Write a packed L1 field with two auxiliary dimensions as unpacked 4D restart data.
   subroutine mpr_write_restart_field_4d(self, nc, dims_xy, dim3, dim4, var_name, metadata, data_packed)
     class(mpr_t), intent(inout), target :: self
-    type(NcDataset), intent(inout) :: nc
-    type(NcDimension), intent(in) :: dims_xy(2)
-    type(NcDimension), intent(in) :: dim3
-    type(NcDimension), intent(in) :: dim4
-    character(*), intent(in) :: var_name
-    class(variable_abc), intent(in), target :: metadata
-    real(dp), intent(in) :: data_packed(:, :, :)
+    type(NcDataset), intent(inout) :: nc !< Open NetCDF dataset.
+    type(NcDimension), intent(in) :: dims_xy(2) !< Horizontal NetCDF dimensions.
+    type(NcDimension), intent(in) :: dim3 !< Vertical or temporal NetCDF dimension.
+    type(NcDimension), intent(in) :: dim4 !< Temporal source-slice dimension.
+    character(*), intent(in) :: var_name !< NetCDF field name.
+    class(variable_abc), intent(in), target :: metadata !< Canonical exchange-field metadata.
+    real(dp), intent(in) :: data_packed(:, :, :) !< Packed field values on the connected land grid.
     type(NcDimension) :: dims(4)
     type(NcVariable) :: nc_var
     real(dp), allocatable :: data_4d(:, :, :, :)
@@ -2142,7 +2146,7 @@ contains
   !> \brief Validate that the restart grid matches the currently configured level1 grid.
   subroutine mpr_validate_restart_grid(self, restart_grid)
     class(mpr_t), intent(inout), target :: self
-    type(grid_t), intent(in), target :: restart_grid
+    type(grid_t), intent(in), target :: restart_grid !< Spatial support restored from the restart.
 
     if (.not.associated(self%exchange%level1_land)) then
       log_fatal(*) "MPR restart: level1 grid not connected before restart-grid validation."
@@ -2644,8 +2648,8 @@ contains
   !> \brief Load one configured process parameter block into an allocated local array.
   subroutine mpr_load_process_params(self, process, params)
     class(mpr_t), intent(in), target :: self
-    character(*), intent(in) :: process
-    real(dp), allocatable, intent(out) :: params(:)
+    character(*), intent(in) :: process !< Selected process name in the parameter registry.
+    real(dp), allocatable, intent(out) :: params(:) !< Current process parameters in registration order.
 
     params = self%exchange%parameters%get_process(process)
   end subroutine mpr_load_process_params
@@ -3105,8 +3109,8 @@ contains
   !> \brief Switch exchange pointers to active cached MPR slices for a model time.
   subroutine mpr_update_exchange_slices(self, force, time)
     class(mpr_t), intent(inout), target :: self
-    logical, optional, intent(in) :: force
-    type(datetime), optional, intent(in) :: time
+    logical, optional, intent(in) :: force !< Rebind active slices even when their indices have not changed.
+    type(datetime), optional, intent(in) :: time !< Interval-start time used to select active source slices.
     type(datetime) :: active_time
     logical :: force_
     logical :: need_lai_slice
@@ -3283,8 +3287,8 @@ contains
 
   !> \brief Mark an MPR publication static or slice-switched within the simulation.
   subroutine set_published_temporality(variable, temporal)
-    class(variable_abc), intent(inout) :: variable
-    logical, intent(in) :: temporal
+    class(variable_abc), intent(inout) :: variable !< Exchange field whose publication metadata is updated.
+    logical, intent(in) :: temporal !< Whether the publication switches between temporal slices.
 
     if (.not.variable%provided) return
     variable%static = .not.temporal
@@ -3294,7 +3298,7 @@ contains
   !> \brief Resolve active LAI period index from a model time.
   integer(i4) function mpr_lai_index_for_time(self, time) result(lai_idx)
     class(mpr_t), intent(inout), target :: self
-    type(datetime), intent(in) :: time
+    type(datetime), intent(in) :: time !< Interval-start time used to select active source slices.
     integer(i4) :: id(1)
 
     id(1) = self%exchange%nml_domain_id
@@ -3345,7 +3349,7 @@ contains
   !> \brief Resolve active land-cover period index from a model time.
   integer(i4) function mpr_land_cover_index_for_time(self, time) result(land_cover_idx)
     class(mpr_t), intent(inout), target :: self
-    type(datetime), intent(in) :: time
+    type(datetime), intent(in) :: time !< Interval-start time used to select active source slices.
 
     if (self%land_cover%n_periods < 1_i4) then
       log_fatal(*) "MPR: n_land_cover_periods must be >= 1."

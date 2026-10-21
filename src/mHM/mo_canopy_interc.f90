@@ -1,6 +1,5 @@
 !> \file mo_canopy_interc.f90
-!> \brief \copybrief mo_canopy_interc
-!> \details \copydetails mo_canopy_interc
+!> \copydoc mo_canopy_interc
 
 !> \brief Canopy interception.
 !> \details This module deals with processes related to canopy interception, evaporation and throughfall.
@@ -9,6 +8,9 @@
 !!   - Documentation updated (formula and a short description added)
 !> \authors Vladyslav Prykhodko
 !> \date Dec 2012
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
@@ -49,18 +51,6 @@ CONTAINS
   !>       content(\f$C_{max}\f$) that can be intecepted by the vegetation.
   !>       canopy_interc(pet, interc_month_max, interc_max, precip, throughfall, evap_canopy, interc)
 
-  !    INTENT(IN)
-  !>       \param[in] "REAL(dp) :: pet"        Potential evapotranspiration [mm TS-1]
-  !>       \param[in] "REAL(dp) :: interc_max" Maximum interception [mm]
-  !>       \param[in] "REAL(dp) :: precip"     Daily mean precipitation [mm]
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "REAL(dp) :: interc" Interception [mm]
-
-  !    INTENT(OUT)
-  !>       \param[out] "REAL(dp) :: throughfall" Throughfall [mm TS-1]
-  !>       \param[out] "REAL(dp) :: evap_canopy" Real evaporation intensity from canopy[mm TS-1]
-
   !    HISTORY
   !>       \authors Vladyslav Prykhodko
 
@@ -73,28 +63,15 @@ CONTAINS
 
   ELEMENTAL PURE SUBROUTINE canopy_interc(pet, interc_max, precip, interc, throughfall, evap_canopy)
     implicit none
-
-    ! Potential evapotranspiration [mm TS-1]
-    REAL(dp), INTENT(IN) :: pet
-
-    ! Maximum interception [mm]
-    REAL(dp), INTENT(IN) :: interc_max
-
-    ! Daily mean precipitation [mm]
-    REAL(dp), INTENT(IN) :: precip
-
-    ! Interception [mm]
-    REAL(dp), INTENT(INOUT) :: interc
-
-    ! Throughfall [mm TS-1]
-    REAL(dp), INTENT(OUT) :: throughfall
-
-    ! Real evaporation intensity from canopy[mm TS-1]
-    REAL(dp), INTENT(OUT) :: evap_canopy
+    REAL(dp), INTENT(IN) :: pet !< Potential evapotranspiration for this interval [mm].
+    REAL(dp), INTENT(IN) :: interc_max !< Maximum interception [mm]
+    REAL(dp), INTENT(IN) :: precip !< Daily mean precipitation [mm]
+    REAL(dp), INTENT(INOUT) :: interc !< Canopy interception storage [mm].
+    REAL(dp), INTENT(OUT) :: throughfall !< Throughfall [mm TS-1]
+    REAL(dp), INTENT(OUT) :: evap_canopy !< Real evaporation intensity from canopy[mm TS-1]
 
     ! Auxiliary helping variable [-]
     REAL(dp) :: aux_help
-
 
     !===============================================
     ! Canopy Interception
