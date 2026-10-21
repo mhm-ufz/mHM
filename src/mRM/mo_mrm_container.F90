@@ -1508,6 +1508,7 @@ contains
 
   subroutine mrm_create_output(self)
     use mo_grid_io, only: var, time_units_delta
+    use mo_netcdf_utils, only: add_var
     class(mrm_t), intent(inout), target :: self
 
     integer(i4) :: timestamp
@@ -1528,23 +1529,23 @@ contains
     if (.not.self%output_config%output_double_precision) dtype = "f32"
     allocate(vars(0))
     if (self%output_config%out_Qrouted) then
-      vars = [vars, self%exchange%discharge%as_output_var(dtype=dtype, avg=.true.)]
+      call add_var(vars, self%exchange%discharge%as_output_var(dtype=dtype, avg=.true.))
     end if
     if (self%thermal_state%active) then
-      if (self%output_config%out_RivTemp) vars = [vars, self%exchange%river_temp%as_output_var(dtype=dtype, avg=.true.)]
-      if (self%output_config%out_Erouted) vars = [vars, self%exchange%energy_flux%as_output_var(dtype=dtype, avg=.true.)]
+      if (self%output_config%out_RivTemp) call add_var(vars, self%exchange%river_temp%as_output_var(dtype=dtype, avg=.true.))
+      if (self%output_config%out_Erouted) call add_var(vars, self%exchange%energy_flux%as_output_var(dtype=dtype, avg=.true.))
     end if
     if (self%output_config%out_facc) then
-      vars = [vars, var(name="facc", long_name="flow accumulation", dtype="i32", kind="i4", static=.true.)]
+      call add_var(vars, var(name="facc", long_name="flow accumulation", dtype="i32", kind="i4", static=.true.))
       if (.not.allocated(self%river%facc)) call self%river%calc_facc()
     end if
     if (self%output_config%out_upstream_area) then
-      vars = [vars, var(name="upstream_area", long_name="upstream area", dtype=dtype, kind="dp", static=.true.)]
+      call add_var(vars, var(name="upstream_area", long_name="upstream area", dtype=dtype, kind="dp", static=.true.))
       if (.not.allocated(self%river%upstream_area)) call self%river%calc_upstream_area()
     end if
     if (self%output_config%out_reach_surface_area .and. self%thermal_state%active) then
-      vars = [vars, var(name="reach_surface_area", long_name="physical reach water surface area", &
-        units="m2", dtype=dtype, kind="dp", static=.true.)]
+      call add_var(vars, var(name="reach_surface_area", long_name="physical reach water surface area", &
+        units="m2", dtype=dtype, kind="dp", static=.true.))
     end if
 
     ! create grid based output
@@ -1570,7 +1571,8 @@ contains
 
     ! create node based output
     if (self%output_node_active) then
-      node_vars = [vars, var(name="node", long_name="river node ID", dtype="i64", kind="i8", static=.true.)]
+      node_vars = vars
+      call add_var(node_vars, var(name="node", long_name="river node ID", dtype="i64", kind="i8", static=.true.))
       allocate(node_ids(self%river%n_nodes))
       !$omp parallel do default(shared)
       do i = 1_i8, self%river%n_nodes
@@ -1599,7 +1601,8 @@ contains
 
     ! create POI output at the selected river-node coordinates
     if (self%poi%active) then
-      poi_vars = [vars, var(name="station", long_name="POI station ID", dtype="i64", kind="i8", static=.true.)]
+      poi_vars = vars
+      call add_var(poi_vars, var(name="station", long_name="POI station ID", dtype="i64", kind="i8", static=.true.))
       log_info(*) "Create mRM POI output file: ", self%poi%path
       call self%poi%dataset%init( &
         path          = self%poi%path, &

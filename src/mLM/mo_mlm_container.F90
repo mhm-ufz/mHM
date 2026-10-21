@@ -25,6 +25,7 @@ module mo_mlm_container
   use mo_lake_balance, only: lake_balance_outflow
   use mo_lake_topology, only: lake_derive_area, lake_read_topology, lake_write_topology
   use mo_grid_io, only: var, daily, monthly, yearly, no_time, time_units_delta
+  use mo_netcdf_utils, only: add_var
   use mo_points, only: points_t, cartesian, spherical
   use mo_points_io, only: points_output_dataset
   use mo_utils, only: is_close
@@ -357,9 +358,9 @@ contains
     dtype = "f64"
     if (.not.self%output_config%output_double_precision) dtype = "f32"
 
-    vars = [var(name="lake_id", long_name="stable lake ID", dtype="i64", kind="i8", static=.true.)]
+    call add_var(vars, var(name="lake_id", long_name="stable lake ID", dtype="i64", kind="i8", static=.true.))
     if (self%output_config%out_lake_outflow) then
-      vars = [vars, self%exchange%lake_outflow%as_output_var(dtype=dtype, avg=.true.)]
+      call add_var(vars, self%exchange%lake_outflow%as_output_var(dtype=dtype, avg=.true.))
     end if
 
     log_info(*) "Create mLM lake-point output file: ", self%output_path
