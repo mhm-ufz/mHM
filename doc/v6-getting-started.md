@@ -90,3 +90,39 @@ See [Python package guidance](../pybind/README.md).
 
 mHM is distributed under LGPLv3+; see `LICENSE.md`, `COPYING`,
 `COPYING.LESSER`, and `AUTHORS`.
+
+## Soil horizons and layered output
+
+The soil-depth namelist still specifies layer **bottoms** in millimetres. NetCDF
+restart and output coordinates now specify layer **tops**, with bounds,
+`units="mm"`, and `positive="down"`. In fixed-depth mode (`soil_db_mode=1`), all
+interfaces are fixed. In mode 0, the terminal bound repeats the final layer top.
+For example, layer tops `[0, 200, 500]` have vertices `[0, 200, 500, 500]`.
+This is an **mHM-specific convention**: coincident final bounds indicate that mHM
+does not provide the spatially variable bottom depth. They do not imply zero
+physical thickness. Generic CF applications may interpret this marker as a zero-sized
+cell, so these bounds must not be used to calculate bottom-layer thickness or volume.
+The coordinate's `comment` explains the convention. No boundary-provenance attribute
+or L1 `soil_depth` field is written. Capacities and root fractions continue to use
+soil-specific depths. Both neutron formulations continue to exclude the last layer.
+
+Existing v6 restarts with bottom-referenced coordinates are read through their
+bounds. In mode 0, old nominal terminal depths are normalized to the repeated final
+top; old `bottom_boundary_type` attributes are accepted and checked against the
+configured soil mode. Layer counts and internal interfaces must match; fixed-depth
+terminal bounds must also match. Mode-1 COSMIC restarts with invalid L3 must be regenerated.
+
+The following outputs now share a `z` dimension rather than numbering variables:
+
+| Previous names | Current field | Meaning |
+| --- | --- | --- |
+| `SWC_L01`, `SWC_L02`, … | `SWC` | Soil water storage [mm] |
+| `SM_L01`, `SM_L02`, … | `SM` | Relative saturation [1] |
+| `soil_infil_L01`, … | `soil_infil` | Accumulated infiltration [mm] |
+| `aET_L01`, … | `aET_soil` | Accumulated soil evapotranspiration [mm] |
+
+Select layer 1 with `SWC.isel(z=0)` in xarray, for example. CDL dimension order is
+`(time,z,y,x)` or `(time,z,lat,lon)`, including `z=1` for one-layer models. Total
+`aET`, `SM_Lall`, and other ordinary fields keep their horizontal dimensions.
+Output switches, time bounds, precision, compression, state averaging, flux sums,
+and pervious-area factors are unchanged.

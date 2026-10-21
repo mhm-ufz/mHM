@@ -13,7 +13,7 @@
 /**
 \defgroup   f_domain domain - Fortran modules
 \brief      Domain orchestration, exchange contracts, and parameter configuration.
-\details    Domain lifecycle management, exchanged fields, parameter namelists, and the sealed runtime parameter registry.
+\details    Domain lifecycle management, exchanged fields and horizon metadata, parameter namelists, and the sealed runtime parameter registry.
 */
 
 /**
@@ -49,7 +49,7 @@
 /**
 \defgroup   f_meteo Meteo - Fortran modules
 \brief      Core modules for meteorological forcings.
-\details    The meteo container, spatial and temporal remapping algorithms, and disaggregation weights reader.
+\details    The meteo container, PET formulations and coefficients, FORCES spatial scaling, temporal disaggregation, and weights reader.
 */
 
 /**
