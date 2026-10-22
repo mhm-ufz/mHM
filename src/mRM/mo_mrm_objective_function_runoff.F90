@@ -32,6 +32,8 @@
 !! 32. SO: Q:        SSE of boxcox-transformed streamflow
 !! 48. SO: Q:        1.0 - KGEprime (modified/prime KGE, Kling et al. 2012)
 !! 49. SO: Q:        1.0 - KGEnp (non-parametric KGE, Pool et al. 2018)
+!! 50. SO: Q:        1.0 - NSE of calendar-month mean discharge
+!! 51. SO: Q:        1.0 - KGE of calendar-month mean discharge
 !! 52. SO: Q:        1.0 - JDKGE (Joint Divergence KGE, Ficchi et al. 2026)
 !> \changelog
 !! - Stephan Thober             Oct 2015
@@ -53,6 +55,8 @@
 !! - Ehsan Modiri               Aug 2026
 !!   - added OF 48: KGEprime (modified/prime KGE, Kling et al. 2012)
 !!   - added OF 49: KGEnp (non-parametric KGE, Pool et al. 2018)
+!!   - added OF 50: monthly NSE based on calendar-month mean discharge
+!!   - added OF 51: monthly KGE based on calendar-month mean discharge
 !!   - added OF 52: JDKGE (Joint Divergence KGE, Ficchi et al. 2026)
 !> \authors Juliane Mai
 !> \date Dec 2012
@@ -191,6 +195,12 @@ CONTAINS
     case (49)
       ! KGEnp
       single_objective_runoff = objective_kgenp(parameterset, eval)
+    case (50)
+      ! monthly NSE
+      single_objective_runoff = objective_nse_monthly(parameterset, eval)
+    case (51)
+      ! monthly KGE
+      single_objective_runoff = objective_kge_monthly(parameterset, eval)
     case (52)
       ! JDKGE
       single_objective_runoff = objective_jdkge(parameterset, eval)
@@ -285,7 +295,7 @@ CONTAINS
     !write(*,*) 'parameterset: ',parameterset(:)
     call distribute_parameterset(parameterset)
     select case (opti_function)
-    case(1 : 3, 5, 6, 9, 31, 48, 49, 52)
+    case(1 : 3, 5, 6, 9, 31, 48, 49, 50, 51, 52)
       call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
       single_objective_runoff_master = 0.0_dp
       do iproc = 1, nproc - 1
@@ -340,6 +350,12 @@ CONTAINS
     case (49)
       ! KGEnp
       call message('objective_kgenp (i.e., 1 - KGEnp) = ', num2str(single_objective_runoff_master))
+    case (50)
+      ! monthly NSE
+      call message('objective_nse_monthly (i.e., 1 - monthly NSE) = ', num2str(single_objective_runoff_master))
+    case (51)
+      ! monthly KGE
+      call message('objective_kge_monthly (i.e., 1 - monthly KGE) = ', num2str(single_objective_runoff_master))
     case (52)
       ! JDKGE
       call message('objective_jdkge (i.e., 1 - JDKGE) = ', num2str(single_objective_runoff_master))
@@ -483,6 +499,12 @@ CONTAINS
       case (49)
         ! KGEnp
         partial_single_objective_runoff = objective_kgenp(parameterset, eval)
+      case (50)
+        ! monthly NSE
+        partial_single_objective_runoff = objective_nse_monthly(parameterset, eval)
+      case (51)
+        ! monthly KGE
+        partial_single_objective_runoff = objective_kge_monthly(parameterset, eval)
       case (52)
         ! JDKGE
         partial_single_objective_runoff = objective_jdkge(parameterset, eval)
@@ -502,7 +524,7 @@ CONTAINS
       end select
 
       select case (opti_function)
-      case (1 : 3, 5, 6, 9, 14, 31, 48, 49, 52)
+      case (1 : 3, 5, 6, 9, 14, 31, 48, 49, 50, 51, 52)
         call MPI_Send(partial_single_objective_runoff,1, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
         call error_message("Error objective_subprocess: this part should not be executed -> error in the code.")
@@ -2376,6 +2398,91 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
+  !> Monthly runoff objective based on calendar-month mean discharge.
+  FUNCTION objective_nse_monthly(parameterset, eval)
+
+    use mo_errormeasures, only : nse
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp) :: objective_nse_monthly
+
+    real(dp), allocatable, dimension(:, :) :: runoff
+    real(dp), dimension(:), allocatable :: runoff_monthly
+    real(dp), dimension(:), allocatable :: runoff_obs_monthly
+    logical, dimension(:), allocatable :: runoff_obs_monthly_mask
+    integer(i4) :: gg
+    integer(i4) :: nGaugesTotal
+
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
+
+    objective_nse_monthly = 0.0_dp
+    do gg = 1, nGaugesTotal
+      call extract_runoff_monthly(gg, runoff, runoff_monthly, runoff_obs_monthly, runoff_obs_monthly_mask)
+      objective_nse_monthly = objective_nse_monthly + &
+              nse(runoff_obs_monthly, runoff_monthly, mask = runoff_obs_monthly_mask)
+    end do
+#ifndef MPI
+    objective_nse_monthly = 1.0_dp - objective_nse_monthly / real(nGaugesTotal, dp)
+    call message('objective_nse_monthly (i.e., 1 - monthly NSE) = ', num2str(objective_nse_monthly))
+#endif
+
+    if (allocated(runoff_monthly)) deallocate(runoff_monthly)
+    if (allocated(runoff_obs_monthly)) deallocate(runoff_obs_monthly)
+    if (allocated(runoff_obs_monthly_mask)) deallocate(runoff_obs_monthly_mask)
+    if (allocated(runoff)) deallocate(runoff)
+
+  END FUNCTION objective_nse_monthly
+
+
+  ! ------------------------------------------------------------------
+
+  FUNCTION objective_kge_monthly(parameterset, eval)
+
+    use mo_errormeasures, only : kge
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp) :: objective_kge_monthly
+
+    real(dp), allocatable, dimension(:, :) :: runoff
+    real(dp), dimension(:), allocatable :: runoff_monthly
+    real(dp), dimension(:), allocatable :: runoff_obs_monthly
+    logical, dimension(:), allocatable :: runoff_obs_monthly_mask
+    integer(i4) :: gg
+    integer(i4) :: nGaugesTotal
+
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
+
+    objective_kge_monthly = 0.0_dp
+    do gg = 1, nGaugesTotal
+      call extract_runoff_monthly(gg, runoff, runoff_monthly, runoff_obs_monthly, runoff_obs_monthly_mask)
+      objective_kge_monthly = objective_kge_monthly + &
+              kge(runoff_obs_monthly, runoff_monthly, mask = runoff_obs_monthly_mask)
+    end do
+#ifndef MPI
+    objective_kge_monthly = 1.0_dp - objective_kge_monthly / real(nGaugesTotal, dp)
+    call message('objective_kge_monthly (i.e., 1 - monthly KGE) = ', num2str(objective_kge_monthly))
+#endif
+
+    if (allocated(runoff_monthly)) deallocate(runoff_monthly)
+    if (allocated(runoff_obs_monthly)) deallocate(runoff_obs_monthly)
+    if (allocated(runoff_obs_monthly_mask)) deallocate(runoff_obs_monthly_mask)
+    if (allocated(runoff)) deallocate(runoff)
+
+  END FUNCTION objective_kge_monthly
+
+  ! ------------------------------------------------------------------
+
+
+  ! ------------------------------------------------------------------
+
   !    NAME
   !        objective_jdkge
 
@@ -2810,6 +2917,68 @@ CONTAINS
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+
+  ! ------------------------------------------------------------------
+
+  subroutine extract_runoff_monthly(gaugeId, runoff, runoff_monthly, runoff_obs_monthly, runoff_obs_monthly_mask)
+
+    use mo_common_constants, only : nodata_dp
+    use mo_common_mhm_mrm_variables, only : evalPer
+    use mo_julian, only : caldat
+    use mo_mrm_global_variables, only : gauge, nMeasPerDay
+    use mo_temporal_aggregation, only : day2mon_average
+
+    implicit none
+
+    integer(i4), intent(in) :: gaugeId
+    real(dp), dimension(:, :), intent(in) :: runoff
+    real(dp), dimension(:), allocatable, intent(out) :: runoff_monthly
+    real(dp), dimension(:), allocatable, intent(out) :: runoff_obs_monthly
+    logical, dimension(:), allocatable, intent(out) :: runoff_obs_monthly_mask
+
+    real(dp), dimension(:), allocatable :: runoff_daily
+    real(dp), dimension(:), allocatable :: runoff_obs_daily
+    logical, dimension(:), allocatable :: runoff_obs_daily_mask
+    real(dp), dimension(:), allocatable :: runoff_daily_masked
+    real(dp), dimension(:), allocatable :: runoff_obs_daily_masked
+    integer(i4) :: iDomain
+    integer(i4) :: year, month, day
+
+    ! day2mon_average expects daily input. extract_runoff returns data at the
+    ! observation time step, so monthly objectives 50/51 require daily Qobs.
+    if (nMeasPerDay .ne. 1_i4) then
+      call error_message('Monthly NSE/KGE objectives require daily discharge observations (nMeasPerDay = 1).')
+    end if
+
+    call extract_runoff(gaugeId, runoff, runoff_daily, runoff_obs_daily, runoff_obs_daily_mask)
+
+    allocate(runoff_daily_masked(size(runoff_daily)))
+    allocate(runoff_obs_daily_masked(size(runoff_obs_daily)))
+    runoff_daily_masked = nodata_dp
+    runoff_obs_daily_masked = nodata_dp
+
+    ! Use exactly the same valid observed days for Qobs and Qsim.
+    where (runoff_obs_daily_mask)
+      runoff_daily_masked = runoff_daily
+      runoff_obs_daily_masked = runoff_obs_daily
+    end where
+
+    iDomain = gauge%domainId(gaugeId)
+    call caldat(int(evalPer(iDomain)%julStart), yy = year, mm = month, dd = day)
+
+    call day2mon_average(runoff_daily_masked, year, month, day, runoff_monthly, misval = nodata_dp)
+    call day2mon_average(runoff_obs_daily_masked, year, month, day, runoff_obs_monthly, misval = nodata_dp)
+
+    allocate(runoff_obs_monthly_mask(size(runoff_obs_monthly)))
+    runoff_obs_monthly_mask = (runoff_obs_monthly .ne. nodata_dp) .and. (runoff_monthly .ne. nodata_dp)
+
+    deallocate(runoff_daily, runoff_obs_daily, runoff_obs_daily_mask)
+    deallocate(runoff_daily_masked, runoff_obs_daily_masked)
+
+  end subroutine extract_runoff_monthly
+
+  ! ------------------------------------------------------------------
+
 
   subroutine extract_runoff(gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
 

@@ -46,6 +46,7 @@ contains
   !>       surface, postive downwards
   !>       \param[in] "integer(i4), dimension(:) :: LCOVER0"          Land cover at level 0
   !>       \param[in] "integer(i4), dimension(:, :) :: soilID0"       soil ID at level 0
+  !>       (dim2 = number of horizons of the gridded soil input data for iFlag_soil = 1)
   !>       \param[in] "integer(i4), dimension(:) :: nHorizons"        horizons per soil type
   !>       \param[in] "integer(i4), dimension(:) :: nTillHorizons"    Number of Tillage horizons
   !>       \param[in] "real(dp), dimension(:, :, :) :: thetaS_till"   saturated water content of soil
@@ -265,6 +266,12 @@ contains
 
     ! loop index
     integer(i4) :: s
+
+    ! loop index over the horizons of the gridded soil input data
+    integer(i4) :: d
+
+    ! weight of an input data horizon within the current modelling horizon
+    real(dp) :: w
 
     real(dp) :: dpth_f
 
@@ -592,23 +599,38 @@ contains
         end if
         ! need to be done for every layer to get fRoots
         !$OMP PARALLEL
-        !$OMP DO PRIVATE( l, s ) SCHEDULE( STATIC )
+        !$OMP DO PRIVATE( l, s, d, w ) SCHEDULE( STATIC )
         cellloop1 : do k = 1, size(LCOVER0, 1)
           L = LCOVER0(k)
-          s = soilID0(k, h)
-          if (h .le. nTillHorizons(1)) then
-            Bd0(k) = Db(s, 1, L)
-            SMs0(k)= thetaS_till (s, 1, L) * (dpth_t - dpth_f)  ! in mm
-            FC0(k) = thetaFC_till(s, 1, L) * (dpth_t - dpth_f)  ! in mm
-            PW0(k) = thetaPW_till(s, 1, L) * (dpth_t - dpth_f)  ! in mm
-            LW0(k) = latWat_till(s, 1, L)  * (dpth_t - dpth_f)  ! in mm  ! >> neutron count
-          else
-            Bd0(k) = DbM(s, 1)
-            SMs0(k)= thetaS (s, 1) * (dpth_t - dpth_f)  ! in mm
-            FC0(k) = thetaFC(s, 1) * (dpth_t - dpth_f)  ! in mm
-            PW0(k) = thetaPW(s, 1) * (dpth_t - dpth_f)  ! in mm
-            LW0(k) = latWat(s, 1)  * (dpth_t - dpth_f)  ! in mm  ! >> neutron count
-          end if
+          ! The soil properties of this modelling horizon are the depth weighted
+          ! average of all horizons of the gridded input data overlapping with it.
+          ! Wd(1, h, :) holds these weights, they are uniform in space and sum up
+          ! to one for every modelling horizon h (see generate_soil_database).
+          ! If the input data are given on the modelled horizons themselves, Wd is
+          ! the identity matrix and only soilID0(k, h) contributes.
+          Bd0(k)  = 0.0_dp
+          SMs0(k) = 0.0_dp
+          FC0(k)  = 0.0_dp
+          PW0(k)  = 0.0_dp
+          LW0(k)  = 0.0_dp
+          dataloop1 : do d = 1, size(soilID0, 2)
+            w = Wd(1, h, d)
+            if (w .le. 0.0_dp) cycle dataloop1
+            s = soilID0(k, d)
+            if (h .le. nTillHorizons(1)) then
+              Bd0(k) = Bd0(k) + w * Db(s, 1, L)
+              SMs0(k)= SMs0(k)+ w * thetaS_till (s, 1, L) * (dpth_t - dpth_f)  ! in mm
+              FC0(k) = FC0(k) + w * thetaFC_till(s, 1, L) * (dpth_t - dpth_f)  ! in mm
+              PW0(k) = PW0(k) + w * thetaPW_till(s, 1, L) * (dpth_t - dpth_f)  ! in mm
+              LW0(k) = LW0(k) + w * latWat_till(s, 1, L)  * (dpth_t - dpth_f)  ! in mm  ! >> neutron count
+            else
+              Bd0(k) = Bd0(k) + w * DbM(s, 1)
+              SMs0(k)= SMs0(k)+ w * thetaS (s, 1) * (dpth_t - dpth_f)  ! in mm
+              FC0(k) = FC0(k) + w * thetaFC(s, 1) * (dpth_t - dpth_f)  ! in mm
+              PW0(k) = PW0(k) + w * thetaPW(s, 1) * (dpth_t - dpth_f)  ! in mm
+              LW0(k) = LW0(k) + w * latWat(s, 1)  * (dpth_t - dpth_f)  ! in mm  ! >> neutron count
+            end if
+          end do dataloop1
         end do cellloop1
         !$OMP END DO
         !$OMP END PARALLEL
