@@ -425,7 +425,7 @@ subroutine mpr(mask0, geoUnit0, soilId0, Asp0, gridded_LAI0, LCover0, slope_emp0
 
        call mpr_sm(param(iStart : iEnd), processMatrix, &
             soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons, &
-            soilDB%sand, soilDB%clay, soilDB%DbM, &
+            soilDB%sand, soilDB%clay, soilDB%DbM, soilDB%Wd, &
             Id0, soilId0, LCover0(:, iiLC), &
             thetaS_till, thetaFC_till, thetaPW_till, thetaS, &
             thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)

@@ -406,7 +406,9 @@ contains
   !   iFlag_soilDB, &
   !   tillageDepth, &
   !   nSoilHorizons_mHM, &
-  !   soil_Depth
+  !   soil_Depth, &
+  !   nSoilHorizons_data, &
+  !   soil_data_depth
   !
   !> \class   nml_soildata_t
   !> \brief   'soildata' namelist content
@@ -417,6 +419,8 @@ contains
     real(dp) :: tillageDepth !< [mm] Soil depth down to which organic
     integer(i4) :: nSoilHorizons_mHM !< Number of horizons to model
     real(dp), dimension(maxNoSoilHorizons) :: soil_Depth !< depth of the single horizons
+    integer(i4) :: nSoilHorizons_data = 0_i4 !< number of horizons in the gridded soil input (iFlag_soilDB=1), 0: as modelled
+    real(dp), dimension(maxNoSoilHorizons) :: soil_data_depth = 0.0_dp !< lower depth of the input data horizons
   contains
     procedure, public :: read => read_soildata
   end type nml_soildata_t
@@ -1829,15 +1833,22 @@ contains
     real(dp) :: tillageDepth !< [mm] Soil depth down to which organic
     integer(i4) :: nSoilHorizons_mHM !< Number of horizons to model
     real(dp), dimension(maxNoSoilHorizons) :: soil_Depth !< depth of the single horizons
+    integer(i4) :: nSoilHorizons_data !< number of horizons in the gridded soil input (iFlag_soilDB=1)
+    real(dp), dimension(maxNoSoilHorizons) :: soil_data_depth !< lower depth of the input data horizons
 
     namelist /soildata/ &
       iFlag_soilDB, &
       tillageDepth, &
       nSoilHorizons_mHM, &
-      soil_Depth
+      soil_Depth, &
+      nSoilHorizons_data, &
+      soil_data_depth
 
     if ( self%read_from_file ) then
       soil_Depth = 0.0_dp ! default soil depth
+      ! optional: 0 means the input data horizons coincide with the modelled ones
+      nSoilHorizons_data = 0_i4
+      soil_data_depth = 0.0_dp
       call open_new_nml(file, unit)
       call position_nml(self%name, unit)
       read(unit, nml=soildata)
@@ -1846,6 +1857,8 @@ contains
       self%tillageDepth = tillageDepth
       self%nSoilHorizons_mHM = nSoilHorizons_mHM
       self%soil_Depth = soil_Depth
+      self%nSoilHorizons_data = nSoilHorizons_data
+      self%soil_data_depth = soil_data_depth
       self%read_from_file = .false.
     end if
   end subroutine read_soildata

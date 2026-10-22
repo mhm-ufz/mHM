@@ -676,7 +676,12 @@
   !>                  Note that there should be no horizon specific information in this LUT file
   !>                  (soil_classdefinition_iFlag_soilDB_1.txt - filename is hard coded).
   !
-  !>            The modeling soil horizons is as per the input data (i.e. for which the gridded ASCII files are available).
+  !>            By default the modeling soil horizons are as per the input data (i.e. for which the gridded ASCII
+  !>            files are available). If the input data are provided on a different vertical support than the one
+  !>            you want to model, specify the layering of the input data with "nSoilHorizons_data" and
+  !>            "soil_data_depth(:)" below. mHM then reads "nSoilHorizons_data" gridded files and aggregates them
+  !>            onto the "nSoilHorizons_mHM" modeling horizons, weighted by the thickness of their overlap.
+  !>            The two layerings need not share their horizon boundaries, see below.
   !
   !>            The depth of the last mHM horizon should be specified. It is fixed and uniform across the entire modeling domain.
   !
@@ -705,6 +710,48 @@
   !
   !> Soil_Horizon   Depth[mm]      ! bottom depth of soil horizons w.r.t. ground surface (positive downwards)
   soil_Depth(1) = 200
+  !
+  !----------------------------------------------------------------------------------------------------------
+  !> Layering of the gridded soil input data. ONLY used for iFlag_soilDB = 1, ignored otherwise.
+  !
+  !> nSoilHorizons_data:
+  !>    Number of horizons contained in the gridded soil input data, i.e. the number of
+  !>    soil_class_horizon_XX.asc files that are read.
+  !
+  !>    0 (default): the input data are provided on exactly the modeled horizons, i.e.
+  !>                 nSoilHorizons_data = nSoilHorizons_mHM and soil_data_depth = soil_Depth.
+  !>                 No vertical aggregation is performed - this is the classical behaviour.
+  !
+  !>    > 0:         the input data are provided on their own vertical support, given by
+  !>                 soil_data_depth(1..nSoilHorizons_data) below. mHM reads that many gridded files and
+  !>                 aggregates the resulting soil properties onto the modeled horizons, weighting each
+  !>                 input horizon by the thickness of its overlap with the modeled horizon.
+  !
+  !>                 The two layerings do not have to share their horizon boundaries. An input horizon
+  !>                 cut by a modeled horizon boundary contributes to both modeled horizons with the
+  !>                 respective share of its thickness, i.e. its bulk value is taken to be representative
+  !>                 for the whole input horizon (its vertical distribution inside it is unknown).
+  !>                 The input data must however cover the whole modeled soil column, i.e.
+  !>                 soil_data_depth(nSoilHorizons_data) >= soil_Depth(nSoilHorizons_mHM).
+  !
+  !>                 e.g. for soil_data_depth = 50, 150, 300 :
+  !>                    soil_Depth = 150, 300     merges horizons 1+2 and keeps horizon 3
+  !>                    soil_Depth = 100, 300     mixes horizon 1 with the upper half of horizon 2 (1:1)
+  !>                                              and the lower half of horizon 2 with horizon 3 (1:3)
+  !>                    soil_Depth = 400          is REJECTED (input data end at 300 mm)
+  !
+  !> soil_data_depth:
+  !>    Bottom depth [mm] of the input data horizons w.r.t. the ground surface (positive downwards),
+  !>    strictly increasing. Only read if nSoilHorizons_data > 0.
+  !
+  !> Example: six SoilGrids layers (0-5, 5-15, 15-30, 30-60, 60-100, 100-200 cm) aggregated onto
+  !>          three modeling horizons (0-300, 300-1000, 1000-2000 mm):
+  !>            nSoilHorizons_mHM  = 3
+  !>            soil_Depth         = 300, 1000, 2000
+  !>            nSoilHorizons_data = 6
+  !>            soil_data_depth    = 50, 150, 300, 600, 1000, 2000
+  !----------------------------------------------------------------------------------------------------------
+  nSoilHorizons_data = 0
 /
 
 !******************************************************************************************

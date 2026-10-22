@@ -74,7 +74,7 @@ CONTAINS
                             file_soilclass, uaspect, ugeolut, uhydrogeoclass, ulaiclass, ulailut, uslope, usoilclass
     use mo_mpr_global_variables, only : GeoUnitKar, &
                                         GeoUnitList, L0_asp, L0_geoUnit, L0_gridded_LAI, L0_slope, L0_soilId, LAILUT, &
-                                        LAIUnitList, iFlag_soilDB, nGeoUnits, nLAI, nLAIclass, nSoilHorizons_mHM, soilDB, &
+                                        LAIUnitList, iFlag_soilDB, nGeoUnits, nLAI, nLAIclass, nSoilHorizons_data, soilDB, &
                                         timeStep_LAI_input, LAIBoundaries
     use mo_prepare_gridded_lai, only : prepare_gridded_daily_LAI_data, prepare_gridded_mean_monthly_LAI_data
     use mo_read_latlon, only : read_latlon
@@ -210,7 +210,9 @@ CONTAINS
       call message('      Reading soil ids ...')
 
       nH = 1 !> by default; when iFlag_soilDB = 0
-      if(iFlag_soilDB .eq. 1) nH = nSoilHorizons_mHM
+      !> for iFlag_soilDB = 1 one gridded file per horizon of the input data is read;
+      !> these horizons are aggregated onto the modelled ones later on (see generate_soil_database)
+      if(iFlag_soilDB .eq. 1) nH = nSoilHorizons_data
       ! modified way to read multiple horizons specific soil class
       do iHorizon = 1, nH
         if(iFlag_soilDB .eq. 0) then

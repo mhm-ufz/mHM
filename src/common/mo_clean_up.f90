@@ -86,6 +86,7 @@ module mo_clean_up
 
     use mo_mpr_global_variables, only : &
       HorizonDepth_mHM, &
+      HorizonDepth_data, &
       GeoUnitList, &
       GeoUnitKar, &
       LAIBoundaries, &
@@ -271,6 +272,7 @@ module mo_clean_up
 
     ! mo_mpr_global_variables
     if ( allocated(HorizonDepth_mHM) ) deallocate(HorizonDepth_mHM)
+    if ( allocated(HorizonDepth_data) ) deallocate(HorizonDepth_data)
     if ( allocated(GeoUnitList) ) deallocate(GeoUnitList)
     if ( allocated(GeoUnitKar) ) deallocate(GeoUnitKar)
     if ( allocated(LAIBoundaries) ) deallocate(LAIBoundaries)
