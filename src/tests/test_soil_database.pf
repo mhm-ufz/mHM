@@ -202,13 +202,11 @@ contains
     call calc_horizon_weights([60.0_dp, 80.0_dp, 300.0_dp], [50.0_dp, 150.0_dp, 300.0_dp], res_Wd)
 
     ! horizon 1 (0-60 mm): input horizon 1 (50 mm) and 10 mm of input horizon 2
-    @assertEqual([50.0_dp/60.0_dp, 10.0_dp/60.0_dp, 0.0_dp], res_Wd(1, :), tolerance=t, &
-                 message='thin horizons: horizon 1')
+    @assertEqual([50.0_dp/60.0_dp, 10.0_dp/60.0_dp, 0.0_dp], res_Wd(1, :), tolerance=t, message='thin horizons: horizon 1')
     ! horizon 2 (60-80 mm) lies completely inside input horizon 2
     @assertEqual([0.0_dp, 1.0_dp, 0.0_dp], res_Wd(2, :), tolerance=t, message='thin horizons: horizon 2')
     ! horizon 3 (80-300 mm): 70 mm of input horizon 2 and input horizon 3 (150 mm)
-    @assertEqual([0.0_dp, 70.0_dp/220.0_dp, 150.0_dp/220.0_dp], res_Wd(3, :), tolerance=t, &
-                 message='thin horizons: horizon 3')
+    @assertEqual([0.0_dp, 70.0_dp/220.0_dp, 150.0_dp/220.0_dp], res_Wd(3, :), tolerance=t, message='thin horizons: horizon 3')
     @assertEqual(0.0_dp, sum_deviation(res_Wd), tolerance=t, message='thin horizons: weights sum up to one')
     @assertEqual(0.0_dp, min_weight(res_Wd), tolerance=t, message='thin horizons: no negative weight')
 
@@ -228,14 +226,11 @@ contains
                               [50.0_dp, 150.0_dp, 300.0_dp, 600.0_dp, 1000.0_dp, 2000.0_dp], res_Wd)
 
     ! horizon 1 (0-300 mm) merges input horizons 1 (50 mm), 2 (100 mm) and 3 (150 mm)
-    @assertEqual([1.0_dp/6.0_dp, 1.0_dp/3.0_dp, 0.5_dp, 0.0_dp, 0.0_dp, 0.0_dp], res_Wd(1, :), tolerance=t, &
-                 message='soilgrids: horizon 1')
+    @assertEqual([1.0_dp/6.0_dp, 1.0_dp/3.0_dp, 0.5_dp, 0.0_dp, 0.0_dp, 0.0_dp], res_Wd(1, :), tolerance=t, message='soilgrids: horizon 1')
     ! horizon 2 (300-1000 mm) merges input horizons 4 (300 mm) and 5 (400 mm)
-    @assertEqual([0.0_dp, 0.0_dp, 0.0_dp, 3.0_dp/7.0_dp, 4.0_dp/7.0_dp, 0.0_dp], res_Wd(2, :), tolerance=t, &
-                 message='soilgrids: horizon 2')
+    @assertEqual([0.0_dp, 0.0_dp, 0.0_dp, 3.0_dp/7.0_dp, 4.0_dp/7.0_dp, 0.0_dp], res_Wd(2, :), tolerance=t, message='soilgrids: horizon 2')
     ! horizon 3 (1000-2000 mm) is input horizon 6 alone
-    @assertEqual([0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, 1.0_dp], res_Wd(3, :), tolerance=t, &
-                 message='soilgrids: horizon 3')
+    @assertEqual([0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, 1.0_dp], res_Wd(3, :), tolerance=t, message='soilgrids: horizon 3')
     @assertEqual(0.0_dp, sum_deviation(res_Wd), tolerance=t, message='soilgrids: weights sum up to one')
     @assertEqual(0.0_dp, min_weight(res_Wd), tolerance=t, message='soilgrids: no negative weight')
 
