@@ -188,7 +188,8 @@ CONTAINS
             (opti_function .eq. 48_i4) .or. &
             (opti_function .eq. 49_i4) .or. &
             (opti_function .eq. 50_i4) .or. &
-            (opti_function .eq. 51_i4))) then
+            (opti_function .eq. 51_i4) .or. &
+            (opti_function .eq. 52_i4))) then
       ! adjust this whenever a new opti function on discharge is added to mhm!
       call error_message('***ERROR: Simulation period is not covered by observations! ', trim(filename))
     end if
