@@ -57,6 +57,7 @@ module mo_river
     ! Shared D8/L3 topology and routing attributes.
     type(grid_t), pointer :: grid => null() !< Grid on which this river is defined.
     logical, allocatable :: is_sink(:) !< Sink flag for every river node.
+    logical, allocatable :: is_inland_sink(:) !< Inland-depression flag: a sink whose input fdir is not a valid D8 direction (a true pit), as opposed to a cell forced to sink because its flow leaves the grid/mask at the domain edge. Full L0 D8 river only.
     real(dp), allocatable :: link_length(:) !< Length of each outgoing link [m], zero at sinks.
     real(dp), allocatable :: link_slope(:) !< Slope of each outgoing link [%].
     real(dp), allocatable :: upstream_area(:) !< Upstream area [m2] for every river node.
@@ -352,9 +353,15 @@ contains
     allocate(cells(this%grid%nx, this%grid%ny))
     call this%grid%gen_id_matrix(cells)
     allocate(down(this%grid%ncells))
+    ! Inland-depression flag, captured from the INPUT fdir before the edge-forcing overwrite below:
+    ! a cell whose fdir is not a valid D8 direction is a true pit (an inland sink, e.g. the -1
+    ! endorheic-depression marker in the input), as distinct from a cell that carries a real
+    ! direction but drains off the grid/mask at the domain edge (forced to sink but not inland).
+    allocate(this%is_inland_sink(this%grid%ncells))
 
     !$omp parallel do default(shared) private(downstream) schedule(static)
     do i = 1_i8, this%grid%ncells
+      this%is_inland_sink(i) = .not. any(this%fdir(i) == d8_all)
       call get_down(this%grid%mask, cells, this%fdir(i), &
                     this%grid%cell_ij(i,1), this%grid%cell_ij(i,2), dy, periodic, &
                     downstream)
@@ -1790,6 +1797,7 @@ contains
     if (allocated(this%fdir)) deallocate(this%fdir)
     if (allocated(this%facc)) deallocate(this%facc)
     if (allocated(this%is_sink)) deallocate(this%is_sink)
+    if (allocated(this%is_inland_sink)) deallocate(this%is_inland_sink)
     if (allocated(this%upstream_area)) deallocate(this%upstream_area)
     if (allocated(this%node_elevation)) deallocate(this%node_elevation)
     if (allocated(this%link_length)) deallocate(this%link_length)
