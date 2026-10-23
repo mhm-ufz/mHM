@@ -109,6 +109,7 @@ module mo_mlm_container
     real(dp), allocatable :: static_lake_spill_reference_surface_area(:) !< reported maximum surface areas [m2] retained for the lake points
     real(dp), allocatable :: static_lake_spill_reference_volume(:) !< reported maximum volumes [m3] retained for the lake points
     real(dp), allocatable :: static_lake_spillway_length(:) !< effective spillway crest length [m] retained for the lake points
+    logical, allocatable :: static_lake_endorheic(:) !< per-lake terminal-sink flag: no downstream river, so spill/percolation/baseflow are all suppressed (derived from topology; restart-persisted)
     real(dp), allocatable :: static_lake_initial_level(:) !< initial lake level [m] retained for the lake points
     real(dp), allocatable :: static_lake_ks(:) !< per-lake regionalized lakebed Ks [cm d-1] (lake MPR; restart-persisted)
     real(dp), allocatable :: static_lake_kbf(:) !< per-lake regionalized baseflow recession coefficient [d] (lake MPR; restart-persisted)
@@ -130,6 +131,7 @@ module mo_mlm_container
     real(dp), allocatable :: restart_lake_spill_reference_surface_area(:) !< reported maximum surface areas [m2] restored from restart metadata
     real(dp), allocatable :: restart_lake_spill_reference_volume(:) !< reported maximum volumes [m3] restored from restart metadata
     real(dp), allocatable :: restart_lake_spillway_length(:) !< effective spillway crest length [m] restored from restart metadata
+    logical, allocatable :: restart_lake_endorheic(:) !< per-lake terminal-sink flag restored from restart metadata
     real(dp), allocatable :: restart_lake_initial_level(:) !< initial lake level [m] restored from restart metadata
     real(dp), allocatable :: restart_lake_ks(:) !< per-lake lakebed Ks [cm d-1] restored from restart metadata
     real(dp), allocatable :: restart_lake_kbf(:) !< per-lake baseflow recession coefficient [d] restored from restart metadata
@@ -167,6 +169,7 @@ module mo_mlm_container
     procedure, private :: derive_lake_ks => mlm_derive_lake_ks
     procedure, private :: derive_lake_kbf => mlm_derive_lake_kbf
     procedure, private :: derive_lake_spillway_length => mlm_derive_lake_spillway_length
+    procedure, private :: derive_lake_endorheic => mlm_derive_lake_endorheic
     procedure, private :: read_restart_topology => mlm_read_restart_topology
     procedure, private :: read_restart_state => mlm_read_restart_state
     procedure, private :: validate_restart_metadata => mlm_validate_restart_metadata
@@ -422,6 +425,8 @@ contains
         self%static_lake_spill_reference_volume = self%restart_lake_spill_reference_volume
       if (allocated(self%restart_lake_spillway_length)) &
         self%static_lake_spillway_length = self%restart_lake_spillway_length
+      if (allocated(self%restart_lake_endorheic)) &
+        self%static_lake_endorheic = self%restart_lake_endorheic
       if (allocated(self%restart_lake_initial_level)) &
         self%static_lake_initial_level = self%restart_lake_initial_level
       if (allocated(self%restart_lake_ks)) &
@@ -674,6 +679,12 @@ contains
       ! static_lake_spillway_length was restored from the restart metadata at connect; derive it
       ! whenever it was not restored (a fresh run, or a restart continued with Input present).
       if (.not. allocated(self%static_lake_spillway_length)) call self%derive_lake_spillway_length()
+      ! Flag endorheic (terminal, no-outlet) lakes from the routing topology: a lake whose outlet
+      ! node is a sink (drains nowhere) has no downstream river, so its spill, percolation and
+      ! baseflow are all suppressed and it closes its balance by evaporation alone. On a restart-only
+      ! run (no river) static_lake_endorheic was restored from the restart metadata at connect; derive
+      ! it whenever it was not restored (a fresh run, or a restart continued with Input present).
+      if (.not. allocated(self%static_lake_endorheic)) call self%derive_lake_endorheic()
       ! Cold-start the lake states from the reported initial level; the matching surface
       ! area and volume are read off the per-lake hAV curve. A restart overrides these below.
       if (.not. self%read_restart) then
@@ -721,14 +732,20 @@ contains
           ! static_lake_kbf (the per-lake regionalized recession coefficient); then gw0 = (perc0/1000 * A0) / kbf0 gives
           ! baseflow0 = kbf0 * gw0 = perc0 volume. leakance = Ks/b, with Ks the per-lake
           ! regionalized lakebed conductivity (lake MPR) and b the global lakebed thickness.
-          leakance = (self%static_lake_ks(k) * 0.01_dp &
-            * tsHydroSecs / 86400.0_dp) / self%exchange%config%parameters%lakes_1%b%value
-          call lake_seepage(.true., self%hav(k)%level, self%hav(k)%surface_area, &
-            self%static_lake_spill_reference_level(k), &
-            self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
-            self%static_lake_initial_level(k), leakance, perc0)
-          kbf0 = (tsHydroSecs / 86400.0_dp) / self%static_lake_kbf(k)
-          self%lake_gw_storage(k) = (perc0 / 1000.0_dp * self%lake_surface_area(k)) / kbf0
+          ! Endorheic lakes have no percolation (and no baseflow), so their groundwater store
+          ! stays empty; skip the self-consistent cold-start (and its kbf0 divide) for them.
+          if (self%static_lake_endorheic(k)) then
+            self%lake_gw_storage(k) = 0.0_dp
+          else
+            leakance = (self%static_lake_ks(k) * 0.01_dp &
+              * tsHydroSecs / 86400.0_dp) / self%exchange%config%parameters%lakes_1%b%value
+            call lake_seepage(.true., self%hav(k)%level, self%hav(k)%surface_area, &
+              self%static_lake_spill_reference_level(k), &
+              self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
+              self%static_lake_initial_level(k), leakance, perc0)
+            kbf0 = (tsHydroSecs / 86400.0_dp) / self%static_lake_kbf(k)
+            self%lake_gw_storage(k) = (perc0 / 1000.0_dp * self%lake_surface_area(k)) / kbf0
+          end if
         end do
       end if
     end if
@@ -953,6 +970,53 @@ contains
 
   end subroutine mlm_derive_lake_spillway_length
 
+  !> \brief Flag endorheic (terminal, no-outlet) lakes from the routing topology.
+  !!
+  !! \details A lake whose snapped level-0 outlet node is a sink (its downstream node is zero) has
+  !!          no downstream river: it is endorheic. Such a lake can shed water only through the
+  !!          atmosphere, so its crest spill, lakebed percolation and groundwater baseflow are all
+  !!          suppressed downstream (see mlm_update) and its balance closes by evaporation alone. The
+  !!          outlet nodes are in lake-point order (set together with lake_ids by river%label_lakes),
+  !!          the same handle used by the spillway-length regionalization, so no footprint packing is
+  !!          needed. On a restart-only run (no river) the flag is restored from restart metadata at
+  !!          connect and this routine is not reached.
+  subroutine mlm_derive_lake_endorheic(self)
+    use mo_river, only: river_t
+    class(mlm_t), target, intent(inout) :: self
+    type(river_t), pointer :: river
+    integer(i8) :: i, k, n_lakes
+
+    if (.not.associated(self%exchange%river_l0)) then
+      log_fatal(*) "mLM endorheic flag requires the level-0 river (active routing)."
+      error stop 1
+    end if
+    river => self%exchange%river_l0
+    if (.not.allocated(river%lake_map) .or. .not.allocated(river%is_inland_sink)) then
+      log_fatal(*) "mLM endorheic flag requires the level-0 river lake map and inland-sink flags."
+      error stop 1
+    end if
+
+    ! A lake is endorheic iff its footprint contains an inland depression: a cell whose input flow
+    ! direction is a true pit (not a valid D8 direction, e.g. the -1 depression marker), as opposed to
+    ! a cell that drains off the domain edge. river%is_inland_sink carries exactly that distinction
+    ! (captured from the input fdir before the edge-forcing in river_from_fdir), so pairing it with
+    ! the lake footprint mask (river%lake_map) flags endorheic lakes without the domain-edge
+    ! false-positive that a bare sink test (down == 0) would give.
+    n_lakes = size(self%lake_ids, kind=i8)
+    if (allocated(self%static_lake_endorheic)) deallocate(self%static_lake_endorheic)
+    allocate(self%static_lake_endorheic(n_lakes), source=.false.)
+    do i = 1_i8, size(river%lake_map, kind=i8)
+      if (river%lake_map(i) <= 0_i8 .or. .not.river%is_inland_sink(i)) cycle
+      k = findloc(self%lake_ids, river%lake_map(i), dim=1, kind=i8)
+      if (k >= 1_i8) self%static_lake_endorheic(k) = .true.
+    end do
+    do k = 1_i8, n_lakes
+      log_info(*) "mLM lake ", n2s(self%lake_ids(k)), ": endorheic = ", &
+        merge("T", "F", self%static_lake_endorheic(k))
+    end do
+
+  end subroutine mlm_derive_lake_endorheic
+
   !> \brief Publish the preceding completed hourly inflow as current outflow.
   subroutine mlm_update(self)
     class(mlm_t), target, intent(inout) :: self
@@ -1009,17 +1073,28 @@ contains
           ! per-step baseflow recession from the per-lake regionalized recession coefficient (lake MPR)
           kbf = (tsHydroSecs / 86400.0_dp) / self%static_lake_kbf(k)
           ! Lake seepage from the previous-step level -> percolation to the groundwater store.
-          call lake_seepage(.true., self%hav(k)%level, self%hav(k)%surface_area, &
-            self%static_lake_spill_reference_level(k), &
-            self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
-            self%lake_level_previous(k), leakance, &
-            perc)
-          ! Crest-controlled spill from the previous-step level.
-          call lake_spill(self%lake_level_previous(k), self%static_lake_spill_reference_level(k), &
-            self%exchange%config%parameters%lakes_1%spill_coefficient_of_discharge%value, &
-            self%static_lake_spillway_length(k), &
-            self%exchange%config%parameters%lakes_1%spill_exponent%value, &
-            spill)
+          ! Endorheic (terminal) lakes have no subsurface outlet, so percolation is suppressed: the
+          ! only loss is evaporation (the physical closure of a terminal lake).
+          if (self%static_lake_endorheic(k)) then
+            perc = 0.0_dp
+          else
+            call lake_seepage(.true., self%hav(k)%level, self%hav(k)%surface_area, &
+              self%static_lake_spill_reference_level(k), &
+              self%hav(k)%surface_area(size(self%hav(k)%surface_area)), &
+              self%lake_level_previous(k), leakance, &
+              perc)
+          end if
+          ! Crest-controlled spill from the previous-step level. Endorheic lakes never spill (no
+          ! downstream river); the level floats above the sill on the water balance.
+          if (self%static_lake_endorheic(k)) then
+            spill = 0.0_dp
+          else
+            call lake_spill(self%lake_level_previous(k), self%static_lake_spill_reference_level(k), &
+              self%exchange%config%parameters%lakes_1%spill_coefficient_of_discharge%value, &
+              self%static_lake_spillway_length(k), &
+              self%exchange%config%parameters%lakes_1%spill_exponent%value, &
+              spill)
+          end if
           ! Lake precipitation onto the surface (already disaggregated to the step by Meteo).
           pr_step = 0.0_dp
           if (self%exchange%lake_pre%provided) pr_step = self%exchange%lake_pre%data(k)
@@ -1107,7 +1182,7 @@ contains
           ! Lake groundwater storage update -> baseflow (uses the previous-step surface area and GW storage).
           call lake_gws_baseflow(perc, self%lake_surface_area_previous(k), &
             self%lake_gw_storage_previous(k), self%lake_gw_storage(k), &
-            kbf, tsHydroSecs, baseflow)
+            kbf, tsHydroSecs, self%static_lake_endorheic(k), baseflow)
           ! Natural-lake outflow is the crest spill plus the groundwater baseflow.
           self%outflow(k) = spill + baseflow
           ! Retain the per-lake fluxes for the lake-point output.
@@ -1161,6 +1236,7 @@ contains
     if (allocated(self%static_lake_spill_reference_surface_area)) deallocate(self%static_lake_spill_reference_surface_area)
     if (allocated(self%static_lake_spill_reference_volume)) deallocate(self%static_lake_spill_reference_volume)
     if (allocated(self%static_lake_spillway_length)) deallocate(self%static_lake_spillway_length)
+    if (allocated(self%static_lake_endorheic)) deallocate(self%static_lake_endorheic)
     if (allocated(self%static_lake_initial_level)) deallocate(self%static_lake_initial_level)
     if (allocated(self%static_lake_ks)) deallocate(self%static_lake_ks)
     if (allocated(self%static_lake_kbf)) deallocate(self%static_lake_kbf)
@@ -1186,6 +1262,7 @@ contains
     if (allocated(self%restart_lake_spill_reference_surface_area)) deallocate(self%restart_lake_spill_reference_surface_area)
     if (allocated(self%restart_lake_spill_reference_volume)) deallocate(self%restart_lake_spill_reference_volume)
     if (allocated(self%restart_lake_spillway_length)) deallocate(self%restart_lake_spillway_length)
+    if (allocated(self%restart_lake_endorheic)) deallocate(self%restart_lake_endorheic)
     if (allocated(self%restart_lake_initial_level)) deallocate(self%restart_lake_initial_level)
     if (allocated(self%restart_lake_ks)) deallocate(self%restart_lake_ks)
     if (allocated(self%restart_lake_kbf)) deallocate(self%restart_lake_kbf)
@@ -1341,6 +1418,7 @@ contains
     type(NcDataset) :: nc
     type(NcDimension) :: dims(0), lake_dim
     type(NcVariable) :: var
+    integer(i4), allocatable :: endorheic_flag(:) !< endorheic logical stored as i4 0/1 (NetCDF has no logical type)
 
     if (self%static_lake_points%n_points /= size(self%lake_ids, kind=i8) .or. &
         .not.allocated(self%static_lake_spill_reference_level)) then
@@ -1384,6 +1462,16 @@ contains
       var = nc%setVariable("lake_spillway_length", "f64", [lake_dim])
       call var%setAttribute("units", "m")
       call var%setData(self%static_lake_spillway_length)
+    end if
+    ! The endorheic flag is written (as i4 0/1, since NetCDF has no logical type) so a restart-only
+    ! run (no river, hence no topology to re-derive it from) restores it instead.
+    if (allocated(self%static_lake_endorheic)) then
+      allocate(endorheic_flag(size(self%static_lake_endorheic)))
+      endorheic_flag = merge(1_i4, 0_i4, self%static_lake_endorheic)
+      var = nc%setVariable("lake_endorheic", "i32", [lake_dim])
+      call var%setAttribute("long_name", "1 if the lake is endorheic (terminal, no downstream river)")
+      call var%setData(endorheic_flag)
+      deallocate(endorheic_flag)
     end if
     if (allocated(self%static_lake_initial_level)) then
       var = nc%setVariable("lake_initial_level", "f64", [lake_dim])
@@ -1518,6 +1606,14 @@ contains
       var = nc%getVariable("lake_spillway_length")
       call var%getData(self%restart_lake_spillway_length)
     end if
+    if (nc%hasVariable("lake_endorheic")) then
+      block
+        integer(i4), allocatable :: endorheic_flag(:)
+        var = nc%getVariable("lake_endorheic")
+        call var%getData(endorheic_flag)
+        self%restart_lake_endorheic = (endorheic_flag /= 0_i4)
+      end block
+    end if
     if (nc%hasVariable("lake_initial_level")) then
       var = nc%getVariable("lake_initial_level")
       call var%getData(self%restart_lake_initial_level)
@@ -1561,6 +1657,12 @@ contains
     if (allocated(self%restart_lake_spillway_length)) then
       if (size(self%restart_lake_spillway_length, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
         log_fatal(*) "mLM restart spillway length does not align with stable lake IDs."
+        error stop 1
+      end if
+    end if
+    if (allocated(self%restart_lake_endorheic)) then
+      if (size(self%restart_lake_endorheic, kind=i8) /= size(self%restart_lake_ids, kind=i8)) then
+        log_fatal(*) "mLM restart endorheic flag does not align with stable lake IDs."
         error stop 1
       end if
     end if
