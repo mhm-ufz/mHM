@@ -335,11 +335,20 @@ CONTAINS
   !                               value; the container forms it from the per-day lakes_1 parameter as
   !                               (tsHydroSecs/86400) / baseflow_recession_coefficient, reproducing the
   !                               v5 c2TSTu/kBaseFlow form.
+  !        Pallav Shrestha Oct 2026 - endorheic (terminal, no-outlet) lakes: added the endorheic flag.
+  !                               An endorheic lake has no downstream river, so the groundwater baseflow
+  !                               cannot leave the lake: baseflow is forced to zero and the loss term is
+  !                               dropped from the groundwater-storage balance. (The caller additionally
+  !                               suppresses the percolation feeding this store for an endorheic lake, so
+  !                               the groundwater store stays empty and the lake closes its balance by
+  !                               evaporation alone; see mo_mlm_container. Keeping this routine mass-safe
+  !                               on its own means a non-zero perc would still accumulate rather than
+  !                               vanish.)
 
 
 
   SUBROUTINE lake_gws_baseflow( perc, lake_surface_area, lake_gw_storage_previous, lake_gw_storage, &
-                                baseflow_recession_coefficient, tsHydroSecs, baseflow )
+                                baseflow_recession_coefficient, tsHydroSecs, endorheic, baseflow )
 
 
     IMPLICIT NONE
@@ -350,6 +359,7 @@ CONTAINS
     real(dp),   intent(OUT) :: lake_gw_storage ! [m3]    current lake groundwater storage
     real(dp),   intent(IN)  :: baseflow_recession_coefficient  ! [TS-1]  groundwater storage recession coefficient (per hydrological time step)
     real(dp),   intent(IN)  :: tsHydroSecs     ! [s]    number of seconds in a hydrological timestep
+    logical,    intent(IN)  :: endorheic       ! [-]    terminal lake with no downstream river (suppresses baseflow)
     real(dp),   intent(OUT) :: baseflow        ! [m3.s-1] baseflow from ground water storage
 
     !----------------------------------------------------------------------------
@@ -379,15 +389,27 @@ CONTAINS
     !------------------------------------------------------------------------
 
 
-    ! baseflow (m3) from the groundwater storage (m3) of the lake
-    baseflow = baseflow_recession_coefficient * lake_gw_storage_previous   ![m3 in "hydrological" TS]
+    if (endorheic) then
 
-    ! Water balance for Groundwater storage
-    ! percolation (mm to m3) added to groundwater storage (m3)
-    lake_gw_storage = lake_gw_storage_previous + perc / 1000.0_dp * lake_surface_area - baseflow
+      ! Endorheic (terminal) lake: no downstream river, so no baseflow leaves the lake. The
+      ! percolation still enters the groundwater store for mass safety (the caller suppresses perc
+      ! for endorheic lakes, so in practice the store stays empty and the only lake loss is evaporation).
+      baseflow = 0.0_dp
+      lake_gw_storage = lake_gw_storage_previous + perc / 1000.0_dp * lake_surface_area
 
-    ! baseflow in m3/s
-    baseflow = baseflow / tsHydroSecs
+    else
+
+      ! baseflow (m3) from the groundwater storage (m3) of the lake
+      baseflow = baseflow_recession_coefficient * lake_gw_storage_previous   ![m3 in "hydrological" TS]
+
+      ! Water balance for Groundwater storage
+      ! percolation (mm to m3) added to groundwater storage (m3)
+      lake_gw_storage = lake_gw_storage_previous + perc / 1000.0_dp * lake_surface_area - baseflow
+
+      ! baseflow in m3/s
+      baseflow = baseflow / tsHydroSecs
+
+    end if
 
 
   END SUBROUTINE lake_gws_baseflow
