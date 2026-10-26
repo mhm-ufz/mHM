@@ -1,8 +1,11 @@
-# mHM v6: Build and run
+# mHM v6: Build and run {#v6_getting_started}
 
 The v6 implementation runs independent domains through Input, MPR, meteo, mHM,
 mLM, and mRM containers. Each domain owns its exchange and component state.
 The execution entrypoint is `app/driver.F90`.
+
+For the architecture and a practical workflow for extending components, see the
+[v6 developer guide](@ref v6_development).
 
 The CLI delegates to `run_forward` in `mo_mhm_runner`. Fortran callers can import it
 with `use mo_mhm_runner, only: run_forward`. Its `main_file`, `para_file`, `out_file`,

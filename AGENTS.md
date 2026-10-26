@@ -2,6 +2,8 @@
 
 This is the repository-wide guide for developers and AI agents. Apply it to new or
 touched code; keep unrelated cleanup separate. Commands below run from the repository root.
+Read the [v6 developer guide](doc/v6-development-guide.md) for concepts and extension
+workflows before changing components or configuration; this file defines the detailed rules.
 
 ## Architecture and lifecycle
 
@@ -20,8 +22,8 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
 - Finalizers perform I/O only. Domain destruction calls `exchange%destroy()` first to clear publications,
   release exchange-owned storage, and reset declarations; then destroys mRM, mLM, mHM, meteo, MPR, Input.
 - Preserve scientific units, equations, and calculation order during structural refactors.
-- When intentionally changing a documented architectural contract, update this guide and its
-  regression coverage in the same change.
+- When intentionally changing a documented architectural contract, update this file, the
+  developer guide, and affected regression coverage in the same change.
 
 ## Exchange, grids, and ownership
 
@@ -33,6 +35,9 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
   Check dependencies in the phase that needs them; fail clearly with `log_fatal` and `error stop`.
 - Metadata declares exactly one primary support (grid, points, or river), optional layers, and canonical
   timing/output metadata. Derive dimensions in `check_data`; do not pass expected shapes to helpers.
+- Grids define geometry and masks; gridded values use packed active cells in Fortran `(x, y)` order,
+  with cells first and optional layers second. Use grid/I/O packing helpers; distinguish full, land,
+  and lake masks, point-set order, and river-node order.
 - Borrowed producers call `prepare_data(component, stepping)` then bind `data` to a stable target.
   Static file inputs use `prepare_storage` and read directly into final support; DEM/slope work arrays may use `set_storage`.
 - Never reallocate published targets while pointers refer to them; reset in place during repeated initialization.
@@ -50,7 +55,11 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
 
 ## Paths, time, and parameters
 
-- Resolve configurable paths with `exchange%get_path`. The model interval is
+- Configure complete component input/output/restart file paths explicitly; do not infer filenames,
+  assume standard subfolders, or search for inputs. Resolve paths with `exchange%get_path`:
+  relative to the domain working directory by default, or the run root with `root=.true.`.
+  Keep documented entrypoint namelist defaults separate from component file-path rules.
+- The model interval is
   `[exchange%time_step_start, exchange%time]`; `exchange%step` controls global cadence, with no divergent private time loops.
 - Use interval start for LAI, land cover, day/night, and monthly parameters; use endpoint time for
   input lookup, output/restart timestamps, aggregation flushing, diagnostics, and simulation-end checks.
@@ -146,6 +155,9 @@ touched code; keep unrelated cleanup separate. Commands below run from the repos
 
 - `nml-schemas/*.yml` and `nml-config.toml` are authoritative. Run
   `nml-tools generate --config nml-config.toml`; do not hand-edit generated `src/nml/*.f90`, templates, or namelist references.
+- Declare configurable namelist dimensions in `nml-config.toml`, expose them in `config_project`,
+  and propagate them through the exchange to component `set_dims` before reading dependent namelists.
+  Use `nml_n_domains`/`nml_domain_id` for domain-local config indexing; keep data-derived counts distinct.
 - Include generated modules, root templates, and `doc/nml/` references together with schema changes.
 - Follow the file/module header in [mo_river_flow.f90](src/mRM/mo_river_flow.f90): adapt filenames,
   module names, factual authorship, dates, version/changelog, copyright, and license. Preserve donor provenance; never invent attribution.

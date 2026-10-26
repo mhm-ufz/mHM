@@ -285,7 +285,7 @@ driver is not part of the v6 implementation.
 \section running Build and run v6
 
 The v6 driver executes independent domains through Input, MPR, meteo, mHM,
-mLM, and mRM containers. See [v6 build and run guidance](v6-getting-started.md)
+mLM, and mRM containers. See \ref v6_getting_started "v6 build and run guidance"
 and [Compilation](INSTALL.md) for build instructions.
 
 From the repository root, a minimal routing run is:
@@ -303,5 +303,11 @@ The schema-generated [domain configuration](nml/config_domain.md) and
 [process configuration](nml/config_processes.md) describe the v6 interfaces.
 Also see [parameter migration](parameter-migration-v6.md),
 [release history](RELEASES.md), and [mHM publications](mhm_papers.md).
+
+\section developing Developing v6
+
+See \subpage v6_development for component logic, lifecycle responsibilities,
+packed data and exchange contracts, restart scope, namelist dimensions,
+explicit paths, and a workflow for adding features.
 
 */
