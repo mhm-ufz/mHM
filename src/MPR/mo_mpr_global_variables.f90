@@ -33,6 +33,7 @@ module mo_mpr_global_variables
   !                                                                               matter is possible
   integer(i4), public :: nSoilTypes         !       Number of soil types
   integer(i4), public :: iFlag_soilDB       ! options to handle different soil databases
+  logical, public :: soil_column_depth_weighting = .false. ! weight mode-1 column contributions by model horizon thickness
   integer(i4), public :: nSoilHorizons_mHM  !       Number of horizons to model
   real(dp), dimension(:), allocatable, public :: HorizonDepth_mHM   ! [mm]  Horizon depth from surface,
   !                                                                               positive downwards

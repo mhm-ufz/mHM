@@ -96,6 +96,7 @@ CONTAINS
                                     global_parameters, global_parameters_name, iFlag_cordinate_sys, level0, level1, &
                                     domainMeta, nLCoverScene, resolutionHydrology, write_restart
     use mo_file, only : version
+    use mo_mpr_global_variables, only : soil_column_depth_weighting
     use mo_kind, only : i4
     use mo_string_utils, only : num2str
     use mo_os, only : check_path_isdir
@@ -168,6 +169,7 @@ CONTAINS
     end do
     write(uconfig, 126)    'Flag READ  restart            ', read_restart
     write(uconfig, 126)    'Flag WRITE restart            ', write_restart
+    write(uconfig, 126)    'soil_column_depth_weighting   ', soil_column_depth_weighting
     !
     !******************
     ! Model Run period

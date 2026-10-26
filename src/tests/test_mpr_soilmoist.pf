@@ -2,7 +2,7 @@ module test_mpr_soilmoist
   use funit
   use mo_mpr_soilmoist, only: mpr_sm
   use mo_soil_database, only: calc_horizon_weights
-  use mo_mpr_global_variables, only: iFlag_soilDB
+  use mo_mpr_global_variables, only: iFlag_soilDB, soil_column_depth_weighting
   use mo_kind, only: dp, i4
 
   implicit none
@@ -10,6 +10,7 @@ module test_mpr_soilmoist
   private
 
   public :: test_sm_split_homogeneous_horizon, test_sm_layering_invariance
+  public :: test_sm_legacy_column, test_sm_equal_thickness, test_sm_classical_soil
 
   ! relative tolerance: all layerings describe the same physical column, so the
   ! column properties have to agree up to round-off
@@ -21,20 +22,24 @@ module test_mpr_soilmoist
   ! land cover class used throughout: 3 = pervious
   integer(i4), parameter :: LC = 3
 
+  real(dp), parameter :: parameters(13) = [7.0_dp, 0.5_dp, 2.5_dp, 0.788_dp, 0.001_dp, -0.263_dp, &
+                                         0.8907_dp, -0.001_dp, -0.322_dp, -0.585_dp, 0.0125_dp, &
+                                         0.0063_dp, 60.96_dp]
+
 contains
 
   ! Runs mpr_sm (iFlag_soilDB = 1) for a single cell whose soil column is given
   ! on the input data horizons depth_data (soil type 1, 2, ... from top to
   ! bottom) and returns the column properties for the modelling horizons
   ! depth_mHM, the first nTill of them being tillage horizons.
-  subroutine column_properties(depth_mHM, nTill, depth_data, KsVar_H0, KsVar_V0, SMs_FC0)
+  subroutine column_properties(depth_mHM, nTill, depth_data, depth_weighting, KsVar_H0, KsVar_V0, SMs_FC0)
 
     real(dp), dimension(:), intent(in) :: depth_mHM
     integer(i4), intent(in) :: nTill
     real(dp), dimension(:), intent(in) :: depth_data
+    logical, intent(in) :: depth_weighting
     real(dp), intent(out) :: KsVar_H0, KsVar_V0, SMs_FC0
 
-    real(dp), dimension(13) :: param
     integer(i4), dimension(10, 5) :: processMatrix
     integer(i4), dimension(nSoilTypes) :: is_present, nHorizons
     integer(i4), dimension(1) :: nTillHorizons
@@ -47,12 +52,12 @@ contains
     real(dp), dimension(nSoilTypes, 1) :: thetaS, thetaFC, thetaPW
     real(dp), dimension(1) :: res_KsVar_H0, res_KsVar_V0, res_SMs_FC0
     integer(i4) :: kk
+    logical :: saved_depth_weighting
 
     iFlag_soilDB = 1_i4
+    saved_depth_weighting = soil_column_depth_weighting
+    soil_column_depth_weighting = depth_weighting
 
-    param = [7.0_dp, 0.5_dp, 2.5_dp, 0.788_dp, 0.001_dp, -0.263_dp, &
-             0.8907_dp, -0.001_dp, -0.322_dp, -0.585_dp, 0.0125_dp, &
-             0.0063_dp, 60.96_dp]
     processMatrix(:, :) = 0_i4
     processMatrix(3, 1) = 1_i4
 
@@ -72,7 +77,7 @@ contains
     allocate (soilId0(1, size(depth_data)))
     soilId0(1, :) = [(min(kk, nSoilTypes), kk = 1, size(depth_data))]
 
-    call mpr_sm(param, processMatrix, is_present, nHorizons, nTillHorizons, sand, clay, DbM, Wd, depth_mHM, &
+    call mpr_sm(parameters, processMatrix, is_present, nHorizons, nTillHorizons, sand, clay, DbM, Wd, depth_mHM, &
                 ID0, soilId0, LCover0, &
                 thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, &
                 res_KsVar_H0, res_KsVar_V0, res_SMs_FC0)
@@ -80,6 +85,7 @@ contains
     KsVar_H0 = res_KsVar_H0(1)
     KsVar_V0 = res_KsVar_V0(1)
     SMs_FC0 = res_SMs_FC0(1)
+    soil_column_depth_weighting = saved_depth_weighting
 
   end subroutine column_properties
 
@@ -92,8 +98,8 @@ contains
 
     real(dp) :: H_ref, V_ref, FC_ref, H, V, FC
 
-    call column_properties([100.0_dp, 200.0_dp, 300.0_dp], 1_i4, [100.0_dp, 300.0_dp], H_ref, V_ref, FC_ref)
-    call column_properties([100.0_dp, 300.0_dp], 1_i4, [100.0_dp, 300.0_dp], H, V, FC)
+    call column_properties([100.0_dp, 200.0_dp, 300.0_dp], 1_i4, [100.0_dp, 300.0_dp], .true., H_ref, V_ref, FC_ref)
+    call column_properties([100.0_dp, 300.0_dp], 1_i4, [100.0_dp, 300.0_dp], .true., H, V, FC)
 
     @assertEqual(H_ref, H, tolerance=rtol * abs(H_ref), message='split horizon: KsVar_H0')
     @assertEqual(V_ref, V, tolerance=rtol * abs(V_ref), message='split horizon: KsVar_V0')
@@ -152,9 +158,9 @@ contains
     nTill(6) = 2_i4
 
     do d = 1, size(depth_data, 2)
-      call column_properties(depth_uniform, 2_i4, depth_data(:, d), H_ref, V_ref, FC_ref)
+      call column_properties(depth_uniform, 2_i4, depth_data(:, d), .true., H_ref, V_ref, FC_ref)
       do n = 1, nLayerings
-        call column_properties(depths(1 : nHor(n), n), nTill(n), depth_data(:, d), H, V, FC)
+        call column_properties(depths(1 : nHor(n), n), nTill(n), depth_data(:, d), .true., H, V, FC)
         write(msg, '(A, I0, A, I0, A)') 'layering invariance (input data ', d, ', layering ', n, '):'
         @assertEqual(H_ref, H, tolerance=rtol * abs(H_ref), message=trim(msg) // ' KsVar_H0')
         @assertEqual(V_ref, V, tolerance=rtol * abs(V_ref), message=trim(msg) // ' KsVar_V0')
@@ -163,5 +169,85 @@ contains
     end do
 
   end subroutine test_sm_layering_invariance
+
+  @test
+  subroutine test_sm_legacy_column()
+
+    ! Reference values from mpr_sm immediately before b4e8f467: Wd-only
+    ! column sums, independent of the thickness-weighting implementation.
+    ! The second input layering cuts both a model boundary and tillage depth.
+    real(dp), parameter :: reference(3, 2) = reshape([ &
+      1.1507475792887349_dp, 0.4870413775538465_dp, 0.2368570385527654_dp, &
+      1.2449193019862816_dp, 0.5853242857192575_dp, 0.2522510148198036_dp], [3, 2])
+    real(dp) :: depth_data(2, 2), legacy(3), weighted(3)
+    integer :: d
+
+    depth_data(:, 1) = [100.0_dp, 300.0_dp]
+    depth_data(:, 2) = [150.0_dp, 300.0_dp]
+    do d = 1, 2
+      call column_properties([100.0_dp, 300.0_dp], 1_i4, depth_data(:, d), .false., &
+                             legacy(1), legacy(2), legacy(3))
+      @assertEqual(reference(:, d), legacy, tolerance=rtol, message='legacy column: H, V, FC')
+      call column_properties([100.0_dp, 300.0_dp], 1_i4, depth_data(:, d), .true., &
+                             weighted(1), weighted(2), weighted(3))
+      @assertTrue(all(abs(weighted - legacy) > 1.0e-4_dp), message='unequal horizons distinguish both modes')
+    end do
+
+  end subroutine test_sm_legacy_column
+
+  @test
+  subroutine test_sm_equal_thickness()
+
+    real(dp) :: depth_data(2, 2), legacy(3), weighted(3)
+    integer :: d
+
+    depth_data(:, 1) = [100.0_dp, 300.0_dp]
+    depth_data(:, 2) = [150.0_dp, 300.0_dp]
+    do d = 1, 2
+      call column_properties([100.0_dp, 200.0_dp, 300.0_dp], 1_i4, depth_data(:, d), .false., &
+                             legacy(1), legacy(2), legacy(3))
+      call column_properties([100.0_dp, 200.0_dp, 300.0_dp], 1_i4, depth_data(:, d), .true., &
+                             weighted(1), weighted(2), weighted(3))
+      @assertEqual(legacy, weighted, tolerance=rtol, message='equal thickness: H, V, FC')
+    end do
+
+  end subroutine test_sm_equal_thickness
+
+  @test
+  subroutine test_sm_classical_soil()
+
+    ! A classical soil type with one tillage and one non-tillage horizon.
+    ! Model depth ends in the mode-0 sentinel, which the flag must not use.
+    integer(i4) :: processMatrix(10, 5)
+    real(dp) :: sand(1, 2), clay(1, 2), DbM(1, 2), Wd(1, 2, 2)
+    real(dp) :: thetaS_till(1, 1, LC), thetaFC_till(1, 1, LC), thetaPW_till(1, 1, LC)
+    real(dp) :: thetaS(1, 1), thetaFC(1, 1), thetaPW(1, 1), Ks(1, 2, LC), Db(1, 2, LC)
+    real(dp) :: H(1), V(1), FC(1), columns(3, 2), hydraulics(24, 2)
+    integer :: mode
+    logical :: saved_depth_weighting
+
+    saved_depth_weighting = soil_column_depth_weighting
+    iFlag_soilDB = 0_i4
+    processMatrix = 0_i4
+    processMatrix(3, 1) = 1_i4
+    sand(1, :) = [60.0_dp, 20.0_dp]
+    clay(1, :) = [20.0_dp, 40.0_dp]
+    DbM(1, :) = [1.4_dp, 1.6_dp]
+    Wd = 0.0_dp
+    do mode = 1, 2
+      soil_column_depth_weighting = mode == 2
+      call mpr_sm(parameters, processMatrix, [1_i4], [2_i4], [1_i4], sand, clay, DbM, Wd, [100.0_dp, 0.0_dp], &
+                  [1_i4], reshape([1_i4], [1, 1]), [LC], &
+                  thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, H, V, FC)
+      columns(:, mode) = [H(1), V(1), FC(1)]
+      hydraulics(:, mode) = [reshape(thetaS_till, [LC]), reshape(thetaFC_till, [LC]), &
+                            reshape(thetaPW_till, [LC]), thetaS(1, :), thetaFC(1, :), thetaPW(1, :), &
+                            reshape(Ks, [2 * LC]), reshape(Db, [2 * LC])]
+    end do
+    soil_column_depth_weighting = saved_depth_weighting
+    @assertEqual(columns(:, 1), columns(:, 2), message='mode 0: column parameters unchanged')
+    @assertEqual(hydraulics(:, 1), hydraulics(:, 2), message='mode 0: layer properties unchanged')
+
+  end subroutine test_sm_classical_soil
 
 end module test_mpr_soilmoist
