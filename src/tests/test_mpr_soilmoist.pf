@@ -1,0 +1,167 @@
+module test_mpr_soilmoist
+  use funit
+  use mo_mpr_soilmoist, only: mpr_sm
+  use mo_soil_database, only: calc_horizon_weights
+  use mo_mpr_global_variables, only: iFlag_soilDB
+  use mo_kind, only: dp, i4
+
+  implicit none
+
+  private
+
+  public :: test_sm_split_homogeneous_horizon, test_sm_layering_invariance
+
+  ! relative tolerance: all layerings describe the same physical column, so the
+  ! column properties have to agree up to round-off
+  real(dp), parameter :: rtol = 1.0e-10_dp
+
+  ! number of soil types in the fixture
+  integer(i4), parameter :: nSoilTypes = 2
+
+  ! land cover class used throughout: 3 = pervious
+  integer(i4), parameter :: LC = 3
+
+contains
+
+  ! Runs mpr_sm (iFlag_soilDB = 1) for a single cell whose soil column is given
+  ! on the input data horizons depth_data (soil type 1, 2, ... from top to
+  ! bottom) and returns the column properties for the modelling horizons
+  ! depth_mHM, the first nTill of them being tillage horizons.
+  subroutine column_properties(depth_mHM, nTill, depth_data, KsVar_H0, KsVar_V0, SMs_FC0)
+
+    real(dp), dimension(:), intent(in) :: depth_mHM
+    integer(i4), intent(in) :: nTill
+    real(dp), dimension(:), intent(in) :: depth_data
+    real(dp), intent(out) :: KsVar_H0, KsVar_V0, SMs_FC0
+
+    real(dp), dimension(13) :: param
+    integer(i4), dimension(10, 5) :: processMatrix
+    integer(i4), dimension(nSoilTypes) :: is_present, nHorizons
+    integer(i4), dimension(1) :: nTillHorizons
+    real(dp), dimension(nSoilTypes, 1) :: sand, clay, DbM
+    real(dp), dimension(:, :), allocatable :: weights
+    real(dp), dimension(:, :, :), allocatable :: Wd
+    integer(i4), dimension(1) :: ID0, LCover0
+    integer(i4), dimension(:, :), allocatable :: soilId0
+    real(dp), dimension(nSoilTypes, 1, LC) :: thetaS_till, thetaFC_till, thetaPW_till, Ks, Db
+    real(dp), dimension(nSoilTypes, 1) :: thetaS, thetaFC, thetaPW
+    real(dp), dimension(1) :: res_KsVar_H0, res_KsVar_V0, res_SMs_FC0
+    integer(i4) :: kk
+
+    iFlag_soilDB = 1_i4
+
+    param = [7.0_dp, 0.5_dp, 2.5_dp, 0.788_dp, 0.001_dp, -0.263_dp, &
+             0.8907_dp, -0.001_dp, -0.322_dp, -0.585_dp, 0.0125_dp, &
+             0.0063_dp, 60.96_dp]
+    processMatrix(:, :) = 0_i4
+    processMatrix(3, 1) = 1_i4
+
+    is_present(:) = 1_i4
+    nHorizons(:) = 1_i4
+    nTillHorizons = [nTill]
+    sand(:, 1) = [60.0_dp, 20.0_dp]
+    clay(:, 1) = [20.0_dp, 40.0_dp]
+    DbM(:, 1) = [1.4_dp, 1.6_dp]
+
+    call calc_horizon_weights(depth_mHM, depth_data, weights)
+    allocate (Wd(1, size(depth_mHM), size(depth_data)))
+    Wd(1, :, :) = weights(:, :)
+
+    ID0 = [1_i4]
+    LCover0 = [LC]
+    allocate (soilId0(1, size(depth_data)))
+    soilId0(1, :) = [(min(kk, nSoilTypes), kk = 1, size(depth_data))]
+
+    call mpr_sm(param, processMatrix, is_present, nHorizons, nTillHorizons, sand, clay, DbM, Wd, depth_mHM, &
+                ID0, soilId0, LCover0, &
+                thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, &
+                res_KsVar_H0, res_KsVar_V0, res_SMs_FC0)
+
+    KsVar_H0 = res_KsVar_H0(1)
+    KsVar_V0 = res_KsVar_V0(1)
+    SMs_FC0 = res_SMs_FC0(1)
+
+  end subroutine column_properties
+
+  @test
+  subroutine test_sm_split_homogeneous_horizon()
+
+    ! Splitting the homogeneous lower horizon (100-300 mm) of the model must
+    ! not change the column properties: input data, total depth and tillage
+    ! depth are unchanged.
+
+    real(dp) :: H_ref, V_ref, FC_ref, H, V, FC
+
+    call column_properties([100.0_dp, 200.0_dp, 300.0_dp], 1_i4, [100.0_dp, 300.0_dp], H_ref, V_ref, FC_ref)
+    call column_properties([100.0_dp, 300.0_dp], 1_i4, [100.0_dp, 300.0_dp], H, V, FC)
+
+    @assertEqual(H_ref, H, tolerance=rtol * abs(H_ref), message='split horizon: KsVar_H0')
+    @assertEqual(V_ref, V, tolerance=rtol * abs(V_ref), message='split horizon: KsVar_V0')
+    @assertEqual(FC_ref, FC, tolerance=rtol * abs(FC_ref), message='split horizon: SMs_FC0')
+
+    ! equally thick horizons are thickness weighted already by giving each the
+    ! same weight, so the values of the three horizon setup are the column values
+    @assertEqual(0.8707051942_dp, H, tolerance=1.0e-9_dp, message='split horizon: KsVar_H0 value')
+    @assertEqual(0.3814389871_dp, V, tolerance=1.0e-9_dp, message='split horizon: KsVar_V0 value')
+    @assertEqual(0.2118782283_dp, FC, tolerance=1.0e-9_dp, message='split horizon: SMs_FC0 value')
+
+  end subroutine test_sm_split_homogeneous_horizon
+
+  @test
+  subroutine test_sm_layering_invariance()
+
+    ! The column properties must not depend on how the column is divided into
+    ! modelling horizons. The reference is a uniform 50 mm layering, for which
+    ! every horizon has the same thickness, so giving each horizon the same
+    ! weight equals the depth integral over the column. All layerings keep the
+    ! total depth (300 mm) and the tillage depth (100 mm) unchanged. Two input
+    ! data layerings are tested, the second one having a horizon that crosses
+    ! the tillage depth and the boundaries of the modelling horizons.
+
+    integer(i4), parameter :: nLayerings = 6
+    integer(i4), parameter :: maxHorizons = 4
+    real(dp), dimension(maxHorizons, nLayerings) :: depths
+    integer(i4), dimension(nLayerings) :: nHor, nTill
+    real(dp), dimension(2, 2) :: depth_data
+    real(dp), parameter, dimension(6) :: depth_uniform = [50.0_dp, 100.0_dp, 150.0_dp, 200.0_dp, 250.0_dp, 300.0_dp]
+    real(dp) :: H_ref, V_ref, FC_ref, H, V, FC
+    character(256) :: msg
+    integer(i4) :: d, n
+
+    depth_data(:, 1) = [100.0_dp, 300.0_dp]
+    depth_data(:, 2) = [150.0_dp, 300.0_dp]
+
+    depths(:, :) = 0.0_dp
+    depths(1 : 2, 1) = [100.0_dp, 300.0_dp]
+    nHor(1) = 2_i4
+    nTill(1) = 1_i4
+    depths(1 : 3, 2) = [100.0_dp, 200.0_dp, 300.0_dp]
+    nHor(2) = 3_i4
+    nTill(2) = 1_i4
+    depths(1 : 3, 3) = [100.0_dp, 130.0_dp, 300.0_dp]
+    nHor(3) = 3_i4
+    nTill(3) = 1_i4
+    depths(1 : 3, 4) = [100.0_dp, 250.0_dp, 300.0_dp]
+    nHor(4) = 3_i4
+    nTill(4) = 1_i4
+    depths(1 : 3, 5) = [50.0_dp, 100.0_dp, 300.0_dp]
+    nHor(5) = 3_i4
+    nTill(5) = 2_i4
+    depths(1 : 4, 6) = [30.0_dp, 100.0_dp, 170.0_dp, 300.0_dp]
+    nHor(6) = 4_i4
+    nTill(6) = 2_i4
+
+    do d = 1, size(depth_data, 2)
+      call column_properties(depth_uniform, 2_i4, depth_data(:, d), H_ref, V_ref, FC_ref)
+      do n = 1, nLayerings
+        call column_properties(depths(1 : nHor(n), n), nTill(n), depth_data(:, d), H, V, FC)
+        write(msg, '(A, I0, A, I0, A)') 'layering invariance (input data ', d, ', layering ', n, '):'
+        @assertEqual(H_ref, H, tolerance=rtol * abs(H_ref), message=trim(msg) // ' KsVar_H0')
+        @assertEqual(V_ref, V, tolerance=rtol * abs(V_ref), message=trim(msg) // ' KsVar_V0')
+        @assertEqual(FC_ref, FC, tolerance=rtol * abs(FC_ref), message=trim(msg) // ' SMs_FC0')
+      end do
+    end do
+
+  end subroutine test_sm_layering_invariance
+
+end module test_mpr_soilmoist

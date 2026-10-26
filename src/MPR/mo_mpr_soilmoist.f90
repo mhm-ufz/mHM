@@ -58,6 +58,8 @@ contains
   !>       \param[in] "real(dp), dimension(:, :) :: DbM"           mineral Bulk density
   !>       \param[in] "real(dp), dimension(:, :, :) :: Wd"        weights of mHM horizons according to
   !>       horizons provided in soil database
+  !>       \param[in] "real(dp), dimension(:) :: HorizonDepth"     lower depth of the mHM horizons [mm]
+  !>       (only used for iFlag_soilDB = 1)
   !>       \param[in] "integer(i4), dimension(:) :: ID0"           cell ids at level 0
   !>       \param[in] "integer(i4), dimension(:, :) :: soilId0"    soil ids at level 0
   !>       \param[in] "integer(i4), dimension(:) :: LCOVER0"       land cover ids at level 0
@@ -99,8 +101,8 @@ contains
   ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
   ! Rohini Kumar                    Oct 2021 - Neutron count module to mHM integrate into develop branch (5.11.2)
 
-  subroutine mpr_sm(param, processMatrix, is_present, nHorizons, nTillHorizons, sand, clay, DbM, Wd, ID0, soilId0, &
-                   LCover0, &
+  subroutine mpr_sm(param, processMatrix, is_present, nHorizons, nTillHorizons, sand, clay, DbM, Wd, HorizonDepth, &
+                   ID0, soilId0, LCover0, &
                    thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
@@ -138,6 +140,10 @@ contains
     ! weights of the mHM horizons according to the
     ! horizons provided in the soil database
     real(dp), dimension(:, :, :), intent(in) :: Wd
+
+    ! lower depth of the mHM horizons from surface [mm]
+    ! (only used for iFlag_soilDB = 1)
+    real(dp), dimension(:), intent(in) :: HorizonDepth
 
     ! cell ids at level 0
     integer(i4), dimension(:), intent(in) :: ID0
@@ -193,6 +199,9 @@ contains
 
     ! weight of an input data horizon within a modelling horizon
     real(dp) :: w
+
+    ! thickness of a modelling horizon [mm]
+    real(dp) :: dz
 
     ! loop index
     integer(i4) :: l
@@ -433,8 +442,13 @@ contains
           ! the properties of a modelling horizon are the depth weighted average
           ! of the horizons of the gridded input data overlapping with it
           ! (Wd is the identity matrix if both layerings coincide)
+          ! the column properties are depth integrals, hence every modelling
+          ! horizon contributes with its thickness (conservative regridding),
+          ! which makes them independent of the modelled layering
+          dz = HorizonDepth(j)
+          if (j .gt. 1) dz = dz - HorizonDepth(j - 1)
           do jj = 1, size(soilId0, 2)  !! over the horizons of the input data
-            w = Wd(1, j, jj)
+            w = Wd(1, j, jj) * dz
             if (w .le. 0.0_dp) cycle
             s = soilId0(i, jj)
             if (j .le. nTillHorizons(1)) then
