@@ -404,6 +404,7 @@ contains
 
   ! namelist /soildata/ &
   !   iFlag_soilDB, &
+  !   soil_column_depth_weighting, &
   !   tillageDepth, &
   !   nSoilHorizons_mHM, &
   !   soil_Depth, &
@@ -416,6 +417,7 @@ contains
     character(8) :: name = "soildata" !< namelist name
     logical :: read_from_file = .true. !< whether the associated variables are already set by interfaces
     integer(i4) :: iFlag_soilDB !< options to handle different soil databases
+    logical :: soil_column_depth_weighting = .false. !< weight mode-1 soil column contributions by model horizon thickness
     real(dp) :: tillageDepth !< [mm] Soil depth down to which organic
     integer(i4) :: nSoilHorizons_mHM !< Number of horizons to model
     real(dp), dimension(maxNoSoilHorizons) :: soil_Depth !< depth of the single horizons
@@ -1830,6 +1832,7 @@ contains
 
     integer :: unit !< file unit to open the given file
     integer(i4) :: iFlag_soilDB !< options to handle different soil databases
+    logical :: soil_column_depth_weighting !< weight mode-1 soil column contributions by model horizon thickness
     real(dp) :: tillageDepth !< [mm] Soil depth down to which organic
     integer(i4) :: nSoilHorizons_mHM !< Number of horizons to model
     real(dp), dimension(maxNoSoilHorizons) :: soil_Depth !< depth of the single horizons
@@ -1838,6 +1841,7 @@ contains
 
     namelist /soildata/ &
       iFlag_soilDB, &
+      soil_column_depth_weighting, &
       tillageDepth, &
       nSoilHorizons_mHM, &
       soil_Depth, &
@@ -1846,6 +1850,7 @@ contains
 
     if ( self%read_from_file ) then
       soil_Depth = 0.0_dp ! default soil depth
+      soil_column_depth_weighting = .false.
       ! optional: 0 means the input data horizons coincide with the modelled ones
       nSoilHorizons_data = 0_i4
       soil_data_depth = 0.0_dp
@@ -1854,6 +1859,7 @@ contains
       read(unit, nml=soildata)
       call close_nml(unit)
       self%iFlag_soilDB = iFlag_soilDB
+      self%soil_column_depth_weighting = soil_column_depth_weighting
       self%tillageDepth = tillageDepth
       self%nSoilHorizons_mHM = nSoilHorizons_mHM
       self%soil_Depth = soil_Depth

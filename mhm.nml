@@ -698,6 +698,17 @@
   !----------------------------------------------------------------------------------------------------------
   iFlag_soilDB = 0
   !
+  !> Soil column weighting. Only used for iFlag_soilDB = 1, ignored otherwise.
+  !> .false. (default, also when omitted): legacy column accumulation using Wd,
+  !>    with equal weight for each modeled horizon regardless of its thickness.
+  !> .true.: multiply Wd by modeled horizon thickness for the column hydraulic
+  !>    conductivity and saturation/field-capacity sums. This preserves column
+  !>    parameters when homogeneous horizons are split or merged with unchanged
+  !>    physical soil profile, total depth, and tillage depth.
+  !> Both settings support differing input/model horizons. Per-layer remapping
+  !> always uses depth-overlap weights and is independent of this option.
+  soil_column_depth_weighting = .false.
+  !
   !> [mm] soil depth down to which organic matter is possible
   tillageDepth = 200
   !

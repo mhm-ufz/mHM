@@ -1,0 +1,60 @@
+module test_soildata
+  use funit
+  use mo_namelists, only: nml_soildata_t
+  use mo_mpr_global_variables, only: soil_column_depth_weighting
+  use mo_kind, only: i4
+
+  implicit none
+  private
+  public :: test_soildata_depth_weighting
+
+contains
+
+  ! Re-read the same object so an omitted option cannot retain an earlier true.
+  subroutine read_option(config, soil_db, separate_horizons, option)
+    type(nml_soildata_t), intent(inout) :: config
+    integer, intent(in) :: soil_db
+    logical, intent(in) :: separate_horizons
+    logical, optional, intent(in) :: option
+    character(*), parameter :: file = 'test_soildata_depth_weighting.nml'
+    integer :: unit
+
+    open(newunit=unit, file=file, status='replace', action='write')
+    write(unit, '(A)') '&soildata'
+    write(unit, '(A,I0)') 'iFlag_soilDB = ', soil_db
+    write(unit, '(A)') 'tillageDepth = 100, nSoilHorizons_mHM = 2, soil_Depth = 100, 300'
+    if (separate_horizons) &
+      write(unit, '(A)') 'nSoilHorizons_data = 2, soil_data_depth = 150, 300'
+    if (present(option)) write(unit, '(A,L1)') 'soil_column_depth_weighting = ', option
+    write(unit, '(A)') '/'
+    close(unit)
+
+    config%read_from_file = .true.
+    call config%read(file)
+    open(newunit=unit, file=file, status='old')
+    close(unit, status='delete')
+  end subroutine read_option
+
+  @test
+  subroutine test_soildata_depth_weighting()
+    type(nml_soildata_t) :: config
+    integer :: soil_db, separate
+
+    @assertFalse(config%soil_column_depth_weighting, message='namelist type defaults to legacy')
+    @assertFalse(soil_column_depth_weighting, message='MPR global defaults to legacy')
+    do soil_db = 0, 1
+      do separate = 0, 1
+        call read_option(config, soil_db, separate == 1)
+        @assertFalse(config%soil_column_depth_weighting, message='omitted option defaults to legacy')
+        call read_option(config, soil_db, separate == 1, .false.)
+        @assertFalse(config%soil_column_depth_weighting, message='explicit false selects legacy')
+        call read_option(config, soil_db, separate == 1, .true.)
+        @assertTrue(config%soil_column_depth_weighting, message='explicit true selects thickness weighting')
+        call read_option(config, soil_db, separate == 1)
+        @assertFalse(config%soil_column_depth_weighting, message='true then omitted resets to legacy')
+        @assertEqual(int(soil_db, i4), config%iFlag_soilDB, message='soil database selection preserved')
+      end do
+    end do
+  end subroutine test_soildata_depth_weighting
+
+end module test_soildata

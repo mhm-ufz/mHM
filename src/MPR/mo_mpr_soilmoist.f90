@@ -107,7 +107,7 @@ contains
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_mpr_constants, only : BulkDens_OrgMatter
-    use mo_mpr_global_variables, only : iFlag_soilDB
+    use mo_mpr_global_variables, only : iFlag_soilDB, soil_column_depth_weighting
     !$ use omp_lib
 
     implicit none
@@ -442,13 +442,16 @@ contains
           ! the properties of a modelling horizon are the depth weighted average
           ! of the horizons of the gridded input data overlapping with it
           ! (Wd is the identity matrix if both layerings coincide)
-          ! the column properties are depth integrals, hence every modelling
-          ! horizon contributes with its thickness (conservative regridding),
-          ! which makes them independent of the modelled layering
-          dz = HorizonDepth(j)
-          if (j .gt. 1) dz = dz - HorizonDepth(j - 1)
+          ! By default each modelling horizon has equal column weight (legacy).
+          ! Opt-in depth integrals weight each horizon by its thickness, making
+          ! column properties independent of splits/merges of homogeneous horizons.
+          if (soil_column_depth_weighting) then
+            dz = HorizonDepth(j)
+            if (j .gt. 1) dz = dz - HorizonDepth(j - 1)
+          end if
           do jj = 1, size(soilId0, 2)  !! over the horizons of the input data
-            w = Wd(1, j, jj) * dz
+            w = Wd(1, j, jj)
+            if (soil_column_depth_weighting) w = w * dz
             if (w .le. 0.0_dp) cycle
             s = soilId0(i, jj)
             if (j .le. nTillHorizons(1)) then

@@ -89,7 +89,7 @@ contains
                                  maxNoSoilHorizons
     use mo_mpr_global_variables, only : HorizonDepth_data, HorizonDepth_mHM, dirgridded_LAI, fracSealed_cityArea, &
                                         iFlag_soilDB, inputFormat_gridded_LAI, nGeoUnits, nSoilHorizons_data, &
-                                        nSoilHorizons_mHM, tillageDepth, timeStep_LAI_input
+                                        nSoilHorizons_mHM, soil_column_depth_weighting, tillageDepth, timeStep_LAI_input
     use mo_string_utils, only : num2str
     use mo_utils, only : EQ
 
@@ -224,6 +224,7 @@ contains
     !===============================================================
     call nml_soildata%read(file_namelist)
     iFlag_soilDB = nml_soildata%iFlag_soilDB
+    soil_column_depth_weighting = nml_soildata%soil_column_depth_weighting
     tillageDepth = nml_soildata%tillageDepth
     nSoilHorizons_mHM = nml_soildata%nSoilHorizons_mHM
     soil_Depth = nml_soildata%soil_Depth
