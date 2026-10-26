@@ -2966,11 +2966,18 @@ CONTAINS
     iDomain = gauge%domainId(gaugeId)
     call caldat(int(evalPer(iDomain)%julStart), yy = year, mm = month, dd = day)
 
-    call day2mon_average(runoff_daily_masked, year, month, day, runoff_monthly, misval = nodata_dp)
-    call day2mon_average(runoff_obs_daily_masked, year, month, day, runoff_obs_monthly, misval = nodata_dp)
+    ! Exclude missing observed days from both monthly means.
+    call day2mon_average(runoff_daily_masked, year, month, day, runoff_monthly, misval = nodata_dp, rm_misval = .true.)
+    call day2mon_average(runoff_obs_daily_masked, year, month, day, runoff_obs_monthly, misval = nodata_dp, rm_misval = .true.)
 
     allocate(runoff_obs_monthly_mask(size(runoff_obs_monthly)))
     runoff_obs_monthly_mask = (runoff_obs_monthly .ne. nodata_dp) .and. (runoff_monthly .ne. nodata_dp)
+
+    if (count(runoff_obs_monthly_mask) < 2) then
+      call error_message('Monthly NSE/KGE objectives require at least two valid monthly discharge pairs for gauge ', &
+              trim(adjustl(num2str(gauge%gaugeId(gaugeId)))), '; found ', &
+              trim(adjustl(num2str(count(runoff_obs_monthly_mask)))), '.')
+    end if
 
     deallocate(runoff_daily, runoff_obs_daily, runoff_obs_daily_mask)
     deallocate(runoff_daily_masked, runoff_obs_daily_masked)
