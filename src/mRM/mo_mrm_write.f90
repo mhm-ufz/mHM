@@ -742,8 +742,9 @@ contains
             end where
 
             call dec2date(real(evalPer(iDomain)%julStart, dp) - 0.5_dp, yy = year, mm = month, dd = day)
-            call day2mon_average(qobs_daily_masked, year, month, day, qobs_monthly, misval = nodata_dp)
-            call day2mon_average(qsim_daily_masked, year, month, day, qsim_monthly, misval = nodata_dp)
+            ! Exclude missing observed days from both monthly means, as in calibration.
+            call day2mon_average(qobs_daily_masked, year, month, day, qobs_monthly, misval = nodata_dp, rm_misval = .true.)
+            call day2mon_average(qsim_daily_masked, year, month, day, qsim_monthly, misval = nodata_dp, rm_misval = .true.)
 
             allocate(monthly_mask(size(qobs_monthly)))
             monthly_mask = (qobs_monthly .ne. nodata_dp) .and. (qsim_monthly .ne. nodata_dp)
