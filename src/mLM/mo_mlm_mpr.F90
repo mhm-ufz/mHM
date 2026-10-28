@@ -407,14 +407,16 @@ CONTAINS
   !     PURPOSE
   !>        \brief Reads the top-horizon sand and clay content per soil class from the soil LUT.
 
-  !>        \details Parses the classical mHM soil class-definition look-up table and returns, for
-  !>                 every soil class, the sand and clay content of its uppermost horizon (horizon 1).
-  !>                 The file format is: a first line "nSoil_Types <n>", a header line, then one row
-  !>                 per class-and-horizon "<class> <horizon> <upper_depth> <lower_depth> <clay%> <sand%>
-  !>                 <bulk_density>". Only horizon 1 of each class is retained (the lakebed interfaces
-  !>                 the surface soil). Classes absent from the table keep the missing-value sentinel.
-  !>                 This is a self-contained reader so the detached lake MPR does not depend on the
-  !>                 land-surface soil database.
+  !>        \details Parses the mHM soil class-definition look-up table and returns, for every soil
+  !>                 class, the sand and clay content of its uppermost horizon. Both soil_db_mode
+  !>                 layouts of mo_soil_database:read_soil_LUT are supported, detected from the first
+  !>                 data row and latched: a first line "nSoil_Types <n>", a header line, then one row
+  !>                 per class in either mode 0 (class/horizon, 7 columns) "<class> <horizon>
+  !>                 <upper_depth> <lower_depth> <clay%> <sand%> <bulk_density>" or mode 1 (texture,
+  !>                 4 columns) "<class> <clay%> <sand%> <bulk_density>". In mode 0 only horizon 1 is
+  !>                 retained; mode 1 carries one texture per class (its single horizon). Classes
+  !>                 absent from the table keep the missing-value sentinel. This is a self-contained
+  !>                 reader so the detached lake MPR does not depend on the land-surface soil database.
 
   !     CALLING SEQUENCE
   !         call lake_read_soil_texture_lut(path, n_classes, sand_by_class, clay_by_class)
@@ -446,10 +448,13 @@ CONTAINS
     real(dp), allocatable,     intent(out) :: clay_by_class(:) ! [%] horizon-1 clay per class
 
     integer :: unit               ! default-kind unit for newunit=
-    integer(i4) :: ios
-    integer(i4) :: id, horizon
-    real(dp)    :: up, down, cly, snd, bd
-    character(256) :: dummy
+    integer(i4) :: ios            ! iostat for the header and data reads
+    integer(i4) :: ios7           ! iostat of the 7-column (mode-0) parse attempt
+    integer(i4) :: id, horizon    ! soil class id and horizon index
+    real(dp)    :: up, down, cly, snd, bd  ! horizon depths, clay, sand, bulk density
+    character(256) :: dummy       ! header / column-title scratch
+    character(1024) :: line       ! one data row, re-parsed to detect the LUT column layout
+    integer(i4) :: lut_mode       ! detected layout: 0 = class/horizon (7 col), 1 = texture (4 col)
     logical :: exists
 
     inquire(file=path, exist=exists)
@@ -476,10 +481,41 @@ CONTAINS
     allocate(sand_by_class(n_classes), source=nodata_dp)
     allocate(clay_by_class(n_classes), source=nodata_dp)
 
-    ! data rows: <class> <horizon> <up> <down> <clay> <sand> <bd>
+    ! Two supported LUT layouts (matching mo_soil_database:read_soil_LUT), both with the top-horizon
+    ! texture for class id on its data row:
+    !   soil_db_mode 0 (class/horizon): <class> <horizon> <up> <down> <clay> <sand> <bd>  (7 columns)
+    !   soil_db_mode 1 (texture)      : <class> <clay> <sand> <bd>                        (4 columns)
+    ! The layout is detected from the first data row (a 7-column parse of a 4-column row fails for
+    ! too few values) and latched, so every row is read the same way and mode-1 LUTs are supported.
+    ! In mode 1 there is one texture per class (the single horizon); in mode 0 only horizon 1 is kept.
+    lut_mode = -1_i4
     do
-      read(unit, *, iostat=ios) id, horizon, up, down, cly, snd, bd
+      read(unit, "(a)", iostat=ios) line
       if (ios /= 0_i4) exit
+      if (len_trim(line) == 0_i4) cycle
+      if (lut_mode < 0_i4) then
+        ! detect once: try the 7-column (mode-0) layout; fall back to the 4-column (mode-1) layout
+        read(line, *, iostat=ios7) id, horizon, up, down, cly, snd, bd
+        if (ios7 == 0_i4) then
+          lut_mode = 0_i4
+        else
+          lut_mode = 1_i4
+        end if
+      end if
+      if (lut_mode == 0_i4) then
+        read(line, *, iostat=ios) id, horizon, up, down, cly, snd, bd
+        if (ios /= 0_i4) then
+          log_fatal(*) "Lake MPR: malformed class/horizon (7-column) soil LUT row in ", trim(path)
+          error stop 1
+        end if
+      else
+        read(line, *, iostat=ios) id, cly, snd, bd
+        if (ios /= 0_i4) then
+          log_fatal(*) "Lake MPR: malformed texture (4-column) soil LUT row in ", trim(path)
+          error stop 1
+        end if
+        horizon = 1_i4  ! mode-1 has a single texture per class, treated as the top horizon
+      end if
       if (id < 1_i4 .or. id > n_classes) then
         log_fatal(*) "Lake MPR: soil LUT class id out of range in ", trim(path)
         error stop 1
