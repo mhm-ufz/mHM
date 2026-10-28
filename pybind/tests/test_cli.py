@@ -169,11 +169,16 @@ def test_forward_defaults_and_repeated_logging(run_root, monkeypatch, capfd):
         log_line=True,
     )
     log = (run_root / "run.log").read_text()
-    assert "Lead development: Sebastian" in log
-    assert "mo_mhm_runner.F90" in log
+    # The log prefix and complete banner row must remain on one line on every compiler.
+    assert any(
+        "mo_mhm_runner.F90" in line
+        and "MULTISCALE HYDROLOGIC MODEL" in line
+        and line.endswith("|")
+        for line in log.splitlines()
+    )
     mhm.run_forward(quiet=0)
     output = capfd.readouterr().out
-    assert "Lead development: Sebastian" in output
+    assert "MULTISCALE HYDROLOGIC MODEL" in output
     assert "DESTROY COMPONENTS" in output
     assert "mo_mhm_runner.F90" not in output
     np.testing.assert_array_equal(discharge(run_root), reference)
