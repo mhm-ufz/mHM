@@ -1028,6 +1028,7 @@ contains
     real(dp) :: ntimesteps_day, evap_daily, evap_step, pr_step, qin_d, qout_d, pre_d, lat, lon
     real(dp) :: wind_k, tdew_k
     real(dp) :: a_bank, es_step, q_bank
+    real(dp) :: deficit, spill_vol, perc_vol, evap_vol, avg_area, cut
     real(dp) :: evap_components(3)
     logical :: isday
     real(dp) :: input_windspeed_height, climatological_windspeed
@@ -1062,7 +1063,7 @@ contains
         !$omp parallel do default(shared) &
         !$omp   private(k, spill, volume_adjustment, perc, baseflow, leakance, kbf, &
         !$omp           evap_daily, evap_step, pr_step, qin_d, qout_d, pre_d, lat, lon, wind_k, tdew_k, evap_components, &
-        !$omp           a_bank, es_step, q_bank) &
+        !$omp           a_bank, es_step, q_bank, deficit, spill_vol, perc_vol, evap_vol, avg_area, cut) &
         !$omp   schedule(dynamic)
         do k = 1_i8, n_lakes
           ! Darcy lakebed leakance Ks/b [TS-1 per unit head] and per-step baseflow recession.
@@ -1180,6 +1181,41 @@ contains
             self%lake_level_previous(k), self%lake_surface_area_previous(k), self%lake_volume_previous(k), &
             self%lake_level(k), self%lake_surface_area(k), self%lake_volume(k), &
             volume_adjustment, tsHydroSecs)
+          ! Reconcile the published losses with the water actually available. When the step's net
+          ! demand (evaporation + seepage + spill, less inflow and precipitation) exceeds the lake
+          ! storage, lake_balance clamps the lake to empty and returns the shortfall as a positive
+          ! volume_adjustment [m3]. The fluxes here were computed from the PREVIOUS-step level, so
+          ! without this reconciliation the container would still route the full spill downstream and
+          ! the full seepage to groundwater -- creating water the lake never held. Absorb the deficit
+          ! in physical priority: spill first (a lake drawn below its sill cannot spill), then seepage
+          ! (its driving head vanishes as the lake empties), then evaporation last (the terminal
+          ! surface loss, and the only loss of an endorheic lake). Fluxes are rates; convert each to a
+          ! step volume, cut it, and convert back so spill, perc and evap stay mutually consistent and
+          ! the lake->groundwater transfer (perc) still matches on both sides.
+          if (volume_adjustment > 0.0_dp) then
+            deficit   = volume_adjustment
+            avg_area  = 0.5_dp * (self%lake_surface_area_previous(k) + self%lake_surface_area(k))
+            ! 1) spill [m3 s-1] -> step volume
+            spill_vol = spill * tsHydroSecs
+            cut       = min(deficit, spill_vol)
+            spill     = (spill_vol - cut) / tsHydroSecs
+            deficit   = deficit - cut
+            ! 2) seepage [mm TS-1] over the previous-step area (the conserved lake->GW transfer volume)
+            if (deficit > 0.0_dp) then
+              perc_vol = perc / 1000.0_dp * self%lake_surface_area_previous(k)
+              cut      = min(deficit, perc_vol)
+              if (self%lake_surface_area_previous(k) > 0.0_dp) &
+                perc = (perc_vol - cut) * 1000.0_dp / self%lake_surface_area_previous(k)
+              deficit  = deficit - cut
+            end if
+            ! 3) evaporation [mm TS-1] over the step-average area (as the balance applied it)
+            if (deficit > 0.0_dp .and. avg_area > 0.0_dp) then
+              evap_vol  = evap_step / 1000.0_dp * avg_area
+              cut       = min(deficit, evap_vol)
+              evap_step = (evap_vol - cut) * 1000.0_dp / avg_area
+              deficit   = deficit - cut
+            end if
+          end if
           ! Lake groundwater storage update -> baseflow (uses the previous-step surface area and GW storage).
           call lake_gws_baseflow(perc, self%lake_surface_area_previous(k), &
             self%lake_gw_storage_previous(k), self%lake_gw_storage(k), &
