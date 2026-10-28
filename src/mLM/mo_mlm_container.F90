@@ -184,8 +184,35 @@ contains
   !> \brief Load restart-owned lake definition before field connection.
   subroutine mlm_prepare_restart(self)
     class(mlm_t), target, intent(inout) :: self
+    integer(i4) :: lake_case
 
-    if (self%read_restart) call self%read_restart_metadata()
+    if (.not.self%read_restart) return
+    call self%read_restart_metadata()
+    ! Restore and publish the lake topology (footprint grid + packed lake map) here, before any
+    ! component connects. The lake map is model definition that Meteo binds in its connect to build
+    ! the lake forcing support, and Meteo connects before mLM. On a restart continued WITHOUT the
+    ! original lake inputs, Input publishes no lake map, so mLM must restore it from the restart file
+    ! and publish it in this phase (prepare_restart restores model definition before binding). mLM
+    ! declared itself the lake_map provider in configure only when Input did not (the read_restart
+    ! .and. .not. lake_ids%provided guard), so this runs exactly on the restart-without-Input path and
+    ! never duplicates an Input publication. Case 1 (minimal natural lake) and case -2 both consume it.
+    lake_case = self%exchange%config%processes%lake
+    ! mLM is the lake_map provider only when its configure declared it (restart without Input). Detect
+    ! that by the recorded provider identity; a separate guard avoids dereferencing the allocatable
+    ! provider string when the field is unprovided (no short-circuit in Fortran).
+    if (lake_case == 1_i4 .or. lake_case == -2_i4) then
+      if (self%exchange%lake_map%provided) then
+        if (allocated(self%exchange%lake_map%provider)) then
+          if (self%exchange%lake_map%provider == "mLM") then
+            call self%read_restart_topology()
+            self%exchange%level0_lake => self%static_lake_grid
+            call self%exchange%lake_map%prepare_data("mLM", no_time)
+            self%exchange%lake_map%data => self%lake_map
+            self%owns_restart_lake_grid = .true.
+          end if
+        end if
+      end if
+    end if
   end subroutine mlm_prepare_restart
 
   !> \brief Set generated lake-configuration dimensions.
@@ -289,7 +316,7 @@ contains
     if (self%read_restart .and. .not.self%exchange%lake_ids%provided) then
       call self%exchange%lake_ids%provide("mLM")
       call self%exchange%lake_spill_reference_level%provide("mLM")
-      if (lake_case == -2_i4) call self%exchange%lake_map%provide("mLM")
+      if (lake_case == -2_i4 .or. lake_case == 1_i4) call self%exchange%lake_map%provide("mLM")
     end if
     if (lake_case == -2_i4) call self%exchange%lake_spill_reference_surface_area_dem_derived%provide("mLM")
     if (lake_case == 1_i4) then
@@ -467,7 +494,12 @@ contains
       error stop 1
     end if
     if (lake_case == -2_i4) then
-      if (associated(self%exchange%level0_lake) .and. self%exchange%lake_map%provided) then
+      ! Topology may already have been restored and published in prepare_restart on a restart continued
+      ! without the original lake inputs (owns_restart_lake_grid set there). Otherwise resolve it now:
+      ! bind to the Input-published grid/map when present, else restore it from the restart file.
+      if (self%owns_restart_lake_grid) then
+        continue
+      else if (associated(self%exchange%level0_lake) .and. self%exchange%lake_map%provided) then
         call self%exchange%check_data(self%exchange%lake_map, "mLM")
         self%static_lake_grid = self%exchange%level0_lake
         self%lake_map = self%exchange%lake_map%data
@@ -500,7 +532,11 @@ contains
       ! initialize (soil texture over the footprint -> Cosby Ks -> area-weighted mean per lake),
       ! and are retained for restart. On a restart-only run Input provides none of these; the
       ! lakebed Ks is then restored from the restart metadata instead (see the restart branch above).
-      if (associated(self%exchange%level0_lake) .and. self%exchange%lake_map%provided) then
+      ! Skip the Input-data binding when prepare_restart already restored the topology from the restart
+      ! file (restart continued without the original lake inputs). Otherwise bind the Input-published
+      ! footprint grid, lake map and lake soil/geology for the detached lake-MPR regionalization.
+      if (.not.self%owns_restart_lake_grid .and. &
+          associated(self%exchange%level0_lake) .and. self%exchange%lake_map%provided) then
         call self%exchange%check_data(self%exchange%lake_map, "mLM")
         self%static_lake_grid = self%exchange%level0_lake
         self%lake_map = self%exchange%lake_map%data
