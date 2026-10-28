@@ -642,6 +642,7 @@ contains
       n_lakes = size(self%lake_ids, kind=i8)
       domain = self%exchange%nml_domain_id
       tsHydroSecs = real(self%exchange%step_hours, dp) * 3600.0_dp
+      if (allocated(self%hav)) deallocate(self%hav)
       allocate(self%hav(n_lakes))
       do k = 1_i8, n_lakes
         bathymetry_type = self%config%bathymetry_type(self%exchange%nml_domain_id, k)
