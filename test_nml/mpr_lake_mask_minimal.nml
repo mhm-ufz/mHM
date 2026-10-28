@@ -23,11 +23,11 @@
   fdir_path(1)           = "examples/fixtures/input.nc"
   dem_path(1)            = "examples/fixtures/input.nc"
   lake_definition_path(1) = "examples/fixtures/lake_outlets.nc"
-  slope_path(1)          = "test_domain/input/morph/slope.asc"
-  aspect_path(1)         = "test_domain/input/morph/aspect.asc"
-  geo_class_path(1)      = "test_domain/input/morph/geology_class.asc"
-  soil_class_path(1)     = "test_domain/input/morph/soil_class.asc"
-  lai_class_path(1)      = "test_domain/input/morph/LAI_class.asc"
+  slope_path(1)          = "examples/fixtures/slope.asc"
+  aspect_path(1)         = "examples/fixtures/aspect.asc"
+  geo_class_path(1)      = "examples/fixtures/geology_class.asc"
+  soil_class_path(1)     = "examples/fixtures/soil_class.asc"
+  lai_class_path(1)      = "examples/fixtures/LAI_class.asc"
   pre_path(1)            = "examples/fixtures/pre_daily_aligned.nc"
   pet_path(1)            = "examples/fixtures/pet_daily_aligned.nc"
 /
@@ -46,9 +46,9 @@
   land_cover_path(1)       = "examples/fixtures/lc_static.nc"
   land_cover_var(1)        = "land_cover"
   lai_time_step(1)         = 0
-  soil_lut_path(1)         = "test_domain/input/morph/soil_classdefinition.txt"
-  geo_lut_path(1)          = "test_domain/input/morph/geology_classdefinition.txt"
-  lai_lut_path(1)          = "test_domain/input/morph/LAI_classdefinition.txt"
+  soil_lut_path(1)         = "examples/domain_01/input/morph/soil_classdefinition.txt"
+  geo_lut_path(1)          = "examples/domain_01/input/morph/geology_classdefinition.txt"
+  lai_lut_path(1)          = "examples/domain_01/input/morph/LAI_classdefinition.txt"
   write_restart(1)         = .true.
   restart_output_path(1)   = "mpr_lake_mask_restart.nc"
 /

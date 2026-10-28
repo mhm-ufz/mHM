@@ -1,12 +1,14 @@
 !> \file mo_meteo_temporal_tools.f90
-!> \brief \copybrief mo_meteo_temporal_tools
-!> \details \copydetails mo_meteo_temporal_tools
+!> \copydoc mo_meteo_temporal_tools
 
 !> \brief Temporal disaggregation of daily input values
 !> \details Calculate actual values for precipitation, PET and temperature from daily mean inputs
 !> \note There is not PET correction for aspect in this routine. Use pet * fasp before or after the routine.
 !> \authors Matthias Cuntz
 !> \date Dec 2012
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_meteo
@@ -36,15 +38,10 @@ CONTAINS
     weights_correction &
   )
     implicit none
-
-    !> Daily meteo_val
-    real(dp), intent(in) :: meteo_val_day
-    !> weights for meteo_val
-    real(dp), intent(in) :: meteo_val_weights
-    !> Actual meteo_val
-    real(dp), intent(out) :: meteo_val
-    !> Additive correction before applying weights (e.g. for temperature conversion)
-    real(dp), intent(in), optional :: weights_correction
+    real(dp), intent(in) :: meteo_val_day !< Daily meteo_val
+    real(dp), intent(in) :: meteo_val_weights !< weights for meteo_val
+    real(dp), intent(out) :: meteo_val !< Actual meteo_val
+    real(dp), intent(in), optional :: weights_correction !< Additive correction before applying weights (e.g. for temperature conversion)
 
     real(dp) :: weights_correction_
 
@@ -72,19 +69,12 @@ CONTAINS
     meteo_val &
   )
     implicit none
-
-    !> is day (False for night)
-    logical, intent(in) :: isday
-    !> number of time steps per day
-    real(dp), intent(in) :: ntimesteps_day
-    !> Daily meteo_val
-    real(dp), intent(in) :: meteo_val_day
-    !> Daytime fraction of meteo_val
-    real(dp), intent(in) :: fday_meteo_val
-    !> Nighttime fraction of meteo_val
-    real(dp), intent(in) :: fnight_meteo_val
-    !> Actual meteo_val
-    real(dp), intent(out) :: meteo_val
+    logical, intent(in) :: isday !< is day (False for night)
+    real(dp), intent(in) :: ntimesteps_day !< number of time steps per day
+    real(dp), intent(in) :: meteo_val_day !< Daily meteo_val
+    real(dp), intent(in) :: fday_meteo_val !< Daytime fraction of meteo_val
+    real(dp), intent(in) :: fnight_meteo_val !< Nighttime fraction of meteo_val
+    real(dp), intent(out) :: meteo_val !< Actual meteo_val
 
     ! Distribute into time steps night/day
     if(ntimesteps_day .gt. 1.0_dp) then
@@ -115,21 +105,13 @@ CONTAINS
     add_correction &
   )
     implicit none
-
-    !> is day (False for night)
-    logical, intent(in) :: isday
-    !> number of time steps per day
-    real(dp), intent(in) :: ntimesteps_day
-    !> Daily meteo_val
-    real(dp), intent(in) :: meteo_val_day
-    !> Daytime fraction of meteo_val
-    real(dp), intent(in) :: fday_meteo_val
-    !> Nighttime fraction of meteo_val
-    real(dp), intent(in) :: fnight_meteo_val
-    !> Actual meteo_val
-    real(dp), intent(out) :: meteo_val
-    !> if True, correcting values will be added (e.g. for temperature), otherwise used as percentage
-    logical, intent(in), optional :: add_correction
+    logical, intent(in) :: isday !< is day (False for night)
+    real(dp), intent(in) :: ntimesteps_day !< number of time steps per day
+    real(dp), intent(in) :: meteo_val_day !< Daily meteo_val
+    real(dp), intent(in) :: fday_meteo_val !< Daytime fraction of meteo_val
+    real(dp), intent(in) :: fnight_meteo_val !< Nighttime fraction of meteo_val
+    real(dp), intent(out) :: meteo_val !< Actual meteo_val
+    logical, intent(in), optional :: add_correction !< if True, correcting values will be added (e.g. for temperature), otherwise used as percentage
 
     logical :: add_correction_
 

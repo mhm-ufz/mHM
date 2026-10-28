@@ -12,8 +12,9 @@ It is separate from `examples/domain_01` and `examples/domain_02`, which are run
   `pre_daily_aligned.nc`, `pet_daily_aligned.nc`, `tavg_daily_aligned.nc`,
   `pre_weights.nc`, `pet_weights.nc`, `tavg_weights.nc`, `scc_gauges.nc`,
   `lake_outlets.nc`
-- Copied legacy-domain assets:
-  `dem.asc`, `fdir.asc`, `slope.asc`
+- ASCII spatial inputs:
+  `dem.asc`, `fdir.asc`, `slope.asc`, `aspect.asc`, `soil_class.asc`,
+  `geology_class.asc`, `LAI_class.asc`
 - Derived/generated NetCDF fixtures:
   `input.nc`, `lc_periods.nc`
 

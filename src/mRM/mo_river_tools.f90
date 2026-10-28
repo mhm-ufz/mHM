@@ -8,6 +8,7 @@
 !> \date    May 2025
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! This code is released under the LGPLv3+ license \license_note
+!> \ingroup f_mrm
 module mo_river_tools
 
   use mo_kind, only: i1, i2, i4, i8, dp

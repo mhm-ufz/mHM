@@ -23,16 +23,21 @@
 
 &config_input
   slope_path(1)     = "examples/fixtures/input.nc"
-  aspect_path(1)    = "test_domain/input/morph/aspect.asc"
-  geo_class_path(1) = "test_domain/input/morph/geology_class.asc"
-  soil_class_path(1)= "test_domain/input/morph/soil_class.asc"
-  lai_class_path(1) = "test_domain/input/morph/LAI_class.asc"
-  meteo_mask_path(1)= "test_domain/input/meteo/mask.nc"
-  pre_path(1)       = "test_domain/input/meteo/pre/pre.nc"
-  pet_path(1)       = "test_domain/input/meteo/pet/pet.nc"
+  aspect_path(1)    = "examples/fixtures/aspect.asc"
+  geo_class_path(1) = "examples/fixtures/geology_class.asc"
+  soil_class_path(1)= "examples/fixtures/soil_class.asc"
+  lai_class_path(1) = "examples/fixtures/LAI_class.asc"
+  meteo_mask_path(1)= "examples/domain_01/input/meteo/mask.nc"
+  pre_path(1)       = "examples/domain_01/input/meteo/pre.nc"
+  pet_path(1)       = "examples/domain_01/input/meteo/pet.nc"
 /
 
 &config_meteo
+  frac_night_pre(:,1)  = 0.46, 0.50, 0.52, 0.51, 0.48, 0.50, 0.49, 0.48, 0.52, 0.56, 0.50, 0.47
+  frac_night_pet(:,1)  = 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10
+  frac_night_temp(:,1) = -0.76, -1.30, -1.88, -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.60, -0.94, -0.53
+  frac_night_ssrd(:,1) = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+  frac_night_strd(:,1) = 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45
 /
 
 &config_mpr
@@ -44,9 +49,9 @@
   land_cover_path(1)       = "examples/fixtures/lc_static.nc"
   land_cover_var(1)        = "land_cover"
   lai_time_step(1)         = 0
-  soil_lut_path(1)         = "test_domain/input/morph/soil_classdefinition.txt"
-  geo_lut_path(1)          = "test_domain/input/morph/geology_classdefinition.txt"
-  lai_lut_path(1)          = "test_domain/input/morph/LAI_classdefinition.txt"
+  soil_lut_path(1)         = "examples/domain_01/input/morph/soil_classdefinition.txt"
+  geo_lut_path(1)          = "examples/domain_01/input/morph/geology_classdefinition.txt"
+  lai_lut_path(1)          = "examples/domain_01/input/morph/LAI_classdefinition.txt"
   write_restart(1)         = .true.
   restart_output_path(1)   = "mpr_soil_restart.nc"
 /

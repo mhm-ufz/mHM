@@ -1,4 +1,0 @@
-cmake -B mpi_release -DMHM_WITH_MPI=ON -DCMAKE_BUILD_TYPE=Release "$@"
-cmake --build mpi_release --parallel 4
-cp mpi_release/mhm ./mhm_mpi
-cp mpi_release/app/mhm-driver ./mhm_driver_mpi

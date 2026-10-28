@@ -5,8 +5,6 @@ forces/
 build/
 release/
 debug/
-mpi_release/
-mpi_debug/
 openmp_release/
 openmp_debug/
 src/tests/*.F90
@@ -20,8 +18,6 @@ doxygen_warn.txt
 mhm
 !pybind/src/mhm
 mhm_debug
-mhm_mpi
-mhm_mpi_debug
 mhm_openmp
 mhm_openmp_debug
 *.g90
@@ -32,9 +28,6 @@ mhm_openmp_debug
 mhm_env/
 src/*/*.release/
 src/*/*.debug/
-test_domain*/output*/*.nc
-test_domain*/output*/*.out
-test_domain*/restart/*.nc
 *prog_for_check
 *terminal
 mrm_*.nc
@@ -647,3 +640,7 @@ GitHub.sublime-settings
 
 # additional folders
 info/
+
+# Isolated validation outputs
+logs_v6/
+coverage-runs/

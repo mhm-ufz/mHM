@@ -13,6 +13,7 @@
 !> \date    October 2026
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! This code is released under the LGPLv3+ license \license_note
+!> \ingroup f_mrm
 module mo_river_temperature
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
   use mo_kind, only: dp, i4, i8

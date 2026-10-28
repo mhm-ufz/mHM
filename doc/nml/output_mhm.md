@@ -17,8 +17,8 @@ Output configuration for mHM.
 | [out_interception](#out_interception) | logical | no | no | Interception |
 | [out_snowpack](#out_snowpack) | logical | no | no | Snowpack |
 | [out_SWC](#out_swc) | logical | no | no | Layered Soil Water Content |
-| [out_SM](#out_sm) | logical | no | no | Layered Volumetric Soil Moisture |
-| [out_SM_all](#out_sm_all) | logical | no | no | Mean Volumetric Soil Moisture |
+| [out_SM](#out_sm) | logical | no | no | Layered Relative Soil Saturation |
+| [out_SM_all](#out_sm_all) | logical | no | no | Mean Relative Soil Saturation |
 | [out_sealedSTW](#out_sealedstw) | logical | no | no | Reservoir of Sealed areas |
 | [out_unsatSTW](#out_unsatstw) | logical | no | no | Reservoir of Unsaturated areas |
 | [out_satSTW](#out_satstw) | logical | no | no | Reservoir of Saturated areas |
@@ -127,7 +127,7 @@ Summary:
 
 Layered Soil Water Content `out_SWC`
 
-soil water content in the single layers (L1_soilMoist)
+Soil water storage SWC(time,z,y,x) [mm]; replaces SWC_L01, SWC_L02, etc.
 
 Summary:
 - Type: `logical`
@@ -137,9 +137,10 @@ Summary:
 
 ### out_SM
 
-Layered Volumetric Soil Moisture `out_SM`
+Layered Relative Soil Saturation `out_SM`
 
-volumetric soil moisture in the single layers (L1_soilMoist / L1_soilMoistSat) [mm/mm]
+Relative saturation SM(time,z,y,x) = soil water storage / saturation capacity [1].
+Replaces SM_L01, SM_L02, etc.; this is relative saturation, not volumetric water content.
 
 Summary:
 - Type: `logical`
@@ -149,9 +150,9 @@ Summary:
 
 ### out_SM_all
 
-Mean Volumetric Soil Moisture `out_SM_all`
+Mean Relative Soil Saturation `out_SM_all`
 
-mean volumetric soil moisture averaged over all soil layers (L1_soilMoist / L1_soilMoistSat) [mm/mm]
+relative saturation over all soil layers (L1_soilMoist / L1_soilMoistSat) [mm/mm]
 
 Summary:
 - Type: `logical`
@@ -296,7 +297,7 @@ Summary:
 
 Soil Infiltration `out_soil_infil`
 
-Infiltration (L1_infilSoil) [mm/T]
+Accumulated soil_infil(time,z,y,x) [mm], with pervious-area factor; replaces soil_infil_L01, etc.
 
 Summary:
 - Type: `logical`
@@ -321,7 +322,11 @@ Summary:
 
 Actual Evapotranspiration from Soil Layers `out_aET_layer`
 
-Actual evapotranspiration from the soil layers [mm/T]
+Accumulated aET_soil(time,z,y,x) [mm], with pervious-area factor; replaces aET_L01, etc.
+Layer tops and bounds are in mm, positive downwards. In soil_db_mode=0 the final
+bounds coincide: this mHM-specific marker means unspecified variable bottom depth,
+not zero physical thickness. In soil_db_mode=1 all bounds have fixed physical depths.
+A singleton z dimension is retained for one soil layer; total aET remains without z.
 
 Summary:
 - Type: `logical`

@@ -1,4 +1,5 @@
 enable_testing()
+include(${PROJECT_SOURCE_DIR}/CI-scripts/stage_run.cmake)
 
 set(LIB_NAME mhm_lib)
 find_package(PFUNIT QUIET)
@@ -6,7 +7,23 @@ find_package(PFUNIT QUIET)
 if(PFUNIT_FOUND)
   message(STATUS "mHM: add unit tests")
   configure_file(test_parameters_expected.nml test_parameters_expected.nml COPYONLY)
-  file(GLOB testfiles *.pf)
+  set(testfiles
+    test_canopy_interc.pf
+    test_exchange_variable.pf
+    test_meteo_temporal_tools.pf
+    test_mlm_restart.pf
+    test_mrm_output_timing.pf
+    test_mpr_regionalization.pf
+    test_parameters.pf
+    test_pet.pf
+    test_river_router.pf
+    test_river_tools.pf
+    test_river_upscaler.pf
+    test_runoff.pf
+    test_snow_accum_melt.pf
+    test_soil_moisture.pf
+    test_time_config.pf
+  )
   foreach(file ${testfiles})
     get_filename_component(testname ${file} NAME_WE)
     add_pfunit_ctest(${testname} TEST_SOURCES ${file} LINK_LIBRARIES ${LIB_NAME})
@@ -26,7 +43,7 @@ add_test(
   COMMAND
     ${CMAKE_COMMAND}
       -DTEST_EXECUTABLE=$<TARGET_FILE:test_parameter_failures>
-      -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DPROJECT_SOURCE_DIR=${CMAKE_CURRENT_BINARY_DIR}/runs/test_parameter_failures
       -P ${CMAKE_CURRENT_SOURCE_DIR}/run_parameter_failures.cmake
 )
 
@@ -37,7 +54,7 @@ add_test(
   COMMAND
     ${CMAKE_COMMAND}
       -DTEST_EXECUTABLE=$<TARGET_FILE:test_exchange_failures>
-      -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DPROJECT_SOURCE_DIR=${CMAKE_CURRENT_BINARY_DIR}/runs/test_exchange_failures
       -P ${CMAKE_CURRENT_SOURCE_DIR}/run_exchange_failures.cmake
 )
 
@@ -48,39 +65,96 @@ add_test(NAME test_river_temperature COMMAND test_river_temperature)
 add_executable(test_river_routing_optimization test_river_routing_optimization.f90)
 target_link_libraries(test_river_routing_optimization PRIVATE ${LIB_NAME})
 add_test(NAME test_river_routing_optimization COMMAND test_river_routing_optimization)
-set_tests_properties(test_river_routing_optimization PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
-add_test(
-  NAME test_mrm_river_temperature
-  COMMAND
-    $<TARGET_FILE:mhm-driver-exe>
-      -n test_nml/mrm_rivertemp_meteo_minimal.nml
-      -p test_nml/mhm_parameter_v6_meteo.nml
-      -o test_nml/mrm_rivertemp_output.nml
-)
-set_tests_properties(test_mrm_river_temperature PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+if(TARGET mhm)
+  add_test(
+    NAME test_mrm_river_temperature
+    COMMAND
+      $<TARGET_FILE:mhm>
+        -n test_nml/mrm_rivertemp_meteo_minimal.nml
+        -p test_nml/mhm_parameter_v6_meteo.nml
+        -o test_nml/mrm_rivertemp_output.nml
+  )
+endif()
 
 add_executable(test_parameter_reinitialize test_parameter_reinitialize.f90)
 target_link_libraries(test_parameter_reinitialize PRIVATE ${LIB_NAME})
 add_test(NAME test_parameter_reinitialize COMMAND test_parameter_reinitialize)
-set_tests_properties(test_parameter_reinitialize PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
-add_test(
-  NAME test_mrm_intermediate_step
-  COMMAND
-    $<TARGET_FILE:mhm-driver-exe>
-      -n test_nml/mrm_8h_minimal.nml
-      -p test_nml/mhm_parameter_v6_routing.nml
-      -o mhm-output-template.nml
-)
-set_tests_properties(test_mrm_intermediate_step PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+add_executable(test_forward_run test_forward_run.f90)
+target_link_libraries(test_forward_run PRIVATE ${LIB_NAME})
+add_test(NAME test_forward_run COMMAND test_forward_run)
 
-add_test(
-  NAME test_mpr_lake_mask
-  COMMAND
-    $<TARGET_FILE:mhm-driver-exe>
-      -n test_nml/mpr_lake_mask_minimal.nml
-      -p test_nml/mhm_parameter_v6_hydrology.nml
-      -o mhm-output-template.nml
-)
-set_tests_properties(test_mpr_lake_mask PROPERTIES WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+if(TARGET mhm)
+  add_test(
+    NAME test_mrm_intermediate_step
+    COMMAND
+      $<TARGET_FILE:mhm>
+        -n test_nml/mrm_8h_minimal.nml
+        -p test_nml/mhm_parameter_v6_routing.nml
+        -o mhm-output-template.nml
+  )
+endif()
+
+if(TARGET mhm)
+  add_test(
+    NAME test_mpr_lake_mask
+    COMMAND
+      $<TARGET_FILE:mhm>
+        -n test_nml/mpr_lake_mask_minimal.nml
+        -p test_nml/mhm_parameter_v6_hydrology.nml
+        -o mhm-output-template.nml
+  )
+endif()
+
+add_executable(test_mpr_multidomain_soil test_mpr_multidomain_soil.f90)
+target_link_libraries(test_mpr_multidomain_soil PRIVATE ${LIB_NAME})
+add_test(NAME test_mpr_multidomain_soil COMMAND test_mpr_multidomain_soil)
+
+add_executable(test_bulk_components test_bulk_components.f90)
+target_link_libraries(test_bulk_components PRIVATE ${LIB_NAME})
+add_test(NAME test_bulk_components COMMAND test_bulk_components)
+
+add_executable(test_horizon_restart test_horizon_restart.f90)
+target_link_libraries(test_horizon_restart PRIVATE ${LIB_NAME})
+add_test(NAME test_horizon_restart COMMAND test_horizon_restart)
+
+add_executable(test_layered_mhm_output test_layered_mhm_output.f90)
+target_link_libraries(test_layered_mhm_output PRIVATE ${LIB_NAME})
+add_test(NAME test_layered_mhm_output COMMAND test_layered_mhm_output)
+
+add_executable(test_soil_horizons test_soil_horizons.f90)
+target_link_libraries(test_soil_horizons PRIVATE ${LIB_NAME})
+add_test(NAME test_soil_horizons COMMAND test_soil_horizons)
+add_test(NAME test_horizon_failures COMMAND ${CMAKE_COMMAND}
+  -DTEST_EXECUTABLE=$<TARGET_FILE:test_soil_horizons>
+  -DRESTART_EXECUTABLE=$<TARGET_FILE:test_horizon_restart>
+  -DRUN_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/runs/test_horizon_failures
+  -P ${CMAKE_CURRENT_SOURCE_DIR}/run_horizon_failures.cmake)
+
+set_source_files_properties(test_neutron_parallel.f90 PROPERTIES Fortran_PREPROCESS ON)
+add_executable(test_neutron_parallel test_neutron_parallel.f90)
+target_link_libraries(test_neutron_parallel PRIVATE ${LIB_NAME})
+add_test(NAME test_neutron_parallel COMMAND test_neutron_parallel)
+set_tests_properties(test_neutron_parallel PROPERTIES ENVIRONMENT "OMP_DYNAMIC=FALSE")
+
+# No integration or unit test writes into the source checkout.
+get_property(mhm_tests DIRECTORY PROPERTY TESTS)
+foreach(test_name IN LISTS mhm_tests)
+  set(run_dir "${CMAKE_CURRENT_BINARY_DIR}/runs/${test_name}")
+  mhm_stage_run("${PROJECT_SOURCE_DIR}" "${run_dir}")
+  if(test_name STREQUAL "test_forward_run")
+    mhm_stage_run("${PROJECT_SOURCE_DIR}" "${run_dir}/alternate")
+    foreach(api_run_dir "${run_dir}" "${run_dir}/alternate")
+      configure_file("${api_run_dir}/test_nml/mrm_minimal.nml" "${api_run_dir}/mhm.nml" COPYONLY)
+      configure_file("${api_run_dir}/test_nml/mhm_parameter_v6_routing.nml" "${api_run_dir}/parameters.nml" COPYONLY)
+      configure_file("${api_run_dir}/mhm-output-template.nml" "${api_run_dir}/outputs.nml" COPYONLY)
+    endforeach()
+  endif()
+  set_tests_properties(${test_name} PROPERTIES WORKING_DIRECTORY "${run_dir}")
+endforeach()
+
+if(TARGET mhm_coverage_CI)
+  get_property(mhm_test_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+  add_dependencies(mhm_coverage_CI ${mhm_test_targets})
+endif()

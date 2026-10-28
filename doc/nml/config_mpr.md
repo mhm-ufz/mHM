@@ -36,7 +36,7 @@ Soil database mode `soil_db_mode`
 
 Flag to handle multiple soil database types; valid for all domains.
 - 0: classical mHM soil database with soil_class.asc and soil_classdefinition.txt.
-  Soil horizons follow nSoilHorizons_mHM and soil_Depth for n-1 layers; last layer depth comes from the LUT.
+  Soil horizons follow n_layers and soil_depth for n-1 layers; last layer depth comes from the LUT.
 - 1: harmonised horizon-specific soil database with soil_class_horizon_XX.asc and soil_classdefinition_iFlag_soilDB_1.txt.
   Soil depth is provided for all horizons; the last horizon depth is fixed and uniform;
   tillage depth must match a horizon depth.
@@ -80,6 +80,11 @@ Bottom depth of soil horizons with respect to the ground surface [mm], positive 
 - if soil_db_mode = 0: provide depths for horizons 1..n-1; last horizon depth comes from the LUT.
 - if soil_db_mode = 1: provide depths for all horizons 1..n; a soil_class_horizon_XX.asc is required for each.
 Tillage depth should match one of the specified horizon depths.
+Restart and output coordinates reference layer tops and carry bounds [mm].
+In mode 0 the terminal bound repeats the final layer top. This mHM-specific
+zero-thickness marker means the spatially variable bottom depth is unspecified;
+the physical layer has nonzero thickness. No L1 soil depth is calculated.
+Mode 1 uses fixed bounds. Older mode-0 restart endpoints are normalized to this marker.
 
 Summary:
 - Type: `integer(i4), dimension(max_layers, n_domains)`

@@ -18,9 +18,9 @@
   out_snowpack = .false.
   ! Layered Soil Water Content
   out_SWC = .false.
-  ! Layered Volumetric Soil Moisture
+  ! Layered Relative Soil Saturation
   out_SM = .false.
-  ! Mean Volumetric Soil Moisture
+  ! Mean Relative Soil Saturation
   out_SM_all = .false.
   ! Reservoir of Sealed areas
   out_sealedSTW = .false.

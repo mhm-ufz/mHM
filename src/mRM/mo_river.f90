@@ -15,6 +15,7 @@
 !> \date    May 2025
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! This code is released under the LGPLv3+ license \license_note
+!> \ingroup f_mrm
 module mo_river
 
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
@@ -23,6 +24,7 @@ module mo_river
   use mo_dag, only: branching, order_t, traversal_visit
   use mo_grid, only: grid_t, bottom_up, cartesian, dist_latlon
   use mo_grid_io, only: var, output_dataset
+  use mo_netcdf_utils, only: add_var
   use mo_points, only: points_t
   use mo_message, only: error_message, message
   use mo_utils, only: optval
@@ -1175,20 +1177,20 @@ contains
       !$omp end parallel do
     end if
     allocate(vars(0))
-    vars = [vars, var("fdir", "flow direction", dtype="i16", kind="i2", static=.true.)]
-    if (allocated(this%facc)) vars = [vars, var("facc", "flow accumulation", dtype="i32", static=.true.)]
-    if (allocated(this%order%id)) vars = [vars, var("level", "order level", dtype="i32", static=.true.)]
-    if (allocated(this%upstream_area)) vars = [vars, var("upstream_area", "upstream area", units="m2", dtype="f64", static=.true.)]
-    if (allocated(this%node_elevation)) vars = [vars, var("dem", "node elevation", units="m", dtype="f64", static=.true.)]
-    if (allocated(this%link_length)) vars = [vars, var("length", "link length", dtype="f64", static=.true.)]
-    if (allocated(this%link_slope)) vars = [vars, var("slope", "link slope", dtype="f64", static=.true.)]
-    if (allocated(this%lake_map)) vars = [vars, var("lake_map", "stable lake ID", dtype="i64", kind="i8", static=.true.)]
-    if (present(sub_map)) vars = [vars, var("scc", "scc catchment id", dtype="i32", static=.true.)]
-    if (present(leaving)) vars = [vars, var("leaving", "leaving", dtype="i32", static=.true.)]
-    if (present(stream_mask)) vars = [vars, var("stream", "stream mask", dtype="i32", static=.true.)]
-    if (present(stream_sub)) vars = [vars, var("stream_sub", "stream sub catchment ID", dtype="i32", static=.true.)]
+    call add_var(vars, var("fdir", "flow direction", dtype="i16", kind="i2", static=.true.))
+    if (allocated(this%facc)) call add_var(vars, var("facc", "flow accumulation", dtype="i32", static=.true.))
+    if (allocated(this%order%id)) call add_var(vars, var("level", "order level", dtype="i32", static=.true.))
+    if (allocated(this%upstream_area)) call add_var(vars, var("upstream_area", "upstream area", units="m2", dtype="f64", static=.true.))
+    if (allocated(this%node_elevation)) call add_var(vars, var("dem", "node elevation", units="m", dtype="f64", static=.true.))
+    if (allocated(this%link_length)) call add_var(vars, var("length", "link length", dtype="f64", static=.true.))
+    if (allocated(this%link_slope)) call add_var(vars, var("slope", "link slope", dtype="f64", static=.true.))
+    if (allocated(this%lake_map)) call add_var(vars, var("lake_map", "stable lake ID", dtype="i64", kind="i8", static=.true.))
+    if (present(sub_map)) call add_var(vars, var("scc", "scc catchment id", dtype="i32", static=.true.))
+    if (present(leaving)) call add_var(vars, var("leaving", "leaving", dtype="i32", static=.true.))
+    if (present(stream_mask)) call add_var(vars, var("stream", "stream mask", dtype="i32", static=.true.))
+    if (present(stream_sub)) call add_var(vars, var("stream_sub", "stream sub catchment ID", dtype="i32", static=.true.))
     if (present(lake_outlet)) &
-      vars = [vars, var("lake_outlet", "stable lake ID at canonical outlet", dtype="i64", kind="i8", static=.true.)]
+      call add_var(vars, var("lake_outlet", "stable lake ID at canonical outlet", dtype="i64", kind="i8", static=.true.))
     call ds%init(path, this%grid, vars)
     call ds%update("fdir", this%fdir)
     if (allocated(this%facc)) call ds%update("facc", this%facc)

@@ -1,21 +1,20 @@
-# Example Domains
+# Example domains
 
-Run the commands from the repository root:
+From the repository root, run:
 
 ```bash
-mhm_driver examples/
-mhm_driver -n combine.nml examples/
-mhm_driver examples/domain_01
-mhm_driver examples/domain_02
+./debug/app/mhm examples/domain_01
+./debug/app/mhm examples/domain_02
+./debug/app/mhm examples/
+./debug/app/mhm -n combine.nml examples/
 ```
 
-`examples/` is a repository-root symlink to the tracked `example/` directory.
+The top-level `mhm.nml` configures both domains in one file. `combine.nml`
+uses `read_domains_from_dirs = .true.` and reads each domain's local
+configuration. Inputs are immutable; outputs and restarts belong to each run.
 
-`example/combine.nml` uses `read_domains_from_dirs = .true.` and reads
-`config_domain` to find the per-domain namelists in `example/domain_01` and
-`example/domain_02`.
+`max_layers` is the per-file allocation cap for `config_mpr%soil_depth`.
+The active layer count is `config_mpr%n_layers(:)`. Domain-local allocation
+caps must fit within the combined configuration's cap.
 
-`max_layers` in `config_project` is only the per-file allocation cap for
-`config_mpr%soil_depth`; the active layer count is `config_mpr%n_layers(:)`.
-For combined runs, each domain-local `max_layers` must fit inside the top-level
-cap, and the top-level cap is used when reading each domain file.
+`fixtures/` contains additional inputs for the v6 validation scenarios.

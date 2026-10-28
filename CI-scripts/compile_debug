@@ -1,4 +1,3 @@
-cmake -B debug -DCMAKE_BUILD_TYPE=Debug "$@"
+cmake -S . -B debug -DCMAKE_BUILD_TYPE=Debug -DMHM_WITH_OpenMP=OFF "$@"
 cmake --build debug --parallel 4
-cp debug/mhm ./mhm_debug
-cp debug/app/mhm-driver ./mhm_driver_debug
+cp debug/app/mhm ./mhm_debug

@@ -9,10 +9,48 @@ module test_soil_moisture
   private
 
   public :: test_soil_moist, test_feddes_et_reduction, test_jarvis_et_reduction
+  public :: test_strided_horizon_slices
 
   real(dp) :: t = 0.001_dp
 
 contains
+
+  @test
+  subroutine test_strided_horizon_slices()
+    real(dp) :: saturation(3,3), roots(3,3), field_capacity(3,3), wilting(3,3), exponent(3,3)
+    real(dp) :: moisture(3,3), infiltration(3,3), aet(3,3)
+    real(dp) :: expected_moisture(3), expected_infiltration(3), expected_aet(3)
+    integer :: layers, process_case
+    saturation(:,1) = 80.0_dp
+    saturation(:,2) = 130.0_dp
+    saturation(:,3) = 210.0_dp
+    field_capacity = 0.7_dp * saturation
+    wilting = 0.2_dp * saturation
+    exponent = 2.2_dp
+    do layers = 1, 3
+      roots = 1.0_dp / real(layers, dp)
+      do process_case = 1, 4
+        moisture = 0.6_dp * saturation
+        infiltration = 0.0_dp
+        aet = -999.0_dp
+        expected_moisture = moisture(2,:)
+        expected_infiltration = infiltration(2,:)
+        expected_aet = aet(2,:)
+        call soil_moisture_pervious(process_case, 3.0_dp, saturation(2,:layers), roots(2,:layers), &
+          field_capacity(2,:layers), wilting(2,:layers), exponent(2,:layers), 0.5_dp, 0.1_dp, 5.0_dp, &
+          expected_infiltration(:layers), expected_moisture(:layers), expected_aet(:layers))
+        call soil_moisture_pervious(process_case, 3.0_dp, saturation(2,:layers), roots(2,:layers), &
+          field_capacity(2,:layers), wilting(2,:layers), exponent(2,:layers), 0.5_dp, 0.1_dp, 5.0_dp, &
+          infiltration(2,:layers), moisture(2,:layers), aet(2,:layers))
+        @assertEqual(expected_infiltration, infiltration(2,:), tolerance=1.e-12_dp)
+        @assertEqual(expected_moisture, moisture(2,:), tolerance=1.e-12_dp)
+        @assertEqual(expected_aet, aet(2,:), tolerance=1.e-12_dp)
+        @assertTrue(all(infiltration(1,:) == 0.0_dp) .and. all(infiltration(3,:) == 0.0_dp))
+        @assertTrue(all(moisture(1,:) == 0.6_dp*saturation(1,:)) .and. all(moisture(3,:) == 0.6_dp*saturation(3,:)))
+        @assertTrue(all(aet(1,:) == -999.0_dp) .and. all(aet(3,:) == -999.0_dp))
+      end do
+    end do
+  end subroutine test_strided_horizon_slices
 
   @test
   subroutine test_soil_moist()

@@ -4,14 +4,7 @@ required-versions = ">=0.5,<0.6"
 path = "src/nml/nml_helper.f90"
 module = "nml_helper"
 buffer = 1024
-header = '''
-!> \dir nml
-!> \copydoc f_namelists
-
-!> \defgroup   f_namelists Namelists - Fortran modules
-!> \brief      Modules for namelist handling in mHM.
-!> \details    These modules provide functionalities to read, write, and manage namelists used in the mHM hydrological model.
-'''
+header = ""
 
 [kinds]
 module = "mo_kind"

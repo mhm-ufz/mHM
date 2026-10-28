@@ -1,3 +1,0 @@
-module load Mamba
-source activate /global/apps/mhm_checks/mhm_env
-cd check/

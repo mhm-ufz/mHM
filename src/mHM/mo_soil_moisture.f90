@@ -1,6 +1,5 @@
 !> \file mo_soil_moisture.f90
-!> \brief \copybrief mo_soil_moisture
-!> \details \copydetails mo_soil_moisture
+!> \copydoc mo_soil_moisture
 
 !> \brief Soil moisture of the different layers
 !> \details Soil moisture in the different layers is calculated with
@@ -13,6 +12,9 @@
 !! \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{sat} - \theta_\mathit{pwp}} \f]
 !> \authors Matthias Cuntz, Luis Samaniego
 !> \date Dec 2012
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
@@ -21,6 +23,7 @@ MODULE mo_soil_moisture
   USE mo_kind, ONLY : i4, dp
 
   IMPLICIT NONE
+  PRIVATE
 
   PUBLIC :: feddes_et_reduction
   PUBLIC :: jarvis_et_reduction
@@ -49,41 +52,6 @@ CONTAINS
   !>       with \f$ \mathit{ET} \f$ (omit \f$[k,t]\f$) being
   !>       \f[ \mathit{ET} = f_\mathrm{roots} \cdot f_{SM} \cdot \mathit{PET} \f].
 
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: processCase"                   1 - Feddes equation for PET reduction2 - Jarvis
-  !>       equation for PET reduction3 - Jarvis equation for PET reduction and FC dependency on root fraction coefficient
-  !>       \param[in] "real(dp) :: frac_sealed"                      Fraction of sealed area
-  !>       \param[in] "real(dp) :: water_thresh_sealed"              Threshhold water depth in impervious areas [mm TS-1]
-  !>       \param[in] "real(dp) :: pet"                              Reference evapotranspiration [mm TS-1]
-  !>       \param[in] "real(dp) :: evap_coeff"                       Evaporation coefficent for free-water surface of
-  !>       that current month
-  !>       \param[in] "real(dp), dimension(:) :: soil_moist_sat"     Saturation soil moisture for each horizon [mm]
-  !>       \param[in] "real(dp), dimension(:) :: frac_roots"         Fraction of Roots in soil horizon
-  !>       \param[in] "real(dp), dimension(:) :: soil_moist_FC"      Soil moisture below which actual ET is reduced [mm]
-  !>       \param[in] "real(dp), dimension(:) :: wilting_point"      Permanent wilting point for each horizon [mm]
-  !>       \param[in] "real(dp), dimension(:) :: soil_moist_exponen" Exponential parameter to how non-linear is the soil
-  !>       water retention
-  !>       \param[in] "real(dp) :: jarvis_thresh_c1"                 Jarvis critical value for normalized soil water
-  !>       content
-  !>       \param[in] "real(dp) :: aet_canopy"                       Actual ET from canopy [mm TS-1]
-  !>       \param[in] "real(dp) :: prec_effec"                                       Effective precipitation (rain +
-  !>       snow melt) [mm]
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "real(dp) :: runoff_sealed"                                    Direct runoff from impervious
-  !>       areas
-  !>       \param[inout] "real(dp) :: storage_sealed"                                   Retention storage of impervious
-  !>       areas
-  !>       \param[inout] "real(dp), dimension(size(soil_moist_sat, 1)) :: infiltration" Recharge, infiltration intensity
-  !>       oreffective precipitation of each horizon [mm TS-1]
-  !>       \param[inout] "real(dp), dimension(size(soil_moist_sat, 1)) :: soil_moist"   Soil moisture of each horizon
-  !>       [mm]
-
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp), dimension(size(soil_moist_sat, 1)) :: aet" actual ET [mm TS-1]
-  !>       \param[out] "real(dp) :: aet_sealed"                              actual ET from free-water surfaces,i.e
-  !>       impervious cover [mm TS-1]
-
   !    HISTORY
   !>       \authors Matthias Cuntz
 
@@ -93,69 +61,30 @@ CONTAINS
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
   ! M. Cuneyd Demirel, Simon Stisen Jun 2020 - added Feddes and FC dependency on root fraction coefficient processCase(3) = 4
 
-  subroutine soil_moisture(processCase, frac_sealed, water_thresh_sealed, pet, evap_coeff, soil_moist_sat, frac_roots, &
+  recursive subroutine soil_moisture(processCase, frac_sealed, water_thresh_sealed, pet, evap_coeff, soil_moist_sat, frac_roots, &
                           soil_moist_FC, wilting_point, soil_moist_exponen, jarvis_thresh_c1, aet_canopy, prec_effec, &
                           runoff_sealed, storage_sealed, infiltration, soil_moist, aet, aet_sealed)
 
     implicit none
-
-    ! 1 - Feddes equation for PET reduction2 - Jarvis equation for PET reduction3 - Jarvis equation for PET reduction
-    ! and FC dependency on root fraction coefficient
-    integer(i4), intent(in) :: processCase
-
-    ! Fraction of sealed area
-    real(dp), intent(in) :: frac_sealed
-
-    ! Threshhold water depth in impervious areas [mm TS-1]
-    real(dp), intent(in) :: water_thresh_sealed
-
-    ! Reference evapotranspiration [mm TS-1]
-    real(dp), intent(in) :: pet
-
-    ! Evaporation coefficent for free-water surface of that current month
-    real(dp), intent(in) :: evap_coeff
-
-    ! Saturation soil moisture for each horizon [mm]
-    real(dp), dimension(:), intent(in) :: soil_moist_sat
-
-    ! Fraction of Roots in soil horizon
-    real(dp), dimension(:), intent(in) :: frac_roots
-
-    ! Soil moisture below which actual ET is reduced [mm]
-    real(dp), dimension(:), intent(in) :: soil_moist_FC
-
-    ! Permanent wilting point for each horizon [mm]
-    real(dp), dimension(:), intent(in) :: wilting_point
-
-    ! Exponential parameter to how non-linear is the soil water retention
-    real(dp), dimension(:), intent(in) :: soil_moist_exponen
-
-    ! Jarvis critical value for normalized soil water content
-    real(dp), intent(in) :: jarvis_thresh_c1
-
-    ! Actual ET from canopy [mm TS-1]
-    real(dp), intent(in) :: aet_canopy
-
-    ! Effective precipitation (rain + snow melt) [mm]
-    real(dp), intent(in) :: prec_effec
-
-    ! Direct runoff from impervious areas
-    real(dp), intent(inout) :: runoff_sealed
-
-    ! Retention storage of impervious areas
-    real(dp), intent(inout) :: storage_sealed
-
-    ! Recharge, infiltration intensity oreffective precipitation of each horizon [mm TS-1]
-    real(dp), dimension(size(soil_moist_sat, 1)), intent(inout) :: infiltration
-
-    ! Soil moisture of each horizon [mm]
-    real(dp), dimension(size(soil_moist_sat, 1)), intent(inout) :: soil_moist
-
-    ! actual ET [mm TS-1]
-    real(dp), dimension(size(soil_moist_sat, 1)), intent(out) :: aet
-
-    ! actual ET from free-water surfaces,i.e impervious cover [mm TS-1]
-    real(dp), intent(out) :: aet_sealed
+    integer(i4), intent(in) :: processCase !< 1 Feddes, 2 Jarvis, 3 Jarvis with root-dependent FC, 4 Feddes with root-dependent FC.
+    real(dp), intent(in) :: frac_sealed !< Fraction of sealed area
+    real(dp), intent(in) :: water_thresh_sealed !< Threshhold water depth in impervious areas [mm TS-1]
+    real(dp), intent(in) :: pet !< Potential evapotranspiration for this interval [mm].
+    real(dp), intent(in) :: evap_coeff !< Evaporation coefficent for free-water surface of that current month
+    real(dp), dimension(:), intent(in) :: soil_moist_sat !< Horizon saturation capacity [mm].
+    real(dp), dimension(:), intent(in) :: frac_roots !< Horizon fractions of roots.
+    real(dp), dimension(:), intent(in) :: soil_moist_FC !< Horizon field capacity [mm].
+    real(dp), dimension(:), intent(in) :: wilting_point !< Horizon permanent wilting point [mm].
+    real(dp), dimension(:), intent(in) :: soil_moist_exponen !< Horizon infiltration exponent.
+    real(dp), intent(in) :: jarvis_thresh_c1 !< Jarvis water-stress threshold.
+    real(dp), intent(in) :: aet_canopy !< Canopy evapotranspiration for this interval [mm].
+    real(dp), intent(in) :: prec_effec !< Effective precipitation for this interval [mm].
+    real(dp), intent(inout) :: runoff_sealed !< Direct runoff from impervious areas
+    real(dp), intent(inout) :: storage_sealed !< Retention storage of impervious areas
+    real(dp), dimension(:), intent(inout) :: infiltration !< Horizon infiltration for this interval [mm].
+    real(dp), dimension(:), intent(inout) :: soil_moist !< Horizon soil water storage [mm].
+    real(dp), dimension(:), intent(out) :: aet !< Actual evapotranspiration for this interval [mm].
+    real(dp), intent(out) :: aet_sealed !< actual ET from free-water surfaces,i.e impervious cover [mm TS-1]
 
     call soil_moisture_direct_runoff(frac_sealed, water_thresh_sealed, pet, evap_coeff, aet_canopy, prec_effec, &
       runoff_sealed, storage_sealed, aet_sealed)
@@ -164,22 +93,21 @@ CONTAINS
   end subroutine soil_moisture
 
   !> \brief Update sealed-area storage, runoff, and evaporation.
-  subroutine soil_moisture_direct_runoff(frac_sealed, water_thresh_sealed, pet, evap_coeff, aet_canopy, prec_effec, &
+  recursive subroutine soil_moisture_direct_runoff(frac_sealed, water_thresh_sealed, pet, evap_coeff, aet_canopy, prec_effec, &
                                         runoff_sealed, storage_sealed, aet_sealed)
 
     use mo_constants, only : eps_dp
 
     implicit none
-
-    real(dp), intent(in) :: frac_sealed
-    real(dp), intent(in) :: water_thresh_sealed
-    real(dp), intent(in) :: pet
-    real(dp), intent(in) :: evap_coeff
-    real(dp), intent(in) :: aet_canopy
-    real(dp), intent(in) :: prec_effec
-    real(dp), intent(inout) :: runoff_sealed
-    real(dp), intent(inout) :: storage_sealed
-    real(dp), intent(out) :: aet_sealed
+    real(dp), intent(in) :: frac_sealed !< Fraction of impervious area.
+    real(dp), intent(in) :: water_thresh_sealed !< Impervious-area retention capacity [mm].
+    real(dp), intent(in) :: pet !< Potential evapotranspiration for this interval [mm].
+    real(dp), intent(in) :: evap_coeff !< Monthly evaporation coefficient for free-water surfaces.
+    real(dp), intent(in) :: aet_canopy !< Canopy evapotranspiration for this interval [mm].
+    real(dp), intent(in) :: prec_effec !< Effective precipitation for this interval [mm].
+    real(dp), intent(inout) :: runoff_sealed !< Direct runoff from impervious areas [mm per interval].
+    real(dp), intent(inout) :: storage_sealed !< Retention storage of impervious areas [mm].
+    real(dp), intent(out) :: aet_sealed !< Actual evaporation from impervious areas [mm per interval].
 
     real(dp) :: tmp
 
@@ -220,27 +148,26 @@ CONTAINS
   end subroutine soil_moisture_direct_runoff
 
   !> \brief Update pervious-soil infiltration, soil moisture, and soil evapotranspiration.
-  subroutine soil_moisture_pervious(processCase, pet, soil_moist_sat, frac_roots, soil_moist_FC, wilting_point, &
+  recursive subroutine soil_moisture_pervious(processCase, pet, soil_moist_sat, frac_roots, soil_moist_FC, wilting_point, &
                                    soil_moist_exponen, jarvis_thresh_c1, aet_canopy, prec_effec, infiltration, &
                                    soil_moist, aet)
 
     use mo_constants, only : eps_dp
 
     implicit none
-
-    integer(i4), intent(in) :: processCase
-    real(dp), intent(in) :: pet
-    real(dp), dimension(:), intent(in) :: soil_moist_sat
-    real(dp), dimension(:), intent(in) :: frac_roots
-    real(dp), dimension(:), intent(in) :: soil_moist_FC
-    real(dp), dimension(:), intent(in) :: wilting_point
-    real(dp), dimension(:), intent(in) :: soil_moist_exponen
-    real(dp), intent(in) :: jarvis_thresh_c1
-    real(dp), intent(in) :: aet_canopy
-    real(dp), intent(in) :: prec_effec
-    real(dp), dimension(size(soil_moist_sat, 1)), intent(inout) :: infiltration
-    real(dp), dimension(size(soil_moist_sat, 1)), intent(inout) :: soil_moist
-    real(dp), dimension(size(soil_moist_sat, 1)), intent(out) :: aet
+    integer(i4), intent(in) :: processCase !< 1 Feddes, 2 Jarvis, 3 Jarvis with root-dependent FC, 4 Feddes with root-dependent FC.
+    real(dp), intent(in) :: pet !< Potential evapotranspiration for this interval [mm].
+    real(dp), dimension(:), intent(in) :: soil_moist_sat !< Horizon saturation capacity [mm].
+    real(dp), dimension(:), intent(in) :: frac_roots !< Horizon fractions of roots.
+    real(dp), dimension(:), intent(in) :: soil_moist_FC !< Horizon field capacity [mm].
+    real(dp), dimension(:), intent(in) :: wilting_point !< Horizon permanent wilting point [mm].
+    real(dp), dimension(:), intent(in) :: soil_moist_exponen !< Horizon infiltration exponent.
+    real(dp), intent(in) :: jarvis_thresh_c1 !< Jarvis water-stress threshold.
+    real(dp), intent(in) :: aet_canopy !< Canopy evapotranspiration for this interval [mm].
+    real(dp), intent(in) :: prec_effec !< Effective precipitation for this interval [mm].
+    real(dp), dimension(:), intent(inout) :: infiltration !< Horizon infiltration for this interval [mm].
+    real(dp), dimension(:), intent(inout) :: soil_moist !< Horizon soil water storage [mm].
+    real(dp), dimension(:), intent(out) :: aet !< Actual evapotranspiration for this interval [mm].
 
     integer(i4) :: hh
     integer(i4) :: prev_hh
@@ -323,7 +250,6 @@ CONTAINS
     end do
   end subroutine soil_moisture_pervious
 
-
   ! ------------------------------------------------------------------
 
   !    NAME
@@ -346,12 +272,6 @@ CONTAINS
   !>       \end{array}
   !>       \right. \f]
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: soil_moist"    Soil moisture of each horizon [mm]
-  !>       \param[in] "real(dp) :: soil_moist_FC" Soil moisture below which actual ET is reduced [mm]
-  !>       \param[in] "real(dp) :: wilting_point" Permanent wilting point
-  !>       \param[in] "real(dp) :: frac_roots"    Fraction of Roots in soil horizon is reduced [mm]
-
   !    RETURN
   !>       \return real(dp) :: feddes_et_reduction; et reduction factor
 
@@ -366,22 +286,13 @@ CONTAINS
 
   elemental pure FUNCTION feddes_et_reduction(soil_moist, soil_moist_FC, wilting_point, frac_roots)
     implicit none
-
-    ! Soil moisture of each horizon [mm]
-    real(dp), intent(in) :: soil_moist
-
-    ! Soil moisture below which actual ET is reduced [mm]
-    real(dp), intent(in) :: soil_moist_FC
-
-    ! Permanent wilting point
-    real(dp), intent(in) :: wilting_point
-
-    ! Fraction of Roots in soil horizon is reduced [mm]
-    real(dp), intent(in) :: frac_roots
+    real(dp), intent(in) :: soil_moist !< Horizon soil water storage [mm].
+    real(dp), intent(in) :: soil_moist_FC !< Horizon field capacity [mm].
+    real(dp), intent(in) :: wilting_point !< Horizon permanent wilting point [mm].
+    real(dp), intent(in) :: frac_roots !< Horizon fractions of roots.
 
     ! reference evapotranspiration in [mm s-1]
     real(dp) :: feddes_et_reduction
-
 
     !    SM >= FC
     if (soil_moist >= soil_moist_FC) then
@@ -417,13 +328,6 @@ CONTAINS
   !>       \end{array}
   !>       \right. \f]
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: soil_moist"       Soil moisture of each horizon [mm]
-  !>       \param[in] "real(dp) :: soil_moist_sat"   saturated Soil moisture content [mm]
-  !>       \param[in] "real(dp) :: wilting_point"    Permanent wilting point
-  !>       \param[in] "real(dp) :: frac_roots"       Fraction of Roots in soil horizon is reduced [mm]
-  !>       \param[in] "real(dp) :: jarvis_thresh_c1" parameter C1 from Jarvis formulation
-
   !    RETURN
   !>       \return real(dp) :: jarvis_et_reduction; et reduction factor
 
@@ -438,21 +342,11 @@ CONTAINS
 
   elemental pure FUNCTION jarvis_et_reduction(soil_moist, soil_moist_sat, wilting_point, frac_roots, jarvis_thresh_c1)
     implicit none
-
-    ! Soil moisture of each horizon [mm]
-    real(dp), intent(in) :: soil_moist
-
-    ! saturated Soil moisture content [mm]
-    real(dp), intent(in) :: soil_moist_sat
-
-    ! Permanent wilting point
-    real(dp), intent(in) :: wilting_point
-
-    ! Fraction of Roots in soil horizon is reduced [mm]
-    real(dp), intent(in) :: frac_roots
-
-    ! parameter C1 from Jarvis formulation
-    real(dp), intent(in) :: jarvis_thresh_c1
+    real(dp), intent(in) :: soil_moist !< Horizon soil water storage [mm].
+    real(dp), intent(in) :: soil_moist_sat !< Horizon saturation capacity [mm].
+    real(dp), intent(in) :: wilting_point !< Horizon permanent wilting point [mm].
+    real(dp), intent(in) :: frac_roots !< Horizon fractions of roots.
+    real(dp), intent(in) :: jarvis_thresh_c1 !< Jarvis water-stress threshold.
 
     ! reference evapotranspiration in [mm]
     real(dp) :: jarvis_et_reduction

@@ -4,7 +4,7 @@ program test_parameter_failures
   use mo_domain, only: domain_t
   use mo_exchange_type, only: exchange_t
   use mo_kind, only: dp
-  use mo_main_config, only: parameters_t
+  use mo_parameter_registry, only: parameters_t
   use mo_meteo_container, only: meteo_t
   use mo_parameter_types, only: parameter_t
 

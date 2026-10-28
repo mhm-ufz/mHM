@@ -1,4 +1,3 @@
-cmake -B openmp_debug -DCMAKE_BUILD_TYPE=Debug -DMHM_WITH_OpenMP=ON "$@"
+cmake -S . -B openmp_debug -DCMAKE_BUILD_TYPE=Debug -DMHM_WITH_OpenMP=ON "$@"
 cmake --build openmp_debug --parallel 4
-cp openmp_debug/mhm ./mhm_openmp_debug
-cp openmp_debug/app/mhm-driver ./mhm_driver_openmp_debug
+cp openmp_debug/app/mhm ./mhm_openmp_debug

@@ -1,6 +1,5 @@
 !> \file mo_neutrons.f90
-!> \brief   \copybrief mo_neutrons
-!> \details \copydetails mo_neutrons
+!> \copydoc mo_neutrons
 
 !> \brief Models to predict neutron intensities above soils
 !> \details The number of neutrons above the ground is directly related to
@@ -9,13 +8,16 @@
 !> \authors Martin Schroen
 !> \date Mar 2015
 !> \warning THIS MODULE IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH.
+!> \version 0.1
+!> \changelog
+!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
+!! - 2026: read-only geometry and scalar accumulators replace per-thread neutron work arrays.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mhm
 MODULE mo_neutrons
 
-  ! TODO make it faster with pre-calculated horizons and variables
-  ! TODO use global parameters as linear model
+  ! One immutable geometry cache is shared by the cell calculations of each container.
 
   USE mo_kind, ONLY: i4, dp
   IMPLICIT NONE
@@ -31,7 +33,65 @@ MODULE mo_neutrons
 
   PRIVATE
 
+  !> \class neutron_geometry_t
+  !> \brief Initialization-time geometry shared read-only by neutron calculations.
+  type, public :: neutron_geometry_t
+    private
+    real(dp), allocatable :: thickness(:) !< Simulated soil-layer thicknesses [mm].
+    integer(i4), allocatable :: first_sample(:) !< First 10 mm sample of each layer.
+    integer(i4), allocatable :: last_sample(:) !< Last 10 mm sample of each layer.
+  contains
+    procedure :: prepare => neutron_geometry_prepare
+    procedure :: destroy => neutron_geometry_destroy
+  end type neutron_geometry_t
+
 CONTAINS
+
+  !> \brief Cache invariant layer thicknesses and sampling ranges during initialization.
+  subroutine neutron_geometry_prepare(self, horizons)
+    class(neutron_geometry_t), intent(inout), target :: self
+    real(dp), intent(in) :: horizons(:) !< Simulated horizon bottoms [mm], excluding the last soil layer.
+    integer(i4) :: layer, intervals
+    real(dp) :: lower
+    call self%destroy()
+    allocate(self%thickness(size(horizons)), self%first_sample(size(horizons)), self%last_sample(size(horizons)))
+    intervals = nint(maxval(horizons)/10.0_dp)
+    lower = 0.0_dp
+    do layer = 1, size(horizons)
+      self%thickness(layer) = horizons(layer) - lower
+      call neutron_sample_range(lower, horizons(layer), intervals, self%first_sample(layer), self%last_sample(layer))
+      lower = horizons(layer)
+    end do
+  end subroutine neutron_geometry_prepare
+
+  !> \brief Release the owning container's cached geometry.
+  subroutine neutron_geometry_destroy(self)
+    class(neutron_geometry_t), intent(inout), target :: self
+    if (allocated(self%thickness)) deallocate(self%thickness)
+    if (allocated(self%first_sample)) deallocate(self%first_sample)
+    if (allocated(self%last_sample)) deallocate(self%last_sample)
+  end subroutine neutron_geometry_destroy
+
+  !> \brief Locate samples using the original half-open layer intervals and 10 mm spacing.
+  pure subroutine neutron_sample_range(lower, upper, intervals, first, last)
+    real(dp), intent(in) :: lower !< Layer top [mm].
+    real(dp), intent(in) :: upper !< Layer bottom [mm].
+    integer(i4), intent(in) :: intervals !< Number of samples over the simulated profile.
+    integer(i4), intent(out) :: first !< First sample index; one for an empty range.
+    integer(i4), intent(out) :: last !< Last sample index; zero for an empty range.
+    integer(i4) :: sample
+    real(dp) :: depth
+    first = 1_i4
+    last = 0_i4
+    depth = 0.0_dp
+    do sample = 1, intervals
+      if (depth >= lower .and. depth < upper) then
+        if (last == 0_i4) first = sample
+        last = sample
+      end if
+      depth = depth + 10.0_dp
+    end do
+  end subroutine neutron_sample_range
 
   ! -----------------------------------------------------------------------------------
   !     NAME
@@ -51,28 +111,6 @@ CONTAINS
   !     CALLING SEQUENCE
   !         call DesiletsN0( Moisture(cells,layers), Depths(layers), &
   !                          N0-parameter, output(cells) )
-  !
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:)   :: SoilMoisture" Soil Moisture
-  !>        \param[in] "real(dp), dimension(:)   :: Horizon_depth" Horizon depths
-  !>        \param[in] "real(dp), dimension(:)   :: Bd"       Bulk density
-  !>        \param[in] "real(dp), dimension(:)   :: LatWater" Lattice water
-  !>        \param[in] "real(dp)                 :: N0"       dry neutron counts
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp), dimension(size(SoilMoisture,1)) :: neutrons" Neutron counts
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
   !
   !     RETURN
   !         None
@@ -96,93 +134,65 @@ CONTAINS
   !>        Modified Rohini Kumar         Oct 2021 - Vertical weighting approach
   !>                                      for the Neutron count module to mHM - develop branch
 
-  subroutine DesiletsN0(SoilMoisture, Horizon_depth, Bd, latWater, N0, neutrons)
-
+  recursive subroutine DesiletsN0(SoilMoisture, Horizon_depth, Bd, latWater, N0, neutrons, geometry)
     use mo_mhm_constants, only: Desilets_a0, Desilets_a1, Desilets_a2
-    use mo_moment,        only: average
     implicit none
+    real(dp), intent(in) :: SoilMoisture(:) !< Soil water storage in the simulated horizons [mm].
+    real(dp), intent(in) :: Horizon_depth(:) !< Bottom depths of the simulated horizons [mm].
+    real(dp), intent(in) :: Bd(:) !< Bulk density [g cm-3].
+    real(dp), intent(in) :: latWater(:) !< Lattice water storage [mm].
+    real(dp), intent(in) :: N0 !< Calibrated dry neutron count.
+    real(dp), intent(inout) :: neutrons !< Simulated neutron count.
+    type(neutron_geometry_t), optional, intent(in) :: geometry !< Shared initialization-time geometry.
 
-    real(dp), dimension(:),          intent(in)    :: SoilMoisture
-    real(dp), dimension(:),          intent(in)    :: Horizon_depth
-    real(dp), dimension(:),          intent(in)    :: Bd
-    real(dp), dimension(:),          intent(in)    :: latWater
-    real(dp),                        intent(in)    :: N0           ! from global parameters
-    real(dp),                        intent(inout) :: neutrons
-    ! local variables
-    integer(i4)                                    :: nLayers, LL, nn, nIntervals
-    real(dp), dimension(:), allocatable            :: Layer_min, Layer_max, Layer_depth
-    real(dp)                                       :: average_swc, average_bd
-    real(dp)                                       :: D_86_in_cm,  D_86_in_mm
-    real(dp), dimension(:), allocatable            :: cummulative_Layer_weight
-    real(dp)                                       :: depth, weight_10mm_spacing, grav_swc
+    integer(i4) :: nLayers, LL, nn, first, last
+    real(dp) :: average_swc, average_bd, D_86_in_cm, D_86_in_mm
+    real(dp) :: lower, thickness, depth, weight_10mm_spacing, grav_swc, layer_weight, total_weight
 
-    ! get the # of soil hoizons
     nLayers = size(SoilMoisture)
-    allocate(  Layer_min(nLayers)  )
-    allocate(  Layer_max(nLayers)  )
-    allocate( Layer_depth(nLayers) )
-
-    ! assign layer-1
-    Layer_min(1) = 0.0_dp
-    Layer_max(1) = Horizon_depth(1)
-    ! rest layers
-    do LL = 2, nLayers
-       Layer_min(LL) = Layer_max(LL-1)
-       Layer_max(LL) = Horizon_depth(LL)
-    end do
-
-    ! estimate layer depth [mm]
-    Layer_depth(:) = Layer_max(:) - Layer_min(:)
-
-    ! average soil water content (volumetric ones) and Bulk density
-    average_swc = average( SoilMoisture(:)/Layer_depth(:) )
-    average_bd  = average( Bd(:) )
-
-    ! estimate D86 [in cm and mm ]
-    D_86_in_cm = ( 1.0_dp/average_bd ) * &
-         ( 8.321_dp + 0.14249_dp * (0.96655_dp + exp(-0.01_dp)) * (20.0_dp + average_swc)/(0.0429_dp + average_swc) )
-    D_86_in_mm = D_86_in_cm * 10.0_dp  !# convert cm to mm
-
-
-    ! initalise cummulative layer specific weight
-    allocate( cummulative_Layer_weight(nLayers)  )
-    cummulative_Layer_weight(:) = 0.0_dp
-
-    !! only once to calculate weight at equal space at every 10 mm spacing
-    nIntervals = nint( maxval(Horizon_depth(:))/10.0_dp )
-
-    ! calculate 10 mm spacing and on fly the cummulative weights
-    depth = 0.0_dp
-    do nn = 1, nIntervals
-       weight_10mm_spacing = exp(-2.0_dp * depth / D_86_in_mm )
-
-       ! estimate the layer specific cummulative weights
-       do LL = 1, nLayers
-          if(  (depth .GE. Layer_min(LL))  .AND. (depth .LT. Layer_max(LL))  ) then
-             cummulative_Layer_weight(LL) = cummulative_Layer_weight(LL) + weight_10mm_spacing
-          end if
-       end do
-       ! update depth
-       depth = depth + 10.0_dp
-    end do
-
-
-    ! estimate weightage SWC
-    ! here average_swc is gravemtric swc = vol.swc/Bulk density
     average_swc = 0.0_dp
+    lower = 0.0_dp
     do LL = 1, nLayers
-       !! >> add here if organic water is coming !! >> SoilMoisture(LL) + latWater(LL) + organic_water(LL)...
-       grav_swc = ( SoilMoisture(LL) + latWater(LL) )/Layer_depth(LL)/Bd(LL)
-       average_swc = average_swc + ( grav_swc * cummulative_Layer_weight(LL) )
+      thickness = Horizon_depth(LL) - lower
+      if (present(geometry)) thickness = geometry%thickness(LL)
+      average_swc = average_swc + SoilMoisture(LL) / thickness
+      lower = Horizon_depth(LL)
     end do
-    average_swc = average_swc / sum( cummulative_Layer_weighT(:) )
+    average_swc = average_swc / real(nLayers, dp)
+    average_bd = sum(Bd) / real(size(Bd), dp)
 
-    ! calculate neutron count based on depth weighted SM of *D86*
-    neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (average_swc + Desilets_a2) )
+    ! Moisture-dependent penetration depth [cm and mm], recomputed for each cell and interval.
+    D_86_in_cm = (1.0_dp/average_bd) * &
+      (8.321_dp + 0.14249_dp * (0.96655_dp + exp(-0.01_dp)) * (20.0_dp + average_swc)/(0.0429_dp + average_swc))
+    D_86_in_mm = D_86_in_cm * 10.0_dp
 
-    !! deallocate variables
-    deallocate(Layer_min, Layer_max, Layer_depth, cummulative_Layer_weight)
-
+    ! Accumulate each layer's samples in their original order, then combine layers in order.
+    average_swc = 0.0_dp
+    total_weight = 0.0_dp
+    lower = 0.0_dp
+    do LL = 1, nLayers
+      thickness = Horizon_depth(LL) - lower
+      if (present(geometry)) then
+        thickness = geometry%thickness(LL)
+        first = geometry%first_sample(LL)
+        last = geometry%last_sample(LL)
+      else
+        call neutron_sample_range(lower, Horizon_depth(LL), nint(maxval(Horizon_depth)/10.0_dp), first, last)
+      end if
+      layer_weight = 0.0_dp
+      depth = real(first - 1_i4, dp) * 10.0_dp
+      do nn = first, last
+        weight_10mm_spacing = exp(-2.0_dp * depth / D_86_in_mm)
+        layer_weight = layer_weight + weight_10mm_spacing
+        depth = depth + 10.0_dp
+      end do
+      grav_swc = (SoilMoisture(LL) + latWater(LL))/thickness/Bd(LL)
+      average_swc = average_swc + grav_swc * layer_weight
+      total_weight = total_weight + layer_weight
+      lower = Horizon_depth(LL)
+    end do
+    average_swc = average_swc / total_weight
+    neutrons = N0 * (Desilets_a1 + Desilets_a0 / (average_swc + Desilets_a2))
   end subroutine DesiletsN0
   ! -----------------------------------------------------------------------------------
   !     NAME
@@ -204,33 +214,7 @@ CONTAINS
   !         call COSMIC( Moisture(cells,layers), Depths(layers), &
   !                          COSMIC-parameterset, neutron_integral_AFast, output(cells) )
   !
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:)   :: SoilMoisture" Soil Moisture
-  !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
-  !>        \param[in] "real(dp), dimension(:)   :: neutron_integral_AFast" Tabular for Int Approx
-  !>        \param[in] "real(dp)                 :: interc" interception
-  !>        \param[in] "real(dp)                 :: snowpack" snowpack
-  !>        \param[in] "real(dp)                 :: L1_No_count" L1_No_count
-  !>        \param[in] "real(dp), dimension(:)   :: L1_bulkDens" Bulk Density
-  !>        \param[in] "real(dp), dimension(:)   :: L1_latticeWater" Lattice Water
-  !>        \param[in] "real(dp), dimension(:)   :: L1_COSMICL3" L3 from the COSMIC module
 
-  !
-  !     INTENT(INOUT)
-  !>        \param[inout] "real(dp)              :: neutrons" Neutron counts
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
   !     RETURN
   !         None
   !
@@ -250,202 +234,67 @@ CONTAINS
   !>        \author Martin Schroen, originally written by Rafael Rosolem
   !>        \date Mar 2015
   !>         Rohini Kumar                  Oct 2021 - Neutron count module to mHM (5.11.2) - develop branch
-  subroutine COSMIC(SoilMoisture, Horizons, neutron_integral_AFast, &
-       interc, snowpack, L1_N0, L1_bulkDens, L1_latticeWater, L1_COSMICL3, &
-       neutrons )
-
-    use mo_mhm_constants, only: H2Odens, COSMIC_alpha, COSMIC_L1, COSMIC_L2, COSMIC_L4 !, COSMIC_N
-    use mo_constants,     only: PI_dp
+  recursive subroutine COSMIC(SoilMoisture, Horizons, neutron_integral_AFast, &
+      interc, snowpack, L1_N0, L1_bulkDens, L1_latticeWater, L1_COSMICL3, neutrons, geometry)
+    use mo_mhm_constants, only: H2Odens, COSMIC_alpha, COSMIC_L1, COSMIC_L2, COSMIC_L4
+    use mo_constants, only: PI_dp
     implicit none
+    real(dp), intent(in) :: SoilMoisture(:) !< Soil water storage in the simulated horizons [mm].
+    real(dp), intent(in) :: Horizons(:) !< Bottom depths of the simulated horizons [mm].
+    real(dp), intent(in) :: neutron_integral_AFast(:) !< Cached angular neutron-flux integral table.
+    real(dp), intent(in) :: interc !< Canopy interception storage [mm].
+    real(dp), intent(in) :: snowpack !< Snow water storage [mm].
+    real(dp), intent(in) :: L1_N0 !< Calibrated dry neutron count.
+    real(dp), intent(in) :: L1_bulkDens(:) !< Horizon bulk density [g cm-3].
+    real(dp), intent(in) :: L1_latticeWater(:) !< Horizon lattice water storage [mm].
+    real(dp), intent(in) :: L1_COSMICL3(:) !< Horizon COSMIC attenuation length [g cm-2].
+    real(dp), intent(inout) :: neutrons !< Simulated neutron count.
+    type(neutron_geometry_t), optional, intent(in) :: geometry !< Shared initialization-time geometry.
 
-    real(dp), dimension(:),          intent(in)     :: SoilMoisture
-    real(dp), dimension(:),          intent(in)     :: Horizons
-    real(dp), dimension(:),          intent(in)     :: neutron_integral_AFast
-    real(dp),                        intent(in)     :: interc
-    real(dp),                        intent(in)     :: snowpack
-    real(dp),                        intent(in)     :: L1_N0
-    real(dp), dimension(:),          intent(in)     :: L1_bulkDens
-    real(dp), dimension(:),          intent(in)     :: L1_latticeWater
-    real(dp), dimension(:),          intent(in)     :: L1_COSMICL3
-    real(dp),                        intent(inout)  :: neutrons
+    integer(i4) :: layer
+    real(dp) :: lower, thickness, previous_thickness, previous_soil_mass, previous_water_mass, previous_water_density
+    real(dp) :: soil_mass, water_mass, water_height, water_density, bd, lambdaHigh, lambdaFast, hiflux, xeff, fastflux, totflux
 
-    real(dp) :: lambdaHigh
-    real(dp) :: lambdaFast
-    real(dp) :: totflux
-    real(dp) :: sm             ! SoilMoisture
-    real(dp) :: lw             ! lattice water
-    real(dp) :: bd             ! bulk density
-    real(dp) :: L3
-    integer(i4):: iFlag_snowlayer_intecept                 ! 1 if snowlayer is active, 0 else
+    ! Preserve the existing disabled surface-layer contribution, including its thickness in the next soil mass.
+    previous_thickness = (snowpack + interc) / 10.0_dp
+    previous_soil_mass = 0.0_dp
+    previous_water_mass = 0.0_dp
+    previous_water_density = 0.0_dp
+    lower = 0.0_dp
+    totflux = 0.0_dp
+    do layer = 1, size(SoilMoisture)
+      thickness = Horizons(layer) - lower
+      if (present(geometry)) thickness = geometry%thickness(layer)
+      thickness = thickness / 10.0_dp
+      soil_mass = 0.0_dp
+      water_mass = 0.0_dp
+      water_density = 0.0_dp
+      if (thickness > 0.0_dp) then
+        bd = L1_bulkDens(layer)
+        water_height = SoilMoisture(layer) / 10.0_dp
+        water_density = (water_height + L1_latticeWater(layer)/10.0_dp)/thickness*H2Odens/1000.0_dp
 
-    real(dp), dimension(size(Horizons)+1)   :: zthick      ! Soil layer thickness (cm)
-    real(dp), dimension(:), allocatable     :: isoimass    ! Integrated dry soil mass above layer (g)
-    real(dp), dimension(:), allocatable     :: iwatmass    ! Integrated water mass above layer (g)
-    real(dp), dimension(:), allocatable     :: hiflux      ! High energy neutron flux
-    real(dp), dimension(:), allocatable     :: xeff        ! Fast neutron source strength of layer
-    real(dp), dimension(:), allocatable     :: h2oeffheight! "Effective" height of water in layer (g/cm3)
-    real(dp), dimension(:), allocatable     :: h2oeffdens  ! "Effective" density of water in layer (g/cm3)
-    real(dp), dimension(:), allocatable     :: fastflux    ! Contribution to above-ground neutron flux
-
-    integer(i4)                             :: layers      ! Total number of soil layers
-    integer(i4)                             :: ll
-
-
-    ! # of layers
-    layers   = size(SoilMoisture) + 1 ! soil horizons + one additional snowpack and interception layer
-
-    ! allocate and initalize
-    allocate(hiflux(layers),xeff(layers),&
-             h2oeffdens(layers),h2oeffheight(layers),fastflux(layers),&
-             isoimass(layers),iwatmass(layers))
-
-    zthick(:)      = 0.0_dp
-    isoimass(:)    = 0.0_dp
-    iwatmass(:)    = 0.0_dp
-    hiflux(:)      = 0.0_dp
-    xeff(:)        = 0.0_dp
-    h2oeffdens(:)  = 0.0_dp
-    h2oeffheight(:)= 0.0_dp
-    fastflux(:)    = 0.0_dp
-    totflux        = 0.0_dp
-    lambdaHigh     = 0.0_dp
-    lambdaFast     = 0.0_dp
-    sm             = 0.0_dp
-    lw             = 0.0_dp
-    bd             = 0.0_dp
-    L3             = 1.0_dp
-
-    ! switch of snowlayer+Intercept ON and off
-    ! ON = 1; OFF = 0
-    ! its hardocded here but can be later part of *.nml file
-    iFlag_snowlayer_intecept = 0
-
-    ! layer 1 is the surface layer. layer 2 up to layers are the usual layers
-    do ll = 1,layers
-
-       ! High energy neutron downward flux
-       ! The integration is now performed at the node of each layer (i.e., center of the layer)
-
-       !ToDo: maybe put zthick into global constants, so it is an input paramter
-       ! Soil Layers and Thicknesses are constant in mHM, they could be defined outside of this function
-       ! except the top layer thickness, which is dependend on the snow for example
-       ! zthick will be in cm, as all heigths are in cm in this module
-       call layerThickness(ll,Horizons,interc,snowpack,zthick)
-
-       if( ( zthick(ll) .GT. 0.0_dp ) .AND. ( (iFlag_snowlayer_intecept .GT. 0 ) .OR. (ll.NE.1) ) ) then
-
-          call loopConstants(ll, SoilMoisture(:), L1_bulkDens(:), &
-               L1_latticeWater(:), L1_COSMICL3(:), sm, bd, lw, L3)
-
-          if (ll .EQ. 1) then
-             h2oeffdens(ll) = H2Odens/1000.0_dp
-          else
-             ! calculate the effective height of water in each layer in cm
-             ! because neutron standard measurements are in cm
-             call layerWaterHeight(ll,sm,h2oeffheight)
-             ! divided by the thickness of the layers,we get the effective density
-             h2oeffdens(ll) = (h2oeffheight(ll) + lw/10.0_dp)/zthick(ll)*H2Odens/1000.0_dp
-          endif
-
-          ! Assuming an area of 1 cm2
-          ! we integrate the bulkdensity/h2oeffdens down to the middle of the layer ll:
-          isoimass(ll) = bd*(0.5_dp*zthick(ll))*1.0_dp
-          iwatmass(ll) = h2oeffdens(ll)*(0.5_dp*zthick(ll))*1.0_dp
-          if ( ll .gt. 1 ) then
-            isoimass(ll) = isoimass(ll)+isoimass(ll-1)+bd*(0.5_dp*zthick(ll-1))*1.0_dp
-            iwatmass(ll) = iwatmass(ll)+iwatmass(ll-1)+h2oeffdens(ll-1)*(0.5_dp*zthick(ll-1))*1.0_dp
-          endif
-
-          lambdaHigh = isoimass(ll)/COSMIC_L1 + iwatmass(ll)/COSMIC_L2
-          lambdaFast = isoimass(ll)/L3 + iwatmass(ll)/COSMIC_L4
-
-          hiflux(ll) = exp(-lambdaHigh)
-          xeff(ll)   = zthick(ll)*(COSMIC_alpha*bd + h2oeffdens(ll))
-
-          call lookUpIntegral(fastflux(ll),neutron_integral_AFast,lambdaFast)
-
-          ! After contribution from all directions are taken into account,
-          ! need to multiply fastflux by 2/pi
-          fastflux(ll) = (2.0_dp/PI_dp) * fastflux(ll)
-
-          ! Low energy (fast) neutron upward flux
-          totflux = totflux + hiflux(ll) * xeff(ll) * fastflux(ll)
-       endif
-
-    enddo
-
-    !  neutrons=COSMIC_N*totflux
-    !! >> now based on global parameter given in mhm_paramater.nml
+        ! Midpoint column masses depend only on the preceding layer; retain the original operation order.
+        soil_mass = bd*(0.5_dp*thickness)*1.0_dp
+        water_mass = water_density*(0.5_dp*thickness)*1.0_dp
+        soil_mass = soil_mass + previous_soil_mass + bd*(0.5_dp*previous_thickness)*1.0_dp
+        water_mass = water_mass + previous_water_mass + previous_water_density*(0.5_dp*previous_thickness)*1.0_dp
+        lambdaHigh = soil_mass/COSMIC_L1 + water_mass/COSMIC_L2
+        lambdaFast = soil_mass/L1_COSMICL3(layer) + water_mass/COSMIC_L4
+        hiflux = exp(-lambdaHigh)
+        xeff = thickness*(COSMIC_alpha*bd + water_density)
+        call lookUpIntegral(fastflux, neutron_integral_AFast, lambdaFast)
+        fastflux = (2.0_dp/PI_dp) * fastflux
+        totflux = totflux + hiflux * xeff * fastflux
+      end if
+      previous_thickness = thickness
+      previous_soil_mass = soil_mass
+      previous_water_mass = water_mass
+      previous_water_density = water_density
+      lower = Horizons(layer)
+    end do
     neutrons = L1_N0*totflux
-
-    !! free space
-    deallocate( hiflux, xeff, h2oeffheight, h2oeffdens, fastflux, isoimass, iwatmass)
-
   end subroutine COSMIC
-
-
-
-
-  ! >>> Loop constants
-  subroutine loopConstants(ll, SoilMoisture,L1_bulkDens,L1_latticeWater,&
-       L1_COSMICL3,sm,bd,lw,L3 )
-     implicit none
-     integer(i4),            intent(in)  :: ll
-     real(dp), dimension(:), intent(in)  :: SoilMoisture
-     real(dp), dimension(:), intent(in)  :: L1_bulkDens
-     real(dp), dimension(:), intent(in)  :: L1_latticeWater
-     real(dp), dimension(:), intent(in)  :: L1_COSMICL3
-     real(dp),               intent(out) :: sm  ! SoilMoisture
-     real(dp),               intent(out) :: bd  ! Bulk density
-     real(dp),               intent(out) :: lw  ! Lattice water
-     real(dp),               intent(out) :: L3  ! L3
-
-     if( ll .EQ. 1 ) then
-       !ToDo
-       sm = 0.0_dp
-       bd = 0.0_dp
-       lw = 0.0_dp
-       L3 = 1.0_dp
-     else
-       sm = SoilMoisture(ll-1)
-       bd = L1_bulkDens(ll-1)
-       lw = L1_latticeWater(ll-1)
-       L3 = L1_COSMICL3(ll-1)
-     endif
-   end subroutine loopConstants
-
-
-
-  ! >> layer thickness
-  subroutine layerThickness(ll,Horizons,interc,snowpack,zthick)
-     implicit none
-     integer(i4), intent(in)              :: ll
-     real(dp),dimension(:),    intent(in) :: Horizons
-     real(dp),                 intent(in) :: interc
-     real(dp),                 intent(in) :: snowpack
-     ! The caller uses previously computed layer thicknesses in later iterations.
-     real(dp),dimension(:), intent(inout) :: zthick
-
-     if (ll.eq.1) then
-        zthick(ll)=(snowpack+interc)/10.0_dp
-     else if (ll.eq.2) then
-        zthick(ll)=Horizons(ll-1)/10.0_dp
-     else
-        zthick(ll)=(Horizons(ll-1) - Horizons(ll-2))/10.0_dp
-     endif
-  end subroutine
-
-
-  ! >> layer specific water height
-  subroutine layerWaterHeight(ll,sm,h2oeffheight)
-     implicit none
-     integer(i4),           intent(in)  :: ll
-     real(dp),              intent(in)  :: sm
-     real(dp),dimension(:), intent(out) :: h2oeffheight
-    ! The effective water height in each layer in each profile:
-    ! ToDo:This should include in future: roots, soil organic matter
-    h2oeffheight(ll) = sm/10.0_dp
-  end subroutine
 
   ! integrade a monotonuous function f, dependend on two parameters c and phi
   ! xmin and xmax are the borders for the integration
@@ -462,15 +311,15 @@ CONTAINS
   !For the specific given integral it is very precise with steps=1024
   subroutine approx_mon_int(res,f,c,xmin,xmax,eps,steps,fxmin,fxmax)
      implicit none
-     real(dp)                                     :: res
-     real(dp), external                           :: f
-     real(dp),                        intent(in)  :: c
-     real(dp),                        intent(in)  :: xmax
-     real(dp),                        intent(in)  :: xmin
-     real(dp),                        optional    :: eps
-     integer(i4),                     optional    :: steps
-     real(dp),                        optional    :: fxmin
-     real(dp),                        optional    :: fxmax
+     real(dp)                                     :: res !< Computed integral or accumulated quadrature result.
+     real(dp), external                           :: f !< Integrand evaluated as f(c, x).
+     real(dp),                        intent(in)  :: c !< Dimensionless neutron attenuation parameter.
+     real(dp),                        intent(in)  :: xmax !< Upper integration limit.
+     real(dp),                        intent(in)  :: xmin !< Lower integration limit.
+     real(dp),                        optional    :: eps !< Requested quadrature error tolerance.
+     integer(i4),                     optional    :: steps !< Maximum number of quadrature subdivisions.
+     real(dp),                        optional    :: fxmin !< Integrand value at the lower limit; computed when absent.
+     real(dp),                        optional    :: fxmax !< Integrand value at the upper limit; computed when absent.
 
      !locale variables
      real(dp)  :: epstemp
@@ -515,15 +364,15 @@ CONTAINS
 
   recursive subroutine approx_mon_int_steps(res,f,c,xmin,xmax,eps,steps,fxmin,fxmax)
      implicit none
-     real(dp)                                     :: res
-     real(dp), external                           :: f
-     real(dp),                        intent(in)  :: c
-     real(dp),                        intent(in)  :: xmax
-     real(dp),                        intent(in)  :: xmin
-     real(dp),                        intent(in)  :: eps
-     integer(i4),                     intent(in)  :: steps
-     real(dp),                        intent(in)  :: fxmin
-     real(dp),                        intent(in)  :: fxmax
+     real(dp)                                     :: res !< Computed integral or accumulated quadrature result.
+     real(dp), external                           :: f !< Integrand evaluated as f(c, x).
+     real(dp),                        intent(in)  :: c !< Dimensionless neutron attenuation parameter.
+     real(dp),                        intent(in)  :: xmax !< Upper integration limit.
+     real(dp),                        intent(in)  :: xmin !< Lower integration limit.
+     real(dp),                        intent(in)  :: eps !< Requested quadrature error tolerance.
+     integer(i4),                     intent(in)  :: steps !< Maximum number of quadrature subdivisions.
+     real(dp),                        intent(in)  :: fxmin !< Integrand value at the lower integration limit.
+     real(dp),                        intent(in)  :: fxmax !< Integrand value at the upper integration limit.
 
      !locale variables
      real(dp)  :: xm
@@ -550,14 +399,14 @@ CONTAINS
 
   recursive subroutine approx_mon_int_eps(res,f,c,xmin,xmax,eps,fxmin,fxmax)
      implicit none
-     real(dp)                                     :: res
-     real(dp), external                           :: f
-     real(dp),                        intent(in)  :: c
-     real(dp),                        intent(in)  :: xmax
-     real(dp),                        intent(in)  :: xmin
-     real(dp),                        intent(in)  :: eps
-     real(dp),                        intent(in)  :: fxmin
-     real(dp),                        intent(in)  :: fxmax
+     real(dp)                                     :: res !< Computed integral or accumulated quadrature result.
+     real(dp), external                           :: f !< Integrand evaluated as f(c, x).
+     real(dp),                        intent(in)  :: c !< Dimensionless neutron attenuation parameter.
+     real(dp),                        intent(in)  :: xmax !< Upper integration limit.
+     real(dp),                        intent(in)  :: xmin !< Lower integration limit.
+     real(dp),                        intent(in)  :: eps !< Requested quadrature error tolerance.
+     real(dp),                        intent(in)  :: fxmin !< Integrand value at the lower integration limit.
+     real(dp),                        intent(in)  :: fxmax !< Integrand value at the upper integration limit.
 
      !locale variables
      real(dp)  :: xm
@@ -581,7 +430,6 @@ CONTAINS
         res=res+(xm-xmin)*(fxm+fxmin)/2.0_dp
      endif
   end subroutine
-
 
   ! -----------------------------------------------------------------------------------
   !     NAME
@@ -608,28 +456,6 @@ CONTAINS
   !     CALLING SEQUENCE
   !         call TabularIntegralAFast(neutron_integral_AFast,intsize,maxC)
   !
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:,:) :: SoilMoisture" Soil Moisture
-  !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
-  !>        \param[in] "real(dp), dimension(:)   :: params" ! N0, N1, N2, alpha0, alpha1, L30, L31
-  !>        \param[in] "integer(i4)              :: intsize" ! number of values for the approximation
-  !>        \param[in] "real(dp)                 :: maxC" ! maximum value for A_fast
-  !
-  !     INTENT(INOUT)
-  !>        \param[out] "real(dp), dimension(intsize) :: neutron_integral_AFast" approximation values
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
   !     RETURN
   !         None
   !
@@ -649,8 +475,8 @@ CONTAINS
   subroutine TabularIntegralAFast(integral,maxC)
      use mo_constants, only: PI_dp
      implicit none
-     real(dp), dimension(:)              :: integral
-     real(dp), intent(in)                :: maxC
+     real(dp), dimension(:)              :: integral !< Tabulated angular integral and its lookup metadata.
+     real(dp), intent(in)                :: maxC !< Maximum tabulated attenuation parameter.
 
      !local variables
      integer(i4)                         :: i
@@ -672,9 +498,9 @@ CONTAINS
   subroutine TabularIntegralHermAFast(integral,intsize,maxC)
      use mo_constants, only: PI_dp
      implicit none
-     real(dp), dimension(:)              :: integral
-     integer(i4), intent(in)             :: intsize
-     real(dp), intent(in)                :: maxC
+     real(dp), dimension(:)              :: integral !< Tabulated angular integrals and scaled derivatives.
+     integer(i4), intent(in)             :: intsize !< Number of tabulated interpolation intervals.
+     real(dp), intent(in)                :: maxC !< Maximum tabulated attenuation parameter.
 
      !local variables
      integer(i4)                         :: i
@@ -692,12 +518,12 @@ CONTAINS
 
   ! if c>1.0, the function can be fitted very nice with gnuplot
   ! pi/2*exp(a*x**b)
-  subroutine lookUpIntegral(res,integral,c)
+  recursive subroutine lookUpIntegral(res,integral,c)
      use mo_constants, only: PI_dp
      implicit none
-     real(dp),              intent(out):: res
-     real(dp), dimension(:),intent(in) :: integral
-     real(dp),              intent(in) :: c
+     real(dp),              intent(out):: res !< Computed integral or accumulated quadrature result.
+     real(dp), dimension(:),intent(in) :: integral !< Tabulated angular integral and its lookup metadata.
+     real(dp),              intent(in) :: c !< Dimensionless neutron attenuation parameter.
 
      !local variables
      integer(i4) :: place
@@ -723,11 +549,11 @@ CONTAINS
   subroutine lookUpHermiteIntegral(res,integral,intsize,c,maxC)
      use mo_constants, only: PI_dp
      implicit none
-     real(dp)                         :: res
-     real(dp), dimension(:),intent(in):: integral
-     integer(i4), intent(in)          :: intsize
-     real(dp), intent(in)             :: c
-     real(dp), intent(in)             :: maxC
+     real(dp)                         :: res !< Computed integral or accumulated quadrature result.
+     real(dp), dimension(:),intent(in):: integral !< Tabulated angular integral and its lookup metadata.
+     integer(i4), intent(in)          :: intsize !< Number of tabulated interpolation intervals.
+     real(dp), intent(in)             :: c !< Dimensionless neutron attenuation parameter.
+     real(dp), intent(in)             :: maxC !< Maximum tabulated attenuation parameter.
 
      !local variables
      integer(i4) :: place
@@ -754,8 +580,8 @@ CONTAINS
   !cases this approximation has sometimes an error of about 1/3 in case 4.
   subroutine COSMICeffIntegration(res,x)
      implicit none
-     real(dp)                                     :: res
-     real(dp),                        intent(in)  :: x
+     real(dp)                                     :: res !< Computed integral or accumulated quadrature result.
+     real(dp),                        intent(in)  :: x !< Dimensionless evaluation point.
      !local variables
      real(dp)  :: a,b,c,d
 
@@ -809,8 +635,8 @@ CONTAINS
   subroutine oldIntegration(res,c)
      use mo_constants, only: PI_dp
      implicit none
-     real(dp)                                     :: res
-     real(dp),                        intent(in)  :: c
+     real(dp)                                     :: res !< Computed integral or accumulated quadrature result.
+     real(dp),                        intent(in)  :: c !< Dimensionless neutron attenuation parameter.
 
      ! local variables
      real(dp) :: zdeg
@@ -841,8 +667,8 @@ CONTAINS
   function intgrandFast(c,phi)
      implicit none
      real(dp) :: intgrandFast
-     real(dp), intent(in) :: c
-     real(dp), intent(in) :: phi
+     real(dp), intent(in) :: c !< Dimensionless neutron attenuation parameter.
+     real(dp), intent(in) :: phi !< Zenith angle [radians].
      intgrandFast=exp(-c/cos(phi))
      return
   end function
@@ -850,8 +676,8 @@ CONTAINS
   function intgrandDerivFast(c,phi)
      implicit none
      real(dp) :: intgrandDerivFast
-     real(dp), intent(in) :: c
-     real(dp), intent(in) :: phi
+     real(dp), intent(in) :: c !< Dimensionless neutron attenuation parameter.
+     real(dp), intent(in) :: phi !< Zenith angle [radians].
      intgrandDerivFast=(-1.0_dp/cos(phi))*exp(-c/cos(phi))
      return
   end function
@@ -859,8 +685,11 @@ CONTAINS
   function expPolynomDeg3(x,a,b,c,d)
      implicit none
      real(dp) :: expPolynomDeg3
-     real(dp), intent(in) :: x
-     real(dp), intent(in) :: a,b,c,d
+     real(dp), intent(in) :: x !< Dimensionless evaluation point.
+     real(dp), intent(in) :: a !< Cubic coefficient in the exponential polynomial.
+     real(dp), intent(in) :: b !< Quadratic coefficient in the exponential polynomial.
+     real(dp), intent(in) :: c !< Linear coefficient in the exponential polynomial.
+     real(dp), intent(in) :: d !< Constant coefficient in the exponential polynomial.
 
      expPolynomDeg3=exp(a*x**3+b*x**2+c*x+d)
      return
@@ -870,7 +699,7 @@ CONTAINS
   function h00(t)
      implicit none
      real(dp)             :: h00
-     real(dp), intent(in) :: t
+     real(dp), intent(in) :: t !< Normalized Hermite interpolation coordinate.
      h00=2.0_dp*t**3-3.0_dp*t**2+1.0_dp
      return
   end function
@@ -878,7 +707,7 @@ CONTAINS
   function h01(t)
      implicit none
      real(dp)             :: h01
-     real(dp), intent(in) :: t
+     real(dp), intent(in) :: t !< Normalized Hermite interpolation coordinate.
      h01=-2.0_dp*t**3+3.0_dp*t**2
      return
   end function
@@ -886,7 +715,7 @@ CONTAINS
   function h10(t)
      implicit none
      real(dp)             :: h10
-     real(dp), intent(in) :: t
+     real(dp), intent(in) :: t !< Normalized Hermite interpolation coordinate.
      h10=t**3-2.0_dp*t**2+t
      return
   end function
@@ -894,7 +723,7 @@ CONTAINS
   function h11(t)
      implicit none
      real(dp)             :: h11
-     real(dp), intent(in) :: t
+     real(dp), intent(in) :: t !< Normalized Hermite interpolation coordinate.
      h11=t**3-t**2
      return
   end function

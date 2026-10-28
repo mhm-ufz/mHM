@@ -31,8 +31,8 @@
   soil_depth(1,1)          = 200
   fracSealed_cityArea(1)   = 0.6
   lai_time_step(1)         = 1
-  soil_lut_path(1)         = "test_domain/input/morph/soil_classdefinition.txt"
-  geo_lut_path(1)          = "test_domain/input/morph/geology_classdefinition.txt"
+  soil_lut_path(1)         = "examples/domain_01/input/morph/soil_classdefinition.txt"
+  geo_lut_path(1)          = "examples/domain_01/input/morph/geology_classdefinition.txt"
   read_restart(1)          = .true.
   restart_input_path(1)    = "mpr_gridded_lai_monthly_mean_restart.nc"
 /
