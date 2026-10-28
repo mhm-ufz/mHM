@@ -662,16 +662,16 @@ contains
       ! soil texture surfaced by Input. On a restart-only run (no Input) static_lake_ks was restored
       ! from the restart metadata at connect; derive it whenever it was not restored (a fresh run, or
       ! a restart continued with Input present, where the lake footprint is available).
-      if (.not. allocated(self%static_lake_ks)) call self%derive_lake_ks()
+      if (.not. (self%read_restart .and. allocated(self%restart_lake_ks))) call self%derive_lake_ks()
       ! Regionalize the per-lake baseflow recession coefficient from the geological units over the
       ! lake footprint (the geological baseflow-parameter lookup), aggregated to one value per lake.
       ! On a restart-only run (no Input) static_lake_kbf was restored from the restart metadata at
       ! connect; derive it whenever it was not restored (a fresh run, or a restart continued with Input).
-      if (.not. allocated(self%static_lake_kbf)) call self%derive_lake_kbf()
+      if (.not. (self%read_restart .and. allocated(self%restart_lake_kbf))) call self%derive_lake_kbf()
       ! Lake banks: the per-lake DEM-footprint area is captured at connect when Input is present,
       ! and restored from restart metadata on a restart-only run. Derive it here whenever it was
       ! neither captured nor restored but the lake footprint is available (a fresh run).
-      if (.not. allocated(self%static_lake_footprint_area) .and. allocated(self%lake_map)) &
+      if (.not. (self%read_restart .and. allocated(self%restart_lake_footprint_area)) .and. allocated(self%lake_map)) &
         call lake_derive_spill_reference_surface_area_dem(self%static_lake_grid, self%lake_map, &
           self%lake_ids, self%static_lake_footprint_area)
       ! Regionalize the per-lake effective spillway crest length from the lake catchment (drainage)
@@ -679,7 +679,7 @@ contains
       ! outlet node, from the routing upstream area). On a restart-only run (no Input / no river)
       ! static_lake_spillway_length was restored from the restart metadata at connect; derive it
       ! whenever it was not restored (a fresh run, or a restart continued with Input present).
-      if (.not. allocated(self%static_lake_spillway_length)) call self%derive_lake_spillway_length()
+      if (.not. (self%read_restart .and. allocated(self%restart_lake_spillway_length))) call self%derive_lake_spillway_length()
       ! Flag endorheic (terminal, no-outlet) lakes from the routing topology: a lake whose outlet
       ! node is a sink (drains nowhere) has no downstream river, so its spill, percolation and
       ! baseflow are all suppressed and it closes its balance by evaporation alone. On a restart-only
