@@ -1115,8 +1115,13 @@ contains
     if (self%config%input%is_set("lake_definition_path", idx=id) == NML_OK) then
       call self%exchange%lake_ids%provide("Input")
       call self%exchange%lake_spill_reference_level%provide("Input")
-      call self%exchange%lake_spill_reference_surface_area%provide("Input")
-      call self%exchange%lake_spill_reference_volume%provide("Input")
+      ! The reported crest surface area and volume build the hAV curves and are consumed only by
+      ! the minimal natural lake (process 1). A topology-only routing run (lake=0) or a pass-through
+      ! case (-1/-2) does not need them, so only process 1 declares and reads these bathymetry fields.
+      if (self%exchange%config%processes%lake == 1_i4) then
+        call self%exchange%lake_spill_reference_surface_area%provide("Input")
+        call self%exchange%lake_spill_reference_volume%provide("Input")
+      end if
       call self%exchange%lake_initial_level%provide("Input")
       call self%exchange%lake_latitude%provide("Input")
       call self%exchange%lake_longitude%provide("Input")
@@ -1717,6 +1722,7 @@ contains
     real(dp), allocatable :: area_reported_in(:), volume_reported_in(:)
     type(NcDataset) :: lake_nc  !< lake-definition file, probed for the optional initial-level variable
     logical :: has_initial_level  !< whether the configured initial-level variable is present in the file
+    logical :: needs_bathymetry  !< whether reported crest area/volume are consumed (process 1 only)
     integer(i8) :: i, node
     integer(i4) :: ix, iy
     logical :: use_aux
@@ -1735,54 +1741,69 @@ contains
     area_name = trim(self%config%input%lake_spill_reference_surface_area_var(self%exchange%nml_domain_id))
     volume_name = trim(self%config%input%lake_spill_reference_volume_var(self%exchange%nml_domain_id))
     initial_level_name = trim(self%config%input%lake_initial_level_var(self%exchange%nml_domain_id))
+    ! The reported crest surface area and volume feed the hAV curves of the minimal natural lake
+    ! (process 1) only; other cases (topology-only lake=0, pass-through -1/-2) never consume them,
+    ! so read them only for process 1 and leave the lake-definition file free of them otherwise.
+    needs_bathymetry = self%exchange%config%processes%lake == 1_i4
     scope_info(s,*) "Read lake specification from file: ", path
     ! The initial lake level is optional: it only cold-starts the lake level, and the documented
     ! default workflow omits it to let mLM cold-start by lake type. Probe the file for the
     ! configured variable; read it when present, otherwise fill the sentinel (nodata_dp) so mLM
-    ! cold-starts. (The spill reference level, area and volume remain mandatory.)
+    ! cold-starts. The spill reference level is always required; the reported crest area and volume
+    ! are read only when a feature consumes them (process 1, see needs_bathymetry above).
     lake_nc = NcDataset(path, "r")
     has_initial_level = lake_nc%hasVariable(initial_level_name)
     call lake_nc%close()
-    if (has_initial_level) then
-      vars = [var(name=name, long_name="lake spill reference level", units="m", static=.true.), &
-              var(name=area_name, long_name="lake surface area at spill reference level", units="km2", static=.true.), &
-              var(name=volume_name, long_name="lake volume at spill reference level", units="1e6 m3", static=.true.), &
-              var(name=initial_level_name, long_name="initial lake level", units="m", static=.true.)]
-    else
-      vars = [var(name=name, long_name="lake spill reference level", units="m", static=.true.), &
+    ! Build the variable list incrementally: the spill reference level is mandatory; the crest area
+    ! and volume are added only for process 1; the initial level is added only when present in the file.
+    vars = [var(name=name, long_name="lake spill reference level", units="m", static=.true.)]
+    if (needs_bathymetry) then
+      vars = [vars, &
               var(name=area_name, long_name="lake surface area at spill reference level", units="km2", static=.true.), &
               var(name=volume_name, long_name="lake volume at spill reference level", units="1e6 m3", static=.true.)]
     end if
+    if (has_initial_level) &
+      vars = [vars, var(name=initial_level_name, long_name="initial lake level", units="m", static=.true.)]
     call input%init(path, vars=vars, points=self%lake_outlets, points_init_var=name)
     call input%get_ids(self%lake_ids)
     allocate(self%lake_spill_reference_level(self%lake_outlets%n_points))
-    allocate(area_reported_in(self%lake_outlets%n_points))
-    allocate(volume_reported_in(self%lake_outlets%n_points))
     call input%read(name, self%lake_spill_reference_level)
-    call input%read(area_name, area_reported_in)
-    call input%read(volume_name, volume_reported_in)
+    if (needs_bathymetry) then
+      allocate(area_reported_in(self%lake_outlets%n_points))
+      allocate(volume_reported_in(self%lake_outlets%n_points))
+      call input%read(area_name, area_reported_in)
+      call input%read(volume_name, volume_reported_in)
+    end if
     allocate(self%lake_initial_level(self%lake_outlets%n_points), source=nodata_dp)
     allocate(self%lake_latitude(self%lake_outlets%n_points), source=nodata_dp)
     allocate(self%lake_longitude(self%lake_outlets%n_points), source=nodata_dp)
     if (has_initial_level) call input%read(initial_level_name, self%lake_initial_level)
     call input%close()
 
-    ! Convert reported inputs to SI at the read boundary: surface area km2 -> m2, volume 1e6 m3 (mcm) -> m3.
-    allocate(self%lake_spill_reference_surface_area(self%lake_outlets%n_points))
-    allocate(self%lake_spill_reference_volume(self%lake_outlets%n_points))
-    self%lake_spill_reference_surface_area = area_reported_in * 1.0e6_dp
-    self%lake_spill_reference_volume = volume_reported_in * 1.0e6_dp
+    ! Convert reported inputs to SI at the read boundary: surface area km2 -> m2, volume 1e6 m3 (mcm)
+    ! -> m3. Only for process 1 (the only consumer); left unallocated/unpublished otherwise.
+    if (needs_bathymetry) then
+      allocate(self%lake_spill_reference_surface_area(self%lake_outlets%n_points))
+      allocate(self%lake_spill_reference_volume(self%lake_outlets%n_points))
+      self%lake_spill_reference_surface_area = area_reported_in * 1.0e6_dp
+      self%lake_spill_reference_volume = volume_reported_in * 1.0e6_dp
+    end if
 
     if (self%lake_outlets%n_points < 1_i8) then
       log_fatal(*) "Input: lake specification contains no lake outlets."
       error stop 1
     end if
     if (size(self%lake_ids, kind=i8) /= self%lake_outlets%n_points .or. &
-        size(self%lake_spill_reference_level, kind=i8) /= self%lake_outlets%n_points .or. &
-        size(self%lake_spill_reference_surface_area, kind=i8) /= self%lake_outlets%n_points .or. &
-        size(self%lake_spill_reference_volume, kind=i8) /= self%lake_outlets%n_points) then
+        size(self%lake_spill_reference_level, kind=i8) /= self%lake_outlets%n_points) then
       log_fatal(*) "Input: lake specification arrays have inconsistent sizes."
       error stop 1
+    end if
+    if (needs_bathymetry) then
+      if (size(self%lake_spill_reference_surface_area, kind=i8) /= self%lake_outlets%n_points .or. &
+          size(self%lake_spill_reference_volume, kind=i8) /= self%lake_outlets%n_points) then
+        log_fatal(*) "Input: lake bathymetry arrays have inconsistent sizes."
+        error stop 1
+      end if
     end if
     if (.not.all(ieee_is_finite(self%lake_outlets%x)) .or. .not.all(ieee_is_finite(self%lake_outlets%y))) then
       log_fatal(*) "Input: lake outlet coordinates must be finite."
@@ -1832,10 +1853,14 @@ contains
     self%exchange%lake_ids%data => self%lake_ids
     call self%exchange%lake_spill_reference_level%prepare_data("Input", no_time)
     self%exchange%lake_spill_reference_level%data => self%lake_spill_reference_level
-    call self%exchange%lake_spill_reference_surface_area%prepare_data("Input", no_time)
-    self%exchange%lake_spill_reference_surface_area%data => self%lake_spill_reference_surface_area
-    call self%exchange%lake_spill_reference_volume%prepare_data("Input", no_time)
-    self%exchange%lake_spill_reference_volume%data => self%lake_spill_reference_volume
+    ! Publish the reported crest area and volume only for process 1 (the only consumer); these are the
+    ! fields mLM declared itself to consume, and they were not provided in configure for other cases.
+    if (needs_bathymetry) then
+      call self%exchange%lake_spill_reference_surface_area%prepare_data("Input", no_time)
+      self%exchange%lake_spill_reference_surface_area%data => self%lake_spill_reference_surface_area
+      call self%exchange%lake_spill_reference_volume%prepare_data("Input", no_time)
+      self%exchange%lake_spill_reference_volume%data => self%lake_spill_reference_volume
+    end if
     call self%exchange%lake_initial_level%prepare_data("Input", no_time)
     self%exchange%lake_initial_level%data => self%lake_initial_level
     call self%exchange%lake_latitude%prepare_data("Input", no_time)
