@@ -43,7 +43,8 @@ program driver
 
   use_log = .true. ! Enable message logging after parsing so help/version output stays clean.
   if (parser%option_was_read('log-file')) then
-    open(newunit=unit, file=parser%option_value('log-file'), status='replace', action='write')
+    ! Allow long list-directed log records, including metadata prefixes.
+    open(newunit=unit, file=parser%option_value('log-file'), status='replace', action='write', recl=65536_i4)
     log_unit = unit
     log_unit_error = unit
   end if

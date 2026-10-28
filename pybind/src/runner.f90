@@ -42,7 +42,8 @@ contains
     saved_unit = log_unit
     saved_error_unit = log_unit_error
     if (len_trim(log_file) > 0) then
-      open(newunit=unit, file=log_file, status='replace', action='write')
+      ! Allow long list-directed log records, including metadata prefixes.
+      open(newunit=unit, file=log_file, status='replace', action='write', recl=65536_i4)
       log_unit = unit
       log_unit_error = unit
     end if
