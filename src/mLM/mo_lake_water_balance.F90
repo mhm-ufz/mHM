@@ -170,8 +170,12 @@ CONTAINS
     !            for the current time step
     !         2. Based on this trial set of V, A, h, delta_V is obtained from WB equation
     !
-    !     delta_V = [pr(t) - evap(t) - perc(t)] * [A(t-1) + A(t)]/2 + [inflow(t)
+    !     delta_V = [pr(t) - evap(t)] * [A(t-1) + A(t)]/2 - perc(t) * A(t-1) + [inflow(t)
     !                 - wateruse(t) - spill(t) + ibt(t) ] * tsHydroSecs
+    !
+    !            Note: seepage perc(t) is removed over the previous-step area A(t-1) only, so the lake
+    !                  loss equals the volume added to the groundwater store (water conservation);
+    !                  the P - E term uses the average area as before.
     !
     !            Note: wateruse(t) = sum[hydelflow(t), enviflow(t), watersupply(t), irrigation(t)]
     !
@@ -244,9 +248,11 @@ CONTAINS
         lake_spill_reference_level, lake_spill_reference_surface_area_bathymetry_derived, h_n_1, A_n_1)
 
 
-      delta_V_n_2 = ( pr - evap - perc ) / 1000.0_dp * 0.5_dp * ( lake_surface_area_previous + A_n_2 ) &
+      delta_V_n_2 = ( pr - evap ) / 1000.0_dp * 0.5_dp * ( lake_surface_area_previous + A_n_2 ) &
+       - perc / 1000.0_dp * lake_surface_area_previous &
        + ( inflow - wateruse - spill + ibt ) * tsHydroSecs
-      delta_V_n_1 = ( pr - evap - perc ) / 1000.0_dp * 0.5_dp * ( lake_surface_area_previous + A_n_1 ) &
+      delta_V_n_1 = ( pr - evap ) / 1000.0_dp * 0.5_dp * ( lake_surface_area_previous + A_n_1 ) &
+       - perc / 1000.0_dp * lake_surface_area_previous &
        + ( inflow - wateruse - spill + ibt ) * tsHydroSecs
 
           ! where -
@@ -280,7 +286,8 @@ CONTAINS
           lake_surface_area = 0._dp
           lake_level = hav_lake_level(1)
 
-          delta_V_n = ( pr - evap - perc ) / 1000.0_dp * 0.5_dp * (lake_surface_area_previous + lake_surface_area ) &
+          delta_V_n = ( pr - evap ) / 1000.0_dp * 0.5_dp * (lake_surface_area_previous + lake_surface_area ) &
+            - perc / 1000.0_dp * lake_surface_area_previous &
             + ( inflow - wateruse - spill + ibt ) * tsHydroSecs
 
           lake_volume = lake_volume_previous + delta_V_n ! This is considered as the final value, and is negative
@@ -298,14 +305,16 @@ CONTAINS
           call interpolate_lake_states(.not. naturalFlag, hav_lake_level, hav_lake_surface_area, &
             lake_spill_reference_level, lake_spill_reference_surface_area_bathymetry_derived, lake_level, lake_surface_area)
 
-          delta_V_n = ( pr - evap - perc ) / 1000.0_dp * 0.5_dp * (lake_surface_area_previous + lake_surface_area ) &
+          delta_V_n = ( pr - evap ) / 1000.0_dp * 0.5_dp * (lake_surface_area_previous + lake_surface_area ) &
+            - perc / 1000.0_dp * lake_surface_area_previous &
             + ( inflow - wateruse - spill + ibt ) * tsHydroSecs
 
-          ! At the moment, percolation is calculated before waterbalance using only the previous
-          ! time step lake area. However, the net rainfall is calcualted using average area. In
-          ! order to do the same with percolation, the subroutine must be called from inside of
-          ! this waterbalance subroutine. If needed this modification can be implemented later.
-          ! - PKS Oct 2018
+          ! Percolation is intentionally applied over the previous-step lake area (A_prev), not the
+          ! average area used for the net atmospheric flux (P - E). perc is computed once (as a depth)
+          ! before the water balance, and the same perc/1000 * A_prev volume is removed here and added
+          ! to the groundwater store (lake_gws_baseflow), so the lake->groundwater transfer conserves
+          ! water exactly. (The P - E term keeps the average area because precipitation and evaporation
+          ! act on the dynamic water surface over the step.) - PKS Oct 2018; conservation closed 2026
 
           Verror_n = delta_V_n - delta_V_trial_n
 
