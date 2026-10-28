@@ -1886,14 +1886,11 @@ contains
           error stop 1
         end if
       end if
-      if (allocated(self%restart_lake_initial_level) .and. &
-          self%exchange%lake_initial_level%has_data()) then
-        if (.not.is_close(self%restart_lake_initial_level(j), &
-                          self%exchange%lake_initial_level%data(i))) then
-          log_fatal(*) "mLM restart and Input initial level differ for stable lake ID."
-          error stop 1
-        end if
-      end if
+      ! The initial level is a cold-start-only field: on a continuation the lake level comes from the
+      ! restart, not from this input, and the restart carries the RESOLVED level (sentinel inputs are
+      ! resolved to real levels at the first initialize) while the input may still hold the -9999
+      ! sentinel. Comparing the two is meaningless and wrongly aborts a valid continuation, so it is
+      ! not validated here.
       if (allocated(self%restart_lake_latitude) .and. &
           self%exchange%lake_latitude%has_data()) then
         if (.not.is_close(self%restart_lake_latitude(j), &

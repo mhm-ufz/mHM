@@ -22,6 +22,7 @@ module mo_input_container
   use mo_river, only: river_t
   use mo_points, only: points_t
   use mo_points_io, only: points_input_dataset
+  use mo_netcdf, only: NcDataset
   use mo_grid_io, only: var, input_dataset, end_timestamp, start_timestamp, no_time, daily, monthly, yearly, varying
   use mo_string_utils, only: n2s => num2str
   use mo_mlm_mpr, only: lake_read_soil_texture_lut
@@ -1714,6 +1715,8 @@ contains
     integer(i8), allocatable :: outlet_nodes(:)
     character(:), allocatable :: path, name, area_name, volume_name, initial_level_name
     real(dp), allocatable :: area_reported_in(:), volume_reported_in(:)
+    type(NcDataset) :: lake_nc  !< lake-definition file, probed for the optional initial-level variable
+    logical :: has_initial_level  !< whether the configured initial-level variable is present in the file
     integer(i8) :: i, node
     integer(i4) :: ix, iy
     logical :: use_aux
@@ -1733,10 +1736,23 @@ contains
     volume_name = trim(self%config%input%lake_spill_reference_volume_var(self%exchange%nml_domain_id))
     initial_level_name = trim(self%config%input%lake_initial_level_var(self%exchange%nml_domain_id))
     scope_info(s,*) "Read lake specification from file: ", path
-    vars = [var(name=name, long_name="lake spill reference level", units="m", static=.true.), &
-            var(name=area_name, long_name="lake surface area at spill reference level", units="km2", static=.true.), &
-            var(name=volume_name, long_name="lake volume at spill reference level", units="1e6 m3", static=.true.), &
-            var(name=initial_level_name, long_name="initial lake level", units="m", static=.true.)]
+    ! The initial lake level is optional: it only cold-starts the lake level, and the documented
+    ! default workflow omits it to let mLM cold-start by lake type. Probe the file for the
+    ! configured variable; read it when present, otherwise fill the sentinel (nodata_dp) so mLM
+    ! cold-starts. (The spill reference level, area and volume remain mandatory.)
+    lake_nc = NcDataset(path, "r")
+    has_initial_level = lake_nc%hasVariable(initial_level_name)
+    call lake_nc%close()
+    if (has_initial_level) then
+      vars = [var(name=name, long_name="lake spill reference level", units="m", static=.true.), &
+              var(name=area_name, long_name="lake surface area at spill reference level", units="km2", static=.true.), &
+              var(name=volume_name, long_name="lake volume at spill reference level", units="1e6 m3", static=.true.), &
+              var(name=initial_level_name, long_name="initial lake level", units="m", static=.true.)]
+    else
+      vars = [var(name=name, long_name="lake spill reference level", units="m", static=.true.), &
+              var(name=area_name, long_name="lake surface area at spill reference level", units="km2", static=.true.), &
+              var(name=volume_name, long_name="lake volume at spill reference level", units="1e6 m3", static=.true.)]
+    end if
     call input%init(path, vars=vars, points=self%lake_outlets, points_init_var=name)
     call input%get_ids(self%lake_ids)
     allocate(self%lake_spill_reference_level(self%lake_outlets%n_points))
@@ -1745,10 +1761,10 @@ contains
     call input%read(name, self%lake_spill_reference_level)
     call input%read(area_name, area_reported_in)
     call input%read(volume_name, volume_reported_in)
-    allocate(self%lake_initial_level(self%lake_outlets%n_points))
+    allocate(self%lake_initial_level(self%lake_outlets%n_points), source=nodata_dp)
     allocate(self%lake_latitude(self%lake_outlets%n_points), source=nodata_dp)
     allocate(self%lake_longitude(self%lake_outlets%n_points), source=nodata_dp)
-    call input%read(initial_level_name, self%lake_initial_level)
+    if (has_initial_level) call input%read(initial_level_name, self%lake_initial_level)
     call input%close()
 
     ! Convert reported inputs to SI at the read boundary: surface area km2 -> m2, volume 1e6 m3 (mcm) -> m3.
