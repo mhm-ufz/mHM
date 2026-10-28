@@ -1209,11 +1209,13 @@ contains
               deficit  = deficit - cut
             end if
             ! 3) evaporation [mm TS-1] over the step-average area (as the balance applied it)
-            if (deficit > 0.0_dp .and. avg_area > 0.0_dp) then
-              evap_vol  = evap_step / 1000.0_dp * avg_area
-              cut       = min(deficit, evap_vol)
-              evap_step = (evap_vol - cut) * 1000.0_dp / avg_area
-              deficit   = deficit - cut
+            if (deficit > 0.0_dp) then
+              if (avg_area > 0.0_dp) then
+                evap_vol  = evap_step / 1000.0_dp * avg_area
+                cut       = min(deficit, evap_vol)
+                evap_step = (evap_vol - cut) * 1000.0_dp / avg_area
+                deficit   = deficit - cut
+              end if
             end if
           end if
           ! Lake groundwater storage update -> baseflow (uses the previous-step surface area and GW storage).
