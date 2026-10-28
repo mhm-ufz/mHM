@@ -374,6 +374,8 @@ contains
   subroutine mlm_connect(self)
     class(mlm_t), target, intent(inout) :: self
     integer(i8) :: n_lakes
+    integer(i8) :: k  !< target slot in point-set (lake_ids) order
+    integer(i8), allocatable :: restart_perm(:)  !< restart-order index for each point-set slot
     integer(i4) :: lake_case
     logical :: has_points, has_ids, has_levels, has_area, has_volume, has_metadata
 
@@ -404,10 +406,23 @@ contains
       ! baseflow recession coefficient) are taken from the restart metadata when the restart file
       ! carries them, so the soil/geology rasters need not be re-read. Initialize derives whichever
       ! field was not restored (so a restart without these in the file still regionalizes from Input).
+      ! Restore the lake-MPR metadata by stable lake ID, not restart-file order. lake_ids here is
+      ! in Input point-set order while restart_lake_ids is in restart-file order, and the two can
+      ! differ (e.g. Input [205,101] vs restart [101,205]). These fields are later indexed in
+      ! point-set order in update, so copy restart slot restart_perm(k) into point-set slot k -
+      ! the same ID permutation the mutable-state restore (read_restart_state) applies.
+      ! validate_restart_metadata has already confirmed the ID sets match and are unique, so the
+      ! findloc below always resolves.
       if (self%read_restart) then
-        if (allocated(self%restart_lake_ks)) self%static_lake_ks = self%restart_lake_ks
-        if (allocated(self%restart_lake_kbf)) self%static_lake_kbf = self%restart_lake_kbf
-        if (allocated(self%restart_lake_footprint_area)) self%static_lake_footprint_area = self%restart_lake_footprint_area
+        allocate(restart_perm(n_lakes))
+        do k = 1_i8, n_lakes
+          restart_perm(k) = findloc(self%restart_lake_ids, self%lake_ids(k), dim=1, kind=i8)
+        end do
+        if (allocated(self%restart_lake_ks)) self%static_lake_ks = self%restart_lake_ks(restart_perm)
+        if (allocated(self%restart_lake_kbf)) self%static_lake_kbf = self%restart_lake_kbf(restart_perm)
+        if (allocated(self%restart_lake_footprint_area)) &
+          self%static_lake_footprint_area = self%restart_lake_footprint_area(restart_perm)
+        deallocate(restart_perm)
       end if
     else
       if (.not.self%read_restart) then
