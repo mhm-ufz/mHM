@@ -1980,6 +1980,9 @@ contains
     if (allocated(self%lake_spill_reference_level)) deallocate(self%lake_spill_reference_level)
     if (allocated(self%lake_spill_reference_surface_area)) deallocate(self%lake_spill_reference_surface_area)
     if (allocated(self%lake_spill_reference_volume)) deallocate(self%lake_spill_reference_volume)
+    if (allocated(self%lake_initial_level)) deallocate(self%lake_initial_level)
+    if (allocated(self%lake_latitude)) deallocate(self%lake_latitude)
+    if (allocated(self%lake_longitude)) deallocate(self%lake_longitude)
     if (self%owns_river_l0) then
       call self%river_l0%destroy()
       self%owns_river_l0 = .false.
