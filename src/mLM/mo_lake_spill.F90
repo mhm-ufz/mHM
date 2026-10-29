@@ -1,4 +1,5 @@
-!> \file mo_lake_spill.f90
+!> \file mo_lake_spill.F90
+!> \copydoc mo_lake_spill
 
 !> \brief lake spill module
 
@@ -9,6 +10,12 @@
 
 !> \date October 2018
 
+!> \version 0.1
+!> \changelog
+!! - October 2026: v6 component ownership and restart integration; retained donor arithmetic.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
+!> \ingroup f_mLM
 MODULE mo_lake_spill
 
   USE mo_kind,   only : i4, i8, dp
@@ -39,28 +46,6 @@ CONTAINS
 
   !     CALLING SEQUENCE
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: lake_level"                     [masl]   current lake level
-  !>       \param[in] "real(dp) :: lake_spill_reference_level"        [masl]   dam crest level (DCL)
-  !>       \param[in] "real(dp) :: spill_coefficient_of_discharge" [-]      spill coefficient model parameter
-  !>       \param[in] "real(dp) :: spillway_length"                [m]      effective spillway length
-  !>       \param[in] "real(dp) :: spill_exponent"                 [-]      spill exponent model parameter
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp) :: spill"                         [m3 s-1] spill flow rate
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
   !     RETURN
   !         None
 
@@ -89,19 +74,14 @@ CONTAINS
     IMPLICIT NONE
 
 
-    real(dp), intent(IN)  ::  lake_level                       ! [masl]  current lake level
+    real(dp), intent(IN) :: lake_level !< [masl]  current lake level
 
-    real(dp), intent(IN)  ::  &
-                              ! [masl] dam crest level (top of the conservation pool)
-                              lake_spill_reference_level, &
-                              ! [-]    coefficient of discharge of the spillway
-                              spill_coefficient_of_discharge, &
-                              ! [m]    effective spillway length
-                              spillway_length, &
-                              ! [-]    spill exponent model parameter
-                              spill_exponent
+    real(dp), intent(in) :: lake_spill_reference_level !< reference level [m]
+    real(dp), intent(in) :: spill_coefficient_of_discharge !< effective SI discharge coefficient
+    real(dp), intent(in) :: spillway_length !< crest length [m]
+    real(dp), intent(in) :: spill_exponent !< head exponent
 
-    real(dp), intent(OUT) ::  spill                            ! [m3 s-1] spill flow rate
+    real(dp), intent(OUT) :: spill !< [m3 s-1] spill flow rate
 
 
 
@@ -141,28 +121,6 @@ CONTAINS
 
   !     CALLING SEQUENCE
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: lake_level"                     [masl]   current lake level
-  !>       \param[in] "real(dp) :: reference_level"                [masl]   reference level for the head
-  !>       \param[in] "real(dp) :: spill_coefficient_of_discharge" [-]      spill coefficient model parameter
-  !>       \param[in] "real(dp) :: spillway_length"                [m]      effective spillway length
-  !>       \param[in] "real(dp) :: spill_exponent"                 [-]      spill exponent model parameter
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp) :: spill"                         [m3 s-1] spill flow rate
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
   !     RETURN
   !         None
 
@@ -195,15 +153,15 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(dp), intent(IN)  ::  lake_level       ! [masl]  current lake level
+    real(dp), intent(IN) :: lake_level !< [masl]  current lake level
 
-    real(dp), intent(IN)  ::  reference_level  ! [masl]  reference level (top of the conservation rule curve)
+    real(dp), intent(IN) :: reference_level !< [masl]  reference level (top of the conservation rule curve)
 
-    real(dp), intent(IN)  ::  spill_coefficient_of_discharge, &  ! [-]  spill coefficient model parameter
-                              spillway_length, &                 ! [m]  effective spillway length
-                              spill_exponent                     ! [-]  spill exponent model parameter
+    real(dp), intent(IN) :: spill_coefficient_of_discharge !< [-]  spill coefficient model parameter
+    real(dp), intent(IN) :: spillway_length !< [m]  effective spillway length
+    real(dp), intent(IN) :: spill_exponent !< [-]  spill exponent model parameter
 
-    real(dp), intent(OUT) ::  spill            ! [m3 s-1] spill flow rate
+    real(dp), intent(OUT) :: spill !< [m3 s-1] spill flow rate
 
 
     !! local vars

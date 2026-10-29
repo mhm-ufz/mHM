@@ -1,9 +1,10 @@
-!>       \file mo_mlm_constants.f90
+!> \file mo_mlm_constants.f90
+!> \copydoc mo_mlm_constants
 
 !>       \brief Provides mLM specific constants
 
-!>       \details Provides mLM specific constants such as the empirical coefficients of
-!>                the lake evaporation formulae.
+!>       \details Provides mLM specific constants such as the water-balance solver tolerances
+!>                and the empirical exposed-bank evaporation ratio.
 
 !>       \authors Pallav Kumar Shrestha
 
@@ -19,6 +20,12 @@
 ! Pallav Shrestha, Oct 2026 - added the lake bank soil-evaporation ratio (bank_soil_evap_ratio)
 !     used by the lake banks footprint reconciliation in mo_mlm_container.
 
+!> \version 0.1
+!> \changelog
+!! - October 2026: v6 component ownership and restart integration; retained donor arithmetic.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
+!> \ingroup f_mLM
 module mo_mlm_constants
 
   use mo_kind, only : i4, dp

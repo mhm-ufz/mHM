@@ -55,6 +55,18 @@ workflows before changing components or configuration; this file defines the det
 
 ## Paths, time, and parameters
 
+- mLM restarts always retain per-lake footprint areas for cases 1 and -2. `restart_save_topology`
+  defaults to false and controls writing only; requested but unavailable L0 geometry is an error.
+  Restore restart-owned IDs/points before connection without replacing Input-owned geometry.
+  Require the current versioned mLM restart format and complete case-specific definition; older
+  lake restarts must be regenerated, without legacy reconstruction or parameter fallbacks.
+- Meteo restart owns lake forcing support and active disaggregation settings, independent of dates.
+  Validate full L2 geometry, orientation, masks, packing, stable IDs and normalized weights before reuse;
+  rebuild from L0 geometry when L2 changes. Configure active disaggregation settings consistently
+  with the saved support; boolean defaults are effective values, not omission sentinels. Keep all
+  namelist reading in generated configuration code. Input reopens forcing; land caches rebuild normally.
+  Freeze effective generating parameters behind restored mLM Ks, recession and spillway length,
+  including borrowed land parameters. Fetch other runtime lake coefficients on every initialize.
 - Configure complete component input/output/restart file paths explicitly; do not infer filenames,
   assume standard subfolders, or search for inputs. Resolve paths with `exchange%get_path`:
   relative to the domain working directory by default, or the run root with `root=.true.`.

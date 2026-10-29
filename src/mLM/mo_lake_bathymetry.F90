@@ -1,4 +1,5 @@
-!> \file mo_lake_bathymetry.f90
+!> \file mo_lake_bathymetry.F90
+!> \copydoc mo_lake_bathymetry
 
 !> \brief lake bathymetry generation module
 
@@ -9,6 +10,12 @@
 !> \authors Pallav Kumar Shrestha
 !> \date Jan 2023
 
+!> \version 0.1
+!> \changelog
+!! - October 2026: v6 component ownership and restart integration; retained donor arithmetic.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
+!> \ingroup f_mLM
 MODULE mo_lake_bathymetry
 
   USE mo_kind,   only : i4, i8, dp
@@ -21,6 +28,7 @@ MODULE mo_lake_bathymetry
 
   ! ------------------------------------------------------------------
 
+  !> \class lake_hav_t
   !> \brief Per-lake height-area-volume (hAV) curve, tabulated at a 1 cm depth interval.
   !> \details One instance per lake; the three columns share a common length (the number
   !>          of depth intervals from bottom to crest, which differs between lakes). All in SI.
@@ -49,29 +57,6 @@ CONTAINS
   !>                Shape types:
   !>                  1 - linear h~V relation, with constant area as the maximum area
   !>                  2 - Liebe (2005) pyramid with a square base diagonally cut into halves
-
-  !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: bathymetry_type"      [-]      built-in shape selector
-  !>       \param[in] "real(dp)    :: lake_spill_reference_level"       [masl]   spill reference level
-  !>       \param[in] "real(dp)    :: lake_spill_reference_surface_area"[m2]     surface area at spill reference level
-  !>       \param[in] "real(dp)    :: lake_spill_reference_volume"      [m3]     volume at spill reference level
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp), allocatable :: hav_lake_level(:)"        [masl] hAV level column
-  !>       \param[out] "real(dp), allocatable :: hav_lake_surface_area(:)" [m2]   hAV surface area column
-  !>       \param[out] "real(dp), allocatable :: hav_lake_volume(:)"       [m3]   hAV volume column
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
 
   !     RETURN
   !         None
@@ -107,13 +92,13 @@ CONTAINS
 
     IMPLICIT NONE
 
-    integer(i4),         intent(in)  :: bathymetry_type         ! built-in shape selector
-    real(dp),            intent(in)  :: lake_spill_reference_level          ! spill reference level [masl]
-    real(dp),            intent(in)  :: lake_spill_reference_surface_area   ! surface area at spill reference level [m2]
-    real(dp),            intent(in)  :: lake_spill_reference_volume         ! volume at spill reference level [m3]
-    real(dp), allocatable, intent(out) :: hav_lake_level(:)         ! hAV level column [masl]
-    real(dp), allocatable, intent(out) :: hav_lake_surface_area(:)  ! hAV surface area column [m2]
-    real(dp), allocatable, intent(out) :: hav_lake_volume(:)        ! hAV volume column [m3]
+    integer(i4),         intent(in) :: bathymetry_type !< built-in shape selector
+    real(dp),            intent(in) :: lake_spill_reference_level !< spill reference level [masl]
+    real(dp),            intent(in) :: lake_spill_reference_surface_area !< surface area at spill reference level [m2]
+    real(dp),            intent(in) :: lake_spill_reference_volume !< volume at spill reference level [m3]
+    real(dp), allocatable, intent(out) :: hav_lake_level(:) !< hAV level column [masl]
+    real(dp), allocatable, intent(out) :: hav_lake_surface_area(:) !< hAV surface area column [m2]
+    real(dp), allocatable, intent(out) :: hav_lake_volume(:) !< hAV volume column [m3]
 
     ! local variables
 

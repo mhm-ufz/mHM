@@ -1,4 +1,5 @@
-!> \file mo_mlm_mpr.f90
+!> \file mo_mlm_mpr.F90
+!> \copydoc mo_mlm_mpr
 
 !> \brief lake multiscale parameter regionalization module
 
@@ -31,6 +32,12 @@
 !     over the packed lake footprint instead of a level-1 cell window. Assembled for the mLM v6
 !     migration so the lake conductivity is regionalized independently of the land-surface soil-moisture MPR.
 
+!> \version 0.1
+!> \changelog
+!! - October 2026: v6 component ownership and restart integration; retained donor arithmetic.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
+!> \ingroup f_mLM
 #include "logging.h"
 
 MODULE mo_mlm_mpr

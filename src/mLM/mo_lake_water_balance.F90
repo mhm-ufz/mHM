@@ -1,4 +1,5 @@
-!> \file mo_lake_water_balance.f90
+!> \file mo_lake_water_balance.F90
+!> \copydoc mo_lake_water_balance
 
 !> \brief simple lake water balance module
 
@@ -10,6 +11,12 @@
 
 !> \date March 2018
 
+!> \version 0.1
+!> \changelog
+!! - October 2026: v6 component ownership and restart integration; retained donor arithmetic.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
+!> \ingroup f_mLM
 MODULE mo_lake_water_balance
 
   USE mo_kind,   only : i4, i8, dp
@@ -34,44 +41,6 @@ CONTAINS
   !>        \details Perform lake water balance between inlets, storage and outlet at each time step
 
   !     CALLING SEQUENCE
-
-  !    INTENT(IN)
-  !>       \param[in] "logical     :: naturalFlag"                           regulation flag
-  !>       \param[in] "real(dp) :: pr"                            [mm.TS-1]  disaggregated lake precipitation
-  !>       \param[in] "real(dp) :: evap"                          [mm.TS-1]  disaggregated lake evaporation
-  !>       \param[in] "real(dp) :: inflow"                        [m3.s-1]   lake inflow from mRM
-  !>       \param[in] "real(dp) :: perc"                          [mm.TS-1]  lake percolation
-  !>       \param[in] "real(dp) :: wateruse"                      [m3.s-1]   lake water use
-  !>       \param[in] "real(dp) :: spill"                         [m3.s-1]   lake spill
-  !>       \param[in] "real(dp) :: ibt"                           [m3.s-1]   lake inter-basin transfer
-  !>       \param[in] "real(dp), dimension(:) :: hav_lake_level"         [masl]  hAV curve level column
-  !>       \param[in] "real(dp), dimension(:) :: hav_lake_surface_area"  [m2]    hAV curve area column
-  !>       \param[in] "real(dp), dimension(:) :: hav_lake_volume"        [m3]    hAV curve volume column
-  !>       \param[in] "real(dp) :: lake_spill_reference_level"                    [masl] dam crest level (DCL)
-  !>       \param[in] "real(dp) :: lake_spill_reference_surface_area_bathymetry_derived"   [m2]   area at the crest (DCL_A)
-  !>       \param[in] "real(dp) :: lake_spill_reference_volume_bathymetry_derived"         [m3]   volume at the crest (DCL_V)
-  !>       \param[in] "real(dp) :: lake_level_previous"           [masl]     previous-step lake level
-  !>       \param[in] "real(dp) :: lake_surface_area_previous"    [m2]       previous-step lake surface area
-  !>       \param[in] "real(dp) :: lake_volume_previous"          [m3]       previous-step lake volume
-  !>       \param[in] "real(dp) :: tsHydroSecs"                   [s]        seconds in a hydrological time step
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp) :: lake_level"          [masl]     current lake level
-  !>       \param[out] "real(dp) :: lake_surface_area"   [m2]       current lake surface area
-  !>       \param[out] "real(dp) :: lake_volume"         [m3]       current lake volume
-  !>       \param[out] "real(dp) :: volume_adjustment"   [m3]       volume adjusted for the current time step
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
 
   !     RETURN
   !         None
@@ -126,35 +95,34 @@ CONTAINS
 
     IMPLICIT NONE
 
-    logical,    intent(in):: naturalFlag     ! [-] regulation flag (regulated vs natural lake)
+    logical,    intent(in) :: naturalFlag !< [-] regulation flag (regulated vs natural lake)
 
-    real(dp), intent(IN)  ::  pr, &          ! [mm.TS-1]  disaggregated lake precipitation
-                              evap, &        ! [mm.TS-1]  disaggregated lake evaporation
-                              inflow, &      ! [m3.s-1]   lake inflow from mRM
-                              perc, &        ! [mm.TS-1]  lake percolation [per routing time step]
-                              wateruse, &    ! [m3.s-1]   lake wateruse
-                              spill, &       ! [m3.s-1]   lake spill
-                              ibt            ! [m3.s-1]   lake inter-basin transfer (IBT)
+    real(dp), intent(IN) :: pr !< [mm.TS-1]  disaggregated lake precipitation
+    real(dp), intent(IN) :: evap !< [mm.TS-1]  disaggregated lake evaporation
+    real(dp), intent(IN) :: inflow !< [m3.s-1]   lake inflow from mRM
+    real(dp), intent(IN) :: perc !< [mm.TS-1]  lake percolation [per routing time step]
+    real(dp), intent(IN) :: wateruse !< [m3.s-1]   lake wateruse
+    real(dp), intent(IN) :: spill !< [m3.s-1]   lake spill
+    real(dp), intent(IN) :: ibt !< [m3.s-1]   lake inter-basin transfer (IBT)
 
-    real(dp), dimension(:), intent(IN)  &
-                          ::  hav_lake_level, &         ! [masl]  hAV curve level column
-                              hav_lake_surface_area, &  ! [m2]    hAV curve surface area column
-                              hav_lake_volume           ! [m3]    hAV curve volume column
-    real(dp), intent(IN)  :: lake_spill_reference_level                    ! [masl] dam crest level/ outflow elevation for natural lakes
-    real(dp), intent(IN)  :: lake_spill_reference_surface_area_bathymetry_derived   ! [m2]   area corresponding to the crest
-    real(dp), intent(IN)  :: lake_spill_reference_volume_bathymetry_derived         ! [m3]   volume corresponding to the crest
+    real(dp), intent(in) :: hav_lake_level(:) !< hAV level column [m]
+    real(dp), intent(in) :: hav_lake_surface_area(:) !< hAV area column [m2]
+    real(dp), intent(in) :: hav_lake_volume(:) !< hAV volume column [m3]
+    real(dp), intent(IN) :: lake_spill_reference_level !< [masl] dam crest level/ outflow elevation for natural lakes
+    real(dp), intent(IN) :: lake_spill_reference_surface_area_bathymetry_derived !< [m2]   area corresponding to the crest
+    real(dp), intent(IN) :: lake_spill_reference_volume_bathymetry_derived !< [m3]   volume corresponding to the crest
 
-    real(dp), intent(IN)  ::  lake_level_previous, &         ! [masl]  previous-step lake level
-                              lake_surface_area_previous, &  ! [m2]    previous-step lake surface area
-                              lake_volume_previous           ! [m3]    previous-step lake volume
+    real(dp), intent(IN) :: lake_level_previous !< [masl]  previous-step lake level
+    real(dp), intent(IN) :: lake_surface_area_previous !< [m2]    previous-step lake surface area
+    real(dp), intent(IN) :: lake_volume_previous !< [m3]    previous-step lake volume
 
-    real(dp), intent(OUT) ::  lake_level, &          ! [masl]  current lake level
-                              lake_surface_area, &   ! [m2]    current lake surface area
-                              lake_volume            ! [m3]    current lake volume
+    real(dp), intent(OUT) :: lake_level !< [masl]  current lake level
+    real(dp), intent(OUT) :: lake_surface_area !< [m2]    current lake surface area
+    real(dp), intent(OUT) :: lake_volume !< [m3]    current lake volume
 
-    real(dp), intent(OUT) ::  volume_adjustment      ! [m3]    volume adjusted for the current time step
+    real(dp), intent(OUT) :: volume_adjustment !< [m3]    volume adjusted for the current time step
 
-    real(dp), intent(IN)  ::  tsHydroSecs            ! [s]     number of seconds in a hydrological time step
+    real(dp), intent(IN) :: tsHydroSecs !< [s]     number of seconds in a hydrological time step
 
     !! local vars
 
@@ -351,29 +319,6 @@ CONTAINS
 
   !     CALLING SEQUENCE
 
-  !     INTENT(IN)
-  !>       \param[in] "logical                :: flag"      Flag for anthropogenic regulation
-  !>       \param[in] "real(dp), dimension(:) :: series1"   The first (source) array
-  !>       \param[in] "real(dp), dimension(:) :: series2"   The second (destination) array
-  !>       \param[in] "real(dp)               :: max1"      source-array value at the crest (DCL)
-  !>       \param[in] "real(dp)               :: max2"      destination-array value at the crest
-
-  !     INTENT(INOUT)
-  !>       \param[inout] "real(dp)            :: val1"      Value in the source array
-
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp)               :: val2"     Value in the destination array/
-  !>                                                        value to be interpolated
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !>       \param[out] "real(dp), optional     :: vol_adj"  Volume adjustment for avoiding reservoir instability.
-
   !     RETURN
   !         None
 
@@ -401,14 +346,14 @@ CONTAINS
 
     IMPLICIT NONE
 
-    logical,  intent(in)     :: flag                  ! Flag for anthropogenic regulation i.e. reservoir (TRUE), natural lake (FALSE)
-    real(dp), dimension(:), intent(in)  :: series1    ! The first/ source array
-    real(dp), dimension(:), intent(in)  :: series2    ! The second/ destination array
-    real(dp), intent(in)     :: max1                  ! crest (DCL) value for the source lake state
-    real(dp), intent(in)     :: max2                  ! crest (DCL) value for the target lake state
-    real(dp), intent(inout)  :: val1                  ! Source value
-    real(dp), intent(out)    :: val2                  ! Value to be interpolated
-    real(dp), optional, intent(out)  :: vol_adj       ! Volume adjustment for reservoir instability conditions.
+    logical,  intent(in) :: flag !< Flag for anthropogenic regulation i.e. reservoir (TRUE), natural lake (FALSE)
+    real(dp), dimension(:), intent(in) :: series1 !< The first/ source array
+    real(dp), dimension(:), intent(in) :: series2 !< The second/ destination array
+    real(dp), intent(in) :: max1 !< crest (DCL) value for the source lake state
+    real(dp), intent(in) :: max2 !< crest (DCL) value for the target lake state
+    real(dp), intent(inout) :: val1 !< Source value
+    real(dp), intent(out) :: val2 !< Value to be interpolated
+    real(dp), optional, intent(out) :: vol_adj !< Volume adjustment for reservoir instability conditions.
                                                       ! When this argument is present, source series is volume
 
     ! local vars

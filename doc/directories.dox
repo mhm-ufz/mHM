@@ -49,7 +49,7 @@
 /**
 \defgroup   f_meteo Meteo - Fortran modules
 \brief      Core modules for meteorological forcings.
-\details    The meteo container, PET formulations and coefficients, FORCES spatial scaling, temporal disaggregation, and weights reader.
+\details    The meteo container, PET and lake evaporation kernels and coefficients, sparse lake forcing support and restart, FORCES spatial scaling, temporal disaggregation, and weights reader.
 */
 
 /**
@@ -71,8 +71,8 @@
 
 /**
 \defgroup   f_mLM mLM - Fortran modules
-\brief      Modules for lake-process topology, forcing, and balance calculations.
-\details    Reusable lake logic shared by the mLM and meteorology exchange containers.
+\brief      Modules for lake topology, regionalization, state and water balance.
+\details    The mLM container owns lake definition and state; meteorological forcing support and evaporation helpers belong to meteo.
 */
 
 /**

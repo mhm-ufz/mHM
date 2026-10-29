@@ -1,4 +1,5 @@
-!> \file mo_lake_groundwaterstorage.f90
+!> \file mo_lake_groundwaterstorage.F90
+!> \copydoc mo_lake_groundwaterstorage
 
 !> \brief groundwater storage module
 
@@ -17,6 +18,12 @@
 ! Modifications:
 
 
+!> \version 0.1
+!> \changelog
+!! - October 2026: v6 component ownership and restart integration; retained donor arithmetic.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
+!> \ingroup f_mLM
 MODULE mo_lake_groundwaterstorage
 
   USE mo_kind,   only : i4, i8, dp
@@ -50,31 +57,6 @@ CONTAINS
   !>                 baseflow is deducted from the groundwater storage of the reservoir.
 
   !     CALLING SEQUENCE
-
-  !    INTENT(IN)
-  !>       \param[in] "logical     :: naturalFlag"                           regulation flag
-  !>       \param[in] "real(dp), dimension(:) :: hav_lake_level"          [masl]  hAV curve level column
-  !>       \param[in] "real(dp), dimension(:) :: hav_lake_surface_area"   [m2]    hAV curve surface area column
-  !>       \param[in] "real(dp) :: lake_spill_reference_level"                    [masl] dam crest level (DCL)
-  !>       \param[in] "real(dp) :: lake_spill_reference_surface_area_bathymetry_derived"   [m2]   area at the crest (DCL_A)
-  !>       \param[in] "real(dp) :: lake_level"                            [masl]  lake level
-  !>       \param[in] "real(dp) :: leakance"                              [TS-1] Darcy lakebed leakance Ks/b (per hydrological time step,
-  !                                                                              per unit head): depth per step per unit driving head
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp) :: perc"                         [mm TS-1]  lake percolation
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
 
   !     RETURN
   !         None
@@ -134,25 +116,15 @@ CONTAINS
 
     IMPLICIT NONE
 
-    logical,    intent(in):: naturalFlag         ! [-] regulation flag (regulated vs natural lake)
+    logical,    intent(in) :: naturalFlag !< [-] regulation flag (regulated vs natural lake)
 
-    real(dp), dimension(:),  intent(IN) &
-                          ::  hav_lake_level, &        ! [masl]  hAV curve level column
-                              hav_lake_surface_area    ! [m2]    hAV curve surface area column
-
-    real(dp), intent(IN)  :: lake_spill_reference_level                   ! [masl]  dam crest level/ outflow elevation for natural lakes
-    real(dp), intent(IN)  :: lake_spill_reference_surface_area_bathymetry_derived  ! [m2]    area corresponding to the crest
-
-    real(dp),    intent(IN) &
-                          ::  lake_level     ! [masl]  lake level
-
-    real(dp),                   intent(IN) &
-                          ::  leakance        ! [TS-1]  Darcy lakebed leakance Ks/b, per hydrological time step and per unit
-                                             !         driving head (depth per step per unit head)
-
-    real(dp),                   intent(OUT) &
-                          :: perc            ! [mm TS-1]  lake percolation
-
+    real(dp), intent(in) :: hav_lake_level(:) !< hAV level column [m]
+    real(dp), intent(in) :: hav_lake_surface_area(:) !< hAV area column [m2]
+    real(dp), intent(in) :: lake_spill_reference_level !< crest level [m]
+    real(dp), intent(in) :: lake_spill_reference_surface_area_bathymetry_derived !< crest area [m2]
+    real(dp), intent(in) :: lake_level !< current lake level [m]
+    real(dp), intent(in) :: leakance !< Darcy leakance per hydrological interval [1]
+    real(dp), intent(out) :: perc !< percolation [mm per interval]
 
     !! local vars
     integer(i4)           :: iEntry, nlines
@@ -280,29 +252,6 @@ CONTAINS
 
   !     CALLING SEQUENCE
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: perc"                           [mm TS-1]  lake percolation to groundwater storage
-  !>       \param[in] "real(dp) :: lake_surface_area"              [m2]       lake surface area
-  !>       \param[in] "real(dp) :: lake_gw_storage_previous"       [m3]       previous-step lake groundwater storage
-  !>       \param[in] "real(dp) :: baseflow_recession_coefficient" [TS-1]     groundwater storage recession coefficient (per hydrological time step)
-  !>       \param[in] "real(dp) :: tsHydroSecs"                    [s]        number of seconds in a hydrological time step
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp) :: lake_gw_storage"               [m3]       current lake groundwater storage
-  !>       \param[out] "real(dp) :: baseflow"                      [m3 s-1]   baseflow from groundwater storage
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
   !     RETURN
   !         None
 
@@ -354,14 +303,14 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(dp),   intent(IN)  :: perc            ! [mm TS-1] lake percolation to groundwater storage
-    real(dp),   intent(IN)  :: lake_surface_area  ! [m2]  lake surface area
-    real(dp),   intent(IN)  :: lake_gw_storage_previous  ! [m3]  previous-step lake groundwater storage
-    real(dp),   intent(OUT) :: lake_gw_storage ! [m3]    current lake groundwater storage
-    real(dp),   intent(IN)  :: baseflow_recession_coefficient  ! [TS-1]  groundwater storage recession coefficient (per hydrological time step)
-    real(dp),   intent(IN)  :: tsHydroSecs     ! [s]    number of seconds in a hydrological timestep
-    logical,    intent(IN)  :: endorheic       ! [-]    terminal lake with no downstream river (suppresses baseflow)
-    real(dp),   intent(OUT) :: baseflow        ! [m3.s-1] baseflow from ground water storage
+    real(dp),   intent(IN) :: perc !< [mm TS-1] lake percolation to groundwater storage
+    real(dp),   intent(IN) :: lake_surface_area !< [m2]  lake surface area
+    real(dp),   intent(IN) :: lake_gw_storage_previous !< [m3]  previous-step lake groundwater storage
+    real(dp),   intent(OUT) :: lake_gw_storage !< [m3]    current lake groundwater storage
+    real(dp),   intent(IN) :: baseflow_recession_coefficient !< [TS-1]  groundwater storage recession coefficient (per hydrological time step)
+    real(dp),   intent(IN) :: tsHydroSecs !< [s]    number of seconds in a hydrological timestep
+    logical,    intent(IN) :: endorheic !< [-]    terminal lake with no downstream river (suppresses baseflow)
+    real(dp),   intent(OUT) :: baseflow !< [m3.s-1] baseflow from ground water storage
 
     !----------------------------------------------------------------------------
     !

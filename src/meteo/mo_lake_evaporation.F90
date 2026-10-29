@@ -1,4 +1,5 @@
-!> \file mo_lake_evaporation.f90
+!> \file mo_lake_evaporation.F90
+!> \copydoc mo_lake_evaporation
 
 !> \brief lake evaporation module
 
@@ -29,7 +30,7 @@
 !     * no global-variable connections: the run-configuration switches (varying_albedo,
 !       albedo_method, varying_lambda, varying_psychro) and the input windspeed height
 !       are threaded as arguments instead of read from mo_mlm_global_variables. The
-!       empirical Penman/albedo/windspeed constants continue to come from mo_mlm_constants
+!       empirical Penman/albedo/windspeed constants continue to come from mo_meteo_constants
 !       (recreated in the v6 tree), as in v5; generic physical constants come from
 !       mo_constants (forces).
 ! Pallav Shrestha, Oct 2026 - added a calibration-free Priestley-Taylor method
@@ -42,6 +43,12 @@
 !     (so it spans a range about ~1.26 instead of being fixed). Like Penman (method 1) it needs
 !     temperature, downward short- and long-wave radiation, windspeed and dew-point temperature.
 
+!> \version 0.1
+!> \changelog
+!! - October 2026: v6 component ownership and restart integration; retained donor arithmetic.
+!> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
+!! mHM is released under the LGPLv3+ license \license_note
+!> \ingroup f_meteo
 MODULE mo_lake_evaporation
 
   USE mo_kind,   only : i4, i8, dp
@@ -80,10 +87,6 @@ CONTAINS
 
   !    CALLING SEQUENCE
 
-  !     INTENT(IN)
-
-  !     INTENT(IN), OPTIONAL
-
   !     RETURN
 
   !     RESTRICTIONS
@@ -114,81 +117,55 @@ CONTAINS
 
     IMPLICIT NONE
 
-    ! lake evaporation method (1 - Penman 1948, 2 - Priestley-Taylor 1972)
-    integer(i4), intent(in) :: evaporation_method
+    integer(i4), intent(in) :: evaporation_method !< lake evaporation method (1 - Penman 1948, 2 - Priestley-Taylor 1972)
 
-    ! hour of the day
-    integer(i4), intent(in) :: hour
+    integer(i4), intent(in) :: hour !< hour of the day
 
-    ! day of year
-    integer(i4), intent(in) :: doy
+    integer(i4), intent(in) :: doy !< day of year
 
-    ! [degC] average temperature
-    real(dp), intent(in) :: temp
+    real(dp), intent(in) :: temp !< [degC] average temperature
 
-    ! [degC] dew point temperature (used by Penman only)
-    real(dp), intent(in) :: tdew
+    real(dp), intent(in) :: tdew !< [degC] dew point temperature (used by Penman only)
 
-    ! [m s-1] average windspeed (used by Penman only)
-    real(dp), intent(in) :: windspeed
+    real(dp), intent(in) :: windspeed !< [m s-1] average windspeed (used by Penman only)
 
-    ! [W m-2] downward short-wave radiation
-    real(dp), intent(in) :: ssrd
+    real(dp), intent(in) :: ssrd !< [W m-2] downward short-wave radiation
 
-    ! [W m-2] downward long-wave radiation
-    real(dp), intent(in) :: strd
+    real(dp), intent(in) :: strd !< [W m-2] downward long-wave radiation
 
-    ! [degC] temperature of lake inflow
-    real(dp), intent(in) :: tin
+    real(dp), intent(in) :: tin !< [degC] temperature of lake inflow
 
-    ! [degC] temperature of lake outflow
-    real(dp), intent(in) :: tout
+    real(dp), intent(in) :: tout !< [degC] temperature of lake outflow
 
-    ! [degC] temperature of lake precipitation
-    real(dp), intent(in) :: tpre
+    real(dp), intent(in) :: tpre !< [degC] temperature of lake precipitation
 
-    ! [m asl] lake surface elevation
-    real(dp), intent(in) :: lake_level
+    real(dp), intent(in) :: lake_level !< [m asl] lake surface elevation
 
-    ! [mm d-1] rate of lake inflow
-    real(dp), intent(in) :: qin
+    real(dp), intent(in) :: qin !< [mm d-1] rate of lake inflow
 
-    ! [mm d-1] rate of lake outflow
-    real(dp), intent(in) :: qout
+    real(dp), intent(in) :: qout !< [mm d-1] rate of lake outflow
 
-    ! [mm d-1] rate of lake precipitation
-    real(dp), intent(in) :: pre
+    real(dp), intent(in) :: pre !< [mm d-1] rate of lake precipitation
 
-    ! [degree] average latitude of the lake
-    real(dp), intent(in) :: latitude
+    real(dp), intent(in) :: latitude !< [degree] average latitude of the lake
 
-    ! [degree] average longitude of the lake
-    real(dp), intent(in) :: longitude
+    real(dp), intent(in) :: longitude !< [degree] average longitude of the lake
 
-    ! [m] height for which the input windspeed data is provided
-    real(dp), intent(in) :: input_windspeed_height
+    real(dp), intent(in) :: input_windspeed_height !< [m] height for which the input windspeed data is provided
 
-    ! [m s-1] climatological (long-term mean) 2 m windspeed, used by the calibration-free Priestley-Taylor
-    ! method (3) in its coefficient instead of the instantaneous wind
-    real(dp), intent(in) :: climatological_windspeed
+    real(dp), intent(in) :: climatological_windspeed !< [m s-1] climatological (long-term mean) 2 m windspeed, used by the calibration-free Priestley-Taylor method (3) in its coefficient instead of the instantaneous wind
 
-    ! use a varying (vs constant) water albedo
-    logical, intent(in) :: varying_albedo
+    logical, intent(in) :: varying_albedo !< use a varying (vs constant) water albedo
 
-    ! method for calculating water albedo (1 - Fresnel, 2 - Grishchenko)
-    integer(i4), intent(in) :: albedo_method
+    integer(i4), intent(in) :: albedo_method !< method for calculating water albedo (1 - Fresnel, 2 - Grishchenko)
 
-    ! use a varying (vs constant) latent heat of vaporisation of water
-    logical, intent(in) :: varying_lambda
+    logical, intent(in) :: varying_lambda !< use a varying (vs constant) latent heat of vaporisation of water
 
-    ! use a varying (vs constant) psychrometric constant
-    logical, intent(in) :: varying_psychro
+    logical, intent(in) :: varying_psychro !< use a varying (vs constant) psychrometric constant
 
-    ! [mm d-1] lake evaporation (daily; the caller disaggregates to the model step)
-    real(dp), intent(out) :: evap
+    real(dp), intent(out) :: evap !< [mm d-1] lake evaporation (daily; the caller disaggregates to the model step)
 
-    ! [mm d-1] lake evaporation components from Penman (daily)
-    real(dp), dimension(:), intent(out) :: evap_components
+    real(dp), dimension(:), intent(out) :: evap_components !< [mm d-1] lake evaporation components from Penman (daily)
 
     !! local vars
 
@@ -253,26 +230,6 @@ CONTAINS
 
   !    CALLING SEQUENCE
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: lake_level"            [m asl]   lake surface elevation
-  !>       \param[in] "real(dp) :: alb"                   [-]       water albedo
-  !>       \param[in] "real(dp) :: ssrd"                  [W m-2]   downward short-wave radiation
-  !>       \param[in] "real(dp) :: strd"                  [W m-2]   downward long-wave radiation
-  !>       \param[in] "real(dp) :: Temp"                  [degC]    average temperature
-  !>       \param[in] "real(dp) :: Tdew"                  [degC]    dew point temperature
-  !>       \param[in] "real(dp) :: windspeed"            [m s-1]   windspeed
-  !>       \param[in] "real(dp) :: Tin"                   [degC]    temperature of lake inflow
-  !>       \param[in] "real(dp) :: Tout"                  [degC]    temperature of lake outflow
-  !>       \param[in] "real(dp) :: Tpre"                  [degC]    temperature of lake precipitation
-  !>       \param[in] "real(dp) :: qin"                   [mm d-1]  rate of lake inflow
-  !>       \param[in] "real(dp) :: qout"                  [mm d-1]  rate of lake outflow
-  !>       \param[in] "real(dp) :: pre"                   [mm d-1]  rate of lake precipitation
-  !>       \param[in] "real(dp) :: input_windspeed_height" [m]     height of the input windspeed
-  !>       \param[in] "logical  :: varying_lambda"        constant / varying latent heat of vaporisation
-  !>       \param[in] "logical  :: varying_psychro"       constant / varying psychrometric constant
-
-  !     INTENT(IN), OPTIONAL
-
   !     RETURN
   !         \return real(dp), dimension(3) :: lake_evap_penman1948 &mdash; Penman (1948) lake
   !                 evaporation components [mm d-1] (1 - radiation, 2 - advection, 3 - VPD)
@@ -311,25 +268,24 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(dp), intent(IN) ::   lake_level, &  ! [m asl]   lake surface elevation
-                              alb, &         ! [-]       water albedo
-                              ssrd, &        ! [W m-2]   downward short-wave radiation
-                              strd, &        ! [W m-2]   downward long-wave radiation
-                              Temp, &        ! [degC]    average temperature
-                              Tdew, &        ! [degC]    dew point temperature
-                              windspeed, &   ! [m s-1]   windspeed
-                              Tin, &         ! [degC]    temperature of lake inflow
-                              Tout, &        ! [degC]    temperature of lake outflow
-                              Tpre, &        ! [degC]    temperature of lake precipitation
-                              qin, &         ! [mm d-1]  rate of lake inflow
-                              qout, &        ! [mm d-1]  rate of lake outflow
-                              pre            ! [mm d-1]  rate of lake precipitation
+    real(dp), intent(IN) :: lake_level !< [m asl]   lake surface elevation
+    real(dp), intent(IN) :: alb !< [-]       water albedo
+    real(dp), intent(IN) :: ssrd !< [W m-2]   downward short-wave radiation
+    real(dp), intent(IN) :: strd !< [W m-2]   downward long-wave radiation
+    real(dp), intent(IN) :: Temp !< [degC]    average temperature
+    real(dp), intent(IN) :: Tdew !< [degC]    dew point temperature
+    real(dp), intent(IN) :: windspeed !< [m s-1]   windspeed
+    real(dp), intent(IN) :: Tin !< [degC]    temperature of lake inflow
+    real(dp), intent(IN) :: Tout !< [degC]    temperature of lake outflow
+    real(dp), intent(IN) :: Tpre !< [degC]    temperature of lake precipitation
+    real(dp), intent(IN) :: qin !< [mm d-1]  rate of lake inflow
+    real(dp), intent(IN) :: qout !< [mm d-1]  rate of lake outflow
+    real(dp), intent(IN) :: pre !< [mm d-1]  rate of lake precipitation
 
-    ! [m] height for which the input windspeed data is provided
-    real(dp), intent(IN) ::   input_windspeed_height
+    real(dp), intent(IN) :: input_windspeed_height !< [m] height for which the input windspeed data is provided
 
-    ! constant / varying latent heat of vaporisation and psychrometric constant
-    logical, intent(IN) ::    varying_lambda, varying_psychro
+    logical, intent(IN) :: varying_lambda !< constant / varying latent heat of vaporisation and psychrometric constant
+    logical, intent(IN) :: varying_psychro !< varying psychro
 
 
     !! local vars
@@ -486,23 +442,6 @@ CONTAINS
 
   !    CALLING SEQUENCE
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: lake_level"            [m asl]   lake surface elevation
-  !>       \param[in] "real(dp) :: alb"                   [-]       water albedo
-  !>       \param[in] "real(dp) :: ssrd"                  [W m-2]   downward short-wave radiation
-  !>       \param[in] "real(dp) :: strd"                  [W m-2]   downward long-wave radiation
-  !>       \param[in] "real(dp) :: Temp"                  [degC]    average temperature
-  !>       \param[in] "real(dp) :: Tin"                   [degC]    temperature of lake inflow
-  !>       \param[in] "real(dp) :: Tout"                  [degC]    temperature of lake outflow
-  !>       \param[in] "real(dp) :: Tpre"                  [degC]    temperature of lake precipitation
-  !>       \param[in] "real(dp) :: qin"                   [mm d-1]  rate of lake inflow
-  !>       \param[in] "real(dp) :: qout"                  [mm d-1]  rate of lake outflow
-  !>       \param[in] "real(dp) :: pre"                   [mm d-1]  rate of lake precipitation
-  !>       \param[in] "logical  :: varying_lambda"        constant / varying latent heat of vaporisation
-  !>       \param[in] "logical  :: varying_psychro"       constant / varying psychrometric constant
-
-  !     INTENT(IN), OPTIONAL
-
   !     RETURN
   !         \return real(dp) :: lake_evap_priestleytaylor1972 &mdash; lake evaporation from
   !                 Priestley and Taylor (1972) [mm d-1]
@@ -536,20 +475,20 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(dp), intent(IN) ::   lake_level, &  ! [m asl]   lake surface elevation
-                              alb, &         ! [-]       water albedo
-                              ssrd, &        ! [W m-2]   downward short-wave radiation
-                              strd, &        ! [W m-2]   downward long-wave radiation
-                              Temp, &        ! [degC]    average temperature
-                              Tin, &         ! [degC]    temperature of lake inflow
-                              Tout, &        ! [degC]    temperature of lake outflow
-                              Tpre, &        ! [degC]    temperature of lake precipitation
-                              qin, &         ! [mm d-1]  rate of lake inflow
-                              qout, &        ! [mm d-1]  rate of lake outflow
-                              pre            ! [mm d-1]  rate of lake precipitation
+    real(dp), intent(IN) :: lake_level !< [m asl]   lake surface elevation
+    real(dp), intent(IN) :: alb !< [-]       water albedo
+    real(dp), intent(IN) :: ssrd !< [W m-2]   downward short-wave radiation
+    real(dp), intent(IN) :: strd !< [W m-2]   downward long-wave radiation
+    real(dp), intent(IN) :: Temp !< [degC]    average temperature
+    real(dp), intent(IN) :: Tin !< [degC]    temperature of lake inflow
+    real(dp), intent(IN) :: Tout !< [degC]    temperature of lake outflow
+    real(dp), intent(IN) :: Tpre !< [degC]    temperature of lake precipitation
+    real(dp), intent(IN) :: qin !< [mm d-1]  rate of lake inflow
+    real(dp), intent(IN) :: qout !< [mm d-1]  rate of lake outflow
+    real(dp), intent(IN) :: pre !< [mm d-1]  rate of lake precipitation
 
-    ! constant / varying latent heat of vaporisation and psychrometric constant
-    logical, intent(IN) ::    varying_lambda, varying_psychro
+    logical, intent(IN) :: varying_lambda !< constant / varying latent heat of vaporisation and psychrometric constant
+    logical, intent(IN) :: varying_psychro !< varying psychro
 
 
     !! local vars
@@ -668,23 +607,6 @@ CONTAINS
   !>                 (Rn + Ah) -> 0, where the coefficient would otherwise diverge; the available
   !>                 energy used in the alpha denominator is floored at cfpt_avail_floor.
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: lake_level"      [m asl]   lake surface elevation
-  !>       \param[in] "real(dp) :: alb"             [-]       water albedo
-  !>       \param[in] "real(dp) :: ssrd"            [W m-2]   downward short-wave radiation
-  !>       \param[in] "real(dp) :: strd"            [W m-2]   downward long-wave radiation
-  !>       \param[in] "real(dp) :: Temp"            [degC]    average temperature
-  !>       \param[in] "real(dp) :: Tdew"            [degC]    dew point temperature
-  !>       \param[in] "real(dp) :: windspeed_clim"  [m s-1]   climatological 2 m windspeed
-  !>       \param[in] "real(dp) :: Tin"             [degC]    temperature of lake inflow
-  !>       \param[in] "real(dp) :: Tout"            [degC]    temperature of lake outflow
-  !>       \param[in] "real(dp) :: Tpre"            [degC]    temperature of lake precipitation
-  !>       \param[in] "real(dp) :: qin"             [mm d-1]  rate of lake inflow
-  !>       \param[in] "real(dp) :: qout"            [mm d-1]  rate of lake outflow
-  !>       \param[in] "real(dp) :: pre"             [mm d-1]  rate of lake precipitation
-  !>       \param[in] "logical  :: varying_lambda"            constant / varying latent heat of vaporisation
-  !>       \param[in] "logical  :: varying_psychro"           constant / varying psychrometric constant
-
   !     RETURN
   !>        \return real(dp) :: lake_evap_cfpriestleytaylor2023 &mdash; lake evaporation [mm d-1]
 
@@ -709,22 +631,22 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(dp), intent(IN) ::   lake_level, &     ! [m asl]   lake surface elevation
-                              alb, &            ! [-]       water albedo
-                              ssrd, &           ! [W m-2]   downward short-wave radiation
-                              strd, &           ! [W m-2]   downward long-wave radiation
-                              Temp, &           ! [degC]    average temperature
-                              Tdew, &           ! [degC]    dew point temperature
-                              windspeed_clim, & ! [m s-1]   climatological 2 m windspeed
-                              Tin, &            ! [degC]    temperature of lake inflow
-                              Tout, &           ! [degC]    temperature of lake outflow
-                              Tpre, &           ! [degC]    temperature of lake precipitation
-                              qin, &            ! [mm d-1]  rate of lake inflow
-                              qout, &           ! [mm d-1]  rate of lake outflow
-                              pre               ! [mm d-1]  rate of lake precipitation
+    real(dp), intent(IN) :: lake_level !< [m asl]   lake surface elevation
+    real(dp), intent(IN) :: alb !< [-]       water albedo
+    real(dp), intent(IN) :: ssrd !< [W m-2]   downward short-wave radiation
+    real(dp), intent(IN) :: strd !< [W m-2]   downward long-wave radiation
+    real(dp), intent(IN) :: Temp !< [degC]    average temperature
+    real(dp), intent(IN) :: Tdew !< [degC]    dew point temperature
+    real(dp), intent(IN) :: windspeed_clim !< [m s-1]   climatological 2 m windspeed
+    real(dp), intent(IN) :: Tin !< [degC]    temperature of lake inflow
+    real(dp), intent(IN) :: Tout !< [degC]    temperature of lake outflow
+    real(dp), intent(IN) :: Tpre !< [degC]    temperature of lake precipitation
+    real(dp), intent(IN) :: qin !< [mm d-1]  rate of lake inflow
+    real(dp), intent(IN) :: qout !< [mm d-1]  rate of lake outflow
+    real(dp), intent(IN) :: pre !< [mm d-1]  rate of lake precipitation
 
-    ! constant / varying latent heat of vaporisation and psychrometric constant
-    logical, intent(IN) ::    varying_lambda, varying_psychro
+    logical, intent(IN) :: varying_lambda !< constant / varying latent heat of vaporisation and psychrometric constant
+    logical, intent(IN) :: varying_psychro !< varying psychro
 
 
     !! local vars
@@ -854,10 +776,6 @@ CONTAINS
 
   !    CALLING SEQUENCE
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) :: windspeed_in"            [m s-1]  input windspeed
-  !>       \param[in] "real(dp) :: input_windspeed_height"  [m]      height of the input windspeed
-
   !     RETURN
   !         \return real(dp) :: windspeed_correction &mdash; windspeed corrected to 2 m [m s-1]
 
@@ -875,8 +793,8 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(dp), intent(IN) ::   windspeed_in            ! [m s-1]  input windspeed
-    real(dp), intent(IN) ::   input_windspeed_height  ! [m]      height of the input windspeed
+    real(dp), intent(IN) :: windspeed_in !< [m s-1]  input windspeed
+    real(dp), intent(IN) :: input_windspeed_height !< [m]      height of the input windspeed
 
     ! corrected windspeed
     real(dp) :: windspeed_correction
@@ -901,12 +819,6 @@ CONTAINS
   !>        \details estimates albedo of still open water surface in fraction of 1
 
   !    CALLING SEQUENCE
-
-  !    INTENT(IN)
-  !>       \param[in] "real(dp)    ::  lat"                       [degree]  average lake latitude
-  !>       \param[in] "integer(i4) ::  doy"                       [-]       day of year
-  !>       \param[in] "real(dp)    ::  sha"                       [degree]  solar hour angle
-  !>       \param[in] "integer(i4) ::  method"                    [-]       method for albedo estimation
 
   !     RETURN
   !         \return real(dp) :: albedo_water &mdash; albedo of still open water
@@ -934,10 +846,10 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(dp),     intent(IN) ::   lat            ! [degree]  average lake latitude
-    integer(i4),  intent(IN) ::   doy            ! [-]       day of year
-    real(dp),     intent(IN) ::   sha            ! [degree]  solar hour angle
-    integer(i4),  intent(IN) ::   method         ! [-]       method for albedo estimation
+    real(dp),     intent(IN) :: lat !< [degree]  average lake latitude
+    integer(i4),  intent(IN) :: doy !< [-]       day of year
+    real(dp),     intent(IN) :: sha !< [degree]  solar hour angle
+    integer(i4),  intent(IN) :: method !< [-]       method for albedo estimation
 
     ! estimated water albedo
     real(dp) :: albedo_water
@@ -1008,11 +920,6 @@ CONTAINS
 
   !    CALLING SEQUENCE
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp)    ::  lon"      [degree]  average lake longitude
-  !>       \param[in] "integer(i4) ::  doy"      [-]       day of year
-  !>       \param[in] "integer(i4) ::  hour"     [-]       hour of day
-
   !     RETURN
   !         \return real(dp) :: hourangle &mdash; solar hour angle
 
@@ -1034,9 +941,9 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(dp),     intent(IN) ::   lon            ! [degree]  average lake longitude
-    integer(i4),  intent(IN) ::   doy            ! [-]       day of year
-    integer(i4),  intent(IN) ::   hour           ! [-]       hour of the day
+    real(dp),     intent(IN) :: lon !< [degree]  average lake longitude
+    integer(i4),  intent(IN) :: doy !< [-]       day of year
+    integer(i4),  intent(IN) :: hour !< [-]       hour of the day
 
     ! estimated solar hour angle
     real(dp) :: hourangle
@@ -1080,9 +987,6 @@ CONTAINS
 
   !    CALLING SEQUENCE
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp) ::  T"                          [degC]    water surface temperature
-
   !     RETURN
   !         \return real(dp) :: spc_heat_vap_water &mdash; specific heat of vaporization of water
 
@@ -1104,7 +1008,7 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(dp),     intent(IN) ::   T        ! [degC]    water surface temperature
+    real(dp),     intent(IN) :: T !< [degC]    water surface temperature
 
     ! estimated specific heat of vaporisation of water
     real(dp) :: spc_heat_vap_water
@@ -1149,10 +1053,6 @@ CONTAINS
 
   !    CALLING SEQUENCE
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp)    ::  elev"         [m asl]    elevation
-  !>       \param[in] "real(dp)    ::  T"            [degC]     surface water temperature
-
   !     RETURN
   !         \return real(dp) :: psychro_constant &mdash; psychrometric constant
 
@@ -1174,8 +1074,8 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(dp),     intent(IN) ::   elev         ! [m asl]    elevation
-    real(dp),     intent(IN) ::   T            ! [degC]     surface water temperature
+    real(dp),     intent(IN) :: elev !< [m asl]    elevation
+    real(dp),     intent(IN) :: T !< [degC]     surface water temperature
 
     ! estimated psychrometric constant
     real(dp) :: psychro_constant
@@ -1217,9 +1117,6 @@ CONTAINS
 
   !    CALLING SEQUENCE
 
-  !    INTENT(IN)
-  !>       \param[in] "real(dp)    ::  elev"         [m asl]    elevation
-
   !     RETURN
   !         \return real(dp) :: atmospheric_pressure &mdash; atmospheric pressure
 
@@ -1242,7 +1139,7 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(dp),     intent(IN) ::   elev         ! [m asl]    elevation
+    real(dp),     intent(IN) :: elev !< [m asl]    elevation
 
     ! estimated atmospheric pressure
     real(dp) :: atmospheric_pressure

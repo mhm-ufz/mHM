@@ -2,8 +2,8 @@ title: Lakes - Case 1
 description: |-
   Parameters for the mHM lake module (mLM) controlling spill over the dam crest and the
   seepage and baseflow from the lake groundwater store. All parameters are global (pan-domain, shared across all lakes, like the routing
-  parameters), so each is a single scalar given as the four components value, optimize-flag,
-  min, max (min/max are the calibration bounds). 
+  parameters). Recession has one entry per geological parameter unit; other values are scalars.
+  Each entry has value, optimize-flag, min, max (the calibration bounds).
 x-fortran-namelist: lakes_1
 type: object
 properties:
@@ -15,7 +15,9 @@ properties:
       Q_spill = C_d * L_s * deltaH^spill_exponent, where deltaH is the head of the lake
       level above the dam crest level (DCL) and L_s is the effective spillway length.
       Spill is produced only when the lake level rises above the crest. Based on the ogee
-      free-overflow weir form (USBR, 1998). Dimensionless. Global (pan-domain), shared across all lakes.
+      free-overflow weir form (USBR, 1998). This effective SI coefficient has units
+      m^(2-spill_exponent)/s; it includes the gravity scaling and is not dimensionless.
+      Global (pan-domain), shared across all lakes.
     default: {min: 1.4, max: 3.00}
     properties:
       value: {examples: [2.0]}
@@ -39,9 +41,10 @@ properties:
       Global multiplier m on the regionalized effective spillway crest length Ls [m], derived from the
       lake drainage (catchment) area CA [km2] by the downstream-hydraulic-geometry power law
       Ls = m * 2.7 * CA^0.35 (CA at the lake outlet node, taken from the routing upstream area). The
-      base coefficient 2.7 and exponent 0.35 follow bankfull-width-vs-drainage-area regressions
-      (Bieger et al. 2015; Leopold and Maddock 1953; Wilkerson et al. 2014; LISFLOOD channel width),
-      with the spillway crest length taken proportional to the channel/bankfull width at the outlet.
+      base coefficient 2.7 and exponent 0.35 are retained empirical choices inspired by
+      bankfull-width-vs-drainage-area regressions (Bieger et al. 2015; Leopold and Maddock 1953;
+      Wilkerson et al. 2014; LISFLOOD channel width). Using channel width as lake spillway length
+      is an adaptation, not a measured lake-outlet relation.
       Dimensionless. Global (pan-domain), shared across all lakes.
     default: {min: 0.5, max: 2.0}
     properties:
@@ -69,7 +72,7 @@ properties:
       saturated hydraulic conductivity Ks [cm d-1] from the lake-footprint soil texture:
       Ks = 60.96 * exp( (ptf_ks_constant + ptf_ks_sand*sand - ptf_ks_clay*clay) * ln(10) ), with a
       1.1 cm/d floor. Owned by the lake module (the lakebed conductivity regionalization is
-      self-contained and does not borrow the land-surface soil-moisture parameters). Global
+      self-contained; it borrows the selected land soil-moisture PTF parameters, otherwise using these lake-owned values). Global
       (pan-domain), shared across all lakes. Dimensionless.
     default: {min: -1.2, max: -0.285}
     properties:

@@ -4,8 +4,8 @@
 !> \brief Lakes - Case 1
 !> \details Parameters for the mHM lake module (mLM) controlling spill over the dam crest and the
 !! seepage and baseflow from the lake groundwater store. All parameters are global (pan-domain, shared across all lakes, like the routing
-!! parameters), so each is a single scalar given as the four components value, optimize-flag,
-!! min, max (min/max are the calibration bounds).
+!! parameters). Recession has one entry per geological parameter unit; other values are scalars.
+!! Each entry has value, optimize-flag, min, max (the calibration bounds).
 !> \version 0.2
 !> \authors Sebastian Mueller
 !> \date    Jun 2026
@@ -45,8 +45,8 @@ module nml_lakes_1
   !> \brief Lakes - Case 1
   !> \details Parameters for the mHM lake module (mLM) controlling spill over the dam crest and the
   !! seepage and baseflow from the lake groundwater store. All parameters are global (pan-domain, shared across all lakes, like the routing
-  !! parameters), so each is a single scalar given as the four components value, optimize-flag,
-  !! min, max (min/max are the calibration bounds).
+  !! parameters). Recession has one entry per geological parameter unit; other values are scalars.
+  !! Each entry has value, optimize-flag, min, max (the calibration bounds).
   type, public :: nml_lakes_1_t
     logical :: is_configured = .false. !< whether the namelist has been configured
     integer :: n_geo_units = n_geo_units__default !< runtime dimension for n_geo_units

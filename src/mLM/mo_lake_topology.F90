@@ -24,9 +24,10 @@ module mo_lake_topology
 contains
   !> \brief Derive lake areas from the labeled packed level-0 footprint.
   subroutine lake_derive_spill_reference_surface_area_dem(grid, lake_map, lake_ids, lake_spill_reference_surface_area_dem_derived)
-    type(grid_t), intent(in) :: grid
-    integer(i8), intent(in) :: lake_map(:), lake_ids(:)
-    real(dp), allocatable, intent(out) :: lake_spill_reference_surface_area_dem_derived(:)
+    type(grid_t), intent(in) :: grid !< grid
+    integer(i8), intent(in) :: lake_map(:) !< lake map
+    integer(i8), intent(in) :: lake_ids(:) !< lake ids
+    real(dp), allocatable, intent(out) :: lake_spill_reference_surface_area_dem_derived(:) !< lake spill reference surface area dem derived
     integer(i8) :: i, j
     if (size(lake_map, kind=i8) /= grid%ncells) then
       log_fatal(*) "Lake topology: map does not match grid."
@@ -49,9 +50,9 @@ contains
 
   !> \brief Write the packed lake grid and stable lake IDs to a restart dataset.
   subroutine lake_write_topology(nc, grid, lake_map)
-    type(NcDataset), intent(inout) :: nc
-    type(grid_t), intent(in) :: grid
-    integer(i8), intent(in) :: lake_map(:)
+    type(NcDataset), intent(inout) :: nc !< nc
+    type(grid_t), intent(in) :: grid !< grid
+    integer(i8), intent(in) :: lake_map(:) !< lake map
     type(NcDimension) :: lake_cell_dim
     type(NcVariable) :: var
     call grid%to_restart(nc)
@@ -62,9 +63,9 @@ contains
 
   !> \brief Restore and validate the packed lake topology from a restart dataset.
   subroutine lake_read_topology(nc, grid, lake_map)
-    type(NcDataset), intent(inout) :: nc
-    type(grid_t), intent(out) :: grid
-    integer(i8), allocatable, intent(out) :: lake_map(:)
+    type(NcDataset), intent(inout) :: nc !< nc
+    type(grid_t), intent(out) :: grid !< grid
+    integer(i8), allocatable, intent(out) :: lake_map(:) !< lake map
     type(NcVariable) :: var
     if (.not.nc%hasVariable("lake_map")) then
       log_fatal(*) "Lake restart is missing level-0 topology."
