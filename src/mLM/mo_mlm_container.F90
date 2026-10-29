@@ -449,6 +449,10 @@ contains
         if (allocated(self%restart_lake_kbf)) self%static_lake_kbf = self%restart_lake_kbf(restart_perm)
         if (allocated(self%restart_lake_footprint_area)) &
           self%static_lake_footprint_area = self%restart_lake_footprint_area(restart_perm)
+        ! spillway length is restart-persisted and catchment-derived; restore it here too (it is not
+        ! re-derived at initialize when the restart carries it), permuted into point-set order.
+        if (allocated(self%restart_lake_spillway_length)) &
+          self%static_lake_spillway_length = self%restart_lake_spillway_length(restart_perm)
         deallocate(restart_perm)
       end if
     else
