@@ -11,7 +11,6 @@ set(sources
   MPR/mo_mpr_runoff.f90
   MPR/mo_mpr_smhorizons.f90
   MPR/mo_mpr_soilmoist.f90
-  input/mo_input_lut.F90
   MPR/mo_soil_database.f90
   common/mo_cli_support.f90
   common/mo_common_constants.f90
@@ -23,6 +22,7 @@ set(sources
   domain/mo_parameter_registry.F90
   domain/mo_parameter_namelists.F90
   domain/mo_parameter_types.F90
+  input/mo_input_lut.F90
   input/mo_input_container.F90
   mHM/mo_canopy_interc.f90
   mHM/mo_mhm_constants.f90

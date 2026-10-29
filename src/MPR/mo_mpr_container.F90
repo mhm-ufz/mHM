@@ -73,7 +73,7 @@ module mo_mpr_container
   use mo_orderpack, only: sort_index
   use mo_string_utils, only: n2s => num2str
   use mo_utils, only: eq, is_close, optval
-  use mo_read_lut, only: read_geoformation_lut, read_lai_lut
+  use mo_input_lut, only: read_geoformation_lut, read_lai_lut
   use nml_config_mpr, only: nml_config_mpr_t
   use nml_helper, only: NML_OK
 
@@ -433,8 +433,8 @@ contains
       if (status == NML_OK) then
         self%lai%path = self%exchange%get_path(self%config%lai_path(id(1)))
         self%lai%var_name = trim(self%config%lai_var(id(1)))
-    else
-      if (allocated(self%lai%path)) deallocate(self%lai%path)
+      else
+        if (allocated(self%lai%path)) deallocate(self%lai%path)
         if (allocated(self%lai%var_name)) deallocate(self%lai%var_name)
       end if
       if (allocated(self%lai%lut_path)) deallocate(self%lai%lut_path)

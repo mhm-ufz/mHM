@@ -26,7 +26,7 @@ module mo_input_container
   use mo_netcdf, only: NcDataset
   use mo_grid_io, only: var, input_dataset, end_timestamp, start_timestamp, no_time, daily, monthly, yearly, varying
   use mo_string_utils, only: n2s => num2str
-  use mo_mlm_mpr, only: lake_read_soil_texture_lut
+  use mo_input_lut, only: read_soil_texture_lut
   use nml_config_input, only: nml_config_input_t
   use nml_config_coupling, only: nml_config_coupling_t
   use nml_helper, only: NML_OK
@@ -1344,7 +1344,7 @@ contains
       allocate(lake_soil_packed(self%exchange%level0_lake%ncells))
       call self%exchange%level0_lake%pack_into(lake_soil_full_2d, lake_soil_packed)
       ! Resolve the lake footprint soil classes to their top-horizon sand and clay content from the
-      ! soil look-up table (exchange config_lut soil_lut_path). The Input container owns all file reading, so
+      ! soil look-up table (exchange config_lut soil_lut_path). Input reads the footprint texture here, so
       ! the texture is surfaced to the mLM container as ready sand/clay fields; mLM then regionalizes the
       ! lakebed Ks from them with its own pedotransfer parameters, independent of the land-surface soil
       ! database / MPR.
@@ -1355,7 +1355,7 @@ contains
             &to resolve the lakebed soil texture for the lake conductivity."
           error stop 1
         end if
-        call lake_read_soil_texture_lut( &
+        call read_soil_texture_lut( &
           self%exchange%get_path(self%exchange%config%lut%soil_lut_path(self%exchange%nml_domain_id)), &
           n_soil_classes, lake_sand_by_class, lake_clay_by_class)
         allocate(lake_sand_packed(self%exchange%level0_lake%ncells))

@@ -25,8 +25,7 @@
 !     conductivity regionalizer lake_derive_ks reuses the per-lake footprint aggregation of
 !     mo_lake_topology:lake_derive_spill_reference_surface_area_dem (Pallav Shrestha, Sebastian Mueller) and the
 !     Cosby (1984) saturated-conductivity pedotransfer function of mo_mpr_soilmoist:hydro_cond
-!     (Stephan Thober, Rohini Kumar); the soil look-up table reader lake_read_soil_texture_lut reuses
-!     the parse logic of mo_soil_database:read_soil_LUT (Juliane Mai); the per-lake upscaling
+!     (Stephan Thober, Rohini Kumar); the per-lake upscaling
 !     upscale_arithmetic_mean_lake mirrors the level-0 arithmetic (cell-count) mean of
 !     mo_upscaling_operators:upscale_arithmetic_mean (Giovanni Dalmasso, Rohini Kumar), evaluated
 !     over the packed lake footprint instead of a level-1 cell window. Assembled for the mLM v6
@@ -53,8 +52,6 @@ MODULE mo_mlm_mpr
 
   PUBLIC :: lake_derive_ks            ! regionalizes the per-lake lakebed Ks from soil texture over the lake footprint
   PUBLIC :: lake_derive_kbf           ! regionalizes the per-lake baseflow recession coefficient from geology over the lake footprint
-  PUBLIC :: lake_read_soil_texture_lut ! reads top-horizon sand/clay per soil class from the soil LUT
-  PUBLIC :: lake_read_geology_lut     ! reads the geological unit IDs and their global baseflow-parameter index from the geology LUT
   PUBLIC :: lake_check_geo_units      ! checks that every geological unit on the lake footprint is present in the geology LUT
   PUBLIC :: upscale_arithmetic_mean_lake ! per-lake arithmetic (cell-count) mean of a level-0 lake-footprint field
   PUBLIC :: lake_derive_spillway_length ! regionalizes the per-lake spillway length from the lake catchment (drainage) area
@@ -259,88 +256,6 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   !     NAME
-  !         lake_read_geology_lut
-
-  !     PURPOSE
-  !>        \brief Reads the geological unit IDs and their global baseflow-parameter index from the geology LUT.
-
-  !>        \details Parses the classical mHM geology class-definition look-up table and returns, for every
-  !>                 geological class, its unit ID (the value stored in the geology raster) and its global
-  !>                 baseflow-parameter index (the slot into the baseflow recession parameter set). The file
-  !>                 format is: a first line "nGeo_Formations <n>", a header line, then one row per class
-  !>                 "<GeoParam_index> <ClassUnit> <Karstic> <Description>". This is a self-contained reader
-  !>                 (the parse logic of mo_read_lut:read_geoformation_lut) so the detached lake MPR does not
-  !>                 depend on the land-surface geology class definition read by the MPR container; the lake
-  !>                 module reads its own geology LUT and stays independent of the land-surface MPR.
-
-  !     CALLING SEQUENCE
-  !         call lake_read_geology_lut(path, n_classes, geo_unit_list, geo_param_index)
-
-  !     HISTORY
-  !>       \authors Matthias Zink, Rohini Kumar (geology look-up table parsing, from mo_read_lut:read_geoformation_lut)
-  !>       \date    January 2013
-  !        Modifications:
-  !        Pallav K Shrestha, October 2026 - reused the geology-LUT parse logic as a self-contained reader
-  !            returning the unit IDs and the global baseflow-parameter index per class, for the detached lake MPR.
-
-  subroutine lake_read_geology_lut(path, n_classes, geo_unit_list, geo_param_index)
-
-    implicit none
-
-    character(*),              intent(in) :: path !< geology LUT path
-    integer(i4),               intent(out) :: n_classes !< number of geological classes
-    integer(i4), allocatable,  intent(out) :: geo_unit_list(:) !< geological unit IDs per class
-    integer(i4), allocatable,  intent(out) :: geo_param_index(:) !< global baseflow-parameter slot per class
-
-    integer :: unit               ! default-kind unit for newunit=
-    integer(i4) :: ios
-    integer(i4) :: i, param_index, unit_id, karstic
-    character(256) :: dummy
-    logical :: exists
-
-    inquire(file=path, exist=exists)
-    if (.not.exists) then
-      log_fatal(*) "Lake MPR: geology LUT not found: ", trim(path)
-      error stop 1
-    end if
-
-    open(newunit=unit, file=path, status="old", action="read", iostat=ios)
-    if (ios /= 0_i4) then
-      log_fatal(*) "Lake MPR: cannot open geology LUT: ", trim(path)
-      error stop 1
-    end if
-
-    ! header line: "nGeo_Formations <n>"
-    read(unit, *, iostat=ios) dummy, n_classes
-    if (ios /= 0_i4 .or. n_classes < 1_i4) then
-      log_fatal(*) "Lake MPR: malformed geology LUT header (expected 'nGeo_Formations <n>'): ", trim(path)
-      error stop 1
-    end if
-    ! column header line
-    read(unit, *, iostat=ios) dummy
-
-    allocate(geo_unit_list(n_classes))
-    allocate(geo_param_index(n_classes))
-
-    ! data rows: <GeoParam_index> <ClassUnit> <Karstic> <Description>
-    do i = 1_i4, n_classes
-      read(unit, *, iostat=ios) param_index, unit_id, karstic, dummy
-      if (ios /= 0_i4) then
-        log_fatal(*) "Lake MPR: nGeo_Formations in the geology LUT exceeds the available rows: ", trim(path)
-        error stop 1
-      end if
-      geo_param_index(i) = param_index
-      geo_unit_list(i)   = unit_id
-    end do
-
-    close(unit)
-
-  end subroutine lake_read_geology_lut
-
-
-  ! ------------------------------------------------------------------
-
-  !     NAME
   !         lake_check_geo_units
 
   !     PURPOSE
@@ -382,131 +297,6 @@ CONTAINS
     end do
 
   end subroutine lake_check_geo_units
-
-
-  ! ------------------------------------------------------------------
-
-  !     NAME
-  !         lake_read_soil_texture_lut
-
-  !     PURPOSE
-  !>        \brief Reads the top-horizon sand and clay content per soil class from the soil LUT.
-
-  !>        \details Parses the mHM soil class-definition look-up table and returns, for every soil
-  !>                 class, the sand and clay content of its uppermost horizon. Both soil_db_mode
-  !>                 layouts of mo_soil_database:read_soil_LUT are supported, detected from the first
-  !>                 data row and latched: a first line "nSoil_Types <n>", a header line, then one row
-  !>                 per class in either mode 0 (class/horizon, 7 columns) "<class> <horizon>
-  !>                 <upper_depth> <lower_depth> <clay%> <sand%> <bulk_density>" or mode 1 (texture,
-  !>                 4 columns) "<class> <clay%> <sand%> <bulk_density>". In mode 0 only horizon 1 is
-  !>                 retained; mode 1 carries one texture per class (its single horizon). Classes
-  !>                 absent from the table keep the missing-value sentinel. This is a self-contained
-  !>                 reader so the detached lake MPR does not depend on the land-surface soil database.
-
-  !     CALLING SEQUENCE
-  !         call lake_read_soil_texture_lut(path, n_classes, sand_by_class, clay_by_class)
-
-  !     HISTORY
-  !>       \authors Juliane Mai (soil look-up table parsing, from mo_soil_database:read_soil_LUT)
-  !>       \date    December 2012
-  !        Modifications:
-  !        Pallav K Shrestha, October 2026 - reused the soil-LUT parse logic as a self-contained reader
-  !            returning only the top-horizon sand/clay per class, for the detached lake MPR.
-
-  subroutine lake_read_soil_texture_lut(path, n_classes, sand_by_class, clay_by_class)
-
-    use mo_constants, only : nodata_dp
-
-    implicit none
-
-    character(*),              intent(in) :: path !< soil LUT path
-    integer(i4),               intent(out) :: n_classes !< number of soil classes
-    real(dp), allocatable,     intent(out) :: sand_by_class(:) !< [%] horizon-1 sand per class
-    real(dp), allocatable,     intent(out) :: clay_by_class(:) !< [%] horizon-1 clay per class
-
-    integer :: unit               ! default-kind unit for newunit=
-    integer(i4) :: ios            ! iostat for the header and data reads
-    integer(i4) :: ios7           ! iostat of the 7-column (mode-0) parse attempt
-    integer(i4) :: id, horizon    ! soil class id and horizon index
-    real(dp)    :: up, down, cly, snd, bd  ! horizon depths, clay, sand, bulk density
-    character(256) :: dummy       ! header / column-title scratch
-    character(1024) :: line       ! one data row, re-parsed to detect the LUT column layout
-    integer(i4) :: lut_mode       ! detected layout: 0 = class/horizon (7 col), 1 = texture (4 col)
-    logical :: exists
-
-    inquire(file=path, exist=exists)
-    if (.not.exists) then
-      log_fatal(*) "Lake MPR: soil LUT not found: ", trim(path)
-      error stop 1
-    end if
-
-    open(newunit=unit, file=path, status="old", action="read", iostat=ios)
-    if (ios /= 0_i4) then
-      log_fatal(*) "Lake MPR: cannot open soil LUT: ", trim(path)
-      error stop 1
-    end if
-
-    ! header line: "nSoil_Types <n>"
-    read(unit, *, iostat=ios) dummy, n_classes
-    if (ios /= 0_i4 .or. n_classes < 1_i4) then
-      log_fatal(*) "Lake MPR: malformed soil LUT header (expected 'nSoil_Types <n>'): ", trim(path)
-      error stop 1
-    end if
-    ! column header line
-    read(unit, *, iostat=ios) dummy
-
-    allocate(sand_by_class(n_classes), source=nodata_dp)
-    allocate(clay_by_class(n_classes), source=nodata_dp)
-
-    ! Two supported LUT layouts (matching mo_soil_database:read_soil_LUT), both with the top-horizon
-    ! texture for class id on its data row:
-    !   soil_db_mode 0 (class/horizon): <class> <horizon> <up> <down> <clay> <sand> <bd>  (7 columns)
-    !   soil_db_mode 1 (texture)      : <class> <clay> <sand> <bd>                        (4 columns)
-    ! The layout is detected from the first data row (a 7-column parse of a 4-column row fails for
-    ! too few values) and latched, so every row is read the same way and mode-1 LUTs are supported.
-    ! In mode 1 there is one texture per class (the single horizon); in mode 0 only horizon 1 is kept.
-    lut_mode = -1_i4
-    do
-      read(unit, "(a)", iostat=ios) line
-      if (ios /= 0_i4) exit
-      if (len_trim(line) == 0_i4) cycle
-      if (lut_mode < 0_i4) then
-        ! detect once: try the 7-column (mode-0) layout; fall back to the 4-column (mode-1) layout
-        read(line, *, iostat=ios7) id, horizon, up, down, cly, snd, bd
-        if (ios7 == 0_i4) then
-          lut_mode = 0_i4
-        else
-          lut_mode = 1_i4
-        end if
-      end if
-      if (lut_mode == 0_i4) then
-        read(line, *, iostat=ios) id, horizon, up, down, cly, snd, bd
-        if (ios /= 0_i4) then
-          log_fatal(*) "Lake MPR: malformed class/horizon (7-column) soil LUT row in ", trim(path)
-          error stop 1
-        end if
-      else
-        read(line, *, iostat=ios) id, cly, snd, bd
-        if (ios /= 0_i4) then
-          log_fatal(*) "Lake MPR: malformed texture (4-column) soil LUT row in ", trim(path)
-          error stop 1
-        end if
-        horizon = 1_i4  ! mode-1 has a single texture per class, treated as the top horizon
-      end if
-      if (id < 1_i4 .or. id > n_classes) then
-        log_fatal(*) "Lake MPR: soil LUT class id out of range in ", trim(path)
-        error stop 1
-      end if
-      ! keep the uppermost horizon only
-      if (horizon == 1_i4) then
-        sand_by_class(id) = snd
-        clay_by_class(id) = cly
-      end if
-    end do
-
-    close(unit)
-
-  end subroutine lake_read_soil_texture_lut
 
 
   ! ------------------------------------------------------------------

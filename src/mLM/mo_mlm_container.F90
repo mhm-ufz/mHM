@@ -72,7 +72,8 @@ module mo_mlm_container
   use mo_lake_spill, only: lake_spill
   use mo_lake_water_balance, only: lake_balance, interpolate_lake_states
   use mo_lake_groundwaterstorage, only: lake_seepage, lake_gws_baseflow
-  use mo_mlm_mpr, only: lake_derive_ks, lake_derive_kbf, lake_derive_spillway_length, lake_read_geology_lut, lake_check_geo_units
+  use mo_input_lut, only: read_geoformation_lut
+  use mo_mlm_mpr, only: lake_derive_ks, lake_derive_kbf, lake_derive_spillway_length, lake_check_geo_units
   use mo_lake_evaporation, only: lake_evaporation
   use mo_mlm_constants, only: bank_soil_evap_ratio
   use mo_meteo_temporal_tools, only: temporal_disagg_flux_daynight
@@ -235,6 +236,7 @@ contains
     class(mlm_t), target, intent(inout) :: self
     type(river_t), pointer :: river
     integer(i4) :: n_classes, class_slot
+    integer(i4), allocatable :: geo_karstic(:)
     integer(i8) :: n, cell
     character(:), allocatable :: path
     if (allocated(self%definition%map)) then
@@ -256,7 +258,8 @@ contains
       error stop 1
     end if
     path = self%exchange%get_path(self%exchange%config%lut%geo_lut_path(self%exchange%nml_domain_id))
-    call lake_read_geology_lut(path, n_classes, self%regionalization%geo_units, self%regionalization%geo_indices)
+    call read_geoformation_lut(path, nGeo=n_classes, geo_unit=self%regionalization%geo_units, &
+      geo_karstic=geo_karstic, geo_param_index=self%regionalization%geo_indices)
     call lake_check_geo_units(self%regionalization%geo, self%regionalization%geo_units)
     allocate(self%regionalization%geo_parameter(size(self%regionalization%geo)))
     do cell = 1_i8,size(self%regionalization%geo,kind=i8)
@@ -997,7 +1000,7 @@ contains
   !!          recession value) and aggregates it to one recession coefficient per lake by an arithmetic
   !!          (cell-count) mean, the same path the v5 mpr_lake used for the lake baseflow coefficient and
   !!          matching the land-surface mpr_bridge_baseflow_param cell lookup. Self-contained and
-  !!          mHM-independent: the lake reads its OWN geology LUT (config_input geo_lut_path) and the
+  !!          mHM-independent: the lake reads its OWN geology LUT (config_lut geo_lut_path) and the
   !!          lake-footprint geological unit is surfaced by the Input container, so the regionalization
   !!          does not depend on the land-surface geology class definition or MPR. The per-geological-unit
   !!          baseflow recession values come from one of two sources: when the land-surface baseflow
