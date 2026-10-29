@@ -388,6 +388,14 @@
 
 ! Meteorological configuration
 &config_meteo
+  ! Read lake forcing support restart
+  read_restart(:) = .false.
+  ! Write lake forcing support restart
+  write_restart(:) = .false.
+  ! Meteo restart input file
+  restart_input_path(:) = ""
+  ! Meteo restart output file
+  restart_output_path(:) = ""
   ! Read meteorological weights
   read_meteo_weights(:) = .false.
   ! Precipitation weights path

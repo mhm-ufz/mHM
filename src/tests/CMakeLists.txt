@@ -156,6 +156,22 @@ add_test(NAME test_lake_borrowed_failures COMMAND ${CMAKE_COMMAND}
   -DRUN_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/runs/test_lake_borrowed_failures
   -P ${CMAKE_CURRENT_SOURCE_DIR}/run_lake_borrowed_failures.cmake)
 
+add_executable(test_meteo_lake_restart test_meteo_lake_restart.f90)
+target_link_libraries(test_meteo_lake_restart PRIVATE ${LIB_NAME})
+add_test(NAME test_meteo_lake_restart COMMAND test_meteo_lake_restart)
+add_test(NAME test_meteo_lake_floatweights COMMAND test_meteo_lake_restart floatweights)
+add_test(NAME test_meteo_lake_geometry COMMAND test_meteo_lake_restart geometry)
+add_test(NAME test_meteo_lake_default_mode COMMAND test_meteo_lake_restart default_mode)
+add_test(NAME test_meteo_lake_file_weighted COMMAND test_meteo_lake_restart file_weighted)
+add_test(NAME test_meteo_lake_fractions COMMAND test_meteo_lake_restart fractions)
+add_test(NAME test_meteo_lake_other_domain COMMAND test_meteo_lake_restart other_domain)
+add_test(NAME test_meteo_lake_rebuild COMMAND test_meteo_lake_restart rebuild)
+add_test(NAME test_meteo_lake_rebuild_weighted COMMAND test_meteo_lake_restart rebuild_weighted)
+add_test(NAME test_lake_restart_failures COMMAND ${CMAKE_COMMAND}
+  -DTEST_EXECUTABLE=$<TARGET_FILE:test_meteo_lake_restart>
+  -DRUN_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/runs/test_lake_restart_failures
+  -P ${CMAKE_CURRENT_SOURCE_DIR}/run_lake_restart_failures.cmake)
+
 # No integration or unit test writes into the source checkout.
 get_property(mhm_tests DIRECTORY PROPERTY TESTS)
 foreach(test_name IN LISTS mhm_tests)

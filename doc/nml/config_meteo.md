@@ -4,6 +4,11 @@
 
 Configuration for meteorological input data handling in mHM.
 Meteorological weights can be used to disaggregate daily data to hourly values.
+When reading lake forcing support, configure active disaggregation settings
+consistently with the restart: read_meteo_weights (including its false default)
+must match the saved mode, and active day/night fractions must be configured
+and match the saved values. Cached temporal weights are reused without opening
+their source weight files when spatial support is compatible.
 Fixed-hour forcing support must match the global model step. Daily forcing is
 supported by the existing daily-to-hourly disaggregation and directly by a
 24-hour model step. Other temporal resampling is not implemented.
@@ -14,6 +19,10 @@ supported by the existing daily-to-hourly disaggregation and directly by a
 
 | Name | Type | Declared required | Input required | Info |
 | --- | --- | --- | --- | --- |
+| [read_restart](#read_restart) | logical array | no | no | Read lake forcing support restart |
+| [write_restart](#write_restart) | logical array | no | no | Write lake forcing support restart |
+| [restart_input_path](#restart_input_path) | string array | no | no | Meteo restart input file |
+| [restart_output_path](#restart_output_path) | string array | no | no | Meteo restart output file |
 | [read_meteo_weights](#read_meteo_weights) | logical array | no | no | Read meteorological weights |
 | [pre_weights_path](#pre_weights_path) | string array | no | no | Precipitation weights path |
 | [pet_weights_path](#pet_weights_path) | string array | no | no | Potential evapotranspiration weights path |
@@ -33,6 +42,50 @@ supported by the existing daily-to-hourly disaggregation and directly by a
 | [share_frac](#share_frac) | logical | no | no | Share fractions between domains |
 
 ## Field details
+
+### read_restart
+
+Read lake forcing support restart `read_restart`
+
+Summary:
+- Type: `logical, dimension(n_domains)`
+- Declared required: no
+- Input required: no
+- Default: `.false.`
+
+### write_restart
+
+Write lake forcing support restart `write_restart`
+
+Summary:
+- Type: `logical, dimension(n_domains)`
+- Declared required: no
+- Input required: no
+- Default: `.false.`
+
+### restart_input_path
+
+Meteo restart input file `restart_input_path`
+
+Explicit file path, required when read_restart is enabled.
+
+Summary:
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
+- Declared required: no
+- Input required: no
+
+### restart_output_path
+
+Meteo restart output file `restart_output_path`
+
+Explicit file path, required when write_restart is enabled.
+
+Summary:
+- Type: `character(len=buf), dimension(n_domains)`
+- Item format: `file-path`
+- Declared required: no
+- Input required: no
 
 ### read_meteo_weights
 
@@ -236,6 +289,10 @@ Summary:
 
 ```fortran
 &config_meteo
+  read_restart(:) = .false.
+  write_restart(:) = .false.
+  restart_input_path(:) = ""
+  restart_output_path(:) = ""
   read_meteo_weights(:) = .false.
   pre_weights_path(:) = ""
   pet_weights_path(:) = ""

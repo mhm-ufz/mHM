@@ -35,11 +35,13 @@ module mo_meteo_container
   use mo_grid_io, only: no_time, daily, monthly, yearly
   use mo_grid_scaler, only: scaler_t, weight_count
   use mo_lake_forcing, only: lake_support_t, lake_support_build
+  use mo_meteo_lake_restart, only: lake_forcing_restart_t, lake_grids_match, lake_supports_match
   use mo_kind, only: i4, i8, dp
   use mo_meteo_temporal_tools, only: temporal_disagg_meteo_weights, temporal_disagg_flux_daynight, temporal_disagg_state_daynight
   use mo_meteo_constants, only: HarSamConst
   use mo_pet, only: pet_hargreaves, pet_penman, pet_priestly
   use mo_meteo_weights, only: read_weights_nc
+  use mo_netcdf, only: NcDataset, NcVariable
   use mo_string_utils, only: n2s => num2str
   use mo_utils, only: is_close
   use nml_config_meteo, only: nml_config_meteo_t, NML_OK, NML_ERR_NML_NOT_FOUND
@@ -102,6 +104,11 @@ module mo_meteo_container
     real(dp), allocatable :: pre_weights(:, :, :) !< precipitation weights (lake,12,24)
     real(dp), allocatable :: pet_weights(:, :, :) !< PET weights (lake,12,24)
     real(dp), allocatable :: daily(:) !< reusable daily flux work buffer
+    type(lake_forcing_restart_t) :: saved !< owned restart definition, independent of current forcing buffers
+    logical :: read_restart = .false. !< load cached spatial support
+    logical :: write_restart = .false. !< save cached spatial support
+    character(:), allocatable :: restart_input_path !< resolved input file
+    character(:), allocatable :: restart_output_path !< resolved output file
     logical :: active = .false. !< whether lake forcing is part of the selected process case
   end type meteo_lake_state_t
 
@@ -144,6 +151,8 @@ module mo_meteo_container
     procedure, private :: update_ssrd => meteo_update_ssrd
     procedure, private :: update_strd => meteo_update_strd
     procedure, private :: update_tann => meteo_update_tann
+    procedure, private :: resolve_lake_support => meteo_resolve_lake_support
+    procedure, private :: save_lake_support => meteo_save_lake_support
     procedure, private :: setup_lake_forcing => meteo_setup_lake_forcing
     procedure, private :: update_lake_forcing => meteo_update_lake_forcing
     procedure, private :: aggregate_lake => meteo_aggregate_lake
@@ -152,9 +161,132 @@ module mo_meteo_container
 
 contains
 
-  !> \brief Meteorology owns no restart definition; retained for the uniform lifecycle.
+  !> \brief Reuse saved support or rebuild it from genuine supplied lake geometry.
+  subroutine meteo_resolve_lake_support(self)
+    class(meteo_t), target, intent(inout) :: self
+    type(lake_support_t), allocatable :: supplied(:)
+    integer(i8), allocatable :: permutation(:)
+    integer(i4) :: id, fraction_id, month
+    integer(i8) :: i, n
+    logical :: geometry, reuse, pre_daily, pet_daily
+    id = self%exchange%nml_domain_id
+    fraction_id = self%fraction_domain()
+    n = size(self%exchange%lake_ids%data, kind=i8)
+    geometry = associated(self%exchange%level0_lake) .and. self%exchange%lake_map%has_data()
+    reuse = .false.
+    if (self%lake%saved%loaded) then
+      if (size(self%lake%saved%ids,kind=i8) /= n) then
+        log_fatal(*) "Meteo: lake support restart IDs do not match the lake definition."
+        error stop 1
+      end if
+      allocate(permutation(n))
+      do i = 1_i8, n
+        if (count(self%exchange%lake_ids%data == self%exchange%lake_ids%data(i)) /= 1) then
+          log_fatal(*) "Meteo: duplicate lake IDs in supplied definition."
+          error stop 1
+        end if
+        permutation(i) = findloc(self%lake%saved%ids, self%exchange%lake_ids%data(i), dim=1, kind=i8)
+      end do
+      if (any(permutation == 0_i8)) then
+        log_fatal(*) "Meteo: lake support restart IDs do not match the lake definition."
+        error stop 1
+      end if
+      reuse = lake_grids_match(self%lake%saved%grid, self%exchange%level2)
+      if (self%lake%saved%disaggregate_pre .or. self%lake%saved%disaggregate_pet) then
+        if (self%config%read_meteo_weights(id) .neqv. self%lake%saved%weighted) then
+          log_fatal(*) "Meteo: configured lake disaggregation mode conflicts with restart."
+          error stop 1
+        end if
+      end if
+      ! Fractions are meaningful only for an active daily-to-hourly flux in day/night mode.
+      if (.not.self%lake%saved%weighted) then
+        do month = 1_i4, 12_i4
+          if (self%lake%saved%disaggregate_pre) &
+            call meteo_validate_restart_fraction(self%config%frac_night_pre(month,fraction_id), self%lake%saved%frac_pre(month))
+          if (self%lake%saved%disaggregate_pet) &
+            call meteo_validate_restart_fraction(self%config%frac_night_pet(month,fraction_id), self%lake%saved%frac_pet(month))
+        end do
+      end if
+    end if
+    if (geometry) then
+      call self%exchange%check_data(self%exchange%lake_map, "Meteo")
+      call lake_support_build(self%exchange%level2, self%exchange%level0_lake, self%exchange%lake_map%data, &
+        self%exchange%lake_ids%data, supplied)
+    end if
+    if (reuse) then
+      self%lake%forcing = self%lake%saved%support(permutation)
+      if (geometry) then
+        if (.not.lake_supports_match(self%lake%forcing, supplied)) then
+          log_fatal(*) "Meteo: supplied lake geometry disagrees with saved forcing support on the same L2 grid."
+          error stop 1
+        end if
+      end if
+      pre_daily = .false.
+      pet_daily = .false.
+      if (self%exchange%lake_pre%provided) &
+        pre_daily = self%exchange%raw_pre%stepping == daily .and. self%steps_per_day() > 1_i4
+      if (self%exchange%lake_pet%provided) &
+        pet_daily = self%exchange%raw_pet%stepping == daily .and. self%steps_per_day() > 1_i4
+      if ((pre_daily .neqv. self%lake%saved%disaggregate_pre) .or. &
+          (pet_daily .neqv. self%lake%saved%disaggregate_pet)) then
+        log_fatal(*) "Meteo: active lake disaggregation settings conflict with restart."
+        error stop 1
+      end if
+      if (allocated(self%lake%saved%pre_weights)) &
+        self%lake%pre_weights = self%lake%saved%pre_weights(permutation,:,:)
+      if (allocated(self%lake%saved%pet_weights)) &
+        self%lake%pet_weights = self%lake%saved%pet_weights(permutation,:,:)
+    else if (geometry) then
+      call move_alloc(supplied, self%lake%forcing)
+    else
+      log_fatal(*) "Meteo: lake forcing requires compatible saved support or level-0 lake geometry; L2 may have changed."
+      error stop 1
+    end if
+  end subroutine meteo_resolve_lake_support
+
+  !> \brief Require configured active day/night fractions to match the restart.
+  subroutine meteo_validate_restart_fraction(configured, saved)
+    real(dp), intent(in) :: configured !< configured active day/night fraction
+    real(dp), intent(in) :: saved !< fraction stored with the saved support
+    if (.not.ieee_is_finite(configured)) then
+      log_fatal(*) "Meteo: active lake disaggregation fractions must be configured consistently with restart."
+      error stop 1
+    end if
+    if (abs(configured-saved) > 1.0e-12_dp) then
+      log_fatal(*) "Meteo: configured lake disaggregation fraction conflicts with restart."
+      error stop 1
+    end if
+  end subroutine meteo_validate_restart_fraction
+
+  !> \brief Persist static support and active settings after completing a simulation.
+  subroutine meteo_save_lake_support(self)
+    class(meteo_t), target, intent(inout) :: self
+    integer(i4) :: fraction_id
+    type(lake_forcing_restart_t) :: payload
+    payload%grid = self%exchange%level2
+    payload%ids = self%exchange%lake_ids%data
+    payload%support = self%lake%forcing
+    if (self%exchange%lake_pre%provided) &
+      payload%disaggregate_pre = self%exchange%raw_pre%stepping == daily .and. self%steps_per_day() > 1_i4
+    if (self%exchange%lake_pet%provided) &
+      payload%disaggregate_pet = self%exchange%raw_pet%stepping == daily .and. self%steps_per_day() > 1_i4
+    payload%weighted = self%weight_mode_active() .and. &
+      (payload%disaggregate_pre .or. payload%disaggregate_pet)
+    if (allocated(self%lake%pre_weights)) payload%pre_weights = self%lake%pre_weights
+    if (allocated(self%lake%pet_weights)) payload%pet_weights = self%lake%pet_weights
+    fraction_id = self%fraction_domain()
+    if (.not.payload%weighted) then
+      if (payload%disaggregate_pre) payload%frac_pre = self%config%frac_night_pre(:,fraction_id)
+      if (payload%disaggregate_pet) payload%frac_pet = self%config%frac_night_pet(:,fraction_id)
+    end if
+    call payload%write(self%lake%restart_output_path, self%exchange%time%str())
+    call payload%destroy()
+  end subroutine meteo_save_lake_support
+
+  !> \brief Restore owned lake forcing definition before any component connects.
   subroutine meteo_prepare_restart(self)
     class(meteo_t), intent(inout), target :: self
+    if (self%lake%read_restart) call self%lake%saved%read(self%lake%restart_input_path)
   end subroutine meteo_prepare_restart
 
   !> \brief Classify an interval with the literal legacy predicate using its start hour.
@@ -199,6 +331,7 @@ contains
     character(1024) :: errmsg
     character(:), allocatable :: path
     integer :: status
+    integer(i4) :: id
 
     log_info(*) "Configure meteo"
     self%active = any([ &
@@ -208,8 +341,10 @@ contains
       self%exchange%config%processes%percolation, self%exchange%config%processes%baseflow, &
       self%exchange%config%processes%neutrons, self%exchange%config%processes%temperature_routing, &
       self%exchange%config%processes%lake] /= 0_i4)
-    if (.not.self%active) return
-    if (.not.meteo_supports_model_step(self%exchange%step_hours)) then
+    if (.not.self%active .and. .not.present(file)) then
+      if (.not.self%config%is_configured) return
+    end if
+    if (self%active .and. .not.meteo_supports_model_step(self%exchange%step_hours)) then
       log_fatal(*) "Meteo supports only 1-hour and 24-hour model steps; temporal aggregation/disaggregation for intermediate steps is not implemented."
       error stop 1
     end if
@@ -238,6 +373,38 @@ contains
       error stop 1
     end if
     self%lake%active = self%exchange%config%processes%lake == -2_i4 .or. self%exchange%config%processes%lake == 1_i4
+    id = self%exchange%nml_domain_id
+    self%lake%read_restart = self%config%read_restart(id)
+    self%lake%write_restart = self%config%write_restart(id)
+    if (self%lake%read_restart .or. self%lake%write_restart) then
+      if (.not.self%lake%active) then
+        log_fatal(*) "Meteo restart requires an active lake forcing process (lake = 1 or -2)."
+        error stop 1
+      end if
+    end if
+    if (self%lake%read_restart) then
+      if (self%config%is_set("restart_input_path", idx=[id]) /= NML_OK) then
+        log_fatal(*) "Meteo: restart_input_path required when read_restart is true."
+        error stop 1
+      end if
+      if (len_trim(self%config%restart_input_path(id)) == 0) then
+        log_fatal(*) "Meteo: restart_input_path must not be empty."
+        error stop 1
+      end if
+      self%lake%restart_input_path = self%exchange%get_path(self%config%restart_input_path(id))
+    end if
+    if (self%lake%write_restart) then
+      if (self%config%is_set("restart_output_path", idx=[id]) /= NML_OK) then
+        log_fatal(*) "Meteo: restart_output_path required when write_restart is true."
+        error stop 1
+      end if
+      if (len_trim(self%config%restart_output_path(id)) == 0) then
+        log_fatal(*) "Meteo: restart_output_path must not be empty."
+        error stop 1
+      end if
+      self%lake%restart_output_path = self%exchange%get_path(self%config%restart_output_path(id))
+    end if
+    if (.not.self%active) return
     if (any([self%exchange%config%processes%interception, self%exchange%config%processes%snow, &
         self%exchange%config%processes%soil_moisture, self%exchange%config%processes%direct_runoff, &
         self%exchange%config%processes%pet, self%exchange%config%processes%interflow, &
@@ -403,6 +570,7 @@ contains
       error stop 1
     end if
 
+    if (lake_active) call self%setup_lake_forcing()
     steps_day = self%steps_per_day()
     frac_domain_id = self%fraction_domain()
 
@@ -456,12 +624,6 @@ contains
     if (need_raw_tdew) call self%exchange%raw_tdew%check_provided("Meteo")
     if (need_raw_wind_lake) call self%validate_step("raw_wind", self%exchange%raw_wind%stepping, allow_daily=.true., allow_hourly=.true.)
     if (need_raw_tdew_lake) call self%validate_step("raw_tdew", self%exchange%raw_tdew%stepping, allow_daily=.true., allow_hourly=.true.)
-
-    if (lake_active) then
-      call self%exchange%lake_ids%check_provided("Meteo")
-      call self%exchange%lake_map%check_provided("Meteo")
-      call self%setup_lake_forcing()
-    end if
 
     if (.not.land_active) return
 
@@ -655,6 +817,7 @@ contains
     class(meteo_t), intent(inout), target :: self
 
     log_info(*) "Finalize meteo"
+    if (self%lake%write_restart) call self%save_lake_support()
   end subroutine meteo_finalize
 
   !> \brief Release meteorological output and remapping caches.
@@ -694,7 +857,12 @@ contains
     if (allocated(self%lake%strd)) deallocate(self%lake%strd)
     if (allocated(self%lake%wind)) deallocate(self%lake%wind)
     if (allocated(self%lake%tdew)) deallocate(self%lake%tdew)
+    call self%lake%saved%destroy()
     if (allocated(self%lake%daily)) deallocate(self%lake%daily)
+    if (allocated(self%lake%restart_input_path)) deallocate(self%lake%restart_input_path)
+    if (allocated(self%lake%restart_output_path)) deallocate(self%lake%restart_output_path)
+    self%lake%read_restart = .false.
+    self%lake%write_restart = .false.
 
     if (allocated(self%lake%pre_weights)) deallocate(self%lake%pre_weights)
     if (allocated(self%lake%pet_weights)) deallocate(self%lake%pet_weights)
@@ -798,22 +966,22 @@ contains
     integer(i4) :: domain_id
     character(:), allocatable :: path
 
-    if (.not.associated(self%exchange%level0_lake)) then
-      log_fatal(*) "Meteo lake forcing requires a connected level-0 lake grid."
-      error stop 1
-    end if
+    call self%exchange%check_data(self%exchange%lake_ids, "Meteo")
     n_lakes = size(self%exchange%lake_ids%data, kind=i8)
+    call self%resolve_lake_support()
     allocate(self%lake%daily(n_lakes),source=0.0_dp)
-    call self%exchange%check_data(self%exchange%lake_map, "Meteo")
-    call lake_support_build(self%exchange%level2, self%exchange%level0_lake, self%exchange%lake_map%data, &
-      self%exchange%lake_ids%data, self%lake%forcing)
 
     if (self%exchange%lake_pre%provided) then
       allocate(self%lake%pre(n_lakes), source=0.0_dp)
       call self%exchange%lake_pre%prepare_data("Meteo", self%exchange%step_hours)
       self%exchange%lake_pre%data => self%lake%pre
-      if (self%weight_mode_active() .and. self%exchange%raw_pre%stepping == daily) then
+      if (self%weight_mode_active() .and. self%exchange%raw_pre%stepping == daily .and. &
+          self%steps_per_day() > 1_i4 .and. .not.allocated(self%lake%pre_weights)) then
         domain_id = self%exchange%nml_domain_id
+        if (self%config%is_set("pre_weights_path", idx=[domain_id]) /= NML_OK) then
+          log_fatal(*) "Meteo: rebuilding weighted lake support requires pre_weights_path on the current L2 grid."
+          error stop 1
+        end if
         path = self%exchange%get_path(self%config%pre_weights_path(domain_id))
         call self%load_lake_weight_cache(path, trim(self%config%pre_weights_var(domain_id)), self%lake%pre_weights)
       end if
@@ -823,8 +991,13 @@ contains
       allocate(self%lake%pet(n_lakes), source=0.0_dp)
       call self%exchange%lake_pet%prepare_data("Meteo", self%exchange%step_hours)
       self%exchange%lake_pet%data => self%lake%pet
-      if (self%weight_mode_active() .and. self%exchange%raw_pet%stepping == daily) then
+      if (self%weight_mode_active() .and. self%exchange%raw_pet%stepping == daily .and. &
+          self%steps_per_day() > 1_i4 .and. .not.allocated(self%lake%pet_weights)) then
         domain_id = self%exchange%nml_domain_id
+        if (self%config%is_set("pet_weights_path", idx=[domain_id]) /= NML_OK) then
+          log_fatal(*) "Meteo: rebuilding weighted lake support requires pet_weights_path on the current L2 grid."
+          error stop 1
+        end if
         path = self%exchange%get_path(self%config%pet_weights_path(domain_id))
         call self%load_lake_weight_cache(path, trim(self%config%pet_weights_var(domain_id)), self%lake%pet_weights)
       end if
@@ -931,10 +1104,26 @@ contains
     character(*), intent(in) :: path !< Input NetCDF file path.
     character(*), intent(in) :: var_name !< NetCDF weight variable name.
     real(dp), allocatable, intent(inout) :: cache(:, :, :) !< Packed spatial weights by month and hour.
-    real(dp), allocatable :: l2_data(:, :, :, :), packed(:), tmp(:)
+    real(dp), allocatable :: l2_data(:, :, :, :), packed(:), tmp(:), hourly_sum(:)
+    type(grid_t) :: weight_grid
+    type(NcDataset) :: nc
+    type(NcVariable) :: variable
     character(len=256) :: path_fixed
     integer(i4) :: month, hour
 
+    nc = NcDataset(path,"r")
+    variable = nc%getVariable(var_name)
+    if (variable%getRank() /= 4_i4) then
+      log_fatal(*) "Meteo: lake temporal weight variable must have rank four: ", path
+      error stop 1
+    end if
+    call weight_grid%from_netcdf(nc,var_name,read_mask=.false.,read_aux=.false.)
+    call nc%close()
+    if (.not.lake_grids_match(weight_grid,self%exchange%level2,geometry_only=.true.)) then
+      log_fatal(*) "Meteo: lake temporal weight file geometry does not match current L2 grid: ", path
+      error stop 1
+    end if
+    call weight_grid%destroy()
     path_fixed = trim(path)
     call read_weights_nc("", self%exchange%level2%nx, self%exchange%level2%ny, trim(var_name), l2_data, &
       self%exchange%level2%mask, fileName=path_fixed)
@@ -942,15 +1131,25 @@ contains
       log_fatal(*) "Meteo: lake temporal weights must have dimensions (12,24)."
       error stop 1
     end if
-    allocate(cache(size(self%lake%forcing), 12, 24), tmp(size(self%lake%forcing)), packed(self%exchange%level2%ncells))
+    allocate(cache(size(self%lake%forcing), 12, 24), tmp(size(self%lake%forcing)), packed(self%exchange%level2%ncells), hourly_sum(self%exchange%level2%ncells))
     do month = 1_i4, 12_i4
+      hourly_sum = 0.0_dp
       do hour = 1_i4, 24_i4
         call self%exchange%level2%pack_into(l2_data(:, :, month, hour), packed)
+        if (.not.all(ieee_is_finite(packed)) .or. any(packed < 0.0_dp)) then
+          log_fatal(*) "Meteo: lake temporal source weights must be finite and nonnegative: ", path
+          error stop 1
+        end if
+        hourly_sum = hourly_sum + packed
         call self%aggregate_lake(packed, tmp)
         cache(:, month, hour) = tmp
       end do
+      if (any(abs(hourly_sum-1.0_dp) > 1.0e-6_dp)) then
+        log_fatal(*) "Meteo: lake temporal source weights must sum to one per month: ", path
+        error stop 1
+      end if
     end do
-    deallocate(l2_data, packed, tmp)
+    deallocate(l2_data, packed, tmp, hourly_sum)
   end subroutine meteo_load_lake_weight_cache
 
   !> \brief Read and regrid one weight cube to cached packed level1 weights.

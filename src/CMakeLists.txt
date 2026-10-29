@@ -35,6 +35,7 @@ set(sources
   mLM/mo_lake_bathymetry.F90
   meteo/mo_lake_evaporation.F90
   meteo/mo_lake_forcing.F90
+  meteo/mo_meteo_lake_restart.F90
   mLM/mo_lake_groundwaterstorage.F90
   mLM/mo_lake_spill.F90
   mLM/mo_lake_topology.F90
