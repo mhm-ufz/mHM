@@ -180,6 +180,7 @@ add_test(NAME test_meteo_lake_floatweights COMMAND test_meteo_lake_restart float
 add_test(NAME test_meteo_lake_geometry COMMAND test_meteo_lake_restart geometry)
 add_test(NAME test_meteo_lake_default_mode COMMAND test_meteo_lake_restart default_mode)
 add_test(NAME test_meteo_lake_file_weighted COMMAND test_meteo_lake_restart file_weighted)
+add_test(NAME test_meteo_lake_varying_weights COMMAND test_meteo_lake_restart varying_weights)
 add_test(NAME test_meteo_lake_fractions COMMAND test_meteo_lake_restart fractions)
 add_test(NAME test_meteo_lake_other_domain COMMAND test_meteo_lake_restart other_domain)
 add_test(NAME test_meteo_lake_rebuild COMMAND test_meteo_lake_restart rebuild)

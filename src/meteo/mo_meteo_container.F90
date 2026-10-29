@@ -232,10 +232,19 @@ contains
         log_fatal(*) "Meteo: active lake disaggregation settings conflict with restart."
         error stop 1
       end if
-      if (allocated(self%lake%saved%pre_weights)) &
-        self%lake%pre_weights = self%lake%saved%pre_weights(permutation,:,:)
-      if (allocated(self%lake%saved%pet_weights)) &
-        self%lake%pet_weights = self%lake%saved%pet_weights(permutation,:,:)
+      ! Allocate owned caches explicitly and copy each lake in its current ID order.
+      if (allocated(self%lake%saved%pre_weights)) then
+        allocate(self%lake%pre_weights(n,12,24))
+        do i = 1_i8, n
+          self%lake%pre_weights(i,:,:) = self%lake%saved%pre_weights(permutation(i),:,:)
+        end do
+      end if
+      if (allocated(self%lake%saved%pet_weights)) then
+        allocate(self%lake%pet_weights(n,12,24))
+        do i = 1_i8, n
+          self%lake%pet_weights(i,:,:) = self%lake%saved%pet_weights(permutation(i),:,:)
+        end do
+      end if
     else if (geometry) then
       call move_alloc(supplied, self%lake%forcing)
     else

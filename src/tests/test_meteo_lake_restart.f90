@@ -1,6 +1,7 @@
 program test_meteo_lake_restart
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
   use mo_kind, only: sp, dp, i4, i8
-  use mo_datetime, only: datetime
+  use mo_datetime, only: datetime, one_hour
   use mo_exchange_type, only: exchange_t
   use mo_grid, only: grid_t, bottom_up
   use mo_points, only: points_t, cartesian
@@ -18,12 +19,14 @@ program test_meteo_lake_restart
   integer(i8), target :: ids(3), map(6)
   real(dp), target :: raw(6)
   real(dp), pointer :: published(:)
-  real(dp) :: weight, corrupt_weights(6)
+  real(dp) :: weight, corrupt_weights(6), expected_pre(3), expected_pet(3), total_pre(3), total_pet(3)
+  integer, parameter :: order(3) = [2,1,3]
+  real(dp), parameter :: daily_reference(3) = [3.0_dp,1.5_dp,5.0_dp]
   type(NcDataset) :: nc
   type(NcVariable) :: var
   type(NcDimension) :: dimensions(4)
   real(dp) :: source_weights(2,2,12,24)
-  integer :: status, unit
+  integer :: status, unit, lake, month, hour
   logical :: fractions, rebuild
   character(64) :: mode
   call get_command_argument(1, mode)
@@ -45,6 +48,19 @@ program test_meteo_lake_restart
   if (mode == 'floatweights') weight = real(real(weight,sp),dp)
   cache%pre_weights = weight
   cache%pet_weights = weight
+  if (mode == 'varying_weights') then
+    ! Binary-exact, normalized profiles distinguish lake IDs, months, hours and fields.
+    cache%pre_weights = 1.0_dp/32.0_dp
+    cache%pet_weights = 1.0_dp/32.0_dp
+    do lake = 1, 3
+      do month = 1, 12
+        hour = modulo(lake+month-2,24)+1
+        cache%pre_weights(lake,month,hour) = cache%pre_weights(lake,month,hour)+0.25_dp
+        hour = modulo(2*lake+month-2,24)+1
+        cache%pet_weights(lake,month,hour) = cache%pet_weights(lake,month,hour)+0.25_dp
+      end do
+    end do
+  end if
   if (fractions) then
     cache%weighted = .false.
     cache%frac_pre = 0.25_dp
@@ -92,6 +108,12 @@ program test_meteo_lake_restart
     call nc%close()
   end select
   call restored%read('support.nc')
+  if (.not.fractions) then
+    call check_close(reshape(restored%pre_weights,[3*12*24]), reshape(cache%pre_weights,[3*12*24]), &
+      'precipitation weights changed during restart I/O')
+    call check_close(reshape(restored%pet_weights,[3*12*24]), reshape(cache%pet_weights,[3*12*24]), &
+      'PET weights changed during restart I/O')
+  end if
   call check(lake_grids_match(restored%grid,level2), 'grid definition did not round trip')
   nc = NcDataset('support.nc', 'r')
   call check(.not.nc%hasVariable('L2_area'), 'support restart redundantly writes cell areas')
@@ -189,6 +211,14 @@ program test_meteo_lake_restart
       mask=reshape([.true.,.true.,.false.,.true.,.true.,.true.],[3,2]))
   end if
   call meteo%connect()
+  if (.not.fractions .and. .not.rebuild) then
+    do lake = 1, 3
+      call check_close(reshape(meteo%lake%pre_weights(lake,:,:),[12*24]), &
+        reshape(cache%pre_weights(order(lake),:,:),[12*24]), 'precipitation weight cache did not reorder stable IDs')
+      call check_close(reshape(meteo%lake%pet_weights(lake,:,:),[12*24]), &
+        reshape(cache%pet_weights(order(lake),:,:),[12*24]), 'PET weight cache did not reorder stable IDs')
+    end do
+  end if
   if (mode == 'geometry') call check(associated(exchange%level0_lake,geometry), 'replaced Input-owned geometry')
   published => exchange%lake_pre%data
   call meteo%initialize()
@@ -203,8 +233,37 @@ program test_meteo_lake_restart
     call check(maxval(abs(exchange%lake_pre%data-[3.0_dp,1.5_dp,5.0_dp]*1.5_dp/24.0_dp)) < 1.0e-13_dp, &
       'configured day/night fractions did not match saved support')
   else
-    call check(maxval(abs(exchange%lake_pre%data-[3.0_dp,1.5_dp,5.0_dp]*weight)) < 1.0e-13_dp, &
-      'cache did not reorder stable IDs or reuse across dates')
+    expected_pre = [3.0_dp,1.5_dp,5.0_dp]*weight
+    expected_pet = expected_pre
+    if (mode == 'varying_weights') then
+      do lake = 1, 3
+        expected_pre(lake) = daily_reference(lake)*cache%pre_weights(order(lake),6,13)
+        expected_pet(lake) = daily_reference(lake)*cache%pet_weights(order(lake),6,13)
+      end do
+    end if
+    call check_close(exchange%lake_pre%data, expected_pre, 'cached precipitation forcing differs after restart')
+    call check_close(exchange%lake_pet%data, expected_pet, 'cached PET forcing differs after restart')
+  end if
+  if (mode == 'varying_weights') then
+    total_pre = 0.0_dp
+    total_pet = 0.0_dp
+    do month = 1, 12
+      do hour = 0, 23
+        exchange%time_step_start = datetime(year=2007,month=month,day=1,hour=hour)
+        exchange%time = exchange%time_step_start+one_hour()
+        call meteo%update()
+        do lake = 1, 3
+          expected_pre(lake) = daily_reference(lake)*cache%pre_weights(order(lake),month,hour+1)
+          expected_pet(lake) = daily_reference(lake)*cache%pet_weights(order(lake),month,hour+1)
+        end do
+        call check_close(exchange%lake_pre%data, expected_pre, 'hourly precipitation does not follow cached weights')
+        call check_close(exchange%lake_pet%data, expected_pet, 'hourly PET does not follow cached weights')
+        total_pre = total_pre+exchange%lake_pre%data
+        total_pet = total_pet+exchange%lake_pet%data
+      end do
+    end do
+    call check_close(total_pre, 12.0_dp*daily_reference, 'weighted precipitation does not conserve daily totals')
+    call check_close(total_pet, 12.0_dp*daily_reference, 'weighted PET does not conserve daily totals')
   end if
   call meteo%initialize()
   call check(associated(published,exchange%lake_pre%data), 'reinitialization replaced forcing target')
@@ -219,6 +278,24 @@ program test_meteo_lake_restart
   call cache%destroy()
   call restored%destroy()
 contains
+  !> \brief Show full-precision values to distinguish cache corruption from roundoff.
+  subroutine check_close(actual, expected, message)
+    real(dp), intent(in) :: actual(:) !< Values calculated or restored by production code.
+    real(dp), intent(in) :: expected(:) !< Independent expected values.
+    character(*), intent(in) :: message !< Description of the failing operation.
+    call check(size(actual) == size(expected), 'shape mismatch: '//message)
+    if (all(ieee_is_finite(actual))) then
+      if (maxval(abs(actual-expected)) < 1.0e-13_dp) return
+    end if
+    print *, 'FAIL: ', message
+    print *, 'actual:'
+    print '(*(es24.16,1x))', actual
+    print *, 'expected:'
+    print '(*(es24.16,1x))', expected
+    print *, 'max absolute difference: ', maxval(abs(actual-expected))
+    error stop 1
+  end subroutine check_close
+
   subroutine check(condition, message)
     logical, intent(in) :: condition
     character(*), intent(in) :: message
