@@ -144,9 +144,9 @@ target_link_libraries(test_neutron_parallel PRIVATE ${LIB_NAME})
 add_test(NAME test_neutron_parallel COMMAND test_neutron_parallel)
 set_tests_properties(test_neutron_parallel PROPERTIES ENVIRONMENT "OMP_DYNAMIC=FALSE")
 
-add_executable(test_mlm_parameters test_mlm_parameters.f90)
-target_link_libraries(test_mlm_parameters PRIVATE ${LIB_NAME})
-add_test(NAME test_mlm_parameters COMMAND test_mlm_parameters)
+add_executable(test_lake_input_options test_lake_input_options.f90)
+target_link_libraries(test_lake_input_options PRIVATE ${LIB_NAME})
+add_test(NAME test_lake_input_options COMMAND test_lake_input_options)
 
 add_executable(test_lake_borrowed_parameters test_lake_borrowed_parameters.f90)
 target_link_libraries(test_lake_borrowed_parameters PRIVATE ${LIB_NAME})
@@ -155,6 +155,23 @@ add_test(NAME test_lake_borrowed_failures COMMAND ${CMAKE_COMMAND}
   -DTEST_EXECUTABLE=$<TARGET_FILE:test_lake_borrowed_parameters>
   -DRUN_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/runs/test_lake_borrowed_failures
   -P ${CMAKE_CURRENT_SOURCE_DIR}/run_lake_borrowed_failures.cmake)
+
+add_executable(test_lake_continuation test_lake_continuation.f90)
+target_link_libraries(test_lake_continuation PRIVATE ${LIB_NAME})
+add_test(NAME test_lake_continuation COMMAND test_lake_continuation)
+add_test(NAME test_mlm_restart_failures COMMAND ${CMAKE_COMMAND}
+  -DTEST_EXECUTABLE=$<TARGET_FILE:test_lake_continuation>
+  -DRUN_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/runs/test_mlm_restart_failures
+  -P ${CMAKE_CURRENT_SOURCE_DIR}/run_mlm_restart_failures.cmake)
+
+add_executable(test_mlm_parameters test_mlm_parameters.f90)
+target_link_libraries(test_mlm_parameters PRIVATE ${LIB_NAME})
+add_test(NAME test_mlm_parameters COMMAND test_mlm_parameters)
+
+add_executable(test_lake_update test_lake_update.f90)
+target_link_libraries(test_lake_update PRIVATE ${LIB_NAME})
+add_test(NAME test_lake_update COMMAND test_lake_update)
+set_tests_properties(test_lake_update PROPERTIES ENVIRONMENT "OMP_DYNAMIC=FALSE")
 
 add_executable(test_meteo_lake_restart test_meteo_lake_restart.f90)
 target_link_libraries(test_meteo_lake_restart PRIVATE ${LIB_NAME})
@@ -177,6 +194,10 @@ get_property(mhm_tests DIRECTORY PROPERTY TESTS)
 foreach(test_name IN LISTS mhm_tests)
   set(run_dir "${CMAKE_CURRENT_BINARY_DIR}/runs/${test_name}")
   mhm_stage_run("${PROJECT_SOURCE_DIR}" "${run_dir}")
+  if(test_name STREQUAL "test_lake_input_options")
+    configure_file("${PROJECT_SOURCE_DIR}/examples/fixtures/lake_outlets.nc" "${run_dir}/mlm_lake_optional.nc" COPYONLY)
+    configure_file("${PROJECT_SOURCE_DIR}/examples/fixtures/lake_outlets.nc" "${run_dir}/mlm_lake_topology_input.nc" COPYONLY)
+  endif()
   if(test_name STREQUAL "test_forward_run")
     mhm_stage_run("${PROJECT_SOURCE_DIR}" "${run_dir}/alternate")
     foreach(api_run_dir "${run_dir}" "${run_dir}/alternate")

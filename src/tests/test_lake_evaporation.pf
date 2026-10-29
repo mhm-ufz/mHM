@@ -7,6 +7,7 @@ module test_lake_evaporation
   implicit none
   private
 
+  public :: test_evaporation_independent_reference
   public :: test_atmospheric_pressure_sea_level
   public :: test_atmospheric_pressure_decreases_with_elevation
   public :: test_latent_heat_closed_form
@@ -15,6 +16,26 @@ module test_lake_evaporation
   public :: test_evaporation_methods_finite_nonnegative
 
 contains
+
+  !> Independently evaluated in SI units with Python math, without calling lake/PET kernels.
+  !> Fixed albedo isolates the three evaporation equations; both thermodynamic options are covered.
+  @test
+  subroutine test_evaporation_independent_reference()
+    real(dp) :: evap, components(3)
+    real(dp), parameter :: expected(3,2) = reshape([5.368146682452174_dp, 5.528523704364677_dp, 5.587215955554609_dp, &
+      5.340676485074619_dp, 5.471558430873078_dp, 5.563709697382412_dp], [3,2])
+    integer(i4) :: method, option
+    do option = 1,2
+      do method = 1,3
+        call lake_evaporation(method, 12_i4, 172_i4, &
+          20.0_dp,15.0_dp,2.0_dp,250.0_dp,350.0_dp,20.0_dp,20.0_dp,20.0_dp, &
+          100.0_dp,0.5_dp,0.5_dp,2.0_dp,48.0_dp,11.0_dp,10.0_dp,2.5_dp, &
+          .false.,1_i4,option==2,option==2,evap,components)
+        @assertEqual(expected(method,option),evap,tolerance=1.0e-10_dp)
+      end do
+    end do
+  end subroutine test_evaporation_independent_reference
+
 
   !> Atmospheric pressure at sea level is the reference 101.3 kPa (c1).
   @test

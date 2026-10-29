@@ -1,0 +1,82 @@
+! Minimal natural-lake (case 1) smoke + validation run with Priestley-Taylor
+! lake evaporation (evaporation_method = 2).
+!
+! Grid: the lake sits on the examples/fixtures level-0 fdir/dem grid,
+! reusing the committed lake_outlets.nc whose
+! outlet (x=4011126, y=2876592) maps onto a valid river cell (fdir=1, facc=271).
+! PT needs only temperature + downward short-/long-wave radiation, so the daily
+! tavg/ssrd/strd (and pre for lake precipitation) come from domain_01 meteo;
+! no windspeed or dew point is required. This mirrors
+! mrm_rivertemp_meteo_minimal.nml, which already feeds domain_01 meteo into a
+! routing=2 run on the fixtures grid.
+
+&config_project
+  n_domains = 1
+  n_geo_units = 10
+/
+
+&config_processes
+  routing = 2
+  lake = 1
+/
+
+&config_time
+  sim_start(1)  = "1990-06-01"
+  eval_start(1) = "1990-06-01"
+  sim_end(1)    = "1990-07-01"
+/
+
+&config_resolution
+  hydro(1) = 24000.0
+  route(1) = 6000.0
+/
+
+&config_input
+  runoff_path(1)          = "examples/fixtures/runoff.nc"
+  runoff_var(1)           = "Q"
+  fdir_path(1)            = "examples/fixtures/input.nc"
+  dem_path(1)             = "examples/fixtures/input.nc"
+  lake_definition_path(1) = "mlm_lake_optional.nc"
+  meteo_mask_path(1)      = "examples/domain_01/input/meteo/mask.nc"
+  temp_path(1)            = "examples/domain_01/input/meteo/tavg.nc"
+  ssrd_path(1)            = "examples/domain_01/input/meteo/ssrd.nc"
+  strd_path(1)            = "examples/domain_01/input/meteo/strd.nc"
+  pre_path(1)             = "examples/domain_01/input/meteo/pre.nc"
+  ! Soil class raster (level-0, fixtures grid) + soil LUT: the detached
+  ! lake MPR resolves the lakebed sand/clay and regionalizes the lakebed conductivity from them.
+  soil_class_path(1)      = "examples/fixtures/soil_class.asc"
+  ! Geology class raster (level-0) + geology LUT: the detached lake MPR resolves the lake-footprint
+  ! geological unit and regionalizes the lake baseflow recession coefficient from it.
+  geo_class_path(1)       = "examples/fixtures/geology_class.asc"
+/
+
+&config_meteo
+  ! lake precipitation is disaggregated to the hourly mLM step, so frac_night_pre
+  ! is required. The PT forcings (temp/ssrd/strd) are kept daily by the lake
+  ! meteo aggregation; their frac_night entries are carried for completeness
+  ! (mirroring mrm_rivertemp_meteo_minimal.nml) and are not used by the lake path.
+  frac_night_pre(:,1)  = 0.46, 0.50, 0.52, 0.51, 0.48, 0.50, 0.49, 0.48, 0.52, 0.56, 0.50, 0.47
+  frac_night_pet(:,1)  = 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10
+  frac_night_temp(:,1) = -0.76, -1.30, -1.88, -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.60, -0.94, -0.53
+  frac_night_ssrd(:,1) = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+  frac_night_strd(:,1) = 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45
+/
+
+&config_mlm
+  n_lakes(1)            = 1
+  output_path(1)        = "mlm_lake_optional_mlm.nc"
+  bathymetry_type(1,1)  = 2
+  natural(1,1)          = .true.
+  evaporation_method    = 2
+  varying_albedo        = .false.
+/
+
+&config_mrm
+  max_route_step(1) = 3600
+  output_path(1)    = "mlm_lake_optional.nc"
+/
+
+&config_lut
+  soil_lut_path(1)        = "examples/domain_01/input/morph/soil_classdefinition.txt"
+  geo_lut_path(1)         = "examples/domain_01/input/morph/geology_classdefinition.txt"
+/

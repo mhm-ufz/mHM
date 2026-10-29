@@ -1,11 +1,13 @@
 module test_lake_spillway_length
   use funit
-  use mo_kind, only: i4, dp
-  use mo_mlm_mpr, only: lake_derive_spillway_length
+  use mo_kind, only: i4, i8, dp
+  use mo_mlm_mpr, only: lake_derive_spillway_length, lake_derive_ks, lake_derive_kbf
+  use mo_grid, only: grid_t
 
   implicit none
   private
 
+  public :: test_independent_regionalization
   public :: test_power_law_value
   public :: test_multiplier_scaling
   public :: test_monotonic_in_area
@@ -14,6 +16,30 @@ module test_lake_spillway_length
   real(dp), parameter :: expo        = 0.35_dp
 
 contains
+
+  @test
+  subroutine test_independent_regionalization()
+    type(grid_t) :: grid
+    real(dp), allocatable :: ks(:), kbf(:), cached_ks(:), cached_kbf(:)
+    integer(i8) :: map(3), ids(2), membership(3)
+    call grid%init(3_i4,1_i4,cellsize=1.0_dp)
+    map = [101_i8,205_i8,101_i8]
+    ids = [205_i8,101_i8]
+    membership = [2_i8,1_i8,2_i8]
+    call lake_derive_ks(grid,map,ids,[40.0_dp,70.0_dp,0.0_dp],[20.0_dp,10.0_dp,100.0_dp], &
+      [-0.585_dp,0.0125_dp,0.013_dp,60.96_dp],ks)
+    ! Independent base-10 evaluation: third cell is clipped to the 1.1 cm/day floor.
+    @assertEqual([88.11400842467175_dp,14.32256918454764_dp],ks,tolerance=1.0e-10_dp)
+    call lake_derive_ks(grid,map,ids,[40.0_dp,70.0_dp,0.0_dp],[20.0_dp,10.0_dp,100.0_dp], &
+      [-0.585_dp,0.0125_dp,0.013_dp,60.96_dp],cached_ks,membership)
+    @assertEqual(ks,cached_ks,tolerance=1.0e-12_dp)
+    call lake_derive_kbf(map,ids,[104_i4,207_i4,104_i4],[207_i4,104_i4],[2_i4,1_i4],[10.0_dp,80.0_dp],kbf)
+    @assertEqual([80.0_dp,10.0_dp],kbf,tolerance=1.0e-12_dp)
+    call lake_derive_kbf(map,ids,[104_i4,207_i4,104_i4],[207_i4,104_i4],[2_i4,1_i4], &
+      [10.0_dp,80.0_dp],cached_kbf,membership,[1_i4,2_i4,1_i4])
+    @assertEqual(kbf,cached_kbf,tolerance=1.0e-12_dp)
+    call grid%destroy()
+  end subroutine test_independent_regionalization
 
   !> Ls = m * 2.7 * CA^0.35, CA given in m2 and converted to km2 internally.
   @test

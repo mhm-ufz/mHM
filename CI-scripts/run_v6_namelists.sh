@@ -79,7 +79,7 @@ parameter_file_for_namelist() {
     mrm_minimal*|mrm_lake_restart_*)
       printf '%s\n' "test_nml/mhm_parameter_v6_routing.nml"
       ;;
-    mlm_lake_case1_*)
+    mlm_lake_case1_*|mlm_lake_case_minus2_*)
       printf '%s\n' "test_nml/mhm_parameter_v6_lake.nml"
       ;;
     mrm_lake_map_minimal)
@@ -99,6 +99,10 @@ post_run_check() {
   local nml_name="$1"
 
   case "${nml_name}" in
+    mlm_lake_case1_restart_only|mlm_lake_case1_topology_only)
+      cmp mlm_lake_case1_restart_read.nc "${nml_name}.nc"
+      cmp mlm_lake_case1_restart_read_mlm.nc "${nml_name}_mlm.nc"
+      ;;
     mrm_lake_restart_only)
       if ! cmp -s mrm_lake_restart_reference.nc mrm_lake_restart_only.nc; then
         echo "Lake restart-only continuation differs from the Input-backed continuation" >&2
@@ -135,7 +139,7 @@ output_file_for_namelist() {
     mrm_coarse_routing_output_minimal)
       printf '%s\n' "test_nml/mrm_output_hourly.nml"
       ;;
-    mlm_lake_case1_*)
+    mlm_lake_case1_*|mlm_lake_case_minus2_*)
       printf '%s\n' "test_nml/mlm_output_lake_full.nml"
       ;;
     mrm_lake_restart_*)
@@ -230,6 +234,13 @@ namelists=(
   test_nml/mlm_lake_case1_albedo.nml
   test_nml/mlm_lake_case1_restart_write.nml
   test_nml/mlm_lake_case1_restart_read.nml
+  test_nml/mlm_lake_case1_restart_only.nml
+  test_nml/mlm_lake_case1_topology_write.nml
+  test_nml/mlm_lake_case1_topology_only.nml
+  test_nml/mlm_lake_case_minus2_restart_write.nml
+  test_nml/mlm_lake_case_minus2_restart_only.nml
+  test_nml/mlm_lake_case_minus2_topology_write.nml
+  test_nml/mlm_lake_case_minus2_topology_only.nml
 )
 
 for exe in "${executables[@]}"; do

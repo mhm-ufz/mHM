@@ -13,11 +13,9 @@ module test_lake_water_balance
   public :: test_seepage_conserves_between_stores
   public :: test_seepage_zero_endorheic_consistency
   public :: test_drying_reports_volume_adjustment
-  public :: test_reconciliation_caps_spill_at_available
   public :: test_mass_closure_normal_step
   public :: test_gw_baseflow_recession
   public :: test_endorheic_loses_no_seepage
-  public :: test_reconciliation_full_waterfall
   public :: test_case_minus2_outflow
 
 contains
@@ -123,47 +121,7 @@ contains
     @assertTrue(vadj > 0.0_dp, message="shortfall is reported as a positive volume_adjustment")
   end subroutine test_drying_reports_volume_adjustment
 
-  !> #3: replicate the container's spill-first reconciliation waterfall and assert the published spill
-  !>     is reduced so the routed volume never exceeds the water the lake could supply.
-  @test
-  subroutine test_reconciliation_caps_spill_at_available()
-    real(dp), allocatable :: hlvl(:), harea(:), hvol(:)
-    real(dp) :: ref_level, ref_area, ref_volume
-    real(dp) :: a_prev, v_prev, l_prev, ts
-    real(dp) :: lvl, area, vol, vadj
-    real(dp) :: spill, perc, evap_step, avg_area, deficit, spill_vol, cut
-
-    ref_level  = 100.0_dp
-    ref_area   = 1.0e6_dp
-    ref_volume = 5.0e6_dp
-    call generate_lake_bathymetry(2_i4, ref_level, ref_area, ref_volume, hlvl, harea, hvol)
-
-    ts = 3600.0_dp
-    l_prev = ref_level - 2.0_dp
-    a_prev = 0.6e6_dp
-    v_prev = 2.0e4_dp
-    spill = 25.0_dp            ! requested spill [m3 s-1]
-    perc = 0.0_dp
-    evap_step = 0.0_dp
-
-    call lake_balance(.true., 0.0_dp, evap_step, 0.0_dp, perc, 0.0_dp, spill, 0.0_dp, &
-      hlvl, harea, hvol, ref_level, ref_area, ref_volume, &
-      l_prev, a_prev, v_prev, lvl, area, vol, vadj, ts)
-    @assertTrue(vadj > 0.0_dp, message="setup drives the lake dry")
-
-    ! --- container reconciliation (spill first) ---
-    deficit = vadj
-    avg_area = 0.5_dp * (a_prev + area)
-    spill_vol = spill * ts
-    cut = min(deficit, spill_vol)
-    spill = (spill_vol - cut) / ts
-    deficit = deficit - cut
-
-    ! The published spill volume must not exceed the water that was actually available this step
-    ! (previous storage plus inflow+precip, here just the previous storage).
-    @assertTrue(spill * ts <= v_prev + 1.0_dp, message="reconciled spill volume cannot exceed available water")
-    @assertTrue(spill >= 0.0_dp, message="reconciled spill is non-negative")
-  end subroutine test_reconciliation_caps_spill_at_available
+  !> Production reconciliation and bank budgets are exercised by test_lake_update.
 
   !> Mass closure: after convergence, the realized volume change equals the water-balance equation
   !>   dV = (P - E) * 0.5*(A_prev + A) - perc * A_prev + (Qin - spill) * dt
@@ -234,69 +192,6 @@ contains
   !> The full reconciliation waterfall: when spill alone cannot absorb the whole deficit, seepage is
   !> cut next and evaporation last; the total cut equals the deficit and every published flux is
   !> non-negative with its summed volume not exceeding the available water.
-  @test
-  subroutine test_reconciliation_full_waterfall()
-    real(dp), allocatable :: hlvl(:), harea(:), hvol(:)
-    real(dp) :: ref_level, ref_area, ref_volume
-    real(dp) :: a_prev, v_prev, l_prev, ts
-    real(dp) :: lvl, area, vol, vadj
-    real(dp) :: spill, perc, evap_step, avg_area, deficit, cut
-    real(dp) :: spill_vol, perc_vol, evap_vol, total_cut, deficit0, evap_orig
-
-    ref_level = 100.0_dp; ref_area = 1.0e6_dp; ref_volume = 5.0e6_dp
-    call generate_lake_bathymetry(2_i4, ref_level, ref_area, ref_volume, hlvl, harea, hvol)
-    ts = 3600.0_dp
-    l_prev = ref_level - 2.0_dp
-    a_prev = 0.6e6_dp
-    v_prev = 1.0e4_dp          ! very little water (10,000 m3)
-    ! Demand chosen so the deficit (~12,800 m3) exceeds spill_vol (1,800 m3) and spills into seepage,
-    ! but not past the seepage capacity (12,000 m3): spill is fully cut, seepage is partially cut, and
-    ! evaporation is left untouched. This exercises the spill->seepage cascade with the correct priority.
-    spill = 0.5_dp             ! -> spill_vol 1,800 m3
-    perc = 20.0_dp             ! -> perc_vol 12,000 m3 over A_prev
-    evap_step = 30.0_dp
-    evap_orig = evap_step
-
-    call lake_balance(.true., 0.0_dp, evap_step, 0.0_dp, perc, 0.0_dp, spill, 0.0_dp, &
-      hlvl, harea, hvol, ref_level, ref_area, ref_volume, &
-      l_prev, a_prev, v_prev, lvl, area, vol, vadj, ts)
-    @assertTrue(vadj > 0.0_dp, message="setup drives the lake dry")
-
-    ! --- container reconciliation: spill -> seepage -> evap ---
-    deficit0 = vadj
-    deficit = vadj
-    avg_area = 0.5_dp * (a_prev + area)
-    spill_vol = spill * ts
-    perc_vol = perc / 1000.0_dp * a_prev
-    ! The deficit must exceed the spill volume (so spill is fully cut and seepage is engaged) but not
-    ! the combined spill+seepage capacity (so seepage is only partially cut and evaporation is safe).
-    @assertTrue(deficit0 > spill_vol, message="deficit spills past the spill stage into seepage")
-    @assertTrue(deficit0 < spill_vol + perc_vol, message="deficit does not exhaust the seepage stage")
-    ! 1) spill
-    cut = min(deficit, spill_vol)
-    spill = (spill_vol - cut) / ts
-    deficit = deficit - cut
-    ! 2) seepage over A_prev
-    if (deficit > 0.0_dp) then
-      cut = min(deficit, perc_vol)
-      perc = (perc_vol - cut) * 1000.0_dp / a_prev
-      deficit = deficit - cut
-    end if
-    ! 3) evaporation over avg area
-    if (deficit > 0.0_dp .and. avg_area > 0.0_dp) then
-      evap_vol = evap_step / 1000.0_dp * avg_area
-      cut = min(deficit, evap_vol)
-      evap_step = (evap_vol - cut) * 1000.0_dp / avg_area
-      deficit = deficit - cut
-    end if
-
-    total_cut = deficit0 - deficit
-    @assertEqual(0.0_dp, spill, tolerance=1.0e-12_dp, message="spill is fully absorbed first")
-    @assertTrue(perc >= 0.0_dp, message="reconciled seepage is non-negative")
-    @assertTrue(perc < 20.0_dp, message="seepage is partially cut to absorb the remainder after spill")
-    @assertEqual(evap_orig, evap_step, tolerance=1.0e-12_dp, message="evaporation is untouched (seepage covered the deficit)")
-    @assertEqual(deficit0, total_cut, tolerance=1.0e-6_dp, message="the full deficit is absorbed across spill and seepage")
-  end subroutine test_reconciliation_full_waterfall
 
   !> Case -2 pass-through: lake_balance_outflow applies P - E over the area and clamps negatives.
   @test

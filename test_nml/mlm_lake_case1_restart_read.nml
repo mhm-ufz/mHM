@@ -1,9 +1,4 @@
-! Case-1 restart round-trip, part 2 of 2: READ (Input-backed continuation).
-! Reads the restarts written by mlm_lake_case1_restart_write and continues one day
-! with the full lake Input + Priestley-Taylor meteo still present. Confirms the
-! case-1 mLM restart (states + spillway/initial-level metadata) round-trips and the
-! continuation runs clean. The no-Input restart-only path is not yet supported for
-! case 1 (read_restart_topology restores the level-0 lake grid only for lake == -2).
+! Case-1 Input-backed continuation, paired with compact mLM and meteo restarts.
 
 &config_project
   n_domains = 1
@@ -40,6 +35,8 @@
 /
 
 &config_meteo
+  read_restart(1) = .true.
+  restart_input_path(1) = "mlm_lake_case1_restart_meteo.nc"
   frac_night_pre(:,1)  = 0.46, 0.50, 0.52, 0.51, 0.48, 0.50, 0.49, 0.48, 0.52, 0.56, 0.50, 0.47
   frac_night_pet(:,1)  = 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10
   frac_night_temp(:,1) = -0.76, -1.30, -1.88, -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.60, -0.94, -0.53
