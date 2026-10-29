@@ -42,6 +42,7 @@ MODULE mo_mlm_mpr
   USE mo_mpr_constants, only: Ks_c, Ks_floor => lake_Ks_floor, coefficient => lake_width_coefficient, &
     area_exponent => lake_width_exponent, square_metre_to_square_kilometre => lake_area_to_km2
   IMPLICIT NONE
+  PRIVATE
 
   PUBLIC :: lake_derive_ks            ! regionalizes the per-lake lakebed Ks from soil texture over the lake footprint
   PUBLIC :: lake_derive_kbf           ! regionalizes the per-lake baseflow recession coefficient from geology over the lake footprint
@@ -80,19 +81,6 @@ CONTAINS
   !     CALLING SEQUENCE
   !         call lake_derive_ks(grid, lake_map, lake_ids, sand, clay, ptf_ks, ks_lake)
 
-  !     INTENT(IN)
-  !>       \param[in] "type(grid_t)             :: grid"      packed level-0 lake footprint grid (carries cell_area)
-  !>       \param[in] "integer(i8), dimension(:) :: lake_map"  [1]  stable lake ID on each packed footprint cell
-  !>       \param[in] "integer(i8), dimension(:) :: lake_ids"  [1]  stable lake ID in lake-point order
-  !>       \param[in] "real(dp),    dimension(:) :: sand"      [%]  top-horizon sand content on each footprint cell
-  !>       \param[in] "real(dp),    dimension(:) :: clay"      [%]  top-horizon clay content on each footprint cell
-  !>       \param[in] "real(dp),    dimension(4) :: ptf_ks"         Cosby Ks pedotransfer parameters:
-  !>                                                                 (1) constant, (2) sand coefficient,
-  !>                                                                 (3) clay coefficient, (4) unit conversion (inch/h -> cm/d)
-
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp), allocatable, dimension(:) :: ks_lake"  [cm d-1] arithmetic-mean lakebed Ks per lake
-
   !     RESTRICTIONS
   !>       \note The Cosby pedotransfer function and its minimum floor (1.1 cm/d) are
   !>             kept identical to the land-surface implementation (mo_mpr_soilmoist:hydro_cond)
@@ -110,17 +98,19 @@ CONTAINS
   !        Pallav K Shrestha, October 2026 - applied the Cosby pedotransfer function per lake-footprint
   !            cell and upscaled it per lake with upscale_arithmetic_mean_lake, for the mLM v6 migration.
 
-  subroutine lake_derive_ks(grid, lake_map, lake_ids, sand, clay, ptf_ks, ks_lake)
+  subroutine lake_derive_ks(grid, lake_map, lake_ids, sand, clay, ptf_ks, ks_lake, lake_index)
 
     implicit none
 
-    type(grid_t),              intent(in)  :: grid        ! packed level-0 lake footprint grid
-    integer(i8), dimension(:), intent(in)  :: lake_map    ! stable lake ID on each footprint cell
-    integer(i8), dimension(:), intent(in)  :: lake_ids    ! stable lake ID in lake-point order
-    real(dp),    dimension(:), intent(in)  :: sand        ! [%] sand content on each footprint cell (top horizon)
-    real(dp),    dimension(:), intent(in)  :: clay        ! [%] clay content on each footprint cell (top horizon)
-    real(dp),    dimension(4), intent(in)  :: ptf_ks      ! Cosby Ks pedotransfer parameters
-    real(dp), allocatable, dimension(:), intent(out) :: ks_lake  ! [cm d-1] per-lake mean lakebed Ks
+    type(grid_t),              intent(in) :: grid !< packed level-0 lake footprint grid
+    integer(i8), dimension(:), intent(in) :: lake_map !< stable lake ID on each footprint cell
+    integer(i8), dimension(:), intent(in) :: lake_ids !< stable lake ID in lake-point order
+    real(dp),    dimension(:), intent(in) :: sand !< [%] sand content on each footprint cell (top horizon)
+    real(dp),    dimension(:), intent(in) :: clay !< [%] clay content on each footprint cell (top horizon)
+    real(dp),    dimension(4), intent(in) :: ptf_ks !< Cosby Ks pedotransfer parameters
+    real(dp), allocatable, dimension(:), intent(out) :: ks_lake !< [cm d-1] per-lake mean lakebed Ks
+
+    integer(i8), optional, intent(in) :: lake_index(:) !< cached lake slot per footprint cell
 
     ! local variables
     real(dp), allocatable :: ks_cell(:)    ! [cm d-1] Cosby Ks on each footprint cell
@@ -136,15 +126,18 @@ CONTAINS
     ! land-surface pedotransfer function (mo_mpr_soilmoist:hydro_cond):
     !   Ks = ptf(4) * exp( (ptf(1) + ptf(2)*sand - ptf(3)*clay) * ln(Ks_c) )
     allocate(ks_cell(grid%ncells))
+    !$omp parallel do default(shared) private(i,x) schedule(static)
     do i = 1_i8, grid%ncells
       x = ptf_ks(1) + ptf_ks(2) * sand(i) - ptf_ks(3) * clay(i)
       ks_cell(i) = ptf_ks(4) * exp(x * log(Ks_c))
       if (ks_cell(i) < Ks_floor) ks_cell(i) = Ks_floor
     end do
 
+    !$omp end parallel do
+
     ! Upscale the level-0 lakebed Ks to one value per lake by the arithmetic (cell-count) mean over
     ! the lake footprint, the same operator the land-surface MPR uses (upscale_arithmetic_mean).
-    call upscale_arithmetic_mean_lake(lake_map, lake_ids, ks_cell, ks_lake)
+    call upscale_arithmetic_mean_lake(lake_map, lake_ids, ks_cell, ks_lake, lake_index)
 
     deallocate(ks_cell)
 
@@ -177,17 +170,6 @@ CONTAINS
   !     CALLING SEQUENCE
   !         call lake_derive_kbf(lake_map, lake_ids, geo_unit, geo_unit_list, geo_param_index, baseflow_recession, kbf_lake)
 
-  !     INTENT(IN)
-  !>       \param[in] "integer(i8), dimension(:) :: lake_map"           [1] stable lake ID on each packed footprint cell
-  !>       \param[in] "integer(i8), dimension(:) :: lake_ids"           [1] stable lake ID in lake-point order
-  !>       \param[in] "integer(i4), dimension(:) :: geo_unit"           [1] geological unit ID on each footprint cell
-  !>       \param[in] "integer(i4), dimension(:) :: geo_unit_list"      [1] geological unit IDs in the geology LUT
-  !>       \param[in] "integer(i4), dimension(:) :: geo_param_index"    [1] global baseflow-parameter slot per geology LUT class
-  !>       \param[in] "real(dp),    dimension(:) :: baseflow_recession" [d] per-geological-unit baseflow recession values
-
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp), allocatable, dimension(:) :: kbf_lake"  [d] arithmetic-mean baseflow recession coefficient per lake
-
   !     HISTORY
   !>       \authors Pallav Kumar Shrestha (lake baseflow-parameter regionalization, from v5 mo_multi_param_reg:mpr_lake / baseflow_param)
   !>       \date    October 2018
@@ -199,23 +181,25 @@ CONTAINS
   !            mLM v6 migration.
 
   subroutine lake_derive_kbf(lake_map, lake_ids, geo_unit, geo_unit_list, geo_param_index, &
-      baseflow_recession, kbf_lake)
+      baseflow_recession, kbf_lake, lake_index, parameter_index)
 
     implicit none
 
-    integer(i8), dimension(:), intent(in)  :: lake_map           ! stable lake ID on each footprint cell
-    integer(i8), dimension(:), intent(in)  :: lake_ids           ! stable lake ID in lake-point order
-    integer(i4), dimension(:), intent(in)  :: geo_unit           ! geological unit ID on each footprint cell
-    integer(i4), dimension(:), intent(in)  :: geo_unit_list      ! geological unit IDs in the geology LUT
-    integer(i4), dimension(:), intent(in)  :: geo_param_index    ! global baseflow-parameter slot per LUT class
-    real(dp),    dimension(:), intent(in)  :: baseflow_recession ! [d] per-geological-unit baseflow recession
-    real(dp), allocatable, dimension(:), intent(out) :: kbf_lake ! [d] per-lake mean baseflow recession coefficient
+    integer(i8), dimension(:), intent(in) :: lake_map !< stable lake ID on each footprint cell
+    integer(i8), dimension(:), intent(in) :: lake_ids !< stable lake ID in lake-point order
+    integer(i4), dimension(:), intent(in) :: geo_unit !< geological unit ID on each footprint cell
+    integer(i4), dimension(:), intent(in) :: geo_unit_list !< geological unit IDs in the geology LUT
+    integer(i4), dimension(:), intent(in) :: geo_param_index !< global baseflow-parameter slot per LUT class
+    real(dp),    dimension(:), intent(in) :: baseflow_recession !< [d] per-geological-unit baseflow recession
+    real(dp), allocatable, dimension(:), intent(out) :: kbf_lake !< [d] per-lake mean baseflow recession coefficient
+
+    integer(i8), optional, intent(in) :: lake_index(:) !< cached lake slot per footprint cell
+    integer(i4), optional, intent(in) :: parameter_index(:) !< cached geological parameter slot per cell
 
     ! local variables
     real(dp), allocatable :: kbf_cell(:)   ! [d] baseflow recession on each footprint cell
     integer(i4) :: class_pos               ! position of a cell's geo unit in geo_unit_list
     integer(i8) :: i
-    integer(i4) :: j
 
     if (size(geo_param_index) /= size(geo_unit_list)) then
       log_fatal(*) "Lake MPR: geo_param_index and geology LUT unit list sizes do not match."
@@ -230,29 +214,35 @@ CONTAINS
       error stop 1
     end if
 
-    ! Per-footprint-cell baseflow recession coefficient, the geological baseflow-parameter lookup
-    ! identical to the land-surface implementation (mo_mpr_legacy_bridge:mpr_bridge_baseflow_param):
-    ! locate the cell's geological unit in the LUT unit list, then pick its global baseflow-parameter slot.
     allocate(kbf_cell(size(lake_map, kind=i8)))
-    do i = 1_i8, size(lake_map, kind=i8)
-      class_pos = 0_i4
-      do j = 1_i4, size(geo_unit_list)
-        if (geo_unit_list(j) == geo_unit(i)) then
-          class_pos = j
-          exit
-        end if
-      end do
-      if (class_pos < 1_i4) then
-        log_fatal(*) "Lake MPR: lake footprint geological unit ", n2s(geo_unit(i)), &
-          " is not present in the geology LUT."
+    if (present(parameter_index)) then
+      if (size(parameter_index) /= size(lake_map)) then
+        log_fatal(*) "Lake MPR: cached geological mapping has incompatible size."
         error stop 1
       end if
-      kbf_cell(i) = baseflow_recession(geo_param_index(class_pos))
-    end do
+      if (any(parameter_index < 1_i4) .or. any(parameter_index > size(baseflow_recession))) then
+        log_fatal(*) "Lake MPR: cached geological parameter index is outside available parameters."
+        error stop 1
+      end if
+      !$omp parallel do default(shared) private(i) schedule(static)
+      do i = 1_i8,size(lake_map,kind=i8)
+        kbf_cell(i) = baseflow_recession(parameter_index(i))
+      end do
+      !$omp end parallel do
+    else
+      do i = 1_i8, size(lake_map, kind=i8)
+        class_pos = findloc(geo_unit_list,geo_unit(i),dim=1)
+        if (class_pos < 1_i4) then
+          log_fatal(*) "Lake MPR: lake geological unit is not present in the geology LUT."
+          error stop 1
+        end if
+        kbf_cell(i) = baseflow_recession(geo_param_index(class_pos))
+      end do
+    end if
 
     ! Upscale the level-0 baseflow recession to one value per lake by the arithmetic (cell-count) mean
     ! over the lake footprint, the same operator the lakebed Ks regionalization uses.
-    call upscale_arithmetic_mean_lake(lake_map, lake_ids, kbf_cell, kbf_lake)
+    call upscale_arithmetic_mean_lake(lake_map, lake_ids, kbf_cell, kbf_lake, lake_index)
 
     deallocate(kbf_cell)
 
@@ -279,14 +269,6 @@ CONTAINS
   !     CALLING SEQUENCE
   !         call lake_read_geology_lut(path, n_classes, geo_unit_list, geo_param_index)
 
-  !     INTENT(IN)
-  !>       \param[in] "character(*) :: path"          geology LUT file path
-
-  !     INTENT(OUT)
-  !>       \param[out] "integer(i4) :: n_classes"                      number of geological classes in the LUT
-  !>       \param[out] "integer(i4), allocatable :: geo_unit_list(:)"  geological unit IDs per class
-  !>       \param[out] "integer(i4), allocatable :: geo_param_index(:)" global baseflow-parameter slot per class
-
   !     HISTORY
   !>       \authors Matthias Zink, Rohini Kumar (geology look-up table parsing, from mo_read_lut:read_geoformation_lut)
   !>       \date    January 2013
@@ -298,10 +280,10 @@ CONTAINS
 
     implicit none
 
-    character(*),              intent(in)  :: path              ! geology LUT path
-    integer(i4),               intent(out) :: n_classes         ! number of geological classes
-    integer(i4), allocatable,  intent(out) :: geo_unit_list(:)  ! geological unit IDs per class
-    integer(i4), allocatable,  intent(out) :: geo_param_index(:) ! global baseflow-parameter slot per class
+    character(*),              intent(in) :: path !< geology LUT path
+    integer(i4),               intent(out) :: n_classes !< number of geological classes
+    integer(i4), allocatable,  intent(out) :: geo_unit_list(:) !< geological unit IDs per class
+    integer(i4), allocatable,  intent(out) :: geo_param_index(:) !< global baseflow-parameter slot per class
 
     integer :: unit               ! default-kind unit for newunit=
     integer(i4) :: ios
@@ -368,10 +350,6 @@ CONTAINS
   !     CALLING SEQUENCE
   !         call lake_check_geo_units(geo_unit, geo_unit_list)
 
-  !     INTENT(IN)
-  !>       \param[in] "integer(i4), dimension(:) :: geo_unit"       [1] geological unit ID on each footprint cell
-  !>       \param[in] "integer(i4), dimension(:) :: geo_unit_list"  [1] geological unit IDs in the geology LUT
-
   !     HISTORY
   !>       \authors Matthias Zink, Rohini Kumar (land-surface geology-unit LUT check, from mo_mpr_container:mpr_check_geo_units_against_lut)
   !>       \date    January 2013
@@ -383,8 +361,8 @@ CONTAINS
 
     implicit none
 
-    integer(i4), dimension(:), intent(in) :: geo_unit       ! geological unit ID on each footprint cell
-    integer(i4), dimension(:), intent(in) :: geo_unit_list  ! geological unit IDs in the geology LUT
+    integer(i4), dimension(:), intent(in) :: geo_unit !< geological unit ID on each footprint cell
+    integer(i4), dimension(:), intent(in) :: geo_unit_list !< geological unit IDs in the geology LUT
 
     integer(i8) :: i
 
@@ -421,14 +399,6 @@ CONTAINS
   !     CALLING SEQUENCE
   !         call lake_read_soil_texture_lut(path, n_classes, sand_by_class, clay_by_class)
 
-  !     INTENT(IN)
-  !>       \param[in] "character(*) :: path"          soil LUT file path
-
-  !     INTENT(OUT)
-  !>       \param[out] "integer(i4) :: n_classes"     number of soil classes declared in the LUT header
-  !>       \param[out] "real(dp), allocatable :: sand_by_class(:)" [%] horizon-1 sand content per class (missing = nodata)
-  !>       \param[out] "real(dp), allocatable :: clay_by_class(:)" [%] horizon-1 clay content per class (missing = nodata)
-
   !     HISTORY
   !>       \authors Juliane Mai (soil look-up table parsing, from mo_soil_database:read_soil_LUT)
   !>       \date    December 2012
@@ -442,10 +412,10 @@ CONTAINS
 
     implicit none
 
-    character(*),              intent(in)  :: path           ! soil LUT path
-    integer(i4),               intent(out) :: n_classes      ! number of soil classes
-    real(dp), allocatable,     intent(out) :: sand_by_class(:) ! [%] horizon-1 sand per class
-    real(dp), allocatable,     intent(out) :: clay_by_class(:) ! [%] horizon-1 clay per class
+    character(*),              intent(in) :: path !< soil LUT path
+    integer(i4),               intent(out) :: n_classes !< number of soil classes
+    real(dp), allocatable,     intent(out) :: sand_by_class(:) !< [%] horizon-1 sand per class
+    real(dp), allocatable,     intent(out) :: clay_by_class(:) !< [%] horizon-1 clay per class
 
     integer :: unit               ! default-kind unit for newunit=
     integer(i4) :: ios            ! iostat for the header and data reads
@@ -552,14 +522,6 @@ CONTAINS
   !     CALLING SEQUENCE
   !         call upscale_arithmetic_mean_lake(lake_map, lake_ids, l0_field, lake_mean)
 
-  !     INTENT(IN)
-  !>       \param[in] "integer(i8), dimension(:) :: lake_map"  [1] stable lake ID on each packed footprint cell
-  !>       \param[in] "integer(i8), dimension(:) :: lake_ids"  [1] stable lake ID in lake-point order
-  !>       \param[in] "real(dp),    dimension(:) :: l0_field"      level-0 field on the lake footprint cells
-
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp), allocatable, dimension(:) :: lake_mean"  per-lake arithmetic mean
-
   !     HISTORY
   !>       \authors Giovanni Dalmasso, Rohini Kumar (arithmetic cell-count mean, from mo_upscaling_operators)
   !>       \date    December 2012
@@ -567,14 +529,16 @@ CONTAINS
   !        Pallav K Shrestha, September 2018 - evaluated over the packed lake footprint (lake_map) rather than
   !            a level-1 cell window, for the detached lake MPR.
 
-  subroutine upscale_arithmetic_mean_lake(lake_map, lake_ids, l0_field, lake_mean)
+  subroutine upscale_arithmetic_mean_lake(lake_map, lake_ids, l0_field, lake_mean, lake_index)
 
     implicit none
 
-    integer(i8), dimension(:), intent(in)  :: lake_map   ! stable lake ID on each footprint cell
-    integer(i8), dimension(:), intent(in)  :: lake_ids   ! stable lake ID in lake-point order
-    real(dp),    dimension(:), intent(in)  :: l0_field   ! level-0 field on the lake footprint cells
-    real(dp), allocatable, dimension(:), intent(out) :: lake_mean  ! per-lake arithmetic mean
+    integer(i8), dimension(:), intent(in) :: lake_map !< stable lake ID on each footprint cell
+    integer(i8), dimension(:), intent(in) :: lake_ids !< stable lake ID in lake-point order
+    real(dp),    dimension(:), intent(in) :: l0_field !< level-0 field on the lake footprint cells
+    real(dp), allocatable, dimension(:), intent(out) :: lake_mean !< per-lake arithmetic mean
+
+    integer(i8), optional, intent(in) :: lake_index(:) !< cached lake slot per footprint cell
 
     ! local variables
     integer(i8), allocatable :: cell_count(:)  ! number of footprint cells per lake
@@ -585,11 +549,26 @@ CONTAINS
       error stop 1
     end if
 
+    if (present(lake_index)) then
+      if (size(lake_index) /= size(lake_map)) then
+        log_fatal(*) "Lake MPR: cached lake membership has incompatible size."
+        error stop 1
+      end if
+      if (any(lake_index < 1_i8) .or. any(lake_index > size(lake_ids,kind=i8))) then
+        log_fatal(*) "Lake MPR: cached lake membership is out of bounds."
+        error stop 1
+      end if
+    end if
+
     allocate(lake_mean(size(lake_ids)), source=0.0_dp)
     allocate(cell_count(size(lake_ids)), source=0_i8)
 
     do i = 1_i8, size(lake_map, kind=i8)
-      j = findloc(lake_ids, lake_map(i), dim=1, kind=i8)
+      if (present(lake_index)) then
+        j = lake_index(i)
+      else
+        j = findloc(lake_ids, lake_map(i), dim=1, kind=i8)
+      end if
       if (j < 1_i8) then
         log_fatal(*) "Lake MPR: lake map contains an unknown stable lake ID."
         error stop 1
@@ -634,14 +613,6 @@ CONTAINS
   !     CALLING SEQUENCE
   !         call lake_derive_spillway_length(catchment_area, spillway_length_multiplier, spillway_length)
 
-  !     INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:) :: catchment_area"             [m2] lake catchment (drainage)
-  !>                                                                           area at the outlet, in lake-point order
-  !>       \param[in] "real(dp)               :: spillway_length_multiplier" [-]  global multiplier m
-
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp), allocatable, dimension(:) :: spillway_length" [m] effective spillway crest length per lake
-
   !     RESTRICTIONS
   !>       \note Every lake must have a strictly positive catchment area (a lake outlet always has at
   !>             least its own cell draining to it), otherwise the derivation is fatal.
@@ -663,9 +634,9 @@ CONTAINS
 
   subroutine lake_derive_spillway_length(catchment_area, spillway_length_multiplier, spillway_length)
 
-    real(dp), dimension(:),              intent(in)  :: catchment_area             ! [m2] catchment area per lake (outlet upstream area)
-    real(dp),                            intent(in)  :: spillway_length_multiplier ! [-]  global multiplier m
-    real(dp), allocatable, dimension(:), intent(out) :: spillway_length           ! [m]  spillway crest length per lake
+    real(dp), dimension(:),              intent(in) :: catchment_area !< [m2] catchment area per lake (outlet upstream area)
+    real(dp),                            intent(in) :: spillway_length_multiplier !< [-]  global multiplier m
+    real(dp), allocatable, dimension(:), intent(out) :: spillway_length !< [m]  spillway crest length per lake
 
 
     real(dp), allocatable :: catchment_area_km2(:)

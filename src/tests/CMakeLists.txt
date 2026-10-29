@@ -144,6 +144,10 @@ target_link_libraries(test_neutron_parallel PRIVATE ${LIB_NAME})
 add_test(NAME test_neutron_parallel COMMAND test_neutron_parallel)
 set_tests_properties(test_neutron_parallel PROPERTIES ENVIRONMENT "OMP_DYNAMIC=FALSE")
 
+add_executable(test_mlm_parameters test_mlm_parameters.f90)
+target_link_libraries(test_mlm_parameters PRIVATE ${LIB_NAME})
+add_test(NAME test_mlm_parameters COMMAND test_mlm_parameters)
+
 # No integration or unit test writes into the source checkout.
 get_property(mhm_tests DIRECTORY PROPERTY TESTS)
 foreach(test_name IN LISTS mhm_tests)
