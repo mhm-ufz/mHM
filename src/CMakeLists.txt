@@ -33,8 +33,8 @@ set(sources
   mHM/mo_soil_moisture.f90
   mLM/mo_lake_balance.F90
   mLM/mo_lake_bathymetry.F90
-  mLM/mo_lake_evaporation.F90
-  mLM/mo_lake_forcing.F90
+  meteo/mo_lake_evaporation.F90
+  meteo/mo_lake_forcing.F90
   mLM/mo_lake_groundwaterstorage.F90
   mLM/mo_lake_spill.F90
   mLM/mo_lake_topology.F90
