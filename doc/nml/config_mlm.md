@@ -15,6 +15,7 @@ Configuration for the v6 lake component (mLM).
 | [read_restart](#read_restart) | logical array | no | no | Read mLM restart |
 | [restart_input_path](#restart_input_path) | string array | no | no | mLM restart input file |
 | [write_restart](#write_restart) | logical array | no | no | Write mLM restart |
+| [restart_save_topology](#restart_save_topology) | logical array | no | no | Include level-0 lake topology in restart |
 | [restart_output_path](#restart_output_path) | string array | no | no | mLM restart output file |
 | [force_initialize_lake_at_restart](#force_initialize_lake_at_restart) | logical | no | no | Force lake level initialization at restart |
 | [force_initialize_lake_at_a_date](#force_initialize_lake_at_a_date) | logical | no | no | Force lake level initialization at a date |
@@ -80,6 +81,20 @@ Summary:
 ### write_restart
 
 Write mLM restart `write_restart`
+
+Summary:
+- Type: `logical, dimension(n_domains)`
+- Declared required: no
+- Input required: no
+- Default: `.false.`
+
+### restart_save_topology
+
+Include level-0 lake topology in restart `restart_save_topology`
+
+Include the lake footprint grid and map when writing a restart. Reading detects
+topology independently. Compact restarts retain per-lake footprint areas;
+meteo restart support permits their use without the original level-0 geometry.
 
 Summary:
 - Type: `logical, dimension(n_domains)`
@@ -287,6 +302,7 @@ Summary:
   read_restart(:) = .false.
   restart_input_path(:) = ""
   write_restart(:) = .false.
+  restart_save_topology(:) = .false.
   restart_output_path(:) = ""
   force_initialize_lake_at_restart = .false.
   force_initialize_lake_at_a_date = .false.

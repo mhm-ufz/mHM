@@ -148,6 +148,14 @@ add_executable(test_mlm_parameters test_mlm_parameters.f90)
 target_link_libraries(test_mlm_parameters PRIVATE ${LIB_NAME})
 add_test(NAME test_mlm_parameters COMMAND test_mlm_parameters)
 
+add_executable(test_lake_borrowed_parameters test_lake_borrowed_parameters.f90)
+target_link_libraries(test_lake_borrowed_parameters PRIVATE ${LIB_NAME})
+add_test(NAME test_lake_borrowed_parameters COMMAND test_lake_borrowed_parameters)
+add_test(NAME test_lake_borrowed_failures COMMAND ${CMAKE_COMMAND}
+  -DTEST_EXECUTABLE=$<TARGET_FILE:test_lake_borrowed_parameters>
+  -DRUN_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/runs/test_lake_borrowed_failures
+  -P ${CMAKE_CURRENT_SOURCE_DIR}/run_lake_borrowed_failures.cmake)
+
 # No integration or unit test writes into the source checkout.
 get_property(mhm_tests DIRECTORY PROPERTY TESTS)
 foreach(test_name IN LISTS mhm_tests)

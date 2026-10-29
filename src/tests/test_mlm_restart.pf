@@ -38,6 +38,7 @@ contains
     integer(i4), allocatable :: coordsys
     character(64) :: timestamp
     integer :: status
+    integer(i4) :: version, lake_case
 
     call setup_exchange(exchange, "2001-01-02 00:00:00")
     call input_points%init([100.0_dp, 200.0_dp], [300.0_dp, 400.0_dp], coordsys=cartesian)
@@ -82,8 +83,12 @@ contains
     call var%getData(restored_outflow)
     var = nc%getVariable("mlm_meta")
     call var%getAttribute("time_stamp", timestamp)
+    call var%getAttribute("format_version", version)
+    call var%getAttribute("lake_case", lake_case)
     call nc%close()
 
+    @assertEqual(1_i4, version, message="mLM restart declares the current format")
+    @assertEqual(-1_i4, lake_case, message="mLM restart declares its process case")
     @assertEqual(ids, restored_ids, message="mLM restart keeps stable ID order")
     @assertEqual(input_points%x, outlet_x, tolerance=1.0e-12_dp)
     @assertEqual(input_points%y, outlet_y, tolerance=1.0e-12_dp)
@@ -160,7 +165,7 @@ contains
     call exchange%lake_outflow%provide("mLM")
     call mlm%prepare_restart()
     call mlm%connect()
-    @assertTrue(associated(exchange%lake_points, mlm%definition%points), message="mLM publishes restart lake points")
+    @assertTrue(associated(exchange%lake_points, mlm%restart%points), message="mLM publishes restart lake points")
     @assertEqual([101_i8, 205_i8], exchange%lake_ids%data, message="mLM publishes restart stable IDs")
     @assertEqual([10.0_dp, 25.0_dp], exchange%lake_spill_reference_level%data, tolerance=1.0e-12_dp)
     call mlm%finalize()
@@ -340,6 +345,7 @@ contains
     call writer%connect()
     writer%state%outflow = [3.0_dp]
     writer%write_restart = .true.
+    writer%restart_save_topology = .true.
     writer%restart_output_path = "mlm_restart_lake_topology.nc"
     call writer%finalize()
 
@@ -380,7 +386,9 @@ contains
     character(*), intent(in) :: start_time
     integer :: status
 
-    status = exchange%config%project%set()
+    status = exchange%config%processes%set(routing=2_i4, lake=-1_i4)
+    @assertEqual(0, status)
+    status = exchange%config%project%set(max_lakes=2_i4)
     @assertEqual(0, status, message="project defaults configure mLM restart exchange")
     call exchange%create(cwd=".")
     exchange%cwd = exchange%root
@@ -415,6 +423,8 @@ contains
     call var%setData(outflow)
     var = nc%setVariable("mlm_meta", "i32", dims(:0))
     call var%setData(0_i4)
+    call var%setAttribute("format_version", 1_i4)
+    call var%setAttribute("lake_case", -1_i4)
     call var%setAttribute("time_stamp", timestamp)
     call nc%close()
   end subroutine write_restart
@@ -431,6 +441,11 @@ contains
     real(dp), target :: input_levels(2), inflow(2)
 
     call setup_exchange(exchange, "2001-01-02 00:00:00")
+    block
+      integer :: status
+      status = exchange%config%processes%set(routing=2_i4, lake=1_i4)
+      @assertEqual(0, status)
+    end block
     call input_points%init([100.0_dp, 200.0_dp], [300.0_dp, 400.0_dp], coordsys=cartesian)
     input_ids = [205_i8, 101_i8]           ! Input point-set order
     input_levels = [25.0_dp, 10.0_dp]
@@ -454,6 +469,16 @@ contains
       spillway=[110.0_dp, 250.0_dp], timestamp="2001-01-02 00:00:00")
 
     mlm%exchange => exchange
+    call mlm%set_dims()
+    block
+      integer :: status
+      status = mlm%config%set(n_lakes=[2_i4])
+      @assertEqual(0, status)
+    end block
+    call exchange%lake_level%provide("mLM")
+    call exchange%lake_surface_area%provide("mLM")
+    call exchange%lake_volume%provide("mLM")
+    call exchange%lake_gw_storage%provide("mLM")
     mlm%read_restart = .true.
     mlm%restart_input_path = "mlm_restart_permuted_mpr.nc"
     call exchange%lake_outflow%provide("mLM")
@@ -497,14 +522,14 @@ contains
     @assertFalse(allocated(input%lake_initial_level), message="second Input destroy is a no-op")
   end subroutine test_input_destroy_frees_lake_arrays
 
-  !> As write_restart, plus the optional regionalized lake-MPR fields (lakebed Ks, baseflow recession).
+  !> Write the complete case-1 definition for stable-ID permutation checks.
   subroutine write_restart_with_mpr(path, ids, outlet_x, outlet_y, levels, outflow, ks, kbf, spillway, timestamp)
     character(*), intent(in) :: path
     integer(i8), intent(in) :: ids(:)
     real(dp), intent(in) :: outlet_x(:), outlet_y(:), levels(:), outflow(:), ks(:), kbf(:), spillway(:)
     character(*), intent(in) :: timestamp
     type(NcDataset) :: nc
-    type(NcDimension) :: dims(0), lake_dim
+    type(NcDimension) :: dims(0), lake_dim, parameter_dim
     type(NcVariable) :: var
 
     nc = NcDataset(path, "w")
@@ -527,8 +552,36 @@ contains
     call var%setData(kbf)
     var = nc%setVariable("lake_spillway_length", "f64", [lake_dim])
     call var%setData(spillway)
+    var = nc%setVariable("lake_spill_reference_surface_area", "f64", [lake_dim])
+    call var%setData(spread(100.0_dp, 1, size(ids)))
+    var = nc%setVariable("lake_spill_reference_volume", "f64", [lake_dim])
+    call var%setData(spread(1000.0_dp, 1, size(ids)))
+    var = nc%setVariable("lake_initial_level", "f64", [lake_dim])
+    call var%setData(levels)
+    var = nc%setVariable("lake_footprint_area", "f64", [lake_dim])
+    call var%setData(spread(100.0_dp, 1, size(ids)))
+    var = nc%setVariable("lake_level", "f64", [lake_dim])
+    call var%setData(levels)
+    var = nc%setVariable("lake_surface_area", "f64", [lake_dim])
+    call var%setData(spread(100.0_dp, 1, size(ids)))
+    var = nc%setVariable("lake_volume", "f64", [lake_dim])
+    call var%setData(spread(1000.0_dp, 1, size(ids)))
+    var = nc%setVariable("lake_gw_storage", "f64", [lake_dim])
+    call var%setData(spread(0.0_dp, 1, size(ids)))
+    var = nc%setVariable("lake_endorheic", "i32", [lake_dim])
+    call var%setData(spread(0_i4, 1, size(ids)))
+    parameter_dim = nc%setDimension("lake_ks_parameter", 3_i4)
+    var = nc%setVariable("lake_generating_ks", "f64", [parameter_dim])
+    call var%setData([-0.6_dp, 0.0126_dp, -0.0064_dp])
+    parameter_dim = nc%setDimension("lake_kbf_parameter", 1_i4)
+    var = nc%setVariable("lake_generating_kbf", "f64", [parameter_dim])
+    call var%setData([30.0_dp])
+    var = nc%setVariable("lake_generating_length", "f64", [parameter_dim])
+    call var%setData([1.0_dp])
     var = nc%setVariable("mlm_meta", "i32", dims(:0))
     call var%setData(0_i4)
+    call var%setAttribute("format_version", 1_i4)
+    call var%setAttribute("lake_case", 1_i4)
     call var%setAttribute("time_stamp", timestamp)
     call nc%close()
   end subroutine write_restart_with_mpr

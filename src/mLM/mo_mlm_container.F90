@@ -66,12 +66,13 @@ module mo_mlm_container
   use mo_grid, only: grid_t
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_lake_balance, only: lake_balance_outflow
+  use mo_lake_forcing, only: lake_grids_match
   use mo_lake_topology, only: lake_derive_spill_reference_surface_area_dem, lake_read_topology, lake_write_topology
   use mo_lake_bathymetry, only: generate_lake_bathymetry, lake_hav_t
   use mo_lake_spill, only: lake_spill
   use mo_lake_water_balance, only: lake_balance, interpolate_lake_states
   use mo_lake_groundwaterstorage, only: lake_seepage, lake_gws_baseflow
-  use mo_mlm_mpr, only: lake_derive_ks, lake_derive_kbf, lake_derive_spillway_length, lake_read_geology_lut, lake_check_geo_units, lake_read_geology_lut, lake_check_geo_units
+  use mo_mlm_mpr, only: lake_derive_ks, lake_derive_kbf, lake_derive_spillway_length, lake_read_geology_lut, lake_check_geo_units
   use mo_lake_evaporation, only: lake_evaporation
   use mo_mlm_constants, only: bank_soil_evap_ratio
   use mo_meteo_temporal_tools, only: temporal_disagg_flux_daynight
@@ -157,6 +158,9 @@ module mo_mlm_container
   !> \class mlm_restart_t
   !> \brief Domain-owned lake restart data.
   type :: mlm_restart_t
+    real(dp), allocatable :: generating_ks(:) !< restored effective Cosby coefficients
+    real(dp), allocatable :: generating_kbf(:) !< restored effective geological coefficients
+    real(dp), allocatable :: generating_length(:) !< restored effective spillway multiplier
     type(points_t) :: points !< point set restored from restart metadata
     integer(i8), allocatable :: ids(:) !< stable IDs in restart-file order
     real(dp), allocatable :: spill_reference_level(:) !< maximum levels restored from restart metadata
@@ -173,15 +177,14 @@ module mo_mlm_container
   end type mlm_restart_t
 
   !> \class mlm_t
-  !> \brief Domain-owned lake pass-through component.
-  !> \authors Pallav Shrestha
-  !> \authors Sebastian Mueller
+  !> \brief Domain-owned natural lake definition, state and lifecycle.
   type, public :: mlm_t
     type(nml_config_mlm_t) :: config !< mLM configuration
     type(nml_output_mlm_t) :: output_config !< lake-point output configuration
     type(exchange_t), pointer :: exchange => null() !< owning domain exchange
     logical :: active = .false. !< whether process -1 is selected
     logical :: read_restart = .false. !< read mLM restart
+    logical :: restart_save_topology = .false. !< include optional level-0 geometry
     logical :: write_restart = .false. !< write mLM restart
     logical :: output_active = .false. !< whether lake-point output is enabled
     logical :: evaporation_active = .false. !< whether the Penman lake-evaporation forcings are provided
@@ -197,6 +200,7 @@ module mo_mlm_container
     type(mlm_runtime_t) :: runtime !< cohesive runtime storage
     type(mlm_state_t) :: state !< cohesive state storage
     type(mlm_restart_t) :: restart !< cohesive restart storage
+
   contains
     procedure :: set_dims => mlm_set_dims
     procedure :: configure => mlm_configure
@@ -225,7 +229,7 @@ module mo_mlm_container
 
 contains
 
-  !> \brief Cache parameter-independent lake regionalization inputs at connection.
+  !> \brief Cache parameter-independent regionalization inputs once during connection.
   subroutine mlm_cache_regionalization(self)
     use mo_river, only: river_t
     class(mlm_t), target, intent(inout) :: self
@@ -281,7 +285,7 @@ contains
     self%regionalization%catchment = river%upstream_area(river%lake_outlet_nodes)
   end subroutine mlm_cache_regionalization
 
-  !> \brief Fetch the current conditional registry vector on initialization.
+  !> \brief Fetch the conditional registry layout on every initialization.
   subroutine mlm_fetch_parameters(self)
     class(mlm_t), target, intent(inout) :: self
     real(dp), allocatable :: values(:), soil(:)
@@ -317,7 +321,27 @@ contains
     else
       self%runtime%recession = values(offset+1:)
     end if
+    if (.not.self%read_restart) return
+    call mlm_check_generating_parameters(self%restart%generating_ks, self%runtime%ptf(1:3))
+    call mlm_check_generating_parameters(self%restart%generating_kbf, self%runtime%recession)
+    call mlm_check_generating_parameters(self%restart%generating_length, [self%runtime%multiplier])
   end subroutine mlm_fetch_parameters
+
+  !> \brief Reject changed or malformed generating parameter records.
+  subroutine mlm_check_generating_parameters(saved, current)
+    real(dp), intent(in) :: saved(:) !< effective generating values in restart
+    real(dp), intent(in) :: current(:) !< current effective runtime values
+    if (size(saved) /= size(current)) call mlm_changed_restart_parameters()
+    if (.not.all(ieee_is_finite(saved))) call mlm_changed_restart_parameters()
+    if (any(abs(saved-current) > 1.0e-12_dp * max(1.0_dp, abs(current)))) &
+      call mlm_changed_restart_parameters()
+  end subroutine mlm_check_generating_parameters
+
+  !> \brief Diagnose an incompatible restart parameter override.
+  subroutine mlm_changed_restart_parameters()
+    log_fatal(*) "mLM: parameters generating restored Ks, recession or spillway length cannot be changed."
+    error stop 1
+  end subroutine mlm_changed_restart_parameters
 
   !> \brief Load restart-owned lake definition before field connection.
   subroutine mlm_prepare_restart(self)
@@ -326,28 +350,31 @@ contains
 
     if (.not.self%read_restart) return
     call self%read_restart_metadata()
-    ! Restore and publish the lake topology (footprint grid + packed lake map) here, before any
-    ! component connects. The lake map is model definition that Meteo binds in its connect to build
-    ! the lake forcing support, and Meteo connects before mLM. On a restart continued WITHOUT the
-    ! original lake inputs, Input publishes no lake map, so mLM must restore it from the restart file
-    ! and publish it in this phase (prepare_restart restores model definition before binding). mLM
-    ! declared itself the lake_map provider in configure only when Input did not (the read_restart
-    ! .and. .not. lake_ids%provided guard), so this runs exactly on the restart-without-Input path and
-    ! never duplicates an Input publication. Case 1 (minimal natural lake) and case -2 both consume it.
-    lake_case = self%exchange%config%processes%lake
-    ! mLM is the lake_map provider only when its configure declared it (restart without Input). Detect
-    ! that by the recorded provider identity; a separate guard avoids dereferencing the allocatable
-    ! provider string when the field is unprovided (no short-circuit in Fortran).
-    if (lake_case == 1_i4 .or. lake_case == -2_i4) then
-      if (self%exchange%lake_map%provided) then
-        if (allocated(self%exchange%lake_map%provider)) then
-          if (self%exchange%lake_map%provider == "mLM") then
-            call self%read_restart_topology()
+    ! Publish restart-owned definition before meteo connects. Keep the restored targets
+    ! separate from the copies mLM uses internally; Input remains the owner when selected.
+    if (self%exchange%lake_ids%provider == "mLM") then
+      self%exchange%lake_points => self%restart%points
+      call self%exchange%lake_ids%prepare_data("mLM", no_time)
+      self%exchange%lake_ids%data => self%restart%ids
+      call self%exchange%lake_spill_reference_level%prepare_data("mLM", no_time)
+      self%exchange%lake_spill_reference_level%data => self%restart%spill_reference_level
+      self%owns_restart_lake_points = .true.
+      self%owns_restart_lake_metadata = .true.
+      lake_case = self%exchange%config%processes%lake
+      if (lake_case == 1_i4 .or. lake_case == -2_i4) then
+        call self%read_restart_topology()
+        if (allocated(self%definition%map)) then
+          if (associated(self%exchange%level0_lake)) then
+            if (.not.lake_grids_match(self%definition%grid,self%exchange%level0_lake)) then
+              log_fatal(*) "mLM: restored lake topology conflicts with the supplied level-0 lake grid."
+              error stop 1
+            end if
+          else
             self%exchange%level0_lake => self%definition%grid
-            call self%exchange%lake_map%prepare_data("mLM", no_time)
-            self%exchange%lake_map%data => self%definition%map
-            self%owns_restart_lake_grid = .true.
           end if
+          call self%exchange%lake_map%prepare_data("mLM", no_time)
+          self%exchange%lake_map%data => self%definition%map
+          self%owns_restart_lake_grid = .true.
         end if
       end if
     end if
@@ -365,11 +392,11 @@ contains
     end if
   end subroutine mlm_set_dims
 
-  !> \brief Configure process -1, restart paths, and optional lake-point output.
+  !> \brief Configure lake processes, restart paths, and optional lake-point output.
   subroutine mlm_configure(self, file, out_file)
     class(mlm_t), target, intent(inout) :: self
-    character(*), optional, intent(in) :: file
-    character(*), optional, intent(in) :: out_file
+    character(*), optional, intent(in) :: file !< component configuration namelist path
+    character(*), optional, intent(in) :: out_file !< lake output configuration namelist path
     character(1024) :: errmsg
     character(:), allocatable :: path
     integer(i4) :: id(1), lake_case
@@ -437,9 +464,14 @@ contains
 
     self%read_restart = self%config%read_restart(id(1))
     self%write_restart = self%config%write_restart(id(1))
+    self%restart_save_topology = self%config%restart_save_topology(id(1))
     if (self%read_restart) then
       if (self%config%is_set("restart_input_path", idx=id) /= NML_OK) then
         log_fatal(*) "mLM: restart input path required when read_restart is true."
+        error stop 1
+      end if
+      if (len_trim(self%config%restart_input_path(id(1))) == 0) then
+        log_fatal(*) "mLM: restart input path must not be empty."
         error stop 1
       end if
       self%restart_input_path = self%exchange%get_path(self%config%restart_input_path(id(1)))
@@ -447,6 +479,10 @@ contains
     if (self%write_restart) then
       if (self%config%is_set("restart_output_path", idx=id) /= NML_OK) then
         log_fatal(*) "mLM: restart output path required when write_restart is true."
+        error stop 1
+      end if
+      if (len_trim(self%config%restart_output_path(id(1))) == 0) then
+        log_fatal(*) "mLM: restart output path must not be empty."
         error stop 1
       end if
       self%restart_output_path = self%exchange%get_path(self%config%restart_output_path(id(1)))
@@ -567,95 +603,64 @@ contains
       self%definition%spill_reference_level = self%exchange%lake_spill_reference_level%data
       if (has_area) self%definition%spill_reference_surface_area = self%exchange%lake_spill_reference_surface_area%data
       if (has_volume) self%definition%spill_reference_volume = self%exchange%lake_spill_reference_volume%data
-      ! On a restart continued with Input present, the lake-MPR fields (regionalized lakebed Ks and
-      ! baseflow recession coefficient) are taken from the restart metadata when the restart file
-      ! carries them, so the soil/geology rasters need not be re-read. Initialize derives whichever
-      ! field was not restored (so a restart without these in the file still regionalizes from Input).
-      ! Restore the lake-MPR metadata by stable lake ID, not restart-file order. lake_ids here is
-      ! in Input point-set order while restart_lake_ids is in restart-file order, and the two can
-      ! differ (e.g. Input [205,101] vs restart [101,205]). These fields are later indexed in
-      ! point-set order in update, so copy restart slot restart_perm(k) into point-set slot k -
-      ! the same ID permutation the mutable-state restore (read_restart_state) applies.
-      ! validate_restart_metadata has already confirmed the ID sets match and are unique, so the
-      ! findloc below always resolves.
+      ! Restore the complete static restart definition in the supplied point-set order.
+      ! prepare_restart keeps the published restart targets separate from these working copies.
       if (self%read_restart) then
         allocate(restart_perm(n_lakes))
         do k = 1_i8, n_lakes
           restart_perm(k) = findloc(self%restart%ids, self%definition%ids(k), dim=1, kind=i8)
         end do
-        if (allocated(self%restart%ks)) self%definition%ks = self%restart%ks(restart_perm)
-        if (allocated(self%restart%kbf)) self%definition%kbf = self%restart%kbf(restart_perm)
-        if (allocated(self%restart%footprint_area)) &
+        if (lake_case == 1_i4 .or. lake_case == -2_i4) &
           self%definition%footprint_area = self%restart%footprint_area(restart_perm)
-        ! spillway length is restart-persisted and catchment-derived; restore it here too (it is not
-        ! re-derived at initialize when the restart carries it), permuted into point-set order.
-        if (allocated(self%restart%spillway_length)) &
+        if (lake_case == 1_i4) then
+          self%definition%ks = self%restart%ks(restart_perm)
+          self%definition%kbf = self%restart%kbf(restart_perm)
           self%definition%spillway_length = self%restart%spillway_length(restart_perm)
+          self%definition%endorheic = self%restart%endorheic(restart_perm)
+          self%definition%initial_level = self%restart%initial_level(restart_perm)
+          self%definition%spill_reference_surface_area = self%restart%spill_reference_surface_area(restart_perm)
+          self%definition%spill_reference_volume = self%restart%spill_reference_volume(restart_perm)
+          if (allocated(self%restart%latitude)) self%definition%latitude = self%restart%latitude(restart_perm)
+          if (allocated(self%restart%longitude)) self%definition%longitude = self%restart%longitude(restart_perm)
+        end if
         deallocate(restart_perm)
       end if
     else
-      if (.not.self%read_restart) then
-        log_fatal(*) "mLM: lake process requires lake points."
-        error stop 1
-      end if
-      n_lakes = self%restart%points%n_points
-      self%definition%ids = self%restart%ids
-      call self%definition%points%init( &
-        self%restart%points%x, self%restart%points%y, coordsys=self%restart%points%coordsys)
-      self%definition%spill_reference_level = self%restart%spill_reference_level
-      if (allocated(self%restart%spill_reference_surface_area)) &
-        self%definition%spill_reference_surface_area = self%restart%spill_reference_surface_area
-      if (allocated(self%restart%spill_reference_volume)) &
-        self%definition%spill_reference_volume = self%restart%spill_reference_volume
-      if (allocated(self%restart%spillway_length)) &
-        self%definition%spillway_length = self%restart%spillway_length
-      if (allocated(self%restart%endorheic)) &
-        self%definition%endorheic = self%restart%endorheic
-      if (allocated(self%restart%initial_level)) &
-        self%definition%initial_level = self%restart%initial_level
-      if (allocated(self%restart%ks)) &
-        self%definition%ks = self%restart%ks
-      if (allocated(self%restart%kbf)) &
-        self%definition%kbf = self%restart%kbf
-      if (allocated(self%restart%footprint_area)) &
-        self%definition%footprint_area = self%restart%footprint_area
-      if (allocated(self%restart%latitude)) &
-        self%definition%latitude = self%restart%latitude
-      if (allocated(self%restart%longitude)) &
-        self%definition%longitude = self%restart%longitude
-      self%exchange%lake_points => self%definition%points
-      call self%exchange%lake_ids%prepare_data("mLM", no_time)
-      self%exchange%lake_ids%data => self%definition%ids
-      call self%exchange%lake_spill_reference_level%prepare_data("mLM", no_time)
-      self%exchange%lake_spill_reference_level%data => self%definition%spill_reference_level
-      self%owns_restart_lake_points = .true.
-      self%owns_restart_lake_metadata = .true.
+      log_fatal(*) "mLM: lake process requires lake points, stable IDs and spill reference levels."
+      error stop 1
     end if
     if (n_lakes < 1_i8) then
       log_fatal(*) "mLM: lake process requires at least one lake."
       error stop 1
     end if
     if (lake_case == -2_i4) then
-      ! Topology may already have been restored and published in prepare_restart on a restart continued
-      ! without the original lake inputs (owns_restart_lake_grid set there). Otherwise resolve it now:
-      ! bind to the Input-published grid/map when present, else restore it from the restart file.
-      if (self%owns_restart_lake_grid) then
-        continue
-      else if (associated(self%exchange%level0_lake) .and. self%exchange%lake_map%provided) then
-        call self%exchange%check_data(self%exchange%lake_map, "mLM")
-        self%definition%grid = self%exchange%level0_lake
-        self%definition%map = self%exchange%lake_map%data
-      else if (self%read_restart) then
-        call self%read_restart_topology()
-        self%exchange%level0_lake => self%definition%grid
-        call self%exchange%lake_map%prepare_data("mLM", no_time)
-        self%exchange%lake_map%data => self%definition%map
-        self%owns_restart_lake_grid = .true.
-      else
-        log_fatal(*) "mLM process -2 requires a level-0 lake grid and lake map."
+      if (.not.self%owns_restart_lake_grid) then
+        if (associated(self%exchange%level0_lake) .and. self%exchange%lake_map%has_data()) then
+          call self%exchange%check_data(self%exchange%lake_map, "mLM")
+          self%definition%grid = self%exchange%level0_lake
+          self%definition%map = self%exchange%lake_map%data
+        end if
+      end if
+      if (.not.self%read_restart .and. .not.allocated(self%definition%map)) then
+        log_fatal(*) "mLM process -2 requires level-0 lake topology for a cold start."
         error stop 1
       end if
-      call lake_derive_spill_reference_surface_area_dem(self%definition%grid, self%definition%map, self%definition%ids, self%definition%spill_reference_surface_area_dem_derived)
+      if (allocated(self%definition%map)) then
+        block
+          real(dp), allocatable :: footprint(:)
+          call lake_derive_spill_reference_surface_area_dem(self%definition%grid, self%definition%map, &
+            self%definition%ids, footprint)
+          if (allocated(self%definition%footprint_area)) then
+            if (any(abs(footprint-self%definition%footprint_area) > 1.0e-10_dp*max(1.0_dp,footprint))) then
+              log_fatal(*) "mLM: supplied footprint area conflicts with restart definition."
+              error stop 1
+            end if
+          else
+            call move_alloc(footprint, self%definition%footprint_area)
+          end if
+        end block
+      end if
+      self%definition%spill_reference_surface_area_dem_derived = self%definition%footprint_area
       call self%exchange%lake_spill_reference_surface_area_dem_derived%prepare_data("mLM", no_time)
       self%exchange%lake_spill_reference_surface_area_dem_derived%data => self%definition%spill_reference_surface_area_dem_derived
       call self%exchange%lake_pre%check_provided("mLM")
@@ -699,8 +704,19 @@ contains
         ! restart-persisted) so the per-step lake banks term can reconcile it against the dynamic
         ! water-balance area A_water (see mlm_update). Also logged against the reported area to record
         ! how far the level-0 delineation lies from the reported crest area.
-        call lake_derive_spill_reference_surface_area_dem(self%definition%grid, self%definition%map, &
-          self%definition%ids, self%definition%footprint_area)
+        block
+          real(dp), allocatable :: footprint(:)
+          call lake_derive_spill_reference_surface_area_dem(self%definition%grid, self%definition%map, &
+            self%definition%ids, footprint)
+          if (allocated(self%definition%footprint_area)) then
+            if (any(abs(footprint-self%definition%footprint_area) > 1.0e-10_dp*max(1.0_dp,footprint))) then
+              log_fatal(*) "mLM: supplied footprint area conflicts with restart definition."
+              error stop 1
+            end if
+          else
+            call move_alloc(footprint, self%definition%footprint_area)
+          end if
+        end block
         block
           integer(i8) :: kk
           do kk = 1_i8, size(self%definition%ids, kind=i8)
@@ -751,6 +767,11 @@ contains
         self%definition%longitude = self%exchange%lake_longitude%data
       else if (.not.allocated(self%definition%longitude)) then
         allocate(self%definition%longitude(n_lakes), source=nodata_dp)
+      end if
+      ! Validate the configured capacity before indexing per-lake options.
+      if (n_lakes > int(self%config%max_lakes,i8)) then
+        log_fatal(*) "mLM: lake count exceeds config_project max_lakes."
+        error stop 1
       end if
       ! Minimal scope supports natural lakes only; reservoir regulation is not yet ported.
       if (any(.not. self%config%natural(self%exchange%nml_domain_id, 1:int(n_lakes, i4)))) then
@@ -803,6 +824,12 @@ contains
     if (lake_case == 1_i4 .and. .not.self%read_restart) then
       call self%cache_regionalization()
       call self%derive_lake_endorheic()
+    end if
+    if (self%write_restart .and. self%restart_save_topology) then
+      if (.not.allocated(self%definition%map)) then
+        log_fatal(*) "mLM: restart_save_topology requires available level-0 lake geometry."
+        error stop 1
+      end if
     end if
     allocate(self%state%outflow(n_lakes), source=0.0_dp)
     call self%exchange%lake_outflow%prepare_data("mLM", 1_i4)
@@ -943,14 +970,8 @@ contains
   end subroutine mlm_initialize
 
   !> \brief Regionalize the per-lake lakebed saturated hydraulic conductivity (detached lake MPR).
-  !> \details Runs the Cosby (1984) pedotransfer function over the lake footprint soil texture and
-  !!          aggregates it to one lakebed Ks per lake by an area-weighted arithmetic mean, mirroring
-  !!          the detached mRM regionalization (own parameters applied to a level-0 geo-field at
-  !!          initialize). Self-contained: the Cosby pedotransfer parameters are lake parameters
-  !!          (lakes_1) owned by the lake module, and the lake footprint sand/clay content is surfaced
-  !!          by the Input container from the soil LUT. It does not depend on the land-surface
-  !!          soil-moisture process or the MPR soil database. The derived field is used in the Darcy
-  !!          leakance Ks/b of the lake seepage.
+  !> \details Applies current effective Cosby coefficients to cached topsoil texture,
+  !! then forms a cell-count arithmetic mean over each lake footprint.
   subroutine mlm_derive_lake_ks(self)
     class(mlm_t), target, intent(inout) :: self
     if (.not.allocated(self%regionalization%sand) .or. .not.allocated(self%regionalization%clay)) then
@@ -1074,7 +1095,7 @@ contains
 
   end subroutine mlm_derive_lake_endorheic
 
-  !> \brief Publish the preceding completed hourly inflow as current outflow.
+  !> \brief Advance lake processes using lagged inflow on the shared hourly interval.
   subroutine mlm_update(self)
     class(mlm_t), target, intent(inout) :: self
     integer(i8) :: k, n_lakes
@@ -1365,6 +1386,9 @@ contains
     if (allocated(self%restart%longitude)) deallocate(self%restart%longitude)
     if (allocated(self%state%outflow)) deallocate(self%state%outflow)
     if (allocated(self%runtime%recession)) deallocate(self%runtime%recession)
+    if (allocated(self%restart%generating_ks)) deallocate(self%restart%generating_ks)
+    if (allocated(self%restart%generating_kbf)) deallocate(self%restart%generating_kbf)
+    if (allocated(self%restart%generating_length)) deallocate(self%restart%generating_length)
     if (allocated(self%regionalization%geo_units)) deallocate(self%regionalization%geo_units)
     if (allocated(self%regionalization%geo_indices)) deallocate(self%regionalization%geo_indices)
     if (allocated(self%regionalization%catchment)) deallocate(self%regionalization%catchment)
@@ -1377,6 +1401,7 @@ contains
     self%active = .false.
     self%read_restart = .false.
     self%write_restart = .false.
+    self%restart_save_topology = .false.
     self%evaporation_active = .false.
     self%output_active = .false.
   end subroutine mlm_destroy
@@ -1477,7 +1502,7 @@ contains
   !> \brief Report whether a timestamp is a configured mLM output boundary.
   logical function mlm_at_output_boundary(self, time) result(boundary)
     class(mlm_t), target, intent(in) :: self
-    type(datetime), intent(in) :: time
+    type(datetime), intent(in) :: time !< time
     integer(i4) :: elapsed_hours
 
     select case (self%output_config%output_frequency)
@@ -1638,34 +1663,85 @@ contains
       call var%setAttribute("units", "m3")
       call var%setData(self%state%gw_storage)
     end if
-    if (self%exchange%config%processes%lake == -2_i4) then
+    if (self%restart_save_topology) then
       call lake_write_topology(nc, self%definition%grid, self%definition%map)
+    end if
+    if (self%exchange%config%processes%lake == 1_i4) then
+      block
+        type(NcDimension) :: parameter_dim
+        parameter_dim = nc%setDimension("lake_ks_parameter", 3_i4)
+        var = nc%setVariable("lake_generating_ks", "f64", [parameter_dim])
+        call var%setData(self%runtime%ptf(1:3))
+        parameter_dim = nc%setDimension("lake_kbf_parameter", size(self%runtime%recession))
+        var = nc%setVariable("lake_generating_kbf", "f64", [parameter_dim])
+        call var%setData(self%runtime%recession)
+        parameter_dim = nc%setDimension("lake_length_parameter", 1_i4)
+        var = nc%setVariable("lake_generating_length", "f64", [parameter_dim])
+        call var%setData([self%runtime%multiplier])
+      end block
     end if
     var = nc%setVariable("mlm_meta", "i32", dims(:0))
     call var%setData(0_i4)
+    call var%setAttribute("format_version", 1_i4)
+    call var%setAttribute("lake_case", self%exchange%config%processes%lake)
     call var%setAttribute("time_stamp", self%exchange%time%str())
     call nc%close()
   end subroutine mlm_create_restart
 
-  !> \brief Read and validate static lake metadata before resolving the exchange provider.
+  !> \brief Read a complete current-format definition before resolving the exchange provider.
   subroutine mlm_read_restart_metadata(self)
     class(mlm_t), target, intent(inout) :: self
     type(NcDataset) :: nc
-    type(NcVariable) :: var, meta_var
+    type(NcVariable) :: var
     real(dp), allocatable :: outlet_x(:), outlet_y(:)
+    integer(i4), allocatable :: endorheic_flag(:)
     integer(i4), allocatable :: coordsys_data
-    integer(i8) :: i
+    integer(i4) :: version, lake_case
+    integer(i8) :: i, n
     character(64) :: restart_time
     character(:), allocatable :: expected_time
 
     nc = NcDataset(self%restart_input_path, "r")
-    if (.not.nc%hasVariable("lake_id") .or. .not.nc%hasVariable("lake_outflow")) then
-      log_fatal(*) "mLM restart is missing lake IDs or lake outflow: ", self%restart_input_path
+    call mlm_require_restart_fields(nc, [character(40) :: "mlm_meta"])
+    var = nc%getVariable("mlm_meta")
+    if (.not.var%hasAttribute("format_version")) then
+      log_fatal(*) "mLM: unsupported lake restart format; regenerate the lake restart."
       error stop 1
+    end if
+    call var%getAttribute("format_version", version)
+    if (version /= 1_i4) then
+      log_fatal(*) "mLM: unsupported lake restart format; regenerate the lake restart."
+      error stop 1
+    end if
+    if (.not.var%hasAttribute("lake_case") .or. .not.var%hasAttribute("time_stamp")) then
+      log_fatal(*) "mLM: restart metadata requires lake_case and time_stamp."
+      error stop 1
+    end if
+    call var%getAttribute("lake_case", lake_case)
+    if (lake_case /= self%exchange%config%processes%lake) then
+      log_fatal(*) "mLM: lake process case conflicts with restart."
+      error stop 1
+    end if
+    call var%getAttribute("time_stamp", restart_time)
+    expected_time = self%exchange%start_time%str()
+    if (trim(restart_time) /= trim(expected_time)) then
+      log_fatal(*) "mLM restart timestamp ", trim(restart_time), " does not match domain restart time ", trim(expected_time), "."
+      error stop 1
+    end if
+    call mlm_require_restart_fields(nc, [character(40) :: "lake_id", "lake_outlet_x", "lake_outlet_y", &
+      "lake_spill_reference_level", "lake_coordsys", "lake_outflow"])
+    if (lake_case == 1_i4 .or. lake_case == -2_i4) &
+      call mlm_require_restart_fields(nc, [character(40) :: "lake_footprint_area"])
+    if (lake_case == 1_i4) then
+      call mlm_require_restart_fields(nc, [character(40) :: "lake_spill_reference_surface_area", &
+        "lake_spill_reference_volume", "lake_spillway_length", "lake_endorheic", "lake_initial_level", &
+        "lake_ks", "lake_kbf", "lake_generating_ks", "lake_generating_kbf", "lake_generating_length", &
+        "lake_level", "lake_surface_area", "lake_volume", "lake_gw_storage"])
     end if
     var = nc%getVariable("lake_id")
     call var%getData(self%restart%ids)
-    if (size(self%restart%ids, kind=i8) < 1_i8) then
+    n = size(self%restart%ids, kind=i8)
+    if (n < 1_i8) then
       log_fatal(*) "mLM restart contains no lakes: ", self%restart_input_path
       error stop 1
     end if
@@ -1673,185 +1749,105 @@ contains
       log_fatal(*) "mLM restart contains a non-positive stable lake ID."
       error stop 1
     end if
-    do i = 1_i8, size(self%restart%ids, kind=i8) - 1_i8
+    do i = 1_i8, n - 1_i8
       if (any(self%restart%ids(i + 1_i8:) == self%restart%ids(i))) then
         log_fatal(*) "mLM restart contains duplicate stable lake IDs."
         error stop 1
       end if
     end do
-
-    if (.not.nc%hasVariable("lake_outlet_x") .or. .not.nc%hasVariable("lake_outlet_y") .or. &
-        .not.nc%hasVariable("lake_spill_reference_level") .or. .not.nc%hasVariable("lake_coordsys")) then
-      log_fatal(*) "mLM restart is missing required static lake metadata: ", self%restart_input_path
-      error stop 1
-    end if
-    var = nc%getVariable("lake_outlet_x")
-    call var%getData(outlet_x)
-    var = nc%getVariable("lake_outlet_y")
-    call var%getData(outlet_y)
-    var = nc%getVariable("lake_spill_reference_level")
-    call var%getData(self%restart%spill_reference_level)
-    if (self%exchange%config%processes%lake == 1_i4) then
-      if (.not.nc%hasVariable("lake_spill_reference_surface_area") .or. &
-          .not.nc%hasVariable("lake_spill_reference_volume")) then
-        log_fatal(*) "mLM process 1 restart is missing reported maximum surface area or volume: ", self%restart_input_path
-        error stop 1
-      end if
-      if (.not.nc%hasVariable("lake_spillway_length") .or. &
-          .not.nc%hasVariable("lake_initial_level")) then
-        log_fatal(*) "mLM process 1 restart is missing spillway length or initial level: ", self%restart_input_path
-        error stop 1
-      end if
-    end if
-    if (nc%hasVariable("lake_spill_reference_surface_area")) then
-      var = nc%getVariable("lake_spill_reference_surface_area")
-      call var%getData(self%restart%spill_reference_surface_area)
-    end if
-    if (nc%hasVariable("lake_spill_reference_volume")) then
-      var = nc%getVariable("lake_spill_reference_volume")
-      call var%getData(self%restart%spill_reference_volume)
-    end if
-    if (nc%hasVariable("lake_spillway_length")) then
-      var = nc%getVariable("lake_spillway_length")
-      call var%getData(self%restart%spillway_length)
-    end if
-    if (nc%hasVariable("lake_endorheic")) then
-      block
-        integer(i4), allocatable :: endorheic_flag(:)
-        var = nc%getVariable("lake_endorheic")
-        call var%getData(endorheic_flag)
-        self%restart%endorheic = (endorheic_flag /= 0_i4)
-      end block
-    end if
-    if (nc%hasVariable("lake_initial_level")) then
-      var = nc%getVariable("lake_initial_level")
-      call var%getData(self%restart%initial_level)
-    end if
-    if (nc%hasVariable("lake_ks")) then
-      var = nc%getVariable("lake_ks")
-      call var%getData(self%restart%ks)
-    end if
-    if (nc%hasVariable("lake_kbf")) then
-      var = nc%getVariable("lake_kbf")
-      call var%getData(self%restart%kbf)
-    end if
-    if (nc%hasVariable("lake_footprint_area")) then
-      var = nc%getVariable("lake_footprint_area")
-      call var%getData(self%restart%footprint_area)
-    end if
-    ! Geographic coordinates are optional in the restart (back-compat and non-albedo runs); when a
-    ! varying_albedo run restarts without them, the connect guard reports the missing coordinates.
-    if (nc%hasVariable("lake_latitude")) then
-      var = nc%getVariable("lake_latitude")
-      call var%getData(self%restart%latitude)
-    end if
-    if (nc%hasVariable("lake_longitude")) then
-      var = nc%getVariable("lake_longitude")
-      call var%getData(self%restart%longitude)
-    end if
-    var = nc%getVariable("lake_coordsys")
-    call var%getData(coordsys_data)
-    if (size(outlet_x, kind=i8) /= size(self%restart%ids, kind=i8) .or. &
-        size(outlet_y, kind=i8) /= size(self%restart%ids, kind=i8) .or. &
-        size(self%restart%spill_reference_level, kind=i8) /= size(self%restart%ids, kind=i8)) then
-      log_fatal(*) "mLM restart static lake metadata does not align with stable lake IDs."
-      error stop 1
-    end if
-    if (allocated(self%restart%spill_reference_surface_area)) then
-      if (size(self%restart%spill_reference_surface_area, kind=i8) /= size(self%restart%ids, kind=i8)) then
-        log_fatal(*) "mLM restart reported maximum surface area does not align with stable lake IDs."
-        error stop 1
-      end if
-    end if
-    if (allocated(self%restart%spillway_length)) then
-      if (size(self%restart%spillway_length, kind=i8) /= size(self%restart%ids, kind=i8)) then
-        log_fatal(*) "mLM restart spillway length does not align with stable lake IDs."
-        error stop 1
-      end if
-    end if
-    if (allocated(self%restart%endorheic)) then
-      if (size(self%restart%endorheic, kind=i8) /= size(self%restart%ids, kind=i8)) then
+    call mlm_read_restart_field(nc, "lake_outlet_x", outlet_x, n)
+    call mlm_read_restart_field(nc, "lake_outlet_y", outlet_y, n)
+    call mlm_read_restart_field(nc, "lake_spill_reference_level", self%restart%spill_reference_level, n)
+    if (lake_case == 1_i4 .or. lake_case == -2_i4) &
+      call mlm_read_restart_field(nc, "lake_footprint_area", self%restart%footprint_area, n, positive=.true.)
+    if (lake_case == 1_i4) then
+      call mlm_read_restart_field(nc, "lake_spill_reference_surface_area", &
+        self%restart%spill_reference_surface_area, n, positive=.true.)
+      call mlm_read_restart_field(nc, "lake_spill_reference_volume", self%restart%spill_reference_volume, n, positive=.true.)
+      call mlm_read_restart_field(nc, "lake_spillway_length", self%restart%spillway_length, n, positive=.true.)
+      call mlm_read_restart_field(nc, "lake_initial_level", self%restart%initial_level, n)
+      call mlm_read_restart_field(nc, "lake_ks", self%restart%ks, n, positive=.true.)
+      call mlm_read_restart_field(nc, "lake_kbf", self%restart%kbf, n, positive=.true.)
+      var = nc%getVariable("lake_endorheic")
+      call var%getData(endorheic_flag)
+      if (size(endorheic_flag, kind=i8) /= n) then
         log_fatal(*) "mLM restart endorheic flag does not align with stable lake IDs."
         error stop 1
       end if
-    end if
-    if (allocated(self%restart%initial_level)) then
-      if (size(self%restart%initial_level, kind=i8) /= size(self%restart%ids, kind=i8)) then
-        log_fatal(*) "mLM restart initial level does not align with stable lake IDs."
+      if (any(endorheic_flag /= 0_i4 .and. endorheic_flag /= 1_i4)) then
+        log_fatal(*) "mLM restart: invalid endorheic flags."
         error stop 1
       end if
+      self%restart%endorheic = endorheic_flag /= 0_i4
+      var = nc%getVariable("lake_generating_ks")
+      call var%getData(self%restart%generating_ks)
+      var = nc%getVariable("lake_generating_kbf")
+      call var%getData(self%restart%generating_kbf)
+      var = nc%getVariable("lake_generating_length")
+      call var%getData(self%restart%generating_length)
     end if
-    if (allocated(self%restart%ks)) then
-      if (size(self%restart%ks, kind=i8) /= size(self%restart%ids, kind=i8)) then
-        log_fatal(*) "mLM restart lakebed Ks does not align with stable lake IDs."
-        error stop 1
-      end if
-    end if
-    if (allocated(self%restart%kbf)) then
-      if (size(self%restart%kbf, kind=i8) /= size(self%restart%ids, kind=i8)) then
-        log_fatal(*) "mLM restart baseflow recession coefficient does not align with stable lake IDs."
-        error stop 1
-      end if
-    end if
-    if (allocated(self%restart%footprint_area)) then
-      if (size(self%restart%footprint_area, kind=i8) /= size(self%restart%ids, kind=i8)) then
-        log_fatal(*) "mLM restart lake footprint area does not align with stable lake IDs."
-        error stop 1
-      end if
-    end if
-    if (allocated(self%restart%latitude)) then
-      if (size(self%restart%latitude, kind=i8) /= size(self%restart%ids, kind=i8)) then
-        log_fatal(*) "mLM restart latitude does not align with stable lake IDs."
-        error stop 1
-      end if
-    end if
-    if (allocated(self%restart%longitude)) then
-      if (size(self%restart%longitude, kind=i8) /= size(self%restart%ids, kind=i8)) then
-        log_fatal(*) "mLM restart longitude does not align with stable lake IDs."
-        error stop 1
-      end if
-    end if
-    if (allocated(self%restart%spill_reference_volume)) then
-      if (size(self%restart%spill_reference_volume, kind=i8) /= size(self%restart%ids, kind=i8)) then
-        log_fatal(*) "mLM restart reported maximum volume does not align with stable lake IDs."
-        error stop 1
-      end if
-    end if
+    ! Geographic coordinates remain optional for runs without varying albedo.
+    if (nc%hasVariable("lake_latitude")) &
+      call mlm_read_restart_field(nc, "lake_latitude", self%restart%latitude, n)
+    if (nc%hasVariable("lake_longitude")) &
+      call mlm_read_restart_field(nc, "lake_longitude", self%restart%longitude, n)
+    var = nc%getVariable("lake_coordsys")
+    call var%getData(coordsys_data)
     if (coordsys_data /= cartesian .and. coordsys_data /= spherical) then
       log_fatal(*) "mLM restart contains an unsupported lake coordinate system."
       error stop 1
     end if
-    if (.not.all(ieee_is_finite(outlet_x)) .or. .not.all(ieee_is_finite(outlet_y)) .or. &
-        .not.all(ieee_is_finite(self%restart%spill_reference_level))) then
-      log_fatal(*) "mLM restart static lake metadata must be finite."
-      error stop 1
-    end if
     call self%restart%points%init(outlet_x, outlet_y, coordsys=coordsys_data)
-
-    if (.not.nc%hasVariable("mlm_meta")) then
-      log_fatal(*) "mLM restart metadata variable mlm_meta is missing: ", self%restart_input_path
-      error stop 1
-    end if
-    meta_var = nc%getVariable("mlm_meta")
-    if (.not.meta_var%hasAttribute("time_stamp")) then
-      log_fatal(*) "mLM restart metadata has no time_stamp: ", self%restart_input_path
-      error stop 1
-    end if
-    call meta_var%getAttribute("time_stamp", restart_time)
-    expected_time = self%exchange%start_time%str()
-    if (trim(restart_time) /= trim(expected_time)) then
-      log_fatal(*) "mLM restart timestamp ", trim(restart_time), " does not match domain restart time ", trim(expected_time), "."
-      error stop 1
-    end if
     call nc%close()
   end subroutine mlm_read_restart_metadata
 
-  !> \brief Restore the static level-0 lake footprint required by lake case -2.
+  !> \brief Reject incomplete restart definitions instead of reconstructing older formats.
+  subroutine mlm_require_restart_fields(nc, names)
+    type(NcDataset), intent(in) :: nc !< open current-format restart
+    character(*), intent(in) :: names(:) !< fields required by the active lake case
+    integer :: i
+    do i = 1, size(names)
+      if (.not.nc%hasVariable(trim(names(i)))) then
+        log_fatal(*) "mLM: restart is missing required field ", trim(names(i)), "; regenerate the lake restart."
+        error stop 1
+      end if
+    end do
+  end subroutine mlm_require_restart_fields
+
+  !> \brief Read and validate one per-lake definition field in stable-ID order.
+  subroutine mlm_read_restart_field(nc, name, data, n, positive)
+    type(NcDataset), intent(inout) :: nc !< open current-format restart
+    character(*), intent(in) :: name !< required field name
+    real(dp), allocatable, intent(out) :: data(:) !< owned definition storage, not yet published
+    integer(i8), intent(in) :: n !< number of stable lake IDs
+    logical, optional, intent(in) :: positive !< require strictly positive values
+    type(NcVariable) :: var
+    var = nc%getVariable(name)
+    call var%getData(data)
+    if (size(data, kind=i8) /= n) then
+      log_fatal(*) "mLM restart field ", name, " does not align with stable lake IDs."
+      error stop 1
+    end if
+    if (.not.all(ieee_is_finite(data))) then
+      log_fatal(*) "mLM restart field ", name, " must be finite."
+      error stop 1
+    end if
+    if (present(positive)) then
+      if (positive) then
+        if (any(data <= 0.0_dp)) then
+          log_fatal(*) "mLM restart field ", name, " must be positive."
+          error stop 1
+        end if
+      end if
+    end if
+  end subroutine mlm_read_restart_field
+
+  !> \brief Restore optional static level-0 lake topology when present.
   subroutine mlm_read_restart_topology(self)
     class(mlm_t), target, intent(inout) :: self
     type(NcDataset) :: nc
     nc = NcDataset(self%restart_input_path, "r")
-    call lake_read_topology(nc, self%definition%grid, self%definition%map)
+    if (nc%hasVariable("lake_map")) call lake_read_topology(nc, self%definition%grid, self%definition%map)
     call nc%close()
   end subroutine mlm_read_restart_topology
 

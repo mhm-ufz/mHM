@@ -45,6 +45,17 @@ properties:
       default: false
     x-fortran-shape: n_domains
     title: Write mLM restart
+  restart_save_topology:
+    type: array
+    items:
+      type: boolean
+      default: false
+    x-fortran-shape: n_domains
+    title: Include level-0 lake topology in restart
+    description: |-
+      Include the lake footprint grid and map when writing a restart. Reading detects
+      topology independently. Compact restarts retain per-lake footprint areas;
+      meteo restart support permits their use without the original level-0 geometry.
   restart_output_path:
     type: array
     items:

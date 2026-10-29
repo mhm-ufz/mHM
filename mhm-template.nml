@@ -530,6 +530,8 @@
   restart_input_path(:) = ""
   ! Write mLM restart
   write_restart(:) = .false.
+  ! Include level-0 lake topology in restart
+  restart_save_topology(:) = .false.
   ! mLM restart output file
   restart_output_path(:) = ""
   ! Force lake level initialization at restart

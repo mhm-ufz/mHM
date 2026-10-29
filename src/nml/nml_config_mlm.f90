@@ -42,6 +42,7 @@ module nml_config_mlm
   ! default values
   logical, parameter, public :: read_restart__default = .false.
   logical, parameter, public :: write_restart__default = .false.
+  logical, parameter, public :: restart_save_topology__default = .false.
   logical, parameter, public :: force_initialize_lake_at_restart__default = .false.
   logical, parameter, public :: force_initialize_lake_at_a_date__default = .false.
   integer(i4), parameter, public :: evaporation_method__default = 1_i4
@@ -76,6 +77,7 @@ module nml_config_mlm
     logical, allocatable, dimension(:) :: read_restart !< Read mLM restart
     character(len=buf), allocatable, dimension(:) :: restart_input_path !< mLM restart input file
     logical, allocatable, dimension(:) :: write_restart !< Write mLM restart
+    logical, allocatable, dimension(:) :: restart_save_topology !< Include level-0 lake topology in restart
     character(len=buf), allocatable, dimension(:) :: restart_output_path !< mLM restart output file
     logical :: force_initialize_lake_at_restart !< Force lake level initialization at restart
     logical :: force_initialize_lake_at_a_date !< Force lake level initialization at a date
@@ -221,6 +223,8 @@ contains
     allocate(character(len=buf) :: this%restart_input_path(this%n_domains))
     if (allocated(this%write_restart)) deallocate(this%write_restart)
     allocate(this%write_restart(this%n_domains))
+    if (allocated(this%restart_save_topology)) deallocate(this%restart_save_topology)
+    allocate(this%restart_save_topology(this%n_domains))
     if (allocated(this%restart_output_path)) deallocate(this%restart_output_path)
     allocate(character(len=buf) :: this%restart_output_path(this%n_domains))
     if (allocated(this%bathymetry_type)) deallocate(this%bathymetry_type)
@@ -236,6 +240,7 @@ contains
     ! default values
     this%read_restart = read_restart__default
     this%write_restart = write_restart__default
+    this%restart_save_topology = restart_save_topology__default
     this%force_initialize_lake_at_restart = force_initialize_lake_at_restart__default ! bool values always need a default
     this%force_initialize_lake_at_a_date = force_initialize_lake_at_a_date__default ! bool values always need a default
     this%evaporation_method = evaporation_method__default
@@ -292,6 +297,7 @@ contains
     if (allocated(this%read_restart)) deallocate(this%read_restart)
     if (allocated(this%restart_input_path)) deallocate(this%restart_input_path)
     if (allocated(this%write_restart)) deallocate(this%write_restart)
+    if (allocated(this%restart_save_topology)) deallocate(this%restart_save_topology)
     if (allocated(this%restart_output_path)) deallocate(this%restart_output_path)
     if (allocated(this%bathymetry_type)) deallocate(this%bathymetry_type)
     if (allocated(this%natural)) deallocate(this%natural)
@@ -310,6 +316,7 @@ contains
     logical, allocatable, dimension(:) :: read_restart
     character(len=buf), allocatable, dimension(:) :: restart_input_path
     logical, allocatable, dimension(:) :: write_restart
+    logical, allocatable, dimension(:) :: restart_save_topology
     character(len=buf), allocatable, dimension(:) :: restart_output_path
     logical :: force_initialize_lake_at_restart
     logical :: force_initialize_lake_at_a_date
@@ -334,6 +341,7 @@ contains
       read_restart, &
       restart_input_path, &
       write_restart, &
+      restart_save_topology, &
       restart_output_path, &
       force_initialize_lake_at_restart, &
       force_initialize_lake_at_a_date, &
@@ -360,6 +368,8 @@ contains
     allocate(character(len=buf) :: restart_input_path(this%n_domains))
     if (allocated(write_restart)) deallocate(write_restart)
     allocate(write_restart(this%n_domains))
+    if (allocated(restart_save_topology)) deallocate(restart_save_topology)
+    allocate(restart_save_topology(this%n_domains))
     if (allocated(restart_output_path)) deallocate(restart_output_path)
     allocate(character(len=buf) :: restart_output_path(this%n_domains))
     if (allocated(bathymetry_type)) deallocate(bathymetry_type)
@@ -371,6 +381,7 @@ contains
     read_restart = this%read_restart
     restart_input_path = this%restart_input_path
     write_restart = this%write_restart
+    restart_save_topology = this%restart_save_topology
     restart_output_path = this%restart_output_path
     force_initialize_lake_at_restart = this%force_initialize_lake_at_restart
     force_initialize_lake_at_a_date = this%force_initialize_lake_at_a_date
@@ -413,6 +424,7 @@ contains
     this%read_restart = read_restart
     this%restart_input_path = restart_input_path
     this%write_restart = write_restart
+    this%restart_save_topology = restart_save_topology
     this%restart_output_path = restart_output_path
     this%force_initialize_lake_at_restart = force_initialize_lake_at_restart
     this%force_initialize_lake_at_a_date = force_initialize_lake_at_a_date
@@ -438,6 +450,7 @@ contains
     read_restart, &
     restart_input_path, &
     write_restart, &
+    restart_save_topology, &
     restart_output_path, &
     force_initialize_lake_at_restart, &
     force_initialize_lake_at_a_date, &
@@ -459,6 +472,7 @@ contains
     logical, dimension(:), intent(in), optional :: read_restart !< Read mLM restart
     character(len=*), dimension(:), intent(in), optional :: restart_input_path !< mLM restart input file
     logical, dimension(:), intent(in), optional :: write_restart !< Write mLM restart
+    logical, dimension(:), intent(in), optional :: restart_save_topology !< Include level-0 lake topology in restart
     character(len=*), dimension(:), intent(in), optional :: restart_output_path !< mLM restart output file
     logical, intent(in), optional :: force_initialize_lake_at_restart !< Force lake level initialization at restart
     logical, intent(in), optional :: force_initialize_lake_at_a_date !< Force lake level initialization at a date
@@ -531,6 +545,16 @@ contains
       lb__1 = lbound(this%write_restart, 1)
       ub__1 = lb__1 + size(write_restart, 1) - 1
       this%write_restart(lb__1:ub__1) = write_restart
+    end if
+    if (present(restart_save_topology)) then
+      if (size(restart_save_topology, 1) > size(this%restart_save_topology, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'restart_save_topology'"
+        return
+      end if
+      lb__1 = lbound(this%restart_save_topology, 1)
+      ub__1 = lb__1 + size(restart_save_topology, 1) - 1
+      this%restart_save_topology(lb__1:ub__1) = restart_save_topology
     end if
     if (present(restart_output_path)) then
       if (size(restart_output_path, 1) > size(this%restart_output_path, 1)) then
@@ -664,6 +688,17 @@ contains
       if (present(idx)) then
         status = idx_check(idx, lbound(this%write_restart), ubound(this%write_restart), &
           "write_restart", errmsg)
+        if (status /= NML_OK) return
+      else
+      end if
+    case ("restart_save_topology")
+      if (.not. allocated(this%restart_save_topology)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%restart_save_topology), ubound(this%restart_save_topology), &
+          "restart_save_topology", errmsg)
         if (status /= NML_OK) return
       else
       end if
