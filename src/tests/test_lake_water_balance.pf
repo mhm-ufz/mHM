@@ -1,0 +1,319 @@
+module test_lake_water_balance
+  use funit
+  use mo_kind, only: dp, i4, i8
+  use mo_lake_bathymetry, only: generate_lake_bathymetry
+  use mo_lake_water_balance, only: lake_balance
+  use mo_lake_balance, only: lake_balance_outflow
+  use mo_lake_groundwaterstorage, only: lake_gws_baseflow
+  use mo_mlm_constants, only: error_lake_vol
+
+  implicit none
+  private
+
+  public :: test_seepage_conserves_between_stores
+  public :: test_seepage_zero_endorheic_consistency
+  public :: test_drying_reports_volume_adjustment
+  public :: test_reconciliation_caps_spill_at_available
+  public :: test_mass_closure_normal_step
+  public :: test_gw_baseflow_recession
+  public :: test_endorheic_loses_no_seepage
+  public :: test_reconciliation_full_waterfall
+  public :: test_case_minus2_outflow
+
+contains
+
+  !> #2: the seepage volume the lake balance removes equals the volume the groundwater store gains.
+  !>     Both use perc (a depth) over the PREVIOUS-step area A_prev, so perc/1000 * A_prev must appear
+  !>     identically on both sides. Isolate the seepage term by differencing two balances that are
+  !>     identical except for perc.
+  @test
+  subroutine test_seepage_conserves_between_stores()
+    real(dp), allocatable :: hlvl(:), harea(:), hvol(:)
+    real(dp) :: ref_level, ref_area, ref_volume
+    real(dp) :: a_prev, v_prev, l_prev
+    real(dp) :: perc, tsHydroSecs
+    real(dp) :: lvl0, area0, vol0, vadj0
+    real(dp) :: lvl1, area1, vol1, vadj1
+    real(dp) :: gw_prev, gw_after, baseflow
+    real(dp) :: lake_loss_from_seepage, gw_gain_from_seepage, transfer_volume
+
+    ! Build a real hAV curve (truncated cone, bathymetry_type 2) for a natural lake.
+    ref_level  = 100.0_dp
+    ref_area   = 1.0e6_dp      ! 1 km2
+    ref_volume = 5.0e6_dp      ! 5 mcm
+    call generate_lake_bathymetry(2_i4, ref_level, ref_area, ref_volume, hlvl, harea, hvol)
+
+    tsHydroSecs = 3600.0_dp
+    l_prev = ref_level - 1.0_dp            ! a metre below the sill
+    a_prev = 0.8e6_dp                      ! previous-step surface area [m2]
+    v_prev = 3.0e6_dp                      ! previous-step volume [m3]
+    perc   = 5.0_dp                        ! seepage depth [mm TS-1]
+
+    ! Balance WITHOUT seepage (perc = 0): pure inflow/atmos, no spill/wateruse/ibt.
+    call lake_balance(.true., 0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, &
+      hlvl, harea, hvol, ref_level, ref_area, ref_volume, &
+      l_prev, a_prev, v_prev, lvl0, area0, vol0, vadj0, tsHydroSecs)
+    ! Same balance WITH seepage perc.
+    call lake_balance(.true., 0.0_dp, 0.0_dp, 0.0_dp, perc, 0.0_dp, 0.0_dp, 0.0_dp, &
+      hlvl, harea, hvol, ref_level, ref_area, ref_volume, &
+      l_prev, a_prev, v_prev, lvl1, area1, vol1, vadj1, tsHydroSecs)
+
+    @assertEqual(0.0_dp, vadj0, tolerance=1.0e-6_dp, message="no deficit without seepage in this setup")
+    @assertEqual(0.0_dp, vadj1, tolerance=1.0e-6_dp, message="no deficit with moderate seepage in this setup")
+
+    ! Volume the lake lost because of seepage alone.
+    lake_loss_from_seepage = vol0 - vol1
+
+    ! Groundwater gain from the same perc over A_prev.
+    gw_prev = 0.0_dp
+    call lake_gws_baseflow(perc, a_prev, gw_prev, gw_after, 0.0_dp, tsHydroSecs, .false., baseflow)
+    gw_gain_from_seepage = gw_after - gw_prev   ! kbf = 0 -> no baseflow drawn, so this is the added perc volume
+
+    transfer_volume = perc / 1000.0_dp * a_prev
+
+    @assertEqual(transfer_volume, gw_gain_from_seepage, tolerance=1.0e-6_dp, message="groundwater gains exactly perc/1000 * A_prev")
+    @assertEqual(transfer_volume, lake_loss_from_seepage, tolerance=1.0_dp, message="lake loses the same seepage volume it transfers to groundwater (conservation)")
+    @assertEqual(lake_loss_from_seepage, gw_gain_from_seepage, tolerance=1.0_dp, message="lake seepage loss equals groundwater seepage gain")
+  end subroutine test_seepage_conserves_between_stores
+
+  !> #2 sanity: with kbf = 0 the groundwater store grows by exactly the added seepage volume and
+  !>     emits no baseflow; the endorheic branch adds perc the same way.
+  @test
+  subroutine test_seepage_zero_endorheic_consistency()
+    real(dp) :: gw_after_exo, gw_after_endo, bf_exo, bf_endo
+    real(dp) :: perc, a_prev, ts
+
+    perc = 4.0_dp
+    a_prev = 1.0e6_dp
+    ts = 3600.0_dp
+    call lake_gws_baseflow(perc, a_prev, 0.0_dp, gw_after_exo, 0.0_dp, ts, .false., bf_exo)
+    call lake_gws_baseflow(perc, a_prev, 0.0_dp, gw_after_endo, 0.0_dp, ts, .true., bf_endo)
+    @assertEqual(perc / 1000.0_dp * a_prev, gw_after_exo, tolerance=1.0e-6_dp, message="exorheic store gains perc/1000 * A_prev with kbf=0")
+    @assertEqual(perc / 1000.0_dp * a_prev, gw_after_endo, tolerance=1.0e-6_dp, message="endorheic store gains perc/1000 * A_prev the same way")
+    @assertEqual(0.0_dp, bf_endo, tolerance=1.0e-12_dp, message="endorheic lake emits no baseflow")
+  end subroutine test_seepage_zero_endorheic_consistency
+
+  !> #3: when requested losses exceed storage, lake_balance clamps the lake to empty and reports the
+  !>     shortfall as a positive volume_adjustment. This is the contract the container reconciliation
+  !>     relies on to avoid routing water the lake never held.
+  @test
+  subroutine test_drying_reports_volume_adjustment()
+    real(dp), allocatable :: hlvl(:), harea(:), hvol(:)
+    real(dp) :: ref_level, ref_area, ref_volume
+    real(dp) :: a_prev, v_prev, l_prev, ts
+    real(dp) :: lvl, area, vol, vadj
+    real(dp) :: huge_spill
+
+    ref_level  = 100.0_dp
+    ref_area   = 1.0e6_dp
+    ref_volume = 5.0e6_dp
+    call generate_lake_bathymetry(2_i4, ref_level, ref_area, ref_volume, hlvl, harea, hvol)
+
+    ts = 3600.0_dp
+    l_prev = ref_level - 2.0_dp
+    a_prev = 0.6e6_dp
+    v_prev = 2.0e4_dp          ! only 20,000 m3 in store
+    huge_spill = 25.0_dp       ! [m3 s-1] -> 90,000 m3 over the step, far more than available
+
+    call lake_balance(.true., 0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp, huge_spill, 0.0_dp, &
+      hlvl, harea, hvol, ref_level, ref_area, ref_volume, &
+      l_prev, a_prev, v_prev, lvl, area, vol, vadj, ts)
+
+    @assertEqual(0.0_dp, vol, tolerance=1.0e-6_dp, message="over-drained lake is clamped to empty")
+    @assertTrue(vadj > 0.0_dp, message="shortfall is reported as a positive volume_adjustment")
+  end subroutine test_drying_reports_volume_adjustment
+
+  !> #3: replicate the container's spill-first reconciliation waterfall and assert the published spill
+  !>     is reduced so the routed volume never exceeds the water the lake could supply.
+  @test
+  subroutine test_reconciliation_caps_spill_at_available()
+    real(dp), allocatable :: hlvl(:), harea(:), hvol(:)
+    real(dp) :: ref_level, ref_area, ref_volume
+    real(dp) :: a_prev, v_prev, l_prev, ts
+    real(dp) :: lvl, area, vol, vadj
+    real(dp) :: spill, perc, evap_step, avg_area, deficit, spill_vol, cut
+
+    ref_level  = 100.0_dp
+    ref_area   = 1.0e6_dp
+    ref_volume = 5.0e6_dp
+    call generate_lake_bathymetry(2_i4, ref_level, ref_area, ref_volume, hlvl, harea, hvol)
+
+    ts = 3600.0_dp
+    l_prev = ref_level - 2.0_dp
+    a_prev = 0.6e6_dp
+    v_prev = 2.0e4_dp
+    spill = 25.0_dp            ! requested spill [m3 s-1]
+    perc = 0.0_dp
+    evap_step = 0.0_dp
+
+    call lake_balance(.true., 0.0_dp, evap_step, 0.0_dp, perc, 0.0_dp, spill, 0.0_dp, &
+      hlvl, harea, hvol, ref_level, ref_area, ref_volume, &
+      l_prev, a_prev, v_prev, lvl, area, vol, vadj, ts)
+    @assertTrue(vadj > 0.0_dp, message="setup drives the lake dry")
+
+    ! --- container reconciliation (spill first) ---
+    deficit = vadj
+    avg_area = 0.5_dp * (a_prev + area)
+    spill_vol = spill * ts
+    cut = min(deficit, spill_vol)
+    spill = (spill_vol - cut) / ts
+    deficit = deficit - cut
+
+    ! The published spill volume must not exceed the water that was actually available this step
+    ! (previous storage plus inflow+precip, here just the previous storage).
+    @assertTrue(spill * ts <= v_prev + 1.0_dp, message="reconciled spill volume cannot exceed available water")
+    @assertTrue(spill >= 0.0_dp, message="reconciled spill is non-negative")
+  end subroutine test_reconciliation_caps_spill_at_available
+
+  !> Mass closure: after convergence, the realized volume change equals the water-balance equation
+  !>   dV = (P - E) * 0.5*(A_prev + A) - perc * A_prev + (Qin - spill) * dt
+  !> to within the solver tolerance, for a normal (non-drying) step.
+  @test
+  subroutine test_mass_closure_normal_step()
+    real(dp), allocatable :: hlvl(:), harea(:), hvol(:)
+    real(dp) :: ref_level, ref_area, ref_volume
+    real(dp) :: a_prev, v_prev, l_prev, ts
+    real(dp) :: lvl, area, vol, vadj
+    real(dp) :: pr, evap, inflow, perc, dV_realized, dV_equation
+
+    ref_level = 100.0_dp; ref_area = 1.0e6_dp; ref_volume = 5.0e6_dp
+    call generate_lake_bathymetry(2_i4, ref_level, ref_area, ref_volume, hlvl, harea, hvol)
+    ts = 3600.0_dp
+    l_prev = ref_level - 1.0_dp
+    a_prev = 0.8e6_dp
+    v_prev = 3.0e6_dp
+    pr = 2.0_dp          ! mm/TS
+    evap = 1.0_dp        ! mm/TS
+    inflow = 5.0_dp      ! m3/s
+    perc = 3.0_dp        ! mm/TS
+
+    call lake_balance(.true., pr, evap, inflow, perc, 0.0_dp, 0.0_dp, 0.0_dp, &
+      hlvl, harea, hvol, ref_level, ref_area, ref_volume, &
+      l_prev, a_prev, v_prev, lvl, area, vol, vadj, ts)
+
+    @assertEqual(0.0_dp, vadj, tolerance=1.0e-6_dp, message="normal step produces no volume adjustment")
+    dV_realized = vol - v_prev
+    dV_equation = (pr - evap) / 1000.0_dp * 0.5_dp * (a_prev + area) &
+                - perc / 1000.0_dp * a_prev &
+                + inflow * ts
+    @assertEqual(dV_equation, dV_realized, tolerance=error_lake_vol, message="realized volume change satisfies the water-balance equation within solver tolerance")
+  end subroutine test_mass_closure_normal_step
+
+  !> Groundwater baseflow is kbf * GW_prev / dt, and the store decays geometrically with zero perc.
+  @test
+  subroutine test_gw_baseflow_recession()
+    real(dp) :: gw0, gw1, gw2, bf1, bf2, kbf, ts, a_prev
+    kbf = 0.25_dp        ! per-step recession fraction
+    ts = 3600.0_dp
+    a_prev = 1.0e6_dp
+    gw0 = 1.0e6_dp       ! m3 in store
+    ! step 1: no new perc, recession only
+    call lake_gws_baseflow(0.0_dp, a_prev, gw0, gw1, kbf, ts, .false., bf1)
+    @assertEqual(kbf * gw0 / ts, bf1, tolerance=1.0e-9_dp, message="baseflow is kbf * GW_prev / dt")
+    @assertEqual(gw0 - kbf * gw0, gw1, tolerance=1.0e-3_dp, message="store decays by the baseflow volume")
+    ! step 2: continues to decay geometrically
+    call lake_gws_baseflow(0.0_dp, a_prev, gw1, gw2, kbf, ts, .false., bf2)
+    @assertTrue(gw2 < gw1, message="store keeps decaying")
+    @assertTrue(bf2 < bf1, message="baseflow decays with the store")
+    @assertEqual((1.0_dp - kbf) ** 2 * gw0, gw2, tolerance=1.0e-3_dp, message="geometric decay (1-kbf)^2")
+  end subroutine test_gw_baseflow_recession
+
+  !> Endorheic lakes have perc suppressed by the caller, so the groundwater store receives nothing and
+  !> emits no baseflow -- the terminal closure is evaporation alone.
+  @test
+  subroutine test_endorheic_loses_no_seepage()
+    real(dp) :: gw_after, baseflow, ts, a_prev
+    ts = 3600.0_dp
+    a_prev = 1.0e6_dp
+    ! caller passes perc = 0 for endorheic lakes
+    call lake_gws_baseflow(0.0_dp, a_prev, 0.0_dp, gw_after, 0.3_dp, ts, .true., baseflow)
+    @assertEqual(0.0_dp, gw_after, tolerance=1.0e-12_dp, message="endorheic store stays empty")
+    @assertEqual(0.0_dp, baseflow, tolerance=1.0e-12_dp, message="endorheic lake emits no baseflow")
+  end subroutine test_endorheic_loses_no_seepage
+
+  !> The full reconciliation waterfall: when spill alone cannot absorb the whole deficit, seepage is
+  !> cut next and evaporation last; the total cut equals the deficit and every published flux is
+  !> non-negative with its summed volume not exceeding the available water.
+  @test
+  subroutine test_reconciliation_full_waterfall()
+    real(dp), allocatable :: hlvl(:), harea(:), hvol(:)
+    real(dp) :: ref_level, ref_area, ref_volume
+    real(dp) :: a_prev, v_prev, l_prev, ts
+    real(dp) :: lvl, area, vol, vadj
+    real(dp) :: spill, perc, evap_step, avg_area, deficit, cut
+    real(dp) :: spill_vol, perc_vol, evap_vol, total_cut, deficit0, evap_orig
+
+    ref_level = 100.0_dp; ref_area = 1.0e6_dp; ref_volume = 5.0e6_dp
+    call generate_lake_bathymetry(2_i4, ref_level, ref_area, ref_volume, hlvl, harea, hvol)
+    ts = 3600.0_dp
+    l_prev = ref_level - 2.0_dp
+    a_prev = 0.6e6_dp
+    v_prev = 1.0e4_dp          ! very little water (10,000 m3)
+    ! Demand chosen so the deficit (~12,800 m3) exceeds spill_vol (1,800 m3) and spills into seepage,
+    ! but not past the seepage capacity (12,000 m3): spill is fully cut, seepage is partially cut, and
+    ! evaporation is left untouched. This exercises the spill->seepage cascade with the correct priority.
+    spill = 0.5_dp             ! -> spill_vol 1,800 m3
+    perc = 20.0_dp             ! -> perc_vol 12,000 m3 over A_prev
+    evap_step = 30.0_dp
+    evap_orig = evap_step
+
+    call lake_balance(.true., 0.0_dp, evap_step, 0.0_dp, perc, 0.0_dp, spill, 0.0_dp, &
+      hlvl, harea, hvol, ref_level, ref_area, ref_volume, &
+      l_prev, a_prev, v_prev, lvl, area, vol, vadj, ts)
+    @assertTrue(vadj > 0.0_dp, message="setup drives the lake dry")
+
+    ! --- container reconciliation: spill -> seepage -> evap ---
+    deficit0 = vadj
+    deficit = vadj
+    avg_area = 0.5_dp * (a_prev + area)
+    spill_vol = spill * ts
+    perc_vol = perc / 1000.0_dp * a_prev
+    ! The deficit must exceed the spill volume (so spill is fully cut and seepage is engaged) but not
+    ! the combined spill+seepage capacity (so seepage is only partially cut and evaporation is safe).
+    @assertTrue(deficit0 > spill_vol, message="deficit spills past the spill stage into seepage")
+    @assertTrue(deficit0 < spill_vol + perc_vol, message="deficit does not exhaust the seepage stage")
+    ! 1) spill
+    cut = min(deficit, spill_vol)
+    spill = (spill_vol - cut) / ts
+    deficit = deficit - cut
+    ! 2) seepage over A_prev
+    if (deficit > 0.0_dp) then
+      cut = min(deficit, perc_vol)
+      perc = (perc_vol - cut) * 1000.0_dp / a_prev
+      deficit = deficit - cut
+    end if
+    ! 3) evaporation over avg area
+    if (deficit > 0.0_dp .and. avg_area > 0.0_dp) then
+      evap_vol = evap_step / 1000.0_dp * avg_area
+      cut = min(deficit, evap_vol)
+      evap_step = (evap_vol - cut) * 1000.0_dp / avg_area
+      deficit = deficit - cut
+    end if
+
+    total_cut = deficit0 - deficit
+    @assertEqual(0.0_dp, spill, tolerance=1.0e-12_dp, message="spill is fully absorbed first")
+    @assertTrue(perc >= 0.0_dp, message="reconciled seepage is non-negative")
+    @assertTrue(perc < 20.0_dp, message="seepage is partially cut to absorb the remainder after spill")
+    @assertEqual(evap_orig, evap_step, tolerance=1.0e-12_dp, message="evaporation is untouched (seepage covered the deficit)")
+    @assertEqual(deficit0, total_cut, tolerance=1.0e-6_dp, message="the full deficit is absorbed across spill and seepage")
+  end subroutine test_reconciliation_full_waterfall
+
+  !> Case -2 pass-through: lake_balance_outflow applies P - E over the area and clamps negatives.
+  @test
+  subroutine test_case_minus2_outflow()
+    real(dp) :: outflow(3), inflow(3), area(3), pre(3), pet(3), ts
+    ts = 3600.0_dp
+    inflow = [1.0_dp, 0.01_dp, 2.0_dp]
+    area   = [3.6e5_dp, 3.6e5_dp, 0.0_dp]
+    pre    = [10.0_dp, 0.0_dp, 5.0_dp]    ! mm
+    pet    = [0.0_dp, 10.0_dp, 5.0_dp]    ! mm
+    outflow = lake_balance_outflow(inflow, area, pre, pet, ts)
+    ! lake 1: inflow 1 + 360000*0.01/3600 = 1 + 1 = 2
+    @assertEqual(2.0_dp, outflow(1), tolerance=1.0e-9_dp, message="P adds to inflow over the area")
+    ! lake 2: inflow 0.01 - 360000*0.01/3600 = 0.01 - 1 < 0 -> clamped to 0
+    @assertEqual(0.0_dp, outflow(2), tolerance=1.0e-12_dp, message="negative net outflow is clamped to zero")
+    ! lake 3: P = E -> outflow equals inflow
+    @assertEqual(2.0_dp, outflow(3), tolerance=1.0e-12_dp, message="zero net atmospheric flux leaves inflow unchanged")
+  end subroutine test_case_minus2_outflow
+
+end module test_lake_water_balance

@@ -1,0 +1,92 @@
+module test_lake_evaporation
+  use funit
+  use mo_kind, only: dp, i4
+  use mo_lake_evaporation, only: lake_evaporation, albedo_water, spc_heat_vap_water, &
+    psychro_constant, atmospheric_pressure
+
+  implicit none
+  private
+
+  public :: test_atmospheric_pressure_sea_level
+  public :: test_atmospheric_pressure_decreases_with_elevation
+  public :: test_latent_heat_closed_form
+  public :: test_psychro_constant_positive_and_scales
+  public :: test_albedo_in_physical_range
+  public :: test_evaporation_methods_finite_nonnegative
+
+contains
+
+  !> Atmospheric pressure at sea level is the reference 101.3 kPa (c1).
+  @test
+  subroutine test_atmospheric_pressure_sea_level()
+    @assertEqual(101.3_dp, atmospheric_pressure(0.0_dp), tolerance=1.0e-9_dp, message="sea-level pressure is 101.3 kPa")
+  end subroutine test_atmospheric_pressure_sea_level
+
+  !> Atmospheric pressure decreases with elevation.
+  @test
+  subroutine test_atmospheric_pressure_decreases_with_elevation()
+    real(dp) :: p0, p1000, p3000
+    p0 = atmospheric_pressure(0.0_dp)
+    p1000 = atmospheric_pressure(1000.0_dp)
+    p3000 = atmospheric_pressure(3000.0_dp)
+    @assertTrue(p1000 < p0, message="pressure drops by 1000 m")
+    @assertTrue(p3000 < p1000, message="pressure drops further by 3000 m")
+    @assertTrue(p3000 > 0.0_dp, message="pressure stays positive")
+  end subroutine test_atmospheric_pressure_decreases_with_elevation
+
+  !> Specific heat of vaporisation: s = (2.501 - 0.002361 T) * 1e6  [J m-2 mm-1].
+  @test
+  subroutine test_latent_heat_closed_form()
+    @assertEqual(2.501e6_dp, spc_heat_vap_water(0.0_dp), tolerance=1.0_dp, message="latent heat at 0 degC")
+    @assertEqual((2.501_dp - 0.002361_dp * 20.0_dp) * 1.0e6_dp, spc_heat_vap_water(20.0_dp), tolerance=1.0_dp, message="latent heat at 20 degC")
+    @assertTrue(spc_heat_vap_water(30.0_dp) < spc_heat_vap_water(0.0_dp), message="latent heat decreases with temperature")
+  end subroutine test_latent_heat_closed_form
+
+  !> Psychrometric constant is positive and rises with atmospheric pressure (falls with elevation).
+  @test
+  subroutine test_psychro_constant_positive_and_scales()
+    real(dp) :: g_low, g_high
+    g_low = psychro_constant(0.0_dp, 20.0_dp)       ! sea level
+    g_high = psychro_constant(3000.0_dp, 20.0_dp)   ! high elevation -> lower pressure
+    @assertTrue(g_low > 0.0_dp, message="psychrometric constant is positive")
+    @assertTrue(g_high < g_low, message="psychrometric constant falls with elevation (lower pressure)")
+  end subroutine test_psychro_constant_positive_and_scales
+
+  !> Open-water albedo stays within its physical bounds across the year and latitudes.
+  @test
+  subroutine test_albedo_in_physical_range()
+    real(dp) :: a
+    integer(i4) :: doy
+    do doy = 1, 365, 30
+      a = albedo_water(45.0_dp, doy, 0.0_dp, 1_i4)   ! noon (hour angle 0), method 1
+      @assertTrue(a >= 0.0_dp, message="albedo is non-negative")
+      @assertTrue(a <= 1.0_dp, message="albedo does not exceed unity")
+    end do
+    ! equator and high latitude both remain in range
+    a = albedo_water(0.0_dp, 172_i4, 0.0_dp, 1_i4)
+    @assertTrue(a >= 0.0_dp .and. a <= 1.0_dp, message="equatorial albedo in range")
+    a = albedo_water(70.0_dp, 355_i4, 0.0_dp, 1_i4)
+    @assertTrue(a >= 0.0_dp .and. a <= 1.0_dp, message="high-latitude albedo in range")
+  end subroutine test_albedo_in_physical_range
+
+  !> Each evaporation method returns a finite, non-negative daily evaporation for a nominal summer
+  !> forcing set, and dispatch does not crash. (Penman=1, Priestley-Taylor=2, cf-PT=3.)
+  @test
+  subroutine test_evaporation_methods_finite_nonnegative()
+    real(dp) :: evap, components(3)
+    integer(i4) :: m
+    do m = 1, 3
+      call lake_evaporation(m, 12_i4, 172_i4, &
+        20.0_dp, 15.0_dp, 2.0_dp, 250.0_dp, 350.0_dp, &   ! temp, tdew, wind, ssrd, strd
+        20.0_dp, 20.0_dp, 20.0_dp, &                      ! tin, tout, tpre
+        100.0_dp, 0.5_dp, 0.5_dp, 2.0_dp, &               ! lake_level, qin, qout, pre
+        48.0_dp, 11.0_dp, &                               ! latitude, longitude
+        10.0_dp, 2.5_dp, .true., 1_i4, .true., .true., &  ! wind height, clim wind, varying flags, albedo method
+        evap, components)
+      @assertTrue(evap >= 0.0_dp, message="daily evaporation is non-negative")
+      @assertTrue(evap == evap, message="daily evaporation is not NaN")
+      @assertTrue(abs(evap) < 1.0e4_dp, message="daily evaporation is finite and physically bounded")
+    end do
+  end subroutine test_evaporation_methods_finite_nonnegative
+
+end module test_lake_evaporation

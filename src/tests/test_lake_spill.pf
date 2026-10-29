@@ -1,0 +1,85 @@
+module test_lake_spill
+  use funit
+  use mo_kind, only: dp, i4
+  use mo_lake_spill, only: lake_spill, lake_spill_generalized_equation
+
+  implicit none
+  private
+
+  public :: test_no_spill_below_crest
+  public :: test_power_law_value
+  public :: test_linear_in_length
+  public :: test_monotone_in_head
+  public :: test_wrapper_matches_generalized
+  public :: test_exponent_behaviour
+
+contains
+
+  !> A lake at or below the spill reference level does not spill.
+  @test
+  subroutine test_no_spill_below_crest()
+    real(dp) :: spill
+    call lake_spill(99.0_dp, 100.0_dp, 1.5_dp, 20.0_dp, 1.5_dp, spill)
+    @assertEqual(0.0_dp, spill, tolerance=1.0e-12_dp, message="below crest: no spill")
+    call lake_spill(100.0_dp, 100.0_dp, 1.5_dp, 20.0_dp, 1.5_dp, spill)
+    @assertEqual(0.0_dp, spill, tolerance=1.0e-12_dp, message="at crest: no spill")
+  end subroutine test_no_spill_below_crest
+
+  !> Generalized spill is Q = Cd * L * dH^beta.
+  @test
+  subroutine test_power_law_value()
+    real(dp) :: spill, cd, length, head, beta, expected
+    cd = 1.7_dp
+    length = 25.0_dp
+    head = 2.0_dp
+    beta = 1.5_dp
+    expected = cd * length * head ** beta
+    call lake_spill_generalized_equation(102.0_dp, 100.0_dp, cd, length, beta, spill)
+    @assertEqual(expected, spill, tolerance=1.0e-9_dp, message="Q = Cd * L * dH^beta")
+  end subroutine test_power_law_value
+
+  !> Spill scales linearly with the effective spillway length.
+  @test
+  subroutine test_linear_in_length()
+    real(dp) :: s1, s2
+    call lake_spill_generalized_equation(103.0_dp, 100.0_dp, 1.4_dp, 10.0_dp, 1.5_dp, s1)
+    call lake_spill_generalized_equation(103.0_dp, 100.0_dp, 1.4_dp, 30.0_dp, 1.5_dp, s2)
+    @assertEqual(3.0_dp * s1, s2, tolerance=1.0e-9_dp, message="spill is linear in spillway length")
+  end subroutine test_linear_in_length
+
+  !> Spill increases strictly with head above the crest.
+  @test
+  subroutine test_monotone_in_head()
+    real(dp) :: s_low, s_mid, s_high
+    call lake_spill(100.5_dp, 100.0_dp, 1.5_dp, 20.0_dp, 1.5_dp, s_low)
+    call lake_spill(101.0_dp, 100.0_dp, 1.5_dp, 20.0_dp, 1.5_dp, s_mid)
+    call lake_spill(102.0_dp, 100.0_dp, 1.5_dp, 20.0_dp, 1.5_dp, s_high)
+    @assertTrue(s_mid > s_low, message="spill increases with head")
+    @assertTrue(s_high > s_mid, message="spill increases with head")
+  end subroutine test_monotone_in_head
+
+  !> The lake_spill wrapper equals the generalized equation above the crest.
+  @test
+  subroutine test_wrapper_matches_generalized()
+    real(dp) :: s_wrap, s_gen
+    call lake_spill(101.7_dp, 100.0_dp, 1.6_dp, 22.0_dp, 1.5_dp, s_wrap)
+    call lake_spill_generalized_equation(101.7_dp, 100.0_dp, 1.6_dp, 22.0_dp, 1.5_dp, s_gen)
+    @assertEqual(s_gen, s_wrap, tolerance=1.0e-12_dp, message="wrapper matches generalized equation")
+  end subroutine test_wrapper_matches_generalized
+
+  !> A larger exponent gives larger spill when the head exceeds one metre, and the two coincide at a
+  !> unit head (dH^beta = 1 for any beta).
+  @test
+  subroutine test_exponent_behaviour()
+    real(dp) :: s_b15, s_b25, s_unit_b15, s_unit_b25
+    ! head = 2 m (> 1): higher exponent -> more spill
+    call lake_spill_generalized_equation(102.0_dp, 100.0_dp, 1.0_dp, 10.0_dp, 1.5_dp, s_b15)
+    call lake_spill_generalized_equation(102.0_dp, 100.0_dp, 1.0_dp, 10.0_dp, 2.5_dp, s_b25)
+    @assertTrue(s_b25 > s_b15, message="above unit head, larger exponent spills more")
+    ! head = 1 m: dH^beta = 1 regardless of beta -> spill independent of exponent
+    call lake_spill_generalized_equation(101.0_dp, 100.0_dp, 1.0_dp, 10.0_dp, 1.5_dp, s_unit_b15)
+    call lake_spill_generalized_equation(101.0_dp, 100.0_dp, 1.0_dp, 10.0_dp, 2.5_dp, s_unit_b25)
+    @assertEqual(s_unit_b15, s_unit_b25, tolerance=1.0e-12_dp, message="at unit head spill is exponent-independent")
+  end subroutine test_exponent_behaviour
+
+end module test_lake_spill

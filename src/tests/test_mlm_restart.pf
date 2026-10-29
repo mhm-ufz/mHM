@@ -6,6 +6,7 @@ module test_mlm_restart
   use mo_grid_io, only: no_time, var
   use mo_kind, only: sp, dp, i4, i8
   use mo_mlm_container, only: mlm_t
+  use mo_input_container, only: input_t
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_points, only: cartesian, points_t
 
@@ -18,6 +19,8 @@ module test_mlm_restart
   public :: test_mlm_output_averages_in_exchange_order
   public :: test_mlm_lake_balance_clamps_outflow
   public :: test_mlm_restart_restores_lake_topology
+  public :: test_mlm_restart_permutes_regionalized_metadata
+  public :: test_input_destroy_frees_lake_arrays
 
 contains
 
@@ -415,5 +418,119 @@ contains
     call var%setAttribute("time_stamp", timestamp)
     call nc%close()
   end subroutine write_restart
+
+  !> #5: the regionalized lake-MPR metadata restored at connect (lakebed Ks, baseflow recession) must
+  !>     be reordered from restart-file order into Input point-set order by stable ID, exactly as the
+  !>     mutable state restore does -- otherwise lake 205 would inherit lake 101's conductivity.
+  @test
+  subroutine test_mlm_restart_permutes_regionalized_metadata()
+    type(exchange_t), target :: exchange
+    type(points_t), target :: input_points
+    type(mlm_t), target :: mlm
+    integer(i8), target :: input_ids(2)
+    real(dp), target :: input_levels(2), inflow(2)
+
+    call setup_exchange(exchange, "2001-01-02 00:00:00")
+    call input_points%init([100.0_dp, 200.0_dp], [300.0_dp, 400.0_dp], coordsys=cartesian)
+    input_ids = [205_i8, 101_i8]           ! Input point-set order
+    input_levels = [25.0_dp, 10.0_dp]
+    inflow = 0.0_dp
+    exchange%lake_points => input_points
+    call exchange%lake_ids%provide("Input")
+    call exchange%lake_ids%prepare_data("Input", no_time)
+    exchange%lake_ids%data => input_ids
+    call exchange%lake_spill_reference_level%provide("Input")
+    call exchange%lake_spill_reference_level%prepare_data("Input", no_time)
+    exchange%lake_spill_reference_level%data => input_levels
+    call exchange%lake_inflow%provide("mRM")
+    call exchange%lake_inflow%prepare_data("mRM", 1_i4)
+    exchange%lake_inflow%data => inflow
+
+    ! restart file is in [101, 205] order; ks/kbf tagged so the permutation is observable:
+    !   ID 101 -> ks 1.1, kbf 11 ;  ID 205 -> ks 2.5, kbf 25
+    call write_restart_with_mpr( &
+      "mlm_restart_permuted_mpr.nc", [101_i8, 205_i8], [200.0_dp, 100.0_dp], [400.0_dp, 300.0_dp], &
+      [10.0_dp, 25.0_dp], [1.01_dp, 2.05_dp], ks=[1.1_dp, 2.5_dp], kbf=[11.0_dp, 25.0_dp], &
+      spillway=[110.0_dp, 250.0_dp], timestamp="2001-01-02 00:00:00")
+
+    mlm%exchange => exchange
+    mlm%read_restart = .true.
+    mlm%restart_input_path = "mlm_restart_permuted_mpr.nc"
+    call exchange%lake_outflow%provide("mLM")
+    call mlm%prepare_restart()
+    call mlm%connect()
+
+    @assertEqual(input_ids, mlm%lake_ids, message="Input stable-ID ordering is authoritative")
+    ! static_lake_ks/kbf must now be in point-set order [205, 101] -> [2.5, 1.1] and [25, 11]
+    @assertTrue(allocated(mlm%static_lake_ks), message="restart restores lakebed Ks")
+    @assertTrue(allocated(mlm%static_lake_kbf), message="restart restores baseflow recession")
+    @assertEqual([2.5_dp, 1.1_dp], mlm%static_lake_ks, tolerance=1.0e-12_dp, message="lakebed Ks restored in point-set order, not restart-file order")
+    @assertEqual([25.0_dp, 11.0_dp], mlm%static_lake_kbf, tolerance=1.0e-12_dp, message="baseflow recession restored in point-set order, not restart-file order")
+    @assertTrue(allocated(mlm%static_lake_spillway_length), message="restart restores spillway length")
+    @assertEqual([250.0_dp, 110.0_dp], mlm%static_lake_spillway_length, tolerance=1.0e-12_dp, message="spillway length restored in point-set order, not restart-file order")
+
+    call exchange%destroy()
+    call mlm%destroy()
+  end subroutine test_mlm_restart_permutes_regionalized_metadata
+
+  !> #10: Input destruction must release the lake initial-level, latitude and longitude arrays, so a
+  !>      destroy-recreate cycle on the same domain does not abort re-allocating them.
+  @test
+  subroutine test_input_destroy_frees_lake_arrays()
+    type(input_t) :: input
+
+    allocate(input%lake_initial_level(2), source=0.0_dp)
+    allocate(input%lake_latitude(2), source=0.0_dp)
+    allocate(input%lake_longitude(2), source=0.0_dp)
+    @assertTrue(allocated(input%lake_initial_level), message="precondition: initial level allocated")
+    @assertTrue(allocated(input%lake_latitude), message="precondition: latitude allocated")
+    @assertTrue(allocated(input%lake_longitude), message="precondition: longitude allocated")
+
+    call input%destroy()
+
+    @assertFalse(allocated(input%lake_initial_level), message="Input destroy frees initial level")
+    @assertFalse(allocated(input%lake_latitude), message="Input destroy frees latitude")
+    @assertFalse(allocated(input%lake_longitude), message="Input destroy frees longitude")
+
+    ! A second destroy on freed arrays must be safe (guarded deallocation).
+    call input%destroy()
+    @assertFalse(allocated(input%lake_initial_level), message="second Input destroy is a no-op")
+  end subroutine test_input_destroy_frees_lake_arrays
+
+  !> As write_restart, plus the optional regionalized lake-MPR fields (lakebed Ks, baseflow recession).
+  subroutine write_restart_with_mpr(path, ids, outlet_x, outlet_y, levels, outflow, ks, kbf, spillway, timestamp)
+    character(*), intent(in) :: path
+    integer(i8), intent(in) :: ids(:)
+    real(dp), intent(in) :: outlet_x(:), outlet_y(:), levels(:), outflow(:), ks(:), kbf(:), spillway(:)
+    character(*), intent(in) :: timestamp
+    type(NcDataset) :: nc
+    type(NcDimension) :: dims(0), lake_dim
+    type(NcVariable) :: var
+
+    nc = NcDataset(path, "w")
+    lake_dim = nc%setDimension("lake", int(size(ids), i4))
+    var = nc%setVariable("lake_id", "i64", [lake_dim])
+    call var%setData(ids)
+    var = nc%setVariable("lake_outlet_x", "f64", [lake_dim])
+    call var%setData(outlet_x)
+    var = nc%setVariable("lake_outlet_y", "f64", [lake_dim])
+    call var%setData(outlet_y)
+    var = nc%setVariable("lake_spill_reference_level", "f64", [lake_dim])
+    call var%setData(levels)
+    var = nc%setVariable("lake_coordsys", "i32", dims(:0))
+    call var%setData(cartesian)
+    var = nc%setVariable("lake_outflow", "f64", [lake_dim])
+    call var%setData(outflow)
+    var = nc%setVariable("lake_ks", "f64", [lake_dim])
+    call var%setData(ks)
+    var = nc%setVariable("lake_kbf", "f64", [lake_dim])
+    call var%setData(kbf)
+    var = nc%setVariable("lake_spillway_length", "f64", [lake_dim])
+    call var%setData(spillway)
+    var = nc%setVariable("mlm_meta", "i32", dims(:0))
+    call var%setData(0_i4)
+    call var%setAttribute("time_stamp", timestamp)
+    call nc%close()
+  end subroutine write_restart_with_mpr
 
 end module test_mlm_restart

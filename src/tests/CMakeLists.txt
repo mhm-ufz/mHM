@@ -10,7 +10,12 @@ if(PFUNIT_FOUND)
   set(testfiles
     test_canopy_interc.pf
     test_exchange_variable.pf
+    test_lake_bathymetry.pf
+    test_lake_evaporation.pf
+    test_lake_soil_lut.pf
+    test_lake_spill.pf
     test_lake_spillway_length.pf
+    test_lake_water_balance.pf
     test_meteo_temporal_tools.pf
     test_mlm_restart.pf
     test_mrm_output_timing.pf
