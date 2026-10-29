@@ -25,7 +25,7 @@
 /**
 \defgroup   f_input input - Fortran modules
 \brief      Input configuration and publication.
-\details    The input container reads domain data and publishes fields and spatial support through the exchange.
+\details    The input container reads domain data and publishes fields and spatial support through the exchange. Shared LUT decoders return caller-owned data for Input, MPR and mLM.
 */
 
 /**
@@ -37,7 +37,7 @@
 /**
 \defgroup   f_mpr MPR - Fortran modules
 \brief      Core modules of Multiscale Parameter Regionalization.
-\details    The MPR container, regionalization kernels, lookup tables, and domain-owned soil database.
+\details    The MPR container, regionalization kernels, land LUT caches, and domain-owned soil database.
 */
 
 /**

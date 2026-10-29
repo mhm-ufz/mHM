@@ -96,6 +96,13 @@ workflows before changing components or configuration; this file defines the det
 - Meteo accepts 1-hour and 24-hour model steps; routing-only intermediate cadences remain supported.
   Use FORCES scalers directly with explicit count weights and cached bounds for land forcing and weight maps.
   Keep lake support integration and the forcing/PET/disaggregation order intact.
+- All soil, geology, and LAI LUT paths belong in exchange-owned `config_lut`. Shared
+  input helpers decode the tables; consumers own parsed data and process-specific caches.
+  MPR restart reads require no LUT paths or original LUT files.
+- Input provides general model datasets. Document component-owned input exceptions:
+  MPR reads full-period land-cover/LAI sources for regionalization caches, meteo reads
+  disaggregation weights, and mRM reads gauge/POI locations. MPR uses interval-start
+  timestamps for its temporal sources, independently of Input's timestamp setting.
 - PET kernels and coefficients belong in meteo; hydrology/neutron constants in mHM, regionalization
   coefficients in MPR, neutral run defaults/file-format identifiers in common, and exchange contracts in domain.
 - Prepare numerical scratch during initialization. Pass strided soil-horizon slices directly to
