@@ -11,7 +11,7 @@ set(sources
   MPR/mo_mpr_runoff.f90
   MPR/mo_mpr_smhorizons.f90
   MPR/mo_mpr_soilmoist.f90
-  MPR/mo_read_lut.f90
+  input/mo_input_lut.F90
   MPR/mo_soil_database.f90
   common/mo_cli_support.f90
   common/mo_common_constants.f90
