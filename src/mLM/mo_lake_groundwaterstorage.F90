@@ -21,6 +21,7 @@ MODULE mo_lake_groundwaterstorage
 
   USE mo_kind,   only : i4, i8, dp
   IMPLICIT NONE
+  private
 
 
   PUBLIC :: lake_seepage     ! calculates the water seepage/ percolation beneath the reservoir
@@ -124,7 +125,7 @@ CONTAINS
 
 
 
-  SUBROUTINE lake_seepage(naturalFlag, hav_lake_level, hav_lake_surface_area, &
+  recursive SUBROUTINE lake_seepage(naturalFlag, hav_lake_level, hav_lake_surface_area, &
                           lake_spill_reference_level, lake_spill_reference_surface_area_bathymetry_derived, &
                           lake_level, leakance, perc)
 
@@ -347,7 +348,7 @@ CONTAINS
 
 
 
-  SUBROUTINE lake_gws_baseflow( perc, lake_surface_area, lake_gw_storage_previous, lake_gw_storage, &
+  recursive SUBROUTINE lake_gws_baseflow( perc, lake_surface_area, lake_gw_storage_previous, lake_gw_storage, &
                                 baseflow_recession_coefficient, tsHydroSecs, endorheic, baseflow )
 
 

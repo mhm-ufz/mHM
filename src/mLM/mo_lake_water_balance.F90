@@ -15,6 +15,7 @@ MODULE mo_lake_water_balance
   USE mo_kind,   only : i4, i8, dp
   USE mo_mlm_constants, only : error_lake_vol, nIterations_lake
   IMPLICIT NONE
+  private
 
 
   PUBLIC :: lake_balance     ! calculates lake water balance to give lake states (V, A, h)
@@ -116,7 +117,7 @@ CONTAINS
 
 
 
-  SUBROUTINE lake_balance(naturalFlag, pr, evap, inflow, perc, wateruse, spill, ibt, &
+  recursive SUBROUTINE lake_balance(naturalFlag, pr, evap, inflow, perc, wateruse, spill, ibt, &
                           hav_lake_level, hav_lake_surface_area, hav_lake_volume, &
                           lake_spill_reference_level, lake_spill_reference_surface_area_bathymetry_derived, &
                           lake_spill_reference_volume_bathymetry_derived, &
@@ -396,7 +397,7 @@ CONTAINS
   !                               fixed-length bathy arrays), removing the mo_common_constants
   !                               nodata_dp dependency. Interpolation logic is unchanged.
 
-  SUBROUTINE interpolate_lake_states(flag, series1, series2, max1, max2, val1, val2, vol_adj)
+  recursive SUBROUTINE interpolate_lake_states(flag, series1, series2, max1, max2, val1, val2, vol_adj)
 
     IMPLICIT NONE
 

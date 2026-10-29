@@ -12,6 +12,7 @@
 #include "logging.h"
 module mo_input_container
   use mo_logging
+  use mo_netcdf_utils, only: add_var
   use mo_kind, only: i2, i4, i8, dp
   use mo_constants, only: nodata_dp
   use mo_list, only: list
@@ -29,6 +30,10 @@ module mo_input_container
   use nml_config_input, only: nml_config_input_t
   use nml_config_coupling, only: nml_config_coupling_t
   use nml_helper, only: NML_OK
+
+  implicit none
+  private
+  public :: input_var_abc
 
   character(len=*), parameter :: s = "input" !< module scope for logging
 
@@ -1127,6 +1132,13 @@ contains
       call self%exchange%lake_longitude%provide("Input")
       call self%exchange%lake_map%provide("Input")
     end if
+    if (self%config%input%is_set("lake_definition_path", idx=id) == NML_OK) then
+      if (self%soil_class%provided .or. self%soil_horizon_class%provided) then
+        call self%exchange%lake_sand%provide("Input")
+        call self%exchange%lake_clay%provide("Input")
+      end if
+      if (self%geo_class%provided) call self%exchange%lake_geo%provide("Input")
+    end if
   end subroutine input_configure
 
   !> \brief Connect the Input container.
@@ -1365,10 +1377,8 @@ contains
           lake_clay_packed(cc) = lake_clay_by_class(scls)
         end do
         ! provide BEFORE prepare_storage: prepare_storage -> prepare_data asserts the variable is provided.
-        call self%exchange%lake_sand%provide("Input")
         call self%exchange%lake_sand%prepare_storage("Input", no_time, [self%exchange%level0_lake%ncells])
         call self%exchange%lake_sand%set_storage(lake_sand_packed)
-        call self%exchange%lake_clay%provide("Input")
         call self%exchange%lake_clay%prepare_storage("Input", no_time, [self%exchange%level0_lake%ncells])
         call self%exchange%lake_clay%set_storage(lake_clay_packed)
         deallocate(lake_sand_by_class, lake_clay_by_class, lake_sand_packed, lake_clay_packed)
@@ -1396,7 +1406,6 @@ contains
       allocate(lake_geo_packed(self%exchange%level0_lake%ncells))
       call self%exchange%level0_lake%pack_into(lake_geo_full_2d, lake_geo_packed)
       ! provide BEFORE prepare_storage: prepare_storage -> prepare_data asserts the variable is provided.
-      call self%exchange%lake_geo%provide("Input")
       call self%exchange%lake_geo%prepare_storage("Input", no_time, [self%exchange%level0_lake%ncells])
       call self%exchange%lake_geo%set_storage(lake_geo_packed)
       deallocate(lake_geo_full, lake_geo_full_2d, lake_geo_packed)
@@ -1756,14 +1765,14 @@ contains
     call lake_nc%close()
     ! Build the variable list incrementally: the spill reference level is mandatory; the crest area
     ! and volume are added only for process 1; the initial level is added only when present in the file.
-    vars = [var(name=name, long_name="lake spill reference level", units="m", static=.true.)]
+    call add_var(vars, var(name=name, long_name="lake spill reference level", units="m", static=.true.))
     if (needs_bathymetry) then
-      vars = [vars, &
-              var(name=area_name, long_name="lake surface area at spill reference level", units="km2", static=.true.), &
-              var(name=volume_name, long_name="lake volume at spill reference level", units="1e6 m3", static=.true.)]
+      call add_var(vars, var(name=area_name, long_name="lake surface area at spill reference level", units="km2", static=.true.))
+      call add_var(vars, var(name=volume_name, long_name="lake volume at spill reference level", units="1e6 m3", static=.true.))
     end if
-    if (has_initial_level) &
-      vars = [vars, var(name=initial_level_name, long_name="initial lake level", units="m", static=.true.)]
+    if (has_initial_level) then
+      call add_var(vars, var(name=initial_level_name, long_name="initial lake level", units="m", static=.true.))
+    end if
     call input%init(path, vars=vars, points=self%lake_outlets, points_init_var=name)
     call input%get_ids(self%lake_ids)
     allocate(self%lake_spill_reference_level(self%lake_outlets%n_points))

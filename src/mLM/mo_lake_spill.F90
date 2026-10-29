@@ -13,6 +13,7 @@ MODULE mo_lake_spill
 
   USE mo_kind,   only : i4, i8, dp
   IMPLICIT NONE
+  private
 
 
 
@@ -82,7 +83,7 @@ CONTAINS
   !                                    L_s -> spillway_length). Dropped the unused
   !                                    mo_mlm_constants / mo_constants imports (no globals).
 
-  SUBROUTINE lake_spill(lake_level, lake_spill_reference_level, spill_coefficient_of_discharge, &
+  recursive SUBROUTINE lake_spill(lake_level, lake_spill_reference_level, spill_coefficient_of_discharge, &
                         spillway_length, spill_exponent, spill)
 
     IMPLICIT NONE
@@ -185,7 +186,7 @@ CONTAINS
 
 
   ! (ver. generalized equation)
-  SUBROUTINE lake_spill_generalized_equation(lake_level, reference_level, &
+  recursive SUBROUTINE lake_spill_generalized_equation(lake_level, reference_level, &
                                              spill_coefficient_of_discharge, spillway_length, &
                                              spill_exponent, spill)
 

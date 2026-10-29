@@ -14,6 +14,7 @@ MODULE mo_lake_bathymetry
   USE mo_kind,   only : i4, i8, dp
 
   IMPLICIT NONE
+  private
 
     PUBLIC :: generate_lake_bathymetry
     PUBLIC :: lake_hav_t

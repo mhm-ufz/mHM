@@ -39,6 +39,8 @@ MODULE mo_mlm_mpr
   USE mo_kind,   only : i4, i8, dp
   USE mo_grid,   only : grid_t
   USE mo_string_utils, only : n2s => num2str
+  USE mo_mpr_constants, only: Ks_c, Ks_floor => lake_Ks_floor, coefficient => lake_width_coefficient, &
+    area_exponent => lake_width_exponent, square_metre_to_square_kilometre => lake_area_to_km2
   IMPLICIT NONE
 
   PUBLIC :: lake_derive_ks            ! regionalizes the per-lake lakebed Ks from soil texture over the lake footprint
@@ -123,8 +125,6 @@ CONTAINS
     ! local variables
     real(dp), allocatable :: ks_cell(:)    ! [cm d-1] Cosby Ks on each footprint cell
     real(dp) :: x                          ! temporary Cosby exponent argument
-    real(dp), parameter :: Ks_c = 10.0_dp  ! Cosby base (matches mo_mpr_constants)
-    real(dp), parameter :: Ks_floor = 1.1_dp ! [cm d-1] minimum Ks (matches mo_mpr_soilmoist:hydro_cond)
     integer(i8) :: i
 
     if (size(sand, kind=i8) /= grid%ncells .or. size(clay, kind=i8) /= grid%ncells) then
@@ -667,9 +667,6 @@ CONTAINS
     real(dp),                            intent(in)  :: spillway_length_multiplier ! [-]  global multiplier m
     real(dp), allocatable, dimension(:), intent(out) :: spillway_length           ! [m]  spillway crest length per lake
 
-    real(dp), parameter :: coefficient = 2.7_dp  ! base coefficient of the width-vs-drainage-area power law
-    real(dp), parameter :: area_exponent = 0.35_dp ! exponent of the width-vs-drainage-area power law
-    real(dp), parameter :: square_metre_to_square_kilometre = 1.0e-6_dp
 
     real(dp), allocatable :: catchment_area_km2(:)
 

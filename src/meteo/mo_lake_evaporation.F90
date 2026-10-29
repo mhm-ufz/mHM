@@ -46,6 +46,7 @@ MODULE mo_lake_evaporation
 
   USE mo_kind,   only : i4, i8, dp
   IMPLICIT NONE
+  private
 
 
   PUBLIC  :: lake_evaporation         ! wrapper for lake evaporation process (Penman or Priestley-Taylor)
@@ -104,12 +105,12 @@ CONTAINS
 
 
 
-  SUBROUTINE lake_evaporation( evaporation_method, hour, doy, temp, tdew, windspeed, ssrd, strd, &
+  recursive SUBROUTINE lake_evaporation( evaporation_method, hour, doy, temp, tdew, windspeed, ssrd, strd, &
                                 tin, tout, tpre, lake_level, qin, qout, pre, latitude, longitude, &
                                 input_windspeed_height, climatological_windspeed, varying_albedo, albedo_method, &
                                 varying_lambda, varying_psychro, evap, evap_components)
 
-    use mo_mlm_constants, only : albedo_w_const
+    use mo_meteo_constants, only : albedo_w_const
 
     IMPLICIT NONE
 
@@ -300,11 +301,11 @@ CONTAINS
   !     (no globals). The daily result is disaggregated to the model step by the caller.
 
 
-  FUNCTION lake_evap_penman1948(lake_level, alb, ssrd, strd, Temp, Tdew, windspeed, Tin, Tout, Tpre, &
+  recursive FUNCTION lake_evap_penman1948(lake_level, alb, ssrd, strd, Temp, Tdew, windspeed, Tin, Tout, Tpre, &
                                 qin, qout, pre, input_windspeed_height, varying_lambda, varying_psychro)
 
     use mo_constants,     only : Psychro_dp, SpecHeatET_dp, cp_w_dp, DaySecs, sigma_dp, T0_dp
-    use mo_mlm_constants, only : penman1948_1, penman1948_2, boltzmann_e, Emissivity_w
+    use mo_meteo_constants, only : penman1948_1, penman1948_2, boltzmann_e, Emissivity_w
     use mo_pet,           only : sat_vap_pressure, slope_satpressure
 
 
@@ -525,11 +526,11 @@ CONTAINS
   !     arguments (no globals).
 
 
-  FUNCTION lake_evap_priestleytaylor1972(lake_level, alb, ssrd, strd, Temp, Tin, Tout, Tpre, &
+  recursive FUNCTION lake_evap_priestleytaylor1972(lake_level, alb, ssrd, strd, Temp, Tin, Tout, Tpre, &
                                          qin, qout, pre, varying_lambda, varying_psychro)
 
     use mo_constants,     only : Psychro_dp, SpecHeatET_dp, cp_w_dp, DaySecs, sigma_dp, T0_dp
-    use mo_mlm_constants, only : ptcoeff, boltzmann_e, Emissivity_w
+    use mo_meteo_constants, only : ptcoeff, boltzmann_e, Emissivity_w
     use mo_pet,           only : slope_satpressure
 
 
@@ -697,11 +698,11 @@ CONTAINS
   !>        \author Pallav Shrestha
   !>        \date Oct 2026
 
-  FUNCTION lake_evap_cfpriestleytaylor2023(lake_level, alb, ssrd, strd, Temp, Tdew, windspeed_clim, &
+  recursive FUNCTION lake_evap_cfpriestleytaylor2023(lake_level, alb, ssrd, strd, Temp, Tdew, windspeed_clim, &
                                             Tin, Tout, Tpre, qin, qout, pre, varying_lambda, varying_psychro)
 
     use mo_constants,     only : Psychro_dp, SpecHeatET_dp, cp_w_dp, DaySecs, sigma_dp, T0_dp
-    use mo_mlm_constants, only : penman1948_1, penman1948_2, boltzmann_e, Emissivity_w, &
+    use mo_meteo_constants, only : penman1948_1, penman1948_2, boltzmann_e, Emissivity_w, &
                                  cfpt_avail_floor, cfpt_coeff_max
     use mo_pet,           only : sat_vap_pressure, slope_satpressure
 
@@ -870,7 +871,7 @@ CONTAINS
 
   elemental pure FUNCTION windspeed_correction(windspeed_in, input_windspeed_height)
 
-    USE mo_mlm_constants,             ONLY: std_windspeed_ht, Hellmann_exp
+    USE mo_meteo_constants,             ONLY: std_windspeed_ht, Hellmann_exp
 
     IMPLICIT NONE
 
@@ -927,7 +928,7 @@ CONTAINS
 
     USE mo_constants,       ONLY: YearDays, PIO2_dp, TWOPI_D, deg2rad_dp, rad2deg_dp
     USE mo_meteo_constants, ONLY: DuffieDelta1, DuffieDelta2
-    USE mo_mlm_constants,   ONLY: RefracIndex_w, fresnel_c, albedo_w_low, albedo_w_high, &
+    USE mo_meteo_constants,   ONLY: RefracIndex_w, fresnel_c, albedo_w_low, albedo_w_high, &
                                   grishchenko_k, grishchenko_l, grishchenko_s, grishchenko_c
 
 
@@ -1029,7 +1030,7 @@ CONTAINS
   elemental pure FUNCTION hourangle(lon, doy, hour)
 
     USE mo_constants,                 ONLY: YearDays, DayHours, TWOPI_D
-    USE mo_mlm_constants,             ONLY: meeus_1, meeus_2, meeus_3, meeus_4, meeus_5, meeus_6
+    USE mo_meteo_constants,             ONLY: meeus_1, meeus_2, meeus_3, meeus_4, meeus_5, meeus_6
 
     IMPLICIT NONE
 
@@ -1099,7 +1100,7 @@ CONTAINS
 
   elemental pure FUNCTION spc_heat_vap_water(T)
 
-    USE mo_mlm_constants,   ONLY: lat_heat_vap_c1, lat_heat_vap_c2
+    USE mo_meteo_constants,   ONLY: lat_heat_vap_c1, lat_heat_vap_c2
 
     IMPLICIT NONE
 
@@ -1169,7 +1170,7 @@ CONTAINS
 
   elemental pure FUNCTION psychro_constant(elev, T)
 
-    USE mo_mlm_constants,  ONLY: psychro_constant_c1
+    USE mo_meteo_constants,  ONLY: psychro_constant_c1
 
     IMPLICIT NONE
 
@@ -1236,7 +1237,7 @@ CONTAINS
 
   elemental pure FUNCTION atmospheric_pressure(elev)
 
-    USE mo_mlm_constants,  ONLY: atm_pressure_c1, atm_pressure_c2, &
+    USE mo_meteo_constants,  ONLY: atm_pressure_c1, atm_pressure_c2, &
                                  atm_pressure_c3, atm_pressure_c4
 
     IMPLICIT NONE
