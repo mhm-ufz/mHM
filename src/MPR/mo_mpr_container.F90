@@ -414,13 +414,13 @@ contains
     end if
 
     if (self%config%lai_time_step(id(1)) == 0_i4) then
-      status = self%config%is_set("lai_lut_path", idx=id, errmsg=errmsg)
+      status = self%exchange%config%lut%is_set("lai_lut_path", idx=id, errmsg=errmsg)
       if (status /= NML_OK .and. .not.self%config%read_restart(id(1))) then
         log_fatal(*) "MPR: lai_lut_path not set for domain ", n2s(id(1)), &
           " while lai_time_step=0. Error: ", trim(errmsg)
         error stop 1
       end if
-      if (status == NML_OK) self%lai%lut_path = self%exchange%get_path(self%config%lai_lut_path(id(1)))
+      if (status == NML_OK) self%lai%lut_path = self%exchange%get_path(self%exchange%config%lut%lai_lut_path(id(1)))
       if (allocated(self%lai%path)) deallocate(self%lai%path)
       if (allocated(self%lai%var_name)) deallocate(self%lai%var_name)
     else

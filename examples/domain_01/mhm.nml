@@ -69,7 +69,6 @@
   land_cover_path        = "input/morph/lc_periods.nc"
   land_cover_var         = "land_cover"
   lai_time_step          = 0
-  lai_lut_path           = "input/morph/LAI_classdefinition.txt"
 /
 
 &config_mhm
@@ -85,4 +84,5 @@
 &config_lut
   soil_lut_path          = "input/morph/soil_classdefinition.txt"
   geo_lut_path           = "input/morph/geology_classdefinition.txt"
+  lai_lut_path           = "input/morph/LAI_classdefinition.txt"
 /

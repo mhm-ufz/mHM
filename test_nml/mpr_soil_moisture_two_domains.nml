@@ -66,7 +66,6 @@
   land_cover_path(1)     = "examples/domain_01/input/morph/lc_periods.nc"
   land_cover_var(1)      = "land_cover"
   lai_time_step(1)       = 0
-  lai_lut_path(1)        = "examples/domain_01/input/morph/LAI_classdefinition.txt"
   n_layers(2)            = 2
   soil_db_mode(2)        = 0
   tillage_depth(2)       = 200
@@ -75,7 +74,6 @@
   land_cover_path(2)     = "examples/domain_02/input/morph/lc_periods_2.nc"
   land_cover_var(2)      = "land_cover"
   lai_time_step(2)       = 0
-  lai_lut_path(2)        = "examples/domain_02/input/morph/LAI_classdefinition.txt"
 /
 
 &config_mhm
@@ -86,4 +84,6 @@
   geo_lut_path(1)        = "examples/domain_01/input/morph/geology_classdefinition.txt"
   soil_lut_path(2)       = "examples/domain_02/input/morph/soil_classdefinition.txt"
   geo_lut_path(2)        = "examples/domain_02/input/morph/geology_classdefinition.txt"
+  lai_lut_path(1)        = "examples/domain_01/input/morph/LAI_classdefinition.txt"
+  lai_lut_path(2)        = "examples/domain_02/input/morph/LAI_classdefinition.txt"
 /

@@ -49,7 +49,6 @@
   land_cover_path(1)       = "examples/fixtures/lc_static.nc"
   land_cover_var(1)        = "land_cover"
   lai_time_step(1)         = 0
-  lai_lut_path(1)          = "examples/domain_01/input/morph/LAI_classdefinition.txt"
 /
 
 &config_mhm
@@ -62,4 +61,5 @@
 &config_lut
   soil_lut_path(1)         = "examples/domain_01/input/morph/soil_classdefinition.txt"
   geo_lut_path(1)          = "examples/domain_01/input/morph/geology_classdefinition.txt"
+  lai_lut_path(1)          = "examples/domain_01/input/morph/LAI_classdefinition.txt"
 /

@@ -71,7 +71,6 @@ module nml_config_mpr
     integer(i4), allocatable, dimension(:) :: lai_time_step !< LAI time step
     character(len=buf), allocatable, dimension(:) :: lai_path !< LAI path
     character(len=buf), allocatable, dimension(:) :: lai_var !< LAI variable
-    character(len=buf), allocatable, dimension(:) :: lai_lut_path !< LAI LUT path
     logical, allocatable, dimension(:) :: read_restart !< Read restart
     character(len=buf), allocatable, dimension(:) :: restart_input_path !< Restart input path
     logical, allocatable, dimension(:) :: write_restart !< Write restart
@@ -167,8 +166,6 @@ contains
     allocate(character(len=buf) :: this%lai_path(this%n_domains))
     if (allocated(this%lai_var)) deallocate(this%lai_var)
     allocate(character(len=buf) :: this%lai_var(this%n_domains))
-    if (allocated(this%lai_lut_path)) deallocate(this%lai_lut_path)
-    allocate(character(len=buf) :: this%lai_lut_path(this%n_domains))
     if (allocated(this%read_restart)) deallocate(this%read_restart)
     allocate(this%read_restart(this%n_domains))
     if (allocated(this%restart_input_path)) deallocate(this%restart_input_path)
@@ -185,7 +182,6 @@ contains
     this%land_cover_path = achar(0) ! sentinel for optional string array
     this%lai_time_step = -huge(this%lai_time_step) ! sentinel for optional integer array
     this%lai_path = achar(0) ! sentinel for optional string array
-    this%lai_lut_path = achar(0) ! sentinel for optional string array
     this%restart_input_path = achar(0) ! sentinel for optional string array
     this%restart_output_path = achar(0) ! sentinel for optional string array
     ! default values
@@ -245,7 +241,6 @@ contains
     if (allocated(this%lai_time_step)) deallocate(this%lai_time_step)
     if (allocated(this%lai_path)) deallocate(this%lai_path)
     if (allocated(this%lai_var)) deallocate(this%lai_var)
-    if (allocated(this%lai_lut_path)) deallocate(this%lai_lut_path)
     if (allocated(this%read_restart)) deallocate(this%read_restart)
     if (allocated(this%restart_input_path)) deallocate(this%restart_input_path)
     if (allocated(this%write_restart)) deallocate(this%write_restart)
@@ -270,7 +265,6 @@ contains
     integer(i4), allocatable, dimension(:) :: lai_time_step
     character(len=buf), allocatable, dimension(:) :: lai_path
     character(len=buf), allocatable, dimension(:) :: lai_var
-    character(len=buf), allocatable, dimension(:) :: lai_lut_path
     logical, allocatable, dimension(:) :: read_restart
     character(len=buf), allocatable, dimension(:) :: restart_input_path
     logical, allocatable, dimension(:) :: write_restart
@@ -292,7 +286,6 @@ contains
       lai_time_step, &
       lai_path, &
       lai_var, &
-      lai_lut_path, &
       read_restart, &
       restart_input_path, &
       write_restart, &
@@ -321,8 +314,6 @@ contains
     allocate(character(len=buf) :: lai_path(this%n_domains))
     if (allocated(lai_var)) deallocate(lai_var)
     allocate(character(len=buf) :: lai_var(this%n_domains))
-    if (allocated(lai_lut_path)) deallocate(lai_lut_path)
-    allocate(character(len=buf) :: lai_lut_path(this%n_domains))
     if (allocated(read_restart)) deallocate(read_restart)
     allocate(read_restart(this%n_domains))
     if (allocated(restart_input_path)) deallocate(restart_input_path)
@@ -341,7 +332,6 @@ contains
     lai_time_step = this%lai_time_step
     lai_path = this%lai_path
     lai_var = this%lai_var
-    lai_lut_path = this%lai_lut_path
     read_restart = this%read_restart
     restart_input_path = this%restart_input_path
     write_restart = this%write_restart
@@ -381,7 +371,6 @@ contains
     this%lai_time_step = lai_time_step
     this%lai_path = lai_path
     this%lai_var = lai_var
-    this%lai_lut_path = lai_lut_path
     this%read_restart = read_restart
     this%restart_input_path = restart_input_path
     this%write_restart = write_restart
@@ -404,7 +393,6 @@ contains
     lai_time_step, &
     lai_path, &
     lai_var, &
-    lai_lut_path, &
     read_restart, &
     restart_input_path, &
     write_restart, &
@@ -423,7 +411,6 @@ contains
     integer(i4), dimension(:), intent(in), optional :: lai_time_step !< LAI time step
     character(len=*), dimension(:), intent(in), optional :: lai_path !< LAI path
     character(len=*), dimension(:), intent(in), optional :: lai_var !< LAI variable
-    character(len=*), dimension(:), intent(in), optional :: lai_lut_path !< LAI LUT path
     logical, dimension(:), intent(in), optional :: read_restart !< Read restart
     character(len=*), dimension(:), intent(in), optional :: restart_input_path !< Restart input path
     logical, dimension(:), intent(in), optional :: write_restart !< Write restart
@@ -545,16 +532,6 @@ contains
       lb__1 = lbound(this%lai_var, 1)
       ub__1 = lb__1 + size(lai_var, 1) - 1
       this%lai_var(lb__1:ub__1) = lai_var
-    end if
-    if (present(lai_lut_path)) then
-      if (size(lai_lut_path, 1) > size(this%lai_lut_path, 1)) then
-        status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lai_lut_path'"
-        return
-      end if
-      lb__1 = lbound(this%lai_lut_path, 1)
-      ub__1 = lb__1 + size(lai_lut_path, 1) - 1
-      this%lai_lut_path(lb__1:ub__1) = lai_lut_path
     end if
     if (present(read_restart)) then
       if (size(read_restart, 1) > size(this%read_restart, 1)) then
@@ -738,19 +715,6 @@ contains
           "lai_var", errmsg)
         if (status /= NML_OK) return
       else
-      end if
-    case ("lai_lut_path")
-      if (.not. allocated(this%lai_lut_path)) then
-        status = NML_ERR_NOT_SET
-        return
-      end if
-      if (present(idx)) then
-        status = idx_check(idx, lbound(this%lai_lut_path), ubound(this%lai_lut_path), &
-          "lai_lut_path", errmsg)
-        if (status /= NML_OK) return
-        if (this%lai_lut_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
-      else
-        if (all(this%lai_lut_path == achar(0))) status = NML_ERR_NOT_SET
       end if
     case ("read_restart")
       if (.not. allocated(this%read_restart)) then

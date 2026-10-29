@@ -5,7 +5,8 @@
 !> \details Domain-indexed look-up table (LUT) paths provided as metadata independent of the
 !! process containers. Attached to the exchange of each domain so that any container
 !! (land-surface MPR, Input, mLM) can resolve the shared class-to-property tables
-!! without duplicating the path in its own process configuration.
+!! without duplicating the path in its own process configuration. LAI tables are
+!! included here alongside soil and geology tables; MPR owns their derived caches.
 !> \version 0.2
 !> \authors Sebastian Mueller
 !> \date    Jun 2026
@@ -41,12 +42,14 @@ module nml_config_lut
   !> \details Domain-indexed look-up table (LUT) paths provided as metadata independent of the
   !! process containers. Attached to the exchange of each domain so that any container
   !! (land-surface MPR, Input, mLM) can resolve the shared class-to-property tables
-  !! without duplicating the path in its own process configuration.
+  !! without duplicating the path in its own process configuration. LAI tables are
+  !! included here alongside soil and geology tables; MPR owns their derived caches.
   type, public :: nml_config_lut_t
     logical :: is_configured = .false. !< whether the namelist has been configured
     integer :: n_domains = n_domains__default !< runtime dimension for n_domains
     character(len=buf), allocatable, dimension(:) :: soil_lut_path !< Soil look-up table path
     character(len=buf), allocatable, dimension(:) :: geo_lut_path !< Geology look-up table path
+    character(len=buf), allocatable, dimension(:) :: lai_lut_path !< LAI LUT path
   contains
     procedure :: init => nml_config_lut_init
     procedure :: set_dims => nml_config_lut_set_dims
@@ -72,10 +75,13 @@ contains
     allocate(character(len=buf) :: this%soil_lut_path(this%n_domains))
     if (allocated(this%geo_lut_path)) deallocate(this%geo_lut_path)
     allocate(character(len=buf) :: this%geo_lut_path(this%n_domains))
+    if (allocated(this%lai_lut_path)) deallocate(this%lai_lut_path)
+    allocate(character(len=buf) :: this%lai_lut_path(this%n_domains))
 
     ! sentinel values for required/optional parameters
     this%soil_lut_path = achar(0) ! sentinel for optional string array
     this%geo_lut_path = achar(0) ! sentinel for optional string array
+    this%lai_lut_path = achar(0) ! sentinel for optional string array
   end function nml_config_lut_init
 
   !> \brief Reset runtime dimensions for config_lut
@@ -104,6 +110,7 @@ contains
     ! deallocate runtime-sized fields; init/set/from_file allocate them again
     if (allocated(this%soil_lut_path)) deallocate(this%soil_lut_path)
     if (allocated(this%geo_lut_path)) deallocate(this%geo_lut_path)
+    if (allocated(this%lai_lut_path)) deallocate(this%lai_lut_path)
     this%is_configured = .false.
   end function nml_config_lut_set_dims
 
@@ -116,6 +123,7 @@ contains
     ! namelist variables
     character(len=buf), allocatable, dimension(:) :: soil_lut_path
     character(len=buf), allocatable, dimension(:) :: geo_lut_path
+    character(len=buf), allocatable, dimension(:) :: lai_lut_path
     ! locals
     type(nml_file_t) :: nml
     integer :: iostat
@@ -124,7 +132,8 @@ contains
 
     namelist /config_lut/ &
       soil_lut_path, &
-      geo_lut_path
+      geo_lut_path, &
+      lai_lut_path
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -133,8 +142,11 @@ contains
     allocate(character(len=buf) :: soil_lut_path(this%n_domains))
     if (allocated(geo_lut_path)) deallocate(geo_lut_path)
     allocate(character(len=buf) :: geo_lut_path(this%n_domains))
+    if (allocated(lai_lut_path)) deallocate(lai_lut_path)
+    allocate(character(len=buf) :: lai_lut_path(this%n_domains))
     soil_lut_path = this%soil_lut_path
     geo_lut_path = this%geo_lut_path
+    lai_lut_path = this%lai_lut_path
 
     status = nml%open(file, errmsg=errmsg)
     if (status /= NML_OK) return
@@ -162,6 +174,7 @@ contains
     ! assign values
     this%soil_lut_path = soil_lut_path
     this%geo_lut_path = geo_lut_path
+    this%lai_lut_path = lai_lut_path
 
     ! mark as configured
     this%is_configured = .true.
@@ -172,12 +185,14 @@ contains
   integer function nml_config_lut_set(this, &
     soil_lut_path, &
     geo_lut_path, &
+    lai_lut_path, &
     errmsg) result(status)
 
     class(nml_config_lut_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     character(len=*), dimension(:), intent(in), optional :: soil_lut_path !< Soil look-up table path
     character(len=*), dimension(:), intent(in), optional :: geo_lut_path !< Geology look-up table path
+    character(len=*), dimension(:), intent(in), optional :: lai_lut_path !< LAI LUT path
     integer :: &
       lb__1, &
       ub__1
@@ -206,6 +221,16 @@ contains
       lb__1 = lbound(this%geo_lut_path, 1)
       ub__1 = lb__1 + size(geo_lut_path, 1) - 1
       this%geo_lut_path(lb__1:ub__1) = geo_lut_path
+    end if
+    if (present(lai_lut_path)) then
+      if (size(lai_lut_path, 1) > size(this%lai_lut_path, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lai_lut_path'"
+        return
+      end if
+      lb__1 = lbound(this%lai_lut_path, 1)
+      ub__1 = lb__1 + size(lai_lut_path, 1) - 1
+      this%lai_lut_path(lb__1:ub__1) = lai_lut_path
     end if
 
     ! mark as configured
@@ -253,6 +278,19 @@ contains
         if (this%geo_lut_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
         if (all(this%geo_lut_path == achar(0))) status = NML_ERR_NOT_SET
+      end if
+    case ("lai_lut_path")
+      if (.not. allocated(this%lai_lut_path)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%lai_lut_path), ubound(this%lai_lut_path), &
+          "lai_lut_path", errmsg)
+        if (status /= NML_OK) return
+        if (this%lai_lut_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
+      else
+        if (all(this%lai_lut_path == achar(0))) status = NML_ERR_NOT_SET
       end if
     case default
       status = NML_ERR_INVALID_NAME

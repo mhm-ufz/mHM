@@ -112,6 +112,8 @@
   soil_lut_path(:) = ""
   ! Geology look-up table path
   geo_lut_path(:) = ""
+  ! LAI LUT path
+  lai_lut_path(:) = ""
 /
 
 ! Time configuration
@@ -454,8 +456,6 @@
   lai_path(:) = ""
   ! LAI variable
   lai_var(:) = "lai"
-  ! LAI LUT path
-  lai_lut_path(:) = ""
   ! Read restart
   read_restart(:) = .false.
   ! Restart input path

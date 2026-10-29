@@ -36,7 +36,6 @@
   soil_depth(1,1)          = 200
   fracSealed_cityArea(1)   = 0.6
   lai_time_step(1)         = 0
-  lai_lut_path(1)          = "examples/domain_01/input/morph/LAI_classdefinition.txt"
   read_restart(1)          = .true.
   restart_input_path(1)    = "mpr_pet_penman_restart.nc"
 /
@@ -47,4 +46,5 @@
 &config_lut
   soil_lut_path(1)         = "examples/domain_01/input/morph/soil_classdefinition.txt"
   geo_lut_path(1)          = "examples/domain_01/input/morph/geology_classdefinition.txt"
+  lai_lut_path(1)          = "examples/domain_01/input/morph/LAI_classdefinition.txt"
 /
