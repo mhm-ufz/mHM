@@ -73,6 +73,10 @@ target_link_libraries(test_river_routing_optimization PRIVATE ${LIB_NAME})
 add_test(NAME test_river_routing_optimization COMMAND test_river_routing_optimization)
 
 if(TARGET mhm)
+  add_test(NAME test_output_restart_boundaries COMMAND ${CMAKE_COMMAND}
+    -DTEST_EXECUTABLE=$<TARGET_FILE:mhm>
+    -DRUN_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/runs/test_output_restart_boundaries
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/run_output_restart_boundaries.cmake)
   add_test(
     NAME test_mrm_river_temperature
     COMMAND

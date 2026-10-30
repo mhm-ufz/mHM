@@ -1417,7 +1417,6 @@ contains
     integer(i4) :: timestamp
 
     if (allocated(self%ds_out%vars)) call self%ds_out%close()
-    if (.not.self%output_config%is_configured) return
     if (.not.self%output_active) return
 
     timestamp = self%output_config%output_time_reference
@@ -1484,7 +1483,6 @@ contains
     class(mlm_t), target, intent(in) :: self
     integer(i4) :: frequency
 
-    if (.not.self%output_config%is_configured) return
     if (.not.self%output_active) return
     frequency = self%output_config%output_frequency
     select case (frequency)
@@ -1510,7 +1508,7 @@ contains
     type(datetime), intent(in) :: time !< time
     integer(i4) :: elapsed_hours
 
-    if (.not.self%output_config%is_configured) then
+    if (.not.self%output_active) then
       boundary = .true.
       return
     end if
@@ -1534,7 +1532,6 @@ contains
   subroutine mlm_update_output(self)
     class(mlm_t), target, intent(inout) :: self
 
-    if (.not.self%output_config%is_configured) return
     if (.not.self%output_active) return
     if (self%exchange%config%processes%lake == 1_i4) then
       if (self%output_config%out_lake_level) call self%ds_out%update("lake_level", self%state%level)

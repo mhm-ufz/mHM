@@ -298,15 +298,18 @@ static inputs; any supplied definition must agree. Restore only states owned by
 the selected process, keeping externally supplied fields under their provider.
 
 `finalize` writes requested restarts and closes output before destruction.
-mHM writes only at its output boundaries. mRM requires a completed routing
-boundary and, when output is active, an output boundary; partial routing
-accumulators are not persisted. A new process must identify all memory needed
-for an uninterrupted-versus-restarted comparison, including coupling delays.
+mHM and mLM write after completed model steps and, when output is active, only
+at output boundaries. mRM always requires a completed routing boundary and,
+when output is active, an output boundary. Partial routing accumulators and
+output aggregation buffers are not persisted. A new process must identify all
+memory needed for an uninterrupted-versus-restarted comparison, including coupling delays.
 
 Use existing grid/point/river writers and canonical exchange metadata for I/O.
-Output namelists are optional. Read their flags and cadence only when the corresponding
-`output_config%is_configured` is true. Absent output configuration disables output and
-imposes no output cadence on restart writing; mRM still requires a completed routing boundary.
+Output namelists are optional. Gate output-only input requirements and runtime cadence
+checks on active output, which implies a configured namelist. Configured but disabled
+output adds no output-only input requirements or output-cadence constraint on restarts;
+mRM still requires a completed routing boundary. Do not initialize an absent output
+configuration just to read its fields.
 Gridded files expand packed arrays back onto their geometry. Layered output opts
 into `as_output_var(layered=.true.)`, including one-layer fields, and supplies
 layer tops and bounds. Runtime `(ncells, n_horizons)` becomes Fortran `(x, y, z)`

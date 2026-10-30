@@ -522,7 +522,7 @@ contains
     if ((interception_case /= 0_i4) .or. (snow_case == 1_i4)) call self%exchange%pre%check_provided("mHM")
     if (snow_case == 1_i4) call self%exchange%temp%check_provided("mHM")
     need_pet = (interception_case == 1_i4) .or. (soil_case /= 0_i4) .or. (direct_runoff_case /= 0_i4)
-    if (self%output_config%is_configured) need_pet = need_pet .or. self%output_config%out_pet
+    if (self%io%output_active) need_pet = need_pet .or. self%output_config%out_pet
     if (need_pet) call self%exchange%pet%check_provided("mHM")
 
     call allocate_1d(self%canopy%interception, n_cells, self%contract%own_interception)
@@ -601,7 +601,7 @@ contains
     if (allocated(self%output_work%scalar)) deallocate(self%output_work%scalar)
     if (allocated(self%output_work%pervious)) deallocate(self%output_work%pervious)
     if (allocated(self%output_work%layers)) deallocate(self%output_work%layers)
-    if (self%io%output_active .and. self%output_config%is_configured) then
+    if (self%io%output_active) then
       allocate(self%output_work%scalar(self%exchange%level1_land%ncells))
       allocate(self%output_work%pervious(self%exchange%level1_land%ncells))
       if (self%output_config%out_sm .or. self%output_config%out_soil_infil .or. self%output_config%out_aet_layer) then
@@ -628,8 +628,7 @@ contains
     integer(i4) :: model_step
     logical :: output_boundary
 
-    if (.not.self%output_config%is_configured) return
-    if (.not.self%io%output_active .and. .not.self%io%write_restart) return
+    if (.not.self%io%output_active) return
     model_step = self%exchange%step_hours
     frequency = self%output_config%output_frequency
     output_boundary = self%at_output_boundary(self%exchange%end_time)
@@ -656,7 +655,7 @@ contains
     type(datetime), intent(in) :: time !< Endpoint time checked against the output cadence.
     integer(i4) :: elapsed_hours
 
-    if (.not.self%output_config%is_configured) then
+    if (.not.self%io%output_active) then
       boundary = .true.
       return
     end if
@@ -707,7 +706,7 @@ contains
       .or. (baseflow_case /= 0_i4) &
       .or. self%io%calc_f_not_sealed
     need_sm_saturation = soil_case /= 0_i4
-    if (self%output_config%is_configured) then
+    if (self%io%output_active) then
       need_f_sealed = need_f_sealed .or. self%output_config%out_qd &
         .or. (self%output_config%out_aet_all .and. self%exchange%aet_sealed%provided)
       need_sm_saturation = need_sm_saturation .or. self%output_config%out_sm .or. self%output_config%out_sm_all
@@ -776,7 +775,6 @@ contains
     logical :: layered
     real(dp), allocatable :: layer(:), vertices(:)
 
-    if (.not.self%output_config%is_configured) return
     if (.not.self%io%output_active) return
 
     timestamp = self%output_config%output_time_reference
@@ -880,7 +878,6 @@ contains
     integer(i4) :: model_step
     integer(i4) :: output_steps
 
-    if (.not.self%output_config%is_configured) return
     if (.not.self%io%output_active) return
     model_step = self%exchange%step_hours
     ! Access owning buffers directly: NAG 7.2 cannot lower an ASSOCIATE alias across OpenMP regions.
@@ -1715,7 +1712,7 @@ contains
     class(mhm_t), intent(inout), target :: self
     logical :: aet_available
 
-    if (.not.self%output_config%is_configured) return
+    self%io%calc_f_not_sealed = .false.
     if (.not.self%io%output_active) return
 
     call disable_unavailable(self%output_config%out_interception, "interception", &

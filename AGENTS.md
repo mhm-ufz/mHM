@@ -77,11 +77,13 @@ workflows before changing components or configuration; this file defines the det
   input lookup, output/restart timestamps, aggregation flushing, diagnostics, and simulation-end checks.
 - Positive output frequencies are fixed hours: compatible with mHM's model step and whole multiples
   in either direction of mRM's completed routing step. Only mRM backward-fills finer records with completed routing means.
-- Write mHM restarts at its output boundaries; write mRM restarts at completed routing boundaries
-  and its output boundaries when output is active. Never persist partial routing accumulators.
-- Output namelists are optional. Guard output flags and cadence with `output_config%is_configured`;
-  do not initialize absent output configurations just to read their fields. Without configured output,
-  no output cadence constrains restarts; mRM still requires a completed routing boundary.
+- Write mHM/mLM restarts at completed model steps and, when output is active, at output boundaries.
+  mRM always requires completed routing boundaries and, when output is active, output boundaries.
+  Never persist partial routing accumulators or output aggregation buffers.
+- Output namelists are optional. Gate output-only input requirements and runtime cadence checks on
+  active output, which implies a configured namelist; do not initialize absent output configurations
+  just to read their fields. A configured namelist without an active output stream adds no output-only
+  input requirements or output-cadence constraint on restarts.
 - Keep data-only `parameter_t` application-owned in `mo_parameter_types`; schemas reference it with
   `x-fortran-module`. Preserve field/schema order `value, optimize, min, max`; do not duplicate the type in `nml_helper`.
 - Keep parameter input instances in `exchange%config%parameters`, separate from the flattened runtime
