@@ -40,6 +40,7 @@ program test_mpr_multidomain_soil
   type(soil_fields_t) :: fields
   integer(i4), allocatable :: soil_ids_1(:)
   integer(i4), allocatable :: soil_ids_2(:)
+  integer(i4), allocatable :: geo_units_2(:)
   integer(i4) :: i, j, order, scenario, neutron_case
   integer(i4) :: connect_order(2)
   real(dp), allocatable :: values(:)
@@ -75,6 +76,9 @@ program test_mpr_multidomain_soil
           call assert_true(all(fields%sm_saturation > 0.0_dp), "domain has no soil water capacity")
           call compare(fields, reference(i))
         end do
+        call assert_true(.not.associated(domains(1)%exchange%geo_class_def, domains(2)%exchange%geo_class_def), &
+          "domains share a geology LUT")
+        geo_units_2 = domains(2)%exchange%geo_class_def%geo_unit
         ! Parameter changes in one domain must not alter the other's input database.
         values = domains(1)%exchange%parameters%as_array()
         values(1) = values(1) * 1.1_dp
@@ -93,7 +97,14 @@ program test_mpr_multidomain_soil
         call domains(1)%finalize()
         call domains(1)%destroy()
         call assert_true(.not.allocated(domains(1)%mpr%soil%db%is_present), "destroy retained soil LUT")
+        call assert_true(.not.associated(domains(1)%exchange%geo_class_def), "destroy retained geology publication")
+        call assert_true(.not.allocated(domains(1)%mpr%preproc%geo_class_def%geo_unit), "destroy retained geology units")
+        call assert_true(.not.allocated(domains(1)%mpr%preproc%geo_class_def%geo_karstic), "destroy retained geology flags")
+        call assert_true(.not.allocated(domains(1)%mpr%preproc%geo_class_def%geo_param_index), "destroy retained geology indices")
         call domains(1)%destroy()
+        call assert_true(associated(domains(2)%exchange%geo_class_def), "destroy detached another domain's geology LUT")
+        call assert_true(all(domains(2)%exchange%geo_class_def%geo_unit == geo_units_2), &
+          "destroy altered another domain's geology LUT")
         call domains(2)%initialize()
         fields = soil_fields(domains(2))
         call compare(fields, reference(2))
@@ -117,6 +128,7 @@ contains
     domain%mpr%write_restart = .false.
     call domain%prepare_restart()
     call domain%connect()
+    call assert_true(associated(domain%exchange%geo_class_def), "MPR did not publish its geology LUT")
     call assert_true(domain%mpr%upscaler%weight_mode == weight_count, "MPR scaler must use count weights")
     if (domain%mpr%soil%db%mode == 0) then
       call assert_true(domain%exchange%model_horizon_bottom_variable, 'missing variable-bottom flag')

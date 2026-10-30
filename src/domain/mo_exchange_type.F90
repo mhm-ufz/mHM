@@ -357,7 +357,7 @@ module mo_exchange_type
     type(var_i4) :: geo_unit            !< geological unit ID on level l0 (static)
     type(var_i4) :: lai_class           !< LAI class ID on level l0 (static)
     type(var_dp) :: slope_emp           !< empirical slope distribution on level l0 (static)
-    type(geology_classdefinition_t), pointer :: geo_class_def => null() !< geology class lookup
+    type(geology_classdefinition_t), pointer :: geo_class_def => null() !< non-owning MPR geology class lookup
 
     ! hydrology (level1)
     ! canopy
