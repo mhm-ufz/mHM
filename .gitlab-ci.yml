@@ -102,32 +102,11 @@ show-env-vars:
   stage: code-analysis
   script:
     - source hpc-module-loads/eve.$COMPILER
+    - cmake -S . -B debug -DCMAKE_BUILD_TYPE=Debug -DMHM_BUILD_DRIVER=ON -DMHM_BUILD_TESTING=ON -DBUILD_TESTING=ON -DMHM_WITH_OpenMP=OFF
+    - cmake --build debug --target mhm test_parameter_reinitialize --parallel 4
     - module load Mamba
     - source activate /global/apps/mhm_checks/mhm_env
-    - cmake -DSOURCE_DIR="$PWD" -DRUN_DIR="$PWD/build/valgrind-run" -P CI-scripts/stage_run.cmake
-    - mkdir -p build/valgrind-logs
-    - valgrind --version
-    # Host uprobes in clearenv break Valgrind's libc cleanup; application cleanup still runs.
-    - >-
-      valgrind --tool=memcheck --error-exitcode=99 --leak-check=full
-      --errors-for-leak-kinds=definite,indirect,possible --show-leak-kinds=all
-      --track-origins=yes --run-libc-freeres=no
-      --log-file=build/valgrind-logs/memcheck.log
-      ./mhm_debug -n test_nml/mrm_minimal.nml -p test_nml/mhm_parameter_v6_routing.nml
-      -o mhm-output-template.nml build/valgrind-run
-      > build/valgrind-logs/model-memcheck.log 2>&1
-    - tail -n 12 build/valgrind-logs/memcheck.log
-    # execute mem-use check
-    - >-
-      valgrind --tool=massif --stacks=yes --time-unit=i --run-libc-freeres=no
-      --massif-out-file=build/valgrind-logs/massif.out
-      --log-file=build/valgrind-logs/massif.log
-      ./mhm_debug -n test_nml/mrm_minimal.nml -p test_nml/mhm_parameter_v6_routing.nml
-      -o mhm-output-template.nml build/valgrind-run
-      > build/valgrind-logs/model-massif.log 2>&1
-    # Invoke Perl explicitly because packaged ms_print can retain a build-time shebang.
-    - perl "$(command -v ms_print)" build/valgrind-logs/massif.out > build/valgrind-logs/massif.txt
-    - cat build/valgrind-logs/massif.txt
+    - bash CI-scripts/run_valgrind.sh --log-dir build/valgrind-logs ./debug/app/mhm ./debug/src/tests/test_parameter_reinitialize
   artifacts:
     when: always
     paths:
@@ -295,7 +274,7 @@ valgrind-gfortran122:
     COMPILER: gfortran122
   needs:
     - job: cmake-gfortran122
-      artifacts: true
+      artifacts: false
   <<: *valgrind_template
 
 # Intel runtime diagnostics call setenv at EOF, hitting host uprobes under Valgrind.
