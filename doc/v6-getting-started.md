@@ -79,8 +79,16 @@ release history. Generate HTML and LaTeX from the repository root with:
 PROJECT_NUMBER="$(cat version.txt)" doxygen doc/doxygen.config
 ```
 
-Open `html/index.html` to browse it. The PDF build uses
-`cd latex && tectonic -r 10 refman.tex`; documentation CI publishes HTML and PDF.
+Open `html/index.html` to browse it. The documentation environment in
+`doc/rtd-environment.yml` pins Doxygen 1.18.0. The vendored theme is
+[doxygen-awesome v2.5.0](https://github.com/jothepro/doxygen-awesome-css/releases/tag/v2.5.0);
+its styles and extensions are copied unchanged into `doc/doxygen-awesome-css/`.
+The header shows Doxygen's standard project version from `version.txt`;
+Read the Docs provides the version switcher and PDF download through its flyout.
+
+Build the PDF with system TeX Live using `make -C latex`. On Read the Docs,
+`doc/readthedocs_build.sh` publishes HTML and PDF, logs the PDF build to
+`doxygen_latex_make.log`, and prints the last 80 log lines on failure.
 The theme, headers, references, and figures remain in `doc/`.
 
 The Python package provides `mhm.run_forward`, `mhm.__version__`, `mhm.f_version`,

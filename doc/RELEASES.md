@@ -1,4 +1,4 @@
-# mHM Release Notes
+# mHM Release Notes {#releases}
 
 [TOC]
 

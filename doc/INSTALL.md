@@ -1,4 +1,4 @@
-# Compilation
+# Compilation {#compilation}
 
 [TOC]
 

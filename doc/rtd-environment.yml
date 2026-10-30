@@ -4,6 +4,6 @@ channels:
 
 dependencies:
   - python=3.12
-  - doxygen=1.11.0
+  - doxygen=1.18.0
   - graphviz
   - fortran-compiler
