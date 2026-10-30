@@ -430,6 +430,7 @@ contains
     logical :: allocate_throughfall
     logical :: allocate_pre_effect
     logical :: allocate_rain
+    logical :: need_pet
     integer :: status
     character(1024) :: errmsg
 
@@ -520,8 +521,9 @@ contains
 
     if ((interception_case /= 0_i4) .or. (snow_case == 1_i4)) call self%exchange%pre%check_provided("mHM")
     if (snow_case == 1_i4) call self%exchange%temp%check_provided("mHM")
-    if ((interception_case == 1_i4) .or. (soil_case /= 0_i4) .or. (direct_runoff_case /= 0_i4) .or. &
-        self%output_config%out_pet) call self%exchange%pet%check_provided("mHM")
+    need_pet = (interception_case == 1_i4) .or. (soil_case /= 0_i4) .or. (direct_runoff_case /= 0_i4)
+    if (self%output_config%is_configured) need_pet = need_pet .or. self%output_config%out_pet
+    if (need_pet) call self%exchange%pet%check_provided("mHM")
 
     call allocate_1d(self%canopy%interception, n_cells, self%contract%own_interception)
     call allocate_1d(self%canopy%throughfall, n_cells, allocate_throughfall)
@@ -599,7 +601,7 @@ contains
     if (allocated(self%output_work%scalar)) deallocate(self%output_work%scalar)
     if (allocated(self%output_work%pervious)) deallocate(self%output_work%pervious)
     if (allocated(self%output_work%layers)) deallocate(self%output_work%layers)
-    if (self%io%output_active) then
+    if (self%io%output_active .and. self%output_config%is_configured) then
       allocate(self%output_work%scalar(self%exchange%level1_land%ncells))
       allocate(self%output_work%pervious(self%exchange%level1_land%ncells))
       if (self%output_config%out_sm .or. self%output_config%out_soil_infil .or. self%output_config%out_aet_layer) then
@@ -626,6 +628,7 @@ contains
     integer(i4) :: model_step
     logical :: output_boundary
 
+    if (.not.self%output_config%is_configured) return
     if (.not.self%io%output_active .and. .not.self%io%write_restart) return
     model_step = self%exchange%step_hours
     frequency = self%output_config%output_frequency
@@ -653,6 +656,10 @@ contains
     type(datetime), intent(in) :: time !< Endpoint time checked against the output cadence.
     integer(i4) :: elapsed_hours
 
+    if (.not.self%output_config%is_configured) then
+      boundary = .true.
+      return
+    end if
     select case (self%output_config%output_frequency)
       case (daily)
         boundary = time%is_new_day()
@@ -681,7 +688,7 @@ contains
     integer(i4) :: percolation_case
     integer(i4) :: baseflow_case
     integer(i4) :: neutron_case
-    logical :: need_f_sealed
+    logical :: need_f_sealed, need_sm_saturation
 
     n_horizons = size(self%soil%horizon_bounds) - 1_i4
     interception_case = self%exchange%config%processes%interception
@@ -698,9 +705,13 @@ contains
       .or. (direct_runoff_case /= 0_i4) &
       .or. (interflow_case /= 0_i4) &
       .or. (baseflow_case /= 0_i4) &
-      .or. self%io%calc_f_not_sealed &
-      .or. self%output_config%out_qd &
-      .or. (self%output_config%out_aet_all .and. self%exchange%aet_sealed%provided)
+      .or. self%io%calc_f_not_sealed
+    need_sm_saturation = soil_case /= 0_i4
+    if (self%output_config%is_configured) then
+      need_f_sealed = need_f_sealed .or. self%output_config%out_qd &
+        .or. (self%output_config%out_aet_all .and. self%exchange%aet_sealed%provided)
+      need_sm_saturation = need_sm_saturation .or. self%output_config%out_sm .or. self%output_config%out_sm_all
+    end if
 
     if (interception_case == 1_i4) call self%exchange%check_data(self%exchange%max_interception, "mHM")
     if (snow_case == 1_i4) then
@@ -716,8 +727,7 @@ contains
       call self%exchange%check_data(self%exchange%sm_field_capacity, "mHM")
       call self%exchange%check_data(self%exchange%wilting_point, "mHM")
     end if
-    if ((soil_case /= 0_i4) .or. self%output_config%out_sm .or. self%output_config%out_sm_all) &
-      call self%exchange%check_data(self%exchange%sm_saturation, "mHM")
+    if (need_sm_saturation) call self%exchange%check_data(self%exchange%sm_saturation, "mHM")
     if ((soil_case == 2_i4) .or. (soil_case == 3_i4)) call self%exchange%check_data(self%exchange%thresh_jarvis, "mHM")
     if (direct_runoff_case /= 0_i4) call self%exchange%check_data(self%exchange%thresh_sealed, "mHM")
     if (interflow_case /= 0_i4) then
@@ -766,6 +776,7 @@ contains
     logical :: layered
     real(dp), allocatable :: layer(:), vertices(:)
 
+    if (.not.self%output_config%is_configured) return
     if (.not.self%io%output_active) return
 
     timestamp = self%output_config%output_time_reference
@@ -869,6 +880,7 @@ contains
     integer(i4) :: model_step
     integer(i4) :: output_steps
 
+    if (.not.self%output_config%is_configured) return
     if (.not.self%io%output_active) return
     model_step = self%exchange%step_hours
     ! Access owning buffers directly: NAG 7.2 cannot lower an ASSOCIATE alias across OpenMP regions.
@@ -1703,6 +1715,7 @@ contains
     class(mhm_t), intent(inout), target :: self
     logical :: aet_available
 
+    if (.not.self%output_config%is_configured) return
     if (.not.self%io%output_active) return
 
     call disable_unavailable(self%output_config%out_interception, "interception", &

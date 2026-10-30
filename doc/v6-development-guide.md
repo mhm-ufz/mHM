@@ -304,6 +304,9 @@ accumulators are not persisted. A new process must identify all memory needed
 for an uninterrupted-versus-restarted comparison, including coupling delays.
 
 Use existing grid/point/river writers and canonical exchange metadata for I/O.
+Output namelists are optional. Read their flags and cadence only when the corresponding
+`output_config%is_configured` is true. Absent output configuration disables output and
+imposes no output cadence on restart writing; mRM still requires a completed routing boundary.
 Gridded files expand packed arrays back onto their geometry. Layered output opts
 into `as_output_var(layered=.true.)`, including one-layer fields, and supplies
 layer tops and bounds. Runtime `(ncells, n_horizons)` becomes Fortran `(x, y, z)`

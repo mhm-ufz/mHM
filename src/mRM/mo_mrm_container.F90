@@ -1231,6 +1231,7 @@ contains
     end if
 
     output_enabled = self%output_active .or. self%output_node_active .or. self%poi%active
+    if (.not.self%output_config%is_configured) return
     if (.not.output_enabled) return
     frequency = self%output_config%output_frequency
     output_boundary = self%at_output_boundary(self%exchange%end_time)
@@ -1288,6 +1289,10 @@ contains
     type(datetime), intent(in) :: time
     integer(i4) :: elapsed_hours
 
+    if (.not.self%output_config%is_configured) then
+      boundary = .true.
+      return
+    end if
     if (.not.self%output_active .and. .not.self%output_node_active .and. .not.self%poi%active) then
       boundary = .true.
       return
@@ -1367,6 +1372,7 @@ contains
   subroutine mrm_add_output(self)
     class(mrm_t), intent(inout), target :: self
 
+    if (.not.self%output_config%is_configured) return
     if (self%output_node_active .and. self%output_config%out_Qrouted) then
       call self%ds_node_out%update("discharge", self%flow_state%discharge)
     end if
@@ -1417,6 +1423,7 @@ contains
     integer(i4) :: status
     logical :: write_stamp
 
+    if (.not.self%output_config%is_configured) return
     if (.not.self%output_active .and. .not.self%output_node_active .and. .not.self%poi%active) return
     frequency = self%output_config%output_frequency
 
@@ -1518,6 +1525,7 @@ contains
     integer(i8) :: i
 
     ! shortcut
+    if (.not.self%output_config%is_configured) return
     if (.not.self%output_active .and. .not.self%output_node_active .and. .not.self%poi%active) return
 
     ! general config
