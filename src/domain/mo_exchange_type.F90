@@ -28,7 +28,8 @@ module mo_exchange_type
   use nml_config_domain, only: nml_config_domain_t
   use nml_config_processes, only: nml_config_processes_t
   use nml_config_resolution, only: nml_config_resolution_t
-  use nml_helper, only: NML_OK
+  use nml_config_lut, only: nml_config_lut_t
+  use nml_helper, only: NML_OK, NML_ERR_NML_NOT_FOUND
 
   implicit none
   private
@@ -43,6 +44,7 @@ module mo_exchange_type
     type(nml_config_processes_t) :: processes !< process selections shared by all components
     type(nml_config_time_t) :: time           !< domain-local time configuration
     type(nml_config_resolution_t) :: resolution !< domain-local target grid resolutions
+    type(nml_config_lut_t) :: lut             !< domain-local look-up table paths (metadata)
     type(parameter_namelists_t) :: parameters !< process parameter input configuration
   end type exchange_config_t
 
@@ -263,6 +265,7 @@ module mo_exchange_type
     integer(i4) :: nml_domain_id = 1_i4     !< domain index used when reading namelist arrays
     integer(i4) :: n_geo_units = 25_i4      !< number of geological units in the global parameter set
     integer(i4) :: max_layers = 10_i4       !< maximum number of soil-layer entries in the run
+    integer(i4) :: max_lakes = 1_i4         !< maximum number of lakes per domain in the run
     integer(i4) :: n_layers = 1_i4          !< number of soil layers for this domain
     logical :: from_dirs = .false.          !< whether domain main files are derived from config_domain directories
     character(:), allocatable :: root       !< immutable run root directory
@@ -296,17 +299,31 @@ module mo_exchange_type
     ! variables
     ! lake-point metadata
     type(var_i8) :: lake_ids             !< stable lake IDs on lake points
-    type(var_dp) :: lake_max_levels      !< maximum lake levels [m] on lake points
+    type(var_dp) :: lake_spill_reference_level      !< lake spill reference level [m] on lake points
+    type(var_dp) :: lake_spill_reference_surface_area !< lake surface area at spill reference level [m2] on lake points
+    type(var_dp) :: lake_spill_reference_volume       !< lake volume at spill reference level [m3] on lake points
+    type(var_dp) :: lake_initial_level   !< initial lake level [m] on lake points
+    type(var_dp) :: lake_latitude        !< geographic latitude [degree] on lake points
+    type(var_dp) :: lake_longitude       !< geographic longitude [degree] on lake points
     type(var_i8) :: lake_map             !< stable lake ID on packed level-0 lake cells
-    type(var_dp) :: lake_area            !< lake surface area [m2] on lake points
+    type(var_dp) :: lake_sand           !< top-horizon sand content [%] on packed level-0 lake cells (static, lake MPR)
+    type(var_dp) :: lake_clay           !< top-horizon clay content [%] on packed level-0 lake cells (static, lake MPR)
+    type(var_i4) :: lake_geo            !< geological unit ID on packed level-0 lake cells (static, lake MPR)
+    type(var_dp) :: lake_spill_reference_surface_area_dem_derived  !< lake surface area at spill reference level from DEM footprint (L0 inundation) [m2] on lake points
     type(var_dp) :: lake_inflow          !< completed hourly lake inflow [m3 s-1] on lake points
     type(var_dp) :: lake_outflow         !< current hourly lake outflow [m3 s-1] on lake points
+    type(var_dp) :: lake_level           !< current lake surface level [m] on lake points
+    type(var_dp) :: lake_surface_area    !< current lake surface area [m2] on lake points
+    type(var_dp) :: lake_volume          !< current lake storage volume [m3] on lake points
+    type(var_dp) :: lake_gw_storage      !< current lake groundwater storage [m3] on lake points
     type(var_dp) :: lake_pre             !< current precipitation [mm] on lake points
     type(var_dp) :: lake_temp            !< current air temperature [degC] on lake points
     type(var_dp) :: lake_pet             !< current PET [mm] on lake points
     type(var_dp) :: lake_ssrd            !< current short-wave radiation [W m-2] on lake points
     type(var_dp) :: lake_strd            !< current long-wave radiation [W m-2] on lake points
     type(var_dp) :: lake_tann            !< current annual mean temperature [degC] on lake points
+    type(var_dp) :: lake_wind            !< current wind speed [m s-1] on lake points
+    type(var_dp) :: lake_tdew            !< current dew point temperature [degC] on lake points
 
     ! raw meteorology (level2)
     type(var_dp) :: raw_pre             !< raw precipitation [mm] on level l2
@@ -319,6 +336,7 @@ module mo_exchange_type
     type(var_dp) :: raw_netrad          !< raw net radiation [W m-2] on level l2
     type(var_dp) :: raw_eabs            !< raw vapor pressure [Pa] on level l2
     type(var_dp) :: raw_wind            !< raw wind speed [m s-1] on level l2
+    type(var_dp) :: raw_tdew            !< raw dew point temperature [degC] on level l2
     type(var_dp) :: raw_pet             !< input potential evapotranspiration [mm] on level l2
 
     ! processed meteorology (level1)
@@ -339,7 +357,7 @@ module mo_exchange_type
     type(var_i4) :: geo_unit            !< geological unit ID on level l0 (static)
     type(var_i4) :: lai_class           !< LAI class ID on level l0 (static)
     type(var_dp) :: slope_emp           !< empirical slope distribution on level l0 (static)
-    type(geology_classdefinition_t), pointer :: geo_class_def => null() !< geology class lookup
+    type(geology_classdefinition_t), pointer :: geo_class_def => null() !< non-owning MPR geology class lookup
 
     ! hydrology (level1)
     ! canopy
@@ -525,6 +543,7 @@ contains
     self%n_domains = self%config%project%n_domains
     self%n_geo_units = self%config%project%n_geo_units
     self%max_layers = self%config%project%max_layers
+    self%max_lakes = self%config%project%max_lakes
     if (self%domain_id < 1_i4 .or. self%domain_id > self%n_domains) then
       log_fatal(*) "Invalid domain id ", n2s(self%domain_id), " for run n_domains=", n2s(self%n_domains), "."
       error stop 1
@@ -546,17 +565,31 @@ contains
     ! variables
     ! lake-point metadata
     self%lake_ids        = var_i8(static=.true., points=points_lake, name="lake_ids",        units="1", long_name="stable lake ID")
-    self%lake_max_levels = var_dp(static=.true., points=points_lake, name="lake_max_levels", units="m", long_name="maximum lake level")
+    self%lake_spill_reference_level = var_dp(static=.true., points=points_lake, name="lake_spill_reference_level", units="m", long_name="lake spill reference level")
+    self%lake_spill_reference_surface_area = var_dp(static=.true., points=points_lake, name="lake_spill_reference_surface_area", units="m2", long_name="lake surface area at spill reference level")
+    self%lake_spill_reference_volume = var_dp(static=.true., points=points_lake, name="lake_spill_reference_volume", units="m3", long_name="lake volume at spill reference level")
+    self%lake_initial_level = var_dp(static=.true., points=points_lake, name="lake_initial_level", units="m", long_name="initial lake level")
+    self%lake_latitude = var_dp(static=.true., points=points_lake, name="lake_latitude", units="degree", long_name="geographic latitude")
+    self%lake_longitude = var_dp(static=.true., points=points_lake, name="lake_longitude", units="degree", long_name="geographic longitude")
     self%lake_map        = var_i8(static=.true., grid=l0_lake, name="lake_map", units="1", long_name="stable lake ID")
-    self%lake_area       = var_dp(static=.true., points=points_lake, name="lake_area", units="m2", long_name="lake surface area")
+    self%lake_sand       = var_dp(static=.true., grid=l0_lake, name="lake_sand", units="%", long_name="top-horizon sand content on lake footprint")
+    self%lake_clay       = var_dp(static=.true., grid=l0_lake, name="lake_clay", units="%", long_name="top-horizon clay content on lake footprint")
+    self%lake_geo        = var_i4(static=.true., grid=l0_lake, name="lake_geo", units="1", long_name="geological unit ID on lake footprint")
+    self%lake_spill_reference_surface_area_dem_derived       = var_dp(static=.true., points=points_lake, name="lake_spill_reference_surface_area_dem_derived", units="m2", long_name="lake surface area at spill reference level from DEM footprint")
     self%lake_inflow     = var_dp(points=points_lake, name="lake_inflow",  units="m3 s-1", long_name="completed hourly lake inflow")
     self%lake_outflow    = var_dp(points=points_lake, name="lake_outflow", units="m3 s-1", long_name="current hourly lake outflow")
+    self%lake_level      = var_dp(points=points_lake, name="lake_level", units="m", long_name="current lake surface level")
+    self%lake_surface_area = var_dp(points=points_lake, name="lake_surface_area", units="m2", long_name="current lake surface area")
+    self%lake_volume     = var_dp(points=points_lake, name="lake_volume", units="m3", long_name="current lake storage volume")
+    self%lake_gw_storage = var_dp(points=points_lake, name="lake_gw_storage", units="m3", long_name="current lake groundwater storage")
     self%lake_pre        = var_dp(points=points_lake, name="lake_pre", units="mm", long_name="lake precipitation")
     self%lake_temp       = var_dp(points=points_lake, name="lake_temp", units="degC", long_name="lake air temperature")
     self%lake_pet        = var_dp(points=points_lake, name="lake_pet", units="mm", long_name="lake potential evapotranspiration")
     self%lake_ssrd       = var_dp(points=points_lake, name="lake_ssrd", units="W m-2", long_name="lake solar short wave radiation downward")
     self%lake_strd       = var_dp(points=points_lake, name="lake_strd", units="W m-2", long_name="lake surface thermal radiation downward")
     self%lake_tann       = var_dp(points=points_lake, name="lake_tann", units="degC", long_name="lake annual mean air temperature")
+    self%lake_wind       = var_dp(points=points_lake, name="lake_wind", units="m s-1", long_name="lake wind speed")
+    self%lake_tdew       = var_dp(points=points_lake, name="lake_tdew", units="degC", long_name="lake dew point temperature")
 
     ! raw meteorology (level2)
     self%raw_pre    = var_dp(grid=l2, name="pre",       units="mm",    long_name="precipitation", standard_name="precipitation_amount")
@@ -570,6 +603,7 @@ contains
     self%raw_netrad = var_dp(grid=l2, name="netrad",    units="W m-2", long_name="net radiation", standard_name="surface_net_downward_radiative_flux")
     self%raw_eabs   = var_dp(grid=l2, name="eabs",      units="Pa",    long_name="vapor pressure", standard_name="water_vapor_pressure")
     self%raw_wind   = var_dp(grid=l2, name="windspeed", units="m s-1", long_name="wind speed", standard_name="wind_speed")
+    self%raw_tdew   = var_dp(grid=l2, name="tdew",      units="degC",  long_name="dew point temperature", standard_name="dew_point_temperature")
 
     ! processed meteorology (level1)
     self%pre  = var_dp(grid=l1_land, name="pre",  units="mm",    long_name="precipitation", standard_name="precipitation_amount")
@@ -696,6 +730,13 @@ contains
         error stop 1
       end if
     end if
+    if (.not.self%config%lut%is_configured) then
+      status = self%config%lut%set_dims(n_domains=self%nml_n_domains, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "Error setting lut config dimensions: ", trim(errmsg)
+        error stop 1
+      end if
+    end if
     call self%config%parameters%set_dims(n_geo_units=self%n_geo_units)
   end subroutine exchange_set_dims
 
@@ -778,6 +819,11 @@ contains
           " exceeds top-level max_layers=", n2s(self%max_layers), "."
         error stop 1
       end if
+      if (local_project%max_lakes > self%max_lakes) then
+        log_fatal(*) "Domain-local max_lakes=", n2s(local_project%max_lakes), &
+          " exceeds top-level max_lakes=", n2s(self%max_lakes), "."
+        error stop 1
+      end if
     else
       self%cwd = self%root
       if (present(main_file)) config_file = top_file
@@ -846,6 +892,25 @@ contains
     if (status /= NML_OK) then
       log_fatal(*) "Resolution config not valid: ", trim(errmsg)
       error stop 1
+    end if
+
+    ! Look-up table paths are optional metadata: an absent config_lut namelist leaves the
+    ! paths unconfigured, which the containers detect at point of use. Only a malformed
+    ! config_lut namelist is fatal here.
+    if (self%from_dirs .or. present(main_file)) then
+      status = self%config%lut%from_file(file=config_file, errmsg=errmsg)
+      if (status /= NML_OK .and. status /= NML_ERR_NML_NOT_FOUND) then
+        log_fatal(*) "Error reading lut config: ", trim(errmsg)
+        error stop 1
+      end if
+      if (status == NML_OK) then
+        log_info(*) "Read lut config: ", config_file
+        status = self%config%lut%is_valid(errmsg=errmsg)
+        if (status /= NML_OK) then
+          log_fatal(*) "Lut config not valid: ", trim(errmsg)
+          error stop 1
+        end if
+      end if
     end if
 
     id(1) = self%nml_domain_id
@@ -929,17 +994,31 @@ contains
     class(exchange_t), intent(inout), target :: self
 
     call self%lake_ids%destroy()
-    call self%lake_max_levels%destroy()
+    call self%lake_spill_reference_level%destroy()
+    call self%lake_spill_reference_surface_area%destroy()
+    call self%lake_spill_reference_volume%destroy()
+    call self%lake_initial_level%destroy()
+    call self%lake_latitude%destroy()
+    call self%lake_longitude%destroy()
     call self%lake_map%destroy()
-    call self%lake_area%destroy()
+    call self%lake_sand%destroy()
+    call self%lake_clay%destroy()
+    call self%lake_geo%destroy()
+    call self%lake_spill_reference_surface_area_dem_derived%destroy()
     call self%lake_inflow%destroy()
     call self%lake_outflow%destroy()
+    call self%lake_level%destroy()
+    call self%lake_surface_area%destroy()
+    call self%lake_volume%destroy()
+    call self%lake_gw_storage%destroy()
     call self%lake_pre%destroy()
     call self%lake_temp%destroy()
     call self%lake_pet%destroy()
     call self%lake_ssrd%destroy()
     call self%lake_strd%destroy()
     call self%lake_tann%destroy()
+    call self%lake_wind%destroy()
+    call self%lake_tdew%destroy()
 
     call self%raw_pre%destroy()
     call self%raw_temp%destroy()
@@ -951,6 +1030,7 @@ contains
     call self%raw_netrad%destroy()
     call self%raw_eabs%destroy()
     call self%raw_wind%destroy()
+    call self%raw_tdew%destroy()
     call self%raw_pet%destroy()
     call self%pre%destroy()
     call self%temp%destroy()

@@ -48,6 +48,7 @@ module nml_helper
   integer, parameter, public :: max_layers__default = 10 !< Maximum number of soil-layer entries stored per domain in a namelist file.
   integer, parameter, public :: n_domains__default = 100 !< Number of domains.
   integer, parameter, public :: n_geo_units__default = 25 !< Number of geological units.
+  integer, parameter, public :: max_lakes__default = 50 !< Maximum number of lakes per domain stored in a namelist file (sizing dimension for per-lake arrays).
 
   !> \class nml_file_t
   !> \brief Type for namelist file operations

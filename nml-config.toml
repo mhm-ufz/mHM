@@ -29,6 +29,10 @@ doc = "Number of domains."
 default = 25
 doc = "Number of geological units."
 
+[dimensions.max_lakes]
+default = 50
+doc = "Maximum number of lakes per domain stored in a namelist file (sizing dimension for per-lake arrays)."
+
 [documentation]
 module = '''
 !> \version 0.2
@@ -94,6 +98,12 @@ name = "config_resolution"
 schema = "nml-schemas/config_resolution.yml"
 mod_path = "src/nml/nml_config_resolution.f90"
 doc_path = "doc/nml/config_resolution.md"
+
+[[namelists]]
+name = "config_lut"
+schema = "nml-schemas/config_lut.yml"
+mod_path = "src/nml/nml_config_lut.f90"
+doc_path = "doc/nml/config_lut.md"
 
 [[namelists]]
 name = "config_mpr"
@@ -252,6 +262,12 @@ mod_path = "src/nml/nml_parameter_river_temperature_1.f90"
 doc_path = "doc/nml/parameter_river_temperature_1.md"
 
 [[namelists]]
+name = "lakes_1"
+schema = "nml-schemas/parameter_lakes_1.yml"
+mod_path = "src/nml/nml_parameter_lakes_1.f90"
+doc_path = "doc/nml/parameter_lakes_1.md"
+
+[[namelists]]
 name = "output_mhm"
 schema = "nml-schemas/output_mhm.yml"
 mod_path = "src/nml/nml_output_mhm.f90"
@@ -288,6 +304,7 @@ namelists = [
   "config_processes",
   "config_optimize",
   "config_resolution",
+  "config_lut",
   "config_time",
   "config_input",
   "config_coupling",
@@ -334,6 +351,7 @@ namelists = [
   "neutrons_2",
   "baseflow_1",
   "river_temperature_1",
+  "lakes_1",
 ]
 
 [[templates]]

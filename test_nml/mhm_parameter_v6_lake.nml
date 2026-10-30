@@ -1,0 +1,30 @@
+! Parameters for the v6 minimal natural-lake (case 1) smoke configuration.
+
+&routing_2
+  streamflow_celerity = 1.5
+/
+
+&lakes_1
+  ! Component order: value, optimize, min, max
+  ! Spill parameters, lakebed thickness b and the Cosby Ks pedotransfer parameters are global
+  ! (pan-domain) scalars. baseflow_recession is per geological unit (n_geo_units entries); the lake
+  ! regionalizes it over the lake-footprint geology. The lake test runs no land baseflow process, so
+  ! lakes_1 owns these baseflow_recession values.
+  spill_coefficient_of_discharge = 1.8, .false., 1.4, 2.2
+  spill_exponent                 = 2.0, .false., 1.5, 2.5
+  spillway_length_multiplier     = 1.0, .false., 0.5, 2.0
+  b                              = 500.0, .false., 0.1, 1000.0
+  ptf_ks_constant                = -0.585, .false., -1.2, -0.285
+  ptf_ks_sand                    = 0.0125, .false., 0.006, 0.026
+  ptf_ks_clay                    = 0.0063, .false., 0.003, 0.013
+  baseflow_recession(1)  = 100.0, .false., 1.0, 1000.0
+  baseflow_recession(2)  = 100.0, .false., 1.0, 1000.0
+  baseflow_recession(3)  = 100.0, .false., 1.0, 1000.0
+  baseflow_recession(4)  = 100.0, .false., 1.0, 1000.0
+  baseflow_recession(5)  = 100.0, .false., 1.0, 1000.0
+  baseflow_recession(6)  = 100.0, .false., 1.0, 1000.0
+  baseflow_recession(7)  = 100.0, .false., 1.0, 1000.0
+  baseflow_recession(8)  = 100.0, .false., 1.0, 1000.0
+  baseflow_recession(9)  = 100.0, .false., 1.0, 1000.0
+  baseflow_recession(10) = 100.0, .false., 1.0, 1000.0
+/

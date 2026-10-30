@@ -3,14 +3,14 @@
 
 !> \brief Generating soil database from input file.
 !> \details This module provides the routines for generating the soil database for mHM from an ASCII input file.
-!! One routine \e read_soil_LUT reads a soil LookUpTable, performs some consistency checks and returns an initial
+!! One routine \e read_soil_LUT uses shared input decoding, performs consistency checks and returns an initial
 !! soil database.
 !! The second routine \e generate_soil_database calculates based on the initial one the proper soil database.
 !> \authors Juliane Mai
 !> \date Dec 2012
 !> \version 0.1
 !> \changelog
-!! - 2026: component ownership, explicit interfaces, and retained-kernel documentation cleanup.
+!! - 2026: shared raw LUT decoding; retained land soil transformations and database ownership.
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_mpr
@@ -23,7 +23,7 @@ MODULE mo_soil_database
   use mo_kind, only : i4, dp
   use mo_message, only: message, error_message
   use mo_string_utils, only : num2str
-  use mo_os, only : check_path_isfile
+  use mo_input_lut, only: soil_lut_record_t, read_soil_lut_records
 
   IMPLICIT NONE
 
@@ -95,11 +95,8 @@ CONTAINS
     implicit none
     character(len = *), intent(in) :: filename !< Soil lookup table path.
     type(soil_database_t), intent(inout) :: db !< Owning domain soil database.
-    integer :: soil_unit
-
-    character(len = 10) :: dummy
-
-    integer(i4) :: ios
+    type(soil_lut_record_t), allocatable :: records(:)
+    integer(i4) :: layout, row
 
     integer(i4) :: ii, jj, kk
 
@@ -113,16 +110,14 @@ CONTAINS
 
     integer(i4) :: maxNumberHorizons
 
+    call read_soil_lut_records(filename, db%n_types, layout, records)
+    if (layout /= db%mode) then
+      call error_message('read_soil_LUT: table layout does not match soil_db_mode: ', trim(filename))
+    end if
+
     SELECT CASE (db%mode)
       ! classical mHM soil database
     CASE(0)
-      ios = 0_i4
-      !checking whether the file exists
-      call check_path_isfile(path = filename, raise=.true.)
-      open(newunit=soil_unit, file = filename, status = 'old', iostat = ios)
-      read(soil_unit, *) dummy, db%n_types
-      dummy = dummy // ''   ! only to avoid warning
-
       ! allocate space
       allocate(db%Id(db%n_types))
       allocate(db%nHorizons(db%n_types))
@@ -136,11 +131,15 @@ CONTAINS
 
       ! check if max soil_type id is equal to db%n_types
       max_i = 0_i4
-      ! initalise total rows to read
-      nR = 0_i4
-      read(soil_unit, *) dummy
-      do while (.NOT. (ios .ne. 0))
-        read(soil_unit, *, IOSTAT = ios) ii, jj, up, down, cly, snd, bd
+      nR = size(records)
+      do row = 1_i4, nR
+        ii = records(row)%id
+        jj = records(row)%horizon
+        up = records(row)%upper
+        down = records(row)%lower
+        cly = records(row)%clay
+        snd = records(row)%sand
+        bd = records(row)%density
 
         ! Checks
         if(up .ge. down) then
@@ -163,7 +162,6 @@ CONTAINS
         db%nHorizons(ii) = jj
         if( anint(down, dp) .gt. db%RZdepth(ii) ) db%RZdepth(ii) = anint(down, dp)
 
-        nR = nR + 1_i4
         max_i = max(max_i, ii)
 
       end do
@@ -185,13 +183,11 @@ CONTAINS
       end if
 
       ! insert a new tillage soil layer, only in those soil types, in which it is not present
-      rewind(soil_unit)
-      read(soil_unit, *) dummy
-      read(soil_unit, *) dummy
-
-      ! Last row is read twice so, read only upto (nR - 1)
-      do ii = 1, nR - 1
-        read(soil_unit, *) jj, nH, up, down, cly, snd, bd
+      do ii = 1_i4, nR
+        jj = records(ii)%id
+        nH = records(ii)%horizon
+        up = records(ii)%upper
+        down = records(ii)%lower
         if(db%tillage_depth .gt. anint(up, dp) .and. db%tillage_depth .lt. anint(down, dp)) then
           db%nHorizons(jj) = db%nHorizons(jj) + 1_i4
         end if
@@ -221,15 +217,16 @@ CONTAINS
       db%sand(:, :) = nodata_dp
       db%dbM(:, :) = nodata_dp
 
-      ! Read again soil properties  from the data base
-      rewind(soil_unit)
-      read(soil_unit, *) dummy
-      read(soil_unit, *) dummy
-
-      ! Last row is read twice so, read only upto (nR - 1)
+      ! Construct model horizons from the cached raw soil records.
       kk = 0_i4
-      do ii = 1, nR - 1_i4
-        read(soil_unit, *) jj, nH, up, down, cly, snd, bd
+      do ii = 1_i4, nR
+        jj = records(ii)%id
+        nH = records(ii)%horizon
+        up = records(ii)%upper
+        down = records(ii)%lower
+        cly = records(ii)%clay
+        snd = records(ii)%sand
+        bd = records(ii)%density
 
         ! to avoid numerical errors in PTF
         if(cly .lt. 1.0_dp) cly = 1.0_dp
@@ -277,7 +274,6 @@ CONTAINS
         if(nH .eq. db%nHorizons(jj)) kk = 0_i4
 
       end do
-      close(soil_unit)
 
       ! soil database for the horizon specific case
     CASE(1)
@@ -287,11 +283,6 @@ CONTAINS
       allocate(db%LD(1, 1))
       allocate(db%depth(1, 1))
 
-      !checking whether the file exists
-      call check_path_isfile(path = filename, raise=.true.)
-      open(newunit=soil_unit, file = filename, status = 'old', action = 'read')
-      read(soil_unit, *) dummy, db%n_types
-      dummy = dummy // ''   ! only to avoid warning
       allocate(db%Id  (db%n_types))
       allocate(db%clay(db%n_types, 1))
       allocate(db%sand(db%n_types, 1))
@@ -299,13 +290,14 @@ CONTAINS
       db%clay(:, :) = nodata_dp
       db%sand(:, :) = nodata_dp
       db%dbM (:, :) = nodata_dp
-      read(soil_unit, *) dummy
-      do kk = 1, db%n_types
-        read(soil_unit, *, iostat=ios) jj, cly, snd, bd
-        if ( ios /= 0 ) call error_message( &
-          "ERROR: nSoil_Types (", num2str(db%n_types), ") in soil_classdefinition_iFlag_soilDB_1.txt ", &
-          "seems to be higher than available soil types!" &
-        )
+      if (size(records) /= db%n_types) then
+        call error_message('read_soil_LUT: texture row count does not match declared soil types: ', trim(filename))
+      end if
+      do kk = 1_i4, db%n_types
+        jj = records(kk)%id
+        cly = records(kk)%clay
+        snd = records(kk)%sand
+        bd = records(kk)%density
         ! to avoid numerical errors in PTF
         if(cly .lt. 1.0_dp) cly = 1.0_dp
         if(snd .lt. 1.0_dp) snd = 1.0_dp
@@ -314,7 +306,6 @@ CONTAINS
         db%sand(kk, 1) = snd
         db%dbM (kk, 1) = bd
       end do
-      close(soil_unit)
 
       ! assign up to which horizon layer a soil is treated as tillage layer
       !   since our horizon information is well defined for modeling too

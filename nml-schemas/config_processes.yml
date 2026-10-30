@@ -142,10 +142,11 @@ properties:
     x-fortran-kind: i4
     default: 0
     examples: [0]
-    enum: [-2, -1, 0]
+    enum: [-2, -1, 0, 1]
     title: Lake process case
     description: |-
       Lake-component process case.
       - 0: internal mLM component disabled; a coupler may provide lake outflow.
       - -1: one-step delayed pass-through of mRM lake inflow.
       - -2: delayed lake inflow adjusted by precipitation and PET over the lake footprint.
+      - 1: minimal natural lake with iterative water balance and crest spill.

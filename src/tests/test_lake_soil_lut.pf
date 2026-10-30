@@ -1,0 +1,142 @@
+module test_lake_soil_lut
+  use funit
+  use mo_kind, only: dp, i4
+  use mo_constants, only: nodata_dp
+  use mo_input_lut, only: read_soil_texture_lut, read_geoformation_lut, read_lai_lut
+  use mo_soil_database, only: soil_database_t, read_soil_LUT
+
+  implicit none
+  private
+
+  public :: test_reads_mode0_class_horizon_lut
+  public :: test_reads_mode1_texture_lut
+  public :: test_mode1_textures_not_missing
+  public :: test_shared_soil_preserves_consumer_transformations
+  public :: test_shared_geology_and_lai_tables
+
+  character(*), parameter :: mode0_path = "lake_soil_lut_mode0.txt"
+  character(*), parameter :: mode1_path = "lake_soil_lut_mode1.txt"
+
+contains
+
+  !> Write a 7-column class/horizon (soil_db_mode 0) LUT: two classes, two horizons each. Only the
+  !> uppermost horizon (horizon 1) is retained.
+  subroutine write_mode0_lut()
+    integer :: u
+    open(newunit=u, file=mode0_path, status="replace", action="write")
+    write(u, "(a)") "nSoil_Types 2"
+    write(u, "(a)") "CLASS HORIZON UD LD CLAY SAND BD"
+    ! class 1
+    write(u, "(a)") "1 1 0.0 0.3 20.0 40.0 1.4"
+    write(u, "(a)") "1 2 0.3 0.6 25.0 35.0 1.5"
+    ! class 2
+    write(u, "(a)") "2 1 0.0 0.3 10.0 70.0 1.3"
+    write(u, "(a)") "2 2 0.3 0.6 15.0 60.0 1.4"
+    close(u)
+  end subroutine write_mode0_lut
+
+  !> Write a 4-column texture (soil_db_mode 1) LUT: two classes, one texture record each.
+  subroutine write_mode1_lut()
+    integer :: u
+    open(newunit=u, file=mode1_path, status="replace", action="write")
+    write(u, "(a)") "nSoil_Types 2"
+    write(u, "(a)") "CLASS CLAY SAND BD"
+    write(u, "(a)") "1 20.0 40.0 1.4"
+    write(u, "(a)") "2 10.0 70.0 1.3"
+    close(u)
+  end subroutine write_mode1_lut
+
+  !> Mode-0 (7-column) LUT reads the top-horizon sand/clay per class.
+  @test
+  subroutine test_reads_mode0_class_horizon_lut()
+    integer(i4) :: n_classes
+    real(dp), allocatable :: sand(:), clay(:)
+    call write_mode0_lut()
+    call read_soil_texture_lut(mode0_path, n_classes, sand, clay)
+    @assertEqual(2, n_classes, message="mode-0 header class count")
+    @assertEqual(40.0_dp, sand(1), tolerance=1.0e-9_dp, message="class 1 top-horizon sand")
+    @assertEqual(20.0_dp, clay(1), tolerance=1.0e-9_dp, message="class 1 top-horizon clay")
+    @assertEqual(70.0_dp, sand(2), tolerance=1.0e-9_dp, message="class 2 top-horizon sand")
+    @assertEqual(10.0_dp, clay(2), tolerance=1.0e-9_dp, message="class 2 top-horizon clay")
+  end subroutine test_reads_mode0_class_horizon_lut
+
+  !> Mode-1 (4-column) LUT reads the single-texture sand/clay per class -- the regression for the
+  !> reader that previously assumed the 7-column layout.
+  @test
+  subroutine test_reads_mode1_texture_lut()
+    integer(i4) :: n_classes
+    real(dp), allocatable :: sand(:), clay(:)
+    call write_mode1_lut()
+    call read_soil_texture_lut(mode1_path, n_classes, sand, clay)
+    @assertEqual(2, n_classes, message="mode-1 header class count")
+    @assertEqual(40.0_dp, sand(1), tolerance=1.0e-9_dp, message="class 1 sand from 4-column record")
+    @assertEqual(20.0_dp, clay(1), tolerance=1.0e-9_dp, message="class 1 clay from 4-column record")
+    @assertEqual(70.0_dp, sand(2), tolerance=1.0e-9_dp, message="class 2 sand from 4-column record")
+    @assertEqual(10.0_dp, clay(2), tolerance=1.0e-9_dp, message="class 2 clay from 4-column record")
+  end subroutine test_reads_mode1_texture_lut
+
+  !> Mode-1 textures must no longer come back as the missing-value sentinel (the reported defect).
+  @test
+  subroutine test_mode1_textures_not_missing()
+    integer(i4) :: n_classes
+    real(dp), allocatable :: sand(:), clay(:)
+    call write_mode1_lut()
+    call read_soil_texture_lut(mode1_path, n_classes, sand, clay)
+    @assertTrue(all(sand > nodata_dp + 1.0_dp), message="mode-1 sand is populated, not missing")
+    @assertTrue(all(clay > nodata_dp + 1.0_dp), message="mode-1 clay is populated, not missing")
+  end subroutine test_mode1_textures_not_missing
+
+  !> Shared raw decoding preserves the land-only texture floor and tillage split.
+  @test
+  subroutine test_shared_soil_preserves_consumer_transformations()
+    type(soil_database_t) :: db
+    real(dp), allocatable :: sand(:), clay(:)
+    integer(i4) :: n_classes
+    integer :: unit
+    open(newunit=unit, file=mode0_path, status="replace", action="write")
+    write(unit, '(a)') "nSoil_Types 1", "CLASS HORIZON UD LD CLAY SAND BD", &
+      "1 1 0 300 0.5 40 1.4", "1 2 300 1000 20 50 1.5"
+    close(unit)
+    call read_soil_texture_lut(mode0_path, n_classes, sand, clay)
+    db%mode = 0_i4
+    db%tillage_depth = 200.0_dp
+    call read_soil_LUT(mode0_path, db)
+    @assertEqual(0.5_dp, clay(1), tolerance=1.0e-12_dp)
+    @assertEqual(1.0_dp, db%clay(1,1), tolerance=1.0e-12_dp)
+    @assertEqual(3, db%nHorizons(1))
+    @assertEqual(200.0_dp, db%LD(1,1), tolerance=1.0e-12_dp)
+    @assertEqual(300.0_dp, db%LD(1,2), tolerance=1.0e-12_dp)
+    @assertEqual(1000.0_dp, db%LD(1,3), tolerance=1.0e-12_dp)
+    @assertEqual(50.0_dp, db%sand(1,3), tolerance=1.0e-12_dp)
+    call db%destroy()
+  end subroutine test_shared_soil_preserves_consumer_transformations
+
+  !> Stable geology IDs and parameter slots are distinct; LAI retains month order.
+  @test
+  subroutine test_shared_geology_and_lai_tables()
+    integer :: unit
+    integer(i4) :: count
+    integer(i4), allocatable :: ids(:), slots(:), karstic(:), lai_ids(:)
+    real(dp), allocatable :: lai(:,:)
+    open(newunit=unit, file="shared_geology_lut.txt", status="replace", action="write")
+    write(unit, '(a)') "nGeo_Formations 2", "GeoParam ClassUnit Karstic Description", &
+      "2 17 1 first", "1 42 0 second"
+    close(unit)
+    call read_geoformation_lut("shared_geology_lut.txt", nGeo=count, geo_unit=ids, &
+      geo_karstic=karstic, geo_param_index=slots)
+    @assertEqual(2, count)
+    @assertEqual([17,42], ids)
+    @assertEqual([2,1], slots)
+    @assertEqual([1,0], karstic)
+    open(newunit=unit, file="shared_lai_lut.txt", status="replace", action="write")
+    write(unit, '(a)') "NoLAIclasses 1", "Id landuse Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec", &
+      "9 forest 1 2 3 4 5 6 7 8 9 10 11 12"
+    close(unit)
+    call read_lai_lut("shared_lai_lut.txt", nLAI=count, LAIIDlist=lai_ids, LAI=lai)
+    @assertEqual(1, count)
+    @assertEqual(9, lai_ids(1))
+    @assertEqual(1.0_dp, lai(1,1), tolerance=1.0e-12_dp)
+    @assertEqual(12.0_dp, lai(1,12), tolerance=1.0e-12_dp)
+  end subroutine test_shared_geology_and_lai_tables
+
+end module test_lake_soil_lut

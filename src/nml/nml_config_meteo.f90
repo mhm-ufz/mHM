@@ -4,6 +4,11 @@
 !> \brief Meteorological configuration
 !> \details Configuration for meteorological input data handling in mHM.
 !! Meteorological weights can be used to disaggregate daily data to hourly values.
+!! When reading lake forcing support, configure active disaggregation settings
+!! consistently with the restart: read_meteo_weights (including its false default)
+!! must match the saved mode, and active day/night fractions must be configured
+!! and match the saved values. Cached temporal weights are reused without opening
+!! their source weight files when spatial support is compatible.
 !! Fixed-hour forcing support must match the global model step. Daily forcing is
 !! supported by the existing daily-to-hourly disaggregation and directly by a
 !! 24-hour model step. Other temporal resampling is not implemented.
@@ -42,6 +47,8 @@ module nml_config_meteo
   implicit none
 
   ! default values
+  logical, parameter, public :: read_restart__default = .false.
+  logical, parameter, public :: write_restart__default = .false.
   logical, parameter, public :: read_meteo_weights__default = .false.
   character(len=buf), parameter, public :: pre_weights_var__default = "pre_weights"
   character(len=buf), parameter, public :: pet_weights_var__default = "pet_weights"
@@ -54,12 +61,21 @@ module nml_config_meteo
   !> \brief Meteorological configuration
   !> \details Configuration for meteorological input data handling in mHM.
   !! Meteorological weights can be used to disaggregate daily data to hourly values.
+  !! When reading lake forcing support, configure active disaggregation settings
+  !! consistently with the restart: read_meteo_weights (including its false default)
+  !! must match the saved mode, and active day/night fractions must be configured
+  !! and match the saved values. Cached temporal weights are reused without opening
+  !! their source weight files when spatial support is compatible.
   !! Fixed-hour forcing support must match the global model step. Daily forcing is
   !! supported by the existing daily-to-hourly disaggregation and directly by a
   !! 24-hour model step. Other temporal resampling is not implemented.
   type, public :: nml_config_meteo_t
     logical :: is_configured = .false. !< whether the namelist has been configured
     integer :: n_domains = n_domains__default !< runtime dimension for n_domains
+    logical, allocatable, dimension(:) :: read_restart !< Read lake forcing support restart
+    logical, allocatable, dimension(:) :: write_restart !< Write lake forcing support restart
+    character(len=buf), allocatable, dimension(:) :: restart_input_path !< Meteo restart input file
+    character(len=buf), allocatable, dimension(:) :: restart_output_path !< Meteo restart output file
     logical, allocatable, dimension(:) :: read_meteo_weights !< Read meteorological weights
     character(len=buf), allocatable, dimension(:) :: pre_weights_path !< Precipitation weights path
     character(len=buf), allocatable, dimension(:) :: pet_weights_path !< Potential evapotranspiration weights path
@@ -98,6 +114,14 @@ contains
     this%is_configured = .false.
 
     ! allocate runtime-sized fields
+    if (allocated(this%read_restart)) deallocate(this%read_restart)
+    allocate(this%read_restart(this%n_domains))
+    if (allocated(this%write_restart)) deallocate(this%write_restart)
+    allocate(this%write_restart(this%n_domains))
+    if (allocated(this%restart_input_path)) deallocate(this%restart_input_path)
+    allocate(character(len=buf) :: this%restart_input_path(this%n_domains))
+    if (allocated(this%restart_output_path)) deallocate(this%restart_output_path)
+    allocate(character(len=buf) :: this%restart_output_path(this%n_domains))
     if (allocated(this%read_meteo_weights)) deallocate(this%read_meteo_weights)
     allocate(this%read_meteo_weights(this%n_domains))
     if (allocated(this%pre_weights_path)) deallocate(this%pre_weights_path)
@@ -132,6 +156,8 @@ contains
     allocate(this%frac_night_strd(12, this%n_domains))
 
     ! sentinel values for required/optional parameters
+    this%restart_input_path = achar(0) ! sentinel for optional string array
+    this%restart_output_path = achar(0) ! sentinel for optional string array
     this%pre_weights_path = achar(0) ! sentinel for optional string array
     this%pet_weights_path = achar(0) ! sentinel for optional string array
     this%temp_weights_path = achar(0) ! sentinel for optional string array
@@ -143,6 +169,8 @@ contains
     this%frac_night_ssrd = ieee_value(this%frac_night_ssrd, ieee_quiet_nan) ! sentinel for optional real array
     this%frac_night_strd = ieee_value(this%frac_night_strd, ieee_quiet_nan) ! sentinel for optional real array
     ! default values
+    this%read_restart = read_restart__default
+    this%write_restart = write_restart__default
     this%read_meteo_weights = read_meteo_weights__default
     this%pre_weights_var = pre_weights_var__default
     this%pet_weights_var = pet_weights_var__default
@@ -176,6 +204,10 @@ contains
     this%n_domains = candidate__n_domains
 
     ! deallocate runtime-sized fields; init/set/from_file allocate them again
+    if (allocated(this%read_restart)) deallocate(this%read_restart)
+    if (allocated(this%write_restart)) deallocate(this%write_restart)
+    if (allocated(this%restart_input_path)) deallocate(this%restart_input_path)
+    if (allocated(this%restart_output_path)) deallocate(this%restart_output_path)
     if (allocated(this%read_meteo_weights)) deallocate(this%read_meteo_weights)
     if (allocated(this%pre_weights_path)) deallocate(this%pre_weights_path)
     if (allocated(this%pet_weights_path)) deallocate(this%pet_weights_path)
@@ -202,6 +234,10 @@ contains
     character(len=*), intent(in) :: file !< path to namelist file
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     ! namelist variables
+    logical, allocatable, dimension(:) :: read_restart
+    logical, allocatable, dimension(:) :: write_restart
+    character(len=buf), allocatable, dimension(:) :: restart_input_path
+    character(len=buf), allocatable, dimension(:) :: restart_output_path
     logical, allocatable, dimension(:) :: read_meteo_weights
     character(len=buf), allocatable, dimension(:) :: pre_weights_path
     character(len=buf), allocatable, dimension(:) :: pet_weights_path
@@ -226,6 +262,10 @@ contains
     character(len=nml_line_buffer) :: iomsg
 
     namelist /config_meteo/ &
+      read_restart, &
+      write_restart, &
+      restart_input_path, &
+      restart_output_path, &
       read_meteo_weights, &
       pre_weights_path, &
       pet_weights_path, &
@@ -247,6 +287,14 @@ contains
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
     ! allocate local namelist variables matching runtime-sized fields
+    if (allocated(read_restart)) deallocate(read_restart)
+    allocate(read_restart(this%n_domains))
+    if (allocated(write_restart)) deallocate(write_restart)
+    allocate(write_restart(this%n_domains))
+    if (allocated(restart_input_path)) deallocate(restart_input_path)
+    allocate(character(len=buf) :: restart_input_path(this%n_domains))
+    if (allocated(restart_output_path)) deallocate(restart_output_path)
+    allocate(character(len=buf) :: restart_output_path(this%n_domains))
     if (allocated(read_meteo_weights)) deallocate(read_meteo_weights)
     allocate(read_meteo_weights(this%n_domains))
     if (allocated(pre_weights_path)) deallocate(pre_weights_path)
@@ -279,6 +327,10 @@ contains
     allocate(frac_night_ssrd(12, this%n_domains))
     if (allocated(frac_night_strd)) deallocate(frac_night_strd)
     allocate(frac_night_strd(12, this%n_domains))
+    read_restart = this%read_restart
+    write_restart = this%write_restart
+    restart_input_path = this%restart_input_path
+    restart_output_path = this%restart_output_path
     read_meteo_weights = this%read_meteo_weights
     pre_weights_path = this%pre_weights_path
     pet_weights_path = this%pet_weights_path
@@ -321,6 +373,10 @@ contains
     end if
 
     ! assign values
+    this%read_restart = read_restart
+    this%write_restart = write_restart
+    this%restart_input_path = restart_input_path
+    this%restart_output_path = restart_output_path
     this%read_meteo_weights = read_meteo_weights
     this%pre_weights_path = pre_weights_path
     this%pet_weights_path = pet_weights_path
@@ -346,6 +402,10 @@ contains
 
   !> \brief Set config_meteo values
   integer function nml_config_meteo_set(this, &
+    read_restart, &
+    write_restart, &
+    restart_input_path, &
+    restart_output_path, &
     read_meteo_weights, &
     pre_weights_path, &
     pet_weights_path, &
@@ -367,6 +427,10 @@ contains
 
     class(nml_config_meteo_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    logical, dimension(:), intent(in), optional :: read_restart !< Read lake forcing support restart
+    logical, dimension(:), intent(in), optional :: write_restart !< Write lake forcing support restart
+    character(len=*), dimension(:), intent(in), optional :: restart_input_path !< Meteo restart input file
+    character(len=*), dimension(:), intent(in), optional :: restart_output_path !< Meteo restart output file
     logical, dimension(:), intent(in), optional :: read_meteo_weights !< Read meteorological weights
     character(len=*), dimension(:), intent(in), optional :: pre_weights_path !< Precipitation weights path
     character(len=*), dimension(:), intent(in), optional :: pet_weights_path !< Potential evapotranspiration weights path
@@ -395,6 +459,46 @@ contains
 
     ! required parameters
     ! override with provided values
+    if (present(read_restart)) then
+      if (size(read_restart, 1) > size(this%read_restart, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'read_restart'"
+        return
+      end if
+      lb__1 = lbound(this%read_restart, 1)
+      ub__1 = lb__1 + size(read_restart, 1) - 1
+      this%read_restart(lb__1:ub__1) = read_restart
+    end if
+    if (present(write_restart)) then
+      if (size(write_restart, 1) > size(this%write_restart, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'write_restart'"
+        return
+      end if
+      lb__1 = lbound(this%write_restart, 1)
+      ub__1 = lb__1 + size(write_restart, 1) - 1
+      this%write_restart(lb__1:ub__1) = write_restart
+    end if
+    if (present(restart_input_path)) then
+      if (size(restart_input_path, 1) > size(this%restart_input_path, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'restart_input_path'"
+        return
+      end if
+      lb__1 = lbound(this%restart_input_path, 1)
+      ub__1 = lb__1 + size(restart_input_path, 1) - 1
+      this%restart_input_path(lb__1:ub__1) = restart_input_path
+    end if
+    if (present(restart_output_path)) then
+      if (size(restart_output_path, 1) > size(this%restart_output_path, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'restart_output_path'"
+        return
+      end if
+      lb__1 = lbound(this%restart_output_path, 1)
+      ub__1 = lb__1 + size(restart_output_path, 1) - 1
+      this%restart_output_path(lb__1:ub__1) = restart_output_path
+    end if
     if (present(read_meteo_weights)) then
       if (size(read_meteo_weights, 1) > size(this%read_meteo_weights, 1)) then
         status = NML_ERR_INVALID_INDEX
@@ -612,6 +716,54 @@ contains
       return
     end if
     select case (to_lower(trim(name)))
+    case ("read_restart")
+      if (.not. allocated(this%read_restart)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%read_restart), ubound(this%read_restart), &
+          "read_restart", errmsg)
+        if (status /= NML_OK) return
+      else
+      end if
+    case ("write_restart")
+      if (.not. allocated(this%write_restart)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%write_restart), ubound(this%write_restart), &
+          "write_restart", errmsg)
+        if (status /= NML_OK) return
+      else
+      end if
+    case ("restart_input_path")
+      if (.not. allocated(this%restart_input_path)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%restart_input_path), ubound(this%restart_input_path), &
+          "restart_input_path", errmsg)
+        if (status /= NML_OK) return
+        if (this%restart_input_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
+      else
+        if (all(this%restart_input_path == achar(0))) status = NML_ERR_NOT_SET
+      end if
+    case ("restart_output_path")
+      if (.not. allocated(this%restart_output_path)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%restart_output_path), ubound(this%restart_output_path), &
+          "restart_output_path", errmsg)
+        if (status /= NML_OK) return
+        if (this%restart_output_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
+      else
+        if (all(this%restart_output_path == achar(0))) status = NML_ERR_NOT_SET
+      end if
     case ("read_meteo_weights")
       if (.not. allocated(this%read_meteo_weights)) then
         status = NML_ERR_NOT_SET

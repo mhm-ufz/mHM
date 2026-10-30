@@ -102,17 +102,15 @@ show-env-vars:
   stage: code-analysis
   script:
     - source hpc-module-loads/eve.$COMPILER
+    - cmake -S . -B debug -DCMAKE_BUILD_TYPE=Debug -DMHM_BUILD_DRIVER=ON -DMHM_BUILD_TESTING=ON -DBUILD_TESTING=ON -DMHM_WITH_OpenMP=OFF
+    - cmake --build debug --target mhm test_parameter_reinitialize --parallel 4
     - module load Mamba
     - source activate /global/apps/mhm_checks/mhm_env
-    - cmake -DSOURCE_DIR="$PWD" -DRUN_DIR="$PWD/build/valgrind-run" -P CI-scripts/stage_run.cmake
-    - valgrind --version
-    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug -n test_nml/mrm_minimal.nml -p test_nml/mhm_parameter_v6_routing.nml -o mhm-output-template.nml build/valgrind-run
-    # execute mem-use check
-    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug -n test_nml/mrm_minimal.nml -p test_nml/mhm_parameter_v6_routing.nml -o mhm-output-template.nml build/valgrind-run
-    - ms_print massif.out.0
+    - bash CI-scripts/run_valgrind.sh --log-dir build/valgrind-logs ./debug/app/mhm ./debug/src/tests/test_parameter_reinitialize
   artifacts:
+    when: always
     paths:
-    - massif.out.0
+    - build/valgrind-logs/
 
 ###################
 ### PY-BINDINGS ###
@@ -276,16 +274,17 @@ valgrind-gfortran122:
     COMPILER: gfortran122
   needs:
     - job: cmake-gfortran122
-      artifacts: true
+      artifacts: false
   <<: *valgrind_template
 
-valgrind-intel2023b-classic:
-  variables:
-    COMPILER: intel2023b-classic
-  needs:
-    - job: cmake-intel2023b-classic
-      artifacts: true
-  <<: *valgrind_template
+# Intel runtime diagnostics call setenv at EOF, hitting host uprobes under Valgrind.
+# valgrind-intel2023b-classic:
+#   variables:
+#     COMPILER: intel2023b-classic
+#   needs:
+#     - job: cmake-intel2023b-classic
+#       artifacts: true
+#   <<: *valgrind_template
 
 ################
 ### COVERAGE ###

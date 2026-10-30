@@ -1,0 +1,31 @@
+! Full mLM lake-point output for the Priestley-Taylor validation run
+! (mrm_lake_case1_pt). Enables all lake states and fluxes so the PT
+! evaporation, level/area/volume evolution and the outflow partition
+! (spill + baseflow) can be inspected and compared against v5.13.
+
+&output_mlm
+  output_deflate_level   = 6
+  output_double_precision = .false.
+  output_time_reference  = 2
+  output_frequency       = -1
+  out_lake_level         = .true.
+  out_lake_surface_area  = .true.
+  out_lake_volume        = .true.
+  out_lake_gw_storage    = .true.
+  out_lake_inflow        = .true.
+  out_lake_precipitation = .true.
+  out_lake_evaporation   = .true.
+  out_lake_seepage       = .true.
+  out_lake_baseflow      = .true.
+  out_lake_spill         = .true.
+  out_lake_outflow       = .true.
+/
+
+&output_mrm
+  output_deflate_level   = 6
+  output_double_precision = .false.
+  output_time_reference  = 2
+  output_frequency       = -1
+  out_Qrouted            = .true.
+  out_RivTemp            = .false.
+/

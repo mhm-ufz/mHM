@@ -2,12 +2,49 @@ title: Meteorological configuration
 description: |-
   Configuration for meteorological input data handling in mHM.
   Meteorological weights can be used to disaggregate daily data to hourly values.
+  When reading lake forcing support, configure active disaggregation settings
+  consistently with the restart: read_meteo_weights (including its false default)
+  must match the saved mode, and active day/night fractions must be configured
+  and match the saved values. Cached temporal weights are reused without opening
+  their source weight files when spatial support is compatible.
   Fixed-hour forcing support must match the global model step. Daily forcing is
   supported by the existing daily-to-hourly disaggregation and directly by a
   24-hour model step. Other temporal resampling is not implemented.
 x-fortran-namelist: config_meteo
 type: object
 properties:
+  read_restart:
+    type: array
+    items:
+      type: boolean
+      default: false
+    x-fortran-shape: n_domains
+    title: Read lake forcing support restart
+  write_restart:
+    type: array
+    items:
+      type: boolean
+      default: false
+    x-fortran-shape: n_domains
+    title: Write lake forcing support restart
+  restart_input_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: Meteo restart input file
+    description: Explicit file path, required when read_restart is enabled.
+  restart_output_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: Meteo restart output file
+    description: Explicit file path, required when write_restart is enabled.
   read_meteo_weights:
     type: array
     items:

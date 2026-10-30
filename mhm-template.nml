@@ -24,6 +24,8 @@
   n_domains = 1
   ! Number of geological units
   n_geo_units = 25
+  ! Maximum number of lakes per domain
+  max_lakes = 1
   ! Maximum number of soil layers
   max_layers = 10
   ! Flag for separate domains
@@ -104,6 +106,16 @@
   route(:) = 0.5
 /
 
+! Look-up table configuration
+&config_lut
+  ! Soil look-up table path
+  soil_lut_path(:) = ""
+  ! Geology look-up table path
+  geo_lut_path(:) = ""
+  ! LAI LUT path
+  lai_lut_path(:) = ""
+/
+
 ! Time configuration
 &config_time
   ! Simulation start
@@ -152,6 +164,8 @@
   eabs_path(:) = ""
   ! Wind speed input
   wind_path(:) = ""
+  ! Dew point temperature input
+  tdew_path(:) = ""
   ! Meteorological mask file path
   meteo_mask_path(:) = ""
   ! Runoff input
@@ -212,6 +226,8 @@
   eabs_var(:) = "eabs"
   ! Wind speed variable name
   wind_var(:) = "windspeed"
+  ! Dew point temperature variable name
+  tdew_var(:) = "tdew"
   ! Meteorological mask variable name
   meteo_mask_var(:) = "mask"
   ! Runoff variable name
@@ -234,8 +250,14 @@
   aspect_var(:) = "aspect"
   ! Flow direction variable name
   fdir_var(:) = "fdir"
-  ! Maximum lake level variable name
-  lake_level_var(:) = "max_lake_level"
+  ! Lake spill reference level variable name
+  lake_spill_reference_level_var(:) = "lake_spill_reference_level"
+  ! Lake spill reference surface area variable name
+  lake_spill_reference_surface_area_var(:) = "lake_spill_reference_surface_area"
+  ! Lake spill reference volume variable name
+  lake_spill_reference_volume_var(:) = "lake_spill_reference_volume"
+  ! Initial lake level variable name
+  lake_initial_level_var(:) = "initial_lake_level"
   ! Flow accumulation variable name
   facc_var(:) = "facc"
   ! Geology class variable name
@@ -368,6 +390,14 @@
 
 ! Meteorological configuration
 &config_meteo
+  ! Read lake forcing support restart
+  read_restart(:) = .false.
+  ! Write lake forcing support restart
+  write_restart(:) = .false.
+  ! Meteo restart input file
+  restart_input_path(:) = ""
+  ! Meteo restart output file
+  restart_output_path(:) = ""
   ! Read meteorological weights
   read_meteo_weights(:) = .false.
   ! Precipitation weights path
@@ -426,12 +456,6 @@
   lai_path(:) = ""
   ! LAI variable
   lai_var(:) = "lai"
-  ! Soil LUT path
-  soil_lut_path(:) = ""
-  ! Geology LUT path
-  geo_lut_path(:) = ""
-  ! LAI LUT path
-  lai_lut_path(:) = ""
   ! Read restart
   read_restart(:) = .false.
   ! Restart input path
@@ -504,16 +528,42 @@
 
 ! mLM configuration
 &config_mlm
-  ! mLM lake-point output path
+  ! Number of lakes
+  n_lakes(:) = 1
+  ! mLM lake-point output file
   output_path(:) = ""
   ! Read mLM restart
   read_restart(:) = .false.
-  ! mLM restart input path
+  ! mLM restart input file
   restart_input_path(:) = ""
   ! Write mLM restart
   write_restart(:) = .false.
-  ! mLM restart output path
+  ! Include level-0 lake topology in restart
+  restart_save_topology(:) = .false.
+  ! mLM restart output file
   restart_output_path(:) = ""
+  ! Force lake level initialization at restart
+  force_initialize_lake_at_restart = .false.
+  ! Force lake level initialization at a date
+  force_initialize_lake_at_a_date = .false.
+  ! Lake evaporation method
+  evaporation_method = 1
+  ! Input windspeed height [m]
+  input_windspeed_height = 10.0
+  ! Climatological 2 m windspeed [m s-1]
+  climatological_windspeed = 1.5
+  ! Variable water albedo
+  varying_albedo = .true.
+  ! Variable latent heat of vaporisation
+  varying_lambda = .true.
+  ! Variable psychrometric constant
+  varying_psychro = .true.
+  ! Water albedo calculation method
+  albedo_method = 2
+  ! Lake hAV curve type
+  bathymetry_type(:,:) = 0
+  ! Natural lake flag
+  natural(:,:) = .true.
 /
 
 ! Observations configuration

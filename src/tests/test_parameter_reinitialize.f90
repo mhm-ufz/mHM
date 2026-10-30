@@ -22,6 +22,7 @@ program test_parameter_reinitialize
   integer(i2), pointer :: static_fdir(:)
   character(1024) :: errmsg
   integer :: status
+  logical :: restart_exists
 
   call pet_domain%create(main_file="test_nml/mpr_pet_aspect_minimal.nml", cwd=".")
   status = pet_domain%exchange%config%parameters%pet_m2%set( &
@@ -34,6 +35,8 @@ program test_parameter_reinitialize
     errmsg=errmsg)
   call assert_true(status == NML_OK, "could not configure PET parameters through the exchange interface: " // trim(errmsg))
   call pet_domain%configure(main_file="test_nml/mpr_pet_aspect_minimal.nml")
+  call assert_true(.not.pet_domain%mhm%io%output_active, "omitted output configuration enabled mHM output")
+  call assert_true(.not.pet_domain%mhm%output_config%is_configured, "omitted output configuration became configured")
   call pet_domain%connect()
 
   static_input => pet_domain%exchange%slope%data
@@ -55,8 +58,12 @@ program test_parameter_reinitialize
     "MPR repeated initialization replaced a static input")
 
   pet_domain%mpr%write_restart = .false.
+  pet_domain%mhm%io%write_restart = .true.
+  pet_domain%mhm%io%restart_output_path = pet_domain%exchange%get_path("pet_no_output_restart.nc")
   nullify(static_input)
   call pet_domain%finalize()
+  inquire(file=pet_domain%mhm%io%restart_output_path, exist=restart_exists)
+  call assert_true(restart_exists, "mHM restart without output configuration was not written")
   call assert_true(associated(pet_domain%exchange%pet_fac_aspect%data), "finalize removed MPR data before destroy")
   call assert_true(allocated(pet_domain%mpr%pet%pet_fac_aspect_cache), "finalize removed MPR cache before destroy")
   call pet_domain%destroy()
@@ -171,6 +178,8 @@ program test_parameter_reinitialize
   call assert_true(.not.allocated(source%mask), "Input destroy kept input mask")
   call assert_true(.not.associated(source%grid), "Input destroy kept grid reference")
   call source%destroy()
+
+  deallocate(values, derived_before)
 
 contains
 

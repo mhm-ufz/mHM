@@ -20,9 +20,6 @@ Configuration for the multiscale parameter regionalization in mHM.
 | [lai_time_step](#lai_time_step) | integer array | no | no | LAI time step |
 | [lai_path](#lai_path) | string array | no | no | LAI path |
 | [lai_var](#lai_var) | string array | no | no | LAI variable |
-| [soil_lut_path](#soil_lut_path) | string array | no | no | Soil LUT path |
-| [geo_lut_path](#geo_lut_path) | string array | no | no | Geology LUT path |
-| [lai_lut_path](#lai_lut_path) | string array | no | no | LAI LUT path |
 | [read_restart](#read_restart) | logical array | no | no | Read restart |
 | [restart_input_path](#restart_input_path) | string array | no | no | Restart input path |
 | [write_restart](#write_restart) | logical array | no | no | Write restart |
@@ -168,42 +165,6 @@ Summary:
 - Input required: no
 - Default: `"lai"`
 
-### soil_lut_path
-
-Soil LUT path `soil_lut_path`
-
-Soil look-up table path.
-
-Summary:
-- Type: `character(len=buf), dimension(n_domains)`
-- Item format: `file-path`
-- Declared required: no
-- Input required: no
-
-### geo_lut_path
-
-Geology LUT path `geo_lut_path`
-
-Geology look-up table path.
-
-Summary:
-- Type: `character(len=buf), dimension(n_domains)`
-- Item format: `file-path`
-- Declared required: no
-- Input required: no
-
-### lai_lut_path
-
-LAI LUT path `lai_lut_path`
-
-LAI look-up table path.
-
-Summary:
-- Type: `character(len=buf), dimension(n_domains)`
-- Item format: `file-path`
-- Declared required: no
-- Input required: no
-
 ### read_restart
 
 Read restart `read_restart`
@@ -260,9 +221,6 @@ Summary:
   lai_time_step(:) = -3
   lai_path(:) = ""
   lai_var(:) = "lai"
-  soil_lut_path(:) = ""
-  geo_lut_path(:) = ""
-  lai_lut_path(:) = ""
   read_restart(:) = .false.
   restart_input_path(:) = "mpr_restart_in.nc"
   write_restart(:) = .false.

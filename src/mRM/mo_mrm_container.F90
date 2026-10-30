@@ -1367,6 +1367,7 @@ contains
   subroutine mrm_add_output(self)
     class(mrm_t), intent(inout), target :: self
 
+    if (.not.self%output_active .and. .not.self%output_node_active .and. .not.self%poi%active) return
     if (self%output_node_active .and. self%output_config%out_Qrouted) then
       call self%ds_node_out%update("discharge", self%flow_state%discharge)
     end if

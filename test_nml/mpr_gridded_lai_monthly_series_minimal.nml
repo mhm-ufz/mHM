@@ -39,11 +39,14 @@
   lai_time_step(1)         = -2
   lai_path(1)              = "examples/fixtures/lai_monthly_series.nc"
   lai_var(1)               = "lai"
-  soil_lut_path(1)         = "examples/domain_01/input/morph/soil_classdefinition.txt"
-  geo_lut_path(1)          = "examples/domain_01/input/morph/geology_classdefinition.txt"
   write_restart(1)         = .true.
   restart_output_path(1)   = "mpr_gridded_lai_monthly_series_restart.nc"
 /
 
 &config_mhm
+/
+
+&config_lut
+  soil_lut_path(1)         = "examples/domain_01/input/morph/soil_classdefinition.txt"
+  geo_lut_path(1)          = "examples/domain_01/input/morph/geology_classdefinition.txt"
 /

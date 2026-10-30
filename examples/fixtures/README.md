@@ -12,6 +12,8 @@ It is separate from `examples/domain_01` and `examples/domain_02`, which are run
   `pre_daily_aligned.nc`, `pet_daily_aligned.nc`, `tavg_daily_aligned.nc`,
   `pre_weights.nc`, `pet_weights.nc`, `tavg_weights.nc`, `scc_gauges.nc`,
   `lake_outlets.nc`
+- Lake evaporation fixture: `tdew.nc` contains daily minimum temperature copied
+  as dew-point temperature (`tdew`), using the test approximation T_dew ~ T_min.
 - ASCII spatial inputs:
   `dem.asc`, `fdir.asc`, `slope.asc`, `aspect.asc`, `soil_class.asc`,
   `geology_class.asc`, `LAI_class.asc`

@@ -53,6 +53,7 @@ module nml_config_input
   character(len=buf), parameter, public :: netrad_var__default = "net_rad"
   character(len=buf), parameter, public :: eabs_var__default = "eabs"
   character(len=buf), parameter, public :: wind_var__default = "windspeed"
+  character(len=buf), parameter, public :: tdew_var__default = "tdew"
   character(len=buf), parameter, public :: meteo_mask_var__default = "mask"
   character(len=buf), parameter, public :: runoff_var__default = "runoff"
   character(len=buf), parameter, public :: runoff_sealed_var__default = "runoff_sealed"
@@ -64,7 +65,10 @@ module nml_config_input
   character(len=buf), parameter, public :: slope_var__default = "slope"
   character(len=buf), parameter, public :: aspect_var__default = "aspect"
   character(len=buf), parameter, public :: fdir_var__default = "fdir"
-  character(len=buf), parameter, public :: lake_level_var__default = "max_lake_level"
+  character(len=buf), parameter, public :: lake_spill_reference_level_var__default = "lake_spill_reference_level"
+  character(len=buf), parameter, public :: lake_spill_reference_surface_area_var__default = "lake_spill_reference_surface_area"
+  character(len=buf), parameter, public :: lake_spill_reference_volume_var__default = "lake_spill_reference_volume"
+  character(len=buf), parameter, public :: lake_initial_level_var__default = "initial_lake_level"
   character(len=buf), parameter, public :: facc_var__default = "facc"
   character(len=buf), parameter, public :: geo_class_var__default = "geology_class"
   character(len=buf), parameter, public :: soil_class_var__default = "soil_class"
@@ -107,6 +111,7 @@ module nml_config_input
     character(len=buf), allocatable, dimension(:) :: netrad_path !< Net radiation input
     character(len=buf), allocatable, dimension(:) :: eabs_path !< Vapor pressure input
     character(len=buf), allocatable, dimension(:) :: wind_path !< Wind speed input
+    character(len=buf), allocatable, dimension(:) :: tdew_path !< Dew point temperature input
     character(len=buf), allocatable, dimension(:) :: meteo_mask_path !< Meteorological mask file path
     character(len=buf), allocatable, dimension(:) :: runoff_path !< Runoff input
     character(len=buf), allocatable, dimension(:) :: runoff_sealed_path !< Sealed runoff input
@@ -137,6 +142,7 @@ module nml_config_input
     character(len=buf), allocatable, dimension(:) :: netrad_var !< Net radiation variable name
     character(len=buf), allocatable, dimension(:) :: eabs_var !< Vapor pressure variable name
     character(len=buf), allocatable, dimension(:) :: wind_var !< Wind speed variable name
+    character(len=buf), allocatable, dimension(:) :: tdew_var !< Dew point temperature variable name
     character(len=buf), allocatable, dimension(:) :: meteo_mask_var !< Meteorological mask variable name
     character(len=buf), allocatable, dimension(:) :: runoff_var !< Runoff variable name
     character(len=buf), allocatable, dimension(:) :: runoff_sealed_var !< Sealed runoff variable name
@@ -148,7 +154,10 @@ module nml_config_input
     character(len=buf), allocatable, dimension(:) :: slope_var !< Slope variable name
     character(len=buf), allocatable, dimension(:) :: aspect_var !< Aspect variable name
     character(len=buf), allocatable, dimension(:) :: fdir_var !< Flow direction variable name
-    character(len=buf), allocatable, dimension(:) :: lake_level_var !< Maximum lake level variable name
+    character(len=buf), allocatable, dimension(:) :: lake_spill_reference_level_var !< Lake spill reference level variable name
+    character(len=buf), allocatable, dimension(:) :: lake_spill_reference_surface_area_var !< Lake spill reference surface area variable name
+    character(len=buf), allocatable, dimension(:) :: lake_spill_reference_volume_var !< Lake spill reference volume variable name
+    character(len=buf), allocatable, dimension(:) :: lake_initial_level_var !< Initial lake level variable name
     character(len=buf), allocatable, dimension(:) :: facc_var !< Flow accumulation variable name
     character(len=buf), allocatable, dimension(:) :: geo_class_var !< Geology class variable name
     character(len=buf), allocatable, dimension(:) :: soil_class_var !< Soil class variable name
@@ -246,6 +255,8 @@ contains
     allocate(character(len=buf) :: this%eabs_path(this%n_domains))
     if (allocated(this%wind_path)) deallocate(this%wind_path)
     allocate(character(len=buf) :: this%wind_path(this%n_domains))
+    if (allocated(this%tdew_path)) deallocate(this%tdew_path)
+    allocate(character(len=buf) :: this%tdew_path(this%n_domains))
     if (allocated(this%meteo_mask_path)) deallocate(this%meteo_mask_path)
     allocate(character(len=buf) :: this%meteo_mask_path(this%n_domains))
     if (allocated(this%runoff_path)) deallocate(this%runoff_path)
@@ -306,6 +317,8 @@ contains
     allocate(character(len=buf) :: this%eabs_var(this%n_domains))
     if (allocated(this%wind_var)) deallocate(this%wind_var)
     allocate(character(len=buf) :: this%wind_var(this%n_domains))
+    if (allocated(this%tdew_var)) deallocate(this%tdew_var)
+    allocate(character(len=buf) :: this%tdew_var(this%n_domains))
     if (allocated(this%meteo_mask_var)) deallocate(this%meteo_mask_var)
     allocate(character(len=buf) :: this%meteo_mask_var(this%n_domains))
     if (allocated(this%runoff_var)) deallocate(this%runoff_var)
@@ -328,8 +341,14 @@ contains
     allocate(character(len=buf) :: this%aspect_var(this%n_domains))
     if (allocated(this%fdir_var)) deallocate(this%fdir_var)
     allocate(character(len=buf) :: this%fdir_var(this%n_domains))
-    if (allocated(this%lake_level_var)) deallocate(this%lake_level_var)
-    allocate(character(len=buf) :: this%lake_level_var(this%n_domains))
+    if (allocated(this%lake_spill_reference_level_var)) deallocate(this%lake_spill_reference_level_var)
+    allocate(character(len=buf) :: this%lake_spill_reference_level_var(this%n_domains))
+    if (allocated(this%lake_spill_reference_surface_area_var)) deallocate(this%lake_spill_reference_surface_area_var)
+    allocate(character(len=buf) :: this%lake_spill_reference_surface_area_var(this%n_domains))
+    if (allocated(this%lake_spill_reference_volume_var)) deallocate(this%lake_spill_reference_volume_var)
+    allocate(character(len=buf) :: this%lake_spill_reference_volume_var(this%n_domains))
+    if (allocated(this%lake_initial_level_var)) deallocate(this%lake_initial_level_var)
+    allocate(character(len=buf) :: this%lake_initial_level_var(this%n_domains))
     if (allocated(this%facc_var)) deallocate(this%facc_var)
     allocate(character(len=buf) :: this%facc_var(this%n_domains))
     if (allocated(this%geo_class_var)) deallocate(this%geo_class_var)
@@ -368,6 +387,7 @@ contains
     this%netrad_path = achar(0) ! sentinel for optional string array
     this%eabs_path = achar(0) ! sentinel for optional string array
     this%wind_path = achar(0) ! sentinel for optional string array
+    this%tdew_path = achar(0) ! sentinel for optional string array
     this%meteo_mask_path = achar(0) ! sentinel for optional string array
     this%runoff_path = achar(0) ! sentinel for optional string array
     this%runoff_sealed_path = achar(0) ! sentinel for optional string array
@@ -402,6 +422,7 @@ contains
     this%netrad_var = netrad_var__default
     this%eabs_var = eabs_var__default
     this%wind_var = wind_var__default
+    this%tdew_var = tdew_var__default
     this%meteo_mask_var = meteo_mask_var__default
     this%runoff_var = runoff_var__default
     this%runoff_sealed_var = runoff_sealed_var__default
@@ -413,7 +434,10 @@ contains
     this%slope_var = slope_var__default
     this%aspect_var = aspect_var__default
     this%fdir_var = fdir_var__default
-    this%lake_level_var = lake_level_var__default
+    this%lake_spill_reference_level_var = lake_spill_reference_level_var__default
+    this%lake_spill_reference_surface_area_var = lake_spill_reference_surface_area_var__default
+    this%lake_spill_reference_volume_var = lake_spill_reference_volume_var__default
+    this%lake_initial_level_var = lake_initial_level_var__default
     this%facc_var = facc_var__default
     this%geo_class_var = geo_class_var__default
     this%soil_class_var = soil_class_var__default
@@ -467,6 +491,7 @@ contains
     if (allocated(this%netrad_path)) deallocate(this%netrad_path)
     if (allocated(this%eabs_path)) deallocate(this%eabs_path)
     if (allocated(this%wind_path)) deallocate(this%wind_path)
+    if (allocated(this%tdew_path)) deallocate(this%tdew_path)
     if (allocated(this%meteo_mask_path)) deallocate(this%meteo_mask_path)
     if (allocated(this%runoff_path)) deallocate(this%runoff_path)
     if (allocated(this%runoff_sealed_path)) deallocate(this%runoff_sealed_path)
@@ -497,6 +522,7 @@ contains
     if (allocated(this%netrad_var)) deallocate(this%netrad_var)
     if (allocated(this%eabs_var)) deallocate(this%eabs_var)
     if (allocated(this%wind_var)) deallocate(this%wind_var)
+    if (allocated(this%tdew_var)) deallocate(this%tdew_var)
     if (allocated(this%meteo_mask_var)) deallocate(this%meteo_mask_var)
     if (allocated(this%runoff_var)) deallocate(this%runoff_var)
     if (allocated(this%runoff_sealed_var)) deallocate(this%runoff_sealed_var)
@@ -508,7 +534,10 @@ contains
     if (allocated(this%slope_var)) deallocate(this%slope_var)
     if (allocated(this%aspect_var)) deallocate(this%aspect_var)
     if (allocated(this%fdir_var)) deallocate(this%fdir_var)
-    if (allocated(this%lake_level_var)) deallocate(this%lake_level_var)
+    if (allocated(this%lake_spill_reference_level_var)) deallocate(this%lake_spill_reference_level_var)
+    if (allocated(this%lake_spill_reference_surface_area_var)) deallocate(this%lake_spill_reference_surface_area_var)
+    if (allocated(this%lake_spill_reference_volume_var)) deallocate(this%lake_spill_reference_volume_var)
+    if (allocated(this%lake_initial_level_var)) deallocate(this%lake_initial_level_var)
     if (allocated(this%facc_var)) deallocate(this%facc_var)
     if (allocated(this%geo_class_var)) deallocate(this%geo_class_var)
     if (allocated(this%soil_class_var)) deallocate(this%soil_class_var)
@@ -546,6 +575,7 @@ contains
     character(len=buf), allocatable, dimension(:) :: netrad_path
     character(len=buf), allocatable, dimension(:) :: eabs_path
     character(len=buf), allocatable, dimension(:) :: wind_path
+    character(len=buf), allocatable, dimension(:) :: tdew_path
     character(len=buf), allocatable, dimension(:) :: meteo_mask_path
     character(len=buf), allocatable, dimension(:) :: runoff_path
     character(len=buf), allocatable, dimension(:) :: runoff_sealed_path
@@ -576,6 +606,7 @@ contains
     character(len=buf), allocatable, dimension(:) :: netrad_var
     character(len=buf), allocatable, dimension(:) :: eabs_var
     character(len=buf), allocatable, dimension(:) :: wind_var
+    character(len=buf), allocatable, dimension(:) :: tdew_var
     character(len=buf), allocatable, dimension(:) :: meteo_mask_var
     character(len=buf), allocatable, dimension(:) :: runoff_var
     character(len=buf), allocatable, dimension(:) :: runoff_sealed_var
@@ -587,7 +618,10 @@ contains
     character(len=buf), allocatable, dimension(:) :: slope_var
     character(len=buf), allocatable, dimension(:) :: aspect_var
     character(len=buf), allocatable, dimension(:) :: fdir_var
-    character(len=buf), allocatable, dimension(:) :: lake_level_var
+    character(len=buf), allocatable, dimension(:) :: lake_spill_reference_level_var
+    character(len=buf), allocatable, dimension(:) :: lake_spill_reference_surface_area_var
+    character(len=buf), allocatable, dimension(:) :: lake_spill_reference_volume_var
+    character(len=buf), allocatable, dimension(:) :: lake_initial_level_var
     character(len=buf), allocatable, dimension(:) :: facc_var
     character(len=buf), allocatable, dimension(:) :: geo_class_var
     character(len=buf), allocatable, dimension(:) :: soil_class_var
@@ -622,6 +656,7 @@ contains
       netrad_path, &
       eabs_path, &
       wind_path, &
+      tdew_path, &
       meteo_mask_path, &
       runoff_path, &
       runoff_sealed_path, &
@@ -652,6 +687,7 @@ contains
       netrad_var, &
       eabs_var, &
       wind_var, &
+      tdew_var, &
       meteo_mask_var, &
       runoff_var, &
       runoff_sealed_var, &
@@ -663,7 +699,10 @@ contains
       slope_var, &
       aspect_var, &
       fdir_var, &
-      lake_level_var, &
+      lake_spill_reference_level_var, &
+      lake_spill_reference_surface_area_var, &
+      lake_spill_reference_volume_var, &
+      lake_initial_level_var, &
       facc_var, &
       geo_class_var, &
       soil_class_var, &
@@ -710,6 +749,8 @@ contains
     allocate(character(len=buf) :: eabs_path(this%n_domains))
     if (allocated(wind_path)) deallocate(wind_path)
     allocate(character(len=buf) :: wind_path(this%n_domains))
+    if (allocated(tdew_path)) deallocate(tdew_path)
+    allocate(character(len=buf) :: tdew_path(this%n_domains))
     if (allocated(meteo_mask_path)) deallocate(meteo_mask_path)
     allocate(character(len=buf) :: meteo_mask_path(this%n_domains))
     if (allocated(runoff_path)) deallocate(runoff_path)
@@ -770,6 +811,8 @@ contains
     allocate(character(len=buf) :: eabs_var(this%n_domains))
     if (allocated(wind_var)) deallocate(wind_var)
     allocate(character(len=buf) :: wind_var(this%n_domains))
+    if (allocated(tdew_var)) deallocate(tdew_var)
+    allocate(character(len=buf) :: tdew_var(this%n_domains))
     if (allocated(meteo_mask_var)) deallocate(meteo_mask_var)
     allocate(character(len=buf) :: meteo_mask_var(this%n_domains))
     if (allocated(runoff_var)) deallocate(runoff_var)
@@ -792,8 +835,14 @@ contains
     allocate(character(len=buf) :: aspect_var(this%n_domains))
     if (allocated(fdir_var)) deallocate(fdir_var)
     allocate(character(len=buf) :: fdir_var(this%n_domains))
-    if (allocated(lake_level_var)) deallocate(lake_level_var)
-    allocate(character(len=buf) :: lake_level_var(this%n_domains))
+    if (allocated(lake_spill_reference_level_var)) deallocate(lake_spill_reference_level_var)
+    allocate(character(len=buf) :: lake_spill_reference_level_var(this%n_domains))
+    if (allocated(lake_spill_reference_surface_area_var)) deallocate(lake_spill_reference_surface_area_var)
+    allocate(character(len=buf) :: lake_spill_reference_surface_area_var(this%n_domains))
+    if (allocated(lake_spill_reference_volume_var)) deallocate(lake_spill_reference_volume_var)
+    allocate(character(len=buf) :: lake_spill_reference_volume_var(this%n_domains))
+    if (allocated(lake_initial_level_var)) deallocate(lake_initial_level_var)
+    allocate(character(len=buf) :: lake_initial_level_var(this%n_domains))
     if (allocated(facc_var)) deallocate(facc_var)
     allocate(character(len=buf) :: facc_var(this%n_domains))
     if (allocated(geo_class_var)) deallocate(geo_class_var)
@@ -833,6 +882,7 @@ contains
     netrad_path = this%netrad_path
     eabs_path = this%eabs_path
     wind_path = this%wind_path
+    tdew_path = this%tdew_path
     meteo_mask_path = this%meteo_mask_path
     runoff_path = this%runoff_path
     runoff_sealed_path = this%runoff_sealed_path
@@ -863,6 +913,7 @@ contains
     netrad_var = this%netrad_var
     eabs_var = this%eabs_var
     wind_var = this%wind_var
+    tdew_var = this%tdew_var
     meteo_mask_var = this%meteo_mask_var
     runoff_var = this%runoff_var
     runoff_sealed_var = this%runoff_sealed_var
@@ -874,7 +925,10 @@ contains
     slope_var = this%slope_var
     aspect_var = this%aspect_var
     fdir_var = this%fdir_var
-    lake_level_var = this%lake_level_var
+    lake_spill_reference_level_var = this%lake_spill_reference_level_var
+    lake_spill_reference_surface_area_var = this%lake_spill_reference_surface_area_var
+    lake_spill_reference_volume_var = this%lake_spill_reference_volume_var
+    lake_initial_level_var = this%lake_initial_level_var
     facc_var = this%facc_var
     geo_class_var = this%geo_class_var
     soil_class_var = this%soil_class_var
@@ -927,6 +981,7 @@ contains
     this%netrad_path = netrad_path
     this%eabs_path = eabs_path
     this%wind_path = wind_path
+    this%tdew_path = tdew_path
     this%meteo_mask_path = meteo_mask_path
     this%runoff_path = runoff_path
     this%runoff_sealed_path = runoff_sealed_path
@@ -957,6 +1012,7 @@ contains
     this%netrad_var = netrad_var
     this%eabs_var = eabs_var
     this%wind_var = wind_var
+    this%tdew_var = tdew_var
     this%meteo_mask_var = meteo_mask_var
     this%runoff_var = runoff_var
     this%runoff_sealed_var = runoff_sealed_var
@@ -968,7 +1024,10 @@ contains
     this%slope_var = slope_var
     this%aspect_var = aspect_var
     this%fdir_var = fdir_var
-    this%lake_level_var = lake_level_var
+    this%lake_spill_reference_level_var = lake_spill_reference_level_var
+    this%lake_spill_reference_surface_area_var = lake_spill_reference_surface_area_var
+    this%lake_spill_reference_volume_var = lake_spill_reference_volume_var
+    this%lake_initial_level_var = lake_initial_level_var
     this%facc_var = facc_var
     this%geo_class_var = geo_class_var
     this%soil_class_var = soil_class_var
@@ -1004,6 +1063,7 @@ contains
     netrad_path, &
     eabs_path, &
     wind_path, &
+    tdew_path, &
     meteo_mask_path, &
     runoff_path, &
     runoff_sealed_path, &
@@ -1034,6 +1094,7 @@ contains
     netrad_var, &
     eabs_var, &
     wind_var, &
+    tdew_var, &
     meteo_mask_var, &
     runoff_var, &
     runoff_sealed_var, &
@@ -1045,7 +1106,10 @@ contains
     slope_var, &
     aspect_var, &
     fdir_var, &
-    lake_level_var, &
+    lake_spill_reference_level_var, &
+    lake_spill_reference_surface_area_var, &
+    lake_spill_reference_volume_var, &
+    lake_initial_level_var, &
     facc_var, &
     geo_class_var, &
     soil_class_var, &
@@ -1077,6 +1141,7 @@ contains
     character(len=*), dimension(:), intent(in), optional :: netrad_path !< Net radiation input
     character(len=*), dimension(:), intent(in), optional :: eabs_path !< Vapor pressure input
     character(len=*), dimension(:), intent(in), optional :: wind_path !< Wind speed input
+    character(len=*), dimension(:), intent(in), optional :: tdew_path !< Dew point temperature input
     character(len=*), dimension(:), intent(in), optional :: meteo_mask_path !< Meteorological mask file path
     character(len=*), dimension(:), intent(in), optional :: runoff_path !< Runoff input
     character(len=*), dimension(:), intent(in), optional :: runoff_sealed_path !< Sealed runoff input
@@ -1107,6 +1172,7 @@ contains
     character(len=*), dimension(:), intent(in), optional :: netrad_var !< Net radiation variable name
     character(len=*), dimension(:), intent(in), optional :: eabs_var !< Vapor pressure variable name
     character(len=*), dimension(:), intent(in), optional :: wind_var !< Wind speed variable name
+    character(len=*), dimension(:), intent(in), optional :: tdew_var !< Dew point temperature variable name
     character(len=*), dimension(:), intent(in), optional :: meteo_mask_var !< Meteorological mask variable name
     character(len=*), dimension(:), intent(in), optional :: runoff_var !< Runoff variable name
     character(len=*), dimension(:), intent(in), optional :: runoff_sealed_var !< Sealed runoff variable name
@@ -1118,7 +1184,10 @@ contains
     character(len=*), dimension(:), intent(in), optional :: slope_var !< Slope variable name
     character(len=*), dimension(:), intent(in), optional :: aspect_var !< Aspect variable name
     character(len=*), dimension(:), intent(in), optional :: fdir_var !< Flow direction variable name
-    character(len=*), dimension(:), intent(in), optional :: lake_level_var !< Maximum lake level variable name
+    character(len=*), dimension(:), intent(in), optional :: lake_spill_reference_level_var !< Lake spill reference level variable name
+    character(len=*), dimension(:), intent(in), optional :: lake_spill_reference_surface_area_var !< Lake spill reference surface area variable name
+    character(len=*), dimension(:), intent(in), optional :: lake_spill_reference_volume_var !< Lake spill reference volume variable name
+    character(len=*), dimension(:), intent(in), optional :: lake_initial_level_var !< Initial lake level variable name
     character(len=*), dimension(:), intent(in), optional :: facc_var !< Flow accumulation variable name
     character(len=*), dimension(:), intent(in), optional :: geo_class_var !< Geology class variable name
     character(len=*), dimension(:), intent(in), optional :: soil_class_var !< Soil class variable name
@@ -1289,6 +1358,16 @@ contains
       lb__1 = lbound(this%wind_path, 1)
       ub__1 = lb__1 + size(wind_path, 1) - 1
       this%wind_path(lb__1:ub__1) = wind_path
+    end if
+    if (present(tdew_path)) then
+      if (size(tdew_path, 1) > size(this%tdew_path, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tdew_path'"
+        return
+      end if
+      lb__1 = lbound(this%tdew_path, 1)
+      ub__1 = lb__1 + size(tdew_path, 1) - 1
+      this%tdew_path(lb__1:ub__1) = tdew_path
     end if
     if (present(meteo_mask_path)) then
       if (size(meteo_mask_path, 1) > size(this%meteo_mask_path, 1)) then
@@ -1590,6 +1669,16 @@ contains
       ub__1 = lb__1 + size(wind_var, 1) - 1
       this%wind_var(lb__1:ub__1) = wind_var
     end if
+    if (present(tdew_var)) then
+      if (size(tdew_var, 1) > size(this%tdew_var, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tdew_var'"
+        return
+      end if
+      lb__1 = lbound(this%tdew_var, 1)
+      ub__1 = lb__1 + size(tdew_var, 1) - 1
+      this%tdew_var(lb__1:ub__1) = tdew_var
+    end if
     if (present(meteo_mask_var)) then
       if (size(meteo_mask_var, 1) > size(this%meteo_mask_var, 1)) then
         status = NML_ERR_INVALID_INDEX
@@ -1700,15 +1789,45 @@ contains
       ub__1 = lb__1 + size(fdir_var, 1) - 1
       this%fdir_var(lb__1:ub__1) = fdir_var
     end if
-    if (present(lake_level_var)) then
-      if (size(lake_level_var, 1) > size(this%lake_level_var, 1)) then
+    if (present(lake_spill_reference_level_var)) then
+      if (size(lake_spill_reference_level_var, 1) > size(this%lake_spill_reference_level_var, 1)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lake_level_var'"
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lake_spill_reference_level_var'"
         return
       end if
-      lb__1 = lbound(this%lake_level_var, 1)
-      ub__1 = lb__1 + size(lake_level_var, 1) - 1
-      this%lake_level_var(lb__1:ub__1) = lake_level_var
+      lb__1 = lbound(this%lake_spill_reference_level_var, 1)
+      ub__1 = lb__1 + size(lake_spill_reference_level_var, 1) - 1
+      this%lake_spill_reference_level_var(lb__1:ub__1) = lake_spill_reference_level_var
+    end if
+    if (present(lake_spill_reference_surface_area_var)) then
+      if (size(lake_spill_reference_surface_area_var, 1) > size(this%lake_spill_reference_surface_area_var, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lake_spill_reference_surface_area_var'"
+        return
+      end if
+      lb__1 = lbound(this%lake_spill_reference_surface_area_var, 1)
+      ub__1 = lb__1 + size(lake_spill_reference_surface_area_var, 1) - 1
+      this%lake_spill_reference_surface_area_var(lb__1:ub__1) = lake_spill_reference_surface_area_var
+    end if
+    if (present(lake_spill_reference_volume_var)) then
+      if (size(lake_spill_reference_volume_var, 1) > size(this%lake_spill_reference_volume_var, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lake_spill_reference_volume_var'"
+        return
+      end if
+      lb__1 = lbound(this%lake_spill_reference_volume_var, 1)
+      ub__1 = lb__1 + size(lake_spill_reference_volume_var, 1) - 1
+      this%lake_spill_reference_volume_var(lb__1:ub__1) = lake_spill_reference_volume_var
+    end if
+    if (present(lake_initial_level_var)) then
+      if (size(lake_initial_level_var, 1) > size(this%lake_initial_level_var, 1)) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lake_initial_level_var'"
+        return
+      end if
+      lb__1 = lbound(this%lake_initial_level_var, 1)
+      ub__1 = lb__1 + size(lake_initial_level_var, 1) - 1
+      this%lake_initial_level_var(lb__1:ub__1) = lake_initial_level_var
     end if
     if (present(facc_var)) then
       if (size(facc_var, 1) > size(this%facc_var, 1)) then
@@ -2039,6 +2158,19 @@ contains
         if (this%wind_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
         if (all(this%wind_path == achar(0))) status = NML_ERR_NOT_SET
+      end if
+    case ("tdew_path")
+      if (.not. allocated(this%tdew_path)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%tdew_path), ubound(this%tdew_path), &
+          "tdew_path", errmsg)
+        if (status /= NML_OK) return
+        if (this%tdew_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
+      else
+        if (all(this%tdew_path == achar(0))) status = NML_ERR_NOT_SET
       end if
     case ("meteo_mask_path")
       if (.not. allocated(this%meteo_mask_path)) then
@@ -2408,6 +2540,17 @@ contains
         if (status /= NML_OK) return
       else
       end if
+    case ("tdew_var")
+      if (.not. allocated(this%tdew_var)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%tdew_var), ubound(this%tdew_var), &
+          "tdew_var", errmsg)
+        if (status /= NML_OK) return
+      else
+      end if
     case ("meteo_mask_var")
       if (.not. allocated(this%meteo_mask_var)) then
         status = NML_ERR_NOT_SET
@@ -2529,14 +2672,47 @@ contains
         if (status /= NML_OK) return
       else
       end if
-    case ("lake_level_var")
-      if (.not. allocated(this%lake_level_var)) then
+    case ("lake_spill_reference_level_var")
+      if (.not. allocated(this%lake_spill_reference_level_var)) then
         status = NML_ERR_NOT_SET
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%lake_level_var), ubound(this%lake_level_var), &
-          "lake_level_var", errmsg)
+        status = idx_check(idx, lbound(this%lake_spill_reference_level_var), ubound(this%lake_spill_reference_level_var), &
+          "lake_spill_reference_level_var", errmsg)
+        if (status /= NML_OK) return
+      else
+      end if
+    case ("lake_spill_reference_surface_area_var")
+      if (.not. allocated(this%lake_spill_reference_surface_area_var)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%lake_spill_reference_surface_area_var), ubound(this%lake_spill_reference_surface_area_var), &
+          "lake_spill_reference_surface_area_var", errmsg)
+        if (status /= NML_OK) return
+      else
+      end if
+    case ("lake_spill_reference_volume_var")
+      if (.not. allocated(this%lake_spill_reference_volume_var)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%lake_spill_reference_volume_var), ubound(this%lake_spill_reference_volume_var), &
+          "lake_spill_reference_volume_var", errmsg)
+        if (status /= NML_OK) return
+      else
+      end if
+    case ("lake_initial_level_var")
+      if (.not. allocated(this%lake_initial_level_var)) then
+        status = NML_ERR_NOT_SET
+        return
+      end if
+      if (present(idx)) then
+        status = idx_check(idx, lbound(this%lake_initial_level_var), ubound(this%lake_initial_level_var), &
+          "lake_initial_level_var", errmsg)
         if (status /= NML_OK) return
       else
       end if

@@ -69,11 +69,12 @@ module mo_mpr_container
   use mo_mpr_aerodynamics, only: aerodynamical_resistance
   use mo_mpr_runoff, only: mpr_runoff
   use mo_soil_database, only: soil_database_t
+  use mo_geology_classdefinition, only: geology_classdefinition_t
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   use mo_orderpack, only: sort_index
   use mo_string_utils, only: n2s => num2str
   use mo_utils, only: eq, is_close, optval
-  use mo_read_lut, only: read_geoformation_lut, read_lai_lut
+  use mo_input_lut, only: read_geoformation_lut, read_lai_lut
   use nml_config_mpr, only: nml_config_mpr_t
   use nml_helper, only: NML_OK
 
@@ -184,6 +185,7 @@ module mo_mpr_container
   !> \brief   Grouped preprocessing support state for resolved morphology LUT input and derived slope metrics.
   type :: mpr_preproc_state_t
     character(:), allocatable :: geo_lut_path !< resolved geology LUT path
+    type(geology_classdefinition_t) :: geo_class_def !< owned parsed geology LUT
     real(dp), allocatable :: slope_emp(:) !< empirical slope distribution on level0
   end type mpr_preproc_state_t
 
@@ -386,19 +388,21 @@ contains
       error stop 1
     end if
 
-    status = self%config%is_set("soil_lut_path", idx=id, errmsg=errmsg)
-    if (status /= NML_OK) then
-      log_fatal(*) "MPR: soil_lut_path not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
-      error stop 1
-    end if
-    self%soil%lut_path = self%exchange%get_path(self%config%soil_lut_path(id(1)))
+    if (.not.self%config%read_restart(id(1))) then
+      status = self%exchange%config%lut%is_set("soil_lut_path", idx=id, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "MPR: soil_lut_path not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
+        error stop 1
+      end if
+      self%soil%lut_path = self%exchange%get_path(self%exchange%config%lut%soil_lut_path(id(1)))
 
-    status = self%config%is_set("geo_lut_path", idx=id, errmsg=errmsg)
-    if (status /= NML_OK) then
-      log_fatal(*) "MPR: geo_lut_path not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
-      error stop 1
+      status = self%exchange%config%lut%is_set("geo_lut_path", idx=id, errmsg=errmsg)
+      if (status /= NML_OK) then
+        log_fatal(*) "MPR: geo_lut_path not set for domain ", n2s(id(1)), ". Error: ", trim(errmsg)
+        error stop 1
+      end if
+      self%preproc%geo_lut_path = self%exchange%get_path(self%exchange%config%lut%geo_lut_path(id(1)))
     end if
-    self%preproc%geo_lut_path = self%exchange%get_path(self%config%geo_lut_path(id(1)))
 
     self%land_cover%var_name = trim(self%config%land_cover_var(id(1)))
     if (len_trim(self%land_cover%var_name) < 1) then
@@ -414,13 +418,13 @@ contains
     end if
 
     if (self%config%lai_time_step(id(1)) == 0_i4) then
-      status = self%config%is_set("lai_lut_path", idx=id, errmsg=errmsg)
+      status = self%exchange%config%lut%is_set("lai_lut_path", idx=id, errmsg=errmsg)
       if (status /= NML_OK .and. .not.self%config%read_restart(id(1))) then
         log_fatal(*) "MPR: lai_lut_path not set for domain ", n2s(id(1)), &
           " while lai_time_step=0. Error: ", trim(errmsg)
         error stop 1
       end if
-      if (status == NML_OK) self%lai%lut_path = self%exchange%get_path(self%config%lai_lut_path(id(1)))
+      if (status == NML_OK) self%lai%lut_path = self%exchange%get_path(self%exchange%config%lut%lai_lut_path(id(1)))
       if (allocated(self%lai%path)) deallocate(self%lai%path)
       if (allocated(self%lai%var_name)) deallocate(self%lai%var_name)
     else
@@ -433,8 +437,8 @@ contains
       if (status == NML_OK) then
         self%lai%path = self%exchange%get_path(self%config%lai_path(id(1)))
         self%lai%var_name = trim(self%config%lai_var(id(1)))
-    else
-      if (allocated(self%lai%path)) deallocate(self%lai%path)
+      else
+        if (allocated(self%lai%path)) deallocate(self%lai%path)
         if (allocated(self%lai%var_name)) deallocate(self%lai%var_name)
       end if
       if (allocated(self%lai%lut_path)) deallocate(self%lai%lut_path)
@@ -974,7 +978,7 @@ contains
     end if
     call self%init_slope_emp()
 
-    if (.not.associated(self%exchange%geo_class_def)) allocate(self%exchange%geo_class_def)
+    self%exchange%geo_class_def => self%preproc%geo_class_def
     call self%exchange%geo_class_def%reset()
     log_info(*) "MPR: read geology LUT: ", self%preproc%geo_lut_path
     call read_geoformation_lut( &
@@ -2299,7 +2303,8 @@ contains
   !> \brief Initialize only the land-cover timing state without caching land-cover input fields.
   subroutine mpr_init_land_cover_timing(self)
     class(mpr_t), intent(inout), target :: self
-    type(var) :: land_cover_meta
+    type(var) :: land_cover_meta, vars(1)
+    character(:), allocatable :: var_name
     integer(i4) :: n_times
     integer(i4) :: i
 
@@ -2323,9 +2328,12 @@ contains
     self%land_cover%n_periods = 1_i4
 
     ! Open the dataset only to recover land-cover timing; field values are cached in the dedicated cache path.
+    ! GNU 12 needs local metadata and name storage to avoid constructor bugs.
+    var_name = self%land_cover%var_name
+    vars(1) = var(name=var_name, kind="i4", static=.false., allow_static=.true.)
     call self%land_cover%ds%init( &
       path=self%land_cover%path, &
-      vars=[var(name=trim(self%land_cover%var_name), kind="i4", static=.false., allow_static=.true.)], &
+      vars=vars, &
       grid=self%exchange%level0_land, &
       timestamp=start_timestamp)
 
@@ -2370,13 +2378,17 @@ contains
   !> \brief Build cached land-cover fields on level0 for static or temporal datasets.
   subroutine mpr_init_land_cover_cache(self)
     class(mpr_t), intent(inout), target :: self
+    type(var) :: vars(1)
+    character(:), allocatable :: var_name
 
     if (allocated(self%land_cover%l0_cache)) deallocate(self%land_cover%l0_cache)
     call self%init_land_cover_timing()
 
+    var_name = self%land_cover%var_name
+    vars(1) = var(name=var_name, kind="i4", static=.false., allow_static=.true.)
     call self%land_cover%ds%init( &
       path=self%land_cover%path, &
-      vars=[var(name=trim(self%land_cover%var_name), kind="i4", static=.false., allow_static=.true.)], &
+      vars=vars, &
       grid=self%exchange%level0_land, &
       timestamp=start_timestamp)
     if (.not.self%land_cover%temporal) then
@@ -3489,6 +3501,7 @@ contains
   !> \brief Release MPR-owned caches and model support after exchange publications are detached.
   subroutine mpr_destroy(self)
     class(mpr_t), intent(inout), target :: self
+    call self%preproc%geo_class_def%reset()
     if (allocated(self%preproc%slope_emp)) deallocate(self%preproc%slope_emp)
     if (allocated(self%preproc%geo_lut_path)) deallocate(self%preproc%geo_lut_path)
     if (allocated(self%land_cover%l0_cache)) deallocate(self%land_cover%l0_cache)

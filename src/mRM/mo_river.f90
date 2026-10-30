@@ -57,6 +57,7 @@ module mo_river
     ! Shared D8/L3 topology and routing attributes.
     type(grid_t), pointer :: grid => null() !< Grid on which this river is defined.
     logical, allocatable :: is_sink(:) !< Sink flag for every river node.
+    logical, allocatable :: is_inland_sink(:) !< Inland-depression flag: a sink whose input fdir is not a valid D8 direction (a true pit), as opposed to a cell forced to sink because its flow leaves the grid/mask at the domain edge. Full L0 D8 river only.
     real(dp), allocatable :: link_length(:) !< Length of each outgoing link [m], zero at sinks.
     real(dp), allocatable :: link_slope(:) !< Slope of each outgoing link [%].
     real(dp), allocatable :: upstream_area(:) !< Upstream area [m2] for every river node.
@@ -352,9 +353,15 @@ contains
     allocate(cells(this%grid%nx, this%grid%ny))
     call this%grid%gen_id_matrix(cells)
     allocate(down(this%grid%ncells))
+    ! Inland-depression flag, captured from the INPUT fdir before the edge-forcing overwrite below:
+    ! a cell whose fdir is not a valid D8 direction is a true pit (an inland sink, e.g. the -1
+    ! endorheic-depression marker in the input), as distinct from a cell that carries a real
+    ! direction but drains off the grid/mask at the domain edge (forced to sink but not inland).
+    allocate(this%is_inland_sink(this%grid%ncells))
 
     !$omp parallel do default(shared) private(downstream) schedule(static)
     do i = 1_i8, this%grid%ncells
+      this%is_inland_sink(i) = .not. any(this%fdir(i) == d8_all)
       call get_down(this%grid%mask, cells, this%fdir(i), &
                     this%grid%cell_ij(i,1), this%grid%cell_ij(i,2), dy, periodic, &
                     downstream)
@@ -552,13 +559,13 @@ contains
 
   !> \brief Delineate disjoint lake footprints from outlet catchments and maximum water levels.
   !> \authors Sebastian Mueller, Pallav Shrestha
-  subroutine river_label_lakes(this, outlet_nodes, lake_ids, max_levels)
+  subroutine river_label_lakes(this, outlet_nodes, lake_ids, spill_reference_levels)
     use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
     use mo_river_tools, only: unique_ids
     class(river_t), intent(inout), target :: this
     integer(i8), intent(in) :: outlet_nodes(:) !< river nodes at the configured lake outlets
     integer(i8), intent(in) :: lake_ids(:) !< stable positive lake IDs aligned with outlet_nodes
-    real(dp), intent(in) :: max_levels(:) !< maximum lake levels aligned with outlet_nodes
+    real(dp), intent(in) :: spill_reference_levels(:) !< lake spill reference levels aligned with outlet_nodes
     integer(i4), allocatable :: catchment_map(:)
     integer(i8) :: i
     integer(i4) :: lake_index
@@ -566,7 +573,7 @@ contains
     if (size(outlet_nodes, kind=i8) < 1_i8) call error_message("river%label_lakes: no lake outlets provided")
     if (size(lake_ids, kind=i8) /= size(outlet_nodes, kind=i8)) &
       call error_message("river%label_lakes: lake ID count does not match outlet count")
-    if (size(max_levels, kind=i8) /= size(outlet_nodes, kind=i8)) &
+    if (size(spill_reference_levels, kind=i8) /= size(outlet_nodes, kind=i8)) &
       call error_message("river%label_lakes: maximum-level count does not match outlet count")
     if (.not.allocated(this%node_elevation)) &
       call error_message("river%label_lakes: node elevation not initialized")
@@ -575,9 +582,9 @@ contains
     if (.not.unique_ids(outlet_nodes)) call error_message("river%label_lakes: multiple lakes use the same outlet node")
     if (any(lake_ids <= 0_i8)) call error_message("river%label_lakes: lake IDs must be positive")
     if (.not.unique_ids(lake_ids)) call error_message("river%label_lakes: lake IDs must be unique")
-    if (.not.all(ieee_is_finite(max_levels))) call error_message("river%label_lakes: maximum lake levels must be finite")
+    if (.not.all(ieee_is_finite(spill_reference_levels))) call error_message("river%label_lakes: lake spill reference levels must be finite")
     do lake_index = 1_i4, size(lake_ids, kind=i4)
-      if (this%node_elevation(outlet_nodes(lake_index)) > max_levels(lake_index)) &
+      if (this%node_elevation(outlet_nodes(lake_index)) > spill_reference_levels(lake_index)) &
         call error_message("river%label_lakes: outlet elevation exceeds maximum level for lake ID")
     end do
 
@@ -591,7 +598,7 @@ contains
       this%lake_map(i) = 0_i8
       lake_index = catchment_map(i)
       if (lake_index > 0_i4) then
-        if (this%node_elevation(i) <= max_levels(lake_index)) this%lake_map(i) = lake_ids(lake_index)
+        if (this%node_elevation(i) <= spill_reference_levels(lake_index)) this%lake_map(i) = lake_ids(lake_index)
       end if
     end do
     !$omp end parallel do
@@ -1790,6 +1797,7 @@ contains
     if (allocated(this%fdir)) deallocate(this%fdir)
     if (allocated(this%facc)) deallocate(this%facc)
     if (allocated(this%is_sink)) deallocate(this%is_sink)
+    if (allocated(this%is_inland_sink)) deallocate(this%is_inland_sink)
     if (allocated(this%upstream_area)) deallocate(this%upstream_area)
     if (allocated(this%node_elevation)) deallocate(this%node_elevation)
     if (allocated(this%link_length)) deallocate(this%link_length)

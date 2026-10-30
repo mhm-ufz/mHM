@@ -139,6 +139,14 @@ properties:
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Wind speed input
+  tdew_path:
+    type: array
+    items:
+      type: string
+      format: file-path
+      x-fortran-len: buf
+    x-fortran-shape: n_domains
+    title: Dew point temperature input
   meteo_mask_path:
     type: array
     items:
@@ -235,7 +243,7 @@ properties:
       x-fortran-len: buf
     x-fortran-shape: n_domains
     title: Lake definition input
-    description: Point dataset containing lake outlet coordinates, stable IDs, and maximum lake levels.
+    description: Point dataset containing lake outlet coordinates, stable IDs, and the lake spill reference level, and the surface area and volume at that level.
   facc_path:
     type: array
     items:
@@ -380,6 +388,14 @@ properties:
       default: windspeed
     x-fortran-shape: n_domains
     title: Wind speed variable name
+  tdew_var:
+    type: array
+    items:
+      type: string
+      x-fortran-len: buf
+      default: tdew
+    x-fortran-shape: n_domains
+    title: Dew point temperature variable name
   meteo_mask_var:
     type: array
     items:
@@ -468,14 +484,42 @@ properties:
       default: fdir
     x-fortran-shape: n_domains
     title: Flow direction variable name
-  lake_level_var:
+  lake_spill_reference_level_var:
     type: array
     items:
       type: string
       x-fortran-len: buf
-      default: max_lake_level
+      default: lake_spill_reference_level
     x-fortran-shape: n_domains
-    title: Maximum lake level variable name
+    title: Lake spill reference level variable name
+    description: Variable name of the lake spill reference level (the outlet sill for a natural lake, the dam crest / full-supply level for a reservoir) in the lake definition file (read in m a.s.l.).
+  lake_spill_reference_surface_area_var:
+    type: array
+    items:
+      type: string
+      x-fortran-len: buf
+      default: lake_spill_reference_surface_area
+    x-fortran-shape: n_domains
+    title: Lake spill reference surface area variable name
+    description: Variable name of the lake surface area at the spill reference level in the lake definition file (read in km2, converted to m2 on read).
+  lake_spill_reference_volume_var:
+    type: array
+    items:
+      type: string
+      x-fortran-len: buf
+      default: lake_spill_reference_volume
+    x-fortran-shape: n_domains
+    title: Lake spill reference volume variable name
+    description: Variable name of the lake volume at the spill reference level in the lake definition file (read in 1e6 m3 / mcm, converted to m3 on read).
+  lake_initial_level_var:
+    type: array
+    items:
+      type: string
+      x-fortran-len: buf
+      default: initial_lake_level
+    x-fortran-shape: n_domains
+    title: Initial lake level variable name
+    description: Variable name of the initial lake level in the lake definition file (read in masl, SI, no conversion). Used to initialize the lake level on a cold start.
   facc_var:
     type: array
     items:

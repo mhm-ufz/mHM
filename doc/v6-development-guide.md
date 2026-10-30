@@ -16,9 +16,9 @@ Start with `app/driver.F90` and `src/domain/mo_domain.F90`. Each `domain_t` owns
 its exchange and component state. The domain orchestrates components in this
 order: **Input → MPR → meteo → mHM → mLM → mRM**.
 
-Orchestration and exchange contracts live in `src/domain/`; file-input handling
-lives in `src/input/`; process code lives in its component folder. Keep shared,
-process-neutral utilities in `src/common/`. Scientific kernels receive their
+Orchestration and exchange contracts live in `src/domain/`; general dataset handling
+and shared input decoders live in `src/input/`; process code lives in its component
+folder. Keep shared, process-neutral utilities in `src/common/`. Scientific kernels receive their
 inputs explicitly, with mutable state owned by a container. Group related state
 and caches in small derived types so their purpose and lifetime remain clear.
 
@@ -29,11 +29,35 @@ scientific calculation belongs to its process component.
 | Component | What it owns and does |
 | --- | --- |
 | [Input](@ref f_input) | Opens configured datasets, establishes native grids and point/river support, publishes static fields, and selects or reads forcing chunks each step. |
-| [MPR](@ref f_mpr) | Owns LUTs, the soil database, scaling and temporal caches. `connect` prepares static inputs; `initialize` regionalizes current parameters; `update` selects active land-cover/LAI slices. |
+| [MPR](@ref f_mpr) | Owns land LUT data, the soil database, scaling and temporal caches. `connect` prepares static inputs; `initialize` regionalizes current parameters; `update` selects active land-cover/LAI slices. |
 | [Meteo](@ref f_meteo) | Remaps raw forcing with count weights, calculates/corrects PET, and disaggregates to the model interval. Land forcing and lake-point forcing use their respective support. Model steps are 1 or 24 hours. |
 | [mHM](@ref f_mhm) | Owns selected land hydrology states and fluxes and runs their kernels in process order. Disabled subprocesses may receive externally provided fields through the exchange. |
-| [mLM](@ref f_mLM) | Owns lake outflow and lake-process metadata. Current cases implement delayed pass-through or a balance with precipitation and PET on lake points. |
+| [mLM](@ref f_mLM) | Owns lake definition, natural-lake state and delayed outflow. Cases implement pass-through, precipitation/PET balance, or bathymetry, spill, seepage, groundwater and open-water evaporation. |
 | [mRM](@ref f_mrm) | Owns routing topology, hydraulic/thermal state, routing accumulators, discharge, and lake inflow. It completes routing intervals within the shared domain clock. Routing-only runs also support intermediate model cadences. |
+
+Input provides general model datasets, with these component-owned input exceptions:
+MPR reads full-period land-cover and LAI sources to build regionalization caches;
+meteo reads temporal disaggregation weights; mRM reads gauge and POI locations.
+Components also own their output and restart I/O. Full-period reading alone does
+not require component ownership, but keeping these specialized inputs with their
+cache or topology construction avoids additional exchange contracts.
+
+All soil, geology and LAI table paths are configured per domain in `&config_lut`.
+Shared `mo_input_lut` helpers decode the file formats without owning persistent
+data or applying regionalization. Input uses raw top-horizon textures for lake
+footprints; MPR constructs its land soil database from the same raw records, and
+MPR/mLM use the same geology decoder. Consumers own their returned data and caches.
+The land soil database retains its existing texture corrections and horizon
+construction; lake footprint textures retain their existing raw-value treatment.
+Only consumers that actually read a table require its path. MPR restart reads
+restore the cached fields without LUT paths or original LUT files. Move existing
+`lai_lut_path(:)` entries from `&config_mpr` to `&config_lut` when updating a setup.
+
+MPR retains `land_cover_path`, `lai_path` and their variable/process settings in
+`&config_mpr`. It caches parameter-independent source slices during connection,
+rebuilds parameter-dependent fields on each initialization, and selects active
+slices during updates. For sources without time bounds, MPR uses interval-start
+timestamps; `config_input%time_stamp_location` applies to Input's datasets.
 
 For a compact component example, read [mo_mlm_container](@ref mo_mlm_container).
 Use the relevant component's kernels as the scientific reference when adding a
@@ -224,11 +248,49 @@ initialization can check it, and restores it again when resetting routing state.
 
 | Component | Restart scope |
 | --- | --- |
-| Input / meteo | No restart of their own. Input reopens configured forcing sources; meteo rebuilds processing caches. |
+| Input | Reopens configured forcing sources; owns no restart. |
+| Meteo | Optional versioned lake support: stable IDs, ragged sparse L2 indices/weights, full L2 geometry/mask/packing and active lake disaggregation settings. Land processing rebuilds its caches. |
 | MPR | Regionalized fields, grid, horizon definitions, and LAI/land-cover timing. A restart-backed run bypasses original LUTs/maps and rejects overrides of the parameters behind those fields. |
 | mHM | Active hydrological stores, grid/horizon definition, process cases, and timestamp. Scratch and derived diagnostics are rebuilt. |
-| mLM | Lake IDs/coordinates and maximum levels, lake footprint topology when needed, current outflow, and timestamp. Restore point state by stable ID. |
+| mLM | Lake IDs/points, required static definition (including footprint areas), natural-lake state and delayed outflow, generating parameters and timestamp. Optional L0 topology. Restore per-lake fields by stable ID. |
 | mRM | Routing grid/network, hydraulic and thermal memory, public discharge, lake coupling memory, selected output points, and timestamp. |
+
+For lake cases 1 and -2, `config_mlm%restart_save_topology(:)` defaults to false.
+It affects restart writing only. Reading detects topology by its presence. mLM
+requires its current version-1 format and a complete definition for the saved process
+case, including footprint areas and effective generating parameters where applicable.
+Unversioned, unsupported or incomplete lake restarts must be regenerated; no legacy
+definition reconstruction or parameter fallback is supported.
+Explicitly requesting topology without available L0 geometry fails during connection.
+`prepare_restart` publishes restart-owned lake IDs and points before meteo connects;
+Input retains ownership of any supplied definition.
+
+`config_meteo` has per-domain `read_restart`/`write_restart` flags (default false)
+and requires explicit `restart_input_path`/`restart_output_path` when enabled.
+Initially these options require lake forcing (case 1 or -2). The version-1 payload
+contains no forcing values, file handles, pointers or scratch. Its creation time is
+informational: matching support can be reused across simulation periods. Validate
+L2 origin, orientation, mask and packing as well as resolution. Reorder by unique
+stable lake ID. Validate finite, nonnegative, normalized sparse and temporal weights.
+If supplied L0 geometry produces a different mapping on the same L2 grid, reject it.
+If L2 changes, rebuild from available L0 geometry; weighted rebuilding needs source
+weight files for the current grid. Without compatible support or L0 geometry, fail.
+Configure active disaggregation settings consistently with the restart: the effective
+`read_meteo_weights` value (including its false default) must match the saved mode,
+and active day/night fractions must be configured and match saved values. No
+assignment-presence detection or automatic inheritance is needed. Cached temporal
+weights remain authoritative while the support is reused, so compatible cached
+support does not require reopening source weight files.
+
+Lake regionalization caches static maps, LUT mappings and catchment areas during
+connection. Each initialization fetches the registry's conditional lake vector and
+borrowed soil/baseflow parameters. Restored Ks, recession and spillway length freeze
+their generating values, recorded in every current-format natural-lake restart.
+State and forcing targets remain stable during repeated initialization; diagnostics
+and output resources are reset.
+Lake evaporation kernels and meteorological coefficients live in meteo, while mLM
+calls them with explicit current state in water-balance order. Regionalization
+coefficients live in MPR constants. Reservoir regulation remains outside this scope.
 
 Validate timestamps, process cases, geometry/masks, layer interfaces, and stable
 IDs as applicable. A restart-owned definition must be usable without the original
@@ -236,12 +298,18 @@ static inputs; any supplied definition must agree. Restore only states owned by
 the selected process, keeping externally supplied fields under their provider.
 
 `finalize` writes requested restarts and closes output before destruction.
-mHM writes only at its output boundaries. mRM requires a completed routing
-boundary and, when output is active, an output boundary; partial routing
-accumulators are not persisted. A new process must identify all memory needed
-for an uninterrupted-versus-restarted comparison, including coupling delays.
+mHM and mLM write after completed model steps and, when output is active, only
+at output boundaries. mRM always requires a completed routing boundary and,
+when output is active, an output boundary. Partial routing accumulators and
+output aggregation buffers are not persisted. A new process must identify all
+memory needed for an uninterrupted-versus-restarted comparison, including coupling delays.
 
 Use existing grid/point/river writers and canonical exchange metadata for I/O.
+Output namelists are optional. Gate output-only input requirements and runtime cadence
+checks on active output, which implies a configured namelist. Configured but disabled
+output adds no output-only input requirements or output-cadence constraint on restarts;
+mRM still requires a completed routing boundary. Do not initialize an absent output
+configuration just to read its fields.
 Gridded files expand packed arrays back onto their geometry. Layered output opts
 into `as_output_var(layered=.true.)`, including one-layer fields, and supplies
 layer tops and bounds. Runtime `(ncells, n_horizons)` becomes Fortran `(x, y, z)`

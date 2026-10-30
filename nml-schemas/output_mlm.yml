@@ -40,6 +40,64 @@ properties:
       - if -1 : daily
       - if -2 : monthly
       - if -3 : yearly
+  output_timeseries:
+    title: Use station time-series layout for lake-point output
+    type: boolean
+    default: false
+    description: |-
+      Use the mo_points_io time-series layout for temporal lake-point variables.
+      - if .false. : (time, lake) dimension order (classic layout; read directly by CDO).
+      - if .true.  : (lake, time) CF timeSeries featureType layout.
+  out_lake_level:
+    title: Lake level
+    type: boolean
+    default: false
+    description: Lake surface level [m a.s.l.].
+  out_lake_surface_area:
+    title: Lake surface area
+    type: boolean
+    default: false
+    description: Lake surface area [m2].
+  out_lake_volume:
+    title: Lake volume
+    type: boolean
+    default: false
+    description: Lake storage volume [m3].
+  out_lake_gw_storage:
+    title: Lake groundwater storage
+    type: boolean
+    default: false
+    description: Lake groundwater storage [m3].
+  out_lake_inflow:
+    title: Lake inflow
+    type: boolean
+    default: false
+    description: Lake inflow from mRM [m3 s-1].
+  out_lake_precipitation:
+    title: Lake precipitation
+    type: boolean
+    default: false
+    description: Precipitation onto the lake surface [mm].
+  out_lake_evaporation:
+    title: Lake evaporation
+    type: boolean
+    default: false
+    description: Open-water evaporation from the lake surface [mm].
+  out_lake_seepage:
+    title: Lake seepage
+    type: boolean
+    default: false
+    description: Seepage (percolation) from the lake to groundwater storage [mm].
+  out_lake_baseflow:
+    title: Lake baseflow
+    type: boolean
+    default: false
+    description: Baseflow released from the lake groundwater storage [m3 s-1].
+  out_lake_spill:
+    title: Lake spill
+    type: boolean
+    default: false
+    description: Crest spill from the lake [m3 s-1]. Lake outflow = spill + baseflow.
   out_lake_outflow:
     title: Lake outflow
     type: boolean

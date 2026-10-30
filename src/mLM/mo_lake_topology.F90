@@ -20,38 +20,39 @@ module mo_lake_topology
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
   implicit none
   private
-  public :: lake_derive_area, lake_read_topology, lake_write_topology
+  public :: lake_derive_spill_reference_surface_area_dem, lake_read_topology, lake_write_topology
 contains
   !> \brief Derive lake areas from the labeled packed level-0 footprint.
-  subroutine lake_derive_area(grid, lake_map, lake_ids, lake_area)
-    type(grid_t), intent(in) :: grid
-    integer(i8), intent(in) :: lake_map(:), lake_ids(:)
-    real(dp), allocatable, intent(out) :: lake_area(:)
+  subroutine lake_derive_spill_reference_surface_area_dem(grid, lake_map, lake_ids, lake_spill_reference_surface_area_dem_derived)
+    type(grid_t), intent(in) :: grid !< grid
+    integer(i8), intent(in) :: lake_map(:) !< lake map
+    integer(i8), intent(in) :: lake_ids(:) !< lake ids
+    real(dp), allocatable, intent(out) :: lake_spill_reference_surface_area_dem_derived(:) !< lake spill reference surface area dem derived
     integer(i8) :: i, j
     if (size(lake_map, kind=i8) /= grid%ncells) then
       log_fatal(*) "Lake topology: map does not match grid."
       error stop 1
     end if
-    allocate(lake_area(size(lake_ids)), source=0.0_dp)
+    allocate(lake_spill_reference_surface_area_dem_derived(size(lake_ids)), source=0.0_dp)
     do i = 1_i8, size(lake_map, kind=i8)
       j = findloc(lake_ids, lake_map(i), dim=1, kind=i8)
       if (j < 1_i8) then
         log_fatal(*) "Lake topology: map contains an unknown stable lake ID."
         error stop 1
       end if
-      lake_area(j) = lake_area(j) + grid%cell_area(i)
+      lake_spill_reference_surface_area_dem_derived(j) = lake_spill_reference_surface_area_dem_derived(j) + grid%cell_area(i)
     end do
-    if (any(lake_area <= 0.0_dp)) then
+    if (any(lake_spill_reference_surface_area_dem_derived <= 0.0_dp)) then
       log_fatal(*) "Lake topology: every lake must have positive area."
       error stop 1
     end if
-  end subroutine lake_derive_area
+  end subroutine lake_derive_spill_reference_surface_area_dem
 
   !> \brief Write the packed lake grid and stable lake IDs to a restart dataset.
   subroutine lake_write_topology(nc, grid, lake_map)
-    type(NcDataset), intent(inout) :: nc
-    type(grid_t), intent(in) :: grid
-    integer(i8), intent(in) :: lake_map(:)
+    type(NcDataset), intent(inout) :: nc !< nc
+    type(grid_t), intent(in) :: grid !< grid
+    integer(i8), intent(in) :: lake_map(:) !< lake map
     type(NcDimension) :: lake_cell_dim
     type(NcVariable) :: var
     call grid%to_restart(nc)
@@ -62,9 +63,9 @@ contains
 
   !> \brief Restore and validate the packed lake topology from a restart dataset.
   subroutine lake_read_topology(nc, grid, lake_map)
-    type(NcDataset), intent(inout) :: nc
-    type(grid_t), intent(out) :: grid
-    integer(i8), allocatable, intent(out) :: lake_map(:)
+    type(NcDataset), intent(inout) :: nc !< nc
+    type(grid_t), intent(out) :: grid !< grid
+    integer(i8), allocatable, intent(out) :: lake_map(:) !< lake map
     type(NcVariable) :: var
     if (.not.nc%hasVariable("lake_map")) then
       log_fatal(*) "Lake restart is missing level-0 topology."

@@ -58,6 +58,15 @@ properties:
     default: 25
     title: Number of geological units
     description: Number of geological units in the global parameter set.
+  max_lakes:
+    type: integer
+    x-fortran-kind: i4
+    default: 1
+    minimum: 1
+    title: Maximum number of lakes per domain
+    description: |-
+      Maximum number of lakes in any single domain.
+      Sizing dimension for the per-lake mLM arrays (dimension [n_domains, max_lakes]).
   max_layers:
     type: integer
     x-fortran-kind: i4

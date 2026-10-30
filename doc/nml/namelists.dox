@@ -16,6 +16,7 @@ They are all listed below, one page per namelist:
 - \subpage config_resolution : Configuration for model grid resolutions `&config_resolution`.
 - \subpage config_optimize : Configuration for optimization settings `&config_optimize`.
 - \subpage config_time : Configuration for time settings `&config_time`.
+- \subpage config_lut : Lookup-table paths for soil, geology and LAI `&config_lut`.
 - \subpage config_input : Configuration for input data `&config_input`.
 - \subpage config_coupling : Configuration for coupling settings `&config_coupling`.
 - \subpage config_meteo : Configuration for meteorological component `&config_meteo`.
@@ -65,6 +66,7 @@ They are all listed below, one page per namelist:
 - \subpage neutrons_1 : Parameters for neutrons (case 1 - Desilets) `&neutrons_1`.
 - \subpage neutrons_2 : Parameters for neutrons (case 2 - COSMIC) `&neutrons_2`.
 - \subpage baseflow_1 : Parameters for geological baseflow recession (case 1) `&baseflow_1`.
+- \subpage lakes_1 : Parameters for natural lakes (case 1) `&lakes_1`.
 - \subpage river_temperature_1 : Parameters for river temperature (case 1) `&river_temperature_1`.
 
 \section nml_outputs Output Namelists

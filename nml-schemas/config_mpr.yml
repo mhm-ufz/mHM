@@ -114,33 +114,6 @@ properties:
     x-fortran-shape: n_domains
     title: LAI variable
     description: LAI variable name in the gridded NetCDF dataset.
-  soil_lut_path:
-    type: array
-    items:
-      type: string
-      format: file-path
-      x-fortran-len: buf
-    x-fortran-shape: n_domains
-    title: Soil LUT path
-    description: Soil look-up table path.
-  geo_lut_path:
-    type: array
-    items:
-      type: string
-      format: file-path
-      x-fortran-len: buf
-    x-fortran-shape: n_domains
-    title: Geology LUT path
-    description: Geology look-up table path.
-  lai_lut_path:
-    type: array
-    items:
-      type: string
-      format: file-path
-      x-fortran-len: buf
-    x-fortran-shape: n_domains
-    title: LAI LUT path
-    description: LAI look-up table path.
   read_restart:
     type: array
     items:

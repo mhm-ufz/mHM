@@ -12,7 +12,9 @@
 #include "logging.h"
 module mo_input_container
   use mo_logging
+  use mo_netcdf_utils, only: add_var
   use mo_kind, only: i2, i4, i8, dp
+  use mo_constants, only: nodata_dp
   use mo_list, only: list
   use mo_os, only: path_ext
   use mo_exchange_type, only: exchange_t, var_dp, l1
@@ -21,11 +23,17 @@ module mo_input_container
   use mo_river, only: river_t
   use mo_points, only: points_t
   use mo_points_io, only: points_input_dataset
+  use mo_netcdf, only: NcDataset
   use mo_grid_io, only: var, input_dataset, end_timestamp, start_timestamp, no_time, daily, monthly, yearly, varying
   use mo_string_utils, only: n2s => num2str
+  use mo_input_lut, only: read_soil_texture_lut
   use nml_config_input, only: nml_config_input_t
   use nml_config_coupling, only: nml_config_coupling_t
   use nml_helper, only: NML_OK
+
+  implicit none
+  private
+  public :: input_var_abc
 
   character(len=*), parameter :: s = "input" !< module scope for logging
 
@@ -139,7 +147,12 @@ module mo_input_container
     type(points_t) :: lake_outlets !< configured lake outlet coordinates
     integer(i8), allocatable :: lake_ids(:) !< stable lake IDs aligned with lake_outlets
     integer(i8), allocatable :: lake_map(:) !< stable IDs aligned with packed level-0 lake cells
-    real(dp), allocatable :: lake_max_levels(:) !< maximum lake levels aligned with lake_outlets
+    real(dp), allocatable :: lake_spill_reference_level(:) !< lake spill reference level aligned with lake_outlets
+    real(dp), allocatable :: lake_spill_reference_surface_area(:) !< lake surface area at spill reference level [m2] aligned with lake_outlets
+    real(dp), allocatable :: lake_spill_reference_volume(:) !< lake volume at spill reference level [m3] aligned with lake_outlets
+    real(dp), allocatable :: lake_initial_level(:) !< initial lake level [m] aligned with lake_outlets
+    real(dp), allocatable :: lake_latitude(:) !< geographic latitude [degree] aligned with lake_outlets
+    real(dp), allocatable :: lake_longitude(:) !< geographic longitude [degree] aligned with lake_outlets
     integer(i4) :: chunking !< chunking configuration (0 single read, -1 daily, -2 monthly, -3 yearly, >0 every n hours)
     integer(i4) :: time_stamp_location !< location of time-stamp variable in input datasets (0 start, 1 center, 2 end)
     logical :: morph_latlon = .false. !< whether morphology inputs are defined in spherical (lat/lon) coordinates
@@ -166,6 +179,7 @@ module mo_input_container
     type(input_var_dp) :: netrad !< raw net radiation input variable on level2
     type(input_var_dp) :: eabs !< raw vapor pressure input variable on level2
     type(input_var_dp) :: wind !< raw wind input variable on level2
+    type(input_var_dp) :: tdew !< raw dew point temperature input variable on level2
     ! level 1 inputs
     type(input_var_i4) :: hydro_mask !< input variable for hydro mask
     type(input_var_dp) :: runoff !< input variable for runoff
@@ -180,6 +194,7 @@ module mo_input_container
     procedure :: destroy => input_destroy
     procedure, private :: read_fdir_file => input_read_fdir_file
     procedure, private :: build_river_l0 => input_build_river_l0
+    procedure, private :: read_latlon_aux => input_read_latlon_aux
     procedure, private :: read_lake_specification => input_read_lake_specification
     procedure, private :: build_lake_grids => input_build_lake_grids
   end type input_t
@@ -345,7 +360,8 @@ contains
     type(grid_t), intent(inout), pointer :: grid !< grid for the variable
     logical, intent(in) :: init_grid !< whether to initialize the grid
     logical, intent(in), optional :: layered !< whether the variable has a layer dimension
-    character(:), allocatable :: grid_init_var
+    type(var) :: vars(1)
+    character(:), allocatable :: grid_init_var, var_name
     logical :: layered_
     if (.not.self%provided) return
     layered_ = .false.
@@ -375,17 +391,11 @@ contains
       return
     end if
 
-    if (init_grid) then
-      grid_init_var = self%name ! allocate variable name for grid initialization
-      call self%ds%init(path=self%path, vars=[var(name=trim(self%name), kind=kind, static=self%static, layered=layered_, &
-        allow_static=self%allow_static)], &
-        timestamp=timestamp, grid=grid, grid_init_var=grid_init_var, tol=1.0e-5_dp)
-    else
-      call self%ds%init(path=self%path, vars=[var(name=trim(self%name), kind=kind, static=self%static, layered=layered_, &
-        allow_static=self%allow_static)], &
-        timestamp=timestamp, grid=grid, tol=1.0e-5_dp)
-    end if
+    var_name = self%name ! GNU 12 needs local metadata and name storage to avoid constructor bugs
+    if (init_grid) grid_init_var = self%name ! allocate variable name for grid initialization (non-present otherwise)
+    vars(1) = var(name=var_name, kind=kind, static=self%static, layered=layered_, allow_static=self%allow_static)
     ! TODO: make tol configurable in case of single precision variables with small values
+    call self%ds%init(path=self%path, vars=vars, timestamp=timestamp, grid=grid, grid_init_var=grid_init_var, tol=1.0e-5_dp)
     self%static = self%ds%static
     self%stepping = merge(no_time, self%ds%timestep, self%static)
     self%var_id = self%ds%var_index(self%name)
@@ -1081,6 +1091,13 @@ contains
       call self%exchange%raw_wind%provide("Input")
     end if
 
+    ! raw dew point temperature on level2
+    status = self%config%input%is_set("tdew_path", idx=id, errmsg=errmsg)
+    if (status == NML_OK) then
+      call self%tdew%init(path=self%exchange%get_path(self%config%input%tdew_path(id(1))), name=self%config%input%tdew_var(id(1)))
+      call self%exchange%raw_tdew%provide("Input")
+    end if
+
     ! hydro mask (hydro_mask_var by default "mask")
     status = self%config%input%is_set("hydro_mask_path", idx=id, errmsg=errmsg)
     if (status == NML_OK) then
@@ -1097,8 +1114,25 @@ contains
     end if
     if (self%config%input%is_set("lake_definition_path", idx=id) == NML_OK) then
       call self%exchange%lake_ids%provide("Input")
-      call self%exchange%lake_max_levels%provide("Input")
+      call self%exchange%lake_spill_reference_level%provide("Input")
+      ! The reported crest surface area and volume build the hAV curves and are consumed only by
+      ! the minimal natural lake (process 1). A topology-only routing run (lake=0) or a pass-through
+      ! case (-1/-2) does not need them, so only process 1 declares and reads these bathymetry fields.
+      if (self%exchange%config%processes%lake == 1_i4) then
+        call self%exchange%lake_spill_reference_surface_area%provide("Input")
+        call self%exchange%lake_spill_reference_volume%provide("Input")
+      end if
+      call self%exchange%lake_initial_level%provide("Input")
+      call self%exchange%lake_latitude%provide("Input")
+      call self%exchange%lake_longitude%provide("Input")
       call self%exchange%lake_map%provide("Input")
+    end if
+    if (self%config%input%is_set("lake_definition_path", idx=id) == NML_OK) then
+      if (self%soil_class%provided .or. self%soil_horizon_class%provided) then
+        call self%exchange%lake_sand%provide("Input")
+        call self%exchange%lake_clay%provide("Input")
+      end if
+      if (self%geo_class%provided) call self%exchange%lake_geo%provide("Input")
     end if
   end subroutine input_configure
 
@@ -1113,6 +1147,16 @@ contains
     ! DEM and slope need transient full-grid work arrays while lake support is built.
     real(dp), allocatable :: real_work(:, :)
     integer(i4), allocatable :: integer_work(:)
+    ! The lake footprint soil class is packed from a full level-0 read (lake MPR).
+    integer(i4), allocatable :: lake_soil_full(:)
+    integer(i4), allocatable :: lake_soil_full_2d(:, :)
+    integer(i4), allocatable :: lake_soil_packed(:)
+    real(dp), allocatable :: lake_sand_by_class(:), lake_clay_by_class(:)
+    real(dp), allocatable :: lake_sand_packed(:), lake_clay_packed(:)
+    ! The lake footprint geological unit is packed from a full level-0 read (lake MPR).
+    integer(i4), allocatable :: lake_geo_full(:)
+    integer(i4), allocatable :: lake_geo_full_2d(:, :)
+    integer(i4), allocatable :: lake_geo_packed(:)
     log_info(*) "Connect Input"
     ts = self%time_stamp_location
 
@@ -1148,6 +1192,13 @@ contains
       call self%dem%read_static(real_work(:, 1))
       if (self%owns_river_l0) call self%river_l0%set_elevation(real_work(:, 1))
     end if
+
+    ! Auxiliary geographic coordinates for a projected level-0 grid. A cartesian (X/Y)
+    ! morphology grid carries no geographic latitude/longitude; when a latlon file is
+    ! configured, attach its 2D lat_l0/lon_l0 fields to the level-0 grid so features that
+    ! need true geographic coordinates (e.g. the mLM varying-albedo solar geometry) can use
+    ! them. A no-op for a spherical (lon/lat) morphology grid, which already carries them.
+    call self%read_latlon_aux()
 
     ! Lake delineation needs the fdir-derived river and the full packed DEM.
     if (self%config%input%is_set("lake_definition_path", idx=[self%exchange%nml_domain_id]) == NML_OK) &
@@ -1252,6 +1303,107 @@ contains
       call self%exchange%soil_id%prepare_storage( &
         "Input", no_time, [self%soil_horizon_class%grid%ncells, int(self%soil_horizon_class%ds%nlayers, i8)])
       call self%soil_horizon_class%read_static(self%exchange%soil_id%data)
+    end if
+
+    ! soil texture on the lake footprint (detached lake MPR)
+    ! The land-surface soil class above is read directly onto the level-0 land grid, which
+    ! holes out the lake cells, so the soil under the lakes is discarded there. The detached
+    ! lake MPR needs the soil texture on the lake footprint to regionalize the lakebed Ks.
+    ! Re-read the configured soil class on the FULL level-0 grid, pack the lake-footprint subset
+    ! onto the level-0 lake grid (the same unpack/pack path that builds the lake map), resolve each
+    ! footprint cell's top-horizon (horizon 1) sand/clay from the soil LUT, and surface them to the
+    ! mLM container. Only the uppermost horizon is used, since the lakebed interfaces the surface
+    ! soil. No-op when there is no lake footprint.
+    if (associated(self%exchange%level0_lake) .and. self%owns_river_l0 .and. &
+        (self%soil_class%provided .or. self%soil_horizon_class%provided)) then
+      allocate(lake_soil_full(self%exchange%level0%ncells))
+      if (self%soil_class%provided) then
+        init_grid = need_grid(self%tgt_level0, self%exchange%level0)
+        call self%soil_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
+        call self%soil_class%read_static(lake_soil_full)
+      else
+        ! layered horizon class: read the top horizon (layer 1) on the full level-0 grid
+        init_grid = need_grid(self%tgt_level0, self%exchange%level0)
+        call self%soil_horizon_class%open_dataset( &
+          kind="i4", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid, layered=.true.)
+        block
+          integer(i4), allocatable :: horizon_work(:, :)
+          allocate(horizon_work(self%exchange%level0%ncells, int(self%soil_horizon_class%ds%nlayers, i4)))
+          call self%soil_horizon_class%read_static(horizon_work)
+          lake_soil_full = horizon_work(:, 1)
+          deallocate(horizon_work)
+        end block
+      end if
+      allocate(lake_soil_full_2d(self%exchange%level0%nx, self%exchange%level0%ny))
+      call self%exchange%level0%unpack_into(lake_soil_full, lake_soil_full_2d)
+      allocate(lake_soil_packed(self%exchange%level0_lake%ncells))
+      call self%exchange%level0_lake%pack_into(lake_soil_full_2d, lake_soil_packed)
+      ! Resolve the lake footprint soil classes to their top-horizon sand and clay content from the
+      ! soil look-up table (exchange config_lut soil_lut_path). Input reads the footprint texture here, so
+      ! the texture is surfaced to the mLM container as ready sand/clay fields; mLM then regionalizes the
+      ! lakebed Ks from them with its own pedotransfer parameters, independent of the land-surface soil
+      ! database / MPR.
+      block
+        integer(i4) :: n_soil_classes, cc, scls
+        if (self%exchange%config%lut%is_set("soil_lut_path", idx=[self%exchange%nml_domain_id]) /= NML_OK) then
+          log_fatal(*) "Input: a lake footprint is present but soil_lut_path is not set; it is required &
+            &to resolve the lakebed soil texture for the lake conductivity."
+          error stop 1
+        end if
+        call read_soil_texture_lut( &
+          self%exchange%get_path(self%exchange%config%lut%soil_lut_path(self%exchange%nml_domain_id)), &
+          n_soil_classes, lake_sand_by_class, lake_clay_by_class)
+        allocate(lake_sand_packed(self%exchange%level0_lake%ncells))
+        allocate(lake_clay_packed(self%exchange%level0_lake%ncells))
+        do cc = 1_i4, int(self%exchange%level0_lake%ncells, i4)
+          scls = lake_soil_packed(cc)
+          if (scls < 1_i4 .or. scls > n_soil_classes) then
+            log_fatal(*) "Input: lake footprint soil class ", n2s(scls), &
+              " is outside the soil LUT range 1..", n2s(n_soil_classes), "."
+            error stop 1
+          end if
+          if (lake_sand_by_class(scls) <= nodata_dp + 1.0_dp .or. &
+              lake_clay_by_class(scls) <= nodata_dp + 1.0_dp) then
+            log_fatal(*) "Input: lake footprint soil class ", n2s(scls), &
+              " has no top-horizon sand/clay in the soil LUT."
+            error stop 1
+          end if
+          lake_sand_packed(cc) = lake_sand_by_class(scls)
+          lake_clay_packed(cc) = lake_clay_by_class(scls)
+        end do
+        ! provide BEFORE prepare_storage: prepare_storage -> prepare_data asserts the variable is provided.
+        call self%exchange%lake_sand%prepare_storage("Input", no_time, [self%exchange%level0_lake%ncells])
+        call self%exchange%lake_sand%set_storage(lake_sand_packed)
+        call self%exchange%lake_clay%prepare_storage("Input", no_time, [self%exchange%level0_lake%ncells])
+        call self%exchange%lake_clay%set_storage(lake_clay_packed)
+        deallocate(lake_sand_by_class, lake_clay_by_class, lake_sand_packed, lake_clay_packed)
+      end block
+      deallocate(lake_soil_full, lake_soil_full_2d, lake_soil_packed)
+    end if
+
+    ! geological unit on the lake footprint (detached lake MPR)
+    ! The land-surface geology class above is read directly onto the level-0 land grid, which holes
+    ! out the lake cells, so the geology under the lakes is discarded there. The detached lake MPR
+    ! needs the geological unit on the lake footprint to regionalize the lake baseflow recession
+    ! coefficient (the geological baseflow-parameter lookup, like the land baseflow process). Re-read
+    ! the configured geology class on the FULL level-0 grid, pack the lake-footprint subset onto the
+    ! level-0 lake grid (the same unpack/pack path as the lake soil above), and surface it to the mLM
+    ! container. The mLM container resolves the geology unit to a baseflow recession value with its own
+    ! geology LUT, independent of the land-surface geology class definition / MPR. No-op when there is
+    ! no lake footprint or no geology class is configured.
+    if (associated(self%exchange%level0_lake) .and. self%owns_river_l0 .and. self%geo_class%provided) then
+      allocate(lake_geo_full(self%exchange%level0%ncells))
+      init_grid = need_grid(self%tgt_level0, self%exchange%level0)
+      call self%geo_class%open_dataset(kind="i4", timestamp=ts, grid=self%exchange%level0, init_grid=init_grid)
+      call self%geo_class%read_static(lake_geo_full)
+      allocate(lake_geo_full_2d(self%exchange%level0%nx, self%exchange%level0%ny))
+      call self%exchange%level0%unpack_into(lake_geo_full, lake_geo_full_2d)
+      allocate(lake_geo_packed(self%exchange%level0_lake%ncells))
+      call self%exchange%level0_lake%pack_into(lake_geo_full_2d, lake_geo_packed)
+      ! provide BEFORE prepare_storage: prepare_storage -> prepare_data asserts the variable is provided.
+      call self%exchange%lake_geo%prepare_storage("Input", no_time, [self%exchange%level0_lake%ncells])
+      call self%exchange%lake_geo%set_storage(lake_geo_packed)
+      deallocate(lake_geo_full, lake_geo_full_2d, lake_geo_packed)
     end if
 
     ! LAI class
@@ -1431,6 +1583,20 @@ contains
       end if
     end if
 
+    ! raw dew point temperature
+    if (self%tdew%coupled) then
+      log_error(*) "Input: dew point temperature is coupled... not yet implemented"
+      stop 1
+    else if (self%tdew%provided) then
+      init_grid = need_grid(self%tgt_level2, self%exchange%level2)
+      call self%tdew%open_dataset(kind="dp", timestamp=ts, grid=self%exchange%level2, init_grid=init_grid)
+      call sync_input_var_meta(self%tdew, self%exchange%raw_tdew)
+      if (self%tdew%static) then
+        call self%exchange%raw_tdew%prepare_storage("Input", self%tdew%stepping, [self%tdew%grid%ncells])
+        call self%tdew%read_static(self%exchange%raw_tdew%data)
+      end if
+    end if
+
     ! hydro mask
     if (self%hydro_mask%coupled) then
       ! TODO: init grid from coupling namelist if needed
@@ -1514,6 +1680,38 @@ contains
     self%owns_river_l0 = .true.
   end subroutine input_build_river_l0
 
+  !> \brief Attach auxiliary geographic lat/lon coordinates to the level-0 grid from the latlon file.
+  !> \details A projected (cartesian) level-0 morphology grid carries no geographic latitude or
+  !>          longitude. When `latlon_path` is configured, this reads the 2D `morph_lat_var`/
+  !>          `morph_lon_var` fields (default `lat_l0`/`lon_l0`, at level-0 resolution) and attaches
+  !>          them to the level-0 grid as auxiliary coordinates, so features needing true geographic
+  !>          coordinates (the mLM varying-albedo solar geometry) can look them up per cell. It is a
+  !>          no-op when no latlon file is given, when the level-0 grid is already spherical (its x/y
+  !>          are lon/lat), or when the grid already carries auxiliary coordinates.
+  !> \authors Pallav Shrestha
+  subroutine input_read_latlon_aux(self)
+    class(input_t), target, intent(inout) :: self
+    integer(i4) :: id(1)
+    character(:), allocatable :: path, lat_name, lon_name
+
+    id = [self%exchange%nml_domain_id]
+    if (self%config%input%is_set("latlon_path", idx=id) /= NML_OK) return
+    if (.not.associated(self%exchange%level0)) then
+      log_fatal(*) "Input: a latlon file requires the level-0 grid to be initialized first."
+      error stop 1
+    end if
+    ! A spherical morphology grid already carries geographic coordinates as its x/y axes.
+    if (self%exchange%level0%coordsys == spherical) return
+    ! Nothing to do if auxiliary coordinates were already attached (e.g. from a NetCDF morphology).
+    if (self%exchange%level0%has_aux_coords()) return
+
+    path = self%exchange%get_path(self%config%input%latlon_path(id(1)))
+    lat_name = trim(self%config%input%morph_lat_var(id(1)))
+    lon_name = trim(self%config%input%morph_lon_var(id(1)))
+    scope_info(s,*) "Read level-0 geographic coordinates from latlon file: ", path
+    call self%exchange%level0%aux_from_netcdf(path, lat=lat_name, lon=lon_name)
+  end subroutine input_read_latlon_aux
+
   !> \brief Read static lake metadata, snap outlets to L0 cells, and delineate lake footprints.
   !> \authors Sebastian Mueller, Pallav Shrestha
   subroutine input_read_lake_specification(self, dem_cache)
@@ -1524,7 +1722,11 @@ contains
     type(var), allocatable :: vars(:)
     real(dp), allocatable :: coords(:,:)
     integer(i8), allocatable :: outlet_nodes(:)
-    character(:), allocatable :: path, name
+    character(:), allocatable :: path, name, area_name, volume_name, initial_level_name
+    real(dp), allocatable :: area_reported_in(:), volume_reported_in(:)
+    type(NcDataset) :: lake_nc  !< lake-definition file, probed for the optional initial-level variable
+    logical :: has_initial_level  !< whether the configured initial-level variable is present in the file
+    logical :: needs_bathymetry  !< whether reported crest area/volume are consumed (process 1 only)
     integer(i8) :: i, node
     integer(i4) :: ix, iy
     logical :: use_aux
@@ -1539,23 +1741,73 @@ contains
     end if
 
     path = self%exchange%get_path(self%config%input%lake_definition_path(self%exchange%nml_domain_id))
-    name = trim(self%config%input%lake_level_var(self%exchange%nml_domain_id))
+    name = trim(self%config%input%lake_spill_reference_level_var(self%exchange%nml_domain_id))
+    area_name = trim(self%config%input%lake_spill_reference_surface_area_var(self%exchange%nml_domain_id))
+    volume_name = trim(self%config%input%lake_spill_reference_volume_var(self%exchange%nml_domain_id))
+    initial_level_name = trim(self%config%input%lake_initial_level_var(self%exchange%nml_domain_id))
+    ! The reported crest surface area and volume feed the hAV curves of the minimal natural lake
+    ! (process 1) only; other cases (topology-only lake=0, pass-through -1/-2) never consume them,
+    ! so read them only for process 1 and leave the lake-definition file free of them otherwise.
+    needs_bathymetry = self%exchange%config%processes%lake == 1_i4
     scope_info(s,*) "Read lake specification from file: ", path
-    vars = [var(name=name, long_name="maximum lake level", units="m", static=.true.)]
+    ! The initial lake level is optional: it only cold-starts the lake level, and the documented
+    ! default workflow omits it to let mLM cold-start by lake type. Probe the file for the
+    ! configured variable; read it when present, otherwise fill the sentinel (nodata_dp) so mLM
+    ! cold-starts. The spill reference level is always required; the reported crest area and volume
+    ! are read only when a feature consumes them (process 1, see needs_bathymetry above).
+    lake_nc = NcDataset(path, "r")
+    has_initial_level = lake_nc%hasVariable(initial_level_name)
+    call lake_nc%close()
+    ! Build the variable list incrementally: the spill reference level is mandatory; the crest area
+    ! and volume are added only for process 1; the initial level is added only when present in the file.
+    call add_var(vars, var(name=name, long_name="lake spill reference level", units="m", static=.true.))
+    if (needs_bathymetry) then
+      call add_var(vars, var(name=area_name, long_name="lake surface area at spill reference level", units="km2", static=.true.))
+      call add_var(vars, var(name=volume_name, long_name="lake volume at spill reference level", units="1e6 m3", static=.true.))
+    end if
+    if (has_initial_level) then
+      call add_var(vars, var(name=initial_level_name, long_name="initial lake level", units="m", static=.true.))
+    end if
     call input%init(path, vars=vars, points=self%lake_outlets, points_init_var=name)
     call input%get_ids(self%lake_ids)
-    allocate(self%lake_max_levels(self%lake_outlets%n_points))
-    call input%read(name, self%lake_max_levels)
+    allocate(self%lake_spill_reference_level(self%lake_outlets%n_points))
+    call input%read(name, self%lake_spill_reference_level)
+    if (needs_bathymetry) then
+      allocate(area_reported_in(self%lake_outlets%n_points))
+      allocate(volume_reported_in(self%lake_outlets%n_points))
+      call input%read(area_name, area_reported_in)
+      call input%read(volume_name, volume_reported_in)
+    end if
+    allocate(self%lake_initial_level(self%lake_outlets%n_points), source=nodata_dp)
+    allocate(self%lake_latitude(self%lake_outlets%n_points), source=nodata_dp)
+    allocate(self%lake_longitude(self%lake_outlets%n_points), source=nodata_dp)
+    if (has_initial_level) call input%read(initial_level_name, self%lake_initial_level)
     call input%close()
+
+    ! Convert reported inputs to SI at the read boundary: surface area km2 -> m2, volume 1e6 m3 (mcm)
+    ! -> m3. Only for process 1 (the only consumer); left unallocated/unpublished otherwise.
+    if (needs_bathymetry) then
+      allocate(self%lake_spill_reference_surface_area(self%lake_outlets%n_points))
+      allocate(self%lake_spill_reference_volume(self%lake_outlets%n_points))
+      self%lake_spill_reference_surface_area = area_reported_in * 1.0e6_dp
+      self%lake_spill_reference_volume = volume_reported_in * 1.0e6_dp
+    end if
 
     if (self%lake_outlets%n_points < 1_i8) then
       log_fatal(*) "Input: lake specification contains no lake outlets."
       error stop 1
     end if
     if (size(self%lake_ids, kind=i8) /= self%lake_outlets%n_points .or. &
-        size(self%lake_max_levels, kind=i8) /= self%lake_outlets%n_points) then
+        size(self%lake_spill_reference_level, kind=i8) /= self%lake_outlets%n_points) then
       log_fatal(*) "Input: lake specification arrays have inconsistent sizes."
       error stop 1
+    end if
+    if (needs_bathymetry) then
+      if (size(self%lake_spill_reference_surface_area, kind=i8) /= self%lake_outlets%n_points .or. &
+          size(self%lake_spill_reference_volume, kind=i8) /= self%lake_outlets%n_points) then
+        log_fatal(*) "Input: lake bathymetry arrays have inconsistent sizes."
+        error stop 1
+      end if
     end if
     if (.not.all(ieee_is_finite(self%lake_outlets%x)) .or. .not.all(ieee_is_finite(self%lake_outlets%y))) then
       log_fatal(*) "Input: lake outlet coordinates must be finite."
@@ -1583,17 +1835,42 @@ contains
         log_fatal(*) "Input: lake outlet lies outside its mapped active level-0 cell."
         error stop 1
       end if
+      ! Geographic coordinates of the outlet, for features needing solar geometry (mLM varying albedo).
+      ! A spherical point set already stores lon/lat as x/y; a projected one looks them up from the
+      ! level-0 auxiliary lat/lon coordinates (from the latlon file). Left as nodata if unavailable;
+      ! the consumer (mLM) decides whether that is fatal for its configuration.
+      if (self%lake_outlets%coordsys == spherical) then
+        self%lake_longitude(i) = coords(i, 1)
+        self%lake_latitude(i)  = coords(i, 2)
+      else if (self%exchange%level0%has_aux_coords()) then
+        self%lake_longitude(i) = self%exchange%level0%lon(ix, iy)
+        self%lake_latitude(i)  = self%exchange%level0%lat(ix, iy)
+      end if
     end do
 
-    call self%river_l0%label_lakes(outlet_nodes, self%lake_ids, self%lake_max_levels)
+    call self%river_l0%label_lakes(outlet_nodes, self%lake_ids, self%lake_spill_reference_level)
     call self%build_lake_grids()
     call repack_l0_dp_cache(self%exchange%level0, self%exchange%level0_land, dem_cache, "DEM")
     self%dem%grid => self%exchange%level0_land
     self%exchange%lake_points => self%lake_outlets
     call self%exchange%lake_ids%prepare_data("Input", no_time)
     self%exchange%lake_ids%data => self%lake_ids
-    call self%exchange%lake_max_levels%prepare_data("Input", no_time)
-    self%exchange%lake_max_levels%data => self%lake_max_levels
+    call self%exchange%lake_spill_reference_level%prepare_data("Input", no_time)
+    self%exchange%lake_spill_reference_level%data => self%lake_spill_reference_level
+    ! Publish the reported crest area and volume only for process 1 (the only consumer); these are the
+    ! fields mLM declared itself to consume, and they were not provided in configure for other cases.
+    if (needs_bathymetry) then
+      call self%exchange%lake_spill_reference_surface_area%prepare_data("Input", no_time)
+      self%exchange%lake_spill_reference_surface_area%data => self%lake_spill_reference_surface_area
+      call self%exchange%lake_spill_reference_volume%prepare_data("Input", no_time)
+      self%exchange%lake_spill_reference_volume%data => self%lake_spill_reference_volume
+    end if
+    call self%exchange%lake_initial_level%prepare_data("Input", no_time)
+    self%exchange%lake_initial_level%data => self%lake_initial_level
+    call self%exchange%lake_latitude%prepare_data("Input", no_time)
+    self%exchange%lake_latitude%data => self%lake_latitude
+    call self%exchange%lake_longitude%prepare_data("Input", no_time)
+    self%exchange%lake_longitude%data => self%lake_longitude
   end subroutine input_read_lake_specification
 
   !> \brief Construct complementary land and lake grids on the full level-0 geometry.
@@ -1654,6 +1931,7 @@ contains
     call self%netrad%reset_time(self%chunking, self%exchange%start_time)
     call self%eabs%reset_time(self%chunking, self%exchange%start_time)
     call self%wind%reset_time(self%chunking, self%exchange%start_time)
+    call self%tdew%reset_time(self%chunking, self%exchange%start_time)
     call self%runoff%reset_time(self%chunking, self%exchange%start_time)
   end subroutine input_initialize
 
@@ -1671,6 +1949,7 @@ contains
     call self%netrad%update(self%exchange%raw_netrad%data, self%exchange%time, self%chunking, self%exchange%end_time)
     call self%eabs%update(self%exchange%raw_eabs%data, self%exchange%time, self%chunking, self%exchange%end_time)
     call self%wind%update(self%exchange%raw_wind%data, self%exchange%time, self%chunking, self%exchange%end_time)
+    call self%tdew%update(self%exchange%raw_tdew%data, self%exchange%time, self%chunking, self%exchange%end_time)
     call self%runoff%update(self%exchange%runoff_total%data, self%exchange%time, self%chunking, self%exchange%end_time)
   end subroutine input_update
 
@@ -1689,6 +1968,7 @@ contains
     if (self%netrad%provided .and. .not.self%netrad%static) call self%netrad%ds%close()
     if (self%eabs%provided .and. .not.self%eabs%static) call self%eabs%ds%close()
     if (self%wind%provided .and. .not.self%wind%static) call self%wind%ds%close()
+    if (self%tdew%provided .and. .not.self%tdew%static) call self%tdew%ds%close()
     if (self%runoff%provided) call self%runoff%ds%close()
   end subroutine input_finalize
 
@@ -1701,7 +1981,12 @@ contains
       self%owns_lake_map = .false.
     end if
     if (allocated(self%lake_map)) deallocate(self%lake_map)
-    if (allocated(self%lake_max_levels)) deallocate(self%lake_max_levels)
+    if (allocated(self%lake_spill_reference_level)) deallocate(self%lake_spill_reference_level)
+    if (allocated(self%lake_spill_reference_surface_area)) deallocate(self%lake_spill_reference_surface_area)
+    if (allocated(self%lake_spill_reference_volume)) deallocate(self%lake_spill_reference_volume)
+    if (allocated(self%lake_initial_level)) deallocate(self%lake_initial_level)
+    if (allocated(self%lake_latitude)) deallocate(self%lake_latitude)
+    if (allocated(self%lake_longitude)) deallocate(self%lake_longitude)
     if (self%owns_river_l0) then
       call self%river_l0%destroy()
       self%owns_river_l0 = .false.
@@ -1728,6 +2013,7 @@ contains
     call self%netrad%destroy()
     call self%eabs%destroy()
     call self%wind%destroy()
+    call self%tdew%destroy()
     call self%hydro_mask%destroy()
     call self%runoff%destroy()
     call self%tgt_level0%destroy()

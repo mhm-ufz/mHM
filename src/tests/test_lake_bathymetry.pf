@@ -1,0 +1,117 @@
+module test_lake_bathymetry
+  use funit
+  use mo_kind, only: dp, i4, i8
+  use mo_lake_bathymetry, only: generate_lake_bathymetry
+  use mo_lake_water_balance, only: interpolate_lake_states
+
+  implicit none
+  private
+
+  public :: test_analytical_profiles
+  public :: test_shape1_passes_through_reference
+  public :: test_shape2_passes_through_reference
+  public :: test_curves_are_monotone
+  public :: test_interpolate_volume_roundtrip
+  public :: test_interpolate_clamps_below_lowest
+
+  real(dp), parameter :: ref_level  = 100.0_dp
+  real(dp), parameter :: ref_area   = 1.0e6_dp
+  real(dp), parameter :: ref_volume = 5.0e6_dp
+
+contains
+
+  @test
+  subroutine test_analytical_profiles()
+    real(dp), allocatable :: level(:), area(:), volume(:)
+    real(dp) :: depth, ratio, expected_area, expected_volume
+    integer(i4) :: shape
+    integer(i8) :: row
+    do shape = 1_i4,2_i4
+      call generate_lake_bathymetry(shape,100.0_dp,1.0e4_dp,10050.0_dp,level,area,volume)
+      depth = real(2*shape-1,dp)*10050.0_dp/1.0e4_dp
+      do row = 1_i8,size(level,kind=i8)
+        ratio = (level(row)-(100.0_dp-depth))/depth
+        if (shape == 1_i4) then
+          expected_area = 1.0e4_dp
+          expected_volume = 10050.0_dp*ratio
+        else
+          expected_area = 1.0e4_dp*ratio**2
+          expected_volume = 10050.0_dp*ratio**3
+        end if
+        @assertEqual(expected_area,area(row),tolerance=1.0e-6_dp)
+        @assertEqual(expected_volume,volume(row),tolerance=1.0e-6_dp)
+      end do
+    end do
+  end subroutine test_analytical_profiles
+
+  !> Shape 1 (linear h~V, constant area = Amax): the top of the hAV curve reproduces the reported
+  !> reference level, area and volume.
+  @test
+  subroutine test_shape1_passes_through_reference()
+    real(dp), allocatable :: lvl(:), area(:), vol(:)
+    integer(i8) :: n
+    call generate_lake_bathymetry(1_i4, ref_level, ref_area, ref_volume, lvl, area, vol)
+    n = size(lvl, kind=i8)
+    @assertTrue(n >= 2_i8, message="hAV curve has at least two rows")
+    @assertEqual(ref_level, lvl(n), tolerance=1.0e-6_dp, message="shape1 top level is the reference level")
+    @assertEqual(ref_area, area(n), tolerance=1.0_dp, message="shape1 top area is the reference area")
+    @assertEqual(ref_volume, vol(n), tolerance=1.0_dp, message="shape1 top volume is the reference volume")
+    ! shape 1 holds area constant at Amax
+    @assertEqual(ref_area, area(1), tolerance=1.0_dp, message="shape1 area is constant at Amax")
+  end subroutine test_shape1_passes_through_reference
+
+  !> Shape 2 (Liebe pyramid): the top of the hAV curve reproduces the reported reference values.
+  @test
+  subroutine test_shape2_passes_through_reference()
+    real(dp), allocatable :: lvl(:), area(:), vol(:)
+    integer(i8) :: n
+    call generate_lake_bathymetry(2_i4, ref_level, ref_area, ref_volume, lvl, area, vol)
+    n = size(lvl, kind=i8)
+    @assertEqual(ref_level, lvl(n), tolerance=1.0e-6_dp, message="shape2 top level is the reference level")
+    @assertEqual(ref_area, area(n), tolerance=1.0_dp, message="shape2 top area is the reference area")
+    @assertEqual(ref_volume, vol(n), tolerance=1.0_dp, message="shape2 top volume is the reference volume")
+  end subroutine test_shape2_passes_through_reference
+
+  !> Both curve columns rise monotonically from bottom to top.
+  @test
+  subroutine test_curves_are_monotone()
+    real(dp), allocatable :: lvl(:), area(:), vol(:)
+    integer(i8) :: i, n
+    call generate_lake_bathymetry(2_i4, ref_level, ref_area, ref_volume, lvl, area, vol)
+    n = size(lvl, kind=i8)
+    do i = 2_i8, n
+      @assertTrue(lvl(i) >= lvl(i - 1_i8), message="level column is non-decreasing")
+      @assertTrue(area(i) >= area(i - 1_i8) - 1.0e-6_dp, message="area column is non-decreasing")
+      @assertTrue(vol(i) >= vol(i - 1_i8) - 1.0e-6_dp, message="volume column is non-decreasing")
+    end do
+  end subroutine test_curves_are_monotone
+
+  !> interpolate_lake_states round-trips: level -> volume -> level recovers the queried level for a
+  !> natural lake (flag = .false. so no reservoir crest clamp).
+  @test
+  subroutine test_interpolate_volume_roundtrip()
+    real(dp), allocatable :: lvl(:), area(:), vol(:)
+    real(dp) :: query_level, got_volume, back_level, work
+    call generate_lake_bathymetry(2_i4, ref_level, ref_area, ref_volume, lvl, area, vol)
+    query_level = ref_level - 0.5_dp
+    ! level -> volume
+    work = query_level
+    call interpolate_lake_states(.false., lvl, vol, ref_level, ref_volume, work, got_volume)
+    ! volume -> level
+    work = got_volume
+    call interpolate_lake_states(.false., vol, lvl, ref_volume, ref_level, work, back_level)
+    @assertEqual(query_level, back_level, tolerance=1.0e-3_dp, message="level->volume->level round-trips")
+  end subroutine test_interpolate_volume_roundtrip
+
+  !> A query at or below the lowest curve entry hooks to the lowest value.
+  @test
+  subroutine test_interpolate_clamps_below_lowest()
+    real(dp), allocatable :: lvl(:), area(:), vol(:)
+    real(dp) :: work, got
+    call generate_lake_bathymetry(2_i4, ref_level, ref_area, ref_volume, lvl, area, vol)
+    work = lvl(1) - 10.0_dp        ! far below the lowest level entry
+    call interpolate_lake_states(.false., lvl, vol, ref_level, ref_volume, work, got)
+    @assertEqual(vol(1), got, tolerance=1.0e-9_dp, message="below-range query hooks to the lowest volume")
+  end subroutine test_interpolate_clamps_below_lowest
+
+end module test_lake_bathymetry

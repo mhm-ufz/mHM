@@ -520,3 +520,55 @@
   ! Component order: value, optimize, min, max
   turbulent_heat_exchange_coefficient = 20.0, .false., 10.0, 50.0
 /
+
+! Lakes - Case 1
+&lakes_1
+  ! Spill coefficient of discharge
+  ! Component order: value, optimize, min, max
+  spill_coefficient_of_discharge = 2.0, .true., 1.4, 3.0
+  ! Spill exponent
+  ! Component order: value, optimize, min, max
+  spill_exponent = 1.5, .true., 0.5, 2.5
+  ! Spillway length multiplier
+  ! Component order: value, optimize, min, max
+  spillway_length_multiplier = 1.0, .true., 0.5, 2.0
+  ! Effective lakebed thickness
+  ! Component order: value, optimize, min, max
+  b = 1.0, .true., 0.1, 10.0
+  ! Lakebed PTF constant for saturated hydraulic conductivity
+  ! Component order: value, optimize, min, max
+  ptf_ks_constant = -0.585, .false., -1.2, -0.285
+  ! Lakebed PTF sand multiplier for saturated hydraulic conductivity
+  ! Component order: value, optimize, min, max
+  ptf_ks_sand = 0.0125, .false., 0.006, 0.026
+  ! Lakebed PTF clay multiplier for saturated hydraulic conductivity
+  ! Component order: value, optimize, min, max
+  ptf_ks_clay = 0.0063, .false., 0.003, 0.013
+  ! Lake baseflow recession time for each geological unit [d]
+  ! Component order: value, optimize, min, max
+  baseflow_recession(1) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(2) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(3) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(4) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(5) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(6) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(7) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(8) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(9) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(10) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(11) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(12) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(13) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(14) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(15) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(16) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(17) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(18) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(19) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(20) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(21) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(22) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(23) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(24) = 100.0, .true., 1.0, 1000.0
+  baseflow_recession(25) = 100.0, .true., 1.0, 1000.0
+/

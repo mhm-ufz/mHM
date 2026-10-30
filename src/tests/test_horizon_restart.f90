@@ -82,19 +82,27 @@ contains
     call domain%initialize()
   end subroutine start_domain
 
-  !> \brief Build run-local cases; restart reads omit soil maps and point to absent LUTs.
+  !> \brief Build run-local cases; restart reads omit soil maps and the entire LUT namelist.
   subroutine fixture(mode, restart)
     integer, intent(in) :: mode !< Soil database convention.
     logical, intent(in) :: restart !< Restore cached MPR definition.
     integer :: input, output, status
-    logical :: in_input
+    logical :: in_input, in_lut
     character(2048) :: line
     in_input = .false.
+    in_lut = .false.
     open(newunit=input,file='test_nml/mpr_neutrons_cosmic_minimal.nml',status='old')
     open(newunit=output,file='horizon_case.nml',status='replace')
     do
       read(input,'(a)',iostat=status) line
       if (status /= 0) exit
+      if (restart) then
+        if (index(line,'&config_lut') > 0) in_lut = .true.
+        if (in_lut) then
+          if (trim(adjustl(line)) == '/') in_lut = .false.
+          cycle
+        end if
+      end if
       if (index(line,'&config_input') > 0) in_input = .true.
       if (trim(adjustl(line)) == '/') in_input = .false.
       if (restart .and. in_input) then
@@ -111,9 +119,6 @@ contains
       if (restart) then
         if (index(line,'write_restart(1)') > 0) line = 'read_restart(1) = .true.'
         if (index(line,'restart_output_path(1)') > 0) line = 'restart_input_path(1) = "horizon_restart.nc"'
-        if (index(line,'soil_lut_path(1)') > 0) line = 'soil_lut_path(1) = "absent-soil-lut.txt"'
-        if (index(line,'geo_lut_path(1)') > 0) line = 'geo_lut_path(1) = "absent-geo-lut.txt"'
-        if (index(line,'lai_lut_path(1)') > 0) line = 'lai_lut_path(1) = "absent-lai-lut.txt"'
         if (index(line,'land_cover_path(1)') > 0) line = 'land_cover_path(1) = "absent-land-cover.nc"'
       end if
       write(output,'(a)') trim(line)

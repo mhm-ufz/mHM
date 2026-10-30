@@ -66,6 +66,28 @@
   output_time_reference = 2
   ! Output time step
   output_frequency = -1
+  ! Use station time-series layout for lake-point output
+  output_timeseries = .false.
+  ! Lake level
+  out_lake_level = .false.
+  ! Lake surface area
+  out_lake_surface_area = .false.
+  ! Lake volume
+  out_lake_volume = .false.
+  ! Lake groundwater storage
+  out_lake_gw_storage = .false.
+  ! Lake inflow
+  out_lake_inflow = .false.
+  ! Lake precipitation
+  out_lake_precipitation = .false.
+  ! Lake evaporation
+  out_lake_evaporation = .false.
+  ! Lake seepage
+  out_lake_seepage = .false.
+  ! Lake baseflow
+  out_lake_baseflow = .false.
+  ! Lake spill
+  out_lake_spill = .false.
   ! Lake outflow
   out_lake_outflow = .false.
 /

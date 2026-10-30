@@ -1,0 +1,88 @@
+module test_lake_spillway_length
+  use funit
+  use mo_kind, only: i4, i8, dp
+  use mo_mlm_mpr, only: lake_derive_spillway_length, lake_derive_ks, lake_derive_kbf
+  use mo_grid, only: grid_t
+
+  implicit none
+  private
+
+  public :: test_independent_regionalization
+  public :: test_power_law_value
+  public :: test_multiplier_scaling
+  public :: test_monotonic_in_area
+
+  real(dp), parameter :: coefficient = 2.7_dp
+  real(dp), parameter :: expo        = 0.35_dp
+
+contains
+
+  @test
+  subroutine test_independent_regionalization()
+    type(grid_t) :: grid
+    real(dp), allocatable :: ks(:), kbf(:), cached_ks(:), cached_kbf(:)
+    integer(i8) :: map(3), ids(2), membership(3)
+    call grid%init(3_i4,1_i4,cellsize=1.0_dp)
+    map = [101_i8,205_i8,101_i8]
+    ids = [205_i8,101_i8]
+    membership = [2_i8,1_i8,2_i8]
+    call lake_derive_ks(grid,map,ids,[40.0_dp,70.0_dp,0.0_dp],[20.0_dp,10.0_dp,100.0_dp], &
+      [-0.585_dp,0.0125_dp,0.013_dp,60.96_dp],ks)
+    ! Independent base-10 evaluation: third cell is clipped to the 1.1 cm/day floor.
+    @assertEqual([88.11400842467175_dp,14.32256918454764_dp],ks,tolerance=1.0e-10_dp)
+    call lake_derive_ks(grid,map,ids,[40.0_dp,70.0_dp,0.0_dp],[20.0_dp,10.0_dp,100.0_dp], &
+      [-0.585_dp,0.0125_dp,0.013_dp,60.96_dp],cached_ks,membership)
+    @assertEqual(ks,cached_ks,tolerance=1.0e-12_dp)
+    call lake_derive_kbf(map,ids,[104_i4,207_i4,104_i4],[207_i4,104_i4],[2_i4,1_i4],[10.0_dp,80.0_dp],kbf)
+    @assertEqual([80.0_dp,10.0_dp],kbf,tolerance=1.0e-12_dp)
+    call lake_derive_kbf(map,ids,[104_i4,207_i4,104_i4],[207_i4,104_i4],[2_i4,1_i4], &
+      [10.0_dp,80.0_dp],cached_kbf,membership,[1_i4,2_i4,1_i4])
+    @assertEqual(kbf,cached_kbf,tolerance=1.0e-12_dp)
+    call grid%destroy()
+  end subroutine test_independent_regionalization
+
+  !> Ls = m * 2.7 * CA^0.35, CA given in m2 and converted to km2 internally.
+  @test
+  subroutine test_power_law_value()
+    real(dp), allocatable :: ls(:)
+    real(dp) :: ca_m2(2), expected(2)
+
+    ! 100 km2 and 10000 km2 expressed in m2
+    ca_m2 = [100.0_dp * 1.0e6_dp, 10000.0_dp * 1.0e6_dp]
+    expected = 1.0_dp * coefficient * [100.0_dp, 10000.0_dp] ** expo
+
+    call lake_derive_spillway_length(ca_m2, 1.0_dp, ls)
+
+    @assertEqual(2, size(ls, kind=i4))
+    @assertEqual(expected(1), ls(1), tolerance=1.0e-9_dp)
+    @assertEqual(expected(2), ls(2), tolerance=1.0e-9_dp)
+    ! sanity magnitudes: ~13.5 m and ~67.8 m
+    @assertEqual(13.5_dp, ls(1), tolerance=0.1_dp)
+    @assertEqual(67.8_dp, ls(2), tolerance=0.2_dp)
+  end subroutine test_power_law_value
+
+  !> The multiplier m scales Ls linearly.
+  @test
+  subroutine test_multiplier_scaling()
+    real(dp), allocatable :: ls1(:), ls2(:)
+    real(dp) :: ca_m2(1)
+
+    ca_m2 = [250.0_dp * 1.0e6_dp]
+    call lake_derive_spillway_length(ca_m2, 1.0_dp, ls1)
+    call lake_derive_spillway_length(ca_m2, 2.0_dp, ls2)
+    @assertEqual(2.0_dp * ls1(1), ls2(1), tolerance=1.0e-9_dp)
+  end subroutine test_multiplier_scaling
+
+  !> Ls increases with catchment area.
+  @test
+  subroutine test_monotonic_in_area()
+    real(dp), allocatable :: ls(:)
+    real(dp) :: ca_m2(3)
+
+    ca_m2 = [1.0_dp, 100.0_dp, 10000.0_dp] * 1.0e6_dp
+    call lake_derive_spillway_length(ca_m2, 1.3_dp, ls)
+    @assertTrue(ls(2) > ls(1))
+    @assertTrue(ls(3) > ls(2))
+  end subroutine test_monotonic_in_area
+
+end module test_lake_spillway_length

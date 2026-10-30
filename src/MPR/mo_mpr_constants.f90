@@ -68,4 +68,10 @@ MODULE mo_mpr_constants
   !> maximum bulk surface resistance
   real(dp), public, parameter :: max_surfResist = 250.0_dp
 
+  !> Minimum lakebed conductivity [cm d-1], inherited from the Cosby regionalization.
+  real(dp), public, parameter :: lake_Ks_floor = 1.1_dp
+  !> Empirical outlet width coefficient; catchment area is expressed in km2.
+  real(dp), public, parameter :: lake_width_coefficient = 2.7_dp
+  real(dp), public, parameter :: lake_width_exponent = 0.35_dp
+  real(dp), public, parameter :: lake_area_to_km2 = 1.0e-6_dp
 END MODULE mo_mpr_constants

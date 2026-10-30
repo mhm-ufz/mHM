@@ -65,6 +65,8 @@ program test_neutron_parallel
     mhm%exchange => exchange
     status = mhm%config%set()
     if (status /= 0) error stop 'mHM configuration failed'
+    status = mhm%output_config%init()
+    if (status /= 0) error stop 'mHM output defaults failed'
     call mhm%configure()
     call mhm%prepare_restart()
     call mhm%connect()

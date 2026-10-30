@@ -53,13 +53,16 @@
   land_cover_path(1)     = "examples/fixtures/lc_static.nc"
   land_cover_var(1)      = "land_cover"
   lai_time_step(1)       = 0
-  soil_lut_path(1)       = "examples/domain_01/input/morph/soil_classdefinition.txt"
-  geo_lut_path(1)        = "examples/domain_01/input/morph/geology_classdefinition.txt"
-  lai_lut_path(1)        = "examples/domain_01/input/morph/LAI_classdefinition.txt"
 /
 
 &config_mhm
   read_restart(1)        = .true.
   restart_input_path(1)  = "mhm_runoff_baseflow_restart.nc"
   evap_coeff(:,1)        = 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
+/
+
+&config_lut
+  soil_lut_path(1)       = "examples/domain_01/input/morph/soil_classdefinition.txt"
+  geo_lut_path(1)        = "examples/domain_01/input/morph/geology_classdefinition.txt"
+  lai_lut_path(1)        = "examples/domain_01/input/morph/LAI_classdefinition.txt"
 /

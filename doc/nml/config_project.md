@@ -20,6 +20,7 @@ Configuration for the overall project setup in mHM.
 | [optimize](#optimize) | logical | no | no | Enable optimization |
 | [n_domains](#n_domains) | integer | no | no | Number of domains |
 | [n_geo_units](#n_geo_units) | integer | no | no | Number of geological units |
+| [max_lakes](#max_lakes) | integer | no | no | Maximum number of lakes per domain |
 | [max_layers](#max_layers) | integer | no | no | Maximum number of soil layers |
 | [read_domains_from_dirs](#read_domains_from_dirs) | logical | no | no | Flag for separate domains |
 
@@ -133,6 +134,20 @@ Summary:
 - Input required: no
 - Default: `25`
 
+### max_lakes
+
+Maximum number of lakes per domain `max_lakes`
+
+Maximum number of lakes in any single domain.
+Sizing dimension for the per-lake mLM arrays (dimension [n_domains, max_lakes]).
+
+Summary:
+- Type: `integer(i4)`
+- Declared required: no
+- Input required: no
+- Default: `1`
+- Minimum: `>= 1`
+
 ### max_layers
 
 Maximum number of soil layers `max_layers`
@@ -173,6 +188,7 @@ Summary:
   optimize = .false.
   n_domains = 1
   n_geo_units = 25
+  max_lakes = 1
   max_layers = 10
   read_domains_from_dirs = .false.
 /

@@ -11,7 +11,7 @@
 !> \date    September 2026
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! This code is released under the LGPLv3+ license \license_note
-!> \ingroup f_mLM
+!> \ingroup f_meteo
 #include "logging.h"
 module mo_lake_forcing
   use mo_logging
@@ -21,20 +21,53 @@ module mo_lake_forcing
   use mo_orderpack, only: sort
   implicit none
   private
-  public :: lake_support_t, lake_support_build, lake_unique_counts
+  public :: lake_support_t, lake_support_build, lake_unique_counts, lake_grids_match
+  !> \class lake_support_t
+  !> \brief Sparse count-weighted L2 cells for one lake.
   type :: lake_support_t
-    integer(i8), allocatable :: l2_ids(:)
-    real(dp), allocatable :: weights(:)
+    integer(i8), allocatable :: l2_ids(:) !< sorted packed native forcing indices
+    real(dp), allocatable :: weights(:) !< normalized double-precision cell-count weights
   contains
     procedure :: aggregate => lake_support_aggregate
   end type lake_support_t
 contains
 
+  !> \brief Compare complete geometry, orientation, mask and packed order.
+  logical function lake_grids_match(a, b, geometry_only) result(matches)
+    type(grid_t), intent(in) :: a !< first forcing grid
+    type(grid_t), intent(in) :: b !< second forcing grid
+    logical, optional, intent(in) :: geometry_only !< compare axes only for unpacked source weight files
+    matches = .false.
+    if (a%nx /= b%nx .or. a%ny /= b%ny) return
+    if (a%coordsys /= b%coordsys .or. a%y_direction /= b%y_direction) return
+    if (abs(a%cellsize-b%cellsize) > 1.0e-10_dp*max(1.0_dp,abs(a%cellsize))) return
+    if (abs(a%xllcorner-b%xllcorner) > 1.0e-10_dp*max(1.0_dp,abs(a%cellsize))) return
+    if (abs(a%yllcorner-b%yllcorner) > 1.0e-10_dp*max(1.0_dp,abs(a%cellsize))) return
+    if (present(geometry_only)) then
+      if (geometry_only) then
+        matches = .true.
+        return
+      end if
+    end if
+    if (a%ncells /= b%ncells) return
+    if (any(a%mask .neqv. b%mask)) return
+    if (a%has_aux_coords() .neqv. b%has_aux_coords()) return
+    if (a%has_aux_coords()) then
+      if (any(abs(a%lat-b%lat) > 1.0e-10_dp)) return
+      if (any(abs(a%lon-b%lon) > 1.0e-10_dp)) return
+    end if
+    if (any(a%cell_ij /= b%cell_ij)) return
+    if (any(a%mask_col_cnt /= b%mask_col_cnt)) return
+    if (any(a%mask_cum_col_cnt /= b%mask_cum_col_cnt)) return
+    matches = .true.
+  end function lake_grids_match
+
   !> \brief Return sorted unique values and occurrence counts under an optional mask.
-  subroutine lake_unique_counts(values, unique, counts, mask)
-    integer(i4), intent(in) :: values(:)
-    integer(i8), allocatable, intent(out) :: unique(:), counts(:)
-    logical, optional, intent(in) :: mask(:)
+  recursive subroutine lake_unique_counts(values, unique, counts, mask)
+    integer(i4), intent(in) :: values(:) !< values
+    integer(i8), allocatable, intent(out) :: unique(:) !< unique
+    integer(i8), allocatable, intent(out) :: counts(:) !< counts
+    logical, optional, intent(in) :: mask(:) !< mask
     integer(i4), allocatable :: selected(:)
     integer(i8) :: i, n_unique
 
@@ -70,19 +103,27 @@ contains
 
   !> \brief Build count-weighted sparse level-2 support for every configured lake.
   subroutine lake_support_build(level2, level0_lake, lake_map, lake_ids, support)
-    type(grid_t), target, intent(in) :: level2, level0_lake
-    integer(i8), intent(in) :: lake_map(:), lake_ids(:)
-    type(lake_support_t), allocatable, intent(out) :: support(:)
+    type(grid_t), target, intent(in) :: level2 !< native forcing grid
+    type(grid_t), target, intent(in) :: level0_lake !< packed lake footprint geometry
+    integer(i8), intent(in) :: lake_map(:) !< lake map
+    integer(i8), intent(in) :: lake_ids(:) !< lake ids
+    type(lake_support_t), allocatable, intent(out) :: support(:) !< normalized sparse support for each stable lake ID
     type(scaler_t) :: scaler
     integer(i4), allocatable :: l2_ids(:)
     integer(i8), allocatable :: counts(:)
     integer(i8) :: lake, n, total
+    do lake = 1_i8, size(lake_ids,kind=i8)
+      if (lake_ids(lake) <= 0_i8 .or. count(lake_ids == lake_ids(lake)) /= 1) then
+        log_fatal(*) "Lake forcing: stable lake IDs must be positive and unique."
+        error stop 1
+      end if
+    end do
     if (size(lake_map, kind=i8) /= level0_lake%ncells) then
       log_fatal(*) "Lake forcing: map does not match level-0 lake grid."
       error stop 1
     end if
     call scaler%init(level2, level0_lake, downscaling_operator=down_nearest)
-    if (any(scaler%id_map < 1_i8) .or. any(scaler%id_map > int(huge(0_i4), i8))) then
+    if (any(scaler%id_map < 1_i8) .or. any(scaler%id_map > min(level2%ncells,int(huge(0_i4), i8)))) then
       log_fatal(*) "Lake forcing: lake cells are not covered by valid level-2 cells."
       error stop 1
     end if
@@ -100,7 +141,7 @@ contains
     end do
     !$omp end parallel do
     do lake = 1_i8, size(support, kind=i8)
-      if (.not.allocated(support(lake)%l2_ids)) then
+      if (.not.allocated(support(lake)%weights)) then
         log_fatal(*) "Lake forcing: lake map has unknown, duplicate, or empty lake IDs."
         error stop 1
       end if
@@ -112,9 +153,9 @@ contains
   end subroutine lake_support_build
 
   !> \brief Aggregate one packed level-2 field over this lake support.
-  function lake_support_aggregate(self, field) result(result)
-    class(lake_support_t), intent(in) :: self
-    real(dp), intent(in) :: field(:)
+  recursive function lake_support_aggregate(self, field) result(result)
+    class(lake_support_t), target, intent(in) :: self
+    real(dp), intent(in) :: field(:) !< field
     real(dp) :: result
     result = sum(field(self%l2_ids) * self%weights)
   end function lake_support_aggregate

@@ -55,6 +55,18 @@ workflows before changing components or configuration; this file defines the det
 
 ## Paths, time, and parameters
 
+- mLM restarts always retain per-lake footprint areas for cases 1 and -2. `restart_save_topology`
+  defaults to false and controls writing only; requested but unavailable L0 geometry is an error.
+  Restore restart-owned IDs/points before connection without replacing Input-owned geometry.
+  Require the current versioned mLM restart format and complete case-specific definition; older
+  lake restarts must be regenerated, without legacy reconstruction or parameter fallbacks.
+- Meteo restart owns lake forcing support and active disaggregation settings, independent of dates.
+  Validate full L2 geometry, orientation, masks, packing, stable IDs and normalized weights before reuse;
+  rebuild from L0 geometry when L2 changes. Configure active disaggregation settings consistently
+  with the saved support; boolean defaults are effective values, not omission sentinels. Keep all
+  namelist reading in generated configuration code. Input reopens forcing; land caches rebuild normally.
+  Freeze effective generating parameters behind restored mLM Ks, recession and spillway length,
+  including borrowed land parameters. Fetch other runtime lake coefficients on every initialize.
 - Configure complete component input/output/restart file paths explicitly; do not infer filenames,
   assume standard subfolders, or search for inputs. Resolve paths with `exchange%get_path`:
   relative to the domain working directory by default, or the run root with `root=.true.`.
@@ -65,8 +77,13 @@ workflows before changing components or configuration; this file defines the det
   input lookup, output/restart timestamps, aggregation flushing, diagnostics, and simulation-end checks.
 - Positive output frequencies are fixed hours: compatible with mHM's model step and whole multiples
   in either direction of mRM's completed routing step. Only mRM backward-fills finer records with completed routing means.
-- Write mHM restarts at its output boundaries; write mRM restarts at completed routing boundaries
-  and its output boundaries when output is active. Never persist partial routing accumulators.
+- Write mHM/mLM restarts at completed model steps and, when output is active, at output boundaries.
+  mRM always requires completed routing boundaries and, when output is active, output boundaries.
+  Never persist partial routing accumulators or output aggregation buffers.
+- Output namelists are optional. Gate output-only input requirements and runtime cadence checks on
+  active output, which implies a configured namelist; do not initialize absent output configurations
+  just to read their fields. A configured namelist without an active output stream adds no output-only
+  input requirements or output-cadence constraint on restarts.
 - Keep data-only `parameter_t` application-owned in `mo_parameter_types`; schemas reference it with
   `x-fortran-module`. Preserve field/schema order `value, optimize, min, max`; do not duplicate the type in `nml_helper`.
 - Keep parameter input instances in `exchange%config%parameters`, separate from the flattened runtime
@@ -84,6 +101,13 @@ workflows before changing components or configuration; this file defines the det
 - Meteo accepts 1-hour and 24-hour model steps; routing-only intermediate cadences remain supported.
   Use FORCES scalers directly with explicit count weights and cached bounds for land forcing and weight maps.
   Keep lake support integration and the forcing/PET/disaggregation order intact.
+- All soil, geology, and LAI LUT paths belong in exchange-owned `config_lut`. Shared
+  input helpers decode the tables; consumers own parsed data and process-specific caches.
+  MPR restart reads require no LUT paths or original LUT files.
+- Input provides general model datasets. Document component-owned input exceptions:
+  MPR reads full-period land-cover/LAI sources for regionalization caches, meteo reads
+  disaggregation weights, and mRM reads gauge/POI locations. MPR uses interval-start
+  timestamps for its temporal sources, independently of Input's timestamp setting.
 - PET kernels and coefficients belong in meteo; hydrology/neutron constants in mHM, regionalization
   coefficients in MPR, neutral run defaults/file-format identifiers in common, and exchange contracts in domain.
 - Prepare numerical scratch during initialization. Pass strided soil-horizon slices directly to
