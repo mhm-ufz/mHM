@@ -5,4 +5,7 @@ build:
   tools:
     python: "miniconda3-3.12-24.9"
   commands:
-    - bash doc/readthedocs_build.sh
+    - bash doc/readthedocs_build.sh environment
+    - bash doc/readthedocs_build.sh doxygen
+    - bash doc/readthedocs_build.sh pdf
+    - bash doc/readthedocs_build.sh publish

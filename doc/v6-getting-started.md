@@ -86,9 +86,14 @@ its styles and extensions are copied unchanged into `doc/doxygen-awesome-css/`.
 The header shows Doxygen's standard project version from `version.txt`;
 Read the Docs provides the version switcher and PDF download through its flyout.
 
-Build the PDF with system TeX Live using `make -C latex`. On Read the Docs,
-`doc/readthedocs_build.sh` publishes HTML and PDF, logs the PDF build to
-`doxygen_latex_make.log`, and prints the last 80 log lines on failure.
+Build the PDF with system TeX Live using `make -C latex`. The extra stylesheet
+`doc/mhm_api_tables.sty` uses `xltabular` for API parameter tables to reduce PDF
+build time; install the corresponding TeX Live package for local PDF builds.
+On Read the Docs, environment creation, Doxygen, PDF compilation, and publishing
+run as separate commands so the build log identifies the current phase.
+`doc/readthedocs_build.sh` runs all phases when called without arguments, logs
+the PDF build to `doxygen_latex_make.log`, and prints the last 80 log lines on
+failure. Set `MHM_DOCS_ENV` to use a different Conda environment name.
 The theme, headers, references, and figures remain in `doc/`.
 
 The Python package provides `mhm.run_forward`, `mhm.__version__`, `mhm.f_version`,

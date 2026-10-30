@@ -1,0 +1,23 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{mhm_api_tables}
+% Doxygen 1.18 parameter tables are expensive to measure with tabularray.
+% Keep parameter directions, names and wrapping descriptions in a multipage
+% xltabular table. Other Doxygen tables retain their standard renderer.
+\RequirePackage{xltabular}
+\NewDocumentCommand{\mhmDoxyParamsTable}{m m +m +m}{%
+  \begin{xltabular}[l]{\linewidth}{#2}%
+  \multicolumn{#1}{@{}l@{}}{\textbf{#3}}\\*[1ex]%
+  \hline%
+  #4%
+  \end{xltabular}%
+  \par\addvspace{6pt}%
+}
+\RenewDocumentEnvironment{DoxyParams}{O{0} m +b}{%
+  \ifcase#1\relax
+    \mhmDoxyParamsTable{2}{|l|X|}{#2}{#3}%
+  \or
+    \mhmDoxyParamsTable{3}{|l|l|X|}{#2}{#3}%
+  \else
+    \mhmDoxyParamsTable{4}{|l|l|l|X|}{#2}{#3}%
+  \fi
+}{}
