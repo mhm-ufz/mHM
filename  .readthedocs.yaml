@@ -1,0 +1,50 @@
+version: 2
+
+formats:
+  - pdf
+
+build:
+  os: ubuntu-24.04
+  tools:
+    python: "miniconda3-3.12-24.9"
+
+  apt_packages:
+    - gfortran
+    - graphviz
+
+  jobs:
+    install:
+      # Install documentation tools in a separate environment.
+      - >-
+        conda create --yes --name mhm-docs
+        --override-channels --channel conda-forge
+        doxygen=1.11.0 tectonic=0.15.0
+
+    pre_build:
+      # Fail early if the Fortran preprocessor is unavailable.
+      - gfortran --version
+
+      # Generates html/ and latex/ from the repository root.
+      - >-
+        FC=gfortran PROJECT_NUMBER="$(cat version.txt)"
+        conda run --no-capture-output --name mhm-docs
+        doxygen doc/doxygen.config
+
+    build:
+      html:
+        - mkdir -p "$READTHEDOCS_OUTPUT/html"
+        - cp -a html/. "$READTHEDOCS_OUTPUT/html/"
+
+      pdf:
+        # Keep the working directory expected by the LaTeX header.
+        - >-
+          cd latex &&
+          conda run --no-capture-output --name mhm-docs
+          tectonic -r 10 refman.tex
+
+        # Publish through RTD's downloads menu.
+        - mkdir -p "$READTHEDOCS_OUTPUT/pdf"
+        - cp latex/refman.pdf "$READTHEDOCS_OUTPUT/pdf/mhm.pdf"
+
+        # Preserve the current HTML link to mhm_doc.pdf.
+        - cp latex/refman.pdf "$READTHEDOCS_OUTPUT/html/mhm_doc.pdf"
