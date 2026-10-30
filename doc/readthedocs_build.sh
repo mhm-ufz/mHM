@@ -28,17 +28,11 @@ export PROJECT_NUMBER
 doxygen --version
 dot -V
 
-# Generate HTML and LaTeX.
-doxygen doc/doxygen.config
+# Override LaTeX generation for this HTML-only build.
+{
+  cat doc/doxygen.config
+  printf '\nGENERATE_LATEX = NO\n'
+} | doxygen -
 
-# Compile the PDF from the directory expected by the LaTeX header.
-(
-  cd latex
-  tectonic -r 10 -Z continue-on-errors refman.tex
-)
-
-# Stage the documentation for Read the Docs.
-mkdir -p "${output_dir}/html" "${output_dir}/pdf"
+mkdir -p "${output_dir}/html"
 cp -a html/. "${output_dir}/html/"
-cp latex/refman.pdf "${output_dir}/html/mhm_doc.pdf"
-cp latex/refman.pdf "${output_dir}/pdf/mhm.pdf"
