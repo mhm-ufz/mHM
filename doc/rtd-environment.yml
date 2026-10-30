@@ -1,0 +1,10 @@
+channels:
+  - conda-forge
+  - nodefaults
+
+dependencies:
+  - python=3.12
+  - doxygen=1.11.0
+  - tectonic=0.15.0
+  - graphviz
+  - fortran-compiler
