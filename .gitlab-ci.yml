@@ -105,14 +105,33 @@ show-env-vars:
     - module load Mamba
     - source activate /global/apps/mhm_checks/mhm_env
     - cmake -DSOURCE_DIR="$PWD" -DRUN_DIR="$PWD/build/valgrind-run" -P CI-scripts/stage_run.cmake
+    - mkdir -p build/valgrind-logs
     - valgrind --version
-    - valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./mhm_debug -n test_nml/mrm_minimal.nml -p test_nml/mhm_parameter_v6_routing.nml -o mhm-output-template.nml build/valgrind-run
+    # Host uprobes in clearenv break Valgrind's libc cleanup; application cleanup still runs.
+    - >-
+      valgrind --tool=memcheck --error-exitcode=99 --leak-check=full
+      --errors-for-leak-kinds=definite,indirect,possible --show-leak-kinds=all
+      --track-origins=yes --run-libc-freeres=no
+      --log-file=build/valgrind-logs/memcheck.log
+      ./mhm_debug -n test_nml/mrm_minimal.nml -p test_nml/mhm_parameter_v6_routing.nml
+      -o mhm-output-template.nml build/valgrind-run
+      > build/valgrind-logs/model-memcheck.log 2>&1
+    - tail -n 12 build/valgrind-logs/memcheck.log
     # execute mem-use check
-    - valgrind --tool=massif --stacks=yes --time-unit=i --massif-out-file=massif.out.0 ./mhm_debug -n test_nml/mrm_minimal.nml -p test_nml/mhm_parameter_v6_routing.nml -o mhm-output-template.nml build/valgrind-run
-    - ms_print massif.out.0
+    - >-
+      valgrind --tool=massif --stacks=yes --time-unit=i --run-libc-freeres=no
+      --massif-out-file=build/valgrind-logs/massif.out
+      --log-file=build/valgrind-logs/massif.log
+      ./mhm_debug -n test_nml/mrm_minimal.nml -p test_nml/mhm_parameter_v6_routing.nml
+      -o mhm-output-template.nml build/valgrind-run
+      > build/valgrind-logs/model-massif.log 2>&1
+    # Invoke Perl explicitly because packaged ms_print can retain a build-time shebang.
+    - perl "$(command -v ms_print)" build/valgrind-logs/massif.out > build/valgrind-logs/massif.txt
+    - cat build/valgrind-logs/massif.txt
   artifacts:
+    when: always
     paths:
-    - massif.out.0
+    - build/valgrind-logs/
 
 ###################
 ### PY-BINDINGS ###
@@ -279,13 +298,14 @@ valgrind-gfortran122:
       artifacts: true
   <<: *valgrind_template
 
-valgrind-intel2023b-classic:
-  variables:
-    COMPILER: intel2023b-classic
-  needs:
-    - job: cmake-intel2023b-classic
-      artifacts: true
-  <<: *valgrind_template
+# Intel runtime diagnostics call setenv at EOF, hitting host uprobes under Valgrind.
+# valgrind-intel2023b-classic:
+#   variables:
+#     COMPILER: intel2023b-classic
+#   needs:
+#     - job: cmake-intel2023b-classic
+#       artifacts: true
+#   <<: *valgrind_template
 
 ################
 ### COVERAGE ###
