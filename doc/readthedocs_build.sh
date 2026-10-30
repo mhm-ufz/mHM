@@ -8,6 +8,7 @@ cd "${repo_dir}"
 conda_env_name="mhm-docs"
 output_dir="${READTHEDOCS_OUTPUT:-_readthedocs}"
 
+# Create and activate the documentation environment.
 conda env create --quiet \
   --name "${conda_env_name}" \
   --file doc/rtd-environment.yml
@@ -15,24 +16,24 @@ conda env create --quiet \
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "${conda_env_name}"
 
-# Select and export the compiler for doc/pre-proc.sh.
-FC="$(command -v gfortran)"
-export FC
-"${FC}" --version
-
+# Supply version metadata and the compiler for doc/pre-proc.sh.
 PROJECT_NUMBER="$(cat version.txt)"
 export PROJECT_NUMBER
 
-# Compiler activation supplies FC for doc/pre-proc.sh.
-"${FC:?Conda activation did not configure a Fortran compiler}" --version
+FC="$(command -v gfortran)"
+export FC
+
+"${FC}" --version
 doxygen --version
 dot -V
+pdflatex --version
 
-# Override LaTeX generation for this HTML-only build.
-{
-  cat doc/doxygen.config
-  printf '\nGENERATE_LATEX = NO\n'
-} | doxygen -
+# Generate HTML and LaTeX, then build the PDF with system TeX Live.
+doxygen doc/doxygen.config
+make -C latex
 
-mkdir -p "${output_dir}/html"
+# Stage HTML and PDF for Read the Docs.
+mkdir -p "${output_dir}/html" "${output_dir}/pdf"
 cp -a html/. "${output_dir}/html/"
+cp latex/refman.pdf "${output_dir}/html/mhm_doc.pdf"
+cp latex/refman.pdf "${output_dir}/pdf/mhm.pdf"
