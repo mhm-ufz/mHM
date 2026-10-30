@@ -34,7 +34,7 @@ doxygen doc/doxygen.config
 # Compile the PDF from the directory expected by the LaTeX header.
 (
   cd latex
-  tectonic -r 10 -Z continue-on-error refman.tex
+  tectonic -r 10 -Z continue-on-errors refman.tex
 )
 
 # Stage the documentation for Read the Docs.
