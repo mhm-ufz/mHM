@@ -15,6 +15,11 @@ conda env create --quiet \
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "${conda_env_name}"
 
+# Select and export the compiler for doc/pre-proc.sh.
+FC="$(command -v gfortran)"
+export FC
+"${FC}" --version
+
 PROJECT_NUMBER="$(cat version.txt)"
 export PROJECT_NUMBER
 
