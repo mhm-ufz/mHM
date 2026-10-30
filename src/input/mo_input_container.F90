@@ -360,7 +360,8 @@ contains
     type(grid_t), intent(inout), pointer :: grid !< grid for the variable
     logical, intent(in) :: init_grid !< whether to initialize the grid
     logical, intent(in), optional :: layered !< whether the variable has a layer dimension
-    character(:), allocatable :: grid_init_var
+    type(var) :: vars(1)
+    character(:), allocatable :: grid_init_var, var_name
     logical :: layered_
     if (.not.self%provided) return
     layered_ = .false.
@@ -390,17 +391,11 @@ contains
       return
     end if
 
-    if (init_grid) then
-      grid_init_var = self%name ! allocate variable name for grid initialization
-      call self%ds%init(path=self%path, vars=[var(name=trim(self%name), kind=kind, static=self%static, layered=layered_, &
-        allow_static=self%allow_static)], &
-        timestamp=timestamp, grid=grid, grid_init_var=grid_init_var, tol=1.0e-5_dp)
-    else
-      call self%ds%init(path=self%path, vars=[var(name=trim(self%name), kind=kind, static=self%static, layered=layered_, &
-        allow_static=self%allow_static)], &
-        timestamp=timestamp, grid=grid, tol=1.0e-5_dp)
-    end if
+    var_name = self%name ! GNU 12 needs local metadata and name storage to avoid constructor bugs
+    if (init_grid) grid_init_var = self%name ! allocate variable name for grid initialization (non-present otherwise)
+    vars(1) = var(name=var_name, kind=kind, static=self%static, layered=layered_, allow_static=self%allow_static)
     ! TODO: make tol configurable in case of single precision variables with small values
+    call self%ds%init(path=self%path, vars=vars, timestamp=timestamp, grid=grid, grid_init_var=grid_init_var, tol=1.0e-5_dp)
     self%static = self%ds%static
     self%stepping = merge(no_time, self%ds%timestep, self%static)
     self%var_id = self%ds%var_index(self%name)
